@@ -1,7 +1,7 @@
 # Nexus V0 Plan Reconciliation
 
 Baseline: `c96885218b3cff319f481aed4423dc5fd7b52a30`  
-Canonical implementation: `feat/nexus-v0-implementation`
+Canonical implementation: `feat/nexus-v0-implementation`; final SHA is recorded in the completion verdict.
 
 | Plan | Task | Required capability | Code evidence | Test evidence | Status |
 |---|---|---|---|---|---|

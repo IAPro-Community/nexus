@@ -6,7 +6,7 @@ Baseline: `c96885218b3cff319f481aed4423dc5fd7b52a30`
 | Worktree | Path | Branch | HEAD | Commits after baseline | Dirty tracked | Untracked | Nexus V0 evidence | Role |
 |---|---|---|---|---:|---:|---:|---|---|
 | Root | `/projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager` | `feat/nexus-maximum-delivery` | `c968852` | 0 | yes | yes | terminal protocol consumer fix; bootstrap docs | BASELINE_ROOT |
-| V0 implementation | `.worktrees/nexus-v0-implementation` | `feat/nexus-v0-implementation` | `c968852` | 0 | yes | yes | Workspace presentation, desktop windows, launcher, Ask Agent, attention and protocol work | PRIMARY_IMPLEMENTATION |
+| V0 implementation | `.worktrees/nexus-v0-implementation` | `feat/nexus-v0-implementation` | canonical recovery HEAD | 2 recovery commits plus docs | clean after consolidation | none | Workspace presentation, desktop windows, launcher, Ask Agent, attention and protocol work | PRIMARY_IMPLEMENTATION |
 | Production validation | `.worktrees/production-validation` | `feat/nexus-production-validation` | `58d2bf0` | 0 relative to baseline (baseline is descendant) | no | no | historical validation artifacts; no active V0 source | SECONDARY_IMPLEMENTATION |
 
 ## Recovery decisions
