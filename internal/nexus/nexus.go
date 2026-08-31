@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -293,6 +294,37 @@ func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile strin
 	n.notifyAgentState(agentID, "WORKING")
 
 	return sess, nil
+}
+
+// AskAgent submits a prompt to an existing Agent runtime without creating a
+// new Agent identity. Starting a stopped Agent remains an explicit lifecycle
+// operation so callers can decide which provider/profile to use first.
+func (n *Nexus) AskAgent(ctx context.Context, agentID, instruction string) (store.Agent, error) {
+	if strings.TrimSpace(instruction) == "" {
+		return store.Agent{}, fmt.Errorf("instruction is required")
+	}
+	st, err := n.OpenProject()
+	if err != nil {
+		return store.Agent{}, err
+	}
+	agent, err := st.GetAgent(agentID, "")
+	if err != nil {
+		return store.Agent{}, err
+	}
+	gen, err := st.CurrentGeneration(agentID)
+	if err != nil || gen.RuntimeID == "" {
+		return store.Agent{}, fmt.Errorf("agent %s has no active runtime; start it before asking", agentID)
+	}
+	client, err := protocol.NewClient(gen.RuntimeID)
+	if err != nil {
+		return store.Agent{}, fmt.Errorf("connect to agent runtime: %w", err)
+	}
+	defer client.Close()
+	input := strings.TrimSpace(instruction) + "\n"
+	if _, err := client.Send(protocol.CmdInput, protocol.InputPayload{Data: input}); err != nil {
+		return store.Agent{}, fmt.Errorf("send agent instruction: %w", err)
+	}
+	return agent, nil
 }
 
 // StopAgent performs a verified stop: sets STOPPING, sends graceful stop,

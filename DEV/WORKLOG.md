@@ -527,6 +527,14 @@
 
 ---
 
+## 2026-08-30 — Nexus V0 continuation
+
+- Added semantic desktop presentation state with project-scoped persistence and a launcher that only routes to supported surfaces.
+- Added `AskAgent` API/UI flow that sends instructions to the existing Agent and never creates a replacement Agent.
+- Fixed global attention resurrection for stopped/stale runtimes and persisted dismissal by runtime/context key.
+- Evidence: full Go race suite, vet, Windows cross-compilation, frontend typecheck/lint/tests/build, embedded sync and diff check pass.
+- Remaining: Project Shell, later V0 plans, native platform runtime, real-provider/browser E2E, CI and release gates.
+
 ## 2026-08-29 — Workspace OS Finalization Autopilot
 
 **Session**: IAPro Nexus Workspace OS Finalization (this session)

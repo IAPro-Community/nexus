@@ -19,6 +19,7 @@ import { nexus } from '../nexus/api';
 import { AttentionIntermediationBanner } from '../components/AttentionIntermediationBanner';
 import { pushNotifications } from '../notifications/PushNotificationManager';
 import type { Agent, Project, RuntimeSession } from '../types';
+import { WorkspaceLauncher } from '../workspace/WorkspaceLauncher';
 
 export const NexusShell: React.FC<{
   project: Project;
@@ -41,7 +42,7 @@ export const NexusShell: React.FC<{
   rail,
   children,
   onOpenRail,
-  onOpenSurface: _onOpenSurface,
+  onOpenSurface,
   onCommand,
   onOpenWelcome,
   onOpenProjectManager,
@@ -96,6 +97,8 @@ export const NexusShell: React.FC<{
               </span>
               <ChevronDown size={12} className="nx-project-chevron" />
             </button>
+
+            {onOpenSurface && <WorkspaceLauncher onOpen={onOpenSurface} />}
 
             <span className="nx-topbar__path" title={project.canonical_path}>
               {project.canonical_path}

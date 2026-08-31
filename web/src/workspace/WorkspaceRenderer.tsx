@@ -4,6 +4,7 @@ import { IconButton } from '../design-system';
 import { findStackContaining, isSurfaceMatch, listStacks, type WorkspaceNode, type WorkspaceSplit, type WorkspaceStack, type WorkspaceSurface } from './model';
 import { useWorkspace } from './WorkspaceProvider';
 import { useTranslation } from 'react-i18next';
+import { DesktopWorkspace } from './DesktopWorkspace';
 
 function useCompactViewport(): boolean {
   const [compact, setCompact] = useState(() => window.matchMedia('(max-width: 720px)').matches);
@@ -25,17 +26,26 @@ export const WorkspaceRenderer: React.FC<{
   const maximized = workspace.model.maximizedSurfaceId;
   const maximizedStack = maximized ? findStackContaining(workspace.model.root, maximized) : null;
 
+  const presentationSwitch = <div className="nx-workspace-presentation" role="group" aria-label="Workspace presentation">
+    <button type="button" data-active={workspace.presentation.mode === 'TABS' ? 'true' : 'false'} onClick={() => workspace.setPresentationMode('TABS')}>Abas</button>
+    <button type="button" data-active={workspace.presentation.mode === 'DESKTOP' ? 'true' : 'false'} onClick={() => workspace.setPresentationMode('DESKTOP')}>Janelas</button>
+  </div>;
+
+  if (workspace.presentation.mode === 'DESKTOP' && !maximized) {
+    return <div className="nx-workspace nx-workspace--desktop" data-tour="workspace">{presentationSwitch}<DesktopWorkspace renderSurface={renderSurface} /></div>;
+  }
+
   if (maximized && maximizedStack) {
-    return <div className="nx-workspace nx-workspace--maximized" data-tour="workspace"><WorkspaceStackView stack={{ ...maximizedStack, activeId: maximized }} renderSurface={renderSurface} popoutSurface={popoutSurface} /></div>;
+    return <div className="nx-workspace nx-workspace--maximized" data-tour="workspace">{presentationSwitch}<WorkspaceStackView stack={{ ...maximizedStack, activeId: maximized }} renderSurface={renderSurface} popoutSurface={popoutSurface} /></div>;
   }
 
   if (compact) {
     const stacks = listStacks(workspace.model.root);
     const activeStack = stacks.find((stack) => stack.activeId) ?? stacks[0];
-    return <div className="nx-workspace nx-workspace--compact" data-tour="workspace">{activeStack && <WorkspaceStackView stack={activeStack} renderSurface={renderSurface} popoutSurface={popoutSurface} />}</div>;
+    return <div className="nx-workspace nx-workspace--compact" data-tour="workspace">{presentationSwitch}{activeStack && <WorkspaceStackView stack={activeStack} renderSurface={renderSurface} popoutSurface={popoutSurface} />}</div>;
   }
 
-  return <div className="nx-workspace" data-tour="workspace"><NodeView node={workspace.model.root} renderSurface={renderSurface} popoutSurface={popoutSurface} /></div>;
+  return <div className="nx-workspace" data-tour="workspace">{presentationSwitch}<NodeView node={workspace.model.root} renderSurface={renderSurface} popoutSurface={popoutSurface} /></div>;
 };
 
 const NodeView: React.FC<{ node: WorkspaceNode; renderSurface: (surface: WorkspaceSurface) => React.ReactNode; popoutSurface?: (surface: WorkspaceSurface) => void }> = ({ node, renderSurface, popoutSurface }) => {

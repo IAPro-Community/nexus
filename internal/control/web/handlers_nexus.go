@@ -380,6 +380,28 @@ func (h *NexusHandler) handleAgentRecover(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, map[string]any{"runtime": sess})
 }
 
+// handleAgentAsk POST /api/v1/agents/{id}/ask {instruction}
+func (h *NexusHandler) handleAgentAsk(w http.ResponseWriter, r *http.Request) {
+	id := agentIDFromPath(r.URL.Path)
+	if id == "" {
+		writeError(w, http.StatusNotFound, "missing agent id")
+		return
+	}
+	var body struct {
+		Instruction string `json:"instruction"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Instruction) == "" {
+		writeError(w, http.StatusBadRequest, "instruction is required")
+		return
+	}
+	agent, err := h.nexus.AskAgent(r.Context(), id, body.Instruction)
+	if err != nil {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, agent)
+}
+
 // resolveAgentRuntimeID maps an agent to its current runtime generation ID.
 func (h *NexusHandler) resolveAgentRuntimeID(agentID string) (string, error) {
 	st, err := h.nexus.OpenProject()

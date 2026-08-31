@@ -15,6 +15,7 @@ import {
   type WorkspaceSurface,
 } from './model';
 import { deserializeWorkspace, serializeWorkspace, workspaceStorageKey } from './state';
+import { createPresentationState, setPresentationMode, type WorkspacePresentationMode, type WorkspacePresentationState } from './presentation';
 
 interface WorkspaceContextValue {
   model: WorkspaceModel;
@@ -29,6 +30,9 @@ interface WorkspaceContextValue {
   maximize: (surfaceId: string) => void;
   splitEmpty: (relativeSurfaceId: string, direction: WorkspaceDirection) => void;
   reset: () => void;
+  presentation: WorkspacePresentationState;
+  setPresentationMode: (mode: WorkspacePresentationMode) => void;
+  updatePresentation: (update: (state: WorkspacePresentationState) => WorkspacePresentationState) => void;
 }
 
 type Action =
@@ -80,10 +84,20 @@ export const WorkspaceProvider: React.FC<{
   const fallback = useMemo(() => createWorkspace(defaultSurface(projectId)), [projectId]);
   const [model, dispatch] = useReducer(reducer, fallback);
   const [hydrated, setHydrated] = React.useState(false);
+  const [presentation, setPresentation] = React.useState<WorkspacePresentationState>(() => createPresentationState(fallback));
 
   useEffect(() => {
     const local = window.localStorage.getItem(workspaceStorageKey(projectId));
     dispatch({ type: 'replace', model: deserializeWorkspace(initialLayout || local, fallback) });
+    const rawPresentation = window.localStorage.getItem(`${workspaceStorageKey(projectId)}:presentation`);
+    if (rawPresentation) {
+      try {
+        const parsed = JSON.parse(rawPresentation) as WorkspacePresentationState;
+        if (parsed.mode === 'TABS' || parsed.mode === 'DESKTOP') setPresentation(parsed);
+      } catch { /* use default presentation */ }
+    } else {
+      setPresentation(createPresentationState(fallback));
+    }
     setHydrated(true);
   }, [projectId]);
 
@@ -95,6 +109,10 @@ export const WorkspaceProvider: React.FC<{
     const timer = window.setTimeout(() => { void saveLayout(serialized).catch(() => undefined); }, 500);
     return () => window.clearTimeout(timer);
   }, [model, projectId, saveLayout, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) window.localStorage.setItem(`${workspaceStorageKey(projectId)}:presentation`, JSON.stringify(presentation));
+  }, [hydrated, presentation, projectId]);
 
   const value = useMemo<WorkspaceContextValue>(() => ({
     model,
@@ -109,7 +127,10 @@ export const WorkspaceProvider: React.FC<{
     resize: (splitId, ratio) => dispatch({ type: 'resize', splitId, ratio }),
     maximize: (surfaceId) => dispatch({ type: 'maximize', surfaceId }),
     reset: () => dispatch({ type: 'replace', model: fallback }),
-  }), [model, fallback, hydrated]);
+    presentation,
+    setPresentationMode: (mode) => setPresentation((current) => setPresentationMode(current, mode)),
+    updatePresentation: (update) => setPresentation(update),
+  }), [model, fallback, hydrated, presentation]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 };

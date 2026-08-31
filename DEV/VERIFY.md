@@ -36,3 +36,10 @@ The source changes are intentionally uncommitted in this workspace. The governin
 - Root cause: `/respond` sent input over an RPC connection rejected by the terminal lease check; the detector also retained the answered prompt in its sliding buffer; the banner occupied a grid row.
 - Fix verified by focused Go host/web tests, host `-race`, frontend typecheck/lint/tests/build, embedded bundle rebuild, and `git diff --check`.
 - The live server was rebuilt with `v0.5.0-beta.5` and the current source bundle. Browser interaction still requires the authenticated bootstrap session.
+
+## Nexus V0 execution — 2026-08-30
+
+- Implementation worktree remains based exactly on `c96885218b3cff319f481aed4423dc5fd7b52a30`; no commit or push was created.
+- Added workspace presentation state/desktop renderer, launcher surface routing, Ask-existing-Agent API/UI, and stale-attention visibility/durable dismissal regressions.
+- Verification: `go test -race -count=1 ./...`, `go vet ./...`, Windows amd64 cross-compile for terminal/host, frontend typecheck/lint/30 files/104 tests/build, embedded bundle sync, and `git diff --check` PASS.
+- Native Windows/macOS execution, authenticated browser interaction, real providers, same-SHA CI, and release snapshot remain unverified.

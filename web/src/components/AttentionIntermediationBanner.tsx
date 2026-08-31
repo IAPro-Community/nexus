@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, HelpCircle, Send, Terminal, X } from 'lucide
 import { api } from '../api';
 import type { RuntimeSession } from '../types';
 import { sanitizeAttentionText } from './attentionText';
+import { isVisibleRuntimeAttention } from './attentionVisibility';
 
 export const AttentionIntermediationBanner: React.FC<{
   runtimes: RuntimeSession[];
@@ -12,12 +13,28 @@ export const AttentionIntermediationBanner: React.FC<{
   const { t } = useTranslation();
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
-  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem('iapro:nexus:dismissed-attention:v1') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const dismiss = (runtime: RuntimeSession) => {
+    const key = `${runtime.runtime_id}:${runtime.attention_reason || runtime.state}:${runtime.attention_context || runtime.dynamic_title || ''}`;
+    setDismissedIds((previous) => {
+      const next = previous.includes(key) ? previous : [...previous, key];
+      window.localStorage.setItem('iapro:nexus:dismissed-attention:v1', JSON.stringify(next));
+      return next;
+    });
+  };
 
   // Find active runtimes needing attention that are not dismissed
   const attentionRuntimes = runtimes.filter((r) => {
-    if (dismissedIds.includes(r.runtime_id)) return false;
-    return r.attention_reason === 'QUESTION' || r.attention_reason === 'APPROVAL' || r.attention_reason === 'TASK_COMPLETED' || r.state === 'WAITING' || r.state === 'APPROVAL';
+    const key = `${r.runtime_id}:${r.attention_reason || r.state}:${r.attention_context || r.dynamic_title || ''}`;
+    if (dismissedIds.includes(key)) return false;
+    return isVisibleRuntimeAttention(r);
   });
 
   if (attentionRuntimes.length === 0) return null;
@@ -37,7 +54,7 @@ export const AttentionIntermediationBanner: React.FC<{
       await api.respondRuntime(current.runtime_id, text);
       setInputText('');
       // Temporarily dismiss to avoid flashing
-      setDismissedIds((prev) => [...prev, current.runtime_id]);
+      dismiss(current);
     } catch (err) {
       console.error('[AttentionBanner] Failed to send input:', err);
     } finally {
@@ -46,7 +63,7 @@ export const AttentionIntermediationBanner: React.FC<{
   };
 
   const handleDismiss = () => {
-    setDismissedIds((prev) => [...prev, current.runtime_id]);
+    dismiss(current);
   };
 
   const getReasonLabel = () => {

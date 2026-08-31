@@ -461,6 +461,9 @@ func (s *Server) routeAgent(h *NexusHandler) http.HandlerFunc {
 			case "recover":
 				h.handleAgentRecover(w, r)
 				return
+			case "ask":
+				h.handleAgentAsk(w, r)
+				return
 			case "config":
 				if len(parts) >= 3 {
 					switch parts[2] {

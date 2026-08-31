@@ -68,6 +68,8 @@ export const nexus = {
     request<{ status: string }>(`/api/v1/agents/${id}/stop`, { method: 'POST', body: '{}' }),
   recoverAgent: (id: string) =>
     request<{ runtime: RuntimeSession }>(`/api/v1/agents/${id}/recover`, { method: 'POST', body: '{}' }),
+  askAgent: (id: string, instruction: string) =>
+    request<Agent>(`/api/v1/agents/${id}/ask`, { method: 'POST', body: JSON.stringify({ instruction }) }),
 
   // Agent config (Gate 3)
   getAgentConfig: (id: string) =>

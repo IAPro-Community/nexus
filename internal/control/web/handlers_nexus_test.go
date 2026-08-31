@@ -308,6 +308,21 @@ func TestNexusCSRFEnforcement(t *testing.T) {
 	assertNoCSRF(http.MethodPost, "/api/v1/agents/"+agent.ID+"/recover", nil)
 	assertBadCSRF(http.MethodPost, "/api/v1/agents/"+agent.ID+"/recover", nil)
 
+	// Asking an existing Agent requires an instruction and must reject an empty
+	// request before any runtime operation can occur.
+	askReq, _ := http.NewRequest(http.MethodPost, base+"/api/v1/agents/"+agent.ID+"/ask", bytes.NewReader([]byte(`{"instruction":"   "}`)))
+	askReq.Header.Set("X-CSRF-Token", csrf)
+	askResp, err := client.Do(askReq)
+	if err != nil {
+		t.Fatalf("ask agent: %v", err)
+	}
+	askResp.Body.Close()
+	if askResp.StatusCode != http.StatusBadRequest {
+		t.Errorf("empty ask instruction: expected 400, got %d", askResp.StatusCode)
+	}
+	assertNoCSRF(http.MethodPost, "/api/v1/agents/"+agent.ID+"/ask", []byte(`{"instruction":"continue"}`))
+	assertBadCSRF(http.MethodPost, "/api/v1/agents/"+agent.ID+"/ask", []byte(`{"instruction":"continue"}`))
+
 	// --- authMiddleware routes (projects list) ---
 	// Project list POST without CSRF.
 	assertNoCSRF(http.MethodPost, "/api/v1/projects", []byte(`{"name":"x","path":"`+projDir+`"}`))
