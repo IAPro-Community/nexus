@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IAPro Nexus — Final Base Reference</title>
+<style>
+:root{
+  --nx-font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --nx-mono:"SFMono-Regular","Cascadia Code","JetBrains Mono","Roboto Mono",ui-monospace,monospace;
+  --bg:#080a0f;--bg2:#0c0f15;--surface:#10131a;--surface2:#151922;--surface3:#1a1f2b;
+  --border:#202633;--border2:#303849;--text:#f1f3f7;--text2:#d9dde6;--muted:#8a93a5;--subtle:#626c82;
+  --accent:#8b5cf6;--accent2:#9f75ff;--accentSoft:rgba(139,92,246,.14);--accentText:#bba5ff;
+  --blue:#2f6fdf;--blue2:#244e96;--blueSoft:rgba(47,111,223,.14);
+  --green:#51cf9a;--greenSoft:rgba(81,207,154,.12);--yellow:#f3bd67;--yellowSoft:rgba(243,189,103,.12);
+  --red:#ff7474;--redSoft:rgba(255,116,116,.12);--info:#62b4ff;--infoSoft:rgba(98,180,255,.12);
+  --rail:214px;--top:48px;--task:34px;--tabs:38px;
+  --shadow:0 12px 34px rgba(0,0,0,.28),0 4px 10px rgba(0,0,0,.16);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%}body{overflow:hidden;background:var(--bg);color:var(--text);font:13px/1.5 var(--nx-font)}
+button,input,textarea,select{font:inherit;color:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+::-webkit-scrollbar{width:7px;height:7px}::-webkit-scrollbar-thumb{background:#303849;border-radius:99px}.mono{font-family:var(--nx-mono)}
+.app{height:100vh;display:grid;grid-template-columns:var(--rail) minmax(0,1fr)}
+.rail{min-width:0;background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 95%,var(--accent) 5%),var(--bg2));border-right:1px solid var(--border);display:flex;flex-direction:column}
+.brand{height:var(--top);display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--border)}
+.logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(140deg,var(--accent),#3c82ff 62%,#10b7c5);display:grid;place-items:center;font-weight:900;font-size:10px;color:white}
+.brand strong{display:block;font-size:13px}.brand small{display:block;color:var(--muted);font-size:10px;margin-top:-1px}
+.nav{padding:8px;display:grid;gap:3px}.nav button{height:32px;padding:0 9px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);display:flex;align-items:center;gap:8px;text-align:left}.nav button:hover,.nav button.active{background:var(--surface2);color:var(--text)}.nav button.active{border-color:color-mix(in srgb,var(--accent) 32%,var(--border));background:var(--accentSoft)}
+.sectionTitle{padding:10px 12px 5px;color:var(--subtle);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.projects{padding:4px 8px 10px;overflow:auto;min-height:0;display:grid;gap:3px;align-content:start;flex:1}
+.project{min-height:42px;padding:5px 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);display:grid;grid-template-columns:28px minmax(0,1fr) 8px;gap:8px;align-items:center;text-align:left}
+.project:hover,.project.active{background:var(--surface2);border-color:var(--border);color:var(--text)}.project.active{background:var(--accentSoft);border-color:rgba(139,92,246,.3)}
+.avatar{width:28px;height:28px;border:1px solid var(--border2);border-radius:7px;background:var(--bg2);display:grid;place-items:center;color:var(--accentText);font-size:10px;font-weight:800}
+.project strong,.project small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.project strong{font-size:11px}.project small{font-size:9px;color:var(--subtle)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.railFoot{border-top:1px solid var(--border);padding:8px}
+
+.main{min-width:0;min-height:0;display:grid;grid-template-rows:var(--top) var(--tabs) minmax(0,1fr) var(--task)}
+.top{min-width:0;border-bottom:1px solid var(--border);background:rgba(12,15,21,.94);display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 12px}
+.topL,.topR{display:flex;align-items:center;gap:7px;min-width:0}.topL{flex:1}.workspaceSel{height:30px;border:1px solid var(--border2);border-radius:7px;background:var(--surface);padding:0 9px;font-weight:700}
+.branch{max-width:290px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 8px;border:1px solid var(--border);border-radius:7px;background:var(--surface);font:10px var(--nx-mono);color:var(--text2)}
+.pill{min-height:22px;padding:2px 7px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--muted);font-size:9.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px}.pill.green{color:var(--green);background:var(--greenSoft);border-color:rgba(81,207,154,.28)}.pill.purple{color:var(--accentText);background:var(--accentSoft);border-color:rgba(139,92,246,.3)}.pill.blue{color:#9bd0ff;background:var(--infoSoft);border-color:rgba(98,180,255,.28)}.pill.yellow{color:var(--yellow);background:var(--yellowSoft);border-color:rgba(243,189,103,.28)}
+.btn{height:30px;padding:0 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text2);font-size:10.5px;font-weight:650;display:inline-flex;align-items:center;gap:6px}.btn:hover{background:var(--surface2);border-color:var(--border2)}.btn.brand{background:var(--accent);border-color:var(--accent);color:#fff}.btn.brand:hover{background:var(--accent2)}.btn.blue{background:#215dc2;border-color:#3779e6;color:white}.btn.danger{color:var(--red)}.btn.ghost{background:transparent}
+.modeSwitch{display:flex;border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:2px}.modeSwitch button{height:24px;padding:0 9px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:9.5px;font-weight:700}.modeSwitch button.active{background:var(--blue2);color:white}
+.tabsBar{border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:2px;padding:0 5px;overflow-x:auto}
+.tab{height:30px;padding:0 9px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:10.5px}.tab.active{background:var(--bg2);border-color:var(--border);color:var(--text)}.tab:hover{background:var(--surface2);color:var(--text2)}
+.stageWrap{min-width:0;min-height:0;position:relative;overflow:hidden}
+.stage{position:absolute;inset:0;background:
+  linear-gradient(rgba(85,97,118,.07) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(85,97,118,.07) 1px,transparent 1px),
+  radial-gradient(circle at 75% 5%,rgba(139,92,246,.05),transparent 33%),var(--bg);
+  background-size:30px 30px,30px 30px,auto,auto;
+}
+.tabsMode,.windowsMode{position:absolute;inset:0}.tabsMode{display:none;padding:8px}.tabsMode.active,.windowsMode.active{display:block}
+.tabSurface{height:100%;border:1px solid var(--border);border-radius:10px;background:var(--bg2);overflow:hidden;display:none}.tabSurface.active{display:block}
+.window{position:absolute;border:1px solid var(--border2);border-radius:10px;background:var(--bg2);box-shadow:var(--shadow);overflow:hidden;min-width:280px;min-height:180px}
+.window.active{box-shadow:0 0 0 1px rgba(47,111,223,.45),var(--shadow)}.window.minimized{display:none}.window.maximized{left:8px!important;top:8px!important;width:calc(100% - 16px)!important;height:calc(100% - 16px)!important}
+.winHead{height:34px;padding:0 8px;background:linear-gradient(180deg,#244e96,#1b3f7c);display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:move;user-select:none}
+.winTitle{min-width:0;display:flex;align-items:center;gap:7px}.winTitle strong{font-size:10px}.winTitle small{display:block;font:8.5px var(--nx-mono);color:#adc7fa;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.winBtns{display:flex;align-items:center;gap:4px}.winBtn{width:20px;height:20px;border:0;border-radius:5px;background:transparent;color:#c8d8f7;padding:0}.winBtn:hover{background:rgba(255,255,255,.12)}
+.winBody{height:calc(100% - 34px);overflow:auto;background:#0b0e14}.resizeHandle{position:absolute;width:12px;height:12px;right:0;bottom:0;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,#4e6082 50%)}
+.term{padding:11px;color:#dbe4f0;font:10px/1.52 var(--nx-mono)}.g{color:#8bd450}.b{color:#65b8ff}.p{color:#c3a6ff}.y{color:#f3bd67}.r{color:#ff7474}.d{color:#667085}
+.toolDrawer{position:absolute;right:8px;top:8px;bottom:8px;width:270px;border:1px solid var(--border);border-radius:10px;background:rgba(12,15,21,.97);box-shadow:var(--shadow);display:grid;grid-template-rows:auto auto minmax(0,1fr)}
+.drawerHead{padding:9px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}.drawerTabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--border)}.drawerTabs button{flex:1;height:27px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);font-size:9.5px}.drawerTabs button.active{background:var(--blue2);color:#fff}.drawerBody{overflow:auto;padding:8px}.drawerItem{padding:7px;border:1px solid var(--border);border-radius:7px;background:var(--surface);margin-bottom:5px}.drawerItem strong{font-size:9.5px}.drawerItem small{display:block;color:var(--subtle);font-size:8.5px;margin-top:2px}
+.composerLayout{height:100%;display:grid;grid-template-columns:310px minmax(0,1fr)}.composerChat{border-right:1px solid var(--border);display:grid;grid-template-rows:auto minmax(0,1fr) auto;background:var(--bg2)}
+.composerTop{padding:9px;border-bottom:1px solid var(--border)}.contextBar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px;border:1px solid var(--border);border-radius:7px;background:var(--surface);font-size:9px}
+.chat{padding:8px;overflow:auto;display:grid;align-content:start;gap:6px}.bubble{max-width:94%;padding:7px 8px;border-radius:7px;font-size:9.5px}.bubble.user{justify-self:end;background:var(--accentSoft);border:1px solid rgba(139,92,246,.25);color:var(--accentText)}.bubble.ai{background:var(--surface);border:1px solid var(--border);color:var(--text2)}
+.composeInput{padding:8px;border-top:1px solid var(--border)}.composeInput textarea{width:100%;min-height:60px;resize:none;border:1px solid var(--border);border-radius:7px;background:var(--surface);padding:7px;color:var(--text)}
+.flowPane{display:grid;grid-template-rows:34px minmax(0,1fr) 38px;background:var(--bg)}.flowToolbar{display:flex;align-items:center;justify-content:space-between;padding:0 8px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.flowCanvas{position:relative;overflow:auto;background-image:radial-gradient(circle at 1px 1px,rgba(98,108,130,.18) 1px,transparent 0);background-size:22px 22px}.flowStage{position:relative;width:740px;height:500px;margin:10px auto}
+.edge{position:absolute;height:2px;background:var(--border2);transform-origin:left center;z-index:1}.edge:after{content:"";position:absolute;right:-1px;top:-3px;border-left:6px solid var(--border2);border-top:4px solid transparent;border-bottom:4px solid transparent}
+.node{position:absolute;width:170px;min-height:76px;border:1px solid var(--border);border-radius:8px;background:linear-gradient(180deg,var(--surface),var(--bg2));z-index:2;box-shadow:0 4px 12px rgba(0,0,0,.2)}.node.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accentSoft),0 4px 12px rgba(0,0,0,.2)}
+.nodeHead{height:24px;border-bottom:1px solid var(--border);padding:0 7px;display:flex;align-items:center;justify-content:space-between;font-size:8px;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em}.nodeBody{padding:7px}.nodeBody strong{font-size:9.5px}.nodeBody small{display:block;color:var(--muted);font-size:8.2px;margin-top:3px}.nodeTags{display:flex;gap:3px;margin-top:6px;flex-wrap:wrap}.tag{font-size:7.5px;padding:2px 4px;border-radius:4px;background:var(--surface3);color:var(--muted)}
+.flowFoot{display:flex;align-items:center;justify-content:space-between;padding:0 8px;border-top:1px solid var(--border);background:var(--bg2);font-size:9px;color:var(--muted)}
+.inspector{position:absolute;right:0;top:34px;bottom:38px;width:250px;border-left:1px solid var(--border);background:rgba(12,15,21,.98);padding:8px;overflow:auto}.inspector h3{margin:0 0 8px;font-size:11px}.inspector label{display:block;color:var(--subtle);font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin:8px 0 4px}.inspector select,.inspector textarea{width:100%;border:1px solid var(--border);border-radius:6px;background:var(--surface);padding:6px;font-size:9px}.inspector textarea{min-height:60px;resize:vertical}
+.run{height:100%;display:grid;grid-template-rows:38px minmax(0,1fr) 140px;background:var(--bg2)}.runTop{display:flex;align-items:center;justify-content:space-between;padding:0 9px;border-bottom:1px solid var(--border)}.runMain{overflow:auto;padding:8px}
+.runTable{width:100%;border-collapse:separate;border-spacing:0;font-size:9px}.runTable th,.runTable td{padding:7px;border-bottom:1px solid var(--border);text-align:left}.runTable th{color:var(--subtle);font-size:8px;text-transform:uppercase;letter-spacing:.05em}.status{font-weight:700}.status.done{color:var(--green)}.status.run{color:var(--info)}.status.wait{color:var(--yellow)}.status.block{color:var(--subtle)}
+.live{border-top:1px solid var(--border);padding:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.liveCard{border:1px solid var(--border);border-radius:7px;background:#0b0e14;overflow:hidden}.liveHead{height:26px;padding:0 6px;background:var(--surface);display:flex;align-items:center;justify-content:space-between;font-size:8.5px}.liveBody{padding:7px;font:8px/1.45 var(--nx-mono);color:#cbd5e1}
+.taskbar{border-top:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 10px;color:var(--subtle);font-size:9px}.taskbar>div{display:flex;align-items:center;gap:10px}
+.launcher{position:absolute;left:14px;top:12px;width:210px;border:1px solid var(--border2);border-radius:9px;background:rgba(12,15,21,.98);box-shadow:var(--shadow);padding:6px;display:none;z-index:100}.launcher.open{display:grid;gap:4px}.launchItem{padding:8px;border:1px solid transparent;border-radius:7px;background:transparent;text-align:left;display:grid;grid-template-columns:28px 1fr;gap:7px}.launchItem:hover{background:var(--surface2);border-color:var(--border)}.launchItem strong{font-size:10px}.launchItem small{display:block;color:var(--subtle);font-size:8.5px}
+.overlay{position:absolute;inset:0;background:rgba(4,6,10,.65);display:none;align-items:center;justify-content:center;z-index:200}.overlay.open{display:flex}.modal{width:min(650px,88vw);max-height:82vh;overflow:auto;border:1px solid var(--border2);border-radius:11px;background:var(--bg2);box-shadow:var(--shadow)}.modalHead{padding:10px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}.modalBody{padding:10px}.modalFoot{padding:9px 10px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:6px}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field label{display:block;color:var(--subtle);font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}.field input,.field select,.field textarea{width:100%;height:31px;border:1px solid var(--border);border-radius:6px;background:var(--surface);padding:0 7px}.field textarea{height:72px;padding:7px;resize:vertical}
+.notice{padding:7px;border:1px solid var(--border);border-radius:7px;background:var(--surface);font-size:9px;color:var(--muted)}.notice.green{border-color:rgba(81,207,154,.28);background:var(--greenSoft);color:var(--green)}.notice.yellow{border-color:rgba(243,189,103,.28);background:var(--yellowSoft);color:var(--yellow)}
+@media(max-width:1100px){:root{--rail:185px}.toolDrawer{display:none}.composerLayout{grid-template-columns:280px minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><div class="logo">NX</div><div><strong>IAPro Nexus</strong><small>Powered by Maestro</small></div></div>
+    <div class="nav">
+      <button class="active">⌂ Área de trabalho</button>
+      <button>▦ Projetos</button>
+      <button>◎ Agents</button>
+      <button>◉ Resources</button>
+      <button>✦ Maestro</button>
+      <button>⚙ Settings</button>
+    </div>
+    <div class="sectionTitle"><span>Projects</span><button class="btn ghost" style="height:22px;padding:0 5px">＋</button></div>
+    <div class="projects">
+      <button class="project active"><span class="avatar">AI</span><span><strong>ai-cli</strong><small>feat/nexus-maximum-delivery</small></span><span class="dot"></span></button>
+      <button class="project"><span class="avatar">ES</span><span><strong>escolanet-futura</strong><small>main</small></span><span class="dot"></span></button>
+      <button class="project"><span class="avatar">OM</span><span><strong>omnia-builder</strong><small>feature/rad-engine</small></span><span></span></button>
+    </div>
+    <div class="railFoot"><button class="btn" style="width:100%">▣ Add local project</button></div>
+  </aside>
+
+  <section class="main">
+    <header class="top">
+      <div class="topL">
+        <button class="workspaceSel">Workspace 1 ▾</button>
+        <span class="pill">5 abas</span>
+        <span class="branch">⑂ feat/nexus-maximum-delivery</span>
+      </div>
+      <div class="topR">
+        <span class="pill">CPU 58%</span>
+        <span class="pill">MEM 59%</span>
+        <span class="pill purple">✦ IA 2/6</span>
+        <span class="pill green">● Sistema 98%</span>
+        <button class="btn" id="launcherBtn">＋ Novo</button>
+        <button class="btn">▦ Catálogo</button>
+        <button class="btn" data-open="composer">◇ Composer</button>
+        <button class="btn" data-new="agent">＋ Agent</button>
+        <button class="btn" data-new="terminal">＋ Terminal</button>
+        <div class="modeSwitch"><button data-mode="tabs">Abas</button><button data-mode="windows" class="active">Janelas</button></div>
+      </div>
+    </header>
+
+    <div class="tabsBar" id="tabsBar">
+      <button class="tab active" data-tab="workspace">⌂ Área de trabalho</button>
+      <button class="tab" data-open="codex">› Codex Backend</button>
+      <button class="tab" data-open="agy">› AGY Frontend</button>
+      <button class="tab" data-open="composer">◇ Composer</button>
+      <button class="tab" data-open="run">▶ Flow Run</button>
+    </div>
+
+    <div class="stageWrap">
+      <div class="stage">
+        <div class="launcher" id="launcher">
+          <button class="launchItem" data-new="agent"><span class="avatar">◎</span><span><strong>Agent</strong><small>Criar um novo especialista de IA</small></span></button>
+          <button class="launchItem" data-new="terminal"><span class="avatar">›_</span><span><strong>Terminal</strong><small>Abrir Shell comum no Project</small></span></button>
+          <button class="launchItem" data-open="composer"><span class="avatar">◇</span><span><strong>Composer</strong><small>Planejar e construir um Flow</small></span></button>
+          <button class="launchItem" data-open="run"><span class="avatar">▶</span><span><strong>Execução</strong><small>Abrir Flow Run ativo</small></span></button>
+        </div>
+
+        <div class="windowsMode active" id="windowsMode">
+          <div class="window" id="win-codex" data-view="codex" style="left:44px;top:38px;width:430px;height:260px;z-index:5">
+            <div class="winHead"><div class="winTitle"><span>›</span><div><strong>Codex Backend</strong><small>/projects/ai-cli · Project</small></div></div><div class="winBtns"><span class="pill green">ATIVO</span><span class="pill">A-12</span><button class="winBtn" data-min="codex">—</button><button class="winBtn" data-max="codex">□</button><button class="winBtn" data-close="codex">×</button></div></div>
+            <div class="winBody"><div class="term"><span class="g">desenvolvedor@ai-cli</span>:<span class="b">~/backend</span>$ npm run dev<br><br><span class="b">[INFO]</span> Servidor iniciado na porta 3001<br><span class="b">[INFO]</span> Ambiente: development<br><span class="g">[OK]</span> PostgreSQL conectado<br><span class="g">[OK]</span> 42 rotas carregadas<br><span class="y">[WARN]</span> runtime Windows precisa nova validação<br><br><span class="g">desenvolvedor@ai-cli</span>:<span class="b">~/backend</span>$ <span class="d">ready</span></div></div><div class="resizeHandle"></div>
+          </div>
+
+          <div class="window" id="win-agy" data-view="agy" style="left:500px;top:38px;width:430px;height:260px;z-index:4">
+            <div class="winHead"><div class="winTitle"><span>›</span><div><strong>AGY Frontend</strong><small>.nexus/worktrees/agent_agy_frontend</small></div></div><div class="winBtns"><span class="pill green">ATIVO</span><span class="pill">A-16</span><button class="winBtn" data-min="agy">—</button><button class="winBtn" data-max="agy">□</button><button class="winBtn" data-close="agy">×</button></div></div>
+            <div class="winBody"><div class="term"><span class="g">desenvolvedor@agy</span>:<span class="b">~/app</span>$ npm run dev<br><br><span class="g">VITE v5.1.4</span> ready in 362 ms<br><br>➜ Local: <span class="b">http://localhost:5173/</span><br>➜ Network: <span class="b">http://192.168.1.12:5173/</span><br><br><span class="g">[vite]</span> hmr update /src/pages/Dashboard.tsx<br><span class="g">[vite]</span> hmr update /src/components/Chart.tsx</div></div><div class="resizeHandle"></div>
+          </div>
+
+          <div class="window" id="win-shell" data-view="shell" style="left:44px;top:324px;width:350px;height:235px;z-index:3">
+            <div class="winHead"><div class="winTitle"><span>›_</span><div><strong>Shell · Project</strong><small>/projects/ai-cli</small></div></div><div class="winBtns"><span class="pill blue">SHELL</span><button class="winBtn" data-min="shell">—</button><button class="winBtn" data-max="shell">□</button><button class="winBtn" data-close="shell">×</button></div></div>
+            <div class="winBody"><div class="term"><span class="g">dev@local</span>:<span class="b">/projects/ai-cli</span>$ git status<br>On branch feat/nexus-maximum-delivery<br>nothing to commit, working tree clean<br><br><span class="g">dev@local</span>:<span class="b">/projects/ai-cli</span>$ yarn test<br><span class="g">✓</span> ready for normal project commands</div></div><div class="resizeHandle"></div>
+          </div>
+
+          <div class="window" id="win-review" data-view="review" style="left:412px;top:324px;width:350px;height:235px;z-index:2">
+            <div class="winHead"><div class="winTitle"><span>◎</span><div><strong>Claude Review</strong><small>Reviewer Agent</small></div></div><div class="winBtns"><span class="pill purple">REVIEWER</span><button class="winBtn" data-min="review">—</button><button class="winBtn" data-max="review">□</button><button class="winBtn" data-close="review">×</button></div></div>
+            <div class="winBody"><div class="term">🔎 Analisando mudanças em <span class="b">feat/nexus-maximum-delivery</span><br><br><span class="g">✓</span> Qualidade geral: Boa<br><span class="g">✓</span> Cobertura de testes: 78%<br><span class="y">!</span> Pontos de atenção: 2<br><br><span class="b">•</span> reduzir complexidade em runtime manager<br><span class="b">•</span> revalidar Windows SessionHost<br><br><span class="g">✓ Revisão concluída</span></div></div><div class="resizeHandle"></div>
+          </div>
+
+          <div class="window" id="win-composer" data-view="composer" style="left:780px;top:324px;width:470px;height:420px;z-index:7">
+            <div class="winHead"><div class="winTitle"><span>◇</span><div><strong>Composer · Frontend modernization</strong><small>Flow Draft · Context READY</small></div></div><div class="winBtns"><span class="pill green">READY</span><button class="winBtn" data-min="composer">—</button><button class="winBtn" data-max="composer">□</button><button class="winBtn" data-close="composer">×</button></div></div>
+            <div class="winBody">
+              <div class="composerLayout">
+                <section class="composerChat">
+                  <div class="composerTop">
+                    <div class="contextBar"><span class="pill green">● CONTEXT READY</span><span class="mono">c968852</span></div>
+                    <div style="display:flex;gap:5px;margin-top:6px"><span class="pill purple">CLI · Codex</span><span class="pill">Flow rev 4</span></div>
+                  </div>
+                  <div class="chat">
+                    <div class="bubble user">Quero modernizar o frontend atual sem redesenhar o Nexus.</div>
+                    <div class="bubble ai">Preservarei Project Rail, Topbar, Workspace OS e Taskbar. Vou decompor em contexto, frontend, testes, revisão e gate final.</div>
+                    <div class="bubble user">Backend e frontend podem trabalhar em paralelo.</div>
+                    <div class="bubble ai">Flow ajustado. Dependências e paralelismo foram recalculados. Nenhum Agent recebeu trabalho ainda.</div>
+                  </div>
+                  <div class="composeInput"><textarea>Repense apenas a etapa selecionada.</textarea><div style="display:flex;justify-content:flex-end;margin-top:5px"><button class="btn brand">✦ Refine</button></div></div>
+                </section>
+                <section class="flowPane">
+                  <div class="flowToolbar"><span><strong style="font-size:9px">Flow Draft</strong> <span class="pill purple">DAG</span></span><div><button class="btn">Fit</button></div></div>
+                  <div class="flowCanvas">
+                    <div class="flowStage">
+                      <div class="edge" style="left:120px;top:100px;width:108px;transform:rotate(21deg)"></div>
+                      <div class="edge" style="left:120px;top:100px;width:108px;transform:rotate(-21deg)"></div>
+                      <div class="edge" style="left:375px;top:86px;width:110px;transform:rotate(22deg)"></div>
+                      <div class="edge" style="left:375px;top:240px;width:110px;transform:rotate(-22deg)"></div>
+                      <div class="node" style="left:35px;top:58px"><div class="nodeHead"><span>01 · Context</span><span class="dot"></span></div><div class="nodeBody"><strong>Validate current project</strong><small>Read source + Maestro memory.</small><div class="nodeTags"><span class="tag">sequence</span></div></div></div>
+                      <div class="node sel" style="left:230px;top:15px"><div class="nodeHead"><span>02 · Frontend</span><span class="dot"></span></div><div class="nodeBody"><strong>Component modernization</strong><small>Existing Agent: AGY Frontend</small><div class="nodeTags"><span class="tag">parallel</span><span class="tag">fresh context</span></div></div></div>
+                      <div class="node" style="left:230px;top:168px"><div class="nodeHead"><span>03 · Tests</span><span class="dot"></span></div><div class="nodeBody"><strong>Regression foundation</strong><small>Existing Agent: Codex Backend</small><div class="nodeTags"><span class="tag">parallel</span></div></div></div>
+                      <div class="node" style="left:500px;top:95px"><div class="nodeHead"><span>04 · Verify</span><span class="dot"></span></div><div class="nodeBody"><strong>Milestone verification</strong><small>Depends on Frontend + Tests.</small><div class="nodeTags"><span class="tag">dependency</span></div></div></div>
+                    </div>
+                    <aside class="inspector">
+                      <h3>02 · Component modernization</h3>
+                      <label>Executor</label>
+                      <select><option>Existing · AGY Frontend</option><option>Create specialist</option><option>Auto</option></select>
+                      <label>Context</label>
+                      <select><option>Fresh task context</option><option>Continue current context</option></select>
+                      <label>Intent</label>
+                      <textarea>Normalize existing components without redesigning the Nexus shell.</textarea>
+                      <label>Skills</label>
+                      <div class="notice">frontend-ux-guardrails<br>test-driven-development</div>
+                      <label>Verify</label>
+                      <div class="notice green">Browser regression + unit tests must pass.</div>
+                    </aside>
+                  </div>
+                  <div class="flowFoot"><span>4 steps · 2 parallel · 1 verification gate</span><button class="btn blue" data-open="run">Review & Run</button></div>
+                </section>
+              </div>
+            </div><div class="resizeHandle"></div>
+          </div>
+
+          <div class="window" id="win-run" data-view="run" style="left:240px;top:90px;width:780px;height:520px;z-index:8;display:none">
+            <div class="winHead"><div class="winTitle"><span>▶</span><div><strong>Flow Run · Frontend modernization</strong><small>Run #28 · Guided Autopilot</small></div></div><div class="winBtns"><span class="pill purple">EXECUTANDO</span><button class="winBtn" data-min="run">—</button><button class="winBtn" data-max="run">□</button><button class="winBtn" data-close="run">×</button></div></div>
+            <div class="winBody">
+              <div class="run">
+                <div class="runTop"><div><span class="pill green">Context c968852</span> <span class="pill">Policy Guided</span></div><div><button class="btn">Ⅱ Pause</button> <button class="btn danger">Cancel</button></div></div>
+                <div class="runMain">
+                  <table class="runTable">
+                    <thead><tr><th>Step</th><th>Depends</th><th>Status</th><th>Agent</th><th>Context</th><th>Duration</th></tr></thead>
+                    <tbody>
+                      <tr><td>1. Validate current project</td><td>—</td><td class="status done">Concluído</td><td>C-4</td><td>Fresh</td><td>1m12s</td></tr>
+                      <tr><td colspan="6" style="color:var(--accentText);font-weight:800;background:rgba(139,92,246,.05)">PARALELO</td></tr>
+                      <tr><td>2. Component modernization</td><td>1</td><td class="status run">Em execução</td><td>AGY Frontend</td><td>Fresh</td><td>2m18s</td></tr>
+                      <tr><td>3. Regression foundation</td><td>1</td><td class="status run">Em execução</td><td>Codex Backend</td><td>Fresh</td><td>2m18s</td></tr>
+                      <tr><td>4. Milestone verification</td><td>2,3</td><td class="status wait">Aguardando dependência</td><td>Claude Review</td><td>Fresh</td><td>—</td></tr>
+                      <tr><td>5. Final integration</td><td>4</td><td class="status block">Bloqueado</td><td>Auto</td><td>Fresh</td><td>—</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="live">
+                  <div class="liveCard"><div class="liveHead"><span>AGY Frontend</span><span class="pill green">ATIVO</span></div><div class="liveBody">&gt; npm run dev<br><span class="g">VITE ready</span><br>hmr update Dashboard.tsx<br>hmr update Chart.tsx</div></div>
+                  <div class="liveCard"><div class="liveHead"><span>Codex Backend</span><span class="pill green">ATIVO</span></div><div class="liveBody">&gt; go test ./...<br><span class="g">PASS</span> pkg/runtime<br><span class="g">PASS</span> pkg/session<br>running browser tests...</div></div>
+                  <div class="liveCard"><div class="liveHead"><span>Claude Review</span><span class="pill yellow">AGUARDANDO</span></div><div class="liveBody">Waiting for receipts:<br>□ Component modernization<br>□ Regression foundation<br><br>Will start automatically.</div></div>
+                </div>
+              </div>
+            </div><div class="resizeHandle"></div>
+          </div>
+
+          <aside class="toolDrawer">
+            <div class="drawerHead"><strong>Project Toolbox</strong><button class="btn ghost">×</button></div>
+            <div class="drawerTabs"><button class="active">Agents</button><button>Skills</button><button>Resources</button></div>
+            <div class="drawerBody">
+              <div class="drawerItem"><strong>Codex Backend</strong><small>WORKING · Safe · Project</small></div>
+              <div class="drawerItem"><strong>AGY Frontend</strong><small>WORKING · YOLO · Worktree</small></div>
+              <div class="drawerItem"><strong>Claude Review</strong><small>STOPPED · Plan · Reviewer</small></div>
+              <div class="sectionTitle" style="padding:10px 0 4px">Quick actions</div>
+              <div class="drawerItem"><strong>Ask selected Agent</strong><small>Send work without creating a new Agent.</small></div>
+              <div class="drawerItem"><strong>Open Project Shell</strong><small>/projects/ai-cli</small></div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="tabsMode" id="tabsMode">
+          <div class="tabSurface active" id="surface-workspace">
+            <div style="height:100%;display:grid;place-items:center;color:var(--muted)">
+              <div style="text-align:center"><div style="font-size:28px">⌂</div><strong>Área de trabalho</strong><div style="font-size:10px;margin-top:4px">Selecione uma aba ou alterne para Janelas.</div></div>
+            </div>
+          </div>
+          <div class="tabSurface" id="surface-codex"><div class="term"><span class="g">dev@ai-cli</span>:<span class="b">~/backend</span>$ ready</div></div>
+          <div class="tabSurface" id="surface-agy"><div class="term"><span class="g">dev@agy</span>:<span class="b">~/app</span>$ ready</div></div>
+          <div class="tabSurface" id="surface-composer"><div class="term">Composer surface — same logical view as window mode.</div></div>
+          <div class="tabSurface" id="surface-run"><div class="term">Flow Run surface — same logical run as window mode.</div></div>
+        </div>
+
+        <div class="overlay" id="agentModal">
+          <div class="modal">
+            <div class="modalHead"><strong>Create persistent Agent</strong><button class="btn ghost" data-closemodal="agentModal">×</button></div>
+            <div class="modalBody">
+              <div class="formGrid">
+                <div class="field"><label>Name</label><input value="Backend Specialist"></div>
+                <div class="field"><label>Role</label><select><option>developer</option><option>reviewer</option><option>researcher</option></select></div>
+                <div class="field"><label>Resource</label><select><option>Auto · Recommended</option><option>Codex · work</option><option>AGY · work</option><option>Claude · work</option></select></div>
+                <div class="field"><label>Execution mode</label><select><option>Safe</option><option>Plan</option><option>YOLO</option><option>Custom</option></select></div>
+                <div class="field"><label>Isolation</label><select><option>Project</option><option>Worktree</option></select></div>
+                <div class="field"><label>Context policy</label><select><option>Persistent interactive session</option><option>Fresh task context by Flow</option></select></div>
+              </div>
+              <div class="notice" style="margin-top:8px">O Agent é persistente. Fechar uma View não encerra o Agent.</div>
+            </div>
+            <div class="modalFoot"><button class="btn" data-closemodal="agentModal">Cancel</button><button class="btn brand" data-closemodal="agentModal">Create & Open</button></div>
+          </div>
+        </div>
+
+        <div class="overlay" id="terminalModal">
+          <div class="modal">
+            <div class="modalHead"><strong>Open Project Terminal</strong><button class="btn ghost" data-closemodal="terminalModal">×</button></div>
+            <div class="modalBody">
+              <div class="formGrid"><div class="field"><label>Name</label><input value="Shell · Project"></div><div class="field"><label>Working directory</label><input value="/projects/ai-cli"></div></div>
+              <div class="notice green" style="margin-top:8px">Terminal comum, sem IA. Branch atual: feat/nexus-maximum-delivery.</div>
+            </div>
+            <div class="modalFoot"><button class="btn" data-closemodal="terminalModal">Cancel</button><button class="btn brand" id="openShellBtn">Open Terminal</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="taskbar">
+      <div><span>▣ ai-cli</span><span class="mono">⑂ feat/nexus-maximum-delivery</span><span style="color:var(--green)">✓ Sincronizado</span></div>
+      <div><span>● 2 Agents working</span><span>› 1 Shell</span><span>◇ 1 Composer</span><span>▶ 1 Flow Run</span></div>
+      <div><span>✦ Maestro ready</span><span>⌁ Local</span></div>
+    </footer>
+  </section>
+</div>
+
+<script>
+let mode='windows', z=20, drag=null, resize=null;
+
+const $=(s)=>document.querySelector(s), $$=(s)=>[...document.querySelectorAll(s)];
+
+function setMode(next){
+  mode=next;
+  $('#windowsMode').classList.toggle('active',next==='windows');
+  $('#tabsMode').classList.toggle('active',next==='tabs');
+  $$('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===next));
+}
+$$('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+
+function focusWin(el){
+  if(!el)return;
+  z++; el.style.zIndex=z; $$('.window').forEach(w=>w.classList.toggle('active',w===el));
+}
+
+function showWindow(id){
+  const el=$('#win-'+id);
+  if(el){el.style.display='block';el.classList.remove('minimized');focusWin(el);}
+  if(mode==='tabs'){
+    $$('.tabSurface').forEach(s=>s.classList.remove('active'));
+    const surf=$('#surface-'+id); if(surf) surf.classList.add('active');
+  }
+}
+
+$$('[data-open]').forEach(b=>b.onclick=()=>{showWindow(b.dataset.open);$('#launcher').classList.remove('open')});
+$$('[data-new="agent"]').forEach(b=>b.onclick=()=>{$('#agentModal').classList.add('open');$('#launcher').classList.remove('open')});
+$$('[data-new="terminal"]').forEach(b=>b.onclick=()=>{$('#terminalModal').classList.add('open');$('#launcher').classList.remove('open')});
+$('#launcherBtn').onclick=()=>$('#launcher').classList.toggle('open');
+$$('[data-closemodal]').forEach(b=>b.onclick=()=>$('#'+b.dataset.closemodal).classList.remove('open'));
+$('#openShellBtn').onclick=()=>{$('#terminalModal').classList.remove('open');showWindow('shell')};
+
+$$('[data-close]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const el=$('#win-'+b.dataset.close);if(el)el.style.display='none'});
+$$('[data-min]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const el=$('#win-'+b.dataset.min);if(el)el.classList.add('minimized')});
+$$('[data-max]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();const el=$('#win-'+b.dataset.max);if(el)el.classList.toggle('maximized')});
+
+$$('.window').forEach(w=>{
+  w.addEventListener('mousedown',()=>focusWin(w));
+  const head=w.querySelector('.winHead');
+  head.addEventListener('mousedown',e=>{
+    if(e.target.closest('.winBtn'))return;
+    focusWin(w);
+    const r=w.getBoundingClientRect(), p=$('#windowsMode').getBoundingClientRect();
+    drag={w,dx:e.clientX-r.left,dy:e.clientY-r.top,p};
+    e.preventDefault();
+  });
+  const rh=w.querySelector('.resizeHandle');
+  rh.addEventListener('mousedown',e=>{
+    const r=w.getBoundingClientRect();
+    resize={w,sx:e.clientX,sy:e.clientY,sw:r.width,sh:r.height};
+    e.preventDefault();e.stopPropagation();
+  });
+});
+
+document.addEventListener('mousemove',e=>{
+  if(drag && !drag.w.classList.contains('maximized')){
+    const x=Math.max(0,Math.min(drag.p.width-drag.w.offsetWidth,e.clientX-drag.p.left-drag.dx));
+    const y=Math.max(0,Math.min(drag.p.height-drag.w.offsetHeight,e.clientY-drag.p.top-drag.dy));
+    drag.w.style.left=x+'px';drag.w.style.top=y+'px';
+  }
+  if(resize && !resize.w.classList.contains('maximized')){
+    resize.w.style.width=Math.max(280,resize.sw+(e.clientX-resize.sx))+'px';
+    resize.w.style.height=Math.max(180,resize.sh+(e.clientY-resize.sy))+'px';
+  }
+});
+document.addEventListener('mouseup',()=>{drag=null;resize=null});
+
+$$('.tab').forEach(t=>t.onclick=()=>{
+  if(t.dataset.open) showWindow(t.dataset.open);
+  if(mode==='tabs'){
+    $$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+    const id=t.dataset.tab||t.dataset.open||'workspace';
+    $$('.tabSurface').forEach(s=>s.classList.remove('active'));
+    const surf=$('#surface-'+id); if(surf)surf.classList.add('active');
+  }
+});
+
+$$('.overlay').forEach(o=>o.onclick=e=>{if(e.target===o)o.classList.remove('open')});
+</script>
+</body>
+</html>
