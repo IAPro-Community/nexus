@@ -24,6 +24,7 @@ import { AgentConfigurationSurface } from '../features/agents/AgentConfiguration
 import { SessionsSurface } from '../features/sessions/SessionsSurface';
 import { SettingsSurface } from '../features/settings/SettingsSurface';
 import { useTranslation } from 'react-i18next';
+import { ProjectShellSurface } from '../features/shell/ProjectShellSurface';
 import { formatResourcePolicy } from '../i18n';
 import { agentConfigSurface, agentTerminalSurface, projectSurface } from './surfaces';
 
@@ -146,6 +147,8 @@ export const WorkspaceSurfaceHost: React.FC<{
     ) : (
       <EmptyState title={t('surfaces.terminalUnavailable')} />
     );
+
+  if (surface.type === 'project-shell') return <ProjectShellSurface project={project} />;
 
   if (surface.type === 'resources')
     return (

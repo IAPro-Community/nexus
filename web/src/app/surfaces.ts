@@ -6,6 +6,7 @@ export type ProjectSurfaceKind =
   | 'work'
   | 'missions'
   | 'agents'
+  | 'project-shell'
   | 'maestro'
   | 'sessions'
   | 'settings'
@@ -20,6 +21,7 @@ const labels: Record<ProjectSurfaceKind, string> = {
   work: 'Work',
   missions: 'Plan',
   agents: 'Agents',
+  'project-shell': 'Project Shell',
   maestro: 'Maestro',
   sessions: 'Sessions',
   settings: 'Settings',

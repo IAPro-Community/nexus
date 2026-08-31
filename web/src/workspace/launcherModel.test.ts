@@ -9,7 +9,7 @@ describe('workspace launcher', () => {
 
   it('maps actions to stable surface targets', () => {
     expect(launcherActionTarget('NEW_AGENT')).toBe('agents');
-    expect(launcherActionTarget('NEW_TERMINAL')).toBe('legacy-runtimes');
+    expect(launcherActionTarget('NEW_TERMINAL')).toBe('project-shell');
     expect(launcherActionTarget('OPEN_COMPOSER')).toBe('work');
     expect(launcherActionTarget('OPEN_ACTIVE_FLOW_RUN')).toBe('legacy-runtimes');
   });

@@ -355,7 +355,7 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 	showInternal := r.URL.Query().Get("internal") == "true"
 	var filtered []driver.ControlDriver
 	for _, d := range drivers {
-		if !showInternal && d.ProviderID() == "fake" {
+		if !showInternal && (d.ProviderID() == "fake" || d.ProviderID() == "shell") {
 			continue
 		}
 		filtered = append(filtered, d)

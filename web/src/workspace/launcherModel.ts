@@ -10,9 +10,7 @@ export const workspaceLauncherActions: Array<{ action: WorkspaceLauncherAction; 
 export function launcherActionTarget(action: WorkspaceLauncherAction): string {
   switch (action) {
     case 'NEW_AGENT': return 'agents';
-    // Until the native Project Shell surface is introduced, route this to the
-    // existing runtime launcher instead of opening an unsupported surface.
-    case 'NEW_TERMINAL': return 'legacy-runtimes';
+    case 'NEW_TERMINAL': return 'project-shell';
     case 'OPEN_COMPOSER': return 'work';
     case 'OPEN_ACTIVE_FLOW_RUN': return 'legacy-runtimes';
   }
