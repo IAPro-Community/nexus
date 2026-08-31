@@ -784,3 +784,8 @@ Linux runtime fully verified. Windows/macOS build-verified only (conditional lim
 - Added a transport-neutral Context Readiness contract with `MISSING`, `HYDRATING`, `READY`, `STALE`, and `FAILED`, including dirty-state and Maestro-version drift tests. Semantic hydration remains Maestro-owned.
 - Commits: `bf079879` and `1a633923`; documentation continuation recorded in `b23eb3e`.
 - Verification: Go full test/vet/race/build, frontend typecheck/lint/105 tests/build, embedded sync, Windows amd64 compile, and diff check PASS. Local Chromium smoke rendered but authenticated bootstrap failed; it is not full E2E.
+
+## 2026-08-30 — V0 local Flow contracts
+
+- Added reversible Flow façade over WorkPlan/WorkPackage/PlanRevision, deterministic DAG order/waves/dependents, fail-closed state mapping, bounded Context Capsule and evidence-only Work Receipt.
+- Verification: focused nexus/plangraph tests PASS. Flow Canvas/Inspector, persistence wiring and authenticated browser journey remain open.

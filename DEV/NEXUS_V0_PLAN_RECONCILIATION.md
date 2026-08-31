@@ -14,8 +14,8 @@ Canonical implementation: `feat/nexus-v0-implementation`; final SHA is recorded 
 | 03 Maestro + Context | Maestro integration | detect/status/skills/hydration | existing `maestro.go` integration | Maestro tests | PARTIAL |
 | 03 Maestro + Context | Context Readiness | MISSING/HYDRATING/READY/STALE/FAILED | `internal/nexus/context_readiness.go` pure contract | readiness state/drift tests | PARTIAL |
 | 04 Composer | Composer Surface | context-gated composition/direct fallback | no dedicated Composer surface found | none | NOT_STARTED |
-| 05 Flow Editor | Flow DAG editor | sequence/dependency/parallel, revisions | existing WorkPlan/PlanBuilder infrastructure | plan/plangraph tests | PARTIAL |
-| 06 Flow Run | durable Flow execution | approve, scheduling, receipts, verification | existing Mission runner infrastructure | runner durability/verifier tests | PARTIAL |
+| 05 Flow Editor | Flow DAG editor | sequence/dependency/parallel, revisions | `FlowDefinition` façade, deterministic `plangraph` order/waves/dependents, existing WorkPlan/PlanBuilder | graph, façade and plan tests | PARTIAL |
+| 06 Flow Run | durable Flow execution | approve, scheduling, receipts, verification | explicit runner status façade, bounded `ContextCapsule`/`WorkReceipt`, existing Mission runner | façade, capsule/receipt and runner tests | PARTIAL |
 | 07 Production Hardening | cross-platform/release/browser/security | same-SHA platform evidence | CI/scripts/docs only | Linux local pass; Windows/macOS/CI unverified | BLOCKED_EXTERNAL |
 
 ## Ruling

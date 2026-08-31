@@ -51,3 +51,10 @@ The source changes are intentionally uncommitted in this workspace. The governin
 - Context Readiness: five-state contract with fingerprint drift tests PASS; persistence/Composer integration remains open.
 - Full local Go tests, race, vet, build, frontend typecheck/lint/tests/build, embedded sync and Windows amd64 compile PASS.
 - Browser harness: Chromium smoke PASS, authenticated bootstrap FAIL; classify as `SMOKE`, not full user journey. Native Windows/macOS and same-SHA CI remain `UNVERIFIED`.
+
+## Flow contracts — 2026-08-30
+
+- `plangraph` deterministic topological order, execution waves, dependents and invalid graph rejection: PASS.
+- Reversible Flow façade round-trip and explicit runner status mapping: PASS.
+- Bounded Context Capsule and evidence-only Work Receipt contracts: PASS.
+- Full Flow UI/persistence and browser execution: NOT VERIFIED.

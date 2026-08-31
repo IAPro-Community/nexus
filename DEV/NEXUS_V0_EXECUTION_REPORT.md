@@ -66,3 +66,11 @@ Exit Gate: PARTIAL; Context/Composer/Flow dedicated integration and full browser
 - frontend typecheck/lint/tests/build: PASS (30 files, 105 tests)
 - `make web` and embedded bundle sync: PASS
 - `go run ./scripts/nexus-e2e-local.go -start -browser -port 3011`: Chromium smoke PASS; authenticated bootstrap failed, so not full E2E.
+
+## Continuation: Flow compatibility contracts
+
+- Result SHA: `4dedddf43febf44c29307ebbe2ac61c11e158778`.
+- Added reversible `FlowDefinition`/`FlowStep`/`FlowRevision` façade over existing WorkPlan storage.
+- Added deterministic topological order, execution waves, direct dependents and fail-closed validation for unknown dependencies/cycles.
+- Added bounded `ContextCapsule`, evidence-only `WorkReceipt`, and explicit Mission-to-Flow status mapping; no second execution engine was created.
+- Exit Gate: PARTIAL because persistence wiring, Flow Canvas/Inspector UI and full Flow Run surface remain open.
