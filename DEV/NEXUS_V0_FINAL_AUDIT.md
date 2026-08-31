@@ -3,7 +3,7 @@
 ## Source
 
 Baseline: `c96885218b3cff319f481aed4423dc5fd7b52a30`  
-Final SHA: `4dedddf43febf44c29307ebbe2ac61c11e158778`  
+Final functional SHA: `f70d99c53b7c895b458e6088807337514e9556f4`  
 Branch: `feat/nexus-v0-implementation`
 
 ## Capability Preservation
@@ -20,7 +20,7 @@ The baseline capabilities were audited against source, existing tests and curren
 | Attention stale-runtime suppression | PARTIAL | visibility regression and durable dismissal |
 | Project Shell | PARTIAL | `ShellDriver` + `ProjectShellSurface`; focused Go tests and frontend build pass; native/browser lifecycle unverified |
 | Context Readiness | PARTIAL | five-state fingerprint contract and drift tests; hydration persistence/gate not wired |
-| Composer/Flow V0 | PARTIAL | reversible façade, deterministic DAG and bounded capsule/receipt contracts added; dedicated UI/persistence/browser journey incomplete |
+| Composer/Flow V0 | PARTIAL | readiness model, integrated Flow Canvas and Flow Run surface added; real readiness persistence, inspector/refinement wiring and browser journey incomplete |
 
 ## Tests
 

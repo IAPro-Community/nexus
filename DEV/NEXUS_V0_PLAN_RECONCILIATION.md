@@ -13,9 +13,9 @@ Canonical implementation: `feat/nexus-v0-implementation`; final SHA is recorded 
 | 02 Direct Work | Project Shell | normal shell lifecycle/cwd | `ShellDriver`, `ProjectShellSurface`, `project-shell` launcher route | shell driver tests; frontend full suite/build | PARTIAL |
 | 03 Maestro + Context | Maestro integration | detect/status/skills/hydration | existing `maestro.go` integration | Maestro tests | PARTIAL |
 | 03 Maestro + Context | Context Readiness | MISSING/HYDRATING/READY/STALE/FAILED | `internal/nexus/context_readiness.go` pure contract | readiness state/drift tests | PARTIAL |
-| 04 Composer | Composer Surface | context-gated composition/direct fallback | no dedicated Composer surface found | none | NOT_STARTED |
-| 05 Flow Editor | Flow DAG editor | sequence/dependency/parallel, revisions | `FlowDefinition` façade, deterministic `plangraph` order/waves/dependents, existing WorkPlan/PlanBuilder | graph, façade and plan tests | PARTIAL |
-| 06 Flow Run | durable Flow execution | approve, scheduling, receipts, verification | explicit runner status façade, bounded `ContextCapsule`/`WorkReceipt`, existing Mission runner | façade, capsule/receipt and runner tests | PARTIAL |
+| 04 Composer | Composer Surface | context-gated composition/direct fallback | existing `WorkSurface` plus tested `composerModel` gate and integrated PlanBuilder | Composer readiness model tests; frontend suite | PARTIAL |
+| 05 Flow Editor | Flow DAG editor | sequence/dependency/parallel, revisions | `FlowDefinition`, deterministic `plangraph`, integrated `FlowCanvas`, existing PlanBuilder editor | graph, façade, Composer and plan tests | PARTIAL |
+| 06 Flow Run | durable Flow execution | approve, scheduling, receipts, verification | `FlowRunSurface`, explicit status façade, bounded capsule/receipt, existing Mission runner | surface compiles; runner/capsule/receipt tests | PARTIAL |
 | 07 Production Hardening | cross-platform/release/browser/security | same-SHA platform evidence | CI/scripts/docs only | Linux local pass; Windows/macOS/CI unverified | BLOCKED_EXTERNAL |
 
 ## Ruling

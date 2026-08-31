@@ -74,3 +74,10 @@ Exit Gate: PARTIAL; Context/Composer/Flow dedicated integration and full browser
 - Added deterministic topological order, execution waves, direct dependents and fail-closed validation for unknown dependencies/cycles.
 - Added bounded `ContextCapsule`, evidence-only `WorkReceipt`, and explicit Mission-to-Flow status mapping; no second execution engine was created.
 - Exit Gate: PARTIAL because persistence wiring, Flow Canvas/Inspector UI and full Flow Run surface remain open.
+
+## Continuation: Composer and Flow surfaces
+
+- Result SHA: `f70d99c53b7c895b458e6088807337514e9556f4`.
+- Added tested Composer readiness action model, integrated deterministic Flow Canvas in PlanBuilder, and a Workspace Flow Run surface backed by existing Mission APIs.
+- Frontend validation: typecheck, lint, 31 files / 110 tests, build and embedded sync PASS.
+- Exit Gate: PARTIAL; Context Readiness is not yet observed/persisted by Composer, Step Inspector/refinement and capsule/receipt persistence are incomplete, and authenticated browser E2E remains unavailable.
