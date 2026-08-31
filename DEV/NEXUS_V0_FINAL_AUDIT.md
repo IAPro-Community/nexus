@@ -3,7 +3,7 @@
 ## Source
 
 Baseline: `c96885218b3cff319f481aed4423dc5fd7b52a30`  
-Final SHA: pending canonical recovery commit  
+Final SHA: canonical recovery HEAD recorded in the completion verdict  
 Branch: `feat/nexus-v0-implementation`
 
 ## Capability Preservation
