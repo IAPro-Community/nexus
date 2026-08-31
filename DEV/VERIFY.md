@@ -43,3 +43,11 @@ The source changes are intentionally uncommitted in this workspace. The governin
 - Added workspace presentation state/desktop renderer, launcher surface routing, Ask-existing-Agent API/UI, and stale-attention visibility/durable dismissal regressions.
 - Verification: `go test -race -count=1 ./...`, `go vet ./...`, Windows amd64 cross-compile for terminal/host, frontend typecheck/lint/30 files/104 tests/build, embedded bundle sync, and `git diff --check` PASS.
 - Native Windows/macOS execution, authenticated browser interaction, real providers, same-SHA CI, and release snapshot remain unverified.
+
+## Nexus V0 continuation — 2026-08-30
+
+- Canonical HEAD: `b23eb3e22f1448ac0e401694ae7bc59c0f4ff68e`.
+- Project Shell: `ShellDriver` and `ProjectShellSurface` use the existing terminal runtime; focused driver tests and frontend gates PASS.
+- Context Readiness: five-state contract with fingerprint drift tests PASS; persistence/Composer integration remains open.
+- Full local Go tests, race, vet, build, frontend typecheck/lint/tests/build, embedded sync and Windows amd64 compile PASS.
+- Browser harness: Chromium smoke PASS, authenticated bootstrap FAIL; classify as `SMOKE`, not full user journey. Native Windows/macOS and same-SHA CI remain `UNVERIFIED`.

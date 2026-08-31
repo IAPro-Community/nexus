@@ -777,3 +777,10 @@ Linux runtime fully verified. Windows/macOS build-verified only (conditional lim
 - Reproduced from the authenticated frontend screenshot: the global attention banner was inserted as a layout row above the Workspace and the AGY response action used a short-lived RPC connection that the host rejected because the browser lease belonged to another connection.
 - Fixed external runtime responses, reset stale attention-detector prompt history after accepted input, cleared the published attention state, and changed the banner to a non-layout-blocking floating surface.
 - Verification: focused host/web tests PASS; host `-race` PASS; frontend typecheck/lint/94 tests/build PASS; embedded bundle rebuilt; `git diff --check` PASS. No commit or push performed.
+
+## 2026-08-30 — V0 continuation: Project Shell and Context Readiness
+
+- Added `ShellDriver` and `ProjectShellSurface`, reusing the existing supervised terminal runtime with canonical Project cwd and isolated shell lifecycle. `NEW_TERMINAL` now opens Project Shell and shell is hidden from external provider listings.
+- Added a transport-neutral Context Readiness contract with `MISSING`, `HYDRATING`, `READY`, `STALE`, and `FAILED`, including dirty-state and Maestro-version drift tests. Semantic hydration remains Maestro-owned.
+- Commits: `bf079879` and `1a633923`; documentation continuation recorded in `b23eb3e`.
+- Verification: Go full test/vet/race/build, frontend typecheck/lint/105 tests/build, embedded sync, Windows amd64 compile, and diff check PASS. Local Chromium smoke rendered but authenticated bootstrap failed; it is not full E2E.

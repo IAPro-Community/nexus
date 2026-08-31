@@ -3,7 +3,7 @@
 ## Source
 
 Baseline: `c96885218b3cff319f481aed4423dc5fd7b52a30`  
-Final SHA: `1a6339237321612d3013d8a60e09525d7c3279c9`  
+Final SHA: `b23eb3e22f1448ac0e401694ae7bc59c0f4ff68e`  
 Branch: `feat/nexus-v0-implementation`
 
 ## Capability Preservation
