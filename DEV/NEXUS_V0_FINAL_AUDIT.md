@@ -3,7 +3,7 @@
 ## Source
 
 Baseline: `c96885218b3cff319f481aed4423dc5fd7b52a30`  
-Final SHA: canonical recovery HEAD recorded in the completion verdict  
+Final SHA: `1a6339237321612d3013d8a60e09525d7c3279c9`  
 Branch: `feat/nexus-v0-implementation`
 
 ## Capability Preservation
@@ -18,8 +18,9 @@ The baseline capabilities were audited against source, existing tests and curren
 | Workspace presentation/Desktop | PARTIAL | model/provider/renderer implementation and tests |
 | Ask existing Agent | PARTIAL | API/UI implementation and validation test |
 | Attention stale-runtime suppression | PARTIAL | visibility regression and durable dismissal |
-| Project Shell | NOT_STARTED | no implementation found |
-| Composer/Context Readiness/Flow V0 | NOT_STARTED/PARTIAL | existing WorkPlan/Mission retained; dedicated V0 surfaces absent |
+| Project Shell | PARTIAL | `ShellDriver` + `ProjectShellSurface`; focused Go tests and frontend build pass; native/browser lifecycle unverified |
+| Context Readiness | PARTIAL | five-state fingerprint contract and drift tests; hydration persistence/gate not wired |
+| Composer/Flow V0 | PARTIAL | existing WorkSurface/PlanBuilder/Mission compatibility retained; dedicated V0 journey incomplete |
 
 ## Tests
 
@@ -28,7 +29,7 @@ The baseline capabilities were audited against source, existing tests and curren
 | Go test/vet/build/race | Linux | PASS |
 | Frontend typecheck/lint/tests/build | Linux | PASS — 30 files / 105 tests in canonical worktree |
 | Embedded bundle sync/diff check | Linux | PASS |
-| Browser smoke scripts | Chromium/Linux | PASS smoke; active control traversal was empty, not full E2E |
+| Browser local harness | Chromium/Linux | SMOKE PASS; authenticated bootstrap failed, therefore no full user journey claim |
 | Native Windows runtime | Windows | UNVERIFIED_ON_WINDOWS |
 | Native macOS runtime | macOS | UNVERIFIED_ON_MACOS |
 | Same-SHA CI/release | External | UNVERIFIED |

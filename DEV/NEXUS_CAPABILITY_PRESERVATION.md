@@ -23,7 +23,8 @@ Baseline: `c96885218b3cff319f481aed4423dc5fd7b52a30`
 | CSRF/origin/secrets/isolation/launch env/Safe Apply | Present | Preserved | KEEP | security/origin/session/race tests | scanners unavailable |
 | Workspace V2 tabs/desktop/presentation | Partial | Added in canonical worktree | ADAPT | presentation/model/state tests | Browser persistence incomplete |
 | Ask existing Agent | Partial | Added in canonical worktree | ADAPT | API validation and UI model tests | Real provider interaction unverified |
-| Project Shell | Absent | Absent | REVIEW_REQUIRED | no implementation found | V0 gap |
-| Composer/Context Readiness/Flow V0 surfaces | Partial/Absent | Partial/Absent | REVIEW_REQUIRED | existing WorkPlan/Mission only | V0-specific surfaces incomplete |
+| Project Shell | Absent | Dedicated shell surface | ADAPT | `ShellDriver`, `ProjectShellSurface`, launcher and frontend build/tests | Native PTY/browser lifecycle unverified |
+| Context Readiness contract | Absent | Five-state contract | ADAPT | `internal/nexus/context_readiness.go` and state/drift tests | Persistence/Composer gate not wired |
+| Composer/Flow V0 surfaces | Partial/Absent | Existing WorkSurface/PlanBuilder/Mission compatibility | REVIEW_REQUIRED | existing WorkPlan/Mission tests | Dedicated V0 integration and browser flow incomplete |
 
 No baseline tests or functional files were removed. The committed baseline range has no diff because the official HEAD equals the baseline; recovery changes are now committed on the canonical branch.

@@ -10,9 +10,9 @@ Canonical implementation: `feat/nexus-v0-implementation`; final SHA is recorded 
 | 02 Workspace OS | presentation state | Tabs/Desktop, semantic view identity, persistence | `workspace/presentation.ts`, provider/renderer | presentation/model/state tests | PARTIAL |
 | 02 Workspace OS | launcher | open supported core surfaces | `WorkspaceLauncher.tsx`, `launcherModel.ts` | launcher model tests | PARTIAL |
 | 02 Direct Work | existing Agent Ask | ask without implicit create; start-and-ask | `AskAgentDialog.tsx`, API/handler/Nexus | model + API validation tests | PARTIAL |
-| 02 Direct Work | Project Shell | normal shell lifecycle/cwd | no implementation found | none | NOT_STARTED |
+| 02 Direct Work | Project Shell | normal shell lifecycle/cwd | `ShellDriver`, `ProjectShellSurface`, `project-shell` launcher route | shell driver tests; frontend full suite/build | PARTIAL |
 | 03 Maestro + Context | Maestro integration | detect/status/skills/hydration | existing `maestro.go` integration | Maestro tests | PARTIAL |
-| 03 Maestro + Context | Context Readiness | MISSING/HYDRATING/READY/STALE/FAILED | no dedicated V0 readiness model found | none | NOT_STARTED |
+| 03 Maestro + Context | Context Readiness | MISSING/HYDRATING/READY/STALE/FAILED | `internal/nexus/context_readiness.go` pure contract | readiness state/drift tests | PARTIAL |
 | 04 Composer | Composer Surface | context-gated composition/direct fallback | no dedicated Composer surface found | none | NOT_STARTED |
 | 05 Flow Editor | Flow DAG editor | sequence/dependency/parallel, revisions | existing WorkPlan/PlanBuilder infrastructure | plan/plangraph tests | PARTIAL |
 | 06 Flow Run | durable Flow execution | approve, scheduling, receipts, verification | existing Mission runner infrastructure | runner durability/verifier tests | PARTIAL |

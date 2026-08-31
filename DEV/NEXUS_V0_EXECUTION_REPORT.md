@@ -29,8 +29,8 @@ Exit Gate: PASS for protocol/filesystem/recommendation/config; `UNVERIFIED_ON_CU
 ## Phase 02
 
 Baseline: `c96885218b3cff319f481aed4423dc5fd7b52a30`
-Result SHA: working tree (commits deferred by repository contract)
-Status: IN_PROGRESS
+Result SHA: `bf079879b34524c0efec02214dc4f54f1dbe8fd4`
+Status: PARTIAL
 
 Tasks:
 - Workspace presentation state model and persistence added.
@@ -44,8 +44,25 @@ Tests:
 - Web typecheck and build PASS.
 
 Known remaining issues:
-- Native Project Shell is not yet implemented; NEW_TERMINAL routes to the existing runtime launcher until that surface exists.
-- Full browser interaction was not executed because no browser automation connector is available in this session; static/build and model evidence are present.
-- No commit created due repository policy.
+- Project Shell now uses the existing supervised terminal runtime with a dedicated `shell` driver, canonical project cwd, and isolated lifecycle.
+- Full browser interaction was not executed; the local harness reached Chromium smoke but failed authentication bootstrap.
 
-Exit Gate: PARTIAL; Project Shell and full browser/runtime evidence remain.
+Exit Gate: PARTIAL; Context/Composer/Flow dedicated integration and full browser/runtime evidence remain.
+
+## Continuation: Context Readiness
+
+- Result SHA: `1a6339237321612d3013d8a60e09525d7c3279c9`
+- Added a transport-neutral readiness contract with `MISSING`, `HYDRATING`, `READY`, `STALE`, and `FAILED` states.
+- Fingerprint drift tests cover dirty state and Maestro version changes.
+- Semantic hydration remains owned by Maestro; no duplicate Nexus memory engine was introduced.
+- Exit Gate: PARTIAL because persistence, observation endpoint, and Composer gating are not yet wired.
+
+## Validation snapshot
+
+- `go test ./...`: PASS
+- `go vet ./...`: PASS
+- `go test -race -count=1 ./...`: PASS
+- `go build ./cmd/nexus`: PASS
+- frontend typecheck/lint/tests/build: PASS (30 files, 105 tests)
+- `make web` and embedded bundle sync: PASS
+- `go run ./scripts/nexus-e2e-local.go -start -browser -port 3011`: Chromium smoke PASS; authenticated bootstrap failed, so not full E2E.
