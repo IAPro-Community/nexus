@@ -1,17 +1,30 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BrainCircuit, Play, Route, Sparkles, TerminalSquare } from 'lucide-react';
 import { Badge, Button, Card, Segmented, Textarea } from '../../design-system';
 import type { Agent, Project } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { PlanBuilderSurface } from './PlanBuilderSurface';
+import { canPlan, type ContextReadiness } from './composerModel';
+import { nexus } from '../../nexus/api';
 
 export const WorkSurface: React.FC<{ project: Project; agents: Agent[]; onDirect: (agent: Agent) => void; onStartSession?: (mode: 'direct' | 'assisted', prompt: string) => void; onPlan: () => void; onMaestro: () => void }> = ({ project, agents, onDirect, onStartSession, onPlan, onMaestro }) => {
   const { t } = useTranslation();
   const [mode, setMode] = useState('direct');
   const [prompt, setPrompt] = useState('');
+  const [readiness, setReadiness] = useState<ContextReadiness>('MISSING');
+  const [contextError, setContextError] = useState('');
   const preferred = useMemo(() => agents.find((agent) => agent.status === 'WORKING') ?? agents[0], [agents]);
 
+  useEffect(() => {
+    let live = true;
+    void nexus.getContextReadiness(project.id)
+      .then((value) => live && setReadiness(value.state || 'MISSING'))
+      .catch((error) => live && setContextError(error instanceof Error ? error.message : String(error)));
+    return () => { live = false; };
+  }, [project.id]);
+
   const handleModeChange = (newMode: string) => {
+    if (newMode === 'planned' && !canPlan(readiness)) return;
     setMode(newMode);
     if (newMode === 'planned' && onPlan) {
       onPlan();
@@ -50,6 +63,10 @@ export const WorkSurface: React.FC<{ project: Project; agents: Agent[]; onDirect
       </div>
 
       <Card className="nx-work-composer">
+        <div role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+          <span>Context <strong>{readiness}</strong>{contextError ? ` · ${contextError}` : ''}</span>
+          {readiness !== 'READY' && <Button size="sm" onClick={() => { setContextError(''); void nexus.hydrateContext(project.id).then((value) => setReadiness(value.state || 'HYDRATING')).catch((error) => setContextError(error instanceof Error ? error.message : String(error))); }}>{readiness === 'MISSING' || readiness === 'STALE' ? 'Hydrate' : 'Retry'}</Button>}
+        </div>
         <div className="nx-work-composer__top">
           <Segmented
             ariaLabel={t('work.mode')}

@@ -303,6 +303,12 @@ func projectSubroute(path string) string {
 		return "git-branches"
 	case strings.HasSuffix(path, "/git/checkout"):
 		return "git-checkout"
+	case strings.HasSuffix(path, "/context-readiness/hydrate"):
+		return "context-hydrate"
+	case strings.HasSuffix(path, "/context-readiness/refresh"):
+		return "context-refresh"
+	case strings.HasSuffix(path, "/context-readiness"):
+		return "context-readiness"
 	default:
 		return "detail"
 	}
@@ -351,6 +357,8 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectGitBranches(w, r)
 		case "git-checkout":
 			h.handleProjectGitCheckout(w, r)
+		case "context-readiness", "context-hydrate", "context-refresh":
+			h.handleProjectContextReadiness(w, r, projectSubroute(r.URL.Path))
 		default:
 			h.handleProjectDetail(w, r)
 		}

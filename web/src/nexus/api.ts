@@ -101,6 +101,9 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ project_id: projectId, agent_id: agentId, intent }),
     }),
+  getContextReadiness: (projectId: string) => request<any>(`/api/v1/projects/${projectId}/context-readiness`),
+  hydrateContext: (projectId: string) => request<any>(`/api/v1/projects/${projectId}/context-readiness/hydrate`, { method: 'POST', body: '{}' }),
+  refreshContext: (projectId: string, hydrated = false) => request<any>(`/api/v1/projects/${projectId}/context-readiness/refresh`, { method: 'POST', body: JSON.stringify({ hydrated }) }),
 
   // Missions (Gate 7 Beta)
   listMissions: (projectId: string) =>
