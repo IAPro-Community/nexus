@@ -2,6 +2,7 @@ package plangraph
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -96,5 +97,118 @@ func NormalizeAndValidate(nodes []Node) ([]Node, error) {
 			return nil, err
 		}
 	}
+	return out, nil
+}
+
+// TopologicalOrder returns a stable order. IDs break ties so identical input
+// always produces identical output regardless of map iteration order.
+func TopologicalOrder(nodes []Node) ([]string, error) {
+	normalized, err := NormalizeAndValidate(nodes)
+	if err != nil {
+		return nil, err
+	}
+	inDegree := make(map[string]int, len(normalized))
+	dependents := make(map[string][]string, len(normalized))
+	for _, node := range normalized {
+		inDegree[node.ID] = len(node.Dependencies)
+	}
+	for _, node := range normalized {
+		for _, dep := range node.Dependencies {
+			dependents[dep] = append(dependents[dep], node.ID)
+		}
+	}
+	ready := make([]string, 0)
+	for id, degree := range inDegree {
+		if degree == 0 {
+			ready = append(ready, id)
+		}
+	}
+	sort.Strings(ready)
+	order := make([]string, 0, len(normalized))
+	for len(ready) > 0 {
+		id := ready[0]
+		ready = ready[1:]
+		order = append(order, id)
+		children := append([]string(nil), dependents[id]...)
+		sort.Strings(children)
+		for _, child := range children {
+			inDegree[child]--
+			if inDegree[child] == 0 {
+				ready = append(ready, child)
+			}
+		}
+		sort.Strings(ready)
+	}
+	if len(order) != len(normalized) {
+		return nil, fmt.Errorf("dependency cycle detected")
+	}
+	return order, nil
+}
+
+// ExecutionWaves groups nodes whose dependencies are satisfied by prior
+// waves. IDs inside each wave are sorted for deterministic dispatch.
+func ExecutionWaves(nodes []Node) ([][]string, error) {
+	normalized, err := NormalizeAndValidate(nodes)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := TopologicalOrder(normalized); err != nil {
+		return nil, err
+	}
+	remaining := make(map[string]Node, len(normalized))
+	for _, node := range normalized {
+		remaining[node.ID] = node
+	}
+	done := map[string]bool{}
+	waves := make([][]string, 0)
+	for len(remaining) > 0 {
+		wave := make([]string, 0)
+		for id, node := range remaining {
+			ready := true
+			for _, dep := range node.Dependencies {
+				if !done[dep] {
+					ready = false
+					break
+				}
+			}
+			if ready {
+				wave = append(wave, id)
+			}
+		}
+		if len(wave) == 0 {
+			return nil, fmt.Errorf("dependency cycle detected")
+		}
+		sort.Strings(wave)
+		waves = append(waves, wave)
+		for _, id := range wave {
+			done[id] = true
+			delete(remaining, id)
+		}
+	}
+	return waves, nil
+}
+
+// DependentsOf returns direct dependents in stable order.
+func DependentsOf(nodes []Node, id string) ([]string, error) {
+	normalized, err := NormalizeAndValidate(nodes)
+	if err != nil {
+		return nil, err
+	}
+	found := false
+	out := make([]string, 0)
+	for _, node := range normalized {
+		if node.ID == id {
+			found = true
+		}
+		for _, dep := range node.Dependencies {
+			if dep == id {
+				out = append(out, node.ID)
+			}
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("unknown package %s", id)
+	}
+	sort.Strings(out)
 	return out, nil
 }

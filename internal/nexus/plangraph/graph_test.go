@@ -54,3 +54,46 @@ func TestNormalizeDependenciesRejectsDuplicateIDs(t *testing.T) {
 		t.Fatalf("expected duplicate id error, got %v", err)
 	}
 }
+
+func TestTopologicalOrderAndExecutionWavesAreDeterministic(t *testing.T) {
+	nodes := []Node{
+		{ID: "d", Dependencies: []string{"b", "c"}},
+		{ID: "c", Dependencies: []string{"a"}},
+		{ID: "b", Dependencies: []string{"a"}},
+		{ID: "a"},
+	}
+	order, err := TopologicalOrder(nodes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantOrder := []string{"a", "b", "c", "d"}
+	for i, want := range wantOrder {
+		if order[i] != want {
+			t.Fatalf("order=%v, want %v", order, wantOrder)
+		}
+	}
+	waves, err := ExecutionWaves(nodes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantWaves := [][]string{{"a"}, {"b", "c"}, {"d"}}
+	if len(waves) != len(wantWaves) {
+		t.Fatalf("waves=%v, want %v", waves, wantWaves)
+	}
+	for i := range wantWaves {
+		if strings.Join(waves[i], ",") != strings.Join(wantWaves[i], ",") {
+			t.Fatalf("waves=%v, want %v", waves, wantWaves)
+		}
+	}
+}
+
+func TestDependentsOfAndGraphValidation(t *testing.T) {
+	nodes := []Node{{ID: "a"}, {ID: "b", Dependencies: []string{"a"}}, {ID: "c", Dependencies: []string{"a"}}}
+	got, err := DependentsOf(nodes, "a")
+	if err != nil || strings.Join(got, ",") != "b,c" {
+		t.Fatalf("dependents=%v err=%v", got, err)
+	}
+	if _, err := ExecutionWaves([]Node{{ID: "a", Dependencies: []string{"missing"}}}); err == nil {
+		t.Fatal("expected missing dependency rejection")
+	}
+}
