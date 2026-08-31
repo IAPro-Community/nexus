@@ -25,6 +25,7 @@ import { SessionsSurface } from '../features/sessions/SessionsSurface';
 import { SettingsSurface } from '../features/settings/SettingsSurface';
 import { useTranslation } from 'react-i18next';
 import { ProjectShellSurface } from '../features/shell/ProjectShellSurface';
+import { FlowRunSurface } from '../features/work/FlowRunSurface';
 import { formatResourcePolicy } from '../i18n';
 import { agentConfigSurface, agentTerminalSurface, projectSurface } from './surfaces';
 
@@ -149,6 +150,7 @@ export const WorkspaceSurfaceHost: React.FC<{
     );
 
   if (surface.type === 'project-shell') return <ProjectShellSurface project={project} />;
+  if (surface.type === 'flow-run') return <FlowRunSurface runId={surface.data?.runId} onOpenAgent={(agentId) => openSurface(agentTerminalSurface(agentId, agentId))} />;
 
   if (surface.type === 'resources')
     return (

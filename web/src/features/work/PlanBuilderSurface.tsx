@@ -26,6 +26,7 @@ import { clarificationFromError, seedProjectPathAnswers, unresolvedBlocking } fr
 import { defaultMissionAutonomyContract } from './missionAutonomyModel';
 import { MissionAutonomyCard } from './MissionAutonomyCard';
 import { getProviderLock, mergePackages, normalizeWorkPlan, planSuggestionDiff, setProviderLock, splitPackage } from './planBuilderModel';
+import { FlowCanvas } from './FlowCanvas';
 
 export const PlanBuilderSurface: React.FC<{
   project: Project;
@@ -569,6 +570,8 @@ export const PlanBuilderSurface: React.FC<{
           </div>
         </Card>
       )}
+
+      <FlowCanvas plan={selectedPlan} />
 
       {/* Main Two-Column Layout: Plan Hierarchy & Inspector/Runner */}
       <div className="nx-plan-builder__columns">

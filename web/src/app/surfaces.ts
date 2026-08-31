@@ -7,6 +7,7 @@ export type ProjectSurfaceKind =
   | 'missions'
   | 'agents'
   | 'project-shell'
+  | 'flow-run'
   | 'maestro'
   | 'sessions'
   | 'settings'
@@ -22,6 +23,7 @@ const labels: Record<ProjectSurfaceKind, string> = {
   missions: 'Plan',
   agents: 'Agents',
   'project-shell': 'Project Shell',
+  'flow-run': 'Flow Run',
   maestro: 'Maestro',
   sessions: 'Sessions',
   settings: 'Settings',
@@ -78,6 +80,18 @@ export function agentConfigSurface(agentId: string, agentName: string): Workspac
     titleKey: 'workspace.configureAgent',
     titleParams: { name: agentName },
     data: { agentId },
+    closable: true,
+  };
+}
+
+export function flowRunSurface(runId: string, title = 'Flow Run'): WorkspaceSurface {
+  return {
+    id: `flow-run:${runId}`,
+    viewId: `view:flow-run:${runId}`,
+    logicalKey: `flow-run:${runId}`,
+    type: 'flow-run',
+    title,
+    data: { runId },
     closable: true,
   };
 }
