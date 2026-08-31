@@ -106,15 +106,15 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       } else if (frame.kind === 'protocol-error') {
         console.error(`Terminal protocol error: ${frame.message}`);
         setErrorMsg('Terminal protocol error');
-      } else {
-        const msg = frame.payload;
-        if (frame.type === 'lease') {
+      } else if (frame.type === 'control') {
+        const msg = frame.payload || {};
+        if (frame.event === 'lease') {
           setRole(frameString(msg, 'role') === 'CONTROL' ? 'CONTROL' : 'VIEW_ONLY');
-        } else if (frame.type === 'title' && frameString(msg, 'data')) {
+        } else if (frame.event === 'title' && frameString(msg, 'data')) {
           const data = frameString(msg, 'data')!;
           setCustomTitle(data);
           if (onUpdateTitle) onUpdateTitle(runtimeId, data);
-        } else if (frame.type === 'attention') {
+        } else if (frame.event === 'attention') {
           const dynamicTitle = frameString(msg, 'dynamic_title');
           if (dynamicTitle) {
             setCustomTitle(dynamicTitle);
@@ -127,7 +127,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
             context: frameString(msg, 'context') || frameString(msg, 'summary') || 'Atenção necessária no terminal',
             dynamicTitle,
           });
-        } else if (frame.type === 'error') {
+        } else if (frame.event === 'error') {
           setErrorMsg(frameString(msg, 'data') || 'Terminal error');
         }
       }

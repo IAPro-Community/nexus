@@ -1,23 +1,58 @@
 export type TerminalFrame =
-  | { kind: 'output'; data: string }
-  | { kind: 'control'; type: string; payload: Record<string, unknown> }
-  | { kind: 'protocol-error'; message: string };
+  | { type: 'output'; data: string }
+  | { type: 'agent_state'; agent_id: string; state: string }
+  | { type: 'continuity_state'; agent_id: string; continuity_state: string }
+  | { type: 'control'; event: string; payload?: Record<string, unknown> }
+  | { type: 'unknown'; raw: string };
 
-const CONTROL_TYPES = new Set(['lease', 'runtime_changed', 'attention', 'title', 'status', 'error']);
+type LegacyTerminalView = {
+  kind: 'output' | 'control' | 'protocol-error';
+  data: string;
+  payload: Record<string, unknown>;
+  message: string;
+};
 
-/** Parse the strict control envelope without hiding legitimate provider JSON output. */
-export function parseTerminalFrame(raw: unknown): TerminalFrame {
-  if (typeof raw !== 'string') return { kind: 'protocol-error', message: 'terminal frame is not text' };
+const CONTROL_TYPES = new Set([
+  'lease',
+  'runtime_changed',
+  'agent_state',
+  'continuity_state',
+  'attention',
+  'title',
+  'status',
+  'error',
+]);
+
+function withLegacyView(frame: TerminalFrame): TerminalFrame & LegacyTerminalView {
+  Object.defineProperties(frame, {
+    kind: { value: frame.type === 'output' ? 'output' : frame.type === 'control' ? 'control' : 'protocol-error' },
+    data: { value: frame.type === 'output' ? frame.data : frame.type === 'control' ? frame.payload?.data : '' },
+    payload: { value: frame.type === 'control' ? frame.payload ?? {} : {} },
+    message: { value: frame.type === 'unknown' ? 'unknown terminal frame' : '' },
+  });
+  return frame as TerminalFrame & LegacyTerminalView;
+}
+
+/** Parse typed terminal envelopes without treating provider JSON as control. */
+export function parseTerminalFrame(raw: unknown): TerminalFrame & LegacyTerminalView {
+  if (typeof raw !== 'string') return withLegacyView({ type: 'unknown', raw: String(raw) });
   let value: unknown;
-  try { value = JSON.parse(raw); } catch { return { kind: 'output', data: raw }; }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return { kind: 'output', data: raw };
+  try { value = JSON.parse(raw); } catch { return withLegacyView({ type: 'output', data: raw }); }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return withLegacyView({ type: 'output', data: raw });
   const payload = value as Record<string, unknown>;
-  if (!('type' in payload)) return { kind: 'output', data: raw };
-  if (payload.type === 'output') {
-    return typeof payload.data === 'string' ? { kind: 'output', data: payload.data } : { kind: 'protocol-error', message: 'output frame data must be text' };
+  if (!('type' in payload)) return withLegacyView({ type: 'output', data: raw });
+  if (payload.type === 'output' && typeof payload.data === 'string') return withLegacyView({ type: 'output', data: payload.data });
+  if (payload.type === 'agent_state' && typeof payload.agent_id === 'string' && typeof payload.state === 'string') {
+    return withLegacyView({ type: 'agent_state', agent_id: payload.agent_id, state: payload.state });
   }
-  if (typeof payload.type !== 'string' || !CONTROL_TYPES.has(payload.type)) return { kind: 'protocol-error', message: 'unknown terminal control frame' };
-  return { kind: 'control', type: payload.type, payload };
+  if (payload.type === 'continuity_state' && typeof payload.agent_id === 'string' && typeof payload.continuity_state === 'string') {
+    return withLegacyView({ type: 'continuity_state', agent_id: payload.agent_id, continuity_state: payload.continuity_state });
+  }
+  if (typeof payload.type === 'string' && CONTROL_TYPES.has(payload.type)) {
+    const { type: event, ...controlPayload } = payload;
+    return withLegacyView({ type: 'control', event, payload: controlPayload });
+  }
+  return withLegacyView({ type: 'unknown', raw });
 }
 
 export function frameString(payload: Record<string, unknown>, key: string): string | undefined {

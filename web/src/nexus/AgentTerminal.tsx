@@ -135,14 +135,18 @@ export const AgentTerminal: React.FC<{
 
       ws.onmessage = (event) => {
         const frame = parseTerminalFrame(event.data);
-        if (frame.kind === 'output') {
+        if (frame.type === 'output') {
           term.write(frame.data);
-        } else if (frame.kind === 'protocol-error') {
-          console.error(`Terminal protocol error: ${frame.message}`);
+        } else if (frame.type === 'unknown') {
+          console.error('Terminal protocol error: unknown terminal frame');
           setMessage('Terminal protocol error');
+        } else if (frame.type === 'agent_state') {
+          setMessage(`Agent state: ${frame.state}`);
+        } else if (frame.type === 'continuity_state') {
+          setMessage(`Continuity: ${frame.continuity_state}`);
         } else {
-          const payload = frame.payload;
-          if (frame.type === 'lease') {
+          const payload = frame.payload ?? {};
+          if (frame.event === 'lease') {
             const previous = roleRef.current;
             const next = normalizeTerminalRole(frameString(payload, 'role'));
             roleRef.current = next;
@@ -152,15 +156,15 @@ export const AgentTerminal: React.FC<{
               ws.send(JSON.stringify({ type: leaseCommand }));
             }
             maybeSendKickoff();
-          } else if (frame.type === 'runtime_changed') {
+          } else if (frame.event === 'runtime_changed') {
             setMessage('Runtime generation changed — rebinding terminal…');
             // The server currently closes the generation-bound socket after this
             // event. Closing proactively also keeps this client compatible with a
             // future server that leaves the old transport open for a grace period.
             ws.close(1012, 'runtime generation changed');
-          } else if (frame.type === 'title' && frameString(payload, 'data')) {
+          } else if (frame.event === 'title' && frameString(payload, 'data')) {
             setCustomTitle(frameString(payload, 'data')!);
-          } else if (frame.type === 'attention') {
+          } else if (frame.event === 'attention') {
             const dynamicTitle = frameString(payload, 'dynamic_title');
             if (dynamicTitle) setCustomTitle(dynamicTitle);
             pushNotifications.sendPush({
@@ -170,8 +174,8 @@ export const AgentTerminal: React.FC<{
               context: frameString(payload, 'context') || frameString(payload, 'summary') || 'Atenção necessária no terminal',
               dynamicTitle,
             });
-          } else if (frame.type === 'error') {
-            setMessage(String(payload.data ?? 'Terminal error'));
+          } else if (frame.event === 'error') {
+            setMessage(frameString(payload, 'data') ?? 'Terminal error');
           }
         }
       };
