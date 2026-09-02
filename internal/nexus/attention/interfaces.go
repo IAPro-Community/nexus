@@ -4,7 +4,7 @@ import "time"
 
 type Writer interface {
 	Ingest(event AttentionEvent) (stored AttentionEvent, inserted bool, err error)
-	Acknowledge(eventID string, acknowledgedAt time.Time) (stored AttentionEvent, changed bool)
+	Acknowledge(projectID, eventID string, acknowledgedAt time.Time) (stored AttentionEvent, changed bool)
 }
 
 type Reader interface {

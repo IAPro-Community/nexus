@@ -298,7 +298,7 @@ func TestAcknowledgeCompletedEventDropsUnreadCompletedPriority(t *testing.T) {
 	}
 
 	ackAt := base.Add(2 * time.Second)
-	acknowledged, changed := stream.Acknowledge("event-1", ackAt)
+	acknowledged, changed := stream.Acknowledge("project-1", "event-1", ackAt)
 	if !changed {
 		t.Fatal("expected acknowledge to change event state")
 	}
@@ -312,6 +312,55 @@ func TestAcknowledgeCompletedEventDropsUnreadCompletedPriority(t *testing.T) {
 	}
 	if after.PriorityState != StateRecoverable {
 		t.Fatalf("expected recoverable priority after ack, got %#v", after)
+	}
+}
+
+func TestAcknowledgeTargetsMatchingProjectAndEventID(t *testing.T) {
+	stream := NewMemoryStream(16)
+	base := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
+
+	mustIngest(t, stream, AttentionEvent{
+		ID:             "event-shared",
+		ProjectID:      "project-1",
+		ViewLogicalKey: "view:project-1",
+		State:          StateCompleted,
+		Reason:         "done project 1",
+		Source:         SourceSystem,
+		OccurredAt:     base,
+	})
+	mustIngest(t, stream, AttentionEvent{
+		ID:             "event-shared",
+		ProjectID:      "project-2",
+		ViewLogicalKey: "view:project-2",
+		State:          StateCompleted,
+		Reason:         "done project 2",
+		Source:         SourceSystem,
+		OccurredAt:     base.Add(time.Second),
+	})
+
+	ackAt := base.Add(2 * time.Second)
+	acknowledged, changed := stream.Acknowledge("project-1", "event-shared", ackAt)
+	if !changed {
+		t.Fatal("expected acknowledge to update the matching project event")
+	}
+	if acknowledged.ProjectID != "project-1" {
+		t.Fatalf("expected acknowledged event from project-1, got %#v", acknowledged)
+	}
+	if acknowledged.AcknowledgedAt == nil || !acknowledged.AcknowledgedAt.Equal(ackAt) {
+		t.Fatalf("expected acknowledged timestamp on project-1 event, got %#v", acknowledged)
+	}
+
+	projectOne := stream.Replay(ReplayFilter{ProjectID: "project-1", Limit: 8})
+	if len(projectOne) != 1 || projectOne[0].AcknowledgedAt == nil || !projectOne[0].AcknowledgedAt.Equal(ackAt) {
+		t.Fatalf("expected project-1 event acknowledged, got %#v", projectOne)
+	}
+
+	projectTwo := stream.Replay(ReplayFilter{ProjectID: "project-2", Limit: 8})
+	if len(projectTwo) != 1 {
+		t.Fatalf("expected one project-2 event, got %#v", projectTwo)
+	}
+	if projectTwo[0].AcknowledgedAt != nil {
+		t.Fatalf("expected project-2 event to stay unacknowledged, got %#v", projectTwo[0])
 	}
 }
 
@@ -388,7 +437,7 @@ func TestMemoryStreamOutputsDoNotExposeStoredAcknowledgedAtPointers(t *testing.T
 		t.Fatalf("expected stored acknowledgedAt isolated from ingest output mutation, got %#v", replayed[0])
 	}
 
-	acknowledged, changed := stream.Acknowledge("event-live-ack", base.Add(31*time.Second))
+	acknowledged, changed := stream.Acknowledge("project-1", "event-live-ack", base.Add(31*time.Second))
 	if changed {
 		t.Fatalf("expected missing event not to acknowledge, got %#v", acknowledged)
 	}
@@ -403,7 +452,7 @@ func TestMemoryStreamOutputsDoNotExposeStoredAcknowledgedAtPointers(t *testing.T
 		OccurredAt:     base.Add(30 * time.Second),
 	})
 
-	acknowledged, changed = stream.Acknowledge("event-live-ack", base.Add(31*time.Second))
+	acknowledged, changed = stream.Acknowledge("project-1", "event-live-ack", base.Add(31*time.Second))
 	if !changed || acknowledged.AcknowledgedAt == nil {
 		t.Fatalf("expected acknowledge to set timestamp, got changed=%v event=%#v", changed, acknowledged)
 	}

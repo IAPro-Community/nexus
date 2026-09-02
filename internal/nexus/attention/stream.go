@@ -46,18 +46,12 @@ func (s *MemoryStream) Ingest(event AttentionEvent) (AttentionEvent, bool, error
 	return cloneEvent(stored), true, nil
 }
 
-func (s *MemoryStream) Acknowledge(eventID string, acknowledgedAt time.Time) (AttentionEvent, bool) {
+func (s *MemoryStream) Acknowledge(projectID, eventID string, acknowledgedAt time.Time) (AttentionEvent, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	idx := -1
-	for i := len(s.events) - 1; i >= 0; i-- {
-		if s.events[i].ID == eventID {
-			idx = i
-			break
-		}
-	}
-	if idx == -1 {
+	idx, ok := s.index[storageKey(strings.TrimSpace(projectID), strings.TrimSpace(eventID))]
+	if !ok {
 		return AttentionEvent{}, false
 	}
 
