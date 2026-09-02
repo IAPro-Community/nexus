@@ -4,10 +4,46 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
+
+func TestDefaultRegistryResetConcurrentAccess(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("AI_MANAGER_DATA_DIR", tmpDir)
+	t.Setenv("AI_CLI_DATA_DIR", tmpDir)
+
+	ResetDefaultRegistryForTest()
+	t.Cleanup(ResetDefaultRegistryForTest)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 1000; i++ {
+			_ = DefaultRegistry()
+			runtime.Gosched()
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 1000; i++ {
+			ResetDefaultRegistryForTest()
+			runtime.Gosched()
+		}
+	}()
+
+	wg.Wait()
+
+	if DefaultRegistry() == nil {
+		t.Fatal("expected DefaultRegistry to return a singleton instance")
+	}
+}
 
 func TestRegistryPersistenceAndLifecycle(t *testing.T) {
 	tmpDir := t.TempDir()

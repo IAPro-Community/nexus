@@ -21,25 +21,40 @@ type Registry struct {
 }
 
 var (
+	singletonMu     sync.RWMutex
 	defaultRegistry *Registry
 	regOnce         sync.Once
 )
 
 // DefaultRegistry returns the singleton registry instance.
 func DefaultRegistry() *Registry {
-	regOnce.Do(func() {
-		dataDir, err := config.DataDir()
-		if err != nil {
-			dataDir = filepath.Join(os.TempDir(), "ai-control")
-		}
-		path := filepath.Join(dataDir, "runtimes.json")
-		defaultRegistry = NewRegistry(path)
-	})
+	singletonMu.RLock()
+	reg := defaultRegistry
+	singletonMu.RUnlock()
+	if reg != nil {
+		return reg
+	}
+
+	singletonMu.Lock()
+	defer singletonMu.Unlock()
+
+	if defaultRegistry == nil {
+		regOnce.Do(func() {
+			dataDir, err := config.DataDir()
+			if err != nil {
+				dataDir = filepath.Join(os.TempDir(), "ai-control")
+			}
+			path := filepath.Join(dataDir, "runtimes.json")
+			defaultRegistry = NewRegistry(path)
+		})
+	}
 	return defaultRegistry
 }
 
 // ResetDefaultRegistryForTest resets the singleton registry for isolated testing.
 func ResetDefaultRegistryForTest() {
+	singletonMu.Lock()
+	defer singletonMu.Unlock()
 	regOnce = sync.Once{}
 	defaultRegistry = nil
 }
