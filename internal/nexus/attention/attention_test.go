@@ -44,6 +44,30 @@ func TestNormalizeEventSanitizesBoundedRedactedMessage(t *testing.T) {
 	}
 }
 
+func TestNormalizeEventSanitizesBoundedRedactedReason(t *testing.T) {
+	occurredAt := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
+	rawReason := strings.Repeat(" stalled", 80) + " Authorization: Bearer sk-proj-1234567890abcdef1234567890abcdef1234567890 "
+
+	event, err := NormalizeEvent(AttentionEvent{
+		ID:         "event-reason",
+		ProjectID:  "project-1",
+		State:      StateWaitingInput,
+		Reason:     rawReason,
+		Source:     SourceStructuredProviderEvent,
+		OccurredAt: occurredAt,
+	})
+	if err != nil {
+		t.Fatalf("NormalizeEvent returned error: %v", err)
+	}
+
+	if strings.Contains(event.Reason, "sk-proj-1234567890abcdef1234567890abcdef1234567890") {
+		t.Fatalf("expected reason redaction, got %q", event.Reason)
+	}
+	if len([]rune(event.Reason)) > MaxMessageRunes {
+		t.Fatalf("expected bounded reason length <= %d, got %d", MaxMessageRunes, len([]rune(event.Reason)))
+	}
+}
+
 func TestNormalizeEventRejectsInvalidStateAndSource(t *testing.T) {
 	occurredAt := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
 
@@ -129,6 +153,45 @@ func TestMemoryStreamIngestIsIdempotentAndReplayIsBounded(t *testing.T) {
 	}
 	if events[0].ID != "event-2" || events[1].ID != "event-3" {
 		t.Fatalf("expected oldest retained first, got %#v", events)
+	}
+}
+
+func TestMemoryStreamRetainsSameEventIDAcrossProjects(t *testing.T) {
+	stream := NewMemoryStream(8)
+	base := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
+
+	first := mustIngest(t, stream, AttentionEvent{
+		ID:         "event-1",
+		ProjectID:  "project-1",
+		RuntimeID:  "runtime-1",
+		State:      StateWorking,
+		Reason:     "building",
+		Source:     SourceFlowRunner,
+		OccurredAt: base,
+	})
+	second, inserted, err := stream.Ingest(AttentionEvent{
+		ID:         "event-1",
+		ProjectID:  "project-2",
+		RuntimeID:  "runtime-2",
+		State:      StateFailed,
+		Reason:     "failed",
+		Source:     SourceSystem,
+		OccurredAt: base.Add(time.Second),
+	})
+	if err != nil {
+		t.Fatalf("expected second project event inserted: %v", err)
+	}
+	if !inserted {
+		t.Fatalf("expected same event id in another project to be retained, got %#v", second)
+	}
+
+	projectOne := stream.Replay(ReplayFilter{ProjectID: "project-1", Limit: 8})
+	if len(projectOne) != 1 || projectOne[0].ProjectID != first.ProjectID {
+		t.Fatalf("expected independent project-1 event, got %#v", projectOne)
+	}
+	projectTwo := stream.Replay(ReplayFilter{ProjectID: "project-2", Limit: 8})
+	if len(projectTwo) != 1 || projectTwo[0].ProjectID != "project-2" {
+		t.Fatalf("expected independent project-2 event, got %#v", projectTwo)
 	}
 }
 
@@ -293,6 +356,66 @@ func TestReplayFiltersByProjectAndLimit(t *testing.T) {
 	}
 	if events[0].ID != "event-3" {
 		t.Fatalf("expected newest matching event, got %#v", events)
+	}
+}
+
+func TestMemoryStreamOutputsDoNotExposeStoredAcknowledgedAtPointers(t *testing.T) {
+	stream := NewMemoryStream(16)
+	base := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
+	ingestedAck := base.Add(10 * time.Second)
+
+	stored, inserted, err := stream.Ingest(AttentionEvent{
+		ID:             "event-ack",
+		ProjectID:      "project-1",
+		ViewLogicalKey: "view:ack",
+		State:          StateCompleted,
+		Reason:         "done",
+		Source:         SourceSystem,
+		OccurredAt:     base,
+		AcknowledgedAt: &ingestedAck,
+	})
+	if err != nil || !inserted {
+		t.Fatalf("expected acknowledged event inserted, got inserted=%v err=%v", inserted, err)
+	}
+
+	mutatedIngestAck := base.Add(20 * time.Second)
+	*stored.AcknowledgedAt = mutatedIngestAck
+	replayed := stream.Replay(ReplayFilter{ProjectID: "project-1", Limit: 8})
+	if len(replayed) != 1 {
+		t.Fatalf("expected one replayed event, got %#v", replayed)
+	}
+	if replayed[0].AcknowledgedAt == nil || !replayed[0].AcknowledgedAt.Equal(ingestedAck) {
+		t.Fatalf("expected stored acknowledgedAt isolated from ingest output mutation, got %#v", replayed[0])
+	}
+
+	acknowledged, changed := stream.Acknowledge("event-live-ack", base.Add(31*time.Second))
+	if changed {
+		t.Fatalf("expected missing event not to acknowledge, got %#v", acknowledged)
+	}
+
+	mustIngest(t, stream, AttentionEvent{
+		ID:             "event-live-ack",
+		ProjectID:      "project-1",
+		ViewLogicalKey: "view:live-ack",
+		State:          StateCompleted,
+		Reason:         "complete",
+		Source:         SourceSystem,
+		OccurredAt:     base.Add(30 * time.Second),
+	})
+
+	acknowledged, changed = stream.Acknowledge("event-live-ack", base.Add(31*time.Second))
+	if !changed || acknowledged.AcknowledgedAt == nil {
+		t.Fatalf("expected acknowledge to set timestamp, got changed=%v event=%#v", changed, acknowledged)
+	}
+
+	mutatedReturnedAck := base.Add(40 * time.Second)
+	*acknowledged.AcknowledgedAt = mutatedReturnedAck
+	replayed = stream.Replay(ReplayFilter{ProjectID: "project-1", ViewLogicalKey: "view:live-ack", Limit: 1})
+	if len(replayed) != 1 {
+		t.Fatalf("expected one acknowledged replayed event, got %#v", replayed)
+	}
+	if replayed[0].AcknowledgedAt == nil || !replayed[0].AcknowledgedAt.Equal(base.Add(31*time.Second)) {
+		t.Fatalf("expected stored acknowledgedAt isolated from acknowledge output mutation, got %#v", replayed[0])
 	}
 }
 

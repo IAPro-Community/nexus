@@ -33,29 +33,37 @@ func (s *MemoryStream) Ingest(event AttentionEvent) (AttentionEvent, bool, error
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if idx, ok := s.index[normalized.ID]; ok {
-		return s.events[idx], false, nil
+	key := storageKey(normalized.ProjectID, normalized.ID)
+	if idx, ok := s.index[key]; ok {
+		return cloneEvent(s.events[idx]), false, nil
 	}
 
-	s.events = append(s.events, normalized)
-	s.index[normalized.ID] = len(s.events) - 1
+	stored := cloneEvent(normalized)
+	s.events = append(s.events, stored)
+	s.index[key] = len(s.events) - 1
 	s.trimLocked()
 
-	return normalized, true, nil
+	return cloneEvent(stored), true, nil
 }
 
 func (s *MemoryStream) Acknowledge(eventID string, acknowledgedAt time.Time) (AttentionEvent, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	idx, ok := s.index[eventID]
-	if !ok {
+	idx := -1
+	for i := len(s.events) - 1; i >= 0; i-- {
+		if s.events[i].ID == eventID {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
 		return AttentionEvent{}, false
 	}
 
 	event := s.events[idx]
 	if event.AcknowledgedAt != nil {
-		return event, false
+		return cloneEvent(event), false
 	}
 
 	if acknowledgedAt.IsZero() {
@@ -70,7 +78,7 @@ func (s *MemoryStream) Acknowledge(eventID string, acknowledgedAt time.Time) (At
 	event.AcknowledgedAt = &acknowledgedAt
 	s.events[idx] = event
 
-	return event, true
+	return cloneEvent(event), true
 }
 
 func (s *MemoryStream) Replay(filter ReplayFilter) []AttentionEvent {
@@ -84,7 +92,7 @@ func (s *MemoryStream) Replay(filter ReplayFilter) []AttentionEvent {
 
 	matches := make([]AttentionEvent, 0, limit)
 	for i := len(s.events) - 1; i >= 0; i-- {
-		event := s.events[i]
+		event := cloneEvent(s.events[i])
 		if !matchesFilter(event, filter) {
 			continue
 		}
@@ -172,7 +180,7 @@ func (s *MemoryStream) trimLocked() {
 	}
 	excess := len(s.events) - s.capacity
 	for i := 0; i < excess; i++ {
-		delete(s.index, s.events[i].ID)
+		delete(s.index, storageKey(s.events[i].ProjectID, s.events[i].ID))
 	}
 	s.events = append([]AttentionEvent(nil), s.events[excess:]...)
 	s.reindexLocked()
@@ -181,8 +189,12 @@ func (s *MemoryStream) trimLocked() {
 func (s *MemoryStream) reindexLocked() {
 	s.index = make(map[string]int, len(s.events))
 	for idx, event := range s.events {
-		s.index[event.ID] = idx
+		s.index[storageKey(event.ProjectID, event.ID)] = idx
 	}
+}
+
+func storageKey(projectID, eventID string) string {
+	return projectID + "\x00" + eventID
 }
 
 func matchesFilter(event AttentionEvent, filter ReplayFilter) bool {

@@ -104,7 +104,7 @@ func NormalizeEvent(event AttentionEvent) (AttentionEvent, error) {
 	event.RuntimeID = strings.TrimSpace(event.RuntimeID)
 	event.FlowRunID = strings.TrimSpace(event.FlowRunID)
 	event.ViewLogicalKey = strings.TrimSpace(event.ViewLogicalKey)
-	event.Reason = strings.TrimSpace(event.Reason)
+	event.Reason = sanitizeMessage(event.Reason)
 	event.Message = sanitizeMessage(event.Message)
 	event.OccurredAt = event.OccurredAt.UTC()
 
@@ -170,4 +170,14 @@ func clampRunes(value string, max int) string {
 		return string(runes[:max])
 	}
 	return string(runes[:max-3]) + "..."
+}
+
+func cloneEvent(event AttentionEvent) AttentionEvent {
+	if event.AcknowledgedAt == nil {
+		return event
+	}
+
+	ack := event.AcknowledgedAt.UTC()
+	event.AcknowledgedAt = &ack
+	return event
 }
