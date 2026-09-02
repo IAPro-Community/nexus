@@ -1,9 +1,20 @@
+import {
+  prepareNotificationEnvelope,
+  type NotificationPolicyInput,
+} from './notificationPolicy';
+
 export interface PushNotificationPayload {
   runtimeId: string;
+  projectId?: string;
   projectName?: string;
   reason: 'QUESTION' | 'APPROVAL' | 'TASK_COMPLETED' | 'WORKING' | 'IDLE' | 'ERROR' | string;
-  context: string;
+  context?: string;
+  summary?: string;
   dynamicTitle?: string;
+  attentionEventId?: string;
+  view?: string;
+  credentials?: unknown;
+  transcript?: unknown;
   onClick?: () => void;
 }
 
@@ -11,6 +22,7 @@ class PushNotificationService {
   private permission: NotificationPermission = typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default';
   private lastNotifiedKey = '';
   private lastNotifiedTime = 0;
+  private readonly seenAttentionEvents = new Set<string>();
 
   public isSupported(): boolean {
     return typeof window !== 'undefined' && 'Notification' in window;
@@ -28,6 +40,9 @@ class PushNotificationService {
     try {
       const perm = await Notification.requestPermission();
       this.permission = perm;
+      if (perm === 'granted') {
+        await this.ensureServiceWorker();
+      }
       return perm;
     } catch {
       return this.permission;
@@ -37,30 +52,37 @@ class PushNotificationService {
   public sendPush(payload: PushNotificationPayload): void {
     if (!this.isSupported() || this.getPermission() !== 'granted') return;
 
-    // Throttle duplicate notifications within 3 seconds
-    const key = `${payload.runtimeId}:${payload.reason}:${payload.context}`;
-    const now = Date.now();
-    if (this.lastNotifiedKey === key && now - this.lastNotifiedTime < 3000) {
+    const hasFocusFn = (window as unknown as { hasFocus?: () => boolean }).hasFocus;
+    const envelope = prepareNotificationEnvelope(payload as NotificationPolicyInput, {
+      hasActiveClients: true,
+      visible: !document.hidden,
+      hasFocus: typeof hasFocusFn === 'function' ? hasFocusFn() : true,
+    });
+
+    if (envelope.transport === 'IN_APP') {
       return;
     }
-    this.lastNotifiedKey = key;
-    this.lastNotifiedTime = now;
 
-    const proj = payload.projectName || 'Projeto';
-    let title = `[Nexus | ${proj}] Notificação`;
-    if (payload.reason === 'QUESTION') {
-      title = `[Nexus | ${proj}] ❓ Pergunta Requer Atenção`;
-    } else if (payload.reason === 'APPROVAL') {
-      title = `[Nexus | ${proj}] ⚠️ Aprovação Necessária`;
-    } else if (payload.reason === 'TASK_COMPLETED') {
-      title = `[Nexus | ${proj}] ✅ Tarefa Concluída!`;
+    if (payload.attentionEventId) {
+      if (this.seenAttentionEvents.has(envelope.dedupeKey)) {
+        return;
+      }
+      this.seenAttentionEvents.add(envelope.dedupeKey);
     }
 
+    const now = Date.now();
+    if (!payload.attentionEventId && this.lastNotifiedKey === envelope.dedupeKey && now - this.lastNotifiedTime < 3000) {
+      return;
+    }
+    this.lastNotifiedKey = envelope.dedupeKey;
+    this.lastNotifiedTime = now;
+
     try {
-      const notif = new Notification(title, {
-        body: payload.context || (payload.reason === 'TASK_COMPLETED' ? 'Task completada com sucesso.' : 'O terminal aguarda sua interação.'),
+      const notif = new Notification(envelope.title, {
+        body: envelope.body,
         icon: '/logo.png',
-        tag: `nexus-${payload.runtimeId}`,
+        tag: envelope.tag,
+        data: envelope.data,
         silent: false,
       });
 
@@ -77,6 +99,15 @@ class PushNotificationService {
       };
     } catch (e) {
       console.warn('[PushNotificationService] Failed to show browser notification:', e);
+    }
+  }
+
+  private async ensureServiceWorker(): Promise<void> {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    try {
+      await navigator.serviceWorker.register('/nexus-service-worker.js');
+    } catch {
+      // Best-effort registration only; browser notifications still work without it.
     }
   }
 }
