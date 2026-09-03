@@ -52,7 +52,7 @@ export const AddProjectModal: React.FC<{
         .catch(() => setInspectInfo(null));
     }, 300);
     return () => clearTimeout(timer);
-  }, [path, name]);
+  }, [path]);
 
   const handleCreate = async () => {
     if (!path.trim() || busy) return;

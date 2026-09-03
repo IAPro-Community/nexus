@@ -391,7 +391,7 @@ func (h *NexusHandler) handleAgentStart(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	sess, err := h.nexus.StartAgent(context.Background(), id, provider, profile)
+	sess, err := h.nexus.StartAgent(r.Context(), id, provider, profile)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -434,7 +434,7 @@ func (h *NexusHandler) handleAgentStop(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "missing agent id")
 		return
 	}
-	if err := h.nexus.StopAgent(context.Background(), id); err != nil {
+	if err := h.nexus.StopAgent(r.Context(), id); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -448,7 +448,7 @@ func (h *NexusHandler) handleAgentRecover(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusNotFound, "missing agent id")
 		return
 	}
-	sess, err := h.nexus.RecoverAgent(context.Background(), id)
+	sess, err := h.nexus.RecoverAgent(r.Context(), id)
 	if err != nil {
 		writeError(w, http.StatusConflict, err.Error())
 		return
@@ -1114,8 +1114,9 @@ func (h *NexusHandler) handleProjectGitCheckout(w http.ResponseWriter, r *http.R
 		return
 	}
 	targetBranch := strings.TrimSpace(body.Branch)
-	// Basic sanitization against flags or illegal chars
-	if strings.HasPrefix(targetBranch, "-") || strings.ContainsAny(targetBranch, " ~^:?*[\\") {
+	// Basic sanitization against flags, illegal chars, and shell metacharacters
+	blockedChars := " ~^:?*[\\\"'$(" + "`)"
+	if strings.HasPrefix(targetBranch, "-") || strings.ContainsAny(targetBranch, blockedChars) {
 		writeError(w, http.StatusBadRequest, "invalid branch name")
 		return
 	}

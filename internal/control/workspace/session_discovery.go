@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"sync"
 	"time"
 )
 
@@ -34,6 +35,7 @@ type ProviderSessionDiscovery interface {
 
 // SessionDiscoveryManager coordinates session discovery across all providers.
 type SessionDiscoveryManager struct {
+	mu          sync.RWMutex
 	discoveries map[string]ProviderSessionDiscovery // providerID -> discovery
 }
 
@@ -46,11 +48,15 @@ func NewSessionDiscoveryManager() *SessionDiscoveryManager {
 
 // Register registers a provider's session discovery implementation.
 func (m *SessionDiscoveryManager) Register(discovery ProviderSessionDiscovery) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.discoveries[discovery.ProviderID()] = discovery
 }
 
 // DiscoverAll discovers sessions from all registered providers.
 func (m *SessionDiscoveryManager) DiscoverAll(ctx context.Context, projectPath string) ([]ProviderSession, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	var allSessions []ProviderSession
 
 	for _, discovery := range m.discoveries {
@@ -66,6 +72,8 @@ func (m *SessionDiscoveryManager) DiscoverAll(ctx context.Context, projectPath s
 
 // DiscoverByProvider discovers sessions from a specific provider.
 func (m *SessionDiscoveryManager) DiscoverByProvider(ctx context.Context, providerID, projectPath string) ([]ProviderSession, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	discovery, ok := m.discoveries[providerID]
 	if !ok {
 		return nil, nil

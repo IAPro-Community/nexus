@@ -169,19 +169,14 @@ func (gs *GlobalStream) sendEvent(conn *StreamConnection, event StreamEvent) {
 	}
 
 	// Dedup: skip if we've sent the same event ID recently
-	gs.mu.RLock()
+	gs.mu.Lock()
 	if event.Event != nil {
 		if lastTime, ok := conn.lastSeen[event.Event.ProjectID]; ok {
 			if time.Since(lastTime) < 100*time.Millisecond {
-				gs.mu.RUnlock()
+				gs.mu.Unlock()
 				return
 			}
 		}
-	}
-	gs.mu.RUnlock()
-
-	gs.mu.Lock()
-	if event.Event != nil {
 		conn.lastSeen[event.Event.ProjectID] = time.Now()
 	}
 	gs.mu.Unlock()

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, GitBranch, Plus, RefreshCw } from 'lucide-react';
 import { Button, Dialog, Input, SearchInput, Badge, Spinner, InlineAlert } from '../../design-system';
@@ -27,6 +27,13 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
   const [newBranchName, setNewBranchName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   const loadBranches = async () => {
     if (!project?.id) return;
@@ -63,7 +70,7 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
       if (res.success) {
         setSuccessMsg(`✓ Alternado para branch ${res.current_branch}`);
         onBranchChanged?.(res.current_branch);
-        setTimeout(() => {
+        closeTimerRef.current = setTimeout(() => {
           onClose();
         }, 500);
       }

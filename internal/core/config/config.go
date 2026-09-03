@@ -307,8 +307,8 @@ func ProfileHome(provider, name string) (string, error) {
 
 // LoadConfig reads the configuration file with migration support.
 func LoadConfig() (Config, error) {
-	configMu.Lock()
-	defer configMu.Unlock()
+	configMu.RLock()
+	defer configMu.RUnlock()
 
 	cfg := NewDefaultConfig()
 	dir, err := ConfigDir()

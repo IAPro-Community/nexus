@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 
 export interface AttentionEvent {
   id: string;
@@ -47,17 +47,7 @@ const STATE_ICONS: Record<string, string> = {
   RECOVERABLE: '🔄',
 };
 
-const STATE_COLORS: Record<string, string> = {
-  WORKING: 'text-blue-500',
-  WAITING_INPUT: 'text-amber-500',
-  WAITING_APPROVAL: 'text-rose-500',
-  COMPLETED: 'text-emerald-500',
-  FAILED: 'text-red-500',
-  RATE_LIMITED: 'text-orange-500',
-  RECOVERABLE: 'text-purple-500',
-};
-
-export function AttentionCenter({ summaries, onOpenProject, onMarkSeen }: AttentionCenterProps) {
+export function AttentionCenter({ summaries, onOpenProject }: AttentionCenterProps) {
   const sorted = [...summaries].sort((a, b) => {
     const priorityOrder: Record<string, number> = {
       FAILED: 7,

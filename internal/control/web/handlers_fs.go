@@ -607,6 +607,17 @@ func (h *NexusHandler) handleProjectOpenOS(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Validate path exists and is a directory
+	pathInfo, err := os.Stat(path)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "project path does not exist or is not accessible")
+		return
+	}
+	if !pathInfo.IsDir() {
+		writeError(w, http.StatusBadRequest, "project path is not a directory")
+		return
+	}
+
 	var cmd *exec.Cmd
 
 	switch body.Action {
@@ -623,6 +634,11 @@ func (h *NexusHandler) handleProjectOpenOS(w http.ResponseWriter, r *http.Reques
 	case "terminal":
 		term := os.Getenv("TERMINAL")
 		if term != "" {
+			// Validate TERMINAL value: must be an absolute path or a bare command name
+			if strings.ContainsAny(term, "|;&$`\\'\"<>(){}") || strings.HasPrefix(term, "-") {
+				writeError(w, http.StatusBadRequest, "invalid TERMINAL environment value")
+				return
+			}
 			cmd = exec.Command(term)
 		} else if runtime.GOOS == "darwin" {
 			cmd = exec.Command("open", "-a", "Terminal", path)

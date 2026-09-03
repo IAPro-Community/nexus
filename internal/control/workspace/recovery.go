@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"sync"
 	"time"
 )
 
@@ -42,6 +43,7 @@ const (
 
 // RecoveryCenter manages agent recovery after restart.
 type RecoveryCenter struct {
+	mu     sync.RWMutex
 	agents map[string]*AgentRecoveryInfo // agentID -> info
 }
 
@@ -54,11 +56,15 @@ func NewRecoveryCenter() *RecoveryCenter {
 
 // RegisterAgent registers an agent for recovery tracking.
 func (rc *RecoveryCenter) RegisterAgent(info *AgentRecoveryInfo) {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
 	rc.agents[info.AgentID] = info
 }
 
 // UpdateState updates the recovery state of an agent.
 func (rc *RecoveryCenter) UpdateState(agentID string, state RecoveryState, message string) {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
 	if info, ok := rc.agents[agentID]; ok {
 		info.RecoveryState = state
 		info.Message = message
@@ -67,11 +73,15 @@ func (rc *RecoveryCenter) UpdateState(agentID string, state RecoveryState, messa
 
 // GetAgent returns recovery info for an agent.
 func (rc *RecoveryCenter) GetAgent(agentID string) *AgentRecoveryInfo {
+	rc.mu.RLock()
+	defer rc.mu.RUnlock()
 	return rc.agents[agentID]
 }
 
 // ListAgents returns all agents with their recovery states.
 func (rc *RecoveryCenter) ListAgents() []*AgentRecoveryInfo {
+	rc.mu.RLock()
+	defer rc.mu.RUnlock()
 	result := make([]*AgentRecoveryInfo, 0, len(rc.agents))
 	for _, info := range rc.agents {
 		result = append(result, info)
@@ -81,6 +91,8 @@ func (rc *RecoveryCenter) ListAgents() []*AgentRecoveryInfo {
 
 // RecoverableCount returns the number of agents in RECOVERABLE state.
 func (rc *RecoveryCenter) RecoverableCount() int {
+	rc.mu.RLock()
+	defer rc.mu.RUnlock()
 	count := 0
 	for _, info := range rc.agents {
 		if info.RecoveryState == RecoveryStateRecoverable {
@@ -92,6 +104,8 @@ func (rc *RecoveryCenter) RecoverableCount() int {
 
 // AllRecoverable returns all agents in RECOVERABLE state.
 func (rc *RecoveryCenter) AllRecoverable() []*AgentRecoveryInfo {
+	rc.mu.RLock()
+	defer rc.mu.RUnlock()
 	result := make([]*AgentRecoveryInfo, 0)
 	for _, info := range rc.agents {
 		if info.RecoveryState == RecoveryStateRecoverable {
@@ -103,6 +117,8 @@ func (rc *RecoveryCenter) AllRecoverable() []*AgentRecoveryInfo {
 
 // MarkRunning marks an agent as running (recovery successful).
 func (rc *RecoveryCenter) MarkRunning(agentID string, runtimeID string) {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
 	if info, ok := rc.agents[agentID]; ok {
 		info.RecoveryState = RecoveryStateRunning
 		info.LastRuntimeID = runtimeID
@@ -112,6 +128,8 @@ func (rc *RecoveryCenter) MarkRunning(agentID string, runtimeID string) {
 
 // MarkLost marks an agent as lost (cannot recover).
 func (rc *RecoveryCenter) MarkLost(agentID string, message string) {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
 	if info, ok := rc.agents[agentID]; ok {
 		info.RecoveryState = RecoveryStateLost
 		info.Message = message
@@ -122,6 +140,8 @@ func (rc *RecoveryCenter) MarkLost(agentID string, message string) {
 
 // MarkStopped marks an agent as stopped.
 func (rc *RecoveryCenter) MarkStopped(agentID string) {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
 	if info, ok := rc.agents[agentID]; ok {
 		info.RecoveryState = RecoveryStateStopped
 		now := time.Now()

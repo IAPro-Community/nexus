@@ -9,7 +9,7 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react';
-import { Dialog, Button, Input, Badge, Card } from '../../design-system';
+import { Dialog, Button, Input, Badge, Card, InlineAlert } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { FSScanResult, Project } from '../../types';
 
@@ -23,6 +23,7 @@ export const ProjectScanModal: React.FC<{
   const [results, setResults] = useState<FSScanResult[]>([]);
   const [query, setQuery] = useState('');
   const [importingPath, setImportingPath] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const startScan = async () => {
     setLoading(true);
@@ -51,7 +52,7 @@ export const ProjectScanModal: React.FC<{
         current.map((r) => (r.path === item.path ? { ...r, is_imported: true } : r))
       );
     } catch (err) {
-      alert(err instanceof Error ? err.message : String(err));
+      setImportError(err instanceof Error ? err.message : String(err));
     } finally {
       setImportingPath(null);
     }
@@ -87,6 +88,12 @@ export const ProjectScanModal: React.FC<{
             <span>{loading ? t('projectManager.scanning') : 'Rescan'}</span>
           </Button>
         </div>
+
+        {importError && (
+          <InlineAlert tone="danger" title={t('common.error', 'Erro')}>
+            {importError}
+          </InlineAlert>
+        )}
 
         {loading ? (
           <div className="nx-scan-loading">

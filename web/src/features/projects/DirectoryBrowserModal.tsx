@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Folder,
@@ -34,11 +34,17 @@ export const DirectoryBrowserModal: React.FC<{
   const [newFolderName, setNewFolderName] = useState('');
   const [mkdirBusy, setMkdirBusy] = useState(false);
   const [mkdirError, setMkdirError] = useState('');
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   const loadDirectory = async (path?: string) => {
     setLoading(true);
     try {
       const res = await nexus.browseFS(path);
+      if (!isMountedRef.current) return;
       setData(res);
       setCurrentPath(res.current_path);
       setQuery('');
@@ -46,7 +52,7 @@ export const DirectoryBrowserModal: React.FC<{
     } catch (err) {
       console.error('Failed to browse directory', err);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 
@@ -74,7 +80,7 @@ export const DirectoryBrowserModal: React.FC<{
     setMkdirBusy(true);
     setMkdirError('');
     try {
-      const target = `${data.current_path}/${newFolderName.trim()}`;
+      const target = [data.current_path, newFolderName.trim()].filter(Boolean).join('/');
       await nexus.mkdirFS(target);
       setNewFolderName('');
       setNewFolderOpen(false);

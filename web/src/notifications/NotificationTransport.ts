@@ -79,10 +79,10 @@ export class WebPushTransport implements NotificationTransport {
     );
   }
 
-  async send(payload: NotificationPayload): Promise<void> {
+  async send(_payload: NotificationPayload): Promise<void> {
     if (!this.isAvailable()) return;
 
-    const registration = await navigator.serviceWorker.ready;
+    const _registration = await navigator.serviceWorker.ready;
     // The actual push is handled by the service worker
     // This transport just ensures the service worker is ready
     console.log('[WebPush] Ready to deliver via service worker');
