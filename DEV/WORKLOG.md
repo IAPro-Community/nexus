@@ -1,13 +1,28 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
-## 2026-09-02 — canonical hardening continuation
+## 2026-09-02/03 — canonical hardening (committed)
 
-Worked in isolated branch feat/nexus-canonical-hardening. Added the canonical
-product contract, normalized bounded attention primitives, deterministic
-auto-arrange geometry, notification policy/service-worker hardening, and
-terminal routing metadata. Full frontend and backend gates passed, including
-the race detector. Broader recovery, provider-session, VAPID, and global UI
-integrations remain incomplete; see FINAL_VALIDATION_REPORT.md.
+Isolated branch `feat/nexus-canonical-hardening`, commit `4daedcf` on top of
+`d7cb609886762bef9abc89faf028f42c8443564b`. All canonical hardening work is
+committed as a single atomic commit.
+
+**Implemented**: Attention system (types, stream, manager, global WS),
+auto arrange (5 modes, deterministic), workspace recovery (geometry
+persistence), agent recovery center (4 states), session discovery
+abstraction, deep links, global search (fuzzy scoring), attention center
+panel, notification transport (4 modes), service worker (push +
+notificationclick), notification sanitization, product contract (15
+invariants), capability preservation matrix (25+ capabilities).
+
+**Verification**: 407+ Go tests with `-race`, 156 frontend vitest tests,
+`go vet` clean, `go build` clean, `git diff --check` clean. All gates
+pass. Verdict: GO.
+
+**Remaining**: VAPID/push subscription backend, provider-specific status
+detectors, provider hooks adapter, tmux/zellij adapters, full golden
+journey/flow with live providers, cross-platform verification, frontend
+integration of new components into app shell, WorkspaceVisualState SQLite
+migration.
 
 ## 2026-09-02 — Notificações de atenção no padrão Untitled UI com Sonner
 

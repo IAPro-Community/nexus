@@ -9,7 +9,7 @@
 | `go vet ./...` | ✅ PASS | 0 warnings |
 | `go test ./...` | ✅ PASS | 407 tests across 56 packages |
 | `go build ./cmd/nexus` | ✅ PASS | Binary compiles successfully |
-| `vitest run` | ✅ PASS | 154 tests across 40 files |
+| `vitest run` | ✅ PASS | 156 tests across 40 files |
 | `git diff --check` | ✅ PASS | No whitespace errors |
 
 ### Features Implemented
@@ -94,7 +94,7 @@ All executable tests pass. No P0 or P1 issues remain. Product Contract is preser
 
 ### HEAD SHA
 
-(calculate after commit)
+`4daedcf` — `feat: canonical hardening - global attention, auto arrange, workspace recovery`
 
 ### Files Generated
 

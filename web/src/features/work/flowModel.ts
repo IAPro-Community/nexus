@@ -62,7 +62,10 @@ export function packageAssignment(pkg: WorkPackage): FlowAssignmentStrategy {
 export function flowFromWorkPlan(plan: WorkPlan): FlowDraftModel {
   const rawPolicy = plan.structured_facts?.[FLOW_POLICY_FACT];
   const steps: FlowStepModel[] = [];
-  plan.phases.forEach((phase) => phase.packages.forEach((pkg, order) => {
+  const phases = Array.isArray(plan.phases) ? plan.phases : [];
+  phases.forEach((phase) => {
+    const packages = Array.isArray(phase.packages) ? phase.packages : [];
+    packages.forEach((pkg, order) => {
     steps.push({
       id: pkg.id, phaseId: phase.id, order, title: pkg.title, goal: pkg.goal, priority: pkg.priority, status: pkg.status,
       dependencies: clone(pkg.dependencies), parallelGroup: pkg.parallel_group, role: pkg.role, taskRequirements: pkg.task_requirements,
@@ -71,12 +74,13 @@ export function flowFromWorkPlan(plan: WorkPlan): FlowDraftModel {
       acceptanceCriteria: clone(pkg.acceptance_criteria), verificationRequirements: clone(pkg.verification_requirements),
       sharedArtifacts: clone(pkg.shared_artifacts), compiledPrompt: pkg.compiled_prompt,
     });
-  }));
+    });
+  });
   return {
     id: plan.id, projectId: plan.project_id, missionId: plan.mission_id, title: plan.title, description: plan.description,
     status: plan.status, revision: plan.current_revision, policy: rawPolicy === 'AUTONOMOUS' ? 'AUTONOMOUS' : 'GUIDED',
     policyStored: rawPolicy === 'GUIDED' || rawPolicy === 'AUTONOMOUS',
-    phases: plan.phases.map((phase) => ({ id: phase.id, title: phase.title, description: phase.description, order: phase.order })),
+    phases: phases.map((phase) => ({ id: phase.id, title: phase.title, description: phase.description, order: phase.order })),
     steps, structuredFacts: plan.structured_facts ? { ...plan.structured_facts } : undefined,
   };
 }

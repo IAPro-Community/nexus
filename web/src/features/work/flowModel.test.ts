@@ -25,6 +25,17 @@ describe('Flow editor compatibility model', () => {
     expect(flowFromWorkPlan(workPlanFromFlow(flow, plan))).toEqual(flow);
   });
 
+  it('fails closed to an empty draft when a persisted plan has null collections', () => {
+    const malformed = { ...fixture(), phases: null as unknown as WorkPlan['phases'] };
+    expect(flowFromWorkPlan(malformed)).toMatchObject({ phases: [], steps: [] });
+
+    const malformedPhase = {
+      ...fixture(),
+      phases: [{ ...fixture().phases[0], packages: null as unknown as WorkPlan['phases'][number]['packages'] }],
+    };
+    expect(flowFromWorkPlan(malformedPhase)).toMatchObject({ phases: [{ id: 'p1' }], steps: [] });
+  });
+
   it('computes deterministic A -> B||C -> D waves', () => {
     const flow = flowFromWorkPlan(fixture());
     expect(topologicalOrder(flow)).toEqual(['A','B','C','D']);

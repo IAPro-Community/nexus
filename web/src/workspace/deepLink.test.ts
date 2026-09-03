@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { parseDeepLink, generateDeepLink } from './deepLink';
+import { describe, expect, it, vi } from 'vitest';
+import { applyDeepLink, parseDeepLink, generateDeepLink } from './deepLink';
 
 describe('parseDeepLink', () => {
   it('parses a project-only deep link', () => {
@@ -43,5 +43,15 @@ describe('generateDeepLink', () => {
   it('generates a link with focus', () => {
     const link = generateDeepLink('proj-1', { type: 'agent', id: 'agt-1' });
     expect(link).toBe('/projects/proj-1?view=agent%3Aagt-1');
+  });
+});
+
+describe('applyDeepLink', () => {
+  it('reconstructs a missing logical view without creating a duplicate', () => {
+    const openView = vi.fn();
+    const focusView = vi.fn(() => false);
+    applyDeepLink({ projectId: 'proj-1', focus: { type: 'agent', id: 'agent-1' } }, openView, focusView);
+    expect(focusView).toHaveBeenCalledWith('agent-1');
+    expect(openView).toHaveBeenCalledWith('proj-1', 'agent-1');
   });
 });

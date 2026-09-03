@@ -45,7 +45,7 @@ export function parseDeepLink(url: string, base?: string): DeepLinkTarget | null
       const [type, ...idParts] = focusParam.split(':');
       const id = idParts.join(':');
       if (type && id) {
-        focus = { type: type as DeepLinkTarget['focus']['type'], id };
+        focus = { type: type as NonNullable<DeepLinkTarget['focus']>['type'], id };
       }
     }
 
@@ -74,7 +74,7 @@ export function generateDeepLink(projectId: string, focus?: { type: string; id: 
 export function applyDeepLink(
   target: DeepLinkTarget,
   openView: (projectId: string, logicalKey: string) => void,
-  focusView: (logicalKey: string) => void,
+  focusView: (logicalKey: string) => boolean,
 ): void {
   if (target.focus) {
     // First try to focus the existing view
