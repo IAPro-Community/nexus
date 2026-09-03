@@ -24,6 +24,28 @@ journey/flow with live providers, cross-platform verification, frontend
 integration of new components into app shell, WorkspaceVisualState SQLite
 migration.
 
+## 2026-09-03 — deep review audit (autopilot)
+
+Ran comprehensive deep review of entire Go and frontend codebase using
+cavecrew-reviewer agents. Found 47 issues total (11 high, 22 medium, 16 low).
+Auto-fixed 14 findings:
+
+**Go fixes**: TOCTOU race in global_stream.go (single Lock), context.Background()
+replaced with r.Context() in 3 agent handlers, path validation before external
+command launch, shell metacharacter blocking in git branch names, LoadConfig
+RLock, RecoveryCenter mutex, SessionDiscoveryManager mutex.
+
+**Frontend fixes**: double-slash path join, popout JSON.parse validation,
+alert() replaced with InlineAlert, useEffect dependency cleanup, setTimeout
+unmount cleanup, async unmount guard, ESLint unused variable cleanup.
+
+Manual-only findings (require design decisions): BootstrapURL token exposure,
+raw user input forwarding, WebSocket orphan pattern, memory leak in
+seenAttentionEvents Set, Sidebar design system divergence, LoadConfig/SaveConfig
+race window, git checkout per-project locking.
+
+All gates pass: 407 Go tests, 156 vitest tests, go vet clean, eslint clean.
+
 ## 2026-09-02 — Notificações de atenção no padrão Untitled UI com Sonner
 
 - Refatorada a arquitetura de atenção do terminal para adotar a biblioteca externa `sonner` combinada com o design system do [Untitled UI (Notifications)](https://www.untitledui.com/react/components/notifications).

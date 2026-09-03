@@ -3,13 +3,13 @@
 ## Canonical hardening branch handoff — 2026-09-02 (updated 2026-09-03)
 
 Branch: `feat/nexus-canonical-hardening`
-HEAD SHA: `4daedcf` (commit: `feat: canonical hardening - global attention, auto arrange, workspace recovery`)
+HEAD SHA: `94fb81d` (commit: `fix: deep review audit — 14 auto-fixable findings resolved`)
 
-All canonical hardening work is committed. The branch contains a single
-commit on top of `d7cb609886762bef9abc89faf028f42c8443564b` with the full
+All canonical hardening work is committed. The branch contains commits
+on top of `d7cb609886762bef9abc89faf028f42c8443564b` with the full
 attention system, auto arrange, workspace recovery, agent recovery, provider
 session discovery, deep links, global search, notification transport, and
-service worker.
+service worker. Plus a deep review audit fixing 14 auto-fixable issues.
 
 ### What shipped (commit 4daedcf)
 
@@ -38,11 +38,12 @@ service worker.
 
 ### Verification
 
-All gates pass as of commit 4daedcf:
-- `go test -race -count=1 ./...` — 407+ tests, 0 failures
+All gates pass as of commit 94fb81d:
+- `go test -race -count=1 ./...` — 407 tests, 0 failures
 - `go vet ./...` — 0 warnings
 - `go build ./cmd/nexus` — clean
 - `vitest run` — 156 tests across 40 files, 0 failures
+- `eslint src/ --max-warnings=0` — 0 warnings (clean)
 - `git diff --check` — no whitespace errors
 
 ### Remaining items (not in this commit)
