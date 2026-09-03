@@ -30,6 +30,34 @@ type TerminalHub struct {
 	auth *AuthManager
 }
 
+// resolveProjectIDForAgent is intentionally best-effort. Terminal attention
+// frames must carry verified routing metadata when available, but the
+// transport must not invent a project or expose provider/session contents.
+var resolveProjectIDForAgent = func(agentID string) string { return "" }
+
+func attentionFrameFromEvent(agentID string, ev events.Event) map[string]any {
+	frame := map[string]any{
+		"type":               "attention",
+		"runtime_id":         ev.RuntimeID,
+		"attention_event_id": ev.ID,
+		"attention_reason":   ev.Data["attention_reason"],
+		"context":            ev.Data["context"],
+		"project_name":       ev.Data["project_name"],
+		"dynamic_title":      ev.Data["dynamic_title"],
+		"summary":            ev.Summary,
+		"view":               "work",
+	}
+	if projectID, ok := ev.Data["project_id"].(string); ok && strings.TrimSpace(projectID) != "" {
+		frame["project_id"] = strings.TrimSpace(projectID)
+	} else if projectID := strings.TrimSpace(resolveProjectIDForAgent(agentID)); projectID != "" {
+		frame["project_id"] = projectID
+	}
+	if view, ok := ev.Data["view"].(string); ok && strings.TrimSpace(view) != "" {
+		frame["view"] = strings.TrimSpace(view)
+	}
+	return frame
+}
+
 func NewTerminalHub(auth *AuthManager) *TerminalHub {
 	return &TerminalHub{
 		auth: auth,
@@ -141,6 +169,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				"context":          sess.AttentionContext,
 				"project_name":     sess.ProjectName,
 				"dynamic_title":    sess.DynamicTitle,
+				"view":             "work",
 			})
 		}
 	}
@@ -158,15 +187,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 					return
 				}
 				if ev.Type == events.EventApprovalRequired || ev.Type == events.EventToolFinished {
-					_ = safeWriteJSON(map[string]any{
-						"type":             "attention",
-						"runtime_id":       ev.RuntimeID,
-						"attention_reason": ev.Data["attention_reason"],
-						"context":          ev.Data["context"],
-						"project_name":     ev.Data["project_name"],
-						"dynamic_title":    ev.Data["dynamic_title"],
-						"summary":          ev.Summary,
-					})
+					_ = safeWriteJSON(attentionFrameFromEvent(agentID, ev))
 				}
 				if dt, ok := ev.Data["dynamic_title"].(string); ok && dt != "" {
 					_ = safeWriteJSON(TerminalMessage{

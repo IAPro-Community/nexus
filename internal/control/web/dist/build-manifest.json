@@ -3,7 +3,8 @@
     "index.html",
     "bundle.css",
     "bundle.js",
-    "logo.png"
+    "logo.png",
+    "nexus-service-worker.js"
   ],
   "builder": "node+esbuild+tailwind"
 }

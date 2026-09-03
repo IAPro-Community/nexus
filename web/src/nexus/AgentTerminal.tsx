@@ -124,10 +124,13 @@ export const AgentTerminal: React.FC<{
             if (payload.dynamic_title) setCustomTitle(payload.dynamic_title);
             pushNotifications.sendPush({
               runtimeId: payload.runtime_id || agentId,
+              projectId: payload.project_id,
               projectName: payload.project_name,
               reason: payload.attention_reason || 'QUESTION',
               context: payload.context || payload.summary || 'Atenção necessária no terminal',
               dynamicTitle: payload.dynamic_title,
+              attentionEventId: payload.attention_event_id,
+              view: payload.view,
             });
           } else if (payload.type === 'error') {
             setMessage(String(payload.data ?? 'Terminal error'));

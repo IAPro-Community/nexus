@@ -51,7 +51,6 @@ class PushNotificationService {
 
   public sendPush(payload: PushNotificationPayload): void {
     if (!this.isSupported() || this.getPermission() !== 'granted') return;
-
     const hasFocusFn = (window as unknown as { hasFocus?: () => boolean }).hasFocus;
     const envelope = prepareNotificationEnvelope(payload as NotificationPolicyInput, {
       hasActiveClients: true,
@@ -107,7 +106,8 @@ class PushNotificationService {
     try {
       await navigator.serviceWorker.register('/nexus-service-worker.js');
     } catch {
-      // Best-effort registration only; browser notifications still work without it.
+      // Browser notifications remain a valid fallback when worker registration
+      // is unavailable; WEB_PUSH requires a separately registered worker.
     }
   }
 }

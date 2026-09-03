@@ -1,5 +1,13 @@
 # Handoff
 
+## Canonical hardening branch handoff — 2026-09-02
+
+The active isolated branch is feat/nexus-canonical-hardening and changes are
+intentionally uncommitted. Validation reports document the implemented
+attention/arrangement foundation and remaining NO-GO scope. Do not describe
+global recovery, VAPID persistence, provider discovery/resume/fork, or the
+complete Golden Journey as shipped until implemented and revalidated.
+
 ## Current state
 
 Nexus was rebuilt from the current source and installed at `/home/desenvolvedor/.local/bin/nexus`; the `ai` alias points to the same binary. Both report version `0.5.0-beta.10`.

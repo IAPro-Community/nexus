@@ -1,5 +1,14 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-02 — canonical hardening continuation
+
+Worked in isolated branch feat/nexus-canonical-hardening. Added the canonical
+product contract, normalized bounded attention primitives, deterministic
+auto-arrange geometry, notification policy/service-worker hardening, and
+terminal routing metadata. Full frontend and backend gates passed, including
+the race detector. Broader recovery, provider-session, VAPID, and global UI
+integrations remain incomplete; see FINAL_VALIDATION_REPORT.md.
+
 ## 2026-09-02 — Notificações de atenção no padrão Untitled UI com Sonner
 
 - Refatorada a arquitetura de atenção do terminal para adotar a biblioteca externa `sonner` combinada com o design system do [Untitled UI (Notifications)](https://www.untitledui.com/react/components/notifications).

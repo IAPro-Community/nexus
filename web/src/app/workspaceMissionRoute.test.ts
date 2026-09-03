@@ -1,4 +1,3 @@
-// @ts-expect-error Vitest executes in Node; browser tsconfig intentionally omits @types/node.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 

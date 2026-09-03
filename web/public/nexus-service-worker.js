@@ -33,7 +33,7 @@
   function notificationTitle(projectName, reason, dynamicTitle) {
     const project = sanitizeText(projectName, 'Projeto');
     const dynamic = sanitizeText(dynamicTitle, '');
-    if (dynamic) return truncate(`[Nexus | ${project}] ${dynamic}`, MAX_TITLE_LENGTH);
+    if (dynamic && !containsSensitiveMarker(dynamic)) return truncate(`[Nexus | ${project}] ${dynamic}`, MAX_TITLE_LENGTH);
     if (reason === 'QUESTION') return `[Nexus | ${project}] ❓ Pergunta Requer Atenção`;
     if (reason === 'APPROVAL') return `[Nexus | ${project}] ⚠️ Aprovação Necessária`;
     if (reason === 'TASK_COMPLETED') return `[Nexus | ${project}] ✅ Tarefa Concluída!`;

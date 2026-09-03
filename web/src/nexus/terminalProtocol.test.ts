@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseTerminalFrame } from './terminalProtocol';
+import { attentionNotificationFromFrame, parseTerminalFrame } from './terminalProtocol';
 
 describe('terminal protocol', () => {
   it('renders provider JSON as output when it is not a control envelope', () => {
@@ -45,5 +45,39 @@ describe('terminal protocol', () => {
       type: 'unknown',
       raw: '{"type":"output"}',
     });
+  });
+
+  it('maps attention control frames into push payloads with routing metadata only', () => {
+    const payload = attentionNotificationFromFrame(
+      parseTerminalFrame(JSON.stringify({
+        type: 'attention',
+        runtime_id: 'rt-1',
+        project_id: 'prj-1',
+        project_name: 'Payments',
+        attention_reason: 'QUESTION',
+        attention_event_id: 'evt-1',
+        view: 'work',
+        context: 'Need approval',
+        summary: 'Approval pending',
+        dynamic_title: 'transcript: Bearer sk-live-secret',
+        transcript: 'full transcript should not be forwarded',
+        credentials: { token: 'sk-live-secret' },
+      })),
+      'fallback-runtime',
+    );
+
+    expect(payload).toEqual({
+      runtimeId: 'rt-1',
+      projectId: 'prj-1',
+      projectName: 'Payments',
+      reason: 'QUESTION',
+      attentionEventId: 'evt-1',
+      view: 'work',
+      context: 'Need approval',
+      summary: 'Approval pending',
+      dynamicTitle: 'transcript: Bearer sk-live-secret',
+    });
+    expect(payload && 'transcript' in payload).toBe(false);
+    expect(payload && 'credentials' in payload).toBe(false);
   });
 });

@@ -109,10 +109,13 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           }
           pushNotifications.sendPush({
             runtimeId,
+            projectId: msg.project_id,
             projectName: msg.project_name,
             reason: msg.attention_reason || 'QUESTION',
             context: msg.context || msg.summary || 'Atenção necessária no terminal',
             dynamicTitle: msg.dynamic_title,
+            attentionEventId: msg.attention_event_id,
+            view: msg.view,
           });
         } else if (msg.type === 'error') {
           setErrorMsg(msg.data);

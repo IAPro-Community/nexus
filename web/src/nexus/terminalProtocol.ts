@@ -51,3 +51,34 @@ export function parseTerminalFrame(raw: unknown): TerminalFrame & LegacyTerminal
 export function frameString(payload: Record<string, unknown>, key: string): string | undefined {
   return typeof payload[key] === 'string' ? payload[key] as string : undefined;
 }
+
+export interface AttentionNotificationPayload {
+  runtimeId: string;
+  projectId?: string;
+  projectName?: string;
+  reason: string;
+  attentionEventId?: string;
+  view?: string;
+  context?: string;
+  summary?: string;
+  dynamicTitle?: string;
+}
+
+export function attentionNotificationFromFrame(
+  frame: TerminalFrame & LegacyTerminalView,
+  fallbackRuntimeId: string,
+): AttentionNotificationPayload | undefined {
+  if (frame.type !== 'control' || frame.event !== 'attention') return undefined;
+  const payload = frame.payload ?? {};
+  return {
+    runtimeId: frameString(payload, 'runtime_id') ?? fallbackRuntimeId,
+    projectId: frameString(payload, 'project_id'),
+    projectName: frameString(payload, 'project_name'),
+    reason: frameString(payload, 'attention_reason') ?? 'QUESTION',
+    attentionEventId: frameString(payload, 'attention_event_id'),
+    view: frameString(payload, 'view') ?? 'work',
+    context: frameString(payload, 'context'),
+    summary: frameString(payload, 'summary'),
+    dynamicTitle: frameString(payload, 'dynamic_title'),
+  };
+}

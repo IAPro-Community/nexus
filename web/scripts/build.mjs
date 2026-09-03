@@ -34,9 +34,11 @@ await build({
 await cp(resolve(webDir, 'index.html'), resolve(distDir, 'index.html'));
 const logo = existsSync(resolve(webDir, 'public/logo.png')) ? resolve(webDir, 'public/logo.png') : resolve(repoDir, 'logo.png');
 if (existsSync(logo)) await cp(logo, resolve(distDir, 'logo.png'));
+const serviceWorker = resolve(webDir, 'public/nexus-service-worker.js');
+if (existsSync(serviceWorker)) await cp(serviceWorker, resolve(distDir, 'nexus-service-worker.js'));
 
 const manifest = {
-  files: ['index.html', 'bundle.css', 'bundle.js', ...(existsSync(resolve(distDir, 'logo.png')) ? ['logo.png'] : [])],
+  files: ['index.html', 'bundle.css', 'bundle.js', ...(existsSync(resolve(distDir, 'logo.png')) ? ['logo.png'] : []), ...(existsSync(resolve(distDir, 'nexus-service-worker.js')) ? ['nexus-service-worker.js'] : [])],
   builder: 'node+esbuild+tailwind',
 };
 await writeFile(resolve(distDir, 'build-manifest.json'), JSON.stringify(manifest, null, 2) + '\n');

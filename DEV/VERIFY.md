@@ -1,5 +1,13 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## Canonical hardening continuation — 2026-09-02
+
+- Frontend typecheck, lint, 141 tests, and production build: PASS
+- Backend tests, race tests, vet, and cmd/nexus build: PASS
+- git diff --check: PASS
+- Embedded service worker manifest: PASS
+- Final verdict: NO-GO because requested product integrations remain incomplete.
+
 ## Tabela TUI de uso — 2026-09-02
 
 `nexus usage` usa a tabela navegável do Charm Bubbles. O filtro cobre

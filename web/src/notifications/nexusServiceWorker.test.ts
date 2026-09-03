@@ -150,6 +150,36 @@ describe('nexus-service-worker', () => {
     });
   });
 
+  it('falls back to a semantic title when the dynamic title looks secret-bearing', async () => {
+    const worker = loadWorker();
+    worker.matchAll.mockResolvedValue([]);
+
+    let pending: Promise<unknown> | undefined;
+    worker.listeners.get('push')?.({
+      data: {
+        json: () => ({
+          runtimeId: 'rt-2',
+          projectId: 'prj-2',
+          projectName: 'Payments',
+          reason: 'QUESTION',
+          context: 'transcript: user pasted credentials',
+          summary: 'Need approval',
+          dynamicTitle: 'Bearer sk-live-secret',
+          view: 'work',
+        }),
+      },
+      waitUntil(value: Promise<unknown>) {
+        pending = value;
+      },
+    });
+
+    await pending;
+
+    const [title, options] = worker.showNotification.mock.calls[0]!;
+    expect(title).toBe('[Nexus | Payments] ❓ Pergunta Requer Atenção');
+    expect(options.body).toBe('Need approval');
+  });
+
   it('does not log subscription secrets on pushsubscriptionchange', async () => {
     const worker = loadWorker();
 
