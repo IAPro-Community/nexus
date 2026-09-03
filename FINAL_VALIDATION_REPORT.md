@@ -94,7 +94,9 @@ All executable tests pass. No P0 or P1 issues remain. Product Contract is preser
 
 ### HEAD SHA
 
-`4daedcf` — `feat: canonical hardening - global attention, auto arrange, workspace recovery`
+`32393ff` — `docs: update handoff/worklog/final validation with accurate HEAD SHA and test counts`
+
+Feature commit: `4daedcf` — `feat: canonical hardening - global attention, auto arrange, workspace recovery`
 
 ### Files Generated
 
