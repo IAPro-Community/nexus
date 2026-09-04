@@ -19,7 +19,8 @@ const (
 	ComposerUser             = "USER"
 	ComposerAssistant        = "ASSISTANT"
 	ComposerSkillSuggested   = "SUGGESTED"
-	ComposerSkillSelected    = "SELECTED"
+	ComposerSkillAccepted    = "ACCEPTED"
+	ComposerSkillApplied     = "APPLIED"
 	ComposerSkillRejected    = "REJECTED"
 	ComposerSkillUnavailable = "UNAVAILABLE"
 )
@@ -189,6 +190,7 @@ func (s *Store) UpsertComposerSkillProposal(in ComposerSkillProposal) (*Composer
 	if strings.TrimSpace(in.SkillID) == "" {
 		return nil, fmt.Errorf("skill id is required")
 	}
+	in.State = normalizeComposerSkillState(in.State)
 	if in.State == "" {
 		in.State = ComposerSkillSuggested
 	}
@@ -212,10 +214,26 @@ func (s *Store) ListComposerSkillProposals(sessionID string) ([]ComposerSkillPro
 		if err := rows.Scan(&item.SessionID, &item.SkillID, &item.State, &item.Reason, &item.Applicability, &item.Risk, &updated); err != nil {
 			return nil, err
 		}
+		item.State = normalizeComposerSkillState(item.State)
 		item.UpdatedAt, _ = time.Parse(time.RFC3339Nano, updated)
 		out = append(out, item)
 	}
 	return out, rows.Err()
+}
+
+func (s *Store) SetComposerSkillState(sessionID, skillID, state string) error {
+	state = normalizeComposerSkillState(state)
+	if state == "" {
+		return fmt.Errorf("invalid composer skill state")
+	}
+	res, err := s.db.Exec(`UPDATE composer_skill_proposals SET state=?, updated_at=? WHERE session_id=? AND skill_id=?`, state, time.Now().UTC().Format(time.RFC3339Nano), sessionID, skillID)
+	if err != nil {
+		return err
+	}
+	if rows, _ := res.RowsAffected(); rows == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *Store) CreatePromptArtifact(in PromptArtifact) (*PromptArtifact, error) {
@@ -252,6 +270,25 @@ func (s *Store) CreatePromptArtifact(in PromptArtifact) (*PromptArtifact, error)
 	return &in, nil
 }
 
+func (s *Store) ListPromptArtifacts(sessionID string) ([]PromptArtifact, error) {
+	rows, err := s.db.Query(`SELECT id,session_id,version,content,content_hash,context_json,skill_ids_json,created_at FROM prompt_artifacts WHERE session_id=? ORDER BY version DESC`, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []PromptArtifact{}
+	for rows.Next() {
+		var item PromptArtifact
+		var created string
+		if err := rows.Scan(&item.ID, &item.SessionID, &item.Version, &item.Content, &item.Hash, &item.ContextJSON, &item.SkillIDsJSON, &created); err != nil {
+			return nil, err
+		}
+		item.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
 func capComposerText(value string) string {
 	value = strings.TrimSpace(value)
 	const max = 8 * 1024
@@ -259,6 +296,23 @@ func capComposerText(value string) string {
 		return value[:max]
 	}
 	return value
+}
+
+func normalizeComposerSkillState(state string) string {
+	switch strings.ToUpper(strings.TrimSpace(state)) {
+	case ComposerSkillSuggested:
+		return ComposerSkillSuggested
+	case "SELECTED", ComposerSkillAccepted:
+		return ComposerSkillAccepted
+	case ComposerSkillApplied:
+		return ComposerSkillApplied
+	case ComposerSkillRejected:
+		return ComposerSkillRejected
+	case ComposerSkillUnavailable:
+		return ComposerSkillUnavailable
+	default:
+		return ""
+	}
 }
 
 var _ = sql.ErrNoRows

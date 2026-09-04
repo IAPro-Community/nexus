@@ -25,6 +25,9 @@ func TestComposerSessionPersistsBriefTurnsSkillsAndPromptArtifacts(t *testing.T)
 	if _, err := st.UpsertComposerSkillProposal(ComposerSkillProposal{SessionID: session.ID, SkillID: "skill-webapp-testing", State: ComposerSkillSuggested, Reason: "Browser regression coverage"}); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := st.UpsertComposerSkillProposal(ComposerSkillProposal{SessionID: session.ID, SkillID: "skill-legacy", State: "SELECTED", Reason: "Legacy persisted state"}); err != nil {
+		t.Fatal(err)
+	}
 	artifact, err := st.CreatePromptArtifact(PromptArtifact{SessionID: session.ID, Content: "Implement the approved test strategy.", ContextJSON: `{}`, SkillIDsJSON: `["skill-webapp-testing"]`})
 	if err != nil {
 		t.Fatal(err)
@@ -41,10 +44,21 @@ func TestComposerSessionPersistsBriefTurnsSkillsAndPromptArtifacts(t *testing.T)
 		t.Fatalf("unexpected turns: %+v, %v", turns, err)
 	}
 	skills, err := st.ListComposerSkillProposals(session.ID)
-	if err != nil || len(skills) != 1 || skills[0].SkillID != "skill-webapp-testing" {
+	if err != nil || len(skills) != 2 || skills[0].SkillID != "skill-legacy" || skills[0].State != ComposerSkillAccepted || skills[1].SkillID != "skill-webapp-testing" {
 		t.Fatalf("unexpected skills: %+v, %v", skills, err)
+	}
+	if err := st.SetComposerSkillState(session.ID, "skill-webapp-testing", ComposerSkillApplied); err != nil {
+		t.Fatal(err)
+	}
+	skills, err = st.ListComposerSkillProposals(session.ID)
+	if err != nil || skills[1].State != ComposerSkillApplied {
+		t.Fatalf("unexpected updated skills: %+v, %v", skills, err)
 	}
 	if artifact.Version != 1 || artifact.Hash == "" {
 		t.Fatalf("immutable artifact missing identity: %+v", artifact)
+	}
+	artifacts, err := st.ListPromptArtifacts(session.ID)
+	if err != nil || len(artifacts) != 1 || artifacts[0].ID != artifact.ID {
+		t.Fatalf("unexpected artifacts: %+v, %v", artifacts, err)
 	}
 }
