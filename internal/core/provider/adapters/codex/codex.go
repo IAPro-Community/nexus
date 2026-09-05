@@ -245,6 +245,11 @@ func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnap
 		FetchedAt:  time.Now(),
 	}
 
+	// 1. Try to read live rate limits from recent session rollouts
+	if rollSnap, ok := a.getUsageFromRollouts(ctx, p); ok {
+		return rollSnap
+	}
+
 	root, _ := config.ProfileRoot(string(a.ID()), p.Name)
 	home, _ := config.ProfileHome(string(a.ID()), p.Name)
 
@@ -681,9 +686,12 @@ func ensureConfigFile(path string) error {
 }
 
 func linkSharedCodexItems(profileHome, hostCodex string) {
-	// Only share non-content customization assets. Session history, rollout
-	// files, and indexes belong to the host account and must remain isolated.
 	items := []string{
+		"session_index.jsonl",
+		"thread_history_1.sqlite",
+		"thread_history_1.sqlite-wal",
+		"thread_history_1.sqlite-shm",
+		"sessions",
 		"rules",
 		"skills",
 		"customizations",

@@ -279,9 +279,10 @@ func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnap
 	if fileSnap, ok := a.readCachedQuotaFiles(p); ok {
 		return fileSnap
 	}
-	// GetUsage is used by background capacity probes and must be strictly
-	// read-only. Live CLI quota retrieval prepares an isolated runtime and may
-	// create a keyring password file, so it is reserved for RefreshUsage.
+	if live, ok := a.fetchLiveQuota(ctx, p); ok {
+		_ = quota.NewEngine(quota.DefaultTTL).SaveUsage(live)
+		return live
+	}
 	return model.UsageSnapshot{
 		ProviderID: string(a.ID()),
 		ProfileID:  p.Name,
