@@ -11,7 +11,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/core/model"
 )
 
-func TestCodexAdapterGetUsageFromRollout(t *testing.T) {
+func TestCodexAdapterGetUsageIgnoresRollouts(t *testing.T) {
 	dataDir := t.TempDir()
 	cfgDir := t.TempDir()
 	t.Setenv("NEXUS_DATA_DIR", dataDir)
@@ -53,34 +53,15 @@ func TestCodexAdapterGetUsageFromRollout(t *testing.T) {
 	}
 
 	snap := adapter.GetUsage(context.Background(), p)
-	if snap.Status != model.UsageLive {
-		t.Fatalf("expected status LIVE, got %s", snap.Status)
+	if snap.Status != model.UsageUnknown {
+		t.Fatalf("expected unknown status for rollout-only data, got %s", snap.Status)
 	}
-	if snap.Source != model.SourceObservation {
-		t.Fatalf("expected source OBSERVATION, got %s", snap.Source)
-	}
-	if len(snap.Windows) != 2 {
-		t.Fatalf("expected 2 windows, got %d", len(snap.Windows))
-	}
-
-	// Primary: 15% used -> 85% remaining (same as Codex /status "left")
-	if snap.Windows[0].RemainingPercent == nil || *snap.Windows[0].RemainingPercent != 85.0 {
-		t.Fatalf("expected 85%% remaining, got %v", snap.Windows[0].RemainingPercent)
-	}
-	if snap.Windows[0].Group != "claude_gpt" {
-		t.Fatalf("expected group claude_gpt, got %s", snap.Windows[0].Group)
-	}
-
-	// Secondary: 42% used -> 58% remaining
-	if snap.Windows[1].RemainingPercent == nil || *snap.Windows[1].RemainingPercent != 58.0 {
-		t.Fatalf("expected 58%% remaining, got %v", snap.Windows[1].RemainingPercent)
-	}
-	if snap.Windows[1].Group != "claude_gpt" {
-		t.Fatalf("expected group claude_gpt, got %s", snap.Windows[1].Group)
+	if len(snap.Windows) != 0 {
+		t.Fatalf("expected no windows from rollout data, got %d", len(snap.Windows))
 	}
 }
 
-func TestCodexSharedHostRolloutsMatchHostAuthEmail(t *testing.T) {
+func TestCodexAdapterDoesNotReadSharedHostRollouts(t *testing.T) {
 	dataDir := t.TempDir()
 	cfgDir := t.TempDir()
 	hostHome := t.TempDir()
@@ -119,17 +100,14 @@ func TestCodexSharedHostRolloutsMatchHostAuthEmail(t *testing.T) {
 	}
 
 	snap := adapter.GetUsage(context.Background(), p)
-	if snap.Status != model.UsageLive {
-		t.Fatalf("status=%s want LIVE", snap.Status)
+	if snap.Status != model.UsageUnknown {
+		t.Fatalf("status=%s want UNKNOWN", snap.Status)
 	}
-	if len(snap.Windows) != 2 {
-		t.Fatalf("windows=%d want 2", len(snap.Windows))
-	}
-	if *snap.Windows[0].RemainingPercent != 99 || *snap.Windows[1].RemainingPercent != 59 {
-		t.Fatalf("remaining=%v/%v want 99/59 (used 1/41)", *snap.Windows[0].RemainingPercent, *snap.Windows[1].RemainingPercent)
+	if len(snap.Windows) != 0 {
+		t.Fatalf("windows=%d want 0", len(snap.Windows))
 	}
 
-	// Other profile must not claim the same shared host rollouts.
+	// Other profile must not claim the same shared host rollouts either.
 	otherHome := filepath.Join(dataDir, "profiles", "codex", "gmail", "home")
 	if err := os.MkdirAll(otherHome, 0700); err != nil {
 		t.Fatal(err)
@@ -139,8 +117,8 @@ func TestCodexSharedHostRolloutsMatchHostAuthEmail(t *testing.T) {
 		t.Fatal(err)
 	}
 	other := adapter.GetUsage(context.Background(), model.Profile{Provider: "codex", Name: "gmail"})
-	if other.Source == model.SourceObservation {
-		t.Fatalf("gmail must not inherit host rollouts owned by omega auth")
+	if other.Status != model.UsageUnknown {
+		t.Fatalf("gmail status=%s want UNKNOWN", other.Status)
 	}
 }
 
