@@ -136,6 +136,13 @@ func NewServer(opts ServerOptions) (*Server, error) {
 	mux.HandleFunc("/api/v1/system/updates", s.authMiddleware(nexusHandler.handleSystemUpdates))
 	mux.HandleFunc("/api/v1/system/update", s.authMiddleware(nexusHandler.handleSystemUpdate))
 
+	// Capacity Monitor (Task 7)
+	mux.HandleFunc("/api/v1/capacity-monitor", s.authMiddleware(nexusHandler.handleCapacityMonitorStatus))
+	mux.HandleFunc("/api/v1/capacity-monitor/resources", s.authMiddleware(nexusHandler.handleCapacityMonitorResources))
+	mux.HandleFunc("/api/v1/capacity-monitor/history", s.authMiddleware(nexusHandler.handleCapacityMonitorHistory))
+	mux.HandleFunc("/api/v1/capacity-monitor/preferences", s.authMiddleware(nexusHandler.handleCapacityMonitorPreferences))
+	mux.HandleFunc("/api/v1/capacity-monitor/alerts/", s.routeCapacityAlert(nexusHandler))
+
 	// OS Filesystem & Discovery Routes
 	mux.HandleFunc("/api/v1/fs/browse", s.authMiddleware(nexusHandler.handleFSBrowse))
 	mux.HandleFunc("/api/v1/fs/scan", s.authMiddleware(nexusHandler.handleFSScan))
@@ -493,6 +500,9 @@ func (s *Server) routeAgent(h *NexusHandler) http.HandlerFunc {
 			case "recover":
 				h.handleAgentRecover(w, r)
 				return
+			case "capacity-switch":
+				h.handleAgentCapacitySwitch(w, r)
+				return
 			case "ask":
 				h.handleAgentAsk(w, r)
 				return
@@ -512,6 +522,41 @@ func (s *Server) routeAgent(h *NexusHandler) http.HandlerFunc {
 			}
 		}
 		h.handleAgentDetail(w, r)
+	}
+}
+
+// routeCapacityAlert dispatches ack and snooze actions for alerts.
+func (s *Server) routeCapacityAlert(h *NexusHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !s.auth.ValidateOrigin(r) {
+			writeError(w, http.StatusForbidden, "invalid origin")
+			return
+		}
+		sess := s.auth.AuthenticateRequest(r)
+		if sess == nil {
+			writeError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
+			csrf := r.Header.Get(csrfHeaderName)
+			if csrf == "" || csrf != sess.CSRFToken {
+				writeError(w, http.StatusForbidden, "invalid CSRF token")
+				return
+			}
+		}
+		path := strings.TrimPrefix(r.URL.Path, "/api/v1/capacity-monitor/alerts/")
+		parts := strings.Split(path, "/")
+		if len(parts) >= 2 {
+			switch parts[1] {
+			case "ack":
+				h.handleCapacityAlertAck(w, r, parts[0])
+				return
+			case "snooze":
+				h.handleCapacityAlertSnooze(w, r, parts[0])
+				return
+			}
+		}
+		writeError(w, http.StatusNotFound, "alert route not found")
 	}
 }
 

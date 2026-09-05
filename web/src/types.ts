@@ -317,6 +317,89 @@ export interface GitCheckoutResult {
 
 export type ContextReadinessState = 'MISSING' | 'HYDRATING' | 'READY' | 'STALE' | 'FAILED';
 
+export interface ContextReadinessRepair {
+  fixed_path?: string;
+  previous_path?: string;
+  source_mtime_utc?: string;
+  repaired_at?: string;
+}
+
+// Capacity Monitor interfaces (Task 7 & 8)
+
+export interface CapacityMonitorStatus {
+  running: boolean;
+  is_leader: boolean;
+  leader_owner: string;
+  degraded: boolean;
+  monitored_resources: number;
+  last_tick_at: string;
+}
+
+export interface CapacityResourceState {
+  key: string;
+  provider: string;
+  profile: string;
+  quota_group: string;
+  window_kind: string;
+  state: 'UNKNOWN' | 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'EXHAUSTED' | 'RECOVERED';
+  reason: string;
+  remaining_percent?: number | null;
+  reset_description?: string;
+  last_observed_at?: string;
+  transitioned_at: string;
+}
+
+export interface CapacityPreferences {
+  enabled: boolean;
+  background_enabled: boolean;
+  warning_threshold: number;
+  critical_threshold: number;
+  exhausted_threshold: number;
+  recovery_threshold: number;
+  reminder_interval_seconds: number;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start_utc: string;
+  quiet_hours_end_utc: string;
+  exhausted_bypass_quiet_hours: boolean;
+  browser_notifications_enabled: boolean;
+  native_notifications_enabled: boolean;
+  lock_screen_safe_copy: boolean;
+  updated_at?: string;
+}
+
+export interface CapacityEvent {
+  id: string;
+  fingerprint: string;
+  event_type: string;
+  provider: string;
+  profile: string;
+  quota_group: string;
+  window_kind: string;
+  severity: string;
+  payload_json: string;
+  emitted_at: string;
+}
+
+export interface CapacityHistoryPage {
+  events: CapacityEvent[];
+  count: number;
+}
+
+export interface CapacitySwitchRequest {
+  agent_id: string;
+  runtime_generation?: string;
+  recommendation_fingerprint: string;
+  provider: string;
+  profile: string;
+  confirmed: boolean;
+}
+
+export interface ResourceAllocation {
+  decision: any;
+  impact?: ConfigImpact;
+  persisted: boolean;
+}
+
 export interface ContextFingerprint {
   project_id: string;
   canonical_path: string;

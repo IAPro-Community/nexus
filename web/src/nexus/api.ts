@@ -470,6 +470,41 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ requirements, policy }),
     }),
+
+  // Capacity Monitor API (Task 7)
+  getCapacityMonitorStatus: () =>
+    request<import('../types').CapacityMonitorStatus>('/api/v1/capacity-monitor'),
+  getCapacityMonitorResources: () =>
+    request<import('../types').CapacityResourceState[]>('/api/v1/capacity-monitor/resources'),
+  getCapacityMonitorHistory: (limit?: number) =>
+    request<import('../types').CapacityHistoryPage>(
+      `/api/v1/capacity-monitor/history${limit ? `?limit=${limit}` : ''}`,
+    ),
+  getCapacityMonitorPreferences: () =>
+    request<import('../types').CapacityPreferences>('/api/v1/capacity-monitor/preferences'),
+  updateCapacityMonitorPreferences: (prefs: import('../types').CapacityPreferences) =>
+    request<import('../types').CapacityPreferences>('/api/v1/capacity-monitor/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    }),
+  acknowledgeCapacityAlert: (alertId: string) =>
+    request<{ status: string; alert_id: string }>(
+      `/api/v1/capacity-monitor/alerts/${encodeURIComponent(alertId)}/ack`,
+      { method: 'POST', body: '{}' },
+    ),
+  snoozeCapacityAlert: (alertId: string, durationSeconds?: number) =>
+    request<{ status: string; alert_id: string; duration_seconds: number }>(
+      `/api/v1/capacity-monitor/alerts/${encodeURIComponent(alertId)}/snooze`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ duration_seconds: durationSeconds || 3600 }),
+      },
+    ),
+  switchAgentCapacity: (agentId: string, req: import('../types').CapacitySwitchRequest) =>
+    request<import('../types').ResourceAllocation>(`/api/v1/agents/${agentId}/capacity-switch`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
 };
 
 export const nexusApi = nexus;

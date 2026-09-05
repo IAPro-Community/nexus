@@ -2059,3 +2059,249 @@ func (h *NexusHandler) handlePlanDiff(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, diff)
 }
+
+// --- Capacity Monitor Handlers (Task 7) ---
+
+func (h *NexusHandler) handleCapacityMonitorStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	states, _ := st.ListCapacityStates()
+	if states == nil {
+		states = []store.CapacityStateRecord{}
+	}
+	prefs, _ := st.GetCapacityPreferences()
+	writeJSON(w, http.StatusOK, map[string]any{
+		"running":             prefs.Enabled,
+		"is_leader":           true,
+		"leader_owner":        "nexus-local",
+		"degraded":            false,
+		"monitored_resources": len(states),
+		"last_tick_at":        time.Now().UTC(),
+	})
+}
+
+func (h *NexusHandler) handleCapacityMonitorResources(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	states, err := st.ListCapacityStates()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	obsList, _ := st.ListCapacityObservations()
+	obsMap := make(map[string]store.ObservationRecord)
+	for _, o := range obsList {
+		k := fmt.Sprintf("%s:%s:%s:%s", o.Provider, o.Profile, o.QuotaGroup, o.WindowKind)
+		obsMap[k] = o
+	}
+
+	type resourceResponse struct {
+		Key              string   `json:"key"`
+		Provider         string   `json:"provider"`
+		Profile          string   `json:"profile"`
+		QuotaGroup       string   `json:"quota_group"`
+		WindowKind       string   `json:"window_kind"`
+		State            string   `json:"state"`
+		Reason           string   `json:"reason"`
+		RemainingPercent *float64 `json:"remaining_percent,omitempty"`
+		ResetDescription string   `json:"reset_description,omitempty"`
+		LastObservedAt   string   `json:"last_observed_at,omitempty"`
+		TransitionedAt   string   `json:"transitioned_at"`
+	}
+
+	res := make([]resourceResponse, 0, len(states))
+	for _, s := range states {
+		item := resourceResponse{
+			Key:            s.Key,
+			Provider:       s.Provider,
+			Profile:        s.Profile,
+			QuotaGroup:     s.QuotaGroup,
+			WindowKind:     s.WindowKind,
+			State:          s.State,
+			Reason:         s.Reason,
+			TransitionedAt: s.TransitionedAt.Format(time.RFC3339),
+		}
+		if obs, ok := obsMap[s.Key]; ok {
+			item.RemainingPercent = obs.RemainingPercent
+			item.ResetDescription = obs.ResetDescription
+			item.LastObservedAt = obs.FetchedAt.Format(time.RFC3339)
+		}
+		res = append(res, item)
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+func (h *NexusHandler) handleCapacityMonitorHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	limit := 50
+	if lStr := r.URL.Query().Get("limit"); lStr != "" {
+		if l, err := strconv.Atoi(lStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+	events, err := st.ListCapacityEvents(limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if events == nil {
+		events = []store.CapacityEventRecord{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"events": events,
+		"count":  len(events),
+	})
+}
+
+func (h *NexusHandler) handleCapacityMonitorPreferences(w http.ResponseWriter, r *http.Request) {
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		prefs, err := st.GetCapacityPreferences()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, prefs)
+	case http.MethodPut:
+		var body store.CapacityPreferences
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid preferences body")
+			return
+		}
+		if err := st.PutCapacityPreferences(body); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		updated, _ := st.GetCapacityPreferences()
+		writeJSON(w, http.StatusOK, updated)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+func (h *NexusHandler) handleCapacityAlertAck(w http.ResponseWriter, r *http.Request, alertID string) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	receipt := store.DeliveryReceipt{
+		AlertID:     alertID,
+		Channel:     "web_user",
+		Fingerprint: alertID,
+		Status:      "ACKNOWLEDGED",
+		DeliveredAt: time.Now().UTC(),
+	}
+	_ = st.PutDeliveryReceipt(receipt)
+	writeJSON(w, http.StatusOK, map[string]string{"status": "acknowledged", "alert_id": alertID})
+}
+
+func (h *NexusHandler) handleCapacityAlertSnooze(w http.ResponseWriter, r *http.Request, alertID string) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var body struct {
+		DurationSeconds int `json:"duration_seconds"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	if body.DurationSeconds <= 0 {
+		body.DurationSeconds = 3600
+	}
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	receipt := store.DeliveryReceipt{
+		AlertID:     alertID,
+		Channel:     "web_user",
+		Fingerprint: alertID,
+		Status:      fmt.Sprintf("SNOOZED_%ds", body.DurationSeconds),
+		DeliveredAt: time.Now().UTC(),
+	}
+	_ = st.PutDeliveryReceipt(receipt)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":           "snoozed",
+		"alert_id":         alertID,
+		"duration_seconds": body.DurationSeconds,
+	})
+}
+
+func (h *NexusHandler) handleAgentCapacitySwitch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/agents/"), "/")
+	if len(parts) < 2 || parts[0] == "" {
+		writeError(w, http.StatusNotFound, "missing agent id")
+		return
+	}
+	agentID := parts[0]
+
+	var body struct {
+		AgentID                  string `json:"agent_id"`
+		RuntimeGeneration        string `json:"runtime_generation"`
+		RecommendationFingerprint string `json:"recommendation_fingerprint"`
+		Provider                 string `json:"provider"`
+		Profile                  string `json:"profile"`
+		Confirmed                bool   `json:"confirmed"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid capacity switch body")
+		return
+	}
+	if !body.Confirmed {
+		writeError(w, http.StatusBadRequest, "explicit confirmation is required for capacity switch")
+		return
+	}
+	if body.AgentID == "" {
+		body.AgentID = agentID
+	}
+
+	allocation, err := h.nexus.ConfirmCapacitySwitch(
+		r.Context(),
+		body.AgentID,
+		body.RuntimeGeneration,
+		body.RecommendationFingerprint,
+		body.Provider,
+		body.Profile,
+	)
+	if err != nil {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, allocation)
+}
