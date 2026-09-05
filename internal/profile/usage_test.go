@@ -63,3 +63,19 @@ func TestGetUsageSnapshotReturnsCachedWindowsWithoutRefresh(t *testing.T) {
 		t.Fatalf("expected cached 66%% remaining, got %+v", snap.Windows)
 	}
 }
+
+func TestGetQuotaDetailsDoesNotInventModel(t *testing.T) {
+	tempData := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", tempData)
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+
+	q := GetQuotaDetails("codex", "test", "Plus", "user@openai.com")
+	if q.ModelName != "" {
+		t.Fatalf("expected empty model name when unattributable, got %q", q.ModelName)
+	}
+
+	qAgy := GetQuotaDetails("agy", "test", "Pro", "user@google.com")
+	if qAgy.ModelName != "" {
+		t.Fatalf("expected empty model name when unattributable, got %q", qAgy.ModelName)
+	}
+}

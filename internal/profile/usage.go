@@ -101,21 +101,10 @@ func GetQuotaDetails(providerName, name, plan, email string) QuotaDetails {
 		Account:     email,
 		Plan:        plan,
 		Status:      string(snap.Status),
-		ModelName:   snap.ModelName,
+		ModelName:   "",
 	}
-
-	if q.ModelName == "" {
-		if providerName == "codex" {
-			q.ModelName = "gpt-5.6-sol"
-		} else if providerName == "agy" {
-			q.ModelName = "Gemini 2.5 Flash / Pro"
-		} else if providerName == "claude" {
-			q.ModelName = "Claude 3.7 Sonnet"
-		} else if providerName == "opencode" {
-			q.ModelName = "OpenCode Provider"
-		} else if providerName == "gemini" {
-			q.ModelName = "Gemini Pro"
-		}
+	if quota.IsAttributableModelName(snap) {
+		q.ModelName = snap.ModelName
 	}
 
 	// Map windows if present
@@ -183,30 +172,7 @@ func GetQuotaView(providerName, name, plan, email string) quota.QuotaView {
 		}
 	}
 
-	// Apply default model names when the adapter didn't set one.
-	if snap.ModelName == "" {
-		snap.ModelName = defaultModelName(providerName)
-	}
-
 	return quota.BuildQuotaView(snap, email, plan)
-}
-
-// defaultModelName returns a fallback model name for providers that don't set one.
-func defaultModelName(provider string) string {
-	switch provider {
-	case "codex":
-		return "gpt-5.6-sol"
-	case "agy":
-		return "Gemini 2.5 Flash / Pro"
-	case "claude":
-		return "Claude 3.7 Sonnet"
-	case "opencode":
-		return "OpenCode Provider"
-	case "gemini":
-		return "Gemini Pro"
-	default:
-		return provider
-	}
 }
 
 // RenderBar generates a clean progress bar.

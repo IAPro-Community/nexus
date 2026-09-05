@@ -29,6 +29,16 @@ const (
 	FailureUnknown   FailureKind = "UNKNOWN_FAILURE"
 )
 
+// UsageGranularity indicates the specificity of quota evidence.
+type UsageGranularity string
+
+const (
+	UsageGranularityProvider UsageGranularity = "PROVIDER"
+	UsageGranularityProfile  UsageGranularity = "PROFILE"
+	UsageGranularityGroup    UsageGranularity = "GROUP"
+	UsageGranularityModel    UsageGranularity = "MODEL"
+)
+
 // UsageStatus represents the state and confidence of quota/usage data.
 type UsageStatus string
 
@@ -80,17 +90,19 @@ type UsageWindow struct {
 
 // UsageSnapshot captures point-in-time usage metrics for a profile.
 type UsageSnapshot struct {
-	ProviderID string        `json:"provider_id"`
-	ProfileID  string        `json:"profile_id"`
-	Status     UsageStatus   `json:"status"`
-	Source     UsageSource   `json:"source"`
-	FetchedAt  time.Time     `json:"fetched_at"`
-	ExpiresAt  *time.Time    `json:"expires_at,omitempty"`
-	Windows    []UsageWindow `json:"windows"`
-	ModelName  string        `json:"model_name,omitempty"`
-	Account    string        `json:"account,omitempty"`
-	Plan       string        `json:"plan,omitempty"`
-	Error      string        `json:"error,omitempty"`
+	ProviderID  string           `json:"provider_id"`
+	ProfileID   string           `json:"profile_id"`
+	Status      UsageStatus      `json:"status"`
+	Source      UsageSource      `json:"source"`
+	FetchedAt   time.Time        `json:"fetched_at"`
+	ExpiresAt   *time.Time       `json:"expires_at,omitempty"`
+	Windows     []UsageWindow    `json:"windows"`
+	ModelName   string           `json:"model_name,omitempty"`
+	QuotaGroup  string           `json:"quota_group,omitempty"`
+	Granularity UsageGranularity `json:"granularity,omitempty"`
+	Account     string           `json:"account,omitempty"`
+	Plan        string           `json:"plan,omitempty"`
+	Error       string           `json:"error,omitempty"`
 }
 
 // Capabilities declares supported features for a provider adapter.

@@ -80,8 +80,8 @@ func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
 	for _, gKey := range groupKeys {
 		displayName := GroupDisplayName(gKey)
 		// When there's only one group with key "" and no other groups,
-		// use the provider-specific model name as group display.
-		if !multiGroup && gKey == "" && snap.ModelName != "" {
+		// use the provider-specific model name as group display only if attributable.
+		if !multiGroup && gKey == "" && IsAttributableModelName(snap) {
 			displayName = snap.ModelName
 		}
 		qv.ModelGroups = append(qv.ModelGroups, ModelGroup{
@@ -93,8 +93,8 @@ func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
 
 	SortModelGroups(qv.ModelGroups)
 
-	// If single group with empty name and model name available, set it.
-	if len(qv.ModelGroups) == 1 && qv.ModelGroups[0].Name == "" && snap.ModelName != "" {
+	// If single group with empty name and attributable model name available, set it.
+	if len(qv.ModelGroups) == 1 && qv.ModelGroups[0].Name == "" && IsAttributableModelName(snap) {
 		qv.ModelGroups[0].Name = snap.ModelName
 	}
 
