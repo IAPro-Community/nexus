@@ -6,12 +6,11 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/kivervinicius/ai-cli/internal/browser"
 	"github.com/kivervinicius/ai-cli/internal/control/registry"
 	"github.com/kivervinicius/ai-cli/internal/nexus"
 )
@@ -604,19 +603,5 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 func OpenBrowser(url string) error {
-	var cmd string
-	var args []string
-
-	switch runtime.GOOS {
-	case "windows":
-		cmd = "rundll32"
-		args = []string{"url.dll,FileProtocolHandler", url}
-	case "darwin":
-		cmd = "open"
-		args = []string{url}
-	default: // "linux", "freebsd", "openbsd", "netbsd"
-		cmd = "xdg-open"
-		args = []string{url}
-	}
-	return exec.Command(cmd, args...).Start()
+	return browser.OpenAppWindow(url)
 }
