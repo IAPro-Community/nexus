@@ -108,6 +108,13 @@ func TestCapacityStoreLifecycle(t *testing.T) {
 	if err != nil || foundEv == nil || foundEv.ID != "ev-1" {
 		t.Fatalf("find capacity event: %v", err)
 	}
+	if err := s.PutCapacityEvent(CapacityEventRecord{ID: "ev-2", Fingerprint: ev.Fingerprint, EventType: ev.EventType, Provider: ev.Provider, Profile: ev.Profile, QuotaGroup: ev.QuotaGroup, WindowKind: ev.WindowKind, Severity: ev.Severity, PayloadJSON: ev.PayloadJSON, EmittedAt: now.Add(time.Second)}); err != nil {
+		t.Fatalf("put duplicate capacity event: %v", err)
+	}
+	events, err := s.ListCapacityEvents(10)
+	if err != nil || len(events) != 1 {
+		t.Fatalf("expected fingerprint deduplication, got %d events: %v", len(events), err)
+	}
 
 	// 5. Delivery Receipts
 	rec := DeliveryReceipt{

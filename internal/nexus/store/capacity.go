@@ -354,6 +354,12 @@ func (s *Store) ReleaseCapacityLease(owner string) error {
 
 // PutCapacityEvent persists a canonical capacity event.
 func (s *Store) PutCapacityEvent(event CapacityEventRecord) error {
+	var existing string
+	if err := s.db.QueryRow(`SELECT id FROM capacity_events WHERE fingerprint = ? LIMIT 1`, event.Fingerprint).Scan(&existing); err == nil {
+		return nil
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
 	emittedStr := event.EmittedAt.UTC().Format(time.RFC3339Nano)
 	_, err := s.db.Exec(`
 		INSERT INTO capacity_events(id, fingerprint, event_type, provider, profile, quota_group, window_kind, severity, payload_json, emitted_at)

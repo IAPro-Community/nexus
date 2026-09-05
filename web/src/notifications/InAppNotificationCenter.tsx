@@ -8,6 +8,10 @@ import { ContextDrawer } from '../design-system/primitives/ContextDrawer';
 import { buildAttentionRadar, type RadarRuntimeItem } from '../app/attentionRadarModel';
 import { notificationFromRuntime, type InAppNotification } from './inAppNotificationModel';
 import { loadNotificationPrefs } from './notificationPrefs';
+import { nexus } from '../nexus/api';
+import { CapacityAlertCard } from './CapacityAlertCard';
+import { capacityAlertFromEvent } from './notificationModel';
+import type { CapacityAlert } from '../types';
 
 const DISMISS_AFTER_MS = 7_000;
 
@@ -29,6 +33,7 @@ export const InAppNotificationCenter: React.FC<{
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [history, setHistory] = useState<InAppNotification[]>([]);
   const [activeTab, setActiveTab] = useState<'radar' | 'notifications'>('radar');
+  const [capacityAlerts, setCapacityAlerts] = useState<CapacityAlert[]>([]);
   const observed = useRef(new Set<string>());
   const initialized = useRef(false);
 
@@ -57,6 +62,38 @@ export const InAppNotificationCenter: React.FC<{
     setNotifications((current) => [...fresh, ...current].slice(0, 3));
     setHistory((current) => [...fresh, ...current].slice(0, 30));
   }, [runtimes, focusedProjectId]);
+
+  useEffect(() => {
+    let active = true;
+    const loadCapacityAlerts = async () => {
+      try {
+        const page = await nexus.getCapacityMonitorHistory(30);
+        const alerts = page.events
+          .map((event) => capacityAlertFromEvent(event))
+          .filter((alert): alert is CapacityAlert => alert !== null)
+          .filter((alert) => alert.severity !== 'RECOVERED');
+        if (active) setCapacityAlerts(alerts);
+      } catch {
+        // Capacity monitoring is optional; runtime attention remains available.
+      }
+    };
+    void loadCapacityAlerts();
+    const timer = window.setInterval(() => void loadCapacityAlerts(), 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const acknowledgeCapacityAlert = async (alertId: string) => {
+    await nexus.acknowledgeCapacityAlert(alertId);
+    setCapacityAlerts((current) => current.filter((alert) => alert.id !== alertId));
+  };
+
+  const snoozeCapacityAlert = async (alertId: string, durationMinutes: number) => {
+    await nexus.snoozeCapacityAlert(alertId, durationMinutes * 60);
+    setCapacityAlerts((current) => current.filter((alert) => alert.id !== alertId));
+  };
 
   useEffect(() => {
     if (notifications.length === 0) return;
@@ -151,7 +188,7 @@ export const InAppNotificationCenter: React.FC<{
                 className={`nx-notification-drawer__tab ${activeTab === 'notifications' ? 'nx-notification-drawer__tab--active' : ''}`}
                 onClick={() => setActiveTab('notifications')}
               >
-                <span>Notificações ({history.length})</span>
+                <span>Notificações ({history.length + capacityAlerts.length})</span>
               </button>
             </div>
 
@@ -216,7 +253,15 @@ export const InAppNotificationCenter: React.FC<{
             {/* History Panel */}
             {activeTab === 'notifications' && (
               <div className="nx-notification-drawer__panel">
-                {history.length === 0 ? (
+                {capacityAlerts.map((alert) => (
+                  <CapacityAlertCard
+                    key={alert.id}
+                    alert={alert}
+                    onAcknowledge={(id) => void acknowledgeCapacityAlert(id)}
+                    onSnooze={(id, minutes) => void snoozeCapacityAlert(id, minutes)}
+                  />
+                ))}
+                {history.length === 0 && capacityAlerts.length === 0 ? (
                   <div className="nx-notification-drawer__empty">
                     <p>Nenhuma notificação registrada nesta sessão.</p>
                   </div>

@@ -4,7 +4,7 @@ import { Activity, BellRing, Check, Clock, Gauge, RefreshCw, ShieldAlert } from 
 import type { CapacityMonitorStatus, CapacityPreferences } from '../../types';
 import { Badge, Button, Card, InlineAlert, Input, Switch } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import { validateCapacityThresholds } from './capacityMonitorSettingsModel.test';
+import { validateCapacityThresholds } from './capacityMonitorSettingsModel';
 import styles from './CapacityMonitorSettings.module.scss';
 
 const DEFAULT_PREFS: CapacityPreferences = {
