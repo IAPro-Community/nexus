@@ -282,3 +282,50 @@ func TestMonitorLeadershipAndScheduling(t *testing.T) {
 		t.Fatalf("follower must not run probes, call count was %d", atomic.LoadInt32(&probeCalls))
 	}
 }
+
+func TestMonitorScheduledTickUsesAdaptiveIntervalAndMinimum(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "scheduled.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer st.Close()
+
+	clock := newFakeClock(time.Date(2026, 9, 5, 12, 0, 0, 0, time.UTC))
+	var calls int32
+	reg := &fakeRegistry{probes: map[string]quota.Probe{
+		"agy": &fakeProbe{desc: quota.ProbeDescriptor{ReadOnly: true, MinimumInterval: 30 * time.Second}, fn: func(context.Context, model.Profile) (model.UsageSnapshot, error) {
+			atomic.AddInt32(&calls, 1)
+			remaining := 80.0
+			return model.UsageSnapshot{Status: model.UsageLive, FetchedAt: clock.Now(), Windows: []model.UsageWindow{{Kind: "5h", Group: "default", RemainingPercent: &remaining}}}, nil
+		}},
+	}}
+	m := New(Dependencies{
+		Profiles:      func() ([]model.Profile, error) { return []model.Profile{{Provider: "agy", Name: "work"}}, nil },
+		ProbeRegistry: reg,
+		Store:         st,
+		Clock:         clock,
+		JitterSource:  &fakeJitter{},
+		OwnerID:       "scheduled-test",
+	})
+
+	if err := m.Tick(context.Background()); err != nil {
+		t.Fatalf("initial tick: %v", err)
+	}
+	if got := atomic.LoadInt32(&calls); got != 1 {
+		t.Fatalf("initial calls = %d, want 1", got)
+	}
+	clock.Advance(time.Minute)
+	if err := m.tick(context.Background(), false); err != nil {
+		t.Fatalf("early scheduled tick: %v", err)
+	}
+	if got := atomic.LoadInt32(&calls); got != 1 {
+		t.Fatalf("early scheduled calls = %d, want 1", got)
+	}
+	clock.Advance(9 * time.Minute)
+	if err := m.tick(context.Background(), false); err != nil {
+		t.Fatalf("due scheduled tick: %v", err)
+	}
+	if got := atomic.LoadInt32(&calls); got != 2 {
+		t.Fatalf("due scheduled calls = %d, want 2", got)
+	}
+}

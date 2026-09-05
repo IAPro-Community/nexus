@@ -11,6 +11,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/core/model"
 	"github.com/kivervinicius/ai-cli/internal/nexus"
 	"github.com/kivervinicius/ai-cli/internal/nexus/capacitymonitor"
+	"github.com/kivervinicius/ai-cli/internal/nexus/store"
 	"github.com/kivervinicius/ai-cli/internal/profile"
 )
 
@@ -42,6 +43,20 @@ func capacityMonitorCmd(args []string) error {
 		return nil
 
 	case "enable-autostart":
+		n := nexus.Default()
+		st, err := n.OpenProject()
+		if err != nil {
+			return fmt.Errorf("failed to open store: %w", err)
+		}
+		prefs, err := st.GetCapacityPreferences()
+		if err != nil {
+			prefs = store.DefaultCapacityPreferences()
+		}
+		prefs.Enabled = true
+		prefs.BackgroundEnabled = true
+		if err := st.PutCapacityPreferences(prefs); err != nil {
+			return fmt.Errorf("failed to persist background consent: %w", err)
+		}
 		execPath, err := os.Executable()
 		if err != nil {
 			execPath = "nexus"
@@ -53,8 +68,21 @@ func capacityMonitorCmd(args []string) error {
 		return nil
 
 	case "disable-autostart":
+		n := nexus.Default()
+		st, err := n.OpenProject()
+		if err != nil {
+			return fmt.Errorf("failed to open store: %w", err)
+		}
 		if err := autostartMgr.DisableAndRemove(context.Background()); err != nil {
 			return fmt.Errorf("failed to disable autostart: %w", err)
+		}
+		prefs, err := st.GetCapacityPreferences()
+		if err != nil {
+			prefs = store.DefaultCapacityPreferences()
+		}
+		prefs.BackgroundEnabled = false
+		if err := st.PutCapacityPreferences(prefs); err != nil {
+			return fmt.Errorf("failed to persist background consent: %w", err)
 		}
 		fmt.Println("Capacity monitor autostart disabled and removed.")
 		return nil
@@ -64,6 +92,13 @@ func capacityMonitorCmd(args []string) error {
 		st, err := n.OpenProject()
 		if err != nil {
 			return fmt.Errorf("failed to open store: %w", err)
+		}
+		prefs, err := st.GetCapacityPreferences()
+		if err != nil {
+			prefs = store.DefaultCapacityPreferences()
+		}
+		if !prefs.BackgroundEnabled {
+			return fmt.Errorf("capacity monitor background consent is disabled; enable it with 'nexus capacity-monitor enable-autostart'")
 		}
 
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

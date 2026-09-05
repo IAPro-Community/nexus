@@ -26,6 +26,7 @@ type Monitor struct {
 	consecErrors  map[string]int
 	profileLocks  map[string]*sync.Mutex
 	profileLockMu sync.Mutex
+	nextDue       map[string]time.Time
 }
 
 // New constructs a new Monitor instance.
@@ -50,6 +51,7 @@ func New(deps Dependencies) *Monitor {
 		ownerID:      owner,
 		consecErrors: make(map[string]int),
 		profileLocks: make(map[string]*sync.Mutex),
+		nextDue:      make(map[string]time.Time),
 	}
 }
 
@@ -80,21 +82,48 @@ func (m *Monitor) Run(ctx context.Context) error {
 		}
 	}()
 
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-
 	for {
+		interval := m.nextWakeInterval()
+		timer := time.NewTimer(interval)
 		select {
 		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
 			return ctx.Err()
-		case <-ticker.C:
-			_ = m.Tick(ctx)
+		case <-timer.C:
+			if err := m.tick(ctx, false); err != nil && ctx.Err() != nil {
+				return ctx.Err()
+			}
 		}
 	}
 }
 
+func (m *Monitor) nextWakeInterval() time.Duration {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	now := m.deps.Clock.Now()
+	if len(m.nextDue) == 0 {
+		return time.Second
+	}
+	interval := 10 * time.Minute
+	for _, due := range m.nextDue {
+		if due.IsZero() || !due.After(now) {
+			return time.Second
+		}
+		if wait := due.Sub(now); wait < interval {
+			interval = wait
+		}
+	}
+	return interval
+}
+
 // Tick executes a single evaluation pass across registered profiles.
 func (m *Monitor) Tick(ctx context.Context) error {
+	return m.tick(ctx, true)
+}
+
+func (m *Monitor) tick(ctx context.Context, force bool) error {
 	now := m.deps.Clock.Now()
 
 	m.mu.Lock()
@@ -117,6 +146,13 @@ func (m *Monitor) Tick(ctx context.Context) error {
 		// Follower mode: do not perform collections
 		return nil
 	}
+
+	// A pass may contain multiple slow provider probes. Renew the lease while it runs
+	// so another daemon cannot take leadership during a long collection.
+	renewCtx, cancelRenew := context.WithCancel(ctx)
+	defer cancelRenew()
+	renewErr := make(chan error, 1)
+	go m.renewLeaseLoop(renewCtx, renewErr)
 
 	// 2. Read preferences
 	prefs, err := m.deps.Store.GetCapacityPreferences()
@@ -170,6 +206,9 @@ func (m *Monitor) Tick(ctx context.Context) error {
 		}
 
 		profileKey := fmt.Sprintf("%s:%s", p.Provider, p.Name)
+		if !force && !m.profileDue(profileKey, now) {
+			continue
+		}
 		pLock := m.getProfileLock(profileKey)
 
 		wg.Add(1)
@@ -188,12 +227,58 @@ func (m *Monitor) Tick(ctx context.Context) error {
 				return
 			}
 
-			m.evaluateProfile(ctx, prof, pr, thresholds, activityMap, lowPower, now)
+			state := m.evaluateProfile(ctx, prof, pr, thresholds, activityMap, lowPower, now)
+			interval := DetermineCollectionInterval(state, activityMap[prof.Provider] || activityMap[prof.Name], lowPower, m.failureCount(prof), pr.Descriptor().MinimumInterval)
+			interval = m.deps.JitterSource.Duration(interval)
+			m.setNextDue(fmt.Sprintf("%s:%s", prof.Provider, prof.Name), now.Add(interval))
 		}(p, probe, pLock)
 	}
 
 	wg.Wait()
+	select {
+	case err := <-renewErr:
+		return fmt.Errorf("renew capacity lease: %w", err)
+	default:
+	}
 	return nil
+}
+
+func (m *Monitor) renewLeaseLoop(ctx context.Context, errs chan<- error) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := m.deps.Store.RenewCapacityLease(m.ownerID, m.deps.Clock.Now(), 30*time.Second); err != nil {
+				select {
+				case errs <- err:
+				default:
+				}
+				return
+			}
+		}
+	}
+}
+
+func (m *Monitor) profileDue(key string, now time.Time) bool {
+	m.mu.RLock()
+	due := m.nextDue[key]
+	m.mu.RUnlock()
+	return due.IsZero() || !now.Before(due)
+}
+
+func (m *Monitor) setNextDue(key string, due time.Time) {
+	m.mu.Lock()
+	m.nextDue[key] = due
+	m.mu.Unlock()
+}
+
+func (m *Monitor) failureCount(prof model.Profile) int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.consecErrors[fmt.Sprintf("%s:%s", prof.Provider, prof.Name)]
 }
 
 func (m *Monitor) evaluateProfile(
@@ -204,7 +289,7 @@ func (m *Monitor) evaluateProfile(
 	activityMap map[string]bool,
 	lowPower bool,
 	now time.Time,
-) {
+) State {
 	snap, err := pr.Probe(ctx, prof)
 
 	m.mu.Lock()
@@ -217,7 +302,7 @@ func (m *Monitor) evaluateProfile(
 	m.mu.Unlock()
 
 	if err != nil {
-		return
+		return StateUnknown
 	}
 
 	// If snapshot has no windows, create a synthetic single group window if status is unknown/unsupported
@@ -230,6 +315,7 @@ func (m *Monitor) evaluateProfile(
 		}}
 	}
 
+	resultState := StateHealthy
 	for _, w := range windows {
 		var expiresAt time.Time
 		if snap.ExpiresAt != nil {
@@ -268,6 +354,11 @@ func (m *Monitor) evaluateProfile(
 			now,
 			thresholds,
 		)
+		if newState == StateExhausted || newState == StateCritical || (newState == StateWarning && resultState == StateHealthy) {
+			resultState = newState
+		} else if resultState == StateHealthy && newState != StateHealthy {
+			resultState = newState
+		}
 
 		stateRecord := store.CapacityStateRecord{
 			Key:            stateKey,
@@ -333,6 +424,7 @@ func (m *Monitor) evaluateProfile(
 			}
 		}
 	}
+	return resultState
 }
 
 // Status returns the current diagnostic status of the monitor and monitored resources.
