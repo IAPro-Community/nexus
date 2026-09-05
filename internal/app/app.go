@@ -109,6 +109,8 @@ func Run(args []string) error {
 		return versionCmd(args[1:])
 	case "release":
 		return release.Run(".")
+	case "capacity-monitor":
+		return capacityMonitorCmd(args[1:])
 	case "web", "open":
 		return controlWebCmd(args[1:])
 	case "plan", "plans":
