@@ -352,6 +352,22 @@ func (s *Store) ReleaseCapacityLease(owner string) error {
 	return err
 }
 
+// GetCapacityLease returns the current monitor lease, if one exists.
+func (s *Store) GetCapacityLease() (*MonitorLease, error) {
+	var lease MonitorLease
+	var acquired, renewed, expires string
+	if err := s.db.QueryRow(`SELECT owner, acquired_at, renewed_at, expires_at FROM capacity_monitor_lease WHERE id = 1`).Scan(&lease.Owner, &acquired, &renewed, &expires); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	lease.AcquiredAt, _ = time.Parse(time.RFC3339Nano, acquired)
+	lease.RenewedAt, _ = time.Parse(time.RFC3339Nano, renewed)
+	lease.ExpiresAt, _ = time.Parse(time.RFC3339Nano, expires)
+	return &lease, nil
+}
+
 // PutCapacityEvent persists a canonical capacity event.
 func (s *Store) PutCapacityEvent(event CapacityEventRecord) error {
 	var existing string

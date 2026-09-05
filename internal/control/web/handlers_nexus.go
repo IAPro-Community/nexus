@@ -2077,14 +2077,25 @@ func (h *NexusHandler) handleCapacityMonitorStatus(w http.ResponseWriter, r *htt
 	if states == nil {
 		states = []store.CapacityStateRecord{}
 	}
-	prefs, _ := st.GetCapacityPreferences()
+	lease, _ := st.GetCapacityLease()
+	now := time.Now().UTC()
+	running := lease != nil && lease.ExpiresAt.After(now)
+	leader := ""
+	if lease != nil && running {
+		leader = lease.Owner
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"running":             prefs.Enabled,
-		"is_leader":           true,
-		"leader_owner":        "nexus-local",
+		"running":             running,
+		"is_leader":           running,
+		"leader_owner":        leader,
 		"degraded":            false,
 		"monitored_resources": len(states),
-		"last_tick_at":        time.Now().UTC(),
+		"last_tick_at": func() time.Time {
+			if lease != nil {
+				return lease.RenewedAt
+			}
+			return time.Time{}
+		}(),
 	})
 }
 
