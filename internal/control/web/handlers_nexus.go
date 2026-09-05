@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -2195,6 +2196,10 @@ func (h *NexusHandler) handleCapacityMonitorPreferences(w http.ResponseWriter, r
 			writeError(w, http.StatusBadRequest, "invalid preferences body")
 			return
 		}
+		if err := validateCapacityPreferences(body); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 		if err := st.PutCapacityPreferences(body); err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -2204,6 +2209,29 @@ func (h *NexusHandler) handleCapacityMonitorPreferences(w http.ResponseWriter, r
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
+}
+
+func validateCapacityPreferences(prefs store.CapacityPreferences) error {
+	thresholds := [4]float64{prefs.ExhaustedThreshold, prefs.CriticalThreshold, prefs.WarningThreshold, prefs.RecoveryThreshold}
+	for _, threshold := range thresholds {
+		if math.IsNaN(threshold) || math.IsInf(threshold, 0) || threshold < 0 || threshold > 100 {
+			return fmt.Errorf("capacity thresholds must be finite values between 0 and 100")
+		}
+	}
+	if prefs.ExhaustedThreshold >= prefs.CriticalThreshold ||
+		prefs.CriticalThreshold >= prefs.WarningThreshold ||
+		prefs.WarningThreshold >= prefs.RecoveryThreshold {
+		return fmt.Errorf("capacity thresholds must satisfy exhausted < critical < warning < recovery")
+	}
+	if prefs.ReminderIntervalSeconds < 60 || prefs.ReminderIntervalSeconds > 7*24*60*60 {
+		return fmt.Errorf("reminder interval must be between 60 seconds and 7 days")
+	}
+	for _, value := range []string{prefs.QuietHoursStartUTC, prefs.QuietHoursEndUTC} {
+		if _, err := time.Parse("15:04", value); err != nil {
+			return fmt.Errorf("quiet hours must use HH:MM UTC format")
+		}
+	}
+	return nil
 }
 
 func (h *NexusHandler) handleCapacityAlertAck(w http.ResponseWriter, r *http.Request, alertID string) {
@@ -2287,9 +2315,11 @@ func (h *NexusHandler) handleAgentCapacitySwitch(w http.ResponseWriter, r *http.
 		writeError(w, http.StatusBadRequest, "explicit confirmation is required for capacity switch")
 		return
 	}
-	if body.AgentID == "" {
-		body.AgentID = agentID
+	if strings.TrimSpace(body.AgentID) != "" && strings.TrimSpace(body.AgentID) != agentID {
+		writeError(w, http.StatusBadRequest, "agent_id must match the URL agent")
+		return
 	}
+	body.AgentID = agentID
 
 	allocation, err := h.nexus.ConfirmCapacitySwitch(
 		r.Context(),

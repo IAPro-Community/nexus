@@ -41,11 +41,25 @@ func (n *Nexus) ConfirmCapacitySwitch(
 	// 2. Generation verification (if runtimeGeneration provided)
 	if runtimeGeneration != "" {
 		gen, err := st.CurrentGeneration(agentID)
-		if err == nil {
-			if gen.ID != runtimeGeneration && gen.RuntimeID != runtimeGeneration {
-				return nil, fmt.Errorf("stale runtime generation: expected %s, current is %s", runtimeGeneration, gen.ID)
-			}
+		if err != nil {
+			return nil, fmt.Errorf("lookup current runtime generation: %w", err)
 		}
+		if gen.ID != runtimeGeneration && gen.RuntimeID != runtimeGeneration {
+			return nil, fmt.Errorf("stale runtime generation: expected %s, current is %s", runtimeGeneration, gen.ID)
+		}
+	}
+
+	// The fingerprint is a capability token for the recommendation the user
+	// actually reviewed. It must exist and must still point to this exact target.
+	recommendation, err := st.GetCapacityRecommendation(recommendationFingerprint)
+	if err != nil {
+		return nil, fmt.Errorf("lookup capacity recommendation: %w", err)
+	}
+	if recommendation == nil {
+		return nil, fmt.Errorf("capacity recommendation %s is not current", recommendationFingerprint)
+	}
+	if !strings.EqualFold(recommendation.Provider, provider) || recommendation.Profile != profile {
+		return nil, fmt.Errorf("capacity recommendation does not match provider/profile")
 	}
 
 	// 3. Apply resource allocation to the Agent

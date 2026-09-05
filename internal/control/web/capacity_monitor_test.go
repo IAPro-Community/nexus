@@ -85,5 +85,40 @@ func TestCapacityMonitorEndpoints(t *testing.T) {
 		t.Fatalf("unconfirmed switch must return 400 Bad Request, got %d", resp.StatusCode)
 	}
 	_ = resp.Body.Close()
+
+	mismatchedBody := map[string]any{
+		"agent_id": "another-agent", "recommendation_fingerprint": "fp-123",
+		"provider": "agy", "profile": "default", "confirmed": true,
+	}
+	b, _ = json.Marshal(mismatchedBody)
+	req, _ = http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/agents/agent-test-1/capacity-switch", bytes.NewReader(b))
+	req.Header.Set(csrfHeaderName, csrfToken)
+	resp, err = client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("mismatched agent ID must return 400, got err=%v code=%d", err, resp.StatusCode)
+	}
+	_ = resp.Body.Close()
 	_ = st
+}
+
+func TestValidateCapacityPreferences(t *testing.T) {
+	valid := store.DefaultCapacityPreferences()
+	if err := validateCapacityPreferences(valid); err != nil {
+		t.Fatalf("default preferences should be valid: %v", err)
+	}
+	invalid := valid
+	invalid.CriticalThreshold = invalid.WarningThreshold
+	if err := validateCapacityPreferences(invalid); err == nil {
+		t.Fatal("critical threshold must be below warning threshold")
+	}
+	invalid = valid
+	invalid.ReminderIntervalSeconds = 0
+	if err := validateCapacityPreferences(invalid); err == nil {
+		t.Fatal("zero reminder interval must be rejected")
+	}
+	invalid = valid
+	invalid.QuietHoursStartUTC = "25:00"
+	if err := validateCapacityPreferences(invalid); err == nil {
+		t.Fatal("invalid quiet-hours time must be rejected")
+	}
 }
