@@ -2272,12 +2272,12 @@ func (h *NexusHandler) handleAgentCapacitySwitch(w http.ResponseWriter, r *http.
 	agentID := parts[0]
 
 	var body struct {
-		AgentID                  string `json:"agent_id"`
-		RuntimeGeneration        string `json:"runtime_generation"`
+		AgentID                   string `json:"agent_id"`
+		RuntimeGeneration         string `json:"runtime_generation"`
 		RecommendationFingerprint string `json:"recommendation_fingerprint"`
-		Provider                 string `json:"provider"`
-		Profile                  string `json:"profile"`
-		Confirmed                bool   `json:"confirmed"`
+		Provider                  string `json:"provider"`
+		Profile                   string `json:"profile"`
+		Confirmed                 bool   `json:"confirmed"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid capacity switch body")

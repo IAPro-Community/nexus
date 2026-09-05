@@ -46,14 +46,14 @@ func TestDeliveryRouterDeliversAndIsolatesFailures(t *testing.T) {
 	now := time.Date(2026, 9, 5, 12, 0, 0, 0, time.UTC)
 	rem := 10.0
 	alert := CanonicalAlert{
-		ID:                 "alert-1",
-		Fingerprint:        "fp-1",
-		Provider:           "agy",
-		Profile:            "work",
-		Group:              "gemini",
-		Window:             "5h",
-		Severity:           "CRITICAL",
-		RemainingPercent:   &rem,
+		ID:                  "alert-1",
+		Fingerprint:         "fp-1",
+		Provider:            "agy",
+		Profile:             "work",
+		Group:               "gemini",
+		Window:              "5h",
+		Severity:            "CRITICAL",
+		RemainingPercent:    &rem,
 		LockScreenSafeTitle: "Nexus Quota Alert",
 		LockScreenSafeBody:  "Capacity limit reached for agy (work)",
 	}

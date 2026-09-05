@@ -231,15 +231,15 @@ func TestMonitorLeadershipAndScheduling(t *testing.T) {
 		Profiles: func() ([]model.Profile, error) {
 			return []model.Profile{{Provider: "agy", Name: "work"}}, nil
 		},
-		ProbeRegistry:  reg,
+		ProbeRegistry:    reg,
 		ActivityDetector: &fakeDetector{active: map[string]bool{"agy": false}},
-		PowerState:     &fakePower{low: false},
-		Store:          st,
-		EventPublisher: pub,
-		Clock:          clock,
-		JitterSource:   &fakeJitter{},
-		MaxConcurrency: 2,
-		OwnerID:        "node-leader",
+		PowerState:       &fakePower{low: false},
+		Store:            st,
+		EventPublisher:   pub,
+		Clock:            clock,
+		JitterSource:     &fakeJitter{},
+		MaxConcurrency:   2,
+		OwnerID:          "node-leader",
 	}
 
 	mon := New(deps)

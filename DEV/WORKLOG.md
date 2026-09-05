@@ -1,5 +1,37 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-05 — Nexus Capacity Monitor, Proactive Alerts, Explanations & Background Autostart
+
+- **Objetivo**: Executar integralmente o plano de implementação do Nexus Capacity Monitor e Notificações (`docs/superpowers/plans/2026-09-05-capacity-monitor-notifications-implementation.md`), cobrindo os 10 passos prescritos com TDD rigoroso, isolamento de Git em worktree dedicada, Conventional Commits e validação de gates.
+- **Alterações Realizadas**:
+  1. **Contratos Neutros de Quota & Atribuição Confiável (`internal/core/quota`)**:
+     - Preservada atribuição de modelo honesta apenas quando `UsageGranularityModel` e `ModelName` são concretamente conhecidos; caso contrário fallback para `QuotaGroup` / `ProviderID`.
+  2. **Adaptadores Seguros de Sondagem de Capacidade (`internal/profile`)**:
+     - Adaptadores read-only sem side-effects implementados para Codex, AGY, Claude, Gemini, Cursor e OpenCode.
+     - Detectores de atividade de processos e estado de energia seguros para privacidade implementados com build tags por SO (`activity_linux.go`, `activity_windows.go`, `activity_darwin.go`, `activity_other.go`).
+  3. **Persistência SQLite & Migração (`internal/nexus/store`)**:
+     - Criada migração `0013_capacity_monitor.sql` adicionando tabelas: `capacity_states`, `capacity_leases`, `capacity_preferences`, `capacity_events`, `capacity_delivery_receipts`.
+     - Métodos de lease de líder único, histórico com paginação, idempotência e deduplicador de entrega.
+  4. **Máquina de Estados de Limiares & Monitor Adaptativo (`internal/nexus/capacitymonitor`)**:
+     - Limiares padrão: 20% (Warning), 10% (Critical), 0% (Exhausted), 25% (Recovery).
+     - Scheduler adaptativo de intervalo (Active: 1-2m, Idle: 10-15m, Low power: 30-60m, Rate limited: 60-120m).
+     - Eleição de líder único com lease de 30s e controle de concorrência global limitado a 2 com mutex de singleflight por perfil.
+  5. **Recomendações Explicáveis & Troca de Provedor (`internal/nexus`)**:
+     - Algoritmo de recomendação com score de continuidade e justificativa técnica explícita.
+     - Endpoint e switch transacional de alocação de agente (`capacity_switch.go`).
+  6. **Roteador de Notificações Multi-Canal (`internal/nexus/capacitymonitor/delivery.go`)**:
+     - Entrega para in-app, browser push e notificações nativas do SO.
+     - Suporte a Horário de Silêncio (Quiet Hours) com bypass para esgotamento total e modo seguro para tela bloqueada.
+  7. **API HTTP & Frontend Presentation (`web/src`)**:
+     - Endpoints REST `/api/v1/capacity-monitor/...` autenticados.
+     - Componentes `CapacityAlertCard` e `CapacityMonitorSettings` com SCSS Modules, WCAG AA, tokens semânticos e i18n (`en`, `ptBR`, `es`).
+  8. **Inicialização em Background Linux com Consentimento (`internal/nexus/capacitymonitor/autostart_linux.go`)**:
+     - Gerenciador de unidade systemd user-scoped (`nexus-capacity-monitor.service`) com ativação via CLI `nexus capacity-monitor run`.
+     - Limpeza limpa no `uninstall.sh`.
+  9. **Evidência de Carga & Validação Beta (`DEV/validation/CAPACITY_MONITOR_LINUX_BETA.md`)**:
+     - Simulação de 50 perfis durante 30 minutos simulados: concorrência máxima observada rigorosamente limitada a 2, zero vazamentos de goroutines e 0 data races.
+     - 100% dos gates de qualidade frontend e backend aprovados.
+
 ## 2026-09-05 — Frontend Code-Splitting, Route Chunking & SCSS Modules Modularization
 
 - **Objetivo**: Concluir a refatoração arquitetural de frontend dividindo o monólito `bundle.js` em rotas/superfícies e modais sob demanda (`React.lazy` + `Suspense`), além de migrar componentes para o padrão oficial de estilos (`SCSS Modules` + tokens de design).

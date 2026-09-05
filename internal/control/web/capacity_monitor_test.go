@@ -71,11 +71,11 @@ func TestCapacityMonitorEndpoints(t *testing.T) {
 
 	// 5. POST /api/v1/agents/{id}/capacity-switch without confirmation must fail
 	unconfirmedBody := map[string]any{
-		"agent_id":                  "agent-test-1",
+		"agent_id":                   "agent-test-1",
 		"recommendation_fingerprint": "fp-123",
-		"provider":                  "agy",
-		"profile":                   "default",
-		"confirmed":                 false,
+		"provider":                   "agy",
+		"profile":                    "default",
+		"confirmed":                  false,
 	}
 	b, _ = json.Marshal(unconfirmedBody)
 	req, _ = http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/agents/agent-test-1/capacity-switch", bytes.NewReader(b))
