@@ -24,6 +24,14 @@ const (
 	EventRateLimited      EventType = "RATE_LIMITED"
 	EventHandoffCompleted EventType = "HANDOFF_COMPLETED"
 	EventError            EventType = "ERROR"
+
+	// Canonical Capacity Monitor Event Types
+	EventQuotaObserved             EventType = "quota.observed"
+	EventQuotaThresholdCrossed     EventType = "quota.threshold_crossed"
+	EventQuotaRecovered            EventType = "quota.recovered"
+	EventRecommendationChanged     EventType = "recommendation.changed"
+	EventMonitorDegraded           EventType = "monitor.degraded"
+	EventMonitorLeadershipChanged  EventType = "monitor.leadership_changed"
 )
 
 var eventCounter uint64
