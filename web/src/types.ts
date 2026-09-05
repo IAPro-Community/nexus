@@ -367,6 +367,42 @@ export interface CapacityPreferences {
   updated_at?: string;
 }
 
+export interface CapacityAlertAction {
+  id: string;
+  label: string;
+  kind: 'acknowledge' | 'snooze' | 'switch' | 'copy_command';
+  url?: string;
+}
+
+export interface CapacityAlertRecommendation {
+  provider: string;
+  profile: string;
+  display_name: string;
+  score: number;
+  continuity_impact?: string;
+  fingerprint: string;
+}
+
+export interface CapacityAlert {
+  id: string;
+  fingerprint: string;
+  provider: string;
+  profile: string;
+  group: string;
+  window: string;
+  severity: 'WARNING' | 'CRITICAL' | 'EXHAUSTED' | 'RECOVERED';
+  remaining_percent?: number | null;
+  reset_at?: string;
+  freshness?: string;
+  confidence?: string;
+  subject: string;
+  model_name?: string;
+  recommendation?: CapacityAlertRecommendation;
+  lock_screen_safe_title?: string;
+  lock_screen_safe_body?: string;
+  actions?: CapacityAlertAction[];
+}
+
 export interface CapacityEvent {
   id: string;
   fingerprint: string;

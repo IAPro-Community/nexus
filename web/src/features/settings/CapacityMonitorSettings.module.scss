@@ -1,0 +1,93 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-md, 16px);
+  grid-column: 1 / -1;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-sm, 12px);
+  padding-top: var(--nx-space-sm, 12px);
+  border-top: 1px solid var(--nx-border);
+
+  &:first-of-type {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--nx-text);
+  margin: 0;
+}
+
+.sectionSubtitle {
+  font-size: 12px;
+  color: var(--nx-text-secondary, var(--nx-muted));
+  margin: 0;
+}
+
+.gridTwo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--nx-space-sm, 12px);
+}
+
+.gridThree {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--nx-space-sm, 12px);
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inputLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--nx-text);
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--nx-space-xs, 6px) var(--nx-space-sm, 10px);
+  border-radius: var(--nx-radius-sm, 6px);
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border);
+  font-size: 12px;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-sm, 8px);
+}
+
+.badgeGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-xs, 6px);
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--nx-space-sm, 10px);
+  margin-top: var(--nx-space-xs, 4px);
+}

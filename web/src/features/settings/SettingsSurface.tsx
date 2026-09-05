@@ -38,6 +38,7 @@ import {
   type NotificationPrefs,
 } from '../../notifications/notificationPrefs';
 import { pushNotifications } from '../../notifications/PushNotificationManager';
+import { CapacityMonitorSettings } from './CapacityMonitorSettings';
 
 type SettingsTab = 'appearance' | 'accessibility' | 'updates' | 'intelligence' | 'notifications';
 
@@ -546,38 +547,41 @@ export const SettingsSurface: React.FC<{ onTour: () => void }> = ({ onTour }) =>
 
         {/* Tab 5: Notifications */}
         {activeTab === 'notifications' && (
-          <Card className="nx-settings-card" style={{ gridColumn: '1 / -1' }}>
-            <div className="nx-settings-card__title">
-              <Bell size={17} />
-              <div>
-                <strong>{t('settings.notifications', 'Notificações')}</strong>
-                <small>
-                  {t(
-                    'settings.notificationsDescription',
-                    'Avisos in-app e do navegador quando um agente pergunta ou conclui. Título e marcadores nas janelas continuam ativos.',
-                  )}
-                </small>
+          <>
+            <Card className="nx-settings-card" style={{ gridColumn: '1 / -1' }}>
+              <div className="nx-settings-card__title">
+                <Bell size={17} />
+                <div>
+                  <strong>{t('settings.notifications', 'Notificações')}</strong>
+                  <small>
+                    {t(
+                      'settings.notificationsDescription',
+                      'Avisos in-app e do navegador quando um agente pergunta ou conclui. Título e marcadores nas janelas continuam ativos.',
+                    )}
+                  </small>
+                </div>
               </div>
-            </div>
-            <Switch
-              checked={notifyPrefs.notificationsEnabled}
-              onChange={(checked) => updateNotifyPrefs({ notificationsEnabled: checked })}
-              label={t('settings.notificationsToggle', 'Notificações no Navegador')}
-              description={t(
-                'settings.notificationsToggleDescription',
-                'Toasts e push do navegador (com a aba em segundo plano).',
-              )}
-            />
-            <Switch
-              checked={notifyPrefs.soundEnabled}
-              onChange={(checked) => updateNotifyPrefs({ soundEnabled: checked })}
-              label={t('settings.soundToggle', 'Sons de Alerta')}
-              description={t(
-                'settings.soundToggleDescription',
-                'Beep curto ao receber atenção. Independente das notificações visuais.',
-              )}
-            />
-          </Card>
+              <Switch
+                checked={notifyPrefs.notificationsEnabled}
+                onChange={(checked) => updateNotifyPrefs({ notificationsEnabled: checked })}
+                label={t('settings.notificationsToggle', 'Notificações no Navegador')}
+                description={t(
+                  'settings.notificationsToggleDescription',
+                  'Toasts e push do navegador (com a aba em segundo plano).',
+                )}
+              />
+              <Switch
+                checked={notifyPrefs.soundEnabled}
+                onChange={(checked) => updateNotifyPrefs({ soundEnabled: checked })}
+                label={t('settings.soundToggle', 'Sons de Alerta')}
+                description={t(
+                  'settings.soundToggleDescription',
+                  'Beep curto ao receber atenção. Independente das notificações visuais.',
+                )}
+              />
+            </Card>
+            <CapacityMonitorSettings />
+          </>
         )}
       </div>
     </div>
