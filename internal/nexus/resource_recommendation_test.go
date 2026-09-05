@@ -328,3 +328,46 @@ func TestAccountSupportsHeadlessReview(t *testing.T) {
 		})
 	}
 }
+
+func TestRecommendationExplainsRejectionsAndContinuity(t *testing.T) {
+	accounts := []ProviderAccount{
+		{
+			ID:            "unauthed",
+			Provider:      "codex",
+			Profile:       "work",
+			DisplayName:   "Codex Work",
+			Authenticated: false,
+			Available:     false,
+		},
+		{
+			ID:             "authed-claude",
+			Provider:       "claude",
+			Profile:        "personal",
+			DisplayName:    "Claude Personal",
+			Authenticated:  true,
+			Available:      true,
+			QuotaView:      &quota.QuotaView{Status: "LIVE"},
+			QuotaRemaining: 0.8,
+			Health:         "healthy",
+		},
+	}
+
+	req := TaskRequirements{
+		CurrentProvider: "codex",
+		CurrentProfile:  "work",
+	}
+
+	res := RecommendResources(accounts, req, PolicyBalanced)
+	if res.Recommended == nil {
+		t.Fatal("expected recommendation")
+	}
+	if len(res.RejectedAlternatives) == 0 {
+		t.Fatal("expected rejected alternatives to list unauthed account")
+	}
+	if res.ContinuityImpact == "" {
+		t.Fatal("expected continuity impact explanation for provider change")
+	}
+	if res.Fingerprint == "" {
+		t.Fatal("expected non-empty recommendation fingerprint")
+	}
+}

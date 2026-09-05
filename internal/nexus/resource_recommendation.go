@@ -38,11 +38,15 @@ type ResourceCandidate struct {
 
 // RecommendationResult holds the ranked candidates and top selection with explainable reasoning.
 type RecommendationResult struct {
-	Requirements TaskRequirements    `json:"requirements"`
-	Policy       SchedulerPolicy     `json:"policy"`
-	Recommended  *ResourceCandidate  `json:"recommended,omitempty"`
-	Candidates   []ResourceCandidate `json:"candidates"`
-	Explanation  string              `json:"explanation"`
+	Requirements         TaskRequirements    `json:"requirements"`
+	Policy               SchedulerPolicy     `json:"policy"`
+	Recommended          *ResourceCandidate  `json:"recommended,omitempty"`
+	Candidates           []ResourceCandidate `json:"candidates"`
+	Explanation          string              `json:"explanation"`
+	ResetInformation     string              `json:"reset_information,omitempty"`
+	RejectedAlternatives []string            `json:"rejected_alternatives,omitempty"`
+	ContinuityImpact     string              `json:"continuity_impact,omitempty"`
+	Fingerprint          string              `json:"fingerprint,omitempty"`
 }
 
 // RecommendResources evaluates available accounts against task requirements under the chosen policy.
@@ -119,9 +123,33 @@ func RecommendResources(accounts []ProviderAccount, req TaskRequirements, policy
 		}
 	}
 
+	for _, c := range result.Candidates {
+		if !c.Eligible {
+			reason := c.RejectionReason
+			if reason == "" {
+				reason = "inelegível"
+			}
+			result.RejectedAlternatives = append(result.RejectedAlternatives, fmt.Sprintf("%s (%s): %s", c.Account.DisplayName, c.Account.Provider, reason))
+		}
+	}
+
 	if result.Recommended != nil {
 		result.Explanation = fmt.Sprintf("Recomendado %s (%s) com score %.1f baseado na política %s.",
 			result.Recommended.Account.DisplayName, result.Recommended.Account.Provider, result.Recommended.TotalScore, policy)
+
+		if req.CurrentProvider != "" && result.Recommended.Account.Provider != req.CurrentProvider {
+			result.ContinuityImpact = fmt.Sprintf("Troca de provedor (%s -> %s): novo contexto de runtime será iniciado", req.CurrentProvider, result.Recommended.Account.Provider)
+		} else if req.CurrentProfile != "" && result.Recommended.Account.Profile != req.CurrentProfile {
+			result.ContinuityImpact = fmt.Sprintf("Troca de perfil (%s -> %s): mesma sessão preservada", req.CurrentProfile, result.Recommended.Account.Profile)
+		} else {
+			result.ContinuityImpact = "Mesmo provedor e perfil: continuidade total preservada"
+		}
+
+		if result.Recommended.Account.QuotaView != nil {
+			result.ResetInformation = result.Recommended.Account.QuotaView.Status
+		}
+
+		result.Fingerprint = fmt.Sprintf("rec-%s-%s-%s", result.Recommended.Account.Provider, result.Recommended.Account.Profile, policy)
 	} else {
 		result.Explanation = "Nenhum provedor elegível atende aos requisitos da tarefa (todos indisponíveis ou sem autenticação)."
 	}
