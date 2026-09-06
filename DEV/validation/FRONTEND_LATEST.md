@@ -1,7 +1,7 @@
 # Frontend verification report
 
-- Generated: `2026-09-05T18:43:03Z`
-- Branch: `feat/nexus-maximum-delivery` @ `ab88fcb`
+- Generated: `2026-09-06T00:10:11Z`
+- Branch: `fix/radar-resources-terminal` @ `5fe1d99`
 - Verdict: **PASS** (10 pass / 0 fail)
 - Dirty web/dist tree: **yes**
 
@@ -9,16 +9,16 @@
 
 | Gate | Hard | Status | Duration | Detail |
 | --- | --- | --- | --- | --- |
-| Prettier (`prettier --check`) | yes | PASS | 3402ms | Checking formatting...<br>All matched files use Prettier code style! |
-| TypeScript (`tsc --noEmit`) | yes | PASS | 5481ms | ok |
-| ESLint (`eslint src`) | yes | PASS | 3102ms | /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/web/src/features/projects/ProjectRail.tsx<br>  10:3  warning  'Sparkles' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars<br>  19:3  warning  'Tooltip' is defined but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars<br>  62:3  warning  'onNewAISession' is defined but never used. Allowed unused args must match /^_/u  @typescript-e |
-| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 849ms | ok |
-| Null-safe API array access | yes | PASS | 43ms | sem .length/.map direto em campos nullable conhecidos |
-| Vitest (`vitest run`) | yes | PASS | 3985ms | ✓ src/app/attentionRadarModel.test.ts (7 tests) 10ms<br> ✓ src/features/settings/intelligenceProfiles.test.ts (3 tests) 15ms<br> ✓ src/features/work/composerSessionModel.test.ts (1 test) 10ms<br> ✓ src/components/terminalViewModel.test.ts (3 tests) 11ms<br> ✓ src/app/commands/registry.test.ts (4 tests) 5ms<br> ✓ src/workspace/taskbarHonesty.test.ts (2 tests) 3ms<br> ✓ src/workspace/arrangePresets.test.ts (9 tests) 8ms<br> ✓ src/notifications/attentionDelivery.test.ts (2 tests) 3ms<br> ✓ src/app/ |
-| i18n catalog parity | yes | PASS | 814ms | RUN  v3.2.7 /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/web<br><br> ✓ src/i18n/i18n.test.ts (7 tests) 5ms<br><br> Test Files  1 passed (1)<br>      Tests  7 passed (7)<br>   Start at  14:43:20<br>   Duration  426ms (transform 116ms, setup 0ms, collect 147ms, tests 5ms, environment 0ms, prepare 73ms) |
-| Build + embed (`node scripts/build.mjs`) | yes | PASS | 884ms | Nexus web build complete: /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/web/dist<br>≈ tailwindcss v4.3.3<br><br>Done in 181ms<br><br>  dist/bundle.js                                 278.4kb<br>  dist/chunks/chunk-2SWL6RW6.js                  276.9kb<br>  dist/chunks/chunk-2CDN6AQF.js                  127.3kb<br>  dist/chunks/chunk-Z2YTFA2N.js                   74.5kb<br>  dist/chunks/chunk-ZRYX4THW.js                   63.0kb<br>  dist/chunks/chunk-AEYOSDCD.js            |
-| Embed sync (web/dist ≡ internal/.../dist) | yes | PASS | 1ms | bundles idênticos (285055 bytes) |
-| Critical UI markers in bundle | yes | PASS | 1ms | marcadores críticos presentes (5) |
+| Prettier (`prettier --check`) | yes | PASS | 4190ms | Checking formatting...<br>All matched files use Prettier code style! |
+| TypeScript (`tsc --noEmit`) | yes | PASS | 6344ms | ok |
+| ESLint (`eslint src`) | yes | PASS | 3739ms | /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/.worktrees/fix-radar-resources-terminal/web/src/features/projects/BranchSwitcherModal.tsx<br>  62:6  warning  React Hook useEffect has a missing dependency: 'loadBranches'. Either include it or remove the dependency array  react-hooks/exhaustive-deps<br><br>/projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/.worktrees/fix-radar-resources-terminal/web/src/features/projects/ProjectRail.tsx<br>  10:3  warning |
+| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 1111ms | ok |
+| Null-safe API array access | yes | PASS | 52ms | sem .length/.map direto em campos nullable conhecidos |
+| Vitest (`vitest run`) | yes | PASS | 6084ms | ✓ src/workspace/state.test.ts (8 tests) 29ms<br> ✓ src/notifications/attentionPushCopy.test.ts (3 tests) 3ms<br> ✓ src/features/work/planBuilderModel.test.ts (5 tests) 11ms<br> ✓ src/app/routerIntegration.test.tsx (3 tests) 9ms<br> ✓ src/features/work/clarificationModel.test.ts (2 tests) 4ms<br> ✓ src/nexus/terminalFitModel.test.ts (2 tests) 3ms<br> ✓ src/nexus/agentTerminalModel.test.ts (14 tests) 7ms<br> ✓ src/workspace/taskbarHonesty.test.ts (2 tests) 4ms<br> ✓ src/app/tour/tour.test.ts (5 te |
+| i18n catalog parity | yes | PASS | 1092ms | RUN  v3.2.7 /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/.worktrees/fix-radar-resources-terminal/web<br><br> ✓ src/i18n/i18n.test.ts (7 tests) 6ms<br><br> Test Files  1 passed (1)<br>      Tests  7 passed (7)<br>   Start at  20:10:33<br>   Duration  561ms (transform 125ms, setup 0ms, collect 159ms, tests 6ms, environment 0ms, prepare 159ms) |
+| Build + embed (`node scripts/build.mjs`) | yes | PASS | 1016ms | Nexus web build complete: /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/.worktrees/fix-radar-resources-terminal/web/dist<br>≈ tailwindcss v4.3.3<br><br>Done in 194ms<br><br>  dist/bundle.js                                 324.1kb<br>  dist/chunks/chunk-ZKJJX66S.js                  277.0kb<br>  dist/chunks/chunk-2CDN6AQF.js                  127.3kb<br>  dist/chunks/chunk-UXWNLXMQ.js                   74.7kb<br>  dist/chunks/chunk-UHKBMKNW.js                   63.3kb<br>   |
+| Embed sync (web/dist ≡ internal/.../dist) | yes | PASS | 1ms | bundles idênticos (331855 bytes) |
+| Critical UI markers in bundle | yes | PASS | 2ms | marcadores críticos presentes (5) |
 
 ## Residual risks / next operator steps
 
@@ -29,43 +29,65 @@
 ### Dirty paths
 
 ```
-M  internal/control/web/dist/bundle.css
-M  internal/control/web/dist/bundle.js
-R  internal/control/web/dist/chunks/AgentConfigurationSurface-ZOQG7X7L.js -> internal/control/web/dist/chunks/AgentConfigurationSurface-ZUAGJBNC.js
-R  internal/control/web/dist/chunks/AgentTerminal-TYDP66V5.js -> internal/control/web/dist/chunks/AgentTerminal-KGETRLHN.js
-R  internal/control/web/dist/chunks/AgentsSurface-I2WGCRPT.js -> internal/control/web/dist/chunks/AgentsSurface-7OAOQGJC.js
-R  internal/control/web/dist/chunks/DirectSessionLauncher-Z24HZLVI.js -> internal/control/web/dist/chunks/DirectSessionLauncher-W5HMO2LM.js
-R  internal/control/web/dist/chunks/EventsView-HK6YCKJ2.js -> internal/control/web/dist/chunks/EventsView-GMMVKAIO.js
-R  internal/control/web/dist/chunks/FlowRunSurface-VYFRDCM7.js -> internal/control/web/dist/chunks/FlowRunSurface-6QJMRGPN.js
-R  internal/control/web/dist/chunks/FlowRunsHistorySurface-PKGMJ2YL.js -> internal/control/web/dist/chunks/FlowRunsHistorySurface-ZSFM2NCK.js
-R  internal/control/web/dist/chunks/MaestroControlModal-R5WE26XU.js -> internal/control/web/dist/chunks/MaestroControlModal-LGRWYUO3.js
-R  internal/control/web/dist/chunks/NewAgentModal-TGH3DGA3.js -> internal/control/web/dist/chunks/NewAgentModal-TH2PQQ3W.js
-R  internal/control/web/dist/chunks/ProjectManagerSurface-74E4PESQ.js -> internal/control/web/dist/chunks/ProjectManagerSurface-4VPEW4JM.js
-R  internal/control/web/dist/chunks/ProjectOverviewSurface-SIG7HKAD.js -> internal/control/web/dist/chunks/ProjectOverviewSurface-Q7BVT22H.js
-D  internal/control/web/dist/chunks/ResourcePicker-4AYNSPRN.js
-A  internal/control/web/dist/chunks/ResourcePicker-7ZG65KLQ.js
-R  internal/control/web/dist/chunks/SessionsSurface-PDVK4RQK.js -> internal/control/web/dist/chunks/SessionsSurface-BSDYUPWT.js
-R  internal/control/web/dist/chunks/SettingsSurface-HK2DRCS7.js -> internal/control/web/dist/chunks/SettingsSurface-YYPW6ZCL.js
-R  internal/control/web/dist/chunks/WelcomeModal-7CZ3MYFY.js -> internal/control/web/dist/chunks/WelcomeModal-G4SS2B5J.js
-R  internal/control/web/dist/chunks/WorkSurface-TZGGVKY5.js -> internal/control/web/dist/chunks/WorkSurface-RKYQZYMA.js
-D  internal/control/web/dist/chunks/chunk-25IZL7VW.js
-A  internal/control/web/dist/chunks/chunk-25VE2H4Q.js
-R  internal/control/web/dist/chunks/chunk-NXVOSQYL.js -> internal/control/web/dist/chunks/chunk-73J6TKYO.js
-D  internal/control/web/dist/chunks/chunk-BRSMTCFJ.js
-R  internal/control/web/dist/chunks/chunk-4RGXIDBF.js -> internal/control/web/dist/chunks/chunk-CQHBYMS6.js
-A  internal/control/web/dist/chunks/chunk-KW3ZA2JC.js
-D  internal/control/web/dist/chunks/chunk-M3AIAKMQ.js
-R  internal/control/web/dist/chunks/chunk-Z4LJAWUG.js -> internal/control/web/dist/chunks/chunk-QNKOAZZE.js
-R  internal/control/web/dist/chunks/chunk-24HOWO4N.js -> internal/control/web/dist/chunks/chunk-UBNCWWQ7.js
-A  internal/control/web/dist/chunks/chunk-Z2YTFA2N.js
-R  internal/control/web/dist/chunks/chunk-IMT4BVLC.js -> internal/control/web/dist/chunks/chunk-ZRYX4THW.js
-M  web/bun.lock
-M  web/src/features/settings/SettingsSurface.tsx
-A  web/src/features/settings/SystemDiagnosticsCard.module.scss
-A  web/src/features/settings/SystemDiagnosticsCard.tsx
-M  web/src/i18n/resources.ts
-M  web/src/nexus/api.ts
+M internal/control/web/dist/bundle.css
+ M internal/control/web/dist/bundle.js
+ D internal/control/web/dist/chunks/AgentTerminal-6XIKILQK.js
+ D internal/control/web/dist/chunks/AgentsSurface-RIFBCYNV.js
+ D internal/control/web/dist/chunks/EventsView-GMMVKAIO.js
+ D internal/control/web/dist/chunks/FlowRunsHistorySurface-X5PRYUZ4.js
+ D internal/control/web/dist/chunks/ProjectManagerSurface-KUHFI5SQ.js
+ D internal/control/web/dist/chunks/ProjectOverviewSurface-NXHBUCAS.js
+ D internal/control/web/dist/chunks/ProjectShellSurface-LPVDEDTR.js
+ D internal/control/web/dist/chunks/ResourcePicker-SDFBP7ON.js
+ D internal/control/web/dist/chunks/SettingsSurface-S6WZ23TK.js
+ D internal/control/web/dist/chunks/TerminalPane-FUBMOD45.js
+ D internal/control/web/dist/chunks/WelcomeModal-6QMSGN67.js
+ D internal/control/web/dist/chunks/WorkSurface-UF3ZQFKF.js
+ D internal/control/web/dist/chunks/chunk-2SWL6RW6.js
+ D internal/control/web/dist/chunks/chunk-4XNMFKK6.js
+ D internal/control/web/dist/chunks/chunk-5DO6C6LJ.js
+ D internal/control/web/dist/chunks/chunk-5JWSO7TY.js
+ D internal/control/web/dist/chunks/chunk-UCKP36O6.js
+ D internal/control/web/dist/chunks/chunk-YYNSRMYF.js
+ D internal/control/web/dist/chunks/chunk-Z2YTFA2N.js
+ M web/src/app/workspace-os.css
+ M web/src/components/TerminalPane.tsx
+ M web/src/features/work/ComposerSurface.tsx
+ M web/src/features/work/FlowCanvas.tsx
+ M web/src/features/work/PlanBuilderSurface.tsx
+ M web/src/features/work/composerModel.test.ts
+ M web/src/features/work/composerModel.ts
+ M web/src/i18n/resources.ts
+ M web/src/nexus/AgentTerminal.tsx
+ M web/src/types.ts
+?? internal/control/web/dist/chunks/AgentTerminal-V3VXSFCJ.js
+?? internal/control/web/dist/chunks/AgentsSurface-I5LS3MUL.js
+?? internal/control/web/dist/chunks/EventsView-XB4XPKAS.js
+?? internal/control/web/dist/chunks/FlowRunsHistorySurface-PKIA5KQ3.js
+?? internal/control/web/dist/chunks/ProjectManagerSurface-R3VQGO6X.js
+?? internal/control/web/dist/chunks/ProjectOverviewSurface-GYI5Z74R.js
+?? internal/control/web/dist/chunks/ProjectShellSurface-3Y7SC6AE.js
+?? internal/control/web/dist/chunks/ResourcePicker-SSDTOLS6.js
+?? internal/control/web/dist/chunks/SettingsSurface-KHKHAUBN.js
+?? internal/control/web/dist/chunks/TerminalPane-XPEVZ5WS.js
+?? internal/control/web/dist/chunks/WelcomeModal-G2NBGBV2.js
+?? internal/control/web/dist/chunks/WorkSurface-JU4GQE6H.js
+?? internal/control/web/dist/chunks/chunk-4VXKOKZE.js
+?? internal/control/web/dist/chunks/chunk-FXT7GN7Y.js
+?? internal/control/web/dist/chunks/chunk-UHKBMKNW.js
+?? internal/control/web/dist/chunks/chunk-USCWEOVT.js
+?? internal/control/web/dist/chunks/chunk-UXWNLXMQ.js
+?? internal/control/web/dist/chunks/chunk-ZJAFETZI.js
+?? internal/control/web/dist/chunks/chunk-ZKJJX66S.js
+?? web/src/app/workspaceSurfaceStyles.test.ts
+?? web/src/features/work/flowCanvasInput.test.ts
+?? web/src/nexus/terminalFitModel.test.ts
+?? web/src/nexus/terminalFitModel.ts
 ```
+
+### Notes
+
+- Binário `nexus` local não encontrado neste check — após PASS, rode `make build` para instalar.
 
 ## How to regenerate
 
