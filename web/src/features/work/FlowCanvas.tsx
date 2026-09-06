@@ -96,7 +96,6 @@ export const FlowCanvas: React.FC<{
       onPointerUp={pointerUp}
       onPointerLeave={pointerUp}
       onWheel={(event) => {
-        event.preventDefault();
         setZoom((current) => Math.min(1.6, Math.max(0.55, current - event.deltaY * 0.001)));
       }}
     >

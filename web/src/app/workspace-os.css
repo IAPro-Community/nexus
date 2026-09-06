@@ -43,12 +43,13 @@
   --nx-z-rail: 2000;
   --nx-z-topbar: 3000;
   --nx-z-popover: 4000;
-  --nx-z-drawer: 5000;
-  --nx-z-modal-backdrop: 6000;
-  --nx-z-modal: 6010;
-  --nx-z-contextmenu: 7000;
-  --nx-z-toast: 8000;
-  --nx-z-tooltip: 9000;
+  --nx-z-attention: 11000;
+  --nx-z-drawer: 12000;
+  --nx-z-modal-backdrop: 13000;
+  --nx-z-modal: 13010;
+  --nx-z-contextmenu: 14000;
+  --nx-z-toast: 15000;
+  --nx-z-tooltip: 16000;
   /* Compatibility aliases for legacy surfaces */
   --color-background: var(--nx-bg);
   --color-surface: var(--nx-surface);
@@ -2090,6 +2091,9 @@ button {
   display: grid;
   gap: 6px;
 }
+.nx-resource-account-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .nx-resource-account {
   width: 100%;
   display: grid;
@@ -4079,6 +4083,9 @@ button {
   font-style: italic;
 }
 @media (max-width: 680px) {
+  .nx-resource-account-list {
+    grid-template-columns: 1fr;
+  }
   .nx-resource-account__quota-row {
     grid-template-columns: 92px minmax(0, 1fr);
   }
@@ -4229,7 +4236,7 @@ button {
   position: fixed;
   right: 14px;
   bottom: calc(var(--nx-taskbar) + 12px);
-  z-index: 20000;
+  z-index: var(--nx-z-toast);
   display: grid;
   gap: 8px;
   width: min(390px, calc(100vw - 28px));
@@ -5511,6 +5518,7 @@ button {
     ),
     var(--nx-bg-elevated);
   overflow: auto;
+  overscroll-behavior: contain;
 }
 .nx-flow-canvas--invalid {
   min-height: 120px;
@@ -6354,7 +6362,7 @@ button {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  z-index: var(--nx-z-popover);
+  z-index: var(--nx-z-attention);
   width: min(420px, 80vw);
   max-height: 360px;
   overflow: auto;

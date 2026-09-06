@@ -397,7 +397,7 @@ export interface WorkPlan {
 export interface FlowLeaderPolicy {
   role: string;
   preferred_agent_id?: string;
-  strategy: 'EXISTING' | 'AUTO';
+  strategy: 'EXISTING' | 'AUTO' | 'NONE';
   skills?: string[];
   why?: string;
 }

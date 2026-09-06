@@ -38,3 +38,42 @@ func TestCloneFlowToProjectClearsAgentBindingsAndPreservesLeaderSuggestion(t *te
 		t.Fatalf("leader policy not made portable: %+v", policy)
 	}
 }
+
+func TestGetFlowLeaderPolicyReturnsValidDefaultForUnconfiguredPlan(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, _ := st.CreateProject(store.Project{Name: "Leader default", CanonicalPath: t.TempDir()})
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Unconfigured", "", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	policy, err := n.GetFlowLeaderPolicy(context.Background(), plan.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if policy.Role != "orchestrator" || policy.Strategy != "AUTO" {
+		t.Fatalf("invalid default leader policy: %+v", policy)
+	}
+}
+
+func TestSetFlowLeaderPolicyAllowsExplicitlyNoLeader(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, _ := st.CreateProject(store.Project{Name: "No leader", CanonicalPath: t.TempDir()})
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "No leader flow", "", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := n.SetFlowLeaderPolicy(context.Background(), plan.ID, FlowLeaderPolicy{Strategy: "NONE"}); err != nil {
+		t.Fatal(err)
+	}
+	policy, err := n.GetFlowLeaderPolicy(context.Background(), plan.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if policy.Strategy != "NONE" || policy.PreferredAgentID != "" {
+		t.Fatalf("invalid no-leader policy: %+v", policy)
+	}
+}

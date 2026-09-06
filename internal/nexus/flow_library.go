@@ -15,7 +15,7 @@ const flowLeaderPolicyFact = "nexus.flow_leader_policy"
 type FlowLeaderPolicy struct {
 	Role             string   `json:"role"`
 	PreferredAgentID string   `json:"preferred_agent_id,omitempty"`
-	Strategy         string   `json:"strategy"` // EXISTING | AUTO
+	Strategy         string   `json:"strategy"` // EXISTING | AUTO | NONE
 	Skills           []string `json:"skills,omitempty"`
 	Why              string   `json:"why,omitempty"`
 }
@@ -31,14 +31,14 @@ func (n *Nexus) SetFlowLeaderPolicy(ctx context.Context, planID string, policy F
 	}
 	policy.Role = strings.TrimSpace(policy.Role)
 	policy.Strategy = strings.ToUpper(strings.TrimSpace(policy.Strategy))
-	if policy.Role == "" {
-		return nil, fmt.Errorf("leader role is required")
-	}
 	if policy.Strategy == "" {
 		policy.Strategy = "AUTO"
 	}
-	if policy.Strategy != "AUTO" && policy.Strategy != "EXISTING" {
+	if policy.Strategy != "AUTO" && policy.Strategy != "EXISTING" && policy.Strategy != "NONE" {
 		return nil, fmt.Errorf("unsupported leader strategy %q", policy.Strategy)
+	}
+	if policy.Strategy != "NONE" && policy.Role == "" {
+		return nil, fmt.Errorf("leader role is required")
 	}
 	if policy.Strategy == "EXISTING" {
 		if policy.PreferredAgentID == "" {
@@ -70,7 +70,7 @@ func (n *Nexus) GetFlowLeaderPolicy(_ context.Context, planID string) (FlowLeade
 	}
 	raw := plan.StructuredFacts[flowLeaderPolicyFact]
 	if raw == "" {
-		return FlowLeaderPolicy{Strategy: "AUTO"}, nil
+		return FlowLeaderPolicy{Role: "orchestrator", Strategy: "AUTO"}, nil
 	}
 	var policy FlowLeaderPolicy
 	if err := json.Unmarshal([]byte(raw), &policy); err != nil {

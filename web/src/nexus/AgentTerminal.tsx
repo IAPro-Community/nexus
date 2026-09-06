@@ -35,6 +35,7 @@ import { ConfirmDialog, Tooltip } from '../design-system';
 import type { RuntimeSession } from '../types';
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
+import { canFitTerminal } from './terminalFitModel';
 import styles from './AgentTerminal.module.scss';
 
 export const AgentTerminal: React.FC<{
@@ -161,6 +162,7 @@ export const AgentTerminal: React.FC<{
     let leased = false;
     let recoverInFlight = false;
     let termInstance: Terminal | null = null;
+    const redrawTimers: number[] = [];
 
     (container as any).__triggerReconnect = () => {
       stopReconnect = false;
@@ -230,17 +232,20 @@ export const AgentTerminal: React.FC<{
     });
 
     const fitAndResize = (force = false) => {
-      if (disposed) return;
+      if (
+        !canFitTerminal({
+          disposed,
+          sessionReady: openedOnce,
+          terminalConnected: term.element?.isConnected === true,
+          containerConnected: container.isConnected,
+          width: container.clientWidth,
+          height: container.clientHeight,
+        })
+      ) {
+        return;
+      }
       try {
-        if (
-          term.element &&
-          term.element.isConnected &&
-          container.isConnected &&
-          container.clientWidth > 0 &&
-          container.clientHeight > 0
-        ) {
-          fit.fit();
-        }
+        fit.fit();
       } catch {
         return;
       }
@@ -254,8 +259,8 @@ export const AgentTerminal: React.FC<{
     const scheduleRedrawPulse = () => {
       // After history replay, TUI agents need a second SIGWINCH-sized pulse
       // or the screen stays on a stale "thinking" frame from the ring buffer.
-      window.setTimeout(() => fitAndResize(true), 120);
-      window.setTimeout(() => fitAndResize(true), 480);
+      redrawTimers.push(window.setTimeout(() => fitAndResize(true), 120));
+      redrawTimers.push(window.setTimeout(() => fitAndResize(true), 480));
     };
 
     const maybeSendKickoff = () => {
@@ -397,6 +402,7 @@ export const AgentTerminal: React.FC<{
       };
 
       ws.onmessage = (event) => {
+        if (disposed) return;
         try {
           const payload = JSON.parse(event.data);
           if (payload.type === 'output' && payload.data) {
@@ -499,6 +505,7 @@ export const AgentTerminal: React.FC<{
       disposed = true;
       stopReconnect = true;
       if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
+      redrawTimers.forEach((timer) => window.clearTimeout(timer));
       observer.disconnect();
       document.removeEventListener('visibilitychange', visibility);
       try {

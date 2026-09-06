@@ -179,6 +179,7 @@ export const en = {
     prepareAgent: 'Prepare with Agent',
     copyPrompt: 'Copy Prompt',
     turnIntoFlow: 'Turn into Flow',
+    confirmGaps: 'Review the open gaps, then confirm if you want to finalize anyway.',
   },
   directSession: {
     title: 'Start AI session',
@@ -809,6 +810,7 @@ export const ptBR: TranslationShape<typeof en> = {
     prepareAgent: 'Preparar com Agente',
     copyPrompt: 'Copiar prompt',
     turnIntoFlow: 'Transformar em Flow',
+    confirmGaps: 'Revise as lacunas abertas e confirme se quiser finalizar mesmo assim.',
   },
   directSession: {
     title: 'Iniciar sessão de IA',
@@ -1438,6 +1440,7 @@ export const es: TranslationShape<typeof en> = {
     prepareAgent: 'Preparar con Agente',
     copyPrompt: 'Copiar prompt',
     turnIntoFlow: 'Convertir en Flow',
+    confirmGaps: 'Revise las brechas abiertas y confirme si desea finalizar de todos modos.',
   },
   directSession: {
     title: 'Iniciar sesión de IA',

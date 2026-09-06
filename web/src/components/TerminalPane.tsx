@@ -3,6 +3,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { Shield, ShieldAlert, XSquare, Pencil, Check, Play, RefreshCw, Unplug } from 'lucide-react';
 import { scrubProtocolOutput } from '../nexus/terminalProtocol';
+import { canFitTerminal } from '../nexus/terminalFitModel';
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 
@@ -92,20 +93,25 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     term.open(containerRef.current);
 
     let disposed = false;
+    let sessionReady = false;
+    const redrawTimers: number[] = [];
     let lastSentSize = { rows: 0, cols: 0 };
 
     const safeFit = (force = false) => {
-      if (disposed) return;
+      if (
+        !canFitTerminal({
+          disposed,
+          sessionReady,
+          terminalConnected: term.element?.isConnected === true,
+          containerConnected: containerRef.current?.isConnected === true,
+          width: containerRef.current?.clientWidth || 0,
+          height: containerRef.current?.clientHeight || 0,
+        })
+      ) {
+        return;
+      }
       try {
-        if (
-          term.element &&
-          term.element.isConnected &&
-          containerRef.current &&
-          containerRef.current.clientWidth > 0 &&
-          containerRef.current.clientHeight > 0
-        ) {
-          fitAddon.fit();
-        }
+        fitAddon.fit();
       } catch {
         // Ignore fit measurement errors when dimensions are transiently undefined
       }
@@ -117,8 +123,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     };
 
     const scheduleRedrawPulse = () => {
-      window.setTimeout(() => safeFit(true), 120);
-      window.setTimeout(() => safeFit(true), 480);
+      redrawTimers.push(window.setTimeout(() => safeFit(true), 120));
+      redrawTimers.push(window.setTimeout(() => safeFit(true), 480));
     };
 
     const initialFit = window.requestAnimationFrame(() => safeFit(true));
@@ -169,6 +175,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     ws.onopen = () => {
       if (disposed) return;
+      sessionReady = true;
       setErrorMsg('');
       setDisconnected(false);
       safeFit(true);
@@ -267,6 +274,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     return () => {
       disposed = true;
+      redrawTimers.forEach((timer) => window.clearTimeout(timer));
       try {
         titleListener.dispose();
       } catch {

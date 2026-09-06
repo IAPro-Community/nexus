@@ -7,6 +7,13 @@ export interface ComposerGate {
   reason: string;
 }
 
+export function composerNeedsGapConfirmation(brief: {
+  open_questions?: string[];
+  readiness?: { state?: string };
+}): boolean {
+  return brief.readiness?.state === 'BLOCKED' || (brief.open_questions?.length ?? 0) > 0;
+}
+
 export function composerGateForReadiness(state: ContextReadinessState): ComposerGate {
   switch (state) {
     case 'READY':

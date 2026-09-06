@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composerGateForReadiness } from './composerModel';
+import { composerGateForReadiness, composerNeedsGapConfirmation } from './composerModel';
 import type { ContextReadinessState } from '../../types';
 
 describe('Composer Context Readiness gate', () => {
@@ -13,5 +13,31 @@ describe('Composer Context Readiness gate', () => {
     expect(composerGateForReadiness('HYDRATING').action).toBe('WAIT');
     expect(composerGateForReadiness('STALE').action).toBe('REFRESH');
     expect(composerGateForReadiness('FAILED').action).toBe('RETRY');
+  });
+});
+
+describe('Composer finalization guard', () => {
+  it('detects blocking readiness or open questions before a finalize request', () => {
+    expect(
+      composerNeedsGapConfirmation({
+        open_questions: [],
+        readiness: { state: 'BLOCKED' },
+      }),
+    ).toBe(true);
+    expect(
+      composerNeedsGapConfirmation({
+        open_questions: ['Which provider?'],
+        readiness: { state: 'READY' },
+      }),
+    ).toBe(true);
+  });
+
+  it('allows finalization when readiness is clear and no questions remain', () => {
+    expect(
+      composerNeedsGapConfirmation({
+        open_questions: [],
+        readiness: { state: 'READY' },
+      }),
+    ).toBe(false);
   });
 });

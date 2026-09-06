@@ -204,7 +204,14 @@ export const PlanBuilderSurface: React.FC<{
     if (!selectedPlan) return;
     nexusApi
       .getFlowLeader(selectedPlan.id)
-      .then(setLeader)
+      .then((policy) =>
+        setLeader((current) => ({
+          ...current,
+          ...policy,
+          role: policy.role?.trim() || current.role,
+          strategy: policy.strategy || current.strategy,
+        })),
+      )
       .catch(() => setLeader({ role: 'orchestrator', strategy: 'AUTO' }));
   }, [selectedPlan?.id]);
 
@@ -1080,12 +1087,14 @@ export const PlanBuilderSurface: React.FC<{
                     setLeader((current) => ({
                       ...current,
                       strategy: val as FlowLeaderPolicy['strategy'],
-                      preferred_agent_id: val === 'AUTO' ? undefined : current.preferred_agent_id,
+                      preferred_agent_id:
+                        val === 'EXISTING' ? current.preferred_agent_id : undefined,
                     }))
                   }
                   options={[
                     { value: 'AUTO', label: 'Sugerir automaticamente' },
                     { value: 'EXISTING', label: 'Agent cadastrado' },
+                    { value: 'NONE', label: 'Sem líder' },
                   ]}
                   selectStyle={{ minWidth: 170 }}
                 />

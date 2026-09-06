@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   CheckCircle2,
   ClipboardCopy,
@@ -21,6 +22,7 @@ import type {
   Project,
 } from '../../types';
 import { selectResumableComposerSession } from './composerSessionModel';
+import { composerNeedsGapConfirmation } from './composerModel';
 import { asArray, asStringArray } from '../../lib/safeArray';
 
 const ARCHETYPE_LABELS: Record<string, string> = {
@@ -37,6 +39,7 @@ export const ComposerSurface: React.FC<{
   project: Project;
   onTransformFlow: (artifact: PromptArtifact) => void;
 }> = ({ project, onTransformFlow }) => {
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<ComposerSession[]>([]);
   const [view, setView] = useState<ComposerSessionView | null>(null);
   const [inputMode, setInputMode] = useState<'IDEA' | 'EXISTING_PROMPT'>('IDEA');
@@ -144,6 +147,11 @@ export const ComposerSurface: React.FC<{
 
   const finalize = async (confirmed = false) => {
     if (!view) return;
+    if (!confirmed && composerNeedsGapConfirmation(view.brief)) {
+      setConfirmGaps(true);
+      setError(t('work.confirmGaps'));
+      return;
+    }
     setBusy(true);
     setError('');
     try {
