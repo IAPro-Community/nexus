@@ -7,7 +7,7 @@ ifeq ($(shell go env GOOS),linux)
 DESKTOP_TAGS = production,webkit2_41
 endif
 
-.PHONY: all build build-desktop build-desktop-wails web web-verify test race vet install install-local release-local bump clean format format-check lint-frontend lint-styles lint-styles-fix lint-fix lint-go typecheck test-frontend test-go test-e2e security quality quality-full golangci-lint
+.PHONY: all build build-desktop build-desktop-wails web web-verify docs-verify test race vet install install-local release-local bump clean format format-check lint-frontend lint-styles lint-styles-fix lint-fix lint-go typecheck test-frontend test-go test-e2e security quality quality-full golangci-lint
 
 all: build
 
@@ -23,6 +23,9 @@ web:
 
 web-verify:
 	@cd web && node scripts/verify-report.mjs
+
+docs-verify:
+	@node scripts/docs-verify.mjs
 
 lint-frontend:
 	@cd web && npx eslint src

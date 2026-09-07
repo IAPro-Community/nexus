@@ -1,0 +1,50 @@
+{
+  "source_sha": "5b37572dbed6e551217cdf3d1af16fbe93e2e092",
+  "generated_by": "web/scripts/docs-capture.mjs",
+  "captures": [
+    {
+      "id": "VIS-001",
+      "file": "workspace-overview.png",
+      "source_sha": "5b37572dbed6e551217cdf3d1af16fbe93e2e092",
+      "surface": "web/workspace",
+      "scenario": "real-local-bootstrap",
+      "viewport": "1440x900",
+      "automated": true,
+      "capture_command": "bun run docs:capture",
+      "status": "PASS"
+    },
+    {
+      "id": "VIS-007",
+      "file": "composer.png",
+      "source_sha": "5b37572dbed6e551217cdf3d1af16fbe93e2e092",
+      "surface": "web/composer",
+      "scenario": "real-local-bootstrap",
+      "viewport": "1440x900",
+      "automated": true,
+      "capture_command": "bun run docs:capture",
+      "status": "PASS"
+    },
+    {
+      "id": "VIS-008",
+      "file": "flow.png",
+      "source_sha": "5b37572dbed6e551217cdf3d1af16fbe93e2e092",
+      "surface": "web/flow",
+      "scenario": "real-local-bootstrap",
+      "viewport": "1440x900",
+      "automated": true,
+      "capture_command": "bun run docs:capture",
+      "status": "PASS"
+    },
+    {
+      "id": "VIS-006",
+      "file": "agents.png",
+      "source_sha": "5b37572dbed6e551217cdf3d1af16fbe93e2e092",
+      "surface": "web/agents",
+      "scenario": "real-local-bootstrap",
+      "viewport": "1440x900",
+      "automated": true,
+      "capture_command": "bun run docs:capture",
+      "status": "PASS"
+    }
+  ]
+}

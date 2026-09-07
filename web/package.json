@@ -22,6 +22,7 @@
     "test:a11y": "node scripts/e2e-hardening-verify.mjs",
     "test:visual": "node scripts/e2e-hardening-verify.mjs",
     "test:e2e-hardening": "node scripts/e2e-hardening-verify.mjs",
+    "docs:capture": "node scripts/docs-capture.mjs",
     "quality": "npm run check:styles && npm run format:check && npm run lint && npm run lint:styles && npm run typecheck && npm run test",
     "quality:full": "npm run quality && npm run build"
   },
