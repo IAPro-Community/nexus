@@ -1,132 +1,53 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="nexus-logo-dark.png">
-    <img src="nexus-logo.png" alt="Logo de IAPro Nexus" width="380">
-  </picture>
-</p>
+# IAPro Nexus
 
-<p align="center">
-  <a href="README.md">🇧🇷 Português (Brasil)</a> &nbsp;|&nbsp; <a href="README.en.md">🇬🇧 English</a> &nbsp;|&nbsp; <strong>🇪🇸 Español</strong>
-</p>
+**Una estación de trabajo local para operar coding agents.**
 
-# Manual de IAPro Nexus
+Proyectos, agentes persistentes, terminales reales, proveedores, worktrees y automatización en una experiencia integrada de Web, Desktop y CLI.
 
-IAPro Nexus es un espacio de control local para agentes de programación con IA. Reúne proyectos, agentes persistentes, terminales, recursos, cuotas, sesiones y la orientación de Orquestrador Maestro en una interfaz web y dos interfaces de terminal.
+<p align="center"><a href="README.md">Português</a> · <a href="README.en.md">English</a> · <strong>Español</strong></p>
 
-## Funciones principales
+![Espacio de trabajo de IAPro Nexus](docs/assets/screenshots/workspace-overview.png)
 
-- Selección inteligente entre Codex, AGY, Claude, OpenCode, Gemini y Cursor.
-- Perfiles aislados, fallback automático y seguimiento de cuotas.
-- Proyectos duraderos con Agentes, Misiones, historial y continuidad de sesiones.
-- Workspace OS con pestañas, divisiones, ventanas independientes y paleta de comandos.
-- Control local: los tokens y credenciales permanecen en los directorios de cada proveedor.
+## TL;DR
 
-## Instalación
+IAPro Nexus es una estación de trabajo local para trabajar con coding agents. Organiza proyectos, agentes persistentes, sesiones, terminales reales, proveedores, worktrees y uso/cuota alrededor de un Core común. El camino más sencillo es: abrir un proyecto, crear una AI Session, elegir un proveedor y trabajar en la terminal. Composer, Flow, Mission y Maestro son capas progresivas, no requisitos para el trabajo directo.
 
-Linux tiene evidencia de runtime local en esta campaña. Windows y macOS tienen
-código y builds en progreso, pero la evidencia nativa del candidato todavía
-depende de CI; consulte la [matriz de soporte](docs/platform/PLATFORM_SUPPORT_MATRIX.md).
-
-Linux y macOS:
+## Empieza en minutos
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kivervinicius/ai-cli/main/install.sh | bash -s -- --version=v0.5.0-beta.23
-nexus doctor
-nexus web
+git clone https://github.com/kivervinicius/ai-cli.git
+cd ai-cli
+bun --cwd web install --frozen-lockfile
+make build
+./nexus doctor
+./nexus web
 ```
 
-Windows PowerShell:
+Después sigue **+ New → AI Session → proveedor → terminal**. No necesitas abrir Composer, Flow o Mission para trabajar directamente.
 
-```powershell
-$installer = (Invoke-WebRequest https://raw.githubusercontent.com/kivervinicius/ai-cli/main/install.ps1).Content
-& ([scriptblock]::Create($installer)) -Version v0.5.0-beta.23
-nexus doctor
-nexus web
-```
+## Web, Desktop y CLI
 
-Cuando la versión incluye el shell nativo, el instalador también instala
-`nexus-desktop` y crea un lanzador en el Escritorio. Usa `--no-desktop` o
-`-NoDesktop` para instalar solo el CLI.
+| Superficie | Mejor para |
+| --- | --- |
+| **Nexus Web** | Control, observación y administración local desde el navegador. |
+| **Nexus Desktop** | Shell nativo Wails cuando existan evidencias de build y runtime para la plataforma. |
+| **Nexus CLI** | Scripts, diagnóstico, operación headless y flujos de terminal. |
 
-> **Nota de seguridad de Community Preview:** estos ejemplos obtienen el
-> instalador desde la rama `main`. Revise y fije el script a un commit antes de
-> usarlo en automatización. La verificación actual del artefacto solo usa
-> SHA-256; la clave pública y la verificación Ed25519 del manifest todavía no
-> están publicadas, por lo que este flujo no debe describirse como una cadena
-> de suministro firmada.
+Consulta la [matriz de plataformas](docs/operations/platform-support.md) antes de considerar soportada una capacidad nativa.
 
-## Idioma
+## Explora
 
-La interfaz web detecta el idioma del navegador. Se puede cambiar inmediatamente en **Configuración → Idioma**; la elección queda guardada en el navegador.
+- [Mapa de documentación](docs/README.md)
+- [Tour visual](docs/product/visual-tour.md)
+- [Flujo directo](docs/product/direct.md)
+- [Composer](docs/product/composer.md)
+- [Flow](docs/product/flow.md)
+- [Desktop](docs/desktop/overview.md)
+- [Arquitectura](docs/architecture/overview.md)
+- [Troubleshooting](docs/operations/troubleshooting.md)
 
-El CLI detecta el idioma del sistema. La precedencia es: flag, variable de entorno, configuración persistida, sistema e inglés como fallback.
+La [integración con Maestro](docs/product/maestro.md) es opcional para el camino Direct. Las afirmaciones sobre soporte, uso y continuidad dependen de evidencias; las capacidades planeadas o experimentales están marcadas.
 
-```bash
-nexus --lang es help
-AI_CLI_LANG=pt-BR nexus doctor
-nexus config language es
-nexus config language auto
-```
+## Comunidad
 
-Los locales disponibles son `pt-BR`, `en` y `es`. Los nombres de comandos, flags, claves JSON, enums, rutas, logs y mensajes libres de proveedores no se traducen.
-
-## Uso esencial
-
-```bash
-nexus                         # abre Workspace OS Web (predeterminado)
-nexus web                     # abre explícitamente Workspace OS Web
-nexus providers               # proveedores detectados
-nexus profiles                # perfiles configurados
-nexus add codex trabajo       # crea un perfil
-nexus codex:trabajo           # inicia un perfil específico
-nexus usage                   # cuotas y capacidad
-nexus sessions                # sesiones recientes
-nexus doctor                  # diagnóstico local
-```
-
-### Banderas Canónicas Universales y Ayuda Fusionada
-
-Nexus normaliza las opciones de CLI más utilizadas y las traduce automáticamente a cada proveedor:
-
-| Bandera Canónica | Descripción | Traducción en AGY | Traducción en Codex | Traducción en Claude |
-|---|---|---|---|---|
-| `--yolo` / `-y` | Omite confirmaciones y autoriza herramientas | `--dangerously-skip-permissions` | `--dangerously-bypass-approvals-and-sandbox` | `--dangerously-skip-permissions` |
-| `--continue` / `-c` | Continúa la última conversación | `--continue` | `resume --last` | `--continue` |
-| `--resume <id>` / `-r <id>` | Reanuda una sesión por ID | `--conversation=<id>` | `resume <id>` | `--resume <id>` |
-| `--print` / `-p` | Modo sin interfaz interactiva | `--print` | `exec` | `--print` |
-| `--effort <level>` | Esfuerzo de razonamiento (low, medium, high) | `--effort <level>` | `-c model_reasoning_effort="<level>"` | — |
-| `--plan` | Modo de planificación | `--mode plan` | — | — |
-
-Para consultar la ayuda fusionada:
-```bash
-nexus agy --help       # o: nexus help agy
-nexus codex --help     # o: nexus help codex
-nexus claude --help    # o: nexus help claude
-```
-Nexus presenta en primer lugar la tabla comparativa con los **aliases canónicos** y a continuación la **ayuda oficial completa** del binario.
-
-
-## Desarrollo
-
-Requisitos: Go 1.25+, Bun y las CLIs de los proveedores deseados.
-
-```bash
-go test ./...
-cd web
-bun install --frozen-lockfile
-bun run typecheck
-bun run lint
-bun run test
-bun run build
-```
-
-El build web genera los archivos estáticos embebidos por el servidor Go. Consulte también los guías localizados en [`docs/`](docs/).
-
-## Seguridad y privacidad
-
-- La interfaz web escucha en loopback por defecto.
-- La exposición remota requiere una decisión explícita y debe usar túnel SSH o VPN privada.
-- Los handoffs aplican redacción de secretos.
-- Las salidas `--json` son contratos estables e independientes del idioma.
-
-Licencia: [MIT](LICENSE).
+[Seguridad](SECURITY.md) · [Soporte](SUPPORT.md) · [Gobernanza](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Licencia MIT](LICENSE)

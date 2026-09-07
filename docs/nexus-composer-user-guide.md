@@ -150,4 +150,4 @@ Para o passo a passo do canvas e do handoff, consulte também o [Guia do Flow](n
 
 Para diagnóstico técnico e evidências de implementação, consulte
 [`docs/nexus-composer-validation.md`](nexus-composer-validation.md) e
-[`DEV/SPECS/COMPOSER_FLOW_IMPLEMENTATION.md`](../DEV/SPECS/COMPOSER_FLOW_IMPLEMENTATION.md).
+o [mapa público da documentação](README.md).

@@ -1,49 +1,54 @@
-# IAPro Nexus — documentação
+# Documentação do IAPro Nexus
 
-O IAPro Nexus é um Workspace OS local para coding agents: organiza projetos,
-agentes persistentes, terminais reais, provedores, quotas e continuidade em uma
-experiência única de CLI e Web. Esta página é o ponto de entrada da documentação
-pública e técnica.
+Esta é a entrada pública para entender, instalar e operar o Nexus. O produto
+é uma workstation local para coding agents; a documentação parte do caminho
+mais simples e só depois apresenta Composer, Flow e Mission.
 
-## Comece por aqui
+## Escolha seu caminho
 
-| Perfil | Leitura recomendada |
+| Quero… | Comece em |
 | --- | --- |
-| Quero entender o produto | [Guia do produto](community-preview/PRODUCT_GUIDE.md) |
-| Quero instalar e usar | [README principal](../README.md) |
-| Quero entender a arquitetura | [Visão técnica](community-preview/TECHNICAL_OVERVIEW.md) |
-| Quero contribuir | [Guia de desenvolvimento](../DEV/README.md) e [Governança](../GOVERNANCE.md) |
-| Quero publicar uma versão | [Playbook de release](community-preview/RELEASE_PLAYBOOK.md) |
-| Quero verificar suporte | [Matriz de plataformas](platform/PLATFORM_SUPPORT_MATRIX.md) |
-| Quero reportar vulnerabilidade | [Política de segurança](../SECURITY.md) |
-| Quero usar o Composer | [Guia do Composer](nexus-composer-user-guide.md) |
-| Quero operar o Flow | [Guia do Flow](nexus-flow-user-guide.md) |
+| entender o produto | [Visão geral](product/overview.md) e [modelo mental](product/mental-model.md) |
+| ter meu primeiro resultado | [Getting Started](getting-started/installation.md) |
+| abrir um agente diretamente | [Fluxo Direct](product/direct.md) |
+| entender Web, Desktop e CLI | [Superfícies](product/surfaces.md) |
+| operar agentes e terminais | [Agentes](product/agents.md) e [terminais](product/terminals.md) |
+| usar Composer | [Composer](product/composer.md) |
+| revisar um plano no Flow | [Flow](product/flow.md) |
+| executar uma Mission | [Missions](product/missions.md) |
+| entender Maestro | [Integração Maestro](product/maestro.md) |
+| entender a implementação | [Arquitetura](architecture/overview.md) |
+| solucionar problemas | [Troubleshooting](operations/troubleshooting.md) |
+| verificar suporte por sistema | [Suporte de plataformas](operations/platform-support.md) |
+| contribuir | [CONTRIBUTING](../CONTRIBUTING.md) |
 
-## Mapa da documentação
+## Progressão de uso
 
-```mermaid
-flowchart LR
-    A[README] --> B[Guia do produto]
-    A --> C[Instalação e primeiros passos]
-    B --> D[Conceitos do Nexus]
-    C --> E[Uso e quotas]
-    D --> F[Visão técnica]
-    F --> G[ADRs]
-    F --> H[Matriz de plataformas]
-    G --> I[Playbook de release]
-    H --> I
-    I --> J[Evidence & gates]
+```text
+DIRECT → ASSISTED → GUIDED → ORCHESTRATED → WORKPLAN → MISSION / AUTOPILOT
 ```
 
-## Princípio editorial
+Esses níveis descrevem uma progressão de supervisão e coordenação quando os
+contratos do produto os expõem. Direct continua sendo válido por si só:
+Composer, Flow e Mission não são pré-requisitos para abrir uma sessão.
 
-A documentação diferencia explicitamente:
+## Referências técnicas
 
-- o que já foi implementado;
-- o que foi verificado nativamente em cada sistema operacional;
-- o que depende de credenciais ou infraestrutura externa;
-- o que continua experimental ou planejado.
+- [Runtime](architecture/runtime.md)
+- [Persistência](architecture/persistence.md)
+- [Identidade de filesystem](architecture/filesystem-identity.md)
+- [Segurança](architecture/security.md)
+- [Atualizações](architecture/updates.md)
+- [Glossário](GLOSSARY.md)
+- [Guia editorial](STYLE_GUIDE.md)
 
-Não usamos uma promessa de suporte como substituto de evidência. A mesma regra
-vale para quotas, continuidade de sessão, assinaturas de artefatos e integração
-opcional com o Orquestrador Maestro.
+## Público, interno e estado da funcionalidade
+
+Esta pasta documenta o produto para usuários, operadores, integradores e
+contribuidores. `DEV/` guarda contexto de engenharia, validações e histórico;
+`.omx/` guarda artefatos internos de execução. Eles não são necessários para o
+primeiro uso.
+
+Cada página deve distinguir `IMPLEMENTED`, `EXPERIMENTAL`, `PLANNED` e
+`UNKNOWN`. Código ou intenção futura não são evidência de uma capacidade
+disponível.

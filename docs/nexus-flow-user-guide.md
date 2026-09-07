@@ -184,5 +184,5 @@ visualização, dependências, paralelismo e recovery ao trabalho; não deve ser
 uma barreira artificial para os outros destinos.
 
 Consulte também o [Guia do Composer](nexus-composer-user-guide.md), a
-[especificação do contrato](../DEV/SPECS/COMPOSER_FLOW_IMPLEMENTATION.md) e o
+ o [mapa público da documentação](README.md) e o
 [relatório de validação](nexus-composer-validation.md).
