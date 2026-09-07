@@ -4,7 +4,7 @@
 
 - Branch base: `feat/nexus-maximum-delivery`
 - Base SHA: `5b37572dbed6e551217cdf3d1af16fbe93e2e092`
-- Final documentation SHA: `1293dff` (local worktree branch)
+- Final documentation SHA: `01a56ee` (local worktree branch)
 - Reference main: `f71eb515278168e33d626fd631cd89dfb5e58faf`
 - Worktree: `docs/nexus-publication-overhaul`
 
