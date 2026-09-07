@@ -560,7 +560,7 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   SHA-256; teste de concorrência passou 50x, race 10x e `go test ./...` passou.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-07T11:58:09Z
+## Frontend gate — 2026-09-07T13:14:38Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 

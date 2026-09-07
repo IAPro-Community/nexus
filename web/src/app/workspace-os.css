@@ -561,10 +561,18 @@ button {
 }
 .nx-topbar__context {
   flex: 1 1 auto;
-  overflow: visible !important;
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+
+.nx-topbar__context > .nx-create-menu {
+  z-index: 20;
 }
 .nx-topbar__status {
   flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
   justify-content: flex-end;
 }
 .nx-topbar__project {
@@ -7488,7 +7496,9 @@ button {
   align-items: center !important;
   flex: 0 1 auto !important;
   min-width: 0 !important;
-  overflow: hidden !important;
+  position: relative;
+  z-index: 2;
+  overflow: visible;
   gap: 8px !important;
   justify-content: space-between !important;
 }
@@ -7508,6 +7518,8 @@ button {
   order: 3 !important;
   flex: 1 0 auto !important;
   min-width: 0 !important;
+  position: relative;
+  z-index: 1;
   gap: 8px !important;
 }
 

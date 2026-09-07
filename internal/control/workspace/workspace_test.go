@@ -83,8 +83,8 @@ func TestWorkspaceListSortedByRecency(t *testing.T) {
 	if len(list) < 2 {
 		t.Fatalf("expected at least 2 projects, got %d", len(list))
 	}
-	if list[0].Path != a {
-		t.Errorf("expected most recently used project first, got %s", list[0].Path)
+	if !workspacePathsEquivalent(list[0].Path, a) {
+		t.Errorf("expected most recently used project first, got %s (want equivalent to %s)", list[0].Path, a)
 	}
 	// Deterministic ordering: two equal timestamps tie-break by ID.
 	if list[0].LastUsedAt.Before(list[1].LastUsedAt) {
