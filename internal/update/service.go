@@ -20,9 +20,6 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/buildinfo"
 )
 
-// DefaultUpdateRegistryURL is the standard endpoint for update checks.
-const DefaultUpdateRegistryURL = "https://updates.iapro.dev/v1/nexus/manifest.json"
-
 // Service provides a unified update engine across CLI, Web, and Desktop.
 type Service struct {
 	mu          sync.RWMutex
@@ -97,14 +94,7 @@ func NewService(cfg ServiceConfig) *Service {
 	if client == nil {
 		client = &http.Client{Timeout: 15 * time.Second}
 	}
-	regURL := cfg.RegistryURL
-	if regURL == "" {
-		if env := os.Getenv("NEXUS_UPDATE_REGISTRY_URL"); env != "" {
-			regURL = env
-		} else {
-			regURL = DefaultUpdateRegistryURL
-		}
-	}
+	regURL := ResolveRegistryURL(cfg.RegistryURL, ch)
 	kr := cfg.KeyRing
 	if kr == nil {
 		kr = NewKeyRing()

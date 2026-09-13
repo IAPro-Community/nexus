@@ -6,7 +6,7 @@
 #   ./install.sh --build-from-source [--yes]
 set -euo pipefail
 
-REPO="${NEXUS_RELEASE_REPO:-kivervinicius/ai-cli}"
+REPO="${NEXUS_RELEASE_REPO:-IAPRO/nexus}"
 GITHUB_URL="https://github.com/${REPO}"
 GITHUB_API="https://api.github.com/repos/${REPO}"
 

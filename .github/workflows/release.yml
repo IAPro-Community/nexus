@@ -210,3 +210,29 @@ jobs:
             dist/*
             native-artifacts/*
           generate_release_notes: true
+
+      - name: Publish movable channel pointer (update-manifest only)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          set -euo pipefail
+          test -f dist/update-manifest.json
+          test -f dist/update-manifest.sig
+          CHANNEL=stable
+          case "${RELEASE_VERSION}" in
+            *beta*|*rc*|*alpha*|*dev*) CHANNEL=beta ;;
+          esac
+          TAG="channel-${CHANNEL}"
+          NOTES="Nexus ${CHANNEL} channel pointer → ${RELEASE_VERSION}. Discovery-only release (update-manifest.json + .sig). Immutable binaries remain on the versioned tag."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release delete "$TAG" --yes
+            git push origin ":refs/tags/${TAG}" 2>/dev/null || true
+          fi
+          gh release create "$TAG" \
+            dist/update-manifest.json \
+            dist/update-manifest.sig \
+            --title "Nexus ${CHANNEL} update channel" \
+            --notes "$NOTES" \
+            --latest=false
+          echo "Published pointer ${TAG} for ${RELEASE_VERSION}"

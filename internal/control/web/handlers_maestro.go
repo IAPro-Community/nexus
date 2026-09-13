@@ -133,6 +133,7 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 	nexusUpdateAvailable := false
 	nexusInstallationMethod := update.MethodUnknown
 	nexusAllowsSelfUpdate := false
+	nexusChannel := "stable"
 	var nexusUpdateInstruction string
 	var nexusUpdateError string
 	if nexusCheck != nil {
@@ -141,6 +142,9 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		nexusInstallationMethod = nexusCheck.InstallationMethod
 		nexusAllowsSelfUpdate = nexusCheck.AllowsSelfUpdate
 		nexusUpdateInstruction = nexusCheck.Instruction
+		if nexusCheck.Channel != "" {
+			nexusChannel = nexusCheck.Channel
+		}
 	}
 	if nexusErr != nil {
 		nexusUpdateError = nexusErr.Error()
@@ -154,7 +158,7 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		"nexus_update_available":    nexusUpdateAvailable,
 		"nexus_update_error":        nexusUpdateError,
 		"nexus_update_instruction":  nexusUpdateInstruction,
-		"channel":                   "stable",
+		"channel":                   nexusChannel,
 		"installation_method":       nexusInstallationMethod,
 		"allows_self_update":        nexusAllowsSelfUpdate,
 		"nexus_installation_method": nexusInstallationMethod,
