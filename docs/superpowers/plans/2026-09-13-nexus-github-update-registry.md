@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Point Nexus update discovery at GitHub channel releases under `IAPRO/nexus`, keep Maestro on npm, and publish movable `channel-*` pointers from release.yml.
+**Goal:** Point Nexus update discovery at GitHub channel releases under `IAPro-Community/nexus`, keep Maestro on npm, and publish movable `channel-*` pointers from release.yml.
 
 **Architecture:** Add registry URL helpers in `internal/update` (repo + channel → manifest URL). Wire `NewService` to use them unless `NEXUS_UPDATE_REGISTRY_URL` is set. Extend release workflow to recreate `channel-stable` / `channel-beta` pointer releases. Align installer default repo and docs.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Canonical default repo: `IAPRO/nexus` (verbatim).
+- Canonical default repo: `IAPro-Community/nexus` (verbatim).
 - Channel tags: `channel-stable`, `channel-beta` (verbatim).
 - Manifest filenames: `update-manifest.json`, `update-manifest.sig`.
 - Do not use `releases/latest` for installers.
@@ -25,7 +25,7 @@
 | `internal/update/registry_test.go` (new) | URL construction + env precedence |
 | `internal/update/service.go` | Call helper from `NewService` |
 | `.github/workflows/release.yml` | Publish channel pointer after signed manifest |
-| `install.sh` / `install.ps1` | Default `NEXUS_RELEASE_REPO` → `IAPRO/nexus` |
+| `install.sh` / `install.ps1` | Default `NEXUS_RELEASE_REPO` → `IAPro-Community/nexus` |
 | `docs/reference/configuration.md` | Document defaults |
 | `docs/getting-started/installation.md` | Mention canonical repo if needed |
 
@@ -39,12 +39,12 @@
 - Modify: `internal/update/service.go`
 
 **Interfaces:**
-- Produces: `DefaultUpdateRegistryRepo = "IAPRO/nexus"`; `ChannelPointerTag(channel string) string`; `DefaultManifestURL(repo, channel string) string`; `ResolveRegistryURL(explicit, channel string) string` reading `NEXUS_UPDATE_REGISTRY_URL` then `NEXUS_RELEASE_REPO`.
+- Produces: `DefaultUpdateRegistryRepo = "IAPro-Community/nexus"`; `ChannelPointerTag(channel string) string`; `DefaultManifestURL(repo, channel string) string`; `ResolveRegistryURL(explicit, channel string) string` reading `NEXUS_UPDATE_REGISTRY_URL` then `NEXUS_RELEASE_REPO`.
 
 - [ ] **Step 1: Write failing tests** for stable/beta URLs, env full override, repo override.
 - [ ] **Step 2: Implement helpers + wire `NewService`.**
 - [ ] **Step 3: `go test ./internal/update/ -count=1`**
-- [ ] **Step 4: Commit** `feat(go): default Nexus update registry to IAPRO/nexus channel pointers`
+- [ ] **Step 4: Commit** `feat(go): default Nexus update registry to IAPro-Community/nexus channel pointers`
 
 ### Task 2: Release channel pointer
 
@@ -59,8 +59,8 @@
 **Files:**
 - Modify: `install.sh`, `install.ps1`, `docs/reference/configuration.md` (and installation.md if it hardcodes old repo)
 
-- [ ] **Step 1: Default repo `IAPRO/nexus`; document `NEXUS_UPDATE_REGISTRY_URL` / `NEXUS_RELEASE_REPO`.**
-- [ ] **Step 2: Commit** `docs(infra): point install/update defaults at IAPRO/nexus`
+- [ ] **Step 1: Default repo `IAPro-Community/nexus`; document `NEXUS_UPDATE_REGISTRY_URL` / `NEXUS_RELEASE_REPO`.**
+- [ ] **Step 2: Commit** `docs(infra): point install/update defaults at IAPro-Community/nexus`
 
 ### Task 4: Verify Maestro boundary unchanged
 

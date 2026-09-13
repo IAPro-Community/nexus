@@ -20,8 +20,8 @@ do Nexus.
 | `NEXUS_ORQUESTRADOR_DIR` | não | descoberta padrão | local da integração Maestro opcional | `/opt/orquestrador` |
 | `NEXUS_CODEX_APP_SERVER` | não | comportamento normal do adapter | controla a consulta app-server do Codex; use apenas para diagnóstico | `NEXUS_CODEX_APP_SERVER=0` |
 | `NEXUS_DEBUG` / `NEXUS_AGY_DEBUG` | não | desativado | ativa logs de depuração | `NEXUS_DEBUG=1` |
-| `NEXUS_UPDATE_REGISTRY_URL` | não | `https://github.com/IAPRO/nexus/releases/download/channel-stable/update-manifest.json` (ou `channel-beta`) | URL completa do manifesto assinado; sobrescreve o default GitHub | `https://updates.example.invalid/manifest.json` |
-| `NEXUS_RELEASE_REPO` | não | `IAPRO/nexus` | owner/name do GitHub usado por installers e pelos ponteiros `channel-*` de update | `NEXUS_RELEASE_REPO=acme/fork` |
+| `NEXUS_UPDATE_REGISTRY_URL` | não | `https://github.com/IAPro-Community/nexus/releases/download/channel-stable/update-manifest.json` (ou `channel-beta`) | URL completa do manifesto assinado; sobrescreve o default GitHub | `https://updates.example.invalid/manifest.json` |
+| `NEXUS_RELEASE_REPO` | não | `IAPro-Community/nexus` | owner/name do GitHub usado por installers e pelos ponteiros `channel-*` de update | `NEXUS_RELEASE_REPO=acme/fork` |
 
 As variáveis `OPENAI_API_KEY`, `DEEPSEEK_API_KEY` e equivalentes são lidas
 somente quando você configura um provider de inteligência correspondente. Nunca

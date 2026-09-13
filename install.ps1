@@ -17,7 +17,7 @@ $ErrorActionPreference = 'Stop'
 $InstallDesktop = -not $NoDesktop
 $MaestroExit = 0
 
-$Repo = if ($env:NEXUS_RELEASE_REPO) { $env:NEXUS_RELEASE_REPO } else { "IAPRO/nexus" }
+$Repo = if ($env:NEXUS_RELEASE_REPO) { $env:NEXUS_RELEASE_REPO } else { "IAPro-Community/nexus" }
 $GithubUrl = "https://github.com/$Repo"
 $GithubApi = "https://api.github.com/repos/$Repo"
 

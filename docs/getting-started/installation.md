@@ -24,13 +24,10 @@ Binário de release. **Não** exige Go, Bun nem Node.
 ### Linux / macOS
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IAPRO/nexus/main/install.sh | bash -s -- --version=latest
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=latest
 nexus doctor
 nexus web
 ```
-
-Até a transferência do repositório, use o fork atual com
-`NEXUS_RELEASE_REPO=kivervinicius/ai-cli` (e a URL raw correspondente).
 
 Versão pinada:
 
@@ -43,13 +40,11 @@ Flags: `--no-desktop`, `--no-path`, `--with-maestro`, `--build-from-source`, `--
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/IAPRO/nexus/main/install.ps1 -OutFile install.ps1
+irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
 .\install.ps1 -Version latest
 nexus doctor
 nexus web
 ```
-
-Em fork pré-transferência: `$env:NEXUS_RELEASE_REPO='kivervinicius/ai-cli'`.
 
 Flags: `-NoDesktop`, `-WithMaestro`, `-BuildFromSource`, `$env:NEXUS_RELEASE_REPO='owner/repo'`.
 

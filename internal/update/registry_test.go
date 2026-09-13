@@ -23,13 +23,13 @@ func TestChannelPointerTag(t *testing.T) {
 
 func TestDefaultManifestURL(t *testing.T) {
 	t.Parallel()
-	got := DefaultManifestURL("IAPRO/nexus", "stable")
-	want := "https://github.com/IAPRO/nexus/releases/download/channel-stable/update-manifest.json"
+	got := DefaultManifestURL("IAPro-Community/nexus", "stable")
+	want := "https://github.com/IAPro-Community/nexus/releases/download/channel-stable/update-manifest.json"
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
-	gotBeta := DefaultManifestURL("IAPRO/nexus", "beta")
-	wantBeta := "https://github.com/IAPRO/nexus/releases/download/channel-beta/update-manifest.json"
+	gotBeta := DefaultManifestURL("IAPro-Community/nexus", "beta")
+	wantBeta := "https://github.com/IAPro-Community/nexus/releases/download/channel-beta/update-manifest.json"
 	if gotBeta != wantBeta {
 		t.Fatalf("got %q want %q", gotBeta, wantBeta)
 	}
@@ -68,7 +68,7 @@ func TestResolveRegistryURLPrecedence(t *testing.T) {
 
 func TestDefaultUpdateRegistryURLIsIAPROStable(t *testing.T) {
 	t.Parallel()
-	want := "https://github.com/IAPRO/nexus/releases/download/channel-stable/update-manifest.json"
+	want := "https://github.com/IAPro-Community/nexus/releases/download/channel-stable/update-manifest.json"
 	if DefaultUpdateRegistryURL != want {
 		t.Fatalf("DefaultUpdateRegistryURL=%q want %q", DefaultUpdateRegistryURL, want)
 	}

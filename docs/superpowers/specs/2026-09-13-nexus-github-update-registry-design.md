@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-13  
 **Status:** Approved  
-**Scope:** Nexus update discovery via GitHub channel pointers (`IAPRO/nexus`) + unified Nexus/Maestro update UX with separate mutation channels.
+**Scope:** Nexus update discovery via GitHub channel pointers (`IAPro-Community/nexus`) + unified Nexus/Maestro update UX with separate mutation channels.
 
 ## Problem
 
@@ -12,7 +12,7 @@ Maestro already updates via npm. Product UX must show both components without me
 
 ## Goals
 
-1. Nexus discovers updates from GitHub Releases under **`IAPRO/nexus`**, using movable channel tags — no `updates.iapro.dev` required.
+1. Nexus discovers updates from GitHub Releases under **`IAPro-Community/nexus`**, using movable channel tags — no `updates.iapro.dev` required.
 2. Unified **status** surface (CLI/Web): Nexus + Maestro versions and availability.
 3. Separate **actions**: Nexus self-update (GitHub) vs Maestro update (npm).
 4. Keep Ed25519 trust root and detached `.sig` verification unchanged.
@@ -20,7 +20,7 @@ Maestro already updates via npm. Product UX must show both components without me
 
 ## Non-goals
 
-- Creating/transferring the GitHub org/repo `IAPRO/nexus` (operational).
+- Creating/transferring the GitHub org/repo `IAPro-Community/nexus` (operational).
 - Standing up `updates.iapro.dev`.
 - Merging `nexus update` and `maestro update` into one mutating command.
 - Frente C / soak / overnight certification.
@@ -31,8 +31,8 @@ Maestro already updates via npm. Product UX must show both components without me
 
 | Channel | Default manifest URL |
 | --- | --- |
-| `stable` | `https://github.com/IAPRO/nexus/releases/download/channel-stable/update-manifest.json` |
-| `beta` | `https://github.com/IAPRO/nexus/releases/download/channel-beta/update-manifest.json` |
+| `stable` | `https://github.com/IAPro-Community/nexus/releases/download/channel-stable/update-manifest.json` |
+| `beta` | `https://github.com/IAPro-Community/nexus/releases/download/channel-beta/update-manifest.json` |
 
 Detached signature: sibling `update-manifest.sig` (existing `detachedSignatureURL` behavior).
 
@@ -42,7 +42,7 @@ Channel selection (unchanged): version string containing `beta` → `beta`; else
 
 1. Explicit `NEXUS_UPDATE_REGISTRY_URL` (full manifest URL) — highest priority.
 2. Else build URL from repo + channel tag:
-   - Repo: `NEXUS_RELEASE_REPO` if set, else **`IAPRO/nexus`**.
+   - Repo: `NEXUS_RELEASE_REPO` if set, else **`IAPro-Community/nexus`**.
    - Tag: `channel-stable` or `channel-beta`.
 
 ### Release workflow
@@ -53,7 +53,7 @@ On each authorized release:
 2. Attach those files to the versioned GitHub Release (existing).
 3. Publish/replace the movable pointer release `channel-stable` or `channel-beta` containing **only** the current `update-manifest.json` and `update-manifest.sig` (not full binary set). Do **not** mark channel pointers as GitHub “Latest”.
 
-`GITHUB_REPOSITORY` drives where pointers are published. After the repo lives at `IAPRO/nexus`, publish target and client default align. Until transfer, forks may set `NEXUS_RELEASE_REPO` / `NEXUS_UPDATE_REGISTRY_URL` for local verification.
+`GITHUB_REPOSITORY` drives where pointers are published. After the repo lives at `IAPro-Community/nexus`, publish target and client default align. Until transfer, forks may set `NEXUS_RELEASE_REPO` / `NEXUS_UPDATE_REGISTRY_URL` for local verification.
 
 ### Maestro boundary
 
@@ -64,11 +64,11 @@ On each authorized release:
 ### Installers
 
 - Keep forbidding `releases/latest` / `@latest` floating install downloads.
-- Align default `NEXUS_RELEASE_REPO` fallback to `IAPRO/nexus` so install and update share the same canonical product identity.
+- Align default `NEXUS_RELEASE_REPO` fallback to `IAPro-Community/nexus` so install and update share the same canonical product identity.
 
 ## Success criteria
 
-- [ ] Default (no env): Check uses `IAPRO/nexus` `channel-*` URL for the active channel.
+- [ ] Default (no env): Check uses `IAPro-Community/nexus` `channel-*` URL for the active channel.
 - [ ] `NEXUS_UPDATE_REGISTRY_URL` still overrides fully.
 - [ ] `NEXUS_RELEASE_REPO=owner/name` retargets channel URL without full override.
 - [ ] Release workflow updates the matching `channel-*` pointer after signing.
@@ -80,6 +80,6 @@ On each authorized release:
 
 | Risk | Mitigation |
 | --- | --- |
-| `IAPRO/nexus` not yet transferred | Overrides; document; fail closed on HTTP errors (existing). |
+| `IAPro-Community/nexus` not yet transferred | Overrides; document; fail closed on HTTP errors (existing). |
 | Channel pointer force-update races | Single release job owns the pointer; `--clobber`/recreate release. |
 | Accidental “Latest” on channel tag | Explicitly disable latest on pointer releases. |
