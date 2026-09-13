@@ -70,7 +70,7 @@ coverage:
 	@echo "Frontend coverage plugin is not installed; vitest statement coverage remains UNVERIFIED."
 
 overnight-smoke:
-	@go test -count=1 -timeout 20m ./internal/nexus/runner -run 'Test(OvernightAcceptanceSandbox|OvernightSoakHarnessBounded|ProgressWatchdog|FaultInjection)'
+	@go test -count=1 -timeout 20m ./internal/nexus/runner -run 'Test(MissionTeamPlannerBuilderReviewerVerifierPipeline|OvernightAcceptanceSandbox|OvernightSoakHarnessBounded|ProgressWatchdog|FaultInjection)'
 
 DURATION ?= 30s
 overnight-soak:
@@ -128,7 +128,7 @@ build: web
 	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
-	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE"; \
+	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
 	echo "Building $(BINARY) v$$VERSION (commit: $$COMMIT)..."; \
 	go build -buildvcs=false -ldflags="$$LDFLAGS" -o $(BINARY) ./cmd/nexus; \
 	echo "Built $(BINARY) v$$VERSION at ./$(BINARY)"
@@ -147,7 +147,7 @@ build-desktop: web
 	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
-	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE"; \
+	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
 	echo "Building nexus-desktop v$$VERSION (commit: $$COMMIT)..."; \
 	go build -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$$LDFLAGS" -o nexus-desktop ./cmd/nexus-desktop
 

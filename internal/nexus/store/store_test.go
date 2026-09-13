@@ -95,8 +95,8 @@ func TestProjectCRUD(t *testing.T) {
 	if p.Slug != "omega-api" {
 		t.Errorf("expected slug omega-api, got %q", p.Slug)
 	}
-	if p.MaestroMode != MaestroAssist {
-		t.Errorf("default maestro mode should be ASSIST, got %q", p.MaestroMode)
+	if p.MaestroMode != MaestroOff {
+		t.Errorf("default maestro mode should be OFF, got %q", p.MaestroMode)
 	}
 	if p.DefaultIsolation != "project" {
 		t.Errorf("default isolation should be project, got %q", p.DefaultIsolation)

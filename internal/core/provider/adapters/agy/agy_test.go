@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -119,11 +120,14 @@ func TestInspectAuthExpiredTokenWithRefreshToken(t *testing.T) {
 	}
 
 	info := New().InspectAuth(context.Background(), model.Profile{Provider: "agy", Name: "expired-with-refresh"})
-	if info.Authenticated {
-		t.Fatal("expired token must NOT be authenticated — live quota probes open Google OAuth in the browser")
+	if !info.Authenticated {
+		t.Fatal("expired token with usable refresh_token must remain authenticated so the monitor can refresh")
 	}
-	if info.Status != "Token expired" {
-		t.Fatalf("status=%q want 'Token expired'", info.Status)
+	if info.Health != model.HealthDegraded {
+		t.Fatalf("health=%q want DEGRADED", info.Health)
+	}
+	if info.Status != "Token expired (refreshable)" {
+		t.Fatalf("status=%q want 'Token expired (refreshable)'", info.Status)
 	}
 }
 
@@ -157,8 +161,8 @@ func TestInspectAuthExpiredTokenResolvesEmailFromGoogleAccounts(t *testing.T) {
 	}
 
 	info := New().InspectAuth(context.Background(), model.Profile{Provider: "agy", Name: "expired-with-email"})
-	if info.Authenticated {
-		t.Fatal("expired token must NOT be authenticated even when email can be resolved")
+	if !info.Authenticated {
+		t.Fatal("expired token with refresh_token must remain authenticated (refreshable)")
 	}
 	if info.Email != "user@gmail.com" {
 		t.Fatalf("email=%q want 'user@gmail.com' (must resolve even when expired)", info.Email)
@@ -199,6 +203,13 @@ func TestFetchLiveQuotaRefusesExpiredAccessToken(t *testing.T) {
 	t.Setenv("AI_MANAGER_DATA_DIR", dataDir)
 	t.Setenv("AI_CLI_DATA_DIR", dataDir)
 	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	// Force refresh failure: no usable oauth client credentials in this test.
+	t.Setenv("NEXUS_AGY_OAUTH_CLIENT_ID", "")
+	t.Setenv("NEXUS_AGY_OAUTH_CLIENT_SECRET", "")
+	prevLook := agyOAuthLookPath
+	agyOAuthLookPath = func(string) (string, error) { return "", fmt.Errorf("agy binary not found in test") }
+	t.Cleanup(func() { agyOAuthLookPath = prevLook })
 
 	home := filepath.Join(dataDir, "profiles", "agy", "expired-probe", "home")
 	tokenDir := filepath.Join(home, ".gemini", "antigravity-cli")
@@ -211,9 +222,9 @@ func TestFetchLiveQuotaRefusesExpiredAccessToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Even if InspectAuth were wrong, the live probe itself must refuse to spawn.
+	// When refresh cannot renew the access_token, the live probe must refuse to spawn.
 	if _, ok := New().fetchLiveQuota(context.Background(), model.Profile{Provider: "agy", Name: "expired-probe"}); ok {
-		t.Fatal("fetchLiveQuota must refuse to spawn AGY when the access token is expired")
+		t.Fatal("fetchLiveQuota must refuse to spawn AGY when the access token remains expired")
 	}
 }
 

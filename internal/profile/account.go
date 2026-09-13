@@ -8,6 +8,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/agy"
 	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/claude"
 	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/cursor"
 	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/gemini"
 	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/opencode"
 )
@@ -30,6 +31,8 @@ func GetAccountInfo(providerName, name string) model.AccountInfo {
 		info = opencode.New().InspectAuth(ctx, p)
 	case "gemini":
 		info = gemini.New().InspectAuth(ctx, p)
+	case "cursor":
+		info = cursor.New().InspectAuth(ctx, p)
 	default:
 		info = model.AccountInfo{
 			Status:        "Unknown provider",

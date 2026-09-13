@@ -41,6 +41,14 @@ describe('terminal protocol', () => {
     });
   });
 
+  it('does not rewrite provider text that resembles an escaped ANSI sequence', () => {
+    const literal = '/e[31m literal text and \\e[31m literal text';
+    expect(parseTerminalFrame(JSON.stringify({ type: 'output', data: literal }))).toEqual({
+      type: 'output',
+      data: literal,
+    });
+  });
+
   it('isolates valid control frames from terminal output', () => {
     expect(parseTerminalFrame('{"type":"lease","role":"CONTROL"}')).toEqual({
       type: 'control',

@@ -109,7 +109,24 @@ func TestPrepareContextWithBootstrapCreatesBaselineWithoutOverwriting(t *testing
 	}
 }
 
-func TestPrepareContextFailsWhenConfiguredMaestroUnavailable(t *testing.T) {
+func TestPrepareContextFailsWhenOrchestrateMaestroUnavailable(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = maestroStatus("", false)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "Context", CanonicalPath: initContextGitRepo(t), MaestroMode: store.MaestroOrchestrate})
+	if err != nil {
+		t.Fatal(err)
+	}
+	readiness, err := n.PrepareContext(project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if readiness.State != ContextFailed || readiness.MaestroAvailable {
+		t.Fatalf("ORCHESTRATE must fail closed when Maestro unavailable: %+v", readiness)
+	}
+}
+
+func TestPrepareContextAssistDegradesWithoutMaestro(t *testing.T) {
 	n := openTestNexus(t)
 	n.maestroStatus = maestroStatus("", false)
 	st, _ := n.OpenProject()
@@ -121,22 +138,46 @@ func TestPrepareContextFailsWhenConfiguredMaestroUnavailable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if readiness.State != ContextFailed || readiness.MaestroAvailable {
-		t.Fatalf("configured Maestro must fail closed when unavailable: %+v", readiness)
+	if readiness.State != ContextReady {
+		t.Fatalf("ASSIST must stay READY without Maestro when durable context exists: %+v", readiness)
+	}
+	if readiness.MaestroAvailable {
+		t.Fatalf("expected MaestroAvailable=false: %+v", readiness)
+	}
+}
+
+func TestPrepareContextDefaultsToMaestroOff(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = maestroStatus("", false)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "Context", CanonicalPath: initContextGitRepo(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if project.MaestroMode != store.MaestroOff {
+		t.Fatalf("new projects must default Maestro OFF, got %q", project.MaestroMode)
+	}
+	readiness, err := n.PrepareContext(project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if readiness.State != ContextReady {
+		t.Fatalf("OFF without Maestro must be READY: %+v", readiness)
 	}
 }
 
 func TestPreparedContextBecomesStaleOnSourceAndMaestroDrift(t *testing.T) {
 	tests := []struct {
-		name   string
-		mutate func(t *testing.T, root string, n *Nexus)
+		name        string
+		maestroMode string
+		mutate      func(t *testing.T, root string, n *Nexus)
 	}{
-		{name: "dirty", mutate: func(t *testing.T, root string, _ *Nexus) {
+		{name: "dirty", maestroMode: store.MaestroAssist, mutate: func(t *testing.T, root string, _ *Nexus) {
 			if err := os.WriteFile(filepath.Join(root, "dirty.txt"), []byte("dirty\n"), 0600); err != nil {
 				t.Fatal(err)
 			}
 		}},
-		{name: "head", mutate: func(t *testing.T, root string, _ *Nexus) {
+		{name: "head", maestroMode: store.MaestroAssist, mutate: func(t *testing.T, root string, _ *Nexus) {
 			if err := os.WriteFile(filepath.Join(root, "next.txt"), []byte("next\n"), 0600); err != nil {
 				t.Fatal(err)
 			}
@@ -146,13 +187,16 @@ func TestPreparedContextBecomesStaleOnSourceAndMaestroDrift(t *testing.T) {
 				}
 			}
 		}},
-		{name: "branch", mutate: func(t *testing.T, root string, _ *Nexus) {
+		{name: "branch", maestroMode: store.MaestroAssist, mutate: func(t *testing.T, root string, _ *Nexus) {
 			if out, err := exec.Command("git", "-C", root, "checkout", "-b", "feature").CombinedOutput(); err != nil {
 				t.Fatalf("branch failed: %v: %s", err, out)
 			}
 		}},
-		{name: "maestro-version", mutate: func(_ *testing.T, _ string, n *Nexus) {
+		{name: "maestro-version-orchestrate", maestroMode: store.MaestroOrchestrate, mutate: func(_ *testing.T, _ string, n *Nexus) {
 			n.maestroStatus = maestroStatus("2.0.0", true)
+		}},
+		{name: "maestro-unavailable-orchestrate", maestroMode: store.MaestroOrchestrate, mutate: func(_ *testing.T, _ string, n *Nexus) {
+			n.maestroStatus = maestroStatus("1.0.0", false)
 		}},
 	}
 
@@ -162,7 +206,7 @@ func TestPreparedContextBecomesStaleOnSourceAndMaestroDrift(t *testing.T) {
 			n.maestroStatus = maestroStatus("1.0.0", true)
 			st, _ := n.OpenProject()
 			root := initContextGitRepo(t)
-			project, err := st.CreateProject(store.Project{Name: "Context", CanonicalPath: root, MaestroMode: store.MaestroAssist})
+			project, err := st.CreateProject(store.Project{Name: "Context", CanonicalPath: root, MaestroMode: tc.maestroMode})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -179,5 +223,31 @@ func TestPreparedContextBecomesStaleOnSourceAndMaestroDrift(t *testing.T) {
 				t.Fatalf("expected STALE after %s drift, got %+v", tc.name, observed)
 			}
 		})
+	}
+}
+
+func TestAssistContextStaysReadyWhenMaestroBecomesUnavailable(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = maestroStatus("1.0.0", true)
+	st, _ := n.OpenProject()
+	root := initContextGitRepo(t)
+	project, err := st.CreateProject(store.Project{Name: "Context", CanonicalPath: root, MaestroMode: store.MaestroAssist})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ready, err := n.PrepareContext(project.ID)
+	if err != nil || ready.State != ContextReady {
+		t.Fatalf("prepare context: %+v %v", ready, err)
+	}
+	n.maestroStatus = maestroStatus("1.0.0", false)
+	observed, err := n.ObserveContextReadiness(project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if observed.State != ContextReady {
+		t.Fatalf("ASSIST must stay READY when Maestro disappears: %+v", observed)
+	}
+	if observed.MaestroAvailable {
+		t.Fatalf("expected MaestroAvailable=false: %+v", observed)
 	}
 }

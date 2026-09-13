@@ -200,6 +200,13 @@ func evaluateCandidate(acc ProviderAccount, req TaskRequirements, policy Schedul
 		return c
 	}
 
+	if acc.NetworkError {
+		c.Eligible = false
+		c.RejectionReason = "Falha de rede ao consultar o provedor"
+		c.Cons = append(c.Cons, "Falha de rede")
+		return c
+	}
+
 	// Hard Gate 2: Must be available / not in active cooldown
 	if !acc.Available {
 		c.Eligible = false
@@ -219,6 +226,16 @@ func evaluateCandidate(acc ProviderAccount, req TaskRequirements, policy Schedul
 		c.Eligible = false
 		c.RejectionReason = fmt.Sprintf("Em cooldown até %s", acc.CooldownUntil.Format(time.RFC3339))
 		c.Cons = append(c.Cons, "Em cooldown")
+		return c
+	}
+
+	// Hard Gate: UNKNOWN quota is ineligible for automatic Mission allocation.
+	// Explicit manual selection may still surface the account with a warning.
+	if quotaConfidence(acc) == "UNKNOWN" || (acc.AvailReasons != nil && acc.AvailReasons.UnknownQuota) {
+		c.Eligible = false
+		c.RejectionReason = "Quota UNKNOWN — inelegível para alocação automática"
+		c.Cons = append(c.Cons, "Quota não aferida")
+		c.Confidence = "UNKNOWN"
 		return c
 	}
 
@@ -378,6 +395,11 @@ func quotaConfidence(acc ProviderAccount) string {
 			return "CACHED"
 		case "ESTIMATED":
 			return "ESTIMATED"
+		case "OK":
+			// Compatibility with pre-UsageStatus providers. These snapshots
+			// carried measured aggregate quota, so preserve them as bounded
+			// cache evidence instead of classifying them as UNKNOWN.
+			return "CACHED"
 		default:
 			return "UNKNOWN"
 		}

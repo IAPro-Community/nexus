@@ -3,9 +3,11 @@ package nexus
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/quota"
 	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
 	"github.com/kivervinicius/ai-cli/internal/nexus/store"
 )
@@ -338,5 +340,50 @@ func TestMissionAffinityModeManualIsPin(t *testing.T) {
 	}
 	if got := missionAffinityMode(PolicyBalanced, "", ""); got != AffinityAuto {
 		t.Fatalf("expected AUTO, got %s", got)
+	}
+}
+
+func TestExplainNoEligibleMissionAccountsTyped(t *testing.T) {
+	err := explainNoEligibleMissionAccounts(nil, "step-1", false)
+	if !errors.Is(err, ErrAllocationUnregistered) {
+		t.Fatalf("empty pool error=%v want UNREGISTERED", err)
+	}
+	err = explainNoEligibleMissionAccounts([]ProviderAccount{{Provider: "codex", Profile: "a", Authenticated: false}}, "step-1", false)
+	if !errors.Is(err, ErrAllocationUnauthenticated) {
+		t.Fatalf("unauth pool error=%v want UNAUTHENTICATED", err)
+	}
+	err = explainNoEligibleMissionAccounts([]ProviderAccount{{
+		Provider: "codex", Profile: "a", Authenticated: true, Available: false,
+		QuotaView:    &quota.QuotaView{Status: "UNKNOWN"},
+		AvailReasons: &quota.AvailReasons{UnknownQuota: true},
+	}}, "step-1", false)
+	if !errors.Is(err, ErrAllocationUnknownQuota) {
+		t.Fatalf("unknown pool error=%v want UNKNOWN", err)
+	}
+	err = explainNoEligibleMissionAccounts([]ProviderAccount{{
+		Provider: "codex", Profile: "a", Authenticated: true, RateLimited: true,
+	}}, "step-1", false)
+	if !errors.Is(err, ErrAllocationRateLimited) {
+		t.Fatalf("rate-limit pool error=%v want RATE_LIMITED", err)
+	}
+	err = explainNoEligibleMissionAccounts([]ProviderAccount{{
+		Provider: "codex", Profile: "a", Authenticated: true, Available: false,
+	}}, "step-1", true)
+	if err == nil || !strings.Contains(err.Error(), "after quota/rate limit failure") {
+		t.Fatalf("failover generic error=%v", err)
+	}
+	err = explainNoEligibleMissionAccounts([]ProviderAccount{{
+		Provider: "codex", Profile: "a", Authenticated: true, Available: false,
+		QuotaTotal: 1, QuotaRemaining: 0,
+		AvailReasons: &quota.AvailReasons{ExhaustedWindows: []string{"5h"}},
+	}}, "step-1", false)
+	if !errors.Is(err, ErrAllocationQuotaExhausted) {
+		t.Fatalf("exhausted quota error=%v want QUOTA_EXHAUSTED", err)
+	}
+	err = explainNoEligibleMissionAccounts([]ProviderAccount{{
+		Provider: "codex", Profile: "a", Authenticated: true, NetworkError: true,
+	}}, "step-1", false)
+	if !errors.Is(err, ErrAllocationNetwork) {
+		t.Fatalf("network error=%v want NETWORK", err)
 	}
 }

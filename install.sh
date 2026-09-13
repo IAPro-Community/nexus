@@ -460,24 +460,25 @@ warn_webkitgtk() {
 }
 
 if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ]; then
-    DESKTOP_ARCHIVE_NAME="nexus-desktop_${OS_NAME}_${ARCH_NAME}.tar.gz"
-    DESKTOP_DOWNLOAD_URL="${GITHUB_URL}/releases/download/v${VERSION_PLAIN}/${DESKTOP_ARCHIVE_NAME}"
-    DESKTOP_CHECKSUMS_URL="${GITHUB_URL}/releases/download/v${VERSION_PLAIN}/desktop-checksums.txt"
-    DESKTOP_TMP="${TMP_DIR}/${DESKTOP_ARCHIVE_NAME}"
-    DESKTOP_CHECKSUMS="${TMP_DIR}/desktop-checksums.txt"
+    if [ "$OS_NAME" = "Darwin" ]; then
+        DESKTOP_ARCHIVE_NAME="nexus-desktop_${OS_NAME}_${ARCH_NAME}.zip"
+    else
+        DESKTOP_ARCHIVE_NAME="nexus-desktop_${OS_NAME}_${ARCH_NAME}.tar.gz"
+    fi
 
     echo "Attempting to install the native IAPro Nexus Desktop shell..."
-    if http_get "$DESKTOP_DOWNLOAD_URL" "$DESKTOP_TMP" && http_get "$DESKTOP_CHECKSUMS_URL" "$DESKTOP_CHECKSUMS"; then
-        DESKTOP_EXPECTED="$(awk -v name="$DESKTOP_ARCHIVE_NAME" '$2 == name || $2 == "native-artifacts/" name { print $1; exit }' "$DESKTOP_CHECKSUMS")"
-        DESKTOP_ACTUAL="$(sha256_file "$DESKTOP_TMP")"
-        if [ -z "$DESKTOP_EXPECTED" ] || [ "$DESKTOP_EXPECTED" != "$DESKTOP_ACTUAL" ]; then
-            echo "⚠️  Native Desktop checksum verification failed; CLI installation is kept, Desktop was skipped." >&2
+    if download_and_verify_archive "$DESKTOP_ARCHIVE_NAME" "$VERSION_PLAIN"; then
+        if [ "$OS_NAME" = "Darwin" ]; then
+            echo "⚠️  macOS Desktop archive verified; extract/app install is platform-specific and left to the .app bundle workflow." >&2
         else
-            tar -xzf "$DESKTOP_TMP" -C "$TMP_DIR"
+            tar -xzf "${TMP_DIR}/${DESKTOP_ARCHIVE_NAME}" -C "$TMP_DIR"
             DESKTOP_BINARY="${TMP_DIR}/nexus-desktop"
             if [ -x "$DESKTOP_BINARY" ]; then
                 install_linux_desktop "$DESKTOP_BINARY"
                 warn_webkitgtk
+            else
+                echo "ERROR: Native Desktop executable missing from verified archive ${DESKTOP_ARCHIVE_NAME}" >&2
+                exit 1
             fi
         fi
     elif [ "$BUILD_FROM_SOURCE" = true ]; then
@@ -489,7 +490,8 @@ if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ]; then
             fi
         done
     else
-        echo "⚠️  Native Desktop artifact unavailable; CLI installation is complete."
+        echo "ERROR: Native Desktop requires an entry in the signed update-manifest (refusing unsigned desktop-checksums.txt fallback)" >&2
+        exit 1
     fi
 fi
 

@@ -132,3 +132,44 @@ func TestMissionApplicationServiceRejectsCrossProjectAssignments(t *testing.T) {
 		t.Fatal("expected agent from another project to be rejected")
 	}
 }
+
+func TestMissionApplicationServiceRejectsTerminalStatusPatch(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Terminal Patch", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := NewMissionApplicationService(n)
+	mission, err := service.Create(context.Background(), &store.Mission{ProjectID: project.ID, Name: "Ship", Goal: "Ship safely"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, status := range []string{store.MissionCompleted, "COMPLETED_VERIFIED", "FAILED", "FAILED_NO_PROGRESS"} {
+		_, err := service.Update(context.Background(), mission.ID, MissionPatch{Status: &status})
+		if !errors.Is(err, ErrTerminalMissionStatusPatch) {
+			t.Fatalf("status %s: error = %v, want ErrTerminalMissionStatusPatch", status, err)
+		}
+	}
+
+	name := "Renamed"
+	updated, err := service.Update(context.Background(), mission.ID, MissionPatch{Name: &name})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Name != "Renamed" {
+		t.Fatalf("expected name patch to succeed, got %#v", updated)
+	}
+	ready := store.MissionReady
+	updated, err = service.Update(context.Background(), mission.ID, MissionPatch{Status: &ready})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Status != store.MissionReady {
+		t.Fatalf("expected non-terminal status patch, got %#v", updated)
+	}
+}

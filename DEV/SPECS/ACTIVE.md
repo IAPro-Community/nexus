@@ -1,5 +1,29 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Closure state — 2026-09-13
+
+Observed candidate SHA: `eed65e5a7e46adc896165c94accb7fc73fc6750f`. The local
+closure slice is implemented and its deterministic/Linux gates pass, but the
+candidate is not frozen. Required release blockers remain: stale visual docs
+manifest, production updater key provisioning, authenticated provider Mission
+evidence, native Windows/macOS/installer execution, hosted same-SHA evidence
+and overnight soak. Verdict remains `NOT_READY_FOR_OVERNIGHT_CERTIFICATION`.
+
+## Slice ativo — Mission Teams / Autonomous Delivery Pipeline — 2026-09-13
+
+Esta campanha implementa uma projeção data-driven de Mission Team sobre os
+contratos canônicos existentes de Intent, Delegation, WorkPlan, MatchAgents,
+ResourceScheduler, MissionRunner, ContextCapsule, WorkReceipt, ValidationEvidence
+e Attention. O objetivo é selecionar DIRECT para trabalho pequeno e uma pipeline
+explicável PLAN → BUILD → REVIEW → FIX → VERIFY para trabalho substancial, sem
+criar outro scheduler, Mission engine, WorkPlan ou Agent model.
+
+Contrato executável e critérios estão em
+`../../.omx/plans/2026-09-13-mission-teams.md`; o relatório final ficará em
+`DEV/validation/current/MISSION_TEAMS_REPORT.md`. Provider autenticado, native
+platform e overnight evidence continuam sujeitos às limitações reais do
+ambiente e serão classificados separadamente, nunca inferidos de fake fixtures.
+
 ## Slice de documentação orientada ao produto — 2026-09-13
 
 README como landing page técnica, Quick Start, mapa de funcionalidades,

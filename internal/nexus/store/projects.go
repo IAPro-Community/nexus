@@ -74,7 +74,7 @@ func (s *Store) CreateProject(p Project) (Project, error) {
 		p.Slug = Slugify(p.Name)
 	}
 	if p.MaestroMode == "" {
-		p.MaestroMode = MaestroAssist
+		p.MaestroMode = MaestroOff
 	}
 	if p.DefaultIsolation == "" {
 		p.DefaultIsolation = "project"

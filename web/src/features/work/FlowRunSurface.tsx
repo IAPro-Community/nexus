@@ -15,13 +15,16 @@ import {
 } from 'lucide-react';
 import { Badge, Button, Card, InlineAlert, Spinner } from '../../design-system';
 import { nexusApi } from '../../nexus/api';
+import { useTranslation } from 'react-i18next';
 import type {
   Agent,
   FlowRunEvidence,
   MissionRun,
+  PackageRun,
   Project,
   WorkPlan,
   WorkReceipt,
+  MissionTeamSelection,
 } from '../../types';
 import { asArray, asStringArray } from '../../lib/safeArray';
 import { flowFromWorkPlan } from './flowModel';
@@ -54,12 +57,41 @@ const receiptSummary = (receipt?: WorkReceipt) => {
   return receipt.summary || receipt.status;
 };
 
+const readMissionTeamSelection = (plan: WorkPlan | null): MissionTeamSelection | null => {
+  const raw = plan?.structured_facts?.['nexus.mission_team.selection'];
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as MissionTeamSelection;
+    return parsed.direct ? null : parsed;
+  } catch {
+    return null;
+  }
+};
+
+const readSelectedResource = (pkg: PackageRun | undefined) => {
+  if (!pkg) return '';
+  try {
+    const routing = JSON.parse(pkg.routing_decision || '{}') as {
+      selected_provider?: string;
+      selected_profile?: string;
+      selected_model?: string;
+    };
+    const provider = routing.selected_provider || pkg.provider;
+    const profile = routing.selected_profile || pkg.profile;
+    const model = routing.selected_model;
+    return [provider, profile, model].filter(Boolean).join(' / ');
+  } catch {
+    return [pkg.provider, pkg.profile].filter(Boolean).join(' / ');
+  }
+};
+
 export const FlowRunSurface: React.FC<{
   runId: string;
   project: Project;
   agents: Agent[];
   onOpenAgent?: (agent: Agent) => void;
 }> = ({ runId, project, agents, onOpenAgent }) => {
+  const { t } = useTranslation();
   const [run, setRun] = useState<MissionRun | null>(null);
   const [evidence, setEvidence] = useState<FlowRunEvidence>({
     run_id: runId,
@@ -103,6 +135,14 @@ export const FlowRunSurface: React.FC<{
 
   const flow = useMemo(() => (plan ? flowFromWorkPlan(plan) : null), [plan]);
   const userState = flowRunStateFromMission(run?.state || 'PENDING');
+  const missionTeam = useMemo(() => readMissionTeamSelection(plan), [plan]);
+  const currentPackage = useMemo(
+    () =>
+      (run?.package_runs || []).find(
+        (pkg) => pkg.phase_id === run?.current_phase_id && pkg.state !== 'VERIFIED',
+      ) || (run?.package_runs || [])[run?.current_pkg_index || 0],
+    [run],
+  );
   const capsules = useMemo(
     () => new Map(evidence.capsules.map((item) => [item.step.id, item])),
     [evidence.capsules],
@@ -181,6 +221,31 @@ export const FlowRunSurface: React.FC<{
           {run.paused_reason ||
             'Execution stopped fail-closed and will not redispatch automatically.'}
         </InlineAlert>
+      )}
+
+      {missionTeam && (
+        <Card className="nx-flow-run-overview" data-mission-team="true">
+          <div>
+            <strong>{t('flowRuns.missionTeam')}</strong>
+            <span>{missionTeam.preset || t('flowRuns.automaticResource')}</span>
+          </div>
+          <div>
+            <strong>{t('flowRuns.preset')}</strong>
+            <span>{missionTeam.cost_class}</span>
+          </div>
+          <div>
+            <strong>{t('flowRuns.currentPhase')}</strong>
+            <span>{currentPackage?.phase_type || run.current_phase_id || t('common.unknown')}</span>
+          </div>
+          <div>
+            <strong>{t('flowRuns.activeAgent')}</strong>
+            <span>{currentPackage?.assigned_agent || t('common.unknown')}</span>
+          </div>
+          <div>
+            <strong>{t('flowRuns.actualResource')}</strong>
+            <span>{readSelectedResource(currentPackage) || t('flowRuns.automaticResource')}</span>
+          </div>
+        </Card>
       )}
 
       <Card className="nx-flow-run-overview">

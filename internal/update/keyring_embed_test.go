@@ -1,26 +1,18 @@
 package update
 
 import (
-	"crypto/ed25519"
-	"encoding/hex"
-	"strings"
 	"testing"
 )
 
-func TestProductionTrustRootIsEmbedded(t *testing.T) {
-	if len(ProductionTrustRoot) != ed25519.PublicKeySize {
-		t.Fatalf("ProductionTrustRoot len=%d want %d", len(ProductionTrustRoot), ed25519.PublicKeySize)
-	}
-	hexKey := hex.EncodeToString(ProductionTrustRoot)
-	if strings.Contains(strings.ToUpper(hexKey), "REPLACE") {
-		t.Fatal("production trust root must not be a placeholder")
+func TestProductionTrustRootIsEmptyByDefault(t *testing.T) {
+	if len(ProductionTrustRoot) != 0 {
+		t.Fatalf("production trust root must be empty in local/test builds, got %d bytes", len(ProductionTrustRoot))
 	}
 	kr := NewKeyRing()
 	if _, err := kr.VerifyManifest([]byte(`{"schema_version":1}`), "00"); err == nil {
 		t.Fatal("malformed manifest must still fail")
 	}
-	// Key must be registered under the canonical ID.
-	if _, ok := kr.keys[ProductionTrustRootKeyID]; !ok {
-		t.Fatalf("keyring missing %s", ProductionTrustRootKeyID)
+	if _, ok := kr.keys[ProductionTrustRootKeyID]; ok {
+		t.Fatalf("local keyring must not contain the production key")
 	}
 }

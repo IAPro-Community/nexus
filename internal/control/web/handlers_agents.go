@@ -182,7 +182,10 @@ func (h *NexusHandler) handleAgentAsk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.nexus.AskAgent(r.Context(), id, compiled.CompiledPrompt, body.StartIfNeeded)
+	result, err := h.nexus.AskAgentWithOptions(r.Context(), id, compiled.CompiledPrompt, nexus.AskAgentOptions{
+		StartIfNeeded:         body.StartIfNeeded,
+		CompileSpecialization: false,
+	})
 	if err != nil {
 		writeAgentConflict(w, err)
 		return

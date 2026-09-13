@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS projects (
     repo_remote      TEXT NOT NULL DEFAULT '',
     repo_url         TEXT NOT NULL DEFAULT '',
     default_branch   TEXT NOT NULL DEFAULT 'main',
-    maestro_mode     TEXT NOT NULL DEFAULT 'ASSIST',
+    maestro_mode     TEXT NOT NULL DEFAULT 'OFF',
     resource_policy  TEXT NOT NULL DEFAULT '{}',
     default_isolation TEXT NOT NULL DEFAULT 'developer',
     settings         TEXT NOT NULL DEFAULT '{}',

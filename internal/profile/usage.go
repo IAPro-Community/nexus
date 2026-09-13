@@ -281,7 +281,12 @@ func withinLastKnownWindow(at time.Time) bool {
 
 func expectedProfileAccount(providerName, profileName string) string {
 	if providerName == "agy" {
-		return resolveAGYAuthenticatedEmail(profileName)
+		if email := resolveAGYAuthenticatedEmail(profileName); email != "" {
+			return email
+		}
+		// google_accounts.json / jetski may be missing after isolation changes;
+		// InspectAuth still recovers the Google email from the oauth id_token.
+		return strings.TrimSpace(GetAccountInfo("agy", profileName).Email)
 	}
 	info := GetAccountInfo(providerName, profileName)
 	if providerName == "codex" && strings.TrimSpace(info.ExternalAccountID) != "" {

@@ -422,6 +422,11 @@ jobs:
 
       - name: Build Linux desktop
         run: |
+          set -euo pipefail
+          test -n "${NEXUS_UPDATE_PUBLIC_KEY}" || {
+            echo "NEXUS_UPDATE_PUBLIC_KEY is required for desktop CI (fail-closed; refusing empty trust root)" >&2
+            exit 1
+          }
           make build-desktop-wails
           test -f cmd/nexus-desktop/build/bin/nexus-desktop
 
@@ -465,6 +470,9 @@ jobs:
       - name: Build Windows desktop with Wails
         shell: pwsh
         run: |
+          if ([string]::IsNullOrWhiteSpace($env:NEXUS_UPDATE_PUBLIC_KEY)) {
+            throw 'NEXUS_UPDATE_PUBLIC_KEY is required for desktop CI (fail-closed; refusing empty trust root)'
+          }
           Set-Location cmd/nexus-desktop
           $version = (Get-Content ../../VERSION).Trim()
           $commit = (git -C ../.. rev-parse --short HEAD).Trim()
@@ -515,12 +523,16 @@ jobs:
         id: macos-desktop-build
         run: |
           set -euo pipefail
+          test -n "${NEXUS_UPDATE_PUBLIC_KEY}" || {
+            echo "NEXUS_UPDATE_PUBLIC_KEY is required for desktop CI (fail-closed; refusing empty trust root)" >&2
+            exit 1
+          }
           exec > >(tee "$RUNNER_TEMP/nexus-desktop-macos-build.log") 2>&1
           cd cmd/nexus-desktop
           version="$(cat ../../VERSION)"
           commit="$(git -C ../.. rev-parse --short HEAD)"
           build_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          ldflags="-s -w -X github.com/kivervinicius/ai-cli/internal/buildinfo.Version=$version -X github.com/kivervinicius/ai-cli/internal/buildinfo.Commit=$commit -X github.com/kivervinicius/ai-cli/internal/buildinfo.BuildDate=$build_date -X github.com/kivervinicius/ai-cli/internal/update.ProductionTrustRootHex=${NEXUS_UPDATE_PUBLIC_KEY:-}"
+          ldflags="-s -w -X github.com/kivervinicius/ai-cli/internal/buildinfo.Version=$version -X github.com/kivervinicius/ai-cli/internal/buildinfo.Commit=$commit -X github.com/kivervinicius/ai-cli/internal/buildinfo.BuildDate=$build_date -X github.com/kivervinicius/ai-cli/internal/update.ProductionTrustRootHex=${NEXUS_UPDATE_PUBLIC_KEY}"
           go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags "$ldflags"
           apps=()
           while IFS= read -r app; do apps+=("$app"); done < <(find build/bin -maxdepth 1 -type d -name '*.app' -print)

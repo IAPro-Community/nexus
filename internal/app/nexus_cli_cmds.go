@@ -105,21 +105,18 @@ func planCmd(args []string) error {
 		if len(args) > 2 {
 			defaultAgentID = args[2]
 		}
-		run, err := n.StartMissionRun(context.Background(), args[1], defaultAgentID, runner.DefaultAutonomyContract(), false)
+		// Same public contract as Web POST /plans/{id}/run and nexus run "<goal>":
+		// autonomous worker owns progress; CLI must not sync-abort on first step.
+		run, err := n.StartMissionRun(context.Background(), args[1], defaultAgentID, runner.DefaultAutonomyContract(), true)
 		if err != nil {
 			return err
 		}
-		for {
-			updated, done, stepErr := n.Runner().ExecuteNextStep(context.Background(), run.ID)
-			if stepErr != nil {
-				return stepErr
-			}
-			run = updated
-			if done {
-				break
-			}
-		}
-		out, _ := json.MarshalIndent(run, "", "  ")
+		out, _ := json.MarshalIndent(map[string]any{
+			"run_id":     run.ID,
+			"state":      run.State,
+			"autonomous": true,
+			"plan_id":    args[1],
+		}, "", "  ")
 		fmt.Println(string(out))
 		return nil
 

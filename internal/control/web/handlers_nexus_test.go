@@ -82,8 +82,8 @@ func TestNexusProjectsAndAgentsAPI(t *testing.T) {
 	if proj.ID == "" || len(proj.ID) < 5 {
 		t.Fatalf("invalid project id: %q", proj.ID)
 	}
-	if proj.MaestroMode != store.MaestroAssist {
-		t.Errorf("default maestro mode expected ASSIST, got %q", proj.MaestroMode)
+	if proj.MaestroMode != store.MaestroOff {
+		t.Errorf("default maestro mode expected OFF, got %q", proj.MaestroMode)
 	}
 
 	// List projects.

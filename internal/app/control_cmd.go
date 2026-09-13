@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -547,88 +546,13 @@ func attachRuntime(runtimeID string) error {
 	return nil
 }
 
-// attachInteractiveLeadRuntime keeps the existing SessionHost output stream,
-// but submits complete user lines through the high-level prompt boundary. It
-// is opt-in for provider launches that have a persistent Lead Agent; ordinary
-// attach remains byte-transparent for native terminal interaction.
-func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session registry.RuntimeSession, agentID string) error {
-	client, err := protocol.NewClient(runtimeID)
-	if err != nil {
-		_ = n.ReleaseInteractiveLeadRuntime(context.Background(), agentID, runtimeID)
-		return fmt.Errorf("failed to attach to interactive Lead runtime %q: %w", runtimeID, err)
-	}
-	defer client.Close()
+// attachInteractiveLeadRuntime keeps the Lead Agent lifecycle bound to the
+// supervised session while streaming stdin/stdout byte-transparently through
+// the native provider TUI. Delegation remains available via explicit commands
+// (nexus run / plan / agents / web), not by intercepting keystrokes.
+func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, _ registry.RuntimeSession, agentID string) error {
 	defer func() { _ = n.ReleaseInteractiveLeadRuntime(context.Background(), agentID, runtimeID) }()
-
-	if term.IsTerminal(int(os.Stdin.Fd())) {
-		if w, h, sizeErr := term.GetSize(int(os.Stdin.Fd())); sizeErr == nil && w > 0 && h > 0 {
-			_ = client.Resize(h, w)
-		}
-	}
-	signalCtx, signalCancel := context.WithCancel(context.Background())
-	defer signalCancel()
-	interrupts := make(chan os.Signal, 1)
-	signal.Notify(interrupts, os.Interrupt)
-	defer signal.Stop(interrupts)
-	go func() {
-		for {
-			select {
-			case <-signalCtx.Done():
-				return
-			case <-interrupts:
-				rpcClient, rpcErr := protocol.NewClient(runtimeID)
-				if rpcErr == nil {
-					_, _ = rpcClient.Send(protocol.CmdInput, protocol.InputPayload{Data: string([]byte{3})})
-					_ = rpcClient.Close()
-				}
-			}
-		}
-	}()
-	resp, err := client.Send(protocol.CmdAttach, nil)
-	if err != nil {
-		return fmt.Errorf("interactive Lead attach failed: %w", err)
-	}
-	_ = client.ClearDeadline()
-	var history string
-	if json.Unmarshal(resp.Data, &history) == nil && history != "" {
-		_, _ = os.Stdout.WriteString(history)
-	}
-
-	rawConn := client.RawConn()
-	errChan := make(chan error, 2)
-	go func() {
-		defer rawConn.Close()
-		r := client.Reader()
-		if r != nil && r.Buffered() > 0 {
-			buf := make([]byte, r.Buffered())
-			n, _ := r.Read(buf)
-			if n > 0 {
-				_, _ = os.Stdout.Write(buf[:n])
-			}
-		}
-		_, copyErr := io.Copy(os.Stdout, rawConn)
-		errChan <- copyErr
-	}()
-
-	go func() {
-		reader := bufio.NewReader(os.Stdin)
-		for {
-			line, readErr := reader.ReadString('\n')
-			prompt := strings.TrimSpace(strings.TrimRight(line, "\r\n"))
-			if prompt != "" {
-				if routeErr := routeInteractiveLeadPrompt(context.Background(), n, session, agentID, prompt); routeErr != nil {
-					fmt.Fprintf(os.Stderr, "[nexus] prompt routing failed: %v\n", routeErr)
-				}
-			}
-			if readErr != nil {
-				errChan <- readErr
-				return
-			}
-		}
-	}()
-
-	waitErr := <-errChan
-	return waitErr
+	return attachRuntime(runtimeID)
 }
 
 func controlStopCmd(args []string) error {

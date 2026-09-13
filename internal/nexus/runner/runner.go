@@ -122,12 +122,12 @@ func (r *MissionRunner) StartMissionRun(ctx context.Context, plan PlanSpec, work
 			skillIDs = append(skillIDs, spec.MaestroSkills...)
 		}
 		run.PackageRuns = append(run.PackageRuns, PackageRun{
-			ID: "pkgrun_" + ids.NewRuntimeID(), PackageID: spec.ID, PhaseID: spec.PhaseID, Title: spec.Title, Goal: spec.Goal,
-			Priority: spec.Priority, Role: spec.Role, TaskRequirements: spec.TaskRequirements, Dependencies: append([]string(nil), spec.Dependencies...), ParallelGroup: spec.ParallelGroup,
+			ID: "pkgrun_" + ids.NewRuntimeID(), PackageID: spec.ID, PhaseID: spec.PhaseID, PhaseType: spec.PhaseType, Title: spec.Title, Goal: spec.Goal,
+			Priority: spec.Priority, Role: spec.Role, ReviewRequired: reviewRequiredForPackage(spec), TaskRequirements: spec.TaskRequirements, Dependencies: append([]string(nil), spec.Dependencies...), ParallelGroup: spec.ParallelGroup,
 			AssignmentStrategy: spec.AssignmentStrategy, ResourcePolicy: spec.ResourcePolicy, Provider: spec.Provider, Profile: spec.Profile,
 			DesiredProvider: desiredProvider, DesiredProfile: desiredProfile,
 			SkillIDs: skillIDs, MaestroSkills: append([]string(nil), spec.MaestroSkills...), RelevantPaths: append([]string(nil), spec.RelevantPaths...),
-			AcceptanceCriteria: append([]string(nil), spec.AcceptanceCriteria...), VerificationRequirements: append([]string(nil), spec.VerificationRequirements...), State: state, Attempt: 1,
+			AcceptanceCriteria: append([]string(nil), spec.AcceptanceCriteria...), VerificationRequirements: append([]string(nil), spec.VerificationRequirements...), EntryCriteria: append([]string(nil), spec.EntryCriteria...), ExitCriteria: append([]string(nil), spec.ExitCriteria...), RequiredEvidence: append([]string(nil), spec.RequiredEvidence...), HandoffJSON: spec.HandoffJSON, State: state, Attempt: 1,
 			AssignedAgent: assignedAgent, RoutingDecisionJSON: spec.RoutingDecisionJSON, StartedAt: now,
 		})
 	}
@@ -259,6 +259,8 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 	if run.Contract.PackageTimeoutSeconds > 0 {
 		opCtx, cancelOperation = context.WithTimeout(leaseCtx, time.Duration(run.Contract.PackageTimeoutSeconds)*time.Second)
 	}
+	opCtx, cancelStallWatch := armStallWatchdog(opCtx, run)
+	defer cancelStallWatch()
 	defer cancelOperation()
 
 	switch pkg.State {
@@ -267,6 +269,9 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 	case StateAllocating:
 		allocation, allocErr := r.executor.Allocate(opCtx, run, pkg)
 		if allocErr != nil {
+			if stalled, stallErr := r.finalizeStallIfNeeded(ctx, run, allocErr); stalled {
+				return run, false, stallErr
+			}
 			return r.packageFailureFrom(ctx, run, pkg, StateAllocating, fmt.Errorf("allocate package: %w", allocErr))
 		}
 		if allocation.AgentID == "" || allocation.Workspace == "" {
@@ -298,14 +303,28 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 		pkg.PromptVersionID, pkg.CompiledPrompt = artifact.VersionID, artifact.Content
 		pkg.State = StateExecuting
 	case StateExecuting:
-		if pkg.ParallelGroup != "" {
+		if isReviewPhase(pkg) {
+			// A review phase consumes its implementation dependency and invokes
+			// Review without granting the reviewer a write-capable Execute turn.
+			pkg.State = StateReviewing
+		} else if isVerificationPhase(pkg) {
+			// Verification phases execute canonical commands in StateTesting;
+			// they do not ask a verifier to mutate source files.
+			pkg.State = StateTesting
+		} else if pkg.ParallelGroup != "" {
 			if err := r.executeParallelGroup(opCtx, run, pkg.ParallelGroup); err != nil {
+				if stalled, stallErr := r.finalizeStallIfNeeded(ctx, run, err); stalled {
+					return run, false, stallErr
+				}
 				run.UpdatedAt = time.Now().UTC()
 				_ = r.saveRun(ctx, run)
 				return run, false, err
 			}
 		} else {
 			if err := r.executeOne(opCtx, run, pkg); err != nil {
+				if stalled, stallErr := r.finalizeStallIfNeeded(ctx, run, err); stalled {
+					return run, false, stallErr
+				}
 				if errors.Is(err, ErrDispatchOutcomeUnknown) {
 					r.blockNeedsHuman(run, pkg, "DISPATCH_OUTCOME_UNKNOWN", err.Error(), "Provider outcome is unknown after the dispatch boundary.", []string{"Inspect provider runtime", "Retry only after confirming whether work completed"})
 					run.UpdatedAt = time.Now().UTC()
@@ -349,7 +368,13 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 			}
 		}
 		if verificationPassed(results, run.Contract.RequireVerification) {
-			pkg.State = StateReviewing
+			if pkg.ReviewRequired {
+				pkg.State = StateReviewing
+			} else {
+				pkg.State = StateVerified
+				now := time.Now().UTC()
+				pkg.FinishedAt = &now
+			}
 		} else {
 			// A verification failure is evidence that the current execution
 			// strategy did not satisfy the task. Re-enter allocation so the Nexus
@@ -377,12 +402,17 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 		if verdict.ReviewedAt.IsZero() {
 			verdict.ReviewedAt = time.Now().UTC()
 		}
+		verdict = NormalizeReviewVerdict(verdict)
+		verdict.StructuredFindings = DeduplicateReviewFindings(verdict.StructuredFindings)
+		pkg.ReviewFindings = MergeReviewFindings(pkg.ReviewFindings, verdict.StructuredFindings, verdict.Approved, pkg.Attempt)
 		pkg.Verdicts = append(pkg.Verdicts, verdict)
 		if verdict.Approved {
 			pkg.State = StateVerified
 			now := time.Now().UTC()
 			pkg.FinishedAt = &now
 			pkg.RemediationContext = ""
+			pkg.ReviewInvalidated = false
+			pkg.ReviewInvalidationReason = ""
 		} else {
 			if terminalErr := r.markRemediation(run, pkg, StateCompiling, reviewFailureContext(verdict)); terminalErr != nil {
 				run.UpdatedAt = time.Now().UTC()
@@ -493,6 +523,10 @@ func (r *MissionRunner) markRemediation(run *MissionRun, pkg *PackageRun, retryF
 		pkg.NoProgressCount = 1
 	}
 	pkg.ErrorMessage = failure
+	if len(pkg.Verdicts) > 0 && pkg.Verdicts[len(pkg.Verdicts)-1].Approved {
+		pkg.ReviewInvalidated = true
+		pkg.ReviewInvalidationReason = "package changed or verification failed after review approval"
+	}
 	// Every remediation attempt must carry an explicit strategy change. This is
 	// persisted with the PackageRun so a restart cannot silently repeat the same
 	// approach or make the transition depend on in-memory state.
@@ -541,16 +575,47 @@ func (r *MissionRunner) completeRun(ctx context.Context, run *MissionRun) (*Miss
 func (r *MissionRunner) verifyGlobalDefinition(ctx, operationCtx context.Context, run *MissionRun) (*MissionRun, bool, error) {
 	commands := run.Contract.GlobalVerificationCommands
 	if len(commands) == 0 {
+		if run.Autonomous {
+			run.State = StateFailedVerification
+			run.PausedReason = "autonomous Mission requires an explicit global Definition-of-Done command"
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, fmt.Errorf("autonomous Mission has no global Definition-of-Done verification")
+		}
 		// Keep direct legacy runner callers compatible; product admission still
 		// requires a real global command set for autonomous runs.
 		return r.completeRun(ctx, run)
+	}
+	if run.Autonomous {
+		if _, ok := r.executor.(ValidationEvidenceRecorder); !ok {
+			run.State = StateFailed
+			run.PausedReason = "VALIDATION_EVIDENCE_UNAVAILABLE"
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, ErrEvidenceRepositoryUnavailable
+		}
+		if _, ok := r.executor.(GlobalValidationEvidenceRecorder); !ok {
+			run.State = StateFailed
+			run.PausedReason = "GLOBAL_VALIDATION_EVIDENCE_UNAVAILABLE"
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, ErrEvidenceRepositoryUnavailable
+		}
+	}
+	workspace, err := resolveIntegratedVerificationWorkspace(run)
+	if err != nil {
+		run.State = StateFailedVerification
+		run.PausedReason = err.Error()
+		run.UpdatedAt = time.Now().UTC()
+		_ = r.saveRun(ctx, run)
+		return run, false, err
 	}
 	run.State = StateVerifying
 	run.UpdatedAt = time.Now().UTC()
 	if err := r.saveRun(ctx, run); err != nil {
 		return run, false, err
 	}
-	results := r.verifier.RunVerification(operationCtx, run.Workspace, commands)
+	results := r.verifier.RunVerification(operationCtx, workspace, commands)
 	run.GlobalVerifications = append(run.GlobalVerifications, results...)
 	if recorder, ok := r.executor.(GlobalValidationEvidenceRecorder); ok {
 		if err := recorder.RecordGlobalValidationEvidence(operationCtx, run, results); err != nil {
@@ -588,6 +653,57 @@ func (r *MissionRunner) verifyGlobalDefinition(ctx, operationCtx context.Context
 		return run, false, err
 	}
 	return run, false, fmt.Errorf("global Definition of Done failed; package %s reopened for remediation", target.PackageID)
+}
+
+// resolveIntegratedVerificationWorkspace picks the tree that actually holds
+// agent delivery. Global DoD must not run against an untouched canonical
+// baseline while packages wrote isolated worktrees. Multiple divergent
+// worktrees without a merged integration tree fail closed.
+func resolveIntegratedVerificationWorkspace(run *MissionRun) (string, error) {
+	if run == nil {
+		return "", fmt.Errorf("mission run is required for global verification")
+	}
+	canonical := strings.TrimSpace(run.Workspace)
+	seen := map[string]string{}
+	var order []string
+	for _, pkg := range run.PackageRuns {
+		include := pkg.State == StateVerified ||
+			(pkg.WorkReceipt != nil && strings.EqualFold(pkg.WorkReceipt.Status, "COMPLETED"))
+		if !include {
+			continue
+		}
+		ws := strings.TrimSpace(pkg.Workspace)
+		if ws == "" {
+			continue
+		}
+		if _, ok := seen[ws]; ok {
+			continue
+		}
+		seen[ws] = ws
+		order = append(order, ws)
+	}
+	if len(order) == 0 {
+		return canonical, nil
+	}
+	var nonCanonical []string
+	for _, ws := range order {
+		if ws != canonical {
+			nonCanonical = append(nonCanonical, ws)
+		}
+	}
+	if len(nonCanonical) == 0 {
+		return canonical, nil
+	}
+	if len(nonCanonical) == 1 && len(order) == 1 {
+		// Single agent worktree is the delivery tree for this run.
+		return nonCanonical[0], nil
+	}
+	if len(nonCanonical) == 1 {
+		// Packages mixed canonical + one worktree: verify the worktree that
+		// holds mutations, never the untouched baseline alone.
+		return nonCanonical[0], nil
+	}
+	return "", fmt.Errorf("global Definition of Done requires an integrated tree; agent worktrees are not merged into %s", canonical)
 }
 
 func (r *MissionRunner) PauseRun(ctx context.Context, runID, reason string) (*MissionRun, error) {
@@ -1122,7 +1238,12 @@ func verificationFailureContext(results []VerificationResult) string {
 	return "Verification produced no passing evidence."
 }
 func reviewFailureContext(v ReviewVerdict) string {
-	return fmt.Sprintf("Review rejected. Findings: %v. Remediation: %v", v.Findings, v.RemediationTips)
+	v = NormalizeReviewVerdict(v)
+	ids := make([]string, 0, len(v.StructuredFindings))
+	for _, finding := range v.StructuredFindings {
+		ids = append(ids, finding.ID)
+	}
+	return fmt.Sprintf("Review rejected. Finding IDs: %v. Findings: %v. Remediation: %v", ids, v.Findings, v.RemediationTips)
 }
 
 // IsTerminalState reports whether a mission cannot make further progress.

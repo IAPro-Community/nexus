@@ -3,6 +3,7 @@ package launcher
 import (
 	"context"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -51,5 +52,44 @@ func TestRuntimeLauncher_StandaloneLaunchAndHandshake(t *testing.T) {
 	}
 	if sess.Labels["nexus.interactive_lead"] != "true" {
 		t.Fatalf("expected launcher labels to persist, got %#v", sess.Labels)
+	}
+}
+
+func TestKillProcessTerminatesChild(t *testing.T) {
+	cmd := exec.Command("sleep", "30")
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	pid := cmd.Process.Pid
+	KillProcess(pid)
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("process was not killed")
+	}
+	if registry.IsProcessAlive(pid) {
+		t.Fatal("killed PID still reports alive")
+	}
+}
+
+func TestForceKillSessionRemovesAliveHost(t *testing.T) {
+	cmd := exec.Command("sleep", "30")
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	pid := cmd.Process.Pid
+	sess := registry.RuntimeSession{RuntimeID: "rt-force-kill", HostPID: pid, State: registry.StateStarting}
+	forceKillSession(sess.RuntimeID, sess, true)
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatalf("host PID %d still alive after forceKillSession", pid)
+	}
+	if registry.IsProcessAlive(pid) {
+		t.Fatalf("reaped host PID %d still reports alive", pid)
 	}
 }

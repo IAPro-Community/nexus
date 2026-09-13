@@ -376,16 +376,28 @@ Write-Host "✓ Successfully installed IAPro Nexus to $TargetPath" -ForegroundCo
 if ($InstallDesktop -and $IsWindowsOS -and -not [string]::IsNullOrWhiteSpace($Version)) {
     $DesktopArchiveName = "nexus-desktop_Windows_${Arch}.zip"
     $DesktopDownloadUrl = "$GithubUrl/releases/download/v$Version/$DesktopArchiveName"
-    $DesktopChecksumsUrl = "$GithubUrl/releases/download/v$Version/desktop-checksums.txt"
     $DesktopZipPath = Join-Path $TempDir $DesktopArchiveName
-    $DesktopChecksumsPath = Join-Path $TempDir "desktop-checksums.txt"
+    $ManifestPath = Join-Path $TempDir "update-manifest.json"
+    $SigPath = Join-Path $TempDir "update-manifest.sig"
+    $NsisName = "nexus_${Version}_windows_amd64_setup.exe"
     try {
         Write-Host "Attempting to install the native IAPro Nexus Desktop shell..." -ForegroundColor Yellow
+        if (-not (Test-Path $ManifestPath) -or -not (Test-Path $SigPath)) {
+            $ManifestUrl = "$GithubUrl/releases/download/v$Version/update-manifest.json"
+            $SigUrl = "$GithubUrl/releases/download/v$Version/update-manifest.sig"
+            Invoke-WebRequest -Uri $ManifestUrl -OutFile $ManifestPath -UseBasicParsing
+            Invoke-WebRequest -Uri $SigUrl -OutFile $SigPath -UseBasicParsing
+        }
+        if (-not (Verify-ManifestSignature -ManifestPath $ManifestPath -SigPath $SigPath)) {
+            throw "Release manifest signature verification failed for desktop install."
+        }
+        $ExpectedDesktop = Extract-ShaFromManifest -ManifestPath $ManifestPath -ArtifactName $DesktopArchiveName
+        if ([string]::IsNullOrWhiteSpace($ExpectedDesktop)) {
+            throw "Native Desktop artifact $DesktopArchiveName missing from signed update-manifest (unsigned desktop-checksums.txt is refused)"
+        }
         Invoke-WebRequest -Uri $DesktopDownloadUrl -OutFile $DesktopZipPath -UseBasicParsing
-        Invoke-WebRequest -Uri $DesktopChecksumsUrl -OutFile $DesktopChecksumsPath -UseBasicParsing
-        $ExpectedDesktop = ((Get-Content $DesktopChecksumsPath | Where-Object { $_ -match [regex]::Escape($DesktopArchiveName) } | Select-Object -First 1) -split '\s+')[0]
         $ActualDesktop = (Get-FileHash -Path $DesktopZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ([string]::IsNullOrWhiteSpace($ExpectedDesktop) -or $ExpectedDesktop.ToLowerInvariant() -ne $ActualDesktop) {
+        if ($ExpectedDesktop.ToLowerInvariant() -ne $ActualDesktop) {
             throw "Native Desktop checksum verification failed for $DesktopArchiveName."
         }
         $DesktopExtractDir = Join-Path $TempDir "desktop"
@@ -406,8 +418,15 @@ if ($InstallDesktop -and $IsWindowsOS -and -not [string]::IsNullOrWhiteSpace($Ve
         $Shortcut.Save()
         Write-Host "✓ Native Desktop installed to $DesktopTargetPath" -ForegroundColor Green
         Write-Host "✓ Shortcut created at $DesktopShortcutPath" -ForegroundColor Green
+
+        # NSIS installer (optional asset): must also be listed in the signed manifest when present.
+        $NsisSha = Extract-ShaFromManifest -ManifestPath $ManifestPath -ArtifactName $NsisName
+        if (-not [string]::IsNullOrWhiteSpace($NsisSha)) {
+            Write-Host "NSIS installer is covered by signed update-manifest ($NsisName)." -ForegroundColor Green
+        }
     } catch {
-        Write-Host "⚠️  Native Desktop artifact unavailable or unverifiable; CLI installation is complete." -ForegroundColor Yellow
+        Write-Host "ERROR: Native Desktop install refused: $_" -ForegroundColor Red
+        throw
     }
 }
 

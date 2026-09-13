@@ -266,8 +266,8 @@ func (qv *QuotaView) HasMultipleGroups() bool {
 // An agent is unavailable when every known quota pool is exhausted or when
 // rate-limited. This matters for providers such as AGY, which exposes separate
 // Gemini and Claude/GPT capacity pools.
-// UNKNOWN quota is NOT a hard block — we just don't know, so we penalize
-// the score instead of rejecting.
+// UNKNOWN quota is a hard gate for automatic allocation / Mission routing —
+// missing evidence is never treated as capacity.
 func (qv *QuotaView) IsAvailable() bool {
 	return qv.Available
 }
@@ -312,11 +312,11 @@ func (qv *QuotaView) ComputeAvailability() {
 		return
 	}
 
-	// Check UNKNOWN quota — NOT a hard block, just flag it.
+	// Check UNKNOWN quota — hard gate for autopilot allocation.
 	if qv.Status == string(model.UsageUnknown) {
+		qv.Available = false
 		qv.AvailReasons.UnknownQuota = true
-		// Don't set Available=false here — UNKNOWN means we don't know,
-		// not that it's exhausted. The scheduler penalizes this in scoring.
+		return
 	}
 
 	// Model groups are independent capacity pools. One usable group keeps the
@@ -328,8 +328,13 @@ func (qv *QuotaView) ComputeAvailability() {
 	for _, g := range qv.ModelGroups {
 		groupExhausted := false
 		hasScorable := false
+		onlyUnknownWindows := true
 		for _, w := range g.Windows {
-			if w.Kind == "unknown" || windowExpired(w, now) {
+			if w.Kind == "unknown" {
+				continue
+			}
+			onlyUnknownWindows = false
+			if windowExpired(w, now) {
 				continue
 			}
 			hasScorable = true
@@ -341,9 +346,10 @@ func (qv *QuotaView) ComputeAvailability() {
 		if hasScorable && !groupExhausted {
 			usableGroup = true
 		}
-		// A group whose only windows have rolled over is treated as still usable
-		// (we lack current evidence of exhaustion).
-		if !hasScorable {
+		// A group whose only measured windows have rolled over is treated as
+		// still usable (we lack current evidence of exhaustion). Pure unknown
+		// windows are not capacity evidence.
+		if !hasScorable && !onlyUnknownWindows {
 			usableGroup = true
 		}
 	}
@@ -351,6 +357,11 @@ func (qv *QuotaView) ComputeAvailability() {
 	if !usableGroup && len(exhausted) > 0 {
 		qv.Available = false
 		qv.AvailReasons.ExhaustedWindows = exhausted
+		return
+	}
+	if !usableGroup {
+		qv.Available = false
+		qv.AvailReasons.UnknownQuota = true
 		return
 	}
 

@@ -685,6 +685,8 @@ export interface WorkPackage {
   dependencies: string[];
   parallel_group?: string;
   role: string;
+  phase_type?: string;
+  review_required?: boolean;
   task_requirements?: string;
   agent_allocation?: string;
   assignment_strategy?: 'EXISTING' | 'CREATE' | 'AUTO';
@@ -698,6 +700,10 @@ export interface WorkPackage {
   acceptance_criteria: string[];
   verification_requirements?: string[];
   shared_artifacts?: string[];
+  entry_criteria?: string[];
+  exit_criteria?: string[];
+  required_evidence?: string[];
+  handoff?: string;
   compiled_prompt?: string;
 }
 
@@ -706,6 +712,9 @@ export interface PlanPhase {
   title: string;
   description?: string;
   order: number;
+  type?: string;
+  required_role?: string;
+  failure_policy?: string;
   packages: WorkPackage[];
 }
 
@@ -924,6 +933,7 @@ export interface ReviewVerdict {
   approved: boolean;
   reviewer_agent_id: string;
   findings?: string[];
+  structured_findings?: ReviewFinding[];
   remediation_tips?: string[];
   reviewed_at: string;
 }
@@ -940,6 +950,7 @@ export interface WorkReceipt {
   decisions: string[];
   artifacts: string[];
   remaining_issues: string[];
+  handoff?: string;
   verification: VerificationResult[];
   agent_id: string;
   base_revision: string;
@@ -1110,7 +1121,20 @@ export interface RoutingDecisionReport {
     snapshot_completeness?: string;
   };
   delegation?: DelegationDecision;
+  mission_team?: MissionTeamSelection;
   decisions: RoutingDecisionReportEntry[];
+}
+
+export interface MissionTeamSelection {
+  version: number;
+  strategy: string;
+  preset?: string;
+  direct: boolean;
+  reason: string;
+  signals?: string[];
+  cost_class: string;
+  review_required: boolean;
+  created_at: string;
 }
 
 export interface DelegationDecision {
@@ -1148,11 +1172,18 @@ export interface PackageRun {
   id: string;
   package_id: string;
   phase_id?: string;
+  phase_type?: string;
   title: string;
   goal?: string;
   state: string;
   attempt: number;
   assigned_agent: string;
+  provider?: string;
+  profile?: string;
+  desired_provider?: string;
+  desired_profile?: string;
+  routing_decision?: string;
+  review_required?: boolean;
   assigned_runtime?: string;
   workspace?: string;
   prompt_version_id?: string;
@@ -1162,12 +1193,36 @@ export interface PackageRun {
   parallel_group?: string;
   verifications?: VerificationResult[];
   verdicts?: ReviewVerdict[];
+  review_findings?: ReviewFinding[];
   error_message?: string;
   remediation_context?: string;
   context_capsule?: ContextCapsule;
   work_receipt?: WorkReceipt;
   started_at: string;
   finished_at?: string;
+}
+
+export interface ReviewFinding {
+  id: string;
+  severity?: string;
+  category?: string;
+  file?: string;
+  location?: string;
+  description: string;
+  rationale?: string;
+  required_action?: string;
+  status: string;
+}
+
+export interface PhaseRun {
+  id: string;
+  type?: string;
+  state: string;
+  attempt: number;
+  package_ids?: string[];
+  agent_ids?: string[];
+  routing_reasons?: string[];
+  updated_at: string;
 }
 
 export interface MissionRun {
@@ -1180,8 +1235,10 @@ export interface MissionRun {
   state: string;
   contract: AutonomyContract;
   current_pkg_index: number;
+  current_phase_id?: string;
   total_iterations: number;
   package_runs: PackageRun[];
+  phase_runs?: PhaseRun[];
   paused_reason?: string;
   started_at: string;
   updated_at: string;
@@ -1262,6 +1319,8 @@ export interface FlowDecompositionRequest {
   maestro_skills?: string[];
   simple?: boolean;
   delegation_mode?: 'AUTO' | 'ASK' | 'OFF';
+  mission_team_preset?: string;
+  mission_team_runtime_overrides?: Record<string, RoutingAffinityPolicy>;
 }
 
 export interface FlowDecompositionProposal {

@@ -240,34 +240,12 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 				} `json:"token"`
 			}
 			if json.Unmarshal(data, &tok) == nil && (tok.Token.AccessToken != "" || tok.Token.RefreshToken != "") {
-				// An expired access_token must NOT count as authenticated for
-				// background quota probes. fetchLiveQuota used to run with
-				// BROWSER=false, but the AGY CLI still falls through to
-				// xdg-open / its own browser helper and spams Google OAuth
-				// every QuotaMonitor tick (~60s). Interactive re-login remains
-				// available via nexus login / the usage TUI.
+				expired := false
 				if tok.Token.Expiry != "" {
 					if expTime, err := time.Parse(time.RFC3339Nano, tok.Token.Expiry); err == nil {
-						if time.Now().After(expTime) {
-							info.Status = "Token expired"
-							info.Health = model.HealthAuthRequired
-							info.Authenticated = false
-							if info.Email == "" {
-								info.Email = resolveEmailFromAccountsFile(home)
-							}
-							if info.Email == "" {
-								info.Email = emailFromIDToken(data)
-							}
-							if info.Email == "" {
-								info.Email = p.Name
-							}
-							return info
-						}
+						expired = time.Now().After(expTime)
 					}
 				}
-				info.Authenticated = true
-				info.Status = "Authenticated"
-				info.Health = model.HealthHealthy
 				if info.Email == "" {
 					info.Email = resolveEmailFromAccountsFile(home)
 				}
@@ -277,6 +255,25 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 				if info.Email == "" {
 					info.Email = p.Name
 				}
+				if expired {
+					refresh := strings.TrimSpace(tok.Token.RefreshToken)
+					usable := refresh != "" && !refreshTokenRevoked(home, refresh)
+					if usable {
+						// Refreshable without human interaction: monitor may
+						// keep collecting after ensureFreshAccessToken renews.
+						info.Authenticated = true
+						info.Status = "Token expired (refreshable)"
+						info.Health = model.HealthDegraded
+						return info
+					}
+					info.Status = "Token expired"
+					info.Health = model.HealthAuthRequired
+					info.Authenticated = false
+					return info
+				}
+				info.Authenticated = true
+				info.Status = "Authenticated"
+				info.Health = model.HealthHealthy
 				return info
 			}
 		}
@@ -702,8 +699,13 @@ func (a *Adapter) fetchLiveQuota(ctx context.Context, p model.Profile) (model.Us
 		return model.UsageSnapshot{}, false
 	}
 	home := filepath.Join(root, "home")
+	if err := ensureFreshAccessToken(ctx, home); err != nil {
+		if debug {
+			slog.Debug("AGY fetchLiveQuota: token refresh failed", "profile", p.Name, "err", security.Redact(err.Error()))
+		}
+	}
 	if accessTokenExpired(home) {
-		// Never spawn AGY for an expired access_token: even with BROWSER=false
+		// Never spawn AGY without a valid access_token: even with BROWSER=false
 		// the CLI may still invoke xdg-open and open a Google OAuth tab.
 		if debug {
 			slog.Debug("AGY fetchLiveQuota: access token expired, refusing live probe", "profile", p.Name)

@@ -1,6 +1,9 @@
 package runner
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -86,6 +89,55 @@ func ApplyProgressWatchdog(run *MissionRun, now time.Time) bool {
 		}
 	}
 	return true
+}
+
+// armStallWatchdog cancels the in-flight operation context when the stall
+// deadline elapses during a blocked provider/allocate/verify call — not only
+// on the next ExecuteNextStep entry.
+func armStallWatchdog(parent context.Context, run *MissionRun) (context.Context, context.CancelFunc) {
+	timeout := StallTimeout(run.Contract)
+	if timeout <= 0 || parent == nil {
+		return parent, func() {}
+	}
+	anchor := progressAnchor(run)
+	if anchor.IsZero() {
+		anchor = time.Now().UTC()
+	}
+	deadline := anchor.Add(timeout)
+	ctx, cancel := context.WithCancel(parent)
+	go func() {
+		delay := time.Until(deadline)
+		if delay < 0 {
+			delay = 0
+		}
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return
+		case <-timer.C:
+			cancel()
+		}
+	}()
+	return ctx, cancel
+}
+
+func (r *MissionRunner) finalizeStallIfNeeded(ctx context.Context, run *MissionRun, err error) (bool, error) {
+	if err == nil || run == nil {
+		return false, nil
+	}
+	if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+		return false, nil
+	}
+	now := time.Now().UTC()
+	if !ApplyProgressWatchdog(run, now) {
+		// Context canceled for another reason (lease loss / package timeout).
+		return false, nil
+	}
+	if saveErr := r.saveRun(ctx, run); saveErr != nil {
+		return true, saveErr
+	}
+	return true, fmt.Errorf("mission stalled: no durable progress within stall timeout")
 }
 
 func progressFingerprint(run *MissionRun) string {

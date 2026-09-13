@@ -1,10 +1,20 @@
 # Nexus Production Finalization Report
 
+## Current audit addendum — 2026-09-13
+
+Current observed SHA: `eed65e5a7e46adc896165c94accb7fc73fc6750f`. The worktree
+is not frozen, so this addendum is not a certification record. Local Go,
+frontend, security, CLI build, Linux Wails build and updater gates passed;
+`make docs-verify` is blocked by a stale visual manifest. Windows/macOS native
+execution, hosted same-SHA evidence, production trust-root provisioning and a
+real authenticated Mission remain unverified. The historical candidate below
+must not be reused as evidence for the current SHA.
+
 ## Verdict
 
 NOT_READY_FOR_OVERNIGHT_CERTIFICATION
 
-## Candidate SHA
+## Historical candidate SHA
 
 `e53f8352e4c3647632ebac7877cf0a6a3bd62647` — code candidate audited by this campaign.
 

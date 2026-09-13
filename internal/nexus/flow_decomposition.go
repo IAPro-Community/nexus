@@ -14,14 +14,16 @@ import (
 
 // FlowDecompositionRequest defines the contract for decomposing a prompt or artifact into a Flow proposal (PLAN 04).
 type FlowDecompositionRequest struct {
-	ProjectID      string         `json:"project_id"`
-	ArtifactID     string         `json:"artifact_id,omitempty"`
-	Goal           string         `json:"goal"`
-	SourcePrompt   string         `json:"source_prompt,omitempty"`
-	SkillIDs       []string       `json:"skill_ids,omitempty"`
-	MaestroSkills  []string       `json:"maestro_skills,omitempty"`
-	Simple         bool           `json:"simple,omitempty"`
-	DelegationMode DelegationMode `json:"delegation_mode,omitempty"`
+	ProjectID                   string                           `json:"project_id"`
+	ArtifactID                  string                           `json:"artifact_id,omitempty"`
+	Goal                        string                           `json:"goal"`
+	SourcePrompt                string                           `json:"source_prompt,omitempty"`
+	SkillIDs                    []string                         `json:"skill_ids,omitempty"`
+	MaestroSkills               []string                         `json:"maestro_skills,omitempty"`
+	Simple                      bool                             `json:"simple,omitempty"`
+	DelegationMode              DelegationMode                   `json:"delegation_mode,omitempty"`
+	MissionTeamPreset           MissionTeamPreset                `json:"mission_team_preset,omitempty"`
+	MissionTeamRuntimeOverrides map[string]RuntimeAffinityPolicy `json:"mission_team_runtime_overrides,omitempty"`
 }
 
 // resolvedSkillIDs prefers the canonical skill_ids field and falls back to the
@@ -193,6 +195,43 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 				VerificationRequirements: verification,
 			},
 		}
+	}
+	intent := DecideIntent(goal, nil)
+	if isAtomic {
+		intent.Strategy = IntentDirect
+		intent.Confidence = "HIGH"
+		intent.RecommendedAction = "execute_single_work_unit"
+	}
+	selection := SelectMissionTeam(goal, intent)
+	if NormalizeDelegationMode(req.DelegationMode) == DelegationOff {
+		selection = MissionTeamSelection{Version: MissionTeamVersion, Strategy: intent.Strategy, Direct: true, CostClass: "DIRECT", Reason: "delegation mode OFF keeps execution with the Lead", CreatedAt: time.Now().UTC()}
+	}
+	if strings.TrimSpace(string(req.MissionTeamPreset)) != "" {
+		if selection.Direct {
+			return nil, fmt.Errorf("mission_team_preset cannot be used for a direct task")
+		}
+		definition, presetErr := MissionTeamPresetDefinitionFor(req.MissionTeamPreset)
+		if presetErr != nil {
+			return nil, presetErr
+		}
+		selection.Preset = definition.Preset
+		selection.CostClass = "EXPLICIT"
+		selection.Reason = "explicit mission team preset override"
+		selection.Signals = append(selection.Signals, "explicit_preset")
+		selection.ReviewRequired = true
+	}
+	if facts, factErr := PersistIntentDecisionFacts(flow.StructuredFacts, intent); factErr != nil {
+		return nil, factErr
+	} else {
+		flow.StructuredFacts = facts
+	}
+	if facts, factErr := PersistMissionTeamFacts(flow.StructuredFacts, selection); factErr != nil {
+		return nil, factErr
+	} else {
+		flow.StructuredFacts = facts
+	}
+	if err := BuildMissionTeamFlow(&flow, selection, firstNonEmpty(sourcePrompt, goal), verification, req.resolvedSkillIDs(), delegation.Workstreams, req.MissionTeamRuntimeOverrides); err != nil {
+		return nil, err
 	}
 
 	proposal := &FlowDecompositionProposal{

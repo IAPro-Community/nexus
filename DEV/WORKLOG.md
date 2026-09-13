@@ -1,5 +1,40 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-13 — Mission closure local verification
+
+- Current observed HEAD: `eed65e5a7e46adc896165c94accb7fc73fc6750f`; worktree
+  remained dirty due concurrent implementation/documentation work and was not
+  committed or pushed.
+- Hardened Mission allocation/error semantics, failover confirmation, runner
+  evidence requirements, failed-launch cleanup, and updater trust-root
+  provisioning. Added quota/network classification and `/e[...]` byte-
+  transparency regressions.
+- PASS: full Go tests, race, vet, golangci-lint, frontend quality, security,
+  CLI build, Linux Wails build, web verification and updater verification.
+- BLOCKED: `make docs-verify` reports a stale visual manifest for uncommitted
+  frontend changes. UNVERIFIED: real provider Mission, production signing
+  keys, native Windows/macOS/NSIS, hosted same-SHA matrix and eight-hour soak.
+
+## 2026-09-13 — Mission Teams / autonomous delivery pipeline
+
+- Added a data-driven Mission Team projection over existing Flow, WorkPlan,
+  AgentMatcher, ResourceScheduler and MissionRunner contracts. No second Agent,
+  scheduler, WorkPlan or Mission engine was introduced.
+- Added explainable preset selection for direct work, Feature Delivery, Bug Fix,
+  Refactor, Architecture Change and Release Candidate; persisted selection facts,
+  phase metadata, semantic handoffs and phase read-model projections.
+- Added structured review finding identity/ledger with deduplication,
+  resolution/regression tracking, bounded remediation and review invalidation
+  after post-review changes.
+- Added existing-surface Web visibility for preset, current phase, Agent and
+  actual resource; added architecture/product/operations/testing docs and the
+  canonical report at `DEV/validation/current/MISSION_TEAMS_REPORT.md`.
+- Deterministic unit/integration/race/overnight smoke coverage is green. Real
+  authenticated provider, native-platform and eight-hour overnight evidence
+  remains UNVERIFIED; coverage/release-proof is blocked by missing Go `covdata`.
+- No commit or push was created. Unrelated concurrent worktree edits were
+  preserved.
+
 ## 2026-09-13 — Production GO/NO-GO independent red team
 
 - Captured git/HEAD; HEAD moved during the audit; SHA not on origin.

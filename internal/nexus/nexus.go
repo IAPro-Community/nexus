@@ -42,16 +42,7 @@ func (p *prodLauncher) Launch(ctx context.Context, opts launcher.LaunchOptions) 
 }
 
 func (p *prodLauncher) Stop(runtimeID string) error {
-	client, err := protocol.NewClient(runtimeID)
-	if err != nil {
-		return err
-	}
-	stopErr := client.Stop()
-	closeErr := client.Close()
-	if stopErr != nil {
-		return stopErr
-	}
-	return closeErr
+	return p.l.Stop(runtimeID)
 }
 
 // Nexus is the product-level service bridging the durable store and the
@@ -336,9 +327,30 @@ func submitPromptToRuntime(runtimeID, prompt string) error {
 	return client.SubmitPrompt(prompt)
 }
 
+// AskAgentOptions controls how AskAgent submits a prompt to a live Agent.
+type AskAgentOptions struct {
+	StartIfNeeded bool
+	// CompileSpecialization wraps the prompt in the WorkPackage envelope.
+	// It is correct for headless/Mission execution; an interactive runtime
+	// already carries the persona in-session, and re-sending the envelope
+	// each turn floods the provider TUI.
+	CompileSpecialization bool
+}
+
 // AskAgent submits work to an existing persistent Agent. A stopped Agent may
 // be started first when explicitly requested, but Agent identity is preserved.
+// Specialization compilation remains on by default for headless callers.
 func (n *Nexus) AskAgent(ctx context.Context, agentID, prompt string, startIfNeeded bool) (*AskAgentResult, error) {
+	return n.AskAgentWithOptions(ctx, agentID, prompt, AskAgentOptions{
+		StartIfNeeded:         startIfNeeded,
+		CompileSpecialization: true,
+	})
+}
+
+// AskAgentWithOptions submits work with explicit control over specialization
+// compilation. Interactive Lead Agents with a live runtime never receive the
+// WorkPackage envelope, even when CompileSpecialization is requested.
+func (n *Nexus) AskAgentWithOptions(ctx context.Context, agentID, prompt string, opts AskAgentOptions) (*AskAgentResult, error) {
 	prompt = strings.TrimSpace(prompt)
 	if prompt == "" {
 		return nil, fmt.Errorf("prompt is required")
@@ -358,10 +370,12 @@ func (n *Nexus) AskAgent(ctx context.Context, agentID, prompt string, startIfNee
 
 	runtimeID := ""
 	started := false
+	runtimeLive := false
 	if gen, genErr := st.CurrentGeneration(agentID); genErr == nil && n.runtimeAlive(gen.RuntimeID) {
 		runtimeID = gen.RuntimeID
+		runtimeLive = true
 	} else {
-		if !startIfNeeded {
+		if !opts.StartIfNeeded {
 			return nil, fmt.Errorf("agent %s has no active runtime; use Start & Ask", agentID)
 		}
 		state, _ := n.EffectiveAgentState(agentID)
@@ -380,13 +394,21 @@ func (n *Nexus) AskAgent(ctx context.Context, agentID, prompt string, startIfNee
 		}
 		runtimeID = sess.RuntimeID
 		started = true
+		runtimeLive = true
+	}
+
+	compile := opts.CompileSpecialization
+	// Interactive Lead sessions already host the persona in the live TUI;
+	// never inject the WorkPackage envelope into that path.
+	if runtimeLive && strings.EqualFold(strings.TrimSpace(agent.Role), interactiveLeadRole) {
+		compile = false
 	}
 
 	submit := n.submitPrompt
 	if submit == nil {
 		submit = submitPromptToRuntime
 	}
-	if agentCfg.AgentSpec.HasCustomBehavior() {
+	if compile && agentCfg.AgentSpec.HasCustomBehavior() {
 		compiled, compileErr := intelligence.NewNexusEngine(nil).CompileExecutionContext(ctx, intelligence.ExecutionContextRequest{
 			Agent: agentCfg.AgentSpec,
 			Task:  intelligence.WorkPackageContext{Title: "Direct Agent request", Goal: prompt, Role: agentCfg.AgentSpec.Role},
@@ -632,7 +654,8 @@ func (n *Nexus) StopAgent(ctx context.Context, agentID string) error {
 	for {
 		select {
 		case <-deadline:
-			// Timeout: force kill and mark as failed.
+			// Timeout: force kill by PID and mark as failed.
+			n.forceKillRuntime(gen.RuntimeID)
 			agent.Status = store.AgentFailed
 			agent.ContinuityStatus = "STOP_TIMEOUT"
 			if err := st.UpdateAgent(agent); err != nil {
@@ -660,6 +683,19 @@ func (n *Nexus) StopAgent(ctx context.Context, agentID string) error {
 
 func (n *Nexus) stopRuntime(runtimeID string) {
 	_ = n.launcher.Stop(runtimeID)
+}
+
+func (n *Nexus) forceKillRuntime(runtimeID string) {
+	if runtimeID == "" {
+		return
+	}
+	sess, ok := n.runtimeRegistry().Get(runtimeID)
+	if ok {
+		launcher.KillProcess(sess.PID)
+		launcher.KillProcess(sess.HostPID)
+	}
+	_ = os.Remove(protocol.EndpointPath(runtimeID))
+	_ = n.runtimeRegistry().UpdateState(runtimeID, registry.StateFailed)
 }
 
 // runtimeAlive reports whether a runtime is currently usable: the process is

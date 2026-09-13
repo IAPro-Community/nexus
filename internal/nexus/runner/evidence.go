@@ -298,7 +298,7 @@ func (r *MissionRunner) ensureContextCapsule(ctx context.Context, run *MissionRu
 	if len(skillIDs) == 0 {
 		skillIDs = append(skillIDs, pkg.MaestroSkills...)
 	}
-	capsule := &ContextCapsule{ID: "capsule_" + ids.NewRuntimeID(), RunID: run.ID, ProjectID: run.ProjectID, FlowID: run.PlanID, FlowRevision: run.PlanRevision, Branch: branch, Head: head, DirtyFingerprint: snapshotFingerprint(baseline),
+	capsule := &ContextCapsule{ID: "capsule_" + ids.NewRuntimeID(), RunID: run.ID, ProjectID: run.ProjectID, FlowID: run.PlanID, FlowRevision: run.PlanRevision, Branch: branch, Head: head, DirtyFingerprint: snapshotFingerprint(baseline), HandoffJSON: pkg.HandoffJSON,
 		Step:          ContextCapsuleStep{ID: pkg.PackageID, Title: pkg.Title, Goal: pkg.Goal, Role: pkg.Role, Dependencies: capStrings(pkg.Dependencies, maxCapsuleStrings), AssignmentStrategy: pkg.AssignmentStrategy, VerificationRequirements: capStrings(pkg.VerificationRequirements, maxCapsuleStrings)},
 		RelevantPaths: capStrings(pkg.RelevantPaths, maxCapsuleStrings), DurableContextRefs: durableContextRefs(pkg.Workspace), DependencyReceipts: r.directDependencyReceipts(ctx, run, pkg), SkillIDs: capStrings(skillIDs, maxCapsuleStrings), MaestroSkills: capStrings(pkg.MaestroSkills, maxCapsuleStrings), AcceptanceCriteria: capStrings(pkg.AcceptanceCriteria, maxCapsuleStrings), Constraints: capsuleConstraints(run.Contract), BaselineWorkspaceSnapshot: baseline, CreatedAt: time.Now().UTC()}
 	if err := evidence.SaveContextCapsule(ctx, capsule); err != nil {
@@ -352,7 +352,7 @@ func (r *MissionRunner) ensureWorkReceipt(ctx context.Context, run *MissionRun, 
 	if status == "FAILED" && strings.TrimSpace(pkg.ErrorMessage) != "" {
 		remaining = []string{strings.TrimSpace(pkg.ErrorMessage)}
 	}
-	receipt := &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: status, Summary: fmt.Sprintf("%s ended in %s", pkg.Title, status), ChangedFiles: changedFiles, Commands: receiptCommands(pkg.Verifications), Tests: append([]VerificationResult(nil), pkg.Verifications...), Decisions: []string{}, Artifacts: []string{}, RemainingIssues: remaining, Verification: append([]VerificationResult(nil), pkg.Verifications...), AgentID: pkg.AssignedAgent, BaseRevision: base, ResultRevision: resultRevision, StartedAt: pkg.StartedAt, CompletedAt: completed}
+	receipt := &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: status, Summary: fmt.Sprintf("%s ended in %s", pkg.Title, status), ChangedFiles: changedFiles, Commands: receiptCommands(pkg.Verifications), Tests: append([]VerificationResult(nil), pkg.Verifications...), Decisions: []string{}, Artifacts: []string{}, RemainingIssues: remaining, Verification: append([]VerificationResult(nil), pkg.Verifications...), HandoffJSON: pkg.HandoffJSON, AgentID: pkg.AssignedAgent, BaseRevision: base, ResultRevision: resultRevision, StartedAt: pkg.StartedAt, CompletedAt: completed}
 	if err := evidence.SaveWorkReceipt(ctx, receipt); err != nil {
 		return fmt.Errorf("persist work receipt: %w", err)
 	}
@@ -361,6 +361,7 @@ func (r *MissionRunner) ensureWorkReceipt(ctx context.Context, run *MissionRun, 
 }
 
 func (r *MissionRunner) saveRun(ctx context.Context, run *MissionRun) error {
+	refreshPhaseRuns(run)
 	if err := validateMissionRunLifecycle(run); err != nil {
 		return err
 	}

@@ -2,15 +2,30 @@ package nexus
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/kivervinicius/ai-cli/internal/nexus/store"
 )
+
+// ErrTerminalMissionStatusPatch rejects HTTP/API patches that try to mark a
+// Mission terminal without MissionRun evidence.
+var ErrTerminalMissionStatusPatch = errors.New("terminal mission status requires MissionRun evidence")
 
 // MissionApplicationService owns durable Mission CRUD and its planning-side
 // task/assignment views. MissionRun execution remains on the runtime service.
 type MissionApplicationService struct {
 	nexus *Nexus
+}
+
+func isTerminalMissionStatusPatch(status string) bool {
+	normalized := strings.ToUpper(strings.TrimSpace(status))
+	switch normalized {
+	case store.MissionCompleted, "COMPLETED_VERIFIED":
+		return true
+	}
+	return strings.HasPrefix(normalized, "FAILED")
 }
 
 type MissionPatch struct {
@@ -112,6 +127,9 @@ func (s *MissionApplicationService) Update(ctx context.Context, missionID string
 		mission.Description = *patch.Description
 	}
 	if patch.Status != nil {
+		if isTerminalMissionStatusPatch(*patch.Status) {
+			return nil, fmt.Errorf("%w: %s", ErrTerminalMissionStatusPatch, strings.TrimSpace(*patch.Status))
+		}
 		mission.Status = *patch.Status
 	}
 	if patch.Goal != nil {

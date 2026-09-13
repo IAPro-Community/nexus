@@ -59,12 +59,14 @@ type PlanSpec struct {
 type PackageSpec struct {
 	ID                       string   `json:"id"`
 	PhaseID                  string   `json:"phase_id"`
+	PhaseType                string   `json:"phase_type,omitempty"`
 	Title                    string   `json:"title"`
 	Goal                     string   `json:"goal"`
 	Priority                 string   `json:"priority"`
 	Dependencies             []string `json:"dependencies,omitempty"`
 	ParallelGroup            string   `json:"parallel_group,omitempty"`
 	Role                     string   `json:"role,omitempty"`
+	ReviewRequired           bool     `json:"review_required,omitempty"`
 	TaskRequirements         string   `json:"task_requirements,omitempty"`
 	AgentAllocation          string   `json:"agent_allocation,omitempty"`
 	AssignmentStrategy       string   `json:"assignment_strategy,omitempty"`
@@ -78,17 +80,50 @@ type PackageSpec struct {
 	RelevantPaths            []string `json:"relevant_paths,omitempty"`
 	AcceptanceCriteria       []string `json:"acceptance_criteria,omitempty"`
 	VerificationRequirements []string `json:"verification_requirements,omitempty"`
+	EntryCriteria            []string `json:"entry_criteria,omitempty"`
+	ExitCriteria             []string `json:"exit_criteria,omitempty"`
+	RequiredEvidence         []string `json:"required_evidence,omitempty"`
+	HandoffJSON              string   `json:"handoff,omitempty"`
 	RoutingDecisionJSON      string   `json:"routing_decision,omitempty"`
+}
+
+type ReviewFindingStatus string
+
+const (
+	FindingNew       ReviewFindingStatus = "NEW"
+	FindingOpen      ReviewFindingStatus = "OPEN"
+	FindingResolved  ReviewFindingStatus = "RESOLVED"
+	FindingRegressed ReviewFindingStatus = "REGRESSED"
+)
+
+// ReviewFinding is durable, semantic review evidence. ID is derived from the
+// normalized category/location/description and remains stable across retries.
+type ReviewFinding struct {
+	ID               string              `json:"id"`
+	Severity         string              `json:"severity,omitempty"`
+	Category         string              `json:"category,omitempty"`
+	File             string              `json:"file,omitempty"`
+	Location         string              `json:"location,omitempty"`
+	Description      string              `json:"description"`
+	Rationale        string              `json:"rationale,omitempty"`
+	RequiredAction   string              `json:"required_action,omitempty"`
+	Evidence         []string            `json:"evidence,omitempty"`
+	Status           ReviewFindingStatus `json:"status"`
+	FirstSeenAttempt int                 `json:"first_seen_attempt,omitempty"`
+	LastSeenAttempt  int                 `json:"last_seen_attempt,omitempty"`
 }
 
 // ReviewVerdict records independent evaluation evidence. A verdict without a
 // reviewer identity is never accepted by MissionRunner.
 type ReviewVerdict struct {
-	Approved        bool      `json:"approved"`
-	ReviewerAgentID string    `json:"reviewer_agent_id"`
-	Findings        []string  `json:"findings,omitempty"`
-	RemediationTips []string  `json:"remediation_tips,omitempty"`
-	ReviewedAt      time.Time `json:"reviewed_at"`
+	Approved            bool            `json:"approved"`
+	ReviewerAgentID     string          `json:"reviewer_agent_id"`
+	Findings            []string        `json:"findings,omitempty"`
+	StructuredFindings  []ReviewFinding `json:"structured_findings,omitempty"`
+	RemediationTips     []string        `json:"remediation_tips,omitempty"`
+	ReviewedAt          time.Time       `json:"reviewed_at"`
+	ReviewedFingerprint string          `json:"reviewed_fingerprint,omitempty"`
+	ReviewIndependence  string          `json:"review_independence,omitempty"`
 }
 
 type VerificationResult struct {
@@ -120,6 +155,7 @@ type ContextCapsule struct {
 	MaestroSkills             []string           `json:"maestro_skills,omitempty"`
 	AcceptanceCriteria        []string           `json:"acceptance_criteria,omitempty"`
 	Constraints               []string           `json:"constraints,omitempty"`
+	HandoffJSON               string             `json:"handoff,omitempty"`
 	BaselineWorkspaceSnapshot map[string]string  `json:"baseline_workspace_snapshot,omitempty"`
 	CreatedAt                 time.Time          `json:"created_at"`
 }
@@ -148,6 +184,7 @@ type WorkReceipt struct {
 	Decisions       []string             `json:"decisions"`
 	Artifacts       []string             `json:"artifacts"`
 	RemainingIssues []string             `json:"remaining_issues"`
+	HandoffJSON     string               `json:"handoff,omitempty"`
 	Verification    []VerificationResult `json:"verification"`
 	AgentID         string               `json:"agent_id,omitempty"`
 	BaseRevision    string               `json:"base_revision,omitempty"`
@@ -160,10 +197,12 @@ type PackageRun struct {
 	ID                       string               `json:"id"`
 	PackageID                string               `json:"package_id"`
 	PhaseID                  string               `json:"phase_id,omitempty"`
+	PhaseType                string               `json:"phase_type,omitempty"`
 	Title                    string               `json:"title"`
 	Goal                     string               `json:"goal,omitempty"`
 	Priority                 string               `json:"priority,omitempty"`
 	Role                     string               `json:"role,omitempty"`
+	ReviewRequired           bool                 `json:"review_required,omitempty"`
 	TaskRequirements         string               `json:"task_requirements,omitempty"`
 	Dependencies             []string             `json:"dependencies,omitempty"`
 	ParallelGroup            string               `json:"parallel_group,omitempty"`
@@ -178,6 +217,10 @@ type PackageRun struct {
 	RelevantPaths            []string             `json:"relevant_paths,omitempty"`
 	AcceptanceCriteria       []string             `json:"acceptance_criteria,omitempty"`
 	VerificationRequirements []string             `json:"verification_requirements,omitempty"`
+	EntryCriteria            []string             `json:"entry_criteria,omitempty"`
+	ExitCriteria             []string             `json:"exit_criteria,omitempty"`
+	RequiredEvidence         []string             `json:"required_evidence,omitempty"`
+	HandoffJSON              string               `json:"handoff,omitempty"`
 	ContextCapsule           *ContextCapsule      `json:"context_capsule,omitempty"`
 	WorkReceipt              *WorkReceipt         `json:"work_receipt,omitempty"`
 	State                    State                `json:"state"`
@@ -197,11 +240,29 @@ type PackageRun struct {
 	LastFailureSignature     string               `json:"last_failure_signature,omitempty"`
 	NoProgressCount          int                  `json:"no_progress_count,omitempty"`
 	Verdicts                 []ReviewVerdict      `json:"verdicts,omitempty"`
+	ReviewFindings           []ReviewFinding      `json:"review_findings,omitempty"`
+	ReviewInvalidated        bool                 `json:"review_invalidated,omitempty"`
+	ReviewInvalidationReason string               `json:"review_invalidation_reason,omitempty"`
 	Verifications            []VerificationResult `json:"verifications,omitempty"`
 	ErrorMessage             string               `json:"error_message,omitempty"`
 	RoutingDecisionJSON      string               `json:"routing_decision,omitempty"`
 	StartedAt                time.Time            `json:"started_at"`
 	FinishedAt               *time.Time           `json:"finished_at,omitempty"`
+}
+
+// PhaseRun is the durable projection of phase lifecycle. PackageRun remains
+// the execution authority; this read model lets UI/CLI show one phase even
+// when it contains multiple parallel work packages.
+type PhaseRun struct {
+	ID             string    `json:"id"`
+	Type           string    `json:"type,omitempty"`
+	State          State     `json:"state"`
+	Attempt        int       `json:"attempt"`
+	PackageIDs     []string  `json:"package_ids,omitempty"`
+	AgentIDs       []string  `json:"agent_ids,omitempty"`
+	RoutingReasons []string  `json:"routing_reasons,omitempty"`
+	HandoffJSON    string    `json:"handoff,omitempty"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // InterventionOperation is a closed set of operations that the core can
@@ -278,8 +339,10 @@ type MissionRun struct {
 	State               State                 `json:"state"`
 	Contract            AutonomyContract      `json:"contract"`
 	CurrentPkgIndex     int                   `json:"current_pkg_index"` // compatibility/UI hint only
+	CurrentPhaseID      string                `json:"current_phase_id,omitempty"`
 	TotalIterations     int                   `json:"total_iterations"`
 	PackageRuns         []PackageRun          `json:"package_runs"`
+	PhaseRuns           []PhaseRun            `json:"phase_runs,omitempty"`
 	LeaseOwner          string                `json:"lease_owner,omitempty"`
 	LeaseToken          string                `json:"lease_token,omitempty"`
 	LeaseExpiresAt      *time.Time            `json:"lease_expires_at,omitempty"`

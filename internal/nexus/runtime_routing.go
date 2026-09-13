@@ -76,6 +76,17 @@ type ExecutionRoutingDecision = RuntimeRoutingDecision
 
 var ErrBlockedResource = errors.New("blocked resource")
 
+// Typed Mission allocation failures — never blame quota/rate-limit when the
+// pool is unregistered, unauthenticated, or UNKNOWN.
+var (
+	ErrAllocationUnregistered    = errors.New("ALLOCATION_UNREGISTERED")
+	ErrAllocationUnauthenticated = errors.New("ALLOCATION_UNAUTHENTICATED")
+	ErrAllocationUnknownQuota    = errors.New("ALLOCATION_UNKNOWN_QUOTA")
+	ErrAllocationQuotaExhausted  = errors.New("ALLOCATION_QUOTA_EXHAUSTED")
+	ErrAllocationRateLimited     = errors.New("ALLOCATION_RATE_LIMITED")
+	ErrAllocationNetwork         = errors.New("ALLOCATION_NETWORK")
+)
+
 // ResolveTaskModel selects a model for one WorkUnit after the provider/profile
 // scheduler has selected an account. Model candidates are configuration
 // metadata; health, authentication and quota are always taken from the live

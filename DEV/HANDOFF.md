@@ -1,5 +1,63 @@
 # Handoff
 
+## Pós PRODUCTION_NO_GO — Fase 0 código — 2026-09-13
+
+Fase 0 (código) fechou os P0 de falso sucesso do red team
+`PRODUCTION_NO_GO` / `CERTIFICATION_INVALID_FOR_CURRENT_HEAD`.
+
+Feito no worktree (ainda **sem** SHA congelado até o commit desta sessão):
+
+- Maestro default `OFF`; ASSIST degrada; branding Web sem Maestro obrigatório
+- PATCH de status terminal de Mission → 409; DoD global na árvore integrada
+- `nexus run` / `nexus plan run` autônomos (worker); UNKNOWN inelegível; erros tipados
+- Kill pós-handshake; Stop/StopAgent force-kill; watchdog cancela `opCtx`
+- Installers desktop exigem manifesto Ed25519; CI desktop Linux/Windows/macOS
+  fail-closed sem `NEXUS_UPDATE_PUBLIC_KEY`
+
+Gates locais: `make quality` + `go test -race` nos pacotes tocados + smoke isolado
+(`maestro_mode=OFF`; `nexus run` sem “quota/rate limit”) PASS nesta máquina.
+
+**Ainda não é GO.** Não inventar chave Ed25519. Sem push até
+`vars.NEXUS_UPDATE_PUBLIC_KEY` existir. Overnight/CI same-SHA/Mission autenticada/
+soak 8h = Frentes B/C em pasta de evidência **nova** (não reusar `e53f835`).
+
+Relatório NO-GO do SHA antigo:
+[`validation/production-go-no-go/FINAL_REPORT.md`](validation/production-go-no-go/FINAL_REPORT.md).
+
+## Current closure handoff — 2026-09-13
+
+Observed SHA: `eed65e5a7e46adc896165c94accb7fc73fc6750f`. The worktree is not
+frozen and no commit/push was performed. Local implementation and quality
+gates are green, including Mission classification/failover safeguards,
+runner evidence gating, failed-launch cleanup, updater trust-root checks,
+Linux Wails packaging, and `/e[...]` byte-preservation regressions.
+
+Do not promote this to release readiness: `make docs-verify` is blocked by a
+stale visual manifest, and authenticated provider Missions, production signing
+keys, native Windows/macOS/NSIS, hosted same-SHA evidence and 8-hour soak are
+still unverified. Re-run the complete matrix after freezing one clean SHA.
+
+## Mission Teams / autonomous delivery pipeline — 2026-09-13
+
+The current worktree contains the Mission Team product layer as an additive
+projection over the existing Flow → WorkPlan → MissionRunner path. It selects
+DIRECT for small work and persists role-based phases for substantial work,
+including planning, implementation fan-out, review, automatic remediation and
+verification. Agent identity remains separate from desired/actual provider
+routing. Review findings are structured, stable, deduplicated and bounded;
+phase state, handoffs, receipts and routing are restart-safe projections.
+
+The canonical fixture `TestMissionTeamPlannerBuilderReviewerVerifierPipeline`
+and `make overnight-smoke` are green. Full Go tests, race, vet, security,
+build, desktop build, E2E and Attention E2E are green. `make coverage` and
+`make release-proof` remain blocked by the installed Go 1.25 toolchain's
+missing `covdata`; latest `make web-verify` is blocked by formatting in an
+unrelated concurrent `NexusSplashScreen.tsx` edit. Real authenticated provider,
+native Windows/macOS and eight-hour overnight evidence remain UNVERIFIED.
+
+Canonical report: [`validation/current/MISSION_TEAMS_REPORT.md`](validation/current/MISSION_TEAMS_REPORT.md).
+No commit or push was made; preserve unrelated concurrent worktree edits.
+
 ## Documentation product guide — 2026-09-13
 
 Public documentation now runs from README through Quick Start, feature

@@ -184,6 +184,7 @@ type quotaViewCache struct {
 type quotasLoadedMsg struct {
 	rows     []UsageTableRow
 	accounts map[string]model.AccountInfo
+	silent   bool
 }
 
 type sessionsLoadedMsg struct {
@@ -191,6 +192,8 @@ type sessionsLoadedMsg struct {
 }
 
 type spinnerTickMsg struct{}
+
+type quotaPollTickMsg struct{}
 
 // accountRefreshedMsg carries the result of an on-demand refresh of one account.
 type accountRefreshedMsg struct {
@@ -200,7 +203,19 @@ type accountRefreshedMsg struct {
 	acc      model.AccountInfo
 }
 
+const quotaPollInterval = 60 * time.Second
+
+func quotaPollTick() tea.Cmd {
+	return tea.Tick(quotaPollInterval, func(time.Time) tea.Msg {
+		return quotaPollTickMsg{}
+	})
+}
+
 func loadQuotasCmd(profiles []model.Profile, defaults map[string]string) tea.Cmd {
+	return loadQuotasCmdOpts(profiles, defaults, false)
+}
+
+func loadQuotasCmdOpts(profiles []model.Profile, defaults map[string]string, silent bool) tea.Cmd {
 	return func() tea.Msg {
 		type result struct {
 			rows []UsageTableRow
@@ -226,7 +241,7 @@ func loadQuotasCmd(profiles []model.Profile, defaults map[string]string) tea.Cmd
 			}(p)
 		}
 		wg.Wait()
-		return quotasLoadedMsg{rows: out.rows, accounts: out.accs}
+		return quotasLoadedMsg{rows: out.rows, accounts: out.accs, silent: silent}
 	}
 }
 
@@ -591,17 +606,22 @@ func newUnifiedUsageModel(opts UnifiedUsageOptions) usageTableModel {
 	styles.Header = styles.Header.Bold(true).Foreground(lipgloss.Color("39")).BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240")).BorderBottom(true)
 	styles.Selected = styles.Selected.Foreground(lipgloss.Color("15")).Background(lipgloss.Color("57")).Bold(true)
 
+	initW, initH := 120, 30
+	if tw, th, err := term.GetSize(int(os.Stdout.Fd())); err == nil && tw > 0 && th > 0 {
+		initW, initH = tw, th
+	}
+
 	// Accounts table setup
 	filteredAccounts := make([]UsageTableRow, len(allRows))
 	copy(filteredAccounts, allRows)
-	accTable := table.New(table.WithColumns(usageColumns(132)), table.WithRows(toUsageTableRows(filteredAccounts)), table.WithFocused(true), table.WithHeight(10))
+	accTable := table.New(table.WithColumns(usageColumns(initW)), table.WithRows(toUsageTableRowsForWidth(filteredAccounts, initW)), table.WithFocused(true), table.WithHeight(tableBodyHeight(initH)))
 	accTable.SetStyles(styles)
 
 	// Sessions table setup
 	allSess := opts.Sessions
 	filteredSess := make([]conversation.Conversation, len(allSess))
 	copy(filteredSess, allSess)
-	sessTable := table.New(table.WithColumns(sessionColumns(132)), table.WithRows(toSessionTableRows(filteredSess)), table.WithFocused(false), table.WithHeight(10))
+	sessTable := table.New(table.WithColumns(sessionColumns(initW)), table.WithRows(toSessionTableRowsForWidth(filteredSess, initW)), table.WithFocused(false), table.WithHeight(tableBodyHeight(initH)))
 	sessTable.SetStyles(styles)
 
 	return usageTableModel{
@@ -621,8 +641,8 @@ func newUnifiedUsageModel(opts UnifiedUsageOptions) usageTableModel {
 		filteredSessions: filteredSess,
 		sessionTable:     sessTable,
 		filter:           filter,
-		width:            120,
-		height:           30,
+		width:            initW,
+		height:           initH,
 	}
 }
 
@@ -634,9 +654,8 @@ func (m usageTableModel) Init() tea.Cmd {
 	if m.loadingSessions {
 		cmds = append(cmds, loadSessionsCmd(m.options.Workspace))
 	}
-	if len(cmds) == 0 {
-		return nil
-	}
+	// Keep the TUI in sync with QuotaMonitor writes without blocking keystrokes.
+	cmds = append(cmds, quotaPollTick())
 	return tea.Batch(cmds...)
 }
 
@@ -669,14 +688,23 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.options.Accounts[k] = v
 			}
 		}
-		m.statusMsg = "Quotas atualizadas"
+		if !msg.silent {
+			m.statusMsg = "Quotas atualizadas"
+		}
 		return m, nil
+
+	case quotaPollTickMsg:
+		next := quotaPollTick()
+		if m.loadingQuotas || m.modalMode != ModalNone || len(m.options.ProfilesToLoad) == 0 {
+			return m, next
+		}
+		return m, tea.Batch(loadQuotasCmdOpts(m.options.ProfilesToLoad, m.options.Defaults, true), next)
 
 	case sessionsLoadedMsg:
 		m.loadingSessions = false
 		m.allSessions = msg.sessions
 		m.filteredSessions = filterSessionRows(m.allSessions, m.filter.Value())
-		m.sessionTable.SetRows(toSessionTableRows(m.filteredSessions))
+		m.sessionTable.SetRows(toSessionTableRowsForWidth(m.filteredSessions, m.width))
 		return m, nil
 
 	case accountRefreshedMsg:
@@ -771,7 +799,7 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				} else {
 					m.filteredSessions = filterSessionRows(m.allSessions, q)
-					m.sessionTable.SetRows(toSessionTableRows(m.filteredSessions))
+					m.sessionTable.SetRows(toSessionTableRowsForWidth(m.filteredSessions, m.width))
 					if len(m.filteredSessions) > 0 && m.sessionTable.Cursor() < 0 {
 						m.sessionTable.SetCursor(0)
 					}
@@ -973,8 +1001,8 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *usageTableModel) resizeTables() {
 	w := m.width
-	if w < 56 {
-		w = 56
+	if w < 40 {
+		w = 40
 	}
 	h := tableBodyHeight(m.height)
 	m.accountTable.SetColumns(usageColumns(m.width))
@@ -984,6 +1012,7 @@ func (m *usageTableModel) resizeTables() {
 	m.sessionTable.SetColumns(sessionColumns(m.width))
 	m.sessionTable.SetWidth(w)
 	m.sessionTable.SetHeight(h)
+	m.sessionTable.SetRows(toSessionTableRowsForWidth(m.filteredSessions, m.width))
 }
 
 func (m *usageTableModel) setAccountRows() {
@@ -1008,8 +1037,8 @@ func (m usageTableModel) View() string {
 	}
 
 	availWidth := m.width
-	if availWidth < 80 {
-		availWidth = 80
+	if availWidth < 40 {
+		availWidth = 40
 	}
 
 	if m.modalMode == ModalQuotaDetails {
@@ -1142,10 +1171,11 @@ func (m usageTableModel) View() string {
 		previewLine = previewLine + "  " + status
 	}
 
-	help := subStyle.Render("↑↓  ⏎ lançar  r atualizar  s detalhe  d padrão  l login  / filtro  q sair")
+	helpText := "↑↓  ⏎ lançar  r atualizar  s detalhe  d padrão  l login  / filtro  q sair"
 	if m.filter.Focused() {
-		help = subStyle.Render("digite para filtrar · Enter/Esc conclui")
+		helpText = "digite para filtrar · Enter/Esc conclui"
 	}
+	help := subStyle.Render(truncateRunes(helpText, availWidth))
 
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
@@ -1281,21 +1311,33 @@ func usageColumns(width int) []table.Column {
 }
 
 func sessionColumns(width int) []table.Column {
+	if width < 70 {
+		titleW := max(12, width-8-8-2)
+		return []table.Column{
+			{Title: "PROV", Width: 8},
+			{Title: "SESSÃO", Width: 8},
+			{Title: "TÍTULO", Width: titleW},
+		}
+	}
 	if width < 110 {
+		fixed := 10 + 10 + 12 + 14 + 4
+		titleW := max(16, width-fixed)
 		return []table.Column{
 			{Title: "PROVEDOR", Width: 10},
 			{Title: "SESSÃO", Width: 10},
 			{Title: "MODIFICADO", Width: 12},
-			{Title: "TÍTULO", Width: 26},
-			{Title: "WORKSPACE", Width: 16},
+			{Title: "TÍTULO", Width: titleW},
+			{Title: "WORKSPACE", Width: 14},
 		}
 	}
+	fixed := 11 + 14 + 16 + 22 + 4
+	titleW := max(24, width-fixed)
 	return []table.Column{
 		{Title: "PROVEDOR", Width: 11},
 		{Title: "SESSÃO", Width: 14},
 		{Title: "MODIFICADO", Width: 16},
-		{Title: "TÍTULO", Width: 48},
-		{Title: "WORKSPACE", Width: 26},
+		{Title: "TÍTULO", Width: titleW},
+		{Title: "WORKSPACE", Width: 22},
 	}
 }
 
@@ -1456,25 +1498,68 @@ func usageQuotaStyle(status string) lipgloss.Style {
 }
 
 func toSessionTableRows(sess []conversation.Conversation) []table.Row {
+	return toSessionTableRowsForWidth(sess, 132)
+}
+
+func toSessionTableRowsForWidth(sess []conversation.Conversation, width int) []table.Row {
+	cols := sessionColumns(width)
+	showModified := false
+	showWorkspace := false
+	titleW, sessW := 24, 10
+	for _, c := range cols {
+		switch c.Title {
+		case "MODIFICADO":
+			showModified = true
+		case "WORKSPACE":
+			showWorkspace = true
+		case "TÍTULO":
+			titleW = c.Width
+		case "SESSÃO":
+			sessW = c.Width
+		}
+	}
 	result := make([]table.Row, 0, len(sess))
 	for _, s := range sess {
 		provBadge := formatProviderBadge(s.Provider)
 		sID := s.ID
-		if len(sID) > 10 {
-			sID = sID[:8] + ".."
+		if len(sID) > sessW {
+			if sessW <= 2 {
+				sID = sID[:sessW]
+			} else {
+				sID = sID[:sessW-2] + ".."
+			}
 		}
-		timeStr := formatTimeAgo(s.LastModified)
-		title := s.Title
-		if len(title) > 46 {
-			title = title[:44] + ".."
-		}
+		title := truncateRunes(s.Title, titleW)
 		wsShort := filepath.Base(s.Workspace)
 		if wsShort == "" || wsShort == "." {
 			wsShort = "~"
 		}
-		result = append(result, table.Row{provBadge, sID, timeStr, title, "~/" + wsShort})
+		wsShort = "~/" + wsShort
+		row := table.Row{provBadge, sID}
+		if showModified {
+			row = append(row, formatTimeAgo(s.LastModified))
+		}
+		row = append(row, title)
+		if showWorkspace {
+			row = append(row, truncateRunes(wsShort, 22))
+		}
+		result = append(result, row)
 	}
 	return result
+}
+
+func truncateRunes(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+	runes := []rune(s)
+	if len(runes) <= maxWidth {
+		return s
+	}
+	if maxWidth <= 2 {
+		return string(runes[:maxWidth])
+	}
+	return string(runes[:maxWidth-2]) + ".."
 }
 
 func filterUsageRows(rows []UsageTableRow, query string) []UsageTableRow {

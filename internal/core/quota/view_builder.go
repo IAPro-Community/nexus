@@ -43,6 +43,8 @@ func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
 	for _, w := range snap.Windows {
 		gKey := w.Group
 		remaining := 0.0
+		kind := w.Kind
+		status := string(snap.Status)
 		if w.RemainingPercent != nil {
 			remaining = *w.RemainingPercent
 			if remaining < 0 {
@@ -51,25 +53,31 @@ func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
 			if remaining > 100 {
 				remaining = 100
 			}
+		} else {
+			// Missing percent must not become synthetic 0% exhausted.
+			kind = "unknown"
+			if status == "" || status == string(model.UsageLive) || status == string(model.UsageCached) || status == string(model.UsageEstimated) {
+				status = string(model.UsageUnknown)
+			}
 		}
 
 		label := WindowLabel(w.Kind)
 		_ = multiGroup
 		_ = gKey
 
-		bar := RenderBarWithPercent(remaining, string(snap.Status), 10)
+		bar := RenderBarWithPercent(remaining, status, 10)
 
 		// For multi-group AGY: if the group is "gemini" and kind is "5h"/"weekly",
 		// add model context to the label when ambiguous.
 		displayLabel := label
 
 		appended := Window{
-			Kind:      w.Kind,
+			Kind:      kind,
 			Label:     displayLabel,
 			Remaining: remaining,
 			ResetDesc: w.ResetDescription,
 			ResetTime: w.ResetTime,
-			Status:    string(snap.Status),
+			Status:    status,
 			Bar:       bar,
 		}
 		groupedWindows[gKey] = append(groupedWindows[gKey], appended)

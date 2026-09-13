@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
@@ -46,10 +47,11 @@ func main() {
 	version := flag.String("version", "", "release version")
 	keyID := flag.String("key-id", "", "trusted public-key identifier")
 	privateKey := flag.String("private-key", "", "base64 or hex Ed25519 private key")
+	publicKey := flag.String("public-key", os.Getenv("NEXUS_UPDATE_PUBLIC_KEY"), "hex Ed25519 public key corresponding to the private key")
 	baseURL := flag.String("base-url", "", "absolute release artifact base URL")
 	flag.Parse()
-	if *version == "" || *keyID == "" || *privateKey == "" {
-		fmt.Fprintln(os.Stderr, "version, key-id and private-key are required")
+	if *version == "" || *keyID == "" || *privateKey == "" || *publicKey == "" {
+		fmt.Fprintln(os.Stderr, "version, key-id, private-key and public-key are required")
 		os.Exit(2)
 	}
 	if len(dirs) == 0 {
@@ -66,6 +68,13 @@ func main() {
 	key, err := decodePrivateKey(*privateKey)
 	if err != nil {
 		panic(err)
+	}
+	pub, err := decodePublicKey(*publicKey)
+	if err != nil {
+		panic(err)
+	}
+	if !bytes.Equal(pub, key.Public().(ed25519.PublicKey)) {
+		panic("public key does not match private key")
 	}
 	m := manifest{
 		SchemaVersion: 1,
@@ -140,6 +149,14 @@ func decodePrivateKey(value string) (ed25519.PrivateKey, error) {
 		return nil, fmt.Errorf("private key must be base64 or hex Ed25519 key")
 	}
 	return ed25519.PrivateKey(decoded), nil
+}
+
+func decodePublicKey(value string) (ed25519.PublicKey, error) {
+	decoded, err := hex.DecodeString(strings.TrimSpace(value))
+	if err != nil || len(decoded) != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("public key must be a hex Ed25519 key")
+	}
+	return ed25519.PublicKey(decoded), nil
 }
 
 func channel(version string) string {

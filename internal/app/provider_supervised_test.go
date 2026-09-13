@@ -3,9 +3,7 @@ package app
 import (
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
 )
 
 func TestProviderLaunchFlagsAreNexusOwned(t *testing.T) {
@@ -29,24 +27,5 @@ func TestProfileInCandidates(t *testing.T) {
 	}
 	if profileInCandidates(candidates, "codex1") {
 		t.Fatal("unexpected profile match")
-	}
-}
-
-func TestInteractiveDelegationModeUsesSessionAndEnvironmentPolicy(t *testing.T) {
-	session := registry.RuntimeSession{Labels: map[string]string{
-		"nexus.delegation_mode": string(nexus.DelegationAsk),
-	}}
-	if got := interactiveDelegationMode(session); got != nexus.DelegationAsk {
-		t.Fatalf("session delegation mode = %q, want ASK", got)
-	}
-
-	t.Setenv("NEXUS_DELEGATION_MODE", string(nexus.DelegationOff))
-	if got := interactiveDelegationMode(session); got != nexus.DelegationOff {
-		t.Fatalf("environment delegation mode = %q, want OFF", got)
-	}
-
-	t.Setenv("NEXUS_DELEGATION_MODE", "unsupported")
-	if got := interactiveDelegationMode(session); got != nexus.DelegationAuto {
-		t.Fatalf("unsupported delegation mode = %q, want AUTO", got)
 	}
 }

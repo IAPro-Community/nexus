@@ -18,6 +18,7 @@ permissions:
 env:
   GOTOOLCHAIN: local
   GOFLAGS: -mod=readonly
+  NEXUS_UPDATE_PUBLIC_KEY: ${{ vars.NEXUS_UPDATE_PUBLIC_KEY }}
 
 jobs:
   same-sha-gate:
@@ -167,16 +168,20 @@ jobs:
         env:
           NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
           NEXUS_UPDATE_KEY_ID: ${{ secrets.NEXUS_UPDATE_KEY_ID }}
+          NEXUS_UPDATE_PUBLIC_KEY: ${{ vars.NEXUS_UPDATE_PUBLIC_KEY }}
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           test -n "$NEXUS_UPDATE_PRIVATE_KEY"
-          test -n "$NEXUS_UPDATE_KEY_ID"
+          test "$NEXUS_UPDATE_KEY_ID" = "nexus-signing-key-2026-v1"
+          test "$NEXUS_UPDATE_PUBLIC_KEY" = "$(printf '%s' "$NEXUS_UPDATE_PUBLIC_KEY" | tr '[:upper:]' '[:lower:]')"
+          test "${#NEXUS_UPDATE_PUBLIC_KEY}" -eq 64
           go run ./scripts/sign-update-manifest \
             --dist dist \
             --dist native-artifacts \
             --version "$RELEASE_VERSION" \
             --key-id "$NEXUS_UPDATE_KEY_ID" \
             --private-key "$NEXUS_UPDATE_PRIVATE_KEY" \
+            --public-key "$NEXUS_UPDATE_PUBLIC_KEY" \
             --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_VERSION}"
           test -f dist/update-manifest.json
           test -f dist/update-manifest.sig

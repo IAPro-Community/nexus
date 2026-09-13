@@ -6,6 +6,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/kivervinicius/ai-cli/internal/conversation"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
 	"github.com/kivervinicius/ai-cli/internal/core/quota"
 )
@@ -174,7 +175,7 @@ func TestUnifiedUsageRestoresSelectionAfterEmptyFilter(t *testing.T) {
 }
 
 func TestUsageColumnsAdaptiveWidths(t *testing.T) {
-	for _, width := range []int{80, 132, 160} {
+	for _, width := range []int{60, 80, 132, 160} {
 		cols := usageColumns(width)
 		sum := 0
 		statusW := 0
@@ -197,6 +198,38 @@ func TestUsageColumnsAdaptiveWidths(t *testing.T) {
 		if sum > width {
 			t.Fatalf("width %d column sum %d exceeds terminal width", width, sum)
 		}
+	}
+}
+
+func TestSessionColumnsAdaptiveWidths(t *testing.T) {
+	for _, width := range []int{60, 80, 100, 132} {
+		cols := sessionColumns(width)
+		sum := 0
+		for _, c := range cols {
+			sum += c.Width
+		}
+		if sum > width {
+			t.Fatalf("width %d session column sum %d exceeds terminal", width, sum)
+		}
+		rows := toSessionTableRowsForWidth([]conversation.Conversation{{
+			Provider: "agy", ID: "sess-abcdefgh", Title: "a very long conversation title for truncation",
+			Workspace: "/tmp/workspace-long-name", LastModified: time.Now(),
+		}}, width)
+		if len(rows) != 1 {
+			t.Fatalf("width %d rows=%d", width, len(rows))
+		}
+		if len(rows[0]) != len(cols) {
+			t.Fatalf("width %d row cells=%d cols=%d", width, len(rows[0]), len(cols))
+		}
+	}
+}
+
+func TestTruncateRunes(t *testing.T) {
+	if got := truncateRunes("abcdef", 4); got != "ab.." {
+		t.Fatalf("got %q", got)
+	}
+	if got := truncateRunes("ab", 4); got != "ab" {
+		t.Fatalf("got %q", got)
 	}
 }
 

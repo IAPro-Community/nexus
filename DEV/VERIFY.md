@@ -1,5 +1,54 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-13 — Fase 0 pós PRODUCTION_NO_GO
+
+- Scope: código apenas (falso sucesso / Maestro / Mission PATCH / quota /
+  launcher / installers / CI key gate). **Não** overnight, **não** CI hosted,
+  **não** Mission autenticada.
+- PASS — `make quality`; `go test -race` em store/nexus/runner/quota/launcher/
+  release/sign-update-manifest; smoke isolado (`maestro_mode=OFF`,
+  `nexus run` → strict admission, sem wording “quota/rate limit”).
+- PASS (contrato) — CI desktop Linux/Windows/macOS falham se
+  `NEXUS_UPDATE_PUBLIC_KEY` vazia; installers desktop recusam
+  `desktop-checksums.txt` unsigned.
+- BLOCKED / NEXT — congelar SHA (commit); humano provisiona Ed25519 em
+  `beta-signing` / `vars.NEXUS_UPDATE_PUBLIC_KEY`; só então push e CI same-SHA.
+- UNVERIFIED — overnight 8h, Windows/macOS nativos same-SHA, Mission
+  `COMPLETED_VERIFIED` autenticada, red team no SHA novo.
+
+## 2026-09-13 — Current local closure audit
+
+- Candidate observed: `eed65e5a7e46adc896165c94accb7fc73fc6750f`; worktree was
+  not frozen, so no release certification is asserted.
+- PASS — `go test ./... -count=1`, `go test -race ./... -count=1`, `go vet
+  ./...`, `make lint-go`, `make quality`, `make security`, `make build`,
+  `make build-desktop-wails`, `make web-verify`, and
+  `bash scripts/verify-update-gate.sh`.
+- PASS — Go/browser regressions preserve PTY bytes including ESC/OSC/kitty,
+  UTF-8 and literal `/e[...]` or `\\e[...]` provider text.
+- BLOCKED — `make docs-verify` because the visual manifest is stale for
+  uncommitted frontend changes.
+- UNVERIFIED — authenticated Mission evidence, production updater key
+  provisioning, native Windows/macOS/NSIS, hosted same-SHA browser/release
+  matrix, and eight-hour overnight certification.
+
+## 2026-09-13 — Mission Teams validation
+
+- PASS — full Go tests, full race suite, `go vet`, security, build, desktop
+  build, E2E, Attention E2E and bounded overnight smoke.
+- PASS — canonical deterministic Planner → Builder → Reviewer → remediation →
+  Verifier test and direct-task anti-overprocessing coverage.
+- PASS — structured finding identity/deduplication/resolution, durable phase
+  state, Flow/WorkPlan round-trip and desired-vs-actual routing preference.
+- FAIL / ENVIRONMENT — `make coverage` and `make release-proof` stop because
+  the active Go 1.25 toolchain lacks `covdata`.
+- FAIL / CONCURRENT WORKTREE — latest `make web-verify` reports formatting in
+  unrelated `web/src/app/NexusSplashScreen.tsx`; the Mission Teams surface
+  itself passed typecheck, lint, styles, tests and build.
+- UNVERIFIED — authenticated real-provider Mission, provider failover proof,
+  native Windows/macOS and eight-hour overnight certification.
+- Report: [`validation/current/MISSION_TEAMS_REPORT.md`](validation/current/MISSION_TEAMS_REPORT.md).
+
 ## 2026-09-13 — Production GO/NO-GO red team
 
 - Verdict: `PRODUCTION_NO_GO` / `CERTIFICATION_INVALID_FOR_CURRENT_HEAD`.
@@ -1151,17 +1200,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-13T05:36:25Z
+## Frontend gate — 2026-09-13T18:52:08Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-
-## Documentation product guide — 2026-09-13
-
-- PASS — `bun run --cwd web docs:capture`: 10 Web surfaces and Direct WebM from
-  isolated synthetic fixture; no provider account or private project used.
-- PASS — `node scripts/docs-verify.mjs` / `make docs-verify`: 149 Markdown
-  files and 22 required docs/assets; links and visual-manifest freshness pass.
-- PASS — Quick Start project flow with temporary `NEXUS_*_DIR` and
-  `AI_CLI_*_DIR`: list → add `.` → list.
-- PASS — `go test ./internal/release -count=1`, `git diff --check`, full
-  `make quality`, `make web-verify` and `make security`.

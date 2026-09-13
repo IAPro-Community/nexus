@@ -49,12 +49,12 @@ func planToRunnerSpec(plan *store.WorkPlan, snapshotID string) (runner.PlanSpec,
 			}
 			seen[pkg.ID] = true
 			spec.Packages = append(spec.Packages, runner.PackageSpec{
-				ID: pkg.ID, PhaseID: phase.ID, Title: pkg.Title, Goal: pkg.Goal, Priority: pkg.Priority,
+				ID: pkg.ID, PhaseID: phase.ID, PhaseType: pkg.PhaseType, Title: pkg.Title, Goal: pkg.Goal, Priority: pkg.Priority,
 				Dependencies: append([]string(nil), pkg.Dependencies...), ParallelGroup: pkg.ParallelGroup,
-				Role: pkg.Role, TaskRequirements: pkg.TaskRequirements, AgentAllocation: pkg.AgentAllocation,
+				Role: pkg.Role, ReviewRequired: pkg.ReviewRequired, TaskRequirements: pkg.TaskRequirements, AgentAllocation: pkg.AgentAllocation,
 				AssignmentStrategy: pkg.AssignmentStrategy, ResourcePolicy: pkg.ResourcePolicy, Provider: pkg.Provider, Profile: pkg.Profile, DesiredProvider: pkg.DesiredProvider, DesiredProfile: pkg.DesiredProfile,
 				SkillIDs: append([]string(nil), packageSkillIDs(pkg)...), MaestroSkills: append([]string(nil), pkg.MaestroSkills...), RelevantPaths: append([]string(nil), pkg.RelevantPaths...),
-				AcceptanceCriteria: append([]string(nil), pkg.AcceptanceCriteria...), VerificationRequirements: append([]string(nil), pkg.VerificationRequirements...), RoutingDecisionJSON: pkg.RoutingDecisionJSON,
+				AcceptanceCriteria: append([]string(nil), pkg.AcceptanceCriteria...), VerificationRequirements: append([]string(nil), pkg.VerificationRequirements...), EntryCriteria: append([]string(nil), pkg.EntryCriteria...), ExitCriteria: append([]string(nil), pkg.ExitCriteria...), RequiredEvidence: append([]string(nil), pkg.RequiredEvidence...), HandoffJSON: pkg.HandoffJSON, RoutingDecisionJSON: pkg.RoutingDecisionJSON,
 			})
 		}
 	}

@@ -458,8 +458,35 @@ func TestCodexLegacyQuotaPreservesRemainingAndGroup(t *testing.T) {
 func TestAvailabilityLabelUnknownIsSemDadosNotDisponivel(t *testing.T) {
 	qv := &QuotaView{Status: string(model.UsageUnknown)}
 	qv.ComputeAvailability()
+	if qv.IsAvailable() {
+		t.Fatal("UNKNOWN quota must not be available for automatic allocation")
+	}
 	if got := qv.AvailabilityLabel(); got != "SEM DADOS" {
 		t.Fatalf("AvailabilityLabel=%q want SEM DADOS (never DISPONIVEL for unknown)", got)
+	}
+}
+
+func TestMissingRemainingPercentIsNotSyntheticZeroExhausted(t *testing.T) {
+	snap := model.UsageSnapshot{
+		ProviderID: "codex",
+		ProfileID:  "default",
+		Status:     model.UsageLive,
+		Windows: []model.UsageWindow{{
+			Kind:  "5h",
+			Group: "codex",
+			// RemainingPercent intentionally nil
+		}},
+	}
+	qv := BuildQuotaView(snap, "acct", "pro")
+	if len(qv.ModelGroups) == 0 || len(qv.ModelGroups[0].Windows) == 0 {
+		t.Fatal("expected synthetic unknown window")
+	}
+	w := qv.ModelGroups[0].Windows[0]
+	if w.Kind != "unknown" {
+		t.Fatalf("missing percent kind=%q want unknown (not measured 0%%)", w.Kind)
+	}
+	if qv.IsAvailable() {
+		t.Fatal("missing percent must not invent available capacity")
 	}
 }
 

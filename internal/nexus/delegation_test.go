@@ -95,8 +95,8 @@ func TestInteractiveLeadAutomaticallyDelegatesSpecializedWorkUnits(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := len(proposal.Flow.Steps); got != 3 {
-		t.Fatalf("expected backend/frontend/QA workstreams, got %d", got)
+	if got := len(proposal.Flow.Steps); got != 5 {
+		t.Fatalf("expected planning + backend/frontend + review + verification pipeline, got %d", got)
 	}
 	var decision DelegationDecision
 	if err := json.Unmarshal([]byte(proposal.Flow.StructuredFacts[DelegationDecisionFactKey]), &decision); err != nil {
@@ -105,8 +105,8 @@ func TestInteractiveLeadAutomaticallyDelegatesSpecializedWorkUnits(t *testing.T)
 	if !decision.Delegate || decision.LeadAgentID != "" {
 		t.Fatalf("delegation should not replace lead identity: %+v", decision)
 	}
-	if proposal.Flow.Steps[2].Status != "PENDING" || len(proposal.Flow.Steps[2].Dependencies) != 2 {
-		t.Fatalf("QA dependency gate missing: %+v", proposal.Flow.Steps[2])
+	if proposal.Flow.Steps[3].Status != "PENDING" || len(proposal.Flow.Steps[3].Dependencies) != 2 || proposal.Flow.Steps[3].PhaseType != string(PhaseReview) {
+		t.Fatalf("review dependency gate missing: %+v", proposal.Flow.Steps[3])
 	}
 	if proposal.Flow.Steps[0].AssignmentStrategy != FlowAssignmentAuto || proposal.Flow.Steps[1].AssignmentStrategy != FlowAssignmentAuto {
 		t.Fatal("delegated workstreams must use existing AUTO allocation")

@@ -84,16 +84,31 @@ export const ResourcePicker: React.FC<Props> = ({ agentId, preferProvider, onSel
 
   useEffect(() => {
     let mounted = true;
-    void nexus
-      .listResources()
-      .then(async (data) => {
-        if (!mounted) return;
-        setAccounts(data.accounts || []);
-      })
-      .catch(() => undefined)
-      .finally(() => mounted && setLoading(false));
+    const load = () =>
+      nexus
+        .listResources()
+        .then((data) => {
+          if (!mounted) return;
+          setAccounts(data.accounts || []);
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          if (mounted) setLoading(false);
+        });
+
+    void load();
+    const poll = window.setInterval(() => {
+      if (document.hidden) return;
+      void load();
+    }, 60_000);
+    const onVisible = () => {
+      if (!document.hidden) void load();
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       mounted = false;
+      window.clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [preferProvider]);
 

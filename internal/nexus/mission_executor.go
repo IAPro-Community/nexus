@@ -120,7 +120,7 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 		if preferenceMode == AffinityPin {
 			return runner.AllocationResult{}, fmt.Errorf("%w: pinned runtime has no eligible account for Flow Step %s", ErrBlockedResource, pkg.PackageID)
 		}
-		return runner.AllocationResult{}, fmt.Errorf("no eligible alternative provider profiles available for Flow Step %s after quota/rate limit failure", pkg.PackageID)
+		return runner.AllocationResult{}, explainNoEligibleMissionAccounts(accounts, pkg.PackageID, isFailover)
 	}
 
 	var selected ProviderAccount
@@ -135,7 +135,7 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 			if preferenceMode == AffinityPin {
 				return runner.AllocationResult{}, fmt.Errorf("%w: pinned runtime unavailable for Flow Step %s: %s", ErrBlockedResource, pkg.PackageID, recommendation.Explanation)
 			}
-			return runner.AllocationResult{}, fmt.Errorf("no provider/profile satisfies Flow Step %s requirements: %s", pkg.PackageID, recommendation.Explanation)
+			return runner.AllocationResult{}, explainNoEligibleMissionAccounts(candidateAccounts, pkg.PackageID, isFailover)
 		}
 		selected = recommendation.Recommended.Account
 		routingReason = recommendation.Explanation
@@ -182,22 +182,6 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	}
 	pkg.RoutingDecisionJSON = string(raw)
 
-	if isFailover {
-		events.DefaultBus().Publish(events.NewEventWithCorrelation(
-			run.ID,
-			run.ID,
-			selected.Provider,
-			selected.Profile,
-			events.EventQuotaFailoverCompleted,
-			fmt.Sprintf("Auto-failover para %s:%s após esgotamento de quota/rate-limit.", selected.Provider, selected.Profile),
-			map[string]any{
-				"package_id": pkg.PackageID,
-				"provider":   selected.Provider,
-				"profile":    selected.Profile,
-				"attempt":    pkg.Attempt,
-			},
-		))
-	}
 	// Interactive and Flow agents run in the Project folder by default. Worktree
 	// isolation stays opt-in via agent config or project.default_isolation.
 	if !run.Autonomous && strings.TrimSpace(current.Workspace) == "" && strings.TrimSpace(current.Isolation) == "" {
@@ -219,6 +203,26 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	}
 	if err != nil {
 		return runner.AllocationResult{}, err
+	}
+	if isFailover {
+		// Emit completion only after the destination account, persisted Agent
+		// allocation and executable workspace have all been confirmed. A
+		// recommendation is not a completed failover.
+		events.DefaultBus().Publish(events.NewEventWithCorrelation(
+			run.ID,
+			run.ID,
+			selected.Provider,
+			selected.Profile,
+			events.EventQuotaFailoverCompleted,
+			fmt.Sprintf("Auto-failover confirmado para %s:%s após esgotamento de quota/rate-limit.", selected.Provider, selected.Profile),
+			map[string]any{
+				"package_id": pkg.PackageID,
+				"provider":   selected.Provider,
+				"profile":    selected.Profile,
+				"attempt":    pkg.Attempt,
+				"workspace":  workspace,
+			},
+		))
 	}
 	return runner.AllocationResult{AgentID: agent.ID, Workspace: workspace}, nil
 }
@@ -498,6 +502,63 @@ func filterOutFailingResource(accounts []ProviderAccount, failingProvider, faili
 	return out
 }
 
+func explainNoEligibleMissionAccounts(accounts []ProviderAccount, pkgID string, isFailover bool) error {
+	if len(accounts) == 0 {
+		return fmt.Errorf("%w: no provider profiles registered for Flow Step %s", ErrAllocationUnregistered, pkgID)
+	}
+	unauth, unknown, exhausted, rateLimited, network := 0, 0, 0, 0, 0
+	for _, acc := range accounts {
+		switch {
+		case !acc.Authenticated:
+			unauth++
+		case acc.NetworkError || (acc.QuotaView != nil && strings.EqualFold(strings.TrimSpace(acc.QuotaView.Status), "ERROR")):
+			network++
+		case acc.RateLimited:
+			rateLimited++
+		case (acc.QuotaView != nil && strings.EqualFold(strings.TrimSpace(acc.QuotaView.Status), "UNKNOWN")) ||
+			(acc.AvailReasons != nil && acc.AvailReasons.UnknownQuota):
+			unknown++
+		case accountQuotaExhausted(acc):
+			exhausted++
+		}
+	}
+	n := len(accounts)
+	switch {
+	case unauth == n:
+		return fmt.Errorf("%w: no authenticated provider profiles for Flow Step %s", ErrAllocationUnauthenticated, pkgID)
+	case network == n:
+		return fmt.Errorf("%w: provider network is unavailable for Flow Step %s", ErrAllocationNetwork, pkgID)
+	case rateLimited == n:
+		return fmt.Errorf("%w: all provider profiles are rate-limited for Flow Step %s", ErrAllocationRateLimited, pkgID)
+	case exhausted == n:
+		return fmt.Errorf("%w: all provider quotas are exhausted for Flow Step %s", ErrAllocationQuotaExhausted, pkgID)
+	case unknown == n || (unauth+unknown == n && unknown > 0):
+		return fmt.Errorf("%w: no provider profile with known quota for Flow Step %s", ErrAllocationUnknownQuota, pkgID)
+	case isFailover:
+		return fmt.Errorf("no eligible alternative provider profiles for Flow Step %s after quota/rate limit failure", pkgID)
+	default:
+		return fmt.Errorf("no eligible provider profiles for Flow Step %s (unauthenticated, unregistered, UNKNOWN, or rate-limited)", pkgID)
+	}
+}
+
+func accountQuotaExhausted(acc ProviderAccount) bool {
+	if acc.RateLimited || acc.NetworkError {
+		return false
+	}
+	if acc.AvailReasons != nil && len(acc.AvailReasons.ExhaustedWindows) > 0 {
+		return true
+	}
+	if acc.QuotaView != nil {
+		for _, window := range acc.QuotaView.AllWindows() {
+			if window.Kind != "unknown" && window.Remaining <= 0 &&
+				strings.EqualFold(strings.TrimSpace(window.Status), "LIVE") {
+				return true
+			}
+		}
+	}
+	return acc.QuotaTotal > 0 && acc.QuotaRemaining <= 0 && !acc.Available
+}
+
 func isQuotaOrRateLimitFailure(msg string) bool {
 	msg = strings.ToLower(msg)
 	return strings.Contains(msg, "429") ||
@@ -631,22 +692,45 @@ func (e *nexusPackageExecutor) Review(ctx context.Context, run *runner.MissionRu
 		return runner.ReviewVerdict{}, err
 	}
 	implementerID := pkg.AssignedAgent
+	reviewWorkspace := pkg.Workspace
+	if strings.EqualFold(strings.TrimSpace(pkg.PhaseType), "REVIEW") || strings.EqualFold(strings.TrimSpace(pkg.PhaseType), "SECURITY_REVIEW") {
+		for _, dependencyID := range pkg.Dependencies {
+			for i := range run.PackageRuns {
+				dependency := &run.PackageRuns[i]
+				if dependency.PackageID == dependencyID && dependency.AssignedAgent != "" {
+					implementerID = dependency.AssignedAgent
+					if dependency.Workspace != "" {
+						reviewWorkspace = dependency.Workspace
+					}
+					break
+				}
+			}
+			if implementerID != pkg.AssignedAgent {
+				break
+			}
+		}
+	}
 	if implementerID == "" {
 		return runner.ReviewVerdict{}, fmt.Errorf("cannot review package without implementer identity")
 	}
 
-	reviewer, err := e.ensureReviewerAgent(ctx, st, run, pkg, implementerID)
+	var reviewer store.Agent
+	if (strings.EqualFold(strings.TrimSpace(pkg.PhaseType), "REVIEW") || strings.EqualFold(strings.TrimSpace(pkg.PhaseType), "SECURITY_REVIEW")) && pkg.AssignedAgent != "" {
+		reviewer, err = st.GetAgent(pkg.AssignedAgent, run.ProjectID)
+	} else {
+		reviewer, err = e.ensureReviewerAgent(ctx, st, run, pkg, implementerID)
+	}
 	if err != nil {
 		return runner.ReviewVerdict{}, err
 	}
 
 	reviewPrompt := buildReviewPrompt(pkg)
-	before, _ := workspaceFingerprint(ctx, pkg.Workspace)
-	result, err := e.n.executeAgentPrompt(ctx, reviewer.ID, pkg.Workspace, reviewPrompt, agentPromptPolicy{Contract: run.Contract, Review: true})
+	before, _ := workspaceFingerprint(ctx, reviewWorkspace)
+	result, err := e.n.executeAgentPrompt(ctx, reviewer.ID, reviewWorkspace, reviewPrompt, agentPromptPolicy{Contract: run.Contract, Review: true})
 	if err != nil {
 		return runner.ReviewVerdict{}, fmt.Errorf("reviewer execution failed: %w", err)
 	}
-	after, _ := workspaceFingerprint(ctx, pkg.Workspace)
+	after, _ := workspaceFingerprint(ctx, reviewWorkspace)
 	if before != "" && after != "" && before != after {
 		return runner.ReviewVerdict{}, fmt.Errorf("independent reviewer modified the implementation workspace; review rejected")
 	}
@@ -657,6 +741,10 @@ func (e *nexusPackageExecutor) Review(ctx context.Context, run *runner.MissionRu
 	}
 	verdict.ReviewerAgentID = reviewer.ID
 	verdict.ReviewedAt = time.Now().UTC()
+	verdict.ReviewIndependence = "DISTINCT_AGENT"
+	if reviewer.ID == implementerID {
+		verdict.ReviewIndependence = "DEGRADED_SELF_REVIEW"
+	}
 	return verdict, nil
 }
 
@@ -870,6 +958,10 @@ func buildReviewPrompt(pkg *runner.PackageRun) string {
 	for _, v := range pkg.Verifications {
 		evidence = append(evidence, fmt.Sprintf("- %s: passed=%t exit=%d\n%s", v.Command, v.Passed, v.ExitCode, v.OutputSnippet))
 	}
+	openFindings := make([]string, 0)
+	for _, finding := range runner.OpenReviewFindings(pkg.ReviewFindings) {
+		openFindings = append(openFindings, fmt.Sprintf("- %s [%s] %s (%s)", finding.ID, finding.Severity, finding.Description, finding.RequiredAction))
+	}
 	return fmt.Sprintf(`You are the independent code reviewer for an autonomous software-delivery mission.
 Do NOT modify files, run destructive git commands, or approve based on assumptions.
 Inspect the current workspace and implementation for the package below.
@@ -879,12 +971,18 @@ Goal: %s
 Acceptance criteria:
 - %s
 
+Semantic handoff:
+%s
+
+Previously open findings (resolve only these or report new findings):
+%s
+
 Verification evidence:
 %s
 
 Return ONLY one JSON object with this exact schema:
-{"approved":true|false,"findings":["..."],"remediation_tips":["..."]}
-Approve only when the implementation genuinely satisfies the goal and acceptance criteria and you found no blocking correctness, security, test, or integration issue.`, pkg.Title, pkg.Goal, strings.Join(pkg.AcceptanceCriteria, "\n- "), strings.Join(evidence, "\n"))
+{"approved":true|false,"findings":["..."],"structured_findings":[{"id":"","severity":"HIGH|MEDIUM|LOW","category":"","file":"","location":"","description":"","rationale":"","required_action":"","evidence":[]}],"remediation_tips":["..."]}
+Approve only when the implementation genuinely satisfies the goal and acceptance criteria and you found no blocking correctness, security, test, or integration issue.`, pkg.Title, pkg.Goal, strings.Join(pkg.AcceptanceCriteria, "\n- "), pkg.HandoffJSON, strings.Join(openFindings, "\n"), strings.Join(evidence, "\n"))
 }
 
 func parseReviewVerdict(output string) (runner.ReviewVerdict, error) {
@@ -898,15 +996,13 @@ func parseReviewVerdict(output string) (runner.ReviewVerdict, error) {
 		return runner.ReviewVerdict{}, fmt.Errorf("reviewer did not return structured JSON evidence")
 	}
 	var payload struct {
-		Approved        bool     `json:"approved"`
-		Findings        []string `json:"findings"`
-		RemediationTips []string `json:"remediation_tips"`
+		Approved           bool                   `json:"approved"`
+		Findings           []string               `json:"findings"`
+		StructuredFindings []runner.ReviewFinding `json:"structured_findings"`
+		RemediationTips    []string               `json:"remediation_tips"`
 	}
 	if err := json.Unmarshal([]byte(text[start:end+1]), &payload); err != nil {
 		return runner.ReviewVerdict{}, fmt.Errorf("invalid reviewer JSON: %w", err)
 	}
-	if payload.Approved && len(payload.Findings) == 0 {
-		payload.Findings = []string{"Independent reviewer reported no blocking findings."}
-	}
-	return runner.ReviewVerdict{Approved: payload.Approved, Findings: payload.Findings, RemediationTips: payload.RemediationTips}, nil
+	return runner.ReviewVerdict{Approved: payload.Approved, Findings: payload.Findings, StructuredFindings: payload.StructuredFindings, RemediationTips: payload.RemediationTips}, nil
 }

@@ -70,7 +70,7 @@ func TestSmartAccountSelector(t *testing.T) {
 		t.Fatalf("expected acc-a to be selected when acc-b is rate limited, got %s", res2.SelectedProfile.Name)
 	}
 
-	// Scenario 3: UNKNOWN healthy vs UNKNOWN rate-limited -> selects UNKNOWN healthy
+	// Scenario 3: UNKNOWN quota is not healthy capacity and cannot be selected.
 	cdTracker.Clear("codex", "acc-b")
 	cdTracker.RecordRateLimit("codex", "acc-a", 15*time.Minute, nil, "HTTP 429")
 	_ = qEng.SaveUsage(model.UsageSnapshot{
@@ -81,11 +81,11 @@ func TestSmartAccountSelector(t *testing.T) {
 	})
 
 	res3, err := selector.SelectBestProfile(ctx, "codex", "/tmp", candidates, accounts, nil)
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatalf("expected UNKNOWN-only capacity to be rejected, got %#v", res3.SelectedProfile)
 	}
-	if res3.SelectedProfile.Name != "acc-b" {
-		t.Fatalf("expected acc-b to be selected, got %s", res3.SelectedProfile.Name)
+	if res3.SelectedProfile != nil {
+		t.Fatalf("UNKNOWN quota must not be selected, got %s", res3.SelectedProfile.Name)
 	}
 
 	// Scenario 4: All accounts rate limited -> returns error with reasons

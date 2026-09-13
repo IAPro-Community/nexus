@@ -12,6 +12,11 @@ import { UsageSummaryStrip } from './UsageSummaryStrip';
 import { groupAccountsByProvider, summarizeAccounts } from './usageModel';
 import styles from './UsageSurface.module.scss';
 
+/** Soft cache re-read while the surface stays open (monitor may have refreshed on disk). */
+const USAGE_POLL_MS = 60_000;
+/** Re-render relative freshness labels without a network round-trip. */
+const FRESHNESS_TICK_MS = 30_000;
+
 export const UsageSurface: React.FC = () => {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState<ProviderAccount[]>([]);
@@ -20,6 +25,7 @@ export const UsageSurface: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [loadedAt, setLoadedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [recommend, setRecommend] = useState<RecommendationResult | null>(null);
   const [recommendLoading, setRecommendLoading] = useState(false);
   const [recommendError, setRecommendError] = useState('');
@@ -42,13 +48,19 @@ export const UsageSurface: React.FC = () => {
   }, []);
 
   const applyPayload = useCallback(
-    (data: { accounts?: ProviderAccount[]; policy?: string }) => {
+    (
+      data: { accounts?: ProviderAccount[]; policy?: string },
+      options?: { recommend?: boolean },
+    ) => {
       const nextAccounts = asArray<ProviderAccount>(data.accounts);
       const nextPolicy = data.policy || 'BALANCED';
       setAccounts(nextAccounts);
       setPolicy(nextPolicy);
       setLoadedAt(Date.now());
-      void loadRecommend(nextPolicy);
+      setNow(Date.now());
+      if (options?.recommend !== false) {
+        void loadRecommend(nextPolicy);
+      }
     },
     [loadRecommend],
   );
@@ -63,6 +75,16 @@ export const UsageSurface: React.FC = () => {
       setAccounts([]);
     } finally {
       setLoading(false);
+    }
+  }, [applyPayload]);
+
+  const softReload = useCallback(async () => {
+    if (document.hidden) return;
+    try {
+      // Cache read only — QuotaMonitor may have written fresher usage.json.
+      applyPayload(await nexus.listResources(), { recommend: false });
+    } catch {
+      // Keep the last good snapshot visible; the next tick retries.
     }
   }, [applyPayload]);
 
@@ -81,6 +103,22 @@ export const UsageSurface: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden) void softReload();
+    };
+    const poll = window.setInterval(() => {
+      void softReload();
+    }, USAGE_POLL_MS);
+    const tick = window.setInterval(() => setNow(Date.now()), FRESHNESS_TICK_MS);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(poll);
+      window.clearInterval(tick);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [softReload]);
 
   const summary = useMemo(() => summarizeAccounts(accounts), [accounts]);
   const groups = useMemo(() => groupAccountsByProvider(accounts), [accounts]);
@@ -141,7 +179,7 @@ export const UsageSurface: React.FC = () => {
                   </h2>
                   <div className={styles.accountGrid}>
                     {group.accounts.map((account) => (
-                      <UsageAccountCard key={account.id} account={account} />
+                      <UsageAccountCard key={account.id} account={account} now={now} />
                     ))}
                   </div>
                 </section>

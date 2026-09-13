@@ -1614,23 +1614,17 @@ func runGoalCmd(args []string) error {
 	if err != nil {
 		return fmt.Errorf("persistir plano da tarefa: %w", err)
 	}
-	run, err := n.StartMissionRun(ctx, plan.ID, "", runner.DefaultAutonomyContract(), false)
+	run, err := n.StartMissionRun(ctx, plan.ID, "", runner.DefaultAutonomyContract(), true)
 	if err != nil {
 		return fmt.Errorf("iniciar tarefa: %w", err)
 	}
-	for {
-		updated, done, stepErr := n.Runner().ExecuteNextStep(ctx, run.ID)
-		if stepErr != nil {
-			return stepErr
-		}
-		run = updated
-		if done {
-			break
-		}
-	}
 	requirements := nexus.ClassifyTaskRequirements(goal)
 	out, _ := json.MarshalIndent(map[string]any{
-		"run":                    run,
+		"run_id":                 run.ID,
+		"state":                  run.State,
+		"autonomous":             true,
+		"plan_id":                plan.ID,
+		"project_id":             project.ID,
 		"intent_decision":        intentDecision,
 		"task_requirements":      requirements,
 		"requires_decomposition": requirements.RequiresDecomposition,

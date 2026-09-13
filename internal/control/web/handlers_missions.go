@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -106,6 +107,10 @@ func (h *NexusHandler) handleMissionDetail(w http.ResponseWriter, r *http.Reques
 			Goal: body.Goal, Scope: body.Scope, RiskLevel: body.RiskLevel,
 		})
 		if err != nil {
+			if errors.Is(err, nexus.ErrTerminalMissionStatusPatch) {
+				writeError(w, http.StatusConflict, err.Error())
+				return
+			}
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}

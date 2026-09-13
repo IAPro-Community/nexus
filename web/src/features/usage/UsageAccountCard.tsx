@@ -28,7 +28,10 @@ const healthTone = (health: string) =>
 const quotaTone = (state: string) =>
   state === 'confirmed' ? 'success' : state === 'stale' ? 'warning' : 'danger';
 
-export const UsageAccountCard: React.FC<{ account: ProviderAccount }> = ({ account }) => {
+export const UsageAccountCard: React.FC<{ account: ProviderAccount; now?: number }> = ({
+  account,
+  now,
+}) => {
   const { t, i18n } = useTranslation();
   const qv = account.quota_view;
   const groups = asArray<
@@ -40,7 +43,7 @@ export const UsageAccountCard: React.FC<{ account: ProviderAccount }> = ({ accou
     .filter(([, value]) => value && value !== 'false')
     .slice(0, 4);
   const planKey = displayLabelKey(qv?.plan);
-  const age = relativeAge(qv?.fetched_at);
+  const age = relativeAge(qv?.fetched_at, now);
   const statusLabel = translateStatus(qv?.status || 'UNKNOWN');
   const freshness = age
     ? t(`usage.freshness.${age.unit}`, { status: statusLabel, count: age.count })

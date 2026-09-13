@@ -217,6 +217,67 @@ func TestAskAgentCompilesPersistentSpecializationForCustomAgent(t *testing.T) {
 	}
 }
 
+func TestAskAgentWithOptionsSkipsEnvelopeForInteractiveLead(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "Lead", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := n.PrepareInteractiveLead(context.Background(), project.ID, "fake", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.StartAgent(context.Background(), agent.ID, "fake", "default"); err != nil {
+		t.Fatal(err)
+	}
+	var submitted string
+	n.submitPrompt = func(_ string, prompt string) error { submitted = prompt; return nil }
+	if _, err := n.AskAgentWithOptions(context.Background(), agent.ID, "fix the typo", AskAgentOptions{
+		CompileSpecialization: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if submitted != "fix the typo" {
+		t.Fatalf("interactive lead must receive raw prompt, got %q", submitted)
+	}
+	if strings.Contains(submitted, "Direct Agent request") || strings.Contains(submitted, "WorkPackage") {
+		t.Fatalf("interactive lead received WorkPackage envelope: %q", submitted)
+	}
+}
+
+func TestAskAgentWithOptionsDisablesSpecializationWhenRequested(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "QA", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "QA", Role: "qa"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.SafeApply(context.Background(), agent.ID, AgentConfig{
+		Provider: "fake", Profile: "default",
+		AgentSpec: intelligence.AgentSpec{Role: "qa", Instructions: []string{"Collect evidence before suggesting fixes"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.StartAgent(context.Background(), agent.ID, "fake", "default"); err != nil {
+		t.Fatal(err)
+	}
+	var submitted string
+	n.submitPrompt = func(_ string, prompt string) error { submitted = prompt; return nil }
+	if _, err := n.AskAgentWithOptions(context.Background(), agent.ID, "reproduce the failure", AskAgentOptions{
+		CompileSpecialization: false,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if submitted != "reproduce the failure" {
+		t.Fatalf("disabled specialization must submit raw prompt, got %q", submitted)
+	}
+}
+
 func TestAskAgentStoppedUsesStartAndAskWithoutCreatingAgent(t *testing.T) {
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()

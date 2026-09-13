@@ -224,6 +224,79 @@ func TestInstallerSupportsLatestIntegrityAndPathControls(t *testing.T) {
 	}
 }
 
+func TestInstallersRequireSignedManifestForDesktop(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	shBytes, err := os.ReadFile(filepath.Join(root, "install.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	psBytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sh, ps := string(shBytes), string(psBytes)
+
+	for _, forbidden := range []string{
+		"DESKTOP_CHECKSUMS_URL",
+		"DesktopChecksumsUrl",
+		"desktop-checksums.txt\"",
+		"/desktop-checksums.txt",
+	} {
+		if strings.Contains(sh, forbidden) {
+			t.Errorf("install.sh must not trust unsigned desktop checksum sidecars: found %q", forbidden)
+		}
+		if strings.Contains(ps, forbidden) {
+			t.Errorf("install.ps1 must not trust unsigned desktop checksum sidecars: found %q", forbidden)
+		}
+	}
+	for _, required := range []string{
+		`download_and_verify_archive "$DESKTOP_ARCHIVE_NAME"`,
+		"refusing unsigned desktop-checksums.txt fallback",
+		"missing from signed update-manifest",
+	} {
+		if !strings.Contains(sh+ps, required) {
+			t.Errorf("installers missing signed-desktop guard %q", required)
+		}
+	}
+}
+
+func TestCIDesktopJobsFailClosedWithoutUpdatePublicKey(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ciBytes, err := os.ReadFile(filepath.Join(root, ".github/workflows/ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ci := string(ciBytes)
+	if strings.Contains(ci, "ProductionTrustRootHex=${NEXUS_UPDATE_PUBLIC_KEY:-}") {
+		t.Fatal("desktop CI must not default missing updater public key to empty")
+	}
+	// Linux, macOS (and Windows via PowerShell) must refuse empty trust roots.
+	if strings.Count(ci, `test -n "${NEXUS_UPDATE_PUBLIC_KEY}"`) < 2 {
+		t.Fatal("Linux and macOS desktop CI must each fail-closed when NEXUS_UPDATE_PUBLIC_KEY is empty")
+	}
+	if !strings.Contains(ci, "NEXUS_UPDATE_PUBLIC_KEY is required for desktop CI") {
+		t.Fatal("desktop CI must document fail-closed updater key requirement")
+	}
+	if !strings.Contains(ci, "desktop-linux:") {
+		t.Fatal("expected desktop-linux job in ci.yml")
+	}
+	linuxIdx := strings.Index(ci, "desktop-linux:")
+	windowsIdx := strings.Index(ci, "desktop-windows:")
+	if linuxIdx < 0 || windowsIdx < 0 || windowsIdx <= linuxIdx {
+		t.Fatal("could not locate desktop-linux job block")
+	}
+	linuxBlock := ci[linuxIdx:windowsIdx]
+	if !strings.Contains(linuxBlock, `test -n "${NEXUS_UPDATE_PUBLIC_KEY}"`) {
+		t.Fatal("desktop-linux job must fail-closed when NEXUS_UPDATE_PUBLIC_KEY is empty")
+	}
+}
+
 func TestInstallersFailClosedWhenSignedManifestCannotBeVerified(t *testing.T) {
 	root, err := filepath.Abs("../..")
 	if err != nil {

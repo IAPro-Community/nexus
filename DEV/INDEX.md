@@ -30,6 +30,7 @@ O código canônico utiliza o binário `nexus`, mantendo `ai` como alias transpa
 - [`docs/architecture/providers/registration-lifecycle.md`](../docs/architecture/providers/registration-lifecycle.md): separação entre instalação e registro.
 - [`docs/architecture/agent-routing.md`](../docs/architecture/agent-routing.md): matching canônico de Agents persistentes.
 - [`docs/architecture/resource-routing.md`](../docs/architecture/resource-routing.md): seleção de recursos e políticas do scheduler.
+- [`docs/architecture/mission-teams.md`](../docs/architecture/mission-teams.md): projeção de Mission Teams sobre Flow, WorkPlan e MissionRunner.
 - [`docs/architecture/session-continuity.md`](../docs/architecture/session-continuity.md): estados e limites de continuidade.
 - [`docs/architecture/quota/legacy-cache-migration.md`](../docs/architecture/quota/legacy-cache-migration.md): tratamento não destrutivo de cache legado.
 
@@ -57,6 +58,9 @@ O código canônico utiliza o binário `nexus`, mantendo `ai` como alias transpa
 - [`validation/CURRENT_STATE_AUDIT.md`](validation/CURRENT_STATE_AUDIT.md): Inventário evidence-backed da campanha atual.
 - [`validation/FINAL_CLOSURE_REALITY_AUDIT.md`](validation/FINAL_CLOSURE_REALITY_AUDIT.md) e [`validation/FINAL_CLOSURE_CHECKPOINTS.md`](validation/FINAL_CLOSURE_CHECKPOINTS.md): auditoria e checkpoints resumíveis da consolidação final.
 - [`validation/FINAL_PLATFORM_RELEASE_DESKTOP_REPORT.md`](validation/FINAL_PLATFORM_RELEASE_DESKTOP_REPORT.md): Relatório final de plataforma, Desktop, Update e release.
+- [`../docs/product/autonomous-delivery.md`](../docs/product/autonomous-delivery.md): experiência de entrega autônoma para usuários.
+- [`../docs/operations/mission-teams.md`](../docs/operations/mission-teams.md): operação, recuperação e evidências de Mission Teams.
+- [`../docs/testing/mission-teams.md`](../docs/testing/mission-teams.md): cenários e gates de teste do pipeline.
 - Após alterações em `web/`, execute `make web-verify` (ou `npm --prefix web run verify`).
 - Em caso de inconsistência visual na Web, faça o rebuild completo do binário com `make build` e reinicie o processo.
 
