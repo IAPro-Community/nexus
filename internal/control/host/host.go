@@ -166,21 +166,25 @@ func (sh *SessionHost) Start() error {
 	setStage(registry.StartupProviderStarting, "")
 
 	if strings.EqualFold(sh.session.ProviderID, "codex") {
-		if home := codex.EnvCODEXHome(sh.cfg.Env); home != "" {
-			// Fail-fast: never hold sh.mu across a wait, and never block the
-			// handshake for seconds when another Codex TUI owns the profile.
-			sh.mu.Unlock()
-			lock, err := codex.AcquireTUILockTimeout(home, 0)
-			sh.mu.Lock()
-			if err != nil {
-				setStage(registry.StartupProviderStarting, registry.StartupFaultProcessSupervision)
-				_ = sh.listener.Close()
-				sh.listener = nil
-				sh.completeStartFailureLocked()
-				return fmt.Errorf("failed to acquire Codex TUI lock: %w", err)
-			}
-			sh.codexTUILock = lock
+		home := codex.EnvCODEXHome(sh.cfg.Env)
+		if home == "" {
+			setStage(registry.StartupProviderStarting, registry.StartupFaultProcessSupervision)
+			_ = sh.listener.Close()
+			sh.listener = nil
+			sh.completeStartFailureLocked()
+			return fmt.Errorf("CODEX_HOME is required to start a supervised Codex session")
 		}
+		// timeout=0 is non-blocking; keep sh.mu held so Stop/Terminate cannot
+		// race the listener teardown while we acquire the profile lock.
+		lock, err := codex.AcquireTUILockTimeout(home, 0)
+		if err != nil {
+			setStage(registry.StartupProviderStarting, registry.StartupFaultProcessSupervision)
+			_ = sh.listener.Close()
+			sh.listener = nil
+			sh.completeStartFailureLocked()
+			return fmt.Errorf("failed to acquire Codex TUI lock: %w", err)
+		}
+		sh.codexTUILock = lock
 	}
 
 	if err := sh.termBackend.Start(sh.cmd, rows, cols); err != nil {
@@ -960,7 +964,7 @@ func (sh *SessionHost) Terminate() error {
 }
 
 // refreshUsageAfterSession re-reads provider quota after a session ends so
-// Codex rollouts written during the session become visible without opening
+// live evidence written during the session becomes visible without opening
 // `nexus usage` manually. Non-blocking.
 func refreshUsageAfterSession(providerID, profileID string) {
 	providerID = strings.TrimSpace(providerID)
@@ -968,7 +972,9 @@ func refreshUsageAfterSession(providerID, profileID string) {
 	if providerID == "" || profileID == "" {
 		return
 	}
-	if !strings.EqualFold(providerID, "codex") && !strings.EqualFold(providerID, "agy") {
+	switch strings.ToLower(providerID) {
+	case "codex", "agy", "claude", "gemini", "opencode":
+	default:
 		return
 	}
 	go func() {

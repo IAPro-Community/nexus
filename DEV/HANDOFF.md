@@ -1,5 +1,21 @@
 # Handoff
 
+## Provider contract freeze — 2026-09-13
+
+Blindagem de CLIs / `nexus usage` / roteamento está no worktree (ainda sem
+commit pedido):
+
+- `internal/core/provider/spec` — Spec único + goldens por provider
+- `quota.EvaluateEligibility` consumido por scheduler, recommend, routing e validação
+- Quota live Claude/Gemini; OpenCode Zen health→UNSUPPORTED; Cursor UNSUPPORTED
+- Failover tipado (`FailureKind`); `EventQuotaFailoverCompleted` pós-sucesso
+- `nexus usage --json` inclui `quota_view` + `eligibility`
+- Guardrails anti-substring / anti-LookPath literal; `make smoke-providers`
+- Docs: `docs/architecture/provider-contract.md` + ADR freeze
+
+Validação local focada: `go test` em `provider/...`, `quota`, `nexus`, `app`,
+`profile`, drivers/flags PASS nesta máquina. Commit/push só sob pedido.
+
 ## Pós PRODUCTION_NO_GO — Fase 0 código — 2026-09-13
 
 Fase 0 (código) fechou os P0 de falso sucesso do red team

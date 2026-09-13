@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -262,6 +264,11 @@ func refreshAccountCmd(provider, profileName string, defaults map[string]string)
 }
 
 // buildUsageRows renders one presentation row per model group of a quota view.
+// BuildUsageRowsForTest exposes buildUsageRows for cross-surface parity tests.
+func BuildUsageRowsForTest(provider, profileName string, qv quota.QuotaView, acc model.AccountInfo, defaults map[string]string) []UsageTableRow {
+	return buildUsageRows(provider, profileName, qv, acc, defaults)
+}
+
 func buildUsageRows(provider, profileName string, qv quota.QuotaView, acc model.AccountInfo, defaults map[string]string) []UsageTableRow {
 	isDefault := defaults[provider] == profileName
 	if len(qv.ModelGroups) == 0 {
@@ -325,7 +332,7 @@ func formatQuotaWindow(windows []quota.Window, kind, snapshotStatus string) stri
 		// RATE_LIMITED from the official read carries exact numbers; showing them
 		// is more useful than hiding the window behind a label.
 		case string(model.UsageLive), string(model.UsageCached), string(model.UsageRateLimited):
-			bar := miniQuotaBar(window.Remaining, 8)
+			bar := miniQuotaBar(window.Remaining, 10)
 			return fmt.Sprintf("%s %2.0f%% · %s", bar, window.Remaining, reset)
 		default:
 			return unknownQuotaLabel(snapshotStatus)
@@ -611,17 +618,19 @@ func newUnifiedUsageModel(opts UnifiedUsageOptions) usageTableModel {
 		initW, initH = tw, th
 	}
 
-	// Accounts table setup
+	// Accounts table setup (bubbles kept for cursor/keys; View is custom-rendered).
+	sortUsageRows(allRows)
 	filteredAccounts := make([]UsageTableRow, len(allRows))
 	copy(filteredAccounts, allRows)
-	accTable := table.New(table.WithColumns(usageColumns(initW)), table.WithRows(toUsageTableRowsForWidth(filteredAccounts, initW)), table.WithFocused(true), table.WithHeight(tableBodyHeight(initH)))
+	accountRows := tableBodyHeight(initH)
+	accTable := table.New(table.WithColumns(usageColumns(initW)), table.WithRows(toUsageTableRowsForWidth(filteredAccounts, initW)), table.WithFocused(true), table.WithHeight(accountRows))
 	accTable.SetStyles(styles)
 
 	// Sessions table setup
 	allSess := opts.Sessions
 	filteredSess := make([]conversation.Conversation, len(allSess))
 	copy(filteredSess, allSess)
-	sessTable := table.New(table.WithColumns(sessionColumns(initW)), table.WithRows(toSessionTableRowsForWidth(filteredSess, initW)), table.WithFocused(false), table.WithHeight(tableBodyHeight(initH)))
+	sessTable := table.New(table.WithColumns(sessionColumns(initW)), table.WithRows(toSessionTableRowsForWidth(filteredSess, initW)), table.WithFocused(false), table.WithHeight(accountRows+tableHeaderLines))
 	sessTable.SetStyles(styles)
 
 	return usageTableModel{
@@ -677,9 +686,7 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.allAccounts = configured
-		q := m.filter.Value()
-		m.filteredAccounts = filterUsageRows(m.allAccounts, q)
-		m.setAccountRows()
+		m.refreshFilteredAccounts()
 		if msg.accounts != nil {
 			if m.options.Accounts == nil {
 				m.options.Accounts = map[string]model.AccountInfo{}
@@ -732,8 +739,7 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.allAccounts = kept
-		m.filteredAccounts = filterUsageRows(m.allAccounts, m.filter.Value())
-		m.setAccountRows()
+		m.refreshFilteredAccounts()
 		if m.options.Accounts == nil {
 			m.options.Accounts = map[string]model.AccountInfo{}
 		}
@@ -759,6 +765,7 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.resizeTables()
+		return m, nil
 
 	case tea.KeyMsg:
 		k := msg.String()
@@ -774,6 +781,7 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.modalMode != ModalNone {
 			if k == "esc" || k == "q" || k == "Q" || k == "enter" || k == " " {
 				m.modalMode = ModalNone
+				m.resizeTables()
 				return m, nil
 			}
 			return m, nil
@@ -792,8 +800,7 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.filter, cmd = m.filter.Update(msg)
 				q := m.filter.Value()
 				if m.activeTab == TabAccounts {
-					m.filteredAccounts = filterUsageRows(m.allAccounts, q)
-					m.setAccountRows()
+					m.refreshFilteredAccounts()
 					if len(m.filteredAccounts) > 0 && m.accountTable.Cursor() < 0 {
 						m.accountTable.SetCursor(0)
 					}
@@ -1004,27 +1011,79 @@ func (m *usageTableModel) resizeTables() {
 	if w < 40 {
 		w = 40
 	}
-	h := tableBodyHeight(m.height)
-	m.accountTable.SetColumns(usageColumns(m.width))
-	m.accountTable.SetWidth(w)
-	m.accountTable.SetHeight(h)
-	m.accountTable.SetRows(toUsageTableRowsForWidth(m.filteredAccounts, m.width))
-	m.sessionTable.SetColumns(sessionColumns(m.width))
-	m.sessionTable.SetWidth(w)
-	m.sessionTable.SetHeight(h)
-	m.sessionTable.SetRows(toSessionTableRowsForWidth(m.filteredSessions, m.width))
+	// Custom account render uses data-row count; bubbles SetHeight includes its header.
+	accountRows := tableBodyHeight(m.height)
+	sessionTotal := accountRows + tableHeaderLines
+	replaceTableContents(&m.accountTable, usageColumns(m.width), toUsageTableRowsForWidth(m.filteredAccounts, m.width), w, accountRows)
+	replaceTableContents(&m.sessionTable, sessionColumns(m.width), toSessionTableRowsForWidth(m.filteredSessions, m.width), w, sessionTotal)
+}
+
+func replaceTableContents(t *table.Model, cols []table.Column, rows []table.Row, w, h int) {
+	// bubbles table re-renders immediately on SetColumns/SetRows. Mixing a new
+	// column count with stale cells panics (index out of range).
+	cursor := t.Cursor()
+	t.SetRows(nil)
+	t.SetColumns(cols)
+	t.SetWidth(w)
+	t.SetHeight(h)
+	t.SetRows(rows)
+	if len(rows) == 0 {
+		return
+	}
+	if cursor < 0 {
+		cursor = 0
+	}
+	t.SetCursor(cursor)
+}
+
+func (m *usageTableModel) refreshFilteredAccounts() {
+	selected := m.selectedAccountKey()
+	sortUsageRows(m.allAccounts)
+	m.filteredAccounts = filterUsageRows(m.allAccounts, m.filter.Value())
+	m.setAccountRows()
+	m.restoreAccountCursor(selected)
+}
+
+func (m *usageTableModel) selectedAccountKey() string {
+	idx := m.accountTable.Cursor()
+	if idx < 0 || idx >= len(m.filteredAccounts) {
+		return ""
+	}
+	row := m.filteredAccounts[idx]
+	return row.Provider + ":" + row.Profile
+}
+
+func (m *usageTableModel) restoreAccountCursor(key string) {
+	if key == "" || len(m.filteredAccounts) == 0 {
+		return
+	}
+	for i, row := range m.filteredAccounts {
+		if row.Provider+":"+row.Profile == key {
+			m.accountTable.SetCursor(i)
+			return
+		}
+	}
+	if m.accountTable.Cursor() >= len(m.filteredAccounts) {
+		m.accountTable.SetCursor(len(m.filteredAccounts) - 1)
+	}
 }
 
 func (m *usageTableModel) setAccountRows() {
 	m.accountTable.SetRows(toUsageTableRowsForWidth(m.filteredAccounts, m.width))
 }
 
-// usageChromeLines is the fixed chrome around the accounts/sessions table:
-// header, tabs, blank after tabs, blank after table, preview, help.
-const usageChromeLines = 6
+// usageChromeLines is the chrome around the accounts/sessions table:
+// header, tabs, preview, help.
+const usageChromeLines = 4
+
+// tableHeaderLines is title + bottom border for the accounts/sessions grid.
+const tableHeaderLines = 2
+
+// tableColPad is bubbles table DefaultStyles Padding(0, 1) on header and cell.
+const tableColPad = 2
 
 func tableBodyHeight(termHeight int) int {
-	h := termHeight - usageChromeLines
+	h := termHeight - usageChromeLines - tableHeaderLines
 	if h < 6 {
 		return 6
 	}
@@ -1079,10 +1138,8 @@ func (m usageTableModel) View() string {
 		safePill, yoloPill, planPill, contPill)
 	headerRight := subStyle.Render("~/" + wsBasename)
 	gap := availWidth - lipgloss.Width(headerLeft) - lipgloss.Width(headerRight)
-	if gap < 1 {
-		gap = 1
-	}
-	header := headerLeft + strings.Repeat(" ", gap) + headerRight
+	header := headerLeft + strings.Repeat(" ", max(1, gap)) + headerRight
+	header = clipToWidth(header, availWidth)
 
 	tab1Label := fmt.Sprintf("Contas %d", len(m.filteredAccounts))
 	tab2Label := fmt.Sprintf("Sessões %d", len(m.filteredSessions))
@@ -1097,11 +1154,12 @@ func (m usageTableModel) View() string {
 	if m.filter.Focused() {
 		filterHint = m.filter.View()
 	}
-	tabsLine := fmt.Sprintf("%s  %s  %s", tab1, tab2, filterHint)
+	tabsLine := clipToWidth(fmt.Sprintf("%s  %s  %s", tab1, tab2, filterHint), availWidth)
 
+	tableRows := tableBodyHeight(m.height)
 	var tableContent string
 	if m.activeTab == TabAccounts {
-		tableContent = m.accountTable.View()
+		tableContent = m.renderAccountTable(availWidth, tableRows)
 	} else {
 		tableContent = m.sessionTable.View()
 	}
@@ -1174,16 +1232,221 @@ func (m usageTableModel) View() string {
 	helpText := "↑↓  ⏎ lançar  r atualizar  s detalhe  d padrão  l login  / filtro  q sair"
 	if m.filter.Focused() {
 		helpText = "digite para filtrar · Enter/Esc conclui"
+	} else if availWidth < 90 {
+		helpText = "↑↓  ⏎ lançar  s detalhe  / filtro  q sair"
 	}
 	help := subStyle.Render(truncateRunes(helpText, availWidth))
+	previewLine = clipToWidth(previewLine, availWidth)
 
-	return lipgloss.JoinVertical(lipgloss.Left,
-		header,
-		tabsLine,
-		tableContent,
-		previewLine,
-		help,
-	)
+	// Never clip preview/help: if the frame overruns, shrink the table body.
+	body := lipgloss.JoinVertical(lipgloss.Left, header, tabsLine, tableContent, previewLine, help)
+	if m.height > 0 && lipgloss.Height(body) > m.height {
+		shrink := lipgloss.Height(body) - m.height
+		tableRows = max(1, tableRows-shrink)
+		if m.activeTab == TabAccounts {
+			tableContent = m.renderAccountTable(availWidth, tableRows)
+		}
+		body = lipgloss.JoinVertical(lipgloss.Left, header, tabsLine, tableContent, previewLine, help)
+	}
+	return fitViewToTerminal(body, availWidth, m.height)
+}
+
+func clipToWidth(s string, width int) string {
+	if width <= 0 || lipgloss.Width(s) <= width {
+		return s
+	}
+	return lipgloss.NewStyle().MaxWidth(width).Inline(true).Render(s)
+}
+
+func fitViewToTerminal(content string, width, height int) string {
+	lines := strings.Split(content, "\n")
+	if width > 0 {
+		for i, line := range lines {
+			if lipgloss.Width(line) > width {
+				lines[i] = clipToWidth(line, width)
+			}
+		}
+	}
+	if height > 0 && len(lines) > height {
+		// Prefer keeping the last two chrome lines (preview + help) when possible.
+		if height >= 2 && len(lines) >= 2 {
+			kept := make([]string, 0, height)
+			bodyBudget := height - 2
+			if bodyBudget > len(lines)-2 {
+				bodyBudget = len(lines) - 2
+			}
+			kept = append(kept, lines[:bodyBudget]...)
+			kept = append(kept, lines[len(lines)-2], lines[len(lines)-1])
+			lines = kept
+		} else {
+			lines = lines[:height]
+		}
+	}
+	content = strings.Join(lines, "\n")
+	if height > 0 {
+		if extra := height - len(lines); extra > 0 {
+			content += strings.Repeat("\n", extra)
+		}
+	}
+	return content
+}
+
+func (m usageTableModel) renderAccountTable(width, bodyRows int) string {
+	cols := usageColumns(width)
+	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39")).
+		BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240")).BorderBottom(true)
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Background(lipgloss.Color("57")).Bold(true)
+
+	headerCells := make([]string, 0, len(cols))
+	for _, c := range cols {
+		headerCells = append(headerCells, renderTableCell(c.Title, c.Width, headerStyle))
+	}
+	header := lipgloss.JoinHorizontal(lipgloss.Top, headerCells...)
+
+	cursor := m.accountTable.Cursor()
+	if cursor < 0 && len(m.filteredAccounts) > 0 {
+		cursor = 0
+	}
+	start, end := accountViewport(len(m.filteredAccounts), cursor, bodyRows)
+	lines := make([]string, 0, 1+(end-start))
+	lines = append(lines, header)
+	for i := start; i < end; i++ {
+		row := m.filteredAccounts[i]
+		cells := renderAccountCells(row, cols, i+1)
+		line := lipgloss.JoinHorizontal(lipgloss.Top, cells...)
+		if i == cursor {
+			line = selectedStyle.Width(width).MaxWidth(width).Render(line)
+		}
+		lines = append(lines, clipToWidth(line, width))
+	}
+	// Pad empty viewport rows so preview/help stay pinned to the bottom.
+	for len(lines)-1 < bodyRows {
+		lines = append(lines, "")
+	}
+	return strings.Join(lines, "\n")
+}
+
+func accountViewport(total, cursor, bodyRows int) (start, end int) {
+	if total <= 0 || bodyRows <= 0 {
+		return 0, 0
+	}
+	if bodyRows >= total {
+		return 0, total
+	}
+	start = cursor - bodyRows/2
+	if start < 0 {
+		start = 0
+	}
+	end = start + bodyRows
+	if end > total {
+		end = total
+		start = end - bodyRows
+		if start < 0 {
+			start = 0
+		}
+	}
+	return start, end
+}
+
+func renderAccountCells(row UsageTableRow, cols []table.Column, index int) []string {
+	accountWidth := 24
+	fiveWidth, weeklyWidth := 0, 0
+	for _, c := range cols {
+		switch c.Title {
+		case "CONTA":
+			accountWidth = c.Width
+		case "5H":
+			fiveWidth = c.Width
+		case "SEMANA":
+			weeklyWidth = c.Width
+		}
+	}
+	star := ""
+	if row.IsDefault {
+		star = "★"
+	}
+	cells := make([]string, 0, len(cols))
+	for _, c := range cols {
+		switch c.Title {
+		case "#":
+			cells = append(cells, renderTableCell(strconv.Itoa(index), c.Width, lipgloss.NewStyle().Foreground(lipgloss.Color("242"))))
+		case "PROV":
+			cells = append(cells, renderTableCell(formatProviderBadge(row.Provider), c.Width, lipgloss.NewStyle()))
+		case "CONTA":
+			cells = append(cells, renderTableCell(formatAccountIdentity(row, accountWidth, star), c.Width, lipgloss.NewStyle()))
+		case "5H":
+			cells = append(cells, renderTableCell(formatQuotaCell(row.FiveHour, fiveWidth, row.Status), c.Width, usageQuotaStyle(row.Status, row.FiveHour)))
+		case "SEMANA":
+			cells = append(cells, renderTableCell(formatQuotaCell(row.Weekly, weeklyWidth, row.Status), c.Width, usageQuotaStyle(row.Status, row.Weekly)))
+		case "STATUS":
+			cells = append(cells, renderTableCell(row.Status, c.Width, usageStatusStyle(row.Status)))
+		default:
+			cells = append(cells, renderTableCell("", c.Width, lipgloss.NewStyle()))
+		}
+	}
+	return cells
+}
+
+func renderTableCell(value string, width int, style lipgloss.Style) string {
+	if width <= 0 {
+		return ""
+	}
+	plain := truncateMiddle(value, width)
+	inner := lipgloss.NewStyle().Width(width).MaxWidth(width).Inline(true).Render(plain)
+	return style.Padding(0, 1).Render(inner)
+}
+
+func formatQuotaCell(raw string, width int, _ string) string {
+	if raw == "" || raw == "—" {
+		return "—"
+	}
+	if width <= 0 || lipgloss.Width(raw) <= width {
+		return raw
+	}
+	// Prefer keeping bar + percent; drop reset when the column is tight.
+	if idx := strings.Index(raw, " · "); idx > 0 {
+		compact := strings.TrimSpace(raw[:idx])
+		if lipgloss.Width(compact) <= width {
+			return compact
+		}
+	}
+	return truncateMiddle(raw, width)
+}
+
+func usageStatusStyle(status string) lipgloss.Style {
+	switch status {
+	case "ESGOTADA", "RATE LTD", "SEM QUOTA", "RATE LIMITED":
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("196"))
+	case "OK", "COM QUOTA":
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("42"))
+	case "ESTIMADA":
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("208"))
+	case "SEM DADOS", "OFF":
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
+	default:
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
+	}
+}
+
+func usageQuotaStyle(status, value string) lipgloss.Style {
+	if quotaLooksExhausted(value) {
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+	}
+	switch status {
+	case "ESGOTADA", "RATE LTD", "SEM QUOTA", "RATE LIMITED":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+	case "OK", "COM QUOTA":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+	case "ESTIMADA":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
+	default:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+	}
+}
+
+func quotaLooksExhausted(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	return strings.Contains(value, "  0%") || strings.Contains(value, " 0%") || strings.HasPrefix(trimmed, "0%")
 }
 
 func (m *usageTableModel) ensureQuotaModalCached() {
@@ -1205,12 +1468,17 @@ func (m *usageTableModel) ensureQuotaModalCached() {
 }
 
 func (m usageTableModel) renderQuotaModal(width int) string {
-	boxWidth := width - 4
+	// Width is content before padding/border. Keep the painted box on-screen.
+	boxWidth := width - 6
+	if boxWidth < 24 {
+		boxWidth = max(10, width-2)
+	}
 	modalStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("39")).
 		Width(boxWidth).
-		Padding(1, 2)
+		MaxWidth(width).
+		Padding(1, 1)
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15"))
 	subStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("242"))
@@ -1240,7 +1508,7 @@ func (m usageTableModel) renderQuotaModal(width int) string {
 	qv := cached.view
 
 	var sb strings.Builder
-	sb.WriteString(titleStyle.Render(fmt.Sprintf("📊 Limites & Quota — %s:%s", row.Provider, row.Profile)) + "\n\n")
+	sb.WriteString(titleStyle.Render(fmt.Sprintf("Limites & Quota — %s:%s", row.Provider, row.Profile)) + "\n\n")
 	fmt.Fprintf(&sb, " Conta:   %s (%s)\n", accentStyle.Render(acc.Email), magentaStyle.Render(acc.Plan))
 	fmt.Fprintf(&sb, " Status:  %s\n", acc.Status)
 
@@ -1276,69 +1544,174 @@ func (m usageTableModel) renderQuotaModal(width int) string {
 	sb.WriteString("\n")
 	sb.WriteString(subStyle.Render("Pressione qualquer tecla ou Esc/q para voltar"))
 
-	return modalStyle.Render(sb.String())
+	return fitViewToTerminal(modalStyle.Render(sb.String()), width, m.height)
+}
+
+type colSpec struct {
+	title     string
+	min       int
+	pref      int
+	flexible  bool
+	growQuota bool
+	maxFlex   int
 }
 
 func usageColumns(width int) []table.Column {
-	if width < 80 {
-		accountW := max(18, width-8-10-3)
-		return []table.Column{
-			{Title: "PROV", Width: 8},
-			{Title: "CONTA", Width: accountW},
-			{Title: "STATUS", Width: 10},
-		}
+	if width < 40 {
+		width = 40
 	}
-	if width < 132 {
-		// Drop weekly detail; keep 5h + status. Account takes remainder.
-		fixed := 8 + 18 + 10 + 3
-		accountW := max(20, width-fixed)
-		return []table.Column{
-			{Title: "PROV", Width: 8},
-			{Title: "CONTA", Width: accountW},
-			{Title: "5H", Width: 18},
-			{Title: "STATUS", Width: 10},
-		}
-	}
-	fixed := 8 + 22 + 24 + 10 + 4
-	accountW := max(24, width-fixed)
-	return []table.Column{
-		{Title: "PROV", Width: 8},
-		{Title: "CONTA", Width: accountW},
-		{Title: "5H", Width: 22},
-		{Title: "SEMANA", Width: 24},
-		{Title: "STATUS", Width: 10},
+	switch {
+	case width < 84:
+		return fitTableColumns(width, []colSpec{
+			{title: "#", min: 3, pref: 3},
+			{title: "PROV", min: 6, pref: 7},
+			{title: "CONTA", min: 12, pref: 24, flexible: true},
+			{title: "STATUS", min: 10, pref: 10},
+		})
+	case width < 108:
+		return fitTableColumns(width, []colSpec{
+			{title: "#", min: 3, pref: 3},
+			{title: "PROV", min: 6, pref: 7},
+			{title: "CONTA", min: 14, pref: 28, flexible: true},
+			{title: "5H", min: 16, pref: 24, growQuota: true},
+			{title: "STATUS", min: 10, pref: 10},
+		})
+	default:
+		return fitTableColumns(width, []colSpec{
+			{title: "#", min: 3, pref: 3},
+			{title: "PROV", min: 6, pref: 7},
+			{title: "CONTA", min: 18, pref: 32, flexible: true},
+			{title: "5H", min: 18, pref: 24, growQuota: true},
+			{title: "SEMANA", min: 18, pref: 26, growQuota: true},
+			{title: "STATUS", min: 10, pref: 10},
+		})
 	}
 }
 
 func sessionColumns(width int) []table.Column {
-	if width < 70 {
-		titleW := max(12, width-8-8-2)
-		return []table.Column{
-			{Title: "PROV", Width: 8},
-			{Title: "SESSÃO", Width: 8},
-			{Title: "TÍTULO", Width: titleW},
+	if width < 40 {
+		width = 40
+	}
+	switch {
+	case width < 70:
+		return fitTableColumns(width, []colSpec{
+			{title: "PROV", min: 6, pref: 7},
+			{title: "SESSÃO", min: 6, pref: 8},
+			{title: "TÍTULO", min: 10, pref: 16, flexible: true, maxFlex: 48},
+		})
+	case width < 110:
+		return fitTableColumns(width, []colSpec{
+			{title: "PROVEDOR", min: 8, pref: 10},
+			{title: "SESSÃO", min: 8, pref: 10},
+			{title: "MODIFICADO", min: 10, pref: 12},
+			{title: "TÍTULO", min: 12, pref: 18, flexible: true, maxFlex: 40},
+			{title: "WORKSPACE", min: 10, pref: 14},
+		})
+	default:
+		return fitTableColumns(width, []colSpec{
+			{title: "PROVEDOR", min: 8, pref: 11},
+			{title: "SESSÃO", min: 8, pref: 14},
+			{title: "MODIFICADO", min: 10, pref: 16},
+			{title: "TÍTULO", min: 14, pref: 24, flexible: true, maxFlex: 48},
+			{title: "WORKSPACE", min: 10, pref: 22},
+		})
+	}
+}
+
+func fitTableColumns(termWidth int, specs []colSpec) []table.Column {
+	n := len(specs)
+	budget := termWidth - n*tableColPad
+	if budget < n {
+		budget = n
+	}
+	widths := make([]int, n)
+	used := 0
+	flexIdx := -1
+	quotaIdxs := make([]int, 0, 2)
+	for i, spec := range specs {
+		widths[i] = spec.pref
+		used += spec.pref
+		if spec.flexible {
+			flexIdx = i
+		}
+		if spec.growQuota {
+			quotaIdxs = append(quotaIdxs, i)
 		}
 	}
-	if width < 110 {
-		fixed := 10 + 10 + 12 + 14 + 4
-		titleW := max(16, width-fixed)
-		return []table.Column{
-			{Title: "PROVEDOR", Width: 10},
-			{Title: "SESSÃO", Width: 10},
-			{Title: "MODIFICADO", Width: 12},
-			{Title: "TÍTULO", Width: titleW},
-			{Title: "WORKSPACE", Width: 14},
+	if used > budget {
+		overflow := used - budget
+		for i := 0; i < n && overflow > 0; i++ {
+			if specs[i].title == "STATUS" || specs[i].title == "PROV" || specs[i].title == "PROVEDOR" || specs[i].title == "#" {
+				continue
+			}
+			reducible := widths[i] - specs[i].min
+			if reducible <= 0 {
+				continue
+			}
+			take := min(reducible, overflow)
+			widths[i] -= take
+			overflow -= take
+		}
+		for i := n - 1; i >= 0 && overflow > 0; i-- {
+			reducible := widths[i] - specs[i].min
+			if reducible <= 0 {
+				continue
+			}
+			take := min(reducible, overflow)
+			widths[i] -= take
+			overflow -= take
+		}
+	} else if leftover := budget - used; leftover > 0 {
+		// Fill the terminal: CONTA first, then quota columns, never leave a void.
+		if flexIdx >= 0 {
+			add := leftover
+			if specs[flexIdx].maxFlex > 0 {
+				capAdd := specs[flexIdx].maxFlex - widths[flexIdx]
+				if capAdd < 0 {
+					capAdd = 0
+				}
+				if add > capAdd {
+					add = capAdd
+				}
+			} else if len(quotaIdxs) > 0 && widths[flexIdx]+leftover > 72 {
+				// Keep CONTA readable but hand surplus to bars on very wide terminals.
+				capAdd := 72 - widths[flexIdx]
+				if capAdd < 0 {
+					capAdd = 0
+				}
+				if add > capAdd {
+					add = capAdd
+				}
+			}
+			widths[flexIdx] += add
+			leftover -= add
+		}
+		if leftover > 0 && len(quotaIdxs) > 0 {
+			share := leftover / len(quotaIdxs)
+			for i, idx := range quotaIdxs {
+				extra := share
+				if i == len(quotaIdxs)-1 {
+					extra = leftover - share*(len(quotaIdxs)-1)
+				}
+				widths[idx] += extra
+			}
+		} else if leftover > 0 && flexIdx >= 0 {
+			widths[flexIdx] += leftover
 		}
 	}
-	fixed := 11 + 14 + 16 + 22 + 4
-	titleW := max(24, width-fixed)
-	return []table.Column{
-		{Title: "PROVEDOR", Width: 11},
-		{Title: "SESSÃO", Width: 14},
-		{Title: "MODIFICADO", Width: 16},
-		{Title: "TÍTULO", Width: titleW},
-		{Title: "WORKSPACE", Width: 22},
+	cols := make([]table.Column, n)
+	for i, spec := range specs {
+		cols[i] = table.Column{Title: spec.title, Width: widths[i]}
 	}
+	return cols
+}
+
+func renderedTableWidth(cols []table.Column) int {
+	sum := 0
+	for _, c := range cols {
+		sum += c.Width + tableColPad
+	}
+	return sum
 }
 
 func toUsageTableRows(rows []UsageTableRow) []table.Row {
@@ -1362,7 +1735,7 @@ func toUsageTableRowsForWidth(rows []UsageTableRow, width int) []table.Row {
 	}
 
 	result := make([]table.Row, 0, len(rows))
-	for _, row := range rows {
+	for i, row := range rows {
 		provBadge := formatProviderBadge(row.Provider)
 		star := ""
 		if row.IsDefault {
@@ -1370,22 +1743,20 @@ func toUsageTableRowsForWidth(rows []UsageTableRow, width int) []table.Row {
 		}
 
 		identity := formatAccountIdentity(row, accountWidth, star)
-		statusStyle := usageStatusStyle(row.Status)
-		quotaStyle := usageQuotaStyle(row.Status)
 
-		cells := []string{provBadge, identity}
+		cells := []string{strconv.Itoa(i + 1), provBadge, identity}
 		if showFive {
 			five := row.FiveHour
 			if !showWeekly && five != "—" && five != "SEM DADOS" {
 				// Mid width: keep compact percent only when weekly hidden.
 				five = compactFiveHour(five)
 			}
-			cells = append(cells, quotaStyle.Render(five))
+			cells = append(cells, five)
 		}
 		if showWeekly {
-			cells = append(cells, quotaStyle.Render(row.Weekly))
+			cells = append(cells, row.Weekly)
 		}
-		cells = append(cells, statusStyle.Render(row.Status))
+		cells = append(cells, row.Status)
 		result = append(result, table.Row(cells))
 	}
 	return result
@@ -1469,34 +1840,6 @@ func truncateMiddle(s string, width int) string {
 	return string(runes[:left]) + "…" + string(runes[len(runes)-right:])
 }
 
-func usageStatusStyle(status string) lipgloss.Style {
-	switch status {
-	case "ESGOTADA", "RATE LTD", "SEM QUOTA", "RATE LIMITED":
-		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("196"))
-	case "OK", "COM QUOTA":
-		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("42"))
-	case "ESTIMADA":
-		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("208"))
-	case "SEM DADOS", "OFF":
-		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
-	default:
-		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
-	}
-}
-
-func usageQuotaStyle(status string) lipgloss.Style {
-	switch status {
-	case "ESGOTADA", "RATE LTD", "SEM QUOTA", "RATE LIMITED":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
-	case "OK", "COM QUOTA":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
-	case "ESTIMADA":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
-	default:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
-	}
-}
-
 func toSessionTableRows(sess []conversation.Conversation) []table.Row {
 	return toSessionTableRowsForWidth(sess, 132)
 }
@@ -1578,6 +1921,76 @@ func filterUsageRows(rows []UsageTableRow, query string) []UsageTableRow {
 		}
 	}
 	return filtered
+}
+
+func sortUsageRows(rows []UsageTableRow) {
+	sort.SliceStable(rows, func(i, j int) bool {
+		ai, aj := rowAvailability(rows[i]), rowAvailability(rows[j])
+		if ai != aj {
+			return ai > aj
+		}
+		if rows[i].Provider != rows[j].Provider {
+			return rows[i].Provider < rows[j].Provider
+		}
+		if rows[i].Profile != rows[j].Profile {
+			return rows[i].Profile < rows[j].Profile
+		}
+		return rows[i].Group < rows[j].Group
+	})
+}
+
+func rowAvailability(row UsageTableRow) float64 {
+	if row.IsUnconfigured || row.Status == "OFF" {
+		return -5
+	}
+	switch row.Status {
+	case "SEM DADOS":
+		return -4
+	case "RATE LTD", "RATE LIMITED":
+		// Below any positive remaining % and below exhausted.
+		return -3.5
+	case "ESGOTADA":
+		// Exhausted sorts below healthy %, above rate-limit / SEM DADOS.
+		return -3
+	}
+	five, fiveOK := parseQuotaPercent(row.FiveHour)
+	week, weekOK := parseQuotaPercent(row.Weekly)
+	switch {
+	case fiveOK && weekOK:
+		if five < week {
+			return five
+		}
+		return week
+	case fiveOK:
+		return five
+	case weekOK:
+		return week
+	case row.Status == "OK", row.Status == "COM QUOTA", row.Status == "ESTIMADA":
+		return 50
+	default:
+		return -2
+	}
+}
+
+func parseQuotaPercent(s string) (float64, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" || s == "—" || strings.Contains(strings.ToUpper(s), "SEM") {
+		return 0, false
+	}
+	idx := strings.Index(s, "%")
+	if idx <= 0 {
+		return 0, false
+	}
+	token := strings.TrimSpace(s[:idx])
+	fields := strings.Fields(token)
+	if len(fields) == 0 {
+		return 0, false
+	}
+	n, err := strconv.ParseFloat(strings.TrimPrefix(fields[len(fields)-1], "~"), 64)
+	if err != nil {
+		return 0, false
+	}
+	return n, true
 }
 
 func filterSessionRows(sess []conversation.Conversation, query string) []conversation.Conversation {

@@ -1,0 +1,42 @@
+{
+  "id": "agy",
+  "binary_candidates": [
+    "agy"
+  ],
+  "env_keys": [
+    "AI_HOST_DBUS_SESSION_BUS_ADDRESS",
+    "AI_PROFILE",
+    "AI_PROVIDER",
+    "BROWSER",
+    "DBUS_SESSION_BUS_ADDRESS",
+    "HOME",
+    "PATH",
+    "PYTHON_KEYRING_BACKEND",
+    "XDG_CACHE_HOME",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME",
+    "XDG_STATE_HOME"
+  ],
+  "env_delete": [
+    "GNOME_KEYRING_CONTROL",
+    "GNOME_KEYRING_PID"
+  ],
+  "kickoff": [
+    "-p",
+    "{prompt}"
+  ],
+  "resume": [
+    "--conversation={session}"
+  ],
+  "auto_approval": [
+    "--dangerously-skip-permissions",
+    "--sandbox",
+    "--print-timeout",
+    "60m"
+  ],
+  "review_mode": null,
+  "quota": "LIVE_CLI",
+  "known_versions": [
+    "1.0.0"
+  ]
+}

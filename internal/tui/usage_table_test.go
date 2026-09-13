@@ -1,11 +1,13 @@
 package tui
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/kivervinicius/ai-cli/internal/conversation"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
 	"github.com/kivervinicius/ai-cli/internal/core/quota"
@@ -169,21 +171,31 @@ func TestUnifiedUsageRestoresSelectionAfterEmptyFilter(t *testing.T) {
 	if cmd == nil || m.chosenResult == nil {
 		t.Fatalf("expected Enter to select the restored row, result=%#v cmd=%v", m.chosenResult, cmd)
 	}
-	if m.chosenResult.ProfileName != "work" {
-		t.Fatalf("expected first restored row to be selected, got %#v", m.chosenResult)
+	if m.chosenResult.ProfileName != m.filteredAccounts[0].Profile {
+		t.Fatalf("expected first restored row %q to be selected, got %#v", m.filteredAccounts[0].Profile, m.chosenResult)
 	}
 }
 
 func TestUsageColumnsAdaptiveWidths(t *testing.T) {
-	for _, width := range []int{60, 80, 132, 160} {
+	for _, width := range []int{60, 80, 100, 108, 132, 160, 220} {
 		cols := usageColumns(width)
-		sum := 0
 		statusW := 0
+		contaW := 0
 		hasModel := false
+		hasSemana := false
+		hasFive := false
 		for _, c := range cols {
-			sum += c.Width
 			if c.Title == "STATUS" {
 				statusW = c.Width
+			}
+			if c.Title == "CONTA" {
+				contaW = c.Width
+			}
+			if c.Title == "SEMANA" {
+				hasSemana = true
+			}
+			if c.Title == "5H" {
+				hasFive = true
 			}
 			if c.Title == "MODELO" || c.Title == "MODEL" {
 				hasModel = true
@@ -195,8 +207,27 @@ func TestUsageColumnsAdaptiveWidths(t *testing.T) {
 		if statusW < 10 {
 			t.Fatalf("width %d STATUS=%d want >=10 so SEM DADOS fits", width, statusW)
 		}
-		if sum > width {
-			t.Fatalf("width %d column sum %d exceeds terminal width", width, sum)
+		if (hasFive || hasSemana) && contaW > 72 {
+			t.Fatalf("width %d CONTA=%d should cap so leftover grows 5H/SEMANA", width, contaW)
+		}
+		got := renderedTableWidth(cols)
+		if got > width {
+			t.Fatalf("width %d rendered table %d exceeds terminal (padding included)", width, got)
+		}
+		if width >= 160 && width-got > 3 {
+			t.Fatalf("width %d rendered table %d leaves too much unused space", width, got)
+		}
+		if width < 84 && (hasFive || hasSemana) {
+			t.Fatalf("width %d should hide 5H/SEMANA, cols=%v", width, cols)
+		}
+		if width >= 84 && width < 108 && !hasFive {
+			t.Fatalf("width %d should show 5H", width)
+		}
+		if width >= 84 && width < 108 && hasSemana {
+			t.Fatalf("width %d should hide SEMANA", width)
+		}
+		if width >= 108 && !hasSemana {
+			t.Fatalf("width %d should show SEMANA", width)
 		}
 	}
 }
@@ -204,12 +235,8 @@ func TestUsageColumnsAdaptiveWidths(t *testing.T) {
 func TestSessionColumnsAdaptiveWidths(t *testing.T) {
 	for _, width := range []int{60, 80, 100, 132} {
 		cols := sessionColumns(width)
-		sum := 0
-		for _, c := range cols {
-			sum += c.Width
-		}
-		if sum > width {
-			t.Fatalf("width %d session column sum %d exceeds terminal", width, sum)
+		if got := renderedTableWidth(cols); got > width {
+			t.Fatalf("width %d session rendered %d exceeds terminal", width, got)
 		}
 		rows := toSessionTableRowsForWidth([]conversation.Conversation{{
 			Provider: "agy", ID: "sess-abcdefgh", Title: "a very long conversation title for truncation",
@@ -221,6 +248,239 @@ func TestSessionColumnsAdaptiveWidths(t *testing.T) {
 		if len(rows[0]) != len(cols) {
 			t.Fatalf("width %d row cells=%d cols=%d", width, len(rows[0]), len(cols))
 		}
+	}
+}
+
+func TestUsageRowsSortedMostAvailableFirst(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{
+			{Provider: "claude", Profile: "off", Status: "SEM DADOS", FiveHour: "—", Weekly: "—"},
+			{Provider: "agy", Profile: "low", Status: "ESGOTADA", FiveHour: "[░░░░░░░░]  0%", Weekly: "[█░░░░░░░] 10%"},
+			{Provider: "codex", Profile: "best", Status: "OK", FiveHour: "[███████░] 85%", Weekly: "[████░░░░] 40%"},
+			{Provider: "gemini", Profile: "mid", Status: "OK", FiveHour: "[███░░░░░] 30%", Weekly: "[████░░░░] 50%"},
+		},
+		UnconfiguredCLIs: []InstalledProviderInfo{{ID: "cursor", Name: "Cursor CLI", Installed: true, Profiles: 0}},
+	}
+	m := newUnifiedUsageModel(opts)
+	if len(m.filteredAccounts) != 5 {
+		t.Fatalf("rows=%d", len(m.filteredAccounts))
+	}
+	want := []string{"best", "mid", "low", "off", "(sem perfil)"}
+	for i, profile := range want {
+		if m.filteredAccounts[i].Profile != profile {
+			t.Fatalf("index %d got %s:%s want profile %s", i+1, m.filteredAccounts[i].Provider, m.filteredAccounts[i].Profile, profile)
+		}
+	}
+}
+
+func TestUsageTableRendersIndexColumn(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{
+			{Provider: "codex", Profile: "best", Status: "OK", FiveHour: "90%", Weekly: "80%"},
+			{Provider: "agy", Profile: "low", Status: "ESGOTADA", FiveHour: "0%", Weekly: "0%"},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	res, _ := m.Update(tea.WindowSizeMsg{Width: 132, Height: 24})
+	m = res.(usageTableModel)
+	view := m.View()
+	if !strings.Contains(view, "#") {
+		t.Fatal("missing index header")
+	}
+	if !strings.Contains(view, "1") || !strings.Contains(view, "2") {
+		t.Fatalf("missing row indices: %q", view)
+	}
+	cols := usageColumns(132)
+	if cols[0].Title != "#" {
+		t.Fatalf("first column=%s", cols[0].Title)
+	}
+	rows := toUsageTableRowsForWidth(m.filteredAccounts, 132)
+	if len(rows) != 2 {
+		t.Fatalf("rows=%d", len(rows))
+	}
+	for i, row := range rows {
+		if len(row) != len(cols) {
+			t.Fatalf("row %d cells=%d cols=%d", i, len(row), len(cols))
+		}
+		if row[0] != strconv.Itoa(i+1) {
+			t.Fatalf("row %d index cell=%q want %d", i, row[0], i+1)
+		}
+	}
+}
+
+func TestUsageTableCursorStableAcrossResort(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{
+			{Provider: "agy", Profile: "low", Status: "ESGOTADA", FiveHour: "0%", Weekly: "0%"},
+			{Provider: "codex", Profile: "best", Status: "OK", FiveHour: "90%", Weekly: "80%"},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	// After init sort, "best" is first. Move cursor onto "low".
+	lowIdx := -1
+	for i, row := range m.filteredAccounts {
+		if row.Profile == "low" {
+			lowIdx = i
+			break
+		}
+	}
+	if lowIdx < 0 {
+		t.Fatal("low row missing")
+	}
+	m.accountTable.SetCursor(lowIdx)
+
+	// Simulate a poll that inverts remaining capacity and reloads.
+	msg := quotasLoadedMsg{
+		rows: []UsageTableRow{
+			{Provider: "codex", Profile: "best", Status: "OK", FiveHour: "10%", Weekly: "10%"},
+			{Provider: "agy", Profile: "low", Status: "OK", FiveHour: "95%", Weekly: "90%"},
+		},
+		silent: true,
+	}
+	res, _ := m.Update(msg)
+	m = res.(usageTableModel)
+	idx := m.accountTable.Cursor()
+	if idx < 0 || idx >= len(m.filteredAccounts) {
+		t.Fatalf("cursor=%d rows=%d", idx, len(m.filteredAccounts))
+	}
+	if m.filteredAccounts[idx].Profile != "low" {
+		t.Fatalf("cursor landed on %s:%s want agy:low after resort", m.filteredAccounts[idx].Provider, m.filteredAccounts[idx].Profile)
+	}
+}
+
+func TestUsageTableRowColumnParityAllWidths(t *testing.T) {
+	rows := []UsageTableRow{{
+		Provider: "agy", Profile: "work", Account: "a@b.com", Group: "Gemini",
+		FiveHour: "[████░░░░] 85%", Weekly: "[█░░░░░░░] 10%", Status: "OK",
+	}}
+	for _, width := range []int{60, 80, 100, 132} {
+		cols := usageColumns(width)
+		tableRows := toUsageTableRowsForWidth(rows, width)
+		if len(tableRows) != 1 {
+			t.Fatalf("width %d rows=%d", width, len(tableRows))
+		}
+		if len(tableRows[0]) != len(cols) {
+			t.Fatalf("width %d cells=%d cols=%d", width, len(tableRows[0]), len(cols))
+		}
+		if tableRows[0][0] != "1" {
+			t.Fatalf("width %d index=%q", width, tableRows[0][0])
+		}
+	}
+}
+
+func TestUsageTableRendersWithinTerminalWidth(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{{
+			Provider: "agy", Profile: "kiveronegasistemas",
+			Account: "kiver.onegasistemas@gmail.com", Group: "Gemini",
+			FiveHour: "[████░░░░] 85% · 19:4", Weekly: "[█░░░░░░░]  0% · 96%", Status: "OK",
+		}},
+	}
+	for _, width := range []int{60, 80, 100, 132} {
+		m := newUnifiedUsageModel(opts)
+		res, _ := m.Update(tea.WindowSizeMsg{Width: width, Height: 24})
+		m = res.(usageTableModel)
+		view := m.View()
+		for i, line := range strings.Split(view, "\n") {
+			if w := lipgloss.Width(line); w > width {
+				t.Fatalf("width %d line %d is %d cols: %q", width, i, w, line)
+			}
+		}
+		if !strings.Contains(view, "STATUS") {
+			t.Fatalf("width %d clipped STATUS header", width)
+		}
+		if !strings.Contains(view, "#") {
+			t.Fatalf("width %d clipped index header", width)
+		}
+		if width >= 108 && !strings.Contains(view, "SEMANA") {
+			t.Fatalf("width %d clipped SEMANA header", width)
+		}
+		if !strings.Contains(view, "q sair") {
+			t.Fatalf("width %d lost help chrome: %q", width, view)
+		}
+	}
+}
+
+func TestUsageTableStatusKeepsColorWithoutOverflow(t *testing.T) {
+	cell := renderTableCell("ESGOTADA", 10, usageStatusStyle("ESGOTADA"))
+	if lipgloss.Width(cell) > 12 {
+		t.Fatalf("STATUS cell visual width %d exceeds 10+padding", lipgloss.Width(cell))
+	}
+	quota := renderTableCell("[░░░░░░░░]  0%", 18, usageQuotaStyle("OK", "[░░░░░░░░]  0%"))
+	if lipgloss.Width(quota) > 20 {
+		t.Fatalf("quota cell visual width %d exceeds column+padding", lipgloss.Width(quota))
+	}
+
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{
+			{Provider: "agy", Profile: "work", Account: "work@example.com", FiveHour: "[████████] 100% · 4h", Weekly: "[░░░░░░░░]  0%", Status: "ESGOTADA"},
+			{Provider: "codex", Profile: "ok", Account: "ok@example.com", FiveHour: "[██████░░]  80% · 2h", Weekly: "[████░░░░]  40%", Status: "OK"},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	res, _ := m.Update(tea.WindowSizeMsg{Width: 132, Height: 24})
+	m = res.(usageTableModel)
+	view := m.View()
+	if !strings.Contains(view, "ESGOTADA") || !strings.Contains(view, "OK") {
+		t.Fatalf("status labels missing: %q", view)
+	}
+	if !strings.Contains(view, "q sair") {
+		t.Fatal("help line missing")
+	}
+	for i, line := range strings.Split(view, "\n") {
+		if w := lipgloss.Width(line); w > 132 {
+			t.Fatalf("line %d width %d exceeds 132: %q", i, w, line)
+		}
+	}
+}
+
+func TestQuotaModalEscRestoresTable(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{{Provider: "codex", Profile: "work", Account: "work@example.com", Status: "OK", FiveHour: "80%", Weekly: "70%"}},
+	}
+	m := newUnifiedUsageModel(opts)
+	res, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 24})
+	m = res.(usageTableModel)
+	if m.accountTable.Cursor() < 0 {
+		t.Fatal("resize must keep a selected account")
+	}
+
+	res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	m = res.(usageTableModel)
+	if cmd != nil {
+		t.Fatal("opening quota modal must not quit")
+	}
+	if m.modalMode != ModalQuotaDetails {
+		t.Fatalf("expected quota modal, mode=%v", m.modalMode)
+	}
+	modal := m.View()
+	if !strings.Contains(modal, "Limites & Quota") {
+		t.Fatalf("modal view missing title (height=%d width=%d cursor=%d): %q", m.height, m.width, m.accountTable.Cursor(), modal)
+	}
+
+	res, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(usageTableModel)
+	if cmd != nil {
+		t.Fatal("esc in modal must return to the table, not quit")
+	}
+	if m.modalMode != ModalNone {
+		t.Fatalf("expected modal closed, mode=%v", m.modalMode)
+	}
+	if m.accountTable.Cursor() < 0 {
+		t.Fatal("closing modal must keep the selected account")
+	}
+	view := m.View()
+	if strings.Contains(view, "Limites & Quota") {
+		t.Fatal("table view still showing modal content after esc")
+	}
+	if !strings.Contains(view, "PROV") || !strings.Contains(view, "STATUS") {
+		t.Fatalf("expected restored table headers, got %q", view)
+	}
+	if !strings.Contains(view, "q sair") {
+		t.Fatal("help line must remain after closing the modal")
+	}
+	if lipgloss.Height(view) < 24 {
+		t.Fatalf("view height %d < terminal 24; leftover modal lines would remain", lipgloss.Height(view))
 	}
 }
 
@@ -260,8 +520,8 @@ func TestTableBodyHeightFillsTerminal(t *testing.T) {
 	if h < 10 {
 		t.Fatalf("tableBodyHeight(30)=%d want >=10 to fill chrome-compact layout", h)
 	}
-	if h != 30-usageChromeLines {
-		t.Fatalf("tableBodyHeight(30)=%d want %d", h, 30-usageChromeLines)
+	if h != 30-usageChromeLines-tableHeaderLines {
+		t.Fatalf("tableBodyHeight(30)=%d want %d", h, 30-usageChromeLines-tableHeaderLines)
 	}
 }
 
@@ -430,5 +690,67 @@ func TestAccountRefreshedReplacesOnlyThatAccount(t *testing.T) {
 	}
 	if !strings.Contains(m.statusMsg, "AO VIVO") {
 		t.Fatalf("status message should report the new freshness, got %q", m.statusMsg)
+	}
+}
+
+func TestUsageTableRowsMatchColumnCount(t *testing.T) {
+	rows := []UsageTableRow{
+		{Provider: "codex", Profile: "a", Status: "OK", FiveHour: "90%", Weekly: "80%"},
+		{Provider: "agy", Profile: "b", Status: "ESGOTADA", FiveHour: "0%", Weekly: "0%"},
+	}
+	for _, width := range []int{60, 80, 100, 132} {
+		cols := usageColumns(width)
+		tableRows := toUsageTableRowsForWidth(rows, width)
+		if len(tableRows) != 2 {
+			t.Fatalf("width %d rows=%d", width, len(tableRows))
+		}
+		for i, row := range tableRows {
+			if len(row) != len(cols) {
+				t.Fatalf("width %d row %d cells=%d cols=%d", width, i, len(row), len(cols))
+			}
+			if row[0] != strconv.Itoa(i+1) {
+				t.Fatalf("width %d row %d index=%q want %d", width, i, row[0], i+1)
+			}
+		}
+	}
+}
+
+func TestUsageTableCursorSurvivesResort(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{
+			{Provider: "codex", Profile: "low", Status: "OK", FiveHour: "10%", Weekly: "10%"},
+			{Provider: "agy", Profile: "high", Status: "OK", FiveHour: "90%", Weekly: "90%"},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	// Cursor on codex:low (index 1 after initial most-available sort → high, low).
+	lowIdx := -1
+	for i, row := range m.filteredAccounts {
+		if row.Provider == "codex" && row.Profile == "low" {
+			lowIdx = i
+			break
+		}
+	}
+	if lowIdx < 0 {
+		t.Fatal("codex:low missing")
+	}
+	m.accountTable.SetCursor(lowIdx)
+
+	// Invert availability so sort moves codex:low to a different index.
+	res, _ := m.Update(quotasLoadedMsg{
+		silent: true,
+		rows: []UsageTableRow{
+			{Provider: "codex", Profile: "low", Status: "OK", FiveHour: "95%", Weekly: "95%"},
+			{Provider: "agy", Profile: "high", Status: "OK", FiveHour: "5%", Weekly: "5%"},
+		},
+	})
+	m = res.(usageTableModel)
+	idx := m.accountTable.Cursor()
+	if idx < 0 || idx >= len(m.filteredAccounts) {
+		t.Fatalf("cursor=%d out of range", idx)
+	}
+	got := m.filteredAccounts[idx]
+	if got.Provider != "codex" || got.Profile != "low" {
+		t.Fatalf("cursor landed on %s:%s want codex:low", got.Provider, got.Profile)
 	}
 }

@@ -20,6 +20,7 @@ type ProviderAccount struct {
 	Available      bool                `json:"available"`
 	AvailReasons   *quota.AvailReasons `json:"avail_reasons,omitempty"`
 	QuotaView      *quota.QuotaView    `json:"quota_view,omitempty"`
+	Eligibility    *quota.Eligibility  `json:"eligibility,omitempty"`
 	Capabilities   map[string]string   `json:"capabilities,omitempty"`
 	QuotaRemaining float64             `json:"quota_remaining"` // 0-1 normalized (bottleneck)
 	QuotaTotal     float64             `json:"quota_total"`
@@ -150,31 +151,13 @@ func (s *ResourceScheduler) Select(
 	return decision
 }
 
-// filterEligible returns accounts that are authenticated, not rate-limited,
-// and not in cooldown.
+// filterEligible returns accounts that pass the shared quota.EvaluateEligibility
+// gate (auth, network, health, cooldown, rate-limit, UNKNOWN, exhausted).
 func (s *ResourceScheduler) filterEligible() []ProviderAccount {
 	var out []ProviderAccount
-	now := time.Now()
 	for _, acc := range s.accounts {
-		if !acc.Authenticated {
-			continue
-		}
-		if !acc.Available {
-			continue
-		}
-		if acc.RateLimited {
-			continue
-		}
-		// Automatic selection must never treat an unaudited quota as healthy.
-		// Legacy callers that want to schedule an account must provide an
-		// explicit positive quota snapshot (or a measured remaining value).
-		if quotaConfidence(acc) == "UNKNOWN" || (acc.AvailReasons != nil && acc.AvailReasons.UnknownQuota) {
-			continue
-		}
-		if acc.CooldownUntil != nil && acc.CooldownUntil.After(now) {
-			continue
-		}
-		if acc.Health == "unhealthy" {
+		elig := quota.EvaluateEligibility(accountEligibilityInput(acc, false))
+		if !elig.Eligible {
 			continue
 		}
 		out = append(out, acc)

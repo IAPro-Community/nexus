@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/kivervinicius/ai-cli/internal/core/model"
 )
 
 func TestRemediationPersistsStrategyChangeBeforeRetry(t *testing.T) {
@@ -161,6 +163,8 @@ func TestMissionRunnerUsesStepVerificationRequirementsBeforeGlobalCommands(t *te
 type quotaFailExecutor struct {
 	fakeExecutor
 	failFirst     bool
+	failureKind   model.FailureKind
+	failureText   string
 	allocateCount int
 }
 
@@ -172,7 +176,10 @@ func (q *quotaFailExecutor) Allocate(ctx context.Context, run *MissionRun, pkg *
 func (q *quotaFailExecutor) Execute(ctx context.Context, run *MissionRun, pkg *PackageRun, prompt string) (ExecutionResult, error) {
 	if q.failFirst {
 		q.failFirst = false
-		return ExecutionResult{}, MarkDispatchNotSent(fmt.Errorf("provider status 429: rate limit and quota exhausted"))
+		return ExecutionResult{
+			RuntimeID: "runtime-classified-failure",
+			Failure:   model.Failure{Kind: q.failureKind},
+		}, fmt.Errorf("%s", q.failureText)
 	}
 	return q.fakeExecutor.Execute(ctx, run, pkg, prompt)
 }
@@ -182,6 +189,8 @@ func TestMissionRunner_QuotaErrorRoutesToAllocatingForFailover(t *testing.T) {
 	exec := &quotaFailExecutor{
 		fakeExecutor: fakeExecutor{reviewOK: true},
 		failFirst:    true,
+		failureKind:  model.FailureRateLimit,
+		failureText:  "provider status 429: rate limit exhausted",
 	}
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
@@ -208,6 +217,9 @@ func TestMissionRunner_QuotaErrorRoutesToAllocatingForFailover(t *testing.T) {
 	if pkg.RetryFrom != StateAllocating {
 		t.Fatalf("expected RetryFrom StateAllocating for 429 quota error, got %s", pkg.RetryFrom)
 	}
+	if pkg.FailureKind != model.FailureRateLimit {
+		t.Fatalf("expected typed failure to be persisted, got %s", pkg.FailureKind)
+	}
 
 	// 5. Remediating -> routes to StateAllocating
 	run, _, _ = r.ExecuteNextStep(context.Background(), run.ID)
@@ -219,5 +231,38 @@ func TestMissionRunner_QuotaErrorRoutesToAllocatingForFailover(t *testing.T) {
 	_, _, _ = r.ExecuteNextStep(context.Background(), run.ID)
 	if exec.allocateCount != 2 {
 		t.Fatalf("expected 2 allocations due to failover, got %d", exec.allocateCount)
+	}
+}
+
+func TestMissionRunner_QuotaWordDoesNotTriggerFailoverWithoutTypedFailure(t *testing.T) {
+	repo := NewMemoryRunRepository()
+	exec := &quotaFailExecutor{
+		fakeExecutor: fakeExecutor{reviewOK: true},
+		failFirst:    true,
+		failureKind:  model.FailureUnknown,
+		failureText:  "failed to write usage.json quota cache",
+	}
+	r := NewMissionRunner(repo, exec)
+	contract := DefaultAutonomyContract()
+	contract.VerificationCommands = []string{"echo OK"}
+	plan := PlanSpec{ID: "flow-false-positive", ProjectID: "p", Revision: 1, Packages: []PackageSpec{{ID: "step", Title: "Step", Goal: "Goal"}}}
+	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 4; i++ {
+		run, _, _ = r.ExecuteNextStep(context.Background(), run.ID)
+	}
+
+	pkg := run.PackageRuns[0]
+	if pkg.FailureKind != model.FailureUnknown {
+		t.Fatalf("expected unknown typed failure, got %s", pkg.FailureKind)
+	}
+	if pkg.RetryFrom != StateCompiling {
+		t.Fatalf("generic error mentioning quota must not trigger failover, got retry from %s", pkg.RetryFrom)
+	}
+	if exec.allocateCount != 1 {
+		t.Fatalf("generic quota text must not reallocate, got %d allocations", exec.allocateCount)
 	}
 }

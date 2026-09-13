@@ -15,6 +15,7 @@ import (
 
 	"github.com/kivervinicius/ai-cli/internal/core/config"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
 	"github.com/kivervinicius/ai-cli/internal/runtime"
 )
 
@@ -246,7 +247,7 @@ func toRolloutWindow(w rateLimitWindowRPC) *rateLimitWindow {
 // package variable so protocol tests can substitute a fake server without
 // introducing an env-driven binary override in production code.
 var appServerCommand = func(ctx context.Context, codexHome string) (*exec.Cmd, error) {
-	bin, err := runtime.LookPath("codex")
+	bin, err := spec.MustGet("codex").ResolveBinary()
 	if err != nil {
 		return nil, fmt.Errorf("codex binary not found")
 	}

@@ -42,3 +42,12 @@
 .quotaState[data-state='stale'] {
   color: var(--nx-warning);
 }
+
+.eligibility {
+  color: var(--nx-muted);
+  font-size: 0.786rem;
+}
+
+.eligibility[data-eligible='false'] {
+  color: var(--nx-danger);
+}

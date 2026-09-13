@@ -323,7 +323,10 @@ func controlStartCmd(args []string) error {
 	cfg, _ := config.LoadConfig()
 	qEng := quota.NewEngine(5 * time.Minute)
 	sel := scheduler.NewSelector(cfg, qEng, cooldown.NewTracker())
-	allProfiles, _ := profile.List()
+	allProfiles, err := profile.List()
+	if err != nil {
+		return err
+	}
 	var candidates []model.Profile
 	accounts := make(map[string]model.AccountInfo)
 	for _, candidate := range allProfiles {
@@ -335,16 +338,10 @@ func controlStartCmd(args []string) error {
 		snapshot := profile.PeekUsageSnapshot(providerID, candidate.Name)
 		account.Usage = snapshot
 		accounts[candidate.Name] = account
-		if snapshot.Status != model.UsageUnknown && snapshot.Status != model.UsageError {
-			if account.AccountScope.Verifiable() {
-				_ = qEng.SaveUsageForScope(account.AccountScope, snapshot)
-			}
-		}
 	}
 	if len(candidates) == 0 {
 		return fmt.Errorf("no enabled profiles configured for provider %s", providerID)
 	}
-	var err error
 	candidates, err = launchableProfiles(providerID, profileName, candidates)
 	if err != nil {
 		return err

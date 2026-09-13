@@ -1,5 +1,10 @@
 # Provider registry and capabilities
 
+Launch args, env overlay, binary discovery and quota source class are frozen in
+one [`ProviderSpec`](provider-contract.md) per provider
+(`internal/core/provider/spec`). Adapters and supervised drivers must derive
+from that Spec instead of maintaining parallel tables.
+
 Nexus has two complementary registries:
 
 - `internal/core/provider.Registry` integrates provider adapters for detection,

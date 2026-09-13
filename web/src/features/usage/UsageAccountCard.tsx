@@ -147,6 +147,17 @@ export const UsageAccountCard: React.FC<{ account: ProviderAccount; now?: number
       <p className={styles.stateLine} data-state={quotaState}>
         {t(`resources.state.${quotaState}`)}
       </p>
+      {account.eligibility ? (
+        <p
+          className={styles.eligibility}
+          data-eligible={account.eligibility.eligible}
+          data-reason={account.eligibility.reason}
+        >
+          {t(`resources.eligibility.${account.eligibility.reason}`, {
+            defaultValue: account.eligibility.message || account.eligibility.reason,
+          })}
+        </p>
+      ) : null}
     </article>
   );
 };

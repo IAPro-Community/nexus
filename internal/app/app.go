@@ -306,22 +306,17 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 	var candidates []model.Profile
 	accounts := make(map[string]model.AccountInfo)
 	for _, p := range allProfiles {
-		if p.Provider == provName {
-			candidates = append(candidates, p)
-			accounts[p.Name] = profile.GetAccountInfo(provName, p.Name)
-			snap := profile.PeekUsageSnapshot(provName, p.Name)
-			account := accounts[p.Name]
-			account.Usage = snap
-			accounts[p.Name] = account
-			// Persist fresh snapshot so the scheduler reads current quota
-			// instead of potentially stale disk cache (especially for codex
-			// which always bypasses cache on read).
-			if snap.Status != model.UsageUnknown && snap.Status != model.UsageError {
-				if account.AccountScope.Verifiable() {
-					_ = qEng.SaveUsageForScope(account.AccountScope, snap)
-				}
-			}
+		if p.Provider != provName || p.Disabled {
+			continue
 		}
+		candidates = append(candidates, p)
+		accounts[p.Name] = profile.GetAccountInfo(provName, p.Name)
+		snapshot := profile.PeekUsageSnapshot(provName, p.Name)
+		account := accounts[p.Name]
+		account.Usage = snapshot
+		accounts[p.Name] = account
+		// Peek is launch-only evidence: never persist ESTIMATED last-known
+		// into usage.json (that would poison Refresh/scheduler cache).
 	}
 
 	if len(candidates) == 0 {
@@ -397,6 +392,11 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 
 		fail, runErr := pAdapter.Run(ctx, p, args)
 		dur := time.Since(start)
+
+		if errors.Is(runErr, codex.ErrTUIBusy) {
+			busyErr := busyLaunchError(provName, p.Name)
+			return model.Failure{Kind: model.FailureCommand, Message: busyErr.Error()}, busyErr
+		}
 
 		if fail.Kind != model.FailureNone && fail.Kind != "" {
 			_ = telemetry.LogEvent(telemetry.Event{
@@ -996,9 +996,30 @@ func usageCmd(args []string) error {
 		}
 	}
 	if isJSON {
-		var list []model.UsageSnapshot
+		type usageJSONRow struct {
+			model.UsageSnapshot
+			QuotaView     quota.QuotaView      `json:"quota_view"`
+			Eligibility   quota.Eligibility    `json:"eligibility"`
+			Health        model.ProviderHealth `json:"health"`
+			Authenticated bool                 `json:"authenticated"`
+		}
+		list := make([]usageJSONRow, 0, len(ps))
 		for _, p := range ps {
-			list = append(list, profile.GetUsageSnapshot(p.Provider, p.Name))
+			snap := profile.GetUsageSnapshot(p.Provider, p.Name)
+			acc := profile.GetAccountInfo(p.Provider, p.Name)
+			qv := quota.BuildQuotaView(snap, acc.Email, acc.Plan)
+			elig := quota.EvaluateEligibility(quota.EligibilityInput{
+				View:          qv,
+				Authenticated: acc.Authenticated,
+				Health:        string(acc.Health),
+			})
+			list = append(list, usageJSONRow{
+				UsageSnapshot: snap,
+				QuotaView:     qv,
+				Eligibility:   elig,
+				Health:        acc.Health,
+				Authenticated: acc.Authenticated,
+			})
 		}
 		b, _ := json.MarshalIndent(list, "", "  ")
 		fmt.Println(string(b))

@@ -10,12 +10,8 @@ import { UsagePolicyPanel } from './UsagePolicyPanel';
 import { UsageRecommendRail } from './UsageRecommendRail';
 import { UsageSummaryStrip } from './UsageSummaryStrip';
 import { groupAccountsByProvider, summarizeAccounts } from './usageModel';
+import { FRESHNESS_TICK_MS, USAGE_POLL_MS } from './usageRefresh';
 import styles from './UsageSurface.module.scss';
-
-/** Soft cache re-read while the surface stays open (monitor may have refreshed on disk). */
-const USAGE_POLL_MS = 60_000;
-/** Re-render relative freshness labels without a network round-trip. */
-const FRESHNESS_TICK_MS = 30_000;
 
 export const UsageSurface: React.FC = () => {
   const { t } = useTranslation();

@@ -13,6 +13,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/control/events"
 	"github.com/kivervinicius/ai-cli/internal/core/config"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
 	"github.com/kivervinicius/ai-cli/internal/core/quota"
 	"github.com/kivervinicius/ai-cli/internal/profile"
 )
@@ -159,6 +160,12 @@ func (s *QuotaMonitorService) check() {
 		s.emitDegraded("profiles", "unable to enumerate profiles: "+err.Error())
 		return
 	}
+	s.mu.Lock()
+	ctx := s.ctx
+	s.mu.Unlock()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	for _, p := range profiles {
 		if p.Disabled {
 			continue
@@ -170,7 +177,13 @@ func (s *QuotaMonitorService) check() {
 			s.emitDegraded(p.Provider+":"+p.Name, fmt.Sprintf("account not authenticated: %s", account.Status))
 			continue
 		}
-		snapshot := profile.PeekUsageSnapshot(p.Provider, p.Name)
+		var snapshot model.UsageSnapshot
+		if profileTUIBusy(p.Provider, p.Name) {
+			// Never race an interactive Codex TUI with a live app-server probe.
+			snapshot = profile.PeekUsageSnapshot(p.Provider, p.Name)
+		} else {
+			snapshot = profile.RefreshUsageSnapshotContext(ctx, p.Provider, p.Name)
+		}
 		// RATE_LIMITED is an accurate reading, not a failed one: the provider
 		// told us the account is blocked. Alerting on it is the monitor's job.
 		switch snapshot.Status {
@@ -206,6 +219,17 @@ func (s *QuotaMonitorService) check() {
 		}
 		s.monitor.CheckAccount(acc)
 	}
+}
+
+func profileTUIBusy(provider, name string) bool {
+	if !strings.EqualFold(strings.TrimSpace(provider), "codex") {
+		return false
+	}
+	home, err := config.ProfileHome("codex", name)
+	if err != nil {
+		return false
+	}
+	return codex.IsTUILocked(home)
 }
 
 func (s *QuotaMonitorService) emitDegraded(key, reason string) {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kivervinicius/ai-cli/internal/control/events"
+	"github.com/kivervinicius/ai-cli/internal/core/model"
 	"github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard"
 	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
 	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
@@ -99,7 +100,7 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	}
 
 	current, _ := currentAgentConfig(st, agent)
-	isFailover := pkg.Attempt > 1 && (pkg.RetryFrom == runner.StateAllocating || isQuotaOrRateLimitFailure(pkg.ErrorMessage))
+	isFailover := pkg.Attempt > 1 && (pkg.RetryFrom == runner.StateAllocating || isQuotaOrRateLimitFailure(pkg.FailureKind))
 
 	desiredProvider := strings.TrimSpace(pkg.DesiredProvider)
 	desiredProfile := strings.TrimSpace(pkg.DesiredProfile)
@@ -203,26 +204,6 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	}
 	if err != nil {
 		return runner.AllocationResult{}, err
-	}
-	if isFailover {
-		// Emit completion only after the destination account, persisted Agent
-		// allocation and executable workspace have all been confirmed. A
-		// recommendation is not a completed failover.
-		events.DefaultBus().Publish(events.NewEventWithCorrelation(
-			run.ID,
-			run.ID,
-			selected.Provider,
-			selected.Profile,
-			events.EventQuotaFailoverCompleted,
-			fmt.Sprintf("Auto-failover confirmado para %s:%s após esgotamento de quota/rate-limit.", selected.Provider, selected.Profile),
-			map[string]any{
-				"package_id": pkg.PackageID,
-				"provider":   selected.Provider,
-				"profile":    selected.Profile,
-				"attempt":    pkg.Attempt,
-				"workspace":  workspace,
-			},
-		))
 	}
 	return runner.AllocationResult{AgentID: agent.ID, Workspace: workspace}, nil
 }
@@ -559,15 +540,8 @@ func accountQuotaExhausted(acc ProviderAccount) bool {
 	return acc.QuotaTotal > 0 && acc.QuotaRemaining <= 0 && !acc.Available
 }
 
-func isQuotaOrRateLimitFailure(msg string) bool {
-	msg = strings.ToLower(msg)
-	return strings.Contains(msg, "429") ||
-		strings.Contains(msg, "rate limit") ||
-		strings.Contains(msg, "rate_limit") ||
-		strings.Contains(msg, "quota") ||
-		strings.Contains(msg, "insufficient_quota") ||
-		strings.Contains(msg, "exhausted") ||
-		strings.Contains(msg, "credits")
+func isQuotaOrRateLimitFailure(kind model.FailureKind) bool {
+	return kind == model.FailureQuota || kind == model.FailureRateLimit
 }
 
 func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun) (runner.PromptArtifact, error) {
@@ -672,7 +646,10 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 	}
 	result, err := e.n.executeAgentPrompt(ctx, pkg.AssignedAgent, pkg.Workspace, prompt, agentPromptPolicy{Contract: run.Contract})
 	if err != nil {
-		return runner.ExecutionResult{}, err
+		if result == nil {
+			return runner.ExecutionResult{}, err
+		}
+		return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output, Failure: result.Failure}, err
 	}
 	if len(run.Contract.AllowedFilePatterns) > 0 {
 		changed, guardErr := autonomyguard.GitChangedPaths(ctx, pkg.Workspace)
@@ -682,6 +659,24 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 		if guardErr := autonomyguard.ValidateAllowedChanges(changed, run.Contract.AllowedFilePatterns); guardErr != nil {
 			return runner.ExecutionResult{}, guardErr
 		}
+	}
+	if pkg.Attempt > 1 && isQuotaOrRateLimitFailure(pkg.FailureKind) {
+		events.DefaultBus().Publish(events.NewEventWithCorrelation(
+			run.ID,
+			run.ID,
+			pkg.Provider,
+			pkg.Profile,
+			events.EventQuotaFailoverCompleted,
+			fmt.Sprintf("Auto-failover confirmado para %s:%s após execução bem-sucedida no destino.", pkg.Provider, pkg.Profile),
+			map[string]any{
+				"package_id": pkg.PackageID,
+				"provider":   pkg.Provider,
+				"profile":    pkg.Profile,
+				"attempt":    pkg.Attempt,
+				"workspace":  pkg.Workspace,
+				"runtime_id": result.RuntimeID,
+			},
+		))
 	}
 	return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output}, nil
 }

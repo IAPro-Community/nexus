@@ -17,6 +17,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/core/classifier"
 	"github.com/kivervinicius/ai-cli/internal/core/config"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
 	"github.com/kivervinicius/ai-cli/internal/core/quota"
 	"github.com/kivervinicius/ai-cli/internal/core/security"
 	"github.com/kivervinicius/ai-cli/internal/runtime"
@@ -74,7 +75,7 @@ func (a *Adapter) Capabilities() model.Capabilities {
 }
 
 func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
-	bin, err := runtime.LookPath("codex")
+	bin, err := spec.MustGet("codex").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "not found in PATH"}
 	}
@@ -152,7 +153,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 	if err := a.Prepare(ctx, p); err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
 	}
-	bin, err := runtime.LookPath("codex")
+	bin, err := spec.MustGet("codex").ResolveBinary()
 	if err != nil {
 		return model.Failure{Kind: model.FailureProvider, Message: "codex binary not found"}, err
 	}

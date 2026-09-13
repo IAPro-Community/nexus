@@ -10,6 +10,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/control/registry"
 	"github.com/kivervinicius/ai-cli/internal/control/terminal"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
 	"github.com/kivervinicius/ai-cli/internal/runtime"
 )
 
@@ -20,7 +21,7 @@ func NewOpenCodeDriver() *OpenCodeDriver { return &OpenCodeDriver{} }
 func (d *OpenCodeDriver) ProviderID() string { return "opencode" }
 
 func (d *OpenCodeDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	bin, err := runtime.LookPath("opencode")
+	bin, err := spec.MustGet("opencode").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "opencode binary not found in PATH"}, nil
 	}
@@ -131,7 +132,8 @@ func (d *OpenCodeDriver) Capabilities(ctx context.Context, p model.Profile) Cont
 }
 
 func (d *OpenCodeDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs []string) (string, []string, []string, error) {
-	bin, err := runtime.LookPath("opencode")
+	s := spec.MustGet("opencode")
+	bin, err := s.ResolveBinary()
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -140,14 +142,7 @@ func (d *OpenCodeDriver) BuildCommand(ctx context.Context, p model.Profile, extr
 	if err != nil {
 		return "", nil, nil, err
 	}
-	env := runtime.EnvSet(os.Environ(), map[string]string{
-		"HOME":          home,
-		"XDG_DATA_HOME": filepath.Join(home, ".local", "share"),
-		"OPENCODE_HOME": home,
-		"AI_PROFILE":    p.Name,
-		"AI_PROVIDER":   "opencode",
-		"PATH":          runtime.EnhancedPATH(filepath.Dir(bin)),
-	})
+	env := s.OverlayEnv(os.Environ(), home, filepath.Dir(bin), p.Name)
 
 	return bin, extraArgs, env, nil
 }
@@ -163,9 +158,9 @@ func (d *OpenCodeDriver) BuildResumeArgs(ctx context.Context, p model.Profile, p
 	if strings.TrimSpace(providerSessionID) == "" {
 		return nil, fmt.Errorf("cannot resume opencode session without valid session ID")
 	}
-	return []string{"-s", providerSessionID}, nil
+	return spec.MustGet("opencode").Resume(providerSessionID), nil
 }
 
 func (d *OpenCodeDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, kickoffPrompt string) ([]string, error) {
-	return []string{"run", kickoffPrompt}, nil
+	return spec.MustGet("opencode").Kickoff(kickoffPrompt), nil
 }

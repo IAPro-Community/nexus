@@ -264,22 +264,21 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 		} else {
 			isLimited, rec = s.cooldown.IsRateLimited(provider, p.Name)
 		}
-		if isLimited {
-			ev.Eligible = false
-			ev.RejectReason = fmt.Sprintf("rate limited until %s (%s)", rec.ResetAt.Format("15:04"), rec.Reason)
-			evals = append(evals, ev)
-			continue
-		}
-
-		// Check quota availability via QuotaView.
-		// A resource is unavailable only when every known model pool is
-		// exhausted; providers such as AGY expose independent pools.
 		qv := quota.BuildQuotaView(snap, acc.Email, acc.Plan)
-		if !qv.IsAvailable() {
+		elig := quota.EvaluateEligibility(quota.EligibilityInput{
+			View:          qv,
+			Authenticated: acc.Authenticated,
+			Health:        string(acc.Health),
+			InCooldown:    isLimited,
+		})
+		if !elig.Eligible {
 			ev.Eligible = false
-			ev.RejectReason = fmt.Sprintf("unavailable: %s", qv.AvailabilityLabel())
-			if len(qv.AvailReasons.ExhaustedWindows) > 0 {
-				ev.RejectReason += fmt.Sprintf(" (exhausted: %s)", strings.Join(qv.AvailReasons.ExhaustedWindows, ", "))
+			if elig.Reason == quota.ReasonCooldown && rec != nil {
+				ev.RejectReason = fmt.Sprintf("rate limited until %s (%s)", rec.ResetAt.Format("15:04"), rec.Reason)
+			} else if elig.Message != "" {
+				ev.RejectReason = elig.Message
+			} else {
+				ev.RejectReason = fmt.Sprintf("unavailable: %s", qv.AvailabilityLabel())
 			}
 			evals = append(evals, ev)
 			continue

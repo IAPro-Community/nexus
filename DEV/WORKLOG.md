@@ -1,5 +1,21 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-13 — Provider contract freeze (CLIs / usage / routing)
+
+- Introduced canonical `internal/core/provider/spec` consumed by adapters,
+  supervised drivers, flag normalization and mission auto-approval/review args.
+- Unified profile default resolution (`profile.ResolveDefault`) and Codex kickoff
+  without hardcoded model.
+- Extracted `oauthutil`; added live Claude `/api/oauth/usage` and Gemini
+  `retrieveUserQuota` probes; OpenCode Zen health→UNSUPPORTED; Cursor UNSUPPORTED.
+- Centralized `quota.EvaluateEligibility`; removed dead UNKNOWN LRU recommend path.
+- Mission/runner failover uses typed `FailureKind`; failover-completed event only
+  after successful destination execution.
+- Enriched `nexus usage --json` and web `ProviderAccount` with eligibility;
+  added Spec goldens, provider guardrails and `make smoke-providers`.
+- Docs: `docs/architecture/provider-contract.md`, ADR provider-contract-freeze.
+- Focused Go tests for provider/quota/nexus/app packages PASS. No commit/push.
+
 ## 2026-09-13 — Mission closure local verification
 
 - Current observed HEAD: `eed65e5a7e46adc896165c94accb7fc73fc6750f`; worktree

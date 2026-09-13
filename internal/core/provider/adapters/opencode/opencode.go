@@ -12,6 +12,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/core/classifier"
 	"github.com/kivervinicius/ai-cli/internal/core/config"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
 	"github.com/kivervinicius/ai-cli/internal/core/security"
 	"github.com/kivervinicius/ai-cli/internal/runtime"
 )
@@ -31,7 +32,7 @@ func (a *Adapter) Capabilities() model.Capabilities {
 		// OpenCode delegates authentication to its configured model provider.
 		Login:         false,
 		Logout:        false,
-		Usage:         true,
+		Usage:         false, // Zen has no balance API; Anthropic upstream uses Claude probe.
 		Conversations: true,
 		Resume:        true,
 		// Isolated per-profile session dir only — no sibling/host import path.
@@ -43,7 +44,7 @@ func (a *Adapter) Capabilities() model.Capabilities {
 }
 
 func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
-	bin, err := runtime.LookPath("opencode")
+	bin, err := spec.MustGet("opencode").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "binary not found in PATH"}
 	}
@@ -86,7 +87,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 	if err := a.Prepare(ctx, p); err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
 	}
-	bin, err := runtime.LookPath("opencode")
+	bin, err := spec.MustGet("opencode").ResolveBinary()
 	if err != nil {
 		return model.Failure{Kind: model.FailureProvider, Message: "opencode binary not found"}, err
 	}
@@ -162,31 +163,6 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 	}
 
 	return info
-}
-
-func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
-	snap := model.UsageSnapshot{
-		ProviderID: string(a.ID()),
-		ProfileID:  p.Name,
-		Status:     model.UsageUnknown,
-		Source:     model.SourceNone,
-		FetchedAt:  time.Now(),
-	}
-
-	root, err := config.ProfileRoot(string(a.ID()), p.Name)
-	if err != nil {
-		return snap
-	}
-
-	quotaFile := filepath.Join(root, "home", "usage.json")
-	if data, err := os.ReadFile(quotaFile); err == nil {
-		var s model.UsageSnapshot
-		if json.Unmarshal(data, &s) == nil {
-			return s
-		}
-	}
-
-	return snap
 }
 
 func (a *Adapter) ListConversations(ctx context.Context, p model.Profile, workspace string) ([]model.Session, error) {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/kivervinicius/ai-cli/internal/core/model"
 )
 
 var ErrDispatchOutcomeUnknown = errors.New("provider dispatch outcome is unknown")
@@ -332,7 +333,7 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 					return run, false, err
 				}
 				retryFrom := StateCompiling
-				if isQuotaOrRateLimitError(err) {
+				if isQuotaOrRateLimitFailure(pkg.FailureKind) {
 					retryFrom = StateAllocating
 				}
 				if terminalErr := r.markRemediation(run, pkg, retryFrom, err.Error()); terminalErr != nil {
@@ -987,6 +988,12 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 	}
 	outcome, err := r.executor.Execute(ctx, run, pkg, pkg.CompiledPrompt)
 	if err != nil {
+		pkg.FailureKind = outcome.Failure.Kind
+		if outcome.RuntimeID != "" && outcome.Failure.Kind != model.FailureNone {
+			pkg.AssignedRuntime = outcome.RuntimeID
+			finishDispatch(pkg, DispatchFailed)
+			return fmt.Errorf("execution failed: %w", err)
+		}
 		finishDispatch(pkg, dispatchOutcome(err))
 		if pkg.DispatchState == DispatchUnknownExternalOutcome {
 			return fmt.Errorf("%w: %v", ErrDispatchOutcomeUnknown, err)
@@ -1000,6 +1007,7 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 	pkg.AssignedRuntime = outcome.RuntimeID
 	finishDispatch(pkg, DispatchCompleted)
 	pkg.ErrorMessage = ""
+	pkg.FailureKind = model.FailureNone
 	pkg.State = StateTesting
 	return nil
 }
@@ -1059,6 +1067,19 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 		res := <-results
 		pkg := &run.PackageRuns[res.index]
 		if res.err != nil {
+			pkg.FailureKind = res.outcome.Failure.Kind
+			if res.outcome.RuntimeID != "" && res.outcome.Failure.Kind != model.FailureNone {
+				pkg.AssignedRuntime = res.outcome.RuntimeID
+				finishDispatch(pkg, DispatchFailed)
+				retryFrom := StateCompiling
+				if isQuotaOrRateLimitFailure(pkg.FailureKind) {
+					retryFrom = StateAllocating
+				}
+				if err := r.markRemediation(run, pkg, retryFrom, "Execution failed: "+res.err.Error()); err != nil && firstErr == nil {
+					firstErr = err
+				}
+				continue
+			}
 			finishDispatch(pkg, dispatchOutcome(res.err))
 			if pkg.DispatchState == DispatchUnknownExternalOutcome {
 				if firstErr == nil {
@@ -1083,6 +1104,7 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 		pkg.AssignedRuntime = res.outcome.RuntimeID
 		finishDispatch(pkg, DispatchCompleted)
 		pkg.ErrorMessage = ""
+		pkg.FailureKind = model.FailureNone
 		pkg.State = StateTesting
 	}
 	return firstErr
@@ -1253,16 +1275,6 @@ func IsTerminalState(s State) bool {
 
 func isTerminalRunState(s State) bool { return IsTerminalState(s) }
 
-func isQuotaOrRateLimitError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "429") ||
-		strings.Contains(msg, "rate limit") ||
-		strings.Contains(msg, "rate_limit") ||
-		strings.Contains(msg, "quota") ||
-		strings.Contains(msg, "insufficient_quota") ||
-		strings.Contains(msg, "exhausted") ||
-		strings.Contains(msg, "credits")
+func isQuotaOrRateLimitFailure(kind model.FailureKind) bool {
+	return kind == model.FailureQuota || kind == model.FailureRateLimit
 }

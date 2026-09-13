@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/quota"
 	nexusskills "github.com/kivervinicius/ai-cli/internal/nexus/skills"
 )
 
@@ -203,7 +204,7 @@ func resolveTaskModelPool(req TaskRequirements, preference AffinityPreference, a
 func eligibleAccounts(accounts []ProviderAccount) []ProviderAccount {
 	result := make([]ProviderAccount, 0, len(accounts))
 	for _, account := range accounts {
-		if account.Authenticated && account.Available && !account.RateLimited {
+		if quota.EvaluateEligibility(accountEligibilityInput(account, false)).Eligible {
 			result = append(result, account)
 		}
 	}

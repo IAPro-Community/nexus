@@ -7,7 +7,7 @@ ifeq ($(shell go env GOOS),linux)
 DESKTOP_TAGS = production,webkit2_41
 endif
 
-.PHONY: all build build-desktop build-desktop-wails web web-verify docs-verify test race vet install install-local release-local bump clean format format-check lint-frontend lint-styles lint-styles-fix lint-fix lint-go typecheck test-frontend test-go test-e2e security quality quality-full golangci-lint version-check test-updater-negative test-update-integration release-dry-run browser-functional browser-a11y browser-visual browser-all verify-update coverage e2e attention-e2e overnight-smoke overnight-soak release-proof
+.PHONY: all build build-desktop build-desktop-wails web web-verify docs-verify test race vet install install-local release-local bump clean format format-check lint-frontend lint-styles lint-styles-fix lint-fix lint-go typecheck test-frontend test-go test-e2e security quality quality-full golangci-lint version-check test-updater-negative test-update-integration release-dry-run browser-functional browser-a11y browser-visual browser-all verify-update coverage e2e attention-e2e overnight-smoke overnight-soak release-proof smoke-providers
 
 all: build
 
@@ -71,6 +71,19 @@ coverage:
 
 overnight-smoke:
 	@go test -count=1 -timeout 20m ./internal/nexus/runner -run 'Test(MissionTeamPlannerBuilderReviewerVerifierPipeline|OvernightAcceptanceSandbox|OvernightSoakHarnessBounded|ProgressWatchdog|FaultInjection)'
+
+# Local-only authenticated provider smoke (not part of CI quality).
+smoke-providers:
+	@echo "Refreshing live usage (requires authenticated local profiles)…"
+	@nexus usage --refresh --json >/tmp/nexus-usage-smoke.json
+	@python3 -c 'import json,sys; rows=json.load(open("/tmp/nexus-usage-smoke.json")); want={"agy","codex","claude","gemini"}; got={r.get("provider_id") or r.get("ProviderID","") for r in rows if (r.get("status") or r.get("Status",""))=="LIVE"}; missing=sorted(want-got); \
+print("LIVE providers:", ", ".join(sorted(got)) or "(none)"); \
+sys.exit("missing LIVE for: "+", ".join(missing) if missing else 0)'
+	@for p in codex agy claude gemini opencode cursor; do \
+	  echo "direct smoke $$p"; \
+	  nexus $$p --direct --print "ok" >/tmp/nexus-$$p-smoke.txt 2>/tmp/nexus-$$p-smoke.err || true; \
+	done
+	@echo "smoke-providers finished (inspect /tmp/nexus-*-smoke.*)"
 
 DURATION ?= 30s
 overnight-soak:

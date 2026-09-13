@@ -58,6 +58,13 @@ func TestClassifyFailures(t *testing.T) {
 			wantKind:     model.FailureProvider,
 			wantDuration: 0,
 		},
+		{
+			name:         "Quota word in cache filename is not quota exhaustion",
+			err:          errors.New("exit status 1"),
+			output:       "failed to write usage.json quota cache",
+			wantKind:     model.FailureUnknown,
+			wantDuration: 0,
+		},
 	}
 
 	for _, tc := range tests {

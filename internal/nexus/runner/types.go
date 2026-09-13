@@ -1,6 +1,10 @@
 package runner
 
-import "time"
+import (
+	"time"
+
+	"github.com/kivervinicius/ai-cli/internal/core/model"
+)
 
 // State is an explicit durable state in the autonomous execution lifecycle.
 type State string
@@ -15,7 +19,7 @@ const (
 	DispatchNone                   DispatchState = ""
 	DispatchIntent                 DispatchState = "INTENT"
 	DispatchCompleted              DispatchState = "COMPLETED"
-	DispatchFailed                 DispatchState = "FAILED" // legacy; new failures must be classified below
+	DispatchFailed                 DispatchState = "FAILED" // provider launched and returned a classified failure
 	DispatchFailedBeforeDispatch   DispatchState = "FAILED_BEFORE_DISPATCH"
 	DispatchUnknownExternalOutcome DispatchState = "UNKNOWN_EXTERNAL_OUTCOME"
 )
@@ -245,6 +249,7 @@ type PackageRun struct {
 	ReviewInvalidationReason string               `json:"review_invalidation_reason,omitempty"`
 	Verifications            []VerificationResult `json:"verifications,omitempty"`
 	ErrorMessage             string               `json:"error_message,omitempty"`
+	FailureKind              model.FailureKind    `json:"failure_kind,omitempty"`
 	RoutingDecisionJSON      string               `json:"routing_decision,omitempty"`
 	StartedAt                time.Time            `json:"started_at"`
 	FinishedAt               *time.Time           `json:"finished_at,omitempty"`
@@ -370,6 +375,7 @@ type PromptArtifact struct {
 }
 
 type ExecutionResult struct {
-	RuntimeID string `json:"runtime_id"`
-	Output    string `json:"output,omitempty"`
+	RuntimeID string        `json:"runtime_id"`
+	Output    string        `json:"output,omitempty"`
+	Failure   model.Failure `json:"failure,omitempty"`
 }

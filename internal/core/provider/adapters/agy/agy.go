@@ -17,6 +17,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/core/classifier"
 	"github.com/kivervinicius/ai-cli/internal/core/config"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
 	"github.com/kivervinicius/ai-cli/internal/core/quota"
 	"github.com/kivervinicius/ai-cli/internal/core/security"
 	"github.com/kivervinicius/ai-cli/internal/runtime"
@@ -64,7 +65,7 @@ func (a *Adapter) Capabilities() model.Capabilities {
 }
 
 func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
-	bin, err := runtime.LookPath("agy")
+	bin, err := spec.MustGet("agy").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "not found in PATH"}
 	}
@@ -114,7 +115,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 	if err := a.Prepare(ctx, p); err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
 	}
-	bin, err := runtime.LookPath("agy")
+	bin, err := spec.MustGet("agy").ResolveBinary()
 	if err != nil {
 		return model.Failure{Kind: model.FailureProvider, Message: "agy binary not found"}, err
 	}
@@ -360,32 +361,15 @@ func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnap
 	if debug {
 		slog.Debug("AGY GetUsage: checking cached files", "profile", p.Name)
 	}
+	// Cache only — live CLI --print=/quota belongs in RefreshUsage.
 	if fileSnap, ok := a.readCachedQuotaFiles(p); ok {
-		if quota.NewEngine(quota.DefaultTTL).Trustworthy(fileSnap) {
-			if debug {
-				slog.Debug("AGY GetUsage: returning trustworthy cached snapshot", "profile", p.Name, "status", fileSnap.Status, "fetchedAt", fileSnap.FetchedAt)
-			}
-			return fileSnap
-		}
 		if debug {
-			slog.Debug("AGY GetUsage: cached snapshot not trustworthy", "profile", p.Name, "fetchedAt", fileSnap.FetchedAt, "age", time.Since(fileSnap.FetchedAt))
+			slog.Debug("AGY GetUsage: returning cached snapshot", "profile", p.Name, "status", fileSnap.Status, "fetchedAt", fileSnap.FetchedAt)
 		}
+		return fileSnap
 	}
 	if debug {
-		slog.Debug("AGY GetUsage: trying live fetch", "profile", p.Name)
-	}
-	if live, ok := a.fetchLiveQuota(ctx, p); ok {
-		if p.AccountScope.Verifiable() {
-			live.AccountScope = p.AccountScope
-			_ = quota.NewEngine(quota.DefaultTTL).SaveUsageForScope(p.AccountScope, live)
-		}
-		if debug {
-			slog.Debug("AGY GetUsage: returning live snapshot", "profile", p.Name, "status", live.Status, "windows", len(live.Windows))
-		}
-		return live
-	}
-	if debug {
-		slog.Debug("AGY GetUsage: returning unknown (no cached or live data)", "profile", p.Name)
+		slog.Debug("AGY GetUsage: returning unknown (no cached data)", "profile", p.Name)
 	}
 	return model.UsageSnapshot{
 		ProviderID: string(a.ID()),
@@ -684,7 +668,7 @@ func (a *Adapter) fetchLiveQuota(ctx context.Context, p model.Profile) (model.Us
 		}
 		return model.UsageSnapshot{}, false
 	}
-	bin, err := runtime.LookPath("agy")
+	bin, err := spec.MustGet("agy").ResolveBinary()
 	if err != nil {
 		if debug {
 			slog.Debug("AGY fetchLiveQuota: agy binary not found", "profile", p.Name)

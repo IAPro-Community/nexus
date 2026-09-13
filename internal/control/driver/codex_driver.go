@@ -10,6 +10,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/control/registry"
 	"github.com/kivervinicius/ai-cli/internal/control/terminal"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
 	"github.com/kivervinicius/ai-cli/internal/runtime"
 )
 
@@ -20,7 +21,7 @@ func NewCodexDriver() *CodexDriver { return &CodexDriver{} }
 func (d *CodexDriver) ProviderID() string { return "codex" }
 
 func (d *CodexDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	bin, err := runtime.LookPath("codex")
+	bin, err := spec.MustGet("codex").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "codex binary not found in PATH"}, nil
 	}
@@ -131,7 +132,8 @@ func (d *CodexDriver) Capabilities(ctx context.Context, p model.Profile) Control
 }
 
 func (d *CodexDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs []string) (string, []string, []string, error) {
-	bin, err := runtime.LookPath("codex")
+	s := spec.MustGet("codex")
+	bin, err := s.ResolveBinary()
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -140,17 +142,7 @@ func (d *CodexDriver) BuildCommand(ctx context.Context, p model.Profile, extraAr
 	if err != nil {
 		return "", nil, nil, err
 	}
-	env := runtime.EnvSet(os.Environ(), map[string]string{
-		"HOME":             home,
-		"CODEX_HOME":       home,
-		"CODEX_CONFIG_DIR": home,
-		// The Nexus xterm.js terminal does not implement Kitty/CSI-u keyboard
-		// enhancement; disable it to prevent raw sequences leaking into input.
-		"CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT": "1",
-		"AI_PROFILE":                             p.Name,
-		"AI_PROVIDER":                            "codex",
-		"PATH":                                   runtime.EnhancedPATH(filepath.Dir(bin)),
-	})
+	env := s.OverlayEnv(os.Environ(), home, filepath.Dir(bin), p.Name)
 
 	return bin, extraArgs, env, nil
 }
@@ -166,9 +158,9 @@ func (d *CodexDriver) BuildResumeArgs(ctx context.Context, p model.Profile, prov
 	if strings.TrimSpace(providerSessionID) == "" {
 		return nil, fmt.Errorf("cannot resume codex session without valid session ID")
 	}
-	return []string{"resume", providerSessionID}, nil
+	return spec.MustGet("codex").Resume(providerSessionID), nil
 }
 
 func (d *CodexDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, kickoffPrompt string) ([]string, error) {
-	return []string{"-m", "gpt-5.6-sol", kickoffPrompt}, nil
+	return spec.MustGet("codex").Kickoff(kickoffPrompt), nil
 }

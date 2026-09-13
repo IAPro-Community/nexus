@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/kivervinicius/ai-cli/internal/core/quota"
 	"github.com/kivervinicius/ai-cli/internal/core/telemetry"
 	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
 )
@@ -88,44 +89,6 @@ func RecommendResources(accounts []ProviderAccount, req TaskRequirements, policy
 		result.Candidates = append(result.Candidates, c)
 	}
 
-	eligibleIdx := make([]int, 0, len(result.Candidates))
-	allUnknown := true
-	for i, c := range result.Candidates {
-		if !c.Eligible {
-			continue
-		}
-		eligibleIdx = append(eligibleIdx, i)
-		if c.Confidence != "UNKNOWN" {
-			allUnknown = false
-		}
-	}
-	if allUnknown && len(eligibleIdx) > 0 {
-		lastUsed := profileSelectedAt()
-		sort.SliceStable(eligibleIdx, func(i, j int) bool {
-			leftCandidate := result.Candidates[eligibleIdx[i]]
-			rightCandidate := result.Candidates[eligibleIdx[j]]
-			if leftCandidate.ProviderPriority > 0 && rightCandidate.ProviderPriority > 0 && leftCandidate.ProviderPriority != rightCandidate.ProviderPriority {
-				return leftCandidate.ProviderPriority < rightCandidate.ProviderPriority
-			}
-			left := leftCandidate.Account
-			right := rightCandidate.Account
-			leftKey := left.Provider + "/" + left.Profile
-			rightKey := right.Provider + "/" + right.Profile
-			return lastUsed[leftKey].Before(lastUsed[rightKey])
-		})
-		best := result.Candidates[eligibleIdx[0]]
-		result.Recommended = &best
-		for i := range result.Candidates {
-			result.Candidates[i].Rank = 0
-		}
-		for rank, idx := range eligibleIdx {
-			result.Candidates[idx].Rank = rank + 1
-		}
-		result.Explanation = fmt.Sprintf("Recomendado %s (%s) por LRU entre perfis saudáveis com quota desconhecida.",
-			best.Account.DisplayName, best.Account.Provider)
-		return result
-	}
-
 	// Sort candidates: eligible first, then higher score, then lower rate limit risk
 	sort.Slice(result.Candidates, func(i, j int) bool {
 		if result.Candidates[i].Eligible != result.Candidates[j].Eligible {
@@ -192,54 +155,18 @@ func evaluateCandidate(acc ProviderAccount, req TaskRequirements, policy Schedul
 		c.ProviderPriority = req.ProviderPriorities[acc.Provider]
 	}
 
-	// Hard Gate 1: Must be authenticated
-	if !acc.Authenticated {
+	elig := quota.EvaluateEligibility(accountEligibilityInput(acc, false))
+	c.Confidence = elig.Confidence
+	if !elig.Eligible {
 		c.Eligible = false
-		c.RejectionReason = "Conta não autenticada no sistema"
-		c.Cons = append(c.Cons, "Não autenticada")
+		c.RejectionReason = elig.Message
+		if elig.Message != "" {
+			c.Cons = append(c.Cons, elig.Message)
+		}
 		return c
 	}
 
-	if acc.NetworkError {
-		c.Eligible = false
-		c.RejectionReason = "Falha de rede ao consultar o provedor"
-		c.Cons = append(c.Cons, "Falha de rede")
-		return c
-	}
-
-	// Hard Gate 2: Must be available / not in active cooldown
-	if !acc.Available {
-		c.Eligible = false
-		c.RejectionReason = "Provedor marcado como indisponível"
-		c.Cons = append(c.Cons, "Indisponível")
-		return c
-	}
-
-	if acc.RateLimited {
-		c.Eligible = false
-		c.RejectionReason = "Conta em rate limit / cooldown ativo"
-		c.Cons = append(c.Cons, "Rate limit ativo")
-		return c
-	}
-
-	if acc.CooldownUntil != nil && time.Now().Before(*acc.CooldownUntil) {
-		c.Eligible = false
-		c.RejectionReason = fmt.Sprintf("Em cooldown até %s", acc.CooldownUntil.Format(time.RFC3339))
-		c.Cons = append(c.Cons, "Em cooldown")
-		return c
-	}
-
-	// Hard Gate: UNKNOWN quota is ineligible for automatic Mission allocation.
-	// Explicit manual selection may still surface the account with a warning.
-	if quotaConfidence(acc) == "UNKNOWN" || (acc.AvailReasons != nil && acc.AvailReasons.UnknownQuota) {
-		c.Eligible = false
-		c.RejectionReason = "Quota UNKNOWN — inelegível para alocação automática"
-		c.Cons = append(c.Cons, "Quota não aferida")
-		c.Confidence = "UNKNOWN"
-		return c
-	}
-
-	// Hard Gate 3: every required capability must be explicitly SUPPORTED.
+	// Hard Gate: every required capability must be explicitly SUPPORTED.
 	// PARTIAL/UNKNOWN/NOT_TESTED are not enough for a hard requirement.
 	for _, required := range req.RequiredCapabilities {
 		key := normalizeCapabilityName(required)

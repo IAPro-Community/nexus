@@ -11,6 +11,7 @@ import {
   formatResetDescription,
   windowKindLabelKey,
 } from '../features/usage/usageModel';
+import { USAGE_POLL_MS } from '../features/usage/usageRefresh';
 
 import type { ProviderAccount, SchedulerDecision } from '../types';
 
@@ -100,7 +101,7 @@ export const ResourcePicker: React.FC<Props> = ({ agentId, preferProvider, onSel
     const poll = window.setInterval(() => {
       if (document.hidden) return;
       void load();
-    }, 60_000);
+    }, USAGE_POLL_MS);
     const onVisible = () => {
       if (!document.hidden) void load();
     };
@@ -170,8 +171,10 @@ export const ResourcePicker: React.FC<Props> = ({ agentId, preferProvider, onSel
                     !agentId ||
                     !account.authenticated ||
                     !account.available ||
+                    account.eligibility?.eligible === false ||
                     selecting === account.id
                   }
+                  title={account.eligibility?.message || undefined}
                 >
                   <span className="nx-resource-account__icon">
                     {account.rate_limited ? <ShieldAlert size={17} /> : <Activity size={17} />}
@@ -243,6 +246,17 @@ export const ResourcePicker: React.FC<Props> = ({ agentId, preferProvider, onSel
                     <span className={styles.quotaState} data-state={quotaState}>
                       {t(`resources.state.${quotaState}`)}
                     </span>
+                    {account.eligibility ? (
+                      <span
+                        className={styles.eligibility}
+                        data-eligible={account.eligibility.eligible}
+                        data-reason={account.eligibility.reason}
+                      >
+                        {t(`resources.eligibility.${account.eligibility.reason}`, {
+                          defaultValue: account.eligibility.message || account.eligibility.reason,
+                        })}
+                      </span>
+                    ) : null}
                   </span>
                   {selecting === account.id && <Spinner />}
                 </button>

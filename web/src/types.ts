@@ -140,15 +140,27 @@ export interface ProviderAccount {
   quota_remaining: number;
   quota_total: number;
   rate_limited: boolean;
+  network_error?: boolean;
   health: string;
   last_checked: string;
   cooldown_until?: string;
+  account_scope?: {
+    provider_id?: string;
+    account_id?: string;
+    identity_version?: string;
+  };
   avail_reasons?: {
     exhausted_windows?: string[];
     rate_limited?: boolean;
     unknown_quota?: boolean;
     auth_required?: boolean;
     all_ok?: boolean;
+  };
+  eligibility?: {
+    eligible: boolean;
+    reason: string;
+    confidence: string;
+    message?: string;
   };
   quota_view?: {
     status?: string;
@@ -157,6 +169,13 @@ export interface ProviderAccount {
     account?: string;
     fetched_at?: string;
     available?: boolean;
+    avail_reasons?: {
+      exhausted_windows?: string[];
+      rate_limited?: boolean;
+      unknown_quota?: boolean;
+      auth_required?: boolean;
+      all_ok?: boolean;
+    };
     model_groups?: Array<{
       key?: string;
       name?: string;
@@ -1274,12 +1293,13 @@ export interface ResourceCandidate {
   account: ProviderAccount;
   rank: number;
   total_score: number;
-  confidence: 'LIVE' | 'CACHED' | 'ESTIMATED' | 'UNKNOWN';
+  confidence: 'LIVE' | 'CACHED' | 'ESTIMATED' | 'UNKNOWN' | 'UNSUPPORTED' | 'RATE_LIMITED';
   score_breakdown: Record<string, number>;
   pros: string[];
   cons: string[];
   eligible: boolean;
   rejection_reason?: string;
+  provider_priority?: number;
 }
 
 export interface RecommendationResult {

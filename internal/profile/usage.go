@@ -16,14 +16,15 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/agy"
 	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/claude"
 	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/cursor"
 	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/gemini"
 	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/opencode"
 	"github.com/kivervinicius/ai-cli/internal/core/quota"
 )
 
-// codexUsageTTL is how long an official Codex reading may be reused across
-// processes before another app-server probe is worthwhile.
-const codexUsageTTL = 60 * time.Second
+// usageRefreshTimeout caps live provider probes so TUI quit / HTTP cancel
+// always terminate quota fetches.
+const usageRefreshTimeout = 15 * time.Second
 
 type LimitWindow struct {
 	PercentLeft float64 `json:"percent_left"`
@@ -46,29 +47,39 @@ type QuotaDetails struct {
 	ClaudeWeek  LimitWindow `json:"claude_weekly,omitempty"`
 }
 
-// GetUsageSnapshot returns a point-in-time usage snapshot for a provider and profile.
-// Cached windows are returned immediately so interactive commands such as
-// `nexus usage` never block on a live provider CLI.
+// GetUsageSnapshot returns cached/last-known quota only. It never spawns a
+// provider CLI, HTTP probe, or Codex app-server — interactive surfaces such as
+// `nexus usage` and Web ListResources must stay responsive. Use
+// RefreshUsageSnapshot for live probes.
 func GetUsageSnapshot(providerName, name string) model.UsageSnapshot {
-	return loadUsageSnapshot(providerName, name, false, false)
+	return loadUsageSnapshot(context.Background(), providerName, name, false, true)
 }
 
 // PeekUsageSnapshot returns last-known/cached quota without spawning a provider
 // CLI or Codex app-server. Launch paths use this so `nexus agy` / `nexus codex`
 // start instead of looking frozen while quota probes run.
 func PeekUsageSnapshot(providerName, name string) model.UsageSnapshot {
-	return loadUsageSnapshot(providerName, name, false, true)
+	return loadUsageSnapshot(context.Background(), providerName, name, false, true)
 }
 
 // RefreshUsageSnapshot forces a provider fetch and persists the result when live.
 func RefreshUsageSnapshot(providerName, name string) model.UsageSnapshot {
-	return loadUsageSnapshot(providerName, name, true, false)
+	return RefreshUsageSnapshotContext(context.Background(), providerName, name)
 }
 
-func loadUsageSnapshot(providerName, name string, refresh, skipLive bool) model.UsageSnapshot {
+// RefreshUsageSnapshotContext forces a live provider fetch bounded by ctx and
+// an overall usageRefreshTimeout.
+func RefreshUsageSnapshotContext(ctx context.Context, providerName, name string) model.UsageSnapshot {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return loadUsageSnapshot(ctx, providerName, name, true, false)
+}
+
+func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, skipLive bool) model.UsageSnapshot {
 	debug := os.Getenv("NEXUS_AGY_DEBUG") == "1" || os.Getenv("NEXUS_DEBUG") == "1"
 	if debug {
-		slog.Debug("loadUsageSnapshot: starting", "provider", providerName, "profile", name, "refresh", refresh)
+		slog.Debug("loadUsageSnapshot: starting", "provider", providerName, "profile", name, "refresh", refresh, "skipLive", skipLive)
 	}
 
 	qEng := quota.NewEngine(5 * time.Minute)
@@ -129,13 +140,6 @@ func loadUsageSnapshot(providerName, name string, refresh, skipLive bool) model.
 	}
 
 	useCache := !refresh && found && len(snap.Windows) > 0 && snap.Status != model.UsageUnknown && qEng.Trustworthy(snap)
-	if useCache && providerName == "codex" && !skipLive {
-		// An official Codex read costs one app-server subprocess, so honor a short
-		// TTL across CLI invocations instead of probing on every render. Snapshots
-		// derived from rollouts are never reused: a stale usage.json must not hide
-		// the used_percent written by a more recent session.
-		useCache = snap.Source == model.SourceOfficialAPI && time.Since(snap.FetchedAt) < codexUsageTTL
-	}
 	// While an interactive Codex TUI owns this profile home, prefer last-known
 	// official quota as CACHED instead of spawning a competing app-server.
 	if !useCache && !refresh && providerName == "codex" {
@@ -155,16 +159,33 @@ func loadUsageSnapshot(providerName, name string, refresh, skipLive bool) model.
 	}
 
 	if useCache {
+		if snap.Status == model.UsageLive {
+			snap.Status = model.UsageCached
+		}
 		return snap
 	}
-	if skipLive {
+	if skipLive || !refresh {
 		if hasLastKnown && len(lastKnown.Windows) > 0 {
 			lastKnown.ProviderID = providerName
 			lastKnown.ProfileID = name
 			if lastKnown.Status != model.UsageRateLimited {
 				lastKnown.Status = model.UsageEstimated
+				if lastKnown.Error == "" {
+					lastKnown.Error = fmt.Sprintf("última observação conhecida de %s", quota.FormatFreshness(lastKnown.FetchedAt))
+				}
 			}
 			return lastKnown
+		}
+		// Cache miss with no last-known: UNSUPPORTED providers stay honest.
+		switch providerName {
+		case "cursor", "opencode":
+			return model.UsageSnapshot{
+				ProviderID: providerName,
+				ProfileID:  name,
+				Status:     model.UsageUnsupported,
+				Source:     model.SourceNone,
+				FetchedAt:  time.Now(),
+			}
 		}
 		return model.UsageSnapshot{
 			ProviderID: providerName,
@@ -175,27 +196,25 @@ func loadUsageSnapshot(providerName, name string, refresh, skipLive bool) model.
 		}
 	}
 
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	probeCtx, cancel := context.WithTimeout(ctx, usageRefreshTimeout)
+	defer cancel()
 	p := model.Profile{Provider: providerName, Name: name, AccountScope: scope}
 	switch providerName {
 	case "codex":
-		if refresh {
-			snap = codex.New().RefreshUsage(ctx, p)
-		} else {
-			snap = codex.New().GetUsage(ctx, p)
-		}
+		snap = codex.New().RefreshUsage(probeCtx, p)
 	case "agy":
-		if refresh {
-			snap = agy.New().RefreshUsage(ctx, p)
-		} else {
-			snap = agy.New().GetUsage(ctx, p)
-		}
+		snap = agy.New().RefreshUsage(probeCtx, p)
 	case "claude":
-		snap = claude.New().GetUsage(ctx, p)
+		snap = claude.New().RefreshUsage(probeCtx, p)
 	case "opencode":
-		snap = opencode.New().GetUsage(ctx, p)
+		snap = opencode.New().RefreshUsage(probeCtx, p)
 	case "gemini":
-		snap = gemini.New().GetUsage(ctx, p)
+		snap = gemini.New().RefreshUsage(probeCtx, p)
+	case "cursor":
+		snap = cursor.New().RefreshUsage(probeCtx, p)
 	default:
 		snap = model.UsageSnapshot{
 			ProviderID: providerName,

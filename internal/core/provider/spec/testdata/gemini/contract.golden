@@ -1,0 +1,37 @@
+{
+  "id": "gemini",
+  "binary_candidates": [
+    "gemini"
+  ],
+  "env_keys": [
+    "AI_PROFILE",
+    "AI_PROVIDER",
+    "GEMINI_CLI_HOME",
+    "HOME",
+    "PATH",
+    "XDG_CONFIG_HOME"
+  ],
+  "env_delete": null,
+  "kickoff": [
+    "-p",
+    "{prompt}"
+  ],
+  "resume": [
+    "-r",
+    "{session}"
+  ],
+  "auto_approval": [
+    "--approval-mode=yolo",
+    "--output-format",
+    "text"
+  ],
+  "review_mode": [
+    "--approval-mode=plan",
+    "--output-format",
+    "text"
+  ],
+  "quota": "LIVE_HTTP",
+  "known_versions": [
+    "0.28.2"
+  ]
+}

@@ -17,8 +17,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
 	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
 )
 
 const (
@@ -36,7 +36,7 @@ var (
 	agyOAuthTokenURL   = agyOAuthTokenEndpoint
 
 	agyOAuthMu       sync.Mutex
-	agyOAuthLookPath = runtime.LookPath
+	agyOAuthLookPath = func(string) (string, error) { return spec.MustGet("agy").ResolveBinary() }
 	agyProfileLocks  sync.Map // home path → *sync.Mutex
 )
 

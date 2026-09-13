@@ -13,6 +13,7 @@ import (
 
 	"github.com/kivervinicius/ai-cli/internal/core/config"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
 	"github.com/kivervinicius/ai-cli/internal/runtime"
 )
 
@@ -329,9 +330,13 @@ func Inspect(provider, name string) (*ProfileInfo, error) {
 	uid := os.Getuid()
 	gid := os.Getgid()
 
-	binPath, _ := runtime.LookPath(provider)
-	if binPath == "" {
-		binPath = "(not found in PATH)"
+	binPath := "(not found in PATH)"
+	if s, ok := spec.Get(provider); ok {
+		if resolved, err := s.ResolveBinary(); err == nil && resolved != "" {
+			binPath = resolved
+		}
+	} else if looked, err := runtime.LookPath(provider); err == nil && looked != "" {
+		binPath = looked
 	}
 
 	info := &ProfileInfo{

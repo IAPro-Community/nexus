@@ -11,6 +11,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/core/classifier"
 	"github.com/kivervinicius/ai-cli/internal/core/config"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
 	"github.com/kivervinicius/ai-cli/internal/core/security"
 	"github.com/kivervinicius/ai-cli/internal/runtime"
 )
@@ -45,10 +46,7 @@ var (
 )
 
 func cursorBinary() (string, error) {
-	if bin, err := runtime.LookPath("agent"); err == nil {
-		return bin, nil
-	}
-	return runtime.LookPath("cursor-agent")
+	return spec.MustGet("cursor").ResolveBinary()
 }
 
 func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
@@ -156,7 +154,17 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 }
 
 func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
-	return model.UsageSnapshot{ProviderID: string(a.ID()), ProfileID: p.Name, Status: model.UsageUnknown, Source: model.SourceNone, FetchedAt: time.Now()}
+	return model.UsageSnapshot{
+		ProviderID: string(a.ID()),
+		ProfileID:  p.Name,
+		Status:     model.UsageUnsupported,
+		Source:     model.SourceNone,
+		FetchedAt:  time.Now(),
+	}
+}
+
+func (a *Adapter) RefreshUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
+	return a.GetUsage(ctx, p)
 }
 
 func (a *Adapter) ListConversations(ctx context.Context, p model.Profile, workspace string) ([]model.Session, error) {

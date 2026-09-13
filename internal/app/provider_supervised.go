@@ -72,11 +72,6 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 		snapshot := profile.PeekUsageSnapshot(provName, candidate.Name)
 		account.Usage = snapshot
 		accounts[candidate.Name] = account
-		if snapshot.Status != model.UsageUnknown && snapshot.Status != model.UsageError {
-			if account.AccountScope.Verifiable() {
-				_ = quotaEngine.SaveUsageForScope(account.AccountScope, snapshot)
-			}
-		}
 	}
 	if len(candidates) == 0 {
 		return fmt.Errorf("no enabled profiles configured for provider %s", provName)
@@ -192,7 +187,12 @@ func launchableProfiles(provName, explicit string, candidates []model.Profile) (
 		if profileLaunchBusy(provName, explicit) {
 			return nil, busyLaunchError(provName, explicit)
 		}
-		return candidates, nil
+		for _, candidate := range candidates {
+			if candidate.Name == explicit {
+				return []model.Profile{candidate}, nil
+			}
+		}
+		return nil, fmt.Errorf("profile %q not found for provider %s", explicit, provName)
 	}
 	free := make([]model.Profile, 0, len(candidates))
 	var busy []string

@@ -317,11 +317,11 @@ collect:
 
 func destHasRollouts(destRoot string) bool {
 	found := false
-	_ = filepath.Walk(destRoot, func(path string, fi os.FileInfo, err error) error {
-		if err != nil || fi == nil || fi.IsDir() {
+	_ = filepath.WalkDir(destRoot, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d == nil || d.IsDir() {
 			return nil
 		}
-		name := fi.Name()
+		name := d.Name()
 		if strings.HasPrefix(name, "rollout-") && strings.HasSuffix(name, ".jsonl") {
 			found = true
 			return io.EOF

@@ -165,7 +165,7 @@ func TestGetUsageSnapshotKeepsCodexLiveRolloutWithoutPrefixedScope(t *testing.T)
 		t.Fatal(err)
 	}
 
-	snap := GetUsageSnapshot("codex", "omega")
+	snap := RefreshUsageSnapshot("codex", "omega")
 	if snap.Status != model.UsageLive {
 		t.Fatalf("status=%s want LIVE (adapter rollout must not be discarded for missing AccountScope)", snap.Status)
 	}
@@ -251,26 +251,39 @@ func TestGetUsageSnapshotReusesFreshOfficialCodexReading(t *testing.T) {
 func TestGetUsageSnapshotIgnoresRolloutDerivedCodexCache(t *testing.T) {
 	codexCacheFixture(t, model.SourceLocalFiles, 5*time.Second)
 
+	// GetUsageSnapshot never probes — it returns the trustworthy cache as-is.
+	// Rollout re-reads belong in RefreshUsageSnapshot.
 	snap := GetUsageSnapshot("codex", "ttl")
 	if len(snap.Windows) != 1 {
 		t.Fatalf("windows=%d want 1", len(snap.Windows))
 	}
-	// The rollout says 10% used, so 90% remains. A cached rollout-derived snapshot
-	// must never hide fresher session evidence.
-	if *snap.Windows[0].RemainingPercent != 90 {
-		t.Fatalf("remaining=%v want the rollout 90", *snap.Windows[0].RemainingPercent)
+	if *snap.Windows[0].RemainingPercent != 42 {
+		t.Fatalf("remaining=%v want cached 42; paint path must not walk rollouts", *snap.Windows[0].RemainingPercent)
 	}
 }
 
 func TestGetUsageSnapshotRefetchesOfficialCodexReadingAfterTTL(t *testing.T) {
 	codexCacheFixture(t, model.SourceOfficialAPI, 3*time.Minute)
 
+	// Past TTL is still cache for GetUsageSnapshot; live re-probe is Refresh only.
 	snap := GetUsageSnapshot("codex", "ttl")
 	if len(snap.Windows) != 1 {
 		t.Fatalf("windows=%d want 1", len(snap.Windows))
 	}
+	if *snap.Windows[0].RemainingPercent != 42 {
+		t.Fatalf("remaining=%v want cached official 42; GetUsageSnapshot must not re-probe", *snap.Windows[0].RemainingPercent)
+	}
+}
+
+func TestRefreshUsageSnapshotReprobesCodexAfterStaleOfficialCache(t *testing.T) {
+	codexCacheFixture(t, model.SourceOfficialAPI, 3*time.Minute)
+
+	snap := RefreshUsageSnapshot("codex", "ttl")
+	if len(snap.Windows) != 1 {
+		t.Fatalf("windows=%d want 1", len(snap.Windows))
+	}
 	if *snap.Windows[0].RemainingPercent != 90 {
-		t.Fatalf("remaining=%v want the rollout 90; an official read past the TTL must be re-read", *snap.Windows[0].RemainingPercent)
+		t.Fatalf("remaining=%v want the rollout 90; Refresh must re-read", *snap.Windows[0].RemainingPercent)
 	}
 }
 
@@ -283,6 +296,46 @@ func TestPeekUsageSnapshotKeepsOfficialCacheWithoutLiveProbe(t *testing.T) {
 	}
 	if *snap.Windows[0].RemainingPercent != 42 {
 		t.Fatalf("remaining=%v want cached official 42; launch must not spawn app-server or walk rollouts", *snap.Windows[0].RemainingPercent)
+	}
+}
+
+func TestPeekUsageSnapshotCacheMissDoesNotProbeLive(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_MANAGER_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_MANAGER_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+
+	if _, err := Create("agy", "empty"); err != nil {
+		t.Fatal(err)
+	}
+	home, err := Home("agy", "empty")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Authenticated identity without any usage cache — a live AGY probe would
+	// spawn `agy --print=/quota` and take seconds.
+	if err := os.WriteFile(filepath.Join(home, ".gemini", "google_accounts.json"), []byte(`{"active":"empty@example.com"}`), 0o600); err != nil {
+		_ = os.MkdirAll(filepath.Join(home, ".gemini"), 0o700)
+		if err := os.WriteFile(filepath.Join(home, ".gemini", "google_accounts.json"), []byte(`{"active":"empty@example.com"}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	start := time.Now()
+	snap := PeekUsageSnapshot("agy", "empty")
+	elapsed := time.Since(start)
+	if elapsed > 500*time.Millisecond {
+		t.Fatalf("Peek took %s — cache miss must not spawn live AGY quota", elapsed)
+	}
+	if snap.Status != model.UsageUnknown && snap.Status != model.UsageEstimated {
+		t.Fatalf("status=%s want UNKNOWN/ESTIMATED on cache miss", snap.Status)
+	}
+	if len(snap.Windows) != 0 {
+		t.Fatalf("windows=%d want 0 on cache miss Peek", len(snap.Windows))
 	}
 }
 
@@ -325,7 +378,7 @@ func TestGetUsageSnapshotKeepsAdapterEstimatedInsteadOfSemDados(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	snap := GetUsageSnapshot("codex", "aged")
+	snap := RefreshUsageSnapshot("codex", "aged")
 	if snap.Status != model.UsageEstimated {
 		t.Fatalf("status=%s want ESTIMATED; a 20 minute old observation must not become SEM DADOS", snap.Status)
 	}
@@ -337,6 +390,31 @@ func TestGetUsageSnapshotKeepsAdapterEstimatedInsteadOfSemDados(t *testing.T) {
 	}
 	if snap.Error == "" {
 		t.Fatal("expected a freshness diagnostic on an estimated snapshot")
+	}
+}
+
+func TestPeekUsageSnapshotCacheMissDoesNotProbe(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_MANAGER_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_MANAGER_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+
+	if _, err := Create("claude", "empty"); err != nil {
+		t.Fatal(err)
+	}
+	// No usage.json and no OAuth credentials: Peek must return UNKNOWN without
+	// attempting Anthropic HTTP (which would hang or fail without a stub).
+	start := time.Now()
+	snap := PeekUsageSnapshot("claude", "empty")
+	if time.Since(start) > 2*time.Second {
+		t.Fatalf("Peek took %s; cache miss must not live-probe", time.Since(start))
+	}
+	if snap.Status != model.UsageUnknown {
+		t.Fatalf("status=%s want UNKNOWN on cache miss", snap.Status)
 	}
 }
 

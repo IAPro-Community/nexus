@@ -43,5 +43,6 @@ Web e Desktop compartilham o Core quando a integração nativa está disponível
 Flow é uma projeção editável do WorkPlan, não um DAG concorrente duplicado.
 
 Leia [runtime](runtime.md), [persistência](persistence.md), [identidade de
-filesystem](filesystem-identity.md), [segurança](security.md) e
-[atualizações](updates.md) para os contratos específicos.
+filesystem](filesystem-identity.md), [segurança](security.md),
+[atualizações](updates.md) e o [contrato de providers](provider-contract.md)
+para os contratos específicos.

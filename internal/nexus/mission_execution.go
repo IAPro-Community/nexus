@@ -19,7 +19,9 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/control/launcher"
 	"github.com/kivervinicius/ai-cli/internal/control/protocol"
 	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/kivervinicius/ai-cli/internal/core/classifier"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
 	"github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard"
 	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
 	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
@@ -29,6 +31,7 @@ import (
 type agentPromptExecution struct {
 	RuntimeID string
 	Output    string
+	Failure   model.Failure
 }
 
 type agentPromptPolicy struct {
@@ -90,14 +93,9 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 		}
 		prompt = compiledContext.SystemInstructions + "\n\n" + compiledContext.TaskInstructions
 	}
-	var kickoffArgs []string
-	if strings.EqualFold(cfg.Provider, "codex") {
-		kickoffArgs = []string{"exec", prompt}
-	} else {
-		kickoffArgs, err = d.BuildKickoffArgs(ctx, profile, prompt)
-		if err != nil {
-			return nil, fmt.Errorf("build provider kickoff args: %w", err)
-		}
+	kickoffArgs, err := d.BuildKickoffArgs(ctx, profile, prompt)
+	if err != nil {
+		return nil, fmt.Errorf("build provider kickoff args: %w", err)
 	}
 	kickoffArgs, err = missionProviderArgs(cfg.Provider, kickoffArgs, policy)
 	if err != nil {
@@ -193,7 +191,9 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	n.notifyAgentState(agent.ID, agent.Status)
 
 	if runErr != nil {
-		return nil, fmt.Errorf("autonomous runtime %s failed: %w", sess.RuntimeID, runErr)
+		failure := classifier.Classify(runErr, output)
+		return &agentPromptExecution{RuntimeID: sess.RuntimeID, Output: output, Failure: failure},
+			fmt.Errorf("autonomous runtime %s failed: %w", sess.RuntimeID, runErr)
 	}
 	return &agentPromptExecution{RuntimeID: sess.RuntimeID, Output: output}, nil
 }
@@ -201,58 +201,35 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 func missionProviderArgs(provider string, args []string, policy agentPromptPolicy) ([]string, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	out := append([]string(nil), args...)
+	providerSpec, ok := spec.Get(provider)
+	if !ok {
+		return nil, fmt.Errorf("provider %s is not approved for autonomous coding", provider)
+	}
 	if policy.Review {
-		switch provider {
-		case "claude":
-			return append(out, "--permission-mode", "plan", "--output-format", "text"), nil
-		case "gemini":
-			return append(out, "--approval-mode=plan", "--output-format", "text"), nil
-		case "cursor":
-			return append(out, "--mode=ask", "--output-format", "text"), nil
-		default:
+		if len(providerSpec.ReviewMode) == 0 {
 			return nil, fmt.Errorf("provider %s has no verified read-only headless review mode", provider)
 		}
+		return append(out, providerSpec.ReviewMode...), nil
 	}
 
 	// A coding Mission must not hang waiting for an approval prompt. Auto-approval
 	// is an explicit contract decision and is restricted by Nexus to the Agent's
 	// isolated workspace plus prompt-level no-push/no-deploy boundaries.
+	if !policy.Contract.AllowToolAutoApproval {
+		return nil, fmt.Errorf("%s autonomous coding requires allow_tool_auto_approval", provider)
+	}
 	switch provider {
-	case "claude":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("claude autonomous coding requires allow_tool_auto_approval")
-		}
-		return append(out, "--dangerously-skip-permissions", "--output-format", "text"), nil
-	case "codex":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("codex autonomous coding requires allow_tool_auto_approval")
-		}
-		return append(out, "--ask-for-approval", "never", "--sandbox", "workspace-write"), nil
-	case "gemini":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("gemini autonomous coding requires allow_tool_auto_approval")
-		}
-		return append(out, "--approval-mode=yolo", "--output-format", "text"), nil
-	case "agy":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("agy autonomous coding requires allow_tool_auto_approval")
-		}
-		return append(out, "--dangerously-skip-permissions", "--sandbox", "--print-timeout", "60m"), nil
+	case "agy", "claude", "codex", "gemini":
+		return append(out, providerSpec.AutoApproval...), nil
 	case "opencode":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("opencode autonomous coding requires allow_tool_auto_approval")
-		}
 		if len(out) > 0 && out[0] == "run" {
-			out = append([]string{"run", "--auto"}, out[1:]...)
+			out = append(append([]string{"run"}, providerSpec.AutoApproval...), out[1:]...)
 		} else {
-			out = append([]string{"--auto"}, out...)
+			out = append(append([]string(nil), providerSpec.AutoApproval...), out...)
 		}
 		return out, nil
 	case "cursor":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("cursor non-interactive coding has write access and requires allow_tool_auto_approval")
-		}
-		return out, nil
+		return append(out, providerSpec.AutoApproval...), nil
 	default:
 		return nil, fmt.Errorf("provider %s is not approved for autonomous coding", provider)
 	}
