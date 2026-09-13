@@ -244,7 +244,7 @@ try {
         Write-Host "Signed manifest downloaded" -ForegroundColor Green
         Invoke-WebRequest -Uri $SigUrl -OutFile $SigPath -UseBasicParsing
         if (-not (Verify-ManifestSignature -ManifestPath $ManifestPath -SigPath $SigPath)) {
-            throw "Refusing unsigned or invalid release manifest"
+            throw "Release manifest signature verification failed."
         }
         $Expected = Extract-ShaFromManifest -ManifestPath $ManifestPath -ArtifactName $ArchiveName
         if ([string]::IsNullOrWhiteSpace($Expected)) {

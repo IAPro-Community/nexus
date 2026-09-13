@@ -1,5 +1,13 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Slice de documentação orientada ao produto — 2026-09-13
+
+README como landing page técnica, Quick Start, mapa de funcionalidades,
+referência de CLI/API local/configuração, personas, troubleshooting, evidência
+visual sintética e ledger/coverage. Não muda o status de release: provider
+autenticado, Desktop nativo e Mission real continuam condicionados à evidência
+dos relatórios de validação.
+
 ## Slice da branch `feat/nexus-auto-delegation` — 2026-09-12
 
 O contrato específico desta branch está em

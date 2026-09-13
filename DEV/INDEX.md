@@ -19,6 +19,7 @@ O código canônico utiliza o binário `nexus`, mantendo `ai` como alias transpa
 - [`VERIFY.md`](VERIFY.md): Evidências e histórico consolidado de validações e gates.
 - [`NEXUS_1_FINAL_ACCEPTANCE.md`](NEXUS_1_FINAL_ACCEPTANCE.md): ledger executável da aceitação RC do Nexus 1.0.
 - [`WORKLOG.md`](WORKLOG.md): Diário de bordo detalhado de todas as implementações e mudanças.
+- [`../DOCUMENTATION_COMPLETE.md`](../DOCUMENTATION_COMPLETE.md): entrega de documentação pública; inventário e ledger estão em `docs/internal/`.
 
 ---
 

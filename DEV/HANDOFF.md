@@ -1,5 +1,19 @@
 # Handoff
 
+## Documentation product guide — 2026-09-13
+
+Public documentation now runs from README through Quick Start, feature
+discovery, personas and focused CLI/API/configuration references.
+`docs/internal/FEATURE_INVENTORY.md`, `DOCUMENTATION_EVIDENCE.md` and
+`DOCUMENTATION_COVERAGE.md` anchor claims to evidence; `DOCUMENTATION_COMPLETE.md`
+is the delivery report.
+
+Fresh proof: synthetic capture, docs verifier, isolated Quick Start project
+flow, release tests, `git diff --check` and `make quality` PASS. This does not
+change production NO-GO: authenticated provider/Mission, native platform and
+hosted same-SHA evidence remain governed by the release reports below. No
+commit/push was made.
+
 ## Production GO/NO-GO red team — 2026-09-13
 
 Verdict: `PRODUCTION_NO_GO`. Also `CERTIFICATION_INVALID_FOR_CURRENT_HEAD`.

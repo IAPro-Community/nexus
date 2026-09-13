@@ -7,6 +7,11 @@ import process from 'node:process';
 const root = process.cwd();
 const required = [
   'README.md', 'README.en.md', 'README.es.md', 'docs/README.md',
+  'docs/quick-start.md', 'docs/features/index.md', 'docs/cli/README.md',
+  'docs/api/README.md', 'docs/reference/configuration.md',
+  'docs/reference/feature-matrix.md', 'docs/faq.md', 'docs/glossary.md',
+  'docs/internal/FEATURE_INVENTORY.md', 'docs/internal/DOCUMENTATION_COVERAGE.md',
+  'docs/internal/DOCUMENTATION_EVIDENCE.md', 'DOCUMENTATION_COMPLETE.md',
   'docs/getting-started/installation.md', 'docs/product/overview.md',
   'docs/product/visual-tour.md', 'docs/assets/screenshots/manifest.json',
   'docs/assets/screenshots/workspace-overview.png',

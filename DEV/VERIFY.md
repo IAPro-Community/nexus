@@ -1151,23 +1151,17 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-12T05:53:08Z
+## Frontend gate — 2026-09-13T05:36:25Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 
-## Production finalization evidence — 2026-09-12/13
+## Documentation product guide — 2026-09-13
 
-- `make quality`: executed successfully after the release hardening changes;
-  frontend suite reported 68 files and 350 tests passing.
-- `make build`, `make build-desktop-wails`, `go vet ./...`,
-  `go test -race ./...`, `make security`, `bash scripts/verify-update-gate.sh`
-  and `npm --prefix web run test:e2e`, `test:a11y`, `test:visual` executed
-  successfully on Linux/amd64.
-- `pwsh`, `actionlint`, `yamllint`, gitleaks, semgrep and trivy were not
-  available locally. Native Windows/macOS runners, same-SHA hosted CI,
-  PowerShell runtime, ConPTY/Named Pipe native E2E and authenticated Mission
-  provider execution are `NOT VERIFIED`.
-- `npm --prefix web audit --audit-level=high` reported two moderate
-  `@vitest/mocker` advisories requiring a breaking Vitest upgrade; this is
-  recorded as dependency debt and was not changed in this certification pass.
-- Detailed evidence and verdict: `DEV/validation/production-finalization/FINAL_REPORT.md`.
+- PASS — `bun run --cwd web docs:capture`: 10 Web surfaces and Direct WebM from
+  isolated synthetic fixture; no provider account or private project used.
+- PASS — `node scripts/docs-verify.mjs` / `make docs-verify`: 149 Markdown
+  files and 22 required docs/assets; links and visual-manifest freshness pass.
+- PASS — Quick Start project flow with temporary `NEXUS_*_DIR` and
+  `AI_CLI_*_DIR`: list → add `.` → list.
+- PASS — `go test ./internal/release -count=1`, `git diff --check`, full
+  `make quality`, `make web-verify` and `make security`.

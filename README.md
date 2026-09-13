@@ -16,6 +16,24 @@
 
 IAPro Nexus é uma workstation local para trabalhar com coding agents. Ele organiza projetos, agentes persistentes, sessões, terminais supervisionados, providers, worktrees e uso/quota em um único Core. O caminho mais simples é: abrir um projeto, criar uma AI Session, escolher um provider e trabalhar no terminal. Composer, Flow, Mission e Maestro são camadas progressivas; não são pré-requisitos para o trabalho direto.
 
+Com ele você pode:
+
+- iniciar uma sessão de IA no projeto sem montar uma pilha de orquestração;
+- manter a identidade do agente enquanto o runtime e o provider mudam;
+- observar disponibilidade e quota sem transformar ausência de dados em sucesso;
+- usar planejamento, dependências e verificação somente quando o objetivo pedir.
+
+→ [Quick Start de 5–10 minutos](docs/quick-start.md)
+
+## O que este produto melhora?
+
+| Antes / problema | Com o Nexus |
+| --- | --- |
+| Cada CLI de coding agent tem contexto, perfil e terminal próprios. | Projetos, perfis, sessões e workspaces ficam visíveis em uma workstation local única. |
+| Trocar de provider pode perder o contexto operacional. | O Agent é uma identidade persistente; provider/modelo são recursos de execução roteados separadamente. |
+| Acompanhar quota ou falha exige consultar ferramentas diferentes. | Estados como `LIVE`, `CACHED`, `ESTIMATED` e `UNKNOWN` deixam explícita a qualidade da evidência. |
+| Todo trabalho precisa de um fluxo pesado de planejamento. | O caminho Direct abre uma sessão imediatamente; Composer, Flow e Mission são opt-in progressivos. |
+
 ## Por que Nexus?
 
 - **Trabalho direto primeiro:** projeto → AI Session → provider → terminal.
@@ -108,6 +126,10 @@ As imagens são capturas automatizadas do produto real e possuem origem registra
 
 Guias de distribuição **separados**:
 
+- [Quick Start](docs/quick-start.md)
+- [Funcionalidades por objetivo](docs/features/index.md)
+- [Documentação para usuários](docs/user/README.md)
+- [Referência da CLI](docs/cli/README.md)
 - [Visuais (ajuda/divulgação)](docs/getting-started/visuals.md)
 - [Getting Started (índice)](docs/getting-started/README.md)
 - [Instalação nativa](docs/getting-started/installation.md)

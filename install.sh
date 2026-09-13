@@ -264,7 +264,8 @@ download_and_verify_archive() {
 
     local expected=""
 
-    # 1. Fetch signed manifest (required)
+    # 1. Fetch signed manifest (required). checksum integrity is bound to this
+    # verified manifest; an unsigned release is never an acceptable fallback.
     if ! http_get "${release_url}/update-manifest.json" "$manifest_path"; then
         echo "ERROR: signed update-manifest.json unavailable — refusing install" >&2
         return 1

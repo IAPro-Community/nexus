@@ -873,12 +873,6 @@ func (sh *SessionHost) waitProcess() {
 	sh.doneOnce.Do(func() { close(sh.doneChan) })
 }
 
-func (sh *SessionHost) releaseCodexTUILock() {
-	sh.mu.Lock()
-	defer sh.mu.Unlock()
-	sh.releaseCodexTUILockLocked()
-}
-
 func (sh *SessionHost) releaseCodexTUILockLocked() {
 	if sh.codexTUILock != nil {
 		_ = sh.codexTUILock.Release()

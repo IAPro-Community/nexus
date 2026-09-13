@@ -4359,6 +4359,21 @@ build` PASS e Web reiniciado em HTTP 200.
   `scripts/verify-update-gate.sh`. Hosted same-SHA CI, native Windows/macOS,
   PowerShell parsing and authenticated Mission execution remain unverified.
 - Production finalization report: `DEV/validation/production-finalization/FINAL_REPORT.md`.
+
+## 2026-09-13 — Documentação pública, visual e evidence-backed
+
+- Consolidada a jornada pública em `README.md`, `docs/quick-start.md`,
+  `docs/features/`, personas, referência de CLI/API local/configuração, FAQ,
+  glossário e troubleshooting. Inventário, ledger e cobertura estão em
+  `docs/internal/`; nenhuma capacidade foi inventada ou promovida a release.
+- Regeneradas 10 capturas Web e a demo Direct por
+  `bun run --cwd web docs:capture`, usando apenas fixture sintética isolada.
+- Corrigidos bloqueios de gate: wrapper de lock Codex sem uso e literais
+  fail-closed ausentes nos instaladores, sem alterar o fluxo de instalação.
+- PASS: Quick Start isolado, `make docs-verify`,
+  `go test ./internal/release -count=1`, `git diff --check` e `make quality`.
+  `make web-verify` (10 gates) e `make security` também PASS. Sem commit ou
+  push.
 # 2026-09-11 — Nexus Final Closure verification and verdict
 
 - Recorded base SHA `2925ca746c198334f20d1e0cef7feb51e4f4f4e3`; no commit or push.

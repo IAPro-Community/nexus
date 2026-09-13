@@ -8,6 +8,10 @@ mais simples e só depois apresenta Composer, Flow e Mission.
 
 | Quero… | Comece em |
 | --- | --- |
+| experimentar o Nexus em 5–10 minutos | [Quick Start](quick-start.md) |
+| descobrir uma capacidade pelo problema que quero resolver | [Funcionalidades](features/index.md) |
+| usar a CLI ou automatizar uma rotina | [Referência da CLI](cli/README.md) |
+| configurar o ambiente sem expor segredos | [Configuração](reference/configuration.md) |
 | entender o produto | [Visão geral](product/overview.md) e [modelo mental](product/mental-model.md) |
 | instalar no host (zero-toolchain) | [Instalação nativa](getting-started/installation.md) |
 | instalar via DEB/RPM/NSIS | [Pacotes nativos](getting-started/packages.md) |
@@ -22,6 +26,7 @@ mais simples e só depois apresenta Composer, Flow e Mission.
 | executar uma Mission | [Missions](product/missions.md) |
 | entender Maestro | [Integração Maestro](product/maestro.md) |
 | entender a implementação | [Arquitetura](architecture/overview.md) |
+| integrar com a API local | [API local](api/README.md) |
 | solucionar problemas | [Troubleshooting](operations/troubleshooting.md) |
 | verificar suporte por sistema | [Suporte de plataformas](operations/platform-support.md) |
 | contribuir | [CONTRIBUTING](../CONTRIBUTING.md) |
@@ -46,6 +51,10 @@ Composer, Flow e Mission não são pré-requisitos para abrir uma sessão.
 - [ADR Docker host-parity](architecture/ADR-docker-compat-host-parity.md)
 - [Glossário](GLOSSARY.md)
 - [Guia editorial](STYLE_GUIDE.md)
+- [Matriz de funcionalidades](reference/feature-matrix.md)
+- [FAQ](faq.md)
+- [Glossário](glossary.md)
+- [O que mudou](whats-new.md)
 
 ## Público, interno e estado da funcionalidade
 
