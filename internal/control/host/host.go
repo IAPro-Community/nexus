@@ -167,11 +167,16 @@ func (sh *SessionHost) Start() error {
 
 	if strings.EqualFold(sh.session.ProviderID, "codex") {
 		if home := codex.EnvCODEXHome(sh.cfg.Env); home != "" {
-			lock, err := codex.AcquireTUILock(home)
+			// Fail-fast: never hold sh.mu across a wait, and never block the
+			// handshake for seconds when another Codex TUI owns the profile.
+			sh.mu.Unlock()
+			lock, err := codex.AcquireTUILockTimeout(home, 0)
+			sh.mu.Lock()
 			if err != nil {
 				setStage(registry.StartupProviderStarting, registry.StartupFaultProcessSupervision)
 				_ = sh.listener.Close()
 				sh.listener = nil
+				sh.completeStartFailureLocked()
 				return fmt.Errorf("failed to acquire Codex TUI lock: %w", err)
 			}
 			sh.codexTUILock = lock

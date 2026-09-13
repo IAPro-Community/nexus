@@ -1,13 +1,22 @@
 package codex
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const tuiLockFileName = "nexus-tui.lock"
+
+// TUILockAcquireTimeout bounds how long launch/Prepare wait for a competing
+// Codex TUI. Leftover SessionHosts used to hold this lock forever.
+const TUILockAcquireTimeout = 2 * time.Second
+
+// ErrTUIBusy is returned when another Codex process already owns CODEX_HOME.
+var ErrTUIBusy = errors.New("codex TUI already active for this profile")
 
 // TUILock holds an exclusive flock on a Codex profile home so quota probes
 // cannot spawn a competing app-server against the same CODEX_HOME.
@@ -20,26 +29,11 @@ func tuiLockPath(codexHome string) string {
 	return filepath.Join(strings.TrimSpace(codexHome), tuiLockFileName)
 }
 
-// AcquireTUILock blocks until it owns the exclusive lock for codexHome.
+// AcquireTUILock acquires the exclusive lock for codexHome without blocking
+// forever. A competing TUI returns ErrTUIBusy immediately.
 // The caller must Release when the interactive Codex process exits.
 func AcquireTUILock(codexHome string) (*TUILock, error) {
-	codexHome = strings.TrimSpace(codexHome)
-	if codexHome == "" {
-		return nil, fmt.Errorf("empty CODEX_HOME for TUI lock")
-	}
-	if err := os.MkdirAll(codexHome, 0700); err != nil {
-		return nil, err
-	}
-	path := tuiLockPath(codexHome)
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0600)
-	if err != nil {
-		return nil, fmt.Errorf("open TUI lock: %w", err)
-	}
-	if err := flockExclusive(f, true); err != nil {
-		_ = f.Close()
-		return nil, fmt.Errorf("acquire TUI lock: %w", err)
-	}
-	return &TUILock{file: f, path: path}, nil
+	return AcquireTUILockTimeout(codexHome, 0)
 }
 
 // TryAcquireTUILock attempts a non-blocking exclusive lock. ok is false when
@@ -65,6 +59,25 @@ func TryAcquireTUILock(codexHome string) (lock *TUILock, ok bool, err error) {
 		return nil, false, fmt.Errorf("try TUI lock: %w", err)
 	}
 	return &TUILock{file: f, path: path}, true, nil
+}
+
+// AcquireTUILockTimeout retries a non-blocking exclusive lock until timeout.
+// A held lock returns ErrTUIBusy instead of waiting indefinitely.
+func AcquireTUILockTimeout(codexHome string, timeout time.Duration) (*TUILock, error) {
+	deadline := time.Now().Add(timeout)
+	for {
+		lock, ok, err := TryAcquireTUILock(codexHome)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			return lock, nil
+		}
+		if timeout <= 0 || !time.Now().Before(deadline) {
+			return nil, fmt.Errorf("%w", ErrTUIBusy)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 }
 
 // IsTUILocked reports whether the interactive TUI currently owns codexHome.

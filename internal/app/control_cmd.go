@@ -27,6 +27,7 @@ import (
 	"github.com/kivervinicius/ai-cli/internal/core/config"
 	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
 	"github.com/kivervinicius/ai-cli/internal/core/quota"
 	"github.com/kivervinicius/ai-cli/internal/core/scheduler"
 	"github.com/kivervinicius/ai-cli/internal/nexus"
@@ -315,36 +316,50 @@ func controlStartCmd(args []string) error {
 
 	ctx := context.Background()
 
-	// 1. Resolve Profile using Smart Account Selector if not explicitly given
-	if profileName == "" {
-		cwd, _ := os.Getwd()
-		cfg, _ := config.LoadConfig()
-		qEng := quota.NewEngine(5 * time.Minute)
-		cdTracker := cooldown.NewTracker()
-		sel := scheduler.NewSelector(cfg, qEng, cdTracker)
+	fmt.Fprintf(os.Stderr, "⚡ [nexus] iniciando %s…\n", providerID)
 
-		allProfiles, _ := profile.List()
-		var candidates []model.Profile
-		accounts := make(map[string]model.AccountInfo)
-		for _, p := range allProfiles {
-			if p.Provider == providerID {
-				candidates = append(candidates, p)
-				accounts[p.Name] = profile.GetAccountInfo(providerID, p.Name)
-			}
+	// 1. Resolve Profile using the shared explicit/best/default fallback policy.
+	cwd, _ := os.Getwd()
+	cfg, _ := config.LoadConfig()
+	qEng := quota.NewEngine(5 * time.Minute)
+	sel := scheduler.NewSelector(cfg, qEng, cooldown.NewTracker())
+	allProfiles, _ := profile.List()
+	var candidates []model.Profile
+	accounts := make(map[string]model.AccountInfo)
+	for _, candidate := range allProfiles {
+		if candidate.Provider != providerID || candidate.Disabled {
+			continue
 		}
-
-		res, _ := sel.SelectBestProfile(ctx, providerID, cwd, candidates, accounts, nil)
-		if res != nil && res.SelectedProfile != nil && res.SelectedProfile.Name != "" {
-			profileName = res.SelectedProfile.Name
-		} else {
-			def, _ := config.GetDefaultProfile(providerID)
-			if def != "" {
-				profileName = def
-			} else {
-				profileName = "default"
+		candidates = append(candidates, candidate)
+		account := profile.GetAccountInfo(providerID, candidate.Name)
+		snapshot := profile.PeekUsageSnapshot(providerID, candidate.Name)
+		account.Usage = snapshot
+		accounts[candidate.Name] = account
+		if snapshot.Status != model.UsageUnknown && snapshot.Status != model.UsageError {
+			if account.AccountScope.Verifiable() {
+				_ = qEng.SaveUsageForScope(account.AccountScope, snapshot)
 			}
 		}
 	}
+	if len(candidates) == 0 {
+		return fmt.Errorf("no enabled profiles configured for provider %s", providerID)
+	}
+	var err error
+	candidates, err = launchableProfiles(providerID, profileName, candidates)
+	if err != nil {
+		return err
+	}
+	candidateNames := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		candidateNames = append(candidateNames, candidate.Name)
+	}
+	profileName = profile.ResolveDefault(providerID, profileName, candidateNames, cfg.Defaults[providerID], func() (string, error) {
+		res, selectErr := sel.SelectBestProfile(ctx, providerID, cwd, candidates, accounts, nil)
+		if selectErr == nil && res != nil && res.SelectedProfile != nil {
+			return res.SelectedProfile.Name, nil
+		}
+		return "", selectErr
+	})
 
 	// 2. Launch via unified RuntimeLauncher
 	l := launcher.Default()
@@ -354,6 +369,9 @@ func controlStartCmd(args []string) error {
 		Args:       extraArgs,
 	})
 	if err != nil {
+		if errors.Is(err, codex.ErrTUIBusy) {
+			return busyLaunchError(providerID, profileName)
+		}
 		return err
 	}
 

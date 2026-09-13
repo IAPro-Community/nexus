@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -19,6 +20,10 @@ const (
 	// crossAccountHostSeedCap limits how many host rollouts we import so a
 	// multi-hundred host store does not flood the profile picker.
 	crossAccountHostSeedCap = 40
+	// crossAccountSeedBudget bounds how long Prepare may spend walking sibling/
+	// host rollouts. Launch must open the TUI immediately; resume seeding is
+	// best-effort and must never look like a hang.
+	crossAccountSeedBudget = 200 * time.Millisecond
 )
 
 type crossAccountSessionRecord struct {
@@ -190,6 +195,8 @@ func indexCandidatesForSessionsRoot(sessionsRoot string) []string {
 
 // seedCrossAccountSessions imports recent sibling/host rollouts into the active
 // profile so the native Codex /resume picker can see CrossAccountResume threads.
+// It is best-effort and budgeted: a multi-thousand rollout store must not delay
+// interactive launch.
 func seedCrossAccountSessions(profileName string) error {
 	home, err := config.ProfileHome("codex", profileName)
 	if err != nil {
@@ -199,7 +206,13 @@ func seedCrossAccountSessions(profileName string) error {
 	if err := os.MkdirAll(destRoot, 0700); err != nil {
 		return err
 	}
+	// Profiles that already have local sessions skip the expensive sibling/host
+	// walk on the hot launch path. Explicit adopt/resume still seeds on demand.
+	if destHasRollouts(destRoot) {
+		return nil
+	}
 
+	deadline := time.Now().Add(crossAccountSeedBudget)
 	cwd, _ := os.Getwd()
 	cutoff := time.Now().Add(-rolloutMaxAge)
 	type cand struct {
@@ -213,9 +226,17 @@ func seedCrossAccountSessions(profileName string) error {
 	}
 
 	var sibling, host []cand
+	seenDest := map[string]bool{}
+collect:
 	for _, root := range sessionCandidateRoots(home) {
+		if time.Now().After(deadline) {
+			break
+		}
 		fromHost := isHostSessionsRoot(root)
 		_ = filepath.Walk(root, func(path string, fi os.FileInfo, err error) error {
+			if time.Now().After(deadline) {
+				return io.EOF
+			}
 			if err != nil || fi == nil || fi.IsDir() {
 				return nil
 			}
@@ -227,12 +248,10 @@ func seedCrossAccountSessions(profileName string) error {
 				return nil
 			}
 			sessionID := extractSessionIDFromRolloutName(name)
-			if sessionID == "" {
+			if sessionID == "" || seenDest[sessionID] {
 				return nil
 			}
-			if findRolloutInTree(destRoot, sessionID) != "" {
-				return nil
-			}
+			seenDest[sessionID] = true
 			entry := synthesizeIndexEntry(path, sessionID, fi.ModTime())
 			cwdMatch := cwd != "" && entry != nil && entry.CWD != "" &&
 				(entry.CWD == cwd || strings.HasPrefix(cwd, entry.CWD) || strings.HasPrefix(entry.CWD, cwd))
@@ -247,6 +266,9 @@ func seedCrossAccountSessions(profileName string) error {
 			}
 			return nil
 		})
+		if time.Now().After(deadline) {
+			break collect
+		}
 	}
 
 	sort.SliceStable(sibling, func(i, j int) bool { return sibling[i].modTime.After(sibling[j].modTime) })
@@ -261,6 +283,9 @@ func seedCrossAccountSessions(profileName string) error {
 	}
 
 	for _, item := range append(sibling, host...) {
+		if time.Now().After(deadline) {
+			break
+		}
 		rel := filepath.Base(item.path)
 		if r, err := filepath.Rel(item.root, item.path); err == nil && r != "" && !strings.HasPrefix(r, "..") {
 			rel = r
@@ -288,6 +313,22 @@ func seedCrossAccountSessions(profileName string) error {
 		}
 	}
 	return nil
+}
+
+func destHasRollouts(destRoot string) bool {
+	found := false
+	_ = filepath.Walk(destRoot, func(path string, fi os.FileInfo, err error) error {
+		if err != nil || fi == nil || fi.IsDir() {
+			return nil
+		}
+		name := fi.Name()
+		if strings.HasPrefix(name, "rollout-") && strings.HasSuffix(name, ".jsonl") {
+			found = true
+			return io.EOF
+		}
+		return nil
+	})
+	return found
 }
 
 // shouldMarkCrossAccount reports whether an imported rollout must be excluded

@@ -11,9 +11,11 @@ import (
 
 	"github.com/kivervinicius/ai-cli/internal/control/launcher"
 	"github.com/kivervinicius/ai-cli/internal/control/protocol"
+	"github.com/kivervinicius/ai-cli/internal/control/registry"
 	"github.com/kivervinicius/ai-cli/internal/core/config"
 	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
 	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
 	"github.com/kivervinicius/ai-cli/internal/core/quota"
 	"github.com/kivervinicius/ai-cli/internal/core/scheduler"
 	"github.com/kivervinicius/ai-cli/internal/nexus"
@@ -52,6 +54,8 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 		return fmt.Errorf("provider is required for supervised launch")
 	}
 
+	fmt.Fprintf(os.Stderr, "⚡ [nexus] iniciando %s…\n", provName)
+
 	profiles, err := profile.List()
 	if err != nil {
 		return err
@@ -65,7 +69,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 		}
 		candidates = append(candidates, candidate)
 		account := profile.GetAccountInfo(provName, candidate.Name)
-		snapshot := profile.GetUsageSnapshot(provName, candidate.Name)
+		snapshot := profile.PeekUsageSnapshot(provName, candidate.Name)
 		account.Usage = snapshot
 		accounts[candidate.Name] = account
 		if snapshot.Status != model.UsageUnknown && snapshot.Status != model.UsageError {
@@ -78,18 +82,24 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 		return fmt.Errorf("no enabled profiles configured for provider %s", provName)
 	}
 
-	selected := explicitProfile
-	if selected == "" {
-		cfg, _ := config.LoadConfig()
+	candidates, err = launchableProfiles(provName, explicitProfile, candidates)
+	if err != nil {
+		return err
+	}
+
+	candidateNames := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		candidateNames = append(candidateNames, candidate.Name)
+	}
+	cfg, _ := config.LoadConfig()
+	selected := profile.ResolveDefault(provName, explicitProfile, candidateNames, cfg.Defaults[provName], func() (string, error) {
 		selector := scheduler.NewSelector(cfg, quotaEngine, cooldown.NewTracker())
 		result, selectErr := selector.SelectBestProfile(context.Background(), provName, mustWorkingDirectory(), candidates, accounts, nil)
 		if selectErr == nil && result != nil && result.SelectedProfile != nil {
-			selected = result.SelectedProfile.Name
+			return result.SelectedProfile.Name, nil
 		}
-	}
-	if selected == "" {
-		selected = candidates[0].Name
-	}
+		return "", selectErr
+	})
 	if !profileInCandidates(candidates, selected) {
 		return fmt.Errorf("profile %q is not configured for provider %s", selected, provName)
 	}
@@ -130,6 +140,9 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 		},
 	})
 	if err != nil {
+		if errors.Is(err, codex.ErrTUIBusy) {
+			return busyLaunchError(provName, selected)
+		}
 		return fmt.Errorf("supervised %s launch failed: %w", provName, err)
 	}
 	if lead.AgentID != "" {
@@ -163,4 +176,55 @@ func mustWorkingDirectory() string {
 		return "."
 	}
 	return cwd
+}
+
+var profileLaunchBusy = func(provider, name string) bool {
+	if !strings.EqualFold(strings.TrimSpace(provider), "codex") {
+		return false
+	}
+	home, err := config.ProfileHome("codex", name)
+	return err == nil && codex.IsTUILocked(home)
+}
+
+func launchableProfiles(provName, explicit string, candidates []model.Profile) ([]model.Profile, error) {
+	explicit = strings.TrimSpace(explicit)
+	if explicit != "" {
+		if profileLaunchBusy(provName, explicit) {
+			return nil, busyLaunchError(provName, explicit)
+		}
+		return candidates, nil
+	}
+	free := make([]model.Profile, 0, len(candidates))
+	var busy []string
+	for _, candidate := range candidates {
+		if profileLaunchBusy(provName, candidate.Name) {
+			busy = append(busy, candidate.Name)
+			continue
+		}
+		free = append(free, candidate)
+	}
+	if len(free) > 0 {
+		if len(busy) > 0 {
+			fmt.Fprintf(os.Stderr, "⚠ [nexus] %s já em execução: %s — usando outro perfil\n", provName, strings.Join(busy, ", "))
+		}
+		return free, nil
+	}
+	if len(busy) > 0 {
+		return nil, busyLaunchError(provName, busy[0])
+	}
+	return candidates, nil
+}
+
+func busyLaunchError(provName, profileName string) error {
+	var ids []string
+	for _, sess := range registry.DefaultRegistry().ListActive() {
+		if strings.EqualFold(sess.ProviderID, provName) && sess.ProfileID == profileName {
+			ids = append(ids, sess.RuntimeID)
+		}
+	}
+	if len(ids) > 0 {
+		id := ids[0]
+		return fmt.Errorf("%s já está em execução no perfil %s (runtime %s).\n  Anexar: %s attach %s\n  Encerrar: %s stop %s", provName, profileName, id, progName(), id, progName(), id)
+	}
+	return fmt.Errorf("%s já está em execução no perfil %s.\n  Listar: %s ps\n  Anexar: %s attach <id>\n  Encerrar: %s stop <id>", provName, profileName, progName(), progName(), progName())
 }

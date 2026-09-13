@@ -274,6 +274,18 @@ func TestGetUsageSnapshotRefetchesOfficialCodexReadingAfterTTL(t *testing.T) {
 	}
 }
 
+func TestPeekUsageSnapshotKeepsOfficialCacheWithoutLiveProbe(t *testing.T) {
+	codexCacheFixture(t, model.SourceOfficialAPI, 3*time.Minute)
+
+	snap := PeekUsageSnapshot("codex", "ttl")
+	if len(snap.Windows) != 1 {
+		t.Fatalf("windows=%d want 1", len(snap.Windows))
+	}
+	if *snap.Windows[0].RemainingPercent != 42 {
+		t.Fatalf("remaining=%v want cached official 42; launch must not spawn app-server or walk rollouts", *snap.Windows[0].RemainingPercent)
+	}
+}
+
 func TestGetUsageSnapshotKeepsAdapterEstimatedInsteadOfSemDados(t *testing.T) {
 	dataDir := t.TempDir()
 	cfgDir := t.TempDir()

@@ -2,6 +2,7 @@ package codex
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -166,7 +167,25 @@ func TestPrepareMigratesLegacyConfigBeforeCreatingCanonicalConfig(t *testing.T) 
 	}
 }
 
-func TestPrepareWaitsForActiveTUILock(t *testing.T) {
+func TestAcquireTUILockTimeoutFailsFastWhenHeld(t *testing.T) {
+	home := t.TempDir()
+	held, err := AcquireTUILock(home)
+	if err != nil {
+		t.Fatalf("AcquireTUILock: %v", err)
+	}
+	defer func() { _ = held.Release() }()
+
+	start := time.Now()
+	lock, err := AcquireTUILockTimeout(home, 80*time.Millisecond)
+	if !errors.Is(err, ErrTUIBusy) {
+		t.Fatalf("err=%v lock=%v want ErrTUIBusy", err, lock)
+	}
+	if time.Since(start) > time.Second {
+		t.Fatalf("timeout waited %s, want fail-fast", time.Since(start))
+	}
+}
+
+func TestPrepareFailsFastWhenTUILocked(t *testing.T) {
 	data := t.TempDir()
 	t.Setenv("AI_CLI_DATA_DIR", data)
 	t.Setenv("AI_MANAGER_DATA_DIR", data)
@@ -180,29 +199,15 @@ func TestPrepareWaitsForActiveTUILock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AcquireTUILock: %v", err)
 	}
+	defer func() { _ = held.Release() }()
 
-	prepared := make(chan error, 1)
-	go func() {
-		prepared <- New().Prepare(context.Background(), model.Profile{Provider: "codex", Name: "locked"})
-	}()
-
-	select {
-	case err := <-prepared:
-		_ = held.Release()
-		t.Fatalf("Prepare completed while TUI lock was held: %v", err)
-	case <-time.After(100 * time.Millisecond):
+	start := time.Now()
+	err = New().Prepare(context.Background(), model.Profile{Provider: "codex", Name: "locked"})
+	if !errors.Is(err, ErrTUIBusy) {
+		t.Fatalf("Prepare err=%v want ErrTUIBusy", err)
 	}
-	if err := held.Release(); err != nil {
-		t.Fatalf("release held lock: %v", err)
-	}
-
-	select {
-	case err := <-prepared:
-		if err != nil {
-			t.Fatalf("Prepare after lock release: %v", err)
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("Prepare did not continue after TUI lock release")
+	if time.Since(start) > time.Second {
+		t.Fatalf("Prepare blocked for %s", time.Since(start))
 	}
 }
 

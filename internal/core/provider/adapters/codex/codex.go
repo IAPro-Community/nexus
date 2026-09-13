@@ -91,7 +91,7 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 	if err != nil {
 		return err
 	}
-	lock, err := AcquireTUILock(home)
+	lock, err := AcquireTUILockTimeout(home, 0)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 		return model.Failure{Kind: model.FailureProvider, Message: "codex binary not found"}, err
 	}
 	home, _ := config.ProfileHome(string(a.ID()), p.Name)
-	lock, lockErr := AcquireTUILock(home)
+	lock, lockErr := AcquireTUILockTimeout(home, 0)
 	if lockErr != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: lockErr.Error()}, lockErr
 	}

@@ -170,7 +170,7 @@ func (s *QuotaMonitorService) check() {
 			s.emitDegraded(p.Provider+":"+p.Name, fmt.Sprintf("account not authenticated: %s", account.Status))
 			continue
 		}
-		snapshot := profile.GetUsageSnapshot(p.Provider, p.Name)
+		snapshot := profile.PeekUsageSnapshot(p.Provider, p.Name)
 		// RATE_LIMITED is an accurate reading, not a failed one: the provider
 		// told us the account is blocked. Alerting on it is the monitor's job.
 		switch snapshot.Status {

@@ -50,15 +50,22 @@ type QuotaDetails struct {
 // Cached windows are returned immediately so interactive commands such as
 // `nexus usage` never block on a live provider CLI.
 func GetUsageSnapshot(providerName, name string) model.UsageSnapshot {
-	return loadUsageSnapshot(providerName, name, false)
+	return loadUsageSnapshot(providerName, name, false, false)
+}
+
+// PeekUsageSnapshot returns last-known/cached quota without spawning a provider
+// CLI or Codex app-server. Launch paths use this so `nexus agy` / `nexus codex`
+// start instead of looking frozen while quota probes run.
+func PeekUsageSnapshot(providerName, name string) model.UsageSnapshot {
+	return loadUsageSnapshot(providerName, name, false, true)
 }
 
 // RefreshUsageSnapshot forces a provider fetch and persists the result when live.
 func RefreshUsageSnapshot(providerName, name string) model.UsageSnapshot {
-	return loadUsageSnapshot(providerName, name, true)
+	return loadUsageSnapshot(providerName, name, true, false)
 }
 
-func loadUsageSnapshot(providerName, name string, refresh bool) model.UsageSnapshot {
+func loadUsageSnapshot(providerName, name string, refresh, skipLive bool) model.UsageSnapshot {
 	debug := os.Getenv("NEXUS_AGY_DEBUG") == "1" || os.Getenv("NEXUS_DEBUG") == "1"
 	if debug {
 		slog.Debug("loadUsageSnapshot: starting", "provider", providerName, "profile", name, "refresh", refresh)
@@ -122,7 +129,7 @@ func loadUsageSnapshot(providerName, name string, refresh bool) model.UsageSnaps
 	}
 
 	useCache := !refresh && found && len(snap.Windows) > 0 && snap.Status != model.UsageUnknown && qEng.Trustworthy(snap)
-	if useCache && providerName == "codex" {
+	if useCache && providerName == "codex" && !skipLive {
 		// An official Codex read costs one app-server subprocess, so honor a short
 		// TTL across CLI invocations instead of probing on every render. Snapshots
 		// derived from rollouts are never reused: a stale usage.json must not hide
@@ -149,6 +156,23 @@ func loadUsageSnapshot(providerName, name string, refresh bool) model.UsageSnaps
 
 	if useCache {
 		return snap
+	}
+	if skipLive {
+		if hasLastKnown && len(lastKnown.Windows) > 0 {
+			lastKnown.ProviderID = providerName
+			lastKnown.ProfileID = name
+			if lastKnown.Status != model.UsageRateLimited {
+				lastKnown.Status = model.UsageEstimated
+			}
+			return lastKnown
+		}
+		return model.UsageSnapshot{
+			ProviderID: providerName,
+			ProfileID:  name,
+			Status:     model.UsageUnknown,
+			Source:     model.SourceNone,
+			FetchedAt:  time.Now(),
+		}
 	}
 
 	ctx := context.Background()

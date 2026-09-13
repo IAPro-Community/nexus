@@ -280,6 +280,8 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 		args = resolver.StripControlFlags()
 	}
 
+	fmt.Fprintf(os.Stderr, "⚡ [nexus] iniciando %s…\n", provName)
+
 	// Keep quota monitoring alive for the lifetime of direct provider commands,
 	// including nexus agy/codex/cursor invocations.
 	nexus.Default().StartQuotaMonitor(context.Background())
@@ -307,7 +309,7 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 		if p.Provider == provName {
 			candidates = append(candidates, p)
 			accounts[p.Name] = profile.GetAccountInfo(provName, p.Name)
-			snap := profile.GetUsageSnapshot(provName, p.Name)
+			snap := profile.PeekUsageSnapshot(provName, p.Name)
 			account := accounts[p.Name]
 			account.Usage = snap
 			accounts[p.Name] = account
@@ -324,6 +326,11 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 
 	if len(candidates) == 0 {
 		return fmt.Errorf("no profiles configured for provider %s. Run: %s add %s <name>", provName, progName(), provName)
+	}
+
+	candidates, err = launchableProfiles(provName, explicitProfile, candidates)
+	if err != nil {
+		return err
 	}
 
 	// Pre-check: warn if ALL accounts are unavailable before launching.
