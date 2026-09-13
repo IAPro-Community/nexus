@@ -198,6 +198,7 @@ export const en = {
     headline: 'Your AI development workspace starts with a Project.',
     intro:
       'Projects organize Agent terminals and Project Shells. Composer, Flow and Maestro stay available as optional layers.',
+    brandEyebrow: 'IAPro Nexus · Workspace OS',
     addRepo: 'Add a local repository',
     addDescription: 'Nexus canonicalizes the path and creates a stable ProjectID.',
     adding: 'Adding…',
@@ -533,7 +534,8 @@ export const en = {
     starting: 'Starting IAPro Nexus…',
     loading: 'Loading Projects and Agents…',
     startingSubtitle: 'Validating credentials and initializing local runtime',
-    loadingSubtitle: 'Synchronizing workspaces, providers and Maestro orchestrator',
+    loadingSubtitle: 'Synchronizing workspaces and providers',
+    splashEyebrow: 'Workspace OS',
     protectedLocalEnv: 'Protected Local Environment',
   },
   rail: {
@@ -1269,6 +1271,12 @@ export const en = {
     failed: 'Failed',
     empty: 'No runs yet',
     emptyHint: 'Generate and approve a Flow in Composer to see history here.',
+    missionTeam: 'Mission Team',
+    preset: 'Preset',
+    currentPhase: 'Current phase',
+    activeAgent: 'Active Agent',
+    actualResource: 'Actual resource',
+    automaticResource: 'Automatic scheduler',
   },
   autonomyContract: {
     title: 'Mission Autonomy Contract',
@@ -1582,6 +1590,7 @@ export const ptBR = {
     headline: 'Seu espaço de desenvolvimento com IA começa com um Projeto.',
     intro:
       'Projetos organizam terminais de Agentes e Project Shells. Composer, Flow e Maestro permanecem como camadas opcionais.',
+    brandEyebrow: 'IAPro Nexus · Workspace OS',
     addRepo: 'Adicionar um repositório local',
     addDescription: 'O Nexus normaliza o caminho e cria um ProjectID estável.',
     adding: 'Adicionando…',
@@ -1919,7 +1928,8 @@ export const ptBR = {
     starting: 'Iniciando IAPro Nexus…',
     loading: 'Carregando Projetos e Agentes…',
     startingSubtitle: 'Validando credenciais e inicializando runtime local',
-    loadingSubtitle: 'Sincronizando workspaces, provedores e orquestrador Maestro',
+    loadingSubtitle: 'Sincronizando workspaces e provedores',
+    splashEyebrow: 'Workspace OS',
     protectedLocalEnv: 'Ambiente Local Protegido',
   },
   rail: {
@@ -2658,6 +2668,12 @@ export const ptBR = {
     failed: 'Falhas',
     empty: 'Nenhuma execução ainda',
     emptyHint: 'Gere e aprove um Flow no Composer para ver o histórico aqui.',
+    missionTeam: 'Mission Team',
+    preset: 'Preset',
+    currentPhase: 'Fase atual',
+    activeAgent: 'Agent ativo',
+    actualResource: 'Recurso efetivo',
+    automaticResource: 'Scheduler automático',
   },
   autonomyContract: {
     title: 'Contrato de Autonomia da Missão',
@@ -2976,6 +2992,7 @@ export const es = {
     headline: 'Tu espacio de desarrollo con IA comienza con un Proyecto.',
     intro:
       'Los Proyectos organizan terminales de Agentes y Project Shells. Composer, Flow y Maestro permanecen como capas opcionales.',
+    brandEyebrow: 'IAPro Nexus · Workspace OS',
     addRepo: 'Agregar un repositorio local',
     addDescription: 'Nexus normaliza la ruta y crea un ProjectID estable.',
     adding: 'Agregando…',
@@ -3312,7 +3329,8 @@ export const es = {
     starting: 'Iniciando IAPro Nexus…',
     loading: 'Cargando Proyectos y Agentes…',
     startingSubtitle: 'Validando credenciales e inicializando runtime local',
-    loadingSubtitle: 'Sincronizando espacios de trabajo, proveedores y orquestador Maestro',
+    loadingSubtitle: 'Sincronizando espacios de trabajo y proveedores',
+    splashEyebrow: 'Workspace OS',
     protectedLocalEnv: 'Ambiente Local Protegido',
   },
   rail: {
@@ -3624,8 +3642,7 @@ export const es = {
   },
   welcome: {
     title: 'Bienvenido a IAPro Nexus',
-    subtitle:
-      'Workspace OS Autónomo Web-first para Coding Agents · Powered by Orquestrador Maestro',
+    subtitle: 'Workspace OS autónomo web-first para coding agents',
     tabOverview: 'Resumen',
     tabQuickstart: 'Guía Rápida',
     tabShortcuts: 'Atajos y Comandos',
@@ -3634,7 +3651,7 @@ export const es = {
     overviewP1:
       'IAPro Nexus es un espacio de control local diseñado para coding agents de IA (Codex, Claude Code, Gemini CLI, OpenCode, AGY, Cursor Agent).',
     overviewP2:
-      'Powered by Orquestrador Maestro: Orquestrador Maestro proporciona método de ingeniería de software, skills, puertas de calidad y evaluación de riesgos sin duplicar la ejecución de procesos.',
+      'Maestro es una capa opcional de metodología de ingeniería: skills, puertas de calidad y evaluación de riesgos sin tomar posesión de la ejecución.',
     honestyModel:
       'Modelo de Honestidad: La intención nunca se muestra como un hecho. Los runtimes reportan estados reales observados (WORKING, RECOVERABLE, RATE_LIMITED) y evidencias de verificación.',
     quickstartTitle: 'Comience en 3 Pasos Sencillos',
@@ -4054,6 +4071,12 @@ export const es = {
     failed: 'Fallidos',
     empty: 'Ninguna ejecución todavía',
     emptyHint: 'Genere y apruebe un Flow en Composer para ver el historial aquí.',
+    missionTeam: 'Mission Team',
+    preset: 'Preset',
+    currentPhase: 'Fase actual',
+    activeAgent: 'Agente activo',
+    actualResource: 'Recurso efectivo',
+    automaticResource: 'Programador automático',
   },
   autonomyContract: {
     title: 'Contrato de Autonomía de Misión',

@@ -173,8 +173,11 @@ func isDirectIntent(goal string) bool {
 	if containsAny(goal, "fix this broken test", "corrija este teste", "corrija esse teste", "fix typo", "ajuste de digitação", "quick fix") {
 		return true
 	}
+	if containsAny(goal, "bug", "erro", "quebrado", "broken", "produção", "producao", "production", "arquitetura", "architecture") {
+		return false
+	}
 	words := strings.Fields(goal)
-	return len(words) <= 8 && containsAny(goal, "corrija", "corrigir", "fix", "ajuste", "update") && !hasPlanSignals(goal)
+	return len(words) <= 8 && containsAny(goal, "corrija", "corrigir", "fix", "ajuste", "update", "troque", "rename", "renomeie", "typo") && !hasPlanSignals(goal)
 }
 
 func hasConflictingProductBehavior(goal string) bool {
