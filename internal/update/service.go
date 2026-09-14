@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/buildinfo"
+	"github.com/IAPro-Community/nexus/internal/buildinfo"
 )
 
 // Service provides a unified update engine across CLI, Web, and Desktop.

@@ -152,7 +152,7 @@ func TestVerifyManifest_ValidSignature(t *testing.T) {
 		KeyID:         keyID,
 		Artifacts: map[string]Artifact{
 			"linux_amd64": {
-				URL:    "https://github.com/kivervinicius/ai-cli/releases/download/v0.5.1/nexus_Linux_x86_64.tar.gz",
+				URL:    "https://github.com/IAPro-Community/nexus/releases/download/v0.5.1/nexus_Linux_x86_64.tar.gz",
 				Size:   1234567,
 				SHA256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 			},
