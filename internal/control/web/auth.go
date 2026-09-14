@@ -2,7 +2,9 @@ package web
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -17,9 +19,11 @@ import (
 
 const (
 	sessionCookieName = "ai_control_session"
+	deviceCookieName  = "ai_control_device"
 	csrfHeaderName    = "X-CSRF-Token"
 	sessionTTL        = 24 * time.Hour
 	sessionIdleTTL    = 4 * time.Hour
+	deviceCookieTTL   = 90 * 24 * time.Hour
 )
 
 type Session struct {
@@ -44,6 +48,7 @@ type AuthManager struct {
 	entropy            io.Reader
 	tunnelActive       bool // true when a Cloudflare Quick Tunnel exposes this server to the internet
 	clock              func() time.Time
+	deviceToken        string
 }
 
 func (a *AuthManager) SetDesktopSession(sess *Session) {
@@ -103,6 +108,7 @@ func NewAuthManagerWithStore(listenHost, listenPort, storeDir string) (*AuthMana
 	}
 	auth.mu.Lock()
 	auth.loadPersistedLocked()
+	auth.loadDeviceTokenLocked()
 	auth.mu.Unlock()
 	return auth, bootstrapToken, nil
 }
@@ -131,6 +137,24 @@ func CheckOrigin(r *http.Request) bool {
 
 func (a *AuthManager) ValidateOrigin(r *http.Request) bool {
 	return CheckOrigin(r)
+}
+
+// requireExactOrigin rejects empty Origin. Browser POSTs always send it;
+// anonymous curl to loopback-reauth must not succeed by omitting the header.
+func requireExactOrigin(r *http.Request) bool {
+	origin := strings.TrimSpace(r.Header.Get("Origin"))
+	if origin == "" {
+		return false
+	}
+	return originpolicy.Validate(r.Host, origin)
+}
+
+func sameOriginFetch(r *http.Request) bool {
+	site := strings.TrimSpace(r.Header.Get("Sec-Fetch-Site"))
+	if site == "" {
+		return true
+	}
+	return strings.EqualFold(site, "same-origin")
 }
 
 func (a *AuthManager) CreateSession() (*Session, error) {
@@ -364,4 +388,54 @@ func (a *AuthManager) entropyReader() io.Reader {
 		return a.entropy
 	}
 	return rand.Reader
+}
+
+// IssueLoopbackDeviceToken returns the durable pairing token for this machine
+// so a later same-origin loopback-reauth can mint a session without using the
+// process bootstrap secret as an anonymous capability.
+func (a *AuthManager) IssueLoopbackDeviceToken() (string, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if !a.isLoopbackListen() || a.tunnelActive {
+		return "", fmt.Errorf("loopback device token unavailable")
+	}
+	return a.ensureDeviceTokenLocked()
+}
+
+// MatchLoopbackDeviceToken reports whether the HttpOnly device cookie matches
+// the pairing token persisted for this loopback install.
+func (a *AuthManager) MatchLoopbackDeviceToken(value string) bool {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return deviceTokenMatches(a.deviceToken, strings.TrimSpace(value))
+}
+
+func (a *AuthManager) ensureDeviceTokenLocked() (string, error) {
+	if a.deviceToken != "" {
+		return a.deviceToken, nil
+	}
+	a.loadDeviceTokenLocked()
+	if a.deviceToken != "" {
+		return a.deviceToken, nil
+	}
+	bytes := make([]byte, 32)
+	if _, err := io.ReadFull(a.entropyReader(), bytes); err != nil {
+		return "", err
+	}
+	a.deviceToken = hex.EncodeToString(bytes)
+	if err := a.persistDeviceTokenLocked(); err != nil {
+		a.deviceToken = ""
+		return "", err
+	}
+	return a.deviceToken, nil
+}
+
+func deviceTokenMatches(stored, provided string) bool {
+	if stored == "" || provided == "" {
+		return false
+	}
+	if len(stored) != len(provided) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(stored), []byte(provided)) == 1
 }

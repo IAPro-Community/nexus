@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -224,6 +225,7 @@ func (s *Server) handleSessionLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	s.auth.RevokeSession(sess.ID)
 	http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: -1, Expires: time.Unix(1, 0), Secure: s.cookieSecure()})
+	s.clearLoopbackDeviceCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -493,10 +495,16 @@ func (s *Server) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
+	if origin := strings.TrimSpace(r.Header.Get("Origin")); origin != "" {
+		if !originpolicy.Validate(r.Host, origin) {
+			writeError(w, http.StatusForbidden, "invalid origin")
+			return
+		}
+	}
 	var body struct {
 		Token string `json:"token"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Token == "" {
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil || body.Token == "" {
 		writeError(w, http.StatusBadRequest, "missing bootstrap token")
 		return
 	}
@@ -513,6 +521,7 @@ func (s *Server) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteStrictMode,
 		Secure:   s.cookieSecure(),
 	})
+	s.setLoopbackDeviceCookie(w)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"authenticated": true,
 		"csrf_token":    sess.CSRFToken,
@@ -520,10 +529,10 @@ func (s *Server) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleAuthLoopbackReauth mints a fresh session for trusted loopback clients
-// when the browser lost the fragment bootstrap (Chromium --app= reuse) or the
-// persisted cookie no longer matches after a restart race. Remote / tunnel
-// binds never expose this path.
+// handleAuthLoopbackReauth mints a fresh session for a previously paired
+// loopback browser (HttpOnly device cookie) when the fragment bootstrap was
+// lost. The process bootstrap secret is never accepted as an anonymous
+// capability. Remote / tunnel binds never expose this path.
 func (s *Server) handleAuthLoopbackReauth(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -537,8 +546,17 @@ func (s *Server) handleAuthLoopbackReauth(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusForbidden, "loopback client required")
 		return
 	}
-	sess, ok := s.auth.ExchangeBootstrapToken(s.bootstrap)
-	if !ok || sess == nil {
+	if !requireExactOrigin(r) || !sameOriginFetch(r) {
+		writeError(w, http.StatusForbidden, "invalid origin")
+		return
+	}
+	deviceCookie, err := r.Cookie(deviceCookieName)
+	if err != nil || deviceCookie == nil || !s.auth.MatchLoopbackDeviceToken(deviceCookie.Value) {
+		writeError(w, http.StatusForbidden, "loopback device pairing required")
+		return
+	}
+	sess, err := s.auth.CreateSession()
+	if err != nil || sess == nil {
 		writeError(w, http.StatusUnauthorized, "unable to mint loopback session")
 		return
 	}
@@ -550,11 +568,44 @@ func (s *Server) handleAuthLoopbackReauth(w http.ResponseWriter, r *http.Request
 		SameSite: http.SameSiteStrictMode,
 		Secure:   s.cookieSecure(),
 	})
+	s.setLoopbackDeviceCookie(w)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"authenticated": true,
 		"csrf_token":    sess.CSRFToken,
 		"expires_at":    sess.ExpiresAt,
 		"idle_timeout":  int(sessionIdleTTL.Seconds()),
+	})
+}
+
+func (s *Server) setLoopbackDeviceCookie(w http.ResponseWriter) {
+	if s.auth == nil {
+		return
+	}
+	token, err := s.auth.IssueLoopbackDeviceToken()
+	if err != nil || token == "" {
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     deviceCookieName,
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Secure:   s.cookieSecure(),
+		MaxAge:   int(deviceCookieTTL.Seconds()),
+	})
+}
+
+func (s *Server) clearLoopbackDeviceCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     deviceCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Secure:   s.cookieSecure(),
+		MaxAge:   -1,
+		Expires:  time.Unix(1, 0),
 	})
 }
 

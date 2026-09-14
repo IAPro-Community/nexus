@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
@@ -15,6 +16,7 @@ import (
 const (
 	webAuthDirName       = "web-auth"
 	sessionsFileName     = "sessions.json"
+	deviceFileName       = "device.json"
 	listenFileName       = "listen.json"
 	webAuthFileMode      = 0o600
 	webAuthDirMode       = 0o700
@@ -32,6 +34,10 @@ type persistedSession struct {
 
 type persistedAuth struct {
 	Sessions []persistedSession `json:"sessions"`
+}
+
+type persistedDevice struct {
+	Token string `json:"token"`
 }
 
 // ListenState is the on-disk pointer to the running Web Control Center so
@@ -139,6 +145,45 @@ func (a *AuthManager) loadPersistedLocked() {
 			LastActiveAt: lastActive,
 		}
 	}
+}
+
+func (a *AuthManager) persistDeviceTokenLocked() error {
+	if a.storeDir == "" || a.deviceToken == "" || a.effectiveExposureLocked() != ExposureLoopback {
+		return nil
+	}
+	if err := os.MkdirAll(a.storeDir, webAuthDirMode); err != nil {
+		fmt.Fprintf(os.Stderr, "nexus web: failed to persist device token: %v\n", err)
+		return err
+	}
+	data, err := json.Marshal(persistedDevice{Token: a.deviceToken})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "nexus web: failed to persist device token: %v\n", err)
+		return err
+	}
+	if err := atomicWriteFile(filepath.Join(a.storeDir, deviceFileName), data, webAuthFileMode); err != nil {
+		fmt.Fprintf(os.Stderr, "nexus web: failed to persist device token: %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (a *AuthManager) loadDeviceTokenLocked() {
+	if a.storeDir == "" || !a.isLoopbackListen() || a.deviceToken != "" {
+		return
+	}
+	data, err := os.ReadFile(filepath.Join(a.storeDir, deviceFileName))
+	if err != nil || len(data) == 0 {
+		return
+	}
+	var payload persistedDevice
+	if json.Unmarshal(data, &payload) != nil {
+		return
+	}
+	token := strings.TrimSpace(payload.Token)
+	if token == "" {
+		return
+	}
+	a.deviceToken = token
 }
 
 func writeListenState(state ListenState) error {
