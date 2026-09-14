@@ -10,12 +10,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 const quotaMonitorInterval = time.Minute

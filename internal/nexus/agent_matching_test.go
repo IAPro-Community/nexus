@@ -3,8 +3,8 @@ package nexus
 import (
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func TestMatchAgentsUsesHardGatesAndDeterministicRanking(t *testing.T) {

@@ -3,7 +3,7 @@ package runner
 import (
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // State is an explicit durable state in the autonomous execution lifecycle.

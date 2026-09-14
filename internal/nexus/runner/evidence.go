@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
 
 var ErrMissingContextCapsule = errors.New("flow step context capsule is missing")

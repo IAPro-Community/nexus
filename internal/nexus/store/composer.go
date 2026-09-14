@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
 
 const (

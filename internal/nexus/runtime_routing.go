@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	nexusskills "github.com/kivervinicius/ai-cli/internal/nexus/skills"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
 )
 
 type AffinityMode string

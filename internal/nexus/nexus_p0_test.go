@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // --- P0-1: Project execution isolation ---

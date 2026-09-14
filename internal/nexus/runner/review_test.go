@@ -1,6 +1,9 @@
 package runner
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestReviewFindingIdentityDeduplicatesAndResolves(t *testing.T) {
 	one := NormalizeReviewFinding(ReviewFinding{Category: "test", File: "internal/x.go", Location: "10", Description: "missing assertion"})
@@ -65,5 +68,66 @@ func TestMissionTeamPlannerBuilderReviewerVerifierPipeline(t *testing.T) {
 	}
 	if exec.executed != 2 {
 		t.Fatalf("planning/implementation should execute, review/verifier must not write: executed=%d", exec.executed)
+	}
+}
+
+type remediationCycleExecutor struct {
+	fakeExecutor
+	reviews int
+}
+
+func (e *remediationCycleExecutor) Review(_ context.Context, _ *MissionRun, _ *PackageRun) (ReviewVerdict, error) {
+	e.reviews++
+	finding := func(file, description string) ReviewFinding {
+		return ReviewFinding{Category: "quality", File: file, Location: "1", Description: description, RequiredAction: "fix"}
+	}
+	switch e.reviews {
+	case 1:
+		return ReviewVerdict{ReviewerAgentID: "reviewer", StructuredFindings: []ReviewFinding{finding("a.go", "first"), finding("b.go", "second"), finding("c.go", "third")}}, nil
+	case 2:
+		return ReviewVerdict{ReviewerAgentID: "reviewer", StructuredFindings: []ReviewFinding{finding("a.go", "first"), finding("d.go", "new")}}, nil
+	default:
+		return ReviewVerdict{Approved: true, ReviewerAgentID: "reviewer"}, nil
+	}
+}
+
+func TestMissionTeamPlannerBuilderReviewerVerifierWithRemediationCycle(t *testing.T) {
+	repo := NewMemoryRunRepository()
+	exec := &remediationCycleExecutor{fakeExecutor: fakeExecutor{reviewOK: true}}
+	r := NewMissionRunner(repo, exec)
+	contract := DefaultAutonomyContract()
+	contract.RequireVerification = false
+	contract.VerificationCommands = []string{"true"}
+	contract.GlobalVerificationCommands = []string{"true"}
+	run, err := r.StartMissionRun(t.Context(), PlanSpec{
+		ID: "mission-team-remediation", ProjectID: "project", Revision: 1, LeadAgentID: "lead",
+		Packages: []PackageSpec{
+			{ID: "planning", PhaseID: "planning", PhaseType: "PLANNING", Role: "architect", Goal: "plan", HandoffJSON: `{"mission_objective":"feature","next_expected_action":"build"}`},
+			{ID: "implementation", PhaseID: "implementation", PhaseType: "IMPLEMENTATION", Role: "implementer", Goal: "build", Dependencies: []string{"planning"}, HandoffJSON: `{"mission_objective":"feature","next_expected_action":"review"}`},
+			{ID: "review", PhaseID: "review", PhaseType: "REVIEW", Role: "reviewer", ReviewRequired: true, Goal: "review", Dependencies: []string{"implementation"}, HandoffJSON: `{"mission_objective":"feature","next_expected_action":"verify"}`},
+			{ID: "verification", PhaseID: "verification", PhaseType: "VERIFICATION", Role: "qa-engineer", Goal: "verify", Dependencies: []string{"review"}, HandoffJSON: `{"mission_objective":"feature","next_expected_action":"done"}`},
+		},
+	}, t.TempDir(), contract, "lead")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 80 && run.State != StateCompletedVerified; i++ {
+		run, _, err = r.ExecuteNextStep(t.Context(), run.ID)
+		if err != nil {
+			t.Fatalf("step %d: %v", i, err)
+		}
+	}
+	if run.State != StateCompletedVerified {
+		t.Fatalf("remediation cycle did not complete: %s", run.State)
+	}
+	findings := run.PackageRuns[2].ReviewFindings
+	if len(findings) != 4 || len(run.PackageRuns[2].Verdicts) != 3 {
+		t.Fatalf("expected three review passes and four ledger entries, findings=%+v verdicts=%d", findings, len(run.PackageRuns[2].Verdicts))
+	}
+	if len(OpenReviewFindings(findings)) != 0 {
+		t.Fatalf("approved review must resolve all findings: %+v", findings)
+	}
+	if run.PackageRuns[3].DispatchState != DispatchNone {
+		t.Fatalf("verifier must remain read-only: %+v", run.PackageRuns[3])
 	}
 }

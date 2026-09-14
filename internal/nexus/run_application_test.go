@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 )
 
 func TestRunApplicationServiceRejectsCanceledContext(t *testing.T) {

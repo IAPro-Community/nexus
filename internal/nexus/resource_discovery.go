@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 // ResourceAllocation is the durable result of assigning a provider profile to

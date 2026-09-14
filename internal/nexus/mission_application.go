@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // ErrTerminalMissionStatusPatch rejects HTTP/API patches that try to mark a

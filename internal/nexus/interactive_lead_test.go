@@ -2,10 +2,11 @@ package nexus
 
 import (
 	"context"
+	"sync"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func TestInteractiveLeadPersistsIdentityAndRuntimeGeneration(t *testing.T) {
@@ -51,8 +52,8 @@ func TestInteractiveLeadPersistsIdentityAndRuntimeGeneration(t *testing.T) {
 		t.Fatalf("dead runtime must recover the existing Lead identity: got %s, want %s", recoveredLead.ID, lead.ID)
 	}
 	working, err := st.GetAgent(lead.ID, project.ID)
-	if err != nil || working.Status != store.AgentWorking {
-		t.Fatalf("lead must be WORKING while attached: %+v, err=%v", working, err)
+	if err != nil || (working.Status != store.AgentStarting && working.Status != store.AgentWorking) {
+		t.Fatalf("lead must remain reserved while re-launching: %+v, err=%v", working, err)
 	}
 	if err := n.ReleaseInteractiveLeadRuntime(context.Background(), lead.ID, session.RuntimeID); err != nil {
 		t.Fatal(err)
@@ -64,5 +65,62 @@ func TestInteractiveLeadPersistsIdentityAndRuntimeGeneration(t *testing.T) {
 	generation, err := st.GenerationByRuntimeID(session.RuntimeID)
 	if err != nil || generation.StoppedAt == nil {
 		t.Fatalf("lead generation must be closed after detach: %+v, err=%v", generation, err)
+	}
+}
+
+func TestConcurrentInteractiveLeadPreparationClaimsDistinctAgents(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Concurrent leads", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	results := make([]store.Agent, 2)
+	errs := make([]error, 2)
+	var wg sync.WaitGroup
+	for i := range results {
+		wg.Add(1)
+		go func(index int) {
+			defer wg.Done()
+			results[index], errs[index] = n.PrepareInteractiveLead(context.Background(), project.ID, "codex", "same")
+		}(i)
+	}
+	wg.Wait()
+	for _, err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if results[0].ID == results[1].ID {
+		t.Fatalf("concurrent launches claimed the same Lead: %s", results[0].ID)
+	}
+}
+
+func TestInteractiveLeadReservationCanBeReleasedAndReclaimed(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Lead cleanup", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	lead, err := n.PrepareInteractiveLead(context.Background(), project.ID, "codex", "same")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ReleaseInteractiveLeadReservation(lead.ID); err != nil {
+		t.Fatal(err)
+	}
+	reclaimed, err := n.PrepareInteractiveLead(context.Background(), project.ID, "codex", "same")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reclaimed.ID != lead.ID {
+		t.Fatalf("released Lead was not reclaimed: got %s want %s", reclaimed.ID, lead.ID)
 	}
 }

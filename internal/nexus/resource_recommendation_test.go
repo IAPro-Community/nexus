@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
 func TestResourceRecommendation_Balanced(t *testing.T) {

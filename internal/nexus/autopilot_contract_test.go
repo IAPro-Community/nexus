@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/contextsnapshot"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	nexusskills "github.com/kivervinicius/ai-cli/internal/nexus/skills"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 type localAutopilotExecutor struct {

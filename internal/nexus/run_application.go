@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 )
 
 // RunApplicationService is the transport-facing application boundary for

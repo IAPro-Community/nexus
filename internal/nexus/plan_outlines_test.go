@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 )
 
 func TestPackagesFromOutlinesDropsSchemaPlaceholders(t *testing.T) {

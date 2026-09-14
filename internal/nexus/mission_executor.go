@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard"
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/nexus/autonomyguard"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 type nexusPackageExecutor struct {
@@ -39,7 +39,10 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 			return runner.AllocationResult{}, fmt.Errorf("revalidate execution admission: %w", snapshotErr)
 		}
 		if run.Autonomous || snapshot.Preflight != nil && snapshot.Preflight.Strict {
-			report := &FlowPreflightReport{PlanID: snapshot.Plan.ID, Revision: snapshot.Plan.CurrentRevision, Strict: true, GeneratedAt: time.Now().UTC()}
+			// Strict admission mutates Ready only when a check fails. Start from
+			// ready here, matching PreflightFlow, so a valid immutable snapshot is
+			// not rejected merely because this revalidation report is fresh.
+			report := &FlowPreflightReport{PlanID: snapshot.Plan.ID, Revision: snapshot.Plan.CurrentRevision, Strict: true, Ready: true, GeneratedAt: time.Now().UTC()}
 			if _, admissionErr := e.n.strictAdmissionForPlan(ctx, snapshot.Plan, report, run.Autonomous); admissionErr != nil {
 				return runner.AllocationResult{}, fmt.Errorf("revalidate execution admission: %w", admissionErr)
 			} else if !report.Ready {
@@ -282,7 +285,10 @@ func createMissionAgent(st *store.Store, projectID string, pkg *runner.PackageRu
 	if err != nil {
 		return store.Agent{}, err
 	}
-	revision, err := st.AddRevision(agent.ID, (AgentConfig{AgentSpec: spec}).ConfigJSON())
+	// Autonomous package Agents must execute in a dedicated worktree. Without
+	// this explicit isolation, strict admission rejects the package before the
+	// provider is ever dispatched, even when the project itself is worktree-safe.
+	revision, err := st.AddRevision(agent.ID, (AgentConfig{Isolation: "worktree", AgentSpec: spec}).ConfigJSON())
 	if err != nil {
 		_ = st.DeleteAgent(agent.ID, projectID)
 		return store.Agent{}, fmt.Errorf("persist AgentSpec revision: %w", err)
@@ -975,8 +981,9 @@ Previously open findings (resolve only these or report new findings):
 Verification evidence:
 %s
 
-Return ONLY one JSON object with this exact schema:
-{"approved":true|false,"findings":["..."],"structured_findings":[{"id":"","severity":"HIGH|MEDIUM|LOW","category":"","file":"","location":"","description":"","rationale":"","required_action":"","evidence":[]}],"remediation_tips":["..."]}
+Return ONLY one valid JSON object. Use this example shape (replace values; do not emit the pipe characters):
+{"approved":true,"findings":[],"structured_findings":[{"id":"","severity":"LOW","category":"","file":"","location":"","description":"","rationale":"","required_action":"","evidence":[]}],"remediation_tips":[]}
+The approved field must be a JSON boolean. The severity field must be one of the strings HIGH, MEDIUM, or LOW.
 Approve only when the implementation genuinely satisfies the goal and acceptance criteria and you found no blocking correctness, security, test, or integration issue.`, pkg.Title, pkg.Goal, strings.Join(pkg.AcceptanceCriteria, "\n- "), pkg.HandoffJSON, strings.Join(openFindings, "\n"), strings.Join(evidence, "\n"))
 }
 
@@ -985,19 +992,36 @@ func parseReviewVerdict(output string) (runner.ReviewVerdict, error) {
 	if text == "" {
 		return runner.ReviewVerdict{}, fmt.Errorf("reviewer returned no output")
 	}
-	start := strings.Index(text, "{")
-	end := strings.LastIndex(text, "}")
-	if start < 0 || end <= start {
+	var lastErr error
+	for start := strings.LastIndex(text, "{"); start >= 0; {
+		var raw map[string]json.RawMessage
+		decoder := json.NewDecoder(strings.NewReader(text[start:]))
+		if err := decoder.Decode(&raw); err == nil {
+			if _, hasApproved := raw["approved"]; hasApproved {
+				payloadBytes, marshalErr := json.Marshal(raw)
+				if marshalErr != nil {
+					lastErr = marshalErr
+				} else {
+					var payload struct {
+						Approved           bool                   `json:"approved"`
+						Findings           []string               `json:"findings"`
+						StructuredFindings []runner.ReviewFinding `json:"structured_findings"`
+						RemediationTips    []string               `json:"remediation_tips"`
+					}
+					if err := json.Unmarshal(payloadBytes, &payload); err == nil {
+						return runner.ReviewVerdict{Approved: payload.Approved, Findings: payload.Findings, StructuredFindings: payload.StructuredFindings, RemediationTips: payload.RemediationTips}, nil
+					} else {
+						lastErr = err
+					}
+				}
+			}
+		} else {
+			lastErr = err
+		}
+		start = strings.LastIndex(text[:start], "{")
+	}
+	if lastErr == nil {
 		return runner.ReviewVerdict{}, fmt.Errorf("reviewer did not return structured JSON evidence")
 	}
-	var payload struct {
-		Approved           bool                   `json:"approved"`
-		Findings           []string               `json:"findings"`
-		StructuredFindings []runner.ReviewFinding `json:"structured_findings"`
-		RemediationTips    []string               `json:"remediation_tips"`
-	}
-	if err := json.Unmarshal([]byte(text[start:end+1]), &payload); err != nil {
-		return runner.ReviewVerdict{}, fmt.Errorf("invalid reviewer JSON: %w", err)
-	}
-	return runner.ReviewVerdict{Approved: payload.Approved, Findings: payload.Findings, StructuredFindings: payload.StructuredFindings, RemediationTips: payload.RemediationTips}, nil
+	return runner.ReviewVerdict{}, fmt.Errorf("invalid reviewer JSON: %w", lastErr)
 }

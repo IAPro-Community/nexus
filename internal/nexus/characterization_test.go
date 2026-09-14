@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // These tests freeze the useful pre-consolidation contracts before the Agent

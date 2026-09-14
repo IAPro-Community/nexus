@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	nexusskills "github.com/kivervinicius/ai-cli/internal/nexus/skills"
+	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
 )
 
 // maestroSkillSource adapts Maestro's optional capability response to the

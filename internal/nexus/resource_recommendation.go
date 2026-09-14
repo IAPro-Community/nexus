@@ -5,12 +5,10 @@ import (
 	"math"
 	"sort"
 	"strings"
-	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/core/telemetry"
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 )
 
 // TaskRequirements specifies what an intelligence or execution task demands (§Gate 5, Phase B).
@@ -121,24 +119,6 @@ func RecommendResources(accounts []ProviderAccount, req TaskRequirements, policy
 		result.Explanation = "Nenhum provedor elegível atende aos requisitos da tarefa (todos indisponíveis ou sem autenticação)."
 	}
 
-	return result
-}
-
-func profileSelectedAt() map[string]time.Time {
-	result := make(map[string]time.Time)
-	events, err := telemetry.ReadRecentEvents(0)
-	if err != nil {
-		return result
-	}
-	for _, ev := range events {
-		if ev.Type != telemetry.EventProfileSelected {
-			continue
-		}
-		key := ev.ProviderID + "/" + ev.ProfileID
-		if old, ok := result[key]; !ok || ev.Timestamp.After(old) {
-			result[key] = ev.Timestamp
-		}
-	}
 	return result
 }
 

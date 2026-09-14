@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
 
 const agentColumns = `id,project_id,name,role,status,current_revision_id,continuity_status,created_at,updated_at,last_started_at`
@@ -122,6 +122,45 @@ func (s *Store) UpdateAgent(a Agent) error {
 func (s *Store) SetAgentStatus(id, status string) error {
 	_, err := s.db.Exec(`UPDATE agents SET status=?, updated_at=? WHERE id=?`,
 		status, time.Now().UTC().Format(time.RFC3339Nano), id)
+	return err
+}
+
+// ClaimInteractiveLead atomically reserves one idle interactive Lead. The
+// STARTING transition closes the read/modify/write race between concurrent
+// supervised launches; callers that lose the update must use another Lead.
+func (s *Store) ClaimInteractiveLead(projectID string) (Agent, bool, error) {
+	agents, err := s.ListAgents(projectID)
+	if err != nil {
+		return Agent{}, false, err
+	}
+	for _, candidate := range agents {
+		if candidate.Role != "lead-engineer" {
+			continue
+		}
+		res, err := s.db.Exec(`UPDATE agents SET status=?, updated_at=?
+			WHERE id=? AND project_id=? AND role=? AND status IN (?,?,?,?)`,
+			AgentStarting, time.Now().UTC().Format(time.RFC3339Nano), candidate.ID, projectID,
+			"lead-engineer", AgentStopped, AgentDetached, AgentRecoverable, AgentWorking)
+		if err != nil {
+			return Agent{}, false, err
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			return Agent{}, false, err
+		}
+		if n == 1 {
+			claimed, err := s.GetAgent(candidate.ID, projectID)
+			return claimed, true, err
+		}
+	}
+	return Agent{}, false, nil
+}
+
+// ReleaseInteractiveLeadReservation returns a pre-launch reservation to the
+// idle pool. It is conditional so cleanup cannot reset a later runtime.
+func (s *Store) ReleaseInteractiveLeadReservation(id string) error {
+	_, err := s.db.Exec(`UPDATE agents SET status=?, updated_at=? WHERE id=? AND status=?`,
+		AgentStopped, time.Now().UTC().Format(time.RFC3339Nano), id, AgentStarting)
 	return err
 }
 

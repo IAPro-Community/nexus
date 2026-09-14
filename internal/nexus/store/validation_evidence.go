@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
 
 // Evidence outcomes are intentionally descriptive rather than boolean. A

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
 func schedulerTestAccount(id, provider, profile string) ProviderAccount {

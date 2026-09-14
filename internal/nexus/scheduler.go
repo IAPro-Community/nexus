@@ -5,8 +5,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
 // ProviderAccount represents a provider account/profile that can run agents.

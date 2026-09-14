@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
-	"github.com/kivervinicius/ai-cli/internal/tui"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/tui"
 )
 
 // TestUsageParityAcrossSurfaces ensures QuotaView status/remaining/eligibility

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/contextsnapshot"
+	"github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot"
 )
 
 const (

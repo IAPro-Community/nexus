@@ -3,7 +3,7 @@ package nexus
 import (
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
 func TestRuntimeCompletionOutcomeRequiresTerminalState(t *testing.T) {

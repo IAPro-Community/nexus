@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	coreconfig "github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // MaestroVersion is the contract version for Maestro integration.

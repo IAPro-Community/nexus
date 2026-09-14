@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	nexusskills "github.com/kivervinicius/ai-cli/internal/nexus/skills"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // packageSkillIDs is the compatibility boundary for persisted skill

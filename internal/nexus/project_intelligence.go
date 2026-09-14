@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/nexus/contextsnapshot"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // ProjectIntelligenceView is the transport-neutral read model used by REST

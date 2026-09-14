@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	coreconfig "github.com/kivervinicius/ai-cli/internal/core/config"
+	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 // ProviderFromConfig creates provider types that do not require the Nexus runtime adapter.

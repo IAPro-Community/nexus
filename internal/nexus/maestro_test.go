@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/testutil"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 func TestMaestroCapabilitiesMergeProfileAndCanonicalCatalog(t *testing.T) {

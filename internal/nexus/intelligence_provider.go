@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	coreconfig "github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
-	"github.com/kivervinicius/ai-cli/internal/profile"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // IntelligenceStatus is the secret-free status exposed by the Nexus REST API.

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // AgentConfig is the persistent, revisioned configuration for an Agent (Gate 3).

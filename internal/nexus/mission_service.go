@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/nexus/autonomyguard"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // missionExecutionSnapshot is immutable input for one approved MissionRun.

@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 var unsafeBranchChars = regexp.MustCompile(`[^A-Za-z0-9._/-]+`)

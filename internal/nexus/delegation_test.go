@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func TestDecideDelegationKeepsAtomicWorkWithLead(t *testing.T) {
@@ -142,6 +142,9 @@ func TestCreateMissionAgentPersistsRichAgentSpecWithoutRuntimeAffinity(t *testin
 	}
 	if config.Provider != "" || config.AgentSpec.Role != "backend-engineer" || !reflect.DeepEqual(config.AgentSpec.Domains, requirements.Domains) {
 		t.Fatalf("AgentSpec must remain provider-independent and rich: %+v", config)
+	}
+	if config.Isolation != "worktree" {
+		t.Fatalf("autonomous Mission Agent must use worktree isolation, got %q", config.Isolation)
 	}
 	if !config.AgentSpec.VerificationPolicy.RequireTests {
 		t.Fatal("created specialist must carry verification policy")

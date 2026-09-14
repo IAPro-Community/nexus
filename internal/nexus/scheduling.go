@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 const (

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
 type runtimeApplicationLauncher struct {

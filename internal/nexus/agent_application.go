@@ -3,7 +3,7 @@ package nexus
 import (
 	"context"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 type AgentPatch struct {

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/core/security"
 )
 
 const (

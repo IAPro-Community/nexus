@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // ProjectPatch contains the mutable project fields exposed by the application

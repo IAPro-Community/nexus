@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // storeRunRepository adapts the product SQLite store to the runner's durable

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // FlowDecompositionRequest defines the contract for decomposing a prompt or artifact into a Flow proposal (PLAN 04).
@@ -392,6 +392,13 @@ func (n *Nexus) PreflightFlowStrict(ctx context.Context, planID string, autonomo
 }
 
 func (n *Nexus) strictAdmissionForPlan(_ context.Context, plan store.WorkPlan, report *FlowPreflightReport, autonomous bool) (*FlowPreflightReport, error) {
+	if report == nil {
+		return nil, fmt.Errorf("strict admission report is required")
+	}
+	// Admission checks only turn Ready off when a check fails. Callers may
+	// revalidate an immutable snapshot with a fresh report, so initialize the
+	// optimistic state here instead of relying on PreflightFlow's constructor.
+	report.Ready = true
 	if err := validateFlowExecutionContract(plan); err != nil {
 		report.Ready = false
 		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "execution_contract", Label: "Contrato de Execução", Status: "FAIL", Summary: err.Error()})

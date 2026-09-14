@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	nexusskills "github.com/kivervinicius/ai-cli/internal/nexus/skills"
+	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
 )
 
 func TestGenericSkillIDsResolveWithoutMaestro(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	coreconfig "github.com/kivervinicius/ai-cli/internal/core/config"
+	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 func TestProviderFromConfigOffReturnsNil(t *testing.T) {

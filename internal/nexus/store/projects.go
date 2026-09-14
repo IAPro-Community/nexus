@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 var (

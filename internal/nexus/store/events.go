@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // EventMetadata represents persistent activity metadata in SQLite.

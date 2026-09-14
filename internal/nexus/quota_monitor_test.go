@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/control/notify"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/notify"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
 func TestQuotaDropMonitor_StepDownAndSuppressionAtZero(t *testing.T) {

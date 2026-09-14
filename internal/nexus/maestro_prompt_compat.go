@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/maestrogates"
-	nexusskills "github.com/kivervinicius/ai-cli/internal/nexus/skills"
+	"github.com/IAPro-Community/nexus/internal/nexus/maestrogates"
+	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
 )
 
 // CompileAgentPrompt is a compatibility adapter for callers that still ask

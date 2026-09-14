@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 const interactiveLeadRole = "lead-engineer"
@@ -49,19 +49,32 @@ func (n *Nexus) PrepareInteractiveLead(ctx context.Context, projectID, provider,
 		if generation, generationErr := st.CurrentGeneration(candidate.ID); generationErr == nil && n.runtimeAlive(generation.RuntimeID) {
 			continue
 		}
-		return n.configureInteractiveLead(st, candidate, provider, profile)
+		claimed, claimedOK, claimErr := st.ClaimInteractiveLead(projectID)
+		if claimErr != nil {
+			return store.Agent{}, claimErr
+		}
+		if !claimedOK || claimed.ID != candidate.ID {
+			continue
+		}
+		configured, configureErr := n.configureInteractiveLead(st, claimed, provider, profile)
+		if configureErr != nil {
+			_ = st.ReleaseInteractiveLeadReservation(claimed.ID)
+		}
+		return configured, configureErr
 	}
 
 	lead, err := st.CreateAgent(store.Agent{
 		ProjectID: projectID,
 		Name:      "Nexus Interactive Lead",
 		Role:      interactiveLeadRole,
+		Status:    store.AgentStarting,
 	})
 	if err != nil {
 		return store.Agent{}, err
 	}
 	configured, err := n.configureInteractiveLead(st, lead, provider, profile)
 	if err != nil {
+		_ = st.ReleaseInteractiveLeadReservation(lead.ID)
 		_ = st.DeleteAgent(lead.ID, projectID)
 		return store.Agent{}, err
 	}
@@ -194,6 +207,20 @@ func (n *Nexus) ReleaseInteractiveLeadRuntime(ctx context.Context, agentID, runt
 	agent, err := st.GetAgent(generation.AgentID, "")
 	if err != nil {
 		return err
+	}
+	// A legacy or externally-created Agent may temporarily have more than one
+	// generation. Releasing one runtime must not mark the Agent stopped while a
+	// different generation is still live.
+	if generations, listErr := st.ListGenerations(generation.AgentID); listErr == nil {
+		for _, other := range generations {
+			if other.RuntimeID == runtimeID || other.StoppedAt != nil || other.State == "STOPPED" {
+				continue
+			}
+			if n.runtimeAlive(other.RuntimeID) {
+				agent.Status = store.AgentWorking
+				return st.UpdateAgent(agent)
+			}
+		}
 	}
 	agent.Status = store.AgentStopped
 	return st.UpdateAgent(agent)

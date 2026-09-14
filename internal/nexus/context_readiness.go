@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/contextsnapshot"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 type ContextReadinessState string

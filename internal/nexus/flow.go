@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 const FlowPolicyFactKey = "nexus.flow_policy"

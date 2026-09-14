@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/control/notify"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/notify"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
 const (

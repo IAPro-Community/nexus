@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 // Continuity statuses (§24 honest continuity model).

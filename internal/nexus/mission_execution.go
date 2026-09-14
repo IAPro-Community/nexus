@@ -15,17 +15,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/classifier"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
-	"github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard"
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/nexus/autonomyguard"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 type agentPromptExecution struct {
@@ -209,6 +209,9 @@ func missionProviderArgs(provider string, args []string, policy agentPromptPolic
 		if len(providerSpec.ReviewMode) == 0 {
 			return nil, fmt.Errorf("provider %s has no verified read-only headless review mode", provider)
 		}
+		if provider == "codex" && len(out) > 1 && out[0] == "exec" {
+			return append(append([]string(nil), providerSpec.ReviewMode...), out...), nil
+		}
 		return append(out, providerSpec.ReviewMode...), nil
 	}
 
@@ -220,6 +223,13 @@ func missionProviderArgs(provider string, args []string, policy agentPromptPolic
 	}
 	switch provider {
 	case "agy", "claude", "codex", "gemini":
+		// Codex parses exec options before its positional prompt. Appending
+		// approval flags after the prompt makes current Codex releases report
+		// "unexpected argument" and prevents the autonomous runtime from
+		// starting. Keep the prompt last while preserving the public spec.
+		if provider == "codex" && len(out) > 1 && out[0] == "exec" {
+			return append(append([]string(nil), providerSpec.AutoApproval...), out...), nil
+		}
 		return append(out, providerSpec.AutoApproval...), nil
 	case "opencode":
 		if len(out) > 0 && out[0] == "run" {

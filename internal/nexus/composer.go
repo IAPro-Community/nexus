@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
-	nexusskills "github.com/kivervinicius/ai-cli/internal/nexus/skills"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 type ComposerSessionView struct {

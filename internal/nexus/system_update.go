@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/buildinfo"
+	"github.com/IAPro-Community/nexus/internal/buildinfo"
 )
 
 // UpdateResult summarizes explicit Maestro maintenance. NexusUpdated remains
