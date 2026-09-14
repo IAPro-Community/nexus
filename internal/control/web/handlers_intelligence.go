@@ -116,7 +116,11 @@ func (h *NexusHandler) handleIntelligenceMemories(w http.ResponseWriter, r *http
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		rows, _ := h.nexus.ListIntelligenceMemories(r.Context(), body.ProjectID)
+		rows, err := h.nexus.ListIntelligenceMemories(r.Context(), body.ProjectID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 		writeJSON(w, http.StatusOK, map[string]any{"memories": rows})
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")

@@ -72,7 +72,7 @@ func (n *Nexus) ListIntelligenceMemories(ctx context.Context, projectID string) 
 	}
 	st, err := n.OpenProject()
 	if err != nil {
-		return out, nil
+		return nil, err
 	}
 	projectRows, err := st.ListIntelligenceMemories(projectID)
 	if err != nil {
