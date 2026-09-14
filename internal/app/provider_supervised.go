@@ -136,7 +136,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 	if err != nil {
 		releaseInteractiveLeadReservation(n, lead.AgentID)
 		if errors.Is(err, codex.ErrTUIBusy) {
-			return fmt.Errorf("%s profile %s is temporarily unavailable for maintenance; retry shortly", provName, selected)
+			return fmt.Errorf("%s profile %s is busy (profile lock held by another session); stop the existing session or retry shortly", provName, selected)
 		}
 		return fmt.Errorf("supervised %s launch failed: %w", provName, err)
 	}

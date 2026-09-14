@@ -1,10 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card } from '../../design-system';
 import { asArray } from '../../lib/safeArray';
 import { nexus } from '../../nexus/api';
-import type { ProjectFact, ProjectFactProvenance, ProjectIntelligenceView } from '../../types';
+import type { ProjectFactProvenance, ProjectIntelligenceView } from '../../types';
+import {
+  formatProjectIdentity,
+  presentProjectIntelligenceFacts,
+} from './projectIntelligencePresentation';
 import styles from './ProjectIntelligenceInspector.module.scss';
 
 const toneForScan = (state?: string) => {
@@ -62,13 +66,18 @@ export const ProjectIntelligenceInspector: React.FC<{ projectId: string }> = ({ 
 
   const snapshot = view?.current_snapshot;
   const scan = view?.current_scan;
-  const facts = asArray<ProjectFact>(snapshot?.facts);
+  const presented = useMemo(
+    () => presentProjectIntelligenceFacts(snapshot?.facts),
+    [snapshot?.facts],
+  );
   const warnings = asArray<string>(snapshot?.warnings);
   const scanning = busy || isScanInFlight(scan?.state);
   const completenessLabel = snapshot
     ? t(`work.projectIntelligence.completeness.${snapshot.completeness}`, snapshot.completeness)
     : t('work.projectIntelligence.notReady');
   const scanLabel = scan ? t(`work.projectIntelligence.scanState.${scan.state}`, scan.state) : '';
+  const identityLabel = formatProjectIdentity(view?.identity);
+  const identityTitle = view?.identity.identity_digest || identityLabel;
 
   return (
     <Card className={styles.inspector}>
@@ -113,7 +122,7 @@ export const ProjectIntelligenceInspector: React.FC<{ projectId: string }> = ({ 
           {error && <p className={styles.error}>{error}</p>}
           <div className={styles.meta}>
             <span>{t('work.projectIntelligence.identity')}</span>
-            <code>{view?.identity.identity_digest || '—'}</code>
+            <code title={identityTitle}>{identityLabel}</code>
           </div>
           {scan && (
             <div className={styles.meta}>
@@ -130,18 +139,27 @@ export const ProjectIntelligenceInspector: React.FC<{ projectId: string }> = ({ 
             </p>
           ) : null}
           <div className={styles.facts} aria-live="polite">
-            {facts.length === 0 ? (
+            {presented.rows.length === 0 ? (
               <p>{t('work.projectIntelligence.empty')}</p>
             ) : (
-              facts.map((fact: ProjectFact) => (
-                <details key={`${fact.category}:${fact.key}`} className={styles.fact}>
-                  <summary>{fact.key}</summary>
+              presented.rows.map((row) => (
+                <details key={row.id} className={styles.fact}>
+                  <summary>
+                    {row.labelKind === 'modules'
+                      ? t('work.projectIntelligence.moduleGroup', { count: row.count })
+                      : row.labelKind === 'categoryGroup'
+                        ? t('work.projectIntelligence.categoryGroup', {
+                            category: row.category,
+                            count: row.count,
+                          })
+                        : row.label}
+                  </summary>
                   <div className={styles.factBody}>
-                    <code>{JSON.stringify(fact.value)}</code>
+                    <code>{JSON.stringify(row.fact.value)}</code>
                     <span>
-                      {fact.confidence} · {fact.basis}
+                      {row.fact.confidence} · {row.fact.basis}
                     </span>
-                    {asArray<ProjectFactProvenance>(fact.provenance).map((source) => (
+                    {asArray<ProjectFactProvenance>(row.fact.provenance).map((source) => (
                       <span key={`${source.source}:${source.locator || ''}`}>
                         {source.source}
                         {source.locator ? ` · ${source.locator}` : ''}
@@ -151,6 +169,11 @@ export const ProjectIntelligenceInspector: React.FC<{ projectId: string }> = ({ 
                 </details>
               ))
             )}
+            {presented.hiddenCount > 0 ? (
+              <p className={styles.more}>
+                {t('work.projectIntelligence.moreFacts', { count: presented.hiddenCount })}
+              </p>
+            ) : null}
           </div>
         </div>
       )}

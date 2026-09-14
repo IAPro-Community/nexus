@@ -188,8 +188,6 @@ export const WorkSurface: React.FC<{
         </div>
       )}
 
-      <ProjectIntelligenceInspector projectId={project.id} />
-
       <div
         className="nx-composer-flow-region"
         data-gate={gate.canMaterialize ? 'ready' : 'destinations-blocked'}
@@ -200,6 +198,8 @@ export const WorkSurface: React.FC<{
           onTransformFlow={(artifact) => void materializeFlow(artifact)}
         />
       </div>
+
+      <ProjectIntelligenceInspector projectId={project.id} />
     </div>
   );
 };

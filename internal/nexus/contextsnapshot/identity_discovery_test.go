@@ -164,3 +164,74 @@ func TestDiscoverPreservesCommandsAcrossMultipleManifests(t *testing.T) {
 		t.Fatalf("go.mod must not invent command facts: %#v", values)
 	}
 }
+
+func TestDiscoverSkipsFixtureSrcAsArchitectureModule(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "src"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "module.benchmark-harness", "fixtures", "bug-context-noise-001", "src"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "src", "main.ts"), []byte("export {}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "module.benchmark-harness", "fixtures", "bug-context-noise-001", "src", "app.ts"), []byte("export {}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	snapshot, err := Discover(root, Metadata{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, fact := range snapshot.Facts {
+		if fact.Category == "architecture" && strings.Contains(fact.Key, "fixtures") {
+			t.Fatalf("fixture path must not become an architecture module: %+v", fact)
+		}
+	}
+	foundRootSrc := false
+	for _, fact := range snapshot.Facts {
+		if fact.Category == "architecture" && fact.Key == "module.src" {
+			foundRootSrc = true
+		}
+	}
+	if !foundRootSrc {
+		t.Fatal("expected top-level src to remain an architecture module")
+	}
+}
+
+func TestDiscoverDoesNotIndexEveryDevMarkdownAsFact(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "DEV"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"report-a.md", "report-b.md", "report-c.md"} {
+		if err := os.WriteFile(filepath.Join(root, "DEV", name), []byte("# report\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "AGENTS.md"), []byte("# agents\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	snapshot, err := Discover(root, Metadata{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sawDevDocs := false
+	sawAgents := false
+	for _, fact := range snapshot.Facts {
+		if strings.Contains(fact.Key, "report-") || strings.HasPrefix(fact.Key, "DEV/") {
+			t.Fatalf("DEV markdown must not become a per-file fact: %+v", fact)
+		}
+		if fact.Category == "conventions" && fact.Key == "dev-docs" {
+			sawDevDocs = true
+		}
+		if fact.Category == "conventions" && fact.Key == "agents" {
+			sawAgents = true
+		}
+	}
+	if !sawDevDocs || !sawAgents {
+		t.Fatalf("expected compact convention facts, got %+v", snapshot.Facts)
+	}
+}

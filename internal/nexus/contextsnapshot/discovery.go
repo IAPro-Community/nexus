@@ -103,7 +103,7 @@ func recognizedDocument(path string) bool {
 		return true
 	}
 	slash := filepath.ToSlash(path)
-	return strings.HasPrefix(slash, ".github/workflows/") || strings.HasPrefix(slash, ".gitlab/") || strings.HasPrefix(slash, "DEV/") && strings.HasSuffix(base, ".md")
+	return strings.HasPrefix(slash, ".github/workflows/") || strings.HasPrefix(slash, ".gitlab/")
 }
 
 func addFact(state *discoveryState, category, key string, valueType FactValueType, value any, confidence FactConfidence, source, locator, extractor string, digest string) {
@@ -339,10 +339,10 @@ func discoverPath(state *discoveryState, path string, entry os.DirEntry, root st
 		addFact(state, "entrypoints", source, FactString, source, ConfidenceMedium, source, "filename", "filename-pattern", "")
 	}
 	if strings.HasPrefix(source, ".github/workflows/") || strings.HasPrefix(source, ".gitlab/") {
-		addFact(state, "ci", source, FactBool, true, ConfidenceHigh, source, "workflow", "path-pattern", "")
+		addFact(state, "ci", "workflows", FactBool, true, ConfidenceHigh, source, "workflow", "path-pattern", "")
 	}
-	if base == "AGENTS.md" || strings.HasPrefix(source, "DEV/") {
-		addFact(state, "conventions", source, FactBool, true, ConfidenceMedium, source, "", "durable-doc", "")
+	if base == "AGENTS.md" {
+		addFact(state, "conventions", "agents", FactBool, true, ConfidenceMedium, source, "", "durable-doc", "")
 	}
 	if !recognizedDocument(relative) {
 		return nil
@@ -369,10 +369,28 @@ func classifyDirectory(state *discoveryState, path, root string) {
 		return
 	}
 	source := filepath.ToSlash(relative)
+	if noiseDiscoveryPath(source) {
+		return
+	}
+	// Nested fixture trees (…/fixtures/case-001/src) are not product modules.
+	if strings.Count(source, "/") > 2 {
+		return
+	}
 	base := filepath.Base(relative)
 	if base == "cmd" || base == "internal" || base == "src" || base == "web" || base == "packages" || base == "modules" {
 		addFact(state, "architecture", "module."+source, FactBool, true, ConfidenceMedium, source, "directory", "directory-pattern", "")
 	}
+}
+
+func noiseDiscoveryPath(source string) bool {
+	for _, segment := range strings.Split(source, "/") {
+		switch segment {
+		case "fixtures", "testdata", "node_modules", "vendor", "dist", "build", "coverage",
+			"__tests__", "e2e-artifacts", ".worktrees", ".cache", ".git":
+			return true
+		}
+	}
+	return false
 }
 
 // Discover performs bounded, static project discovery. It never executes a
@@ -399,7 +417,10 @@ func Discover(root string, metadata Metadata) (ProjectContextSnapshot, error) {
 		}
 		if entry.IsDir() {
 			name := entry.Name()
-			if path != root && (name == ".git" || name == "node_modules" || name == "vendor" || name == "dist" || name == "build" || name == ".cache") {
+			if path != root && (name == ".git" || name == "node_modules" || name == "vendor" || name == "dist" || name == "build" || name == ".cache" || name == "fixtures" || name == "testdata" || name == "coverage" || name == "__tests__" || name == "e2e-artifacts" || name == ".worktrees" || name == "DEV") {
+				if name == "DEV" {
+					addFact(state, "conventions", "dev-docs", FactBool, true, ConfidenceMedium, "DEV", "", "durable-doc", "")
+				}
 				return filepath.SkipDir
 			}
 			depth := strings.Count(filepath.ToSlash(strings.TrimPrefix(path, root)), "/")

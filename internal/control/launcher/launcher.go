@@ -224,11 +224,17 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		_ = l.reg.Register(sess)
 	}
 
-	// Handshake: wait for IPC endpoint to be active and responsive
-	if err := protocol.WaitForEndpoint(ctx, opts.RuntimeID, opts.Timeout); err != nil {
-		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProviderStarting, registry.StartupFaultIPCTimeout)
+	// Handshake: wait for IPC endpoint to be active and responsive.
+	// Detached hosts that fail during Start (e.g. Codex TUI lease busy) exit
+	// immediately; fail fast from the host log instead of waiting the full timeout.
+	if err := waitForRuntimeHandshake(ctx, opts.RuntimeID, detachedProcess, opts.Timeout); err != nil {
+		fault := registry.StartupFaultIPCTimeout
+		if isEarlyHostExit(err) {
+			fault = registry.StartupFaultProcessSupervision
+		}
+		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProviderStarting, fault)
 		cleanupFailedLaunch()
-		return nil, fmt.Errorf("runtime handshake timed out for %s: %w", opts.RuntimeID, err)
+		return nil, fmt.Errorf("runtime handshake failed for %s: %w", opts.RuntimeID, err)
 	}
 
 	// Verify handshake with status probe
