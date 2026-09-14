@@ -2,6 +2,7 @@ package nexus
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
@@ -124,5 +125,53 @@ func TestLooksLikeSecretBlocksMemory(t *testing.T) {
 	_, err = n.UpsertIntelligenceMemory(context.Background(), MemoryScopeProject, project.ID, "quality.verification", "api_key=secret", MemorySourceExplicit)
 	if err == nil {
 		t.Fatal("expected secret rejection")
+	}
+}
+
+func TestListMemoriesHidesPendingMarkers(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Pending Proj", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+
+	// First observation stores only a pending marker: list and facts must not leak it.
+	if err := n.PromoteHabitMemory(ctx, project.ID, "quality.verification", "make quality", "", false); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := n.ListIntelligenceMemories(ctx, project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range rows {
+		if strings.HasPrefix(m.Key, pendingMemoryPrefix) {
+			t.Fatalf("pending marker leaked into list: %+v", m)
+		}
+	}
+	facts, err := n.MemoryFactsMap(ctx, project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for k := range facts {
+		if strings.Contains(k, pendingMemoryPrefix) {
+			t.Fatalf("pending marker leaked into facts: %q", k)
+		}
+	}
+
+	// Second identical observation promotes the durable memory.
+	if err := n.PromoteHabitMemory(ctx, project.ID, "quality.verification", "make quality", "", false); err != nil {
+		t.Fatal(err)
+	}
+	rows, err = n.ListIntelligenceMemories(ctx, project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 || rows[0].Key != "quality.verification" {
+		t.Fatalf("expected 1 durable memory, got %+v", rows)
 	}
 }

@@ -304,10 +304,12 @@ export const ComposerSurface: React.FC<{
         source: 'explicit',
         force: true,
       });
-      await resolveUnknown(unknown.id, 'ANSWERED', answer);
     } catch (err) {
+      // Non-promotable keys can't become memories, but the answer below must
+      // still resolve the unknown instead of stranding it.
       setError(err instanceof Error ? err.message : String(err));
     }
+    await resolveUnknown(unknown.id, 'ANSWERED', answer);
   };
 
   const updateSkill = async (skillId: string, state: 'ACCEPTED' | 'REJECTED') => {

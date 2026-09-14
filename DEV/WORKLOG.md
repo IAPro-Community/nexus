@@ -1,5 +1,17 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-14 — Re-review pré-main (2ª passada, 5🔴 5🟡 zerados)
+
+- `handlers_conductor.go`: `io.LimitReader(1<<20)` nos dois POST (padrão do repo).
+- `conductor_dispatch.go`: `waitPromotedMission` recebe `ctx`, `GetRun(ctx)` + `select ctx.Done()` (não prende worker HTTP).
+- `intelligence_memory.go`: `ListIntelligenceMemories` filtra `pending.*` (+const, +teste `TestListMemoriesHidesPendingMarkers`; vazava p/ chips e facts).
+- `ProtocolScrubber`: `flush()` no `onclose` dos dois panes (cauda `{` não prende mais).
+- `ComposerSurface`: `rememberUnknown` resolve mesmo se upsert falhar (resposta nunca perdida); chave `answerInThread` em en/pt/es.
+- `FlowPipeline`: bucket `Steps without a phase` (`orphanStepsTitle` 3 langs, `findOrphanSteps` + teste).
+- `PlanBuilderSurface`: `onConnect` funcional (sem stale closure).
+- Sweeps no diff `main...HEAD`: sem secrets, sem `console.log`/`debugger`, sem TODO/FIXME.
+- PASS: `make quality` (exit 0), `make build` (`5016469`), `git diff --check`. Sem commit/push.
+
 ## 2026-09-14 — Review follow-ups aplicados (opção 4)
 
 - Segurança: `browser.go` profile Chromium `0700` (+Chmod); bootstrap loopback com TTL 24h (`loopbackBootstrapTTL`, teste de expiração); `handleFSBrowse` exige `isWithinAllowedRoots` igual ao mkdir (+teste 403).

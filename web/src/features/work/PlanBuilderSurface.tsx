@@ -1225,10 +1225,14 @@ export const PlanBuilderSurface: React.FC<{
                   selectedId={selectedStepId}
                   onSelect={setSelectedStepId}
                   onConnect={(from, to) => {
-                    const target = flowDraft.steps.find((step) => step.id === to);
-                    if (!target) return;
-                    const deps = Array.from(new Set([...(target.dependencies || []), from]));
-                    setFlowDraft(updateStepLocalized(flowDraft, to, { dependencies: deps }));
+                    // Functional update: rapid connects must not lose deps to a stale closure.
+                    setFlowDraft((current) => {
+                      if (!current) return current;
+                      const target = current.steps.find((step) => step.id === to);
+                      if (!target) return current;
+                      const deps = Array.from(new Set([...(target.dependencies || []), from]));
+                      return updateStepLocalized(current, to, { dependencies: deps });
+                    });
                   }}
                 />
               </>

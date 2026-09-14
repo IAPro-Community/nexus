@@ -602,6 +602,13 @@ export const AgentTerminal: React.FC<{
       ws.onclose = () => {
         if (wsRef.current === ws) wsRef.current = null;
         if (disposed || stopReconnect) return;
+        // Release any buffered split-line tail: the stream ended here and a
+        // reconnect starts a fresh scrubber for replayed history.
+        const rest = protocolScrubber.flush();
+        if (rest) {
+          ingestOutput(rest);
+          writeTerminalOutput(rest);
+        }
         scheduleReconnect(lastError);
       };
     };

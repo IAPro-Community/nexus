@@ -21,6 +21,10 @@ const (
 	MemorySourceExplicit    = "explicit"
 )
 
+// pendingMemoryPrefix marks internal two-observation promotion state in the
+// project memories table. Such rows are never durable memories.
+const pendingMemoryPrefix = "pending."
+
 // Habit keys that may be promoted to durable memory. Feature-scoped fields
 // (acceptance for this ticket, in-scope list) must never become INSTALL habits.
 var habitMemoryKeys = map[string]bool{
@@ -75,6 +79,11 @@ func (n *Nexus) ListIntelligenceMemories(ctx context.Context, projectID string) 
 		return nil, err
 	}
 	for _, m := range projectRows {
+		// Pending promotion markers are internal two-observation state,
+		// not durable memories: keep them out of chips and facts.
+		if strings.HasPrefix(m.Key, pendingMemoryPrefix) {
+			continue
+		}
 		out = append(out, MergedIntelligenceMemory{
 			ID: m.ID, Scope: MemoryScopeProject, ProjectID: m.ProjectID,
 			Key: m.Key, Value: m.Value, Source: m.Source,
@@ -202,7 +211,7 @@ func (n *Nexus) PromoteHabitMemory(ctx context.Context, projectID, key, value, s
 	}
 	// First observation: store as project memory immediately when forced, else
 	// store a pending marker so the second identical answer promotes.
-	pendingKey := "pending." + key
+	pendingKey := pendingMemoryPrefix + key
 	pending, _ := st.GetIntelligenceMemoryByKey(projectID, pendingKey)
 	if force {
 		_, err := n.UpsertIntelligenceMemory(ctx, MemoryScopeProject, projectID, key, value, source)

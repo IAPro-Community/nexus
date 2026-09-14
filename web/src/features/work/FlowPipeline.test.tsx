@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupStepsByPhase } from './FlowPipeline';
+import { findOrphanSteps, groupStepsByPhase } from './FlowPipeline';
 import type { FlowStepModel } from './flowModel';
 
 const step = (
@@ -36,5 +36,14 @@ describe('FlowPipeline helpers', () => {
 
   it('returns empty map for empty pipeline', () => {
     expect(groupStepsByPhase([]).size).toBe(0);
+  });
+
+  it('finds steps whose phaseId matches no known phase', () => {
+    const map = groupStepsByPhase([
+      step({ id: 's1', phaseId: 'p1', order: 1 }),
+      step({ id: 'sx', phaseId: 'missing', order: 0 }),
+    ]);
+    expect(findOrphanSteps(['p1'], map).map((item) => item.id)).toEqual(['sx']);
+    expect(findOrphanSteps(['p1', 'missing'], map)).toEqual([]);
   });
 });

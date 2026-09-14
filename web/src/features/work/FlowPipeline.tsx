@@ -13,6 +13,21 @@ const toneForStatus = (status: string) => {
 };
 
 /** Pure helper — unit-tested without a DOM renderer. */
+export function findOrphanSteps(
+  phaseIds: string[],
+  stepsByPhase: Map<string, FlowStepModel[]>,
+): FlowStepModel[] {
+  const known = new Set(phaseIds);
+  const orphans: FlowStepModel[] = [];
+  for (const list of stepsByPhase.values()) {
+    for (const step of list) {
+      if (!known.has(step.phaseId)) orphans.push(step);
+    }
+  }
+  return orphans.sort((a, b) => a.order - b.order);
+}
+
+/** Pure helper — unit-tested without a DOM renderer. */
 export function groupStepsByPhase(steps: FlowStepModel[]): Map<string, FlowStepModel[]> {
   const map = new Map<string, FlowStepModel[]>();
   for (const step of steps) {
@@ -39,6 +54,16 @@ export const FlowPipeline: React.FC<{
   const stepsByPhase = useMemo(
     () => groupStepsByPhase(asArray<FlowStepModel>(flow.steps)),
     [flow.steps],
+  );
+  // Steps whose phaseId matches no known phase must stay visible so data
+  // problems surface instead of silently dropping work.
+  const orphanSteps = useMemo(
+    () =>
+      findOrphanSteps(
+        phases.map((phase) => phase.id),
+        stepsByPhase,
+      ),
+    [phases, stepsByPhase],
   );
 
   if (phases.length === 0) {
@@ -86,6 +111,32 @@ export const FlowPipeline: React.FC<{
             </div>
           </section>
         ))}
+      {orphanSteps.length > 0 && (
+        <section key="__orphans" className={styles.column} role="listitem">
+          <header className={styles.columnHeader}>
+            <strong>{t('flow.orphanStepsTitle', 'Steps without a phase')}</strong>
+            <span className={styles.count}>{orphanSteps.length}</span>
+          </header>
+          <div className={styles.cards}>
+            {orphanSteps.map((step) => (
+              <button
+                key={step.id}
+                type="button"
+                className={styles.card}
+                data-selected={selectedId === step.id ? 'true' : undefined}
+                data-tone={toneForStatus(step.status)}
+                onClick={() => onSelect(step.id)}
+              >
+                <span className={styles.cardTitle}>{step.title || step.id}</span>
+                <span className={styles.cardMeta}>
+                  {step.role || 'auto'} · {step.status || 'READY'}
+                </span>
+                {step.goal ? <span className={styles.cardGoal}>{step.goal}</span> : null}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

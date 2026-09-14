@@ -352,6 +352,12 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     ws.onclose = () => {
       if (disposed) return;
+      // Release any buffered split-line tail: this stream ended.
+      const rest = protocolScrubber.flush();
+      if (rest) {
+        ingestOutput(rest);
+        writeTerminalOutput(rest);
+      }
       setErrorMsg((current) => current || tRef.current('terminal.hostNotRunning'));
       setDisconnected(true);
     };

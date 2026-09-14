@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/IAPro-Community/nexus/internal/nexus"
@@ -31,7 +32,7 @@ func (h *NexusHandler) handleConductorPolicy(w http.ResponseWriter, r *http.Requ
 
 	case http.MethodPut:
 		var policy nexus.ConductorPolicy
-		if err := json.NewDecoder(r.Body).Decode(&policy); err != nil {
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&policy); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
 			return
 		}
@@ -67,7 +68,7 @@ func (h *NexusHandler) handleConductorDispatch(w http.ResponseWriter, r *http.Re
 	}
 
 	var req nexus.DispatchRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
 		return
 	}

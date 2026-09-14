@@ -122,7 +122,7 @@ func (n *Nexus) Dispatch(ctx context.Context, req DispatchRequest) (*DispatchRes
 	}
 
 	// Step 6: Wait for mission completion.
-	final, waitErr := waitPromotedMission(n, run.ID)
+	final, waitErr := waitPromotedMission(ctx, n, run.ID)
 	if waitErr != nil {
 		return &DispatchResult{
 			GoalID: req.GoalID,
@@ -141,15 +141,21 @@ func (n *Nexus) Dispatch(ctx context.Context, req DispatchRequest) (*DispatchRes
 }
 
 // waitPromotedMission polls until the mission run reaches a terminal state.
-func waitPromotedMission(n *Nexus, runID string) (*runner.MissionRun, error) {
+// It honors ctx so a disconnected HTTP client releases the worker instead of
+// blocking it for the full mission.
+func waitPromotedMission(ctx context.Context, n *Nexus, runID string) (*runner.MissionRun, error) {
 	for {
-		run, err := n.Runner().GetRun(context.Background(), runID)
+		run, err := n.Runner().GetRun(ctx, runID)
 		if err != nil {
 			return nil, err
 		}
 		if runner.IsTerminalState(run.State) || run.State == runner.StateBlockedNeedsUser || run.State == runner.StatePaused {
 			return run, nil
 		}
-		time.Sleep(500 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(500 * time.Millisecond):
+		}
 	}
 }
