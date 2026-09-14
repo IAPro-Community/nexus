@@ -9,18 +9,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/core/scheduler"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/cooldown"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/scheduler"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 // hasProviderLaunchFlag recognizes Nexus-owned launch flags before provider
@@ -135,8 +134,9 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 		},
 	})
 	if err != nil {
+		releaseInteractiveLeadReservation(n, lead.AgentID)
 		if errors.Is(err, codex.ErrTUIBusy) {
-			return busyLaunchError(provName, selected)
+			return fmt.Errorf("%s profile %s is temporarily unavailable for maintenance; retry shortly", provName, selected)
 		}
 		return fmt.Errorf("supervised %s launch failed: %w", provName, err)
 	}
@@ -146,6 +146,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 				_ = client.Stop()
 				_ = client.Close()
 			}
+			releaseInteractiveLeadReservation(n, lead.AgentID)
 			return fmt.Errorf("bind interactive Lead Agent: %w", err)
 		}
 	}
@@ -154,6 +155,15 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 		return attachRuntime(session.RuntimeID)
 	}
 	return attachInteractiveLeadRuntime(session.RuntimeID, n, *session, lead.AgentID)
+}
+
+func releaseInteractiveLeadReservation(n *nexus.Nexus, agentID string) {
+	if n == nil || strings.TrimSpace(agentID) == "" {
+		return
+	}
+	if st, err := n.OpenProject(); err == nil {
+		_ = st.ReleaseInteractiveLeadReservation(agentID)
+	}
 }
 
 func profileInCandidates(candidates []model.Profile, name string) bool {
@@ -173,20 +183,9 @@ func mustWorkingDirectory() string {
 	return cwd
 }
 
-var profileLaunchBusy = func(provider, name string) bool {
-	if !strings.EqualFold(strings.TrimSpace(provider), "codex") {
-		return false
-	}
-	home, err := config.ProfileHome("codex", name)
-	return err == nil && codex.IsTUILocked(home)
-}
-
 func launchableProfiles(provName, explicit string, candidates []model.Profile) ([]model.Profile, error) {
 	explicit = strings.TrimSpace(explicit)
 	if explicit != "" {
-		if profileLaunchBusy(provName, explicit) {
-			return nil, busyLaunchError(provName, explicit)
-		}
 		for _, candidate := range candidates {
 			if candidate.Name == explicit {
 				return []model.Profile{candidate}, nil
@@ -194,37 +193,8 @@ func launchableProfiles(provName, explicit string, candidates []model.Profile) (
 		}
 		return nil, fmt.Errorf("profile %q not found for provider %s", explicit, provName)
 	}
-	free := make([]model.Profile, 0, len(candidates))
-	var busy []string
-	for _, candidate := range candidates {
-		if profileLaunchBusy(provName, candidate.Name) {
-			busy = append(busy, candidate.Name)
-			continue
-		}
-		free = append(free, candidate)
-	}
-	if len(free) > 0 {
-		if len(busy) > 0 {
-			fmt.Fprintf(os.Stderr, "⚠ [nexus] %s já em execução: %s — usando outro perfil\n", provName, strings.Join(busy, ", "))
-		}
-		return free, nil
-	}
-	if len(busy) > 0 {
-		return nil, busyLaunchError(provName, busy[0])
-	}
+	// Profile identity is shared configuration, not runtime ownership. Multiple
+	// supervised invocations may use the same profile concurrently; the Codex
+	// adapter's shared TUI lease protects only maintenance/app-server overlap.
 	return candidates, nil
-}
-
-func busyLaunchError(provName, profileName string) error {
-	var ids []string
-	for _, sess := range registry.DefaultRegistry().ListActive() {
-		if strings.EqualFold(sess.ProviderID, provName) && sess.ProfileID == profileName {
-			ids = append(ids, sess.RuntimeID)
-		}
-	}
-	if len(ids) > 0 {
-		id := ids[0]
-		return fmt.Errorf("%s já está em execução no perfil %s (runtime %s).\n  Anexar: %s attach %s\n  Encerrar: %s stop %s", provName, profileName, id, progName(), id, progName(), id)
-	}
-	return fmt.Errorf("%s já está em execução no perfil %s.\n  Listar: %s ps\n  Anexar: %s attach <id>\n  Encerrar: %s stop <id>", provName, profileName, progName(), progName(), progName())
 }

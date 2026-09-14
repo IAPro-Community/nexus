@@ -1,10 +1,9 @@
 package app
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 func TestProviderLaunchFlagsAreNexusOwned(t *testing.T) {
@@ -31,13 +30,7 @@ func TestProfileInCandidates(t *testing.T) {
 	}
 }
 
-func TestLaunchableProfilesSkipsBusyCodexWhenAutoSelecting(t *testing.T) {
-	orig := profileLaunchBusy
-	t.Cleanup(func() { profileLaunchBusy = orig })
-	profileLaunchBusy = func(provider, name string) bool {
-		return provider == "codex" && name == "busy"
-	}
-
+func TestLaunchableProfilesAllowsBusyCodexWhenAutoSelecting(t *testing.T) {
 	got, err := launchableProfiles("codex", "", []model.Profile{
 		{Name: "busy"},
 		{Name: "free"},
@@ -45,39 +38,20 @@ func TestLaunchableProfilesSkipsBusyCodexWhenAutoSelecting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0].Name != "free" {
-		t.Fatalf("got %#v want only free", got)
+	if len(got) != 2 || got[0].Name != "busy" || got[1].Name != "free" {
+		t.Fatalf("got %#v want all configured profiles", got)
 	}
 }
 
-func TestLaunchableProfilesExplicitBusyFailsFast(t *testing.T) {
-	orig := profileLaunchBusy
-	t.Cleanup(func() { profileLaunchBusy = orig })
-	profileLaunchBusy = func(provider, name string) bool {
-		return provider == "codex" && name == "busy"
-	}
-
-	_, err := launchableProfiles("codex", "busy", []model.Profile{
+func TestLaunchableProfilesExplicitBusyRemainsLaunchable(t *testing.T) {
+	got, err := launchableProfiles("codex", "busy", []model.Profile{
 		{Name: "busy"},
 		{Name: "free"},
 	})
-	if err == nil {
-		t.Fatal("expected busy explicit profile to fail fast")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(err.Error(), "busy") {
-		t.Fatalf("err=%v", err)
-	}
-	if !strings.Contains(err.Error(), "attach") || !strings.Contains(err.Error(), "stop") {
-		t.Fatalf("busy error must tell the user how to attach/stop: %v", err)
-	}
-}
-
-func TestBusyLaunchErrorMentionsAttachAndStop(t *testing.T) {
-	err := busyLaunchError("codex", "work")
-	msg := err.Error()
-	for _, want := range []string{"codex", "work", "attach", "stop", "ps"} {
-		if !strings.Contains(msg, want) {
-			t.Fatalf("busyLaunchError missing %q: %s", want, msg)
-		}
+	if len(got) != 1 || got[0].Name != "busy" {
+		t.Fatalf("got %#v", got)
 	}
 }

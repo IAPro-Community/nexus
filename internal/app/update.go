@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/buildinfo"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
-	"github.com/kivervinicius/ai-cli/internal/update"
+	"github.com/IAPro-Community/nexus/internal/buildinfo"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/update"
 )
 
 // UpdateResult summarizes explicit Maestro maintenance; `nexus update` uses

@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/web"
+	"github.com/IAPro-Community/nexus/internal/control/web"
 )
 
 // extractTunnelHost extracts the hostname from a tunnel URL like https://xxx.trycloudflare.com

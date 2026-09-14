@@ -16,22 +16,24 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/handoff"
-	"github.com/kivervinicius/ai-cli/internal/control/host"
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	controltui "github.com/kivervinicius/ai-cli/internal/control/tui"
-	"github.com/kivervinicius/ai-cli/internal/control/web"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/core/scheduler"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/handoff"
+	"github.com/IAPro-Community/nexus/internal/control/host"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	controltui "github.com/IAPro-Community/nexus/internal/control/tui"
+	"github.com/IAPro-Community/nexus/internal/control/web"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/cooldown"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	providerspec "github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/scheduler"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 func controlCmd(args []string) error {
@@ -367,7 +369,7 @@ func controlStartCmd(args []string) error {
 	})
 	if err != nil {
 		if errors.Is(err, codex.ErrTUIBusy) {
-			return busyLaunchError(providerID, profileName)
+			return fmt.Errorf("%s profile %s is temporarily unavailable for maintenance; retry shortly", providerID, profileName)
 		}
 		return err
 	}
@@ -468,6 +470,10 @@ func controlAttachCmd(args []string) error {
 }
 
 func attachRuntime(runtimeID string) error {
+	return attachRuntimeWithInput(runtimeID, nil)
+}
+
+func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error {
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
 		return fmt.Errorf("failed to attach to runtime %q: %w", runtimeID, err)
@@ -553,6 +559,10 @@ func attachRuntime(runtimeID string) error {
 	// 5. Stream user stdin to runtime host
 	go func() {
 		defer rawConn.Close()
+		if input != nil {
+			errChan <- input(rawConn)
+			return
+		}
 		_, copyErr := io.Copy(rawConn, os.Stdin)
 		errChan <- copyErr
 	}()
@@ -562,12 +572,82 @@ func attachRuntime(runtimeID string) error {
 }
 
 // attachInteractiveLeadRuntime keeps the Lead Agent lifecycle bound to the
-// supervised session while streaming stdin/stdout byte-transparently through
-// the native provider TUI. Delegation remains available via explicit commands
-// (nexus run / plan / agents / web), not by intercepting keystrokes.
-func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, _ registry.RuntimeSession, agentID string) error {
-	defer func() { _ = n.ReleaseInteractiveLeadRuntime(context.Background(), agentID, runtimeID) }()
-	return attachRuntime(runtimeID)
+// supervised session while preserving byte-transparent provider I/O. Complete
+// prompt lines pass through the promotion policy; control sequences and
+// bracketed paste are never interpreted as prompt text.
+func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session registry.RuntimeSession, agentID string) error {
+	if n != nil {
+		defer func() { _ = n.ReleaseInteractiveLeadRuntime(context.Background(), agentID, runtimeID) }()
+	}
+	if n == nil || session.ProjectID == "" || agentID == "" {
+		return attachRuntime(runtimeID)
+	}
+	mode := interactiveDelegationMode(session)
+	return attachRuntimeWithInput(runtimeID, func(conn io.Writer) error {
+		shadow := promotion.NewLineShadow()
+		if mode == nexus.DelegationOff {
+			shadow.SetEnabled(false)
+		}
+		promoter := promotion.NewPromoter(n)
+		buf := make([]byte, 1024)
+		pendingASK := ""
+		for {
+			nread, err := os.Stdin.Read(buf)
+			if nread > 0 {
+				input := buf[:nread]
+				if pendingASK != "" {
+					answer := input[0]
+					input = input[1:]
+					switch answer {
+					case 'y', 'Y':
+						_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID) + "\r\n[nexus] Solicitação promovida para Mission; o Lead receberá a síntese ao concluir.\r\n"))
+						go runInteractiveDelegatedMission(n, session, agentID, pendingASK, mode)
+					case 'n', 'N':
+						_, _ = conn.Write([]byte("\r"))
+					default:
+						_, _ = conn.Write([]byte("\r"))
+					}
+					pendingASK = ""
+				}
+				if len(input) == 0 {
+					if err != nil {
+						return err
+					}
+					continue
+				}
+				event := shadow.Consume(input)
+				if _, writeErr := conn.Write(event.Forward); writeErr != nil {
+					return writeErr
+				}
+				if event.Submit {
+					for _, line := range event.Submissions {
+						decision, decideErr := promoter.Decide(context.Background(), session.ProjectID, line, mode)
+						if decideErr != nil || decision.Action == promotion.KeepWithLead {
+							_, _ = conn.Write([]byte("\r"))
+							continue
+						}
+						if decision.Action == promotion.Ask {
+							_, _ = conn.Write([]byte("\r\n[nexus] Promover esta solicitação para uma Mission? [y/n] "))
+							pendingASK = line
+							continue
+						}
+						_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID) + "\r\n[nexus] Solicitação promovida para Mission; o Lead receberá a síntese ao concluir.\r\n"))
+						go runInteractiveDelegatedMission(n, session, agentID, line, mode)
+					}
+				}
+			}
+			if err != nil {
+				return err
+			}
+		}
+	})
+}
+
+func clearLineSequence(providerID string) string {
+	if provider, ok := providerspec.Get(providerID); ok && provider.ClearLine != "" {
+		return provider.ClearLine
+	}
+	return "\x15"
 }
 
 func controlStopCmd(args []string) error {

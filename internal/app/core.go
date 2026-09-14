@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/web"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/localization"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/control/web"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/localization"
+	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
 // CoreConfig encapsulates runtime options for the reusable Nexus Core.

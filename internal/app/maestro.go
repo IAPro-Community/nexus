@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
 // maestroCmd is deliberately separate from updateCmd. Nexus updates are

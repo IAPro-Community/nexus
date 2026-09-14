@@ -12,8 +12,37 @@ export const TerminalActionDialog: React.FC<{
   onConfirmMode?: () => void;
   onCloseTab?: () => void;
   onStopRuntime?: () => void;
-}> = ({ mode, close, shell, busy, onCancel, onConfirmMode, onCloseTab, onStopRuntime }) => {
+  promotion?: string;
+  onPromotionAnswer?: (answer: 'y' | 'n') => void;
+}> = ({
+  mode,
+  close,
+  shell,
+  busy,
+  onCancel,
+  onConfirmMode,
+  onCloseTab,
+  onStopRuntime,
+  promotion,
+  onPromotionAnswer,
+}) => {
   const { t } = useTranslation();
+  if (promotion) {
+    return (
+      <Dialog open title={t('terminal.promotion.title')} onClose={() => onPromotionAnswer?.('n')}>
+        <div className="nx-terminal-action-dialog">
+          <strong>{t('terminal.promotion.question')}</strong>
+          <p>{promotion}</p>
+          <div className="nx-dialog-actions">
+            <Button tone="brand" onClick={() => onPromotionAnswer?.('y')}>
+              {t('terminal.promotion.promote')}
+            </Button>
+            <Button onClick={() => onPromotionAnswer?.('n')}>{t('terminal.promotion.keep')}</Button>
+          </div>
+        </div>
+      </Dialog>
+    );
+  }
   if (!mode && !close) return null;
   if (mode) {
     return (

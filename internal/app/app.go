@@ -12,34 +12,34 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/buildinfo"
-	"github.com/kivervinicius/ai-cli/internal/control/flags"
-	"github.com/kivervinicius/ai-cli/internal/conversation"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
-	"github.com/kivervinicius/ai-cli/internal/core/exitcode"
-	"github.com/kivervinicius/ai-cli/internal/core/fallback"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/agy"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/claude"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/cursor"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/gemini"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/opencode"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/core/scheduler"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/core/session"
-	"github.com/kivervinicius/ai-cli/internal/core/telemetry"
-	diagnostic "github.com/kivervinicius/ai-cli/internal/doctor"
-	"github.com/kivervinicius/ai-cli/internal/localization"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/profile"
-	"github.com/kivervinicius/ai-cli/internal/release"
-	nexusruntime "github.com/kivervinicius/ai-cli/internal/runtime"
-	"github.com/kivervinicius/ai-cli/internal/tui"
+	"github.com/IAPro-Community/nexus/internal/buildinfo"
+	"github.com/IAPro-Community/nexus/internal/control/flags"
+	"github.com/IAPro-Community/nexus/internal/conversation"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/cooldown"
+	"github.com/IAPro-Community/nexus/internal/core/exitcode"
+	"github.com/IAPro-Community/nexus/internal/core/fallback"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/agy"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/scheduler"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/core/session"
+	"github.com/IAPro-Community/nexus/internal/core/telemetry"
+	diagnostic "github.com/IAPro-Community/nexus/internal/doctor"
+	"github.com/IAPro-Community/nexus/internal/localization"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/release"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/tui"
 )
 
 var globalRegistry *provider.Registry
@@ -394,7 +394,7 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 		dur := time.Since(start)
 
 		if errors.Is(runErr, codex.ErrTUIBusy) {
-			busyErr := busyLaunchError(provName, p.Name)
+			busyErr := fmt.Errorf("%s profile %s is temporarily unavailable for maintenance; retry shortly", provName, p.Name)
 			return model.Failure{Kind: model.FailureCommand, Message: busyErr.Error()}, busyErr
 		}
 

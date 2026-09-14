@@ -138,6 +138,7 @@ export const AgentTerminal: React.FC<{
   );
   const [pendingMode, setPendingMode] = useState<'Safe' | 'YOLO' | null>(null);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+  const [promotionPrompt, setPromotionPrompt] = useState('');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [needsResourceSelection, setNeedsResourceSelection] = useState(false);
@@ -556,6 +557,12 @@ export const AgentTerminal: React.FC<{
               kind === 'free_text'
             ) {
               publishChrome(undefined, true);
+            }
+          } else if (payload.type === 'promotion') {
+            if (String(payload.role || '').toUpperCase() === 'ASK') {
+              setPromotionPrompt(String(payload.data || ''));
+            } else if (String(payload.role || '').toUpperCase() === 'PROMOTED') {
+              setMessage(t('terminal.promotion.started'));
             }
           } else if (payload.type === 'error') {
             const detail = String(payload.data ?? 'Terminal error');
@@ -1261,6 +1268,17 @@ export const AgentTerminal: React.FC<{
         busy={modeAction === 'Applying' || modeAction === 'Restarting'}
         onCancel={() => setPendingMode(null)}
         onConfirmMode={() => void handleModeChange()}
+      />
+      <TerminalActionDialog
+        promotion={promotionPrompt || undefined}
+        onCancel={() => setPromotionPrompt('')}
+        onPromotionAnswer={(answer) => {
+          const socket = wsRef.current;
+          if (socket?.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'promotion_answer', data: answer }));
+          }
+          setPromotionPrompt('');
+        }}
       />
       <div
         ref={containerRef}
