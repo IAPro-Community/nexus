@@ -22,6 +22,7 @@ type missionExecutionSnapshot struct {
 	Plan      store.WorkPlan          `json:"plan"`
 	Contract  runner.AutonomyContract `json:"contract"`
 	Preflight *FlowPreflightReport    `json:"preflight,omitempty"`
+	Goal      *GoalContract           `json:"goal,omitempty"`
 }
 
 type missionWorker struct {

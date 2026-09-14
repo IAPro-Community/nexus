@@ -45,6 +45,10 @@ func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) Eff
 	det, _ := d.Detect(ctx)
 	version := det.Version
 
+	// Derive read_only_review from: ReviewMode flags present + headless + submit_prompt.
+	reviewMode := spec.MustGet("opencode").ReviewMode
+	canReview := len(reviewMode) > 0
+
 	return EffectiveCapabilities{
 		Process: CapabilityEvidence{
 			Status:          CapabilitySupported,
@@ -123,6 +127,11 @@ func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) Eff
 			Mechanism: "Universal /ai slash command router",
 			Tested:    true,
 		},
+		ReadOnlyReview: CapabilityEvidence{
+			Status:    boolToStatus(canReview),
+			Mechanism: "opencode --permission-mode plan (read-only review)",
+			Tested:    false,
+		},
 		ControlLevel: registry.ControlLevelTerminal,
 	}
 }
@@ -163,4 +172,11 @@ func (d *OpenCodeDriver) BuildResumeArgs(ctx context.Context, p model.Profile, p
 
 func (d *OpenCodeDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, kickoffPrompt string) ([]string, error) {
 	return spec.MustGet("opencode").Kickoff(kickoffPrompt), nil
+}
+
+func boolToStatus(b bool) CapabilityStatus {
+	if b {
+		return CapabilitySupported
+	}
+	return CapabilityUnsupported
 }

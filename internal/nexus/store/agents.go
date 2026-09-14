@@ -10,7 +10,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
 
-const agentColumns = `id,project_id,name,role,status,current_revision_id,continuity_status,created_at,updated_at,last_started_at`
+const agentColumns = `id,project_id,name,role,status,COALESCE(current_revision_id,'') AS current_revision_id,continuity_status,COALESCE(identity_kind,'PERSISTENT') AS identity_kind,created_at,updated_at,last_started_at`
 
 // CreateAgent inserts a persistent agent scoped to a project.
 func (s *Store) CreateAgent(a Agent) (Agent, error) {
@@ -32,13 +32,16 @@ func (s *Store) CreateAgent(a Agent) (Agent, error) {
 	if a.ContinuityStatus == "" {
 		a.ContinuityStatus = ContinuityLiveSameRuntime
 	}
+	if a.IdentityKind == "" {
+		a.IdentityKind = "PERSISTENT"
+	}
 	now := time.Now().UTC()
 	a.CreatedAt, a.UpdatedAt = now, now
 
 	_, err := s.db.Exec(`INSERT INTO agents
-		(id,project_id,name,role,status,current_revision_id,continuity_status,created_at,updated_at,last_started_at)
-		VALUES(?,?,?,?,?,?,?,?,?,NULL)`,
-		a.ID, a.ProjectID, a.Name, a.Role, a.Status, a.CurrentRevisionID, a.ContinuityStatus,
+		(id,project_id,name,role,status,current_revision_id,continuity_status,identity_kind,created_at,updated_at,last_started_at)
+		VALUES(?,?,?,?,?,?,?,?,?,?,NULL)`,
+		a.ID, a.ProjectID, a.Name, a.Role, a.Status, a.CurrentRevisionID, a.ContinuityStatus, a.IdentityKind,
 		a.CreatedAt.Format(time.RFC3339Nano), a.UpdatedAt.Format(time.RFC3339Nano))
 	if err != nil {
 		return Agent{}, fmt.Errorf("create agent: %w", err)
@@ -59,8 +62,25 @@ func (s *Store) GetAgent(id, projectID string) (Agent, error) {
 }
 
 // ListAgents returns agents of a project, most recently updated first.
+// Ephemeral workers are excluded by default; use ListAgentsFiltered to include them.
 func (s *Store) ListAgents(projectID string) ([]Agent, error) {
-	rows, err := s.db.Query(`SELECT `+agentColumns+` FROM agents WHERE project_id=? ORDER BY updated_at DESC`, projectID)
+	return s.ListAgentsFiltered(projectID, "")
+}
+
+// ListAgentsFiltered returns agents of a project, optionally filtered by identity_kind.
+// When identityKind is empty, only PERSISTENT agents are returned (ephemeral workers excluded).
+func (s *Store) ListAgentsFiltered(projectID, identityKind string) ([]Agent, error) {
+	query := `SELECT ` + agentColumns + ` FROM agents WHERE project_id=?`
+	args := []any{projectID}
+	if identityKind != "" {
+		query += ` AND COALESCE(identity_kind,'PERSISTENT')=?`
+		args = append(args, identityKind)
+	} else {
+		// Default: exclude ephemeral workers.
+		query += ` AND COALESCE(identity_kind,'PERSISTENT')!='EPHEMERAL_WORKER'`
+	}
+	query += ` ORDER BY updated_at DESC`
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -111,9 +131,12 @@ func (s *Store) ListAgentSummaries() ([]ProjectAgentSummary, error) {
 // UpdateAgent patches mutable agent fields by ID (project scoped).
 func (s *Store) UpdateAgent(a Agent) error {
 	a.UpdatedAt = time.Now().UTC()
-	_, err := s.db.Exec(`UPDATE agents SET name=?,role=?,status=?,current_revision_id=?,continuity_status=?,updated_at=?
+	if a.IdentityKind == "" {
+		a.IdentityKind = "PERSISTENT"
+	}
+	_, err := s.db.Exec(`UPDATE agents SET name=?,role=?,status=?,current_revision_id=?,continuity_status=?,identity_kind=?,updated_at=?
 		WHERE id=? AND project_id=?`,
-		a.Name, a.Role, a.Status, a.CurrentRevisionID, a.ContinuityStatus,
+		a.Name, a.Role, a.Status, a.CurrentRevisionID, a.ContinuityStatus, a.IdentityKind,
 		a.UpdatedAt.Format(time.RFC3339Nano), a.ID, a.ProjectID)
 	return err
 }
@@ -174,6 +197,20 @@ func (s *Store) DeleteAgent(id, projectID string) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// ReconcileEphemeralWorkers removes ephemeral worker agents that are in a
+// terminal state (STOPPED or FAILED). This is called during startup and
+// after mission completion to ensure cleanup.
+func (s *Store) ReconcileEphemeralWorkers() (int64, error) {
+	res, err := s.db.Exec(`DELETE FROM agents
+		WHERE COALESCE(identity_kind,'PERSISTENT')='EPHEMERAL_WORKER'
+		AND status IN (?,?)`,
+		AgentStopped, AgentFailed)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 // NextRevision returns the next revision number for an agent.
@@ -361,7 +398,7 @@ func scanAgentRows(row agentScanner) (Agent, error) {
 	var createdAt, updatedAt string
 	var lastStarted sql.NullString
 	err := row.Scan(&a.ID, &a.ProjectID, &a.Name, &a.Role, &a.Status, &a.CurrentRevisionID,
-		&a.ContinuityStatus, &createdAt, &updatedAt, &lastStarted)
+		&a.ContinuityStatus, &a.IdentityKind, &createdAt, &updatedAt, &lastStarted)
 	if err == sql.ErrNoRows {
 		return Agent{}, ErrNotFound
 	}

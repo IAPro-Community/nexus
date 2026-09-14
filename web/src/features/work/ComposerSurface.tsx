@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  CheckCircle2,
   ClipboardCopy,
   FileText,
   Layers,
@@ -22,6 +21,8 @@ import type {
   Agent,
   Project,
 } from '../../types';
+
+type BriefUnknown = NonNullable<ComposerSessionView['brief']['unknowns']>[number];
 import { selectResumableComposerSession } from './composerSessionModel';
 import {
   composerNeedsGapConfirmation,
@@ -32,6 +33,7 @@ import type { ComposerGate } from './composerModel';
 import { asArray, asStringArray } from '../../lib/safeArray';
 import { TaskPreparationDialog } from '../../components/TaskPreparationDialog';
 import { askActionForStatus } from '../agents/askAgentModel';
+import { ClarificationPrompt } from './ClarificationPrompt';
 import styles from './ComposerSurface.module.scss';
 
 const ARCHETYPE_LABELS: Record<string, string> = {
@@ -104,10 +106,10 @@ export const ComposerSurface: React.FC<{
       .then((items) => {
         const next = items || [];
         setAgents(next);
-        if (!selectedAgentId && next[0]) setSelectedAgentId(next[0].id);
+        setSelectedAgentId((current) => current || next[0]?.id || '');
       })
       .catch(() => undefined);
-  }, [project.id, selectedAgentId]);
+  }, [project.id]);
 
   const briefItems = useMemo(() => {
     if (!view) return [];
@@ -136,23 +138,41 @@ export const ComposerSurface: React.FC<{
     ].filter(([, value]) => value);
   }, [t, view]);
 
-  const nextQuestion = useMemo(() => {
-    if (!view) return '';
+  const nextUnknown = useMemo(() => {
+    if (!view) return null;
     type UnknownItem = NonNullable<ComposerSessionView['brief']['unknowns']>[number];
     const unknowns = asArray<UnknownItem>(view.brief.unknowns);
     const unresolved = unknowns.filter((u) => !isUnknownResolved(u.status));
+    const intelligenceBlocking = unresolved.find(
+      (u) => u.severity === 'BLOCKING' && String(u.source || '').toUpperCase() === 'INTELLIGENCE',
+    );
+    if (intelligenceBlocking) return intelligenceBlocking;
     const blocking = unresolved.find((u) => u.severity === 'BLOCKING');
-    if (blocking?.question) return blocking.question;
-    if (unresolved[0]?.question) return unresolved[0].question;
-    const openQs = asStringArray(view.brief.open_questions);
-    return openQs[0] || '';
+    const withOptions = unresolved.find((u) => asArray(u.suggested_options).length > 0);
+    return blocking || withOptions || unresolved[0] || null;
   }, [view]);
+
+  const nextQuestion = nextUnknown?.question || '';
 
   const actionableGaps = useMemo(() => {
     if (!view) return [];
     type UnknownItem = NonNullable<ComposerSessionView['brief']['unknowns']>[number];
     return asArray<UnknownItem>(view.brief.unknowns).filter((u) => !isUnknownResolved(u.status));
   }, [view]);
+
+  const promptReadyEnough = useMemo(() => {
+    if (!view) return false;
+    const blockingOpen = actionableGaps.some((u) => u.severity === 'BLOCKING');
+    return !blockingOpen && (Boolean(artifact) || turnsReady(view));
+  }, [view, actionableGaps, artifact]);
+
+  function turnsReady(sessionView: ComposerSessionView): boolean {
+    const goal = String(sessionView.brief.goal || '').trim();
+    if (goal.split(/\s+/).length >= 8) return true;
+    const criteria = asStringArray(sessionView.brief.success_criteria);
+    const decisions = asStringArray(sessionView.brief.decisions);
+    return criteria.length > 0 || decisions.length > 0 || (sessionView.turns || []).length >= 2;
+  }
 
   const sessionOptions = useMemo(
     () =>
@@ -246,12 +266,12 @@ export const ComposerSurface: React.FC<{
     }
   };
 
-  const resolveUnknown = async (unknownId: string, status: string) => {
+  const resolveUnknown = async (unknownId: string, status: string, answerOverride?: string) => {
     if (!view) return;
     setBusy(true);
     setError('');
     try {
-      const answer = unknownAnswers[unknownId] || '';
+      const answer = answerOverride ?? unknownAnswers[unknownId] ?? '';
       const updated = await nexus.resolveComposerUnknown(
         view.session.id,
         unknownId,
@@ -270,6 +290,23 @@ export const ComposerSurface: React.FC<{
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const rememberUnknown = async (unknown: { id: string; field?: string }, answer: string) => {
+    if (!view) return;
+    try {
+      await nexus.upsertIntelligenceMemory({
+        scope: 'PROJECT',
+        project_id: project.id,
+        key: unknown.field || unknown.id,
+        value: answer,
+        source: 'explicit',
+        force: true,
+      });
+      await resolveUnknown(unknown.id, 'ANSWERED', answer);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -409,9 +446,15 @@ export const ComposerSurface: React.FC<{
   const archetypeLabel = archetype ? ARCHETYPE_LABELS[archetype] || archetype : null;
   const turns = view.turns || [];
   const showDestinationDock =
-    turns.length > 0 || Boolean(artifact) || view.session.state === 'FINALIZED';
+    turns.length > 0 ||
+    Boolean(artifact) ||
+    view.session.state === 'FINALIZED' ||
+    promptReadyEnough;
   const readinessScore = view.brief.readiness?.score ?? 0;
   const readinessState = view.brief.readiness?.state || 'UNKNOWN';
+  const inferredPremises = asArray<BriefUnknown>(view.brief.unknowns).filter(
+    (u) => u.status === 'INFERRED' && u.inferred_value,
+  );
 
   return (
     <div className="nx-composer-deliberative">
@@ -493,6 +536,24 @@ export const ComposerSurface: React.FC<{
                 </div>
               ))
             )}
+            {nextUnknown && view.session.state !== 'FINALIZED' ? (
+              <ClarificationPrompt
+                item={{
+                  id: nextUnknown.id,
+                  question: nextUnknown.question,
+                  rationale: nextUnknown.rationale,
+                  severity: nextUnknown.severity,
+                  suggested_options: nextUnknown.suggested_options,
+                  default_choice: nextUnknown.default_choice,
+                }}
+                busy={busy}
+                allowDismiss={nextUnknown.severity !== 'BLOCKING'}
+                showRemember
+                onAnswer={(answer) => void resolveUnknown(nextUnknown.id, 'ANSWERED', answer)}
+                onDismiss={() => void resolveUnknown(nextUnknown.id, 'DISMISSED', '')}
+                onRemember={(answer) => void rememberUnknown(nextUnknown, answer)}
+              />
+            ) : null}
           </div>
           {view.session.state !== 'FINALIZED' && (
             <div className={`nx-composer-goal-bar__row ${styles.flexRowGap8mt}`}>
@@ -552,13 +613,32 @@ export const ComposerSurface: React.FC<{
             <Card className={styles.railCard}>
               <strong>{t('work.composer.nextQuestion', 'Next question')}</strong>
               <p className={styles.nextQuestionText}>{nextQuestion}</p>
+              <small className={styles.mutedLabel}>
+                {t(
+                  'work.composer.answerInThread',
+                  'Answer in the conversation thread with the options shown there.',
+                )}
+              </small>
+            </Card>
+          ) : null}
+
+          {inferredPremises.length > 0 ? (
+            <Card className={styles.railCard}>
+              <strong>{t('work.assumedPremise', 'Nexus assumed — edit')}</strong>
+              <div className={styles.flexColGap6}>
+                {inferredPremises.slice(0, 4).map((item) => (
+                  <p key={item.id} className={styles.briefValue}>
+                    {item.inferred_value}
+                  </p>
+                ))}
+              </div>
             </Card>
           ) : null}
 
           <Card className={styles.railCard}>
             <div className={styles.readinessCompact}>
               <strong>{t('work.composer.readiness', 'Readiness')}</strong>
-              <Badge tone={readinessState === 'READY' ? 'success' : 'warning'}>
+              <Badge tone={readinessState === 'READY' || promptReadyEnough ? 'success' : 'warning'}>
                 {readinessScore}% · {readinessState}
               </Badge>
             </div>
@@ -589,48 +669,20 @@ export const ComposerSurface: React.FC<{
           </Card>
 
           <Card className={styles.railCard}>
-            <strong>{t('work.composer.gaps', 'Actionable gaps')}</strong>
+            <strong>{t('work.composer.gaps', 'Open refinements')}</strong>
             {actionableGaps.length === 0 ? (
               <p className="nx-muted-copy">{t('work.composer.noGaps', 'No open gaps.')}</p>
             ) : (
-              actionableGaps.map((unknown) => (
-                <div key={unknown.id} className={styles.unknownCard}>
-                  <div className={styles.unknownHeader}>
-                    <p className={styles.unknownQuestion}>{unknown.question}</p>
+              <ul className={styles.flexColGap6}>
+                {actionableGaps.map((unknown) => (
+                  <li key={unknown.id} className={styles.unknownQuestion}>
                     <Badge tone={unknown.severity === 'BLOCKING' ? 'danger' : 'warning'}>
                       {unknown.severity}
-                    </Badge>
-                  </div>
-                  <div className={styles.unknownResolveArea}>
-                    <input
-                      className={`nx-input ${styles.unknownAnswerInput}`}
-                      placeholder={t('work.composer.gapAnswerPlaceholder', 'Your answer…')}
-                      value={unknownAnswers[unknown.id] || ''}
-                      onChange={(e) =>
-                        setUnknownAnswers({ ...unknownAnswers, [unknown.id]: e.target.value })
-                      }
-                      disabled={busy}
-                    />
-                    <div className={styles.unknownAnswerButtons}>
-                      <Button
-                        size="sm"
-                        tone="brand"
-                        disabled={!unknownAnswers[unknown.id]?.trim() || busy}
-                        onClick={() => void resolveUnknown(unknown.id, 'ANSWERED')}
-                      >
-                        <CheckCircle2 size={12} /> {t('work.composer.answer', 'Answer')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        disabled={busy}
-                        onClick={() => void resolveUnknown(unknown.id, 'DISMISSED')}
-                      >
-                        {t('work.composer.dismiss', 'Dismiss')}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))
+                    </Badge>{' '}
+                    {unknown.question}
+                  </li>
+                ))}
+              </ul>
             )}
           </Card>
         </aside>

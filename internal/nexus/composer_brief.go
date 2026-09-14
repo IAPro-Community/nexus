@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 )
 
 type ComposerFactStatus string
@@ -146,16 +148,18 @@ type PromptAssumption struct {
 }
 
 type PromptUnknown struct {
-	ID            string                `json:"id"`
-	Field         string                `json:"field"`
-	Question      string                `json:"question"`
-	Rationale     string                `json:"rationale"`
-	Severity      PromptUnknownSeverity `json:"severity"`
-	Status        PromptUnknownStatus   `json:"status"`
-	Answer        string                `json:"answer,omitempty"`
-	InferredValue string                `json:"inferred_value,omitempty"`
-	Confidence    string                `json:"confidence,omitempty"`
-	Source        string                `json:"source,omitempty"`
+	ID               string                `json:"id"`
+	Field            string                `json:"field"`
+	Question         string                `json:"question"`
+	Rationale        string                `json:"rationale"`
+	Severity         PromptUnknownSeverity `json:"severity"`
+	Status           PromptUnknownStatus   `json:"status"`
+	Answer           string                `json:"answer,omitempty"`
+	InferredValue    string                `json:"inferred_value,omitempty"`
+	Confidence       string                `json:"confidence,omitempty"`
+	Source           string                `json:"source,omitempty"`
+	SuggestedOptions []string              `json:"suggested_options,omitempty"`
+	DefaultChoice    string                `json:"default_choice,omitempty"`
 }
 
 type PromptReadinessCheck struct {
@@ -248,6 +252,32 @@ func refreshComposerBrief(brief *LivingBrief) {
 	brief.Motivation = deriveMotivationMap(*brief)
 }
 
+// PromptIsShallow reports whether the brief still lacks an observable outcome
+// that would produce a strong development prompt.
+func PromptIsShallow(brief LivingBrief) bool {
+	if strings.TrimSpace(brief.Goal) == "" {
+		return true
+	}
+	words := strings.Fields(brief.Goal)
+	if len(words) < 4 && len(brief.Quality.AcceptanceCriteria) == 0 && len(brief.Scope.InScope) == 0 {
+		return true
+	}
+	if len(brief.Quality.AcceptanceCriteria) == 0 && len(brief.Scope.InScope) == 0 && len(brief.Decisions) == 0 {
+		lower := strings.ToLower(brief.Goal)
+		vague := []string{"melhorar", "improve", "ajustar", "update", "dashboard", "ui", "algo", "something"}
+		hits := 0
+		for _, v := range vague {
+			if strings.Contains(lower, v) {
+				hits++
+			}
+		}
+		if hits > 0 && len(words) < 12 {
+			return true
+		}
+	}
+	return false
+}
+
 func deriveMotivationMap(brief LivingBrief) MotivationMap {
 	now := time.Now().UTC()
 	fact := func(id, field, value, source, impact string) ComposerFact {
@@ -327,32 +357,46 @@ func mergeTextIntoBrief(brief *LivingBrief, text, source string) {
 }
 
 func refreshComposerUnknowns(brief LivingBrief) []PromptUnknown {
-	blueprints := archetypeUnknowns(brief.Intent.Archetype)
+	// Preserve intelligence / user unknowns keyed by field. Archetype checklists
+	// only fill gaps that are still missing — they never wipe intelligence items.
 	current := map[string]PromptUnknown{}
+	order := []string{}
 	for _, item := range brief.Unknowns {
-		current[item.Field] = item
+		field := item.Field
+		if field == "" {
+			field = item.ID
+		}
+		if _, exists := current[field]; !exists {
+			order = append(order, field)
+		}
+		current[field] = item
 	}
-	out := make([]PromptUnknown, 0, len(blueprints))
+
+	shallow := PromptIsShallow(brief)
+	blueprints := archetypeUnknowns(brief.Intent.Archetype)
 	for _, bp := range blueprints {
-		item := current[bp.Field]
-		if item.ID == "" {
+		item, exists := current[bp.Field]
+		if !exists {
 			item = PromptUnknown{
-				ID:        bp.ID,
-				Field:     bp.Field,
-				Question:  bp.Question,
-				Rationale: bp.Rationale,
-				Severity:  bp.Severity,
-				Source:    "INTELLIGENCE",
+				ID: bp.ID, Field: bp.Field, Question: bp.Question,
+				Rationale: bp.Rationale, Severity: bp.Severity, Source: "ARCHETYPE",
+			}
+			order = append(order, bp.Field)
+		} else if item.Source == "INTELLIGENCE" || item.Source == "USER" || item.Source == "MEMORY" {
+			// Keep intelligence/user/memory questions intact; only re-evaluate status.
+		} else {
+			item.Question = bp.Question
+			item.Rationale = bp.Rationale
+			if item.Severity == "" {
+				item.Severity = bp.Severity
 			}
 		}
-		item.Question = bp.Question
-		item.Rationale = bp.Rationale
-		item.Severity = bp.Severity
-		// Preserve user-resolved unknown status and answer if already resolved
+
 		if item.Status == PromptUnknownAnswered || item.Status == PromptUnknownConfirmed || item.Status == PromptUnknownDismissed {
-			out = append(out, item)
+			current[bp.Field] = item
 			continue
 		}
+
 		summary, status, confidence := evaluateBriefField(brief, bp.Field)
 		switch status {
 		case PromptUnknownConfirmed, PromptUnknownAnswered:
@@ -360,22 +404,111 @@ func refreshComposerUnknowns(brief LivingBrief) []PromptUnknown {
 			item.Answer = summary
 			item.InferredValue = ""
 			item.Confidence = confidence
-			item.Source = "USER"
+			if item.Source == "" || item.Source == "ARCHETYPE" {
+				item.Source = "USER"
+			}
 		case PromptUnknownInferred:
 			item.Status = PromptUnknownInferred
 			item.Answer = ""
 			item.InferredValue = summary
 			item.Confidence = confidence
-			item.Source = "PROJECT_CONTEXT"
+			if item.Source == "" || item.Source == "ARCHETYPE" {
+				item.Source = "PROJECT_CONTEXT"
+			}
+			// Ritual archetype BLOCKING becomes RECOMMENDED when not shallow and
+			// the field was only inferred from context/memory.
+			if item.Source != "INTELLIGENCE" && !shallow && bp.Severity == PromptUnknownBlocking {
+				item.Severity = PromptUnknownRecommended
+			}
 		default:
 			item.Status = PromptUnknownOpen
 			item.Answer = ""
 			item.InferredValue = ""
 			item.Confidence = ""
+			// Ritual ARCHETYPE never stays BLOCKING: shallow prompts extract via
+			// intelligence (options); deep prompts unlock destinations without a form.
+			if item.Source != "INTELLIGENCE" && item.Source != "USER" && item.Source != "MEMORY" &&
+				bp.Severity == PromptUnknownBlocking {
+				item.Severity = PromptUnknownRecommended
+				if !shallow {
+					item.Status = PromptUnknownInferred
+					item.InferredValue = "deferred — prompt already has actionable depth"
+					item.Confidence = "LOW"
+					item.Source = "REFINERY"
+				}
+			}
 		}
+		current[bp.Field] = item
+	}
+
+	out := make([]PromptUnknown, 0, len(order))
+	seen := map[string]bool{}
+	for _, field := range order {
+		item := current[field]
+		if seen[field] {
+			continue
+		}
+		seen[field] = true
 		out = append(out, item)
 	}
 	return out
+}
+
+// MergeIntelligenceUnknowns folds provider AmbiguityItems into the brief without
+// discarding existing resolved answers.
+func MergeIntelligenceUnknowns(brief *LivingBrief, items []intelligence.AmbiguityItem) {
+	if brief == nil || len(items) == 0 {
+		return
+	}
+	byField := map[string]int{}
+	for i, u := range brief.Unknowns {
+		byField[u.Field] = i
+		if u.ID != "" {
+			byField[u.ID] = i
+		}
+	}
+	for _, item := range items {
+		field := strings.TrimSpace(item.Key)
+		if field == "" {
+			continue
+		}
+		severity := PromptUnknownRecommended
+		switch item.Level {
+		case intelligence.AmbiguityBlocking:
+			severity = PromptUnknownBlocking
+		case intelligence.AmbiguityLowImpact:
+			severity = PromptUnknownOptional
+		}
+		next := PromptUnknown{
+			ID: field, Field: field, Question: item.Question, Rationale: item.Rationale,
+			Severity: severity, Status: PromptUnknownOpen, Source: "INTELLIGENCE",
+			SuggestedOptions: append([]string{}, item.SuggestedOptions...),
+			DefaultChoice:    item.DefaultChoice,
+		}
+		if item.IsResolved && strings.TrimSpace(item.Answer) != "" {
+			next.Status = PromptUnknownAnswered
+			next.Answer = item.Answer
+		} else if severity == PromptUnknownOptional && item.DefaultChoice != "" {
+			next.Status = PromptUnknownInferred
+			next.InferredValue = item.DefaultChoice
+			next.Confidence = "MEDIUM"
+		}
+		if idx, ok := byField[field]; ok {
+			prev := brief.Unknowns[idx]
+			if prev.Status == PromptUnknownAnswered || prev.Status == PromptUnknownConfirmed || prev.Status == PromptUnknownDismissed {
+				continue
+			}
+			if len(next.SuggestedOptions) == 0 {
+				next.SuggestedOptions = prev.SuggestedOptions
+			}
+			if next.DefaultChoice == "" {
+				next.DefaultChoice = prev.DefaultChoice
+			}
+			brief.Unknowns[idx] = next
+			continue
+		}
+		brief.Unknowns = append(brief.Unknowns, next)
+	}
 }
 
 func computePromptReadiness(brief LivingBrief) PromptReadiness {

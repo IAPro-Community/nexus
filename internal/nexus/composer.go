@@ -115,6 +115,13 @@ func (n *Nexus) CreateComposerSessionWithPrompt(ctx context.Context, projectID, 
 			"HEAD: " + firstNonEmpty(readiness.CurrentFingerprint.Head, "unknown"),
 		})
 	}
+	if facts, factErr := n.MemoryFactsMap(ctx, projectID); factErr == nil {
+		ApplyMemoriesToBrief(&brief, facts)
+	}
+	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
+		applySnapshotFactsToBrief(&brief, grounded)
+	}
+	n.seedComposerIntelligenceUnknowns(ctx, projectID, &brief)
 	refreshComposerBrief(&brief)
 	briefJSON, _ := json.Marshal(brief)
 	sessionState := composerSessionStateFromBrief(brief)
@@ -219,10 +226,16 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 	intelligenceNotice := ""
 	if role == store.ComposerUser {
 		mergeTextIntoBrief(&brief, content, "USER")
+		if facts, factErr := n.MemoryFactsMap(ctx, session.ProjectID); factErr == nil {
+			ApplyMemoriesToBrief(&brief, facts)
+		}
 		if provider, providerErr := n.ConfiguredIntelligenceProvider(ctx, session.ProjectID); providerErr == nil && provider.Available(ctx) {
 			contextData := map[string]any{"project_id": session.ProjectID, "brief": brief}
 			if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, session.ProjectID); groundedErr == nil {
 				contextData["project_intelligence"] = grounded
+			}
+			if memFacts, memErr := n.MemoryFactsMap(ctx, session.ProjectID); memErr == nil {
+				contextData["intelligence_memories"] = memFacts
 			}
 			analysis, analyzeErr := provider.AnalyzeIntent(ctx, content, contextData)
 			if analyzeErr != nil {
@@ -247,9 +260,7 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 				if unknownErr != nil {
 					intelligenceNotice = "Inteligência local não conseguiu avaliar as lacunas: " + unknownErr.Error()
 				}
-				for _, unknown := range unknowns {
-					brief.OpenQuestions = appendUnique(brief.OpenQuestions, unknown.Question)
-				}
+				MergeIntelligenceUnknowns(&brief, unknowns)
 			}
 		} else if providerErr != nil && !errors.Is(providerErr, intelligence.ErrIntelligenceUnavailable) {
 			intelligenceNotice = "Inteligência local indisponível: " + providerErr.Error()
@@ -297,10 +308,17 @@ func (n *Nexus) FinalizeComposerSession(ctx context.Context, sessionID string, s
 	}
 	brief := decodeComposerBrief(session.BriefJSON)
 	refreshComposerBrief(&brief)
-	if brief.Readiness.State == PromptReadinessBlocked && !confirmGaps {
+	blockingOpen := false
+	for _, u := range brief.Unknowns {
+		if u.Severity == PromptUnknownBlocking && u.Status == PromptUnknownOpen {
+			blockingOpen = true
+			break
+		}
+	}
+	if blockingOpen && !confirmGaps {
 		return nil, fmt.Errorf("composer has blocking gaps; confirm gaps before finalizing")
 	}
-	if len(brief.OpenQuestions) > 0 && !confirmGaps {
+	if PromptIsShallow(brief) && len(brief.OpenQuestions) > 0 && !confirmGaps {
 		return nil, fmt.Errorf("composer has open questions; confirm gaps before finalizing")
 	}
 	catalog, err := n.skillCatalogForProject(session.ProjectID)
@@ -442,10 +460,15 @@ func (n *Nexus) ResolveComposerUnknownExpected(ctx context.Context, sessionID, u
 	}
 	brief := decodeComposerBrief(session.BriefJSON)
 	found := false
+	var resolvedField string
 	for i := range brief.Unknowns {
-		if brief.Unknowns[i].ID == unknownID {
+		if brief.Unknowns[i].ID == unknownID || brief.Unknowns[i].Field == unknownID {
 			brief.Unknowns[i].Answer = strings.TrimSpace(answer)
 			brief.Unknowns[i].Status = PromptUnknownStatus(status)
+			resolvedField = brief.Unknowns[i].Field
+			if status == string(PromptUnknownAnswered) || status == string(PromptUnknownConfirmed) {
+				applyUnknownAnswerToBrief(&brief, brief.Unknowns[i])
+			}
 			found = true
 			break
 		}
@@ -454,7 +477,37 @@ func (n *Nexus) ResolveComposerUnknownExpected(ctx context.Context, sessionID, u
 		return nil, fmt.Errorf("unknown %q not found in session %q", unknownID, sessionID)
 	}
 	refreshComposerBrief(&brief)
-	return n.persistComposerSessionExpected(st, session, brief, expectedRevision)
+	view, err := n.persistComposerSessionExpected(st, session, brief, expectedRevision)
+	if err != nil {
+		return nil, err
+	}
+	if resolvedField != "" && (status == string(PromptUnknownAnswered) || status == string(PromptUnknownConfirmed)) {
+		_ = n.PromoteHabitMemory(ctx, session.ProjectID, resolvedField, strings.TrimSpace(answer), MemorySourceComposer, false)
+	}
+	return view, nil
+}
+
+func applyUnknownAnswerToBrief(brief *LivingBrief, unknown PromptUnknown) {
+	answer := strings.TrimSpace(unknown.Answer)
+	if answer == "" {
+		return
+	}
+	switch unknown.Field {
+	case "scope.in_scope":
+		brief.Scope.InScope = appendUnique(brief.Scope.InScope, answer)
+	case "quality.acceptance_criteria":
+		brief.Quality.AcceptanceCriteria = appendUnique(brief.Quality.AcceptanceCriteria, answer)
+	case "quality.testing":
+		brief.Quality.Testing = appendUnique(brief.Quality.Testing, answer)
+	case "quality.verification":
+		brief.Quality.Verification = appendUnique(brief.Quality.Verification, answer)
+	case "environment.stack":
+		brief.Environment.Stack = appendUnique(brief.Environment.Stack, answer)
+	case "context.existing_state":
+		brief.Context.ExistingState = appendUnique(brief.Context.ExistingState, answer)
+	default:
+		brief.Decisions = appendUnique(brief.Decisions, unknown.Field+": "+answer)
+	}
 }
 
 func (n *Nexus) composeSessionView(st *store.Store, session store.ComposerSession, brief LivingBrief) (*ComposerSessionView, error) {
@@ -508,10 +561,104 @@ func (n *Nexus) persistComposerSessionExpected(st *store.Store, session *store.C
 }
 
 func composeAssistantReply(brief LivingBrief) string {
-	if len(brief.OpenQuestions) > 0 {
-		return "Atualizei o briefing. Próxima pergunta de maior impacto: " + brief.OpenQuestions[0]
+	var open PromptUnknown
+	for _, u := range brief.Unknowns {
+		if u.Status != PromptUnknownOpen {
+			continue
+		}
+		if u.Severity == PromptUnknownBlocking {
+			open = u
+			break
+		}
+		if open.ID == "" {
+			open = u
+		}
 	}
-	return "Atualizei o briefing. O prompt já está consistente o bastante para finalizar."
+	understood := firstNonEmpty(brief.Intent.DesiredOutcome, brief.Intent.Objective, brief.Goal)
+	if open.Question != "" {
+		if understood != "" {
+			return "Entendi: " + understood + ". Para aprofundar o prompt: " + open.Question
+		}
+		return "Para aprofundar o prompt: " + open.Question
+	}
+	if PromptIsShallow(brief) {
+		return "Ainda falta um resultado observável. O que deve ficar pronto e como você vai verificar?"
+	}
+	return "O prompt já tem profundidade suficiente para Copiar, enviar ao agente ou transformar em Flow. Você ainda pode refinar."
+}
+
+func (n *Nexus) seedComposerIntelligenceUnknowns(ctx context.Context, projectID string, brief *LivingBrief) {
+	if brief == nil {
+		return
+	}
+	provider, err := n.ConfiguredIntelligenceProvider(ctx, projectID)
+	if err != nil || provider == nil || !provider.Available(ctx) {
+		// Deterministic shallowness question when no provider is configured.
+		if PromptIsShallow(*brief) {
+			MergeIntelligenceUnknowns(brief, []intelligence.AmbiguityItem{{
+				Key: "quality.acceptance_criteria", Level: intelligence.AmbiguityBlocking,
+				Question:  "Qual resultado observável define que isso está pronto?",
+				Rationale: "Um prompt raso sem aceite produz trabalho raso.",
+				SuggestedOptions: []string{
+					"UI + testes verdes no caminho alterado",
+					"API + contrato documentado",
+					"Bug corrigido com teste de regressão",
+				},
+			}})
+		}
+		return
+	}
+	contextData := map[string]any{"project_id": projectID, "brief": *brief}
+	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
+		contextData["project_intelligence"] = grounded
+	}
+	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
+		contextData["intelligence_memories"] = memFacts
+	}
+	goal := firstNonEmpty(brief.Goal, brief.Intent.Objective)
+	analysis, analyzeErr := provider.AnalyzeIntent(ctx, goal, contextData)
+	if analyzeErr != nil || analysis == nil {
+		return
+	}
+	var unknowns []intelligence.AmbiguityItem
+	if contextual, ok := provider.(intelligence.ContextualAmbiguityEvaluator); ok {
+		unknowns, _ = contextual.EvaluateAmbiguitiesWithContext(ctx, analysis, contextData)
+	} else {
+		unknowns, _ = provider.EvaluateAmbiguities(ctx, analysis)
+	}
+	MergeIntelligenceUnknowns(brief, unknowns)
+}
+
+func applySnapshotFactsToBrief(brief *LivingBrief, grounded map[string]any) {
+	if brief == nil || grounded == nil {
+		return
+	}
+	rawFacts, _ := grounded["facts"].([]map[string]any)
+	if rawFacts == nil {
+		if anyFacts, ok := grounded["facts"].([]any); ok {
+			for _, item := range anyFacts {
+				if m, ok := item.(map[string]any); ok {
+					rawFacts = append(rawFacts, m)
+				}
+			}
+		}
+	}
+	for _, fact := range rawFacts {
+		key := strings.ToLower(fmt.Sprint(fact["key"]))
+		value := strings.TrimSpace(fmt.Sprint(fact["value"]))
+		if value == "" || value == "<nil>" {
+			continue
+		}
+		if strings.Contains(key, "test") || strings.Contains(key, "vitest") || strings.Contains(key, "go-test") {
+			brief.Quality.Testing = appendUnique(brief.Quality.Testing, value)
+		}
+		if strings.Contains(key, "build") || strings.Contains(key, "command") {
+			brief.Quality.Verification = appendUnique(brief.Quality.Verification, value)
+		}
+		if strings.Contains(key, "stack") || strings.Contains(key, "language") || strings.Contains(key, "framework") {
+			brief.Environment.Stack = appendUnique(brief.Environment.Stack, value)
+		}
+	}
 }
 
 func decodeComposerBrief(raw string) LivingBrief {

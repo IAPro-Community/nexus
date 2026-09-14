@@ -15,10 +15,10 @@ describe('workspace surfaces', () => {
     expect(s.viewId).toBe('view:project:prj_1:overview');
     expect(s.closable).toBe(false);
   });
-  it('pins Composer next to Overview and Terminals', () => {
+  it('pins Composer, Flow, Overview and Terminals', () => {
     expect(projectSurface('prj_1', 'work').closable).toBe(false);
     expect(projectSurface('prj_1', 'terminals').closable).toBe(false);
-    expect(projectSurface('prj_1', 'missions').closable).toBe(true);
+    expect(projectSurface('prj_1', 'missions').closable).toBe(false);
   });
   it('creates projects hub surface id', () => {
     const s = projectSurface('prj_1', 'projects');

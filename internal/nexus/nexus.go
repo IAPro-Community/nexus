@@ -5,6 +5,7 @@ package nexus
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -185,6 +186,8 @@ func Default() *Nexus {
 			})
 			_ = defaultNexus.RecoverMissionRuns(context.Background())
 			defaultNexus.StartScheduleLoop()
+			// Purge expired events at startup (90d default).
+			go defaultNexus.purgeExpiredEvents()
 		}
 	})
 	return defaultNexus
@@ -219,6 +222,26 @@ func ResetDefaultForTest() {
 		defaultNexus = nil
 	}
 	nexusOnce = sync.Once{}
+}
+
+// purgeExpiredEvents removes activity events older than the retention period.
+// It runs once at startup and is safe to call from a background goroutine.
+func (nx *Nexus) purgeExpiredEvents() {
+	if nx == nil {
+		return
+	}
+	st, err := nx.OpenProject()
+	if err != nil {
+		return
+	}
+	policy, err := GetConductorPolicy(st)
+	if err != nil || policy == nil || policy.RetentionDays == nil {
+		return
+	}
+	purged, err := st.PurgeExpiredEventsSince(time.Now().UTC(), *policy.RetentionDays)
+	if err == nil && purged > 0 {
+		slog.Debug("nexus conductor: purged expired events", "count", purged)
+	}
 }
 
 // StartQuotaMonitor starts the process-resident quota service exactly once.

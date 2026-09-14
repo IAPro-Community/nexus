@@ -29,7 +29,7 @@ var opencodeSpec = Spec{
 		return []string{"-s", sessionID}
 	},
 	AutoApproval:  []string{"--auto"},
-	ReviewMode:    nil,
+	ReviewMode:    []string{"--permission-mode", "plan"},
 	Quota:         QuotaLiveHTTP,
 	KnownVersions: []string{"1.18.30"},
 }

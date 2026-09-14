@@ -75,10 +75,13 @@ func extractFromTarGz(data []byte) (*ExtractedBinary, error) {
 			return nil, err
 		}
 
-		totalSize += hdr.Size
-		if totalSize > MaxExtractSize {
+		// hdr.Size is attacker-controlled: reject negatives and guard the
+		// running total against int64 overflow, mirroring the zip path.
+		if hdr.Size < 0 || hdr.Size > MaxExtractSize ||
+			uint64(totalSize) > uint64(MaxExtractSize)-uint64(hdr.Size) {
 			return nil, ErrArchiveTooLarge
 		}
+		totalSize += hdr.Size
 
 		if hdr.FileInfo().Mode().IsRegular() && isBinaryName(hdr.Name) {
 			buf := make([]byte, hdr.Size)

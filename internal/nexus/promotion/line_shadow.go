@@ -25,9 +25,13 @@ type LineShadow struct {
 	escape    []byte
 	inPaste   bool
 	pasteScan []byte
+	pasteBuf  []byte
 }
 
 func NewLineShadow() *LineShadow { return &LineShadow{enabled: true} }
+
+const maxPasteBytes = 32 * 1024
+const maxPasteLines = 200
 
 func (s *LineShadow) SetEnabled(enabled bool) {
 	if s == nil {
@@ -53,6 +57,7 @@ func (s *LineShadow) Reset() {
 	s.escape = s.escape[:0]
 	s.inPaste = false
 	s.pasteScan = s.pasteScan[:0]
+	s.pasteBuf = s.pasteBuf[:0]
 }
 
 // Process and Feed are aliases kept convenient for stream adapters.
@@ -72,6 +77,7 @@ func (s *LineShadow) Consume(input []byte) LineEvent {
 	for _, b := range input {
 		if s.inPaste {
 			event.Forward = append(event.Forward, b)
+			s.capturePasteByte(b)
 			s.consumePasteByte(b)
 			continue
 		}
@@ -172,7 +178,59 @@ func (s *LineShadow) consumePasteByte(b byte) {
 	if bytes.Equal(s.pasteScan, []byte(end)) {
 		s.inPaste = false
 		s.pasteScan = s.pasteScan[:0]
+		s.flushPasteBuf()
 	}
+}
+
+func (s *LineShadow) capturePasteByte(b byte) {
+	if len(s.pasteBuf) >= maxPasteBytes {
+		return
+	}
+	switch {
+	case b == '\r' || b == '\n':
+		s.pasteBuf = append(s.pasteBuf, '\n')
+	case b == '\t':
+		s.pasteBuf = append(s.pasteBuf, ' ')
+	case b >= 0x20 && b != 0x7f:
+		s.pasteBuf = append(s.pasteBuf, b)
+	case b >= 0x80:
+		s.pasteBuf = append(s.pasteBuf, b)
+	}
+}
+
+func (s *LineShadow) flushPasteBuf() {
+	if len(s.pasteBuf) == 0 {
+		return
+	}
+	if bytes.HasSuffix(s.pasteBuf, []byte("\x1b[201~")) {
+		s.pasteBuf = s.pasteBuf[:len(s.pasteBuf)-len("\x1b[201~")]
+	} else if bytes.HasSuffix(s.pasteBuf, []byte("[201~")) {
+		s.pasteBuf = s.pasteBuf[:len(s.pasteBuf)-len("[201~")]
+	}
+	lines := 1
+	for _, b := range s.pasteBuf {
+		if b == '\n' {
+			lines++
+		}
+	}
+	if lines > maxPasteLines {
+		cut := 0
+		seen := 0
+		for i, b := range s.pasteBuf {
+			if b == '\n' {
+				seen++
+				if seen == maxPasteLines {
+					cut = i + 1
+					break
+				}
+			}
+		}
+		if cut > 0 {
+			s.pasteBuf = s.pasteBuf[:cut]
+		}
+	}
+	s.line = append(s.line, s.pasteBuf...)
+	s.pasteBuf = s.pasteBuf[:0]
 }
 
 func (s *LineShadow) removeLastRune() {
@@ -191,4 +249,5 @@ func (s *LineShadow) resetControlState() {
 	s.escape = s.escape[:0]
 	s.inPaste = false
 	s.pasteScan = s.pasteScan[:0]
+	s.pasteBuf = s.pasteBuf[:0]
 }

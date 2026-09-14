@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -167,9 +168,16 @@ func TestIsWithinAllowedRoots(t *testing.T) {
 		reason string
 	}{
 		{filepath.Join(home, "projects", "myapp"), true, "under home"},
-		{"/tmp/something", true, "under /tmp"},
+		{filepath.Join(os.TempDir(), "something"), true, "under OS temp"},
 		{"/etc/cron.d/evil", false, "system directory"},
 		{"/proc/self/environ", false, "proc filesystem"},
+	}
+	if runtime.GOOS != "windows" {
+		tests = append(tests, struct {
+			path   string
+			allow  bool
+			reason string
+		}{"/tmp/something", true, "under /tmp"})
 	}
 	for _, tc := range tests {
 		got := isWithinAllowedRoots(tc.path)

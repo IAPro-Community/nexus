@@ -853,6 +853,7 @@ export interface ComposerSessionView {
     readiness?: { score: number; state: string; summary: string; checks?: PromptReadinessCheck[] };
     unknowns?: Array<{
       id: string;
+      field?: string;
       question: string;
       rationale?: string;
       severity: string;
@@ -860,6 +861,9 @@ export interface ComposerSessionView {
       answer?: string;
       inferred_value?: string;
       confidence?: string;
+      source?: string;
+      suggested_options?: string[];
+      default_choice?: string;
     }>;
   };
   turns: ComposerTurn[];
@@ -868,6 +872,16 @@ export interface ComposerSessionView {
   variants?: Record<string, PromptVariant[]>;
   flow_suitability?: FlowSuitabilityAssessment;
   prompt_review?: ComposerPromptReview;
+}
+
+export interface IntelligenceMemory {
+  id: string;
+  scope: 'INSTALL' | 'PROJECT' | string;
+  project_id?: string;
+  key: string;
+  value: string;
+  source?: string;
+  updated_at?: string;
 }
 
 export interface ClarificationUnknown {

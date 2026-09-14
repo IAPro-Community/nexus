@@ -39,7 +39,9 @@ import { clarificationFromError, unresolvedBlocking } from './clarificationModel
 import styles from './PlanBuilderSurface.module.scss';
 import { composerGateForReadiness } from './composerModel';
 import { FlowCanvas } from './FlowCanvas';
+import { FlowPipeline } from './FlowPipeline';
 import { FlowStepInspector } from './FlowStepInspector';
+import { ClarificationPrompt } from './ClarificationPrompt';
 import {
   expandStepLocalized,
   flowFromWorkPlan,
@@ -52,6 +54,8 @@ import {
   type FlowStepModel,
 } from './flowModel';
 import { normalizeWorkPlan } from './planBuilderModel';
+
+type StudioView = 'pipeline' | 'graph';
 
 export const PlanBuilderSurface: React.FC<{
   project: Project;
@@ -109,6 +113,7 @@ export const PlanBuilderSurface: React.FC<{
   });
   const [preflightReport, setPreflightReport] = useState<FlowPreflightReport | null>(null);
   const [preflightBusy, setPreflightBusy] = useState(false);
+  const [studioView, setStudioView] = useState<StudioView>('pipeline');
 
   const composerDraftKey = `nexus:composer:draft:${project.id}`;
   const composerHistoryKey = `nexus:composer:history:${project.id}`;
@@ -872,39 +877,31 @@ export const PlanBuilderSurface: React.FC<{
   const clarificationBlock = clarification ? (
     <Card className={styles.clarificationCard}>
       <div className={styles.clarificationHeader}>
-        <strong>Clarification required before autonomous planning</strong>
+        <strong>{t('flow.clarificationTitle', 'Clarification required before planning')}</strong>
         <p className={styles.clarificationSubtitle}>
-          Nexus stopped instead of guessing. These answers become durable facts in the WorkPlan.
+          {t(
+            'flow.clarificationSubtitle',
+            'Nexus stopped instead of guessing. Answers become durable facts.',
+          )}
         </p>
       </div>
       <div className={styles.clarificationGrid}>
         {unresolvedBlocking(clarification).map((item) => (
-          <label key={item.key} className={styles.clarificationLabel}>
-            <span>
-              <strong>{item.question}</strong>
-            </span>
-            {item.rationale && (
-              <small className={styles.clarificationRationale}>{item.rationale}</small>
-            )}
-            {item.suggested_options && item.suggested_options.length > 0 ? (
-              <Select
-                value={clarificationAnswers[item.key] || ''}
-                onChange={(value) =>
-                  setClarificationAnswers((prev) => ({ ...prev, [item.key]: value }))
-                }
-                placeholder="Choose…"
-                options={item.suggested_options.map((option) => ({ value: option, label: option }))}
-              />
-            ) : (
-              <Input
-                value={clarificationAnswers[item.key] || ''}
-                onChange={(value) =>
-                  setClarificationAnswers((prev) => ({ ...prev, [item.key]: value }))
-                }
-                placeholder="Answer required"
-              />
-            )}
-          </label>
+          <ClarificationPrompt
+            key={item.key}
+            item={{
+              id: item.key,
+              question: item.question,
+              rationale: item.rationale,
+              severity: item.level,
+              suggested_options: item.suggested_options,
+              default_choice: item.default_choice,
+            }}
+            busy={generating}
+            onAnswer={(answer) =>
+              setClarificationAnswers((prev) => ({ ...prev, [item.key]: answer }))
+            }
+          />
         ))}
       </div>
       <div className={styles.clarificationActions}>
@@ -918,7 +915,7 @@ export const PlanBuilderSurface: React.FC<{
           }
           onClick={() => void handleResolveClarification()}
         >
-          <ArrowRight size={14} /> Continue planning
+          <ArrowRight size={14} /> {t('flow.continuePlanning', 'Continue planning')}
         </Button>
       </div>
     </Card>
@@ -1144,13 +1141,43 @@ export const PlanBuilderSurface: React.FC<{
 
         <div className="nx-composer-flow-body" data-has-draft={flowDraft ? 'true' : 'false'}>
           <div className="nx-composer-flow-canvas-pane">
+            {flowDraft ? (
+              <div className={styles.studioToolbar}>
+                <div
+                  className={styles.viewToggle}
+                  role="tablist"
+                  aria-label={t('flow.viewPipeline')}
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={studioView === 'pipeline'}
+                    data-active={studioView === 'pipeline' ? 'true' : undefined}
+                    onClick={() => setStudioView('pipeline')}
+                  >
+                    {t('flow.viewPipeline', 'Pipeline')}
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={studioView === 'graph'}
+                    data-active={studioView === 'graph' ? 'true' : undefined}
+                    onClick={() => setStudioView('graph')}
+                  >
+                    {t('flow.viewGraph', 'Graph')}
+                  </button>
+                </div>
+              </div>
+            ) : null}
             {!flowDraft && (
               <Card className="nx-composer-empty-canvas">
                 <Sparkles size={22} className={styles.emptyCanvasIcon} />
-                <strong>Canvas vazio</strong>
+                <strong>{t('flow.emptyCanvasTitle', 'Empty pipeline')}</strong>
                 <p>
-                  Gere o rascunho com a IA ou crie uma estrutura base para montar as etapas
-                  manualmente.
+                  {t(
+                    'flow.emptyCanvasHint',
+                    'Generate a draft with AI or create a base structure manually.',
+                  )}
                 </p>
                 <div className={styles.emptyCanvasActions}>
                   <Button
@@ -1159,12 +1186,19 @@ export const PlanBuilderSurface: React.FC<{
                     disabled={generating}
                     onClick={() => void handleCreateManualPlan()}
                   >
-                    <Plus size={13} /> Criar Flow Manual
+                    <Plus size={13} /> {t('flow.newFlow', 'New Flow')}
                   </Button>
                 </div>
               </Card>
             )}
-            {flowDraft && (
+            {flowDraft && studioView === 'pipeline' && (
+              <FlowPipeline
+                flow={flowDraft}
+                selectedId={selectedStepId}
+                onSelect={setSelectedStepId}
+              />
+            )}
+            {flowDraft && studioView === 'graph' && (
               <>
                 <div className="nx-flow-editor-toolbar">
                   <div className={styles.autonomyToolbar}>
@@ -1182,41 +1216,20 @@ export const PlanBuilderSurface: React.FC<{
                         { value: 'GUIDED', label: 'Guided' },
                         { value: 'AUTONOMOUS', label: 'Autonomous' },
                       ]}
-                      selectStyle={{ height: 28, fontSize: 12 }}
+                      selectStyle={{ minWidth: 140 }}
                     />
                   </div>
-                  <Badge tone={flowDirty ? 'warning' : 'success'}>
-                    {flowDirty
-                      ? 'Unsaved Draft'
-                      : `Revision ${selectedPlan?.current_revision || 0}`}
-                  </Badge>
-                  <Button
-                    size="sm"
-                    disabled={!flowDirty || flowErrors.length > 0}
-                    onClick={() => void saveFlowDraft()}
-                  >
-                    {flowDirty ? 'Save Draft' : 'Saved'}
-                  </Button>
                 </div>
                 <FlowCanvas
                   flow={flowDraft}
                   selectedId={selectedStepId}
                   onSelect={setSelectedStepId}
-                  onConnect={(from, to) =>
-                    setFlowDraft((current) =>
-                      current
-                        ? updateStepLocalized(current, to, {
-                            dependencies: [
-                              ...new Set([
-                                ...(current.steps.find((step) => step.id === to)?.dependencies ||
-                                  []),
-                                from,
-                              ]),
-                            ],
-                          })
-                        : current,
-                    )
-                  }
+                  onConnect={(from, to) => {
+                    const target = flowDraft.steps.find((step) => step.id === to);
+                    if (!target) return;
+                    const deps = Array.from(new Set([...(target.dependencies || []), from]));
+                    setFlowDraft(updateStepLocalized(flowDraft, to, { dependencies: deps }));
+                  }}
                 />
               </>
             )}

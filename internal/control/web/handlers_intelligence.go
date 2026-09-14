@@ -69,6 +69,89 @@ func (h *NexusHandler) handleIntelligenceProbe(w http.ResponseWriter, r *http.Re
 	})
 }
 
+// handleIntelligenceMemories GET/POST /api/v1/intelligence/memories
+func (h *NexusHandler) handleIntelligenceMemories(w http.ResponseWriter, r *http.Request) {
+	projectID := strings.TrimSpace(r.URL.Query().Get("project_id"))
+	switch r.Method {
+	case http.MethodGet:
+		rows, err := h.nexus.ListIntelligenceMemories(r.Context(), projectID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if rows == nil {
+			rows = []nexus.MergedIntelligenceMemory{}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"memories": rows})
+	case http.MethodPost:
+		var body struct {
+			Scope     string `json:"scope"`
+			ProjectID string `json:"project_id"`
+			Key       string `json:"key"`
+			Value     string `json:"value"`
+			Source    string `json:"source"`
+			Force     bool   `json:"force"`
+		}
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid body")
+			return
+		}
+		if body.ProjectID == "" {
+			body.ProjectID = projectID
+		}
+		scope := strings.ToUpper(strings.TrimSpace(body.Scope))
+		if scope == "" {
+			scope = nexus.MemoryScopeProject
+		}
+		if body.Force || body.Source == nexus.MemorySourceExplicit {
+			row, err := h.nexus.UpsertIntelligenceMemory(r.Context(), scope, body.ProjectID, body.Key, body.Value, firstNonEmptyWeb(body.Source, nexus.MemorySourceExplicit))
+			if err != nil {
+				writeError(w, http.StatusBadRequest, err.Error())
+				return
+			}
+			writeJSON(w, http.StatusCreated, row)
+			return
+		}
+		if err := h.nexus.PromoteHabitMemory(r.Context(), body.ProjectID, body.Key, body.Value, firstNonEmptyWeb(body.Source, nexus.MemorySourceComposer), false); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		rows, _ := h.nexus.ListIntelligenceMemories(r.Context(), body.ProjectID)
+		writeJSON(w, http.StatusOK, map[string]any{"memories": rows})
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+// handleIntelligenceMemoryDelete DELETE /api/v1/intelligence/memories/{scope}/{id}?project_id=
+func (h *NexusHandler) handleIntelligenceMemoryDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	rest := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/v1/intelligence/memories/"), "/")
+	parts := strings.Split(rest, "/")
+	if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+		writeError(w, http.StatusBadRequest, "expected /intelligence/memories/{scope}/{id}")
+		return
+	}
+	projectID := strings.TrimSpace(r.URL.Query().Get("project_id"))
+	if err := h.nexus.DeleteIntelligenceMemory(r.Context(), parts[0], projectID, parts[1]); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"status": "deleted"})
+}
+
+func firstNonEmptyWeb(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
+}
+
 // handleClarification GET /api/v1/clarifications/{id}
 // POST /api/v1/clarifications/{id}/resolve continues the exact persisted analysis.
 func (h *NexusHandler) handleClarification(w http.ResponseWriter, r *http.Request) {

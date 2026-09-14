@@ -118,7 +118,15 @@ export async function initSession(): Promise<BrowserSession> {
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: bootstrapToken }),
       });
-      if (!bootstrapResponse.ok) return { authenticated: false };
+      if (bootstrapResponse.ok) {
+        const bootstrapData = (await bootstrapResponse.json()) as BrowserSession;
+        if (bootstrapData.csrf_token) {
+          csrfToken = bootstrapData.csrf_token;
+        }
+        if (bootstrapData.authenticated) {
+          return bootstrapData;
+        }
+      }
     }
     if (isDesktopApp()) {
       try {
@@ -175,22 +183,53 @@ export async function initSession(): Promise<BrowserSession> {
     }
     const targetUrl = desktopBaseUrl ? `${desktopBaseUrl}/api/v1/session` : '/api/v1/session';
     const res = await fetch(targetUrl, { headers });
-    if (!res.ok) return { authenticated: false };
-    const data = await res.json();
-    if (data.csrf_token) {
-      csrfToken = data.csrf_token;
-    }
-    if (data.authenticated && !desktopAuthToken && isDesktopApp()) {
-      try {
-        const b = await getPlatformBridge().getBootstrapInfo?.();
-        if (b && b.sessionToken) {
-          setDesktopAuth(b.sessionToken);
+    if (res.ok) {
+      const data = (await res.json()) as BrowserSession;
+      if (data.csrf_token) {
+        csrfToken = data.csrf_token;
+      }
+      if (data.authenticated) {
+        if (!desktopAuthToken && isDesktopApp()) {
+          try {
+            const b = await getPlatformBridge().getBootstrapInfo?.();
+            if (b && b.sessionToken) {
+              setDesktopAuth(b.sessionToken);
+            }
+          } catch {
+            /* ignore */
+          }
         }
-      } catch {}
+        return data;
+      }
     }
-    return data;
+
+    // Chromium --app= often reuses the window and drops #nexus_bootstrap=.
+    // On loopback, reclaim a session without requiring the fragment again.
+    if (!isDesktopApp()) {
+      const reauth = await tryLoopbackReauth();
+      if (reauth?.authenticated) {
+        return reauth;
+      }
+    }
+    return { authenticated: false };
   } catch {
     return { authenticated: false };
+  }
+}
+
+/** Trusted localhost recovery when the bootstrap fragment was lost. */
+export async function tryLoopbackReauth(): Promise<BrowserSession | null> {
+  try {
+    const res = await fetch('/api/v1/auth/loopback-reauth', {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as BrowserSession;
+    if (data.csrf_token) csrfToken = data.csrf_token;
+    return data.authenticated ? data : null;
+  } catch {
+    return null;
   }
 }
 

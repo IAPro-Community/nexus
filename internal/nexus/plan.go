@@ -57,6 +57,33 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 			facts[key] = value
 		}
 	}
+	for _, unknown := range brief.Unknowns {
+		if unknown.Status != PromptUnknownAnswered && unknown.Status != PromptUnknownConfirmed {
+			continue
+		}
+		if strings.TrimSpace(unknown.Answer) == "" {
+			continue
+		}
+		facts["composer.fact."+unknown.Field] = unknown.Answer
+	}
+	for i, fact := range brief.Facts {
+		if strings.TrimSpace(fact.Value) == "" {
+			continue
+		}
+		key := firstNonEmpty(fact.Field, fmt.Sprintf("composer.fact.%d", i))
+		facts[key] = fact.Value
+	}
+	if memFacts, memErr := n.MemoryFactsMap(ctx, session.ProjectID); memErr == nil {
+		for key, value := range memFacts {
+			if strings.HasPrefix(key, "memory.") {
+				facts[key] = value
+				continue
+			}
+			if _, exists := facts[key]; !exists {
+				facts["memory."+key] = value
+			}
+		}
+	}
 	phaseID := "phase_" + ids.NewRuntimeID()
 	plan, err := n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact", []store.PlanPhase{{
 		ID: phaseID, Title: "Composer Flow", Order: 1, Packages: []store.WorkPackage{{
@@ -243,6 +270,9 @@ func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal stri
 	if err != nil {
 		return nil, err
 	}
+	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil && len(memFacts) > 0 {
+		contextData["intelligence_memories"] = memFacts
+	}
 	provider, err := n.ConfiguredIntelligenceProvider(ctx, projectID)
 	if err != nil {
 		return nil, err
@@ -255,6 +285,21 @@ func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal stri
 	}
 
 	state := &intelligence.ClarificationState{Unknowns: unknowns, StructuredFacts: map[string]string{}}
+	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
+		for key, value := range memFacts {
+			state.StructuredFacts[key] = value
+		}
+		// Resolve blocking unknowns already covered by durable memories.
+		for i := range state.Unknowns {
+			item := &state.Unknowns[i]
+			if item.IsResolved {
+				continue
+			}
+			if value := memoryCoversAmbiguity(*item, memFacts); value != "" {
+				engine.ResolveClarification(state, item.Key, value)
+			}
+		}
+	}
 	// Non-blocking defaults are explicit decisions. Blocking items always require a user answer.
 	for i := range state.Unknowns {
 		item := state.Unknowns[i]
@@ -286,6 +331,32 @@ func hasBlockingUnknowns(items []intelligence.AmbiguityItem) bool {
 		}
 	}
 	return false
+}
+
+func memoryCoversAmbiguity(item intelligence.AmbiguityItem, facts map[string]string) string {
+	keys := []string{item.Key, "composer.fact." + item.Key, "memory.project." + item.Key, "memory.install." + item.Key}
+	lowerKey := strings.ToLower(item.Key)
+	for factKey, value := range facts {
+		if strings.TrimSpace(value) == "" {
+			continue
+		}
+		fk := strings.ToLower(factKey)
+		if fk == lowerKey || strings.HasSuffix(fk, "."+lowerKey) {
+			return value
+		}
+		if strings.Contains(lowerKey, "verif") && (strings.Contains(fk, "verif") || strings.Contains(fk, "quality.verification")) {
+			return value
+		}
+		if strings.Contains(lowerKey, "test") && (strings.Contains(fk, "test") || strings.Contains(fk, "quality.testing")) {
+			return value
+		}
+	}
+	for _, key := range keys {
+		if v := strings.TrimSpace(facts[key]); v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func (n *Nexus) persistClarification(projectID, goal string, intent *intelligence.IntentAnalysis, unknowns []intelligence.AmbiguityItem, facts map[string]string) (*ClarificationCheckpoint, error) {

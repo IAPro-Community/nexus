@@ -226,7 +226,7 @@ func controlWebReopenCmd(printOnly bool) error {
 		fmt.Println(target)
 		return fmt.Errorf("não foi possível abrir o browser: %w", err)
 	}
-	fmt.Printf("Opened %s\n", state.URL)
+	fmt.Printf("Opened %s\n", target)
 	return nil
 }
 
@@ -600,7 +600,8 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 					input = input[1:]
 					switch answer {
 					case 'y', 'Y':
-						_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID) + "\r\n[nexus] Solicitação promovida para Mission; o Lead receberá a síntese ao concluir.\r\n"))
+						_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
+						_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Solicitação promovida para Mission; o Lead receberá a síntese ao concluir.\r\n")
 						go runInteractiveDelegatedMission(n, session, agentID, pendingASK, mode)
 					case 'n', 'N':
 						_, _ = conn.Write([]byte("\r"))
@@ -627,11 +628,12 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 							continue
 						}
 						if decision.Action == promotion.Ask {
-							_, _ = conn.Write([]byte("\r\n[nexus] Promover esta solicitação para uma Mission? [y/n] "))
+							_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Promover esta solicitação para uma Mission? [y/n] ")
 							pendingASK = line
 							continue
 						}
-						_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID) + "\r\n[nexus] Solicitação promovida para Mission; o Lead receberá a síntese ao concluir.\r\n"))
+						_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
+						_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Solicitação promovida para Mission; o Lead receberá a síntese ao concluir.\r\n")
 						go runInteractiveDelegatedMission(n, session, agentID, line, mode)
 					}
 				}

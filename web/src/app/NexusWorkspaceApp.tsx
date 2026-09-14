@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
-import { api, initSession, rotateSession, type BrowserSession } from '../api';
+import { api, initSession, rotateSession, tryLoopbackReauth, type BrowserSession } from '../api';
 import { setNexusCSRF, nexus } from '../nexus/api';
 import { ThemeProvider } from '../design-system';
 import { NexusSplashScreen } from './NexusSplashScreen';
@@ -140,7 +140,17 @@ export const NexusWorkspaceApp: React.FC<{
               type="button"
               className="nx-button"
               data-tone="brand"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                void (async () => {
+                  const reauth = await tryLoopbackReauth();
+                  if (reauth?.authenticated) {
+                    if (reauth.csrf_token) setNexusCSRF(reauth.csrf_token);
+                    setAuthenticated(true);
+                    return;
+                  }
+                  window.location.reload();
+                })();
+              }}
             >
               {t('auth.reloadApp')}
             </button>

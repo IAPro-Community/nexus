@@ -120,6 +120,8 @@ func Run(args []string) error {
 		return agentsCmd(args[1:])
 	case "projects", "project":
 		return projectsCmd(args[1:])
+	case "conductor":
+		return conductorCmd(args[1:])
 	case "start":
 		return controlStartCmd(args[1:])
 	case "stop":

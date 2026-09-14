@@ -284,6 +284,9 @@ func (s *Service) fetchManifest(ctx context.Context) (*Manifest, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("no update manifest published for channel %q yet (registry %s returned HTTP 404)", s.channel, s.registryURL)
+		}
 		return nil, fmt.Errorf("registry returned HTTP %d", resp.StatusCode)
 	}
 

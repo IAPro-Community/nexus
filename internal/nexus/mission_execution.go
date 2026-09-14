@@ -55,6 +55,19 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	if err != nil {
 		return nil, err
 	}
+
+	// Record invocation start for observability.
+	startedAt := time.Now().UTC()
+	goalID := fmt.Sprintf("goal_%d", startedAt.UnixNano())
+	invocation := AgentInvocation{
+		GoalID:    goalID,
+		AgentID:   agent.ID,
+		ProjectID: agent.ProjectID,
+		Status:    AgentInvocationRunning,
+		StartedAt: startedAt,
+	}
+	_ = RecordAgentInvocation(st, invocation)
+
 	cfg, err := currentAgentConfig(st, agent)
 	if err != nil {
 		return nil, err
@@ -189,6 +202,17 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	}
 	_ = st.UpdateAgent(agent)
 	n.notifyAgentState(agent.ID, agent.Status)
+
+	// Record invocation completion for observability.
+	finishedAt := time.Now().UTC()
+	invocation.FinishedAt = &finishedAt
+	if runErr != nil {
+		invocation.Status = AgentInvocationFailed
+		invocation.Errors = []string{runErr.Error()}
+	} else {
+		invocation.Status = AgentInvocationCompleted
+	}
+	_ = RecordAgentInvocation(st, invocation)
 
 	if runErr != nil {
 		failure := classifier.Classify(runErr, output)

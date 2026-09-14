@@ -20,6 +20,7 @@ func registerRoutes(mux *http.ServeMux, deps routeDependencies) {
 	registerPlanningRoutes(mux, deps)
 	registerMissionRoutes(mux, deps)
 	registerSystemRoutes(mux, deps)
+	registerConductorRoutes(mux, deps)
 	registerFilesystemRoutes(mux, deps)
 	registerTunnelRoutes(mux, deps)
 }
@@ -29,6 +30,7 @@ func registerControlRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/health", api.handleHealth)
 	mux.HandleFunc("/api/v1/session", api.handleSession)
 	mux.HandleFunc("/api/v1/auth/bootstrap", s.handleAuthBootstrap)
+	mux.HandleFunc("/api/v1/auth/loopback-reauth", s.handleAuthLoopbackReauth)
 	mux.HandleFunc("/api/v1/desktop/bootstrap", s.handleDesktopBootstrap)
 	mux.HandleFunc("/api/v1/session/rotate", s.authMiddleware(s.handleSessionRotate))
 	mux.HandleFunc("/api/v1/session/logout", s.authMiddleware(s.handleSessionLogout))
@@ -66,6 +68,8 @@ func registerPlanningRoutes(mux *http.ServeMux, deps routeDependencies) {
 	s, h := deps.server, deps.nexusHandler
 	mux.HandleFunc("/api/v1/intelligence", s.authMiddleware(h.handleIntelligence))
 	mux.HandleFunc("/api/v1/intelligence/probe", s.authMiddleware(h.handleIntelligenceProbe))
+	mux.HandleFunc("/api/v1/intelligence/memories", s.authMiddleware(h.handleIntelligenceMemories))
+	mux.HandleFunc("/api/v1/intelligence/memories/", s.authMiddleware(h.handleIntelligenceMemoryDelete))
 	mux.HandleFunc("/api/v1/clarifications/", s.authMiddleware(h.handleClarification))
 	mux.HandleFunc("/api/v1/composer-sessions/", s.authMiddleware(h.handleComposerSession))
 	mux.HandleFunc("/api/v1/prompt-artifacts/", s.authMiddleware(h.handlePromptArtifact))
@@ -87,6 +91,12 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/system/info", s.authMiddleware(deps.api.handleSystemInfo))
 	mux.HandleFunc("/api/v1/system/doctor", s.authMiddleware(h.handleSystemDoctor))
 	mux.HandleFunc("/api/v1/system/updates", s.authMiddleware(h.handleSystemUpdates))
+}
+
+func registerConductorRoutes(mux *http.ServeMux, deps routeDependencies) {
+	s, h := deps.server, deps.nexusHandler
+	mux.HandleFunc("/api/v1/conductor/policy", s.authMiddleware(h.handleConductorPolicy))
+	mux.HandleFunc("/api/v1/conductor/dispatch", s.authMiddleware(h.handleConductorDispatch))
 }
 
 func registerFilesystemRoutes(mux *http.ServeMux, deps routeDependencies) {

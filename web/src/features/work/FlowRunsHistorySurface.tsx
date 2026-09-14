@@ -25,9 +25,11 @@ export const FlowRunsHistorySurface: React.FC<{
   const [plans, setPlans] = useState<WorkPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [track, setTrack] = useState<Track>('runs');
+  const [track, setTrack] = useState<Track>('drafts');
   const [filterState, setFilterState] = useState<RunFilter>('ALL');
   const [selectedPlan, setSelectedPlan] = useState<WorkPlan | null>(null);
+  const [newGoal, setNewGoal] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -142,7 +144,7 @@ export const FlowRunsHistorySurface: React.FC<{
       <div className={styles.header}>
         <div className={styles.title}>
           <History size={16} />
-          <strong>{t('flow.historyTitle', 'Flow')}</strong>
+          <strong>{t('flow.studioTitle', 'Flow Studio')}</strong>
           <Badge tone="default">{track === 'drafts' ? draftPlans.length : runs.length}</Badge>
         </div>
         <div className={styles.actions}>
@@ -158,7 +160,7 @@ export const FlowRunsHistorySurface: React.FC<{
               data-active={track === 'drafts' ? 'true' : undefined}
               onClick={() => setTrack('drafts')}
             >
-              <Layers size={12} /> {t('flow.drafts', 'Rascunhos')}
+              <Layers size={12} /> {t('flow.tabPlan', 'Este plano')}
             </button>
             <button
               type="button"
@@ -167,7 +169,7 @@ export const FlowRunsHistorySurface: React.FC<{
               data-active={track === 'runs' ? 'true' : undefined}
               onClick={() => setTrack('runs')}
             >
-              <Play size={12} /> {t('flow.executions', 'Execuções')}
+              <Play size={12} /> {t('flow.tabHistory', 'Histórico')}
             </button>
           </div>
           {track === 'runs' && (
@@ -210,12 +212,55 @@ export const FlowRunsHistorySurface: React.FC<{
       )}
       {error && <div className="nx-inline-error">{error}</div>}
 
+      {!loading && !error && track === 'drafts' && (
+        <Card className={styles.newFlowCard}>
+          <strong>{t('flow.newFlow', 'New Flow')}</strong>
+          <div className={styles.newFlowRow}>
+            <input
+              className="nx-input"
+              value={newGoal}
+              onChange={(e) => setNewGoal(e.target.value)}
+              placeholder={t('flow.goalPlaceholder', 'What do you want to deliver?')}
+              disabled={creating}
+            />
+            <Button
+              tone="brand"
+              disabled={!newGoal.trim() || creating}
+              onClick={() => {
+                setCreating(true);
+                void nexusApi
+                  .createPlan(project.id, {
+                    goal: newGoal.trim(),
+                    auto_plan: true,
+                    title: newGoal.trim(),
+                  })
+                  .then((plan) => {
+                    setSelectedPlan(plan);
+                    setNewGoal('');
+                    return load();
+                  })
+                  .catch((err) => setError(err instanceof Error ? err.message : String(err)))
+                  .finally(() => setCreating(false));
+              }}
+            >
+              <Sparkles size={13} />{' '}
+              {creating ? t('common.loading', '…') : t('flow.newFlow', 'New Flow')}
+            </Button>
+            {onOpenComposer ? (
+              <Button onClick={onOpenComposer}>
+                {t('flow.elaborateInComposer', 'Elaborate in Composer')}
+              </Button>
+            ) : null}
+          </div>
+        </Card>
+      )}
+
       {!loading && !error && track === 'drafts' && draftPlans.length === 0 && (
         <EmptyState
-          title={t('flow.noDrafts', 'Nenhum rascunho')}
+          title={t('flow.noDrafts', 'No plan yet')}
           hint={t(
             'flow.noDraftsHint',
-            'Finalize um prompt no Composer e escolha Transformar em Flow.',
+            'Describe an outcome and generate a Flow, or deepen it in Composer first.',
           )}
           action={
             onOpenComposer ? (

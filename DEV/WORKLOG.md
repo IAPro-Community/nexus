@@ -1,5 +1,13 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-14 — Deep review merge-readiness (feat/nexus-maximum-delivery → main)
+
+- Branch 50 ahead / 0 behind main (merge-base == main tip); fast-forward limpo.
+- Corrigidos bloqueadores no diff não commitado: `events_purge.go` usava `now` em vez de `cutoff` (apagaria todos os eventos); `handlers_conductor.go` redeclarava `writeJSON` (usa `writeError` canônico com redact); `UpdateAgent` não persistia `identity_kind`; `agentColumns` com `COALESCE(current_revision_id,'')` (mesma classe do bug `lease_owner` NULL); `archive.go` tar sem guarda anti-overflow (zip já tinha); golden `opencode` regenerado (`review_mode`); `CANCELLED`→`CANCELED` (padrão do repo + lint).
+- Testes de regressão: `TestStoreAgentNullRevisionID`, `TestProjectIntelligenceScanNullLeaseOwner` (ambos reproduzem o erro exato no código antigo); `TestStoreReconcileEphemeralWorkers` alinhado ao contrato de filtro (vazio = persistentes).
+- PASS: `make quality` (exit 0), `go test ./...`, `go test -race` pacotes tocados, frontend 363 testes, `make build`, `git diff --check`.
+- Pendente p/ merge: commitar diff + untracked (`conductor*.go`, `conductor_store.go`, `settings.go`, `0019`, testes); confirmar `vars.NEXUS_UPDATE_PUBLIC_KEY` no CI da main; congelar WIP concorrente antes do merge. Sem push/commit executado.
+
 ## 2026-09-14 — Codex terminal input provenance
 
 - Rebuilt `/home/desenvolvedor/.local/bin/nexus` from checkout `1b840ca`; `nexus version` reports `0.5.0-beta.23` commit `1b840ca`, `go version -m` module `github.com/IAPro-Community/nexus` (prior install `86089f0`/`kivervinicius` retired).

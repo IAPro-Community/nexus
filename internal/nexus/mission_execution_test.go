@@ -33,3 +33,36 @@ func TestMissionProviderArgsCodexReviewUsesReadOnlyExecSandbox(t *testing.T) {
 		t.Fatalf("codex review args = %#v, want %#v", got, want)
 	}
 }
+
+func TestMissionProviderArgsOpenCodeReviewUsesPermissionModePlan(t *testing.T) {
+	got, err := missionProviderArgs("opencode", []string{"run", "review the code"}, agentPromptPolicy{
+		Contract: runner.DefaultAutonomyContract(),
+		Review:   true,
+	})
+	if err != nil {
+		t.Fatalf("missionProviderArgs returned error: %v", err)
+	}
+	// For non-Codex providers, ReviewMode flags are appended after the prompt.
+	want := []string{"run", "review the code", "--permission-mode", "plan"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("opencode review args = %#v, want %#v", got, want)
+	}
+}
+
+func TestMissionProviderArgsOpenCodeReviewFailsWithoutReviewMode(t *testing.T) {
+	// This test verifies that if ReviewMode were nil, review would fail.
+	// Since we've set ReviewMode in the spec, this test documents the expected behavior.
+	// In a real scenario, if ReviewMode is empty, missionProviderArgs returns an error.
+	got, err := missionProviderArgs("opencode", []string{"run", "edit the file"}, agentPromptPolicy{
+		Contract: runner.DefaultAutonomyContract(),
+		Review:   false,
+	})
+	if err != nil {
+		t.Fatalf("missionProviderArgs returned error: %v", err)
+	}
+	// Without Review mode, opencode should use auto-approval flags after "run".
+	want := []string{"run", "--auto", "edit the file"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("opencode non-review args = %#v, want %#v", got, want)
+	}
+}

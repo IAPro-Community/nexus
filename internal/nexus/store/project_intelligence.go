@@ -48,9 +48,16 @@ func scanIntelligenceScan(scanner interface{ Scan(...any) error }) (ProjectIntel
 	var result ProjectIntelligenceScan
 	var requested string
 	var started, finished, lease sql.NullString
-	err := scanner.Scan(&result.ID, &result.ProjectID, &result.IdentityDigest, &result.State, &result.ScannerVersion, &requested, &started, &finished, &result.LeaseOwner, &lease, &result.Error)
+	var owner, errText sql.NullString
+	err := scanner.Scan(&result.ID, &result.ProjectID, &result.IdentityDigest, &result.State, &result.ScannerVersion, &requested, &started, &finished, &owner, &lease, &errText)
 	if err != nil {
 		return result, err
+	}
+	if owner.Valid {
+		result.LeaseOwner = owner.String
+	}
+	if errText.Valid {
+		result.Error = errText.String
 	}
 	result.RequestedAt, _ = time.Parse(time.RFC3339Nano, requested)
 	result.StartedAt, result.FinishedAt, result.LeaseExpiresAt = parseOptionalTime(started), parseOptionalTime(finished), parseOptionalTime(lease)
@@ -104,7 +111,7 @@ func (s *Store) UpdateProjectIntelligenceScan(scan ProjectIntelligenceScan) erro
 	if scan.ID == "" {
 		return errors.New("scan id is required")
 	}
-	_, err := s.db.Exec(`UPDATE project_intelligence_scans SET state=?,started_at=?,finished_at=?,lease_owner=?,lease_expires_at=?,error=? WHERE id=?`, scan.State, nullableTime(scan.StartedAt), nullableTime(scan.FinishedAt), scan.LeaseOwner, nullableTime(scan.LeaseExpiresAt), scan.Error, scan.ID)
+	_, err := s.db.Exec(`UPDATE project_intelligence_scans SET state=?,started_at=?,finished_at=?,lease_owner=?,lease_expires_at=?,error=? WHERE id=?`, scan.State, nullableTime(scan.StartedAt), nullableTime(scan.FinishedAt), nullableString(scan.LeaseOwner), nullableTime(scan.LeaseExpiresAt), scan.Error, scan.ID)
 	return err
 }
 

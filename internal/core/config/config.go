@@ -35,28 +35,37 @@ type IntelligenceConfig struct {
 	APIKeyFile string           `json:"api_key_file,omitempty"`
 }
 
-var (
-	configMu sync.RWMutex
-)
+// IntelligenceMemory is a visible, deletable habit fact for this Nexus installation.
+// It is never used to train a model — only to skip repeated Composer/Flow questions.
+type IntelligenceMemory struct {
+	ID        string `json:"id"`
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	Source    string `json:"source,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
 
 // Config represents persistent application settings and user preferences.
 type Config struct {
-	ConfigVersion      int                            `json:"config_version"`
-	Defaults           map[string]string              `json:"defaults"`                      // provider -> profile
-	Priorities         map[string]map[string]int      `json:"priorities,omitempty"`          // provider -> profile -> priority
-	ProviderPriorities map[string]int                 `json:"provider_priorities,omitempty"` // provider -> lower-is-first fallback priority
-	Disabled           map[string]map[string]bool     `json:"disabled,omitempty"`            // provider -> profile -> true
-	Labels             map[string]map[string][]string `json:"labels,omitempty"`              // provider -> profile -> tags
-	Strategy           string                         `json:"strategy"`                      // best-capacity, least-used, round-robin, sticky
-	StickyTTL          string                         `json:"sticky_ttl,omitempty"`          // e.g. "30m"
-	IsolationPreset    model.IsolationPreset          `json:"isolation_preset"`              // developer, strict, compat
-	Bindings           map[string]map[string]string   `json:"bindings,omitempty"`            // workspace -> provider -> profile
-	AutomaticFallback  bool                           `json:"automatic_fallback"`
-	MaxConcurrency     int                            `json:"max_concurrency"`
-	Language           string                         `json:"language,omitempty"`
-	Intelligence       IntelligenceConfig             `json:"intelligence,omitempty"`
-	FlagAliases        map[string]map[string][]string `json:"flag_aliases,omitempty"` // alias -> provider -> flags
+	ConfigVersion        int                            `json:"config_version"`
+	Defaults             map[string]string              `json:"defaults"`                      // provider -> profile
+	Priorities           map[string]map[string]int      `json:"priorities,omitempty"`          // provider -> profile -> priority
+	ProviderPriorities   map[string]int                 `json:"provider_priorities,omitempty"` // provider -> lower-is-first fallback priority
+	Disabled             map[string]map[string]bool     `json:"disabled,omitempty"`            // provider -> profile -> true
+	Labels               map[string]map[string][]string `json:"labels,omitempty"`              // provider -> profile -> tags
+	Strategy             string                         `json:"strategy"`                      // best-capacity, least-used, round-robin, sticky
+	StickyTTL            string                         `json:"sticky_ttl,omitempty"`          // e.g. "30m"
+	IsolationPreset      model.IsolationPreset          `json:"isolation_preset"`              // developer, strict, compat
+	Bindings             map[string]map[string]string   `json:"bindings,omitempty"`            // workspace -> provider -> profile
+	AutomaticFallback    bool                           `json:"automatic_fallback"`
+	MaxConcurrency       int                            `json:"max_concurrency"`
+	Language             string                         `json:"language,omitempty"`
+	Intelligence         IntelligenceConfig             `json:"intelligence,omitempty"`
+	IntelligenceMemories []IntelligenceMemory           `json:"intelligence_memories,omitempty"`
+	FlagAliases          map[string]map[string][]string `json:"flag_aliases,omitempty"` // alias -> provider -> flags
 }
+
+var configMu sync.RWMutex
 
 // NewDefaultConfig returns a well-configured default Configuration.
 func NewDefaultConfig() Config {

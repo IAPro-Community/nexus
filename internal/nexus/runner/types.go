@@ -367,6 +367,23 @@ type MissionRun struct {
 type AllocationResult struct {
 	AgentID   string `json:"agent_id"`
 	Workspace string `json:"workspace"`
+	// Kind indicates the identity kind of the allocated agent (PERSISTENT or EPHEMERAL_WORKER).
+	Kind string `json:"kind,omitempty"`
+}
+
+// ExecutionIdentityKind enumerates agent identity types.
+type ExecutionIdentityKind string
+
+const (
+	// ExecutionIdentityPersistent is the default for user-created agents.
+	ExecutionIdentityPersistent ExecutionIdentityKind = "PERSISTENT"
+	// ExecutionIdentityEphemeralWorker is for throwaway worker agents used by the Conductor.
+	ExecutionIdentityEphemeralWorker ExecutionIdentityKind = "EPHEMERAL_WORKER"
+)
+
+// ExecutionIdentity carries the identity kind through the execution envelope.
+type ExecutionIdentity struct {
+	Kind ExecutionIdentityKind `json:"kind"`
 }
 
 type PromptArtifact struct {

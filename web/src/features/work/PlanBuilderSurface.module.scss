@@ -169,3 +169,41 @@
   font-size: var(--nx-font-size-sm);
   color: var(--nx-muted);
 }
+
+.studioToolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.viewToggle {
+  display: inline-flex;
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.viewToggle button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-right: 1px solid var(--nx-border);
+  background: transparent;
+  color: var(--nx-subtle);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.viewToggle button:last-child {
+  border-right: 0;
+}
+
+.viewToggle button[data-active='true'] {
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+}
+
+.viewToggle button:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: -2px;
+}

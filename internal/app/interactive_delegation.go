@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/nexus"
-	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 )
 
 func submitPromptToRuntime(runtimeID, prompt string) error {
@@ -44,62 +42,25 @@ func interactiveDelegationMode(session registry.RuntimeSession) nexus.Delegation
 
 func runInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSession, leadAgentID, prompt string, mode nexus.DelegationMode) {
 	ctx := context.Background()
-	proposal, err := n.DecomposePromptIntoFlowProposal(ctx, nexus.FlowDecompositionRequest{
-		ProjectID: session.ProjectID,
-		Goal:      prompt, SourcePrompt: prompt, DelegationMode: mode,
+	result, err := n.Dispatch(ctx, nexus.DispatchRequest{
+		ProjectID:      session.ProjectID,
+		Goal:           prompt,
+		SourcePrompt:   prompt,
+		LeadAgentID:    leadAgentID,
+		DelegationMode: mode,
 	})
 	if err != nil {
-		interactiveDelegationFailure(n, session, leadAgentID, "decompor prompt", err)
+		interactiveDelegationFailure(n, session, leadAgentID, "dispatch goal", err)
 		return
 	}
-	flowPlan := nexus.WorkPlanFromFlow(proposal.Flow)
-	decision, err := nexus.ReadDelegationDecisionFacts(flowPlan.StructuredFacts)
-	if err != nil || !decision.Delegate {
-		if err == nil {
-			err = fmt.Errorf("dispatch brake rejected the delegated topology")
-		}
-		interactiveDelegationFailure(n, session, leadAgentID, "validar decisão de delegação", err)
+	if result.Status == nexus.DispatchFailed || result.Status == nexus.DispatchRejected {
+		err = fmt.Errorf("%s: %s", result.Status, result.Error)
+		interactiveDelegationFailure(n, session, leadAgentID, "dispatch goal", err)
 		return
 	}
-	decision = nexus.WithLeadAgent(decision, leadAgentID)
-	facts, err := nexus.PersistDelegationDecisionFacts(flowPlan.StructuredFacts, decision)
-	if err != nil {
-		interactiveDelegationFailure(n, session, leadAgentID, "persistir decisão de delegação", err)
-		return
-	}
-	plan, err := n.CreateWorkPlan(ctx, session.ProjectID, proposal.Title, proposal.Description, flowPlan.Phases, facts)
-	if err != nil {
-		interactiveDelegationFailure(n, session, leadAgentID, "persistir WorkPlan", err)
-		return
-	}
-	run, err := n.StartMissionRun(ctx, plan.ID, leadAgentID, runner.DefaultAutonomyContract(), true)
-	if err != nil {
-		interactiveDelegationFailure(n, session, leadAgentID, "iniciar Mission", err)
-		return
-	}
-	final, waitErr := waitInteractiveMission(n, run.ID)
-	if waitErr != nil {
-		interactiveDelegationFailure(n, session, leadAgentID, "aguardar Mission", waitErr)
-		return
-	}
-	message := fmt.Sprintf("Solicitação original: %s\nA Mission %s terminou em %s. Revise arquivos, testes, receipts e routing report; depois sintetize o resultado integrado para o usuário.", prompt, final.ID, final.State)
+	message := fmt.Sprintf("Solicitação original: %s\nA Mission %s terminou em %s. Revise arquivos, testes, receipts e routing report; depois sintetize o resultado integrado para o usuário.", prompt, result.RunID, result.Run.State)
 	if err := submitPromptToLead(ctx, n, leadAgentID, session.RuntimeID, message); err != nil {
-		fmt.Fprintf(os.Stderr, "[nexus] delegated Mission %s finished, but Lead synthesis failed: %v\n", final.ID, err)
-	}
-}
-
-func waitInteractiveMission(n *nexus.Nexus, runID string) (*runner.MissionRun, error) {
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		run, err := n.Runner().GetRun(context.Background(), runID)
-		if err != nil {
-			return nil, err
-		}
-		if runner.IsTerminalState(run.State) || run.State == runner.StateBlockedNeedsUser || run.State == runner.StatePaused {
-			return run, nil
-		}
-		<-ticker.C
+		fmt.Fprintf(os.Stderr, "[nexus] delegated Mission %s finished, but Lead synthesis failed: %v\n", result.RunID, err)
 	}
 }
 

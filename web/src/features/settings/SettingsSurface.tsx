@@ -41,6 +41,7 @@ import {
 import { pushNotifications } from '../../notifications/PushNotificationManager';
 import { SystemDiagnosticsCard } from './SystemDiagnosticsCard';
 import { RemoteAccessTab } from './RemoteAccessTab';
+import { IntelligenceMemoriesPanel } from './IntelligenceMemoriesPanel';
 import type { SystemDoctorReport } from '../../nexus/api';
 import styles from './SettingsSurface.module.scss';
 
@@ -671,6 +672,7 @@ export const SettingsSurface: React.FC<{
                 {intelligenceSaving ? 'Saving…' : 'Save Intelligence'}
               </Button>
             </div>
+            <IntelligenceMemoriesPanel />
           </Card>
         )}
 

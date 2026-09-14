@@ -198,3 +198,108 @@ func projectsCmd(args []string) error {
 
 	return fmt.Errorf("subcomando de projeto desconhecido: %s", args[0])
 }
+
+func conductorCmd(args []string) error {
+	if len(args) == 0 || args[0] == "help" || args[0] == "-h" {
+		fmt.Println("Usage: nexus conductor [policy|dispatch] [args...]")
+		fmt.Println("  policy get           Show current conductor policy")
+		fmt.Println("  policy set <json>    Update conductor policy")
+		fmt.Println("  dispatch <goal>      Dispatch a goal through the conductor")
+		fmt.Println("  --json               Output as JSON")
+		return nil
+	}
+
+	jsonOutput := false
+	cleanArgs := []string{}
+	for _, a := range args {
+		if a == "--json" {
+			jsonOutput = true
+		} else {
+			cleanArgs = append(cleanArgs, a)
+		}
+	}
+	args = cleanArgs
+
+	n := nexus.Default()
+	st, err := n.OpenProject()
+	if err != nil {
+		return err
+	}
+
+	switch args[0] {
+	case "policy":
+		if len(args) < 2 {
+			return fmt.Errorf("usage: nexus conductor policy [get|set]")
+		}
+		switch args[1] {
+		case "get":
+			policy, err := nexus.GetConductorPolicy(st)
+			if err != nil {
+				return err
+			}
+			if jsonOutput {
+				out, _ := json.MarshalIndent(policy, "", "  ")
+				fmt.Println(string(out))
+			} else {
+				fmt.Printf("Conductor Policy (v%d):\n", policy.Version)
+				if policy.ReviewMode != nil {
+					fmt.Printf("  ReviewMode: %s\n", *policy.ReviewMode)
+				}
+				if policy.RetentionDays != nil {
+					fmt.Printf("  RetentionDays: %d\n", *policy.RetentionDays)
+				}
+				if policy.IntegrationOptIn != nil {
+					fmt.Printf("  IntegrationOptIn: %v\n", *policy.IntegrationOptIn)
+				}
+			}
+			return nil
+		case "set":
+			if len(args) < 3 {
+				return fmt.Errorf("usage: nexus conductor policy set '<json>'")
+			}
+			var policy nexus.ConductorPolicy
+			if err := json.Unmarshal([]byte(args[2]), &policy); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			if err := nexus.PutConductorPolicy(st, &policy); err != nil {
+				return err
+			}
+			fmt.Println("Policy updated successfully.")
+			return nil
+		default:
+			return fmt.Errorf("unknown policy subcommand: %s", args[1])
+		}
+
+	case "dispatch":
+		if len(args) < 2 {
+			return fmt.Errorf("usage: nexus conductor dispatch <goal>")
+		}
+		goal := strings.Join(args[1:], " ")
+		projects, err := st.ListProjects()
+		if err != nil || len(projects) == 0 {
+			return fmt.Errorf("no project found")
+		}
+		result, err := n.Dispatch(context.Background(), nexus.DispatchRequest{
+			ProjectID:      projects[0].ID,
+			Goal:           goal,
+			SourcePrompt:   goal,
+			DelegationMode: nexus.DelegationAuto,
+		})
+		if err != nil {
+			return err
+		}
+		if jsonOutput {
+			out, _ := json.MarshalIndent(result, "", "  ")
+			fmt.Println(string(out))
+		} else {
+			fmt.Printf("Dispatch result: %s (Run: %s)\n", result.Status, result.RunID)
+			if result.Error != "" {
+				fmt.Printf("Error: %s\n", result.Error)
+			}
+		}
+		return nil
+
+	default:
+		return fmt.Errorf("unknown conductor subcommand: %s", args[0])
+	}
+}

@@ -20,8 +20,8 @@ func TestLineShadowDoesNotLeakControlSequencesOrPasteIntoShadow(t *testing.T) {
 	if string(event.Forward) != string(input[:len(input)-1]) {
 		t.Fatalf("control/paste bytes were not forwarded byte-for-byte: got %q", event.Forward)
 	}
-	if event.Line != "go  api" {
-		t.Fatalf("control sequence or bracketed paste leaked into shadow: %q", event.Line)
+	if event.Line != "go backend\nfrontend api" {
+		t.Fatalf("bracketed paste missing from shadow: %q", event.Line)
 	}
 }
 

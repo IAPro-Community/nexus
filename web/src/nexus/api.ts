@@ -400,6 +400,29 @@ export const nexus = {
       `/api/v1/intelligence${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
       { method: 'PUT', body: JSON.stringify(data) },
     ),
+  listIntelligenceMemories: (projectId?: string) =>
+    request<{ memories: import('../types').IntelligenceMemory[] }>(
+      `/api/v1/intelligence/memories${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
+    ).then((res) => res.memories || []),
+  upsertIntelligenceMemory: (body: {
+    scope: string;
+    project_id?: string;
+    key: string;
+    value: string;
+    source?: string;
+    force?: boolean;
+  }) =>
+    request<import('../types').IntelligenceMemory>(`/api/v1/intelligence/memories`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  deleteIntelligenceMemory: (scope: string, id: string, projectId?: string) =>
+    request<{ status: string }>(
+      `/api/v1/intelligence/memories/${encodeURIComponent(scope)}/${encodeURIComponent(id)}${
+        projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''
+      }`,
+      { method: 'DELETE' },
+    ),
   getClarification: (id: string) =>
     request<import('../types').ClarificationCheckpoint>(`/api/v1/clarifications/${id}`),
   resolveClarification: async (id: string, answers: Record<string, string>, init?: RequestInit) => {

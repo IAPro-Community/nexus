@@ -57,6 +57,9 @@ func TestNoBrowserBinDirInstallsInertHelpers(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
+		if runtime.GOOS == "windows" {
+			continue
+		}
 		if info.Mode()&0111 == 0 {
 			t.Fatalf("%s must be executable", name)
 		}

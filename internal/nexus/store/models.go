@@ -77,6 +77,7 @@ type Agent struct {
 	Status            string     `json:"status"`
 	CurrentRevisionID string     `json:"current_revision_id"`
 	ContinuityStatus  string     `json:"continuity_status"`
+	IdentityKind      string     `json:"identity_kind,omitempty"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
 	LastStartedAt     *time.Time `json:"last_started_at,omitempty"`

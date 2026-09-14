@@ -25,7 +25,10 @@
   "auto_approval": [
     "--auto"
   ],
-  "review_mode": null,
+  "review_mode": [
+    "--permission-mode",
+    "plan"
+  ],
   "quota": "LIVE_HTTP",
   "known_versions": [
     "1.18.30"

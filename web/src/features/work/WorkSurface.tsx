@@ -12,6 +12,7 @@ import type {
   WorkPlan,
 } from '../../types';
 import { nexus } from '../../nexus/api';
+import { asArray } from '../../lib/safeArray';
 import { ComposerSurface } from './ComposerSurface';
 import { composerGateForReadiness } from './composerModel';
 import { ProjectIntelligenceInspector } from './ProjectIntelligenceInspector';
@@ -29,8 +30,7 @@ const readinessTone = (state: ContextReadinessState) =>
 const FLOW_DRAFT_KEY = (projectId: string) => `iapro:nexus:flow-draft:${projectId}`;
 
 /**
- * Composer is the goal bar for Flow — not a second IDE and not a send-to-agent surface.
- * Flow canvas lives on the Flow Runs surface after handoff.
+ * Composer is the prompt refinery. Flow Studio (missions) receives the handoff draft.
  */
 export const WorkSurface: React.FC<{
   project: Project;
@@ -48,6 +48,7 @@ export const WorkSurface: React.FC<{
     provider?: string;
     error?: string;
   } | null>(null);
+  const [memoryCount, setMemoryCount] = useState(0);
   const [flowError, setFlowError] = useState('');
 
   const refreshContext = useCallback(async () => {
@@ -74,10 +75,20 @@ export const WorkSurface: React.FC<{
     }
   }, [project.id]);
 
+  const refreshMemories = useCallback(async () => {
+    try {
+      const items = await nexus.listIntelligenceMemories(project.id);
+      setMemoryCount(asArray(items).length);
+    } catch {
+      setMemoryCount(0);
+    }
+  }, [project.id]);
+
   useEffect(() => {
     void refreshContext();
     void refreshIntelligence();
-  }, [refreshContext, refreshIntelligence]);
+    void refreshMemories();
+  }, [refreshContext, refreshIntelligence, refreshMemories]);
 
   const state: ContextReadinessState = readiness?.state ?? 'MISSING';
   const gate = composerGateForReadiness(state);
@@ -136,6 +147,9 @@ export const WorkSurface: React.FC<{
                   intelligence.provider ? ` · ${intelligence.provider}` : ''
                 }`
               : t('work.intelligenceOff', 'OFF')}
+          </Badge>
+          <Badge tone={memoryCount > 0 ? 'success' : 'default'}>
+            {t('work.remembersChip', 'Nexus remembers')} · {memoryCount}
           </Badge>
           {!gate.canMaterialize && gate.action !== 'WAIT' && (
             <Button

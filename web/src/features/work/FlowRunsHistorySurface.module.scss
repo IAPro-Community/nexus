@@ -87,6 +87,23 @@
   cursor: pointer;
 }
 
+.newFlowCard {
+  display: grid;
+  gap: 8px;
+}
+
+.newFlowRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.newFlowRow input {
+  flex: 1;
+  min-width: 200px;
+}
+
 .filterChip[data-active='true'] {
   border-color: var(--nx-accent);
   background: var(--nx-accent-soft);

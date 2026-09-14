@@ -209,7 +209,7 @@ export const WorkspaceSurfaceHost: React.FC<{
           onNewAISession={() => window.dispatchEvent(new CustomEvent('nexus:new-ai-session'))}
           onProjectShell={() => window.dispatchEvent(new CustomEvent('nexus:project-shell'))}
           onOpenComposer={() => open('work')}
-          onOpenFlow={undefined}
+          onOpenFlow={() => open('missions')}
           onOpenSettings={() => open('settings')}
         />
       );

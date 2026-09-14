@@ -520,6 +520,53 @@ func (s *Server) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleAuthLoopbackReauth mints a fresh session for trusted loopback clients
+// when the browser lost the fragment bootstrap (Chromium --app= reuse) or the
+// persisted cookie no longer matches after a restart race. Remote / tunnel
+// binds never expose this path.
+func (s *Server) handleAuthLoopbackReauth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if s.auth == nil || !s.auth.isLoopbackListen() || s.auth.IsTunnelActive() {
+		writeError(w, http.StatusForbidden, "loopback reauth unavailable")
+		return
+	}
+	if !clientIsLoopback(r) {
+		writeError(w, http.StatusForbidden, "loopback client required")
+		return
+	}
+	sess, ok := s.auth.ExchangeBootstrapToken(s.bootstrap)
+	if !ok || sess == nil {
+		writeError(w, http.StatusUnauthorized, "unable to mint loopback session")
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    sess.ID,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Secure:   s.cookieSecure(),
+	})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"authenticated": true,
+		"csrf_token":    sess.CSRFToken,
+		"expires_at":    sess.ExpiresAt,
+		"idle_timeout":  int(sessionIdleTTL.Seconds()),
+	})
+}
+
+func clientIsLoopback(r *http.Request) bool {
+	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+	if err != nil {
+		host = strings.TrimSpace(r.RemoteAddr)
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
 func (s *Server) handleDesktopBootstrap(w http.ResponseWriter, r *http.Request) {
 	if !originpolicy.IsTrustedDesktopRequest(r.Host, r.Header.Get("Origin"), r.Header.Get("Referer")) {
 		writeError(w, http.StatusForbidden, "desktop origin required")
@@ -599,8 +646,12 @@ func OpenBrowser(url string) error {
 	case "darwin":
 		return exec.Command("open", "-n", "-a", "Google Chrome", "--args", "--app="+url).Start()
 	default:
-		// Prefer a dedicated Chromium app window; falls back to browser.Open
-		// which already avoids xdg-open shim recursion.
+		// Chromium --app= reuses the existing app window by origin and drops the
+		// URL fragment. Bootstrap tokens live in #nexus_bootstrap=…, so auth
+		// launches must open a normal browser window/tab instead.
+		if strings.Contains(url, "nexus_bootstrap=") {
+			return browser.Open([]string{url})
+		}
 		return browser.OpenAppWindow(url)
 	}
 }

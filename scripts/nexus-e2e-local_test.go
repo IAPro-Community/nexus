@@ -96,7 +96,7 @@ func TestNotAuthenticatedIsMachineClassifiable(t *testing.T) {
 
 func TestResolveE2ERootUsesExplicitNonTemporaryDirectory(t *testing.T) {
 	root := t.TempDir()
-	if err := os.Chmod(root, 0700); err != nil {
+	if err := os.Chmod(root, 0700); err != nil && runtime.GOOS != "windows" {
 		t.Fatal(err)
 	}
 	t.Setenv("NEXUS_E2E_ROOT", root)

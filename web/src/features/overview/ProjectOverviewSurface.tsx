@@ -45,7 +45,7 @@ export const ProjectOverviewSurface: React.FC<{
   onNewAISession,
   onProjectShell,
   onOpenComposer,
-  onOpenFlow: _onOpenFlow,
+  onOpenFlow,
   onNewAgent,
   onConfigureAgent,
   refreshAgents,
@@ -171,6 +171,11 @@ export const ProjectOverviewSurface: React.FC<{
           {onOpenComposer ? (
             <Button tone="ghost" onClick={onOpenComposer}>
               {t('overview.openComposer')}
+            </Button>
+          ) : null}
+          {onOpenFlow ? (
+            <Button tone="ghost" onClick={onOpenFlow}>
+              {t('overview.openFlow', 'Flow')}
             </Button>
           ) : null}
         </div>
