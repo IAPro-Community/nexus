@@ -1,5 +1,11 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-14 — Finalização p/ main (commit + binário)
+
+- Commit `9c17968` (`fix(security): close second-pass pre-main findings`) na branch; árvore limpa, 51 ahead / 0 behind.
+- Rebuild via `make build` + reinstall por rename (binário estava em execução — `Text file busy` no overwrite direto).
+- Instalado agora `0.5.0-beta.23` commit `9c17968` módulo `github.com/IAPro-Community/nexus`; smoke `nexus --help` ok. Sem push.
+
 ## 2026-09-14 — Re-review pré-main (2ª passada, 5🔴 5🟡 zerados)
 
 - `handlers_conductor.go`: `io.LimitReader(1<<20)` nos dois POST (padrão do repo).
