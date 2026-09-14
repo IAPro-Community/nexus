@@ -81,24 +81,34 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 		return err
 	}
 
-	candidateNames := make([]string, 0, len(candidates))
-	for _, candidate := range candidates {
-		candidateNames = append(candidateNames, candidate.Name)
-	}
 	cfg, _ := config.LoadConfig()
-	selected := profile.ResolveDefault(provName, explicitProfile, candidateNames, cfg.Defaults[provName], func() (string, error) {
-		selector := scheduler.NewSelector(cfg, quotaEngine, cooldown.NewTracker())
-		result, selectErr := selector.SelectBestProfile(context.Background(), provName, mustWorkingDirectory(), candidates, accounts, nil)
-		if selectErr == nil && result != nil && result.SelectedProfile != nil {
-			return result.SelectedProfile.Name, nil
-		}
-		return "", selectErr
-	})
-	if !profileInCandidates(candidates, selected) {
-		return fmt.Errorf("profile %q is not configured for provider %s", selected, provName)
+	selector := scheduler.NewSelector(cfg, quotaEngine, cooldown.NewTracker())
+	workspace := mustWorkingDirectory()
+	session, selected, err := launchWithBusyFailover(
+		context.Background(),
+		launcher.Default(),
+		selector,
+		provName,
+		explicitProfile,
+		workspace,
+		cfg.Defaults[provName],
+		candidates,
+		accounts,
+		launcher.LaunchOptions{
+			Workspace:  workspace,
+			Args:       args,
+			Standalone: false,
+			Timeout:    15 * time.Second,
+			Labels: map[string]string{
+				"nexus.delegation_mode": string(nexus.DelegationAuto),
+			},
+		},
+		os.Stderr,
+	)
+	if err != nil {
+		return busyOrLaunchError(provName, selected, explicitProfile, err)
 	}
 
-	workspace := mustWorkingDirectory()
 	lead := nexus.InteractiveLeadBinding{}
 	n := nexus.Default()
 	if st, projectErr := n.OpenProject(); projectErr == nil {
@@ -118,28 +128,13 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 			}
 		}
 	}
-	session, err := launcher.Default().Launch(context.Background(), launcher.LaunchOptions{
-		ProviderID:  provName,
-		ProfileID:   selected,
-		Workspace:   workspace,
-		AgentID:     lead.AgentID,
-		ProjectID:   lead.ProjectID,
-		ProjectName: lead.ProjectName,
-		Args:        args,
-		Standalone:  false,
-		Timeout:     15 * time.Second,
-		Labels: map[string]string{
-			"nexus.interactive_lead": fmt.Sprintf("%t", lead.AgentID != ""),
-			"nexus.delegation_mode":  string(nexus.DelegationAuto),
-		},
-	})
-	if err != nil {
-		releaseInteractiveLeadReservation(n, lead.AgentID)
-		if errors.Is(err, codex.ErrTUIBusy) {
-			return fmt.Errorf("%s profile %s is busy (profile lock held by another session); stop the existing session or retry shortly", provName, selected)
-		}
-		return fmt.Errorf("supervised %s launch failed: %w", provName, err)
+	if session.Labels == nil {
+		session.Labels = map[string]string{}
 	}
+	session.Labels["nexus.interactive_lead"] = fmt.Sprintf("%t", lead.AgentID != "")
+	session.AgentID = lead.AgentID
+	session.ProjectID = lead.ProjectID
+	session.ProjectName = lead.ProjectName
 	if lead.AgentID != "" {
 		if err := n.BindInteractiveLeadRuntime(context.Background(), lead.AgentID, session); err != nil {
 			if client, clientErr := protocol.NewClient(session.RuntimeID); clientErr == nil {
@@ -164,6 +159,16 @@ func releaseInteractiveLeadReservation(n *nexus.Nexus, agentID string) {
 	if st, err := n.OpenProject(); err == nil {
 		_ = st.ReleaseInteractiveLeadReservation(agentID)
 	}
+}
+
+func busyOrLaunchError(provider, profileName, explicit string, err error) error {
+	if errors.Is(err, codex.ErrTUIBusy) || strings.Contains(err.Error(), "no fallback profiles are available") {
+		if strings.TrimSpace(explicit) != "" || errors.Is(err, codex.ErrTUIBusy) {
+			return busyProfileError(provider, profileName)
+		}
+		return fmt.Errorf("%s: %w", provider, err)
+	}
+	return fmt.Errorf("supervised %s launch failed: %w", provider, err)
 }
 
 func profileInCandidates(candidates []model.Profile, name string) bool {
