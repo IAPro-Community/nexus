@@ -26,11 +26,16 @@ history.jsonl
 *auth.json
 *.token
 *.token.json
+*.token.*
 *.secret
 *.secret.json
+*.secret.*
 *.key
 *.pem
 *.pass
+*keyring*
+!**/keyring.go
+!**/keyring_*.go
 *google_accounts*
 *jetski*
 .env
@@ -71,6 +76,7 @@ web/package-lock.json
 /loadtest
 .e2e-artifacts/
 coverage/
+DEV/validation/current/coverage*.out
 
 # Local Yarn state; dependencies are managed by web/bun.lock.
 .pnp.*
