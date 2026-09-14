@@ -18,8 +18,8 @@
 ---
 
 ## Git State
-- **Repository**: `https://github.com/kivervinicius/ai-cli`
-- **Module Path**: `github.com/kivervinicius/ai-cli`
+- **Repository**: `https://github.com/IAPro-Community/nexus`
+- **Module Path**: `github.com/IAPro-Community/nexus`
 - **Working Tree**: Clean, all new core packages versioned under `internal/core/` and standard directories.
 
 ---
@@ -116,19 +116,19 @@ AI CLI (Control Plane)
 
 ### Race Detector (`go test -race ./...`)
 ```text
-ok  	github.com/kivervinicius/ai-cli/internal/app	1.117s
-ok  	github.com/kivervinicius/ai-cli/internal/conversation	1.032s
-ok  	github.com/kivervinicius/ai-cli/internal/core/classifier	1.021s
-ok  	github.com/kivervinicius/ai-cli/internal/core/config	1.035s
-ok  	github.com/kivervinicius/ai-cli/internal/core/cooldown	1.018s
-ok  	github.com/kivervinicius/ai-cli/internal/core/fallback	1.019s
-ok  	github.com/kivervinicius/ai-cli/internal/core/provider	1.026s
-ok  	github.com/kivervinicius/ai-cli/internal/core/quota	1.016s
-ok  	github.com/kivervinicius/ai-cli/internal/core/scheduler	1.024s
-ok  	github.com/kivervinicius/ai-cli/internal/core/security	1.019s
-ok  	github.com/kivervinicius/ai-cli/internal/core/session	1.015s
-ok  	github.com/kivervinicius/ai-cli/internal/core/telemetry	1.013s
-ok  	github.com/kivervinicius/ai-cli/internal/profile	1.030s
+ok  	github.com/IAPro-Community/nexus/internal/app	1.117s
+ok  	github.com/IAPro-Community/nexus/internal/conversation	1.032s
+ok  	github.com/IAPro-Community/nexus/internal/core/classifier	1.021s
+ok  	github.com/IAPro-Community/nexus/internal/core/config	1.035s
+ok  	github.com/IAPro-Community/nexus/internal/core/cooldown	1.018s
+ok  	github.com/IAPro-Community/nexus/internal/core/fallback	1.019s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider	1.026s
+ok  	github.com/IAPro-Community/nexus/internal/core/quota	1.016s
+ok  	github.com/IAPro-Community/nexus/internal/core/scheduler	1.024s
+ok  	github.com/IAPro-Community/nexus/internal/core/security	1.019s
+ok  	github.com/IAPro-Community/nexus/internal/core/session	1.015s
+ok  	github.com/IAPro-Community/nexus/internal/core/telemetry	1.013s
+ok  	github.com/IAPro-Community/nexus/internal/profile	1.030s
 ```
 **Zero data races detected.**
 

@@ -1,5 +1,81 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-14 — Real Codex Mission and launch compatibility
+
+- Corrigida a montagem de argumentos do executor autônomo: flags globais do
+  Codex (`--ask-for-approval`, `--sandbox`) agora precedem `exec` e o prompt.
+- Declarado o review headless do Codex via `exec` em sandbox `read-only`, com
+  golden de contrato e teste de ordenação das flags.
+- Adicionados testes de regressão para o contrato do prompt e para transcripts
+  com JSON duplicado pelo CLI; o parser agora seleciona o último objeto válido
+  que contenha `approved`, sem aceitar texto inválido como evidência.
+- Mission Web real `run_06G9VJV1K6J649PN2EMEHR1EMG` roteou para
+  `codex:kivergmail`, executou em worktree dedicado, recebeu aprovação de um
+  reviewer Agent distinto em sandbox read-only e passou verificações de pacote
+  e globais, alcançando `COMPLETED_VERIFIED`.
+- PASS: teste focado com race, `make quality` e
+  `GOTOOLCHAIN=go1.25.1 make release-proof`. Sem commit, push, CI hospedado,
+  ruleset ou branch protection.
+
+## 2026-09-13 — Release closure evidence refresh
+
+- `make attention-e2e`, `make overnight-smoke`, `make overnight-soak
+  DURATION=45m`, `make build`, `go vet ./...` and `git diff --check` PASS.
+- `GOTOOLCHAIN=go1.25.1 make release-proof` PASS (aggregate coverage 52.4%).
+  The default Go 1.25.0 installation still lacks `covdata`; this remains an
+  environment-only block, not a source failure.
+- `make smoke-providers` and direct local attempts did not yield a durable
+  authenticated Mission. Evidence is explicitly `UNVERIFIED` under
+  `DEV/validation/current/real-provider-mission/`.
+- Fixed the remaining CI desktop ldflags to the `IAPro-Community/nexus`
+  module path. No commit, push, hosted CI, ruleset or branch-protection change
+  was performed.
+
+## 2026-09-13 — Fase A: promoção adaptativa em terminais supervisionados
+
+- Criado `internal/nexus/promotion` com `LineShadow` byte-a-byte: Enter é
+  retido para decisão, ESC/CSI/OSC e bracketed paste não entram na sombra,
+  backspace edita UTF-8 e OFF permanece passthrough.
+- CLI e Web agora aplicam `KEEP_WITH_LEAD`, `ASK` ou `PROMOTE`; a promoção
+  cria WorkPlan/Mission autônoma e devolve síntese ao mesmo Lead. Web expõe
+  `promotion`/`promotion_answer` e usa diálogo internacionalizado.
+- PASS: testes de promoção, `go test ./... -count=1`, `go test -race` nos
+  pacotes tocados, `go vet ./...`, `make quality` e `git diff --check`.
+- Sem commit, push, ruleset ou branch protection.
+
+## 2026-09-13 — Fase B: ciclo canônico de revisão e remediação
+
+- Adicionado `TestMissionTeamPlannerBuilderReviewerVerifierWithRemediationCycle`:
+  três achados iniciais, um achado persistente + um novo na segunda revisão,
+  aprovação final e Verifier sem turno de escrita; o ledger termina resolvido.
+- `overnight-smoke` agora inclui o teste canônico por prefixo estável.
+- PASS: `make overnight-smoke`.
+
+## 2026-09-13 — Fase C: module path IAPro-Community
+
+- Migrado `go.mod`, imports internos, Makefile, GoReleaser, CI desktop e
+  documentação para `github.com/IAPro-Community/nexus`.
+- Criado ADR [`docs/architecture/ADR-module-path-iapro-community.md`](../docs/architecture/ADR-module-path-iapro-community.md),
+  preservando CLI, flags, JSON e perfis existentes.
+- `go mod tidy`, `go test ./...`, `make quality` (`make_quality_exit=0`) e
+  `git diff --check` PASS. Push/CI remoto continuam não executados.
+
+## 2026-09-13 — P0 concorrência de runtimes Codex
+
+- Substituído o lock exclusivo de TUI por lease compartilhado (`AcquireTUILease`);
+  preparação, migração e quota app-server usam `TryAcquireMaintenanceLock` exclusivo.
+- Perfis prontos são reutilizados enquanto TUIs estão ativas; perfis incompletos
+  falham de modo transitório. A seleção supervisionada não trata perfil Codex
+  ativo como singleton.
+- `ClaimInteractiveLead` reserva Agents por atualização condicional (`RowsAffected`)
+  com estado `STARTING`; cleanup libera a reserva em falha de lançamento.
+- PASS: testes focados, `go test ./... -count=1`, `go test -race` nos pacotes
+  tocados, `go vet` tocado, compilação Windows dos pacotes de lock/host/nexus/app,
+  `git diff --check` e `make quality` (`make_quality_exit=0`). O lint foi
+  destravado corrigindo nove diagnósticos determinísticos fora do P0.
+- Sem commit, push, ruleset ou branch protection; promoção adaptativa e migração
+  de module path permanecem bloqueadas até este contrato ser revisado.
+
 ## 2026-09-13 — Provider contract freeze (CLIs / usage / routing)
 
 - Introduced canonical `internal/core/provider/spec` consumed by adapters,

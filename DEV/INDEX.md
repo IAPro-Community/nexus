@@ -6,6 +6,12 @@ Guia e índice de navegação estruturada da documentação de engenharia e gove
 
 Reports under `validation/FINAL_*.md` are historical unless they live in `validation/current/` and carry matching `GIT_SHA`.
 
+Release evidence uses `GIT_SHA` for the validated code revision and, when a
+documentation-only evidence commit is authorized, `EVIDENCE_COMMIT` for that
+commit. A dirty worktree is recorded as `WORKTREE_FROZEN: NO`; it must not be
+represented as a frozen release candidate. The current real-provider attempt
+and its honest status live in [`validation/current/real-provider-mission/`](validation/current/real-provider-mission/).
+
 O código canônico utiliza o binário `nexus`, mantendo `ai` como alias transparente de compatibilidade.
 
 ---
@@ -32,6 +38,7 @@ O código canônico utiliza o binário `nexus`, mantendo `ai` como alias transpa
 - [`docs/architecture/resource-routing.md`](../docs/architecture/resource-routing.md): seleção de recursos e políticas do scheduler.
 - [`docs/architecture/mission-teams.md`](../docs/architecture/mission-teams.md): projeção de Mission Teams sobre Flow, WorkPlan e MissionRunner.
 - [`docs/architecture/session-continuity.md`](../docs/architecture/session-continuity.md): estados e limites de continuidade.
+- [`docs/architecture/ADR-module-path-iapro-community.md`](../docs/architecture/ADR-module-path-iapro-community.md): decisão do module path canônico.
 - [`docs/architecture/quota/legacy-cache-migration.md`](../docs/architecture/quota/legacy-cache-migration.md): tratamento não destrutivo de cache legado.
 
 - [`NEXUS_V1_ARCHITECTURE.md`](NEXUS_V1_ARCHITECTURE.md): Arquitetura mestre do Workspace OS, runtimes e store.

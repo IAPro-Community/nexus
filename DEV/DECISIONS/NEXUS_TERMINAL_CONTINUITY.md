@@ -10,6 +10,15 @@ runner nativo, credencial, CI remoto ou integração externa.
 
 ## Decisões aceitas
 
+### Supervisão não implica exclusividade de perfil ou Agent
+
+Uma conta/perfil representa credenciais e configuração compartilhadas. Cada
+invocação supervisionada recebe runtime, terminal, endpoint, generation,
+provider session e Lead independentes, inclusive quando usa o mesmo perfil.
+TUIs Codex mantêm leases compartilhados; apenas preparação/migração e probes
+`app-server` exigem lock exclusivo. O estado de uma execução não pode encerrar
+ou reconfigurar outra.
+
 ### Quota não observada nunca é saldo
 
 `UNKNOWN`, `UNSUPPORTED`, `ERROR` e observação vencida não são convertidos em

@@ -43,10 +43,10 @@ import (
     "path/filepath"
     "strings"
     
-    "github.com/kivervinicius/ai-cli/internal/core/config"
-    "github.com/kivervinicius/ai-cli/internal/core/model"
-    "github.com/kivervinicius/ai-cli/internal/core/security"
-    "github.com/kivervinicius/ai-cli/internal/runtime"
+    "github.com/IAPro-Community/nexus/internal/core/config"
+    "github.com/IAPro-Community/nexus/internal/core/model"
+    "github.com/IAPro-Community/nexus/internal/core/security"
+    "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 type Adapter struct{}

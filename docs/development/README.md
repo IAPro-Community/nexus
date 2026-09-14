@@ -5,7 +5,7 @@
 O build a partir do fonte requer Go 1.25+ e Bun 1.3.9+:
 
 ```bash
-git clone https://github.com/kivervinicius/ai-cli.git
+git clone https://github.com/IAPro-Community/nexus.git
 cd ai-cli
 bun --cwd web install --frozen-lockfile
 make build

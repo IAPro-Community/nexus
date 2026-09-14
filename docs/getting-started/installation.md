@@ -57,7 +57,7 @@ O instalador resolve a tag mais recente pela API do GitHub e valida o SHA-256 em
 ## Compilar do fonte (desenvolvedores)
 
 ```bash
-git clone https://github.com/kivervinicius/ai-cli.git
+git clone https://github.com/IAPro-Community/nexus.git
 cd ai-cli
 bun --cwd web install --frozen-lockfile
 make build

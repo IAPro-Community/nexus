@@ -2,6 +2,18 @@
 
 ## Closure state — 2026-09-13
 
+### P0 ativo — concorrência de runtimes supervisionados
+
+O contrato de continuidade agora permite múltiplas TUIs Codex no mesmo perfil:
+leases compartilhados protegem cada runtime, enquanto preparação, migração e
+quota app-server exigem manutenção exclusiva. A seleção não trata perfil ativo
+como singleton e Leads interativos são reivindicados atomicamente antes do
+lançamento. O slice foi implementado e verificado localmente; a migração do
+module path e a promoção adaptativa permanecem bloqueadas até revisão deste P0.
+
+Após a revisão local, a migração do module path foi concluída e validada; a
+promoção adaptativa (Fase A) continua pendente.
+
 Observed candidate SHA: `eed65e5a7e46adc896165c94accb7fc73fc6750f`. The local
 closure slice is implemented and its deterministic/Linux gates pass, but the
 candidate is not frozen. Required release blockers remain: stale visual docs

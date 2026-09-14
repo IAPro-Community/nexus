@@ -11,7 +11,7 @@ Under the **Maestro Orchestration + Superpowers** engineering autopilot, the ent
 
 ## Baseline & Branch Stack
 
-- **Repository**: `https://github.com/kivervinicius/ai-cli`
+- **Repository**: `https://github.com/IAPro-Community/nexus`
 - **Initial Baseline**: `feat/ai-control-runtime-hardening` (Commit `92c1956`)
 - **Stacked Branches**:
   - `feat/ai-control-runtime-validation` (Subproject A — Gate A Certified **GO**)

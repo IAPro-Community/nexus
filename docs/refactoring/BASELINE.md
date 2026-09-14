@@ -11,7 +11,7 @@ HEAD: `cf1c633`
   not part of this campaign.
 - `main...HEAD`: 117 commits of Maximum Delivery history are present; this is
   not treated as permission to rewrite historical changes.
-- Go module: `github.com/kivervinicius/ai-cli`, Go 1.25.
+- Go module: `github.com/IAPro-Community/nexus`, Go 1.25.
 - Frontend: React/TypeScript under `web/`, Bun/Yarn-compatible scripts.
 
 ## Baseline commands

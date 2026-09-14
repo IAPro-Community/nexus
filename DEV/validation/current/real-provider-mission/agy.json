@@ -1,0 +1,23 @@
+{
+  "provider": "agy",
+  "observed_at": "2026-09-14T01:00:27Z",
+  "status": "UNVERIFIED",
+  "binary": "./nexus",
+  "attempts": [
+    {
+      "profile": "kiveromegasistemas",
+      "mode": "direct",
+      "result": "NO_MODEL_OUTPUT",
+      "detail": "headless provider invocation required command permission and was auto-denied"
+    },
+    {
+      "profile": "kiveromegasistemas",
+      "mode": "autonomous-mission",
+      "result": "STRICT_ADMISSION_BLOCKED",
+      "detail": "minimal isolated profile was recognized as authenticated but token was expired/refreshable and no eligible resource was admitted"
+    }
+  ],
+  "mission_run_id": null,
+  "routing_decision": null,
+  "quota_status": "CACHED_ONLY"
+}

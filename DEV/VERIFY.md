@@ -1,5 +1,45 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-14 — Codex autonomous launch compatibility
+
+- PASS — Codex autonomous argument regression: approval/sandbox flags are
+  placed before `exec` so Codex 0.154.0 accepts the command.
+- PASS — Codex reviewer argument contract: read-only sandbox and no-approval
+  flags are placed before `exec`; provider contract golden updated.
+- PASS — targeted race tests and `make quality`; alternate Go 1.25.1
+  `make release-proof` completed all local gates.
+- PASS — authenticated Mission `run_06G9VJV1K6J649PN2EMEHR1EMG` routed to
+  `codex:kivergmail`, executed the implementer in a dedicated worktree,
+  received an approved verdict from a distinct read-only Codex reviewer, and
+  completed package plus global verification as `COMPLETED_VERIFIED`.
+
+## 2026-09-13 — P0/concurrency and release closure refresh
+
+- PASS — `make attention-e2e`, `make overnight-smoke` and
+  `make overnight-soak DURATION=45m` on the current worktree.
+- PASS — `GOTOOLCHAIN=go1.25.1 make release-proof` completes all local gates
+  with aggregate coverage at 52.4%; the default Go 1.25.0 installation still
+  lacks `covdata` and is recorded as an environment-only block.
+- PASS — authenticated Codex Mission `run_06G9VJV1K6J649PN2EMEHR1EMG`
+  completed with a distinct read-only reviewer and durable package/global
+  verification evidence (artifacts in
+  [`validation/current/real-provider-mission/`](validation/current/real-provider-mission/)).
+- BLOCKED — `make docs-verify` still sees a stale visual manifest for
+  uncommitted frontend changes.
+- NOT EXECUTED — push, hosted same-SHA CI, rulesets and branch protection;
+  these require explicit maestro authorization.
+
+## 2026-09-13 — Fase A promoção adaptativa
+
+- PASS — `internal/nexus/promotion` cobre Enter retido, UTF-8/backspace,
+  ESC/CSI/OSC, CPR, bracketed paste, controles e OFF passthrough.
+- PASS — CLI attach e Web terminal integram `KEEP_WITH_LEAD`, `ASK` e
+  `PROMOTE`; Web expõe confirmação `promotion_answer`.
+- PASS — `go test ./... -count=1`, `go test -race` nos pacotes tocados,
+  `go vet ./...`, `make quality` e `git diff --check`.
+- UNVERIFIED — Mission com providers autenticados, CI hosted same-SHA e
+  soak de oito horas; nenhum push ou branch protection foi executado.
+
 ## 2026-09-13 — Fase 0 pós PRODUCTION_NO_GO
 
 - Scope: código apenas (falso sucesso / Maestro / Mission PATCH / quota /
@@ -31,6 +71,17 @@
 - UNVERIFIED — authenticated Mission evidence, production updater key
   provisioning, native Windows/macOS/NSIS, hosted same-SHA browser/release
   matrix, and eight-hour overnight certification.
+
+## 2026-09-13 — Fase B revisão/remediação
+
+- PASS — ciclo canônico Planner → Builder → Reviewer (`CHANGES_REQUESTED`)
+  → remediação com finding novo → `APPROVED` → Verifier sem write turn.
+- PASS — ledger distingue quatro identidades e termina sem findings abertos;
+  `make overnight-smoke` executa o teste.
+- BLOCKED — `make docs-verify` exige manifesto visual renovado para as
+  alterações frontend não commitadas; nenhuma regeneração foi feita.
+- BLOCKED — `make docs-verify` still requires a refreshed visual manifest for
+  uncommitted frontend changes; no manifest regeneration was performed.
 
 ## 2026-09-13 — Mission Teams validation
 
@@ -1200,6 +1251,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-13T18:52:08Z
+## Frontend gate — 2026-09-14T02:05:06Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).

@@ -1,5 +1,57 @@
 # Handoff
 
+## Plano de concorrência e prova Codex — 2026-09-14
+
+O contrato P0 de runtimes concorrentes, a migração de module path, a promoção
+adaptativa e o ciclo canônico de revisão estão implementados neste worktree.
+A prova real Codex `run_06G9VJV1K6J649PN2EMEHR1EMG` alcançou
+`COMPLETED_VERIFIED`: routing autenticado `codex:kivergmail`, worktree
+dedicado, reviewer Agent distinto em sandbox `read-only` e verificações de
+pacote e globais aprovadas. O prompt de review usa JSON válido e o parser lida
+com o transcript duplicado emitido pelo CLI.
+
+Continuam condicionados à autorização explícita: commit/SHA congelado, push,
+CI hosted same-SHA, rulesets/branch protection e provisionamento da chave de
+assinatura. `make docs-verify` segue bloqueado pelo manifesto visual stale;
+Windows/macOS nativos e soak de 8h permanecem não verificados. Não houve
+commit, push ou alteração remota.
+
+## Fase A — promoção adaptativa — 2026-09-13
+
+Implementado o pacote `internal/nexus/promotion` com sombra de linha sem
+vazamento de sequências de terminal e política `AUTO`/`ASK`/`OFF`. O attach do
+CLI e o terminal Web retêm Enter, preservam o stream bruto e, quando elegível,
+criam Mission autônoma no mesmo Lead; o Web usa frames `promotion` e resposta
+explícita internacionalizada. Verificação local completa passou. Push e
+proteções remotas continuam fora desta execução.
+
+## Fase B — revisão com remediação — 2026-09-13
+
+O teste canônico agora cobre `CHANGES_REQUESTED` com três findings, nova rodada
+com um finding aberto e um novo, aprovação e Verifier read-only. O ledger de
+findings e o estado final `COMPLETED_VERIFIED` passaram; `make overnight-smoke`
+inclui o fluxo.
+
+## Fase C — module path IAPro-Community — 2026-09-13
+
+Module path migrado para `github.com/IAPro-Community/nexus`, incluindo imports,
+ldflags, Makefile, GoReleaser, CI e documentação; ADR criada. `go mod tidy`,
+`go test ./...`, `make quality` e `git diff --check` passaram. Sem push/commit.
+
+## P0 concorrência de runtimes — 2026-09-13
+
+Implementado no worktree (sem commit): Codex agora aceita leases TUI
+compartilhados no mesmo `CODEX_HOME`; manutenção/app-server usam lock exclusivo,
+e `Prepare` reaproveita perfis prontos sem migrar durante uma TUI ativa. O CLI
+supervisionado não filtra mais perfil ocupado nem retorna singleton; Leads são
+reservados atomicamente via `STARTING`/`RowsAffected`, com cleanup em falha.
+
+Verificação: testes focados e `go test ./...` PASS; `go test -race` nos pacotes
+tocados PASS; compilação Windows dos pacotes alterados PASS; `git diff --check`
+PASS; `make quality` PASS. O CI remoto/push não foi executado. Próxima ação:
+revisão do contrato e só então executar C (module path) e A (promoção adaptativa),
+sem push/branch protection sem autorização explícita.
+
 ## Provider contract freeze — 2026-09-13
 
 Blindagem de CLIs / `nexus usage` / roteamento está no worktree (ainda sem
@@ -477,7 +529,7 @@ CLI gerado/DTOs restantes. Próxima ação recomendada: promover o worktree por
 CI same-SHA nativo antes de qualquer claim multiplataforma ou release.
 
 O SHA publicado `bfc90fc98acd700c165c8e7df26ac3d3670dce54` possui o run remoto
-[34472251335](https://github.com/kivervinicius/ai-cli/actions/runs/34472251335).
+[34472251335](https://github.com/IAPro-Community/nexus/actions/runs/34472251335).
 Esse run falhou nos asserts remotos de Windows/macOS/browser e Desktop macOS;
 os logs detalhados não estão acessíveis com a autenticação local atual. O
 rerun de jobs falhos foi tentado e retornou HTTP 401 (`gh` token inválido).

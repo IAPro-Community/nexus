@@ -1,7 +1,7 @@
 # AI CLI — Control Baseline Audit
 
 **Audit Date:** 2026-08-27
-**Target Project:** `github.com/kivervinicius/ai-cli`
+**Target Project:** `github.com/IAPro-Community/nexus`
 
 ---
 

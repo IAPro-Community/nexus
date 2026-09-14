@@ -1,7 +1,7 @@
 # Nexus V1 — Baseline Audit
 
 - **Date:** 2026-08-28
-- **Repo:** `github.com/kivervinicius/ai-cli` (evolving to IAPro Nexus)
+- **Repo:** `github.com/IAPro-Community/nexus` (evolving to IAPro Nexus)
 - **Integration branch:** `feat/nexus-v1`
 - **Baseline HEAD:** `f9cd67988ac295b9a5c6b2f35e964243ad4e6917` (validated production-readiness branch, previously pushed to origin)
 

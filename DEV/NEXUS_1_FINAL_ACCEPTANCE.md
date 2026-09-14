@@ -3,9 +3,9 @@
 Audit date: 2026-09-07  
 Candidate SHA: `5f51d03985f6ca48186f0cb12b3e97a5294600e3` (working tree dirty)  
 Branch: `feat/nexus-maximum-delivery`  
-Remote: `origin` → `https://github.com/kivervinicius/ai-cli.git`
+Remote: `origin` → `https://github.com/IAPro-Community/nexus.git`
 
-Fresh remote evidence: CI run [34159526843](https://github.com/kivervinicius/ai-cli/actions/runs/34159526843)
+Fresh remote evidence: CI run [34159526843](https://github.com/IAPro-Community/nexus/actions/runs/34159526843)
 completed for the current SHA with Frontend, Linux, Security, Desktop Linux and
 Desktop Windows passing. macOS E2E, Browser E2E and Desktop macOS failed; the
 GoReleaser Snapshot was skipped. The available GitHub token is invalid/rate

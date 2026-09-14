@@ -10,6 +10,12 @@
 - Quotas em tempo real para Codex: parsing dinâmico de rollouts de sessão (`rollout-*.jsonl`) com rate limits primário (5h) e secundário (semanal) associados ao grupo `claude_gpt`.
 - Chaveiro seguro de sessões D-Bus: isolamento de diretório de controle temporário exclusivo (`--control-directory`), eliminando conflito com o keyring do host e timeout de 25s de `org.freedesktop.secrets`.
 - Perfis Codex, AGY e OpenCode podem reaproveitar artefatos locais de conversa sem copiar credenciais.
+- Concorrência supervisionada Codex: `AcquireTUILease` compartilhado por runtime;
+  `TryAcquireMaintenanceLock` exclusivo para preparação/migração/app-server;
+  Leads interativos são reservados atomicamente em `STARTING`.
+- Promoção adaptativa: `internal/nexus/promotion` mantém sombra de linha sem
+  interpretar ESC/CSI/OSC ou bracketed paste; CLI e Web aplicam `AUTO`, `ASK`
+  e `OFF` sem transformar perfil, terminal ou Lead em singleton.
 
 ## Comandos
 
