@@ -1,5 +1,11 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-14 — Codex terminal input provenance
+
+- Rebuilt `/home/desenvolvedor/.local/bin/nexus` from checkout `1b840ca`; `nexus version` reports `0.5.0-beta.23` commit `1b840ca`, `go version -m` module `github.com/IAPro-Community/nexus` (prior install `86089f0`/`kivervinicius` retired).
+- Rebuild/reinstall: `make build` then `cp ./nexus /home/desenvolvedor/.local/bin/nexus`.
+- Validate: `nexus version` and `go version -m /home/desenvolvedor/.local/bin/nexus`; no push/ruleset/branch-protection change.
+
 ## 2026-09-14 — Real Codex Mission and launch compatibility
 
 - Corrigida a montagem de argumentos do executor autônomo: flags globais do

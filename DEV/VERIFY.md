@@ -1,5 +1,14 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-14 — Codex terminal input
+
+- PASS — `web/src/nexus/terminalInput.ts` shared filter drops focus/CPR/`[i`; `AgentTerminal` and `TerminalPane` use it; mouse/CSI-u/UTF-8/`0x03`/literals forwarded.
+- PASS — `internal/control/host` forwards `CmdInput` byte-for-byte; `/nexus stop` never intercepted; `LineShadow` keeps control/paste/OSC/CPR out of prompt.
+- PASS — `CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT=1` in direct adapter and supervised spec/driver.
+- PASS — rebuilt `/home/desenvolvedor/.local/bin/nexus` from `1b840ca`; `nexus version` `1b840ca`, `go version -m` module `github.com/IAPro-Community/nexus`.
+- PASS — focused web `terminalInput.test.ts` (10), Go race (`host`, `promotion`, `driver`, `spec`), `go test ./...`, `make quality`, `make build`, `git diff --check`.
+- UNVERIFIED — manual Web/Desktop + `nexus codex` acceptance (no mouse `[i`/`[I`/CSI residue; common keys no interrupt; explicit `0x03` interrupts; literals intact).
+
 ## 2026-09-14 — Codex autonomous launch compatibility
 
 - PASS — Codex autonomous argument regression: approval/sandbox flags are

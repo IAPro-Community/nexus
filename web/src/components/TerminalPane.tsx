@@ -29,6 +29,7 @@ import {
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { getWebSocketEndpoint } from '../api';
+import { shouldForwardTerminalInput } from '../nexus/terminalInput';
 import styles from './TerminalPane.module.scss';
 
 interface TerminalPaneProps {
@@ -362,18 +363,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       if (disposed) return;
       term.scrollToBottom();
       setIsScrolledUp(false);
-      // Discard browser focus in/out and cursor position report sequences that leak during tab switching
-      if (
-        data === '\x1b[I' ||
-        data === '\x1b[O' ||
-        data === '[I' ||
-        data === '[O' ||
-        // eslint-disable-next-line no-control-regex
-        /^\x1b\[\d+;\d+R$/.test(data) ||
-        /^\[\d+;\d+R$/.test(data)
-      ) {
-        return;
-      }
+      if (!shouldForwardTerminalInput(data)) return;
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'input', data }));
       }

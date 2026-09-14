@@ -48,6 +48,7 @@ import { isRequiredResourceError, recoverOrStartAgent } from './agentRecover';
 import { ResourcePicker } from './ResourcePicker';
 import { TerminalActionDialog } from './TerminalActionDialog';
 import { scrubProtocolOutput } from './terminalProtocol';
+import { shouldForwardTerminalInput } from './terminalInput';
 import { ConfirmDialog, ContextDrawer, Tooltip } from '../design-system';
 import { TaskPreparationDialog } from '../components/TaskPreparationDialog';
 import type { RuntimeSession } from '../types';
@@ -607,6 +608,7 @@ export const AgentTerminal: React.FC<{
         ws.send(JSON.stringify({ type: 'lease_acquire' }));
         return;
       }
+      if (!shouldForwardTerminalInput(data)) return;
       ws.send(JSON.stringify({ type: 'input', data }));
     });
 

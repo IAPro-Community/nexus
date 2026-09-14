@@ -1,5 +1,9 @@
 # Handoff
 
+## Codex terminal input — 2026-09-14
+
+Rebuilt `/home/desenvolvedor/.local/bin/nexus` from checkout `1b840ca` (`nexus version` `1b840ca`, `go version -m` `github.com/IAPro-Community/nexus`); automated gates PASS (focused web/Go race, `go test ./...`, `make quality`, `make build`, `git diff --check`). Resta apenas aceitação manual Web/Desktop + `nexus codex`. Sem push/ruleset/branch-protection.
+
 ## Plano de concorrência e prova Codex — 2026-09-14
 
 O contrato P0 de runtimes concorrentes, a migração de module path, a promoção
