@@ -54,9 +54,29 @@ export function isFatalTerminalAttachError(message: string): boolean {
   );
 }
 
-export function nextBoundRuntimeId(current: string, incoming?: string): string {
+export function nextBoundRuntimeId(current: string, incoming?: string, preferred?: string): string {
+  const pref = (preferred || '').trim();
+  const cur = (current || '').trim();
   const next = (incoming || '').trim();
-  return next || (current || '').trim();
+  // Preferred only wins when the host already selected it as the live incoming runtime.
+  if (pref && pref === next) return pref;
+  if (!next) return cur;
+  if (!cur) return next;
+  // Sticky: keep the bound generation. Polls may briefly list a sibling/stale runtime.
+  return cur;
+}
+
+export function isLiveRuntimeState(state?: string): boolean {
+  switch ((state || '').toUpperCase()) {
+    case 'RUNNING':
+    case 'STARTING':
+    case 'HANDOFF':
+    case 'WAITING':
+    case 'APPROVAL':
+      return true;
+    default:
+      return false;
+  }
 }
 
 /** Transport loss never relaunches a runtime; recovery is an explicit action. */
@@ -86,10 +106,31 @@ export function shouldShowTerminalRecoverOverlay(input: {
   recovering: boolean;
   connectingForMs?: number;
 }): boolean {
+  void input.connectingForMs;
   if (input.recovering) return true;
   if (input.connection === 'ERROR' || input.connection === 'DISCONNECTED') return true;
-  if (input.connection === 'CONNECTING' && (input.connectingForMs ?? 0) >= 800) return true;
+  // CONNECTING alone is not a recover failure — use a light status, not the fullscreen overlay.
   return false;
+}
+
+/** Parse Gate-4 runtime_changed payload for the new generation id. */
+export function parseRuntimeChangedId(data: unknown): string {
+  if (data == null) return '';
+  let record: unknown = data;
+  if (typeof data === 'string') {
+    const trimmed = data.trim();
+    if (!trimmed) return '';
+    try {
+      record = JSON.parse(trimmed) as unknown;
+    } catch {
+      return '';
+    }
+  }
+  if (!record || typeof record !== 'object') return '';
+  const payload = record as { new_runtime_id?: unknown; newRuntimeId?: unknown };
+  const fromSnake = typeof payload.new_runtime_id === 'string' ? payload.new_runtime_id.trim() : '';
+  if (fromSnake) return fromSnake;
+  return typeof payload.newRuntimeId === 'string' ? payload.newRuntimeId.trim() : '';
 }
 
 /** Recover refused because the runtime is healthy — reconnect, do not stop+start. */

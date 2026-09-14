@@ -29,6 +29,7 @@ import {
   normalizeInitialPrompt,
   normalizeTerminalRole,
   nextBoundRuntimeId,
+  parseRuntimeChangedId,
   runtimeIdFromRecoverResult,
   shouldShowTerminalRecoverOverlay,
   terminalAttachFailure,
@@ -76,6 +77,8 @@ export const AgentTerminal: React.FC<{
   agentId: string;
   projectId?: string;
   runtimeId?: string;
+  /** Authoritative generation from the workspace surface (wins over poll). */
+  preferredRuntimeId?: string;
   initialPrompt?: string;
   provider?: string;
   profile?: string;
@@ -91,10 +94,12 @@ export const AgentTerminal: React.FC<{
   ) => Promise<RuntimeSession | void> | RuntimeSession | void;
   onClose?: (stopRuntime: boolean) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
+  onBoundRuntimeChange?: (runtimeId: string) => void;
 }> = ({
   agentId,
   projectId,
   runtimeId,
+  preferredRuntimeId,
   initialPrompt,
   provider,
   profile,
@@ -106,8 +111,11 @@ export const AgentTerminal: React.FC<{
   onRestartWithMode,
   onClose,
   onDelete,
+  onBoundRuntimeChange,
 }) => {
   const { t } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -149,6 +157,8 @@ export const AgentTerminal: React.FC<{
   liveTitleKeyRef.current = liveTitleKey;
   const liveChromeRef = useRef(liveChrome);
   liveChromeRef.current = liveChrome;
+  const onBoundRuntimeChangeRef = useRef(onBoundRuntimeChange);
+  onBoundRuntimeChangeRef.current = onBoundRuntimeChange;
   const ptyChromeRef = useRef({ title: '', questionnaire: false });
   const [fontSize, setFontSize] = useState<number>(() => getStoredTerminalFontSize());
   const initialFontSizeRef = useRef(fontSize);
@@ -173,8 +183,8 @@ export const AgentTerminal: React.FC<{
   }, [fontSize]);
 
   useEffect(() => {
-    setBoundRuntimeId((current) => nextBoundRuntimeId(current, runtimeId));
-  }, [runtimeId]);
+    setBoundRuntimeId((current) => nextBoundRuntimeId(current, runtimeId, preferredRuntimeId));
+  }, [runtimeId, preferredRuntimeId]);
 
   useEffect(() => {
     const key = liveTitleKey;
@@ -196,7 +206,10 @@ export const AgentTerminal: React.FC<{
 
   const rebindTerminal = (nextRuntimeId?: string) => {
     const trimmed = (nextRuntimeId || '').trim();
-    if (trimmed) setBoundRuntimeId(trimmed);
+    if (trimmed) {
+      setBoundRuntimeId(trimmed);
+      onBoundRuntimeChangeRef.current?.(trimmed);
+    }
     setNeedsResourceSelection(false);
     setMessage('');
     setConnection('CONNECTING');
@@ -433,9 +446,9 @@ export const AgentTerminal: React.FC<{
       setConnection('ERROR');
       const failure = terminalAttachFailure(detail);
       if (failure.kind === 'generic') {
-        setMessage(t('terminal.attachFailedGeneric'));
+        setMessage(tRef.current('terminal.attachFailedGeneric'));
       } else if (failure.kind === 'fatal_with_detail') {
-        setMessage(`${failure.detail} ${t('terminal.attachFailedRecoverHint')}`);
+        setMessage(`${failure.detail} ${tRef.current('terminal.attachFailedRecoverHint')}`);
       } else {
         setMessage(failure.detail);
       }
@@ -452,12 +465,12 @@ export const AgentTerminal: React.FC<{
         return;
       }
       if (openedOnce && reconnectAttempt >= TERMINAL_MAX_RECONNECT_ATTEMPTS) {
-        failPermanently(detail || t('terminal.connectionLost'));
+        failPermanently(detail || tRef.current('terminal.connectionLost'));
         return;
       }
       const delay = terminalReconnectDelay(reconnectAttempt++);
       setConnection('CONNECTING');
-      setMessage(t('terminal.reconnecting', { delay }));
+      setMessage(tRef.current('terminal.reconnecting', { delay }));
       reconnectTimer = window.setTimeout(() => {
         reconnectTimer = undefined;
         connect();
@@ -511,8 +524,8 @@ export const AgentTerminal: React.FC<{
         setConnection('CONNECTED');
         setModeAction((current) => (current === 'Restarting' ? 'Ready' : current));
         setMessage((current) =>
-          current === t('terminal.restartingRuntime')
-            ? t('common.ready', { defaultValue: 'Ready' })
+          current === tRef.current('terminal.restartingRuntime')
+            ? tRef.current('common.ready', { defaultValue: 'Ready' })
             : '',
         );
         if (ws.readyState === WebSocket.OPEN) {
@@ -546,14 +559,35 @@ export const AgentTerminal: React.FC<{
             reconnectAttempt = 0;
             roleRef.current = next;
             setRole(next);
-            setMessage(next === 'CONTROL' ? '' : t('terminal.readOnlyNotice'));
+            setMessage(next === 'CONTROL' ? '' : tRef.current('terminal.readOnlyNotice'));
             if (next === 'CONTROL' && (!panel || panel.dataset.active === 'true')) {
               window.requestAnimationFrame(() => term.focus());
             }
             maybeSendKickoff();
           } else if (payload.type === 'runtime_changed') {
-            setMessage(t('terminal.rebinding'));
-            ws.close(1012, 'runtime generation changed');
+            const nextId = parseRuntimeChangedId(payload.data);
+            setMessage(tRef.current('terminal.rebinding'));
+            // Prevent reconnect on the old generation; remount against the new id.
+            stopReconnect = true;
+            if (reconnectTimer !== undefined) {
+              window.clearTimeout(reconnectTimer);
+              reconnectTimer = undefined;
+            }
+            try {
+              ws.close(1012, 'runtime generation changed');
+            } catch {
+              // ignore
+            }
+            if (nextId) {
+              setBoundRuntimeId(nextId);
+              onBoundRuntimeChangeRef.current?.(nextId);
+              setNeedsResourceSelection(false);
+              setConnection('CONNECTING');
+              setConnectNonce((n) => n + 1);
+            } else {
+              stopReconnect = false;
+              scheduleReconnect(tRef.current('terminal.rebinding'));
+            }
           } else if (payload.type === 'title' && payload.data) {
             const next = String(payload.data).trim();
             publishChrome(extractOscTitle(next) || next);
@@ -572,7 +606,7 @@ export const AgentTerminal: React.FC<{
             if (String(payload.role || '').toUpperCase() === 'ASK') {
               setPromotionPrompt(String(payload.data || ''));
             } else if (String(payload.role || '').toUpperCase() === 'PROMOTED') {
-              setMessage(t('terminal.promotion.started'));
+              setMessage(tRef.current('terminal.promotion.started'));
             }
           } else if (payload.type === 'error') {
             const detail = String(payload.data ?? 'Terminal error');
@@ -595,7 +629,7 @@ export const AgentTerminal: React.FC<{
 
       ws.onerror = () => {
         if (!disposed && !stopReconnect) {
-          setMessage(t('terminal.transportError'));
+          setMessage(tRef.current('terminal.transportError'));
         }
       };
 
@@ -703,7 +737,7 @@ export const AgentTerminal: React.FC<{
         // ignore
       }
     };
-  }, [agentId, boundRuntimeId, initialPrompt, connectNonce, t]);
+  }, [agentId, boundRuntimeId, initialPrompt, connectNonce]);
 
   const handleManualStartOrRecover = async () => {
     setRecovering(true);
@@ -924,6 +958,8 @@ export const AgentTerminal: React.FC<{
     recovering,
     connectingForMs,
   });
+  const showConnectingStatus =
+    connection === 'CONNECTING' && !showRecoverOverlay && connectingForMs >= 800;
   const windowChrome = chrome === 'window';
 
   const takeControl = () => {
@@ -1010,6 +1046,12 @@ export const AgentTerminal: React.FC<{
         <span className="nx-terminal-message">
           {modeAction === 'Error' ? <ShieldAlert size={12} /> : <Unplug size={12} />}
           {message}
+        </span>
+      )}
+      {showConnectingStatus && !message && (
+        <span className="nx-terminal-message" role="status">
+          <RefreshCw size={12} className="nx-spin-slow" />
+          {t('terminal.connectingTransport')}
         </span>
       )}
       <Tooltip content={t('terminal.skillsTooltip')}>
@@ -1329,13 +1371,13 @@ export const AgentTerminal: React.FC<{
           <div className={styles.recoverHeader}>
             {recovering ? <RefreshCw size={18} className="nx-spin-slow" /> : <Unplug size={18} />}
             <strong className={styles.recoverTitle}>
-              {recovering || connection === 'CONNECTING'
+              {recovering
                 ? t('terminal.recoverTitleReconnecting')
                 : t('terminal.recoverTitleStopped')}
             </strong>
           </div>
           <p className={styles.recoverText}>
-            {recovering || connection === 'CONNECTING'
+            {recovering
               ? t('terminal.recoverNoticeReconnecting')
               : t('terminal.recoverNoticeStopped')}
           </p>

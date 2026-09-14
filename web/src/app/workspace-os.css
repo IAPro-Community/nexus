@@ -435,6 +435,7 @@ button {
 .nx-project-list {
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 2px 6px 4px;
   display: grid;
   align-content: start;

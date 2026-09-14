@@ -36,16 +36,6 @@ import { askActionForStatus } from '../agents/askAgentModel';
 import { ClarificationPrompt } from './ClarificationPrompt';
 import styles from './ComposerSurface.module.scss';
 
-const ARCHETYPE_LABELS: Record<string, string> = {
-  SOFTWARE_FEATURE: 'Feature',
-  BUG_FIX: 'Correção',
-  ARCHITECTURE: 'Arquitetura',
-  DEVOPS: 'DevOps',
-  RESEARCH: 'Pesquisa',
-  SECURITY: 'Segurança',
-  GENERIC: 'Genérico',
-};
-
 function isUnknownResolved(status: string): boolean {
   return status === 'ANSWERED' || status === 'CONFIRMED' || status === 'DISMISSED';
 }
@@ -445,7 +435,7 @@ export const ComposerSurface: React.FC<{
   }
 
   const archetype = view.brief.intent?.archetype;
-  const archetypeLabel = archetype ? ARCHETYPE_LABELS[archetype] || archetype : null;
+  const archetypeLabel = archetype ? t(`work.composer.archetypes.${archetype}`, archetype) : null;
   const turns = view.turns || [];
   const showDestinationDock =
     turns.length > 0 ||

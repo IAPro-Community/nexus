@@ -73,7 +73,12 @@ export function useProjectRailOutline() {
   const [agentsByProject, setAgentsByProject] = useState<Map<string, Agent[]>>(() => new Map());
   const [loadingAgents, setLoadingAgents] = useState<Set<string>>(() => new Set());
   const agentsCacheRef = useRef(agentsByProject);
+  const loadingRef = useRef(loadingAgents);
+  const loadGenRef = useRef(new Map<string, number>());
+  const expandedIdsRef = useRef(expandedIds);
   agentsCacheRef.current = agentsByProject;
+  loadingRef.current = loadingAgents;
+  expandedIdsRef.current = expandedIds;
 
   const refreshOutline = useCallback(async () => {
     const [summaryList, attention] = await Promise.all([
@@ -116,27 +121,39 @@ export function useProjectRailOutline() {
   );
 
   const loadAgents = useCallback(async (projectId: string) => {
-    if (agentsCacheRef.current.has(projectId)) return;
-    setLoadingAgents((prev) => new Set(prev).add(projectId));
+    // Cached or already in-flight: do not flip loading and flash the outline.
+    if (agentsCacheRef.current.has(projectId) || loadingRef.current.has(projectId)) return;
+    const gen = (loadGenRef.current.get(projectId) || 0) + 1;
+    loadGenRef.current.set(projectId, gen);
+    setLoadingAgents((prev) => {
+      const next = new Set(prev).add(projectId);
+      loadingRef.current = next;
+      return next;
+    });
     try {
       const agents = asArray<Agent>(await nexus.listAgents(projectId));
+      if (loadGenRef.current.get(projectId) !== gen) return;
       setAgentsByProject((prev) => {
         const next = new Map(prev);
         next.set(projectId, agents);
         return next;
       });
     } catch {
+      if (loadGenRef.current.get(projectId) !== gen) return;
       setAgentsByProject((prev) => {
         const next = new Map(prev);
         next.set(projectId, []);
         return next;
       });
     } finally {
-      setLoadingAgents((prev) => {
-        const next = new Set(prev);
-        next.delete(projectId);
-        return next;
-      });
+      if (loadGenRef.current.get(projectId) === gen) {
+        setLoadingAgents((prev) => {
+          const next = new Set(prev);
+          next.delete(projectId);
+          loadingRef.current = next;
+          return next;
+        });
+      }
     }
   }, []);
 
@@ -146,14 +163,36 @@ export function useProjectRailOutline() {
     }
   }, [expandedIds, loadAgents]);
 
-  const invalidateAgents = useCallback((projectId: string) => {
-    setAgentsByProject((prev) => {
-      if (!prev.has(projectId)) return prev;
-      const next = new Map(prev);
+  const invalidateAgents = useCallback(
+    (projectId: string) => {
+      const next = new Map(agentsCacheRef.current);
       next.delete(projectId);
-      return next;
-    });
-  }, []);
+      agentsCacheRef.current = next;
+      setAgentsByProject(next);
+      loadGenRef.current.set(projectId, (loadGenRef.current.get(projectId) || 0) + 1);
+      if (loadingRef.current.has(projectId)) {
+        const loading = new Set(loadingRef.current);
+        loading.delete(projectId);
+        loadingRef.current = loading;
+        setLoadingAgents(loading);
+      }
+      if (expandedIdsRef.current.has(projectId)) {
+        void loadAgents(projectId);
+      }
+    },
+    [loadAgents],
+  );
+
+  useEffect(() => {
+    const onAgentsChanged = (event: Event) => {
+      const projectId = (event as CustomEvent<{ projectId?: string }>).detail?.projectId;
+      if (!projectId) return;
+      invalidateAgents(projectId);
+      void refreshOutline();
+    };
+    window.addEventListener('nexus:agents-changed', onAgentsChanged);
+    return () => window.removeEventListener('nexus:agents-changed', onAgentsChanged);
+  }, [invalidateAgents, refreshOutline]);
 
   return {
     summaryMap,

@@ -2,6 +2,7 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Network } from 'lucide-react';
 import { Button, EmptyState } from '../design-system';
 import { recoverOrStartAgent } from '../nexus/agentRecover';
+import { isLiveRuntimeState, runtimeIdFromRecoverResult } from '../nexus/agentTerminalModel';
 import { nexus } from '../nexus/api';
 import { api } from '../api';
 import type {
@@ -115,6 +116,7 @@ export const WorkspaceSurfaceHost: React.FC<{
   onProjectCreated: (project: Project) => void;
   onProjectUpdated: (project: Project) => void;
   openSurface: (surface: WorkspaceSurface) => void;
+  updateSurface?: (surfaceId: string, patch: Partial<WorkspaceSurface>) => void;
   closeSurface: (surfaceId: string) => void;
   onTour: () => void;
   settingsInitialTab?: 'appearance' | 'updates' | 'remote';
@@ -135,6 +137,7 @@ export const WorkspaceSurfaceHost: React.FC<{
   onProjectCreated,
   onProjectUpdated,
   openSurface,
+  updateSurface,
   closeSurface,
   onTour,
   settingsInitialTab,
@@ -287,23 +290,51 @@ export const WorkspaceSurfaceHost: React.FC<{
     }
 
     if (surface.type === 'terminal') {
-      const runtime = runtimes.find((r) => r.agent_id === surface.data?.agentId);
-      return surface.data?.agentId ? (
+      const agentId = surface.data?.agentId;
+      const preferredRuntimeId = (surface.data?.runtimeId || '').trim();
+      const agentRuntimes = runtimes.filter((r) => r.agent_id === agentId);
+      const preferredLive = preferredRuntimeId
+        ? agentRuntimes.find(
+            (r) => r.runtime_id === preferredRuntimeId && isLiveRuntimeState(r.state),
+          )
+        : undefined;
+      const liveRuntime =
+        preferredLive || agentRuntimes.find((r) => isLiveRuntimeState(r.state)) || agentRuntimes[0];
+      return agentId ? (
         <div className="nx-agent-terminal-surface">
           <AgentTerminal
-            agentId={surface.data.agentId}
+            agentId={agentId}
             projectId={project.id}
-            runtimeId={runtime?.runtime_id}
-            initialPrompt={surface.data.initialPrompt}
-            provider={runtime?.provider_id || runtime?.provider || 'claude'}
-            profile={runtime?.profile_id || runtime?.profile || 'default'}
+            runtimeId={liveRuntime?.runtime_id}
+            preferredRuntimeId={preferredLive?.runtime_id}
+            initialPrompt={surface.data?.initialPrompt}
+            provider={liveRuntime?.provider_id || liveRuntime?.provider || 'claude'}
+            profile={liveRuntime?.profile_id || liveRuntime?.profile || 'default'}
             agentName={agent?.name || surface.title}
             chrome={terminalChrome}
             liveTitleKey={surfaceViewId(surface)}
+            onBoundRuntimeChange={(nextId) => {
+              updateSurface?.(surface.id, {
+                data: {
+                  ...surface.data,
+                  agentId,
+                  runtimeId: nextId,
+                },
+              });
+            }}
             onRecover={async () => {
-              if (!surface.data?.agentId) return;
               try {
-                const result = await recoverOrStartAgent(surface.data.agentId);
+                const result = await recoverOrStartAgent(agentId);
+                const nextRuntimeId = runtimeIdFromRecoverResult(result);
+                if (nextRuntimeId) {
+                  updateSurface?.(surface.id, {
+                    data: {
+                      ...surface.data,
+                      agentId,
+                      runtimeId: nextRuntimeId,
+                    },
+                  });
+                }
                 await refreshAgents();
                 await refreshGlobal();
                 return result?.runtime;
@@ -339,22 +370,31 @@ export const WorkspaceSurfaceHost: React.FC<{
               const latestRuntime = (globalData?.runtimes || []).find(
                 (item: RuntimeSession) => item.agent_id === agent.id && item.state === 'RUNNING',
               );
+              if (latestRuntime?.runtime_id) {
+                updateSurface?.(surface.id, {
+                  data: {
+                    ...surface.data,
+                    agentId: agent.id,
+                    runtimeId: latestRuntime.runtime_id,
+                  },
+                });
+              }
               return latestRuntime;
             }}
             onClose={async (stopRuntime) => {
               if (stopRuntime) {
-                const currentRuntime = runtimes.find(
-                  (item) => item.agent_id === surface.data?.agentId,
-                );
-                if (currentRuntime?.runtime_id) await api.stopRuntime(currentRuntime.runtime_id);
-                else if (surface.data?.agentId) await nexus.stopAgent(surface.data.agentId);
+                const currentRuntimeId =
+                  liveRuntime?.runtime_id ||
+                  runtimes.find(
+                    (item) => item.agent_id === agentId && isLiveRuntimeState(item.state),
+                  )?.runtime_id;
+                if (currentRuntimeId) await api.stopRuntime(currentRuntimeId);
+                else await nexus.stopAgent(agentId);
                 await refreshGlobal();
               }
               closeSurface(surface.id);
             }}
             onDelete={async () => {
-              const agentId = surface.data?.agentId;
-              if (!agentId) return;
               try {
                 await nexus.stopAgent(agentId);
               } catch {

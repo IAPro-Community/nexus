@@ -72,9 +72,10 @@ import {
 } from './routes';
 import { attentionFingerprintOf, buildDocumentTitle, isHonestNeedsUser } from './documentTitle';
 import { planFocusAttention, type RadarRuntimeItem } from './attentionRadarModel';
-import { resolveProjectSelection } from './projectSelection';
+import { resolveProjectSelection, resolveStaleProjectRoute } from './projectSelection';
 import { useNexusData } from './useNexusData';
 import type { Agent, MissionRun, Project } from '../types';
+import { isLiveRuntimeState } from '../nexus/agentTerminalModel';
 import { useTranslation } from 'react-i18next';
 import { shouldMarkUnread, surfaceTitleFromAgent } from '../workspace/surfaceAttention';
 import { KeyboardShortcutRegistry } from '../keyboard/KeyboardShortcutRegistry';
@@ -202,12 +203,30 @@ const NexusWorkspaceSession: React.FC<{
   );
 
   useEffect(() => {
-    if (routeProjectId && routeProjectId !== selectedId) {
+    const decision = resolveStaleProjectRoute(data.projects, routeProjectId);
+    if (decision.kind === 'redirect') {
+      const surface = parsedRoute.kind === 'project' ? parsedRoute.surface : 'overview';
+      navigate(buildProjectRoute(decision.projectId, surface), { replace: true });
+      return;
+    }
+    if (decision.kind === 'keep' && routeProjectId && routeProjectId !== selectedId) {
       setSelectedId(routeProjectId);
     }
-  }, [routeProjectId, selectedId]);
+  }, [data.projects, navigate, parsedRoute, routeProjectId, selectedId]);
 
-  const selected = resolveProjectSelection(data.projects, selectedId);
+  const resolvedSelection = resolveProjectSelection(data.projects, selectedId);
+  // Hold the last known project across empty polls so WorkspaceProvider does not remount.
+  const stickyProjectRef = useRef<Project | null>(null);
+  if (resolvedSelection) {
+    stickyProjectRef.current = resolvedSelection;
+  } else if (!selectedId) {
+    stickyProjectRef.current = null;
+  } else if (stickyProjectRef.current && stickyProjectRef.current.id !== selectedId) {
+    stickyProjectRef.current = null;
+  }
+  const selected =
+    resolvedSelection ??
+    (selectedId && stickyProjectRef.current?.id === selectedId ? stickyProjectRef.current : null);
   const selectedProjectId = selected?.id;
   const [layout, setLayout] = useState<string | undefined>();
   const [layoutRevision, setLayoutRevision] = useState<number | undefined>();
@@ -413,11 +432,30 @@ const WorkspaceCoordinator: React.FC<{
   );
   const openNewAISession = useCallback(() => setDirectSession({ mode: 'direct', prompt: '' }), []);
   const terminal = useCallback(
-    (agent: Agent) => {
-      open(agentTerminalSurface(agent.id, agent.name));
+    (agent: Agent, initialPrompt = '', runtimeId = '') => {
+      const live =
+        runtimeId ||
+        data.runtimes.find((r) => r.agent_id === agent.id && isLiveRuntimeState(r.state))
+          ?.runtime_id ||
+        '';
+      const surface = agentTerminalSurface(agent.id, agent.name, initialPrompt, live);
+      open(surface);
+      if (live || initialPrompt) {
+        const existing = listSurfaces(workspace.model.root).find((entry) =>
+          isSurfaceMatch(entry, surface.id),
+        );
+        workspace.updateSurface(surface.id, {
+          data: {
+            ...(existing?.data || {}),
+            agentId: agent.id,
+            ...(live ? { runtimeId: live } : {}),
+            ...(initialPrompt ? { initialPrompt } : {}),
+          },
+        });
+      }
       openTerminals();
     },
-    [open, openTerminals],
+    [open, openTerminals, data.runtimes, workspace],
   );
   const config = useCallback(
     (agent: Agent) => open(agentConfigSurface(agent.id, agent.name)),
@@ -869,6 +907,7 @@ const WorkspaceCoordinator: React.FC<{
           }}
           onProjectUpdated={handleProjectUpdated}
           openSurface={open}
+          updateSurface={workspace.updateSurface}
           closeSurface={workspace.close}
           onTour={() => setWelcomeOpen(true)}
           settingsInitialTab={settingsInitialTab}

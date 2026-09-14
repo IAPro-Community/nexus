@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Gauge,
   History,
@@ -78,6 +78,7 @@ export const ProjectRail: React.FC<{
 }) => {
   const { t } = useTranslation();
   const outline = useProjectRailOutline();
+  const { toggleExpanded } = outline;
   const [addOpen, setAddOpen] = useState(false);
   const [renameProject, setRenameProject] = useState<Project | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -175,10 +176,28 @@ export const ProjectRail: React.FC<{
     { id: 'settings', label: t('nav.settings'), icon: Settings },
   ] as const;
 
-  const selectProject = (project: Project) => {
-    onSelect(project);
-    onClose();
-  };
+  const selectProject = useCallback(
+    (project: Project) => {
+      onSelect(project);
+      onClose();
+    },
+    [onSelect, onClose],
+  );
+
+  const handleToggleExpand = useCallback(
+    (projectId: string) => {
+      toggleExpanded(projectId);
+    },
+    [toggleExpanded],
+  );
+
+  const handleOpenAgent = useCallback(
+    (agent: Agent) => {
+      onOpenAgent?.(agent);
+      onClose();
+    },
+    [onOpenAgent, onClose],
+  );
 
   const openRename = (project: Project) => {
     setRenameProject(project);
@@ -303,14 +322,9 @@ export const ProjectRail: React.FC<{
                     attention={outline.attentionByProject.get(project.id)}
                     agents={outline.agentsByProject.get(project.id) ?? []}
                     agentsLoading={outline.loadingAgents.has(project.id)}
-                    onToggleExpand={() => {
-                      outline.toggleExpanded(project.id);
-                    }}
+                    onToggleExpand={() => handleToggleExpand(project.id)}
                     onSelect={() => selectProject(project)}
-                    onOpenAgent={(agent) => {
-                      onOpenAgent?.(agent);
-                      onClose();
-                    }}
+                    onOpenAgent={handleOpenAgent}
                     onOpenAttention={(item) => {
                       onOpenAttention?.(project, item);
                       onClose();
