@@ -1,5 +1,12 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-14 — Rail flicker + terminal recover
+
+- PASS — `useNexusData` só atualiza estado quando o snapshot muda; `resolveProjectSelection` não bounceia para `projects[0]` em poll vazio; outline não re-entra em loading com cache.
+- PASS — overlay de Recover só em ERROR/DISCONNECTED/recovering; `CONNECTING` usa indicador leve; WS effect sem dep de `t`.
+- PASS — attach prefere `surface.data.runtimeId`; `runtime_changed` faz rebind em `new_runtime_id`; sticky `nextBoundRuntimeId` ignora poll stale.
+- PASS — `make web-verify` (FRONTEND_LATEST PASS), testes focados rail/terminal, `make build`, smoke browser: expand estável + Recover Agy conectou Antigravity CLI.
+
 ## 2026-09-14 — Codex terminal input
 
 - PASS — `web/src/nexus/terminalInput.ts` shared filter drops focus/CPR/`[i`; `AgentTerminal` and `TerminalPane` use it; mouse/CSI-u/UTF-8/`0x03`/literals forwarded.
@@ -1260,7 +1267,7 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-14T04:30:48Z
+## Frontend gate — 2026-09-14T12:53:46Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 

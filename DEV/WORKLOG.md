@@ -1,5 +1,12 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-14 — Rail flicker + terminal recover
+
+- Causa do pisca: poll de 5s sempre `setState`, seleção caía em `projects[0]` em lista vazia, e expand do outline re-entrava em `loadingAgents`.
+- Causa do recover preso: overlay em qualquer `CONNECTING≥800ms`, attach usava runtime do poll (stale) em vez da surface, `runtime_changed` só fechava o WS sem rebindar `new_runtime_id`, e o effect do PTY dependia de `t`.
+- Fix: snapshot estável em `useNexusData`, sticky selection, cache/in-flight no outline, overlay só em ERROR/DISCONNECTED/recovering, `preferredRuntimeId` + sticky `nextBoundRuntimeId`, parse/rebind de `runtime_changed`, `tRef` no effect.
+- PASS: `make web-verify`, testes focados (31), `make build`, browser em `127.0.0.1:13000` — expand Orquestrador-Maestro sem loading em loop; Recover Agy → Antigravity CLI conectado com prompt.
+
 ## 2026-09-14 — Finalização p/ main (commit + binário)
 
 - Commit `9c17968` (`fix(security): close second-pass pre-main findings`) na branch; árvore limpa, 51 ahead / 0 behind.
