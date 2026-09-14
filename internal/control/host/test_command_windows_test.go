@@ -2,6 +2,8 @@
 
 package host
 
+import "os"
+
 var testTerminalBinary = "cmd.exe"
 
 func testTerminalArgs() []string {
@@ -11,9 +13,20 @@ func testTerminalArgs() []string {
 	return []string{"/D", "/Q", "/C", "ping -t 127.0.0.1 >nul"}
 }
 
-var interactiveTestTerminalBinary = "powershell.exe"
+var interactiveTestTerminalBinary string
+
+func init() {
+	if exe, err := os.Executable(); err == nil {
+		interactiveTestTerminalBinary = exe
+	} else {
+		interactiveTestTerminalBinary = "powershell.exe"
+	}
+}
 
 func interactiveTestTerminalArgs() []string {
+	if interactiveTestTerminalBinary != "powershell.exe" {
+		return []string{"-nexus-echo-helper"}
+	}
 	return []string{
 		"-NoLogo",
 		"-NoProfile",
