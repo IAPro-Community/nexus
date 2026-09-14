@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
 func TestMain(m *testing.M) {

@@ -11,15 +11,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/agy"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/claude"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/cursor"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/gemini"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/opencode"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/agy"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
 // usageRefreshTimeout caps live provider probes so TUI quit / HTTP cancel

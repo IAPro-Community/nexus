@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 // Registry manages in-memory and persistent state of AI Control runtimes.

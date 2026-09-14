@@ -5,10 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 var agySpec = Spec{
+	ClearLine:        "\x15",
 	ID:               "agy",
 	BinaryCandidates: []string{"agy"},
 	EnvKeys: func(profileHome, binDir, profileName string) map[string]string {

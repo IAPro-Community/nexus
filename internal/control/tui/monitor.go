@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
 )
 
 // MonitorModel is a read-only sidecar. It never sends Attach, Input, Resize,

@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/scheduler"
+	"github.com/IAPro-Community/nexus/internal/core/cooldown"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/scheduler"
 )
 
 // Executor manages execution with automatic failover between accounts on rate-limit/quota errors.

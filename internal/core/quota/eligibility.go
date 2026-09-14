@@ -3,7 +3,7 @@ package quota
 import (
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // EligibilityReason is a stable machine-readable gate outcome.

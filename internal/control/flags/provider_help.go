@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 )
 
 // IsHelpFlag checks whether the argument list contains a request for help.

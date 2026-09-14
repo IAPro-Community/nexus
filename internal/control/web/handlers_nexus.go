@@ -6,13 +6,13 @@ import (
 	"os"
 	stdruntime "runtime"
 
-	"github.com/kivervinicius/ai-cli/internal/buildinfo"
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/doctor"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
-	nexusruntime "github.com/kivervinicius/ai-cli/internal/runtime"
-	"github.com/kivervinicius/ai-cli/internal/update"
+	"github.com/IAPro-Community/nexus/internal/buildinfo"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/doctor"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/update"
 )
 
 // NexusHandler serves the Nexus product API (projects, agents, generations,

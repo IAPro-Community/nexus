@@ -3,7 +3,7 @@ package host
 import (
 	"context"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
 var (

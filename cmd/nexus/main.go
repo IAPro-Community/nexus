@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/app"
-	"github.com/kivervinicius/ai-cli/internal/browser"
+	"github.com/IAPro-Community/nexus/internal/app"
+	"github.com/IAPro-Community/nexus/internal/browser"
 )
 
 func main() {

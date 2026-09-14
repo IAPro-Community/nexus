@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 type installationTestProvider struct{}

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 func TestQuotaEnginePersistenceAndRendering(t *testing.T) {

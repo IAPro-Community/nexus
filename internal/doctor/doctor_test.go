@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	nexusruntime "github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 func TestBuildReportIsReadOnlyAndContainsStableChecks(t *testing.T) {

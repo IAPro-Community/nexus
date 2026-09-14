@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 func TestWorkspaceStore_AddListRemove(t *testing.T) {

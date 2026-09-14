@@ -17,7 +17,7 @@ ShortDescription: Local workstation for operating coding agents
 Installers:
   - Architecture: x64
     InstallerType: nullsoft
-    InstallerUrl: https://github.com/kivervinicius/ai-cli/releases/download/vVERSION/nexus-setup-Windows_x86_64.exe
+    InstallerUrl: https://github.com/IAPro-Community/nexus/releases/download/vVERSION/nexus-setup-Windows_x86_64.exe
     InstallerSha256: REPLACE_WITH_RELEASE_SHA256
     Scope: user
 ManifestType: singleton

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/provider/oauthutil"
+	"github.com/IAPro-Community/nexus/internal/core/provider/oauthutil"
 )
 
 const (
@@ -63,7 +63,7 @@ func readClaudeOAuthCredentials(home string) (claudeOAuthCredential, bool, error
 	}
 	oauth, ok := rawOAuth.(map[string]any)
 	if !ok {
-		return claudeOAuthCredential{}, false, fmt.Errorf("Claude credentials contain an invalid claudeAiOauth block")
+		return claudeOAuthCredential{}, false, fmt.Errorf("claude credentials contain an invalid claudeAiOauth block")
 	}
 	credential := claudeOAuthCredential{
 		AccessToken:      stringValue(oauth["accessToken"]),
@@ -88,16 +88,16 @@ func refreshClaudeOAuth(ctx context.Context, home string) (claudeOAuthCredential
 		return claudeOAuthCredential{}, err
 	}
 	if !found {
-		return claudeOAuthCredential{}, fmt.Errorf("Claude OAuth credentials not found")
+		return claudeOAuthCredential{}, fmt.Errorf("claude OAuth credentials not found")
 	}
 	if !credential.HasExpiry || time.Now().Before(credential.ExpiresAt) {
 		return credential, nil
 	}
 	if credential.RefreshToken == "" {
-		return credential, fmt.Errorf("Claude OAuth token expired without a refresh token")
+		return credential, fmt.Errorf("claude OAuth token expired without a refresh token")
 	}
 	if revoked, _ := oauthutil.IsRevoked(filepath.Dir(credential.Path)); revoked {
-		return credential, fmt.Errorf("Claude OAuth refresh token was previously rejected; login required")
+		return credential, fmt.Errorf("claude OAuth refresh token was previously rejected; login required")
 	}
 
 	payload, err := json.Marshal(map[string]string{
@@ -126,7 +126,7 @@ func refreshClaudeOAuth(ctx context.Context, home string) (claudeOAuthCredential
 	}
 	var token claudeOAuthTokenResponse
 	if err := json.Unmarshal(body, &token); err != nil {
-		return credential, fmt.Errorf("Claude OAuth refresh returned invalid JSON (HTTP %d)", resp.StatusCode)
+		return credential, fmt.Errorf("claude OAuth refresh returned invalid JSON (HTTP %d)", resp.StatusCode)
 	}
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices || strings.TrimSpace(token.AccessToken) == "" {
 		code := oauthErrorCode(token.Error)
@@ -137,7 +137,7 @@ func refreshClaudeOAuth(ctx context.Context, home string) (claudeOAuthCredential
 			reason := refreshTokenFingerprint(credential.RefreshToken)
 			_ = oauthutil.WriteRevokedSentinel(filepath.Dir(credential.Path), reason)
 		}
-		return credential, fmt.Errorf("Claude OAuth refresh failed: %s", code)
+		return credential, fmt.Errorf("claude OAuth refresh failed: %s", code)
 	}
 
 	oauth := credential.document["claudeAiOauth"].(map[string]any)

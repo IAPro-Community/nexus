@@ -44,7 +44,7 @@ Release installer prerequisites: `curl` or `wget`, `tar`, and `sha256sum`/`shasu
 Requirements: Go 1.25+ and Bun 1.3.9+.
 
 ```bash
-git clone https://github.com/kivervinicius/ai-cli.git
+git clone https://github.com/IAPro-Community/nexus.git
 cd ai-cli
 bun --cwd web install --frozen-lockfile
 make build

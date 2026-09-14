@@ -61,9 +61,9 @@ make all  # or just: make build
 Version information is injected at build time via `-ldflags`:
 
 ```
--X github.com/kivervinicius/ai-cli/internal/buildinfo.Version={VERSION}
--X github.com/kivervinicius/ai-cli/internal/buildinfo.Commit={COMMIT}
--X github.com/kivervinicius/ai-cli/internal/buildinfo.BuildDate={BUILDDATE}
+-X github.com/IAPro-Community/nexus/internal/buildinfo.Version={VERSION}
+-X github.com/IAPro-Community/nexus/internal/buildinfo.Commit={COMMIT}
+-X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate={BUILDDATE}
 ```
 
 ## Quality Gates

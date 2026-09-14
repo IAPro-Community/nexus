@@ -18,10 +18,10 @@ builds:
     ldflags:
       - >-
         -s -w
-        -X github.com/kivervinicius/ai-cli/internal/buildinfo.Version={{.Version}}
-        -X github.com/kivervinicius/ai-cli/internal/buildinfo.Commit={{.Commit}}
-        -X github.com/kivervinicius/ai-cli/internal/buildinfo.BuildDate={{.Date}}
-        -X github.com/kivervinicius/ai-cli/internal/update.ProductionTrustRootHex={{.Env.NEXUS_UPDATE_PUBLIC_KEY}}
+        -X github.com/IAPro-Community/nexus/internal/buildinfo.Version={{.Version}}
+        -X github.com/IAPro-Community/nexus/internal/buildinfo.Commit={{.Commit}}
+        -X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate={{.Date}}
+        -X github.com/IAPro-Community/nexus/internal/update.ProductionTrustRootHex={{.Env.NEXUS_UPDATE_PUBLIC_KEY}}
 
 archives:
   - format: tar.gz
@@ -49,7 +49,7 @@ nfpms:
       {{- else if eq .Arch "arm64" }}arm64
       {{- else }}{{ .Arch }}{{ end }}
     vendor: IAPro
-    homepage: https://github.com/kivervinicius/ai-cli
+    homepage: https://github.com/IAPro-Community/nexus
     maintainer: Vinicius Kiver <kivervinicius@gmail.com>
     description: IAPro Nexus Autonomous Multi-Agent Workspace OS
     license: MIT

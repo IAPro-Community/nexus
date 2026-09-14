@@ -32,8 +32,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/gorilla/websocket"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
 )
 
 type apiClient struct {

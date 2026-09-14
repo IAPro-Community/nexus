@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
 const processStopPollInterval = 50 * time.Millisecond

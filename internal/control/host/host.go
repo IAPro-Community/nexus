@@ -16,13 +16,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/control/terminal"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/terminal"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 const MaxFrameSize = 64 * 1024 // 64 KB max frame
@@ -174,15 +174,22 @@ func (sh *SessionHost) Start() error {
 			sh.completeStartFailureLocked()
 			return fmt.Errorf("CODEX_HOME is required to start a supervised Codex session")
 		}
-		// timeout=0 is non-blocking; keep sh.mu held so Stop/Terminate cannot
-		// race the listener teardown while we acquire the profile lock.
-		lock, err := codex.AcquireTUILockTimeout(home, 0)
+		// Keep sh.mu held so Stop/Terminate cannot race listener teardown while
+		// this runtime acquires its shared profile lease.
+		lock, ok, err := codex.TryAcquireTUILease(home)
 		if err != nil {
 			setStage(registry.StartupProviderStarting, registry.StartupFaultProcessSupervision)
 			_ = sh.listener.Close()
 			sh.listener = nil
 			sh.completeStartFailureLocked()
-			return fmt.Errorf("failed to acquire Codex TUI lock: %w", err)
+			return fmt.Errorf("failed to acquire Codex TUI lease: %w", err)
+		}
+		if !ok {
+			setStage(registry.StartupProviderStarting, registry.StartupFaultProcessSupervision)
+			_ = sh.listener.Close()
+			sh.listener = nil
+			sh.completeStartFailureLocked()
+			return fmt.Errorf("failed to acquire Codex TUI lease: %w", codex.ErrTUIBusy)
 		}
 		sh.codexTUILock = lock
 	}

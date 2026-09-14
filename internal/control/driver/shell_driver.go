@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // ShellDriver exposes a normal local project shell through the same supervised

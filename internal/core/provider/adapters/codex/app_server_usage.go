@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // appServerTimeout bounds the whole quota probe: spawn, handshake and read.
@@ -280,7 +280,7 @@ func runAppServerRateLimits(ctx context.Context, codexHome string) (*getAccountR
 	defer cancel()
 
 	// Never compete with a live interactive TUI for the same CODEX_HOME.
-	probeLock, ok, err := TryAcquireTUILock(codexHome)
+	probeLock, ok, err := TryAcquireMaintenanceLock(codexHome)
 	if err != nil {
 		return nil, err
 	}

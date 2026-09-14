@@ -45,6 +45,24 @@ func flockExclusive(f *os.File, blocking bool) error {
 	return nil
 }
 
+func flockShared(f *os.File, blocking bool) error {
+	var overlapped syscall.Overlapped
+	flags := uintptr(0)
+	if !blocking {
+		flags |= lockfileFailImmediately
+	}
+	ret, _, errCode := procLockFileEx.Call(
+		f.Fd(), flags, 0, 1, 0, uintptr(unsafe.Pointer(&overlapped)),
+	)
+	if ret == 0 {
+		if errno, ok := errCode.(syscall.Errno); ok {
+			return errno
+		}
+		return fmt.Errorf("LockFileEx: %v", errCode)
+	}
+	return nil
+}
+
 func flockUnlock(f *os.File) error {
 	var overlapped syscall.Overlapped
 	ret, _, errCode := procUnlockFileEx.Call(

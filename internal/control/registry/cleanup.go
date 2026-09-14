@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
 )
 
 // CleanupStale scans registered active sessions, checks if their process/endpoint is dead,

@@ -16,6 +16,14 @@ func flockExclusive(f *os.File, blocking bool) error {
 	return syscall.Flock(int(f.Fd()), how)
 }
 
+func flockShared(f *os.File, blocking bool) error {
+	how := syscall.LOCK_SH
+	if !blocking {
+		how |= syscall.LOCK_NB
+	}
+	return syscall.Flock(int(f.Fd()), how)
+}
+
 func flockUnlock(f *os.File) error {
 	return syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 }

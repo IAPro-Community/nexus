@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/oauthutil"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/oauthutil"
 )
 
 const (
@@ -73,7 +73,7 @@ func (a *Adapter) fetchLiveUsage(ctx context.Context, p model.Profile) (model.Us
 		return snap, false
 	}
 	if tokenNeedsRefresh(credentials, geminiUsageNow()) {
-		credentials, raw, err = refreshGeminiAccessToken(ctx, credentialsPath, credentials, raw)
+		credentials, _, err = refreshGeminiAccessToken(ctx, credentialsPath, credentials, raw)
 		if err != nil {
 			snap.Error = err.Error()
 			return snap, false

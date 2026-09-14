@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 )
 
 // handleMissionSchedules creates/lists/cancels durable Mission schedules.

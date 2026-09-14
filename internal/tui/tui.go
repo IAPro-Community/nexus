@@ -3,10 +3,10 @@ package tui
 import (
 	"os"
 
-	"github.com/kivervinicius/ai-cli/internal/conversation"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/conversation"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 // ShowMenu launches the unified interactive Quotas & Runtimes TUI.

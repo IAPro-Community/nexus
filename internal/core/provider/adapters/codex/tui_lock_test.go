@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 func TestTryAcquireTUILockNonBlocking(t *testing.T) {
@@ -32,6 +32,43 @@ func TestTryAcquireTUILockNonBlocking(t *testing.T) {
 	}
 	if ok || lock != nil {
 		t.Fatal("expected non-blocking acquire to fail while TUI holds the lock")
+	}
+}
+
+func TestTUILeasesShareAndMaintenanceIsExclusive(t *testing.T) {
+	home := t.TempDir()
+	first, err := AcquireTUILease(home)
+	if err != nil {
+		t.Fatalf("AcquireTUILease first: %v", err)
+	}
+	defer func() { _ = first.Release() }()
+	second, err := AcquireTUILease(home)
+	if err != nil {
+		t.Fatalf("second TUI lease must coexist: %v", err)
+	}
+	defer func() { _ = second.Release() }()
+	maintenance, ok, err := TryAcquireMaintenanceLock(home)
+	if err != nil {
+		t.Fatalf("TryAcquireMaintenanceLock: %v", err)
+	}
+	if ok || maintenance != nil {
+		t.Fatal("maintenance lock must be blocked while any TUI lease is active")
+	}
+}
+
+func TestMaintenanceLockBlocksNewTUILeases(t *testing.T) {
+	home := t.TempDir()
+	maintenance, err := AcquireMaintenanceLock(home)
+	if err != nil {
+		t.Fatalf("AcquireMaintenanceLock: %v", err)
+	}
+	defer func() { _ = maintenance.Release() }()
+	lease, ok, err := TryAcquireTUILease(home)
+	if err != nil {
+		t.Fatalf("TryAcquireTUILease: %v", err)
+	}
+	if ok || lease != nil {
+		t.Fatal("new TUI lease must be blocked by maintenance")
 	}
 }
 
@@ -208,6 +245,31 @@ func TestPrepareFailsFastWhenTUILocked(t *testing.T) {
 	}
 	if time.Since(start) > time.Second {
 		t.Fatalf("Prepare blocked for %s", time.Since(start))
+	}
+}
+
+func TestPrepareReusesReadyProfileWhileTUILeaseIsActive(t *testing.T) {
+	data := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", data)
+	t.Setenv("AI_MANAGER_DATA_DIR", data)
+	t.Setenv("NEXUS_DATA_DIR", data)
+	hostHome := t.TempDir()
+	t.Setenv("AI_REAL_HOME", hostHome)
+	t.Setenv("HOME", hostHome)
+	home := filepath.Join(data, "profiles", "codex", "ready", "home")
+	if err := os.MkdirAll(filepath.Join(home, "sessions"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, "config.toml"), []byte("model = \"ready\"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	lease, err := AcquireTUILease(home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = lease.Release() }()
+	if err := New().Prepare(context.Background(), model.Profile{Provider: "codex", Name: "ready"}); err != nil {
+		t.Fatalf("ready profile should be reusable under a TUI lease: %v", err)
 	}
 }
 

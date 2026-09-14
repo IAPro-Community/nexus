@@ -1,10 +1,11 @@
 package spec
 
 import (
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 var cursorSpec = Spec{
+	ClearLine:        "\x15",
 	ID:               "cursor",
 	BinaryCandidates: []string{"cursor-agent", "agent"},
 	EnvKeys: func(profileHome, binDir, profileName string) map[string]string {

@@ -3,10 +3,11 @@ package spec
 import (
 	"path/filepath"
 
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 var opencodeSpec = Spec{
+	ClearLine:        "\x15",
 	ID:               "opencode",
 	BinaryCandidates: []string{"opencode"},
 	EnvKeys: func(profileHome, binDir, profileName string) map[string]string {

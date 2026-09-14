@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/originpolicy"
+	"github.com/IAPro-Community/nexus/internal/control/originpolicy"
 )
 
 // TunnelStatusResponse is the contract returned by tunnel status/start/stop.

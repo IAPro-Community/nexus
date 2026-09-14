@@ -3,10 +3,11 @@ package spec
 import (
 	"path/filepath"
 
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 var claudeSpec = Spec{
+	ClearLine:        "\x15",
 	ID:               "claude",
 	BinaryCandidates: []string{"claude"},
 	EnvKeys: func(profileHome, binDir, profileName string) map[string]string {

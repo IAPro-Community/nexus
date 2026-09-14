@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // appServerProbeTTL bounds how often a profile may spawn an app-server probe.

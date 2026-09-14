@@ -3,10 +3,11 @@ package spec
 import (
 	"path/filepath"
 
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 var codexSpec = Spec{
+	ClearLine:        "\x15",
 	ID:               "codex",
 	BinaryCandidates: []string{"codex"},
 	EnvKeys: func(profileHome, binDir, profileName string) map[string]string {
@@ -30,8 +31,11 @@ var codexSpec = Spec{
 	Resume: func(sessionID string) []string {
 		return []string{"resume", sessionID}
 	},
-	AutoApproval:  []string{"--ask-for-approval", "never", "--sandbox", "workspace-write"},
-	ReviewMode:    nil,
+	AutoApproval: []string{"--ask-for-approval", "never", "--sandbox", "workspace-write"},
+	// Codex review turns use the headless exec contract in a read-only
+	// sandbox. The executor places these root options before `exec` so the
+	// installed CLI accepts them and cannot mutate the implementation worktree.
+	ReviewMode:    []string{"--sandbox", "read-only", "--ask-for-approval", "never"},
 	Quota:         QuotaLiveRPC,
 	KnownVersions: []string{"0.50.0"},
 }

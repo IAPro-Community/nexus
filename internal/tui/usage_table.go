@@ -10,16 +10,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/conversation"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/localization"
+	"github.com/IAPro-Community/nexus/internal/profile"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kivervinicius/ai-cli/internal/conversation"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/localization"
-	"github.com/kivervinicius/ai-cli/internal/profile"
 	"golang.org/x/term"
 )
 
@@ -1714,10 +1714,6 @@ func renderedTableWidth(cols []table.Column) int {
 	return sum
 }
 
-func toUsageTableRows(rows []UsageTableRow) []table.Row {
-	return toUsageTableRowsForWidth(rows, 132)
-}
-
 func toUsageTableRowsForWidth(rows []UsageTableRow, width int) []table.Row {
 	cols := usageColumns(width)
 	showFive := false
@@ -1838,10 +1834,6 @@ func truncateMiddle(s string, width int) string {
 		return string(runes[:width])
 	}
 	return string(runes[:left]) + "…" + string(runes[len(runes)-right:])
-}
-
-func toSessionTableRows(sess []conversation.Conversation) []table.Row {
-	return toSessionTableRowsForWidth(sess, 132)
 }
 
 func toSessionTableRowsForWidth(sess []conversation.Conversation, width int) []table.Row {

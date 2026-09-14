@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
 )
 
 func prepareListenerFailureFixture(t *testing.T) (string, func()) {

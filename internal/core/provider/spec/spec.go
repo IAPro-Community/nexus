@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // QuotaSource describes how a provider obtains attributable usage data.
@@ -33,8 +33,11 @@ type Spec struct {
 	Resume           func(sessionID string) []string
 	AutoApproval     []string
 	ReviewMode       []string
-	Quota            QuotaSource
-	KnownVersions    []string
+	// ClearLine is the provider-native control sequence used before a prompt
+	// promoted from an interactive terminal is replaced by Nexus' banner.
+	ClearLine     string
+	Quota         QuotaSource
+	KnownVersions []string
 }
 
 var registry = map[string]Spec{

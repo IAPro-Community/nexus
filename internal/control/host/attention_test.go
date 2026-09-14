@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/control/notify"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/notify"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
 func TestAttentionDetectorQuestions(t *testing.T) {

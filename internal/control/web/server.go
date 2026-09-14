@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/browser"
-	"github.com/kivervinicius/ai-cli/internal/control/originpolicy"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/browser"
+	"github.com/IAPro-Community/nexus/internal/control/originpolicy"
+	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
 // DefaultPort is the default TCP port for the Web Control Center when no
@@ -106,6 +106,7 @@ func NewServer(opts ServerOptions) (*Server, error) {
 	nexusHandler := NewNexusHandler(auth)
 	nexusHandler.setHostFilesystemEnabled(hostFilesystemEnabled(opts.Host))
 	terminalHub := NewTerminalHub(auth, nexus.Default().RuntimeRegistry())
+	terminalHub.SetNexus(nexus.Default())
 
 	s := &Server{
 		listener:  l,

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // BuildQuotaView transforms a UsageSnapshot into a QuotaView.

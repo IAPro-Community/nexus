@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kivervinicius/ai-cli/internal/browser"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/browser"
+	"github.com/IAPro-Community/nexus/internal/nexus"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 

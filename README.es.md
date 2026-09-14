@@ -36,7 +36,7 @@ nexus web
 ### Desarrolladores (compilar desde el código)
 
 ```bash
-git clone https://github.com/kivervinicius/ai-cli.git
+git clone https://github.com/IAPro-Community/nexus.git
 cd ai-cli
 bun --cwd web install --frozen-lockfile
 make build

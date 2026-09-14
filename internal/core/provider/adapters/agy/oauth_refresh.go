@@ -17,8 +17,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/security"
 )
 
 const (

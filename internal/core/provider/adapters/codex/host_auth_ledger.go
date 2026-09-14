@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 // hostAuthObservation records when a chatgpt_account_id was observed as the

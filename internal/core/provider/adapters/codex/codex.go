@@ -14,13 +14,13 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/kivervinicius/ai-cli/internal/core/classifier"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/spec"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // rolloutMaxAge limits how far back we scan rollouts for current quota windows.
@@ -92,9 +92,18 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 	if err != nil {
 		return err
 	}
-	lock, err := AcquireTUILockTimeout(home, 0)
+	lock, ok, err := TryAcquireMaintenanceLock(home)
 	if err != nil {
 		return err
+	}
+	if !ok {
+		// A ready profile needs no migration or mutation. Reuse it while one or
+		// more interactive TUIs hold shared leases; incomplete profiles fail
+		// explicitly so callers can retry after maintenance becomes available.
+		if codexProfileReady(home) {
+			return nil
+		}
+		return fmt.Errorf("%w: profile preparation is still required", ErrTUIBusy)
 	}
 	defer func() { _ = lock.Release() }()
 	if err := os.MkdirAll(home, 0700); err != nil {
@@ -149,6 +158,14 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 	return nil
 }
 
+func codexProfileReady(home string) bool {
+	if _, err := os.Stat(filepath.Join(home, "config.toml")); err != nil {
+		return false
+	}
+	info, err := os.Stat(filepath.Join(home, "sessions"))
+	return err == nil && info.IsDir()
+}
+
 func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (model.Failure, error) {
 	if err := a.Prepare(ctx, p); err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
@@ -158,7 +175,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 		return model.Failure{Kind: model.FailureProvider, Message: "codex binary not found"}, err
 	}
 	home, _ := config.ProfileHome(string(a.ID()), p.Name)
-	lock, lockErr := AcquireTUILockTimeout(home, 0)
+	lock, lockErr := AcquireTUILease(home)
 	if lockErr != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: lockErr.Error()}, lockErr
 	}

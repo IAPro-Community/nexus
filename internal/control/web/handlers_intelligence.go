@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	coreconfig "github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
+	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 )
 
 // handleIntelligence GET/PUT /api/v1/intelligence exposes secret-free Intelligence routing configuration.

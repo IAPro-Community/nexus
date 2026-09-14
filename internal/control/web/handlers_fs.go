@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/browser"
+	"github.com/IAPro-Community/nexus/internal/browser"
 )
 
 // FSEntry represents a directory entry on the host filesystem.

@@ -58,7 +58,7 @@ func main() {
 		dirs = stringList{"dist"}
 	}
 	if *baseURL == "" {
-		*baseURL = "https://github.com/kivervinicius/ai-cli/releases/download/v" + strings.TrimPrefix(*version, "v")
+		*baseURL = "https://github.com/IAPro-Community/nexus/releases/download/v" + strings.TrimPrefix(*version, "v")
 	}
 	parsedBase, err := url.Parse(*baseURL)
 	if err != nil || parsedBase.Scheme != "https" || parsedBase.Host == "" {

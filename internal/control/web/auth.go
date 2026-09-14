@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/originpolicy"
 	"github.com/gorilla/websocket"
-	"github.com/kivervinicius/ai-cli/internal/control/originpolicy"
 )
 
 const (

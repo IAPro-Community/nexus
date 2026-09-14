@@ -31,7 +31,12 @@
     "--sandbox",
     "workspace-write"
   ],
-  "review_mode": null,
+  "review_mode": [
+    "--sandbox",
+    "read-only",
+    "--ask-for-approval",
+    "never"
+  ],
   "quota": "LIVE_RPC",
   "known_versions": [
     "0.50.0"

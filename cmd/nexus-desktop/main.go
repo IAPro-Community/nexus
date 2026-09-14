@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/app"
-	"github.com/kivervinicius/ai-cli/internal/control/web"
-	"github.com/kivervinicius/ai-cli/internal/desktop"
+	"github.com/IAPro-Community/nexus/internal/app"
+	"github.com/IAPro-Community/nexus/internal/control/web"
+	"github.com/IAPro-Community/nexus/internal/desktop"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"

@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/conversation"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kivervinicius/ai-cli/internal/conversation"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
 )
 
 func TestFilterUsageRowsFindsAcrossIdentityAndGroup(t *testing.T) {

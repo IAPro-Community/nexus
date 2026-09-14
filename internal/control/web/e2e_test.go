@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/gorilla/websocket"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
 )
 
 func TestWeb_FullE2E(t *testing.T) {

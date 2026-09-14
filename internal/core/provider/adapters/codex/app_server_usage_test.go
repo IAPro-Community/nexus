@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // TestMain keeps unit tests hermetic: the real Codex app-server must never be

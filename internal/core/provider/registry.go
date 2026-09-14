@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // Registry manages registered provider adapters in a thread-safe manner.

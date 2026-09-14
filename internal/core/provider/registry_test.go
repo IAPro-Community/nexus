@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/mock"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/mock"
 )
 
 func TestProviderRegistry(t *testing.T) {

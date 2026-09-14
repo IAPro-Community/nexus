@@ -1,6 +1,6 @@
 package handoff
 
-import "github.com/kivervinicius/ai-cli/internal/control/host"
+import "github.com/IAPro-Community/nexus/internal/control/host"
 
 func init() {
 	host.PerformAccountHandoff = PerformAccountHandoff

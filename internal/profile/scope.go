@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // scopeRecord is deliberately kept separate from profile.json so old profile

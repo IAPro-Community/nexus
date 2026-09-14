@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 type claudeRoundTripFunc func(*http.Request) (*http.Response, error)

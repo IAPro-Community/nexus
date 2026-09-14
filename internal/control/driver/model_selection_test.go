@@ -3,7 +3,7 @@ package driver
 import (
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 func TestResolveLaunchModelPreservesExplicitModel(t *testing.T) {

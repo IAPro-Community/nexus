@@ -1,5 +1,5 @@
 BINARY=nexus
-MODULE=github.com/kivervinicius/ai-cli
+MODULE=github.com/IAPro-Community/nexus
 LOCAL_BIN ?= $(HOME)/.local/bin
 DESKTOP_TAGS = production
 WAILS_VERSION ?= v2.15.0
@@ -70,7 +70,7 @@ coverage:
 	@echo "Frontend coverage plugin is not installed; vitest statement coverage remains UNVERIFIED."
 
 overnight-smoke:
-	@go test -count=1 -timeout 20m ./internal/nexus/runner -run 'Test(MissionTeamPlannerBuilderReviewerVerifierPipeline|OvernightAcceptanceSandbox|OvernightSoakHarnessBounded|ProgressWatchdog|FaultInjection)'
+	@go test -count=1 -timeout 20m ./internal/nexus/runner -run 'Test(MissionTeamPlannerBuilderReviewerVerifier|OvernightAcceptanceSandbox|OvernightSoakHarnessBounded|ProgressWatchdog|FaultInjection)'
 
 # Local-only authenticated provider smoke (not part of CI quality).
 smoke-providers:

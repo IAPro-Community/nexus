@@ -3,7 +3,7 @@ package registry
 import (
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 type RuntimeState string

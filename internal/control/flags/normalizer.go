@@ -1,6 +1,6 @@
 package flags
 
-import "github.com/kivervinicius/ai-cli/internal/core/provider/spec"
+import "github.com/IAPro-Community/nexus/internal/core/provider/spec"
 
 type CanonicalAlias = spec.CanonicalAlias
 
