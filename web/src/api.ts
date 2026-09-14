@@ -45,6 +45,10 @@ export function setDesktopAuth(token: string, baseUrl = '') {
   desktopBaseUrl = baseUrl.replace(/\/+$/, '');
 }
 
+export function clearDesktopAuth() {
+  desktopAuthToken = '';
+}
+
 export function setCSRFToken(token: string) {
   csrfToken = token;
 }
@@ -104,6 +108,7 @@ function consumeBrowserBootstrapToken(): string {
 }
 
 function notifySessionExpired() {
+  clearDesktopAuth();
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('nexus:session-expired'));
   }

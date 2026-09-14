@@ -31,7 +31,7 @@ import {
   nextBoundRuntimeId,
   runtimeIdFromRecoverResult,
   shouldShowTerminalRecoverOverlay,
-  terminalAttachFailureMessage,
+  terminalAttachFailure,
   terminalReconnectDelay,
   type TerminalRole,
 } from './agentTerminalModel';
@@ -47,8 +47,8 @@ import {
 import { isRequiredResourceError, recoverOrStartAgent } from './agentRecover';
 import { ResourcePicker } from './ResourcePicker';
 import { TerminalActionDialog } from './TerminalActionDialog';
-import { scrubProtocolOutput } from './terminalProtocol';
-import { shouldForwardTerminalInput } from './terminalInput';
+import { ProtocolScrubber } from './terminalProtocol';
+import { shouldForwardTerminalInput, stripEmbeddedTerminalMetadata } from './terminalInput';
 import { ConfirmDialog, ContextDrawer, Tooltip } from '../design-system';
 import { TaskPreparationDialog } from '../components/TaskPreparationDialog';
 import type { RuntimeSession } from '../types';
@@ -216,6 +216,8 @@ export const AgentTerminal: React.FC<{
     let stopReconnect = false;
     const roleRef: { current: TerminalRole } = { current: 'VIEW_ONLY' };
     const kickoffRef = { current: normalizeInitialPrompt(initialPrompt), sent: false };
+    // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
+    const protocolScrubber = new ProtocolScrubber();
     let lastError = '';
     let termInstance: Terminal | null = null;
     const redrawTimers: number[] = [];
@@ -429,7 +431,14 @@ export const AgentTerminal: React.FC<{
       }
       setRecovering(false);
       setConnection('ERROR');
-      setMessage(terminalAttachFailureMessage(detail));
+      const failure = terminalAttachFailure(detail);
+      if (failure.kind === 'generic') {
+        setMessage(t('terminal.attachFailedGeneric'));
+      } else if (failure.kind === 'fatal_with_detail') {
+        setMessage(`${failure.detail} ${t('terminal.attachFailedRecoverHint')}`);
+      } else {
+        setMessage(failure.detail);
+      }
     };
 
     const scheduleReconnect = (detail?: string) => {
@@ -527,7 +536,7 @@ export const AgentTerminal: React.FC<{
         try {
           const payload = JSON.parse(event.data);
           if (payload.type === 'output' && payload.data) {
-            const cleaned = scrubProtocolOutput(String(payload.data));
+            const cleaned = protocolScrubber.scrub(String(payload.data));
             if (cleaned) {
               ingestOutput(cleaned);
               writeTerminalOutput(cleaned);
@@ -609,7 +618,9 @@ export const AgentTerminal: React.FC<{
         return;
       }
       if (!shouldForwardTerminalInput(data)) return;
-      ws.send(JSON.stringify({ type: 'input', data }));
+      const clean = stripEmbeddedTerminalMetadata(data);
+      if (!clean) return;
+      ws.send(JSON.stringify({ type: 'input', data: clean }));
     });
 
     let flushFrame: number | undefined;
@@ -778,7 +789,12 @@ export const AgentTerminal: React.FC<{
 
   const handleCopySkill = (skill: AgentTerminalSkill) => {
     const text = skill.triggers?.[0] || `/${skill.id}`;
-    void navigator.clipboard.writeText(text);
+    try {
+      const pending = navigator.clipboard.writeText(text);
+      pending.catch(() => setAskFeedback(t('terminal.copyFailed')));
+    } catch {
+      setAskFeedback(t('terminal.copyFailed'));
+    }
     setCopiedSkillId(skill.id);
     setTimeout(() => setCopiedSkillId(null), 1500);
   };
@@ -820,7 +836,7 @@ export const AgentTerminal: React.FC<{
       setAskPrompt('');
       setSelectedSkills([]);
       setAskOpen(false);
-      setAskFeedback('Prompt enviado');
+      setAskFeedback(t('terminal.promptSent'));
     } catch (err) {
       setAskFeedback(err instanceof Error ? err.message : String(err));
     } finally {
@@ -1022,7 +1038,7 @@ export const AgentTerminal: React.FC<{
     <section
       className={`nx-agent-terminal ${styles.terminalRoot}`}
       data-chrome={chrome}
-      aria-label={`Terminal for Agent ${agentId}`}
+      aria-label={t('terminal.terminalForAgent', { agentId })}
     >
       {!windowChrome && (
         <header className="nx-agent-terminal__header">

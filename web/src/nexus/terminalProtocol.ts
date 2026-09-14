@@ -124,6 +124,40 @@ export function scrubProtocolOutput(data: string): string {
   return out;
 }
 
+/**
+ * Stateful scrubber for streamed PTY output. A control RPC line split across
+ * two WebSocket messages parses as JSON in neither half, so the stateless
+ * scrub above would render it. This holds back only a trailing segment that
+ * could complete into a control line (starts with `{`); ordinary trailing
+ * text still renders immediately.
+ */
+export class ProtocolScrubber {
+  private tail = '';
+
+  scrub(chunk: string): string {
+    if (!chunk && !this.tail) return '';
+    const data = this.tail + chunk;
+    this.tail = '';
+    const lastNewline = data.lastIndexOf('\n');
+    const head = lastNewline < 0 ? '' : data.slice(0, lastNewline + 1);
+    const tail = lastNewline < 0 ? data : data.slice(lastNewline + 1);
+    let out = scrubProtocolOutput(head);
+    if (tail.trimStart().startsWith('{')) {
+      this.tail = tail;
+    } else {
+      out += tail;
+    }
+    return out;
+  }
+
+  flush(): string {
+    const rest = this.tail;
+    this.tail = '';
+    if (!rest || isProtocolControlLine(rest)) return '';
+    return rest;
+  }
+}
+
 export interface AttentionNotificationPayload {
   runtimeId: string;
   projectId?: string;

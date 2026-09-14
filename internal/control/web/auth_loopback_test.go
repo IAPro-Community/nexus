@@ -1,6 +1,9 @@
 package web
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestExchangeBootstrapTokenReusableOnLoopback(t *testing.T) {
 	auth, token, err := NewAuthManager("127.0.0.1", "13000")
@@ -125,5 +128,16 @@ func TestSetTunnelActiveControlsConsumption(t *testing.T) {
 	_, ok = auth.ExchangeBootstrapToken(token)
 	if ok {
 		t.Fatal("must be one-time when tunnel is active")
+	}
+}
+
+func TestExchangeBootstrapTokenExpiresOnLoopback(t *testing.T) {
+	auth, token, err := NewAuthManager("127.0.0.1", "13000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth.bootstrapCreatedAt = time.Now().Add(-loopbackBootstrapTTL - time.Second)
+	if _, ok := auth.ExchangeBootstrapToken(token); ok {
+		t.Fatal("expired loopback bootstrap must be rejected")
 	}
 }

@@ -1,5 +1,13 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-14 — Review follow-ups aplicados (opção 4)
+
+- Segurança: `browser.go` profile Chromium `0700` (+Chmod); bootstrap loopback com TTL 24h (`loopbackBootstrapTTL`, teste de expiração); `handleFSBrowse` exige `isWithinAllowedRoots` igual ao mkdir (+teste 403).
+- Web: `api.ts` limpa bearer desktop em `notifySessionExpired`; `networkHost.ts` trata IPv6 com colchetes/`::1` (+testes, sem mudar vereditos seguros); `TerminalPane`/`AgentTerminal` sem texto hardcoded (chaves `hostNotRunning`, `renameSessionTitle`, `closePane`, `promptSent`, `copyFailed`, `terminalForAgent`, `attachFailed*` em en/pt/es) e a11y (`button`, `aria-label`, `tRef` p/ `t` em effect); `agentTerminalModel` retorna código (`terminalAttachFailure`) e traduz no render.
+- Terminal: `stripEmbeddedTerminalMetadata` remove foco/CPR com ESC colado em chunks (bare preservado p/ literais); `ProtocolScrubber` segura cauda `{...` entre mensagens (+testes); ambos os panes usam os dois.
+- Fora do escopo (proposital): split de componentes >400 linhas.
+- PASS: `make quality` (exit 0), `make build`, `git diff --check`, typecheck, lint sem novos warnings. HEAD moveu p/ `11432fc` (WIP concorrente); binário instalado segue em `1b840ca` — rebuild após freeze. Sem commit/push.
+
 ## 2026-09-14 — Deep review merge-readiness (feat/nexus-maximum-delivery → main)
 
 - Branch 50 ahead / 0 behind main (merge-base == main tip); fast-forward limpo.

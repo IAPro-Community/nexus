@@ -302,8 +302,12 @@ func (a *AuthManager) ExchangeBootstrapToken(token string) (*Session, bool) {
 	}
 	exposure := a.effectiveExposureLocked()
 	reusable := exposure == ExposureLoopback
-	if !reusable {
-		if !a.bootstrapCreatedAt.IsZero() && a.now().Sub(a.bootstrapCreatedAt) > remoteBootstrapTTL {
+	if !a.bootstrapCreatedAt.IsZero() {
+		ttl := remoteBootstrapTTL
+		if reusable {
+			ttl = loopbackBootstrapTTL
+		}
+		if a.now().Sub(a.bootstrapCreatedAt) > ttl {
 			return nil, false
 		}
 	}

@@ -12,7 +12,7 @@ import {
   shouldShowTerminalRecoverOverlay,
   shouldFallbackRecoverToStart,
   nextBoundRuntimeId,
-  terminalAttachFailureMessage,
+  terminalAttachFailure,
   terminalReconnectDelay,
 } from './agentTerminalModel';
 
@@ -77,7 +77,15 @@ describe('Agent terminal model', () => {
     expect(isFatalTerminalAttachError('agent has no active runtime: not found')).toBe(true);
     expect(isFatalTerminalAttachError('Runtime host is not running (dial timeout)')).toBe(true);
     expect(isFatalTerminalAttachError('temporary blip')).toBe(false);
-    expect(terminalAttachFailureMessage('runtime not found: rt_x')).toContain('Recover/Start');
+    expect(terminalAttachFailure('runtime not found: rt_x')).toEqual({
+      kind: 'fatal_with_detail',
+      detail: 'runtime not found: rt_x',
+    });
+    expect(terminalAttachFailure('temporary blip')).toEqual({
+      kind: 'with_detail',
+      detail: 'temporary blip',
+    });
+    expect(terminalAttachFailure('  ')).toEqual({ kind: 'generic' });
   });
   it('shows recover overlay while reconnecting after reboot, not only on ERROR', () => {
     expect(shouldShowTerminalRecoverOverlay({ connection: 'CONNECTED', recovering: false })).toBe(

@@ -15,7 +15,7 @@ import {
   Plus,
   ArrowDown,
 } from 'lucide-react';
-import { scrubProtocolOutput } from '../nexus/terminalProtocol';
+import { ProtocolScrubber } from '../nexus/terminalProtocol';
 import { canFitTerminal } from '../nexus/terminalFitModel';
 import {
   DEFAULT_TERMINAL_SCROLLBACK,
@@ -29,7 +29,7 @@ import {
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { getWebSocketEndpoint } from '../api';
-import { shouldForwardTerminalInput } from '../nexus/terminalInput';
+import { shouldForwardTerminalInput, stripEmbeddedTerminalMetadata } from '../nexus/terminalInput';
 import styles from './TerminalPane.module.scss';
 
 interface TerminalPaneProps {
@@ -66,6 +66,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   liveTitleKeyRef.current = liveTitleKey;
   const liveChromeRef = useRef(liveChrome);
   const { t } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
   const ptyChromeRef = useRef({ title: '', questionnaire: false });
 
   const [role, setRole] = useState<'CONTROL' | 'VIEW_ONLY'>('VIEW_ONLY');
@@ -178,6 +180,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     let disposed = false;
     let sessionReady = false;
+    // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
+    const protocolScrubber = new ProtocolScrubber();
     const panel = containerRef.current.closest<HTMLElement>('.nx-workspace-panel');
     const redrawTimers: number[] = [];
     let lastSentSize = { rows: 0, cols: 0 };
@@ -316,7 +320,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === 'output' && msg.data) {
-          const cleaned = scrubProtocolOutput(String(msg.data));
+          const cleaned = protocolScrubber.scrub(String(msg.data));
           if (cleaned) {
             ingestOutput(cleaned);
             writeTerminalOutput(cleaned);
@@ -348,13 +352,13 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     ws.onclose = () => {
       if (disposed) return;
-      setErrorMsg((current) => current || 'O host do terminal não está em execução.');
+      setErrorMsg((current) => current || tRef.current('terminal.hostNotRunning'));
       setDisconnected(true);
     };
 
     ws.onerror = () => {
       if (disposed) return;
-      setErrorMsg((current) => current || 'O host do terminal não está em execução.');
+      setErrorMsg((current) => current || tRef.current('terminal.hostNotRunning'));
       setDisconnected(true);
     };
 
@@ -364,8 +368,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       term.scrollToBottom();
       setIsScrolledUp(false);
       if (!shouldForwardTerminalInput(data)) return;
+      const clean = stripEmbeddedTerminalMetadata(data);
+      if (!clean) return;
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'input', data }));
+        ws.send(JSON.stringify({ type: 'input', data: clean }));
       }
     });
 
@@ -522,16 +528,18 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
                 </button>
               </div>
             ) : (
-              <div
+              <button
+                type="button"
                 className="flex items-center space-x-1.5 cursor-pointer group"
                 onClick={() => setIsEditingTitle(true)}
-                title="Click to rename session title"
+                title={t('terminal.renameSessionTitle')}
+                aria-label={t('terminal.renameSessionTitle')}
               >
                 <span className="text-slate-100 font-bold font-sans">
                   {customTitle || `${provider.toUpperCase()} (${profile})`}
                 </span>
                 <Pencil className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100 transition" />
-              </div>
+              </button>
             )}
             {ptyTitle && (
               <span
@@ -602,7 +610,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
                 onClick={requestControl}
                 className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-sans text-xs transition"
               >
-                Take Control
+                {t('terminal.takeControl')}
               </button>
             ) : (
               <button
@@ -619,7 +627,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
                 type="button"
                 onClick={onClose}
                 className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                title="Close Pane"
+                title={t('terminal.closePane')}
+                aria-label={t('terminal.closePane')}
               >
                 <XSquare className="w-4 h-4" />
               </button>

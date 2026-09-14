@@ -66,13 +66,19 @@ export function shouldAutoRecoverAgentTerminal(openedOnce: boolean, lastError?: 
   return false;
 }
 
-export function terminalAttachFailureMessage(detail?: string): string {
+export type TerminalAttachFailure =
+  | { kind: 'fatal_with_detail'; detail: string }
+  | { kind: 'with_detail'; detail: string }
+  | { kind: 'generic' };
+
+/** Classifies an attach failure so the UI translates the hint at render time. */
+export function terminalAttachFailure(detail?: string): TerminalAttachFailure {
   const trimmed = (detail || '').trim();
   if (trimmed && isFatalTerminalAttachError(trimmed)) {
-    return `${trimmed} Abra Agentes → Recover/Start e tente de novo.`;
+    return { kind: 'fatal_with_detail', detail: trimmed };
   }
-  if (trimmed) return trimmed;
-  return 'Não foi possível anexar ao runtime do Agente. Use Recover/Start em Agentes e reabra o terminal.';
+  if (trimmed) return { kind: 'with_detail', detail: trimmed };
+  return { kind: 'generic' };
 }
 
 export function shouldShowTerminalRecoverOverlay(input: {

@@ -17,6 +17,11 @@ const (
 // once the Core is effectively exposed beyond the local machine.
 const remoteBootstrapTTL = 15 * time.Minute
 
+// loopbackBootstrapTTL bounds loopback reuse: the desktop/Chromium --app
+// flow legitimately re-exchanges after restart, but a leaked token must not
+// mint sessions indefinitely on a long-lived server process.
+const loopbackBootstrapTTL = 24 * time.Hour
+
 // EffectiveExposure returns the security policy domain for auth decisions.
 func (a *AuthManager) EffectiveExposure() ExposureMode {
 	a.mu.RLock()

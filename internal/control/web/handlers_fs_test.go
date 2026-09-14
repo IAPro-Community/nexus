@@ -252,3 +252,17 @@ func TestGetGitRemoteRedactsCredentials(t *testing.T) {
 		t.Fatalf("remote = %q, credentials must be redacted", got)
 	}
 }
+
+func TestFSBrowseRejectsOutsideAllowedRoots(t *testing.T) {
+	auth, _, _ := NewAuthManager("127.0.0.1", "")
+	handler := NewNexusHandler(auth)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/fs/browse?path=/etc", nil)
+	w := httptest.NewRecorder()
+
+	handler.handleFSBrowse(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for path outside allowed roots, got %d: %s", w.Code, w.Body.String())
+	}
+}

@@ -117,7 +117,9 @@ func OpenAppWindow(url string) error {
 		home = os.Getenv("HOME")
 	}
 	userDataDir := filepath.Join(home, ".local", "share", "ai-manager", "desktop-profile")
-	_ = os.MkdirAll(userDataDir, 0755)
+	// Cookies/tokens live here: owner-only permissions.
+	_ = os.MkdirAll(userDataDir, 0700)
+	_ = os.Chmod(userDataDir, 0700)
 
 	chromeCandidates := []string{
 		"/usr/bin/google-chrome",
