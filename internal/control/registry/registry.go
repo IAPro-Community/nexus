@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -352,6 +353,42 @@ func (r *Registry) UpdateProviderSessionID(runtimeID, providerSessionID string) 
 			return
 		}
 		s.ProviderSessionID = providerSessionID
+		s.UpdatedAt = time.Now()
+		fresh[runtimeID] = s
+	})
+	if err != nil {
+		return err
+	}
+	if notFound {
+		return fmt.Errorf("runtime %q not found", runtimeID)
+	}
+	return nil
+}
+
+// UpdateInteractiveLeadBinding persists the project and Lead Agent identity
+// after a supervised runtime has completed its provider handshake. Keeping
+// this as an atomic registry mutation avoids mutating a detached RuntimeSession
+// pointer that is no longer the registry's authoritative value.
+func (r *Registry) UpdateInteractiveLeadBinding(runtimeID, agentID, projectID, projectName string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var notFound bool
+	err := r.saveLocked(func(fresh map[string]RuntimeSession) {
+		s, ok := fresh[runtimeID]
+		if !ok {
+			notFound = true
+			return
+		}
+		s.AgentID = agentID
+		s.ProjectID = projectID
+		s.ProjectName = projectName
+		labels := make(map[string]string, len(s.Labels)+1)
+		for key, value := range s.Labels {
+			labels[key] = value
+		}
+		labels["nexus.interactive_lead"] = fmt.Sprintf("%t", strings.TrimSpace(agentID) != "")
+		s.Labels = labels
 		s.UpdatedAt = time.Now()
 		fresh[runtimeID] = s
 	})

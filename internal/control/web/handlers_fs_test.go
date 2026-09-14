@@ -257,12 +257,43 @@ func TestFSBrowseRejectsOutsideAllowedRoots(t *testing.T) {
 	auth, _, _ := NewAuthManager("127.0.0.1", "")
 	handler := NewNexusHandler(auth)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/fs/browse?path=/etc", nil)
+	outside := "/etc"
+	if runtime.GOOS == "windows" {
+		outside = filepath.VolumeName(os.TempDir()) + string(filepath.Separator)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/fs/browse?path="+outside, nil)
 	w := httptest.NewRecorder()
 
 	handler.handleFSBrowse(w, req)
 
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 for path outside allowed roots, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestFSBrowseRejectsNonexistentOutsideAllowedRoots(t *testing.T) {
+	auth, _, _ := NewAuthManager("127.0.0.1", "")
+	handler := NewNexusHandler(auth)
+
+	var base string
+	if runtime.GOOS == "windows" {
+		base = filepath.VolumeName(os.TempDir()) + string(filepath.Separator)
+	} else {
+		base = "/etc"
+	}
+	outside := filepath.Join(base, "nexus-outside-nonexistent-9f3b")
+	if _, err := os.Stat(outside); !os.IsNotExist(err) {
+		t.Skipf("precondition missing: %q exists", outside)
+	}
+	if isWithinAllowedRoots(outside) {
+		t.Skipf("precondition missing: %q inside allowed roots", outside)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/fs/browse?path="+outside, nil)
+	w := httptest.NewRecorder()
+
+	handler.handleFSBrowse(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for nonexistent outside path, got %d: %s", w.Code, w.Body.String())
 	}
 }

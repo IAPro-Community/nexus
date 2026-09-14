@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -84,7 +85,13 @@ func TestSessionHostCodexTUILockBusyFailsFast(t *testing.T) {
 
 	runtimeID := "rt-codex-tui-busy"
 	owned := registry.NewRegistry(t.TempDir() + "/runtimes.json")
-	env := append([]string{}, os.Environ()...)
+	env := make([]string, 0, len(os.Environ())+1)
+	for _, entry := range os.Environ() {
+		if strings.HasPrefix(entry, "CODEX_HOME=") {
+			continue
+		}
+		env = append(env, entry)
+	}
 	env = append(env, "CODEX_HOME="+home)
 	sh, err := NewSessionHost(Config{
 		Session: registry.RuntimeSession{

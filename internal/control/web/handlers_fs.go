@@ -247,6 +247,11 @@ func (h *NexusHandler) handleFSBrowse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !isWithinAllowedRoots(absPath) {
+		writeError(w, http.StatusForbidden, "path is outside allowed directories")
+		return
+	}
+
 	info, err := os.Stat(absPath)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "path not found: "+err.Error())

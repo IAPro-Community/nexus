@@ -101,39 +101,75 @@ func TestFaultInjectionQuotaFailoverIsNotAttention(t *testing.T) {
 }
 
 func TestOvernightSoakHarnessBounded(t *testing.T) {
-	deadline := 15 * time.Second
+	duration := 15 * time.Second
 	if raw := os.Getenv("OVERNIGHT_SOAK_DURATION"); raw != "" {
 		parsed, err := time.ParseDuration(raw)
 		if err != nil {
 			t.Fatal(err)
 		}
-		deadline = parsed
+		duration = parsed
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+	if duration <= 0 {
+		t.Fatalf("soak duration must be positive, got %s", duration)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), duration)
 	defer cancel()
-	exec := &overnightAcceptanceExecutor{globalRepairExecutor: globalRepairExecutor{fakeExecutor: fakeExecutor{reviewOK: true}}}
-	r := NewMissionRunner(NewMemoryRunRepository(), exec)
-	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
-	contract.GlobalVerificationCommands = []string{"true"}
-	plan := PlanSpec{ID: "soak", ProjectID: "p", Revision: 1, Packages: []PackageSpec{
-		{ID: "a", Title: "a", Goal: "a", ParallelGroup: "g"},
-		{ID: "b", Title: "b", Goal: "b", Dependencies: []string{"a"}},
-	}}
-	run, err := r.StartMissionRun(ctx, plan, t.TempDir(), contract, "")
-	if err != nil {
-		t.Fatal(err)
+
+	workspace := t.TempDir()
+	cycles := 0
+	const cyclePause = 250 * time.Millisecond
+
+soakLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			break soakLoop
+		default:
+		}
+
+		exec := &overnightAcceptanceExecutor{globalRepairExecutor: globalRepairExecutor{fakeExecutor: fakeExecutor{reviewOK: true}}}
+		r := NewMissionRunner(NewMemoryRunRepository(), exec)
+		contract := DefaultAutonomyContract()
+		contract.VerificationCommands = []string{"true"}
+		contract.GlobalVerificationCommands = []string{"true"}
+		plan := PlanSpec{ID: "soak", ProjectID: "p", Revision: 1, Packages: []PackageSpec{
+			{ID: "a", Title: "a", Goal: "a", ParallelGroup: "g"},
+			{ID: "b", Title: "b", Goal: "b", Dependencies: []string{"a"}},
+		}}
+		run, err := r.StartMissionRun(ctx, plan, workspace, contract, "")
+		if err != nil {
+			if ctx.Err() != nil {
+				break soakLoop
+			}
+			t.Fatalf("soak cycle %d start failed: %v", cycles+1, err)
+		}
+		completed, err := r.RunToTerminal(ctx, run.ID)
+		if err != nil && ctx.Err() == nil {
+			t.Fatalf("soak cycle %d failed: %v", cycles+1, err)
+		}
+		if completed == nil {
+			if ctx.Err() != nil {
+				break soakLoop
+			}
+			t.Fatalf("soak cycle %d returned no run", cycles+1)
+		}
+		switch completed.State {
+		case StateCompletedVerified, StateFailedNoProgress, StateBlockedNeedsUser, StateCanceledByUser, StateFailed, StateFailedBudgetExceeded, StateFailedVerification:
+		default:
+			t.Fatalf("soak cycle %d must end in an explicit terminal state, got %s", cycles+1, completed.State)
+		}
+		cycles++
+
+		timer := time.NewTimer(cyclePause)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			break soakLoop
+		case <-timer.C:
+		}
 	}
-	completed, err := r.RunToTerminal(ctx, run.ID)
-	if err != nil && completed == nil {
-		t.Fatalf("soak harness failed: %v", err)
+	if cycles == 0 {
+		t.Fatalf("soak completed no cycles during %s", duration)
 	}
-	if completed == nil {
-		t.Fatal("soak harness returned no run")
-	}
-	switch completed.State {
-	case StateCompletedVerified, StateFailedNoProgress, StateBlockedNeedsUser, StateCanceledByUser, StateFailed, StateFailedBudgetExceeded, StateFailedVerification:
-	default:
-		t.Fatalf("soak must end in an explicit terminal state, got %s", completed.State)
-	}
+	t.Logf("completed %d mission cycles during %s", cycles, duration)
 }

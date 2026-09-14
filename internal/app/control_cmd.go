@@ -348,28 +348,25 @@ func controlStartCmd(args []string) error {
 	if err != nil {
 		return err
 	}
-	candidateNames := make([]string, 0, len(candidates))
-	for _, candidate := range candidates {
-		candidateNames = append(candidateNames, candidate.Name)
-	}
-	profileName = profile.ResolveDefault(providerID, profileName, candidateNames, cfg.Defaults[providerID], func() (string, error) {
-		res, selectErr := sel.SelectBestProfile(ctx, providerID, cwd, candidates, accounts, nil)
-		if selectErr == nil && res != nil && res.SelectedProfile != nil {
-			return res.SelectedProfile.Name, nil
-		}
-		return "", selectErr
-	})
 
-	// 2. Launch via unified RuntimeLauncher
-	l := launcher.Default()
-	sess, err := l.Launch(ctx, launcher.LaunchOptions{
-		ProviderID: providerID,
-		ProfileID:  profileName,
-		Args:       extraArgs,
-	})
+	// 2. Launch via unified RuntimeLauncher. Auto-selected profiles fall back
+	// when Codex exclusive maintenance holds the TUI lock.
+	sess, profileName, err := launchWithBusyFailover(
+		ctx,
+		launcher.Default(),
+		sel,
+		providerID,
+		profileName,
+		cwd,
+		cfg.Defaults[providerID],
+		candidates,
+		accounts,
+		launcher.LaunchOptions{Args: extraArgs},
+		os.Stderr,
+	)
 	if err != nil {
 		if errors.Is(err, codex.ErrTUIBusy) {
-			return fmt.Errorf("%s profile %s is temporarily unavailable for maintenance; retry shortly", providerID, profileName)
+			return busyProfileError(providerID, profileName)
 		}
 		return err
 	}
@@ -622,12 +619,15 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 				}
 				if event.Submit {
 					for _, line := range event.Submissions {
-						decision, decideErr := promoter.Decide(context.Background(), session.ProjectID, line, mode)
-						if decideErr != nil || decision.Action == promotion.KeepWithLead {
+						// Hold Enter only long enough to decide KEEP/PROMOTE/ASK.
+						// Provider slash commands (/status, /model, …) submit
+						// immediately so supervised CLIs stay byte-responsive.
+						action := decideInteractiveSubmit(context.Background(), promoter, session.ProjectID, line, mode)
+						if action == promotion.KeepWithLead {
 							_, _ = conn.Write([]byte("\r"))
 							continue
 						}
-						if decision.Action == promotion.Ask {
+						if action == promotion.Ask {
 							_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Promover esta solicitação para uma Mission? [y/n] ")
 							pendingASK = line
 							continue
@@ -742,8 +742,9 @@ func controlContinueCmd(args []string) error {
 func controlCleanupCmd(_ []string) error {
 	reg := registry.DefaultRegistry()
 	cleaned, _ := reg.CleanupStale()
+	reaped := launcher.ReapOrphanHosts(reg.List())
 	purged, _ := reg.PurgeInactive()
-	fmt.Printf("✓ Cleaned up %d stale records and purged %d inactive runtimes.\n", cleaned, purged)
+	fmt.Printf("✓ Cleaned up %d stale records, reaped %d orphan hosts, and purged %d inactive runtimes.\n", cleaned, reaped, purged)
 	return nil
 }
 

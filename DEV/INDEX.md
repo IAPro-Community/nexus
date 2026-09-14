@@ -18,6 +18,7 @@ O código canônico utiliza o binário `nexus`, mantendo `ai` como alias transpa
 
 ## 1. Governança e Estado Ativo
 
+- [`SPECS/NEXUS_CONDUCTOR.md`](SPECS/NEXUS_CONDUCTOR.md): Spec técnica do Nexus Conductor — orquestração nativa de Goals → Missions.
 - [`SPECS/NEXUS_TERMINAL_CONTINUITY_LUNA.md`](SPECS/NEXUS_TERMINAL_CONTINUITY_LUNA.md): Plano executável Luna para CI, quota, pools, terminal supervisionado e continuidade nos três SOs.
 - [`HANDOFF.md`](HANDOFF.md): Estado atual de execução e próxima ação recomendada.
 - [`CONTEXT.md`](CONTEXT.md): Arquitetura corrente, runtime, drivers e restrições operacionais.

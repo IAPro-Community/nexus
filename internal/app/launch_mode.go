@@ -117,7 +117,16 @@ func (r *LaunchModeResolver) ResolveWithReason() LaunchModeResult {
 // StripControlFlags removes Nexus-owned launch flags from args, returning
 // only flags/arguments that should be forwarded to the provider.
 func (r *LaunchModeResolver) StripControlFlags() []string {
-	return removeProviderLaunchFlag(removeProviderLaunchFlag(r.input.Args, "--direct"), "--supervised")
+	args := removeProviderLaunchFlag(r.input.Args, "--direct")
+	args = removeProviderLaunchFlag(args, "--supervised")
+	args = removeProviderLaunchFlag(args, "--lead")
+	return args
+}
+
+// WantInteractiveLead reports whether the caller opted into Lead Agent
+// binding and Mission promotion on the supervised TTY attach path.
+func (r *LaunchModeResolver) WantInteractiveLead() bool {
+	return wantInteractiveLead(r.input.Args)
 }
 
 // IsTerminal reports whether the current process stdin is a terminal.

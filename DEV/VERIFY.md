@@ -1,5 +1,43 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-14 — Remediação do review pré-main
+
+- PASS — `GOTOOLCHAIN=go1.25.1 make release-proof`: gates locais completos,
+  cobertura Go agregada 52,4%, segurança e version contract aprovados;
+  `OVERNIGHT_SOAK_EVIDENCE=MISSING` foi mantido como pendência explícita.
+- PASS — `go test ./...` e `go test -race ./...` sem falhas ou data races.
+- PASS — `make quality`, `make test-e2e` e `make security`.
+- PASS — lint frontend com `--max-warnings=0`.
+- PASS — `GOOS=windows GOARCH=amd64 go test -c` para `scripts`, `internal/control/web`
+  e `internal/control/host`.
+- PASS — regressão de persistência do binding `--lead` em Registry reloadado.
+- BLOCKED — `make docs-verify`: manifesto visual stale para o worktree não
+  commitado; exige novo SHA e evidência visual após congelamento.
+- NOT EXECUTED — commit, push, CI hosted same-SHA, rulesets e branch protection.
+
+## 2026-09-14 — CLI supervised sem Lead no teclado
+
+- PASS — `wantInteractiveLead` default false; `--lead` true (case-insensitive); `StripControlFlags` remove `--lead` junto de `--direct`/`--supervised`.
+- PASS — `go test ./internal/app/` (flag/strip + suite existente).
+- PASS — smoke `nexus codex --yolo` (PTY): runtime `nexus.interactive_lead=false`; **0** agentes novos; `/status` chega ao Codex (autocomplete de slash) sem hang de promoter.
+- PASS — smoke `nexus codex --yolo --lead`: label `nexus.interactive_lead=true` + bind Lead; caminho LineShadow preservado.
+- PASS — `nexus control list` lista o runtime do atalho; help/completions expõem `--lead`.
+- PASS — `make build` + install `~/.local/bin/nexus` (`0.5.0-beta.23`).
+
+## 2026-09-14 — Enter preso em /status (qualquer CLI supervised)
+
+- PASS — `IsImmediateSubmitLine` cobre `/status`, `/model`, `/nexus`, `:help`, vazio; prompts normais não bypassam.
+- PASS — `decideInteractiveSubmit` não chama DecideIntent para `/status`; Decide lento estoura 250ms → KeepWithLead; Promote ainda funciona em goal multi-stream.
+- PASS — `go test` promotion+app focados (11); binário reinstalado em `~/.local/bin/nexus`.
+- UNVERIFIED — smoke manual `nexus codex` → `/status` responde na TUI (requer sessão interativa).
+
+## 2026-09-14 — CLI shortcuts: busy failover + orphan host reap
+
+- PASS — `go test ./internal/app ./internal/control/launcher ./internal/nexus ./internal/control/tui` (350): failover auto cai no próximo perfil; explícito não faz fallback; `ReapOrphanHostsFrom` mata host sem registry e preserva RUNNING.
+- PASS — lock exclusivo em `kivergmail` + `nexus codex --yolo`: stderr `Profile codex:kivergmail is busy. Automatically falling back...` e attach em `codex:kiver.omegasistemas` (~8s, TUI YOLO). `nexus codex:kivergmail --yolo` falhou em 159ms sem fallback.
+- PASS — `nexus control cleanup` reaped 1 orphan host de teste; 3 RUNNING reais intactos (`agy-06G9ZZ…`, `runtime_06GA0Z…`, `codex-06G9YT…`).
+- UNVERIFIED — Windows named-pipe scan of `__control-host` (Linux `/proc` only).
+
 ## 2026-09-14 — Rail flicker + terminal recover
 
 - PASS — `useNexusData` só atualiza estado quando o snapshot muda; `resolveProjectSelection` não bounceia para `projects[0]` em poll vazio; outline não re-entra em loading com cache.
@@ -1270,4 +1308,3 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
 ## Frontend gate — 2026-09-14T12:53:46Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-

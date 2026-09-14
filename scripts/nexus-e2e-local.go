@@ -29,6 +29,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -495,7 +496,10 @@ func resolveE2ERoot() (string, bool, error) {
 	case !info.IsDir():
 		return "", false, fmt.Errorf("explicit E2E root is not a directory: %s", root)
 	}
-	if info.Mode().Perm()&0077 != 0 {
+	// Windows does not expose POSIX permission bits for this policy. The ACL
+	// boundary is enforced by the OS there; owner-only mode is meaningful on
+	// Unix only.
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0077 != 0 {
 		return "", false, fmt.Errorf("explicit E2E root must be owner-only (0700): %s", root)
 	}
 	entries, err := os.ReadDir(root)

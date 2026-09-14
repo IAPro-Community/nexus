@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/launcher"
-	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/cooldown"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -44,14 +43,23 @@ func removeProviderLaunchFlag(args []string, wanted string) []string {
 	return out
 }
 
+// wantInteractiveLead is the opt-in for binding a persistent Lead Agent and
+// holding Enter for Mission promotion. Default supervised shortcuts stay
+// byte-transparent so provider slash commands (/status, /model) work like a
+// native CLI.
+func wantInteractiveLead(args []string) bool {
+	return hasProviderLaunchFlag(args, "--lead")
+}
+
 // executeProviderSupervised launches the provider through the same persistent
-// SessionHost used by Web/Desktop. This opt-in path gives terminal-only users
-// slash control, detach/attach, handoff and generation tracking without
-// requiring the Web or Desktop surface.
-func executeProviderSupervised(provName, explicitProfile string, args []string) error {
+// SessionHost used by Web/Desktop. Interactive TTY defaults to a
+// byte-transparent attach. Pass withLead=true (--lead) to bind a Lead Agent
+// and enable Mission promotion on submit.
+func executeProviderSupervised(provName, explicitProfile string, args []string, withLead bool) error {
 	if strings.TrimSpace(provName) == "" {
 		return fmt.Errorf("provider is required for supervised launch")
 	}
+	args = removeProviderLaunchFlag(args, "--lead")
 
 	fmt.Fprintf(os.Stderr, "⚡ [nexus] iniciando %s…\n", provName)
 
@@ -100,7 +108,8 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 			Standalone: false,
 			Timeout:    15 * time.Second,
 			Labels: map[string]string{
-				"nexus.delegation_mode": string(nexus.DelegationAuto),
+				"nexus.delegation_mode":  string(nexus.DelegationAuto),
+				"nexus.interactive_lead": fmt.Sprintf("%t", withLead),
 			},
 		},
 		os.Stderr,
@@ -109,38 +118,28 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 		return busyOrLaunchError(provName, selected, explicitProfile, err)
 	}
 
-	lead := nexus.InteractiveLeadBinding{}
+	if !withLead {
+		fmt.Fprintf(os.Stderr, "⚡ [nexus] supervised %s:%s runtime=%s\n", provName, selected, session.RuntimeID)
+		return attachRuntime(session.RuntimeID)
+	}
+
 	n := nexus.Default()
-	if st, projectErr := n.OpenProject(); projectErr == nil {
-		if canonical, canonicalErr := store.CanonicalPath(workspace); canonicalErr == nil {
-			project, lookupErr := st.GetProjectByPath(canonical)
-			if errors.Is(lookupErr, store.ErrNotFound) {
-				project, lookupErr = st.CreateProject(store.Project{
-					Name:          filepath.Base(canonical),
-					CanonicalPath: canonical,
-				})
-			}
-			if lookupErr == nil {
-				_ = st.TouchProject(project.ID)
-				if agent, leadErr := n.PrepareInteractiveLead(context.Background(), project.ID, provName, selected); leadErr == nil {
-					lead = nexus.InteractiveLeadBinding{AgentID: agent.ID, ProjectID: project.ID, ProjectName: project.Name}
-				}
-			}
-		}
+	lead, err := prepareInteractiveLead(n, workspace, provName, selected)
+	if err != nil {
+		_ = launcher.Default().Stop(session.RuntimeID)
+		return fmt.Errorf("prepare interactive Lead: %w", err)
 	}
-	if session.Labels == nil {
-		session.Labels = map[string]string{}
+	if err := n.RuntimeRegistry().UpdateInteractiveLeadBinding(session.RuntimeID, lead.AgentID, lead.ProjectID, lead.ProjectName); err != nil {
+		_ = launcher.Default().Stop(session.RuntimeID)
+		releaseInteractiveLeadReservation(n, lead.AgentID)
+		return fmt.Errorf("persist interactive Lead runtime metadata: %w", err)
 	}
-	session.Labels["nexus.interactive_lead"] = fmt.Sprintf("%t", lead.AgentID != "")
 	session.AgentID = lead.AgentID
 	session.ProjectID = lead.ProjectID
 	session.ProjectName = lead.ProjectName
 	if lead.AgentID != "" {
 		if err := n.BindInteractiveLeadRuntime(context.Background(), lead.AgentID, session); err != nil {
-			if client, clientErr := protocol.NewClient(session.RuntimeID); clientErr == nil {
-				_ = client.Stop()
-				_ = client.Close()
-			}
+			_ = launcher.Default().Stop(session.RuntimeID)
 			releaseInteractiveLeadReservation(n, lead.AgentID)
 			return fmt.Errorf("bind interactive Lead Agent: %w", err)
 		}
@@ -152,6 +151,38 @@ func executeProviderSupervised(provName, explicitProfile string, args []string) 
 	return attachInteractiveLeadRuntime(session.RuntimeID, n, *session, lead.AgentID)
 }
 
+func prepareInteractiveLead(n *nexus.Nexus, workspace, provider, profileName string) (nexus.InteractiveLeadBinding, error) {
+	if n == nil {
+		return nexus.InteractiveLeadBinding{}, errors.New("nexus service is unavailable")
+	}
+	st, err := n.OpenProject()
+	if err != nil {
+		return nexus.InteractiveLeadBinding{}, err
+	}
+	canonical, err := store.CanonicalPath(workspace)
+	if err != nil {
+		return nexus.InteractiveLeadBinding{}, fmt.Errorf("canonicalize workspace: %w", err)
+	}
+	project, err := st.GetProjectByPath(canonical)
+	if errors.Is(err, store.ErrNotFound) {
+		project, err = st.CreateProject(store.Project{
+			Name:          filepath.Base(canonical),
+			CanonicalPath: canonical,
+		})
+	}
+	if err != nil {
+		return nexus.InteractiveLeadBinding{}, fmt.Errorf("resolve project: %w", err)
+	}
+	if err := st.TouchProject(project.ID); err != nil {
+		return nexus.InteractiveLeadBinding{}, fmt.Errorf("touch project: %w", err)
+	}
+	agent, err := n.PrepareInteractiveLead(context.Background(), project.ID, provider, profileName)
+	if err != nil {
+		return nexus.InteractiveLeadBinding{}, err
+	}
+	return nexus.InteractiveLeadBinding{AgentID: agent.ID, ProjectID: project.ID, ProjectName: project.Name}, nil
+}
+
 func releaseInteractiveLeadReservation(n *nexus.Nexus, agentID string) {
 	if n == nil || strings.TrimSpace(agentID) == "" {
 		return
@@ -161,12 +192,12 @@ func releaseInteractiveLeadReservation(n *nexus.Nexus, agentID string) {
 	}
 }
 
-func busyOrLaunchError(provider, profileName, explicit string, err error) error {
-	if errors.Is(err, codex.ErrTUIBusy) || strings.Contains(err.Error(), "no fallback profiles are available") {
-		if strings.TrimSpace(explicit) != "" || errors.Is(err, codex.ErrTUIBusy) {
-			return busyProfileError(provider, profileName)
-		}
-		return fmt.Errorf("%s: %w", provider, err)
+func busyOrLaunchError(provider, profileName, _ string, err error) error {
+	if errors.Is(err, codex.ErrTUIBusy) {
+		return busyProfileError(provider, profileName)
+	}
+	if strings.Contains(err.Error(), "no fallback profiles are available") {
+		return err
 	}
 	return fmt.Errorf("supervised %s launch failed: %w", provider, err)
 }

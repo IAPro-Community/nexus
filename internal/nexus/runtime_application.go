@@ -68,6 +68,10 @@ func (s *RuntimeApplicationService) Cleanup(ctx context.Context) (cleaned, purge
 	if err := ctx.Err(); err != nil {
 		return cleaned, 0, err
 	}
+	cleaned += launcher.ReapOrphanHosts(s.registry.List())
+	if err := ctx.Err(); err != nil {
+		return cleaned, 0, err
+	}
 	purged, err = s.registry.PurgeInactive()
 	return cleaned, purged, err
 }

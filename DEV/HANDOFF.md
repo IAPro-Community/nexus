@@ -1,5 +1,21 @@
 # Handoff
 
+## Remediação do review pré-main — 2026-09-14
+
+Foram corrigidos os failures locais de lock/Windows e a persistência do fluxo
+`--lead`. O Registry agora recebe Agent/Project/label por mutação atômica;
+falhas de preparação não degradam silenciosamente para um runtime sem Lead.
+O discovery de orphan hosts valida o executável Nexus antes do cleanup.
+O failover de perfil preserva o contexto do chamador ao consultar o scheduler.
+
+Verificação atual: `go test ./...`, `go test -race ./...`, `make quality`,
+`make test-e2e`, `make security`, `GOTOOLCHAIN=go1.25.1 make release-proof`,
+lint frontend sem warnings e compilação cruzada Windows dos testes afetados
+passaram. `make docs-verify` permanece bloqueado até o manifesto visual ser
+regenerado sobre um SHA commitado.
+Commit, push, CI hosted same-SHA, rulesets, branch protection, soak de 8h e
+provas nativas/live continuam fora desta execução.
+
 ## Codex terminal input — 2026-09-14
 
 Rebuilt `/home/desenvolvedor/.local/bin/nexus` from checkout `1b840ca` (`nexus version` `1b840ca`, `go version -m` `github.com/IAPro-Community/nexus`); automated gates PASS (focused web/Go race, `go test ./...`, `make quality`, `make build`, `git diff --check`). Resta apenas aceitação manual Web/Desktop + `nexus codex`. Sem push/ruleset/branch-protection.

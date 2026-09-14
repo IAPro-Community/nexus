@@ -1,11 +1,11 @@
 # Current release status
 
 STATUS: CURRENT
-GIT_SHA: a560cf701d3bf7b43ce74b638014ab943037e7e4
-GENERATED_AT: 2026-09-14T03:56:10Z
+GIT_SHA: 6bfa664f88477a5f5414f9fcb26be25e52332a718a
+GENERATED_AT: 2026-09-14T18:55:57Z
 ENVIRONMENT: linux/amd64 go1.25.0
-EVIDENCE_STREAM_ID: local-validation-2026-09-14-a560cf7
-WORKTREE_FROZEN: NO (uncommitted autopilot fixes present)
+EVIDENCE_STREAM_ID: local-validation-2026-09-14-6bfa664-remediation
+WORKTREE_FROZEN: NO (uncommitted remediation and concurrent project changes present)
 
 This is the **only** document that should be treated as the current release
 status for HEAD. Files named `FINAL_*` under `DEV/validation/` without this
@@ -14,21 +14,20 @@ and the same SHA.
 
 Canonical evidence is `ValidationEvidenceStream`, not Markdown PASS claims.
 
-Current local verification: focused `go test ./internal/control/web/ -run TestIsWithinAllowedRoots`, `go test ./internal/runtime/ -run TestNoBrowserBinDir`, `go test ./scripts/ -run TestResolveE2ERoot`, `go test ./internal/nexus/promotion/ -v` and `go vet ./internal/app/` PASS. Full `make quality`, hosted Windows E2E on this SHA, 8h soak, heterogeneous multi-provider Mission and branch protection remain UNVERIFIED. Autopilot fixes in worktree: Windows portability (fs_test TempDir guard, credentials exec-bit skip, e2e chmod tolerate), CLI Nexus UX to stderr (provider stdin isolated), bracketed paste captured with 32KiB/200-line bound.
+Current local verification: `go test ./...`, `go test -race ./...`, `make quality`, `make test-e2e`, `make security`, `GOTOOLCHAIN=go1.25.1 make release-proof`, frontend lint with zero warnings, and Windows cross-compilation of affected tests PASS. Release-proof reports Go coverage at 52.4%; the frontend coverage plugin is not installed. `make docs-verify` remains BLOCKED because the visual manifest cannot certify the uncommitted visual worktree. Hosted same-SHA CI, 8h soak, heterogeneous multi-provider Mission, package smoke, and branch protection remain UNVERIFIED. The current worktree also contains concurrent project documentation changes and is not frozen.
 
 ## Latest execution (2026-09-14)
 
-- `make attention-e2e`: PASS
-- `make overnight-smoke`: PASS
-- `make overnight-soak DURATION=45m`: PASS (bounded harness completed)
-- `make release-proof` (default Go 1.25.0): BLOCKED at `go tool covdata`
-- `GOTOOLCHAIN=go1.25.1 make release-proof`: PASS (coverage total 52.4%)
-- Codex Mission `run_06G9VJV1K6J649PN2EMEHR1EMG`: PASS;
-  authenticated implementer routing, distinct read-only review, package and
-  global verification receipts all passed.
-- `make smoke-providers`: BLOCKED because live usage had no LIVE AGY/Claude/
-  Gemini rows; direct and isolated autonomous attempts are detailed in
-  `real-provider-mission/README.md` and remain UNVERIFIED.
+- `GOTOOLCHAIN=go1.25.1 make release-proof`: PASS for all local gates; soak
+  evidence remains intentionally missing
+- `make quality`: PASS
+- `make test-e2e`: PASS
+- `go test -race ./...`: PASS
+- `make security`: PASS
+- frontend lint `--max-warnings=0`: PASS
+- Windows test compilation for `scripts`, `internal/control/web` and
+  `internal/control/host`: PASS
+- `make docs-verify`: BLOCKED by stale visual manifest on uncommitted changes
 - No commit, push, hosted CI invocation, ruleset or branch-protection change
   was performed.
 

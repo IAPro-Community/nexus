@@ -1,5 +1,45 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-14 — Remediação do review pré-main
+
+- O failover de perfil agora repassa o `context.Context` do chamador ao
+  scheduler, evitando seleção que ignore cancelamento; teste de regressão
+  adicionado.
+- Corrigido o teste de lock para substituir `CODEX_HOME` de forma determinística;
+  `make quality` e `make test-e2e` deixam de falhar localmente.
+- Testes E2E Windows tornados portáveis: permissões POSIX são ignoradas no
+  harness Windows e o teste de filesystem usa uma raiz existente fora da
+  allowlist; compilação cruzada dos testes Windows passou.
+- `--lead` agora falha explicitamente quando não consegue preparar o projeto,
+  persiste Agent/Project/label via mutação atômica do Registry e encerra o
+  runtime em falhas de binding.
+- Cleanup de hosts filtra processos pela identidade do executável Nexus antes
+  de considerar qualquer `__control-host` encontrado em `/proc`.
+- PASS: `go test ./...`, `go test -race ./...`, `make quality`, `make test-e2e`,
+  `make security`, `GOTOOLCHAIN=go1.25.1 make release-proof`, lint frontend sem
+  warnings e build cruzado Windows dos pacotes afetados. O release-proof
+  confirmou cobertura Go agregada de 52,4% e apenas marcou soak de 8h e
+  binários nativos Windows/macOS como não verificados.
+- PENDENTE: `make docs-verify` exige manifesto visual ancorado em SHA
+  commitado; não houve commit, push ou alteração remota.
+
+## 2026-09-14 — CLI supervised sem Lead no teclado
+
+- Contrato: atalho TTY continua SUPERVISED (`SessionHost` + `attachRuntime`), mas **não** chama `PrepareInteractiveLead` / `BindInteractiveLeadRuntime`. Enter vai ao PTY; sem Agent "Nexus Interactive Lead" no rail.
+- Opt-in: `--lead` (Nexus-owned, strip em `StripControlFlags`) preserva o caminho `attachInteractiveLeadRuntime` + LineShadow/promoção.
+- Labels: `nexus.interactive_lead=false` no default; `true` só com `--lead` (e bind bem-sucedido).
+
+## 2026-09-14 — Enter preso em /status (qualquer CLI supervised)
+
+- Causa: `attachInteractiveLeadRuntime` segura Enter no `LineShadow` até `promoter.Decide` (Project Intelligence). Slash do provider (`/status`, `/model`, …) esperava essa classificação e a TUI parecia travada em qualquer CLI.
+- Fix: `promotion.IsImmediateSubmitLine` + `decideInteractiveSubmit` — linhas `/` ou `:` submetem na hora; demais prompts têm timeout de 250ms e caem em KeepWithLead.
+
+## 2026-09-14 — CLI shortcuts: busy failover + orphan host reap
+
+- Atalho `nexus <provider>` seleciona a conta mais disponível; lock exclusivo (manutenção) não é ownership de TUI. `ErrTUIBusy` no launch auto agora exclui o perfil e tenta o próximo (`launchWithBusyFailover` em `internal/app/busy_failover.go`, usado por `executeProviderSupervised` e `control start`). Perfil explícito (`nexus codex:kivergmail`) continua fail-fast.
+- `nexus control cleanup` (e Web/TUI cleanup) recolhe `__control-host --runtime` vivos cujo ID não está em sessão ativa do registry. RUNNING registrados não são mortos.
+- Handshake fail-fast (sessão anterior) permanece: host destacado que sai antes do socket propaga o log (`codex profile lock is busy`) em vez de timeout de 15s.
+
 ## 2026-09-14 — Rail flicker + terminal recover
 
 - Causa do pisca: poll de 5s sempre `setState`, seleção caía em `projects[0]` em lista vazia, e expand do outline re-entrava em `loadingAgents`.

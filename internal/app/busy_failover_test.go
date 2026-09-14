@@ -14,10 +14,12 @@ import (
 )
 
 type stubSelector struct {
-	order []string
+	order    []string
+	contexts []context.Context
 }
 
-func (s *stubSelector) SelectBestProfile(_ context.Context, _ string, _ string, _ []model.Profile, _ map[string]model.AccountInfo, excluded []string) (*scheduler.SelectionResult, error) {
+func (s *stubSelector) SelectBestProfile(ctx context.Context, _ string, _ string, _ []model.Profile, _ map[string]model.AccountInfo, excluded []string) (*scheduler.SelectionResult, error) {
+	s.contexts = append(s.contexts, ctx)
 	skip := map[string]bool{}
 	for _, name := range excluded {
 		skip[name] = true
@@ -29,6 +31,33 @@ func (s *stubSelector) SelectBestProfile(_ context.Context, _ string, _ string, 
 		return &scheduler.SelectionResult{SelectedProfile: &model.Profile{Name: name, Provider: "codex"}}, nil
 	}
 	return &scheduler.SelectionResult{}, errors.New("no usable codex profiles available")
+}
+
+func TestResolveLaunchProfilePropagatesContextToSelector(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	selector := &stubSelector{order: []string{"free"}}
+
+	selected, err := resolveLaunchProfile(
+		ctx,
+		"codex",
+		"",
+		"/tmp",
+		"",
+		[]model.Profile{{Name: "free", Provider: "codex"}},
+		map[string]model.AccountInfo{},
+		selector,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("resolve profile: %v", err)
+	}
+	if selected != "free" {
+		t.Fatalf("selected=%q", selected)
+	}
+	if len(selector.contexts) != 1 || selector.contexts[0] != ctx {
+		t.Fatalf("selector contexts=%v want canceled caller context", selector.contexts)
+	}
 }
 
 type stubLauncher struct {

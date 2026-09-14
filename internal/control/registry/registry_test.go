@@ -101,6 +101,35 @@ func TestRegistryPersistenceAndLifecycle(t *testing.T) {
 	}
 }
 
+func TestRegistryUpdateInteractiveLeadBindingPersistsMetadata(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "runtimes.json")
+	reg := NewRegistry(dbPath)
+	if err := reg.Register(RuntimeSession{
+		RuntimeID:  "rt-lead-binding",
+		ProviderID: "codex",
+		ProfileID:  "work",
+		State:      StateRunning,
+		Labels:     map[string]string{"nexus.delegation_mode": "auto"},
+	}); err != nil {
+		t.Fatalf("register runtime: %v", err)
+	}
+
+	if err := reg.UpdateInteractiveLeadBinding("rt-lead-binding", "agent-1", "project-1", "Nexus"); err != nil {
+		t.Fatalf("update Lead binding: %v", err)
+	}
+
+	got, ok := NewRegistry(dbPath).Get("rt-lead-binding")
+	if !ok {
+		t.Fatal("updated runtime was not persisted")
+	}
+	if got.AgentID != "agent-1" || got.ProjectID != "project-1" || got.ProjectName != "Nexus" {
+		t.Fatalf("Lead metadata = %+v", got)
+	}
+	if got.Labels["nexus.delegation_mode"] != "auto" || got.Labels["nexus.interactive_lead"] != "true" {
+		t.Fatalf("Lead labels = %#v", got.Labels)
+	}
+}
+
 func TestRegistryTransitionStateRejectsInvalidJump(t *testing.T) {
 	reg := NewRegistry("")
 	if err := reg.Register(RuntimeSession{RuntimeID: "rt-transition", State: StateStarting}); err != nil {

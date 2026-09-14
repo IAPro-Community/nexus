@@ -10,6 +10,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/control/driver"
 	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -279,11 +280,12 @@ func (m ControlModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "c":
 			reg := m.ownedRuntimeRegistry()
-			_, _ = reg.CleanupStale()
+			cleaned, _ := reg.CleanupStale()
+			reaped := launcher.ReapOrphanHosts(reg.List())
 			purged, _ := reg.PurgeInactive()
 			m.runtimes = reg.List()
 			m.selectedIndex = 0
-			m.statusMessage = fmt.Sprintf("✓ Cleaned up %d stale runtime records", purged)
+			m.statusMessage = fmt.Sprintf("✓ Cleaned %d stale, reaped %d orphan hosts, purged %d inactive", cleaned, reaped, purged)
 			m.statusTime = time.Now()
 			return m, nil
 

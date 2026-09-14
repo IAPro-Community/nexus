@@ -277,7 +277,7 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 
 	switch result.Mode {
 	case LaunchModeSupervised:
-		return executeProviderSupervised(provName, explicitProfile, resolver.StripControlFlags())
+		return executeProviderSupervised(provName, explicitProfile, resolver.StripControlFlags(), resolver.WantInteractiveLead())
 	case LaunchModeDirect:
 		args = resolver.StripControlFlags()
 	}
@@ -471,6 +471,7 @@ func usage() {
 
   %s <provider> [flags]           Launch provider with intelligent account selection
   %s <provider> --supervised      Launch through SessionHost; enables /nexus control
+  %s <provider> --lead            Bind Interactive Lead + Mission promotion on submit
   %s <provider>:<profile> [flags] Launch specific profile (e.g. %s codex:work)
   %s <provider>:auto [flags]      Explicit auto-selection
   %s resume [id] [provider:name]  Resume previous session using provider-native syntax
@@ -516,6 +517,7 @@ func usage() {
 
 Canonical Aliases (translated to native options; Codex keeps short -c/-p native):
   --yolo / -y                     Bypass approval prompts and permissions
+  --lead                          Bind Interactive Lead Agent (Mission promotion on submit)
   --continue                      Continue most recent session (AGY/Claude also accept -c)
   --resume <id> / -r <id>         Resume session by ID
   --print                         Run non-interactively (AGY/Claude also accept -p)
@@ -527,7 +529,7 @@ Merged Help:
   %s <provider> --help            Show Nexus canonical aliases merged with official CLI help
 `,
 		p, p, p, p, p, p, p, p, p, p, p, p, p,
-		p, p, p, p, p, p,
+		p, p, p, p, p, p, p,
 		p, p, p, p, p, p, p, p, p, p, p,
 		p, p, p,
 		p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p,
@@ -1736,7 +1738,7 @@ func completionCmd(args []string) error {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor --supervised --direct --yolo --continue --resume"
+    opts="web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor --supervised --direct --lead --yolo --continue --resume"
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
     return 0
 }
@@ -1779,8 +1781,8 @@ _nexus() {
 _nexus "$@"
 `)
 	case "fish":
-		fmt.Print(`complete -c nexus -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor --supervised --direct --yolo --continue --resume"
-complete -c ai -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor --supervised --direct --yolo --continue --resume"
+		fmt.Print(`complete -c nexus -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor --supervised --direct --lead --yolo --continue --resume"
+complete -c ai -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor --supervised --direct --lead --yolo --continue --resume"
 `)
 	case "powershell", "pwsh":
 		fmt.Print(`Register-ArgumentCompleter -Native -CommandName @('nexus', 'ai') -ScriptBlock {
@@ -1790,7 +1792,7 @@ complete -c ai -f -a "web start stop ps running attach handoff continue resume t
         'tunnel', 'control', 'ui', 'providers', 'profiles', 'add', 'remove', 'login', 'logout', 'use',
         'status', 'usage', 'inspect', 'sessions', 'workspaces', 'bind', 'unbind', 'bindings',
         'explain', 'doctor', 'security', 'history', 'stats', 'config', 'update', 'completion', 'version', 'release',
-        'codex', 'agy', 'claude', 'opencode', 'gemini', 'cursor', '--supervised', '--direct', '--yolo', '--continue', '--resume'
+        'codex', 'agy', 'claude', 'opencode', 'gemini', 'cursor', '--supervised', '--direct', '--lead', '--yolo', '--continue', '--resume'
     )
     $commands | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
         [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)

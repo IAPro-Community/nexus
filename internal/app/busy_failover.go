@@ -24,7 +24,7 @@ type profileSelector interface {
 	SelectBestProfile(ctx context.Context, provider string, workspace string, candidates []model.Profile, accounts map[string]model.AccountInfo, excludeProfiles []string) (*scheduler.SelectionResult, error)
 }
 
-func resolveLaunchProfile(provider, explicit, workspace, configuredDefault string, candidates []model.Profile, accounts map[string]model.AccountInfo, selector profileSelector, excluded []string) (string, error) {
+func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, configuredDefault string, candidates []model.Profile, accounts map[string]model.AccountInfo, selector profileSelector, excluded []string) (string, error) {
 	names := make([]string, 0, len(candidates))
 	for _, candidate := range candidates {
 		if profileNameExcluded(candidate.Name, excluded) {
@@ -39,7 +39,8 @@ func resolveLaunchProfile(provider, explicit, workspace, configuredDefault strin
 		if selector == nil {
 			return "", fmt.Errorf("profile selector unavailable")
 		}
-		result, err := selector.SelectBestProfile(context.Background(), provider, workspace, candidates, accounts, excluded)
+		remaining := remainingProfiles(candidates, excluded)
+		result, err := selector.SelectBestProfile(ctx, provider, workspace, remaining, accounts, nil)
 		if err == nil && result != nil && result.SelectedProfile != nil {
 			return result.SelectedProfile.Name, nil
 		}
@@ -70,7 +71,7 @@ func launchWithBusyFailover(
 	attempted := map[string]bool{}
 
 	for {
-		selected, err := resolveLaunchProfile(provider, explicit, workspace, configuredDefault, candidates, accounts, selector, excluded)
+		selected, err := resolveLaunchProfile(ctx, provider, explicit, workspace, configuredDefault, candidates, accounts, selector, excluded)
 		if err != nil {
 			if lastBusy != "" {
 				return nil, lastBusy, fmt.Errorf("%s profile %s is busy and no fallback profiles are available", provider, lastBusy)
@@ -106,6 +107,17 @@ func launchWithBusyFailover(
 
 func busyProfileError(provider, profileName string) error {
 	return fmt.Errorf("%s profile %s is busy (profile lock held by another session); stop the existing session or retry shortly", provider, profileName)
+}
+
+func remainingProfiles(candidates []model.Profile, excluded []string) []model.Profile {
+	out := make([]model.Profile, 0, len(candidates))
+	for _, candidate := range candidates {
+		if profileNameExcluded(candidate.Name, excluded) {
+			continue
+		}
+		out = append(out, candidate)
+	}
+	return out
 }
 
 func profileNameExcluded(name string, excluded []string) bool {

@@ -20,6 +20,43 @@ func TestProviderLaunchFlagsAreNexusOwned(t *testing.T) {
 	}
 }
 
+func TestWantInteractiveLeadDefaultFalse(t *testing.T) {
+	if wantInteractiveLead(nil) {
+		t.Fatal("default supervised shortcut must not opt into Lead")
+	}
+	if wantInteractiveLead([]string{"--yolo", "--model", "gpt-5"}) {
+		t.Fatal("provider flags alone must not enable Lead")
+	}
+}
+
+func TestWantInteractiveLeadOptIn(t *testing.T) {
+	if !wantInteractiveLead([]string{"--lead"}) {
+		t.Fatal("expected --lead to opt into Interactive Lead")
+	}
+	if !wantInteractiveLead([]string{"--yolo", "--Lead", "--model", "x"}) {
+		t.Fatal("expected case-insensitive --lead")
+	}
+}
+
+func TestStripControlFlagsRemovesLead(t *testing.T) {
+	r := NewLaunchModeResolver(LaunchModeInput{
+		Args:       []string{"--lead", "--yolo", "--model", "test"},
+		StdinIsTTY: true,
+	})
+	if !r.WantInteractiveLead() {
+		t.Fatal("WantInteractiveLead must see --lead before strip")
+	}
+	got := r.StripControlFlags()
+	for _, arg := range got {
+		if arg == "--lead" || arg == "--direct" || arg == "--supervised" {
+			t.Fatalf("Nexus-owned flag leaked: %#v", got)
+		}
+	}
+	if len(got) != 3 || got[0] != "--yolo" || got[1] != "--model" || got[2] != "test" {
+		t.Fatalf("StripControlFlags = %#v", got)
+	}
+}
+
 func TestProfileInCandidates(t *testing.T) {
 	candidates := []model.Profile{{Name: "agy1"}, {Name: "agy2"}}
 	if !profileInCandidates(candidates, "agy2") {

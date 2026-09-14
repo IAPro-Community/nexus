@@ -14,6 +14,7 @@ verificação centralizada.
 | melhorar um pedido antes de executar | Composer | Disponível | [Composer](../product/composer.md) |
 | revisar etapas e dependências | Flow / WorkPlan | Disponível | [Flow](../product/flow.md) |
 | acompanhar execução com gates | Mission | Experimental | [Missions](../product/missions.md) |
+| delegar um objetivo e orquestrar execução | Conductor | Disponível | [Conductor](../product/conductor.md) |
 | delegar trabalho composto a especialistas | Delegação automática do Lead | Experimental | [Agentes](../product/agents.md) |
 | aplicar método e skills externos | Maestro | Opcional / Experimental | [Maestro](../product/maestro.md) |
 | operar por script | CLI e saída JSON | Disponível | [CLI](../cli/README.md) |
@@ -31,6 +32,8 @@ flowchart LR
     Long -- não --> Direct
     Long -- sim --> Mission[Mission]
     Mission --> Evidence[Verificação e evidência]
+    Goal -- objetivo composto --> Conductor[Conductor]
+    Conductor --> Mission
 ```
 
 O diagrama descreve a progressão de produto. Ele não obriga um fluxo: Direct

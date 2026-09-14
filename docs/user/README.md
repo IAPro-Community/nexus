@@ -6,6 +6,7 @@
 - Quero organizar vários agentes em um projeto → [Agentes](../product/agents.md).
 - Quero entender custos, disponibilidade e fallback → [Providers e quota](../product/providers-and-usage.md).
 - Quero transformar uma ideia em um plano → [Composer](../product/composer.md) e [Flow](../product/flow.md).
+- Quero delegar um objetivo complexo → [Conductor](../product/conductor.md).
 - Quero acompanhar uma execução longa → [Missions](../product/missions.md).
 - Algo não funcionou → [Troubleshooting](../operations/troubleshooting.md).
 

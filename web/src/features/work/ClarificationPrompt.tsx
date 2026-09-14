@@ -48,18 +48,20 @@ export const ClarificationPrompt: React.FC<{
     () => (Array.isArray(item.suggested_options) ? item.suggested_options.filter(Boolean) : []),
     [item.suggested_options],
   );
+  const optionsKey = options.join('\u0001');
+  const firstOption = options[0] || '';
+  const hasOptions = options.length > 0;
   const [selected, setSelected] = useState(item.default_choice || options[0] || '');
   const [custom, setCustom] = useState('');
   const [useOther, setUseOther] = useState(options.length === 0);
   const [focusIndex, setFocusIndex] = useState(0);
 
   useEffect(() => {
-    setSelected(item.default_choice || options[0] || '');
+    setSelected(item.default_choice || firstOption);
     setCustom('');
-    setUseOther(options.length === 0);
+    setUseOther(!hasOptions);
     setFocusIndex(0);
-    // Depend on stable primitives — array identity from parents must not loop.
-  }, [item.id, item.default_choice, options.join('\u0001'), options.length]);
+  }, [item.id, item.default_choice, optionsKey, firstOption, hasOptions]);
 
   const answerValue = resolveClarificationAnswer(useOther, custom, selected);
   const canSubmit = Boolean(answerValue) && !busy;
