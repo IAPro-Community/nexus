@@ -1,0 +1,202 @@
+package store
+
+import (
+	"database/sql"
+	"errors"
+	"testing"
+	"time"
+)
+
+func TestCapacityMigrationApplied(t *testing.T) {
+	s := openTestStore(t)
+	v, err := s.SchemaVersion()
+	if err != nil {
+		t.Fatalf("SchemaVersion() = %v", err)
+	}
+	if v < 21 {
+		t.Fatalf("schema version = %d, want >= 21 (capacity monitor)", v)
+	}
+	for _, table := range []string{
+		"capacity_observations", "capacity_states", "capacity_monitor_lease",
+		"capacity_events", "capacity_delivery_receipts", "capacity_recommendations",
+		"capacity_preferences",
+	} {
+		var name string
+		if err := s.db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&name); err != nil {
+			t.Fatalf("table %s missing: %v", table, err)
+		}
+	}
+}
+
+func TestCapacityPreferencesDefaultsAndRoundTrip(t *testing.T) {
+	s := openTestStore(t)
+	got, err := s.GetCapacityPreferences()
+	if err != nil {
+		t.Fatalf("GetCapacityPreferences() = %v", err)
+	}
+	want := DefaultCapacityPreferences()
+	if !got.Enabled || got.BackgroundEnabled {
+		t.Fatalf("defaults = enabled:%v background:%v, want true/false", got.Enabled, got.BackgroundEnabled)
+	}
+	if got.WarningThreshold != want.WarningThreshold || got.CriticalThreshold != want.CriticalThreshold {
+		t.Fatalf("default thresholds = %.1f/%.1f, want %.1f/%.1f",
+			got.WarningThreshold, got.CriticalThreshold, want.WarningThreshold, want.CriticalThreshold)
+	}
+
+	custom := want
+	custom.BackgroundEnabled = true
+	custom.WarningThreshold = 30
+	custom.QuietHoursEnabled = true
+	if err := s.PutCapacityPreferences(custom); err != nil {
+		t.Fatalf("PutCapacityPreferences() = %v", err)
+	}
+	got, err = s.GetCapacityPreferences()
+	if err != nil {
+		t.Fatalf("GetCapacityPreferences() after put = %v", err)
+	}
+	if !got.BackgroundEnabled || got.WarningThreshold != 30 || !got.QuietHoursEnabled {
+		t.Fatalf("round-trip prefs mismatch: %+v", got)
+	}
+}
+
+func TestCapacityObservationUpsertAndList(t *testing.T) {
+	s := openTestStore(t)
+	now := time.Now().UTC().Truncate(time.Millisecond)
+	rem := 42.5
+	rec := ObservationRecord{
+		Provider: "codex", Profile: "kiver", QuotaGroup: "claude_gpt", WindowKind: "5h",
+		Status: "LIVE", Source: "OFFICIAL_API",
+		RemainingPercent: &rem, FetchedAt: now, ResetDescription: "resets 01:00",
+	}
+	if err := s.UpsertCapacityObservation(rec); err != nil {
+		t.Fatalf("UpsertCapacityObservation() = %v", err)
+	}
+	// Re-upsert same key with new values must overwrite, not duplicate.
+	rem2 := 10.0
+	rec.RemainingPercent = &rem2
+	rec.Status = "RATE_LIMITED"
+	if err := s.UpsertCapacityObservation(rec); err != nil {
+		t.Fatalf("re-upsert = %v", err)
+	}
+	all, err := s.ListCapacityObservations()
+	if err != nil {
+		t.Fatalf("ListCapacityObservations() = %v", err)
+	}
+	if len(all) != 1 {
+		t.Fatalf("observations = %d, want 1 (upsert, not insert)", len(all))
+	}
+	got := all[0]
+	if got.Status != "RATE_LIMITED" || got.RemainingPercent == nil || *got.RemainingPercent != 10.0 {
+		t.Fatalf("observation not overwritten: %+v", got)
+	}
+	if got.FetchedAt.Unix() != now.Unix() {
+		t.Fatalf("fetched_at = %v, want %v", got.FetchedAt, now)
+	}
+}
+
+func TestCapacityStateUpsertGetList(t *testing.T) {
+	s := openTestStore(t)
+	if _, err := s.GetCapacityState("nope"); !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("missing key err = %v, want sql.ErrNoRows", err)
+	}
+	now := time.Now().UTC().Truncate(time.Millisecond)
+	rec := CapacityStateRecord{
+		Key: "codex:kiver:claude_gpt:5h", Provider: "codex", Profile: "kiver",
+		QuotaGroup: "claude_gpt", WindowKind: "5h",
+		State: "WARNING", Reason: "crossed 20%", TransitionedAt: now, UpdatedAt: now,
+	}
+	if err := s.UpsertCapacityState(rec); err != nil {
+		t.Fatalf("UpsertCapacityState() = %v", err)
+	}
+	got, err := s.GetCapacityState(rec.Key)
+	if err != nil {
+		t.Fatalf("GetCapacityState() = %v", err)
+	}
+	if got.State != "WARNING" || got.Reason != "crossed 20%" {
+		t.Fatalf("state mismatch: %+v", got)
+	}
+	rec.State = "CRITICAL"
+	if err := s.UpsertCapacityState(rec); err != nil {
+		t.Fatalf("re-upsert state = %v", err)
+	}
+	all, err := s.ListCapacityStates()
+	if err != nil {
+		t.Fatalf("ListCapacityStates() = %v", err)
+	}
+	if len(all) != 1 || all[0].State != "CRITICAL" {
+		t.Fatalf("states = %+v, want single CRITICAL", all)
+	}
+}
+
+func TestCapacityLeaseLifecycle(t *testing.T) {
+	s := openTestStore(t)
+	now := time.Now().UTC()
+	if cur, err := s.GetCapacityLease(); err != nil || cur != nil {
+		t.Fatalf("initial lease = %+v,%v, want nil,nil", cur, err)
+	}
+	lease, held, err := s.AcquireCapacityLease("owner-a", now, time.Minute)
+	if err != nil || !held {
+		t.Fatalf("first acquire = %v,%v, want lease,true", lease, held)
+	}
+	if lease.Owner != "owner-a" {
+		t.Fatalf("owner = %q, want owner-a", lease.Owner)
+	}
+	// Live lease owned by someone else must not be stolen.
+	if _, held, err := s.AcquireCapacityLease("owner-b", now.Add(10*time.Second), time.Minute); err != nil || held {
+		t.Fatalf("steal attempt = held:%v err:%v, want false,nil", held, err)
+	}
+	// Expired lease can be taken over.
+	taken, held, err := s.AcquireCapacityLease("owner-b", now.Add(2*time.Minute), time.Minute)
+	if err != nil || !held || taken.Owner != "owner-b" {
+		t.Fatalf("takeover = %+v,%v,%v, want owner-b,true,nil", taken, held, err)
+	}
+	// Renewal by non-owner must fail.
+	if err := s.RenewCapacityLease("owner-a", now.Add(3*time.Minute), time.Minute); err == nil {
+		t.Fatal("expected renewal error for non-owner, got nil")
+	}
+	if err := s.RenewCapacityLease("owner-b", now.Add(3*time.Minute), time.Minute); err != nil {
+		t.Fatalf("renewal by owner = %v, want nil", err)
+	}
+	// Release by non-owner is a no-op; release by owner frees.
+	if err := s.ReleaseCapacityLease("owner-a"); err != nil {
+		t.Fatalf("release by non-owner = %v, want nil", err)
+	}
+	if cur, _ := s.GetCapacityLease(); cur == nil || cur.Owner != "owner-b" {
+		t.Fatalf("lease after foreign release = %+v, want owner-b", cur)
+	}
+	if err := s.ReleaseCapacityLease("owner-b"); err != nil {
+		t.Fatalf("release by owner = %v, want nil", err)
+	}
+	if cur, err := s.GetCapacityLease(); err != nil || cur != nil {
+		t.Fatalf("lease after release = %+v,%v, want nil,nil", cur, err)
+	}
+}
+
+func TestPruneCapacityHistory(t *testing.T) {
+	s := openTestStore(t)
+	if err := s.PruneCapacityHistory(time.Now().UTC()); err != nil {
+		t.Fatalf("prune empty = %v, want nil", err)
+	}
+	old := time.Now().UTC().Add(-48 * time.Hour).Format("2006-01-02T15:04:05.999999999Z07:00")
+	fresh := time.Now().UTC().Format("2006-01-02T15:04:05.999999999Z07:00")
+	for id, ts := range map[string]string{"old-1": old, "new-1": fresh} {
+		if _, err := s.db.Exec(`INSERT INTO capacity_events(id, fingerprint, event_type, provider, profile, severity, payload_json, emitted_at)
+			VALUES(?, 'fp', 'QUOTA_LOW', 'codex', 'kiver', 'warning', '{}', ?)`, id, ts); err != nil {
+			t.Fatalf("seed event %s: %v", id, err)
+		}
+	}
+	if err := s.PruneCapacityHistory(time.Now().UTC().Add(-time.Hour)); err != nil {
+		t.Fatalf("prune = %v", err)
+	}
+	var remaining int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM capacity_events`).Scan(&remaining); err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if remaining != 1 {
+		t.Fatalf("remaining events = %d, want 1 (fresh only)", remaining)
+	}
+	var id string
+	if err := s.db.QueryRow(`SELECT id FROM capacity_events`).Scan(&id); err != nil || id != "new-1" {
+		t.Fatalf("remaining id = %q,%v, want new-1", id, err)
+	}
+}
