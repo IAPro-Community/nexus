@@ -1,0 +1,231 @@
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  min-height: 0;
+  height: 100%;
+  background: var(--nx-bg, var(--nx-surface));
+}
+
+.shell[data-inspector='open'] {
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.threadRoot {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.viewport {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem 1.25rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 48rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.empty {
+  margin: 2rem auto;
+  color: var(--nx-text-muted);
+  text-align: center;
+  max-width: 28rem;
+}
+
+.loading {
+  padding: 0.75rem 1.25rem;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 100%;
+}
+
+.user {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--nx-accent, #6366f1) 18%, var(--nx-surface));
+  border: 1px solid color-mix(in srgb, var(--nx-accent, #6366f1) 35%, var(--nx-border));
+  border-radius: 1rem 1rem 0.35rem 1rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.assistant {
+  align-self: stretch;
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 1rem 1rem 1rem 0.35rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.system {
+  align-self: center;
+  color: var(--nx-text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.textPart {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  color: var(--nx-text);
+}
+
+.imagePart {
+  max-width: min(100%, 20rem);
+  border-radius: var(--nx-radius-md, 10px);
+  border: 1px solid var(--nx-border);
+}
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.45rem;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--nx-border);
+  background: var(--nx-surface);
+  max-width: 48rem;
+  width: 100%;
+  margin-inline: auto;
+  position: sticky;
+  bottom: 0;
+}
+
+.dragging {
+  outline: 2px dashed var(--nx-accent, #6366f1);
+  outline-offset: -4px;
+}
+
+.input {
+  flex: 1;
+  min-height: 2.5rem;
+  max-height: 8rem;
+  resize: none;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md, 10px);
+  background: var(--nx-surface-elevated, var(--nx-surface));
+  color: var(--nx-text);
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--nx-focus, var(--nx-accent));
+  outline-offset: 1px;
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.cancelBtn {
+  display: none;
+}
+
+.threadRoot:has([data-status='running']) .cancelBtn,
+.threadRoot [data-running='true'] ~ .composer .cancelBtn {
+  display: inline-flex;
+}
+
+.pendingList {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0.35rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-width: 48rem;
+  width: 100%;
+}
+
+.pendingItem {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm, 8px);
+  padding: 0.2rem 0.35rem;
+  background: var(--nx-surface);
+}
+
+.pendingThumb {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.error {
+  margin: 0.35rem 1rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--nx-radius-sm, 8px);
+  border: 1px solid color-mix(in srgb, var(--nx-danger, #f87171) 50%, var(--nx-border));
+  color: var(--nx-danger, #f87171);
+  background: color-mix(in srgb, var(--nx-danger, #f87171) 10%, var(--nx-surface));
+  max-width: 48rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.inspector {
+  border-left: 1px solid var(--nx-border);
+  background: var(--nx-surface);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.inspectorToggle {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--nx-border);
+}
+
+.inspectorBody {
+  overflow: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .shell,
+  .shell[data-inspector='open'] {
+    grid-template-columns: 1fr;
+  }
+
+  .inspector {
+    border-left: none;
+    border-top: 1px solid var(--nx-border);
+    max-height: 40vh;
+  }
+
+  .viewport {
+    padding-inline: 0.75rem;
+  }
+}

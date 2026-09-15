@@ -95,6 +95,10 @@ func (h *NexusHandler) handleProjectComposerSessions(w http.ResponseWriter, r *h
 			writeError(w, http.StatusBadRequest, "invalid body")
 			return
 		}
+		if wantsComposerProgressStream(r) {
+			h.streamComposerCreate(w, r, projectID, body.Goal, body.SourcePrompt, body.InputMode)
+			return
+		}
 		view, err := h.composer.Create(r.Context(), projectID, body.Goal, body.SourcePrompt, body.InputMode)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
@@ -111,6 +115,11 @@ func (h *NexusHandler) handleComposerSession(w http.ResponseWriter, r *http.Requ
 	id := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/v1/composer-sessions/"), "/")
 	if id == "" {
 		writeError(w, http.StatusNotFound, "missing composer session id")
+		return
+	}
+	if strings.HasSuffix(id, "/attachments") {
+		sessionID := strings.TrimSuffix(id, "/attachments")
+		h.handleComposerAttachments(w, r, sessionID)
 		return
 	}
 	if strings.HasSuffix(id, "/refine") {
@@ -163,14 +172,19 @@ func (h *NexusHandler) handleComposerSession(w http.ResponseWriter, r *http.Requ
 	if strings.HasSuffix(id, "/turns") {
 		id = strings.TrimSuffix(id, "/turns")
 		var body struct {
-			Content          string `json:"content"`
-			ExpectedRevision int    `json:"expected_revision,omitempty"`
+			Content          string                        `json:"content"`
+			ExpectedRevision int                           `json:"expected_revision,omitempty"`
+			Attachments      []nexus.ComposerAttachmentRef `json:"attachments,omitempty"`
 		}
 		if r.Method != http.MethodPost || json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body) != nil {
 			writeError(w, http.StatusBadRequest, "content is required")
 			return
 		}
-		view, err := h.composer.AddTurn(r.Context(), id, body.Content, body.ExpectedRevision)
+		if strings.TrimSpace(body.Content) == "" && len(body.Attachments) == 0 {
+			writeError(w, http.StatusBadRequest, "content or attachments are required")
+			return
+		}
+		view, err := h.composer.AddTurn(r.Context(), id, body.Content, body.ExpectedRevision, body.Attachments)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return

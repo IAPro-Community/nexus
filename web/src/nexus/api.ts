@@ -117,11 +117,57 @@ export const nexus = {
     ),
   getComposerSession: (id: string) =>
     request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}`),
-  addComposerTurn: (id: string, content: string, expectedRevision?: number) =>
+  addComposerTurn: (
+    id: string,
+    content: string,
+    expectedRevision?: number,
+    attachments?: Array<{
+      id: string;
+      name?: string;
+      mimeType?: string;
+      url?: string;
+      size?: number;
+    }>,
+  ) =>
     request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}/turns`, {
       method: 'POST',
-      body: JSON.stringify({ content, expected_revision: expectedRevision }),
+      body: JSON.stringify({
+        content,
+        expected_revision: expectedRevision,
+        attachments: attachments || undefined,
+      }),
     }),
+  uploadComposerAttachment: async (sessionId: string, file: File) => {
+    const { getCSRFToken, getDesktopAuthToken, getDesktopBaseUrl, NexusRequestError } =
+      await import('../api');
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    const csrf = getCSRFToken();
+    if (csrf) headers['X-CSRF-Token'] = csrf;
+    const auth = getDesktopAuthToken();
+    if (auth) headers['Authorization'] = `Bearer ${auth}`;
+    const form = new FormData();
+    form.append('file', file);
+    const base = getDesktopBaseUrl();
+    const path = `/api/v1/composer-sessions/${sessionId}/attachments`;
+    const res = await fetch(base ? `${base}${path}` : path, {
+      method: 'POST',
+      headers,
+      body: form,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const errBody = (await res.json().catch(() => ({ error: res.statusText }))) as {
+        error?: string;
+      };
+      throw new NexusRequestError(res.status, errBody, errBody.error || `HTTP ${res.status}`);
+    }
+    return res.json() as Promise<{
+      id: string;
+      name: string;
+      mime_type: string;
+      size: number;
+    }>;
+  },
   updateComposerSkillState: (id: string, skillId: string, state: string) =>
     request<import('../types').ComposerSessionView>(
       `/api/v1/composer-sessions/${id}/skills/${encodeURIComponent(skillId)}`,

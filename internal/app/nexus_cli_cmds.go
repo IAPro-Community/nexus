@@ -56,6 +56,7 @@ func planCmd(args []string) error {
 			return fmt.Errorf("nenhum projeto ativo; registre um projeto primeiro")
 		}
 		goal := strings.Join(args[1:], " ")
+		//nolint:staticcheck // SA1019: retained solely for legacy `nexus plan create`.
 		plan, err := n.GeneratePlanFromIntent(context.Background(), projects[0].ID, goal)
 		if err != nil {
 			return err

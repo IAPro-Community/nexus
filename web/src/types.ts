@@ -791,6 +791,9 @@ export interface ComposerTurn {
   role: 'USER' | 'ASSISTANT';
   content: string;
   created_at: string;
+  kind?: string;
+  payload_json?: string;
+  payload?: Record<string, unknown>;
 }
 export interface ComposerSkillProposal {
   session_id: string;

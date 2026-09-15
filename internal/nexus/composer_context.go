@@ -1,10 +1,12 @@
 package nexus
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,16 +53,16 @@ func (n *Nexus) AttachComposerContextFile(ctx context.Context, sessionID, relPat
 	if err != nil {
 		return nil, err
 	}
-	info, err := os.Stat(absPath)
+	info, err := os.Lstat(absPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read referenced file: %w", err)
 	}
 	if info.IsDir() {
 		return nil, fmt.Errorf("referenced path is a directory, not a file: %s", cleanRel)
 	}
-	raw, err := os.ReadFile(absPath)
+	raw, err := readComposerContextBytes(absPath)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read referenced file: %w", err)
+		return nil, err
 	}
 	sum := sha256.Sum256(raw)
 	hash := hex.EncodeToString(sum[:])[:16]
@@ -96,6 +98,9 @@ func (n *Nexus) DetachComposerContextFile(ctx context.Context, sessionID, relPat
 	session, err := st.GetComposerSession(sessionID)
 	if err != nil {
 		return nil, err
+	}
+	if session.State == store.ComposerFinalized {
+		return nil, fmt.Errorf("composer session is finalized; create a new session to keep refining the prompt")
 	}
 	project, err := st.GetProject(session.ProjectID)
 	if err != nil {
@@ -149,12 +154,40 @@ func resolveComposerContextPath(root, relPath string) (string, string, error) {
 		return "", "", fmt.Errorf("referenced file path escapes the project root")
 	}
 	absPath := filepath.Join(root, cleaned)
-	// Defense in depth: confirm the joined path stays under root.
 	rootWithSep := strings.TrimSuffix(filepath.Clean(root), string(filepath.Separator)) + string(filepath.Separator)
 	if !strings.HasPrefix(absPath, rootWithSep) {
 		return "", "", fmt.Errorf("referenced file path escapes the project root")
 	}
-	return filepath.ToSlash(cleaned), absPath, nil
+	resolvedRoot := filepath.Clean(root)
+	if realRoot, err := filepath.EvalSymlinks(root); err == nil {
+		resolvedRoot = realRoot
+	}
+	resolvedPath := absPath
+	if realPath, err := filepath.EvalSymlinks(absPath); err == nil {
+		resolvedPath = realPath
+	}
+	relResolved, err := filepath.Rel(resolvedRoot, resolvedPath)
+	if err != nil || relResolved == ".." || strings.HasPrefix(relResolved, ".."+string(filepath.Separator)) {
+		return "", "", fmt.Errorf("referenced file path escapes the project root")
+	}
+	return filepath.ToSlash(cleaned), resolvedPath, nil
+}
+
+func readComposerContextBytes(absPath string) ([]byte, error) {
+	file, err := os.Open(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read referenced file: %w", err)
+	}
+	defer file.Close()
+	readCap := int64(composerContextFileExcerptBudget*2 + 1)
+	raw, err := io.ReadAll(io.LimitReader(file, readCap))
+	if err != nil {
+		return nil, fmt.Errorf("cannot read referenced file: %w", err)
+	}
+	if bytes.IndexByte(raw, 0) >= 0 || !utf8.Valid(raw) {
+		return nil, fmt.Errorf("referenced file is not valid UTF-8 text")
+	}
+	return raw, nil
 }
 
 func truncateContextExcerpt(content string, budget int) string {

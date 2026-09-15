@@ -72,6 +72,10 @@ type Nexus struct {
 	onRuntimeChanged func(agentID, oldRuntimeID, newRuntimeID, provider, profile, continuity string)
 	onAgentState     func(agentID, state string)
 	onContinuity     func(agentID, continuity string)
+
+	// Optional test-only intelligence provider. When set, ConfiguredIntelligenceProvider
+	// returns it instead of resolving from config — used to prove Create does not hang.
+	intelligenceProviderForTest intelligence.IntelligenceProvider
 }
 
 // Runner returns the autonomous mission runner instance.

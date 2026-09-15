@@ -1,5 +1,13 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Closure state — 2026-09-15 (v1.0.0-beta.1)
+
+Alvo desta spec: Community Preview `v1.0.0-beta.1`, não 1.0.0 estável.
+Slice de fechamento in-repo: lint, attach Composer, docs de install, changelog.
+Gates humanos restantes: freeze commit, CI same-SHA, `beta-signing`, visibilidade
+do repositório, tag no SHA verde, GitHub Release. Composer → Flow é o caminho Web
+de planejamento; Conductor permanece CLI.
+
 ## Closure state — 2026-09-13
 
 ### P0 ativo — concorrência de runtimes supervisionados

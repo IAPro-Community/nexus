@@ -49,7 +49,7 @@ Caminho recomendado (**zero-toolchain**): baixe um binário de release. Não pre
 **Linux / macOS:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kivervinicius/ai-cli/main/install.sh | bash -s -- --version=latest
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
@@ -57,13 +57,13 @@ nexus web
 **Windows (PowerShell):**
 
 ```powershell
-irm https://raw.githubusercontent.com/kivervinicius/ai-cli/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version latest
+irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
+.\install.ps1 -Version v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
 
-`--version=latest` / `-Version latest` resolve a tag via API do GitHub e valida `checksums.txt` (integridade; ainda não é pinagem assinada). Para pinagem explícita use `--version=vX.Y.Z`.
+`--version=v1.0.0-beta.1` baixa o GitHub Release pinado e valida `checksums.txt` (integridade). `--version=latest` resolve a tag mais nova depois que a release existir. O repositório precisa ser público (ou use `GH_TOKEN`) para o download anônimo.
 
 Pré-requisitos do instalador de release: `curl` ou `wget`, `tar` e `sha256sum`/`shasum` (Unix) ou PowerShell (Windows). Desktop nativo pode exigir WebView2 (Windows) ou WebKitGTK (Linux).
 
@@ -73,7 +73,7 @@ Requisitos: Go 1.25+ e Bun 1.3.9+.
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
-cd ai-cli
+cd nexus
 bun --cwd web install --frozen-lockfile
 make build
 ./nexus doctor

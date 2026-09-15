@@ -16,6 +16,9 @@ export type UsageSummary = {
 };
 
 export function isAccountAuthRequired(account: ProviderAccount): boolean {
+  if (account.provider?.toLowerCase() === 'opencode' && account.authenticated) {
+    return false;
+  }
   if (account.authenticated === false || account.eligibility?.reason === 'NOT_AUTHENTICATED') {
     return true;
   }

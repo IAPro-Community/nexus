@@ -12,6 +12,9 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
+// composerBootstrapTimeout bounds Create intelligence enrichment. Overridable in tests.
+var composerBootstrapTimeout = intelligence.ComposerBootstrapTimeout
+
 type ComposerSessionView struct {
 	Session         store.ComposerSession         `json:"session"`
 	Brief           LivingBrief                   `json:"brief"`
@@ -20,6 +23,15 @@ type ComposerSessionView struct {
 	Artifacts       []store.PromptArtifact        `json:"artifacts,omitempty"`
 	FlowSuitability FlowSuitabilityAssessment     `json:"flow_suitability"`
 	PromptReview    ComposerPromptReview          `json:"prompt_review,omitempty"`
+}
+
+// ComposerAttachmentRef is the durable image reference embedded in a turn payload.
+type ComposerAttachmentRef struct {
+	ID       string `json:"id"`
+	Name     string `json:"name,omitempty"`
+	MimeType string `json:"mimeType,omitempty"`
+	URL      string `json:"url,omitempty"`
+	Size     int64  `json:"size,omitempty"`
 }
 
 type FlowSuitability string
@@ -94,6 +106,11 @@ func (n *Nexus) CreateComposerSession(ctx context.Context, projectID, goal strin
 }
 
 func (n *Nexus) CreateComposerSessionWithPrompt(ctx context.Context, projectID, goal, sourcePrompt string) (*ComposerSessionView, error) {
+	return n.CreateComposerSessionWithPromptProgress(ctx, projectID, goal, sourcePrompt, nil)
+}
+
+func (n *Nexus) CreateComposerSessionWithPromptProgress(ctx context.Context, projectID, goal, sourcePrompt string, sink ComposerProgressSink) (*ComposerSessionView, error) {
+	progress := progressOrNoop(sink)
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -105,25 +122,61 @@ func (n *Nexus) CreateComposerSessionWithPrompt(ctx context.Context, projectID, 
 	if err != nil {
 		return nil, err
 	}
+	progress.Step("brief", "started")
 	brief := newComposerBrief(goal, sourcePrompt)
 	brief.Context.Project = project.Name
+	progress.Step("brief", "done")
+
+	progress.Step("git_context", "started")
 	if readiness, err := n.ObserveContextReadiness(projectID); err == nil {
 		brief.Context.Evidence = appendUniqueAll(brief.Context.Evidence, []string{
 			"Project: " + project.Name,
 			"Branch: " + firstNonEmpty(readiness.CurrentFingerprint.Branch, "unknown"),
 			"HEAD: " + firstNonEmpty(readiness.CurrentFingerprint.Head, "unknown"),
 		})
+		progress.Step("git_context", "done")
+	} else {
+		progress.Step("git_context", "skipped")
 	}
+
+	progress.Step("memories", "started")
 	if facts, factErr := n.MemoryFactsMap(ctx, projectID); factErr == nil {
 		ApplyMemoriesToBrief(&brief, facts)
+		progress.Step("memories", "done")
+	} else {
+		progress.Step("memories", "skipped")
 	}
+
+	progress.Step("project_intel", "started")
 	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
 		applySnapshotFactsToBrief(&brief, grounded)
+		progress.Step("project_intel", "done")
+	} else {
+		progress.Step("project_intel", "skipped")
 	}
+
 	// Heuristics (newComposerBrief -> mergeTextIntoBrief) run first; enrich the
 	// brief with provider-extracted structure only when a provider is available.
-	n.enrichComposerBriefFromText(ctx, projectID, &brief, firstNonEmpty(sourcePrompt, goal))
-	n.seedComposerIntelligenceUnknowns(ctx, projectID, &brief)
+	// Bound the provider budget so a hung headless CLI cannot strand Create on
+	// "Starting…" forever — heuristics already seeded the brief above.
+	bootCtx, bootCancel := context.WithTimeout(ctx, composerBootstrapTimeout)
+	progress.Step("extract_brief", "started")
+	n.enrichComposerBriefFromText(bootCtx, projectID, &brief, firstNonEmpty(sourcePrompt, goal))
+	if bootCtx.Err() != nil {
+		progress.Step("extract_brief", "skipped")
+	} else {
+		progress.Step("extract_brief", "done")
+	}
+	progress.Step("unknowns", "started")
+	n.seedComposerIntelligenceUnknowns(bootCtx, projectID, &brief)
+	if bootCtx.Err() != nil {
+		progress.Step("unknowns", "skipped")
+	} else {
+		progress.Step("unknowns", "done")
+	}
+	bootCancel()
+
+	progress.Step("persist", "started")
 	refreshComposerBrief(&brief)
 	briefJSON, _ := json.Marshal(brief)
 	sessionState := composerSessionStateFromBrief(brief)
@@ -135,11 +188,13 @@ func (n *Nexus) CreateComposerSessionWithPrompt(ctx context.Context, projectID, 
 		BriefJSON:          string(briefJSON),
 	})
 	if err != nil {
+		progress.Step("persist", "error")
 		return nil, err
 	}
 	if catalog, catalogErr := n.skillCatalogForProject(projectID); catalogErr == nil {
 		seedComposerSkillProposals(st, session.ID, brief, catalog)
 	}
+	progress.Step("persist", "done")
 	return n.composeSessionView(st, *session, brief)
 }
 
@@ -203,10 +258,10 @@ func (n *Nexus) ListComposerSessions(ctx context.Context, projectID string) ([]s
 }
 
 func (n *Nexus) AddComposerTurn(ctx context.Context, sessionID, role, content string) (*ComposerSessionView, error) {
-	return n.AddComposerTurnExpected(ctx, sessionID, role, content, 0)
+	return n.AddComposerTurnExpected(ctx, sessionID, role, content, 0, nil)
 }
 
-func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, content string, expectedRevision int) (*ComposerSessionView, error) {
+func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, content string, expectedRevision int, attachments []ComposerAttachmentRef) (*ComposerSessionView, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -221,7 +276,23 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 	if session.State == store.ComposerFinalized {
 		return nil, fmt.Errorf("composer session is finalized; create a new session to keep refining the prompt")
 	}
-	if _, err := st.AppendComposerTurn(store.ComposerTurn{SessionID: sessionID, Role: role, Content: content}); err != nil {
+	payloadJSON := ""
+	kind := ""
+	if len(attachments) > 0 {
+		kind = "user"
+		encoded, encErr := json.Marshal(map[string]any{"attachments": attachments})
+		if encErr != nil {
+			return nil, encErr
+		}
+		payloadJSON = string(encoded)
+	}
+	if _, err := st.AppendComposerTurn(store.ComposerTurn{
+		SessionID:   sessionID,
+		Role:        role,
+		Content:     content,
+		Kind:        kind,
+		PayloadJSON: payloadJSON,
+	}); err != nil {
 		return nil, err
 	}
 	brief := decodeComposerBrief(session.BriefJSON)
@@ -231,15 +302,16 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 		if facts, factErr := n.MemoryFactsMap(ctx, session.ProjectID); factErr == nil {
 			ApplyMemoriesToBrief(&brief, facts)
 		}
-		if provider, providerErr := n.ConfiguredIntelligenceProvider(ctx, session.ProjectID); providerErr == nil && provider.Available(ctx) {
+		turnCtx, turnCancel := context.WithTimeout(ctx, intelligence.ComposerTurnIntelligenceTimeout)
+		if provider, providerErr := n.ConfiguredIntelligenceProvider(turnCtx, session.ProjectID); providerErr == nil && provider.Available(turnCtx) {
 			contextData := map[string]any{"project_id": session.ProjectID, "brief": brief}
-			if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, session.ProjectID); groundedErr == nil {
+			if grounded, groundedErr := n.BoundedProjectIntelligenceContext(turnCtx, session.ProjectID); groundedErr == nil {
 				contextData["project_intelligence"] = grounded
 			}
-			if memFacts, memErr := n.MemoryFactsMap(ctx, session.ProjectID); memErr == nil {
+			if memFacts, memErr := n.MemoryFactsMap(turnCtx, session.ProjectID); memErr == nil {
 				contextData["intelligence_memories"] = memFacts
 			}
-			analysis, analyzeErr := provider.AnalyzeIntent(ctx, content, contextData)
+			analysis, analyzeErr := provider.AnalyzeIntent(turnCtx, content, contextData)
 			if analyzeErr != nil {
 				intelligenceNotice = "Inteligência local indisponível nesta rodada: " + analyzeErr.Error()
 			}
@@ -255,9 +327,9 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 				var unknowns []intelligence.AmbiguityItem
 				var unknownErr error
 				if contextual, contextualOK := provider.(intelligence.ContextualAmbiguityEvaluator); contextualOK {
-					unknowns, unknownErr = contextual.EvaluateAmbiguitiesWithContext(ctx, analysis, contextData)
+					unknowns, unknownErr = contextual.EvaluateAmbiguitiesWithContext(turnCtx, analysis, contextData)
 				} else {
-					unknowns, unknownErr = provider.EvaluateAmbiguities(ctx, analysis)
+					unknowns, unknownErr = provider.EvaluateAmbiguities(turnCtx, analysis)
 				}
 				if unknownErr != nil {
 					intelligenceNotice = "Inteligência local não conseguiu avaliar as lacunas: " + unknownErr.Error()
@@ -266,7 +338,7 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 			}
 			// Heuristics already merged this turn's text above; enrich with the
 			// provider's structured extraction to fill any remaining gaps.
-			if extraction, extractErr := provider.ExtractBrief(ctx, content, contextData); extractErr == nil {
+			if extraction, extractErr := provider.ExtractBrief(turnCtx, content, contextData); extractErr == nil {
 				applyBriefExtraction(&brief, extraction)
 			} else if intelligenceNotice == "" {
 				intelligenceNotice = "Inteligência local não conseguiu extrair o brief: " + extractErr.Error()
@@ -274,6 +346,7 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 		} else if providerErr != nil && !errors.Is(providerErr, intelligence.ErrIntelligenceUnavailable) {
 			intelligenceNotice = "Inteligência local indisponível: " + providerErr.Error()
 		}
+		turnCancel()
 		refreshComposerBrief(&brief)
 		response := strings.TrimSpace(strings.Join([]string{intelligenceNotice, composeAssistantReply(brief)}, "\n\n"))
 		if strings.TrimSpace(response) != "" {
@@ -553,7 +626,9 @@ func (n *Nexus) composeSessionView(st *store.Store, session store.ComposerSessio
 
 func (n *Nexus) persistComposerSessionExpected(st *store.Store, session *store.ComposerSession, brief LivingBrief, expectedRevision int) (*ComposerSessionView, error) {
 	session.Title = firstNonEmpty(brief.Intent.Objective, brief.Goal, session.Title)
-	session.State = composerSessionStateFromBrief(brief)
+	if session.State != store.ComposerFinalized {
+		session.State = composerSessionStateFromBrief(brief)
+	}
 	session.BriefJSON = mustJSON(brief)
 	if err := st.UpdateComposerSessionExpected(*session, expectedRevision); err != nil {
 		return nil, err

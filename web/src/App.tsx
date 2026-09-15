@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { NexusWorkspaceApp } from './app/NexusWorkspaceApp';
 import { NexusDemoApp } from './app/NexusDemoApp';
+import { ConversationSpikePage } from './app/ConversationSpikePage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import type { WorkspaceSurface } from './workspace/model';
 
@@ -45,6 +46,7 @@ export const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/demo" element={<NexusDemoApp />} />
+      <Route path="/dev/conversation-spike" element={<ConversationSpikePage />} />
       <Route path="/p/:projectId/popout/:surface" element={<NexusWorkspaceApp />} />
       <Route path="/p/:projectId/*" element={<NexusWorkspaceApp />} />
       <Route path="/projects" element={<NexusWorkspaceApp initialGlobalSurface="projects" />} />

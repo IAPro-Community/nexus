@@ -1,0 +1,16 @@
+.page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--nx-border);
+  background: var(--nx-surface);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+}

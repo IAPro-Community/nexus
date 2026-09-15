@@ -1,5 +1,43 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-15 — Revalidação completa da fundação conversacional (anti-perda)
+
+Evidência contra o stash `stash@{0}` + gates locais:
+
+- PASS — inventário: todos os arquivos conversation do stash no disco (feature, spike, bootstrap, handlers, 0021, ADR/docs).
+- PASS — wiring: Composer → `ConversationSurface`; NDJSON create; upload attachments; CSRF; `@assistant-ui/react`; `/dev/conversation-spike`; i18n `conversation` ×3.
+- PASS — DB `~/.local/share/ai-manager/nexus.db`: schema 21 + `kind`/`payload_json` + `conversation_attachments`.
+- PASS — `go test ./internal/nexus/store/ ./internal/nexus/ ./internal/control/web/ -count=1`
+- PASS — Vitest conversation + composerModel + i18n (19)
+- PASS — `make web-verify` 10/10 (`FRONTEND_2026-09-15T13-36-13Z.md`)
+- PASS — `nexus web :13000` serve UI nova; exe não deleted.
+- NOT EXECUTED — commit/push (aguardando Maestro).
+
+## 2026-09-15 — Resolução de Autenticação e UX do OpenCode (Modo Local, Multi-Provedor & Paridade CLI)
+
+- PASS — `go test -v ./internal/core/provider/adapters/opencode/...`: 7/7 testes unitários aprovados (capacidades Login/Logout, modo local sem login, Zen provider, DeepSeek provider, cópia segura de credenciais do host no `Prepare`, probes de cota).
+- PASS — `go test ./internal/profile/...`, `go test ./internal/nexus/...`, `go test ./internal/control/web/...`: 100% de aprovação sem regressões.
+- PASS — `npm --prefix web run check:styles`: SCSS Modules em estrita conformidade com allowlist.
+- PASS — `npm --prefix web run lint:styles`: Stylelint aprovado com 0 violações.
+- PASS — `npm --prefix web run typecheck`: TypeScript compilado limpo (0 erros).
+- PASS — `npm --prefix web run lint`: ESLint com `--max-warnings=0` aprovado.
+- PASS — `npm --prefix web test`: Vitest executou 71 arquivos e 379 testes com 100% de aprovação.
+- PASS — `make web-verify`: 10/10 gates automatizados aprovados (format, typecheck, lint, stylelint, null-arrays, test, i18n, build, embed-sync, ui-markers). Relatório em `DEV/validation/FRONTEND_LATEST.md`.
+- PASS — `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`: Binário compilado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
+- PASS — `curl -H "Authorization: Bearer <token>" http://127.0.0.1:13000/api/v1/resources`: OpenCode reportado com `authenticated: true`, `health: healthy`, `plan: OpenCode (deepseek)` e `account: deepseek`.
+- NOT EXECUTED — `git commit` e `git push` (em estrita conformidade com a constituição do Orquestrador).
+
+
+
+## 2026-09-15 — Fechamento v1.0.0-beta.1 (in-repo, worktree isolado)
+
+- PASS — `make lint-go` (0 issues; exclusão misspell em `composer_brief.go`; SA1019 com `//nolint:staticcheck`).
+- PASS — `go test -count=1 ./internal/nexus/ ./internal/app/ ./internal/control/host/ ./internal/control/web/ ./internal/core/provider/adapters/opencode/` (575 testes).
+- PASS — `make version-check` (`1.0.0-beta.1` consistente).
+- PASS — `make web-verify` 10/10 (`DEV/validation/FRONTEND_LATEST.md`, 2026-09-15T13:04:30Z).
+- ISOLATED — spike Conversation no stash `wip: conversation spike parked outside v1.0.0-beta.1`.
+- NOT EXECUTED — commit, push, tag, GitHub Release, environment `beta-signing` (exigem autorização).
+
 ## 2026-09-15 — Soak prolongado
 
 - **PASS** — `make overnight-soak DURATION=8h`, com duração observada de
@@ -1381,7 +1419,7 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-15T04:53:58Z
+## Frontend gate — 2026-09-15T13:36:13Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 

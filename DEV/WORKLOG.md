@@ -1,5 +1,38 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-15 — Fechamento in-repo da v1.0.0-beta.1
+
+- Corrigidos golangci-lint (`misspell` no catálogo PT, SA1019 no CLI legado) e folga de 3s no lock Codex Windows.
+- Attach/detach do Composer: symlink, LimitReader, UTF-8, `FINALIZED` preservado.
+- Telemetria HTTP de teste isolada via `AI_CLI_STATE_DIR`.
+- README/quick-start/installation apontam para `IAPro-Community/nexus` + `v1.0.0-beta.1`.
+- CHANGELOG deixou de ser Unreleased; ledger SHA falso `2b9c95693be7…` documentado.
+- Spike de Conversation isolada no stash `wip: conversation spike parked outside v1.0.0-beta.1`.
+
+## 2026-09-15 — Resolução de Autenticação e UX do OpenCode (Modo Local, Multi-Provedor & Paridade CLI)
+
+- **Backend Go (`internal/core/provider/adapters/opencode/`)**:
+  - `InspectAuth`: Corrigido parsing do `auth.json` para o formato real (`openCodeAuthFile` / `map[string]openCodeAuthEntry`).
+  - Reconhecimento dos 3 modos operacionais do OpenCode:
+    1. **OpenCode Zen / Go**: `auth["opencode"]` presente $\rightarrow$ `Plan: "OpenCode Zen"`, `Authenticated: true`, `Health: HealthHealthy`.
+    2. **Provedores Externos**: `auth["deepseek"]`, `auth["anthropic"]`, `auth["openai"]`, etc. $\rightarrow$ `Plan: "OpenCode (deepseek)"`, `Authenticated: true`, `Health: HealthHealthy`.
+    3. **Modo Local (Ollama/Env)**: Ausência de provedor em `auth.json` $\rightarrow$ `Plan: "OpenCode Local (Ollama/Env)"`, `Authenticated: true`, `Health: HealthHealthy`, `Status: "Ready (Local / No login required)"`.
+  - `config.BaseHome()`: Exportada função no pacote `config` para resolução precisa do diretório home do usuário host mesmo a partir de sandboxes de agente.
+  - `Prepare`: Sincronização segura do `auth.json` do host (`~/.local/share/opencode/auth.json`) para o sandbox isolado do perfil.
+  - `Login` & `Capabilities`: Ativado `Capabilities.Login = true` e `Capabilities.Logout = true`, delegando `Login()` para a execução interativa de `opencode providers login` no terminal.
+  - Testes unitários abrangentes em `opencode_test.go` cobrindo capacidades, modo local, Zen, DeepSeek e cópia de auth no `Prepare` (7/7 testes PASS).
+- **Frontend Web OS (`AccountLoginModal.tsx`, `UsageAccountCard.tsx`, `usageModel.ts`)**:
+  - `AccountLoginModal`: Interface especializada para o OpenCode apresentando com clareza os 3 modos (Modo Local / Ollama, Provedores Externos via API Key e OpenCode Zen / Go). Badge visual para provedor ativo detectado (ex: DeepSeek) e ações adaptativas ("Gerenciar Provedores no Terminal" e "Usar Modo Local").
+  - `UsageAccountCard`: Eliminado o falso positivo de "Requer Login" para o OpenCode; o botão primário de ação passa a ser "Abrir Terminal" quando autenticado/pronto; ação "Gerenciar provedores" preservada no menu contextual `...`.
+  - `usageModel`: `isAccountAuthRequired` atualizado para reconhecer que o OpenCode autenticado/pronto não exige login de nuvem.
+  - `resources.ts`: 16 novas chaves de i18n com paridade estrita em `en`, `ptBR` e `es`.
+- **Qualidade, Compilação e Instalação**:
+  - `make web-verify`: 10/10 gates aprovados (format, typecheck, lint, stylelint, null-arrays, test 379/379, i18n, build, embed-sync, ui-markers).
+  - `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`: Binário compilado e instalado localmente.
+  - Servidor `nexus web` reiniciado na porta 13000 com `GET /api/v1/resources` validado exibindo OpenCode com `authenticated: true`, `health: healthy`, e `plan: OpenCode (deepseek)`.
+
+
+
 ## 2026-09-15 — Soak de 8h concluído
 
 - `make overnight-soak DURATION=8h` passou após `28800.028s` (8h), sem falha.
@@ -4757,6 +4790,14 @@ build` PASS e Web reiniciado em HTTP 200.
   `go test ./internal/release -count=1`, `git diff --check` e `make quality`.
   `make web-verify` (10 gates) e `make security` também PASS. Sem commit ou
   push.
+
+## 2026-09-15 — Filtro de entrada para foco CSI parametrizado
+
+- Corrigido o vazamento de `ESC[0[I`/variantes parametrizadas para o prompt do
+  Codex no terminal xterm.js; `Ctrl+V` (`0x16`) permanece encaminhado.
+- Regressão adicionada em `web/src/nexus/terminalInput.test.ts`.
+- Verificação: teste focado 16/16, `make build`, instalação em
+  `/home/desenvolvedor/.local/bin/nexus` e `git diff --check` PASS.
 # 2026-09-11 — Nexus Final Closure verification and verdict
 
 - Recorded base SHA `2925ca746c198334f20d1e0cef7feb51e4f4f4e3`; no commit or push.

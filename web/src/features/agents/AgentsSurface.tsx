@@ -24,6 +24,7 @@ import { translateStatus } from '../../i18n';
 import { useTranslation } from 'react-i18next';
 import { TaskPreparationDialog } from '../../components/TaskPreparationDialog';
 import { askActionForStatus } from './askAgentModel';
+import { formatOpenedAgo } from '../projects/projectRailRelativeTime';
 import styles from './AgentsSurface.module.scss';
 
 const tone = (status: string) =>
@@ -35,26 +36,11 @@ const tone = (status: string) =>
         ? 'warning'
         : 'default';
 
-function formatRelativeTime(iso?: string): string {
-  if (!iso) return 'Nunca';
-  const now = Date.now();
-  const d = new Date(iso).getTime();
-  if (isNaN(d)) return iso;
-  const diffSec = Math.max(0, Math.floor((now - d) / 1000));
-  if (diffSec < 60) return `${diffSec}s atrás`;
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m atrás`;
-  const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours}h atrás`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d atrás`;
-}
-
 const ROLE_TEMPLATES = [
-  { key: 'developer', label: 'Desenvolvedor', icon: Code2 },
-  { key: 'architect', label: 'Arquiteto', icon: Compass },
-  { key: 'reviewer', label: 'Revisor', icon: CheckCircle2 },
-  { key: 'tester', label: 'Testador QA', icon: Sparkles },
+  { key: 'developer', labelKey: 'agents.roleTemplateDeveloper', icon: Code2 },
+  { key: 'architect', labelKey: 'agents.roleTemplateArchitect', icon: Compass },
+  { key: 'reviewer', labelKey: 'agents.roleTemplateReviewer', icon: CheckCircle2 },
+  { key: 'tester', labelKey: 'agents.roleTemplateTester', icon: Sparkles },
 ];
 
 export const AgentsSurface: React.FC<{
@@ -65,7 +51,7 @@ export const AgentsSurface: React.FC<{
   onConfigure: (agent: Agent) => void;
   onRemoved?: (agentId: string) => void;
 }> = ({ project, agents, refresh, onTerminal, onConfigure, onRemoved }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [name, setName] = useState('');
   const [selectedRole, setSelectedRole] = useState('developer');
   const [busy, setBusy] = useState('');
@@ -204,63 +190,72 @@ export const AgentsSurface: React.FC<{
 
         {/* Top Summary Metrics Strip */}
         <div className={styles.summaryStrip}>
-          <div
+          <button
+            type="button"
             className={`${styles.summaryCard} ${statusFilter === 'all' ? styles.activeFilter : ''}`}
+            aria-pressed={statusFilter === 'all'}
             onClick={() => setStatusFilter('all')}
           >
             <div className={styles.summaryValue}>{totalCount}</div>
-            <div className={styles.summaryLabel}>{t('agents.metricTotal', 'Total de Agentes')}</div>
-          </div>
+            <div className={styles.summaryLabel}>{t('agents.metricTotal')}</div>
+          </button>
 
-          <div
+          <button
+            type="button"
             className={`${styles.summaryCard} ${statusFilter === 'working' ? styles.activeFilter : ''}`}
+            aria-pressed={statusFilter === 'working'}
             onClick={() => setStatusFilter(statusFilter === 'working' ? 'all' : 'working')}
           >
-            <div className={styles.summaryValue} style={{ color: '#22c55e' }}>
+            <div className={`${styles.summaryValue} ${styles.summaryValueSuccess}`}>
               {workingCount}
             </div>
             <div className={styles.summaryLabel}>
               {workingCount > 0 && <span className={styles.pulseDot} />}
-              {t('agents.metricWorking', 'Em Execução')}
+              {t('agents.metricWorking')}
             </div>
-          </div>
+          </button>
 
-          <div
+          <button
+            type="button"
             className={`${styles.summaryCard} ${statusFilter === 'waiting' ? styles.activeFilter : ''}`}
+            aria-pressed={statusFilter === 'waiting'}
             onClick={() => setStatusFilter(statusFilter === 'waiting' ? 'all' : 'waiting')}
           >
-            <div className={styles.summaryValue} style={{ color: '#3b82f6' }}>
+            <div className={`${styles.summaryValue} ${styles.summaryValueAccent}`}>
               {waitingCount}
             </div>
-            <div className={styles.summaryLabel}>{t('agents.metricWaiting', 'Em Espera')}</div>
-          </div>
+            <div className={styles.summaryLabel}>{t('agents.metricWaiting')}</div>
+          </button>
 
-          <div
+          <button
+            type="button"
             className={`${styles.summaryCard} ${statusFilter === 'degraded' ? styles.activeFilter : ''}`}
+            aria-pressed={statusFilter === 'degraded'}
             onClick={() => setStatusFilter(statusFilter === 'degraded' ? 'all' : 'degraded')}
           >
             <div
-              className={styles.summaryValue}
-              style={{ color: degradedCount > 0 ? '#f59e0b' : 'inherit' }}
+              className={`${styles.summaryValue} ${degradedCount > 0 ? styles.summaryValueWarning : ''}`}
             >
               {degradedCount}
             </div>
-            <div className={styles.summaryLabel}>{t('agents.metricDegraded', 'Degradados')}</div>
-          </div>
+            <div className={styles.summaryLabel}>{t('agents.metricDegraded')}</div>
+          </button>
 
-          <div
+          <button
+            type="button"
             className={`${styles.summaryCard} ${statusFilter === 'stopped' ? styles.activeFilter : ''}`}
+            aria-pressed={statusFilter === 'stopped'}
             onClick={() => setStatusFilter(statusFilter === 'stopped' ? 'all' : 'stopped')}
           >
             <div className={styles.summaryValue}>{stoppedCount}</div>
-            <div className={styles.summaryLabel}>{t('agents.metricStopped', 'Parados')}</div>
-          </div>
+            <div className={styles.summaryLabel}>{t('agents.metricStopped')}</div>
+          </button>
         </div>
 
         {/* Quick Creation Section */}
         <div className={styles.creationSection}>
           <div className={styles.createFormRow}>
-            <div style={{ flex: 1 }}>
+            <div className={styles.createNameField}>
               <Input
                 value={name}
                 onChange={setName}
@@ -277,9 +272,7 @@ export const AgentsSurface: React.FC<{
           </div>
 
           <div className={styles.roleTemplates}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--nx-text-muted)', fontWeight: 600 }}>
-              {t('agents.selectRole', 'Papel:')}
-            </span>
+            <span className={styles.roleLabel}>{t('agents.selectRole')}</span>
             {ROLE_TEMPLATES.map((tpl) => {
               const Icon = tpl.icon;
               return (
@@ -290,7 +283,7 @@ export const AgentsSurface: React.FC<{
                   onClick={() => setSelectedRole(tpl.key)}
                 >
                   <Icon size={12} />
-                  {tpl.label}
+                  {t(tpl.labelKey)}
                 </button>
               );
             })}
@@ -306,8 +299,11 @@ export const AgentsSurface: React.FC<{
               placeholder={t('agents.searchPlaceholder', 'Buscar agentes por nome ou papel…')}
             />
           </div>
-          <div style={{ fontSize: '0.8125rem', color: 'var(--nx-text-muted)' }}>
-            {filteredAgents.length} de {agents.length} agentes exibidos
+          <div className={styles.displayedCount}>
+            {t('agents.displayedCount', {
+              filtered: filteredAgents.length,
+              total: agents.length,
+            })}
           </div>
         </div>
 
@@ -372,11 +368,8 @@ export const AgentsSurface: React.FC<{
                         {t('agents.lastStart', 'Última Execução')}
                       </span>
                       <span className={styles.metaValue} title={agent.last_started_at || ''}>
-                        <Clock
-                          size={11}
-                          style={{ display: 'inline', marginRight: 4, verticalAlign: -1 }}
-                        />
-                        {formatRelativeTime(agent.last_started_at)}
+                        <Clock size={11} className={styles.metaClock} />
+                        {formatOpenedAgo(agent.last_started_at, i18n.language, t('common.never'))}
                       </span>
                     </div>
                   </div>

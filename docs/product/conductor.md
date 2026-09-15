@@ -2,6 +2,8 @@
 
 Conductor é a camada de orquestração que conecta seus objetivos a execução autônoma. Quando você descreve o que quer fazer, Conductor decide se precisa apenas de uma sessão direta ou se o trabalho justifica uma Mission completa.
 
+Nesta Community Preview (`v1.0.0-beta.1`) o Conductor é **somente CLI** (`nexus conductor policy`, `nexus conductor dispatch`). Não há HTTP `/api/v1/conductor` nem `/api/v1/missions` nesta versão; planejamento na Web passa por Composer → Turn into Flow.
+
 ## Como funciona
 
 ```text

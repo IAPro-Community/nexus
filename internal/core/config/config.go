@@ -146,6 +146,11 @@ func getBaseHome() string {
 	return ""
 }
 
+// BaseHome returns the real host user home directory, stripping any profile sandbox prefixes.
+func BaseHome() string {
+	return getBaseHome()
+}
+
 // ConfigDir returns the XDG/Windows-compliant config directory with ai-manager fallback.
 func ConfigDir() (string, error) {
 	if v := os.Getenv("NEXUS_CONFIG_DIR"); v != "" {

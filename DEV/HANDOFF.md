@@ -1,5 +1,52 @@
 # Handoff
 
+## Resolução de Autenticação e UX do OpenCode — 2026-09-15
+
+## Atualização — filtro de entrada do Codex
+
+O filtro compartilhado do terminal agora remove relatórios de foco
+parametrizados/corrompidos (`ESC[0[I` e equivalentes), que apareciam como
+`0[I` no prompt. `Ctrl+V` continua sendo encaminhado. O binário foi
+recompilado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
+
+Sessões Codex já abertas precisam ser encerradas e iniciadas novamente para
+usar o bundle atualizado.
+
+Resolvida a incompatibilidade arquitetural de autenticação do OpenCode no Nexus, adaptando tanto o backend Go quanto o Web OS para a realidade dos múltiplos modos operacionais do OpenCode:
+
+1. **Modos de Operação Reconhecidos**:
+   - **Modo Local / Self-Hosted (Ollama / Env)**: Quando nenhum provedor específico está configurado, o OpenCode é tratado como `HEALTHY` e `AUTHENTICATED`, com plano `"OpenCode Local (Ollama/Env)"`, dispensando logins ou chaves de nuvem e permitindo execução imediata.
+   - **Provedores Externos (DeepSeek, Claude, OpenAI)**: O `InspectAuth` analisa o mapa real do `auth.json` (`map[string]openCodeAuthEntry`). No ambiente local do Maestro, identificou com sucesso o provedor `"deepseek"`, marcando a conta como `"OpenCode (deepseek)"` com status `healthy`.
+   - **OpenCode Zen / Go**: Identificado quando a chave `"opencode"` está presente em `auth.json`, apontando para a nuvem oficial do OpenCode AI.
+
+2. **Herança de Credenciais & Login CLI**:
+   - `Prepare`: Sincroniza o `~/.local/share/opencode/auth.json` do host para o sandbox isolado do perfil caso ainda não exista.
+   - `nexus login opencode <profile>`: Dispara interativamente `opencode providers login` no terminal, permitindo que o usuário gerencie e adicione provedores de IA diretamente.
+
+3. **Web OS (UX & Modais)**:
+   - `UsageAccountCard`: Eliminado o falso alerta de "Requer Login"; conta do OpenCode exibe chips contextuais e ação primária "Abrir Terminal" para lançamento imediato.
+   - `AccountLoginModal`: Modal especializado explicando os 3 modos de operação, destacando o provedor ativo (`DeepSeek`), e oferecendo botões diretos para "Gerenciar Provedores no Terminal" e "Usar Modo Local".
+   - Internacionalização completa em `en`, `ptBR` e `es`.
+
+4. **Verificação**:
+   - 7/7 testes unitários do adapter OpenCode PASS.
+   - `make web-verify` 10/10 gates PASS.
+   - Binário compilado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
+   - Servidor web em background atualizado e validado na porta 13000.
+
+
+
+## Fechamento v1.0.0-beta.1 — 2026-09-15
+
+Worktree de freeze isolado: lint Linux, attach Composer, install URLs,
+changelog, OpenCode auth, filtro CSI do terminal, folga do lock Codex no
+Windows. Spike de Conversation está no stash
+`wip: conversation spike parked outside v1.0.0-beta.1` e **não** entra nesta
+tag. **Não** houve commit, tag, push nem publicação. Próxima ação humana:
+autorizar freeze commit (sem o stash), CI 14/14, `beta-signing`, repo público
+(ou GH_TOKEN), retag no SHA verde, GitHub Release, depois merge em `main`.
+Ver `DEV/validation/current/RELEASE_STATUS.md`.
+
 ## Soak de 8h concluído — 2026-09-15
 
 O soak executado no processo original terminou com **PASS**: `go test`

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getCSRFToken } from '../../api';
 import { nexus } from '../../nexus/api';
 import type {
   Agent,
@@ -8,6 +9,12 @@ import type {
   Project,
   PromptArtifact,
 } from '../../types';
+import {
+  composerTurnsToEvents,
+  type NexusActivityItem,
+  type NexusActivityPayload,
+  type NexusConversationEvent,
+} from '../conversation';
 import { selectResumableComposerSession } from './composerSessionModel';
 import {
   buildComposerBriefItems,
@@ -19,6 +26,11 @@ import {
   selectComposerNextUnknown,
 } from './composerModel';
 import type { ComposerStartCreateArgs } from './ComposerStart';
+import {
+  bootstrapStepsToActivity,
+  createComposerSessionWithProgress,
+  mapNetworkError,
+} from './composerBootstrapStream';
 
 /**
  * Owns all Composer elaboration state, API orchestration and derived view
@@ -38,6 +50,8 @@ export function useComposerSession(project: Project) {
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState('');
+  const [bootstrapActivity, setBootstrapActivity] = useState<NexusActivityPayload | null>(null);
+  const createAbort = useRef<AbortController | null>(null);
 
   const selectedSkillIds = useMemo(
     () =>
@@ -47,24 +61,31 @@ export function useComposerSession(project: Project) {
     [view?.skills],
   );
 
+  const conversationEvents: NexusConversationEvent[] = useMemo(() => {
+    if (!view) return [];
+    return composerTurnsToEvents(view.session.id, view.turns || []);
+  }, [view]);
+
   const refreshSessions = useCallback(async () => {
     const next = await nexus.listComposerSessions(project.id);
     setSessions(next || []);
     return next || [];
   }, [project.id]);
 
-  /** Shared busy/error envelope so handlers stay declarative. */
-  const runBusy = useCallback(async (fn: () => Promise<void>) => {
-    setBusy(true);
-    setError('');
-    try {
-      await fn();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  }, []);
+  const runBusy = useCallback(
+    async (fn: () => Promise<void>) => {
+      setBusy(true);
+      setError('');
+      try {
+        await fn();
+      } catch (err) {
+        setError(mapNetworkError(err, t));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     void (async () => {
@@ -77,10 +98,10 @@ export function useComposerSession(project: Project) {
           setArtifact(latestComposerArtifact(loaded));
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(mapNetworkError(err, t));
       }
     })();
-  }, [project.id, refreshSessions]);
+  }, [project.id, refreshSessions, t]);
 
   useEffect(() => {
     void nexus
@@ -118,24 +139,97 @@ export function useComposerSession(project: Project) {
   const create = ({ mode, draft, sourcePrompt }: ComposerStartCreateArgs) =>
     runBusy(async () => {
       if (!draft.trim()) return;
-      const next = await nexus.createComposerSessionWithMode(
-        project.id,
-        draft.trim(),
-        mode,
-        mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : undefined,
-      );
-      setView(next);
-      setArtifact(null);
-      await refreshSessions();
+      createAbort.current?.abort();
+      const controller = new AbortController();
+      createAbort.current = controller;
+      const steps = new Map<string, NexusActivityItem['status']>();
+      const refreshActivity = () =>
+        setBootstrapActivity(
+          bootstrapStepsToActivity(steps, t('work.composer.starting', 'Starting…')),
+        );
+      refreshActivity();
+      try {
+        const next = await createComposerSessionWithProgress(
+          project.id,
+          {
+            goal: draft.trim(),
+            input_mode: mode,
+            source_prompt: mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : '',
+          },
+          {
+            signal: controller.signal,
+            csrfToken: getCSRFToken(),
+            onEvent: (event) => {
+              if (event.type === 'step') {
+                const status =
+                  event.status === 'started'
+                    ? 'running'
+                    : event.status === 'done'
+                      ? 'done'
+                      : event.status === 'error'
+                        ? 'error'
+                        : 'skipped';
+                steps.set(event.id, status);
+                refreshActivity();
+              }
+            },
+          },
+        );
+        setView(next);
+        setArtifact(null);
+        setBootstrapActivity(null);
+        await refreshSessions();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (/empty progress stream|unsupported|NDJSON|405|406/i.test(message)) {
+          const next = await nexus.createComposerSessionWithMode(
+            project.id,
+            draft.trim(),
+            mode,
+            mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : undefined,
+          );
+          setView(next);
+          setArtifact(null);
+          setBootstrapActivity(null);
+          await refreshSessions();
+          return;
+        }
+        throw err;
+      } finally {
+        if (createAbort.current === controller) createAbort.current = null;
+      }
     });
 
-  const send = () =>
+  const cancelCreate = () => {
+    createAbort.current?.abort();
+  };
+
+  const sendText = (
+    text: string,
+    attachments?: Array<{
+      id: string;
+      name?: string;
+      mimeType?: string;
+      url?: string;
+      size?: number;
+    }>,
+  ) =>
     runBusy(async () => {
-      if (!view || !message.trim()) return;
-      setView(await nexus.addComposerTurn(view.session.id, message.trim(), view.session.revision));
+      if (!view) return;
+      if (!text.trim() && !(attachments && attachments.length)) return;
+      setView(
+        await nexus.addComposerTurn(
+          view.session.id,
+          text.trim(),
+          view.session.revision,
+          attachments,
+        ),
+      );
       setMessage('');
       await refreshSessions();
     });
+
+  const send = () => sendText(message);
 
   const finalize = async (confirmed = false) => {
     if (!view) return;
@@ -152,7 +246,7 @@ export function useComposerSession(project: Project) {
       setView(await nexus.getComposerSession(view.session.id));
       await refreshSessions();
     } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
+      const detail = mapNetworkError(err, t);
       setError(detail);
       setConfirmGaps(detail.includes('open questions') || detail.includes('gaps'));
     } finally {
@@ -197,9 +291,7 @@ export function useComposerSession(project: Project) {
         force: true,
       });
     } catch (err) {
-      // Non-promotable keys can't become memories, but the answer below must
-      // still resolve the unknown instead of stranding it.
-      setError(err instanceof Error ? err.message : String(err));
+      setError(mapNetworkError(err, t));
     }
     await resolveUnknown(unknown.id, 'ANSWERED', answer);
   };
@@ -249,6 +341,7 @@ export function useComposerSession(project: Project) {
   const resetSession = () => {
     setView(null);
     setArtifact(null);
+    setBootstrapActivity(null);
   };
 
   return {
@@ -267,12 +360,16 @@ export function useComposerSession(project: Project) {
     nextUnknown,
     actionableGaps,
     sessionOptions,
+    conversationEvents,
+    bootstrapActivity,
     setMessage,
     setRefineText,
     setShowRefineInput,
     setSelectedAgentId,
     create,
+    cancelCreate,
     send,
+    sendText,
     finalize,
     refine,
     resolveUnknown,

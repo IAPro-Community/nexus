@@ -100,9 +100,11 @@ func (s *Store) migrate() error {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(string(body)); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("apply migration %s: %w", name, err)
+		for _, stmt := range splitSQLStatements(string(body)) {
+			if _, err := tx.Exec(stmt); err != nil {
+				_ = tx.Rollback()
+				return fmt.Errorf("apply migration %s: %w", name, err)
+			}
 		}
 		if _, err := tx.Exec(`INSERT INTO schema_migrations(version) VALUES(?)`, version); err != nil {
 			_ = tx.Rollback()
@@ -118,6 +120,81 @@ func (s *Store) migrate() error {
 	// repair drift idempotently before exposing the store to callers.
 	if err := s.repairFlowEvidenceSchema(); err != nil {
 		return err
+	}
+	if err := s.repairComposerConversationSchema(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// splitSQLStatements splits a migration file into executable statements.
+// modernc.org/sqlite Exec accepts only one statement per call; multi-statement
+// files were previously marked applied after running only the first clause.
+func splitSQLStatements(body string) []string {
+	var cleaned strings.Builder
+	for _, line := range strings.Split(body, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "--") {
+			continue
+		}
+		cleaned.WriteString(line)
+		cleaned.WriteByte('\n')
+	}
+	parts := strings.Split(cleaned.String(), ";")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		stmt := strings.TrimSpace(part)
+		if stmt == "" {
+			continue
+		}
+		out = append(out, stmt)
+	}
+	return out
+}
+
+func (s *Store) repairComposerConversationSchema() error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin composer conversation repair: %w", err)
+	}
+	defer tx.Rollback()
+
+	cols, exists, err := tableColumns(tx, "composer_turns")
+	if err != nil {
+		return err
+	}
+	if exists {
+		if !cols["kind"] {
+			if _, err := tx.Exec(`ALTER TABLE composer_turns ADD COLUMN kind TEXT NOT NULL DEFAULT ''`); err != nil {
+				return fmt.Errorf("add composer_turns.kind: %w", err)
+			}
+		}
+		if !cols["payload_json"] {
+			if _, err := tx.Exec(`ALTER TABLE composer_turns ADD COLUMN payload_json TEXT NOT NULL DEFAULT ''`); err != nil {
+				return fmt.Errorf("add composer_turns.payload_json: %w", err)
+			}
+		}
+	}
+
+	if _, err := tx.Exec(`CREATE TABLE IF NOT EXISTS conversation_attachments (
+		id TEXT PRIMARY KEY,
+		session_id TEXT NOT NULL REFERENCES composer_sessions(id) ON DELETE CASCADE,
+		name TEXT NOT NULL,
+		mime_type TEXT NOT NULL,
+		size INTEGER NOT NULL,
+		type TEXT NOT NULL,
+		storage_ref TEXT NOT NULL,
+		metadata_json TEXT NOT NULL DEFAULT '{}',
+		created_at TEXT NOT NULL
+	)`); err != nil {
+		return fmt.Errorf("create conversation_attachments: %w", err)
+	}
+	if _, err := tx.Exec(`CREATE INDEX IF NOT EXISTS idx_conversation_attachments_session
+		ON conversation_attachments(session_id, created_at DESC)`); err != nil {
+		return fmt.Errorf("index conversation_attachments: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit composer conversation repair: %w", err)
 	}
 	return nil
 }

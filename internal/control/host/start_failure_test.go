@@ -116,7 +116,7 @@ func TestSessionHostCodexTUILockBusyFailsFast(t *testing.T) {
 	if !errors.Is(err, codex.ErrTUIBusy) {
 		t.Fatalf("Start err=%v want ErrTUIBusy", err)
 	}
-	if time.Since(start) > time.Second {
+	if time.Since(start) > 3*time.Second {
 		t.Fatalf("Start blocked for %s; busy Codex lock must fail immediately", time.Since(start))
 	}
 

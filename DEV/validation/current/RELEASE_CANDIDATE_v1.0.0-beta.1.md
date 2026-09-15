@@ -1,20 +1,21 @@
 # Nexus v1.0.0-beta.1 — Release Candidate
 
-> **Status**: RELEASE CANDIDATE (FINAL = GO)
-> **SHA**: `2b9c95693be7bf73a463c6395ec1ea9f131a4c9c`
-> **Tag**: `v1.0.0-beta.1`
+> **Status**: CLOSURE_READY_PENDING_FREEZE
+> **Prior GO SHA**: `2b9c95675d1727008eec86c58cd6be9e8a44a788`
+> **Tag alvo**: `v1.0.0-beta.1`
 > **Generated**: 2026-09-15
-> **Hosted CI**: [Run 34924168564](https://github.com/IAPro-Community/nexus/actions/runs/34924168564) (14/14 PASS)
+> **Hosted CI (prior freeze)**: [Run 34924168564](https://github.com/IAPro-Community/nexus/actions/runs/34924168564) (14/14 PASS)
+
+O SHA `2b9c95693be7…` citado na versão anterior deste arquivo não existe no git.
 
 ## What Changed Since 0.5.0-beta.23
 
-- **Nexus Conductor** — orquestração nativa Goals → Missions com dispatch único CLI/Web
+- **Nexus Conductor (CLI)** — `nexus conductor policy get/set`, `nexus conductor dispatch`
+- **Composer → Flow** — caminho Web de planejamento; `auto_plan` HTTP aposentado
 - **read_only_review** — capability para revisão sem edits do agent
 - **Worker efêmero** — agent descartável para execução de goals com reconciliação automática
 - **Integração opt-in** — fast-forward ff-only merge com receipt
 - **Instrumentação** — AgentInvocation em event metadata
-- **API Conductor** — `GET/PUT /api/v1/conductor/policy`, `POST /api/v1/conductor/dispatch`
-- **CLI Conductor** — `nexus conductor policy get/set`, `nexus conductor dispatch`
 - **FS browse fix** — allowed roots check antes de stat (403 para paths fora da boundary)
 - **Documentação usuário final** — `docs/product/conductor.md` e links
 - **Usage Surface Redesign** — grid adaptativo de contas, modais de login/registro/explicação do scheduler, paridade completa com comandos CLI
@@ -23,26 +24,15 @@
 
 ## Verification Matrix
 
+A matriz 14/14 abaixo é do **freeze anterior** `2b9c95675d17` (run 34924168564). O SHA desta campanha de fechamento ainda **não** tem CI hosted same-SHA — anotar depois do commit autorizado.
+
 | Gate | Status | Evidence |
 |---|---|---|
-| Version contract | PASS ✓ | `make version-check` |
-| Format check | PASS ✓ | `make format-check` |
-| ESLint | PASS ✓ | `npm --prefix web run lint` |
-| Stylelint | PASS ✓ | `npm --prefix web run lint:styles` |
-| TypeScript | PASS ✓ | `npm --prefix web run typecheck` |
-| Go lint | PASS ✓ | `make lint-go` (0 issues) |
-| Go tests | PASS ✓ | `go test ./...` (100% pass) |
-| Frontend tests | PASS ✓ | `vitest run` (73 suites, 388 tests pass) |
-| Vet & Race | PASS ✓ | `go vet` + `go test -race` |
-| Attention E2E | PASS ✓ | `make attention-e2e` |
-| Overnight smoke | PASS ✓ | `make overnight-smoke` |
-| Security | PASS ✓ | `govulncheck` (0 vulnerabilities) |
-| Documentation & Visual Manifest | PASS ✓ | `make docs-verify` (159 docs, 11 captures) |
-| Hosted Windows E2E | PASS ✓ | CI Run 34924168564 |
-| Hosted macOS E2E | PASS ✓ | CI Run 34924168564 |
-| Hosted Linux E2E | PASS ✓ | CI Run 34924168564 |
-| Hosted Desktop Builds (Win/Mac/Linux) | PASS ✓ | CI Run 34924168564 |
-| Hosted Package Smoke (DEB/RPM/NSIS) | PASS ✓ | CI Run 34924168564 |
+| Version contract | local, revalidar no freeze | `make version-check` |
+| Hosted 14/14 (prior GO) | PASS no SHA `2b9c95675d17` | [Run 34924168564](https://github.com/IAPro-Community/nexus/actions/runs/34924168564) |
+| Hosted same-SHA deste fechamento | PENDING | exige commit + push |
+| Linux golangci no HEAD `82f5447` | FAIL (corrigido neste worktree) | misspell PT + SA1019 |
+| Windows TUI lock busy | FAIL no HEAD (`>1s`); folga 3s neste worktree | `start_failure_test.go` |
 
 ## Deferred Items (Non-Blocking)
 
@@ -53,11 +43,10 @@
 
 ```bash
 # Linux/macOS
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
 
 # Or from source
 git clone https://github.com/IAPro-Community/nexus
 cd nexus
-git checkout feat/nexus-maximum-delivery
 make install-local
 ```
