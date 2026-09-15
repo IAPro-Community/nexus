@@ -369,6 +369,131 @@ func TestTickExpiredSnapshotUnknown(t *testing.T) {
 	}
 }
 
+func TestTickRecordsNextInterval(t *testing.T) {
+	probe := &stubProbe{
+		desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+		snap: liveSnapshot(80, model.UsageLive),
+	}
+	m, s, _ := testMonitor(t,
+		[]model.Profile{{Provider: "codex", Name: "kiver"}},
+		&stubRegistry{probes: map[string]quota.Probe{"codex": probe}}, nil)
+
+	if err := m.Tick(context.Background()); err != nil {
+		t.Fatalf("Tick() = %v", err)
+	}
+	if got := m.lastInterval; got != 10*time.Minute {
+		t.Fatalf("lastInterval = %v, want 10m for healthy idle", got)
+	}
+	// The test helper configures a 1h LeaseTTL floor, which wins over the
+	// adaptive 30m: the lease must honor explicit config verbatim here.
+	if err := m.Tick(context.Background()); err != nil {
+		t.Fatalf("tick2 = %v", err)
+	}
+	lease, err := s.GetCapacityLease()
+	if err != nil || lease == nil {
+		t.Fatalf("lease = %+v,%v, want held", lease, err)
+	}
+	want := time.Now().UTC().Add(60 * time.Minute)
+	if lease.ExpiresAt.Before(want.Add(-2*time.Minute)) || lease.ExpiresAt.After(want.Add(2*time.Minute)) {
+		t.Fatalf("lease expires = %v, want ≈ now+60m (1h floor)", lease.ExpiresAt)
+	}
+}
+
+// funcClock is a mutable clock for tests that advance time between ticks.
+type funcClock func() time.Time
+
+func (f funcClock) Now() time.Time { return f() }
+
+func TestTickRenewsLeaseForNewInterval(t *testing.T) {
+	now := time.Now().UTC()
+	s, err := store.Open(filepath.Join(t.TempDir(), "cap.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	probe := &stubProbe{
+		desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+		snap: liveSnapshot(80, model.UsageLive),
+	}
+	reg := &stubRegistry{probes: map[string]quota.Probe{"codex": probe}}
+	profiles := []model.Profile{{Provider: "codex", Name: "kiver"}}
+	m := NewMonitor(Dependencies{
+		Profiles:      func() ([]model.Profile, error) { return profiles, nil },
+		ProbeRegistry: reg,
+		Store:         s,
+		Bus:           events.NewBus(8),
+		Clock:         funcClock(func() time.Time { return now }),
+		JitterSource:  RealJitter{},
+		OwnerID:       "test-owner",
+		BaseInterval:  time.Minute,
+		// No LeaseTTL override: 2m default floor, adaptive 30m wins when healthy.
+	})
+	if err := m.Tick(context.Background()); err != nil {
+		t.Fatalf("tick1 = %v", err)
+	}
+	first, err := s.GetCapacityLease()
+	if err != nil || first == nil {
+		t.Fatalf("lease after tick1 = %+v,%v", first, err)
+	}
+	// Advance past the cold-start TTL but well within the renewed one, then
+	// tick again: the leader must extend, never lapse.
+	now = now.Add(5 * time.Minute)
+	if err := m.Tick(context.Background()); err != nil {
+		t.Fatalf("tick2 = %v", err)
+	}
+	second, err := s.GetCapacityLease()
+	if err != nil || second == nil {
+		t.Fatalf("lease after tick2 = %+v,%v", second, err)
+	}
+	if !second.ExpiresAt.After(first.ExpiresAt) {
+		t.Fatalf("lease not extended: %v -> %v", first.ExpiresAt, second.ExpiresAt)
+	}
+	if second.Owner != "test-owner" {
+		t.Fatalf("owner = %q, want test-owner (no steal across renew)", second.Owner)
+	}
+}
+
+func TestRunTicksUntilCancel(t *testing.T) {
+	probe := &stubProbe{
+		desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+		snap: liveSnapshot(80, model.UsageLive),
+	}
+	s, err := store.Open(filepath.Join(t.TempDir(), "cap.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	m := NewMonitor(Dependencies{
+		Profiles: func() ([]model.Profile, error) {
+			return []model.Profile{{Provider: "codex", Name: "kiver"}}, nil
+		},
+		ProbeRegistry: &stubRegistry{probes: map[string]quota.Probe{"codex": probe}},
+		Store:         s,
+		Bus:           events.NewBus(8),
+		Clock:         stubClock{now: time.Now().UTC()},
+		JitterSource:  RealJitter{},
+		OwnerID:       "test-owner",
+		LeaseTTL:      time.Hour,
+		BaseInterval:  5 * time.Millisecond,
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+	defer cancel()
+	done := make(chan struct{})
+	go func() { m.Run(ctx); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("Run did not return after context cancel")
+	}
+	st := m.Status()
+	if st.LastTickAt.IsZero() {
+		t.Fatal("LastTickAt is zero, Run never ticked")
+	}
+	if st.MonitoredResources != 1 {
+		t.Fatalf("resources = %d, want 1 after Run ticks", st.MonitoredResources)
+	}
+}
+
 func TestTickNilDependenciesFailLoudly(t *testing.T) {
 	s, err := store.Open(filepath.Join(t.TempDir(), "cap.db"))
 	if err != nil {

@@ -78,14 +78,17 @@ func (m *Monitor) Tick(ctx context.Context) error {
 	// misuse fail loudly instead of panicking on first use.
 	if m.deps.Store == nil {
 		m.noteFailure()
+		m.refreshInterval()
 		return errors.New("capacitymonitor: nil store")
 	}
 	if m.deps.ProbeRegistry == nil {
 		m.noteFailure()
+		m.refreshInterval()
 		return errors.New("capacitymonitor: nil probe registry")
 	}
 	if m.deps.Profiles == nil {
 		m.noteFailure()
+		m.refreshInterval()
 		return errors.New("capacitymonitor: nil profiles source")
 	}
 	now := m.deps.Clock.Now().UTC()
@@ -93,6 +96,7 @@ func (m *Monitor) Tick(ctx context.Context) error {
 	prefs, err := m.deps.Store.GetCapacityPreferences()
 	if err != nil {
 		m.noteFailure()
+		m.refreshInterval()
 		return err
 	}
 	thresholds := prefsToThresholds(prefs)
@@ -106,6 +110,7 @@ func (m *Monitor) Tick(ctx context.Context) error {
 	profiles, err := m.deps.Profiles()
 	if err != nil {
 		m.noteFailure()
+		m.refreshInterval()
 		return err
 	}
 
@@ -115,6 +120,7 @@ func (m *Monitor) Tick(ctx context.Context) error {
 	lease, held, err := m.deps.Store.AcquireCapacityLease(m.deps.OwnerID, now, m.leaseTTL())
 	if err != nil {
 		m.noteFailure()
+		m.refreshInterval()
 		return err
 	}
 	m.mu.Lock()
@@ -171,6 +177,18 @@ tickLoop:
 	}
 	m.worst = worst
 	m.lastTick = now
+	// Single computation point for the adaptive cadence: both Run and
+	// Tick-only callers (via leaseTTL) observe the same interval, so the
+	// lease always covers the next wait even under backoff.
+	m.refreshIntervalLocked()
+	// Extend our just-acquired lease to the NEW interval: the acquire above
+	// covered the previous cadence, and a shallow-backoff→healthy recovery
+	// would otherwise leave a short TTL over a long sleep, inviting a steal.
+	if held {
+		if err := m.deps.Store.RenewCapacityLease(m.deps.OwnerID, now, m.ttlForInterval(m.lastInterval)); err != nil {
+			m.noteFailure()
+		}
+	}
 	m.mu.Unlock()
 	// The pass completed: report cancellation only if it actually landed.
 	if err := ctx.Err(); err != nil {
@@ -206,8 +224,10 @@ func (m *Monitor) Run(ctx context.Context) {
 		}
 		_ = m.Tick(ctx)
 		m.mu.Lock()
-		interval = DetermineCollectionInterval(m.worst, false, false, m.failures, m.minProbeIntervalLocked())
-		m.lastInterval = interval
+		interval = m.lastInterval
+		if interval <= 0 {
+			interval = m.deps.BaseInterval
+		}
 		m.mu.Unlock()
 	}
 }
@@ -258,14 +278,10 @@ func (m *Monitor) noteFailure() {
 // this is clamped, so a typo can never pin leadership for weeks.
 const maxLeaseTTL = 24 * time.Hour
 
-// leaseTTL scales with the last collection interval so slow healthy cadences
-// never outrun the lease. Precedence: 3x cadence (base capped at 10m so the
-// multiply cannot overflow), then the configured LeaseTTL as floor, then the
-// absolute maxLeaseTTL cap.
-func (m *Monitor) leaseTTL() time.Duration {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	base := m.lastInterval
+// ttlForInterval scales a cadence into lease coverage: 3x, honoring the
+// configured LeaseTTL as floor and maxLeaseTTL as absolute cap.
+func (m *Monitor) ttlForInterval(interval time.Duration) time.Duration {
+	base := interval
 	if base <= 0 {
 		base = m.deps.BaseInterval
 	}
@@ -282,6 +298,27 @@ func (m *Monitor) leaseTTL() time.Duration {
 	return ttl
 }
 
+// leaseTTL covers the upcoming wait with the last computed cadence.
+func (m *Monitor) leaseTTL() time.Duration {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.ttlForInterval(m.lastInterval)
+}
+
+// refreshIntervalLocked recomputes the adaptive cadence from the current
+// worst state and backoff counter. Callers must hold m.mu.
+func (m *Monitor) refreshIntervalLocked() {
+	m.lastInterval = DetermineCollectionInterval(m.worst, false, false, m.failures, m.minProbeInterval())
+}
+
+// refreshInterval recomputes the cadence for early-return paths so a failing
+// pass still steers Run onto the retry ladder instead of a stale cadence.
+func (m *Monitor) refreshInterval() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.refreshIntervalLocked()
+}
+
 func (m *Monitor) minProbeInterval() time.Duration {
 	var out time.Duration
 	if m.deps.ProbeRegistry == nil {
@@ -296,8 +333,6 @@ func (m *Monitor) minProbeInterval() time.Duration {
 	}
 	return out
 }
-
-func (m *Monitor) minProbeIntervalLocked() time.Duration { return m.minProbeInterval() }
 
 // evaluateProfile probes one profile and persists per-window observations and
 // transitions. It returns the worst state seen and whether the account
