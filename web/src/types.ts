@@ -811,16 +811,6 @@ export interface PromptArtifact {
   skill_ids_json: string;
   created_at: string;
 }
-export interface PromptVariant {
-  id: string;
-  artifact_id: string;
-  variant: 'GENERIC_PORTABLE' | 'NEXUS_AGENT' | 'FLOW_HANDOFF' | string;
-  target?: string;
-  content: string;
-  hash: string;
-  capabilities_json?: string;
-  created_at: string;
-}
 export interface FlowSuitabilityAssessment {
   result: 'DIRECT_FIT' | 'FLOW_BENEFICIAL' | 'FLOW_STRONGLY_RECOMMENDED' | string;
   reasons: string[];
@@ -834,22 +824,44 @@ export interface ComposerPromptReview {
 export interface PromptReadinessCheck {
   key: string;
   label: string;
-  score: number;
+  status: string;
   summary: string;
 }
+export interface ContextFileRef {
+  path: string;
+  excerpt?: string;
+  hash?: string;
+}
+
 export interface ComposerSessionView {
   session: ComposerSession;
   brief: {
     goal: string;
-    context?: string[] | Record<string, unknown>;
+    context?:
+      | string[]
+      | {
+          existing_state?: string[];
+          evidence?: string[];
+          referenced_files?: ContextFileRef[];
+          [key: string]: unknown;
+        };
     constraints?: string[] | Record<string, unknown>;
     decisions?: string[];
     assumptions?: Array<string | { value?: string; status?: string; confidence?: string }>;
     alternatives?: string[];
     risks?: string[];
+    quality?: {
+      acceptance_criteria?: string[];
+      testing?: string[];
+      verification?: string[];
+      review?: string[];
+      definition_of_done?: string[];
+    };
+    /** @deprecated use quality.acceptance_criteria */
     success_criteria?: string[];
     open_questions?: string[];
     intent?: { archetype?: string };
+    preview?: string;
     readiness?: { score: number; state: string; summary: string; checks?: PromptReadinessCheck[] };
     unknowns?: Array<{
       id: string;
@@ -869,7 +881,6 @@ export interface ComposerSessionView {
   turns: ComposerTurn[];
   skills: ComposerSkillProposal[];
   artifacts?: PromptArtifact[];
-  variants?: Record<string, PromptVariant[]>;
   flow_suitability?: FlowSuitabilityAssessment;
   prompt_review?: ComposerPromptReview;
 }
@@ -1435,4 +1446,32 @@ export interface AttentionGroup {
   failed: AttentionItem[];
   all_items: AttentionItem[];
   total_needs: number;
+}
+
+export interface TelemetryStats {
+  period_days: number;
+  total_sessions: number;
+  total_fallbacks: number;
+  total_rate_limits: number;
+  by_provider: Record<string, number>;
+  by_profile: Record<string, number>;
+  rate_limits_by_profile: Record<string, number>;
+}
+
+export interface TelemetryHistoryEvent {
+  timestamp: string;
+  type: string;
+  provider_id: string;
+  profile_id: string;
+  workspace?: string;
+  duration_ms?: number;
+  reason?: string;
+  failure_kind?: string;
+  fallback_profile?: string;
+  account_scope?: {
+    provider_id: string;
+    profile_id: string;
+    account_id: string;
+    identity_version: string;
+  };
 }

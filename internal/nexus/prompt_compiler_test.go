@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
-	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -116,22 +115,43 @@ func TestCompileAgentPromptForProjectResolvesBuiltinSkillWithoutMaestro(t *testi
 	}
 }
 
-func TestCompilePromptVariantsAreTraceableAndDistinct(t *testing.T) {
-	brief := newComposerBrief("Implement a notes feature", "Implement a notes feature with tests")
-	variants := CompilePromptVariants(brief, []nexusskills.Skill{{ID: "skill-go", Source: nexusskills.SourceBuiltin, Version: "1.2.0"}}, "codex")
-	if len(variants) != 3 {
-		t.Fatalf("got %d variants", len(variants))
-	}
-	seen := map[PromptVariantKind]bool{}
-	for _, variant := range variants {
-		if variant.Hash == "" || variant.Content == "" || !strings.Contains(variant.Content, "source: builtin") {
-			t.Fatalf("variant lacks traceability: %+v", variant)
+func TestRenderCanonicalPromptIncludesFilledSections(t *testing.T) {
+	brief := newComposerBrief(
+		"Add password reset with expiring token",
+		"Add password reset with expiring token. Out of scope: SMS. Must pass go test. Do not commit.",
+	)
+	brief.Scope.InScope = []string{"password reset API"}
+	brief.Scope.OutOfScope = []string{"SMS delivery"}
+	brief.Quality.AcceptanceCriteria = []string{"token expires and email is mocked"}
+	brief.Quality.Testing = []string{"go test ./..."}
+	brief.Quality.Verification = []string{"manual reset flow"}
+	brief.Quality.DefinitionOfDone = []string{"tests green"}
+	brief.Execution.ProhibitedActions = []string{"git commit"}
+	brief.Risks = []string{"token leakage"}
+	brief.Deliverable.ExpectedArtifacts = []string{"API handlers", "tests"}
+	brief.Constraints.Security = []string{"hashed tokens only"}
+	refreshComposerBrief(&brief)
+
+	prompt := renderCanonicalPrompt(brief)
+	for _, section := range []string{
+		"# Role",
+		"# Objective",
+		"# Requirements",
+		"# Out of scope",
+		"# Constraints — Security",
+		"# Execution — Prohibited actions",
+		"# Risks",
+		"# Acceptance Criteria",
+		"# Testing",
+		"# Verification",
+		"# Definition of Done",
+		"# Deliverables",
+	} {
+		if !strings.Contains(prompt, section) {
+			t.Fatalf("canonical prompt missing %q\n%s", section, prompt)
 		}
-		seen[variant.Kind] = true
 	}
-	for _, kind := range []PromptVariantKind{PromptVariantGenericPortable, PromptVariantNexusAgent, PromptVariantFlowHandoff} {
-		if !seen[kind] {
-			t.Fatalf("missing %s", kind)
-		}
+	if brief.Preview == "" || brief.Preview != prompt {
+		t.Fatalf("preview must mirror canonical prompt")
 	}
 }

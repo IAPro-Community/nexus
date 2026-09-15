@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(new URL('./WorkspaceSurfaceHost.tsx', import.meta.url), 'utf8');
 
 describe('Workspace OS mission surface wiring', () => {
-  it('routes Missions to Flow Runs history instead of the PlanBuilder editor', () => {
+  it('routes Missions to FlowRunsHistorySurface, not PlanBuilder or legacy MissionsPage', () => {
     expect(source).toMatch(/import\(['"]\.\.\/features\/work\/FlowRunsHistorySurface['"]\)/);
     expect(source).toMatch(/surface\.type === 'missions'[\s\S]*?<FlowRunsHistorySurface/);
     expect(source).not.toMatch(/surface\.type === 'missions'[\s\S]*?<PlanBuilderSurface/);
-    expect(source).not.toMatch(/surface\.type === 'missions'[\s\S]*?<MissionsPage projectId=/);
+    expect(source).not.toContain('MissionsPage');
   });
 
   it('mounts PlanBuilder once via the Composer work surface', () => {

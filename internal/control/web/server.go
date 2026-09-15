@@ -235,8 +235,6 @@ func projectSubroute(path string) string {
 		return "layout"
 	case strings.HasSuffix(path, "/agents"):
 		return "agents"
-	case strings.HasSuffix(path, "/missions"):
-		return "missions"
 	case strings.HasSuffix(path, "/plans"):
 		return "plans"
 	case strings.HasSuffix(path, "/open-os"):
@@ -385,41 +383,6 @@ func (s *Server) routeRun(h *NexusHandler) http.HandlerFunc {
 			return
 		}
 		h.handleRunDetail(w, r)
-	}
-}
-
-// routeAgent dispatches agent detail, actions, and the agent-scoped terminal WS.
-func (s *Server) routeMission(h *NexusHandler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !s.auth.ValidateOrigin(r) {
-			writeError(w, http.StatusForbidden, "invalid origin")
-			return
-		}
-		sess := s.auth.AuthenticateRequest(r)
-		if sess == nil {
-			writeError(w, http.StatusUnauthorized, "authentication required")
-			return
-		}
-		if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
-			csrf := r.Header.Get(csrfHeaderName)
-			if csrf == "" || csrf != sess.CSRFToken {
-				writeError(w, http.StatusForbidden, "invalid CSRF token")
-				return
-			}
-		}
-		path := strings.TrimPrefix(r.URL.Path, "/api/v1/missions/")
-		parts := strings.Split(path, "/")
-		if len(parts) >= 2 {
-			switch parts[1] {
-			case "tasks":
-				h.handleMissionTaskCreate(w, r)
-				return
-			case "assign":
-				h.handleMissionAssign(w, r)
-				return
-			}
-		}
-		h.handleMissionDetail(w, r)
 	}
 }
 

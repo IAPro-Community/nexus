@@ -142,6 +142,37 @@ Input: %s`, string(input))
 	return result.Packages, nil
 }
 
+// ExtractBrief performs a single headless JSON oneshot that maps the prompt
+// into structured brief fields. When the CLI backend is not capability-validated
+// it returns an empty extraction with a nil error so the caller falls back to
+// deterministic heuristics instead of surfacing an error.
+func (p *CLIProvider) ExtractBrief(ctx context.Context, text string, contextData map[string]any) (*BriefExtraction, error) {
+	if !p.Available(ctx) {
+		return &BriefExtraction{}, nil
+	}
+	ctxJSON, _ := json.Marshal(contextData)
+	prompt := fmt.Sprintf(`Return ONLY a JSON object. Do not wrap it in prose or markdown fences.
+You extract a structured engineering brief from a free-form prompt.
+Only output fields the text actually supports; leave arrays empty when the text says nothing. Do NOT invent scope, criteria, or constraints.
+Schema:
+{"in_scope":["..."],"out_of_scope":["..."],"constraints_technical":["..."],"constraints_security":["..."],"risks":["..."],"acceptance_criteria":["..."],"testing":["..."],"verification":["..."],"prohibited_actions":["..."],"deliverables":["..."],"stack":["..."],"existing_state":["..."]}
+Prompt: %s
+Context: %s`, text, string(ctxJSON))
+	out, err := p.run(ctx, prompt)
+	if err != nil {
+		return nil, fmt.Errorf("run %s extract brief: %w", p.Name(), err)
+	}
+	payload, err := extractJSONObject(out)
+	if err != nil {
+		return nil, fmt.Errorf("decode %s extract brief: %w", p.Name(), err)
+	}
+	var result BriefExtraction
+	if err := json.Unmarshal(payload, &result); err != nil {
+		return nil, fmt.Errorf("decode %s extract brief: %w", p.Name(), err)
+	}
+	return &result, nil
+}
+
 // PlanFromGoal performs a single headless CLI call that returns intent, unknowns, and packages.
 func (p *CLIProvider) PlanFromGoal(ctx context.Context, goal string, contextData map[string]any) (*IntentAnalysis, []AmbiguityItem, []WorkPackageOutline, error) {
 	if !p.Available(ctx) {

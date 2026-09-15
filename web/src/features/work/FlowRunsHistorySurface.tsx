@@ -6,7 +6,7 @@ import { nexusApi } from '../../nexus/api';
 import type { MissionRun, Project, WorkPlan, Agent } from '../../types';
 import { asArray } from '../../lib/safeArray';
 import { flowRunStateFromMission } from './flowRunModel';
-import { PlanBuilderSurface } from './PlanBuilderSurface';
+import { FlowDraftEditor } from './FlowDraftEditor';
 import { FLOW_DRAFT_KEY } from './WorkSurface';
 import styles from './FlowRunsHistorySurface.module.scss';
 
@@ -18,8 +18,7 @@ export const FlowRunsHistorySurface: React.FC<{
   agents?: Agent[];
   onOpenRun: (run: MissionRun) => void;
   onOpenComposer?: () => void;
-  onOpenAgent?: (agent: Agent) => void;
-}> = ({ project, agents = [], onOpenRun, onOpenComposer, onOpenAgent }) => {
+}> = ({ project, agents = [], onOpenRun, onOpenComposer }) => {
   const { t } = useTranslation();
   const [runs, setRuns] = useState<MissionRun[]>([]);
   const [plans, setPlans] = useState<WorkPlan[]>([]);
@@ -124,16 +123,14 @@ export const FlowRunsHistorySurface: React.FC<{
           </Button>
           <strong>{selectedPlan.title || selectedPlan.id}</strong>
         </div>
-        <PlanBuilderSurface
+        <FlowDraftEditor
           project={project}
           agents={agents}
-          onOpenAgent={onOpenAgent}
           onRunCreated={(run) => {
             setSelectedPlan(null);
             onOpenRun(run);
           }}
           initialPlan={selectedPlan}
-          compactGoal
         />
       </div>
     );
@@ -231,7 +228,7 @@ export const FlowRunsHistorySurface: React.FC<{
                 void nexusApi
                   .createPlan(project.id, {
                     goal: newGoal.trim(),
-                    auto_plan: true,
+                    auto_plan: false,
                     title: newGoal.trim(),
                   })
                   .then((plan) => {

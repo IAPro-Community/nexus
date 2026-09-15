@@ -54,7 +54,6 @@ func TestProjectSubrouteClassification(t *testing.T) {
 	cases := map[string]string{
 		"/api/v1/projects/proj-1/layout":       "layout",
 		"/api/v1/projects/proj-1/agents":       "agents",
-		"/api/v1/projects/proj-1/missions":     "missions",
 		"/api/v1/projects/proj-1/plans":        "plans",
 		"/api/v1/projects/proj-1/open-os":      "open-os",
 		"/api/v1/projects/proj-1/git/branches": "git-branches",

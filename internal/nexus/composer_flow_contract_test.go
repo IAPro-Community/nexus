@@ -8,9 +8,92 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
+
+func TestApplyBriefExtractionMergesFieldsAndRecordsInferredFacts(t *testing.T) {
+	brief := newComposerBrief("Ship feature", "Ship feature")
+	before := len(brief.Facts)
+	applyBriefExtraction(&brief, &intelligence.BriefExtraction{
+		InScope:            []string{"backend", "frontend"},
+		Risks:              []string{"data loss"},
+		Verification:       []string{"go test ./..."},
+		AcceptanceCriteria: []string{"tests pass"},
+	})
+	if len(brief.Scope.InScope) != 2 || brief.Scope.InScope[0] != "backend" {
+		t.Fatalf("in_scope not merged: %#v", brief.Scope.InScope)
+	}
+	if len(brief.Risks) != 1 || len(brief.Quality.Verification) != 1 || len(brief.Quality.AcceptanceCriteria) != 1 {
+		t.Fatalf("brief fields not merged: %+v", brief)
+	}
+	inferred := 0
+	for _, fact := range brief.Facts {
+		if fact.SourceType == "INTELLIGENCE" && fact.Status == ComposerFactInferred {
+			inferred++
+		}
+	}
+	if inferred == 0 || len(brief.Facts) <= before {
+		t.Fatalf("expected inferred intelligence facts, got %d facts (before %d)", len(brief.Facts), before)
+	}
+
+	// Re-applying the same extraction must be idempotent (no duplicate facts/values).
+	factsAfterFirst := len(brief.Facts)
+	applyBriefExtraction(&brief, &intelligence.BriefExtraction{InScope: []string{"backend", "frontend"}})
+	if len(brief.Scope.InScope) != 2 || len(brief.Facts) != factsAfterFirst {
+		t.Fatalf("re-applying extraction was not idempotent: scope=%#v facts=%d", brief.Scope.InScope, len(brief.Facts))
+	}
+}
+
+func TestMaterializePromptArtifactDecomposesWhenFlowBeneficial(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Decompose", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	view, err := n.CreateComposerSessionWithPrompt(context.Background(), project.ID, "Ship full feature", "Implement backend and frontend with review")
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifact, err := n.FinalizeComposerSession(context.Background(), view.Session.ID, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Persist a flow-beneficial brief (multiple in-scope workstreams + review).
+	session, err := st.GetComposerSession(view.Session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	brief := LivingBrief{
+		Goal:    "Implement backend and frontend with review coverage",
+		Intent:  BriefIntent{Objective: "Implement backend and frontend with review coverage"},
+		Scope:   BriefScope{InScope: []string{"backend API", "frontend UI"}},
+		Quality: BriefQuality{Review: []string{"independent review"}, AcceptanceCriteria: []string{"tests pass"}},
+	}
+	if assessment := AssessComposerFlowSuitability(brief); assessment.Result == FlowDirectFit {
+		t.Fatalf("test fixture must be flow-beneficial, got %+v", assessment)
+	}
+	session.BriefJSON = mustJSON(brief)
+	if err := st.UpdateComposerSession(*session); err != nil {
+		t.Fatal(err)
+	}
+
+	plan, err := n.MaterializePromptArtifactAsFlow(context.Background(), artifact.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Description != "Materialized from Composer PromptArtifact via Flow decomposition" {
+		t.Fatalf("expected flow decomposition path, got description %q", plan.Description)
+	}
+	if plan.StructuredFacts["nexus.source_artifact_id"] != artifact.ID || plan.StructuredFacts["nexus.source_artifact_revision"] != "1" {
+		t.Fatalf("decomposed plan lost Composer lineage: %+v", plan.StructuredFacts)
+	}
+}
 
 func TestComposerAndFlowRemainOptionalAcrossIntentPipeline(t *testing.T) {
 	decision := DecideIntent("corrija este teste quebrado", nil)

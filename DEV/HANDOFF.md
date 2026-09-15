@@ -1,5 +1,46 @@
 # Handoff
 
+## Soak de 8h concluído — 2026-09-15
+
+O soak executado no processo original terminou com **PASS**: `go test`
+reportou `28800.028s` (8h), sem falha. Permanecem separados os gates que
+dependem de CI no mesmo SHA, plataformas nativas e credenciais reais.
+
+## Modernização das Superfícies de Sessões, Agentes e Project Overview (Opções 1, 2 e 3) — 2026-09-15
+
+As três superfícies selecionadas pelo Maestro foram totalmente modernizadas no Web OS com paridade CLI, novos componentes, estilização via SCSS Modules e integração completa com a telemetria do Nexus:
+
+1. **Superfície de Sessões & Histórico (`/sessions`)**:
+   - Strip superior de métricas agregadas com 4 cards estatísticos: Total de Sessões, Fallbacks Registrados, Rate Limits e Agentes Ativos.
+   - Alternador de abas:
+     - **Histórico de Execuções**: Timeline cronológica de eventos com timestamp relativo e absoluto, provedor, perfil, workspace, duração da execução e status.
+     - **Gerações dos Agentes**: Visualização dos prompts e gerações recentes dos agentes, tokens consumidos e metadados.
+   - Filtros instantâneos: Busca em tempo real e pills de seleção rápida por provedor (`agy`, `codex`, `opencode`, etc.).
+   - Paridade com `nexus stats` e `nexus history`.
+
+2. **Superfície de Agentes (`/agents`)**:
+   - Barra de resumo interativa com contadores clicáveis por estado (Todos, Em Execução, Em Espera, Degradados, Parados).
+   - Cards modernos com indicador pulsante animado (`agent-pulse`) quando em estado `WORKING`.
+   - Badges de continuidade de contexto, tags de perfil vinculado e metadados técnicos.
+   - Painel de templates e perfis recomendados com roles pré-configuradas (`developer`, `architect`, `reviewer`, `tester`) para rápido provisionamento.
+
+3. **Superfície de Project Overview (`/overview`)**:
+   - Seção de Runtimes e Processos Supervisionados ao vivo (`nexus ps`), contextualizada ao workspace do projeto.
+   - Cards de runtime com pulso verde em tempo real, ID do runtime, PID, provedor/perfil, tempo de vida e ações imediatas ("Anexar Terminal" e "Parar").
+
+4. **Backend Go & Endpoints de Telemetria**:
+   - `GET /api/v1/telemetry/stats`: Retorna estatísticas de sessões, fallbacks e rate limits agregadas por provedor e perfil via `telemetry.ComputeStats`.
+   - `GET /api/v1/telemetry/history`: Retorna lista cronológica de eventos de sessão e prompts via `telemetry.ReadRecentEvents`.
+   - Suporte a autenticação web e proteção CSRF.
+
+5. **Compilação e Instalação Local**:
+   - 10/10 gates em `make web-verify` PASS.
+   - 378/378 testes Vitest PASS.
+   - Binário `./nexus` compilado com embedding atualizado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
+   - Servidor local rodando em background na porta 13000 (`http://127.0.0.1:13000`).
+   - Sem commits e sem push conforme constituição do Orquestrador.
+
+
 ## Compilação e Instalação Local Concluídas — 2026-09-15
 
 O binário unificado Nexus foi compilado com todos os novos recursos e instalado localmente com sucesso:

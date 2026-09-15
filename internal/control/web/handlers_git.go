@@ -12,6 +12,18 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
+// ProjectGitBranchesResponse is returned by GET /api/v1/projects/:id/git/branches
+type ProjectGitBranchesResponse struct {
+	ProjectID      string   `json:"project_id"`
+	CanonicalPath  string   `json:"canonical_path"`
+	CurrentBranch  string   `json:"current_branch"`
+	DefaultBranch  string   `json:"default_branch"`
+	Branches       []string `json:"branches"`
+	RemoteBranches []string `json:"remote_branches"`
+	IsClean        bool     `json:"is_clean"`
+	ModifiedCount  int      `json:"modified_count"`
+}
+
 // handleProjectGitBranches GET /api/v1/projects/{projectID}/git/branches
 func (h *NexusHandler) handleProjectGitBranches(w http.ResponseWriter, r *http.Request) {
 	st, err := h.nexus.OpenProject()

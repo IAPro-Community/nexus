@@ -427,7 +427,6 @@ export const WorkspaceSurfaceHost: React.FC<{
           agents={agents}
           onOpenRun={(run) => openSurface(flowRunSurface(run.id, `Flow Run · ${run.id.slice(-6)}`))}
           onOpenComposer={() => open('work')}
-          onOpenAgent={terminal}
         />
       );
     }

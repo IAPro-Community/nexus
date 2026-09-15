@@ -1,0 +1,142 @@
+import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { FileText, Lightbulb, MessageCircle, Sparkles } from 'lucide-react';
+import { Button, Card, Input, Select } from '../../design-system';
+import type { ComposerSession } from '../../types';
+import { composerSessionStateKey, formatComposerSessionTitle } from './composerModel';
+import styles from './ComposerSurface.module.scss';
+
+export type ComposerStartCreateArgs = {
+  mode: 'IDEA' | 'EXISTING_PROMPT';
+  draft: string;
+  sourcePrompt: string;
+};
+
+/**
+ * Initial elaboration screen shown while no session is loaded: idea vs.
+ * existing-prompt modes, the draft inputs, previous-session picker and the
+ * create action. Draft/mode state is local; the orchestrator keeps API + view.
+ */
+export const ComposerStart: React.FC<{
+  sessions: ComposerSession[];
+  busy: boolean;
+  error?: string;
+  onCreate: (args: ComposerStartCreateArgs) => void;
+  onResumeSession: (id: string) => void;
+}> = ({ sessions, busy, error, onCreate, onResumeSession }) => {
+  const { t } = useTranslation();
+  const [inputMode, setInputMode] = useState<'IDEA' | 'EXISTING_PROMPT'>('IDEA');
+  const [draft, setDraft] = useState('');
+  const [sourcePrompt, setSourcePrompt] = useState('');
+
+  const sessionOptions = useMemo(
+    () =>
+      sessions.map((s) => ({
+        value: s.id,
+        label: `${formatComposerSessionTitle(s.title, s.id, s.created_at)} · ${t(
+          composerSessionStateKey(s.state),
+          s.state,
+        )}`,
+      })),
+    [sessions, t],
+  );
+
+  const disabled =
+    !draft.trim() || (inputMode === 'EXISTING_PROMPT' && !sourcePrompt.trim()) || busy;
+
+  return (
+    <Card className={styles.goalBar}>
+      <div className={`${styles.goalBarLabel} ${styles.flexRowBetween}`}>
+        <div className={styles.flexRowGap6}>
+          <Sparkles size={16} />
+          <span>{t('work.composer.startTitle', 'Start an elaboration')}</span>
+        </div>
+        <div className={styles.flexRowGap4}>
+          <Button
+            size="sm"
+            tone={inputMode === 'IDEA' ? 'brand' : 'default'}
+            onClick={() => setInputMode('IDEA')}
+            disabled={busy}
+          >
+            <Lightbulb size={13} /> {t('work.composer.ideaMode', 'Idea / Explore')}
+          </Button>
+          <Button
+            size="sm"
+            tone={inputMode === 'EXISTING_PROMPT' ? 'brand' : 'default'}
+            onClick={() => setInputMode('EXISTING_PROMPT')}
+            disabled={busy}
+          >
+            <FileText size={13} /> {t('work.composer.existingPromptMode', 'Existing prompt')}
+          </Button>
+        </div>
+      </div>
+
+      <div className={styles.flexColGap8}>
+        <Input
+          value={draft}
+          onChange={setDraft}
+          placeholder={
+            inputMode === 'IDEA'
+              ? t(
+                  'work.composer.ideaPlaceholder',
+                  'Which idea or goal do you want to turn into a strong prompt?',
+                )
+              : t(
+                  'work.composer.existingGoalPlaceholder',
+                  'What is the main goal of this existing prompt?',
+                )
+          }
+          className={styles.flexGrow}
+          disabled={busy}
+        />
+        {inputMode === 'EXISTING_PROMPT' && (
+          <textarea
+            className={styles.sourceTextarea}
+            value={sourcePrompt}
+            onChange={(e) => setSourcePrompt(e.target.value)}
+            placeholder={t(
+              'work.composer.sourcePlaceholder',
+              'Paste the original prompt for gap analysis, completeness and structure…',
+            )}
+            rows={4}
+            disabled={busy}
+          />
+        )}
+        <div className={styles.flexRowEnd}>
+          <Button
+            tone="brand"
+            disabled={disabled}
+            onClick={() =>
+              onCreate({ mode: inputMode, draft: draft.trim(), sourcePrompt: sourcePrompt.trim() })
+            }
+          >
+            <MessageCircle size={14} />{' '}
+            {busy
+              ? t('work.composer.starting', 'Starting…')
+              : inputMode === 'EXISTING_PROMPT'
+                ? t('work.composer.analyzePrompt', 'Analyze prompt')
+                : t('work.composer.converse', 'Converse')}
+          </Button>
+        </div>
+      </div>
+
+      {sessions.length > 0 && (
+        <div className={styles.flexRowWrapGap8}>
+          <small className={styles.mutedLabel}>
+            {t('work.composer.previousSessions', 'Previous elaborations:')}
+          </small>
+          <Select
+            placeholder={t('work.composer.resumeSession', 'Resume a saved session…')}
+            value=""
+            onChange={(id) => {
+              if (id) onResumeSession(id);
+            }}
+            options={sessionOptions}
+            selectClassName={styles.sessionSelect}
+          />
+        </div>
+      )}
+      {error && <div className={styles.inlineError}>{error}</div>}
+    </Card>
+  );
+};

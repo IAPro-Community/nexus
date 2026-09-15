@@ -217,6 +217,56 @@ Output ONLY valid JSON matching:
 	return wrapper.Packages, nil
 }
 
+func (p *OpenAIIntelligenceProvider) ExtractBrief(ctx context.Context, text string, contextData map[string]any) (*BriefExtraction, error) {
+	if !p.Available(ctx) {
+		return nil, ErrIntelligenceUnavailable
+	}
+
+	sysPrompt := `You extract a structured engineering brief from a free-form prompt.
+Only output fields the text actually supports; leave arrays empty when the text says nothing about them. Do NOT invent scope, criteria or constraints.
+Output ONLY valid JSON matching this schema:
+{
+  "in_scope": ["what must be built/changed"],
+  "out_of_scope": ["explicit non-goals"],
+  "constraints_technical": ["technical constraints"],
+  "constraints_security": ["security/auth constraints"],
+  "risks": ["risks or regressions to avoid"],
+  "acceptance_criteria": ["observable done conditions"],
+  "testing": ["tests expected"],
+  "verification": ["how to verify (commands, checks)"],
+  "prohibited_actions": ["actions the agent must NOT take"],
+  "deliverables": ["expected artifacts"],
+  "stack": ["languages/frameworks/services involved"],
+  "existing_state": ["relevant current-state facts"]
+}`
+
+	userContent, _ := json.Marshal(map[string]any{
+		"prompt":          text,
+		"project_context": contextData,
+	})
+
+	body := map[string]any{
+		"model": p.Model,
+		"messages": []map[string]string{
+			{"role": "system", "content": sysPrompt},
+			{"role": "user", "content": string(userContent)},
+		},
+		"temperature":     0.1,
+		"response_format": map[string]string{"type": "json_object"},
+	}
+
+	resBytes, err := p.doRequest(ctx, body)
+	if err != nil {
+		return nil, fmt.Errorf("extract brief with %s: %w", p.Name(), err)
+	}
+
+	var parsed BriefExtraction
+	if err := json.Unmarshal(resBytes, &parsed); err != nil {
+		return nil, fmt.Errorf("decode brief extraction from %s: %w", p.Name(), err)
+	}
+	return &parsed, nil
+}
+
 func (p *OpenAIIntelligenceProvider) doRequest(ctx context.Context, body map[string]any) ([]byte, error) {
 	reqData, err := json.Marshal(body)
 	if err != nil {

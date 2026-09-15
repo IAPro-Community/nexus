@@ -1,5 +1,29 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-15 — Soak prolongado
+
+- **PASS** — `make overnight-soak DURATION=8h`, com duração observada de
+  `28800.028s` (8h) e encerramento normal do teste.
+- O resultado é evidência real de execução prolongada, não um smoke test curto.
+
+## 2026-09-15 — Modernização das Superfícies de Sessões, Agentes e Project Overview (Opções 1, 2 e 3)
+
+- PASS — `go test -v ./internal/control/web/...`: 100% de aprovação na suite web, incluindo os novos testes unitários de `handleTelemetryStats` e `handleTelemetryHistory` (`handlers_telemetry_test.go`).
+- PASS — `npm --prefix web run check:styles`: Conformidade estrita com SCSS Modules e allowlist global de estilos.
+- PASS — `npm --prefix web run lint:styles`: Stylelint aprovado sem nenhuma violação (incluindo keyframes kebab-case `agent-pulse` e `runtime-pulse`).
+- PASS — `npm --prefix web run typecheck`: TypeScript `tsc --noEmit` compilado limpo (0 erros).
+- PASS — `npm --prefix web run lint`: ESLint com `--max-warnings=0` aprovado (0 erros, 0 warnings).
+- PASS — `npm --prefix web run format:check`: Prettier 100% em conformidade.
+- PASS — `npm --prefix web test`: Vitest executou 71 arquivos e 378 testes com 100% de aprovação (incluindo paridade de chaves i18n em `src/i18n/i18n.test.ts`).
+- PASS — `make web-verify`: Todos os 10 gates automatizados aprovados (format, typecheck, lint, stylelint, null-arrays, test, i18n, build, embed-sync, ui-markers).
+- PASS — `make build`: Binário `./nexus` v1.0.0-beta.1 compilado com novos assets embutidos em `web/dist`.
+- PASS — `make install LOCAL_BIN=/home/desenvolvedor/.local/bin`: Binário instalado em `/home/desenvolvedor/.local/bin/nexus`.
+- PASS — `curl -sI http://127.0.0.1:13000/`: HTTP 200 OK com novos assets servidos pelo servidor de controle.
+- PASS — `curl -s -b /tmp/nexus-cookies.txt http://127.0.0.1:13000/api/v1/telemetry/stats`: Retorno JSON estruturado de telemetria agregada (`total_sessions`, `by_provider`, `by_profile`, `rate_limits_by_profile`).
+- PASS — `curl -s -b /tmp/nexus-cookies.txt http://127.0.0.1:13000/api/v1/telemetry/history`: Retorno JSON de eventos cronológicos com provider, profile, duration e timestamp.
+- NOT EXECUTED — `git commit` e `git push` (em estrita conformidade com a constituição do Orquestrador).
+
+
 ## 2026-09-15 — Compilação e Instalação Local do Binário Nexus (v1.0.0-beta.1 @ 2b9c956)
 
 - PASS — `make build`: Bundles frontend gerados com sucesso e binário `./nexus` compilado com commit `2b9c956`.
@@ -1357,7 +1381,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-15T03:07:25Z
+## Frontend gate — 2026-09-15T04:37:45Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-

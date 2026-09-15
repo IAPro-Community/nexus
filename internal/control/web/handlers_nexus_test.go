@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -661,93 +660,5 @@ func TestProjectEventsAPI(t *testing.T) {
 	}
 	if eventsList[0].Kind != "AGENT_WORKING" {
 		t.Fatalf("expected AGENT_WORKING, got %s", eventsList[0].Kind)
-	}
-}
-
-func TestMissionAPIContractUsesApplicationBoundary(t *testing.T) {
-	client, srv, csrf := csrfClient(t)
-	base := srv.URL()
-	projectDir := t.TempDir()
-
-	projectBody, _ := json.Marshal(map[string]string{"name": "Mission API", "path": projectDir})
-	projectReq, _ := http.NewRequest(http.MethodPost, base+"/api/v1/projects", bytes.NewReader(projectBody))
-	projectReq.Header.Set("X-CSRF-Token", csrf)
-	projectReq.Header.Set("Content-Type", "application/json")
-	projectResp, err := client.Do(projectReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var project store.Project
-	if err := json.NewDecoder(projectResp.Body).Decode(&project); err != nil {
-		t.Fatal(err)
-	}
-	_ = projectResp.Body.Close()
-
-	missionBody, _ := json.Marshal(map[string]string{"name": "Ship", "goal": "Ship safely"})
-	missionReq, _ := http.NewRequest(http.MethodPost, base+"/api/v1/projects/"+project.ID+"/missions", bytes.NewReader(missionBody))
-	missionReq.Header.Set("X-CSRF-Token", csrf)
-	missionReq.Header.Set("Content-Type", "application/json")
-	missionResp, err := client.Do(missionReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if missionResp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(missionResp.Body)
-		_ = missionResp.Body.Close()
-		t.Fatalf("create mission status=%d body=%s", missionResp.StatusCode, body)
-	}
-	var mission store.Mission
-	if err := json.NewDecoder(missionResp.Body).Decode(&mission); err != nil {
-		t.Fatal(err)
-	}
-	_ = missionResp.Body.Close()
-
-	listResp, err := client.Get(base + "/api/v1/projects/" + project.ID + "/missions")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var listed struct {
-		Missions []store.Mission `json:"missions"`
-	}
-	if err := json.NewDecoder(listResp.Body).Decode(&listed); err != nil {
-		t.Fatal(err)
-	}
-	_ = listResp.Body.Close()
-	if listResp.StatusCode != http.StatusOK || len(listed.Missions) != 1 {
-		t.Fatalf("list missions status=%d payload=%+v", listResp.StatusCode, listed)
-	}
-
-	taskBody, _ := json.Marshal(map[string]any{"name": "Build", "kind": "action"})
-	taskReq, _ := http.NewRequest(http.MethodPost, base+"/api/v1/missions/"+mission.ID+"/tasks", bytes.NewReader(taskBody))
-	taskReq.Header.Set("X-CSRF-Token", csrf)
-	taskReq.Header.Set("Content-Type", "application/json")
-	taskResp, err := client.Do(taskReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if taskResp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(taskResp.Body)
-		_ = taskResp.Body.Close()
-		t.Fatalf("create task status=%d body=%s", taskResp.StatusCode, body)
-	}
-	_ = taskResp.Body.Close()
-
-	detailResp, err := client.Get(base + "/api/v1/missions/" + mission.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var detail struct {
-		Mission store.Mission       `json:"mission"`
-		Tasks   []store.MissionTask `json:"tasks"`
-		Stats   struct {
-			Total int `json:"total"`
-		} `json:"stats"`
-	}
-	if err := json.NewDecoder(detailResp.Body).Decode(&detail); err != nil {
-		t.Fatal(err)
-	}
-	_ = detailResp.Body.Close()
-	if detailResp.StatusCode != http.StatusOK || detail.Mission.ID != mission.ID || len(detail.Tasks) != 1 || detail.Stats.Total != 1 {
-		t.Fatalf("mission detail status=%d payload=%+v", detailResp.StatusCode, detail)
 	}
 }

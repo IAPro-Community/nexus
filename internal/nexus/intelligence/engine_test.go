@@ -37,6 +37,12 @@ func (s *stubProvider) GeneratePlanOutline(_ context.Context, _ *IntentAnalysis,
 	}
 	return s.outline, nil
 }
+func (s *stubProvider) ExtractBrief(context.Context, string, map[string]any) (*BriefExtraction, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return &BriefExtraction{}, nil
+}
 
 func TestNexusEngine_AnalyzeRequiresConfiguredProvider(t *testing.T) {
 	engine := NewNexusEngine(nil)

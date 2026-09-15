@@ -13,14 +13,13 @@ import (
 )
 
 type ComposerSessionView struct {
-	Session         store.ComposerSession            `json:"session"`
-	Brief           LivingBrief                      `json:"brief"`
-	Turns           []store.ComposerTurn             `json:"turns"`
-	Skills          []store.ComposerSkillProposal    `json:"skills"`
-	Artifacts       []store.PromptArtifact           `json:"artifacts,omitempty"`
-	Variants        map[string][]store.PromptVariant `json:"variants,omitempty"`
-	FlowSuitability FlowSuitabilityAssessment        `json:"flow_suitability"`
-	PromptReview    ComposerPromptReview             `json:"prompt_review,omitempty"`
+	Session         store.ComposerSession         `json:"session"`
+	Brief           LivingBrief                   `json:"brief"`
+	Turns           []store.ComposerTurn          `json:"turns"`
+	Skills          []store.ComposerSkillProposal `json:"skills"`
+	Artifacts       []store.PromptArtifact        `json:"artifacts,omitempty"`
+	FlowSuitability FlowSuitabilityAssessment     `json:"flow_suitability"`
+	PromptReview    ComposerPromptReview          `json:"prompt_review,omitempty"`
 }
 
 type FlowSuitability string
@@ -121,6 +120,9 @@ func (n *Nexus) CreateComposerSessionWithPrompt(ctx context.Context, projectID, 
 	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
 		applySnapshotFactsToBrief(&brief, grounded)
 	}
+	// Heuristics (newComposerBrief -> mergeTextIntoBrief) run first; enrich the
+	// brief with provider-extracted structure only when a provider is available.
+	n.enrichComposerBriefFromText(ctx, projectID, &brief, firstNonEmpty(sourcePrompt, goal))
 	n.seedComposerIntelligenceUnknowns(ctx, projectID, &brief)
 	refreshComposerBrief(&brief)
 	briefJSON, _ := json.Marshal(brief)
@@ -262,6 +264,13 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 				}
 				MergeIntelligenceUnknowns(&brief, unknowns)
 			}
+			// Heuristics already merged this turn's text above; enrich with the
+			// provider's structured extraction to fill any remaining gaps.
+			if extraction, extractErr := provider.ExtractBrief(ctx, content, contextData); extractErr == nil {
+				applyBriefExtraction(&brief, extraction)
+			} else if intelligenceNotice == "" {
+				intelligenceNotice = "Inteligência local não conseguiu extrair o brief: " + extractErr.Error()
+			}
 		} else if providerErr != nil && !errors.Is(providerErr, intelligence.ErrIntelligenceUnavailable) {
 			intelligenceNotice = "Inteligência local indisponível: " + providerErr.Error()
 		}
@@ -370,16 +379,6 @@ func (n *Nexus) FinalizeComposerSession(ctx context.Context, sessionID string, s
 	})
 	if err != nil {
 		return nil, err
-	}
-	var desc []nexusskills.Skill
-	for _, candidate := range catalog.Library {
-		if containsString(validatedSkills, candidate.ID) {
-			desc = append(desc, candidate)
-		}
-	}
-	for _, variant := range compilePromptVariantsFromSkills(brief, desc, "") {
-		rawCaps, _ := json.Marshal(map[string]any{"skill_sources": skillSources(desc)})
-		_, _ = st.CreatePromptVariant(store.PromptVariant{ArtifactID: artifact.ID, Variant: string(variant.Kind), Target: variant.Target, Content: variant.Content, CapabilitiesJSON: string(rawCaps)})
 	}
 	for _, skill := range skills {
 		switch {
@@ -501,6 +500,20 @@ func applyUnknownAnswerToBrief(brief *LivingBrief, unknown PromptUnknown) {
 		brief.Quality.Testing = appendUnique(brief.Quality.Testing, answer)
 	case "quality.verification":
 		brief.Quality.Verification = appendUnique(brief.Quality.Verification, answer)
+	case "quality.definition_of_done":
+		brief.Quality.DefinitionOfDone = appendUnique(brief.Quality.DefinitionOfDone, answer)
+	case "scope.out_of_scope":
+		brief.Scope.OutOfScope = appendUnique(brief.Scope.OutOfScope, answer)
+	case "risks":
+		brief.Risks = appendUnique(brief.Risks, answer)
+	case "execution.prohibited_actions":
+		brief.Execution.ProhibitedActions = appendUnique(brief.Execution.ProhibitedActions, answer)
+	case "deliverable.expected_artifacts":
+		brief.Deliverable.ExpectedArtifacts = appendUnique(brief.Deliverable.ExpectedArtifacts, answer)
+	case "constraints.security":
+		brief.Constraints.Security = appendUnique(brief.Constraints.Security, answer)
+	case "environment.infrastructure":
+		brief.Environment.Infrastructure = appendUnique(brief.Environment.Infrastructure, answer)
 	case "environment.stack":
 		brief.Environment.Stack = appendUnique(brief.Environment.Stack, answer)
 	case "context.existing_state":
@@ -527,19 +540,12 @@ func (n *Nexus) composeSessionView(st *store.Store, session store.ComposerSessio
 	if err != nil {
 		return nil, err
 	}
-	variants := map[string][]store.PromptVariant{}
-	for _, artifact := range artifacts {
-		if values, variantErr := st.ListPromptVariants(artifact.ID); variantErr == nil && len(values) > 0 {
-			variants[artifact.ID] = values
-		}
-	}
 	return &ComposerSessionView{
 		Session:         session,
 		Brief:           brief,
 		Turns:           turns,
 		Skills:          skills,
 		Artifacts:       artifacts,
-		Variants:        variants,
 		FlowSuitability: AssessComposerFlowSuitability(brief),
 		PromptReview:    ReviewComposerPrompt(brief),
 	}, nil
@@ -585,6 +591,30 @@ func composeAssistantReply(brief LivingBrief) string {
 		return "Ainda falta um resultado observável. O que deve ficar pronto e como você vai verificar?"
 	}
 	return "O prompt já tem profundidade suficiente para Copiar, enviar ao agente ou transformar em Flow. Você ainda pode refinar."
+}
+
+// enrichComposerBriefFromText asks the configured intelligence provider to
+// extract structured brief fields from free-form text and merges them into the
+// brief. It is a no-op when no provider is available, so heuristics remain the
+// deterministic fallback. Provider resolution mirrors seedComposerIntelligenceUnknowns.
+func (n *Nexus) enrichComposerBriefFromText(ctx context.Context, projectID string, brief *LivingBrief, text string) {
+	if brief == nil || strings.TrimSpace(text) == "" {
+		return
+	}
+	provider, err := n.ConfiguredIntelligenceProvider(ctx, projectID)
+	if err != nil || provider == nil || !provider.Available(ctx) {
+		return
+	}
+	contextData := map[string]any{"project_id": projectID, "brief": *brief}
+	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
+		contextData["project_intelligence"] = grounded
+	}
+	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
+		contextData["intelligence_memories"] = memFacts
+	}
+	if extraction, extractErr := provider.ExtractBrief(ctx, text, contextData); extractErr == nil {
+		applyBriefExtraction(brief, extraction)
+	}
 }
 
 func (n *Nexus) seedComposerIntelligenceUnknowns(ctx context.Context, projectID string, brief *LivingBrief) {
@@ -739,14 +769,6 @@ func reconcileComposerSkillAvailability(st *store.Store, sessionID string, propo
 		_ = st.SetComposerSkillState(sessionID, proposals[i].SkillID, store.ComposerSkillUnavailable)
 	}
 	return proposals
-}
-
-func skillSources(items []nexusskills.Skill) []string {
-	result := make([]string, 0, len(items))
-	for _, item := range items {
-		result = append(result, string(item.Source))
-	}
-	return result
 }
 
 func writePromptList(b *strings.Builder, title string, values []string) {

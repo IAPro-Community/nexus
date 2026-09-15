@@ -84,6 +84,32 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 			}
 		}
 	}
+
+	// Unify the Composer -> Flow path: when the brief benefits from multi-step
+	// orchestration, decompose it into a real Flow DAG instead of a single
+	// package. DIRECT_FIT briefs keep the lean 1-package materialization. Either
+	// way the durable Composer lineage facts remain attached.
+	suitability := AssessComposerFlowSuitability(brief)
+	if suitability.Result == FlowBeneficial || suitability.Result == FlowStronglyRecommended {
+		proposal, decomposeErr := n.DecomposePromptIntoFlowProposal(ctx, FlowDecompositionRequest{
+			ProjectID:    session.ProjectID,
+			ArtifactID:   artifact.ID,
+			Goal:         firstNonEmpty(brief.Goal, brief.Intent.Objective),
+			SourcePrompt: artifact.Content,
+			SkillIDs:     decodeStringArray(artifact.SkillIDsJSON),
+		})
+		if decomposeErr != nil {
+			return nil, decomposeErr
+		}
+		flowPlan := WorkPlanFromFlow(proposal.Flow)
+		for key, value := range flowPlan.StructuredFacts {
+			if _, exists := facts[key]; !exists {
+				facts[key] = value
+			}
+		}
+		return n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact via Flow decomposition", flowPlan.Phases, facts)
+	}
+
 	phaseID := "phase_" + ids.NewRuntimeID()
 	plan, err := n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact", []store.PlanPhase{{
 		ID: phaseID, Title: "Composer Flow", Order: 1, Packages: []store.WorkPackage{{
@@ -262,6 +288,10 @@ func (e *ClarificationRequiredError) Error() string {
 // GeneratePlanFromIntent uses a real configured Nexus Intelligence provider.
 // It persists BLOCKING ambiguities and never falls back to fabricated packages.
 // CLI providers use a single-shot PlanFromGoal call; OpenAI-compatible keeps multi-call.
+//
+// Deprecated: the web path is retired (auto_plan now returns an error; users go
+// through Composer -> Turn into Flow). This function is retained only for the
+// legacy `nexus plan create` CLI command and its tests. Do not add new callers.
 func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal string) (*store.WorkPlan, error) {
 	ctx, cancel := context.WithTimeout(ctx, intelligence.PlanGenerationTimeout)
 	defer cancel()

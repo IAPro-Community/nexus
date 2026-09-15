@@ -4,12 +4,9 @@ import {
   composerNeedsGapConfirmation,
   formatComposerSessionTitle,
 } from './composerModel';
-import type { ContextReadinessState } from '../../types';
 
 describe('Composer Context Readiness gate', () => {
-  const states: ContextReadinessState[] = ['MISSING', 'HYDRATING', 'READY', 'STALE', 'FAILED'];
-  it('keeps Composer editable while separating destination permissions', () => {
-    for (const state of states) expect(composerGateForReadiness(state).canCompose).toBe(true);
+  it('keeps destination permissions separated from Composer editability', () => {
     expect(composerGateForReadiness('READY').canMaterialize).toBe(true);
     expect(composerGateForReadiness('MISSING').canMaterialize).toBe(false);
     expect(composerGateForReadiness('STALE').canExecute).toBe(false);

@@ -115,6 +115,7 @@ export const Select: React.FC<{
   name?: string;
   style?: React.CSSProperties;
   selectStyle?: React.CSSProperties;
+  selectClassName?: string;
   'aria-label'?: string;
   children?: React.ReactNode;
 }> = ({
@@ -129,6 +130,7 @@ export const Select: React.FC<{
   name,
   style,
   selectStyle,
+  selectClassName = '',
   'aria-label': ariaLabel,
   children,
 }) => {
@@ -138,7 +140,7 @@ export const Select: React.FC<{
       name={name}
       disabled={disabled}
       aria-label={ariaLabel || (typeof label === 'string' ? label : undefined)}
-      className="nx-select"
+      className={`nx-select ${selectClassName}`.trim()}
       style={selectStyle}
       value={value}
       onChange={(event) => onChange(event.target.value)}

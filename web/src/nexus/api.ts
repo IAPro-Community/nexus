@@ -13,14 +13,6 @@ import {
   MaestroStatus,
   SkillSyncPreview,
   NexusSystemInfo,
-  Mission,
-  MissionAssignment,
-  MissionAssignmentInput,
-  MissionCreateInput,
-  MissionDetail,
-  MissionPatch,
-  MissionTask,
-  MissionTaskInput,
   ProviderAccount,
   ResourceAllocation,
   ProviderInfo,
@@ -110,11 +102,6 @@ export const nexus = {
     request<import('../types').ComposerSession[]>(
       `/api/v1/projects/${projectId}/composer-sessions`,
     ),
-  createComposerSession: (projectId: string, goal: string) =>
-    request<import('../types').ComposerSessionView>(
-      `/api/v1/projects/${projectId}/composer-sessions`,
-      { method: 'POST', body: JSON.stringify({ goal }) },
-    ),
   createComposerSessionWithMode: (
     projectId: string,
     goal: string,
@@ -162,6 +149,19 @@ export const nexus = {
       {
         method: 'POST',
         body: JSON.stringify({ answer, status, expected_revision: expectedRevision }),
+      },
+    ),
+  attachComposerContext: (id: string, path: string, expectedRevision?: number) =>
+    request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}/context`, {
+      method: 'POST',
+      body: JSON.stringify({ path, expected_revision: expectedRevision }),
+    }),
+  detachComposerContext: (id: string, path: string, expectedRevision?: number) =>
+    request<import('../types').ComposerSessionView>(
+      `/api/v1/composer-sessions/${id}/context/remove`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ path, expected_revision: expectedRevision }),
       },
     ),
   materializePromptArtifact: async (id: string) =>
@@ -297,33 +297,6 @@ export const nexus = {
     request<MaestroAdvice>('/api/v1/maestro/advice', {
       method: 'POST',
       body: JSON.stringify({ project_id: projectId, agent_id: agentId, intent }),
-    }),
-
-  // Missions (Gate 7 Beta)
-  listMissions: (projectId: string) =>
-    request<{ missions: Mission[] }>(`/api/v1/projects/${projectId}/missions`),
-  createMission: (projectId: string, data: MissionCreateInput) =>
-    request<Mission>(`/api/v1/projects/${projectId}/missions`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  getMission: (missionId: string) => request<MissionDetail>(`/api/v1/missions/${missionId}`),
-  updateMission: (missionId: string, data: MissionPatch) =>
-    request<Mission>(`/api/v1/missions/${missionId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
-  deleteMission: (missionId: string) =>
-    request<{ status: string }>(`/api/v1/missions/${missionId}`, { method: 'DELETE' }),
-  addMissionTask: (missionId: string, data: MissionTaskInput) =>
-    request<MissionTask>(`/api/v1/missions/${missionId}/tasks`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  assignMissionAgent: (missionId: string, data: MissionAssignmentInput) =>
-    request<MissionAssignment>(`/api/v1/missions/${missionId}/assign`, {
-      method: 'POST',
-      body: JSON.stringify(data),
     }),
 
   // System Updates
@@ -501,8 +474,6 @@ export const nexus = {
     });
     return { ...result, plan: normalizeWorkPlan(result.plan) };
   },
-  deletePlan: (planId: string) =>
-    request<{ deleted: boolean }>(`/api/v1/plans/${planId}`, { method: 'DELETE' }),
   restorePlanRevision: async (planId: string, revision: number) => {
     const result = await request<{
       plan: import('../types').WorkPlan;
@@ -524,22 +495,8 @@ export const nexus = {
       plan: import('../types').WorkPlan;
       leader: import('../types').FlowLeaderPolicy;
     }>(`/api/v1/plans/${planId}/leader`, { method: 'PUT', body: JSON.stringify(leader) }),
-  cloneFlow: (planId: string, projectId: string) =>
-    request<import('../types').WorkPlan>(`/api/v1/plans/${planId}/clone`, {
-      method: 'POST',
-      body: JSON.stringify({ project_id: projectId }),
-    }),
   preflightFlow: (planId: string) =>
     request<import('../types').FlowPreflightReport>(`/api/v1/plans/${planId}/preflight`, {
-      method: 'POST',
-    }),
-  decomposePrompt: (data: import('../types').FlowDecompositionRequest) =>
-    request<import('../types').FlowDecompositionProposal>('/api/v1/flows/decompose', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  approvePlanDelegation: (planId: string) =>
-    request<import('../types').WorkPlan>(`/api/v1/plans/${planId}/delegation/approve`, {
       method: 'POST',
     }),
   compilePackagePrompt: (planId: string, packageId: string, phaseId?: string) =>
@@ -561,17 +518,6 @@ export const nexus = {
   getRun: (runId: string) => request<import('../types').MissionRun>(`/api/v1/runs/${runId}`),
   getRunEvidence: (runId: string) =>
     request<import('../types').FlowRunEvidence>(`/api/v1/runs/${runId}/evidence`),
-  getRunRouting: (runId: string) =>
-    request<import('../types').RoutingDecisionReport>(`/api/v1/runs/${runId}/routing`),
-  getRunValidationEvidence: (runId: string) =>
-    request<import('../types').ValidationEvidenceReport>(
-      `/api/v1/runs/${runId}/validation-evidence`,
-    ),
-  stepRun: (runId: string) =>
-    request<{ run: import('../types').MissionRun; completed: boolean }>(
-      `/api/v1/runs/${runId}/step`,
-      { method: 'POST' },
-    ),
   pauseRun: (runId: string, reason?: string) =>
     request<import('../types').MissionRun>(`/api/v1/runs/${runId}/pause`, {
       method: 'POST',
@@ -657,6 +603,19 @@ export const nexus = {
         resolved_by: resolvedBy,
       }),
     }),
+
+  // Telemetry & Historical Audit
+  getTelemetryStats: (days = 7) =>
+    request<import('../types').TelemetryStats>(`/api/v1/telemetry/stats?days=${days}`),
+  getTelemetryHistory: (limit = 50, provider?: string) => {
+    const params = new URLSearchParams();
+    if (limit) params.set('limit', String(limit));
+    if (provider) params.set('provider', provider);
+    const qs = params.toString();
+    return request<import('../types').TelemetryHistoryEvent[]>(
+      `/api/v1/telemetry/history${qs ? `?${qs}` : ''}`,
+    );
+  },
 };
 
 export const nexusApi = nexus;

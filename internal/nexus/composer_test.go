@@ -225,7 +225,7 @@ Need backend and frontend changes.`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if view.Brief.Intent.Archetype != PromptArchetypeSoftwareFeature {
+	if view.Brief.Intent.Archetype != PromptArchetypeSecurity {
 		t.Fatalf("unexpected archetype: %+v", view.Brief.Intent)
 	}
 	if view.Brief.Readiness.State != PromptReadinessNeedsInformation && view.Brief.Readiness.State != PromptReadinessBlocked {

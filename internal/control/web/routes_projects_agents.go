@@ -40,12 +40,6 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			} else {
 				h.handleAgentCreate(w, r)
 			}
-		case strings.HasSuffix(r.URL.Path, "/missions"):
-			if r.Method == http.MethodGet {
-				h.handleMissionsList(w, r)
-			} else {
-				h.handleMissionCreate(w, r)
-			}
 		case strings.HasSuffix(r.URL.Path, "/plans"):
 			h.handleProjectPlans(w, r)
 		case strings.HasSuffix(r.URL.Path, "/composer-sessions"):
@@ -156,4 +150,21 @@ func (s *Server) routeAgent(h *NexusHandler) http.HandlerFunc {
 	}
 }
 
-// routeMission dispatches mission tasks and assignments sub-routes.
+func projectIDFromPath(path string) string {
+	parts := strings.Split(strings.TrimPrefix(path, "/api/v1/projects/"), "/")
+	if len(parts) >= 1 && strings.HasSuffix(path, "/agents") {
+		return parts[0]
+	}
+	if len(parts) >= 1 {
+		return parts[0]
+	}
+	return ""
+}
+
+func agentIDFromPath(path string) string {
+	parts := strings.Split(strings.TrimPrefix(path, "/api/v1/agents/"), "/")
+	if len(parts) == 0 {
+		return ""
+	}
+	return parts[0]
+}

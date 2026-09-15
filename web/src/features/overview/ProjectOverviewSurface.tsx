@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowUpCircle, Play, RotateCcw, TerminalSquare } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowUpCircle, Play, RotateCcw, Square, TerminalSquare } from 'lucide-react';
 import { Badge, Button, Card, Dialog, EmptyState } from '../../design-system';
+import { api } from '../../api';
 import { nexus } from '../../nexus/api';
 import { runtimeIdFromRecoverResult } from '../../nexus/agentTerminalModel';
 import { ResourcePicker } from '../../nexus/ResourcePicker';
@@ -90,6 +91,26 @@ export const ProjectOverviewSurface: React.FC<{
   const degraded = agentList.filter((agent) =>
     ['FAILED', 'STALE', 'RECOVERABLE', 'RATE_LIMITED'].includes(agent.status),
   ).length;
+
+  const activeProjectRuntimes = useMemo(() => {
+    const list = Array.isArray(runtimes) ? runtimes : [];
+    return list.filter((r) => {
+      if (r.state === 'STOPPED' || r.state === 'FAILED') return false;
+      const ws = r.workspace || '';
+      const pPath = project.canonical_path || '';
+      const pId = project.id || '';
+      return ws === pPath || (pPath && ws.startsWith(pPath)) || ws === pId || r.project_id === pId;
+    });
+  }, [runtimes, project]);
+
+  const handleStopRuntime = async (runtimeId: string) => {
+    try {
+      await api.stopRuntime(runtimeId);
+      await refreshAgents?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   const handleRecover = async (agent: Agent) => {
     setBusy(agent.id);
@@ -249,6 +270,96 @@ export const ProjectOverviewSurface: React.FC<{
             ))}
           </div>
         ) : null}
+      </section>
+
+      {/* Live Supervised Runtimes Section */}
+      <section className={styles.liveRuntimesPanel} aria-labelledby="overview-runtimes-title">
+        <div className={styles.liveRuntimesHeader}>
+          <div>
+            <span className="nx-eyebrow">
+              {t('overview.liveRuntimesEyebrow', 'Execução Ativa · PTY Host')}
+            </span>
+            <h2 id="overview-runtimes-title" style={{ margin: '2px 0 0' }}>
+              {t('overview.liveRuntimesTitle', 'Runtimes Ativos no Projeto')} (
+              {activeProjectRuntimes.length})
+            </h2>
+          </div>
+          <Badge tone={activeProjectRuntimes.length > 0 ? 'success' : 'default'}>
+            {activeProjectRuntimes.length > 0 ? (
+              <>
+                <span className={styles.pulseDot} />
+                <span style={{ marginLeft: 6 }}>
+                  {t('overview.runtimesRunning', {
+                    count: activeProjectRuntimes.length,
+                    defaultValue: `${activeProjectRuntimes.length} sessões ativas`,
+                  })}
+                </span>
+              </>
+            ) : (
+              t('overview.noActiveRuntimes', 'Nenhum runtime ativo')
+            )}
+          </Badge>
+        </div>
+
+        {activeProjectRuntimes.length > 0 ? (
+          <div className={styles.liveRuntimesGrid}>
+            {activeProjectRuntimes.map((rt) => {
+              const matchedAgent = agentList.find(
+                (a) => a.id === rt.agent_id || a.name === rt.title,
+              );
+              return (
+                <div key={rt.runtime_id} className={styles.runtimeCard}>
+                  <div className={styles.runtimeHead}>
+                    <span className={styles.pulseDot} />
+                    <span className={styles.runtimeTitle}>
+                      {rt.dynamic_title || rt.title || rt.last_task_summary || rt.runtime_id}
+                    </span>
+                    <Badge tone="default">{rt.state}</Badge>
+                  </div>
+                  <div className={styles.runtimeMeta}>
+                    <span>
+                      <strong>{rt.provider_id || rt.provider || 'CLI'}</strong>
+                      {rt.profile_id || rt.profile ? `:${rt.profile_id || rt.profile}` : ''}
+                    </span>
+                    <span>·</span>
+                    <span style={{ fontFamily: 'var(--nx-font-mono, monospace)' }}>
+                      PID {rt.pid || rt.host_pid || '—'}
+                    </span>
+                  </div>
+                  <div className={styles.runtimeActions}>
+                    <Button
+                      size="sm"
+                      tone="brand"
+                      onClick={() => {
+                        if (matchedAgent) {
+                          onOpenAgent(matchedAgent, rt.runtime_id);
+                        } else {
+                          onProjectShell();
+                        }
+                      }}
+                    >
+                      <TerminalSquare size={12} /> {t('overview.attachTerminal', 'Anexar Terminal')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      tone="danger"
+                      onClick={() => void handleStopRuntime(rt.runtime_id)}
+                    >
+                      <Square size={11} /> {t('common.stop', 'Parar')}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--nx-text-muted)' }}>
+            {t(
+              'overview.noActiveRuntimesHint',
+              'Nenhum processo supervisionado ativo para este workspace. Dispare uma sessão ou agente para iniciar.',
+            )}
+          </p>
+        )}
       </section>
 
       {updateInfo?.update_available && (

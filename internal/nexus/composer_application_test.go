@@ -19,7 +19,7 @@ func TestComposerApplicationServiceSessionWorkflow(t *testing.T) {
 	}
 	service := NewComposerApplicationService(n)
 
-	created, err := service.Create(context.Background(), project.ID, "Plan a feature", "Use the existing prompt")
+	created, err := service.Create(context.Background(), project.ID, "Plan a feature", "Use the existing prompt", "EXISTING_PROMPT")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,5 +1,13 @@
 # Current release status
 
+## Soak de 8h — 2026-09-15
+
+- **PASS** — `make overnight-soak DURATION=8h` terminou normalmente.
+- Resultado: `go test` passou após `28800.028s` (8h), no
+  `TestOvernightSoakHarnessBounded`.
+- Evidência local; não substitui CI hospedado no mesmo SHA nem smoke com
+  provedores autenticados.
+
 STATUS: CURRENT
 GIT_SHA: 2b9c95693be7bf73a463c6395ec1ea9f131a4c9c
 GENERATED_AT: 2026-09-15T03:26:30Z

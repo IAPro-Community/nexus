@@ -2,13 +2,11 @@ package web
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/nexus"
-	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -47,32 +45,8 @@ func (h *NexusHandler) handleProjectPlans(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		if body.AutoPlan && strings.TrimSpace(body.Goal) != "" {
-			plan, err := h.nexus.GeneratePlanFromIntent(r.Context(), projectID, body.Goal)
-			if err != nil {
-				var clarificationErr *nexus.ClarificationRequiredError
-				switch {
-				case errors.As(err, &clarificationErr):
-					writeJSON(w, http.StatusConflict, map[string]any{
-						"error":         "clarification_required",
-						"clarification": clarificationErr.Checkpoint,
-					})
-				case errors.Is(err, intelligence.ErrIntelligenceUnavailable):
-					writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-						"error":  "intelligence_unavailable",
-						"detail": err.Error(),
-					})
-				default:
-					var contextErr *nexus.ComposerContextNotReadyError
-					if errors.As(err, &contextErr) {
-						writeJSON(w, http.StatusConflict, map[string]any{"error": "context_not_ready", "detail": err.Error(), "readiness": contextErr.Readiness})
-					} else {
-						writeError(w, http.StatusBadGateway, err.Error())
-					}
-				}
-				return
-			}
-			writeJSON(w, http.StatusCreated, plan)
+		if body.AutoPlan {
+			writeError(w, http.StatusBadRequest, "auto_plan is retired; create an empty draft or use Composer then Turn into Flow")
 			return
 		}
 
@@ -121,7 +95,7 @@ func (h *NexusHandler) handleProjectComposerSessions(w http.ResponseWriter, r *h
 			writeError(w, http.StatusBadRequest, "invalid body")
 			return
 		}
-		view, err := h.composer.Create(r.Context(), projectID, body.Goal, body.SourcePrompt)
+		view, err := h.composer.Create(r.Context(), projectID, body.Goal, body.SourcePrompt, body.InputMode)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
@@ -220,6 +194,42 @@ func (h *NexusHandler) handleComposerSession(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		writeJSON(w, http.StatusCreated, artifact)
+		return
+	}
+	if strings.HasSuffix(id, "/context/remove") {
+		id = strings.TrimSuffix(id, "/context/remove")
+		var body struct {
+			Path             string `json:"path"`
+			ExpectedRevision int    `json:"expected_revision,omitempty"`
+		}
+		if r.Method != http.MethodPost || json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body) != nil || strings.TrimSpace(body.Path) == "" {
+			writeError(w, http.StatusBadRequest, "path and POST are required")
+			return
+		}
+		view, err := h.composer.DetachContextFile(r.Context(), id, body.Path, body.ExpectedRevision)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, view)
+		return
+	}
+	if strings.HasSuffix(id, "/context") {
+		id = strings.TrimSuffix(id, "/context")
+		var body struct {
+			Path             string `json:"path"`
+			ExpectedRevision int    `json:"expected_revision,omitempty"`
+		}
+		if r.Method != http.MethodPost || json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body) != nil || strings.TrimSpace(body.Path) == "" {
+			writeError(w, http.StatusBadRequest, "path and POST are required")
+			return
+		}
+		view, err := h.composer.AttachContextFile(r.Context(), id, body.Path, body.ExpectedRevision)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, view)
 		return
 	}
 	if strings.Contains(id, "/skills/") {
@@ -431,24 +441,6 @@ func (h *NexusHandler) handleFlowPreflight(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	writeJSON(w, http.StatusOK, report)
-}
-
-func (h *NexusHandler) handleFlowDecompose(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
-	var req nexus.FlowDecompositionRequest
-	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-	proposal, err := h.nexus.DecomposePromptIntoFlowProposal(r.Context(), req)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	writeJSON(w, http.StatusOK, proposal)
 }
 
 func (h *NexusHandler) handlePlanDelegationApprove(w http.ResponseWriter, r *http.Request) {

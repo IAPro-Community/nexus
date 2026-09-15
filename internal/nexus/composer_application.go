@@ -2,6 +2,7 @@ package nexus
 
 import (
 	"context"
+	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -17,8 +18,16 @@ func NewComposerApplicationService(n *Nexus) *ComposerApplicationService {
 	return &ComposerApplicationService{nexus: n}
 }
 
-func (s *ComposerApplicationService) Create(ctx context.Context, projectID, goal, sourcePrompt string) (*ComposerSessionView, error) {
-	return s.nexus.CreateComposerSessionWithPrompt(ctx, projectID, goal, sourcePrompt)
+func (s *ComposerApplicationService) Create(ctx context.Context, projectID, goal, sourcePrompt, inputMode string) (*ComposerSessionView, error) {
+	view, err := s.nexus.CreateComposerSessionWithPrompt(ctx, projectID, goal, sourcePrompt)
+	if err != nil {
+		return nil, err
+	}
+	if strings.EqualFold(strings.TrimSpace(inputMode), "EXISTING_PROMPT") && strings.TrimSpace(sourcePrompt) != "" {
+		// Ensure review is computed against the imported prompt body.
+		view.PromptReview = ReviewComposerPrompt(view.Brief)
+	}
+	return view, nil
 }
 
 func (s *ComposerApplicationService) List(ctx context.Context, projectID string) ([]store.ComposerSession, error) {
@@ -47,4 +56,12 @@ func (s *ComposerApplicationService) Refine(ctx context.Context, sessionID, refi
 
 func (s *ComposerApplicationService) ResolveUnknown(ctx context.Context, sessionID, unknownID, answer, status string, expectedRevision int) (*ComposerSessionView, error) {
 	return s.nexus.ResolveComposerUnknownExpected(ctx, sessionID, unknownID, answer, status, expectedRevision)
+}
+
+func (s *ComposerApplicationService) AttachContextFile(ctx context.Context, sessionID, relPath string, expectedRevision int) (*ComposerSessionView, error) {
+	return s.nexus.AttachComposerContextFile(ctx, sessionID, relPath, expectedRevision)
+}
+
+func (s *ComposerApplicationService) DetachContextFile(ctx context.Context, sessionID, relPath string, expectedRevision int) (*ComposerSessionView, error) {
+	return s.nexus.DetachComposerContextFile(ctx, sessionID, relPath, expectedRevision)
 }

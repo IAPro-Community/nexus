@@ -1,9 +1,15 @@
-import type { ContextReadinessState } from '../../types';
+import type {
+  ComposerSessionView,
+  ContextFileRef,
+  ContextReadinessState,
+  PromptArtifact,
+} from '../../types';
+import { asArray, asStringArray } from '../../lib/safeArray';
+
+export type ComposerBriefUnknown = NonNullable<ComposerSessionView['brief']['unknowns']>[number];
 
 export type ComposerGateAction = 'NONE' | 'PREPARE' | 'WAIT' | 'REFRESH' | 'RETRY';
 export interface ComposerGate {
-  canCompose: boolean;
-  canFinalize: boolean;
   canMaterialize: boolean;
   canExecute: boolean;
   action: ComposerGateAction;
@@ -59,12 +65,81 @@ export function composerSessionStateKey(state: string | undefined): string {
   return `work.composer.sessionState.${normalized}`;
 }
 
+export function isComposerUnknownResolved(status: string): boolean {
+  return status === 'ANSWERED' || status === 'CONFIRMED' || status === 'DISMISSED';
+}
+
+/** FINALIZED sessions restore their destinations from the latest persisted artifact. */
+export function latestComposerArtifact(view: ComposerSessionView | null): PromptArtifact | null {
+  const artifacts = asArray<PromptArtifact>(view?.artifacts);
+  return artifacts.length > 0 ? artifacts[artifacts.length - 1] : null;
+}
+
+/** Referenced files live only on the object form of brief.context. */
+export function composerReferencedFiles(view: ComposerSessionView | null): ContextFileRef[] {
+  const ctx = view?.brief.context;
+  if (ctx && typeof ctx === 'object' && !Array.isArray(ctx)) {
+    return asArray<ContextFileRef>(
+      (ctx as { referenced_files?: ContextFileRef[] }).referenced_files,
+    );
+  }
+  return [];
+}
+
+/** Open (still unresolved) unknowns, in their natural order. */
+export function openComposerUnknowns(view: ComposerSessionView | null): ComposerBriefUnknown[] {
+  if (!view) return [];
+  return asArray<ComposerBriefUnknown>(view.brief.unknowns).filter(
+    (u) => !isComposerUnknownResolved(u.status),
+  );
+}
+
+/** The single unknown the conversation should surface next, if any. */
+export function selectComposerNextUnknown(
+  view: ComposerSessionView | null,
+): ComposerBriefUnknown | null {
+  const unresolved = openComposerUnknowns(view);
+  const intelligenceBlocking = unresolved.find(
+    (u) => u.severity === 'BLOCKING' && String(u.source || '').toUpperCase() === 'INTELLIGENCE',
+  );
+  if (intelligenceBlocking) return intelligenceBlocking;
+  const blocking = unresolved.find((u) => u.severity === 'BLOCKING');
+  const withOptions = unresolved.find((u) => asArray(u.suggested_options).length > 0);
+  return blocking || withOptions || unresolved[0] || null;
+}
+
+/** Live-briefing label/value pairs, translated via the provided function. */
+export function buildComposerBriefItems(
+  view: ComposerSessionView,
+  t: (key: string, fallback: string) => string,
+): Array<[string, string]> {
+  const ctx = view.brief.context;
+  const existingState =
+    ctx && typeof ctx === 'object' && !Array.isArray(ctx)
+      ? asStringArray((ctx as { existing_state?: unknown }).existing_state)
+      : [];
+  const items: Array<[string, string]> = [
+    [t('work.composer.understood', 'Understood'), view.brief.goal],
+    [t('work.composer.context', 'Context'), [...asStringArray(ctx), ...existingState].join(' · ')],
+    [t('work.composer.decisions', 'Decisions'), asStringArray(view.brief.decisions).join(' · ')],
+    [
+      t('work.composer.criteria', 'Criteria'),
+      asStringArray(view.brief.quality?.acceptance_criteria ?? view.brief.success_criteria).join(
+        ' · ',
+      ),
+    ],
+    [
+      t('work.composer.openDoubts', 'Open doubts'),
+      asStringArray(view.brief.open_questions).join(' · '),
+    ],
+  ];
+  return items.filter(([, value]) => value);
+}
+
 export function composerGateForReadiness(state: ContextReadinessState): ComposerGate {
   switch (state) {
     case 'READY':
       return {
-        canCompose: true,
-        canFinalize: true,
         canMaterialize: true,
         canExecute: true,
         action: 'NONE',
@@ -73,8 +148,6 @@ export function composerGateForReadiness(state: ContextReadinessState): Composer
       };
     case 'MISSING':
       return {
-        canCompose: true,
-        canFinalize: true,
         canMaterialize: false,
         canExecute: false,
         action: 'PREPARE',
@@ -83,8 +156,6 @@ export function composerGateForReadiness(state: ContextReadinessState): Composer
       };
     case 'HYDRATING':
       return {
-        canCompose: true,
-        canFinalize: true,
         canMaterialize: false,
         canExecute: false,
         action: 'WAIT',
@@ -93,8 +164,6 @@ export function composerGateForReadiness(state: ContextReadinessState): Composer
       };
     case 'STALE':
       return {
-        canCompose: true,
-        canFinalize: true,
         canMaterialize: false,
         canExecute: false,
         action: 'REFRESH',
@@ -104,8 +173,6 @@ export function composerGateForReadiness(state: ContextReadinessState): Composer
     case 'FAILED':
     default:
       return {
-        canCompose: true,
-        canFinalize: true,
         canMaterialize: false,
         canExecute: false,
         action: 'RETRY',

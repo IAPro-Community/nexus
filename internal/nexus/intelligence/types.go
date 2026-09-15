@@ -155,6 +155,25 @@ type DecisionExplanation struct {
 	Timestamp  time.Time `json:"timestamp"`
 }
 
+// BriefExtraction is the structured decomposition of a free-form prompt into
+// the durable fields of a Composer LivingBrief. Every field is optional; the
+// provider returns only what the text actually supports so heuristics stay the
+// primary source and intelligence merely enriches gaps.
+type BriefExtraction struct {
+	InScope              []string `json:"in_scope,omitempty"`
+	OutOfScope           []string `json:"out_of_scope,omitempty"`
+	ConstraintsTechnical []string `json:"constraints_technical,omitempty"`
+	ConstraintsSecurity  []string `json:"constraints_security,omitempty"`
+	Risks                []string `json:"risks,omitempty"`
+	AcceptanceCriteria   []string `json:"acceptance_criteria,omitempty"`
+	Testing              []string `json:"testing,omitempty"`
+	Verification         []string `json:"verification,omitempty"`
+	ProhibitedActions    []string `json:"prohibited_actions,omitempty"`
+	Deliverables         []string `json:"deliverables,omitempty"`
+	Stack                []string `json:"stack,omitempty"`
+	ExistingState        []string `json:"existing_state,omitempty"`
+}
+
 // IntelligenceProvider defines the provider contract (OpenAI-compatible API or CLI).
 type IntelligenceProvider interface {
 	Name() string
@@ -162,6 +181,10 @@ type IntelligenceProvider interface {
 	AnalyzeIntent(ctx context.Context, input string, contextData map[string]any) (*IntentAnalysis, error)
 	EvaluateAmbiguities(ctx context.Context, intent *IntentAnalysis) ([]AmbiguityItem, error)
 	GeneratePlanOutline(ctx context.Context, intent *IntentAnalysis, facts map[string]string, contextData map[string]any) ([]WorkPackageOutline, error)
+	// ExtractBrief maps a free-form prompt into structured brief fields. Providers
+	// that cannot extract (e.g. non-capability-validated CLIs) return an empty
+	// extraction with a nil error so callers fall back to heuristics.
+	ExtractBrief(ctx context.Context, text string, contextData map[string]any) (*BriefExtraction, error)
 }
 
 // ContextualAmbiguityEvaluator is an optional extension that preserves the

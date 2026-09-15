@@ -1,5 +1,40 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-15 — Soak de 8h concluído
+
+- `make overnight-soak DURATION=8h` passou após `28800.028s` (8h), sem falha.
+- Resultado registrado em `DEV/validation/current/RELEASE_STATUS.md`.
+
+## 2026-09-15 — Modernização das Superfícies de Sessões, Agentes e Project Overview (Opções 1, 2 e 3)
+
+- **Superfície de Sessões & Histórico (`SessionsSurface.tsx` / `SessionsSurface.module.scss`)**:
+  - Paridade total com `nexus stats` e `nexus history`.
+  - Strip de métricas de telemetria em 4 cards dinâmicos: Total de Sessões, Fallbacks, Rate Limits Ativos e Agentes em Operação.
+  - Abas duplas organizadas: "Histórico de Execuções" (eventos de telemetria com timestamp, provedor, perfil, workspace, duração e status) e "Gerações dos Agentes" (resumos de prompts, tokens gerados e métricas).
+  - Filtro interativo por busca de texto e pílulas de provedor (`agy`, `codex`, `opencode`, etc.).
+- **Superfície de Agentes (`AgentsSurface.tsx` / `AgentsSurface.module.scss`)**:
+  - Filtros rápidos por estado (Todos, Em Execução, Em Espera, Degradados, Parados) via summary cards clicáveis.
+  - Cards de agentes modernos com indicador pulsante animado (`agent-pulse`) para status `WORKING`.
+  - Badges de continuidade de contexto, visualização de perfil associado e metadados operacionais.
+  - Painel de templates e perfis recomendados (`developer`, `architect`, `reviewer`, `tester`) para inicialização ágil de novos agentes.
+- **Superfície de Project Overview (`ProjectOverviewSurface.tsx` / `ProjectOverviewSurface.module.scss`)**:
+  - Painel de processos e runtimes supervisionados ao vivo (`nexus ps`), filtrado pelo workspace ativo.
+  - Cards de runtime com pulso dinâmico, PID, provedor, perfil, tempo de execução e botões de ação rápida ("Anexar Terminal" e "Parar").
+- **Backend Go & Endpoints de Telemetria**:
+  - `internal/control/web/handlers_telemetry.go`: Implementados handlers para `GET /api/v1/telemetry/stats` (cálculo de cotas e eventos pelo `telemetry.ComputeStats`) e `GET /api/v1/telemetry/history` (`telemetry.ReadRecentEvents`).
+  - `internal/control/web/routes.go`: Registrados os endpoints autenticados sob o roteador web.
+  - `internal/control/web/handlers_telemetry_test.go`: Suite de testes unitários cobrindo ambos os endpoints com asserções de autenticação e payload JSON.
+- **Frontend API & i18n**:
+  - `web/src/types.ts`: Novas interfaces TypeScript `TelemetryStats` e `TelemetryHistoryEvent`.
+  - `web/src/nexus/api.ts`: Métodos `getTelemetryStats` e `getTelemetryHistory`.
+  - `web/src/i18n/resources.ts`: Dicionários completos atualizados com 100% de paridade entre `en`, `ptBR` e `es`.
+- **Qualidade, Compilação e Instalação**:
+  - `make web-verify`: 10/10 gates aprovados.
+  - Vitest: 71/71 arquivos de teste, 378/378 testes aprovados.
+  - `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`: Binário compilado e instalado localmente.
+  - Servidor `nexus web` reiniciado em background na porta 13000 e verificado via HTTP 200 e endpoints de telemetria autenticados.
+
+
 ## 2026-09-15 — Hosted CI All-Green & Release Candidate GO (Run 34924168564 @ 2b9c956)
 
 - **Hosted CI Pipeline 100% PASS**:
