@@ -1,5 +1,26 @@
 # Handoff
 
+## Adição Direta de Perfis no TUI e Web (CLI Parity) — 2026-09-15
+
+Implementada a funcionalidade para permitir adicionar perfis/provedores diretamente a partir da tela de uso, tanto no TUI (`nexus usage`) quanto no Web OS:
+1. **TUI Bubbletea (`internal/tui/usage_table.go`)**:
+   - Atalho `⏎` (Enter) em linhas sem perfil (como `cursor (sem perfil)`): abre o diálogo modal interativo `ModalAddProfile`, eliminando o aviso passivo anterior.
+   - Atalho `a` / `A`: abre o `ModalAddProfile` para qualquer provedor selecionado na tabela, com input focado e placeholder `default`.
+   - Tecla `Esc`: fecha o modal e retorna à navegação normal da tabela.
+   - Confirmação com `Enter`: encerra a interface Bubbletea retornando `ActionAdd`, transferindo o controle para o CLI `internal/app/app.go` executar `addCmd(args)`. O processo cria o perfil e engaja o fluxo oficial interativo de autenticação no terminal pai sem travamentos de PTY.
+   - Linha de preview atualizada para indicar `⏎/a adicionar perfil <provider>`.
+   - Rodapé exibe `a add` no menu geral de atalhos e `⏎/a adicionar perfil` em linhas sem perfil.
+2. **Web OS (`UsageAccountCard.tsx`, `UsageSurface.tsx`, `RegisterProviderModal.tsx`)**:
+   - `UsageAccountCard`: menu `...` inclui a ação contextual "Adicionar outro perfil", disparando o modal com o provedor alvo pré-selecionado.
+   - `RegisterProviderModal`: suporta `initialProvider` para pré-selecionar o provedor e focar no nome do perfil.
+   - Banner de CLIs detectados na máquina pré-seleciona o provedor automaticamente quando há apenas 1 instalado.
+3. **Verificação**:
+   - `go test ./internal/tui/...` (incluindo 4 novos testes cobrindo o modal, atalhos, submissão e cancelamento) PASS.
+   - `go test ./internal/app/...` PASS.
+   - `make web-verify` 10/10 gates PASS.
+   - `make build` PASS e binário instalado em `~/.local/bin/nexus`.
+4. **Sem commits/push**: Preservada a árvore de trabalho conforme as regras de persistência.
+
 ## Redesign da Superfície de Uso (UX/UI, Responsividade & CLI Parity) — 2026-09-15
 
 A tela de Uso de Provedores e Contas (`UsageSurface`) foi reformulada com foco em excelência de UX/UI, responsividade em todas as resoluções e paridade integral com os comandos do Nexus CLI:

@@ -1,5 +1,19 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-15 — Adição Direta de Perfis no TUI (nexus usage) e Web (CLI Parity)
+
+- PASS — `go test -v -run TestUnifiedUsage_AddProfileModal ./internal/tui/...`: 4/4 novos testes unitários aprovados (abertura por tecla `a`, abertura por `enter` em provedor sem perfil, submissão de `ActionAdd` com nome informado e cancelamento por `esc`).
+- PASS — `go test ./internal/tui/...`: 100% da suite do TUI aprovada.
+- PASS — `go test ./internal/app/...`: 100% da suite do App CLI aprovada, validando despacho de `tui.ActionAdd` para `addCmd`.
+- PASS — `npm --prefix web run check:styles`: Conformidade estrita com SCSS Modules e allowlist global.
+- PASS — `npm --prefix web run typecheck`: `tsc --noEmit` compilado limpo (0 erros).
+- PASS — `npm --prefix web run lint`: ESLint com `--max-warnings=0` aprovado sem erros ou avisos.
+- PASS — `npm --prefix web test`: Vitest executou 73 arquivos e 388 testes com 100% de aprovação.
+- PASS — `make web-verify`: Todos os 10 gates automatizados aprovados (format, typecheck, lint, stylelint, null-arrays, test, i18n, build, embed-sync, ui-markers). Relatório em `DEV/validation/FRONTEND_LATEST.md`.
+- PASS — `make build`: Binário `./nexus` v1.0.0-beta.1 gerado com sucesso.
+- PASS — `install -m 755 ./nexus ~/.local/bin/nexus`: Binário instalado no ambiente de execução do usuário.
+- NOT EXECUTED — `git commit` e `git push` (em conformidade com as diretrizes do Orquestrador).
+
 ## 2026-09-15 — Redesign da Superfície de Uso (UX/UI, Responsividade & Paridade CLI)
 
 - PASS — `npm --prefix web run check:styles`: validação de CSS Modules e conformidade com allowlist de estilos globais.

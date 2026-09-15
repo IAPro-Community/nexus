@@ -1,5 +1,33 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-15 — Adição Direta de Perfis no TUI (nexus usage) e Web (CLI Parity)
+
+- **TUI Interativo (`internal/tui/usage_table.go`)**:
+  - Implementado `ModalAddProfile` com input interativo (`textinput.Model`) nativo no Bubbletea, eliminando o bloqueio anterior onde o usuário apenas recebia um aviso passivo para sair da tela e digitar `nexus add <provider> <nome>`.
+  - Atalho `⏎` (Enter) em linhas de provedores não configurados (`IsUnconfigured == true`, ex: `cursor (sem perfil)`): abre o diálogo de configuração e autenticação diretamente.
+  - Atalho `a` / `A`: abre o `ModalAddProfile` para qualquer provedor selecionado na tabela de contas, permitindo adicionar múltiplos perfis sem sair da interface.
+  - `ActionAdd` adicionado ao enum de ações: ao confirmar o nome no TUI (ou Enter para default), o TUI encerra e entrega o controle ao terminal pai para executar `addCmd(args)`, criando o perfil e disparando o fluxo oficial de login interativo sem conflitos de PTY.
+  - `Esc`: cancela o modal e retorna à navegação normal da tabela sem encerrar a sessão.
+  - Rodapé atualizado: exibe `a add` e, quando uma linha sem perfil está sob o cursor, exibe `⏎/a adicionar perfil`.
+  - Preview line atualizada para: `▶ ⏎/a adicionar perfil <provider> (nexus add <provider> <nome>)`.
+  - Testes unitários adicionados em `internal/tui/usage_table_test.go`:
+    - `TestUnifiedUsage_AddProfileModal_OpensOnKeyA`: PASS
+    - `TestUnifiedUsage_AddProfileModal_OpensOnUnconfiguredEnter`: PASS
+    - `TestUnifiedUsage_AddProfileModal_SubmitsActionAdd`: PASS
+    - `TestUnifiedUsage_AddProfileModal_CancelsOnEsc`: PASS
+- **App CLI Controller (`internal/app/app.go`)**:
+  - `RunUnifiedUsage` atualizado para tratar `case tui.ActionAdd:`, executando `addCmd([]string{sel.Provider, sel.ProfileName})`.
+- **Frontend Web OS (`UsageAccountCard.tsx`, `UsageSurface.tsx`, `RegisterProviderModal.tsx`)**:
+  - `RegisterProviderModal`: suporte à prop `initialProvider?: string` para pré-seleção do provedor ao abrir.
+  - `UsageAccountCard`: menu `...` atualizado com o item "Adicionar outro perfil" (`usage.addAnotherProfileCta`), invocando `onAddProfile(account.provider)`.
+  - `UsageSurface`: conecta `onAddProfile` abrindo `RegisterProviderModal` com o provedor alvo pré-selecionado; o banner de provedores detectados também pré-seleciona o CLI quando há apenas 1 provedor na máquina.
+  - i18n atualizado em inglês, português (pt-BR) e espanhol (`web/src/i18n/resources.ts`).
+- **Gates e Binário**:
+  - `go test ./internal/tui/...` e `go test ./internal/app/...` PASS.
+  - `make web-verify` 10/10 gates PASS.
+  - `make build` PASS (binário `./nexus` compilado com sucesso).
+  - Atualizado binário em `/home/desenvolvedor/.local/bin/nexus`.
+
 ## 2026-09-15 — Redesign da Superfície de Uso (UX/UI, Responsividade & Paridade CLI)
 
 - **UX/UI & Layout**: Redesenho completo da superfície de Uso (`UsageSurface`), transformando o layout em um grid adaptativo e responsivo (`repeat(auto-fill, minmax(340px, 1fr))`) em `UsageSurface.module.scss`.
