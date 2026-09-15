@@ -18,7 +18,7 @@
 | Context Readiness 5-state | SQLite/API/frontend/backend gate with drift detection | ALIGNED |
 | Bounded/redacted Context Envelope | Intelligence CLI/API receives bounded durable project context | ALIGNED |
 | Maestro independent | Existing adapter/catalog/gates; no competing memory/hydration engine | ALIGNED |
-| Flow inside Composer | PlanBuilder hosts Flow Draft/Canvas/Inspector | ALIGNED |
+| Flow inside Composer | FlowDraftEditor hosts Flow Draft/Canvas/Inspector | ALIGNED |
 | WorkPlan compatibility façade | Reversible WorkPlan ⇄ FlowDefinition mapping | ALIGNED |
 | Sequence/dependency/parallel DAG | Deterministic order/waves; cycle/missing-dependency rejection | ALIGNED |
 | EXISTING / CREATE / AUTO | Explicit Step assignment; existing Scheduler/manual allocation reused | ALIGNED |

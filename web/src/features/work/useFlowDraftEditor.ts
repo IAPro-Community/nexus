@@ -24,10 +24,8 @@ import {
 } from './flowModel';
 import {
   chipsFromPlan,
-  clarificationAnswersFromCheckpoint,
   composerDraftStorageKey,
   composerHistoryStorageKey,
-  GENERATE_BUDGET_SEC,
   loadGoalHistory,
   loadStoredGoal,
   persistStoredGoal,
@@ -43,9 +41,10 @@ export { GENERATE_BUDGET_SEC } from './flowDraftEditorModel';
 export type { FlowStepAction, StudioView } from './flowDraftEditorModel';
 
 /**
- * Encapsulates the Flow draft editor lifecycle: goal capture, AI/manual plan
+ * Encapsulates the Flow draft editor lifecycle: goal capture, manual draft
  * creation, leader policy, preflight, local step edits and Approve & Run. Draft
  * edits never execute work until {@link launchRun} persists and runs the plan.
+ * Rich multi-step decomposition belongs in Composer → Turn into Flow.
  */
 export function useFlowDraftEditor(options: {
   project: Project;
@@ -213,56 +212,42 @@ export function useFlowDraftEditor(options: {
     generateAbortRef.current?.abort();
     const controller = new AbortController();
     generateAbortRef.current = controller;
-    const timeout = window.setTimeout(() => controller.abort(), (GENERATE_BUDGET_SEC + 10) * 1000);
     try {
       setGenerating(true);
       setPlanError('');
       setClarification(null);
       setGenerateHeartbeat(false);
       setGenerateProvider('');
-      setGenerateStage(t('flow.stageProbe', 'Checando Intelligence…'));
-
-      try {
-        const probe = await nexusApi.probeIntelligence(project.id, { signal: controller.signal });
-        setGenerateProvider(probe.provider || '');
-        if (!probe.ok) {
-          setPlanError(probe.detail || probe.error || 'Intelligence probe failed');
-          return;
-        }
-      } catch (probeErr) {
-        if (controller.signal.aborted) {
-          setPlanError(t('flow.generateCanceled', 'Geração cancelada.'));
-          return;
-        }
-        const detail = probeErr instanceof Error ? probeErr.message : String(probeErr);
-        setPlanError(
-          t('flow.intelligenceUnavailable', 'Intelligence indisponível: {{detail}}', { detail }),
-        );
-        return;
-      }
-
-      setGenerateStage(t('flow.stageDraft', 'Pedindo o rascunho ao modelo…'));
+      setGenerateStage(t('flow.stageAssemble', 'Montando o Flow…'));
+      // auto_plan is retired: rich multi-step plans come from Composer → Turn into Flow.
+      // This button opens an empty editable draft seeded with the goal as title.
       const plan = await nexusApi.createPlan(
         project.id,
-        { goal: autoGoal, auto_plan: true },
+        {
+          title: autoGoal.trim(),
+          goal: autoGoal.trim(),
+          description: t(
+            'flow.draftFromGoal',
+            'Draft criado a partir do objetivo. Elabore no Composer para um plano multi-step, ou edite as etapas aqui.',
+          ),
+          auto_plan: false,
+        },
         { signal: controller.signal },
       );
-      setGenerateStage(t('flow.stageAssemble', 'Montando o Flow…'));
       selectGeneratedPlan(plan);
+      setFlowNotice(
+        t(
+          'flow.draftCreatedUseComposer',
+          'Rascunho criado. Para decomposição rica, use Composer → Turn into Flow.',
+        ),
+      );
     } catch (e) {
       if (controller.signal.aborted) {
-        setPlanError(t('flow.generateTimeout', 'Geração cancelada ou tempo esgotado (~90s).'));
+        setPlanError(t('flow.generateCanceled', 'Geração cancelada.'));
         return;
       }
-      const checkpoint = clarificationFromError(e);
-      if (checkpoint) {
-        setClarification(checkpoint);
-        setClarificationAnswers(clarificationAnswersFromCheckpoint(checkpoint));
-      } else {
-        setPlanError(e instanceof Error ? e.message : String(e));
-      }
+      setPlanError(e instanceof Error ? e.message : String(e));
     } finally {
-      window.clearTimeout(timeout);
       if (generateAbortRef.current === controller) generateAbortRef.current = null;
       setGenerating(false);
       setGenerateStage('');
@@ -290,8 +275,10 @@ export function useFlowDraftEditor(options: {
     try {
       setGenerating(true);
       setPlanError('');
+      const title = autoGoal.trim() || t('flow.manualDraftGoal', 'Novo Flow Manual');
       const created = await nexusApi.createPlan(project.id, {
-        goal: autoGoal.trim() || t('flow.manualDraftGoal', 'Novo Flow Manual'),
+        title,
+        goal: title,
         auto_plan: false,
       });
       selectGeneratedPlan(created);

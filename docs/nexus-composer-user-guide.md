@@ -29,7 +29,10 @@ No workspace, abra Composer e escolha uma das entradas:
 
 - **Ideia / Explorar** — para uma intenção ainda vaga;
 - **Prompt Existente** — para revisar lacunas, contradições e estrutura;
+- **Anexar arquivo** — para grounding com trechos do repositório no prompt;
 - **Projeto atual** — quando o contexto do repositório é parte da decisão.
+
+O preview do prompt canônico (`brief.preview`) atualiza a cada turno.
 
 Descreva o resultado desejado em uma frase. Exemplos:
 
@@ -75,13 +78,13 @@ Nesse caso o Composer não inventa skills ou recomendações.
 ## 4. Finalizar e escolher um destino
 
 Ao finalizar, o Nexus cria um `PromptArtifact` imutável com hash e revisão.
-Existem três variantes rastreáveis:
+O artefato é o prompt canônico completo mais o envelope de skills selecionadas.
 
 | Destino | Uso | Flow necessário? |
 | --- | --- | --- |
 | Copy | levar o prompt a qualquer ferramenta | não |
 | Send to Agent | executar em um Agent do Nexus | não |
-| Turn into Flow | criar um rascunho visual com lineage | somente se fizer sentido |
+| Turn into Flow | criar um rascunho visual com lineage (DAG se suitability recomendar) | somente se fizer sentido |
 
 **Copy** não instala skills externas. O manifesto informa origem e portabilidade.
 

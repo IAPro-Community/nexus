@@ -66,7 +66,9 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
             onClick={() => void generatePlan()}
           >
             <Sparkles size={14} />{' '}
-            {generating ? t('flow.refining', 'Refinando…') : t('flow.refine', 'Refinar')}
+            {generating
+              ? t('flow.creatingDraft', 'Criando…')
+              : t('flow.createDraft', 'Criar rascunho')}
           </Button>
           <Button tone="default" disabled={generating} onClick={() => void createManualPlan()}>
             <Plus size={14} /> {t('flow.createManual', 'Criar manual')}

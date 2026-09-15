@@ -8,40 +8,24 @@ import type {
   Project,
   PromptArtifact,
 } from '../../types';
-import { asArray, asStringArray } from '../../lib/safeArray';
 import { selectResumableComposerSession } from './composerSessionModel';
 import {
+  buildComposerBriefItems,
   composerNeedsGapConfirmation,
   composerSessionStateKey,
   formatComposerSessionTitle,
+  latestComposerArtifact,
+  openComposerUnknowns,
+  selectComposerNextUnknown,
 } from './composerModel';
-import type { ComposerGate } from './composerModel';
 import type { ComposerStartCreateArgs } from './ComposerStart';
-
-export type BriefUnknown = NonNullable<ComposerSessionView['brief']['unknowns']>[number];
-
-function isUnknownResolved(status: string): boolean {
-  return status === 'ANSWERED' || status === 'CONFIRMED' || status === 'DISMISSED';
-}
-
-/** FINALIZED sessions restore their destinations from the latest persisted artifact. */
-function latestArtifactOf(view: ComposerSessionView | null): PromptArtifact | null {
-  const artifacts = asArray<PromptArtifact>(view?.artifacts);
-  return artifacts.length > 0 ? artifacts[artifacts.length - 1] : null;
-}
 
 /**
  * Owns all Composer elaboration state, API orchestration and derived view
  * models. Keeping this in a colocated hook lets ComposerSurface stay a thin
  * presentational orchestrator that only wires the decomposed subcomponents.
  */
-export function useComposerSession({
-  project,
-  destinationGate,
-}: {
-  project: Project;
-  destinationGate?: ComposerGate;
-}) {
+export function useComposerSession(project: Project) {
   const { t } = useTranslation();
   const [sessions, setSessions] = useState<ComposerSession[]>([]);
   const [view, setView] = useState<ComposerSessionView | null>(null);
@@ -54,8 +38,6 @@ export function useComposerSession({
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState('');
-  const canMaterialize = destinationGate?.canMaterialize ?? true;
-  const canExecute = destinationGate?.canExecute ?? true;
 
   const selectedSkillIds = useMemo(
     () =>
@@ -71,13 +53,12 @@ export function useComposerSession({
     return next || [];
   }, [project.id]);
 
-  const loadSession = useCallback(async (id: string) => {
+  /** Shared busy/error envelope so handlers stay declarative. */
+  const runBusy = useCallback(async (fn: () => Promise<void>) => {
     setBusy(true);
     setError('');
     try {
-      const loaded = await nexus.getComposerSession(id);
-      setView(loaded);
-      setArtifact(latestArtifactOf(loaded));
+      await fn();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -93,7 +74,7 @@ export function useComposerSession({
         if (id) {
           const loaded = await nexus.getComposerSession(id);
           setView(loaded);
-          setArtifact(latestArtifactOf(loaded));
+          setArtifact(latestComposerArtifact(loaded));
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -112,54 +93,9 @@ export function useComposerSession({
       .catch(() => undefined);
   }, [project.id]);
 
-  const briefItems = useMemo<Array<[string, string]>>(() => {
-    if (!view) return [];
-    const items: Array<[string, string]> = [
-      [t('work.composer.understood', 'Understood'), view.brief.goal],
-      [
-        t('work.composer.context', 'Context'),
-        [
-          ...asStringArray(view.brief.context),
-          ...(view.brief.context &&
-          typeof view.brief.context === 'object' &&
-          !Array.isArray(view.brief.context)
-            ? asStringArray((view.brief.context as { existing_state?: unknown }).existing_state)
-            : []),
-        ].join(' · '),
-      ],
-      [t('work.composer.decisions', 'Decisions'), asStringArray(view.brief.decisions).join(' · ')],
-      [
-        t('work.composer.criteria', 'Criteria'),
-        asStringArray(view.brief.quality?.acceptance_criteria ?? view.brief.success_criteria).join(
-          ' · ',
-        ),
-      ],
-      [
-        t('work.composer.openDoubts', 'Open doubts'),
-        asStringArray(view.brief.open_questions).join(' · '),
-      ],
-    ];
-    return items.filter(([, value]) => Boolean(value));
-  }, [t, view]);
-
-  const nextUnknown = useMemo<BriefUnknown | null>(() => {
-    if (!view) return null;
-    const unknowns = asArray<BriefUnknown>(view.brief.unknowns);
-    const unresolved = unknowns.filter((u) => !isUnknownResolved(u.status));
-    const intelligenceBlocking = unresolved.find(
-      (u) => u.severity === 'BLOCKING' && String(u.source || '').toUpperCase() === 'INTELLIGENCE',
-    );
-    if (intelligenceBlocking) return intelligenceBlocking;
-    const blocking = unresolved.find((u) => u.severity === 'BLOCKING');
-    const withOptions = unresolved.find((u) => asArray(u.suggested_options).length > 0);
-    return blocking || withOptions || unresolved[0] || null;
-  }, [view]);
-
-  const actionableGaps = useMemo<BriefUnknown[]>(() => {
-    if (!view) return [];
-    return asArray<BriefUnknown>(view.brief.unknowns).filter((u) => !isUnknownResolved(u.status));
-  }, [view]);
-
+  const briefItems = useMemo(() => (view ? buildComposerBriefItems(view, t) : []), [t, view]);
+  const nextUnknown = useMemo(() => selectComposerNextUnknown(view), [view]);
+  const actionableGaps = useMemo(() => openComposerUnknowns(view), [view]);
   const sessionOptions = useMemo(
     () =>
       sessions.map((s) => ({
@@ -172,42 +108,34 @@ export function useComposerSession({
     [sessions, t],
   );
 
-  const create = async ({ mode, draft, sourcePrompt }: ComposerStartCreateArgs) => {
-    if (!draft) return;
-    setBusy(true);
-    setError('');
-    try {
+  const loadSession = (id: string) =>
+    runBusy(async () => {
+      const loaded = await nexus.getComposerSession(id);
+      setView(loaded);
+      setArtifact(latestComposerArtifact(loaded));
+    });
+
+  const create = ({ mode, draft, sourcePrompt }: ComposerStartCreateArgs) =>
+    runBusy(async () => {
+      if (!draft.trim()) return;
       const next = await nexus.createComposerSessionWithMode(
         project.id,
-        draft,
+        draft.trim(),
         mode,
-        mode === 'EXISTING_PROMPT' ? sourcePrompt : undefined,
+        mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : undefined,
       );
       setView(next);
       setArtifact(null);
       await refreshSessions();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
-  const send = async () => {
-    if (!view || !message.trim() || busy) return;
-    const textToSend = message.trim();
-    setBusy(true);
-    setError('');
-    try {
-      setView(await nexus.addComposerTurn(view.session.id, textToSend, view.session.revision));
+  const send = () =>
+    runBusy(async () => {
+      if (!view || !message.trim()) return;
+      setView(await nexus.addComposerTurn(view.session.id, message.trim(), view.session.revision));
       setMessage('');
       await refreshSessions();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
   const finalize = async (confirmed = false) => {
     if (!view) return;
@@ -232,44 +160,30 @@ export function useComposerSession({
     }
   };
 
-  const refine = async () => {
-    if (!view) return;
-    setBusy(true);
-    setError('');
-    try {
-      const newArtifact = await nexus.refineComposerArtifact(view.session.id, refineText.trim());
-      setArtifact(newArtifact);
+  const refine = () =>
+    runBusy(async () => {
+      if (!view) return;
+      setArtifact(await nexus.refineComposerArtifact(view.session.id, refineText.trim()));
       setShowRefineInput(false);
       setRefineText('');
       setView(await nexus.getComposerSession(view.session.id));
       await refreshSessions();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
-  const resolveUnknown = async (unknownId: string, status: string, answerOverride?: string) => {
-    if (!view) return;
-    setBusy(true);
-    setError('');
-    try {
-      const updated = await nexus.resolveComposerUnknown(
-        view.session.id,
-        unknownId,
-        answerOverride ?? '',
-        status,
-        view.session.revision,
+  const resolveUnknown = (unknownId: string, status: string, answerOverride?: string) =>
+    runBusy(async () => {
+      if (!view) return;
+      setView(
+        await nexus.resolveComposerUnknown(
+          view.session.id,
+          unknownId,
+          answerOverride ?? '',
+          status,
+          view.session.revision,
+        ),
       );
-      setView(updated);
       await refreshSessions();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
   const rememberUnknown = async (unknown: { id: string; field?: string }, answer: string) => {
     if (!view) return;
@@ -290,46 +204,25 @@ export function useComposerSession({
     await resolveUnknown(unknown.id, 'ANSWERED', answer);
   };
 
-  const updateSkill = async (skillId: string, state: 'ACCEPTED' | 'REJECTED') => {
-    if (!view) return;
-    setBusy(true);
-    setError('');
-    try {
+  const updateSkill = (skillId: string, state: 'ACCEPTED' | 'REJECTED') =>
+    runBusy(async () => {
+      if (!view) return;
       setView(await nexus.updateComposerSkillState(view.session.id, skillId, state));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
-  const attachContext = async (path: string) => {
-    if (!view) return;
-    setBusy(true);
-    setError('');
-    try {
+  const attachContext = (path: string) =>
+    runBusy(async () => {
+      if (!view) return;
       setView(await nexus.attachComposerContext(view.session.id, path, view.session.revision));
       await refreshSessions();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
-  const detachContext = async (path: string) => {
-    if (!view) return;
-    setBusy(true);
-    setError('');
-    try {
+  const detachContext = (path: string) =>
+    runBusy(async () => {
+      if (!view) return;
       setView(await nexus.detachComposerContext(view.session.id, path, view.session.revision));
       await refreshSessions();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
   const copy = async () => {
     if (!artifact) return;
@@ -353,7 +246,7 @@ export function useComposerSession({
     setMessage(t('work.composer.sentToAgent', 'Task sent to Agent.'));
   };
 
-  const reset = () => {
+  const resetSession = () => {
     setView(null);
     setArtifact(null);
   };
@@ -361,26 +254,23 @@ export function useComposerSession({
   return {
     sessions,
     view,
-    message,
-    setMessage,
     artifact,
     error,
-    confirmGaps,
     busy,
+    confirmGaps,
+    message,
     refineText,
-    setRefineText,
     showRefineInput,
-    setShowRefineInput,
     agents,
     selectedAgentId,
-    setSelectedAgentId,
-    canMaterialize,
-    canExecute,
     briefItems,
     nextUnknown,
-    nextQuestion: nextUnknown?.question || '',
     actionableGaps,
     sessionOptions,
+    setMessage,
+    setRefineText,
+    setShowRefineInput,
+    setSelectedAgentId,
     create,
     send,
     finalize,
@@ -393,6 +283,6 @@ export function useComposerSession({
     copy,
     sendToAgent,
     loadSession,
-    reset,
+    resetSession,
   };
 }

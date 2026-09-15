@@ -11,14 +11,24 @@ Composer usa quatro camadas, nesta ordem, e **não pergunta** o que já está co
 3. Memória do projeto (hábitos deste repo)
 4. Memória da instalação (hábitos locais, estilo ChatGPT)
 
-Uma pergunta por rodada, com opções quando a inteligência as sugerir. Premissas de baixo impacto aparecem como “Nexus assumiu — editar”, sem bloquear.
+Quando a Intelligence está disponível, `ExtractBrief` estrutura o texto livre em escopo, restrições, riscos, aceite, testes e ações proibidas (com provenance `INTELLIGENCE`). Heurísticas por keyword continuam como fallback.
+
+Uma pergunta por rodada, com opções quando a inteligência as sugerir. Premissas de baixo impacto aparecem como “Nexus assumiu — editar”, sem bloquear. O checklist por arquétipo cobre feature, bug fix, research, DevOps, architecture e security — incluindo fora de escopo, riscos, ações proibidas, Definition of Done e entregáveis.
+
+## Contexto anexável (`@file`)
+
+Use **Anexar arquivo** na conversa para incluir trechos do repositório no brief. Cada arquivo entra em `referenced_files` com excerpt limitado (budget por arquivo e total) e aparece no preview do prompt sob **Context — Referenced files**.
+
+## Preview ao vivo
+
+Antes de finalizar, o Composer mostra o prompt canônico completo (`brief.preview`): Role, Objective, Motivation, Context, Requirements, Out of scope, Decisions, Assumptions, Constraints, Environment, Execution, Risks, Acceptance, Testing, Verification, Definition of Done, Deliverables e gaps aceitos. Prompt existente dispara `prompt_review` (lacunas e contradições).
 
 ## Destinos
 
-**Copy Prompt**, **Send to Agent** e **Turn into Flow**. Copiar e enviar ao Agent não exigem Flow. Turn into Flow cria um draft no Flow Studio e não inicia runtime por si só.
+**Copy Prompt**, **Send to Agent** e **Turn into Flow**. Copiar e enviar ao Agent não exigem Flow. Turn into Flow cria um draft no Flow Studio e não inicia runtime por si só. Quando `flow_suitability` recomenda Flow, a materialização usa a mesma decomposição do Conductor (DAG real); briefs `DIRECT_FIT` viram um pacote enxuto.
 
 Você pode parar, editar, rejeitar inferências ou pedir para lembrar um hábito. Fatos, premissas e desconhecidos permanecem distintos.
 
-Composer é opcional: Direct e Flow com objetivo próprio continuam válidos.
+Composer é opcional: Direct continua válido sem passar pela refinaria. Flow drafts vazios nascem no Flow Studio; planos multi-step ricos devem vir do Composer.
 
 Veja o [guia operacional do Composer](composer-guide.md).

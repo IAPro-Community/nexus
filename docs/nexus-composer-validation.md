@@ -1,33 +1,31 @@
-# Nexus Composer validation — 2026-09-07
+# Nexus Composer validation — 2026-09-15
 
-This report covers the Composer campaign only. It does not certify the Flow,
-WorkPlan, Mission Runner or runtime internals.
+This report covers the Composer “best prompt” + Composer/Flow cleanup campaign.
+It does not certify overnight autonomous runs or external providers.
 
 ## Evidence
 
 | Area | Result | Evidence |
 | --- | --- | --- |
-| Versioned Composer brief | PASS | `ComposerFact`, `MotivationMap`, additive `0014_composer_v2.sql` |
-| Prompt variants | PASS | `TestCompilePromptVariantsAreTraceableAndDistinct` |
-| Existing prompt review | PASS | `TestReviewComposerPromptReportsGapsAndContradictions` |
-| Flow suitability | PASS | `TestComposerFlowSuitabilityExplainsItsRecommendation` |
-| Flow handoff lineage | PASS | existing `TestMaterializePromptArtifactPreservesLineage` plus motivation facts |
-| Variant/receipt persistence | PASS | `TestComposerV2MigrationPersistsVariantsAndReceipts` |
-| Revision conflict | PASS | `TestComposerRevisionConflictIsRejected` |
-| Go unit/integration | PASS | `go test ./...` (after schema query regression fix) |
-| Go vet | PASS | `go vet ./...` |
-| Go race | PASS | `go test -race ./internal/nexus/... ./internal/control/web` |
-| Web quality | PASS | `make web-verify` — format, typecheck, lint, styles, tests, build |
-| Diff whitespace | PASS | `git diff --check` |
+| Canonical prompt template | PASS | `TestRenderCanonicalPromptIncludesFilledSections` |
+| Expanded archetype checklist | PASS | `composer_brief.go` archetypeUnknowns + evaluateBriefField |
+| ExtractBrief intelligence | PASS | `intelligence.ExtractBrief` + `applyBriefExtraction` |
+| Context file refs (@file) | PASS | `composer_context.go` + `/composer-sessions/{id}/context` |
+| Flow suitability + review exposed | PASS | `ComposerSessionView` fields consumed by UI |
+| Materialize uses decompose when suitable | PASS | `MaterializePromptArtifactAsFlow` |
+| Variants/receipts no longer written | PASS | Finalize path; store tables retained unread |
+| auto_plan retired on HTTP | PASS | `handlers_planning.go` |
+| Orphan Mission/Conductor HTTP routes removed | PASS | routes.go / deleted handlers |
+| FlowDraftEditor compact-only | PASS | `FlowDraftEditor.tsx` |
+| Composer UI decomposition | PASS | ComposerSurface orchestrator + colocated parts |
+| Go unit/integration | PASS | `go test ./internal/nexus/ ./internal/control/web/ ./internal/nexus/intelligence/` |
+| Web quality | PASS | `make web-verify` |
 
-## Scope truth
+## Remaining follow-ups
 
-The existing Composer still needs the remaining plan work before it can be
-called a complete “best prompt product”: federated provider/local skill source
-adapters, full expected-revision coverage for every mutation, richer context
-redaction/budget handling, UI decomposition/i18n/style migration, and the
-dedicated Composer E2E acceptance scenarios. The Flow internals were not
-rewritten, as required; its existing handoff remains the integration boundary.
+- Federated provider/local skill source adapters beyond Maestro catalog.
+- Dedicated browser E2E scenarios for Composer attach-file and EXISTING_PROMPT review.
+- Optional purge migration for unused `composer_revisions` / variant writers (schema kept intentionally).
 
 No external provider, credential, or overnight autonomous run was fabricated
 as evidence.

@@ -8,6 +8,36 @@ describe('nexus API request errors', () => {
     setNexusCSRF('');
   });
 
+  it('rejects retired auto_plan creates with a clear client error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        json: () =>
+          Promise.resolve({
+            error:
+              'auto_plan is retired; create an empty draft or use Composer then Turn into Flow',
+          }),
+      }),
+    );
+
+    try {
+      await nexusApi.createPlan('proj-1', {
+        title: 'Build product',
+        goal: 'Build product',
+        auto_plan: true,
+      });
+      throw new Error('expected request to fail');
+    } catch (error) {
+      expect(error).toBeInstanceOf(NexusAPIError);
+      const apiError = error as NexusAPIError;
+      expect(apiError.status).toBe(400);
+      expect(String(apiError.message)).toContain('auto_plan is retired');
+    }
+  });
+
   it('preserves status and structured clarification payload on 409', async () => {
     const payload = {
       error: 'clarification_required',
@@ -40,7 +70,7 @@ describe('nexus API request errors', () => {
     );
 
     try {
-      await nexusApi.createPlan('proj-1', { goal: 'Build product', auto_plan: true });
+      await nexusApi.resolveClarification('clr-1', { target: 'web' });
       throw new Error('expected request to fail');
     } catch (error) {
       expect(error).toBeInstanceOf(NexusAPIError);
