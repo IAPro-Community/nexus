@@ -714,6 +714,7 @@ jobs:
           elif ls native-artifacts/*.exe >/dev/null 2>&1; then
             cp native-artifacts/*.exe packaging/windows/payload/
           fi
+          cp packaging/windows/payload/nexus.exe packaging/windows/payload/ai.exe
           test -f packaging/windows/payload/nexus.exe
           test -f packaging/windows/payload/ai.exe
           test -f packaging/windows/payload/nexus-desktop.exe

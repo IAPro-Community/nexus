@@ -72,6 +72,7 @@ const (
 	ModalNone ModalMode = iota
 	ModalQuotaDetails
 	ModalResumeChoice
+	ModalAddProfile
 )
 
 // InstalledProviderInfo describes an AI CLI detected on the system.
@@ -130,6 +131,7 @@ const (
 	ActionResumeConversation
 	ActionSetDefault
 	ActionLogin
+	ActionAdd
 	ActionQuit
 )
 
@@ -170,6 +172,10 @@ type usageTableModel struct {
 
 	// Filter input
 	filter textinput.Model
+
+	// Add profile modal
+	addProfileProvider string
+	addProfileInput    textinput.Model
 
 	// Selection & lifecycle
 	chosenResult *SelectionResult
@@ -609,6 +615,11 @@ func newUnifiedUsageModel(opts UnifiedUsageOptions) usageTableModel {
 	filter.Prompt = "/ "
 	filter.CharLimit = 100
 
+	addInput := textinput.New()
+	addInput.Placeholder = "ex: default, work, pessoal (Enter usa 'default')"
+	addInput.Prompt = "> "
+	addInput.CharLimit = 50
+
 	styles := table.DefaultStyles()
 	styles.Header = styles.Header.Bold(true).Foreground(lipgloss.Color("39")).BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240")).BorderBottom(true)
 	styles.Selected = styles.Selected.Foreground(lipgloss.Color("15")).Background(lipgloss.Color("57")).Bold(true)
@@ -650,6 +661,7 @@ func newUnifiedUsageModel(opts UnifiedUsageOptions) usageTableModel {
 		filteredSessions: filteredSess,
 		sessionTable:     sessTable,
 		filter:           filter,
+		addProfileInput:  addInput,
 		width:            initW,
 		height:           initH,
 	}
@@ -778,6 +790,33 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// Handle active modal
+		if m.modalMode == ModalAddProfile {
+			switch k {
+			case "esc":
+				m.modalMode = ModalNone
+				m.addProfileInput.Blur()
+				m.resizeTables()
+				return m, nil
+			case "enter":
+				profileName := strings.TrimSpace(m.addProfileInput.Value())
+				if profileName == "" {
+					profileName = "default"
+				}
+				m.modalMode = ModalNone
+				m.addProfileInput.Blur()
+				m.quitting = true
+				m.chosenResult = &SelectionResult{
+					Action:      ActionAdd,
+					Provider:    m.addProfileProvider,
+					ProfileName: profileName,
+				}
+				return m, tea.Quit
+			default:
+				var cmd tea.Cmd
+				m.addProfileInput, cmd = m.addProfileInput.Update(msg)
+				return m, cmd
+			}
+		}
 		if m.modalMode != ModalNone {
 			if k == "esc" || k == "q" || k == "Q" || k == "enter" || k == " " {
 				m.modalMode = ModalNone
@@ -944,14 +983,18 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "a", "A":
-			// Hint on adding profile
+			// Open Add Profile modal for highlighted provider
 			switch m.activeTab {
 			case TabAccounts:
 				if len(m.filteredAccounts) > 0 {
 					idx := m.accountTable.Cursor()
 					if idx >= 0 && idx < len(m.filteredAccounts) {
 						row := m.filteredAccounts[idx]
-						m.statusMsg = fmt.Sprintf("Para configurar %s: execute 'nexus add %s <nome>'", row.Provider, row.Provider)
+						m.modalMode = ModalAddProfile
+						m.addProfileProvider = row.Provider
+						m.addProfileInput.Reset()
+						m.addProfileInput.Focus()
+						return m, textinput.Blink
 					}
 				}
 			}
@@ -963,8 +1006,11 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if idx >= 0 && idx < len(m.filteredAccounts) {
 					row := m.filteredAccounts[idx]
 					if row.IsUnconfigured {
-						m.statusMsg = fmt.Sprintf("⚠ %s não está configurado. Execute: nexus add %s <nome>", row.Provider, row.Provider)
-						return m, nil
+						m.modalMode = ModalAddProfile
+						m.addProfileProvider = row.Provider
+						m.addProfileInput.Reset()
+						m.addProfileInput.Focus()
+						return m, textinput.Blink
 					}
 					flags := modeFlags(m.execMode, m.continueSession)
 					m.quitting = true
@@ -1103,6 +1149,9 @@ func (m usageTableModel) View() string {
 	if m.modalMode == ModalQuotaDetails {
 		return m.renderQuotaModal(availWidth)
 	}
+	if m.modalMode == ModalAddProfile {
+		return m.renderAddProfileModal(availWidth)
+	}
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15"))
 	subStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("242"))
@@ -1170,7 +1219,7 @@ func (m usageTableModel) View() string {
 		if idx >= 0 && idx < len(m.filteredAccounts) {
 			row := m.filteredAccounts[idx]
 			if row.IsUnconfigured {
-				previewLine = fmt.Sprintf("▶ %s sem perfil — nexus add %s <nome>", row.Provider, row.Provider)
+				previewLine = fmt.Sprintf("▶ ⏎/a adicionar perfil %s (nexus add %s <nome>)", row.Provider, row.Provider)
 			} else {
 				flagNote := m.execMode.String()
 				if m.execMode == ModeYOLO && m.continueSession {
@@ -1229,11 +1278,13 @@ func (m usageTableModel) View() string {
 		previewLine = previewLine + "  " + status
 	}
 
-	helpText := "↑↓  ⏎ lançar  r atualizar  s detalhe  d padrão  l login  / filtro  q sair"
+	helpText := "↑↓  ⏎ lançar  a add  r atualizar  s detalhe  d padrão  l login  / filtro  q sair"
 	if m.filter.Focused() {
 		helpText = "digite para filtrar · Enter/Esc conclui"
+	} else if m.activeTab == TabAccounts && m.accountTable.Cursor() >= 0 && m.accountTable.Cursor() < len(m.filteredAccounts) && m.filteredAccounts[m.accountTable.Cursor()].IsUnconfigured {
+		helpText = "↑↓  ⏎/a adicionar perfil  r atualizar  s detalhe  / filtro  q sair"
 	} else if availWidth < 90 {
-		helpText = "↑↓  ⏎ lançar  s detalhe  / filtro  q sair"
+		helpText = "↑↓  ⏎ lançar  a add  s detalhe  / filtro  q sair"
 	}
 	help := subStyle.Render(truncateRunes(helpText, availWidth))
 	previewLine = clipToWidth(previewLine, availWidth)
@@ -1545,6 +1596,35 @@ func (m usageTableModel) renderQuotaModal(width int) string {
 	sb.WriteString(subStyle.Render("Pressione qualquer tecla ou Esc/q para voltar"))
 
 	return fitViewToTerminal(modalStyle.Render(sb.String()), width, m.height)
+}
+
+func (m usageTableModel) renderAddProfileModal(width int) string {
+	boxWidth := width - 6
+	if boxWidth < 36 {
+		boxWidth = max(20, width-2)
+	}
+	if boxWidth > 64 {
+		boxWidth = 64
+	}
+	modalStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("39")).
+		Width(boxWidth).
+		Padding(1, 2)
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15"))
+	subStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("242"))
+	accentStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39"))
+
+	var sb strings.Builder
+	sb.WriteString(titleStyle.Render("Configurar Provedor · "+accentStyle.Render(m.addProfileProvider)) + "\n\n")
+	fmt.Fprintf(&sb, "Informe o nome do novo perfil para %s:\n", accentStyle.Render(m.addProfileProvider))
+	sb.WriteString(subStyle.Render("(Enter vazio usa 'default')") + "\n\n")
+	sb.WriteString(m.addProfileInput.View() + "\n\n")
+	sb.WriteString(subStyle.Render("⏎ confirmar e autenticar  ·  Esc cancelar"))
+
+	rendered := modalStyle.Render(sb.String())
+	return fitViewToTerminal(rendered, width, m.height)
 }
 
 type colSpec struct {

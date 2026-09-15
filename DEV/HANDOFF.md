@@ -1,5 +1,21 @@
 # Handoff
 
+## Redesign da Superfície de Uso (UX/UI, Responsividade & CLI Parity) — 2026-09-15
+
+A tela de Uso de Provedores e Contas (`UsageSurface`) foi reformulada com foco em excelência de UX/UI, responsividade em todas as resoluções e paridade integral com os comandos do Nexus CLI:
+1. **Design & Responsividade**: CSS Grid responsivo com autofill e minmax adaptativo (`UsageSurface.module.scss`), eliminando sobreposição em telas pequenas e maximizando aproveitamento do espaço em telas ultrawide.
+2. **Cards de Conta (`UsageAccountCard`)**: Visual modernizado com chips semânticos compactos, indicadores visuais de integridade, barras de progresso com tons semânticos (verde, azul, âmbar, vermelho) e menu de ações `...` com todas as operações da conta.
+3. **Paridade Nexus CLI**:
+   - `nexus login`: Modal interativo com instruções detalhadas por CLI de IA (Codex, AGY, Claude, Gemini, OpenCode, Cursor), comando para cópia rápida com feedback, atalho de terminal e verificação imediata de autenticação.
+   - `nexus logout`: Endpoint e ação de revogação de sessão e remoção segura de credenciais.
+   - `nexus use`: Troca do perfil padrão da frota com recarga em tempo real.
+   - `nexus providers register`: Modal dedicado para descoberta de provedores instalados e registro de novos perfis.
+   - `nexus usage`: Atualização granular de cota por conta individual além do refresh global da frota.
+   - `nexus explain`: Modal de explicabilidade do algoritmo de recomendação e agendamento de recursos (pesos de fallback, janelas de cota, custos de troca, continuidade de sessão).
+4. **Filtros e Descoberta**: Faixa de métricas clicável (`UsageSummaryStrip`) para filtrar instantaneamente por Total, Autenticadas, Requerem Login, Rate Limit e Saudáveis; barra de busca em tempo real com debounce; pills de provedores detectados; banner de sugestão para provedores de IA instalados na máquina mas ainda não registrados.
+5. **Gates de Qualidade**: 100% de aprovação em `make web-verify` (10/10 gates), `npm run quality:full` (388/388 testes Vitest, 0 erros no typecheck e lint, build limpo) e `go test ./internal/control/web/...`.
+6. **Próximos passos**: Revisão visual pelo Maestro no navegador (`127.0.0.1:13000`), sem commit/push conforme a constituição de trabalho.
+
 ## Limpeza de galhos — 2026-09-15
 
 HEAD local: `356f1a3` (feat + helper de teste terminal), ahead 1 de

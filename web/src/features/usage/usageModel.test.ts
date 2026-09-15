@@ -4,8 +4,11 @@ import {
   accountQuotaState,
   capabilityLabelKey,
   displayLabelKey,
+  filterAccounts,
   formatResetDescription,
+  getQuotaProgressTone,
   groupHasCapacity,
+  isAccountAuthRequired,
   parseResetDescription,
   relativeAge,
   summarizeAccounts,
@@ -107,5 +110,62 @@ describe('usageModel', () => {
         key === 'usage.resetOn' ? `renova às ${options?.time} em ${options?.date}` : key,
       ),
     ).toMatch(/^renova às 05:35 em /);
+  });
+
+  it('determines if an account requires authentication', () => {
+    expect(isAccountAuthRequired(base({ authenticated: true, health: 'healthy' }))).toBe(false);
+    expect(isAccountAuthRequired(base({ authenticated: false, health: 'AUTH_REQUIRED' }))).toBe(
+      true,
+    );
+    expect(
+      isAccountAuthRequired(
+        base({
+          authenticated: true,
+          eligibility: { eligible: false, reason: 'NOT_AUTHENTICATED', confidence: 'ESTIMATED' },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns appropriate progress bar tones', () => {
+    expect(getQuotaProgressTone(95)).toBe('success');
+    expect(getQuotaProgressTone(50)).toBe('info');
+    expect(getQuotaProgressTone(15)).toBe('warning');
+    expect(getQuotaProgressTone(5)).toBe('danger');
+  });
+
+  it('filters accounts by query, provider, and status', () => {
+    const fleet = [
+      base({
+        id: 'agy:work',
+        provider: 'agy',
+        profile: 'work',
+        display_name: 'Work Account',
+        quota_view: { account: 'work@gmail.com' },
+        available: true,
+        authenticated: true,
+      }),
+      base({
+        id: 'codex:stale',
+        provider: 'codex',
+        profile: 'stale',
+        display_name: 'Codex Work',
+        quota_view: { account: 'codex@omega.net' },
+        available: false,
+        authenticated: false,
+      }),
+      base({
+        id: 'claude:personal',
+        provider: 'claude',
+        profile: 'personal',
+        available: true,
+        authenticated: true,
+      }),
+    ];
+
+    expect(filterAccounts(fleet, { search: 'omega' })).toHaveLength(1);
+    expect(filterAccounts(fleet, { provider: 'agy' })).toHaveLength(1);
+    expect(filterAccounts(fleet, { status: 'auth_required' })).toHaveLength(1);
+    expect(filterAccounts(fleet, { status: 'usable' })).toHaveLength(2);
   });
 });

@@ -136,9 +136,8 @@ func writeHostsFile(content string) error {
 	if runtime.GOOS == "windows" {
 		return fmt.Errorf("writing %s: %w", path, writeErr)
 	}
-	cmd := exec.Command("sudo", "tee", path)
+	cmd := exec.Command("sudo", "-n", "tee", path)
 	cmd.Stdin = strings.NewReader(content)
-	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("sudo tee %s: %w", path, err)
 	}

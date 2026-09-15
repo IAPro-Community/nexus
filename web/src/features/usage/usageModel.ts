@@ -12,7 +12,73 @@ export type UsageSummary = {
   exhausted: number;
   unknown: number;
   blocked: number;
+  authRequired: number;
 };
+
+export function isAccountAuthRequired(account: ProviderAccount): boolean {
+  if (account.authenticated === false || account.eligibility?.reason === 'NOT_AUTHENTICATED') {
+    return true;
+  }
+  const state = accountQuotaState(account);
+  return state === 'unauthenticated';
+}
+
+export function getQuotaProgressTone(remaining: number): 'success' | 'info' | 'warning' | 'danger' {
+  if (remaining >= 70) return 'success';
+  if (remaining >= 25) return 'info';
+  if (remaining >= 10) return 'warning';
+  return 'danger';
+}
+
+export type FleetFilterStatus = 'all' | 'usable' | 'auth_required' | 'rate_limited' | 'exhausted';
+
+export function filterAccounts(
+  accounts: ProviderAccount[],
+  options: {
+    search?: string;
+    provider?: string;
+    status?: FleetFilterStatus;
+  },
+): ProviderAccount[] {
+  const query = (options.search || '').trim().toLowerCase();
+  const provider = (options.provider || '').trim().toLowerCase();
+  const status = options.status || 'all';
+
+  return accounts.filter((account) => {
+    if (provider && provider !== 'all' && account.provider?.toLowerCase() !== provider) {
+      return false;
+    }
+
+    if (query) {
+      const matchProvider = account.provider?.toLowerCase().includes(query);
+      const matchProfile = account.profile?.toLowerCase().includes(query);
+      const matchDisplayName = account.display_name?.toLowerCase().includes(query);
+      const matchAccount = account.quota_view?.account?.toLowerCase().includes(query);
+      const matchPlan = account.quota_view?.plan?.toLowerCase().includes(query);
+      if (!matchProvider && !matchProfile && !matchDisplayName && !matchAccount && !matchPlan) {
+        return false;
+      }
+    }
+
+    if (status === 'all') return true;
+    const state = accountQuotaState(account);
+    const authReq = isAccountAuthRequired(account);
+
+    if (status === 'usable') {
+      return account.available && !authReq && state !== 'exhausted' && state !== 'blocked';
+    }
+    if (status === 'auth_required') {
+      return authReq;
+    }
+    if (status === 'rate_limited') {
+      return state === 'blocked' || account.rate_limited;
+    }
+    if (status === 'exhausted') {
+      return state === 'exhausted';
+    }
+    return true;
+  });
+}
 
 export function accountQuotaState(account: ProviderAccount): QuotaTruthState {
   const best = bestGroupRemainingFromQuotaView(account.quota_view);
@@ -43,8 +109,12 @@ export function summarizeAccounts(accounts: ProviderAccount[]): UsageSummary {
     exhausted: 0,
     unknown: 0,
     blocked: 0,
+    authRequired: 0,
   };
   for (const account of accounts) {
+    if (isAccountAuthRequired(account)) {
+      summary.authRequired += 1;
+    }
     const state = accountQuotaState(account);
     if (state === 'blocked' || state === 'unauthenticated') summary.blocked += 1;
     else if (state === 'exhausted') summary.exhausted += 1;

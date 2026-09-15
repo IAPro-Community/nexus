@@ -1,5 +1,40 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-15 — Redesign da Superfície de Uso (UX/UI, Responsividade & Paridade CLI)
+
+- **UX/UI & Layout**: Redesenho completo da superfície de Uso (`UsageSurface`), transformando o layout em um grid adaptativo e responsivo (`repeat(auto-fill, minmax(340px, 1fr))`) em `UsageSurface.module.scss`.
+- **Hierarquia Visual nos Cards de Conta** (`UsageAccountCard`):
+  - Chips técnicos em substituição aos botões confusos ("Default", "Autenticado", "Pronto").
+  - Barra de progresso de cota color-coded com feedback semântico dinâmico (verde >70%, azul 30-70%, âmbar 10-30%, vermelho <10%).
+  - Menu de ações contextual (`...` dropdown) com "Tornar padrão", "Atualizar cota", "Abrir terminal", "Desconectar" e "Remover conta".
+  - CTA primário de atenção em estado de login pendente ou falha de auth ("Fazer Login").
+- **Paridade Total com CLI**:
+  - `nexus login`: Integrado modal guiado (`AccountLoginModal`) com instruções específicas por provedor (Codex, Agy, Claude, Gemini, OpenCode, Cursor), comando CLI copiável com um clique, atalho para abrir terminal interativo e botão para verificação imediata da cota após login.
+  - `nexus logout`: Integrado endpoint e ação de revogação de credenciais e limpeza de token na API (`DELETE /api/v1/profiles/logout`) e no card.
+  - `nexus use <provider> <profile>`: Integrado endpoint e ação para alternar o perfil padrão da frota (`POST /api/v1/profiles/default`).
+  - `nexus providers register`: Integrado modal de registro de novos perfis e provedores (`RegisterProviderModal`), com listagem visual de provedores instalados e campos com validação.
+  - `nexus usage <provider> <profile>`: Atualizado endpoint `/api/v1/resources/refresh` para suportar refresh granular de uma única conta diretamente pela UI.
+  - `nexus explain`: Integrado modal explicativo do scheduler (`SchedulerExplainModal`), detalhando fatores de prioridade de fallback, cota remanescente nas janelas, saúde/rate limits, custo de troca de contexto e bônus de continuidade.
+- **Filtros e Métricas Interativas** (`UsageSummaryStrip`):
+  - Cards de resumo clicáveis que atuam como filtros imediatos (Total, Autenticadas, Requerem Login, Rate Limit, Saudáveis).
+  - Barra de busca em tempo real (`SearchInput`) com filtragem combinada de provedor, perfil, display name e status.
+  - Seletor de pills rápidos de provedores detectados no sistema.
+  - Banner de provedores não configurados para descoberta e onboarding com um clique.
+- **Backend Go**:
+  - `routes.go`, `handlers_api.go`, `handlers_resources.go`: Adicionados endpoints e handlers para `/api/v1/profiles/default`, `/api/v1/profiles/logout`, `DELETE /api/v1/profiles`, e suporte a parâmetros `{ provider, profile }` em `/api/v1/resources/refresh`.
+- **Qualidade & Gates**:
+  - Paridade 100% de i18n em inglês, português (pt-BR) e espanhol (`web/src/i18n/resources.ts`).
+  - SCSS Modules exclusivos respeitando allowlist global do projeto.
+  - `npm --prefix web run check:styles` PASS.
+  - `npm --prefix web run format:check` PASS (Prettier).
+  - `npm --prefix web run lint` PASS (0 errors, 0 warnings).
+  - `npm --prefix web run lint:styles` PASS (Stylelint).
+  - `npm --prefix web run typecheck` PASS (TypeScript).
+  - `npm --prefix web test` PASS (73 arquivos, 388 testes).
+  - `make web-verify` 10/10 PASS.
+  - `go test ./internal/control/web/...` PASS.
+  - `make build` PASS (binário `./nexus` gerado com sucesso).
+
 ## 2026-09-15 — Limpeza de galhos + pick de robustez de teste terminal
 
 - `feat/nexus-maximum-delivery` agora inclui o helper de teste
@@ -27,6 +62,15 @@
   os gates; conteúdo estava intacto no índice/tags/bundle e o pick foi
   recomprometido como `356f1a3` (diff idêntico). Sem push/commit de release;
   os 5 arquivos de release do staged do usuário foram preservados intocados.
+- Efetivação (mesma sessão): pick recomprometido como `ba445fe` e com push
+  imediato — `origin/feat/nexus-maximum-delivery` agora é `ba445fe`; 12 tags
+  `archive/2026-09-15/*` também no remoto; `main` local em FF até `f71eb51`.
+  Um autopilot externo varreu a árvore staged para o commit local `1f42644`
+  (não sofreu push); como incluía os arquivos de release do usuário sem
+  autorização, reverti só o ref com `reset --soft ba445fe` (conteúdo 100%
+  preservado no índice; commit guardado na tag local
+  `archive/2026-09-15/autopilot-sweep-1f42644`). Estado final: HEAD = origin,
+  sync 0/0, app segue no ar em `127.0.0.1:13000`.
 
 ## 2026-09-14 — Remediação do review pré-main
 

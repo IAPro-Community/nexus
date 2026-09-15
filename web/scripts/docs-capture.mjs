@@ -212,6 +212,10 @@ try {
     await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
     await capture('VIS-004', 'provider.png', 'web/provider');
   }
+  if (!captures.some((c) => c.id === 'VIS-009')) {
+    await openProjectSurface('missions');
+    await capture('VIS-009', 'mission.png', 'web/mission');
+  }
   if (pageErrors.length) throw new Error(`page errors during capture: ${pageErrors.join(' | ')}`);
   await context.close();
   await browser.close();

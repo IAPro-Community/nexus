@@ -1,5 +1,19 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-15 — Redesign da Superfície de Uso (UX/UI, Responsividade & Paridade CLI)
+
+- PASS — `npm --prefix web run check:styles`: validação de CSS Modules e conformidade com allowlist de estilos globais.
+- PASS — `npm --prefix web run format:check`: 100% dos arquivos formatados segundo regras do Prettier.
+- PASS — `npm --prefix web run lint`: ESLint aprovado com 0 erros e 0 warnings (`--max-warnings=0`).
+- PASS — `npm --prefix web run lint:styles`: Stylelint aprovado sem nenhuma violação.
+- PASS — `npm --prefix web run typecheck`: TypeScript `tsc --noEmit` compilado com 0 erros.
+- PASS — `npm --prefix web test`: Vitest executou 73 arquivos de teste e 388 testes com 100% de aprovação (incluindo testes de modelos de uso e paridade i18n).
+- PASS — `npm --prefix web run build`: Geração completa de bundles web com Tailwind CSS v4 e esbuild em ~1.3s.
+- PASS — `make web-verify`: Todos os 10 gates automatizados aprovados (format, typecheck, lint, stylelint, null-arrays, test, i18n, build, embed-sync, ui-markers). Relatório gerado em `DEV/validation/FRONTEND_LATEST.md`.
+- PASS — `go test -v ./internal/control/web/...`: Todos os testes da API de controle Web e endpoints de perfis/recursos aprovados (0 falhas).
+- PASS — `make build`: Binário `./nexus` (v1.0.0-beta.1) compilado com sucesso com os novos assets embutidos.
+- NOT EXECUTED — `git commit` e `git push` (em estrita conformidade com a constituição do Orquestrador: commits e pushes somente sob ordem explícita do Maestro).
+
 ## 2026-09-15 — Limpeza de galhos + pick terminal (HEAD `356f1a3`)
 
 - PASS — `go test ./internal/control/host/ -count=1` (pós-pick e pós-recuperação).
@@ -1319,7 +1333,7 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-15T02:04:49Z
+## Frontend gate — 2026-09-15T03:07:25Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 

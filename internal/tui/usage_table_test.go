@@ -754,3 +754,119 @@ func TestUsageTableCursorSurvivesResort(t *testing.T) {
 		t.Fatalf("cursor landed on %s:%s want codex:low", got.Provider, got.Profile)
 	}
 }
+
+func TestUnifiedUsage_AddProfileModal_OpensOnKeyA(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{
+			{Provider: "codex", Profile: "work", Status: "OK"},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	m.accountTable.SetCursor(0)
+
+	// Press 'a'
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	m = res.(usageTableModel)
+
+	if m.modalMode != ModalAddProfile {
+		t.Fatalf("expected modalMode=ModalAddProfile, got %v", m.modalMode)
+	}
+	if m.addProfileProvider != "codex" {
+		t.Fatalf("expected addProfileProvider=codex, got %s", m.addProfileProvider)
+	}
+	if !m.addProfileInput.Focused() {
+		t.Fatal("expected addProfileInput to be focused")
+	}
+}
+
+func TestUnifiedUsage_AddProfileModal_OpensOnUnconfiguredEnter(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		UnconfiguredCLIs: []InstalledProviderInfo{
+			{ID: "cursor", Name: "Cursor", Installed: true, Profiles: 0},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	if len(m.filteredAccounts) != 1 {
+		t.Fatalf("expected 1 unconfigured account, got %d", len(m.filteredAccounts))
+	}
+	m.accountTable.SetCursor(0)
+
+	// Press Enter on the unconfigured row
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = res.(usageTableModel)
+
+	if m.modalMode != ModalAddProfile {
+		t.Fatalf("expected modalMode=ModalAddProfile, got %v", m.modalMode)
+	}
+	if m.addProfileProvider != "cursor" {
+		t.Fatalf("expected addProfileProvider=cursor, got %s", m.addProfileProvider)
+	}
+}
+
+func TestUnifiedUsage_AddProfileModal_SubmitsActionAdd(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		UnconfiguredCLIs: []InstalledProviderInfo{
+			{ID: "cursor", Name: "Cursor", Installed: true, Profiles: 0},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	m.accountTable.SetCursor(0)
+
+	// Open modal via 'a'
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	m = res.(usageTableModel)
+
+	// Type 'work' into input
+	for _, r := range "work" {
+		res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = res.(usageTableModel)
+	}
+
+	// Press Enter to confirm
+	res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = res.(usageTableModel)
+
+	if cmd == nil {
+		t.Fatal("expected quit cmd on Enter")
+	}
+	if m.chosenResult == nil {
+		t.Fatal("expected chosenResult to be set")
+	}
+	if m.chosenResult.Action != ActionAdd {
+		t.Fatalf("expected ActionAdd, got %v", m.chosenResult.Action)
+	}
+	if m.chosenResult.Provider != "cursor" {
+		t.Fatalf("expected Provider=cursor, got %s", m.chosenResult.Provider)
+	}
+	if m.chosenResult.ProfileName != "work" {
+		t.Fatalf("expected ProfileName=work, got %s", m.chosenResult.ProfileName)
+	}
+}
+
+func TestUnifiedUsage_AddProfileModal_CancelsOnEsc(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{
+			{Provider: "codex", Profile: "work", Status: "OK"},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	m.accountTable.SetCursor(0)
+
+	// Open modal via 'a'
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	m = res.(usageTableModel)
+	if m.modalMode != ModalAddProfile {
+		t.Fatal("expected modal to open")
+	}
+
+	// Press Esc
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(usageTableModel)
+
+	if m.modalMode != ModalNone {
+		t.Fatalf("expected modalMode=ModalNone after Esc, got %v", m.modalMode)
+	}
+	if m.chosenResult != nil {
+		t.Fatalf("expected nil chosenResult, got %#v", m.chosenResult)
+	}
+}

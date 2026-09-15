@@ -249,14 +249,31 @@ export const nexus = {
   // Resource Scheduler (Gate 5)
   listResources: () =>
     request<{ accounts: ProviderAccount[]; policy: string }>('/api/v1/resources'),
-  refreshResources: () =>
+  refreshResources: (provider?: string, profile?: string) =>
     request<{ accounts: ProviderAccount[]; policy: string; refreshed?: boolean }>(
       '/api/v1/resources/refresh',
       {
         method: 'POST',
-        body: '{}',
+        body: JSON.stringify({ provider, profile }),
       },
     ),
+  setDefaultProfile: (provider: string, profile: string) =>
+    request<{ status: string; provider: string; profile: string }>('/api/v1/profiles/default', {
+      method: 'POST',
+      body: JSON.stringify({ provider, profile }),
+    }),
+  deleteProfile: (provider: string, profile: string) =>
+    request<{ status: string; deleted: boolean }>(
+      `/api/v1/profiles?provider=${encodeURIComponent(provider)}&profile=${encodeURIComponent(profile)}`,
+      {
+        method: 'DELETE',
+      },
+    ),
+  logoutProfile: (provider: string, profile: string) =>
+    request<{ status: string; logged_out: boolean }>('/api/v1/profiles/logout', {
+      method: 'POST',
+      body: JSON.stringify({ provider, profile }),
+    }),
   selectResource: (agentId: string, provider: string, profile: string, policy = 'MANUAL') =>
     request<ResourceAllocation>('/api/v1/resources/select', {
       method: 'POST',

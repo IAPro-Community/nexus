@@ -39,6 +39,8 @@ func registerControlRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/runtimes/", s.routeRuntime)
 	mux.HandleFunc("/api/v1/providers", s.authMiddleware(api.handleProviders))
 	mux.HandleFunc("/api/v1/profiles", s.authMiddleware(api.handleProfiles))
+	mux.HandleFunc("/api/v1/profiles/default", s.authMiddleware(api.handleProfileDefault))
+	mux.HandleFunc("/api/v1/profiles/logout", s.authMiddleware(api.handleProfileLogout))
 	mux.HandleFunc("/api/v1/events", s.authMiddleware(api.handleEvents))
 }
 

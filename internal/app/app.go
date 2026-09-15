@@ -1109,6 +1109,12 @@ func usageCmd(args []string) error {
 		return executeResume(sel.Provider, sel.ProfileName, sel.ConversationID, sel.Args)
 	case tui.ActionLogin:
 		return loginCmd([]string{sel.Provider, sel.ProfileName})
+	case tui.ActionAdd:
+		args := []string{sel.Provider}
+		if sel.ProfileName != "" {
+			args = append(args, sel.ProfileName)
+		}
+		return addCmd(args)
 	default:
 		return nil
 	}

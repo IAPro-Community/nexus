@@ -37,13 +37,33 @@ func (h *NexusHandler) handleResourcesRefresh(w http.ResponseWriter, r *http.Req
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	profiles, err := profile.List()
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
+	var req struct {
+		Provider string `json:"provider"`
+		Profile  string `json:"profile"`
 	}
-	for _, p := range profiles {
-		_ = profile.RefreshUsageSnapshot(p.Provider, p.Name)
+	if r.Body != nil {
+		_ = json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req)
+	}
+	targetProv := strings.TrimSpace(req.Provider)
+	targetName := strings.TrimSpace(req.Profile)
+	if targetProv == "" {
+		targetProv = strings.TrimSpace(r.URL.Query().Get("provider"))
+	}
+	if targetName == "" {
+		targetName = strings.TrimSpace(r.URL.Query().Get("profile"))
+	}
+
+	if targetProv != "" && targetName != "" {
+		_ = profile.RefreshUsageSnapshot(targetProv, targetName)
+	} else {
+		profiles, err := profile.List()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		for _, p := range profiles {
+			_ = profile.RefreshUsageSnapshot(p.Provider, p.Name)
+		}
 	}
 	accounts, err := h.resources.List(r.Context())
 	if err != nil {

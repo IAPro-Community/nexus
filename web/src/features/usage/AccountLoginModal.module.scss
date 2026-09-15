@@ -1,0 +1,121 @@
+.root {
+  display: grid;
+  gap: 16px;
+}
+
+.intro {
+  color: var(--nx-text-soft);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.instructionBox {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  color: var(--nx-text);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.instructionBox strong {
+  display: block;
+  font-size: 12px;
+  color: var(--nx-text-soft);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.instructionIcon {
+  color: var(--nx-accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.actionsCard {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--nx-radius);
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border);
+}
+
+.terminalOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--nx-border);
+}
+
+.optionCopy {
+  display: grid;
+  gap: 2px;
+}
+
+.optionCopy strong {
+  font-size: 13px;
+  color: var(--nx-text);
+}
+
+.optionCopy small {
+  font-size: 11.5px;
+  color: var(--nx-muted);
+}
+
+.cliOption {
+  display: grid;
+  gap: 8px;
+}
+
+.cliLabel {
+  font-size: 12px;
+  color: var(--nx-muted);
+}
+
+.cliCommand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-bg);
+  border: 1px solid var(--nx-border-strong);
+}
+
+.cliCommand code {
+  font-family: var(--nx-font-mono);
+  font-size: 12px;
+  color: var(--nx-accent-text);
+  user-select: all;
+  word-break: break-all;
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .terminalOption {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cliCommand {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

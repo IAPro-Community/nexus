@@ -1,66 +1,169 @@
 .card {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  padding: 16px;
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--nx-accent), transparent);
 }
 
 .header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  color: var(--nx-accent-text);
 }
 
-.header strong {
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nx-text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.headerTitle svg {
+  color: var(--nx-accent);
+}
+
+.error {
+  color: var(--nx-danger);
+  font-size: 12px;
+  margin: 0;
+}
+
+.recommended {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.row strong {
   color: var(--nx-text);
   font-size: 13px;
 }
 
-.recommended,
-.candidates {
-  display: grid;
-  gap: 8px;
-}
-
-.row,
-.candidate {
+.badges {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
 
-.recommended p,
-.error {
-  margin: 0;
+.explanation {
   color: var(--nx-text-soft);
-  font-size: 12.5px;
-  line-height: 1.45;
-}
-
-.recommended ul {
-  margin: 0;
-  padding-left: 16px;
-  color: var(--nx-muted);
   font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
 }
 
-.cons {
+.prosList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 5px;
+}
+
+.proItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--nx-text-soft);
+}
+
+.proIcon {
+  color: var(--nx-success);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.consList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 5px;
+}
+
+.conItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--nx-muted);
+}
+
+.conIcon {
   color: var(--nx-warning);
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
-.candidates small {
-  color: var(--nx-subtle);
-  font-size: 10.5px;
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.candidatesSection {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--nx-border);
+}
+
+.candidatesLabel {
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  color: var(--nx-subtle);
+  font-weight: 600;
 }
 
-.candidate {
+.candidatesList {
+  display: grid;
+  gap: 6px;
+}
+
+.candidateRow {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 6px 8px;
-  border: 1px solid var(--nx-border);
-  border-radius: 7px;
+  border-radius: var(--nx-radius-sm);
   background: var(--nx-surface);
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--nx-text-soft);
+}
+
+.candidateName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

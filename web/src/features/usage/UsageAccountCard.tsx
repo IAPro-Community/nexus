@@ -1,16 +1,41 @@
-import React from 'react';
-import { Activity, ShieldAlert } from 'lucide-react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Badge, Progress } from '../../design-system';
+import {
+  Activity,
+  CheckCircle2,
+  Clock,
+  HelpCircle,
+  KeyRound,
+  LogOut,
+  MoreVertical,
+  Plus,
+  RefreshCw,
+  ShieldAlert,
+  Star,
+  Terminal,
+  Trash2,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Badge,
+  Button,
+  ConfirmDialog,
+  DropdownMenu,
+  IconButton,
+  Progress,
+} from '../../design-system';
 import { translateStatus } from '../../i18n';
 import type { ProviderAccount } from '../../types';
 import { asArray } from '../../lib/safeArray';
+import { nexus } from '../../nexus/api';
 import {
   accountQuotaState,
   capabilityLabelKey,
   displayLabelKey,
   formatResetDescription,
+  getQuotaProgressTone,
   groupHasCapacity,
+  isAccountAuthRequired,
   relativeAge,
   windowKindLabelKey,
 } from './usageModel';
@@ -28,20 +53,42 @@ const healthTone = (health: string) =>
 const quotaTone = (state: string) =>
   state === 'confirmed' ? 'success' : state === 'stale' ? 'warning' : 'danger';
 
-export const UsageAccountCard: React.FC<{ account: ProviderAccount; now?: number }> = ({
+export interface UsageAccountCardProps {
+  account: ProviderAccount;
+  now?: number;
+  isRecommended?: boolean;
+  onRefreshNeeded: () => Promise<void>;
+  onRequestLogin: (account: ProviderAccount) => void;
+  onRequestExplain: () => void;
+  onOpenTerminal?: (provider: string, profile: string) => void;
+  onAddProfile?: (provider: string) => void;
+}
+
+export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
   account,
   now,
+  isRecommended,
+  onRefreshNeeded,
+  onRequestLogin,
+  onRequestExplain,
+  onOpenTerminal,
+  onAddProfile,
 }) => {
   const { t, i18n } = useTranslation();
+  const [refreshing, setRefreshing] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+
   const qv = account.quota_view;
   const groups = asArray<
     NonNullable<NonNullable<ProviderAccount['quota_view']>['model_groups']>[number]
   >(qv?.model_groups);
   const multi = groups.length > 1;
   const quotaState = accountQuotaState(account);
+  const authRequired = isAccountAuthRequired(account);
   const capabilities = Object.entries(account.capabilities || {})
     .filter(([, value]) => value && value !== 'false')
-    .slice(0, 4);
+    .slice(0, 5);
+
   const planKey = displayLabelKey(qv?.plan);
   const age = relativeAge(qv?.fetched_at, now);
   const statusLabel = translateStatus(qv?.status || 'UNKNOWN');
@@ -49,115 +96,312 @@ export const UsageAccountCard: React.FC<{ account: ProviderAccount; now?: number
     ? t(`usage.freshness.${age.unit}`, { status: statusLabel, count: age.count })
     : statusLabel;
 
+  const handleRefreshAccount = async () => {
+    setRefreshing(true);
+    try {
+      await nexus.refreshResources(account.provider, account.profile);
+      await onRefreshNeeded();
+      toast.success(t('usage.refreshSuccess', 'Cota atualizada com sucesso'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleMakeDefault = async () => {
+    try {
+      await nexus.setDefaultProfile(account.provider, account.profile);
+      await onRefreshNeeded();
+      toast.success(
+        t('usage.makeDefaultSuccess', { name: account.profile, provider: account.provider }),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await nexus.logoutProfile(account.provider, account.profile);
+      await onRefreshNeeded();
+      toast.success(t('usage.logoutSuccess'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const handleRemoveProfile = async () => {
+    try {
+      await nexus.deleteProfile(account.provider, account.profile);
+      await onRefreshNeeded();
+      toast.success(t('common.deleted', 'Perfil removido com sucesso'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setConfirmRemove(false);
+    }
+  };
+
+  const handleTerminalLaunch = () => {
+    if (onOpenTerminal) {
+      onOpenTerminal(account.provider, account.profile);
+    } else {
+      window.dispatchEvent(
+        new CustomEvent('nexus:terminal-launch', {
+          detail: {
+            provider: account.provider,
+            profile: account.profile,
+            args: [],
+            title: `${account.provider} · ${account.profile}`,
+          },
+        }),
+      );
+    }
+  };
+
   return (
-    <article
-      className={styles.card}
-      data-quota-state={quotaState}
-      data-available={account.available}
-    >
-      <header className={styles.header}>
-        <span className={styles.icon} aria-hidden="true">
-          {account.rate_limited ? <ShieldAlert size={16} /> : <Activity size={16} />}
-        </span>
-        <div className={styles.titleBlock}>
-          <div className={styles.titleRow}>
-            <strong>{account.display_name || account.provider}</strong>
-            <Badge>{account.profile}</Badge>
-            <Badge tone={healthTone(account.health)}>{translateStatus(account.health)}</Badge>
-            <Badge tone={quotaTone(quotaState)}>
-              {quotaState === 'confirmed'
-                ? t('resources.confirmed')
-                : quotaState === 'exhausted'
-                  ? t('resources.exhausted')
-                  : quotaState === 'blocked'
-                    ? t('resources.rateLimited')
-                    : quotaState === 'unauthenticated'
-                      ? t('resources.reauthRequired')
-                      : quotaState === 'stale'
-                        ? t('resources.stale')
-                        : t('resources.unknown')}
-            </Badge>
-            {account.is_default ? <Badge>{t('common.default')}</Badge> : null}
+    <>
+      <article
+        className={styles.card}
+        data-quota-state={quotaState}
+        data-available={account.available}
+        data-recommended={isRecommended ? 'true' : 'false'}
+      >
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            <span className={styles.icon} aria-hidden="true">
+              {account.rate_limited ? <ShieldAlert size={18} /> : <Activity size={18} />}
+            </span>
+            <div className={styles.titleBlock}>
+              <div className={styles.titleRow}>
+                <span className={styles.accountName}>
+                  {account.display_name || `${account.provider} (${account.profile})`}
+                </span>
+                {account.is_default ? (
+                  <Badge tone="brand">
+                    <Star size={10} style={{ marginRight: 3 }} />
+                    {t('common.default', 'padrão')}
+                  </Badge>
+                ) : null}
+                {isRecommended ? (
+                  <Badge tone="brand">{t('usage.bestChoice', 'Melhor escolha')} #1</Badge>
+                ) : null}
+                <Badge tone={healthTone(account.health)}>{translateStatus(account.health)}</Badge>
+                <Badge tone={quotaTone(quotaState)}>
+                  {quotaState === 'confirmed'
+                    ? t('resources.confirmed')
+                    : quotaState === 'exhausted'
+                      ? t('resources.exhausted')
+                      : quotaState === 'blocked'
+                        ? t('resources.rateLimited')
+                        : quotaState === 'unauthenticated'
+                          ? t('resources.reauthRequired')
+                          : quotaState === 'stale'
+                            ? t('resources.stale')
+                            : t('resources.unknown')}
+                </Badge>
+              </div>
+
+              <div className={styles.metaRow}>
+                {qv?.plan ? <small>{planKey ? t(planKey) : qv.plan}</small> : null}
+                {qv?.account ? <small>{qv.account}</small> : null}
+                <small>
+                  <Clock size={11} />
+                  {freshness}
+                </small>
+                {account.cooldown_until ? (
+                  <small style={{ color: 'var(--nx-warning)' }}>
+                    {t('usage.cooldown')}: {new Date(account.cooldown_until).toLocaleTimeString()}
+                  </small>
+                ) : null}
+              </div>
+            </div>
           </div>
-          <div className={styles.metaRow}>
-            {qv?.plan ? <small>{planKey ? t(planKey) : qv.plan}</small> : null}
-            {qv?.account ? <small>{qv.account}</small> : null}
-            <small>{freshness}</small>
-            {account.cooldown_until ? (
-              <small>
-                {t('usage.cooldown')}: {new Date(account.cooldown_until).toLocaleString()}
-              </small>
+
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <IconButton label={t('common.actions', 'Ações')} className={styles.menuButton}>
+                <MoreVertical size={16} />
+              </IconButton>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content className={styles.menuContent} side="bottom" align="end">
+                {account.available && (
+                  <DropdownMenu.Item className={styles.menuItem} onClick={handleTerminalLaunch}>
+                    <Terminal size={14} />
+                    {t('usage.openTerminalCta')}
+                  </DropdownMenu.Item>
+                )}
+                <DropdownMenu.Item
+                  className={styles.menuItem}
+                  onClick={() => void handleRefreshAccount()}
+                >
+                  <RefreshCw size={14} className={refreshing ? 'nx-spin' : ''} />
+                  {t('usage.refreshAccountCta')}
+                </DropdownMenu.Item>
+                {authRequired && (
+                  <DropdownMenu.Item
+                    className={styles.menuItem}
+                    onClick={() => onRequestLogin(account)}
+                  >
+                    <KeyRound size={14} />
+                    {t('usage.loginCta')}
+                  </DropdownMenu.Item>
+                )}
+                {!account.is_default && (
+                  <DropdownMenu.Item
+                    className={styles.menuItem}
+                    onClick={() => void handleMakeDefault()}
+                  >
+                    <Star size={14} />
+                    {t('usage.makeDefaultCta')}
+                  </DropdownMenu.Item>
+                )}
+                <DropdownMenu.Item className={styles.menuItem} onClick={onRequestExplain}>
+                  <HelpCircle size={14} />
+                  {t('usage.explainSchedulerCta')}
+                </DropdownMenu.Item>
+                {onAddProfile && (
+                  <DropdownMenu.Item
+                    className={styles.menuItem}
+                    onClick={() => onAddProfile(account.provider)}
+                  >
+                    <Plus size={14} />
+                    {t('usage.addAnotherProfileCta', 'Adicionar outro perfil')}
+                  </DropdownMenu.Item>
+                )}
+                <DropdownMenu.Separator className={styles.menuSeparator} />
+                <DropdownMenu.Item
+                  className={styles.menuItem}
+                  data-danger="true"
+                  onClick={() => void handleLogout()}
+                >
+                  <LogOut size={14} />
+                  {t('usage.logoutCta')}
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className={styles.menuItem}
+                  data-danger="true"
+                  onClick={() => setConfirmRemove(true)}
+                >
+                  <Trash2 size={14} />
+                  {t('usage.removeAccountCta')}
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </header>
+
+        {capabilities.length > 0 ? (
+          <div className={styles.capsSection}>
+            <span className={styles.capsLabel}>{t('usage.capabilitiesTitle')}</span>
+            <div className={styles.capsList}>
+              {capabilities.map(([key]) => (
+                <span key={key} className={styles.capChip}>
+                  {t(capabilityLabelKey(key), { defaultValue: key })}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div className={styles.quota}>
+          {groups.length > 0 ? (
+            groups.map((group, index) => {
+              const groupLabelKey = displayLabelKey(group.name, group.key);
+              return (
+                <section key={group.key || group.name || index} className={styles.group}>
+                  {multi && (groupLabelKey || group.name) ? (
+                    <div className={styles.groupHeading}>
+                      <span>{groupLabelKey ? t(groupLabelKey) : group.name}</span>
+                      <Badge tone={groupHasCapacity(group) ? 'success' : 'danger'}>
+                        {groupHasCapacity(group)
+                          ? t('usage.groupAvailable')
+                          : t('usage.groupUnavailable')}
+                      </Badge>
+                    </div>
+                  ) : null}
+                  {asArray<NonNullable<typeof group.windows>[number]>(group.windows).map(
+                    (window) => {
+                      const windowKey =
+                        windowKindLabelKey(window.kind) || displayLabelKey(window.label);
+                      const reset = formatResetDescription(
+                        window.reset_desc,
+                        i18n.language,
+                        (key, options) => t(key, options),
+                      );
+                      const remainingVal = Number(window.remaining) || 0;
+                      const tone = getQuotaProgressTone(remainingVal);
+                      return (
+                        <div key={window.kind || window.label} className={styles.window}>
+                          <span className={styles.windowLabel}>
+                            {windowKey ? t(windowKey) : window.label || window.kind}
+                          </span>
+                          <Progress
+                            value={remainingVal}
+                            label={`${Math.round(remainingVal)}%`}
+                            data-tone={tone}
+                          />
+                          {reset ? (
+                            <span className={styles.reset}>
+                              <Clock size={10} />
+                              {reset}
+                            </span>
+                          ) : null}
+                        </div>
+                      );
+                    },
+                  )}
+                </section>
+              );
+            })
+          ) : (
+            <p className={styles.stateLine}>{t('resources.state.unknown')}</p>
+          )}
+        </div>
+
+        <footer className={styles.footer}>
+          {account.eligibility ? (
+            <span className={styles.eligibilityNote} data-eligible={account.eligibility.eligible}>
+              {account.eligibility.eligible ? (
+                <CheckCircle2 size={13} />
+              ) : (
+                <ShieldAlert size={13} />
+              )}
+              {t(`resources.eligibility.${account.eligibility.reason}`, {
+                defaultValue: account.eligibility.message || account.eligibility.reason,
+              })}
+            </span>
+          ) : (
+            <span />
+          )}
+
+          <div className={styles.footerActions}>
+            {authRequired ? (
+              <Button size="sm" tone="warning" onClick={() => onRequestLogin(account)}>
+                <KeyRound size={13} />
+                {t('usage.loginCta')}
+              </Button>
+            ) : account.available ? (
+              <Button size="sm" tone="brand" onClick={handleTerminalLaunch}>
+                <Terminal size={13} />
+                {t('usage.openTerminalCta')}
+              </Button>
             ) : null}
           </div>
-        </div>
-      </header>
+        </footer>
+      </article>
 
-      {capabilities.length > 0 ? (
-        <div className={styles.caps}>
-          {capabilities.map(([key]) => (
-            <Badge key={key}>{t(capabilityLabelKey(key), { defaultValue: key })}</Badge>
-          ))}
-        </div>
-      ) : null}
-
-      <div className={styles.quota}>
-        {groups.length > 0 ? (
-          groups.map((group, index) => {
-            const groupLabelKey = displayLabelKey(group.name, group.key);
-            return (
-              <section key={group.key || group.name || index} className={styles.group}>
-                {multi && (groupLabelKey || group.name) ? (
-                  <div className={styles.groupHeading}>
-                    <span>{groupLabelKey ? t(groupLabelKey) : group.name}</span>
-                    <Badge tone={groupHasCapacity(group) ? 'success' : 'danger'}>
-                      {groupHasCapacity(group)
-                        ? t('usage.groupAvailable')
-                        : t('usage.groupUnavailable')}
-                    </Badge>
-                  </div>
-                ) : null}
-                {asArray<NonNullable<typeof group.windows>[number]>(group.windows).map((window) => {
-                  const windowKey =
-                    windowKindLabelKey(window.kind) || displayLabelKey(window.label);
-                  const reset = formatResetDescription(
-                    window.reset_desc,
-                    i18n.language,
-                    (key, options) => t(key, options),
-                  );
-                  return (
-                    <div key={window.kind || window.label} className={styles.window}>
-                      <span className={styles.windowLabel}>
-                        {windowKey ? t(windowKey) : window.label || window.kind}
-                      </span>
-                      <Progress
-                        value={Number(window.remaining) || 0}
-                        label={`${Math.round(Number(window.remaining) || 0)}%`}
-                      />
-                      {reset ? <span className={styles.reset}>{reset}</span> : null}
-                    </div>
-                  );
-                })}
-              </section>
-            );
-          })
-        ) : (
-          <p className={styles.unknown}>{t('resources.state.unknown')}</p>
-        )}
-      </div>
-      <p className={styles.stateLine} data-state={quotaState}>
-        {t(`resources.state.${quotaState}`)}
-      </p>
-      {account.eligibility ? (
-        <p
-          className={styles.eligibility}
-          data-eligible={account.eligibility.eligible}
-          data-reason={account.eligibility.reason}
-        >
-          {t(`resources.eligibility.${account.eligibility.reason}`, {
-            defaultValue: account.eligibility.message || account.eligibility.reason,
-          })}
-        </p>
-      ) : null}
-    </article>
+      <ConfirmDialog
+        open={confirmRemove}
+        title={t('usage.removeAccountConfirmTitle', { name: account.profile })}
+        description={t('usage.removeAccountConfirmDesc')}
+        confirmLabel={t('usage.removeAccountCta')}
+        tone="danger"
+        onConfirm={() => void handleRemoveProfile()}
+        onCancel={() => setConfirmRemove(false)}
+      />
+    </>
   );
 };

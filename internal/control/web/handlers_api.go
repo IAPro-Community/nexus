@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -16,6 +17,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/launcher"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/control/workspace"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	coreprovider "github.com/IAPro-Community/nexus/internal/core/provider"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
@@ -557,8 +559,90 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 
 // Profiles Handler
 func (h *APIHandler) handleProfiles(w http.ResponseWriter, r *http.Request) {
-	profiles, _ := profile.List()
-	writeJSON(w, http.StatusOK, profiles)
+	if r.Method == http.MethodGet {
+		profiles, _ := profile.List()
+		writeJSON(w, http.StatusOK, profiles)
+		return
+	}
+	if r.Method == http.MethodDelete {
+		var body struct {
+			Provider string `json:"provider"`
+			Profile  string `json:"profile"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		prov := strings.TrimSpace(body.Provider)
+		if prov == "" {
+			prov = strings.TrimSpace(r.URL.Query().Get("provider"))
+		}
+		name := strings.TrimSpace(body.Profile)
+		if name == "" {
+			name = strings.TrimSpace(r.URL.Query().Get("profile"))
+		}
+		if name == "" {
+			name = strings.TrimSpace(r.URL.Query().Get("name"))
+		}
+		if prov == "" || name == "" {
+			writeError(w, http.StatusBadRequest, "provider and profile are required")
+			return
+		}
+		if err := profile.Delete(prov, name); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "deleted": true})
+		return
+	}
+	writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+}
+
+func (h *APIHandler) handleProfileDefault(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var req struct {
+		Provider string `json:"provider"`
+		Profile  string `json:"profile"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Provider) == "" || strings.TrimSpace(req.Profile) == "" {
+		writeError(w, http.StatusBadRequest, "provider and profile are required")
+		return
+	}
+	if err := config.SetDefaultProfile(strings.TrimSpace(req.Provider), strings.TrimSpace(req.Profile)); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "provider": req.Provider, "profile": req.Profile})
+}
+
+func (h *APIHandler) handleProfileLogout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var req struct {
+		Provider string `json:"provider"`
+		Profile  string `json:"profile"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Provider) == "" || strings.TrimSpace(req.Profile) == "" {
+		writeError(w, http.StatusBadRequest, "provider and profile are required")
+		return
+	}
+	prov := strings.TrimSpace(req.Provider)
+	name := strings.TrimSpace(req.Profile)
+
+	p := model.Profile{Provider: prov, Name: name}
+	if drv, ok := h.findProvider(prov); ok {
+		if authProv, ok := any(drv).(coreprovider.AuthProvider); ok {
+			_ = authProv.Logout(r.Context(), p)
+		}
+	}
+	if home, err := config.ProfileHome(prov, name); err == nil {
+		_ = os.Remove(filepath.Join(home, "auth.json"))
+		_ = os.Remove(filepath.Join(home, "."+prov, "auth.json"))
+	}
+	_ = profile.RefreshUsageSnapshot(prov, name)
+	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "logged_out": true})
 }
 
 // Events Handler
