@@ -1,0 +1,132 @@
+.root {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.85rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--nx-border);
+  background: var(--nx-bg, var(--nx-surface));
+}
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.7rem;
+  display: grid;
+  place-items: center;
+  color: var(--nx-accent);
+  background: color-mix(in srgb, var(--nx-accent) 14%, var(--nx-bg-elevated, var(--nx-surface)));
+  flex-shrink: 0;
+}
+
+.product {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  margin: 0.15rem 0 0;
+  color: var(--nx-text-soft, var(--nx-muted));
+  font-size: 0.82rem;
+  line-height: 1.45;
+  max-width: 38rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sessionRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sessionMeta {
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.sessionTitle {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.metaLine {
+  margin: 0.2rem 0 0;
+  color: var(--nx-subtle, var(--nx-muted));
+  font-size: 0.78rem;
+}
+
+.statusList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem 1.15rem;
+}
+
+.statusList li {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.statusList span {
+  color: var(--nx-subtle, var(--nx-muted));
+  font-size: 0.7rem;
+}
+
+.statusList strong {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--nx-text-soft, var(--nx-text));
+}
+
+.statusList strong[data-tone='ready'] {
+  color: var(--nx-success, var(--nx-accent));
+}
+
+.statusList strong[data-tone='warn'] {
+  color: var(--nx-warning, var(--nx-text));
+}
+
+@media (max-width: 900px) {
+  .top,
+  .sessionRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions,
+  .statusList {
+    justify-content: flex-start;
+  }
+}

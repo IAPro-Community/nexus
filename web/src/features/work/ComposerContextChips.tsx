@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FileText, Paperclip, X } from 'lucide-react';
+import { AtSign, FileText, Paperclip, X } from 'lucide-react';
 import { Button, IconButton, Select } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { ContextFileRef, FSEntry } from '../../types';
@@ -24,7 +24,8 @@ export const ComposerContextChips: React.FC<{
   busy: boolean;
   onAttach: (path: string) => void;
   onDetach: (path: string) => void;
-}> = ({ projectPath, files, busy, onAttach, onDetach }) => {
+  variant?: 'panel' | 'icon';
+}> = ({ projectPath, files, busy, onAttach, onDetach, variant = 'panel' }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<FSEntry[]>([]);
@@ -88,6 +89,50 @@ export const ComposerContextChips: React.FC<{
 
   const attached = asArray<ContextFileRef>(files);
   const noFiles = !loading && !error && !entries.some((entry) => !entry.is_dir);
+  const picker = open ? (
+    <div className={styles.contextPicker}>
+      <small className={styles.contextPickerTitle}>
+        {t('work.composer.contextPickerTitle', 'Attach a project file')}
+      </small>
+      {error ? (
+        <p className={styles.contextPickerHint}>
+          {t('work.composer.contextBrowseError', 'Could not read this folder.')}
+        </p>
+      ) : (
+        <>
+          <Select
+            value=""
+            onChange={onPick}
+            options={options}
+            disabled={busy || loading}
+            placeholder={t('work.composer.contextSelectPlaceholder', 'Browse and pick a file…')}
+            aria-label={t('work.composer.contextPickerTitle', 'Attach a project file')}
+          />
+          {noFiles && (
+            <p className={styles.contextPickerHint}>
+              {t('work.composer.contextNoFiles', 'No files in this folder.')}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  ) : null;
+
+  if (variant === 'icon') {
+    return (
+      <div className={styles.contextIconWrap}>
+        <IconButton
+          label={t('work.composer.attachFile', 'Attach file')}
+          disabled={busy}
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <AtSign size={16} />
+        </IconButton>
+        {picker}
+      </div>
+    );
+  }
 
   return (
     <div className={styles.contextChips}>
@@ -131,34 +176,7 @@ export const ComposerContextChips: React.FC<{
         </ul>
       )}
 
-      {open && (
-        <div className={styles.contextPicker}>
-          <small className={styles.contextPickerTitle}>
-            {t('work.composer.contextPickerTitle', 'Attach a project file')}
-          </small>
-          {error ? (
-            <p className={styles.contextPickerHint}>
-              {t('work.composer.contextBrowseError', 'Could not read this folder.')}
-            </p>
-          ) : (
-            <>
-              <Select
-                value=""
-                onChange={onPick}
-                options={options}
-                disabled={busy || loading}
-                placeholder={t('work.composer.contextSelectPlaceholder', 'Browse and pick a file…')}
-                aria-label={t('work.composer.contextPickerTitle', 'Attach a project file')}
-              />
-              {noFiles && (
-                <p className={styles.contextPickerHint}>
-                  {t('work.composer.contextNoFiles', 'No files in this folder.')}
-                </p>
-              )}
-            </>
-          )}
-        </div>
-      )}
+      {open && picker}
     </div>
   );
 };

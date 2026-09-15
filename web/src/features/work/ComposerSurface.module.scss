@@ -728,12 +728,33 @@
   }
 }
 
+.skillStack {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.contextIconWrap {
+  position: relative;
+}
+
+.contextIconWrap .contextPicker {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.4rem);
+  z-index: 4;
+  min-width: 16rem;
+  padding: 0.65rem;
+  border: 1px solid var(--nx-border);
+  border-radius: 0.75rem;
+  background: var(--nx-bg-elevated, var(--nx-surface));
+}
+
 .conversationShell {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  min-height: min(70vh, 52rem);
+  min-height: 0;
   height: 100%;
+  flex: 1;
 }
 
 .conversationChrome {
@@ -742,9 +763,15 @@
   gap: 0.5rem;
   align-items: center;
   padding: 0.5rem 1rem 0;
-  max-width: 48rem;
+  max-width: 52rem;
   width: 100%;
   margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .conversationChrome[data-inspector='open'] {
+    display: none;
+  }
 }
 
 .conversationFooter {
