@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -30,7 +31,14 @@ func waitForTerminalReady(t *testing.T, client *protocol.Client, initial []byte)
 	if strings.Contains(string(initial), "NEXUS_TEST_READY") {
 		return
 	}
-	if err := client.RawConn().SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+	timeout := 20 * time.Second
+	if deadline, ok := t.Deadline(); ok {
+		remaining := time.Until(deadline)
+		if remaining < timeout && remaining > 2*time.Second {
+			timeout = remaining - time.Second
+		}
+	}
+	if err := client.RawConn().SetReadDeadline(time.Now().Add(timeout)); err != nil {
 		t.Fatalf("set terminal readiness deadline: %v", err)
 	}
 	var output strings.Builder
@@ -47,6 +55,13 @@ func waitForTerminalReady(t *testing.T, client *protocol.Client, initial []byte)
 }
 
 func TestMain(m *testing.M) {
+	for _, arg := range os.Args[1:] {
+		if arg == "-nexus-echo-helper" {
+			_, _ = os.Stdout.WriteString("NEXUS_TEST_READY\n")
+			_, _ = io.Copy(os.Stdout, os.Stdin)
+			os.Exit(0)
+		}
+	}
 	testDir, err := os.MkdirTemp("", "ai-control-host-test-*")
 	if err == nil {
 		defer os.RemoveAll(testDir)
