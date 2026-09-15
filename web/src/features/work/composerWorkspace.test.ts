@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { composerActionPhase, composerBriefStats, composerReadinessDisplay } from './composerModel';
+import {
+  composerActionPhase,
+  composerBriefStats,
+  composerConstraintLines,
+  composerExpectedOutcome,
+  composerReadinessDisplay,
+  composerScopeLines,
+  formatComposerRelativeTime,
+} from './composerModel';
 import type { ComposerSessionView } from '../../types';
 
 describe('composer workspace surfaces', () => {
@@ -29,5 +37,38 @@ describe('composer workspace surfaces', () => {
       score: 41,
       state: 'READY',
     });
+  });
+
+  it('treats a materialized artifact as the finalized action phase', () => {
+    const view = {
+      session: { state: 'EXPLORING' },
+      brief: { readiness: { state: 'EXPLORING' } },
+    } as unknown as ComposerSessionView;
+    expect(composerActionPhase(view, true)).toBe('finalized');
+    expect(
+      composerActionPhase(
+        { session: { state: 'FINALIZED' }, brief: {} } as unknown as ComposerSessionView,
+        false,
+      ),
+    ).toBe('finalized');
+  });
+
+  it('reads overview fields from structured brief data', () => {
+    const view = {
+      brief: {
+        quality: { definition_of_done: ['Green CI'] },
+        constraints: { must: ['Keep Go'], extra: 'No rewrite' },
+        context: { existing_state: ['CLI'], evidence: ['Makefile'] },
+      },
+    } as unknown as ComposerSessionView;
+    expect(composerExpectedOutcome(view)).toBe('Green CI');
+    expect(composerConstraintLines(view)).toEqual(['Keep Go', 'No rewrite']);
+    expect(composerScopeLines(view)).toEqual(['CLI', 'Makefile']);
+  });
+
+  it('formats relative time in the active locale', () => {
+    const now = Date.parse('2026-09-15T12:00:00Z');
+    const pt = formatComposerRelativeTime('2026-09-15T11:48:00Z', now, 'pt-BR');
+    expect(pt).toMatch(/minuto|minutos|há/i);
   });
 });
