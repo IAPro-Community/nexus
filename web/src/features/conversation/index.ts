@@ -24,7 +24,7 @@ export {
   renderActivityIfPresent,
   renderToolIfPresent,
 } from './ConversationSurface';
-export type { ConversationSurfaceProps } from './ConversationSurface';
+export type { ConversationSurfaceProps, ConversationInspectorVariant } from './ConversationSurface';
 export { AgentActivity } from './AgentActivity';
 export { ToolCard } from './ToolCard';
 export { useNexusAttachments } from './useNexusAttachments';
