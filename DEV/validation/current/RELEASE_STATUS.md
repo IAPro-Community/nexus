@@ -1,11 +1,28 @@
 # Current release status
 
 STATUS: CURRENT
-GIT_SHA: 6bfa664f88477a5f5414f9fcb26be25e52332a718a
-GENERATED_AT: 2026-09-14T18:55:57Z
+GIT_SHA: be6c793
+GENERATED_AT: 2026-09-14T21:35:00Z
 ENVIRONMENT: linux/amd64 go1.25.0
-EVIDENCE_STREAM_ID: local-validation-2026-09-14-6bfa664-remediation
-WORKTREE_FROZEN: NO (uncommitted remediation and concurrent project changes present)
+EVIDENCE_STREAM_ID: local-validation-2026-09-14-be6c793-v1.0.0-beta.1
+WORKTREE_FROZEN: YES
+
+## Version
+
+`1.0.0-beta.1` (tag: `v1.0.0-beta.1`)
+
+## Local verification (2026-09-14)
+
+- `go test ./...` PASS
+- `go test -race ./...` PASS
+- `make quality` PASS
+- `make attention-e2e` PASS
+- `make overnight-smoke` PASS
+- `make security` PASS
+- `make release-proof` PASS (coverage step skipped: `covdata` missing in go1.25.0)
+- `nexus version` confirms `1.0.0-beta.1`
+- `VERSION CONTRACT PASS` all sources consistent
+- No commit, push, or hosted CI invocation performed
 
 This is the **only** document that should be treated as the current release
 status for HEAD. Files named `FINAL_*` under `DEV/validation/` without this

@@ -1,5 +1,17 @@
 # Handoff
 
+## Limpeza de galhos — 2026-09-15
+
+HEAD local: `356f1a3` (feat + helper de teste terminal), ahead 1 de
+`origin/feat/nexus-maximum-delivery`. Staged do usuário (5 arqs de release
+`1.0.0-beta.1`) preservado. Galhos locais: só `feat/nexus-maximum-delivery` e
+`main` (atrás 117 de `origin/main`); resto arquivado em
+`archive/2026-09-15/*` + `/tmp/nexus-branches-backup-2026-09-15.bundle`.
+Gates verdes: host tests, `make quality`, `make build`, `make web-verify` 10/10.
+Próxima ação: commit/push só com autorização; fast-forward de `main` separado;
+slices futuros (`capacity-monitor`, `globalSearch`) exigem spec antes de
+reimplantar. Sem push/CI hosted nesta execução.
+
 ## Remediação do review pré-main — 2026-09-14
 
 Foram corrigidos os failures locais de lock/Windows e a persistência do fluxo

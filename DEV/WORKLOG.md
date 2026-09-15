@@ -1,5 +1,33 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-15 — Limpeza de galhos + pick de robustez de teste terminal
+
+- `feat/nexus-maximum-delivery` agora inclui o helper de teste
+  `-nexus-echo-helper` (`356f1a3`, cherry-pick de `candidate/nexus-final-closure`):
+  readiness do terminal com deadline de 20s ciente de `t.Deadline()` e binário
+  de eco autocontido no lugar de `sh`/`powershell`; sem mudança em código de
+  produção. `go test ./internal/control/host`, `go vet`, `gofmt` e
+  `git diff --check` PASS.
+- 12 galhos locais sem remoto foram arquivados em tags
+  `archive/2026-09-15/*` + bundle `/tmp/nexus-branches-backup-2026-09-15.bundle`
+  (verificado `bundle verify OK`) + patches dos 6 stashes em `/tmp/nexus-stash-*.patch`,
+  e então apagados: incorporados (`docs/nexus-publication-overhaul`,
+  `feat/autopilot-composer-flow`, `fix/radar-resources-terminal`,
+  `verify/release-integration`), superados pela feat atual
+  (`feat/nexus-workspace-os-handoff`, `feat/nexus-v0-implementation`,
+  `feat/nexus-product-finalization`) e com conteúdo único avaliado como fora do
+  aceite atual (`fix/remote-ci-closure`, `fix/final-release-closure`,
+  `feat/capacity-monitor-notifications`, `feat/nexus-canonical-hardening`).
+  Worktree `../nexus-closure-worktree` removido. Restam locais só
+  `feat/nexus-maximum-delivery` (ahead 1) e `main` (117 atrás de `origin/main`).
+- Gates após a limpeza: `make quality` PASS (frontend 73 arqs/385 testes,
+  version contract `1.0.0-beta.1`), `make build` PASS (binário `./nexus`
+  20,5M), `make web-verify` 10/10 PASS.
+- Incidente: um `reset --soft HEAD~` externo desfez o pick (`5e2753d`) durante
+  os gates; conteúdo estava intacto no índice/tags/bundle e o pick foi
+  recomprometido como `356f1a3` (diff idêntico). Sem push/commit de release;
+  os 5 arquivos de release do staged do usuário foram preservados intocados.
+
 ## 2026-09-14 — Remediação do review pré-main
 
 - O failover de perfil agora repassa o `context.Context` do chamador ao

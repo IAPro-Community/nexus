@@ -1,5 +1,19 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-15 — Limpeza de galhos + pick terminal (HEAD `356f1a3`)
+
+- PASS — `go test ./internal/control/host/ -count=1` (pós-pick e pós-recuperação).
+- PASS — `go vet ./internal/control/host/` + `gofmt -l` limpo nos 3 arquivos do pick.
+- PASS — `make quality` (frontend 73 arqs/385 testes, version contract `1.0.0-beta.1`).
+- PASS — `make build` (binário `./nexus` 20,5M) + `git diff --check`.
+- PASS — `make web-verify` 10/10 gates (format, typecheck, lint, stylelint,
+  null-arrays, test, i18n, build, embed-sync, ui-markers).
+- PASS — loss audit: 12/12 galhos apagados recuperáveis via
+  `archive/2026-09-15/*`; `git bundle verify` OK.
+- NOT EXECUTED — commit/push dos 5 arquivos de release staged, CI hosted
+  same-SHA, `release-proof`/`overnight-soak`/`docs-verify` (exigem SHA
+  congelado + Go 1.25.1/covdata).
+
 ## 2026-09-14 — Remediação do review pré-main
 
 - PASS — `GOTOOLCHAIN=go1.25.1 make release-proof`: gates locais completos,
@@ -1305,6 +1319,7 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-14T12:53:46Z
+## Frontend gate — 2026-09-15T02:04:49Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
+
