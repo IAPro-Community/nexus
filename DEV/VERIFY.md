@@ -1,6 +1,16 @@
 # Verification: Nexus V1 (post-pending-issues)
 
-## 2026-09-15 — Adição Direta de Perfis no TUI (nexus usage) e Web (CLI Parity)
+## 2026-09-15 — Compilação e Instalação Local do Binário Nexus (v1.0.0-beta.1 @ 2b9c956)
+
+- PASS — `make build`: Bundles frontend gerados com sucesso e binário `./nexus` compilado com commit `2b9c956`.
+- PASS — `make install LOCAL_BIN=/home/desenvolvedor/.local/bin`: Binário instalado atomicamente em `/home/desenvolvedor/.local/bin/nexus`.
+- PASS — `which nexus`: Resolvido para `/home/desenvolvedor/.local/bin/nexus`.
+- PASS — `nexus version`: `IAPro Nexus 1.0.0-beta.1 (linux/amd64, go1.25.0) commit 2b9c956 built 2026-09-15T03:22:18Z`.
+- PASS — `nexus usage --json`: Retorno estruturado de cotas e provedores funcionando sem anomalias.
+- PASS — `curl -sI http://127.0.0.1:13000/`: HTTP 200 OK com novos assets do Web OS servidos.
+- NOT EXECUTED — `git commit` e `git push` (em estrita conformidade com a constituição do Orquestrador).
+
+
 
 - PASS — `go test -v -run TestUnifiedUsage_AddProfileModal ./internal/tui/...`: 4/4 novos testes unitários aprovados (abertura por tecla `a`, abertura por `enter` em provedor sem perfil, submissão de `ActionAdd` com nome informado e cancelamento por `esc`).
 - PASS — `go test ./internal/tui/...`: 100% da suite do TUI aprovada.

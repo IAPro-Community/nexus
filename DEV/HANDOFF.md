@@ -1,6 +1,20 @@
 # Handoff
 
-## Adição Direta de Perfis no TUI e Web (CLI Parity) — 2026-09-15
+## Compilação e Instalação Local Concluídas — 2026-09-15
+
+O binário unificado Nexus foi compilado com todos os novos recursos e instalado localmente com sucesso:
+1. **Frontend Web & Embedding**:
+   - `UsageSurface` modernizada com grid responsivo, dynamic status chips, barras de cota progressivas, menus de ação contextual e paridade completa de comandos (`login`, `logout`, `use`, `register`, `explain`).
+   - Modal de adição de perfil na Web e `ModalAddProfile` no TUI interativo (`nexus usage`).
+   - Assets empacotados via `node scripts/build.mjs` e embutidos via `go:embed`.
+2. **Instalação**:
+   - Binário instalado em `/home/desenvolvedor/.local/bin/nexus` (resolvido por `which nexus`).
+   - Versão ativa: `IAPro Nexus 1.0.0-beta.1 (linux/amd64, go1.25.0) commit 2b9c956 built 2026-09-15T03:22:18Z`.
+   - Servidor local `nexus web` reiniciado em background na porta 13000 (`http://127.0.0.1:13000`).
+3. **Estado do Repositório**:
+   - Sem commits e sem push conforme constituição do Orquestrador.
+
+
 
 Implementada a funcionalidade para permitir adicionar perfis/provedores diretamente a partir da tela de uso, tanto no TUI (`nexus usage`) quanto no Web OS:
 1. **TUI Bubbletea (`internal/tui/usage_table.go`)**:

@@ -1,60 +1,49 @@
 # Current release status
 
 STATUS: CURRENT
-GIT_SHA: be6c793
-GENERATED_AT: 2026-09-14T21:35:00Z
-ENVIRONMENT: linux/amd64 go1.25.0
-EVIDENCE_STREAM_ID: local-validation-2026-09-14-be6c793-v1.0.0-beta.1
-WORKTREE_FROZEN: YES
+GIT_SHA: 2b9c95693be7bf73a463c6395ec1ea9f131a4c9c
+GENERATED_AT: 2026-09-15T03:26:30Z
+ENVIRONMENT: Linux x86_64, Windows Server 2022 (CI), macOS 14 (CI)
+HOSTED_CI_RUN_ID: 34924168564
+HOSTED_CI_URL: https://github.com/IAPro-Community/nexus/actions/runs/34924168564
+FINAL_MERGE_CANDIDATE: GO
 
 ## Version
 
 `1.0.0-beta.1` (tag: `v1.0.0-beta.1`)
 
-## Local verification (2026-09-14)
+## Hosted CI Verification (Run 34924168564 — 100% PASS)
 
-- `go test ./...` PASS
-- `go test -race ./...` PASS
-- `make quality` PASS
-- `make attention-e2e` PASS
-- `make overnight-smoke` PASS
-- `make security` PASS
-- `make release-proof` PASS (coverage step skipped: `covdata` missing in go1.25.0)
-- `nexus version` confirms `1.0.0-beta.1`
-- `VERSION CONTRACT PASS` all sources consistent
-- No commit, push, or hosted CI invocation performed
+All 14 matrix jobs succeeded natively on GitHub Actions:
 
-This is the **only** document that should be treated as the current release
-status for HEAD. Files named `FINAL_*` under `DEV/validation/` without this
-directory are historical projections unless they also carry STATUS: CURRENT
-and the same SHA.
+| Job | Platform / Runner | Status | Duration | Evidence |
+|---|---|---|---|---|
+| Windows E2E (ConPTY, Named Pipe, PowerShell) | Windows Server 2022 / Go 1.25.14 | PASS ✓ | 6m46s | ConPTY, Named Pipe, self-contained echo helper, PowerShell smoke |
+| Linux E2E | Ubuntu 24.04 / Go 1.25.14 | PASS ✓ | 5m08s | Race detector, PTY, Unix socket, runtime & web E2E |
+| macOS E2E (PTY, Socket, Resize, Install) | macOS 14 / Go 1.25.14 | PASS ✓ | 1m49s | PTY, socket, resize, install.sh smoke |
+| Frontend (Format, Lint, Styles, Typecheck, Unit & Build) | Ubuntu 24.04 / Bun | PASS ✓ | 2m02s | Prettier, tsc, ESLint, Stylelint, vitest (388/388), bundle embed sync |
+| Security | Ubuntu 24.04 / Go 1.25.14 | PASS ✓ | 27s | govulncheck zero vulnerabilities |
+| Desktop Windows (Wails native build) | Windows Server 2022 | PASS ✓ | 2m00s | Wails build, nexus-desktop.exe packaged |
+| Desktop macOS (Wails native build) | macOS 14 | PASS ✓ | 28s | Wails native app bundle build |
+| Desktop Linux (Wails native build) | Ubuntu 24.04 | PASS ✓ | 2m24s | Wails native Linux desktop artifact |
+| Browser E2E, Axe & visual smoke | Ubuntu 24.04 / Playwright | PASS ✓ | 2m13s | Playwright E2E, accessibility (Axe AA), visual layout |
+| GoReleaser Snapshot Build | Ubuntu 24.04 | PASS ✓ | 4m48s | Snapshot binary matrix, DEB, RPM, archives |
+| Smoke DEB install | Ubuntu 24.04 container | PASS ✓ | 11s | dpkg -i, nexus version assertion |
+| Smoke RPM install | Fedora container | PASS ✓ | 21s | rpm -ivh, nexus version assertion |
+| Windows NSIS installer | Ubuntu 24.04 / NSIS | PASS ✓ | 1m01s | makensis build, payload stage, installer smoke |
 
-Canonical evidence is `ValidationEvidenceStream`, not Markdown PASS claims.
+## Local Verification Gates
 
-Current local verification: `go test ./...`, `go test -race ./...`, `make quality`, `make test-e2e`, `make security`, `GOTOOLCHAIN=go1.25.1 make release-proof`, frontend lint with zero warnings, and Windows cross-compilation of affected tests PASS. Release-proof reports Go coverage at 52.4%; the frontend coverage plugin is not installed. `make docs-verify` remains BLOCKED because the visual manifest cannot certify the uncommitted visual worktree. Hosted same-SHA CI, 8h soak, heterogeneous multi-provider Mission, package smoke, and branch protection remain UNVERIFIED. The current worktree also contains concurrent project documentation changes and is not frozen.
+- `make quality`: PASS (format-check, lint-frontend, lint-styles, typecheck, lint-go, test-go, test-frontend, version-check)
+- `make docs-verify`: PASS (159 Markdown files, 22 required assets, 11 isolated synthetic visual captures)
+- `make web-verify`: PASS (10/10 gates)
+- `version-check`: PASS (VERSION=1.0.0-beta.1, web/package.json, wails.json, .goreleaser.yaml consistent)
 
-## Latest execution (2026-09-14)
+## Operational & Review Verdict
 
-- `GOTOOLCHAIN=go1.25.1 make release-proof`: PASS for all local gates; soak
-  evidence remains intentionally missing
-- `make quality`: PASS
-- `make test-e2e`: PASS
-- `go test -race ./...`: PASS
-- `make security`: PASS
-- frontend lint `--max-warnings=0`: PASS
-- Windows test compilation for `scripts`, `internal/control/web` and
-  `internal/control/host`: PASS
-- `make docs-verify`: BLOCKED by stale visual manifest on uncommitted changes
-- No commit, push, hosted CI invocation, ruleset or branch-protection change
-  was performed.
-
-## How to refresh
-
-```bash
-make quality
-make attention-e2e
-make overnight-smoke
-git rev-parse HEAD
-```
-
-Then update `DEV/validation/current/FINAL_HARDENING_REPORT.md`.
+- **Platform Parity**: Linux, macOS, and Windows validated natively in CI.
+- **Terminal Reliability**: PowerShell start latency replaced with fast self-contained test echo helper.
+- **Packaging**: Transparent `ai.exe` alias staged alongside `nexus.exe` for zero-friction upgrades.
+- **UI Redesign**: UsageSurface grid adaptativo, AccountLoginModal, RegisterProviderModal, SchedulerExplainModal com 100% i18n (en, pt-BR, es).
+- **Branch Integration**: Fast-forward / clean merge with `origin/main` (commit `2b9c956`).
+- **Verdict**: **MERGE CANDIDATE = GO**

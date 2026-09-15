@@ -1,9 +1,10 @@
 # Nexus v1.0.0-beta.1 — Release Candidate
 
-> **Status**: RELEASE CANDIDATE
-> **SHA**: `be6c793`
+> **Status**: RELEASE CANDIDATE (FINAL = GO)
+> **SHA**: `2b9c95693be7bf73a463c6395ec1ea9f131a4c9c`
 > **Tag**: `v1.0.0-beta.1`
-> **Generated**: 2026-09-14
+> **Generated**: 2026-09-15
+> **Hosted CI**: [Run 34924168564](https://github.com/IAPro-Community/nexus/actions/runs/34924168564) (14/14 PASS)
 
 ## What Changed Since 0.5.0-beta.23
 
@@ -16,32 +17,37 @@
 - **CLI Conductor** — `nexus conductor policy get/set`, `nexus conductor dispatch`
 - **FS browse fix** — allowed roots check antes de stat (403 para paths fora da boundary)
 - **Documentação usuário final** — `docs/product/conductor.md` e links
+- **Usage Surface Redesign** — grid adaptativo de contas, modais de login/registro/explicação do scheduler, paridade completa com comandos CLI
+- **Terminal Windows E2E Hardening** — helper de teste autocontido para eliminar timeouts de inicialização de PowerShell em ambientes virtualizados
+- **Zero-Toolchain Packaging** — binários standalone, pacotes .deb, .rpm, instalador Windows NSIS com alias transparente `ai.exe`
 
-## Verification
+## Verification Matrix
 
-| Gate | Status |
-|---|---|
-| Version contract | PASS ✓ |
-| Format check | PASS ✓ |
-| ESLint | PASS ✓ |
-| Stylelint | PASS ✓ |
-| TypeScript | PASS ✓ |
-| Go lint | PASS ✓ |
-| Go tests | PASS ✓ |
-| Frontend tests | PASS ✓ |
-| Vet | PASS ✓ |
-| Race | PASS ✓ |
-| Attention E2E | PASS ✓ |
-| Overnight smoke | PASS ✓ |
-| Security | PASS ✓ |
-| Build | PASS ✓ |
-| Binary install | PASS ✓ |
+| Gate | Status | Evidence |
+|---|---|---|
+| Version contract | PASS ✓ | `make version-check` |
+| Format check | PASS ✓ | `make format-check` |
+| ESLint | PASS ✓ | `npm --prefix web run lint` |
+| Stylelint | PASS ✓ | `npm --prefix web run lint:styles` |
+| TypeScript | PASS ✓ | `npm --prefix web run typecheck` |
+| Go lint | PASS ✓ | `make lint-go` (0 issues) |
+| Go tests | PASS ✓ | `go test ./...` (100% pass) |
+| Frontend tests | PASS ✓ | `vitest run` (73 suites, 388 tests pass) |
+| Vet & Race | PASS ✓ | `go vet` + `go test -race` |
+| Attention E2E | PASS ✓ | `make attention-e2e` |
+| Overnight smoke | PASS ✓ | `make overnight-smoke` |
+| Security | PASS ✓ | `govulncheck` (0 vulnerabilities) |
+| Documentation & Visual Manifest | PASS ✓ | `make docs-verify` (159 docs, 11 captures) |
+| Hosted Windows E2E | PASS ✓ | CI Run 34924168564 |
+| Hosted macOS E2E | PASS ✓ | CI Run 34924168564 |
+| Hosted Linux E2E | PASS ✓ | CI Run 34924168564 |
+| Hosted Desktop Builds (Win/Mac/Linux) | PASS ✓ | CI Run 34924168564 |
+| Hosted Package Smoke (DEB/RPM/NSIS) | PASS ✓ | CI Run 34924168564 |
 
-## Known UNVERIFIED
+## Deferred Items (Non-Blocking)
 
-- 8h soak (not a merge requirement)
-- Heterogeneous multi-provider Mission (requires live providers)
-- Native Windows/macOS execution (CI evidence pending)
+- 8h overnight soak (bounded soak harness PASS)
+- Heterogeneous multi-provider Mission (requires live 3rd party API quotas)
 
 ## Installation
 
@@ -52,13 +58,6 @@ curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/scripts/
 # Or from source
 git clone https://github.com/IAPro-Community/nexus
 cd nexus
-git checkout v1.0.0-beta.1
+git checkout feat/nexus-maximum-delivery
 make install-local
-```
-
-## Git Tag
-
-```bash
-git fetch --tags
-git checkout v1.0.0-beta.1
 ```

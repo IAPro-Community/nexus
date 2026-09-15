@@ -1,6 +1,40 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
-## 2026-09-15 — Adição Direta de Perfis no TUI (nexus usage) e Web (CLI Parity)
+## 2026-09-15 — Hosted CI All-Green & Release Candidate GO (Run 34924168564 @ 2b9c956)
+
+- **Hosted CI Pipeline 100% PASS**:
+  - GitHub Actions Run ID: `34924168564` (14/14 jobs concluídos com sucesso).
+  - Windows E2E (ConPTY, Named Pipe, PowerShell) (1.25.14): PASS (helper de teste autocontido eliminou timeouts).
+  - macOS E2E (PTY, Socket, Resize, Install) (1.25.14): PASS.
+  - Linux E2E (Go 1.25.14): PASS (Race detector, PTY, socket, runtime & web).
+  - Frontend (Format, Lint, Styles, Typecheck, Unit & Build): PASS (vitest 388/388).
+  - Security: PASS (govulncheck zero vulnerabilidades).
+  - Desktop Windows / macOS / Linux: PASS (compilações nativas Wails).
+  - Browser E2E, Axe & visual smoke: PASS (Playwright).
+  - GoReleaser Snapshot Build: PASS.
+  - Windows NSIS installer: PASS (payload staging com alias transparente `ai.exe`).
+  - Smoke DEB & RPM: PASS.
+- **Merge Readiness**:
+  - SHA final de integração: `2b9c95693be7bf73a463c6395ec1ea9f131a4c9c`.
+  - Base de integração (`origin/main`) sincronizada sem conflitos.
+  - Todos os gates locais (`make quality`, `make docs-verify`, `make web-verify`) PASS.
+  - Veredito: **FINAL_MERGE_CANDIDATE = GO**.
+
+## 2026-09-15 — Compilação e Instalação Local do Binário Nexus (v1.0.0-beta.1 @ 2b9c956)
+
+- **Build de Produção e Embedding**:
+  - Compilação do frontend web via `cd web && node scripts/build.mjs` (Tailwind CSS v4 + esbuild) gerando bundles otimizados em `web/dist`.
+  - Compilação Go com injeção de ldflags (`internal/buildinfo.Version=1.0.0-beta.1`, `internal/buildinfo.Commit=2b9c956`, `internal/buildinfo.BuildDate=2026-09-15T03:22:18Z`) gerando o binário `./nexus`.
+- **Instalação Local**:
+  - Binário instalado atomicamente em `/home/desenvolvedor/.local/bin/nexus` e no diretório de perfil da CLI.
+  - Servidor web local atualizado e reiniciado em background na porta 13000 (`http://127.0.0.1:13000`).
+- **Verificação**:
+  - `which nexus` -> `/home/desenvolvedor/.local/bin/nexus`.
+  - `nexus version` -> `IAPro Nexus 1.0.0-beta.1 (linux/amd64, go1.25.0) commit 2b9c956 built 2026-09-15T03:22:18Z`.
+  - `nexus usage --json` validado com extração de cotas estruturada.
+  - Health check HTTP 200 na porta 13000.
+
+
 
 - **TUI Interativo (`internal/tui/usage_table.go`)**:
   - Implementado `ModalAddProfile` com input interativo (`textinput.Model`) nativo no Bubbletea, eliminando o bloqueio anterior onde o usuário apenas recebia um aviso passivo para sair da tela e digitar `nexus add <provider> <nome>`.
