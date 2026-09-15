@@ -230,7 +230,11 @@ func TestCapacityLeaseConcurrentTakeover(t *testing.T) {
 		go func(n int) {
 			defer wg.Done()
 			_, held, err := s.AcquireCapacityLease(fmt.Sprintf("racer-%d", n), now, time.Minute)
-			wins <- (err == nil && held)
+			if err != nil {
+				t.Errorf("racer %d error: %v (transient backend errors fail loudly, never silently lost)", n, err)
+				return
+			}
+			wins <- held
 		}(i)
 	}
 	wg.Wait()
@@ -243,6 +247,17 @@ func TestCapacityLeaseConcurrentTakeover(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatalf("takeover winners = %d, want exactly 1 (atomic lease)", count)
+	}
+}
+
+func TestCapacityLeaseCorruptRowErrors(t *testing.T) {
+	s := openTestStore(t)
+	if _, err := s.db.Exec(`INSERT INTO capacity_monitor_lease(id, owner, acquired_at, renewed_at, expires_at)
+		VALUES(1, 'x', 'not-a-time', 'not-a-time', 'not-a-time')`); err != nil {
+		t.Fatalf("seed corrupt row: %v", err)
+	}
+	if _, err := s.GetCapacityLease(); err == nil {
+		t.Fatal("expected error for corrupt lease timestamps, got nil (never zero-time silent)")
 	}
 }
 

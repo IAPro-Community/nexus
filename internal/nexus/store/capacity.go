@@ -7,6 +7,17 @@ import (
 	"time"
 )
 
+// storeTimeFormat renders UTC timestamps fixed-width so lexicographic
+// comparison inside SQL always matches chronological order. time.RFC3339Nano
+// omits trailing zeros, which breaks string ordering across precisions
+// (a second-exact stamp sorts AFTER a fractional one within the same second).
+const storeTimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
+
+func formatStoreTime(t time.Time) string { return t.UTC().Format(storeTimeFormat) }
+
+// parseStoreTime reads both fixed-width stamps and legacy RFC3339Nano rows.
+func parseStoreTime(s string) (time.Time, error) { return time.Parse(time.RFC3339Nano, s) }
+
 // T2 persistence for the capacity monitor revival (see
 // DEV/SPECS/CAPACITY_MONITOR_REVIVAL.md): observations, threshold states,
 // single-leader lease, and user preferences. Event/receipt/recommendation
@@ -98,10 +109,10 @@ func DefaultCapacityPreferences() CapacityPreferences {
 func (s *Store) UpsertCapacityObservation(record ObservationRecord) error {
 	var expiresAtStr *string
 	if !record.ExpiresAt.IsZero() {
-		str := record.ExpiresAt.UTC().Format(time.RFC3339Nano)
+		str := formatStoreTime(record.ExpiresAt)
 		expiresAtStr = &str
 	}
-	fetchedAtStr := record.FetchedAt.UTC().Format(time.RFC3339Nano)
+	fetchedAtStr := formatStoreTime(record.FetchedAt)
 
 	_, err := s.db.Exec(`
 		INSERT INTO capacity_observations(
@@ -155,11 +166,11 @@ func (s *Store) ListCapacityObservations() ([]ObservationRecord, error) {
 		if remPct.Valid {
 			r.RemainingPercent = &remPct.Float64
 		}
-		if t, err := time.Parse(time.RFC3339Nano, fetchedAtStr); err == nil {
+		if t, err := parseStoreTime(fetchedAtStr); err == nil {
 			r.FetchedAt = t
 		}
 		if expiresAtStr.Valid {
-			if t, err := time.Parse(time.RFC3339Nano, expiresAtStr.String); err == nil {
+			if t, err := parseStoreTime(expiresAtStr.String); err == nil {
 				r.ExpiresAt = t
 			}
 		}
@@ -170,8 +181,8 @@ func (s *Store) ListCapacityObservations() ([]ObservationRecord, error) {
 
 // UpsertCapacityState stores or updates state machine evaluation for a resource.
 func (s *Store) UpsertCapacityState(record CapacityStateRecord) error {
-	transStr := record.TransitionedAt.UTC().Format(time.RFC3339Nano)
-	updatedStr := record.UpdatedAt.UTC().Format(time.RFC3339Nano)
+	transStr := formatStoreTime(record.TransitionedAt)
+	updatedStr := formatStoreTime(record.UpdatedAt)
 
 	_, err := s.db.Exec(`
 		INSERT INTO capacity_states(
@@ -206,9 +217,18 @@ func (s *Store) GetCapacityState(key string) (CapacityStateRecord, error) {
 	if err := row.Scan(&r.Key, &r.Provider, &r.Profile, &r.QuotaGroup, &r.WindowKind, &r.State, &r.Reason, &transStr, &updatedStr, &r.AccountScope); err != nil {
 		return r, err
 	}
-	r.TransitionedAt, _ = time.Parse(time.RFC3339Nano, transStr)
-	r.UpdatedAt, _ = time.Parse(time.RFC3339Nano, updatedStr)
+	r.TransitionedAt, _ = parseStoreTime(transStr)
+	r.UpdatedAt, _ = parseStoreTime(updatedStr)
 	return r, nil
+}
+
+// RefreshCapacityStateReason updates reason/updated_at without moving
+// TransitionedAt: the transition moment stays honest when only the diagnostic
+// cause changes (e.g. probe-error vs no-probe flaps on the same UNKNOWN).
+func (s *Store) RefreshCapacityStateReason(key, reason string, now time.Time) error {
+	_, err := s.db.Exec(`UPDATE capacity_states SET reason = ?, updated_at = ? WHERE key = ?`,
+		reason, formatStoreTime(now), key)
+	return err
 }
 
 // ListCapacityStates returns all recorded capacity states.
@@ -230,8 +250,8 @@ func (s *Store) ListCapacityStates() ([]CapacityStateRecord, error) {
 		if err := rows.Scan(&r.Key, &r.Provider, &r.Profile, &r.QuotaGroup, &r.WindowKind, &r.State, &r.Reason, &transStr, &updatedStr, &r.AccountScope); err != nil {
 			return nil, err
 		}
-		r.TransitionedAt, _ = time.Parse(time.RFC3339Nano, transStr)
-		r.UpdatedAt, _ = time.Parse(time.RFC3339Nano, updatedStr)
+		r.TransitionedAt, _ = parseStoreTime(transStr)
+		r.UpdatedAt, _ = parseStoreTime(updatedStr)
 		records = append(records, r)
 	}
 	return records, rows.Err()
@@ -243,8 +263,11 @@ func (s *Store) ListCapacityStates() ([]CapacityStateRecord, error) {
 // closes the SELECT-then-UPDATE race where two concurrent acquirers could both
 // believe they hold the lease.
 func (s *Store) AcquireCapacityLease(owner string, now time.Time, ttl time.Duration) (MonitorLease, bool, error) {
-	nowStr := now.UTC().Format(time.RFC3339Nano)
-	expiresStr := now.Add(ttl).UTC().Format(time.RFC3339Nano)
+	if ttl <= 0 {
+		return MonitorLease{}, false, errors.New("lease ttl must be positive")
+	}
+	nowStr := formatStoreTime(now)
+	expiresStr := formatStoreTime(now.Add(ttl))
 
 	res, err := s.db.Exec(`
 		INSERT INTO capacity_monitor_lease(id, owner, acquired_at, renewed_at, expires_at)
@@ -279,8 +302,8 @@ func (s *Store) AcquireCapacityLease(owner string, now time.Time, ttl time.Durat
 
 // RenewCapacityLease refreshes the lease if owned by the caller.
 func (s *Store) RenewCapacityLease(owner string, now time.Time, ttl time.Duration) error {
-	nowStr := now.UTC().Format(time.RFC3339Nano)
-	expiresStr := now.Add(ttl).UTC().Format(time.RFC3339Nano)
+	nowStr := formatStoreTime(now)
+	expiresStr := formatStoreTime(now.Add(ttl))
 
 	res, err := s.db.Exec(`
 		UPDATE capacity_monitor_lease
@@ -317,9 +340,16 @@ func (s *Store) GetCapacityLease() (*MonitorLease, error) {
 		}
 		return nil, err
 	}
-	lease.AcquiredAt, _ = time.Parse(time.RFC3339Nano, acquired)
-	lease.RenewedAt, _ = time.Parse(time.RFC3339Nano, renewed)
-	lease.ExpiresAt, _ = time.Parse(time.RFC3339Nano, expires)
+	var err error
+	if lease.AcquiredAt, err = parseStoreTime(acquired); err != nil {
+		return nil, fmt.Errorf("corrupt lease acquired_at: %w", err)
+	}
+	if lease.RenewedAt, err = parseStoreTime(renewed); err != nil {
+		return nil, fmt.Errorf("corrupt lease renewed_at: %w", err)
+	}
+	if lease.ExpiresAt, err = parseStoreTime(expires); err != nil {
+		return nil, fmt.Errorf("corrupt lease expires_at: %w", err)
+	}
 	return &lease, nil
 }
 
@@ -354,15 +384,15 @@ func (s *Store) GetCapacityPreferences() (CapacityPreferences, error) {
 	p.BrowserNotificationsEnabled = browser == 1
 	p.NativeNotificationsEnabled = native == 1
 	p.LockScreenSafeCopy = lock == 1
-	p.UpdatedAt, _ = time.Parse(time.RFC3339Nano, updatedStr)
+	p.UpdatedAt, _ = parseStoreTime(updatedStr)
 	return p, nil
 }
 
 // PutCapacityPreferences persists user preferences (singleton row, idempotent).
 func (s *Store) PutCapacityPreferences(prefs CapacityPreferences) error {
-	updatedStr := prefs.UpdatedAt.UTC().Format(time.RFC3339Nano)
+	updatedStr := formatStoreTime(prefs.UpdatedAt)
 	if prefs.UpdatedAt.IsZero() {
-		updatedStr = time.Now().UTC().Format(time.RFC3339Nano)
+		updatedStr = formatStoreTime(time.Now())
 	}
 	bToInt := func(b bool) int {
 		if b {
@@ -404,7 +434,7 @@ func (s *Store) PutCapacityPreferences(prefs CapacityPreferences) error {
 // Observations and threshold states are current-value snapshots (upserted, never
 // historized), so retention applies only to the append-only event tables.
 func (s *Store) PruneCapacityHistory(before time.Time) error {
-	beforeStr := before.UTC().Format(time.RFC3339Nano)
+	beforeStr := formatStoreTime(before)
 	if _, err := s.db.Exec(`DELETE FROM capacity_events WHERE emitted_at < ?`, beforeStr); err != nil {
 		return err
 	}

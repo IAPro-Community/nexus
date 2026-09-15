@@ -178,6 +178,15 @@ func TestTickHealthyIsSilent(t *testing.T) {
 	if err != nil || rec.State != "HEALTHY" {
 		t.Fatalf("state = %+v,%v, want HEALTHY persisted", rec, err)
 	}
+	// Configured LeaseTTL is a floor the adaptive TTL never shrinks:
+	// testMonitor sets 1h, so the lease must outlive now+55m.
+	lease, err := s.GetCapacityLease()
+	if err != nil || lease == nil {
+		t.Fatalf("lease = %+v,%v, want held", lease, err)
+	}
+	if lease.ExpiresAt.Before(time.Now().UTC().Add(55 * time.Minute)) {
+		t.Fatalf("lease expires = %v, want >= now+55m (configured 1h floor)", lease.ExpiresAt)
+	}
 }
 
 func TestTickWarningThenRecovered(t *testing.T) {
@@ -403,14 +412,38 @@ func TestTickClosedStoreFailsClosed(t *testing.T) {
 }
 
 func TestMissingProbeTransitionStable(t *testing.T) {
-	m, s, counter := testMonitor(t,
-		[]model.Profile{{Provider: "mystery", Name: "ghost"}},
-		&stubRegistry{probes: map[string]quota.Probe{}}, nil)
-
-	for i := 0; i < 3; i++ {
-		if err := m.Tick(context.Background()); err != nil {
-			t.Fatalf("tick %d = %v", i, err)
-		}
+	s, err := store.Open(filepath.Join(t.TempDir(), "cap.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	bus := events.NewBus(8)
+	counter := &busCounter{}
+	bus.SetRecorder(counter.record)
+	profiles := []model.Profile{{Provider: "mystery", Name: "ghost"}}
+	reg := &stubRegistry{probes: map[string]quota.Probe{}}
+	at := time.Now().UTC()
+	t0 := at
+	mk := func() *Monitor {
+		return NewMonitor(Dependencies{
+			Profiles:      func() ([]model.Profile, error) { return profiles, nil },
+			ProbeRegistry: reg,
+			Store:         s,
+			Bus:           bus,
+			Clock:         stubClock{now: at},
+			JitterSource:  RealJitter{},
+			OwnerID:       "test-owner",
+			LeaseTTL:      time.Hour,
+		})
+	}
+	if err := mk().Tick(context.Background()); err != nil {
+		t.Fatalf("tick1 = %v", err)
+	}
+	// Advance the clock well past any timestamp: a no-change repeat must
+	// neither rewrite TransitionedAt nor announce.
+	at = at.Add(2 * time.Hour)
+	if err := mk().Tick(context.Background()); err != nil {
+		t.Fatalf("tick2 = %v", err)
 	}
 	if counter.count() != 0 {
 		t.Fatalf("events = %d, want 0", counter.count())
@@ -418,6 +451,9 @@ func TestMissingProbeTransitionStable(t *testing.T) {
 	states, err := s.ListCapacityStates()
 	if err != nil || len(states) != 1 {
 		t.Fatalf("states = %+v,%v, want single UNKNOWN row (no churn)", states, err)
+	}
+	if !states[0].TransitionedAt.Equal(t0) {
+		t.Fatalf("TransitionedAt drifted on no-change tick: %v, want %v", states[0].TransitionedAt, t0)
 	}
 }
 

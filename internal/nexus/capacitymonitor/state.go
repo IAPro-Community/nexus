@@ -38,6 +38,8 @@ func EvaluateTransition(
 
 	rem := *remaining
 
+	// Negative remaining is over-quota debt reported by the provider, not
+	// corrupt data: the quota is gone, so it is exhausted.
 	if rem <= thresholds.Exhausted {
 		return StateExhausted, fmt.Sprintf("quota exhausted (%.0f%% remaining <= %.0f%%)", rem, thresholds.Exhausted)
 	}

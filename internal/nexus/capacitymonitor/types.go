@@ -97,7 +97,11 @@ func (RealJitter) Duration(base time.Duration) time.Duration {
 	if err != nil {
 		return base
 	}
-	return base + time.Duration(n.Int64())
+	add := time.Duration(n.Int64())
+	if add > 0 && base > time.Duration(math.MaxInt64)-add {
+		return time.Duration(math.MaxInt64)
+	}
+	return base + add
 }
 
 // ResourceState provides a snapshot of a monitored resource.

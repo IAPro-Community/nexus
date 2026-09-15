@@ -1,6 +1,7 @@
 package capacitymonitor
 
 import (
+	"math"
 	"testing"
 	"time"
 )
@@ -48,14 +49,22 @@ func TestRealJitterBounded(t *testing.T) {
 		}
 	}
 	// Sub-millisecond bases keep the 0-10% bound instead of exploding.
+	// The bound is exact (no slack): n < base/10 always.
 	small := 5 * time.Millisecond
 	for i := 0; i < 25; i++ {
 		got := j.Duration(small)
-		if got < small || got > small+small/10+time.Millisecond {
-			t.Fatalf("small jittered = %v, want within [base, base+10%%+slack]", got)
+		if got < small || got > small+small/10 {
+			t.Fatalf("small jittered = %v, want within [base, base+10%%] exactly", got)
 		}
 	}
 	if got := j.Duration(0); got != 0 {
 		t.Fatalf("zero base = %v, want 0", got)
+	}
+}
+
+func TestRealJitterSaturatesNearMaxInt64(t *testing.T) {
+	got := RealJitter{}.Duration(time.Duration(math.MaxInt64))
+	if got != time.Duration(math.MaxInt64) {
+		t.Fatalf("saturated = %v, want MaxInt64 (must never wrap negative)", got)
 	}
 }

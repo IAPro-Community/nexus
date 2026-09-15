@@ -74,9 +74,18 @@ func (m *Monitor) Tick(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	// Constructor defaults cover the normal path; these guards make direct
+	// misuse fail loudly instead of panicking on first use.
+	if m.deps.Store == nil {
+		return errors.New("capacitymonitor: nil store")
+	}
 	if m.deps.ProbeRegistry == nil {
 		m.noteFailure()
 		return errors.New("capacitymonitor: nil probe registry")
+	}
+	if m.deps.Profiles == nil {
+		m.noteFailure()
+		return errors.New("capacitymonitor: nil profiles source")
 	}
 	now := m.deps.Clock.Now().UTC()
 
@@ -118,7 +127,7 @@ func (m *Monitor) Tick(ctx context.Context) error {
 	sem := make(chan struct{}, m.deps.MaxConcurrency)
 	var wg sync.WaitGroup
 	var wmu sync.Mutex
-	worst := StateHealthy
+	worst := StateUnknown
 	evaluated := 0
 	failed := 0
 tickLoop:
@@ -162,7 +171,7 @@ tickLoop:
 	m.worst = worst
 	m.lastTick = now
 	m.mu.Unlock()
-	return ctx.Err()
+	return nil
 }
 
 // Run loops Tick on an adaptive jittered interval until ctx ends.
@@ -241,7 +250,9 @@ func (m *Monitor) noteFailure() {
 }
 
 // leaseTTL scales with the last collection interval so slow healthy cadences
-// never outrun the lease while crash failover stays bounded.
+// never outrun the lease while crash failover stays bounded. The configured
+// LeaseTTL is a verbatim floor (explicit operator config wins); the 30m cap
+// bounds only the adaptive growth.
 func (m *Monitor) leaseTTL() time.Duration {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -250,11 +261,11 @@ func (m *Monitor) leaseTTL() time.Duration {
 		base = m.deps.BaseInterval
 	}
 	ttl := 3 * base
-	if ttl < 2*time.Minute {
-		ttl = 2 * time.Minute
-	}
 	if ttl > 30*time.Minute {
 		ttl = 30 * time.Minute
+	}
+	if ttl < m.deps.LeaseTTL {
+		ttl = m.deps.LeaseTTL
 	}
 	return ttl
 }
@@ -285,7 +296,7 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 
 	probe, ok := m.deps.ProbeRegistry.For(prof.Provider)
 	if !ok {
-		if err := m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "no probe for provider", now); err != nil {
+		if err := m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "no probe for provider", prof.AccountScope, now); err != nil {
 			return StateUnknown, false
 		}
 		return StateUnknown, true
@@ -294,24 +305,27 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 	if err != nil {
 		// Best-effort visibility row; the account still counts as failed so
 		// persistent probe outages feed the backoff ladder.
-		_ = m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "probe error", now)
+		_ = m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "probe error", prof.AccountScope, now)
 		return StateUnknown, false
 	}
 	scope := scopeKey(snap.AccountScope)
 
 	rateLimited := snap.Status == model.UsageRateLimited
+	// Trust set mirrors QuotaDropMonitor.isTrustworthyQuotaStatus, including
+	// the legacy "OK" some producers still emit: both monitors must agree on
+	// what counts as evidence.
 	trusted := snap.Status == model.UsageLive || snap.Status == model.UsageCached ||
 		snap.Status == "OK" || rateLimited
 	if len(snap.Windows) == 0 {
 		// No windows: a single account-level UNKNOWN, persisted once so
 		// coverage stays visible instead of silently absent.
-		if err := m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "no windows in snapshot", now); err != nil {
+		if err := m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "no windows in snapshot", snap.AccountScope, now); err != nil {
 			return StateUnknown, false
 		}
 		return StateUnknown, true
 	}
 
-	worst := StateHealthy
+	worst := StateUnknown
 	failed := false
 	for _, w := range snap.Windows {
 		if err := m.deps.Store.UpsertCapacityObservation(store.ObservationRecord{
@@ -381,20 +395,27 @@ func (m *Monitor) persistTransition(provider, profile, group, window string, sta
 
 // upsertState records an account-level fallback state idempotently: identical
 // repeats are read-only, so TransitionedAt never drifts on no-change ticks and
-// there is no write churn. It never publishes events.
-func (m *Monitor) upsertState(provider, profile, group, window string, state State, reason string, now time.Time) error {
+// there is no write churn. A changed reason refreshes the diagnostic text via
+// RefreshCapacityStateReason without moving the transition moment. It never
+// publishes events.
+func (m *Monitor) upsertState(provider, profile, group, window string, state State, reason string, scope model.AccountScope, now time.Time) error {
 	k := stateKey(provider, profile, group, window)
-	prev, err := m.storedState(k)
-	if err != nil {
+	rec, err := m.deps.Store.GetCapacityState(k)
+	if err == nil {
+		if State(rec.State) == state {
+			if rec.Reason == reason {
+				return nil
+			}
+			return m.deps.Store.RefreshCapacityStateReason(k, reason, now)
+		}
+	} else if !errors.Is(err, sql.ErrNoRows) {
 		return err
-	}
-	if prev == state {
-		return nil
 	}
 	return m.deps.Store.UpsertCapacityState(store.CapacityStateRecord{
 		Key: k, Provider: provider, Profile: profile,
 		QuotaGroup: group, WindowKind: window,
 		State: string(state), Reason: reason, TransitionedAt: now, UpdatedAt: now,
+		AccountScope: scopeKey(scope),
 	})
 }
 
@@ -415,7 +436,11 @@ func (m *Monitor) publish(provider, profile, group, window string, state State, 
 		"group": group, "window": window,
 		"state": string(state), "severity": string(state), "reason": reason,
 		// resetCycle stays empty: T5 owns reset-aware dedup and will refine
-		// the fingerprint inputs alongside event persistence.
+		// the fingerprint inputs alongside event persistence. Scope is excluded
+		// on purpose: re-auth under a new identity keeps the same fingerprint
+		// so dedup continuity survives credential rotation (a simultaneous
+		// cross-account collision is impossible — profile names are unique
+		// per provider).
 		"fingerprint": DeriveFingerprint(provider, profile, group, window, string(state), ""),
 	}
 	if remaining != nil {
