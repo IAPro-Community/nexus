@@ -35,12 +35,13 @@ push remoto; providers novos; qualquer mudança em `QuotaDropMonitor` existente
 ## Tasks
 
 - [x] T0 — branch/worktree/slice doc (esta).
-- [ ] T1 — `internal/core/quota/probe.go`: `Probe` read-only + `ProbeDescriptor.Validate`
+- [x] T1 — `internal/core/quota/probe.go`: `Probe` read-only + `ProbeDescriptor.Validate`
       + helpers de atribuição; `probe_test.go`. Gate: `go test ./internal/core/quota/`.
-- [ ] T2 — persistência SQLite: `migrations/0021_capacity_monitor.sql` + store
+- [x] T2 — persistência SQLite: `migrations/0021_capacity_monitor.sql` + store
       (observações, leases, transições, preferências); teste de migração idempotente.
 - [x] T3 — `internal/nexus/capacitymonitor/` enxuto: estados com histerese + scheduler
-      adaptativo (jitter) compondo `QuotaDropMonitor.CheckAccount`; sem activity/power
+      adaptativo (jitter) com loop próprio sobre ProbeRegistry (standalone; o bridge
+      para o dispatch do `QuotaDropMonitor` é T4); sem activity/power
       detectors na v1 (reavaliar depois). FEITO: per-window, repeat-tick read-only,
       lease single-leader via store, prefs como thresholds, eventos
       QUOTA_LOW/EXHAUSTED/MONITOR_RECOVERED no bus (delivery/dedup = T5).

@@ -20,6 +20,10 @@ import (
 // stored state, and publishes canonical bus events on transitions. Alert
 // delivery and dedup belong to T5; this loop only records and announces.
 //
+// Construct via NewMonitor: it fills Clock, JitterSource, Bus, concurrency,
+// OwnerID, LeaseTTL and BaseInterval defaults that Tick/Run/Status rely on
+// (nil* dependencies panic on use by design — fail loudly, never silently).
+//
 // Dual-publish note: event types intentionally match the ones QuotaDropMonitor
 // emits (QUOTA_LOW/QUOTA_EXHAUSTED) because downstream consumers key on them.
 // Only ONE loop may run per process: this package ships no wiring (no service
@@ -131,7 +135,11 @@ func (m *Monitor) Tick(ctx context.Context) error {
 		return nil
 	}
 
-	sem := make(chan struct{}, m.deps.MaxConcurrency)
+	workers := m.deps.MaxConcurrency
+	if workers <= 0 {
+		workers = 4
+	}
+	sem := make(chan struct{}, workers)
 	var wg sync.WaitGroup
 	var wmu sync.Mutex
 	worst := StateUnknown
@@ -406,9 +414,16 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 			state, reason = EvaluateTransition(prev, w.RemainingPercent, rateLimited, snap.FetchedAt, expiresOrZero(snap.ExpiresAt), now, thresholds)
 		}
 		// Scope drift persists too: re-auth under a new identity refreshes
-		// attribution even when the state itself did not move.
-		if prev != state || (found && prevScope != scopeKey(snap.AccountScope)) {
+		// attribution even when the state itself did not move — in place, with
+		// no new transition and no announcement.
+		if prev != state {
 			if err := m.persistTransition(prof.Provider, prof.Name, w.Group, w.Kind, state, reason, w.RemainingPercent, w.ResetDescription, snap.AccountScope, now); err != nil {
+				failed = true
+				continue
+			}
+		} else if found && prevScope != scopeKey(snap.AccountScope) {
+			rec.Reason = reason
+			if err := m.deps.Store.RefreshCapacityStateDetail(rec, reason, scopeKey(snap.AccountScope), now); err != nil {
 				failed = true
 				continue
 			}

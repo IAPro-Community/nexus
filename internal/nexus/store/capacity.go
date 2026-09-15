@@ -320,7 +320,9 @@ func (s *Store) AcquireCapacityLease(owner string, now time.Time, ttl time.Durat
 		return MonitorLease{}, false, err
 	}
 	if cur == nil {
-		return MonitorLease{}, false, errors.New("lease vanished after acquire")
+		// Lost the race AND the winner released before our re-read: nobody
+		// holds the lease, but neither do we. Not an error — next pass retries.
+		return MonitorLease{}, false, nil
 	}
 	// Re-read instead of echoing inputs so self re-acquire reports the true
 	// preserved AcquiredAt rather than now.
@@ -414,7 +416,9 @@ func (s *Store) GetCapacityPreferences() (CapacityPreferences, error) {
 	p.BrowserNotificationsEnabled = browser == 1
 	p.NativeNotificationsEnabled = native == 1
 	p.LockScreenSafeCopy = lock == 1
-	p.UpdatedAt, _ = parseStoreTime(updatedStr)
+	if p.UpdatedAt, err = parseStoreTime(updatedStr); err != nil {
+		return p, fmt.Errorf("corrupt preferences updated_at: %w", err)
+	}
 	return p, nil
 }
 

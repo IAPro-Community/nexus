@@ -157,6 +157,31 @@ func TestTickExhaustedEmitsExactlyOnce(t *testing.T) {
 	if !rec2.TransitionedAt.Equal(first) {
 		t.Fatalf("TransitionedAt moved on no-change tick: %v -> %v", first, rec2.TransitionedAt)
 	}
+	// Same check with an advanced clock: frozen time would mask a rewrite.
+	later := time.Now().UTC().Add(2 * time.Hour)
+	lateBus := events.NewBus(8)
+	lateCounter := &busCounter{}
+	lateBus.SetRecorder(lateCounter.record)
+	mLate := NewMonitor(Dependencies{
+		Profiles:      func() ([]model.Profile, error) { return []model.Profile{{Provider: "codex", Name: "kiver"}}, nil },
+		ProbeRegistry: &stubRegistry{probes: map[string]quota.Probe{"codex": probe}},
+		Store:         s,
+		Bus:           lateBus,
+		Clock:         stubClock{now: later},
+		JitterSource:  RealJitter{},
+		OwnerID:       "test-owner",
+		LeaseTTL:      time.Hour,
+	})
+	if err := mLate.Tick(context.Background()); err != nil {
+		t.Fatalf("late tick = %v", err)
+	}
+	if lateCounter.count() != 0 {
+		t.Fatalf("late tick published %d events, want 0 (no-change)", lateCounter.count())
+	}
+	rec3, _ := s.GetCapacityState("codex|kiver|claude_gpt|5h")
+	if !rec3.TransitionedAt.Equal(first) {
+		t.Fatalf("TransitionedAt drifted on late no-change tick: %v, want %v", rec3.TransitionedAt, first)
+	}
 }
 
 func TestTickHealthyIsSilent(t *testing.T) {
@@ -491,6 +516,67 @@ func TestRunTicksUntilCancel(t *testing.T) {
 	}
 	if st.MonitoredResources != 1 {
 		t.Fatalf("resources = %d, want 1 after Run ticks", st.MonitoredResources)
+	}
+}
+
+func TestScopeDriftRefreshesWithoutRepublish(t *testing.T) {
+	scopeA := model.AccountScope{ProviderID: "codex", ProfileID: "kiver", AccountID: "a1", IdentityVersion: "v1"}
+	scopeB := model.AccountScope{ProviderID: "codex", ProfileID: "kiver", AccountID: "a9", IdentityVersion: "v1"}
+	snap := liveSnapshot(5, model.UsageLive)
+	snap.AccountScope = scopeA
+	probe := &stubProbe{
+		desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+		snap: snap,
+	}
+	now := time.Now().UTC()
+	s, err := store.Open(filepath.Join(t.TempDir(), "cap.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	bus := events.NewBus(8)
+	counter := &busCounter{}
+	bus.SetRecorder(counter.record)
+	profiles := []model.Profile{{Provider: "codex", Name: "kiver"}}
+	mk := func() *Monitor {
+		return NewMonitor(Dependencies{
+			Profiles:      func() ([]model.Profile, error) { return profiles, nil },
+			ProbeRegistry: &stubRegistry{probes: map[string]quota.Probe{"codex": probe}},
+			Store:         s,
+			Bus:           bus,
+			Clock:         funcClock(func() time.Time { return now }),
+			JitterSource:  RealJitter{},
+			OwnerID:       "test-owner",
+			LeaseTTL:      time.Hour,
+		})
+	}
+	if err := mk().Tick(context.Background()); err != nil {
+		t.Fatalf("tick1 = %v", err)
+	}
+	if counter.count() != 1 {
+		t.Fatalf("events = %d, want 1 (CRITICAL first sight)", counter.count())
+	}
+	first, _ := s.GetCapacityState("codex|kiver|claude_gpt|5h")
+	// Re-auth under a new identity, same quota: attribution refreshes in
+	// place — no new transition, no second announcement.
+	now = now.Add(time.Hour)
+	snap.AccountScope = scopeB
+	probe.snap = snap
+	if err := mk().Tick(context.Background()); err != nil {
+		t.Fatalf("tick2 = %v", err)
+	}
+	if counter.count() != 1 {
+		t.Fatalf("events = %d, want still 1 (scope drift is silent)", counter.count())
+	}
+	got, err := s.GetCapacityState("codex|kiver|claude_gpt|5h")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.AccountScope != "codex/a9/v1" {
+		t.Fatalf("scope = %q, want codex/a9/v1", got.AccountScope)
+	}
+	if !got.TransitionedAt.Equal(first.TransitionedAt) {
+		t.Fatalf("TransitionedAt moved on scope-only drift: %v, want %v", got.TransitionedAt, first.TransitionedAt)
 	}
 }
 

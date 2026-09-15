@@ -259,6 +259,17 @@ func TestCapacityLeaseConcurrentTakeover(t *testing.T) {
 	}
 }
 
+func TestCapacityPreferencesCorruptRowErrors(t *testing.T) {
+	s := openTestStore(t)
+	if _, err := s.db.Exec(`INSERT INTO capacity_preferences(id, enabled, updated_at)
+		VALUES(1, 1, 'not-a-time')`); err != nil {
+		t.Fatalf("seed corrupt prefs: %v", err)
+	}
+	if _, err := s.GetCapacityPreferences(); err == nil {
+		t.Fatal("expected error for corrupt prefs timestamp, got nil")
+	}
+}
+
 func TestCapacityLeaseCorruptRowErrors(t *testing.T) {
 	s := openTestStore(t)
 	if _, err := s.db.Exec(`INSERT INTO capacity_monitor_lease(id, owner, acquired_at, renewed_at, expires_at)
