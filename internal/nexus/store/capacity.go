@@ -26,6 +26,8 @@ type ObservationRecord struct {
 	FetchedAt        time.Time `json:"fetched_at"`
 	ExpiresAt        time.Time `json:"expires_at,omitempty"`
 	ResetDescription string    `json:"reset_description,omitempty"`
+	// AccountScope is the opaque scope key ("", when the source is unattributed).
+	AccountScope string `json:"account_scope,omitempty"`
 }
 
 // CapacityStateRecord represents the evaluated threshold state for a resource.
@@ -39,6 +41,8 @@ type CapacityStateRecord struct {
 	Reason         string    `json:"reason"`
 	TransitionedAt time.Time `json:"transitioned_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
+	// AccountScope is the opaque scope key ("", when the source is unattributed).
+	AccountScope string `json:"account_scope,omitempty"`
 }
 
 // MonitorLease represents single-leader ownership of the capacity monitor loop.
@@ -102,8 +106,8 @@ func (s *Store) UpsertCapacityObservation(record ObservationRecord) error {
 	_, err := s.db.Exec(`
 		INSERT INTO capacity_observations(
 			provider, profile, quota_group, window_kind, status, source,
-			used_percent, remaining_percent, fetched_at, expires_at, reset_description
-		) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			used_percent, remaining_percent, fetched_at, expires_at, reset_description, account_scope
+		) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(provider, profile, quota_group, window_kind) DO UPDATE SET
 			status = excluded.status,
 			source = excluded.source,
@@ -111,9 +115,10 @@ func (s *Store) UpsertCapacityObservation(record ObservationRecord) error {
 			remaining_percent = excluded.remaining_percent,
 			fetched_at = excluded.fetched_at,
 			expires_at = excluded.expires_at,
-			reset_description = excluded.reset_description
+			reset_description = excluded.reset_description,
+			account_scope = excluded.account_scope
 	`, record.Provider, record.Profile, record.QuotaGroup, record.WindowKind, record.Status, record.Source,
-		record.UsedPercent, record.RemainingPercent, fetchedAtStr, expiresAtStr, record.ResetDescription)
+		record.UsedPercent, record.RemainingPercent, fetchedAtStr, expiresAtStr, record.ResetDescription, record.AccountScope)
 	return err
 }
 
@@ -121,7 +126,7 @@ func (s *Store) UpsertCapacityObservation(record ObservationRecord) error {
 func (s *Store) ListCapacityObservations() ([]ObservationRecord, error) {
 	rows, err := s.db.Query(`
 		SELECT provider, profile, quota_group, window_kind, status, source,
-		       used_percent, remaining_percent, fetched_at, expires_at, reset_description
+		       used_percent, remaining_percent, fetched_at, expires_at, reset_description, account_scope
 		FROM capacity_observations
 		ORDER BY provider, profile, quota_group, window_kind
 	`)
@@ -139,7 +144,7 @@ func (s *Store) ListCapacityObservations() ([]ObservationRecord, error) {
 
 		if err := rows.Scan(
 			&r.Provider, &r.Profile, &r.QuotaGroup, &r.WindowKind, &r.Status, &r.Source,
-			&usedPct, &remPct, &fetchedAtStr, &expiresAtStr, &r.ResetDescription,
+			&usedPct, &remPct, &fetchedAtStr, &expiresAtStr, &r.ResetDescription, &r.AccountScope,
 		); err != nil {
 			return nil, err
 		}
@@ -170,8 +175,8 @@ func (s *Store) UpsertCapacityState(record CapacityStateRecord) error {
 
 	_, err := s.db.Exec(`
 		INSERT INTO capacity_states(
-			key, provider, profile, quota_group, window_kind, state, reason, transitioned_at, updated_at
-		) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+			key, provider, profile, quota_group, window_kind, state, reason, transitioned_at, updated_at, account_scope
+		) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(key) DO UPDATE SET
 			provider = excluded.provider,
 			profile = excluded.profile,
@@ -180,9 +185,10 @@ func (s *Store) UpsertCapacityState(record CapacityStateRecord) error {
 			state = excluded.state,
 			reason = excluded.reason,
 			transitioned_at = excluded.transitioned_at,
-			updated_at = excluded.updated_at
+			updated_at = excluded.updated_at,
+			account_scope = excluded.account_scope
 	`, record.Key, record.Provider, record.Profile, record.QuotaGroup, record.WindowKind,
-		record.State, record.Reason, transStr, updatedStr)
+		record.State, record.Reason, transStr, updatedStr, record.AccountScope)
 	return err
 }
 
@@ -191,13 +197,13 @@ func (s *Store) UpsertCapacityState(record CapacityStateRecord) error {
 // without inventing state.
 func (s *Store) GetCapacityState(key string) (CapacityStateRecord, error) {
 	row := s.db.QueryRow(`
-		SELECT key, provider, profile, quota_group, window_kind, state, reason, transitioned_at, updated_at
+		SELECT key, provider, profile, quota_group, window_kind, state, reason, transitioned_at, updated_at, account_scope
 		FROM capacity_states WHERE key = ?
 	`, key)
 
 	var r CapacityStateRecord
 	var transStr, updatedStr string
-	if err := row.Scan(&r.Key, &r.Provider, &r.Profile, &r.QuotaGroup, &r.WindowKind, &r.State, &r.Reason, &transStr, &updatedStr); err != nil {
+	if err := row.Scan(&r.Key, &r.Provider, &r.Profile, &r.QuotaGroup, &r.WindowKind, &r.State, &r.Reason, &transStr, &updatedStr, &r.AccountScope); err != nil {
 		return r, err
 	}
 	r.TransitionedAt, _ = time.Parse(time.RFC3339Nano, transStr)
@@ -208,7 +214,7 @@ func (s *Store) GetCapacityState(key string) (CapacityStateRecord, error) {
 // ListCapacityStates returns all recorded capacity states.
 func (s *Store) ListCapacityStates() ([]CapacityStateRecord, error) {
 	rows, err := s.db.Query(`
-		SELECT key, provider, profile, quota_group, window_kind, state, reason, transitioned_at, updated_at
+		SELECT key, provider, profile, quota_group, window_kind, state, reason, transitioned_at, updated_at, account_scope
 		FROM capacity_states
 		ORDER BY key
 	`)
@@ -221,7 +227,7 @@ func (s *Store) ListCapacityStates() ([]CapacityStateRecord, error) {
 	for rows.Next() {
 		var r CapacityStateRecord
 		var transStr, updatedStr string
-		if err := rows.Scan(&r.Key, &r.Provider, &r.Profile, &r.QuotaGroup, &r.WindowKind, &r.State, &r.Reason, &transStr, &updatedStr); err != nil {
+		if err := rows.Scan(&r.Key, &r.Provider, &r.Profile, &r.QuotaGroup, &r.WindowKind, &r.State, &r.Reason, &transStr, &updatedStr, &r.AccountScope); err != nil {
 			return nil, err
 		}
 		r.TransitionedAt, _ = time.Parse(time.RFC3339Nano, transStr)
@@ -231,53 +237,44 @@ func (s *Store) ListCapacityStates() ([]CapacityStateRecord, error) {
 	return records, rows.Err()
 }
 
-// AcquireCapacityLease attempts to acquire or take over the single monitor lease.
-// A live lease owned by someone else is never stolen; an expired one (or one we
-// already own) is taken over atomically inside a transaction.
+// AcquireCapacityLease attempts to acquire or take over the single monitor lease
+// in ONE atomic statement: a live lease owned by someone else is never stolen,
+// an expired one (or one we already own) is taken over. The single statement
+// closes the SELECT-then-UPDATE race where two concurrent acquirers could both
+// believe they hold the lease.
 func (s *Store) AcquireCapacityLease(owner string, now time.Time, ttl time.Duration) (MonitorLease, bool, error) {
 	nowStr := now.UTC().Format(time.RFC3339Nano)
 	expiresStr := now.Add(ttl).UTC().Format(time.RFC3339Nano)
 
-	tx, err := s.db.Begin()
+	res, err := s.db.Exec(`
+		INSERT INTO capacity_monitor_lease(id, owner, acquired_at, renewed_at, expires_at)
+		VALUES(1, ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET
+			owner = excluded.owner,
+			acquired_at = CASE WHEN capacity_monitor_lease.owner = excluded.owner
+				THEN capacity_monitor_lease.acquired_at ELSE excluded.acquired_at END,
+			renewed_at = excluded.renewed_at,
+			expires_at = excluded.expires_at
+		WHERE capacity_monitor_lease.owner = excluded.owner
+		   OR capacity_monitor_lease.expires_at <= excluded.renewed_at
+	`, owner, nowStr, nowStr, expiresStr)
 	if err != nil {
 		return MonitorLease{}, false, err
 	}
-	defer tx.Rollback()
-
-	var currentOwner string
-	var currentExpiresStr string
-	err = tx.QueryRow(`SELECT owner, expires_at FROM capacity_monitor_lease WHERE id = 1`).Scan(&currentOwner, &currentExpiresStr)
-	if errors.Is(err, sql.ErrNoRows) {
-		if _, err := tx.Exec(`
-			INSERT INTO capacity_monitor_lease(id, owner, acquired_at, renewed_at, expires_at)
-			VALUES(1, ?, ?, ?, ?)
-		`, owner, nowStr, nowStr, expiresStr); err != nil {
-			return MonitorLease{}, false, err
-		}
-		if err := tx.Commit(); err != nil {
-			return MonitorLease{}, false, err
-		}
-		return MonitorLease{Owner: owner, AcquiredAt: now, RenewedAt: now, ExpiresAt: now.Add(ttl)}, true, nil
-	} else if err != nil {
+	affected, err := res.RowsAffected()
+	if err != nil {
 		return MonitorLease{}, false, err
 	}
-
-	currentExpires, _ := time.Parse(time.RFC3339Nano, currentExpiresStr)
-	if currentOwner != owner && now.Before(currentExpires) {
-		return MonitorLease{Owner: currentOwner, ExpiresAt: currentExpires}, false, nil
-	}
-
-	if _, err := tx.Exec(`
-		UPDATE capacity_monitor_lease
-		SET owner = ?, acquired_at = CASE WHEN owner = ? THEN acquired_at ELSE ? END, renewed_at = ?, expires_at = ?
-		WHERE id = 1
-	`, owner, owner, nowStr, nowStr, expiresStr); err != nil {
+	cur, err := s.GetCapacityLease()
+	if err != nil {
 		return MonitorLease{}, false, err
 	}
-	if err := tx.Commit(); err != nil {
-		return MonitorLease{}, false, err
+	if cur == nil {
+		return MonitorLease{}, false, errors.New("lease vanished after acquire")
 	}
-	return MonitorLease{Owner: owner, AcquiredAt: now, RenewedAt: now, ExpiresAt: now.Add(ttl)}, true, nil
+	// Re-read instead of echoing inputs so self re-acquire reports the true
+	// preserved AcquiredAt rather than now.
+	return *cur, affected == 1, nil
 }
 
 // RenewCapacityLease refreshes the lease if owned by the caller.

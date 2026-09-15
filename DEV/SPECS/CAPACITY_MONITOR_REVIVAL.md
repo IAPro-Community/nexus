@@ -44,6 +44,10 @@ push remoto; providers novos; qualquer mudança em `QuotaDropMonitor` existente
       detectors na v1 (reavaliar depois). FEITO: per-window, repeat-tick read-only,
       lease single-leader via store, prefs como thresholds, eventos
       QUOTA_LOW/EXHAUSTED/MONITOR_RECOVERED no bus (delivery/dedup = T5).
+      Deep review (6 red/15 yellow/3 q, revisor independente): tudo endereçado —
+      lease atômico, account_scope, NaN/Inf, jitter limitado, sem com ctx,
+      backoff por pass totalmente falho, TTL adaptativo, fail-closed em erro
+      de store, repeat read-only, nil-registry explícito.
 - [ ] T4 — bridge de recomendação sem ciclo de import (adapter sobre `RecommendResources`).
 - [ ] T5 — delivery: dedup por fingerprint + receipts via `internal/control/events`.
 - [ ] T6 — API web autenticada: status/history/preferences/ack/snooze + testes.

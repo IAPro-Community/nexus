@@ -1,6 +1,7 @@
 package capacitymonitor
 
 import (
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -33,6 +34,9 @@ func TestEvaluateTransitionTable(t *testing.T) {
 		{"between warning and recovery is healthy", StateWarning, f64(22), false, obs, fresh, StateHealthy},
 		{"healthy stays healthy", StateHealthy, f64(30), false, obs, fresh, StateHealthy},
 		{"unknown previous still evaluates", StateUnknown, f64(15), false, obs, fresh, StateWarning},
+		{"nan is unknown, never healthy", StateHealthy, f64(math.NaN()), false, obs, fresh, StateUnknown},
+		{"+inf is unknown, never healthy", StateHealthy, f64(math.Inf(1)), false, obs, fresh, StateUnknown},
+		{"negative clamps to exhausted", StateHealthy, f64(-5), false, obs, fresh, StateExhausted},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

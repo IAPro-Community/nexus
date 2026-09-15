@@ -69,6 +69,11 @@ func TestProbeDescriptorRejectsNegativeIntervals(t *testing.T) {
 	if err := desc.Validate(); err == nil {
 		t.Fatal("expected error for negative TTL, got nil")
 	}
+	desc = validProbeDescriptor()
+	desc.MinimumInterval = -time.Second
+	if err := desc.Validate(); err == nil {
+		t.Fatal("expected error for negative MinimumInterval, got nil")
+	}
 }
 
 func TestDisplayQuotaSubjectPrefersExactModel(t *testing.T) {

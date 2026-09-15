@@ -3,6 +3,7 @@ package capacitymonitor
 import (
 	"crypto/rand"
 	"errors"
+	"math"
 	"math/big"
 	"time"
 
@@ -42,8 +43,14 @@ func DefaultThresholds() Thresholds {
 	}
 }
 
-// Validate ensures 0 <= exhausted < critical < warning < recovery <= 100.
+// Validate ensures 0 <= exhausted < critical < warning < recovery <= 100
+// with finite values. NaN passes every comparison, so it is rejected explicitly.
 func (t Thresholds) Validate() error {
+	for _, v := range []float64{t.Warning, t.Critical, t.Exhausted, t.Recovery} {
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return errors.New("invalid thresholds: values must be finite")
+		}
+	}
 	if t.Exhausted < 0 || t.Exhausted >= t.Critical {
 		return errors.New("invalid thresholds: exhausted must be >= 0 and < critical")
 	}
@@ -74,22 +81,23 @@ type JitterSource interface {
 	Duration(base time.Duration) time.Duration
 }
 
-// RealJitter adds 0-10% randomized jitter.
+// RealJitter adds 0-10% randomized jitter. The bound holds for every positive
+// base: sub-millisecond bases jitter by a fraction of a nanosecond slice.
 type RealJitter struct{}
 
 func (RealJitter) Duration(base time.Duration) time.Duration {
 	if base <= 0 {
 		return base
 	}
-	maxJitterMs := int64(base.Milliseconds() / 10)
-	if maxJitterMs <= 0 {
-		maxJitterMs = 1000
+	tenth := int64(base / 10)
+	if tenth <= 0 {
+		tenth = 1
 	}
-	n, err := rand.Int(rand.Reader, big.NewInt(maxJitterMs))
+	n, err := rand.Int(rand.Reader, big.NewInt(tenth))
 	if err != nil {
 		return base
 	}
-	return base + time.Duration(n.Int64())*time.Millisecond
+	return base + time.Duration(n.Int64())
 }
 
 // ResourceState provides a snapshot of a monitored resource.
@@ -108,12 +116,13 @@ type ResourceState struct {
 
 // Status represents the live diagnostic status of the capacity monitor.
 type Status struct {
-	IsLeader           bool            `json:"is_leader"`
-	LeaderOwner        string          `json:"leader_owner"`
-	Running            bool            `json:"running"`
-	MonitoredResources int             `json:"monitored_resources"`
-	LastTickAt         time.Time       `json:"last_tick_at"`
-	Resources          []ResourceState `json:"resources"`
+	IsLeader            bool            `json:"is_leader"`
+	LeaderOwner         string          `json:"leader_owner"`
+	Running             bool            `json:"running"`
+	ConsecutiveFailures int             `json:"consecutive_failures"`
+	MonitoredResources  int             `json:"monitored_resources"`
+	LastTickAt          time.Time       `json:"last_tick_at"`
+	Resources           []ResourceState `json:"resources"`
 }
 
 // ProbeRegistry provides access to safe read-only quota probes for providers.

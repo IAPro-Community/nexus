@@ -3,6 +3,7 @@ package capacitymonitor
 import (
 	"crypto/sha256"
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -25,6 +26,10 @@ func EvaluateTransition(
 
 	if remaining == nil || observedAt.IsZero() {
 		return StateUnknown, "no valid observation"
+	}
+
+	if math.IsNaN(*remaining) || math.IsInf(*remaining, 0) {
+		return StateUnknown, "non-finite observation"
 	}
 
 	if !expiresAt.IsZero() && now.After(expiresAt) {

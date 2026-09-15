@@ -3,6 +3,8 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 )
@@ -185,6 +187,12 @@ func TestPruneCapacityHistory(t *testing.T) {
 			t.Fatalf("seed event %s: %v", id, err)
 		}
 	}
+	for id, ts := range map[string]string{"old-r": old, "new-r": fresh} {
+		if _, err := s.db.Exec(`INSERT INTO capacity_delivery_receipts(alert_id, channel, fingerprint, status, delivered_at)
+			VALUES(?, 'native', 'fp', 'ok', ?)`, id, ts); err != nil {
+			t.Fatalf("seed receipt %s: %v", id, err)
+		}
+	}
 	if err := s.PruneCapacityHistory(time.Now().UTC().Add(-time.Hour)); err != nil {
 		t.Fatalf("prune = %v", err)
 	}
@@ -198,5 +206,82 @@ func TestPruneCapacityHistory(t *testing.T) {
 	var id string
 	if err := s.db.QueryRow(`SELECT id FROM capacity_events`).Scan(&id); err != nil || id != "new-1" {
 		t.Fatalf("remaining id = %q,%v, want new-1", id, err)
+	}
+	var receipts int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM capacity_delivery_receipts`).Scan(&receipts); err != nil {
+		t.Fatalf("receipt count: %v", err)
+	}
+	if receipts != 1 {
+		t.Fatalf("remaining receipts = %d, want 1 (fresh only)", receipts)
+	}
+}
+
+func TestCapacityLeaseConcurrentTakeover(t *testing.T) {
+	s := openTestStore(t)
+	now := time.Now().UTC()
+	if _, held, err := s.AcquireCapacityLease("holder", now.Add(-time.Hour), time.Minute); err != nil || !held {
+		t.Fatalf("seed expired lease: %v,%v", held, err)
+	}
+	const racers = 8
+	var wg sync.WaitGroup
+	wins := make(chan bool, racers)
+	for i := 0; i < racers; i++ {
+		wg.Add(1)
+		go func(n int) {
+			defer wg.Done()
+			_, held, err := s.AcquireCapacityLease(fmt.Sprintf("racer-%d", n), now, time.Minute)
+			wins <- (err == nil && held)
+		}(i)
+	}
+	wg.Wait()
+	close(wins)
+	count := 0
+	for w := range wins {
+		if w {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("takeover winners = %d, want exactly 1 (atomic lease)", count)
+	}
+}
+
+func TestCapacityScopeRoundTrip(t *testing.T) {
+	s := openTestStore(t)
+	now := time.Now().UTC().Truncate(time.Millisecond)
+	if err := s.UpsertCapacityObservation(ObservationRecord{
+		Provider: "codex", Profile: "kiver", QuotaGroup: "g", WindowKind: "5h",
+		Status: "LIVE", Source: "OFFICIAL_API", FetchedAt: now,
+		AccountScope: "codex/acct-1/v3",
+	}); err != nil {
+		t.Fatalf("upsert observation: %v", err)
+	}
+	if err := s.UpsertCapacityState(CapacityStateRecord{
+		Key: "codex|kiver|g|5h", Provider: "codex", Profile: "kiver",
+		QuotaGroup: "g", WindowKind: "5h", State: "HEALTHY",
+		TransitionedAt: now, UpdatedAt: now, AccountScope: "codex/acct-1/v3",
+	}); err != nil {
+		t.Fatalf("upsert state: %v", err)
+	}
+	obs, err := s.ListCapacityObservations()
+	if err != nil || len(obs) != 1 || obs[0].AccountScope != "codex/acct-1/v3" {
+		t.Fatalf("observation scope = %+v,%v, want codex/acct-1/v3", obs, err)
+	}
+	st, err := s.GetCapacityState("codex|kiver|g|5h")
+	if err != nil || st.AccountScope != "codex/acct-1/v3" {
+		t.Fatalf("state scope = %+v,%v, want codex/acct-1/v3", st, err)
+	}
+	// Re-auth under a new identity refreshes the attribute instead of leaving
+	// stale attribution behind.
+	if err := s.UpsertCapacityState(CapacityStateRecord{
+		Key: "codex|kiver|g|5h", Provider: "codex", Profile: "kiver",
+		QuotaGroup: "g", WindowKind: "5h", State: "HEALTHY",
+		TransitionedAt: now, UpdatedAt: now, AccountScope: "codex/acct-9/v1",
+	}); err != nil {
+		t.Fatalf("re-upsert state: %v", err)
+	}
+	st, err = s.GetCapacityState("codex|kiver|g|5h")
+	if err != nil || st.AccountScope != "codex/acct-9/v1" {
+		t.Fatalf("state scope after re-auth = %+v,%v, want codex/acct-9/v1", st, err)
 	}
 }

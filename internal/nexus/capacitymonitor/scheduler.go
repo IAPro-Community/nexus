@@ -36,7 +36,10 @@ func DetermineCollectionInterval(
 	} else if activeActivity {
 		interval = 60 * time.Second
 	} else {
-		// Healthy or idle
+		// Healthy, idle, recovered, unknown — and EXHAUSTED: a depleted quota
+		// is terminal-stable, so hammering a rate-limited provider buys nothing.
+		// Renewal is still caught on the next slow pass, and the live
+		// QuotaDropMonitor path (1m ticker) covers fast alerting meanwhile.
 		interval = 10 * time.Minute
 	}
 

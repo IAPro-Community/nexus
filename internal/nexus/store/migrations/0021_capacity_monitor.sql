@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS capacity_observations (
     fetched_at TEXT NOT NULL,
     expires_at TEXT,
     reset_description TEXT NOT NULL DEFAULT '',
+    account_scope TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (provider, profile, quota_group, window_kind)
 );
 
@@ -26,7 +27,8 @@ CREATE TABLE IF NOT EXISTS capacity_states (
     state TEXT NOT NULL,
     reason TEXT NOT NULL DEFAULT '',
     transitioned_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    account_scope TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS capacity_monitor_lease (

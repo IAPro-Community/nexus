@@ -2,6 +2,7 @@ package capacitymonitor
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -12,6 +13,8 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
+
+var errTestBoom = errors.New("test boom")
 
 type stubClock struct{ now time.Time }
 
@@ -323,5 +326,180 @@ func TestStatusSnapshot(t *testing.T) {
 	}
 	if st.Resources[0].RemainingPercent == nil || *st.Resources[0].RemainingPercent != 5 {
 		t.Fatalf("resource remaining = %+v, want 5", st.Resources[0])
+	}
+}
+
+func TestTickExpiredSnapshotUnknown(t *testing.T) {
+	past := time.Now().UTC().Add(-time.Hour)
+	snap := liveSnapshot(0, model.UsageLive)
+	snap.ExpiresAt = &past
+	probe := &stubProbe{
+		desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+		snap: snap,
+	}
+	m, s, counter := testMonitor(t,
+		[]model.Profile{{Provider: "codex", Name: "kiver"}},
+		&stubRegistry{probes: map[string]quota.Probe{"codex": probe}}, nil)
+
+	if err := m.Tick(context.Background()); err != nil {
+		t.Fatalf("Tick() = %v", err)
+	}
+	if counter.count() != 0 {
+		t.Fatalf("events = %d, want 0 for expired data", counter.count())
+	}
+	obs, err := s.ListCapacityObservations()
+	if err != nil || len(obs) != 1 {
+		t.Fatalf("expired telemetry must persist: %+v,%v", obs, err)
+	}
+	rec, err := s.GetCapacityState("codex|kiver|claude_gpt|5h")
+	if err != nil || rec.State != "UNKNOWN" {
+		t.Fatalf("state = %+v,%v, want UNKNOWN for expired", rec, err)
+	}
+}
+
+func TestTickNilRegistryFails(t *testing.T) {
+	s, err := store.Open(filepath.Join(t.TempDir(), "cap.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	m := NewMonitor(Dependencies{
+		Profiles:     func() ([]model.Profile, error) { return nil, nil },
+		Store:        s,
+		Bus:          events.NewBus(8),
+		Clock:        stubClock{now: time.Now().UTC()},
+		JitterSource: RealJitter{},
+		OwnerID:      "test-owner",
+	})
+	if err := m.Tick(context.Background()); err == nil {
+		t.Fatal("expected error for nil probe registry, got nil")
+	}
+}
+
+func TestTickClosedStoreFailsClosed(t *testing.T) {
+	s, err := store.Open(filepath.Join(t.TempDir(), "cap.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	bus := events.NewBus(8)
+	counter := &busCounter{}
+	bus.SetRecorder(counter.record)
+	m := NewMonitor(Dependencies{
+		Profiles:      func() ([]model.Profile, error) { return []model.Profile{{Provider: "codex", Name: "kiver"}}, nil },
+		ProbeRegistry: &stubRegistry{probes: map[string]quota.Probe{}},
+		Store:         s,
+		Bus:           bus,
+		Clock:         stubClock{now: time.Now().UTC()},
+		JitterSource:  RealJitter{},
+		OwnerID:       "test-owner",
+	})
+	_ = s.Close()
+	if err := m.Tick(context.Background()); err == nil {
+		t.Fatal("expected error on dead store, got nil")
+	}
+	if counter.count() != 0 {
+		t.Fatalf("events on DB outage = %d, want 0 (no phantom announcements)", counter.count())
+	}
+}
+
+func TestMissingProbeTransitionStable(t *testing.T) {
+	m, s, counter := testMonitor(t,
+		[]model.Profile{{Provider: "mystery", Name: "ghost"}},
+		&stubRegistry{probes: map[string]quota.Probe{}}, nil)
+
+	for i := 0; i < 3; i++ {
+		if err := m.Tick(context.Background()); err != nil {
+			t.Fatalf("tick %d = %v", i, err)
+		}
+	}
+	if counter.count() != 0 {
+		t.Fatalf("events = %d, want 0", counter.count())
+	}
+	states, err := s.ListCapacityStates()
+	if err != nil || len(states) != 1 {
+		t.Fatalf("states = %+v,%v, want single UNKNOWN row (no churn)", states, err)
+	}
+}
+
+func TestFailuresTrackedInStatus(t *testing.T) {
+	newCustom := func(t *testing.T, profiles func() ([]model.Profile, error), reg ProbeRegistry) (*Monitor, *busCounter) {
+		t.Helper()
+		s, err := store.Open(filepath.Join(t.TempDir(), "cap.db"))
+		if err != nil {
+			t.Fatalf("open store: %v", err)
+		}
+		t.Cleanup(func() { _ = s.Close() })
+		bus := events.NewBus(8)
+		counter := &busCounter{}
+		bus.SetRecorder(counter.record)
+		return NewMonitor(Dependencies{
+			Profiles: profiles, ProbeRegistry: reg, Store: s, Bus: bus,
+			Clock: stubClock{now: time.Now().UTC()}, JitterSource: RealJitter{},
+			OwnerID: "test-owner", LeaseTTL: time.Hour,
+		}), counter
+	}
+	healthyProbe := &stubProbe{
+		desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+		snap: liveSnapshot(80, model.UsageLive),
+	}
+	badProbe := &stubProbe{
+		desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+		err:  errTestBoom,
+	}
+	reg := &stubRegistry{probes: map[string]quota.Probe{"good": healthyProbe, "bad": badProbe}}
+
+	// One sick account among healthy ones must not pin the backoff counter.
+	m, _ := newCustom(t,
+		func() ([]model.Profile, error) {
+			return []model.Profile{{Provider: "good", Name: "a"}, {Provider: "bad", Name: "b"}}, nil
+		}, reg)
+	if err := m.Tick(context.Background()); err != nil {
+		t.Fatalf("mixed tick = %v", err)
+	}
+	if got := m.Status().ConsecutiveFailures; got != 0 {
+		t.Fatalf("failures with partial success = %d, want 0", got)
+	}
+
+	// A profiles-listing failure is fully failed and surfaces in status.
+	m2, _ := newCustom(t,
+		func() ([]model.Profile, error) { return nil, errTestBoom },
+		&stubRegistry{probes: map[string]quota.Probe{}})
+	if err := m2.Tick(context.Background()); err == nil {
+		t.Fatal("expected profiles error, got nil")
+	}
+	if got := m2.Status().ConsecutiveFailures; got != 1 {
+		t.Fatalf("failures after profiles error = %d, want 1", got)
+	}
+}
+
+func TestScopePropagatesToStoreAndEvents(t *testing.T) {
+	scope := model.AccountScope{ProviderID: "codex", ProfileID: "kiver", AccountID: "acct-1", IdentityVersion: "v3"}
+	snap := liveSnapshot(5, model.UsageLive)
+	snap.AccountScope = scope
+	probe := &stubProbe{
+		desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+		snap: snap,
+	}
+	m, s, counter := testMonitor(t,
+		[]model.Profile{{Provider: "codex", Name: "kiver"}},
+		&stubRegistry{probes: map[string]quota.Probe{"codex": probe}}, nil)
+
+	if err := m.Tick(context.Background()); err != nil {
+		t.Fatalf("Tick() = %v", err)
+	}
+	obs, err := s.ListCapacityObservations()
+	if err != nil || len(obs) != 1 || obs[0].AccountScope != "codex/acct-1/v3" {
+		t.Fatalf("observation scope = %+v,%v, want codex/acct-1/v3", obs, err)
+	}
+	rec, err := s.GetCapacityState("codex|kiver|claude_gpt|5h")
+	if err != nil || rec.AccountScope != "codex/acct-1/v3" {
+		t.Fatalf("state scope = %+v,%v, want codex/acct-1/v3", rec, err)
+	}
+	if counter.count() != 1 {
+		t.Fatalf("events = %d, want 1", counter.count())
+	}
+	got, ok := counter.events[0].Data["account_scope"]
+	if !ok || got != "codex/acct-1/v3" {
+		t.Fatalf("event account_scope = %v, want codex/acct-1/v3", counter.events[0].Data)
 	}
 }
