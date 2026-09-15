@@ -77,6 +77,7 @@ func (m *Monitor) Tick(ctx context.Context) error {
 	// Constructor defaults cover the normal path; these guards make direct
 	// misuse fail loudly instead of panicking on first use.
 	if m.deps.Store == nil {
+		m.noteFailure()
 		return errors.New("capacitymonitor: nil store")
 	}
 	if m.deps.ProbeRegistry == nil {
@@ -171,6 +172,10 @@ tickLoop:
 	m.worst = worst
 	m.lastTick = now
 	m.mu.Unlock()
+	// The pass completed: report cancellation only if it actually landed.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -249,10 +254,14 @@ func (m *Monitor) noteFailure() {
 	m.mu.Unlock()
 }
 
+// maxLeaseTTL bounds crash failover: even an explicit operator floor above
+// this is clamped, so a typo can never pin leadership for weeks.
+const maxLeaseTTL = 24 * time.Hour
+
 // leaseTTL scales with the last collection interval so slow healthy cadences
-// never outrun the lease while crash failover stays bounded. The configured
-// LeaseTTL is a verbatim floor (explicit operator config wins); the 30m cap
-// bounds only the adaptive growth.
+// never outrun the lease. Precedence: 3x cadence (base capped at 10m so the
+// multiply cannot overflow), then the configured LeaseTTL as floor, then the
+// absolute maxLeaseTTL cap.
 func (m *Monitor) leaseTTL() time.Duration {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -260,12 +269,15 @@ func (m *Monitor) leaseTTL() time.Duration {
 	if base <= 0 {
 		base = m.deps.BaseInterval
 	}
-	ttl := 3 * base
-	if ttl > 30*time.Minute {
-		ttl = 30 * time.Minute
+	if base > 10*time.Minute {
+		base = 10 * time.Minute
 	}
+	ttl := 3 * base
 	if ttl < m.deps.LeaseTTL {
 		ttl = m.deps.LeaseTTL
+	}
+	if ttl > maxLeaseTTL {
+		ttl = maxLeaseTTL
 	}
 	return ttl
 }
@@ -310,12 +322,15 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 	}
 	scope := scopeKey(snap.AccountScope)
 
-	rateLimited := snap.Status == model.UsageRateLimited
+	rateLimited := normalizeStatus(snap.Status) == string(model.UsageRateLimited)
 	// Trust set mirrors QuotaDropMonitor.isTrustworthyQuotaStatus, including
 	// the legacy "OK" some producers still emit: both monitors must agree on
-	// what counts as evidence.
-	trusted := snap.Status == model.UsageLive || snap.Status == model.UsageCached ||
-		snap.Status == "OK" || rateLimited
+	// what counts as evidence. Normalization keeps "ok"/" live " honest too.
+	trusted := rateLimited
+	switch normalizeStatus(snap.Status) {
+	case string(model.UsageLive), string(model.UsageCached), "OK":
+		trusted = true
+	}
 	if len(snap.Windows) == 0 {
 		// No windows: a single account-level UNKNOWN, persisted once so
 		// coverage stays visible instead of silently absent.
@@ -341,15 +356,23 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 		}
 		var state State = StateUnknown
 		reason := "untrusted snapshot status"
-		prev, err := m.storedState(key(w.Group, w.Kind))
+		rec, found, err := m.loadState(key(w.Group, w.Kind))
 		if err != nil {
 			failed = true
 			continue
 		}
+		prev := State("")
+		prevScope := ""
+		if found {
+			prev = State(rec.State)
+			prevScope = rec.AccountScope
+		}
 		if trusted {
 			state, reason = EvaluateTransition(prev, w.RemainingPercent, rateLimited, snap.FetchedAt, expiresOrZero(snap.ExpiresAt), now, thresholds)
 		}
-		if prev != state {
+		// Scope drift persists too: re-auth under a new identity refreshes
+		// attribution even when the state itself did not move.
+		if prev != state || (found && prevScope != scopeKey(snap.AccountScope)) {
 			if err := m.persistTransition(prof.Provider, prof.Name, w.Group, w.Kind, state, reason, w.RemainingPercent, w.ResetDescription, snap.AccountScope, now); err != nil {
 				failed = true
 				continue
@@ -362,17 +385,24 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 	return worst, !failed
 }
 
-// storedState reads the persisted state; sql.ErrNoRows means first sight
-// (empty previous), any other error fails the account fail-closed.
-func (m *Monitor) storedState(k string) (State, error) {
+// normalizeStatus uppercases/trims provider status text so "ok" and " live "
+// match their canonical forms, exactly like the existing quota monitor.
+func normalizeStatus(s model.UsageStatus) string {
+	return strings.ToUpper(strings.TrimSpace(string(s)))
+}
+
+// loadState reads one persisted state row. Not-found means first sight
+// (found=false, nil error); any other error fails the account fail-closed.
+// Single mapping point for the missing-key contract.
+func (m *Monitor) loadState(k string) (store.CapacityStateRecord, bool, error) {
 	rec, err := m.deps.Store.GetCapacityState(k)
 	if errors.Is(err, sql.ErrNoRows) {
-		return State(""), nil
+		return store.CapacityStateRecord{}, false, nil
 	}
 	if err != nil {
-		return State(""), err
+		return store.CapacityStateRecord{}, false, err
 	}
-	return State(rec.State), nil
+	return rec, true, nil
 }
 
 // persistTransition writes the state and publishes alert-worthy bus events.
@@ -395,21 +425,23 @@ func (m *Monitor) persistTransition(provider, profile, group, window string, sta
 
 // upsertState records an account-level fallback state idempotently: identical
 // repeats are read-only, so TransitionedAt never drifts on no-change ticks and
-// there is no write churn. A changed reason refreshes the diagnostic text via
-// RefreshCapacityStateReason without moving the transition moment. It never
-// publishes events.
+// there is no write churn. Changed reason or scope refreshes the diagnostic
+// columns without moving the transition moment. It never publishes events.
 func (m *Monitor) upsertState(provider, profile, group, window string, state State, reason string, scope model.AccountScope, now time.Time) error {
 	k := stateKey(provider, profile, group, window)
-	rec, err := m.deps.Store.GetCapacityState(k)
-	if err == nil {
+	rec, found, err := m.loadState(k)
+	if err != nil {
+		return err
+	}
+	if found {
 		if State(rec.State) == state {
-			if rec.Reason == reason {
+			if rec.Reason == reason && rec.AccountScope == scopeKey(scope) {
 				return nil
 			}
-			return m.deps.Store.RefreshCapacityStateReason(k, reason, now)
+			rec.Reason = reason
+			rec.AccountScope = scopeKey(scope)
+			return m.deps.Store.RefreshCapacityStateDetail(rec, reason, scopeKey(scope), now)
 		}
-	} else if !errors.Is(err, sql.ErrNoRows) {
-		return err
 	}
 	return m.deps.Store.UpsertCapacityState(store.CapacityStateRecord{
 		Key: k, Provider: provider, Profile: profile,

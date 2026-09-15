@@ -217,18 +217,38 @@ func (s *Store) GetCapacityState(key string) (CapacityStateRecord, error) {
 	if err := row.Scan(&r.Key, &r.Provider, &r.Profile, &r.QuotaGroup, &r.WindowKind, &r.State, &r.Reason, &transStr, &updatedStr, &r.AccountScope); err != nil {
 		return r, err
 	}
-	r.TransitionedAt, _ = parseStoreTime(transStr)
-	r.UpdatedAt, _ = parseStoreTime(updatedStr)
+	var err error
+	if r.TransitionedAt, err = parseStoreTime(transStr); err != nil {
+		return r, fmt.Errorf("corrupt state transitioned_at for %q: %w", key, err)
+	}
+	if r.UpdatedAt, err = parseStoreTime(updatedStr); err != nil {
+		return r, fmt.Errorf("corrupt state updated_at for %q: %w", key, err)
+	}
 	return r, nil
 }
 
-// RefreshCapacityStateReason updates reason/updated_at without moving
+// RefreshCapacityStateDetail updates reason/scope/updated_at without moving
 // TransitionedAt: the transition moment stays honest when only the diagnostic
-// cause changes (e.g. probe-error vs no-probe flaps on the same UNKNOWN).
-func (s *Store) RefreshCapacityStateReason(key, reason string, now time.Time) error {
-	_, err := s.db.Exec(`UPDATE capacity_states SET reason = ?, updated_at = ? WHERE key = ?`,
-		reason, formatStoreTime(now), key)
-	return err
+// cause or the account identity changes. A concurrently deleted row falls back
+// to a full insert (a fresh row may honestly start now).
+func (s *Store) RefreshCapacityStateDetail(rec CapacityStateRecord, reason, scope string, now time.Time) error {
+	res, err := s.db.Exec(`UPDATE capacity_states SET reason = ?, account_scope = ?, updated_at = ? WHERE key = ?`,
+		reason, scope, formatStoreTime(now), rec.Key)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		rec.Reason = reason
+		rec.AccountScope = scope
+		rec.TransitionedAt = now
+		rec.UpdatedAt = now
+		return s.UpsertCapacityState(rec)
+	}
+	return nil
 }
 
 // ListCapacityStates returns all recorded capacity states.
@@ -250,8 +270,15 @@ func (s *Store) ListCapacityStates() ([]CapacityStateRecord, error) {
 		if err := rows.Scan(&r.Key, &r.Provider, &r.Profile, &r.QuotaGroup, &r.WindowKind, &r.State, &r.Reason, &transStr, &updatedStr, &r.AccountScope); err != nil {
 			return nil, err
 		}
-		r.TransitionedAt, _ = parseStoreTime(transStr)
-		r.UpdatedAt, _ = parseStoreTime(updatedStr)
+		// Diagnostics resilience: one corrupt row must not blank the whole
+		// listing (decisions use Get, which fails loudly instead).
+		var err error
+		if r.TransitionedAt, err = parseStoreTime(transStr); err != nil {
+			continue
+		}
+		if r.UpdatedAt, err = parseStoreTime(updatedStr); err != nil {
+			continue
+		}
 		records = append(records, r)
 	}
 	return records, rows.Err()
@@ -302,6 +329,9 @@ func (s *Store) AcquireCapacityLease(owner string, now time.Time, ttl time.Durat
 
 // RenewCapacityLease refreshes the lease if owned by the caller.
 func (s *Store) RenewCapacityLease(owner string, now time.Time, ttl time.Duration) error {
+	if ttl <= 0 {
+		return errors.New("lease ttl must be positive")
+	}
 	nowStr := formatStoreTime(now)
 	expiresStr := formatStoreTime(now.Add(ttl))
 

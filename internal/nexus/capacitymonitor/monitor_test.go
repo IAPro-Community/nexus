@@ -364,24 +364,38 @@ func TestTickExpiredSnapshotUnknown(t *testing.T) {
 	if err != nil || rec.State != "UNKNOWN" {
 		t.Fatalf("state = %+v,%v, want UNKNOWN for expired", rec, err)
 	}
+	if m.worst != StateUnknown {
+		t.Fatalf("worst = %s, want UNKNOWN on all-untrusted pass", m.worst)
+	}
 }
 
-func TestTickNilRegistryFails(t *testing.T) {
+func TestTickNilDependenciesFailLoudly(t *testing.T) {
 	s, err := store.Open(filepath.Join(t.TempDir(), "cap.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
 	t.Cleanup(func() { _ = s.Close() })
-	m := NewMonitor(Dependencies{
-		Profiles:     func() ([]model.Profile, error) { return nil, nil },
-		Store:        s,
-		Bus:          events.NewBus(8),
-		Clock:        stubClock{now: time.Now().UTC()},
-		JitterSource: RealJitter{},
-		OwnerID:      "test-owner",
-	})
-	if err := m.Tick(context.Background()); err == nil {
-		t.Fatal("expected error for nil probe registry, got nil")
+	base := Dependencies{
+		Profiles:      func() ([]model.Profile, error) { return nil, nil },
+		ProbeRegistry: &stubRegistry{probes: map[string]quota.Probe{}},
+		Store:         s,
+		Bus:           events.NewBus(8),
+		Clock:         stubClock{now: time.Now().UTC()},
+		JitterSource:  RealJitter{},
+		OwnerID:       "test-owner",
+	}
+	for name, mutate := range map[string]func(*Dependencies){
+		"nil store":    func(d *Dependencies) { d.Store = nil },
+		"nil registry": func(d *Dependencies) { d.ProbeRegistry = nil },
+		"nil profiles": func(d *Dependencies) { d.Profiles = nil },
+	} {
+		t.Run(name, func(t *testing.T) {
+			d := base
+			mutate(&d)
+			if err := NewMonitor(d).Tick(context.Background()); err == nil {
+				t.Fatalf("%s: expected loud error, got nil", name)
+			}
+		})
 	}
 }
 
@@ -420,7 +434,10 @@ func TestMissingProbeTransitionStable(t *testing.T) {
 	bus := events.NewBus(8)
 	counter := &busCounter{}
 	bus.SetRecorder(counter.record)
-	profiles := []model.Profile{{Provider: "mystery", Name: "ghost"}}
+	profiles := []model.Profile{{
+		Provider: "mystery", Name: "ghost",
+		AccountScope: model.AccountScope{ProviderID: "mystery", ProfileID: "ghost", AccountID: "a9", IdentityVersion: "v1"},
+	}}
 	reg := &stubRegistry{probes: map[string]quota.Probe{}}
 	at := time.Now().UTC()
 	t0 := at
@@ -454,6 +471,32 @@ func TestMissingProbeTransitionStable(t *testing.T) {
 	}
 	if !states[0].TransitionedAt.Equal(t0) {
 		t.Fatalf("TransitionedAt drifted on no-change tick: %v, want %v", states[0].TransitionedAt, t0)
+	}
+	if states[0].AccountScope != "mystery/a9/v1" {
+		t.Fatalf("fallback scope = %q, want mystery/a9/v1", states[0].AccountScope)
+	}
+	// Same UNKNOWN state, new cause (probe now exists but errors): the reason
+	// text refreshes while the transition moment stays put, still silent.
+	reg.probes["mystery"] = &stubProbe{
+		desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+		err:  errTestBoom,
+	}
+	at = at.Add(time.Hour)
+	if err := mk().Tick(context.Background()); err != nil {
+		t.Fatalf("tick3 = %v", err)
+	}
+	if counter.count() != 0 {
+		t.Fatalf("events = %d, want 0", counter.count())
+	}
+	flapped, err := s.GetCapacityState("mystery|ghost||")
+	if err != nil {
+		t.Fatalf("get after reason flap: %v", err)
+	}
+	if flapped.Reason != "probe error" {
+		t.Fatalf("reason = %q, want refreshed 'probe error'", flapped.Reason)
+	}
+	if !flapped.TransitionedAt.Equal(t0) {
+		t.Fatalf("TransitionedAt moved on reason-only refresh: %v, want %v", flapped.TransitionedAt, t0)
 	}
 }
 

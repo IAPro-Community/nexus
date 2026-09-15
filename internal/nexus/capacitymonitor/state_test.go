@@ -68,6 +68,19 @@ func TestThresholdsValidate(t *testing.T) {
 	}
 }
 
+func TestThresholdsValidateRejectsNonFinite(t *testing.T) {
+	th := DefaultThresholds()
+	th.Warning = math.NaN()
+	if err := th.Validate(); err == nil {
+		t.Fatal("expected error for NaN threshold, got nil")
+	}
+	th = DefaultThresholds()
+	th.Critical = math.Inf(1)
+	if err := th.Validate(); err == nil {
+		t.Fatal("expected error for +Inf threshold, got nil")
+	}
+}
+
 func TestDeriveFingerprintStableAndScoped(t *testing.T) {
 	a := DeriveFingerprint("codex", "kiver", "claude_gpt", "5h", "CRITICAL", "")
 	b := DeriveFingerprint("codex", "kiver", "claude_gpt", "5h", "CRITICAL", "")

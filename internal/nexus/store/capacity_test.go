@@ -172,6 +172,13 @@ func TestCapacityLeaseLifecycle(t *testing.T) {
 	if cur, err := s.GetCapacityLease(); err != nil || cur != nil {
 		t.Fatalf("lease after release = %+v,%v, want nil,nil", cur, err)
 	}
+	// Non-positive TTLs fail fast instead of writing instantly-dead leases.
+	if _, _, err := s.AcquireCapacityLease("x", time.Now().UTC(), 0); err == nil {
+		t.Fatal("expected error for zero acquire TTL, got nil")
+	}
+	if err := s.RenewCapacityLease("x", time.Now().UTC(), -time.Second); err == nil {
+		t.Fatal("expected error for negative renew TTL, got nil")
+	}
 }
 
 func TestPruneCapacityHistory(t *testing.T) {
@@ -179,8 +186,10 @@ func TestPruneCapacityHistory(t *testing.T) {
 	if err := s.PruneCapacityHistory(time.Now().UTC()); err != nil {
 		t.Fatalf("prune empty = %v, want nil", err)
 	}
-	old := time.Now().UTC().Add(-48 * time.Hour).Format("2006-01-02T15:04:05.999999999Z07:00")
-	fresh := time.Now().UTC().Format("2006-01-02T15:04:05.999999999Z07:00")
+	// Fixed-width seeds (the storage invariant): variable-width Go layouts
+	// would reintroduce the second-boundary ordering hazard under test.
+	old := formatStoreTime(time.Now().UTC().Add(-48 * time.Hour))
+	fresh := formatStoreTime(time.Now().UTC())
 	for id, ts := range map[string]string{"old-1": old, "new-1": fresh} {
 		if _, err := s.db.Exec(`INSERT INTO capacity_events(id, fingerprint, event_type, provider, profile, severity, payload_json, emitted_at)
 			VALUES(?, 'fp', 'QUOTA_LOW', 'codex', 'kiver', 'warning', '{}', ?)`, id, ts); err != nil {
@@ -258,6 +267,47 @@ func TestCapacityLeaseCorruptRowErrors(t *testing.T) {
 	}
 	if _, err := s.GetCapacityLease(); err == nil {
 		t.Fatal("expected error for corrupt lease timestamps, got nil (never zero-time silent)")
+	}
+}
+
+func TestCapacityStateCorruptRow(t *testing.T) {
+	s := openTestStore(t)
+	if _, err := s.db.Exec(`INSERT INTO capacity_states(key, provider, profile, state, transitioned_at, updated_at)
+		VALUES('k', 'p', 'q', 'HEALTHY', 'not-a-time', 'not-a-time')`); err != nil {
+		t.Fatalf("seed corrupt row: %v", err)
+	}
+	// Decisions fail loudly...
+	if _, err := s.GetCapacityState("k"); err == nil {
+		t.Fatal("expected error for corrupt state timestamps, got nil")
+	}
+	// ...while diagnostics skip the row instead of blanking the listing.
+	all, err := s.ListCapacityStates()
+	if err != nil {
+		t.Fatalf("list with corrupt row = %v, want skip-not-fail", err)
+	}
+	if len(all) != 0 {
+		t.Fatalf("listed = %d corrupt rows, want 0", len(all))
+	}
+}
+
+func TestStoreTimeFixedWidthOrders(t *testing.T) {
+	// Pins the storage invariant: fixed-width stamps order lexicographically
+	// exactly like chronologically, including the exact-second edge where
+	// variable-width layouts break (missing fraction sorts after '.').
+	sec := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	a := formatStoreTime(sec)
+	b := formatStoreTime(sec.Add(250 * time.Millisecond))
+	c := formatStoreTime(sec.Add(500 * time.Millisecond))
+	if !(a < b && b < c) {
+		t.Fatalf("ordering broken: %q < %q < %q", a, b, c)
+	}
+	for _, s := range []string{a, b, c} {
+		if len(s) != len("2026-01-01T00:00:00.000000000Z") {
+			t.Fatalf("stamp %q is not fixed width", s)
+		}
+	}
+	if rt, err := parseStoreTime(a); err != nil || !rt.Equal(sec) {
+		t.Fatalf("round-trip = %v,%v, want %v", rt, err, sec)
 	}
 }
 
