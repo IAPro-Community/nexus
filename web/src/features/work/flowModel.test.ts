@@ -4,6 +4,7 @@ import {
   executionWaves,
   expandStepLocalized,
   flowFromWorkPlan,
+  flowGraphSignature,
   removeStepLocalized,
   splitStepLocalized,
   topologicalOrder,
@@ -325,5 +326,18 @@ describe('Flow phase and localized expansion contracts', () => {
     expect(
       expanded.steps.find((step) => step.id === 'B')!.acceptanceCriteria.length,
     ).toBeGreaterThan(flow.steps.find((step) => step.id === 'B')!.acceptanceCriteria.length);
+  });
+});
+
+describe('flowGraphSignature', () => {
+  it('stays stable across cloned flow objects with the same steps', () => {
+    const flow = flowFromWorkPlan(fixture());
+    expect(flowGraphSignature({ ...flow, title: 'Other' })).toBe(flowGraphSignature(flow));
+  });
+
+  it('changes when a dependency is added', () => {
+    const flow = flowFromWorkPlan(fixture());
+    const next = updateStepLocalized(flow, 'C', { dependencies: ['A', 'B'] });
+    expect(flowGraphSignature(next)).not.toBe(flowGraphSignature(flow));
   });
 });

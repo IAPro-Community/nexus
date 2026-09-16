@@ -268,9 +268,11 @@ export function composerGateForReadiness(state: ContextReadinessState): Composer
         reason: REASONS.hydrating,
       };
     case 'STALE':
+      // Fingerprint drifted (dirty git, branch, Maestro). Context still exists —
+      // locking Send/Flow here leaves destinations dead for the whole coding session.
       return {
-        canMaterialize: false,
-        canExecute: false,
+        canMaterialize: true,
+        canExecute: true,
         action: 'REFRESH',
         reasonKey: 'work.gate.stale',
         reason: REASONS.stale,

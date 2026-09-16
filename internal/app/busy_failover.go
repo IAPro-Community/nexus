@@ -35,17 +35,30 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 	if len(names) == 0 {
 		return "", fmt.Errorf("no usable %s profiles remaining", provider)
 	}
+	var selectionErr error
 	selected := profile.ResolveDefault(provider, explicit, names, configuredDefault, func() (string, error) {
 		if selector == nil {
-			return "", fmt.Errorf("profile selector unavailable")
+			selectionErr = fmt.Errorf("profile selector unavailable")
+			return "", selectionErr
 		}
 		remaining := remainingProfiles(candidates, excluded)
 		result, err := selector.SelectBestProfile(ctx, provider, workspace, remaining, accounts, nil)
-		if err == nil && result != nil && result.SelectedProfile != nil {
-			return result.SelectedProfile.Name, nil
+		if err != nil {
+			selectionErr = err
+			return "", err
 		}
-		return "", err
+		if result == nil || result.SelectedProfile == nil {
+			selectionErr = fmt.Errorf("profile selector returned no usable %s profile", provider)
+			return "", selectionErr
+		}
+		return result.SelectedProfile.Name, nil
 	})
+	// Automatic routing must fail closed. Falling back to the configured
+	// default after the selector rejected every candidate can launch an
+	// exhausted or otherwise ineligible account.
+	if strings.TrimSpace(explicit) == "" && selectionErr != nil {
+		return "", selectionErr
+	}
 	if !containsProfileName(names, selected) {
 		return "", fmt.Errorf("profile %q is not configured for provider %s", selected, provider)
 	}

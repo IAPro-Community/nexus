@@ -165,6 +165,13 @@ export const WorkSurface: React.FC<{
           intelligenceReady={Boolean(intelligence?.available)}
           intelligenceLabel={intelligenceLabel}
           memoryCount={memoryCount}
+          contextRefreshing={readinessBusy}
+          onRefreshContext={() =>
+            void prepareContext(
+              gate.action === 'PREPARE' ||
+                Boolean(readiness?.error?.includes('durable project context is missing')),
+            )
+          }
           onTransformFlow={(artifact) => void materializeFlow(artifact)}
         />
       </div>

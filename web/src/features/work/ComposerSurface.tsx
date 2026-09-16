@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PanelRight } from 'lucide-react';
 import { Button } from '../../design-system';
@@ -32,6 +32,8 @@ export const ComposerSurface: React.FC<{
   intelligenceReady?: boolean;
   intelligenceLabel?: string;
   memoryCount?: number;
+  contextRefreshing?: boolean;
+  onRefreshContext?: () => void;
 }> = ({
   project,
   onTransformFlow,
@@ -40,6 +42,8 @@ export const ComposerSurface: React.FC<{
   intelligenceReady = false,
   intelligenceLabel,
   memoryCount = 0,
+  contextRefreshing = false,
+  onRefreshContext,
 }) => {
   const { t } = useTranslation();
   const composer = useComposerSession(project);
@@ -52,6 +56,7 @@ export const ComposerSurface: React.FC<{
     artifact,
     error,
     busy,
+    conversationRunning,
     confirmGaps,
     refineText,
     showRefineInput,
@@ -84,11 +89,8 @@ export const ComposerSurface: React.FC<{
     ];
   }, [bootstrapActivity, conversationEvents, view]);
 
-  const runtime = useNexusConversationRuntime({
-    events: view ? conversationEvents : eventsWithBootstrap,
-    isRunning: busy,
-    isDisabled: view?.session.state === 'FINALIZED',
-    onSend: async ({ text }) => {
+  const onSend = useCallback(
+    async ({ text }: { text: string }) => {
       const files = attachments.takeFiles();
       const uploaded: Array<{
         id: string;
@@ -112,6 +114,14 @@ export const ComposerSurface: React.FC<{
       await composer.sendText(text, uploaded.length ? uploaded : undefined);
       attachments.clear();
     },
+    [attachments, composer, view],
+  );
+
+  const runtime = useNexusConversationRuntime({
+    events: view ? conversationEvents : eventsWithBootstrap,
+    isRunning: conversationRunning,
+    isDisabled: view?.session.state === 'FINALIZED',
+    onSend,
     onCancel: composer.cancelCreate,
   });
 
@@ -181,6 +191,8 @@ export const ComposerSurface: React.FC<{
       onSendToAgent={composer.sendToAgent}
       onReviewFinalize={() => void composer.finalize()}
       onFinalizeWithGaps={() => void composer.finalize(true)}
+      contextRefreshing={contextRefreshing}
+      onRefreshContext={onRefreshContext}
     />
   );
 

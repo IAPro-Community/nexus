@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { ChevronRight } from 'lucide-react';
 import type { ComposerSessionView, Project } from '../../types';
 import { asStringArray } from '../../lib/safeArray';
 import { composerReferencedFiles } from './composerModel';
@@ -62,13 +63,17 @@ export const ComposerContextTab: React.FC<{
         <h3 className={styles.groupTitle}>
           {t('work.composer.contextSources.memory', 'Memories used')}
         </h3>
-        <p className={styles.summary}>{memoryCount}</p>
+        <p className={styles.summary}>
+          {memoryCount} · {intelligenceLabel}
+        </p>
       </section>
-      <section className={styles.group}>
-        <h3 className={styles.groupTitle}>{t('work.intelligenceChip', 'Intelligence')}</h3>
-        <p className={styles.summary}>{intelligenceLabel}</p>
-      </section>
-      <ProjectIntelligenceInspector projectId={project.id} />
+      <details className={styles.collapse}>
+        <summary>
+          <span>{t('work.projectIntelligence.title', 'Project Intelligence')}</span>
+          <ChevronRight size={14} aria-hidden />
+        </summary>
+        <ProjectIntelligenceInspector projectId={project.id} />
+      </details>
     </div>
   );
 };

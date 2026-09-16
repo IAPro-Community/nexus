@@ -16,6 +16,7 @@ import (
 type stubSelector struct {
 	order    []string
 	contexts []context.Context
+	err      error
 }
 
 func (s *stubSelector) SelectBestProfile(ctx context.Context, _ string, _ string, _ []model.Profile, _ map[string]model.AccountInfo, excluded []string) (*scheduler.SelectionResult, error) {
@@ -29,6 +30,9 @@ func (s *stubSelector) SelectBestProfile(ctx context.Context, _ string, _ string
 			continue
 		}
 		return &scheduler.SelectionResult{SelectedProfile: &model.Profile{Name: name, Provider: "codex"}}, nil
+	}
+	if s.err != nil {
+		return &scheduler.SelectionResult{}, s.err
 	}
 	return &scheduler.SelectionResult{}, errors.New("no usable codex profiles available")
 }
@@ -131,6 +135,40 @@ func TestLaunchWithBusyFailoverExplicitProfileDoesNotFallback(t *testing.T) {
 	}
 	if len(l.launched) != 1 {
 		t.Fatalf("launched=%v", l.launched)
+	}
+}
+
+func TestLaunchWithBusyFailoverDoesNotUseDefaultWhenAutoSelectionFails(t *testing.T) {
+	candidates := []model.Profile{
+		{Name: "exhausted-default", Provider: "agy"},
+		{Name: "also-unavailable", Provider: "agy"},
+	}
+	l := &stubLauncher{}
+
+	session, selected, err := launchWithBusyFailover(
+		context.Background(),
+		l,
+		&stubSelector{err: errors.New("no usable agy profiles available")},
+		"agy",
+		"",
+		"/tmp",
+		"exhausted-default",
+		candidates,
+		map[string]model.AccountInfo{},
+		launcher.LaunchOptions{},
+		&bytes.Buffer{},
+	)
+	if err == nil {
+		t.Fatal("expected automatic selection error")
+	}
+	if session != nil || selected != "" {
+		t.Fatalf("session=%+v selected=%q; failed auto-selection must not choose a default", session, selected)
+	}
+	if len(l.launched) != 0 {
+		t.Fatalf("launcher called for %v; exhausted default must not launch", l.launched)
+	}
+	if !bytes.Contains([]byte(err.Error()), []byte("no usable agy profiles available")) {
+		t.Fatalf("selection error not propagated: %v", err)
 	}
 }
 

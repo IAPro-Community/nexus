@@ -53,6 +53,8 @@ export const ComposerInspector: React.FC<{
   onReviewFinalize: () => void;
   onFinalizeWithGaps: () => void;
   onFocusThread?: () => void;
+  contextRefreshing?: boolean;
+  onRefreshContext?: () => void;
 }> = ({
   view,
   project,
@@ -85,9 +87,13 @@ export const ComposerInspector: React.FC<{
   onReviewFinalize,
   onFinalizeWithGaps,
   onFocusThread,
+  contextRefreshing,
+  onRefreshContext,
 }) => {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<ComposerInspectorTab>('briefing');
+  const [tab, setTab] = useState<ComposerInspectorTab>(() =>
+    phase === 'finalized' ? 'prompt' : 'briefing',
+  );
   const [motivationOpen, setMotivationOpen] = useState(false);
   const assumptions = asArray<string | { value?: string }>(view.brief.assumptions)
     .map((item) => (typeof item === 'string' ? item : item.value || ''))
@@ -228,6 +234,8 @@ export const ComposerInspector: React.FC<{
         promptReviewMissing={asStringArray(view.prompt_review?.missing)}
         promptReviewContradictions={asStringArray(view.prompt_review?.contradictions)}
         projectId={project.id}
+        contextRefreshing={contextRefreshing}
+        onRefreshContext={onRefreshContext}
         onCopy={onCopy}
         onTransformFlow={onTransformFlow}
         onSendToAgent={onSendToAgent}

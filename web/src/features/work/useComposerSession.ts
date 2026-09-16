@@ -46,6 +46,8 @@ export function useComposerSession(project: Project) {
   const [error, setError] = useState('');
   const [confirmGaps, setConfirmGaps] = useState(false);
   const [busy, setBusy] = useState(false);
+  /** Only true for chat-shaped work (create/send). Never for resolve/attach — that freezes assistant-ui. */
+  const [conversationRunning, setConversationRunning] = useState(false);
   const [refineText, setRefineText] = useState('');
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -73,14 +75,16 @@ export function useComposerSession(project: Project) {
   }, [project.id]);
 
   const runBusy = useCallback(
-    async (fn: () => Promise<void>) => {
+    async (fn: () => Promise<void>, opts?: { conversation?: boolean }) => {
       setBusy(true);
+      if (opts?.conversation) setConversationRunning(true);
       setError('');
       try {
         await fn();
       } catch (err) {
         setError(mapNetworkError(err, t));
       } finally {
+        if (opts?.conversation) setConversationRunning(false);
         setBusy(false);
       }
     },
@@ -137,68 +141,71 @@ export function useComposerSession(project: Project) {
     });
 
   const create = ({ mode, draft, sourcePrompt }: ComposerStartCreateArgs) =>
-    runBusy(async () => {
-      if (!draft.trim()) return;
-      createAbort.current?.abort();
-      const controller = new AbortController();
-      createAbort.current = controller;
-      const steps = new Map<string, NexusActivityItem['status']>();
-      const refreshActivity = () =>
-        setBootstrapActivity(
-          bootstrapStepsToActivity(steps, t('work.composer.starting', 'Starting…')),
-        );
-      refreshActivity();
-      try {
-        const next = await createComposerSessionWithProgress(
-          project.id,
-          {
-            goal: draft.trim(),
-            input_mode: mode,
-            source_prompt: mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : '',
-          },
-          {
-            signal: controller.signal,
-            csrfToken: getCSRFToken(),
-            onEvent: (event) => {
-              if (event.type === 'step') {
-                const status =
-                  event.status === 'started'
-                    ? 'running'
-                    : event.status === 'done'
-                      ? 'done'
-                      : event.status === 'error'
-                        ? 'error'
-                        : 'skipped';
-                steps.set(event.id, status);
-                refreshActivity();
-              }
-            },
-          },
-        );
-        setView(next);
-        setArtifact(null);
-        setBootstrapActivity(null);
-        await refreshSessions();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        if (/empty progress stream|unsupported|NDJSON|405|406/i.test(message)) {
-          const next = await nexus.createComposerSessionWithMode(
+    runBusy(
+      async () => {
+        if (!draft.trim()) return;
+        createAbort.current?.abort();
+        const controller = new AbortController();
+        createAbort.current = controller;
+        const steps = new Map<string, NexusActivityItem['status']>();
+        const refreshActivity = () =>
+          setBootstrapActivity(
+            bootstrapStepsToActivity(steps, t('work.composer.starting', 'Starting…')),
+          );
+        refreshActivity();
+        try {
+          const next = await createComposerSessionWithProgress(
             project.id,
-            draft.trim(),
-            mode,
-            mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : undefined,
+            {
+              goal: draft.trim(),
+              input_mode: mode,
+              source_prompt: mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : '',
+            },
+            {
+              signal: controller.signal,
+              csrfToken: getCSRFToken(),
+              onEvent: (event) => {
+                if (event.type === 'step') {
+                  const status =
+                    event.status === 'started'
+                      ? 'running'
+                      : event.status === 'done'
+                        ? 'done'
+                        : event.status === 'error'
+                          ? 'error'
+                          : 'skipped';
+                  steps.set(event.id, status);
+                  refreshActivity();
+                }
+              },
+            },
           );
           setView(next);
           setArtifact(null);
           setBootstrapActivity(null);
           await refreshSessions();
-          return;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          if (/empty progress stream|unsupported|NDJSON|405|406/i.test(message)) {
+            const next = await nexus.createComposerSessionWithMode(
+              project.id,
+              draft.trim(),
+              mode,
+              mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : undefined,
+            );
+            setView(next);
+            setArtifact(null);
+            setBootstrapActivity(null);
+            await refreshSessions();
+            return;
+          }
+          throw err;
+        } finally {
+          if (createAbort.current === controller) createAbort.current = null;
         }
-        throw err;
-      } finally {
-        if (createAbort.current === controller) createAbort.current = null;
-      }
-    });
+      },
+      { conversation: true },
+    );
 
   const cancelCreate = () => {
     createAbort.current?.abort();
@@ -214,20 +221,23 @@ export function useComposerSession(project: Project) {
       size?: number;
     }>,
   ) =>
-    runBusy(async () => {
-      if (!view) return;
-      if (!text.trim() && !(attachments && attachments.length)) return;
-      setView(
-        await nexus.addComposerTurn(
-          view.session.id,
-          text.trim(),
-          view.session.revision,
-          attachments,
-        ),
-      );
-      setMessage('');
-      await refreshSessions();
-    });
+    runBusy(
+      async () => {
+        if (!view) return;
+        if (!text.trim() && !(attachments && attachments.length)) return;
+        setView(
+          await nexus.addComposerTurn(
+            view.session.id,
+            text.trim(),
+            view.session.revision,
+            attachments,
+          ),
+        );
+        setMessage('');
+        await refreshSessions();
+      },
+      { conversation: true },
+    );
 
   const send = () => sendText(message);
 
@@ -350,6 +360,7 @@ export function useComposerSession(project: Project) {
     artifact,
     error,
     busy,
+    conversationRunning,
     confirmGaps,
     message,
     refineText,

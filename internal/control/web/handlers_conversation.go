@@ -189,7 +189,11 @@ func (h *NexusHandler) uploadComposerAttachment(w http.ResponseWriter, r *http.R
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	type uploadResponse struct {
+		*store.ConversationAttachment
+		URL string `json:"url"`
+	}
+	writeJSON(w, http.StatusCreated, uploadResponse{created, attachmentURL(created.ID)})
 }
 
 func (h *NexusHandler) handleAttachmentByID(w http.ResponseWriter, r *http.Request) {

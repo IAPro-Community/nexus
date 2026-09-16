@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import {
   useExternalStoreRuntime,
   type AppendMessage,
@@ -22,9 +22,15 @@ export type UseNexusConversationRuntimeOptions = {
   extras?: readonly ThreadMessageLike[];
 };
 
+const identityConvert = (message: ThreadMessageLike) => message;
+
 /**
  * Bridges Nexus-owned conversation events into assistant-ui ExternalStoreRuntime.
  * Persistence and provider calls stay outside this hook.
+ *
+ * Adapter callbacks must stay referentially stable: a new `convertMessage` on
+ * every render flushes the ExternalStore converter cache, remounts the thread,
+ * and (with Viewport MutationObserver auto-scroll) can freeze the main thread.
  */
 export function useNexusConversationRuntime(options: UseNexusConversationRuntimeOptions) {
   const messages = useMemo(() => {
@@ -32,21 +38,35 @@ export function useNexusConversationRuntime(options: UseNexusConversationRuntime
     return options.extras?.length ? [...mapped, ...options.extras] : mapped;
   }, [options.events, options.extras]);
 
-  return useExternalStoreRuntime({
-    isRunning: options.isRunning,
-    isDisabled: options.isDisabled,
-    messages,
-    convertMessage: (message: ThreadMessageLike) => message,
-    onNew: async (message: AppendMessage) => {
-      const text = extractText(message);
-      await options.onSend({ text, attachments: message.attachments });
-    },
-    onCancel: options.onCancel
-      ? async () => {
-          options.onCancel?.();
-        }
-      : undefined,
-  });
+  const onSendRef = useRef(options.onSend);
+  onSendRef.current = options.onSend;
+  const onCancelRef = useRef(options.onCancel);
+  onCancelRef.current = options.onCancel;
+
+  const onNew = useCallback(async (message: AppendMessage) => {
+    const text = extractText(message);
+    await onSendRef.current({ text, attachments: message.attachments });
+  }, []);
+
+  const onCancel = useCallback(async () => {
+    onCancelRef.current?.();
+  }, []);
+
+  const hasCancel = Boolean(options.onCancel);
+
+  const adapter = useMemo(
+    () => ({
+      isRunning: options.isRunning,
+      isDisabled: options.isDisabled,
+      messages,
+      convertMessage: identityConvert,
+      onNew,
+      onCancel: hasCancel ? onCancel : undefined,
+    }),
+    [options.isRunning, options.isDisabled, messages, onNew, onCancel, hasCancel],
+  );
+
+  return useExternalStoreRuntime(adapter);
 }
 
 function extractText(message: AppendMessage): string {

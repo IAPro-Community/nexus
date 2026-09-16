@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ClipboardCopy, Layers, Send } from 'lucide-react';
+import { ClipboardCopy, Layers, RefreshCw, Send } from 'lucide-react';
 import { Button, Select } from '../../design-system';
 import type { Agent, FlowSuitabilityAssessment, PromptArtifact } from '../../types';
 import { asStringArray } from '../../lib/safeArray';
@@ -8,11 +8,11 @@ import { TaskPreparationDialog } from '../../components/TaskPreparationDialog';
 import { askActionForStatus } from '../agents/askAgentModel';
 import type { ComposerGate } from './composerModel';
 import { ComposerPromptReview } from './ComposerPromptReview';
-import styles from './ComposerSurface.module.scss';
+import styles from './ComposerInspector.module.scss';
 
 /**
- * Destinations dock: copy, send-to-agent and turn-into-flow actions with the
- * flow-suitability hint, prompt review and the task preparation dialog wiring.
+ * Destinations dock: copy, send-to-agent and turn-into-flow.
+ * Layout is a narrow column — actions stack; the agent picker sits above Send.
  */
 export const ComposerDestinations: React.FC<{
   artifact: PromptArtifact | null;
@@ -27,6 +27,8 @@ export const ComposerDestinations: React.FC<{
   promptReviewMissing: string[];
   promptReviewContradictions: string[];
   projectId: string;
+  contextRefreshing?: boolean;
+  onRefreshContext?: () => void;
   onCopy: () => void;
   onTransformFlow: () => void;
   onSendToAgent: (
@@ -48,6 +50,8 @@ export const ComposerDestinations: React.FC<{
   promptReviewMissing,
   promptReviewContradictions,
   projectId,
+  contextRefreshing = false,
+  onRefreshContext,
   onCopy,
   onTransformFlow,
   onSendToAgent,
@@ -56,71 +60,82 @@ export const ComposerDestinations: React.FC<{
   const [preparationOpen, setPreparationOpen] = useState(false);
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId);
   const startAgentIfNeeded = !askActionForStatus(selectedAgent?.status || 'STOPPED').startIfNeeded;
+  const blocked = Boolean(artifact && (!canMaterialize || !canExecute));
+  const showRefresh =
+    Boolean(onRefreshContext) &&
+    destinationGate &&
+    (destinationGate.action === 'REFRESH' ||
+      destinationGate.action === 'PREPARE' ||
+      destinationGate.action === 'RETRY');
 
   return (
-    <div className={styles.destinationDock}>
-      <div className={styles.destinationDockInner}>
-        <small className={styles.destinationLabel}>
-          {t('work.composer.destinations', 'Destinations')}
-        </small>
-        {flowSuitability?.result && (
-          <div className={styles.suitabilityHint}>
-            <small className={styles.suitabilityTitle}>
-              {t('work.composer.flowSuitability', 'Flow suitability')}:{' '}
-              {t(`work.composer.flowResult.${flowSuitability.result}`, flowSuitability.result)}
-            </small>
-            {asStringArray(flowSuitability.reasons)[0] && (
-              <p className={styles.suitabilityReason}>
-                {asStringArray(flowSuitability.reasons)[0]}
-              </p>
-            )}
-          </div>
-        )}
-        <ComposerPromptReview
-          missing={promptReviewMissing}
-          contradictions={promptReviewContradictions}
-        />
-        <div className={styles.destinationActions}>
-          <Button onClick={onCopy} disabled={!artifact}>
-            <ClipboardCopy size={14} /> {t('work.composer.copy', 'Copy')}
-          </Button>
-          {agents.length > 0 && (
-            <>
-              <Select
-                value={selectedAgentId}
-                onChange={onSelectAgent}
-                options={agents.map((agent) => ({ value: agent.id, label: agent.name }))}
-                selectClassName={styles.agentSelect}
-              />
-              <Button
-                tone="brand"
-                disabled={busy || !selectedAgentId || !canExecute || !artifact}
-                onClick={() => setPreparationOpen(true)}
-              >
-                <Send size={14} /> {t('work.composer.sendToAgent', 'Send to agent')}
-              </Button>
-            </>
-          )}
-          <Button
-            tone="brand"
-            disabled={!canMaterialize || !artifact}
-            title={
-              !canMaterialize && destinationGate
-                ? t(destinationGate.reasonKey, destinationGate.reason)
-                : undefined
-            }
-            onClick={onTransformFlow}
-          >
-            <Layers size={14} /> {t('work.composer.transformFlow', 'Turn into Flow')}
-          </Button>
-        </div>
-        {destinationGate && artifact && (!canMaterialize || !canExecute) && (
-          <small className={styles.mutedCopy}>
-            {t('work.copyAlwaysAvailable', 'Copy remains available.')}{' '}
-            {t(destinationGate.reasonKey, destinationGate.reason)}
-          </small>
-        )}
+    <div className={styles.destinations}>
+      <small className={styles.destinationLabel}>
+        {t('work.composer.destinations', 'Destinations')}
+      </small>
+      {flowSuitability?.result ? (
+        <p className={styles.destinationHint}>
+          {t('work.composer.flowSuitability', 'Flow suitability')}:{' '}
+          {t(`work.composer.flowResult.${flowSuitability.result}`, flowSuitability.result)}
+          {asStringArray(flowSuitability.reasons)[0]
+            ? ` · ${asStringArray(flowSuitability.reasons)[0]}`
+            : ''}
+        </p>
+      ) : null}
+      <ComposerPromptReview
+        missing={promptReviewMissing}
+        contradictions={promptReviewContradictions}
+      />
+      <div className={styles.destinationActions}>
+        <Button onClick={onCopy} disabled={!artifact}>
+          <ClipboardCopy size={14} /> {t('work.composer.copy', 'Copy')}
+        </Button>
+        {agents.length > 0 ? (
+          <>
+            <Select
+              value={selectedAgentId}
+              onChange={onSelectAgent}
+              options={agents.map((agent) => ({ value: agent.id, label: agent.name }))}
+              aria-label={t('work.composer.sendToAgent', 'Send to agent')}
+            />
+            <Button
+              tone="brand"
+              disabled={busy || !selectedAgentId || !canExecute || !artifact}
+              onClick={() => setPreparationOpen(true)}
+            >
+              <Send size={14} /> {t('work.composer.sendToAgent', 'Send to agent')}
+            </Button>
+          </>
+        ) : null}
+        <Button
+          tone="brand"
+          disabled={!canMaterialize || !artifact}
+          title={
+            !canMaterialize && destinationGate
+              ? t(destinationGate.reasonKey, destinationGate.reason)
+              : undefined
+          }
+          onClick={onTransformFlow}
+        >
+          <Layers size={14} /> {t('work.composer.transformFlow', 'Turn into Flow')}
+        </Button>
       </div>
+      {showRefresh ? (
+        <Button size="sm" disabled={contextRefreshing} onClick={() => onRefreshContext?.()}>
+          <RefreshCw size={13} />{' '}
+          {contextRefreshing
+            ? t('work.checking', 'Checking…')
+            : destinationGate?.action === 'PREPARE'
+              ? t('work.createBaseContext', 'Create base context')
+              : t('work.refreshContext', 'Refresh context')}
+        </Button>
+      ) : null}
+      {destinationGate && destinationGate.action !== 'NONE' ? (
+        <p className={styles.destinationHint}>
+          {blocked ? `${t('work.copyAlwaysAvailable', 'Copy remains available.')} ` : ''}
+          {t(destinationGate.reasonKey, destinationGate.reason)}
+        </p>
+      ) : null}
 
       <TaskPreparationDialog
         open={preparationOpen}

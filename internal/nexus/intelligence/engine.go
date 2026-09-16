@@ -18,6 +18,33 @@ type NexusEngine struct {
 // ErrIntelligenceUnavailable is returned when Composer analysis/planning is requested without a real provider.
 var ErrIntelligenceUnavailable = errors.New("nexus intelligence unavailable")
 
+// IsTransientIntelligenceFailure reports CLI/provider failures that should soft-fail
+// back to heuristics without dumping raw process errors into the chat transcript
+// (OOM SIGKILL, context deadline, canceled run).
+func IsTransientIntelligenceFailure(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	for _, needle := range []string{
+		"signal: killed",
+		"signal:killed",
+		"killed",
+		"out of memory",
+		"oom",
+		"context deadline exceeded",
+		"context canceled",
+	} {
+		if strings.Contains(msg, needle) {
+			return true
+		}
+	}
+	return false
+}
+
 // NewNexusEngine creates an engine wrapping the explicitly configured provider.
 // A nil provider is valid for provider-independent operations such as prompt compilation,
 // but Analyze/GeneratePlan fail closed instead of fabricating intelligence output.

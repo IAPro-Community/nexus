@@ -1,5 +1,18 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-16 — Audit contínuo / Quality Gate Pass
+
+- **Cursor adapter — extração de e-mail**: `InspectAuth` agora parseia `"Logged in as <email>"` da saída de `cursor-agent status`; `nexus list` exibe `kiver@omegasistemas.net.br` em vez de `(unauthenticated)`. Novo teste `TestInspectAuthExtractsEmail` cobrindo o fluxo com binário stub.
+- **nexus list — display de contas autenticadas sem e-mail**: `app.go` distingue conta autenticada sem e-mail explícito (exibe `—`) de conta não autenticada (exibe `(unauthenticated)`).
+- **golangci-lint 0 issues**: Corrigido helper `attachmentURL` não utilizado em `handlers_conversation.go` — resposta do upload de attachment agora inclui campo `url` com URL canônica `/api/v1/attachments/<id>`.
+- **gofmt**: Arquivo `composer_turn_intelligence.go` reformatado (`gofmt -w -s`).
+- **Prettier / format-check**: Arquivo `flowCanvasInput.test.ts` reformatado via `prettier --write`.
+- **make web-verify 10/10**: format, typecheck, lint, stylelint, null-arrays, test, i18n, build, embed-sync, ui-markers — todos PASS.
+- **Go tests**: `internal/control/web`, `internal/core/quota`, `internal/core/scheduler`, `internal/app`, `internal/nexus/...` — todos PASS.
+- **govulncheck**: No vulnerabilities found.
+- **Binário recompilado e instalado**: `commit 57a1e46`, `v1.0.0-beta.1`, `/home/desenvolvedor/.local/bin/nexus`.
+- **Servidor web** reiniciado na porta 13000 e verificado via `GET /api/v1/health`.
+
 ## 2026-09-15 — Fechamento in-repo da v1.0.0-beta.1
 
 - Corrigidos golangci-lint (`misspell` no catálogo PT, SA1019 no CLI legado) e folga de 3s no lock Codex Windows.

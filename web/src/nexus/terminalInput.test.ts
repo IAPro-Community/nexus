@@ -51,6 +51,11 @@ describe('stripEmbeddedTerminalMetadata', () => {
     expect(stripEmbeddedTerminalMetadata('typed [A text')).toBe('typed [A text');
   });
 
+  it('strips coalesced ESC-prefixed navigation reports', () => {
+    expect(stripEmbeddedTerminalMetadata('\x1b[C\x1b[D')).toBe('');
+    expect(stripEmbeddedTerminalMetadata('typed\x1b[C\x1b[D')).toBe('typed');
+  });
+
   it('leaves plain text, mouse, Kitty and literals intact', () => {
     expect(stripEmbeddedTerminalMetadata('ação')).toBe('ação');
     expect(stripEmbeddedTerminalMetadata('\x1b[<0;10;4M')).toBe('\x1b[<0;10;4M');

@@ -39,6 +39,11 @@ export function shouldForwardTerminalInput(data: string): boolean {
 const EMBEDDED_FOCUS_RE = /\x1b\[[0-9;]*(?:\[[iIO]|[iIO])/g;
 // eslint-disable-next-line no-control-regex
 const EMBEDDED_CPR_RE = /\x1b\[\d+;\d+R/g;
+// Arrow/navigation reports can arrive in one xterm onData chunk. If the
+// bridge consumes ESC while rendering, the remaining "[C[D" becomes prompt
+// text; remove the ESC-prefixed form before the bare burst scrubber runs.
+// eslint-disable-next-line no-control-regex
+const EMBEDDED_NAVIGATION_RE = /\x1b\[[0-9;?]*[A-DHFO]/g;
 // A broken terminal bridge can drop ESC and coalesce arrow/focus reports into
 // a burst such as "[B[A[A[B[C" (or even "[[A"). Only scrub bare reports when
 // there is a burst, or when the whole chunk is one report, so ordinary text
@@ -54,6 +59,9 @@ function stripBareNavigationBurst(data: string): string {
 /** Removes embedded ESC-prefixed focus/CPR metadata from a forwarded chunk. */
 export function stripEmbeddedTerminalMetadata(data: string): string {
   if (!data) return data;
-  const withoutEscMetadata = data.replace(EMBEDDED_FOCUS_RE, '').replace(EMBEDDED_CPR_RE, '');
+  const withoutEscMetadata = data
+    .replace(EMBEDDED_FOCUS_RE, '')
+    .replace(EMBEDDED_CPR_RE, '')
+    .replace(EMBEDDED_NAVIGATION_RE, '');
   return stripBareNavigationBurst(withoutEscMetadata);
 }

@@ -20,6 +20,7 @@
 
 .viewport {
   min-height: 360px;
+  height: clamp(360px, 48vh, 560px);
   overflow: hidden;
   border: 1px solid var(--nx-border);
   border-radius: 7px;

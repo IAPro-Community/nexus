@@ -134,8 +134,9 @@ export const ConversationSurface: React.FC<ConversationSurfaceProps> = ({
                   SystemMessage: SystemMessage,
                 }}
               />
-              {threadEnd ? <div className={styles.threadEnd}>{threadEnd}</div> : null}
             </ThreadPrimitive.Viewport>
+
+            {threadEnd ? <div className={styles.threadEnd}>{threadEnd}</div> : null}
 
             {error ? <div className={styles.error}>{error}</div> : null}
 

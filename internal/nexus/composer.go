@@ -302,51 +302,52 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 		if facts, factErr := n.MemoryFactsMap(ctx, session.ProjectID); factErr == nil {
 			ApplyMemoriesToBrief(&brief, facts)
 		}
-		turnCtx, turnCancel := context.WithTimeout(ctx, intelligence.ComposerTurnIntelligenceTimeout)
-		if provider, providerErr := n.ConfiguredIntelligenceProvider(turnCtx, session.ProjectID); providerErr == nil && provider.Available(turnCtx) {
-			contextData := map[string]any{"project_id": session.ProjectID, "brief": brief}
-			if grounded, groundedErr := n.BoundedProjectIntelligenceContext(turnCtx, session.ProjectID); groundedErr == nil {
-				contextData["project_intelligence"] = grounded
-			}
-			if memFacts, memErr := n.MemoryFactsMap(turnCtx, session.ProjectID); memErr == nil {
-				contextData["intelligence_memories"] = memFacts
-			}
-			analysis, analyzeErr := provider.AnalyzeIntent(turnCtx, content, contextData)
-			if analyzeErr != nil {
-				intelligenceNotice = "Inteligência local indisponível nesta rodada: " + analyzeErr.Error()
-			}
-			if analysis != nil {
-				brief.Intent.Objective = firstNonEmpty(analysis.Intent, brief.Intent.Objective)
-				brief.Intent.DesiredOutcome = firstNonEmpty(analysis.Intent, brief.Intent.DesiredOutcome)
-				brief.Constraints.Technical = appendUniqueAll(brief.Constraints.Technical, analysis.Constraints)
-				for _, assumption := range analysis.Assumptions {
-					brief.Assumptions = upsertAssumption(brief.Assumptions, PromptAssumption{ID: "intelligence-" + fmt.Sprint(len(brief.Assumptions)+1), Value: assumption, Confidence: "MEDIUM", Status: "INFERRED"})
+		if shouldEnrichComposerTurn(brief, content) {
+			turnCtx, turnCancel := context.WithTimeout(ctx, intelligence.ComposerTurnIntelligenceTimeout)
+			if provider, providerErr := n.ConfiguredIntelligenceProvider(turnCtx, session.ProjectID); providerErr == nil && provider.Available(turnCtx) {
+				contextData := map[string]any{
+					"project_id": session.ProjectID,
+					"brief":      compactComposerIntelligenceBrief(brief),
 				}
-			}
-			if analysis != nil {
-				var unknowns []intelligence.AmbiguityItem
-				var unknownErr error
-				if contextual, contextualOK := provider.(intelligence.ContextualAmbiguityEvaluator); contextualOK {
-					unknowns, unknownErr = contextual.EvaluateAmbiguitiesWithContext(turnCtx, analysis, contextData)
-				} else {
-					unknowns, unknownErr = provider.EvaluateAmbiguities(turnCtx, analysis)
+				if grounded, groundedErr := n.BoundedProjectIntelligenceContext(turnCtx, session.ProjectID); groundedErr == nil {
+					contextData["project_intelligence"] = grounded
 				}
-				if unknownErr != nil {
-					intelligenceNotice = "Inteligência local não conseguiu avaliar as lacunas: " + unknownErr.Error()
+				if memFacts, memErr := n.MemoryFactsMap(turnCtx, session.ProjectID); memErr == nil && len(memFacts) > 0 {
+					contextData["intelligence_memories"] = memFacts
 				}
-				MergeIntelligenceUnknowns(&brief, unknowns)
+				analysis, analyzeErr := provider.AnalyzeIntent(turnCtx, content, contextData)
+				if analyzeErr != nil {
+					intelligenceNotice = turnIntelligenceNotice(analyzeErr)
+				}
+				if analysis != nil {
+					brief.Intent.Objective = firstNonEmpty(analysis.Intent, brief.Intent.Objective)
+					brief.Intent.DesiredOutcome = firstNonEmpty(analysis.Intent, brief.Intent.DesiredOutcome)
+					brief.Constraints.Technical = appendUniqueAll(brief.Constraints.Technical, analysis.Constraints)
+					for _, assumption := range analysis.Assumptions {
+						brief.Assumptions = upsertAssumption(brief.Assumptions, PromptAssumption{ID: "intelligence-" + fmt.Sprint(len(brief.Assumptions)+1), Value: assumption, Confidence: "MEDIUM", Status: "INFERRED"})
+					}
+					var unknowns []intelligence.AmbiguityItem
+					var unknownErr error
+					if contextual, contextualOK := provider.(intelligence.ContextualAmbiguityEvaluator); contextualOK {
+						unknowns, unknownErr = contextual.EvaluateAmbiguitiesWithContext(turnCtx, analysis, contextData)
+					} else {
+						unknowns, unknownErr = provider.EvaluateAmbiguities(turnCtx, analysis)
+					}
+					if unknownErr != nil && intelligenceNotice == "" {
+						intelligenceNotice = turnIntelligenceNotice(unknownErr)
+					}
+					MergeIntelligenceUnknowns(&brief, unknowns)
+					if extraction, extractErr := provider.ExtractBrief(turnCtx, content, contextData); extractErr == nil {
+						applyBriefExtraction(&brief, extraction)
+					} else if intelligenceNotice == "" {
+						intelligenceNotice = turnIntelligenceNotice(extractErr)
+					}
+				}
+			} else if providerErr != nil && !errors.Is(providerErr, intelligence.ErrIntelligenceUnavailable) {
+				intelligenceNotice = turnIntelligenceNotice(providerErr)
 			}
-			// Heuristics already merged this turn's text above; enrich with the
-			// provider's structured extraction to fill any remaining gaps.
-			if extraction, extractErr := provider.ExtractBrief(turnCtx, content, contextData); extractErr == nil {
-				applyBriefExtraction(&brief, extraction)
-			} else if intelligenceNotice == "" {
-				intelligenceNotice = "Inteligência local não conseguiu extrair o brief: " + extractErr.Error()
-			}
-		} else if providerErr != nil && !errors.Is(providerErr, intelligence.ErrIntelligenceUnavailable) {
-			intelligenceNotice = "Inteligência local indisponível: " + providerErr.Error()
+			turnCancel()
 		}
-		turnCancel()
 		refreshComposerBrief(&brief)
 		response := strings.TrimSpace(strings.Join([]string{intelligenceNotice, composeAssistantReply(brief)}, "\n\n"))
 		if strings.TrimSpace(response) != "" {
@@ -680,7 +681,7 @@ func (n *Nexus) enrichComposerBriefFromText(ctx context.Context, projectID strin
 	if err != nil || provider == nil || !provider.Available(ctx) {
 		return
 	}
-	contextData := map[string]any{"project_id": projectID, "brief": *brief}
+	contextData := map[string]any{"project_id": projectID, "brief": compactComposerIntelligenceBrief(*brief)}
 	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
 		contextData["project_intelligence"] = grounded
 	}
@@ -713,7 +714,7 @@ func (n *Nexus) seedComposerIntelligenceUnknowns(ctx context.Context, projectID 
 		}
 		return
 	}
-	contextData := map[string]any{"project_id": projectID, "brief": *brief}
+	contextData := map[string]any{"project_id": projectID, "brief": compactComposerIntelligenceBrief(*brief)}
 	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
 		contextData["project_intelligence"] = grounded
 	}

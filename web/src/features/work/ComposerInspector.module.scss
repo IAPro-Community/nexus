@@ -210,7 +210,42 @@
   padding: 0.75rem 0.9rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
   display: grid;
   gap: 0.65rem;
-  background: var(--nx-surface);
+  background: var(--nx-bg-elevated, var(--nx-surface));
+  flex-shrink: 0;
+  max-height: min(46%, 22rem);
+  overflow: auto;
+}
+
+.destinations {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.destinationLabel {
+  color: var(--nx-subtle, var(--nx-muted));
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.destinationHint {
+  margin: 0;
+  color: var(--nx-text-soft, var(--nx-muted));
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.destinationActions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
+}
+
+.destinationActions :global(.nx-button),
+.destinationActions :global(select),
+.destinationActions :global(.nx-select) {
+  width: 100%;
 }
 
 .dockActions {

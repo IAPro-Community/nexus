@@ -10,7 +10,8 @@
   display: grid;
   gap: 12px;
   min-height: 0;
-  padding: 12px;
+  align-content: start;
+  padding: 0;
 }
 
 .header {
@@ -116,6 +117,7 @@
   gap: 8px;
   min-height: 0;
   height: 100%;
+  align-content: start;
 }
 
 .canvasBar {
@@ -179,7 +181,7 @@
 
 @include mixins.nx-phone {
   .root {
-    padding: 12px;
+    padding: 0;
   }
 
   .header {

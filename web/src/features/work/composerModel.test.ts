@@ -15,7 +15,10 @@ describe('Composer Context Readiness gate', () => {
   it('keeps destination permissions separated from Composer editability', () => {
     expect(composerGateForReadiness('READY').canMaterialize).toBe(true);
     expect(composerGateForReadiness('MISSING').canMaterialize).toBe(false);
-    expect(composerGateForReadiness('STALE').canExecute).toBe(false);
+    expect(composerGateForReadiness('MISSING').canExecute).toBe(false);
+    expect(composerGateForReadiness('STALE').canMaterialize).toBe(true);
+    expect(composerGateForReadiness('STALE').canExecute).toBe(true);
+    expect(composerGateForReadiness('FAILED').canExecute).toBe(false);
   });
   it('maps non-ready states to explicit actions', () => {
     expect(composerGateForReadiness('MISSING').action).toBe('PREPARE');

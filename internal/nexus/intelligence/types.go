@@ -213,8 +213,14 @@ const IntelligenceProbeTimeout = 20 * time.Second
 const ComposerBootstrapTimeout = 15 * time.Second
 
 // ComposerTurnIntelligenceTimeout bounds per-turn AnalyzeIntent / ExtractBrief /
-// EvaluateAmbiguities so a stuck CLI cannot freeze the conversation.
-const ComposerTurnIntelligenceTimeout = 45 * time.Second
+// EvaluateAmbiguities so a stuck or OOM-killed CLI cannot freeze the conversation.
+// Kept short: turns already have heuristic merge; CLI is enrichment only.
+const ComposerTurnIntelligenceTimeout = 15 * time.Second
+
+// MaxCLIContextBytes caps JSON context embedded in headless CLI prompts.
+// Oversized briefs (preview + file excerpts + facts) have caused agy to be
+// SIGKILL'd (OOM), which surfaces as "signal: killed" in Composer turns.
+const MaxCLIContextBytes = 12_000
 
 // WorkPackageOutline is the raw outline produced by an intelligence provider before optimization.
 type WorkPackageOutline struct {

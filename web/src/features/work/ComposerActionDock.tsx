@@ -24,6 +24,8 @@ export const ComposerActionDock: React.FC<{
   promptReviewMissing: string[];
   promptReviewContradictions: string[];
   projectId: string;
+  contextRefreshing?: boolean;
+  onRefreshContext?: () => void;
   onCopy: () => void;
   onTransformFlow: () => void;
   onSendToAgent: (
@@ -52,6 +54,8 @@ export const ComposerActionDock: React.FC<{
   promptReviewMissing,
   promptReviewContradictions,
   projectId,
+  contextRefreshing,
+  onRefreshContext,
   onCopy,
   onTransformFlow,
   onSendToAgent,
@@ -111,6 +115,8 @@ export const ComposerActionDock: React.FC<{
             promptReviewMissing={promptReviewMissing}
             promptReviewContradictions={promptReviewContradictions}
             projectId={projectId}
+            contextRefreshing={contextRefreshing}
+            onRefreshContext={onRefreshContext}
             onCopy={onCopy}
             onTransformFlow={onTransformFlow}
             onSendToAgent={onSendToAgent}
