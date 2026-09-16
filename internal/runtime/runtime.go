@@ -12,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 
+	"golang.org/x/term"
+
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -24,6 +26,27 @@ daemon="$1"
 shift
 "$daemon" --daemonize --components=secrets --control-directory="$TMPDIR" >/dev/null 2>&1 || true
 exec "$@"`
+
+// terminalKeyboardModeReset disables optional terminal input protocols that
+// can remain enabled after an interrupted TUI session. Those protocols make
+// normal keys arrive as CSI text in terminal emulators that do not fully
+// negotiate them (notably embedded VS Code terminals).
+const terminalKeyboardModeReset = "\x1b[<u\x1b[>4;0m\x1b[?1004l"
+
+func writeTerminalKeyboardModeReset(out io.Writer) {
+	_, _ = io.WriteString(out, terminalKeyboardModeReset)
+}
+
+// GuardInteractiveTerminalKeyboardModes resets optional keyboard reporting
+// before a provider TUI starts and after it exits. It is a no-op unless both
+// ends are real terminals, so pipes and JSON output remain byte-clean.
+func GuardInteractiveTerminalKeyboardModes(stdin, stdout *os.File) func() {
+	if stdin == nil || stdout == nil || !term.IsTerminal(int(stdin.Fd())) || !term.IsTerminal(int(stdout.Fd())) {
+		return func() {}
+	}
+	writeTerminalKeyboardModeReset(stdout)
+	return func() { writeTerminalKeyboardModeReset(stdout) }
+}
 
 func alreadyIsolatedSecretServiceArgv(args []string) bool {
 	if len(args) >= 4 && args[0] == "--" && args[1] == "/bin/sh" && args[2] == "-c" {
@@ -200,6 +223,7 @@ func DisableSessionSecretService(env []string) []string {
 
 // RunInteractive executes an external CLI in full interactive TTY passthrough mode.
 func RunInteractive(bin string, args []string, env []string, cwd string) (model.Failure, error) {
+	defer GuardInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)()
 	resolved, err := ResolveCommand(bin)
 	if err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err

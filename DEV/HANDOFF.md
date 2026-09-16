@@ -1,5 +1,29 @@
 # Handoff
 
+## Auditoria Contínua, Integração do Cursor e Consolidação de Qualidade — 2026-09-16
+
+1. **Adapter Cursor — Extração de E-mail de Autenticação**:
+   - `InspectAuth` (`internal/core/provider/adapters/cursor/cursor.go`): Anteriormente ignorava a saída de login do `cursor-agent status`, mantendo `info.Email = ""` e fazendo com que `nexus list` e o Web OS exibissem a conta como `(unauthenticated)`.
+   - Agora realiza o parse de `"Logged in as <email>"`. No ambiente local do Maestro, extrai com precisão `kiver@omegasistemas.net.br`.
+   - Novo teste unitário `TestInspectAuthExtractsEmail` adicionado em `cursor_test.go` cobrindo o fluxo com binário stub.
+
+2. **Paridade e Clareza Visual na CLI (`nexus list`)**:
+   - `internal/app/app.go`: O fallback da coluna `ACCOUNT / EMAIL` agora distingue contas autenticadas sem e-mail explícito (exibindo `—`) de contas não autenticadas (`(unauthenticated)`).
+   - O comando `nexus list` agora apresenta status e identidades consistentes para todos os 6 perfis configurados (`agy`, `codex`, `cursor`, `opencode`).
+
+3. **Status dos Gates Determinísticos (100% PASS)**:
+   - `make web-verify`: 10/10 gates aprovados (`format`, `typecheck`, `lint`, `stylelint`, `null-arrays`, `test` 379/379 Vitest, `i18n`, `build`, `embed-sync`, `ui-markers`).
+   - `make vet`: Aprovado sem warnings.
+   - `golangci-lint run ./...`: 0 issues encontradas.
+   - `go test ./internal/...`: Todos os pacotes internos Go aprovados.
+   - `make security` (`govulncheck`): Nenhuma vulnerabilidade detectada.
+   - `make version-check`: Contrato de versão consistente (`v1.0.0-beta.1`).
+
+4. **Ambiente em Execução**:
+   - Binário compilado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
+   - Servidor `nexus web` ativo em segundo plano na porta `13000` (`http://127.0.0.1:13000`), respondendo com HTTP 200 OK.
+   - Sem commits ou pushes conforme as regras de persistência e governança do repositório.
+
 ## Resolução de Autenticação e UX do OpenCode — 2026-09-15
 
 ## Atualização — filtro de entrada do Codex
@@ -11,6 +35,17 @@ recompilado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
 
 Sessões Codex já abertas precisam ser encerradas e iniciadas novamente para
 usar o bundle atualizado.
+
+Correção adicional aplicada para setas CSI embutidas (`ESC[C ESC[D`), que
+podiam aparecer como `[C[D` no prompt. Teste, build e instalação passaram; o
+binário atual é o commit `4f7ef0f`. Reinicie a sessão Codex para substituir
+processos já abertos.
+
+O launcher agora também limpa preventivamente os modos persistentes de teclado
+do TTY no início e no fim de sessões diretas ou supervisionadas. A sessão
+anterior estava executando um binário deletado em memória; seu TTY externo foi
+resetado sem encerrar o processo, mas uma nova sessão é necessária para usar o
+guard permanente.
 
 Resolvida a incompatibilidade arquitetural de autenticação do OpenCode no Nexus, adaptando tanto o backend Go quanto o Web OS para a realidade dos múltiplos modos operacionais do OpenCode:
 

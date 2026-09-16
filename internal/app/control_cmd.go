@@ -34,6 +34,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
 	"github.com/IAPro-Community/nexus/internal/profile"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 func controlCmd(args []string) error {
@@ -479,6 +480,7 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 
 	// 1. Put user terminal into Raw Mode if stdin is a terminal
 	isTerm := term.IsTerminal(int(os.Stdin.Fd()))
+	defer nexusruntime.GuardInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)()
 	if isTerm {
 		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 		if err == nil {

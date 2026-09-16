@@ -1,5 +1,36 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-16 — Guard persistente de teclado do terminal
+
+- PASS — `go test ./internal/runtime ./internal/app ./internal/control/host -count=1`.
+- PASS — `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`.
+- PASS — `git diff --check`.
+- Aplicado reset pontual de Kitty/CSI-u, modifyOtherKeys e foco estendido ao
+  TTY externo da sessão antiga, preservando o processo e seu contexto.
+
+## 2026-09-16 — Auditoria Contínua, Extração de E-mail do Cursor e Consolidação de Qualidade
+
+- PASS — `go test -v ./internal/core/provider/adapters/cursor/...`: 2/2 testes unitários aprovados (`TestInspectAuthMemoizesStatusProbe` e `TestInspectAuthExtractsEmail`).
+- PASS — `go test ./internal/core/provider/adapters/...`: 100% de aprovação em todos os adapters (`agy`, `claude`, `codex`, `cursor`, `gemini`, `opencode`).
+- PASS — `go test ./internal/...`: Todos os pacotes Go internos aprovados (`internal/app`, `internal/nexus/...`, `internal/control/...`, `internal/core/...`, `internal/profile`, `internal/tui`, etc.).
+- PASS — `make vet`: Go vet limpo (0 issues).
+- PASS — `/home/desenvolvedor/go/bin/golangci-lint run ./...`: 0 issues.
+- PASS — `make format-check`: Formatação Prettier e gofmt 100% conformes.
+- PASS — `make web-verify`: 10/10 gates aprovados (`format`, `typecheck`, `lint`, `stylelint`, `null-arrays`, `test` 379/379 Vitest, `i18n`, `build`, `embed-sync`, `ui-markers`).
+- PASS — `make security` (`govulncheck`): 0 vulnerabilidades detectadas.
+- PASS — `make version-check`: Todas as fontes consistentes em `v1.0.0-beta.1`.
+- PASS — `nexus list`: Exibe `kiver@omegasistemas.net.br` para o perfil `cursor:cursor` com status `Authenticated`.
+- PASS — `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`: Binário atualizado instalado em `/home/desenvolvedor/.local/bin/nexus`.
+- PASS — `GET http://127.0.0.1:13000/api/v1/health`: Retorna `{"status":"ok","timestamp":...,"version":"1.0.0-beta.1"}`.
+- NOT EXECUTED — `git commit` / `git push` (preservando o contrato de governança do Maestro).
+
+## 2026-09-16 — Correção de navegação CSI embutida
+
+- PASS — `npm --prefix web run lint` e `npm --prefix web run typecheck`.
+- PASS — `npm --prefix web test -- --run src/nexus/terminalInput.test.ts` (20/20).
+- PASS — `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`.
+- PASS — `make web-verify` com 10/10 gates e `git diff --check`.
+
 ## 2026-09-15 — Revalidação completa da fundação conversacional (anti-perda)
 
 Evidência contra o stash `stash@{0}` + gates locais:
@@ -1419,7 +1450,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-16T02:31:33Z
+## Frontend gate — 2026-09-16T03:06:16Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-

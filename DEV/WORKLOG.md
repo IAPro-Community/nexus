@@ -4811,6 +4811,26 @@ build` PASS e Web reiniciado em HTTP 200.
 - Regressão adicionada em `web/src/nexus/terminalInput.test.ts`.
 - Verificação: teste focado 16/16, `make build`, instalação em
   `/home/desenvolvedor/.local/bin/nexus` e `git diff --check` PASS.
+
+## 2026-09-16 — Navegação CSI embutida no terminal
+
+- Corrigido o vazamento de setas coalescidas com `ESC`, como `ESC[C ESC[D`,
+  que apareciam no Codex como `[C[D` ao navegar pelo teclado.
+- Regressão adicionada em `web/src/nexus/terminalInput.test.ts`; teste focado
+  agora 20/20.
+- PASS — ESLint, TypeScript, teste focado, build, instalação e
+  `git diff --check`. Binário instalado no commit `4f7ef0f`.
+
+## 2026-09-16 — Guard persistente de modos de teclado TTY
+
+- Adicionado guard compartilhado no runtime: antes/depois de uma TUI
+  interativa, desativa Kitty/CSI-u, modifyOtherKeys e foco estendido apenas
+  quando stdin/stdout são TTYs reais.
+- O guard cobre `RunInteractive` (direto) e o attach supervisionado usado por
+  `nexus codex`; pipes e JSON não recebem bytes ANSI.
+- PASS — `go test ./internal/runtime ./internal/app ./internal/control/host -count=1`,
+  build, instalação e `git diff --check`. A sessão antiga teve o TTY resetado
+  sem perder o processo; uma nova sessão adotará o guard.
 # 2026-09-11 — Nexus Final Closure verification and verdict
 
 - Recorded base SHA `2925ca746c198334f20d1e0cef7feb51e4f4f4e3`; no commit or push.
