@@ -1,23 +1,48 @@
 # INDEPENDENT CERTIFICATION — Nexus v1.0.0-beta.1
 
 Auditor independente. `FINAL_REPORT.md` lido SOMENTE após a investigação
-abaixo. Tentativa ativa de reprovar o RC; dois bugs reais foram
-encontrados, corrigidos, testados e commitados (regra de certificação);
-a auditoria foi reiniciada no SHA final.
+inicial. Tentativa ativa de reprovar o RC; bugs reais foram encontrados,
+corrigidos, testados e commitados (regra de certificação); a auditoria foi
+reiniciada a cada novo SHA.
 
-## SHA auditado
+## SHA auditado (código)
 
-- branch: `feat/nexus-maximum-delivery` (13 commits à frente de
-  `origin/feat/nexus-maximum-delivery` — push pendente)
-- SHA: `50608624dba98a7790501f5ed47f188bbc9d4264`
+- branch: `feat/nexus-maximum-delivery` (pushed; verificado via ls-remote)
+- SHA: `f0426b49ddf0bc2785cbba5140ee0e974f88e606`
 - tree: limpo (`git status --short` vazio)
 - versão: `1.0.0-beta.1` (`VERSION` + `web/package.json`)
 - data: 2026-09-17 UTC
+- tag local `v1.0.0-beta.1`: movida para este SHA (tag nunca publicada;
+  push da tag somente no release, após CI verde)
+
+## Adendo — falhas da CI hospedada no SHA anterior (700a796) e correções
+
+A CI hospedada no SHA anterior reprovou 4 jobs. Causas extraídas dos logs,
+todas corrigidas neste SHA:
+
+1. `Linux E2E` + `macOS E2E` (step `Test with Race Detector`;
+   `Assert macOS diagnostics` era consequência): 3 testes
+   `TestOpenCode_InspectAuth_*` dependiam de binário `opencode` presente
+   no host (`runtime.LookPath` chega a checar `/usr/local/bin`
+   hardcoded, fora do PATH). Verde local, vermelho em runner limpo —
+   teste não-hermético. Fix: seam `spec.BinaryLookPath` + stub nos
+   testes + novo `TestOpenCode_InspectAuth_BinaryMissingFailsClosed`
+   (ausência de binário = UNAVAILABLE, nunca autenticado). Revalidado
+   com PATH/HOME estéreis + `-race`.
+2. `Browser E2E` + `Desktop Linux` (steps `make build` /
+   `build-desktop-wails`): meu próprio commit anterior colocou `-trimpath`
+   DENTRO de `-ldflags`, que o linker rejeita (`flag provided but not
+   defined`). Fix: `-trimpath` como flag de build (goreleaser `flags:`,
+   `go build -trimpath`, wails via `GOFLAGS=-trimpath`); `TestReleaseBuildsStripLocalPaths`
+   agora também proíbe `-trimpath` dentro de ldflags. `make build`
+   re-executado localmente + re-scan `strings`: 0 vazamentos.
+3. `Windows E2E`: ainda rodando no momento da extração; monitorado até
+   conclusão antes do veredito final.
 
 ## P0 (bloqueadores técnicos)
 
-Nenhum P0 remanescente. Dois issues classe-release foram encontrados e
-CORRIGIDOS nesta auditoria (commits abaixo); o suite completo foi
+Nenhum P0 remanescente. Quatro issues classe-release foram encontrados e
+CORRIGIDOS nesta auditoria (commits citados); o suite completo foi
 re-executado no SHA final:
 
 1. (era P1-gate) `go test ./...` VERMELHO no SHA do report:
@@ -29,10 +54,17 @@ re-executado no SHA final:
 2. (era P1-exposure) Binários distribuídos sem `-trimpath` embutiam paths
    absolutos da máquina de build (username + handle de perfil derivado de
    Gmail + layout do module cache) — verificado via `strings` no binário
-   `dist/`. Fix: `5060862` (`-trimpath` em `.goreleaser.yaml`, nas 3
-   targets do `Makefile` e nos 4 builds do `ci.yml`; re-scan com 0
-   ocorrências; regressão coberta por
-   `TestReleaseBuildsStripLocalPaths`).
+   `dist/`. Fix: `-trimpath` como flag de build em `.goreleaser.yaml`
+   (`flags:`), nas targets do `Makefile` e nos builds do `ci.yml`
+   (re-scan com 0 ocorrências; regressão coberta por
+   `TestReleaseBuildsStripLocalPaths`, que também proíbe `-trimpath`
+   dentro de ldflags após o incidente do item 4).
+3. (era P1-ci) Testes `TestOpenCode_InspectAuth_*` não-herméticos
+   (dependiam de binário no host; vermelhos em runners limpos). Fix: seam
+   `spec.BinaryLookPath` + stubs + teste fail-closed de binário ausente.
+4. (era P0-ci) `-trimpath` dentro de `-ldflags` quebrava `make build` e o
+   build desktop Wails (linker rejeita a flag) — reprovou Browser E2E e
+   Desktop Linux hospedados. Fix: posicionamento correto (item 2).
 
 ## P1
 
@@ -147,6 +179,11 @@ resto do report foi confirmado por evidência independente.
 ## Classificação
 
 `CONDITIONAL_CERTIFICATION`
+
+Válida para o SHA `f0426b4` (código) assim que a CI hospedada concluir
+verde nele — a CI foi re-disparada pelo push deste SHA; o commit atual
+(somente este documento) não altera comportamento. Se a CI apontar nova
+falha real, a certificação volta a `NOT_CERTIFIED` até correção.
 
 Únicos gates restantes são realmente externos. Para tornar definitiva:
 
