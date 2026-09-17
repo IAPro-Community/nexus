@@ -13,6 +13,7 @@ var geminiSpec = Spec{
 	EnvKeys: func(profileHome, binDir, profileName string) map[string]string {
 		return map[string]string{
 			"HOME":            profileHome,
+			"USERPROFILE":     profileHome,
 			"GEMINI_CLI_HOME": profileHome,
 			"XDG_CONFIG_HOME": filepath.Join(profileHome, ".config"),
 			"AI_PROFILE":      profileName,

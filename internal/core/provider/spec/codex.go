@@ -13,6 +13,7 @@ var codexSpec = Spec{
 	EnvKeys: func(profileHome, binDir, profileName string) map[string]string {
 		return map[string]string{
 			"HOME":                                   profileHome,
+			"USERPROFILE":                            profileHome,
 			"CODEX_HOME":                             profileHome,
 			"CODEX_CONFIG_DIR":                       profileHome,
 			"XDG_CONFIG_HOME":                        filepath.Join(profileHome, ".config"),

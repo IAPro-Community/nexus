@@ -9,6 +9,7 @@
     "GEMINI_CLI_HOME",
     "HOME",
     "PATH",
+    "USERPROFILE",
     "XDG_CONFIG_HOME"
   ],
   "env_delete": null,

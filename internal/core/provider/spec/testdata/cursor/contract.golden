@@ -10,7 +10,8 @@
     "CURSOR_CONFIG_DIR",
     "CURSOR_HOME",
     "HOME",
-    "PATH"
+    "PATH",
+    "USERPROFILE"
   ],
   "env_delete": null,
   "kickoff": [

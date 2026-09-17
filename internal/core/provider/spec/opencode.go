@@ -13,6 +13,7 @@ var opencodeSpec = Spec{
 	EnvKeys: func(profileHome, binDir, profileName string) map[string]string {
 		return map[string]string{
 			"HOME":                profileHome,
+			"USERPROFILE":         profileHome,
 			"OPENCODE_HOME":       profileHome,
 			"OPENCODE_CONFIG_DIR": filepath.Join(profileHome, ".config", "opencode"),
 			"XDG_DATA_HOME":       filepath.Join(profileHome, ".local", "share"),

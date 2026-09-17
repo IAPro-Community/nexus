@@ -12,6 +12,7 @@
     "HOME",
     "PATH",
     "PYTHON_KEYRING_BACKEND",
+    "USERPROFILE",
     "XDG_CACHE_HOME",
     "XDG_CONFIG_HOME",
     "XDG_DATA_HOME",
