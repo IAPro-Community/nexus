@@ -58,7 +58,7 @@ func runInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSess
 		interactiveDelegationFailure(n, session, leadAgentID, "dispatch goal", err)
 		return
 	}
-	message := fmt.Sprintf("Solicitação original: %s\nA Mission %s terminou em %s. Revise arquivos, testes, receipts e routing report; depois sintetize o resultado integrado para o usuário.", prompt, result.RunID, result.Run.State)
+	message := fmt.Sprintf("Solicitação original: %s\nA Mission %s está em %s (dispatch %s). Revise arquivos, testes, receipts e routing report; depois sintetize o resultado integrado para o usuário.", prompt, result.RunID, result.Run.State, result.Status)
 	if err := submitPromptToLead(ctx, n, leadAgentID, session.RuntimeID, message); err != nil {
 		fmt.Fprintf(os.Stderr, "[nexus] delegated Mission %s finished, but Lead synthesis failed: %v\n", result.RunID, err)
 	}
