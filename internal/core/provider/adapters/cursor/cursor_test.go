@@ -2,13 +2,13 @@ package cursor
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 )
 
 func TestInspectAuthMemoizesStatusProbe(t *testing.T) {
@@ -68,12 +68,14 @@ func TestInspectAuthExtractsEmail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tmpBin := t.TempDir()
-	fakeBin := filepath.Join(tmpBin, "cursor-agent")
-	if err := os.WriteFile(fakeBin, []byte("#!/bin/sh\nexit 0\n"), 0755); err != nil {
-		t.Fatal(err)
+	// Resolve the provider binary through the stubbed seam instead of the
+	// host PATH: a hand-joined PATH (":" vs ";") and extensionless fakes
+	// both break on Windows. Auth parsing is what this test owns.
+	prevLook := spec.BinaryLookPath
+	spec.BinaryLookPath = func(name string) (string, error) {
+		return filepath.Join(t.TempDir(), name), nil
 	}
-	t.Setenv("PATH", tmpBin+":"+os.Getenv("PATH"))
+	t.Cleanup(func() { spec.BinaryLookPath = prevLook })
 
 	got := a.InspectAuth(context.Background(), p)
 	if !got.Authenticated {

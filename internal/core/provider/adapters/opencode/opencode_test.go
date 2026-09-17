@@ -157,6 +157,10 @@ func TestOpenCode_Prepare_CopiesHostAuth(t *testing.T) {
 	t.Setenv("NEXUS_DATA_DIR", dataDir)
 	hostHome := t.TempDir()
 	t.Setenv("HOME", hostHome)
+	// getBaseHome prefers NEXUS/AI_REAL_HOME, then USERPROFILE (always set
+	// on Windows runners), and only then $HOME: pin the override so host
+	// auth resolution stays hermetic on every OS.
+	t.Setenv("NEXUS_REAL_HOME", hostHome)
 
 	hostAuthDir := filepath.Join(hostHome, ".local", "share", "opencode")
 	if err := os.MkdirAll(hostAuthDir, 0o700); err != nil {
