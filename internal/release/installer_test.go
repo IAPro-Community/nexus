@@ -370,8 +370,8 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(string(license), "MIT License") {
-		t.Fatalf("expected the vigente LICENSE file to be MIT, got %q", strings.SplitN(string(license), "\n", 2)[0])
+	if !strings.HasPrefix(string(license), "# IAPro Nexus — Proprietary Beta License") {
+		t.Fatalf("expected the vigente LICENSE file to be the proprietary beta license, got %q", strings.SplitN(string(license), "\n", 2)[0])
 	}
 
 	for _, name := range []string{"README.md", "README.en.md", "README.es.md"} {
@@ -381,10 +381,13 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 		}
 		text := string(data)
 		if strings.Contains(strings.ToLower(text), "apache") {
-			t.Errorf("%s still advertises Apache despite the MIT LICENSE", name)
+			t.Errorf("%s still advertises Apache despite the proprietary LICENSE", name)
 		}
-		if !strings.Contains(strings.ToLower(text), "mit") {
-			t.Errorf("%s does not advertise the vigente MIT license", name)
+		if strings.Contains(text, "MIT License") || strings.Contains(text, "Licencia MIT") || strings.Contains(text, "licença MIT") {
+			t.Errorf("%s still advertises MIT despite the proprietary LICENSE", name)
+		}
+		if !strings.Contains(strings.ToLower(text), "licen") {
+			t.Errorf("%s does not reference the vigente license", name)
 		}
 	}
 }
