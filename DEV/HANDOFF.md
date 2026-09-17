@@ -1,5 +1,21 @@
 # Handoff
 
+## Correção durável de protocolos de teclado Codex — 2026-09-16
+
+- A correção agora atua no momento que causava a regressão: após `Ctrl+C`, o
+  caminho direto e os attaches supervisionados (inclusive Lead) preservam o
+  byte `0x03` para o provider e reaplicam o reset dos protocolos opcionais do
+  terminal imediatamente, após 75 ms e após 300 ms.
+- O reset desativa Kitty/CSI-u, modifyOtherKeys, foco estendido e bracketed
+  paste; este último também protege o fluxo de `Ctrl+V` contra vazamento de
+  delimitadores de paste.
+- PASS: testes de runtime/app/host, mesmos pacotes com `-race`, `make build`,
+  instalação em `/home/desenvolvedor/.local/bin/nexus` e `git diff --check`.
+- O binário em disco é `b3db75c`, mas a sessão Codex em `pts/12` e seu host
+  ainda são imagens antigas marcadas `(deleted)` pelo kernel. O TTY foi
+  saneado pontualmente sem perder o contexto; para carregar a proteção nova,
+  encerre a sessão e execute `nexus codex --yolo` novamente.
+
 ## Auditoria Contínua, Integração do Cursor e Consolidação de Qualidade — 2026-09-16
 
 1. **Adapter Cursor — Extração de E-mail de Autenticação**:

@@ -1,5 +1,18 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-16 — Reassert após interrupção Codex
+
+- PASS — testes de regressão de `Ctrl+C`, forwarding byte-transparente e
+  bracketed paste: `go test ./internal/runtime ./internal/app -run
+  'Test(WriteTerminalKeyboardModeReset|TerminalKeyboardModeResetDisablesBracketedPaste|ForwardAttachedInput|ContainsTerminalInterrupt)$' -count=1`.
+- PASS — `go test ./internal/runtime ./internal/app ./internal/control/host -count=1`.
+- PASS — `go test -race ./internal/runtime ./internal/app -count=1`.
+- PASS — `make build && make LOCAL_BIN=/home/desenvolvedor/.local/bin install`.
+- PASS — binário instalado: `IAPro Nexus 1.0.0-beta.1`, commit `b3db75c`;
+  `git diff --check` limpo.
+- Observação operacional: PIDs 111266/111295 ainda executam a imagem anterior
+  `(deleted)` em memória e precisam de reinício para carregar esta correção.
+
 ## 2026-09-16 — Guard persistente de teclado do terminal
 
 - PASS — `go test ./internal/runtime ./internal/app ./internal/control/host -count=1`.
@@ -1450,6 +1463,7 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-16T03:06:16Z
+## Frontend gate — 2026-09-17T12:06:58Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
+

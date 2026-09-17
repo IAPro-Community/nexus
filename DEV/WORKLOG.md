@@ -4831,6 +4831,19 @@ build` PASS e Web reiniciado em HTTP 200.
 - PASS — `go test ./internal/runtime ./internal/app ./internal/control/host -count=1`,
   build, instalação e `git diff --check`. A sessão antiga teve o TTY resetado
   sem perder o processo; uma nova sessão adotará o guard.
+
+## 2026-09-16 — Reassert de teclado após `Ctrl+C`
+
+- A causa restante era a interrupção dentro de uma TUI Codex já supervisionada:
+  o attach anterior encaminhava `0x03` ao provider, mas não restaurava os
+  modos do TTY depois da transição de estado.
+- `forwardAttachedInput` mantém o fluxo byte-transparente e apenas observa
+  `Ctrl+C` para reassertir a limpeza do TTY; o fluxo de Lead recebeu a mesma
+  proteção. O runtime reaplica o reset agora, em 75 ms e em 300 ms.
+- O reset também desativa bracketed paste, além de Kitty/CSI-u,
+  modifyOtherKeys e foco estendido. Testes focados, pacotes com `-race`, build
+  e instalação no launcher canônico passaram. Sessões em memória devem ser
+  reiniciadas para adotar o binário novo.
 # 2026-09-11 — Nexus Final Closure verification and verdict
 
 - Recorded base SHA `2925ca746c198334f20d1e0cef7feb51e4f4f4e3`; no commit or push.

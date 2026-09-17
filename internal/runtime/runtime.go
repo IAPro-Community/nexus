@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"golang.org/x/term"
 
@@ -31,7 +32,7 @@ exec "$@"`
 // can remain enabled after an interrupted TUI session. Those protocols make
 // normal keys arrive as CSI text in terminal emulators that do not fully
 // negotiate them (notably embedded VS Code terminals).
-const terminalKeyboardModeReset = "\x1b[<u\x1b[>4;0m\x1b[?1004l"
+const terminalKeyboardModeReset = "\x1b[<u\x1b[>4;0m\x1b[?1004l\x1b[?2004l"
 
 func writeTerminalKeyboardModeReset(out io.Writer) {
 	_, _ = io.WriteString(out, terminalKeyboardModeReset)
@@ -46,6 +47,20 @@ func GuardInteractiveTerminalKeyboardModes(stdin, stdout *os.File) func() {
 	}
 	writeTerminalKeyboardModeReset(stdout)
 	return func() { writeTerminalKeyboardModeReset(stdout) }
+}
+
+// ReassertInteractiveTerminalKeyboardModes repairs terminal state after an
+// interrupted provider turn. Some TUIs restore their keyboard protocol just
+// after consuming Ctrl+C, so reset once immediately and twice after that turn
+// transition. No bytes are emitted for pipes or redirected output.
+func ReassertInteractiveTerminalKeyboardModes(stdin, stdout *os.File) {
+	if stdin == nil || stdout == nil || !term.IsTerminal(int(stdin.Fd())) || !term.IsTerminal(int(stdout.Fd())) {
+		return
+	}
+	writeTerminalKeyboardModeReset(stdout)
+	for _, delay := range []time.Duration{75 * time.Millisecond, 300 * time.Millisecond} {
+		time.AfterFunc(delay, func() { writeTerminalKeyboardModeReset(stdout) })
+	}
 }
 
 func alreadyIsolatedSecretServiceArgv(args []string) bool {
@@ -254,6 +269,9 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 		for sig := range sigChan {
 			if cmd.Process != nil {
 				_ = cmd.Process.Signal(sig)
+			}
+			if sig == syscall.SIGINT {
+				ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
 			}
 		}
 	}()

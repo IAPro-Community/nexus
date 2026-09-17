@@ -471,6 +471,28 @@ func attachRuntime(runtimeID string) error {
 	return attachRuntimeWithInput(runtimeID, nil)
 }
 
+func containsTerminalInterrupt(input []byte) bool {
+	for _, b := range input {
+		if b == 0x03 {
+			return true
+		}
+	}
+	return false
+}
+
+// forwardAttachedInput is intentionally byte-transparent. It observes Ctrl+C
+// only to repair the outer terminal after a provider TUI has handled the
+// interruption; the original input always reaches the runtime unchanged.
+func forwardAttachedInput(destination io.Writer, input []byte, reassertKeyboardModes func()) error {
+	if _, err := destination.Write(input); err != nil {
+		return err
+	}
+	if containsTerminalInterrupt(input) && reassertKeyboardModes != nil {
+		reassertKeyboardModes()
+	}
+	return nil
+}
+
 func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error {
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
@@ -562,8 +584,22 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 			errChan <- input(rawConn)
 			return
 		}
-		_, copyErr := io.Copy(rawConn, os.Stdin)
-		errChan <- copyErr
+		buf := make([]byte, 32*1024)
+		for {
+			n, readErr := os.Stdin.Read(buf)
+			if n > 0 {
+				if writeErr := forwardAttachedInput(rawConn, buf[:n], func() {
+					nexusruntime.ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
+				}); writeErr != nil {
+					errChan <- writeErr
+					return
+				}
+			}
+			if readErr != nil {
+				errChan <- readErr
+				return
+			}
+		}
 	}()
 
 	<-errChan
@@ -594,6 +630,9 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 			nread, err := os.Stdin.Read(buf)
 			if nread > 0 {
 				input := buf[:nread]
+				if containsTerminalInterrupt(input) {
+					nexusruntime.ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
+				}
 				if pendingASK != "" {
 					answer := input[0]
 					input = input[1:]
