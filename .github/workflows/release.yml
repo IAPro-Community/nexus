@@ -169,12 +169,14 @@ jobs:
           NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
           NEXUS_UPDATE_KEY_ID: ${{ secrets.NEXUS_UPDATE_KEY_ID }}
           NEXUS_UPDATE_PUBLIC_KEY: ${{ vars.NEXUS_UPDATE_PUBLIC_KEY }}
+          NEXUS_DIST_REPO: ${{ vars.NEXUS_DIST_REPO }}
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           test -n "$NEXUS_UPDATE_PRIVATE_KEY"
           test "$NEXUS_UPDATE_KEY_ID" = "nexus-signing-key-2026-v1"
           test "$NEXUS_UPDATE_PUBLIC_KEY" = "$(printf '%s' "$NEXUS_UPDATE_PUBLIC_KEY" | tr '[:upper:]' '[:lower:]')"
           test "${#NEXUS_UPDATE_PUBLIC_KEY}" -eq 64
+          DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
           go run ./scripts/sign-update-manifest \
             --dist dist \
             --dist native-artifacts \
@@ -182,7 +184,7 @@ jobs:
             --key-id "$NEXUS_UPDATE_KEY_ID" \
             --private-key "$NEXUS_UPDATE_PRIVATE_KEY" \
             --public-key "$NEXUS_UPDATE_PUBLIC_KEY" \
-            --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_VERSION}"
+            --base-url "https://github.com/${DIST_REPO}/releases/download/${RELEASE_VERSION}"
           test -f dist/update-manifest.json
           test -f dist/update-manifest.sig
           python3 - <<'PY'
@@ -206,6 +208,8 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
+          repository: ${{ vars.NEXUS_DIST_REPO != '' && vars.NEXUS_DIST_REPO || 'IAPro-Community/nexus-releases' }}
+          token: ${{ secrets.NEXUS_DIST_TOKEN != '' && secrets.NEXUS_DIST_TOKEN || github.token }}
           files: |
             dist/*
             native-artifacts/*
@@ -213,10 +217,12 @@ jobs:
 
       - name: Publish movable channel pointer (update-manifest only)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN != '' && secrets.NEXUS_DIST_TOKEN || github.token }}
+          NEXUS_DIST_REPO: ${{ vars.NEXUS_DIST_REPO }}
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           set -euo pipefail
+          DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
           test -f dist/update-manifest.json
           test -f dist/update-manifest.sig
           CHANNEL=stable
@@ -225,14 +231,14 @@ jobs:
           esac
           TAG="channel-${CHANNEL}"
           NOTES="Nexus ${CHANNEL} channel pointer → ${RELEASE_VERSION}. Discovery-only release (update-manifest.json + .sig). Immutable binaries remain on the versioned tag."
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release delete "$TAG" --yes
-            git push origin ":refs/tags/${TAG}" 2>/dev/null || true
+          if gh release view "$TAG" --repo "$DIST_REPO" >/dev/null 2>&1; then
+            gh release delete "$TAG" --repo "$DIST_REPO" --yes
           fi
           gh release create "$TAG" \
+            --repo "$DIST_REPO" \
             dist/update-manifest.json \
             dist/update-manifest.sig \
             --title "Nexus ${CHANNEL} update channel" \
             --notes "$NOTES" \
             --latest=false
-          echo "Published pointer ${TAG} for ${RELEASE_VERSION}"
+          echo "Published pointer ${TAG} for ${RELEASE_VERSION} on ${DIST_REPO}"

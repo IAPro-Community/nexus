@@ -7,9 +7,11 @@ import (
 )
 
 const (
-	// DefaultUpdateRegistryRepo is the canonical GitHub owner/name for Nexus
-	// channel pointer releases (IAPRO community product identity).
-	DefaultUpdateRegistryRepo = "IAPro-Community/nexus"
+	// DefaultUpdateRegistryRepo is the canonical binaries-only repository
+	// for Nexus channel pointer releases. Closed-beta clients must never
+	// touch the private source repository: all manifests and artifacts
+	// resolve here unless NEXUS_RELEASE_REPO overrides it (dev/internal).
+	DefaultUpdateRegistryRepo = "IAPro-Community/nexus-releases"
 
 	channelStableTag = "channel-stable"
 	channelBetaTag   = "channel-beta"
@@ -118,7 +120,7 @@ func ResolveArtifactRegistry(explicit, _ string) ArtifactRegistry {
 
 // ResolveRegistryURL picks the update discovery URL.
 // Precedence: explicit argument, then NEXUS_UPDATE_REGISTRY_URL, then
-// NEXUS_RELEASE_REPO + channel pointer, then IAPro-Community/nexus + channel pointer.
+// NEXUS_RELEASE_REPO + channel pointer, then the binaries-only default.
 func ResolveRegistryURL(explicit, channel string) string {
 	if u := strings.TrimSpace(explicit); u != "" {
 		return u

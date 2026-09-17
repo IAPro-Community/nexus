@@ -6,9 +6,15 @@
 #   ./install.sh --build-from-source [--yes]
 set -euo pipefail
 
-REPO="${NEXUS_RELEASE_REPO:-IAPro-Community/nexus}"
+# Closed-beta clients install from the public binaries-only repository.
+# NEXUS_RELEASE_REPO overrides it for internal/dev distributions.
+REPO="${NEXUS_RELEASE_REPO:-IAPro-Community/nexus-releases}"
 GITHUB_URL="https://github.com/${REPO}"
 GITHUB_API="https://api.github.com/repos/${REPO}"
+# Source checkouts (--build-from-source) always come from the private source
+# repository, never from the binaries mirror.
+SOURCE_REPO="${NEXUS_SOURCE_REPO:-IAPro-Community/nexus}"
+SOURCE_URL="https://github.com/${SOURCE_REPO}"
 
 VERSION="${NEXUS_VERSION:-}"
 BUILD_FROM_SOURCE=false
@@ -378,7 +384,7 @@ elif [ "$BUILD_FROM_SOURCE" = true ]; then
     elif [ -n "$SOURCE_REF" ]; then
         case "$SOURCE_REF" in *[!A-Za-z0-9._/-]*) echo "Invalid source ref." >&2; exit 2 ;; esac
         echo "Cloning explicitly requested source ref ${SOURCE_REF}..."
-        git clone --depth 1 --branch "$SOURCE_REF" "${GITHUB_URL}.git" "${TMP_DIR}/repo"
+        git clone --depth 1 --branch "$SOURCE_REF" "${SOURCE_URL}.git" "${TMP_DIR}/repo"
         BUILD_DIR="${TMP_DIR}/repo"
     else
         echo "--build-from-source requires a Nexus checkout or --source-ref=<tag-or-commit>." >&2

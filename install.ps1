@@ -17,9 +17,13 @@ $ErrorActionPreference = 'Stop'
 $InstallDesktop = -not $NoDesktop
 $MaestroExit = 0
 
-$Repo = if ($env:NEXUS_RELEASE_REPO) { $env:NEXUS_RELEASE_REPO } else { "IAPro-Community/nexus" }
+$Repo = if ($env:NEXUS_RELEASE_REPO) { $env:NEXUS_RELEASE_REPO } else { "IAPro-Community/nexus-releases" }
 $GithubUrl = "https://github.com/$Repo"
 $GithubApi = "https://api.github.com/repos/$Repo"
+# Source checkouts (-SourceRef builds) always come from the private source
+# repository, never from the binaries mirror.
+$SourceRepo = if ($env:NEXUS_SOURCE_REPO) { $env:NEXUS_SOURCE_REPO } else { "IAPro-Community/nexus" }
+$SourceUrl = "https://github.com/$SourceRepo"
 
 $IsWindowsOS = ($IsWindows -or ($env:OS -like "*Windows*"))
 
@@ -318,7 +322,7 @@ if (-not $Installed -and $BuildFromSource) {
         }
         Write-Host "Cloning explicitly requested source ref $SourceRef..." -ForegroundColor Yellow
         $CloneDir = Join-Path $TempDir "repo"
-        git clone --depth 1 --branch $SourceRef "$GithubUrl.git" $CloneDir
+        git clone --depth 1 --branch $SourceRef "$SourceUrl.git" $CloneDir
         Push-Location $CloneDir
         try {
             bun --cwd web install --frozen-lockfile
