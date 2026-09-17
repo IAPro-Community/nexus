@@ -393,9 +393,9 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 }
 
 // TestReleaseBuildsStripLocalPaths guards the closed-binary requirement:
-// every Go build that can reach beta users must pass -trimpath so build
-// machine paths (usernames, profile handles, module cache layout) never
-// embed in distributed artifacts.
+// every Go build that can reach beta users must pass -trimpath as a BUILD
+// flag (never inside -ldflags, which the linker rejects) so build machine
+// paths never embed in distributed artifacts.
 func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 	root, err := filepath.Abs("../..")
 	if err != nil {
@@ -408,15 +408,25 @@ func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 	if !strings.Contains(string(goreleaser), "-trimpath") {
 		t.Error(".goreleaser.yaml builds must pass -trimpath")
 	}
+	for _, line := range strings.Split(string(goreleaser), "\n") {
+		if strings.Contains(line, "-trimpath") && strings.Contains(strings.ToLower(line), "ldflag") {
+			t.Errorf(".goreleaser.yaml must not put -trimpath inside ldflags (linker rejects it): %q", strings.TrimSpace(line))
+		}
+	}
 	makefile, err := os.ReadFile(filepath.Join(root, "Makefile"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(makefile), `LDFLAGS="-s -w -X`) {
-		t.Error("Makefile LDFLAGS without -trimpath would leak build paths into binaries")
+	for _, line := range strings.Split(string(makefile), "\n") {
+		if strings.Contains(line, "LDFLAGS=") && strings.Contains(line, "-trimpath") {
+			t.Errorf("Makefile must pass -trimpath as a build flag, not inside LDFLAGS: %q", strings.TrimSpace(line))
+		}
 	}
-	if !strings.Contains(string(makefile), "-trimpath") {
-		t.Error("Makefile builds must pass -trimpath")
+	if !strings.Contains(string(makefile), "go build -trimpath") {
+		t.Error("Makefile go builds must pass -trimpath")
+	}
+	if !strings.Contains(string(makefile), "GOFLAGS=-trimpath") {
+		t.Error("Makefile wails build must forward -trimpath via GOFLAGS")
 	}
 	ci, err := os.ReadFile(filepath.Join(root, ".github/workflows/ci.yml"))
 	if err != nil {

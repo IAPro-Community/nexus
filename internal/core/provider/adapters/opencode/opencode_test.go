@@ -4,12 +4,29 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 )
+
+// stubOpenCodeBinary decouples auth tests from host state: the presence of
+// the provider binary is stubbed instead of depending on PATH, /usr/local,
+// or developer directories of the machine running the test.
+func stubOpenCodeBinary(t *testing.T) {
+	t.Helper()
+	prev := spec.BinaryLookPath
+	spec.BinaryLookPath = func(name string) (string, error) {
+		if name == "opencode" {
+			return filepath.Join(t.TempDir(), "opencode"), nil
+		}
+		return prev(name)
+	}
+	t.Cleanup(func() { spec.BinaryLookPath = prev })
+}
 
 func TestOpenCode_Capabilities(t *testing.T) {
 	adapter := New()
@@ -26,6 +43,7 @@ func TestOpenCode_Capabilities(t *testing.T) {
 }
 
 func TestOpenCode_InspectAuth_LocalLoginless(t *testing.T) {
+	stubOpenCodeBinary(t)
 	dataDir := t.TempDir()
 	t.Setenv("AI_DATA_DIR", dataDir)
 	t.Setenv("NEXUS_DATA_DIR", dataDir)
@@ -47,6 +65,7 @@ func TestOpenCode_InspectAuth_LocalLoginless(t *testing.T) {
 }
 
 func TestOpenCode_InspectAuth_ZenProvider(t *testing.T) {
+	stubOpenCodeBinary(t)
 	dataDir := t.TempDir()
 	t.Setenv("AI_DATA_DIR", dataDir)
 	t.Setenv("NEXUS_DATA_DIR", dataDir)
@@ -88,6 +107,7 @@ func TestOpenCode_InspectAuth_ZenProvider(t *testing.T) {
 }
 
 func TestOpenCode_InspectAuth_ExternalProvider(t *testing.T) {
+	stubOpenCodeBinary(t)
 	dataDir := t.TempDir()
 	t.Setenv("AI_DATA_DIR", dataDir)
 	t.Setenv("NEXUS_DATA_DIR", dataDir)
@@ -170,5 +190,28 @@ func TestOpenCode_Prepare_CopiesHostAuth(t *testing.T) {
 	}
 	if string(copiedData) != string(raw) {
 		t.Fatalf("copied auth content mismatch: got %s, want %s", string(copiedData), string(raw))
+	}
+}
+
+// TestOpenCode_InspectAuth_BinaryMissingFailsClosed proves an installed
+// credential without a launchable binary is reported unavailable instead of
+// healthy: absence of the binary must never read as authenticated.
+func TestOpenCode_InspectAuth_BinaryMissingFailsClosed(t *testing.T) {
+	prev := spec.BinaryLookPath
+	spec.BinaryLookPath = func(string) (string, error) { return "", exec.ErrNotFound }
+	t.Cleanup(func() { spec.BinaryLookPath = prev })
+
+	dataDir := t.TempDir()
+	t.Setenv("AI_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("HOME", t.TempDir())
+
+	adapter := New()
+	info := adapter.InspectAuth(context.Background(), model.Profile{Provider: "opencode", Name: "missing-bin"})
+	if info.Authenticated {
+		t.Error("missing binary must not authenticate")
+	}
+	if info.Health != model.HealthUnavailable {
+		t.Errorf("missing binary health = %v, want UNAVAILABLE", info.Health)
 	}
 }
