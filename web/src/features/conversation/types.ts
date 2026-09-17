@@ -76,7 +76,8 @@ export type NexusAttachment = {
   mimeType: string;
   size: number;
   type: 'image' | 'file';
-  storageRef: string;
+  /** Server-internal path; no longer exposed by the API (kept for compat). */
+  storageRef?: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
   /** Transient preview URL for pending uploads (revoked after submit). */
