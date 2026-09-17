@@ -19,7 +19,7 @@ Binário de release. **Não** exige Go, Bun nem Node.
 | Release CLI | `curl` ou `wget`, `tar`, `sha256sum`/`shasum` (Unix) ou PowerShell (Windows) |
 | Desktop nativo (opcional) | WebView2 (Windows) ou WebKitGTK (Linux) |
 | Maestro (opt-in) | Node.js + npm (`--with-maestro` / `-WithMaestro`) |
-| Compilar do fonte | Go 1.25+, Bun 1.3.9+, make, git |
+| Compilar do fonte (interno/dev apenas — não é o caminho do beta) | Go 1.25+, Bun 1.3.9+, make, git |
 
 ### Linux / macOS
 
