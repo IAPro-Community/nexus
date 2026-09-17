@@ -100,7 +100,7 @@ func TestNormalizeAcceptsRealImages(t *testing.T) {
 		t.Fatalf("png: mime=%q len=%d", mime, len(out))
 	}
 	jpegBytes := encodeTestJPEG(t)
-	out, mime, err = normalizeAttachmentImage(jpegBytes)
+	_, mime, err = normalizeAttachmentImage(jpegBytes)
 	if err != nil {
 		t.Fatalf("jpeg: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestNormalizeAcceptsRealImages(t *testing.T) {
 	if got := sniffImageContentType(webpBytes); got != "image/webp" {
 		t.Fatalf("webp fixture sniffed as %q", got)
 	}
-	out, mime, err = normalizeAttachmentImage(webpBytes)
+	_, mime, err = normalizeAttachmentImage(webpBytes)
 	if err != nil {
 		t.Fatalf("webp: %v", err)
 	}
