@@ -205,19 +205,37 @@ jobs:
             dist/*
             native-artifacts/*
 
+      - name: Stage installer and legal docs for distribution
+        run: |
+          set -euo pipefail
+          cp install.sh install.ps1 dist/
+          cp docs/legal/BETA_TERMS.md docs/legal/PRIVACY.md dist/
+          ls dist/ | head -n 30
+
+      - name: Upload signed artifacts for distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-signed-${{ github.sha }}
+          path: |
+            dist/*
+            native-artifacts/*
+          if-no-files-found: error
+
       - name: Publish release
+        if: ${{ secrets.NEXUS_DIST_TOKEN != '' }}
         uses: softprops/action-gh-release@v2
         with:
           repository: ${{ vars.NEXUS_DIST_REPO != '' && vars.NEXUS_DIST_REPO || 'IAPro-Community/nexus-releases' }}
-          token: ${{ secrets.NEXUS_DIST_TOKEN != '' && secrets.NEXUS_DIST_TOKEN || github.token }}
+          token: ${{ secrets.NEXUS_DIST_TOKEN }}
           files: |
             dist/*
             native-artifacts/*
           generate_release_notes: true
 
       - name: Publish movable channel pointer (update-manifest only)
+        if: ${{ secrets.NEXUS_DIST_TOKEN != '' }}
         env:
-          GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN != '' && secrets.NEXUS_DIST_TOKEN || github.token }}
+          GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
           NEXUS_DIST_REPO: ${{ vars.NEXUS_DIST_REPO }}
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
