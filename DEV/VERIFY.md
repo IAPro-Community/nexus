@@ -1,5 +1,21 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-17 — PR #2 Windows closure patch
+
+- PASS — `go test -v ./internal/core/provider/adapters/codex -run
+  '^TestPrepareEmptyDestWithManyRolloutsRespectsBudget$' -count=20`.
+- PASS — `go test -v ./internal/nexus -run
+  '^TestInterventionResolutionSurvivesStoreReopen$' -count=20`.
+- PASS — `go test ./internal/core/provider/adapters/codex/... ./internal/nexus/... -count=1`.
+- PASS — `go test -race ./internal/core/provider/adapters/codex/... ./internal/nexus/... -count=1`.
+- PASS — `git diff --check`.
+- PASS — `make web-verify` (10/10 gates; relatório frontend atualizado).
+- BLOCKED/EXISTING — `make docs-verify` detecta manifesto visual stale desde
+  `0ec7e750`; não relacionado às alterações desta correção e requer campanha
+  visual separada.
+- PENDING — native Windows repeated run, hosted same-SHA CI, maintainer merge,
+  `main` CI e tag beta.1 no commit entregue.
+
 ## 2026-09-16 — Reassert após interrupção Codex
 
 - PASS — testes de regressão de `Ctrl+C`, forwarding byte-transparente e
@@ -1463,7 +1479,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-17T12:06:58Z
+## Frontend gate — 2026-09-17T17:42:21Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-

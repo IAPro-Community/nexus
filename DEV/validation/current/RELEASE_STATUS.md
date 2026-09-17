@@ -1,33 +1,29 @@
 # Current release status
 
-STATUS: CLOSURE_READY_PENDING_FREEZE
+STATUS: CLOSURE_PATCH_IMPLEMENTED_PENDING_HOSTED_VALIDATION
 VERSION: 1.0.0-beta.1
-PRIOR_GO_SHA: 2b9c95675d1727008eec86c58cd6be9e8a44a788
-PRIOR_GO_CI: https://github.com/IAPro-Community/nexus/actions/runs/34924168564
-HEAD_AT_WRITE: 82f5447c7ef5584df71dbea492e7761ddbe02080
-GENERATED_AT: 2026-09-15T10:20:00Z
+HEAD_AT_WRITE: 19e233c5c4224b46e565b754b4ec92d28a757dd9
+GENERATED_AT: 2026-09-17T00:00:00Z
 
-O SHA `2b9c95693be7bf73a463c6395ec1ea9f131a4c9c` citado em ledgers anteriores
-**não existe neste repositório**. O freeze com CI 14/14 é
-`2b9c95675d1727008eec86c58cd6be9e8a44a788`.
+O repositório permanece privado e a distribuição beta é closed-source. O
+HEAD acima é a baseline observada antes do commit único de fechamento; se a
+branch avançar, a validação hosted deve ser refeita no novo SHA.
 
-HEAD `82f5447` adicionou Composer/Flow/i18n depois desse freeze e quebrou
-Linux golangci-lint. Esta campanha de fechamento corrige lint, attach,
-docs de install e changelog **neste worktree**. O GIT_SHA de freeze da
-beta.1 é o commit que incorporar estas correções — anotar depois do
-commit autorizado.
+## Remaining closure gates
 
-## Remaining human gates (not in-repo)
-
-Sequência obrigatória — nenhuma destas etapas é automática:
-
-1. Autorizar **commit** deste worktree (não incluir stash `wip: conversation spike…`).
-2. Push da branch; esperar CI **14/14** no SHA do commit (Linux, Windows, macOS, frontend, security, browser, 3 desktops, snapshot, DEB, RPM, NSIS).
-3. Provisionar GitHub Environment `beta-signing` com `NEXUS_UPDATE_PRIVATE_KEY`, `NEXUS_UPDATE_KEY_ID=nexus-signing-key-2026-v1`, variable `NEXUS_UPDATE_PUBLIC_KEY`.
-4. Tornar o repositório **público** (ou documentar `GH_TOKEN` no install). Sem isso `curl \| bash` anônimo falha.
-5. Apagar a tag local stale (`git tag -d v1.0.0-beta.1`) se ainda apontar para `be6c793`. Criar a tag **no SHA verde**, não no HEAD antigo.
-6. Push da tag → workflow Signed Release. Verificar assets: checksums, DEB/RPM/NSIS, desktop, `update-manifest.json` + `.sig`, ponteiro `channel-beta`.
-7. Só então autorizar merge da PR [#2](https://github.com/IAPro-Community/nexus/pull/2) em `main`.
+1. Autorizar um único commit de fechamento e fazer push da branch.
+2. Confirmar os 14 jobs definidos em `.github/workflows/ci.yml` verdes no mesmo SHA.
+3. Reexecutar o Windows no mesmo SHA e obter duas execuções consecutivas verdes.
+4. Provisionar o GitHub Environment `beta-signing` com
+   `NEXUS_UPDATE_PRIVATE_KEY`, `NEXUS_UPDATE_KEY_ID` e
+   `NEXUS_UPDATE_PUBLIC_KEY` como variável.
+5. Após merge commit da PR #2 e CI verde na `main`, remover a tag remota
+   `v1.0.0-beta.1` que ainda aponta para `cf2eb41` e recriá-la no commit entregue.
+6. Executar o Signed Release e verificar checksums, DEB/RPM/NSIS, binários
+   desktop, `update-manifest.json`, assinatura e `channel-beta`.
+7. Como o plano privado não permite branch protection, mergear somente por
+   maintainer autorizado, com checklist manual e sem push direto planejado na
+   `main`; o risco residual permanece explicitamente registrado.
 
 Não publicar como `1.0.0` estável.
 

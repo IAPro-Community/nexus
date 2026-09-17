@@ -2025,3 +2025,19 @@ configuration, native Windows/macOS and hosted same-SHA CI, PowerShell/native
 terminal gates, and authenticated Mission evidence still require execution in
 the appropriate environments. No push, merge, deploy or production secret was
 performed by this campaign. See `DEV/validation/production-finalization/FINAL_REPORT.md`.
+## Handoff — 2026-09-17 — PR #2 closure patch
+
+O worktree contém a correção dos dois failures observados no artifact Windows
+do SHA `cf2eb41`: seed Codex agora persiste estado em lote, e a recuperação de
+Mission aguarda o worker real com erro observável. O CI deixou de executar o
+workflow completo em `push` de `feat/**`/`fix/**`, mantendo `pull_request`,
+`main`, `master` e tags; concurrency cancela execuções obsoletas.
+
+Baseline remoto observada antes do patch: `19e233c5c4224b46e565b754b4ec92d28a757dd9`.
+O worktree está sem commit/push. Próxima ação: revisar o diff, autorizar um
+único commit, pushar, exigir todos os 14 jobs verdes e repetir o Windows duas
+vezes no mesmo SHA. A `main` continua sem proteção nativa por limitação do
+plano privado; merge exige maintainer e checklist manual. A tag remota
+`v1.0.0-beta.1` ainda aponta para `cf2eb41` e só deve ser recriada após CI verde
+na `main`. `make docs-verify` permanece bloqueado por manifesto visual stale
+preexistente, fora do escopo desta correção de estabilização.

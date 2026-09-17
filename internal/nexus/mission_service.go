@@ -29,6 +29,7 @@ type missionWorker struct {
 	id     string
 	cancel context.CancelFunc
 	done   chan struct{}
+	err    error
 }
 
 func planToRunnerSpec(plan *store.WorkPlan, snapshotID string) (runner.PlanSpec, error) {
@@ -399,19 +400,19 @@ func (n *Nexus) loadMissionSnapshot(run *runner.MissionRun) (*missionExecutionSn
 
 // StartMissionWorker starts at most one autonomous worker per run in this process.
 func (n *Nexus) StartMissionWorker(runID string) {
-	n.startMissionWorker(runID, false)
+	_ = n.startMissionWorker(runID, false)
 }
 
 // restartMissionWorker performs an ownership handoff for a resolved run. The
 // old worker is canceled and joined before the new generation is registered;
 // its defer can therefore never remove the new owner.
 func (n *Nexus) restartMissionWorker(runID string) {
-	n.startMissionWorker(runID, true)
+	_ = n.startMissionWorker(runID, true)
 }
 
-func (n *Nexus) startMissionWorker(runID string, replace bool) {
+func (n *Nexus) startMissionWorker(runID string, replace bool) *missionWorker {
 	if strings.TrimSpace(runID) == "" {
-		return
+		return nil
 	}
 	for {
 		n.workersMu.Lock()
@@ -425,18 +426,18 @@ func (n *Nexus) startMissionWorker(runID string, replace bool) {
 			n.workers[runID] = worker
 			n.workersMu.Unlock()
 			n.runMissionWorker(runID, ctx, worker)
-			return
+			return worker
 		}
 		if !replace {
 			n.workersMu.Unlock()
-			return
+			return existing
 		}
 		existing.cancel()
 		n.workersMu.Unlock()
 		select {
 		case <-existing.done:
 		case <-time.After(15 * time.Second):
-			return
+			return nil
 		}
 		n.workersMu.Lock()
 		current := n.workers[runID]
@@ -445,7 +446,7 @@ func (n *Nexus) startMissionWorker(runID string, replace bool) {
 			continue
 		}
 		// A different replacement already completed the handoff.
-		return
+		return current
 	}
 }
 
@@ -458,7 +459,7 @@ func (n *Nexus) runMissionWorker(runID string, ctx context.Context, worker *miss
 		defer func() {
 			n.releaseMissionWorker(runID, worker)
 		}()
-		_, _ = n.Runner().RunToTerminal(ctx, runID)
+		_, worker.err = n.Runner().RunToTerminal(ctx, runID)
 	}()
 }
 
@@ -492,18 +493,38 @@ func (n *Nexus) stopMissionWorker(runID string) error {
 
 // RecoverMissionRuns resumes durable non-terminal runs after Nexus restart.
 func (n *Nexus) RecoverMissionRuns(ctx context.Context) error {
+	_, err := n.recoverMissionRuns(ctx)
+	return err
+}
+
+func (n *Nexus) recoverMissionRuns(ctx context.Context) ([]*missionWorker, error) {
 	runs, err := n.Runner().ListRuns(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	workers := make([]*missionWorker, 0, len(runs))
 	sort.SliceStable(runs, func(i, j int) bool { return runs[i].StartedAt.Before(runs[j].StartedAt) })
 	for _, run := range runs {
 		if run == nil || runner.IsTerminalState(run.State) || run.State == runner.StatePaused || run.State == runner.StateBlockedNeedsUser {
 			continue
 		}
-		n.StartMissionWorker(run.ID)
+		if worker := n.startMissionWorker(run.ID, false); worker != nil {
+			workers = append(workers, worker)
+		}
 	}
-	return nil
+	return workers, nil
+}
+
+func waitMissionWorker(ctx context.Context, worker *missionWorker) error {
+	if worker == nil {
+		return fmt.Errorf("mission worker was not started")
+	}
+	select {
+	case <-worker.done:
+		return worker.err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (n *Nexus) PauseMissionRun(ctx context.Context, runID, reason string) (*runner.MissionRun, error) {

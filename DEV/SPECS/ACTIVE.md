@@ -1,5 +1,15 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Closure update — 2026-09-17 — PR #2
+
+Os blockers determinísticos identificados no Windows foram corrigidos no
+worktree: seed cross-account em lote e sincronização determinística do worker
+de recuperação de Mission. O CI agora evita a duplicação de `push`/`pull_request`
+em branches de feature. Permanecem gates hosted/native: novo SHA commitado,
+14 jobs verdes, Windows repetido verde, merge commit, CI da `main` e retag
+`v1.0.0-beta.1`. Branch protection nativa permanece indisponível no plano
+privado e será mitigada operacionalmente.
+
 ## Closure state — 2026-09-15 (v1.0.0-beta.1)
 
 Alvo desta spec: Community Preview `v1.0.0-beta.1`, não 1.0.0 estável.

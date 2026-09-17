@@ -1,5 +1,20 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-17 — Correção dos blockers de fechamento Windows da PR #2
+
+- Corrigido o seed de sessões cross-account para carregar markers, índices e
+  autenticação em lote, evitando reescritas do índice por rollout e preservando
+  isolamento copy-only e atribuição fail-closed.
+- Corrigida a sincronização do teste de recuperação de Mission: o worker agora
+  registra o erro de `RunToTerminal`, expõe conclusão interna e o teste aguarda
+  o ciclo real em vez de fazer polling CPU-tight.
+- Ajustado `.github/workflows/ci.yml` para não duplicar CI completo em `push` de
+  branches de feature; `pull_request`, `main`, `master` e tags continuam gates.
+- Atualizado `DEV/validation/current/RELEASE_STATUS.md` para a estratégia
+  private/closed-source e baseline `19e233c5c4224b46e565b754b4ec92d28a757dd9`.
+- Verificação PASS: ambos os testes focados `-count=20`, pacotes Codex/Nexus,
+  `-race` nos pacotes afetados e `git diff --check`. Sem commit ou push.
+
 ## 2026-09-16 — Audit contínuo / Quality Gate Pass
 
 - **Cursor adapter — extração de e-mail**: `InspectAuth` agora parseia `"Logged in as <email>"` da saída de `cursor-agent status`; `nexus list` exibe `kiver@omegasistemas.net.br` em vez de `(unauthenticated)`. Novo teste `TestInspectAuthExtractsEmail` cobrindo o fluxo com binário stub.
