@@ -1,5 +1,10 @@
 <p align="center"><img src="nexus-logo.png" alt="IAPro Nexus" width="340"></p>
 
+> **Beta fechado v1.0.0-beta.1** — distribuído apenas como binário assinado
+> pelo canal oficial. Sem acesso ao código-fonte, sem build local.
+> Consulte [Beta Terms](docs/legal/BETA_TERMS.md) e
+> [Privacy](docs/legal/PRIVACY.md).
+
 <p align="center"><img src="docs/assets/promo/promo-nexus-hero.png" alt="IAPro Nexus — workstation local para coding agents" width="720"></p>
 
 <h1 align="center">IAPro Nexus</h1>
@@ -153,4 +158,7 @@ Leia [SECURITY.md](SECURITY.md), [SUPPORT.md](SUPPORT.md), [GOVERNANCE.md](GOVER
 
 ## Licença
 
-Distribuído sob a [licença MIT](LICENSE).
+Software proprietário — distribuído como binário sob a [licença beta](LICENSE).
+Consulte também [Beta Terms](docs/legal/BETA_TERMS.md),
+[Privacy](docs/legal/PRIVACY.md) e
+[Third-Party Notices](docs/legal/THIRD_PARTY_NOTICES.md).

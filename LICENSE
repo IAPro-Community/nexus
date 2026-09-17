@@ -1,21 +1,54 @@
-MIT License
+# IAPro Nexus — Proprietary Beta License
 
-Copyright (c) 2026 AI Manager Contributors
+Copyright (c) 2026 IAPro. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+> Owner confirmation required: the copyright holder name above must be
+> confirmed by the project owner before the first public beta distribution
+> (see `docs/legal/BETA_TERMS.md`). Git history is not rewritten by this
+> file; it governs new binary distributions starting with v1.0.0-beta.1.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## 1. Grant
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+IAPro grants you a limited, non-exclusive, non-transferable, revocable
+license to install and use the IAPro Nexus beta binaries ("Software") for
+evaluation purposes, subject to the Beta Terms in `docs/legal/BETA_TERMS.md`.
+
+## 2. Restrictions
+
+You may not:
+
+- copy, redistribute, sublicense, rent, lease, or lend the Software;
+- reverse engineer, decompile, or disassemble the Software, except to the
+  extent such restriction is prohibited by applicable law;
+- remove or alter any proprietary notices;
+- use the Software to violate the privacy or rights of others, or to
+  process data you have no right to process;
+- build a competing product using knowledge derived from the Software's
+  non-public behavior during the beta period.
+
+## 3. Ownership
+
+The Software is licensed, not sold. IAPro retains all right, title, and
+interest in and to the Software, including all intellectual property rights.
+
+## 4. Beta software
+
+The Software is pre-release. It may contain errors, change without notice,
+and is provided "AS IS", without warranties of any kind, to the maximum
+extent permitted by law.
+
+## 5. Feedback
+
+Feedback you provide may be used by IAPro without obligation or
+compensation.
+
+## 6. Termination
+
+This license terminates automatically if you breach it. On termination you
+must delete all copies of the Software.
+
+## 7. Third-party components
+
+The Software includes third-party open-source components listed in
+`docs/legal/THIRD_PARTY_NOTICES.md`. Their licenses apply to those
+components as stated there.

@@ -52,7 +52,7 @@ nfpms:
     homepage: https://github.com/IAPro-Community/nexus
     maintainer: Vinicius Kiver <kivervinicius@gmail.com>
     description: IAPro Nexus Autonomous Multi-Agent Workspace OS
-    license: MIT
+    license: Proprietary
     formats:
       - deb
       - rpm
