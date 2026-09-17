@@ -8,12 +8,12 @@ reiniciada a cada novo SHA.
 ## SHA auditado (código)
 
 - branch: `feat/nexus-maximum-delivery` (pushed; verificado via ls-remote)
-- SHA: `f0426b49ddf0bc2785cbba5140ee0e974f88e606`
+- SHA: `0ddf1c135c5b8c0ab07b4088959c70b5268d3573`
 - tree: limpo (`git status --short` vazio)
 - versão: `1.0.0-beta.1` (`VERSION` + `web/package.json`)
 - data: 2026-09-17 UTC
-- tag local `v1.0.0-beta.1`: movida para este SHA (tag nunca publicada;
-  push da tag somente no release, após CI verde)
+- tag `v1.0.0-beta.1`: publicada neste SHA (nunca existiu no remoto antes;
+  sem histórico a reescrever)
 
 ## Adendo — falhas da CI hospedada no SHA anterior (700a796) e correções
 
@@ -38,6 +38,16 @@ todas corrigidas neste SHA:
    re-executado localmente + re-scan `strings`: 0 vazamentos.
 3. `Windows E2E`: ainda rodando no momento da extração; monitorado até
    conclusão antes do veredito final.
+
+## Adendo 2 — CI 100% verde no SHA final (0ddf1c1)
+
+Após os fixes Windows (seam de binário no teste cursor, `NEXUS_REAL_HOME`
+no teste Prepare do opencode, assertion de perms Unix-only no device),
+a CI hospedada concluiu `success` nos 13 jobs (runs 35237120682 e
+35237114213): Frontend, Windows E2E, Linux E2E, Security, macOS E2E,
+Desktop macOS/Windows/Linux, Browser E2E + Axe + visual, GoReleaser
+Snapshot, NSIS, RPM, DEB. Falhas anteriores (opencode race, ldflags,
+Windows) revalidadas como corrigidas pela própria matriz.
 
 ## P0 (bloqueadores técnicos)
 
@@ -180,10 +190,11 @@ resto do report foi confirmado por evidência independente.
 
 `CONDITIONAL_CERTIFICATION`
 
-Válida para o SHA `f0426b4` (código) assim que a CI hospedada concluir
-verde nele — a CI foi re-disparada pelo push deste SHA; o commit atual
-(somente este documento) não altera comportamento. Se a CI apontar nova
-falha real, a certificação volta a `NOT_CERTIFIED` até correção.
+Válida para o SHA `0ddf1c1` com CI hospedada verde nos 13 jobs. O que
+impede `CERTIFIED_FOR_CLOSED_BETA` definitivo é exclusivamente externo
+(assinatura, notarization, storage, plano GitHub, confirmação jurídica);
+nenhum P0/P1 técnico remanesce. Se qualquer mudança de código entrar
+após este SHA, a certificação volta a `NOT_CERTIFIED` até re-auditoria.
 
 Únicos gates restantes são realmente externos. Para tornar definitiva:
 
