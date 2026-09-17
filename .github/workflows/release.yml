@@ -222,25 +222,29 @@ jobs:
           if-no-files-found: error
 
       - name: Publish release
-        if: ${{ secrets.NEXUS_DIST_TOKEN != '' }}
         uses: softprops/action-gh-release@v2
         with:
-          repository: ${{ vars.NEXUS_DIST_REPO != '' && vars.NEXUS_DIST_REPO || 'IAPro-Community/nexus-releases' }}
-          token: ${{ secrets.NEXUS_DIST_TOKEN }}
+          repository: ${{ secrets.NEXUS_DIST_TOKEN != '' && (vars.NEXUS_DIST_REPO != '' && vars.NEXUS_DIST_REPO || 'IAPro-Community/nexus-releases') || github.repository }}
+          token: ${{ secrets.NEXUS_DIST_TOKEN != '' && secrets.NEXUS_DIST_TOKEN || github.token }}
           files: |
             dist/*
             native-artifacts/*
           generate_release_notes: true
 
       - name: Publish movable channel pointer (update-manifest only)
-        if: ${{ secrets.NEXUS_DIST_TOKEN != '' }}
         env:
-          GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
+          GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN != '' && secrets.NEXUS_DIST_TOKEN || github.token }}
+          NEXUS_DIST_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
           NEXUS_DIST_REPO: ${{ vars.NEXUS_DIST_REPO }}
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           set -euo pipefail
-          DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
+          if [ -n "${NEXUS_DIST_TOKEN:-}" ]; then
+            DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
+          else
+            # No dist token: keep pointer next to the release above.
+            DIST_REPO="$GITHUB_REPOSITORY"
+          fi
           test -f dist/update-manifest.json
           test -f dist/update-manifest.sig
           CHANNEL=stable
