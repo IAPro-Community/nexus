@@ -17,7 +17,7 @@ builds:
       - arm64
     ldflags:
       - >-
-        -s -w
+        -s -w -trimpath
         -X github.com/IAPro-Community/nexus/internal/buildinfo.Version={{.Version}}
         -X github.com/IAPro-Community/nexus/internal/buildinfo.Commit={{.Commit}}
         -X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate={{.Date}}

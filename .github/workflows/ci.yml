@@ -117,7 +117,7 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Build current Nexus binary
-        run: go build -o nexus ./cmd/nexus
+        run: go build -trimpath -o nexus ./cmd/nexus
 
       - name: Run browser E2E
         id: browser-e2e
@@ -198,7 +198,7 @@ jobs:
         run: go test -race -v -count=1 ./internal/control/host/... ./internal/control/web/...
 
       - name: Build Binary
-        run: go build -v ./cmd/nexus
+        run: go build -trimpath -v ./cmd/nexus
 
   test-windows:
     name: Windows E2E (ConPTY, Named Pipe, PowerShell)
@@ -274,7 +274,7 @@ jobs:
       - name: Build Binary
         id: windows-build
         if: always()
-        run: go build -v -o nexus.exe ./cmd/nexus
+        run: go build -trimpath -v -o nexus.exe ./cmd/nexus
 
       - name: PowerShell Smoke Test
         id: windows-smoke
@@ -356,7 +356,7 @@ jobs:
       - name: Build Binary
         id: macos-build
         if: always()
-        run: go build -v -o nexus ./cmd/nexus
+        run: go build -trimpath -v -o nexus ./cmd/nexus
 
       - name: Installer Smoke Test (local install.sh)
         id: macos-installer

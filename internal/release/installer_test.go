@@ -391,3 +391,40 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 		}
 	}
 }
+
+// TestReleaseBuildsStripLocalPaths guards the closed-binary requirement:
+// every Go build that can reach beta users must pass -trimpath so build
+// machine paths (usernames, profile handles, module cache layout) never
+// embed in distributed artifacts.
+func TestReleaseBuildsStripLocalPaths(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	goreleaser, err := os.ReadFile(filepath.Join(root, ".goreleaser.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(goreleaser), "-trimpath") {
+		t.Error(".goreleaser.yaml builds must pass -trimpath")
+	}
+	makefile, err := os.ReadFile(filepath.Join(root, "Makefile"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(makefile), `LDFLAGS="-s -w -X`) {
+		t.Error("Makefile LDFLAGS without -trimpath would leak build paths into binaries")
+	}
+	if !strings.Contains(string(makefile), "-trimpath") {
+		t.Error("Makefile builds must pass -trimpath")
+	}
+	ci, err := os.ReadFile(filepath.Join(root, ".github/workflows/ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, cmd := range []string{"go build -trimpath -o nexus", "go build -trimpath -v"} {
+		if !strings.Contains(string(ci), cmd) {
+			t.Errorf("ci.yml must build test binaries with %q", cmd)
+		}
+	}
+}
