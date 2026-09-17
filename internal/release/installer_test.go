@@ -437,4 +437,11 @@ func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 			t.Errorf("ci.yml must build test binaries with %q", cmd)
 		}
 	}
+	// Wails desktop builds (promoted into releases) must also strip paths.
+	if !strings.Contains(string(ci), "export GOFLAGS=-trimpath") {
+		t.Error("ci.yml macOS wails build must forward -trimpath via GOFLAGS")
+	}
+	if !strings.Contains(string(ci), "$env:GOFLAGS = '-trimpath'") {
+		t.Error("ci.yml Windows wails build must forward -trimpath via GOFLAGS")
+	}
 }
