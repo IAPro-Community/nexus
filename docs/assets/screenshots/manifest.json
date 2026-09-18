@@ -1,5 +1,5 @@
 {
-  "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+  "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
   "generated_by": "web/scripts/docs-capture.mjs",
   "scenario": "isolated-synthetic-fixture",
   "data_classification": "SYNTHETIC",
@@ -20,7 +20,7 @@
     {
       "id": "VIS-001",
       "file": "workspace-overview.png",
-      "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+      "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
       "surface": "web/workspace",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -32,7 +32,7 @@
     {
       "id": "VIS-003",
       "file": "direct-session.png",
-      "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+      "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
       "surface": "web/direct-session",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -44,7 +44,7 @@
     {
       "id": "VIS-005",
       "file": "terminal.png",
-      "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+      "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
       "surface": "web/terminal",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -62,7 +62,7 @@
     {
       "id": "VIS-002",
       "file": "projects.png",
-      "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+      "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
       "surface": "web/projects",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -74,7 +74,7 @@
     {
       "id": "VIS-007",
       "file": "composer.png",
-      "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+      "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
       "surface": "web/composer",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -86,7 +86,7 @@
     {
       "id": "VIS-008",
       "file": "flow.png",
-      "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+      "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
       "surface": "web/flow",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -98,7 +98,7 @@
     {
       "id": "VIS-006",
       "file": "agents.png",
-      "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+      "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
       "surface": "web/agents",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -110,7 +110,7 @@
     {
       "id": "VIS-010",
       "file": "usage-quota.png",
-      "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+      "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
       "surface": "web/usage-quota",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -122,7 +122,7 @@
     {
       "id": "VIS-004",
       "file": "provider.png",
-      "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+      "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
       "surface": "web/provider",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -134,7 +134,7 @@
     {
       "id": "VIS-009",
       "file": "mission.png",
-      "source_sha": "0ec7e75046c3f7c061ea45b7b6c2c510cfcfaa62",
+      "source_sha": "e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff",
       "surface": "web/mission",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",

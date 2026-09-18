@@ -1,5 +1,21 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-18 — Linux-only beta CI closure
+
+- Reworked CI and Signed Release for seven self-hosted Linux gates because
+  GitHub-hosted jobs are blocked by billing state and no Windows/macOS machines
+  exist. Unsupported platform tests remain in source but are not beta claims.
+- Restricted beta GoReleaser output to Linux archives and DEB; release fails
+  closed without the public distribution token and requires Linux manifest
+  artifacts.
+- Registered `nexus-ci-dev-web-kiver`, allowed `v*` in `beta-signing`, removed
+  459 stale GitHub artifacts and preserved all 23 artifacts from `cf2eb41`.
+- Refreshed synthetic visual evidence and updated release status.
+- PASS: `make quality`, Wails/Linux, browser E2E/a11y/visual, GoReleaser
+  check/snapshot, DEB smoke, `make docs-verify`, actionlint and diff check.
+- Next: review and authorize one commit/push, then verify 7/7 and repeat the
+  Linux run on the same SHA.
+
 ## 2026-09-17 — Correção dos blockers de fechamento Windows da PR #2
 
 - Corrigido o seed de sessões cross-account para carregar markers, índices e

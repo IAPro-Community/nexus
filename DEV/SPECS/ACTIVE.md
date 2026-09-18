@@ -1,5 +1,14 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Beta Linux closure scope — 2026-09-18
+
+The current closure candidate is locally certified for Linux only. GitHub-hosted
+jobs are blocked before start by billing state and no Windows/macOS machines
+are available. The executable beta CI contract is seven same-SHA Linux jobs:
+frontend, security, browser, Linux Go, Linux Wails, GoReleaser/DEB snapshot
+and DEB install smoke. Native Windows, macOS, NSIS and RPM evidence remain
+pending and are not release claims.
+
 ## Closure update — 2026-09-17 — PR #2
 
 Os blockers determinísticos identificados no Windows foram corrigidos no

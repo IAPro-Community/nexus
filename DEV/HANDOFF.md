@@ -1,5 +1,22 @@
 # Handoff
 
+## Beta Linux CI closure preparation — 2026-09-18
+
+- The closure worktree is `feat/nexus-maximum-delivery` at `e2f40a5`; it is
+  intentionally dirty and not committed or pushed.
+- CI/release now define seven Linux beta gates on the repository runner
+  `nexus-ci`; Windows, macOS, NSIS and RPM remain source capabilities but are
+  explicitly unverified for this beta.
+- GoReleaser publishes Linux archives and DEB only; signed release requires a
+  public distribution token and Linux manifest keys.
+- The runner is online. Artifact cleanup preserved all 23 artifacts from
+  `cf2eb41` and removed 459 stale artifacts.
+- Local evidence is green: quality, Wails/Linux, browser hardening,
+  GoReleaser snapshot, DEB smoke and docs verification.
+- Next exact action: review the diff, create one Conventional Commit and push
+  only after Maestro authorization; then verify 7/7 and repeat Linux on the
+  same SHA.
+
 ## Correção durável de protocolos de teclado Codex — 2026-09-16
 
 - A correção agora atua no momento que causava a regressão: após `Ctrl+C`, o

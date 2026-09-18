@@ -276,9 +276,9 @@ func TestCIDesktopJobsFailClosedWithoutUpdatePublicKey(t *testing.T) {
 	if strings.Contains(ci, "ProductionTrustRootHex=${NEXUS_UPDATE_PUBLIC_KEY:-}") {
 		t.Fatal("desktop CI must not default missing updater public key to empty")
 	}
-	// Linux, macOS (and Windows via PowerShell) must refuse empty trust roots.
-	if strings.Count(ci, `test -n "${NEXUS_UPDATE_PUBLIC_KEY}"`) < 2 {
-		t.Fatal("Linux and macOS desktop CI must each fail-closed when NEXUS_UPDATE_PUBLIC_KEY is empty")
+	// The Linux beta desktop job must refuse an empty trust root.
+	if strings.Count(ci, `test -n "${NEXUS_UPDATE_PUBLIC_KEY}"`) < 1 {
+		t.Fatal("Linux desktop CI must fail-closed when NEXUS_UPDATE_PUBLIC_KEY is empty")
 	}
 	if !strings.Contains(ci, "NEXUS_UPDATE_PUBLIC_KEY is required for desktop CI") {
 		t.Fatal("desktop CI must document fail-closed updater key requirement")
@@ -287,11 +287,11 @@ func TestCIDesktopJobsFailClosedWithoutUpdatePublicKey(t *testing.T) {
 		t.Fatal("expected desktop-linux job in ci.yml")
 	}
 	linuxIdx := strings.Index(ci, "desktop-linux:")
-	windowsIdx := strings.Index(ci, "desktop-windows:")
-	if linuxIdx < 0 || windowsIdx < 0 || windowsIdx <= linuxIdx {
+	snapshotIdx := strings.Index(ci, "\n  snapshot:")
+	if linuxIdx < 0 || snapshotIdx < 0 || snapshotIdx <= linuxIdx {
 		t.Fatal("could not locate desktop-linux job block")
 	}
-	linuxBlock := ci[linuxIdx:windowsIdx]
+	linuxBlock := ci[linuxIdx:snapshotIdx]
 	if !strings.Contains(linuxBlock, `test -n "${NEXUS_UPDATE_PUBLIC_KEY}"`) {
 		t.Fatal("desktop-linux job must fail-closed when NEXUS_UPDATE_PUBLIC_KEY is empty")
 	}
@@ -437,11 +437,9 @@ func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 			t.Errorf("ci.yml must build test binaries with %q", cmd)
 		}
 	}
-	// Wails desktop builds (promoted into releases) must also strip paths.
-	if !strings.Contains(string(ci), "export GOFLAGS=-trimpath") {
-		t.Error("ci.yml macOS wails build must forward -trimpath via GOFLAGS")
-	}
-	if !strings.Contains(string(ci), "$env:GOFLAGS = '-trimpath'") {
-		t.Error("ci.yml Windows wails build must forward -trimpath via GOFLAGS")
+	// The Linux beta desktop job delegates to the Make target that forwards
+	// -trimpath to the Wails build.
+	if !strings.Contains(string(ci), "make build-desktop-wails") {
+		t.Error("ci.yml Linux Wails build must use the trimpath-enabled Make target")
 	}
 }

@@ -12,8 +12,6 @@ builds:
       - -trimpath
     goos:
       - linux
-      - darwin
-      - windows
     goarch:
       - amd64
       - arm64
@@ -26,16 +24,13 @@ builds:
         -X github.com/IAPro-Community/nexus/internal/update.ProductionTrustRootHex={{.Env.NEXUS_UPDATE_PUBLIC_KEY}}
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
-    format_overrides:
-      - goos: windows
-        format: zip
 
 checksum:
   name_template: 'checksums.txt'
@@ -57,7 +52,6 @@ nfpms:
     license: Proprietary
     formats:
       - deb
-      - rpm
     bindir: /usr/local/bin
     contents:
       - src: ./LICENSE
@@ -70,9 +64,6 @@ nfpms:
       - src: ./packaging/linux/.nexus-rpm
         dst: /usr/local/bin/.nexus-rpm
         packager: rpm
-
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc

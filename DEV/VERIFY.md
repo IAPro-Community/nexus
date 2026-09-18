@@ -1,5 +1,17 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-18 — Beta Linux CI closure preparation
+
+- PASS — `make quality` (format, frontend lint/styles/typecheck, 409 Vitest
+  tests, Go lint, Go tests and version contract).
+- PASS — release contract tests, Wails/Linux build, browser E2E/a11y/visual,
+  GoReleaser check and Linux snapshot, DEB container smoke and `make docs-verify`.
+- PASS — `actionlint` for CI/release workflows and `git diff --check`.
+- OPERATIONAL — repository runner `nexus-ci-dev-web-kiver` is online with
+  labels `self-hosted`, `Linux`, `X64`, `nexus-ci`.
+- PENDING — commit/push, hosted same-SHA 7/7 run, repeated Linux run, merge,
+  green `main`, distribution token and signed beta release.
+
 ## 2026-09-17 — PR #2 Windows closure patch
 
 - PASS — `go test -v ./internal/core/provider/adapters/codex -run

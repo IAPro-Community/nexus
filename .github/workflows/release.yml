@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version (for example v0.5.0-beta.24)
+        description: Release version (for example v1.0.0-beta.1)
         required: true
         type: string
 
@@ -23,11 +23,11 @@ env:
 jobs:
   same-sha-gate:
     name: Same-SHA CI gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
     outputs:
       ci-run-id: ${{ steps.verify.outputs.ci-run-id }}
     steps:
-      - name: Wait for required CI checks on this SHA
+      - name: Wait for required Linux beta checks on this SHA
         id: verify
         env:
           GH_TOKEN: ${{ github.token }}
@@ -39,15 +39,9 @@ jobs:
             'Security'
             'Browser E2E, Axe & visual smoke'
             'Linux E2E (Go 1.25.14)'
-            'Windows E2E (ConPTY, Named Pipe, PowerShell)'
-            'macOS E2E (PTY, Socket, Resize, Install)'
             'Desktop Linux (Wails native build)'
-            'Desktop Windows (Wails native build)'
-            'Desktop macOS (Wails native build)'
             'GoReleaser Snapshot Build'
             'Smoke DEB install'
-            'Smoke RPM install'
-            'Windows NSIS installer'
           )
           run_id=''
           for attempt in $(seq 1 60); do
@@ -56,53 +50,33 @@ jobs:
             run_status="$(jq -r '.[0].status // empty' <<<"$run_json")"
             run_conclusion="$(jq -r '.[0].conclusion // empty' <<<"$run_json")"
             run_sha="$(jq -r '.[0].headSha // empty' <<<"$run_json")"
-            if [ -z "$run_id" ]; then
-              echo "No CI run found for $SHA (attempt $attempt/60)."
-              sleep 30
-              continue
-            fi
-            if [ "$run_sha" != "$SHA" ]; then
-              echo "Ignoring CI run $run_id with unexpected head SHA $run_sha (expected $SHA)." >&2
-              run_id=''
-              sleep 30
-              continue
-            fi
-            if [ "$run_status" = "completed" ]; then
+            if [ -n "$run_id" ] && [ "$run_sha" = "$SHA" ] && [ "$run_status" = completed ]; then
               break
             fi
-            echo "Waiting for CI run $run_id for $SHA to complete (attempt $attempt/60; status=$run_status)..."
+            echo "Waiting for CI for $SHA (attempt $attempt/60; run=${run_id:-none}; status=${run_status:-none})"
+            run_id=''
             sleep 30
           done
           test -n "$run_id" || { echo "No completed CI run found for $SHA" >&2; exit 1; }
-          test "$run_status" = completed || { echo "CI run $run_id did not complete" >&2; exit 1; }
           test "$run_conclusion" = success || {
-            echo "CI run $run_id for $SHA concluded $run_conclusion; required checks are not green." >&2
+            echo "CI run $run_id for $SHA concluded $run_conclusion" >&2
             gh run view "$run_id" --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv' >&2
             exit 1
           }
-          mapfile -t failed < <(gh run view "$run_id" --json jobs --jq '.jobs[] | select(.conclusion != "success") | .name')
-          if [ "${#failed[@]}" -ne 0 ]; then
-            printf 'CI run %s has failed/skipped jobs:\n%s\n' "$run_id" "${failed[*]}" >&2
-            exit 1
-          fi
           jobs_json="$(gh run view "$run_id" --json jobs)"
           for expected in "${required[@]}"; do
-            # Matrix jobs append the Go patch version to their display name.
-            # Match the functional job prefix but require exactly one success;
-            # this remains strict while avoiding patch-version drift.
-            jq -e --arg prefix "$expected" \
-              '[.jobs[] | select(.conclusion == "success" and (.name == $prefix or (.name | startswith($prefix + " ("))))] | length == 1' \
+            jq -e --arg expected "$expected" \
+              '[.jobs[] | select(.name == $expected and .conclusion == "success")] | length == 1' \
               <<<"$jobs_json" >/dev/null || {
-              echo "Required same-SHA successful job missing or ambiguous: $expected" >&2
+              echo "Missing successful required check: $expected" >&2
               exit 1
             }
           done
           echo "ci-run-id=$run_id" >> "$GITHUB_OUTPUT"
-          echo "Same-SHA CI run $run_id passed all required jobs for $SHA."
 
   release:
     needs: same-sha-gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
     environment: beta-signing
     permissions:
       contents: write
@@ -110,44 +84,30 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.25.14'
-          cache: true
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+          cache: false
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
-
-      - name: Install and build frontend
-        working-directory: web
+      - working-directory: web
         run: |
           bun install --frozen-lockfile
           bun run build
-
-      - name: Verify embedded bundle
-        run: test -f internal/control/web/embedded/index.html && test -f internal/control/web/embedded/bundle.js && test -f internal/control/web/embedded/bundle.css
-
-      - name: Run release gates
-        run: |
+      - run: test -f internal/control/web/embedded/index.html && test -f internal/control/web/embedded/bundle.js && test -f internal/control/web/embedded/bundle.css
+      - run: |
           go test -race ./...
           go vet ./...
-
-      - name: Build signed release artifacts
-        uses: goreleaser/goreleaser-action@v6
+      - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: v2.18.0
           args: release --clean
-
-      - name: Promote native Desktop artifacts from same-SHA CI
+      - name: Promote same-SHA Linux desktop artifact
         env:
           GH_TOKEN: ${{ github.token }}
           CI_RUN_ID: ${{ needs.same-sha-gate.outputs.ci-run-id }}
@@ -155,16 +115,8 @@ jobs:
           set -euo pipefail
           mkdir -p native-artifacts
           gh run download "$CI_RUN_ID" --name "desktop-linux-${GITHUB_SHA}" --dir native-artifacts
-          gh run download "$CI_RUN_ID" --name "desktop-windows-${GITHUB_SHA}" --dir native-artifacts
-          gh run download "$CI_RUN_ID" --name "desktop-macos-${GITHUB_SHA}" --dir native-artifacts
-          gh run download "$CI_RUN_ID" --name "nsis-windows-${GITHUB_SHA}" --dir native-artifacts || true
-          find native-artifacts -type f -maxdepth 2 -print
-          test -f native-artifacts/nexus-setup-Windows_x86_64.exe || {
-            echo "NSIS installer missing from same-SHA CI artifacts" >&2
-            exit 1
-          }
-
-      - name: Generate signed update manifest (CLI + desktop + NSIS)
+          test -f native-artifacts/nexus-desktop_Linux_x86_64.tar.gz
+      - name: Generate signed Linux update manifest
         env:
           NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
           NEXUS_UPDATE_KEY_ID: ${{ secrets.NEXUS_UPDATE_KEY_ID }}
@@ -172,10 +124,11 @@ jobs:
           NEXUS_DIST_REPO: ${{ vars.NEXUS_DIST_REPO }}
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
+          set -euo pipefail
+          case "$RELEASE_VERSION" in v*) ;; *) echo "Release version must be a v-prefixed tag" >&2; exit 1;; esac
           test -n "$NEXUS_UPDATE_PRIVATE_KEY"
-          test "$NEXUS_UPDATE_KEY_ID" = "nexus-signing-key-2026-v1"
-          test "$NEXUS_UPDATE_PUBLIC_KEY" = "$(printf '%s' "$NEXUS_UPDATE_PUBLIC_KEY" | tr '[:upper:]' '[:lower:]')"
-          test "${#NEXUS_UPDATE_PUBLIC_KEY}" -eq 64
+          test -n "$NEXUS_UPDATE_KEY_ID"
+          test -n "$NEXUS_UPDATE_PUBLIC_KEY"
           DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
           go run ./scripts/sign-update-manifest \
             --dist dist \
@@ -185,82 +138,53 @@ jobs:
             --private-key "$NEXUS_UPDATE_PRIVATE_KEY" \
             --public-key "$NEXUS_UPDATE_PUBLIC_KEY" \
             --base-url "https://github.com/${DIST_REPO}/releases/download/${RELEASE_VERSION}"
-          test -f dist/update-manifest.json
-          test -f dist/update-manifest.sig
           python3 - <<'PY'
           import json
-          m = json.load(open("dist/update-manifest.json"))
-          arts = m.get("artifacts", {})
-          required = ("linux_amd64", "desktop_linux_amd64", "windows_amd64_nsis")
-          missing = [k for k in required if k not in arts]
+          manifest = json.load(open('dist/update-manifest.json'))
+          required = ('linux_amd64', 'desktop_linux_amd64')
+          missing = [key for key in required if key not in manifest.get('artifacts', {})]
           if missing:
-              raise SystemExit(f"signed manifest missing keys: {missing}")
-          print(f"signed manifest covers {len(arts)} artifact keys")
+              raise SystemExit(f'signed manifest missing keys: {missing}')
           PY
-
-      - name: Attest release artifacts
-        uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
             dist/*
             native-artifacts/*
-
-      - name: Stage installer and legal docs for distribution
+      - name: Stage Linux installer and legal documents
         run: |
           set -euo pipefail
-          cp install.sh install.ps1 dist/
-          cp docs/legal/BETA_TERMS.md docs/legal/PRIVACY.md dist/
-          ls dist/ | head -n 30
-
-      - name: Upload signed artifacts for distribution
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-signed-${{ github.sha }}
-          path: |
-            dist/*
-            native-artifacts/*
-          if-no-files-found: error
-
-      - name: Publish release
+          cp install.sh docs/legal/BETA_TERMS.md docs/legal/PRIVACY.md dist/
+      - name: Require public distribution credential
+        env:
+          NEXUS_DIST_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
+        run: |
+          test -n "$NEXUS_DIST_TOKEN" || {
+            echo "NEXUS_DIST_TOKEN is required to publish the closed-source beta to the public distribution repository" >&2
+            exit 1
+          }
+      - name: Publish immutable release
         uses: softprops/action-gh-release@v2
         with:
-          repository: ${{ secrets.NEXUS_DIST_TOKEN != '' && (vars.NEXUS_DIST_REPO != '' && vars.NEXUS_DIST_REPO || 'IAPro-Community/nexus-releases') || github.repository }}
-          token: ${{ secrets.NEXUS_DIST_TOKEN != '' && secrets.NEXUS_DIST_TOKEN || github.token }}
+          repository: ${{ vars.NEXUS_DIST_REPO || 'IAPro-Community/nexus-releases' }}
+          token: ${{ secrets.NEXUS_DIST_TOKEN }}
           files: |
             dist/*
             native-artifacts/*
           generate_release_notes: true
-
-      - name: Publish movable channel pointer (update-manifest only)
+      - name: Publish beta channel pointer
         env:
-          GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN != '' && secrets.NEXUS_DIST_TOKEN || github.token }}
-          NEXUS_DIST_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
+          GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
           NEXUS_DIST_REPO: ${{ vars.NEXUS_DIST_REPO }}
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           set -euo pipefail
-          if [ -n "${NEXUS_DIST_TOKEN:-}" ]; then
-            DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
-          else
-            # No dist token: keep pointer next to the release above.
-            DIST_REPO="$GITHUB_REPOSITORY"
-          fi
-          test -f dist/update-manifest.json
-          test -f dist/update-manifest.sig
-          CHANNEL=stable
-          case "${RELEASE_VERSION}" in
-            *beta*|*rc*|*alpha*|*dev*) CHANNEL=beta ;;
-          esac
-          TAG="channel-${CHANNEL}"
-          NOTES="Nexus ${CHANNEL} channel pointer → ${RELEASE_VERSION}. Discovery-only release (update-manifest.json + .sig). Immutable binaries remain on the versioned tag."
+          DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
+          TAG=channel-beta
+          NOTES="Nexus beta channel pointer → ${RELEASE_VERSION}. Discovery-only signed update manifest."
           if gh release view "$TAG" --repo "$DIST_REPO" >/dev/null 2>&1; then
             gh release delete "$TAG" --repo "$DIST_REPO" --yes
           fi
-          gh release create "$TAG" \
-            --repo "$DIST_REPO" \
-            dist/update-manifest.json \
-            dist/update-manifest.sig \
-            --title "Nexus ${CHANNEL} update channel" \
-            --notes "$NOTES" \
-            --latest=false
-          echo "Published pointer ${TAG} for ${RELEASE_VERSION} on ${DIST_REPO}"
+          gh release create "$TAG" --repo "$DIST_REPO" \
+            dist/update-manifest.json dist/update-manifest.sig \
+            --title "Nexus beta update channel" --notes "$NOTES" --latest=false

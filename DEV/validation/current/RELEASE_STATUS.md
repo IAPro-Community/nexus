@@ -1,36 +1,47 @@
 # Current release status
 
-STATUS: CLOSURE_PATCH_IMPLEMENTED_PENDING_HOSTED_VALIDATION
+STATUS: BETA_LINUX_CI_RECONFIGURED_PENDING_RUNNER_AND_HOSTED_EVIDENCE
 VERSION: 1.0.0-beta.1
-HEAD_AT_WRITE: 19e233c5c4224b46e565b754b4ec92d28a757dd9
+HEAD_AT_WRITE: e2f40a50dbcca78986796c2d5a16cac5e8a7d7ff
 GENERATED_AT: 2026-09-17T00:00:00Z
 
-O repositório permanece privado e a distribuição beta é closed-source. O
-HEAD acima é a baseline observada antes do commit único de fechamento; se a
-branch avançar, a validação hosted deve ser refeita no novo SHA.
+The source repository remains private and the beta distribution is
+closed-source. GitHub-hosted runners are blocked before job start by the
+organization Actions budget/payment state. The red hosted run at the current
+SHA is therefore infrastructure evidence, not a failed test result.
+
+## Beta certification scope
+
+This beta is Linux-only until native Windows and macOS runners are available.
+The CI workflow requires seven same-SHA Linux gates:
+
+1. Frontend (format, lint, styles, typecheck, unit tests and build)
+2. Security (`govulncheck`)
+3. Browser E2E, Axe and visual smoke
+4. Linux E2E (race, terminal, runtime, web and build)
+5. Desktop Linux Wails native build
+6. GoReleaser snapshot (Linux archives and DEB only)
+7. DEB install smoke
+
+Windows E2E/ConPTY/Named Pipe, Windows Desktop/NSIS, macOS E2E/Desktop and
+RPM packaging remain in source but are **UNVERIFIED** for this beta. They must
+not be described as passed or shipped as beta artifacts.
 
 ## Remaining closure gates
 
-1. Autorizar um único commit de fechamento e fazer push da branch.
-2. Confirmar os 14 jobs definidos em `.github/workflows/ci.yml` verdes no mesmo SHA.
-3. Reexecutar o Windows no mesmo SHA e obter duas execuções consecutivas verdes.
-4. Provisionar o GitHub Environment `beta-signing` com
-   `NEXUS_UPDATE_PRIVATE_KEY`, `NEXUS_UPDATE_KEY_ID` e
-   `NEXUS_UPDATE_PUBLIC_KEY` como variável.
-5. Após merge commit da PR #2 e CI verde na `main`, remover a tag remota
-   `v1.0.0-beta.1` que ainda aponta para `cf2eb41` e recriá-la no commit entregue.
-6. Executar o Signed Release e verificar checksums, DEB/RPM/NSIS, binários
-   desktop, `update-manifest.json`, assinatura e `channel-beta`.
-7. Como o plano privado não permite branch protection, mergear somente por
-   maintainer autorizado, com checklist manual e sem push direto planejado na
-   `main`; o risco residual permanece explicitamente registrado.
+1. Register the repository-scoped `nexus-ci` Linux self-hosted runner and
+   prove it can start a minimal job.
+2. Push one closure commit, obtain 7/7 green on its exact SHA, then rerun the
+   Linux CI on that same SHA.
+3. Configure `NEXUS_DIST_TOKEN` with least-privilege write access to
+   `IAPro-Community/nexus-releases`; the release workflow fails closed without
+   it. Ensure `beta-signing` permits `v*` tags.
+4. Update the stale `v1.0.0-beta.1` tag only after a merge commit and a green
+   `main` CI run, then run Signed Release and verify its manifest, signature,
+   checksums, Linux CLI/Desktop artifacts, DEB and `channel-beta`.
+5. `main` branch protection is unavailable on the current private-plan tier;
+   use the documented maintainer-only merge checklist until that changes.
 
-Não publicar como `1.0.0` estável.
-
-## Local closure slice
-
-- golangci-lint: misspell PT isolado em `composer_brief.go`; SA1019 no CLI legado
-- Composer attach: symlink, LimitReader, UTF-8, detach/persist não rebaixam `FINALIZED`
-- Telemetria de teste isolada em `AI_CLI_STATE_DIR`
-- README / quick-start / installation apontam para `IAPro-Community/nexus` e `v1.0.0-beta.1`
-- CHANGELOG descreve Community Preview, não Unreleased
+No release is authorized from this document. The existing remote beta tag
+points to `cf2eb41` and is premature because that SHA also has a failed hosted
+workflow record.
