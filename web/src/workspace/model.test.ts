@@ -28,6 +28,71 @@ describe('workspace model', () => {
     expect(stack?.activeId).toBe('terminal:a');
   });
 
+  it('removes duplicate logical tabs before activating a surface', () => {
+    const duplicate = {
+      ...surface('project:p1:settings-copy'),
+      logicalKey: 'project:p1:settings',
+      type: 'settings',
+    };
+    let ws = createWorkspace({
+      ...surface('project:p1:overview'),
+      logicalKey: 'project:p1:overview',
+      type: 'overview',
+    });
+    ws = openSurface(ws, duplicate);
+    ws = openSurface(ws, { ...duplicate, id: 'project:p1:settings' });
+
+    expect(ws.root.kind).toBe('stack');
+    if (ws.root.kind === 'stack') {
+      expect(ws.root.tabs.filter((tab) => tab.logicalKey === 'project:p1:settings')).toHaveLength(
+        1,
+      );
+      expect(ws.root.activeId).toBe('project:p1:settings-copy');
+    }
+  });
+
+  it('repairs legacy duplicates that have different ids but the same data identity', () => {
+    const ws = {
+      version: 2 as const,
+      root: {
+        kind: 'split' as const,
+        id: 'split-1',
+        direction: 'horizontal' as const,
+        ratio: 0.5,
+        first: {
+          kind: 'stack' as const,
+          id: 'stack-1',
+          activeId: 'terminal-copy-a',
+          tabs: [
+            {
+              ...surface('terminal-copy-a'),
+              type: 'terminal',
+              data: { agentId: 'agent-1' },
+            },
+          ],
+        },
+        second: {
+          kind: 'stack' as const,
+          id: 'stack-2',
+          activeId: 'terminal-copy-b',
+          tabs: [
+            {
+              ...surface('terminal-copy-b'),
+              type: 'terminal',
+              data: { agentId: 'agent-1' },
+            },
+          ],
+        },
+      },
+    };
+
+    const repaired = openSurface(ws, surface('home'));
+    expect(listSurfaces(repaired.root)).toHaveLength(2);
+    expect(
+      listSurfaces(repaired.root).filter((tab) => tab.data?.agentId === 'agent-1'),
+    ).toHaveLength(1);
+  });
+
   it('splits an existing stack with a new surface', () => {
     const ws = splitWithSurface(
       createWorkspace(surface('home')),

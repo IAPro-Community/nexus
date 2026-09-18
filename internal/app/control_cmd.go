@@ -16,20 +16,25 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/handoff"
-	"github.com/kivervinicius/ai-cli/internal/control/host"
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	controltui "github.com/kivervinicius/ai-cli/internal/control/tui"
-	"github.com/kivervinicius/ai-cli/internal/control/web"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/core/scheduler"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/handoff"
+	"github.com/IAPro-Community/nexus/internal/control/host"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	controltui "github.com/IAPro-Community/nexus/internal/control/tui"
+	"github.com/IAPro-Community/nexus/internal/control/web"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/cooldown"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	providerspec "github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/scheduler"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
+	"github.com/IAPro-Community/nexus/internal/profile"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 func controlCmd(args []string) error {
@@ -54,6 +59,12 @@ func controlCmd(args []string) error {
 			return attachRuntime(target)
 		}
 		return nil
+	case "monitor":
+		runtimeID := ""
+		if len(args) > 1 {
+			runtimeID = args[1]
+		}
+		return controltui.RunControlMonitor(context.Background(), runtimeID)
 	case "web":
 		return controlWebCmd(args[1:])
 	case "help", "-h", "--help":
@@ -92,6 +103,7 @@ USAGE:
 
 SUBCOMMANDS:
   (no args)                     Open interactive Bubble Tea Control Center
+  monitor [runtime-id]          Open read-only sidecar monitor (never attaches)
   start <provider> [--profile <name>] [args...]
                                 Start a supervised runtime session
   running [--json]              List active managed runtimes (alias: %s ps)
@@ -106,7 +118,8 @@ SUBCOMMANDS:
   doctor [--json] [--repair]     Audit control runtime environment and drivers
   web [--port <port>] [--no-open] [--listen <ip>] [--remote]
                                 Open browser-based Web Workspace OS
-                                Default port: 3000 (override with NEXUS_WEB_PORT env var)
+                                Default port: 13000 (override with NEXUS_WEB_PORT env var)
+                                Registers nexus.dev in /etc/hosts for local name resolution
   web open                      Reopen the running Web UI from any terminal
   web url                       Print the current Web UI URL (with auth token if needed)
 
@@ -131,7 +144,7 @@ func controlWebCmd(args []string) error {
 	var noOpen bool
 	var remote bool
 
-	// Resolve port: CLI flag > env var > default (3000)
+	// Resolve port: CLI flag > env var > default (13000)
 	port = web.DefaultPort
 	if envPort := os.Getenv("NEXUS_WEB_PORT"); envPort != "" {
 		if p, err := strconv.Atoi(envPort); err == nil && p > 0 && p <= 65535 {
@@ -182,7 +195,6 @@ func controlWebCmd(args []string) error {
 		bootstrapURL := core.BootstrapURL()
 		fmt.Println("=== Nexus Control Center (Web UI) ===")
 		fmt.Printf("URL:       %s\n", core.URL())
-		fmt.Printf("Bootstrap: %s\n\n", bootstrapURL)
 		fmt.Println("Press Ctrl+C to stop the Web Control Center.")
 		fmt.Printf("Reopen from any terminal: %s web open\n", progName())
 
@@ -204,6 +216,9 @@ func controlWebReopenCmd(printOnly bool) error {
 	if target == "" {
 		target = state.URL
 	}
+	if state.BootstrapToken != "" && !strings.Contains(target, "#nexus_bootstrap=") {
+		target = strings.TrimRight(state.URL, "/") + "/#nexus_bootstrap=" + state.BootstrapToken
+	}
 	if printOnly {
 		fmt.Println(target)
 		return nil
@@ -212,7 +227,7 @@ func controlWebReopenCmd(printOnly bool) error {
 		fmt.Println(target)
 		return fmt.Errorf("não foi possível abrir o browser: %w", err)
 	}
-	fmt.Printf("Opened %s\n", state.URL)
+	fmt.Printf("Opened %s\n", target)
 	return nil
 }
 
@@ -258,11 +273,12 @@ func controlHostCmd(args []string) error {
 	}
 
 	sh, err := host.NewSessionHost(host.Config{
-		Session: sess,
-		Binary:  bin,
-		Args:    cmdArgs,
-		Env:     env,
-		Cwd:     sess.Workspace,
+		Session:  sess,
+		Registry: reg,
+		Binary:   bin,
+		Args:     cmdArgs,
+		Env:      env,
+		Cwd:      sess.Workspace,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create SessionHost: %w", err)
@@ -303,45 +319,56 @@ func controlStartCmd(args []string) error {
 
 	ctx := context.Background()
 
-	// 1. Resolve Profile using Smart Account Selector if not explicitly given
-	if profileName == "" {
-		cwd, _ := os.Getwd()
-		cfg, _ := config.LoadConfig()
-		qEng := quota.NewEngine(5 * time.Minute)
-		cdTracker := cooldown.NewTracker()
-		sel := scheduler.NewSelector(cfg, qEng, cdTracker)
+	fmt.Fprintf(os.Stderr, "⚡ [nexus] iniciando %s…\n", providerID)
 
-		allProfiles, _ := profile.List()
-		var candidates []model.Profile
-		accounts := make(map[string]model.AccountInfo)
-		for _, p := range allProfiles {
-			if p.Provider == providerID {
-				candidates = append(candidates, p)
-				accounts[p.Name] = profile.GetAccountInfo(providerID, p.Name)
-			}
+	// 1. Resolve Profile using the shared explicit/best/default fallback policy.
+	cwd, _ := os.Getwd()
+	cfg, _ := config.LoadConfig()
+	qEng := quota.NewEngine(5 * time.Minute)
+	sel := scheduler.NewSelector(cfg, qEng, cooldown.NewTracker())
+	allProfiles, err := profile.List()
+	if err != nil {
+		return err
+	}
+	var candidates []model.Profile
+	accounts := make(map[string]model.AccountInfo)
+	for _, candidate := range allProfiles {
+		if candidate.Provider != providerID || candidate.Disabled {
+			continue
 		}
-
-		res, _ := sel.SelectBestProfile(ctx, providerID, cwd, candidates, accounts, nil)
-		if res != nil && res.SelectedProfile != nil && res.SelectedProfile.Name != "" {
-			profileName = res.SelectedProfile.Name
-		} else {
-			def, _ := config.GetDefaultProfile(providerID)
-			if def != "" {
-				profileName = def
-			} else {
-				profileName = "default"
-			}
-		}
+		candidates = append(candidates, candidate)
+		account := profile.GetAccountInfo(providerID, candidate.Name)
+		snapshot := profile.PeekUsageSnapshot(providerID, candidate.Name)
+		account.Usage = snapshot
+		accounts[candidate.Name] = account
+	}
+	if len(candidates) == 0 {
+		return fmt.Errorf("no enabled profiles configured for provider %s", providerID)
+	}
+	candidates, err = launchableProfiles(providerID, profileName, candidates)
+	if err != nil {
+		return err
 	}
 
-	// 2. Launch via unified RuntimeLauncher
-	l := launcher.Default()
-	sess, err := l.Launch(ctx, launcher.LaunchOptions{
-		ProviderID: providerID,
-		ProfileID:  profileName,
-		Args:       extraArgs,
-	})
+	// 2. Launch via unified RuntimeLauncher. Auto-selected profiles fall back
+	// when Codex exclusive maintenance holds the TUI lock.
+	sess, profileName, err := launchWithBusyFailover(
+		ctx,
+		launcher.Default(),
+		sel,
+		providerID,
+		profileName,
+		cwd,
+		cfg.Defaults[providerID],
+		candidates,
+		accounts,
+		launcher.LaunchOptions{Args: extraArgs},
+		os.Stderr,
+	)
 	if err != nil {
+		if errors.Is(err, codex.ErrTUIBusy) {
+			return busyProfileError(providerID, profileName)
+		}
 		return err
 	}
 
@@ -441,6 +468,32 @@ func controlAttachCmd(args []string) error {
 }
 
 func attachRuntime(runtimeID string) error {
+	return attachRuntimeWithInput(runtimeID, nil)
+}
+
+func containsTerminalInterrupt(input []byte) bool {
+	for _, b := range input {
+		if b == 0x03 {
+			return true
+		}
+	}
+	return false
+}
+
+// forwardAttachedInput is intentionally byte-transparent. It observes Ctrl+C
+// only to repair the outer terminal after a provider TUI has handled the
+// interruption; the original input always reaches the runtime unchanged.
+func forwardAttachedInput(destination io.Writer, input []byte, reassertKeyboardModes func()) error {
+	if _, err := destination.Write(input); err != nil {
+		return err
+	}
+	if containsTerminalInterrupt(input) && reassertKeyboardModes != nil {
+		reassertKeyboardModes()
+	}
+	return nil
+}
+
+func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error {
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
 		return fmt.Errorf("failed to attach to runtime %q: %w", runtimeID, err)
@@ -449,6 +502,7 @@ func attachRuntime(runtimeID string) error {
 
 	// 1. Put user terminal into Raw Mode if stdin is a terminal
 	isTerm := term.IsTerminal(int(os.Stdin.Fd()))
+	defer nexusruntime.GuardInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)()
 	if isTerm {
 		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 		if err == nil {
@@ -526,12 +580,117 @@ func attachRuntime(runtimeID string) error {
 	// 5. Stream user stdin to runtime host
 	go func() {
 		defer rawConn.Close()
-		_, copyErr := io.Copy(rawConn, os.Stdin)
-		errChan <- copyErr
+		if input != nil {
+			errChan <- input(rawConn)
+			return
+		}
+		buf := make([]byte, 32*1024)
+		for {
+			n, readErr := os.Stdin.Read(buf)
+			if n > 0 {
+				if writeErr := forwardAttachedInput(rawConn, buf[:n], func() {
+					nexusruntime.ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
+				}); writeErr != nil {
+					errChan <- writeErr
+					return
+				}
+			}
+			if readErr != nil {
+				errChan <- readErr
+				return
+			}
+		}
 	}()
 
 	<-errChan
 	return nil
+}
+
+// attachInteractiveLeadRuntime keeps the Lead Agent lifecycle bound to the
+// supervised session while preserving byte-transparent provider I/O. Complete
+// prompt lines pass through the promotion policy; control sequences and
+// bracketed paste are never interpreted as prompt text.
+func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session registry.RuntimeSession, agentID string) error {
+	if n != nil {
+		defer func() { _ = n.ReleaseInteractiveLeadRuntime(context.Background(), agentID, runtimeID) }()
+	}
+	if n == nil || session.ProjectID == "" || agentID == "" {
+		return attachRuntime(runtimeID)
+	}
+	mode := interactiveDelegationMode(session)
+	return attachRuntimeWithInput(runtimeID, func(conn io.Writer) error {
+		shadow := promotion.NewLineShadow()
+		if mode == nexus.DelegationOff {
+			shadow.SetEnabled(false)
+		}
+		promoter := promotion.NewPromoter(n)
+		buf := make([]byte, 1024)
+		pendingASK := ""
+		for {
+			nread, err := os.Stdin.Read(buf)
+			if nread > 0 {
+				input := buf[:nread]
+				if containsTerminalInterrupt(input) {
+					nexusruntime.ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
+				}
+				if pendingASK != "" {
+					answer := input[0]
+					input = input[1:]
+					switch answer {
+					case 'y', 'Y':
+						_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
+						_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Solicitação promovida para Mission; o Lead receberá a síntese ao concluir.\r\n")
+						go runInteractiveDelegatedMission(n, session, agentID, pendingASK, mode)
+					case 'n', 'N':
+						_, _ = conn.Write([]byte("\r"))
+					default:
+						_, _ = conn.Write([]byte("\r"))
+					}
+					pendingASK = ""
+				}
+				if len(input) == 0 {
+					if err != nil {
+						return err
+					}
+					continue
+				}
+				event := shadow.Consume(input)
+				if _, writeErr := conn.Write(event.Forward); writeErr != nil {
+					return writeErr
+				}
+				if event.Submit {
+					for _, line := range event.Submissions {
+						// Hold Enter only long enough to decide KEEP/PROMOTE/ASK.
+						// Provider slash commands (/status, /model, …) submit
+						// immediately so supervised CLIs stay byte-responsive.
+						action := decideInteractiveSubmit(context.Background(), promoter, session.ProjectID, line, mode)
+						if action == promotion.KeepWithLead {
+							_, _ = conn.Write([]byte("\r"))
+							continue
+						}
+						if action == promotion.Ask {
+							_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Promover esta solicitação para uma Mission? [y/n] ")
+							pendingASK = line
+							continue
+						}
+						_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
+						_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Solicitação promovida para Mission; o Lead receberá a síntese ao concluir.\r\n")
+						go runInteractiveDelegatedMission(n, session, agentID, line, mode)
+					}
+				}
+			}
+			if err != nil {
+				return err
+			}
+		}
+	})
+}
+
+func clearLineSequence(providerID string) string {
+	if provider, ok := providerspec.Get(providerID); ok && provider.ClearLine != "" {
+		return provider.ClearLine
+	}
+	return "\x15"
 }
 
 func controlStopCmd(args []string) error {
@@ -624,8 +783,9 @@ func controlContinueCmd(args []string) error {
 func controlCleanupCmd(_ []string) error {
 	reg := registry.DefaultRegistry()
 	cleaned, _ := reg.CleanupStale()
+	reaped := launcher.ReapOrphanHosts(reg.List())
 	purged, _ := reg.PurgeInactive()
-	fmt.Printf("✓ Cleaned up %d stale records and purged %d inactive runtimes.\n", cleaned, purged)
+	fmt.Printf("✓ Cleaned up %d stale records, reaped %d orphan hosts, and purged %d inactive runtimes.\n", cleaned, reaped, purged)
 	return nil
 }
 

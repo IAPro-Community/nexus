@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/core/telemetry"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/cooldown"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/telemetry"
 )
 
 // CandidateEvaluation holds the scoring breakdown for a single candidate profile.
@@ -116,12 +116,13 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 		}, fmt.Errorf("no usable %s profiles available: %s", provider, strings.Join(rejectSummaries, ", "))
 	}
 
-	// When no candidate has any quota windows, rotate healthy authenticated
-	// profiles by least-recently-selected instead of favoring a stale default.
-	// ESTIMATED/stale windows still rank relatively (e.g. AGY family availability).
+	// When no candidate has a current quota observation, rotate healthy
+	// authenticated profiles by least-recently-selected instead of favoring a
+	// stale default. ESTIMATED windows remain visible to the caller but are not
+	// evidence for automatic account selection.
 	hasQuotaEvidence := false
 	for _, ev := range eligible {
-		if len(ev.Usage.Windows) > 0 && ev.Usage.Status != model.UsageUnknown {
+		if len(ev.Usage.Windows) > 0 && (ev.Usage.Status == model.UsageLive || ev.Usage.Status == model.UsageCached) {
 			hasQuotaEvidence = true
 			break
 		}
@@ -129,7 +130,11 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 	if !hasQuotaEvidence {
 		lastUsed := selectedAt(provider)
 		sort.SliceStable(eligible, func(i, j int) bool {
-			return lastUsed[eligible[i].Profile.Name].Before(lastUsed[eligible[j].Profile.Name])
+			left, right := lastUsed[eligible[i].Profile.Name], lastUsed[eligible[j].Profile.Name]
+			if !left.Equal(right) {
+				return left.Before(right)
+			}
+			return eligible[i].Profile.Name < eligible[j].Profile.Name
 		})
 		best := eligible[0]
 		return &SelectionResult{SelectedProfile: &best.Profile, Reason: "quota UNKNOWN; LRU among healthy authenticated profiles", Evaluations: evals}, nil
@@ -137,7 +142,15 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 
 	// Sort eligible candidates by Score descending
 	sort.Slice(eligible, func(i, j int) bool {
-		return eligible[i].Score > eligible[j].Score
+		iFresh := currentQuotaEvidence(eligible[i].Usage.Status)
+		jFresh := currentQuotaEvidence(eligible[j].Usage.Status)
+		if iFresh != jFresh {
+			return iFresh
+		}
+		if eligible[i].Score != eligible[j].Score {
+			return eligible[i].Score > eligible[j].Score
+		}
+		return eligible[i].Profile.Name < eligible[j].Profile.Name
 	})
 
 	best := eligible[0]
@@ -151,6 +164,10 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 		Reason:          reason,
 		Evaluations:     evals,
 	}, nil
+}
+
+func currentQuotaEvidence(status model.UsageStatus) bool {
+	return status == model.UsageLive || status == model.UsageCached
 }
 
 func selectedAt(provider string) map[string]time.Time {
@@ -188,7 +205,20 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 			}
 		}
 
-		snap, _ := s.quotaEng.GetCachedUsage(provider, p.Name)
+		snap := acc.Usage
+		scope := p.AccountScope
+		if !scope.Verifiable() {
+			scope = acc.AccountScope
+		}
+		if snap.ProviderID == "" || snap.ProfileID == "" {
+			if scope.Verifiable() {
+				snap, _ = s.quotaEng.GetCachedUsageForScope(scope)
+			} else {
+				// Compatibility for callers constructing in-memory profiles. All
+				// persisted profiles are backfilled with AccountScope by profile.List.
+				snap, _ = s.quotaEng.GetCachedUsage(provider, p.Name)
+			}
+		}
 		isExcluded := false
 		for _, ex := range excludeProfiles {
 			if ex == p.Name {
@@ -227,22 +257,28 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 			continue
 		}
 
-		if isLimited, rec := s.cooldown.IsRateLimited(provider, p.Name); isLimited {
-			ev.Eligible = false
-			ev.RejectReason = fmt.Sprintf("rate limited until %s (%s)", rec.ResetAt.Format("15:04"), rec.Reason)
-			evals = append(evals, ev)
-			continue
+		var isLimited bool
+		var rec *cooldown.Record
+		if scope.Verifiable() {
+			isLimited, rec = s.cooldown.IsRateLimitedForScope(scope)
+		} else {
+			isLimited, rec = s.cooldown.IsRateLimited(provider, p.Name)
 		}
-
-		// Check quota availability via QuotaView.
-		// A resource is unavailable only when every known model pool is
-		// exhausted; providers such as AGY expose independent pools.
 		qv := quota.BuildQuotaView(snap, acc.Email, acc.Plan)
-		if !qv.IsAvailable() {
+		elig := quota.EvaluateEligibility(quota.EligibilityInput{
+			View:          qv,
+			Authenticated: acc.Authenticated,
+			Health:        string(acc.Health),
+			InCooldown:    isLimited,
+		})
+		if !elig.Eligible {
 			ev.Eligible = false
-			ev.RejectReason = fmt.Sprintf("unavailable: %s", qv.AvailabilityLabel())
-			if len(qv.AvailReasons.ExhaustedWindows) > 0 {
-				ev.RejectReason += fmt.Sprintf(" (exhausted: %s)", strings.Join(qv.AvailReasons.ExhaustedWindows, ", "))
+			if elig.Reason == quota.ReasonCooldown && rec != nil {
+				ev.RejectReason = fmt.Sprintf("rate limited until %s (%s)", rec.ResetAt.Format("15:04"), rec.Reason)
+			} else if elig.Message != "" {
+				ev.RejectReason = elig.Message
+			} else {
+				ev.RejectReason = fmt.Sprintf("unavailable: %s", qv.AvailabilityLabel())
 			}
 			evals = append(evals, ev)
 			continue
@@ -263,7 +299,13 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 
 		// Capacity / Quota Score via QuotaView bottleneck
 		effectiveCapacity, bottleneckKind, avgRemaining := quota.BottleneckScore(&qv)
-		hasWindows := len(qv.AllWindows()) > 0
+		hasWindows := false
+		for _, window := range qv.AllWindows() {
+			if window.Kind != "unknown" {
+				hasWindows = true
+				break
+			}
+		}
 
 		if hasWindows {
 			capScore := effectiveCapacity * 10.0 // Up to +1000 points for 100% capacity
@@ -276,8 +318,9 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 				breakdown = append(breakdown, fmt.Sprintf("%.0f%% eff capacity (min: %.0f%% [%s], avg: %.0f%%) (+%.1f)", effectiveCapacity, minPct, bottleneckKind, avgRemaining, capScore))
 			}
 		} else {
-			score += 500.0 // Neutral capacity assumption for unprobed
-			breakdown = append(breakdown, "unknown capacity (+500.0)")
+			// Unknown quota remains eligible for resilience, but must never
+			// outrank an account with a known positive quota.
+			breakdown = append(breakdown, "unknown capacity (+0.0)")
 		}
 
 		// User Configured Priority

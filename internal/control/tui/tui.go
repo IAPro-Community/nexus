@@ -8,14 +8,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	coreprovider "github.com/IAPro-Community/nexus/internal/core/provider"
+	"github.com/IAPro-Community/nexus/internal/localization"
+	"github.com/IAPro-Community/nexus/internal/profile"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/localization"
 )
 
 var (
@@ -50,39 +53,85 @@ type Tab int
 const (
 	TabRuntimes Tab = iota
 	TabEvents
+	TabProviders
 )
 
 // ControlModel is the Bubble Tea model for the AI Control Center TUI.
 type ControlModel struct {
-	width         int
-	height        int
-	activeTab     Tab
-	runtimes      []registry.RuntimeSession
-	selectedIndex int
-	eventsList    []events.Event
-	workspace     string
-	statusMessage string
-	statusTime    time.Time
-	quitting      bool
-	attachTarget  string
+	width                int
+	height               int
+	activeTab            Tab
+	runtimes             []registry.RuntimeSession
+	selectedIndex        int
+	providerIndex        int
+	eventsList           []events.Event
+	installations        []coreprovider.InstallationRecord
+	workspace            string
+	statusMessage        string
+	statusTime           time.Time
+	quitting             bool
+	attachTarget         string
+	runtimeReg           *registry.Registry
+	drivers              *driver.Registry
+	lastInstallDiscovery time.Time
 }
 
 // NewControlModel creates an initial ControlModel.
 func NewControlModel() ControlModel {
+	return NewControlModelWithDependencies(registry.DefaultRegistry(), driver.DefaultRegistry())
+}
+
+// NewControlModelWithDependencies creates a TUI model with explicit control
+// registries. The legacy constructor above preserves the process-wide CLI
+// behavior while application-owned callers can avoid singleton coupling.
+func NewControlModelWithDependencies(reg *registry.Registry, drivers *driver.Registry) ControlModel {
+	if reg == nil {
+		reg = registry.DefaultRegistry()
+	}
+	if drivers == nil {
+		drivers = driver.DefaultRegistry()
+	}
 	cwd, _ := os.Getwd()
-	reg := registry.DefaultRegistry()
 	_, _ = reg.CleanupStale()
 	runtimes := reg.List()
 
-	evts := events.DefaultBus().GetHistory("*", 50)
+	evts := events.DefaultBus().GetHistory("", 50)
 
 	return ControlModel{
-		activeTab:     TabRuntimes,
-		runtimes:      runtimes,
-		selectedIndex: 0,
-		eventsList:    evts,
-		workspace:     cwd,
+		activeTab:            TabRuntimes,
+		runtimes:             runtimes,
+		selectedIndex:        0,
+		eventsList:           evts,
+		workspace:            cwd,
+		runtimeReg:           reg,
+		drivers:              drivers,
+		installations:        discoverInstallations(drivers),
+		lastInstallDiscovery: time.Now(),
 	}
+}
+
+func discoverInstallations(drivers *driver.Registry) []coreprovider.InstallationRecord {
+	registry := coreprovider.NewInstallationRegistry()
+	for _, d := range drivers.List() {
+		if detection, err := d.Detect(context.Background()); err == nil && detection.Installed {
+			_ = registry.Observe(d.ProviderID(), model.DetectionResult{Installed: true, Version: detection.Version, BinaryPath: detection.BinaryPath})
+		}
+	}
+	return registry.List()
+}
+
+func (m ControlModel) ownedRuntimeRegistry() *registry.Registry {
+	if m.runtimeReg != nil {
+		return m.runtimeReg
+	}
+	return registry.DefaultRegistry()
+}
+
+func (m ControlModel) ownedDrivers() *driver.Registry {
+	if m.drivers != nil {
+		return m.drivers
+	}
+	return driver.DefaultRegistry()
 }
 
 func (m ControlModel) Init() tea.Cmd {
@@ -101,9 +150,13 @@ func (m ControlModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tickMsg:
-		reg := registry.DefaultRegistry()
+		reg := m.ownedRuntimeRegistry()
 		m.runtimes = reg.List()
-		m.eventsList = events.DefaultBus().GetHistory("*", 50)
+		m.eventsList = events.DefaultBus().GetHistory("", 50)
+		if time.Since(m.lastInstallDiscovery) >= 30*time.Second {
+			m.installations = discoverInstallations(m.ownedDrivers())
+			m.lastInstallDiscovery = time.Now()
+		}
 		if m.selectedIndex >= len(m.runtimes) && len(m.runtimes) > 0 {
 			m.selectedIndex = len(m.runtimes) - 1
 		}
@@ -118,37 +171,69 @@ func (m ControlModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "tab":
-			if m.activeTab == TabRuntimes {
-				m.activeTab = TabEvents
-			} else {
-				m.activeTab = TabRuntimes
-			}
+			m.activeTab = (m.activeTab + 1) % 3
+			return m, nil
+
+		case "1":
+			m.activeTab = TabRuntimes
+			return m, nil
+		case "2":
+			m.activeTab = TabEvents
+			return m, nil
+		case "3":
+			m.activeTab = TabProviders
 			return m, nil
 
 		case "up", "k":
+			if m.activeTab == TabProviders {
+				if m.providerIndex > 0 {
+					m.providerIndex--
+				}
+				return m, nil
+			}
 			if m.selectedIndex > 0 {
 				m.selectedIndex--
 			}
 			return m, nil
 
 		case "down", "j":
+			if m.activeTab == TabProviders {
+				if m.providerIndex < len(m.installations)-1 {
+					m.providerIndex++
+				}
+				return m, nil
+			}
 			if m.selectedIndex < len(m.runtimes)-1 {
 				m.selectedIndex++
 			}
 			return m, nil
 
 		case "r":
-			reg := registry.DefaultRegistry()
+			reg := m.ownedRuntimeRegistry()
 			_, _ = reg.CleanupStale()
 			m.runtimes = reg.List()
 			m.statusMessage = localization.T("tui.refreshed")
 			m.statusTime = time.Now()
+			m.installations = discoverInstallations(m.ownedDrivers())
+			m.lastInstallDiscovery = time.Now()
+			return m, nil
+
+		case "p":
+			if m.activeTab == TabProviders && m.providerIndex < len(m.installations) {
+				installation := m.installations[m.providerIndex]
+				if _, err := profile.Create(installation.Provider, installation.Provider); err != nil {
+					m.statusMessage = err.Error()
+				} else {
+					m.statusMessage = fmt.Sprintf("Registered %s; authentication pending", installation.Provider)
+				}
+				m.statusTime = time.Now()
+			}
 			return m, nil
 
 		case "s":
 			if len(m.runtimes) > 0 && m.selectedIndex < len(m.runtimes) {
 				target := m.runtimes[m.selectedIndex]
-				reg := registry.DefaultRegistry()
+				reg := m.ownedRuntimeRegistry()
 				client, err := protocol.NewClient(target.RuntimeID)
 				if err == nil {
 					_ = client.Stop()
@@ -176,7 +261,7 @@ func (m ControlModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "d", "x", "delete", "backspace":
 			if len(m.runtimes) > 0 && m.selectedIndex < len(m.runtimes) {
 				target := m.runtimes[m.selectedIndex]
-				reg := registry.DefaultRegistry()
+				reg := m.ownedRuntimeRegistry()
 				if target.PID > 0 && registry.IsProcessAlive(target.PID) {
 					if p, pErr := os.FindProcess(target.PID); pErr == nil {
 						_ = p.Kill()
@@ -194,12 +279,13 @@ func (m ControlModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "c":
-			reg := registry.DefaultRegistry()
-			_, _ = reg.CleanupStale()
+			reg := m.ownedRuntimeRegistry()
+			cleaned, _ := reg.CleanupStale()
+			reaped := launcher.ReapOrphanHosts(reg.List())
 			purged, _ := reg.PurgeInactive()
 			m.runtimes = reg.List()
 			m.selectedIndex = 0
-			m.statusMessage = fmt.Sprintf("✓ Cleaned up %d stale runtime records", purged)
+			m.statusMessage = fmt.Sprintf("✓ Cleaned %d stale, reaped %d orphan hosts, purged %d inactive", cleaned, reaped, purged)
 			m.statusTime = time.Now()
 			return m, nil
 
@@ -251,20 +337,31 @@ func (m ControlModel) View() string {
 	// 2. Tabs
 	tab1 := "[ 1. Runtimes ]"
 	tab2 := "[ 2. Events & Logs ]"
-	if m.activeTab == TabRuntimes {
+	tab3 := "[ 3. Providers ]"
+	switch m.activeTab {
+	case TabRuntimes:
 		tab1 = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#8B5CF6")).Render(tab1)
 		tab2 = lipgloss.NewStyle().Foreground(lipgloss.Color("#6B7280")).Render(tab2)
-	} else {
+		tab3 = lipgloss.NewStyle().Foreground(lipgloss.Color("#6B7280")).Render(tab3)
+	case TabEvents:
 		tab1 = lipgloss.NewStyle().Foreground(lipgloss.Color("#6B7280")).Render(tab1)
 		tab2 = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#8B5CF6")).Render(tab2)
+		tab3 = lipgloss.NewStyle().Foreground(lipgloss.Color("#6B7280")).Render(tab3)
+	default:
+		tab1 = lipgloss.NewStyle().Foreground(lipgloss.Color("#6B7280")).Render(tab1)
+		tab2 = lipgloss.NewStyle().Foreground(lipgloss.Color("#6B7280")).Render(tab2)
+		tab3 = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#8B5CF6")).Render(tab3)
 	}
-	tabsRow := fmt.Sprintf("  %s   %s\n\n", tab1, tab2)
+	tabsRow := fmt.Sprintf("  %s   %s   %s\n\n", tab1, tab2, tab3)
 
 	var content string
-	if m.activeTab == TabRuntimes {
+	switch m.activeTab {
+	case TabRuntimes:
 		content = m.renderRuntimesTab(w)
-	} else {
+	case TabEvents:
 		content = m.renderEventsTab(w)
+	default:
+		content = m.renderProvidersTab(w)
 	}
 
 	// 3. Status and shortcuts bar
@@ -277,10 +374,13 @@ func (m ControlModel) View() string {
 	}
 
 	shortcutsStr := " [a/Enter] Attach"
+	if m.activeTab == TabProviders {
+		shortcutsStr = " [p] Register selected (auth pending)"
+	}
 
 	if m.activeTab == TabRuntimes && len(m.runtimes) > 0 && m.selectedIndex < len(m.runtimes) {
 		sel := m.runtimes[m.selectedIndex]
-		if d, err := driver.DefaultRegistry().Get(sel.ProviderID); err == nil {
+		if d, err := m.ownedDrivers().Get(sel.ProviderID); err == nil {
 			caps := d.EffectiveCaps(context.Background(), model.Profile{Name: sel.ProfileID, Provider: sel.ProviderID})
 			if caps.Process.Status == driver.CapabilitySupported || caps.Terminal.Status == driver.CapabilitySupported {
 				shortcutsStr += "   [s] Stop"
@@ -300,6 +400,23 @@ func (m ControlModel) View() string {
 	shortcuts := lipgloss.NewStyle().Foreground(lipgloss.Color("#9CA3AF")).Render(shortcutsStr)
 
 	return topBar + tabsRow + content + "\n" + statusText + shortcuts + "\n"
+}
+
+func (m ControlModel) renderProvidersTab(width int) string {
+	var sb strings.Builder
+	sb.WriteString(headerStyle.Render(fmt.Sprintf("  %-14s %-24s %-18s %s\n", "PROVIDER", "BINARY", "STATE", "VERSION")))
+	sb.WriteString("  " + strings.Repeat("─", max(20, width-6)) + "\n")
+	for i, item := range m.installations {
+		line := fmt.Sprintf("  %-14s %-24s %-18s %s", item.Provider, item.Binary, item.State, item.Version)
+		if i == m.providerIndex {
+			line = selectedRowStyle.Render(line)
+		}
+		sb.WriteString(line + "\n")
+	}
+	if len(m.installations) == 0 {
+		sb.WriteString("  No installed providers detected.\n")
+	}
+	return sb.String()
 }
 
 func (m ControlModel) renderRuntimesTab(width int) string {

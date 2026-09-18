@@ -1,0 +1,589 @@
+{
+  "drivers": [
+    {
+      "provider": "agy",
+      "installed": true,
+      "version": "1.2.2",
+      "binary_path": "/home/desenvolvedor/.local/bin/agy",
+      "control_level": "TERMINAL",
+      "capabilities": {
+        "process": {
+          "status": "SUPPORTED",
+          "provider_version": "1.2.2",
+          "mechanism": "os/exec",
+          "tested": true
+        },
+        "terminal": {
+          "status": "SUPPORTED",
+          "provider_version": "1.2.2",
+          "mechanism": "PTY / ConPTY TerminalBackend",
+          "tested": true
+        },
+        "attach": {
+          "status": "SUPPORTED",
+          "provider_version": "1.2.2",
+          "mechanism": "Nexus Control IPC Socket/Pipe",
+          "tested": true
+        },
+        "structured_events": {
+          "status": "UNSUPPORTED",
+          "provider_version": "1.2.2",
+          "reason": "AGY CLI operates as standalone binary without remote daemon protocol",
+          "tested": false
+        },
+        "sessions": {
+          "status": "SUPPORTED",
+          "provider_version": "1.2.2",
+          "mechanism": "~/.gemini/antigravity-cli session transcript files",
+          "tested": true
+        },
+        "resume": {
+          "status": "SUPPORTED",
+          "provider_version": "1.2.2",
+          "mechanism": "agy --conversation=\u003csession-id\u003e",
+          "tested": true
+        },
+        "fork": {
+          "status": "UNSUPPORTED",
+          "tested": false
+        },
+        "submit_prompt": {
+          "status": "SUPPORTED",
+          "provider_version": "1.2.2",
+          "mechanism": "agy -p / --prompt",
+          "tested": true
+        },
+        "cancel_turn": {
+          "status": "SUPPORTED",
+          "mechanism": "Ctrl+C signal passthrough",
+          "tested": true
+        },
+        "approvals": {
+          "status": "UNSUPPORTED",
+          "reason": "AGY tool approvals handled interactively in terminal",
+          "tested": false
+        },
+        "native_ui_attach": {
+          "status": "UNSUPPORTED",
+          "tested": false
+        },
+        "headless": {
+          "status": "SUPPORTED",
+          "provider_version": "1.2.2",
+          "mechanism": "agy -p (print mode)",
+          "tested": true
+        },
+        "slash_control": {
+          "status": "SUPPORTED",
+          "mechanism": "Universal /ai slash command router",
+          "tested": true
+        },
+        "control_level": "TERMINAL"
+      }
+    },
+    {
+      "provider": "claude",
+      "installed": true,
+      "version": "2.1.250 (Claude Code)",
+      "binary_path": "/home/desenvolvedor/.local/bin/claude",
+      "control_level": "TERMINAL",
+      "capabilities": {
+        "process": {
+          "status": "SUPPORTED",
+          "provider_version": "2.1.250 (Claude Code)",
+          "mechanism": "os/exec",
+          "tested": true
+        },
+        "terminal": {
+          "status": "SUPPORTED",
+          "provider_version": "2.1.250 (Claude Code)",
+          "mechanism": "PTY / ConPTY TerminalBackend",
+          "tested": true
+        },
+        "attach": {
+          "status": "SUPPORTED",
+          "provider_version": "2.1.250 (Claude Code)",
+          "mechanism": "Nexus Control IPC Socket/Pipe",
+          "tested": true
+        },
+        "structured_events": {
+          "status": "UNSUPPORTED",
+          "provider_version": "2.1.250 (Claude Code)",
+          "reason": "Claude Code runs interactively inside terminal without remote structured daemon",
+          "tested": false
+        },
+        "sessions": {
+          "status": "SUPPORTED",
+          "provider_version": "2.1.250 (Claude Code)",
+          "mechanism": "~/.claude session store",
+          "tested": true
+        },
+        "resume": {
+          "status": "SUPPORTED",
+          "provider_version": "2.1.250 (Claude Code)",
+          "mechanism": "claude --resume \u003csession-id\u003e",
+          "tested": true
+        },
+        "fork": {
+          "status": "UNSUPPORTED",
+          "tested": false
+        },
+        "submit_prompt": {
+          "status": "SUPPORTED",
+          "provider_version": "2.1.250 (Claude Code)",
+          "mechanism": "claude -p / print mode",
+          "tested": true
+        },
+        "cancel_turn": {
+          "status": "SUPPORTED",
+          "mechanism": "Ctrl+C signal passthrough",
+          "tested": true
+        },
+        "approvals": {
+          "status": "UNSUPPORTED",
+          "reason": "Claude handles approvals in interactive TUI prompt",
+          "tested": false
+        },
+        "native_ui_attach": {
+          "status": "UNSUPPORTED",
+          "tested": false
+        },
+        "headless": {
+          "status": "SUPPORTED",
+          "provider_version": "2.1.250 (Claude Code)",
+          "mechanism": "claude -p (print mode)",
+          "tested": true
+        },
+        "slash_control": {
+          "status": "SUPPORTED",
+          "mechanism": "Universal /ai slash command router",
+          "tested": true
+        },
+        "control_level": "TERMINAL"
+      }
+    },
+    {
+      "provider": "opencode",
+      "installed": true,
+      "version": "1.18.30",
+      "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/opencode",
+      "control_level": "TERMINAL",
+      "capabilities": {
+        "process": {
+          "status": "SUPPORTED",
+          "provider_version": "1.18.30",
+          "mechanism": "os/exec",
+          "tested": true
+        },
+        "terminal": {
+          "status": "SUPPORTED",
+          "provider_version": "1.18.30",
+          "mechanism": "PTY (creack/pty)",
+          "tested": true
+        },
+        "attach": {
+          "status": "SUPPORTED",
+          "provider_version": "1.18.30",
+          "mechanism": "Nexus Control IPC Socket/Pipe",
+          "tested": true
+        },
+        "structured_events": {
+          "status": "UNSUPPORTED",
+          "provider_version": "1.18.30",
+          "mechanism": "opencode serve HTTP/events adapter",
+          "reason": "Server adapter disabled; running in truthful TERMINAL mode",
+          "tested": false
+        },
+        "sessions": {
+          "status": "SUPPORTED",
+          "provider_version": "1.18.30",
+          "mechanism": "opencode session list / database",
+          "tested": true
+        },
+        "resume": {
+          "status": "SUPPORTED",
+          "provider_version": "1.18.30",
+          "mechanism": "opencode -s \u003csession-id\u003e",
+          "reason": "resume command supported by signature; not runtime-verified against a live opencode session",
+          "tested": false
+        },
+        "fork": {
+          "status": "SUPPORTED",
+          "provider_version": "1.18.30",
+          "mechanism": "opencode --fork",
+          "tested": true
+        },
+        "submit_prompt": {
+          "status": "SUPPORTED",
+          "provider_version": "1.18.30",
+          "mechanism": "opencode run [message..] / --prompt",
+          "tested": true
+        },
+        "cancel_turn": {
+          "status": "SUPPORTED",
+          "mechanism": "Ctrl+C signal passthrough",
+          "tested": true
+        },
+        "approvals": {
+          "status": "UNSUPPORTED",
+          "reason": "Structured approvals require server adapter; interact via terminal",
+          "tested": false
+        },
+        "native_ui_attach": {
+          "status": "SUPPORTED",
+          "provider_version": "1.18.30",
+          "mechanism": "opencode attach \u003curl\u003e",
+          "tested": false
+        },
+        "headless": {
+          "status": "SUPPORTED",
+          "provider_version": "1.18.30",
+          "mechanism": "opencode serve / opencode run",
+          "tested": true
+        },
+        "slash_control": {
+          "status": "SUPPORTED",
+          "mechanism": "Universal /ai slash command router",
+          "tested": true
+        },
+        "control_level": "TERMINAL"
+      }
+    },
+    {
+      "provider": "gemini",
+      "installed": true,
+      "version": "0.28.2",
+      "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/gemini",
+      "control_level": "TERMINAL",
+      "capabilities": {
+        "process": {
+          "status": "SUPPORTED",
+          "provider_version": "0.28.2",
+          "mechanism": "os/exec",
+          "tested": true
+        },
+        "terminal": {
+          "status": "SUPPORTED",
+          "provider_version": "0.28.2",
+          "mechanism": "PTY / ConPTY TerminalBackend",
+          "tested": true
+        },
+        "attach": {
+          "status": "SUPPORTED",
+          "provider_version": "0.28.2",
+          "mechanism": "Nexus Control IPC Socket/Pipe",
+          "tested": true
+        },
+        "structured_events": {
+          "status": "UNSUPPORTED",
+          "provider_version": "0.28.2",
+          "reason": "Gemini CLI hooks are not wired to daemon; running in TERMINAL mode",
+          "tested": false
+        },
+        "sessions": {
+          "status": "SUPPORTED",
+          "provider_version": "0.28.2",
+          "mechanism": "gemini --list-sessions / local SQLite",
+          "tested": true
+        },
+        "resume": {
+          "status": "SUPPORTED",
+          "provider_version": "0.28.2",
+          "mechanism": "gemini -r \u003csession-id\u003e",
+          "tested": true
+        },
+        "fork": {
+          "status": "UNSUPPORTED",
+          "tested": false
+        },
+        "submit_prompt": {
+          "status": "SUPPORTED",
+          "provider_version": "0.28.2",
+          "mechanism": "gemini -p \u003cprompt\u003e",
+          "tested": true
+        },
+        "cancel_turn": {
+          "status": "SUPPORTED",
+          "mechanism": "Ctrl+C signal passthrough",
+          "tested": true
+        },
+        "approvals": {
+          "status": "SUPPORTED",
+          "provider_version": "0.28.2",
+          "mechanism": "gemini --approval-mode",
+          "tested": true
+        },
+        "native_ui_attach": {
+          "status": "UNSUPPORTED",
+          "tested": false
+        },
+        "headless": {
+          "status": "SUPPORTED",
+          "provider_version": "0.28.2",
+          "mechanism": "gemini -p / non-interactive",
+          "tested": true
+        },
+        "slash_control": {
+          "status": "SUPPORTED",
+          "mechanism": "Universal /ai slash command router",
+          "tested": true
+        },
+        "control_level": "TERMINAL"
+      }
+    },
+    {
+      "provider": "cursor",
+      "installed": true,
+      "version": "2026.08.11-e8db854",
+      "binary_path": "/home/desenvolvedor/.local/bin/cursor-agent",
+      "control_level": "TERMINAL",
+      "capabilities": {
+        "process": {
+          "status": "SUPPORTED",
+          "provider_version": "2026.08.11-e8db854",
+          "mechanism": "os/exec",
+          "tested": true
+        },
+        "terminal": {
+          "status": "SUPPORTED",
+          "provider_version": "2026.08.11-e8db854",
+          "mechanism": "PTY / ConPTY TerminalBackend",
+          "tested": true
+        },
+        "attach": {
+          "status": "SUPPORTED",
+          "provider_version": "2026.08.11-e8db854",
+          "mechanism": "Nexus Control IPC Socket/Pipe",
+          "tested": true
+        },
+        "structured_events": {
+          "status": "UNSUPPORTED",
+          "provider_version": "2026.08.11-e8db854",
+          "reason": "Cursor CLI hooks not wired to daemon; running in TERMINAL mode",
+          "tested": false
+        },
+        "sessions": {
+          "status": "SUPPORTED",
+          "provider_version": "2026.08.11-e8db854",
+          "mechanism": "cursor-agent --resume / local state",
+          "tested": true
+        },
+        "resume": {
+          "status": "SUPPORTED",
+          "provider_version": "2026.08.11-e8db854",
+          "mechanism": "cursor-agent --resume \u003cid\u003e",
+          "tested": true
+        },
+        "fork": {
+          "status": "UNSUPPORTED",
+          "tested": false
+        },
+        "submit_prompt": {
+          "status": "SUPPORTED",
+          "provider_version": "2026.08.11-e8db854",
+          "mechanism": "cursor-agent \u003cprompt\u003e",
+          "tested": true
+        },
+        "cancel_turn": {
+          "status": "SUPPORTED",
+          "provider_version": "2026.08.11-e8db854",
+          "mechanism": "SIGINT (Ctrl+C) via PTY",
+          "tested": true
+        },
+        "approvals": {
+          "status": "SUPPORTED",
+          "provider_version": "2026.08.11-e8db854",
+          "mechanism": "cursor-agent terminal prompts",
+          "tested": true
+        },
+        "native_ui_attach": {
+          "status": "UNSUPPORTED",
+          "tested": false
+        },
+        "headless": {
+          "status": "SUPPORTED",
+          "provider_version": "2026.08.11-e8db854",
+          "mechanism": "cursor-agent -p / --print",
+          "tested": true
+        },
+        "slash_control": {
+          "status": "SUPPORTED",
+          "mechanism": "Universal /ai slash command router",
+          "tested": true
+        },
+        "control_level": "TERMINAL"
+      }
+    },
+    {
+      "provider": "shell",
+      "installed": true,
+      "version": "system-shell",
+      "binary_path": "/usr/bin/zsh",
+      "control_level": "TERMINAL",
+      "capabilities": {
+        "process": {
+          "status": "SUPPORTED",
+          "mechanism": "os/exec",
+          "tested": true
+        },
+        "terminal": {
+          "status": "SUPPORTED",
+          "mechanism": "PTY / ConPTY",
+          "tested": true
+        },
+        "attach": {
+          "status": "SUPPORTED",
+          "mechanism": "Nexus IPC",
+          "tested": true
+        },
+        "structured_events": {
+          "status": "UNSUPPORTED",
+          "mechanism": "not an AI provider",
+          "tested": true
+        },
+        "sessions": {
+          "status": "UNSUPPORTED",
+          "mechanism": "not an AI provider",
+          "tested": true
+        },
+        "resume": {
+          "status": "UNSUPPORTED",
+          "mechanism": "not an AI provider",
+          "tested": true
+        },
+        "fork": {
+          "status": "UNSUPPORTED",
+          "mechanism": "not an AI provider",
+          "tested": true
+        },
+        "submit_prompt": {
+          "status": "UNSUPPORTED",
+          "mechanism": "not an AI provider",
+          "tested": true
+        },
+        "cancel_turn": {
+          "status": "UNSUPPORTED",
+          "mechanism": "not an AI provider",
+          "tested": true
+        },
+        "approvals": {
+          "status": "UNSUPPORTED",
+          "mechanism": "not an AI provider",
+          "tested": true
+        },
+        "native_ui_attach": {
+          "status": "UNSUPPORTED",
+          "mechanism": "not an AI provider",
+          "tested": true
+        },
+        "headless": {
+          "status": "UNSUPPORTED",
+          "mechanism": "not an AI provider",
+          "tested": true
+        },
+        "slash_control": {
+          "status": "SUPPORTED",
+          "mechanism": "SessionHost slash control",
+          "tested": true
+        },
+        "control_level": "TERMINAL"
+      }
+    },
+    {
+      "provider": "codex",
+      "installed": true,
+      "version": "codex-cli 0.154.0",
+      "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/codex",
+      "control_level": "TERMINAL",
+      "capabilities": {
+        "process": {
+          "status": "SUPPORTED",
+          "provider_version": "codex-cli 0.154.0",
+          "mechanism": "os/exec",
+          "tested": true
+        },
+        "terminal": {
+          "status": "SUPPORTED",
+          "provider_version": "codex-cli 0.154.0",
+          "mechanism": "PTY (creack/pty)",
+          "tested": true
+        },
+        "attach": {
+          "status": "SUPPORTED",
+          "provider_version": "codex-cli 0.154.0",
+          "mechanism": "Nexus Control IPC Socket/Pipe",
+          "tested": true
+        },
+        "structured_events": {
+          "status": "UNSUPPORTED",
+          "provider_version": "codex-cli 0.154.0",
+          "mechanism": "codex app-server adapter",
+          "reason": "Structured app-server adapter deferred; see DEV/AI_CONTROL_DEFERRED.md. Running in truthful TERMINAL mode with PTY heuristic fallback only",
+          "tested": false
+        },
+        "sessions": {
+          "status": "SUPPORTED",
+          "provider_version": "codex-cli 0.154.0",
+          "mechanism": "~/.codex/sessions index",
+          "tested": true
+        },
+        "resume": {
+          "status": "SUPPORTED",
+          "provider_version": "codex-cli 0.154.0",
+          "mechanism": "codex resume \u003csession-id\u003e",
+          "reason": "resume command supported by signature; not runtime-verified against a live codex session",
+          "tested": false
+        },
+        "fork": {
+          "status": "UNSUPPORTED",
+          "reason": "Codex CLI does not support session branching/forking",
+          "tested": false
+        },
+        "submit_prompt": {
+          "status": "SUPPORTED",
+          "provider_version": "codex-cli 0.154.0",
+          "mechanism": "codex exec \u003cprompt\u003e",
+          "reason": "Codex exec provides a verified non-interactive prompt contract",
+          "tested": true
+        },
+        "cancel_turn": {
+          "status": "SUPPORTED",
+          "mechanism": "Ctrl+C signal passthrough",
+          "tested": true
+        },
+        "approvals": {
+          "status": "UNSUPPORTED",
+          "reason": "Structured approvals require Codex app-server adapter (deferred; DEV/AI_CONTROL_DEFERRED.md); interact via terminal prompt",
+          "tested": false
+        },
+        "native_ui_attach": {
+          "status": "UNSUPPORTED",
+          "reason": "Native GUI attach not implemented for Codex",
+          "tested": false
+        },
+        "headless": {
+          "status": "SUPPORTED",
+          "provider_version": "codex-cli 0.154.0",
+          "mechanism": "codex exec \u003cprompt\u003e",
+          "reason": "Codex exec is available for non-interactive prompts",
+          "tested": true
+        },
+        "slash_control": {
+          "status": "SUPPORTED",
+          "mechanism": "Universal /ai slash command router",
+          "tested": true
+        },
+        "control_level": "TERMINAL"
+      }
+    }
+  ],
+  "platform": {
+    "arch": "amd64",
+    "ipc": "Unix Domain Socket",
+    "os": "linux",
+    "terminal": "Unix PTY (creack/pty)"
+  },
+  "runtimes_active": 0,
+  "runtimes_total": 1,
+  "stale_cleaned": 0
+}

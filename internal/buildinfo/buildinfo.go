@@ -2,9 +2,9 @@
 //
 // Values are injected at build time via -ldflags:
 //
-//	-X github.com/kivervinicius/ai-cli/internal/buildinfo.Version=1.2.3
-//	-X github.com/kivervinicius/ai-cli/internal/buildinfo.Commit=abc1234
-//	-X github.com/kivervinicius/ai-cli/internal/buildinfo.BuildDate=2026-08-28T00:00:00Z
+//	-X github.com/IAPro-Community/nexus/internal/buildinfo.Version=1.2.3
+//	-X github.com/IAPro-Community/nexus/internal/buildinfo.Commit=abc1234
+//	-X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate=2026-08-28T00:00:00Z
 //
 // When built without ldflags (e.g. `go run`), values fall back to dev/unknown.
 package buildinfo

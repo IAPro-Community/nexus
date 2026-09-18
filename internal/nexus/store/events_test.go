@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func TestEventsMetadata_RecordAndList(t *testing.T) {
@@ -57,11 +57,12 @@ func TestEventsMetadata_RecordAndList(t *testing.T) {
 	}
 
 	evt2 := store.EventMetadata{
-		ProjectID: p.ID,
-		AgentID:   a.ID,
-		Kind:      "APPROVAL_REQUIRED",
-		Timestamp: now.Add(-1 * time.Minute),
-		Summary:   "Agent requested permission to delete file",
+		ProjectID:     p.ID,
+		AgentID:       a.ID,
+		Kind:          "APPROVAL_REQUIRED",
+		CorrelationID: "run-123",
+		Timestamp:     now.Add(-1 * time.Minute),
+		Summary:       "Agent requested permission to delete file",
 	}
 	rec2, err := st.RecordEventMetadata(evt2)
 	if err != nil {
@@ -94,6 +95,9 @@ func TestEventsMetadata_RecordAndList(t *testing.T) {
 	// Verify descending order by timestamp
 	if eventsProj1[0].Kind != "APPROVAL_REQUIRED" {
 		t.Errorf("expected first event to be latest (APPROVAL_REQUIRED), got %s", eventsProj1[0].Kind)
+	}
+	if eventsProj1[0].CorrelationID != "run-123" {
+		t.Errorf("expected correlation ID to survive persistence, got %q", eventsProj1[0].CorrelationID)
 	}
 	if eventsProj1[1].Kind != "AGENT_WORKING" {
 		t.Errorf("expected second event to be older (AGENT_WORKING), got %s", eventsProj1[1].Kind)

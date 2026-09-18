@@ -5,15 +5,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
-// SlashResult represents the outcome of processing an input line through the Slash Router.
+// SlashResult represents the outcome of processing an input line through the Nexus Router.
 type SlashResult struct {
-	Intercepted      bool   // True if command was an /ai slash command and consumed by AI Control
+	Intercepted      bool   // True if command was a /nexus command consumed by Nexus Control
 	Response         string // Formatted response to display to the user
 	ForwardToProcess string // Text to forward to child process (if any, e.g. unescaped //ai text)
 	Action           string // Special action e.g. "detach", "stop", "handoff", "continue"
@@ -43,13 +43,15 @@ func StripANSI(str string) string {
 	return b.String()
 }
 
-// RouteSlashCommand inspects terminal input lines and intercepts /nexus or /ai commands with live usage data.
+// RouteSlashCommand is a deprecated compatibility parser for explicit
+// CmdSlash control requests. It must never be called for CmdInput terminal
+// bytes; the PTY path is intentionally transparent.
 func RouteSlashCommand(input string, session registry.RuntimeSession) SlashResult {
 	clean := StripANSI(input)
 	trimmed := strings.TrimSpace(clean)
 
-	// 1. Check for escape prefix "//nexus" or "//ai"
-	if strings.HasPrefix(trimmed, "//nexus") {
+	// 1. Check for the Nexus escape prefix ("//nexus", "::nexus")
+	if strings.HasPrefix(trimmed, "//nexus") || strings.HasPrefix(trimmed, "::nexus") {
 		escaped := "/nexus" + trimmed[7:]
 		if strings.HasSuffix(input, "\n") {
 			escaped += "\n"
@@ -59,21 +61,9 @@ func RouteSlashCommand(input string, session registry.RuntimeSession) SlashResul
 			ForwardToProcess: escaped,
 		}
 	}
-	if strings.HasPrefix(trimmed, "//ai") {
-		escaped := "/ai" + trimmed[4:]
-		if strings.HasSuffix(input, "\n") {
-			escaped += "\n"
-		}
-		return SlashResult{
-			Intercepted:      false,
-			ForwardToProcess: escaped,
-		}
-	}
-
-	// 2. Check for reserved "/nexus" or "/ai" command
-	isNexus := strings.HasPrefix(trimmed, "/nexus")
-	isAI := strings.HasPrefix(trimmed, "/ai")
-	if !isNexus && !isAI {
+	// 2. Check for the reserved Nexus control prefix ("/nexus", ":nexus")
+	isNexus := strings.HasPrefix(trimmed, "/nexus") || strings.HasPrefix(trimmed, ":nexus")
+	if !isNexus {
 		// Normal input: forward untouched
 		return SlashResult{
 			Intercepted:      false,
@@ -82,8 +72,9 @@ func RouteSlashCommand(input string, session registry.RuntimeSession) SlashResul
 	}
 
 	prefix := "/nexus"
-	if isAI && !isNexus {
-		prefix = "/ai"
+	// Use the actual prefix from input for display consistency
+	if strings.HasPrefix(trimmed, ":nexus") {
+		prefix = ":nexus"
 	}
 
 	// It is a slash command: intercept completely

@@ -28,6 +28,7 @@ export interface FlowStepModel {
   resourcePolicy?: string;
   provider?: string;
   profile?: string;
+  skillIds: string[];
   maestroGates: string[];
   maestroSkills: string[];
   relevantPaths: string[];
@@ -88,6 +89,7 @@ export function flowFromWorkPlan(plan: WorkPlan): FlowDraftModel {
         resourcePolicy: pkg.resource_policy,
         provider: pkg.provider,
         profile: pkg.profile,
+        skillIds: clone(pkg.skill_ids || pkg.maestro_skills),
         maestroGates: clone(pkg.maestro_gates),
         maestroSkills: clone(pkg.maestro_skills),
         relevantPaths: clone(pkg.relevant_paths),
@@ -117,6 +119,16 @@ export function flowFromWorkPlan(plan: WorkPlan): FlowDraftModel {
     steps: normalizeFlowSteps(steps),
     structuredFacts: plan.structured_facts ? { ...plan.structured_facts } : undefined,
   };
+}
+
+/** Stable graph identity so React Flow does not rebuild nodes on object churn. */
+export function flowGraphSignature(flow: FlowDraftModel): string {
+  return (flow.steps || [])
+    .map(
+      (step) =>
+        `${step.id}:${step.title}:${step.status}:${step.phaseId}:${(step.dependencies || []).join(',')}`,
+    )
+    .join('|');
 }
 
 export function workPlanFromFlow(flow: FlowDraftModel, baseline: WorkPlan): WorkPlan {
@@ -156,6 +168,7 @@ export function workPlanFromFlow(flow: FlowDraftModel, baseline: WorkPlan): Work
         resource_policy: step.resourcePolicy,
         provider: step.provider,
         profile: step.profile,
+        skill_ids: clone(step.skillIds),
         maestro_gates: clone(step.maestroGates),
         maestro_skills: clone(step.maestroSkills),
         relevant_paths: clone(step.relevantPaths),

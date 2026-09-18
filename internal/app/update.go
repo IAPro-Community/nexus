@@ -8,12 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/buildinfo"
-	"github.com/kivervinicius/ai-cli/internal/nexus"
-	"github.com/kivervinicius/ai-cli/internal/update"
+	"github.com/IAPro-Community/nexus/internal/buildinfo"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/update"
 )
 
-// UpdateResult summarizes the outcome of updating Nexus and Maestro.
+// UpdateResult summarizes explicit Maestro maintenance; `nexus update` uses
+// the shared Update Service and does not call this operation.
 type UpdateResult = nexus.UpdateResult
 
 func updateCmd(args []string) error {

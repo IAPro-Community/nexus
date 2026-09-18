@@ -26,6 +26,12 @@
     "comment-empty-line-before": null,
     "declaration-empty-line-before": null,
     "selector-type-no-unknown": null,
+    "selector-pseudo-class-no-unknown": [
+      true,
+      {
+        "ignorePseudoClasses": ["global"]
+      }
+    ],
     "scss/load-no-partial-leading-underscore": true,
     "scss/at-rule-conditional-no-parentheses": null,
     "scss/dollar-variable-pattern": null

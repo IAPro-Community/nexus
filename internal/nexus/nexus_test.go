@@ -5,13 +5,19 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
+
+var mockRuntimeSeq uint64
 
 // mockLauncher satisfies the Launcher interface for unit tests without spawning
 // real processes. It registers runtimes in the DefaultRegistry so runtimeAlive()
@@ -40,7 +46,8 @@ func (m *mockLauncher) Launch(_ context.Context, opts launcher.LaunchOptions) (*
 		Transport:         "mock",
 	}
 	if sess.RuntimeID == "" {
-		sess.RuntimeID = fmt.Sprintf("mock-%s", opts.ProviderID)
+		seq := atomic.AddUint64(&mockRuntimeSeq, 1)
+		sess.RuntimeID = fmt.Sprintf("mock-%s-%d", opts.ProviderID, seq)
 	}
 	if err := registry.DefaultRegistry().Register(sess); err != nil {
 		return nil, fmt.Errorf("mock register: %w", err)
@@ -64,6 +71,19 @@ func openTestNexus(t *testing.T) *Nexus {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	return &Nexus{st: st, launcher: newMockLauncher()}
+}
+
+func TestNexusUsesInjectedControlDriverRegistry(t *testing.T) {
+	injected := driver.NewRegistry()
+	injected.Register(driver.NewFakeDriver())
+	n := &Nexus{drivers: injected}
+
+	if _, err := n.controlDrivers().Get("fake"); err != nil {
+		t.Fatalf("injected driver registry was not used: %v", err)
+	}
+	if _, err := n.controlDrivers().Get("codex"); err == nil {
+		t.Fatal("provider lookup leaked to the process-global registry")
+	}
 }
 
 func TestEffectiveAgentState(t *testing.T) {
@@ -167,6 +187,97 @@ func TestAskAgentReusesExistingAgentAndLiveRuntime(t *testing.T) {
 	}
 }
 
+func TestAskAgentCompilesPersistentSpecializationForCustomAgent(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "QA", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "QA", Role: "qa"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.SafeApply(context.Background(), agent.ID, AgentConfig{
+		Provider: "fake", Profile: "default",
+		AgentSpec: intelligence.AgentSpec{Role: "qa", Instructions: []string{"Collect evidence before suggesting fixes"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.StartAgent(context.Background(), agent.ID, "fake", "default"); err != nil {
+		t.Fatal(err)
+	}
+	var submitted string
+	n.submitPrompt = func(_ string, prompt string) error { submitted = prompt; return nil }
+	if _, err := n.AskAgent(context.Background(), agent.ID, "reproduce the failure", false); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(submitted, "Collect evidence before suggesting fixes") || !strings.Contains(submitted, "reproduce the failure") {
+		t.Fatalf("persistent specialization did not reach execution prompt: %q", submitted)
+	}
+}
+
+func TestAskAgentWithOptionsSkipsEnvelopeForInteractiveLead(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "Lead", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := n.PrepareInteractiveLead(context.Background(), project.ID, "fake", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.StartAgent(context.Background(), agent.ID, "fake", "default"); err != nil {
+		t.Fatal(err)
+	}
+	var submitted string
+	n.submitPrompt = func(_ string, prompt string) error { submitted = prompt; return nil }
+	if _, err := n.AskAgentWithOptions(context.Background(), agent.ID, "fix the typo", AskAgentOptions{
+		CompileSpecialization: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if submitted != "fix the typo" {
+		t.Fatalf("interactive lead must receive raw prompt, got %q", submitted)
+	}
+	if strings.Contains(submitted, "Direct Agent request") || strings.Contains(submitted, "WorkPackage") {
+		t.Fatalf("interactive lead received WorkPackage envelope: %q", submitted)
+	}
+}
+
+func TestAskAgentWithOptionsDisablesSpecializationWhenRequested(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "QA", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "QA", Role: "qa"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.SafeApply(context.Background(), agent.ID, AgentConfig{
+		Provider: "fake", Profile: "default",
+		AgentSpec: intelligence.AgentSpec{Role: "qa", Instructions: []string{"Collect evidence before suggesting fixes"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.StartAgent(context.Background(), agent.ID, "fake", "default"); err != nil {
+		t.Fatal(err)
+	}
+	var submitted string
+	n.submitPrompt = func(_ string, prompt string) error { submitted = prompt; return nil }
+	if _, err := n.AskAgentWithOptions(context.Background(), agent.ID, "reproduce the failure", AskAgentOptions{
+		CompileSpecialization: false,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if submitted != "reproduce the failure" {
+		t.Fatalf("disabled specialization must submit raw prompt, got %q", submitted)
+	}
+}
+
 func TestAskAgentStoppedUsesStartAndAskWithoutCreatingAgent(t *testing.T) {
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
@@ -176,7 +287,7 @@ func TestAskAgentStoppedUsesStartAndAskWithoutCreatingAgent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := n.StopAgent(agent.ID); err != nil {
+	if err := n.StopAgent(context.Background(), agent.ID); err != nil {
 		t.Fatal(err)
 	}
 	_ = sess

@@ -1,0 +1,17 @@
+---
+pid: 3596762
+cwd: "/projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager"
+command: "rtk make docs-verify; echo EXIT:$?"
+title: "Re-run docs-verify gate"
+status: succeeded
+started_at: 2026-09-13T04:33:00.511Z
+running_for_ms: 847      
+---
+docs verification passed: 134 Markdown files, 10 required assets/files
+EXIT:0
+
+---
+exit_code: 0
+elapsed_ms: 846
+ended_at: 2026-09-13T04:33:01.357Z
+---

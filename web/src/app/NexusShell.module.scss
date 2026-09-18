@@ -2,6 +2,113 @@
 @use '../styles/typography';
 @use '../styles/mixins';
 
+.shell {
+  --nx-shell-chrome-glow: color-mix(in srgb, var(--nx-accent) 7%, transparent);
+  position: relative;
+  isolation: isolate;
+  background: var(--nx-bg);
+
+  &::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    content: '';
+    background: radial-gradient(circle at 78% -12%, var(--nx-shell-chrome-glow), transparent 32rem);
+  }
+}
+
+.main {
+  position: relative;
+  isolation: isolate;
+}
+
+.topbar {
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--nx-accent) 14%, transparent);
+  background: color-mix(in srgb, var(--nx-bg-elevated) 92%, var(--nx-accent) 8%);
+}
+
+.context,
+.status {
+  min-width: 0;
+}
+
+.projectButton {
+  position: relative;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+    outline-offset: 2px;
+  }
+}
+
+.commandButton {
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--nx-text) 8%, transparent);
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+    outline-offset: 2px;
+  }
+}
+
+.workspace {
+  position: relative;
+  isolation: isolate;
+}
+
+.workspaceContent {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.projectSwitchStatus {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  color: var(--nx-text-soft);
+  background: color-mix(in srgb, var(--nx-surface-2) 88%, transparent);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-full);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--nx-bg) 35%, transparent);
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  font-size: var(--nx-font-size-xs);
+}
+
+.projectSwitchIcon {
+  flex: 0 0 auto;
+  color: var(--nx-accent-text);
+  animation: nx-shell-project-switch-spin 1s linear infinite;
+}
+
+@keyframes nx-shell-project-switch-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projectSwitchIcon {
+    animation: none;
+  }
+}
+
 .notificationWrap {
   position: relative;
 }
@@ -16,4 +123,84 @@
   background: var(--nx-warning);
   box-shadow: 0 0 6px var(--nx-warning);
   pointer-events: none;
+}
+
+.focusToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  font-size: var(--nx-font-size-xs);
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--nx-text-soft);
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-full);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    background: var(--nx-surface-3);
+    border-color: var(--nx-border-strong);
+    color: var(--nx-text);
+  }
+
+  &[data-active='true'] {
+    background: color-mix(in srgb, var(--nx-accent) 20%, var(--nx-surface-2));
+    border-color: var(--nx-accent);
+    color: var(--nx-accent-text);
+    font-weight: 600;
+
+    &:hover {
+      background: color-mix(in srgb, var(--nx-accent) 30%, var(--nx-surface-2));
+      color: var(--nx-text);
+    }
+
+    kbd {
+      border-color: var(--nx-accent);
+      color: var(--nx-accent-text);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+    outline-offset: 2px;
+  }
+
+  kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    font-size: 0.714rem;
+    font-family: var(--nx-font-mono);
+    color: var(--nx-text-muted);
+    background: color-mix(in srgb, var(--nx-bg) 80%, transparent);
+    border: 1px solid var(--nx-border);
+    border-radius: var(--nx-radius-sm);
+  }
+}
+
+.focusBtnText {
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .shell::before {
+    background: radial-gradient(circle at 70% -10%, var(--nx-shell-chrome-glow), transparent 18rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projectButton,
+  .commandButton,
+  .focusToggleBtn {
+    transition: none;
+  }
+
+  .projectButton:hover {
+    transform: none;
+  }
 }

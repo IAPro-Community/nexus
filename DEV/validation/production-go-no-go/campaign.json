@@ -1,0 +1,22 @@
+{
+  "audit": "production-go-no-go",
+  "verdict": "PRODUCTION_NO_GO",
+  "certification_invalid_for_current_head": true,
+  "executable_candidate_sha": "e53f8352e4c3647632ebac7877cf0a6a3bd62647",
+  "head_at_close": "019dc585f0d587a61f7ff5594ef154bb8c4f5b29",
+  "started_at": "2026-09-13T04:32:16Z",
+  "ended_at": "2026-09-13T04:40:00Z",
+  "production_finalization_verdict": "NOT_READY_FOR_OVERNIGHT_CERTIFICATION",
+  "overnight_verdict": "ABORTED_PRECONDITION_FAILED",
+  "overnight_hours": 0,
+  "hosted_ci_for_candidate": "NONE",
+  "local_gates": {
+    "make_quality": "PASS",
+    "go_vet": "PASS",
+    "make_security": "PASS",
+    "make_docs_verify": "PASS",
+    "make_build": "PASS",
+    "go_test_race": "PASS",
+    "overnight_smoke": "PASS_NOT_SOAK"
+  }
+}

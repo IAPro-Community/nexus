@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/mock"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/mock"
 )
 
 func TestProviderRegistry(t *testing.T) {
@@ -47,5 +47,20 @@ func TestProviderRegistry(t *testing.T) {
 	detections := reg.DetectAll(context.Background())
 	if !detections["codex"].Installed || detections["claude"].Installed {
 		t.Fatalf("unexpected detection results: %+v", detections)
+	}
+}
+
+func TestProviderRegistryNormalizesRegisteredIDs(t *testing.T) {
+	reg := NewRegistry()
+	provider := &mock.FakeProvider{
+		ProviderID:   model.ProviderID("CoDeX"),
+		ProviderName: "Codex",
+	}
+	if err := reg.Register(provider); err != nil {
+		t.Fatal(err)
+	}
+	got, ok := reg.Get("codex")
+	if !ok || got != provider {
+		t.Fatalf("registered provider was not normalized for lookup: ok=%v provider=%v", ok, got)
 	}
 }

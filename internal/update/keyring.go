@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -15,18 +16,55 @@ var (
 	ErrManifestMalformed = errors.New("manifest JSON is malformed")
 )
 
+const (
+	// ProductionTrustRootKeyID is the canonical key ID used for production Nexus releases.
+	ProductionTrustRootKeyID = "nexus-signing-key-2026-v1"
+)
+
+var (
+	// ProductionTrustRootHex is injected only by a protected release build.
+	// Local/dev binaries intentionally have no production trust root.
+	ProductionTrustRootHex string
+	ProductionTrustRoot    ed25519.PublicKey
+)
+
+func init() {
+	hexKey := strings.TrimSpace(ProductionTrustRootHex)
+	if hexKey == "" {
+		return
+	}
+	pub, err := hex.DecodeString(hexKey)
+	if err != nil || len(pub) != ed25519.PublicKeySize {
+		panic("nexus update: injected production trust root is invalid — refuse to build an unverifiable updater")
+	}
+	ProductionTrustRoot = ed25519.PublicKey(pub)
+}
+
 type KeyRing struct {
 	keys map[string]ed25519.PublicKey
 }
 
 func NewKeyRing() *KeyRing {
-	return &KeyRing{
+	kr := &KeyRing{
 		keys: make(map[string]ed25519.PublicKey),
 	}
+	// Always include the production trust root when available
+	if ProductionTrustRoot != nil {
+		kr.keys[ProductionTrustRootKeyID] = ProductionTrustRoot
+	}
+	return kr
 }
 
 func (kr *KeyRing) AddKey(keyID string, pub ed25519.PublicKey) {
 	kr.keys[keyID] = pub
+}
+
+// RemoveKey revokes a trust-root (rotation completion or compromise).
+// Manifests signed by the removed key fail with ErrUntrustedKeyID while
+// manifests from remaining keys keep verifying: rotation never needs a
+// flag day.
+func (kr *KeyRing) RemoveKey(keyID string) {
+	delete(kr.keys, keyID)
 }
 
 func (kr *KeyRing) VerifyManifest(manifestBytes []byte, sigHex string) (*Manifest, error) {

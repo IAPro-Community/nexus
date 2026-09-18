@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func planCmd(args []string) error {
@@ -55,6 +56,7 @@ func planCmd(args []string) error {
 			return fmt.Errorf("nenhum projeto ativo; registre um projeto primeiro")
 		}
 		goal := strings.Join(args[1:], " ")
+		//nolint:staticcheck // SA1019: retained solely for legacy `nexus plan create`.
 		plan, err := n.GeneratePlanFromIntent(context.Background(), projects[0].ID, goal)
 		if err != nil {
 			return err
@@ -80,6 +82,45 @@ func planCmd(args []string) error {
 		fmt.Println(string(out))
 		return nil
 
+	case "compile":
+		if len(args) < 3 {
+			return fmt.Errorf("informe o ID do plano e do pacote, ex: nexus plan compile <plan-id> <package-id> [phase-id]")
+		}
+		phaseID := ""
+		if len(args) > 3 {
+			phaseID = args[3]
+		}
+		compiled, err := n.CompilePackagePrompt(context.Background(), args[1], phaseID, args[2])
+		if err != nil {
+			return err
+		}
+		out, _ := json.MarshalIndent(compiled, "", "  ")
+		fmt.Println(string(out))
+		return nil
+
+	case "run":
+		if len(args) < 2 {
+			return fmt.Errorf("informe o ID do plano, ex: nexus plan run <plan-id> [agent-id]")
+		}
+		defaultAgentID := ""
+		if len(args) > 2 {
+			defaultAgentID = args[2]
+		}
+		// Same public contract as Web POST /plans/{id}/run and nexus run "<goal>":
+		// autonomous worker owns progress; CLI must not sync-abort on first step.
+		run, err := n.StartMissionRun(context.Background(), args[1], defaultAgentID, runner.DefaultAutonomyContract(), true)
+		if err != nil {
+			return err
+		}
+		out, _ := json.MarshalIndent(map[string]any{
+			"run_id":     run.ID,
+			"state":      run.State,
+			"autonomous": true,
+			"plan_id":    args[1],
+		}, "", "  ")
+		fmt.Println(string(out))
+		return nil
+
 	default:
 		return fmt.Errorf("subcomando de plano desconhecido: %s", args[0])
 	}
@@ -99,8 +140,8 @@ func agentsCmd(args []string) error {
 	}
 
 	projID := projects[0].ID
-	if len(args) > 1 && !strings.HasPrefix(args[1], "-") {
-		projID = args[1]
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		projID = args[0]
 	}
 
 	agents, err := st.ListAgents(projID)
@@ -157,4 +198,109 @@ func projectsCmd(args []string) error {
 	}
 
 	return fmt.Errorf("subcomando de projeto desconhecido: %s", args[0])
+}
+
+func conductorCmd(args []string) error {
+	if len(args) == 0 || args[0] == "help" || args[0] == "-h" {
+		fmt.Println("Usage: nexus conductor [policy|dispatch] [args...]")
+		fmt.Println("  policy get           Show current conductor policy")
+		fmt.Println("  policy set <json>    Update conductor policy")
+		fmt.Println("  dispatch <goal>      Dispatch a goal through the conductor")
+		fmt.Println("  --json               Output as JSON")
+		return nil
+	}
+
+	jsonOutput := false
+	cleanArgs := []string{}
+	for _, a := range args {
+		if a == "--json" {
+			jsonOutput = true
+		} else {
+			cleanArgs = append(cleanArgs, a)
+		}
+	}
+	args = cleanArgs
+
+	n := nexus.Default()
+	st, err := n.OpenProject()
+	if err != nil {
+		return err
+	}
+
+	switch args[0] {
+	case "policy":
+		if len(args) < 2 {
+			return fmt.Errorf("usage: nexus conductor policy [get|set]")
+		}
+		switch args[1] {
+		case "get":
+			policy, err := nexus.GetConductorPolicy(st)
+			if err != nil {
+				return err
+			}
+			if jsonOutput {
+				out, _ := json.MarshalIndent(policy, "", "  ")
+				fmt.Println(string(out))
+			} else {
+				fmt.Printf("Conductor Policy (v%d):\n", policy.Version)
+				if policy.ReviewMode != nil {
+					fmt.Printf("  ReviewMode: %s\n", *policy.ReviewMode)
+				}
+				if policy.RetentionDays != nil {
+					fmt.Printf("  RetentionDays: %d\n", *policy.RetentionDays)
+				}
+				if policy.IntegrationOptIn != nil {
+					fmt.Printf("  IntegrationOptIn: %v\n", *policy.IntegrationOptIn)
+				}
+			}
+			return nil
+		case "set":
+			if len(args) < 3 {
+				return fmt.Errorf("usage: nexus conductor policy set '<json>'")
+			}
+			var policy nexus.ConductorPolicy
+			if err := json.Unmarshal([]byte(args[2]), &policy); err != nil {
+				return fmt.Errorf("invalid JSON: %w", err)
+			}
+			if err := nexus.PutConductorPolicy(st, &policy); err != nil {
+				return err
+			}
+			fmt.Println("Policy updated successfully.")
+			return nil
+		default:
+			return fmt.Errorf("unknown policy subcommand: %s", args[1])
+		}
+
+	case "dispatch":
+		if len(args) < 2 {
+			return fmt.Errorf("usage: nexus conductor dispatch <goal>")
+		}
+		goal := strings.Join(args[1:], " ")
+		projects, err := st.ListProjects()
+		if err != nil || len(projects) == 0 {
+			return fmt.Errorf("no project found")
+		}
+		result, err := n.Dispatch(context.Background(), nexus.DispatchRequest{
+			ProjectID:      projects[0].ID,
+			Goal:           goal,
+			SourcePrompt:   goal,
+			DelegationMode: nexus.DelegationAuto,
+		})
+		if err != nil {
+			return err
+		}
+		if jsonOutput {
+			out, _ := json.MarshalIndent(result, "", "  ")
+			fmt.Println(string(out))
+		} else {
+			fmt.Printf("Dispatch result: %s (Run: %s)\n", result.Status, result.RunID)
+			if result.Error != "" {
+				fmt.Printf("Error: %s\n", result.Error)
+			}
+		}
+		return nil
+
+	default:
+		return fmt.Errorf("unknown conductor subcommand: %s", args[0])
+	}
 }

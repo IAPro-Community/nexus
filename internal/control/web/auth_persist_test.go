@@ -11,7 +11,7 @@ import (
 
 func TestLoopbackSessionsSurviveRestart(t *testing.T) {
 	dir := t.TempDir()
-	first, token, err := NewAuthManagerWithStore("127.0.0.1", "3000", dir)
+	first, token, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,11 +23,11 @@ func TestLoopbackSessionsSurviveRestart(t *testing.T) {
 		t.Fatalf("loopback exchange must write sessions.json: %v", err)
 	}
 
-	second, _, err := NewAuthManagerWithStore("127.0.0.1", "3000", dir)
+	second, _, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:3000/", nil)
+	req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:13000/", nil)
 	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sess.ID})
 	got := second.AuthenticateRequest(req)
 	if got == nil {
@@ -40,7 +40,7 @@ func TestLoopbackSessionsSurviveRestart(t *testing.T) {
 
 func TestRemoteBindDoesNotRestoreSessions(t *testing.T) {
 	dir := t.TempDir()
-	first, token, err := NewAuthManagerWithStore("192.168.1.10", "3000", dir)
+	first, token, err := NewAuthManagerWithStore("192.168.1.10", "13000", dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,11 +52,11 @@ func TestRemoteBindDoesNotRestoreSessions(t *testing.T) {
 		t.Fatal("remote bind must not write a session store")
 	}
 
-	second, _, err := NewAuthManagerWithStore("192.168.1.10", "3000", dir)
+	second, _, err := NewAuthManagerWithStore("192.168.1.10", "13000", dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, _ := http.NewRequest(http.MethodGet, "http://192.168.1.10:3000/", nil)
+	req, _ := http.NewRequest(http.MethodGet, "http://192.168.1.10:13000/", nil)
 	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sess.ID})
 	if second.AuthenticateRequest(req) != nil {
 		t.Fatal("remote sessions must not survive restart")
@@ -65,7 +65,7 @@ func TestRemoteBindDoesNotRestoreSessions(t *testing.T) {
 
 func TestIdlePersistedSessionIsDropped(t *testing.T) {
 	dir := t.TempDir()
-	auth, _, err := NewAuthManagerWithStore("127.0.0.1", "3000", dir)
+	auth, _, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestIdlePersistedSessionIsDropped(t *testing.T) {
 	auth.persistLocked()
 	auth.mu.Unlock()
 
-	restored, _, err := NewAuthManagerWithStore("127.0.0.1", "3000", dir)
+	restored, _, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestIdlePersistedSessionIsDropped(t *testing.T) {
 
 func TestExpiredPersistedSessionIsDropped(t *testing.T) {
 	dir := t.TempDir()
-	auth, _, err := NewAuthManagerWithStore("127.0.0.1", "3000", dir)
+	auth, _, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestExpiredPersistedSessionIsDropped(t *testing.T) {
 	auth.persistLocked()
 	auth.mu.Unlock()
 
-	restored, _, err := NewAuthManagerWithStore("127.0.0.1", "3000", dir)
+	restored, _, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,10 +131,11 @@ func TestListenStateRoundTripForLivePID(t *testing.T) {
 	}))
 	t.Cleanup(health.Close)
 	state := ListenState{
-		URL:          health.URL,
-		BootstrapURL: health.URL + "/?token=abc",
-		PID:          os.Getpid(),
-		Loopback:     true,
+		URL:            health.URL,
+		BootstrapURL:   health.URL,
+		BootstrapToken: "abc",
+		PID:            os.Getpid(),
+		Loopback:       true,
 	}
 	if err := writeListenState(state); err != nil {
 		t.Fatal(err)
@@ -143,7 +144,7 @@ func TestListenStateRoundTripForLivePID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.URL != state.URL || got.BootstrapURL != state.BootstrapURL {
+	if got.URL != state.URL || got.BootstrapURL != state.BootstrapURL || got.BootstrapToken != state.BootstrapToken {
 		t.Fatalf("listen state mismatch: %+v", got)
 	}
 	removeListenState(os.Getpid())
@@ -155,10 +156,11 @@ func TestListenStateRoundTripForLivePID(t *testing.T) {
 func TestReadListenStateRejectsDeadPID(t *testing.T) {
 	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
 	if err := writeListenState(ListenState{
-		URL:          "http://127.0.0.1:3000",
-		BootstrapURL: "http://127.0.0.1:3000/?token=abc",
-		PID:          1 << 30,
-		Loopback:     true,
+		URL:            "http://127.0.0.1:13000",
+		BootstrapURL:   "http://127.0.0.1:13000",
+		BootstrapToken: "abc",
+		PID:            1 << 30,
+		Loopback:       true,
 	}); err != nil {
 		t.Fatal(err)
 	}

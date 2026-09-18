@@ -1,0 +1,8 @@
+=== MAESTRO OFF PATH 2026-09-13T04:37:47Z ===
+{
+  "available": true,
+  "mode": "ASSIST",
+  "error": null,
+  "degraded": null,
+  "lifecycle": null
+}

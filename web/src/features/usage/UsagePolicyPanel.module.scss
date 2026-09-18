@@ -1,0 +1,22 @@
+.card {
+  display: grid;
+  gap: 8px;
+}
+
+.card strong {
+  font-size: 13px;
+  color: var(--nx-text);
+}
+
+.card p,
+.card small {
+  margin: 0;
+  color: var(--nx-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.card code {
+  font-family: var(--nx-font-mono);
+  color: var(--nx-accent-text);
+}

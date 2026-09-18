@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 type continuityLaunch struct {
@@ -16,10 +16,11 @@ type continuityLaunch struct {
 	Status            string
 }
 
-// continuityForNextGeneration decides whether a new runtime can truthfully
-// resume the previous provider session. Cross-provider or unverifiable changes
-// are NEW_SESSION; they are never labeled as resume/context recovery.
-func continuityForNextGeneration(ctx context.Context, cfg AgentConfig, previous *store.RuntimeGeneration) (continuityLaunch, error) {
+func (n *Nexus) continuityForNextGeneration(ctx context.Context, cfg AgentConfig, previous *store.RuntimeGeneration) (continuityLaunch, error) {
+	return continuityForNextGenerationWithRegistry(ctx, cfg, previous, n.controlDrivers())
+}
+
+func continuityForNextGenerationWithRegistry(ctx context.Context, cfg AgentConfig, previous *store.RuntimeGeneration, drivers *driver.Registry) (continuityLaunch, error) {
 	if previous == nil || previous.RuntimeID == "" {
 		return continuityLaunch{Status: store.ContinuityNewSession}, nil
 	}
@@ -32,7 +33,10 @@ func continuityForNextGeneration(ctx context.Context, cfg AgentConfig, previous 
 		}
 		return continuityLaunch{Status: store.ContinuityNewSession}, nil
 	}
-	d, err := driver.DefaultRegistry().Get(cfg.Provider)
+	if drivers == nil {
+		drivers = driver.DefaultRegistry()
+	}
+	d, err := drivers.Get(cfg.Provider)
 	if err != nil {
 		return continuityLaunch{}, err
 	}

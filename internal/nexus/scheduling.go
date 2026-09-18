@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 const (
@@ -103,12 +103,23 @@ func (n *Nexus) CancelMissionSchedule(ctx context.Context, id string) error {
 
 func (n *Nexus) StartScheduleLoop() {
 	n.schedulerOnce.Do(func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		n.scheduleCancel = cancel
 		go func() {
 			ticker := time.NewTicker(15 * time.Second)
 			defer ticker.Stop()
 			for {
-				_ = n.processMissionSchedules(context.Background())
-				<-ticker.C
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					_ = n.processMissionSchedules(ctx)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+				}
 			}
 		}()
 	})
@@ -167,7 +178,7 @@ func (n *Nexus) processMissionSchedules(ctx context.Context) error {
 			// was read. It owns responsibility for creating this run.
 			continue
 		}
-		run, startErr := n.StartMissionRun(ctx, schedule.PlanID, payload.AgentID, payload.Contract, true)
+		run, startErr := n.StartMissionRunApproved(ctx, schedule.PlanID, payload.PlanRevision, payload.AgentID, payload.Contract, true)
 		if startErr != nil {
 			// Resource/transient failures remain pending for WHEN_RESOURCES; fixed
 			// time/dependency schedules become FAILED and are visible to the user.

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { isProtocolControlLine, parseTerminalFrame, scrubProtocolOutput } from './terminalProtocol';
+import {
+  isProtocolControlLine,
+  parseTerminalFrame,
+  ProtocolScrubber,
+  scrubProtocolOutput,
+} from './terminalProtocol';
 
 describe('terminal protocol', () => {
   it('renders provider JSON as output when it is not a control envelope', () => {
@@ -41,6 +46,14 @@ describe('terminal protocol', () => {
     });
   });
 
+  it('does not rewrite provider text that resembles an escaped ANSI sequence', () => {
+    const literal = '/e[31m literal text and \\e[31m literal text';
+    expect(parseTerminalFrame(JSON.stringify({ type: 'output', data: literal }))).toEqual({
+      type: 'output',
+      data: literal,
+    });
+  });
+
   it('isolates valid control frames from terminal output', () => {
     expect(parseTerminalFrame('{"type":"lease","role":"CONTROL"}')).toEqual({
       type: 'control',
@@ -70,5 +83,18 @@ describe('terminal protocol', () => {
     expect(scrubProtocolOutput(polluted)).toBe('welcome\nreal line\n{"note":"keep me"}\n');
     expect(scrubProtocolOutput('{"version":1,"command":"lease_acquire"}')).toBe('');
     expect(isProtocolControlLine('hello')).toBe(false);
+  });
+
+  it('drops control RPC split across two output messages', () => {
+    const scrubber = new ProtocolScrubber();
+    expect(scrubber.scrub('welcome\n{"version":1,"comm')).toBe('welcome\n');
+    expect(scrubber.scrub('and":"lease_acquire"}\nreal line\n')).toBe('real line\n');
+  });
+
+  it('renders ordinary trailing text immediately and flushes leftovers', () => {
+    const scrubber = new ProtocolScrubber();
+    expect(scrubber.scrub('prompt$ ')).toBe('prompt$ ');
+    expect(scrubber.scrub('{"note":"keep me"}')).toBe('');
+    expect(scrubber.flush()).toBe('{"note":"keep me"}');
   });
 });

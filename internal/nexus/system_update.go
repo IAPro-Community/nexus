@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/buildinfo"
+	"github.com/IAPro-Community/nexus/internal/buildinfo"
 )
 
-// UpdateResult summarizes the outcome of updating Nexus and Maestro.
+// UpdateResult summarizes explicit Maestro maintenance. NexusUpdated remains
+// false because Nexus replacement belongs to the shared Update Service.
 type UpdateResult struct {
 	NexusUpdated   bool   `json:"nexus_updated"`
 	NexusVersion   string `json:"nexus_version"`
@@ -61,7 +62,7 @@ func PerformSystemUpdate() UpdateResult {
 		_ = os.Symlink(maestroBin, filepath.Join(targetDir, "orquestrador"))
 	}
 
-	fmt.Println("\n[2/2] Checking IAPro Nexus binary update status...")
+	fmt.Println("\n[2/2] Confirming IAPro Nexus binary was not changed...")
 	status := NewMaestroClient().Status()
 	if status.Capabilities != nil {
 		res.MaestroVersion = status.Capabilities.Version

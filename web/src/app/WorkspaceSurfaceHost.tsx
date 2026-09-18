@@ -1,7 +1,8 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Network } from 'lucide-react';
-import { Button, Card, EmptyState } from '../design-system';
+import { Button, EmptyState } from '../design-system';
 import { recoverOrStartAgent } from '../nexus/agentRecover';
+import { isLiveRuntimeState, runtimeIdFromRecoverResult } from '../nexus/agentTerminalModel';
 import { nexus } from '../nexus/api';
 import { api } from '../api';
 import type {
@@ -11,6 +12,7 @@ import type {
   Project,
   ProviderInfo,
   RuntimeSession,
+  MissionRun,
   Workspace,
 } from '../types';
 import type { WorkspaceSurface } from '../workspace/model';
@@ -63,14 +65,17 @@ const SessionsSurface = React.lazy(() =>
 const SettingsSurface = React.lazy(() =>
   import('../features/settings/SettingsSurface').then((m) => ({ default: m.SettingsSurface })),
 );
+const MaestroSurface = React.lazy(() =>
+  import('../features/maestro/MaestroSurface').then((m) => ({ default: m.MaestroSurface })),
+);
 const ProjectShellSurface = React.lazy(() =>
   import('../features/shell/ProjectShellSurface').then((m) => ({ default: m.ProjectShellSurface })),
 );
 const AgentTerminal = React.lazy(() =>
   import('../nexus/AgentTerminal').then((m) => ({ default: m.AgentTerminal })),
 );
-const ResourcePicker = React.lazy(() =>
-  import('../nexus/ResourcePicker').then((m) => ({ default: m.ResourcePicker })),
+const UsageSurface = React.lazy(() =>
+  import('../features/usage/UsageSurface').then((m) => ({ default: m.UsageSurface })),
 );
 const TerminalPane = React.lazy(() =>
   import('../components/TerminalPane').then((m) => ({ default: m.TerminalPane })),
@@ -101,17 +106,20 @@ export const WorkspaceSurfaceHost: React.FC<{
   agents: Agent[];
   workspaces: Workspace[];
   runtimes: RuntimeSession[];
+  flowRuns?: MissionRun[];
   providers: ProviderInfo[];
   profiles: ProfileInfo[];
   events: EventRecord[];
   refreshAgents: () => Promise<void>;
-  refreshGlobal: () => Promise<void>;
+  refreshGlobal: () => Promise<{ runtimes: RuntimeSession[] }>;
   onSelectProject: (project: Project) => void;
   onProjectCreated: (project: Project) => void;
   onProjectUpdated: (project: Project) => void;
   openSurface: (surface: WorkspaceSurface) => void;
+  updateSurface?: (surfaceId: string, patch: Partial<WorkspaceSurface>) => void;
   closeSurface: (surfaceId: string) => void;
   onTour: () => void;
+  settingsInitialTab?: 'appearance' | 'updates' | 'remote';
 }> = ({
   surface,
   project,
@@ -119,6 +127,7 @@ export const WorkspaceSurfaceHost: React.FC<{
   agents,
   workspaces,
   runtimes,
+  flowRuns = [],
   providers,
   profiles,
   events,
@@ -128,13 +137,17 @@ export const WorkspaceSurfaceHost: React.FC<{
   onProjectCreated,
   onProjectUpdated,
   openSurface,
+  updateSurface,
   closeSurface,
   onTour,
+  settingsInitialTab,
 }) => {
   const { t } = useTranslation();
   const presentation = useWorkspacePresentation();
   const terminalChrome =
-    presentation.state.mode === 'DESKTOP' || presentation.state.mode === 'MOSAIC'
+    presentation.state.mode === 'DESKTOP' ||
+    presentation.state.mode === 'MOSAIC' ||
+    presentation.state.zenMode
       ? 'window'
       : 'full';
   const agent = useMemo(
@@ -190,6 +203,8 @@ export const WorkspaceSurfaceHost: React.FC<{
         <ProjectOverviewSurface
           project={project}
           agents={agents}
+          runtimes={runtimes}
+          flowRuns={flowRuns}
           onOpenAgent={(agent, runtimeId) => terminal(agent, '', runtimeId || '')}
           refreshAgents={refreshAgents}
           onNewAgent={() => window.dispatchEvent(new CustomEvent('nexus:new-agent'))}
@@ -197,7 +212,7 @@ export const WorkspaceSurfaceHost: React.FC<{
           onNewAISession={() => window.dispatchEvent(new CustomEvent('nexus:new-ai-session'))}
           onProjectShell={() => window.dispatchEvent(new CustomEvent('nexus:project-shell'))}
           onOpenComposer={() => open('work')}
-          onOpenFlow={undefined}
+          onOpenFlow={() => open('missions')}
           onOpenSettings={() => open('settings')}
         />
       );
@@ -212,6 +227,7 @@ export const WorkspaceSurfaceHost: React.FC<{
           onFlowRun={(run) =>
             openSurface(flowRunSurface(run.id, `Flow Run · ${(run.id || '').slice(-6)}`))
           }
+          onOpenFlowDrafts={() => open('missions')}
         />
       );
     }
@@ -252,7 +268,9 @@ export const WorkspaceSurfaceHost: React.FC<{
           runtimeId={surface.data.runtimeId}
           title={surface.title}
           liveTitleKey={surfaceViewId(surface)}
-          onRuntimeChanged={refreshGlobal}
+          onRuntimeChanged={async () => {
+            await refreshGlobal();
+          }}
           onRestart={async () => {
             const result = await nexus.startProjectShell(project.id);
             closeSurface(surface.id);
@@ -272,22 +290,51 @@ export const WorkspaceSurfaceHost: React.FC<{
     }
 
     if (surface.type === 'terminal') {
-      const runtime = runtimes.find((r) => r.agent_id === surface.data?.agentId);
-      return surface.data?.agentId ? (
+      const agentId = surface.data?.agentId;
+      const preferredRuntimeId = (surface.data?.runtimeId || '').trim();
+      const agentRuntimes = runtimes.filter((r) => r.agent_id === agentId);
+      const preferredLive = preferredRuntimeId
+        ? agentRuntimes.find(
+            (r) => r.runtime_id === preferredRuntimeId && isLiveRuntimeState(r.state),
+          )
+        : undefined;
+      const liveRuntime =
+        preferredLive || agentRuntimes.find((r) => isLiveRuntimeState(r.state)) || agentRuntimes[0];
+      return agentId ? (
         <div className="nx-agent-terminal-surface">
           <AgentTerminal
-            agentId={surface.data.agentId}
-            runtimeId={runtime?.runtime_id}
-            initialPrompt={surface.data.initialPrompt}
-            provider={runtime?.provider_id || runtime?.provider || 'claude'}
-            profile={runtime?.profile_id || runtime?.profile || 'default'}
+            agentId={agentId}
+            projectId={project.id}
+            runtimeId={liveRuntime?.runtime_id}
+            preferredRuntimeId={preferredLive?.runtime_id}
+            initialPrompt={surface.data?.initialPrompt}
+            provider={liveRuntime?.provider_id || liveRuntime?.provider || 'claude'}
+            profile={liveRuntime?.profile_id || liveRuntime?.profile || 'default'}
             agentName={agent?.name || surface.title}
             chrome={terminalChrome}
             liveTitleKey={surfaceViewId(surface)}
+            onBoundRuntimeChange={(nextId) => {
+              updateSurface?.(surface.id, {
+                data: {
+                  ...surface.data,
+                  agentId,
+                  runtimeId: nextId,
+                },
+              });
+            }}
             onRecover={async () => {
-              if (!surface.data?.agentId) return;
               try {
-                const result = await recoverOrStartAgent(surface.data.agentId);
+                const result = await recoverOrStartAgent(agentId);
+                const nextRuntimeId = runtimeIdFromRecoverResult(result);
+                if (nextRuntimeId) {
+                  updateSurface?.(surface.id, {
+                    data: {
+                      ...surface.data,
+                      agentId,
+                      runtimeId: nextRuntimeId,
+                    },
+                  });
+                }
                 await refreshAgents();
                 await refreshGlobal();
                 return result?.runtime;
@@ -311,31 +358,43 @@ export const WorkspaceSurfaceHost: React.FC<{
               if (newMode === 'YOLO') extraArgs.push('--yolo');
               await nexus.applyAgentConfig(agent.id, {
                 ...currentCfg.config,
+                continuity_policy: 'new_session',
                 options: {
                   ...currentCfg.config.options,
                   mode: newMode,
                   extra_args: extraArgs,
                 },
               });
-              const result = await recoverOrStartAgent(agent.id);
               await refreshAgents();
-              await refreshGlobal();
-              return result.runtime;
+              const globalData = await refreshGlobal();
+              const latestRuntime = (globalData?.runtimes || []).find(
+                (item: RuntimeSession) => item.agent_id === agent.id && item.state === 'RUNNING',
+              );
+              if (latestRuntime?.runtime_id) {
+                updateSurface?.(surface.id, {
+                  data: {
+                    ...surface.data,
+                    agentId: agent.id,
+                    runtimeId: latestRuntime.runtime_id,
+                  },
+                });
+              }
+              return latestRuntime;
             }}
             onClose={async (stopRuntime) => {
               if (stopRuntime) {
-                const currentRuntime = runtimes.find(
-                  (item) => item.agent_id === surface.data?.agentId,
-                );
-                if (currentRuntime?.runtime_id) await api.stopRuntime(currentRuntime.runtime_id);
-                else if (surface.data?.agentId) await nexus.stopAgent(surface.data.agentId);
+                const currentRuntimeId =
+                  liveRuntime?.runtime_id ||
+                  runtimes.find(
+                    (item) => item.agent_id === agentId && isLiveRuntimeState(item.state),
+                  )?.runtime_id;
+                if (currentRuntimeId) await api.stopRuntime(currentRuntimeId);
+                else await nexus.stopAgent(agentId);
                 await refreshGlobal();
               }
               closeSurface(surface.id);
             }}
             onDelete={async () => {
-              const agentId = surface.data?.agentId;
-              if (!agentId) return;
               try {
                 await nexus.stopAgent(agentId);
               } catch {
@@ -354,42 +413,18 @@ export const WorkspaceSurfaceHost: React.FC<{
     }
 
     if (surface.type === 'resources') {
-      return (
-        <div className="nx-surface-scroll">
-          <div className="nx-page-header">
-            <div>
-              <span className="nx-eyebrow">{t('surfaces.resourcesEyebrow')}</span>
-              <h1>{t('surfaces.resourcesTitle')}</h1>
-              <p>{t('surfaces.resourcesIntro')}</p>
-            </div>
-          </div>
-          <div className="nx-resource-layout nx-resource-layout--full">
-            <Card className="nx-resource-card">
-              <ResourcePicker />
-            </Card>
-          </div>
-        </div>
-      );
+      return <UsageSurface />;
     }
 
     if (surface.type === 'maestro') {
-      return (
-        <div className="nx-surface-scroll">
-          <div className="nx-page-header">
-            <div>
-              <span className="nx-eyebrow">{t('surfaces.maestroEyebrow')}</span>
-              <h1>Maestro</h1>
-              <p>{t('maestroControl.legacySurface')}</p>
-            </div>
-          </div>
-        </div>
-      );
+      return <MaestroSurface />;
     }
 
     if (surface.type === 'missions') {
       return (
         <FlowRunsHistorySurface
           project={project}
+          agents={agents}
           onOpenRun={(run) => openSurface(flowRunSurface(run.id, `Flow Run · ${run.id.slice(-6)}`))}
           onOpenComposer={() => open('work')}
         />
@@ -398,7 +433,8 @@ export const WorkspaceSurfaceHost: React.FC<{
 
     if (surface.type === 'sessions') return <SessionsSurface agents={agents} />;
 
-    if (surface.type === 'settings') return <SettingsSurface onTour={onTour} />;
+    if (surface.type === 'settings')
+      return <SettingsSurface onTour={onTour} initialTab={settingsInitialTab} />;
 
     if (surface.type === 'legacy-providers') {
       return (
@@ -425,6 +461,11 @@ export const WorkspaceSurfaceHost: React.FC<{
           title={runtime.title}
           provider={runtime.provider_id || runtime.provider || 'AI'}
           profile={runtime.profile_id || runtime.profile || 'default'}
+          hideHeader={
+            presentation.state.zenMode ||
+            presentation.state.mode === 'DESKTOP' ||
+            presentation.state.mode === 'MOSAIC'
+          }
           liveTitleKey={surfaceViewId(surface)}
           onUpdateTitle={async (id, title) => {
             await api.updateRuntimeTitle(id, title);

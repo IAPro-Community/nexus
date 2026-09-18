@@ -76,6 +76,39 @@ func TestOpenAIAnalyzeIncludesBoundedProjectContext(t *testing.T) {
 	}
 }
 
+func TestOpenAIExtractBriefParsesStructuredFields(t *testing.T) {
+	var requestBody string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		data, _ := io.ReadAll(r.Body)
+		requestBody = string(data)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"in_scope\":[\"backend\",\"frontend\"],\"acceptance_criteria\":[\"tests pass\"],\"stack\":[\"Go\"],\"verification\":[\"go test\"]}"}}]}`))
+	}))
+	defer srv.Close()
+
+	p := NewOpenAIProvider(srv.URL, "test-key", "test-model")
+	ext, err := p.ExtractBrief(context.Background(), "Ship auth with backend and frontend", map[string]any{"project_context": map[string]any{"head": "abc123"}})
+	if err != nil {
+		t.Fatalf("ExtractBrief: %v", err)
+	}
+	if len(ext.InScope) != 2 || ext.InScope[0] != "backend" {
+		t.Fatalf("unexpected in_scope: %#v", ext.InScope)
+	}
+	if len(ext.AcceptanceCriteria) != 1 || len(ext.Stack) != 1 || len(ext.Verification) != 1 {
+		t.Fatalf("unexpected extraction: %#v", ext)
+	}
+	if !strings.Contains(requestBody, "Ship auth") {
+		t.Fatalf("extract request missing prompt text: %s", requestBody)
+	}
+}
+
+func TestOpenAIExtractBriefUnavailableReturnsError(t *testing.T) {
+	p := NewOpenAIProvider("https://api.example.invalid/v1", "", "test-model")
+	if _, err := p.ExtractBrief(context.Background(), "build product", nil); !errors.Is(err, ErrIntelligenceUnavailable) {
+		t.Fatalf("expected unavailable error, got %v", err)
+	}
+}
+
 func TestOpenAIPlanIncludesBoundedProjectContext(t *testing.T) {
 	var requestBody string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

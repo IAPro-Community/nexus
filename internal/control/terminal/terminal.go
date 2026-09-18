@@ -1,6 +1,7 @@
 package terminal
 
 import (
+	"context"
 	"io"
 	"os"
 	"os/exec"
@@ -43,6 +44,10 @@ type Backend interface {
 
 	// Wait blocks until the supervised child process terminates.
 	Wait() error
+
+	// WaitContext blocks until the child terminates or ctx is canceled.
+	// On context cancellation the child is forcefully killed.
+	WaitContext(ctx context.Context) error
 
 	// Signal delivers an interrupt-style signal to the child (graceful stop).
 	Signal(sig os.Signal) error

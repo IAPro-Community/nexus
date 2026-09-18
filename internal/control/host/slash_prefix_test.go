@@ -4,133 +4,248 @@ import (
 	"testing"
 )
 
-func TestSlashPrefixRouter_NeverLeaksToChild(t *testing.T) {
-	router := NewSlashPrefixRouter()
+// Characterization tests: lock down existing slash prefix router behavior
+// before extending with colon prefix support.
 
-	// 1. Send "/ai status\r"
-	input := []byte("/ai status\r")
-	var forwarded []byte
-	var interceptedCmd string
+func feedString(r *SlashPrefixRouter, s string) []RouterOutput {
+	var outputs []RouterOutput
+	for i := 0; i < len(s); i++ {
+		outputs = append(outputs, r.ProcessByte(s[i]))
+	}
+	return outputs
+}
 
-	for _, b := range input {
-		out := router.ProcessByte(b)
-		switch out.Action {
-		case ActionForwardBytes:
-			forwarded = append(forwarded, out.ForwardBytes...)
-		case ActionControlCommand:
-			interceptedCmd = out.ControlCmd
+func collectControlCmds(outputs []RouterOutput) []string {
+	var cmds []string
+	for _, o := range outputs {
+		if o.Action == ActionControlCommand {
+			cmds = append(cmds, o.ControlCmd)
 		}
 	}
+	return cmds
+}
 
-	if len(forwarded) != 0 {
-		t.Errorf("CRITICAL LEAK: /ai status leaked bytes to child: %q", string(forwarded))
-	}
-	if interceptedCmd != "/ai status" {
-		t.Errorf("expected intercepted command '/ai status', got %q", interceptedCmd)
-	}
-
-	// 2. Normal prompt: "hello world\r" (should forward completely)
-	router.Reset()
-	forwarded = nil
-	interceptedCmd = ""
-	for _, b := range []byte("hello world\r") {
-		out := router.ProcessByte(b)
-		switch out.Action {
-		case ActionForwardBytes:
-			forwarded = append(forwarded, out.ForwardBytes...)
-		case ActionControlCommand:
-			interceptedCmd = out.ControlCmd
+func collectForwarded(outputs []RouterOutput) []byte {
+	var out []byte
+	for _, o := range outputs {
+		if o.Action == ActionForwardBytes {
+			out = append(out, o.ForwardBytes...)
 		}
 	}
+	return out
+}
 
-	if string(forwarded) != "hello world\r" {
-		t.Errorf("expected 'hello world\\r', got %q", string(forwarded))
-	}
-	if interceptedCmd != "" {
-		t.Errorf("unexpected command interception: %q", interceptedCmd)
-	}
+// --- Existing /nexus behavior ---
 
-	// 3. Provider native slash command: "/help\r" (should forward "/help\r" untouched)
-	router.Reset()
-	forwarded = nil
-	interceptedCmd = ""
-	for _, b := range []byte("/help\r") {
-		out := router.ProcessByte(b)
-		switch out.Action {
-		case ActionForwardBytes:
-			forwarded = append(forwarded, out.ForwardBytes...)
-		case ActionControlCommand:
-			interceptedCmd = out.ControlCmd
-		}
+func TestSlashNexus_Status(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	outputs := feedString(r, "/nexus status\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 1 || cmds[0] != "/nexus status" {
+		t.Errorf("expected ['/nexus status'], got %v", cmds)
 	}
+}
 
-	if string(forwarded) != "/help\r" {
-		t.Errorf("expected '/help\\r', got %q", string(forwarded))
+func TestSlashNexus_Accounts(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	outputs := feedString(r, "/nexus accounts\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 1 || cmds[0] != "/nexus accounts" {
+		t.Errorf("expected ['/nexus accounts'], got %v", cmds)
 	}
-	if interceptedCmd != "" {
-		t.Errorf("unexpected command interception: %q", interceptedCmd)
-	}
+}
 
-	// 4. Escaped command: "//ai prompt\r" (should forward "/ai prompt\r")
-	router.Reset()
-	forwarded = nil
-	interceptedCmd = ""
-	for _, b := range []byte("//ai prompt\r") {
-		out := router.ProcessByte(b)
-		switch out.Action {
-		case ActionForwardBytes:
-			forwarded = append(forwarded, out.ForwardBytes...)
-		case ActionControlCommand:
-			interceptedCmd = out.ControlCmd
-		}
+func TestSlashAI_IsForwardedAsLegacyText(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	outputs := feedString(r, "/ai status\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 0 || string(collectForwarded(outputs)) != "/ai status\r" {
+		t.Errorf("expected legacy /ai text to pass through, got commands=%v forwarded=%q", cmds, collectForwarded(outputs))
 	}
+}
 
-	if string(forwarded) != "/ai prompt\r" {
-		t.Errorf("expected unescaped '/ai prompt\\r', got %q", string(forwarded))
+func TestDoubleSlashNexus_EscapesToChild(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	outputs := feedString(r, "//nexus status\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 0 {
+		t.Errorf("expected no control commands for //nexus, got %v", cmds)
 	}
-	if interceptedCmd != "" {
-		t.Errorf("unexpected command interception: %q", interceptedCmd)
+	forwarded := collectForwarded(outputs)
+	expected := "/nexus status\r"
+	if string(forwarded) != expected {
+		t.Errorf("expected forwarded %q, got %q", expected, string(forwarded))
 	}
+}
 
-	// 5. Send "/nexus status\r"
-	router.Reset()
-	forwarded = nil
-	interceptedCmd = ""
-	for _, b := range []byte("/nexus status\r") {
-		out := router.ProcessByte(b)
-		switch out.Action {
-		case ActionForwardBytes:
-			forwarded = append(forwarded, out.ForwardBytes...)
-		case ActionControlCommand:
-			interceptedCmd = out.ControlCmd
-		}
+func TestDoubleSlashAI_IsForwardedLiterally(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	outputs := feedString(r, "//ai status\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 0 {
+		t.Errorf("expected no control commands for //ai, got %v", cmds)
 	}
+	forwarded := collectForwarded(outputs)
+	expected := "//ai status\r"
+	if string(forwarded) != expected {
+		t.Errorf("expected forwarded %q, got %q", expected, string(forwarded))
+	}
+}
 
-	if len(forwarded) != 0 {
-		t.Errorf("CRITICAL LEAK: /nexus status leaked bytes to child: %q", string(forwarded))
+func TestOtherSlash_ForwardedToChild(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	outputs := feedString(r, "/model gpt-4\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 0 {
+		t.Errorf("expected no control commands for /model, got %v", cmds)
 	}
-	if interceptedCmd != "/nexus status" {
-		t.Errorf("expected intercepted command '/nexus status', got %q", interceptedCmd)
+	forwarded := collectForwarded(outputs)
+	expected := "/model gpt-4\r"
+	if string(forwarded) != expected {
+		t.Errorf("expected forwarded %q, got %q", expected, string(forwarded))
 	}
+}
 
-	// 6. Escaped command: "//nexus prompt\r" (should forward "/nexus prompt\r")
-	router.Reset()
-	forwarded = nil
-	interceptedCmd = ""
-	for _, b := range []byte("//nexus prompt\r") {
-		out := router.ProcessByte(b)
-		switch out.Action {
-		case ActionForwardBytes:
-			forwarded = append(forwarded, out.ForwardBytes...)
-		case ActionControlCommand:
-			interceptedCmd = out.ControlCmd
-		}
+func TestNormalText_ForwardedToChild(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	outputs := feedString(r, "hello world\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 0 {
+		t.Errorf("expected no control commands for normal text, got %v", cmds)
 	}
+	forwarded := collectForwarded(outputs)
+	expected := "hello world\r"
+	if string(forwarded) != expected {
+		t.Errorf("expected forwarded %q, got %q", expected, string(forwarded))
+	}
+}
 
-	if string(forwarded) != "/nexus prompt\r" {
-		t.Errorf("expected unescaped '/nexus prompt\\r', got %q", string(forwarded))
+func TestCtrlC_ResetsRouter(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	// Start typing /nexus
+	feedString(r, "/nex")
+	// Ctrl+C should reset
+	output := r.ProcessByte(0x03)
+	if output.Action != ActionForwardBytes {
+		t.Errorf("expected forward for Ctrl+C, got action %v", output.Action)
 	}
-	if interceptedCmd != "" {
-		t.Errorf("unexpected command interception: %q", interceptedCmd)
+	// Now typing /nexus again should work fresh
+	outputs := feedString(r, "/nexus status\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 1 {
+		t.Errorf("expected 1 control command after Ctrl+C reset, got %v", cmds)
+	}
+}
+
+func TestCtrlU_ResetsRouter(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	feedString(r, "/nex")
+	output := r.ProcessByte(0x15)
+	if output.Action != ActionForwardBytes {
+		t.Errorf("expected forward for Ctrl+U, got action %v", output.Action)
+	}
+	outputs := feedString(r, "/nexus status\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 1 {
+		t.Errorf("expected 1 control command after Ctrl+U reset, got %v", cmds)
+	}
+}
+
+func TestBackspace_InControlCommand(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	feedString(r, "/nexus statu")
+	// Backspace removes 'u', leaving "/nexus stat"
+	output := r.ProcessByte(0x7f)
+	if output.Action != ActionNone {
+		t.Errorf("expected none for backspace, got action %v", output.Action)
+	}
+	// Now type 's' and Enter → "/nexus stats"
+	outputs := feedString(r, "s\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 1 || cmds[0] != "/nexus stats" {
+		t.Errorf("expected ['/nexus stats'] after backspace, got %v", cmds)
+	}
+}
+
+func TestTab_InIdle_Forwarded(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	output := r.ProcessByte('\t')
+	if output.Action != ActionForwardBytes {
+		t.Errorf("expected forward for tab in idle, got action %v", output.Action)
+	}
+}
+
+func TestTab_InSlashNexus_ShowsSuggestions(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	feedString(r, "/nexus")
+	output := r.ProcessByte('\t')
+	if output.Action != ActionSuggestions {
+		t.Errorf("expected suggestions for tab after /nexus, got action %v", output.Action)
+	}
+	if output.Suggestions == "" {
+		t.Error("expected non-empty suggestions")
+	}
+}
+
+func TestUTF8_InPassthrough(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	// Type a regular character then UTF-8
+	outputs := feedString(r, "aé\r")
+	forwarded := collectForwarded(outputs)
+	if string(forwarded) != "aé\r" {
+		t.Errorf("expected 'aé\\r' forwarded, got %q", string(forwarded))
+	}
+}
+
+func TestEmptyInput_NoOutput(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	outputs := feedString(r, "")
+	if len(outputs) != 0 {
+		t.Errorf("expected no outputs for empty input, got %d", len(outputs))
+	}
+}
+
+func TestReset_ClearsState(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	feedString(r, "/nex")
+	r.Reset()
+	// After reset, typing "nexus" should be forwarded normally
+	outputs := feedString(r, "nexus\r")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 0 {
+		t.Errorf("expected no commands after reset, got %v", cmds)
+	}
+}
+
+func TestLF_AsWellAsCR(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	outputs := feedString(r, "/nexus status\n")
+	cmds := collectControlCmds(outputs)
+	if len(cmds) != 1 || cmds[0] != "/nexus status" {
+		t.Errorf("expected ['/nexus status'] with LF, got %v", cmds)
+	}
+}
+
+func TestTab_ShowsSuggestionsInSubcommand(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	feedString(r, "/nexus stat")
+	output := r.ProcessByte('\t')
+	if output.Action != ActionSuggestions {
+		t.Errorf("expected suggestions, got action %v", output.Action)
+	}
+}
+
+func TestMultipleCommands_ResetsBetween(t *testing.T) {
+	r := NewSlashPrefixRouter()
+	outputs1 := feedString(r, "/nexus status\r")
+	cmds1 := collectControlCmds(outputs1)
+	if len(cmds1) != 1 {
+		t.Errorf("expected 1 command, got %d", len(cmds1))
+	}
+	// Second command should work independently
+	outputs2 := feedString(r, "/nexus accounts\r")
+	cmds2 := collectControlCmds(outputs2)
+	if len(cmds2) != 1 || cmds2[0] != "/nexus accounts" {
+		t.Errorf("expected ['/nexus accounts'], got %v", cmds2)
 	}
 }

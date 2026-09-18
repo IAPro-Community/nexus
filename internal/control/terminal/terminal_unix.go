@@ -3,6 +3,7 @@
 package terminal
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -196,6 +197,18 @@ func (b *unixPTYBackend) Wait() error {
 		}
 	}
 	return err
+}
+
+func (b *unixPTYBackend) WaitContext(ctx context.Context) error {
+	done := make(chan error, 1)
+	go func() { done <- b.Wait() }()
+	select {
+	case <-ctx.Done():
+		_ = b.Kill()
+		return ctx.Err()
+	case err := <-done:
+		return err
+	}
 }
 
 // Signal delivers sig to the child process group.

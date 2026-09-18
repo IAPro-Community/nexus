@@ -3,11 +3,13 @@
 package terminal
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -24,12 +26,16 @@ import (
 // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE attribute. If ConPTY is unavailable
 // (e.g. Windows < 10.0.17763), Start falls back to standard pipes and reports
 // the backend truthfully as "standard pipes" (no resize / no raw mode).
+// Standard pipes are the default until ConPTY is explicitly enabled with
+// AI_CLI_ENABLE_CONPTY=1, because some Windows environments report a usable
+// ConPTY API while returning no bytes from the output channel.
 
 const (
 	procThreadAttributePseudoConsole = 0x00020016
 	extendedStartupInfoPresent       = 0x00080000
 	createUnicodeEnvironment         = 0x00000400
 	stillActive                      = 0x00000103 // 259
+	numAttributesForConPTY           = 1
 )
 
 var (
@@ -109,7 +115,7 @@ func newPlatformBackend() Backend {
 }
 
 // BackendMechanism reports the platform's primary terminal backend.
-func BackendMechanism() string { return "ConPTY (CreatePseudoConsole)" }
+func BackendMechanism() string { return "Windows standard pipes (ConPTY opt-in)" }
 
 func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) error {
 	b.mu.Lock()
@@ -149,42 +155,58 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 	var hPC uintptr
 	r, _, e = procCreatePseudoConsole.Call(
 		uintptr(sizeVal), uintptr(hInRead), uintptr(hOutWrite), 0, uintptr(unsafe.Pointer(&hPC)))
-	if r != 0 {
+	if r != 0 || os.Getenv("AI_CLI_ENABLE_CONPTY") != "1" {
 		// CreatePseudoConsole returns HRESULT S_OK (0) on success. A non-zero
-		// HRESULT means ConPTY is unavailable, so report the fallback honestly.
+		// HRESULT means ConPTY is unavailable. Even when ConPTY reports success,
+		// keep standard pipes as the default until AI_CLI_ENABLE_CONPTY=1.
+		if r == 0 {
+			_ = closePseudoConsole(hPC)
+			hPC = 0
+		}
 		childIn := os.NewFile(hInRead, "conpty-fallback-child-in")
 		inFile := os.NewFile(hInWrite, "conpty-fallback-in")
 		outFile := os.NewFile(hOutRead, "conpty-fallback-out")
+		childOut := os.NewFile(hOutWrite, "conpty-fallback-child-out")
 		b.inPipe = inFile
 		b.rPipe = outFile
 		b.pid = 0
 		b.isConPTY = false
 		b.mechanism = "standard pipes (ConPTY unavailable)"
-		_ = closeHandle(hOutWrite)
+		if r == 0 && os.Getenv("AI_CLI_ENABLE_CONPTY") != "1" {
+			b.mechanism = "standard pipes (ConPTY opt-in)"
+		}
 		cmd.Stdin = childIn
-		cmd.Stdout = outFile
-		cmd.Stderr = outFile
+		cmd.Stdout = childOut
+		cmd.Stderr = childOut
 		if err := cmd.Start(); err != nil {
-			_ = closeHandle(hInWrite)
-			_ = closeHandle(hOutRead)
-			if childIn != nil {
-				_ = childIn.Close()
-			}
+			_ = childIn.Close()
+			_ = childOut.Close()
+			_ = inFile.Close()
+			_ = outFile.Close()
 			return fmt.Errorf("failed to start process (pipe fallback): %w", err)
 		}
+		// Parent copies of child-side handles must be closed so EOF is
+		// observable when the child exits.
+		_ = childIn.Close()
+		_ = childOut.Close()
 		b.pid = cmd.Process.Pid
 		b.cmd = cmd
 		return nil
 	}
 
-	// 3. Parent retains the client ends; ConPTY owns the server ends.
-	_ = closeHandle(hInRead)
-	_ = closeHandle(hOutWrite)
+	// 3. Keep the server ends open until CreateProcessW. Windows requires the
+	// handles passed to CreatePseudoConsole to remain valid while the child is
+	// attached to the pseudo console.
 
-	// 4. Build the PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE attribute list.
+	// 4. Build the PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE attribute list. The
+	// child communicates through HPCON and must not inherit the transport pipe
+	// handles. Adding PROC_THREAD_ATTRIBUTE_HANDLE_LIST while passing
+	// bInheritHandles=FALSE makes CreateProcessW fail with ERROR_INVALID_PARAMETER.
 	var attrSize uintptr
-	procInitializeProcThreadAttributeList.Call(0, 1, 0, uintptr(unsafe.Pointer(&attrSize)))
+	procInitializeProcThreadAttributeList.Call(0, numAttributesForConPTY, 0, uintptr(unsafe.Pointer(&attrSize)))
 	if attrSize == 0 {
+		_ = closeHandle(hInRead)
+		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
 		_ = closePseudoConsole(hPC)
@@ -192,8 +214,10 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 	}
 	attrBuf := make([]byte, attrSize)
 	r, _, e = procInitializeProcThreadAttributeList.Call(
-		uintptr(unsafe.Pointer(&attrBuf[0])), 1, 0, uintptr(unsafe.Pointer(&attrSize)))
+		uintptr(unsafe.Pointer(&attrBuf[0])), numAttributesForConPTY, 0, uintptr(unsafe.Pointer(&attrSize)))
 	if r == 0 {
+		_ = closeHandle(hInRead)
+		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
 		_ = closePseudoConsole(hPC)
@@ -205,26 +229,38 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		uintptr(unsafe.Pointer(&attrBuf[0])),
 		0,
 		procThreadAttributePseudoConsole,
-		uintptr(unsafe.Pointer(&hPC)),
+		// PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE expects the HPCON handle
+		// value itself, not a pointer to the local handle variable. This
+		// matches the Win32 ConPTY contract and keeps the child attached
+		// to the pseudo console that was just created.
+		hPC,
 		unsafe.Sizeof(hPC),
 		0, 0)
 	if r == 0 {
+		_ = closeHandle(hInRead)
+		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
 		_ = closePseudoConsole(hPC)
-		return fmt.Errorf("UpdateProcThreadAttribute failed: %v", e)
+		return fmt.Errorf("UpdateProcThreadAttribute (pseudo console) failed: %v", e)
 	}
 
-	// 5. Launch the child attached to the pseudo console.
-	appName, err := syscall.UTF16PtrFromString(cmd.Path)
-	if err != nil {
+	// 5. Launch the child attached to the pseudo console. Shell shims
+	// (.cmd/.bat) must go through ComSpec; CreateProcessW gets lpApplicationName
+	// null and a full command line from createProcessSpec.
+	appPath, commandLineText := createProcessSpec(cmd)
+	if appPath == "" || commandLineText == "" {
+		_ = closeHandle(hInRead)
+		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
 		_ = closePseudoConsole(hPC)
-		return fmt.Errorf("invalid binary path %q: %w", cmd.Path, err)
+		return fmt.Errorf("invalid process spec for %q", cmd.Path)
 	}
-	commandLine, err := syscall.UTF16FromString(buildCommandLine(cmd.Args))
+	commandLine, err := syscall.UTF16FromString(commandLineText)
 	if err != nil {
+		_ = closeHandle(hInRead)
+		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
 		_ = closePseudoConsole(hPC)
@@ -235,6 +271,8 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 	if cmd.Dir != "" {
 		dirPtr, err = syscall.UTF16PtrFromString(cmd.Dir)
 		if err != nil {
+			_ = closeHandle(hInRead)
+			_ = closeHandle(hOutWrite)
 			_ = closeHandle(hInWrite)
 			_ = closeHandle(hOutRead)
 			_ = closePseudoConsole(hPC)
@@ -248,7 +286,7 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 
 	var pi processInformation
 	r, _, e = procCreateProcessW.Call(
-		uintptr(unsafe.Pointer(appName)),
+		0,
 		uintptr(unsafe.Pointer(&commandLine[0])),
 		0, 0, 0,
 		extendedStartupInfoPresent|createUnicodeEnvironment,
@@ -257,14 +295,18 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		uintptr(unsafe.Pointer(&siEx)),
 		uintptr(unsafe.Pointer(&pi)))
 	if r == 0 {
+		_ = closeHandle(hInRead)
+		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
 		_ = closePseudoConsole(hPC)
-		return fmt.Errorf("CreateProcessW failed: %v", e)
+		return fmt.Errorf("CreateProcessW failed for %q: %v", appPath, e)
 	}
 	if pi.Thread != 0 {
 		_ = closeHandle(pi.Thread)
 	}
+	_ = closeHandle(hInRead)
+	_ = closeHandle(hOutWrite)
 
 	b.inPipe = os.NewFile(hInWrite, "conpty-in")
 	b.rPipe = os.NewFile(hOutRead, "conpty-out")
@@ -414,6 +456,18 @@ func (b *windowsBackend) Wait() error {
 	return nil
 }
 
+func (b *windowsBackend) WaitContext(ctx context.Context) error {
+	done := make(chan error, 1)
+	go func() { done <- b.Wait() }()
+	select {
+	case <-ctx.Done():
+		_ = b.Kill()
+		return ctx.Err()
+	case err := <-done:
+		return err
+	}
+}
+
 func (b *windowsBackend) Signal(sig os.Signal) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -504,6 +558,38 @@ func buildCommandLine(args []string) string {
 	return sb.String()
 }
 
+// createProcessSpec returns an application path and command line suitable for
+// CreateProcessW. Windows shell shims (.cmd/.bat) are not Win32 executables,
+// so they must be launched through ComSpec instead of being passed as the
+// application name directly.
+func createProcessSpec(cmd *exec.Cmd) (string, string) {
+	if cmd == nil {
+		return "", ""
+	}
+	if len(cmd.Args) == 0 {
+		return cmd.Path, escapeArg(cmd.Path)
+	}
+	if !isWindowsShellShim(cmd.Path) {
+		args := append([]string{cmd.Path}, cmd.Args[1:]...)
+		return cmd.Path, buildCommandLine(args)
+	}
+
+	comspec := os.Getenv("ComSpec")
+	if comspec == "" {
+		comspec = filepath.Join(os.Getenv("SystemRoot"), "System32", "cmd.exe")
+	}
+
+	// The doubled quote after /c is intentional: it preserves a quoted
+	// script path while using cmd.exe's /s /c parsing rules.
+	payload := buildCommandLine(cmd.Args)
+	return comspec, escapeArg(comspec) + " /d /s /c \"" + payload + "\""
+}
+
+func isWindowsShellShim(path string) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	return ext == ".cmd" || ext == ".bat"
+}
+
 // escapeArg quotes an argument following Windows CreateProcess conventions.
 func escapeArg(s string) string {
 	if len(s) == 0 {
@@ -557,7 +643,6 @@ func utf16EnvBlock(env []string) []uint16 {
 	var block []uint16
 	for _, e := range env {
 		block = append(block, syscall.StringToUTF16(e)...)
-		block = append(block, 0)
 	}
 	block = append(block, 0)
 	if len(block) == 0 {

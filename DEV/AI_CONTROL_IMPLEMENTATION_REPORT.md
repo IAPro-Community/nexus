@@ -1,7 +1,7 @@
 # AI Control Implementation Report
 
 **Date:** 2026-08-27
-**Repository:** `github.com/kivervinicius/ai-cli`
+**Repository:** `github.com/IAPro-Community/nexus`
 **Continuation Branch:** `feat/ai-control-runtime`
 **Base Branch:** `feat/control-plane-evolution` (SHA: `ced1e31191544a49fe05634d0b134d1b848c783e`)
 

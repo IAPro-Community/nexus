@@ -52,12 +52,97 @@ type PromptCompilationResult struct {
 	PackageTitle    string    `json:"package_title"`
 	SystemPrompt    string    `json:"system_prompt"`
 	UserPrompt      string    `json:"user_prompt"`
-	MaestroRules    []string  `json:"maestro_rules"`
+	Skills          []string  `json:"skills,omitempty"`
 	AcceptanceGates []string  `json:"acceptance_gates"`
 	SharedArtifacts []string  `json:"shared_artifacts"`
 	Constraints     []string  `json:"constraints"`
 	EstimatedTokens int       `json:"estimated_tokens"`
 	CompiledAt      time.Time `json:"compiled_at"`
+}
+
+// VerificationPolicy describes evidence requirements for an AgentSpec without
+// coupling the Agent identity to a provider or to a prompt string.
+type VerificationPolicy struct {
+	RequireEvidence bool `json:"require_evidence,omitempty"`
+	RequireTests    bool `json:"require_tests,omitempty"`
+}
+
+// AgentSpec is the durable behavioral specialization of an Agent. Provider
+// and runtime settings intentionally remain outside this type.
+type AgentSpec struct {
+	Role               string             `json:"role,omitempty"`
+	Instructions       []string           `json:"instructions,omitempty"`
+	Responsibilities   []string           `json:"responsibilities,omitempty"`
+	Capabilities       []string           `json:"capabilities,omitempty"`
+	Constraints        []string           `json:"constraints,omitempty"`
+	Domains            []string           `json:"domains,omitempty"`
+	Strengths          []string           `json:"strengths,omitempty"`
+	Tags               []string           `json:"tags,omitempty"`
+	VerificationPolicy VerificationPolicy `json:"verification_policy,omitempty"`
+}
+
+func (s AgentSpec) HasCustomBehavior() bool {
+	return len(s.Instructions) > 0 || len(s.Responsibilities) > 0 || len(s.Capabilities) > 0 || len(s.Constraints) > 0 || len(s.Domains) > 0 || len(s.Strengths) > 0 || len(s.Tags) > 0 || s.VerificationPolicy.RequireEvidence || s.VerificationPolicy.RequireTests
+}
+
+type ProjectContext struct {
+	ProjectID string            `json:"project_id,omitempty"`
+	Facts     map[string]string `json:"facts,omitempty"`
+}
+
+type WorkPackageContext struct {
+	Title              string   `json:"title,omitempty"`
+	Goal               string   `json:"goal,omitempty"`
+	Priority           string   `json:"priority,omitempty"`
+	Role               string   `json:"role,omitempty"`
+	AcceptanceCriteria []string `json:"acceptance_criteria,omitempty"`
+	Constraints        []string `json:"constraints,omitempty"`
+}
+
+// ExecutionGuidance is source-agnostic operational guidance attached to an
+// execution context. Sources such as Nexus or Maestro may provide it, but
+// consumers only depend on the generic contract.
+type ExecutionGuidance struct {
+	Enabled      bool     `json:"enabled,omitempty"`
+	Instructions []string `json:"instructions,omitempty"`
+	Skills       []string `json:"skills,omitempty"`
+	Source       string   `json:"source,omitempty"`
+	Reference    string   `json:"reference,omitempty"`
+}
+
+type RuntimeConstraints struct {
+	Provider     string   `json:"provider,omitempty"`
+	Model        string   `json:"model,omitempty"`
+	Workspace    string   `json:"workspace,omitempty"`
+	Isolation    string   `json:"isolation,omitempty"`
+	Capabilities []string `json:"capabilities,omitempty"`
+}
+
+type ExecutionContextRequest struct {
+	Agent    AgentSpec          `json:"agent"`
+	Project  ProjectContext     `json:"project"`
+	Task     WorkPackageContext `json:"task"`
+	Skills   []string           `json:"skills,omitempty"`
+	Guidance ExecutionGuidance  `json:"guidance,omitempty"`
+	Runtime  RuntimeConstraints `json:"runtime"`
+}
+
+type ContextSection struct {
+	Source  string `json:"source"`
+	Name    string `json:"name"`
+	Content string `json:"content"`
+}
+
+// CompiledExecutionContext keeps sections and provenance inspectable while
+// retaining rendered strings for provider adapters that accept text prompts.
+type CompiledExecutionContext struct {
+	SystemInstructions string           `json:"system_instructions"`
+	TaskInstructions   string           `json:"task_instructions"`
+	Context            []string         `json:"context,omitempty"`
+	Constraints        []string         `json:"constraints,omitempty"`
+	Skills             []string         `json:"skills,omitempty"`
+	AcceptanceCriteria []string         `json:"acceptance_criteria,omitempty"`
+	Sections           []ContextSection `json:"sections"`
 }
 
 // DecisionExplanation provides transparent reasoning for intelligence routing and plan optimizations.
@@ -70,6 +155,25 @@ type DecisionExplanation struct {
 	Timestamp  time.Time `json:"timestamp"`
 }
 
+// BriefExtraction is the structured decomposition of a free-form prompt into
+// the durable fields of a Composer LivingBrief. Every field is optional; the
+// provider returns only what the text actually supports so heuristics stay the
+// primary source and intelligence merely enriches gaps.
+type BriefExtraction struct {
+	InScope              []string `json:"in_scope,omitempty"`
+	OutOfScope           []string `json:"out_of_scope,omitempty"`
+	ConstraintsTechnical []string `json:"constraints_technical,omitempty"`
+	ConstraintsSecurity  []string `json:"constraints_security,omitempty"`
+	Risks                []string `json:"risks,omitempty"`
+	AcceptanceCriteria   []string `json:"acceptance_criteria,omitempty"`
+	Testing              []string `json:"testing,omitempty"`
+	Verification         []string `json:"verification,omitempty"`
+	ProhibitedActions    []string `json:"prohibited_actions,omitempty"`
+	Deliverables         []string `json:"deliverables,omitempty"`
+	Stack                []string `json:"stack,omitempty"`
+	ExistingState        []string `json:"existing_state,omitempty"`
+}
+
 // IntelligenceProvider defines the provider contract (OpenAI-compatible API or CLI).
 type IntelligenceProvider interface {
 	Name() string
@@ -77,6 +181,17 @@ type IntelligenceProvider interface {
 	AnalyzeIntent(ctx context.Context, input string, contextData map[string]any) (*IntentAnalysis, error)
 	EvaluateAmbiguities(ctx context.Context, intent *IntentAnalysis) ([]AmbiguityItem, error)
 	GeneratePlanOutline(ctx context.Context, intent *IntentAnalysis, facts map[string]string, contextData map[string]any) ([]WorkPackageOutline, error)
+	// ExtractBrief maps a free-form prompt into structured brief fields. Providers
+	// that cannot extract (e.g. non-capability-validated CLIs) return an empty
+	// extraction with a nil error so callers fall back to heuristics.
+	ExtractBrief(ctx context.Context, text string, contextData map[string]any) (*BriefExtraction, error)
+}
+
+// ContextualAmbiguityEvaluator is an optional extension that preserves the
+// original provider contract while allowing ambiguity analysis to use the same
+// bounded project envelope as intent analysis.
+type ContextualAmbiguityEvaluator interface {
+	EvaluateAmbiguitiesWithContext(context.Context, *IntentAnalysis, map[string]any) ([]AmbiguityItem, error)
 }
 
 // OneshotPlanner collapses intent + ambiguities + packages into a single model call.
@@ -90,6 +205,22 @@ const PlanGenerationTimeout = 90 * time.Second
 
 // IntelligenceProbeTimeout bounds the preflight round-trip before Refinar.
 const IntelligenceProbeTimeout = 20 * time.Second
+
+// ComposerBootstrapTimeout bounds Create-session intelligence enrichment
+// (ExtractBrief + AnalyzeIntent + ambiguities). Heuristics remain the fallback
+// when the CLI/OpenAI provider is slow or hung — otherwise the UI stays on
+// "Starting…" forever waiting for a headless agent that never returns.
+const ComposerBootstrapTimeout = 15 * time.Second
+
+// ComposerTurnIntelligenceTimeout bounds per-turn AnalyzeIntent / ExtractBrief /
+// EvaluateAmbiguities so a stuck or OOM-killed CLI cannot freeze the conversation.
+// Kept short: turns already have heuristic merge; CLI is enrichment only.
+const ComposerTurnIntelligenceTimeout = 15 * time.Second
+
+// MaxCLIContextBytes caps JSON context embedded in headless CLI prompts.
+// Oversized briefs (preview + file excerpts + facts) have caused agy to be
+// SIGKILL'd (OOM), which surfaces as "signal: killed" in Composer turns.
+const MaxCLIContextBytes = 12_000
 
 // WorkPackageOutline is the raw outline produced by an intelligence provider before optimization.
 type WorkPackageOutline struct {
@@ -106,5 +237,5 @@ type WorkPackageOutline struct {
 type IntelligenceEngine interface {
 	Analyze(ctx context.Context, goal string, projectID string) (*IntentAnalysis, []AmbiguityItem, error)
 	ResolveClarification(state *ClarificationState, key string, answer string)
-	CompilePrompt(ctx context.Context, pkg WorkPackageOutline, facts map[string]string, maestroSkills []string) (*PromptCompilationResult, error)
+	CompilePrompt(ctx context.Context, pkg WorkPackageOutline, facts map[string]string, skillIDs []string) (*PromptCompilationResult, error)
 }

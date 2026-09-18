@@ -1,0 +1,6 @@
+=== RUN   TestGetAccountInfo
+    account_test.go:25: unexpected AGY account info: {AccountScope:{ProviderID:agy ProfileID:google-acc AccountID:c7e54c4c7819409234d69aa8a09721e2 IdentityVersion: CredentialScope:} Email: ExternalAccountID: Plan:Google AI Pro Status:Not authenticated Health:AUTH_REQUIRED Authenticated:false ExpiresAt:0001-01-01 00:00:00 +0000 UTC Limits:[] Usage:{ProviderID:agy ProfileID:google-acc Status:UNKNOWN Source:NONE Confidence: FetchedAt:0001-01-01 00:00:00 +0000 UTC ExpiresAt:<nil> Windows:[] ModelName: Account: Plan: Error: AccountScope:{ProviderID: ProfileID: AccountID: IdentityVersion: CredentialScope:}}}
+--- FAIL: TestGetAccountInfo (0.01s)
+FAIL
+FAIL	github.com/kivervinicius/ai-cli/internal/profile	0.025s
+FAIL

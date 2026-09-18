@@ -1,0 +1,77 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-3, 0.75rem);
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--nx-border);
+  border-radius: 0.95rem;
+  background: var(--nx-surface);
+}
+
+.root[data-severity='BLOCKING'] {
+  border-color: color-mix(in srgb, var(--nx-danger, #c44) 55%, var(--nx-border));
+}
+
+.question {
+  font-size: 0.98rem;
+  color: var(--nx-text);
+}
+
+.rationale {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--nx-text-muted, var(--nx-muted));
+  line-height: 1.45;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.option,
+.otherToggle {
+  text-align: left;
+  border: 1px solid var(--nx-border);
+  border-radius: 999px;
+  background: var(--nx-bg-elevated, var(--nx-surface));
+  color: var(--nx-text);
+  padding: 0.45rem 0.85rem;
+  min-height: 2.25rem;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+}
+
+.option:hover,
+.otherToggle:hover,
+.option[data-focused='true'] {
+  border-color: var(--nx-accent);
+}
+
+.option[data-active='true'] {
+  border-color: var(--nx-accent);
+  background: color-mix(in srgb, var(--nx-accent) 16%, var(--nx-surface));
+}
+
+.option:focus-visible,
+.otherToggle:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--nx-text-soft, var(--nx-muted));
+  font-size: 0.8rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-start;
+}

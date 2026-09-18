@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/agy"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/claude"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/gemini"
-	"github.com/kivervinicius/ai-cli/internal/core/provider/adapters/opencode"
-	"github.com/kivervinicius/ai-cli/internal/core/session"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/agy"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
+	"github.com/IAPro-Community/nexus/internal/core/session"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 type Conversation struct {

@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // Re-export common types for compatibility
@@ -83,6 +84,13 @@ func Create(provider, name string) (model.Profile, error) {
 	b, _ := json.MarshalIndent(p, "", "  ")
 	if err := os.WriteFile(filepath.Join(root, "profile.json"), append(b, '\n'), 0600); err != nil {
 		return p, err
+	}
+	if scope, scopeErr := AccountScope(provider, name, ""); scopeErr == nil {
+		p.AccountScope = scope
+		b, _ = json.MarshalIndent(p, "", "  ")
+		if err := os.WriteFile(filepath.Join(root, "profile.json"), append(b, '\n'), 0600); err != nil {
+			return p, err
+		}
 	}
 	return p, nil
 }
@@ -187,6 +195,11 @@ func List() ([]model.Profile, error) {
 			}
 			var p model.Profile
 			if json.Unmarshal(raw, &p) == nil {
+				// Backfill the opaque scope for legacy profile.json files. This is
+				// metadata-only and does not attribute any old quota snapshot.
+				if scope, scopeErr := AccountScope(p.Provider, p.Name, ""); scopeErr == nil {
+					p.AccountScope = scope
+				}
 				if cfg.Disabled[p.Provider] != nil && cfg.Disabled[p.Provider][p.Name] {
 					p.Disabled = true
 				}
@@ -228,6 +241,9 @@ func Get(provider, name string) (model.Profile, error) {
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
 		return p, err
+	}
+	if scope, scopeErr := AccountScope(p.Provider, p.Name, ""); scopeErr == nil {
+		p.AccountScope = scope
 	}
 	cfg, _ := config.LoadConfig()
 	if cfg.Disabled[p.Provider] != nil && cfg.Disabled[p.Provider][p.Name] {
@@ -314,9 +330,13 @@ func Inspect(provider, name string) (*ProfileInfo, error) {
 	uid := os.Getuid()
 	gid := os.Getgid()
 
-	binPath, _ := runtime.LookPath(provider)
-	if binPath == "" {
-		binPath = "(not found in PATH)"
+	binPath := "(not found in PATH)"
+	if s, ok := spec.Get(provider); ok {
+		if resolved, err := s.ResolveBinary(); err == nil && resolved != "" {
+			binPath = resolved
+		}
+	} else if looked, err := runtime.LookPath(provider); err == nil && looked != "" {
+		binPath = looked
 	}
 
 	info := &ProfileInfo{

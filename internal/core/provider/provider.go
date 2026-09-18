@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // Provider is the primary contract for integrating an AI coding CLI.

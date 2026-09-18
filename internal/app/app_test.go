@@ -8,30 +8,140 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 func captureStdout(f func() error) (string, error) {
 	old := os.Stdout
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	if err != nil {
+		return "", err
+	}
 	os.Stdout = w
-
-	err := f()
-
-	_ = w.Close()
-	os.Stdout = old
+	defer func() { os.Stdout = old }()
 
 	var buf bytes.Buffer
-	_, _ = io.Copy(&buf, r)
+	copyDone := make(chan error, 1)
+	go func() {
+		_, copyErr := io.Copy(&buf, r)
+		copyDone <- copyErr
+	}()
+
+	runErr := f()
+	closeErr := w.Close()
+	copyErr := <-copyDone
 	_ = r.Close()
 
-	return buf.String(), err
+	if runErr != nil {
+		return buf.String(), runErr
+	}
+	if closeErr != nil {
+		return buf.String(), closeErr
+	}
+	return buf.String(), copyErr
+}
+
+func TestCaptureStdoutDrainsLargeOutput(t *testing.T) {
+	const size = 256 * 1024
+	expected := strings.Repeat("nexus-output\n", size/len("nexus-output\n"))
+
+	out, err := captureStdout(func() error {
+		_, writeErr := os.Stdout.WriteString(expected)
+		return writeErr
+	})
+	if err != nil {
+		t.Fatalf("captureStdout returned error: %v", err)
+	}
+	if out != expected {
+		t.Fatalf("captured output mismatch: got %d bytes, want %d", len(out), len(expected))
+	}
+}
+
+func TestTopLevelCommandDispatchContracts(t *testing.T) {
+	setupTestEnvironment(t)
+	cases := []struct {
+		name      string
+		args      []string
+		wantError bool
+	}{
+		{name: "help", args: []string{"help"}},
+		{name: "version", args: []string{"version"}},
+		{name: "provider help", args: []string{"help", "codex"}},
+		{name: "unknown command", args: []string{"not-a-command"}, wantError: true},
+		{name: "missing plan id", args: []string{"plan", "show"}, wantError: true},
+		{name: "missing compile arguments", args: []string{"plan", "compile"}, wantError: true},
+		{name: "missing run arguments", args: []string{"plan", "run"}, wantError: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := captureStdout(func() error { return Run(tc.args) })
+			if (err != nil) != tc.wantError {
+				t.Fatalf("args=%v error=%v wantError=%v", tc.args, err, tc.wantError)
+			}
+		})
+	}
+}
+
+func TestHelpDocumentsDispatchedCommandFamilies(t *testing.T) {
+	setupTestEnvironment(t)
+	out, err := captureStdout(func() error { return Run([]string{"help"}) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, command := range []string{
+		"web", "projects", "agents", "plan", "providers", "profiles", "start",
+		"stop", "attach", "handoff", "continue", "usage", "doctor", "security",
+		"sessions", "workspaces", "paths", "rename", "current", "run", "export",
+		"issue-report", "update", "maestro", "completion", "version",
+	} {
+		if !strings.Contains(out, " "+command) {
+			t.Errorf("help does not document dispatched command %q", command)
+		}
+	}
+}
+
+func TestAgentsCommandUsesSinglePositionalProjectArgument(t *testing.T) {
+	setupTestEnvironment(t)
+	n := nexus.Default()
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := st.CreateProject(store.Project{Name: "First", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := st.CreateProject(store.Project{Name: "Second", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.CreateAgent(store.Agent{ProjectID: first.ID, Name: "First agent"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.CreateAgent(store.Agent{ProjectID: second.ID, Name: "Second agent"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.TouchProject(first.ID); err != nil {
+		t.Fatal(err)
+	}
+	out, err := captureStdout(func() error { return Run([]string{"agents", second.ID}) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "("+second.ID+")") || strings.Contains(out, "("+first.ID+")") {
+		t.Fatalf("agents did not honor positional project id: %s", out)
+	}
 }
 
 func setupTestEnvironment(t *testing.T) (binDir, testOut string) {
 	t.Helper()
+	nexus.ResetDefaultForTest()
 	data := t.TempDir()
 	cfg := t.TempDir()
 	state := t.TempDir()
@@ -44,10 +154,7 @@ func setupTestEnvironment(t *testing.T) (binDir, testOut string) {
 	t.Setenv("AI_TEST_OUT", testOut)
 
 	writeExe := func(name, body string) {
-		p := filepath.Join(binDir, name)
-		if err := os.WriteFile(p, []byte("#!/bin/sh\n"+body+"\n"), 0755); err != nil {
-			t.Fatal(err)
-		}
+		testutil.WriteFakeBinaryWithScript(t, binDir, name, body)
 	}
 
 	writeExe("codex", `if [ -n "$AI_TEST_OUT" ]; then
@@ -100,7 +207,11 @@ exec "$@"`)
 	writeExe("gnome-keyring-daemon", `cat >/dev/null
 exit 0`)
 
-	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	// Cleanup callbacks run in LIFO order. Register singleton shutdown after
+	// TempDir and environment cleanups so SQLite closes before Windows tries to
+	// remove nexus.db and while the configured data directory is still active.
+	t.Cleanup(nexus.ResetDefaultForTest)
 	return binDir, testOut
 }
 
@@ -269,7 +380,7 @@ func TestQuotaGroupStatusKeepsUsableModelGroupAvailable(t *testing.T) {
 		{Name: "Claude & GPT Models", Windows: []quota.Window{{Kind: "claude_5h", Remaining: 0}, {Kind: "claude_weekly", Remaining: 0}}},
 	}}
 	qv.ComputeAvailability()
-	if !qv.IsAvailable() || quotaGroupStatus(qv.ModelGroups[0], qv.Status) != "DISPONIVEL" || quotaGroupStatus(qv.ModelGroups[1], qv.Status) != "INDISPONIVEL" {
+	if !qv.IsAvailable() || quotaGroupStatus(qv.ModelGroups[0], qv.Status) != "COM QUOTA" || quotaGroupStatus(qv.ModelGroups[1], qv.Status) != "SEM QUOTA" {
 		t.Fatalf("expected mixed group availability, got profile=%v reasons=%+v", qv.IsAvailable(), qv.AvailReasons)
 	}
 }
@@ -278,10 +389,7 @@ func TestPerformSystemUpdateDoesNotClaimNexusBinaryUpdated(t *testing.T) {
 	binDir := t.TempDir()
 	writeExecutable := func(name, body string) {
 		t.Helper()
-		path := filepath.Join(binDir, name)
-		if err := os.WriteFile(path, []byte("#!/bin/sh\n"+body+"\n"), 0755); err != nil {
-			t.Fatal(err)
-		}
+		testutil.WriteFakeBinaryWithScript(t, binDir, name, body)
 	}
 	writeExecutable("npm", "exit 0")
 	writeExecutable("orquestrador-maestro", "if [ \"$1\" = \"version\" ]; then echo 0.1.0; fi")
@@ -294,6 +402,22 @@ func TestPerformSystemUpdateDoesNotClaimNexusBinaryUpdated(t *testing.T) {
 	}
 	if !strings.Contains(result.Error, "Nexus binary update") {
 		t.Fatalf("missing honest Nexus update status: %+v", result)
+	}
+}
+
+func TestMaestroStatusIsExplicitAndDegradedWithoutMaestro(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("NEXUS_ORQUESTRADOR_DIR", filepath.Join(t.TempDir(), "missing-maestro"))
+	out, err := captureStdout(func() error {
+		return Run([]string{"maestro", "status"})
+	})
+	if err != nil {
+		t.Fatalf("maestro status failed: %v", err)
+	}
+	if !strings.Contains(out, "Maestro: unavailable") || !strings.Contains(out, "degraded mode") {
+		t.Fatalf("expected honest degraded Maestro status, got %q", out)
 	}
 }
 

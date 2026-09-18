@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast, Toaster } from 'sonner';
 import type { RuntimeSession } from '../types';
@@ -20,37 +20,44 @@ export const AttentionNotificationManager: React.FC<AttentionNotificationManager
   const activeToastIds = useRef<Map<string, string | number>>(new Map());
 
   // Toast only for honest needs_user in the focused project (radar stays global).
-  const attentionRuntimes = runtimes.filter((runtime) => {
-    if (!shouldRenderAttentionCard(runtime)) return false;
-    if ((runtime.provider_id || runtime.provider || '').toLowerCase() === 'shell') return false;
-    if (!focusedProjectId || !runtime.project_id || runtime.project_id !== focusedProjectId) {
-      return false;
-    }
-    const fingerprint = attentionMessageKey(runtime);
-    if (dismissedFingerprints.includes(fingerprint)) return false;
-    return true;
-  });
+  const attentionRuntimes = useMemo(
+    () =>
+      runtimes.filter((runtime) => {
+        if (!shouldRenderAttentionCard(runtime)) return false;
+        if ((runtime.provider_id || runtime.provider || '').toLowerCase() === 'shell') return false;
+        if (!focusedProjectId || !runtime.project_id || runtime.project_id !== focusedProjectId) {
+          return false;
+        }
+        const fingerprint = attentionMessageKey(runtime);
+        if (dismissedFingerprints.includes(fingerprint)) return false;
+        return true;
+      }),
+    [runtimes, focusedProjectId, dismissedFingerprints],
+  );
 
   // One toast per message content (not per runtime).
-  const uniqueByFingerprint = new Map<string, RuntimeSession>();
-  for (const runtime of attentionRuntimes) {
-    const fingerprint = attentionMessageKey(runtime);
-    if (!uniqueByFingerprint.has(fingerprint)) {
-      uniqueByFingerprint.set(fingerprint, runtime);
+  const toastRuntimes = useMemo(() => {
+    const uniqueByFingerprint = new Map<string, RuntimeSession>();
+    for (const runtime of attentionRuntimes) {
+      const fingerprint = attentionMessageKey(runtime);
+      if (!uniqueByFingerprint.has(fingerprint)) uniqueByFingerprint.set(fingerprint, runtime);
     }
-  }
-  const toastRuntimes = [...uniqueByFingerprint.values()];
+    return [...uniqueByFingerprint.values()];
+  }, [attentionRuntimes]);
 
-  const handleDismiss = (runtimeId: string) => {
-    const runtime = runtimes.find((item) => item.runtime_id === runtimeId);
-    const fingerprint = runtime ? attentionMessageKey(runtime) : runtimeId;
-    setDismissedFingerprints((prev) => [...prev, fingerprint]);
-    const toastId = activeToastIds.current.get(fingerprint);
-    if (toastId) {
-      toast.dismiss(toastId);
-      activeToastIds.current.delete(fingerprint);
-    }
-  };
+  const handleDismiss = useCallback(
+    (runtimeId: string) => {
+      const runtime = runtimes.find((item) => item.runtime_id === runtimeId);
+      const fingerprint = runtime ? attentionMessageKey(runtime) : runtimeId;
+      setDismissedFingerprints((prev) => [...prev, fingerprint]);
+      const toastId = activeToastIds.current.get(fingerprint);
+      if (toastId) {
+        toast.dismiss(toastId);
+        activeToastIds.current.delete(fingerprint);
+      }
+    },
+    [runtimes],
+  );
 
   useEffect(() => {
     const currentFingerprints = new Set(
@@ -83,7 +90,7 @@ export const AttentionNotificationManager: React.FC<AttentionNotificationManager
       );
       activeToastIds.current.set(fingerprint, id);
     });
-  }, [toastRuntimes, onFocusRuntime]);
+  }, [toastRuntimes, onFocusRuntime, handleDismiss]);
 
   return createPortal(
     <div className="nx-attention-toaster-root">

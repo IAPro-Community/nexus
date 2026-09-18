@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 func TestCodexDriverBuildCommandIsolatesHome(t *testing.T) {
@@ -24,10 +25,7 @@ func TestCodexDriverBuildCommandIsolatesHome(t *testing.T) {
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	codexPath := filepath.Join(binDir, "codex")
-	if err := os.WriteFile(codexPath, []byte("#!/bin/sh\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	testutil.WriteFakeBinary(t, binDir, "codex", "")
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	d := &CodexDriver{}
@@ -53,6 +51,9 @@ func TestCodexDriverBuildCommandIsolatesHome(t *testing.T) {
 	}
 	if got["CODEX_HOME"] != wantHome {
 		t.Fatalf("CODEX_HOME=%q, want profile home %q", got["CODEX_HOME"], wantHome)
+	}
+	if got["CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT"] != "1" {
+		t.Fatalf("CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT=%q, want 1", got["CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT"])
 	}
 	if got["HOME"] == hostHome || strings.HasPrefix(got["CODEX_HOME"], filepath.Join(hostHome, ".codex")) {
 		t.Fatalf("Codex env leaked host home: HOME=%q CODEX_HOME=%q host=%q", got["HOME"], got["CODEX_HOME"], hostHome)

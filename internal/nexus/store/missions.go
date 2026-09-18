@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
 
 // CreateMission inserts a new mission.
@@ -21,16 +21,14 @@ func (s *Store) CreateMission(m *Mission) error {
 	}
 	_, err := s.db.Exec(`INSERT INTO missions(id, project_id, name, description, status, goal, scope, risk_level, config, created_at, updated_at)
 		VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
-		m.ID, m.ProjectID, m.Name, m.Description, m.Status, m.Goal, m.Scope, m.RiskLevel, m.Config, m.CreatedAt, m.UpdatedAt)
+		m.ID, m.ProjectID, m.Name, m.Description, m.Status, m.Goal, m.Scope, m.RiskLevel, m.Config, m.CreatedAt.Format(time.RFC3339Nano), m.UpdatedAt.Format(time.RFC3339Nano))
 	return err
 }
 
 // GetMission returns a mission by ID.
 func (s *Store) GetMission(id string) (*Mission, error) {
-	m := &Mission{}
-	err := s.db.QueryRow(`SELECT id, project_id, name, description, status, goal, scope, risk_level, config, created_at, updated_at, started_at, completed_at
-		FROM missions WHERE id=?`, id).Scan(
-		&m.ID, &m.ProjectID, &m.Name, &m.Description, &m.Status, &m.Goal, &m.Scope, &m.RiskLevel, &m.Config, &m.CreatedAt, &m.UpdatedAt, &m.StartedAt, &m.CompletedAt)
+	m, err := scanMission(s.db.QueryRow(`SELECT id, project_id, name, description, status, goal, scope, risk_level, config, created_at, updated_at, started_at, completed_at
+		FROM missions WHERE id=?`, id))
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("mission not found: %s", id)
 	}
@@ -47,11 +45,11 @@ func (s *Store) ListMissions(projectID string) ([]Mission, error) {
 	defer rows.Close()
 	var missions []Mission
 	for rows.Next() {
-		var m Mission
-		if err := rows.Scan(&m.ID, &m.ProjectID, &m.Name, &m.Description, &m.Status, &m.Goal, &m.Scope, &m.RiskLevel, &m.Config, &m.CreatedAt, &m.UpdatedAt, &m.StartedAt, &m.CompletedAt); err != nil {
+		m, err := scanMission(rows)
+		if err != nil {
 			return nil, err
 		}
-		missions = append(missions, m)
+		missions = append(missions, *m)
 	}
 	return missions, rows.Err()
 }
@@ -60,7 +58,7 @@ func (s *Store) ListMissions(projectID string) ([]Mission, error) {
 func (s *Store) UpdateMission(m *Mission) error {
 	m.UpdatedAt = time.Now().UTC()
 	_, err := s.db.Exec(`UPDATE missions SET name=?, description=?, status=?, goal=?, scope=?, risk_level=?, config=?, updated_at=?, started_at=?, completed_at=? WHERE id=?`,
-		m.Name, m.Description, m.Status, m.Goal, m.Scope, m.RiskLevel, m.Config, m.UpdatedAt, m.StartedAt, m.CompletedAt, m.ID)
+		m.Name, m.Description, m.Status, m.Goal, m.Scope, m.RiskLevel, m.Config, m.UpdatedAt.Format(time.RFC3339Nano), formatNullableTime(m.StartedAt), formatNullableTime(m.CompletedAt), m.ID)
 	return err
 }
 
@@ -86,16 +84,14 @@ func (s *Store) CreateTask(t *MissionTask) error {
 	}
 	_, err := s.db.Exec(`INSERT INTO mission_tasks(id, mission_id, name, description, status, kind, priority, dependencies, config, result, created_at, updated_at)
 		VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
-		t.ID, t.MissionID, t.Name, t.Description, t.Status, t.Kind, t.Priority, t.Dependencies, t.Config, t.Result, t.CreatedAt, t.UpdatedAt)
+		t.ID, t.MissionID, t.Name, t.Description, t.Status, t.Kind, t.Priority, t.Dependencies, t.Config, t.Result, t.CreatedAt.Format(time.RFC3339Nano), t.UpdatedAt.Format(time.RFC3339Nano))
 	return err
 }
 
 // GetTask returns a task by ID.
 func (s *Store) GetTask(id string) (*MissionTask, error) {
-	t := &MissionTask{}
-	err := s.db.QueryRow(`SELECT id, mission_id, name, description, status, kind, priority, dependencies, config, result, created_at, updated_at, started_at, completed_at
-		FROM mission_tasks WHERE id=?`, id).Scan(
-		&t.ID, &t.MissionID, &t.Name, &t.Description, &t.Status, &t.Kind, &t.Priority, &t.Dependencies, &t.Config, &t.Result, &t.CreatedAt, &t.UpdatedAt, &t.StartedAt, &t.CompletedAt)
+	t, err := scanMissionTask(s.db.QueryRow(`SELECT id, mission_id, name, description, status, kind, priority, dependencies, config, result, created_at, updated_at, started_at, completed_at
+		FROM mission_tasks WHERE id=?`, id))
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("task not found: %s", id)
 	}
@@ -112,11 +108,11 @@ func (s *Store) ListTasks(missionID string) ([]MissionTask, error) {
 	defer rows.Close()
 	var tasks []MissionTask
 	for rows.Next() {
-		var t MissionTask
-		if err := rows.Scan(&t.ID, &t.MissionID, &t.Name, &t.Description, &t.Status, &t.Kind, &t.Priority, &t.Dependencies, &t.Config, &t.Result, &t.CreatedAt, &t.UpdatedAt, &t.StartedAt, &t.CompletedAt); err != nil {
+		t, err := scanMissionTask(rows)
+		if err != nil {
 			return nil, err
 		}
-		tasks = append(tasks, t)
+		tasks = append(tasks, *t)
 	}
 	return tasks, rows.Err()
 }
@@ -125,7 +121,7 @@ func (s *Store) ListTasks(missionID string) ([]MissionTask, error) {
 func (s *Store) UpdateTask(t *MissionTask) error {
 	t.UpdatedAt = time.Now().UTC()
 	_, err := s.db.Exec(`UPDATE mission_tasks SET name=?, description=?, status=?, kind=?, priority=?, dependencies=?, config=?, result=?, updated_at=?, started_at=?, completed_at=? WHERE id=?`,
-		t.Name, t.Description, t.Status, t.Kind, t.Priority, t.Dependencies, t.Config, t.Result, t.UpdatedAt, t.StartedAt, t.CompletedAt, t.ID)
+		t.Name, t.Description, t.Status, t.Kind, t.Priority, t.Dependencies, t.Config, t.Result, t.UpdatedAt.Format(time.RFC3339Nano), formatNullableTime(t.StartedAt), formatNullableTime(t.CompletedAt), t.ID)
 	return err
 }
 
@@ -140,7 +136,7 @@ func (s *Store) CreateAssignment(a *MissionAssignment) error {
 	}
 	_, err := s.db.Exec(`INSERT INTO mission_assignments(id, mission_id, task_id, agent_id, status, assigned_at)
 		VALUES(?,?,?,?,?,?)`,
-		a.ID, a.MissionID, a.TaskID, a.AgentID, a.Status, a.AssignedAt)
+		a.ID, a.MissionID, a.TaskID, a.AgentID, a.Status, a.AssignedAt.Format(time.RFC3339Nano))
 	return err
 }
 
@@ -154,11 +150,11 @@ func (s *Store) ListAssignments(missionID string) ([]MissionAssignment, error) {
 	defer rows.Close()
 	var assigns []MissionAssignment
 	for rows.Next() {
-		var a MissionAssignment
-		if err := rows.Scan(&a.ID, &a.MissionID, &a.TaskID, &a.AgentID, &a.Status, &a.AssignedAt, &a.CompletedAt); err != nil {
+		a, err := scanMissionAssignment(rows)
+		if err != nil {
 			return nil, err
 		}
-		assigns = append(assigns, a)
+		assigns = append(assigns, *a)
 	}
 	return assigns, rows.Err()
 }
@@ -166,8 +162,68 @@ func (s *Store) ListAssignments(missionID string) ([]MissionAssignment, error) {
 // UpdateAssignment updates an assignment's status.
 func (s *Store) UpdateAssignment(a *MissionAssignment) error {
 	_, err := s.db.Exec(`UPDATE mission_assignments SET status=?, completed_at=? WHERE id=?`,
-		a.Status, a.CompletedAt, a.ID)
+		a.Status, formatNullableTime(a.CompletedAt), a.ID)
 	return err
+}
+
+func scanMission(scanner rowScanner) (*Mission, error) {
+	m := &Mission{}
+	var created, updated string
+	var started, completed sql.NullString
+	err := scanner.Scan(&m.ID, &m.ProjectID, &m.Name, &m.Description, &m.Status, &m.Goal, &m.Scope, &m.RiskLevel, &m.Config, &created, &updated, &started, &completed)
+	if err != nil {
+		return nil, err
+	}
+	m.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
+	m.UpdatedAt, _ = time.Parse(time.RFC3339Nano, updated)
+	m.StartedAt = parseNullableTime(started)
+	m.CompletedAt = parseNullableTime(completed)
+	return m, nil
+}
+
+func scanMissionTask(scanner rowScanner) (*MissionTask, error) {
+	t := &MissionTask{}
+	var created, updated string
+	var started, completed sql.NullString
+	err := scanner.Scan(&t.ID, &t.MissionID, &t.Name, &t.Description, &t.Status, &t.Kind, &t.Priority, &t.Dependencies, &t.Config, &t.Result, &created, &updated, &started, &completed)
+	if err != nil {
+		return nil, err
+	}
+	t.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
+	t.UpdatedAt, _ = time.Parse(time.RFC3339Nano, updated)
+	t.StartedAt = parseNullableTime(started)
+	t.CompletedAt = parseNullableTime(completed)
+	return t, nil
+}
+
+func scanMissionAssignment(scanner rowScanner) (*MissionAssignment, error) {
+	a := &MissionAssignment{}
+	var assigned string
+	var completed sql.NullString
+	if err := scanner.Scan(&a.ID, &a.MissionID, &a.TaskID, &a.AgentID, &a.Status, &assigned, &completed); err != nil {
+		return nil, err
+	}
+	a.AssignedAt, _ = time.Parse(time.RFC3339Nano, assigned)
+	a.CompletedAt = parseNullableTime(completed)
+	return a, nil
+}
+
+func parseNullableTime(value sql.NullString) *time.Time {
+	if !value.Valid || value.String == "" {
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339Nano, value.String)
+	if err != nil {
+		return nil
+	}
+	return &t
+}
+
+func formatNullableTime(value *time.Time) any {
+	if value == nil {
+		return nil
+	}
+	return value.Format(time.RFC3339Nano)
 }
 
 // MissionStats returns aggregate stats for a mission.

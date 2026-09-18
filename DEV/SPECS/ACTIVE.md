@@ -1,5 +1,99 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Beta Linux closure scope — 2026-09-18
+
+The current closure candidate is locally certified for Linux only. GitHub-hosted
+jobs are blocked before start by billing state and no Windows/macOS machines
+are available. The executable beta CI contract is seven same-SHA Linux jobs:
+frontend, security, browser, Linux Go, Linux Wails, GoReleaser/DEB snapshot
+and DEB install smoke. Native Windows, macOS, NSIS and RPM evidence remain
+pending and are not release claims.
+
+## Closure update — 2026-09-17 — PR #2
+
+Os blockers determinísticos identificados no Windows foram corrigidos no
+worktree: seed cross-account em lote e sincronização determinística do worker
+de recuperação de Mission. O CI agora evita a duplicação de `push`/`pull_request`
+em branches de feature. Permanecem gates hosted/native: novo SHA commitado,
+14 jobs verdes, Windows repetido verde, merge commit, CI da `main` e retag
+`v1.0.0-beta.1`. Branch protection nativa permanece indisponível no plano
+privado e será mitigada operacionalmente.
+
+## Closure state — 2026-09-15 (v1.0.0-beta.1)
+
+Alvo desta spec: Community Preview `v1.0.0-beta.1`, não 1.0.0 estável.
+Slice de fechamento in-repo: lint, attach Composer, docs de install, changelog.
+Gates humanos restantes: freeze commit, CI same-SHA, `beta-signing`, visibilidade
+do repositório, tag no SHA verde, GitHub Release. Composer → Flow é o caminho Web
+de planejamento; Conductor permanece CLI.
+
+## Closure state — 2026-09-13
+
+### P0 ativo — concorrência de runtimes supervisionados
+
+O contrato de continuidade agora permite múltiplas TUIs Codex no mesmo perfil:
+leases compartilhados protegem cada runtime, enquanto preparação, migração e
+quota app-server exigem manutenção exclusiva. A seleção não trata perfil ativo
+como singleton e Leads interativos são reivindicados atomicamente antes do
+lançamento. O slice foi implementado e verificado localmente; a migração do
+module path e a promoção adaptativa permanecem bloqueadas até revisão deste P0.
+
+Após a revisão local, a migração do module path foi concluída e validada; a
+promoção adaptativa (Fase A) continua pendente.
+
+Observed candidate SHA: `eed65e5a7e46adc896165c94accb7fc73fc6750f`. The local
+closure slice is implemented and its deterministic/Linux gates pass, but the
+candidate is not frozen. Required release blockers remain: stale visual docs
+manifest, production updater key provisioning, authenticated provider Mission
+evidence, native Windows/macOS/installer execution, hosted same-SHA evidence
+and overnight soak. Verdict remains `NOT_READY_FOR_OVERNIGHT_CERTIFICATION`.
+
+## Slice ativo — Mission Teams / Autonomous Delivery Pipeline — 2026-09-13
+
+Esta campanha implementa uma projeção data-driven de Mission Team sobre os
+contratos canônicos existentes de Intent, Delegation, WorkPlan, MatchAgents,
+ResourceScheduler, MissionRunner, ContextCapsule, WorkReceipt, ValidationEvidence
+e Attention. O objetivo é selecionar DIRECT para trabalho pequeno e uma pipeline
+explicável PLAN → BUILD → REVIEW → FIX → VERIFY para trabalho substancial, sem
+criar outro scheduler, Mission engine, WorkPlan ou Agent model.
+
+Contrato executável e critérios estão em
+`../../.omx/plans/2026-09-13-mission-teams.md`; o relatório final ficará em
+`DEV/validation/current/MISSION_TEAMS_REPORT.md`. Provider autenticado, native
+platform e overnight evidence continuam sujeitos às limitações reais do
+ambiente e serão classificados separadamente, nunca inferidos de fake fixtures.
+
+## Slice de documentação orientada ao produto — 2026-09-13
+
+README como landing page técnica, Quick Start, mapa de funcionalidades,
+referência de CLI/API local/configuração, personas, troubleshooting, evidência
+visual sintética e ledger/coverage. Não muda o status de release: provider
+autenticado, Desktop nativo e Mission real continuam condicionados à evidência
+dos relatórios de validação.
+
+## Slice da branch `feat/nexus-auto-delegation` — 2026-09-12
+
+O contrato específico desta branch está em
+[`docs/superpowers/specs/2026-09-12-nexus-auto-delegation.md`](../../docs/superpowers/specs/2026-09-12-nexus-auto-delegation.md).
+O objetivo é adicionar a política AUTO/ASK/OFF para o Lead Agent usar os
+contratos existentes de Flow, WorkPlan, MatchAgents, scheduler e MissionRunner.
+Não altera o veredito de release/hardening desta especificação.
+
+## Slice ativo — registry progressivo de CLIs (2026-09-10)
+
+O Core agora separa descoberta de instalação (`InstallationRegistry`) do
+registro de contas. `nexus providers status [--json]` expõe os estados e
+`nexus providers register` cria perfil isolado, com autenticação imediata ou
+adiada via `--no-login`.
+
+## Complemento de execução planejado — 2026-09-06
+
+O plano solicitado para execução posterior pelo Luna está em
+[`NEXUS_TERMINAL_CONTINUITY_LUNA.md`](NEXUS_TERMINAL_CONTINUITY_LUNA.md).
+Cobre CI, quotas, pools, supervisão CLI e continuidade multiplataforma; adiciona
+pacotes P0–P12 sem substituir o contrato Web/Desktop abaixo. Status: planejado,
+não implementado nesta etapa. Maestro permanece instalação opcional.
+
 ## Objetivo
 
 Tornar oficialmente o IAPro Nexus uma aplicação com duas superfícies de execução equivalentes:
@@ -15,7 +109,22 @@ Ambas utilizando:
 - A mesma versão Nexus, canal e Git SHA
 - Integração Maestro desacoplada e 100% opcional (sem instalação automática silenciosa)
 
+## Complemento ativo — separação terminal/controle (2026-09-11)
+
+O canal de entrada do terminal é byte-transparente e não reconhece comandos
+Nexus. Ações de status, eventos, stop, handoff, continue e detach usam RPCs
+tipados; `nexus control monitor [runtime-id]` é uma superfície TUI separada,
+somente leitura. Reconnect não relança runtimes; recuperação exige ação
+explícita.
+
 ## Aceitação
+
+### Finalization autopilot status — 2026-09-07
+
+The fresh release-candidate ledger is maintained in
+[`DEV/NEXUS_1_FINAL_ACCEPTANCE.md`](../NEXUS_1_FINAL_ACCEPTANCE.md). Local
+control-plane gates are green; native Windows/macOS, authenticated crash/provider
+recovery, overnight acceptance and real dogfooding remain explicit blockers.
 
 1. **Baseline Zero-Red**:
    - `make quality`, `web-verify`, `go test ./...` 100% verdes.
@@ -44,3 +153,97 @@ Ambas utilizando:
 8. **Documentação & ADRs**:
    - ADRs de Desktop (Wails v2), Update Architecture e Maestro Integration.
    - Relatórios em `DEV/validation/` e `docs/superpowers/reports/`.
+Decisões executivas e pendências de promoção: `DEV/DECISIONS/NEXUS_TERMINAL_CONTINUITY.md`.
+
+## Nexus Core consolidation status — 2026-09-10
+
+## Final closure campaign — 2026-09-11
+
+The current campaign audit and executable plan are tracked in
+`DEV/validation/FINAL_CLOSURE_REALITY_AUDIT.md`,
+`DEV/validation/FINAL_CLOSURE_CHECKPOINTS.md`, and
+`docs/superpowers/plans/2026-09-11-nexus-final-closure.md`. The first native
+Skill Catalog, bounded intelligence grounding, explicit intent router, runtime
+affinity/routing decision slices, and runner integration with the canonical
+ValidationEvidenceStream are implemented and locally tested. The global
+release verdict remains NO-GO while an authenticated Mission stream instance,
+complete live provider execution, overnight acceptance, and native
+Windows/macOS validation are unavailable.
+
+## Evolution corrective closure — 2026-09-11
+
+The independent audit and corrective work are tracked in
+[`docs/validation/EVOLUTION_FINAL_AUDIT.md`](../../docs/validation/EVOLUTION_FINAL_AUDIT.md)
+and [`docs/validation/EVOLUTION_FINAL_VALIDATION.md`](../../docs/validation/EVOLUTION_FINAL_VALIDATION.md).
+Persistent Agents now carry typed `AgentSpec` personality metadata from the
+Web presets into revision config and compiled execution context. The canonical
+`MatchAgents` path is used by Flow/Mission AUTO allocation, while provider
+resource capabilities remain owned by `ResourceScheduler`. Natural-language
+`nexus run "<goal>"` creates a classified Flow/WorkPlan and enters the same
+pipeline. A same-provider handoff reports `NATIVE_RESUME_UNVERIFIED` unless a
+provider-level confirmation exists; cross-provider handoff remains
+`CONTEXT_HANDOFF`.
+
+Local Linux gates are green in isolation, but the final verdict remains
+`NO-GO` until required PTY/failover E2E, authenticated live-provider evidence,
+same-SHA native Windows/macOS evidence and the full race gate are available.
+
+### Final closure implementation continuation — 2026-09-11
+
+The active contract now includes the source-agnostic SkillCatalog in the Agent
+prompt path, generic `ExecutionGuidance` for Intelligence, canonical frontend
+`skill_ids`, separation of legacy process gates from Skills, and persisted
+desired-vs-actual Mission routing explainability. These are locally verified;
+they do not waive the release evidence gates below.
+
+Release remains `NO-GO` until an authenticated Mission produces a durable
+ValidationEvidenceStream instance, live provider failover/PIN/model escalation
+and semantic handoff are proven, native Windows/macOS runs exist for the same
+SHA, and the overnight scenario reaches a verified terminal state.
+
+The current continuation also records operational Project Intelligence facts
+(commands, frameworks, workspace topology and CI run commands) through the
+existing bounded scanner, and the run routing report projects the persisted
+intent decision alongside durable allocation decisions. These local contracts
+are tested, but do not replace authenticated/runtime/native evidence.
+
+## Account isolation slice — 2026-09-10
+
+Introduzido `model.AccountScope` com chave canônica
+`provider/account_id/identity_version`. Perfis persistem o identificador
+opaco e versionam mudanças de identidade; APIs scoped de quota recusam cache
+sem correspondência. Cooldown, monitor de quota e eventos aceitam o mesmo
+escopo. Registro progressivo de instalações permanece como próximo slice.
+
+- Characterization baseline and capability matrix are versioned under
+  `docs/refactoring/`.
+- Agent identity remains separate from provider. Typed `AgentSpec` is persisted
+  in `AgentRevision.Config` and normalized for legacy role-only Agents.
+- The existing intelligence compiler now exposes provenance sections and is
+  reused by custom direct, headless, and WorkPackage/Mission execution.
+- CLI `plan compile`, `plan run`, and positional `agents PROJECT` behavior are
+  wired/tested. Full CLI registry generation remains a documented follow-up
+  because provider-direct commands retain native parsing.
+
+## Consolidação arquitetural incremental — 2026-09-10
+
+Esta campanha não adiciona uma leva de funcionalidades. A primeira fatia
+concluída modulariza a composição das rotas HTTP e formaliza metadata aditiva
+da API, preservando handlers, paths, CLI aliases e o contrato Web existente.
+O plano completo e a baseline estão em `docs/superpowers/plans/` e
+`docs/refactoring/`; os principais domínios HTTP já possuem arquivos próprios
+de transporte, e extrações futuras devem ser guiadas por domínio e testes.
+
+Projects, Resources, Agents, WorkPlan CRUD, Missions planning, Composer e o
+boundary de transporte de MissionRun já possuem services de aplicação no Core,
+com testes de cancelamento/CRUD/delegação e preservação dos contratos HTTP.
+Correlation IDs opcionais já atravessam eventos duráveis nos fluxos de failover
+e handoff. A campanha continua ativa: não declarar a Definition of Done global
+enquanto a matriz completa de contratos API/CLI, a taxonomia integral de
+eventos e as evidências nativas de Windows/macOS permanecerem pendentes.
+
+Atualização: `RuntimeApplicationService` agora concentra também os controles
+de runtime usados pela API (stop/respond/handoff), cleanup e espera cancelável;
+`RunApplicationService` produz eventos correlacionados de MissionRun com
+ownership de projeto/agente quando disponível. O lifecycle/process state ainda
+é implementado pelo control plane e runner, conforme documentado na auditoria.

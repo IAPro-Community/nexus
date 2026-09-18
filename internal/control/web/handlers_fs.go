@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/IAPro-Community/nexus/internal/browser"
 )
 
 // FSEntry represents a directory entry on the host filesystem.
@@ -245,6 +247,11 @@ func (h *NexusHandler) handleFSBrowse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !isWithinAllowedRoots(absPath) {
+		writeError(w, http.StatusForbidden, "path is outside allowed directories")
+		return
+	}
+
 	info, err := os.Stat(absPath)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "path not found: "+err.Error())
@@ -255,6 +262,11 @@ func (h *NexusHandler) handleFSBrowse(w http.ResponseWriter, r *http.Request) {
 		absPath = filepath.Dir(absPath)
 	}
 
+	if !isWithinAllowedRoots(absPath) {
+		writeError(w, http.StatusForbidden, "path is outside allowed directories")
+		return
+	}
+
 	entries, err := os.ReadDir(absPath)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "cannot read directory: "+err.Error())
@@ -262,6 +274,7 @@ func (h *NexusHandler) handleFSBrowse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var results []FSEntry
+	includeEntryMetadata := r.URL.Query().Get("details") == "full"
 	for _, entry := range entries {
 		// Skip hidden files/dirs unless needed (skip .git internal directory itself, but keep flag)
 		if strings.HasPrefix(entry.Name(), ".") && entry.Name() != ".git" {
@@ -269,16 +282,19 @@ func (h *NexusHandler) handleFSBrowse(w http.ResponseWriter, r *http.Request) {
 		}
 
 		fullPath := filepath.Join(absPath, entry.Name())
-		entryInfo, err := entry.Info()
-		if err != nil {
-			continue
-		}
-
 		isDir := entry.IsDir()
 		isGit := false
 		var tech []string
+		var entryInfo os.FileInfo
 
-		if isDir {
+		if includeEntryMetadata {
+			entryInfo, err = entry.Info()
+			if err != nil {
+				continue
+			}
+		}
+
+		if isDir && includeEntryMetadata {
 			// Check if child is a Git repo
 			if _, gErr := os.Stat(filepath.Join(fullPath, ".git")); gErr == nil {
 				isGit = true
@@ -287,15 +303,17 @@ func (h *NexusHandler) handleFSBrowse(w http.ResponseWriter, r *http.Request) {
 		}
 
 		results = append(results, FSEntry{
-			Name:        entry.Name(),
-			Path:        fullPath,
-			IsDir:       isDir,
-			IsGit:       isGit,
-			Tech:        tech,
-			ModTime:     entryInfo.ModTime().Format(time.RFC3339),
-			SizeBytes:   entryInfo.Size(),
-			Permissions: entryInfo.Mode().String(),
+			Name:  entry.Name(),
+			Path:  fullPath,
+			IsDir: isDir,
+			IsGit: isGit,
+			Tech:  tech,
 		})
+		if entryInfo != nil {
+			results[len(results)-1].ModTime = entryInfo.ModTime().Format(time.RFC3339)
+			results[len(results)-1].SizeBytes = entryInfo.Size()
+			results[len(results)-1].Permissions = entryInfo.Mode().String()
+		}
 	}
 
 	// Sort: Directories first, then alphabetical
@@ -525,6 +543,81 @@ func (h *NexusHandler) handleFSScan(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, discovered)
 }
 
+// isWithinAllowedRoots checks whether path falls inside a safe directory.
+// Allowed roots are: user home dir, the OS temporary directory, /tmp on
+// non-Windows hosts for compatibility, and any ancestor containing .git or
+// AGENTS.md (project workspace markers).
+func isWithinAllowedRoots(path string) bool {
+	abs, err := filepath.Abs(filepath.Clean(path))
+	if err != nil {
+		return false
+	}
+	// Resolve the nearest existing ancestor before checking policy. A lexical
+	// /tmp or home prefix is insufficient when an attacker places a symlink
+	// inside that prefix which points at a protected directory.
+	realPath, err := resolveExistingAncestor(abs)
+	if err != nil {
+		return false
+	}
+	abs = realPath
+
+	if home, err := os.UserHomeDir(); err == nil && pathWithin(home, abs) {
+		return true
+	}
+
+	if tempDir := os.TempDir(); pathWithin(tempDir, abs) {
+		return true
+	}
+	// On Unix, /tmp may differ from os.TempDir() (e.g. macOS /var/folders).
+	// Never hard-require a Unix-only path on Windows.
+	if runtime.GOOS != "windows" && pathWithin("/tmp", abs) {
+		return true
+	}
+
+	// Walk upward looking for project workspace markers
+	dir := abs
+	for {
+		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+			return true
+		}
+		if _, err := os.Stat(filepath.Join(dir, "AGENTS.md")); err == nil {
+			return true
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	return false
+}
+
+func pathWithin(root, path string) bool {
+	cleanRoot := filepath.Clean(root)
+	if resolvedRoot, err := resolveExistingAncestor(cleanRoot); err == nil {
+		cleanRoot = resolvedRoot
+	}
+	rel, err := filepath.Rel(cleanRoot, filepath.Clean(path))
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+func resolveExistingAncestor(path string) (string, error) {
+	candidate := filepath.Clean(path)
+	for {
+		if _, err := os.Lstat(candidate); err == nil {
+			return filepath.EvalSymlinks(candidate)
+		} else if !os.IsNotExist(err) {
+			return "", err
+		}
+		parent := filepath.Dir(candidate)
+		if parent == candidate {
+			return "", os.ErrNotExist
+		}
+		candidate = parent
+	}
+}
+
 // handleFSMkdir POST /api/v1/fs/mkdir
 func (h *NexusHandler) handleFSMkdir(w http.ResponseWriter, r *http.Request) {
 	if !h.hostFilesystemEnabled {
@@ -552,6 +645,11 @@ func (h *NexusHandler) handleFSMkdir(w http.ResponseWriter, r *http.Request) {
 	absPath, err := filepath.Abs(filepath.Clean(targetPath))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if !isWithinAllowedRoots(absPath) {
+		writeError(w, http.StatusForbidden, "path is outside allowed directories")
 		return
 	}
 
@@ -617,13 +715,30 @@ func (h *NexusHandler) handleProjectOpenOS(w http.ResponseWriter, r *http.Reques
 		case "windows":
 			cmd = exec.Command("explorer", path)
 		default: // linux/unix
-			cmd = exec.Command("xdg-open", path)
+			// Resolve real system xdg-open to avoid symlink recursion
+			// when running as a browser-helper shim.
+			if xdg := browser.ResolveXdgOpen(); xdg != "" {
+				cmd = exec.Command(xdg, path)
+			} else {
+				cmd = exec.Command("xdg-open", path)
+			}
 		}
 
 	case "terminal":
 		term := os.Getenv("TERMINAL")
 		if term != "" {
-			cmd = exec.Command(term)
+			// Allowlist of known-safe terminal binaries to prevent arbitrary
+			// command execution if an attacker influences the process environment.
+			allowedTerminals := map[string]bool{
+				"x-terminal-emulator": true, "gnome-terminal": true, "konsole": true,
+				"xfce4-terminal": true, "alacritty": true, "kitty": true, "xterm": true,
+				"iterm2": true, "wezterm": true, "foot": true, "st": true,
+				"Terminal.app": true, "wt.exe": true, "cmd.exe": true,
+			}
+			base := filepath.Base(term)
+			if allowedTerminals[base] {
+				cmd = exec.Command(term)
+			}
 		} else if runtime.GOOS == "darwin" {
 			cmd = exec.Command("open", "-a", "Terminal", path)
 		} else if runtime.GOOS == "windows" {
@@ -654,7 +769,12 @@ func (h *NexusHandler) handleProjectOpenOS(w http.ResponseWriter, r *http.Reques
 		} else if ed := os.Getenv("EDITOR"); ed != "" {
 			cmd = exec.Command(ed, path)
 		} else {
-			cmd = exec.Command("xdg-open", path)
+			// Resolve real system xdg-open to avoid symlink recursion.
+			if xdg := browser.ResolveXdgOpen(); xdg != "" {
+				cmd = exec.Command(xdg, path)
+			} else {
+				cmd = exec.Command("xdg-open", path)
+			}
 		}
 
 	default:

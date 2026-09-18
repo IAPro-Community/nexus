@@ -1,0 +1,18 @@
+.errorBoundary {
+  padding: var(--nx-space-8);
+  text-align: center;
+
+  h2 {
+    color: var(--nx-text);
+    margin-bottom: var(--nx-space-2);
+  }
+
+  p {
+    color: var(--nx-text-muted);
+    margin-bottom: var(--nx-space-4);
+  }
+
+  button {
+    cursor: pointer;
+  }
+}

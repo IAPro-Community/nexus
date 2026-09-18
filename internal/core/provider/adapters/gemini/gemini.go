@@ -8,11 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/classifier"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // Adapter implements the Provider interface for Google Gemini CLI.
@@ -30,7 +31,7 @@ func (a *Adapter) Capabilities() model.Capabilities {
 		Login:              true,
 		Logout:             true,
 		Usage:              true,
-		Conversations:      true,
+		Conversations:      false, // ListConversations is not implemented yet
 		Resume:             true,
 		CrossAccountResume: false,
 		HotAccountSwitch:   false,
@@ -40,7 +41,7 @@ func (a *Adapter) Capabilities() model.Capabilities {
 }
 
 func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
-	bin, err := runtime.LookPath("gemini")
+	bin, err := spec.MustGet("gemini").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "binary not found in PATH"}
 	}
@@ -82,7 +83,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 	if err := a.Prepare(ctx, p); err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
 	}
-	bin, err := runtime.LookPath("gemini")
+	bin, err := spec.MustGet("gemini").ResolveBinary()
 	if err != nil {
 		return model.Failure{Kind: model.FailureProvider, Message: "gemini binary not found"}, err
 	}
@@ -156,28 +157,51 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 }
 
 func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
-	snap := model.UsageSnapshot{
-		ProviderID: string(a.ID()),
+	// Cache/last-known only — live HTTP belongs in RefreshUsage.
+	if snap, ok := a.readCachedUsage(p); ok {
+		return snap
+	}
+	return unknownUsageSnapshot(p)
+}
+
+// RefreshUsage fetches the official Gemini quota without reading usage.json.
+func (a *Adapter) RefreshUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
+	snap, _ := a.fetchLiveUsage(ctx, p)
+	return snap
+}
+
+func (a *Adapter) readCachedUsage(p model.Profile) (model.UsageSnapshot, bool) {
+	root, err := config.ProfileRoot(string(a.ID()), p.Name)
+	if err != nil || root == "" {
+		return model.UsageSnapshot{}, false
+	}
+	data, err := os.ReadFile(filepath.Join(root, "usage.json"))
+	if err != nil {
+		return model.UsageSnapshot{}, false
+	}
+	var snap model.UsageSnapshot
+	if json.Unmarshal(data, &snap) != nil || len(snap.Windows) == 0 {
+		return model.UsageSnapshot{}, false
+	}
+	if snap.ProfileID != "" && snap.ProfileID != p.Name {
+		return model.UsageSnapshot{}, false
+	}
+	snap.ProviderID = string(a.ID())
+	snap.ProfileID = p.Name
+	if snap.Status == model.UsageLive {
+		snap.Status = model.UsageCached
+	}
+	return snap, true
+}
+
+func unknownUsageSnapshot(p model.Profile) model.UsageSnapshot {
+	return model.UsageSnapshot{
+		ProviderID: string(model.ProviderGemini),
 		ProfileID:  p.Name,
 		Status:     model.UsageUnknown,
 		Source:     model.SourceNone,
 		FetchedAt:  time.Now(),
 	}
-
-	root, err := config.ProfileRoot(string(a.ID()), p.Name)
-	if err != nil {
-		return snap
-	}
-
-	quotaFile := filepath.Join(root, "home", "usage.json")
-	if data, err := os.ReadFile(quotaFile); err == nil {
-		var s model.UsageSnapshot
-		if json.Unmarshal(data, &s) == nil {
-			return s
-		}
-	}
-
-	return snap
 }
 
 func (a *Adapter) ListConversations(ctx context.Context, p model.Profile, workspace string) ([]model.Session, error) {

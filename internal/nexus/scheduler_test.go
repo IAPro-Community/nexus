@@ -3,12 +3,22 @@ package nexus
 import (
 	"testing"
 	"time"
+
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
+
+func schedulerTestAccount(id, provider, profile string) ProviderAccount {
+	return ProviderAccount{
+		ID: id, Provider: provider, Profile: profile,
+		Authenticated: true, Available: true, Health: "healthy",
+		QuotaView: &quota.QuotaView{Status: "LIVE"},
+	}
+}
 
 func TestSchedulerBalancedSelectsHealthy(t *testing.T) {
 	accounts := []ProviderAccount{
-		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaRemaining: 80, QuotaTotal: 100},
-		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "degraded", QuotaRemaining: 90, QuotaTotal: 100},
+		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaRemaining: 80, QuotaTotal: 100, QuotaView: &quota.QuotaView{Status: "LIVE"}},
+		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "degraded", QuotaRemaining: 90, QuotaTotal: 100, QuotaView: &quota.QuotaView{Status: "LIVE"}},
 	}
 	s := NewResourceScheduler(accounts, PolicyBalanced)
 	decision := s.Select("", "", "", nil)
@@ -23,7 +33,7 @@ func TestSchedulerBalancedSelectsHealthy(t *testing.T) {
 func TestSchedulerFiltersUnauthenticated(t *testing.T) {
 	accounts := []ProviderAccount{
 		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: false, Health: "healthy"},
-		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
+		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}},
 	}
 	s := NewResourceScheduler(accounts, PolicyBalanced)
 	decision := s.Select("", "", "", nil)
@@ -35,7 +45,7 @@ func TestSchedulerFiltersUnauthenticated(t *testing.T) {
 func TestSchedulerFiltersRateLimited(t *testing.T) {
 	accounts := []ProviderAccount{
 		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: true, RateLimited: true, Health: "healthy"},
-		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
+		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}},
 	}
 	s := NewResourceScheduler(accounts, PolicyBalanced)
 	decision := s.Select("", "", "", nil)
@@ -48,7 +58,7 @@ func TestSchedulerFiltersCooldown(t *testing.T) {
 	future := time.Now().Add(1 * time.Hour)
 	accounts := []ProviderAccount{
 		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: true, CooldownUntil: &future, Health: "healthy"},
-		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
+		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}},
 	}
 	s := NewResourceScheduler(accounts, PolicyBalanced)
 	decision := s.Select("", "", "", nil)
@@ -60,7 +70,7 @@ func TestSchedulerFiltersCooldown(t *testing.T) {
 func TestSchedulerFiltersUnhealthy(t *testing.T) {
 	accounts := []ProviderAccount{
 		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: true, Health: "unhealthy"},
-		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
+		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}},
 	}
 	s := NewResourceScheduler(accounts, PolicyBalanced)
 	decision := s.Select("", "", "", nil)
@@ -86,8 +96,8 @@ func TestSchedulerNoEligible(t *testing.T) {
 
 func TestSchedulerPreserveQuotaPrefersHigherQuota(t *testing.T) {
 	accounts := []ProviderAccount{
-		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaRemaining: 20, QuotaTotal: 100},
-		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaRemaining: 90, QuotaTotal: 100},
+		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaRemaining: 20, QuotaTotal: 100, QuotaView: &quota.QuotaView{Status: "LIVE"}},
+		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaRemaining: 90, QuotaTotal: 100, QuotaView: &quota.QuotaView{Status: "LIVE"}},
 	}
 	s := NewResourceScheduler(accounts, PolicyPreserveQuota)
 	decision := s.Select("", "", "", nil)
@@ -98,8 +108,8 @@ func TestSchedulerPreserveQuotaPrefersHigherQuota(t *testing.T) {
 
 func TestSchedulerPreferProvider(t *testing.T) {
 	accounts := []ProviderAccount{
-		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
-		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
+		schedulerTestAccount("a1", "claude", "default"),
+		schedulerTestAccount("a2", "openai", "default"),
 	}
 	s := NewResourceScheduler(accounts, PolicyBalanced)
 	decision := s.Select("openai", "", "", nil)
@@ -110,8 +120,8 @@ func TestSchedulerPreferProvider(t *testing.T) {
 
 func TestSchedulerManualOnlyMatchesExplicit(t *testing.T) {
 	accounts := []ProviderAccount{
-		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
-		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
+		schedulerTestAccount("a1", "claude", "default"),
+		schedulerTestAccount("a2", "openai", "default"),
 	}
 	s := NewResourceScheduler(accounts, PolicyManual)
 
@@ -130,8 +140,8 @@ func TestSchedulerManualOnlyMatchesExplicit(t *testing.T) {
 
 func TestSchedulerContinuityPrefersSameProvider(t *testing.T) {
 	accounts := []ProviderAccount{
-		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
-		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
+		schedulerTestAccount("a1", "claude", "default"),
+		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}},
 	}
 	s := NewResourceScheduler(accounts, PolicyBalanced)
 	decision := s.Select("", "claude", "NATIVE_RESUME_UNVERIFIED", nil)
@@ -154,11 +164,21 @@ func TestSchedulerExplainPath(t *testing.T) {
 func TestSchedulerFiltersUnavailable(t *testing.T) {
 	accounts := []ProviderAccount{
 		{ID: "a1", Provider: "claude", Profile: "default", Authenticated: true, Available: false, Health: "healthy"},
-		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy"},
+		{ID: "a2", Provider: "openai", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}},
 	}
 	s := NewResourceScheduler(accounts, PolicyBalanced)
 	decision := s.Select("", "", "", nil)
 	if decision.Selected.ID != "a2" {
 		t.Fatalf("expected available account a2, got %q", decision.Selected.ID)
+	}
+}
+
+func TestSchedulerRejectsUnknownQuota(t *testing.T) {
+	accounts := []ProviderAccount{
+		{ID: "unknown", Provider: "codex", Profile: "default", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "UNKNOWN"}},
+	}
+	decision := NewResourceScheduler(accounts, PolicyBalanced).Select("", "", "", nil)
+	if decision.Selected.ID != "" {
+		t.Fatalf("unknown quota must not be selected automatically, got %q", decision.Selected.ID)
 	}
 }

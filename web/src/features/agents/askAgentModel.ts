@@ -1,5 +1,5 @@
 export interface AskAgentAction {
-  label: 'Ask Agent' | 'Start & Ask';
+  label: 'Prepare Task' | 'Start & Send Task';
   startIfNeeded: boolean;
 }
 
@@ -7,6 +7,6 @@ const active = new Set(['WORKING', 'WAITING', 'APPROVAL', 'HANDOFF', 'STARTING',
 
 export function askActionForStatus(status: string): AskAgentAction {
   return active.has(String(status || '').toUpperCase())
-    ? { label: 'Ask Agent', startIfNeeded: false }
-    : { label: 'Start & Ask', startIfNeeded: true };
+    ? { label: 'Prepare Task', startIfNeeded: false }
+    : { label: 'Start & Send Task', startIfNeeded: true };
 }

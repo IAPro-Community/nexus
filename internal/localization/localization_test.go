@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -58,4 +59,15 @@ func TestCatalogParity(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestHumanizeHelpKeepsMaestroUpdateExplicit(t *testing.T) {
+	for _, lang := range []string{"en", "pt-BR", "es"} {
+		Set(lang)
+		got := HumanizeHelp("update — Update Nexus and Orquestrador Maestro to latest")
+		if strings.Contains(got, "Nexus e Maestro") || strings.Contains(got, "Nexus y Maestro") || strings.Contains(got, "Nexus and Orquestrador Maestro") {
+			t.Fatalf("%s retained merged update claim: %q", lang, got)
+		}
+	}
+	Set(DefaultLanguage)
 }

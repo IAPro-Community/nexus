@@ -2,7 +2,10 @@ package protocol
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"errors"
+	"net"
 	"testing"
 	"time"
 )
@@ -34,6 +37,48 @@ func TestProtocolSerialization(t *testing.T) {
 	errResp := NewErrorResponse("something went wrong")
 	if errResp.OK || errResp.Error != "something went wrong" {
 		t.Errorf("unexpected error response: %+v", errResp)
+	}
+}
+
+func TestControlResponseHasStableEnvelope(t *testing.T) {
+	resp := NewControlResponse(ControlResult{
+		OK: true, Code: "STOP_REQUESTED", RuntimeID: "rt-1", Action: string(CmdStop),
+		State: "STOPPING", Message: "stop requested", CorrelationID: "lineage-1",
+	})
+	if !resp.OK || resp.Code != "STOP_REQUESTED" || resp.RuntimeID != "rt-1" || resp.Action != string(CmdStop) || resp.State != "STOPPING" || resp.CorrelationID != "lineage-1" {
+		t.Fatalf("unexpected control response: %+v", resp)
+	}
+	var payload ControlResult
+	if err := json.Unmarshal(resp.Data, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload != (ControlResult{OK: true, Code: "STOP_REQUESTED", RuntimeID: "rt-1", Action: string(CmdStop), State: "STOPPING", Message: "stop requested", CorrelationID: "lineage-1"}) {
+		t.Fatalf("unexpected response data: %+v", payload)
+	}
+}
+
+func TestSendContextInterruptsBlockedConnection(t *testing.T) {
+	clientConn, serverConn := net.Pipe()
+	defer clientConn.Close()
+	defer serverConn.Close()
+
+	client := &Client{runtimeID: "context-test", conn: clientConn, reader: bufio.NewReader(clientConn)}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		cancel()
+	}()
+
+	started := time.Now()
+	_, err := client.SendContext(ctx, CmdPing, nil)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("SendContext error = %v, want context.Canceled", err)
+	}
+	if elapsed := time.Since(started); elapsed >= time.Second {
+		t.Fatalf("cancellation took %s", elapsed)
+	}
+	if client.conn != nil {
+		t.Fatal("canceled transport remained reusable after an interrupted RPC")
 	}
 }
 
@@ -81,8 +126,6 @@ func TestClientServerCommunication(t *testing.T) {
 			_, _ = conn.Write(append(data, '\n'))
 		}
 	}()
-
-	time.Sleep(50 * time.Millisecond)
 
 	client, err := NewClient(runtimeID)
 	if err != nil {

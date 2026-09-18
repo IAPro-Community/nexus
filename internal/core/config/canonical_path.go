@@ -75,3 +75,40 @@ func CanonicalExistingWorkspaceDir(p string) (string, error) {
 	}
 	return clean, nil
 }
+
+// FilesystemPathsEquivalent reports whether two existing paths identify the
+// same filesystem object. It falls back to canonical text for paths that do
+// not exist yet, which keeps creation flows usable without weakening identity
+// checks for existing objects.
+func FilesystemPathsEquivalent(left, right string) bool {
+	if left == right {
+		return true
+	}
+	leftRef, leftErr := ResolvePathRef(left)
+	rightRef, rightErr := ResolvePathRef(right)
+	if leftErr != nil || rightErr != nil {
+		return filepath.Clean(left) == filepath.Clean(right)
+	}
+	if leftRef.Identity.Available && rightRef.Identity.Available {
+		return leftRef.Identity.Kind == rightRef.Identity.Kind && leftRef.Identity.StableKey == rightRef.Identity.StableKey
+	}
+	return leftRef.CanonicalPath == rightRef.CanonicalPath
+}
+
+// FilesystemPathWithin reports whether path is root itself or a descendant of
+// root after platform-specific canonicalization.
+func FilesystemPathWithin(root, path string) bool {
+	rootRef, rootErr := ResolvePathRef(root)
+	pathRef, pathErr := ResolvePathRef(path)
+	if rootErr != nil || pathErr != nil {
+		return false
+	}
+	if FilesystemPathsEquivalent(rootRef.CanonicalPath, pathRef.CanonicalPath) {
+		return true
+	}
+	rel, err := filepath.Rel(rootRef.CanonicalPath, pathRef.CanonicalPath)
+	if err != nil {
+		return false
+	}
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && rel != "."
+}

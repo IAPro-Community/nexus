@@ -6,11 +6,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httptest"
+	"strings"
 	"testing"
-	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/update"
 )
 
 func newTestClient(t *testing.T) (*http.Client, *Server) {
@@ -21,15 +24,18 @@ func newTestClient(t *testing.T) (*http.Client, *Server) {
 	}
 	go func() { _ = srv.Start() }()
 	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
-	time.Sleep(50 * time.Millisecond)
 
 	jar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: jar}
-	resp, err := client.Get(srv.BootstrapURL())
+	body := strings.NewReader(`{"token":"` + srv.bootstrap + `"}`)
+	resp, err := client.Post(srv.URL()+"/api/v1/auth/bootstrap", "application/json", body)
 	if err != nil {
 		t.Fatalf("bootstrap: %v", err)
 	}
 	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("bootstrap POST returned %d", resp.StatusCode)
+	}
 	return client, srv
 }
 
@@ -75,8 +81,8 @@ func TestNexusProjectsAndAgentsAPI(t *testing.T) {
 	if proj.ID == "" || len(proj.ID) < 5 {
 		t.Fatalf("invalid project id: %q", proj.ID)
 	}
-	if proj.MaestroMode != store.MaestroAssist {
-		t.Errorf("default maestro mode expected ASSIST, got %q", proj.MaestroMode)
+	if proj.MaestroMode != store.MaestroOff {
+		t.Errorf("default maestro mode expected OFF, got %q", proj.MaestroMode)
 	}
 
 	// List projects.
@@ -247,6 +253,29 @@ func TestSystemDoctorAPIUsesSharedReadOnlyReport(t *testing.T) {
 	}
 }
 
+func TestSystemDoctorUsesHandlerDriverRegistry(t *testing.T) {
+	registry := driver.NewRegistry()
+	registry.Register(driver.NewFakeDriver())
+	h := &NexusHandler{drivers: registry}
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/system/doctor", nil)
+
+	h.handleSystemDoctor(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("doctor status: %d", recorder.Code)
+	}
+
+	var report struct {
+		Providers map[string]json.RawMessage `json:"providers"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Providers) != 0 {
+		t.Fatalf("providers = %#v, want no non-fake providers from injected registry", report.Providers)
+	}
+}
+
 // TestNexusCSRFEnforcement verifies that all mutating Nexus REST routes reject
 // requests missing or invalid CSRF tokens (P0-2).
 func TestNexusCSRFEnforcement(t *testing.T) {
@@ -355,8 +384,9 @@ func TestNexusCSRFEnforcement(t *testing.T) {
 
 	// --- authMiddleware routes (projects list) ---
 	// Project list POST without CSRF.
-	assertNoCSRF(http.MethodPost, "/api/v1/projects", []byte(`{"name":"x","path":"`+projDir+`"}`))
-	assertBadCSRF(http.MethodPost, "/api/v1/projects", []byte(`{"name":"x","path":"`+projDir+`"}`))
+	projectBody, _ := json.Marshal(map[string]string{"name": "x", "path": projDir})
+	assertNoCSRF(http.MethodPost, "/api/v1/projects", projectBody)
+	assertBadCSRF(http.MethodPost, "/api/v1/projects", projectBody)
 
 	// --- GET requests must NOT require CSRF ---
 	getReq, _ := http.NewRequest(http.MethodGet, base+"/api/v1/projects/"+proj.ID, nil)
@@ -451,6 +481,37 @@ func TestResourceAllocationRejectsAutomaticPolicy(t *testing.T) {
 	}
 }
 
+func TestResourcesRefreshReturnsAccounts(t *testing.T) {
+	client, srv, csrf := csrfClient(t)
+	req, _ := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/resources/refresh", nil)
+	req.Header.Set("X-CSRF-Token", csrf)
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 from resources refresh, got %d", resp.StatusCode)
+	}
+	var payload struct {
+		Accounts  []any  `json:"accounts"`
+		Policy    string `json:"policy"`
+		Refreshed bool   `json:"refreshed"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode refresh payload: %v", err)
+	}
+	if !payload.Refreshed {
+		t.Fatal("expected refreshed=true")
+	}
+	if payload.Accounts == nil {
+		t.Fatal("expected accounts array (possibly empty), got null")
+	}
+	if payload.Policy == "" {
+		t.Fatal("expected non-empty policy")
+	}
+}
+
 func TestSystemUpdateReturnsJSONNot501(t *testing.T) {
 	prev := performSystemUpdate
 	performSystemUpdate = func() nexus.UpdateResult {
@@ -465,7 +526,7 @@ func TestSystemUpdateReturnsJSONNot501(t *testing.T) {
 	t.Cleanup(func() { performSystemUpdate = prev })
 
 	client, srv, csrf := csrfClient(t)
-	req, _ := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/system/update", bytes.NewBufferString(`{}`))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/maestro/update", bytes.NewBufferString(`{"product":"maestro","target_version":"latest","confirmed":true}`))
 	req.Header.Set("X-CSRF-Token", csrf)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -487,6 +548,57 @@ func TestSystemUpdateReturnsJSONNot501(t *testing.T) {
 	}
 	if result.Error == "" {
 		t.Fatal("expected honest nexus binary note")
+	}
+}
+
+func TestMaestroUpdateRequiresExplicitContract(t *testing.T) {
+	client, srv, csrf := csrfClient(t)
+	for _, body := range []string{`{}`, `{"product":"nexus","target_version":"latest","confirmed":true}`, `{"product":"maestro","target_version":"latest","confirmed":false}`} {
+		req, _ := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/maestro/update", bytes.NewBufferString(body))
+		req.Header.Set("X-CSRF-Token", csrf)
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("invalid Maestro update contract %s returned %d", body, resp.StatusCode)
+		}
+	}
+}
+
+func TestSystemUpdatesUsesSharedNexusUpdateService(t *testing.T) {
+	previous := checkNexusUpdate
+	checkNexusUpdate = func(ctx context.Context) (*update.CheckResult, error) {
+		return &update.CheckResult{
+			CurrentVersion:     "1.0.0",
+			LatestVersion:      "1.1.0",
+			UpdateAvailable:    true,
+			InstallationMethod: update.MethodStandalone,
+			AllowsSelfUpdate:   true,
+		}, nil
+	}
+	t.Cleanup(func() { checkNexusUpdate = previous })
+
+	client, srv, _ := csrfClient(t)
+	resp, err := client.Get(srv.URL() + "/api/v1/system/updates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	var payload struct {
+		LatestVersion   string `json:"nexus_latest_version"`
+		UpdateAvailable bool   `json:"nexus_update_available"`
+		UpdateError     string `json:"nexus_update_error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.LatestVersion != "1.1.0" || !payload.UpdateAvailable || payload.UpdateError != "" {
+		t.Fatalf("shared Nexus update result was not exposed: %+v", payload)
 	}
 }
 

@@ -2,10 +2,11 @@ package nexus
 
 import (
 	"testing"
+	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/control/notify"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/notify"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
 func TestQuotaDropMonitor_StepDownAndSuppressionAtZero(t *testing.T) {
@@ -165,6 +166,55 @@ func TestQuotaDropMonitor_UnknownQuotaIgnored(t *testing.T) {
 	}
 }
 
+func TestQuotaDropMonitor_AlertsIndependentModelGroups(t *testing.T) {
+	rec := &notify.Recorder{}
+	bus := events.NewBus(20)
+	monitor := NewQuotaDropMonitor(rec, bus, 0.30, 0.05)
+	gemini := 28.0
+	claude := 100.0
+	view := &quota.QuotaView{Status: "LIVE", FetchedAt: time.Now(), ModelGroups: []quota.ModelGroup{
+		{Key: "gemini", Windows: []quota.Window{{Kind: "weekly", Remaining: gemini, ResetDesc: "monday"}}},
+		{Key: "claude_gpt", Windows: []quota.Window{{Kind: "weekly", Remaining: claude, ResetDesc: "monday"}}},
+	}}
+	act := monitor.CheckAccount(ProviderAccount{Provider: "agy", Profile: "work", QuotaView: view, QuotaTotal: 1, QuotaRemaining: 1})
+	if act == nil || act.Group != "gemini" || act.Window != "weekly" || act.RemainingPercent != 28 {
+		t.Fatalf("expected independent Gemini alert at 28%%, got %+v", act)
+	}
+	if len(rec.Payloads) != 1 {
+		t.Fatalf("expected one notification, got %d", len(rec.Payloads))
+	}
+	if got := len(bus.GetHistory("", 10)); got != 1 {
+		t.Fatalf("expected global history, got %d", got)
+	}
+}
+
+func TestQuotaDropMonitor_DoesNotRepeatWhenResetCountdownChanges(t *testing.T) {
+	rec := &notify.Recorder{}
+	monitor := NewQuotaDropMonitor(rec, events.NewBus(20), 0.30, 0.05)
+	view := &quota.QuotaView{
+		Status: "LIVE",
+		ModelGroups: []quota.ModelGroup{{
+			Key:     "gemini",
+			Windows: []quota.Window{{Kind: "weekly", Remaining: 22, ResetDesc: "2h 00m"}},
+		}},
+	}
+	account := ProviderAccount{Provider: "agy", Profile: "work", QuotaView: view}
+
+	if action := monitor.CheckAccount(account); action == nil {
+		t.Fatal("expected the first low-quota observation to notify")
+	}
+
+	// The provider's countdown changes, but this is still the same quota
+	// window and must remain suppressed until a meaningful drop occurs.
+	view.ModelGroups[0].Windows[0].ResetDesc = "1h 59m"
+	if action := monitor.CheckAccount(account); action != nil {
+		t.Fatalf("expected changed reset countdown to stay suppressed, got %+v", action)
+	}
+	if len(rec.Payloads) != 1 {
+		t.Fatalf("expected one notification, got %d", len(rec.Payloads))
+	}
+}
+
 func TestQuotaDropMonitor_RateLimitedTriggersExhaustedOnce(t *testing.T) {
 	rec := &notify.Recorder{}
 	bus := events.NewBus(100)
@@ -190,5 +240,53 @@ func TestQuotaDropMonitor_RateLimitedTriggersExhaustedOnce(t *testing.T) {
 	act2 := monitor.CheckAccount(acc)
 	if act2 != nil {
 		t.Fatalf("expected suppression for subsequent checks, got %+v", act2)
+	}
+}
+
+func TestQuotaDropMonitor_FailoverRecommendationAndAffectedRuntime(t *testing.T) {
+	rec := &notify.Recorder{}
+	bus := events.NewBus(100)
+	monitor := NewQuotaDropMonitor(rec, bus, 0.30, 0.05)
+
+	exhaustedAcc := ProviderAccount{
+		Provider:       "claude",
+		Profile:        "primary",
+		DisplayName:    "Claude Primary",
+		QuotaRemaining: 0.0,
+		QuotaTotal:     1.0,
+		QuotaView: &quota.QuotaView{
+			Status: "OK",
+		},
+	}
+
+	healthyAcc := ProviderAccount{
+		Provider:       "codex",
+		Profile:        "work",
+		DisplayName:    "Codex Work",
+		Available:      true,
+		Authenticated:  true,
+		Health:         "healthy",
+		QuotaRemaining: 0.85,
+		QuotaTotal:     1.0,
+		Capabilities:   map[string]string{"headless": "supported", "submit_prompt": "supported"},
+		QuotaView: &quota.QuotaView{
+			Status: "OK",
+		},
+	}
+
+	actions := monitor.CheckAccounts([]ProviderAccount{exhaustedAcc, healthyAcc})
+	if len(actions) != 1 {
+		t.Fatalf("expected 1 action for exhausted account, got %d", len(actions))
+	}
+
+	act := actions[0]
+	if act.Kind != string(events.EventQuotaExhausted) {
+		t.Fatalf("expected QUOTA_EXHAUSTED, got %s", act.Kind)
+	}
+	if act.RecommendedProvider != "codex" || act.RecommendedProfile != "work" {
+		t.Fatalf("expected recommended provider codex:work, got %s:%s", act.RecommendedProvider, act.RecommendedProfile)
+	}
+	if act.RecommendedDisplayName != "Codex Work" {
+		t.Fatalf("expected display name 'Codex Work', got %s", act.RecommendedDisplayName)
 	}
 }

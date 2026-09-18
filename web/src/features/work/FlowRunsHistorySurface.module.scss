@@ -1,11 +1,138 @@
-@use '../../styles/tokens';
-@use '../../styles/typography';
 @use '../../styles/mixins';
 
 .loadingContainer {
   display: grid;
   place-items: center;
   padding: 40px;
+}
+
+.root {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  align-content: start;
+  padding: 0;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.trackToggle {
+  display: inline-flex;
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.trackToggle button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  border: 0;
+  border-right: 1px solid var(--nx-border);
+  background: transparent;
+  color: var(--nx-subtle);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.trackToggle button:last-child {
+  border-right: 0;
+}
+
+.trackToggle button[data-active='true'] {
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+}
+
+.trackToggle button:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: -2px;
+}
+
+.filterGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filterChip {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: 999px;
+  background: var(--nx-surface);
+  color: var(--nx-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.newFlowCard {
+  display: grid;
+  gap: 8px;
+}
+
+.newFlowRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.newFlowRow input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filterChip[data-active='true'] {
+  border-color: var(--nx-accent);
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+}
+
+.canvasHost {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+  height: 100%;
+  align-content: start;
+}
+
+.canvasBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 12px;
+}
+
+.canvasBar strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
 }
 
 .runsList {
@@ -24,8 +151,13 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
-  padding: 4px;
-  @include mixins.focus-visible-ring;
+  padding: 8px;
+  min-height: 44px;
+}
+
+.runButton:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
 }
 
 .runInfo {
@@ -39,9 +171,49 @@
   align-items: center;
   gap: 8px;
   font-size: var(--nx-font-size-sm);
+  overflow-wrap: anywhere;
 }
 
 .runMeta {
   color: var(--nx-muted);
   font-size: var(--nx-font-size-xs);
+}
+
+@include mixins.nx-phone {
+  .root {
+    padding: 0;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .trackToggle {
+    width: 100%;
+  }
+
+  .trackToggle button {
+    flex: 1 1 0;
+    min-height: var(--nx-touch-min, 44px);
+    justify-content: center;
+    font-size: 13px;
+  }
+
+  .filterChip,
+  .actions > :global(.nx-button) {
+    min-height: var(--nx-touch-min, 44px);
+  }
+
+  .canvasBar {
+    flex-wrap: wrap;
+  }
+
+  .runButton {
+    align-items: flex-start;
+    min-height: var(--nx-touch-min, 44px);
+  }
 }

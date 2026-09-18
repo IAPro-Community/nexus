@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/contextsnapshot"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 type ContextReadinessState string
@@ -56,11 +56,15 @@ func gitContextValue(root string, args ...string) string {
 }
 
 func currentContextFingerprint(project *store.Project, maestro MaestroStatus) (ContextFingerprint, string, string, error) {
-	version := "unavailable"
-	if project.MaestroMode == store.MaestroOff {
-		version = "off"
-	} else if maestro.Capabilities != nil && strings.TrimSpace(maestro.Capabilities.Version) != "" {
-		version = strings.TrimSpace(maestro.Capabilities.Version)
+	// OFF and ASSIST treat Maestro as optional enrichment: the durable project
+	// context fingerprint must not thrash when Maestro appears or disappears.
+	// ORCHESTRATE pins Maestro version because execution depends on it.
+	version := "optional"
+	if project.MaestroMode == store.MaestroOrchestrate {
+		version = "unavailable"
+		if maestro.Capabilities != nil && strings.TrimSpace(maestro.Capabilities.Version) != "" {
+			version = strings.TrimSpace(maestro.Capabilities.Version)
+		}
 	}
 	dirtyRaw := gitContextValue(project.CanonicalPath, "status", "--porcelain=v1", "--untracked-files=normal")
 	dirtyID := ""
@@ -182,7 +186,9 @@ func (n *Nexus) ObserveContextReadiness(projectID string) (*ContextReadiness, er
 	if state == ContextReady && !hasDurableProjectContext(project.CanonicalPath) {
 		staleReason = "durable project context used by Composer is no longer present"
 	}
-	if state == ContextReady && project.MaestroMode != store.MaestroOff && !maestro.Available {
+	// Only ORCHESTRATE requires Maestro at runtime. ASSIST degrades without
+	// Maestro and must not invalidate an otherwise READY durable context.
+	if state == ContextReady && project.MaestroMode == store.MaestroOrchestrate && !maestro.Available {
 		staleReason = "Maestro became unavailable after the readiness checkpoint"
 	}
 	if staleReason != "" {
@@ -197,8 +203,8 @@ func (n *Nexus) ObserveContextReadiness(projectID string) (*ContextReadiness, er
 }
 
 // PrepareContext evaluates durable context readiness. Nexus does not invent
-// Maestro hydration: READY is recorded only when durable project context files
-// already exist and any configured Maestro dependency is actually available.
+// Maestro hydration: READY is recorded when durable project context files
+// exist. Maestro is required only for ORCHESTRATE; ASSIST degrades without it.
 func (n *Nexus) PrepareContext(projectID string) (*ContextReadiness, error) {
 	return n.prepareContext(projectID, false)
 }
@@ -232,13 +238,14 @@ func (n *Nexus) prepareContext(projectID string, bootstrap bool) (*ContextReadin
 	if _, err = st.PutContextReadiness(record); err != nil {
 		return nil, err
 	}
-	if project.MaestroMode != store.MaestroOff && !maestro.Available {
+	switch {
+	case project.MaestroMode == store.MaestroOrchestrate && !maestro.Available:
 		record.State = string(ContextFailed)
-		record.Error = "Maestro is configured for this project but is unavailable"
-	} else if !hasDurableProjectContext(project.CanonicalPath) {
+		record.Error = "Maestro ORCHESTRATE requires Maestro, but it is unavailable"
+	case !hasDurableProjectContext(project.CanonicalPath):
 		record.State = string(ContextFailed)
 		record.Error = "durable project context is missing (expected AGENTS.md or DEV context files)"
-	} else {
+	default:
 		now := time.Now().UTC()
 		record.State = string(ContextReady)
 		record.Error = ""

@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/gorilla/websocket"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
 )
 
 // AgentTerminalBroker manages per-agent WebSocket connections and handles

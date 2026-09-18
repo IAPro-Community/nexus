@@ -1,3 +1,7 @@
+> **HISTORICAL — NOT CURRENT RELEASE EVIDENCE**
+>
+> Canonical current status: `DEV/validation/current/RELEASE_STATUS.md`.
+
 # Final E2E Report
 
 Verdict: `BLOCKED` for production delivery; local Direct Work evidence is conditional only.

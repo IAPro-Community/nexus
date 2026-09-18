@@ -6,14 +6,18 @@
   --nx-font-mono:
     'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
-  --nx-font-size-2xs: 10px;
-  --nx-font-size-xs: 11px;
-  --nx-font-size-sm: 12px;
-  --nx-font-size-base: 13px;
-  --nx-font-size-md: 14px;
-  --nx-font-size-lg: 16px;
-  --nx-font-size-xl: 18px;
-  --nx-font-size-2xl: 20px;
+
+  // Dense interfaces still need readable labels at normal desktop scaling.
+  // 1rem is 14px at the default Nexus scale; rem keeps browser zoom and the
+  // user-controlled font scale coherent across every surface.
+  --nx-font-size-2xs: 0.786rem;
+  --nx-font-size-xs: 0.857rem;
+  --nx-font-size-sm: 0.929rem;
+  --nx-font-size-base: 1rem;
+  --nx-font-size-md: 1.071rem;
+  --nx-font-size-lg: 1.214rem;
+  --nx-font-size-xl: 1.429rem;
+  --nx-font-size-2xl: 1.714rem;
   --nx-line-height-tight: 1.25;
   --nx-line-height-normal: 1.5;
   --nx-line-height-relaxed: 1.75;

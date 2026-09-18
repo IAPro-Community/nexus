@@ -1,3 +1,7 @@
+> **HISTORICAL — NOT CURRENT RELEASE EVIDENCE**
+>
+> Canonical current status: `DEV/validation/current/RELEASE_STATUS.md`.
+
 # Final Security Report
 
 Local security regression suite: PASS (`go test -race ./internal/core/security ./internal/control/web ./internal/control/registry`). Repository scan found no production secret values; test fixtures contain intentionally fake credentials and redaction cases. Git execution uses argument arrays, not shell interpolation.

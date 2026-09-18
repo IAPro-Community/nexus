@@ -1,4 +1,14 @@
+> **HISTORICAL — NOT CURRENT RELEASE EVIDENCE**
+>
+> Canonical current status: `DEV/validation/current/RELEASE_STATUS.md`.
+
 # IAPro Nexus — Final Production Validation
+
+> Historical report superseded by the final closure checkpoint. Its
+> `CONDITIONAL_GO` describes an earlier local-gates-only snapshot and is not a
+> release verdict. At current HEAD `a58cca4d73bdfd55678649b30c0ca64f73b7d410`,
+> the canonical verdict is `NO-GO` because authenticated Mission, native
+> Windows/macOS and overnight evidence remain unavailable.
 
 Verdict: CONDITIONAL_GO. Local source gates are green; external platform/provider/CI evidence is unavailable on this host.
 

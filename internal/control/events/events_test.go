@@ -32,6 +32,32 @@ func TestEventBusPubSubAndHistory(t *testing.T) {
 	}
 }
 
+func TestNewEventWithCorrelationPreservesTimelineIdentity(t *testing.T) {
+	e := NewEventWithCorrelation("run-123", "runtime-1", "codex", "work", EventProcessStarted, "started", nil)
+	if e.CorrelationID != "run-123" || e.RuntimeID != "runtime-1" {
+		t.Fatalf("event identity mismatch: %+v", e)
+	}
+}
+
+func TestRuntimeLifecycleEventTypesAreStable(t *testing.T) {
+	if EventRuntimeStarted != "RUNTIME_STARTED" || EventRuntimeStopped != "RUNTIME_STOPPED" || EventRuntimeFailed != "RUNTIME_FAILED" {
+		t.Fatalf("runtime lifecycle contract changed: %q %q %q", EventRuntimeStarted, EventRuntimeStopped, EventRuntimeFailed)
+	}
+}
+
+func TestHandoffTimelineCorrelationUsesLineageID(t *testing.T) {
+	lineageID := "lineage-123"
+	e := NewEventWithCorrelation(lineageID, "runtime-target", "codex", "work", EventHandoffCompleted, "handoff completed", map[string]any{
+		"source_id": "runtime-source",
+	})
+	if e.CorrelationID != lineageID {
+		t.Fatalf("expected handoff event correlation %q, got %q", lineageID, e.CorrelationID)
+	}
+	if e.RuntimeID != "runtime-target" || e.Type != EventHandoffCompleted {
+		t.Fatalf("handoff event lost runtime identity: %+v", e)
+	}
+}
+
 func TestEventBusDurableRecorderHook(t *testing.T) {
 	bus := NewBus(10)
 

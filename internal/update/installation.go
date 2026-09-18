@@ -98,14 +98,17 @@ func DetectInstallationMethod(execPath string) InstallationMethod {
 		if strings.Contains(lowerPath, "windowsapps") {
 			return MethodMSIX
 		}
-		if strings.Contains(lowerPath, "programs\\nexus") || strings.Contains(lowerPath, "program files\\nexus") {
+		if strings.Contains(lowerPath, "programs\\nexus") ||
+			strings.Contains(lowerPath, "program files\\nexus") ||
+			strings.Contains(lowerPath, "programs\\iapro nexus") ||
+			strings.Contains(lowerPath, "program files\\iapro nexus") {
 			return MethodNSIS
 		}
 	}
 
 	// Linux FHS standard paths often indicate distribution package installs
 	if runtime.GOOS == "linux" {
-		if strings.HasPrefix(cleanPath, "/usr/bin/") || strings.HasPrefix(cleanPath, "/usr/sbin/") {
+		if strings.HasPrefix(cleanPath, "/usr/bin/") || strings.HasPrefix(cleanPath, "/usr/sbin/") || strings.HasPrefix(cleanPath, "/usr/local/bin/") {
 			if _, err := os.Stat("/var/lib/dpkg/status"); err == nil {
 				return MethodDEB
 			}

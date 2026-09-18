@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 const CurrentConfigVersion = 1
@@ -35,44 +35,55 @@ type IntelligenceConfig struct {
 	APIKeyFile string           `json:"api_key_file,omitempty"`
 }
 
-var (
-	configMu sync.RWMutex
-)
+// IntelligenceMemory is a visible, deletable habit fact for this Nexus installation.
+// It is never used to train a model — only to skip repeated Composer/Flow questions.
+type IntelligenceMemory struct {
+	ID        string `json:"id"`
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	Source    string `json:"source,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
 
 // Config represents persistent application settings and user preferences.
 type Config struct {
-	ConfigVersion     int                            `json:"config_version"`
-	Defaults          map[string]string              `json:"defaults"`             // provider -> profile
-	Priorities        map[string]map[string]int      `json:"priorities,omitempty"` // provider -> profile -> priority
-	Disabled          map[string]map[string]bool     `json:"disabled,omitempty"`   // provider -> profile -> true
-	Labels            map[string]map[string][]string `json:"labels,omitempty"`     // provider -> profile -> tags
-	Strategy          string                         `json:"strategy"`             // best-capacity, least-used, round-robin, sticky
-	StickyTTL         string                         `json:"sticky_ttl,omitempty"` // e.g. "30m"
-	IsolationPreset   model.IsolationPreset          `json:"isolation_preset"`     // developer, strict, compat
-	Bindings          map[string]map[string]string   `json:"bindings,omitempty"`   // workspace -> provider -> profile
-	AutomaticFallback bool                           `json:"automatic_fallback"`
-	MaxConcurrency    int                            `json:"max_concurrency"`
-	Language          string                         `json:"language,omitempty"`
-	Intelligence      IntelligenceConfig             `json:"intelligence,omitempty"`
-	FlagAliases       map[string]map[string][]string `json:"flag_aliases,omitempty"` // alias -> provider -> flags
+	ConfigVersion        int                            `json:"config_version"`
+	Defaults             map[string]string              `json:"defaults"`                      // provider -> profile
+	Priorities           map[string]map[string]int      `json:"priorities,omitempty"`          // provider -> profile -> priority
+	ProviderPriorities   map[string]int                 `json:"provider_priorities,omitempty"` // provider -> lower-is-first fallback priority
+	Disabled             map[string]map[string]bool     `json:"disabled,omitempty"`            // provider -> profile -> true
+	Labels               map[string]map[string][]string `json:"labels,omitempty"`              // provider -> profile -> tags
+	Strategy             string                         `json:"strategy"`                      // best-capacity, least-used, round-robin, sticky
+	StickyTTL            string                         `json:"sticky_ttl,omitempty"`          // e.g. "30m"
+	IsolationPreset      model.IsolationPreset          `json:"isolation_preset"`              // developer, strict, compat
+	Bindings             map[string]map[string]string   `json:"bindings,omitempty"`            // workspace -> provider -> profile
+	AutomaticFallback    bool                           `json:"automatic_fallback"`
+	MaxConcurrency       int                            `json:"max_concurrency"`
+	Language             string                         `json:"language,omitempty"`
+	Intelligence         IntelligenceConfig             `json:"intelligence,omitempty"`
+	IntelligenceMemories []IntelligenceMemory           `json:"intelligence_memories,omitempty"`
+	FlagAliases          map[string]map[string][]string `json:"flag_aliases,omitempty"` // alias -> provider -> flags
 }
+
+var configMu sync.RWMutex
 
 // NewDefaultConfig returns a well-configured default Configuration.
 func NewDefaultConfig() Config {
 	return Config{
-		ConfigVersion:     CurrentConfigVersion,
-		Defaults:          make(map[string]string),
-		Priorities:        make(map[string]map[string]int),
-		Disabled:          make(map[string]map[string]bool),
-		Labels:            make(map[string]map[string][]string),
-		Strategy:          "best-capacity",
-		StickyTTL:         "30m",
-		IsolationPreset:   model.IsolationDeveloper,
-		Bindings:          make(map[string]map[string]string),
-		AutomaticFallback: true,
-		MaxConcurrency:    4,
-		Language:          "auto",
-		Intelligence:      IntelligenceConfig{Mode: IntelligenceOff},
+		ConfigVersion:      CurrentConfigVersion,
+		Defaults:           make(map[string]string),
+		Priorities:         make(map[string]map[string]int),
+		ProviderPriorities: map[string]int{"codex": 1, "agy": 2, "opencode": 3},
+		Disabled:           make(map[string]map[string]bool),
+		Labels:             make(map[string]map[string][]string),
+		Strategy:           "best-capacity",
+		StickyTTL:          "30m",
+		IsolationPreset:    model.IsolationDeveloper,
+		Bindings:           make(map[string]map[string]string),
+		AutomaticFallback:  true,
+		MaxConcurrency:     4,
+		Language:           "auto",
+		Intelligence:       IntelligenceConfig{Mode: IntelligenceOff},
 	}
 }
 
@@ -133,6 +144,11 @@ func getBaseHome() string {
 		}
 	}
 	return ""
+}
+
+// BaseHome returns the real host user home directory, stripping any profile sandbox prefixes.
+func BaseHome() string {
+	return getBaseHome()
 }
 
 // ConfigDir returns the XDG/Windows-compliant config directory with ai-manager fallback.
@@ -349,6 +365,9 @@ func LoadConfig() (Config, error) {
 	if cfg.Priorities == nil {
 		cfg.Priorities = make(map[string]map[string]int)
 	}
+	if cfg.ProviderPriorities == nil {
+		cfg.ProviderPriorities = map[string]int{"codex": 1, "agy": 2, "opencode": 3}
+	}
 	if cfg.Disabled == nil {
 		cfg.Disabled = make(map[string]map[string]bool)
 	}
@@ -487,6 +506,9 @@ func ValidateProfileName(name string) error {
 	}
 	if len(name) > 64 {
 		return errors.New("profile name too long (max 64 characters)")
+	}
+	if strings.HasPrefix(name, "-") {
+		return errors.New("profile name cannot start with '-' (looks like a CLI flag)")
 	}
 	for _, ch := range name {
 		if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '_' || ch == '.' {

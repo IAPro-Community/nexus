@@ -3,8 +3,8 @@ package driver
 import (
 	"context"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 type CapabilityStatus string
@@ -41,6 +41,7 @@ type EffectiveCapabilities struct {
 	NativeUIAttach   CapabilityEvidence    `json:"native_ui_attach"`
 	Headless         CapabilityEvidence    `json:"headless"`
 	SlashControl     CapabilityEvidence    `json:"slash_control"`
+	ReadOnlyReview   CapabilityEvidence    `json:"read_only_review"`
 	ControlLevel     registry.ControlLevel `json:"control_level"`
 }
 
@@ -59,6 +60,7 @@ type ControlCapabilities struct {
 	NativeUIAttach   bool                  `json:"native_ui_attach"`
 	Headless         bool                  `json:"headless"`
 	SlashControl     bool                  `json:"slash_control"`
+	ReadOnlyReview   bool                  `json:"read_only_review"`
 	ControlLevel     registry.ControlLevel `json:"control_level"`
 }
 
@@ -78,6 +80,7 @@ func (ec EffectiveCapabilities) ToBooleanCaps() ControlCapabilities {
 		NativeUIAttach:   ec.NativeUIAttach.Status == CapabilitySupported,
 		Headless:         ec.Headless.Status == CapabilitySupported,
 		SlashControl:     ec.SlashControl.Status == CapabilitySupported,
+		ReadOnlyReview:   ec.ReadOnlyReview.Status == CapabilitySupported,
 		ControlLevel:     ec.ControlLevel,
 	}
 }

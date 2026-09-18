@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/cooldown"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
 func TestSmartAccountSelector(t *testing.T) {
@@ -70,7 +70,7 @@ func TestSmartAccountSelector(t *testing.T) {
 		t.Fatalf("expected acc-a to be selected when acc-b is rate limited, got %s", res2.SelectedProfile.Name)
 	}
 
-	// Scenario 3: UNKNOWN healthy vs UNKNOWN rate-limited -> selects UNKNOWN healthy
+	// Scenario 3: UNKNOWN quota is not healthy capacity and cannot be selected.
 	cdTracker.Clear("codex", "acc-b")
 	cdTracker.RecordRateLimit("codex", "acc-a", 15*time.Minute, nil, "HTTP 429")
 	_ = qEng.SaveUsage(model.UsageSnapshot{
@@ -81,11 +81,11 @@ func TestSmartAccountSelector(t *testing.T) {
 	})
 
 	res3, err := selector.SelectBestProfile(ctx, "codex", "/tmp", candidates, accounts, nil)
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatalf("expected UNKNOWN-only capacity to be rejected, got %#v", res3.SelectedProfile)
 	}
-	if res3.SelectedProfile.Name != "acc-b" {
-		t.Fatalf("expected acc-b to be selected, got %s", res3.SelectedProfile.Name)
+	if res3.SelectedProfile != nil {
+		t.Fatalf("UNKNOWN quota must not be selected, got %s", res3.SelectedProfile.Name)
 	}
 
 	// Scenario 4: All accounts rate limited -> returns error with reasons
@@ -174,6 +174,118 @@ func TestMultiQuotaBottleneckSelection(t *testing.T) {
 	}
 }
 
+func TestAGYSelectsPartiallyAvailableAccountOverExhaustedDefault(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	stateDir := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_STATE_DIR", stateDir)
+
+	cfg := config.NewDefaultConfig()
+	cfg.Defaults = map[string]string{"agy": "kiveromegasistemas"}
+	qEng := quota.NewEngine(5 * time.Minute)
+	selector := NewSelector(cfg, qEng, cooldown.NewTracker())
+
+	zero, weekly49, claude66, claude100 := 0.0, 49.0, 66.0, 100.0
+	exhausted := model.UsageSnapshot{
+		ProviderID: "agy",
+		ProfileID:  "kiveromegasistemas",
+		Status:     model.UsageCached,
+		Source:     model.SourceCLIOutput,
+		FetchedAt:  time.Now(),
+		Windows: []model.UsageWindow{
+			{Kind: "weekly", Group: "gemini", RemainingPercent: &zero},
+			{Kind: "claude_weekly", Group: "claude_gpt", RemainingPercent: &zero},
+		},
+	}
+	partial := model.UsageSnapshot{
+		ProviderID: "agy",
+		ProfileID:  "kivervinicius-gmail",
+		Status:     model.UsageCached,
+		Source:     model.SourceCLIOutput,
+		FetchedAt:  time.Now(),
+		Windows: []model.UsageWindow{
+			{Kind: "weekly", Group: "gemini", RemainingPercent: &weekly49},
+			{Kind: "5h", Group: "gemini", RemainingPercent: &zero},
+			{Kind: "claude_weekly", Group: "claude_gpt", RemainingPercent: &claude66},
+			{Kind: "claude_5h", Group: "claude_gpt", RemainingPercent: &claude100},
+		},
+	}
+
+	candidates := []model.Profile{
+		{Provider: "agy", Name: "kiveromegasistemas"},
+		{Provider: "agy", Name: "kivervinicius-gmail"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"kiveromegasistemas": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage:         exhausted,
+		},
+		"kivervinicius-gmail": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage:         partial,
+		},
+	}
+
+	result, err := selector.SelectBestProfile(context.Background(), "agy", t.TempDir(), candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.SelectedProfile == nil || result.SelectedProfile.Name != "kivervinicius-gmail" {
+		t.Fatalf("selected=%#v want kivervinicius-gmail", result.SelectedProfile)
+	}
+	if result.Evaluations[0].Eligible {
+		t.Fatalf("exhausted default must be rejected: %#v", result.Evaluations[0])
+	}
+	if !result.Evaluations[1].Eligible {
+		t.Fatalf("partially available account must remain eligible: %#v", result.Evaluations[1])
+	}
+}
+
+func TestKnownQuotaOutranksUnknownQuota(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	stateDir := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_STATE_DIR", stateDir)
+
+	selector := NewSelector(config.NewDefaultConfig(), quota.NewEngine(5*time.Minute), cooldown.NewTracker())
+	remaining := 28.0
+	if err := selector.quotaEng.SaveUsage(model.UsageSnapshot{
+		ProviderID: "agy",
+		ProfileID:  "known",
+		Status:     model.UsageLive,
+		Source:     model.SourceCLIOutput,
+		FetchedAt:  time.Now(),
+		Windows: []model.UsageWindow{
+			{Kind: "weekly", Group: "gemini", RemainingPercent: &remaining},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	candidates := []model.Profile{
+		{Provider: "agy", Name: "unknown"},
+		{Provider: "agy", Name: "known"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"unknown": {Authenticated: true, Health: model.HealthHealthy},
+		"known":   {Authenticated: true, Health: model.HealthHealthy},
+	}
+
+	result, err := selector.SelectBestProfile(context.Background(), "agy", t.TempDir(), candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.SelectedProfile == nil || result.SelectedProfile.Name != "known" {
+		t.Fatalf("expected known quota profile, got %#v", result.SelectedProfile)
+	}
+}
+
 func TestDefaultProfileTieBreaker(t *testing.T) {
 	dataDir := t.TempDir()
 	cfgDir := t.TempDir()
@@ -245,5 +357,57 @@ func TestSelectBestProfileEmptyCandidatesNeverNilResult(t *testing.T) {
 	}
 	if res.SelectedProfile != nil {
 		t.Error("expected no selected profile for empty candidates")
+	}
+}
+
+func TestCodexExhaustedFiveHourLosesToHealthyAccount(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	stateDir := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_STATE_DIR", stateDir)
+
+	selector := NewSelector(config.NewDefaultConfig(), quota.NewEngine(5*time.Minute), cooldown.NewTracker())
+	zero, healthy5h, healthyWk := 0.0, 99.0, 63.0
+	denied5h, deniedWk := 0.0, 56.0
+
+	accounts := map[string]model.AccountInfo{
+		"denied": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "codex", ProfileID: "denied", Status: model.UsageLive,
+				Source: model.SourceObservation, FetchedAt: time.Now(),
+				Windows: []model.UsageWindow{
+					{Kind: "5h", Group: "claude_gpt", RemainingPercent: &denied5h},
+					{Kind: "weekly", Group: "claude_gpt", RemainingPercent: &deniedWk},
+				},
+			},
+		},
+		"healthy": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "codex", ProfileID: "healthy", Status: model.UsageLive,
+				Source: model.SourceObservation, FetchedAt: time.Now(),
+				Windows: []model.UsageWindow{
+					{Kind: "5h", Group: "claude_gpt", RemainingPercent: &healthy5h},
+					{Kind: "weekly", Group: "claude_gpt", RemainingPercent: &healthyWk},
+				},
+			},
+		},
+	}
+	_ = zero
+	candidates := []model.Profile{
+		{Provider: "codex", Name: "denied"},
+		{Provider: "codex", Name: "healthy"},
+	}
+	res, err := selector.SelectBestProfile(context.Background(), "codex", "/tmp", candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.SelectedProfile == nil || res.SelectedProfile.Name != "healthy" {
+		t.Fatalf("yolo/auto-select must prefer healthy capacity over exhausted 5h, got %#v", res.SelectedProfile)
 	}
 }

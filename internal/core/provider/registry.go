@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // Registry manages registered provider adapters in a thread-safe manner.
@@ -28,7 +28,10 @@ func (r *Registry) Register(p Provider) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	id := string(p.ID())
+	id := strings.ToLower(strings.TrimSpace(string(p.ID())))
+	if id == "" {
+		return fmt.Errorf("provider id is required")
+	}
 	if _, exists := r.providers[id]; exists {
 		return fmt.Errorf("provider %q already registered", id)
 	}

@@ -1,0 +1,164 @@
+@use '../styles/mixins';
+
+.terminalPaneRoot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #090d16;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.terminalContainer {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 8px 6px 4px 10px;
+  overflow: hidden;
+}
+
+.zoomGroup {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  overflow: hidden;
+  height: 22px;
+}
+
+.zoomBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--nx-text-soft);
+  padding: 0 5px;
+  height: 100%;
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    background-color 0.12s ease;
+  @include mixins.focus-visible-ring;
+
+  &:hover {
+    background: var(--nx-surface-3);
+    color: var(--nx-text);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.zoomLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--nx-text-soft);
+  padding: 0 4px;
+  height: 100%;
+  font-size: 0.714rem;
+  font-family: var(--nx-font-mono);
+  cursor: pointer;
+  transition: color 0.12s ease;
+  @include mixins.focus-visible-ring;
+
+  &:hover {
+    color: var(--nx-accent);
+  }
+}
+
+.scrollToBottomBtn {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 9999px;
+  border: 1px solid var(--nx-border-strong);
+  background: color-mix(in srgb, var(--nx-surface-2) 92%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--nx-text);
+  font-size: 0.786rem;
+  font-weight: 500;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+  @include mixins.focus-visible-ring;
+
+  &:hover {
+    background: var(--nx-surface-3);
+    border-color: var(--nx-accent);
+    color: var(--nx-text-bright, #fff);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+.disconnectedOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 11, 16, 0.88);
+  backdrop-filter: blur(3px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  z-index: 10;
+  text-align: center;
+
+  &[data-window-chrome='false'] {
+    inset: 40px 0 0 0;
+  }
+}
+
+.disconnectedHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nx-warning);
+}
+
+.disconnectedTitle {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.disconnectedDesc {
+  max-width: 420px;
+  font-size: 0.857rem;
+  color: var(--nx-muted);
+  margin: 0;
+  line-height: var(--nx-line-height-normal, 1.5);
+}
+
+.errorMessage {
+  max-width: 440px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--nx-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--nx-danger) 40%, var(--nx-border));
+  background: var(--nx-danger-subtle, rgba(239, 68, 68, 0.1));
+  color: var(--nx-danger);
+  font-size: 0.857rem;
+  line-height: 1.45;
+}

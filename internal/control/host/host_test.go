@@ -2,18 +2,66 @@ package host
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
+func waitForHostEndpoint(t *testing.T, runtimeID string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := protocol.WaitForEndpoint(ctx, runtimeID, time.Second); err != nil {
+		t.Fatalf("SessionHost endpoint did not become ready: %v", err)
+	}
+}
+
+func waitForTerminalReady(t *testing.T, client *protocol.Client, initial []byte) {
+	t.Helper()
+	if strings.Contains(string(initial), "NEXUS_TEST_READY") {
+		return
+	}
+	timeout := 20 * time.Second
+	if deadline, ok := t.Deadline(); ok {
+		remaining := time.Until(deadline)
+		if remaining < timeout && remaining > 2*time.Second {
+			timeout = remaining - time.Second
+		}
+	}
+	if err := client.RawConn().SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		t.Fatalf("set terminal readiness deadline: %v", err)
+	}
+	var output strings.Builder
+	for !strings.Contains(output.String(), "NEXUS_TEST_READY") {
+		chunk, err := client.Reader().ReadString('\n')
+		if err != nil {
+			t.Fatalf("terminal readiness marker not observed: %v; output=%q", err, output.String())
+		}
+		output.WriteString(chunk)
+	}
+	if err := client.ClearDeadline(); err != nil {
+		t.Fatalf("clear terminal readiness deadline: %v", err)
+	}
+}
+
 func TestMain(m *testing.M) {
+	for _, arg := range os.Args[1:] {
+		if arg == "-nexus-echo-helper" {
+			_, _ = os.Stdout.WriteString("NEXUS_TEST_READY\n")
+			_, _ = io.Copy(os.Stdout, os.Stdin)
+			os.Exit(0)
+		}
+	}
 	testDir, err := os.MkdirTemp("", "ai-control-host-test-*")
 	if err == nil {
 		defer os.RemoveAll(testDir)
@@ -43,34 +91,34 @@ func TestSlashRouterInterceptionAndEscape(t *testing.T) {
 		t.Errorf("expected normal input to be forwarded, got %+v", res1)
 	}
 
-	// 2. /ai status (should be intercepted)
-	res2 := RouteSlashCommand("/ai status\n", sess)
+	// 2. /nexus status (should be intercepted)
+	res2 := RouteSlashCommand("/nexus status\n", sess)
 	if !res2.Intercepted || res2.ForwardToProcess != "" || !strings.Contains(res2.Response, "rt-test-01") {
-		t.Errorf("expected /ai status to be intercepted, got %+v", res2)
+		t.Errorf("expected /nexus status to be intercepted, got %+v", res2)
 	}
 
 	// 3. /ai help (should be intercepted)
-	res3 := RouteSlashCommand("/ai help\n", sess)
+	res3 := RouteSlashCommand("/nexus help\n", sess)
 	if !res3.Intercepted || !strings.Contains(res3.Response, "UNIVERSAL SLASH COMMANDS") {
 		t.Errorf("expected /ai help to show guide, got %+v", res3)
 	}
 
-	// 4. //ai escaped command (should unescape and forward to provider)
-	res4 := RouteSlashCommand("//ai tell me a story\n", sess)
-	if res4.Intercepted || res4.ForwardToProcess != "/ai tell me a story\n" {
-		t.Errorf("expected //ai to be unescaped to /ai, got %+v", res4)
+	// 4. //nexus escaped command (should unescape and forward to provider)
+	res4 := RouteSlashCommand("//nexus tell me a story\n", sess)
+	if res4.Intercepted || res4.ForwardToProcess != "/nexus tell me a story\n" {
+		t.Errorf("expected //nexus to be unescaped to /nexus, got %+v", res4)
 	}
 
-	// 5. /ai detach
-	res5 := RouteSlashCommand("/ai detach", sess)
+	// 5. /nexus detach
+	res5 := RouteSlashCommand("/nexus detach", sess)
 	if !res5.Intercepted || res5.Action != "detach" {
-		t.Errorf("expected /ai detach to produce action detach, got %+v", res5)
+		t.Errorf("expected /nexus detach to produce action detach, got %+v", res5)
 	}
 
-	// 6. /ai stop
-	res6 := RouteSlashCommand("/ai stop", sess)
+	// 6. /nexus stop
+	res6 := RouteSlashCommand("/nexus stop", sess)
 	if !res6.Intercepted || res6.Action != "stop" {
-		t.Errorf("expected /ai stop to produce action stop, got %+v", res6)
+		t.Errorf("expected /nexus stop to produce action stop, got %+v", res6)
 	}
 }
 
@@ -101,8 +149,8 @@ func TestSessionHostLifecycle(t *testing.T) {
 
 	sh, err := NewSessionHost(Config{
 		Session: sess,
-		Binary:  "cat",
-		Args:    []string{},
+		Binary:  testTerminalBinary,
+		Args:    testTerminalArgs(),
 		Env:     os.Environ(),
 		Cwd:     os.TempDir(),
 	})
@@ -114,8 +162,12 @@ func TestSessionHostLifecycle(t *testing.T) {
 		t.Fatalf("failed to start SessionHost: %v", err)
 	}
 	defer sh.Stop()
+	started := events.DefaultBus().GetHistory(runtimeID, 10)
+	if !containsEventType(started, events.EventProcessStarted) || !containsEventType(started, events.EventRuntimeStarted) {
+		t.Fatalf("runtime start lifecycle events missing: %+v", started)
+	}
 
-	time.Sleep(100 * time.Millisecond)
+	waitForHostEndpoint(t, runtimeID)
 
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
@@ -139,6 +191,66 @@ func TestSessionHostLifecycle(t *testing.T) {
 	if err := client.Stop(); err != nil {
 		t.Errorf("stop request failed: %v", err)
 	}
+	sh.Wait()
+	stopped := events.DefaultBus().GetHistory(runtimeID, 10)
+	if !containsEventType(stopped, events.EventProcessExited) ||
+		(!containsEventType(stopped, events.EventRuntimeStopped) && !containsEventType(stopped, events.EventRuntimeFailed)) {
+		t.Fatalf("runtime stop lifecycle events missing: %+v", stopped)
+	}
+}
+
+func TestSessionHostUsesConfiguredRegistryOwnership(t *testing.T) {
+	runtimeID := "rt-host-owned-registry"
+	owned := registry.NewRegistry(filepath.Join(t.TempDir(), "runtimes.json"))
+	sess := registry.RuntimeSession{
+		RuntimeID:    runtimeID,
+		ProviderID:   "test",
+		ProfileID:    "default",
+		Workspace:    os.TempDir(),
+		State:        registry.StateStarting,
+		ControlLevel: registry.ControlLevelTerminal,
+	}
+
+	sh, err := NewSessionHost(Config{
+		Session:  sess,
+		Registry: owned,
+		Binary:   testTerminalBinary,
+		Args:     testTerminalArgs(),
+		Env:      os.Environ(),
+		Cwd:      os.TempDir(),
+	})
+	if err != nil {
+		t.Fatalf("failed to create SessionHost: %v", err)
+	}
+	if err := sh.Start(); err != nil {
+		t.Fatalf("failed to start SessionHost: %v", err)
+	}
+
+	stored, ok := owned.Get(runtimeID)
+	if !ok || stored.State != registry.StateRunning {
+		t.Fatalf("configured registry did not receive running runtime: ok=%v session=%+v", ok, stored)
+	}
+	if _, ok := registry.DefaultRegistry().Get(runtimeID); ok {
+		t.Fatal("runtime leaked into the process-global registry")
+	}
+
+	if err := sh.Stop(); err != nil {
+		t.Fatalf("stop failed: %v", err)
+	}
+	sh.Wait()
+	stored, ok = owned.Get(runtimeID)
+	if !ok || (stored.State != registry.StateStopped && stored.State != registry.StateFailed) {
+		t.Fatalf("configured registry did not receive terminal runtime: ok=%v session=%+v", ok, stored)
+	}
+}
+
+func containsEventType(history []events.Event, want events.EventType) bool {
+	for _, event := range history {
+		if event.Type == want {
+			return true
+		}
+	}
+	return false
 }
 
 func TestSessionHost_CmdInputNoDeadlock(t *testing.T) {
@@ -154,8 +266,8 @@ func TestSessionHost_CmdInputNoDeadlock(t *testing.T) {
 
 	sh, err := NewSessionHost(Config{
 		Session: sess,
-		Binary:  "cat",
-		Args:    []string{},
+		Binary:  testTerminalBinary,
+		Args:    testTerminalArgs(),
 		Env:     os.Environ(),
 		Cwd:     os.TempDir(),
 	})
@@ -168,7 +280,7 @@ func TestSessionHost_CmdInputNoDeadlock(t *testing.T) {
 	}
 	defer sh.Stop()
 
-	time.Sleep(100 * time.Millisecond)
+	waitForHostEndpoint(t, runtimeID)
 
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
@@ -193,6 +305,41 @@ func TestSessionHost_CmdInputNoDeadlock(t *testing.T) {
 	}
 }
 
+func TestSessionHost_CmdInputForwardsTerminalBytesVerbatim(t *testing.T) {
+	sh := &SessionHost{
+		clients:      make(map[net.Conn]bool),
+		activeWriter: nil,
+	}
+	writer, peer := net.Pipe()
+	defer writer.Close()
+	defer peer.Close()
+
+	cases := []string{
+		"\x1b[3~", "\x1b[C", "\x1b[A", "\x1b[H", "\x1b[F",
+		"\x1b[5~", "\x1b[6~", "\x1b", "\x03", "\x1b[1;3u", "Olá 世界",
+		"/e[31m literal text", `\e[31m literal text`, "\x1b]0;title\x07",
+	}
+	for _, input := range cases {
+		got := sh.collectAttachedInputLocked(writer, []byte(input))
+		if !bytes.Equal(got, []byte(input)) {
+			t.Fatalf("input %q was transformed to %q", input, got)
+		}
+	}
+}
+
+func TestSessionHost_CmdInputNeverRoutesSlashCommands(t *testing.T) {
+	sh := &SessionHost{clients: make(map[net.Conn]bool)}
+	writer, peer := net.Pipe()
+	defer writer.Close()
+	defer peer.Close()
+
+	input := []byte("/nexus stop\r")
+	got := sh.collectAttachedInputLocked(writer, input)
+	if !bytes.Equal(got, input) {
+		t.Fatalf("slash command input was intercepted: got %q", got)
+	}
+}
+
 func TestSessionHost_SlowObserverDoesNotBlockWriter(t *testing.T) {
 	runtimeID := "rt-fanout-test"
 	sess := registry.RuntimeSession{
@@ -206,8 +353,8 @@ func TestSessionHost_SlowObserverDoesNotBlockWriter(t *testing.T) {
 
 	sh, err := NewSessionHost(Config{
 		Session: sess,
-		Binary:  "cat",
-		Args:    []string{},
+		Binary:  testTerminalBinary,
+		Args:    testTerminalArgs(),
 		Env:     os.Environ(),
 		Cwd:     os.TempDir(),
 	})
@@ -220,7 +367,7 @@ func TestSessionHost_SlowObserverDoesNotBlockWriter(t *testing.T) {
 	}
 	defer sh.Stop()
 
-	time.Sleep(100 * time.Millisecond)
+	waitForHostEndpoint(t, runtimeID)
 
 	// Writer client
 	writer, err := protocol.NewClient(runtimeID)
@@ -263,11 +410,8 @@ func TestSessionHost_SlowObserverDoesNotBlockWriter(t *testing.T) {
 }
 
 func TestSessionHost_ListenerFailureTerminatesChild(t *testing.T) {
-	runtimeID := "rt-listen-fail-test"
-	sockPath := protocol.EndpointPath(runtimeID)
-	// Create a non-empty directory at sockPath so os.Remove(sockPath) fails in protocol.Listen
-	_ = os.MkdirAll(filepath.Join(sockPath, "blocking-child"), 0700)
-	defer os.RemoveAll(sockPath)
+	runtimeID, cleanup := prepareListenerFailureFixture(t)
+	defer cleanup()
 
 	sess := registry.RuntimeSession{
 		RuntimeID:    runtimeID,
@@ -280,8 +424,8 @@ func TestSessionHost_ListenerFailureTerminatesChild(t *testing.T) {
 
 	sh, err := NewSessionHost(Config{
 		Session: sess,
-		Binary:  "cat",
-		Args:    []string{},
+		Binary:  testTerminalBinary,
+		Args:    testTerminalArgs(),
 		Env:     os.Environ(),
 		Cwd:     os.TempDir(),
 	})
@@ -323,8 +467,8 @@ func TestSessionHost_ExplicitLeaseAcquireRelease(t *testing.T) {
 
 	sh, err := NewSessionHost(Config{
 		Session: sess,
-		Binary:  "cat",
-		Args:    []string{},
+		Binary:  testTerminalBinary,
+		Args:    testTerminalArgs(),
 		Env:     os.Environ(),
 		Cwd:     os.TempDir(),
 	})
@@ -337,7 +481,7 @@ func TestSessionHost_ExplicitLeaseAcquireRelease(t *testing.T) {
 	}
 	defer sh.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	waitForHostEndpoint(t, runtimeID)
 
 	clientA, err := protocol.NewClient(runtimeID)
 	if err != nil {
@@ -389,8 +533,8 @@ func TestSessionHost_RejectsIncompatibleProtocolVersion(t *testing.T) {
 
 	sh, err := NewSessionHost(Config{
 		Session: sess,
-		Binary:  "cat",
-		Args:    []string{},
+		Binary:  testTerminalBinary,
+		Args:    testTerminalArgs(),
 		Env:     os.Environ(),
 		Cwd:     os.TempDir(),
 	})
@@ -402,7 +546,7 @@ func TestSessionHost_RejectsIncompatibleProtocolVersion(t *testing.T) {
 	}
 	defer sh.Stop()
 
-	time.Sleep(100 * time.Millisecond)
+	waitForHostEndpoint(t, runtimeID)
 
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
@@ -438,7 +582,7 @@ func TestSessionHost_RejectsIncompatibleProtocolVersion(t *testing.T) {
 func TestSessionHost_SubmitPromptBypassesSlashRouterWithoutStealingWriterLease(t *testing.T) {
 	runtimeID := "rt-submit-prompt-test"
 	sess := registry.RuntimeSession{RuntimeID: runtimeID, ProviderID: "test", ProfileID: "default", Workspace: os.TempDir(), State: registry.StateStarting, ControlLevel: registry.ControlLevelTerminal}
-	sh, err := NewSessionHost(Config{Session: sess, Binary: "cat", Env: os.Environ(), Cwd: os.TempDir()})
+	sh, err := NewSessionHost(Config{Session: sess, Binary: interactiveTestTerminalBinary, Args: interactiveTestTerminalArgs(), Env: os.Environ(), Cwd: os.TempDir()})
 	if err != nil {
 		t.Fatalf("failed to create SessionHost: %v", err)
 	}
@@ -446,17 +590,18 @@ func TestSessionHost_SubmitPromptBypassesSlashRouterWithoutStealingWriterLease(t
 		t.Fatalf("failed to start SessionHost: %v", err)
 	}
 	defer sh.Stop()
-	time.Sleep(100 * time.Millisecond)
+	waitForHostEndpoint(t, runtimeID)
 
 	writer, err := protocol.NewClient(runtimeID)
 	if err != nil {
 		t.Fatalf("writer connect: %v", err)
 	}
 	defer writer.Close()
-	if _, err := writer.Send(protocol.CmdAttach, nil); err != nil {
+	attachResponse, err := writer.Send(protocol.CmdAttach, nil)
+	if err != nil {
 		t.Fatalf("attach writer: %v", err)
 	}
-	_ = writer.ClearDeadline()
+	waitForTerminalReady(t, writer, attachResponse.Data)
 
 	submitter, err := protocol.NewClient(runtimeID)
 	if err != nil {
@@ -469,12 +614,18 @@ func TestSessionHost_SubmitPromptBypassesSlashRouterWithoutStealingWriterLease(t
 
 	_ = writer.RawConn().SetReadDeadline(time.Now().Add(2 * time.Second))
 	buf := make([]byte, 2048)
-	n, err := writer.RawConn().Read(buf)
-	if err != nil {
-		t.Fatalf("read submitted prompt echo: %v", err)
-	}
-	if !strings.Contains(string(buf[:n]), "/ai status should reach provider literally") {
-		t.Fatalf("prompt was intercepted or lost, got %q", string(buf[:n]))
+	var echoed strings.Builder
+	for {
+		n, readErr := writer.RawConn().Read(buf)
+		if n > 0 {
+			echoed.Write(buf[:n])
+			if strings.Contains(echoed.String(), "/ai status should reach provider literally") {
+				return
+			}
+		}
+		if readErr != nil {
+			t.Fatalf("prompt was intercepted or lost: %v; got %q", readErr, echoed.String())
+		}
 	}
 }
 
@@ -488,7 +639,7 @@ func TestSessionHost_AttachedLeaseAcquireDoesNotLeakToPTY(t *testing.T) {
 		State:        registry.StateStarting,
 		ControlLevel: registry.ControlLevelTerminal,
 	}
-	sh, err := NewSessionHost(Config{Session: sess, Binary: "cat", Env: os.Environ(), Cwd: os.TempDir()})
+	sh, err := NewSessionHost(Config{Session: sess, Binary: interactiveTestTerminalBinary, Args: interactiveTestTerminalArgs(), Env: os.Environ(), Cwd: os.TempDir()})
 	if err != nil {
 		t.Fatalf("create SessionHost: %v", err)
 	}
@@ -496,17 +647,18 @@ func TestSessionHost_AttachedLeaseAcquireDoesNotLeakToPTY(t *testing.T) {
 		t.Fatalf("start SessionHost: %v", err)
 	}
 	defer sh.Stop()
-	time.Sleep(80 * time.Millisecond)
+	waitForHostEndpoint(t, runtimeID)
 
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
 		t.Fatalf("connect: %v", err)
 	}
 	defer client.Close()
-	if _, err := client.Send(protocol.CmdAttach, nil); err != nil {
+	attachResponse, err := client.Send(protocol.CmdAttach, nil)
+	if err != nil {
 		t.Fatalf("attach: %v", err)
 	}
-	_ = client.ClearDeadline()
+	waitForTerminalReady(t, client, attachResponse.Data)
 
 	req, err := protocol.NewRequest(protocol.CmdLeaseAcquire, nil)
 	if err != nil {

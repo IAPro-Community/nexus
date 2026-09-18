@@ -1,0 +1,112 @@
+[
+  {
+    "provider_id": "agy",
+    "profile_id": "kiveromegasistemas",
+    "status": "UNKNOWN",
+    "source": "NONE",
+    "fetched_at": "2026-09-12T12:39:19.775353747-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    }
+  },
+  {
+    "provider_id": "agy",
+    "profile_id": "kivervinicius-gmail",
+    "status": "UNKNOWN",
+    "source": "NONE",
+    "fetched_at": "2026-09-12T12:39:19.776066607-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    }
+  },
+  {
+    "provider_id": "codex",
+    "profile_id": "kiver.omegasistemas",
+    "status": "ESTIMATED",
+    "source": "OBSERVATION",
+    "fetched_at": "2026-09-12T04:12:27.873Z",
+    "windows": [
+      {
+        "kind": "5h",
+        "group": "claude_gpt",
+        "used_percent": 1,
+        "remaining_percent": 99,
+        "reset_time": "2026-09-12T03:30:49-04:00",
+        "reset_description": "window rolled over"
+      },
+      {
+        "kind": "weekly",
+        "group": "claude_gpt",
+        "used_percent": 44,
+        "remaining_percent": 56,
+        "reset_time": "2026-09-15T08:37:25-04:00",
+        "reset_description": "resets 08:37 on 15 Sep"
+      }
+    ],
+    "model_name": "gpt-5.6-terra",
+    "account": "802cf130-605a-4489-94f4-a6570dbdf8e7",
+    "error": "observação de 12h ago",
+    "account_scope": {
+      "provider_id": "codex",
+      "profile_id": "kiver.omegasistemas",
+      "account_id": "3551c29fcaafddddd0223d9526f5a5fd",
+      "identity_version": "14"
+    }
+  },
+  {
+    "provider_id": "codex",
+    "profile_id": "kivergmail",
+    "status": "ESTIMATED",
+    "source": "OBSERVATION",
+    "fetched_at": "2026-09-12T06:00:33.529Z",
+    "windows": [
+      {
+        "kind": "5h",
+        "group": "claude_gpt",
+        "used_percent": 35,
+        "remaining_percent": 65,
+        "reset_time": "2026-09-12T03:30:49-04:00",
+        "reset_description": "window rolled over"
+      },
+      {
+        "kind": "weekly",
+        "group": "claude_gpt",
+        "used_percent": 49,
+        "remaining_percent": 51,
+        "reset_time": "2026-09-15T08:37:25-04:00",
+        "reset_description": "resets 08:37 on 15 Sep"
+      }
+    ],
+    "model_name": "gpt-5.6-terra",
+    "account": "9cba8371-db95-468c-ad00-02e9ceddcb3e",
+    "error": "observação de 10h ago",
+    "account_scope": {
+      "provider_id": "codex",
+      "profile_id": "kivergmail",
+      "account_id": "81d85f3c23d959a5b447fbab6b4092d2",
+      "identity_version": "10"
+    }
+  },
+  {
+    "provider_id": "opencode",
+    "profile_id": "opencode",
+    "status": "UNKNOWN",
+    "source": "NONE",
+    "fetched_at": "2026-09-12T12:39:20.109812152-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    }
+  }
+]

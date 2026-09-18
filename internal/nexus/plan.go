@@ -6,43 +6,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 
 	"sort"
+	"time"
 )
 
 // CreateWorkPlan creates a new structured engineering work plan.
 func (n *Nexus) CreateWorkPlan(ctx context.Context, projectID, title, description string, phases []store.PlanPhase, facts map[string]string) (*store.WorkPlan, error) {
-	st, err := n.OpenProject()
-	if err != nil {
-		return nil, err
-	}
-
-	if strings.TrimSpace(title) == "" {
-		return nil, fmt.Errorf("plan title is required")
-	}
-
-	plan := store.WorkPlan{
-		ProjectID:       projectID,
-		Title:           title,
-		Description:     description,
-		Phases:          phases,
-		StructuredFacts: facts,
-	}
-	for pi := range plan.Phases {
-		if plan.Phases[pi].ID == "" {
-			plan.Phases[pi].ID = "phase_" + ids.NewRuntimeID()
-		}
-		for wi := range plan.Phases[pi].Packages {
-			if plan.Phases[pi].Packages[wi].ID == "" {
-				plan.Phases[pi].Packages[wi].ID = "pkg_" + ids.NewRuntimeID()
-			}
-		}
-	}
-
-	return st.CreateWorkPlan(plan)
+	return NewPlanApplicationService(n).Create(ctx, projectID, title, description, phases, facts)
 }
 
 // MaterializePromptArtifactAsFlow creates a first-class Flow from the exact
@@ -72,6 +46,9 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		"nexus.source_artifact_revision": fmt.Sprintf("%d", artifact.Version),
 		"nexus.source_artifact_hash":     artifact.Hash,
 	}
+	if motivation, marshalErr := json.Marshal(brief.Motivation); marshalErr == nil {
+		facts["composer.motivation_map"] = string(motivation)
+	}
 	for key, value := range map[string]string{
 		"composer.context":   artifact.ContextJSON,
 		"composer.skill_ids": artifact.SkillIDsJSON,
@@ -80,11 +57,64 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 			facts[key] = value
 		}
 	}
+	for _, unknown := range brief.Unknowns {
+		if unknown.Status != PromptUnknownAnswered && unknown.Status != PromptUnknownConfirmed {
+			continue
+		}
+		if strings.TrimSpace(unknown.Answer) == "" {
+			continue
+		}
+		facts["composer.fact."+unknown.Field] = unknown.Answer
+	}
+	for i, fact := range brief.Facts {
+		if strings.TrimSpace(fact.Value) == "" {
+			continue
+		}
+		key := firstNonEmpty(fact.Field, fmt.Sprintf("composer.fact.%d", i))
+		facts[key] = fact.Value
+	}
+	if memFacts, memErr := n.MemoryFactsMap(ctx, session.ProjectID); memErr == nil {
+		for key, value := range memFacts {
+			if strings.HasPrefix(key, "memory.") {
+				facts[key] = value
+				continue
+			}
+			if _, exists := facts[key]; !exists {
+				facts["memory."+key] = value
+			}
+		}
+	}
+
+	// Unify the Composer -> Flow path: when the brief benefits from multi-step
+	// orchestration, decompose it into a real Flow DAG instead of a single
+	// package. DIRECT_FIT briefs keep the lean 1-package materialization. Either
+	// way the durable Composer lineage facts remain attached.
+	suitability := AssessComposerFlowSuitability(brief)
+	if suitability.Result == FlowBeneficial || suitability.Result == FlowStronglyRecommended {
+		proposal, decomposeErr := n.DecomposePromptIntoFlowProposal(ctx, FlowDecompositionRequest{
+			ProjectID:    session.ProjectID,
+			ArtifactID:   artifact.ID,
+			Goal:         firstNonEmpty(brief.Goal, brief.Intent.Objective),
+			SourcePrompt: artifact.Content,
+			SkillIDs:     decodeStringArray(artifact.SkillIDsJSON),
+		})
+		if decomposeErr != nil {
+			return nil, decomposeErr
+		}
+		flowPlan := WorkPlanFromFlow(proposal.Flow)
+		for key, value := range flowPlan.StructuredFacts {
+			if _, exists := facts[key]; !exists {
+				facts[key] = value
+			}
+		}
+		return n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact via Flow decomposition", flowPlan.Phases, facts)
+	}
+
 	phaseID := "phase_" + ids.NewRuntimeID()
 	plan, err := n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact", []store.PlanPhase{{
 		ID: phaseID, Title: "Composer Flow", Order: 1, Packages: []store.WorkPackage{{
 			ID: "pkg_" + ids.NewRuntimeID(), Title: title, Goal: brief.Goal, Priority: "HIGH", Status: "READY", Role: "implementer",
-			MaestroSkills: decodeStringArray(artifact.SkillIDsJSON), AcceptanceCriteria: append([]string(nil), brief.Quality.AcceptanceCriteria...), CompiledPrompt: artifact.Content,
+			SkillIDs: decodeStringArray(artifact.SkillIDsJSON), MaestroSkills: decodeStringArray(artifact.SkillIDsJSON), AcceptanceCriteria: append([]string(nil), brief.Quality.AcceptanceCriteria...), CompiledPrompt: artifact.Content,
 		}},
 	}}, facts)
 	if err != nil {
@@ -103,47 +133,27 @@ func decodeStringArray(raw string) []string {
 
 // GetWorkPlan fetches a plan by ID.
 func (n *Nexus) GetWorkPlan(ctx context.Context, planID string) (*store.WorkPlan, error) {
-	st, err := n.OpenProject()
-	if err != nil {
-		return nil, err
-	}
-	return st.GetWorkPlan(planID)
+	return NewPlanApplicationService(n).Get(ctx, planID)
 }
 
 // ListWorkPlans lists all work plans for a project.
 func (n *Nexus) ListWorkPlans(ctx context.Context, projectID string) ([]store.WorkPlan, error) {
-	st, err := n.OpenProject()
-	if err != nil {
-		return nil, err
-	}
-	return st.ListWorkPlans(projectID)
+	return NewPlanApplicationService(n).List(ctx, projectID)
 }
 
 // UpdateWorkPlan updates a plan and records a new PlanRevision atomically.
 func (n *Nexus) UpdateWorkPlan(ctx context.Context, plan store.WorkPlan, changeSummary string) (*store.WorkPlan, *store.PlanRevision, error) {
-	st, err := n.OpenProject()
-	if err != nil {
-		return nil, nil, err
-	}
-	return st.UpdateWorkPlan(plan, changeSummary)
+	return NewPlanApplicationService(n).Update(ctx, plan, changeSummary)
 }
 
 // DeleteWorkPlan deletes a plan by ID.
 func (n *Nexus) DeleteWorkPlan(ctx context.Context, planID string) error {
-	st, err := n.OpenProject()
-	if err != nil {
-		return err
-	}
-	return st.DeleteWorkPlan(planID)
+	return NewPlanApplicationService(n).Delete(ctx, planID)
 }
 
 // ListPlanRevisions lists all historical revisions of a plan.
 func (n *Nexus) ListPlanRevisions(ctx context.Context, planID string) ([]store.PlanRevision, error) {
-	st, err := n.OpenProject()
-	if err != nil {
-		return nil, err
-	}
-	return st.ListPlanRevisions(planID)
+	return NewPlanApplicationService(n).Revisions(ctx, planID)
 }
 
 // CompilePackagePrompt compiles the exact scoped prompt for a single WorkPackage.
@@ -186,9 +196,8 @@ func (n *Nexus) compilePackagePromptFromPlan(ctx context.Context, plan *store.Wo
 		return nil, fmt.Errorf("work package %s not found in plan %s", packageID, plan.ID)
 	}
 
-	// Maestro remains the sole authority for skill IDs. Explicit gates are part
-	// of the approved contract and must never be silently dropped.
-	validatedSkills, err := n.validateMaestroGatesStrict(uniqueStrings(append(append([]string(nil), targetPkg.MaestroGates...), targetPkg.MaestroSkills...)))
+	requestedSkills := packageSkillIDs(*targetPkg)
+	validatedSkills, err := validateGenericSkillIDs(n, plan.ProjectID, requestedSkills)
 	if err != nil {
 		return nil, err
 	}
@@ -196,12 +205,45 @@ func (n *Nexus) compilePackagePromptFromPlan(ctx context.Context, plan *store.Wo
 }
 
 func compileTargetPackagePrompt(ctx context.Context, plan *store.WorkPlan, targetPkg *store.WorkPackage, validatedSkills []string) (*intelligence.PromptCompilationResult, error) {
-	engine := intelligence.NewNexusEngine(nil)
-	outline := intelligence.WorkPackageOutline{
-		Title: targetPkg.Title, Goal: targetPkg.Goal, Priority: targetPkg.Priority,
-		Dependencies: targetPkg.Dependencies, Role: targetPkg.Role, Acceptance: targetPkg.AcceptanceCriteria,
+	return compileTargetPackagePromptForAgent(ctx, plan, targetPkg, intelligence.AgentSpec{Role: targetPkg.Role}, validatedSkills)
+}
+
+func compileTargetPackagePromptForAgent(ctx context.Context, plan *store.WorkPlan, targetPkg *store.WorkPackage, agentSpec intelligence.AgentSpec, validatedSkills []string) (*intelligence.PromptCompilationResult, error) {
+	guidance := guidanceForWorkPackage(targetPkg)
+	compiled, err := intelligence.NewNexusEngine(nil).CompileExecutionContext(ctx, intelligence.ExecutionContextRequest{
+		Agent:    agentSpec,
+		Project:  intelligence.ProjectContext{Facts: plan.StructuredFacts},
+		Task:     intelligence.WorkPackageContext{Title: targetPkg.Title, Goal: targetPkg.Goal, Priority: targetPkg.Priority, Role: targetPkg.Role, AcceptanceCriteria: targetPkg.AcceptanceCriteria},
+		Skills:   append([]string(nil), validatedSkills...),
+		Guidance: guidance,
+	})
+	if err != nil {
+		return nil, err
 	}
-	return engine.CompilePrompt(ctx, outline, plan.StructuredFacts, validatedSkills)
+	return &intelligence.PromptCompilationResult{
+		PackageTitle:    targetPkg.Title,
+		SystemPrompt:    compiled.SystemInstructions,
+		UserPrompt:      compiled.TaskInstructions,
+		Skills:          append([]string(nil), validatedSkills...),
+		AcceptanceGates: append([]string(nil), targetPkg.AcceptanceCriteria...),
+		Constraints:     append([]string(nil), compiled.Context...),
+		EstimatedTokens: (len(compiled.SystemInstructions) + len(compiled.TaskInstructions)) / 4,
+		CompiledAt:      time.Now().UTC(),
+	}, nil
+}
+
+func guidanceForWorkPackage(pkg *store.WorkPackage) intelligence.ExecutionGuidance {
+	if pkg == nil || strings.TrimSpace(pkg.TaskRequirements) == "" {
+		return intelligence.ExecutionGuidance{}
+	}
+	var req TaskRequirements
+	if err := json.Unmarshal([]byte(pkg.TaskRequirements), &req); err != nil || req.Guidance == nil {
+		return intelligence.ExecutionGuidance{}
+	}
+	guidance := *req.Guidance
+	guidance.Instructions = append([]string(nil), req.Guidance.Instructions...)
+	guidance.Skills = append([]string(nil), req.Guidance.Skills...)
+	return guidance
 }
 
 // compilePackagePromptFromExecutionSnapshot trusts only Maestro gates already
@@ -218,7 +260,7 @@ func compilePackagePromptFromExecutionSnapshot(ctx context.Context, plan *store.
 		for i := range ph.Packages {
 			pkg := &ph.Packages[i]
 			if pkg.ID == packageID {
-				return compileTargetPackagePrompt(ctx, plan, pkg, uniqueStrings(append(append([]string(nil), pkg.MaestroGates...), pkg.MaestroSkills...)))
+				return compileTargetPackagePrompt(ctx, plan, pkg, packageSkillIDs(*pkg))
 			}
 		}
 	}
@@ -246,6 +288,10 @@ func (e *ClarificationRequiredError) Error() string {
 // GeneratePlanFromIntent uses a real configured Nexus Intelligence provider.
 // It persists BLOCKING ambiguities and never falls back to fabricated packages.
 // CLI providers use a single-shot PlanFromGoal call; OpenAI-compatible keeps multi-call.
+//
+// Deprecated: the web path is retired (auto_plan now returns an error; users go
+// through Composer -> Turn into Flow). This function is retained only for the
+// legacy `nexus plan create` CLI command and its tests. Do not add new callers.
 func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal string) (*store.WorkPlan, error) {
 	ctx, cancel := context.WithTimeout(ctx, intelligence.PlanGenerationTimeout)
 	defer cancel()
@@ -253,6 +299,9 @@ func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal stri
 	contextData, err := n.ComposerContextData(projectID)
 	if err != nil {
 		return nil, err
+	}
+	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil && len(memFacts) > 0 {
+		contextData["intelligence_memories"] = memFacts
 	}
 	provider, err := n.ConfiguredIntelligenceProvider(ctx, projectID)
 	if err != nil {
@@ -266,6 +315,21 @@ func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal stri
 	}
 
 	state := &intelligence.ClarificationState{Unknowns: unknowns, StructuredFacts: map[string]string{}}
+	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
+		for key, value := range memFacts {
+			state.StructuredFacts[key] = value
+		}
+		// Resolve blocking unknowns already covered by durable memories.
+		for i := range state.Unknowns {
+			item := &state.Unknowns[i]
+			if item.IsResolved {
+				continue
+			}
+			if value := memoryCoversAmbiguity(*item, memFacts); value != "" {
+				engine.ResolveClarification(state, item.Key, value)
+			}
+		}
+	}
 	// Non-blocking defaults are explicit decisions. Blocking items always require a user answer.
 	for i := range state.Unknowns {
 		item := state.Unknowns[i]
@@ -297,6 +361,32 @@ func hasBlockingUnknowns(items []intelligence.AmbiguityItem) bool {
 		}
 	}
 	return false
+}
+
+func memoryCoversAmbiguity(item intelligence.AmbiguityItem, facts map[string]string) string {
+	keys := []string{item.Key, "composer.fact." + item.Key, "memory.project." + item.Key, "memory.install." + item.Key}
+	lowerKey := strings.ToLower(item.Key)
+	for factKey, value := range facts {
+		if strings.TrimSpace(value) == "" {
+			continue
+		}
+		fk := strings.ToLower(factKey)
+		if fk == lowerKey || strings.HasSuffix(fk, "."+lowerKey) {
+			return value
+		}
+		if strings.Contains(lowerKey, "verif") && (strings.Contains(fk, "verif") || strings.Contains(fk, "quality.verification")) {
+			return value
+		}
+		if strings.Contains(lowerKey, "test") && (strings.Contains(fk, "test") || strings.Contains(fk, "quality.testing")) {
+			return value
+		}
+	}
+	for _, key := range keys {
+		if v := strings.TrimSpace(facts[key]); v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func (n *Nexus) persistClarification(projectID, goal string, intent *intelligence.IntentAnalysis, unknowns []intelligence.AmbiguityItem, facts map[string]string) (*ClarificationCheckpoint, error) {
@@ -518,6 +608,20 @@ func packagesFromOutlines(goal string, outlines []intelligence.WorkPackageOutlin
 
 func (n *Nexus) createPlanFromOutlines(ctx context.Context, projectID, goal string, intent *intelligence.IntentAnalysis, outlines []intelligence.WorkPackageOutline, facts map[string]string) (*store.WorkPlan, error) {
 	pkgs := packagesFromOutlines(goal, outlines)
+	st, err := n.OpenProject()
+	if err != nil {
+		return nil, err
+	}
+	project, err := st.GetProject(projectID)
+	if err != nil {
+		return nil, err
+	}
+	verification := detectVerificationCommands(project.CanonicalPath)
+	for i := range pkgs {
+		if len(pkgs[i].VerificationRequirements) == 0 {
+			pkgs[i].VerificationRequirements = append([]string(nil), verification...)
+		}
+	}
 	phase := store.PlanPhase{ID: "phase_" + ids.NewRuntimeID(), Title: "Execution Phase", Order: 1, Packages: pkgs}
 	mergedFacts := map[string]string{}
 	for k, v := range facts {

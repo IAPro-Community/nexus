@@ -1,0 +1,22 @@
+{
+  "campaign": "overnight-production-certification",
+  "started_at": "2026-09-13T04:28:00Z",
+  "ended_at": "2026-09-13T04:31:00Z",
+  "duration_real": "not started",
+  "soak_hours": 0,
+  "verdict": "ABORTED_PRECONDITION_FAILED",
+  "overnight_verdict": null,
+  "candidate_sha": null,
+  "executed_head": "e53f8352e4c3647632ebac7877cf0a6a3bd62647",
+  "campaigns": {
+    "A_maestro_off": "NOT_STARTED",
+    "B_maestro_on": "NOT_STARTED",
+    "C_recovery": "NOT_STARTED",
+    "D_provider_failover": "NOT_STARTED",
+    "E_multi_agent_continuity": "NOT_STARTED",
+    "F_8h_soak": "NOT_STARTED"
+  },
+  "human_interventions": [],
+  "red_team": "NOT_STARTED",
+  "reason": "Missing DEV/validation/production-finalization/FINAL_REPORT.md with verdict READY_FOR_OVERNIGHT_CERTIFICATION. HEAD does not match the intake candidate SHA. Overnight campaigns were not executed."
+}

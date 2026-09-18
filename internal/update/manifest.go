@@ -9,11 +9,43 @@ import (
 	"time"
 )
 
+// ArtifactTarget defines the type and extraction behavior for an artifact.
+type ArtifactTarget string
+
+const (
+	// TargetBinary is a single executable binary (no extraction needed).
+	TargetBinary ArtifactTarget = "binary"
+	// TargetTarGz is a gzipped tar archive (common on Linux/macOS).
+	TargetTarGz ArtifactTarget = "tar.gz"
+	// TargetZip is a ZIP archive (common on Windows).
+	TargetZip ArtifactTarget = "zip"
+	// TargetNSIS is a Windows NSIS installer (manual download required).
+	TargetNSIS ArtifactTarget = "nsis"
+	// TargetDEB is a Debian package (manual install required).
+	TargetDEB ArtifactTarget = "deb"
+	// TargetRPM is an RPM package (manual install required).
+	TargetRPM ArtifactTarget = "rpm"
+)
+
 type Artifact struct {
-	URL       string `json:"url"`
-	Size      int64  `json:"size"`
-	SHA256    string `json:"sha256"`
-	Signature string `json:"signature,omitempty"`
+	URL       string         `json:"url"`
+	Size      int64          `json:"size"`
+	SHA256    string         `json:"sha256"`
+	Signature string         `json:"signature,omitempty"`
+	Target    ArtifactTarget `json:"target,omitempty"`
+}
+
+// ExtractAction returns the recommended extraction action for the artifact type.
+// Returns "replace" for self-updateable artifacts, "manual" for package managers.
+func (a Artifact) ExtractAction() string {
+	switch a.Target {
+	case TargetBinary, TargetTarGz, TargetZip:
+		return "replace"
+	case TargetNSIS, TargetDEB, TargetRPM:
+		return "manual"
+	default:
+		return "replace" // backward compatible default
+	}
 }
 
 type Manifest struct {
@@ -45,6 +77,7 @@ var (
 	ErrManifestCompatibility = errors.New("installed version is incompatible with update manifest")
 	ErrManifestTarget        = errors.New("update manifest has no artifact for target")
 	ErrManifestArtifact      = errors.New("update manifest artifact is invalid")
+	ErrManifestUnsigned      = errors.New("update manifest signature is missing")
 )
 
 // Validate applies local policy before an artifact can be downloaded or installed.
@@ -90,6 +123,9 @@ func (m Manifest) Validate(policy ManifestPolicy) error {
 		if artifact.Size < 0 || len(artifact.SHA256) != 64 {
 			return fmt.Errorf("%w: %s", ErrManifestArtifact, policy.Target)
 		}
+		if artifact.Target != "" && artifact.Target != TargetBinary && artifact.Target != TargetTarGz && artifact.Target != TargetZip && artifact.Target != TargetNSIS && artifact.Target != TargetDEB && artifact.Target != TargetRPM {
+			return fmt.Errorf("%w: %s has unsupported artifact target %q", ErrManifestArtifact, policy.Target, artifact.Target)
+		}
 		if _, err := hex.DecodeString(artifact.SHA256); err != nil {
 			return fmt.Errorf("%w: %s checksum: %v", ErrManifestArtifact, policy.Target, err)
 		}
@@ -98,23 +134,107 @@ func (m Manifest) Validate(policy ManifestPolicy) error {
 }
 
 func compareVersions(a, b string) int {
-	parse := func(v string) []int {
-		v = strings.TrimPrefix(strings.TrimSpace(v), "v")
-		parts := strings.SplitN(v, "-", 2)[0]
-		segments := strings.Split(parts, ".")
-		values := make([]int, 3)
-		for i := 0; i < len(values) && i < len(segments); i++ {
-			values[i], _ = strconv.Atoi(segments[i])
-		}
-		return values
+	type semver struct {
+		major, minor, patch int
+		prerelease          string // empty = stable (highest precedence)
 	}
+
+	parse := func(v string) semver {
+		v = strings.TrimPrefix(strings.TrimSpace(v), "v")
+		var s semver
+		// Split into core + optional prerelease
+		core := v
+		if idx := strings.IndexAny(v, "-+"); idx != -1 {
+			core = v[:idx]
+			s.prerelease = v[idx+1:]
+			// Only use the part after '-' (prerelease), ignore build metadata after '+'
+			if plusIdx := strings.Index(s.prerelease, "+"); plusIdx != -1 {
+				s.prerelease = s.prerelease[:plusIdx]
+			}
+		}
+		segments := strings.Split(core, ".")
+		for i := 0; i < len(segments) && i < 3; i++ {
+			val, _ := strconv.Atoi(segments[i])
+			switch i {
+			case 0:
+				s.major = val
+			case 1:
+				s.minor = val
+			case 2:
+				s.patch = val
+			}
+		}
+		return s
+	}
+
 	left, right := parse(a), parse(b)
-	for i := range left {
-		if left[i] < right[i] {
+
+	// Compare major.minor.patch
+	if left.major != right.major {
+		if left.major < right.major {
 			return -1
 		}
-		if left[i] > right[i] {
+		return 1
+	}
+	if left.minor != right.minor {
+		if left.minor < right.minor {
+			return -1
+		}
+		return 1
+	}
+	if left.patch != right.patch {
+		if left.patch < right.patch {
+			return -1
+		}
+		return 1
+	}
+
+	// Same major.minor.patch: stable > any prerelease (SemVer 2.0.0 §11)
+	if left.prerelease == "" && right.prerelease == "" {
+		return 0
+	}
+	if left.prerelease == "" {
+		return 1 // stable > prerelease
+	}
+	if right.prerelease == "" {
+		return -1 // prerelease < stable
+	}
+
+	// Both have prerelease: compare dot-separated identifiers numerically
+	// then lexically, per SemVer 2.0.0 §11
+	leftParts := strings.Split(left.prerelease, ".")
+	rightParts := strings.Split(right.prerelease, ".")
+	maxLen := len(leftParts)
+	if len(rightParts) > maxLen {
+		maxLen = len(rightParts)
+	}
+
+	for i := 0; i < maxLen; i++ {
+		if i >= len(leftParts) {
+			return -1 // shorter prerelease has lower precedence
+		}
+		if i >= len(rightParts) {
 			return 1
+		}
+		lp, rp := leftParts[i], rightParts[i]
+		ln, lErr := strconv.Atoi(lp)
+		rn, rErr := strconv.Atoi(rp)
+		if lErr == nil && rErr == nil {
+			// Both numeric: compare numerically
+			if ln < rn {
+				return -1
+			}
+			if ln > rn {
+				return 1
+			}
+		} else {
+			// At least one is alphanumeric: compare lexically
+			if lp < rp {
+				return -1
+			}
+			if lp > rp {
+				return 1
+			}
 		}
 	}
 	return 0

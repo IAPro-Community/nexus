@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func canonicalFlowPlanFixture() store.WorkPlan {
@@ -67,6 +67,18 @@ func TestFlowFacadeLegacyAllocationMapsToExisting(t *testing.T) {
 	}
 	if flow.Steps[0].AgentID != "agent-1" {
 		t.Fatalf("agent lost: %#v", flow.Steps[0])
+	}
+}
+
+func TestFlowFacadePreservesCanonicalSkillIDs(t *testing.T) {
+	plan := store.WorkPlan{ID: "canonical-skills", ProjectID: "p", CurrentRevision: 1, Phases: []store.PlanPhase{{ID: "phase", Packages: []store.WorkPackage{{ID: "A", Title: "A", SkillIDs: []string{"coding", "testing"}}}}}}
+	flow := FlowFromWorkPlan(plan)
+	if !reflect.DeepEqual(flow.Steps[0].SkillIDs, []string{"coding", "testing"}) {
+		t.Fatalf("canonical SkillIDs lost in Flow facade: %#v", flow.Steps[0])
+	}
+	roundTrip := WorkPlanFromFlow(flow)
+	if !reflect.DeepEqual(roundTrip.Phases[0].Packages[0].SkillIDs, plan.Phases[0].Packages[0].SkillIDs) {
+		t.Fatalf("canonical SkillIDs lost in WorkPlan round trip: %#v", roundTrip.Phases[0].Packages[0])
 	}
 }
 

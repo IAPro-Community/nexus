@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	coreconfig "github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/nexus/intelligence"
-	"github.com/kivervinicius/ai-cli/internal/profile"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // IntelligenceStatus is the secret-free status exposed by the Nexus REST API.
@@ -94,6 +94,9 @@ func (n *Nexus) ProbeIntelligence(ctx context.Context, projectID string) (Intell
 // ConfiguredIntelligenceProvider resolves the explicitly configured intelligence source.
 // Direct work never calls this function; Composer analysis/planning does.
 func (n *Nexus) ConfiguredIntelligenceProvider(ctx context.Context, projectID string) (intelligence.IntelligenceProvider, error) {
+	if n != nil && n.intelligenceProviderForTest != nil {
+		return n.intelligenceProviderForTest, nil
+	}
 	cfg, err := n.GetIntelligenceConfig()
 	if err != nil {
 		return nil, err
@@ -123,7 +126,7 @@ func (n *Nexus) cliIntelligenceProvider(ctx context.Context, projectID string, c
 	if prof.Disabled {
 		return nil, fmt.Errorf("intelligence profile %s:%s is disabled", providerID, profileName)
 	}
-	d, err := driver.DefaultRegistry().Get(providerID)
+	d, err := n.controlDrivers().Get(providerID)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { IconButton } from './index';
 
 export interface ContextDrawerProps {
@@ -22,6 +23,7 @@ export const ContextDrawer: React.FC<ContextDrawerProps> = ({
   width = 380,
   side = 'right',
 }) => {
+  const { t } = useTranslation();
   const triggerRef = useRef<Element | null>(null);
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export const ContextDrawer: React.FC<ContextDrawerProps> = ({
               )}
             </div>
             <RadixDialog.Close asChild>
-              <IconButton label="Fechar painel" onClick={onClose}>
+              <IconButton label={t('common.closeDrawer', 'Fechar painel')} onClick={onClose}>
                 <X size={15} />
               </IconButton>
             </RadixDialog.Close>

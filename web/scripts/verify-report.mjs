@@ -152,6 +152,8 @@ function checkCriticalUiMarkers() {
   const required = [
     { where: 'css', hay: css, needle: 'nx-os-shell', label: 'shell layout' },
     { where: 'css', hay: css, needle: 'nx-attention-radar', label: 'attention radar styles' },
+    { where: 'css', hay: css, needle: 'xterm-helper-textarea', label: 'xterm input isolation' },
+    { where: 'css', hay: css, needle: '--nx-spacing-8', label: 'canonical spacing tokens' },
     { where: 'js', hay: js, needle: 'nx-attention-radar', label: 'radar class wiring' },
     { where: 'js', hay: js, needle: 'esperando input', label: 'document title wait copy' },
     { where: 'js', hay: js, needle: 'Project Shell', label: 'overview/project shell CTA' },

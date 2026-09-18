@@ -1,0 +1,47 @@
+---
+pid: 3639164
+cwd: "/projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager"
+command: "rtk make build"
+title: "Build candidate nexus binary from HEAD"
+status: succeeded
+started_at: 2026-09-13T04:35:19.790Z
+running_for_ms: 10691    
+---
+≈ tailwindcss v4.3.3
+
+Done in 491ms
+
+  dist/bundle.js                                   343.4kb
+  dist/chunks/chunk-OI6WT6YE.js                    277.9kb
+  dist/chunks/FlowRunsHistorySurface-DAG6MBVS.js   228.3kb
+  dist/chunks/chunk-KTQEXYIX.js                    159.0kb
+  dist/bundle.css                                  157.2kb
+  dist/chunks/chunk-5KKHRYCG.js                    127.3kb
+  dist/chunks/chunk-5E7LF5JW.js                     64.9kb
+  dist/chunks/chunk-AIDAE7PF.js                     55.5kb
+  dist/chunks/chunk-J4BKKRCQ.js                     46.4kb
+  dist/chunks/chunk-JSWQBYL5.js                     29.4kb
+  dist/chunks/chunk-RFDPXDV4.js                     26.1kb
+  dist/chunks/chunk-6IREPIYC.js                     25.3kb
+  dist/chunks/AgentTerminal-TOWWWKML.js             22.3kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/ProjectManagerSurface-F3YILGPD.js     15.0kb
+  dist/chunks/Dashboard-O333KX6T.js                 12.9kb
+  dist/chunks/NewAgentModal-JXGTL7JM.js             11.0kb
+  dist/chunks/MaestroSurface-AZTCKP4C.js            11.0kb
+  dist/chunks/chunk-Y2GP5KJN.js                     11.0kb
+  dist/chunks/chunk-T7Z2CKZQ.js                     10.3kb
+  ...and 38 more output files...
+
+⚡ Done in 1672ms
+Building frontend...
+Nexus web build complete: /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/web/dist
+Frontend bundle ready for embedding
+Building nexus v0.5.0-beta.23 (commit: 37f970b)...
+Built nexus v0.5.0-beta.23 at ./nexus
+
+---
+exit_code: 0
+elapsed_ms: 10689
+ended_at: 2026-09-13T04:35:30.479Z
+---

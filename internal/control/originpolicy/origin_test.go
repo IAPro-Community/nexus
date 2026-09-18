@@ -40,27 +40,27 @@ func TestIsTrustedDesktopRequest(t *testing.T) {
 		host, origin, referer string
 		want                  bool
 	}{
-		{"127.0.0.1:3000", "wails://wails", "", true},
-		{"localhost:3000", "http://wails.localhost", "", true},
-		{"127.0.0.1:3000", "", "wails://wails/index.html", true},
-		{"127.0.0.1:3000", "", "http://wails.localhost/app", true},
+		{"127.0.0.1:13000", "wails://wails", "", true},
+		{"localhost:13000", "http://wails.localhost", "", true},
+		{"127.0.0.1:13000", "", "wails://wails/index.html", true},
+		{"127.0.0.1:13000", "", "http://wails.localhost/app", true},
 		{"wails", "wails://wails", "", true},
 		{"wails", "", "", false}, // Host: wails alone without desktop origin/referer must be rejected
 		// Conflicting headers: invalid Origin must NOT fall back to valid Referer
-		{"127.0.0.1:3000", "wails://evil.com", "wails://wails", false},
-		{"127.0.0.1:3000", "http://evil.com", "http://wails.localhost", false},
+		{"127.0.0.1:13000", "wails://evil.com", "wails://wails", false},
+		{"127.0.0.1:13000", "http://evil.com", "http://wails.localhost", false},
 		// Negative tests: bypass attempts with malicious domains
-		{"127.0.0.1:3000", "wails://evil.com", "", false},
-		{"127.0.0.1:3000", "wails://wails.localhost.evil.com", "", false},
-		{"127.0.0.1:3000", "wails://attacker", "", false},
-		{"127.0.0.1:3000", "http://wails.localhost.evil.com", "", false},
-		{"127.0.0.1:3000", "", "https://wails.localhost.attacker/steal", false},
-		{"127.0.0.1:3000", "", "wails://evil.com/app", false},
-		{"127.0.0.1:3000", "http://evil.com", "", false},
-		{"127.0.0.1:3000", "", "", false},
+		{"127.0.0.1:13000", "wails://evil.com", "", false},
+		{"127.0.0.1:13000", "wails://wails.localhost.evil.com", "", false},
+		{"127.0.0.1:13000", "wails://attacker", "", false},
+		{"127.0.0.1:13000", "http://wails.localhost.evil.com", "", false},
+		{"127.0.0.1:13000", "", "https://wails.localhost.attacker/steal", false},
+		{"127.0.0.1:13000", "", "wails://evil.com/app", false},
+		{"127.0.0.1:13000", "http://evil.com", "", false},
+		{"127.0.0.1:13000", "", "", false},
 		// Non-loopback host must be rejected even with valid desktop origin header
-		{"192.168.1.10:3000", "wails://wails", "", false},
-		{"8.8.8.8:3000", "wails://wails", "", false},
+		{"192.168.1.10:13000", "wails://wails", "", false},
+		{"8.8.8.8:13000", "wails://wails", "", false},
 	}
 
 	for _, tc := range cases {

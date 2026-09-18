@@ -79,6 +79,17 @@ await build({
   logLevel: 'info',
 });
 
+// Tailwind's standalone CLI and esbuild do not resolve this package CSS
+// import into the final stylesheet. xterm relies on these rules for its
+// helper textarea and viewport; without them the textarea becomes visible
+// over the terminal and keyboard input is rendered as stray characters. Keep
+// the vendor stylesheet in the generated bundle so Web, Desktop and the
+// embedded UI share the same terminal contract.
+const xtermCss = await readFile(resolve(webDir, 'node_modules/xterm/css/xterm.css'), 'utf8');
+const generatedCssPath = resolve(distDir, 'bundle.css');
+const generatedCss = await readFile(generatedCssPath, 'utf8');
+await writeFile(generatedCssPath, `${generatedCss}\n${xtermCss}`);
+
 if (collectedStyles.length > 0) {
   const currentBundleCss = await readFile(resolve(distDir, 'bundle.css'), 'utf8');
   const stableStyles = collectedStyles

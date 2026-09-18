@@ -95,6 +95,38 @@ func TestCLIProviderPlanIncludesProjectContext(t *testing.T) {
 	}
 }
 
+func TestCLIProviderExtractBriefEmptyWhenUnavailable(t *testing.T) {
+	p := NewCLIProvider("claude", "work", false, func(context.Context, string) (string, error) {
+		t.Fatal("runner must not be invoked when provider is unavailable")
+		return "", nil
+	})
+	ext, err := p.ExtractBrief(context.Background(), "ship auth", nil)
+	if err != nil {
+		t.Fatalf("unavailable CLI must fall back to empty extraction, got err %v", err)
+	}
+	if ext == nil || len(ext.InScope) != 0 {
+		t.Fatalf("expected empty extraction, got %#v", ext)
+	}
+}
+
+func TestCLIProviderExtractBriefParsesJSONEnvelope(t *testing.T) {
+	var gotPrompt string
+	p := NewCLIProvider("claude", "work", true, func(_ context.Context, prompt string) (string, error) {
+		gotPrompt = prompt
+		return "```json\n{\"in_scope\":[\"login\"],\"risks\":[\"token leak\"],\"testing\":[\"unit\"]}\n```", nil
+	})
+	ext, err := p.ExtractBrief(context.Background(), "ship auth", map[string]any{"probe": false})
+	if err != nil {
+		t.Fatalf("ExtractBrief: %v", err)
+	}
+	if len(ext.InScope) != 1 || ext.InScope[0] != "login" || len(ext.Risks) != 1 || len(ext.Testing) != 1 {
+		t.Fatalf("unexpected extraction: %#v", ext)
+	}
+	if !strings.Contains(gotPrompt, "ship auth") {
+		t.Fatalf("extract prompt missing text: %s", gotPrompt)
+	}
+}
+
 func TestCLIProviderPlanFromGoalOneshot(t *testing.T) {
 	var calls int
 	p := NewCLIProvider("codex", "default", true, func(_ context.Context, prompt string) (string, error) {
@@ -131,5 +163,25 @@ func TestCLIProviderPlanFromGoalOneshot(t *testing.T) {
 	}
 	if len(packages) != 1 || packages[0].Title != "Auth" || packages[0].Skills != nil {
 		t.Fatalf("unexpected packages %+v", packages)
+	}
+}
+
+func TestBoundContextJSONCapsOversizedPayload(t *testing.T) {
+	huge := map[string]any{"blob": strings.Repeat("Z", MaxCLIContextBytes+2048)}
+	out := boundContextJSON(huge)
+	if len(out) > MaxCLIContextBytes+32 {
+		t.Fatalf("expected capped context, got %d bytes", len(out))
+	}
+	if !strings.Contains(out, "[truncated]") {
+		t.Fatal("expected truncation marker")
+	}
+}
+
+func TestIsTransientIntelligenceFailure(t *testing.T) {
+	if !IsTransientIntelligenceFailure(errors.New("run cli:agy:x analyze intent: signal: killed")) {
+		t.Fatal("signal: killed must be transient")
+	}
+	if IsTransientIntelligenceFailure(errors.New("provider misconfigured")) {
+		t.Fatal("config errors are not transient")
 	}
 }

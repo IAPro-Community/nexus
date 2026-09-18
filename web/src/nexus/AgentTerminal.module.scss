@@ -74,6 +74,253 @@
   align-items: center;
 }
 
+.skillsCountBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  min-width: 16px;
+  height: 16px;
+  font-size: 0.714rem;
+  font-weight: 700;
+  border-radius: var(--nx-radius-full);
+  background: var(--nx-accent);
+  color: var(--nx-accent-contrast, #fff);
+  margin-left: 4px;
+}
+
+.skillsDrawerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  padding-bottom: 16px;
+}
+
+.skillsSearchBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+
+  input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--nx-text);
+    font-size: var(--nx-font-size-xs);
+    font-family: inherit;
+
+    &:focus {
+      outline: none;
+    }
+  }
+}
+
+.skillsCategoryBar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.categoryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 0.786rem;
+  font-family: inherit;
+  font-weight: 500;
+  border-radius: var(--nx-radius-full);
+  border: 1px solid var(--nx-border);
+  background: var(--nx-surface-2);
+  color: var(--nx-text-soft);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+
+  &:hover {
+    background: var(--nx-surface-3);
+    color: var(--nx-text);
+  }
+
+  &[data-active='true'] {
+    background: var(--nx-accent-subtle);
+    border-color: var(--nx-accent);
+    color: var(--nx-accent-text);
+    font-weight: 600;
+  }
+}
+
+.skillsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.skillCard {
+  padding: 10px 12px;
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--nx-border-strong);
+    background: color-mix(in srgb, var(--nx-surface-2) 90%, var(--nx-hover) 10%);
+  }
+}
+
+.skillCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.skillCardName {
+  font-size: var(--nx-font-size-xs);
+  font-weight: 600;
+  color: var(--nx-text-bright, #fff);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.skillBadges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.skillCategoryBadge {
+  font-size: 0.714rem;
+  padding: 1px 6px;
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-3);
+  color: var(--nx-text-muted);
+  border: 1px solid var(--nx-border);
+  text-transform: capitalize;
+}
+
+.skillRiskBadge {
+  font-size: 0.714rem;
+  padding: 1px 5px;
+  border-radius: var(--nx-radius-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &[data-risk='safe'] {
+    background: color-mix(in srgb, var(--nx-success) 15%, transparent);
+    color: var(--nx-success);
+    border: 1px solid color-mix(in srgb, var(--nx-success) 30%, transparent);
+  }
+
+  &[data-risk='write'] {
+    background: color-mix(in srgb, var(--nx-warning) 15%, transparent);
+    color: var(--nx-warning);
+    border: 1px solid color-mix(in srgb, var(--nx-warning) 30%, transparent);
+  }
+
+  &[data-risk='high'] {
+    background: color-mix(in srgb, var(--nx-danger) 15%, transparent);
+    color: var(--nx-danger);
+    border: 1px solid color-mix(in srgb, var(--nx-danger) 30%, transparent);
+  }
+}
+
+.skillCardDesc {
+  font-size: var(--nx-font-size-xs);
+  color: var(--nx-text-soft);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.skillTriggers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.skillTriggerTag {
+  font-size: 0.714rem;
+  font-family: var(--nx-font-mono);
+  padding: 1px 5px;
+  background: var(--nx-bg);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-xs);
+  color: var(--nx-accent);
+}
+
+.skillCardActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--nx-border) 60%, transparent);
+}
+
+.skillActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  font-size: 0.786rem;
+  font-family: inherit;
+  border-radius: var(--nx-radius-sm);
+  border: 1px solid var(--nx-border);
+  background: var(--nx-surface-3);
+  color: var(--nx-text);
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+
+  &:hover {
+    background: var(--nx-hover);
+    border-color: var(--nx-accent);
+  }
+
+  &[data-primary='true'] {
+    background: var(--nx-accent-subtle);
+    border-color: var(--nx-accent);
+    color: var(--nx-accent-text);
+    font-weight: 500;
+
+    &:hover {
+      background: var(--nx-accent);
+      color: var(--nx-accent-contrast, #fff);
+    }
+  }
+}
+
+.skillsDrawerFooter {
+  border-top: 1px solid var(--nx-border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .skillsLabel {
   font-size: var(--nx-font-size-xs);
   color: var(--nx-muted);
@@ -179,4 +426,95 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.zoomGroup {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  overflow: hidden;
+  height: 22px;
+}
+
+.zoomBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--nx-text-soft);
+  padding: 0 5px;
+  height: 100%;
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    background-color 0.12s ease;
+  @include mixins.focus-visible-ring;
+
+  &:hover {
+    background: var(--nx-surface-3);
+    color: var(--nx-text);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.zoomLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--nx-text-soft);
+  padding: 0 4px;
+  height: 100%;
+  font-size: 0.714rem;
+  font-family: var(--nx-font-mono);
+  cursor: pointer;
+  transition: color 0.12s ease;
+  @include mixins.focus-visible-ring;
+
+  &:hover {
+    color: var(--nx-accent);
+  }
+}
+
+.scrollToBottomBtn {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 9999px;
+  border: 1px solid var(--nx-border-strong);
+  background: color-mix(in srgb, var(--nx-surface-2) 92%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--nx-text);
+  font-size: 0.786rem;
+  font-weight: 500;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+  @include mixins.focus-visible-ring;
+
+  &:hover {
+    background: var(--nx-surface-3);
+    border-color: var(--nx-accent);
+    color: var(--nx-text-bright, #fff);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
 }

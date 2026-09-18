@@ -1,0 +1,6 @@
+internal/core/provider/adapters/codex/cross_account_sessions.go:340:75: mergeSessionIndexEntry - result 0 (bool) is never used (unparam)
+func mergeSessionIndexEntry(home, sessionID string, indexPaths ...string) bool {
+                                                                          ^
+1 issues:
+* unparam: 1
+make: *** [Makefile:83: lint-go] Error 1

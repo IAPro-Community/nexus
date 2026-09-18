@@ -8,7 +8,7 @@ const terminalSource = readFileSync(
 
 describe('Terminal Skills and Alias Mediation', () => {
   it('exposes one-shot ask composer and skills recommendation in terminal', () => {
-    expect(terminalSource).toContain('Perguntar');
+    expect(terminalSource).toContain("t('terminal.sendInstructionTitle')");
     expect(terminalSource).toContain('loadSkills');
     expect(terminalSource).toContain('getMaestroStatus');
     expect(terminalSource).toContain('handleSendPrompt');

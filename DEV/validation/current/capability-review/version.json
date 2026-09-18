@@ -1,0 +1,8 @@
+{
+  "arch": "amd64",
+  "build_date": "unknown",
+  "commit": "unknown",
+  "go": "go1.25.0",
+  "os": "linux",
+  "version": "dev"
+}

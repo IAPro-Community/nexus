@@ -17,7 +17,9 @@ import {
   directAccountTitle,
   directQuotaDisplay,
   eligibleDirectResources,
+  quotaTruthState,
 } from './directSessionModel';
+import resourceStyles from '../../nexus/ResourcePicker.module.scss';
 
 interface DirectResource {
   id: string;
@@ -163,40 +165,78 @@ export const DirectSessionLauncher: React.FC<{
             role="radiogroup"
             aria-label={t('directSession.chooseAccount')}
           >
-            {resources.map((resource) => {
-              const checked = resource.id === selectedID;
-              const quota = directQuotaDisplay(resource);
-              return (
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={checked}
-                  data-selected={checked ? 'true' : 'false'}
-                  className="nx-direct-resource"
-                  key={resource.id}
-                  onClick={() => choose(resource)}
-                >
-                  <span className="nx-direct-resource__icon">
-                    {resource.rate_limited ? (
-                      <ShieldAlert size={17} />
-                    ) : (
-                      <TerminalSquare size={17} />
-                    )}
+            {Object.entries(
+              resources.reduce<Record<string, DirectResource[]>>((groups, resource) => {
+                (groups[resource.provider] ||= []).push(resource);
+                return groups;
+              }, {}),
+            ).map(([provider, providerResources]) => (
+              <section className={resourceStyles.providerGroup} key={provider}>
+                <h3 className={resourceStyles.providerHeading}>
+                  <span>{provider}</span>
+                  <span className={resourceStyles.providerCount}>
+                    {t('resources.accountCount', { count: providerResources.length })}
                   </span>
-                  <span className="nx-direct-resource__body">
-                    <span className="nx-direct-resource__title">
-                      <strong>{directAccountTitle(resource)}</strong>
-                      {healthBadge(resource.health)}
-                    </span>
-                    <small>
-                      {quota === null
-                        ? t('directSession.quotaUnknown')
-                        : t('directSession.remainingLabel', { value: quota })}
-                    </small>
-                  </span>
-                </button>
-              );
-            })}
+                </h3>
+                {providerResources.map((resource) => {
+                  const checked = resource.id === selectedID;
+                  const quota = directQuotaDisplay(resource);
+                  const quotaState = quotaTruthState(resource);
+                  return (
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={checked}
+                      data-quota-state={quotaState}
+                      className={`${resourceStyles.account} nx-direct-resource`}
+                      data-selected={checked ? 'true' : 'false'}
+                      key={resource.id}
+                      onClick={() => choose(resource)}
+                    >
+                      <span className="nx-direct-resource__icon">
+                        {resource.rate_limited ? (
+                          <ShieldAlert size={17} />
+                        ) : (
+                          <TerminalSquare size={17} />
+                        )}
+                      </span>
+                      <span className="nx-direct-resource__body">
+                        <span className="nx-direct-resource__title">
+                          <strong>{directAccountTitle(resource)}</strong>
+                          {healthBadge(resource.health)}
+                          <Badge
+                            tone={
+                              quotaState === 'confirmed'
+                                ? 'success'
+                                : quotaState === 'stale'
+                                  ? 'warning'
+                                  : 'danger'
+                            }
+                          >
+                            {quotaState === 'confirmed'
+                              ? t('resources.confirmed')
+                              : quotaState === 'exhausted'
+                                ? t('resources.exhausted')
+                                : quotaState === 'blocked'
+                                  ? t('resources.rateLimited')
+                                  : quotaState === 'unauthenticated'
+                                    ? t('resources.reauthRequired')
+                                    : quotaState === 'stale'
+                                      ? t('resources.stale')
+                                      : t('resources.unknown')}
+                          </Badge>
+                        </span>
+                        <small>
+                          {quota === null
+                            ? t('directSession.quotaUnknown')
+                            : t('directSession.remainingLabel', { value: quota })}
+                        </small>
+                      </span>
+                    </button>
+                  );
+                })}
+              </section>
+            ))}
           </div>
         )}
 

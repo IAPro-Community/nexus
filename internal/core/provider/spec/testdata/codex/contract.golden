@@ -1,0 +1,45 @@
+{
+  "id": "codex",
+  "binary_candidates": [
+    "codex"
+  ],
+  "env_keys": [
+    "AI_PROFILE",
+    "AI_PROVIDER",
+    "CODEX_CONFIG_DIR",
+    "CODEX_HOME",
+    "CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT",
+    "HOME",
+    "PATH",
+    "USERPROFILE",
+    "XDG_CACHE_HOME",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME",
+    "XDG_STATE_HOME"
+  ],
+  "env_delete": null,
+  "kickoff": [
+    "exec",
+    "{prompt}"
+  ],
+  "resume": [
+    "resume",
+    "{session}"
+  ],
+  "auto_approval": [
+    "--ask-for-approval",
+    "never",
+    "--sandbox",
+    "workspace-write"
+  ],
+  "review_mode": [
+    "--sandbox",
+    "read-only",
+    "--ask-for-approval",
+    "never"
+  ],
+  "quota": "LIVE_RPC",
+  "known_versions": [
+    "0.50.0"
+  ]
+}

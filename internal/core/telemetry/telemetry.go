@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 var (
@@ -29,15 +29,16 @@ const (
 
 // Event records local audit information.
 type Event struct {
-	Timestamp       time.Time         `json:"timestamp"`
-	Type            EventType         `json:"type"`
-	ProviderID      string            `json:"provider_id"`
-	ProfileID       string            `json:"profile_id"`
-	Workspace       string            `json:"workspace,omitempty"`
-	Reason          string            `json:"reason,omitempty"`
-	DurationMs      int64             `json:"duration_ms,omitempty"`
-	FailureKind     model.FailureKind `json:"failure_kind,omitempty"`
-	FallbackProfile string            `json:"fallback_profile,omitempty"`
+	Timestamp       time.Time          `json:"timestamp"`
+	Type            EventType          `json:"type"`
+	ProviderID      string             `json:"provider_id"`
+	ProfileID       string             `json:"profile_id"`
+	Workspace       string             `json:"workspace,omitempty"`
+	Reason          string             `json:"reason,omitempty"`
+	DurationMs      int64              `json:"duration_ms,omitempty"`
+	FailureKind     model.FailureKind  `json:"failure_kind,omitempty"`
+	FallbackProfile string             `json:"fallback_profile,omitempty"`
+	AccountScope    model.AccountScope `json:"account_scope,omitempty"`
 }
 
 // LogEvent appends a sanitized event record to the local history file.
@@ -146,7 +147,10 @@ func ComputeStats(lookback time.Duration) (StatsSummary, error) {
 		if ev.Timestamp.Before(cutoff) {
 			continue
 		}
-		k := ev.ProviderID + ":" + ev.ProfileID
+		k := "UNATTRIBUTED"
+		if ev.AccountScope.Verifiable() {
+			k = ev.AccountScope.Key()
+		}
 		switch ev.Type {
 		case EventSessionStarted:
 			summary.TotalSessions++

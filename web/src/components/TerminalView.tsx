@@ -25,8 +25,8 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
 
   // Ensure activeRuntimeId is tracked in openIds
   React.useEffect(() => {
-    if (activeRuntimeId && !openIds.includes(activeRuntimeId)) {
-      setOpenIds((prev) => [...prev, activeRuntimeId]);
+    if (activeRuntimeId) {
+      setOpenIds((prev) => (prev.includes(activeRuntimeId) ? prev : [...prev, activeRuntimeId]));
     }
   }, [activeRuntimeId]);
 

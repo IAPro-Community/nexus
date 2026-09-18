@@ -1,0 +1,232 @@
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  border-radius: var(--nx-radius-sm, 6px);
+}
+
+.header[data-active='true'] {
+  background: color-mix(in srgb, var(--nx-accent) 16%, transparent);
+}
+
+.header:hover {
+  background: color-mix(in srgb, var(--nx-accent) 10%, transparent);
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--nx-touch-min, 32px);
+  height: var(--nx-touch-min, 32px);
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nx-radius-sm, 6px);
+  background: transparent;
+  color: var(--nx-muted);
+  cursor: pointer;
+}
+
+.chevron:hover {
+  color: var(--nx-text);
+  background: color-mix(in srgb, var(--nx-accent) 12%, transparent);
+}
+
+.chevron:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: -2px;
+}
+
+.open {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--nx-space-1, 4px);
+  width: 100%;
+  min-height: var(--nx-touch-min, 32px);
+  min-width: 0;
+  padding: 2px 6px 2px 0;
+  border: 0;
+  border-radius: var(--nx-radius-sm, 6px);
+  background: transparent;
+  color: var(--nx-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.open:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: -2px;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--nx-accent) 18%, var(--nx-surface));
+  color: var(--nx-accent-text, var(--nx-accent));
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--nx-density-font-body, 0.857rem);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--nx-muted);
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.signals {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  margin-left: 4px;
+}
+
+.signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.signalNeeds {
+  color: var(--nx-warning);
+  background: var(--nx-warning-soft);
+}
+
+.signalWorking {
+  color: var(--nx-success);
+  background: var(--nx-success-soft);
+}
+
+.activeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nx-accent);
+  flex: 0 0 auto;
+}
+
+.children {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 0 4px;
+  padding: 0 4px 2px 18px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.child {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: var(--nx-touch-min, 32px);
+  min-width: 0;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--nx-radius-sm, 6px);
+  background: transparent;
+  color: var(--nx-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.child:hover {
+  background: color-mix(in srgb, var(--nx-accent) 10%, transparent);
+}
+
+.child:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: -2px;
+}
+
+.childCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.childCopy strong,
+.childCopy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.childCopy strong {
+  font-size: 0.8rem;
+  font-weight: 560;
+}
+
+.childCopy small {
+  color: var(--nx-muted);
+  font-size: 0.7rem;
+}
+
+.childToneNeeds {
+  color: var(--nx-warning);
+}
+
+.childToneFailed {
+  color: var(--nx-danger);
+}
+
+.empty {
+  margin: 0;
+  padding: 4px 8px 8px;
+  color: var(--nx-muted);
+  font-size: 0.75rem;
+}
+
+.loading {
+  margin: 0;
+  padding: 4px 8px 8px;
+  color: var(--nx-muted);
+  font-size: 0.75rem;
+}

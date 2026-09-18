@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/control/notify"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/notify"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
 func TestAttentionDetectorQuestions(t *testing.T) {
@@ -157,6 +157,30 @@ func TestAttentionDetectorOSNotifyOnlyOnEvidence(t *testing.T) {
 	detector.ProcessChunk([]byte("\r\nerror: build failed hard\r\n"))
 	if len(rec.Payloads) != 1 {
 		t.Fatalf("same fingerprint must not re-notify, got %d", len(rec.Payloads))
+	}
+}
+
+func TestAttentionDetectorIgnoresCitedCreateProcessWFailure(t *testing.T) {
+	rec := &notify.Recorder{}
+	notify.SetDefault(rec)
+	t.Cleanup(func() { notify.SetDefault(nil) })
+
+	detector := NewAttentionDetector("rt-fc01-cite", "codex", "default", "/workspace/ai-manager", nil)
+	// Exact toast payload shape: agent narration quoting a CI/closure checklist,
+	// not a live ConPTY failure on this host.
+	chunk := []byte("\r\n15 +| FC-01 | Windows SessionHost / ConPTY startup | STILL_PRESENT | CI run 34646679957 Windows diagnostics includes `CreateProcessW failed: The parameter is incorrect`\r\n")
+	detector.ProcessChunk(chunk)
+	if detector.lastReason == "ERROR" || detector.lastKind == AttentionError {
+		t.Fatalf("cited CreateProcessW failure must not be live ERROR, reason=%q kind=%q", detector.lastReason, detector.lastKind)
+	}
+	if len(rec.Payloads) != 0 {
+		t.Fatalf("cited CI diagnostics must not OS-notify, got %#v", rec.Payloads)
+	}
+
+	detector.ProcessChunk([]byte("\r\nthinking...\r\n"))
+	detector.ProcessChunk([]byte("\r\nWindows diagnostics includes `CreateProcessW failed: The parameter is incorrect`\r\n"))
+	if len(rec.Payloads) != 0 {
+		t.Fatalf("inline backtick citation must not OS-notify after fingerprint reset, got %#v", rec.Payloads)
 	}
 }
 

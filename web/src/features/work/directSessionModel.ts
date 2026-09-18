@@ -8,6 +8,28 @@ export interface DirectResourceLike {
   available: boolean;
 }
 
+export type QuotaTruthState =
+  'confirmed' | 'exhausted' | 'stale' | 'unknown' | 'blocked' | 'unauthenticated';
+
+export function quotaTruthState(resource: {
+  available: boolean;
+  authenticated?: boolean;
+  rate_limited?: boolean;
+  avail_reasons?: { unknown_quota?: boolean; exhausted_windows?: string[]; rate_limited?: boolean };
+  quota_view?: { status?: string; model_groups?: QuotaGroupLike[] };
+}): QuotaTruthState {
+  // Unauthenticated accounts (e.g. expired token) must never show confirmed quota.
+  if (resource.authenticated === false) return 'unauthenticated';
+  if (resource.rate_limited || resource.avail_reasons?.rate_limited) return 'blocked';
+  if ((resource.avail_reasons?.exhausted_windows || []).length > 0) return 'exhausted';
+  const status = String(resource.quota_view?.status || '').toUpperCase();
+  const remaining = bestGroupRemainingFromQuotaView(resource.quota_view);
+  if (remaining != null && remaining <= 0) return 'exhausted';
+  if (status === 'LIVE' && remaining != null && resource.available) return 'confirmed';
+  if (status === 'CACHED' || status === 'ESTIMATED') return 'stale';
+  return 'unknown';
+}
+
 export interface QuotaWindowLike {
   kind?: string;
   remaining?: number;
@@ -128,7 +150,9 @@ export function directQuotaPercent(resource: {
   avail_reasons?: { unknown_quota?: boolean };
   quota_view?: { status?: string; model_groups?: QuotaGroupLike[] };
 }): number | null {
-  const known = !resource.avail_reasons?.unknown_quota && resource.quota_view?.status !== 'UNKNOWN';
+  const status = String(resource.quota_view?.status || '').toUpperCase();
+  const known =
+    ['LIVE', 'CACHED', 'ESTIMATED'].includes(status) && !resource.avail_reasons?.unknown_quota;
   if (!known) return null;
   const fromWindows = bestGroupRemainingFromQuotaView(resource.quota_view);
   if (fromWindows != null) return fromWindows;

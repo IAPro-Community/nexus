@@ -7,6 +7,7 @@ import {
   directQuotaDisplay,
   directQuotaPercent,
   eligibleDirectResources,
+  quotaTruthState,
 } from './directSessionModel';
 
 describe('direct session model', () => {
@@ -42,11 +43,24 @@ describe('direct session model', () => {
   });
 
   it('formats known quota as a percent and keeps unknown as null', () => {
-    expect(directQuotaPercent({ quota_remaining: 0.7, quota_view: { status: 'OK' } })).toBe(70);
-    expect(directQuotaPercent({ quota_remaining: 40, quota_view: { status: 'OK' } })).toBe(40);
+    expect(directQuotaPercent({ quota_remaining: 0.7, quota_view: { status: 'LIVE' } })).toBe(70);
+    expect(directQuotaPercent({ quota_remaining: 40, quota_view: { status: 'LIVE' } })).toBe(40);
+    expect(directQuotaPercent({ quota_remaining: 40, quota_view: { status: 'OK' } })).toBeNull();
     expect(
       directQuotaPercent({ quota_remaining: 0.7, avail_reasons: { unknown_quota: true } }),
     ).toBeNull();
+  });
+
+  it('does not paint unknown or stale observations green', () => {
+    expect(quotaTruthState({ available: true, quota_view: { status: 'UNKNOWN' } })).toBe('unknown');
+    expect(quotaTruthState({ available: true, quota_view: { status: 'CACHED' } })).toBe('stale');
+    expect(
+      quotaTruthState({
+        available: false,
+        avail_reasons: { exhausted_windows: ['5h'] },
+        quota_view: { status: 'LIVE' },
+      }),
+    ).toBe('exhausted');
   });
 
   it('scores the best usable group instead of the global bottleneck for AGY', () => {

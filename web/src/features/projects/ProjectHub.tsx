@@ -16,6 +16,7 @@ import type { Project } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { DirectoryBrowserModal } from './DirectoryBrowserModal';
 import { ProjectScanModal } from './ProjectScanModal';
+import { selectProjectDirectory } from './projectDirectoryPicker';
 
 export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = ({ onCreated }) => {
   const { t } = useTranslation();
@@ -51,6 +52,20 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
     }
   };
 
+  const handleBrowseDirectory = async () => {
+    const selection = await selectProjectDirectory(t('projectManager.browseOS'));
+    if (!selection.supported) {
+      setDirPickerOpen(true);
+      return;
+    }
+    if (selection.path) {
+      handleDirectorySelected(
+        selection.path,
+        selection.path.split(/[/\\]/).filter(Boolean).pop() || 'Project',
+      );
+    }
+  };
+
   return (
     <>
       <div className="nx-project-hub">
@@ -58,7 +73,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
           <span className="nx-brand-mark nx-brand-mark--hero">
             <img src="./nexus-icon.png" alt="Nexus" className="nx-brand-mark__img" />
           </span>
-          <span className="nx-eyebrow">IAPro Nexus · Powered by Orquestrador Maestro</span>
+          <span className="nx-eyebrow">{t('projects.brandEyebrow')}</span>
           <h1>{t('projects.headline')}</h1>
           <p>{t('projects.intro')}</p>
         </div>
@@ -74,7 +89,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
               <small>{t('projects.addDescription')}</small>
             </div>
             <div className="nx-hub-os-actions">
-              <Button size="sm" tone="ghost" onClick={() => setDirPickerOpen(true)}>
+              <Button size="sm" tone="ghost" onClick={() => void handleBrowseDirectory()}>
                 <FolderOpen size={13} />
                 <span>{t('projectManager.browseOS')}</span>
               </Button>
@@ -97,7 +112,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
               />
               <IconButton
                 label={t('projectManager.browseOS')}
-                onClick={() => setDirPickerOpen(true)}
+                onClick={() => void handleBrowseDirectory()}
               >
                 <FolderOpen size={14} />
               </IconButton>

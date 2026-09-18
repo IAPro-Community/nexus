@@ -6,6 +6,7 @@ describe('mapDurableActivity', () => {
     expect(
       mapDurableActivity({
         id: 'evt-1',
+        correlation_id: 'run-1',
         agent_id: 'agent-1',
         project_id: 'project-1',
         kind: 'FLOW_BLOCKED',
@@ -14,6 +15,7 @@ describe('mapDurableActivity', () => {
       }),
     ).toMatchObject({
       id: 'evt-1',
+      correlation_id: 'run-1',
       type: 'FLOW_BLOCKED',
       runtime_id: 'agent-1',
       summary: 'Flow blocked on verification',

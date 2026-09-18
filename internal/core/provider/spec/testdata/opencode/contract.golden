@@ -1,0 +1,37 @@
+{
+  "id": "opencode",
+  "binary_candidates": [
+    "opencode"
+  ],
+  "env_keys": [
+    "AI_PROFILE",
+    "AI_PROVIDER",
+    "HOME",
+    "OPENCODE_CONFIG_DIR",
+    "OPENCODE_HOME",
+    "PATH",
+    "USERPROFILE",
+    "XDG_CACHE_HOME",
+    "XDG_DATA_HOME"
+  ],
+  "env_delete": null,
+  "kickoff": [
+    "run",
+    "{prompt}"
+  ],
+  "resume": [
+    "-s",
+    "{session}"
+  ],
+  "auto_approval": [
+    "--auto"
+  ],
+  "review_mode": [
+    "--permission-mode",
+    "plan"
+  ],
+  "quota": "LIVE_HTTP",
+  "known_versions": [
+    "1.18.30"
+  ]
+}

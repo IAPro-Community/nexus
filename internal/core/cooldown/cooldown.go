@@ -8,18 +8,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // Record tracks active rate-limit status and cooldown timers for a profile.
 type Record struct {
-	ProviderID    string        `json:"provider_id"`
-	ProfileID     string        `json:"profile_id"`
-	RateLimitedAt time.Time     `json:"rate_limited_at"`
-	RetryAfter    time.Duration `json:"retry_after"`
-	ResetAt       time.Time     `json:"reset_at"`
-	Reason        string        `json:"reason"`
-	InProbe       bool          `json:"in_probe,omitempty"`
+	ProviderID    string             `json:"provider_id"`
+	ProfileID     string             `json:"profile_id"`
+	RateLimitedAt time.Time          `json:"rate_limited_at"`
+	RetryAfter    time.Duration      `json:"retry_after"`
+	ResetAt       time.Time          `json:"reset_at"`
+	Reason        string             `json:"reason"`
+	InProbe       bool               `json:"in_probe,omitempty"`
+	AccountScope  model.AccountScope `json:"account_scope,omitempty"`
 }
 
 // Tracker coordinates rate-limit tracking and cooldowns across all profiles.
@@ -39,6 +41,41 @@ func NewTracker() *Tracker {
 
 func key(provider, profile string) string {
 	return fmt.Sprintf("%s:%s", provider, profile)
+}
+
+func scopeKey(scope model.AccountScope) string { return scope.Key() }
+
+// RecordRateLimitForScope records cooldown under the canonical account key.
+func (t *Tracker) RecordRateLimitForScope(scope model.AccountScope, retryAfter time.Duration, resetAt *time.Time, reason string) {
+	if !scope.Verifiable() {
+		return
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	now := time.Now()
+	effectiveReset := now.Add(retryAfter)
+	if resetAt != nil && !resetAt.IsZero() {
+		effectiveReset = *resetAt
+	}
+	if retryAfter <= 0 {
+		retryAfter = time.Until(effectiveReset)
+	}
+	t.records[scopeKey(scope)] = Record{ProviderID: scope.ProviderID, ProfileID: scope.ProfileID, AccountScope: scope, RateLimitedAt: now, RetryAfter: retryAfter, ResetAt: effectiveReset, Reason: reason}
+	_ = t.save()
+}
+
+// IsRateLimitedForScope checks only the requested account's cooldown.
+func (t *Tracker) IsRateLimitedForScope(scope model.AccountScope) (bool, *Record) {
+	if !scope.Verifiable() {
+		return false, nil
+	}
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	rec, ok := t.records[scopeKey(scope)]
+	if !ok || time.Now().After(rec.ResetAt) {
+		return false, &rec
+	}
+	return true, &rec
 }
 
 // RecordRateLimit registers a rate limit occurrence for a profile.

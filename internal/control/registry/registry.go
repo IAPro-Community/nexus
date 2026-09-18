@@ -1,15 +1,17 @@
 package registry
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 // Registry manages in-memory and persistent state of AI Control runtimes.
@@ -18,6 +20,8 @@ type Registry struct {
 	filePath     string
 	sessions     map[string]RuntimeSession
 	lastModified time.Time
+	lastSize     int64
+	lastDigest   [sha256.Size]byte
 }
 
 var (
@@ -109,6 +113,10 @@ func (r *Registry) load() error {
 	r.sessions = m
 	if fi, err := os.Stat(r.filePath); err == nil {
 		r.lastModified = fi.ModTime()
+		r.lastSize = fi.Size()
+	}
+	if digest, err := registryFileDigest(r.filePath); err == nil {
+		r.lastDigest = digest
 	}
 	return nil
 }
@@ -121,9 +129,21 @@ func (r *Registry) syncIfNeededLocked() {
 	if err != nil {
 		return
 	}
-	if fi.ModTime().After(r.lastModified) {
+	digest, err := registryFileDigest(r.filePath)
+	if err != nil {
+		return
+	}
+	if fi.ModTime().After(r.lastModified) || fi.Size() != r.lastSize || digest != r.lastDigest {
 		_ = r.load()
 	}
+}
+
+func registryFileDigest(filePath string) ([sha256.Size]byte, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return [sha256.Size]byte{}, err
+	}
+	return sha256.Sum256(data), nil
 }
 
 func (r *Registry) saveLocked(mutators ...func(map[string]RuntimeSession)) error {
@@ -195,6 +215,10 @@ func (r *Registry) saveLocked(mutators ...func(map[string]RuntimeSession)) error
 	r.sessions = freshMap
 	if fi, err := os.Stat(r.filePath); err == nil {
 		r.lastModified = fi.ModTime()
+		r.lastSize = fi.Size()
+	}
+	if digest, err := registryFileDigest(r.filePath); err == nil {
+		r.lastDigest = digest
 	}
 	return nil
 }
@@ -253,6 +277,41 @@ func (r *Registry) UpdateState(runtimeID string, state RuntimeState) error {
 	return nil
 }
 
+// TransitionState applies the runtime lifecycle contract. UpdateState remains
+// available for backward-compatible administrative reconciliation, while new
+// application paths should use this method to reject invalid jumps.
+func (r *Registry) TransitionState(runtimeID string, state RuntimeState) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var transitionErr error
+	var notFound bool
+	err := r.saveLocked(func(fresh map[string]RuntimeSession) {
+		s, ok := fresh[runtimeID]
+		if !ok {
+			notFound = true
+			return
+		}
+		if !CanTransition(s.State, state) {
+			transitionErr = fmt.Errorf("invalid runtime state transition %s -> %s", s.State, state)
+			return
+		}
+		s.State = state
+		s.UpdatedAt = time.Now()
+		fresh[runtimeID] = s
+	})
+	if err != nil {
+		return err
+	}
+	if transitionErr != nil {
+		return transitionErr
+	}
+	if notFound {
+		return fmt.Errorf("runtime %q not found", runtimeID)
+	}
+	return nil
+}
+
 // UpdateStartupStage records the observable startup stage without changing
 // the backward-compatible operational RuntimeState field.
 func (r *Registry) UpdateStartupStage(runtimeID string, stage StartupStage, fault StartupFault) error {
@@ -294,6 +353,42 @@ func (r *Registry) UpdateProviderSessionID(runtimeID, providerSessionID string) 
 			return
 		}
 		s.ProviderSessionID = providerSessionID
+		s.UpdatedAt = time.Now()
+		fresh[runtimeID] = s
+	})
+	if err != nil {
+		return err
+	}
+	if notFound {
+		return fmt.Errorf("runtime %q not found", runtimeID)
+	}
+	return nil
+}
+
+// UpdateInteractiveLeadBinding persists the project and Lead Agent identity
+// after a supervised runtime has completed its provider handshake. Keeping
+// this as an atomic registry mutation avoids mutating a detached RuntimeSession
+// pointer that is no longer the registry's authoritative value.
+func (r *Registry) UpdateInteractiveLeadBinding(runtimeID, agentID, projectID, projectName string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var notFound bool
+	err := r.saveLocked(func(fresh map[string]RuntimeSession) {
+		s, ok := fresh[runtimeID]
+		if !ok {
+			notFound = true
+			return
+		}
+		s.AgentID = agentID
+		s.ProjectID = projectID
+		s.ProjectName = projectName
+		labels := make(map[string]string, len(s.Labels)+1)
+		for key, value := range s.Labels {
+			labels[key] = value
+		}
+		labels["nexus.interactive_lead"] = fmt.Sprintf("%t", strings.TrimSpace(agentID) != "")
+		s.Labels = labels
 		s.UpdatedAt = time.Now()
 		fresh[runtimeID] = s
 	})

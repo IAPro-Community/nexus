@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
 func TestResourceRecommendation_Balanced(t *testing.T) {
@@ -65,6 +65,17 @@ func TestResourceRecommendation_Balanced(t *testing.T) {
 		if c.Account.Provider == "gemini" && c.Eligible {
 			t.Errorf("unauthenticated gemini must be marked ineligible")
 		}
+	}
+}
+
+func TestResourceRecommendation_ProviderPriorityControlsFallbackOrder(t *testing.T) {
+	accounts := []ProviderAccount{
+		{ID: "agy", Provider: "agy", Profile: "one", DisplayName: "AGY", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.95},
+		{ID: "codex", Provider: "codex", Profile: "one", DisplayName: "Codex", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.20},
+	}
+	res := RecommendResources(accounts, TaskRequirements{ProviderPriorities: map[string]int{"codex": 1, "agy": 2}}, PolicyBalanced)
+	if res.Recommended == nil || res.Recommended.Account.Provider != "codex" {
+		t.Fatalf("expected configured provider priority to win fallback order, got %+v", res.Recommended)
 	}
 }
 
@@ -160,9 +171,33 @@ func TestResourceRecommendation_UnknownQuotaDoesNotOutrankKnownLiveQuota(t *test
 		t.Fatalf("known LIVE quota must outrank UNKNOWN quota, got %#v", res.Recommended)
 	}
 	for _, candidate := range res.Candidates {
-		if candidate.Account.ID == "unknown" && candidate.Confidence != "UNKNOWN" {
-			t.Fatalf("unknown quota confidence = %q, want UNKNOWN", candidate.Confidence)
+		if candidate.Account.ID == "unknown" {
+			if candidate.Eligible {
+				t.Fatal("UNKNOWN quota must be ineligible for automatic allocation")
+			}
+			if candidate.Confidence != "UNKNOWN" {
+				t.Fatalf("unknown quota confidence = %q, want UNKNOWN", candidate.Confidence)
+			}
 		}
+	}
+}
+
+func TestResourceRecommendation_UnknownQuotaHardGate(t *testing.T) {
+	accounts := []ProviderAccount{{
+		ID:            "only-unknown",
+		Provider:      "codex",
+		Profile:       "default",
+		Authenticated: true,
+		Available:     true,
+		QuotaView:     &quota.QuotaView{Status: "UNKNOWN"},
+		Health:        "healthy",
+	}}
+	res := RecommendResources(accounts, TaskRequirements{TaskKind: "coding"}, PolicyBalanced)
+	if res.Recommended != nil {
+		t.Fatalf("UNKNOWN-only pool must not recommend, got %#v", res.Recommended)
+	}
+	if len(res.Candidates) != 1 || res.Candidates[0].Eligible {
+		t.Fatalf("expected ineligible UNKNOWN candidate, got %#v", res.Candidates)
 	}
 }
 

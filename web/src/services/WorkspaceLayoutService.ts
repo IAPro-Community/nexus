@@ -1,22 +1,10 @@
-import {
-  createWorkspace,
-  flattenToSingleStack,
-  normalizeSurface,
-  surfaceLogicalKey,
-  surfaceViewId,
-  type WorkspaceModel,
-  type WorkspaceNode,
-  type WorkspaceSurface,
-} from '../workspace/model';
+import { surfaceViewId, type WorkspaceModel } from '../workspace/model';
 import { deserializeWorkspace, serializeWorkspace, workspaceStorageKey } from '../workspace/state';
 import {
   createPresentationState,
   migratePresentationState,
-  type ModeLayoutSnapshot,
-  type WorkspacePresentationMode,
   type WorkspacePresentationState,
 } from '../workspace/presentation';
-import { type ArrangeBounds } from '../workspace/arrange';
 
 export const WORKSPACE_LAYOUT_VERSION = 4;
 

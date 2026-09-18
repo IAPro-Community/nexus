@@ -78,7 +78,7 @@ export const SCHEME_OVERRIDE_VARS: Record<
     '--nx-text': '#f1f3f7',
     '--nx-text-soft': '#d9dde6',
     '--nx-muted': '#8a93a5',
-    '--nx-subtle': '#626c82',
+    '--nx-subtle': '#8b95a8',
   },
   light: {
     '--nx-bg': '#f4f6fa',

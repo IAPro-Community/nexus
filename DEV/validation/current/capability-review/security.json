@@ -1,0 +1,96 @@
+[
+  {
+    "profile": "agy:kiveromegasistemas",
+    "preset": "developer",
+    "shared": [
+      ".gitconfig (Git user name/email configuration)",
+      ".git-credentials (EXPOSED - not permitted under developer preset)",
+      ".gnupg (EXPOSED - not permitted under developer preset)",
+      ".npmrc (NPM registry token config)",
+      "SSH_AUTH_SOCK (SSH Agent socket forwarding - no private keys exposed)"
+    ],
+    "protected": [
+      ".ssh (SSH directory and private keys)",
+      ".kube (Kubernetes cluster credentials)",
+      ".docker (Docker registry authentication tokens)"
+    ],
+    "warnings": [
+      "Sensitive path .git-credentials is linked into profile home despite developer preset",
+      "Sensitive path .gnupg is linked into profile home despite developer preset"
+    ]
+  },
+  {
+    "profile": "agy:kivervinicius-gmail",
+    "preset": "developer",
+    "shared": [
+      ".gitconfig (Git user name/email configuration)",
+      ".docker (EXPOSED - not permitted under developer preset)",
+      ".npmrc (NPM registry token config)",
+      "SSH_AUTH_SOCK (SSH Agent socket forwarding - no private keys exposed)"
+    ],
+    "protected": [
+      ".git-credentials (Git plain-text credentials store)",
+      ".ssh (SSH directory and private keys)",
+      ".gnupg (GPG keyrings and private secrets)",
+      ".kube (Kubernetes cluster credentials)"
+    ],
+    "warnings": [
+      "Sensitive path .docker is linked into profile home despite developer preset"
+    ]
+  },
+  {
+    "profile": "codex:kiver.omegasistemas",
+    "preset": "developer",
+    "shared": [
+      ".gitconfig (Git user name/email configuration)",
+      ".docker (EXPOSED - not permitted under developer preset)",
+      ".npmrc (NPM registry token config)",
+      "SSH_AUTH_SOCK (SSH Agent socket forwarding - no private keys exposed)"
+    ],
+    "protected": [
+      ".git-credentials (Git plain-text credentials store)",
+      ".ssh (SSH directory and private keys)",
+      ".gnupg (GPG keyrings and private secrets)",
+      ".kube (Kubernetes cluster credentials)"
+    ],
+    "warnings": [
+      "Sensitive path .docker is linked into profile home despite developer preset"
+    ]
+  },
+  {
+    "profile": "codex:kivergmail",
+    "preset": "developer",
+    "shared": [
+      ".gitconfig (Git user name/email configuration)",
+      ".git-credentials (EXPOSED - not permitted under developer preset)",
+      ".docker (EXPOSED - not permitted under developer preset)",
+      ".npmrc (NPM registry token config)",
+      "SSH_AUTH_SOCK (SSH Agent socket forwarding - no private keys exposed)"
+    ],
+    "protected": [
+      ".ssh (SSH directory and private keys)",
+      ".gnupg (GPG keyrings and private secrets)",
+      ".kube (Kubernetes cluster credentials)"
+    ],
+    "warnings": [
+      "Sensitive path .git-credentials is linked into profile home despite developer preset",
+      "Sensitive path .docker is linked into profile home despite developer preset"
+    ]
+  },
+  {
+    "profile": "opencode:opencode",
+    "preset": "developer",
+    "shared": [
+      ".gitconfig (Git user name/email configuration)",
+      ".npmrc (NPM registry token config)",
+      "SSH_AUTH_SOCK (SSH Agent socket forwarding - no private keys exposed)"
+    ],
+    "protected": [
+      ".git-credentials (Git plain-text credentials store)",
+      ".ssh (SSH directory and private keys)",
+      ".gnupg (GPG keyrings and private secrets)",
+      ".kube (Kubernetes cluster credentials)",
+      ".docker (Docker registry authentication tokens)"
+    ]
+  }
+]

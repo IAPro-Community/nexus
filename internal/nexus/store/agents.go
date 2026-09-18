@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
 
-const agentColumns = `id,project_id,name,role,status,current_revision_id,continuity_status,created_at,updated_at,last_started_at`
+const agentColumns = `id,project_id,name,role,status,COALESCE(current_revision_id,'') AS current_revision_id,continuity_status,COALESCE(identity_kind,'PERSISTENT') AS identity_kind,created_at,updated_at,last_started_at`
 
 // CreateAgent inserts a persistent agent scoped to a project.
 func (s *Store) CreateAgent(a Agent) (Agent, error) {
@@ -32,13 +32,16 @@ func (s *Store) CreateAgent(a Agent) (Agent, error) {
 	if a.ContinuityStatus == "" {
 		a.ContinuityStatus = ContinuityLiveSameRuntime
 	}
+	if a.IdentityKind == "" {
+		a.IdentityKind = "PERSISTENT"
+	}
 	now := time.Now().UTC()
 	a.CreatedAt, a.UpdatedAt = now, now
 
 	_, err := s.db.Exec(`INSERT INTO agents
-		(id,project_id,name,role,status,current_revision_id,continuity_status,created_at,updated_at,last_started_at)
-		VALUES(?,?,?,?,?,?,?,?,?,NULL)`,
-		a.ID, a.ProjectID, a.Name, a.Role, a.Status, a.CurrentRevisionID, a.ContinuityStatus,
+		(id,project_id,name,role,status,current_revision_id,continuity_status,identity_kind,created_at,updated_at,last_started_at)
+		VALUES(?,?,?,?,?,?,?,?,?,?,NULL)`,
+		a.ID, a.ProjectID, a.Name, a.Role, a.Status, a.CurrentRevisionID, a.ContinuityStatus, a.IdentityKind,
 		a.CreatedAt.Format(time.RFC3339Nano), a.UpdatedAt.Format(time.RFC3339Nano))
 	if err != nil {
 		return Agent{}, fmt.Errorf("create agent: %w", err)
@@ -59,8 +62,25 @@ func (s *Store) GetAgent(id, projectID string) (Agent, error) {
 }
 
 // ListAgents returns agents of a project, most recently updated first.
+// Ephemeral workers are excluded by default; use ListAgentsFiltered to include them.
 func (s *Store) ListAgents(projectID string) ([]Agent, error) {
-	rows, err := s.db.Query(`SELECT `+agentColumns+` FROM agents WHERE project_id=? ORDER BY updated_at DESC`, projectID)
+	return s.ListAgentsFiltered(projectID, "")
+}
+
+// ListAgentsFiltered returns agents of a project, optionally filtered by identity_kind.
+// When identityKind is empty, only PERSISTENT agents are returned (ephemeral workers excluded).
+func (s *Store) ListAgentsFiltered(projectID, identityKind string) ([]Agent, error) {
+	query := `SELECT ` + agentColumns + ` FROM agents WHERE project_id=?`
+	args := []any{projectID}
+	if identityKind != "" {
+		query += ` AND COALESCE(identity_kind,'PERSISTENT')=?`
+		args = append(args, identityKind)
+	} else {
+		// Default: exclude ephemeral workers.
+		query += ` AND COALESCE(identity_kind,'PERSISTENT')!='EPHEMERAL_WORKER'`
+	}
+	query += ` ORDER BY updated_at DESC`
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -76,12 +96,47 @@ func (s *Store) ListAgents(projectID string) ([]Agent, error) {
 	return out, rows.Err()
 }
 
+// ProjectAgentSummary is a lightweight per-project agent count for the project rail.
+type ProjectAgentSummary struct {
+	ProjectID    string `json:"project_id"`
+	AgentCount   int    `json:"agent_count"`
+	WorkingCount int    `json:"working_count"`
+}
+
+// ListAgentSummaries returns agent_count and working_count grouped by project.
+// Projects with zero agents are omitted; the client merges against the project list.
+func (s *Store) ListAgentSummaries() ([]ProjectAgentSummary, error) {
+	rows, err := s.db.Query(`
+		SELECT project_id,
+			COUNT(*) AS agent_count,
+			SUM(CASE WHEN status = 'WORKING' THEN 1 ELSE 0 END) AS working_count
+		FROM agents
+		GROUP BY project_id
+		ORDER BY project_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []ProjectAgentSummary{}
+	for rows.Next() {
+		var summary ProjectAgentSummary
+		if err := rows.Scan(&summary.ProjectID, &summary.AgentCount, &summary.WorkingCount); err != nil {
+			return nil, err
+		}
+		out = append(out, summary)
+	}
+	return out, rows.Err()
+}
+
 // UpdateAgent patches mutable agent fields by ID (project scoped).
 func (s *Store) UpdateAgent(a Agent) error {
 	a.UpdatedAt = time.Now().UTC()
-	_, err := s.db.Exec(`UPDATE agents SET name=?,role=?,status=?,current_revision_id=?,continuity_status=?,updated_at=?
+	if a.IdentityKind == "" {
+		a.IdentityKind = "PERSISTENT"
+	}
+	_, err := s.db.Exec(`UPDATE agents SET name=?,role=?,status=?,current_revision_id=?,continuity_status=?,identity_kind=?,updated_at=?
 		WHERE id=? AND project_id=?`,
-		a.Name, a.Role, a.Status, a.CurrentRevisionID, a.ContinuityStatus,
+		a.Name, a.Role, a.Status, a.CurrentRevisionID, a.ContinuityStatus, a.IdentityKind,
 		a.UpdatedAt.Format(time.RFC3339Nano), a.ID, a.ProjectID)
 	return err
 }
@@ -90,6 +145,45 @@ func (s *Store) UpdateAgent(a Agent) error {
 func (s *Store) SetAgentStatus(id, status string) error {
 	_, err := s.db.Exec(`UPDATE agents SET status=?, updated_at=? WHERE id=?`,
 		status, time.Now().UTC().Format(time.RFC3339Nano), id)
+	return err
+}
+
+// ClaimInteractiveLead atomically reserves one idle interactive Lead. The
+// STARTING transition closes the read/modify/write race between concurrent
+// supervised launches; callers that lose the update must use another Lead.
+func (s *Store) ClaimInteractiveLead(projectID string) (Agent, bool, error) {
+	agents, err := s.ListAgents(projectID)
+	if err != nil {
+		return Agent{}, false, err
+	}
+	for _, candidate := range agents {
+		if candidate.Role != "lead-engineer" {
+			continue
+		}
+		res, err := s.db.Exec(`UPDATE agents SET status=?, updated_at=?
+			WHERE id=? AND project_id=? AND role=? AND status IN (?,?,?,?)`,
+			AgentStarting, time.Now().UTC().Format(time.RFC3339Nano), candidate.ID, projectID,
+			"lead-engineer", AgentStopped, AgentDetached, AgentRecoverable, AgentWorking)
+		if err != nil {
+			return Agent{}, false, err
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			return Agent{}, false, err
+		}
+		if n == 1 {
+			claimed, err := s.GetAgent(candidate.ID, projectID)
+			return claimed, true, err
+		}
+	}
+	return Agent{}, false, nil
+}
+
+// ReleaseInteractiveLeadReservation returns a pre-launch reservation to the
+// idle pool. It is conditional so cleanup cannot reset a later runtime.
+func (s *Store) ReleaseInteractiveLeadReservation(id string) error {
+	_, err := s.db.Exec(`UPDATE agents SET status=?, updated_at=? WHERE id=? AND status=?`,
+		AgentStopped, time.Now().UTC().Format(time.RFC3339Nano), id, AgentStarting)
 	return err
 }
 
@@ -103,6 +197,20 @@ func (s *Store) DeleteAgent(id, projectID string) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// ReconcileEphemeralWorkers removes ephemeral worker agents that are in a
+// terminal state (STOPPED or FAILED). This is called during startup and
+// after mission completion to ensure cleanup.
+func (s *Store) ReconcileEphemeralWorkers() (int64, error) {
+	res, err := s.db.Exec(`DELETE FROM agents
+		WHERE COALESCE(identity_kind,'PERSISTENT')='EPHEMERAL_WORKER'
+		AND status IN (?,?)`,
+		AgentStopped, AgentFailed)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 // NextRevision returns the next revision number for an agent.
@@ -290,7 +398,7 @@ func scanAgentRows(row agentScanner) (Agent, error) {
 	var createdAt, updatedAt string
 	var lastStarted sql.NullString
 	err := row.Scan(&a.ID, &a.ProjectID, &a.Name, &a.Role, &a.Status, &a.CurrentRevisionID,
-		&a.ContinuityStatus, &createdAt, &updatedAt, &lastStarted)
+		&a.ContinuityStatus, &a.IdentityKind, &createdAt, &updatedAt, &lastStarted)
 	if err == sql.ErrNoRows {
 		return Agent{}, ErrNotFound
 	}

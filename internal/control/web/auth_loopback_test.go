@@ -1,9 +1,12 @@
 package web
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestExchangeBootstrapTokenReusableOnLoopback(t *testing.T) {
-	auth, token, err := NewAuthManager("127.0.0.1", "3000")
+	auth, token, err := NewAuthManager("127.0.0.1", "13000")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +28,7 @@ func TestExchangeBootstrapTokenReusableOnLoopback(t *testing.T) {
 }
 
 func TestExchangeBootstrapTokenOneTimeOnPrivateBind(t *testing.T) {
-	auth, token, err := NewAuthManager("192.168.1.10", "3000")
+	auth, token, err := NewAuthManager("192.168.1.10", "13000")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,5 +60,84 @@ func TestIsLoopbackListen(t *testing.T) {
 		if got := auth.isLoopbackListen(); got != want {
 			t.Fatalf("host %q: got %v want %v", host, got, want)
 		}
+	}
+}
+
+func TestExchangeBootstrapTokenOneTimeWhenTunnelActiveOnLoopback(t *testing.T) {
+	auth, token, err := NewAuthManager("127.0.0.1", "13000")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Without tunnel: loopback bootstrap is reusable
+	first, ok := auth.ExchangeBootstrapToken(token)
+	if !ok || first == nil {
+		t.Fatal("first loopback bootstrap exchange must succeed")
+	}
+	second, ok := auth.ExchangeBootstrapToken(token)
+	if !ok || second == nil {
+		t.Fatal("loopback bootstrap must be reusable without tunnel")
+	}
+	if first.ID == second.ID {
+		t.Fatal("each exchange must mint a distinct session")
+	}
+
+	// Simulate tunnel activation — reset for clean state
+	auth2, token2, err := NewAuthManager("127.0.0.1", "13001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth2.SetTunnelActive(true)
+
+	first2, ok := auth2.ExchangeBootstrapToken(token2)
+	if !ok || first2 == nil {
+		t.Fatal("first tunnel-active bootstrap exchange must succeed")
+	}
+	if !auth2.usedBootstrap {
+		t.Fatal("tunnel-active loopback must consume bootstrap")
+	}
+	second2, ok := auth2.ExchangeBootstrapToken(token2)
+	if ok || second2 != nil {
+		t.Fatal("tunnel-active bootstrap must be one-time even on loopback")
+	}
+}
+
+func TestSetTunnelActiveControlsConsumption(t *testing.T) {
+	auth, token, err := NewAuthManager("127.0.0.1", "13000")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Tunnel not active: reusable
+	_, ok := auth.ExchangeBootstrapToken(token)
+	if !ok {
+		t.Fatal("first exchange must succeed")
+	}
+	_, ok = auth.ExchangeBootstrapToken(token)
+	if !ok {
+		t.Fatal("reusable on loopback without tunnel")
+	}
+
+	// Activate tunnel: now one-time
+	auth.SetTunnelActive(true)
+	auth.usedBootstrap = false // reset for clean test
+	_, ok = auth.ExchangeBootstrapToken(token)
+	if !ok {
+		t.Fatal("first tunnel-active exchange must succeed")
+	}
+	_, ok = auth.ExchangeBootstrapToken(token)
+	if ok {
+		t.Fatal("must be one-time when tunnel is active")
+	}
+}
+
+func TestExchangeBootstrapTokenExpiresOnLoopback(t *testing.T) {
+	auth, token, err := NewAuthManager("127.0.0.1", "13000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth.bootstrapCreatedAt = time.Now().Add(-loopbackBootstrapTTL - time.Second)
+	if _, ok := auth.ExchangeBootstrapToken(token); ok {
+		t.Fatal("expired loopback bootstrap must be rejected")
 	}
 }

@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/flags"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/control/flags"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 // ApplyLaunchConfiguration converts the subset of Agent configuration that is

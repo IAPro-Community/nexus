@@ -1,3 +1,7 @@
+> **HISTORICAL — NOT CURRENT RELEASE EVIDENCE**
+>
+> Canonical current status: `DEV/validation/current/RELEASE_STATUS.md`.
+
 # Revisão técnica atual — Nexus
 
 Data da execução: 2026-09-03/04 (horário local/UTC)

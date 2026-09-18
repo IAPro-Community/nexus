@@ -1,7 +1,6 @@
 package notify
 
 import (
-	"fmt"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -93,22 +92,31 @@ func (desktopNotifier) Notify(payload Payload) error {
 		cmd := exec.Command("notify-send", "--app-name=Nexus", title, body)
 		return cmd.Run()
 	case "darwin":
-		script := fmt.Sprintf(`display notification %q with title %q`, escapeAppleScript(body), escapeAppleScript(title))
-		return exec.Command("osascript", "-e", script).Run()
+		return exec.Command(
+			"osascript",
+			"-e",
+			`on run argv
+display notification (item 1 of argv) with title (item 2 of argv)
+end run`,
+			"--",
+			body,
+			title,
+		).Run()
 	case "windows":
-		ps := fmt.Sprintf(
-			`[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $text = $template.GetElementsByTagName('text'); $text.Item(0).AppendChild($template.CreateTextNode(%q)) > $null; $text.Item(1).AppendChild($template.CreateTextNode(%q)) > $null; $toast = [Windows.UI.Notifications.ToastNotification]::new($template); [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Nexus').Show($toast)`,
-			title, body,
-		)
-		return exec.Command("powershell", "-NoProfile", "-Command", ps).Run()
+		return exec.Command("powershell", "-NoProfile", "-Command", windowsToastScript, title, body).Run()
 	default:
 		return nil
 	}
 }
 
-func escapeAppleScript(s string) string {
-	return strings.ReplaceAll(s, `"`, `\"`)
-}
+const windowsToastScript = `param([string]$Title, [string]$Body)
+[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null
+$template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
+$text = $template.GetElementsByTagName('text')
+$text.Item(0).AppendChild($template.CreateTextNode($Title)) > $null
+$text.Item(1).AppendChild($template.CreateTextNode($Body)) > $null
+$toast = [Windows.UI.Notifications.ToastNotification]::new($template)
+[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Nexus').Show($toast)`
 
 var (
 	defaultMu sync.Mutex

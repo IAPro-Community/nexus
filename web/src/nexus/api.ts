@@ -1,7 +1,24 @@
 /* Nexus product API client (projects, agents, layouts, config). */
 
-import { Project, Agent, AgentDetail, RuntimeSession, AgentConfig, ConfigImpact } from '../types';
-import { getDesktopAuthToken, getDesktopBaseUrl } from '../api';
+import {
+  Project,
+  Agent,
+  AgentDetail,
+  RuntimeSession,
+  AgentConfig,
+  ConfigImpact,
+  AgentRevision,
+  MaestroCatalog,
+  MaestroAdvice,
+  MaestroStatus,
+  SkillSyncPreview,
+  NexusSystemInfo,
+  ProviderAccount,
+  ResourceAllocation,
+  ProviderInfo,
+  RegisteredProfile,
+} from '../types';
+import { request, setCSRFToken } from '../api';
 import { normalizeWorkPlan } from './workPlan';
 
 export type SystemDoctorCheck = {
@@ -27,49 +44,28 @@ export type SystemDoctorReport = {
 
 export type DurableActivityEvent = import('../app/activityModel').DurableActivityEvent;
 
-export class NexusAPIError<TPayload = unknown> extends Error {
-  readonly status: number;
-  readonly payload: TPayload;
+export type NexusErrorPayload = {
+  error?: string;
+  code?: string;
+  [key: string]: unknown;
+};
 
-  constructor(status: number, payload: TPayload, message: string) {
-    super(message);
-    this.name = 'NexusAPIError';
-    this.status = status;
-    this.payload = payload;
-  }
-}
-
-let csrf = '';
 export function setNexusCSRF(token: string) {
-  csrf = token;
+  setCSRFToken(token);
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const headers = new Headers(options.headers || {});
-  headers.set('Accept', 'application/json');
-  const token = getDesktopAuthToken();
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  if (options.method && options.method !== 'GET' && options.method !== 'HEAD') {
-    headers.set('Content-Type', 'application/json');
-    if (csrf) headers.set('X-CSRF-Token', csrf);
-  }
-  const baseUrl = getDesktopBaseUrl();
-  const targetUrl = baseUrl && path.startsWith('/') ? `${baseUrl}${path}` : path;
-  const res = await fetch(targetUrl, { ...options, headers });
-  if (!res.ok) {
-    if (res.status === 401 && typeof window !== 'undefined')
-      window.dispatchEvent(new CustomEvent('nexus:session-expired'));
-    const errBody = await res.json().catch(() => ({ error: res.statusText }));
-    const message = typeof errBody?.error === 'string' ? errBody.error : `HTTP ${res.status}`;
-    throw new NexusAPIError(res.status, errBody, message);
-  }
-  return res.json();
-}
+export { NexusRequestError as NexusAPIError } from '../api';
 
 export const nexus = {
+  listProviderInstallations: () => request<ProviderInfo[]>('/api/v1/providers'),
+  registerProvider: (provider: string, profile?: string) =>
+    request<{ profile: RegisteredProfile; state: string }>('/api/v1/providers', {
+      method: 'POST',
+      body: JSON.stringify({ provider, profile }),
+    }),
   listProjects: () => request<Project[]>('/api/v1/projects'),
+  listProjectSummaries: () =>
+    request<import('../types').ProjectAgentSummary[]>('/api/v1/projects/summaries'),
   createProject: (path: string, name?: string) =>
     request<Project>('/api/v1/projects', { method: 'POST', body: JSON.stringify({ path, name }) }),
   getProject: (id: string) =>
@@ -93,14 +89,18 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ create_context: createContext }),
     }),
+  getProjectIntelligence: (projectId: string) =>
+    request<import('../types').ProjectIntelligenceView>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/project-intelligence`,
+    ),
+  requestProjectIntelligenceScan: (projectId: string) =>
+    request<import('../types').ProjectIntelligenceScan>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/project-intelligence/scans`,
+      { method: 'POST', body: '{}' },
+    ),
   listComposerSessions: (projectId: string) =>
     request<import('../types').ComposerSession[]>(
       `/api/v1/projects/${projectId}/composer-sessions`,
-    ),
-  createComposerSession: (projectId: string, goal: string) =>
-    request<import('../types').ComposerSessionView>(
-      `/api/v1/projects/${projectId}/composer-sessions`,
-      { method: 'POST', body: JSON.stringify({ goal }) },
     ),
   createComposerSessionWithMode: (
     projectId: string,
@@ -117,11 +117,57 @@ export const nexus = {
     ),
   getComposerSession: (id: string) =>
     request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}`),
-  addComposerTurn: (id: string, content: string) =>
+  addComposerTurn: (
+    id: string,
+    content: string,
+    expectedRevision?: number,
+    attachments?: Array<{
+      id: string;
+      name?: string;
+      mimeType?: string;
+      url?: string;
+      size?: number;
+    }>,
+  ) =>
     request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}/turns`, {
       method: 'POST',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({
+        content,
+        expected_revision: expectedRevision,
+        attachments: attachments || undefined,
+      }),
     }),
+  uploadComposerAttachment: async (sessionId: string, file: File) => {
+    const { getCSRFToken, getDesktopAuthToken, getDesktopBaseUrl, NexusRequestError } =
+      await import('../api');
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    const csrf = getCSRFToken();
+    if (csrf) headers['X-CSRF-Token'] = csrf;
+    const auth = getDesktopAuthToken();
+    if (auth) headers['Authorization'] = `Bearer ${auth}`;
+    const form = new FormData();
+    form.append('file', file);
+    const base = getDesktopBaseUrl();
+    const path = `/api/v1/composer-sessions/${sessionId}/attachments`;
+    const res = await fetch(base ? `${base}${path}` : path, {
+      method: 'POST',
+      headers,
+      body: form,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const errBody = (await res.json().catch(() => ({ error: res.statusText }))) as {
+        error?: string;
+      };
+      throw new NexusRequestError(res.status, errBody, errBody.error || `HTTP ${res.status}`);
+    }
+    return res.json() as Promise<{
+      id: string;
+      name: string;
+      mime_type: string;
+      size: number;
+    }>;
+  },
   updateComposerSkillState: (id: string, skillId: string, state: string) =>
     request<import('../types').ComposerSessionView>(
       `/api/v1/composer-sessions/${id}/skills/${encodeURIComponent(skillId)}`,
@@ -137,17 +183,38 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ goal: refinementGoal || '' }),
     }),
-  resolveComposerUnknown: (id: string, unknownId: string, answer: string, status: string) =>
+  resolveComposerUnknown: (
+    id: string,
+    unknownId: string,
+    answer: string,
+    status: string,
+    expectedRevision?: number,
+  ) =>
     request<import('../types').ComposerSessionView>(
       `/api/v1/composer-sessions/${id}/unknowns/${encodeURIComponent(unknownId)}/resolve`,
       {
         method: 'POST',
-        body: JSON.stringify({ answer, status }),
+        body: JSON.stringify({ answer, status, expected_revision: expectedRevision }),
+      },
+    ),
+  attachComposerContext: (id: string, path: string, expectedRevision?: number) =>
+    request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}/context`, {
+      method: 'POST',
+      body: JSON.stringify({ path, expected_revision: expectedRevision }),
+    }),
+  detachComposerContext: (id: string, path: string, expectedRevision?: number) =>
+    request<import('../types').ComposerSessionView>(
+      `/api/v1/composer-sessions/${id}/context/remove`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ path, expected_revision: expectedRevision }),
       },
     ),
   materializePromptArtifact: async (id: string) =>
     normalizeWorkPlan(
-      await request<unknown>(`/api/v1/prompt-artifacts/${id}/flow`, { method: 'POST' }),
+      await request<import('../types').WorkPlan>(`/api/v1/prompt-artifacts/${id}/flow`, {
+        method: 'POST',
+      }),
     ),
   saveLayout: (projectId: string, layout: string, revision?: number) =>
     request<{ status: string; revision?: number; layout?: string }>(
@@ -179,11 +246,21 @@ export const nexus = {
       method: 'POST',
       body: '{}',
     }),
-  askAgent: (id: string, prompt: string, startIfNeeded = false, skillIds?: string[]) => {
-    const body: Record<string, any> = { prompt, start_if_needed: startIfNeeded };
+  askAgent: (
+    id: string,
+    prompt: string,
+    startIfNeeded = false,
+    skillIds?: string[],
+    prepared?: { projectId: string; contextFingerprintId: string },
+  ) => {
+    const body: Record<string, unknown> = { prompt, start_if_needed: startIfNeeded };
     if (skillIds && skillIds.length > 0) {
       body.skill_ids = skillIds;
       body.scope = 'NEXT_PROMPT';
+    }
+    if (prepared) {
+      body.project_id = prepared.projectId;
+      body.context_fingerprint_id = prepared.contextFingerprintId;
     }
     return request<{ agent_id: string; runtime_id: string; started: boolean; accepted: boolean }>(
       `/api/v1/agents/${id}/ask`,
@@ -201,7 +278,7 @@ export const nexus = {
 
   // Agent config (Gate 3)
   getAgentConfig: (id: string) =>
-    request<{ config: AgentConfig; revision: string; revisions: any[] }>(
+    request<{ config: AgentConfig; revision: string; revisions: AgentRevision[] }>(
       `/api/v1/agents/${id}/config`,
     ),
   applyAgentConfig: (id: string, config: AgentConfig) =>
@@ -216,67 +293,72 @@ export const nexus = {
     }),
 
   // Resource Scheduler (Gate 5)
-  listResources: () => request<{ accounts: any[]; policy: string }>('/api/v1/resources'),
+  listResources: () =>
+    request<{ accounts: ProviderAccount[]; policy: string }>('/api/v1/resources'),
+  refreshResources: (provider?: string, profile?: string) =>
+    request<{ accounts: ProviderAccount[]; policy: string; refreshed?: boolean }>(
+      '/api/v1/resources/refresh',
+      {
+        method: 'POST',
+        body: JSON.stringify({ provider, profile }),
+      },
+    ),
+  setDefaultProfile: (provider: string, profile: string) =>
+    request<{ status: string; provider: string; profile: string }>('/api/v1/profiles/default', {
+      method: 'POST',
+      body: JSON.stringify({ provider, profile }),
+    }),
+  deleteProfile: (provider: string, profile: string) =>
+    request<{ status: string; deleted: boolean }>(
+      `/api/v1/profiles?provider=${encodeURIComponent(provider)}&profile=${encodeURIComponent(profile)}`,
+      {
+        method: 'DELETE',
+      },
+    ),
+  logoutProfile: (provider: string, profile: string) =>
+    request<{ status: string; logged_out: boolean }>('/api/v1/profiles/logout', {
+      method: 'POST',
+      body: JSON.stringify({ provider, profile }),
+    }),
   selectResource: (agentId: string, provider: string, profile: string, policy = 'MANUAL') =>
-    request<{ decision: any; persisted: boolean }>('/api/v1/resources/select', {
+    request<ResourceAllocation>('/api/v1/resources/select', {
       method: 'POST',
       body: JSON.stringify({ provider, profile, policy, agent_id: agentId }),
     }),
 
   // Maestro Assist (Gate 6)
-  getMaestroStatus: () => request<any>('/api/v1/maestro'),
+  getMaestroStatus: () => request<MaestroStatus>('/api/v1/maestro'),
+  getMaestroCatalog: () => request<MaestroCatalog>('/api/v1/maestro/catalog'),
+  previewMaestroSync: () =>
+    request<SkillSyncPreview>('/api/v1/maestro/sync/preview', {
+      method: 'POST',
+      body: '{}',
+    }),
+  applyMaestroSync: (preview: SkillSyncPreview) =>
+    request<SkillSyncPreview>('/api/v1/maestro/sync', {
+      method: 'POST',
+      body: JSON.stringify(preview),
+    }),
   getMaestroAdvice: (projectId: string, agentId?: string, intent?: string) =>
-    request<any>('/api/v1/maestro/advice', {
+    request<MaestroAdvice>('/api/v1/maestro/advice', {
       method: 'POST',
       body: JSON.stringify({ project_id: projectId, agent_id: agentId, intent }),
     }),
 
-  // Missions (Gate 7 Beta)
-  listMissions: (projectId: string) =>
-    request<{ missions: any[] }>(`/api/v1/projects/${projectId}/missions`),
-  createMission: (
-    projectId: string,
-    data: {
-      name: string;
-      description?: string;
-      goal?: string;
-      scope?: string;
-      risk_level?: string;
-    },
-  ) =>
-    request<any>(`/api/v1/projects/${projectId}/missions`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  getMission: (missionId: string) => request<any>(`/api/v1/missions/${missionId}`),
-  updateMission: (missionId: string, data: any) =>
-    request<any>(`/api/v1/missions/${missionId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
-  deleteMission: (missionId: string) =>
-    request<any>(`/api/v1/missions/${missionId}`, { method: 'DELETE' }),
-  addMissionTask: (
-    missionId: string,
-    data: { name: string; description?: string; kind?: string; priority?: number },
-  ) =>
-    request<any>(`/api/v1/missions/${missionId}/tasks`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  assignMissionAgent: (missionId: string, data: { task_id: string; agent_id: string }) =>
-    request<any>(`/api/v1/missions/${missionId}/assign`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
   // System Updates
+  getSystemInfo: () => request<NexusSystemInfo>('/api/v1/system/info'),
   getSystemDoctor: () => request<SystemDoctorReport>('/api/v1/system/doctor'),
   getSystemUpdates: () =>
     request<{
       nexus_version: string;
       nexus_commit?: string;
       nexus_build_date?: string;
+      nexus_latest_version?: string;
+      nexus_update_available?: boolean;
+      nexus_update_error?: string;
+      nexus_update_instruction?: string;
+      nexus_installation_method?: string;
+      nexus_allows_self_update?: boolean;
       channel?: string;
       installation_method?: string;
       allows_self_update?: boolean;
@@ -292,13 +374,21 @@ export const nexus = {
       maestro_updated: boolean;
       maestro_version: string;
       error?: string;
-    }>('/api/v1/system/update', { method: 'POST', body: '{}' }),
+    }>('/api/v1/maestro/update', {
+      method: 'POST',
+      body: JSON.stringify({ product: 'maestro', target_version: 'latest', confirmed: true }),
+    }),
 
   // OS Filesystem & Desktop Launchers
-  browseFS: (path?: string) =>
-    request<import('../types').FSBrowseResult>(
-      `/api/v1/fs/browse${path ? `?path=${encodeURIComponent(path)}` : ''}`,
-    ),
+  browseFS: (path?: string, includeEntryMetadata = false) => {
+    const params = new URLSearchParams();
+    if (path) params.set('path', path);
+    if (includeEntryMetadata) params.set('details', 'full');
+    const query = params.toString();
+    return request<import('../types').FSBrowseResult>(
+      `/api/v1/fs/browse${query ? `?${query}` : ''}`,
+    );
+  },
   scanFS: (root?: string) =>
     request<import('../types').FSScanResult[]>(
       `/api/v1/fs/scan${root ? `?root=${encodeURIComponent(root)}` : ''}`,
@@ -346,11 +436,34 @@ export const nexus = {
       `/api/v1/intelligence${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
       { method: 'PUT', body: JSON.stringify(data) },
     ),
+  listIntelligenceMemories: (projectId?: string) =>
+    request<{ memories: import('../types').IntelligenceMemory[] }>(
+      `/api/v1/intelligence/memories${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
+    ).then((res) => res.memories || []),
+  upsertIntelligenceMemory: (body: {
+    scope: string;
+    project_id?: string;
+    key: string;
+    value: string;
+    source?: string;
+    force?: boolean;
+  }) =>
+    request<import('../types').IntelligenceMemory>(`/api/v1/intelligence/memories`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  deleteIntelligenceMemory: (scope: string, id: string, projectId?: string) =>
+    request<{ status: string }>(
+      `/api/v1/intelligence/memories/${encodeURIComponent(scope)}/${encodeURIComponent(id)}${
+        projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''
+      }`,
+      { method: 'DELETE' },
+    ),
   getClarification: (id: string) =>
     request<import('../types').ClarificationCheckpoint>(`/api/v1/clarifications/${id}`),
   resolveClarification: async (id: string, answers: Record<string, string>, init?: RequestInit) => {
     const result = await request<{
-      plan: unknown;
+      plan: import('../types').WorkPlan;
       clarification: import('../types').ClarificationCheckpoint;
     }>(`/api/v1/clarifications/${id}/resolve`, {
       method: 'POST',
@@ -362,7 +475,9 @@ export const nexus = {
 
   // WorkPlans & Autonomous Mission Runner (Phase D, E, F, H)
   getPlans: async (projectId: string) => {
-    const plans = await request<unknown>(`/api/v1/projects/${projectId}/plans`);
+    const plans = await request<import('../types').WorkPlan[] | null>(
+      `/api/v1/projects/${projectId}/plans`,
+    );
     return Array.isArray(plans) ? plans.map(normalizeWorkPlan) : [];
   },
   createPlan: async (
@@ -372,22 +487,23 @@ export const nexus = {
       description?: string;
       goal?: string;
       auto_plan?: boolean;
-      phases?: any[];
-      facts?: any;
+      phases?: import('../types').PlanPhase[];
+      facts?: Record<string, string>;
     },
     init?: RequestInit,
   ) =>
     normalizeWorkPlan(
-      await request<unknown>(`/api/v1/projects/${projectId}/plans`, {
+      await request<import('../types').WorkPlan>(`/api/v1/projects/${projectId}/plans`, {
         method: 'POST',
         body: JSON.stringify(data),
         ...init,
       }),
     ),
   getPlan: async (planId: string) => {
-    const detail = await request<{ plan: unknown; revisions: import('../types').PlanRevision[] }>(
-      `/api/v1/plans/${planId}`,
-    );
+    const detail = await request<{
+      plan: import('../types').WorkPlan;
+      revisions: import('../types').PlanRevision[];
+    }>(`/api/v1/plans/${planId}`);
     return { ...detail, plan: normalizeWorkPlan(detail.plan) };
   },
   updatePlan: async (
@@ -395,25 +511,23 @@ export const nexus = {
     plan: import('../types').WorkPlan,
     change_summary?: string,
   ) => {
-    const result = await request<{ plan: unknown; revision: import('../types').PlanRevision }>(
-      `/api/v1/plans/${planId}`,
-      {
-        method: 'PUT',
-        body: JSON.stringify({ plan, change_summary }),
-      },
-    );
+    const result = await request<{
+      plan: import('../types').WorkPlan;
+      revision: import('../types').PlanRevision;
+    }>(`/api/v1/plans/${planId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ plan, change_summary }),
+    });
     return { ...result, plan: normalizeWorkPlan(result.plan) };
   },
-  deletePlan: (planId: string) =>
-    request<{ deleted: boolean }>(`/api/v1/plans/${planId}`, { method: 'DELETE' }),
   restorePlanRevision: async (planId: string, revision: number) => {
-    const result = await request<{ plan: unknown; revision: import('../types').PlanRevision }>(
-      `/api/v1/plans/${planId}/restore`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ revision }),
-      },
-    );
+    const result = await request<{
+      plan: import('../types').WorkPlan;
+      revision: import('../types').PlanRevision;
+    }>(`/api/v1/plans/${planId}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ revision }),
+    });
     return { ...result, plan: normalizeWorkPlan(result.plan) };
   },
   diffPlanRevisions: (planId: string, from: number, to: number) =>
@@ -423,26 +537,16 @@ export const nexus = {
   getFlowLeader: (planId: string) =>
     request<import('../types').FlowLeaderPolicy>(`/api/v1/plans/${planId}/leader`),
   setFlowLeader: (planId: string, leader: import('../types').FlowLeaderPolicy) =>
-    request<{ plan: unknown; leader: import('../types').FlowLeaderPolicy }>(
-      `/api/v1/plans/${planId}/leader`,
-      { method: 'PUT', body: JSON.stringify(leader) },
-    ),
-  cloneFlow: (planId: string, projectId: string) =>
-    request<import('../types').WorkPlan>(`/api/v1/plans/${planId}/clone`, {
-      method: 'POST',
-      body: JSON.stringify({ project_id: projectId }),
-    }),
+    request<{
+      plan: import('../types').WorkPlan;
+      leader: import('../types').FlowLeaderPolicy;
+    }>(`/api/v1/plans/${planId}/leader`, { method: 'PUT', body: JSON.stringify(leader) }),
   preflightFlow: (planId: string) =>
     request<import('../types').FlowPreflightReport>(`/api/v1/plans/${planId}/preflight`, {
       method: 'POST',
     }),
-  decomposePrompt: (data: import('../types').FlowDecompositionRequest) =>
-    request<import('../types').FlowDecompositionProposal>('/api/v1/flows/decompose', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
   compilePackagePrompt: (planId: string, packageId: string, phaseId?: string) =>
-    request<any>(`/api/v1/plans/${planId}/compile`, {
+    request<{ compiled_prompt: string; package_id: string }>(`/api/v1/plans/${planId}/compile`, {
       method: 'POST',
       body: JSON.stringify({ package_id: packageId, phase_id: phaseId }),
     }),
@@ -460,11 +564,6 @@ export const nexus = {
   getRun: (runId: string) => request<import('../types').MissionRun>(`/api/v1/runs/${runId}`),
   getRunEvidence: (runId: string) =>
     request<import('../types').FlowRunEvidence>(`/api/v1/runs/${runId}/evidence`),
-  stepRun: (runId: string) =>
-    request<{ run: import('../types').MissionRun; completed: boolean }>(
-      `/api/v1/runs/${runId}/step`,
-      { method: 'POST' },
-    ),
   pauseRun: (runId: string, reason?: string) =>
     request<import('../types').MissionRun>(`/api/v1/runs/${runId}/pause`, {
       method: 'POST',
@@ -510,11 +609,59 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ cancel_id: scheduleId }),
     }),
-  recommendResources: (requirements: any, policy?: string) =>
+  recommendResources: (
+    requirements: {
+      task_kind: string;
+      role: string;
+      current_provider?: string;
+      prefer_provider?: string;
+    },
+    policy?: string,
+  ) =>
     request<import('../types').RecommendationResult>('/api/v1/resources/recommend', {
       method: 'POST',
       body: JSON.stringify({ requirements, policy }),
     }),
+
+  // Tunnel / Remote Access
+  getTunnelStatus: () => request<import('../types').TunnelStatus>('/api/v1/tunnel/status'),
+  startTunnel: () =>
+    request<import('../types').TunnelStatus>('/api/v1/tunnel/start', { method: 'POST' }),
+  stopTunnel: () =>
+    request<import('../types').TunnelStatus>('/api/v1/tunnel/stop', { method: 'POST' }),
+  getTunnelQR: () => request<{ url: string; bootstrap_url: string }>('/api/v1/tunnel/qr'),
+
+  // Attention Center
+  getAttention: () => request<import('../types').AttentionGroup>('/api/v1/attention'),
+  resolveIntervention: (
+    runId: string,
+    interventionId: string,
+    version: number,
+    optionId: string,
+    resolvedBy?: string,
+  ) =>
+    request<import('../types').MissionRun>(`/api/v1/runs/${runId}/resolve-intervention`, {
+      method: 'POST',
+      body: JSON.stringify({
+        intervention_id: interventionId,
+        version,
+        option_id: optionId,
+        resolved_by: resolvedBy,
+      }),
+    }),
+
+  // Telemetry & Historical Audit
+  getTelemetryStats: (days = 7) =>
+    request<import('../types').TelemetryStats>(`/api/v1/telemetry/stats?days=${days}`),
+  getTelemetryHistory: (limit = 50, provider?: string) => {
+    const params = new URLSearchParams();
+    if (limit) params.set('limit', String(limit));
+    if (provider) params.set('provider', provider);
+    const qs = params.toString();
+    return request<import('../types').TelemetryHistoryEvent[]>(
+      `/api/v1/telemetry/history${qs ? `?${qs}` : ''}`,
+    );
+  },
 };
 
 export const nexusApi = nexus;

@@ -115,6 +115,7 @@ export const Select: React.FC<{
   name?: string;
   style?: React.CSSProperties;
   selectStyle?: React.CSSProperties;
+  selectClassName?: string;
   'aria-label'?: string;
   children?: React.ReactNode;
 }> = ({
@@ -129,6 +130,7 @@ export const Select: React.FC<{
   name,
   style,
   selectStyle,
+  selectClassName = '',
   'aria-label': ariaLabel,
   children,
 }) => {
@@ -138,7 +140,7 @@ export const Select: React.FC<{
       name={name}
       disabled={disabled}
       aria-label={ariaLabel || (typeof label === 'string' ? label : undefined)}
-      className="nx-select"
+      className={`nx-select ${selectClassName}`.trim()}
       style={selectStyle}
       value={value}
       onChange={(event) => onChange(event.target.value)}
@@ -300,7 +302,9 @@ export const Dialog: React.FC<{
   onClose: () => void;
   children: React.ReactNode;
   wide?: boolean;
-}> = ({ open, title, onClose, children, wide }) => {
+  full?: boolean;
+  className?: string;
+}> = ({ open, title, onClose, children, wide, full, className }) => {
   const { t } = useTranslation();
   return (
     <RadixDialog.Root
@@ -311,7 +315,11 @@ export const Dialog: React.FC<{
     >
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="nx-dialog-backdrop" />
-        <RadixDialog.Content className="nx-dialog" data-wide={wide ? 'true' : 'false'}>
+        <RadixDialog.Content
+          className={['nx-dialog', className].filter(Boolean).join(' ')}
+          data-wide={wide ? 'true' : 'false'}
+          data-full={full ? 'true' : 'false'}
+        >
           <header>
             <RadixDialog.Title asChild>
               <h2>{title}</h2>
@@ -434,3 +442,5 @@ export const SearchInput: React.FC<{
     </label>
   );
 };
+
+export * from './ContextDrawer';

@@ -15,6 +15,7 @@ var cgnatRange = net.IPNet{
 // ValidateBind enforces the loopback-default binding policy.
 //
 //   - loopback addresses: always allowed
+//   - nexus.dev: always allowed (local development hostname)
 //   - unspecified addresses (0.0.0.0, ::): always refused (A8 security requirement)
 //   - private / CGNAT / link-local addresses: allowed only with an explicit
 //     --remote opt-in (strong auth + Origin policy remain enforced)
@@ -22,6 +23,9 @@ var cgnatRange = net.IPNet{
 func ValidateBind(host string, remote bool) error {
 	if host == "" || host == "localhost" {
 		host = "127.0.0.1"
+	}
+	if host == nexusHostname {
+		return nil
 	}
 	ip := net.ParseIP(host)
 	if ip == nil {
@@ -46,7 +50,7 @@ func ValidateBind(host string, remote bool) error {
 // machine running Nexus. Remote mode remains available for agent operations,
 // but must not become a remote file browser or arbitrary directory creator.
 func hostFilesystemEnabled(host string) bool {
-	if host == "" || host == "localhost" {
+	if host == "" || host == "localhost" || host == nexusHostname {
 		return true
 	}
 	ip := net.ParseIP(host)

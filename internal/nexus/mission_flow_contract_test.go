@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func TestPlanToRunnerSpecCarriesFlowStepContracts(t *testing.T) {
 	plan := &store.WorkPlan{ID: "plan", ProjectID: "project", CurrentRevision: 3, Phases: []store.PlanPhase{{ID: "phase", Packages: []store.WorkPackage{{
 		ID: "step", Title: "Step", Goal: "Goal", Priority: "HIGH", Role: "tester", AssignmentStrategy: "AUTO", ResourcePolicy: "PRESERVE_QUOTA", Provider: "codex", Profile: "fast",
-		MaestroSkills: []string{"verification"}, RelevantPaths: []string{"internal"}, AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"go test ./..."},
+		SkillIDs: []string{"verification"}, MaestroSkills: []string{"verification"}, RelevantPaths: []string{"internal"}, AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"go test ./..."},
 	}}}}}
 	spec, err := planToRunnerSpec(plan, "snapshot")
 	if err != nil {
@@ -23,8 +23,91 @@ func TestPlanToRunnerSpecCarriesFlowStepContracts(t *testing.T) {
 	if got.AssignmentStrategy != "AUTO" || got.ResourcePolicy != "PRESERVE_QUOTA" || got.Provider != "codex" || got.Profile != "fast" {
 		t.Fatalf("assignment/resource contract lost: %+v", got)
 	}
-	if !reflect.DeepEqual(got.MaestroSkills, []string{"verification"}) || !reflect.DeepEqual(got.RelevantPaths, []string{"internal"}) || !reflect.DeepEqual(got.VerificationRequirements, []string{"go test ./..."}) {
+	if !reflect.DeepEqual(got.SkillIDs, []string{"verification"}) || !reflect.DeepEqual(got.MaestroSkills, []string{"verification"}) || !reflect.DeepEqual(got.RelevantPaths, []string{"internal"}) || !reflect.DeepEqual(got.VerificationRequirements, []string{"go test ./..."}) {
 		t.Fatalf("context/verification contract lost: %+v", got)
+	}
+}
+
+func TestFreezePlanUsesGenericCatalogWithoutMaestro(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus {
+		return MaestroStatus{Available: false, Mode: MaestroOff, Error: "offline for test"}
+	}
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Generic skills", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	plan := store.WorkPlan{ID: "plan", ProjectID: project.ID, CurrentRevision: 1, Phases: []store.PlanPhase{{ID: "phase", Packages: []store.WorkPackage{{
+		ID: "step", Title: "Step", Goal: "Goal", Role: "tester", Status: "READY", AssignmentStrategy: "AUTO", SkillIDs: []string{"coding"}, AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"true"},
+	}}}}}
+	frozen, err := freezePlanForExecution(n, plan)
+	if err != nil {
+		t.Fatalf("generic SkillIDs must freeze without Maestro: %v", err)
+	}
+	pkg := frozen.Phases[0].Packages[0]
+	if !reflect.DeepEqual(pkg.SkillIDs, []string{"coding"}) || !reflect.DeepEqual(pkg.MaestroSkills, []string{"coding"}) {
+		t.Fatalf("frozen canonical/compatibility skill contract lost: %#v", pkg)
+	}
+}
+
+func TestFreezePlanMigratesLegacySkillFieldsThroughGenericCatalog(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus { return MaestroStatus{Available: false, Mode: MaestroOff} }
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Legacy skills", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := store.WorkPlan{ID: "legacy-plan", ProjectID: project.ID, CurrentRevision: 1, Phases: []store.PlanPhase{{ID: "phase", Packages: []store.WorkPackage{{
+		ID: "step", Title: "Step", Goal: "Goal", Role: "tester", Status: "READY", AssignmentStrategy: "AUTO", MaestroSkills: []string{"testing"}, AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"true"},
+	}}}}}
+	frozen, err := freezePlanForExecution(n, plan)
+	if err != nil {
+		t.Fatalf("legacy skill fields should use the generic catalog without Maestro: %v", err)
+	}
+	pkg := frozen.Phases[0].Packages[0]
+	if !reflect.DeepEqual(pkg.SkillIDs, []string{"testing"}) {
+		t.Fatalf("canonical SkillIDs not migrated: %#v", pkg.SkillIDs)
+	}
+}
+
+func TestFreezePlanDoesNotTreatLegacyMaestroGatesAsSkills(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus { return MaestroStatus{Available: false, Mode: MaestroOff} }
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Gate boundary", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := store.WorkPlan{
+		ID: "plan-gate-boundary", ProjectID: project.ID, CurrentRevision: 1,
+		Phases: []store.PlanPhase{{ID: "phase-1", Packages: []store.WorkPackage{{
+			ID: "step", Title: "Step", Goal: "Goal", Role: "tester", Status: "READY",
+			MaestroGates: []string{"legacy-gate"}, MaestroSkills: []string{"testing"},
+			AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"true"},
+		}}}},
+	}
+	frozen, err := freezePlanForExecution(n, plan)
+	if err != nil {
+		t.Fatalf("legacy gate should not be resolved as a Skill: %v", err)
+	}
+	pkg := frozen.Phases[0].Packages[0]
+	if !reflect.DeepEqual(pkg.SkillIDs, []string{"testing"}) || !reflect.DeepEqual(pkg.MaestroSkills, []string{"testing"}) {
+		t.Fatalf("unexpected canonical Skills: skill_ids=%v maestro_skills=%v", pkg.SkillIDs, pkg.MaestroSkills)
+	}
+	if !reflect.DeepEqual(pkg.MaestroGates, []string{"legacy-gate"}) {
+		t.Fatalf("legacy gates should remain separate metadata: %v", pkg.MaestroGates)
 	}
 }
 

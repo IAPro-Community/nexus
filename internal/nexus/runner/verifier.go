@@ -2,7 +2,9 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -13,6 +15,27 @@ type VerificationEngine struct{}
 
 func NewVerificationEngine() *VerificationEngine { return &VerificationEngine{} }
 
+// dangerousPatterns matches shell metacharacters that enable injection.
+var dangerousPatterns = regexp.MustCompile(`\||;|&&|\|\||>|<|>>|<<|` + "`" + `|\$\(|\$\{|\n|\r`)
+
+// dangerousCommands blocks known destructive commands regardless of context.
+var dangerousCommands = regexp.MustCompile(`(?i)^\s*(rm\s|dd\s|mkfs|shutdown(\s|$)|reboot(\s|$)|:\(\)\s*\{)`) //nolint:gocritic
+
+// validateCommand rejects shell commands that contain dangerous metacharacters
+// or match known destructive command patterns. It returns nil for valid commands.
+func validateCommand(cmd string) error {
+	if strings.TrimSpace(cmd) == "" {
+		return errors.New("empty command")
+	}
+	if dangerousCommands.MatchString(cmd) {
+		return errors.New("command matches a dangerous pattern")
+	}
+	if dangerousPatterns.MatchString(cmd) {
+		return errors.New("command contains disallowed shell metacharacters")
+	}
+	return nil
+}
+
 // RunVerification executes each approved command through the platform shell so
 // quoting and package-manager syntax behave consistently on Unix and Windows.
 func (v *VerificationEngine) RunVerification(ctx context.Context, workspace string, commands []string) []VerificationResult {
@@ -21,6 +44,14 @@ func (v *VerificationEngine) RunVerification(ctx context.Context, workspace stri
 		cmdStr = strings.TrimSpace(cmdStr)
 		if cmdStr == "" {
 			continue
+		}
+		if err := validateCommand(cmdStr); err != nil {
+			results = append(results, VerificationResult{
+				Command: cmdStr, Passed: false, ExitCode: -1,
+				OutputSnippet: "blocked by command validation: " + err.Error(),
+				DurationMs:    0, VerifiedAt: time.Now().UTC(),
+			})
+			break
 		}
 		start := time.Now()
 		cmd := platformShellCommand(ctx, cmdStr)

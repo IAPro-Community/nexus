@@ -1,6 +1,9 @@
 package notify
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestRecorderCapturesPayload(t *testing.T) {
 	rec := &Recorder{}
@@ -25,5 +28,19 @@ func TestThrottleSuppressesSameTag(t *testing.T) {
 	_ = n.Notify(Payload{Title: "a", Body: "b", Tag: "same"})
 	if len(rec.Payloads) != 1 {
 		t.Fatalf("expected throttle to keep 1 notify, got %d", len(rec.Payloads))
+	}
+}
+
+func TestNativeNotificationScriptDoesNotInterpolatePayload(t *testing.T) {
+	for _, payload := range []Payload{
+		{Title: `title"; exit`, Body: "body\n$(Get-ChildItem)"},
+		{Title: "normal", Body: `$(whoami)`},
+	} {
+		if strings.Contains(windowsToastScript, payload.Title) || strings.Contains(windowsToastScript, payload.Body) {
+			t.Fatalf("Windows notification script must not contain payload data: %q", payload)
+		}
+	}
+	if !strings.Contains(windowsToastScript, "$Title") || !strings.Contains(windowsToastScript, "$Body") {
+		t.Fatal("Windows notification script must consume explicit parameters")
 	}
 }

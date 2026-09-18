@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/core/scheduler"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/cooldown"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/scheduler"
 )
 
 func TestFallbackExecution(t *testing.T) {
@@ -54,14 +54,14 @@ func TestFallbackExecution(t *testing.T) {
 		return model.Failure{Kind: model.FailureNone}, nil
 	})
 
-	if err != nil {
-		t.Fatalf("expected successful fallback, got err: %v", err)
+	if err == nil {
+		t.Fatal("UNKNOWN quota fallback must fail closed instead of selecting an unverified resource")
 	}
-	if attempts != 2 {
-		t.Fatalf("expected 2 attempts, got %d", attempts)
+	if attempts != 1 {
+		t.Fatalf("expected only the explicitly selected attempt, got %d", attempts)
 	}
-	if lastProfileUsed != "acc-2" {
-		t.Fatalf("expected acc-2 to succeed, got %s", lastProfileUsed)
+	if lastProfileUsed != "acc-1" {
+		t.Fatalf("expected acc-1 to be the only attempted profile, got %s", lastProfileUsed)
 	}
 
 	// Verify cooldown was registered for acc-1

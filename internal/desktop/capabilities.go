@@ -1,5 +1,10 @@
 package desktop
 
+import (
+	"os/exec"
+	"runtime"
+)
+
 // Capabilities represents the native platform features supported by Nexus Desktop.
 type Capabilities struct {
 	Native           bool `json:"native"`
@@ -15,15 +20,34 @@ type Capabilities struct {
 
 // DefaultCapabilities returns the standard native desktop capabilities.
 func DefaultCapabilities() Capabilities {
+	filePicker := false
+	folderPicker := false
+	notifications := false
+	switch runtime.GOOS {
+	case "darwin":
+		filePicker = commandAvailable("osascript")
+		folderPicker = filePicker
+		notifications = filePicker
+	case "linux":
+		filePicker = commandAvailable("zenity")
+		folderPicker = filePicker
+		notifications = commandAvailable("notify-send")
+	}
+
 	return Capabilities{
 		Native:           true,
-		FilePicker:       true,
-		FolderPicker:     true,
-		Notifications:    true,
-		Tray:             true,
-		NativeMenus:      true,
-		DeepLinks:        true,
-		AutoStart:        true,
+		FilePicker:       filePicker,
+		FolderPicker:     folderPicker,
+		Notifications:    notifications,
+		Tray:             false,
+		NativeMenus:      false,
+		DeepLinks:        false,
+		AutoStart:        false,
 		WindowManagement: true,
 	}
+}
+
+func commandAvailable(name string) bool {
+	_, err := exec.LookPath(name)
+	return err == nil
 }

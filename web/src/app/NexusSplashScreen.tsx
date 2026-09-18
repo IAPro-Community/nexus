@@ -13,10 +13,7 @@ export const NexusSplashScreen: React.FC<{
       ? t('app.starting', 'Iniciando IAPro Nexus…')
       : t('app.loading', 'Carregando Projetos e Agentes…'));
   const subtitle =
-    submessage ||
-    (stage === 'starting'
-      ? 'Validando credenciais e inicializando runtime local'
-      : 'Sincronizando workspaces, provedores e orquestrador Maestro');
+    submessage || (stage === 'starting' ? t('app.startingSubtitle') : t('app.loadingSubtitle'));
 
   return (
     <div className="nx-splash-screen" role="status" aria-live="polite" aria-label={title}>
@@ -27,7 +24,7 @@ export const NexusSplashScreen: React.FC<{
         </div>
 
         <div className="nx-splash-brand">
-          <span className="nx-splash-eyebrow">Workspace OS · Powered by Orquestrador Maestro</span>
+          <span className="nx-splash-eyebrow">{t('app.splashEyebrow')}</span>
           <h1 className="nx-splash-title">IAPro Nexus</h1>
         </div>
 
@@ -44,7 +41,7 @@ export const NexusSplashScreen: React.FC<{
         <div className="nx-splash-footer">
           <span>v0.5.0-beta</span>
           <span>•</span>
-          <span>Ambiente Local Protegido</span>
+          <span>{t('app.protectedLocalEnv')}</span>
         </div>
       </div>
     </div>

@@ -1,0 +1,111 @@
+{
+  "schema": "nexus.doctor/v1",
+  "generated_at": "2026-09-12T16:39:04.990670843Z",
+  "version": "dev",
+  "os": "linux",
+  "arch": "amd64",
+  "checks": [
+    {
+      "id": "data_directory",
+      "status": "PASS",
+      "summary": "directory is available: /home/desenvolvedor/.local/share/ai-manager"
+    },
+    {
+      "id": "config_directory",
+      "status": "PASS",
+      "summary": "directory is available: /home/desenvolvedor/.config/ai-cli"
+    },
+    {
+      "id": "state_directory",
+      "status": "PASS",
+      "summary": "directory is available: /home/desenvolvedor/.local/state/ai-cli"
+    },
+    {
+      "id": "credentials.capability",
+      "status": "PASS",
+      "summary": "SUPPORTED — private DBus session with Secret Service"
+    },
+    {
+      "id": "platform.pty",
+      "status": "PASS",
+      "summary": "Unix PTY supported on Linux"
+    },
+    {
+      "id": "platform.webkitgtk",
+      "status": "PASS",
+      "summary": "WebKitGTK detected: webkit2gtk-4.1 2.52.3"
+    },
+    {
+      "id": "desktop.shell",
+      "status": "SKIPPED",
+      "summary": "Wails Desktop shell requires a native desktop launch to verify",
+      "remediation": "run the native desktop smoke test on the target operating system"
+    },
+    {
+      "id": "provider.agy",
+      "status": "PASS",
+      "summary": "installed (1.2.2)"
+    },
+    {
+      "id": "provider.claude",
+      "status": "PASS",
+      "summary": "installed (2.1.250 (Claude Code))"
+    },
+    {
+      "id": "provider.codex",
+      "status": "PASS",
+      "summary": "installed (codex-cli 0.154.0)"
+    },
+    {
+      "id": "provider.cursor",
+      "status": "PASS",
+      "summary": "installed (2026.08.11-e8db854)"
+    },
+    {
+      "id": "provider.gemini",
+      "status": "PASS",
+      "summary": "installed (0.28.2)"
+    },
+    {
+      "id": "provider.opencode",
+      "status": "PASS",
+      "summary": "installed (1.18.30)"
+    }
+  ],
+  "providers": {
+    "agy": {
+      "installed": true,
+      "version": "1.2.2",
+      "binary_path": "/home/desenvolvedor/.local/bin/agy"
+    },
+    "claude": {
+      "installed": true,
+      "version": "2.1.250 (Claude Code)",
+      "binary_path": "/home/desenvolvedor/.local/bin/claude"
+    },
+    "codex": {
+      "installed": true,
+      "version": "codex-cli 0.154.0",
+      "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/codex"
+    },
+    "cursor": {
+      "installed": true,
+      "version": "2026.08.11-e8db854",
+      "binary_path": "/home/desenvolvedor/.local/bin/agent"
+    },
+    "gemini": {
+      "installed": true,
+      "version": "0.28.2",
+      "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/gemini"
+    },
+    "opencode": {
+      "installed": true,
+      "version": "1.18.30",
+      "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/opencode"
+    }
+  },
+  "credentials": {
+    "status": "SUPPORTED",
+    "mechanism": "private DBus session with Secret Service"
+  }
+}

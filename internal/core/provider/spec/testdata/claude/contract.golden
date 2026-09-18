@@ -1,0 +1,39 @@
+{
+  "id": "claude",
+  "binary_candidates": [
+    "claude"
+  ],
+  "env_keys": [
+    "AI_PROFILE",
+    "AI_PROVIDER",
+    "CLAUDE_CONFIG_DIR",
+    "HOME",
+    "PATH",
+    "USERPROFILE",
+    "XDG_CONFIG_HOME"
+  ],
+  "env_delete": null,
+  "kickoff": [
+    "-p",
+    "{prompt}"
+  ],
+  "resume": [
+    "--resume",
+    "{session}"
+  ],
+  "auto_approval": [
+    "--dangerously-skip-permissions",
+    "--output-format",
+    "text"
+  ],
+  "review_mode": [
+    "--permission-mode",
+    "plan",
+    "--output-format",
+    "text"
+  ],
+  "quota": "LIVE_HTTP",
+  "known_versions": [
+    "2.1.250"
+  ]
+}

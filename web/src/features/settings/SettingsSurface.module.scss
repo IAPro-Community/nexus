@@ -1,0 +1,253 @@
+@use '../../styles/tokens';
+@use '../../styles/typography';
+
+.gridFullWidth {
+  grid-column: 1 / -1;
+}
+
+.mutedTextSmall {
+  font-size: 0.857rem;
+}
+
+.infoList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.929rem;
+  max-width: 480px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btnGroup {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.fieldGroupMargin {
+  margin-top: 8px;
+}
+
+.accordionContainer {
+  display: grid;
+  gap: 10px;
+}
+
+.themeGroup {
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  background: var(--nx-bg-elevated);
+  overflow: hidden;
+}
+
+.themeHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--nx-text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.929rem;
+  font-weight: 650;
+
+  &:hover {
+    background: var(--nx-surface-2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+    outline-offset: -2px;
+  }
+}
+
+.themeHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.themeTitle {
+  color: var(--nx-text);
+}
+
+.themeDesc {
+  font-size: 0.786rem;
+  color: var(--nx-muted);
+  font-weight: 400;
+}
+
+.themeBadge {
+  font-size: 10px;
+}
+
+.themePanel {
+  padding: 12px 14px;
+  border-top: 1px solid var(--nx-border);
+  background: var(--nx-surface-2);
+}
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.updateBadge {
+  font-size: 10px;
+}
+
+.themePresetItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--nx-border);
+  background: var(--nx-bg-elevated);
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &[data-selected='true'] {
+    border: 1.5px solid var(--nx-accent);
+    background: var(--nx-accent-soft);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+    outline-offset: -2px;
+  }
+}
+
+.themePresetName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.857rem;
+  font-weight: 500;
+
+  &[data-selected='true'] {
+    font-weight: 650;
+  }
+}
+
+.themeSwatches {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.themeSwatchBg {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--nx-border);
+}
+
+.themeSwatchAccent {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+// Tunnel / Remote Access styles
+.tunnelControls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.tunnelStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tunnelStatusIcon {
+  color: var(--nx-success, #22c55e);
+}
+
+.tunnelStatusActive {
+  font-weight: 600;
+  color: var(--nx-success, #22c55e);
+}
+
+.tunnelUrl {
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: 'SF Mono', ui-monospace, monospace;
+  font-size: 0.857rem;
+  color: var(--nx-text);
+  word-break: break-all;
+}
+
+.tunnelActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.qrContainer {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.qrCode {
+  background: var(--nx-surface, #ffffff);
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  padding: 16px;
+  flex-shrink: 0;
+}
+
+.qrInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+}
+
+.qrLabel {
+  font-weight: 600;
+  font-size: 0.857rem;
+}
+
+.qrUrl {
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: 'SF Mono', ui-monospace, monospace;
+  font-size: 0.857rem;
+  word-break: break-all;
+}
+
+.tunnelInfoList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.929rem;
+  max-width: 560px;
+  line-height: 1.5;
+
+  code {
+    background: var(--nx-bg-elevated);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.857rem;
+  }
+}

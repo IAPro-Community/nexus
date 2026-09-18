@@ -2,6 +2,27 @@ package model
 
 import "time"
 
+// AccountScope is the identity boundary for account-owned state. Provider and
+// profile names are routing labels, not sufficient identities: one profile can
+// be re-authenticated and two accounts may have the same display email.
+type AccountScope struct {
+	ProviderID      string `json:"provider_id"`
+	ProfileID       string `json:"profile_id"`
+	AccountID       string `json:"account_id"`
+	IdentityVersion string `json:"identity_version"`
+	CredentialScope string `json:"credential_scope,omitempty"`
+}
+
+// Key returns the single canonical key representation for account-owned maps.
+func (s AccountScope) Key() string {
+	return s.ProviderID + "/" + s.AccountID + "/" + s.IdentityVersion
+}
+
+// Verifiable reports whether this scope can safely own persisted account data.
+func (s AccountScope) Verifiable() bool {
+	return s.ProviderID != "" && s.ProfileID != "" && s.AccountID != "" && s.IdentityVersion != ""
+}
+
 // ProviderID identifies a supported AI CLI provider (e.g. "codex", "agy", "claude", "opencode", "gemini", "cursor").
 type ProviderID string
 
@@ -54,6 +75,16 @@ const (
 	SourceNone           UsageSource = "NONE"
 )
 
+// UsageConfidence describes how strongly Nexus can support an observation.
+type UsageConfidence string
+
+const (
+	UsageConfidenceHigh    UsageConfidence = "HIGH"
+	UsageConfidenceMedium  UsageConfidence = "MEDIUM"
+	UsageConfidenceLow     UsageConfidence = "LOW"
+	UsageConfidenceUnknown UsageConfidence = "UNKNOWN"
+)
+
 // ProviderHealth represents the operational health of a provider or profile.
 type ProviderHealth string
 
@@ -70,8 +101,14 @@ const (
 // Group clusters windows by model family when a provider exposes separate quotas
 // (e.g. AGY: "gemini" for Gemini models, "claude_gpt" for Claude/GPT models).
 type UsageWindow struct {
-	Kind             string     `json:"kind"`
-	Group            string     `json:"group,omitempty"`
+	Kind  string `json:"kind"`
+	Group string `json:"group,omitempty"`
+	// Absolute values are optional because providers may expose only ratios.
+	// Nil means unknown; zero is a measured zero.
+	Limit            *float64   `json:"limit,omitempty"`
+	Used             *float64   `json:"used,omitempty"`
+	Remaining        *float64   `json:"remaining,omitempty"`
+	Unit             string     `json:"unit,omitempty"`
 	UsedPercent      *float64   `json:"used_percent,omitempty"`
 	RemainingPercent *float64   `json:"remaining_percent,omitempty"`
 	ResetTime        *time.Time `json:"reset_time,omitempty"`
@@ -80,17 +117,19 @@ type UsageWindow struct {
 
 // UsageSnapshot captures point-in-time usage metrics for a profile.
 type UsageSnapshot struct {
-	ProviderID string        `json:"provider_id"`
-	ProfileID  string        `json:"profile_id"`
-	Status     UsageStatus   `json:"status"`
-	Source     UsageSource   `json:"source"`
-	FetchedAt  time.Time     `json:"fetched_at"`
-	ExpiresAt  *time.Time    `json:"expires_at,omitempty"`
-	Windows    []UsageWindow `json:"windows"`
-	ModelName  string        `json:"model_name,omitempty"`
-	Account    string        `json:"account,omitempty"`
-	Plan       string        `json:"plan,omitempty"`
-	Error      string        `json:"error,omitempty"`
+	ProviderID   string          `json:"provider_id"`
+	ProfileID    string          `json:"profile_id"`
+	Status       UsageStatus     `json:"status"`
+	Source       UsageSource     `json:"source"`
+	Confidence   UsageConfidence `json:"confidence,omitempty"`
+	FetchedAt    time.Time       `json:"fetched_at"`
+	ExpiresAt    *time.Time      `json:"expires_at,omitempty"`
+	Windows      []UsageWindow   `json:"windows"`
+	ModelName    string          `json:"model_name,omitempty"`
+	Account      string          `json:"account,omitempty"`
+	Plan         string          `json:"plan,omitempty"`
+	Error        string          `json:"error,omitempty"`
+	AccountScope AccountScope    `json:"account_scope,omitempty"`
 }
 
 // Capabilities declares supported features for a provider adapter.
@@ -108,24 +147,27 @@ type Capabilities struct {
 
 // Profile represents a local profile entity.
 type Profile struct {
-	Provider  string    `json:"provider"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-	Disabled  bool      `json:"disabled,omitempty"`
-	Priority  int       `json:"priority,omitempty"`
-	Labels    []string  `json:"labels,omitempty"`
+	Provider     string       `json:"provider"`
+	Name         string       `json:"name"`
+	AccountScope AccountScope `json:"account_scope,omitempty"`
+	CreatedAt    time.Time    `json:"created_at"`
+	Disabled     bool         `json:"disabled,omitempty"`
+	Priority     int          `json:"priority,omitempty"`
+	Labels       []string     `json:"labels,omitempty"`
 }
 
 // AccountInfo summarizes identity and status information for a profile.
 type AccountInfo struct {
-	Email         string         `json:"email"`
-	Plan          string         `json:"plan"`
-	Status        string         `json:"status"`
-	Health        ProviderHealth `json:"health"`
-	Authenticated bool           `json:"authenticated"`
-	ExpiresAt     time.Time      `json:"expires_at,omitempty"`
-	Limits        []string       `json:"limits,omitempty"`
-	Usage         UsageSnapshot  `json:"usage"`
+	AccountScope      AccountScope   `json:"account_scope,omitempty"`
+	Email             string         `json:"email"`
+	ExternalAccountID string         `json:"external_account_id,omitempty"`
+	Plan              string         `json:"plan"`
+	Status            string         `json:"status"`
+	Health            ProviderHealth `json:"health"`
+	Authenticated     bool           `json:"authenticated"`
+	ExpiresAt         time.Time      `json:"expires_at,omitempty"`
+	Limits            []string       `json:"limits,omitempty"`
+	Usage             UsageSnapshot  `json:"usage"`
 }
 
 // Session represents a universal session index entry across providers.

@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 var unsafeBranchChars = regexp.MustCompile(`[^A-Za-z0-9._/-]+`)
@@ -73,7 +73,7 @@ func ensureAgentWorktree(ctx context.Context, project store.Project, agent store
 		if out, err := exec.CommandContext(ctx, "git", "-C", path, "rev-parse", "--show-toplevel").CombinedOutput(); err == nil {
 			resolved := strings.TrimSpace(string(out))
 			if resolved != "" {
-				return filepath.Clean(resolved), nil
+				return config.CanonicalWorkspacePath(resolved)
 			}
 		}
 		return "", fmt.Errorf("existing worktree path is not a valid git worktree: %s", path)
@@ -98,5 +98,5 @@ func ensureAgentWorktree(ctx context.Context, project store.Project, agent store
 	if out, err := exec.CommandContext(ctx, "git", args...).CombinedOutput(); err != nil {
 		return "", fmt.Errorf("create agent worktree: %w: %s", err, strings.TrimSpace(string(out)))
 	}
-	return filepath.Clean(path), nil
+	return config.CanonicalWorkspacePath(path)
 }

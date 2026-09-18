@@ -6,13 +6,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/nexus/autonomyguard"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 type nexusPackageExecutor struct {
@@ -37,7 +39,10 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 			return runner.AllocationResult{}, fmt.Errorf("revalidate execution admission: %w", snapshotErr)
 		}
 		if run.Autonomous || snapshot.Preflight != nil && snapshot.Preflight.Strict {
-			report := &FlowPreflightReport{PlanID: snapshot.Plan.ID, Revision: snapshot.Plan.CurrentRevision, Strict: true, GeneratedAt: time.Now().UTC()}
+			// Strict admission mutates Ready only when a check fails. Start from
+			// ready here, matching PreflightFlow, so a valid immutable snapshot is
+			// not rejected merely because this revalidation report is fresh.
+			report := &FlowPreflightReport{PlanID: snapshot.Plan.ID, Revision: snapshot.Plan.CurrentRevision, Strict: true, Ready: true, GeneratedAt: time.Now().UTC()}
 			if _, admissionErr := e.n.strictAdmissionForPlan(ctx, snapshot.Plan, report, run.Autonomous); admissionErr != nil {
 				return runner.AllocationResult{}, fmt.Errorf("revalidate execution admission: %w", admissionErr)
 			} else if !report.Ready {
@@ -48,12 +53,18 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 
 	strategy := strings.ToUpper(strings.TrimSpace(pkg.AssignmentStrategy))
 	var agent store.Agent
+	var agentEvidence agentSelectionEvidence
 	switch strategy {
 	case "": // legacy WorkPlan behavior
 		if strings.TrimSpace(pkg.AssignedAgent) != "" {
 			agent, err = st.GetAgent(pkg.AssignedAgent, run.ProjectID)
+			agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "existing Agent assignment"}
 		} else {
-			agent, err = createMissionAgent(st, run.ProjectID, pkg, "Mission · ")
+			agent, agentEvidence, err = e.selectReusableAgent(st, run, pkg)
+			if err == store.ErrNotFound {
+				agent, err = createMissionAgent(st, run.ProjectID, pkg, "Mission · ")
+				agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from task requirements"}
+			}
 		}
 	case string(FlowAssignmentExisting):
 		if strings.TrimSpace(pkg.AssignedAgent) == "" {
@@ -63,12 +74,15 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 			return runner.AllocationResult{}, fmt.Errorf("agent %s is already assigned to another active Flow Step", pkg.AssignedAgent)
 		}
 		agent, err = st.GetAgent(pkg.AssignedAgent, run.ProjectID)
+		agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "existing Flow Agent assignment"}
 	case string(FlowAssignmentCreate):
 		agent, err = createMissionAgent(st, run.ProjectID, pkg, "Flow · ")
+		agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from Flow task requirements"}
 	case string(FlowAssignmentAuto):
-		agent, err = e.selectReusableFlowAgent(st, run, pkg)
+		agent, agentEvidence, err = e.selectReusableAgent(st, run, pkg)
 		if err == store.ErrNotFound {
 			agent, err = createMissionAgent(st, run.ProjectID, pkg, "Auto · ")
+			agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from task requirements"}
 		}
 	default:
 		return runner.AllocationResult{}, fmt.Errorf("unsupported Flow assignment strategy %q", pkg.AssignmentStrategy)
@@ -87,21 +101,91 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	if err != nil {
 		return runner.AllocationResult{}, err
 	}
-	accounts = filterFlowResourceAccounts(accounts, pkg.Provider, pkg.Profile)
-	if len(accounts) == 0 {
-		return runner.AllocationResult{}, fmt.Errorf("no configured provider profiles satisfy Flow Step %s resource restrictions", pkg.PackageID)
-	}
 
 	current, _ := currentAgentConfig(st, agent)
-	selected, keepCurrent := selectCurrentResource(accounts, current, req, policy)
+	isFailover := pkg.Attempt > 1 && (pkg.RetryFrom == runner.StateAllocating || isQuotaOrRateLimitFailure(pkg.FailureKind))
+
+	desiredProvider := strings.TrimSpace(pkg.DesiredProvider)
+	desiredProfile := strings.TrimSpace(pkg.DesiredProfile)
+	if desiredProvider == "" && pkg.Attempt <= 1 {
+		desiredProvider = strings.TrimSpace(pkg.Provider)
+	}
+	if desiredProfile == "" && pkg.Attempt <= 1 {
+		desiredProfile = strings.TrimSpace(pkg.Profile)
+	}
+	pkg.DesiredProvider, pkg.DesiredProfile = desiredProvider, desiredProfile
+	preferenceMode := missionAffinityMode(policy, desiredProvider, desiredProfile)
+
+	candidateAccounts, candidateErr := selectMissionCandidateAccounts(accounts, pkg, current, preferenceMode, isFailover)
+	if candidateErr != nil {
+		return runner.AllocationResult{}, candidateErr
+	}
+	if len(candidateAccounts) == 0 {
+		if preferenceMode == AffinityPin {
+			return runner.AllocationResult{}, fmt.Errorf("%w: pinned runtime has no eligible account for Flow Step %s", ErrBlockedResource, pkg.PackageID)
+		}
+		return runner.AllocationResult{}, explainNoEligibleMissionAccounts(accounts, pkg.PackageID, isFailover)
+	}
+
+	var selected ProviderAccount
+	var keepCurrent bool
+	routingReason := ""
+	if !isFailover {
+		selected, keepCurrent = selectCurrentResource(candidateAccounts, current, req, policy)
+	}
 	if !keepCurrent {
-		recommendation := RecommendResources(accounts, req, policy)
+		recommendation := RecommendResources(candidateAccounts, req, policy)
 		if recommendation.Recommended == nil {
-			return runner.AllocationResult{}, fmt.Errorf("no provider/profile satisfies Flow Step %s requirements: %s", pkg.PackageID, recommendation.Explanation)
+			if preferenceMode == AffinityPin {
+				return runner.AllocationResult{}, fmt.Errorf("%w: pinned runtime unavailable for Flow Step %s: %s", ErrBlockedResource, pkg.PackageID, recommendation.Explanation)
+			}
+			return runner.AllocationResult{}, explainNoEligibleMissionAccounts(candidateAccounts, pkg.PackageID, isFailover)
 		}
 		selected = recommendation.Recommended.Account
+		routingReason = recommendation.Explanation
 	}
+
 	current.Provider, current.Profile = selected.Provider, selected.Profile
+	if pkg.Attempt > 1 && pkg.RetryFrom == runner.StateAllocating && req.EscalationLevel < pkg.Attempt-1 {
+		req.EscalationLevel = pkg.Attempt - 1
+	}
+	modelFallback := false
+	modelReason := ""
+	modelPreference := AffinityPreference{Mode: AffinityAuto}
+	if req.RuntimeAffinity != nil {
+		modelPreference = req.RuntimeAffinity.Model
+	}
+	modelCandidates := configuredModelCandidates(current, selected, req.ModelCandidates...)
+	if len(modelCandidates) > 0 {
+		model, fallback, reason, modelErr := ResolveTaskModel(req, modelPreference, selected, modelCandidates)
+		if modelErr != nil {
+			return runner.AllocationResult{}, fmt.Errorf("resolve task model: %w", modelErr)
+		}
+		current.Model = model.Model
+		modelFallback, modelReason = fallback, reason
+	} else if modelPreference.Mode == AffinityPin {
+		return runner.AllocationResult{}, fmt.Errorf("resolve task model: %w: model inventory unavailable", ErrBlockedResource)
+	} else {
+		current.Model = ""
+		if modelPreference.Mode == AffinityPrefer && modelPreference.Value != "" {
+			modelFallback = true
+			modelReason = fmt.Sprintf("preferred model %q unavailable in runtime inventory; no WorkUnit model selected", modelPreference.Value)
+		}
+	}
+	pkg.Provider, pkg.Profile = selected.Provider, selected.Profile
+	routingReason = strings.TrimSpace(strings.Join([]string{routingReason, modelReason}, "; "))
+	routingDecision := buildMissionRoutingDecision(pkg, agent, req, selected, current, desiredProvider, desiredProfile, preferenceMode, isFailover || modelFallback, routingReason, agentEvidence)
+	skillResolutions, skillErr := resolveSkillReferences(e.n, run.ProjectID, packageRunSkillIDs(pkg))
+	if skillErr != nil {
+		return runner.AllocationResult{}, fmt.Errorf("persist skill resolution evidence: %w", skillErr)
+	}
+	routingDecision.SkillResolutions = skillResolutions
+	raw, marshalErr := json.Marshal(routingDecision)
+	if marshalErr != nil {
+		return runner.AllocationResult{}, fmt.Errorf("persist routing decision: %w", marshalErr)
+	}
+	pkg.RoutingDecisionJSON = string(raw)
+
 	// Interactive and Flow agents run in the Project folder by default. Worktree
 	// isolation stays opt-in via agent config or project.default_isolation.
 	if !run.Autonomous && strings.TrimSpace(current.Workspace) == "" && strings.TrimSpace(current.Isolation) == "" {
@@ -127,45 +211,160 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	return runner.AllocationResult{AgentID: agent.ID, Workspace: workspace}, nil
 }
 
+// buildMissionRoutingDecision projects the concrete allocation made by the
+// existing resource scheduler into the durable, explainable routing contract.
+// It intentionally does not mutate the desired affinity when a fallback is
+// selected and leaves engine unset when the scheduler has no engine evidence.
+func buildMissionRoutingDecision(pkg *runner.PackageRun, agent store.Agent, req TaskRequirements, selected ProviderAccount, current AgentConfig, desiredProvider, desiredProfile string, preferenceMode AffinityMode, isFailover bool, routingReason string, evidence ...agentSelectionEvidence) ExecutionRoutingDecision {
+	modelPreference := AffinityPreference{Mode: AffinityAuto}
+	if req.RuntimeAffinity != nil {
+		modelPreference = req.RuntimeAffinity.Model
+	}
+	affinity := RuntimeAffinityPolicy{
+		Provider: AffinityPreference{Mode: preferenceMode, Value: desiredProvider},
+		Profile:  AffinityPreference{Mode: preferenceMode, Value: desiredProfile},
+		Model:    modelPreference,
+	}
+	fallback := isFailover || (desiredProvider != "" && desiredProvider != selected.Provider) || (desiredProfile != "" && desiredProfile != selected.Profile)
+	reason := firstNonEmpty(routingReason, "selected by existing Nexus resource scheduler")
+	agentSelection := agentSelectionEvidence{Confidence: "UNKNOWN", Reason: "Agent selection evidence unavailable"}
+	if len(evidence) > 0 {
+		agentSelection = evidence[0]
+	}
+	return ExecutionRoutingDecision{
+		TaskID:               pkg.PackageID,
+		AgentID:              agent.ID,
+		AgentScore:           agentSelection.Score,
+		AgentConfidence:      agentSelection.Confidence,
+		AgentReason:          agentSelection.Reason,
+		Requirements:         req,
+		Desired:              affinity,
+		AffinityPolicy:       affinity,
+		Actual:               ModelCandidate{Provider: selected.Provider, Profile: selected.Profile, Model: current.Model, Healthy: selected.Health == "healthy", Authenticated: selected.Authenticated, QuotaAvailable: selected.Available},
+		SelectedProvider:     selected.Provider,
+		SelectedProfile:      selected.Profile,
+		SelectedAccountScope: selected.Scope,
+		SelectedModel:        current.Model,
+		SelectedReasoning:    reason,
+		SkillRefs:            packageRunSkillIDs(pkg),
+		MaestroGuidanceRef:   maestroGuidanceReference(req.Guidance),
+		Fallback:             fallback,
+		Reason:               reason,
+		TaskClass:            req.TaskKind,
+		CreatedAt:            time.Now().UTC(),
+	}
+}
+
+func maestroGuidanceReference(guidance *intelligence.ExecutionGuidance) string {
+	if guidance == nil || !strings.EqualFold(strings.TrimSpace(guidance.Source), "maestro") {
+		return ""
+	}
+	return strings.TrimSpace(guidance.Reference)
+}
+
 func createMissionAgent(st *store.Store, projectID string, pkg *runner.PackageRun, prefix string) (store.Agent, error) {
 	name := strings.TrimSpace(pkg.Title)
 	if name == "" {
 		name = pkg.PackageID
 	}
-	return st.CreateAgent(store.Agent{ProjectID: projectID, Name: prefix + name, Role: defaultRole(pkg.Role, "implementer")})
-}
-
-func (e *nexusPackageExecutor) selectReusableFlowAgent(st *store.Store, run *runner.MissionRun, pkg *runner.PackageRun) (store.Agent, error) {
-	agents, err := st.ListAgents(run.ProjectID)
+	requirements := missionTaskRequirements(pkg)
+	role := defaultRole(requirements.Role, defaultRole(pkg.Role, "implementer"))
+	if len(requirements.PreferredRoles) > 0 {
+		role = requirements.PreferredRoles[0]
+	}
+	spec := intelligence.AgentSpec{
+		Role:               role,
+		Responsibilities:   []string{fmt.Sprintf("Executar o workstream especializado %s dentro dos artefatos atribuídos", role)},
+		Capabilities:       appendUniqueStrings(agentRequiredCapabilities(requirements.RequiredCapabilities), requirements.PreferredCapabilities...),
+		Domains:            append([]string(nil), requirements.Domains...),
+		Strengths:          append([]string(nil), requirements.DesiredStrengths...),
+		Constraints:        append([]string(nil), requirements.Constraints...),
+		VerificationPolicy: intelligence.VerificationPolicy{RequireEvidence: true, RequireTests: true},
+	}
+	agent, err := st.CreateAgent(store.Agent{ProjectID: projectID, Name: prefix + name, Role: role})
 	if err != nil {
 		return store.Agent{}, err
 	}
+	// Autonomous package Agents must execute in a dedicated worktree. Without
+	// this explicit isolation, strict admission rejects the package before the
+	// provider is ever dispatched, even when the project itself is worktree-safe.
+	revision, err := st.AddRevision(agent.ID, (AgentConfig{Isolation: "worktree", AgentSpec: spec}).ConfigJSON())
+	if err != nil {
+		_ = st.DeleteAgent(agent.ID, projectID)
+		return store.Agent{}, fmt.Errorf("persist AgentSpec revision: %w", err)
+	}
+	agent.CurrentRevisionID = revision.ID
+	if err := st.UpdateAgent(agent); err != nil {
+		_ = st.DeleteAgent(agent.ID, projectID)
+		return store.Agent{}, fmt.Errorf("link AgentSpec revision: %w", err)
+	}
+	return agent, nil
+}
+
+type agentSelectionEvidence struct {
+	Score      float64
+	Confidence string
+	Reason     string
+}
+
+func (e *nexusPackageExecutor) selectReusableAgent(st *store.Store, run *runner.MissionRun, pkg *runner.PackageRun) (store.Agent, agentSelectionEvidence, error) {
+	agents, err := st.ListAgents(run.ProjectID)
+	if err != nil {
+		return store.Agent{}, agentSelectionEvidence{}, err
+	}
 	reserved := reservedAgentsInRun(run, pkg.PackageID)
-	role := strings.TrimSpace(pkg.Role)
-	eligible := make([]store.Agent, 0, len(agents))
+	candidates := make([]AgentMatchCandidate, 0, len(agents))
 	for _, candidate := range agents {
-		if candidate.Role == "reviewer" && role != "reviewer" {
-			continue
-		}
-		if candidate.Status != store.AgentStopped && candidate.Status != store.AgentRecoverable {
-			continue
-		}
 		if _, used := reserved[candidate.ID]; used {
 			continue
 		}
-		eligible = append(eligible, candidate)
-	}
-	sort.SliceStable(eligible, func(i, j int) bool {
-		iMatch, jMatch := role != "" && eligible[i].Role == role, role != "" && eligible[j].Role == role
-		if iMatch != jMatch {
-			return iMatch
+		cfg, cfgErr := currentAgentConfig(st, candidate)
+		if cfgErr != nil {
+			continue
 		}
-		return eligible[i].ID < eligible[j].ID
-	})
-	if len(eligible) == 0 {
-		return store.Agent{}, store.ErrNotFound
+		candidates = append(candidates, AgentMatchCandidate{Agent: candidate, Spec: cfg.AgentSpec})
 	}
-	return eligible[0], nil
+	requirements := missionTaskRequirements(pkg)
+	// A package's legacy Role is often the generic "implementer" label. It
+	// must not erase the richer classified roles persisted in TaskRequirements
+	// (for example frontend-engineer for a React task).
+	if len(requirements.PreferredRoles) == 0 && strings.TrimSpace(pkg.Role) != "" {
+		role := strings.TrimSpace(pkg.Role)
+		requirements.PreferredRoles = []string{role}
+		requirements.AcceptableRoles = []string{role, "fullstack-engineer", "generalist"}
+	}
+	match := MatchAgents(candidates, AgentMatchRequirements{
+		PreferredRoles:  requirements.PreferredRoles,
+		AcceptableRoles: requirements.AcceptableRoles,
+		Domains:         requirements.Domains,
+		// headless/submit_prompt are provider-resource capabilities, not
+		// persistent-Agent specializations. Passing them to the Agent matcher
+		// would reject every legacy/custom Agent whose AgentSpec correctly
+		// contains only behavioral capabilities.
+		RequiredCapabilities:  agentRequiredCapabilities(requirements.RequiredCapabilities),
+		PreferredCapabilities: requirements.PreferredCapabilities,
+		DesiredStrengths:      requirements.DesiredStrengths,
+		Constraints:           requirements.Constraints,
+	})
+	if match.Recommended == nil {
+		return store.Agent{}, agentSelectionEvidence{}, store.ErrNotFound
+	}
+	return match.Recommended.Agent, agentSelectionEvidence{
+		Score: match.Recommended.Score, Confidence: match.Recommended.Confidence, Reason: match.Explanation,
+	}, nil
+}
+
+func agentRequiredCapabilities(capabilities []string) []string {
+	result := make([]string, 0, len(capabilities))
+	for _, capability := range capabilities {
+		switch normalizeAgentTaxonomy(capability) {
+		case "headless", "submit-prompt":
+			continue
+		default:
+			result = append(result, capability)
+		}
+	}
+	return result
 }
 
 func reservedAgentsInRun(run *runner.MissionRun, exceptPackageID string) map[string]struct{} {
@@ -209,6 +408,58 @@ func flowResourcePolicy(raw string) SchedulerPolicy {
 	}
 }
 
+func missionAffinityMode(policy SchedulerPolicy, desiredProvider, desiredProfile string) AffinityMode {
+	if strings.TrimSpace(desiredProvider) == "" && strings.TrimSpace(desiredProfile) == "" {
+		return AffinityAuto
+	}
+	if policy == PolicyManual {
+		return AffinityPin
+	}
+	return AffinityPrefer
+}
+
+// selectMissionCandidateAccounts applies AUTO/PREFER/PIN before RecommendResources.
+// PIN never opens the full pool on failover: a pinned runtime that fails stays blocked.
+func selectMissionCandidateAccounts(accounts []ProviderAccount, pkg *runner.PackageRun, current AgentConfig, preferenceMode AffinityMode, isFailover bool) ([]ProviderAccount, error) {
+	pinProvider := strings.TrimSpace(pkg.DesiredProvider)
+	pinProfile := strings.TrimSpace(pkg.DesiredProfile)
+	if pinProvider == "" {
+		pinProvider = strings.TrimSpace(pkg.Provider)
+	}
+	if pinProfile == "" {
+		pinProfile = strings.TrimSpace(pkg.Profile)
+	}
+
+	switch preferenceMode {
+	case AffinityPin:
+		if isFailover {
+			return nil, fmt.Errorf("%w: pinned runtime %s:%s unavailable after quota/rate limit", ErrBlockedResource, pinProvider, pinProfile)
+		}
+		return filterFlowResourceAccounts(accounts, pinProvider, pinProfile), nil
+	case AffinityPrefer:
+		if !isFailover {
+			preferred := filterFlowResourceAccounts(accounts, pinProvider, pinProfile)
+			if len(preferred) > 0 {
+				return preferred, nil
+			}
+			// Preferred identity unavailable on first attempt: open the pool for fallback.
+			return accounts, nil
+		}
+		if current.Provider != "" {
+			return filterOutFailingResource(accounts, current.Provider, current.Profile), nil
+		}
+		return accounts, nil
+	default: // AUTO
+		if !isFailover {
+			return filterFlowResourceAccounts(accounts, pkg.Provider, pkg.Profile), nil
+		}
+		if current.Provider != "" {
+			return filterOutFailingResource(accounts, current.Provider, current.Profile), nil
+		}
+		return accounts, nil
+	}
+}
+
 func filterFlowResourceAccounts(accounts []ProviderAccount, provider, profile string) []ProviderAccount {
 	provider, profile = strings.TrimSpace(provider), strings.TrimSpace(profile)
 	if provider == "" && profile == "" {
@@ -227,6 +478,78 @@ func filterFlowResourceAccounts(accounts []ProviderAccount, provider, profile st
 	return out
 }
 
+func filterOutFailingResource(accounts []ProviderAccount, failingProvider, failingProfile string) []ProviderAccount {
+	out := make([]ProviderAccount, 0, len(accounts))
+	for _, a := range accounts {
+		if strings.EqualFold(a.Provider, failingProvider) && strings.EqualFold(a.Profile, failingProfile) {
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+func explainNoEligibleMissionAccounts(accounts []ProviderAccount, pkgID string, isFailover bool) error {
+	if len(accounts) == 0 {
+		return fmt.Errorf("%w: no provider profiles registered for Flow Step %s", ErrAllocationUnregistered, pkgID)
+	}
+	unauth, unknown, exhausted, rateLimited, network := 0, 0, 0, 0, 0
+	for _, acc := range accounts {
+		switch {
+		case !acc.Authenticated:
+			unauth++
+		case acc.NetworkError || (acc.QuotaView != nil && strings.EqualFold(strings.TrimSpace(acc.QuotaView.Status), "ERROR")):
+			network++
+		case acc.RateLimited:
+			rateLimited++
+		case (acc.QuotaView != nil && strings.EqualFold(strings.TrimSpace(acc.QuotaView.Status), "UNKNOWN")) ||
+			(acc.AvailReasons != nil && acc.AvailReasons.UnknownQuota):
+			unknown++
+		case accountQuotaExhausted(acc):
+			exhausted++
+		}
+	}
+	n := len(accounts)
+	switch {
+	case unauth == n:
+		return fmt.Errorf("%w: no authenticated provider profiles for Flow Step %s", ErrAllocationUnauthenticated, pkgID)
+	case network == n:
+		return fmt.Errorf("%w: provider network is unavailable for Flow Step %s", ErrAllocationNetwork, pkgID)
+	case rateLimited == n:
+		return fmt.Errorf("%w: all provider profiles are rate-limited for Flow Step %s", ErrAllocationRateLimited, pkgID)
+	case exhausted == n:
+		return fmt.Errorf("%w: all provider quotas are exhausted for Flow Step %s", ErrAllocationQuotaExhausted, pkgID)
+	case unknown == n || (unauth+unknown == n && unknown > 0):
+		return fmt.Errorf("%w: no provider profile with known quota for Flow Step %s", ErrAllocationUnknownQuota, pkgID)
+	case isFailover:
+		return fmt.Errorf("no eligible alternative provider profiles for Flow Step %s after quota/rate limit failure", pkgID)
+	default:
+		return fmt.Errorf("no eligible provider profiles for Flow Step %s (unauthenticated, unregistered, UNKNOWN, or rate-limited)", pkgID)
+	}
+}
+
+func accountQuotaExhausted(acc ProviderAccount) bool {
+	if acc.RateLimited || acc.NetworkError {
+		return false
+	}
+	if acc.AvailReasons != nil && len(acc.AvailReasons.ExhaustedWindows) > 0 {
+		return true
+	}
+	if acc.QuotaView != nil {
+		for _, window := range acc.QuotaView.AllWindows() {
+			if window.Kind != "unknown" && window.Remaining <= 0 &&
+				strings.EqualFold(strings.TrimSpace(window.Status), "LIVE") {
+				return true
+			}
+		}
+	}
+	return acc.QuotaTotal > 0 && acc.QuotaRemaining <= 0 && !acc.Available
+}
+
+func isQuotaOrRateLimitFailure(kind model.FailureKind) bool {
+	return kind == model.FailureQuota || kind == model.FailureRateLimit
+}
+
 func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun) (runner.PromptArtifact, error) {
 	if pkg.ContextCapsule == nil {
 		return runner.PromptArtifact{}, runner.ErrMissingContextCapsule
@@ -238,6 +561,31 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 	compiled, err := compilePackagePromptFromExecutionSnapshot(ctx, &snapshot.Plan, pkg.PhaseID, pkg.PackageID)
 	if err != nil {
 		return runner.PromptArtifact{}, err
+	}
+	if strings.TrimSpace(pkg.AssignedAgent) != "" {
+		st, storeErr := e.n.OpenProject()
+		if storeErr != nil {
+			return runner.PromptArtifact{}, storeErr
+		}
+		agent, agentErr := st.GetAgent(pkg.AssignedAgent, run.ProjectID)
+		if agentErr != nil {
+			return runner.PromptArtifact{}, agentErr
+		}
+		cfg, cfgErr := currentAgentConfig(st, agent)
+		if cfgErr != nil {
+			return runner.PromptArtifact{}, cfgErr
+		}
+		for _, phase := range snapshot.Plan.Phases {
+			for _, target := range phase.Packages {
+				if target.ID == pkg.PackageID {
+					compiledForAgent, compileErr := compileTargetPackagePromptForAgent(ctx, &snapshot.Plan, &target, cfg.AgentSpec, packageSkillIDs(target))
+					if compileErr != nil {
+						return runner.PromptArtifact{}, compileErr
+					}
+					compiled = compiledForAgent
+				}
+			}
+		}
 	}
 	content := strings.TrimSpace(compiled.SystemPrompt) + "\n\n" + strings.TrimSpace(compiled.UserPrompt)
 	if strings.TrimSpace(content) == "" {
@@ -304,7 +652,10 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 	}
 	result, err := e.n.executeAgentPrompt(ctx, pkg.AssignedAgent, pkg.Workspace, prompt, agentPromptPolicy{Contract: run.Contract})
 	if err != nil {
-		return runner.ExecutionResult{}, err
+		if result == nil {
+			return runner.ExecutionResult{}, err
+		}
+		return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output, Failure: result.Failure}, err
 	}
 	if len(run.Contract.AllowedFilePatterns) > 0 {
 		changed, guardErr := autonomyguard.GitChangedPaths(ctx, pkg.Workspace)
@@ -315,6 +666,24 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 			return runner.ExecutionResult{}, guardErr
 		}
 	}
+	if pkg.Attempt > 1 && isQuotaOrRateLimitFailure(pkg.FailureKind) {
+		events.DefaultBus().Publish(events.NewEventWithCorrelation(
+			run.ID,
+			run.ID,
+			pkg.Provider,
+			pkg.Profile,
+			events.EventQuotaFailoverCompleted,
+			fmt.Sprintf("Auto-failover confirmado para %s:%s após execução bem-sucedida no destino.", pkg.Provider, pkg.Profile),
+			map[string]any{
+				"package_id": pkg.PackageID,
+				"provider":   pkg.Provider,
+				"profile":    pkg.Profile,
+				"attempt":    pkg.Attempt,
+				"workspace":  pkg.Workspace,
+				"runtime_id": result.RuntimeID,
+			},
+		))
+	}
 	return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output}, nil
 }
 
@@ -324,22 +693,45 @@ func (e *nexusPackageExecutor) Review(ctx context.Context, run *runner.MissionRu
 		return runner.ReviewVerdict{}, err
 	}
 	implementerID := pkg.AssignedAgent
+	reviewWorkspace := pkg.Workspace
+	if strings.EqualFold(strings.TrimSpace(pkg.PhaseType), "REVIEW") || strings.EqualFold(strings.TrimSpace(pkg.PhaseType), "SECURITY_REVIEW") {
+		for _, dependencyID := range pkg.Dependencies {
+			for i := range run.PackageRuns {
+				dependency := &run.PackageRuns[i]
+				if dependency.PackageID == dependencyID && dependency.AssignedAgent != "" {
+					implementerID = dependency.AssignedAgent
+					if dependency.Workspace != "" {
+						reviewWorkspace = dependency.Workspace
+					}
+					break
+				}
+			}
+			if implementerID != pkg.AssignedAgent {
+				break
+			}
+		}
+	}
 	if implementerID == "" {
 		return runner.ReviewVerdict{}, fmt.Errorf("cannot review package without implementer identity")
 	}
 
-	reviewer, err := e.ensureReviewerAgent(ctx, st, run, pkg, implementerID)
+	var reviewer store.Agent
+	if (strings.EqualFold(strings.TrimSpace(pkg.PhaseType), "REVIEW") || strings.EqualFold(strings.TrimSpace(pkg.PhaseType), "SECURITY_REVIEW")) && pkg.AssignedAgent != "" {
+		reviewer, err = st.GetAgent(pkg.AssignedAgent, run.ProjectID)
+	} else {
+		reviewer, err = e.ensureReviewerAgent(ctx, st, run, pkg, implementerID)
+	}
 	if err != nil {
 		return runner.ReviewVerdict{}, err
 	}
 
 	reviewPrompt := buildReviewPrompt(pkg)
-	before, _ := workspaceFingerprint(ctx, pkg.Workspace)
-	result, err := e.n.executeAgentPrompt(ctx, reviewer.ID, pkg.Workspace, reviewPrompt, agentPromptPolicy{Contract: run.Contract, Review: true})
+	before, _ := workspaceFingerprint(ctx, reviewWorkspace)
+	result, err := e.n.executeAgentPrompt(ctx, reviewer.ID, reviewWorkspace, reviewPrompt, agentPromptPolicy{Contract: run.Contract, Review: true})
 	if err != nil {
 		return runner.ReviewVerdict{}, fmt.Errorf("reviewer execution failed: %w", err)
 	}
-	after, _ := workspaceFingerprint(ctx, pkg.Workspace)
+	after, _ := workspaceFingerprint(ctx, reviewWorkspace)
 	if before != "" && after != "" && before != after {
 		return runner.ReviewVerdict{}, fmt.Errorf("independent reviewer modified the implementation workspace; review rejected")
 	}
@@ -350,6 +742,10 @@ func (e *nexusPackageExecutor) Review(ctx context.Context, run *runner.MissionRu
 	}
 	verdict.ReviewerAgentID = reviewer.ID
 	verdict.ReviewedAt = time.Now().UTC()
+	verdict.ReviewIndependence = "DISTINCT_AGENT"
+	if reviewer.ID == implementerID {
+		verdict.ReviewIndependence = "DEGRADED_SELF_REVIEW"
+	}
 	return verdict, nil
 }
 
@@ -455,14 +851,57 @@ func missionTaskRequirements(pkg *runner.PackageRun) TaskRequirements {
 			if explicit.Role != "" {
 				req.Role = explicit.Role
 			}
+			req.PreferredRoles = append([]string(nil), explicit.PreferredRoles...)
+			req.AcceptableRoles = append([]string(nil), explicit.AcceptableRoles...)
+			req.Domains = append([]string(nil), explicit.Domains...)
+			req.EstimatedComplexity = explicit.EstimatedComplexity
 			req.EstimatedTokens = explicit.EstimatedTokens
+			req.RequiresDecomposition = explicit.RequiresDecomposition
+			req.Confidence = explicit.Confidence
+			req.Source = explicit.Source
 			req.PreferProvider = explicit.PreferProvider
 			req.AgentPreference = explicit.AgentPreference
 			req.ProjectPolicy = explicit.ProjectPolicy
+			req.RuntimeAffinity = explicit.RuntimeAffinity
+			req.ModelCandidates = append([]ModelCandidate(nil), explicit.ModelCandidates...)
+			req.EscalationLevel = explicit.EscalationLevel
+			if explicit.Guidance != nil {
+				guidance := *explicit.Guidance
+				guidance.Instructions = append([]string(nil), explicit.Guidance.Instructions...)
+				guidance.Skills = append([]string(nil), explicit.Guidance.Skills...)
+				req.Guidance = &guidance
+			}
 			req.RequiredCapabilities = mergeRequiredCapabilities(req.RequiredCapabilities, explicit.RequiredCapabilities)
+			req.PreferredCapabilities = append([]string(nil), explicit.PreferredCapabilities...)
+			req.DesiredStrengths = append([]string(nil), explicit.DesiredStrengths...)
+			req.Constraints = append([]string(nil), explicit.Constraints...)
 		}
 	}
 	return req
+}
+
+// configuredModelCandidates binds declarative model metadata to the live
+// account selected by the existing resource scheduler. Configuration can
+// describe names, capabilities and cost/reasoning ranks, but it cannot assert
+// health, authentication or quota; those fields always come from the account.
+func configuredModelCandidates(cfg AgentConfig, account ProviderAccount, taskCandidates ...ModelCandidate) []ModelCandidate {
+	configured := append([]ModelCandidate(nil), taskCandidates...)
+	if len(configured) == 0 {
+		configured = append(configured, cfg.ModelCandidates...)
+	}
+	result := make([]ModelCandidate, 0, len(configured))
+	for _, candidate := range configured {
+		if strings.TrimSpace(candidate.Model) == "" {
+			continue
+		}
+		candidate.Provider = account.Provider
+		candidate.Profile = account.Profile
+		candidate.Healthy = strings.EqualFold(account.Health, "healthy") || strings.TrimSpace(account.Health) == ""
+		candidate.Authenticated = account.Authenticated
+		candidate.QuotaAvailable = account.Available && !account.RateLimited
+		result = append(result, candidate)
+	}
+	return result
 }
 
 func mergeRequiredCapabilities(base, extra []string) []string {
@@ -495,13 +934,17 @@ func selectCurrentResource(accounts []ProviderAccount, cfg AgentConfig, req Task
 
 func currentAgentConfig(st *store.Store, agent store.Agent) (AgentConfig, error) {
 	if agent.CurrentRevisionID == "" {
-		return AgentConfig{}, nil
+		return NormalizeAgentSpec(agent, AgentConfig{}), nil
 	}
 	rev, err := st.GetRevision(agent.CurrentRevisionID)
 	if err != nil {
 		return AgentConfig{}, err
 	}
-	return ParseAgentConfig(rev.Config)
+	cfg, err := ParseAgentConfig(rev.Config)
+	if err != nil {
+		return AgentConfig{}, err
+	}
+	return NormalizeAgentSpec(agent, cfg), nil
 }
 
 func defaultRole(value, fallback string) string {
@@ -516,6 +959,10 @@ func buildReviewPrompt(pkg *runner.PackageRun) string {
 	for _, v := range pkg.Verifications {
 		evidence = append(evidence, fmt.Sprintf("- %s: passed=%t exit=%d\n%s", v.Command, v.Passed, v.ExitCode, v.OutputSnippet))
 	}
+	openFindings := make([]string, 0)
+	for _, finding := range runner.OpenReviewFindings(pkg.ReviewFindings) {
+		openFindings = append(openFindings, fmt.Sprintf("- %s [%s] %s (%s)", finding.ID, finding.Severity, finding.Description, finding.RequiredAction))
+	}
 	return fmt.Sprintf(`You are the independent code reviewer for an autonomous software-delivery mission.
 Do NOT modify files, run destructive git commands, or approve based on assumptions.
 Inspect the current workspace and implementation for the package below.
@@ -525,12 +972,19 @@ Goal: %s
 Acceptance criteria:
 - %s
 
+Semantic handoff:
+%s
+
+Previously open findings (resolve only these or report new findings):
+%s
+
 Verification evidence:
 %s
 
-Return ONLY one JSON object with this exact schema:
-{"approved":true|false,"findings":["..."],"remediation_tips":["..."]}
-Approve only when the implementation genuinely satisfies the goal and acceptance criteria and you found no blocking correctness, security, test, or integration issue.`, pkg.Title, pkg.Goal, strings.Join(pkg.AcceptanceCriteria, "\n- "), strings.Join(evidence, "\n"))
+Return ONLY one valid JSON object. Use this example shape (replace values; do not emit the pipe characters):
+{"approved":true,"findings":[],"structured_findings":[{"id":"","severity":"LOW","category":"","file":"","location":"","description":"","rationale":"","required_action":"","evidence":[]}],"remediation_tips":[]}
+The approved field must be a JSON boolean. The severity field must be one of the strings HIGH, MEDIUM, or LOW.
+Approve only when the implementation genuinely satisfies the goal and acceptance criteria and you found no blocking correctness, security, test, or integration issue.`, pkg.Title, pkg.Goal, strings.Join(pkg.AcceptanceCriteria, "\n- "), pkg.HandoffJSON, strings.Join(openFindings, "\n"), strings.Join(evidence, "\n"))
 }
 
 func parseReviewVerdict(output string) (runner.ReviewVerdict, error) {
@@ -538,21 +992,36 @@ func parseReviewVerdict(output string) (runner.ReviewVerdict, error) {
 	if text == "" {
 		return runner.ReviewVerdict{}, fmt.Errorf("reviewer returned no output")
 	}
-	start := strings.Index(text, "{")
-	end := strings.LastIndex(text, "}")
-	if start < 0 || end <= start {
+	var lastErr error
+	for start := strings.LastIndex(text, "{"); start >= 0; {
+		var raw map[string]json.RawMessage
+		decoder := json.NewDecoder(strings.NewReader(text[start:]))
+		if err := decoder.Decode(&raw); err == nil {
+			if _, hasApproved := raw["approved"]; hasApproved {
+				payloadBytes, marshalErr := json.Marshal(raw)
+				if marshalErr != nil {
+					lastErr = marshalErr
+				} else {
+					var payload struct {
+						Approved           bool                   `json:"approved"`
+						Findings           []string               `json:"findings"`
+						StructuredFindings []runner.ReviewFinding `json:"structured_findings"`
+						RemediationTips    []string               `json:"remediation_tips"`
+					}
+					if err := json.Unmarshal(payloadBytes, &payload); err == nil {
+						return runner.ReviewVerdict{Approved: payload.Approved, Findings: payload.Findings, StructuredFindings: payload.StructuredFindings, RemediationTips: payload.RemediationTips}, nil
+					} else {
+						lastErr = err
+					}
+				}
+			}
+		} else {
+			lastErr = err
+		}
+		start = strings.LastIndex(text[:start], "{")
+	}
+	if lastErr == nil {
 		return runner.ReviewVerdict{}, fmt.Errorf("reviewer did not return structured JSON evidence")
 	}
-	var payload struct {
-		Approved        bool     `json:"approved"`
-		Findings        []string `json:"findings"`
-		RemediationTips []string `json:"remediation_tips"`
-	}
-	if err := json.Unmarshal([]byte(text[start:end+1]), &payload); err != nil {
-		return runner.ReviewVerdict{}, fmt.Errorf("invalid reviewer JSON: %w", err)
-	}
-	if payload.Approved && len(payload.Findings) == 0 {
-		payload.Findings = []string{"Independent reviewer reported no blocking findings."}
-	}
-	return runner.ReviewVerdict{Approved: payload.Approved, Findings: payload.Findings, RemediationTips: payload.RemediationTips}, nil
+	return runner.ReviewVerdict{}, fmt.Errorf("invalid reviewer JSON: %w", lastErr)
 }

@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, initSession, rotateSession, type BrowserSession } from '../api';
+import { LoaderCircle } from 'lucide-react';
+import { api, initSession, rotateSession, tryLoopbackReauth, type BrowserSession } from '../api';
 import { setNexusCSRF, nexus } from '../nexus/api';
-import { Spinner } from '../design-system';
 import { ThemeProvider } from '../design-system';
 import { NexusSplashScreen } from './NexusSplashScreen';
+import unauthorizedStyles from './NexusUnauthorized.module.scss';
 import { WorkspaceProvider, useWorkspace } from '../workspace/WorkspaceProvider';
 import {
   WorkspacePresentationProvider,
@@ -25,6 +26,7 @@ import { ProjectHub } from '../features/projects/ProjectHub';
 import type { NexusCommand } from './commands/registry';
 import type { DirectSessionRequest } from '../features/work/DirectSessionLauncher';
 import { NexusShell } from './NexusShell';
+import shellStyles from './NexusShell.module.scss';
 import { WorkspaceSurfaceHost } from './WorkspaceSurfaceHost';
 
 const CommandPalette = React.lazy(() =>
@@ -55,9 +57,9 @@ import {
   agentConfigSurface,
   agentTerminalSurface,
   flowRunSurface,
+  isPtySurface,
   projectShellSurface,
   projectSurface,
-  type ProjectSurfaceKind,
 } from './surfaces';
 import {
   buildProjectRoute,
@@ -70,9 +72,10 @@ import {
 } from './routes';
 import { attentionFingerprintOf, buildDocumentTitle, isHonestNeedsUser } from './documentTitle';
 import { planFocusAttention, type RadarRuntimeItem } from './attentionRadarModel';
-import { resolveProjectSelection } from './projectSelection';
+import { resolveProjectSelection, resolveStaleProjectRoute } from './projectSelection';
 import { useNexusData } from './useNexusData';
 import type { Agent, MissionRun, Project } from '../types';
+import { isLiveRuntimeState } from '../nexus/agentTerminalModel';
 import { useTranslation } from 'react-i18next';
 import { shouldMarkUnread, surfaceTitleFromAgent } from '../workspace/surfaceAttention';
 import { KeyboardShortcutRegistry } from '../keyboard/KeyboardShortcutRegistry';
@@ -127,62 +130,28 @@ export const NexusWorkspaceApp: React.FC<{
   if (!authenticated) {
     return (
       <ThemeProvider>
-        <div
-          className="nx-app-unauthorized"
-          style={{
-            minHeight: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-            background: 'var(--nx-bg)',
-            color: 'var(--nx-text)',
-            textAlign: 'center',
-          }}
-        >
-          <div
-            style={{
-              maxWidth: '480px',
-              background: 'var(--nx-surface)',
-              border: '1px solid var(--nx-border)',
-              borderRadius: 'var(--nx-radius-lg)',
-              padding: '32px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
+        <div className={`nx-app-unauthorized ${unauthorizedStyles.container}`}>
+          <div className={unauthorizedStyles.card}>
             <span className="nx-brand-mark nx-brand-mark--hero">
               <img src="./nexus-icon.png" alt="Nexus" className="nx-brand-mark__img" />
             </span>
-            <h2
-              style={{
-                fontSize: '18px',
-                fontWeight: 700,
-                margin: '6px 0 0',
-                color: 'var(--nx-text)',
-              }}
-            >
-              {t('auth.sessionExpired')}
-            </h2>
-            <p
-              style={{
-                fontSize: '12.5px',
-                color: 'var(--nx-muted)',
-                lineHeight: 1.6,
-                margin: '0 0 12px',
-              }}
-            >
-              {t('auth.sessionExpiredDesc')}
-            </p>
+            <h2 className={unauthorizedStyles.title}>{t('auth.sessionExpired')}</h2>
+            <p className={unauthorizedStyles.hint}>{t('auth.sessionExpiredDesc')}</p>
             <button
               type="button"
               className="nx-button"
               data-tone="brand"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                void (async () => {
+                  const reauth = await tryLoopbackReauth();
+                  if (reauth?.authenticated) {
+                    if (reauth.csrf_token) setNexusCSRF(reauth.csrf_token);
+                    setAuthenticated(true);
+                    return;
+                  }
+                  window.location.reload();
+                })();
+              }}
             >
               {t('auth.reloadApp')}
             </button>
@@ -206,10 +175,10 @@ const NexusWorkspaceSession: React.FC<{
   popoutSurface?: WorkspaceSurface;
   initialGlobalSurface?: GlobalSurfaceKind;
 }> = ({ popoutSurface: explicitPopout, initialGlobalSurface }) => {
-  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const data = useNexusData();
+  const { refreshAgents } = data;
 
   const parsedRoute = useMemo(
     () => parseRouteLocation(location.pathname, location.search),
@@ -234,31 +203,61 @@ const NexusWorkspaceSession: React.FC<{
   );
 
   useEffect(() => {
-    if (routeProjectId && routeProjectId !== selectedId) {
+    const decision = resolveStaleProjectRoute(data.projects, routeProjectId);
+    if (decision.kind === 'redirect') {
+      const surface = parsedRoute.kind === 'project' ? parsedRoute.surface : 'overview';
+      navigate(buildProjectRoute(decision.projectId, surface), { replace: true });
+      return;
+    }
+    if (decision.kind === 'keep' && routeProjectId && routeProjectId !== selectedId) {
       setSelectedId(routeProjectId);
     }
-  }, [routeProjectId, selectedId]);
+  }, [data.projects, navigate, parsedRoute, routeProjectId, selectedId]);
 
-  const selected = resolveProjectSelection(data.projects, selectedId);
+  const resolvedSelection = resolveProjectSelection(data.projects, selectedId);
+  // Hold the last known project across empty polls so WorkspaceProvider does not remount.
+  const stickyProjectRef = useRef<Project | null>(null);
+  if (resolvedSelection) {
+    stickyProjectRef.current = resolvedSelection;
+  } else if (!selectedId) {
+    stickyProjectRef.current = null;
+  } else if (stickyProjectRef.current && stickyProjectRef.current.id !== selectedId) {
+    stickyProjectRef.current = null;
+  }
+  const selected =
+    resolvedSelection ??
+    (selectedId && stickyProjectRef.current?.id === selectedId ? stickyProjectRef.current : null);
+  const selectedProjectId = selected?.id;
   const [layout, setLayout] = useState<string | undefined>();
   const [layoutRevision, setLayoutRevision] = useState<number | undefined>();
+  const [layoutReady, setLayoutReady] = useState(false);
 
   useEffect(() => {
-    if (!selected) return;
-    setSelectedId(selected.id);
-    window.localStorage.setItem(selectedProjectKey, selected.id);
-    void data.refreshAgents(selected.id);
+    if (!selectedProjectId) return;
+    let cancelled = false;
+    setLayoutReady(false);
+    setSelectedId(selectedProjectId);
+    window.localStorage.setItem(selectedProjectKey, selectedProjectId);
+    void refreshAgents(selectedProjectId);
     nexus
-      .getProject(selected.id)
+      .getProject(selectedProjectId)
       .then((detail) => {
+        if (cancelled) return;
         setLayout(detail.layout || undefined);
         setLayoutRevision(detail.revision);
       })
       .catch(() => {
+        if (cancelled) return;
         setLayout(undefined);
         setLayoutRevision(undefined);
+      })
+      .finally(() => {
+        if (!cancelled) setLayoutReady(true);
       });
-  }, [selected?.id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshAgents, selectedProjectId]);
 
   useEffect(() => {
     if (data.loading) return;
@@ -308,7 +307,7 @@ const NexusWorkspaceSession: React.FC<{
       initialLayout={initial}
       initialRevision={layoutRevision}
       saveLayout={
-        popoutSurface
+        !layoutReady || popoutSurface
           ? undefined
           : (next, revision) => nexus.saveLayout(selected.id, next, revision)
       }
@@ -324,6 +323,7 @@ const NexusWorkspaceSession: React.FC<{
             data={data}
             popout={Boolean(popoutSurface)}
             parsedRoute={parsedRoute}
+            layoutReady={layoutReady}
           />
         </PtyLiveChromeProvider>
       </WorkspacePresentationProvider>
@@ -337,13 +337,18 @@ const WorkspaceCoordinator: React.FC<{
   data: ReturnType<typeof useNexusData>;
   popout: boolean;
   parsedRoute: ParsedRoute;
-}> = ({ project, setProject, data, popout, parsedRoute }) => {
-  const { t, i18n } = useTranslation();
+  layoutReady: boolean;
+}> = ({ project, setProject, data, popout, parsedRoute, layoutReady }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const workspace = useWorkspace();
   const presentation = useWorkspacePresentation();
   const [railOpen, setRailOpen] = useState(false);
   const [palette, setPalette] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'appearance' | 'updates' | 'remote'>(
+    'appearance',
+  );
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [maestroControlOpen, setMaestroControlOpen] = useState(false);
   const [newAgentOpen, setNewAgentOpen] = useState(false);
@@ -351,6 +356,7 @@ const WorkspaceCoordinator: React.FC<{
   const [tour, setTour] = useState(false);
   const [shellError, setShellError] = useState('');
   const [flowRuns, setFlowRuns] = useState<MissionRun[]>([]);
+  const [allFlowRuns, setAllFlowRuns] = useState<MissionRun[]>([]);
   const [closeTarget, setCloseTarget] = useState<WorkspaceSurface | null>(null);
   const shellInFlight = useRef(false);
 
@@ -360,6 +366,7 @@ const WorkspaceCoordinator: React.FC<{
       .getRuns()
       .then((runs) => {
         if (!mounted) return;
+        setAllFlowRuns(runs);
         const active = runs.filter(
           (run) =>
             !['COMPLETED_VERIFIED', 'CANCELED_BY_USER', 'FAILED_BUDGET_EXCEEDED'].includes(
@@ -372,7 +379,7 @@ const WorkspaceCoordinator: React.FC<{
     return () => {
       mounted = false;
     };
-  }, [project.id, palette]);
+  }, [project.id]);
 
   const open = useCallback(
     (surface: WorkspaceSurface, updateUrl = true) => {
@@ -423,13 +430,32 @@ const WorkspaceCoordinator: React.FC<{
     () => open(projectSurface(project.id, 'terminals')),
     [open, project.id],
   );
-  const openNewAISession = () => setDirectSession({ mode: 'direct', prompt: '' });
+  const openNewAISession = useCallback(() => setDirectSession({ mode: 'direct', prompt: '' }), []);
   const terminal = useCallback(
-    (agent: Agent) => {
-      open(agentTerminalSurface(agent.id, agent.name));
+    (agent: Agent, initialPrompt = '', runtimeId = '') => {
+      const live =
+        runtimeId ||
+        data.runtimes.find((r) => r.agent_id === agent.id && isLiveRuntimeState(r.state))
+          ?.runtime_id ||
+        '';
+      const surface = agentTerminalSurface(agent.id, agent.name, initialPrompt, live);
+      open(surface);
+      if (live || initialPrompt) {
+        const existing = listSurfaces(workspace.model.root).find((entry) =>
+          isSurfaceMatch(entry, surface.id),
+        );
+        workspace.updateSurface(surface.id, {
+          data: {
+            ...(existing?.data || {}),
+            agentId: agent.id,
+            ...(live ? { runtimeId: live } : {}),
+            ...(initialPrompt ? { initialPrompt } : {}),
+          },
+        });
+      }
       openTerminals();
     },
-    [open, openTerminals],
+    [open, openTerminals, data.runtimes, workspace],
   );
   const config = useCallback(
     (agent: Agent) => open(agentConfigSurface(agent.id, agent.name)),
@@ -438,35 +464,36 @@ const WorkspaceCoordinator: React.FC<{
 
   const lastSyncedRouteRef = useRef<string>('');
   useEffect(() => {
-    const routeKey = `${parsedRoute.kind}:${parsedRoute.kind === 'project' ? parsedRoute.surface : ''}:${location.pathname}`;
-    const activeStack = listStacks(workspace.model.root).find((stack) => stack.activeId);
-    const activeSurface = activeStack
-      ? listSurfaces(workspace.model.root).find((surface) =>
-          isSurfaceMatch(surface, activeStack.activeId),
-        )
-      : undefined;
+    if (!layoutReady) return;
+    const timer = window.setTimeout(() => {
+      const routeKey = `${parsedRoute.kind}:${parsedRoute.kind === 'project' ? parsedRoute.surface : ''}:${location.pathname}:${location.search}`;
+      const routeChanged = lastSyncedRouteRef.current !== routeKey;
 
-    if (parsedRoute.kind === 'project' && parsedRoute.projectId === project.id) {
-      const targetSurface = routeToWorkspaceSurface(parsedRoute, { agents: data.agents });
-      if (
-        targetSurface &&
-        (lastSyncedRouteRef.current !== routeKey || activeSurface?.type !== targetSurface.type)
-      ) {
-        lastSyncedRouteRef.current = routeKey;
-        workspace.open(targetSurface);
+      if (parsedRoute.kind === 'project' && parsedRoute.projectId === project.id) {
+        const targetSurface = routeToWorkspaceSurface(parsedRoute, { agents: data.agents });
+        if (targetSurface && routeChanged) {
+          lastSyncedRouteRef.current = routeKey;
+          workspace.open(targetSurface);
+        }
+      } else if (parsedRoute.kind === 'global') {
+        const projectSurfaceKind = globalSurfaceToProjectSurface(parsedRoute.surface);
+        if (projectSurfaceKind && routeChanged) {
+          lastSyncedRouteRef.current = routeKey;
+          workspace.open(projectSurface(project.id, projectSurfaceKind));
+        }
+        if (parsedRoute.surface === 'welcome') setWelcomeOpen(true);
       }
-    } else if (parsedRoute.kind === 'global') {
-      const projectSurfaceKind = globalSurfaceToProjectSurface(parsedRoute.surface);
-      if (
-        projectSurfaceKind &&
-        (lastSyncedRouteRef.current !== routeKey || activeSurface?.type !== projectSurfaceKind)
-      ) {
-        lastSyncedRouteRef.current = routeKey;
-        workspace.open(projectSurface(project.id, projectSurfaceKind));
-      }
-      if (parsedRoute.surface === 'welcome') setWelcomeOpen(true);
-    }
-  }, [parsedRoute, project.id, data.agents, location.pathname, workspace]);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [
+    parsedRoute,
+    project.id,
+    data.agents,
+    location.pathname,
+    location.search,
+    workspace,
+    layoutReady,
+  ]);
   const shell = useCallback(async () => {
     if (shellInFlight.current) return;
     shellInFlight.current = true;
@@ -536,14 +563,14 @@ const WorkspaceCoordinator: React.FC<{
       },
       {
         id: 'new-ai-session',
-        label: 'New AI Session',
+        label: t('commands.newAiSession', { defaultValue: 'New AI Session' }),
         group: t('commands.project'),
         keywords: ['agent', 'session', 'direct', 'create', 'terminal'],
         run: openNewAISession,
       },
       {
         id: 'project-shell',
-        label: 'New Terminal',
+        label: t('commands.newTerminal', { defaultValue: 'New Terminal' }),
         group: t('commands.project'),
         keywords: ['shell', 'terminal', 'bash', 'powershell'],
         run: () => void shell(),
@@ -573,14 +600,14 @@ const WorkspaceCoordinator: React.FC<{
       ]),
       {
         id: 'work',
-        label: 'Open Composer',
+        label: t('commands.openComposer', { defaultValue: 'Open Composer' }),
         group: t('commands.project'),
         keywords: ['composer', 'prompt', 'goal', 'plan'],
         run: () => openKind('work'),
       },
       {
         id: 'plan',
-        label: 'Open Flow Runs history',
+        label: t('commands.openFlowRuns', { defaultValue: 'Open Flow Runs history' }),
         group: t('commands.project'),
         keywords: ['flow', 'mission', 'history', 'runs'],
         run: () => openKind('missions'),
@@ -644,44 +671,50 @@ const WorkspaceCoordinator: React.FC<{
       ...[
         {
           id: 'preset-automatic',
-          label: 'Layout: Automatic (Smart)',
-          group: 'Layout Presets',
+          label: t('layoutPreset.automatic', { defaultValue: 'Layout: Automatic (Smart)' }),
+          group: t('layoutPreset.group', { defaultValue: 'Layout Presets' }),
           preset: 'automatic' as const,
         },
         {
           id: 'preset-terminal-focus',
-          label: 'Layout: Terminal Focus (68/32)',
-          group: 'Layout Presets',
+          label: t('layoutPreset.terminalFocus', {
+            defaultValue: 'Layout: Terminal Focus (68/32)',
+          }),
+          group: t('layoutPreset.group', { defaultValue: 'Layout Presets' }),
           preset: 'terminal-focus' as const,
         },
         {
           id: 'preset-two-columns',
-          label: 'Layout: Two Columns (50/50)',
-          group: 'Layout Presets',
+          label: t('layoutPreset.twoColumns', { defaultValue: 'Layout: Two Columns (50/50)' }),
+          group: t('layoutPreset.group', { defaultValue: 'Layout Presets' }),
           preset: 'two-columns' as const,
         },
         {
           id: 'preset-three-columns',
-          label: 'Layout: Three Columns (33/33/33)',
-          group: 'Layout Presets',
+          label: t('layoutPreset.threeColumns', {
+            defaultValue: 'Layout: Three Columns (33/33/33)',
+          }),
+          group: t('layoutPreset.group', { defaultValue: 'Layout Presets' }),
           preset: 'three-columns' as const,
         },
         {
           id: 'preset-terminal-chat',
-          label: 'Layout: Terminal + Chat',
-          group: 'Layout Presets',
+          label: t('layoutPreset.terminalChat', { defaultValue: 'Layout: Terminal + Chat' }),
+          group: t('layoutPreset.group', { defaultValue: 'Layout Presets' }),
           preset: 'terminal-chat' as const,
         },
         {
           id: 'preset-terminal-flow',
-          label: 'Layout: Terminal + Flow',
-          group: 'Layout Presets',
+          label: t('layoutPreset.terminalFlow', { defaultValue: 'Layout: Terminal + Flow' }),
+          group: t('layoutPreset.group', { defaultValue: 'Layout Presets' }),
           preset: 'terminal-flow' as const,
         },
         {
           id: 'preset-focus-mode',
-          label: 'Layout: Focus Mode (Active window)',
-          group: 'Layout Presets',
+          label: t('layoutPreset.focusMode', {
+            defaultValue: 'Layout: Focus Mode (Active window)',
+          }),
+          group: t('layoutPreset.group', { defaultValue: 'Layout Presets' }),
           preset: 'focus-mode' as const,
         },
         {
@@ -715,7 +748,18 @@ const WorkspaceCoordinator: React.FC<{
         run: () => setTour(true),
       },
     ],
-    [project.id, data.agents, flowRuns, t, i18n.language, presentation],
+    [
+      data.agents,
+      flowRuns,
+      t,
+      presentation,
+      open,
+      openKind,
+      openNewAISession,
+      terminal,
+      config,
+      shell,
+    ],
   );
 
   // Scoped Keyboard Shortcuts via KeyboardShortcutRegistry
@@ -750,18 +794,93 @@ const WorkspaceCoordinator: React.FC<{
       preventDefault: true,
       action: () => openKind('projects'),
     });
+    const unregisterZen = registry.register({
+      id: 'toggle-zen',
+      key: 'f',
+      ctrlOrMeta: true,
+      shift: true,
+      scope: 'global',
+      description: 'Toggle Focus / Zen Mode',
+      preventDefault: true,
+      action: () => presentation.toggleZenMode(),
+    });
+    const unregisterF11 = registry.register({
+      id: 'toggle-zen-f11',
+      key: 'F11',
+      scope: 'global',
+      description: 'Toggle Focus / Zen Mode',
+      preventDefault: true,
+      action: () => presentation.toggleZenMode(),
+    });
+    const unregisterRail = registry.register({
+      id: 'toggle-rail',
+      key: 'b',
+      ctrlOrMeta: true,
+      shift: false,
+      scope: 'global',
+      description: 'Toggle Project Rail',
+      preventDefault: true,
+      action: () => setRailOpen((prev) => !prev),
+    });
+    const unregisterNewTerm = registry.register({
+      id: 'new-terminal-shortcut',
+      key: 't',
+      ctrlOrMeta: true,
+      shift: true,
+      scope: 'global',
+      description: 'New Terminal',
+      preventDefault: true,
+      action: () => {
+        void shell();
+      },
+    });
+    const unregisterAltTabs = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) =>
+      registry.register({
+        id: `switch-pty-${num}`,
+        key: String(num),
+        alt: true,
+        scope: 'global',
+        description: `Switch to Terminal ${num}`,
+        preventDefault: true,
+        action: () => {
+          const ptys = listSurfaces(workspace.model.root).filter(isPtySurface);
+          const target = ptys[num - 1];
+          if (target) {
+            presentation.setActivePty(surfaceViewId(target));
+            presentation.focus(surfaceViewId(target));
+          }
+        },
+      }),
+    );
 
     return () => {
       unregisterK();
       unregisterShiftP();
       unregisterP();
+      unregisterZen();
+      unregisterF11();
+      unregisterRail();
+      unregisterNewTerm();
+      unregisterAltTabs.forEach((unreg) => unreg());
     };
-  }, [project.id]);
+  }, [project.id, presentation, workspace.model.root, openKind, shell]);
 
   const handleProjectUpdated = (updated: Project) => {
     data.setProjects((cur) => cur.map((p) => (p.id === updated.id ? updated : p)));
     if (project.id === updated.id) {
       setProject(updated);
+    }
+  };
+
+  const handleProjectDeleted = (deleted: Project) => {
+    const remaining = data.projects.filter((entry) => entry.id !== deleted.id);
+    data.setProjects(remaining);
+    if (project.id !== deleted.id) return;
+    const next = remaining[0];
+    if (next) {
+      setProject(next);
+    } else {
+      navigate('/projects');
     }
   };
 
@@ -775,6 +894,7 @@ const WorkspaceCoordinator: React.FC<{
           agents={data.agents}
           workspaces={data.workspaces}
           runtimes={data.runtimes}
+          flowRuns={allFlowRuns.filter((run) => !run.project_id || run.project_id === project.id)}
           providers={data.providers}
           profiles={data.profiles}
           events={data.events}
@@ -787,11 +907,14 @@ const WorkspaceCoordinator: React.FC<{
           }}
           onProjectUpdated={handleProjectUpdated}
           openSurface={open}
+          updateSurface={workspace.updateSurface}
           closeSurface={workspace.close}
           onTour={() => setWelcomeOpen(true)}
+          settingsInitialTab={settingsInitialTab}
         />
       )}
       onRequestClose={requestCloseSurface}
+      onActivateSurface={open}
       createActions={{
         onNewAgent: () => setNewAgentOpen(true),
         onNewAISession: openNewAISession,
@@ -896,7 +1019,52 @@ const WorkspaceCoordinator: React.FC<{
     project.id,
     workspace.model.root,
     presentation.state.activePtyViewId,
+    workspace,
   ]);
+
+  const handleFocusAttention = useCallback(
+    (item: RadarRuntimeItem | { runtimeId: string; projectId?: string; agentId?: string }) => {
+      const runtimeId = item.runtimeId;
+      const runtime = data.runtimes.find((entry) => entry.runtime_id === runtimeId);
+      const projectId =
+        'projectId' in item && item.projectId ? item.projectId : runtime?.project_id;
+      const agentId = 'agentId' in item && item.agentId ? item.agentId : runtime?.agent_id;
+      const agentName =
+        (agentId && data.agents.find((agent) => agent.id === agentId)?.name) ||
+        runtime?.dynamic_title ||
+        runtime?.title;
+
+      const actions = planFocusAttention(
+        { projectId, agentId, runtimeId },
+        { currentProjectId: project.id, runtime, agentName },
+      );
+      const switchAction = actions.find((action) => action.type === 'switch-project');
+      const openActions = actions.filter((action) => action.type !== 'switch-project');
+      const runOpen = () => {
+        for (const action of openActions) {
+          if (action.type === 'open-agent-terminal') {
+            open(agentTerminalSurface(action.agentId, action.title, '', action.runtimeId || ''));
+            open(projectSurface(project.id, 'terminals'));
+          } else if (action.type === 'open-project-shell') {
+            open(projectShellSurface(action.projectId, action.runtimeId, action.title));
+            open(projectSurface(action.projectId, 'terminals'));
+          } else if (action.type === 'refresh-agents') {
+            void data.refreshAgents(action.projectId).catch(() => undefined);
+          }
+        }
+      };
+      if (switchAction?.type === 'switch-project') {
+        const next = data.projects.find((entry) => entry.id === switchAction.projectId);
+        if (next) {
+          setProject(next);
+          window.setTimeout(runOpen, 0);
+          return;
+        }
+      }
+      runOpen();
+    },
+    [data, open, project.id, setProject],
+  );
 
   // Attention watcher for the focused project only (radar remains global).
   useEffect(() => {
@@ -993,6 +1161,7 @@ const WorkspaceCoordinator: React.FC<{
     project.name,
     workspace.model.root,
     presentation.state.activePtyViewId,
+    handleFocusAttention,
   ]);
 
   if (popout) return <div className="nx-popout-shell">{renderer}</div>;
@@ -1008,8 +1177,20 @@ const WorkspaceCoordinator: React.FC<{
         data.setProjects((current) => [created, ...current]);
         setProject(created);
       }}
-      agents={data.agents}
-      onOpenAgent={(agent) => terminal(agent)}
+      onProjectUpdated={handleProjectUpdated}
+      onProjectDeleted={handleProjectDeleted}
+      onOpenAgent={(agent) => {
+        const target = data.projects.find((entry) => entry.id === agent.project_id);
+        if (target && target.id !== project.id) {
+          setProject(target);
+          window.setTimeout(() => terminal(agent), 0);
+          return;
+        }
+        terminal(agent);
+      }}
+      onOpenAttention={(targetProject, item) => {
+        navigate(buildProjectRoute(targetProject.id, 'missions', item.mission_id));
+      }}
       onNewAgent={() => setNewAgentOpen(true)}
       onNewAISession={openNewAISession}
       onProjectShell={() => {
@@ -1022,51 +1203,6 @@ const WorkspaceCoordinator: React.FC<{
     />
   );
 
-  const handleFocusAttention = (
-    item: RadarRuntimeItem | { runtimeId: string; projectId?: string; agentId?: string },
-  ) => {
-    const runtimeId = item.runtimeId;
-    const runtime = data.runtimes.find((entry) => entry.runtime_id === runtimeId);
-    const projectId = 'projectId' in item && item.projectId ? item.projectId : runtime?.project_id;
-    const agentId = 'agentId' in item && item.agentId ? item.agentId : runtime?.agent_id;
-    const agentName =
-      (agentId && data.agents.find((agent) => agent.id === agentId)?.name) ||
-      runtime?.dynamic_title ||
-      runtime?.title;
-
-    const actions = planFocusAttention(
-      { projectId, agentId, runtimeId },
-      { currentProjectId: project.id, runtime, agentName },
-    );
-
-    const switchAction = actions.find((action) => action.type === 'switch-project');
-    const openActions = actions.filter((action) => action.type !== 'switch-project');
-
-    const runOpen = () => {
-      for (const action of openActions) {
-        if (action.type === 'open-agent-terminal') {
-          open(agentTerminalSurface(action.agentId, action.title, '', action.runtimeId || ''));
-          open(projectSurface(project.id, 'terminals'));
-        } else if (action.type === 'open-project-shell') {
-          open(projectShellSurface(action.projectId, action.runtimeId, action.title));
-          open(projectSurface(action.projectId, 'terminals'));
-        } else if (action.type === 'refresh-agents') {
-          void data.refreshAgents(action.projectId).catch(() => undefined);
-        }
-      }
-    };
-
-    if (switchAction && switchAction.type === 'switch-project') {
-      const next = data.projects.find((entry) => entry.id === switchAction.projectId);
-      if (next) {
-        setProject(next);
-        window.setTimeout(runOpen, 0);
-        return;
-      }
-    }
-    runOpen();
-  };
-
   const handleFocusRuntime = (runtimeId: string) => {
     handleFocusAttention({ runtimeId });
   };
@@ -1077,13 +1213,19 @@ const WorkspaceCoordinator: React.FC<{
         project={project}
         agents={data.agents}
         runtimes={data.runtimes}
+        events={data.events}
         rail={rail}
+        zenMode={presentation.state.zenMode}
+        onToggleZenMode={presentation.toggleZenMode}
         onOpenRail={() => setRailOpen(true)}
         onOpenSurface={openKind}
         onCommand={() => setPalette(true)}
         onOpenWelcome={() => setWelcomeOpen(true)}
         onOpenProjectManager={() => openKind('projects')}
-        onSettings={() => openKind('settings')}
+        onSettings={(tab) => {
+          setSettingsInitialTab(tab || 'appearance');
+          openKind('settings');
+        }}
         onNewAgent={() => setNewAgentOpen(true)}
         onNewAISession={openNewAISession}
         onProjectShell={() => {
@@ -1105,7 +1247,19 @@ const WorkspaceCoordinator: React.FC<{
             {shellError}
           </div>
         )}
-        {renderer}
+        <div className={shellStyles.workspaceContent} aria-busy={!layoutReady}>
+          {renderer}
+          {!layoutReady && !popout && (
+            <div className={shellStyles.projectSwitchStatus} role="status" aria-live="polite">
+              <LoaderCircle
+                className={shellStyles.projectSwitchIcon}
+                size={14}
+                aria-hidden="true"
+              />
+              <span>{t('app.switchingProject', 'Carregando projeto…')}</span>
+            </div>
+          )}
+        </div>
       </NexusShell>
 
       {palette && (

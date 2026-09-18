@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 var (
@@ -74,7 +74,7 @@ func (s *Store) CreateProject(p Project) (Project, error) {
 		p.Slug = Slugify(p.Name)
 	}
 	if p.MaestroMode == "" {
-		p.MaestroMode = MaestroAssist
+		p.MaestroMode = MaestroOff
 	}
 	if p.DefaultIsolation == "" {
 		p.DefaultIsolation = "project"

@@ -3,13 +3,15 @@ package driver
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // CursorDriver controls the Cursor CLI Agent (cursor-agent / agent).
@@ -23,10 +25,7 @@ func (d *CursorDriver) ProviderID() string { return "cursor" }
 
 // Detect checks if cursor-agent or agent is installed in PATH or developer paths.
 func (d *CursorDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	bin, err := runtime.LookPath("cursor-agent")
-	if err != nil {
-		bin, err = runtime.LookPath("agent")
-	}
+	bin, err := spec.MustGet("cursor").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "cursor-agent binary not found in PATH"}, nil
 	}
@@ -149,10 +148,8 @@ func (d *CursorDriver) Capabilities(ctx context.Context, p model.Profile) Contro
 }
 
 func (d *CursorDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs []string) (string, []string, []string, error) {
-	bin, err := runtime.LookPath("cursor-agent")
-	if err != nil {
-		bin, err = runtime.LookPath("agent")
-	}
+	s := spec.MustGet("cursor")
+	bin, err := s.ResolveBinary()
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -166,12 +163,7 @@ func (d *CursorDriver) BuildCommand(ctx context.Context, p model.Profile, extraA
 	cfgObj, _ := config.LoadConfig()
 	_ = security.ApplyIsolation(home, security.GetPolicy(cfgObj.IsolationPreset))
 
-	env := runtime.EnvSet(os.Environ(), map[string]string{
-		"HOME":        home,
-		"CURSOR_HOME": home,
-		"AI_PROFILE":  p.Name,
-		"AI_PROVIDER": "cursor",
-	})
+	env := s.OverlayEnv(os.Environ(), home, filepath.Dir(bin), p.Name)
 
 	return bin, extraArgs, env, nil
 }
@@ -185,14 +177,11 @@ func (d *CursorDriver) CanResume(ctx context.Context, p model.Profile, providerS
 
 func (d *CursorDriver) BuildResumeArgs(ctx context.Context, p model.Profile, providerSessionID string) ([]string, error) {
 	if strings.TrimSpace(providerSessionID) != "" {
-		return []string{"--resume", providerSessionID}, nil
+		return spec.MustGet("cursor").Resume(providerSessionID), nil
 	}
 	return []string{"--continue"}, nil
 }
 
 func (d *CursorDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, kickoffPrompt string) ([]string, error) {
-	if kickoffPrompt != "" {
-		return []string{"-p", kickoffPrompt, "--output-format", "text"}, nil
-	}
-	return []string{}, nil
+	return spec.MustGet("cursor").Kickoff(kickoffPrompt), nil
 }

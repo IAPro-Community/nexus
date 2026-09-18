@@ -1,6 +1,9 @@
 {
-  "web/src/**/*.{ts,tsx}": ["sh -c 'cd web && npx eslint --fix \"$@\"' --", "sh -c 'cd web && npx prettier --write \"$@\"' --"],
-  "web/src/**/*.css": ["sh -c 'cd web && npx stylelint --fix \"$@\"' --", "sh -c 'cd web && npx prettier --write \"$@\"' --"],
-  "web/src/**/*.{json,md,yml,yaml}": ["sh -c 'cd web && npx prettier --write \"$@\"' --"],
+  "web/src/**/*.{ts,tsx}": [
+    "./web/node_modules/.bin/eslint --fix --config web/eslint.config.js",
+    "./web/node_modules/.bin/prettier --write"
+  ],
+  "web/src/**/*.{css,scss}": ["./web/node_modules/.bin/stylelint --fix", "./web/node_modules/.bin/prettier --write"],
+  "web/src/**/*.{json,md,yml,yaml}": ["./web/node_modules/.bin/prettier --write"],
   "**/*.go": ["gofmt -w -s"]
 }

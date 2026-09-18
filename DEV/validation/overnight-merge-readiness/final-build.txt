@@ -1,0 +1,32 @@
+Building frontend...
+≈ tailwindcss v4.3.3
+
+Done in 543ms
+
+  dist/bundle.js                                   343.3kb
+  dist/chunks/chunk-OI6WT6YE.js                    277.9kb
+  dist/chunks/FlowRunsHistorySurface-U2LR4F3Z.js   228.3kb
+  dist/bundle.css                                  157.2kb
+  dist/chunks/chunk-BG7XIWCZ.js                    156.8kb
+  dist/chunks/chunk-5KKHRYCG.js                    127.3kb
+  dist/chunks/chunk-5E7LF5JW.js                     64.9kb
+  dist/chunks/chunk-K7HBPJHX.js                     55.5kb
+  dist/chunks/chunk-EG57E7ST.js                     46.4kb
+  dist/chunks/chunk-JSWQBYL5.js                     29.4kb
+  dist/chunks/chunk-T2OXGDDT.js                     26.1kb
+  dist/chunks/chunk-6IREPIYC.js                     25.3kb
+  dist/chunks/AgentTerminal-ORLIWXPM.js             22.3kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/ProjectManagerSurface-ZIM464DK.js     15.0kb
+  dist/chunks/Dashboard-O333KX6T.js                 12.9kb
+  dist/chunks/NewAgentModal-6H5P3RMY.js             11.0kb
+  dist/chunks/MaestroSurface-VBHHVOAF.js            11.0kb
+  dist/chunks/chunk-XNWB4WYN.js                     11.0kb
+  dist/chunks/chunk-B3MNM2H7.js                     10.3kb
+  ...and 38 more output files...
+
+⚡ Done in 1527ms
+Nexus web build complete: /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/web/dist
+Frontend bundle ready for embedding
+Building nexus v0.5.0-beta.23 (commit: 37b9dde)...
+Built nexus v0.5.0-beta.23 at ./nexus

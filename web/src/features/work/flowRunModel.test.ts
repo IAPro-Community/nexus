@@ -13,6 +13,9 @@ describe('Flow Run state mapping', () => {
     expect(flowRunStateFromMission('REMEDIATING')).toBe('VERIFYING');
     expect(flowRunStateFromMission('COMPLETED_VERIFIED')).toBe('COMPLETED');
     expect(flowRunStateFromMission('FAILED_VERIFICATION')).toBe('FAILED');
+    expect(flowRunStateFromMission('FAILED_NO_PROGRESS')).toBe('FAILED');
+    expect(flowRunStateFromMission('FAILED_BUDGET_EXCEEDED')).toBe('FAILED');
+    expect(flowRunStateFromMission('FAILED')).toBe('FAILED');
     expect(flowRunStateFromMission('BLOCKED_NEEDS_USER')).toBe('BLOCKED');
     expect(flowRunStateFromMission('CANCELED_BY_USER')).toBe('CANCELED');
   });

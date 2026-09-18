@@ -2,7 +2,9 @@ package web
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -11,15 +13,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/originpolicy"
 	"github.com/gorilla/websocket"
-	"github.com/kivervinicius/ai-cli/internal/control/originpolicy"
 )
 
 const (
 	sessionCookieName = "ai_control_session"
+	deviceCookieName  = "ai_control_device"
 	csrfHeaderName    = "X-CSRF-Token"
 	sessionTTL        = 24 * time.Hour
 	sessionIdleTTL    = 4 * time.Hour
+	deviceCookieTTL   = 90 * 24 * time.Hour
 )
 
 type Session struct {
@@ -31,16 +35,20 @@ type Session struct {
 }
 
 type AuthManager struct {
-	mu             sync.RWMutex
-	bootstrapToken string
-	usedBootstrap  bool
-	sessions       map[string]*Session
-	desktopSession *Session
-	listenHost     string
-	listenPort     string
-	storeDir       string
-	lastPersist    time.Time
-	entropy        io.Reader
+	mu                 sync.RWMutex
+	bootstrapToken     string
+	bootstrapCreatedAt time.Time
+	usedBootstrap      bool
+	sessions           map[string]*Session
+	desktopSession     *Session
+	listenHost         string
+	listenPort         string
+	storeDir           string
+	lastPersist        time.Time
+	entropy            io.Reader
+	tunnelActive       bool // true when a Cloudflare Quick Tunnel exposes this server to the internet
+	clock              func() time.Time
+	deviceToken        string
 }
 
 func (a *AuthManager) SetDesktopSession(sess *Session) {
@@ -90,15 +98,17 @@ func NewAuthManagerWithStore(listenHost, listenPort, storeDir string) (*AuthMana
 	bootstrapToken := hex.EncodeToString(bytes)
 
 	auth := &AuthManager{
-		bootstrapToken: bootstrapToken,
-		sessions:       make(map[string]*Session),
-		listenHost:     listenHost,
-		listenPort:     listenPort,
-		storeDir:       strings.TrimSpace(storeDir),
-		entropy:        rand.Reader,
+		bootstrapToken:     bootstrapToken,
+		bootstrapCreatedAt: time.Now(),
+		sessions:           make(map[string]*Session),
+		listenHost:         listenHost,
+		listenPort:         listenPort,
+		storeDir:           strings.TrimSpace(storeDir),
+		entropy:            rand.Reader,
 	}
 	auth.mu.Lock()
 	auth.loadPersistedLocked()
+	auth.loadDeviceTokenLocked()
 	auth.mu.Unlock()
 	return auth, bootstrapToken, nil
 }
@@ -127,6 +137,24 @@ func CheckOrigin(r *http.Request) bool {
 
 func (a *AuthManager) ValidateOrigin(r *http.Request) bool {
 	return CheckOrigin(r)
+}
+
+// requireExactOrigin rejects empty Origin. Browser POSTs always send it;
+// anonymous curl to loopback-reauth must not succeed by omitting the header.
+func requireExactOrigin(r *http.Request) bool {
+	origin := strings.TrimSpace(r.Header.Get("Origin"))
+	if origin == "" {
+		return false
+	}
+	return originpolicy.Validate(r.Host, origin)
+}
+
+func sameOriginFetch(r *http.Request) bool {
+	site := strings.TrimSpace(r.Header.Get("Sec-Fetch-Site"))
+	if site == "" {
+		return true
+	}
+	return strings.EqualFold(site, "same-origin")
 }
 
 func (a *AuthManager) CreateSession() (*Session, error) {
@@ -171,41 +199,29 @@ func (a *AuthManager) AuthenticateRequest(r *http.Request) *Session {
 	if token == "" {
 		token = strings.TrimSpace(r.Header.Get("X-Nexus-Session"))
 	}
-	if token == "" && (websocket.IsWebSocketUpgrade(r) || strings.EqualFold(r.Header.Get("Upgrade"), "websocket")) {
-		token = strings.TrimSpace(r.URL.Query().Get("token"))
-		if token == "" {
-			token = strings.TrimSpace(r.URL.Query().Get("session"))
-		}
-	}
+	wsUpgrade := websocket.IsWebSocketUpgrade(r) || strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
+
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	// If no explicit token or cookie was provided, check if this request originates from the local native desktop shell
-	if token == "" && a.desktopSession != nil {
-		origin := r.Header.Get("Origin")
-		referer := r.Header.Get("Referer")
-
-		if originpolicy.IsTrustedDesktopRequest(r.Host, origin, referer) {
-			// Ensure desktop session still exists and has not expired or idled out
-			if _, exists := a.sessions[a.desktopSession.ID]; !exists {
-				a.desktopSession = nil
-				return nil
+	if token == "" && wsUpgrade {
+		// Browser WebSocket cannot set Authorization; query tokens remain the
+		// transport on loopback only. Reject them on private --remote binds and
+		// when a Quick Tunnel is active so session IDs are not forwarded through
+		// LAN sniffers or public intermediaries.
+		if isLoopbackHost(a.listenHost) && !a.tunnelActive {
+			token = strings.TrimSpace(r.URL.Query().Get("token"))
+			if token == "" {
+				token = strings.TrimSpace(r.URL.Query().Get("session"))
 			}
-			now := time.Now()
-			if now.After(a.desktopSession.ExpiresAt) || now.Sub(a.desktopSession.LastActiveAt) > sessionIdleTTL {
-				delete(a.sessions, a.desktopSession.ID)
-				a.desktopSession = nil
-				_ = a.persistLocked()
-				return nil
-			}
-			a.desktopSession.LastActiveAt = now
-			if a.storeDir != "" && now.Sub(a.lastPersist) >= sessionPersistMinGap {
-				_ = a.persistLocked()
-			}
-			return a.desktopSession
 		}
 	}
 
+	// Desktop sessions are provisioned by CreateDesktopSession and handed to the
+	// Wails shell via GetBootstrapInfo / /api/v1/desktop/bootstrap. Callers must
+	// present that session as cookie, Bearer, or X-Nexus-Session. Origin/Referer
+	// alone must never grant authentication — those headers are trivial to spoof
+	// from any local process talking to loopback.
 	if token == "" {
 		return nil
 	}
@@ -278,6 +294,29 @@ func (a *AuthManager) RotateSession(oldSessionID string) (*Session, error) {
 	return sess, nil
 }
 
+// SetTunnelActive informs the auth manager that a Cloudflare Quick Tunnel
+// is exposing this server to the internet. Effective exposure becomes
+// PUBLIC_REMOTE: bootstrap is one-time, cookies must be Secure, and sessions
+// must not be persisted for later local restore.
+func (a *AuthManager) SetTunnelActive(active bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.tunnelActive = active
+	if active {
+		// Drop any on-disk session cache so a restart cannot revive remote
+		// privileges minted while the tunnel was open.
+		_ = a.clearPersistedSessionsLocked()
+	}
+}
+
+// IsTunnelActive reports whether a Cloudflare Quick Tunnel is currently
+// exposing this server to the internet.
+func (a *AuthManager) IsTunnelActive() bool {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.tunnelActive
+}
+
 func (a *AuthManager) ExchangeBootstrapToken(token string) (*Session, bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -285,11 +324,18 @@ func (a *AuthManager) ExchangeBootstrapToken(token string) (*Session, bool) {
 	if token == "" || token != a.bootstrapToken {
 		return nil, false
 	}
-	// Remote/private binds keep one-time consume. Loopback reuses the printed
-	// Bootstrap URL for the life of the process so local re-auth does not
-	// require restarting `nexus web` after a cookie loss or accidental consume.
-	loopback := a.isLoopbackListen()
-	if a.usedBootstrap && !loopback {
+	exposure := a.effectiveExposureLocked()
+	reusable := exposure == ExposureLoopback
+	if !a.bootstrapCreatedAt.IsZero() {
+		ttl := remoteBootstrapTTL
+		if reusable {
+			ttl = loopbackBootstrapTTL
+		}
+		if a.now().Sub(a.bootstrapCreatedAt) > ttl {
+			return nil, false
+		}
+	}
+	if a.usedBootstrap && !reusable {
 		return nil, false
 	}
 
@@ -305,7 +351,7 @@ func (a *AuthManager) ExchangeBootstrapToken(token string) (*Session, bool) {
 	}
 	csrfToken := hex.EncodeToString(csrfBytes)
 
-	now := time.Now()
+	now := a.now()
 	sess := &Session{
 		ID:           sessID,
 		CSRFToken:    csrfToken,
@@ -313,17 +359,20 @@ func (a *AuthManager) ExchangeBootstrapToken(token string) (*Session, bool) {
 		ExpiresAt:    now.Add(sessionTTL),
 		LastActiveAt: now,
 	}
-	if !loopback {
+	if !reusable {
 		a.usedBootstrap = true
 	}
 	a.sessions[sessID] = sess
-	_ = a.persistLocked()
+	// Never persist sessions minted under PUBLIC_REMOTE / PRIVATE_NETWORK.
+	if exposure == ExposureLoopback {
+		_ = a.persistLocked()
+	}
 	return sess, true
 }
 
 func isLoopbackHost(host string) bool {
 	host = strings.TrimSpace(host)
-	if host == "" || strings.EqualFold(host, "localhost") {
+	if host == "" || strings.EqualFold(host, "localhost") || host == nexusHostname {
 		return true
 	}
 	ip := net.ParseIP(host)
@@ -339,4 +388,54 @@ func (a *AuthManager) entropyReader() io.Reader {
 		return a.entropy
 	}
 	return rand.Reader
+}
+
+// IssueLoopbackDeviceToken returns the durable pairing token for this machine
+// so a later same-origin loopback-reauth can mint a session without using the
+// process bootstrap secret as an anonymous capability.
+func (a *AuthManager) IssueLoopbackDeviceToken() (string, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if !a.isLoopbackListen() || a.tunnelActive {
+		return "", fmt.Errorf("loopback device token unavailable")
+	}
+	return a.ensureDeviceTokenLocked()
+}
+
+// MatchLoopbackDeviceToken reports whether the HttpOnly device cookie matches
+// the pairing token persisted for this loopback install.
+func (a *AuthManager) MatchLoopbackDeviceToken(value string) bool {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return deviceTokenMatches(a.deviceToken, strings.TrimSpace(value))
+}
+
+func (a *AuthManager) ensureDeviceTokenLocked() (string, error) {
+	if a.deviceToken != "" {
+		return a.deviceToken, nil
+	}
+	a.loadDeviceTokenLocked()
+	if a.deviceToken != "" {
+		return a.deviceToken, nil
+	}
+	bytes := make([]byte, 32)
+	if _, err := io.ReadFull(a.entropyReader(), bytes); err != nil {
+		return "", err
+	}
+	a.deviceToken = hex.EncodeToString(bytes)
+	if err := a.persistDeviceTokenLocked(); err != nil {
+		a.deviceToken = ""
+		return "", err
+	}
+	return a.deviceToken, nil
+}
+
+func deviceTokenMatches(stored, provided string) bool {
+	if stored == "" || provided == "" {
+		return false
+	}
+	if len(stored) != len(provided) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(stored), []byte(provided)) == 1
 }

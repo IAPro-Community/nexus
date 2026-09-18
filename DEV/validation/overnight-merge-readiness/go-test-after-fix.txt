@@ -1,0 +1,66 @@
+?   	github.com/kivervinicius/ai-cli/cmd/nexus	[no test files]
+?   	github.com/kivervinicius/ai-cli/cmd/nexus-desktop	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/app	18.417s
+?   	github.com/kivervinicius/ai-cli/internal/browser	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/buildinfo	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/control/driver	9.452s
+ok  	github.com/kivervinicius/ai-cli/internal/control/events	0.016s
+ok  	github.com/kivervinicius/ai-cli/internal/control/flags	0.018s
+ok  	github.com/kivervinicius/ai-cli/internal/control/handoff	0.225s
+ok  	github.com/kivervinicius/ai-cli/internal/control/host	0.705s
+ok  	github.com/kivervinicius/ai-cli/internal/control/ids	0.015s
+ok  	github.com/kivervinicius/ai-cli/internal/control/launchenv	0.013s
+ok  	github.com/kivervinicius/ai-cli/internal/control/launcher	0.032s
+ok  	github.com/kivervinicius/ai-cli/internal/control/notify	0.022s
+ok  	github.com/kivervinicius/ai-cli/internal/control/originpolicy	0.016s
+ok  	github.com/kivervinicius/ai-cli/internal/control/protocol	0.033s
+ok  	github.com/kivervinicius/ai-cli/internal/control/registry	0.118s
+ok  	github.com/kivervinicius/ai-cli/internal/control/terminal	0.010s
+ok  	github.com/kivervinicius/ai-cli/internal/control/tui	0.028s
+ok  	github.com/kivervinicius/ai-cli/internal/control/web	26.353s
+ok  	github.com/kivervinicius/ai-cli/internal/control/websocketio	0.075s
+ok  	github.com/kivervinicius/ai-cli/internal/control/workspace	0.018s
+ok  	github.com/kivervinicius/ai-cli/internal/conversation	0.013s
+ok  	github.com/kivervinicius/ai-cli/internal/core/classifier	0.015s
+ok  	github.com/kivervinicius/ai-cli/internal/core/config	0.019s
+ok  	github.com/kivervinicius/ai-cli/internal/core/cooldown	0.017s
+?   	github.com/kivervinicius/ai-cli/internal/core/exitcode	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/core/fallback	0.008s
+?   	github.com/kivervinicius/ai-cli/internal/core/model	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider	0.030s
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/agy	0.052s
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/claude	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex	10.175s
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/cursor	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/gemini	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/opencode	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/mock	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/core/quota	0.030s
+ok  	github.com/kivervinicius/ai-cli/internal/core/scheduler	0.051s
+ok  	github.com/kivervinicius/ai-cli/internal/core/security	0.037s
+ok  	github.com/kivervinicius/ai-cli/internal/core/session	0.039s
+ok  	github.com/kivervinicius/ai-cli/internal/core/telemetry	0.026s
+ok  	github.com/kivervinicius/ai-cli/internal/desktop	0.053s
+ok  	github.com/kivervinicius/ai-cli/internal/doctor	0.073s
+ok  	github.com/kivervinicius/ai-cli/internal/localization	0.046s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus	26.681s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard	0.236s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/contextsnapshot	0.712s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/intelligence	0.043s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/maestrogates	0.016s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/plangraph	0.025s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/runner	2.384s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/skills	0.025s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/store	1.177s
+ok  	github.com/kivervinicius/ai-cli/internal/profile	26.467s
+ok  	github.com/kivervinicius/ai-cli/internal/release	0.045s
+ok  	github.com/kivervinicius/ai-cli/internal/runtime	0.025s
+?   	github.com/kivervinicius/ai-cli/internal/testutil	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/testutil/fakeagent	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/tui	0.034s
+ok  	github.com/kivervinicius/ai-cli/internal/update	0.046s
+ok  	github.com/kivervinicius/ai-cli/scripts	0.030s
+?   	github.com/kivervinicius/ai-cli/scripts/loadtest	[no test files]
+ok  	github.com/kivervinicius/ai-cli/scripts/sign-update-manifest	0.035s
+?   	github.com/kivervinicius/ai-cli/web/node_modules/flatted/golang/pkg/flatted	[no test files]
+go: failed to trim cache: open /home/desenvolvedor/.cache/go-build/trim.txt: no such file or directory

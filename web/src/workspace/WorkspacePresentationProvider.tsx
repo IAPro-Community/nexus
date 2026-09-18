@@ -15,6 +15,8 @@ import {
   syncDesktopWindows,
   toggleDesktopMaximize,
   toggleDesktopMinimize,
+  toggleZenMode,
+  setZenMode,
   type MosaicResizeEdge,
   type WorkspacePresentationMode,
   type WorkspacePresentationState,
@@ -29,6 +31,8 @@ import { useWorkspaceLayoutPersistence } from './WorkspaceProvider';
 interface ContextValue {
   state: WorkspacePresentationState;
   setMode: (mode: WorkspacePresentationMode) => void;
+  toggleZenMode: () => void;
+  setZenMode: (enabled: boolean) => void;
   sync: (surfaces: WorkspaceSurface[]) => void;
   focus: (viewId: string) => void;
   setActivePty: (viewId: string) => void;
@@ -59,6 +63,8 @@ interface ContextValue {
 
 type Action =
   | { type: 'mode'; mode: WorkspacePresentationMode }
+  | { type: 'toggleZenMode' }
+  | { type: 'setZenMode'; enabled: boolean }
   | { type: 'sync'; surfaces: WorkspaceSurface[] }
   | { type: 'focus'; viewId: string }
   | { type: 'setActivePty'; viewId: string }
@@ -126,6 +132,10 @@ function reducer(state: WorkspacePresentationState, action: Action): WorkspacePr
   switch (action.type) {
     case 'mode':
       return setPresentationMode(state, action.mode);
+    case 'toggleZenMode':
+      return toggleZenMode(state);
+    case 'setZenMode':
+      return setZenMode(state, action.enabled);
     case 'sync':
       return syncDesktopWindows(state, action.surfaces);
     case 'focus':
@@ -182,6 +192,8 @@ export const WorkspacePresentationProvider: React.FC<{
     () => ({
       state,
       setMode: (mode) => dispatch({ type: 'mode', mode }),
+      toggleZenMode: () => dispatch({ type: 'toggleZenMode' }),
+      setZenMode: (enabled) => dispatch({ type: 'setZenMode', enabled }),
       sync: (surfaces) => dispatch({ type: 'sync', surfaces }),
       focus: (viewId) => dispatch({ type: 'focus', viewId }),
       setActivePty: (viewId) => dispatch({ type: 'setActivePty', viewId }),

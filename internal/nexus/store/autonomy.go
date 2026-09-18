@@ -2,11 +2,33 @@ package store
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
+
+type MissionInterventionResolutionRecord struct {
+	ID             string
+	RunID          string
+	InterventionID string
+	Version        int
+	OptionID       string
+	IdempotencyKey string
+	ResolvedAt     time.Time
+	ResolvedBy     string
+	ResumeStatus   string
+}
+
+type MissionRunEventRecord struct {
+	ID             string
+	RunID          string
+	EventType      string
+	IdempotencyKey string
+	PayloadJSON    string
+	CreatedAt      time.Time
+}
 
 type MissionRunRecord struct {
 	ID             string
@@ -67,6 +89,88 @@ func (s *Store) UpsertMissionRun(rec MissionRunRecord) error {
 		VALUES(?,?,?,?,?,'','',NULL,NULL,?,?)`,
 		rec.ID, rec.PlanID, rec.ProjectID, rec.State, rec.PayloadJSON, rec.CreatedAt.Format(time.RFC3339Nano), rec.UpdatedAt.Format(time.RFC3339Nano))
 	return err
+}
+
+// CommitMissionInterventionResolution atomically stores the updated run and
+// its durable resolution/resume intent. The event rows are an outbox for
+// projections; they are committed before any in-memory worker is scheduled.
+func (s *Store) CommitMissionInterventionResolution(run MissionRunRecord, resolution MissionInterventionResolutionRecord) error {
+	if run.ID == "" || resolution.IdempotencyKey == "" || resolution.RunID != run.ID {
+		return fmt.Errorf("mission intervention commit requires matching run and resolution")
+	}
+	now := time.Now().UTC()
+	if run.UpdatedAt.IsZero() {
+		run.UpdatedAt = now
+	}
+	if resolution.ResolvedAt.IsZero() {
+		resolution.ResolvedAt = now
+	}
+	if resolution.ID == "" {
+		resolution.ID = "resolution_" + ids.NewRuntimeID()
+	}
+	if resolution.ResumeStatus == "" {
+		resolution.ResumeStatus = "PENDING"
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin intervention commit: %w", err)
+	}
+	defer tx.Rollback()
+	var result sql.Result
+	if run.LeaseToken != "" {
+		result, err = tx.Exec(`UPDATE mission_runs SET state=?,payload_json=?,updated_at=? WHERE id=? AND lease_token=?`, run.State, run.PayloadJSON, run.UpdatedAt.Format(time.RFC3339Nano), run.ID, run.LeaseToken)
+	} else {
+		result, err = tx.Exec(`UPDATE mission_runs SET state=?,payload_json=?,updated_at=? WHERE id=? AND (lease_token='' OR lease_expires_at IS NULL OR lease_expires_at<=?)`, run.State, run.PayloadJSON, run.UpdatedAt.Format(time.RFC3339Nano), run.ID, now.Format(time.RFC3339Nano))
+	}
+	if err != nil {
+		return fmt.Errorf("persist intervention run: %w", err)
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return fmt.Errorf("mission run lease fencing mismatch")
+	}
+	_, err = tx.Exec(`INSERT OR IGNORE INTO mission_intervention_resolutions(id,run_id,intervention_id,version,option_id,idempotency_key,resolved_at,resolved_by,resume_status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)`,
+		resolution.ID, resolution.RunID, resolution.InterventionID, resolution.Version, resolution.OptionID, resolution.IdempotencyKey, resolution.ResolvedAt.Format(time.RFC3339Nano), resolution.ResolvedBy, resolution.ResumeStatus, now.Format(time.RFC3339Nano))
+	if err != nil {
+		return fmt.Errorf("persist intervention resolution: %w", err)
+	}
+	payload, _ := json.Marshal(map[string]any{"intervention_id": resolution.InterventionID, "version": resolution.Version, "option_id": resolution.OptionID, "resolved_by": resolution.ResolvedBy})
+	if err := insertMissionRunEventTx(tx, resolution.RunID, "human_intervention.resolved", resolution.IdempotencyKey, string(payload), resolution.ResolvedAt); err != nil {
+		return err
+	}
+	if err := insertMissionRunEventTx(tx, resolution.RunID, "mission.resume_requested", resolution.IdempotencyKey, string(payload), resolution.ResolvedAt); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit intervention resolution: %w", err)
+	}
+	return nil
+}
+
+func insertMissionRunEventTx(tx *sql.Tx, runID, eventType, idempotencyKey, payload string, createdAt time.Time) error {
+	if _, err := tx.Exec(`INSERT OR IGNORE INTO mission_run_events(id,run_id,event_type,idempotency_key,payload_json,created_at) VALUES(?,?,?,?,?,?)`,
+		"mission_event_"+ids.NewRuntimeID(), runID, eventType, idempotencyKey, payload, createdAt.UTC().Format(time.RFC3339Nano)); err != nil {
+		return fmt.Errorf("persist mission event %s: %w", eventType, err)
+	}
+	return nil
+}
+
+func (s *Store) ListMissionRunEvents(runID string) ([]MissionRunEventRecord, error) {
+	rows, err := s.db.Query(`SELECT id,run_id,event_type,COALESCE(idempotency_key,''),payload_json,created_at FROM mission_run_events WHERE run_id=? ORDER BY created_at ASC`, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []MissionRunEventRecord
+	for rows.Next() {
+		var record MissionRunEventRecord
+		var created string
+		if err := rows.Scan(&record.ID, &record.RunID, &record.EventType, &record.IdempotencyKey, &record.PayloadJSON, &created); err != nil {
+			return nil, err
+		}
+		record.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
+		out = append(out, record)
+	}
+	return out, rows.Err()
 }
 
 func (s *Store) GetMissionRun(id string) (*MissionRunRecord, error) {

@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/classifier"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // Adapter implements the Provider interface for OpenCode.
@@ -28,13 +29,13 @@ func (a *Adapter) Name() string         { return "OpenCode" }
 
 func (a *Adapter) Capabilities() model.Capabilities {
 	return model.Capabilities{
-		// OpenCode delegates authentication to its configured model provider.
-		Login:              false,
-		Logout:             false,
-		Usage:              true,
+		// OpenCode supports provider credential management and local loginless execution.
+		Login:              true,
+		Logout:             true,
+		Usage:              false, // Zen has no balance API; Anthropic upstream uses Claude probe.
 		Conversations:      true,
 		Resume:             true,
-		CrossAccountResume: true,
+		CrossAccountResume: false,
 		HotAccountSwitch:   false,
 		IsolatedRuntime:    true,
 		ProjectBinding:     true,
@@ -42,7 +43,7 @@ func (a *Adapter) Capabilities() model.Capabilities {
 }
 
 func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
-	bin, err := runtime.LookPath("opencode")
+	bin, err := spec.MustGet("opencode").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "binary not found in PATH"}
 	}
@@ -76,6 +77,21 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 		}
 	}
 
+	// Copy host auth.json into profile if profile does not have one yet
+	profileAuth := filepath.Join(home, ".local", "share", "opencode", "auth.json")
+	if _, err := os.Stat(profileAuth); os.IsNotExist(err) {
+		hostHome := config.BaseHome()
+		if hostHome == "" {
+			hostHome, _ = os.UserHomeDir()
+		}
+		if hostHome != "" {
+			hostAuth := filepath.Join(hostHome, ".local", "share", "opencode", "auth.json")
+			if hostData, rerr := os.ReadFile(hostAuth); rerr == nil && len(hostData) > 0 {
+				_ = os.WriteFile(profileAuth, hostData, 0600)
+			}
+		}
+	}
+
 	cfgObj, _ := config.LoadConfig()
 	policy := security.GetPolicy(cfgObj.IsolationPreset)
 	return security.ApplyIsolation(home, policy)
@@ -85,7 +101,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 	if err := a.Prepare(ctx, p); err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
 	}
-	bin, err := runtime.LookPath("opencode")
+	bin, err := spec.MustGet("opencode").ResolveBinary()
 	if err != nil {
 		return model.Failure{Kind: model.FailureProvider, Message: "opencode binary not found"}, err
 	}
@@ -110,7 +126,32 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
-	return fmt.Errorf("OpenCode authentication is provider-specific; run `opencode auth login <provider>` in the runtime where OpenCode will execute")
+	if err := a.Prepare(ctx, p); err != nil {
+		return err
+	}
+	bin, err := spec.MustGet("opencode").ResolveBinary()
+	if err != nil {
+		return fmt.Errorf("opencode binary not found: %w", err)
+	}
+	root, _ := config.ProfileRoot(string(a.ID()), p.Name)
+	home := filepath.Join(root, "home")
+	cwd, _ := os.Getwd()
+
+	envMap := map[string]string{
+		"HOME":                home,
+		"XDG_CONFIG_HOME":     filepath.Join(home, ".config"),
+		"XDG_DATA_HOME":       filepath.Join(home, ".local", "share"),
+		"XDG_CACHE_HOME":      filepath.Join(home, ".cache"),
+		"OPENCODE_CONFIG_DIR": filepath.Join(home, ".config", "opencode"),
+		"PATH":                runtime.EnhancedPATH(filepath.Dir(bin)),
+	}
+	if sock := os.Getenv("SSH_AUTH_SOCK"); sock != "" {
+		envMap["SSH_AUTH_SOCK"] = sock
+	}
+
+	env := runtime.EnvSet(os.Environ(), envMap)
+	_, runErr := runtime.RunInteractive(bin, []string{"providers", "login"}, env, cwd)
+	return runErr
 }
 
 func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
@@ -119,7 +160,7 @@ func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
 		return err
 	}
 	home := filepath.Join(root, "home")
-	_ = os.RemoveAll(filepath.Join(home, ".local", "share", "opencode"))
+	_ = os.Remove(filepath.Join(home, ".local", "share", "opencode", "auth.json"))
 	return nil
 }
 
@@ -131,61 +172,63 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 	home := filepath.Join(root, "home")
 
 	info := model.AccountInfo{
-		Plan:          "OpenCode Provider",
-		Status:        "Not authenticated",
-		Health:        model.HealthAuthRequired,
-		Authenticated: false,
+		Plan:          "OpenCode Local (Ollama/Env)",
+		Status:        "Ready (Local / No login required)",
+		Health:        model.HealthHealthy,
+		Authenticated: true,
 		Usage: model.UsageSnapshot{
 			ProviderID: string(a.ID()),
 			ProfileID:  p.Name,
-			Status:     model.UsageUnknown,
+			Status:     model.UsageUnsupported,
 			Source:     model.SourceNone,
 		},
 	}
 
+	if _, err := spec.MustGet("opencode").ResolveBinary(); err != nil {
+		info.Status = "OpenCode binary not found"
+		info.Health = model.HealthUnavailable
+		info.Authenticated = false
+		return info
+	}
+
 	authFile := filepath.Join(home, ".local", "share", "opencode", "auth.json")
-	if data, err := os.ReadFile(authFile); err == nil {
-		var aData struct {
-			Email    string `json:"email"`
-			Provider string `json:"provider"`
+	data, err := os.ReadFile(authFile)
+	if err != nil {
+		hostHome := config.BaseHome()
+		if hostHome == "" {
+			hostHome, _ = os.UserHomeDir()
 		}
-		if json.Unmarshal(data, &aData) == nil && (aData.Email != "" || aData.Provider != "") {
-			info.Email = aData.Email
-			if info.Email == "" {
-				info.Email = aData.Provider
+		if hostHome != "" {
+			hostAuthFile := filepath.Join(hostHome, ".local", "share", "opencode", "auth.json")
+			data, _ = os.ReadFile(hostAuthFile)
+		}
+	}
+
+	if len(data) > 0 {
+		var auth openCodeAuthFile
+		if json.Unmarshal(data, &auth) == nil && len(auth) > 0 {
+			if entry, ok := auth["opencode"]; ok && firstNonEmpty(entry.Key, entry.Token, entry.Access) != "" {
+				info.Plan = "OpenCode Zen"
+				info.Email = "OpenCode Zen"
+				info.Status = "Authenticated (Zen)"
+				info.Authenticated = true
+				info.Health = model.HealthHealthy
+				return info
 			}
-			info.Authenticated = true
-			info.Status = "Authenticated"
-			info.Health = model.HealthHealthy
+			for provName, entry := range auth {
+				if firstNonEmpty(entry.Key, entry.Token, entry.Access) != "" {
+					info.Plan = fmt.Sprintf("OpenCode (%s)", provName)
+					info.Email = provName
+					info.Status = fmt.Sprintf("Configured (%s)", provName)
+					info.Authenticated = true
+					info.Health = model.HealthHealthy
+					return info
+				}
+			}
 		}
 	}
 
 	return info
-}
-
-func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
-	snap := model.UsageSnapshot{
-		ProviderID: string(a.ID()),
-		ProfileID:  p.Name,
-		Status:     model.UsageUnknown,
-		Source:     model.SourceNone,
-		FetchedAt:  time.Now(),
-	}
-
-	root, err := config.ProfileRoot(string(a.ID()), p.Name)
-	if err != nil {
-		return snap
-	}
-
-	quotaFile := filepath.Join(root, "home", "usage.json")
-	if data, err := os.ReadFile(quotaFile); err == nil {
-		var s model.UsageSnapshot
-		if json.Unmarshal(data, &s) == nil {
-			return s
-		}
-	}
-
-	return snap
 }
 
 func (a *Adapter) ListConversations(ctx context.Context, p model.Profile, workspace string) ([]model.Session, error) {

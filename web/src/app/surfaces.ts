@@ -19,7 +19,7 @@ const labels: Record<ProjectSurfaceKind, string> = {
   projects: 'Workspace Desktops',
   overview: 'Overview',
   work: 'Composer',
-  missions: 'Flow Runs',
+  missions: 'Flow',
   terminals: 'Terminals',
   agents: 'Agents',
   maestro: 'Maestro',
@@ -51,7 +51,7 @@ export function projectSurface(projectId: string, kind: ProjectSurfaceKind): Wor
     type: kind,
     title: labels[kind],
     titleKey,
-    closable: kind !== 'overview' && kind !== 'terminals' && kind !== 'work',
+    closable: kind !== 'overview' && kind !== 'terminals' && kind !== 'work' && kind !== 'missions',
     data: { projectId },
   };
 }

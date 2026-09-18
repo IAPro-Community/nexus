@@ -1,0 +1,41 @@
+@use '../styles/tokens';
+@use '../styles/typography';
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--nx-space-4);
+  background: var(--nx-bg);
+  color: var(--nx-text);
+  text-align: center;
+}
+
+.card {
+  max-width: 480px;
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg);
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--nx-text);
+  margin: 0;
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: var(--nx-muted);
+  line-height: 1.5;
+  margin: 0;
+}

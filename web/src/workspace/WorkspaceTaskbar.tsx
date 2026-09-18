@@ -50,8 +50,8 @@ export const WorkspaceTaskbar: React.FC<{
   ).length;
 
   return (
-    <footer
-      className="nx-workspace-statusbar"
+    <div
+      className={`nx-workspace-statusbar ${styles.statusbar}`}
       data-tour="taskbar"
       role="status"
       aria-label="Status Bar"
@@ -149,6 +149,6 @@ export const WorkspaceTaskbar: React.FC<{
           <span>{t('statusBar.local')}</span>
         </span>
       </div>
-    </footer>
+    </div>
   );
 };

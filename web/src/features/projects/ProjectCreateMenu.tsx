@@ -75,7 +75,7 @@ export const ProjectCreateMenu: React.FC<ProjectCreateMenuProps> = ({
 
   if (!onNewAgent && !onNewAISession && !onProjectShell) return null;
 
-  const defaultLabel = label ?? t('overview.create', 'Criar');
+  const defaultLabel = label ?? t('overview.create');
 
   const panel =
     open && menuPos
@@ -83,7 +83,7 @@ export const ProjectCreateMenu: React.FC<ProjectCreateMenuProps> = ({
           <div
             className="nx-create-menu__panel"
             role="menu"
-            aria-label={t('overview.create', 'Criar no Projeto')}
+            aria-label={t('overview.createMenuTooltip')}
             style={{
               top: menuPos.top,
               ...(menuPos.left !== undefined ? { left: menuPos.left } : { right: menuPos.right }),
@@ -104,8 +104,8 @@ export const ProjectCreateMenu: React.FC<ProjectCreateMenuProps> = ({
                   <Plus size={13} />
                 </div>
                 <div className="nx-create-menu__text">
-                  <strong>{t('overview.newAgent', 'Novo Agente')}</strong>
-                  <small>{t('overview.newAgentHint', 'Agente autônomo com workspace')}</small>
+                  <strong>{t('overview.newAgent')}</strong>
+                  <small>{t('overview.newAgentHint')}</small>
                 </div>
               </button>
             )}
@@ -124,8 +124,8 @@ export const ProjectCreateMenu: React.FC<ProjectCreateMenuProps> = ({
                   <Sparkles size={13} />
                 </div>
                 <div className="nx-create-menu__text">
-                  <strong>{t('overview.newAISession', 'Nova Sessão IA')}</strong>
-                  <small>{t('overview.newAISessionHint', 'Prompt direto com Codex/Claude')}</small>
+                  <strong>{t('overview.newAISession')}</strong>
+                  <small>{t('overview.newAISessionHint')}</small>
                 </div>
               </button>
             )}
@@ -144,8 +144,8 @@ export const ProjectCreateMenu: React.FC<ProjectCreateMenuProps> = ({
                   <TerminalSquare size={13} />
                 </div>
                 <div className="nx-create-menu__text">
-                  <strong>{t('overview.projectShell', 'Terminal do Projeto')}</strong>
-                  <small>{t('overview.projectShellHint', 'Shell interativo bash/zsh')}</small>
+                  <strong>{t('overview.projectShell')}</strong>
+                  <small>{t('overview.projectShellHint')}</small>
                 </div>
               </button>
             )}
@@ -169,7 +169,7 @@ export const ProjectCreateMenu: React.FC<ProjectCreateMenuProps> = ({
         data-tone={variant === 'ghost' ? undefined : 'brand'}
         aria-expanded={open}
         aria-haspopup="menu"
-        title="Criar no projeto (Agente, Sessão IA ou Terminal)"
+        title={t('overview.createMenuTooltip')}
         onClick={() => setOpen((val) => !val)}
       >
         <Plus size={size === 'xs' ? 12 : 13} />

@@ -1,0 +1,6 @@
+{"ts":"2026-09-13T04:28:00Z","event":"campaign_intake","head":"b944779db0b835ca1be4f53183cda3013442af59","note":"Overnight certification requested; precondition check started."}
+{"ts":"2026-09-13T04:28:20Z","event":"precondition_file_missing","path":"DEV/validation/production-finalization/FINAL_REPORT.md"}
+{"ts":"2026-09-13T04:29:00Z","event":"search_verdict","pattern":"READY_FOR_OVERNIGHT_CERTIFICATION","matches":0}
+{"ts":"2026-09-13T04:29:34Z","event":"head_moved_during_check","new_head":"e53f8352e4c3647632ebac7877cf0a6a3bd62647","subject":"fix(release): close production certification blockers"}
+{"ts":"2026-09-13T04:30:05Z","event":"recheck_precondition","final_report_exists":false,"verdict_found":false,"intake_sha":"3985908244cc01c9e08c5ad4da0854622673a3d7","executed_head":"e53f8352e4c3647632ebac7877cf0a6a3bd62647","sha_match":false}
+{"ts":"2026-09-13T04:31:00Z","event":"abort","verdict":"ABORTED_PRECONDITION_FAILED","campaigns_started":[]}

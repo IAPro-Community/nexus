@@ -24,7 +24,6 @@ import {
   Terminal,
   Code2,
 } from 'lucide-react';
-import { getPlatformBridge } from '../../platform';
 import {
   Button,
   Card,
@@ -45,6 +44,7 @@ import type { Agent, Project } from '../../types';
 import { AddProjectModal } from './AddProjectModal';
 import { DirectoryBrowserModal } from './DirectoryBrowserModal';
 import { ProjectScanModal } from './ProjectScanModal';
+import { selectProjectDirectory } from './projectDirectoryPicker';
 import styles from './ProjectManagerSurface.module.scss';
 
 export const ProjectManagerSurface: React.FC<{
@@ -235,15 +235,14 @@ export const ProjectManagerSurface: React.FC<{
           <Button
             tone="ghost"
             onClick={async () => {
-              const bridge = getPlatformBridge();
-              if (bridge.getCapabilities().folderPicker) {
-                const path = await bridge.selectDirectory(t('projectManager.browseOS'));
-                if (path) {
-                  setNewPath(path);
-                  setNewName(path.split(/[/\\]/).filter(Boolean).pop() || 'Project');
+              const selection = await selectProjectDirectory(t('projectManager.browseOS'));
+              if (selection.supported) {
+                if (selection.path) {
+                  setNewPath(selection.path);
+                  setNewName(selection.path.split(/[/\\]/).filter(Boolean).pop() || 'Project');
                   setAddOpen(true);
-                  return;
                 }
+                return;
               }
               setDirPickerOpen(true);
             }}

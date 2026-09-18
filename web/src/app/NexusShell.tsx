@@ -6,19 +6,24 @@ import {
   ChevronDown,
   CircleHelp,
   Command,
+  Globe,
+  Maximize2,
   Menu,
+  Minimize2,
   MoonStar,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { IconButton } from '../design-system';
 import { LanguagePicker } from './components/LanguagePicker';
+import { FontScalePicker } from './components/FontScalePicker';
+import { ChromeOverflowMenu } from './components/ChromeOverflowMenu';
 import { WorkspaceTaskbar } from '../workspace/WorkspaceTaskbar';
 import { nexus } from '../nexus/api';
 import { AttentionIntermediationBanner } from '../components/AttentionIntermediationBanner';
 import { pushNotifications } from '../notifications/PushNotificationManager';
 import { InAppNotificationCenter } from '../notifications/InAppNotificationCenter';
 import { ProjectCreateMenu } from '../features/projects/ProjectCreateMenu';
-import type { Agent, Project, RuntimeSession } from '../types';
+import type { Agent, EventRecord, Project, RuntimeSession } from '../types';
 import type { RadarRuntimeItem } from './attentionRadarModel';
 import styles from './NexusShell.module.scss';
 
@@ -26,14 +31,17 @@ export const NexusShell: React.FC<{
   project: Project;
   agents: Agent[];
   runtimes?: RuntimeSession[];
+  events?: EventRecord[];
   rail: React.ReactNode;
   children: React.ReactNode;
+  zenMode?: boolean;
+  onToggleZenMode?: () => void;
   onOpenRail: () => void;
   onOpenSurface?: (kind: string) => void;
   onCommand: () => void;
   onOpenWelcome: () => void;
   onOpenProjectManager: () => void;
-  onSettings: () => void;
+  onSettings: (tab?: 'appearance' | 'updates' | 'remote') => void;
   onNewAgent?: () => void;
   onNewAISession?: () => void;
   onProjectShell?: () => void;
@@ -44,10 +52,13 @@ export const NexusShell: React.FC<{
   project,
   agents,
   runtimes = [],
+  events,
   rail,
   children,
+  zenMode = false,
+  onToggleZenMode,
   onOpenRail,
-  onOpenSurface,
+  onOpenSurface: _onOpenSurface,
   onCommand,
   onOpenWelcome,
   onOpenProjectManager,
@@ -90,17 +101,21 @@ export const NexusShell: React.FC<{
   );
 
   return (
-    <div className="nx-os-shell">
+    <div
+      className={
+        zenMode ? `nx-os-shell nx-os-shell--zen ${styles.shell}` : `nx-os-shell ${styles.shell}`
+      }
+    >
       <a href="#nexus-workspace" className="nx-skip-link">
         {t('shell.skip')}
       </a>
       {rail}
 
-      <div className="nx-os-main">
+      <div className={`nx-os-main ${styles.main}`}>
         <div className="nx-shell-chrome">
           {/* Top OS Header */}
-          <header className="nx-topbar">
-            <div className="nx-topbar__context">
+          <header className={`nx-topbar ${styles.topbar}`}>
+            <div className={`nx-topbar__context ${styles.context}`}>
               <IconButton
                 className="nx-mobile-menu"
                 label={t('shell.openProjects')}
@@ -112,9 +127,9 @@ export const NexusShell: React.FC<{
               {/* Clickable Project Switcher */}
               <button
                 type="button"
-                className="nx-topbar__project-btn"
+                className={`nx-topbar__project-btn ${styles.projectButton}`}
                 onClick={onOpenProjectManager}
-                title="Open Project Manager (Ctrl+P)"
+                title={t('shell.projectManagerShortcut', 'Open Project Manager (Ctrl+P)')}
               >
                 <span className="nx-project-avatar nx-project-avatar--top">
                   {(project.name || 'PR').slice(0, 2).toUpperCase()}
@@ -136,49 +151,58 @@ export const NexusShell: React.FC<{
             </div>
 
             {/* Right Status Controls */}
-            <div className="nx-topbar__status" data-tour="status">
-              {sysInfo?.update_available && (
+            <div className={`nx-topbar__status ${styles.status}`} data-tour="status">
+              <div className="nx-chrome-wide">
+                <div
+                  className="nx-topbar-version-pill"
+                  title={t('settings.nexusVersion', 'Nexus version')}
+                >
+                  <span className="nx-ver-nexus">Nexus v{sysInfo?.nexus_version || 'unknown'}</span>
+                </div>
+
+                {sysInfo?.update_available && (
+                  <button
+                    type="button"
+                    onClick={() => onSettings('updates')}
+                    className="nx-update-indicator"
+                    title={t('settings.updates')}
+                  >
+                    <ArrowUpCircle size={13} className="nx-spin-slow" />
+                    <span className="nx-update-badge">{t('settings.updates')}</span>
+                  </button>
+                )}
+
+                <LanguagePicker />
+                <FontScalePicker />
+                <IconButton
+                  label={t('settings.remote.title', 'Acesso remoto')}
+                  onClick={() => onSettings('remote')}
+                  title={t(
+                    'settings.remote.description',
+                    'Acesso Nexus de outro dispositivo via túnel Cloudflare',
+                  )}
+                >
+                  <Globe size={15} aria-hidden="true" />
+                </IconButton>
+
                 <button
                   type="button"
-                  onClick={onSettings}
-                  className="nx-update-indicator"
-                  title={t('settings.updates')}
+                  className={`nx-command-trigger ${styles.commandButton}`}
+                  data-tour="command"
+                  onClick={onCommand}
+                  title={t('shell.searchShortcut', 'Search & Commands (Ctrl+K)')}
                 >
-                  <ArrowUpCircle size={13} className="nx-spin-slow" />
-                  <span className="nx-update-badge">Updates</span>
+                  <Command size={13} />
+                  <span>{t('shell.search')}</span>
+                  <kbd>Ctrl K</kbd>
                 </button>
-              )}
-
-              {/* System Versions Pill */}
-              <div
-                className="nx-topbar-version-pill"
-                title="Nexus Version"
-                style={{ display: 'none' }}
-              >
-                <span className="nx-ver-nexus">Nexus v{sysInfo?.nexus_version || 'unknown'}</span>
               </div>
 
-              {/* Language Switcher */}
-              <LanguagePicker />
-
-              {/* Command Palette Trigger */}
-              <button
-                type="button"
-                className="nx-command-trigger"
-                data-tour="command"
-                onClick={onCommand}
-                title="Search & Commands (Ctrl+K)"
-              >
-                <Command size={13} />
-                <span>{t('shell.search')}</span>
-                <kbd>Ctrl K</kbd>
-              </button>
-
-              {/* Push & In-App Attention Notification Trigger */}
               <div className={styles.notificationWrap}>
                 <IconButton
-                  label="Central de Notificações e Radar"
+                  label={t('shell.notificationsAndRadar', 'Central de Notificações e Radar')}
                   onClick={() => setNotificationDrawerOpen((prev) => !prev)}
+                  aria-expanded={notificationDrawerOpen}
                 >
                   {pushNotifications.getPermission() === 'granted' ? (
                     <BellRing size={15} className="nx-text-emerald-400" />
@@ -189,15 +213,47 @@ export const NexusShell: React.FC<{
                 {hasAttentionAlerts && <span className={styles.attentionIndicator} />}
               </div>
 
-              {/* Help & Welcome Guide */}
-              <IconButton label={t('shell.tour')} onClick={onOpenWelcome}>
-                <CircleHelp size={15} />
-              </IconButton>
+              <div className="nx-chrome-wide">
+                <IconButton
+                  className="nx-topbar-tour-btn"
+                  label={t('shell.tour')}
+                  onClick={onOpenWelcome}
+                >
+                  <CircleHelp size={15} />
+                </IconButton>
 
-              {/* Theme & Settings */}
-              <IconButton label={t('shell.appearance')} onClick={onSettings}>
-                <MoonStar size={15} />
-              </IconButton>
+                {onToggleZenMode && (
+                  <button
+                    type="button"
+                    className={styles.focusToggleBtn}
+                    data-active={zenMode ? 'true' : 'false'}
+                    onClick={onToggleZenMode}
+                    title={zenMode ? t('workspace.exitFocusMode') : t('workspace.focusMode')}
+                    aria-label={zenMode ? t('workspace.exitFocusMode') : t('workspace.focusMode')}
+                  >
+                    {zenMode ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                    <span className={styles.focusBtnText}>
+                      {zenMode
+                        ? t('workspace.exitFocus')
+                        : t('workspace.focusModeShort', 'Modo Foco')}
+                    </span>
+                    <kbd>Ctrl+Shift+F</kbd>
+                  </button>
+                )}
+
+                <IconButton label={t('shell.appearance')} onClick={() => onSettings('appearance')}>
+                  <MoonStar size={15} />
+                </IconButton>
+              </div>
+
+              <ChromeOverflowMenu
+                zenMode={zenMode}
+                updateAvailable={Boolean(sysInfo?.update_available)}
+                onCommand={onCommand}
+                onOpenWelcome={onOpenWelcome}
+                onSettings={onSettings}
+                onToggleZenMode={onToggleZenMode}
+              />
             </div>
           </header>
 
@@ -212,7 +268,7 @@ export const NexusShell: React.FC<{
         </div>
 
         {/* Workspace Canvas (Tabs inside stacks) */}
-        <main id="nexus-workspace" className="nx-workspace-host">
+        <main id="nexus-workspace" className={`nx-workspace-host ${styles.workspace}`}>
           {children}
         </main>
 
@@ -222,6 +278,7 @@ export const NexusShell: React.FC<{
 
       <InAppNotificationCenter
         runtimes={runtimes}
+        events={events}
         focusedProjectId={project.id}
         drawerOpen={notificationDrawerOpen}
         onCloseDrawer={() => setNotificationDrawerOpen(false)}

@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // ShellDriver exposes a normal local project shell through the same supervised
@@ -23,29 +23,38 @@ func (d *ShellDriver) ProviderID() string { return "shell" }
 func resolveSystemShell() (string, error) {
 	if runtime.GOOS == "windows" {
 		if configured := strings.TrimSpace(os.Getenv("COMSPEC")); configured != "" {
-			return configured, nil
+			if shellRuns(configured, "/c", "exit", "0") {
+				return configured, nil
+			}
 		}
 		for _, candidate := range []string{"pwsh.exe", "powershell.exe", "cmd.exe"} {
-			if path, err := exec.LookPath(candidate); err == nil {
+			if path, err := exec.LookPath(candidate); err == nil && shellRuns(path, "/c", "exit", "0") {
 				return path, nil
 			}
 		}
 		return "", fmt.Errorf("no Windows shell found")
 	}
 	if configured := strings.TrimSpace(os.Getenv("SHELL")); configured != "" {
-		if path, err := exec.LookPath(configured); err == nil {
+		if path, err := exec.LookPath(configured); err == nil && shellRuns(path, "-c", "exit 0") {
 			return path, nil
-		}
-		if info, err := os.Stat(configured); err == nil && !info.IsDir() {
-			return configured, nil
 		}
 	}
 	for _, candidate := range []string{"bash", "zsh", "sh"} {
-		if path, err := exec.LookPath(candidate); err == nil {
+		if path, err := exec.LookPath(candidate); err == nil && shellRuns(path, "-c", "exit 0") {
 			return path, nil
 		}
 	}
 	return "", fmt.Errorf("no local shell found")
+}
+
+// shellRuns catches stale or non-executable SHELL values before a detached
+// SessionHost is registered. A path can exist while its interpreter or loader
+// is unavailable in the host environment, which otherwise surfaces later as a
+// misleading IPC timeout.
+func shellRuns(binary string, args ...string) bool {
+	cmd := exec.Command(binary, args...)
+	cmd.Env = os.Environ()
+	return cmd.Run() == nil
 }
 
 func (d *ShellDriver) Detect(context.Context) (model.DetectionResult, error) {

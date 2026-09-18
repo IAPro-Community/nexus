@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // --- P0-1: Project execution isolation ---
@@ -31,7 +31,6 @@ func TestStartAgentUsesProjectWorkspace(t *testing.T) {
 		t.Errorf("runtime workspace = %q, want project canonical path %q", sess.Workspace, projDir)
 	}
 }
-
 func TestStartAgentNeverUsesServerCWD(t *testing.T) {
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
@@ -308,5 +307,36 @@ func TestEffectiveStateStartingDeadRuntime(t *testing.T) {
 	}
 	if state != store.AgentRecoverable {
 		t.Errorf("STARTING agent with dead runtime: got %q, want RECOVERABLE", state)
+	}
+}
+
+func TestRecoverAgentDeadRuntimeStartsNewSessionUnlessNative(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	proj, _ := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
+	agent, _ := st.CreateAgent(store.Agent{ProjectID: proj.ID, Name: "Dev"})
+
+	started, err := n.StartAgent(context.Background(), agent.ID, "fake", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate dead runtime (host reboot / process killed)
+	registry.DefaultRegistry().Delete(started.RuntimeID)
+
+	recovered, err := n.RecoverAgent(context.Background(), agent.ID)
+	if err != nil {
+		t.Fatalf("RecoverAgent: %v", err)
+	}
+	if recovered.RuntimeID == started.RuntimeID {
+		t.Fatalf("expected new runtime session after dead runtime recovery, got same %s", recovered.RuntimeID)
+	}
+
+	gen, err := st.CurrentGeneration(agent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gen.Continuity != store.ContinuityNewSession {
+		t.Errorf("continuity = %q, want %q", gen.Continuity, store.ContinuityNewSession)
 	}
 }

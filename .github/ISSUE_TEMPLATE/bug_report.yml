@@ -1,0 +1,51 @@
+name: Bug report
+description: Report a reproducible IAPro Nexus problem.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include tokens, credentials, cookies, private keys, or
+        unredacted provider logs. For security issues, follow SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: Nexus version or commit
+      description: Output of `nexus version` or the exact commit SHA.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Linux amd64
+        - Linux arm64
+        - Windows amd64
+        - Windows arm64
+        - macOS amd64
+        - macOS arm64
+        - Browser/Web
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Commands, steps, expected behavior, and observed behavior.
+      placeholder: |
+        1. Run ...
+        2. Select ...
+        Expected: ...
+        Observed: ...
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted evidence
+      description: Paste sanitized logs or test output only.
+    validations:
+      required: false

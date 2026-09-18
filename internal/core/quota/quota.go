@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,12 +12,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 const (
 	DefaultTTL = 5 * time.Minute
+	// LastKnownTTL is intentionally much longer than DefaultTTL. It is used
+	// only to recover the last successful observation after a transient CLI or
+	// network failure; it must never make an old snapshot trustworthy.
+	LastKnownTTL = 30 * 24 * time.Hour
 )
 
 var (
@@ -39,14 +44,30 @@ func NewEngine(ttl time.Duration) *Engine {
 // Trustworthy reports whether a cached snapshot has an attributable,
 // sufficiently recent observation. A cache file alone is not evidence.
 func (e *Engine) Trustworthy(snap model.UsageSnapshot) bool {
+	debug := os.Getenv("NEXUS_AGY_DEBUG") == "1" || os.Getenv("NEXUS_DEBUG") == "1"
 	if snap.Source == "" || snap.Source == model.SourceNone || snap.FetchedAt.IsZero() || len(snap.Windows) == 0 {
+		if debug {
+			slog.Debug("Trustworthy: false (missing fields)", "source", snap.Source, "fetchedAt", snap.FetchedAt, "windows", len(snap.Windows))
+		}
 		return false
 	}
-	if snap.Status != model.UsageLive && snap.Status != model.UsageCached && snap.Status != model.UsageEstimated {
+	// RATE_LIMITED belongs here: a provider that reports a block alongside exact
+	// window percentages has given us attributable data. Excluding it would throw
+	// away the most accurate reading we can get for an exhausted account.
+	switch snap.Status {
+	case model.UsageLive, model.UsageCached, model.UsageEstimated, model.UsageRateLimited:
+	default:
+		if debug {
+			slog.Debug("Trustworthy: false (bad status)", "status", snap.Status)
+		}
 		return false
 	}
 	age := time.Since(snap.FetchedAt)
-	return age >= -time.Minute && age <= e.ttl
+	trustworthy := age >= -time.Minute && age <= e.ttl
+	if debug {
+		slog.Debug("Trustworthy: checking age", "source", snap.Source, "status", snap.Status, "fetchedAt", snap.FetchedAt, "age", age, "ttl", e.ttl, "trustworthy", trustworthy)
+	}
+	return trustworthy
 }
 
 // GetCachedUsage returns the cached snapshot for a profile without triggering external requests.
@@ -54,8 +75,16 @@ func (e *Engine) GetCachedUsage(provider, profileName string) (model.UsageSnapsh
 	cacheMu.RLock()
 	defer cacheMu.RUnlock()
 
+	debug := os.Getenv("NEXUS_AGY_DEBUG") == "1" || os.Getenv("NEXUS_DEBUG") == "1"
+	if debug {
+		slog.Debug("GetCachedUsage: starting", "provider", provider, "profile", profileName)
+	}
+
 	root, err := config.ProfileRoot(provider, profileName)
 	if err != nil {
+		if debug {
+			slog.Debug("GetCachedUsage: profile root failed", "provider", provider, "profile", profileName, "err", err)
+		}
 		return model.UsageSnapshot{
 			ProviderID: provider,
 			ProfileID:  profileName,
@@ -73,6 +102,9 @@ func (e *Engine) GetCachedUsage(provider, profileName string) (model.UsageSnapsh
 		data, err = os.ReadFile(legacyFile)
 		sourceFile = legacyFile
 		if err != nil {
+			if debug {
+				slog.Debug("GetCachedUsage: no quota files found", "provider", provider, "profile", profileName)
+			}
 			return model.UsageSnapshot{
 				ProviderID: provider,
 				ProfileID:  profileName,
@@ -82,22 +114,36 @@ func (e *Engine) GetCachedUsage(provider, profileName string) (model.UsageSnapsh
 		}
 	}
 
+	if debug {
+		slog.Debug("GetCachedUsage: reading file", "provider", provider, "profile", profileName, "file", sourceFile)
+	}
+
 	var snap model.UsageSnapshot
 	_ = json.Unmarshal(data, &snap)
-
-	// Codex quota from local files is unreliable: the live rate limits come
-	// from session rollouts, not from quota.json / usage.json. Treat any
-	// codex cached snapshot as UNKNOWN so the scheduler scores it honestly
-	// instead of trusting potentially stale file data.
-	if provider == "codex" && (snap.Status == model.UsageCached || snap.Status == model.UsageLive) {
-		// Only invalidate if the file is older than our trust window.
-		// Freshly-written files (from loadUsageSnapshot) are still valid.
-		if !e.Trustworthy(snap) {
-			snap.Status = model.UsageUnknown
-			snap.Source = model.SourceNone
-			snap.Windows = nil
-			return snap, false
+	// A previous Nexus version could have persisted an UNKNOWN result after a
+	// failed refresh. If the profile still has a legacy quota.json, use it as
+	// the last-known source instead of losing the only usable observation.
+	if sourceFile == quotaFile && (snap.Status == model.UsageUnknown || snap.Status == "" || len(snap.Windows) == 0) {
+		legacyFile := filepath.Join(root, "quota.json")
+		if legacyData, legacyErr := os.ReadFile(legacyFile); legacyErr == nil {
+			data = legacyData
+			sourceFile = legacyFile
+			snap = model.UsageSnapshot{}
+			_ = json.Unmarshal(data, &snap)
 		}
+	}
+
+	// A cache file is not evidence of current capacity after the trust window.
+	// This applies to every provider, especially AGY where selecting a stale
+	// default profile can launch against the wrong Google account.
+	if statusHasMeasuredPercent(string(snap.Status)) && !e.Trustworthy(snap) {
+		if debug {
+			slog.Debug("GetCachedUsage: cache not trustworthy", "provider", provider, "profile", profileName, "status", snap.Status, "fetchedAt", snap.FetchedAt, "age", time.Since(snap.FetchedAt))
+		}
+		snap.Status = model.UsageUnknown
+		snap.Source = model.SourceNone
+		snap.Windows = nil
+		return snap, false
 	}
 
 	if snap.Status == "" || len(snap.Windows) == 0 {
@@ -128,6 +174,9 @@ func (e *Engine) GetCachedUsage(provider, profileName string) (model.UsageSnapsh
 			} `json:"claude_weekly"`
 		}
 		if json.Unmarshal(data, &leg) == nil && (leg.FiveHour.PercentLeft > 0 || leg.Weekly.PercentLeft > 0 || leg.FiveHour.ResetTime != "" || leg.Weekly.ResetTime != "" || leg.FiveHour.ResetsIn != "" || leg.Weekly.ResetsIn != "" || leg.ClaudeFiveHour.PercentLeft != nil || leg.ClaudeWeekly.PercentLeft != nil || leg.ClaudeFiveHour.ResetsIn != "" || leg.ClaudeWeekly.ResetsIn != "" || leg.ClaudeFiveHour.ResetTime != "" || leg.ClaudeWeekly.ResetTime != "") {
+			if debug {
+				slog.Debug("GetCachedUsage: parsing legacy format", "provider", provider, "profile", profileName, "account", firstNonEmpty(leg.Account, leg.Email))
+			}
 			// AGY and Codex legacy files both store remaining capacity in percent_left
 			// (AGY UI label is "Limit Remaining"; a full bar is 100% remaining).
 			p5h := clampPercent(leg.FiveHour.PercentLeft)
@@ -212,7 +261,22 @@ func (e *Engine) GetCachedUsage(provider, profileName string) (model.UsageSnapsh
 				FetchedAt:  fileFetchedAt(sourceFile),
 				Windows:    windows,
 			}
+			if !e.Trustworthy(snap) {
+				if debug {
+					slog.Debug("GetCachedUsage: legacy snapshot not trustworthy", "provider", provider, "profile", profileName, "fetchedAt", snap.FetchedAt, "age", time.Since(snap.FetchedAt))
+				}
+				snap.Status = model.UsageUnknown
+				snap.Source = model.SourceNone
+				snap.Windows = nil
+				return snap, false
+			}
+			if debug {
+				slog.Debug("GetCachedUsage: returning legacy snapshot", "provider", provider, "profile", profileName, "status", snap.Status, "fetchedAt", snap.FetchedAt)
+			}
 			return snap, true
+		}
+		if debug {
+			slog.Debug("GetCachedUsage: no valid legacy format", "provider", provider, "profile", profileName)
 		}
 		return model.UsageSnapshot{
 			ProviderID: provider,
@@ -227,7 +291,55 @@ func (e *Engine) GetCachedUsage(provider, profileName string) (model.UsageSnapsh
 		snap.Status = model.UsageCached
 	}
 
+	if debug {
+		slog.Debug("GetCachedUsage: returning cached snapshot", "provider", provider, "profile", profileName, "status", snap.Status, "fetchedAt", snap.FetchedAt, "windows", len(snap.Windows))
+	}
 	return snap, true
+}
+
+// GetCachedUsageForScope reads cache only when the caller supplies the exact
+// account boundary. The legacy method remains for compatibility with callers
+// that have not migrated yet.
+func (e *Engine) GetCachedUsageForScope(scope model.AccountScope) (model.UsageSnapshot, bool) {
+	if !scope.Verifiable() {
+		return model.UsageSnapshot{ProviderID: scope.ProviderID, ProfileID: scope.ProfileID, Status: model.UsageUnknown, Source: model.SourceNone}, false
+	}
+	snap, found := e.GetCachedUsage(scope.ProviderID, scope.ProfileID)
+	if !found || !snap.AccountScope.Verifiable() || snap.AccountScope.Key() != scope.Key() {
+		return model.UsageSnapshot{ProviderID: scope.ProviderID, ProfileID: scope.ProfileID, AccountScope: scope, Status: model.UsageUnknown, Source: model.SourceNone}, false
+	}
+	return snap, true
+}
+
+// GetLastKnownUsageForScope is the scoped equivalent of GetLastKnownUsage.
+// It deliberately uses the long retention window while still requiring the
+// exact account identity, so stale data cannot cross an identity change.
+func (e *Engine) GetLastKnownUsageForScope(scope model.AccountScope) (model.UsageSnapshot, bool) {
+	if !scope.Verifiable() {
+		return model.UsageSnapshot{ProviderID: scope.ProviderID, ProfileID: scope.ProfileID, AccountScope: scope, Status: model.UsageUnknown, Source: model.SourceNone}, false
+	}
+	snap, found := NewEngine(LastKnownTTL).GetCachedUsage(scope.ProviderID, scope.ProfileID)
+	if !found || !snap.AccountScope.Verifiable() || snap.AccountScope.Key() != scope.Key() {
+		return model.UsageSnapshot{ProviderID: scope.ProviderID, ProfileID: scope.ProfileID, AccountScope: scope, Status: model.UsageUnknown, Source: model.SourceNone}, false
+	}
+	return snap, true
+}
+
+// GetLastKnownUsage returns the most recent snapshot that was persisted with
+// windows, even when it is older than the normal trust window. Callers must
+// mark the returned snapshot as degraded/estimated before displaying or using
+// it. This prevents a transient refresh failure from erasing useful context
+// while keeping freshness guarantees explicit.
+func (e *Engine) GetLastKnownUsage(provider, profileName string) (model.UsageSnapshot, bool) {
+	debug := os.Getenv("NEXUS_AGY_DEBUG") == "1" || os.Getenv("NEXUS_DEBUG") == "1"
+	if debug {
+		slog.Debug("GetLastKnownUsage: starting", "provider", provider, "profile", profileName)
+	}
+	snap, found := NewEngine(LastKnownTTL).GetCachedUsage(provider, profileName)
+	if debug {
+		slog.Debug("GetLastKnownUsage: result", "provider", provider, "profile", profileName, "found", found, "status", snap.Status, "fetchedAt", snap.FetchedAt, "windows", len(snap.Windows))
+	}
+	return snap, found
 }
 
 func clampPercent(v float64) float64 {
@@ -291,6 +403,28 @@ func (e *Engine) SaveUsage(snap model.UsageSnapshot) error {
 	return os.Rename(tempFile, quotaFile)
 }
 
+// SaveUsageForScope refuses to persist data without a verifiable account
+// identity. This is the safe boundary for new adapters and ephemeral runs.
+func (e *Engine) SaveUsageForScope(scope model.AccountScope, snap model.UsageSnapshot) error {
+	if !scope.Verifiable() {
+		return fmt.Errorf("cannot persist usage without a verifiable account scope")
+	}
+	snap.AccountScope = scope
+	snap.ProviderID = scope.ProviderID
+	snap.ProfileID = scope.ProfileID
+	return e.SaveUsage(snap)
+}
+
+// SaveUsageForExecution is the persistence boundary for managed versus
+// unmanaged runs. Ephemeral executions intentionally produce no account-owned
+// cache, even when a provider returns useful usage data.
+func (e *Engine) SaveUsageForExecution(scope model.AccountScope, snap model.UsageSnapshot, managed bool) error {
+	if !managed {
+		return nil
+	}
+	return e.SaveUsageForScope(scope, snap)
+}
+
 // FormatFreshness returns human-readable age of a snapshot (e.g. "updated 12s ago").
 func FormatFreshness(fetchedAt time.Time) string {
 	if fetchedAt.IsZero() {
@@ -323,8 +457,14 @@ func RenderProgressBar(status model.UsageStatus, remainingPercent *float64, widt
 	}
 
 	switch status {
-	case model.UsageLive, model.UsageCached, model.UsageEstimated:
+	// RATE_LIMITED now carries exact percentages when it comes from the official
+	// provider read. Rendering the bar keeps the consumption visible; the status
+	// column is what tells the operator the account is blocked.
+	case model.UsageLive, model.UsageCached, model.UsageEstimated, model.UsageRateLimited:
 		if remainingPercent == nil {
+			if status == model.UsageRateLimited {
+				return formatProgressLabel("LIMITED", width)
+			}
 			return formatProgressLabel("UNKNOWN", width)
 		}
 		pct := *remainingPercent
@@ -347,9 +487,6 @@ func RenderProgressBar(status model.UsageStatus, remainingPercent *float64, widt
 			return "[" + strings.Repeat("#", fillCount) + strings.Repeat("-", emptyCount) + "]"
 		}
 		return "[" + strings.Repeat("█", fillCount) + strings.Repeat("░", emptyCount) + "]"
-
-	case model.UsageRateLimited:
-		return formatProgressLabel("LIMITED", width)
 
 	case model.UsageUnsupported:
 		return formatProgressLabel("UNSUPPORT", width)
@@ -400,10 +537,17 @@ func (e *Engine) BatchFetch(ctx context.Context, profiles []model.Profile, fetch
 			defer func() { <-sem }()
 
 			snap := fetcher(ctx, prof)
-			_ = e.SaveUsage(snap)
+			if prof.AccountScope.Verifiable() {
+				snap.AccountScope = prof.AccountScope
+				_ = e.SaveUsageForScope(prof.AccountScope, snap)
+			}
 
 			mu.Lock()
-			results[prof.Provider+":"+prof.Name] = snap
+			key := prof.Provider + ":" + prof.Name
+			if prof.AccountScope.Verifiable() {
+				key = prof.AccountScope.Key()
+			}
+			results[key] = snap
 			mu.Unlock()
 		}(p)
 	}

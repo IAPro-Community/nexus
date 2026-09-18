@@ -5,26 +5,39 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // AgentConfig is the persistent, revisioned configuration for an Agent (Gate 3).
 // It is stored as a JSON blob in agent_revisions.config.
 type AgentConfig struct {
-	Provider         string            `json:"provider"`
-	Profile          string            `json:"profile"`
-	Model            string            `json:"model,omitempty"`
-	Options          map[string]any    `json:"options,omitempty"`
-	Workspace        string            `json:"workspace,omitempty"`
-	Isolation        string            `json:"isolation,omitempty"`         // "project" | "global" | "none"
-	MaestroMode      string            `json:"maestro_mode,omitempty"`      // "OFF" | "ASSIST" | "ORCHESTRATE"
-	ContinuityPolicy string            `json:"continuity_policy,omitempty"` // "auto" | "native" | "new_session"
-	Environment      map[string]string `json:"environment,omitempty"`
-	Allocation       *AllocationPolicy `json:"allocation,omitempty"`
+	Provider         string                 `json:"provider"`
+	Profile          string                 `json:"profile"`
+	Model            string                 `json:"model,omitempty"`
+	ModelCandidates  []ModelCandidate       `json:"model_candidates,omitempty"`
+	Options          map[string]any         `json:"options,omitempty"`
+	Workspace        string                 `json:"workspace,omitempty"`
+	Isolation        string                 `json:"isolation,omitempty"`         // "project" | "global" | "none"
+	MaestroMode      string                 `json:"maestro_mode,omitempty"`      // "OFF" | "ASSIST" | "ORCHESTRATE"
+	ContinuityPolicy string                 `json:"continuity_policy,omitempty"` // "auto" | "native" | "new_session"
+	Environment      map[string]string      `json:"environment,omitempty"`
+	Allocation       *AllocationPolicy      `json:"allocation,omitempty"`
+	AgentSpec        intelligence.AgentSpec `json:"agent_spec,omitempty"`
+}
+
+// NormalizeAgentSpec preserves legacy agents whose only specialization was
+// stored in store.Agent.Role. It never invents instructions or capabilities.
+func NormalizeAgentSpec(agent store.Agent, cfg AgentConfig) AgentConfig {
+	if strings.TrimSpace(cfg.AgentSpec.Role) == "" {
+		cfg.AgentSpec.Role = strings.TrimSpace(agent.Role)
+	}
+	return cfg
 }
 
 // AllocationPolicy controls how provider resources are allocated to an agent.
@@ -136,13 +149,38 @@ func AnalyzeImpact(current, proposed AgentConfig) ConfigImpact {
 	if current.ContinuityPolicy != proposed.ContinuityPolicy {
 		impact.ChangedFields = append(impact.ChangedFields, "continuity_policy")
 	}
+	if strings.EqualFold(proposed.ContinuityPolicy, "new_session") {
+		impact.RequiresNewSess = true
+		impact.RequiresRestart = true
+	}
 	if !reflect.DeepEqual(current.Options, proposed.Options) {
 		impact.ChangedFields = append(impact.ChangedFields, "options")
 		impact.RequiresRestart = true
+
+		currentMode := ""
+		if current.Options != nil {
+			if m, ok := current.Options["mode"].(string); ok {
+				currentMode = m
+			}
+		}
+		proposedMode := ""
+		if proposed.Options != nil {
+			if m, ok := proposed.Options["mode"].(string); ok {
+				proposedMode = m
+			}
+		}
+		if currentMode != proposedMode {
+			impact.RequiresNewSess = true
+		}
 	}
 	if !reflect.DeepEqual(current.Environment, proposed.Environment) {
 		impact.ChangedFields = append(impact.ChangedFields, "environment")
 		impact.RequiresRestart = true
+	}
+	if !reflect.DeepEqual(current.AgentSpec, proposed.AgentSpec) {
+		impact.ChangedFields = append(impact.ChangedFields, "agent_spec")
+		impact.RequiresRestart = true
+		impact.RequiresNewSess = true
 	}
 	if !reflect.DeepEqual(current.Allocation, proposed.Allocation) {
 		impact.ChangedFields = append(impact.ChangedFields, "allocation")
@@ -189,8 +227,10 @@ func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentCon
 		rev, rerr := st.GetRevision(agent.CurrentRevisionID)
 		if rerr == nil {
 			current, _ = ParseAgentConfig(rev.Config)
+			current = NormalizeAgentSpec(agent, current)
 		}
 	}
+	proposed = NormalizeAgentSpec(agent, proposed)
 
 	// Analyze impact.
 	impact := AnalyzeImpact(current, proposed)
@@ -255,9 +295,12 @@ func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentCon
 		copyGen := oldGen
 		previousGen = &copyGen
 	}
-	continuityLaunch, err := continuityForNextGeneration(ctx, proposed, previousGen)
+	launchDecision, err := n.continuityForNextGeneration(ctx, proposed, previousGen)
 	if err != nil {
 		return nil, fmt.Errorf("validate candidate continuity: %w", err)
+	}
+	if impact.RequiresNewSess || strings.EqualFold(proposed.ContinuityPolicy, "new_session") {
+		launchDecision = continuityLaunch{Status: store.ContinuityNewSession}
 	}
 
 	// Case 2: Restart required — execute ReconfigureTransaction (A5).
@@ -292,8 +335,8 @@ func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentCon
 		ProjectName:       proj.Name,
 		ProviderID:        proposed.Provider,
 		ProfileID:         proposed.Profile,
-		ProviderSessionID: continuityLaunch.ProviderSessionID,
-		Args:              continuityLaunch.Args,
+		ProviderSessionID: launchDecision.ProviderSessionID,
+		Args:              launchDecision.Args,
 		Workspace:         executionWorkspace,
 		Model:             proposed.Model,
 		Environment:       proposed.Environment,
@@ -329,7 +372,7 @@ func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentCon
 		Provider:        proposed.Provider,
 		Profile:         proposed.Profile,
 		ProviderSession: sess.ProviderSessionID,
-		Continuity:      continuityLaunch.Status,
+		Continuity:      launchDecision.Status,
 		StartedAt:       time.Now().UTC(),
 		State:           "RUNNING",
 	}
@@ -344,7 +387,7 @@ func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentCon
 	// Step 6: Atomically switch Agent current revision and status to WORKING.
 	agent.Status = store.AgentWorking
 	agent.CurrentRevisionID = rev.ID
-	agent.ContinuityStatus = continuityLaunch.Status
+	agent.ContinuityStatus = launchDecision.Status
 	now := time.Now().UTC()
 	agent.LastStartedAt = &now
 	_ = st.UpdateAgent(agent)
@@ -367,9 +410,9 @@ func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentCon
 	if wasAlive {
 		oldRuntimeID = oldGen.RuntimeID
 	}
-	n.notifyRuntimeChanged(agentID, oldRuntimeID, sess.RuntimeID, proposed.Provider, proposed.Profile, continuityLaunch.Status)
+	n.notifyRuntimeChanged(agentID, oldRuntimeID, sess.RuntimeID, proposed.Provider, proposed.Profile, launchDecision.Status)
 	n.notifyAgentState(agentID, "WORKING")
-	n.notifyContinuity(agentID, continuityLaunch.Status)
+	n.notifyContinuity(agentID, launchDecision.Status)
 
 	return &impact, nil
 }
@@ -387,7 +430,7 @@ func (n *Nexus) restorePreviousRuntime(ctx context.Context, st *store.Store, pro
 	if err != nil {
 		return err
 	}
-	continuity, err := continuityForNextGeneration(ctx, previousCfg, &previousGen)
+	continuity, err := n.continuityForNextGeneration(ctx, previousCfg, &previousGen)
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ import {
   NotificationOptions,
   DesktopBootstrapInfo,
 } from './capabilities';
+import { safeExternalUrl } from './externalUrl';
 
 declare global {
   interface Window {
@@ -40,9 +41,31 @@ export class DesktopBridge implements PlatformBridge {
   readonly kind = 'desktop' as const;
 
   private cachedBootstrap: DesktopBootstrapInfo | null = null;
+  private bootstrapRequest: Promise<DesktopBootstrapInfo | null> | null = null;
+  private cachedCapabilities: PlatformCapabilities | null = null;
+  private capabilitiesRequest: Promise<PlatformCapabilities | null> | null = null;
 
   private get appBinding() {
     return window.go?.desktop?.App;
+  }
+
+  private async loadCapabilities(): Promise<PlatformCapabilities | null> {
+    if (this.cachedCapabilities) return this.cachedCapabilities;
+    if (this.capabilitiesRequest) return this.capabilitiesRequest;
+
+    const binding = this.appBinding?.GetCapabilities;
+    if (!binding) return null;
+
+    this.capabilitiesRequest = binding()
+      .then((capabilities) => {
+        this.cachedCapabilities = capabilities;
+        return capabilities;
+      })
+      .catch(() => null)
+      .finally(() => {
+        this.capabilitiesRequest = null;
+      });
+    return this.capabilitiesRequest;
   }
 
   async getBootstrapInfo(): Promise<DesktopBootstrapInfo | null> {
@@ -50,6 +73,17 @@ export class DesktopBridge implements PlatformBridge {
       return this.cachedBootstrap;
     }
 
+    if (this.bootstrapRequest) {
+      return this.bootstrapRequest;
+    }
+
+    this.bootstrapRequest = this.loadBootstrapInfo().finally(() => {
+      this.bootstrapRequest = null;
+    });
+    return this.bootstrapRequest;
+  }
+
+  private async loadBootstrapInfo(): Promise<DesktopBootstrapInfo | null> {
     // 1. Check for Wails Go binding (with retry for async binding injection)
     for (let i = 0; i < 20; i++) {
       if (window.go?.desktop?.App?.GetBootstrapInfo) {
@@ -62,6 +96,7 @@ export class DesktopBridge implements PlatformBridge {
       try {
         const info = await window.go.desktop.App.GetBootstrapInfo();
         if (info && info.serverUrl) {
+          await this.loadCapabilities();
           this.cachedBootstrap = info;
           return info;
         }
@@ -70,35 +105,42 @@ export class DesktopBridge implements PlatformBridge {
       }
     }
 
-    // 2. Fallback: query desktop bootstrap endpoint directly via HTTP
-    try {
-      const res = await fetch('/api/v1/desktop/bootstrap', {
-        headers: { Accept: 'application/json' },
-      });
-      if (res.ok) {
-        const info = (await res.json()) as DesktopBootstrapInfo;
-        if (info && info.serverUrl) {
-          this.cachedBootstrap = info;
-          return info;
-        }
-      }
-    } catch (fetchErr) {
-      console.warn('HTTP desktop bootstrap endpoint probe error:', fetchErr);
-    }
-
+    // The HTTP endpoint intentionally requires an existing desktop bearer and
+    // is not a bootstrap fallback. Only the native Wails binding can safely
+    // deliver the pre-provisioned session to this document.
     return null;
   }
 
   getCapabilities(): PlatformCapabilities {
+    if (this.cachedCapabilities) return this.cachedCapabilities;
+    const app = this.appBinding;
+
+    // Real Wails bindings expose GetCapabilities; until bootstrap resolves it,
+    // report only capabilities that are safe to infer. A test/mock binding
+    // without GetCapabilities may still use method presence as its contract.
+    if (app?.GetCapabilities) {
+      return {
+        native: true,
+        filePicker: false,
+        folderPicker: false,
+        notifications: false,
+        tray: false,
+        nativeMenus: false,
+        deepLinks: false,
+        autoStart: false,
+        windowManagement: true,
+      };
+    }
+
     return {
       native: true,
-      filePicker: true,
-      folderPicker: true,
-      notifications: true,
-      tray: true,
-      nativeMenus: true,
-      deepLinks: true,
-      autoStart: true,
+      filePicker: Boolean(app?.SelectFile),
+      folderPicker: Boolean(app?.SelectDirectory),
+      notifications: Boolean(app?.ShowNotification),
+      tray: false,
+      nativeMenus: false,
+      deepLinks: false,
+      autoStart: false,
       windowManagement: true,
     };
   }
@@ -146,19 +188,22 @@ export class DesktopBridge implements PlatformBridge {
   }
 
   async openExternal(url: string): Promise<void> {
+    const safeUrl = safeExternalUrl(url);
+    if (!safeUrl) return;
+
     if (this.appBinding?.OpenExternal) {
       try {
-        await this.appBinding.OpenExternal(url);
+        await this.appBinding.OpenExternal(safeUrl);
         return;
       } catch {
         // Fallback
       }
     }
     if (window.runtime?.BrowserOpenURL) {
-      window.runtime.BrowserOpenURL(url);
+      window.runtime.BrowserOpenURL(safeUrl);
       return;
     }
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(safeUrl, '_blank', 'noopener,noreferrer');
   }
 
   async getSystemTheme(): Promise<'light' | 'dark' | 'unknown'> {

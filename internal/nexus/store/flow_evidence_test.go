@@ -97,7 +97,9 @@ func TestFlowEvidenceSchemaDriftIsRepairedAndLegacyPreserved(t *testing.T) {
 	if _, err := st.DB().Exec(`INSERT INTO flow_work_receipts VALUES ('legacy-1','run-1','A','VERIFIED','{"legacy":true}','2026-01-01','2026-01-01')`); err != nil {
 		t.Fatal(err)
 	}
-	st.Close()
+	if err := st.Close(); err != nil {
+		t.Fatalf("close before reopen: %v", err)
+	}
 
 	st, err = Open(path)
 	if err != nil {

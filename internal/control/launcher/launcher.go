@@ -7,14 +7,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/host"
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/control/launchenv"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/host"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/launchenv"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // LaunchOptions defines parameters for launching a supervised AI runtime.
@@ -26,6 +27,7 @@ type LaunchOptions struct {
 	Title             string
 	ProviderID        string
 	ProfileID         string
+	AccountScope      model.AccountScope `json:"account_scope,omitempty"`
 	ProviderSessionID string
 	Workspace         string
 	Args              []string
@@ -35,6 +37,7 @@ type LaunchOptions struct {
 	Environment       map[string]string `json:"environment,omitempty"`
 	Isolation         string            `json:"isolation,omitempty"`
 	Options           map[string]any    `json:"options,omitempty"`
+	Labels            map[string]string `json:"labels,omitempty"`
 	PathPrepend       []string          `json:"path_prepend,omitempty"`
 }
 
@@ -84,7 +87,19 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		Name:     opts.ProfileID,
 	}
 
-	configuredArgs, err := driver.ApplyLaunchConfiguration(opts.ProviderID, opts.Model, opts.Options, opts.Args)
+	launchModel := opts.Model
+	if strings.EqualFold(strings.TrimSpace(opts.ProviderID), "agy") && strings.TrimSpace(launchModel) == "" {
+		quotaEngine := quota.NewEngine(quota.DefaultTTL)
+		var cachedUsage model.UsageSnapshot
+		if opts.AccountScope.Verifiable() {
+			cachedUsage, _ = quotaEngine.GetCachedUsageForScope(opts.AccountScope)
+		}
+		if !quotaEngine.Trustworthy(cachedUsage) {
+			cachedUsage.Windows = nil
+		}
+		launchModel = driver.ResolveLaunchModel(opts.ProviderID, launchModel, cachedUsage)
+	}
+	configuredArgs, err := driver.ApplyLaunchConfiguration(opts.ProviderID, launchModel, opts.Options, opts.Args)
 	if err != nil {
 		return nil, fmt.Errorf("invalid launch configuration for %s:%s: %w", opts.ProviderID, opts.ProfileID, err)
 	}
@@ -127,8 +142,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		Title:             title,
 		ProviderID:        opts.ProviderID,
 		ProfileID:         opts.ProfileID,
+		AccountScope:      opts.AccountScope,
 		ProviderSessionID: opts.ProviderSessionID,
-		Model:             opts.Model,
+		Model:             launchModel,
 		Workspace:         opts.Workspace,
 		Binary:            bin,
 		Args:              registryArgs,
@@ -140,15 +156,40 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		MachineID:         registry.LocalMachineID(),
 		Location:          "local",
 		Transport:         "ipc",
+		Labels:            cloneLabels(opts.Labels),
 	}
 
 	if err := l.reg.Register(sess); err != nil {
 		return nil, fmt.Errorf("failed to register runtime session: %w", err)
 	}
+	var supervisedHost *host.SessionHost
+	var detachedProcess *os.Process
+	cleanupFailedLaunch := func() {
+		removeLaunchEnvelope(opts.RuntimeID)
+		if supervisedHost != nil {
+			_ = supervisedHost.Terminate()
+		}
+		if detachedProcess != nil {
+			// Ask the host to terminate its provider first when its endpoint is
+			// already reachable; killing only the detached host can orphan the
+			// provider process on some platforms.
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+			if client, clientErr := protocol.NewClient(opts.RuntimeID); clientErr == nil {
+				_, _ = client.SendContext(cleanupCtx, protocol.CmdTerminate, nil)
+				_ = client.Close()
+			}
+			cancel()
+			_ = detachedProcess.Kill()
+			_, _ = detachedProcess.Wait()
+		}
+		_ = os.Remove(protocol.EndpointPath(opts.RuntimeID))
+		_ = l.reg.Delete(opts.RuntimeID)
+	}
 
 	if opts.Standalone {
 		sh, err := host.NewSessionHost(host.Config{
 			Session:     sess,
+			Registry:    l.reg,
 			Binary:      bin,
 			Args:        extraArgs,
 			Env:         env,
@@ -157,11 +198,12 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 			InitialCols: 80,
 		})
 		if err != nil {
-			_ = l.reg.UpdateState(opts.RuntimeID, registry.StateFailed)
+			cleanupFailedLaunch()
 			return nil, fmt.Errorf("failed to initialize SessionHost: %w", err)
 		}
+		supervisedHost = sh
 		if err := sh.Start(); err != nil {
-			_ = l.reg.UpdateState(opts.RuntimeID, registry.StateFailed)
+			cleanupFailedLaunch()
 			return nil, fmt.Errorf("failed to start SessionHost: %w", err)
 		}
 	} else {
@@ -173,28 +215,33 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		if err != nil {
 			selfExe = "ai"
 		}
-		proc, err := SpawnDetachedHost(selfExe, opts.RuntimeID)
+		detachedProcess, err = SpawnDetachedHost(selfExe, opts.RuntimeID)
 		if err != nil {
-			removeLaunchEnvelope(opts.RuntimeID)
-			_ = l.reg.UpdateState(opts.RuntimeID, registry.StateFailed)
+			cleanupFailedLaunch()
 			return nil, fmt.Errorf("failed to spawn detached SessionHost daemon: %w", err)
 		}
-		sess.HostPID = proc.Pid
+		sess.HostPID = detachedProcess.Pid
 		_ = l.reg.Register(sess)
 	}
 
-	// Handshake: wait for IPC endpoint to be active and responsive
-	if err := protocol.WaitForEndpoint(ctx, opts.RuntimeID, opts.Timeout); err != nil {
-		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProviderStarting, registry.StartupFaultIPCTimeout)
-		_ = l.reg.UpdateState(opts.RuntimeID, registry.StateFailed)
-		return nil, fmt.Errorf("runtime handshake timed out for %s: %w", opts.RuntimeID, err)
+	// Handshake: wait for IPC endpoint to be active and responsive.
+	// Detached hosts that fail during Start (e.g. Codex TUI lease busy) exit
+	// immediately; fail fast from the host log instead of waiting the full timeout.
+	if err := waitForRuntimeHandshake(ctx, opts.RuntimeID, detachedProcess, opts.Timeout); err != nil {
+		fault := registry.StartupFaultIPCTimeout
+		if isEarlyHostExit(err) {
+			fault = registry.StartupFaultProcessSupervision
+		}
+		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProviderStarting, fault)
+		cleanupFailedLaunch()
+		return nil, fmt.Errorf("runtime handshake failed for %s: %w", opts.RuntimeID, err)
 	}
 
 	// Verify handshake with status probe
 	client, err := protocol.NewClient(opts.RuntimeID)
 	if err != nil {
 		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProtocolReady, registry.StartupFaultProtocolError)
-		_ = l.reg.UpdateState(opts.RuntimeID, registry.StateFailed)
+		cleanupFailedLaunch()
 		return nil, fmt.Errorf("failed to connect to initialized runtime %s: %w", opts.RuntimeID, err)
 	}
 	defer client.Close()
@@ -202,7 +249,7 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	status, err := client.Status()
 	if err != nil {
 		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProtocolReady, registry.StartupFaultProtocolError)
-		_ = l.reg.UpdateState(opts.RuntimeID, registry.StateFailed)
+		cleanupFailedLaunch()
 		return nil, fmt.Errorf("status handshake probe failed for runtime %s: %w", opts.RuntimeID, err)
 	}
 
@@ -211,4 +258,64 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	_ = l.reg.Register(sess)
 
 	return &sess, nil
+}
+
+// Stop requests a graceful protocol stop, then force-kills HostPID/PID if the
+// runtime remains alive after a short barrier.
+func (l *Launcher) Stop(runtimeID string) error {
+	sess, ok := l.reg.Get(runtimeID)
+	var protocolErr error
+	client, err := protocol.NewClient(runtimeID)
+	if err != nil {
+		protocolErr = err
+	} else {
+		protocolErr = client.Stop()
+		_ = client.Close()
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if !sessionProcessAlive(sess, ok) {
+			return protocolErr
+		}
+		time.Sleep(50 * time.Millisecond)
+		sess, ok = l.reg.Get(runtimeID)
+	}
+	forceKillSession(runtimeID, sess, ok)
+	_ = l.reg.UpdateState(runtimeID, registry.StateFailed)
+	if protocolErr != nil {
+		return fmt.Errorf("force-killed runtime %s after stop failure: %w", runtimeID, protocolErr)
+	}
+	return fmt.Errorf("force-killed runtime %s after stop timeout", runtimeID)
+}
+
+func forceKillSession(runtimeID string, sess registry.RuntimeSession, ok bool) {
+	if ok {
+		KillProcess(sess.PID)
+		KillProcess(sess.HostPID)
+	}
+	_ = os.Remove(protocol.EndpointPath(runtimeID))
+}
+
+func sessionProcessAlive(sess registry.RuntimeSession, ok bool) bool {
+	if !ok {
+		return false
+	}
+	if sess.PID > 0 && registry.IsProcessAlive(sess.PID) {
+		return true
+	}
+	if sess.HostPID > 0 && registry.IsProcessAlive(sess.HostPID) {
+		return true
+	}
+	return false
+}
+
+func cloneLabels(labels map[string]string) map[string]string {
+	if len(labels) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(labels))
+	for key, value := range labels {
+		out[key] = value
+	}
+	return out
 }

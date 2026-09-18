@@ -1,0 +1,110 @@
+{
+  "agy": {
+    "binary_path": "/home/desenvolvedor/.local/bin/agy",
+    "capabilities": {
+      "login": true,
+      "logout": true,
+      "usage": true,
+      "conversations": true,
+      "resume": true,
+      "cross_account_resume": true,
+      "hot_account_switch": false,
+      "isolated_runtime": true,
+      "project_binding": true
+    },
+    "installed": true,
+    "name": "AGY",
+    "profiles": 2,
+    "version": "1.2.2"
+  },
+  "claude": {
+    "binary_path": "/home/desenvolvedor/.local/bin/claude",
+    "capabilities": {
+      "login": true,
+      "logout": true,
+      "usage": true,
+      "conversations": true,
+      "resume": true,
+      "cross_account_resume": false,
+      "hot_account_switch": false,
+      "isolated_runtime": true,
+      "project_binding": true
+    },
+    "installed": true,
+    "name": "Claude Code",
+    "profiles": 0,
+    "version": "2.1.250 (Claude Code)"
+  },
+  "codex": {
+    "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/codex",
+    "capabilities": {
+      "login": true,
+      "logout": true,
+      "usage": true,
+      "conversations": true,
+      "resume": true,
+      "cross_account_resume": true,
+      "hot_account_switch": false,
+      "isolated_runtime": true,
+      "project_binding": true
+    },
+    "installed": true,
+    "name": "Codex",
+    "profiles": 2,
+    "version": "codex-cli 0.154.0"
+  },
+  "cursor": {
+    "binary_path": "/home/desenvolvedor/.local/bin/agent",
+    "capabilities": {
+      "login": true,
+      "logout": true,
+      "usage": false,
+      "conversations": false,
+      "resume": true,
+      "cross_account_resume": false,
+      "hot_account_switch": false,
+      "isolated_runtime": true,
+      "project_binding": true
+    },
+    "installed": true,
+    "name": "Cursor CLI",
+    "profiles": 0,
+    "version": "2026.08.11-e8db854"
+  },
+  "gemini": {
+    "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/gemini",
+    "capabilities": {
+      "login": true,
+      "logout": true,
+      "usage": true,
+      "conversations": true,
+      "resume": true,
+      "cross_account_resume": false,
+      "hot_account_switch": false,
+      "isolated_runtime": true,
+      "project_binding": true
+    },
+    "installed": true,
+    "name": "Gemini CLI",
+    "profiles": 0,
+    "version": "0.28.2"
+  },
+  "opencode": {
+    "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/opencode",
+    "capabilities": {
+      "login": false,
+      "logout": false,
+      "usage": true,
+      "conversations": true,
+      "resume": true,
+      "cross_account_resume": true,
+      "hot_account_switch": false,
+      "isolated_runtime": true,
+      "project_binding": true
+    },
+    "installed": true,
+    "name": "OpenCode",
+    "profiles": 1,
+    "version": "1.18.30"
+  }
+}

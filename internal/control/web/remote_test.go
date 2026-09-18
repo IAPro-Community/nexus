@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"strconv"
+	"strings"
 	"testing"
-	"time"
 )
 
 // TestRemote_SSHTunnel simulates an SSH Port-Forwarding Tunnel (local forward):
@@ -30,8 +30,6 @@ func TestRemote_SSHTunnel(t *testing.T) {
 		_ = srv.Start()
 	}()
 	defer srv.Shutdown(context.Background())
-
-	time.Sleep(50 * time.Millisecond)
 
 	remoteAddr := srv.listener.Addr().String()
 
@@ -75,19 +73,23 @@ func TestRemote_SSHTunnel(t *testing.T) {
 
 	localPort := localListener.Addr().(*net.TCPAddr).Port
 
-	// 3. Client on local machine visits tunnel URL: http://127.0.0.1:<localPort>/?token=...
+	// 3. Client on local machine bootstraps via POST through the tunnel
 	jar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: jar}
 
-	tunnelBootstrapURL := "http://127.0.0.1:" + strconv.Itoa(localPort) + "/?token=" + srv.bootstrap
-	resp, err := client.Get(tunnelBootstrapURL)
+	tunnelBaseURL := "http://127.0.0.1:" + strconv.Itoa(localPort)
+	body := strings.NewReader(`{"token":"` + srv.bootstrap + `"}`)
+	resp, err := client.Post(tunnelBaseURL+"/api/v1/auth/bootstrap", "application/json", body)
 	if err != nil {
-		t.Fatalf("failed to access via SSH tunnel: %v", err)
+		t.Fatalf("failed to bootstrap via SSH tunnel: %v", err)
 	}
 	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("tunnel bootstrap POST returned %d", resp.StatusCode)
+	}
 
 	// 4. Verify session cookie and CSRF token through the tunnel
-	sessResp, err := client.Get("http://127.0.0.1:" + strconv.Itoa(localPort) + "/api/v1/session")
+	sessResp, err := client.Get(tunnelBaseURL + "/api/v1/session")
 	if err != nil {
 		t.Fatalf("failed to query session via tunnel: %v", err)
 	}
@@ -106,7 +108,7 @@ func TestRemote_SSHTunnel(t *testing.T) {
 	}
 
 	// 5. Verify API calls work over the tunnel
-	healthResp, err := client.Get("http://127.0.0.1:" + strconv.Itoa(localPort) + "/api/v1/health")
+	healthResp, err := client.Get(tunnelBaseURL + "/api/v1/health")
 	if err != nil || healthResp.StatusCode != http.StatusOK {
 		t.Errorf("health check over SSH tunnel failed: %v", err)
 	}

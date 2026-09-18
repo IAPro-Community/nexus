@@ -18,9 +18,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/web"
 	"github.com/gorilla/websocket"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/web"
 )
 
 type loadClient struct {
@@ -115,7 +115,7 @@ func run(projectCount, terminalCount int) report {
 
 	jar, _ := cookiejar.New(nil)
 	client := &loadClient{http: &http.Client{Jar: jar, Timeout: 60 * time.Second}, base: srv.URL()}
-	if err := client.bootstrap(srv.BootstrapURL()); err != nil {
+	if err := client.bootstrap(srv.URL(), srv.BootstrapToken()); err != nil {
 		result.Failure = err.Error()
 		return result
 	}
@@ -217,8 +217,9 @@ func run(projectCount, terminalCount int) report {
 	return result
 }
 
-func (c *loadClient) bootstrap(bootstrapURL string) error {
-	resp, err := c.http.Get(bootstrapURL)
+func (c *loadClient) bootstrap(baseURL, token string) error {
+	body := strings.NewReader(fmt.Sprintf(`{"token":%q}`, token))
+	resp, err := c.http.Post(baseURL+"/api/v1/auth/bootstrap", "application/json", body)
 	if err != nil {
 		return fmt.Errorf("bootstrap: %w", err)
 	}

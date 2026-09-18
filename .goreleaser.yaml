@@ -8,31 +8,29 @@ builds:
     binary: nexus
     env:
       - CGO_ENABLED=0
+    flags:
+      - -trimpath
     goos:
       - linux
-      - darwin
-      - windows
     goarch:
       - amd64
       - arm64
     ldflags:
       - >-
         -s -w
-        -X github.com/kivervinicius/ai-cli/internal/buildinfo.Version={{.Version}}
-        -X github.com/kivervinicius/ai-cli/internal/buildinfo.Commit={{.Commit}}
-        -X github.com/kivervinicius/ai-cli/internal/buildinfo.BuildDate={{.Date}}
+        -X github.com/IAPro-Community/nexus/internal/buildinfo.Version={{.Version}}
+        -X github.com/IAPro-Community/nexus/internal/buildinfo.Commit={{.Commit}}
+        -X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate={{.Date}}
+        -X github.com/IAPro-Community/nexus/internal/update.ProductionTrustRootHex={{.Env.NEXUS_UPDATE_PUBLIC_KEY}}
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
-    format_overrides:
-      - goos: windows
-        format: zip
 
 checksum:
   name_template: 'checksums.txt'
@@ -48,22 +46,24 @@ nfpms:
       {{- else if eq .Arch "arm64" }}arm64
       {{- else }}{{ .Arch }}{{ end }}
     vendor: IAPro
-    homepage: https://github.com/kivervinicius/ai-cli
+    homepage: https://github.com/IAPro-Community/nexus
     maintainer: Vinicius Kiver <kivervinicius@gmail.com>
     description: IAPro Nexus Autonomous Multi-Agent Workspace OS
-    license: MIT
+    license: Proprietary
     formats:
       - deb
-      - rpm
     bindir: /usr/local/bin
     contents:
       - src: ./LICENSE
         dst: /usr/share/doc/nexus/LICENSE
       - src: ./README.md
         dst: /usr/share/doc/nexus/README.md
-
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+      - src: ./packaging/linux/.nexus-deb
+        dst: /usr/local/bin/.nexus-deb
+        packager: deb
+      - src: ./packaging/linux/.nexus-rpm
+        dst: /usr/local/bin/.nexus-rpm
+        packager: rpm
 
 changelog:
   sort: asc

@@ -1,12 +1,59 @@
 package web
 
-import "testing"
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func TestRegisterRoutesIncludesPublicHealthRoute(t *testing.T) {
+	mux := http.NewServeMux()
+	server := &Server{}
+	registerRoutes(mux, routeDependencies{
+		server:       server,
+		api:          NewAPIHandler(nil),
+		nexusHandler: NewNexusHandler(nil),
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	res := httptest.NewRecorder()
+	mux.ServeHTTP(res, req)
+
+	if res.Code == http.StatusNotFound {
+		t.Fatalf("health route was not registered: status=%d", res.Code)
+	}
+}
+
+func TestSystemInfoExposesVersionAndCapabilities(t *testing.T) {
+	h := NewAPIHandler(nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/info", nil)
+	res := httptest.NewRecorder()
+	h.handleSystemInfo(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("system info status=%d want=%d", res.Code, http.StatusOK)
+	}
+	var body struct {
+		APIVersion    string                    `json:"apiVersion"`
+		ServerVersion string                    `json:"serverVersion"`
+		Capabilities  map[string]map[string]any `json:"capabilities"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode system info: %v", err)
+	}
+	if body.APIVersion != "v1" || body.ServerVersion == "" {
+		t.Fatalf("metadata missing version contract: %+v", body)
+	}
+	if len(body.Capabilities) == 0 {
+		t.Fatal("metadata did not expose registered provider capabilities")
+	}
+}
 
 func TestProjectSubrouteClassification(t *testing.T) {
 	cases := map[string]string{
 		"/api/v1/projects/proj-1/layout":       "layout",
 		"/api/v1/projects/proj-1/agents":       "agents",
-		"/api/v1/projects/proj-1/missions":     "missions",
 		"/api/v1/projects/proj-1/plans":        "plans",
 		"/api/v1/projects/proj-1/open-os":      "open-os",
 		"/api/v1/projects/proj-1/git/branches": "git-branches",

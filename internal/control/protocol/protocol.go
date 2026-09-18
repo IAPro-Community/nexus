@@ -24,6 +24,7 @@ const (
 	CmdHandoff         CommandType = "handoff"
 	CmdContinue        CommandType = "continue"
 	CmdEvents          CommandType = "events"
+	CmdUsage           CommandType = "usage"
 	CmdSlash           CommandType = "slash"
 	CmdLeaseAcquire    CommandType = "lease_acquire"
 	CmdLeaseRelease    CommandType = "lease_release"
@@ -43,12 +44,31 @@ type Request struct {
 
 // Response is the structured reply from a SessionHost.
 type Response struct {
-	Version   int             `json:"version"`
-	ID        string          `json:"id,omitempty"`
-	OK        bool            `json:"ok"`
-	Data      json.RawMessage `json:"data,omitempty"`
-	Error     string          `json:"error,omitempty"`
-	Timestamp time.Time       `json:"timestamp"`
+	Version       int             `json:"version"`
+	ID            string          `json:"id,omitempty"`
+	OK            bool            `json:"ok"`
+	Code          string          `json:"code,omitempty"`
+	RuntimeID     string          `json:"runtime_id,omitempty"`
+	Action        string          `json:"action,omitempty"`
+	State         string          `json:"state,omitempty"`
+	Message       string          `json:"message,omitempty"`
+	CorrelationID string          `json:"correlation_id,omitempty"`
+	Data          json.RawMessage `json:"data,omitempty"`
+	Error         string          `json:"error,omitempty"`
+	Timestamp     time.Time       `json:"timestamp"`
+}
+
+// ControlResult is the stable, redacted result envelope for explicit control
+// actions. It is intentionally separate from InputPayload: terminal bytes
+// must never be interpreted as control protocol.
+type ControlResult struct {
+	OK            bool   `json:"ok"`
+	Code          string `json:"code,omitempty"`
+	RuntimeID     string `json:"runtime_id,omitempty"`
+	Action        string `json:"action,omitempty"`
+	State         string `json:"state,omitempty"`
+	Message       string `json:"message,omitempty"`
+	CorrelationID string `json:"correlation_id,omitempty"`
 }
 
 // ResizePayload specifies terminal window dimensions.
@@ -62,6 +82,34 @@ type InputPayload struct {
 	Data string `json:"data"` // Base64 or plain string
 }
 
+// EventsPayload bounds a read-only event query.
+type EventsPayload struct {
+	Limit int `json:"limit,omitempty"`
+}
+
+// EventData is the redacted transport representation returned by CmdEvents.
+// Keeping this type in protocol avoids coupling IPC clients to the event bus.
+type EventData struct {
+	ID            string    `json:"id"`
+	CorrelationID string    `json:"correlation_id,omitempty"`
+	RuntimeID     string    `json:"runtime_id"`
+	Provider      string    `json:"provider"`
+	Profile       string    `json:"profile"`
+	Type          string    `json:"type"`
+	Summary       string    `json:"summary"`
+	Timestamp     time.Time `json:"timestamp"`
+}
+
+// UsageData is a bounded, read-only quota snapshot for monitor/control UIs.
+type UsageData struct {
+	RuntimeID     string  `json:"runtime_id"`
+	ProviderID    string  `json:"provider_id"`
+	ProfileID     string  `json:"profile_id"`
+	Status        string  `json:"status"`
+	PercentLeft   float64 `json:"percent_left,omitempty"`
+	FetchedAtUnix int64   `json:"fetched_at_unix,omitempty"`
+}
+
 // SubmitPromptPayload is a high-level prompt for an existing supervised runtime.
 // Unlike CmdInput it does not participate in the interactive single-writer lease
 // and is forwarded literally, including a leading slash.
@@ -69,7 +117,8 @@ type SubmitPromptPayload struct {
 	Prompt string `json:"prompt"`
 }
 
-// SlashPayload contains an intercepted slash command.
+// SlashPayload contains an explicit control command. It is not accepted from
+// CmdInput and exists only for command-palette/CLI compatibility.
 type SlashPayload struct {
 	RawCommand string `json:"raw_command"`
 }
@@ -124,6 +173,11 @@ type StatusData struct {
 	QuotaStatus         string    `json:"quota_status,omitempty"`
 	QuotaPercent        float64   `json:"quota_percent,omitempty"`
 	DroppedOutputChunks uint64    `json:"dropped_output_chunks,omitempty"`
+	AttentionReason     string    `json:"attention_reason,omitempty"`
+	AttentionContext    string    `json:"attention_context,omitempty"`
+	AttentionKind       string    `json:"attention_kind,omitempty"`
+	PromptKind          string    `json:"prompt_kind,omitempty"`
+	Continuity          string    `json:"continuity,omitempty"`
 }
 
 // NewRequest creates a standard request.
@@ -163,11 +217,32 @@ func NewResponse(data any) (Response, error) {
 	}, nil
 }
 
+// NewControlResponse creates a structured response for a typed control
+// command. The fields are duplicated at the top level for clients that do not
+// decode Data, while Data contains the same stable envelope for compatibility.
+func NewControlResponse(result ControlResult) Response {
+	raw, _ := json.Marshal(result)
+	return Response{
+		Version:       ProtocolVersion,
+		OK:            result.OK,
+		Code:          result.Code,
+		RuntimeID:     result.RuntimeID,
+		Action:        result.Action,
+		State:         result.State,
+		Message:       result.Message,
+		CorrelationID: result.CorrelationID,
+		Data:          raw,
+		Timestamp:     time.Now(),
+	}
+}
+
 // NewErrorResponse creates an error response.
 func NewErrorResponse(errMsg string) Response {
 	return Response{
 		Version:   ProtocolVersion,
 		OK:        false,
+		Code:      errMsg,
+		Message:   errMsg,
 		Error:     errMsg,
 		Timestamp: time.Now(),
 	}

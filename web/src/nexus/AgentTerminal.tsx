@@ -1,8 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
+  ArrowDown,
+  Check,
+  Copy,
+  CornerDownLeft,
   MessageSquare,
+  Minus,
   Play,
+  Plus,
   RefreshCw,
+  Search,
   Send,
   ShieldAlert,
   Sparkles,
@@ -21,27 +29,56 @@ import {
   normalizeInitialPrompt,
   normalizeTerminalRole,
   nextBoundRuntimeId,
+  parseRuntimeChangedId,
   runtimeIdFromRecoverResult,
-  shouldAutoRecoverAgentTerminal,
   shouldShowTerminalRecoverOverlay,
-  terminalAttachFailureMessage,
+  terminalAttachFailure,
   terminalReconnectDelay,
   type TerminalRole,
 } from './agentTerminalModel';
+import {
+  DEFAULT_TERMINAL_SCROLLBACK,
+  adjustTerminalFontSize,
+  getStoredTerminalFontSize,
+  resetTerminalFontSize,
+  shouldAutoScrollToBottom,
+  storeTerminalFontSize,
+  subscribeTerminalFontSize,
+} from './terminalSettings';
 import { isRequiredResourceError, recoverOrStartAgent } from './agentRecover';
 import { ResourcePicker } from './ResourcePicker';
 import { TerminalActionDialog } from './TerminalActionDialog';
-import { scrubProtocolOutput } from './terminalProtocol';
-import { ConfirmDialog, Tooltip } from '../design-system';
+import { ProtocolScrubber } from './terminalProtocol';
+import { shouldForwardTerminalInput, stripEmbeddedTerminalMetadata } from './terminalInput';
+import { ConfirmDialog, ContextDrawer, Tooltip } from '../design-system';
+import { TaskPreparationDialog } from '../components/TaskPreparationDialog';
 import type { RuntimeSession } from '../types';
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { canFitTerminal, canRunTerminalFrame } from './terminalFitModel';
 import styles from './AgentTerminal.module.scss';
 
+interface AgentTerminalHostElement extends HTMLDivElement {
+  __triggerReconnect?: () => void;
+  __takeControl?: () => void;
+}
+
+export interface AgentTerminalSkill {
+  id: string;
+  name?: string;
+  description?: string;
+  category?: string;
+  risk?: string;
+  triggers?: string[];
+  aliases?: string[];
+}
+
 export const AgentTerminal: React.FC<{
   agentId: string;
+  projectId?: string;
   runtimeId?: string;
+  /** Authoritative generation from the workspace surface (wins over poll). */
+  preferredRuntimeId?: string;
   initialPrompt?: string;
   provider?: string;
   profile?: string;
@@ -57,9 +94,12 @@ export const AgentTerminal: React.FC<{
   ) => Promise<RuntimeSession | void> | RuntimeSession | void;
   onClose?: (stopRuntime: boolean) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
+  onBoundRuntimeChange?: (runtimeId: string) => void;
 }> = ({
   agentId,
+  projectId,
   runtimeId,
+  preferredRuntimeId,
   initialPrompt,
   provider,
   profile,
@@ -71,7 +111,11 @@ export const AgentTerminal: React.FC<{
   onRestartWithMode,
   onClose,
   onDelete,
+  onBoundRuntimeChange,
 }) => {
+  const { t } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -86,10 +130,12 @@ export const AgentTerminal: React.FC<{
   const [boundRuntimeId, setBoundRuntimeId] = useState(runtimeId || '');
   const [connectNonce, setConnectNonce] = useState(0);
   const [askOpen, setAskOpen] = useState(false);
+  const [preparationOpen, setPreparationOpen] = useState(false);
+  const [skillsSearch, setSkillsSearch] = useState('');
+  const [selectedSkillCategory, setSelectedSkillCategory] = useState('all');
+  const [copiedSkillId, setCopiedSkillId] = useState<string | null>(null);
   const [askPrompt, setAskPrompt] = useState('');
-  const [availableSkills, setAvailableSkills] = useState<
-    Array<{ id: string; name?: string; description?: string }>
-  >([]);
+  const [availableSkills, setAvailableSkills] = useState<AgentTerminalSkill[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [asking, setAsking] = useState(false);
   const [askFeedback, setAskFeedback] = useState('');
@@ -101,28 +147,50 @@ export const AgentTerminal: React.FC<{
   );
   const [pendingMode, setPendingMode] = useState<'Safe' | 'YOLO' | null>(null);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+  const [promotionPrompt, setPromotionPrompt] = useState('');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [needsResourceSelection, setNeedsResourceSelection] = useState(false);
   const [connectingForMs, setConnectingForMs] = useState(0);
-  const autoRecoveredRef = useRef(false);
-  const onRecoverRef = useRef(onRecover);
-  onRecoverRef.current = onRecover;
   const liveChrome = usePtyLiveChromeOptional();
   const liveTitleKeyRef = useRef(liveTitleKey);
   liveTitleKeyRef.current = liveTitleKey;
   const liveChromeRef = useRef(liveChrome);
   liveChromeRef.current = liveChrome;
+  const onBoundRuntimeChangeRef = useRef(onBoundRuntimeChange);
+  onBoundRuntimeChangeRef.current = onBoundRuntimeChange;
   const ptyChromeRef = useRef({ title: '', questionnaire: false });
+  const [fontSize, setFontSize] = useState<number>(() => getStoredTerminalFontSize());
+  const initialFontSizeRef = useRef(fontSize);
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const fitAddonRef = useRef<FitAddon | null>(null);
 
   useEffect(() => {
-    setBoundRuntimeId((current) => nextBoundRuntimeId(current, runtimeId));
-  }, [runtimeId]);
+    return subscribeTerminalFontSize((newSize) => {
+      setFontSize(newSize);
+    });
+  }, []);
+
+  useEffect(() => {
+    const term = termRef.current;
+    if (!term) return;
+    term.options.fontSize = fontSize;
+    try {
+      fitAddonRef.current?.fit();
+    } catch {
+      // Ignore fit measurement errors during transition
+    }
+  }, [fontSize]);
+
+  useEffect(() => {
+    setBoundRuntimeId((current) => nextBoundRuntimeId(current, runtimeId, preferredRuntimeId));
+  }, [runtimeId, preferredRuntimeId]);
 
   useEffect(() => {
     const key = liveTitleKey;
+    const chrome = liveChromeRef.current;
     return () => {
-      if (key) liveChromeRef.current?.clearLive(key);
+      if (key) chrome?.clearLive(key);
     };
   }, [liveTitleKey]);
 
@@ -138,8 +206,10 @@ export const AgentTerminal: React.FC<{
 
   const rebindTerminal = (nextRuntimeId?: string) => {
     const trimmed = (nextRuntimeId || '').trim();
-    if (trimmed) setBoundRuntimeId(trimmed);
-    autoRecoveredRef.current = false;
+    if (trimmed) {
+      setBoundRuntimeId(trimmed);
+      onBoundRuntimeChangeRef.current?.(trimmed);
+    }
     setNeedsResourceSelection(false);
     setMessage('');
     setConnection('CONNECTING');
@@ -159,14 +229,14 @@ export const AgentTerminal: React.FC<{
     let stopReconnect = false;
     const roleRef: { current: TerminalRole } = { current: 'VIEW_ONLY' };
     const kickoffRef = { current: normalizeInitialPrompt(initialPrompt), sent: false };
+    // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
+    const protocolScrubber = new ProtocolScrubber();
     let lastError = '';
-    let leased = false;
-    let recoverInFlight = false;
     let termInstance: Terminal | null = null;
     const redrawTimers: number[] = [];
     let openFrame: number | undefined;
 
-    (container as any).__triggerReconnect = () => {
+    (container as AgentTerminalHostElement).__triggerReconnect = () => {
       stopReconnect = false;
       reconnectAttempt = 0;
       lastError = '';
@@ -177,7 +247,7 @@ export const AgentTerminal: React.FC<{
       connect();
     };
 
-    (container as any).__takeControl = () => {
+    (container as AgentTerminalHostElement).__takeControl = () => {
       const ws = wsRef.current;
       if (ws?.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'lease_acquire' }));
@@ -187,15 +257,61 @@ export const AgentTerminal: React.FC<{
 
     const term = new Terminal({
       cursorBlink: true,
-      fontSize: 13,
+      fontSize: initialFontSizeRef.current,
       lineHeight: 1.25,
       fontFamily: 'var(--nx-font-mono)',
       theme: { background: '#090b10' },
-      scrollback: 5000,
+      scrollback: DEFAULT_TERMINAL_SCROLLBACK,
     });
     termInstance = term;
     termRef.current = term;
+
+    term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        if (
+          event.key === '=' ||
+          event.key === '+' ||
+          event.code === 'Equal' ||
+          event.code === 'NumpadAdd'
+        ) {
+          if (event.type === 'keydown') {
+            const next = adjustTerminalFontSize(1);
+            storeTerminalFontSize(next);
+          }
+          return false;
+        }
+        if (
+          event.key === '-' ||
+          event.key === '_' ||
+          event.code === 'Minus' ||
+          event.code === 'NumpadSubtract'
+        ) {
+          if (event.type === 'keydown') {
+            const next = adjustTerminalFontSize(-1);
+            storeTerminalFontSize(next);
+          }
+          return false;
+        }
+        if (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0') {
+          if (event.type === 'keydown') {
+            const next = resetTerminalFontSize();
+            storeTerminalFontSize(next);
+          }
+          return false;
+        }
+      }
+      return true;
+    });
+
+    const scrollListener = term.onScroll(() => {
+      if (disposed) return;
+      const buf = term.buffer.active;
+      const atBottom = shouldAutoScrollToBottom(buf.viewportY, buf.baseY);
+      setIsScrolledUp(!atBottom);
+    });
+
     const fit = new FitAddon();
+    fitAddonRef.current = fit;
     term.loadAddon(fit);
     term.open(container);
 
@@ -233,7 +349,9 @@ export const AgentTerminal: React.FC<{
       if (trimmed) publishChrome(trimmed);
     });
 
+    const panel = container.closest<HTMLElement>('.nx-workspace-panel');
     const fitAndResize = (force = false) => {
+      if (panel && panel.dataset.active !== 'true') return;
       if (
         !canFitTerminal({
           disposed,
@@ -256,6 +374,46 @@ export const AgentTerminal: React.FC<{
       if (!force && term.rows === lastSentSize.rows && term.cols === lastSentSize.cols) return;
       lastSentSize = { rows: term.rows, cols: term.cols };
       ws.send(JSON.stringify({ type: 'resize', rows: term.rows, cols: term.cols }));
+    };
+
+    // Do not let xterm render while its workspace panel is hidden. Its
+    // viewport dimensions are not guaranteed during that transition.
+    let pendingOutput = '';
+    let outputFrame: number | undefined;
+    const flushTerminalOutput = () => {
+      outputFrame = undefined;
+      if (disposed || (panel && panel.dataset.active !== 'true') || !pendingOutput) return;
+
+      const output = pendingOutput;
+      pendingOutput = '';
+      const buf = term.buffer.active;
+      const wasTracking = shouldAutoScrollToBottom(buf.viewportY, buf.baseY);
+      try {
+        term.write(output, () => {
+          if (wasTracking) {
+            term.scrollToBottom();
+          }
+        });
+      } catch {
+        pendingOutput = output + pendingOutput;
+        if (outputFrame === undefined) {
+          outputFrame = window.requestAnimationFrame(flushTerminalOutput);
+        }
+      }
+    };
+    const writeTerminalOutput = (data: string) => {
+      if (disposed || !data) return;
+      pendingOutput += data;
+      if (panel && panel.dataset.active !== 'true') return;
+      if (outputFrame === undefined) {
+        outputFrame = window.requestAnimationFrame(flushTerminalOutput);
+      }
+    };
+    const flushPendingOutput = () => {
+      if (disposed || !pendingOutput || (panel && panel.dataset.active !== 'true')) return;
+      if (outputFrame === undefined) {
+        outputFrame = window.requestAnimationFrame(flushTerminalOutput);
+      }
     };
 
     const scheduleRedrawPulse = () => {
@@ -286,7 +444,14 @@ export const AgentTerminal: React.FC<{
       }
       setRecovering(false);
       setConnection('ERROR');
-      setMessage(terminalAttachFailureMessage(detail));
+      const failure = terminalAttachFailure(detail);
+      if (failure.kind === 'generic') {
+        setMessage(tRef.current('terminal.attachFailedGeneric'));
+      } else if (failure.kind === 'fatal_with_detail') {
+        setMessage(`${failure.detail} ${tRef.current('terminal.attachFailedRecoverHint')}`);
+      } else {
+        setMessage(failure.detail);
+      }
     };
 
     const scheduleReconnect = (detail?: string) => {
@@ -300,58 +465,16 @@ export const AgentTerminal: React.FC<{
         return;
       }
       if (openedOnce && reconnectAttempt >= TERMINAL_MAX_RECONNECT_ATTEMPTS) {
-        failPermanently(detail || 'Conexão com o terminal perdida.');
+        failPermanently(detail || tRef.current('terminal.connectionLost'));
         return;
       }
       const delay = terminalReconnectDelay(reconnectAttempt++);
       setConnection('CONNECTING');
-      setMessage(`Reconnecting Agent terminal in ${delay}ms…`);
+      setMessage(tRef.current('terminal.reconnecting', { delay }));
       reconnectTimer = window.setTimeout(() => {
         reconnectTimer = undefined;
         connect();
       }, delay);
-    };
-
-    const recoverMissingRuntime = async (detail?: string) => {
-      stopReconnect = true;
-      if (reconnectTimer !== undefined) {
-        window.clearTimeout(reconnectTimer);
-        reconnectTimer = undefined;
-      }
-      if (recoverInFlight) return;
-      if (autoRecoveredRef.current) {
-        failPermanently(detail);
-        return;
-      }
-      recoverInFlight = true;
-      autoRecoveredRef.current = true;
-      setRecovering(true);
-      setConnection('CONNECTING');
-      setMessage('Runtime do agente ausente — recuperando…');
-      try {
-        const result = onRecoverRef.current
-          ? await onRecoverRef.current()
-          : await recoverOrStartAgent(agentId);
-        if (disposed) return;
-        const nextId = runtimeIdFromRecoverResult(result);
-        setBoundRuntimeId(nextId);
-        stopReconnect = false;
-        reconnectAttempt = 0;
-        lastError = '';
-        leased = false;
-        setConnectNonce((n) => n + 1);
-      } catch (error) {
-        if (isRequiredResourceError(error)) {
-          setRecovering(false);
-          setNeedsResourceSelection(true);
-          setMessage('Selecione um provedor/conta para iniciar o runtime deste agente.');
-          setConnection('ERROR');
-          return;
-        }
-        failPermanently(error instanceof Error ? error.message : detail);
-      } finally {
-        recoverInFlight = false;
-      }
     };
 
     const connect = async () => {
@@ -359,7 +482,6 @@ export const AgentTerminal: React.FC<{
       setConnection('CONNECTING');
       if (!openedOnce) setMessage('');
       lastError = '';
-      leased = false;
 
       const previous = wsRef.current;
       if (previous) {
@@ -401,7 +523,11 @@ export const AgentTerminal: React.FC<{
         setRecovering(false);
         setConnection('CONNECTED');
         setModeAction((current) => (current === 'Restarting' ? 'Ready' : current));
-        setMessage((current) => (current === 'Reiniciando runtime…' ? 'Pronto' : ''));
+        setMessage((current) =>
+          current === tRef.current('terminal.restartingRuntime')
+            ? tRef.current('common.ready', { defaultValue: 'Ready' })
+            : '',
+        );
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'lease_acquire' }));
         }
@@ -411,8 +537,9 @@ export const AgentTerminal: React.FC<{
             return;
           }
           fitAndResize(true);
+          flushPendingOutput();
           if (disposed) return;
-          term.focus();
+          if (!panel || panel.dataset.active === 'true') term.focus();
           scheduleRedrawPulse();
         });
       };
@@ -422,29 +549,45 @@ export const AgentTerminal: React.FC<{
         try {
           const payload = JSON.parse(event.data);
           if (payload.type === 'output' && payload.data) {
-            const cleaned = scrubProtocolOutput(String(payload.data));
+            const cleaned = protocolScrubber.scrub(String(payload.data));
             if (cleaned) {
               ingestOutput(cleaned);
-              term.write(cleaned);
+              writeTerminalOutput(cleaned);
             }
           } else if (payload.type === 'lease') {
             const next = normalizeTerminalRole(payload.role);
-            leased = true;
             reconnectAttempt = 0;
             roleRef.current = next;
             setRole(next);
-            setMessage(
-              next === 'CONTROL'
-                ? ''
-                : 'Somente leitura — outro acesso está digitando neste runtime.',
-            );
-            if (next === 'CONTROL') {
+            setMessage(next === 'CONTROL' ? '' : tRef.current('terminal.readOnlyNotice'));
+            if (next === 'CONTROL' && (!panel || panel.dataset.active === 'true')) {
               window.requestAnimationFrame(() => term.focus());
             }
             maybeSendKickoff();
           } else if (payload.type === 'runtime_changed') {
-            setMessage('Runtime generation changed — rebinding terminal…');
-            ws.close(1012, 'runtime generation changed');
+            const nextId = parseRuntimeChangedId(payload.data);
+            setMessage(tRef.current('terminal.rebinding'));
+            // Prevent reconnect on the old generation; remount against the new id.
+            stopReconnect = true;
+            if (reconnectTimer !== undefined) {
+              window.clearTimeout(reconnectTimer);
+              reconnectTimer = undefined;
+            }
+            try {
+              ws.close(1012, 'runtime generation changed');
+            } catch {
+              // ignore
+            }
+            if (nextId) {
+              setBoundRuntimeId(nextId);
+              onBoundRuntimeChangeRef.current?.(nextId);
+              setNeedsResourceSelection(false);
+              setConnection('CONNECTING');
+              setConnectNonce((n) => n + 1);
+            } else {
+              stopReconnect = false;
+              scheduleReconnect(tRef.current('terminal.rebinding'));
+            }
           } else if (payload.type === 'title' && payload.data) {
             const next = String(payload.data).trim();
             publishChrome(extractOscTitle(next) || next);
@@ -459,44 +602,54 @@ export const AgentTerminal: React.FC<{
             ) {
               publishChrome(undefined, true);
             }
+          } else if (payload.type === 'promotion') {
+            if (String(payload.role || '').toUpperCase() === 'ASK') {
+              setPromotionPrompt(String(payload.data || ''));
+            } else if (String(payload.role || '').toUpperCase() === 'PROMOTED') {
+              setMessage(tRef.current('terminal.promotion.started'));
+            }
           } else if (payload.type === 'error') {
             const detail = String(payload.data ?? 'Terminal error');
             lastError = detail;
             setMessage(detail);
             if (isFatalTerminalAttachError(detail)) {
-              void recoverMissingRuntime(detail);
+              // A dead transport is not proof that the runtime should be
+              // relaunched. Recovery is only performed by the explicit
+              // Recover/Start action in the overlay.
+              failPermanently(detail);
               ws.close(1011, 'fatal attach error');
             }
           }
         } catch {
           const raw = String(event.data);
           ingestOutput(raw);
-          term.write(event.data);
+          writeTerminalOutput(raw);
         }
       };
 
       ws.onerror = () => {
-        if (!disposed && !stopReconnect && !recoverInFlight) {
-          setMessage('Terminal transport error — reconnecting…');
+        if (!disposed && !stopReconnect) {
+          setMessage(tRef.current('terminal.transportError'));
         }
       };
 
       ws.onclose = () => {
         if (wsRef.current === ws) wsRef.current = null;
         if (disposed || stopReconnect) return;
-        if (!leased) {
-          if (shouldAutoRecoverAgentTerminal(openedOnce, lastError)) {
-            void recoverMissingRuntime(lastError || 'agent has no active runtime');
-            return;
-          }
-          scheduleReconnect(lastError);
-          return;
+        // Release any buffered split-line tail: the stream ended here and a
+        // reconnect starts a fresh scrubber for replayed history.
+        const rest = protocolScrubber.flush();
+        if (rest) {
+          ingestOutput(rest);
+          writeTerminalOutput(rest);
         }
         scheduleReconnect(lastError);
       };
     };
 
     const dataDisposable = term.onData((data) => {
+      term.scrollToBottom();
+      setIsScrolledUp(false);
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
       if (roleRef.current !== 'CONTROL') {
@@ -505,9 +658,26 @@ export const AgentTerminal: React.FC<{
         ws.send(JSON.stringify({ type: 'lease_acquire' }));
         return;
       }
-      ws.send(JSON.stringify({ type: 'input', data }));
+      if (!shouldForwardTerminalInput(data)) return;
+      const clean = stripEmbeddedTerminalMetadata(data);
+      if (!clean) return;
+      ws.send(JSON.stringify({ type: 'input', data: clean }));
     });
 
+    let flushFrame: number | undefined;
+    const panelObserver = panel
+      ? new MutationObserver(() => {
+          if (panel.dataset.active !== 'true' || flushFrame !== undefined) return;
+          flushFrame = window.requestAnimationFrame(() => {
+            flushFrame = undefined;
+            fitAndResize(true);
+            flushPendingOutput();
+            term.scrollToBottom();
+          });
+        })
+      : null;
+    if (panel)
+      panelObserver?.observe(panel, { attributes: true, attributeFilter: ['data-active'] });
     const observer = new ResizeObserver(() => window.requestAnimationFrame(() => fitAndResize()));
     observer.observe(container);
     const visibility = () => {
@@ -522,9 +692,17 @@ export const AgentTerminal: React.FC<{
       stopReconnect = true;
       if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
       if (openFrame !== undefined) window.cancelAnimationFrame(openFrame);
+      if (flushFrame !== undefined) window.cancelAnimationFrame(flushFrame);
+      if (outputFrame !== undefined) window.cancelAnimationFrame(outputFrame);
       redrawTimers.forEach((timer) => window.clearTimeout(timer));
       observer.disconnect();
+      panelObserver?.disconnect();
       document.removeEventListener('visibilitychange', visibility);
+      try {
+        scrollListener.dispose();
+      } catch {
+        // ignore
+      }
       try {
         titleListener.dispose();
       } catch {
@@ -564,7 +742,7 @@ export const AgentTerminal: React.FC<{
   const handleManualStartOrRecover = async () => {
     setRecovering(true);
     setNeedsResourceSelection(false);
-    setMessage('Iniciando runtime do agente…');
+    setMessage(t('terminal.startingRuntime'));
     try {
       let nextRuntimeId = '';
       if (onRecover) {
@@ -578,7 +756,7 @@ export const AgentTerminal: React.FC<{
     } catch (e) {
       if (isRequiredResourceError(e)) {
         setNeedsResourceSelection(true);
-        setMessage('Selecione um provedor/conta para iniciar o runtime deste agente.');
+        setMessage(t('terminal.selectProvider'));
         setConnection('ERROR');
       } else {
         setMessage(e instanceof Error ? e.message : String(e));
@@ -591,7 +769,7 @@ export const AgentTerminal: React.FC<{
 
   const handleResourceSelected = async () => {
     setRecovering(true);
-    setMessage('Iniciando runtime com o recurso selecionado…');
+    setMessage(t('terminal.startingWithResource'));
     try {
       const result = await nexus.startAgent(agentId);
       rebindTerminal(runtimeIdFromRecoverResult(result));
@@ -612,7 +790,7 @@ export const AgentTerminal: React.FC<{
     setDeleteConfirmOpen(false);
     if (!onDelete || deleting) return;
     setDeleting(true);
-    setMessage('Removendo agente…');
+    setMessage(t('terminal.removingAgent'));
     try {
       await onDelete();
     } catch (e) {
@@ -640,6 +818,51 @@ export const AgentTerminal: React.FC<{
     );
   };
 
+  const handleInsertSkillToTerminal = (skill: AgentTerminalSkill) => {
+    const trigger = skill.triggers?.[0] ? `${skill.triggers[0]} ` : `/${skill.id} `;
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'input', data: trigger }));
+      setAskOpen(false);
+      termRef.current?.focus();
+    }
+  };
+
+  const handleCopySkill = (skill: AgentTerminalSkill) => {
+    const text = skill.triggers?.[0] || `/${skill.id}`;
+    try {
+      const pending = navigator.clipboard.writeText(text);
+      pending.catch(() => setAskFeedback(t('terminal.copyFailed')));
+    } catch {
+      setAskFeedback(t('terminal.copyFailed'));
+    }
+    setCopiedSkillId(skill.id);
+    setTimeout(() => setCopiedSkillId(null), 1500);
+  };
+
+  const skillCategories = useMemo(() => {
+    const cats = new Set<string>();
+    availableSkills.forEach((s) => {
+      if (s.category) cats.add(s.category);
+    });
+    return ['all', ...Array.from(cats)];
+  }, [availableSkills]);
+
+  const filteredSkills = useMemo(() => {
+    const q = skillsSearch.trim().toLowerCase();
+    return availableSkills.filter((s) => {
+      const matchCat =
+        selectedSkillCategory === 'all' ||
+        (s.category && s.category.toLowerCase() === selectedSkillCategory.toLowerCase());
+      if (!matchCat) return false;
+      if (!q) return true;
+      const name = (s.name || s.id).toLowerCase();
+      const desc = (s.description || '').toLowerCase();
+      const trigs = (s.triggers || []).join(' ').toLowerCase();
+      return name.includes(q) || desc.includes(q) || trigs.includes(q);
+    });
+  }, [availableSkills, skillsSearch, selectedSkillCategory]);
+
   const handleSendPrompt = async () => {
     if (!askPrompt.trim() || asking) return;
     setAsking(true);
@@ -654,7 +877,7 @@ export const AgentTerminal: React.FC<{
       setAskPrompt('');
       setSelectedSkills([]);
       setAskOpen(false);
-      setAskFeedback('Prompt enviado');
+      setAskFeedback(t('terminal.promptSent'));
     } catch (err) {
       setAskFeedback(err instanceof Error ? err.message : String(err));
     } finally {
@@ -684,17 +907,38 @@ export const AgentTerminal: React.FC<{
     const nextMode = pendingMode;
     setPendingMode(null);
     setModeAction('Applying');
-    setMessage('Salvando configuração…');
+    setMessage(t('terminal.savingConfig'));
     try {
       const nextRuntime = await onRestartWithMode(nextMode);
       setModeAction('Restarting');
-      setMessage('Reiniciando runtime…');
+      setMessage(t('terminal.restartingRuntime'));
       rebindTerminal(nextRuntime?.runtime_id);
       setSelectedMode(nextMode);
     } catch (error) {
       setModeAction('Error');
       setMessage(error instanceof Error ? error.message : String(error));
     }
+  };
+
+  const handleZoomIn = () => {
+    const next = adjustTerminalFontSize(1);
+    storeTerminalFontSize(next);
+  };
+
+  const handleZoomOut = () => {
+    const next = adjustTerminalFontSize(-1);
+    storeTerminalFontSize(next);
+  };
+
+  const handleResetZoom = () => {
+    const next = resetTerminalFontSize();
+    storeTerminalFontSize(next);
+  };
+
+  const handleScrollToBottom = () => {
+    termRef.current?.scrollToBottom();
+    termRef.current?.focus();
+    setIsScrolledUp(false);
   };
 
   const confirmClose = async (stopRuntime: boolean) => {
@@ -714,10 +958,12 @@ export const AgentTerminal: React.FC<{
     recovering,
     connectingForMs,
   });
+  const showConnectingStatus =
+    connection === 'CONNECTING' && !showRecoverOverlay && connectingForMs >= 800;
   const windowChrome = chrome === 'window';
 
   const takeControl = () => {
-    const host = containerRef.current as any;
+    const host = containerRef.current as AgentTerminalHostElement | null;
     if (typeof host?.__takeControl === 'function') {
       host.__takeControl();
       return;
@@ -729,7 +975,7 @@ export const AgentTerminal: React.FC<{
   };
 
   const modeButtons = (
-    <div className="nx-agent-terminal__modes" role="group" aria-label="Modo de execução">
+    <div className="nx-agent-terminal__modes" role="group" aria-label={t('terminal.modeAriaLabel')}>
       {(['Safe', 'YOLO'] as const).map((m) => (
         <button
           key={m}
@@ -738,7 +984,7 @@ export const AgentTerminal: React.FC<{
           data-active={selectedMode === m ? 'true' : 'false'}
           onClick={() => requestModeChange(m)}
           disabled={!onRestartWithMode || modeAction === 'Applying' || modeAction === 'Restarting'}
-          title={`Alternar modo para ${m}`}
+          title={t('terminal.switchMode', { mode: m })}
         >
           {m}
         </button>
@@ -748,18 +994,45 @@ export const AgentTerminal: React.FC<{
 
   const terminalActions = (
     <div className="nx-agent-terminal__controls">
-      {role === 'CONTROL' ? (
-        <span className="nx-agent-terminal__lease" data-role="CONTROL">
-          CONTROL
-        </span>
-      ) : (
+      {/* Terminal Font Size Zoom Controls */}
+      <div className={styles.zoomGroup} role="group" aria-label="Terminal font size">
+        <button
+          type="button"
+          className={styles.zoomBtn}
+          onClick={handleZoomOut}
+          title={t('terminal.zoomOut')}
+          aria-label={t('terminal.zoomOut')}
+        >
+          <Minus size={11} />
+        </button>
+        <button
+          type="button"
+          className={styles.zoomLabel}
+          onClick={handleResetZoom}
+          title={t('terminal.resetZoom')}
+          aria-label={t('terminal.resetZoom')}
+        >
+          {fontSize}px
+        </button>
+        <button
+          type="button"
+          className={styles.zoomBtn}
+          onClick={handleZoomIn}
+          title={t('terminal.zoomIn')}
+          aria-label={t('terminal.zoomIn')}
+        >
+          <Plus size={11} />
+        </button>
+      </div>
+
+      {role === 'CONTROL' ? null : (
         <>
           <span className="nx-agent-terminal__lease" data-role="VIEW_ONLY">
-            VIEW ONLY
+            {t('agents.viewOnlyLabel')}
           </span>
-          <Tooltip content="Assumir controle do teclado">
+          <Tooltip content={t('terminal.takeControlTooltip')}>
             <button type="button" className="nx-agent-terminal__ask-btn" onClick={takeControl}>
-              Assumir controle
+              {t('terminal.takeControl')}
             </button>
           </Tooltip>
         </>
@@ -775,26 +1048,35 @@ export const AgentTerminal: React.FC<{
           {message}
         </span>
       )}
-      <Tooltip content="Perguntar ao Agente / Sugerir skills">
+      {showConnectingStatus && !message && (
+        <span className="nx-terminal-message" role="status">
+          <RefreshCw size={12} className="nx-spin-slow" />
+          {t('terminal.connectingTransport')}
+        </span>
+      )}
+      <Tooltip content={t('terminal.skillsTooltip')}>
         <button
           type="button"
           className="nx-agent-terminal__ask-btn"
           onClick={() => {
             const next = !askOpen;
-            setAskOpen(next);
+            setPreparationOpen(next);
             if (next && availableSkills.length === 0) {
               void loadSkills();
             }
           }}
         >
           <Sparkles size={13} />
-          <span>Perguntar</span>
+          <span>{t('terminal.prepareInstruction', 'Preparar instrução para o Agente')}</span>
+          {availableSkills.length > 0 && (
+            <span className={styles.skillsCountBadge}>{availableSkills.length}</span>
+          )}
         </button>
       </Tooltip>
       {onClose && !windowChrome && (
-        <Tooltip content="Escolher como fechar este terminal">
+        <Tooltip content={t('terminal.closeTerminalTooltip')}>
           <button type="button" onClick={() => setCloseConfirmOpen(true)}>
-            Fechar terminal
+            {t('terminal.closeTerminal')}
           </button>
         </Tooltip>
       )}
@@ -805,7 +1087,7 @@ export const AgentTerminal: React.FC<{
     <section
       className={`nx-agent-terminal ${styles.terminalRoot}`}
       data-chrome={chrome}
-      aria-label={`Terminal for Agent ${agentId}`}
+      aria-label={t('terminal.terminalForAgent', { agentId })}
     >
       {!windowChrome && (
         <header className="nx-agent-terminal__header">
@@ -837,76 +1119,208 @@ export const AgentTerminal: React.FC<{
           {terminalActions}
         </div>
       )}
-      {askOpen && (
-        <div className={`nx-agent-terminal__composer ${styles.composer}`}>
-          <div className={styles.composerHeader}>
-            <span className={styles.composerTitle}>
-              <MessageSquare size={13} /> Enviar instrução ao agente (One-shot)
-            </span>
-            <button type="button" onClick={() => setAskOpen(false)} className={styles.closeButton}>
-              <X size={13} />
-            </button>
-          </div>
-          <div className={styles.composerRow}>
+      <ContextDrawer
+        open={askOpen}
+        onClose={() => setAskOpen(false)}
+        title={t('terminal.skillsDrawerTitle', 'Skills do Maestro')}
+        description={t(
+          'terminal.skillsDrawerDesc',
+          'Catálogo de capacidades e automações integradas',
+        )}
+        width={420}
+      >
+        <div className={styles.skillsDrawerBody}>
+          <div className={styles.skillsSearchBar}>
+            <Search size={14} className="nx-text-muted" />
             <input
               type="text"
-              className={`nx-input ${styles.composerInput}`}
-              placeholder="Digite o objetivo ou comando para o agente..."
-              value={askPrompt}
-              onChange={(e) => setAskPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  void handleSendPrompt();
-                }
-              }}
+              placeholder={t(
+                'terminal.skillsSearchPlaceholder',
+                'Buscar por nome, comando ou descrição...',
+              )}
+              value={skillsSearch}
+              onChange={(e) => setSkillsSearch(e.target.value)}
             />
-            <button
-              type="button"
-              className="nx-button"
-              data-tone="brand"
-              data-size="sm"
-              disabled={asking || !askPrompt.trim()}
-              onClick={() => void handleSendPrompt()}
-            >
-              <Send size={12} />
-              <span>{asking ? 'Enviando...' : 'Enviar'}</span>
-            </button>
+            {skillsSearch && (
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={() => setSkillsSearch('')}
+                title={t('common.clear', 'Limpar')}
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
-          {availableSkills.length > 0 && (
-            <div className={styles.skillsRow}>
-              <span className={styles.skillsLabel}>Skills Maestro (até 3 no próximo prompt):</span>
-              {availableSkills.slice(0, 8).map((s) => {
-                const active = selectedSkills.includes(s.id);
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => handleToggleSkill(s.id)}
-                    className={styles.skillButton}
-                    data-active={active ? 'true' : 'false'}
-                    title={s.description || s.name || s.id}
-                  >
-                    {active ? '✓ ' : '+ '}
-                    {s.name || s.id}
-                  </button>
-                );
-              })}
+
+          {skillCategories.length > 1 && (
+            <div className={styles.skillsCategoryBar}>
+              {skillCategories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={styles.categoryChip}
+                  data-active={selectedSkillCategory === cat ? 'true' : 'false'}
+                  onClick={() => setSelectedSkillCategory(cat)}
+                >
+                  {cat === 'all' ? t('common.all', 'Todas') : cat}
+                </button>
+              ))}
             </div>
           )}
-          {askFeedback && (
-            <span
-              className={
-                askFeedback.includes('erro') || askFeedback.includes('failed')
-                  ? styles.feedbackAlert
-                  : styles.feedbackSuccess
-              }
-            >
-              {askFeedback}
-            </span>
-          )}
+
+          <div className={styles.skillsList}>
+            {filteredSkills.length === 0 ? (
+              <div className="nx-text-muted nx-p-4 nx-text-center nx-text-sm">
+                {availableSkills.length === 0
+                  ? t('terminal.skillsLoading', 'Carregando catálogo dinâmico de skills...')
+                  : t('terminal.skillsEmpty', 'Nenhuma skill encontrada para o filtro atual.')}
+              </div>
+            ) : (
+              filteredSkills.map((skill) => {
+                const active = selectedSkills.includes(skill.id);
+                const isCopied = copiedSkillId === skill.id;
+                return (
+                  <div key={skill.id} className={styles.skillCard}>
+                    <div className={styles.skillCardHeader}>
+                      <span className={styles.skillCardName}>
+                        <Sparkles size={12} className="nx-text-accent" />
+                        {skill.name || skill.id}
+                      </span>
+                      <div className={styles.skillBadges}>
+                        {skill.category && (
+                          <span className={styles.skillCategoryBadge}>{skill.category}</span>
+                        )}
+                        <span className={styles.skillRiskBadge} data-risk={skill.risk || 'safe'}>
+                          {skill.risk || 'safe'}
+                        </span>
+                      </div>
+                    </div>
+                    {skill.description && (
+                      <p className={styles.skillCardDesc}>{skill.description}</p>
+                    )}
+                    {skill.triggers && skill.triggers.length > 0 && (
+                      <div className={styles.skillTriggers}>
+                        {skill.triggers.map((trig) => (
+                          <span key={trig} className={styles.skillTriggerTag}>
+                            {trig}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className={styles.skillCardActions}>
+                      <button
+                        type="button"
+                        className={styles.skillActionBtn}
+                        onClick={() => handleCopySkill(skill)}
+                        title={t('terminal.copySkillTitle', 'Copiar comando')}
+                      >
+                        {isCopied ? (
+                          <Check size={11} className="nx-text-emerald-400" />
+                        ) : (
+                          <Copy size={11} />
+                        )}
+                        <span>
+                          {isCopied
+                            ? t('terminal.copied', 'Copiado')
+                            : t('terminal.copy', 'Copiar')}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.skillActionBtn}
+                        data-primary="true"
+                        onClick={() => handleInsertSkillToTerminal(skill)}
+                        title={t('terminal.insertSkillTitle', 'Inserir comando no terminal')}
+                      >
+                        <CornerDownLeft size={11} />
+                        <span>{t('terminal.insert', 'Inserir')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.skillActionBtn}
+                        onClick={() => handleToggleSkill(skill.id)}
+                        data-active={active ? 'true' : 'false'}
+                        title={t('terminal.selectForPrompt', 'Vincular para prompt (máx 3)')}
+                      >
+                        {active ? '✓ ' + t('terminal.selected', 'Prompt') : '+ Prompt'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className={styles.skillsDrawerFooter}>
+            <div className={styles.composerHeader}>
+              <span className={styles.composerTitle}>
+                <MessageSquare size={13} /> {t('terminal.sendInstructionTitle')}
+              </span>
+              {selectedSkills.length > 0 && (
+                <span className={styles.skillsLabel}>
+                  {selectedSkills.length}/3 {t('terminal.skillsSelected', 'selecionadas')}
+                </span>
+              )}
+            </div>
+            <div className={styles.composerRow}>
+              <input
+                type="text"
+                className={`nx-input ${styles.composerInput}`}
+                placeholder={t('terminal.sendInstructionPlaceholder')}
+                value={askPrompt}
+                onChange={(e) => setAskPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleSendPrompt();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="nx-button"
+                data-tone="brand"
+                data-size="sm"
+                disabled={asking || !askPrompt.trim()}
+                onClick={() => void handleSendPrompt()}
+              >
+                <Send size={12} />
+                <span>{asking ? t('terminal.sending') : t('terminal.send')}</span>
+              </button>
+            </div>
+            {askFeedback && (
+              <span
+                className={
+                  askFeedback.includes('erro') || askFeedback.includes('failed')
+                    ? styles.feedbackAlert
+                    : styles.feedbackSuccess
+                }
+              >
+                {askFeedback}
+              </span>
+            )}
+          </div>
         </div>
-      )}
+      </ContextDrawer>
+      <TaskPreparationDialog
+        open={preparationOpen}
+        agentId={agentId}
+        agentName={agentName || displayName}
+        projectId={projectId}
+        initialPrompt={initialPrompt}
+        startIfNeeded={false}
+        onClose={() => setPreparationOpen(false)}
+        onSubmit={async (prompt, skills, _startIfNeeded, contextFingerprintId) => {
+          await nexus.askAgent(
+            agentId,
+            prompt,
+            false,
+            skills,
+            projectId && contextFingerprintId ? { projectId, contextFingerprintId } : undefined,
+          );
+        }}
+      />
       {closeConfirmOpen && onClose && (
         <TerminalActionDialog
           close
@@ -922,26 +1336,50 @@ export const AgentTerminal: React.FC<{
         onCancel={() => setPendingMode(null)}
         onConfirmMode={() => void handleModeChange()}
       />
+      <TerminalActionDialog
+        promotion={promotionPrompt || undefined}
+        onCancel={() => setPromotionPrompt('')}
+        onPromotionAnswer={(answer) => {
+          const socket = wsRef.current;
+          if (socket?.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'promotion_answer', data: answer }));
+          }
+          setPromotionPrompt('');
+        }}
+      />
       <div
         ref={containerRef}
         className="nx-agent-terminal__xterm"
         onPointerDown={() => termRef.current?.focus()}
       />
 
+      {isScrolledUp && (
+        <button
+          type="button"
+          className={styles.scrollToBottomBtn}
+          onClick={handleScrollToBottom}
+          title={t('terminal.scrollToBottom')}
+          aria-label={t('terminal.scrollToBottom')}
+        >
+          <ArrowDown size={12} />
+          <span>{t('terminal.scrollToBottom')}</span>
+        </button>
+      )}
+
       {showRecoverOverlay && (
         <div className={styles.recoverOverlay} data-window-chrome={windowChrome ? 'true' : 'false'}>
           <div className={styles.recoverHeader}>
             {recovering ? <RefreshCw size={18} className="nx-spin-slow" /> : <Unplug size={18} />}
             <strong className={styles.recoverTitle}>
-              {recovering || connection === 'CONNECTING'
-                ? 'Recuperando o terminal do agente'
-                : 'Runtime do Agente desconectado'}
+              {recovering
+                ? t('terminal.recoverTitleReconnecting')
+                : t('terminal.recoverTitleStopped')}
             </strong>
           </div>
           <p className={styles.recoverText}>
-            {recovering || connection === 'CONNECTING'
-              ? 'O processo anterior não sobreviveu ao reinício da máquina ou do serviço. O Nexus está relançando o runtime para anexar de novo.'
-              : 'O processo do agente não está rodando no momento ou foi finalizado. Inicie o runtime para anexar o terminal e executar comandos.'}
+            {recovering
+              ? t('terminal.recoverNoticeReconnecting')
+              : t('terminal.recoverNoticeStopped')}
           </p>
           {message && connection === 'ERROR' && <p className={styles.errorMessage}>{message}</p>}
           {needsResourceSelection && (
@@ -962,24 +1400,27 @@ export const AgentTerminal: React.FC<{
               onClick={() => void handleManualStartOrRecover()}
             >
               {recovering ? <RefreshCw size={13} className="nx-spin-slow" /> : <Play size={13} />}
-              <span>{recovering ? 'Iniciando…' : 'Iniciar / Recuperar Agente'}</span>
+              <span>{recovering ? t('terminal.starting') : t('terminal.startOrRecoverAgent')}</span>
             </button>
             <button
               type="button"
               className={`nx-button ${styles.actionButtonContent}`}
-              title="Reabre só o WebSocket; não relança o processo do agente"
+              title={t('terminal.reconnectWsTooltip')}
               onClick={() => {
-                setMessage('Reconectando transporte…');
+                setMessage(t('terminal.reconnectingTransport'));
                 setConnection('CONNECTING');
-                if (containerRef.current && (containerRef.current as any).__triggerReconnect) {
-                  (containerRef.current as any).__triggerReconnect();
+                if (
+                  containerRef.current &&
+                  (containerRef.current as AgentTerminalHostElement).__triggerReconnect
+                ) {
+                  (containerRef.current as AgentTerminalHostElement).__triggerReconnect?.();
                 } else {
                   setConnectNonce((n) => n + 1);
                 }
               }}
             >
               <RefreshCw size={13} />
-              <span>Reconectar WS</span>
+              <span>{t('terminal.reconnectWs')}</span>
             </button>
             {onDelete && (
               <button
@@ -990,7 +1431,7 @@ export const AgentTerminal: React.FC<{
                 onClick={() => void handleDeleteAgent()}
               >
                 <Trash2 size={13} />
-                <span>{deleting ? 'Removendo…' : 'Remover Agente'}</span>
+                <span>{deleting ? t('terminal.removing') : t('terminal.removeAgent')}</span>
               </button>
             )}
           </div>
@@ -998,8 +1439,8 @@ export const AgentTerminal: React.FC<{
       )}
       <ConfirmDialog
         open={deleteConfirmOpen}
-        title="Remover Agente"
-        description={`Remover o agente "${agentName || agentId}"? A identidade e o terminal serão excluídos.`}
+        title={t('agents.confirmRemoveTitle')}
+        description={t('agents.confirmRemove', { name: displayName })}
         onConfirm={() => void executeDeleteAgent()}
         onCancel={() => setDeleteConfirmOpen(false)}
       />

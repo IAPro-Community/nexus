@@ -2,10 +2,11 @@ package nexus
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func TestDecomposePromptIntoFlowProposal_SimpleTask(t *testing.T) {
@@ -21,7 +22,7 @@ func TestDecomposePromptIntoFlowProposal_SimpleTask(t *testing.T) {
 
 	proposal, err := n.DecomposePromptIntoFlowProposal(context.Background(), FlowDecompositionRequest{
 		ProjectID: project.ID,
-		Goal:      "Fix typo in README header",
+		Goal:      "corrija a UI React",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -30,7 +31,17 @@ func TestDecomposePromptIntoFlowProposal_SimpleTask(t *testing.T) {
 		t.Fatalf("expected 1 atomic step for simple task, got %d", len(proposal.Flow.Steps))
 	}
 	if proposal.Flow.Steps[0].Role != "implementer" {
-		t.Fatalf("expected implementer role, got %s", proposal.Flow.Steps[0].Role)
+		t.Fatalf("expected generic execution role, got %s", proposal.Flow.Steps[0].Role)
+	}
+	if proposal.Flow.Steps[0].TaskRequirements == "" {
+		t.Fatal("atomic task must persist classified TaskRequirements for routing")
+	}
+	var requirements TaskRequirements
+	if err := json.Unmarshal([]byte(proposal.Flow.Steps[0].TaskRequirements), &requirements); err != nil {
+		t.Fatal(err)
+	}
+	if requirements.Role != "frontend-engineer" {
+		t.Fatalf("classified role=%q, want frontend-engineer", requirements.Role)
 	}
 }
 
@@ -54,6 +65,9 @@ func TestDecomposePromptIntoFlowProposal_ComplexFeature(t *testing.T) {
 	}
 	if len(proposal.Flow.Steps) < 2 {
 		t.Fatalf("expected at least 2 steps for complex feature, got %d", len(proposal.Flow.Steps))
+	}
+	if proposal.Flow.Steps[0].TaskRequirements == "" {
+		t.Fatal("complex task must persist classified TaskRequirements for routing")
 	}
 	// Verify DAG order
 	if err := ValidateFlowDAG(proposal.Flow); err != nil {

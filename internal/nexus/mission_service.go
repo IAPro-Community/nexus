@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard"
-	"github.com/kivervinicius/ai-cli/internal/nexus/maestrogates"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/nexus/autonomyguard"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // missionExecutionSnapshot is immutable input for one approved MissionRun.
@@ -22,11 +22,14 @@ type missionExecutionSnapshot struct {
 	Plan      store.WorkPlan          `json:"plan"`
 	Contract  runner.AutonomyContract `json:"contract"`
 	Preflight *FlowPreflightReport    `json:"preflight,omitempty"`
+	Goal      *GoalContract           `json:"goal,omitempty"`
 }
 
 type missionWorker struct {
+	id     string
 	cancel context.CancelFunc
 	done   chan struct{}
+	err    error
 }
 
 func planToRunnerSpec(plan *store.WorkPlan, snapshotID string) (runner.PlanSpec, error) {
@@ -34,6 +37,9 @@ func planToRunnerSpec(plan *store.WorkPlan, snapshotID string) (runner.PlanSpec,
 		return runner.PlanSpec{}, fmt.Errorf("valid work plan is required")
 	}
 	spec := runner.PlanSpec{ID: plan.ID, ProjectID: plan.ProjectID, Revision: plan.CurrentRevision, ExecutionSnapshotID: snapshotID}
+	if decision, err := ReadDelegationDecisionFacts(plan.StructuredFacts); err == nil {
+		spec.LeadAgentID = decision.LeadAgentID
+	}
 	seen := map[string]bool{}
 	for _, phase := range plan.Phases {
 		for _, pkg := range phase.Packages {
@@ -45,12 +51,12 @@ func planToRunnerSpec(plan *store.WorkPlan, snapshotID string) (runner.PlanSpec,
 			}
 			seen[pkg.ID] = true
 			spec.Packages = append(spec.Packages, runner.PackageSpec{
-				ID: pkg.ID, PhaseID: phase.ID, Title: pkg.Title, Goal: pkg.Goal, Priority: pkg.Priority,
+				ID: pkg.ID, PhaseID: phase.ID, PhaseType: pkg.PhaseType, Title: pkg.Title, Goal: pkg.Goal, Priority: pkg.Priority,
 				Dependencies: append([]string(nil), pkg.Dependencies...), ParallelGroup: pkg.ParallelGroup,
-				Role: pkg.Role, TaskRequirements: pkg.TaskRequirements, AgentAllocation: pkg.AgentAllocation,
-				AssignmentStrategy: pkg.AssignmentStrategy, ResourcePolicy: pkg.ResourcePolicy, Provider: pkg.Provider, Profile: pkg.Profile,
-				MaestroSkills: append([]string(nil), pkg.MaestroSkills...), RelevantPaths: append([]string(nil), pkg.RelevantPaths...),
-				AcceptanceCriteria: append([]string(nil), pkg.AcceptanceCriteria...), VerificationRequirements: append([]string(nil), pkg.VerificationRequirements...),
+				Role: pkg.Role, ReviewRequired: pkg.ReviewRequired, TaskRequirements: pkg.TaskRequirements, AgentAllocation: pkg.AgentAllocation,
+				AssignmentStrategy: pkg.AssignmentStrategy, ResourcePolicy: pkg.ResourcePolicy, Provider: pkg.Provider, Profile: pkg.Profile, DesiredProvider: pkg.DesiredProvider, DesiredProfile: pkg.DesiredProfile,
+				SkillIDs: append([]string(nil), packageSkillIDs(pkg)...), MaestroSkills: append([]string(nil), pkg.MaestroSkills...), RelevantPaths: append([]string(nil), pkg.RelevantPaths...),
+				AcceptanceCriteria: append([]string(nil), pkg.AcceptanceCriteria...), VerificationRequirements: append([]string(nil), pkg.VerificationRequirements...), EntryCriteria: append([]string(nil), pkg.EntryCriteria...), ExitCriteria: append([]string(nil), pkg.ExitCriteria...), RequiredEvidence: append([]string(nil), pkg.RequiredEvidence...), HandoffJSON: pkg.HandoffJSON, RoutingDecisionJSON: pkg.RoutingDecisionJSON,
 			})
 		}
 	}
@@ -67,14 +73,15 @@ func freezePlanForExecution(n *Nexus, plan store.WorkPlan) (store.WorkPlan, erro
 	for pi := range plan.Phases {
 		for wi := range plan.Phases[pi].Packages {
 			pkg := &plan.Phases[pi].Packages[wi]
-			requested := uniqueStrings(append(append([]string(nil), pkg.MaestroGates...), pkg.MaestroSkills...))
-			validated, err := n.validateMaestroGatesStrict(requested)
+			requested := packageSkillIDs(*pkg)
+			validated, err := validateGenericSkillIDs(n, plan.ProjectID, requested)
 			if err != nil {
-				return store.WorkPlan{}, fmt.Errorf("freeze Maestro skills for package %s: %w", pkg.ID, err)
+				return store.WorkPlan{}, fmt.Errorf("freeze skills for package %s (%s): %w", pkg.ID, skillIDsErrorContext(requested), err)
 			}
-			// The immutable execution snapshot carries one validated skill set in
-			// both fields so legacy prompt compilation and the Flow façade agree.
-			pkg.MaestroGates = append([]string(nil), validated...)
+			pkg.SkillIDs = append([]string(nil), validated...)
+			// The immutable execution snapshot carries one validated Skill set in
+			// the canonical and legacy Skill fields. Process gates remain separate
+			// metadata and are never reinterpreted as Skills.
 			pkg.MaestroSkills = append([]string(nil), validated...)
 		}
 	}
@@ -119,23 +126,6 @@ func validateFlowExecutionContract(plan store.WorkPlan) error {
 	return nil
 }
 
-func (n *Nexus) validateMaestroGatesStrict(gates []string) ([]string, error) {
-	if len(gates) == 0 {
-		return nil, nil
-	}
-	client := NewMaestroClient()
-	status := client.Status()
-	var catalog []string
-	if status.Capabilities != nil {
-		catalog = status.Capabilities.SkillIDs()
-	}
-	var cause error
-	if status.Error != "" {
-		cause = fmt.Errorf("%s", status.Error)
-	}
-	return maestrogates.ValidateStrict(gates, status.Available, catalog, cause)
-}
-
 // StartMissionRun binds an immutable plan revision/snapshot and starts the
 // durable state machine. autonomous=true starts a background worker immediately.
 func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID string, contract runner.AutonomyContract, autonomous bool) (*runner.MissionRun, error) {
@@ -147,10 +137,14 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 	if err != nil {
 		return nil, err
 	}
+	if err := ensureDelegationApproved(plan); err != nil {
+		return nil, err
+	}
 	project, err := st.GetProject(plan.ProjectID)
 	if err != nil {
 		return nil, fmt.Errorf("resolve mission project: %w", err)
 	}
+	contract = normalizeAutonomyContract(contract, project.CanonicalPath)
 	revision, err := st.GetPlanRevision(plan.ID, plan.CurrentRevision)
 	if err != nil {
 		return nil, fmt.Errorf("resolve immutable plan revision %d: %w", plan.CurrentRevision, err)
@@ -173,11 +167,11 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 		}
 	}
 
-	contract = normalizeAutonomyContract(contract, project.CanonicalPath)
 	frozenPlan, err := freezePlanForExecution(n, *plan)
 	if err != nil {
 		return nil, err
 	}
+	bindLeadAgent(&frozenPlan, defaultAgentID)
 	envelope, err := json.Marshal(missionExecutionSnapshot{Plan: frozenPlan, Contract: contract, Preflight: preflight})
 	if err != nil {
 		return nil, fmt.Errorf("encode mission execution snapshot: %w", err)
@@ -210,6 +204,9 @@ func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, appr
 	if err != nil {
 		return nil, err
 	}
+	if err := ensureDelegationApproved(plan); err != nil {
+		return nil, err
+	}
 	if plan.CurrentRevision != approvedRevision {
 		return nil, fmt.Errorf("approved plan revision %d is stale; current is %d", approvedRevision, plan.CurrentRevision)
 	}
@@ -240,6 +237,7 @@ func (n *Nexus) startMissionRunAtRevision(ctx context.Context, plan *store.WorkP
 	if err := json.Unmarshal([]byte(rev.SnapshotJSON), &frozen); err != nil {
 		return nil, err
 	}
+	bindLeadAgent(&frozen, defaultAgentID)
 	contract = normalizeAutonomyContract(contract, project.CanonicalPath)
 	var preflight *FlowPreflightReport
 	if len(admission) > 0 {
@@ -268,6 +266,20 @@ func (n *Nexus) startMissionRunAtRevision(ctx context.Context, plan *store.WorkP
 	return run, nil
 }
 
+func bindLeadAgent(plan *store.WorkPlan, leadAgentID string) {
+	if plan == nil || strings.TrimSpace(leadAgentID) == "" {
+		return
+	}
+	decision, err := ReadDelegationDecisionFacts(plan.StructuredFacts)
+	if err != nil {
+		return
+	}
+	decision = WithLeadAgent(decision, leadAgentID)
+	if facts, factErr := PersistDelegationDecisionFacts(plan.StructuredFacts, decision); factErr == nil {
+		plan.StructuredFacts = facts
+	}
+}
+
 func normalizeAutonomyContract(contract runner.AutonomyContract, workspace string) runner.AutonomyContract {
 	defaults := runner.DefaultAutonomyContract()
 	if contract.MaxRetries <= 0 {
@@ -281,6 +293,9 @@ func normalizeAutonomyContract(contract runner.AutonomyContract, workspace strin
 	}
 	if len(contract.VerificationCommands) == 0 && contract.RequireVerification {
 		contract.VerificationCommands = detectVerificationCommands(workspace)
+	}
+	if len(contract.GlobalVerificationCommands) == 0 && contract.RequireVerification {
+		contract.GlobalVerificationCommands = append([]string(nil), contract.VerificationCommands...)
 	}
 	return contract
 }
@@ -385,33 +400,76 @@ func (n *Nexus) loadMissionSnapshot(run *runner.MissionRun) (*missionExecutionSn
 
 // StartMissionWorker starts at most one autonomous worker per run in this process.
 func (n *Nexus) StartMissionWorker(runID string) {
-	if strings.TrimSpace(runID) == "" {
-		return
-	}
-	n.workersMu.Lock()
-	if n.workers == nil {
-		n.workers = map[string]*missionWorker{}
-	}
-	if _, exists := n.workers[runID]; exists {
-		n.workersMu.Unlock()
-		return
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	worker := &missionWorker{cancel: cancel, done: make(chan struct{})}
-	n.workers[runID] = worker
-	n.workersMu.Unlock()
+	_ = n.startMissionWorker(runID, false)
+}
 
+// restartMissionWorker performs an ownership handoff for a resolved run. The
+// old worker is canceled and joined before the new generation is registered;
+// its defer can therefore never remove the new owner.
+func (n *Nexus) restartMissionWorker(runID string) {
+	_ = n.startMissionWorker(runID, true)
+}
+
+func (n *Nexus) startMissionWorker(runID string, replace bool) *missionWorker {
+	if strings.TrimSpace(runID) == "" {
+		return nil
+	}
+	for {
+		n.workersMu.Lock()
+		if n.workers == nil {
+			n.workers = map[string]*missionWorker{}
+		}
+		existing := n.workers[runID]
+		if existing == nil {
+			ctx, cancel := context.WithCancel(context.Background())
+			worker := &missionWorker{id: "worker_" + runnerID(), cancel: cancel, done: make(chan struct{})}
+			n.workers[runID] = worker
+			n.workersMu.Unlock()
+			n.runMissionWorker(runID, ctx, worker)
+			return worker
+		}
+		if !replace {
+			n.workersMu.Unlock()
+			return existing
+		}
+		existing.cancel()
+		n.workersMu.Unlock()
+		select {
+		case <-existing.done:
+		case <-time.After(15 * time.Second):
+			return nil
+		}
+		n.workersMu.Lock()
+		current := n.workers[runID]
+		n.workersMu.Unlock()
+		if current == existing {
+			continue
+		}
+		// A different replacement already completed the handoff.
+		return current
+	}
+}
+
+func runnerID() string {
+	return ids.NewRuntimeID()
+}
+
+func (n *Nexus) runMissionWorker(runID string, ctx context.Context, worker *missionWorker) {
 	go func() {
 		defer func() {
-			n.workersMu.Lock()
-			if current := n.workers[runID]; current == worker {
-				delete(n.workers, runID)
-			}
-			n.workersMu.Unlock()
-			close(worker.done)
+			n.releaseMissionWorker(runID, worker)
 		}()
-		_, _ = n.Runner().RunToTerminal(ctx, runID)
+		_, worker.err = n.Runner().RunToTerminal(ctx, runID)
 	}()
+}
+
+func (n *Nexus) releaseMissionWorker(runID string, worker *missionWorker) {
+	n.workersMu.Lock()
+	if current := n.workers[runID]; current == worker {
+		delete(n.workers, runID)
+	}
+	n.workersMu.Unlock()
+	close(worker.done)
 }
 
 // stopMissionWorker requests cancellation and waits briefly for the running
@@ -435,18 +493,38 @@ func (n *Nexus) stopMissionWorker(runID string) error {
 
 // RecoverMissionRuns resumes durable non-terminal runs after Nexus restart.
 func (n *Nexus) RecoverMissionRuns(ctx context.Context) error {
+	_, err := n.recoverMissionRuns(ctx)
+	return err
+}
+
+func (n *Nexus) recoverMissionRuns(ctx context.Context) ([]*missionWorker, error) {
 	runs, err := n.Runner().ListRuns(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	workers := make([]*missionWorker, 0, len(runs))
 	sort.SliceStable(runs, func(i, j int) bool { return runs[i].StartedAt.Before(runs[j].StartedAt) })
 	for _, run := range runs {
 		if run == nil || runner.IsTerminalState(run.State) || run.State == runner.StatePaused || run.State == runner.StateBlockedNeedsUser {
 			continue
 		}
-		n.StartMissionWorker(run.ID)
+		if worker := n.startMissionWorker(run.ID, false); worker != nil {
+			workers = append(workers, worker)
+		}
 	}
-	return nil
+	return workers, nil
+}
+
+func waitMissionWorker(ctx context.Context, worker *missionWorker) error {
+	if worker == nil {
+		return fmt.Errorf("mission worker was not started")
+	}
+	select {
+	case <-worker.done:
+		return worker.err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (n *Nexus) PauseMissionRun(ctx context.Context, runID, reason string) (*runner.MissionRun, error) {

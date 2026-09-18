@@ -7,19 +7,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/core/scheduler"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/cooldown"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/scheduler"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 // FormatKickoffPrompt produces a clean, honest initial prompt for the target provider from a WorkCheckpoint.
@@ -45,6 +45,21 @@ func FormatKickoffPrompt(cp WorkCheckpoint) string {
 	if cp.Goal != "" {
 		fmt.Fprintf(&sb, "Current Goal / Task: %s\n", cp.Goal)
 	}
+	if len(cp.MaestroContext.ReadOrder) > 0 {
+		sb.WriteString("Maestro continuity contract:\n")
+		sb.WriteString("Read these workspace files in order before changing anything:\n")
+		for _, path := range cp.MaestroContext.ReadOrder {
+			status := ""
+			for _, file := range cp.MaestroContext.Files {
+				if file.Path == path {
+					status = " [" + file.Status + "]"
+					break
+				}
+			}
+			fmt.Fprintf(&sb, " - %s%s\n", path, status)
+		}
+		sb.WriteString("Reconcile Git status and the checkpoint before repeating work.\n")
+	}
 	sb.WriteString("==================================================\n")
 	sb.WriteString("Please inspect the modified files and continue the ongoing task in this workspace.")
 	return security.Redact(sb.String())
@@ -52,7 +67,13 @@ func FormatKickoffPrompt(cp WorkCheckpoint) string {
 
 // PerformContextHandoff creates a new session on a DIFFERENT provider using a captured WorkCheckpoint.
 func PerformContextHandoff(ctx context.Context, sourceRuntimeID, targetProvider, targetProfile string) (*registry.RuntimeSession, error) {
-	reg := registry.DefaultRegistry()
+	return defaultService().PerformContextHandoff(ctx, sourceRuntimeID, targetProvider, targetProfile)
+}
+
+// PerformContextHandoff creates a new session using owned control-plane
+// dependencies.
+func (s *Service) PerformContextHandoff(ctx context.Context, sourceRuntimeID, targetProvider, targetProfile string) (*registry.RuntimeSession, error) {
+	reg := s.registry
 	source, ok := reg.Get(sourceRuntimeID)
 	if !ok {
 		return nil, fmt.Errorf("source runtime %q not found", sourceRuntimeID)
@@ -102,7 +123,7 @@ func PerformContextHandoff(ctx context.Context, sourceRuntimeID, targetProvider,
 	kickoffPrompt := FormatKickoffPrompt(cp)
 
 	// 4. Get Target Driver & Build Kickoff Command
-	d, err := driver.DefaultRegistry().Get(targetProvider)
+	d, err := s.drivers.Get(targetProvider)
 	if err != nil {
 		return nil, fmt.Errorf("target driver error: %w", err)
 	}
@@ -115,34 +136,49 @@ func PerformContextHandoff(ctx context.Context, sourceRuntimeID, targetProvider,
 	// 4b. Resolve model for target provider
 	targetModel := ResolveTargetModel(source.Model, source.ProviderID, targetProvider)
 
-	// 5. Launch Target Supervised Runtime FIRST via unified launcher (persistent host)
-	newRuntimeID := fmt.Sprintf("%s-continue-%s", targetProvider, ids.NewRuntimeID())
-	lineageID := fmt.Sprintf("lin-ctx-%s", ids.NewRuntimeID())
-
-	newSession, err := launcher.Default().Launch(ctx, launcher.LaunchOptions{
-		RuntimeID:  newRuntimeID,
-		ProviderID: targetProvider,
-		ProfileID:  targetProfile,
-		Workspace:  source.Workspace,
-		Args:       extraArgs,
-		Model:      targetModel,
-		Standalone: false,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to start context handoff target runtime: %w", err)
-	}
-
-	// 6. Target started successfully. Now gracefully stop source runtime.
+	// 5. Quiesce and gracefully stop source runtime before launching target
+	// to prevent concurrent writers on the same workspace.
 	client, err := protocol.NewClient(sourceRuntimeID)
 	if err == nil {
 		_ = client.Stop()
 		_ = client.Close()
 	}
+	waitForProcessStop(ctx, source.PID, 2*time.Second)
+	if err := ctx.Err(); err != nil {
+		_ = reg.UpdateState(sourceRuntimeID, registry.StateRunning)
+		return nil, fmt.Errorf("context handoff canceled before target start: %w", err)
+	}
 	_ = reg.UpdateState(sourceRuntimeID, registry.StateHandoff)
+
+	// 6. Launch Target Supervised Runtime via unified launcher (persistent host)
+	newRuntimeID := fmt.Sprintf("%s-continue-%s", targetProvider, ids.NewRuntimeID())
+	lineageID := fmt.Sprintf("lin-ctx-%s", ids.NewRuntimeID())
+
+	newSession, err := s.launcher.Launch(ctx, launcher.LaunchOptions{
+		RuntimeID:   newRuntimeID,
+		AgentID:     source.AgentID,
+		ProjectID:   source.ProjectID,
+		ProjectName: source.ProjectName,
+		ProviderID:  targetProvider,
+		ProfileID:   targetProfile,
+		Workspace:   source.Workspace,
+		Args:        extraArgs,
+		Model:       targetModel,
+		Standalone:  false,
+	})
+	if err != nil {
+		// Rollback source state on target launch failure
+		_ = reg.UpdateState(sourceRuntimeID, registry.StateRunning)
+		return nil, fmt.Errorf("failed to start context handoff target runtime: %w", err)
+	}
 
 	newSession.ParentRuntimeID = source.RuntimeID
 	newSession.HandoffType = "context"
 	newSession.LineageID = lineageID
+	if newSession.Labels == nil {
+		newSession.Labels = map[string]string{}
+	}
+	newSession.Labels["continuity"] = "CONTEXT_HANDOFF"
 	_ = reg.Register(*newSession)
 
 	// 7. Record Lineage
@@ -158,16 +194,21 @@ func PerformContextHandoff(ctx context.Context, sourceRuntimeID, targetProvider,
 		slog.Warn("Failed to record lineage during context handoff", "err", err)
 	}
 
-	events.DefaultBus().Publish(events.NewEvent(
-		newSession.RuntimeID,
-		newSession.ProviderID,
-		newSession.ProfileID,
-		events.EventHandoffCompleted,
-		fmt.Sprintf("Context handoff completed from %s to %s", source.RuntimeID, newSession.RuntimeID),
-		map[string]any{"source_id": source.RuntimeID, "target_id": newSession.RuntimeID, "checkpoint_id": cp.CheckpointID},
-	))
+	events.DefaultBus().Publish(newContextHandoffCompletedEvent(lineageID, source, *newSession, cp.CheckpointID))
 
 	return newSession, nil
+}
+
+func newContextHandoffCompletedEvent(lineageID string, source, target registry.RuntimeSession, checkpointID string) events.Event {
+	return events.NewEventWithCorrelation(
+		lineageID,
+		target.RuntimeID,
+		target.ProviderID,
+		target.ProfileID,
+		events.EventHandoffCompleted,
+		fmt.Sprintf("Context handoff completed from %s to %s", source.RuntimeID, target.RuntimeID),
+		map[string]any{"source_id": source.RuntimeID, "target_id": target.RuntimeID, "checkpoint_id": checkpointID, "continuity": "CONTEXT_HANDOFF"},
+	)
 }
 
 // ResolveTargetModel determines whether the source model can be safely used on the target provider.

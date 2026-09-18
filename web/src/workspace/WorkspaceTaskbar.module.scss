@@ -2,6 +2,11 @@
 @use '../styles/typography';
 @use '../styles/mixins';
 
+.statusbar {
+  box-shadow: 0 -1px 0 color-mix(in srgb, var(--nx-accent) 9%, transparent);
+  background: color-mix(in srgb, var(--nx-bg-elevated) 94%, var(--nx-accent) 6%);
+}
+
 .projectItem {
   max-width: 28vw;
   cursor: default;
@@ -34,4 +39,14 @@
 
 .accentDot {
   background: var(--nx-accent);
+}
+
+@include mixins.nx-phone {
+  .canonicalPath {
+    display: none;
+  }
+
+  .projectItem {
+    max-width: 42vw;
+  }
 }

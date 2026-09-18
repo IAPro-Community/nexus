@@ -1,0 +1,41 @@
+# Alias: conteúdo idêntico a docker-compose.yaml (arquivo padrão do projeto).
+# Preferência: docker compose -f docker-compose.yaml up --build
+
+name: nexus-compat
+
+services:
+  nexus:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        WITH_PROVIDER_CLIS: ${WITH_PROVIDER_CLIS:-1}
+    image: iapro/nexus-compat:local
+    container_name: nexus-compat
+    restart: unless-stopped
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    environment:
+      HOME: ${HOST_HOME_DIR:-${HOME}}
+      HOST_HOME_DIR: ${HOST_HOME_DIR:-${HOME}}
+      HOST_UID: ${HOST_UID:-1000}
+      HOST_GID: ${HOST_GID:-1000}
+      I_ACCEPT_HOST_PARITY: ${I_ACCEPT_HOST_PARITY:?set I_ACCEPT_HOST_PARITY=1 after reading docs/getting-started/docker-compat.md}
+      ENABLE_SSH_AGENT: ${ENABLE_SSH_AGENT:-0}
+      NEXUS_DOCKER: "1"
+      NEXUS_COMPAT_DOCKER: "1"
+      PATH: ${HOST_HOME_DIR:-${HOME}}/.local/bin:${HOST_HOME_DIR:-${HOME}}/bin:${HOST_HOME_DIR:-${HOME}}/.opencode/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      SSH_AUTH_SOCK: /run/nexus-ssh-agent.sock
+    ports:
+      - "${HOST_BIND_ADDRESS:-127.0.0.1}:${NEXUS_WEB_PORT:-7420}:7420"
+    volumes:
+      - ${HOST_HOME_DIR:-${HOME}}:${HOST_HOME_DIR:-${HOME}}
+      - ${WORKSPACE_DIR:-/projetos}:${WORKSPACE_DIR:-/projetos}
+      - ${SSH_AUTH_SOCK_MOUNT:-/dev/null}:/run/nexus-ssh-agent.sock:ro
+      - ${RUN_USER_DIR:-/dev/null}:${RUN_USER_DIR:-/dev/null}:ro
+    working_dir: ${WORKSPACE_DIR:-/projetos}
+    healthcheck:
+      test: ["CMD", "nexus", "version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

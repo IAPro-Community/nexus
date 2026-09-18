@@ -2,8 +2,10 @@ package driver
 
 import (
 	"context"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"os"
 	"testing"
+
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 func TestShellDriverIsTerminalOnlyNotAIProvider(t *testing.T) {
@@ -18,5 +20,20 @@ func TestShellDriverIsTerminalOnlyNotAIProvider(t *testing.T) {
 	binary, _, env, err := d.BuildCommand(context.Background(), model.Profile{}, nil)
 	if err != nil || binary == "" || len(env) == 0 {
 		t.Fatalf("system shell not resolved: %q env=%d err=%v", binary, len(env), err)
+	}
+}
+
+func TestShellDriverFallsBackFromStaleShellPath(t *testing.T) {
+	t.Setenv("SHELL", "/definitely/missing/nexus-shell")
+
+	binary, _, _, err := NewShellDriver().BuildCommand(context.Background(), model.Profile{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if binary == "/definitely/missing/nexus-shell" {
+		t.Fatal("stale SHELL path must not be selected")
+	}
+	if _, err := os.Stat(binary); err != nil {
+		t.Fatalf("fallback shell %q is not executable: %v", binary, err)
 	}
 }

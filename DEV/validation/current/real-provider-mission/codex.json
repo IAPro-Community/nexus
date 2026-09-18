@@ -1,0 +1,50 @@
+{
+  "provider": "codex",
+  "observed_at": "2026-09-14T02:43:47Z",
+  "status": "PASS",
+  "binary": "./nexus",
+  "attempts": [
+    {
+      "profile": "kivergmail",
+      "mode": "direct",
+      "result": "TRANSIENT_MAINTENANCE_LOCK",
+      "detail": "existing supervised TUI lease prevented exclusive direct/app-server preparation"
+    },
+    {
+      "profile": "kiver.omegasistemas",
+      "mode": "direct",
+      "result": "TRANSIENT_MAINTENANCE_LOCK",
+      "detail": "existing supervised TUI lease prevented exclusive direct/app-server preparation; profile is expired"
+    },
+    {
+      "profile": "kivergmail",
+      "mode": "supervised-tty",
+      "result": "TRANSIENT_TUI_LOCK",
+      "detail": "startup banner emitted, then the new transient Codex TUI lock error; the removed singleton message was not emitted"
+    }
+  ],
+  "mission_run_id": "run_06G9VJV1K6J649PN2EMEHR1EMG",
+  "mission_final_state": "COMPLETED_VERIFIED",
+  "mission_detail": "Authenticated Codex implementer executed in a dedicated worktree, an independent read-only Codex reviewer approved with a distinct Agent, package and global git diff checks passed, and the Mission completed with durable evidence.",
+  "review_path": "READ_ONLY_CODEX_EXEC",
+  "routing_decision": {
+    "provider": "codex",
+    "profile": "kivergmail",
+    "desired_provider": "AUTO",
+    "desired_profile": "AUTO",
+    "healthy": true,
+    "authenticated": true,
+    "quota_available": true,
+    "fallback": false
+  },
+  "quota_status": "AUTHENTICATED_CACHED_ESTIMATE",
+  "evidence": {
+    "context_capsules": 1,
+    "work_receipts": 1,
+    "verification_commands_passed": ["git diff --check", "git status --short"],
+    "global_verification_commands_passed": ["git diff --check"],
+    "changed_files": ["README.md"],
+    "reviewer_agent_distinct": true,
+    "review_approved": true
+  }
+}

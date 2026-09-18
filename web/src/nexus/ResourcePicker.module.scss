@@ -1,0 +1,53 @@
+.providerGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.providerHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 2px;
+  color: var(--nx-text);
+  font-size: 0.857rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.providerCount {
+  color: var(--nx-muted);
+  font-size: 0.786rem;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.account[data-quota-state='exhausted'],
+.account[data-quota-state='blocked'] {
+  border-color: color-mix(in srgb, var(--nx-danger) 60%, var(--nx-border));
+}
+
+.quotaState {
+  color: var(--nx-muted);
+  font-size: 0.786rem;
+}
+
+.quotaState[data-state='confirmed'] {
+  color: var(--nx-success);
+}
+.quotaState[data-state='exhausted'],
+.quotaState[data-state='blocked'] {
+  color: var(--nx-danger);
+}
+.quotaState[data-state='stale'] {
+  color: var(--nx-warning);
+}
+
+.eligibility {
+  color: var(--nx-muted);
+  font-size: 0.786rem;
+}
+
+.eligibility[data-eligible='false'] {
+  color: var(--nx-danger);
+}

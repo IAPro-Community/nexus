@@ -139,7 +139,7 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
           </p>
           <p
             className="nx-uui-notification__hint"
-            style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--nx-muted)' }}
+            style={{ margin: '4px 0 0', fontSize: '0.786rem', color: 'var(--nx-muted)' }}
           >
             {t('attention.hint', 'Reply here or open the agent terminal.')}
           </p>

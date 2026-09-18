@@ -7,15 +7,16 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"syscall"
+	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 const (
 	webAuthDirName       = "web-auth"
 	sessionsFileName     = "sessions.json"
+	deviceFileName       = "device.json"
 	listenFileName       = "listen.json"
 	webAuthFileMode      = 0o600
 	webAuthDirMode       = 0o700
@@ -35,13 +36,18 @@ type persistedAuth struct {
 	Sessions []persistedSession `json:"sessions"`
 }
 
+type persistedDevice struct {
+	Token string `json:"token"`
+}
+
 // ListenState is the on-disk pointer to the running Web Control Center so
 // `nexus web open` can re-auth from any terminal.
 type ListenState struct {
-	URL          string `json:"url"`
-	BootstrapURL string `json:"bootstrap_url"`
-	PID          int    `json:"pid"`
-	Loopback     bool   `json:"loopback"`
+	URL            string `json:"url"`
+	BootstrapURL   string `json:"bootstrap_url"`
+	BootstrapToken string `json:"bootstrap_token,omitempty"`
+	PID            int    `json:"pid"`
+	Loopback       bool   `json:"loopback"`
 }
 
 func loopbackAuthStoreDir() string {
@@ -53,7 +59,7 @@ func loopbackAuthStoreDir() string {
 }
 
 func (a *AuthManager) persistLocked() error {
-	if a.storeDir == "" || !a.isLoopbackListen() {
+	if a.storeDir == "" || a.effectiveExposureLocked() != ExposureLoopback {
 		return nil
 	}
 	if err := os.MkdirAll(a.storeDir, webAuthDirMode); err != nil {
@@ -96,6 +102,17 @@ func (a *AuthManager) persistLocked() error {
 	return nil
 }
 
+func (a *AuthManager) clearPersistedSessionsLocked() error {
+	if a.storeDir == "" {
+		return nil
+	}
+	path := filepath.Join(a.storeDir, sessionsFileName)
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
 func (a *AuthManager) loadPersistedLocked() {
 	if a.storeDir == "" || !a.isLoopbackListen() {
 		return
@@ -130,9 +147,49 @@ func (a *AuthManager) loadPersistedLocked() {
 	}
 }
 
+func (a *AuthManager) persistDeviceTokenLocked() error {
+	if a.storeDir == "" || a.deviceToken == "" || a.effectiveExposureLocked() != ExposureLoopback {
+		return nil
+	}
+	if err := os.MkdirAll(a.storeDir, webAuthDirMode); err != nil {
+		fmt.Fprintf(os.Stderr, "nexus web: failed to persist device token: %v\n", err)
+		return err
+	}
+	data, err := json.Marshal(persistedDevice{Token: a.deviceToken})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "nexus web: failed to persist device token: %v\n", err)
+		return err
+	}
+	if err := atomicWriteFile(filepath.Join(a.storeDir, deviceFileName), data, webAuthFileMode); err != nil {
+		fmt.Fprintf(os.Stderr, "nexus web: failed to persist device token: %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (a *AuthManager) loadDeviceTokenLocked() {
+	if a.storeDir == "" || !a.isLoopbackListen() || a.deviceToken != "" {
+		return
+	}
+	data, err := os.ReadFile(filepath.Join(a.storeDir, deviceFileName))
+	if err != nil || len(data) == 0 {
+		return
+	}
+	var payload persistedDevice
+	if json.Unmarshal(data, &payload) != nil {
+		return
+	}
+	token := strings.TrimSpace(payload.Token)
+	if token == "" {
+		return
+	}
+	a.deviceToken = token
+}
+
 func writeListenState(state ListenState) error {
 	if !state.Loopback {
 		state.BootstrapURL = ""
+		state.BootstrapToken = ""
 	}
 	dir := loopbackAuthStoreDir()
 	if dir == "" {
@@ -203,17 +260,6 @@ func listenHealthOK(baseURL string) bool {
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode == http.StatusOK
-}
-
-func processAlive(pid int) bool {
-	if pid <= 0 {
-		return false
-	}
-	proc, err := os.FindProcess(pid)
-	if err != nil {
-		return false
-	}
-	return proc.Signal(syscall.Signal(0)) == nil
 }
 
 func atomicWriteFile(path string, data []byte, mode os.FileMode) error {

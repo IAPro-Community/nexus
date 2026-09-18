@@ -1,10 +1,50 @@
 package nexus
 
 import (
+	"fmt"
 	"math"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 )
+
+type ComposerFactStatus string
+
+const (
+	ComposerFactProposed  ComposerFactStatus = "PROPOSED"
+	ComposerFactConfirmed ComposerFactStatus = "CONFIRMED"
+	ComposerFactInferred  ComposerFactStatus = "INFERRED"
+	ComposerFactAssumed   ComposerFactStatus = "ASSUMED"
+	ComposerFactDismissed ComposerFactStatus = "DISMISSED"
+)
+
+// ComposerFact is a traceable statement in the brief. It deliberately stores
+// provenance, rather than treating model output as user-confirmed truth.
+type ComposerFact struct {
+	ID         string             `json:"id"`
+	Field      string             `json:"field"`
+	Value      string             `json:"value"`
+	SourceType string             `json:"source_type"`
+	SourceRef  string             `json:"source_ref,omitempty"`
+	Confidence string             `json:"confidence,omitempty"`
+	Status     ComposerFactStatus `json:"status"`
+	Impact     string             `json:"impact,omitempty"`
+	Revision   int                `json:"revision"`
+	UpdatedAt  time.Time          `json:"updated_at"`
+}
+
+type MotivationMap struct {
+	Problem        []ComposerFact `json:"problem,omitempty"`
+	Affected       []ComposerFact `json:"affected,omitempty"`
+	Impact         []ComposerFact `json:"impact,omitempty"`
+	Result         []ComposerFact `json:"result,omitempty"`
+	Urgency        []ComposerFact `json:"urgency,omitempty"`
+	Tradeoffs      []ComposerFact `json:"tradeoffs,omitempty"`
+	SuccessSignals []ComposerFact `json:"success_signals,omitempty"`
+	FailureSignals []ComposerFact `json:"failure_signals,omitempty"`
+}
 
 type PromptArchetype string
 
@@ -51,12 +91,22 @@ type BriefIntent struct {
 	DesiredOutcome string          `json:"desired_outcome,omitempty"`
 }
 
+// ContextFileRef is a durable, redacted reference to a project file that the
+// user explicitly attached to the Composer brief. The excerpt is bounded and
+// the hash lets the UI detect drift without re-reading the file.
+type ContextFileRef struct {
+	Path    string `json:"path"`
+	Excerpt string `json:"excerpt,omitempty"`
+	Hash    string `json:"hash,omitempty"`
+}
+
 type BriefContext struct {
-	Domain        string   `json:"domain,omitempty"`
-	Project       string   `json:"project,omitempty"`
-	Audience      string   `json:"audience,omitempty"`
-	ExistingState []string `json:"existing_state,omitempty"`
-	Evidence      []string `json:"evidence,omitempty"`
+	Domain          string           `json:"domain,omitempty"`
+	Project         string           `json:"project,omitempty"`
+	Audience        string           `json:"audience,omitempty"`
+	ExistingState   []string         `json:"existing_state,omitempty"`
+	Evidence        []string         `json:"evidence,omitempty"`
+	ReferencedFiles []ContextFileRef `json:"referenced_files,omitempty"`
 }
 
 type BriefDeliverable struct {
@@ -108,16 +158,18 @@ type PromptAssumption struct {
 }
 
 type PromptUnknown struct {
-	ID            string                `json:"id"`
-	Field         string                `json:"field"`
-	Question      string                `json:"question"`
-	Rationale     string                `json:"rationale"`
-	Severity      PromptUnknownSeverity `json:"severity"`
-	Status        PromptUnknownStatus   `json:"status"`
-	Answer        string                `json:"answer,omitempty"`
-	InferredValue string                `json:"inferred_value,omitempty"`
-	Confidence    string                `json:"confidence,omitempty"`
-	Source        string                `json:"source,omitempty"`
+	ID               string                `json:"id"`
+	Field            string                `json:"field"`
+	Question         string                `json:"question"`
+	Rationale        string                `json:"rationale"`
+	Severity         PromptUnknownSeverity `json:"severity"`
+	Status           PromptUnknownStatus   `json:"status"`
+	Answer           string                `json:"answer,omitempty"`
+	InferredValue    string                `json:"inferred_value,omitempty"`
+	Confidence       string                `json:"confidence,omitempty"`
+	Source           string                `json:"source,omitempty"`
+	SuggestedOptions []string              `json:"suggested_options,omitempty"`
+	DefaultChoice    string                `json:"default_choice,omitempty"`
 }
 
 type PromptReadinessCheck struct {
@@ -153,6 +205,9 @@ type LivingBrief struct {
 	Unknowns      []PromptUnknown    `json:"unknowns,omitempty"`
 	OpenQuestions []string           `json:"open_questions,omitempty"`
 	Readiness     PromptReadiness    `json:"readiness"`
+	Motivation    MotivationMap      `json:"motivation,omitempty"`
+	Facts         []ComposerFact     `json:"facts,omitempty"`
+	Preview       string             `json:"preview,omitempty"`
 }
 
 type composerUnknownBlueprint struct {
@@ -182,6 +237,7 @@ func newComposerBrief(goal, sourcePrompt string) LivingBrief {
 		},
 	}
 	mergeTextIntoBrief(&brief, body, "USER")
+	brief.Motivation = deriveMotivationMap(brief)
 	refreshComposerBrief(&brief)
 	return brief
 }
@@ -204,6 +260,56 @@ func refreshComposerBrief(brief *LivingBrief) {
 		}
 	}
 	brief.Readiness = computePromptReadiness(*brief)
+	brief.Motivation = deriveMotivationMap(*brief)
+	brief.Preview = renderCanonicalPrompt(*brief)
+}
+
+// PromptIsShallow reports whether the brief still lacks an observable outcome
+// that would produce a strong development prompt.
+func PromptIsShallow(brief LivingBrief) bool {
+	if strings.TrimSpace(brief.Goal) == "" {
+		return true
+	}
+	words := strings.Fields(brief.Goal)
+	if len(words) < 4 && len(brief.Quality.AcceptanceCriteria) == 0 && len(brief.Scope.InScope) == 0 {
+		return true
+	}
+	if len(brief.Quality.AcceptanceCriteria) == 0 && len(brief.Scope.InScope) == 0 && len(brief.Decisions) == 0 {
+		lower := strings.ToLower(brief.Goal)
+		vague := []string{"melhorar", "improve", "ajustar", "update", "dashboard", "ui", "algo", "something"}
+		hits := 0
+		for _, v := range vague {
+			if strings.Contains(lower, v) {
+				hits++
+			}
+		}
+		if hits > 0 && len(words) < 12 {
+			return true
+		}
+	}
+	return false
+}
+
+func deriveMotivationMap(brief LivingBrief) MotivationMap {
+	now := time.Now().UTC()
+	fact := func(id, field, value, source, impact string) ComposerFact {
+		return ComposerFact{ID: id, Field: field, Value: strings.TrimSpace(value), SourceType: source, Confidence: "MEDIUM", Status: ComposerFactInferred, Impact: impact, Revision: 1, UpdatedAt: now}
+	}
+	out := MotivationMap{}
+	if strings.TrimSpace(brief.Goal) != "" {
+		out.Result = append(out.Result, fact("motivation-result", "motivation.result", brief.Goal, "USER", "defines the observable outcome"))
+	}
+	if len(brief.Context.ExistingState) > 0 {
+		for i, value := range brief.Context.ExistingState {
+			out.Problem = append(out.Problem, fact(fmt.Sprintf("motivation-problem-%d", i+1), "motivation.problem", value, "USER", "explains the current problem"))
+		}
+	}
+	if len(brief.Quality.AcceptanceCriteria) > 0 {
+		for i, value := range brief.Quality.AcceptanceCriteria {
+			out.SuccessSignals = append(out.SuccessSignals, fact(fmt.Sprintf("motivation-success-%d", i+1), "motivation.success", value, "USER", "proves success"))
+		}
+	}
+	return out
 }
 
 func mergeTextIntoBrief(brief *LivingBrief, text, source string) {
@@ -263,32 +369,46 @@ func mergeTextIntoBrief(brief *LivingBrief, text, source string) {
 }
 
 func refreshComposerUnknowns(brief LivingBrief) []PromptUnknown {
-	blueprints := archetypeUnknowns(brief.Intent.Archetype)
+	// Preserve intelligence / user unknowns keyed by field. Archetype checklists
+	// only fill gaps that are still missing — they never wipe intelligence items.
 	current := map[string]PromptUnknown{}
+	order := []string{}
 	for _, item := range brief.Unknowns {
-		current[item.Field] = item
+		field := item.Field
+		if field == "" {
+			field = item.ID
+		}
+		if _, exists := current[field]; !exists {
+			order = append(order, field)
+		}
+		current[field] = item
 	}
-	out := make([]PromptUnknown, 0, len(blueprints))
+
+	shallow := PromptIsShallow(brief)
+	blueprints := archetypeUnknowns(brief.Intent.Archetype)
 	for _, bp := range blueprints {
-		item := current[bp.Field]
-		if item.ID == "" {
+		item, exists := current[bp.Field]
+		if !exists {
 			item = PromptUnknown{
-				ID:        bp.ID,
-				Field:     bp.Field,
-				Question:  bp.Question,
-				Rationale: bp.Rationale,
-				Severity:  bp.Severity,
-				Source:    "INTELLIGENCE",
+				ID: bp.ID, Field: bp.Field, Question: bp.Question,
+				Rationale: bp.Rationale, Severity: bp.Severity, Source: "ARCHETYPE",
+			}
+			order = append(order, bp.Field)
+		} else if item.Source == "INTELLIGENCE" || item.Source == "USER" || item.Source == "MEMORY" {
+			// Keep intelligence/user/memory questions intact; only re-evaluate status.
+		} else {
+			item.Question = bp.Question
+			item.Rationale = bp.Rationale
+			if item.Severity == "" {
+				item.Severity = bp.Severity
 			}
 		}
-		item.Question = bp.Question
-		item.Rationale = bp.Rationale
-		item.Severity = bp.Severity
-		// Preserve user-resolved unknown status and answer if already resolved
+
 		if item.Status == PromptUnknownAnswered || item.Status == PromptUnknownConfirmed || item.Status == PromptUnknownDismissed {
-			out = append(out, item)
+			current[bp.Field] = item
 			continue
 		}
+
 		summary, status, confidence := evaluateBriefField(brief, bp.Field)
 		switch status {
 		case PromptUnknownConfirmed, PromptUnknownAnswered:
@@ -296,22 +416,158 @@ func refreshComposerUnknowns(brief LivingBrief) []PromptUnknown {
 			item.Answer = summary
 			item.InferredValue = ""
 			item.Confidence = confidence
-			item.Source = "USER"
+			if item.Source == "" || item.Source == "ARCHETYPE" {
+				item.Source = "USER"
+			}
 		case PromptUnknownInferred:
 			item.Status = PromptUnknownInferred
 			item.Answer = ""
 			item.InferredValue = summary
 			item.Confidence = confidence
-			item.Source = "PROJECT_CONTEXT"
+			if item.Source == "" || item.Source == "ARCHETYPE" {
+				item.Source = "PROJECT_CONTEXT"
+			}
+			// Ritual archetype BLOCKING becomes RECOMMENDED when not shallow and
+			// the field was only inferred from context/memory.
+			if item.Source != "INTELLIGENCE" && !shallow && bp.Severity == PromptUnknownBlocking {
+				item.Severity = PromptUnknownRecommended
+			}
 		default:
 			item.Status = PromptUnknownOpen
 			item.Answer = ""
 			item.InferredValue = ""
 			item.Confidence = ""
+			// Ritual ARCHETYPE never stays BLOCKING: shallow prompts extract via
+			// intelligence (options); deep prompts unlock destinations without a form.
+			if item.Source != "INTELLIGENCE" && item.Source != "USER" && item.Source != "MEMORY" &&
+				bp.Severity == PromptUnknownBlocking {
+				item.Severity = PromptUnknownRecommended
+				if !shallow {
+					item.Status = PromptUnknownInferred
+					item.InferredValue = "deferred — prompt already has actionable depth"
+					item.Confidence = "LOW"
+					item.Source = "REFINERY"
+				}
+			}
 		}
+		current[bp.Field] = item
+	}
+
+	out := make([]PromptUnknown, 0, len(order))
+	seen := map[string]bool{}
+	for _, field := range order {
+		item := current[field]
+		if seen[field] {
+			continue
+		}
+		seen[field] = true
 		out = append(out, item)
 	}
 	return out
+}
+
+// MergeIntelligenceUnknowns folds provider AmbiguityItems into the brief without
+// discarding existing resolved answers.
+func MergeIntelligenceUnknowns(brief *LivingBrief, items []intelligence.AmbiguityItem) {
+	if brief == nil || len(items) == 0 {
+		return
+	}
+	byField := map[string]int{}
+	for i, u := range brief.Unknowns {
+		byField[u.Field] = i
+		if u.ID != "" {
+			byField[u.ID] = i
+		}
+	}
+	for _, item := range items {
+		field := strings.TrimSpace(item.Key)
+		if field == "" {
+			continue
+		}
+		severity := PromptUnknownRecommended
+		switch item.Level {
+		case intelligence.AmbiguityBlocking:
+			severity = PromptUnknownBlocking
+		case intelligence.AmbiguityLowImpact:
+			severity = PromptUnknownOptional
+		}
+		next := PromptUnknown{
+			ID: field, Field: field, Question: item.Question, Rationale: item.Rationale,
+			Severity: severity, Status: PromptUnknownOpen, Source: "INTELLIGENCE",
+			SuggestedOptions: append([]string{}, item.SuggestedOptions...),
+			DefaultChoice:    item.DefaultChoice,
+		}
+		if item.IsResolved && strings.TrimSpace(item.Answer) != "" {
+			next.Status = PromptUnknownAnswered
+			next.Answer = item.Answer
+		} else if severity == PromptUnknownOptional && item.DefaultChoice != "" {
+			next.Status = PromptUnknownInferred
+			next.InferredValue = item.DefaultChoice
+			next.Confidence = "MEDIUM"
+		}
+		if idx, ok := byField[field]; ok {
+			prev := brief.Unknowns[idx]
+			if prev.Status == PromptUnknownAnswered || prev.Status == PromptUnknownConfirmed || prev.Status == PromptUnknownDismissed {
+				continue
+			}
+			if len(next.SuggestedOptions) == 0 {
+				next.SuggestedOptions = prev.SuggestedOptions
+			}
+			if next.DefaultChoice == "" {
+				next.DefaultChoice = prev.DefaultChoice
+			}
+			brief.Unknowns[idx] = next
+			continue
+		}
+		brief.Unknowns = append(brief.Unknowns, next)
+	}
+}
+
+// applyBriefExtraction merges provider-extracted brief fields into the living
+// brief. Heuristics remain the primary source (they run first); intelligence
+// only fills gaps. Every newly added value is recorded as a traceable
+// ComposerFact with SourceType="INTELLIGENCE" and Status=INFERRED so the brief
+// never presents inferred content as user-confirmed truth.
+func applyBriefExtraction(brief *LivingBrief, ext *intelligence.BriefExtraction) {
+	if brief == nil || ext == nil {
+		return
+	}
+	now := time.Now().UTC()
+	merge := func(field string, target *[]string, values []string) {
+		for _, raw := range values {
+			value := strings.TrimSpace(raw)
+			if value == "" {
+				continue
+			}
+			before := len(*target)
+			*target = appendUnique(*target, value)
+			if len(*target) == before {
+				continue
+			}
+			brief.Facts = append(brief.Facts, ComposerFact{
+				ID:         fmt.Sprintf("intelligence-%s-%d", field, len(brief.Facts)+1),
+				Field:      field,
+				Value:      value,
+				SourceType: "INTELLIGENCE",
+				Confidence: "MEDIUM",
+				Status:     ComposerFactInferred,
+				Revision:   1,
+				UpdatedAt:  now,
+			})
+		}
+	}
+	merge("scope.in_scope", &brief.Scope.InScope, ext.InScope)
+	merge("scope.out_of_scope", &brief.Scope.OutOfScope, ext.OutOfScope)
+	merge("constraints.technical", &brief.Constraints.Technical, ext.ConstraintsTechnical)
+	merge("constraints.security", &brief.Constraints.Security, ext.ConstraintsSecurity)
+	merge("risks", &brief.Risks, ext.Risks)
+	merge("quality.acceptance_criteria", &brief.Quality.AcceptanceCriteria, ext.AcceptanceCriteria)
+	merge("quality.testing", &brief.Quality.Testing, ext.Testing)
+	merge("quality.verification", &brief.Quality.Verification, ext.Verification)
+	merge("execution.prohibited_actions", &brief.Execution.ProhibitedActions, ext.ProhibitedActions)
+	merge("deliverable.expected_artifacts", &brief.Deliverable.ExpectedArtifacts, ext.Deliverables)
+	merge("environment.stack", &brief.Environment.Stack, ext.Stack)
+	merge("context.existing_state", &brief.Context.ExistingState, ext.ExistingState)
 }
 
 func computePromptReadiness(brief LivingBrief) PromptReadiness {
@@ -370,17 +626,101 @@ func renderCanonicalPrompt(brief LivingBrief) string {
 	var b strings.Builder
 	writePromptSection(&b, "Role", roleForArchetype(brief.Intent.Archetype))
 	writePromptSection(&b, "Objective", firstNonEmpty(strings.TrimSpace(brief.Intent.Objective), strings.TrimSpace(brief.Goal)))
+	writePromptList(&b, "Motivation — Problem", factsToLines(brief.Motivation.Problem))
+	writePromptList(&b, "Motivation — Impact", factsToLines(brief.Motivation.Impact))
+	writePromptList(&b, "Motivation — Result", factsToLines(brief.Motivation.Result))
+	writePromptSection(&b, "Domain", brief.Context.Domain)
+	writePromptSection(&b, "Audience", brief.Context.Audience)
 	writePromptList(&b, "Context", append(append([]string(nil), brief.Context.Evidence...), brief.Context.ExistingState...))
+	writeReferencedFiles(&b, brief.Context.ReferencedFiles)
 	writePromptList(&b, "Requirements", brief.Scope.InScope)
 	writePromptList(&b, "Out of scope", brief.Scope.OutOfScope)
-	writePromptList(&b, "Constraints", append(append(append([]string(nil), brief.Constraints.Technical...), brief.Constraints.Product...), brief.Constraints.Security...))
-	writePromptList(&b, "Architecture / Technical Context", brief.Environment.Stack)
-	writePromptList(&b, "Skills", flattenAssumptionsToLines(brief.Assumptions))
+	writePromptList(&b, "Decisions", brief.Decisions)
+	writePromptList(&b, "Assumptions", flattenAssumptionsToLines(brief.Assumptions))
+	writePromptList(&b, "Constraints — Technical", brief.Constraints.Technical)
+	writePromptList(&b, "Constraints — Product", brief.Constraints.Product)
+	writePromptList(&b, "Constraints — Security", brief.Constraints.Security)
+	writePromptList(&b, "Constraints — Compliance", brief.Constraints.Compliance)
+	writePromptList(&b, "Constraints — Schedule", brief.Constraints.Schedule)
+	writePromptList(&b, "Constraints — Budget", brief.Constraints.Budget)
+	writePromptList(&b, "Environment — Stack", brief.Environment.Stack)
+	writePromptSection(&b, "Environment — Repository", brief.Environment.Repository)
+	writePromptList(&b, "Environment — Operating Systems", brief.Environment.OperatingSystems)
+	writePromptList(&b, "Environment — Infrastructure", brief.Environment.Infrastructure)
+	writePromptSection(&b, "Execution — Autonomy", brief.Execution.Autonomy)
+	writePromptList(&b, "Execution — Allowed actions", brief.Execution.AllowedActions)
+	writePromptList(&b, "Execution — Prohibited actions", brief.Execution.ProhibitedActions)
+	writePromptList(&b, "Risks", brief.Risks)
+	writePromptList(&b, "Alternatives rejected", brief.Alternatives)
 	writePromptList(&b, "Acceptance Criteria", brief.Quality.AcceptanceCriteria)
 	writePromptList(&b, "Testing", brief.Quality.Testing)
 	writePromptList(&b, "Verification", brief.Quality.Verification)
+	writePromptList(&b, "Review", brief.Quality.Review)
+	writePromptList(&b, "Definition of Done", brief.Quality.DefinitionOfDone)
+	writePromptSection(&b, "Deliverable — Type", brief.Deliverable.Type)
+	writePromptSection(&b, "Deliverable — Format", brief.Deliverable.Format)
 	writePromptList(&b, "Deliverables", brief.Deliverable.ExpectedArtifacts)
+	writePromptList(&b, "Accepted gaps", acceptedGapLines(brief))
 	return strings.TrimSpace(b.String())
+}
+
+// writeReferencedFiles renders explicitly attached project files with a short,
+// already-redacted excerpt so the canonical prompt carries real context.
+func writeReferencedFiles(b *strings.Builder, files []ContextFileRef) {
+	if len(files) == 0 {
+		return
+	}
+	b.WriteString("# Context — Referenced files\n")
+	for _, file := range files {
+		path := strings.TrimSpace(file.Path)
+		if path == "" {
+			continue
+		}
+		b.WriteString("- ")
+		b.WriteString(path)
+		if hash := strings.TrimSpace(file.Hash); hash != "" {
+			b.WriteString(" (sha256:")
+			b.WriteString(hash)
+			b.WriteString(")")
+		}
+		b.WriteString("\n")
+		excerpt := strings.TrimSpace(file.Excerpt)
+		if excerpt == "" {
+			continue
+		}
+		b.WriteString("```\n")
+		b.WriteString(excerpt)
+		if !strings.HasSuffix(excerpt, "\n") {
+			b.WriteString("\n")
+		}
+		b.WriteString("```\n")
+	}
+	b.WriteString("\n")
+}
+
+func factsToLines(facts []ComposerFact) []string {
+	out := make([]string, 0, len(facts))
+	for _, fact := range facts {
+		if strings.TrimSpace(fact.Value) != "" {
+			out = append(out, strings.TrimSpace(fact.Value))
+		}
+	}
+	return out
+}
+
+func acceptedGapLines(brief LivingBrief) []string {
+	out := []string{}
+	for _, unknown := range brief.Unknowns {
+		switch unknown.Status {
+		case PromptUnknownDismissed:
+			out = append(out, firstNonEmpty(unknown.Field, unknown.ID)+": dismissed — "+firstNonEmpty(unknown.Answer, unknown.Question))
+		case PromptUnknownConfirmed, PromptUnknownAnswered:
+			if unknown.Severity == PromptUnknownOptional || unknown.Severity == PromptUnknownRecommended {
+				continue
+			}
+		}
+	}
+	return out
 }
 
 func writePromptSection(b *strings.Builder, title, value string) {
@@ -499,9 +839,17 @@ func evaluateBriefField(brief LivingBrief, field string) (string, PromptUnknownS
 		if len(brief.Scope.InScope) > 0 {
 			return brief.Scope.InScope[0], PromptUnknownConfirmed, "HIGH"
 		}
+	case "scope.out_of_scope":
+		if len(brief.Scope.OutOfScope) > 0 {
+			return brief.Scope.OutOfScope[0], PromptUnknownConfirmed, "HIGH"
+		}
 	case "environment.stack":
 		if len(brief.Environment.Stack) > 0 {
 			return strings.Join(brief.Environment.Stack, ", "), PromptUnknownConfirmed, "HIGH"
+		}
+	case "environment.infrastructure":
+		if len(brief.Environment.Infrastructure) > 0 {
+			return strings.Join(brief.Environment.Infrastructure, ", "), PromptUnknownConfirmed, "HIGH"
 		}
 	case "quality.acceptance_criteria":
 		if len(brief.Quality.AcceptanceCriteria) > 0 {
@@ -515,37 +863,92 @@ func evaluateBriefField(brief LivingBrief, field string) (string, PromptUnknownS
 		if len(brief.Quality.Verification) > 0 {
 			return brief.Quality.Verification[0], PromptUnknownConfirmed, "HIGH"
 		}
+	case "quality.definition_of_done":
+		if len(brief.Quality.DefinitionOfDone) > 0 {
+			return brief.Quality.DefinitionOfDone[0], PromptUnknownConfirmed, "HIGH"
+		}
 	case "context.existing_state":
 		if len(brief.Context.ExistingState) > 0 {
 			return brief.Context.ExistingState[0], PromptUnknownConfirmed, "HIGH"
+		}
+	case "risks":
+		if len(brief.Risks) > 0 {
+			return brief.Risks[0], PromptUnknownConfirmed, "HIGH"
+		}
+	case "execution.prohibited_actions":
+		if len(brief.Execution.ProhibitedActions) > 0 {
+			return brief.Execution.ProhibitedActions[0], PromptUnknownConfirmed, "HIGH"
+		}
+	case "deliverable.expected_artifacts":
+		if len(brief.Deliverable.ExpectedArtifacts) > 0 {
+			return brief.Deliverable.ExpectedArtifacts[0], PromptUnknownConfirmed, "HIGH"
+		}
+	case "constraints.security":
+		if len(brief.Constraints.Security) > 0 {
+			return brief.Constraints.Security[0], PromptUnknownConfirmed, "HIGH"
 		}
 	}
 	return "", PromptUnknownOpen, ""
 }
 
+func commonDeliveryUnknowns() []composerUnknownBlueprint {
+	return []composerUnknownBlueprint{
+		{ID: "out-of-scope", Field: "scope.out_of_scope", Question: "O que está explicitamente fora do escopo desta entrega?", Rationale: "Fora de escopo evita expansão silenciosa.", Severity: PromptUnknownRecommended},
+		{ID: "risks", Field: "risks", Question: "Quais riscos ou regressões devem ser evitados?", Rationale: "Riscos explícitos melhoram o prompt de execução.", Severity: PromptUnknownRecommended},
+		{ID: "prohibited", Field: "execution.prohibited_actions", Question: "Quais ações o agente NÃO deve executar (commit, push, deploy, etc.)?", Rationale: "Ações proibidas protegem o repositório.", Severity: PromptUnknownRecommended},
+		{ID: "dod", Field: "quality.definition_of_done", Question: "Qual é a definição de pronto (Definition of Done)?", Rationale: "DoD fecha o contrato da entrega.", Severity: PromptUnknownRecommended},
+		{ID: "deliverables", Field: "deliverable.expected_artifacts", Question: "Quais artefatos devem ser entregues ao final?", Rationale: "Artefatos esperados tornam o resultado verificável.", Severity: PromptUnknownRecommended},
+	}
+}
+
 func archetypeUnknowns(archetype PromptArchetype) []composerUnknownBlueprint {
+	appendCommon := func(base []composerUnknownBlueprint) []composerUnknownBlueprint {
+		return append(base, commonDeliveryUnknowns()...)
+	}
 	switch archetype {
 	case PromptArchetypeBugFix:
-		return []composerUnknownBlueprint{
+		return appendCommon([]composerUnknownBlueprint{
 			{ID: "current-bug", Field: "context.existing_state", Question: "Qual é o comportamento atual que está errado?", Rationale: "O prompt precisa descrever o bug real.", Severity: PromptUnknownBlocking},
 			{ID: "fix-scope", Field: "scope.in_scope", Question: "Qual parte do sistema deve ser corrigida agora?", Rationale: "Escopo claro evita remediações amplas.", Severity: PromptUnknownRecommended},
 			{ID: "regression-test", Field: "quality.testing", Question: "Qual teste de regressão deve provar a correção?", Rationale: "Bug fix sem teste regride com facilidade.", Severity: PromptUnknownBlocking},
 			{ID: "verification", Field: "quality.verification", Question: "Como você quer verificar a correção ao final?", Rationale: "A entrega precisa de evidência final.", Severity: PromptUnknownRecommended},
-		}
+		})
 	case PromptArchetypeResearch:
-		return []composerUnknownBlueprint{
+		return appendCommon([]composerUnknownBlueprint{
 			{ID: "research-scope", Field: "scope.in_scope", Question: "Qual recorte da pesquisa deve ser coberto?", Rationale: "Sem escopo a resposta fica genérica.", Severity: PromptUnknownBlocking},
 			{ID: "acceptance", Field: "quality.acceptance_criteria", Question: "Como você reconhecerá uma boa síntese?", Rationale: "Critérios evitam pesquisa extensa sem valor.", Severity: PromptUnknownRecommended},
 			{ID: "verification", Field: "quality.verification", Question: "Que tipo de validação ou fontes você espera?", Rationale: "Pesquisa boa precisa de verificabilidade.", Severity: PromptUnknownBlocking},
-		}
+		})
+	case PromptArchetypeDevOps:
+		return appendCommon([]composerUnknownBlueprint{
+			{ID: "scope", Field: "scope.in_scope", Question: "Qual mudança de infraestrutura ou deploy está no escopo?", Rationale: "Escopo DevOps evita mudanças amplas.", Severity: PromptUnknownBlocking},
+			{ID: "infra", Field: "environment.infrastructure", Question: "Qual infraestrutura, ambiente ou pipeline será alterado?", Rationale: "Infra concreta evita prompts genéricos.", Severity: PromptUnknownBlocking},
+			{ID: "acceptance", Field: "quality.acceptance_criteria", Question: "Como você saberá que o deploy/infra está correto?", Rationale: "Critério mensurável fecha a entrega.", Severity: PromptUnknownBlocking},
+			{ID: "verification", Field: "quality.verification", Question: "Quais checks de saúde ou smoke tests validam o resultado?", Rationale: "Verificação operacional é obrigatória.", Severity: PromptUnknownRecommended},
+		})
+	case PromptArchetypeArchitecture:
+		return appendCommon([]composerUnknownBlueprint{
+			{ID: "scope", Field: "scope.in_scope", Question: "Qual decisão ou módulo arquitetural está no escopo?", Rationale: "Escopo evita redesign amplo.", Severity: PromptUnknownBlocking},
+			{ID: "stack", Field: "environment.stack", Question: "Quais componentes ou camadas técnicas entram na análise?", Rationale: "Contexto técnico ancora a decisão.", Severity: PromptUnknownRecommended},
+			{ID: "acceptance", Field: "quality.acceptance_criteria", Question: "Como uma boa decisão arquitetural será reconhecida?", Rationale: "Critérios evitam parecer genérico.", Severity: PromptUnknownBlocking},
+			{ID: "verification", Field: "quality.verification", Question: "Que evidências ou ADRs devem documentar a decisão?", Rationale: "Arquitetura precisa de registro verificável.", Severity: PromptUnknownRecommended},
+		})
+	case PromptArchetypeSecurity:
+		return appendCommon([]composerUnknownBlueprint{
+			{ID: "scope", Field: "scope.in_scope", Question: "Qual superfície de ataque ou controle de segurança será tratado?", Rationale: "Escopo de segurança precisa ser preciso.", Severity: PromptUnknownBlocking},
+			{ID: "security", Field: "constraints.security", Question: "Quais restrições de segurança, auth ou compliance são obrigatórias?", Rationale: "Restrições de segurança não podem ser inferidas.", Severity: PromptUnknownBlocking},
+			{ID: "acceptance", Field: "quality.acceptance_criteria", Question: "Qual resultado de segurança define sucesso?", Rationale: "Aceite de segurança precisa ser observável.", Severity: PromptUnknownBlocking},
+			{ID: "testing", Field: "quality.testing", Question: "Quais testes ou scans de segurança devem acompanhar a entrega?", Rationale: "Segurança sem teste é regressão.", Severity: PromptUnknownRecommended},
+			{ID: "verification", Field: "quality.verification", Question: "Como a correção de segurança será verificada?", Rationale: "Verificação fecha o contrato.", Severity: PromptUnknownRecommended},
+		})
 	default:
-		return []composerUnknownBlueprint{
+		return appendCommon([]composerUnknownBlueprint{
 			{ID: "scope", Field: "scope.in_scope", Question: "Qual parte desta entrega está dentro do escopo imediato?", Rationale: "Escopo explícito evita expansão silenciosa.", Severity: PromptUnknownBlocking},
 			{ID: "stack", Field: "environment.stack", Question: "Qual stack, serviço ou área técnica será alterada?", Rationale: "A estratégia muda com a stack real.", Severity: PromptUnknownRecommended},
 			{ID: "acceptance", Field: "quality.acceptance_criteria", Question: "Qual resultado mensurável define que isso está pronto?", Rationale: "Sem critério mensurável o prompt final fica fraco.", Severity: PromptUnknownBlocking},
 			{ID: "testing", Field: "quality.testing", Question: "Quais testes ou evidências técnicas devem acompanhar a entrega?", Rationale: "Composer precisa embutir qualidade e regressão.", Severity: PromptUnknownRecommended},
 			{ID: "verification", Field: "quality.verification", Question: "Como a execução deve ser verificada no final?", Rationale: "Verificação final fecha o contrato do prompt.", Severity: PromptUnknownBlocking},
-		}
+		})
 	}
 }
 
@@ -556,9 +959,9 @@ func classifyPromptArchetype(text string) PromptArchetype {
 		return PromptArchetypeBugFix
 	case strings.Contains(text, "research") || strings.Contains(text, "pesquisa") || strings.Contains(text, "analisar"):
 		return PromptArchetypeResearch
-	case strings.Contains(text, "oauth") || strings.Contains(text, "security") || strings.Contains(text, "csrf"):
-		return PromptArchetypeSoftwareFeature
-	case strings.Contains(text, "infra") || strings.Contains(text, "deploy") || strings.Contains(text, "docker"):
+	case strings.Contains(text, "oauth") || strings.Contains(text, "security") || strings.Contains(text, "csrf") || strings.Contains(text, "seguran"):
+		return PromptArchetypeSecurity
+	case strings.Contains(text, "infra") || strings.Contains(text, "deploy") || strings.Contains(text, "docker") || strings.Contains(text, "kubern"):
 		return PromptArchetypeDevOps
 	case strings.Contains(text, "architecture") || strings.Contains(text, "arquitet"):
 		return PromptArchetypeArchitecture
@@ -571,16 +974,30 @@ func readinessLabel(field string) string {
 	switch field {
 	case "scope.in_scope":
 		return "Scope"
+	case "scope.out_of_scope":
+		return "Out of scope"
 	case "environment.stack":
 		return "Stack"
+	case "environment.infrastructure":
+		return "Infrastructure"
 	case "quality.acceptance_criteria":
 		return "Acceptance criteria"
 	case "quality.testing":
 		return "Testing"
 	case "quality.verification":
 		return "Verification"
+	case "quality.definition_of_done":
+		return "Definition of Done"
 	case "context.existing_state":
 		return "Current state"
+	case "risks":
+		return "Risks"
+	case "execution.prohibited_actions":
+		return "Prohibited actions"
+	case "deliverable.expected_artifacts":
+		return "Deliverables"
+	case "constraints.security":
+		return "Security constraints"
 	default:
 		return field
 	}
@@ -592,6 +1009,12 @@ func roleForArchetype(archetype PromptArchetype) string {
 		return "Act as a senior software engineer focused on root-cause fixes and regression safety."
 	case PromptArchetypeResearch:
 		return "Act as a rigorous research assistant and synthesize only what the evidence supports."
+	case PromptArchetypeDevOps:
+		return "Act as a senior DevOps engineer and keep infrastructure changes minimal, reversible, and verified."
+	case PromptArchetypeArchitecture:
+		return "Act as a software architect and document tradeoffs with concrete evidence."
+	case PromptArchetypeSecurity:
+		return "Act as a security-focused engineer and never weaken authentication, authorization, or secret handling."
 	default:
 		return "Act as a senior software engineer and keep the work within the confirmed scope."
 	}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
 
 // WorkPlan is the structured, versioned root of engineering planning (Phase D).
@@ -26,11 +26,14 @@ type WorkPlan struct {
 
 // PlanPhase groups sequential or related WorkPackages.
 type PlanPhase struct {
-	ID          string        `json:"id"`
-	Title       string        `json:"title"`
-	Description string        `json:"description,omitempty"`
-	Order       int           `json:"order"`
-	Packages    []WorkPackage `json:"packages"`
+	ID            string        `json:"id"`
+	Title         string        `json:"title"`
+	Description   string        `json:"description,omitempty"`
+	Order         int           `json:"order"`
+	Type          string        `json:"type,omitempty"`
+	RequiredRole  string        `json:"required_role,omitempty"`
+	FailurePolicy string        `json:"failure_policy,omitempty"`
+	Packages      []WorkPackage `json:"packages"`
 }
 
 // WorkPackage is a concrete, reviewable unit of autonomous engineering work.
@@ -43,18 +46,28 @@ type WorkPackage struct {
 	Dependencies             []string `json:"dependencies"`
 	ParallelGroup            string   `json:"parallel_group,omitempty"`
 	Role                     string   `json:"role"` // "implementer" | "reviewer" | "tester" | "architect"
+	PhaseType                string   `json:"phase_type,omitempty"`
+	ReviewRequired           bool     `json:"review_required,omitempty"`
 	TaskRequirements         string   `json:"task_requirements,omitempty"`
 	AgentAllocation          string   `json:"agent_allocation,omitempty"`
 	AssignmentStrategy       string   `json:"assignment_strategy,omitempty"` // EXISTING | CREATE | AUTO
 	ResourcePolicy           string   `json:"resource_policy,omitempty"`
 	Provider                 string   `json:"provider,omitempty"`
 	Profile                  string   `json:"profile,omitempty"`
+	DesiredProvider          string   `json:"desired_provider,omitempty"`
+	DesiredProfile           string   `json:"desired_profile,omitempty"`
+	SkillIDs                 []string `json:"skill_ids,omitempty"`
 	MaestroGates             []string `json:"maestro_gates,omitempty"` // legacy compatibility
 	MaestroSkills            []string `json:"maestro_skills,omitempty"`
 	RelevantPaths            []string `json:"relevant_paths,omitempty"`
 	AcceptanceCriteria       []string `json:"acceptance_criteria"`
 	VerificationRequirements []string `json:"verification_requirements,omitempty"`
+	RoutingDecisionJSON      string   `json:"routing_decision,omitempty"`
 	SharedArtifacts          []string `json:"shared_artifacts,omitempty"`
+	EntryCriteria            []string `json:"entry_criteria,omitempty"`
+	ExitCriteria             []string `json:"exit_criteria,omitempty"`
+	RequiredEvidence         []string `json:"required_evidence,omitempty"`
+	HandoffJSON              string   `json:"handoff,omitempty"`
 	CompiledPrompt           string   `json:"compiled_prompt,omitempty"`
 }
 

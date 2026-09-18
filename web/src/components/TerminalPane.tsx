@@ -1,12 +1,36 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
-import { Shield, ShieldAlert, XSquare, Pencil, Check, Play, RefreshCw, Unplug } from 'lucide-react';
-import { scrubProtocolOutput } from '../nexus/terminalProtocol';
+import {
+  Shield,
+  ShieldAlert,
+  XSquare,
+  Pencil,
+  Check,
+  Play,
+  RefreshCw,
+  Unplug,
+  Minus,
+  Plus,
+  ArrowDown,
+} from 'lucide-react';
+import { ProtocolScrubber } from '../nexus/terminalProtocol';
 import { canFitTerminal } from '../nexus/terminalFitModel';
+import {
+  DEFAULT_TERMINAL_SCROLLBACK,
+  adjustTerminalFontSize,
+  getStoredTerminalFontSize,
+  resetTerminalFontSize,
+  shouldAutoScrollToBottom,
+  storeTerminalFontSize,
+  subscribeTerminalFontSize,
+} from '../nexus/terminalSettings';
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { getWebSocketEndpoint } from '../api';
+import { shouldForwardTerminalInput, stripEmbeddedTerminalMetadata } from '../nexus/terminalInput';
+import styles from './TerminalPane.module.scss';
 
 interface TerminalPaneProps {
   runtimeId: string;
@@ -41,7 +65,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const liveTitleKeyRef = useRef(liveTitleKey);
   liveTitleKeyRef.current = liveTitleKey;
   const liveChromeRef = useRef(liveChrome);
-  liveChromeRef.current = liveChrome;
+  const { t } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
   const ptyChromeRef = useRef({ title: '', questionnaire: false });
 
   const [role, setRole] = useState<'CONTROL' | 'VIEW_ONLY'>('VIEW_ONLY');
@@ -52,6 +78,26 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const [disconnected, setDisconnected] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [connectNonce, setConnectNonce] = useState(0);
+  const [fontSize, setFontSize] = useState<number>(() => getStoredTerminalFontSize());
+  const initialFontSizeRef = useRef(fontSize);
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+
+  useEffect(() => {
+    return subscribeTerminalFontSize((newSize) => {
+      setFontSize(newSize);
+    });
+  }, []);
+
+  useEffect(() => {
+    const term = termRef.current;
+    if (!term) return;
+    term.options.fontSize = fontSize;
+    try {
+      fitAddonRef.current?.fit();
+    } catch {
+      // Ignore fit measurement errors during transition
+    }
+  }, [fontSize]);
 
   useEffect(() => {
     setCustomTitle(title || '');
@@ -59,8 +105,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
   useEffect(() => {
     const key = liveTitleKey;
+    const chrome = liveChromeRef.current;
     return () => {
-      if (key) liveChromeRef.current?.clearLive(key);
+      if (key) chrome?.clearLive(key);
     };
   }, [liveTitleKey]);
 
@@ -83,10 +130,48 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         selectionBackground: 'rgba(56, 189, 248, 0.3)',
       },
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-      fontSize: 13,
+      fontSize: initialFontSizeRef.current,
       lineHeight: 1.2,
       cursorBlink: true,
       cursorStyle: 'block',
+      scrollback: DEFAULT_TERMINAL_SCROLLBACK,
+    });
+
+    term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        if (
+          event.key === '=' ||
+          event.key === '+' ||
+          event.code === 'Equal' ||
+          event.code === 'NumpadAdd'
+        ) {
+          if (event.type === 'keydown') {
+            const next = adjustTerminalFontSize(1);
+            storeTerminalFontSize(next);
+          }
+          return false;
+        }
+        if (
+          event.key === '-' ||
+          event.key === '_' ||
+          event.code === 'Minus' ||
+          event.code === 'NumpadSubtract'
+        ) {
+          if (event.type === 'keydown') {
+            const next = adjustTerminalFontSize(-1);
+            storeTerminalFontSize(next);
+          }
+          return false;
+        }
+        if (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0') {
+          if (event.type === 'keydown') {
+            const next = resetTerminalFontSize();
+            storeTerminalFontSize(next);
+          }
+          return false;
+        }
+      }
+      return true;
     });
 
     const fitAddon = new FitAddon();
@@ -95,10 +180,14 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     let disposed = false;
     let sessionReady = false;
+    // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
+    const protocolScrubber = new ProtocolScrubber();
+    const panel = containerRef.current.closest<HTMLElement>('.nx-workspace-panel');
     const redrawTimers: number[] = [];
     let lastSentSize = { rows: 0, cols: 0 };
 
     const safeFit = (force = false) => {
+      if (panel && panel.dataset.active !== 'true') return;
       if (
         !canFitTerminal({
           disposed,
@@ -121,6 +210,40 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       if (ws?.readyState !== WebSocket.OPEN) return;
       lastSentSize = { rows: term.rows, cols: term.cols };
       ws.send(JSON.stringify({ type: 'resize', rows: term.rows, cols: term.cols }));
+    };
+
+    const scrollListener = term.onScroll(() => {
+      if (disposed) return;
+      const buf = term.buffer.active;
+      const atBottom = shouldAutoScrollToBottom(buf.viewportY, buf.baseY);
+      setIsScrolledUp(!atBottom);
+    });
+
+    let pendingOutput = '';
+    const writeTerminalOutput = (data: string) => {
+      if (disposed) return;
+      if (panel && panel.dataset.active !== 'true') {
+        pendingOutput += data;
+        return;
+      }
+      const buf = term.buffer.active;
+      const wasTracking = shouldAutoScrollToBottom(buf.viewportY, buf.baseY);
+      try {
+        term.write(pendingOutput + data, () => {
+          if (wasTracking) {
+            term.scrollToBottom();
+          }
+        });
+        pendingOutput = '';
+      } catch {
+        pendingOutput += data;
+      }
+    };
+    const flushPendingOutput = () => {
+      if (!pendingOutput || (panel && panel.dataset.active !== 'true')) return;
+      const output = pendingOutput;
+      pendingOutput = '';
+      writeTerminalOutput(output);
     };
 
     const scheduleRedrawPulse = () => {
@@ -183,10 +306,12 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         ws.send(JSON.stringify({ type: 'lease_acquire' }));
       }
       scheduleRedrawPulse();
-      try {
-        term.focus();
-      } catch {
-        // ignore
+      if (!panel || panel.dataset.active === 'true') {
+        try {
+          term.focus();
+        } catch {
+          // ignore
+        }
       }
     };
 
@@ -195,10 +320,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === 'output' && msg.data) {
-          const cleaned = scrubProtocolOutput(String(msg.data));
+          const cleaned = protocolScrubber.scrub(String(msg.data));
           if (cleaned) {
             ingestOutput(cleaned);
-            term.write(cleaned);
+            writeTerminalOutput(cleaned);
           }
         } else if (msg.type === 'lease') {
           setRole(msg.role === 'CONTROL' ? 'CONTROL' : 'VIEW_ONLY');
@@ -221,39 +346,38 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         // Raw bytes fallback
         const raw = String(event.data);
         ingestOutput(raw);
-        term.write(event.data);
+        writeTerminalOutput(String(event.data));
       }
     };
 
     ws.onclose = () => {
       if (disposed) return;
-      setErrorMsg((current) => current || 'O host do terminal não está em execução.');
+      // Release any buffered split-line tail: this stream ended.
+      const rest = protocolScrubber.flush();
+      if (rest) {
+        ingestOutput(rest);
+        writeTerminalOutput(rest);
+      }
+      setErrorMsg((current) => current || tRef.current('terminal.hostNotRunning'));
       setDisconnected(true);
     };
 
     ws.onerror = () => {
       if (disposed) return;
-      setErrorMsg((current) => current || 'O host do terminal não está em execução.');
+      setErrorMsg((current) => current || tRef.current('terminal.hostNotRunning'));
       setDisconnected(true);
     };
 
     // Forward terminal input to WebSocket with focus/CPR sequence filtering
     const dataListener = term.onData((data) => {
       if (disposed) return;
-      // Discard browser focus in/out and cursor position report sequences that leak during tab switching
-      if (
-        data === '\x1b[I' ||
-        data === '\x1b[O' ||
-        data === '[I' ||
-        data === '[O' ||
-        // eslint-disable-next-line no-control-regex
-        /^\x1b\[\d+;\d+R$/.test(data) ||
-        /^\[\d+;\d+R$/.test(data)
-      ) {
-        return;
-      }
+      term.scrollToBottom();
+      setIsScrolledUp(false);
+      if (!shouldForwardTerminalInput(data)) return;
+      const clean = stripEmbeddedTerminalMetadata(data);
+      if (!clean) return;
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'input', data }));
+        ws.send(JSON.stringify({ type: 'input', data: clean }));
       }
     });
 
@@ -270,11 +394,30 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     const handleWindowResize = () => {
       safeFit();
     };
+    let flushFrame: number | undefined;
+    const panelObserver = panel
+      ? new MutationObserver(() => {
+          if (panel.dataset.active !== 'true' || flushFrame !== undefined) return;
+          flushFrame = window.requestAnimationFrame(() => {
+            flushFrame = undefined;
+            safeFit(true);
+            flushPendingOutput();
+            term.scrollToBottom();
+          });
+        })
+      : null;
+    if (panel)
+      panelObserver?.observe(panel, { attributes: true, attributeFilter: ['data-active'] });
     window.addEventListener('resize', handleWindowResize);
 
     return () => {
       disposed = true;
       redrawTimers.forEach((timer) => window.clearTimeout(timer));
+      try {
+        scrollListener.dispose();
+      } catch {
+        // ignore
+      }
       try {
         titleListener.dispose();
       } catch {
@@ -292,6 +435,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       }
       window.removeEventListener('resize', handleWindowResize);
       window.cancelAnimationFrame(initialFit);
+      if (flushFrame !== undefined) window.cancelAnimationFrame(flushFrame);
+      panelObserver?.disconnect();
       try {
         ws.onopen = null;
         ws.onmessage = null;
@@ -330,6 +475,27 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     }
   };
 
+  const handleZoomIn = () => {
+    const next = adjustTerminalFontSize(1);
+    storeTerminalFontSize(next);
+  };
+
+  const handleZoomOut = () => {
+    const next = adjustTerminalFontSize(-1);
+    storeTerminalFontSize(next);
+  };
+
+  const handleResetZoom = () => {
+    const next = resetTerminalFontSize();
+    storeTerminalFontSize(next);
+  };
+
+  const handleScrollToBottom = () => {
+    termRef.current?.scrollToBottom();
+    termRef.current?.focus();
+    setIsScrolledUp(false);
+  };
+
   const requestControl = () => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'lease_acquire' }));
@@ -343,10 +509,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   };
 
   return (
-    <div
-      className="flex flex-col h-full bg-[#090d16] border border-slate-800 rounded-lg overflow-hidden shadow-xl relative"
-      data-chrome={hideHeader ? 'window' : 'full'}
-    >
+    <div className={styles.terminalPaneRoot} data-chrome={hideHeader ? 'window' : 'full'}>
       {/* Terminal Toolbar */}
       {!hideHeader && (
         <div className="flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-800 text-xs font-mono select-none">
@@ -363,6 +526,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
                   autoFocus
                 />
                 <button
+                  type="button"
                   onClick={handleSaveTitle}
                   className="p-0.5 text-emerald-400 hover:text-emerald-300"
                 >
@@ -370,16 +534,18 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
                 </button>
               </div>
             ) : (
-              <div
+              <button
+                type="button"
                 className="flex items-center space-x-1.5 cursor-pointer group"
                 onClick={() => setIsEditingTitle(true)}
-                title="Click to rename session title"
+                title={t('terminal.renameSessionTitle')}
+                aria-label={t('terminal.renameSessionTitle')}
               >
                 <span className="text-slate-100 font-bold font-sans">
                   {customTitle || `${provider.toUpperCase()} (${profile})`}
                 </span>
                 <Pencil className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100 transition" />
-              </div>
+              </button>
             )}
             {ptyTitle && (
               <span
@@ -396,8 +562,39 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
             <span className="text-slate-500 text-[10px]">ID: {runtimeId}</span>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {errorMsg && <span className="text-rose-400 font-sans text-xs">{errorMsg}</span>}
+
+            {/* Terminal Font Size Zoom Controls */}
+            <div className={styles.zoomGroup} role="group" aria-label="Terminal font size">
+              <button
+                type="button"
+                className={styles.zoomBtn}
+                onClick={handleZoomOut}
+                title={t('terminal.zoomOut')}
+                aria-label={t('terminal.zoomOut')}
+              >
+                <Minus size={11} />
+              </button>
+              <button
+                type="button"
+                className={styles.zoomLabel}
+                onClick={handleResetZoom}
+                title={t('terminal.resetZoom')}
+                aria-label={t('terminal.resetZoom')}
+              >
+                {fontSize}px
+              </button>
+              <button
+                type="button"
+                className={styles.zoomBtn}
+                onClick={handleZoomIn}
+                title={t('terminal.zoomIn')}
+                aria-label={t('terminal.zoomIn')}
+              >
+                <Plus size={11} />
+              </button>
+            </div>
 
             {/* Lease Status Badge */}
             {role === 'CONTROL' ? (
@@ -415,13 +612,15 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
             {/* Lease Actions */}
             {role === 'VIEW_ONLY' ? (
               <button
+                type="button"
                 onClick={requestControl}
                 className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-sans text-xs transition"
               >
-                Take Control
+                {t('terminal.takeControl')}
               </button>
             ) : (
               <button
+                type="button"
                 onClick={releaseControl}
                 className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-sans text-xs transition"
               >
@@ -431,9 +630,11 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
             {onClose && (
               <button
+                type="button"
                 onClick={onClose}
                 className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                title="Close Pane"
+                title={t('terminal.closePane')}
+                aria-label={t('terminal.closePane')}
               >
                 <XSquare className="w-4 h-4" />
               </button>
@@ -444,67 +645,36 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
       {/* xterm container */}
       <div
-        className="flex-1 w-full p-2 overflow-hidden"
+        className={styles.terminalContainer}
         ref={containerRef}
         onPointerDown={() => termRef.current?.focus()}
       />
+
+      {/* Smart scroll-to-bottom floating button */}
+      {isScrolledUp && (
+        <button
+          type="button"
+          className={styles.scrollToBottomBtn}
+          onClick={handleScrollToBottom}
+          title={t('terminal.scrollToBottom')}
+          aria-label={t('terminal.scrollToBottom')}
+        >
+          <ArrowDown size={12} />
+          <span>{t('terminal.scrollToBottom')}</span>
+        </button>
+      )}
+
       {disconnected && (
         <div
-          style={{
-            position: 'absolute',
-            inset: hideHeader ? 0 : '40px 0 0 0',
-            background: 'rgba(9, 11, 16, 0.88)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
-            padding: '24px',
-            zIndex: 10,
-            textAlign: 'center',
-          }}
+          className={styles.disconnectedOverlay}
+          data-window-chrome={hideHeader ? 'true' : 'false'}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: 'var(--nx-warning)',
-            }}
-          >
+          <div className={styles.disconnectedHeader}>
             <Unplug size={18} />
-            <strong style={{ fontSize: '14px' }}>Terminal desconectado</strong>
+            <strong className={styles.disconnectedTitle}>{t('terminal.disconnected')}</strong>
           </div>
-          <p
-            style={{
-              maxWidth: '420px',
-              fontSize: '12px',
-              color: 'var(--nx-muted)',
-              margin: 0,
-              lineHeight: 1.5,
-            }}
-          >
-            O processo deste terminal não sobreviveu ao reinício da máquina ou do serviço. Inicie um
-            novo runtime para continuar.
-          </p>
-          {errorMsg && (
-            <p
-              style={{
-                maxWidth: '440px',
-                margin: 0,
-                padding: '8px 10px',
-                borderRadius: 6,
-                border: '1px solid color-mix(in srgb, var(--nx-danger) 40%, var(--nx-border))',
-                background: 'var(--nx-danger-soft)',
-                color: 'var(--nx-danger)',
-                fontSize: '12px',
-                lineHeight: 1.45,
-              }}
-            >
-              {errorMsg}
-            </p>
-          )}
+          <p className={styles.disconnectedDesc}>{t('terminal.disconnectedDesc')}</p>
+          {errorMsg && <p className={styles.errorMessage}>{errorMsg}</p>}
           <button
             type="button"
             className="nx-button"
@@ -515,7 +685,11 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           >
             {restarting ? <RefreshCw size={13} className="nx-spin-slow" /> : <Play size={13} />}
             <span>
-              {restarting ? 'Iniciando…' : onRestart ? 'Iniciar novo terminal' : 'Reconectar'}
+              {restarting
+                ? t('terminal.reconnecting')
+                : onRestart
+                  ? t('terminal.startNewTerminal')
+                  : t('terminal.reconnect')}
             </span>
           </button>
         </div>

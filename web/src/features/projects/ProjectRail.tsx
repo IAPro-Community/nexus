@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Gauge,
   History,
@@ -11,17 +11,27 @@ import {
   TerminalSquare,
   Workflow,
   X,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import {
+  Button,
   IconButton,
   ContextMenu,
-  contextMenuFromEvent,
-  Tooltip,
+  Dialog,
+  ConfirmDialog,
+  Input,
+  InlineAlert,
   type ContextMenuPoint,
 } from '../../design-system';
 import { AddProjectModal } from './AddProjectModal';
-import type { Agent, Project } from '../../types';
+import { ProjectTreeItem } from './ProjectTreeItem';
+import { useProjectRailOutline } from './useProjectRailOutline';
+import type { Agent, AttentionItem, Project } from '../../types';
 import { useTranslation } from 'react-i18next';
+import { nexus, NexusAPIError } from '../../nexus/api';
+import styles from './ProjectRail.module.scss';
+import { toast } from 'sonner';
 
 export const ProjectRail: React.FC<{
   projects: Project[];
@@ -30,6 +40,8 @@ export const ProjectRail: React.FC<{
   onClose: () => void;
   onSelect: (project: Project) => void;
   onCreated: (project: Project) => void;
+  onProjectUpdated?: (project: Project) => void;
+  onProjectDeleted?: (project: Project) => void;
   onOpenGlobal: (
     kind:
       | 'projects'
@@ -43,8 +55,8 @@ export const ProjectRail: React.FC<{
       | 'missions'
       | 'terminals',
   ) => void;
-  agents?: Agent[];
   onOpenAgent?: (agent: Agent) => void;
+  onOpenAttention?: (project: Project, item: AttentionItem) => void;
   onNewAgent?: () => void;
   onNewAISession?: () => void;
   onProjectShell?: () => void;
@@ -55,33 +67,34 @@ export const ProjectRail: React.FC<{
   onClose,
   onSelect,
   onCreated,
+  onProjectUpdated,
+  onProjectDeleted,
   onOpenGlobal,
-  agents = [],
   onOpenAgent,
-  onNewAgent,
-  onNewAISession,
-  onProjectShell,
+  onOpenAttention,
+  onNewAgent: _onNewAgent,
+  onNewAISession: _onNewAISession,
+  onProjectShell: _onProjectShell,
 }) => {
   const { t } = useTranslation();
+  const outline = useProjectRailOutline();
+  const { toggleExpanded } = outline;
   const [addOpen, setAddOpen] = useState(false);
+  const [renameProject, setRenameProject] = useState<Project | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameBusy, setRenameBusy] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [deleteProject, setDeleteProject] = useState<Project | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [railMenu, setRailMenu] = useState<
     | { kind: 'project'; project: Project; point: ContextMenuPoint }
     | { kind: 'agent'; agent: Agent; point: ContextMenuPoint }
     | null
   >(null);
 
-  // Collapsible Accordion Sections with LocalStorage Persistence
   const [projectsExpanded, setProjectsExpanded] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('nx_rail_projects_open');
-      return saved !== null ? saved === 'true' : true;
-    } catch {
-      return true;
-    }
-  });
-  const [agentsExpanded, setAgentsExpanded] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('nx_rail_agents_open');
       return saved !== null ? saved === 'true' : true;
     } catch {
       return true;
@@ -96,7 +109,6 @@ export const ProjectRail: React.FC<{
     }
   });
 
-  // Inline filter query
   const [searchQuery, setSearchQuery] = useState('');
 
   const toggleProjects = () => {
@@ -104,17 +116,9 @@ export const ProjectRail: React.FC<{
       const next = !prev;
       try {
         localStorage.setItem('nx_rail_projects_open', String(next));
-      } catch {}
-      return next;
-    });
-  };
-
-  const toggleAgents = () => {
-    setAgentsExpanded((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('nx_rail_agents_open', String(next));
-      } catch {}
+      } catch {
+        /* ignore */
+      }
       return next;
     });
   };
@@ -124,41 +128,126 @@ export const ProjectRail: React.FC<{
       const next = !prev;
       try {
         localStorage.setItem('nx_rail_tools_open', String(next));
-      } catch {}
+      } catch {
+        /* ignore */
+      }
       return next;
     });
   };
 
   const q = searchQuery.trim().toLowerCase();
-  const filteredProjects = q
-    ? projects.filter(
-        (p) =>
-          (p.name || p.id).toLowerCase().includes(q) ||
-          (p.canonical_path || '').toLowerCase().includes(q),
-      )
-    : projects;
-
-  const filteredAgents = q
-    ? agents.filter(
-        (a) => (a.name || '').toLowerCase().includes(q) || (a.role || '').toLowerCase().includes(q),
-      )
-    : agents;
+  const filteredProjects = useMemo(() => {
+    if (!q) return projects;
+    return projects.filter((project) => {
+      const nameHit =
+        (project.name || project.id).toLowerCase().includes(q) ||
+        (project.canonical_path || '').toLowerCase().includes(q);
+      if (nameHit) return true;
+      const agents = outline.agentsByProject.get(project.id) ?? [];
+      if (
+        agents.some(
+          (agent) =>
+            (agent.name || '').toLowerCase().includes(q) ||
+            (agent.role || '').toLowerCase().includes(q),
+        )
+      ) {
+        return true;
+      }
+      const attention = outline.attentionByProject.get(project.id);
+      const attentionItems = [...(attention?.needsYou ?? []), ...(attention?.failed ?? [])];
+      return attentionItems.some(
+        (item) =>
+          (item.summary || '').toLowerCase().includes(q) ||
+          (item.question || '').toLowerCase().includes(q),
+      );
+    });
+  }, [projects, q, outline.agentsByProject, outline.attentionByProject]);
 
   const optionalTools = [
     { id: 'overview', label: t('nav.overview'), icon: Home },
     { id: 'terminals', label: t('nav.terminals'), icon: TerminalSquare },
-    { id: 'work', label: 'Composer', icon: Layers },
-    { id: 'missions', label: 'Flow Runs', icon: Workflow },
+    { id: 'maestro', label: t('nav.maestro'), icon: Sparkles },
+    { id: 'work', label: t('nav.work'), icon: Layers },
+    { id: 'missions', label: t('nav.missions'), icon: Workflow },
+    { id: 'agents', label: t('nav.agents'), icon: TerminalSquare },
     { id: 'resources', label: t('nav.resources'), icon: Gauge },
     { id: 'sessions', label: t('nav.sessions'), icon: History },
     { id: 'projects', label: t('projectManager.desktopsTitle'), icon: LayoutGrid },
     { id: 'settings', label: t('nav.settings'), icon: Settings },
   ] as const;
 
+  const selectProject = useCallback(
+    (project: Project) => {
+      onSelect(project);
+      onClose();
+    },
+    [onSelect, onClose],
+  );
+
+  const handleToggleExpand = useCallback(
+    (projectId: string) => {
+      toggleExpanded(projectId);
+    },
+    [toggleExpanded],
+  );
+
+  const handleOpenAgent = useCallback(
+    (agent: Agent) => {
+      onOpenAgent?.(agent);
+      onClose();
+    },
+    [onOpenAgent, onClose],
+  );
+
+  const openRename = (project: Project) => {
+    setRenameProject(project);
+    setRenameValue(project.name || '');
+    setRenameError(null);
+  };
+
+  const saveRename = async () => {
+    if (!renameProject) return;
+    const name = renameValue.trim();
+    if (!name) {
+      setRenameError(t('rail.renameRequired'));
+      return;
+    }
+    setRenameBusy(true);
+    setRenameError(null);
+    try {
+      const updated = await nexus.updateProject(renameProject.id, { name });
+      onProjectUpdated?.(updated);
+      setRenameProject(null);
+    } catch (error) {
+      setRenameError(error instanceof Error ? error.message : t('rail.renameError'));
+    } finally {
+      setRenameBusy(false);
+    }
+  };
+
+  const executeDelete = async () => {
+    if (!deleteProject) return;
+    setDeleteBusy(true);
+    try {
+      await nexus.deleteProject(deleteProject.id);
+      onProjectDeleted?.(deleteProject);
+      setDeleteProject(null);
+    } catch (error) {
+      setDeleteProject(null);
+      const message =
+        error instanceof NexusAPIError && error.status === 409
+          ? t('rail.deleteBlocked')
+          : t('rail.deleteError');
+      toast.error(message);
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   return (
     <>
       <aside
-        className="nx-project-rail"
+        className={`${styles.rail} nx-project-rail`}
         data-open={open ? 'true' : 'false'}
         data-tour="projects"
         aria-label={t('rail.aria')}
@@ -180,21 +269,19 @@ export const ProjectRail: React.FC<{
           </IconButton>
         </div>
 
-        {/* Compact Search Filter for Rail when user has multiple items */}
-        {(projects.length > 3 || agents.length > 3 || searchQuery) && (
+        {(projects.length > 3 || searchQuery) && (
           <div className="nx-project-rail__search-wrap">
             <input
               type="search"
               className="nx-project-rail__search-input"
-              placeholder="Filtrar projetos ou agentes..."
+              placeholder={t('rail.filterPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Filtrar projetos ou agentes"
+              aria-label={t('rail.filterPlaceholder')}
             />
           </div>
         )}
 
-        {/* Projects Accordion Section */}
         <div
           className="nx-rail-accordion-section"
           data-expanded={projectsExpanded ? 'true' : 'false'}
@@ -219,134 +306,52 @@ export const ProjectRail: React.FC<{
 
           {projectsExpanded && (
             <div
-              className="nx-project-list nx-rail-scrollable"
-              style={{ maxHeight: '160px', flex: '0 0 auto' }}
+              className="nx-project-list nx-rail-scrollable nx-project-list--compact"
+              role="tree"
+              aria-label={t('rail.projects')}
             >
-              {filteredProjects.map((project) => (
-                <button
-                  type="button"
-                  key={project.id}
-                  className="nx-rail-item-btn"
-                  data-active={selected?.id === project.id ? 'true' : 'false'}
-                  onClick={() => {
-                    onSelect(project);
-                    onClose();
-                  }}
-                  onContextMenu={(event) =>
-                    setRailMenu({ kind: 'project', project, point: contextMenuFromEvent(event) })
-                  }
-                  title={project.canonical_path}
-                >
-                  <span className="nx-project-avatar nx-rail-avatar-compact">
-                    {(project.name || 'PR').slice(0, 2).toUpperCase()}
-                  </span>
-                  <span className="nx-rail-item-copy">
-                    <strong>{project.name || project.id}</strong>
-                    <small>{project.default_branch || 'main'}</small>
-                  </span>
-                  {selected?.id === project.id && <span className="nx-project-active-dot" />}
-                </button>
-              ))}
+              {filteredProjects.map((project) => {
+                const expanded = outline.expandedIds.has(project.id);
+                return (
+                  <ProjectTreeItem
+                    key={project.id}
+                    project={project}
+                    selected={selected?.id === project.id}
+                    expanded={expanded}
+                    summary={outline.summaryMap.get(project.id)}
+                    attention={outline.attentionByProject.get(project.id)}
+                    agents={outline.agentsByProject.get(project.id) ?? []}
+                    agentsLoading={outline.loadingAgents.has(project.id)}
+                    onToggleExpand={() => handleToggleExpand(project.id)}
+                    onSelect={() => selectProject(project)}
+                    onOpenAgent={handleOpenAgent}
+                    onOpenAttention={(item) => {
+                      onOpenAttention?.(project, item);
+                      onClose();
+                    }}
+                    onProjectContextMenu={(proj, point) =>
+                      setRailMenu({ kind: 'project', project: proj, point })
+                    }
+                    onAgentContextMenu={(agent, point) =>
+                      setRailMenu({ kind: 'agent', agent, point })
+                    }
+                  />
+                );
+              })}
               {filteredProjects.length === 0 && (
                 <p className="nx-rail-empty-msg">
-                  {searchQuery ? 'Nenhum projeto encontrado' : t('rail.empty')}
+                  {searchQuery ? t('rail.noProjectsFound') : t('rail.empty')}
                 </p>
               )}
             </div>
           )}
         </div>
 
-        {/* Agents Accordion Section (Primary Workload) */}
-        <div
-          className="nx-rail-accordion-section nx-rail-section-agents"
-          data-expanded={agentsExpanded ? 'true' : 'false'}
-        >
-          <div className="nx-project-rail__heading nx-rail-section-header">
-            <button
-              type="button"
-              className="nx-rail-header-label"
-              onClick={toggleAgents}
-              aria-expanded={agentsExpanded}
-            >
-              <span className="nx-rail-chevron">{agentsExpanded ? '▾' : '▸'}</span>
-              <span>Agentes</span>
-              <span className="nx-rail-count">({filteredAgents.length})</span>
-            </button>
-            <span className="nx-rail-header-actions" onClick={(e) => e.stopPropagation()}>
-              {onNewAgent && (
-                <IconButton label="Novo Agente" onClick={onNewAgent}>
-                  <Plus size={13} />
-                </IconButton>
-              )}
-            </span>
-          </div>
-
-          {agentsExpanded && (
-            <div
-              className="nx-project-list nx-rail-scrollable nx-agents-list-scroll"
-              style={{ flex: 1, minHeight: '100px' }}
-            >
-              {filteredAgents.map((agent) => (
-                <button
-                  type="button"
-                  key={agent.id}
-                  className="nx-rail-item-btn"
-                  onClick={() => {
-                    if (onOpenAgent) onOpenAgent(agent);
-                    onClose();
-                  }}
-                  onContextMenu={(event) =>
-                    setRailMenu({ kind: 'agent', agent, point: contextMenuFromEvent(event) })
-                  }
-                  title={`${agent.name} · ${agent.role || 'developer'} (${agent.status})`}
-                >
-                  <span
-                    className="nx-status-dot"
-                    style={{
-                      background:
-                        agent.status === 'WORKING'
-                          ? 'var(--nx-success, #10b981)'
-                          : agent.status === 'RECOVERABLE' || agent.status === 'WAITING'
-                            ? 'var(--nx-warning, #f59e0b)'
-                            : agent.status === 'FAILED' || agent.status === 'STALE'
-                              ? 'var(--nx-danger, #ef4444)'
-                              : 'var(--nx-muted, #64748b)',
-                      boxShadow:
-                        agent.status === 'WORKING'
-                          ? '0 0 6px var(--nx-success, #10b981)'
-                          : agent.status === 'RECOVERABLE'
-                            ? '0 0 6px var(--nx-warning, #f59e0b)'
-                            : 'none',
-                    }}
-                  />
-                  <span className="nx-rail-item-copy">
-                    <strong>{agent.name}</strong>
-                    <small>{agent.role || 'developer'}</small>
-                  </span>
-                  <TerminalSquare
-                    size={12}
-                    style={{ color: 'var(--nx-subtle)', marginLeft: 'auto' }}
-                  />
-                </button>
-              ))}
-              {filteredAgents.length === 0 && (
-                <p className="nx-rail-empty-msg">
-                  {searchQuery ? 'Nenhum agente com esse filtro.' : 'Nenhum agente ainda.'}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Secondary Tools Accordion Section (Collapsible & Compact Grid) */}
         <div
           className="nx-rail-accordion-section nx-rail-section-tools"
           data-expanded={toolsExpanded ? 'true' : 'false'}
         >
-          <div
-            className="nx-project-rail__heading nx-rail-section-header"
-            style={{ borderTop: '1px solid var(--nx-border)' }}
-          >
+          <div className="nx-project-rail__heading nx-rail-section-header nx-rail-section-header--tools">
             <button
               type="button"
               className="nx-rail-header-label"
@@ -354,7 +359,7 @@ export const ProjectRail: React.FC<{
               aria-expanded={toolsExpanded}
             >
               <span className="nx-rail-chevron">{toolsExpanded ? '▾' : '▸'}</span>
-              <span>Ferramentas</span>
+              <span>{t('rail.tools')}</span>
             </button>
           </div>
 
@@ -366,7 +371,7 @@ export const ProjectRail: React.FC<{
                   key={item.id}
                   className="nx-rail-tool-btn"
                   onClick={() => {
-                    onOpenGlobal(item.id as any);
+                    onOpenGlobal(item.id);
                     onClose();
                   }}
                   title={item.label}
@@ -390,10 +395,32 @@ export const ProjectRail: React.FC<{
                   type: 'item',
                   id: 'open-project',
                   label: t('workspace.openProject'),
-                  onSelect: () => {
-                    onSelect(railMenu.project);
-                    onClose();
-                  },
+                  icon: <LayoutGrid size={14} />,
+                  onSelect: () => selectProject(railMenu.project),
+                },
+                {
+                  type: 'item',
+                  id: 'expand-project',
+                  label: outline.expandedIds.has(railMenu.project.id)
+                    ? t('rail.collapseProject')
+                    : t('rail.expandProject'),
+                  onSelect: () => outline.toggleExpanded(railMenu.project.id),
+                },
+                { type: 'separator', id: 'project-actions-separator' },
+                {
+                  type: 'item',
+                  id: 'rename-project',
+                  label: t('rail.rename'),
+                  icon: <Pencil size={14} />,
+                  onSelect: () => openRename(railMenu.project),
+                },
+                {
+                  type: 'item',
+                  id: 'delete-project',
+                  label: t('rail.delete'),
+                  icon: <Trash2 size={14} />,
+                  danger: true,
+                  onSelect: () => setDeleteProject(railMenu.project),
                 },
               ]
             : railMenu?.kind === 'agent'
@@ -403,7 +430,7 @@ export const ProjectRail: React.FC<{
                     id: 'open-agent',
                     label: t('workspace.openAgent'),
                     onSelect: () => {
-                      if (onOpenAgent) onOpenAgent(railMenu.agent);
+                      onOpenAgent?.(railMenu.agent);
                       onClose();
                     },
                   },
@@ -424,7 +451,52 @@ export const ProjectRail: React.FC<{
         onCreated={(project) => {
           onCreated(project);
           setAddOpen(false);
+          void outline.refreshOutline();
         }}
+      />
+
+      <Dialog
+        open={Boolean(renameProject)}
+        onClose={() => setRenameProject(null)}
+        title={t('rail.renameTitle')}
+      >
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveRename();
+          }}
+        >
+          <label className="nx-field-label" htmlFor="project-rename-input">
+            {t('rail.name')}
+          </label>
+          <Input
+            id="project-rename-input"
+            value={renameValue}
+            onChange={setRenameValue}
+            autoFocus
+            maxLength={120}
+          />
+          {renameError && <InlineAlert tone="danger">{renameError}</InlineAlert>}
+          <div className="nx-dialog-actions">
+            <Button type="button" onClick={() => setRenameProject(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" tone="brand" disabled={renameBusy}>
+              {t('rail.rename')}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deleteProject)}
+        title={t('rail.deleteTitle')}
+        description={t('rail.deleteDescription', {
+          name: deleteProject?.name || deleteProject?.id,
+        })}
+        confirmLabel={deleteBusy ? t('rail.deleting') : t('rail.delete')}
+        onCancel={() => setDeleteProject(null)}
+        onConfirm={() => void executeDelete()}
       />
     </>
   );

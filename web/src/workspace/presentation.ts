@@ -61,6 +61,8 @@ export interface WorkspacePresentationState {
   desktopLayout: ModeLayoutSnapshot;
   /** Last tiled layout while in MOSAIC (restored when leaving windows/tabs). */
   mosaicLayout: ModeLayoutSnapshot;
+  /** Fullscreen/Focus mode for maximizing screen estate on notebooks/small viewports */
+  zenMode?: boolean;
 }
 
 const DEFAULT_CANVAS: ArrangeBounds = { x: 8, y: 8, width: 1200, height: 720 };
@@ -114,6 +116,7 @@ export function createPresentationState(
     lastArrangePreset: 'automatic',
     desktopLayout: emptyLayout(canvas),
     mosaicLayout: emptyLayout(canvas),
+    zenMode: false,
   };
 }
 
@@ -156,6 +159,7 @@ export function migratePresentationState(raw: unknown): WorkspacePresentationSta
     lastRaw === 'focus-mode'
       ? lastRaw
       : 'automatic';
+  const zenMode = Boolean((parsed as { zenMode?: boolean }).zenMode);
   return {
     version: 2,
     mode,
@@ -167,6 +171,7 @@ export function migratePresentationState(raw: unknown): WorkspacePresentationSta
     lastArrangePreset,
     desktopLayout: parseLayoutSnapshot(parsed.desktopLayout, canvas),
     mosaicLayout: parseLayoutSnapshot(parsed.mosaicLayout, canvas),
+    zenMode,
   };
 }
 
@@ -471,6 +476,17 @@ export function setPresentationMode(
   if (mode === 'MOSAIC') return applyMosaicLayout(next);
   if (mode === 'DESKTOP') return applyDesktopLayout(next);
   return { ...next, tiled: false };
+}
+
+export function toggleZenMode(state: WorkspacePresentationState): WorkspacePresentationState {
+  return { ...state, zenMode: !state.zenMode };
+}
+
+export function setZenMode(
+  state: WorkspacePresentationState,
+  enabled: boolean,
+): WorkspacePresentationState {
+  return { ...state, zenMode: enabled };
 }
 
 export function setPresentationCanvas(

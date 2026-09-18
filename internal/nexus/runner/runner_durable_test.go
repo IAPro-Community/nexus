@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -452,6 +454,46 @@ func TestMissionRunnerRecompilesImmutablePromptForRemediationAttempt(t *testing.
 	}
 }
 
+type verificationEscalationExecutor struct {
+	fakeExecutor
+	workspace   string
+	allocations []int
+}
+
+func (e *verificationEscalationExecutor) Allocate(ctx context.Context, run *MissionRun, pkg *PackageRun) (AllocationResult, error) {
+	e.allocations = append(e.allocations, pkg.Attempt)
+	return e.fakeExecutor.Allocate(ctx, run, pkg)
+}
+
+func (e *verificationEscalationExecutor) Execute(ctx context.Context, run *MissionRun, pkg *PackageRun, prompt string) (ExecutionResult, error) {
+	if pkg.Attempt > 1 {
+		if err := os.WriteFile(filepath.Join(run.Workspace, "verified.marker"), []byte("verified"), 0600); err != nil {
+			return ExecutionResult{}, err
+		}
+	}
+	return e.fakeExecutor.Execute(ctx, run, pkg, prompt)
+}
+
+func TestVerificationFailureReturnsToAllocationForRuntimeEscalation(t *testing.T) {
+	workspace := t.TempDir()
+	exec := &verificationEscalationExecutor{fakeExecutor: fakeExecutor{reviewOK: true}, workspace: workspace}
+	r := NewMissionRunner(NewMemoryRunRepository(), exec)
+	contract := DefaultAutonomyContract()
+	contract.MaxRetries = 2
+	contract.VerificationCommands = []string{"test -f verified.marker"}
+	run, err := r.StartMissionRun(context.Background(), PlanSpec{ID: "model-escalation", ProjectID: "proj", Revision: 1, Packages: []PackageSpec{{ID: "pkg", Title: "Model escalation"}}}, workspace, contract, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	completed, err := r.RunToTerminal(context.Background(), run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if completed.State != StateCompletedVerified || len(exec.allocations) != 2 || exec.allocations[1] != 2 {
+		t.Fatalf("verification retry did not re-enter allocation: state=%s allocations=%v", completed.State, exec.allocations)
+	}
+}
+
 func TestManualControlAgentPrefersCurrentRunnablePackage(t *testing.T) {
 	run := &MissionRun{CurrentPkgIndex: 1, PackageRuns: []PackageRun{
 		{PackageID: "a", AssignedAgent: "agent-a", State: StateVerified},
@@ -548,7 +590,7 @@ type alwaysFailExecutor struct{ fakeExecutor }
 
 func (f *alwaysFailExecutor) Execute(context.Context, *MissionRun, *PackageRun, string) (ExecutionResult, error) {
 	f.executed++
-	return ExecutionResult{}, errors.New("synthetic provider failure")
+	return ExecutionResult{}, MarkDispatchNotSent(errors.New("synthetic provider failure"))
 }
 
 func TestMissionRunnerHonorsAutoRemediateDisabled(t *testing.T) {
@@ -575,6 +617,59 @@ func TestMissionRunnerHonorsAutoRemediateDisabled(t *testing.T) {
 	}
 	if exec.executed != 1 {
 		t.Fatalf("AutoRemediate=false must not retry provider execution, executions=%d", exec.executed)
+	}
+}
+
+type overnightAcceptanceExecutor struct {
+	globalRepairExecutor
+	failedOnce bool
+}
+
+func (e *overnightAcceptanceExecutor) Execute(ctx context.Context, run *MissionRun, pkg *PackageRun, prompt string) (ExecutionResult, error) {
+	if !e.failedOnce {
+		e.failedOnce = true
+		return ExecutionResult{}, MarkDispatchNotSent(errors.New("injected overnight provider failure"))
+	}
+	return e.globalRepairExecutor.Execute(ctx, run, pkg, prompt)
+}
+
+// TestOvernightAcceptanceSandbox exercises the unattended control loop with a
+// parallel plan, a dependency handoff, an injected provider failure, bounded
+// remediation and a final global Definition-of-Done check. It intentionally
+// uses the deterministic executor seam; provider/native acceptance remains a
+// separate external gate.
+func TestOvernightAcceptanceSandbox(t *testing.T) {
+	workspace := t.TempDir()
+	exec := &overnightAcceptanceExecutor{globalRepairExecutor: globalRepairExecutor{fakeExecutor: fakeExecutor{reviewOK: true}}}
+	r := NewMissionRunner(NewMemoryRunRepository(), exec)
+	contract := DefaultAutonomyContract()
+	contract.MaxRetries = 3
+	contract.MaxNoProgress = 2
+	contract.VerificationCommands = []string{"true"}
+	contract.GlobalVerificationCommands = []string{"test -f global-ready"}
+	plan := PlanSpec{ID: "overnight-sandbox", ProjectID: "nexus", Revision: 1, Packages: []PackageSpec{
+		{ID: "api", Title: "API contract", Goal: "Produce API contract", ParallelGroup: "foundation"},
+		{ID: "web", Title: "Web integration", Goal: "Consume API contract", Dependencies: []string{"api"}},
+	}}
+	run, err := r.StartMissionRun(context.Background(), plan, workspace, contract, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	completed, err := r.RunToTerminal(context.Background(), run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if completed.State != StateCompletedVerified {
+		t.Fatalf("overnight sandbox did not converge: %s", completed.State)
+	}
+	if completed.PackageRuns[0].Attempt == 0 || completed.PackageRuns[0].StrategyVariant == "" {
+		t.Fatalf("injected failure did not produce bounded remediation evidence: %+v", completed.PackageRuns[0])
+	}
+	if len(completed.PackageRuns[1].ContextCapsule.DependencyReceipts) != 1 {
+		t.Fatalf("dependency artifact handoff missing: %+v", completed.PackageRuns[1].ContextCapsule)
+	}
+	if len(completed.GlobalVerifications) == 0 || !completed.GlobalVerifications[len(completed.GlobalVerifications)-1].Passed {
+		t.Fatalf("global verification evidence incomplete: %+v", completed.GlobalVerifications)
 	}
 }
 

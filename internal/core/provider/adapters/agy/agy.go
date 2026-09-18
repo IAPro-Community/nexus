@@ -3,8 +3,10 @@ package agy
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,17 +14,27 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/classifier"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/quota"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 var emailRegex = regexp.MustCompile(`[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}`)
 
 type Adapter struct{}
+
+// agySecretServiceEnabled controls the optional Linux Secret Service bridge.
+// AGY's file-backed OAuth session is the non-interactive default: starting a
+// fresh private gnome-keyring for every launch can trigger GNOME's
+// SystemPrompter when the keyring is locked. Users who explicitly need a
+// Secret Service credential can opt in with NEXUS_AGY_ENABLE_SECRET_SERVICE=1.
+func agySecretServiceEnabled() bool {
+	return os.Getenv("NEXUS_AGY_ENABLE_SECRET_SERVICE") == "1"
+}
 
 func New() *Adapter {
 	return &Adapter{}
@@ -38,12 +50,14 @@ func (a *Adapter) Name() string {
 
 func (a *Adapter) Capabilities() model.Capabilities {
 	return model.Capabilities{
-		Login:              true,
-		Logout:             true,
-		Usage:              true,
-		Conversations:      true,
-		Resume:             true,
-		CrossAccountResume: true,
+		Login:         true,
+		Logout:        true,
+		Usage:         true,
+		Conversations: true,
+		Resume:        true,
+		// Host history may be linked, but there is no sibling-profile adopt/seed
+		// path equivalent to Codex CrossAccountResume.
+		CrossAccountResume: false,
 		HotAccountSwitch:   false,
 		IsolatedRuntime:    true,
 		ProjectBinding:     true,
@@ -51,7 +65,7 @@ func (a *Adapter) Capabilities() model.Capabilities {
 }
 
 func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
-	bin, err := runtime.LookPath("agy")
+	bin, err := spec.MustGet("agy").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "not found in PATH"}
 	}
@@ -101,7 +115,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 	if err := a.Prepare(ctx, p); err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
 	}
-	bin, err := runtime.LookPath("agy")
+	bin, err := spec.MustGet("agy").ResolveBinary()
 	if err != nil {
 		return model.Failure{Kind: model.FailureProvider, Message: "agy binary not found"}, err
 	}
@@ -114,13 +128,10 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
 	}
 
-	// Ensure keyring password file
-	pwFile := filepath.Join(root, "keyring.pass")
-	if _, err := os.Stat(pwFile); err != nil {
-		_ = os.WriteFile(pwFile, []byte("agy-keyring-secret\n"), 0600)
-	}
-
-	// Set isolated environment
+	// Set isolated environment. Unsetting DBUS_SESSION_BUS_ADDRESS alone is not
+	// enough: AGY's keyring client autolaunches onto the host session bus and
+	// then ChainedAuth prefers that token over the profile's oauth file — which
+	// is how kivervinicius leaked into the kiveromegasistemas splash.
 	envOverrides := map[string]string{
 		"HOME":                             home,
 		"XDG_CONFIG_HOME":                  filepath.Join(home, ".config"),
@@ -135,7 +146,16 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 
 	env := runtime.EnvSet(os.Environ(), envOverrides, "DBUS_SESSION_BUS_ADDRESS", "GNOME_KEYRING_CONTROL", "GNOME_KEYRING_PID")
 
-	wrappedBin, wrappedArgs := runtime.WrapWithIsolatedSecretService(bin, args)
+	wrappedBin, wrappedArgs := bin, args
+	if agySecretServiceEnabled() {
+		wrappedBin, wrappedArgs = runtime.WrapWithIsolatedSecretService(bin, args)
+	} else {
+		// Keep AI_HOST_DBUS for the browser helper; only the session bus that
+		// feeds AGY's keyringAuth must fail closed.
+		env = runtime.EnvSet(env, map[string]string{
+			"DBUS_SESSION_BUS_ADDRESS": "unix:path=/dev/null",
+		}, "GNOME_KEYRING_CONTROL", "GNOME_KEYRING_PID")
+	}
 	return runtime.RunInteractive(wrappedBin, wrappedArgs, env, cwd)
 }
 
@@ -221,67 +241,135 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 				} `json:"token"`
 			}
 			if json.Unmarshal(data, &tok) == nil && (tok.Token.AccessToken != "" || tok.Token.RefreshToken != "") {
-				info.Authenticated = true
-				info.Status = "Authenticated"
-				info.Health = model.HealthHealthy
+				expired := false
+				if tok.Token.Expiry != "" {
+					if expTime, err := time.Parse(time.RFC3339Nano, tok.Token.Expiry); err == nil {
+						expired = time.Now().After(expTime)
+					}
+				}
+				if info.Email == "" {
+					info.Email = resolveEmailFromAccountsFile(home)
+				}
+				if info.Email == "" {
+					info.Email = emailFromIDToken(data)
+				}
 				if info.Email == "" {
 					info.Email = p.Name
 				}
+				if expired {
+					refresh := strings.TrimSpace(tok.Token.RefreshToken)
+					usable := refresh != "" && !refreshTokenRevoked(home, refresh)
+					if usable {
+						// Refreshable without human interaction: monitor may
+						// keep collecting after ensureFreshAccessToken renews.
+						info.Authenticated = true
+						info.Status = "Token expired (refreshable)"
+						info.Health = model.HealthDegraded
+						return info
+					}
+					info.Status = "Token expired"
+					info.Health = model.HealthAuthRequired
+					info.Authenticated = false
+					return info
+				}
+				info.Authenticated = true
+				info.Status = "Authenticated"
+				info.Health = model.HealthHealthy
 				return info
 			}
 		}
 	}
 
-	// 2. Check google_accounts.json in profile home
-	accountsFile := filepath.Join(home, ".gemini", "google_accounts.json")
-	if data, err := os.ReadFile(accountsFile); err == nil {
-		var acc struct {
-			Active string `json:"active"`
-		}
-		if json.Unmarshal(data, &acc) == nil && acc.Active != "" {
-			info.Email = acc.Active
-			info.Authenticated = true
-			info.Status = "Authenticated"
-			info.Health = model.HealthHealthy
-			return info
-		}
-	}
-
-	// 3. Check jetski_state.pbtxt
-	jetskiFile := filepath.Join(home, ".gemini", "antigravity-cli", "jetski_state.pbtxt")
-	if data, err := os.ReadFile(jetskiFile); err == nil && len(data) > 0 {
-		matches := emailRegex.FindAllString(string(data), -1)
-		if len(matches) > 0 {
-			info.Email = matches[0]
-			info.Authenticated = true
-			info.Status = "Authenticated"
-			info.Health = model.HealthHealthy
-			return info
-		}
-	}
-
-	// 4. Check keyring files (if login.keyring exists, credentials are stored)
-	keyringsDir := filepath.Join(home, ".local", "share", "keyrings")
-	if _, err := os.Stat(filepath.Join(keyringsDir, "login.keyring")); err == nil {
-		info.Authenticated = true
-		info.Status = "Authenticated"
-		info.Health = model.HealthHealthy
-		if info.Email == "" {
-			info.Email = p.Name
-		}
-		return info
-	}
+	// 2-3. google_accounts.json / jetski_state may help resolve email after a
+	// valid OAuth token is found, but they are not authentication evidence on
+	// their own (stale leftovers previously fail-opened as Authenticated).
 
 	return info
 }
 
+// resolveEmailFromAccountsFile reads the active email from google_accounts.json.
+// Returns "" when the file is missing or contains no active account.
+func resolveEmailFromAccountsFile(home string) string {
+	accountsFile := filepath.Join(home, ".gemini", "google_accounts.json")
+	data, err := os.ReadFile(accountsFile)
+	if err != nil {
+		return ""
+	}
+	var acc struct {
+		Active string `json:"active"`
+	}
+	if json.Unmarshal(data, &acc) == nil {
+		return acc.Active
+	}
+	return ""
+}
+
+func accessTokenExpired(home string) bool {
+	for _, tf := range []string{
+		filepath.Join(home, ".gemini", "antigravity-cli", "antigravity-oauth-token"),
+		filepath.Join(home, ".gemini", "antigravity-oauth-token"),
+	} {
+		data, err := os.ReadFile(tf)
+		if err != nil {
+			continue
+		}
+		var tok struct {
+			Token struct {
+				Expiry string `json:"expiry"`
+			} `json:"token"`
+		}
+		if json.Unmarshal(data, &tok) != nil || tok.Token.Expiry == "" {
+			continue
+		}
+		expTime, err := time.Parse(time.RFC3339Nano, tok.Token.Expiry)
+		if err != nil {
+			continue
+		}
+		return time.Now().After(expTime)
+	}
+	return false
+}
+
+// emailFromIDToken pulls the Google email out of an antigravity oauth blob so
+// expired profiles still show which account needs re-login in the UI.
+func emailFromIDToken(raw []byte) string {
+	var blob struct {
+		IDToken string `json:"id_token"`
+	}
+	if json.Unmarshal(raw, &blob) != nil || strings.Count(blob.IDToken, ".") != 2 {
+		return ""
+	}
+	payload := strings.Split(blob.IDToken, ".")[1]
+	if rem := len(payload) % 4; rem != 0 {
+		payload += strings.Repeat("=", 4-rem)
+	}
+	decoded, err := base64.URLEncoding.DecodeString(payload)
+	if err != nil {
+		return ""
+	}
+	var claims struct {
+		Email string `json:"email"`
+	}
+	if json.Unmarshal(decoded, &claims) != nil {
+		return ""
+	}
+	return strings.TrimSpace(claims.Email)
+}
+
 func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
+	debug := os.Getenv("NEXUS_AGY_DEBUG") == "1" || os.Getenv("NEXUS_DEBUG") == "1"
+	if debug {
+		slog.Debug("AGY GetUsage: checking cached files", "profile", p.Name)
+	}
+	// Cache only — live CLI --print=/quota belongs in RefreshUsage.
 	if fileSnap, ok := a.readCachedQuotaFiles(p); ok {
+		if debug {
+			slog.Debug("AGY GetUsage: returning cached snapshot", "profile", p.Name, "status", fileSnap.Status, "fetchedAt", fileSnap.FetchedAt)
+		}
 		return fileSnap
 	}
-	if live, ok := a.fetchLiveQuota(ctx, p); ok {
-		_ = quota.NewEngine(quota.DefaultTTL).SaveUsage(live)
-		return live
+	if debug {
+		slog.Debug("AGY GetUsage: returning unknown (no cached data)", "profile", p.Name)
 	}
 	return model.UsageSnapshot{
 		ProviderID: string(a.ID()),
@@ -293,12 +381,31 @@ func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnap
 }
 
 func (a *Adapter) RefreshUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
+	debug := os.Getenv("NEXUS_AGY_DEBUG") == "1" || os.Getenv("NEXUS_DEBUG") == "1"
+	if debug {
+		slog.Debug("AGY RefreshUsage: trying live fetch first", "profile", p.Name)
+	}
 	if live, ok := a.fetchLiveQuota(ctx, p); ok {
-		_ = quota.NewEngine(quota.DefaultTTL).SaveUsage(live)
+		if p.AccountScope.Verifiable() {
+			live.AccountScope = p.AccountScope
+			_ = quota.NewEngine(quota.DefaultTTL).SaveUsageForScope(p.AccountScope, live)
+		}
+		if debug {
+			slog.Debug("AGY RefreshUsage: returning live snapshot", "profile", p.Name, "status", live.Status, "windows", len(live.Windows))
+		}
 		return live
 	}
+	if debug {
+		slog.Debug("AGY RefreshUsage: live fetch failed, trying cached", "profile", p.Name)
+	}
 	if fileSnap, ok := a.readCachedQuotaFiles(p); ok {
+		if debug {
+			slog.Debug("AGY RefreshUsage: returning cached snapshot", "profile", p.Name, "status", fileSnap.Status, "fetchedAt", fileSnap.FetchedAt)
+		}
 		return fileSnap
+	}
+	if debug {
+		slog.Debug("AGY RefreshUsage: returning unknown (no cached or live data)", "profile", p.Name)
 	}
 	return model.UsageSnapshot{
 		ProviderID: string(a.ID()),
@@ -310,8 +417,13 @@ func (a *Adapter) RefreshUsage(ctx context.Context, p model.Profile) model.Usage
 }
 
 func (a *Adapter) readCachedQuotaFiles(p model.Profile) (model.UsageSnapshot, bool) {
+	debug := os.Getenv("NEXUS_AGY_DEBUG") == "1" || os.Getenv("NEXUS_DEBUG") == "1"
 	root, _ := config.ProfileRoot(string(a.ID()), p.Name)
 	home, _ := config.ProfileHome(string(a.ID()), p.Name)
+
+	// Resolve the authenticated email for this profile so we can reject
+	// cached snapshots that belong to a different Google account.
+	authEmail := a.resolveAuthenticatedEmail(home)
 
 	candidates := []string{}
 	if root != "" {
@@ -321,14 +433,63 @@ func (a *Adapter) readCachedQuotaFiles(p model.Profile) (model.UsageSnapshot, bo
 		candidates = append(candidates, filepath.Join(home, "usage.json"), filepath.Join(home, "quota.json"))
 	}
 
+	if debug {
+		slog.Debug("AGY readCachedQuotaFiles: checking candidates", "profile", p.Name, "candidates", candidates, "authEmail", authEmail)
+	}
+
 	for _, file := range candidates {
 		data, err := os.ReadFile(file)
 		if err != nil {
+			if debug {
+				slog.Debug("AGY readCachedQuotaFiles: file read error", "profile", p.Name, "file", file, "err", err)
+			}
 			continue
 		}
 
 		var s model.UsageSnapshot
 		if json.Unmarshal(data, &s) == nil && s.Status != "" && len(s.Windows) > 0 {
+			// Mark status as CACHED if it was originally LIVE (consistent with GetCachedUsage)
+			if s.Status == model.UsageLive {
+				s.Status = model.UsageCached
+			}
+			// Reject cached snapshot if the profile_id does not match.
+			// This prevents a cache file written for a different profile
+			// from being served (e.g. after a directory rename or migration).
+			if s.ProfileID != "" && s.ProfileID != p.Name {
+				if debug {
+					slog.Debug("AGY readCachedQuotaFiles: profile_id mismatch rejected", "profile", p.Name, "file", file, "cacheProfileID", s.ProfileID)
+				}
+				continue
+			}
+			// Reject cached snapshot if the account does not match the
+			// authenticated email. This prevents stale cross-profile cache
+			// from being served when profiles share the same data directory.
+			if authEmail != "" && s.Account != "" && !strings.EqualFold(authEmail, s.Account) {
+				if debug {
+					slog.Debug("AGY readCachedQuotaFiles: account mismatch rejected", "profile", p.Name, "file", file, "cacheAccount", s.Account, "authEmail", authEmail)
+				}
+				continue
+			}
+			// When auth email cannot be resolved, still require a matching
+			// ProfileID. Snapshots without ProfileID and with a non-empty Account
+			// are rejected as unattributable.
+			if authEmail == "" {
+				if s.ProfileID != "" && s.ProfileID != p.Name {
+					if debug {
+						slog.Debug("AGY readCachedQuotaFiles: missing authEmail requires profile_id match", "profile", p.Name, "file", file, "cacheProfileID", s.ProfileID)
+					}
+					continue
+				}
+				if s.ProfileID == "" && s.Account != "" {
+					if debug {
+						slog.Debug("AGY readCachedQuotaFiles: unattributable account without profile_id rejected", "profile", p.Name, "file", file, "cacheAccount", s.Account)
+					}
+					continue
+				}
+			}
+			if debug {
+				slog.Debug("AGY readCachedQuotaFiles: found UsageSnapshot", "profile", p.Name, "file", file, "status", s.Status, "fetchedAt", s.FetchedAt, "windows", len(s.Windows), "account", s.Account)
+			}
 			return s, true
 		}
 
@@ -354,6 +515,9 @@ func (a *Adapter) readCachedQuotaFiles(p model.Profile) (model.UsageSnapshot, bo
 			} `json:"claude_weekly"`
 		}
 		if json.Unmarshal(data, &leg) == nil && (leg.FiveHour.PercentLeft > 0 || leg.Weekly.PercentLeft > 0 || leg.FiveHour.ResetsIn != "" || leg.ClaudeFiveHour.PercentLeft != nil || leg.ClaudeWeekly.PercentLeft != nil || leg.ClaudeFiveHour.ResetsIn != "" || leg.ClaudeWeekly.ResetsIn != "") {
+			if debug {
+				slog.Debug("AGY readCachedQuotaFiles: found legacy format", "profile", p.Name, "file", file, "account", firstNonEmpty(leg.Account, leg.Email), "gemini5h", leg.FiveHour.PercentLeft, "geminiWeekly", leg.Weekly.PercentLeft)
+			}
 			p5h := agyClampPercent(leg.FiveHour.PercentLeft)
 			u5h := 100 - p5h
 			pWk := agyClampPercent(leg.Weekly.PercentLeft)
@@ -408,7 +572,7 @@ func (a *Adapter) readCachedQuotaFiles(p model.Profile) (model.UsageSnapshot, bo
 				})
 			}
 
-			return model.UsageSnapshot{
+			snap := model.UsageSnapshot{
 				ProviderID: string(a.ID()),
 				ProfileID:  p.Name,
 				Account:    firstNonEmpty(leg.Account, leg.Email),
@@ -417,10 +581,20 @@ func (a *Adapter) readCachedQuotaFiles(p model.Profile) (model.UsageSnapshot, bo
 				ModelName:  leg.ModelName,
 				FetchedAt:  fileModTime(file),
 				Windows:    windows,
-			}, true
+			}
+			if debug {
+				slog.Debug("AGY readCachedQuotaFiles: returning legacy snapshot", "profile", p.Name, "fetchedAt", snap.FetchedAt, "age", time.Since(snap.FetchedAt))
+			}
+			return snap, true
+		}
+		if debug {
+			slog.Debug("AGY readCachedQuotaFiles: file not recognized", "profile", p.Name, "file", file)
 		}
 	}
 
+	if debug {
+		slog.Debug("AGY readCachedQuotaFiles: no valid cache found", "profile", p.Name)
+	}
 	return model.UsageSnapshot{}, false
 }
 
@@ -429,6 +603,32 @@ func fileModTime(path string) time.Time {
 		return st.ModTime()
 	}
 	return time.Time{}
+}
+
+// resolveAuthenticatedEmail reads the actual Google account email for this
+// profile from google_accounts.json or jetski_state.pbtxt. Returns "" when
+// no authoritative email can be determined (caller should skip mismatch check).
+func (a *Adapter) resolveAuthenticatedEmail(home string) string {
+	// 1. google_accounts.json — the canonical active account file.
+	accountsFile := filepath.Join(home, ".gemini", "google_accounts.json")
+	if data, err := os.ReadFile(accountsFile); err == nil {
+		var acc struct {
+			Active string `json:"active"`
+		}
+		if json.Unmarshal(data, &acc) == nil && acc.Active != "" {
+			return acc.Active
+		}
+	}
+
+	// 2. jetski_state.pbtxt — may contain the authenticated email.
+	jetskiFile := filepath.Join(home, ".gemini", "antigravity-cli", "jetski_state.pbtxt")
+	if data, err := os.ReadFile(jetskiFile); err == nil && len(data) > 0 {
+		if matches := emailRegex.FindAllString(string(data), -1); len(matches) > 0 {
+			return matches[0]
+		}
+	}
+
+	return ""
 }
 
 func firstNonEmpty(values ...string) string {
@@ -451,44 +651,79 @@ func agyClampPercent(v float64) float64 {
 }
 
 func (a *Adapter) fetchLiveQuota(ctx context.Context, p model.Profile) (model.UsageSnapshot, bool) {
+	debug := os.Getenv("NEXUS_AGY_DEBUG") == "1" || os.Getenv("NEXUS_DEBUG") == "1"
+	if debug {
+		slog.Debug("AGY fetchLiveQuota: starting", "profile", p.Name)
+	}
+
 	if !a.InspectAuth(ctx, p).Authenticated {
+		if debug {
+			slog.Debug("AGY fetchLiveQuota: not authenticated", "profile", p.Name)
+		}
 		return model.UsageSnapshot{}, false
 	}
 	if err := a.Prepare(ctx, p); err != nil {
+		if debug {
+			slog.Debug("AGY fetchLiveQuota: prepare failed", "profile", p.Name, "err", err)
+		}
 		return model.UsageSnapshot{}, false
 	}
-	bin, err := runtime.LookPath("agy")
+	bin, err := spec.MustGet("agy").ResolveBinary()
 	if err != nil {
+		if debug {
+			slog.Debug("AGY fetchLiveQuota: agy binary not found", "profile", p.Name)
+		}
 		return model.UsageSnapshot{}, false
 	}
 	root, err := config.ProfileRoot(string(a.ID()), p.Name)
 	if err != nil {
+		if debug {
+			slog.Debug("AGY fetchLiveQuota: profile root failed", "profile", p.Name, "err", err)
+		}
 		return model.UsageSnapshot{}, false
 	}
 	home := filepath.Join(root, "home")
-	internalBin, err := runtime.InternalBinDir()
-	if err != nil {
+	if err := ensureFreshAccessToken(ctx, home); err != nil {
+		if debug {
+			slog.Debug("AGY fetchLiveQuota: token refresh failed", "profile", p.Name, "err", security.Redact(err.Error()))
+		}
+	}
+	if accessTokenExpired(home) {
+		// Never spawn AGY without a valid access_token: even with BROWSER=false
+		// the CLI may still invoke xdg-open and open a Google OAuth tab.
+		if debug {
+			slog.Debug("AGY fetchLiveQuota: access token expired, refusing live probe", "profile", p.Name)
+		}
 		return model.UsageSnapshot{}, false
 	}
-	pwFile := filepath.Join(root, "keyring.pass")
-	if _, err := os.Stat(pwFile); err != nil {
-		_ = os.WriteFile(pwFile, []byte("agy-keyring-secret\n"), 0600)
+	probeBin, err := runtime.NoBrowserBinDir()
+	if err != nil {
+		if debug {
+			slog.Debug("AGY fetchLiveQuota: no-browser bin dir failed", "profile", p.Name, "err", err)
+		}
+		return model.UsageSnapshot{}, false
 	}
-
 	envOverrides := map[string]string{
-		"HOME":                             home,
-		"XDG_CONFIG_HOME":                  filepath.Join(home, ".config"),
-		"XDG_CACHE_HOME":                   filepath.Join(home, ".cache"),
-		"XDG_DATA_HOME":                    filepath.Join(home, ".local", "share"),
-		"XDG_STATE_HOME":                   filepath.Join(home, ".local", "state"),
-		"PATH":                             runtime.EnhancedPATH(internalBin, filepath.Dir(bin)),
-		"BROWSER":                          filepath.Join(internalBin, "ai-browser"),
-		"AI_HOST_DBUS_SESSION_BUS_ADDRESS": os.Getenv("DBUS_SESSION_BUS_ADDRESS"),
-		"PYTHON_KEYRING_BACKEND":           "keyring.backends.null.Keyring",
+		"HOME":            home,
+		"XDG_CONFIG_HOME": filepath.Join(home, ".config"),
+		"XDG_CACHE_HOME":  filepath.Join(home, ".cache"),
+		"XDG_DATA_HOME":   filepath.Join(home, ".local", "share"),
+		"XDG_STATE_HOME":  filepath.Join(home, ".local", "state"),
+		// probeBin comes first so both $BROWSER and any xdg-open fallback hit
+		// a no-op that never opens the host browser.
+		"PATH":                   runtime.EnhancedPATH(probeBin, filepath.Dir(bin)),
+		"BROWSER":                filepath.Join(probeBin, "ai-browser"),
+		"PYTHON_KEYRING_BACKEND": "keyring.backends.null.Keyring",
 	}
-	env := runtime.EnvSet(os.Environ(), envOverrides, "DBUS_SESSION_BUS_ADDRESS", "GNOME_KEYRING_CONTROL", "GNOME_KEYRING_PID")
+	env := runtime.DisableSessionSecretService(runtime.EnvSet(os.Environ(), envOverrides))
 	args := []string{"--output-format", "text", "--print-timeout", "12s", "--print=/quota"}
-	wrappedBin, wrappedArgs := runtime.WrapWithIsolatedSecretService(bin, args)
+	// Quota probes are deliberately non-interactive and must never initialize
+	// Secret Service or open a browser. Interactive re-login is the only path
+	// allowed to start Google OAuth.
+
+	if debug {
+		slog.Debug("AGY fetchLiveQuota: running agy CLI", "profile", p.Name, "home", home, "bin", bin)
+	}
 
 	fetchCtx := ctx
 	if _, ok := ctx.Deadline(); !ok {
@@ -496,15 +731,27 @@ func (a *Adapter) fetchLiveQuota(ctx context.Context, p model.Profile) (model.Us
 		fetchCtx, cancel = context.WithTimeout(ctx, 12*time.Second)
 		defer cancel()
 	}
-	out, err := runtime.RunCommandCapture(fetchCtx, wrappedBin, wrappedArgs, env, home)
+	out, err := runtime.RunCommandCapture(fetchCtx, bin, args, env, home)
 	if err != nil {
+		if debug {
+			slog.Debug("AGY fetchLiveQuota: agy CLI failed", "profile", p.Name, "err", err, "output", security.Redact(out))
+		}
 		return model.UsageSnapshot{}, false
+	}
+	if debug {
+		slog.Debug("AGY fetchLiveQuota: agy CLI output", "profile", p.Name, "output", security.Redact(out))
 	}
 	windows, ok := parseAgyQuotaOutput(out)
 	if !ok {
+		if debug {
+			slog.Debug("AGY fetchLiveQuota: parseAgyQuotaOutput failed", "profile", p.Name, "output", security.Redact(out))
+		}
 		return model.UsageSnapshot{}, false
 	}
 	info := a.InspectAuth(ctx, p)
+	if debug {
+		slog.Debug("AGY fetchLiveQuota: success", "profile", p.Name, "email", info.Email, "windows", len(windows))
+	}
 	return model.UsageSnapshot{
 		ProviderID: string(a.ID()),
 		ProfileID:  p.Name,
@@ -573,30 +820,18 @@ func parseAgyQuotaOutput(output string) ([]model.UsageWindow, bool) {
 	return windows, true
 }
 
-// agyQuotaComplete requires both independent families with their 5h and weekly
-// windows. A partial TSV must not score as a full account snapshot.
+// agyQuotaComplete accepts output as valid when at least one recognized
+// model-family window is present. The AGY CLI may omit entire families when
+// a group is exhausted, rate-limited, or when the account subscription does
+// not include that family. Requiring both families caused valid partial data
+// to be rejected and stale cache to be served instead.
 func agyQuotaComplete(windows []model.UsageWindow) bool {
-	need := map[string]map[string]bool{
-		"gemini":     {"5h": false, "weekly": false},
-		"claude_gpt": {"claude_5h": false, "claude_weekly": false},
-	}
 	for _, w := range windows {
-		kinds, ok := need[w.Group]
-		if !ok {
-			continue
-		}
-		if _, known := kinds[w.Kind]; known {
-			kinds[w.Kind] = true
+		if w.Group == "gemini" || w.Group == "claude_gpt" {
+			return true
 		}
 	}
-	for _, kinds := range need {
-		for _, present := range kinds {
-			if !present {
-				return false
-			}
-		}
-	}
-	return true
+	return false
 }
 
 func formatAgyReset(raw string) string {

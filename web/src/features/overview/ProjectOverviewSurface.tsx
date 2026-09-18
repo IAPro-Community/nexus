@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowUpCircle, Play, RotateCcw, TerminalSquare } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowUpCircle, Play, RotateCcw, Square, TerminalSquare } from 'lucide-react';
 import { Badge, Button, Card, Dialog, EmptyState } from '../../design-system';
+import { api } from '../../api';
 import { nexus } from '../../nexus/api';
+import { runtimeIdFromRecoverResult } from '../../nexus/agentTerminalModel';
 import { ResourcePicker } from '../../nexus/ResourcePicker';
 import { ProjectCreateActions } from '../projects/ProjectCreateActions';
-import type { Agent, Project, RuntimeSession } from '../../types';
+import type { Agent, MissionRun, Project, RuntimeSession } from '../../types';
 import { translateStatus } from '../../i18n';
 import { useTranslation } from 'react-i18next';
+import styles from './ProjectOverviewSurface.module.scss';
+import { buildOverviewResume } from './overviewResumeModel';
 
 const tone = (status: string) =>
   status === 'WORKING'
@@ -20,6 +24,8 @@ const tone = (status: string) =>
 export const ProjectOverviewSurface: React.FC<{
   project: Project;
   agents: Agent[];
+  runtimes?: RuntimeSession[];
+  flowRuns?: MissionRun[];
   onOpenAgent: (agent: Agent, runtimeId?: string) => void;
   onNewAISession: () => void;
   onProjectShell: () => void;
@@ -34,11 +40,13 @@ export const ProjectOverviewSurface: React.FC<{
 }> = ({
   project,
   agents,
+  runtimes = [],
+  flowRuns = [],
   onOpenAgent,
   onNewAISession,
   onProjectShell,
   onOpenComposer,
-  onOpenFlow: _onOpenFlow,
+  onOpenFlow,
   onNewAgent,
   onConfigureAgent,
   refreshAgents,
@@ -72,10 +80,37 @@ export const ProjectOverviewSurface: React.FC<{
   }, []);
 
   const agentList = Array.isArray(agents) ? agents : [];
+  const resumeItems = buildOverviewResume(project.id, runtimes, agentList);
+  const needsYou = resumeItems.filter((item) => item.lane === 'needsYou');
+  const continueItems = resumeItems.filter(
+    (item) => item.lane === 'active' || item.lane === 'recoverable',
+  );
+  const recentItems = resumeItems.filter((item) => item.lane === 'recent').slice(0, 3);
+  const recentRuns = (Array.isArray(flowRuns) ? flowRuns : []).slice(0, 3);
   const working = agentList.filter((agent) => agent.status === 'WORKING').length;
   const degraded = agentList.filter((agent) =>
     ['FAILED', 'STALE', 'RECOVERABLE', 'RATE_LIMITED'].includes(agent.status),
   ).length;
+
+  const activeProjectRuntimes = useMemo(() => {
+    const list = Array.isArray(runtimes) ? runtimes : [];
+    return list.filter((r) => {
+      if (r.state === 'STOPPED' || r.state === 'FAILED') return false;
+      const ws = r.workspace || '';
+      const pPath = project.canonical_path || '';
+      const pId = project.id || '';
+      return ws === pPath || (pPath && ws.startsWith(pPath)) || ws === pId || r.project_id === pId;
+    });
+  }, [runtimes, project]);
+
+  const handleStopRuntime = async (runtimeId: string) => {
+    try {
+      await api.stopRuntime(runtimeId);
+      await refreshAgents?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   const handleRecover = async (agent: Agent) => {
     setBusy(agent.id);
@@ -83,10 +118,7 @@ export const ProjectOverviewSurface: React.FC<{
     try {
       const res = await (onRecoverAgent ? onRecoverAgent(agent) : nexus.recoverAgent(agent.id));
       await refreshAgents?.();
-      const runtimeId =
-        res && typeof res === 'object' && 'runtime' in res
-          ? (res as any).runtime?.runtime_id
-          : undefined;
+      const runtimeId = runtimeIdFromRecoverResult(res);
       onOpenAgent(agent, runtimeId);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -147,9 +179,7 @@ export const ProjectOverviewSurface: React.FC<{
           <h1>{project.name}</h1>
           <p>
             {project.canonical_path} ·{' '}
-            <code style={{ color: 'var(--nx-accent-text)' }}>
-              {project.default_branch || 'main'}
-            </code>
+            <code className={styles.branchCode}>{project.default_branch || 'main'}</code>
           </p>
         </div>
         <div className="nx-page-header__actions">
@@ -164,25 +194,181 @@ export const ProjectOverviewSurface: React.FC<{
               {t('overview.openComposer')}
             </Button>
           ) : null}
+          {onOpenFlow ? (
+            <Button tone="ghost" onClick={onOpenFlow}>
+              {t('overview.openFlow', 'Flow')}
+            </Button>
+          ) : null}
         </div>
       </div>
 
+      <section className={styles.resumePanel} aria-labelledby="overview-resume-title">
+        <div className={styles.resumeHeader}>
+          <div>
+            <span className="nx-eyebrow">{t('overview.resumeEyebrow')}</span>
+            <h2 id="overview-resume-title">{t('overview.continueWorking')}</h2>
+          </div>
+          <Badge tone={needsYou.length > 0 ? 'warning' : 'success'}>
+            {needsYou.length > 0
+              ? t('overview.needsAttention', { count: needsYou.length })
+              : t('overview.noAttention')}
+          </Badge>
+        </div>
+        <div className={styles.resumeGrid}>
+          {(needsYou.length > 0 ? needsYou : continueItems).slice(0, 3).map((item) => {
+            const target = item.agent;
+            const title =
+              target?.name ||
+              item.runtime.dynamic_title ||
+              item.runtime.title ||
+              item.runtime.runtime_id;
+            return (
+              <Card key={item.runtime.runtime_id} className={styles.resumeCard}>
+                <div className={styles.resumeCardBody}>
+                  <strong>{title}</strong>
+                  <span>
+                    {item.lane === 'needsYou'
+                      ? item.runtime.attention_context || t('overview.needsYou')
+                      : item.runtime.last_task_summary || t('overview.activeWork')}
+                  </span>
+                </div>
+                <div className={styles.resumeActions}>
+                  {target ? (
+                    <Button
+                      size="sm"
+                      tone="brand"
+                      onClick={() => onOpenAgent(target, item.runtime.runtime_id)}
+                    >
+                      {item.lane === 'recoverable' ? t('overview.recover') : t('overview.continue')}
+                    </Button>
+                  ) : null}
+                  <Button size="sm" tone="ghost" onClick={onProjectShell}>
+                    {t('overview.openTerminal')}
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+          {needsYou.length === 0 && continueItems.length === 0 ? (
+            <EmptyState
+              title={t('overview.noRecentWork')}
+              hint={t('overview.noRecentWorkHint')}
+              action={<Button onClick={onNewAISession}>{t('overview.newAISession')}</Button>}
+            />
+          ) : null}
+        </div>
+        {recentItems.length > 0 || recentRuns.length > 0 ? (
+          <div className={styles.recentWork} aria-label={t('overview.recentWork')}>
+            <strong>{t('overview.recentWork')}</strong>
+            {recentItems.map((item) => (
+              <span key={item.runtime.runtime_id}>
+                {item.runtime.title || item.runtime.runtime_id}
+              </span>
+            ))}
+            {recentRuns.map((run) => (
+              <span key={run.id}>{t('overview.flowRun', { id: run.id.slice(-6) })}</span>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      {/* Live Supervised Runtimes Section */}
+      <section className={styles.liveRuntimesPanel} aria-labelledby="overview-runtimes-title">
+        <div className={styles.liveRuntimesHeader}>
+          <div>
+            <span className="nx-eyebrow">
+              {t('overview.liveRuntimesEyebrow', 'Execução Ativa · PTY Host')}
+            </span>
+            <h2 id="overview-runtimes-title" style={{ margin: '2px 0 0' }}>
+              {t('overview.liveRuntimesTitle', 'Runtimes Ativos no Projeto')} (
+              {activeProjectRuntimes.length})
+            </h2>
+          </div>
+          <Badge tone={activeProjectRuntimes.length > 0 ? 'success' : 'default'}>
+            {activeProjectRuntimes.length > 0 ? (
+              <>
+                <span className={styles.pulseDot} />
+                <span style={{ marginLeft: 6 }}>
+                  {t('overview.runtimesRunning', {
+                    count: activeProjectRuntimes.length,
+                    defaultValue: `${activeProjectRuntimes.length} sessões ativas`,
+                  })}
+                </span>
+              </>
+            ) : (
+              t('overview.noActiveRuntimes', 'Nenhum runtime ativo')
+            )}
+          </Badge>
+        </div>
+
+        {activeProjectRuntimes.length > 0 ? (
+          <div className={styles.liveRuntimesGrid}>
+            {activeProjectRuntimes.map((rt) => {
+              const matchedAgent = agentList.find(
+                (a) => a.id === rt.agent_id || a.name === rt.title,
+              );
+              return (
+                <div key={rt.runtime_id} className={styles.runtimeCard}>
+                  <div className={styles.runtimeHead}>
+                    <span className={styles.pulseDot} />
+                    <span className={styles.runtimeTitle}>
+                      {rt.dynamic_title || rt.title || rt.last_task_summary || rt.runtime_id}
+                    </span>
+                    <Badge tone="default">{rt.state}</Badge>
+                  </div>
+                  <div className={styles.runtimeMeta}>
+                    <span>
+                      <strong>{rt.provider_id || rt.provider || 'CLI'}</strong>
+                      {rt.profile_id || rt.profile ? `:${rt.profile_id || rt.profile}` : ''}
+                    </span>
+                    <span>·</span>
+                    <span style={{ fontFamily: 'var(--nx-font-mono, monospace)' }}>
+                      PID {rt.pid || rt.host_pid || '—'}
+                    </span>
+                  </div>
+                  <div className={styles.runtimeActions}>
+                    <Button
+                      size="sm"
+                      tone="brand"
+                      onClick={() => {
+                        if (matchedAgent) {
+                          onOpenAgent(matchedAgent, rt.runtime_id);
+                        } else {
+                          onProjectShell();
+                        }
+                      }}
+                    >
+                      <TerminalSquare size={12} /> {t('overview.attachTerminal', 'Anexar Terminal')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      tone="danger"
+                      onClick={() => void handleStopRuntime(rt.runtime_id)}
+                    >
+                      <Square size={11} /> {t('common.stop', 'Parar')}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--nx-text-muted)' }}>
+            {t(
+              'overview.noActiveRuntimesHint',
+              'Nenhum processo supervisionado ativo para este workspace. Dispare uma sessão ou agente para iniciar.',
+            )}
+          </p>
+        )}
+      </section>
+
       {updateInfo?.update_available && (
-        <Card
-          className="nx-inline-alert"
-          data-tone="warning"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '16px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <Card className={`nx-inline-alert ${styles.updateAlert}`} data-tone="warning">
+          <div className={styles.updateAlertContent}>
             <ArrowUpCircle size={18} className="nx-spin-slow" />
             <div>
               <strong>{t('settings.updates', 'Atualização disponível')}</strong>
-              <p style={{ margin: 0, fontSize: '12px', color: 'var(--nx-muted)' }}>
+              <p className={styles.updateAlertText}>
                 Nexus v{updateInfo.nexus_version} · Maestro{' '}
                 {updateInfo.maestro_latest_version
                   ? `v${updateInfo.maestro_latest_version}`
@@ -203,7 +389,7 @@ export const ProjectOverviewSurface: React.FC<{
         </Card>
       )}
 
-      <div style={{ display: 'grid', gap: '16px' }}>
+      <div className={styles.fleetContainer}>
         <div className="nx-section-title">
           <div>
             <h2>
@@ -211,7 +397,7 @@ export const ProjectOverviewSurface: React.FC<{
             </h2>
             <p>{t('overview.fleetDescription')}</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className={styles.fleetStatusBadges}>
             <Badge tone={degraded > 0 ? 'warning' : 'success'}>
               {degraded > 0
                 ? t('overview.degraded', {
@@ -232,11 +418,7 @@ export const ProjectOverviewSurface: React.FC<{
             title={t('overview.noAgents')}
             hint={t('overview.noAgentsHint')}
             action={
-              <div
-                className="nx-project-create-actions"
-                data-size="md"
-                style={{ marginTop: 4, justifyContent: 'center' }}
-              >
+              <div className={`nx-project-create-actions ${styles.emptyActions}`} data-size="md">
                 {onNewAgent && (
                   <Button tone="brand" onClick={onNewAgent}>
                     Novo Agente
@@ -250,28 +432,14 @@ export const ProjectOverviewSurface: React.FC<{
         ) : (
           <div className="nx-agent-grid">
             {agentList.map((agent) => (
-              <Card
-                key={agent.id}
-                className="nx-agent-card"
-                style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
-              >
+              <Card key={agent.id} className={`nx-agent-card ${styles.agentCardContent}`}>
                 <div className="nx-agent-card__head">
                   <span className="nx-agent-avatar nx-agent-avatar--large">
                     {(agent.name || 'AG').slice(0, 2).toUpperCase()}
                   </span>
-                  <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                    <strong
-                      style={{
-                        fontSize: '14px',
-                        display: 'block',
-                        textOverflow: 'ellipsis',
-                        overflow: 'hidden',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {agent.name || agent.id}
-                    </strong>
-                    <small style={{ color: 'var(--nx-muted)', fontSize: '11.5px' }}>
+                  <div className={styles.agentInfo}>
+                    <strong className={styles.agentName}>{agent.name || agent.id}</strong>
+                    <small className={styles.agentSubtitle}>
                       {agent.role || t('overview.developmentAgent')} · {agent.id}
                     </small>
                   </div>
@@ -289,14 +457,7 @@ export const ProjectOverviewSurface: React.FC<{
                   <strong>{agent.last_started_at || t('common.never')}</strong>
                 </div>
 
-                <div
-                  className="nx-agent-card__actions"
-                  style={{
-                    marginTop: 'auto',
-                    paddingTop: '8px',
-                    borderTop: '1px solid var(--nx-border)',
-                  }}
-                >
+                <div className={`nx-agent-card__actions ${styles.agentActions}`}>
                   <Button size="sm" tone="brand" onClick={() => onOpenAgent(agent)}>
                     <TerminalSquare size={13} /> {t('overview.openTerminal', 'Abrir Terminal')}
                   </Button>

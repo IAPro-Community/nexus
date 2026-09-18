@@ -7,18 +7,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/web"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/localization"
+	"github.com/IAPro-Community/nexus/internal/control/web"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/localization"
+	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
 // CoreConfig encapsulates runtime options for the reusable Nexus Core.
 type CoreConfig struct {
-	Host     string
-	Port     int
-	NoOpen   bool
-	Remote   bool
-	Language string
+	Host       string
+	Port       int
+	NoOpen     bool
+	Remote     bool
+	Language   string
+	TunnelHost string // Cloudflare Quick Tunnel public hostname
 }
 
 // Core encapsulates the entire Nexus backend and control server lifecycle.
@@ -55,12 +57,14 @@ func NewCore(cfg CoreConfig) (*Core, error) {
 
 // Start launches the Nexus Control API server and signals Ready() when listening.
 func (c *Core) Start(ctx context.Context) error {
+	nexus.Default().StartQuotaMonitor(ctx)
 	c.mu.Lock()
 	srv, err := web.NewServer(web.ServerOptions{
-		Host:   c.cfg.Host,
-		Port:   c.cfg.Port,
-		NoOpen: c.cfg.NoOpen,
-		Remote: c.cfg.Remote,
+		Host:       c.cfg.Host,
+		Port:       c.cfg.Port,
+		NoOpen:     c.cfg.NoOpen,
+		Remote:     c.cfg.Remote,
+		TunnelHost: c.cfg.TunnelHost,
 	})
 	if err != nil {
 		c.mu.Unlock()
@@ -137,12 +141,19 @@ func (c *Core) Stop(ctx context.Context) error {
 	}
 	c.stopped = true
 	close(c.stopChan)
+	nexus.Default().StopQuotaMonitor()
 
 	if c.server != nil {
 		shutdownCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		defer cancel()
-		return c.server.Shutdown(shutdownCtx)
+		if err := c.server.Shutdown(shutdownCtx); err != nil {
+			return err
+		}
 	}
+
+	// Shut down Nexus background services and close the SQLite store.
+	nexus.Default().Shutdown()
+
 	return nil
 }
 

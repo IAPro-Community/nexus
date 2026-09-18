@@ -22,16 +22,24 @@ type RunRepository interface {
 	ReleaseLease(context.Context, string, string, string) error
 }
 
+// InterventionCommitter gives the application transaction a single durable
+// boundary for the run payload, canonical resolution and resume outbox intent.
+// Production SQLite and the memory test repository both implement it.
+type InterventionCommitter interface {
+	CommitInterventionResolution(context.Context, *MissionRun, *InterventionResolution) error
+}
+
 // MemoryRunRepository is test/dev only. Production Nexus injects the SQLite-backed adapter.
 type MemoryRunRepository struct {
-	mu       sync.Mutex
-	runs     map[string]*MissionRun
-	capsules map[string]*ContextCapsule
-	receipts map[string]*WorkReceipt
+	mu          sync.Mutex
+	runs        map[string]*MissionRun
+	capsules    map[string]*ContextCapsule
+	receipts    map[string]*WorkReceipt
+	resolutions map[string]*InterventionResolution
 }
 
 func NewMemoryRunRepository() *MemoryRunRepository {
-	return &MemoryRunRepository{runs: map[string]*MissionRun{}, capsules: map[string]*ContextCapsule{}, receipts: map[string]*WorkReceipt{}}
+	return &MemoryRunRepository{runs: map[string]*MissionRun{}, capsules: map[string]*ContextCapsule{}, receipts: map[string]*WorkReceipt{}, resolutions: map[string]*InterventionResolution{}}
 }
 
 func cloneRun(in *MissionRun) *MissionRun {
@@ -43,7 +51,10 @@ func cloneRun(in *MissionRun) *MissionRun {
 	_ = json.Unmarshal(b, &out)
 	return &out
 }
-func (m *MemoryRunRepository) SaveRun(_ context.Context, run *MissionRun) error {
+func (m *MemoryRunRepository) SaveRun(ctx context.Context, run *MissionRun) error {
+	if err := contextErr(ctx); err != nil {
+		return err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if run == nil || run.ID == "" {
@@ -66,7 +77,10 @@ func (m *MemoryRunRepository) SaveRun(_ context.Context, run *MissionRun) error 
 	m.runs[run.ID] = cloneRun(run)
 	return nil
 }
-func (m *MemoryRunRepository) GetRun(_ context.Context, id string) (*MissionRun, error) {
+func (m *MemoryRunRepository) GetRun(ctx context.Context, id string) (*MissionRun, error) {
+	if err := contextErr(ctx); err != nil {
+		return nil, err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	r, ok := m.runs[id]
@@ -75,7 +89,10 @@ func (m *MemoryRunRepository) GetRun(_ context.Context, id string) (*MissionRun,
 	}
 	return cloneRun(r), nil
 }
-func (m *MemoryRunRepository) ListRuns(_ context.Context) ([]*MissionRun, error) {
+func (m *MemoryRunRepository) ListRuns(ctx context.Context) ([]*MissionRun, error) {
+	if err := contextErr(ctx); err != nil {
+		return nil, err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	out := make([]*MissionRun, 0, len(m.runs))
@@ -84,7 +101,10 @@ func (m *MemoryRunRepository) ListRuns(_ context.Context) ([]*MissionRun, error)
 	}
 	return out, nil
 }
-func (m *MemoryRunRepository) AcquireLease(_ context.Context, id, owner string, ttl time.Duration) (*MissionRun, error) {
+func (m *MemoryRunRepository) AcquireLease(ctx context.Context, id, owner string, ttl time.Duration) (*MissionRun, error) {
+	if err := contextErr(ctx); err != nil {
+		return nil, err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	r, ok := m.runs[id]
@@ -100,7 +120,10 @@ func (m *MemoryRunRepository) AcquireLease(_ context.Context, id, owner string, 
 	r.LeaseOwner, r.LeaseToken, r.LeaseExpiresAt, r.HeartbeatAt = owner, token, &expires, &now
 	return cloneRun(r), nil
 }
-func (m *MemoryRunRepository) RenewLease(_ context.Context, id, owner, token string, ttl time.Duration) error {
+func (m *MemoryRunRepository) RenewLease(ctx context.Context, id, owner, token string, ttl time.Duration) error {
+	if err := contextErr(ctx); err != nil {
+		return err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	r, ok := m.runs[id]
@@ -115,7 +138,10 @@ func (m *MemoryRunRepository) RenewLease(_ context.Context, id, owner, token str
 	r.HeartbeatAt, r.LeaseExpiresAt = &now, &expires
 	return nil
 }
-func (m *MemoryRunRepository) ReleaseLease(_ context.Context, id, owner, token string) error {
+func (m *MemoryRunRepository) ReleaseLease(ctx context.Context, id, owner, token string) error {
+	if err := contextErr(ctx); err != nil {
+		return err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	r, ok := m.runs[id]
@@ -127,6 +153,49 @@ func (m *MemoryRunRepository) ReleaseLease(_ context.Context, id, owner, token s
 	}
 	r.LeaseOwner, r.LeaseToken, r.LeaseExpiresAt = "", "", nil
 	return nil
+}
+
+func (m *MemoryRunRepository) CommitInterventionResolution(ctx context.Context, run *MissionRun, resolution *InterventionResolution) error {
+	if err := contextErr(ctx); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if run == nil || resolution == nil || run.ID == "" || resolution.IdempotencyKey == "" {
+		return fmt.Errorf("mission intervention resolution is required")
+	}
+	current, ok := m.runs[run.ID]
+	if !ok {
+		return ErrRunNotFound
+	}
+	if current.LeaseToken != "" && current.LeaseToken != run.LeaseToken {
+		return ErrLeaseHeld
+	}
+	if existing := m.resolutions[resolution.IdempotencyKey]; existing != nil {
+		return nil
+	}
+	m.resolutions[resolution.IdempotencyKey] = cloneResolution(resolution)
+	copy := cloneRun(run)
+	copy.LeaseOwner, copy.LeaseToken, copy.LeaseExpiresAt, copy.HeartbeatAt = current.LeaseOwner, current.LeaseToken, current.LeaseExpiresAt, current.HeartbeatAt
+	m.runs[run.ID] = copy
+	return nil
+}
+
+func cloneResolution(in *InterventionResolution) *InterventionResolution {
+	if in == nil {
+		return nil
+	}
+	b, _ := json.Marshal(in)
+	var out InterventionResolution
+	_ = json.Unmarshal(b, &out)
+	return &out
+}
+
+func contextErr(ctx context.Context) error {
+	if ctx == nil {
+		return nil
+	}
+	return ctx.Err()
 }
 
 // EvidenceRepository persists typed Step evidence independently from the run
@@ -158,7 +227,10 @@ func cloneReceipt(in *WorkReceipt) *WorkReceipt {
 	_ = json.Unmarshal(b, &out)
 	return &out
 }
-func (m *MemoryRunRepository) SaveContextCapsule(_ context.Context, capsule *ContextCapsule) error {
+func (m *MemoryRunRepository) SaveContextCapsule(ctx context.Context, capsule *ContextCapsule) error {
+	if err := contextErr(ctx); err != nil {
+		return err
+	}
 	if capsule == nil || capsule.RunID == "" || capsule.Step.ID == "" {
 		return fmt.Errorf("context capsule is required")
 	}
@@ -167,7 +239,10 @@ func (m *MemoryRunRepository) SaveContextCapsule(_ context.Context, capsule *Con
 	m.capsules[evidenceKey(capsule.RunID, capsule.Step.ID)] = cloneCapsule(capsule)
 	return nil
 }
-func (m *MemoryRunRepository) GetContextCapsule(_ context.Context, runID, stepID string) (*ContextCapsule, error) {
+func (m *MemoryRunRepository) GetContextCapsule(ctx context.Context, runID, stepID string) (*ContextCapsule, error) {
+	if err := contextErr(ctx); err != nil {
+		return nil, err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	value, ok := m.capsules[evidenceKey(runID, stepID)]
@@ -176,7 +251,10 @@ func (m *MemoryRunRepository) GetContextCapsule(_ context.Context, runID, stepID
 	}
 	return cloneCapsule(value), nil
 }
-func (m *MemoryRunRepository) SaveWorkReceipt(_ context.Context, receipt *WorkReceipt) error {
+func (m *MemoryRunRepository) SaveWorkReceipt(ctx context.Context, receipt *WorkReceipt) error {
+	if err := contextErr(ctx); err != nil {
+		return err
+	}
 	if receipt == nil || receipt.RunID == "" || receipt.StepID == "" {
 		return fmt.Errorf("work receipt is required")
 	}
@@ -189,7 +267,10 @@ func (m *MemoryRunRepository) SaveWorkReceipt(_ context.Context, receipt *WorkRe
 	m.receipts[key] = cloneReceipt(receipt)
 	return nil
 }
-func (m *MemoryRunRepository) GetWorkReceipt(_ context.Context, runID, stepID string) (*WorkReceipt, error) {
+func (m *MemoryRunRepository) GetWorkReceipt(ctx context.Context, runID, stepID string) (*WorkReceipt, error) {
+	if err := contextErr(ctx); err != nil {
+		return nil, err
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	value, ok := m.receipts[evidenceKey(runID, stepID)]

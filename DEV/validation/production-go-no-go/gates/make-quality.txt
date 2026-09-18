@@ -1,0 +1,67 @@
+---
+pid: 3596676
+cwd: "/projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager"
+command: "rtk make quality"
+title: "Re-run make quality gate"
+status: succeeded
+started_at: 2026-09-13T04:32:59.807Z
+running_for_ms: 102087   
+---
+Checking formatting...
+All matched files use Prettier code style!
+0 issues.
+?   	github.com/kivervinicius/ai-cli/cmd/nexus	[no test files]
+?   	github.com/kivervinicius/ai-cli/cmd/nexus-desktop	[no test files]
+=== RUN   TestCaptureStdoutDrainsLargeOutput
+--- PASS: TestCaptureStdoutDrainsLargeOutput (0.00s)
+=== RUN   TestTopLevelCommandDispatchContracts
+=== RUN   TestTopLevelCommandDispatchContracts/help
+=== RUN   TestTopLevelCommandDispatchContracts/version
+=== RUN   TestTopLevelCommandDispatchContracts/provider_help
+=== RUN   TestTopLevelCommandDispatchContracts/unknown_command
+=== RUN   TestTopLevelCommandDispatchContracts/missing_plan_id
+=== RUN   TestTopLevelCommandDispatchContracts/missing_compile_arguments
+=== RUN   TestTopLevelCommandDispatchContracts/missing_run_arguments
+--- PASS: TestTopLevelCommandDispatchContracts (0.04s)
+    --- PASS: TestTopLevelCommandDispatchContracts/help (0.00s)
+    --- PASS: TestTopLevelCommandDispatchContracts/version (0.00s)
+    --- PASS: TestTopLevelCommandDispatchContracts/provider_help (0.00s)
+    --- PASS: TestTopLevelCommandDispatchContracts/unknown_command (0.00s)
+    --- PASS: TestTopLevelCommandDispatchContracts/missing_plan_id (0.03s)
+    --- PASS: TestTopLevelCommandDispatchContracts/missing_compile_arguments (0.00s)
+    --- PASS: TestTopLevelCommandDispatchContracts/missing_run_arguments (0.00s)
+=== RUN   TestHelpDocumentsDispatchedCommandFamilies
+--- PASS: TestHelpDocumentsDispatchedCommandFamilies (0.00s)
+=== RUN   TestAgentsCommandUsesSinglePositionalProjectArgument
+--- PASS: TestAgentsCommandUsesSinglePositionalProjectArgument (0.07s)
+=== RUN   TestControlPlaneCLICommands
+✓ Created codex profile "work".
+✓ Created codex profile "personal".
+✓ Created agy profile "google-1".
+✓ Bound workspace /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/internal/app to codex:work
+✓ Unbound provider codex from workspace /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/internal/app
+⚡ [app.test] Usando perfil: codex:personal (personal)
+--- PASS: TestControlPlaneCLICommands (17.67s)
+=== RUN   TestQuotaGroupStatusKeepsUsableModelGroupAvailable
+--- PASS: TestQuotaGroupStatusKeepsUsableModelGroupAvailable (0.00s)
+=== RUN   TestPerformSystemUpdateDoesNotClaimNexusBinaryUpdated
+[1/2] Updating Orquestrador Maestro...
+  ✓ Updated @iapro/orquestrador-maestro-cli to latest release.
+[2/2] Confirming IAPro Nexus binary was not changed...
+--- PASS: TestPerformSystemUpdateDoesNotClaimNexusBinaryUpdated (0.02s)
+=== RUN   TestMaestroStatusIsExplicitAndDegradedWithoutMaestro
+--- PASS: TestMaestroStatusIsExplicitAndDegradedWithoutMaestro (0.00s)
+=== RUN   TestQuotaUnknownLabelReturnsStatusAwarePlaceholder
+--- PASS: TestQuotaUnknownLabelReturnsStatusAwarePlaceholder (0.00s)
+=== RUN   TestCoreLifecycle
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+... (2421 lines truncated)
+[see remaining: tail -n +51 ~/.local/share/rtk/tee/1789274081_make_quality.log]
+
+---
+exit_code: 0
+elapsed_ms: 102087
+ended_at: 2026-09-13T04:34:41.894Z
+---

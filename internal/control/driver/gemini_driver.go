@@ -7,11 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 type GeminiDriver struct{}
@@ -21,7 +22,7 @@ func NewGeminiDriver() *GeminiDriver { return &GeminiDriver{} }
 func (d *GeminiDriver) ProviderID() string { return "gemini" }
 
 func (d *GeminiDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	bin, err := runtime.LookPath("gemini")
+	bin, err := spec.MustGet("gemini").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "gemini binary not found in PATH"}, nil
 	}
@@ -127,7 +128,8 @@ func (d *GeminiDriver) Capabilities(ctx context.Context, p model.Profile) Contro
 }
 
 func (d *GeminiDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs []string) (string, []string, []string, error) {
-	bin, err := runtime.LookPath("gemini")
+	s := spec.MustGet("gemini")
+	bin, err := s.ResolveBinary()
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -141,13 +143,7 @@ func (d *GeminiDriver) BuildCommand(ctx context.Context, p model.Profile, extraA
 	cfgObj, _ := config.LoadConfig()
 	_ = security.ApplyIsolation(home, security.GetPolicy(cfgObj.IsolationPreset))
 
-	env := runtime.EnvSet(os.Environ(), map[string]string{
-		"HOME":            home,
-		"GEMINI_CLI_HOME": home,
-		"AI_PROFILE":      p.Name,
-		"AI_PROVIDER":     "gemini",
-		"PATH":            runtime.EnhancedPATH(filepath.Dir(bin)),
-	})
+	env := s.OverlayEnv(os.Environ(), home, filepath.Dir(bin), p.Name)
 
 	return bin, extraArgs, env, nil
 }
@@ -163,9 +159,9 @@ func (d *GeminiDriver) BuildResumeArgs(ctx context.Context, p model.Profile, pro
 	if strings.TrimSpace(providerSessionID) == "" {
 		return nil, fmt.Errorf("cannot resume gemini session without valid session ID")
 	}
-	return []string{"-r", providerSessionID}, nil
+	return spec.MustGet("gemini").Resume(providerSessionID), nil
 }
 
 func (d *GeminiDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, kickoffPrompt string) ([]string, error) {
-	return []string{"-p", kickoffPrompt}, nil
+	return spec.MustGet("gemini").Kickoff(kickoffPrompt), nil
 }

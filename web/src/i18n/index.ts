@@ -32,6 +32,9 @@ const initialization = i18n
     fallbackLng: 'pt-BR',
     lng: initialLanguage,
     load: 'currentOnly',
+    // React auto-escapes interpolated values, so escapeValue must remain false
+    // to avoid double-escaping (e.g., "&amp;" rendered literally in the UI).
+    // All `t()` calls pass through React's JSX rendering which handles XSS.
     interpolation: { escapeValue: false },
     detection: {
       order: ['localStorage'],

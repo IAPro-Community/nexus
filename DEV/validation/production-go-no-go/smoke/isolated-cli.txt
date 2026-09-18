@@ -1,0 +1,208 @@
+=== TIMESTAMP 2026-09-13T04:36:52Z ===
+=== BINARY VERSION ===
+{
+  "arch": "amd64",
+  "build_date": "2026-09-13T04:35:24Z",
+  "commit": "37f970b",
+  "go": "go1.25.0",
+  "os": "linux",
+  "version": "0.5.0-beta.23"
+}
+=== RUN HELP ===
+usage: nexus run <goal>
+       nexus run <provider> [profile] [--] [args...]
+=== MAESTRO STATUS JSON ===
+{"available": true, "mode": "ASSIST", "note": "full skill catalog redacted from evidence; see maestro-off.txt for PATH-restricted probe"}
+
+=== ISOLATED DOCTOR JSON ===
+{
+  "schema": "nexus.doctor/v1",
+  "generated_at": "2026-09-13T04:36:56.322145397Z",
+  "version": "0.5.0-beta.23",
+  "os": "linux",
+  "arch": "amd64",
+  "checks": [
+    {
+      "id": "data_directory",
+      "status": "PASS",
+      "summary": "directory is available: /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/DEV/validation/production-go-no-go/smoke/isolated-data"
+    },
+    {
+      "id": "config_directory",
+      "status": "PASS",
+      "summary": "directory is available: /home/desenvolvedor/.config/ai-cli"
+    },
+    {
+      "id": "state_directory",
+      "status": "PASS",
+      "summary": "directory is available: /home/desenvolvedor/.local/state/ai-cli"
+    },
+    {
+      "id": "credentials.capability",
+      "status": "PASS",
+      "summary": "SUPPORTED — private DBus session with Secret Service"
+    },
+    {
+      "id": "platform.pty",
+      "status": "PASS",
+      "summary": "Unix PTY supported on Linux"
+    },
+    {
+      "id": "platform.webkitgtk",
+      "status": "PASS",
+      "summary": "WebKitGTK detected: webkit2gtk-4.1 2.52.3"
+    },
+    {
+      "id": "desktop.shell",
+      "status": "SKIPPED",
+      "summary": "Wails Desktop shell requires a native desktop launch to verify",
+      "remediation": "run the native desktop smoke test on the target operating system"
+    },
+    {
+      "id": "provider.agy",
+      "status": "PASS",
+      "summary": "installed (1.2.2)"
+    },
+    {
+      "id": "provider.claude",
+      "status": "PASS",
+      "summary": "installed (2.1.250 (Claude Code))"
+    },
+    {
+      "id": "provider.codex",
+      "status": "PASS",
+      "summary": "installed (codex-cli 0.154.0)"
+    },
+    {
+      "id": "provider.cursor",
+      "status": "PASS",
+      "summary": "installed (2026.08.11-e8db854)"
+    },
+    {
+      "id": "provider.gemini",
+      "status": "PASS",
+      "summary": "installed (0.28.2)"
+    },
+    {
+      "id": "provider.opencode",
+      "status": "PASS",
+      "summary": "installed (1.18.30)"
+    }
+  ],
+  "providers": {
+    "agy": {
+      "installed": true,
+      "version": "1.2.2",
+      "binary_path": "/home/desenvolvedor/.local/bin/agy"
+    },
+    "claude": {
+      "installed": true,
+      "version": "2.1.250 (Claude Code)",
+      "binary_path": "/home/desenvolvedor/.local/bin/claude"
+    },
+    "codex": {
+      "installed": true,
+      "version": "codex-cli 0.154.0",
+      "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/codex"
+    },
+    "cursor": {
+      "installed": true,
+      "version": "2026.08.11-e8db854",
+      "binary_path": "/home/desenvolvedor/.local/bin/agent"
+    },
+    "gemini": {
+      "installed": true,
+      "version": "0.28.2",
+      "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/gemini"
+    },
+    "opencode": {
+      "installed": true,
+      "version": "1.18.30",
+      "binary_path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/opencode"
+    }
+  },
+  "credentials": {
+    "status": "SUPPORTED",
+    "mechanism": "private DBus session with Secret Service"
+  }
+}
+
+=== ISOLATED PROVIDERS STATUS ===
+[
+  {
+    "provider": "test",
+    "binary": "test-cli",
+    "version": "1.2.3",
+    "path": "/tmp/test-cli",
+    "installed": true,
+    "detected_at": "2026-09-13T04:35:55.666001908Z",
+    "state": "INSTALLED_UNREGISTERED"
+  },
+  {
+    "provider": "agy",
+    "binary": "agy",
+    "version": "1.2.2",
+    "path": "/home/desenvolvedor/.local/bin/agy",
+    "installed": true,
+    "detected_at": "2026-09-13T04:36:59.999643504Z",
+    "state": "INSTALLED_UNREGISTERED"
+  },
+  {
+    "provider": "claude",
+    "binary": "claude",
+    "version": "2.1.250 (Claude Code)",
+    "path": "/home/desenvolvedor/.local/bin/claude",
+    "installed": true,
+    "detected_at": "2026-09-13T04:36:59.999644256Z",
+    "state": "INSTALLED_UNREGISTERED"
+  },
+  {
+    "provider": "codex",
+    "binary": "codex",
+    "version": "codex-cli 0.154.0",
+    "path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/codex",
+    "installed": true,
+    "detected_at": "2026-09-13T04:36:59.999644546Z",
+    "state": "INSTALLED_UNREGISTERED"
+  },
+  {
+    "provider": "cursor",
+    "binary": "agent",
+    "version": "2026.08.11-e8db854",
+    "path": "/home/desenvolvedor/.local/bin/agent",
+    "installed": true,
+    "detected_at": "2026-09-13T04:36:59.999644997Z",
+    "state": "INSTALLED_UNREGISTERED"
+  },
+  {
+    "provider": "gemini",
+    "binary": "gemini",
+    "version": "0.28.2",
+    "path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/gemini",
+    "installed": true,
+    "detected_at": "2026-09-13T04:36:59.999645238Z",
+    "state": "INSTALLED_UNREGISTERED"
+  },
+  {
+    "provider": "opencode",
+    "binary": "opencode",
+    "version": "1.18.30",
+    "path": "/home/desenvolvedor/.nvm/versions/node/v22.17.0/bin/opencode",
+    "installed": true,
+    "detected_at": "2026-09-13T04:36:59.999645618Z",
+    "state": "INSTALLED_UNREGISTERED"
+  }
+]
+
+=== ISOLATED PROJECTS LIST ===
+=== Projetos Registrados no Nexus ===
+=== ISOLATED RUN WITHOUT PROJECT ===
+nexus: nenhum projeto ativo; registre um projeto primeiro
+=== ADD PROJECT ===
+Projeto registrado com sucesso: cert-smoke [prj_06G9J3F643Y6J2W28GMTM76EXW]
+=== PROJECTS AFTER ADD ===
+=== Projetos Registrados no Nexus ===
+- [prj_06G9J3F643Y6J2W28GMTM76EXW] cert-smoke (/projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/DEV/validation/production-go-no-go/smoke/workspace, Branch: main)
+=== RUN AFTER PROJECT (expect explicit fail, not hang) ===
+timeout: failed to execute process: No such file or directory (os error 2)
+RUN_EXIT:127

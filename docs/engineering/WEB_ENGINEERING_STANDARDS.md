@@ -101,6 +101,7 @@ All features must comply with WCAG 2.2 AA standards:
 3. **Contrast Compliance**: Normal text must achieve a contrast ratio >= 4.5:1; UI controls, badges, and large text must achieve >= 3.0:1. Contrast must be automated across all theme presets.
 4. **Accessible Names**: All icon-only buttons (`IconButton`) must supply an accessible name via `label` or `aria-label`.
 5. **Reduced Motion**: Respect user OS preferences via `@media (prefers-reduced-motion: reduce)` and `data-reduced-motion="true"`.
+6. **Responsive by default**: Desktop compactness must not be copied onto phones. Laptop density rules must be gated with `min-width: 821px`. Phone and coarse-pointer layouts use `--nx-touch-min` (44px), `--nx-safe-*` from `env(safe-area-inset-*)`, and a single page scroll — nested scroll regions are a last resort. Core tasks must work at 390px without horizontal page scroll. Hide chrome into an overflow menu rather than deleting desktop actions.
 
 ---
 

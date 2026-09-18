@@ -5,13 +5,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/classifier"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // Adapter implements the classic direct-execution provider contract for
@@ -30,11 +32,21 @@ func (a *Adapter) Capabilities() model.Capabilities {
 	}
 }
 
+const cursorAuthCacheTTL = 3 * time.Minute
+
+type cursorAuthCacheEntry struct {
+	info      model.AccountInfo
+	fetchedAt time.Time
+}
+
+var (
+	cursorAuthCache   = map[string]cursorAuthCacheEntry{}
+	cursorAuthCacheMu sync.Mutex
+	cursorStatusRun   = runtime.RunCommandCapture
+)
+
 func cursorBinary() (string, error) {
-	if bin, err := runtime.LookPath("agent"); err == nil {
-		return bin, nil
-	}
-	return runtime.LookPath("cursor-agent")
+	return spec.MustGet("cursor").ResolveBinary()
 }
 
 func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
@@ -80,16 +92,32 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
+	invalidateCursorAuthCache(p.Name)
 	_, err := a.Run(ctx, p, []string{"login"})
 	return err
 }
 
 func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
+	invalidateCursorAuthCache(p.Name)
 	_, err := a.Run(ctx, p, []string{"logout"})
 	return err
 }
 
+func invalidateCursorAuthCache(profile string) {
+	cursorAuthCacheMu.Lock()
+	defer cursorAuthCacheMu.Unlock()
+	delete(cursorAuthCache, profile)
+}
+
 func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.AccountInfo {
+	cursorAuthCacheMu.Lock()
+	if entry, ok := cursorAuthCache[p.Name]; ok && time.Since(entry.fetchedAt) < cursorAuthCacheTTL {
+		info := entry.info
+		cursorAuthCacheMu.Unlock()
+		return info
+	}
+	cursorAuthCacheMu.Unlock()
+
 	info := model.AccountInfo{
 		Plan: "Cursor", Status: "Not authenticated", Health: model.HealthAuthRequired,
 		Usage: model.UsageSnapshot{ProviderID: string(a.ID()), ProfileID: p.Name, Status: model.UsageUnknown, Source: model.SourceNone},
@@ -107,20 +135,44 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 	env := runtime.EnvSet(os.Environ(), map[string]string{
 		"HOME": home, "CURSOR_HOME": home, "CURSOR_CONFIG_DIR": filepath.Join(home, ".cursor"), "PATH": runtime.EnhancedPATH(filepath.Dir(bin)),
 	})
-	out, err := runtime.RunCommandCapture(ctx, bin, []string{"status"}, env, "")
+	statusCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	defer cancel()
+	out, err := cursorStatusRun(statusCtx, bin, []string{"status"}, env, "")
 	text := strings.ToLower(out)
 	if err == nil && !strings.Contains(text, "not authenticated") && !strings.Contains(text, "login") {
 		info.Authenticated = true
 		info.Status = "Authenticated"
 		info.Health = model.HealthHealthy
-		// Cursor status output is provider-owned and not guaranteed structured;
-		// avoid scraping an email into an unstable contract.
+		for _, line := range strings.Split(out, "\n") {
+			lowerLine := strings.ToLower(line)
+			if idx := strings.Index(lowerLine, "logged in as "); idx != -1 {
+				candidate := strings.TrimSpace(line[idx+len("logged in as "):])
+				if candidate != "" && strings.Contains(candidate, "@") {
+					info.Email = candidate
+					break
+				}
+			}
+		}
 	}
+
+	cursorAuthCacheMu.Lock()
+	cursorAuthCache[p.Name] = cursorAuthCacheEntry{info: info, fetchedAt: time.Now()}
+	cursorAuthCacheMu.Unlock()
 	return info
 }
 
 func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
-	return model.UsageSnapshot{ProviderID: string(a.ID()), ProfileID: p.Name, Status: model.UsageUnknown, Source: model.SourceNone, FetchedAt: time.Now()}
+	return model.UsageSnapshot{
+		ProviderID: string(a.ID()),
+		ProfileID:  p.Name,
+		Status:     model.UsageUnsupported,
+		Source:     model.SourceNone,
+		FetchedAt:  time.Now(),
+	}
+}
+
+func (a *Adapter) RefreshUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
+	return a.GetUsage(ctx, p)
 }
 
 func (a *Adapter) ListConversations(ctx context.Context, p model.Profile, workspace string) ([]model.Session, error) {

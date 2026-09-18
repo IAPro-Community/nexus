@@ -118,6 +118,11 @@ func HumanizeHelp(value string) string {
 	for source, target := range translations[Current()] {
 		value = strings.ReplaceAll(value, source, target)
 	}
+	// Keep legacy merged-help text truthful after localization. Nexus updates
+	// and Maestro maintenance are separate explicit operations.
+	value = strings.ReplaceAll(value, "Update Nexus and Orquestrador Maestro to latest", "Update Nexus only (Maestro is separate)")
+	value = strings.ReplaceAll(value, "Atualizar Nexus e Maestro", "Atualizar Nexus (Maestro é separado)")
+	value = strings.ReplaceAll(value, "Actualizar Nexus y Maestro", "Actualizar Nexus (Maestro es independiente)")
 	return value
 }
 

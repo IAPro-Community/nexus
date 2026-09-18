@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/gorilla/websocket"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
 )
 
 func TestWeb_FullE2E(t *testing.T) {
@@ -26,7 +27,7 @@ func TestWeb_FullE2E(t *testing.T) {
 		RuntimeID:       "e2e-fake-1",
 		ProviderID:      "fake",
 		ProfileID:       "default",
-		Workspace:       "/tmp",
+		Workspace:       testDir,
 		PID:             99999,
 		HostPID:         99999,
 		HostGeneration:  time.Now().UnixNano(),
@@ -35,7 +36,7 @@ func TestWeb_FullE2E(t *testing.T) {
 		Env:             []string{"DATABASE_PASSWORD=s3cr3tP@ssword", "SECRET_KEY=supersecretkey"},
 		State:           registry.StateRunning,
 		ControlLevel:    registry.ControlLevelTerminal,
-		ControlEndpoint: "/tmp/fake.sock",
+		ControlEndpoint: filepath.Join(testDir, "fake.sock"),
 		StartedAt:       time.Now(),
 	}
 	if err := reg.Register(fakeSession); err != nil {
@@ -59,17 +60,19 @@ func TestWeb_FullE2E(t *testing.T) {
 	}()
 	defer srv.Shutdown(context.Background())
 
-	time.Sleep(50 * time.Millisecond)
-
 	jar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: jar}
 
-	// 1. Visit bootstrap URL
-	resp, err := client.Get(srv.BootstrapURL())
+	// 1. Bootstrap via POST
+	body := strings.NewReader(`{"token":"` + srv.bootstrap + `"}`)
+	resp, err := client.Post(srv.URL()+"/api/v1/auth/bootstrap", "application/json", body)
 	if err != nil {
-		t.Fatalf("failed to visit bootstrap URL: %v", err)
+		t.Fatalf("failed to POST bootstrap token: %v", err)
 	}
 	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("bootstrap POST returned %d", resp.StatusCode)
+	}
 
 	// 2. Fetch session details (CSRF token)
 	sessResp, err := client.Get(srv.URL() + "/api/v1/session")

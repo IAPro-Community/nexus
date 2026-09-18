@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Badge, Card, ThemeProvider } from '../design-system';
 import type { Agent, Project } from '../types';
 import { WorkspaceProvider, useWorkspace } from '../workspace/WorkspaceProvider';
@@ -86,7 +86,10 @@ const DemoCoordinator: React.FC = () => {
   const workspace = useWorkspace();
   const [palette, setPalette] = useState(false);
   const [tour, setTour] = useState(false);
-  const openKind = (kind: string) => workspace.open(projectSurface(project.id, kind as any));
+  const openKind = useCallback(
+    (kind: string) => workspace.open(projectSurface(project.id, kind as any)),
+    [workspace],
+  );
   const commands = useMemo<NexusCommand[]>(
     () => [
       { id: 'overview', label: 'Open Overview', group: 'Demo', run: () => openKind('overview') },
@@ -94,7 +97,7 @@ const DemoCoordinator: React.FC = () => {
       { id: 'settings', label: 'Open Settings', group: 'Demo', run: () => openKind('settings') },
       { id: 'tour', label: 'Take Product Tour', group: 'Demo', run: () => setTour(true) },
     ],
-    [],
+    [openKind],
   );
   const render = (surface: WorkspaceSurface) => {
     if (surface.type === 'overview')

@@ -2,21 +2,23 @@ package update
 
 import (
 	"context"
-	"encoding/json"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/buildinfo"
+	"github.com/IAPro-Community/nexus/internal/buildinfo"
 )
-
-// DefaultUpdateRegistryURL is the standard endpoint for update checks.
-const DefaultUpdateRegistryURL = "https://updates.iapro.dev/v1/nexus/manifest.json"
 
 // Service provides a unified update engine across CLI, Web, and Desktop.
 type Service struct {
@@ -72,7 +74,11 @@ func NewService(cfg ServiceConfig) *Service {
 	}
 	ch := cfg.Channel
 	if ch == "" {
-		ch = "stable"
+		if strings.Contains(strings.ToLower(ver), "beta") {
+			ch = "beta"
+		} else {
+			ch = "stable"
+		}
 	}
 	execP := cfg.ExecPath
 	if execP == "" {
@@ -88,14 +94,7 @@ func NewService(cfg ServiceConfig) *Service {
 	if client == nil {
 		client = &http.Client{Timeout: 15 * time.Second}
 	}
-	regURL := cfg.RegistryURL
-	if regURL == "" {
-		if env := os.Getenv("NEXUS_UPDATE_REGISTRY_URL"); env != "" {
-			regURL = env
-		} else {
-			regURL = DefaultUpdateRegistryURL
-		}
-	}
+	regURL := ResolveRegistryURL(cfg.RegistryURL, ch)
 	kr := cfg.KeyRing
 	if kr == nil {
 		kr = NewKeyRing()
@@ -206,6 +205,43 @@ func (s *Service) Apply(ctx context.Context) (*Receipt, error) {
 		return nil, fmt.Errorf("%w: %s", ErrManifestTarget, target)
 	}
 
+	// Check if artifact requires manual installation
+	if art.ExtractAction() == "manual" {
+		return nil, fmt.Errorf("artifact type %s requires manual installation: %s", art.Target, s.method.UpgradeInstruction())
+	}
+
+	data, err := s.downloadArtifact(ctx, art)
+	if err != nil {
+		return nil, err
+	}
+
+	// Manifest size/sha256 bind the downloaded blob (archive or raw binary).
+	if art.Size != int64(len(data)) {
+		return nil, fmt.Errorf("artifact size mismatch: expected %d, got %d", art.Size, len(data))
+	}
+	if err := NewUpdater(s.execPath, "").VerifyArtifactChecksum(data, art.SHA256); err != nil {
+		return nil, err
+	}
+
+	// Extract binary if archive format
+	var binaryData []byte
+	if art.Target == TargetTarGz || art.Target == TargetZip {
+		extracted, err := ExtractBinary(data, art.Target)
+		if err != nil {
+			return nil, fmt.Errorf("archive extraction failed: %w", err)
+		}
+		binaryData = extracted.Data
+	} else {
+		binaryData = data
+	}
+
+	updater := NewUpdater(s.execPath, dataDirForUpdates())
+	sum := sha256.Sum256(binaryData)
+	return updater.ApplyUpdate(s.currentVer, manifest.Version, binaryData, hex.EncodeToString(sum[:]))
+}
+
+// downloadArtifact streams the artifact to disk without loading entire body into memory.
+func (s *Service) downloadArtifact(ctx context.Context, art Artifact) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, art.URL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("invalid artifact URL: %w", err)
@@ -221,13 +257,18 @@ func (s *Service) Apply(ctx context.Context) (*Receipt, error) {
 		return nil, fmt.Errorf("artifact download returned HTTP %d", resp.StatusCode)
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	// Stream with size limit
+	limitedReader := io.LimitReader(resp.Body, MaxExtractSize+1)
+	data, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, fmt.Errorf("reading artifact body failed: %w", err)
 	}
 
-	updater := NewUpdater(s.execPath, os.Getenv("HOME"))
-	return updater.ApplyManifest(*manifest, policy, data)
+	if int64(len(data)) > MaxExtractSize {
+		return nil, ErrArchiveTooLarge
+	}
+
+	return data, nil
 }
 
 func (s *Service) fetchManifest(ctx context.Context) (*Manifest, error) {
@@ -243,6 +284,9 @@ func (s *Service) fetchManifest(ctx context.Context) (*Manifest, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("no update manifest published for channel %q yet (registry %s returned HTTP 404)", s.channel, s.registryURL)
+		}
 		return nil, fmt.Errorf("registry returned HTTP %d", resp.StatusCode)
 	}
 
@@ -256,13 +300,69 @@ func (s *Service) fetchManifest(ctx context.Context) (*Manifest, error) {
 		sig = resp.Header.Get("X-Nexus-Signature")
 	}
 
-	if sig != "" {
-		return s.keyRing.VerifyManifest(body, sig)
+	if sig == "" {
+		// Release artifacts publish the manifest and its detached signature
+		// side-by-side. This fallback keeps the same trust chain usable by a
+		// static registry, while still rejecting the manifest if the sidecar
+		// is missing, malformed, or cannot be fetched.
+		signatureURL, err := detachedSignatureURL(s.registryURL)
+		if err != nil {
+			return nil, ErrManifestUnsigned
+		}
+		sig, err = s.fetchDetachedSignature(ctx, signatureURL)
+		if err != nil {
+			return nil, ErrManifestUnsigned
+		}
 	}
 
-	var m Manifest
-	if err := json.Unmarshal(body, &m); err != nil {
-		return nil, err
+	return s.keyRing.VerifyManifest(body, sig)
+}
+
+func detachedSignatureURL(manifestURL string) (string, error) {
+	u, err := url.Parse(manifestURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return "", fmt.Errorf("invalid manifest URL")
 	}
-	return &m, nil
+	name := path.Base(u.Path)
+	if name == "." || name == "/" || name == "" {
+		return "", fmt.Errorf("manifest URL has no file name")
+	}
+	ext := path.Ext(name)
+	if ext == "" {
+		name += ".sig"
+	} else {
+		name = strings.TrimSuffix(name, ext) + ".sig"
+	}
+	u.Path = path.Join(path.Dir(u.Path), name)
+	return u.String(), nil
+}
+
+func (s *Service) fetchDetachedSignature(ctx context.Context, signatureURL string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, signatureURL, nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("signature registry returned HTTP %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(body)), nil
+}
+
+func dataDirForUpdates() string {
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		return home
+	}
+	if dir, err := os.UserConfigDir(); err == nil && dir != "" {
+		return dir
+	}
+	return filepath.Join(os.TempDir(), "nexus-update")
 }

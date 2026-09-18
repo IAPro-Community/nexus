@@ -36,6 +36,7 @@ export interface RuntimeSession {
   control_endpoint: string;
   parent_runtime_id?: string;
   handoff_type?: string;
+  continuity?: string;
   lineage_id?: string;
   started_at: string;
   attention_reason?: 'QUESTION' | 'APPROVAL' | 'TASK_COMPLETED' | 'WORKING' | 'IDLE' | 'ERROR';
@@ -47,6 +48,17 @@ export interface RuntimeSession {
   project_name?: string;
   last_task_summary?: string;
   dynamic_title?: string;
+}
+
+export interface RuntimeControlResponse {
+  ok: boolean;
+  code: string;
+  runtime_id: string;
+  action: 'stop' | 'detach' | 'handoff' | 'continue' | string;
+  state?: string;
+  message?: string;
+  correlation_id?: string;
+  status?: string;
 }
 
 export interface CapabilityEvidence {
@@ -78,8 +90,18 @@ export interface ProviderInfo {
   id: string;
   installed: boolean;
   version: string;
+  registration_state?: string;
+  binary_path?: string;
   control_level: string;
   capabilities: EffectiveCapabilities;
+}
+
+export interface NexusSystemInfo {
+  apiVersion: string;
+  serverVersion: string;
+  build: Record<string, string>;
+  providers: string[];
+  capabilities: Record<string, Record<string, unknown>>;
 }
 
 export interface ProfileInfo {
@@ -89,6 +111,21 @@ export interface ProfileInfo {
   plan?: string;
   authenticated: boolean;
   is_default: boolean;
+}
+
+export interface AccountScope {
+  provider_id: string;
+  profile_id: string;
+  account_id: string;
+  identity_version: string;
+  credential_scope?: string;
+}
+
+export interface RegisteredProfile {
+  provider: string;
+  name: string;
+  created_at?: string;
+  account_scope?: AccountScope;
 }
 
 export interface ProviderAccount {
@@ -103,8 +140,15 @@ export interface ProviderAccount {
   quota_remaining: number;
   quota_total: number;
   rate_limited: boolean;
+  network_error?: boolean;
   health: string;
   last_checked: string;
+  cooldown_until?: string;
+  account_scope?: {
+    provider_id?: string;
+    account_id?: string;
+    identity_version?: string;
+  };
   avail_reasons?: {
     exhausted_windows?: string[];
     rate_limited?: boolean;
@@ -112,10 +156,26 @@ export interface ProviderAccount {
     auth_required?: boolean;
     all_ok?: boolean;
   };
+  eligibility?: {
+    eligible: boolean;
+    reason: string;
+    confidence: string;
+    message?: string;
+  };
   quota_view?: {
     status?: string;
+    source?: string;
     plan?: string;
     account?: string;
+    fetched_at?: string;
+    available?: boolean;
+    avail_reasons?: {
+      exhausted_windows?: string[];
+      rate_limited?: boolean;
+      unknown_quota?: boolean;
+      auth_required?: boolean;
+      all_ok?: boolean;
+    };
     model_groups?: Array<{
       key?: string;
       name?: string;
@@ -125,13 +185,35 @@ export interface ProviderAccount {
         remaining?: number;
         reset_desc?: string;
         status?: string;
+        bar?: string;
       }>;
     }>;
   };
 }
 
+export interface SchedulerRejection {
+  account: ProviderAccount;
+  reason: string;
+}
+
+export interface SchedulerDecision {
+  selected: ProviderAccount;
+  policy: string;
+  reason: string;
+  score: number;
+  rejected?: SchedulerRejection[];
+  explain_path: string[];
+}
+
+export interface ResourceAllocation {
+  decision: SchedulerDecision;
+  impact?: ConfigImpact;
+  persisted: boolean;
+}
+
 export interface EventRecord {
   id: string;
+  correlation_id?: string;
   runtime_id: string;
   provider_id?: string;
   profile_id?: string;
@@ -139,7 +221,7 @@ export interface EventRecord {
   profile?: string;
   type: string;
   summary: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -162,6 +244,13 @@ export interface Project {
   last_opened_at?: string;
 }
 
+/** Lightweight per-project agent counts for the project rail outline. */
+export interface ProjectAgentSummary {
+  project_id: string;
+  agent_count: number;
+  working_count: number;
+}
+
 export interface Agent {
   id: string;
   project_id: string;
@@ -173,6 +262,93 @@ export interface Agent {
   created_at: string;
   updated_at: string;
   last_started_at?: string;
+}
+
+export interface Mission {
+  id: string;
+  project_id: string;
+  name: string;
+  description: string;
+  status: string;
+  goal: string;
+  scope: string;
+  risk_level: string;
+  config: string;
+  created_at: string;
+  updated_at: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+export interface MissionTask {
+  id: string;
+  mission_id: string;
+  name: string;
+  description: string;
+  status: string;
+  kind: string;
+  priority: number;
+  dependencies: string;
+  config: string;
+  result: string;
+  created_at: string;
+  updated_at: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+export interface MissionAssignment {
+  id: string;
+  mission_id: string;
+  task_id: string;
+  agent_id: string;
+  status: string;
+  assigned_at: string;
+  completed_at?: string;
+}
+
+export interface MissionStats {
+  total: number;
+  pending: number;
+  active: number;
+  completed: number;
+  failed: number;
+}
+
+export interface MissionDetail {
+  mission: Mission;
+  tasks: MissionTask[];
+  assignments: MissionAssignment[];
+  stats: MissionStats;
+}
+
+export interface MissionCreateInput {
+  name: string;
+  description?: string;
+  goal?: string;
+  scope?: string;
+  risk_level?: string;
+}
+
+export interface MissionPatch {
+  name?: string;
+  description?: string;
+  status?: string;
+  goal?: string;
+  scope?: string;
+  risk_level?: string;
+}
+
+export interface MissionTaskInput {
+  name: string;
+  description?: string;
+  kind?: string;
+  priority?: number;
+}
+
+export interface MissionAssignmentInput {
+  task_id: string;
+  agent_id: string;
 }
 
 export interface RuntimeGeneration {
@@ -222,7 +398,7 @@ export interface AgentConfig {
   provider: string;
   profile: string;
   model?: string;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
   workspace?: string;
   isolation?: string;
   maestro_mode?: string;
@@ -233,6 +409,22 @@ export interface AgentConfig {
     max_concurrent?: number;
     quota_preserve?: boolean;
     cooldown_seconds?: number;
+  };
+  agent_spec?: AgentSpec;
+}
+
+export interface AgentSpec {
+  role?: string;
+  instructions?: string[];
+  responsibilities?: string[];
+  capabilities?: string[];
+  constraints?: string[];
+  domains?: string[];
+  strengths?: string[];
+  tags?: string[];
+  verification_policy?: {
+    require_evidence?: boolean;
+    require_tests?: boolean;
   };
 }
 
@@ -339,6 +531,160 @@ export interface ContextReadiness {
   updated_at?: string;
 }
 
+/**
+ * Static project-intelligence contracts. These types intentionally stay
+ * transport-agnostic until the Core scan/attempt service exposes a persisted
+ * API. They mirror the immutable snapshot produced by contextsnapshot and
+ * keep provenance visible to the UI rather than reducing facts to strings.
+ */
+export type ProjectContextSnapshotCompleteness = 'COMPLETE' | 'PARTIAL';
+
+export type ProjectFactValueType = 'STRING' | 'LIST' | 'MAP' | 'BOOL';
+export type ProjectFactBasis = 'OBSERVED' | 'DERIVED';
+export type ProjectFactConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export type ProjectCodeIdentityState = 'CLEAN' | 'DIRTY' | 'UNBORN' | 'NON_GIT' | 'INCOMPLETE';
+
+export interface ProjectCodeIdentity {
+  repository_kind: string;
+  head_sha?: string;
+  branch?: string;
+  state: ProjectCodeIdentityState;
+  index_digest?: string;
+  worktree_digest?: string;
+  untracked_digest?: string;
+  submodules_digest?: string;
+  identity_digest: string;
+  complete: boolean;
+  warnings?: string[];
+}
+
+export interface ProjectFactProvenance {
+  source: string;
+  locator?: string;
+  extractor: string;
+  digest?: string;
+  observed_at: string;
+}
+
+export interface ProjectFact {
+  category: string;
+  key: string;
+  value_type: ProjectFactValueType;
+  value: unknown;
+  basis: ProjectFactBasis;
+  confidence: ProjectFactConfidence;
+  observed_at: string;
+  provenance: ProjectFactProvenance[];
+}
+
+export interface ProjectContextSnapshot {
+  id?: string;
+  project_id?: string;
+  canonical_path?: string;
+  scanner_version: string;
+  identity: ProjectCodeIdentity;
+  completeness: ProjectContextSnapshotCompleteness;
+  facts: ProjectFact[];
+  warnings?: string[];
+  observed_at: string;
+}
+
+export type ProjectIntelligenceScanState =
+  'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
+
+export interface ProjectIntelligenceScan {
+  id: string;
+  project_id: string;
+  identity_digest: string;
+  state: ProjectIntelligenceScanState;
+  scanner_version: string;
+  requested_at: string;
+  started_at?: string;
+  finished_at?: string;
+  error?: string;
+}
+
+export interface ProjectIntelligenceView {
+  project_id: string;
+  identity: ProjectCodeIdentity;
+  current_snapshot?: ProjectContextSnapshot;
+  current_scan?: ProjectIntelligenceScan;
+}
+
+export interface MaestroSkill {
+  id: string;
+  name?: string;
+  description?: string;
+  category?: string;
+  risk?: string;
+  triggers?: string[];
+  aliases?: string[];
+  prompt?: string;
+}
+
+export interface CatalogSkill extends MaestroSkill {
+  source: string;
+  availability: string;
+  activation_mode?: string;
+  copies: number;
+  contract?: string;
+}
+
+export interface MaestroCatalog {
+  operational: CatalogSkill[];
+  library: CatalogSkill[];
+  counts: { operational: number; library: number; copies: number };
+}
+
+export interface MaestroStatus {
+  available: boolean;
+  mode: string;
+  capabilities?: {
+    version: string;
+    modes: string[];
+    skills: MaestroSkill[];
+    gates?: string[];
+    processes?: string[];
+  };
+  last_check?: string;
+  error?: string;
+}
+
+export interface MaestroRecommendation {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  apply: string;
+  why: string;
+  risk: string;
+  gates?: string[];
+  skills?: string[];
+  verify?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface MaestroAdvice {
+  version?: string;
+  mode?: string;
+  required?: MaestroRecommendation[];
+  recommended?: MaestroRecommendation[];
+  optional?: MaestroRecommendation[];
+  explanation?: string;
+  degraded?: boolean;
+}
+
+export interface SkillSyncPreview {
+  id: string;
+  dry_run: boolean;
+  tool: string;
+  roots: string[];
+  skills: string[];
+  command: string;
+  output?: string;
+}
+
 export interface WorkPackage {
   id: string;
   title: string;
@@ -358,18 +704,25 @@ export interface WorkPackage {
   dependencies: string[];
   parallel_group?: string;
   role: string;
+  phase_type?: string;
+  review_required?: boolean;
   task_requirements?: string;
   agent_allocation?: string;
   assignment_strategy?: 'EXISTING' | 'CREATE' | 'AUTO';
   resource_policy?: 'BALANCED' | 'PRESERVE_QUOTA' | 'PREFER_PROVIDER' | 'MANUAL' | string;
   provider?: string;
   profile?: string;
+  skill_ids?: string[];
   maestro_gates?: string[];
   maestro_skills?: string[];
   relevant_paths?: string[];
   acceptance_criteria: string[];
   verification_requirements?: string[];
   shared_artifacts?: string[];
+  entry_criteria?: string[];
+  exit_criteria?: string[];
+  required_evidence?: string[];
+  handoff?: string;
   compiled_prompt?: string;
 }
 
@@ -378,6 +731,9 @@ export interface PlanPhase {
   title: string;
   description?: string;
   order: number;
+  type?: string;
+  required_role?: string;
+  failure_policy?: string;
   packages: WorkPackage[];
 }
 
@@ -424,6 +780,7 @@ export interface ComposerSession {
   state: ComposerState;
   context_fingerprint: string;
   brief_json: string;
+  revision: number;
   created_at: string;
   updated_at: string;
 }
@@ -434,6 +791,9 @@ export interface ComposerTurn {
   role: 'USER' | 'ASSISTANT';
   content: string;
   created_at: string;
+  kind?: string;
+  payload_json?: string;
+  payload?: Record<string, unknown>;
 }
 export interface ComposerSkillProposal {
   session_id: string;
@@ -454,28 +814,61 @@ export interface PromptArtifact {
   skill_ids_json: string;
   created_at: string;
 }
+export interface FlowSuitabilityAssessment {
+  result: 'DIRECT_FIT' | 'FLOW_BENEFICIAL' | 'FLOW_STRONGLY_RECOMMENDED' | string;
+  reasons: string[];
+  signals: string[];
+}
+export interface ComposerPromptReview {
+  missing?: string[];
+  contradictions?: string[];
+  diff?: string[];
+}
 export interface PromptReadinessCheck {
   key: string;
   label: string;
-  score: number;
+  status: string;
   summary: string;
 }
+export interface ContextFileRef {
+  path: string;
+  excerpt?: string;
+  hash?: string;
+}
+
 export interface ComposerSessionView {
   session: ComposerSession;
   brief: {
     goal: string;
-    context?: string[] | Record<string, unknown>;
+    context?:
+      | string[]
+      | {
+          existing_state?: string[];
+          evidence?: string[];
+          referenced_files?: ContextFileRef[];
+          [key: string]: unknown;
+        };
     constraints?: string[] | Record<string, unknown>;
     decisions?: string[];
     assumptions?: Array<string | { value?: string; status?: string; confidence?: string }>;
     alternatives?: string[];
     risks?: string[];
+    quality?: {
+      acceptance_criteria?: string[];
+      testing?: string[];
+      verification?: string[];
+      review?: string[];
+      definition_of_done?: string[];
+    };
+    /** @deprecated use quality.acceptance_criteria */
     success_criteria?: string[];
     open_questions?: string[];
     intent?: { archetype?: string };
+    preview?: string;
     readiness?: { score: number; state: string; summary: string; checks?: PromptReadinessCheck[] };
     unknowns?: Array<{
       id: string;
+      field?: string;
       question: string;
       rationale?: string;
       severity: string;
@@ -483,11 +876,26 @@ export interface ComposerSessionView {
       answer?: string;
       inferred_value?: string;
       confidence?: string;
+      source?: string;
+      suggested_options?: string[];
+      default_choice?: string;
     }>;
   };
   turns: ComposerTurn[];
   skills: ComposerSkillProposal[];
   artifacts?: PromptArtifact[];
+  flow_suitability?: FlowSuitabilityAssessment;
+  prompt_review?: ComposerPromptReview;
+}
+
+export interface IntelligenceMemory {
+  id: string;
+  scope: 'INSTALL' | 'PROJECT' | string;
+  project_id?: string;
+  key: string;
+  value: string;
+  source?: string;
+  updated_at?: string;
 }
 
 export interface ClarificationUnknown {
@@ -549,6 +957,7 @@ export interface AutonomyContract {
   disallow_destructive_git: boolean;
   allowed_file_patterns?: string[];
   verification_commands?: string[];
+  global_verification_commands?: string[];
   escalate_on_failure: boolean;
   allow_tool_auto_approval: boolean;
   allow_git_push: boolean;
@@ -571,6 +980,7 @@ export interface ReviewVerdict {
   approved: boolean;
   reviewer_agent_id: string;
   findings?: string[];
+  structured_findings?: ReviewFinding[];
   remediation_tips?: string[];
   reviewed_at: string;
 }
@@ -587,6 +997,7 @@ export interface WorkReceipt {
   decisions: string[];
   artifacts: string[];
   remaining_issues: string[];
+  handoff?: string;
   verification: VerificationResult[];
   agent_id: string;
   base_revision: string;
@@ -616,6 +1027,7 @@ export interface ContextCapsule {
   relevant_paths: string[];
   durable_context_refs: string[];
   dependency_receipts: WorkReceipt[];
+  skill_ids: string[];
   maestro_skills: string[];
   acceptance_criteria: string[];
   constraints: string[];
@@ -628,28 +1040,236 @@ export interface FlowRunEvidence {
   receipts: WorkReceipt[];
 }
 
+export interface ValidationEvidenceStream {
+  id: string;
+  project_id?: string;
+  name: string;
+  created_at: string;
+  last_sequence: number;
+  last_hash?: string;
+}
+
+export interface ValidationEvidenceEntry {
+  id: string;
+  stream_id: string;
+  sequence: number;
+  git_sha?: string;
+  identity_digest?: string;
+  repository_state?: string;
+  environment_json?: string;
+  provider?: string;
+  profile?: string;
+  model?: string;
+  scenario: string;
+  command_display?: string;
+  outcome: string;
+  confidence: string;
+  exit_code?: number;
+  duration_ms?: number;
+  evidence_json?: string;
+  previous_hash?: string;
+  entry_hash: string;
+  created_at: string;
+}
+
+export interface ValidationEvidenceReport {
+  run_id: string;
+  plan_id?: string;
+  plan_revision?: number;
+  stream?: ValidationEvidenceStream;
+  entries: ValidationEvidenceEntry[];
+  chain_verified: boolean;
+}
+
+export interface RoutingAffinityPreference {
+  mode: string;
+  value?: string;
+}
+
+export interface RoutingAffinityPolicy {
+  engine: RoutingAffinityPreference;
+  provider: RoutingAffinityPreference;
+  profile: RoutingAffinityPreference;
+  model: RoutingAffinityPreference;
+}
+
+export interface RoutingModelCandidate {
+  provider: string;
+  profile: string;
+  model: string;
+  capabilities?: string[];
+  healthy: boolean;
+  authenticated: boolean;
+  quota_available: boolean;
+  cost_rank: number;
+  reasoning_rank: number;
+}
+
+export interface RoutingSkillResolution {
+  requested_capability: string;
+  candidate_skills?: string[];
+  selected_skill?: string;
+  source?: string;
+  version?: string;
+  hash?: string;
+  reason?: string;
+}
+
+export interface RoutingDecision {
+  task_id?: string;
+  work_plan_revision?: number;
+  agent_id?: string;
+  agent_score?: number;
+  agent_confidence?: string;
+  agent_reason?: string;
+  task_requirements: Record<string, unknown>;
+  desired: RoutingAffinityPolicy;
+  affinity_policy: RoutingAffinityPolicy;
+  actual: RoutingModelCandidate;
+  selected_engine?: string;
+  selected_provider?: string;
+  selected_profile?: string;
+  selected_account_scope?: AccountScope;
+  selected_model?: string;
+  selected_reasoning?: string;
+  skill_refs?: string[];
+  skill_resolutions?: RoutingSkillResolution[];
+  maestro_guidance_ref?: string;
+  alternatives?: RoutingModelCandidate[];
+  fallback: boolean;
+  reason: string;
+  rejected?: string[];
+  rejected_candidates?: string[];
+  task_class?: string;
+  created_at: string;
+}
+
+export interface RoutingDecisionReportEntry {
+  package_id: string;
+  title?: string;
+  state?: string;
+  decision: RoutingDecision;
+}
+
+export interface RoutingDecisionReport {
+  run_id: string;
+  plan_id?: string;
+  work_plan_revision?: number;
+  intent?: {
+    strategy: string;
+    confidence: string;
+    known_facts?: string[];
+    assumptions?: string[];
+    unknowns?: string[];
+    blocking_questions?: string[];
+    evidence?: string[];
+    recommended_next_action: string;
+    snapshot_identity?: string;
+    snapshot_completeness?: string;
+  };
+  delegation?: DelegationDecision;
+  mission_team?: MissionTeamSelection;
+  decisions: RoutingDecisionReportEntry[];
+}
+
+export interface MissionTeamSelection {
+  version: number;
+  strategy: string;
+  preset?: string;
+  direct: boolean;
+  reason: string;
+  signals?: string[];
+  cost_class: string;
+  review_required: boolean;
+  created_at: string;
+}
+
+export interface DelegationDecision {
+  version: number;
+  mode: 'AUTO' | 'ASK' | 'OFF';
+  delegate: boolean;
+  pending_approval?: boolean;
+  reason: string;
+  expected_benefit: string;
+  parallelizable: boolean;
+  coordination_cost: string;
+  context_transfer_cost: string;
+  write_collision_risk: string;
+  shared_contract_risk: string;
+  workstreams?: Array<{
+    id: string;
+    goal: string;
+    preferred_roles?: string[];
+    acceptable_roles?: string[];
+    required_capabilities?: string[];
+    preferred_capabilities?: string[];
+    domains?: string[];
+    dependencies?: string[];
+    owned_paths?: string[];
+    shared_contracts?: string[];
+    parallel_group?: string;
+  }>;
+  verification_strategy: string;
+  lead_agent_id?: string;
+  max_fan_out: number;
+  created_at: string;
+}
+
 export interface PackageRun {
   id: string;
   package_id: string;
   phase_id?: string;
+  phase_type?: string;
   title: string;
   goal?: string;
   state: string;
   attempt: number;
   assigned_agent: string;
+  provider?: string;
+  profile?: string;
+  desired_provider?: string;
+  desired_profile?: string;
+  routing_decision?: string;
+  review_required?: boolean;
   assigned_runtime?: string;
   workspace?: string;
   prompt_version_id?: string;
   dependencies?: string[];
+  skill_ids?: string[];
+  maestro_skills?: string[];
   parallel_group?: string;
   verifications?: VerificationResult[];
   verdicts?: ReviewVerdict[];
+  review_findings?: ReviewFinding[];
   error_message?: string;
   remediation_context?: string;
   context_capsule?: ContextCapsule;
   work_receipt?: WorkReceipt;
   started_at: string;
   finished_at?: string;
+}
+
+export interface ReviewFinding {
+  id: string;
+  severity?: string;
+  category?: string;
+  file?: string;
+  location?: string;
+  description: string;
+  rationale?: string;
+  required_action?: string;
+  status: string;
+}
+
+export interface PhaseRun {
+  id: string;
+  type?: string;
+  state: string;
+  attempt: number;
+  package_ids?: string[];
+  agent_ids?: string[];
+  routing_reasons?: string[];
+  updated_at: string;
 }
 
 export interface MissionRun {
@@ -662,11 +1282,25 @@ export interface MissionRun {
   state: string;
   contract: AutonomyContract;
   current_pkg_index: number;
+  current_phase_id?: string;
   total_iterations: number;
   package_runs: PackageRun[];
+  phase_runs?: PhaseRun[];
   paused_reason?: string;
   started_at: string;
   updated_at: string;
+  completed_at?: string;
+  global_verifications?: VerificationResult[];
+  needs_human?: HumanIntervention;
+  resume_request?: MissionResumeRequest;
+}
+
+export interface MissionResumeRequest {
+  id: string;
+  idempotency_key: string;
+  status: 'PENDING' | 'STARTED' | 'COMPLETED' | string;
+  requested_at: string;
+  started_at?: string;
   completed_at?: string;
 }
 
@@ -687,12 +1321,13 @@ export interface ResourceCandidate {
   account: ProviderAccount;
   rank: number;
   total_score: number;
-  confidence: 'LIVE' | 'CACHED' | 'ESTIMATED' | 'UNKNOWN';
+  confidence: 'LIVE' | 'CACHED' | 'ESTIMATED' | 'UNKNOWN' | 'UNSUPPORTED' | 'RATE_LIMITED';
   score_breakdown: Record<string, number>;
   pros: string[];
   cons: string[];
   eligible: boolean;
   rejection_reason?: string;
+  provider_priority?: number;
 }
 
 export interface RecommendationResult {
@@ -728,8 +1363,12 @@ export interface FlowDecompositionRequest {
   artifact_id?: string;
   goal: string;
   source_prompt?: string;
+  skill_ids?: string[];
   maestro_skills?: string[];
   simple?: boolean;
+  delegation_mode?: 'AUTO' | 'ASK' | 'OFF';
+  mission_team_preset?: string;
+  mission_team_runtime_overrides?: Record<string, RoutingAffinityPolicy>;
 }
 
 export interface FlowDecompositionProposal {
@@ -739,4 +1378,103 @@ export interface FlowDecompositionProposal {
   flow: import('./features/work/flowModel').FlowDraftModel;
   reasoning: string;
   maestro_advice?: string;
+}
+
+export interface TunnelStatus {
+  active: boolean;
+  url?: string;
+  bootstrap_url?: string;
+  cloudflared_installed: boolean;
+  cloudflared_version?: string;
+  error?: string;
+}
+
+export interface HumanIntervention {
+  id: string;
+  reason_code: string;
+  summary: string;
+  question: string;
+  context: string;
+  recommended_actions: string[];
+  impact: string;
+  mission_id: string;
+  task_id: string;
+  source: string;
+  timestamp: string;
+  version: number;
+  scope: string;
+  options: InterventionOption[];
+  resolved: boolean;
+  resolved_at?: string;
+  resolution_decision?: string;
+  resolution_chosen?: string;
+  resolution?: InterventionResolution;
+}
+
+export interface InterventionOption {
+  id: string;
+  operation: 'RETRY_SAFE_PACKAGE' | 'REPLAN_PACKAGE' | 'CONFIRM_EXTERNAL_COMPLETION' | string;
+  label: string;
+  package_id?: string;
+}
+
+export interface InterventionResolution {
+  intervention_id: string;
+  version: number;
+  option_id: string;
+  idempotency_key: string;
+  resolved_at: string;
+  resolved_by: string;
+}
+
+export type AttentionLevel = 'IGNORE' | 'IN_APP' | 'NOTIFY' | 'REQUIRE_USER';
+
+export interface AttentionItem {
+  mission_id: string;
+  project_id: string;
+  state: string;
+  level: AttentionLevel;
+  reason_code: string;
+  summary: string;
+  question: string;
+  impact: string;
+  recommended_actions: string[];
+  age_seconds: number;
+  intervention?: HumanIntervention;
+}
+
+export interface AttentionGroup {
+  needs_you: AttentionItem[];
+  completed: AttentionItem[];
+  failed: AttentionItem[];
+  all_items: AttentionItem[];
+  total_needs: number;
+}
+
+export interface TelemetryStats {
+  period_days: number;
+  total_sessions: number;
+  total_fallbacks: number;
+  total_rate_limits: number;
+  by_provider: Record<string, number>;
+  by_profile: Record<string, number>;
+  rate_limits_by_profile: Record<string, number>;
+}
+
+export interface TelemetryHistoryEvent {
+  timestamp: string;
+  type: string;
+  provider_id: string;
+  profile_id: string;
+  workspace?: string;
+  duration_ms?: number;
+  reason?: string;
+  failure_kind?: string;
+  fallback_profile?: string;
+  account_scope?: {
+    provider_id: string;
+    profile_id: string;
+    account_id: string;
+    identity_version: string;
+  };
 }

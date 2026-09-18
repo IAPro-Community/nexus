@@ -5,14 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	stdruntime "runtime"
 	"sort"
+	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	nexusruntime "github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 type Status string
@@ -57,26 +59,55 @@ func BuildReport(version string, detections map[string]model.DetectionResult, ca
 	report.Checks = append(report.Checks, checkDirectory("data_directory", config.DataDir), checkDirectory("config_directory", config.ConfigDir), checkDirectory("state_directory", config.StateDir))
 	report.Checks = append(report.Checks, Check{ID: "credentials.capability", Status: capabilityStatus(capability.Status), Summary: string(capability.Status) + " — " + capability.Mechanism, Remediation: capability.Reason})
 
-	// Platform runtime checks
-	switch stdruntime.GOOS {
-	case "windows":
-		report.Checks = append(report.Checks,
-			Check{ID: "platform.conpty", Status: Pass, Summary: "ConPTY pseudo-console supported on Windows 10/11"},
-			Check{ID: "platform.webview2", Status: Pass, Summary: "WebView2 runtime supported for Wails Desktop"},
-		)
-	case "darwin":
-		report.Checks = append(report.Checks,
-			Check{ID: "platform.pty", Status: Pass, Summary: "Unix PTY supported on macOS"},
-			Check{ID: "platform.wkwebview", Status: Pass, Summary: "WKWebView supported for Wails Desktop"},
-		)
-	case "linux":
-		report.Checks = append(report.Checks,
-			Check{ID: "platform.pty", Status: Pass, Summary: "Unix PTY supported on Linux"},
-			Check{ID: "platform.webkitgtk", Status: Pass, Summary: "WebKitGTK (4.0/4.1) supported for Wails Desktop"},
-		)
+	inContainer := runningInContainer()
+	if inContainer {
+		report.Checks = append(report.Checks, Check{
+			ID:      "runtime.container",
+			Status:  Pass,
+			Summary: "Docker/container compatibility layer detected (CLI + web headless)",
+		})
 	}
 
-	report.Checks = append(report.Checks, Check{ID: "desktop.shell", Status: Pass, Summary: "Wails v2 Desktop multiplatform shell supported"})
+	// Platform runtime checks
+	if inContainer {
+		report.Checks = append(report.Checks,
+			Check{ID: "platform.pty", Status: Pass, Summary: "Unix PTY available inside container"},
+			Check{ID: "platform.webview2", Status: Skipped, Summary: "N/A in container — WebView2 is a native Windows Desktop dependency"},
+			Check{ID: "platform.webkitgtk", Status: Skipped, Summary: "N/A in container — WebKitGTK is a native Desktop dependency"},
+			Check{ID: "platform.conpty", Status: Skipped, Summary: "N/A in container — ConPTY is a native Windows terminal dependency"},
+			Check{ID: "platform.wkwebview", Status: Skipped, Summary: "N/A in container — WKWebView is a native macOS Desktop dependency"},
+		)
+	} else {
+		switch stdruntime.GOOS {
+		case "windows":
+			report.Checks = append(report.Checks,
+				probeWindowsConPTY(),
+				probeWindowsWebView2(),
+			)
+		case "darwin":
+			report.Checks = append(report.Checks,
+				Check{ID: "platform.pty", Status: Pass, Summary: "Unix PTY supported on macOS"},
+				Check{ID: "platform.wkwebview", Status: Pass, Summary: "WKWebView is provided by macOS"},
+			)
+		case "linux":
+			report.Checks = append(report.Checks,
+				Check{ID: "platform.pty", Status: Pass, Summary: "Unix PTY supported on Linux"},
+				probeLinuxWebKitGTK(),
+			)
+		}
+	}
+
+	desktopCheck := Check{
+		ID:          "desktop.shell",
+		Status:      Skipped,
+		Summary:     "Wails Desktop shell requires a native desktop launch to verify",
+		Remediation: "run the native desktop smoke test on the target operating system",
+	}
+	if inContainer {
+		desktopCheck.Summary = "N/A in container — nexus-desktop/Wails is not part of the Docker compatibility layer"
+		desktopCheck.Remediation = "use native install.sh/install.ps1/NSIS for Desktop, or nexus web in the browser"
+	}
+	report.Checks = append(report.Checks, desktopCheck)
 
 	providerIDs := make([]string, 0, len(detections))
 	for id := range detections {
@@ -92,6 +123,63 @@ func BuildReport(version string, detections map[string]model.DetectionResult, ca
 		report.Checks = append(report.Checks, Check{ID: "provider." + id, Status: status, Summary: providerSummary(detection)})
 	}
 	return report
+}
+
+func runningInContainer() bool {
+	// Explicit override for testing environments that are not containers but
+	// have cgroup entries matching container patterns (e.g. GitHub Actions
+	// Ubuntu runners where /proc/1/cgroup contains "docker" or "containerd").
+	if os.Getenv("NEXUS_TEST_NOT_CONTAINER") == "1" {
+		return false
+	}
+	if os.Getenv("NEXUS_DOCKER") == "1" || os.Getenv("NEXUS_COMPAT_DOCKER") == "1" {
+		return true
+	}
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return true
+	}
+	data, err := os.ReadFile("/proc/1/cgroup")
+	if err != nil {
+		return false
+	}
+	body := string(data)
+	return strings.Contains(body, "docker") || strings.Contains(body, "containerd") || strings.Contains(body, "/kubepods/")
+}
+
+func probeWindowsConPTY() Check {
+	// ConPTY is an OS feature, but a CLI doctor cannot prove that the current
+	// desktop process successfully created a pseudo-console. Report the
+	// platform prerequisite rather than claiming a runtime smoke test passed.
+	return Check{
+		ID:          "platform.conpty",
+		Status:      Warn,
+		Summary:     "ConPTY platform prerequisite detected; native terminal smoke is not run by doctor",
+		Remediation: "run the native Windows Desktop/SessionHost smoke test",
+	}
+}
+
+func probeWindowsWebView2() Check {
+	if _, err := exec.LookPath("reg.exe"); err != nil {
+		return Check{ID: "platform.webview2", Status: Warn, Summary: "WebView2 registry probe is unavailable", Remediation: "install the Microsoft WebView2 Runtime or run doctor on Windows"}
+	}
+	out, err := exec.Command("reg.exe", "query", `HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients`, "/s", "/f", "pv").CombinedOutput()
+	if err == nil && strings.Contains(strings.ToLower(string(out)), "webview") {
+		return Check{ID: "platform.webview2", Status: Pass, Summary: "Microsoft WebView2 Runtime registration detected"}
+	}
+	return Check{ID: "platform.webview2", Status: Warn, Summary: "Microsoft WebView2 Runtime was not detected", Remediation: "install the Microsoft WebView2 Runtime before launching Desktop"}
+}
+
+func probeLinuxWebKitGTK() Check {
+	if _, err := exec.LookPath("pkg-config"); err != nil {
+		return Check{ID: "platform.webkitgtk", Status: Warn, Summary: "pkg-config is unavailable; WebKitGTK cannot be probed", Remediation: "install GTK/WebKitGTK development/runtime packages or run doctor on the target desktop host"}
+	}
+	for _, pkg := range []string{"webkit2gtk-4.1", "webkit2gtk-4.0"} {
+		if out, err := exec.Command("pkg-config", "--modversion", pkg).Output(); err == nil {
+			version := strings.TrimSpace(string(out))
+			return Check{ID: "platform.webkitgtk", Status: Pass, Summary: "WebKitGTK detected: " + pkg + " " + version}
+		}
+	}
+	return Check{ID: "platform.webkitgtk", Status: Warn, Summary: "WebKitGTK 4.0/4.1 was not detected", Remediation: "install the WebKitGTK runtime required by Wails Desktop"}
 }
 
 func checkDirectory(id string, resolver func() (string, error)) Check {

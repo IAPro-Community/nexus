@@ -62,3 +62,30 @@ func TestComposerSessionPersistsBriefTurnsSkillsAndPromptArtifacts(t *testing.T)
 		t.Fatalf("unexpected artifacts: %+v, %v", artifacts, err)
 	}
 }
+
+func TestComposerV2MigrationPersistsVariantsAndReceipts(t *testing.T) {
+	st := openTestStore(t)
+	project, err := st.CreateProject(Project{Name: "Composer v2", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(ComposerSession{ProjectID: project.ID, BriefJSON: `{}`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifact, err := st.CreatePromptArtifact(PromptArtifact{SessionID: session.ID, Content: "prompt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	variant, err := st.CreatePromptVariant(PromptVariant{ArtifactID: artifact.ID, Variant: "GENERIC_PORTABLE", Content: "portable"})
+	if err != nil || variant.Hash == "" {
+		t.Fatalf("variant: %+v %v", variant, err)
+	}
+	if _, err := st.RecordComposerDestinationReceipt(ComposerDestinationReceipt{ArtifactID: artifact.ID, Destination: "COPY", Variant: "GENERIC_PORTABLE", Status: "RECORDED"}); err != nil {
+		t.Fatal(err)
+	}
+	variants, err := st.ListPromptVariants(artifact.ID)
+	if err != nil || len(variants) != 1 {
+		t.Fatalf("variants: %+v %v", variants, err)
+	}
+}

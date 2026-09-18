@@ -1,0 +1,20 @@
+=== HOST DOCTOR 2026-09-13T04:37:47Z ===
+version 0.5.0-beta.23
+checks [('data_directory', 'PASS'), ('config_directory', 'PASS'), ('state_directory', 'PASS'), ('credentials.capability', 'PASS'), ('platform.pty', 'PASS'), ('platform.webkitgtk', 'PASS'), ('desktop.shell', 'SKIPPED'), ('provider.agy', 'PASS'), ('provider.claude', 'PASS'), ('provider.codex', 'PASS'), ('provider.cursor', 'PASS'), ('provider.gemini', 'PASS'), ('provider.opencode', 'PASS')]
+=== HOST PROVIDERS STATUS ===
+n 7
+{'provider': 'gemini', 'state': 'INSTALLED_UNREGISTERED', 'installed': True}
+{'provider': 'opencode', 'state': 'PENDING_AUTH', 'installed': True}
+{'provider': 'test', 'state': 'INSTALLED_UNREGISTERED', 'installed': True}
+{'provider': 'agy', 'state': 'PENDING_AUTH', 'installed': True}
+{'provider': 'claude', 'state': 'INSTALLED_UNREGISTERED', 'installed': True}
+{'provider': 'codex', 'state': 'REGISTERED_AUTHENTICATED', 'installed': True}
+{'provider': 'cursor', 'state': 'INSTALLED_UNREGISTERED', 'installed': True}
+=== HOST PROJECTS ===
+=== Projetos Registrados no Nexus ===
+- [prj_06G56GZQXFKPX81ZRD6S5MFJGG] proxy-nginx (/home/desenvolvedor/src/workspace-vscode/proxy-nginx, Branch: main)
+- [prj_06G98CJD8VK6GVVFJXYHGR9WWG] nexus-auto-delegation (/projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/nexus-auto-delegation, Branch: main)
+- [prj_06G5BBNZFZ561ZSV2S5KB45EGW] escolanet-futura (/projetos/escolanet-futura, Branch: main)
+- [prj_06G4VNR8M61TNC6W6ED5J74MYR] sistemas2 (/projetos/repository/sistemas2, Branch: main)
+- [prj_06G4ZDW2HRFKXWWDA4NQJYVZS4] ai-chat-workspace (/projetos/tools/ai-chat-workspace, Branch: main)
+- [prj_06G6VH9HGS32MHNMPSM5TYSYXG] Nexus (/projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager, Branch: main)

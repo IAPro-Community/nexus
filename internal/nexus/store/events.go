@@ -4,20 +4,23 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // EventMetadata represents persistent activity metadata in SQLite.
 type EventMetadata struct {
-	ID        string    `json:"id"`
-	AgentID   string    `json:"agent_id"`
-	ProjectID string    `json:"project_id"`
-	Kind      string    `json:"kind"`
-	Timestamp time.Time `json:"ts"`
-	Summary   string    `json:"summary"`
+	ID            string             `json:"id"`
+	AgentID       string             `json:"agent_id"`
+	ProjectID     string             `json:"project_id"`
+	CorrelationID string             `json:"correlation_id,omitempty"`
+	Kind          string             `json:"kind"`
+	Timestamp     time.Time          `json:"ts"`
+	Summary       string             `json:"summary"`
+	AccountScope  model.AccountScope `json:"account_scope,omitempty"`
 }
 
-const eventMetadataColumns = `id,agent_id,project_id,kind,ts,summary`
+const eventMetadataColumns = `id,agent_id,project_id,correlation_id,kind,ts,summary,account_provider_id,account_id,identity_version`
 
 // RecordEventMetadata records an activity event into the durable SQLite store.
 func (s *Store) RecordEventMetadata(e EventMetadata) (EventMetadata, error) {
@@ -28,9 +31,10 @@ func (s *Store) RecordEventMetadata(e EventMetadata) (EventMetadata, error) {
 		e.Timestamp = time.Now().UTC()
 	}
 
-	_, err := s.db.Exec(`INSERT INTO events_metadata (id, agent_id, project_id, kind, ts, summary)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		e.ID, e.AgentID, e.ProjectID, e.Kind, e.Timestamp.Format(time.RFC3339Nano), e.Summary)
+	_, err := s.db.Exec(`INSERT INTO events_metadata (id, agent_id, project_id, correlation_id, kind, ts, summary, account_provider_id, account_id, identity_version)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		e.ID, e.AgentID, e.ProjectID, e.CorrelationID, e.Kind, e.Timestamp.Format(time.RFC3339Nano), e.Summary,
+		e.AccountScope.ProviderID, e.AccountScope.AccountID, e.AccountScope.IdentityVersion)
 	if err != nil {
 		return EventMetadata{}, fmt.Errorf("record event metadata: %w", err)
 	}
@@ -76,7 +80,7 @@ func (s *Store) ListEventsMetadata(projectID, agentID string, limit int) ([]Even
 	for rows.Next() {
 		var em EventMetadata
 		var tsStr string
-		if err := rows.Scan(&em.ID, &em.AgentID, &em.ProjectID, &em.Kind, &tsStr, &em.Summary); err != nil {
+		if err := rows.Scan(&em.ID, &em.AgentID, &em.ProjectID, &em.CorrelationID, &em.Kind, &tsStr, &em.Summary, &em.AccountScope.ProviderID, &em.AccountScope.AccountID, &em.AccountScope.IdentityVersion); err != nil {
 			return nil, fmt.Errorf("scan event metadata: %w", err)
 		}
 		if t, err := time.Parse(time.RFC3339Nano, tsStr); err == nil {

@@ -3,11 +3,67 @@ package nexus
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
+
+func TestComposerOperationsRejectCanceledContext(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Composer Context", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := n.CreateComposerSession(context.Background(), project.ID, "Context contract")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	assertCanceled := func(name string, operation func() error) {
+		t.Helper()
+		if err := operation(); !errors.Is(err, context.Canceled) {
+			t.Fatalf("%s error = %v, want context canceled", name, err)
+		}
+	}
+	assertCanceled("create", func() error {
+		_, err := n.CreateComposerSessionWithPrompt(ctx, project.ID, "cancel", "")
+		return err
+	})
+	assertCanceled("list", func() error {
+		_, err := n.ListComposerSessions(ctx, project.ID)
+		return err
+	})
+	assertCanceled("get", func() error {
+		_, err := n.GetComposerSession(ctx, session.Session.ID)
+		return err
+	})
+	assertCanceled("turn", func() error {
+		_, err := n.AddComposerTurnExpected(ctx, session.Session.ID, store.ComposerUser, "cancel", 0, nil)
+		return err
+	})
+	assertCanceled("skill", func() error {
+		_, err := n.UpdateComposerSkillState(ctx, session.Session.ID, "missing", store.ComposerSkillAccepted)
+		return err
+	})
+	assertCanceled("finalize", func() error {
+		_, err := n.FinalizeComposerSession(ctx, session.Session.ID, nil, true)
+		return err
+	})
+	assertCanceled("resolve", func() error {
+		_, err := n.ResolveComposerUnknownExpected(ctx, session.Session.ID, "missing", "answer", "ANSWERED", 0)
+		return err
+	})
+}
 
 func TestComposerFinalizationCreatesPromptWithoutWorkPlan(t *testing.T) {
 	n := openTestNexus(t)
@@ -42,6 +98,34 @@ func TestComposerFinalizationCreatesPromptWithoutWorkPlan(t *testing.T) {
 	}
 }
 
+func TestComposerCanApplyBuiltinSkillWithoutMaestro(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus { return MaestroStatus{Available: false, Mode: MaestroOff} }
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Composer builtin", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	view, err := n.CreateComposerSession(context.Background(), project.ID, "Improve test coverage")
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifact, err := n.FinalizeComposerSession(context.Background(), view.Session.ID, []string{"testing"}, true)
+	if err != nil {
+		t.Fatalf("builtin skill must be selectable without Maestro: %v", err)
+	}
+	var skillIDs []string
+	if err := json.Unmarshal([]byte(artifact.SkillIDsJSON), &skillIDs); err != nil {
+		t.Fatal(err)
+	}
+	if len(skillIDs) != 1 || skillIDs[0] != "testing" {
+		t.Fatalf("unexpected skill IDs: %v", skillIDs)
+	}
+}
+
 func TestMaterializePromptArtifactPreservesLineage(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
@@ -69,6 +153,46 @@ func TestMaterializePromptArtifactPreservesLineage(t *testing.T) {
 	}
 	if got := plan.Phases[0].Packages[0].CompiledPrompt; got != artifact.Content {
 		t.Fatalf("materialized flow lost canonical prompt: %q", got)
+	}
+}
+
+func TestComposerFlowSuitabilityExplainsItsRecommendation(t *testing.T) {
+	brief := newComposerBrief("Implement a full-stack feature", "Implement backend and frontend with review")
+	brief.Scope.InScope = []string{"backend", "frontend"}
+	brief.Quality.Review = []string{"independent review"}
+	assessment := AssessComposerFlowSuitability(brief)
+	if assessment.Result == FlowDirectFit || len(assessment.Reasons) == 0 || len(assessment.Signals) == 0 {
+		t.Fatalf("unexplained suitability: %+v", assessment)
+	}
+}
+
+func TestReviewComposerPromptReportsGapsAndContradictions(t *testing.T) {
+	brief := newComposerBrief("Improve the API", "The endpoint must be fast but must not return quickly")
+	review := ReviewComposerPrompt(brief)
+	if len(review.Missing) == 0 || len(review.Contradictions) != 1 || len(review.Diff) == 0 {
+		t.Fatalf("unexpected review: %+v", review)
+	}
+}
+
+func TestComposerRevisionConflictIsRejected(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "revision", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(store.ComposerSession{ProjectID: project.ID, BriefJSON: `{}`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UpdateComposerSessionExpected(*session, session.Revision); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UpdateComposerSessionExpected(*session, session.Revision); err == nil {
+		t.Fatal("expected stale revision conflict")
 	}
 }
 
@@ -103,7 +227,7 @@ Need backend and frontend changes.`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if view.Brief.Intent.Archetype != PromptArchetypeSoftwareFeature {
+	if view.Brief.Intent.Archetype != PromptArchetypeSecurity {
 		t.Fatalf("unexpected archetype: %+v", view.Brief.Intent)
 	}
 	if view.Brief.Readiness.State != PromptReadinessNeedsInformation && view.Brief.Readiness.State != PromptReadinessBlocked {
@@ -246,5 +370,63 @@ func TestResolveComposerUnknown(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("unknown %s not found after resolution", targetID)
+	}
+}
+
+// hangIntelligenceProvider blocks every model call until the context is canceled.
+// Mirrors a stuck headless CLI (agy/codex) that never returns stdout.
+type hangIntelligenceProvider struct{}
+
+func (hangIntelligenceProvider) Name() string                   { return "hang" }
+func (hangIntelligenceProvider) Available(context.Context) bool { return true }
+func (hangIntelligenceProvider) AnalyzeIntent(ctx context.Context, _ string, _ map[string]any) (*intelligence.IntentAnalysis, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+func (hangIntelligenceProvider) EvaluateAmbiguities(ctx context.Context, _ *intelligence.IntentAnalysis) ([]intelligence.AmbiguityItem, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+func (hangIntelligenceProvider) GeneratePlanOutline(ctx context.Context, _ *intelligence.IntentAnalysis, _ map[string]string, _ map[string]any) ([]intelligence.WorkPackageOutline, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+func (hangIntelligenceProvider) ExtractBrief(ctx context.Context, _ string, _ map[string]any) (*intelligence.BriefExtraction, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+func TestCreateComposerSessionReturnsWhenIntelligenceHangs(t *testing.T) {
+	n := openTestNexus(t)
+	n.intelligenceProviderForTest = hangIntelligenceProvider{}
+	prev := composerBootstrapTimeout
+	composerBootstrapTimeout = 120 * time.Millisecond
+	t.Cleanup(func() { composerBootstrapTimeout = prev })
+
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Hang Guard", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	started := time.Now()
+	view, err := n.CreateComposerSessionWithPrompt(
+		context.Background(),
+		project.ID,
+		"Documentar API",
+		"Escreva documentação técnica da API REST com exemplos.",
+	)
+	elapsed := time.Since(started)
+	if err != nil {
+		t.Fatalf("CreateComposerSessionWithPrompt: %v", err)
+	}
+	if view == nil || view.Session.ID == "" {
+		t.Fatal("expected a persisted session even when intelligence hangs")
+	}
+	if elapsed > 2*time.Second {
+		t.Fatalf("create took %s; expected bootstrap timeout to release promptly", elapsed)
 	}
 }

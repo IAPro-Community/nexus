@@ -1,0 +1,253 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { Play, Plus, Route, Sparkles } from 'lucide-react';
+import { Badge, Button, Card, Input, Select } from '../../design-system';
+import type { Agent, FlowLeaderPolicy } from '../../types';
+import { GENERATE_BUDGET_SEC, type FlowDraftEditorController } from './useFlowDraftEditor';
+import styles from './FlowDraftEditor.module.scss';
+
+/**
+ * Compact goal bar: request input / active draft header, preflight checklist,
+ * recent-request chips, generation status and the per-Flow leader policy card.
+ */
+export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agents: Agent[] }> = ({
+  controller,
+  agents,
+}) => {
+  const { t } = useTranslation();
+  const {
+    selectedPlan,
+    autoGoal,
+    setAutoGoal,
+    generating,
+    generateStage,
+    generateProvider,
+    generateElapsedSec,
+    generateHeartbeat,
+    runBusy,
+    flowDraft,
+    flowDirty,
+    flowErrors,
+    goalChips,
+    leader,
+    setLeader,
+    preflightReport,
+    preflightBusy,
+    cancelGenerate,
+    generatePlan,
+    createManualPlan,
+    saveLeader,
+    launchRun,
+    runPreflight,
+  } = controller;
+
+  return (
+    <Card className="nx-composer-goal-bar">
+      <div className="nx-composer-goal-bar__label">
+        <Sparkles size={16} />
+        <span>
+          {flowDraft && selectedPlan
+            ? t('flow.activeDraft', 'Flow Rascunho Ativo')
+            : t('flow.yourRequest', 'Sua solicitação')}
+        </span>
+      </div>
+
+      {!flowDraft && (
+        <div className="nx-composer-goal-bar__row">
+          <Input
+            value={autoGoal}
+            onChange={setAutoGoal}
+            placeholder={t('flow.goalPlaceholderShort', 'Descreva o objetivo do Flow…')}
+            className={styles.goalInput}
+          />
+          <Button
+            tone="brand"
+            disabled={!autoGoal.trim() || generating}
+            onClick={() => void generatePlan()}
+          >
+            <Sparkles size={14} />{' '}
+            {generating
+              ? t('flow.creatingDraft', 'Criando…')
+              : t('flow.createDraft', 'Criar rascunho')}
+          </Button>
+          <Button tone="default" disabled={generating} onClick={() => void createManualPlan()}>
+            <Plus size={14} /> {t('flow.createManual', 'Criar manual')}
+          </Button>
+          {generating && (
+            <Button tone="default" onClick={cancelGenerate}>
+              {t('common.cancel', 'Cancelar')}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {flowDraft && selectedPlan && (
+        <div className={`nx-composer-goal-bar__row ${styles.goalBarRow}`}>
+          <div className={styles.goalBarTitleWrap}>
+            <strong className={styles.goalBarTitle}>
+              {selectedPlan.title || autoGoal || t('flow.goalFallback', 'Objetivo do Flow')}
+            </strong>
+            {selectedPlan.description && (
+              <p className={`nx-muted-copy ${styles.goalBarSubtitle}`}>
+                {selectedPlan.description}
+              </p>
+            )}
+          </div>
+          <div className={styles.goalBarActions}>
+            <Badge tone={flowDirty ? 'warning' : 'success'}>
+              {flowDirty
+                ? t('flow.unsavedChanges', 'Alterações não salvas')
+                : t('flow.revisionN', 'Revisão {{n}}', { n: selectedPlan.current_revision })}
+            </Badge>
+            <Button disabled={!selectedPlan || preflightBusy} onClick={() => void runPreflight()}>
+              <Route size={14} />{' '}
+              {preflightBusy
+                ? t('flow.checking', 'Verificando…')
+                : t('flow.preflight', 'Preflight')}
+            </Button>
+            <Button
+              tone="brand"
+              disabled={!selectedPlan || !flowDraft || runBusy || flowErrors.length > 0}
+              onClick={() => void launchRun()}
+            >
+              <Play size={14} />{' '}
+              {runBusy
+                ? t('flow.starting', 'Iniciando…')
+                : t('flow.approveAndRun', 'Approve & Run')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {preflightReport && (
+        <div className={styles.preflightCard}>
+          <div className={styles.preflightHeader}>
+            <strong>{t('flow.preflightChecklist', 'Checklist de Preflight')}</strong>
+            <Badge tone={preflightReport.ready ? 'success' : 'danger'}>
+              {preflightReport.ready
+                ? t('flow.readyForExecution', 'Pronto para Execução')
+                : t('flow.blocked', 'Bloqueado')}
+            </Badge>
+          </div>
+          <div className={styles.preflightList}>
+            {(preflightReport.checks || []).map((ch) => (
+              <div key={ch.key} className={styles.preflightItem}>
+                <div>
+                  <span className={styles.preflightCheckText}>{ch.label}</span>
+                  <small className={styles.preflightCheckSub}>{ch.summary}</small>
+                </div>
+                <Badge
+                  tone={
+                    ch.status === 'PASS' ? 'success' : ch.status === 'WARN' ? 'warning' : 'danger'
+                  }
+                >
+                  {ch.status}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {goalChips.length > 0 && !selectedPlan && (
+        <div
+          className="nx-composer-goal-chips"
+          aria-label={t('flow.recentRequests', 'Solicitações recentes')}
+        >
+          <small className={styles.chipsLabel}>
+            {t('flow.continueRecent', 'Continuar uma solicitação recente:')}
+          </small>
+          {goalChips.slice(0, 5).map((goal) => (
+            <button
+              key={goal}
+              type="button"
+              className="nx-composer-goal-chip"
+              onClick={() => setAutoGoal(goal)}
+              title={goal}
+            >
+              {goal.length > 72 ? `${goal.slice(0, 69)}…` : goal}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {generating && (
+        <div className="nx-composer-generate-status" role="status" aria-live="polite">
+          <strong>{generateStage || t('flow.preparing', 'Preparando…')}</strong>
+          <div className="nx-composer-generate-status__meta">
+            {generateProvider && (
+              <span>
+                {t('flow.provider', 'Provedor: {{provider}}', { provider: generateProvider })}
+              </span>
+            )}
+            <span>
+              {generateElapsedSec}s / ~{GENERATE_BUDGET_SEC}s
+            </span>
+          </div>
+          {generateHeartbeat && (
+            <span>
+              {t(
+                'flow.stillWaiting',
+                'Ainda aguardando o modelo (não travou). Pode levar até ~{{budget}}s.',
+                { budget: GENERATE_BUDGET_SEC },
+              )}
+            </span>
+          )}
+        </div>
+      )}
+
+      {flowDraft && selectedPlan && (
+        <Card className={styles.leaderCard}>
+          <strong>{t('flow.suggestedLeader', 'Agent líder sugerido')}</strong>
+          <p className={`nx-muted-copy ${styles.leaderSubtitle}`}>
+            {t(
+              'flow.leaderHint',
+              'Coordena as ondas do DAG e recebe os recibos. A sugestão é exclusiva deste Flow.',
+            )}
+          </p>
+          <div className={`nx-composer-goal-bar__row ${styles.leaderRow}`}>
+            <Input
+              value={leader.role}
+              onChange={(role) => setLeader((current) => ({ ...current, role }))}
+              placeholder={t('flow.leaderRolePlaceholder', 'Especialidade do líder')}
+              className={styles.leaderInput}
+            />
+            <Select
+              value={leader.strategy}
+              onChange={(val) =>
+                setLeader((current) => ({
+                  ...current,
+                  strategy: val as FlowLeaderPolicy['strategy'],
+                  preferred_agent_id: val === 'EXISTING' ? current.preferred_agent_id : undefined,
+                }))
+              }
+              options={[
+                { value: 'AUTO', label: t('flow.leaderAuto', 'Sugerir automaticamente') },
+                { value: 'EXISTING', label: t('flow.leaderExisting', 'Agent cadastrado') },
+                { value: 'NONE', label: t('work.noLeader', 'Sem líder') },
+              ]}
+              selectStyle={{ minWidth: 170 }}
+            />
+            {leader.strategy === 'EXISTING' && (
+              <Select
+                value={leader.preferred_agent_id || ''}
+                onChange={(val) =>
+                  setLeader((current) => ({ ...current, preferred_agent_id: val }))
+                }
+                placeholder={t('flow.leaderChoose', 'Escolha o líder')}
+                options={agents.map((agent) => ({
+                  value: agent.id,
+                  label: `${agent.name} · ${agent.role}`,
+                }))}
+                selectStyle={{ minWidth: 160 }}
+              />
+            )}
+            <Button size="sm" onClick={() => void saveLeader()}>
+              {t('flow.saveLeader', 'Salvar líder')}
+            </Button>
+          </div>
+        </Card>
+      )}
+    </Card>
+  );
+};

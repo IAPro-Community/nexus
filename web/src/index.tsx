@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import './i18n';
 import './styles/globals.scss';
+import './app/workspace-os.css';
 import { initPlatformBridge } from './platform';
 
 initPlatformBridge();

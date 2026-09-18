@@ -128,6 +128,7 @@ export const WorkspaceProvider: React.FC<{
   }, [fallback, initialLayout, layoutService]);
   const revisionRef = useRef<number>(initialRevision || initialPersisted.revision || 1);
   const [presentation, setPresentation] = React.useState(initialPersisted.presentation);
+  const hydratedLayoutRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (typeof initialRevision === 'number' && initialRevision > 0) {
@@ -138,13 +139,13 @@ export const WorkspaceProvider: React.FC<{
   const [model, dispatch] = useReducer(reducer, initialPersisted.model);
 
   useEffect(() => {
-    if (initialLayout) {
-      dispatch({
-        type: 'replace',
-        model: initialPersisted.model,
-      });
-    }
-  }, [projectId, initialLayout, fallback, initialPersisted.model]);
+    if (!initialLayout || hydratedLayoutRef.current === initialLayout) return;
+    hydratedLayoutRef.current = initialLayout;
+    dispatch({
+      type: 'replace',
+      model: initialPersisted.model,
+    });
+  }, [initialLayout, initialPersisted.model]);
 
   useEffect(() => {
     if (!saveLayout) return;

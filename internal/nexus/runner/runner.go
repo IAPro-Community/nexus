@@ -2,15 +2,54 @@ package runner
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 var ErrDispatchOutcomeUnknown = errors.New("provider dispatch outcome is unknown")
+var ErrInterventionAlreadyResolved = errors.New("INTERVENTION_ALREADY_RESOLVED")
+var ErrStaleIntervention = errors.New("STALE_INTERVENTION")
+var ErrInvalidInterventionOption = errors.New("INVALID_INTERVENTION_OPTION")
+var ErrInterventionPolicyDenied = errors.New("INTERVENTION_POLICY_DENIED")
+var ErrDispatchNotSent = errors.New("external dispatch was not sent")
+
+type dispatchOutcomeError struct {
+	outcome DispatchState
+	err     error
+}
+
+func (e *dispatchOutcomeError) Error() string { return e.err.Error() }
+func (e *dispatchOutcomeError) Unwrap() error { return e.err }
+
+// MarkDispatchNotSent lets an executor prove that the provider boundary was
+// never crossed. All other execution errors fail closed as unknown.
+func MarkDispatchNotSent(err error) error {
+	if err == nil {
+		return ErrDispatchNotSent
+	}
+	return &dispatchOutcomeError{outcome: DispatchFailedBeforeDispatch, err: fmt.Errorf("%w: %v", ErrDispatchNotSent, err)}
+}
+
+func dispatchOutcome(err error) DispatchState {
+	var classified *dispatchOutcomeError
+	if errors.As(err, &classified) && classified.outcome == DispatchFailedBeforeDispatch {
+		return DispatchFailedBeforeDispatch
+	}
+	return DispatchUnknownExternalOutcome
+}
+
+func InterventionIdempotencyKey(runID, interventionID string, version int, optionID string) string {
+	input := fmt.Sprintf("%s\x00%s\x00%d\x00%s", runID, interventionID, version, optionID)
+	sum := sha256.Sum256([]byte(input))
+	return "human-resolution-" + hex.EncodeToString(sum[:])
+}
 
 // MissionRunner is a deterministic, durable state machine. Provider-specific
 // work is delegated to PackageExecutor and every transition is persisted.
@@ -54,8 +93,12 @@ func (r *MissionRunner) StartMissionRun(ctx context.Context, plan PlanSpec, work
 	}
 
 	now := time.Now().UTC()
-	run := &MissionRun{ID: "run_" + ids.NewRuntimeID(), PlanID: plan.ID, PlanRevision: plan.Revision, ExecutionSnapshotID: plan.ExecutionSnapshotID, ProjectID: plan.ProjectID,
-		Workspace: workspace, State: StateExecuting, Contract: contract, Autonomous: plan.Autonomous, StartedAt: now, UpdatedAt: now}
+	leadAgentID := plan.LeadAgentID
+	if leadAgentID == "" {
+		leadAgentID = defaultAgentID
+	}
+	run := &MissionRun{ID: "run_" + ids.NewRuntimeID(), PlanID: plan.ID, PlanRevision: plan.Revision, ExecutionSnapshotID: plan.ExecutionSnapshotID, ProjectID: plan.ProjectID, LeadAgentID: leadAgentID,
+		Workspace: workspace, State: StateExecuting, Contract: contract, Autonomous: plan.Autonomous, StartedAt: now, LastProgressAt: now, UpdatedAt: now}
 	for _, spec := range plan.Packages {
 		state := StatePending
 		if len(spec.Dependencies) == 0 {
@@ -68,13 +111,25 @@ func (r *MissionRunner) StartMissionRun(ctx context.Context, plan PlanSpec, work
 		if assignedAgent == "" && spec.AssignmentStrategy == "" && spec.ParallelGroup == "" {
 			assignedAgent = defaultAgentID
 		}
+		desiredProvider, desiredProfile := spec.DesiredProvider, spec.DesiredProfile
+		if desiredProvider == "" {
+			desiredProvider = spec.Provider
+		}
+		if desiredProfile == "" {
+			desiredProfile = spec.Profile
+		}
+		skillIDs := append([]string(nil), spec.SkillIDs...)
+		if len(skillIDs) == 0 {
+			skillIDs = append(skillIDs, spec.MaestroSkills...)
+		}
 		run.PackageRuns = append(run.PackageRuns, PackageRun{
-			ID: "pkgrun_" + ids.NewRuntimeID(), PackageID: spec.ID, PhaseID: spec.PhaseID, Title: spec.Title, Goal: spec.Goal,
-			Priority: spec.Priority, Role: spec.Role, TaskRequirements: spec.TaskRequirements, Dependencies: append([]string(nil), spec.Dependencies...), ParallelGroup: spec.ParallelGroup,
+			ID: "pkgrun_" + ids.NewRuntimeID(), PackageID: spec.ID, PhaseID: spec.PhaseID, PhaseType: spec.PhaseType, Title: spec.Title, Goal: spec.Goal,
+			Priority: spec.Priority, Role: spec.Role, ReviewRequired: reviewRequiredForPackage(spec), TaskRequirements: spec.TaskRequirements, Dependencies: append([]string(nil), spec.Dependencies...), ParallelGroup: spec.ParallelGroup,
 			AssignmentStrategy: spec.AssignmentStrategy, ResourcePolicy: spec.ResourcePolicy, Provider: spec.Provider, Profile: spec.Profile,
-			MaestroSkills: append([]string(nil), spec.MaestroSkills...), RelevantPaths: append([]string(nil), spec.RelevantPaths...),
-			AcceptanceCriteria: append([]string(nil), spec.AcceptanceCriteria...), VerificationRequirements: append([]string(nil), spec.VerificationRequirements...), State: state, Attempt: 1,
-			AssignedAgent: assignedAgent, StartedAt: now,
+			DesiredProvider: desiredProvider, DesiredProfile: desiredProfile,
+			SkillIDs: skillIDs, MaestroSkills: append([]string(nil), spec.MaestroSkills...), RelevantPaths: append([]string(nil), spec.RelevantPaths...),
+			AcceptanceCriteria: append([]string(nil), spec.AcceptanceCriteria...), VerificationRequirements: append([]string(nil), spec.VerificationRequirements...), EntryCriteria: append([]string(nil), spec.EntryCriteria...), ExitCriteria: append([]string(nil), spec.ExitCriteria...), RequiredEvidence: append([]string(nil), spec.RequiredEvidence...), HandoffJSON: spec.HandoffJSON, State: state, Attempt: 1,
+			AssignedAgent: assignedAgent, RoutingDecisionJSON: spec.RoutingDecisionJSON, StartedAt: now,
 		})
 	}
 	if err := validateDependencyGraph(run.PackageRuns); err != nil {
@@ -141,6 +196,23 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 	if run.State == StatePaused {
 		return run, false, fmt.Errorf("mission run is paused: %s", run.PausedReason)
 	}
+	now := time.Now().UTC()
+	if ApplyProgressWatchdog(run, now) {
+		if err := r.saveRun(ctx, run); err != nil {
+			return run, false, err
+		}
+		return run, false, fmt.Errorf("mission stalled: no durable progress within stall timeout")
+	}
+	run.watchFingerprint = progressFingerprint(run)
+	if run.ResumeRequest != nil && run.ResumeRequest.Status == "PENDING" {
+		now := time.Now().UTC()
+		run.ResumeRequest.Status = "STARTED"
+		run.ResumeRequest.StartedAt = &now
+		run.UpdatedAt = now
+		if err := r.saveRun(ctx, run); err != nil {
+			return run, false, fmt.Errorf("claim durable mission resume: %w", err)
+		}
+	}
 
 	run.TotalIterations++
 	if run.TotalIterations > run.Contract.MaxTotalIterations {
@@ -151,23 +223,45 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 	}
 	refreshDependencyStates(run)
 	if allPackagesVerified(run) {
-		return r.completeRun(ctx, run)
+		return r.verifyGlobalDefinition(ctx, leaseCtx, run)
 	}
 
 	pkg := nextPackage(run)
 	if pkg == nil {
-		run.State = StateBlockedNeedsUser
+		run.State = StateFailedNoProgress
+		run.PausedReason = "No package can progress safely; dependency graph has no actionable continuation."
 		run.UpdatedAt = time.Now().UTC()
 		_ = r.saveRun(ctx, run)
 		return run, false, fmt.Errorf("no runnable package; dependency graph is blocked")
 	}
 	run.CurrentPkgIndex = packageIndex(run, pkg.PackageID)
+	if pkg.State == StateExecuting && pkg.DispatchState == DispatchCompleted {
+		if pkg.AssignedRuntime == "" {
+			pkg.DispatchState = DispatchUnknownExternalOutcome
+			pkg.ErrorMessage = fmt.Sprintf("package %s has completed dispatch %s without runtime evidence; refusing duplicate provider execution", pkg.PackageID, pkg.DispatchID)
+			r.blockNeedsHuman(run, pkg, "DISPATCH_OUTCOME_UNKNOWN", pkg.ErrorMessage, "Reconcile the provider outcome before continuing.", []string{"Inspect provider runtime"})
+		} else {
+			// The provider operation is already known to have completed. Resume at
+			// testing/review; never enter executeOne for a completed dispatch.
+			pkg.State = StateTesting
+		}
+		run.UpdatedAt = time.Now().UTC()
+		if err := r.saveRun(ctx, run); err != nil {
+			return run, false, err
+		}
+		if run.State == StateBlockedNeedsUser {
+			return run, false, ErrDispatchOutcomeUnknown
+		}
+		return run, false, nil
+	}
 
 	opCtx := leaseCtx
 	cancelOperation := func() {}
 	if run.Contract.PackageTimeoutSeconds > 0 {
 		opCtx, cancelOperation = context.WithTimeout(leaseCtx, time.Duration(run.Contract.PackageTimeoutSeconds)*time.Second)
 	}
+	opCtx, cancelStallWatch := armStallWatchdog(opCtx, run)
+	defer cancelStallWatch()
 	defer cancelOperation()
 
 	switch pkg.State {
@@ -176,6 +270,9 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 	case StateAllocating:
 		allocation, allocErr := r.executor.Allocate(opCtx, run, pkg)
 		if allocErr != nil {
+			if stalled, stallErr := r.finalizeStallIfNeeded(ctx, run, allocErr); stalled {
+				return run, false, stallErr
+			}
 			return r.packageFailureFrom(ctx, run, pkg, StateAllocating, fmt.Errorf("allocate package: %w", allocErr))
 		}
 		if allocation.AgentID == "" || allocation.Workspace == "" {
@@ -207,21 +304,39 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 		pkg.PromptVersionID, pkg.CompiledPrompt = artifact.VersionID, artifact.Content
 		pkg.State = StateExecuting
 	case StateExecuting:
-		if pkg.ParallelGroup != "" {
+		if isReviewPhase(pkg) {
+			// A review phase consumes its implementation dependency and invokes
+			// Review without granting the reviewer a write-capable Execute turn.
+			pkg.State = StateReviewing
+		} else if isVerificationPhase(pkg) {
+			// Verification phases execute canonical commands in StateTesting;
+			// they do not ask a verifier to mutate source files.
+			pkg.State = StateTesting
+		} else if pkg.ParallelGroup != "" {
 			if err := r.executeParallelGroup(opCtx, run, pkg.ParallelGroup); err != nil {
+				if stalled, stallErr := r.finalizeStallIfNeeded(ctx, run, err); stalled {
+					return run, false, stallErr
+				}
 				run.UpdatedAt = time.Now().UTC()
 				_ = r.saveRun(ctx, run)
 				return run, false, err
 			}
 		} else {
 			if err := r.executeOne(opCtx, run, pkg); err != nil {
+				if stalled, stallErr := r.finalizeStallIfNeeded(ctx, run, err); stalled {
+					return run, false, stallErr
+				}
 				if errors.Is(err, ErrDispatchOutcomeUnknown) {
-					run.State = StateBlockedNeedsUser
+					r.blockNeedsHuman(run, pkg, "DISPATCH_OUTCOME_UNKNOWN", err.Error(), "Provider outcome is unknown after the dispatch boundary.", []string{"Inspect provider runtime", "Retry only after confirming whether work completed"})
 					run.UpdatedAt = time.Now().UTC()
 					_ = r.saveRun(ctx, run)
 					return run, false, err
 				}
-				if terminalErr := r.markRemediation(run, pkg, StateCompiling, err.Error()); terminalErr != nil {
+				retryFrom := StateCompiling
+				if isQuotaOrRateLimitFailure(pkg.FailureKind) {
+					retryFrom = StateAllocating
+				}
+				if terminalErr := r.markRemediation(run, pkg, retryFrom, err.Error()); terminalErr != nil {
 					run.UpdatedAt = time.Now().UTC()
 					_ = r.saveRun(ctx, run)
 					return run, false, terminalErr
@@ -243,10 +358,30 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 		}
 		results := r.verifier.RunVerification(opCtx, pkg.Workspace, verificationCommands)
 		pkg.Verifications = append(pkg.Verifications, results...)
+		if recorder, ok := r.executor.(ValidationEvidenceRecorder); ok {
+			if err := recorder.RecordValidationEvidence(opCtx, run, pkg, results); err != nil {
+				pkg.State = StateFailed
+				pkg.ErrorMessage = "VALIDATION_EVIDENCE_UNAVAILABLE"
+				run.State = StateFailed
+				run.UpdatedAt = time.Now().UTC()
+				_ = r.saveRun(ctx, run)
+				return run, false, fmt.Errorf("persist validation evidence: %w", err)
+			}
+		}
 		if verificationPassed(results, run.Contract.RequireVerification) {
-			pkg.State = StateReviewing
+			if pkg.ReviewRequired {
+				pkg.State = StateReviewing
+			} else {
+				pkg.State = StateVerified
+				now := time.Now().UTC()
+				pkg.FinishedAt = &now
+			}
 		} else {
-			if terminalErr := r.markRemediation(run, pkg, StateCompiling, verificationFailureContext(results)); terminalErr != nil {
+			// A verification failure is evidence that the current execution
+			// strategy did not satisfy the task. Re-enter allocation so the Nexus
+			// runtime router can apply a different model/resource strategy on the
+			// next attempt instead of merely replaying the same runtime.
+			if terminalErr := r.markRemediation(run, pkg, StateAllocating, verificationFailureContext(results)); terminalErr != nil {
 				run.UpdatedAt = time.Now().UTC()
 				_ = r.saveRun(ctx, run)
 				return run, false, terminalErr
@@ -268,12 +403,17 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 		if verdict.ReviewedAt.IsZero() {
 			verdict.ReviewedAt = time.Now().UTC()
 		}
+		verdict = NormalizeReviewVerdict(verdict)
+		verdict.StructuredFindings = DeduplicateReviewFindings(verdict.StructuredFindings)
+		pkg.ReviewFindings = MergeReviewFindings(pkg.ReviewFindings, verdict.StructuredFindings, verdict.Approved, pkg.Attempt)
 		pkg.Verdicts = append(pkg.Verdicts, verdict)
 		if verdict.Approved {
 			pkg.State = StateVerified
 			now := time.Now().UTC()
 			pkg.FinishedAt = &now
 			pkg.RemediationContext = ""
+			pkg.ReviewInvalidated = false
+			pkg.ReviewInvalidationReason = ""
 		} else {
 			if terminalErr := r.markRemediation(run, pkg, StateCompiling, reviewFailureContext(verdict)); terminalErr != nil {
 				run.UpdatedAt = time.Now().UTC()
@@ -287,7 +427,7 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 			pkg.State = StateFailed
 			pkg.ErrorMessage = reason
 			if run.Contract.EscalateOnFailure {
-				run.State = StateBlockedNeedsUser
+				r.blockNeedsHuman(run, pkg, "NO_PROGRESS", reason, "The configured remediation budget was exhausted without verified progress.", []string{"Review failure evidence", "Choose a different strategy or agent", "Resume after updating the plan"})
 			} else {
 				run.State = StateFailedNoProgress
 			}
@@ -308,7 +448,7 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 
 	refreshDependencyStates(run)
 	if allPackagesVerified(run) {
-		return r.completeRun(ctx, run)
+		return r.verifyGlobalDefinition(ctx, leaseCtx, run)
 	}
 	select {
 	case hbErr := <-heartbeatErr:
@@ -320,6 +460,45 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 		return run, false, err
 	}
 	return run, false, nil
+}
+
+func (r *MissionRunner) blockNeedsHuman(run *MissionRun, pkg *PackageRun, reasonCode, summary, question string, actions []string) {
+	run.State = StateBlockedNeedsUser
+	taskID := ""
+	if pkg != nil {
+		taskID = pkg.PackageID
+	}
+	options := interventionOptions(reasonCode, pkg)
+	run.NeedsHuman = &HumanIntervention{
+		ID:         "intervention_" + ids.NewRuntimeID(),
+		ReasonCode: reasonCode, Summary: summary, Question: question,
+		Context: interventionContext(pkg), RecommendedActions: append([]string(nil), actions...),
+		Impact:    "Only the affected task is paused; independent verified work is preserved.",
+		MissionID: run.ID, TaskID: taskID, Source: "mission_runner", Timestamp: time.Now().UTC(),
+		Version: 1, Scope: "PACKAGE", Options: options,
+	}
+}
+
+func interventionContext(pkg *PackageRun) string {
+	if pkg == nil {
+		return ""
+	}
+	return pkg.RemediationContext
+}
+
+func interventionOptions(reasonCode string, pkg *PackageRun) []InterventionOption {
+	packageID := ""
+	if pkg != nil {
+		packageID = pkg.PackageID
+	}
+	switch reasonCode {
+	case "DISPATCH_OUTCOME_UNKNOWN":
+		return []InterventionOption{{ID: "confirm-external-completion", Operation: InterventionConfirmExternalOutcome, Label: "Confirm external completion", PackageID: packageID}}
+	case "NO_PROGRESS":
+		return []InterventionOption{{ID: "replan-package", Operation: InterventionReplanPackage, Label: "Replan package", PackageID: packageID}}
+	default:
+		return []InterventionOption{{ID: "replan-package", Operation: InterventionReplanPackage, Label: "Replan package", PackageID: packageID}}
+	}
 }
 
 func (r *MissionRunner) packageFailureFrom(ctx context.Context, run *MissionRun, pkg *PackageRun, retryFrom State, err error) (*MissionRun, bool, error) {
@@ -345,7 +524,22 @@ func (r *MissionRunner) markRemediation(run *MissionRun, pkg *PackageRun, retryF
 		pkg.NoProgressCount = 1
 	}
 	pkg.ErrorMessage = failure
-	pkg.RemediationContext = failure
+	if len(pkg.Verdicts) > 0 && pkg.Verdicts[len(pkg.Verdicts)-1].Approved {
+		pkg.ReviewInvalidated = true
+		pkg.ReviewInvalidationReason = "package changed or verification failed after review approval"
+	}
+	// Every remediation attempt must carry an explicit strategy change. This is
+	// persisted with the PackageRun so a restart cannot silently repeat the same
+	// approach or make the transition depend on in-memory state.
+	switch pkg.NoProgressCount {
+	case 1:
+		pkg.StrategyVariant = "ALTERNATE_APPROACH"
+	case 2:
+		pkg.StrategyVariant = "REPLAN_DECOMPOSE"
+	default:
+		pkg.StrategyVariant = fmt.Sprintf("ESCALATE_%d", pkg.NoProgressCount)
+	}
+	pkg.RemediationContext = fmt.Sprintf("strategy=%s; failure=%s", pkg.StrategyVariant, failure)
 	pkg.RetryFrom = retryFrom
 	pkg.State = StateRemediating
 	limit := run.Contract.MaxNoProgress
@@ -363,12 +557,154 @@ func (r *MissionRunner) markRemediation(run *MissionRun, pkg *PackageRun, retryF
 func (r *MissionRunner) completeRun(ctx context.Context, run *MissionRun) (*MissionRun, bool, error) {
 	now := time.Now().UTC()
 	run.State = StateCompletedVerified
+	if run.ResumeRequest != nil && run.ResumeRequest.Status != "COMPLETED" {
+		run.ResumeRequest.Status = "COMPLETED"
+		run.ResumeRequest.CompletedAt = &now
+	}
 	run.CompletedAt = &now
 	run.UpdatedAt = now
 	if err := r.saveRun(ctx, run); err != nil {
 		return run, false, err
 	}
 	return run, true, nil
+}
+
+// verifyGlobalDefinition is the final fail-closed gate. Package review is not
+// sufficient evidence that the integrated delivery satisfies the plan's
+// Definition of Done. Product-created autonomous runs populate the explicit
+// global command set during contract normalization.
+func (r *MissionRunner) verifyGlobalDefinition(ctx, operationCtx context.Context, run *MissionRun) (*MissionRun, bool, error) {
+	commands := run.Contract.GlobalVerificationCommands
+	if len(commands) == 0 {
+		if run.Autonomous {
+			run.State = StateFailedVerification
+			run.PausedReason = "autonomous Mission requires an explicit global Definition-of-Done command"
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, fmt.Errorf("autonomous Mission has no global Definition-of-Done verification")
+		}
+		// Keep direct legacy runner callers compatible; product admission still
+		// requires a real global command set for autonomous runs.
+		return r.completeRun(ctx, run)
+	}
+	if run.Autonomous {
+		if _, ok := r.executor.(ValidationEvidenceRecorder); !ok {
+			run.State = StateFailed
+			run.PausedReason = "VALIDATION_EVIDENCE_UNAVAILABLE"
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, ErrEvidenceRepositoryUnavailable
+		}
+		if _, ok := r.executor.(GlobalValidationEvidenceRecorder); !ok {
+			run.State = StateFailed
+			run.PausedReason = "GLOBAL_VALIDATION_EVIDENCE_UNAVAILABLE"
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, ErrEvidenceRepositoryUnavailable
+		}
+	}
+	workspace, err := resolveIntegratedVerificationWorkspace(run)
+	if err != nil {
+		run.State = StateFailedVerification
+		run.PausedReason = err.Error()
+		run.UpdatedAt = time.Now().UTC()
+		_ = r.saveRun(ctx, run)
+		return run, false, err
+	}
+	run.State = StateVerifying
+	run.UpdatedAt = time.Now().UTC()
+	if err := r.saveRun(ctx, run); err != nil {
+		return run, false, err
+	}
+	results := r.verifier.RunVerification(operationCtx, workspace, commands)
+	run.GlobalVerifications = append(run.GlobalVerifications, results...)
+	if recorder, ok := r.executor.(GlobalValidationEvidenceRecorder); ok {
+		if err := recorder.RecordGlobalValidationEvidence(operationCtx, run, results); err != nil {
+			run.State = StateFailed
+			run.PausedReason = "VALIDATION_EVIDENCE_UNAVAILABLE"
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, fmt.Errorf("persist global validation evidence: %w", err)
+		}
+	}
+	if verificationPassed(results, true) {
+		return r.completeRun(ctx, run)
+	}
+	var target *PackageRun
+	for i := range run.PackageRuns {
+		if run.PackageRuns[i].State == StateVerified {
+			target = &run.PackageRuns[i]
+		}
+	}
+	if target == nil {
+		run.State = StateFailedNoProgress
+		run.PausedReason = verificationFailureContext(results)
+		run.UpdatedAt = time.Now().UTC()
+		_ = r.saveRun(ctx, run)
+		return run, false, fmt.Errorf("global Definition of Done failed without a verified package to reopen")
+	}
+	if err := r.markRemediation(run, target, StateCompiling, "Global Definition of Done failed: "+verificationFailureContext(results)); err != nil {
+		run.UpdatedAt = time.Now().UTC()
+		_ = r.saveRun(ctx, run)
+		return run, false, err
+	}
+	run.State = StateExecuting
+	run.UpdatedAt = time.Now().UTC()
+	if err := r.saveRun(ctx, run); err != nil {
+		return run, false, err
+	}
+	return run, false, fmt.Errorf("global Definition of Done failed; package %s reopened for remediation", target.PackageID)
+}
+
+// resolveIntegratedVerificationWorkspace picks the tree that actually holds
+// agent delivery. Global DoD must not run against an untouched canonical
+// baseline while packages wrote isolated worktrees. Multiple divergent
+// worktrees without a merged integration tree fail closed.
+func resolveIntegratedVerificationWorkspace(run *MissionRun) (string, error) {
+	if run == nil {
+		return "", fmt.Errorf("mission run is required for global verification")
+	}
+	canonical := strings.TrimSpace(run.Workspace)
+	seen := map[string]string{}
+	var order []string
+	for _, pkg := range run.PackageRuns {
+		include := pkg.State == StateVerified ||
+			(pkg.WorkReceipt != nil && strings.EqualFold(pkg.WorkReceipt.Status, "COMPLETED"))
+		if !include {
+			continue
+		}
+		ws := strings.TrimSpace(pkg.Workspace)
+		if ws == "" {
+			continue
+		}
+		if _, ok := seen[ws]; ok {
+			continue
+		}
+		seen[ws] = ws
+		order = append(order, ws)
+	}
+	if len(order) == 0 {
+		return canonical, nil
+	}
+	var nonCanonical []string
+	for _, ws := range order {
+		if ws != canonical {
+			nonCanonical = append(nonCanonical, ws)
+		}
+	}
+	if len(nonCanonical) == 0 {
+		return canonical, nil
+	}
+	if len(nonCanonical) == 1 && len(order) == 1 {
+		// Single agent worktree is the delivery tree for this run.
+		return nonCanonical[0], nil
+	}
+	if len(nonCanonical) == 1 {
+		// Packages mixed canonical + one worktree: verify the worktree that
+		// holds mutations, never the untouched baseline alone.
+		return nonCanonical[0], nil
+	}
+	return "", fmt.Errorf("global Definition of Done requires an integrated tree; agent worktrees are not merged into %s", canonical)
 }
 
 func (r *MissionRunner) PauseRun(ctx context.Context, runID, reason string) (*MissionRun, error) {
@@ -395,7 +731,7 @@ func (r *MissionRunner) ResumeRun(ctx context.Context, runID string) (*MissionRu
 		return nil, err
 	}
 	defer func() { _ = r.repo.ReleaseLease(context.Background(), runID, r.owner, run.LeaseToken) }()
-	if run.State != StatePaused && run.State != StateBlockedNeedsUser {
+	if run.State != StatePaused {
 		return nil, fmt.Errorf("mission run %s cannot resume from %s", runID, run.State)
 	}
 	run.State = StateExecuting
@@ -405,6 +741,156 @@ func (r *MissionRunner) ResumeRun(ctx context.Context, runID string) (*MissionRu
 		return nil, err
 	}
 	return run, nil
+}
+
+// ResolveIntervention validates and persists a typed option for a blocked
+// mission. The optionID argument is deliberately closed over the intervention
+// options; the final argument is an audit actor, not an executable command.
+func (r *MissionRunner) ResolveIntervention(ctx context.Context, runID, interventionID string, version int, optionID, resolvedBy string) (*MissionRun, error) {
+	run, _, err := r.resolveIntervention(ctx, runID, interventionID, version, optionID, resolvedBy)
+	return run, err
+}
+
+// ResolveInterventionWithOutcome also tells the application layer whether a
+// new durable resume request was created. Duplicate requests must not replace
+// or restart a worker that already owns the continuation.
+func (r *MissionRunner) ResolveInterventionWithOutcome(ctx context.Context, runID, interventionID string, version int, optionID, resolvedBy string) (*MissionRun, bool, error) {
+	return r.resolveIntervention(ctx, runID, interventionID, version, optionID, resolvedBy)
+}
+
+func (r *MissionRunner) resolveIntervention(ctx context.Context, runID, interventionID string, version int, optionID, resolvedBy string) (*MissionRun, bool, error) {
+	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
+	if err != nil {
+		return nil, false, err
+	}
+	defer func() { _ = r.repo.ReleaseLease(context.Background(), runID, r.owner, run.LeaseToken) }()
+
+	if run.NeedsHuman == nil {
+		return nil, false, fmt.Errorf("%w: mission run %s has no pending intervention", ErrStaleIntervention, runID)
+	}
+	if version < 1 || run.NeedsHuman.Version < 1 {
+		return nil, false, fmt.Errorf("%w: intervention version must be positive", ErrStaleIntervention)
+	}
+	key := InterventionIdempotencyKey(runID, interventionID, version, optionID)
+	if run.NeedsHuman.Resolved {
+		if run.NeedsHuman.ID != interventionID || run.NeedsHuman.Version != version {
+			return nil, false, fmt.Errorf("%w: current intervention is %s version %d", ErrStaleIntervention, run.NeedsHuman.ID, run.NeedsHuman.Version)
+		}
+		if run.NeedsHuman.Resolution != nil && run.NeedsHuman.Resolution.IdempotencyKey == key {
+			return run, false, nil
+		}
+		return run, false, fmt.Errorf("%w: existing resolution=%s", ErrInterventionAlreadyResolved, resolutionKey(run.NeedsHuman))
+	}
+	if run.State != StateBlockedNeedsUser {
+		return nil, false, fmt.Errorf("%w: mission run %s is not blocked (state=%s)", ErrStaleIntervention, runID, run.State)
+	}
+	if run.NeedsHuman.ID != interventionID {
+		return nil, false, fmt.Errorf("%w: expected intervention %s, got %s", ErrStaleIntervention, run.NeedsHuman.ID, interventionID)
+	}
+	if run.NeedsHuman.Version != version {
+		return nil, false, fmt.Errorf("%w: expected version %d, got %d", ErrStaleIntervention, run.NeedsHuman.Version, version)
+	}
+	option, ok := findInterventionOption(run.NeedsHuman.Options, optionID)
+	if !ok {
+		return nil, false, fmt.Errorf("%w: option %q is not offered by intervention %s", ErrInvalidInterventionOption, optionID, interventionID)
+	}
+	if !run.Contract.AllowsHumanOperation(option.Operation) {
+		return nil, false, fmt.Errorf("%w: operation %s is not allowed by the autonomy contract", ErrInterventionPolicyDenied, option.Operation)
+	}
+	if option.PackageID != "" && option.PackageID != run.NeedsHuman.TaskID {
+		return nil, false, fmt.Errorf("%w: option %q is outside intervention scope", ErrInvalidInterventionOption, optionID)
+	}
+	pkg := packageForIntervention(run, option)
+	if err := applyInterventionOption(run, pkg, option); err != nil {
+		return nil, false, err
+	}
+
+	now := time.Now().UTC()
+	run.NeedsHuman.Resolved = true
+	run.NeedsHuman.ResolvedAt = &now
+	if strings.TrimSpace(resolvedBy) == "" {
+		resolvedBy = "human"
+	}
+	run.NeedsHuman.ResolutionDecision = option.ID
+	run.NeedsHuman.ResolutionChosen = string(option.Operation)
+	run.NeedsHuman.Resolution = &InterventionResolution{
+		InterventionID: interventionID, Version: version, OptionID: option.ID,
+		IdempotencyKey: key, ResolvedAt: now, ResolvedBy: resolvedBy,
+	}
+	run.State = StateExecuting
+	run.PausedReason = ""
+	run.ResumeRequest = &MissionResumeRequest{ID: "resume_" + key, IdempotencyKey: key, Status: "PENDING", RequestedAt: now}
+	run.UpdatedAt = now
+
+	if committer, ok := r.repo.(InterventionCommitter); ok {
+		if err := committer.CommitInterventionResolution(ctx, run, run.NeedsHuman.Resolution); err != nil {
+			return nil, false, err
+		}
+	} else if err := r.saveRun(ctx, run); err != nil {
+		return nil, false, err
+	}
+	return run, true, nil
+}
+
+func resolutionKey(intervention *HumanIntervention) string {
+	if intervention != nil && intervention.Resolution != nil {
+		return intervention.Resolution.IdempotencyKey
+	}
+	return ""
+}
+
+func findInterventionOption(options []InterventionOption, optionID string) (InterventionOption, bool) {
+	for _, option := range options {
+		if option.ID == optionID {
+			return option, true
+		}
+	}
+	return InterventionOption{}, false
+}
+
+func packageForIntervention(run *MissionRun, option InterventionOption) *PackageRun {
+	packageID := option.PackageID
+	if packageID == "" && run.NeedsHuman != nil {
+		packageID = run.NeedsHuman.TaskID
+	}
+	for i := range run.PackageRuns {
+		if run.PackageRuns[i].PackageID == packageID {
+			return &run.PackageRuns[i]
+		}
+	}
+	return nil
+}
+
+func applyInterventionOption(run *MissionRun, pkg *PackageRun, option InterventionOption) error {
+	if pkg == nil {
+		return fmt.Errorf("%w: intervention package is missing", ErrInvalidInterventionOption)
+	}
+	switch option.Operation {
+	case InterventionConfirmExternalOutcome:
+		if pkg.DispatchState != DispatchUnknownExternalOutcome && pkg.DispatchState != DispatchIntent {
+			return fmt.Errorf("%w: external outcome for package %s is not awaiting reconciliation", ErrInvalidInterventionOption, pkg.PackageID)
+		}
+		pkg.DispatchState = DispatchUnknownExternalOutcome
+		pkg.State = StateVerified
+		if pkg.WorkReceipt == nil {
+			pkg.WorkReceipt = &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: "EXTERNAL_OUTCOME_CONFIRMED", Summary: "External outcome explicitly confirmed by a human.", StartedAt: pkg.StartedAt, CompletedAt: time.Now().UTC()}
+		}
+	case InterventionRetrySafePackage:
+		if pkg.State == StateVerified || (pkg.DispatchState != DispatchNone && pkg.DispatchState != DispatchFailedBeforeDispatch) {
+			return fmt.Errorf("%w: package %s is not proven safe to retry", ErrInterventionPolicyDenied, pkg.PackageID)
+		}
+		resetDispatch(pkg)
+		pkg.State = StateExecuting
+	case InterventionReplanPackage:
+		if pkg.State == StateVerified || pkg.DispatchState == DispatchIntent || pkg.DispatchState == DispatchUnknownExternalOutcome || pkg.DispatchState == DispatchFailed {
+			return fmt.Errorf("%w: package %s requires external outcome reconciliation before replanning", ErrInterventionPolicyDenied, pkg.PackageID)
+		}
+		resetDispatch(pkg)
+		pkg.State = StateExecuting
+	default:
+		return fmt.Errorf("%w: unsupported operation %s", ErrInvalidInterventionOption, option.Operation)
+	}
+	return nil
 }
 
 func (r *MissionRunner) CancelRun(ctx context.Context, runID, reason string) (*MissionRun, error) {
@@ -457,8 +943,13 @@ func (r *MissionRunner) RunToTerminal(ctx context.Context, runID string) (*Missi
 }
 
 func (r *MissionRunner) beginDispatch(ctx context.Context, run *MissionRun, pkg *PackageRun) error {
-	if pkg.DispatchState == DispatchIntent && pkg.DispatchID != "" {
-		return fmt.Errorf("%w: package %s has unresolved dispatch %s; refusing duplicate provider execution", ErrDispatchOutcomeUnknown, pkg.PackageID, pkg.DispatchID)
+	if pkg.DispatchState == DispatchIntent || pkg.DispatchState == DispatchUnknownExternalOutcome {
+		if pkg.DispatchState == DispatchIntent {
+			pkg.DispatchState = DispatchUnknownExternalOutcome
+			pkg.ErrorMessage = fmt.Sprintf("package %s has unresolved dispatch %s; refusing duplicate provider execution", pkg.PackageID, firstNonEmptyDispatchID(pkg.DispatchID))
+			_ = r.saveRun(ctx, run)
+		}
+		return fmt.Errorf("%w: package %s has unresolved dispatch %s; refusing duplicate provider execution", ErrDispatchOutcomeUnknown, pkg.PackageID, firstNonEmptyDispatchID(pkg.DispatchID))
 	}
 	now := time.Now().UTC()
 	pkg.DispatchID = "dispatch_" + ids.NewRuntimeID()
@@ -466,6 +957,13 @@ func (r *MissionRunner) beginDispatch(ctx context.Context, run *MissionRun, pkg 
 	pkg.DispatchStartedAt = &now
 	pkg.DispatchFinishedAt = nil
 	return r.saveRun(ctx, run)
+}
+
+func firstNonEmptyDispatchID(dispatchID string) string {
+	if dispatchID == "" {
+		return "<missing-id>"
+	}
+	return dispatchID
 }
 
 func finishDispatch(pkg *PackageRun, state DispatchState) {
@@ -490,16 +988,26 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 	}
 	outcome, err := r.executor.Execute(ctx, run, pkg, pkg.CompiledPrompt)
 	if err != nil {
-		finishDispatch(pkg, DispatchFailed)
+		pkg.FailureKind = outcome.Failure.Kind
+		if outcome.RuntimeID != "" && outcome.Failure.Kind != model.FailureNone {
+			pkg.AssignedRuntime = outcome.RuntimeID
+			finishDispatch(pkg, DispatchFailed)
+			return fmt.Errorf("execution failed: %w", err)
+		}
+		finishDispatch(pkg, dispatchOutcome(err))
+		if pkg.DispatchState == DispatchUnknownExternalOutcome {
+			return fmt.Errorf("%w: %v", ErrDispatchOutcomeUnknown, err)
+		}
 		return fmt.Errorf("execution failed: %w", err)
 	}
 	if outcome.RuntimeID == "" {
-		finishDispatch(pkg, DispatchFailed)
-		return fmt.Errorf("executor returned no runtime evidence")
+		finishDispatch(pkg, DispatchUnknownExternalOutcome)
+		return fmt.Errorf("%w: executor returned no runtime evidence", ErrDispatchOutcomeUnknown)
 	}
 	pkg.AssignedRuntime = outcome.RuntimeID
 	finishDispatch(pkg, DispatchCompleted)
 	pkg.ErrorMessage = ""
+	pkg.FailureKind = model.FailureNone
 	pkg.State = StateTesting
 	return nil
 }
@@ -525,9 +1033,9 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 	// Persist every dispatch intent before launching any provider goroutine.
 	for _, idx := range indexes {
 		pkg := &run.PackageRuns[idx]
-		if pkg.DispatchState == DispatchIntent && pkg.DispatchID != "" {
-			run.State = StateBlockedNeedsUser
-			pkg.ErrorMessage = fmt.Sprintf("package %s has unresolved dispatch %s; refusing duplicate provider execution", pkg.PackageID, pkg.DispatchID)
+		if pkg.DispatchState == DispatchIntent || pkg.DispatchState == DispatchUnknownExternalOutcome {
+			pkg.ErrorMessage = fmt.Sprintf("package %s has unresolved dispatch %s; refusing duplicate provider execution", pkg.PackageID, firstNonEmptyDispatchID(pkg.DispatchID))
+			r.blockNeedsHuman(run, pkg, "DISPATCH_OUTCOME_UNKNOWN", pkg.ErrorMessage, "Reconcile the provider outcome before continuing.", []string{"Inspect provider runtime"})
 			return fmt.Errorf("%w: %s", ErrDispatchOutcomeUnknown, pkg.ErrorMessage)
 		}
 		now := time.Now().UTC()
@@ -559,22 +1067,44 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 		res := <-results
 		pkg := &run.PackageRuns[res.index]
 		if res.err != nil {
-			finishDispatch(pkg, DispatchFailed)
+			pkg.FailureKind = res.outcome.Failure.Kind
+			if res.outcome.RuntimeID != "" && res.outcome.Failure.Kind != model.FailureNone {
+				pkg.AssignedRuntime = res.outcome.RuntimeID
+				finishDispatch(pkg, DispatchFailed)
+				retryFrom := StateCompiling
+				if isQuotaOrRateLimitFailure(pkg.FailureKind) {
+					retryFrom = StateAllocating
+				}
+				if err := r.markRemediation(run, pkg, retryFrom, "Execution failed: "+res.err.Error()); err != nil && firstErr == nil {
+					firstErr = err
+				}
+				continue
+			}
+			finishDispatch(pkg, dispatchOutcome(res.err))
+			if pkg.DispatchState == DispatchUnknownExternalOutcome {
+				if firstErr == nil {
+					r.blockNeedsHuman(run, pkg, "DISPATCH_OUTCOME_UNKNOWN", res.err.Error(), "Provider outcome is unknown after the dispatch boundary.", []string{"Inspect provider runtime"})
+					firstErr = fmt.Errorf("%w: %v", ErrDispatchOutcomeUnknown, res.err)
+				}
+				continue
+			}
 			if err := r.markRemediation(run, pkg, StateCompiling, "Execution failed: "+res.err.Error()); err != nil && firstErr == nil {
 				firstErr = err
 			}
 			continue
 		}
 		if res.outcome.RuntimeID == "" {
-			finishDispatch(pkg, DispatchFailed)
-			if err := r.markRemediation(run, pkg, StateCompiling, "executor returned no runtime evidence"); err != nil && firstErr == nil {
-				firstErr = err
+			finishDispatch(pkg, DispatchUnknownExternalOutcome)
+			if firstErr == nil {
+				r.blockNeedsHuman(run, pkg, "DISPATCH_OUTCOME_UNKNOWN", "executor returned no runtime evidence", "Provider outcome is unknown after the dispatch boundary.", []string{"Inspect provider runtime"})
+				firstErr = fmt.Errorf("%w: executor returned no runtime evidence", ErrDispatchOutcomeUnknown)
 			}
 			continue
 		}
 		pkg.AssignedRuntime = res.outcome.RuntimeID
 		finishDispatch(pkg, DispatchCompleted)
 		pkg.ErrorMessage = ""
+		pkg.FailureKind = model.FailureNone
 		pkg.State = StateTesting
 	}
 	return firstErr
@@ -730,7 +1260,12 @@ func verificationFailureContext(results []VerificationResult) string {
 	return "Verification produced no passing evidence."
 }
 func reviewFailureContext(v ReviewVerdict) string {
-	return fmt.Sprintf("Review rejected. Findings: %v. Remediation: %v", v.Findings, v.RemediationTips)
+	v = NormalizeReviewVerdict(v)
+	ids := make([]string, 0, len(v.StructuredFindings))
+	for _, finding := range v.StructuredFindings {
+		ids = append(ids, finding.ID)
+	}
+	return fmt.Sprintf("Review rejected. Finding IDs: %v. Findings: %v. Remediation: %v", ids, v.Findings, v.RemediationTips)
 }
 
 // IsTerminalState reports whether a mission cannot make further progress.
@@ -739,3 +1274,7 @@ func IsTerminalState(s State) bool {
 }
 
 func isTerminalRunState(s State) bool { return IsTerminalState(s) }
+
+func isQuotaOrRateLimitFailure(kind model.FailureKind) bool {
+	return kind == model.FailureQuota || kind == model.FailureRateLimit
+}

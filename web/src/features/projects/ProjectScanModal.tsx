@@ -67,7 +67,7 @@ export const ProjectScanModal: React.FC<{
           </div>
           <Button size="sm" onClick={startScan} disabled={loading}>
             <RefreshCw size={13} className={loading ? 'nx-spin' : ''} />
-            <span>{loading ? t('projectManager.scanning') : 'Rescan'}</span>
+            <span>{loading ? t('projectManager.scanning') : t('projectManager.rescan')}</span>
           </Button>
         </div>
 
@@ -109,7 +109,7 @@ export const ProjectScanModal: React.FC<{
                 <div className="nx-scan-actions">
                   {item.is_imported ? (
                     <Badge tone="success">
-                      <Check size={11} /> Já Importado
+                      <Check size={11} /> {t('projectManager.alreadyImported')}
                     </Badge>
                   ) : (
                     <Button

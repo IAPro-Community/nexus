@@ -3,11 +3,56 @@ package handoff
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
+
+func TestHandoffServiceUsesInjectedRuntimeRegistry(t *testing.T) {
+	owned := registry.NewRegistry("")
+	ownedRuntimeID := "handoff-owned-runtime-test"
+	if err := owned.Register(registry.RuntimeSession{
+		RuntimeID:         ownedRuntimeID,
+		ProviderID:        "fake",
+		ProfileID:         "work",
+		ProviderSessionID: "session-owned",
+		Workspace:         t.TempDir(),
+		State:             registry.StateRunning,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	service := NewService(Dependencies{
+		Registry: owned,
+		Drivers:  driver.NewRegistry(),
+	})
+	_, err := service.PerformAccountHandoff(context.Background(), ownedRuntimeID, "other:profile")
+	if err == nil || !strings.Contains(err.Error(), "matching provider") {
+		t.Fatalf("handoff did not resolve the injected runtime registry: %v", err)
+	}
+}
+
+func TestContextHandoffCompletedEventCorrelatesByLineage(t *testing.T) {
+	e := newContextHandoffCompletedEvent(
+		"lineage-context-123",
+		registry.RuntimeSession{RuntimeID: "runtime-source", ProviderID: "codex", ProfileID: "work"},
+		registry.RuntimeSession{RuntimeID: "runtime-target", ProviderID: "claude", ProfileID: "work"},
+		"checkpoint-1",
+	)
+	if e.CorrelationID != "lineage-context-123" {
+		t.Fatalf("expected lineage correlation, got %q", e.CorrelationID)
+	}
+	if e.Type != events.EventHandoffCompleted || e.RuntimeID != "runtime-target" {
+		t.Fatalf("unexpected context handoff event: %+v", e)
+	}
+	if e.Data["source_id"] != "runtime-source" || e.Data["checkpoint_id"] != "checkpoint-1" {
+		t.Fatalf("event data lost handoff identity: %+v", e.Data)
+	}
+}
 
 func TestAccountHandoffValidation(t *testing.T) {
 	reg := registry.DefaultRegistry()
@@ -67,6 +112,32 @@ func TestWorkCheckpointAndRedaction(t *testing.T) {
 		t.Fatalf("failed to save checkpoint: %v", err)
 	}
 	_ = os.Remove(path)
+}
+
+func TestCheckpointCapturesMaestroContextAndKickoffRequiresRehydration(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(workspace, "DEV", "SPECS"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, relative := range []string{"DEV/INDEX.md", "DEV/HANDOFF.md", "DEV/CONTEXT.md", "DEV/SPECS/ACTIVE.md", "DEV/VERIFY.md"} {
+		path := filepath.Join(workspace, filepath.FromSlash(relative))
+		if err := os.WriteFile(path, []byte("durable context: "+relative), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cp := CaptureWorkCheckpoint(workspace, "rt-source", "codex", "work", "", "", "continue task")
+	if cp.SchemaVersion < 4 || len(cp.MaestroContext.ReadOrder) != 5 || len(cp.MaestroContext.Files) != 5 {
+		t.Fatalf("unexpected Maestro context pack: %+v", cp.MaestroContext)
+	}
+	for _, file := range cp.MaestroContext.Files {
+		if file.Status != "PRESENT" || file.SHA256 == "" || file.Bytes == 0 {
+			t.Fatalf("context file lacks evidence: %+v", file)
+		}
+	}
+	prompt := FormatKickoffPrompt(cp)
+	if !strings.Contains(prompt, "Maestro continuity contract") || !strings.Contains(prompt, "DEV/SPECS/ACTIVE.md [PRESENT]") {
+		t.Fatalf("kickoff did not require durable context rehydration: %s", prompt)
+	}
 }
 
 func TestAccountHandoffStateTransitionsAndRollback(t *testing.T) {
@@ -279,8 +350,8 @@ func TestResolveTargetModel(t *testing.T) {
 
 func TestWorkCheckpointModelPersistenceAndPrompt(t *testing.T) {
 	cp := CaptureWorkCheckpoint(os.TempDir(), "rt-src", "agy", "work", "sess-123", "claude-sonnet-4-20250514", "Complete feature")
-	if cp.SchemaVersion != 3 {
-		t.Errorf("expected SchemaVersion 3, got %d", cp.SchemaVersion)
+	if cp.SchemaVersion != 4 {
+		t.Errorf("expected SchemaVersion 4, got %d", cp.SchemaVersion)
 	}
 	if cp.SourceModel != "claude-sonnet-4-20250514" {
 		t.Errorf("expected SourceModel 'claude-sonnet-4-20250514', got %q", cp.SourceModel)

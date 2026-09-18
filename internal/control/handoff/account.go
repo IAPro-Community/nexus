@@ -7,15 +7,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/control/host"
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/host"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 // HandoffState represents the phase in the transactional account handoff process.
@@ -29,13 +29,17 @@ const (
 	HandoffSourceQuiesced  HandoffState = "SOURCE_QUIESCED"
 	HandoffTargetStarting  HandoffState = "TARGET_STARTING"
 	HandoffTargetResumed   HandoffState = "TARGET_RESUMED"
-	HandoffVerified        HandoffState = "VERIFIED"
-	HandoffCompleted       HandoffState = "COMPLETED"
-	HandoffRollback        HandoffState = "ROLLBACK_REQUIRED"
-	HandoffRollingBack     HandoffState = "ROLLING_BACK"
-	HandoffRolledBack      HandoffState = "ROLLED_BACK"
-	HandoffFailedSafe      HandoffState = "FAILED_SAFE"
-	HandoffFailedUnsafe    HandoffState = "FAILED_UNSAFE"
+	// HandoffContinuityUnverified means the runtime and resume arguments were
+	// verified locally, but the provider did not expose a confirmation channel.
+	// HandoffVerified is reserved for a future provider-level acknowledgement.
+	HandoffContinuityUnverified HandoffState = "NATIVE_RESUME_UNVERIFIED"
+	HandoffVerified             HandoffState = "VERIFIED"
+	HandoffCompleted            HandoffState = "COMPLETED"
+	HandoffRollback             HandoffState = "ROLLBACK_REQUIRED"
+	HandoffRollingBack          HandoffState = "ROLLING_BACK"
+	HandoffRolledBack           HandoffState = "ROLLED_BACK"
+	HandoffFailedSafe           HandoffState = "FAILED_SAFE"
+	HandoffFailedUnsafe         HandoffState = "FAILED_UNSAFE"
 )
 
 // Transaction encapsulates the context and state of an account handoff attempt.
@@ -52,11 +56,17 @@ type Transaction struct {
 
 // PerformAccountHandoff executes a safe, transactional account handoff to another profile of the SAME provider.
 func PerformAccountHandoff(ctx context.Context, sourceRuntimeID, targetSpec string) (*registry.RuntimeSession, error) {
+	return defaultService().PerformAccountHandoff(ctx, sourceRuntimeID, targetSpec)
+}
+
+// PerformAccountHandoff executes a safe account handoff using owned
+// control-plane dependencies.
+func (s *Service) PerformAccountHandoff(ctx context.Context, sourceRuntimeID, targetSpec string) (*registry.RuntimeSession, error) {
 	tx := &Transaction{
 		State: HandoffRequested,
 	}
 
-	reg := registry.DefaultRegistry()
+	reg := s.registry
 	source, ok := reg.Get(sourceRuntimeID)
 	if !ok {
 		return nil, fmt.Errorf("source runtime %q not found", sourceRuntimeID)
@@ -96,7 +106,7 @@ func PerformAccountHandoff(ctx context.Context, sourceRuntimeID, targetSpec stri
 		return nil, fmt.Errorf("target profile %s:%s is not authenticated", targetProvider, targetProfile)
 	}
 
-	d, err := driver.DefaultRegistry().Get(targetProvider)
+	d, err := s.drivers.Get(targetProvider)
 	if err != nil {
 		return nil, fmt.Errorf("target driver error: %w", err)
 	}
@@ -127,13 +137,13 @@ func PerformAccountHandoff(ctx context.Context, sourceRuntimeID, targetSpec stri
 		_ = client.Stop()
 		_ = client.Close()
 	}
-	// Wait up to 2 seconds for source process to stop
-	stopDeadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(stopDeadline) {
-		if !registry.IsProcessAlive(source.PID) {
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
+	// Wait up to 2 seconds for source process to stop, while honoring caller
+	// cancellation before starting the target runtime.
+	waitForProcessStop(ctx, source.PID, 2*time.Second)
+	if err := ctx.Err(); err != nil {
+		tx.State = HandoffFailedSafe
+		_ = reg.UpdateState(sourceRuntimeID, registry.StateRunning)
+		return nil, fmt.Errorf("account handoff canceled before target start: %w", err)
 	}
 	// Source stop is a hard barrier (H3): never start the target while the source
 	// may still be a writer for the same provider session.
@@ -150,8 +160,11 @@ func PerformAccountHandoff(ctx context.Context, sourceRuntimeID, targetSpec stri
 	newRuntimeID := fmt.Sprintf("%s-handoff-%s", targetProvider, ids.NewRuntimeID())
 	lineageID := fmt.Sprintf("lin-%s-%s", targetProvider, ids.NewRuntimeID())
 
-	targetSession, err := launcher.Default().Launch(ctx, launcher.LaunchOptions{
+	targetSession, err := s.launcher.Launch(ctx, launcher.LaunchOptions{
 		RuntimeID:         newRuntimeID,
+		AgentID:           source.AgentID,
+		ProjectID:         source.ProjectID,
+		ProjectName:       source.ProjectName,
 		ProviderID:        targetProvider,
 		ProfileID:         targetProfile,
 		ProviderSessionID: source.ProviderSessionID,
@@ -162,7 +175,7 @@ func PerformAccountHandoff(ctx context.Context, sourceRuntimeID, targetSpec stri
 	})
 	if err != nil {
 		tx.State = HandoffRollback
-		return nil, tx.rollback(ctx, d, source, fmt.Errorf("failed to start target runtime: %w", err))
+		return nil, tx.rollback(ctx, d, source, s, fmt.Errorf("failed to start target runtime: %w", err))
 	}
 
 	tx.TargetSession = targetSession
@@ -174,7 +187,7 @@ func PerformAccountHandoff(ctx context.Context, sourceRuntimeID, targetSpec stri
 		tx.State = HandoffRollback
 		// Never orphan the freshly launched target before rolling the source back.
 		stopRuntime(targetSession.RuntimeID)
-		return nil, tx.rollback(ctx, d, source, fmt.Errorf("resume continuity verification failed: %s", reason))
+		return nil, tx.rollback(ctx, d, source, s, fmt.Errorf("resume continuity verification failed: %s", reason))
 	}
 
 	targetSession.ProviderSessionID = source.ProviderSessionID
@@ -182,8 +195,12 @@ func PerformAccountHandoff(ctx context.Context, sourceRuntimeID, targetSpec stri
 	targetSession.ParentRuntimeID = source.RuntimeID
 	targetSession.HandoffType = "account"
 	targetSession.LineageID = lineageID
+	if targetSession.Labels == nil {
+		targetSession.Labels = map[string]string{}
+	}
+	targetSession.Labels["continuity"] = string(HandoffContinuityUnverified)
 	_ = reg.Register(*targetSession)
-	tx.State = HandoffVerified
+	tx.State = HandoffContinuityUnverified
 
 	// 10. Record Lineage
 	if err := RecordLineage(LineageRecord{
@@ -201,21 +218,22 @@ func PerformAccountHandoff(ctx context.Context, sourceRuntimeID, targetSpec stri
 
 	tx.State = HandoffCompleted
 
-	events.DefaultBus().Publish(events.NewEvent(
+	events.DefaultBus().Publish(events.NewEventWithCorrelation(
+		lineageID,
 		targetSession.RuntimeID,
 		targetSession.ProviderID,
 		targetSession.ProfileID,
 		events.EventHandoffCompleted,
 		fmt.Sprintf("Account handoff completed from %s to %s", source.RuntimeID, targetSession.RuntimeID),
-		map[string]any{"source_id": source.RuntimeID, "target_id": targetSession.RuntimeID, "session_id": targetSession.ProviderSessionID},
+		map[string]any{"source_id": source.RuntimeID, "target_id": targetSession.RuntimeID, "session_id": targetSession.ProviderSessionID, "continuity": string(HandoffContinuityUnverified)},
 	))
 
 	return targetSession, nil
 }
 
-func (tx *Transaction) rollback(ctx context.Context, d driver.ControlDriver, source registry.RuntimeSession, cause error) error {
+func (tx *Transaction) rollback(ctx context.Context, d driver.ControlDriver, source registry.RuntimeSession, s *Service, cause error) error {
 	tx.State = HandoffRollingBack
-	reg := registry.DefaultRegistry()
+	reg := s.registry
 
 	if registry.IsProcessAlive(source.PID) {
 		_ = reg.UpdateState(source.RuntimeID, registry.StateRunning)
@@ -231,7 +249,7 @@ func (tx *Transaction) rollback(ctx context.Context, d driver.ControlDriver, sou
 	}
 
 	recoverRuntimeID := fmt.Sprintf("%s-recovered-%s", source.ProviderID, ids.NewRuntimeID())
-	recoverSession, err := launcher.Default().Launch(ctx, launcher.LaunchOptions{
+	recoverSession, err := s.launcher.Launch(ctx, launcher.LaunchOptions{
 		RuntimeID:         recoverRuntimeID,
 		ProviderID:        source.ProviderID,
 		ProfileID:         source.ProfileID,

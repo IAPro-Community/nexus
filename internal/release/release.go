@@ -114,7 +114,7 @@ func (r Runner) ExecuteWithProgress(ctx context.Context, old, next string, onPro
 	if out, err := r.Run(ctx, "git", "-C", r.Root, "rev-parse", "--short", "HEAD"); err == nil {
 		commit = strings.TrimSpace(string(out))
 	}
-	ldflags := fmt.Sprintf("-s -w -X github.com/kivervinicius/ai-cli/internal/buildinfo.Version=%s -X github.com/kivervinicius/ai-cli/internal/buildinfo.Commit=%s -X github.com/kivervinicius/ai-cli/internal/buildinfo.BuildDate=%s", next, commit, r.Now().UTC().Format(time.RFC3339))
+	ldflags := fmt.Sprintf("-s -w -X github.com/IAPro-Community/nexus/internal/buildinfo.Version=%s -X github.com/IAPro-Community/nexus/internal/buildinfo.Commit=%s -X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate=%s", next, commit, r.Now().UTC().Format(time.RFC3339))
 	bin := filepath.Join(r.Root, "nexus")
 	if out, err := r.Run(ctx, "go", "build", "-ldflags="+ldflags, "-o", bin, "./cmd/nexus"); err != nil {
 		return result, fmt.Errorf("go build failed: %w\n%s", err, strings.TrimSpace(string(out)))

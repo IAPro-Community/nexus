@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/cooldown"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/scheduler"
+	"github.com/IAPro-Community/nexus/internal/core/cooldown"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/scheduler"
 )
 
 // Executor manages execution with automatic failover between accounts on rate-limit/quota errors.
@@ -87,7 +87,14 @@ func (e *Executor) RunWithFallback(
 		if failure.RetryAfter != nil && *failure.RetryAfter > 0 {
 			retryDur = *failure.RetryAfter
 		}
-		e.cooldown.RecordRateLimit(provider, currentProfileName, retryDur, failure.ResetAt, failure.Message)
+		currentScope := currentProfile.AccountScope
+		if currentScope.Verifiable() {
+			e.cooldown.RecordRateLimitForScope(currentScope, retryDur, failure.ResetAt, failure.Message)
+		} else {
+			// Compatibility for in-memory callers that have not gone through
+			// profile.List yet. Persisted profiles always carry a scope.
+			e.cooldown.RecordRateLimit(provider, currentProfileName, retryDur, failure.ResetAt, failure.Message)
+		}
 
 		// Collect already attempted profile names
 		var excluded []string

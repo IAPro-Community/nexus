@@ -1,15 +1,63 @@
 @use '../../styles/tokens';
-@use '../../styles/typography';
-@use '../../styles/mixins';
 
-.readinessActions {
-  display: grid;
-  gap: 8px;
-  justify-items: start;
+.workbench {
+  max-width: none;
+  margin: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.readinessHint {
-  color: var(--nx-muted);
-  max-width: 560px;
-  font-size: var(--nx-font-size-xs);
+:global(.nx-surface-scroll).workbench {
+  padding: 0;
+  max-width: none;
+}
+
+.flowRegion {
+  flex: 1;
+  min-height: 0;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.contextFix {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.35rem 0.25rem 0;
+}
+
+.headerChips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.gateHint {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--nx-warning) 40%, var(--nx-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--nx-warning) 10%, var(--nx-surface));
+  color: var(--nx-text-soft);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.gateHint[data-state='FAILED'] {
+  border-color: color-mix(in srgb, var(--nx-danger) 40%, var(--nx-border));
+  background: color-mix(in srgb, var(--nx-danger) 10%, var(--nx-surface));
+}
+
+@media (max-width: 820px) {
+  .headerChips {
+    width: 100%;
+  }
+
+  .headerChips > :global(.nx-button) {
+    min-height: var(--nx-touch-min, 44px);
+  }
 }

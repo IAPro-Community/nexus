@@ -99,4 +99,103 @@ describe('KeyboardShortcutRegistry', () => {
     registry.handleKeyDown(new (globalThis as any).KeyboardEvent('keydown', { key: 'Enter' }));
     expect(chatTriggered).toBe(true);
   });
+
+  it('allows safe productivity shortcuts inside terminal target while protecting standard keys', () => {
+    let zenTriggered = false;
+    let railTriggered = false;
+    let tabTriggered = false;
+    let standardHijacked = false;
+
+    registry.register({
+      id: 'zen',
+      key: 'f',
+      ctrlOrMeta: true,
+      shift: true,
+      scope: 'global',
+      description: 'Zen Focus',
+      action: () => {
+        zenTriggered = true;
+      },
+    });
+
+    registry.register({
+      id: 'rail',
+      key: 'b',
+      ctrlOrMeta: true,
+      scope: 'global',
+      description: 'Rail Toggle',
+      action: () => {
+        railTriggered = true;
+      },
+    });
+
+    registry.register({
+      id: 'tab-1',
+      key: '1',
+      alt: true,
+      scope: 'global',
+      description: 'Tab 1',
+      action: () => {
+        tabTriggered = true;
+      },
+    });
+
+    registry.register({
+      id: 'standard-c',
+      key: 'c',
+      ctrlOrMeta: true,
+      scope: 'global',
+      description: 'Interrupt (SIGINT)',
+      action: () => {
+        standardHijacked = true;
+      },
+    });
+
+    const mockTerminalEl = {
+      tagName: 'DIV',
+      classList: { contains: (cls: string) => cls === 'xterm' },
+      closest: (sel: string) => (sel === '.xterm' ? true : null),
+    };
+
+    // Standard Ctrl+C must NEVER trigger
+    registry.handleKeyDown(
+      new (globalThis as any).KeyboardEvent('keydown', {
+        key: 'c',
+        ctrlKey: true,
+        target: mockTerminalEl,
+      }),
+    );
+    expect(standardHijacked).toBe(false);
+
+    // Ctrl+Shift+F must trigger
+    registry.handleKeyDown(
+      new (globalThis as any).KeyboardEvent('keydown', {
+        key: 'f',
+        ctrlKey: true,
+        shiftKey: true,
+        target: mockTerminalEl,
+      }),
+    );
+    expect(zenTriggered).toBe(true);
+
+    // Ctrl+B must trigger
+    registry.handleKeyDown(
+      new (globalThis as any).KeyboardEvent('keydown', {
+        key: 'b',
+        ctrlKey: true,
+        target: mockTerminalEl,
+      }),
+    );
+    expect(railTriggered).toBe(true);
+
+    // Alt+1 must trigger
+    registry.handleKeyDown(
+      new (globalThis as any).KeyboardEvent('keydown', {
+        key: '1',
+        altKey: true,
+        target: mockTerminalEl,
+      }),
+    );
+    expect(tabTriggered).toBe(true);
+  });
 });

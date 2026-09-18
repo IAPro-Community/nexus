@@ -5,35 +5,52 @@ import (
 	"math"
 	"sort"
 	"strings"
-	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/telemetry"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 )
 
 // TaskRequirements specifies what an intelligence or execution task demands (§Gate 5, Phase B).
 type TaskRequirements struct {
-	TaskKind             string   `json:"task_kind"` // "coding" | "planning" | "review" | "verify" | "refactor" | "security"
-	Role                 string   `json:"role"`      // "implementer" | "reviewer" | "architect" | "tester"
-	RequiredCapabilities []string `json:"required_capabilities,omitempty"`
-	EstimatedTokens      int      `json:"estimated_tokens,omitempty"`
-	CurrentProvider      string   `json:"current_provider,omitempty"`
-	CurrentProfile       string   `json:"current_profile,omitempty"`
-	PreferProvider       string   `json:"prefer_provider,omitempty"`
-	ProjectPolicy        string   `json:"project_policy,omitempty"`
-	AgentPreference      string   `json:"agent_preference,omitempty"`
+	TaskKind              string                          `json:"task_kind"` // "coding" | "planning" | "review" | "verify" | "refactor" | "security"
+	Role                  string                          `json:"role"`      // "implementer" | "reviewer" | "architect" | "tester"
+	PreferredRoles        []string                        `json:"preferred_roles,omitempty"`
+	AcceptableRoles       []string                        `json:"acceptable_roles,omitempty"`
+	Domains               []string                        `json:"domains,omitempty"`
+	RequiredCapabilities  []string                        `json:"required_capabilities,omitempty"`
+	PreferredCapabilities []string                        `json:"preferred_capabilities,omitempty"`
+	DesiredStrengths      []string                        `json:"desired_strengths,omitempty"`
+	Constraints           []string                        `json:"constraints,omitempty"`
+	EstimatedComplexity   string                          `json:"estimated_complexity,omitempty"`
+	EstimatedTokens       int                             `json:"estimated_tokens,omitempty"`
+	RequiresDecomposition bool                            `json:"requires_decomposition,omitempty"`
+	Confidence            string                          `json:"confidence,omitempty"`
+	Source                string                          `json:"source,omitempty"`
+	CurrentProvider       string                          `json:"current_provider,omitempty"`
+	CurrentProfile        string                          `json:"current_profile,omitempty"`
+	PreferProvider        string                          `json:"prefer_provider,omitempty"`
+	ProjectPolicy         string                          `json:"project_policy,omitempty"`
+	AgentPreference       string                          `json:"agent_preference,omitempty"`
+	ProviderPriorities    map[string]int                  `json:"provider_priorities,omitempty"`
+	RuntimeAffinity       *RuntimeAffinityPolicy          `json:"runtime_affinity,omitempty"`
+	ModelCandidates       []ModelCandidate                `json:"model_candidates,omitempty"`
+	EscalationLevel       int                             `json:"escalation_level,omitempty"`
+	Guidance              *intelligence.ExecutionGuidance `json:"guidance,omitempty"`
 }
 
 // ResourceCandidate represents an evaluated provider account scored for a specific task.
 type ResourceCandidate struct {
-	Account         ProviderAccount    `json:"account"`
-	Rank            int                `json:"rank"`
-	TotalScore      float64            `json:"total_score"`
-	Confidence      string             `json:"confidence"` // "LIVE" | "CACHED" | "ESTIMATED" | "UNKNOWN"
-	ScoreBreakdown  map[string]float64 `json:"score_breakdown"`
-	Pros            []string           `json:"pros"`
-	Cons            []string           `json:"cons"`
-	Eligible        bool               `json:"eligible"`
-	RejectionReason string             `json:"rejection_reason,omitempty"`
+	Account          ProviderAccount    `json:"account"`
+	Rank             int                `json:"rank"`
+	TotalScore       float64            `json:"total_score"`
+	Confidence       string             `json:"confidence"` // "LIVE" | "CACHED" | "ESTIMATED" | "UNKNOWN"
+	ScoreBreakdown   map[string]float64 `json:"score_breakdown"`
+	Pros             []string           `json:"pros"`
+	Cons             []string           `json:"cons"`
+	Eligible         bool               `json:"eligible"`
+	RejectionReason  string             `json:"rejection_reason,omitempty"`
+	ProviderPriority int                `json:"provider_priority,omitempty"`
 }
 
 // RecommendationResult holds the ranked candidates and top selection with explainable reasoning.
@@ -47,6 +64,10 @@ type RecommendationResult struct {
 
 // RecommendResources evaluates available accounts against task requirements under the chosen policy.
 func RecommendResources(accounts []ProviderAccount, req TaskRequirements, policy SchedulerPolicy) RecommendationResult {
+	if len(req.ProviderPriorities) == 0 {
+		cfg, _ := config.LoadConfig()
+		req.ProviderPriorities = cfg.ProviderPriorities
+	}
 	if policy == "" {
 		if req.ProjectPolicy != "" {
 			policy = SchedulerPolicy(strings.ToUpper(req.ProjectPolicy))
@@ -66,43 +87,15 @@ func RecommendResources(accounts []ProviderAccount, req TaskRequirements, policy
 		result.Candidates = append(result.Candidates, c)
 	}
 
-	eligibleIdx := make([]int, 0, len(result.Candidates))
-	allUnknown := true
-	for i, c := range result.Candidates {
-		if !c.Eligible {
-			continue
-		}
-		eligibleIdx = append(eligibleIdx, i)
-		if c.Confidence != "UNKNOWN" {
-			allUnknown = false
-		}
-	}
-	if allUnknown && len(eligibleIdx) > 0 {
-		lastUsed := profileSelectedAt()
-		sort.SliceStable(eligibleIdx, func(i, j int) bool {
-			left := result.Candidates[eligibleIdx[i]].Account
-			right := result.Candidates[eligibleIdx[j]].Account
-			leftKey := left.Provider + "/" + left.Profile
-			rightKey := right.Provider + "/" + right.Profile
-			return lastUsed[leftKey].Before(lastUsed[rightKey])
-		})
-		best := result.Candidates[eligibleIdx[0]]
-		result.Recommended = &best
-		for i := range result.Candidates {
-			result.Candidates[i].Rank = 0
-		}
-		for rank, idx := range eligibleIdx {
-			result.Candidates[idx].Rank = rank + 1
-		}
-		result.Explanation = fmt.Sprintf("Recomendado %s (%s) por LRU entre perfis saudáveis com quota desconhecida.",
-			best.Account.DisplayName, best.Account.Provider)
-		return result
-	}
-
 	// Sort candidates: eligible first, then higher score, then lower rate limit risk
 	sort.Slice(result.Candidates, func(i, j int) bool {
 		if result.Candidates[i].Eligible != result.Candidates[j].Eligible {
 			return result.Candidates[i].Eligible
+		}
+		leftPriority := result.Candidates[i].ProviderPriority
+		rightPriority := result.Candidates[j].ProviderPriority
+		if leftPriority > 0 && rightPriority > 0 && leftPriority != rightPriority {
+			return leftPriority < rightPriority
 		}
 		if math.Abs(result.Candidates[i].TotalScore-result.Candidates[j].TotalScore) > 0.001 {
 			return result.Candidates[i].TotalScore > result.Candidates[j].TotalScore
@@ -129,24 +122,6 @@ func RecommendResources(accounts []ProviderAccount, req TaskRequirements, policy
 	return result
 }
 
-func profileSelectedAt() map[string]time.Time {
-	result := make(map[string]time.Time)
-	events, err := telemetry.ReadRecentEvents(0)
-	if err != nil {
-		return result
-	}
-	for _, ev := range events {
-		if ev.Type != telemetry.EventProfileSelected {
-			continue
-		}
-		key := ev.ProviderID + "/" + ev.ProfileID
-		if old, ok := result[key]; !ok || ev.Timestamp.After(old) {
-			result[key] = ev.Timestamp
-		}
-	}
-	return result
-}
-
 func evaluateCandidate(acc ProviderAccount, req TaskRequirements, policy SchedulerPolicy) ResourceCandidate {
 	c := ResourceCandidate{
 		Account:        acc,
@@ -156,38 +131,22 @@ func evaluateCandidate(acc ProviderAccount, req TaskRequirements, policy Schedul
 		Eligible:       true,
 		Confidence:     "UNKNOWN",
 	}
+	if req.ProviderPriorities != nil {
+		c.ProviderPriority = req.ProviderPriorities[acc.Provider]
+	}
 
-	// Hard Gate 1: Must be authenticated
-	if !acc.Authenticated {
+	elig := quota.EvaluateEligibility(accountEligibilityInput(acc, false))
+	c.Confidence = elig.Confidence
+	if !elig.Eligible {
 		c.Eligible = false
-		c.RejectionReason = "Conta não autenticada no sistema"
-		c.Cons = append(c.Cons, "Não autenticada")
+		c.RejectionReason = elig.Message
+		if elig.Message != "" {
+			c.Cons = append(c.Cons, elig.Message)
+		}
 		return c
 	}
 
-	// Hard Gate 2: Must be available / not in active cooldown
-	if !acc.Available {
-		c.Eligible = false
-		c.RejectionReason = "Provedor marcado como indisponível"
-		c.Cons = append(c.Cons, "Indisponível")
-		return c
-	}
-
-	if acc.RateLimited {
-		c.Eligible = false
-		c.RejectionReason = "Conta em rate limit / cooldown ativo"
-		c.Cons = append(c.Cons, "Rate limit ativo")
-		return c
-	}
-
-	if acc.CooldownUntil != nil && time.Now().Before(*acc.CooldownUntil) {
-		c.Eligible = false
-		c.RejectionReason = fmt.Sprintf("Em cooldown até %s", acc.CooldownUntil.Format(time.RFC3339))
-		c.Cons = append(c.Cons, "Em cooldown")
-		return c
-	}
-
-	// Hard Gate 3: every required capability must be explicitly SUPPORTED.
+	// Hard Gate: every required capability must be explicitly SUPPORTED.
 	// PARTIAL/UNKNOWN/NOT_TESTED are not enough for a hard requirement.
 	for _, required := range req.RequiredCapabilities {
 		key := normalizeCapabilityName(required)
@@ -205,6 +164,10 @@ func evaluateCandidate(acc ProviderAccount, req TaskRequirements, policy Schedul
 	c.Confidence = quotaConfidence(acc)
 
 	var score = 50.0 // Baseline
+	if c.ProviderPriority > 0 {
+		c.ScoreBreakdown["provider_priority"] = float64(c.ProviderPriority)
+		c.Pros = append(c.Pros, fmt.Sprintf("Prioridade de fallback do provider: %d", c.ProviderPriority))
+	}
 
 	// 1. Quota & Capacity Scoring (0 to 30 pts)
 	quotaScore := 0.0
@@ -339,6 +302,11 @@ func quotaConfidence(acc ProviderAccount) string {
 			return "CACHED"
 		case "ESTIMATED":
 			return "ESTIMATED"
+		case "OK":
+			// Compatibility with pre-UsageStatus providers. These snapshots
+			// carried measured aggregate quota, so preserve them as bounded
+			// cache evidence instead of classifying them as UNKNOWN.
+			return "CACHED"
 		default:
 			return "UNKNOWN"
 		}

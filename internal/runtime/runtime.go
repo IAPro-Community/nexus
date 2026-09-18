@@ -11,10 +11,13 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/classifier"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"golang.org/x/term"
+
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 const isolatedSecretServiceScript = `TMPDIR=$(mktemp -d /tmp/nexus-kr-XXXXXX) || exit 1
@@ -24,6 +27,41 @@ daemon="$1"
 shift
 "$daemon" --daemonize --components=secrets --control-directory="$TMPDIR" >/dev/null 2>&1 || true
 exec "$@"`
+
+// terminalKeyboardModeReset disables optional terminal input protocols that
+// can remain enabled after an interrupted TUI session. Those protocols make
+// normal keys arrive as CSI text in terminal emulators that do not fully
+// negotiate them (notably embedded VS Code terminals).
+const terminalKeyboardModeReset = "\x1b[<u\x1b[>4;0m\x1b[?1004l\x1b[?2004l"
+
+func writeTerminalKeyboardModeReset(out io.Writer) {
+	_, _ = io.WriteString(out, terminalKeyboardModeReset)
+}
+
+// GuardInteractiveTerminalKeyboardModes resets optional keyboard reporting
+// before a provider TUI starts and after it exits. It is a no-op unless both
+// ends are real terminals, so pipes and JSON output remain byte-clean.
+func GuardInteractiveTerminalKeyboardModes(stdin, stdout *os.File) func() {
+	if stdin == nil || stdout == nil || !term.IsTerminal(int(stdin.Fd())) || !term.IsTerminal(int(stdout.Fd())) {
+		return func() {}
+	}
+	writeTerminalKeyboardModeReset(stdout)
+	return func() { writeTerminalKeyboardModeReset(stdout) }
+}
+
+// ReassertInteractiveTerminalKeyboardModes repairs terminal state after an
+// interrupted provider turn. Some TUIs restore their keyboard protocol just
+// after consuming Ctrl+C, so reset once immediately and twice after that turn
+// transition. No bytes are emitted for pipes or redirected output.
+func ReassertInteractiveTerminalKeyboardModes(stdin, stdout *os.File) {
+	if stdin == nil || stdout == nil || !term.IsTerminal(int(stdin.Fd())) || !term.IsTerminal(int(stdout.Fd())) {
+		return
+	}
+	writeTerminalKeyboardModeReset(stdout)
+	for _, delay := range []time.Duration{75 * time.Millisecond, 300 * time.Millisecond} {
+		time.AfterFunc(delay, func() { writeTerminalKeyboardModeReset(stdout) })
+	}
+}
 
 func alreadyIsolatedSecretServiceArgv(args []string) bool {
 	if len(args) >= 4 && args[0] == "--" && args[1] == "/bin/sh" && args[2] == "-c" {
@@ -185,8 +223,22 @@ func EnvSet(base []string, overrides map[string]string, unset ...string) []strin
 	return out
 }
 
+// DisableSessionSecretService prevents non-interactive provider probes from
+// reaching (or autolaunching) the user's desktop Secret Service. Merely
+// removing DBUS_SESSION_BUS_ADDRESS is insufficient: D-Bus clients may then
+// discover and connect to the user's session bus via autolaunch.
+func DisableSessionSecretService(env []string) []string {
+	return EnvSet(env, map[string]string{
+		// A present, deliberately unreachable address disables D-Bus autolaunch.
+		// /dev/null cannot become a Unix socket, so this fails closed on Unix;
+		// providers on other platforms simply ignore the variable.
+		"DBUS_SESSION_BUS_ADDRESS": "unix:path=/dev/null",
+	}, "AI_HOST_DBUS_SESSION_BUS_ADDRESS", "GNOME_KEYRING_CONTROL", "GNOME_KEYRING_PID")
+}
+
 // RunInteractive executes an external CLI in full interactive TTY passthrough mode.
 func RunInteractive(bin string, args []string, env []string, cwd string) (model.Failure, error) {
+	defer GuardInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)()
 	resolved, err := ResolveCommand(bin)
 	if err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
@@ -217,6 +269,9 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 		for sig := range sigChan {
 			if cmd.Process != nil {
 				_ = cmd.Process.Signal(sig)
+			}
+			if sig == syscall.SIGINT {
+				ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
 			}
 		}
 	}()
@@ -282,11 +337,36 @@ func InternalBinDir() (string, error) {
 		return binDir, nil
 	}
 
-	for _, name := range []string{"ai-browser", "xdg-open"} {
-		dst := filepath.Join(binDir, name)
-		_ = os.Remove(dst)
-		_ = os.Symlink(selfExe, dst)
-	}
+	// Create ai-browser shim (entry point for $BROWSER calls from agy/gemini).
+	// Do NOT create an xdg-open symlink — it would shadow the real system
+	// xdg-open in PATH and cause infinite recursion when browser.Open()
+	// resolves "xdg-open" back to the nexus binary.
+	dst := filepath.Join(binDir, "ai-browser")
+	_ = os.Remove(dst)
+	_ = os.Symlink(selfExe, dst)
 
+	return binDir, nil
+}
+
+// NoBrowserBinDir returns a directory of no-op browser helpers for background
+// provider probes. AGY ignores BROWSER=false in some OAuth fallbacks and calls
+// xdg-open directly; putting inert shims first on PATH keeps those probes from
+// opening Google login tabs every monitor tick.
+func NoBrowserBinDir() (string, error) {
+	dataDir, err := config.DataDir()
+	if err != nil {
+		return "", err
+	}
+	binDir := filepath.Join(dataDir, "runtime", "no-browser")
+	if err := os.MkdirAll(binDir, 0700); err != nil {
+		return "", err
+	}
+	script := "#!/bin/sh\n# Nexus no-browser shim: refuse to open URLs from background probes.\nexit 0\n"
+	for _, name := range []string{"ai-browser", "xdg-open", "x-www-browser", "gnome-www-browser", "www-browser", "open"} {
+		path := filepath.Join(binDir, name)
+		if err := os.WriteFile(path, []byte(script), 0700); err != nil {
+			return "", err
+		}
+	}
 	return binDir, nil
 }

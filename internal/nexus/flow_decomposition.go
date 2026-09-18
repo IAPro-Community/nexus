@@ -8,18 +8,31 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // FlowDecompositionRequest defines the contract for decomposing a prompt or artifact into a Flow proposal (PLAN 04).
 type FlowDecompositionRequest struct {
-	ProjectID     string   `json:"project_id"`
-	ArtifactID    string   `json:"artifact_id,omitempty"`
-	Goal          string   `json:"goal"`
-	SourcePrompt  string   `json:"source_prompt,omitempty"`
-	MaestroSkills []string `json:"maestro_skills,omitempty"`
-	Simple        bool     `json:"simple,omitempty"`
+	ProjectID                   string                           `json:"project_id"`
+	ArtifactID                  string                           `json:"artifact_id,omitempty"`
+	Goal                        string                           `json:"goal"`
+	SourcePrompt                string                           `json:"source_prompt,omitempty"`
+	SkillIDs                    []string                         `json:"skill_ids,omitempty"`
+	MaestroSkills               []string                         `json:"maestro_skills,omitempty"`
+	Simple                      bool                             `json:"simple,omitempty"`
+	DelegationMode              DelegationMode                   `json:"delegation_mode,omitempty"`
+	MissionTeamPreset           MissionTeamPreset                `json:"mission_team_preset,omitempty"`
+	MissionTeamRuntimeOverrides map[string]RuntimeAffinityPolicy `json:"mission_team_runtime_overrides,omitempty"`
+}
+
+// resolvedSkillIDs prefers the canonical skill_ids field and falls back to the
+// legacy maestro_skills transport alias.
+func (req FlowDecompositionRequest) resolvedSkillIDs() []string {
+	if len(req.SkillIDs) > 0 {
+		return append([]string(nil), req.SkillIDs...)
+	}
+	return append([]string(nil), req.MaestroSkills...)
 }
 
 // FlowDecompositionProposal represents an inspectable candidate flow DAG before final persistence (PLAN 04).
@@ -115,8 +128,13 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	}
+	delegation := DecideDelegation(goal, req.DelegationMode)
+	if facts, factErr := PersistDelegationDecisionFacts(nil, delegation); factErr == nil {
+		flow.StructuredFacts = facts
+	}
 
 	if isAtomic {
+		skills := req.resolvedSkillIDs()
 		flow.Steps = []FlowStep{
 			{
 				ID:                       "step_" + ids.NewRuntimeID(),
@@ -127,15 +145,20 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 				Priority:                 "HIGH",
 				Status:                   "READY",
 				Role:                     "implementer",
+				TaskRequirements:         taskRequirementsJSON(firstNonEmpty(sourcePrompt, goal), "implementer"),
 				AssignmentStrategy:       FlowAssignmentAuto,
 				AcceptanceCriteria:       []string{"Ajuste concluído com validação dos testes"},
 				VerificationRequirements: verification,
-				MaestroSkills:            req.MaestroSkills,
+				SkillIDs:                 skills,
+				MaestroSkills:            skills,
 				CompiledPrompt:           sourcePrompt,
 			},
 		}
+	} else if delegation.Delegate {
+		flow.Steps = delegatedFlowSteps(delegation.Workstreams, phaseID, title, verification, req.resolvedSkillIDs())
 	} else {
 		// Multi-step structured decomposition (Implementer -> Tester/Reviewer)
+		skills := req.resolvedSkillIDs()
 		step1ID := "step_" + ids.NewRuntimeID()
 		step2ID := "step_" + ids.NewRuntimeID()
 		flow.Steps = []FlowStep{
@@ -148,10 +171,12 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 				Priority:                 "HIGH",
 				Status:                   "READY",
 				Role:                     "implementer",
+				TaskRequirements:         taskRequirementsJSON(goal, "implementer"),
 				AssignmentStrategy:       FlowAssignmentAuto,
 				AcceptanceCriteria:       []string{"Funcionalidade implementada sem regressões de build"},
 				VerificationRequirements: verification,
-				MaestroSkills:            req.MaestroSkills,
+				SkillIDs:                 skills,
+				MaestroSkills:            skills,
 				CompiledPrompt:           sourcePrompt,
 			},
 			{
@@ -163,12 +188,50 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 				Priority:                 "HIGH",
 				Status:                   "PENDING",
 				Role:                     "reviewer",
+				TaskRequirements:         taskRequirementsJSON("Verificar comportamento e suite de testes", "reviewer"),
 				AssignmentStrategy:       FlowAssignmentAuto,
 				Dependencies:             []string{step1ID},
 				AcceptanceCriteria:       []string{"Todos os testes passando e suite de qualidade aprovada"},
 				VerificationRequirements: verification,
 			},
 		}
+	}
+	intent := DecideIntent(goal, nil)
+	if isAtomic {
+		intent.Strategy = IntentDirect
+		intent.Confidence = "HIGH"
+		intent.RecommendedAction = "execute_single_work_unit"
+	}
+	selection := SelectMissionTeam(goal, intent)
+	if NormalizeDelegationMode(req.DelegationMode) == DelegationOff {
+		selection = MissionTeamSelection{Version: MissionTeamVersion, Strategy: intent.Strategy, Direct: true, CostClass: "DIRECT", Reason: "delegation mode OFF keeps execution with the Lead", CreatedAt: time.Now().UTC()}
+	}
+	if strings.TrimSpace(string(req.MissionTeamPreset)) != "" {
+		if selection.Direct {
+			return nil, fmt.Errorf("mission_team_preset cannot be used for a direct task")
+		}
+		definition, presetErr := MissionTeamPresetDefinitionFor(req.MissionTeamPreset)
+		if presetErr != nil {
+			return nil, presetErr
+		}
+		selection.Preset = definition.Preset
+		selection.CostClass = "EXPLICIT"
+		selection.Reason = "explicit mission team preset override"
+		selection.Signals = append(selection.Signals, "explicit_preset")
+		selection.ReviewRequired = true
+	}
+	if facts, factErr := PersistIntentDecisionFacts(flow.StructuredFacts, intent); factErr != nil {
+		return nil, factErr
+	} else {
+		flow.StructuredFacts = facts
+	}
+	if facts, factErr := PersistMissionTeamFacts(flow.StructuredFacts, selection); factErr != nil {
+		return nil, factErr
+	} else {
+		flow.StructuredFacts = facts
+	}
+	if err := BuildMissionTeamFlow(&flow, selection, firstNonEmpty(sourcePrompt, goal), verification, req.resolvedSkillIDs(), delegation.Workstreams, req.MissionTeamRuntimeOverrides); err != nil {
+		return nil, err
 	}
 
 	proposal := &FlowDecompositionProposal{
@@ -181,6 +244,45 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 		Reasoning:              fmt.Sprintf("Decomposição baseada no arquétipo %s com %d passos.", archetype, len(flow.Steps)),
 	}
 	return proposal, nil
+}
+
+func delegatedFlowSteps(workstreams []DelegatedWorkstream, phaseID, title string, verification, skills []string) []FlowStep {
+	steps := make([]FlowStep, 0, len(workstreams))
+	stepIDs := make(map[string]string, len(workstreams))
+	for _, workstream := range workstreams {
+		stepIDs[workstream.ID] = "step_" + ids.NewRuntimeID()
+	}
+	for order, workstream := range workstreams {
+		dependencies := make([]string, 0, len(workstream.Dependencies))
+		for _, dependency := range workstream.Dependencies {
+			if id := stepIDs[dependency]; id != "" {
+				dependencies = append(dependencies, id)
+			}
+		}
+		role := "implementer"
+		if len(workstream.PreferredRoles) > 0 {
+			role = workstream.PreferredRoles[0]
+		}
+		status := "READY"
+		if len(dependencies) > 0 {
+			status = "PENDING"
+		}
+		label := workstream.ID
+		if len(label) > 0 {
+			label = strings.ToUpper(label[:1]) + label[1:]
+		}
+		steps = append(steps, FlowStep{
+			ID: stepIDs[workstream.ID], PhaseID: phaseID, Order: order + 1,
+			Title: label + " · " + title, Goal: workstream.Goal,
+			Priority: "HIGH", Status: status, Dependencies: dependencies,
+			ParallelGroup: workstream.ParallelGroup, Role: role,
+			TaskRequirements: taskRequirementsForWorkstream(workstream), AssignmentStrategy: FlowAssignmentAuto,
+			AcceptanceCriteria: []string{"Workstream concluído sem regressões"}, VerificationRequirements: verification,
+			SkillIDs: append([]string(nil), skills...), MaestroSkills: append([]string(nil), skills...),
+			RelevantPaths: append([]string(nil), workstream.OwnedPaths...), SharedArtifacts: append([]string(nil), workstream.SharedContracts...),
+		})
+	}
+	return steps
 }
 
 func projectVerificationCommands(root string) []string {
@@ -290,9 +392,20 @@ func (n *Nexus) PreflightFlowStrict(ctx context.Context, planID string, autonomo
 }
 
 func (n *Nexus) strictAdmissionForPlan(_ context.Context, plan store.WorkPlan, report *FlowPreflightReport, autonomous bool) (*FlowPreflightReport, error) {
+	if report == nil {
+		return nil, fmt.Errorf("strict admission report is required")
+	}
+	// Admission checks only turn Ready off when a check fails. Callers may
+	// revalidate an immutable snapshot with a fresh report, so initialize the
+	// optimistic state here instead of relying on PreflightFlow's constructor.
+	report.Ready = true
 	if err := validateFlowExecutionContract(plan); err != nil {
 		report.Ready = false
 		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "execution_contract", Label: "Contrato de Execução", Status: "FAIL", Summary: err.Error()})
+	}
+	for _, problem := range validatePlanReadiness(plan) {
+		report.Ready = false
+		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "plan_readiness", Label: "Plan readiness", Status: "FAIL", Summary: problem})
 	}
 	project, err := n.OpenProject()
 	if err != nil {
@@ -323,16 +436,57 @@ func (n *Nexus) strictAdmissionForPlan(_ context.Context, plan store.WorkPlan, r
 			}
 		}
 	}
-	requested := make([]string, 0)
+	var skillErr error
 	for _, phase := range plan.Phases {
 		for _, pkg := range phase.Packages {
-			requested = append(requested, pkg.MaestroGates...)
-			requested = append(requested, pkg.MaestroSkills...)
+			requested := packageSkillIDs(pkg)
+			_, skillErr = validateGenericSkillIDs(n, plan.ProjectID, requested)
+			if skillErr != nil {
+				break
+			}
+		}
+		if skillErr != nil {
+			break
 		}
 	}
-	if _, err := n.validateMaestroGatesStrict(uniqueStrings(requested)); err != nil {
+	if skillErr != nil {
 		report.Ready = false
-		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "maestro", Label: "Gates Maestro", Status: "FAIL", Summary: err.Error()})
+		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "skills", Label: "Nexus Skills", Status: "FAIL", Summary: skillErr.Error()})
 	}
 	return report, nil
+}
+
+// validatePlanReadiness is deterministic admission for data that an LLM may
+// omit. It runs after the compatibility façade has been loaded, so Flow
+// layout/order cannot substitute for executable task semantics.
+func validatePlanReadiness(plan store.WorkPlan) []string {
+	problems := make([]string, 0)
+	for _, phase := range plan.Phases {
+		for _, pkg := range phase.Packages {
+			prefix := fmt.Sprintf("flow step %s", pkg.ID)
+			if strings.TrimSpace(pkg.Title) == "" {
+				problems = append(problems, prefix+" is missing a title")
+			}
+			if strings.TrimSpace(pkg.Goal) == "" {
+				problems = append(problems, prefix+" is missing an executable goal")
+			}
+			if len(nonEmptyStrings(pkg.AcceptanceCriteria)) == 0 {
+				problems = append(problems, prefix+" is missing acceptance criteria / Definition of Done")
+			}
+			if len(nonEmptyStrings(pkg.VerificationRequirements)) == 0 {
+				problems = append(problems, prefix+" is missing verification requirements")
+			}
+		}
+	}
+	return problems
+}
+
+func nonEmptyStrings(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			out = append(out, value)
+		}
+	}
+	return out
 }

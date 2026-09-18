@@ -30,7 +30,9 @@ func TestStoreOpenMigratesIdempotently(t *testing.T) {
 	if v1 < 1 {
 		t.Fatalf("expected schema version >= 1, got %d", v1)
 	}
-	_ = s1.Close()
+	if err := s1.Close(); err != nil {
+		t.Fatalf("close after first open: %v", err)
+	}
 
 	// Re-open must not re-apply migrations or fail.
 	s2, err := Open(path)
@@ -41,6 +43,41 @@ func TestStoreOpenMigratesIdempotently(t *testing.T) {
 	v2, _ := s2.SchemaVersion()
 	if v2 != v1 {
 		t.Fatalf("schema version changed on reopen: %d -> %d", v1, v2)
+	}
+}
+
+func TestEventCorrelationMigrationIsIdempotent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "event-correlation.db")
+	s1, err := Open(path)
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	version, err := s1.SchemaVersion()
+	if err != nil {
+		t.Fatalf("schema version: %v", err)
+	}
+	if version < 15 {
+		t.Fatalf("expected correlation migration, got schema version %d", version)
+	}
+	var columnCount int
+	if err := s1.DB().QueryRow(`SELECT COUNT(*) FROM pragma_table_info('events_metadata') WHERE name='correlation_id'`).Scan(&columnCount); err != nil {
+		t.Fatalf("inspect correlation column: %v", err)
+	}
+	if columnCount != 1 {
+		t.Fatalf("expected one correlation column, got %d", columnCount)
+	}
+	if err := s1.Close(); err != nil {
+		t.Fatalf("close after correlation migration: %v", err)
+	}
+
+	s2, err := Open(path)
+	if err != nil {
+		t.Fatalf("reopen store: %v", err)
+	}
+	defer s2.Close()
+	version2, _ := s2.SchemaVersion()
+	if version2 != version {
+		t.Fatalf("schema version changed after reopen: %d -> %d", version, version2)
 	}
 }
 
@@ -58,8 +95,8 @@ func TestProjectCRUD(t *testing.T) {
 	if p.Slug != "omega-api" {
 		t.Errorf("expected slug omega-api, got %q", p.Slug)
 	}
-	if p.MaestroMode != MaestroAssist {
-		t.Errorf("default maestro mode should be ASSIST, got %q", p.MaestroMode)
+	if p.MaestroMode != MaestroOff {
+		t.Errorf("default maestro mode should be OFF, got %q", p.MaestroMode)
 	}
 	if p.DefaultIsolation != "project" {
 		t.Errorf("default isolation should be project, got %q", p.DefaultIsolation)
@@ -110,6 +147,52 @@ func TestCanonicalPathValidation(t *testing.T) {
 	}
 	if _, err := CanonicalPath(f); err == nil {
 		t.Error("file path must be rejected (not a directory)")
+	}
+}
+
+func TestListAgentSummaries(t *testing.T) {
+	s := openTestStore(t)
+	emptyProj, err := s.CreateProject(Project{Name: "Empty", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatalf("create empty project: %v", err)
+	}
+	activeProj, err := s.CreateProject(Project{Name: "Active", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatalf("create active project: %v", err)
+	}
+
+	working, err := s.CreateAgent(Agent{ProjectID: activeProj.ID, Name: "Worker", Status: "WORKING"})
+	if err != nil {
+		t.Fatalf("create working agent: %v", err)
+	}
+	if err := s.SetAgentStatus(working.ID, "WORKING"); err != nil {
+		t.Fatalf("set working status: %v", err)
+	}
+	if _, err := s.CreateAgent(Agent{ProjectID: activeProj.ID, Name: "Idle", Status: "STOPPED"}); err != nil {
+		t.Fatalf("create stopped agent: %v", err)
+	}
+
+	summaries, err := s.ListAgentSummaries()
+	if err != nil {
+		t.Fatalf("list agent summaries: %v", err)
+	}
+
+	byID := map[string]ProjectAgentSummary{}
+	for _, summary := range summaries {
+		byID[summary.ProjectID] = summary
+	}
+	if _, ok := byID[emptyProj.ID]; ok {
+		t.Fatalf("projects with zero agents must be omitted, found %s", emptyProj.ID)
+	}
+	got, ok := byID[activeProj.ID]
+	if !ok {
+		t.Fatalf("expected summary for active project %s", activeProj.ID)
+	}
+	if got.AgentCount != 2 {
+		t.Fatalf("expected agent_count 2, got %d", got.AgentCount)
+	}
+	if got.WorkingCount != 1 {
+		t.Fatalf("expected working_count 1, got %d", got.WorkingCount)
 	}
 }
 

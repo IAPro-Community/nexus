@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, RotateCcw, Square } from 'lucide-react';
 import { Button, Dialog } from '../design-system';
 
@@ -11,11 +12,41 @@ export const TerminalActionDialog: React.FC<{
   onConfirmMode?: () => void;
   onCloseTab?: () => void;
   onStopRuntime?: () => void;
-}> = ({ mode, close, shell, busy, onCancel, onConfirmMode, onCloseTab, onStopRuntime }) => {
+  promotion?: string;
+  onPromotionAnswer?: (answer: 'y' | 'n') => void;
+}> = ({
+  mode,
+  close,
+  shell,
+  busy,
+  onCancel,
+  onConfirmMode,
+  onCloseTab,
+  onStopRuntime,
+  promotion,
+  onPromotionAnswer,
+}) => {
+  const { t } = useTranslation();
+  if (promotion) {
+    return (
+      <Dialog open title={t('terminal.promotion.title')} onClose={() => onPromotionAnswer?.('n')}>
+        <div className="nx-terminal-action-dialog">
+          <strong>{t('terminal.promotion.question')}</strong>
+          <p>{promotion}</p>
+          <div className="nx-dialog-actions">
+            <Button tone="brand" onClick={() => onPromotionAnswer?.('y')}>
+              {t('terminal.promotion.promote')}
+            </Button>
+            <Button onClick={() => onPromotionAnswer?.('n')}>{t('terminal.promotion.keep')}</Button>
+          </div>
+        </div>
+      </Dialog>
+    );
+  }
   if (!mode && !close) return null;
   if (mode) {
     return (
-      <Dialog open title={`Aplicar modo ${mode}`} onClose={onCancel}>
+      <Dialog open title={t('terminal.applyModeTitle', { mode })} onClose={onCancel}>
         <div className="nx-terminal-action-dialog">
           <div
             className="nx-terminal-action-dialog__icon"
@@ -24,22 +55,19 @@ export const TerminalActionDialog: React.FC<{
             <RotateCcw size={18} />
           </div>
           <div>
-            <strong>O runtime será reiniciado</strong>
-            <p>
-              A configuração atual será preservada e o Agente será reconectado no modo <b>{mode}</b>
-              . Durante o reinício, o terminal ficará indisponível por alguns instantes.
-            </p>
+            <strong>{t('terminal.runtimeWillRestart')}</strong>
+            <p>{t('terminal.runtimeRestartDesc', { mode })}</p>
           </div>
           <div className="nx-dialog-actions">
             <Button onClick={onCancel} disabled={busy}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               tone={mode === 'YOLO' ? 'danger' : 'brand'}
               onClick={onConfirmMode}
               disabled={busy}
             >
-              {busy ? 'Aplicando…' : `Aplicar ${mode} e reiniciar`}
+              {busy ? t('terminal.applying') : t('terminal.applyModeAndRestart', { mode })}
             </Button>
           </div>
         </div>
@@ -47,35 +75,37 @@ export const TerminalActionDialog: React.FC<{
     );
   }
   return (
-    <Dialog open title={shell ? 'Fechar Project Shell' : 'Fechar terminal'} onClose={onCancel}>
+    <Dialog
+      open
+      title={shell ? t('terminal.closeShellTitle') : t('terminal.closeTerminalTitle')}
+      onClose={onCancel}
+    >
       <div className="nx-terminal-action-dialog">
         <div className="nx-terminal-action-dialog__icon" data-tone="warning">
           <AlertTriangle size={18} />
         </div>
         <div>
-          <strong>{shell ? 'O processo da shell será encerrado' : 'O que deseja fechar?'}</strong>
-          <p>
-            {shell
-              ? 'Fechar esta Project Shell encerra o processo correspondente.'
-              : 'Fechar a aba visual não precisa parar o Agente persistente.'}
-          </p>
+          <strong>
+            {shell ? t('terminal.shellProcessWillEnd') : t('terminal.whatDoYouWantToClose')}
+          </strong>
+          <p>{shell ? t('terminal.closeShellDesc') : t('terminal.closeTabDesc')}</p>
         </div>
         <div className="nx-terminal-action-dialog__choices">
           {!shell && (
             <Button onClick={onCloseTab} disabled={busy}>
-              Fechar somente a aba
+              {t('terminal.closeTabOnly')}
             </Button>
           )}
           <Button tone="danger" onClick={onStopRuntime} disabled={busy}>
             <Square size={13} />
             {busy
-              ? 'Encerrando…'
+              ? t('terminal.stopping')
               : shell
-                ? 'Fechar e encerrar processo'
-                : 'Fechar aba e parar runtime'}
+                ? t('terminal.closeAndEndProcess')
+                : t('terminal.closeTabAndStopRuntime')}
           </Button>
           <Button onClick={onCancel} disabled={busy}>
-            Cancelar
+            {t('common.cancel')}
           </Button>
         </div>
       </div>

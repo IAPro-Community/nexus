@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/control/terminal"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/terminal"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 type OpenCodeDriver struct{}
@@ -20,7 +21,7 @@ func NewOpenCodeDriver() *OpenCodeDriver { return &OpenCodeDriver{} }
 func (d *OpenCodeDriver) ProviderID() string { return "opencode" }
 
 func (d *OpenCodeDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	bin, err := runtime.LookPath("opencode")
+	bin, err := spec.MustGet("opencode").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "opencode binary not found in PATH"}, nil
 	}
@@ -43,6 +44,10 @@ func (d *OpenCodeDriver) Detect(ctx context.Context) (model.DetectionResult, err
 func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) EffectiveCapabilities {
 	det, _ := d.Detect(ctx)
 	version := det.Version
+
+	// Derive read_only_review from: ReviewMode flags present + headless + submit_prompt.
+	reviewMode := spec.MustGet("opencode").ReviewMode
+	canReview := len(reviewMode) > 0
 
 	return EffectiveCapabilities{
 		Process: CapabilityEvidence{
@@ -122,6 +127,11 @@ func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) Eff
 			Mechanism: "Universal /ai slash command router",
 			Tested:    true,
 		},
+		ReadOnlyReview: CapabilityEvidence{
+			Status:    boolToStatus(canReview),
+			Mechanism: "opencode --permission-mode plan (read-only review)",
+			Tested:    false,
+		},
 		ControlLevel: registry.ControlLevelTerminal,
 	}
 }
@@ -131,7 +141,8 @@ func (d *OpenCodeDriver) Capabilities(ctx context.Context, p model.Profile) Cont
 }
 
 func (d *OpenCodeDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs []string) (string, []string, []string, error) {
-	bin, err := runtime.LookPath("opencode")
+	s := spec.MustGet("opencode")
+	bin, err := s.ResolveBinary()
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -140,14 +151,7 @@ func (d *OpenCodeDriver) BuildCommand(ctx context.Context, p model.Profile, extr
 	if err != nil {
 		return "", nil, nil, err
 	}
-	env := runtime.EnvSet(os.Environ(), map[string]string{
-		"HOME":          home,
-		"XDG_DATA_HOME": filepath.Join(home, ".local", "share"),
-		"OPENCODE_HOME": home,
-		"AI_PROFILE":    p.Name,
-		"AI_PROVIDER":   "opencode",
-		"PATH":          runtime.EnhancedPATH(filepath.Dir(bin)),
-	})
+	env := s.OverlayEnv(os.Environ(), home, filepath.Dir(bin), p.Name)
 
 	return bin, extraArgs, env, nil
 }
@@ -163,9 +167,16 @@ func (d *OpenCodeDriver) BuildResumeArgs(ctx context.Context, p model.Profile, p
 	if strings.TrimSpace(providerSessionID) == "" {
 		return nil, fmt.Errorf("cannot resume opencode session without valid session ID")
 	}
-	return []string{"-s", providerSessionID}, nil
+	return spec.MustGet("opencode").Resume(providerSessionID), nil
 }
 
 func (d *OpenCodeDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, kickoffPrompt string) ([]string, error) {
-	return []string{"run", kickoffPrompt}, nil
+	return spec.MustGet("opencode").Kickoff(kickoffPrompt), nil
+}
+
+func boolToStatus(b bool) CapabilityStatus {
+	if b {
+		return CapabilitySupported
+	}
+	return CapabilityUnsupported
 }

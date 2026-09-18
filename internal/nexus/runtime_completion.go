@@ -2,7 +2,7 @@ package nexus
 
 import (
 	"fmt"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
 func runtimeCompletionOutcome(state registry.RuntimeState, streamClosed bool) error {

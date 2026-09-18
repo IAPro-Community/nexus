@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 // launchEnvelope keeps opaque provider arguments out of the runtime registry.

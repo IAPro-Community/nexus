@@ -1,0 +1,226 @@
+@use '../../styles/tokens';
+@use '../../styles/typography';
+
+.branchCode {
+  color: var(--nx-accent-text);
+}
+
+.updateAlert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.updateAlertContent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.updateAlertText {
+  margin: 0;
+  font-size: 0.857rem;
+  color: var(--nx-muted);
+}
+
+.fleetContainer {
+  display: grid;
+  gap: 16px;
+}
+
+.fleetStatusBadges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emptyActions {
+  margin-top: 4px;
+  justify-content: center;
+}
+
+.agentCardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.agentInfo {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.agentName {
+  font-size: 1rem;
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.agentSubtitle {
+  color: var(--nx-muted);
+  font-size: 0.821rem;
+}
+
+.agentActions {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--nx-border);
+}
+
+.resumePanel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-surface-raised);
+}
+
+.resumeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.resumeHeader h2 {
+  margin: 2px 0 0;
+}
+
+.resumeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.resumeCard {
+  display: grid;
+  gap: 12px;
+}
+
+.resumeCardBody {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.resumeCardBody span,
+.recentWork span {
+  color: var(--nx-muted);
+  font-size: 0.857rem;
+}
+
+.resumeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recentWork {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  border-top: 1px solid var(--nx-border);
+  padding-top: 10px;
+}
+
+.liveRuntimesPanel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-surface-raised);
+}
+
+.liveRuntimesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.liveRuntimesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.runtimeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: var(--nx-border-hover);
+  }
+}
+
+.runtimeHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulseDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  animation: runtime-pulse 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
+  flex-shrink: 0;
+}
+
+@keyframes runtime-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.runtimeTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--nx-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.runtimeMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--nx-text-muted);
+}
+
+.runtimeActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--nx-border);
+}

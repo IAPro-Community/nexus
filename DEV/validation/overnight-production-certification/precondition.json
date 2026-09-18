@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-09-13T04:30:05Z",
+  "required_artifact": "DEV/validation/production-finalization/FINAL_REPORT.md",
+  "required_verdict": "READY_FOR_OVERNIGHT_CERTIFICATION",
+  "artifact_exists": false,
+  "verdict_found_in_repo": false,
+  "production_finalization_files": [
+    "README.md",
+    "BASELINE.md",
+    "checkpoint.md",
+    "tasks.md"
+  ],
+  "checkpoint_phase": "0 — baseline and blocker inventory",
+  "intake_candidate_sha": "3985908244cc01c9e08c5ad4da0854622673a3d7",
+  "executed_head_sha": "e53f8352e4c3647632ebac7877cf0a6a3bd62647",
+  "head_matches_certified_candidate": false,
+  "intake_is_ancestor_of_head": true,
+  "commits_since_intake": 8,
+  "branch": "feat/nexus-maximum-delivery",
+  "origin_sha": "d15aa712dd4da433e5d0bad01c169205197865c6",
+  "working_tree": {
+    "dirty": true,
+    "notes": "production-finalization/ untracked; screenshot manifest dirty; capability-review JSON untracked"
+  },
+  "baseline_open_gaps": [
+    "native Windows/macOS execution NOT VERIFIED",
+    "same-SHA hosted CI NOT VERIFIED",
+    "authenticated Mission evidence pending",
+    "production updater public key pending"
+  ],
+  "campaigns_started": [],
+  "decision": "ABORTED_PRECONDITION_FAILED"
+}

@@ -11,25 +11,39 @@ bin/
 *.zip
 *.tar.gz
 *.7z
+*.test
+*.test.exe
 
 # Logs and databases
 *.log
 *.sqlite
 *.sqlite*
 *.db
+*.db-wal
+*.db-shm
+*.db-journal
 conversation_summaries.db
 history.jsonl
 
 # Credentials, Keys & Secrets
-*token*
-*secret*
 *auth.json
-*keyring*
+*.token
+*.token.json
+*.token.*
+*.secret
+*.secret.json
+*.secret.*
+*.key
+*.pem
 *.pass
+*keyring*
+!**/keyring.go
+!**/keyring_*.go
 *google_accounts*
 *jetski*
 .env
 .env.*
+!.env.example
 .superpowers/
 
 # Local Profile and Storage Dirs
@@ -40,6 +54,8 @@ scratch/
 tmp/
 .worktrees/
 .tempmediaStorage/
+/.omx/
+/.orquestrador/runtime/
 
 # OS and IDE Files
 .DS_Store
@@ -59,6 +75,12 @@ web/dist/
 # Bun is the packageManager (web/package.json); ignore npm lock churn.
 web/package-lock.json
 
+# Local binaries and test artifacts
+/loadtest
+.e2e-artifacts/
+coverage/
+DEV/validation/current/coverage*.out
+
 # Local Yarn state; dependencies are managed by web/bun.lock.
 .pnp.*
 .yarn/*
@@ -67,9 +89,11 @@ web/package-lock.json
 !.yarn/releases/
 !.yarn/versions/
 yarn.lock
-yarn.lock
 
 # Ephemeral dated test/verification reports and gate status crumbs
 DEV/validation/FRONTEND_20*.md
 DEV/validation/*.status
 DEV/validation/baseline/*.status
+
+# RC signing material (private)
+DEV/validation/rc1-secrets/

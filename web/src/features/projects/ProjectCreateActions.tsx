@@ -27,7 +27,7 @@ export const ProjectCreateActions: React.FC<ProjectCreateActionsProps> = ({
       className={`nx-project-create-actions${className ? ` ${className}` : ''}`}
       data-size={size}
       role="group"
-      aria-label="Criar no projeto"
+      aria-label={t('overview.createInProject', 'Criar no projeto')}
     >
       {onNewAgent && (
         <button
@@ -36,10 +36,10 @@ export const ProjectCreateActions: React.FC<ProjectCreateActionsProps> = ({
           data-tone="brand"
           data-size="sm"
           onClick={onNewAgent}
-          title="Criar novo Agente no Projeto"
+          title={t('agents.createInProjectTooltip', 'Criar novo Agente no Projeto')}
         >
           <Plus size={size === 'sm' ? 12 : 14} />
-          <span>Novo Agente</span>
+          <span>{t('agents.new', 'Novo Agente')}</span>
         </button>
       )}
       {onNewAISession && (

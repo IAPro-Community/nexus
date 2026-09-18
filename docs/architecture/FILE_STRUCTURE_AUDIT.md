@@ -9,7 +9,8 @@ web/src/
 ├── App.tsx                          # Root component (2 routes: demo + workspace)
 ├── index.tsx                        # Entry point
 ├── index.css                        # Tailwind + xterm imports
-├── api.ts                           # Global API client (108 lines)
+├── api.ts                           # Shared HTTP transport + legacy runtime facade
+├── nexus/api.ts                     # Typed Nexus domain API facade
 ├── api.test.ts
 ├── types.ts                         # Global types (653 lines) ← GOD FILE
 ├── app/

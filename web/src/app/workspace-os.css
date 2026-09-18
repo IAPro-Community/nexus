@@ -15,7 +15,8 @@
   --nx-text: #f1f3f7;
   --nx-text-soft: #d9dde6;
   --nx-muted: #8a93a5;
-  --nx-subtle: #626c82;
+  /* Secondary labels must remain readable on the dark workspace surface. */
+  --nx-subtle: #8b95a8;
   --nx-accent: #8b5cf6;
   --nx-accent-hover: #9f75ff;
   --nx-accent-soft: rgba(139, 92, 246, 0.14);
@@ -31,10 +32,40 @@
   --nx-radius: 10px;
   --nx-radius-sm: 7px;
   --nx-radius-lg: 14px;
+  /* Canonical spacing scale: 4px base, shared by Web and embedded Desktop UI. */
+  --nx-spacing-0: 0;
+  --nx-spacing-1: 4px;
+  --nx-spacing-2: 8px;
+  --nx-spacing-3: 12px;
+  --nx-spacing-4: 16px;
+  --nx-spacing-5: 20px;
+  --nx-spacing-6: 24px;
+  --nx-spacing-7: 28px;
+  --nx-spacing-8: 32px;
+  --nx-spacing-9: 36px;
+  --nx-spacing-10: 40px;
+  --nx-spacing-11: 44px;
+  --nx-spacing-12: 48px;
+  --nx-spacing-16: 64px;
+  /* Backward-compatible aliases for surfaces using the shorter token name. */
+  --nx-space-0: var(--nx-spacing-0);
+  --nx-space-1: var(--nx-spacing-1);
+  --nx-space-2: var(--nx-spacing-2);
+  --nx-space-3: var(--nx-spacing-3);
+  --nx-space-4: var(--nx-spacing-4);
+  --nx-space-5: var(--nx-spacing-5);
+  --nx-space-6: var(--nx-spacing-6);
+  --nx-space-8: var(--nx-spacing-8);
+  --nx-space-12: var(--nx-spacing-12);
   --nx-topbar: 46px;
   --nx-project-nav: 38px;
   --nx-taskbar: 38px;
-  --nx-rail: 232px;
+  --nx-rail: 260px;
+  --nx-touch-min: 32px;
+  --nx-safe-top: env(safe-area-inset-top, 0px);
+  --nx-safe-right: env(safe-area-inset-right, 0px);
+  --nx-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --nx-safe-left: env(safe-area-inset-left, 0px);
   /* Canonical Z-Index Hierarchy Tokens */
   --nx-z-base: 1;
   --nx-z-window: 100;
@@ -111,39 +142,40 @@
   --nx-topbar: 42px;
   --nx-project-nav: 36px;
   --nx-taskbar: 36px;
-  --nx-rail: 216px;
+  --nx-rail: 240px;
   --nx-density-pad-card: 8px 12px;
   --nx-density-pad-btn: 3px 8px;
   --nx-density-btn-h: 28px;
   --nx-density-row-h: 30px;
   --nx-density-gap: 6px;
-  --nx-density-font-body: calc(12px * var(--nx-font-scale, 1));
-  --nx-density-font-title: calc(13px * var(--nx-font-scale, 1));
+  --nx-density-font-body: 0.857rem;
+  --nx-density-font-title: 0.929rem;
 }
 :root[data-density="comfortable"] {
   --nx-topbar: 52px;
   --nx-project-nav: 44px;
   --nx-taskbar: 44px;
-  --nx-rail: 256px;
+  --nx-rail: 280px;
   --nx-density-pad-card: 16px 20px;
   --nx-density-pad-btn: 7px 14px;
   --nx-density-btn-h: 36px;
   --nx-density-row-h: 44px;
   --nx-density-gap: 12px;
-  --nx-density-font-body: calc(13.5px * var(--nx-font-scale, 1));
-  --nx-density-font-title: calc(15px * var(--nx-font-scale, 1));
+  --nx-density-font-body: 0.964rem;
+  --nx-density-font-title: 1.071rem;
 }
 * {
   box-sizing: border-box;
 }
 html {
-  font-size: calc(14px * var(--nx-font-scale, 1));
+  font-size: calc(87.5% * var(--nx-font-scale, 1));
 }
 html,
 body,
 #root {
   width: 100%;
   height: 100%;
+  min-height: 100dvh;
   margin: 0;
 }
 body {
@@ -151,7 +183,7 @@ body {
   background: var(--nx-bg);
   color: var(--nx-text);
   font-family: var(--nx-font);
-  font-size: calc(13px * var(--nx-font-scale, 1));
+  font-size: 0.929rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -171,7 +203,12 @@ button {
   outline: 2px solid var(--nx-accent);
   outline-offset: 2px;
 }
-:root[data-reduced-motion="true"] *,
+:root[data-reduced-motion="true"] * {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
@@ -204,7 +241,7 @@ button {
   border-radius: 7px;
   background: var(--nx-accent);
   color: #fff;
-  font-size: 13px;
+  font-size: 0.929rem;
   font-weight: 600;
   text-decoration: none;
 }
@@ -212,11 +249,13 @@ button {
   top: 8px;
 }
 .nx-os-shell {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
   display: flex;
   background: var(--nx-bg);
   overflow: hidden;
+  padding: var(--nx-safe-top) var(--nx-safe-right) var(--nx-safe-bottom) var(--nx-safe-left);
 }
 .nx-os-main {
   min-width: 0;
@@ -268,7 +307,7 @@ button {
   border: 1px solid color-mix(in srgb, var(--nx-accent) 45%, var(--nx-border));
   color: white;
   font-weight: 900;
-  font-size: 13px;
+  font-size: 0.929rem;
   box-shadow: 0 7px 20px color-mix(in srgb, var(--nx-accent) 22%, transparent);
   overflow: hidden;
   flex-shrink: 0;
@@ -277,7 +316,7 @@ button {
   width: 64px;
   height: 64px;
   border-radius: 14px;
-  font-size: 24px;
+  font-size: 1.714rem;
 }
 .nx-brand-mark__img {
   width: 100%;
@@ -296,12 +335,12 @@ button {
   gap: 1px;
 }
 .nx-project-rail__brand strong {
-  font-size: 13px;
+  font-size: 0.929rem;
   font-weight: 700;
 }
 .nx-project-rail__brand small {
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-project-rail__mobile-close {
   display: none !important;
@@ -321,7 +360,7 @@ button {
   border-radius: 6px;
   background: var(--nx-surface);
   color: var(--nx-text);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   outline: none;
   transition: border-color 0.12s;
 }
@@ -332,16 +371,15 @@ button {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  flex-shrink: 0;
-}
-.nx-rail-section-agents {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 1 1 0;
   overflow: hidden;
+}
+.nx-rail-accordion-section[data-expanded="false"] {
+  flex: 0 0 auto;
 }
 .nx-rail-section-tools {
   margin-top: auto;
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 .nx-rail-section-header {
   cursor: pointer;
@@ -358,7 +396,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -370,13 +408,13 @@ button {
   text-align: left;
 }
 .nx-rail-chevron {
-  font-size: 10px;
+  font-size: 0.714rem;
   display: inline-block;
   width: 10px;
   color: var(--nx-muted);
 }
 .nx-rail-count {
-  font-size: 10.5px;
+  font-size: 0.75rem;
   color: var(--nx-muted);
   font-weight: 500;
 }
@@ -389,7 +427,7 @@ button {
   align-items: center;
   justify-content: space-between;
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -397,14 +435,15 @@ button {
 .nx-project-list {
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 2px 6px 4px;
   display: grid;
   align-content: start;
   gap: 2px;
+  flex: 1 1 auto;
 }
 .nx-agents-list-scroll {
-  flex: 1;
-  min-height: 80px;
+  min-height: 0;
 }
 .nx-rail-item-btn {
   min-height: 30px;
@@ -439,7 +478,7 @@ button {
   width: 20px;
   height: 20px;
   border-radius: 5px;
-  font-size: 9.5px;
+  font-size: 0.679rem;
   font-weight: 800;
   display: grid;
   place-items: center;
@@ -457,7 +496,7 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 0.857rem;
   font-weight: 600;
 }
 .nx-rail-item-copy small {
@@ -465,13 +504,13 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--nx-subtle);
-  font-size: 10px;
+  font-size: 0.714rem;
 }
 .nx-rail-empty-msg {
   padding: 6px 10px;
   margin: 0;
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-project-active-dot {
   width: 5px;
@@ -484,8 +523,8 @@ button {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 3px;
-  max-height: 130px;
   overflow-y: auto;
+  max-height: min(28vh, 240px);
 }
 .nx-rail-tool-btn {
   height: 27px;
@@ -497,7 +536,7 @@ button {
   border-radius: 6px;
   background: transparent;
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
   text-align: left;
   cursor: pointer;
   transition:
@@ -562,6 +601,14 @@ button {
   flex: 0 0 auto;
   justify-content: flex-end;
 }
+.nx-chrome-wide {
+  display: flex;
+  align-items: center;
+  gap: inherit;
+}
+.nx-chrome-compact {
+  display: none;
+}
 .nx-topbar__project {
   border: 0;
   background: transparent;
@@ -573,11 +620,11 @@ button {
   gap: 0;
 }
 .nx-topbar__project strong {
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-topbar__project small {
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-topbar__path {
   max-width: clamp(80px, 14vw, 180px);
@@ -585,7 +632,7 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--nx-subtle);
-  font: 11.5px var(--nx-font-mono);
+  font: 0.821rem var(--nx-font-mono);
   flex-shrink: 1;
 }
 .nx-topbar__actions {
@@ -602,7 +649,7 @@ button {
 }
 .nx-connection {
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-command-trigger {
   height: 30px;
@@ -614,7 +661,7 @@ button {
   border-radius: 7px;
   background: var(--nx-surface);
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
   cursor: pointer;
   transition:
     border-color 0.12s,
@@ -629,10 +676,10 @@ button {
   border: 1px solid var(--nx-border-strong);
   border-radius: 4px;
   color: var(--nx-subtle);
-  font: 10px var(--nx-font-mono);
+  font: 0.714rem var(--nx-font-mono);
 }
-.nx-mobile-menu {
-  display: none !important;
+.nx-icon-button.nx-mobile-menu {
+  display: none;
 }
 .nx-project-nav {
   display: flex;
@@ -650,7 +697,7 @@ button {
   border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--nx-muted);
-  font-size: 12.5px;
+  font-size: 0.893rem;
   font-weight: 650;
   cursor: pointer;
   white-space: nowrap;
@@ -764,7 +811,7 @@ button {
   border-bottom: 1px solid transparent;
   background: transparent;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
   font-weight: 550;
   cursor: pointer;
   white-space: nowrap;
@@ -830,6 +877,52 @@ button {
   visibility: visible;
   pointer-events: auto;
 }
+
+/* 1366x768 laptops: preserve usable workspace area without shrinking controls below
+   their keyboard and pointer-friendly hit targets. */
+@media (min-width: 821px) and (max-width: 1366px) and (max-height: 820px) {
+  .nx-topbar {
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+  .nx-project-rail__brand {
+    padding-inline: 10px;
+  }
+
+  .nx-rail-section-header {
+    padding-inline: 8px;
+  }
+
+  .nx-rail-item-btn {
+    min-height: 32px;
+    padding-inline: 8px;
+  }
+
+  .nx-rail-tool-btn {
+    min-height: 32px;
+  }
+
+  .nx-workspace-stack {
+    grid-template-rows: 32px minmax(0, 1fr);
+  }
+
+  .nx-workspace-tab {
+    min-width: 76px;
+    gap: 5px;
+    padding-inline: 8px;
+  }
+
+  .nx-workspace-taskbar {
+    padding-inline: 8px;
+  }
+
+  .nx-workspace-taskbar button {
+    min-height: 32px;
+    padding-inline: 8px;
+  }
+}
+
 .nx-workspace-taskbar {
   min-width: 0;
   display: flex;
@@ -851,7 +944,7 @@ button {
   border-radius: 6px;
   background: transparent;
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   cursor: pointer;
   transition: all 0.12s;
 }
@@ -890,13 +983,13 @@ button {
 .nx-button {
   min-height: var(--nx-density-btn-h, 34px);
   padding: var(--nx-density-pad-btn, 0 14px);
-  font-size: var(--nx-density-font-body, 12.5px);
+  font-size: var(--nx-density-font-body, 0.893rem);
   font-weight: 650;
 }
 .nx-button[data-size="sm"] {
   min-height: max(26px, var(--nx-density-btn-h, 28px));
   padding: var(--nx-density-pad-btn, 0 9px);
-  font-size: calc(var(--nx-density-font-body, 12.5px) - 1px);
+  font-size: calc(var(--nx-density-font-body, 0.893rem) - 0.071rem);
 }
 .nx-icon-button {
   width: 30px;
@@ -949,7 +1042,7 @@ button {
   border-radius: 999px;
   background: var(--nx-surface-2);
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1001,7 +1094,7 @@ button {
   border-radius: 7px;
   background: var(--nx-bg-elevated);
   color: var(--nx-text-soft);
-  font-size: 13px;
+  font-size: 0.929rem;
   outline: 0;
 }
 .nx-input,
@@ -1040,13 +1133,13 @@ button {
 }
 .nx-input[data-mono="true"] {
   font-family: var(--nx-font-mono);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-select-wrap {
   display: grid;
   gap: 6px;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-select-container {
   display: inline-block;
@@ -1072,7 +1165,7 @@ button {
   outline: 0;
   background: transparent;
   color: var(--nx-text-soft);
-  font-size: 13.5px;
+  font-size: 0.964rem;
 }
 .nx-switch-row {
   display: flex !important;
@@ -1110,11 +1203,11 @@ button {
   gap: 2px;
 }
 .nx-switch-copy strong {
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-switch-copy small {
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
 }
 .nx-segmented {
   display: inline-flex;
@@ -1130,7 +1223,7 @@ button {
   border-radius: 6px;
   background: transparent;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
   font-weight: 550;
   cursor: pointer;
   transition: all 0.12s;
@@ -1157,7 +1250,7 @@ button {
   display: block;
   margin-top: 5px;
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-spinner {
   display: flex;
@@ -1166,7 +1259,7 @@ button {
   gap: 8px;
   padding: 24px;
   color: var(--nx-muted);
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-spinner svg {
   animation: nx-spin 1s linear infinite;
@@ -1189,12 +1282,12 @@ button {
 }
 .nx-empty-state strong {
   color: var(--nx-text-soft);
-  font-size: 14px;
+  font-size: 1rem;
 }
 .nx-empty-state p {
   max-width: 460px;
   margin: 0;
-  font-size: 12px;
+  font-size: 0.857rem;
   line-height: 1.5;
 }
 .nx-inline-alert {
@@ -1212,10 +1305,10 @@ button {
 }
 .nx-inline-alert strong {
   color: var(--nx-text-soft);
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-inline-alert span {
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-inline-alert[data-tone="warning"] {
   border-color: color-mix(in srgb, var(--nx-warning) 35%, var(--nx-border));
@@ -1256,6 +1349,12 @@ button {
 .nx-dialog[data-wide="true"] {
   width: min(760px, 96vw);
 }
+.nx-dialog[data-full="true"] {
+  width: calc(100vw - 24px);
+  height: calc(100vh - 24px);
+  max-height: calc(100vh - 24px);
+  border-radius: 12px;
+}
 .nx-dialog > header {
   display: flex;
   align-items: center;
@@ -1265,7 +1364,7 @@ button {
 }
 .nx-dialog h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: 1rem;
   font-weight: 700;
 }
 .nx-dialog__body {
@@ -1281,7 +1380,7 @@ button {
   display: grid;
   gap: 6px;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-dialog-actions {
   display: flex;
@@ -1291,7 +1390,7 @@ button {
 }
 .nx-confirm-desc {
   color: var(--nx-muted);
-  font-size: 13px;
+  font-size: 0.929rem;
   margin: 0 0 16px;
   line-height: 1.5;
 }
@@ -1302,7 +1401,7 @@ button {
   background: var(--nx-surface-3);
   border: 1px solid var(--nx-border-strong);
   color: var(--nx-text);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   pointer-events: none;
 }
@@ -1312,7 +1411,7 @@ button {
 .nx-error-copy {
   margin: 0;
   color: var(--nx-danger);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-command-palette {
   display: grid;
@@ -1359,26 +1458,26 @@ button {
   gap: 2px;
 }
 .nx-command-copy strong {
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-command-copy small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--nx-subtle);
-  font-size: 11.5px;
+  font-size: 0.821rem;
 }
 .nx-command-meta {
   display: flex;
   align-items: center;
   gap: 6px;
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-command-empty {
   padding: 24px;
   color: var(--nx-subtle);
-  font-size: 13px;
+  font-size: 0.929rem;
   text-align: center;
 }
 .nx-tour-layer {
@@ -1408,7 +1507,7 @@ button {
   pointer-events: auto;
 }
 .nx-tour-card header,
-.nx-tour-card footer {
+.nx-tour-card .nx-tour-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1419,18 +1518,18 @@ button {
   align-items: center;
   gap: 6px;
   color: var(--nx-accent-text);
-  font-size: 12px;
+  font-size: 0.857rem;
   font-weight: 650;
 }
 .nx-tour-card > strong {
   display: block;
   margin-top: 10px;
-  font-size: 14px;
+  font-size: 1rem;
 }
 .nx-tour-card > p {
   margin: 6px 0 14px;
   color: var(--nx-muted);
-  font-size: 12.5px;
+  font-size: 0.893rem;
   line-height: 1.55;
 }
 .nx-surface-scroll {
@@ -1458,7 +1557,7 @@ button {
 }
 .nx-page-header h1 {
   margin: 3px 0 5px;
-  font-size: 22px;
+  font-size: 1.571rem;
   font-weight: 750;
   letter-spacing: -0.025em;
 }
@@ -1466,7 +1565,7 @@ button {
   max-width: 760px;
   margin: 0;
   color: var(--nx-muted);
-  font-size: 13px;
+  font-size: 0.929rem;
   line-height: 1.55;
 }
 .nx-page-header__actions {
@@ -1476,14 +1575,14 @@ button {
 }
 .nx-eyebrow {
   color: var(--nx-accent-text);
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 .nx-muted-copy {
   color: var(--nx-muted);
-  font-size: 12.5px;
+  font-size: 0.893rem;
   line-height: 1.5;
 }
 .nx-section-title {
@@ -1494,13 +1593,13 @@ button {
 }
 .nx-section-title h2 {
   margin: 0 0 3px;
-  font-size: 14px;
+  font-size: 1rem;
   font-weight: 700;
 }
 .nx-section-title p {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-app-loading {
   width: 100vw;
@@ -1539,13 +1638,13 @@ button {
 .nx-metric-card strong {
   overflow: hidden;
   color: var(--nx-text);
-  font-size: 18px;
+  font-size: 1.286rem;
   font-weight: 750;
   text-overflow: ellipsis;
 }
 .nx-metric-card span:last-child {
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-overview-columns {
   display: grid;
@@ -1592,13 +1691,13 @@ button {
   border-radius: 8px;
   background: var(--nx-surface-2);
   color: var(--nx-accent-text);
-  font-size: 12px;
+  font-size: 0.857rem;
   font-weight: 850;
 }
 .nx-agent-avatar--large {
   width: 40px;
   height: 40px;
-  font-size: 14px;
+  font-size: 1rem;
 }
 .nx-agent-mini__copy,
 .nx-agent-card__head > div,
@@ -1616,7 +1715,7 @@ button {
 .nx-feature-heading strong,
 .nx-settings-card__title strong {
   color: var(--nx-text-soft);
-  font-size: 13.5px;
+  font-size: 0.964rem;
 }
 .nx-agent-mini__copy small,
 .nx-agent-card__head small,
@@ -1625,7 +1724,7 @@ button {
 .nx-settings-card__title small {
   overflow: hidden;
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1640,7 +1739,7 @@ button {
   gap: 10px;
   border-bottom: 1px solid var(--nx-border);
   color: var(--nx-muted);
-  font-size: 12.5px;
+  font-size: 0.893rem;
 }
 .nx-readiness-list span {
   display: flex;
@@ -1686,12 +1785,12 @@ button {
   gap: 8px;
 }
 .nx-work-cards strong {
-  font-size: 13.5px;
+  font-size: 0.964rem;
 }
 .nx-work-cards p {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
   line-height: 1.5;
 }
 .nx-inline-create {
@@ -1724,7 +1823,7 @@ button {
   border: 1px solid var(--nx-border);
   border-radius: 8px;
   background: var(--nx-bg-elevated);
-  font-size: 11.5px;
+  font-size: 0.821rem;
 }
 .nx-agent-card__meta span {
   color: var(--nx-muted);
@@ -1752,14 +1851,14 @@ button {
 }
 .nx-config-card h3 {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 0.964rem;
 }
 .nx-config-card label,
 .nx-settings-card label {
   display: grid;
   gap: 5px;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-impact-card {
   display: grid;
@@ -1772,13 +1871,13 @@ button {
   gap: 8px;
 }
 .nx-impact-card strong {
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-impact-card p,
 .nx-impact-card small {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-config-actions {
   margin-top: 10px;
@@ -1791,7 +1890,7 @@ button {
   gap: 8px;
   margin-bottom: 10px;
   color: var(--nx-danger);
-  font-size: 12.5px;
+  font-size: 0.893rem;
 }
 .nx-resource-layout {
   display: grid;
@@ -1849,7 +1948,7 @@ button {
   padding: 6px 12px;
   border-bottom: 1px solid #202530;
   background: #0f1218;
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-agent-terminal__identity,
 .nx-agent-terminal__status,
@@ -1881,7 +1980,7 @@ button {
   background: transparent;
   color: var(--nx-muted);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 600;
 }
 .nx-agent-terminal__mode[data-active="true"] {
@@ -1899,7 +1998,7 @@ button {
   text-overflow: ellipsis;
   color: #8991a2;
   font-family: var(--nx-font-mono);
-  font-size: 12px;
+  font-size: 0.857rem;
   white-space: nowrap;
 }
 .nx-agent-terminal__identity > span[data-state="CONNECTED"],
@@ -1919,7 +2018,7 @@ button {
   color: #8991a2;
 }
 .nx-agent-terminal__lease {
-  font-size: 10px;
+  font-size: 0.714rem;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -1933,7 +2032,7 @@ button {
   border: 1px solid color-mix(in srgb, var(--nx-warning) 45%, var(--nx-border));
   background: color-mix(in srgb, var(--nx-warning) 18%, transparent);
   color: var(--nx-warning);
-  font-size: 10px;
+  font-size: 0.714rem;
 }
 .nx-terminal-message {
   max-width: 280px;
@@ -1950,7 +2049,7 @@ button {
   background: var(--nx-surface-2);
   color: #aeb6c6;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 0.786rem;
   white-space: nowrap;
 }
 .nx-agent-terminal__controls button:hover {
@@ -1997,12 +2096,12 @@ button {
   color: var(--nx-accent-text);
 }
 .nx-generation-list strong {
-  font-size: 12.5px;
+  font-size: 0.893rem;
 }
 .nx-generation-list small {
   overflow: hidden;
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2047,13 +2146,13 @@ button {
 }
 .nx-project-hub h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 2rem;
   letter-spacing: -0.04em;
 }
 .nx-project-hub p {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 13.5px;
+  font-size: 0.964rem;
   line-height: 1.6;
 }
 .nx-project-hub__create {
@@ -2068,11 +2167,11 @@ button {
   gap: 3px;
 }
 .nx-project-hub__create strong {
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-project-hub__create small {
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
 }
 .nx-project-hub__create .nx-input {
   grid-column: 1/3;
@@ -2083,7 +2182,7 @@ button {
   align-items: center;
   gap: 8px;
   color: var(--nx-subtle);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-resource-account-list,
 .nx-recommendation-list,
@@ -2127,12 +2226,12 @@ button {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-resource-account__quota {
   display: block;
   color: var(--nx-subtle);
-  font-size: 11.5px;
+  font-size: 0.821rem;
 }
 .nx-scheduler-explanation {
   padding: 10px;
@@ -2140,7 +2239,7 @@ button {
   border-radius: 8px;
   background: var(--nx-surface-2);
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-maestro-panel {
   display: grid;
@@ -2167,14 +2266,14 @@ button {
 .nx-recommendation-card small {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-recommendation-card code {
   padding: 6px;
   border-radius: 6px;
   background: var(--nx-bg-elevated);
   color: var(--nx-accent-text);
-  font-size: 11.5px;
+  font-size: 0.821rem;
 }
 @media (max-width: 1280px) {
   .nx-topbar__path {
@@ -2207,26 +2306,27 @@ button {
     display: none;
   }
 }
-@media (max-width: 820px) {
+@media (max-width: 1279px) {
   .nx-project-rail {
     position: fixed;
     inset: 0 auto 0 0;
-    width: 260px;
-    flex: 0 0 260px;
+    width: var(--nx-rail, 260px);
+    flex: 0 0 var(--nx-rail, 260px);
     transform: translateX(-102%);
     transition: transform 0.18s ease-in-out;
     box-shadow: 20px 0 60px rgba(0, 0, 0, 0.4);
+    z-index: var(--nx-z-drawer);
   }
   .nx-project-rail[data-open="true"] {
     transform: translateX(0);
   }
   .nx-project-rail__mobile-close {
-    display: inline-flex !important;
+    display: inline-flex;
   }
   .nx-project-rail-overlay {
     position: fixed;
     inset: 0;
-    z-index: 40;
+    z-index: var(--nx-z-modal-backdrop);
     display: block;
     background: rgba(0, 0, 0, 0.5);
     opacity: 0;
@@ -2237,9 +2337,40 @@ button {
     opacity: 1;
     pointer-events: auto;
   }
-  .nx-mobile-menu {
-    display: inline-flex !important;
+  .nx-icon-button.nx-mobile-menu {
+    display: inline-flex;
   }
+}
+/* Laptop compact chrome must not apply to phones — touch needs the opposite. */
+@media (min-width: 821px) and (max-height: 820px), (min-width: 821px) and (max-width: 1366px) {
+  :root {
+    --nx-topbar: 38px;
+    --nx-taskbar: 26px;
+    --nx-project-nav: 32px;
+  }
+  .nx-topbar {
+    padding: 0 10px;
+    gap: 8px;
+  }
+  .nx-workspace-tabs {
+    min-height: 32px;
+    height: 32px;
+  }
+  .nx-workspace-tab {
+    padding: 0 10px;
+    font-size: 0.857rem;
+  }
+  .nx-workspace-statusbar {
+    height: var(--nx-taskbar);
+    font-size: 0.786rem;
+    padding: 0 10px;
+  }
+  .nx-terminals-host__chrome {
+    min-height: 34px;
+    padding: 0 8px;
+  }
+}
+@media (max-width: 820px) {
   .nx-topbar__status > .nx-badge,
   .nx-connection {
     display: none;
@@ -2314,18 +2445,174 @@ button {
     display: none;
   }
 }
+
+/* Phone + coarse pointer: touch-first chrome without changing desktop layout. */
+@media (max-width: 820px) {
+  :root {
+    --nx-topbar: 52px;
+    --nx-taskbar: 44px;
+    --nx-touch-min: 44px;
+    --nx-density-btn-h: 44px;
+    --nx-density-pad-btn: 0 14px;
+  }
+
+  .nx-chrome-wide {
+    display: none;
+  }
+
+  .nx-chrome-compact {
+    display: inline-flex;
+  }
+
+  .nx-icon-button.nx-mobile-menu {
+    display: inline-flex;
+  }
+
+  .nx-icon-button {
+    width: var(--nx-touch-min);
+    height: var(--nx-touch-min);
+  }
+
+  .nx-button,
+  .nx-button[data-size="sm"] {
+    min-height: var(--nx-touch-min);
+  }
+
+  .nx-topbar {
+    min-height: var(--nx-topbar);
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  .nx-topbar__project-btn {
+    min-height: var(--nx-touch-min);
+    max-width: min(46vw, 180px);
+  }
+
+  .nx-workspace-stack {
+    grid-template-rows: 48px minmax(0, 1fr);
+    border-radius: 0;
+  }
+
+  .nx-workspace-tabs {
+    min-height: 48px;
+    height: 48px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .nx-workspace-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nx-workspace-tab {
+    min-width: max-content;
+    max-width: 46vw;
+    min-height: 48px;
+    padding: 0 12px;
+    scroll-snap-align: start;
+    font-size: 0.929rem;
+  }
+
+  .nx-workspace-tab__close {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 6px;
+  }
+
+  .nx-workspace-taskbar,
+  .nx-workspace-statusbar {
+    min-height: var(--nx-taskbar);
+    height: var(--nx-taskbar);
+    padding: 0 8px;
+  }
+
+  .nx-workspace-taskbar button,
+  .nx-statusbar-btn {
+    min-height: var(--nx-touch-min);
+    height: auto;
+  }
+
+  .nx-surface-scroll {
+    padding: 12px;
+    overscroll-behavior: contain;
+  }
+
+  .nx-page-header {
+    margin-bottom: 12px;
+    gap: 10px;
+  }
+
+  .nx-page-header h1 {
+    font-size: 1.286rem;
+  }
+
+  .nx-page-header p {
+    font-size: 0.857rem;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  .nx-composer-deliberative__grid > .nx-card:first-child {
+    min-height: 0;
+    grid-template-rows: auto minmax(140px, auto) auto;
+  }
+
+  .nx-composer-turns {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .nx-composer-destination-dock {
+    padding-bottom: 12px;
+  }
+
+  .nx-composer-goal-bar__row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .nx-statusbar-version,
+  .nx-statusbar-local span,
+  .nx-statusbar-project .nx-statusbar-item {
+    max-width: 28vw;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 1200px) {
+  :root {
+    --nx-touch-min: 44px;
+  }
+
+  .nx-icon-button {
+    width: max(40px, var(--nx-touch-min));
+    height: max(40px, var(--nx-touch-min));
+  }
+
+  .nx-button,
+  .nx-button[data-size="sm"] {
+    min-height: var(--nx-touch-min);
+  }
+}
+
 .nx-selected-check {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   color: var(--nx-success);
-  font-size: 11.5px;
+  font-size: 0.821rem;
 }
 .nx-scheduler-explanation p,
 .nx-scheduler-explanation ol {
   margin: 5px 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
   line-height: 1.5;
 }
 .nx-missions-layout {
@@ -2380,7 +2667,7 @@ button {
 .nx-mission-detail__title strong,
 .nx-mission-tasks strong {
   overflow: hidden;
-  font-size: 12.5px;
+  font-size: 0.893rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2389,7 +2676,7 @@ button {
 .nx-mission-tasks small {
   overflow: hidden;
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2421,11 +2708,11 @@ button {
   gap: 2px;
 }
 .nx-mission-stats strong {
-  font-size: 16px;
+  font-size: 1.143rem;
 }
 .nx-mission-stats span {
   color: var(--nx-muted);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   text-transform: uppercase;
 }
 .nx-mission-tasks > div {
@@ -2465,7 +2752,7 @@ button {
   border-radius: 999px;
   background: var(--nx-accent-soft);
   color: var(--nx-accent-text);
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.14s;
@@ -2509,7 +2796,7 @@ button {
   overflow: hidden;
 }
 .nx-project-info strong {
-  font-size: 13px;
+  font-size: 0.929rem;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2518,7 +2805,7 @@ button {
 }
 .nx-project-info small {
   color: var(--nx-muted);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2540,7 +2827,7 @@ button {
   box-shadow: 0 0 0 2px var(--nx-accent-soft);
 }
 .nx-topbar-version-pill {
-  display: inline-flex;
+  display: none;
   align-items: center;
   gap: 6px;
   padding: 2px 8px;
@@ -2548,7 +2835,7 @@ button {
   border-radius: 6px;
   background: var(--nx-surface);
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
   font-family: var(--nx-font-mono);
 }
 .nx-ver-nexus {
@@ -2570,7 +2857,7 @@ button {
   border-radius: 7px;
   background: var(--nx-surface);
   color: var(--nx-text-soft);
-  font-size: 12px;
+  font-size: 0.857rem;
   cursor: pointer;
   transition: all 0.12s;
 }
@@ -2579,11 +2866,11 @@ button {
   background: var(--nx-surface-2);
 }
 .nx-lang-flag {
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-lang-short {
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: 0.821rem;
   color: var(--nx-muted);
 }
 .nx-lang-option {
@@ -2595,7 +2882,7 @@ button {
   border-radius: 6px;
   background: transparent;
   color: var(--nx-text-soft);
-  font-size: 12.5px;
+  font-size: 0.893rem;
   text-align: left;
   cursor: pointer;
   transition: all 0.1s;
@@ -2631,7 +2918,7 @@ button {
   padding: 0 12px;
   border-top: 1px solid var(--nx-border);
   background: var(--nx-bg-elevated);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   color: var(--nx-subtle);
 }
 .nx-statusbar-left,
@@ -2649,7 +2936,7 @@ button {
 .nx-statusbar-branch {
   color: var(--nx-accent-text);
   font-family: var(--nx-font-mono);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-statusbar-btn {
   background: transparent;
@@ -2673,16 +2960,41 @@ button {
   height: 6px;
   border-radius: 50%;
 }
-.nx-status-dot--working {
-  background: var(--nx-warning);
-  box-shadow: 0 0 6px var(--nx-warning);
+.nx-status-dot--working,
+.nx-status-dot[data-status="WORKING"] {
+  background: var(--nx-success, #10b981);
+  box-shadow: 0 0 6px var(--nx-success, #10b981);
 }
-.nx-status-dot--idle {
-  background: var(--nx-success);
+.nx-status-dot--idle,
+.nx-status-dot[data-status="IDLE"] {
+  background: var(--nx-muted, #64748b);
+}
+.nx-status-dot[data-status="RECOVERABLE"],
+.nx-status-dot[data-status="WAITING"] {
+  background: var(--nx-warning, #f59e0b);
+  box-shadow: 0 0 6px var(--nx-warning, #f59e0b);
+}
+.nx-status-dot[data-status="FAILED"],
+.nx-status-dot[data-status="STALE"] {
+  background: var(--nx-danger, #ef4444);
+}
+.nx-project-list--compact {
+  max-height: none;
+  flex: 1 1 auto;
+}
+.nx-agents-list-scroll {
+  min-height: 0;
+}
+.nx-rail-agent-term-icon {
+  color: var(--nx-subtle);
+  margin-left: auto;
+}
+.nx-rail-section-header--tools {
+  border-top: 1px solid var(--nx-border);
 }
 .nx-statusbar-version {
   font-family: var(--nx-font-mono);
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-muted);
 }
 .nx-statusbar-version strong {
@@ -2706,7 +3018,7 @@ button {
   background: var(--nx-surface-2, rgba(255, 255, 255, 0.03));
   border: 1px solid var(--nx-border);
   border-radius: 8px;
-  font-size: 12.5px;
+  font-size: 0.893rem;
 }
 .nx-branch-current {
   display: flex;
@@ -2756,7 +3068,7 @@ button {
   border: 0;
   border-radius: 6px;
   color: var(--nx-text-primary);
-  font-size: 12.5px;
+  font-size: 0.893rem;
   font-family: var(--nx-font-mono);
   cursor: pointer;
   transition: all 0.12s;
@@ -2783,7 +3095,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-success);
   font-weight: 600;
 }
@@ -2791,7 +3103,7 @@ button {
   padding: 24px;
   text-align: center;
   color: var(--nx-text-muted);
-  font-size: 13px;
+  font-size: 0.929rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2814,7 +3126,7 @@ button {
 .nx-welcome-subtitle {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 13px;
+  font-size: 0.929rem;
   line-height: 1.5;
 }
 .nx-welcome-tabs {
@@ -2832,7 +3144,7 @@ button {
   border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--nx-muted);
-  font-size: 12.5px;
+  font-size: 0.893rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.12s;
@@ -2853,13 +3165,13 @@ button {
 }
 .nx-welcome-panel h4 {
   margin: 0 0 4px;
-  font-size: 14px;
+  font-size: 1rem;
   color: var(--nx-text);
 }
 .nx-welcome-panel p {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 12.5px;
+  font-size: 0.893rem;
   line-height: 1.6;
 }
 .nx-welcome-alert {
@@ -2871,7 +3183,7 @@ button {
   border-radius: 8px;
   background: var(--nx-accent-soft);
   color: var(--nx-accent-text);
-  font-size: 12px;
+  font-size: 0.857rem;
   line-height: 1.5;
 }
 .nx-quickstart-grid {
@@ -2899,19 +3211,19 @@ button {
 }
 .nx-step-body strong {
   display: block;
-  font-size: 13px;
+  font-size: 0.929rem;
   margin-bottom: 2px;
 }
 .nx-step-body p {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
   line-height: 1.45;
 }
 .nx-shortcuts-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: 0.893rem;
 }
 .nx-shortcuts-table tr {
   border-bottom: 1px solid var(--nx-border);
@@ -2930,14 +3242,14 @@ button {
   border: 1px solid var(--nx-border-strong);
   border-radius: 4px;
   background: var(--nx-bg-elevated);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-shortcuts-table code {
   padding: 2px 6px;
   border-radius: 4px;
   background: var(--nx-bg-elevated);
   font-family: var(--nx-font-mono);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   color: var(--nx-accent-text);
 }
 .nx-system-versions-card {
@@ -2954,7 +3266,7 @@ button {
   justify-content: space-between;
   padding: 4px 0;
   border-bottom: 1px solid var(--nx-border);
-  font-size: 12.5px;
+  font-size: 0.893rem;
 }
 .nx-version-row:last-child {
   border-bottom: 0;
@@ -2979,7 +3291,7 @@ button {
 .nx-pm-subtitle {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-pm-toolbar {
   display: flex;
@@ -3011,7 +3323,7 @@ button {
 }
 .nx-pm-add-card h4 {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.929rem;
   color: var(--nx-accent-text);
 }
 .nx-pm-list {
@@ -3057,7 +3369,7 @@ button {
   background: var(--nx-surface-2);
   color: var(--nx-accent-text);
   font-weight: 800;
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-pm-meta {
   min-width: 0;
@@ -3070,21 +3382,21 @@ button {
   gap: 8px;
 }
 .nx-pm-name-row strong {
-  font-size: 13.5px;
+  font-size: 0.964rem;
 }
 .nx-pm-path {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--nx-font-mono);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   color: var(--nx-subtle);
 }
 .nx-pm-tags {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-muted);
   margin-top: 2px;
 }
@@ -3106,7 +3418,7 @@ button {
   padding: 32px;
   color: var(--nx-subtle);
   text-align: center;
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-pm-item--highlighted {
   border-color: var(--nx-accent);
@@ -3121,7 +3433,7 @@ button {
   border-top: 1px solid var(--nx-border);
 }
 .nx-pm-hint {
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-subtle);
 }
 .nx-pm-hint kbd {
@@ -3129,7 +3441,7 @@ button {
   border: 1px solid var(--nx-border-strong);
   border-radius: 3px;
   background: var(--nx-bg-elevated);
-  font-size: 10px;
+  font-size: 0.714rem;
 }
 
 /* Maestro Control Modal */
@@ -3140,7 +3452,7 @@ button {
 .nx-maestro-subtitle {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-maestro-status-card {
   padding: 12px;
@@ -3152,6 +3464,10 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+.nx-maestro-status-header > div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
 }
 .nx-maestro-status-icon {
   width: 40px;
@@ -3171,7 +3487,7 @@ button {
 .nx-maestro-nexus-version {
   margin: 10px 0 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-maestro-skills-section {
   display: grid;
@@ -3182,7 +3498,7 @@ button {
   align-items: center;
   gap: 6px;
   color: var(--nx-muted);
-  font-size: 12.5px;
+  font-size: 0.893rem;
   font-weight: 650;
 }
 .nx-section-header h4 {
@@ -3192,7 +3508,7 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  max-height: 120px;
+  max-height: 160px;
   overflow-y: auto;
 }
 .nx-skill-pill {
@@ -3203,7 +3519,7 @@ button {
   border: 1px solid var(--nx-border);
   border-radius: 6px;
   background: var(--nx-surface);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   color: var(--nx-text-soft);
 }
 .nx-skill-dot {
@@ -3320,14 +3636,14 @@ button {
   );
   color: white;
   font-weight: 850;
-  font-size: 13px;
+  font-size: 0.929rem;
   box-shadow: 0 4px 12px color-mix(in srgb, var(--nx-accent) 25%, transparent);
 }
 .nx-desktop-avatar--sm {
   width: 28px;
   height: 28px;
   flex: 0 0 28px;
-  font-size: 11px;
+  font-size: 0.786rem;
   border-radius: 7px;
 }
 .nx-desktop-title-stack {
@@ -3336,7 +3652,7 @@ button {
   gap: 2px;
 }
 .nx-desktop-title-stack strong {
-  font-size: 14px;
+  font-size: 1rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3347,7 +3663,7 @@ button {
   gap: 4px;
   color: var(--nx-accent-text);
   font-family: var(--nx-font-mono);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-desktop-card__path {
   padding: 6px 10px;
@@ -3358,7 +3674,7 @@ button {
   justify-content: space-between;
   gap: 8px;
   font-family: var(--nx-font-mono);
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-subtle);
   transition: background 0.12s;
 }
@@ -3386,7 +3702,7 @@ button {
   border-radius: 6px;
   background: var(--nx-surface-2);
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 600;
 }
 .nx-desktop-card__footer {
@@ -3412,7 +3728,7 @@ button {
 .nx-desktop-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: 0.893rem;
   text-align: left;
 }
 .nx-desktop-table th {
@@ -3421,7 +3737,7 @@ button {
   background: var(--nx-surface-2);
   color: var(--nx-subtle);
   font-weight: 700;
-  font-size: 11px;
+  font-size: 0.786rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -3452,7 +3768,7 @@ button {
 .nx-table-proj-cell small {
   color: var(--nx-subtle);
   font-family: var(--nx-font-mono);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-table-actions {
   display: flex;
@@ -3492,12 +3808,12 @@ button {
   color: var(--nx-accent-text);
 }
 .nx-template-card strong {
-  font-size: 13.5px;
+  font-size: 0.964rem;
 }
 .nx-template-card p {
   margin: 2px 0 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
   line-height: 1.45;
 }
 
@@ -3513,7 +3829,7 @@ button {
   gap: 8px;
 }
 .nx-hub-templates-heading {
-  font-size: 12px;
+  font-size: 0.857rem;
   font-weight: 700;
   color: var(--nx-muted);
   text-transform: uppercase;
@@ -3550,11 +3866,11 @@ button {
   color: var(--nx-accent-text);
 }
 .nx-hub-template-card strong {
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-hub-template-card small {
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
 }
 .nx-hub-template-arrow {
   color: var(--nx-subtle);
@@ -3589,7 +3905,7 @@ button {
   width: fit-content;
 }
 .nx-os-launchers-label {
-  font-size: 10.5px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--nx-subtle);
   margin-right: 2px;
@@ -3640,7 +3956,7 @@ button {
   border: 1px solid var(--nx-border);
   border-radius: 4px;
   background: var(--nx-surface);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   color: var(--nx-text-soft);
 }
 .nx-git-tag {
@@ -3651,7 +3967,7 @@ button {
   border-radius: 4px;
   background: var(--nx-accent-soft);
   color: var(--nx-accent-text);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 .nx-pm-footer-left {
@@ -3691,7 +4007,7 @@ button {
   background: transparent;
   color: var(--nx-text-soft);
   font-family: var(--nx-font-mono);
-  font-size: 12px;
+  font-size: 0.857rem;
   cursor: pointer;
   transition: all 0.1s;
 }
@@ -3746,7 +4062,7 @@ button {
   gap: 6px;
 }
 .nx-dir-sidebar-heading {
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 700;
   color: var(--nx-subtle);
   text-transform: uppercase;
@@ -3768,7 +4084,7 @@ button {
   border-radius: 6px;
   background: transparent;
   color: var(--nx-text-soft);
-  font-size: 12px;
+  font-size: 0.857rem;
   cursor: pointer;
   text-align: left;
   transition: all 0.1s;
@@ -3822,6 +4138,10 @@ button {
   cursor: pointer;
   transition: all 0.12s;
 }
+.nx-dir-entry-card:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
 .nx-dir-entry-card:hover {
   border-color: var(--nx-accent);
   background: var(--nx-surface-2);
@@ -3842,7 +4162,7 @@ button {
   gap: 2px;
 }
 .nx-dir-entry-meta strong {
-  font-size: 12.5px;
+  font-size: 0.893rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3860,7 +4180,7 @@ button {
   gap: 8px;
   padding: 48px;
   color: var(--nx-subtle);
-  font-size: 13px;
+  font-size: 0.929rem;
   flex: 1;
 }
 
@@ -3881,13 +4201,13 @@ button {
   overflow: hidden;
 }
 .nx-dir-selected-label {
-  font-size: 11.5px;
+  font-size: 0.821rem;
   font-weight: 700;
   color: var(--nx-subtle);
   flex: 0 0 auto;
 }
 .nx-dir-selected-info code {
-  font-size: 11.5px;
+  font-size: 0.821rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3933,7 +4253,7 @@ button {
   gap: 12px;
   padding: 60px;
   color: var(--nx-muted);
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-scan-results-list {
   display: flex;
@@ -3944,7 +4264,7 @@ button {
   padding-right: 4px;
 }
 .nx-scan-count {
-  font-size: 12px;
+  font-size: 0.857rem;
   font-weight: 700;
   color: var(--nx-subtle);
 }
@@ -3972,7 +4292,7 @@ button {
   background: var(--nx-surface-2);
   color: var(--nx-accent-text);
   font-weight: 800;
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-scan-info {
   min-width: 0;
@@ -3985,10 +4305,10 @@ button {
   gap: 8px;
 }
 .nx-scan-title-row strong {
-  font-size: 13.5px;
+  font-size: 0.964rem;
 }
 .nx-scan-path {
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-subtle);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4009,7 +4329,7 @@ button {
   gap: 8px;
   padding: 48px;
   color: var(--nx-subtle);
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 
 .nx-spin {
@@ -4044,7 +4364,7 @@ button {
 }
 .nx-resource-account__group-name {
   color: var(--nx-accent-text);
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -4066,20 +4386,20 @@ button {
 }
 .nx-resource-account__quota-label {
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-resource-account__quota-value {
   color: var(--nx-text-soft);
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 600;
 }
 .nx-resource-account__quota-reset {
   color: var(--nx-muted);
-  font-size: 10.5px;
+  font-size: 0.75rem;
 }
 .nx-resource-account__quota-unknown {
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   font-style: italic;
 }
 @media (max-width: 680px) {
@@ -4135,7 +4455,7 @@ button {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 0.786rem;
   min-width: 0;
   overflow: hidden;
 }
@@ -4149,14 +4469,14 @@ button {
 .nx-attention-banner__id {
   color: var(--nx-subtle);
   font-family: var(--nx-font-mono);
-  font-size: 10px;
+  font-size: 0.714rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .nx-attention-banner__text {
-  font-size: 12.5px;
+  font-size: 0.893rem;
   color: var(--nx-text-soft);
   white-space: nowrap;
   overflow: hidden;
@@ -4269,12 +4589,12 @@ button {
   color: var(--nx-text-soft);
 }
 .nx-notification-toast__body strong {
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-notification-toast__body span {
   overflow: hidden;
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -4311,7 +4631,7 @@ button {
   border: 1px solid transparent;
   background: transparent;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -4330,7 +4650,7 @@ button {
   border-radius: 999px;
   background: var(--nx-warning);
   color: #000;
-  font-size: 10px;
+  font-size: 0.714rem;
   font-weight: 750;
 }
 .nx-notification-drawer__panel {
@@ -4348,7 +4668,7 @@ button {
   gap: 8px;
   padding: 48px 16px;
   color: var(--nx-subtle);
-  font-size: 12.5px;
+  font-size: 0.893rem;
   text-align: center;
 }
 .nx-notification-drawer__item {
@@ -4383,16 +4703,16 @@ button {
   gap: 8px;
 }
 .nx-notification-drawer__item-header strong {
-  font-size: 12px;
+  font-size: 0.857rem;
   color: var(--nx-text);
 }
 .nx-notification-drawer__item-header small {
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-subtle);
 }
 .nx-notification-drawer__item-main p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: 0.821rem;
   color: var(--nx-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4444,14 +4764,14 @@ button {
 }
 .nx-direct-resource__body small {
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
 }
 .nx-direct-prompt-preview {
   display: grid;
   gap: 7px;
 }
 .nx-direct-prompt-preview strong {
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-direct-prompt-preview pre {
   max-height: 160px;
@@ -4462,7 +4782,7 @@ button {
   border-radius: 8px;
   background: var(--nx-bg-elevated);
   color: var(--nx-text-soft);
-  font: 12px/1.5 var(--nx-font-mono);
+  font: 0.857rem/1.5 var(--nx-font-mono);
   white-space: pre-wrap;
 }
 
@@ -4507,8 +4827,8 @@ button {
 }
 .nx-minimized-chips__label {
   flex: 0 0 auto;
-  color: var(--nx-subtle);
-  font-size: 10.5px;
+  color: var(--nx-muted);
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -4523,7 +4843,7 @@ button {
   border-radius: 6px;
   background: var(--nx-surface-2);
   color: var(--nx-text-soft);
-  font-size: 11px;
+  font-size: 0.786rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4546,7 +4866,7 @@ button {
   overflow: hidden;
 }
 .nx-terminals-host__title strong {
-  font-size: 12.5px;
+  font-size: 0.893rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4558,7 +4878,7 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-arrange-menu {
   position: relative;
@@ -4574,7 +4894,7 @@ button {
   border-radius: 6px;
   background: var(--nx-surface-2);
   color: var(--nx-text-soft);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 .nx-arrange-menu__trigger:hover,
@@ -4613,7 +4933,7 @@ button {
   color: var(--nx-text-soft);
   text-align: left;
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: 0.893rem;
 }
 .nx-arrange-menu__item:hover,
 .nx-arrange-menu__item:focus-visible {
@@ -4626,7 +4946,18 @@ button {
 }
 .nx-arrange-menu__item small {
   color: var(--nx-subtle);
-  font-size: 10.5px;
+  font-size: 0.75rem;
+}
+.nx-arrange-menu__separator {
+  height: 1px;
+  background: var(--nx-border);
+  margin: 4px 0;
+}
+.nx-arrange-menu__reset-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--nx-warning, #f59e0b);
 }
 @media (max-width: 720px) {
   .nx-presentation-toggle button span,
@@ -4657,12 +4988,12 @@ button {
 }
 .nx-terminals-empty strong {
   color: var(--nx-text-soft);
-  font-size: 14px;
+  font-size: 1rem;
 }
 .nx-terminals-empty p {
   max-width: 420px;
   margin: 0;
-  font-size: 12.5px;
+  font-size: 0.893rem;
   line-height: 1.5;
 }
 .nx-terminals-inner-tabs {
@@ -4708,7 +5039,7 @@ button {
 }
 .nx-pty-tab__glyph {
   flex: 0 0 auto;
-  font-size: 12px;
+  font-size: 0.857rem;
   line-height: 1;
 }
 .nx-pty-tab .nx-desktop-window__chrome {
@@ -4820,7 +5151,7 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 0.857rem;
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -4829,7 +5160,7 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--nx-subtle);
-  font-size: 10.5px;
+  font-size: 0.75rem;
 }
 .nx-desktop-window__provider {
   padding: 1px 6px;
@@ -4916,6 +5247,8 @@ button {
 .nx-composer-flow-clean {
   display: grid;
   gap: 14px;
+  min-width: 0;
+  min-height: 0;
 }
 .nx-composer-goal-bar {
   display: grid;
@@ -4949,7 +5282,7 @@ button {
   border-radius: 4px;
   background: var(--nx-surface-2);
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4975,7 +5308,7 @@ button {
 }
 .nx-composer-empty-canvas p {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-composer-flow-inspector-pane {
   min-width: 0;
@@ -5042,7 +5375,7 @@ button {
   border-radius: 6px;
   background: var(--nx-surface-2);
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -5057,7 +5390,7 @@ button {
   align-self: center;
   padding: 0 6px;
   color: var(--nx-subtle);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -5088,12 +5421,12 @@ button {
 }
 .nx-mosaic-all-minimized strong {
   color: var(--nx-text-soft);
-  font-size: 14px;
+  font-size: 1rem;
 }
 .nx-mosaic-all-minimized p {
   max-width: 420px;
   margin: 0;
-  font-size: 12.5px;
+  font-size: 0.893rem;
   line-height: 1.5;
 }
 .nx-presentation-toggle {
@@ -5112,8 +5445,8 @@ button {
   border: 0;
   border-right: 1px solid var(--nx-border);
   background: transparent;
-  color: var(--nx-subtle);
-  font-size: 10.5px;
+  color: var(--nx-muted);
+  font-size: 0.75rem;
   cursor: pointer;
 }
 .nx-presentation-toggle button:last-child {
@@ -5122,6 +5455,82 @@ button {
 .nx-presentation-toggle button[data-active="true"] {
   background: var(--nx-accent-soft);
   color: var(--nx-accent-text);
+}
+.nx-presentation-zen-btn {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--nx-muted);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.nx-presentation-zen-btn:hover {
+  background: var(--nx-bg-elevated);
+  color: var(--nx-text);
+  border-color: var(--nx-accent);
+}
+.nx-presentation-zen-btn[data-active="true"] {
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+  border-color: var(--nx-accent);
+}
+/* Focus / Zen Mode (Immersive Workspace with Header Focus Toggle) */
+.nx-os-shell--zen .nx-workspace-statusbar {
+  display: none;
+}
+.nx-os-shell--zen .nx-topbar__status .nx-topbar-version-pill,
+.nx-os-shell--zen .nx-topbar__status .nx-lang-picker,
+.nx-os-shell--zen .nx-topbar__status [data-testid="font-scale-picker"],
+.nx-os-shell--zen .nx-topbar__status .nx-command-trigger span,
+.nx-os-shell--zen .nx-topbar__status .nx-command-trigger kbd,
+.nx-os-shell--zen .nx-topbar__status .nx-update-badge {
+  display: none;
+}
+.nx-os-shell--zen .nx-project-rail {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 260px;
+  z-index: var(--nx-z-drawer);
+  transform: translateX(-102%);
+  transition: transform 0.18s ease-in-out;
+}
+.nx-os-shell--zen .nx-project-rail[data-open="true"] {
+  transform: translateX(0);
+}
+.nx-os-shell--zen .nx-project-rail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--nx-z-modal-backdrop);
+  display: block;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s;
+}
+.nx-os-shell--zen .nx-project-rail-overlay[data-open="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+.nx-os-shell--zen .nx-os-main {
+  width: 100%;
+  height: 100vh;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+.nx-os-shell--zen .nx-workspace-host {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 .nx-agent-terminal[data-chrome="window"] {
   grid-template-rows: auto minmax(0, 1fr);
@@ -5151,11 +5560,11 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--nx-text);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-agent-terminal__toolbar-group span {
   color: var(--nx-muted);
-  font: 10.5px var(--nx-font-mono);
+  font: 0.75rem var(--nx-font-mono);
   white-space: nowrap;
 }
 .nx-terminal-action-dialog {
@@ -5180,7 +5589,7 @@ button {
 .nx-terminal-action-dialog p {
   margin: 5px 0 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
   line-height: 1.5;
 }
 .nx-terminal-action-dialog .nx-dialog-actions,
@@ -5219,13 +5628,13 @@ button {
     padding: 6px;
   }
   .nx-agent-terminal__toolbar-group span {
-    font-size: 10px;
+    font-size: 0.714rem;
   }
   .nx-agent-terminal__controls {
     gap: 5px;
   }
   .nx-agent-terminal__controls button {
-    font-size: 10.5px;
+    font-size: 0.75rem;
   }
   .nx-terminal-message {
     max-width: 100%;
@@ -5262,7 +5671,7 @@ button {
   border-radius: 7px;
   background: var(--nx-danger-soft);
   color: var(--nx-danger);
-  font-size: 12px;
+  font-size: 0.857rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
 }
 .nx-composer-surface {
@@ -5290,23 +5699,23 @@ button {
 .nx-context-readiness-card__status p {
   margin: 3px 0 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-context-readiness-card__status small {
   display: block;
   margin-top: 4px;
   color: var(--nx-danger);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-context-readiness-card__meta {
   display: flex;
   align-items: center;
   gap: 7px;
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-context-readiness-card__meta code {
-  font: 10.5px var(--nx-font-mono);
+  font: 0.75rem var(--nx-font-mono);
 }
 .nx-composer-editor {
   display: grid;
@@ -5322,7 +5731,7 @@ button {
   display: grid;
   gap: 5px;
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-composer-actions {
   display: flex;
@@ -5336,7 +5745,7 @@ button {
   border-radius: 7px;
   background: var(--nx-success-soft);
   color: var(--nx-success);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-composer-flow-region {
   margin-top: 16px;
@@ -5350,12 +5759,12 @@ button {
 }
 .nx-section-title h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: 1.214rem;
 }
 .nx-section-title p {
   margin: 4px 0 0;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 @media (max-width: 850px) {
   .nx-context-readiness-card,
@@ -5382,12 +5791,12 @@ button {
 }
 .nx-composer-deliberative__header h2 {
   margin: 5px 0 0;
-  font-size: 21px;
+  font-size: 1.5rem;
   letter-spacing: -0.02em;
 }
 .nx-composer-deliberative__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
   gap: 14px;
   align-items: start;
 }
@@ -5399,6 +5808,22 @@ button {
   grid-template-rows: auto minmax(220px, 1fr) auto;
   gap: 12px;
   min-height: 420px;
+}
+.nx-composer-deliberative__rail {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 96px);
+  overflow: auto;
+  min-width: 0;
+}
+.nx-composer-deliberative__rail > .nx-card p {
+  margin: 2px 0 0;
+  color: var(--nx-text-soft);
+  font-size: 0.857rem;
+  line-height: 1.45;
 }
 .nx-composer-turns {
   display: grid;
@@ -5425,30 +5850,24 @@ button {
   display: block;
   margin-bottom: 3px;
   color: var(--nx-subtle);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   font-weight: 650;
 }
 .nx-composer-turn p {
   margin: 0;
   color: var(--nx-text-soft);
-  font-size: 12.5px;
+  font-size: 0.893rem;
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.nx-composer-deliberative__grid > .nx-card:nth-child(2) {
+.nx-composer-destination-dock {
   position: sticky;
-  top: 12px;
-}
-.nx-composer-deliberative__grid > .nx-card:nth-child(2) > div {
-  display: grid;
-  gap: 11px;
-}
-.nx-composer-deliberative__grid > .nx-card:nth-child(2) p {
-  margin: 2px 0 0;
-  color: var(--nx-text-soft);
-  font-size: 12px;
-  line-height: 1.45;
+  bottom: 0;
+  z-index: 2;
+  border-top: 1px solid var(--nx-border);
+  background: var(--nx-surface);
+  padding: 10px 12px;
 }
 .nx-composer-deliberative .nx-composer-header-actions {
   justify-content: flex-start;
@@ -5457,8 +5876,10 @@ button {
   .nx-composer-deliberative__grid {
     grid-template-columns: 1fr;
   }
-  .nx-composer-deliberative__grid > .nx-card:nth-child(2) {
+  .nx-composer-deliberative__rail {
     position: static;
+    max-height: none;
+    overflow: visible;
   }
   .nx-composer-turns {
     max-height: 42vh;
@@ -5473,7 +5894,7 @@ button {
     flex-direction: column;
   }
   .nx-composer-deliberative__header h2 {
-    font-size: 18px;
+    font-size: 1.286rem;
   }
   .nx-composer-turn {
     max-width: 96%;
@@ -5492,7 +5913,7 @@ button {
   display: grid;
   gap: 4px;
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-flow-editor-toolbar select {
   height: 30px;
@@ -5536,7 +5957,7 @@ button {
 }
 .nx-flow-wave__label {
   color: var(--nx-subtle);
-  font: 10.5px var(--nx-font-mono);
+  font: 0.75rem var(--nx-font-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -5587,7 +6008,7 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12.5px;
+  font-size: 0.893rem;
 }
 .nx-flow-node__meta {
   display: flex;
@@ -5596,14 +6017,14 @@ button {
 }
 .nx-flow-node small {
   color: var(--nx-subtle);
-  font-size: 10.5px;
+  font-size: 0.75rem;
 }
 .nx-flow-node__agent {
   display: flex;
   align-items: center;
   gap: 4px;
   color: var(--nx-muted);
-  font-size: 10.5px;
+  font-size: 0.75rem;
 }
 .nx-flow-inspector {
   display: grid;
@@ -5621,7 +6042,7 @@ button {
 .nx-flow-inspector--empty p {
   max-width: 260px;
   margin: 0;
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-flow-inspector__header {
   display: flex;
@@ -5633,14 +6054,14 @@ button {
 }
 .nx-flow-inspector__header h3 {
   margin: 3px 0 0;
-  font-size: 15px;
+  font-size: 1.071rem;
 }
 .nx-flow-inspector > label,
 .nx-flow-inspector__grid label {
   display: grid;
   gap: 5px;
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-flow-inspector__grid {
   display: grid;
@@ -5652,7 +6073,7 @@ button {
   gap: 6px;
 }
 .nx-flow-inspector__section > strong {
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-muted);
 }
 .nx-flow-dependencies {
@@ -5668,7 +6089,7 @@ button {
   border: 1px solid var(--nx-border);
   border-radius: 6px;
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-flow-dependencies input {
   accent-color: var(--nx-accent);
@@ -5689,7 +6110,7 @@ button {
   margin: 0;
   white-space: pre-wrap;
   color: var(--nx-muted);
-  font: 10.5px/1.5 var(--nx-font-mono);
+  font: 0.75rem/1.5 var(--nx-font-mono);
 }
 .nx-flow-compat-details {
   margin-top: 10px;
@@ -5700,7 +6121,7 @@ button {
 .nx-flow-compat-details > summary {
   cursor: pointer;
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 650;
 }
 .nx-flow-compat-details[open] > summary {
@@ -5828,14 +6249,14 @@ button {
 }
 .nx-flow-run-overview strong {
   color: var(--nx-subtle);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 .nx-flow-run-overview span,
 .nx-flow-run-overview code {
   color: var(--nx-text-soft);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -5878,19 +6299,19 @@ button {
 }
 .nx-flow-run-step__header small {
   color: var(--nx-subtle);
-  font: 10px var(--nx-font-mono);
+  font: 0.714rem var(--nx-font-mono);
   text-transform: uppercase;
 }
 .nx-flow-run-step__header strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-flow-run-step > p {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   line-height: 1.45;
 }
 .nx-flow-run-step__meta {
@@ -5899,7 +6320,7 @@ button {
   gap: 10px;
   flex-wrap: wrap;
   color: var(--nx-muted);
-  font-size: 10.5px;
+  font-size: 0.75rem;
 }
 .nx-flow-run-step__meta span {
   display: flex;
@@ -5908,7 +6329,7 @@ button {
 }
 .nx-flow-run-deps {
   color: var(--nx-subtle);
-  font-size: 10.5px;
+  font-size: 0.75rem;
 }
 .nx-flow-run-evidence-row {
   display: grid;
@@ -5924,7 +6345,7 @@ button {
   border-radius: 6px;
   background: var(--nx-surface-2);
   color: var(--nx-subtle);
-  font-size: 10.5px;
+  font-size: 0.75rem;
 }
 .nx-flow-run-evidence-row span[data-ready="true"] {
   border-color: color-mix(in srgb, var(--nx-success) 28%, var(--nx-border));
@@ -5942,7 +6363,7 @@ button {
   gap: 5px;
   padding: 6px 8px;
   color: var(--nx-muted);
-  font-size: 10.5px;
+  font-size: 0.75rem;
   font-weight: 650;
   cursor: pointer;
 }
@@ -5955,7 +6376,7 @@ button {
   gap: 8px;
   padding: 6px 8px;
   border-bottom: 1px solid var(--nx-border);
-  font-size: 10.5px;
+  font-size: 0.75rem;
 }
 .nx-flow-run-receipt > div:last-child {
   border-bottom: 0;
@@ -6027,7 +6448,7 @@ button {
   color: var(--nx-text) !important;
   border-radius: var(--nx-radius) !important;
   font-family: var(--nx-font) !important;
-  font-size: 13px !important;
+  font-size: 0.929rem !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
   padding: 12px 14px !important;
 }
@@ -6122,7 +6543,7 @@ button {
 }
 
 .nx-uui-badge {
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 6px;
@@ -6151,8 +6572,8 @@ button {
 
 .nx-uui-notification__id {
   font-family: var(--nx-font-mono);
-  font-size: 10.5px;
-  color: var(--nx-subtle);
+  font-size: 0.75rem;
+  color: var(--nx-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6181,7 +6602,7 @@ button {
 
 .nx-uui-notification__text {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.929rem;
   line-height: 1.5;
   color: var(--nx-text-soft);
   word-break: break-word;
@@ -6205,7 +6626,7 @@ button {
 
 .nx-uui-btn {
   font-family: var(--nx-font);
-  font-size: 12px;
+  font-size: 0.857rem;
   font-weight: 600;
   padding: 6px 12px;
   border-radius: 7px;
@@ -6272,7 +6693,7 @@ button {
   border: 1px solid var(--nx-border);
   border-radius: 7px;
   color: var(--nx-text);
-  font-size: 12px;
+  font-size: 0.857rem;
   outline: none;
   transition:
     border-color 0.12s ease,
@@ -6327,7 +6748,7 @@ button {
   border-radius: 999px;
   background: var(--nx-surface);
   color: var(--nx-text-soft);
-  font-size: 11.5px;
+  font-size: 0.821rem;
   cursor: pointer;
   list-style: none;
 }
@@ -6347,7 +6768,7 @@ button {
   justify-content: center;
   border-radius: 999px;
   padding: 0 5px;
-  font-size: 10px;
+  font-size: 0.714rem;
   font-weight: 700;
 }
 .nx-attention-radar__count {
@@ -6375,7 +6796,7 @@ button {
 .nx-attention-radar__empty {
   margin: 0;
   color: var(--nx-subtle);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-attention-radar__group {
   display: grid;
@@ -6388,7 +6809,7 @@ button {
   justify-content: space-between;
   gap: 8px;
   color: var(--nx-subtle);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-attention-radar__group ul {
   list-style: none;
@@ -6419,7 +6840,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
+  font-size: 0.714rem;
   text-transform: lowercase;
   color: var(--nx-subtle);
   white-space: nowrap;
@@ -6432,7 +6853,7 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 
 .nx-agent-summary-wrap {
@@ -6471,14 +6892,14 @@ button {
   gap: 10px;
   padding: 2px 4px 9px;
   border-bottom: 1px solid var(--nx-border);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-agent-summary-popover__heading button {
   border: 0;
   background: transparent;
   color: var(--nx-accent-text);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-agent-summary-row {
   width: 100%;
@@ -6509,19 +6930,19 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-agent-summary-row__name small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--nx-muted);
-  font-size: 10.5px;
+  font-size: 0.75rem;
 }
 .nx-agent-summary-row__status {
   flex: 0 0 auto;
   color: var(--nx-success);
-  font: 700 10px var(--nx-font-mono);
+  font: 700 0.714rem var(--nx-font-mono);
 }
 .nx-agent-summary-row__status[data-degraded="true"] {
   color: var(--nx-danger);
@@ -6545,12 +6966,12 @@ button {
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
 }
 .nx-terminal-confirm__panel strong {
-  font-size: 14px;
+  font-size: 1rem;
 }
 .nx-terminal-confirm__panel p {
   margin: 7px 0 14px;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
   line-height: 1.45;
 }
 .nx-terminal-confirm__actions {
@@ -6566,7 +6987,7 @@ button {
   background: var(--nx-surface-2);
   color: var(--nx-text-soft);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-terminal-confirm__actions button[data-tone="danger"] {
   border-color: color-mix(in srgb, var(--nx-danger) 55%, var(--nx-border));
@@ -6584,7 +7005,7 @@ button {
   gap: 8px;
 }
 .nx-intel-combo__label {
-  font-size: 12px;
+  font-size: 0.857rem;
   color: var(--nx-text-soft);
 }
 .nx-intel-combo__trigger {
@@ -6604,13 +7025,13 @@ button {
 }
 .nx-intel-combo__trigger strong {
   display: block;
-  font-size: 13px;
+  font-size: 0.929rem;
 }
 .nx-intel-combo__trigger small {
   display: block;
   margin-top: 2px;
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-intel-combo__menu {
   z-index: var(--nx-z-popover);
@@ -6627,7 +7048,7 @@ button {
 .nx-intel-combo__empty {
   margin: 8px;
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-intel-combo__option {
   width: 100%;
@@ -6653,18 +7074,18 @@ button {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-intel-combo__option small {
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: 0.786rem;
 }
 .nx-intel-combo__models {
   display: grid;
   gap: 6px;
 }
 .nx-intel-combo__models > span {
-  font-size: 12px;
+  font-size: 0.857rem;
   color: var(--nx-text-soft);
 }
 .nx-intel-combo__models > div {
@@ -6678,7 +7099,7 @@ button {
   border-radius: 999px;
   background: transparent;
   color: var(--nx-text-soft);
-  font-size: 11px;
+  font-size: 0.786rem;
   cursor: pointer;
 }
 .nx-intel-combo__model[data-active="true"] {
@@ -6700,7 +7121,7 @@ button {
   height: 28px;
   padding: 0 8px;
   gap: 4px;
-  font-size: 11.5px;
+  font-size: 0.821rem;
   white-space: nowrap;
 }
 .nx-workspace-stack {
@@ -6711,7 +7132,7 @@ button {
   max-width: 240px;
   gap: 8px;
   padding: 0 12px;
-  font-size: 13px;
+  font-size: 0.929rem;
   font-weight: 600;
   color: var(--nx-text-soft);
 }
@@ -6739,7 +7160,7 @@ button {
 .nx-workspace-tab[data-pinned="true"] {
   min-width: 152px;
   padding: 0 16px;
-  font-size: 13.5px;
+  font-size: 0.964rem;
   font-weight: 700;
   color: var(--nx-text);
 }
@@ -6879,7 +7300,7 @@ button {
   border: 1px solid color-mix(in srgb, var(--nx-warning) 45%, var(--nx-border));
   background: color-mix(in srgb, var(--nx-warning) 18%, transparent);
   color: var(--nx-warning);
-  font-size: 10px;
+  font-size: 0.714rem;
 }
 .nx-desktop-window__title strong {
   flex: 1 1 auto;
@@ -6953,7 +7374,7 @@ button {
   color: var(--nx-text-soft);
   text-align: left;
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: 0.893rem;
 }
 .nx-context-menu__item:hover:not(:disabled),
 .nx-context-menu__item:focus-visible {
@@ -6978,7 +7399,7 @@ button {
 .nx-desktop-window__chrome-menu label {
   display: grid;
   gap: 4px;
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-muted);
 }
 .nx-desktop-window__chrome-menu input {
@@ -7003,7 +7424,7 @@ button {
   cursor: pointer;
   background: var(--nx-surface-2);
   color: var(--nx-text);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-desktop-window__swatch--clear {
   background: repeating-linear-gradient(
@@ -7026,7 +7447,7 @@ button {
   border-radius: 8px;
   background: color-mix(in srgb, var(--nx-accent) 8%, transparent);
   color: var(--nx-muted);
-  font-size: 12px;
+  font-size: 0.857rem;
 }
 .nx-composer-generate-status strong {
   color: var(--nx-text);
@@ -7166,7 +7587,7 @@ button {
 
 @container (min-width: 1100px) {
   .nx-composer-deliberative__grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   }
 }
 
@@ -7218,14 +7639,14 @@ button {
 
 .nx-context-drawer__title {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 0.964rem;
   font-weight: 700;
   color: var(--nx-text);
 }
 
 .nx-context-drawer__desc {
   margin: 2px 0 0;
-  font-size: 11.5px;
+  font-size: 0.821rem;
   color: var(--nx-muted);
 }
 
@@ -7458,7 +7879,13 @@ button {
     padding: 0 6px !important;
     gap: 4px !important;
   }
+  .nx-topbar__context {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
   .nx-topbar__status {
+    flex: 0 1 auto;
+    min-width: 0;
     gap: 4px !important;
   }
   .nx-topbar__project {
@@ -7470,6 +7897,45 @@ button {
   }
   .nx-topbar__project-btn .nx-project-info small {
     display: none !important;
+  }
+  .nx-font-scale-picker {
+    display: none !important;
+  }
+  .nx-topbar-tour-btn {
+    display: none !important;
+  }
+  .nx-topbar__status > [class*="focusToggleBtn"] {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .nx-topbar {
+    padding: 0 4px !important;
+    gap: 2px !important;
+  }
+  .nx-topbar__project-btn {
+    max-width: 90px !important;
+  }
+  .nx-create-menu__trigger {
+    padding: 0 8px !important;
+    min-width: var(--nx-touch-min);
+    min-height: var(--nx-touch-min);
+    height: auto;
+  }
+}
+
+@media (max-width: 820px) {
+  .nx-chrome-wide {
+    display: none;
+  }
+
+  .nx-chrome-compact {
+    display: inline-flex;
+  }
+
+  .nx-icon-button.nx-mobile-menu {
+    display: inline-flex;
   }
 }
 
@@ -7529,7 +7995,7 @@ button {
 }
 .nx-splash-title {
   margin: 4px 0 0;
-  font-size: 26px;
+  font-size: 1.857rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   background: linear-gradient(135deg, #ffffff 0%, #d8dde8 100%);
@@ -7537,7 +8003,7 @@ button {
   -webkit-text-fill-color: transparent;
 }
 .nx-splash-eyebrow {
-  font-size: 10.5px;
+  font-size: 0.75rem;
   font-weight: 750;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -7566,7 +8032,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: 0.893rem;
   font-weight: 600;
   color: var(--nx-text-soft);
 }
@@ -7579,7 +8045,7 @@ button {
   animation: nx-splash-halo 1.5s ease-in-out infinite alternate;
 }
 .nx-splash-submessage {
-  font-size: 11.5px;
+  font-size: 0.821rem;
   color: var(--nx-muted);
   max-width: 320px;
 }
@@ -7590,7 +8056,7 @@ button {
   margin-top: 10px;
   padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-subtle);
   letter-spacing: 0.04em;
 }
@@ -7641,7 +8107,7 @@ button {
   border: 1px solid transparent;
   background: transparent;
   color: var(--nx-muted);
-  font-size: 13px;
+  font-size: 0.929rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -7668,7 +8134,7 @@ button {
   border: 1px solid var(--nx-border);
   background: var(--nx-surface-2);
   color: var(--nx-text);
-  font-size: 12px;
+  font-size: 0.857rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -7686,6 +8152,9 @@ button {
 .nx-create-menu {
   position: relative;
   display: inline-flex;
+}
+.nx-topbar__context > .nx-create-menu {
+  z-index: 20;
 }
 .nx-create-menu__trigger {
   display: inline-flex;
@@ -7768,12 +8237,12 @@ button {
   min-width: 0;
 }
 .nx-create-menu__text strong {
-  font-size: 12.5px;
+  font-size: 0.893rem;
   font-weight: 600;
   color: var(--nx-text);
 }
 .nx-create-menu__text small {
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--nx-muted);
   white-space: nowrap;
   overflow: hidden;

@@ -64,3 +64,60 @@ func TestResolveCommandUnixUsesLookPath(t *testing.T) {
 		t.Fatalf("unexpected Unix resolution: %+v, %v", resolved, err)
 	}
 }
+
+func TestPathListSeparatorForGOOS(t *testing.T) {
+	if got := pathListSeparatorForGOOS("windows"); got != ";" {
+		t.Fatalf("windows separator = %q, want %q", got, ";")
+	}
+	for _, goos := range []string{"linux", "darwin", "freebsd", ""} {
+		if got := pathListSeparatorForGOOS(goos); got != ":" {
+			t.Fatalf("separator for %q = %q, want %q", goos, got, ":")
+		}
+	}
+}
+
+func TestResolveCommandWindowsSearchesEveryPathEntry(t *testing.T) {
+	empty := t.TempDir()
+	dir := t.TempDir()
+	artifact := filepath.Join(dir, "codex.exe")
+	if err := os.WriteFile(artifact, []byte("MZ"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	env := map[string]string{
+		"PATH":         empty + ";" + dir,
+		"PATHEXT":      ".COM;.EXE;.BAT;.CMD;.PS1",
+		"APPDATA":      filepath.Join(dir, "appdata"),
+		"LOCALAPPDATA": filepath.Join(dir, "local"),
+		"USERPROFILE":  filepath.Join(dir, "profile"),
+	}
+	getenv := func(key string) string { return env[key] }
+	stat := func(path string) (os.FileInfo, error) { return os.Stat(path) }
+	lookPath := func(path string) (string, error) { return path, errors.New("not used") }
+
+	resolved, err := resolveCommand("codex", "windows", getenv, stat, lookPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.ArtifactPath != artifact || resolved.Kind != CommandExecutable {
+		t.Fatalf("binary in second PATH entry not found: %+v", resolved)
+	}
+}
+
+func TestResolveCommandWindowsEmptyPathIsNotFound(t *testing.T) {
+	for _, pathValue := range []string{"", "   "} {
+		env := map[string]string{
+			"PATH":         pathValue,
+			"PATHEXT":      ".EXE",
+			"APPDATA":      "",
+			"LOCALAPPDATA": "",
+			"USERPROFILE":  "",
+		}
+		getenv := func(key string) string { return env[key] }
+		stat := func(path string) (os.FileInfo, error) { return os.Stat(path) }
+		lookPath := func(path string) (string, error) { return path, errors.New("not used") }
+
+		if _, err := resolveCommand("codex", "windows", getenv, stat, lookPath); err == nil {
+			t.Fatalf("empty PATH %q must fail, got nil error", pathValue)
+		}
+	}
+}

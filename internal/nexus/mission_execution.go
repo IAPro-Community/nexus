@@ -12,21 +12,26 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/nexus/autonomyguard"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 type agentPromptExecution struct {
 	RuntimeID string
 	Output    string
+	Failure   model.Failure
 }
 
 type agentPromptPolicy struct {
@@ -50,6 +55,19 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	if err != nil {
 		return nil, err
 	}
+
+	// Record invocation start for observability.
+	startedAt := time.Now().UTC()
+	goalID := fmt.Sprintf("goal_%d", startedAt.UnixNano())
+	invocation := AgentInvocation{
+		GoalID:    goalID,
+		AgentID:   agent.ID,
+		ProjectID: agent.ProjectID,
+		Status:    AgentInvocationRunning,
+		StartedAt: startedAt,
+	}
+	_ = RecordAgentInvocation(st, invocation)
+
 	cfg, err := currentAgentConfig(st, agent)
 	if err != nil {
 		return nil, err
@@ -68,7 +86,7 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 		}
 	}
 
-	d, err := driver.DefaultRegistry().Get(cfg.Provider)
+	d, err := n.controlDrivers().Get(cfg.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -77,14 +95,20 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	if caps.Headless.Status != driver.CapabilitySupported || caps.SubmitPrompt.Status != driver.CapabilitySupported {
 		return nil, fmt.Errorf("provider %s:%s cannot execute autonomous prompt: headless=%s submit_prompt=%s", cfg.Provider, cfg.Profile, caps.Headless.Status, caps.SubmitPrompt.Status)
 	}
-	var kickoffArgs []string
-	if strings.EqualFold(cfg.Provider, "codex") {
-		kickoffArgs = []string{"exec", prompt}
-	} else {
-		kickoffArgs, err = d.BuildKickoffArgs(ctx, profile, prompt)
-		if err != nil {
-			return nil, fmt.Errorf("build provider kickoff args: %w", err)
+	if cfg.AgentSpec.HasCustomBehavior() {
+		compiledContext, compileErr := intelligence.NewNexusEngine(nil).CompileExecutionContext(ctx, intelligence.ExecutionContextRequest{
+			Agent:   cfg.AgentSpec,
+			Task:    intelligence.WorkPackageContext{Title: "Direct Agent request", Goal: prompt, Role: cfg.AgentSpec.Role},
+			Runtime: intelligence.RuntimeConstraints{Provider: cfg.Provider, Model: cfg.Model, Workspace: workspace, Isolation: cfg.Isolation, Capabilities: []string{"headless", "submit_prompt"}},
+		})
+		if compileErr != nil {
+			return nil, fmt.Errorf("compile agent execution context: %w", compileErr)
 		}
+		prompt = compiledContext.SystemInstructions + "\n\n" + compiledContext.TaskInstructions
+	}
+	kickoffArgs, err := d.BuildKickoffArgs(ctx, profile, prompt)
+	if err != nil {
+		return nil, fmt.Errorf("build provider kickoff args: %w", err)
 	}
 	kickoffArgs, err = missionProviderArgs(cfg.Provider, kickoffArgs, policy)
 	if err != nil {
@@ -168,7 +192,7 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	n.notifyContinuity(agent.ID, "NEW_SESSION")
 	n.notifyAgentState(agent.ID, store.AgentWorking)
 
-	output, runErr := captureRuntimeOutput(ctx, sess.RuntimeID)
+	output, runErr := n.captureRuntimeOutput(ctx, sess.RuntimeID)
 	stoppedAt := time.Now().UTC()
 	_ = st.StopGeneration(generation.ID, stoppedAt)
 	agent.Status = store.AgentStopped
@@ -179,8 +203,21 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	_ = st.UpdateAgent(agent)
 	n.notifyAgentState(agent.ID, agent.Status)
 
+	// Record invocation completion for observability.
+	finishedAt := time.Now().UTC()
+	invocation.FinishedAt = &finishedAt
 	if runErr != nil {
-		return nil, fmt.Errorf("autonomous runtime %s failed: %w", sess.RuntimeID, runErr)
+		invocation.Status = AgentInvocationFailed
+		invocation.Errors = []string{runErr.Error()}
+	} else {
+		invocation.Status = AgentInvocationCompleted
+	}
+	_ = RecordAgentInvocation(st, invocation)
+
+	if runErr != nil {
+		failure := classifier.Classify(runErr, output)
+		return &agentPromptExecution{RuntimeID: sess.RuntimeID, Output: output, Failure: failure},
+			fmt.Errorf("autonomous runtime %s failed: %w", sess.RuntimeID, runErr)
 	}
 	return &agentPromptExecution{RuntimeID: sess.RuntimeID, Output: output}, nil
 }
@@ -188,64 +225,51 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 func missionProviderArgs(provider string, args []string, policy agentPromptPolicy) ([]string, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	out := append([]string(nil), args...)
+	providerSpec, ok := spec.Get(provider)
+	if !ok {
+		return nil, fmt.Errorf("provider %s is not approved for autonomous coding", provider)
+	}
 	if policy.Review {
-		switch provider {
-		case "claude":
-			return append(out, "--permission-mode", "plan", "--output-format", "text"), nil
-		case "gemini":
-			return append(out, "--approval-mode=plan", "--output-format", "text"), nil
-		case "cursor":
-			return append(out, "--mode=ask", "--output-format", "text"), nil
-		default:
+		if len(providerSpec.ReviewMode) == 0 {
 			return nil, fmt.Errorf("provider %s has no verified read-only headless review mode", provider)
 		}
+		if provider == "codex" && len(out) > 1 && out[0] == "exec" {
+			return append(append([]string(nil), providerSpec.ReviewMode...), out...), nil
+		}
+		return append(out, providerSpec.ReviewMode...), nil
 	}
 
 	// A coding Mission must not hang waiting for an approval prompt. Auto-approval
 	// is an explicit contract decision and is restricted by Nexus to the Agent's
 	// isolated workspace plus prompt-level no-push/no-deploy boundaries.
+	if !policy.Contract.AllowToolAutoApproval {
+		return nil, fmt.Errorf("%s autonomous coding requires allow_tool_auto_approval", provider)
+	}
 	switch provider {
-	case "claude":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("claude autonomous coding requires allow_tool_auto_approval")
+	case "agy", "claude", "codex", "gemini":
+		// Codex parses exec options before its positional prompt. Appending
+		// approval flags after the prompt makes current Codex releases report
+		// "unexpected argument" and prevents the autonomous runtime from
+		// starting. Keep the prompt last while preserving the public spec.
+		if provider == "codex" && len(out) > 1 && out[0] == "exec" {
+			return append(append([]string(nil), providerSpec.AutoApproval...), out...), nil
 		}
-		return append(out, "--dangerously-skip-permissions", "--output-format", "text"), nil
-	case "codex":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("codex autonomous coding requires allow_tool_auto_approval")
-		}
-		return append(out, "--ask-for-approval", "never", "--sandbox", "workspace-write"), nil
-	case "gemini":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("gemini autonomous coding requires allow_tool_auto_approval")
-		}
-		return append(out, "--approval-mode=yolo", "--output-format", "text"), nil
-	case "agy":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("agy autonomous coding requires allow_tool_auto_approval")
-		}
-		return append(out, "--dangerously-skip-permissions", "--sandbox", "--print-timeout", "60m"), nil
+		return append(out, providerSpec.AutoApproval...), nil
 	case "opencode":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("opencode autonomous coding requires allow_tool_auto_approval")
-		}
 		if len(out) > 0 && out[0] == "run" {
-			out = append([]string{"run", "--auto"}, out[1:]...)
+			out = append(append([]string{"run"}, providerSpec.AutoApproval...), out[1:]...)
 		} else {
-			out = append([]string{"--auto"}, out...)
+			out = append(append([]string(nil), providerSpec.AutoApproval...), out...)
 		}
 		return out, nil
 	case "cursor":
-		if !policy.Contract.AllowToolAutoApproval {
-			return nil, fmt.Errorf("cursor non-interactive coding has write access and requires allow_tool_auto_approval")
-		}
-		return out, nil
+		return append(out, providerSpec.AutoApproval...), nil
 	default:
 		return nil, fmt.Errorf("provider %s is not approved for autonomous coding", provider)
 	}
 }
 
-func captureRuntimeOutput(ctx context.Context, runtimeID string) (string, error) {
+func (n *Nexus) captureRuntimeOutput(ctx context.Context, runtimeID string) (string, error) {
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
 		return "", fmt.Errorf("attach to runtime output: %w", err)
@@ -265,7 +289,10 @@ func captureRuntimeOutput(ctx context.Context, runtimeID string) (string, error)
 		err  error
 	}
 	ch := make(chan readResult, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		data, readErr := io.ReadAll(client.Reader())
 		ch <- readResult{data: data, err: readErr}
 	}()
@@ -273,6 +300,8 @@ func captureRuntimeOutput(ctx context.Context, runtimeID string) (string, error)
 	select {
 	case <-ctx.Done():
 		_ = client.Close()
+		// Wait for the reader goroutine to finish after connection close.
+		wg.Wait()
 		return history, ctx.Err()
 	case rr := <-ch:
 		output := history + string(rr.data)
@@ -283,7 +312,7 @@ func captureRuntimeOutput(ctx context.Context, runtimeID string) (string, error)
 		// persisted cross-process, so reload and reject provider process failures.
 		deadline := time.Now().Add(2 * time.Second)
 		for time.Now().Before(deadline) {
-			if sess, ok := registry.DefaultRegistry().Get(runtimeID); ok {
+			if sess, ok := n.runtimeRegistry().Get(runtimeID); ok {
 				switch sess.State {
 				case registry.StateFailed:
 					return output, fmt.Errorf("provider process exited with failure")

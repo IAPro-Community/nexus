@@ -1,6 +1,7 @@
 package events
 
 import (
+	"sort"
 	"sync"
 )
 
@@ -68,11 +69,15 @@ func (b *Bus) Publish(e Event) {
 	}
 
 	for _, ch := range targets {
-		select {
-		case ch <- e:
-		default:
-			// Non-blocking drop if channel buffer is full
-		}
+		// Protect against send-on-closed-channel when Unsubscribe races with Publish.
+		func(c chan Event) {
+			defer func() { recover() }() //nolint:errcheck // closed channel is expected race
+			select {
+			case c <- e:
+			default:
+				// Non-blocking drop if channel buffer is full
+			}
+		}(ch)
 	}
 }
 
@@ -106,6 +111,23 @@ func (b *Bus) Subscribe(runtimeID string) (<-chan Event, func()) {
 func (b *Bus) GetHistory(runtimeID string, limit int) []Event {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+
+	if runtimeID == "" {
+		var all []Event
+		for _, hist := range b.history {
+			all = append(all, hist...)
+		}
+		sort.SliceStable(all, func(i, j int) bool { return all[i].Timestamp.Before(all[j].Timestamp) })
+		if limit <= 0 || limit > len(all) {
+			limit = len(all)
+		}
+		if limit == 0 {
+			return nil
+		}
+		out := make([]Event, limit)
+		copy(out, all[len(all)-limit:])
+		return out
+	}
 
 	hist, ok := b.history[runtimeID]
 	if !ok {

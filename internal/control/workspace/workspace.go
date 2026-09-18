@@ -11,23 +11,25 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 // Project represents a managed developer workspace/repository.
 type Project struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Path       string    `json:"path"`
-	CreatedAt  time.Time `json:"created_at"`
-	LastUsedAt time.Time `json:"last_used_at"`
+	ID              string    `json:"id"`
+	Name            string    `json:"name"`
+	Path            string    `json:"path"`
+	CreatedAt       time.Time `json:"created_at"`
+	LastUsedAt      time.Time `json:"last_used_at"`
+	RecencySequence uint64    `json:"recency_sequence,omitempty"`
 }
 
 // Store manages persistent projects across restarts.
 type Store struct {
-	mu       sync.RWMutex
-	filePath string
-	projects map[string]Project
+	mu                  sync.RWMutex
+	filePath            string
+	projects            map[string]Project
+	nextRecencySequence uint64
 }
 
 var (
@@ -80,12 +82,14 @@ func (s *Store) ensureCwd(cwd string) error {
 
 	name := filepath.Base(clean)
 	id := makeWorkspaceID(clean)
+	s.nextRecencySequence++
 	s.projects[clean] = Project{
-		ID:         id,
-		Name:       name,
-		Path:       clean,
-		CreatedAt:  time.Now(),
-		LastUsedAt: time.Now(),
+		ID:              id,
+		Name:            name,
+		Path:            clean,
+		CreatedAt:       time.Now(),
+		LastUsedAt:      time.Now(),
+		RecencySequence: s.nextRecencySequence,
 	}
 	return s.saveLocked()
 }
@@ -106,7 +110,13 @@ func (s *Store) load() error {
 
 	for _, p := range list {
 		if p.Path != "" {
-			s.projects[filepath.Clean(p.Path)] = p
+			if canonical, err := config.CanonicalWorkspacePath(p.Path); err == nil {
+				p.Path = canonical
+			}
+			s.projects[p.Path] = p
+			if p.RecencySequence > s.nextRecencySequence {
+				s.nextRecencySequence = p.RecencySequence
+			}
 		}
 	}
 	return nil
@@ -144,6 +154,9 @@ func (s *Store) List() []Project {
 		if !result[i].LastUsedAt.Equal(result[j].LastUsedAt) {
 			return result[i].LastUsedAt.After(result[j].LastUsedAt)
 		}
+		if result[i].RecencySequence != result[j].RecencySequence {
+			return result[i].RecencySequence > result[j].RecencySequence
+		}
 		return result[i].ID < result[j].ID
 	})
 	return result
@@ -170,6 +183,8 @@ func (s *Store) Add(path, name string) (Project, error) {
 		CreatedAt:  time.Now(),
 		LastUsedAt: time.Now(),
 	}
+	s.nextRecencySequence++
+	p.RecencySequence = s.nextRecencySequence
 
 	s.projects[clean] = p
 	if err := s.saveLocked(); err != nil {
@@ -207,6 +222,8 @@ func (s *Store) Touch(path string) {
 	for key, p := range s.projects {
 		if workspacePathsEquivalent(p.Path, path) {
 			p.LastUsedAt = time.Now()
+			s.nextRecencySequence++
+			p.RecencySequence = s.nextRecencySequence
 			s.projects[key] = p
 			_ = s.saveLocked()
 			return
@@ -217,20 +234,7 @@ func (s *Store) Touch(path string) {
 // workspacePathsEquivalent compares filesystem identity when both paths exist
 // and falls back to canonical path text for creation or legacy records.
 func workspacePathsEquivalent(left, right string) bool {
-	if left == right {
-		return true
-	}
-	leftRef, leftErr := config.ResolvePathRef(left)
-	rightRef, rightErr := config.ResolvePathRef(right)
-	if leftErr == nil && rightErr == nil {
-		leftIdentity := leftRef.Identity
-		rightIdentity := rightRef.Identity
-		if leftIdentity.Available && rightIdentity.Available {
-			return leftIdentity.Kind == rightIdentity.Kind && leftIdentity.StableKey == rightIdentity.StableKey
-		}
-		return leftRef.CanonicalPath == rightRef.CanonicalPath
-	}
-	return filepath.Clean(left) == filepath.Clean(right)
+	return config.FilesystemPathsEquivalent(left, right)
 }
 
 // makeWorkspaceID derives a stable, collision-resistant identifier from the

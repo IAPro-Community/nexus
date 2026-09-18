@@ -5,7 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // --- Gate 3: AgentConfig + Safe Apply ---
@@ -45,6 +46,19 @@ func TestAnalyzeImpactNoChange(t *testing.T) {
 	}
 	if impact.Mode != "" {
 		t.Errorf("no change should have empty mode, got %q", impact.Mode)
+	}
+}
+
+func TestAnalyzeImpactAgentSpecChangeRequiresNewSession(t *testing.T) {
+	current := AgentConfig{Provider: "claude", Profile: "default", AgentSpec: intelligence.AgentSpec{Role: "qa"}}
+	proposed := current
+	proposed.AgentSpec.Instructions = []string{"Collect evidence"}
+	impact := AnalyzeImpact(current, proposed)
+	if impact.Mode != ImpactNewSession || !impact.RequiresRestart || !impact.RequiresNewSess {
+		t.Fatalf("AgentSpec change must require a new session: %+v", impact)
+	}
+	if len(impact.ChangedFields) != 1 || impact.ChangedFields[0] != "agent_spec" {
+		t.Fatalf("unexpected changed fields: %v", impact.ChangedFields)
 	}
 }
 
@@ -90,6 +104,45 @@ func TestAnalyzeImpactMaestroModeChange(t *testing.T) {
 	}
 	if impact.RequiresRestart || impact.RequiresNewSess {
 		t.Error("maestro mode change should not require restart or new session")
+	}
+}
+
+func TestAnalyzeImpactModeChangeRequiresNewSession(t *testing.T) {
+	current := AgentConfig{
+		Provider: "claude",
+		Profile:  "default",
+		Options:  map[string]any{"mode": "Safe"},
+	}
+	proposed := AgentConfig{
+		Provider: "claude",
+		Profile:  "default",
+		Options:  map[string]any{"mode": "YOLO"},
+	}
+	impact := AnalyzeImpact(current, proposed)
+	if impact.Mode != ImpactNewSession {
+		t.Errorf("mode change should be NEW_SESSION, got %q", impact.Mode)
+	}
+	if !impact.RequiresNewSess {
+		t.Error("mode change should require new session")
+	}
+	if !impact.RequiresRestart {
+		t.Error("mode change should require restart")
+	}
+}
+
+func TestAnalyzeImpactContinuityPolicyNewSession(t *testing.T) {
+	current := AgentConfig{Provider: "claude", Profile: "default"}
+	proposed := AgentConfig{
+		Provider:         "claude",
+		Profile:          "default",
+		ContinuityPolicy: "new_session",
+	}
+	impact := AnalyzeImpact(current, proposed)
+	if impact.Mode != ImpactNewSession {
+		t.Errorf("continuity_policy new_session should be NEW_SESSION, got %q", impact.Mode)
+	}
+	if !impact.RequiresNewSess {
+		t.Error("continuity_policy new_session should require new session")
 	}
 }
 

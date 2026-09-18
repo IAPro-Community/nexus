@@ -1,6 +1,24 @@
 package runtime
 
-import "testing"
+import (
+	"bytes"
+	"strings"
+	"testing"
+)
+
+func TestWriteTerminalKeyboardModeReset(t *testing.T) {
+	var out bytes.Buffer
+	writeTerminalKeyboardModeReset(&out)
+	if got := out.String(); got != terminalKeyboardModeReset {
+		t.Fatalf("keyboard reset = %q, want %q", got, terminalKeyboardModeReset)
+	}
+}
+
+func TestTerminalKeyboardModeResetDisablesBracketedPaste(t *testing.T) {
+	if !strings.Contains(terminalKeyboardModeReset, "\x1b[?2004l") {
+		t.Fatalf("keyboard reset does not disable bracketed paste: %q", terminalKeyboardModeReset)
+	}
+}
 
 func TestNormalizeInteractiveEnvReplacesDumbTerminal(t *testing.T) {
 	env := []string{"PATH=/bin", "TERM=dumb", "LANG=pt_BR.UTF-8"}

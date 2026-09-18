@@ -4,7 +4,38 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"sync"
 )
+
+// allowedTunnelHosts is a set of hostnames that are allowed as tunnel endpoints.
+// These are dynamically registered when a Cloudflare Quick Tunnel is started.
+var (
+	allowedTunnelHosts = make(map[string]struct{})
+	allowedTunnelMu    sync.RWMutex
+)
+
+// RegisterTunnelHost adds a hostname to the allowed tunnel endpoints.
+// Call when starting a Cloudflare Quick Tunnel.
+func RegisterTunnelHost(hostname string) {
+	allowedTunnelMu.Lock()
+	defer allowedTunnelMu.Unlock()
+	allowedTunnelHosts[strings.ToLower(strings.TrimSuffix(hostname, "."))] = struct{}{}
+}
+
+// UnregisterTunnelHost removes a hostname from the allowed tunnel endpoints.
+// Call when stopping a Cloudflare Quick Tunnel.
+func UnregisterTunnelHost(hostname string) {
+	allowedTunnelMu.Lock()
+	defer allowedTunnelMu.Unlock()
+	delete(allowedTunnelHosts, strings.ToLower(strings.TrimSuffix(hostname, ".")))
+}
+
+func isAllowedTunnelHost(host string) bool {
+	allowedTunnelMu.RLock()
+	defer allowedTunnelMu.RUnlock()
+	_, ok := allowedTunnelHosts[strings.ToLower(strings.TrimSuffix(host, "."))]
+	return ok
+}
 
 // IsDesktopOrigin returns true if the origin is generated strictly by the native desktop shell (Wails).
 func IsDesktopOrigin(u *url.URL) bool {
@@ -29,7 +60,7 @@ func IsTrustedDesktopRequest(requestHost, originHeader, refererHeader string) bo
 	reqHost, _ := splitHostPortLoose(requestHost)
 	reqHost = strings.ToLower(strings.TrimSuffix(reqHost, "."))
 
-	isLoopback := reqHost == "wails" || reqHost == "localhost"
+	isLoopback := reqHost == "wails" || reqHost == "localhost" || reqHost == "nexus.dev"
 	if !isLoopback {
 		ip := net.ParseIP(reqHost)
 		isLoopback = ip != nil && ip.IsLoopback()
@@ -70,7 +101,7 @@ func Validate(requestHost, origin string) bool {
 
 	// Allow native desktop WebView origins (Wails) targeting internal loopback or wails host.
 	if isDesktopOrigin(u) {
-		if reqHost == "wails" || reqHost == "localhost" {
+		if reqHost == "wails" || reqHost == "localhost" || reqHost == "nexus.dev" {
 			return true
 		}
 		ip := net.ParseIP(reqHost)
@@ -95,7 +126,10 @@ func Validate(requestHost, origin string) bool {
 	if reqPort != "" && reqPort != originPort {
 		return false
 	}
-	if reqHost == "localhost" {
+	if reqHost == "localhost" || reqHost == "nexus.dev" {
+		return true
+	}
+	if isAllowedTunnelHost(reqHost) {
 		return true
 	}
 	ip := net.ParseIP(reqHost)

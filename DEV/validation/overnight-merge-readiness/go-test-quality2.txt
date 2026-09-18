@@ -1,0 +1,69 @@
+?   	github.com/kivervinicius/ai-cli/cmd/nexus	[no test files]
+?   	github.com/kivervinicius/ai-cli/cmd/nexus-desktop	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/app	17.710s
+?   	github.com/kivervinicius/ai-cli/internal/browser	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/buildinfo	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/control/driver	9.880s
+ok  	github.com/kivervinicius/ai-cli/internal/control/events	0.017s
+ok  	github.com/kivervinicius/ai-cli/internal/control/flags	0.016s
+ok  	github.com/kivervinicius/ai-cli/internal/control/handoff	0.167s
+ok  	github.com/kivervinicius/ai-cli/internal/control/host	0.818s
+ok  	github.com/kivervinicius/ai-cli/internal/control/ids	0.070s
+ok  	github.com/kivervinicius/ai-cli/internal/control/launchenv	0.041s
+ok  	github.com/kivervinicius/ai-cli/internal/control/launcher	0.069s
+ok  	github.com/kivervinicius/ai-cli/internal/control/notify	0.015s
+ok  	github.com/kivervinicius/ai-cli/internal/control/originpolicy	0.019s
+ok  	github.com/kivervinicius/ai-cli/internal/control/protocol	0.061s
+ok  	github.com/kivervinicius/ai-cli/internal/control/registry	0.327s
+ok  	github.com/kivervinicius/ai-cli/internal/control/terminal	0.055s
+ok  	github.com/kivervinicius/ai-cli/internal/control/tui	0.019s
+ok  	github.com/kivervinicius/ai-cli/internal/control/web	22.604s
+ok  	github.com/kivervinicius/ai-cli/internal/control/websocketio	0.125s
+ok  	github.com/kivervinicius/ai-cli/internal/control/workspace	0.024s
+ok  	github.com/kivervinicius/ai-cli/internal/conversation	0.011s
+ok  	github.com/kivervinicius/ai-cli/internal/core/classifier	0.027s
+ok  	github.com/kivervinicius/ai-cli/internal/core/config	0.080s
+ok  	github.com/kivervinicius/ai-cli/internal/core/cooldown	0.018s
+?   	github.com/kivervinicius/ai-cli/internal/core/exitcode	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/core/fallback	0.018s
+?   	github.com/kivervinicius/ai-cli/internal/core/model	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider	0.017s
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/agy	0.012s
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/claude	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex	8.762s
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/cursor	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/gemini	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/opencode	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/mock	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/core/quota	0.022s
+ok  	github.com/kivervinicius/ai-cli/internal/core/scheduler	0.040s
+ok  	github.com/kivervinicius/ai-cli/internal/core/security	0.030s
+ok  	github.com/kivervinicius/ai-cli/internal/core/session	0.039s
+ok  	github.com/kivervinicius/ai-cli/internal/core/telemetry	0.033s
+ok  	github.com/kivervinicius/ai-cli/internal/desktop	0.021s
+ok  	github.com/kivervinicius/ai-cli/internal/doctor	0.069s
+ok  	github.com/kivervinicius/ai-cli/internal/localization	0.021s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus	19.353s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard	0.212s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/contextsnapshot	0.702s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/intelligence	0.029s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/maestrogates	0.027s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/plangraph	0.010s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/runner	2.685s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/skills	0.020s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/store	1.613s
+--- FAIL: TestGetAccountInfo (0.01s)
+    account_test.go:25: unexpected AGY account info: {AccountScope:{ProviderID:agy ProfileID:google-acc AccountID:56c3f72d00b33c4657af1577e6579f3e IdentityVersion: CredentialScope:} Email: ExternalAccountID: Plan:Google AI Pro Status:Not authenticated Health:AUTH_REQUIRED Authenticated:false ExpiresAt:0001-01-01 00:00:00 +0000 UTC Limits:[] Usage:{ProviderID:agy ProfileID:google-acc Status:UNKNOWN Source:NONE Confidence: FetchedAt:0001-01-01 00:00:00 +0000 UTC ExpiresAt:<nil> Windows:[] ModelName: Account: Plan: Error: AccountScope:{ProviderID: ProfileID: AccountID: IdentityVersion: CredentialScope:}}}
+FAIL
+FAIL	github.com/kivervinicius/ai-cli/internal/profile	2.887s
+ok  	github.com/kivervinicius/ai-cli/internal/release	0.035s
+ok  	github.com/kivervinicius/ai-cli/internal/runtime	0.011s
+?   	github.com/kivervinicius/ai-cli/internal/testutil	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/testutil/fakeagent	[no test files]
+ok  	github.com/kivervinicius/ai-cli/internal/tui	0.033s
+ok  	github.com/kivervinicius/ai-cli/internal/update	0.025s
+ok  	github.com/kivervinicius/ai-cli/scripts	0.007s
+?   	github.com/kivervinicius/ai-cli/scripts/loadtest	[no test files]
+ok  	github.com/kivervinicius/ai-cli/scripts/sign-update-manifest	0.016s
+?   	github.com/kivervinicius/ai-cli/web/node_modules/flatted/golang/pkg/flatted	[no test files]
+FAIL

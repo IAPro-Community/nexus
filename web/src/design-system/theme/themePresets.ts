@@ -23,7 +23,7 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
       '--nx-text': '#f1f3f7',
       '--nx-text-soft': '#d9dde6',
       '--nx-muted': '#8a93a5',
-      '--nx-subtle': '#626c82',
+      '--nx-subtle': '#8b95a8',
       '--nx-accent': '#8b5cf6',
       '--nx-accent-hover': '#9f75ff',
       '--nx-accent-soft': 'rgba(139, 92, 246, 0.14)',

@@ -1,0 +1,18 @@
+---
+pid: 3597122
+cwd: "/projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager"
+command: "rtk make security; echo EXIT:$?"
+title: "Re-run govulncheck security gate"
+status: succeeded
+started_at: 2026-09-13T04:33:02.927Z
+running_for_ms: 40046    
+---
+go: golang.org/x/vuln@v1.7.0 requires go >= 1.25.0; switching to go1.26.8
+No vulnerabilities found.
+EXIT:0
+
+---
+exit_code: 0
+elapsed_ms: 39875
+ended_at: 2026-09-13T04:33:42.802Z
+---

@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -27,6 +28,8 @@ func (f *fakeWorkTracker) HasActiveWork() (bool, string) {
 }
 
 func TestServiceCheckAndApply(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -143,5 +146,64 @@ func TestServiceBlocksUpdateWhenActiveWorkPresent(t *testing.T) {
 	_, err := svc.Apply(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "active work in progress") {
 		t.Fatalf("expected active work rejection, got %v", err)
+	}
+}
+
+func TestServiceRejectsUnsignedManifest(t *testing.T) {
+	manifest := []byte(`{"schema_version":1,"channel":"stable","version":"1.0.1","artifacts":{}}`)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(manifest)
+	}))
+	defer ts.Close()
+
+	svc := NewService(ServiceConfig{RegistryURL: ts.URL, CurrentVer: "1.0.0", Method: MethodStandalone})
+	_, err := svc.Check(context.Background())
+	if !errors.Is(err, ErrManifestUnsigned) {
+		t.Fatalf("expected unsigned manifest rejection, got %v", err)
+	}
+}
+
+func TestServiceAcceptsDetachedManifestSignature(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
+	manifestValue := Manifest{
+		SchemaVersion: 1,
+		Channel:       "stable",
+		Version:       "1.0.1",
+		KeyID:         "detached-key",
+		Artifacts: map[string]Artifact{
+			target: {Size: 1, SHA256: strings.Repeat("a", 64)},
+		},
+	}
+	manifest, err := json.Marshal(manifestValue)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sig := hex.EncodeToString(ed25519.Sign(priv, manifest))
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/update-manifest.json":
+			_, _ = w.Write(manifest)
+		case "/update-manifest.sig":
+			_, _ = w.Write([]byte(sig + "\n"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer ts.Close()
+
+	kr := NewKeyRing()
+	kr.AddKey("detached-key", pub)
+	svc := NewService(ServiceConfig{
+		RegistryURL: ts.URL + "/update-manifest.json",
+		KeyRing:     kr,
+		CurrentVer:  "1.0.0",
+		Method:      MethodStandalone,
+	})
+	if _, err := svc.Check(context.Background()); err != nil {
+		t.Fatalf("detached signature should be accepted: %v", err)
 	}
 }

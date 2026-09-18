@@ -1,0 +1,4 @@
+ok  	github.com/kivervinicius/ai-cli/internal/control/web	13.697s
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/agy	0.018s
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex	4.745s
+ok  	github.com/kivervinicius/ai-cli/internal/nexus	13.040s

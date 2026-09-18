@@ -1,0 +1,22 @@
+.rail {
+  --nx-project-rail-width: var(--nx-rail, 260px);
+  width: var(--nx-project-rail-width);
+  flex-basis: var(--nx-project-rail-width);
+  box-shadow: 8px 0 28px color-mix(in srgb, var(--nx-bg) 26%, transparent);
+  transition:
+    width 0.18s ease,
+    flex-basis 0.18s ease;
+}
+
+@media (max-width: 1279px) {
+  .rail {
+    width: var(--nx-project-rail-width);
+    flex-basis: var(--nx-project-rail-width);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail {
+    transition: none;
+  }
+}

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 const FlowPolicyFactKey = "nexus.flow_policy"
@@ -27,10 +27,13 @@ const (
 )
 
 type FlowPhase struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description,omitempty"`
-	Order       int    `json:"order"`
+	ID            string `json:"id"`
+	Title         string `json:"title"`
+	Description   string `json:"description,omitempty"`
+	Order         int    `json:"order"`
+	Type          string `json:"type,omitempty"`
+	RequiredRole  string `json:"required_role,omitempty"`
+	FailurePolicy string `json:"failure_policy,omitempty"`
 }
 
 type FlowStep struct {
@@ -44,18 +47,27 @@ type FlowStep struct {
 	Dependencies             []string               `json:"dependencies"`
 	ParallelGroup            string                 `json:"parallel_group,omitempty"`
 	Role                     string                 `json:"role"`
+	PhaseType                string                 `json:"phase_type,omitempty"`
+	ReviewRequired           bool                   `json:"review_required,omitempty"`
 	TaskRequirements         string                 `json:"task_requirements,omitempty"`
 	AssignmentStrategy       FlowAssignmentStrategy `json:"assignment_strategy"`
 	AgentID                  string                 `json:"agent_id,omitempty"`
 	ResourcePolicy           string                 `json:"resource_policy,omitempty"`
 	Provider                 string                 `json:"provider,omitempty"`
 	Profile                  string                 `json:"profile,omitempty"`
+	DesiredProvider          string                 `json:"desired_provider,omitempty"`
+	DesiredProfile           string                 `json:"desired_profile,omitempty"`
+	SkillIDs                 []string               `json:"skill_ids,omitempty"`
 	MaestroGates             []string               `json:"maestro_gates,omitempty"`
 	MaestroSkills            []string               `json:"maestro_skills,omitempty"`
 	RelevantPaths            []string               `json:"relevant_paths,omitempty"`
 	AcceptanceCriteria       []string               `json:"acceptance_criteria"`
 	VerificationRequirements []string               `json:"verification_requirements,omitempty"`
 	SharedArtifacts          []string               `json:"shared_artifacts,omitempty"`
+	EntryCriteria            []string               `json:"entry_criteria,omitempty"`
+	ExitCriteria             []string               `json:"exit_criteria,omitempty"`
+	RequiredEvidence         []string               `json:"required_evidence,omitempty"`
+	HandoffJSON              string                 `json:"handoff,omitempty"`
 	CompiledPrompt           string                 `json:"compiled_prompt,omitempty"`
 }
 
@@ -129,16 +141,16 @@ func FlowFromWorkPlan(plan store.WorkPlan) FlowDefinition {
 		StructuredFacts: facts, CreatedAt: plan.CreatedAt, UpdatedAt: plan.UpdatedAt,
 	}
 	for _, phase := range plan.Phases {
-		flow.Phases = append(flow.Phases, FlowPhase{ID: phase.ID, Title: phase.Title, Description: phase.Description, Order: phase.Order})
+		flow.Phases = append(flow.Phases, FlowPhase{ID: phase.ID, Title: phase.Title, Description: phase.Description, Order: phase.Order, Type: phase.Type, RequiredRole: phase.RequiredRole, FailurePolicy: phase.FailurePolicy})
 		for order, pkg := range phase.Packages {
 			flow.Steps = append(flow.Steps, FlowStep{
 				ID: pkg.ID, PhaseID: phase.ID, Order: order, Title: pkg.Title, Goal: pkg.Goal,
 				Priority: pkg.Priority, Status: pkg.Status, Dependencies: cloneStrings(pkg.Dependencies), ParallelGroup: pkg.ParallelGroup,
-				Role: pkg.Role, TaskRequirements: pkg.TaskRequirements, AssignmentStrategy: assignmentForPackage(pkg), AgentID: pkg.AgentAllocation,
-				ResourcePolicy: pkg.ResourcePolicy, Provider: pkg.Provider, Profile: pkg.Profile,
-				MaestroGates: cloneStrings(pkg.MaestroGates), MaestroSkills: cloneStrings(pkg.MaestroSkills), RelevantPaths: cloneStrings(pkg.RelevantPaths),
+				Role: pkg.Role, PhaseType: pkg.PhaseType, ReviewRequired: pkg.ReviewRequired, TaskRequirements: pkg.TaskRequirements, AssignmentStrategy: assignmentForPackage(pkg), AgentID: pkg.AgentAllocation,
+				ResourcePolicy: pkg.ResourcePolicy, Provider: pkg.Provider, Profile: pkg.Profile, DesiredProvider: pkg.DesiredProvider, DesiredProfile: pkg.DesiredProfile,
+				SkillIDs: cloneStrings(pkg.SkillIDs), MaestroGates: cloneStrings(pkg.MaestroGates), MaestroSkills: cloneStrings(pkg.MaestroSkills), RelevantPaths: cloneStrings(pkg.RelevantPaths),
 				AcceptanceCriteria: cloneStrings(pkg.AcceptanceCriteria), VerificationRequirements: cloneStrings(pkg.VerificationRequirements),
-				SharedArtifacts: cloneStrings(pkg.SharedArtifacts), CompiledPrompt: pkg.CompiledPrompt,
+				SharedArtifacts: cloneStrings(pkg.SharedArtifacts), EntryCriteria: cloneStrings(pkg.EntryCriteria), ExitCriteria: cloneStrings(pkg.ExitCriteria), RequiredEvidence: cloneStrings(pkg.RequiredEvidence), HandoffJSON: pkg.HandoffJSON, CompiledPrompt: pkg.CompiledPrompt,
 			})
 		}
 	}
@@ -158,7 +170,7 @@ func WorkPlanFromFlow(flow FlowDefinition) store.WorkPlan {
 	phases := make([]store.PlanPhase, len(flow.Phases))
 	phaseIndex := make(map[string]int, len(flow.Phases))
 	for i, phase := range flow.Phases {
-		phases[i] = store.PlanPhase{ID: phase.ID, Title: phase.Title, Description: phase.Description, Order: phase.Order}
+		phases[i] = store.PlanPhase{ID: phase.ID, Title: phase.Title, Description: phase.Description, Order: phase.Order, Type: phase.Type, RequiredRole: phase.RequiredRole, FailurePolicy: phase.FailurePolicy}
 		phaseIndex[phase.ID] = i
 	}
 	steps := append([]FlowStep(nil), flow.Steps...)
@@ -181,11 +193,11 @@ func WorkPlanFromFlow(flow FlowDefinition) store.WorkPlan {
 		}
 		phases[idx].Packages = append(phases[idx].Packages, store.WorkPackage{
 			ID: step.ID, Title: step.Title, Goal: step.Goal, Priority: step.Priority, Status: step.Status,
-			Dependencies: cloneStrings(step.Dependencies), ParallelGroup: step.ParallelGroup, Role: step.Role, TaskRequirements: step.TaskRequirements,
+			Dependencies: cloneStrings(step.Dependencies), ParallelGroup: step.ParallelGroup, Role: step.Role, PhaseType: step.PhaseType, ReviewRequired: step.ReviewRequired, TaskRequirements: step.TaskRequirements,
 			AgentAllocation: step.AgentID, AssignmentStrategy: string(step.AssignmentStrategy), ResourcePolicy: step.ResourcePolicy,
-			Provider: step.Provider, Profile: step.Profile, MaestroGates: cloneStrings(step.MaestroGates), MaestroSkills: cloneStrings(step.MaestroSkills),
+			Provider: step.Provider, Profile: step.Profile, DesiredProvider: step.DesiredProvider, DesiredProfile: step.DesiredProfile, SkillIDs: cloneStrings(step.SkillIDs), MaestroGates: cloneStrings(step.MaestroGates), MaestroSkills: cloneStrings(step.MaestroSkills),
 			RelevantPaths: cloneStrings(step.RelevantPaths), AcceptanceCriteria: cloneStrings(step.AcceptanceCriteria),
-			VerificationRequirements: cloneStrings(step.VerificationRequirements), SharedArtifacts: cloneStrings(step.SharedArtifacts), CompiledPrompt: step.CompiledPrompt,
+			VerificationRequirements: cloneStrings(step.VerificationRequirements), SharedArtifacts: cloneStrings(step.SharedArtifacts), EntryCriteria: cloneStrings(step.EntryCriteria), ExitCriteria: cloneStrings(step.ExitCriteria), RequiredEvidence: cloneStrings(step.RequiredEvidence), HandoffJSON: step.HandoffJSON, CompiledPrompt: step.CompiledPrompt,
 		})
 	}
 	return store.WorkPlan{ID: flow.ID, ProjectID: flow.ProjectID, MissionID: flow.MissionID, Title: flow.Title, Description: flow.Description,

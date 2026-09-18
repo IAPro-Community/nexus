@@ -4,14 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	providerspec "github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
 	"github.com/gorilla/websocket"
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
 )
 
 var upgrader = websocket.Upgrader{
@@ -19,7 +23,7 @@ var upgrader = websocket.Upgrader{
 }
 
 type TerminalMessage struct {
-	Type string `json:"type"` // "output", "input", "resize", "lease", "error"
+	Type string `json:"type"` // "output", "input", "resize", "lease", "promotion", "error"
 	Data string `json:"data,omitempty"`
 	Rows int    `json:"rows,omitempty"`
 	Cols int    `json:"cols,omitempty"`
@@ -27,12 +31,21 @@ type TerminalMessage struct {
 }
 
 type TerminalHub struct {
-	auth *AuthManager
+	auth     *AuthManager
+	registry *registry.Registry
+	nexus    *nexus.Nexus
 }
 
-func NewTerminalHub(auth *AuthManager) *TerminalHub {
+func (h *TerminalHub) SetNexus(n *nexus.Nexus) { h.nexus = n }
+
+func NewTerminalHub(auth *AuthManager, registries ...*registry.Registry) *TerminalHub {
+	reg := registry.DefaultRegistry()
+	if len(registries) > 0 && registries[0] != nil {
+		reg = registries[0]
+	}
 	return &TerminalHub{
-		auth: auth,
+		auth:     auth,
+		registry: reg,
 	}
 }
 
@@ -42,7 +55,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		return
 	}
 
-	reg := registry.DefaultRegistry()
+	reg := h.registry
 	sess, exists := reg.Get(runtimeID)
 	if !exists {
 		writeError(w, http.StatusNotFound, "runtime not found")
@@ -55,11 +68,22 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		return
 	}
 
+	// Dial the control endpoint before upgrading. A live PID/STARTING row is
+	// not enough on Windows when the named pipe was never created; prefer HTTP
+	// 404 over a WebSocket error overlay ("Runtime do Agente desconectado").
+	client, err := protocol.NewClient(runtimeID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "runtime host is not running ("+err.Error()+")")
+		return
+	}
+
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		_ = client.Close()
 		return
 	}
 	defer ws.Close()
+	defer client.Close()
 
 	var wsMu sync.Mutex
 	safeWriteJSON := func(v any) error {
@@ -72,19 +96,6 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	hasRuntime := runtimeID != ""
 	role := broker.Attach(agentID, ws, hasRuntime, &wsMu)
 	defer broker.Detach(agentID, ws)
-
-	// Connect to runtime SessionHost via local IPC
-	client, err := protocol.NewClient(runtimeID)
-	if err != nil {
-		// Do not mark STOPPED: a transient socket miss must not race Recover/Start
-		// into tearing down a still-running project agent.
-		_ = safeWriteJSON(TerminalMessage{
-			Type: "error",
-			Data: "Runtime host is not running (" + err.Error() + "). The process has exited or the socket was closed.",
-		})
-		return
-	}
-	defer client.Close()
 
 	stopChan := make(chan struct{})
 	var stopOnce sync.Once
@@ -225,6 +236,12 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		}
 	}()
 
+	shadow := promotion.NewLineShadow()
+	pendingPromotion := ""
+	if strings.EqualFold(string(webInteractiveDelegationMode(sess)), string(nexus.DelegationOff)) {
+		shadow.SetEnabled(false)
+	}
+
 	// 1. Pump stdout from child process to browser.
 	// Buffer across reads so protocol frames (request or response) that
 	// span chunk boundaries never leak into the visible terminal.
@@ -295,6 +312,17 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		}
 
 		switch msg.Type {
+		case "promotion_answer":
+			if broker.IsWriter(agentID, ws) && pendingPromotion != "" {
+				if strings.EqualFold(strings.TrimSpace(msg.Data), "y") || strings.EqualFold(strings.TrimSpace(msg.Data), "yes") {
+					_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID) + "\r\n"})
+					go launchPromotedMission(h.nexus, sess, pendingPromotion)
+				} else {
+					_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+				}
+				pendingPromotion = ""
+			}
+
 		case "input":
 			// Authoritative writer check on Agent level (§45, A6).
 			// SessionHost streamAttachedInput is line-oriented for RPC framing;
@@ -302,7 +330,44 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			// JSON frames (newline-terminated) or they buffer forever and typing
 			// appears dead.
 			if broker.IsWriter(agentID, ws) && msg.Data != "" {
-				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: msg.Data})
+				if pendingPromotion != "" {
+					// ASK consumes the next answer outside the provider PTY. The
+					// original line is retained only until this explicit choice.
+					answer := strings.TrimSpace(msg.Data)
+					if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
+						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID) + "\r\n"})
+						go launchPromotedMission(h.nexus, sess, pendingPromotion)
+					} else {
+						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+					}
+					pendingPromotion = ""
+					continue
+				}
+				if h.nexus == nil || sess.ProjectID == "" || sess.AgentID == "" || !shadow.Enabled() {
+					_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: msg.Data})
+					break
+				}
+				event := shadow.Consume([]byte(msg.Data))
+				if len(event.Forward) > 0 {
+					_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: string(event.Forward)})
+				}
+				if event.Submit {
+					for _, line := range event.Submissions {
+						decision, decideErr := promotion.NewPromoter(h.nexus).Decide(r.Context(), sess.ProjectID, line, webInteractiveDelegationMode(sess))
+						if decideErr != nil || decision.Action == promotion.KeepWithLead {
+							_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+							continue
+						}
+						if decision.Action == promotion.Ask {
+							pendingPromotion = line
+							_ = safeWriteJSON(TerminalMessage{Type: "promotion", Data: line, Role: "ASK"})
+							continue
+						}
+						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID) + "\r\n"})
+						_ = safeWriteJSON(TerminalMessage{Type: "promotion", Data: line, Role: "PROMOTED"})
+						go launchPromotedMission(h.nexus, sess, line)
+					}
+				}
 			}
 
 		case "resize":
@@ -341,6 +406,21 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			_ = sendAttachedCommand(rawConn, protocol.CmdLeaseRelease, nil)
 		}
 	}
+}
+
+func webInteractiveDelegationMode(sess registry.RuntimeSession) nexus.DelegationMode {
+	mode := nexus.DelegationMode(sess.Labels["nexus.delegation_mode"])
+	if override := strings.TrimSpace(os.Getenv("NEXUS_DELEGATION_MODE")); override != "" {
+		mode = nexus.DelegationMode(override)
+	}
+	return nexus.NormalizeDelegationMode(mode)
+}
+
+func clearLineSequence(providerID string) string {
+	if provider, ok := providerspec.Get(providerID); ok && provider.ClearLine != "" {
+		return provider.ClearLine
+	}
+	return "\x15"
 }
 
 func sendAttachedCommand(conn interface{ Write([]byte) (int, error) }, command protocol.CommandType, payload any) error {

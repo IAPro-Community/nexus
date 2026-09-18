@@ -1,8 +1,12 @@
 package nexus
 
 import (
+	"context"
 	"strings"
 	"testing"
+
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func TestCompileAgentPromptWithoutSkills(t *testing.T) {
@@ -19,6 +23,24 @@ func TestCompileAgentPromptWithoutSkills(t *testing.T) {
 	}
 	if compiled.PromptHash == "" {
 		t.Fatal("expected prompt hash to be calculated")
+	}
+}
+
+func TestCompileTargetPackagePromptUsesPersistedGenericGuidance(t *testing.T) {
+	plan := &store.WorkPlan{StructuredFacts: map[string]string{"framework": "go"}}
+	pkg := &store.WorkPackage{
+		Title:              "Run verification",
+		Goal:               "Verify the implementation",
+		Role:               "reviewer",
+		TaskRequirements:   `{"guidance":{"enabled":true,"source":"maestro","reference":"advice:verify-1","instructions":["use the independent verification gate"]}}`,
+		AcceptanceCriteria: []string{"verification is recorded"},
+	}
+	compiled, err := compileTargetPackagePromptForAgent(context.Background(), plan, pkg, intelligence.AgentSpec{Role: "reviewer"}, []string{"testing"})
+	if err != nil {
+		t.Fatalf("compile prompt: %v", err)
+	}
+	if !strings.Contains(compiled.SystemPrompt, "use the independent verification gate") {
+		t.Fatalf("persisted guidance was not included in compiled prompt: %s", compiled.SystemPrompt)
 	}
 }
 
@@ -72,5 +94,64 @@ func TestCompileAgentPromptRejectsDegradedMaestro(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "MAESTRO_DEGRADED") {
 		t.Fatalf("expected MAESTRO_DEGRADED error, got: %v", err)
+	}
+}
+
+func TestCompileAgentPromptForProjectResolvesBuiltinSkillWithoutMaestro(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus {
+		return MaestroStatus{Available: false, Mode: MaestroOff, Error: "maestro offline"}
+	}
+
+	compiled, err := n.CompileAgentPromptForProject("", "run the tests", []string{"testing"})
+	if err != nil {
+		t.Fatalf("builtin skill resolution must not require Maestro: %v", err)
+	}
+	if len(compiled.ValidatedSkills) != 1 || compiled.ValidatedSkills[0] != "testing" {
+		t.Fatalf("unexpected validated skills: %#v", compiled.ValidatedSkills)
+	}
+	if !strings.Contains(compiled.CompiledPrompt, "testing") {
+		t.Fatalf("compiled prompt omitted the generic skill: %s", compiled.CompiledPrompt)
+	}
+}
+
+func TestRenderCanonicalPromptIncludesFilledSections(t *testing.T) {
+	brief := newComposerBrief(
+		"Add password reset with expiring token",
+		"Add password reset with expiring token. Out of scope: SMS. Must pass go test. Do not commit.",
+	)
+	brief.Scope.InScope = []string{"password reset API"}
+	brief.Scope.OutOfScope = []string{"SMS delivery"}
+	brief.Quality.AcceptanceCriteria = []string{"token expires and email is mocked"}
+	brief.Quality.Testing = []string{"go test ./..."}
+	brief.Quality.Verification = []string{"manual reset flow"}
+	brief.Quality.DefinitionOfDone = []string{"tests green"}
+	brief.Execution.ProhibitedActions = []string{"git commit"}
+	brief.Risks = []string{"token leakage"}
+	brief.Deliverable.ExpectedArtifacts = []string{"API handlers", "tests"}
+	brief.Constraints.Security = []string{"hashed tokens only"}
+	refreshComposerBrief(&brief)
+
+	prompt := renderCanonicalPrompt(brief)
+	for _, section := range []string{
+		"# Role",
+		"# Objective",
+		"# Requirements",
+		"# Out of scope",
+		"# Constraints — Security",
+		"# Execution — Prohibited actions",
+		"# Risks",
+		"# Acceptance Criteria",
+		"# Testing",
+		"# Verification",
+		"# Definition of Done",
+		"# Deliverables",
+	} {
+		if !strings.Contains(prompt, section) {
+			t.Fatalf("canonical prompt missing %q\n%s", section, prompt)
+		}
+	}
+	if brief.Preview == "" || brief.Preview != prompt {
+		t.Fatalf("preview must mirror canonical prompt")
 	}
 }

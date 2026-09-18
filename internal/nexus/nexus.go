@@ -5,21 +5,25 @@ package nexus
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/control/events"
-	"github.com/kivervinicius/ai-cli/internal/control/launcher"
-	"github.com/kivervinicius/ai-cli/internal/control/protocol"
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/nexus/runner"
-	"github.com/kivervinicius/ai-cli/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	profilepkg "github.com/IAPro-Community/nexus/internal/profile"
 )
 
 // Launcher abstracts the runtime launch + stop lifecycle so that the Nexus
@@ -39,36 +43,39 @@ func (p *prodLauncher) Launch(ctx context.Context, opts launcher.LaunchOptions) 
 }
 
 func (p *prodLauncher) Stop(runtimeID string) error {
-	client, err := protocol.NewClient(runtimeID)
-	if err != nil {
-		return err
-	}
-	stopErr := client.Stop()
-	closeErr := client.Close()
-	if stopErr != nil {
-		return stopErr
-	}
-	return closeErr
+	return p.l.Stop(runtimeID)
 }
 
 // Nexus is the product-level service bridging the durable store and the
 // control plane runtime layer.
 type Nexus struct {
-	mu            sync.RWMutex
-	st            *store.Store
-	launcher      Launcher
-	runner        *runner.MissionRunner
-	runnerMu      sync.Mutex
-	submitPrompt  func(runtimeID, prompt string) error
-	maestroStatus func() MaestroStatus
-	workersMu     sync.Mutex
-	workers       map[string]*missionWorker
-	schedulerOnce sync.Once
+	mu                         sync.RWMutex
+	st                         *store.Store
+	launcher                   Launcher
+	drivers                    *driver.Registry
+	runtimeReg                 *registry.Registry
+	runner                     *runner.MissionRunner
+	runnerMu                   sync.Mutex
+	submitPrompt               func(runtimeID, prompt string) error
+	maestroStatus              func() MaestroStatus
+	workersMu                  sync.Mutex
+	workers                    map[string]*missionWorker
+	schedulerOnce              sync.Once
+	scheduleCancel             context.CancelFunc
+	quotaMonitor               *QuotaMonitorService
+	attentionOnce              sync.Once
+	attentionCenter            *runner.AttentionCenter
+	projectIntelligenceMu      sync.Mutex
+	projectIntelligenceRunning map[string]bool
 
 	// Runtime change observers (set by the web layer to avoid circular imports).
 	onRuntimeChanged func(agentID, oldRuntimeID, newRuntimeID, provider, profile, continuity string)
 	onAgentState     func(agentID, state string)
 	onContinuity     func(agentID, continuity string)
+
+	// Optional test-only intelligence provider. When set, ConfiguredIntelligenceProvider
+	// returns it instead of resolving from config — used to prove Create does not hang.
+	intelligenceProviderForTest intelligence.IntelligenceProvider
 }
 
 // Runner returns the autonomous mission runner instance.
@@ -79,6 +86,34 @@ func (n *Nexus) Runner() *runner.MissionRunner {
 		n.runner = runner.NewMissionRunner(newStoreRunRepository(n.st), newNexusPackageExecutor(n))
 	}
 	return n.runner
+}
+
+// AttentionCenter returns the read-model query surface for mission attention items.
+func (n *Nexus) AttentionCenter() *runner.AttentionCenter {
+	n.attentionOnce.Do(func() {
+		n.attentionCenter = runner.NewAttentionCenter(newStoreRunRepository(n.st))
+	})
+	return n.attentionCenter
+}
+
+// ResolveMissionIntervention validates and persists a human decision for a
+// blocked mission, then resumes autonomous execution.
+func (n *Nexus) ResolveMissionIntervention(ctx context.Context, runID, interventionID string, version int, optionID, resolvedBy string) (*runner.MissionRun, error) {
+	run, _, err := n.ResolveMissionInterventionWithOutcome(ctx, runID, interventionID, version, optionID, resolvedBy)
+	return run, err
+}
+
+func (n *Nexus) ResolveMissionInterventionWithOutcome(ctx context.Context, runID, interventionID string, version int, optionID, resolvedBy string) (*runner.MissionRun, bool, error) {
+	run, created, err := n.Runner().ResolveInterventionWithOutcome(ctx, runID, interventionID, version, optionID, resolvedBy)
+	if err != nil {
+		return nil, false, err
+	}
+	if created {
+		n.restartMissionWorker(runID)
+	} else {
+		n.StartMissionWorker(runID)
+	}
+	return run, created, nil
 }
 
 // SetRuntimeObservers registers callbacks for runtime lifecycle events.
@@ -136,25 +171,131 @@ func Default() *Nexus {
 			// runtime features degrade gracefully instead of panicking.
 			st = nil
 		}
-		defaultNexus = &Nexus{st: st, launcher: &prodLauncher{l: launcher.Default()}, workers: map[string]*missionWorker{}}
+		defaultNexus = &Nexus{st: st, launcher: &prodLauncher{l: launcher.Default()}, drivers: driver.DefaultRegistry(), runtimeReg: registry.DefaultRegistry(), workers: map[string]*missionWorker{}, projectIntelligenceRunning: map[string]bool{}}
+		defaultNexus.quotaMonitor = NewQuotaMonitorService(DefaultQuotaDropMonitor(), events.DefaultBus())
 		if st != nil {
 			events.DefaultBus().SetRecorder(func(e events.Event) {
 				projectID, _ := e.Data["project_id"].(string)
 				agentID, _ := e.Data["agent_id"].(string)
 				_, _ = st.RecordEventMetadata(store.EventMetadata{
-					ID:        e.ID,
-					AgentID:   agentID,
-					ProjectID: projectID,
-					Kind:      string(e.Type),
-					Timestamp: e.Timestamp,
-					Summary:   e.Summary,
+					ID:            e.ID,
+					AgentID:       agentID,
+					ProjectID:     projectID,
+					CorrelationID: e.CorrelationID,
+					Kind:          string(e.Type),
+					Timestamp:     e.Timestamp,
+					Summary:       e.Summary,
+					AccountScope:  e.AccountScope,
 				})
 			})
 			_ = defaultNexus.RecoverMissionRuns(context.Background())
 			defaultNexus.StartScheduleLoop()
+			// Purge expired events at startup (90d default).
+			go defaultNexus.purgeExpiredEvents()
 		}
 	})
 	return defaultNexus
+}
+
+func (n *Nexus) runtimeRegistry() *registry.Registry {
+	if n != nil && n.runtimeReg != nil {
+		return n.runtimeReg
+	}
+	return registry.DefaultRegistry()
+}
+
+// RuntimeRegistry exposes the Nexus-owned runtime registry to transport
+// adapters without forcing them back to the process-wide singleton.
+func (n *Nexus) RuntimeRegistry() *registry.Registry { return n.runtimeRegistry() }
+
+// controlDrivers returns the Nexus-owned provider control registry. The
+// fallback preserves compatibility for tests and legacy constructors that
+// still build a Nexus value directly.
+func (n *Nexus) controlDrivers() *driver.Registry {
+	if n != nil && n.drivers != nil {
+		return n.drivers
+	}
+	return driver.DefaultRegistry()
+}
+
+// ResetDefaultForTest releases the process-wide singleton between tests that
+// replace the configured data directory. Production code should use Default.
+func ResetDefaultForTest() {
+	if defaultNexus != nil {
+		defaultNexus.Shutdown()
+		defaultNexus = nil
+	}
+	nexusOnce = sync.Once{}
+}
+
+// purgeExpiredEvents removes activity events older than the retention period.
+// It runs once at startup and is safe to call from a background goroutine.
+func (nx *Nexus) purgeExpiredEvents() {
+	if nx == nil {
+		return
+	}
+	st, err := nx.OpenProject()
+	if err != nil {
+		return
+	}
+	policy, err := GetConductorPolicy(st)
+	if err != nil || policy == nil || policy.RetentionDays == nil {
+		return
+	}
+	purged, err := st.PurgeExpiredEventsSince(time.Now().UTC(), *policy.RetentionDays)
+	if err == nil && purged > 0 {
+		slog.Debug("nexus conductor: purged expired events", "count", purged)
+	}
+}
+
+// StartQuotaMonitor starts the process-resident quota service exactly once.
+func (n *Nexus) StartQuotaMonitor(ctx context.Context) {
+	n.mu.Lock()
+	if n.quotaMonitor == nil {
+		n.quotaMonitor = NewQuotaMonitorService(DefaultQuotaDropMonitor(), events.DefaultBus())
+	}
+	service := n.quotaMonitor
+	n.mu.Unlock()
+	service.Start(ctx)
+}
+
+// StopQuotaMonitor stops the resident service without affecting runtimes.
+func (n *Nexus) StopQuotaMonitor() {
+	n.mu.RLock()
+	service := n.quotaMonitor
+	n.mu.RUnlock()
+	if service != nil {
+		service.Stop()
+	}
+}
+
+// Shutdown gracefully stops all background services and releases resources.
+// It must be called once during process exit to avoid leaked SQLite handles
+// and orphaned goroutines.
+func (n *Nexus) Shutdown() {
+	n.StopQuotaMonitor()
+
+	// Stop the schedule loop goroutine.
+	if n.scheduleCancel != nil {
+		n.scheduleCancel()
+	}
+
+	// Cancel all active mission workers.
+	n.workersMu.Lock()
+	workers := make([]*missionWorker, 0, len(n.workers))
+	for _, w := range n.workers {
+		workers = append(workers, w)
+	}
+	n.workersMu.Unlock()
+	for _, w := range workers {
+		w.cancel()
+	}
+
+	// Close the SQLite store last, after all goroutines that reference it
+	// have been asked to stop.
+	if n.st != nil {
+		_ = n.st.Close()
+	}
 }
 
 // OpenStore opens the SQLite store at <DataDir>/nexus.db using the canonical
@@ -164,7 +305,9 @@ func OpenStore() (*store.Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = os.MkdirAll(dir, 0700)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return nil, fmt.Errorf("create data dir: %w", err)
+	}
 	return store.Open(filepath.Join(dir, "nexus.db"))
 }
 
@@ -211,9 +354,30 @@ func submitPromptToRuntime(runtimeID, prompt string) error {
 	return client.SubmitPrompt(prompt)
 }
 
+// AskAgentOptions controls how AskAgent submits a prompt to a live Agent.
+type AskAgentOptions struct {
+	StartIfNeeded bool
+	// CompileSpecialization wraps the prompt in the WorkPackage envelope.
+	// It is correct for headless/Mission execution; an interactive runtime
+	// already carries the persona in-session, and re-sending the envelope
+	// each turn floods the provider TUI.
+	CompileSpecialization bool
+}
+
 // AskAgent submits work to an existing persistent Agent. A stopped Agent may
 // be started first when explicitly requested, but Agent identity is preserved.
+// Specialization compilation remains on by default for headless callers.
 func (n *Nexus) AskAgent(ctx context.Context, agentID, prompt string, startIfNeeded bool) (*AskAgentResult, error) {
+	return n.AskAgentWithOptions(ctx, agentID, prompt, AskAgentOptions{
+		StartIfNeeded:         startIfNeeded,
+		CompileSpecialization: true,
+	})
+}
+
+// AskAgentWithOptions submits work with explicit control over specialization
+// compilation. Interactive Lead Agents with a live runtime never receive the
+// WorkPackage envelope, even when CompileSpecialization is requested.
+func (n *Nexus) AskAgentWithOptions(ctx context.Context, agentID, prompt string, opts AskAgentOptions) (*AskAgentResult, error) {
 	prompt = strings.TrimSpace(prompt)
 	if prompt == "" {
 		return nil, fmt.Errorf("prompt is required")
@@ -222,16 +386,23 @@ func (n *Nexus) AskAgent(ctx context.Context, agentID, prompt string, startIfNee
 	if err != nil {
 		return nil, err
 	}
-	if _, err := st.GetAgent(agentID, ""); err != nil {
+	agent, err := st.GetAgent(agentID, "")
+	if err != nil {
 		return nil, err
+	}
+	agentCfg, cfgErr := currentAgentConfig(st, agent)
+	if cfgErr != nil {
+		return nil, cfgErr
 	}
 
 	runtimeID := ""
 	started := false
+	runtimeLive := false
 	if gen, genErr := st.CurrentGeneration(agentID); genErr == nil && n.runtimeAlive(gen.RuntimeID) {
 		runtimeID = gen.RuntimeID
+		runtimeLive = true
 	} else {
-		if !startIfNeeded {
+		if !opts.StartIfNeeded {
 			return nil, fmt.Errorf("agent %s has no active runtime; use Start & Ask", agentID)
 		}
 		state, _ := n.EffectiveAgentState(agentID)
@@ -250,11 +421,29 @@ func (n *Nexus) AskAgent(ctx context.Context, agentID, prompt string, startIfNee
 		}
 		runtimeID = sess.RuntimeID
 		started = true
+		runtimeLive = true
+	}
+
+	compile := opts.CompileSpecialization
+	// Interactive Lead sessions already host the persona in the live TUI;
+	// never inject the WorkPackage envelope into that path.
+	if runtimeLive && strings.EqualFold(strings.TrimSpace(agent.Role), interactiveLeadRole) {
+		compile = false
 	}
 
 	submit := n.submitPrompt
 	if submit == nil {
 		submit = submitPromptToRuntime
+	}
+	if compile && agentCfg.AgentSpec.HasCustomBehavior() {
+		compiled, compileErr := intelligence.NewNexusEngine(nil).CompileExecutionContext(ctx, intelligence.ExecutionContextRequest{
+			Agent: agentCfg.AgentSpec,
+			Task:  intelligence.WorkPackageContext{Title: "Direct Agent request", Goal: prompt, Role: agentCfg.AgentSpec.Role},
+		})
+		if compileErr != nil {
+			return nil, fmt.Errorf("compile agent specialization: %w", compileErr)
+		}
+		prompt = compiled.SystemInstructions + "\n\n" + compiled.TaskInstructions
 	}
 	if err := submit(runtimeID, prompt); err != nil {
 		return nil, fmt.Errorf("submit prompt to existing agent: %w", err)
@@ -265,6 +454,7 @@ func (n *Nexus) AskAgent(ctx context.Context, agentID, prompt string, startIfNee
 // StartProjectShell launches an ordinary shell rooted at the Project canonical
 // path. It does not create an Agent, ConfigRevision, lineage or RuntimeGeneration.
 func (n *Nexus) StartProjectShell(ctx context.Context, projectID string) (*registry.RuntimeSession, error) {
+	n.StartQuotaMonitor(ctx)
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -291,6 +481,7 @@ func (n *Nexus) StartProjectShell(ctx context.Context, projectID string) (*regis
 // starts in the agent's project canonical path (P0-1). Empty provider is
 // rejected (P0-6 — no silent fake fallback in production).
 func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile string) (*registry.RuntimeSession, error) {
+	n.StartQuotaMonitor(ctx)
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -317,8 +508,10 @@ func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile strin
 	if agent.CurrentRevisionID != "" {
 		if rev, rerr := st.GetRevision(agent.CurrentRevisionID); rerr == nil {
 			agentCfg, _ = ParseAgentConfig(rev.Config)
+			agentCfg = NormalizeAgentSpec(agent, agentCfg)
 		}
 	}
+	agentCfg = NormalizeAgentSpec(agent, agentCfg)
 	configuredProvider := agentCfg.Provider
 	configuredProfile := agentCfg.Profile
 	agentCfg.Provider = provider
@@ -326,6 +519,7 @@ func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile strin
 	if agentCfg.Profile == "" {
 		agentCfg.Profile = "default"
 	}
+	accountScope := registeredAccountScope(provider, agentCfg.Profile)
 
 	revisionID := currentRevisionID
 	if revisionID == "" || configuredProvider != agentCfg.Provider || configuredProfile != agentCfg.Profile {
@@ -340,7 +534,7 @@ func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile strin
 	if prior, priorErr := st.CurrentGeneration(agentID); priorErr == nil {
 		previousGen = &prior
 	}
-	continuityLaunch, err := continuityForNextGeneration(ctx, agentCfg, previousGen)
+	continuityLaunch, err := n.continuityForNextGeneration(ctx, agentCfg, previousGen)
 	if err != nil {
 		return nil, fmt.Errorf("resolve start continuity: %w", err)
 	}
@@ -350,10 +544,12 @@ func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile strin
 	}
 	sess, err := n.launcher.Launch(ctx, launcher.LaunchOptions{
 		AgentID:           agentID,
+		RuntimeID:         "runtime_" + ids.NewRuntimeID(),
 		ProjectID:         proj.ID,
 		ProjectName:       proj.Name,
 		ProviderID:        provider,
 		ProfileID:         agentCfg.Profile,
+		AccountScope:      accountScope,
 		ProviderSessionID: continuityLaunch.ProviderSessionID,
 		Args:              continuityLaunch.Args,
 		Workspace:         executionWorkspace,
@@ -364,6 +560,18 @@ func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile strin
 	})
 	if err != nil {
 		return nil, fmt.Errorf("start agent runtime: %w", err)
+	}
+
+	// Launcher already waits for the endpoint; re-ping so Start never returns a
+	// session that looks live while the named pipe / socket is gone (Windows P0).
+	if sess.Transport != "mock" {
+		if err := protocol.WaitForEndpoint(ctx, sess.RuntimeID, 8*time.Second); err != nil || !n.runtimeHostReachable(sess.RuntimeID) {
+			n.stopRuntime(sess.RuntimeID)
+			if err == nil {
+				err = fmt.Errorf("started runtime host did not accept attach")
+			}
+			return nil, fmt.Errorf("start agent runtime: %w", err)
+		}
 	}
 
 	gen := store.RuntimeGeneration{
@@ -389,7 +597,10 @@ func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile strin
 	agent.ContinuityStatus = continuityLaunch.Status
 	now := time.Now().UTC()
 	agent.LastStartedAt = &now
-	_ = st.UpdateAgent(agent)
+	if err := st.UpdateAgent(agent); err != nil {
+		n.stopRuntime(sess.RuntimeID)
+		return nil, fmt.Errorf("persist agent state after launch: %w", err)
+	}
 
 	// Notify terminal broker of new runtime (Gate 4).
 	oldRuntimeID := ""
@@ -403,19 +614,21 @@ func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile strin
 	return sess, nil
 }
 
+// registeredAccountScope resolves the persisted authenticated identity before
+// a runtime is created. Failure is intentionally fail-closed: an unverified
+// runtime can still launch, but it cannot consume account-owned quota data.
+func registeredAccountScope(provider, profile string) model.AccountScope {
+	p, err := profilepkg.Get(provider, profile)
+	if err != nil {
+		return model.AccountScope{}
+	}
+	return p.AccountScope
+}
+
 // StopAgent performs a verified stop: sets STOPPING, sends graceful stop,
 // waits for process termination (PID identity check), then persists STOPPED.
 // Failures leave the agent in STOPPING/FAILED with explanation (P0-3).
-func (n *Nexus) StopAgent(args ...interface{}) error {
-	var agentID string
-	if len(args) == 1 {
-		agentID, _ = args[0].(string)
-	} else if len(args) == 2 {
-		_, _ = args[0].(context.Context)
-		agentID, _ = args[1].(string)
-	} else {
-		return fmt.Errorf("agent id is required")
-	}
+func (n *Nexus) StopAgent(ctx context.Context, agentID string) error {
 	st, err := n.OpenProject()
 	if err != nil {
 		return err
@@ -427,14 +640,20 @@ func (n *Nexus) StopAgent(args ...interface{}) error {
 
 	// Phase 1: transition to STOPPING immediately.
 	agent.Status = store.AgentStopping
-	_ = st.UpdateAgent(agent)
+	if err := st.UpdateAgent(agent); err != nil {
+		// TODO: emit alert metric
+		_ = err
+	}
 	n.notifyAgentState(agentID, "STOPPING")
 
 	gen, gerr := st.CurrentGeneration(agentID)
 	if gerr != nil || gen.RuntimeID == "" {
 		// No runtime generation — agent is already stopped.
 		agent.Status = store.AgentStopped
-		_ = st.UpdateAgent(agent)
+		if err := st.UpdateAgent(agent); err != nil {
+			// TODO: emit alert metric
+			_ = err
+		}
 		n.notifyAgentState(agentID, "STOPPED")
 		return nil
 	}
@@ -443,7 +662,10 @@ func (n *Nexus) StopAgent(args ...interface{}) error {
 	if !n.runtimeAlive(gen.RuntimeID) {
 		// Runtime already dead — proceed to finalize.
 		agent.Status = store.AgentStopped
-		_ = st.UpdateAgent(agent)
+		if err := st.UpdateAgent(agent); err != nil {
+			// TODO: emit alert metric
+			_ = err
+		}
 		stopped := time.Now().UTC()
 		_ = st.StopGeneration(gen.ID, stopped)
 		n.notifyAgentState(agentID, "STOPPED")
@@ -459,10 +681,14 @@ func (n *Nexus) StopAgent(args ...interface{}) error {
 	for {
 		select {
 		case <-deadline:
-			// Timeout: force kill and mark as failed.
+			// Timeout: force kill by PID and mark as failed.
+			n.forceKillRuntime(gen.RuntimeID)
 			agent.Status = store.AgentFailed
 			agent.ContinuityStatus = "STOP_TIMEOUT"
-			_ = st.UpdateAgent(agent)
+			if err := st.UpdateAgent(agent); err != nil {
+				// TODO: emit alert metric
+				_ = err
+			}
 			n.notifyAgentState(agentID, "FAILED")
 			return fmt.Errorf("stop timeout for runtime %s (agent marked FAILED)", gen.RuntimeID)
 		case <-ticker.C:
@@ -471,7 +697,10 @@ func (n *Nexus) StopAgent(args ...interface{}) error {
 				stopped := time.Now().UTC()
 				_ = st.StopGeneration(gen.ID, stopped)
 				agent.Status = store.AgentStopped
-				_ = st.UpdateAgent(agent)
+				if err := st.UpdateAgent(agent); err != nil {
+					// TODO: emit alert metric
+					_ = err
+				}
 				n.notifyAgentState(agentID, "STOPPED")
 				return nil
 			}
@@ -483,6 +712,19 @@ func (n *Nexus) stopRuntime(runtimeID string) {
 	_ = n.launcher.Stop(runtimeID)
 }
 
+func (n *Nexus) forceKillRuntime(runtimeID string) {
+	if runtimeID == "" {
+		return
+	}
+	sess, ok := n.runtimeRegistry().Get(runtimeID)
+	if ok {
+		launcher.KillProcess(sess.PID)
+		launcher.KillProcess(sess.HostPID)
+	}
+	_ = os.Remove(protocol.EndpointPath(runtimeID))
+	_ = n.runtimeRegistry().UpdateState(runtimeID, registry.StateFailed)
+}
+
 // runtimeAlive reports whether a runtime is currently usable: the process is
 // alive (with host-generation protection against PID recycle) AND the control
 // host still accepts a ping. A zombie PID or a dead host counts as not alive
@@ -492,7 +734,7 @@ func (n *Nexus) runtimeAlive(runtimeID string) bool {
 	if runtimeID == "" {
 		return false
 	}
-	sess, ok := registry.DefaultRegistry().Get(runtimeID)
+	sess, ok := n.runtimeRegistry().Get(runtimeID)
 	if !ok {
 		return false
 	}
@@ -530,7 +772,7 @@ func (n *Nexus) stopStaleRuntime(runtimeID string) {
 		return
 	}
 	_ = n.launcher.Stop(runtimeID)
-	_ = registry.DefaultRegistry().Delete(runtimeID)
+	_ = n.runtimeRegistry().Delete(runtimeID)
 }
 
 // EffectiveAgentState derives the honest, live agent state: an agent whose
@@ -581,14 +823,14 @@ func (n *Nexus) RecoverAgent(ctx context.Context, agentID string) (*registry.Run
 		if n.runtimeAlive(gen.RuntimeID) {
 			// Idempotent recover: return the live session so clients can rebind
 			// the terminal without stop+start or an opaque 409.
-			if sess, ok := registry.DefaultRegistry().Get(gen.RuntimeID); ok {
+			if sess, ok := n.runtimeRegistry().Get(gen.RuntimeID); ok {
 				cp := sess
 				return &cp, nil
 			}
 		}
 		// Registry may still list a zombie/unreachable runtime — clear it so
 		// Launch can register a new generation.
-		if _, ok := registry.DefaultRegistry().Get(gen.RuntimeID); ok {
+		if _, ok := n.runtimeRegistry().Get(gen.RuntimeID); ok {
 			n.stopStaleRuntime(gen.RuntimeID)
 		}
 	}
@@ -636,14 +878,19 @@ func (n *Nexus) RecoverAgent(ctx context.Context, agentID string) (*registry.Run
 	}
 
 	var args []string
-	continuity := store.ContinuityNewSession // NEW SESSION unless native resume is possible
-	if sessionID != "" {
-		if d, derr := driver.DefaultRegistry().Get(provider); derr == nil {
+	continuity := store.ContinuityNewSession
+	providerSessionID := ""
+
+	// When recovering after a process termination / host reboot, start a clean
+	// session unless the agent was explicitly configured with ContinuityPolicy == "native".
+	if strings.EqualFold(agentCfg.ContinuityPolicy, "native") && sessionID != "" {
+		if d, derr := n.controlDrivers().Get(provider); derr == nil {
 			prof := model.Profile{Name: profile, Provider: provider}
 			if can, _ := d.CanResume(ctx, prof, sessionID); can {
 				if ra, rerr := d.BuildResumeArgs(ctx, prof, sessionID); rerr == nil {
 					args = ra
 					continuity = store.ContinuityNativeResumeUnverified
+					providerSessionID = sessionID
 				}
 			}
 		}
@@ -661,7 +908,7 @@ func (n *Nexus) RecoverAgent(ctx context.Context, agentID string) (*registry.Run
 		ProjectName:       proj.Name,
 		ProviderID:        provider,
 		ProfileID:         profile,
-		ProviderSessionID: sessionID,
+		ProviderSessionID: providerSessionID,
 		Args:              args,
 		Workspace:         executionWorkspace,
 		Model:             agentCfg.Model,
@@ -739,7 +986,7 @@ func (n *Nexus) DeleteAgent(agentID, projectID string) error {
 		if n.runtimeAlive(gen.RuntimeID) {
 			return fmt.Errorf("cannot delete agent %q: runtime %s is live (stop the agent first)", agent.Name, gen.RuntimeID)
 		}
-		if _, ok := registry.DefaultRegistry().Get(gen.RuntimeID); ok {
+		if _, ok := n.runtimeRegistry().Get(gen.RuntimeID); ok {
 			n.stopStaleRuntime(gen.RuntimeID)
 		}
 	}

@@ -6,6 +6,7 @@ import { nexus } from '../../nexus/api';
 import type { FSInspectResult, Project } from '../../types';
 import { DirectoryBrowserModal } from './DirectoryBrowserModal';
 import { ProjectScanModal } from './ProjectScanModal';
+import { selectProjectDirectory } from './projectDirectoryPicker';
 
 export const AddProjectModal: React.FC<{
   open: boolean;
@@ -74,13 +75,27 @@ export const AddProjectModal: React.FC<{
     }
   };
 
+  const handleBrowseDirectory = async () => {
+    const selection = await selectProjectDirectory(t('projectManager.browseOS'));
+    if (!selection.supported) {
+      setDirPickerOpen(true);
+      return;
+    }
+    if (selection.path) {
+      handleDirectorySelected(
+        selection.path,
+        selection.path.split(/[/\\]/).filter(Boolean).pop() || 'Project',
+      );
+    }
+  };
+
   return (
     <>
       <Dialog open={open} onClose={onClose} title={t('projectManager.addNew')}>
         <div className="nx-form-stack">
           {/* OS Integration Helper Buttons */}
           <div className="nx-pm-add-helpers">
-            <Button size="sm" tone="ghost" onClick={() => setDirPickerOpen(true)}>
+            <Button size="sm" tone="ghost" onClick={() => void handleBrowseDirectory()}>
               <FolderOpen size={13} />
               <span>{t('projectManager.browseOS')}</span>
             </Button>
@@ -104,7 +119,7 @@ export const AddProjectModal: React.FC<{
               />
               <IconButton
                 label={t('projectManager.browseOS')}
-                onClick={() => setDirPickerOpen(true)}
+                onClick={() => void handleBrowseDirectory()}
               >
                 <FolderOpen size={14} />
               </IconButton>
@@ -120,7 +135,7 @@ export const AddProjectModal: React.FC<{
                   {t('projectManager.gitDetected', { branch: inspectInfo.git_branch || 'main' })}
                 </Badge>
               ) : (
-                <Badge tone="default">Diretório Local (Sem Git)</Badge>
+                <Badge tone="default">{t('projectManager.localNoGit')}</Badge>
               )}
               {(inspectInfo.tech ?? []).map((tech) => (
                 <span key={tech} className="nx-tech-tag">

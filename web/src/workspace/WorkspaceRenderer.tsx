@@ -44,7 +44,6 @@ import { isWindowedPresentationMode, mosaicDropTargetViewId } from './presentati
 import { ptyWindowHeading } from './ptyLiveChrome';
 import { liveChromeFor, usePtyLiveChromeOptional } from './PtyLiveChromeContext';
 import { ARRANGE_MENU_PRESETS, type ArrangeMenuPreset } from './arrangePresets';
-import { ProjectCreateMenu } from '../features/projects/ProjectCreateMenu';
 
 const WINDOW_ACCENTS = ['#38bdf8', '#22c55e', '#f59e0b', '#f472b6', '#a78bfa', '#fb7185'];
 const WINDOW_ICONS = ['⌘', '⚡', '◆', '●', '★', '◎'];
@@ -86,6 +85,7 @@ const WindowChromeMenu: React.FC<{
   onPatch: (chrome: { customTitle?: string; accent?: string; icon?: string }) => void;
   position?: ContextMenuPoint | null;
 }> = ({ open, onOpenChange, customTitle, accent, icon, onPatch, position }) => {
+  const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(customTitle);
   const [menuPos, setMenuPos] = useState<{ top: number; right?: number; left?: number } | null>(
@@ -101,18 +101,20 @@ const WindowChromeMenu: React.FC<{
       setMenuPos(null);
       return;
     }
-    if (position) {
-      setMenuPos({ top: position.y, left: position.x });
-    } else {
-      const anchor = rootRef.current?.querySelector('button');
-      if (anchor) {
-        const rect = anchor.getBoundingClientRect();
-        setMenuPos({
-          top: rect.bottom + 6,
-          right: Math.max(8, window.innerWidth - rect.right),
-        });
+    const compute = () => {
+      if (position) {
+        setMenuPos({ top: position.y, left: position.x });
+        return;
       }
-    }
+      const anchor = rootRef.current?.querySelector('button');
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + 6,
+        right: Math.max(8, window.innerWidth - rect.right),
+      });
+    };
+    compute();
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node | null;
       if (!target) return;
@@ -123,19 +125,24 @@ const WindowChromeMenu: React.FC<{
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onOpenChange(false);
     };
-    const listen = window.setTimeout(() => {
-      window.addEventListener('pointerdown', onPointerDown, true);
-    }, 0);
+    window.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('keydown', onKey);
+    const onResize = () => compute();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onResize, true);
     return () => {
-      window.clearTimeout(listen);
       window.removeEventListener('pointerdown', onPointerDown, true);
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onResize, true);
     };
   }, [open, onOpenChange, position]);
 
   const commitTitle = () => {
-    onPatch({ customTitle: draft.trim() });
+    const trimmed = draft.trim();
+    if (trimmed !== customTitle) {
+      onPatch({ customTitle: trimmed });
+    }
   };
 
   const menu =
@@ -144,7 +151,7 @@ const WindowChromeMenu: React.FC<{
           <div
             className="nx-desktop-window__chrome-menu"
             role="dialog"
-            aria-label="Personalizar janela"
+            aria-label={t('workspace.customizeWindow', 'Personalizar janela')}
             style={{
               top: menuPos.top,
               ...(menuPos.left != null ? { left: menuPos.left } : { right: menuPos.right }),
@@ -152,7 +159,7 @@ const WindowChromeMenu: React.FC<{
             onPointerDown={(event) => event.stopPropagation()}
           >
             <label>
-              Nome
+              {t('common.name', 'Nome')}
               <input
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -163,16 +170,19 @@ const WindowChromeMenu: React.FC<{
                     onOpenChange(false);
                   }
                 }}
-                placeholder="Identidade da janela"
+                placeholder={t('workspace.windowTitlePlaceholder', 'Identidade da janela')}
                 autoFocus
               />
             </label>
-            <div className="nx-desktop-window__chrome-row" aria-label="Cor do título">
+            <div
+              className="nx-desktop-window__chrome-row"
+              aria-label={t('workspace.titleColor', 'Cor do título')}
+            >
               <button
                 type="button"
                 className="nx-desktop-window__swatch nx-desktop-window__swatch--clear"
                 data-active={!accent ? 'true' : 'false'}
-                title="Sem cor"
+                title={t('workspace.noColor', 'Sem cor')}
                 onClick={() => {
                   onPatch({ accent: '' });
                   onOpenChange(false);
@@ -193,12 +203,15 @@ const WindowChromeMenu: React.FC<{
                 />
               ))}
             </div>
-            <div className="nx-desktop-window__chrome-row" aria-label="Ícone">
+            <div
+              className="nx-desktop-window__chrome-row"
+              aria-label={t('workspace.icon', 'Ícone')}
+            >
               <button
                 type="button"
                 className="nx-desktop-window__icon-pick"
                 data-active={!icon ? 'true' : 'false'}
-                title="Sem ícone"
+                title={t('workspace.noIcon', 'Sem ícone')}
                 onClick={() => {
                   onPatch({ icon: '' });
                   onOpenChange(false);
@@ -229,7 +242,7 @@ const WindowChromeMenu: React.FC<{
   return (
     <div className="nx-desktop-window__chrome" ref={rootRef}>
       <IconButton
-        label="Personalizar janela"
+        label={t('workspace.customizeWindow', 'Personalizar janela')}
         aria-expanded={open}
         onClick={(event) => {
           event.stopPropagation();
@@ -248,6 +261,7 @@ const ArrangeLayoutMenu: React.FC<{
   onSelect: (preset: ArrangeMenuPreset) => void;
   onReset?: () => void;
 }> = ({ activePreset, onSelect, onReset }) => {
+  const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
@@ -292,7 +306,7 @@ const ArrangeLayoutMenu: React.FC<{
           <div
             className="nx-arrange-menu__panel"
             role="menu"
-            aria-label="Arranjar janelas"
+            aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
             style={{ top: menuPos.top, right: menuPos.right }}
             onPointerDown={(event) => event.stopPropagation()}
           >
@@ -315,14 +329,7 @@ const ArrangeLayoutMenu: React.FC<{
             ))}
             {onReset && (
               <>
-                <div
-                  style={{
-                    height: 1,
-                    background: 'var(--nx-border)',
-                    margin: '4px 0',
-                  }}
-                  role="separator"
-                />
+                <div className="nx-arrange-menu__separator" role="separator" />
                 <button
                   type="button"
                   role="menuitem"
@@ -332,18 +339,11 @@ const ArrangeLayoutMenu: React.FC<{
                     onReset();
                   }}
                 >
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      color: 'var(--nx-warning, #f59e0b)',
-                    }}
-                  >
+                  <span className="nx-arrange-menu__reset-label">
                     <RotateCcw size={12} />
-                    <span>Redefinir layout</span>
+                    <span>{t('workspace.resetLayout', 'Redefinir layout')}</span>
                   </span>
-                  <small>Restaurar padrão</small>
+                  <small>{t('workspace.restoreDefault', 'Restaurar padrão')}</small>
                 </button>
               </>
             )}
@@ -359,11 +359,12 @@ const ArrangeLayoutMenu: React.FC<{
         className="nx-arrange-menu__trigger"
         aria-expanded={open}
         aria-haspopup="menu"
-        title="Arranjar janelas"
+        title={t('workspace.arrangeWindows', 'Arranjar janelas')}
+        aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
         onClick={() => setOpen((value) => !value)}
       >
         <LayoutGrid size={12} />
-        <span>Arranjar</span>
+        <span>{t('workspace.arrange', 'Arranjar')}</span>
       </button>
       {panel}
     </div>
@@ -390,8 +391,9 @@ function useCompactViewport(): boolean {
 export const WorkspaceRenderer: React.FC<{
   renderSurface: (surface: WorkspaceSurface) => React.ReactNode;
   onRequestClose?: (surface: WorkspaceSurface) => void;
+  onActivateSurface?: (surface: WorkspaceSurface) => void;
   createActions?: WorkspaceCreateActions;
-}> = ({ renderSurface, onRequestClose, createActions }) => {
+}> = ({ renderSurface, onRequestClose, onActivateSurface, createActions }) => {
   const workspace = useWorkspace();
   const presentation = useWorkspacePresentation();
   const compact = useCompactViewport();
@@ -417,6 +419,7 @@ export const WorkspaceRenderer: React.FC<{
           stack={activeStack}
           renderSurface={renderSurface}
           onRequestClose={onRequestClose}
+          onActivateSurface={onActivateSurface}
           createActions={createActions}
         />
       )}
@@ -428,8 +431,9 @@ const WorkspaceStackView: React.FC<{
   stack: WorkspaceStack;
   renderSurface: (surface: WorkspaceSurface) => React.ReactNode;
   onRequestClose?: (surface: WorkspaceSurface) => void;
+  onActivateSurface?: (surface: WorkspaceSurface) => void;
   createActions?: WorkspaceCreateActions;
-}> = ({ stack, renderSurface, onRequestClose, createActions }) => {
+}> = ({ stack, renderSurface, onRequestClose, onActivateSurface, createActions }) => {
   const { t } = useTranslation();
   const { activate, close, move } = useWorkspace();
   const [draggedSurface, setDraggedSurface] = useState<string | null>(null);
@@ -456,7 +460,6 @@ const WorkspaceStackView: React.FC<{
       ? activeRaw
       : productTabs.find((tab) => tab.type === 'terminals') || productTabs[0];
   const activeId = activeProduct?.id || stack.activeId;
-  const canClose = activeProduct?.closable !== false;
   const closeSurface = (surface: WorkspaceSurface) =>
     onRequestClose ? onRequestClose(surface) : close(surface.id);
   const legacyTitleKeys: Record<string, string> = {
@@ -519,7 +522,9 @@ const WorkspaceStackView: React.FC<{
                   event.dataTransfer.setData('application/x-nexus-surface', surface.id);
                   event.dataTransfer.effectAllowed = 'move';
                 }}
-                onClick={() => activate(surface.id)}
+                onClick={() =>
+                  onActivateSurface ? onActivateSurface(surface) : activate(surface.id)
+                }
                 onContextMenu={(event) => {
                   if (surface.closable === false) return;
                   setTabMenu({ surface, point: contextMenuFromEvent(event) });
@@ -534,7 +539,8 @@ const WorkspaceStackView: React.FC<{
                     className="nx-workspace-tab__attention-dot"
                     data-kind={surface.data?.attentionKind || undefined}
                     data-unread={surface.data?.unreadAttention === 'true' ? 'true' : undefined}
-                    aria-label="needs attention"
+                    role="img"
+                    aria-label={t('workspace.needsAttention', 'needs attention')}
                   />
                 )}
                 <span className="nx-workspace-tab__label">{displayTitle(surface)}</span>
@@ -693,44 +699,40 @@ const TerminalsHost: React.FC<{
           <div className="nx-minimized-chips" aria-hidden="true" />
         )}
         <div className="nx-terminals-host__chrome-cluster">
-          {createActions && (
-            <ProjectCreateMenu
-              onNewAgent={createActions.onNewAgent}
-              onNewAISession={createActions.onNewAISession}
-              onProjectShell={createActions.onProjectShell}
-              size="xs"
-              variant="compact"
-              label="Novo"
-              className="nx-terminals-create-menu"
-            />
-          )}
-          <div className="nx-presentation-toggle" role="group" aria-label="Terminal presentation">
+          <div
+            className="nx-presentation-toggle"
+            role="group"
+            aria-label={t('workspace.terminalPresentation', 'Apresentação de terminais')}
+          >
             <button
               type="button"
               data-active={presentation.state.mode === 'TABS' ? 'true' : 'false'}
               onClick={() => presentation.setMode('TABS')}
-              title="Abas internas de PTY"
+              title={t('workspace.ptyTabs', 'Abas internas de PTY')}
+              aria-label={t('workspace.tabsMode', 'Modo de abas')}
             >
               <PanelsTopLeft size={11} />
-              <span>Abas</span>
+              <span>{t('workspace.tabs', 'Abas')}</span>
             </button>
             <button
               type="button"
               data-active={presentation.state.mode === 'DESKTOP' ? 'true' : 'false'}
               onClick={() => presentation.setMode('DESKTOP')}
-              title="Janelas flutuantes"
+              title={t('workspace.floatingWindows', 'Janelas flutuantes')}
+              aria-label={t('workspace.windowsMode', 'Modo de janelas')}
             >
               <AppWindow size={11} />
-              <span>Janelas</span>
+              <span>{t('workspace.windows', 'Janelas')}</span>
             </button>
             <button
               type="button"
               data-active={presentation.state.mode === 'MOSAIC' ? 'true' : 'false'}
               onClick={() => presentation.setMode('MOSAIC')}
-              title="Mosaico lado a lado"
+              title={t('workspace.mosaicLayout', 'Mosaico lado a lado')}
+              aria-label={t('workspace.mosaicMode', 'Modo de mosaico')}
             >
               <LayoutGrid size={11} />
-              <span>Mosaico</span>
+              <span>{t('workspace.mosaic', 'Mosaico')}</span>
             </button>
           </div>
           {windowed && (
@@ -746,10 +748,12 @@ const TerminalsHost: React.FC<{
         {ptySurfaces.length === 0 ? (
           <div className="nx-terminals-empty">
             <TerminalSquare size={26} />
-            <strong>Nenhum terminal aberto</strong>
+            <strong>{t('workspace.noTerminalsOpen', 'Nenhum terminal aberto')}</strong>
             <p>
-              Inicie um shell de comando, abra uma nova sessão de IA rápida ou configure um agente
-              autônomo neste projeto.
+              {t(
+                'workspace.noTerminalsDesc',
+                'Inicie um shell de comando, abra uma nova sessão de IA rápida ou configure um agente autônomo neste projeto.',
+              )}
             </p>
             {createActions && (
               <div className="nx-terminals-empty__actions">
@@ -761,7 +765,7 @@ const TerminalsHost: React.FC<{
                     onClick={createActions.onProjectShell}
                   >
                     <TerminalSquare size={13} />
-                    <span>Abrir Terminal</span>
+                    <span>{t('workspace.openTerminal', 'Abrir Terminal')}</span>
                   </button>
                 )}
                 {createActions.onNewAISession && (
@@ -772,7 +776,7 @@ const TerminalsHost: React.FC<{
                     onClick={createActions.onNewAISession}
                   >
                     <Sparkles size={13} />
-                    <span>Nova Sessão IA</span>
+                    <span>{t('workspace.newAISession', 'Nova Sessão IA')}</span>
                   </button>
                 )}
                 {createActions.onNewAgent && (
@@ -784,7 +788,7 @@ const TerminalsHost: React.FC<{
                     onClick={createActions.onNewAgent}
                   >
                     <Plus size={13} />
-                    <span>Novo Agente</span>
+                    <span>{t('workspace.newAgent', 'Novo Agente')}</span>
                   </button>
                 )}
               </div>
@@ -798,7 +802,11 @@ const TerminalsHost: React.FC<{
           />
         ) : (
           <div className="nx-terminals-inner-tabs">
-            <div className="nx-workspace-tabs nx-pty-tabs" role="tablist" aria-label="PTY tabs">
+            <div
+              className="nx-workspace-tabs nx-pty-tabs"
+              role="tablist"
+              aria-label={t('workspace.ptyTabs', 'Abas PTY')}
+            >
               {ptySurfaces.map((surface) => {
                 const viewId = surfaceViewId(surface);
                 const win = presentation.state.windows[viewId];
@@ -1205,9 +1213,15 @@ const DesktopWorkspace: React.FC<{
                       className="nx-desktop-window__attention-dot"
                       data-kind={attentionKind || 'needs_user'}
                       data-unread={unread ? 'true' : undefined}
-                      aria-label={
-                        unread ? 'unread attention' : questionnaire ? 'questionnaire' : 'attention'
-                      }
+                      role="img"
+                      aria-label={t(
+                        unread
+                          ? 'workspace.unreadAttention'
+                          : questionnaire
+                            ? 'workspace.questionnaire'
+                            : 'workspace.attention',
+                        unread ? 'Unread attention' : questionnaire ? 'Questionnaire' : 'Attention',
+                      )}
                     />
                   )}
                   <strong>{heading.heading}</strong>
@@ -1250,21 +1264,40 @@ const DesktopWorkspace: React.FC<{
                   onPatch={(chrome) => presentation.patchChrome(viewId, chrome)}
                 />
                 <IconButton
-                  label={`Minimize ${agentName}`}
+                  label={t('workspace.minimizeAgent', {
+                    agent: agentName,
+                    defaultValue: `Minimizar ${agentName}`,
+                  })}
                   onClick={() => presentation.minimize(viewId)}
                 >
                   <Minus size={13} />
                 </IconButton>
                 {!mosaic && (
                   <IconButton
-                    label={win.maximized ? `Restore ${agentName}` : `Maximize ${agentName}`}
+                    label={
+                      win.maximized
+                        ? t('workspace.restoreAgent', {
+                            agent: agentName,
+                            defaultValue: `Restaurar ${agentName}`,
+                          })
+                        : t('workspace.maximizeAgent', {
+                            agent: agentName,
+                            defaultValue: `Maximizar ${agentName}`,
+                          })
+                    }
                     onClick={() => presentation.maximize(viewId)}
                   >
                     {win.maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
                   </IconButton>
                 )}
                 {surface.closable !== false && (
-                  <IconButton label={`Close ${agentName}`} onClick={() => closeSurface(surface)}>
+                  <IconButton
+                    label={t('workspace.closeAgent', {
+                      agent: agentName,
+                      defaultValue: `Fechar ${agentName}`,
+                    })}
+                    onClick={() => closeSurface(surface)}
+                  >
                     <X size={13} />
                   </IconButton>
                 )}

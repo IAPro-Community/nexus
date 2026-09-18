@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/driver"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 // ResourceAllocation is the durable result of assigning a provider profile to
@@ -21,12 +22,50 @@ type ResourceAllocation struct {
 }
 
 func (n *Nexus) ListResources() ([]ProviderAccount, error) {
+	return n.ListResourcesContext(context.Background())
+}
+
+// ListResourcesContext discovers provider accounts using the caller's
+// cancellation context. ListResources remains the backwards-compatible
+// context-free facade used by existing CLI/domain callers.
+func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	profiles, err := profile.List()
 	if err != nil {
 		return nil, fmt.Errorf("list profiles: %w", err)
 	}
 
 	cfg, cfgErr := config.LoadConfig()
+
+	type providerDetect struct {
+		installed bool
+		ok        bool
+		caps      map[string]string
+	}
+	detectCache := map[string]providerDetect{}
+	detectionFor := func(provider string) providerDetect {
+		if cached, ok := detectCache[provider]; ok {
+			return cached
+		}
+		out := providerDetect{caps: map[string]string{}}
+		d, derr := n.controlDrivers().Get(provider)
+		if derr != nil {
+			detectCache[provider] = out
+			return out
+		}
+		out.ok = true
+		if det, detectErr := d.Detect(ctx); detectErr == nil {
+			out.installed = det.Installed
+		}
+		// EffectiveCaps is profile-specific; filled per profile below.
+		detectCache[provider] = out
+		return out
+	}
 
 	accounts := make([]ProviderAccount, 0, len(profiles))
 	for _, p := range profiles {
@@ -41,18 +80,17 @@ func (n *Nexus) ListResources() ([]ProviderAccount, error) {
 		}
 
 		capabilities := map[string]string{}
-		d, derr := driver.DefaultRegistry().Get(p.Provider)
-		if derr == nil {
-			det, detectErr := d.Detect(context.Background())
-			if detectErr == nil {
-				authenticated = det.Installed && acc.Authenticated
-				if !det.Installed {
-					health = "unavailable"
-				} else if !acc.Authenticated {
-					health = "auth_required"
-				}
+		det := detectionFor(p.Provider)
+		if det.ok {
+			authenticated = det.installed && acc.Authenticated
+			if !det.installed {
+				health = "unavailable"
+			} else if !acc.Authenticated {
+				health = "auth_required"
 			}
-			capabilities = effectiveCapabilityMap(d.EffectiveCaps(context.Background(), p))
+			if d, derr := n.controlDrivers().Get(p.Provider); derr == nil {
+				capabilities = effectiveCapabilityMap(d.EffectiveCaps(ctx, p))
+			}
 		} else {
 			health = "unavailable"
 		}
@@ -88,8 +126,12 @@ func (n *Nexus) ListResources() ([]ProviderAccount, error) {
 			QuotaRemaining: quotaRemaining,
 			QuotaTotal:     1.0,
 			RateLimited:    qv.Status == "RATE_LIMITED",
+			NetworkError:   strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
 			LastChecked:    time.Now(),
 		})
+		accIdx := len(accounts) - 1
+		elig := quota.EvaluateEligibility(accountEligibilityInput(accounts[accIdx], false))
+		accounts[accIdx].Eligibility = &elig
 	}
 
 	sort.Slice(accounts, func(i, j int) bool {
@@ -99,15 +141,13 @@ func (n *Nexus) ListResources() ([]ProviderAccount, error) {
 		return accounts[i].Profile < accounts[j].Profile
 	})
 
-	DefaultQuotaDropMonitor().CheckAccounts(accounts)
-
 	return accounts, nil
 }
 
 // AllocateResource validates an exact provider/profile choice against the
 // current discovery result and persists it as the Agent's current revision.
 func (n *Nexus) AllocateResource(ctx context.Context, agentID, provider, profileName string, policy SchedulerPolicy) (*ResourceAllocation, error) {
-	accounts, err := n.ListResources()
+	accounts, err := n.ListResourcesContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -191,17 +231,12 @@ func validateResourceFromAccounts(provider, profileName string, accounts []Provi
 }
 
 func validateResourceAccount(account ProviderAccount) error {
-	switch {
-	case !account.Authenticated:
-		return fmt.Errorf("resource %s is not authenticated", account.ID)
-	case account.RateLimited:
-		return fmt.Errorf("resource %s is rate limited", account.ID)
-	case account.CooldownUntil != nil && account.CooldownUntil.After(time.Now()):
-		return fmt.Errorf("resource %s is in cooldown", account.ID)
-	case account.Health == "unhealthy" || account.Health == "unavailable" || account.Health == "auth_required":
-		return fmt.Errorf("resource %s is unavailable (%s)", account.ID, account.Health)
-	case !account.Available:
-		return fmt.Errorf("resource %s is unavailable", account.ID)
+	elig := quota.EvaluateEligibility(accountEligibilityInput(account, true))
+	if !elig.Eligible {
+		if elig.Message != "" {
+			return fmt.Errorf("resource %s: %s", account.ID, elig.Message)
+		}
+		return fmt.Errorf("resource %s is ineligible (%s)", account.ID, elig.Reason)
 	}
 	return nil
 }

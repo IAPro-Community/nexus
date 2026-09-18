@@ -1,0 +1,2422 @@
+Checking formatting...
+All matched files use Prettier code style!
+0 issues.
+?   	github.com/kivervinicius/ai-cli/cmd/nexus	[no test files]
+?   	github.com/kivervinicius/ai-cli/cmd/nexus-desktop	[no test files]
+=== RUN   TestCaptureStdoutDrainsLargeOutput
+--- PASS: TestCaptureStdoutDrainsLargeOutput (0.00s)
+=== RUN   TestTopLevelCommandDispatchContracts
+=== RUN   TestTopLevelCommandDispatchContracts/help
+=== RUN   TestTopLevelCommandDispatchContracts/version
+=== RUN   TestTopLevelCommandDispatchContracts/provider_help
+=== RUN   TestTopLevelCommandDispatchContracts/unknown_command
+=== RUN   TestTopLevelCommandDispatchContracts/missing_plan_id
+=== RUN   TestTopLevelCommandDispatchContracts/missing_compile_arguments
+=== RUN   TestTopLevelCommandDispatchContracts/missing_run_arguments
+--- PASS: TestTopLevelCommandDispatchContracts (0.06s)
+    --- PASS: TestTopLevelCommandDispatchContracts/help (0.00s)
+    --- PASS: TestTopLevelCommandDispatchContracts/version (0.00s)
+    --- PASS: TestTopLevelCommandDispatchContracts/provider_help (0.01s)
+    --- PASS: TestTopLevelCommandDispatchContracts/unknown_command (0.00s)
+    --- PASS: TestTopLevelCommandDispatchContracts/missing_plan_id (0.05s)
+    --- PASS: TestTopLevelCommandDispatchContracts/missing_compile_arguments (0.00s)
+    --- PASS: TestTopLevelCommandDispatchContracts/missing_run_arguments (0.00s)
+=== RUN   TestHelpDocumentsDispatchedCommandFamilies
+--- PASS: TestHelpDocumentsDispatchedCommandFamilies (0.00s)
+=== RUN   TestAgentsCommandUsesSinglePositionalProjectArgument
+--- PASS: TestAgentsCommandUsesSinglePositionalProjectArgument (0.05s)
+=== RUN   TestControlPlaneCLICommands
+✓ Created codex profile "work".
+✓ Created codex profile "personal".
+✓ Created agy profile "google-1".
+✓ Bound workspace /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/internal/app to codex:work
+✓ Unbound provider codex from workspace /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/internal/app
+⚡ [app.test] Usando perfil: codex:personal (personal)
+--- PASS: TestControlPlaneCLICommands (11.04s)
+=== RUN   TestQuotaGroupStatusKeepsUsableModelGroupAvailable
+--- PASS: TestQuotaGroupStatusKeepsUsableModelGroupAvailable (0.00s)
+=== RUN   TestPerformSystemUpdateDoesNotClaimNexusBinaryUpdated
+
+[1/2] Updating Orquestrador Maestro...
+  ✓ Updated @iapro/orquestrador-maestro-cli to latest release.
+
+[2/2] Confirming IAPro Nexus binary was not changed...
+--- PASS: TestPerformSystemUpdateDoesNotClaimNexusBinaryUpdated (0.01s)
+=== RUN   TestMaestroStatusIsExplicitAndDegradedWithoutMaestro
+--- PASS: TestMaestroStatusIsExplicitAndDegradedWithoutMaestro (0.00s)
+=== RUN   TestQuotaUnknownLabelReturnsStatusAwarePlaceholder
+--- PASS: TestQuotaUnknownLabelReturnsStatusAwarePlaceholder (0.00s)
+=== RUN   TestCoreLifecycle
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestCoreLifecycle (0.03s)
+=== RUN   TestLaunchModeResolver_DefaultsToSupervisedInTTY
+--- PASS: TestLaunchModeResolver_DefaultsToSupervisedInTTY (0.00s)
+=== RUN   TestLaunchModeResolver_DirectFlag
+--- PASS: TestLaunchModeResolver_DirectFlag (0.00s)
+=== RUN   TestLaunchModeResolver_SupervisedFlag
+--- PASS: TestLaunchModeResolver_SupervisedFlag (0.00s)
+=== RUN   TestLaunchModeResolver_PrintForcesDirect
+--- PASS: TestLaunchModeResolver_PrintForcesDirect (0.00s)
+=== RUN   TestLaunchModeResolver_PipedInputForcesDirect
+--- PASS: TestLaunchModeResolver_PipedInputForcesDirect (0.00s)
+=== RUN   TestLaunchModeResolver_EnvOverrideSupervised
+--- PASS: TestLaunchModeResolver_EnvOverrideSupervised (0.00s)
+=== RUN   TestLaunchModeResolver_EnvOverrideDirect
+--- PASS: TestLaunchModeResolver_EnvOverrideDirect (0.00s)
+=== RUN   TestLaunchModeResolver_ContinueFlag
+--- PASS: TestLaunchModeResolver_ContinueFlag (0.00s)
+=== RUN   TestLaunchModeResolver_ResumeFlag
+--- PASS: TestLaunchModeResolver_ResumeFlag (0.00s)
+=== RUN   TestLaunchModeResolver_PrintWithNonTTY
+--- PASS: TestLaunchModeResolver_PrintWithNonTTY (0.00s)
+=== RUN   TestLaunchModeResolver_FlagsInMiddleOfArgs
+--- PASS: TestLaunchModeResolver_FlagsInMiddleOfArgs (0.00s)
+=== RUN   TestLaunchModeResolver_StripsFlags
+--- PASS: TestLaunchModeResolver_StripsFlags (0.00s)
+=== RUN   TestLaunchModeResolver_NonEnvStringIgnored
+--- PASS: TestLaunchModeResolver_NonEnvStringIgnored (0.00s)
+=== RUN   TestLaunchModeResolver_ResultReason
+--- PASS: TestLaunchModeResolver_ResultReason (0.00s)
+=== RUN   TestLaunchModeResolver_DirectFlagReason
+--- PASS: TestLaunchModeResolver_DirectFlagReason (0.00s)
+=== RUN   TestLaunchModeResolver_PrintFlagReason
+--- PASS: TestLaunchModeResolver_PrintFlagReason (0.00s)
+=== RUN   TestIsTerminal_Func
+--- PASS: TestIsTerminal_Func (0.00s)
+=== RUN   TestIsTerminalFd
+--- PASS: TestIsTerminalFd (0.00s)
+=== RUN   TestProviderLaunchFlagsAreNexusOwned
+--- PASS: TestProviderLaunchFlagsAreNexusOwned (0.00s)
+=== RUN   TestProfileInCandidates
+--- PASS: TestProfileInCandidates (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/app	11.241s
+?   	github.com/kivervinicius/ai-cli/internal/browser	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/buildinfo	[no test files]
+=== RUN   TestAGYBuildCommandDoesNotStartKeyringByDefault
+--- PASS: TestAGYBuildCommandDoesNotStartKeyringByDefault (0.00s)
+=== RUN   TestCodexDriverBuildCommandIsolatesHome
+--- PASS: TestCodexDriverBuildCommandIsolatesHome (0.00s)
+=== RUN   TestDriverRegistryAndCapabilities
+--- PASS: TestDriverRegistryAndCapabilities (5.32s)
+=== RUN   TestHeadlessKickoffArgsMatchProviderCLIContracts
+=== RUN   TestHeadlessKickoffArgsMatchProviderCLIContracts/claude
+=== RUN   TestHeadlessKickoffArgsMatchProviderCLIContracts/agy
+=== RUN   TestHeadlessKickoffArgsMatchProviderCLIContracts/gemini
+=== RUN   TestHeadlessKickoffArgsMatchProviderCLIContracts/opencode
+=== RUN   TestHeadlessKickoffArgsMatchProviderCLIContracts/cursor
+--- PASS: TestHeadlessKickoffArgsMatchProviderCLIContracts (0.00s)
+    --- PASS: TestHeadlessKickoffArgsMatchProviderCLIContracts/claude (0.00s)
+    --- PASS: TestHeadlessKickoffArgsMatchProviderCLIContracts/agy (0.00s)
+    --- PASS: TestHeadlessKickoffArgsMatchProviderCLIContracts/gemini (0.00s)
+    --- PASS: TestHeadlessKickoffArgsMatchProviderCLIContracts/opencode (0.00s)
+    --- PASS: TestHeadlessKickoffArgsMatchProviderCLIContracts/cursor (0.00s)
+=== RUN   TestApplyLaunchConfigurationModelFlags
+--- PASS: TestApplyLaunchConfigurationModelFlags (0.00s)
+=== RUN   TestApplyLaunchConfigurationRejectsUnsupportedModel
+--- PASS: TestApplyLaunchConfigurationRejectsUnsupportedModel (0.00s)
+=== RUN   TestApplyLaunchConfigurationExplicitExtraArgs
+--- PASS: TestApplyLaunchConfigurationExplicitExtraArgs (0.00s)
+=== RUN   TestApplyLaunchConfigurationIgnoresUIModeOption
+--- PASS: TestApplyLaunchConfigurationIgnoresUIModeOption (0.00s)
+=== RUN   TestApplyLaunchConfigurationRejectsUnknownOption
+--- PASS: TestApplyLaunchConfigurationRejectsUnknownOption (0.00s)
+=== RUN   TestApplyLaunchConfigurationCanonicalAlias
+--- PASS: TestApplyLaunchConfigurationCanonicalAlias (0.00s)
+=== RUN   TestResolveLaunchModelPreservesExplicitModel
+--- PASS: TestResolveLaunchModelPreservesExplicitModel (0.00s)
+=== RUN   TestResolveLaunchModelPrefersAvailableGeminiPool
+--- PASS: TestResolveLaunchModelPrefersAvailableGeminiPool (0.00s)
+=== RUN   TestResolveLaunchModelFallsBackToClaudeWhenGeminiExhausted
+--- PASS: TestResolveLaunchModelFallsBackToClaudeWhenGeminiExhausted (0.00s)
+=== RUN   TestResolveLaunchModelDefaultsToGeminiWhenQuotaIsUnknown
+--- PASS: TestResolveLaunchModelDefaultsToGeminiWhenQuotaIsUnknown (0.00s)
+=== RUN   TestShellDriverIsTerminalOnlyNotAIProvider
+--- PASS: TestShellDriverIsTerminalOnlyNotAIProvider (0.01s)
+=== RUN   TestShellDriverFallsBackFromStaleShellPath
+--- PASS: TestShellDriverFallsBackFromStaleShellPath (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/driver	5.339s
+=== RUN   TestEventBusPubSubAndHistory
+--- PASS: TestEventBusPubSubAndHistory (0.00s)
+=== RUN   TestNewEventWithCorrelationPreservesTimelineIdentity
+--- PASS: TestNewEventWithCorrelationPreservesTimelineIdentity (0.00s)
+=== RUN   TestRuntimeLifecycleEventTypesAreStable
+--- PASS: TestRuntimeLifecycleEventTypesAreStable (0.00s)
+=== RUN   TestHandoffTimelineCorrelationUsesLineageID
+--- PASS: TestHandoffTimelineCorrelationUsesLineageID (0.00s)
+=== RUN   TestEventBusDurableRecorderHook
+--- PASS: TestEventBusDurableRecorderHook (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/events	0.008s
+=== RUN   TestNormalizeYolo
+--- PASS: TestNormalizeYolo (0.00s)
+=== RUN   TestNormalizeCustomUserAliases
+--- PASS: TestNormalizeCustomUserAliases (0.00s)
+=== RUN   TestRenderMergedHelp
+--- PASS: TestRenderMergedHelp (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/flags	0.010s
+=== RUN   TestHandoffStates_AllExist
+--- PASS: TestHandoffStates_AllExist (0.00s)
+=== RUN   TestHandoffStateValues
+--- PASS: TestHandoffStateValues (0.00s)
+=== RUN   TestTransaction_HasAllFields
+--- PASS: TestTransaction_HasAllFields (0.00s)
+=== RUN   TestHandoffStates_HappyPath
+--- PASS: TestHandoffStates_HappyPath (0.00s)
+=== RUN   TestHandoffStates_RollbackPath
+--- PASS: TestHandoffStates_RollbackPath (0.00s)
+=== RUN   TestHandoffStates_FailurePaths
+--- PASS: TestHandoffStates_FailurePaths (0.00s)
+=== RUN   TestHandoffServiceUsesInjectedRuntimeRegistry
+--- PASS: TestHandoffServiceUsesInjectedRuntimeRegistry (0.00s)
+=== RUN   TestContextHandoffCompletedEventCorrelatesByLineage
+--- PASS: TestContextHandoffCompletedEventCorrelatesByLineage (0.00s)
+=== RUN   TestAccountHandoffValidation
+--- PASS: TestAccountHandoffValidation (0.00s)
+=== RUN   TestWorkCheckpointAndRedaction
+--- PASS: TestWorkCheckpointAndRedaction (0.02s)
+=== RUN   TestCheckpointCapturesMaestroContextAndKickoffRequiresRehydration
+--- PASS: TestCheckpointCapturesMaestroContextAndKickoffRequiresRehydration (0.02s)
+=== RUN   TestAccountHandoffStateTransitionsAndRollback
+--- PASS: TestAccountHandoffStateTransitionsAndRollback (0.00s)
+=== RUN   TestContextHandoffIntegration
+--- PASS: TestContextHandoffIntegration (0.00s)
+=== RUN   TestGitBounding
+--- PASS: TestGitBounding (0.03s)
+=== RUN   TestAccountHandoff_CheckpointFailureAborts
+--- PASS: TestAccountHandoff_CheckpointFailureAborts (0.00s)
+=== RUN   TestVerifyResumeContinuity
+--- PASS: TestVerifyResumeContinuity (0.00s)
+=== RUN   TestResolveTargetModel
+=== RUN   TestResolveTargetModel/empty_source_model_returns_empty
+=== RUN   TestResolveTargetModel/same_provider_preserves_model_unconditionally
+=== RUN   TestResolveTargetModel/same_provider_case-insensitive_preserves_model
+=== RUN   TestResolveTargetModel/cross-provider_supported_target_retains_model
+=== RUN   TestResolveTargetModel/cross-provider_to_agy_retains_model
+=== RUN   TestResolveTargetModel/cross-provider_to_cursor_falls_back_to_empty_(unsupported_model_flag)
+--- PASS: TestResolveTargetModel (0.00s)
+    --- PASS: TestResolveTargetModel/empty_source_model_returns_empty (0.00s)
+    --- PASS: TestResolveTargetModel/same_provider_preserves_model_unconditionally (0.00s)
+    --- PASS: TestResolveTargetModel/same_provider_case-insensitive_preserves_model (0.00s)
+    --- PASS: TestResolveTargetModel/cross-provider_supported_target_retains_model (0.00s)
+    --- PASS: TestResolveTargetModel/cross-provider_to_agy_retains_model (0.00s)
+    --- PASS: TestResolveTargetModel/cross-provider_to_cursor_falls_back_to_empty_(unsupported_model_flag) (0.00s)
+=== RUN   TestWorkCheckpointModelPersistenceAndPrompt
+--- PASS: TestWorkCheckpointModelPersistenceAndPrompt (0.05s)
+=== RUN   TestWaitForProcessStopHonorsCancellation
+--- PASS: TestWaitForProcessStopHonorsCancellation (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/handoff	0.151s
+=== RUN   TestAttentionDetectorQuestions
+--- PASS: TestAttentionDetectorQuestions (0.00s)
+=== RUN   TestAttentionDetectorIgnoresShortcutHint
+--- PASS: TestAttentionDetectorIgnoresShortcutHint (0.00s)
+=== RUN   TestAttentionDetectorIgnoresIsolatedYN
+--- PASS: TestAttentionDetectorIgnoresIsolatedYN (0.00s)
+=== RUN   TestAttentionDetectorYNWithQuestion
+--- PASS: TestAttentionDetectorYNWithQuestion (0.00s)
+=== RUN   TestAttentionDetectorClearsOnWorkingOutput
+--- PASS: TestAttentionDetectorClearsOnWorkingOutput (0.00s)
+=== RUN   TestAttentionDetectorTaskCompleted
+--- PASS: TestAttentionDetectorTaskCompleted (0.00s)
+=== RUN   TestAttentionDetectorOSNotifyOnlyOnEvidence
+--- PASS: TestAttentionDetectorOSNotifyOnlyOnEvidence (0.00s)
+=== RUN   TestAttentionDetectorIgnoresCitedCreateProcessWFailure
+--- PASS: TestAttentionDetectorIgnoresCitedCreateProcessWFailure (0.00s)
+=== RUN   TestAttentionDetectorShellIgnoresInteractivePrompts
+--- PASS: TestAttentionDetectorShellIgnoresInteractivePrompts (0.00s)
+=== RUN   TestAttentionDetectorEventsControlLevelDisablesPTYHeuristic
+--- PASS: TestAttentionDetectorEventsControlLevelDisablesPTYHeuristic (0.00s)
+=== RUN   TestAttentionDetectorStructuredEventsDisablesPTYHeuristic
+--- PASS: TestAttentionDetectorStructuredEventsDisablesPTYHeuristic (0.00s)
+=== RUN   TestPtyHeuristicAllowed
+--- PASS: TestPtyHeuristicAllowed (0.00s)
+=== RUN   TestAttentionDetectorIgnoresNumberedListAlone
+--- PASS: TestAttentionDetectorIgnoresNumberedListAlone (0.00s)
+=== RUN   TestAttentionDetectorIgnoresReplacementGarbage
+--- PASS: TestAttentionDetectorIgnoresReplacementGarbage (0.00s)
+=== RUN   TestFormatDesktopAttentionBodyFramesYN
+--- PASS: TestFormatDesktopAttentionBodyFramesYN (0.00s)
+=== RUN   TestExtractOSCTitleUsesNewestSequence
+--- PASS: TestExtractOSCTitleUsesNewestSequence (0.00s)
+=== RUN   TestAttentionDetectorShellAppliesOSCTitle
+--- PASS: TestAttentionDetectorShellAppliesOSCTitle (0.00s)
+=== RUN   TestAttentionDetectorShellQuestionnaireIsNeedsUser
+--- PASS: TestAttentionDetectorShellQuestionnaireIsNeedsUser (0.00s)
+=== RUN   TestAttentionDetectorNumberedListWithAskIsChoice
+--- PASS: TestAttentionDetectorNumberedListWithAskIsChoice (0.00s)
+=== RUN   TestBoundedFanoutRecordsSlowClientDrops
+--- PASS: TestBoundedFanoutRecordsSlowClientDrops (0.00s)
+=== RUN   TestReadBoundedLine
+--- PASS: TestReadBoundedLine (0.00s)
+=== RUN   TestSlashRouterInterceptionAndEscape
+--- PASS: TestSlashRouterInterceptionAndEscape (0.00s)
+=== RUN   TestRingBufferBounding
+--- PASS: TestRingBufferBounding (0.00s)
+=== RUN   TestSessionHostLifecycle
+--- PASS: TestSessionHostLifecycle (0.01s)
+=== RUN   TestSessionHostUsesConfiguredRegistryOwnership
+--- PASS: TestSessionHostUsesConfiguredRegistryOwnership (0.00s)
+=== RUN   TestSessionHost_CmdInputNoDeadlock
+--- PASS: TestSessionHost_CmdInputNoDeadlock (0.01s)
+=== RUN   TestSessionHost_CmdInputForwardsTerminalBytesVerbatim
+--- PASS: TestSessionHost_CmdInputForwardsTerminalBytesVerbatim (0.00s)
+=== RUN   TestSessionHost_CmdInputNeverRoutesSlashCommands
+--- PASS: TestSessionHost_CmdInputNeverRoutesSlashCommands (0.00s)
+=== RUN   TestSessionHost_SlowObserverDoesNotBlockWriter
+--- PASS: TestSessionHost_SlowObserverDoesNotBlockWriter (0.16s)
+=== RUN   TestSessionHost_ListenerFailureTerminatesChild
+--- PASS: TestSessionHost_ListenerFailureTerminatesChild (0.00s)
+=== RUN   TestSessionHost_ExplicitLeaseAcquireRelease
+--- PASS: TestSessionHost_ExplicitLeaseAcquireRelease (0.01s)
+=== RUN   TestSessionHost_RejectsIncompatibleProtocolVersion
+--- PASS: TestSessionHost_RejectsIncompatibleProtocolVersion (0.01s)
+=== RUN   TestSessionHost_SubmitPromptBypassesSlashRouterWithoutStealingWriterLease
+--- PASS: TestSessionHost_SubmitPromptBypassesSlashRouterWithoutStealingWriterLease (0.01s)
+=== RUN   TestSessionHost_AttachedLeaseAcquireDoesNotLeakToPTY
+--- PASS: TestSessionHost_AttachedLeaseAcquireDoesNotLeakToPTY (0.01s)
+=== RUN   TestQA_RapidAttachDetachSpam
+--- PASS: TestQA_RapidAttachDetachSpam (0.10s)
+=== RUN   TestQA_TwoWritersLeaseHandover
+--- PASS: TestQA_TwoWritersLeaseHandover (0.11s)
+=== RUN   TestQA_LargeThroughputStreaming
+--- PASS: TestQA_LargeThroughputStreaming (0.08s)
+=== RUN   TestColonNexus_Status
+--- PASS: TestColonNexus_Status (0.00s)
+=== RUN   TestColonNexus_Accounts
+--- PASS: TestColonNexus_Accounts (0.00s)
+=== RUN   TestColonAI_IsForwardedAsLegacyText
+--- PASS: TestColonAI_IsForwardedAsLegacyText (0.00s)
+=== RUN   TestDoubleColonNexus_EscapesToChild
+--- PASS: TestDoubleColonNexus_EscapesToChild (0.00s)
+=== RUN   TestDoubleColonAI_IsForwardedLiterally
+--- PASS: TestDoubleColonAI_IsForwardedLiterally (0.00s)
+=== RUN   TestColonStatus_ShortAlias
+--- PASS: TestColonStatus_ShortAlias (0.00s)
+=== RUN   TestColonNexusTab_ShowsSuggestions
+--- PASS: TestColonNexusTab_ShowsSuggestions (0.00s)
+=== RUN   TestColonNexus_DelimiterSpace
+--- PASS: TestColonNexus_DelimiterSpace (0.00s)
+=== RUN   TestMixedSlashesAndColons
+--- PASS: TestMixedSlashesAndColons (0.00s)
+=== RUN   TestColonNotRecognized_Forwarded
+--- PASS: TestColonNotRecognized_Forwarded (0.00s)
+=== RUN   TestColonPartialPrefix_Buffered
+--- PASS: TestColonPartialPrefix_Buffered (0.00s)
+=== RUN   TestDoubleColon_NotRecognizedForwarded
+--- PASS: TestDoubleColon_NotRecognizedForwarded (0.00s)
+=== RUN   TestColonNexus_LF
+--- PASS: TestColonNexus_LF (0.00s)
+=== RUN   TestColonNexus_Help
+--- PASS: TestColonNexus_Help (0.00s)
+=== RUN   TestColonNexus_Stop
+--- PASS: TestColonNexus_Stop (0.00s)
+=== RUN   TestColonNexus_Detach
+--- PASS: TestColonNexus_Detach (0.00s)
+=== RUN   TestSlashNexus_Status
+--- PASS: TestSlashNexus_Status (0.00s)
+=== RUN   TestSlashNexus_Accounts
+--- PASS: TestSlashNexus_Accounts (0.00s)
+=== RUN   TestSlashAI_IsForwardedAsLegacyText
+--- PASS: TestSlashAI_IsForwardedAsLegacyText (0.00s)
+=== RUN   TestDoubleSlashNexus_EscapesToChild
+--- PASS: TestDoubleSlashNexus_EscapesToChild (0.00s)
+=== RUN   TestDoubleSlashAI_IsForwardedLiterally
+--- PASS: TestDoubleSlashAI_IsForwardedLiterally (0.00s)
+=== RUN   TestOtherSlash_ForwardedToChild
+--- PASS: TestOtherSlash_ForwardedToChild (0.00s)
+=== RUN   TestNormalText_ForwardedToChild
+--- PASS: TestNormalText_ForwardedToChild (0.00s)
+=== RUN   TestCtrlC_ResetsRouter
+--- PASS: TestCtrlC_ResetsRouter (0.00s)
+=== RUN   TestCtrlU_ResetsRouter
+--- PASS: TestCtrlU_ResetsRouter (0.00s)
+=== RUN   TestBackspace_InControlCommand
+--- PASS: TestBackspace_InControlCommand (0.00s)
+=== RUN   TestTab_InIdle_Forwarded
+--- PASS: TestTab_InIdle_Forwarded (0.00s)
+=== RUN   TestTab_InSlashNexus_ShowsSuggestions
+--- PASS: TestTab_InSlashNexus_ShowsSuggestions (0.00s)
+=== RUN   TestUTF8_InPassthrough
+--- PASS: TestUTF8_InPassthrough (0.00s)
+=== RUN   TestEmptyInput_NoOutput
+--- PASS: TestEmptyInput_NoOutput (0.00s)
+=== RUN   TestReset_ClearsState
+--- PASS: TestReset_ClearsState (0.00s)
+=== RUN   TestLF_AsWellAsCR
+--- PASS: TestLF_AsWellAsCR (0.00s)
+=== RUN   TestTab_ShowsSuggestionsInSubcommand
+--- PASS: TestTab_ShowsSuggestionsInSubcommand (0.00s)
+=== RUN   TestMultipleCommands_ResetsBetween
+--- PASS: TestMultipleCommands_ResetsBetween (0.00s)
+=== RUN   TestGracefulStopForProjectShellIsShort
+--- PASS: TestGracefulStopForProjectShellIsShort (0.00s)
+=== RUN   FuzzReadBoundedLine
+=== RUN   FuzzReadBoundedLine/seed#0
+=== RUN   FuzzReadBoundedLine/seed#1
+=== RUN   FuzzReadBoundedLine/seed#2
+=== RUN   FuzzReadBoundedLine/seed#3
+=== RUN   FuzzReadBoundedLine/seed#4
+=== RUN   FuzzReadBoundedLine/seed#5
+=== RUN   FuzzReadBoundedLine/seed#6
+=== RUN   FuzzReadBoundedLine/seed#7
+=== RUN   FuzzReadBoundedLine/seed#8
+=== RUN   FuzzReadBoundedLine/seed#9
+=== RUN   FuzzReadBoundedLine/seed#10
+=== RUN   FuzzReadBoundedLine/seed#11
+=== RUN   FuzzReadBoundedLine/seed#12
+=== RUN   FuzzReadBoundedLine/seed#13
+=== RUN   FuzzReadBoundedLine/seed#14
+=== RUN   FuzzReadBoundedLine/seed#15
+=== RUN   FuzzReadBoundedLine/seed#16
+=== RUN   FuzzReadBoundedLine/seed#17
+=== RUN   FuzzReadBoundedLine/seed#18
+--- PASS: FuzzReadBoundedLine (0.01s)
+    --- PASS: FuzzReadBoundedLine/seed#0 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#1 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#2 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#3 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#4 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#5 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#6 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#7 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#8 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#9 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#10 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#11 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#12 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#13 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#14 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#15 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#16 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#17 (0.00s)
+    --- PASS: FuzzReadBoundedLine/seed#18 (0.00s)
+=== RUN   FuzzSlashPrefixRouter
+=== RUN   FuzzSlashPrefixRouter/seed#0
+=== RUN   FuzzSlashPrefixRouter/seed#1
+=== RUN   FuzzSlashPrefixRouter/seed#2
+=== RUN   FuzzSlashPrefixRouter/seed#3
+=== RUN   FuzzSlashPrefixRouter/seed#4
+=== RUN   FuzzSlashPrefixRouter/seed#5
+=== RUN   FuzzSlashPrefixRouter/seed#6
+=== RUN   FuzzSlashPrefixRouter/seed#7
+=== RUN   FuzzSlashPrefixRouter/seed#8
+=== RUN   FuzzSlashPrefixRouter/seed#9
+=== RUN   FuzzSlashPrefixRouter/seed#10
+=== RUN   FuzzSlashPrefixRouter/seed#11
+=== RUN   FuzzSlashPrefixRouter/seed#12
+--- PASS: FuzzSlashPrefixRouter (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#0 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#1 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#2 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#3 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#4 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#5 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#6 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#7 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#8 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#9 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#10 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#11 (0.00s)
+    --- PASS: FuzzSlashPrefixRouter/seed#12 (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/host	0.526s
+=== RUN   TestEncodeULIDKnownVectors
+--- PASS: TestEncodeULIDKnownVectors (0.00s)
+=== RUN   TestNewULIDRoundTrip
+--- PASS: TestNewULIDRoundTrip (0.00s)
+=== RUN   TestNewULIDUnique
+--- PASS: TestNewULIDUnique (0.01s)
+=== RUN   TestNewULIDSortable
+--- PASS: TestNewULIDSortable (0.00s)
+=== RUN   TestDecodeULIDRejectsInvalid
+--- PASS: TestDecodeULIDRejectsInvalid (0.00s)
+=== RUN   TestNewRuntimeID
+--- PASS: TestNewRuntimeID (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/ids	0.015s
+=== RUN   TestMergeReplacesDuplicateOverride
+--- PASS: TestMergeReplacesDuplicateOverride (0.00s)
+=== RUN   TestMergePrependsGuardPathAndPreservesDriverPATH
+--- PASS: TestMergePrependsGuardPathAndPreservesDriverPATH (0.00s)
+=== RUN   TestMergeProtectsIsolationHomes
+--- PASS: TestMergeProtectsIsolationHomes (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/launchenv	0.016s
+=== RUN   TestRuntimeLauncher_StandaloneLaunchAndHandshake
+--- PASS: TestRuntimeLauncher_StandaloneLaunchAndHandshake (0.02s)
+=== RUN   TestResolveCommandTemplateExpandsDockerWrapper
+--- PASS: TestResolveCommandTemplateExpandsDockerWrapper (0.00s)
+=== RUN   TestResolveCommandTemplateRejectsShellOperators
+--- PASS: TestResolveCommandTemplateRejectsShellOperators (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/launcher	0.047s
+=== RUN   TestRecorderCapturesPayload
+--- PASS: TestRecorderCapturesPayload (0.00s)
+=== RUN   TestThrottleSuppressesSameTag
+--- PASS: TestThrottleSuppressesSameTag (0.00s)
+=== RUN   TestNativeNotificationScriptDoesNotInterpolatePayload
+--- PASS: TestNativeNotificationScriptDoesNotInterpolatePayload (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/notify	0.008s
+=== RUN   TestValidateRequiresExactRequestTarget
+--- PASS: TestValidateRequiresExactRequestTarget (0.00s)
+=== RUN   TestIsTrustedDesktopRequest
+--- PASS: TestIsTrustedDesktopRequest (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/originpolicy	0.009s
+=== RUN   TestProtocolSerialization
+--- PASS: TestProtocolSerialization (0.00s)
+=== RUN   TestControlResponseHasStableEnvelope
+--- PASS: TestControlResponseHasStableEnvelope (0.00s)
+=== RUN   TestSendContextInterruptsBlockedConnection
+--- PASS: TestSendContextInterruptsBlockedConnection (0.01s)
+=== RUN   TestClientServerCommunication
+--- PASS: TestClientServerCommunication (0.00s)
+=== RUN   TestSubmitPromptRequestUsesDedicatedCommandAndPayload
+--- PASS: TestSubmitPromptRequestUsesDedicatedCommandAndPayload (0.00s)
+=== RUN   FuzzProtocolRequestResponse
+=== RUN   FuzzProtocolRequestResponse/seed#0
+=== RUN   FuzzProtocolRequestResponse/seed#1
+=== RUN   FuzzProtocolRequestResponse/seed#2
+=== RUN   FuzzProtocolRequestResponse/seed#3
+=== RUN   FuzzProtocolRequestResponse/seed#4
+--- PASS: FuzzProtocolRequestResponse (0.00s)
+    --- PASS: FuzzProtocolRequestResponse/seed#0 (0.00s)
+    --- PASS: FuzzProtocolRequestResponse/seed#1 (0.00s)
+    --- PASS: FuzzProtocolRequestResponse/seed#2 (0.00s)
+    --- PASS: FuzzProtocolRequestResponse/seed#3 (0.00s)
+    --- PASS: FuzzProtocolRequestResponse/seed#4 (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/protocol	0.020s
+=== RUN   TestRuntimeStateTransitions
+--- PASS: TestRuntimeStateTransitions (0.00s)
+=== RUN   TestCanTransitionAllowsIdempotentStateUpdate
+--- PASS: TestCanTransitionAllowsIdempotentStateUpdate (0.00s)
+=== RUN   TestDefaultRegistryResetConcurrentAccess
+--- PASS: TestDefaultRegistryResetConcurrentAccess (0.02s)
+=== RUN   TestRegistryPersistenceAndLifecycle
+--- PASS: TestRegistryPersistenceAndLifecycle (0.00s)
+=== RUN   TestRegistryTransitionStateRejectsInvalidJump
+--- PASS: TestRegistryTransitionStateRejectsInvalidJump (0.00s)
+=== RUN   TestCleanupStale
+--- PASS: TestCleanupStale (0.00s)
+=== RUN   TestPurgeInactive
+--- PASS: TestPurgeInactive (0.00s)
+=== RUN   TestRegistry_ConcurrentMultiProcessNoLostUpdates
+--- PASS: TestRegistry_ConcurrentMultiProcessNoLostUpdates (0.04s)
+=== RUN   TestRuntimeSession_NoEnvOrSecretPersistence
+--- PASS: TestRuntimeSession_NoEnvOrSecretPersistence (0.00s)
+=== RUN   TestRuntimeSessionModelPersistence
+--- PASS: TestRuntimeSessionModelPersistence (0.00s)
+=== RUN   TestRuntimeSessionHostLive
+--- PASS: TestRuntimeSessionHostLive (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/registry	0.073s
+=== RUN   TestTerminalBackendExecution
+--- PASS: TestTerminalBackendExecution (0.01s)
+=== RUN   TestPrepareInteractiveCommandNormalizesDumbTerminal
+--- PASS: TestPrepareInteractiveCommandNormalizesDumbTerminal (0.00s)
+=== RUN   TestPrepareInteractiveCommandDoesNotMutateNormalTerminal
+--- PASS: TestPrepareInteractiveCommandDoesNotMutateNormalTerminal (0.00s)
+=== RUN   TestTerminalBackendStdin
+--- PASS: TestTerminalBackendStdin (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/terminal	0.027s
+=== RUN   TestMonitorModelIsReadOnlyAndDoesNotExposeActions
+--- PASS: TestMonitorModelIsReadOnlyAndDoesNotExposeActions (0.00s)
+=== RUN   TestControlModelUsesInjectedControlRegistries
+--- PASS: TestControlModelUsesInjectedControlRegistries (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/tui	0.016s
+=== RUN   TestExchangeBootstrapTokenDoesNotConsumeTokenWhenEntropyFails
+--- PASS: TestExchangeBootstrapTokenDoesNotConsumeTokenWhenEntropyFails (0.00s)
+=== RUN   TestRotateSessionPreservesOldSessionWhenEntropyFails
+--- PASS: TestRotateSessionPreservesOldSessionWhenEntropyFails (0.00s)
+=== RUN   TestExchangeBootstrapTokenReusableOnLoopback
+--- PASS: TestExchangeBootstrapTokenReusableOnLoopback (0.00s)
+=== RUN   TestExchangeBootstrapTokenOneTimeOnPrivateBind
+--- PASS: TestExchangeBootstrapTokenOneTimeOnPrivateBind (0.00s)
+=== RUN   TestIsLoopbackListen
+--- PASS: TestIsLoopbackListen (0.00s)
+=== RUN   TestExchangeBootstrapTokenOneTimeWhenTunnelActiveOnLoopback
+--- PASS: TestExchangeBootstrapTokenOneTimeWhenTunnelActiveOnLoopback (0.00s)
+=== RUN   TestSetTunnelActiveControlsConsumption
+--- PASS: TestSetTunnelActiveControlsConsumption (0.00s)
+=== RUN   TestLoopbackSessionsSurviveRestart
+--- PASS: TestLoopbackSessionsSurviveRestart (0.00s)
+=== RUN   TestRemoteBindDoesNotRestoreSessions
+--- PASS: TestRemoteBindDoesNotRestoreSessions (0.00s)
+=== RUN   TestIdlePersistedSessionIsDropped
+--- PASS: TestIdlePersistedSessionIsDropped (0.00s)
+=== RUN   TestExpiredPersistedSessionIsDropped
+--- PASS: TestExpiredPersistedSessionIsDropped (0.00s)
+=== RUN   TestListenStateRoundTripForLivePID
+--- PASS: TestListenStateRoundTripForLivePID (0.00s)
+=== RUN   TestReadListenStateRejectsDeadPID
+--- PASS: TestReadListenStateRejectsDeadPID (0.00s)
+=== RUN   TestValidateBindLoopback
+--- PASS: TestValidateBindLoopback (0.00s)
+=== RUN   TestValidateBindPrivateRequiresRemote
+--- PASS: TestValidateBindPrivateRequiresRemote (0.00s)
+=== RUN   TestValidateBindUnspecifiedAlwaysRefused
+--- PASS: TestValidateBindUnspecifiedAlwaysRefused (0.00s)
+=== RUN   TestValidateBindPublicAlwaysRefused
+--- PASS: TestValidateBindPublicAlwaysRefused (0.00s)
+=== RUN   TestValidateBindHostnameRefused
+--- PASS: TestValidateBindHostnameRefused (0.00s)
+=== RUN   TestHostFilesystemIsDisabledForRemoteBinds
+--- PASS: TestHostFilesystemIsDisabledForRemoteBinds (0.00s)
+=== RUN   TestAttachWatchChannelIsOpen
+--- PASS: TestAttachWatchChannelIsOpen (0.00s)
+=== RUN   TestAttachRecreatesNilRuntimeChanged
+--- PASS: TestAttachRecreatesNilRuntimeChanged (0.00s)
+=== RUN   TestAttachLoopbackSessionReusesWebSession
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestAttachLoopbackSessionReusesWebSession (0.05s)
+=== RUN   TestAttachLoopbackSessionRejectsDifferentBootstrapOrigin
+--- PASS: TestAttachLoopbackSessionRejectsDifferentBootstrapOrigin (0.00s)
+=== RUN   TestLoopbackBackendProxyRewritesWailsOrigin
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestLoopbackBackendProxyRewritesWailsOrigin (0.02s)
+=== RUN   TestLoopbackBackendHandlerServesLocalSPAForNavigation
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestLoopbackBackendHandlerServesLocalSPAForNavigation (0.02s)
+=== RUN   TestDesktopBootstrapRequiresDesktopOrigin
+--- PASS: TestDesktopBootstrapRequiresDesktopOrigin (0.00s)
+=== RUN   TestDesktopSessionRevocationAndExpiry
+--- PASS: TestDesktopSessionRevocationAndExpiry (0.00s)
+=== RUN   TestWebSocketQueryTokenRejectedWhenTunnelActive
+--- PASS: TestWebSocketQueryTokenRejectedWhenTunnelActive (0.00s)
+=== RUN   TestDesktopSessionReplacementCleansOldSession
+--- PASS: TestDesktopSessionReplacementCleansOldSession (0.00s)
+=== RUN   TestServerShutdownRevokesDesktopSession
+--- PASS: TestServerShutdownRevokesDesktopSession (0.00s)
+=== RUN   TestWeb_FullE2E
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestWeb_FullE2E (0.03s)
+=== RUN   TestSendAttachedCommandWithRetryEventuallySucceeds
+--- PASS: TestSendAttachedCommandWithRetryEventuallySucceeds (0.08s)
+=== RUN   TestSendAttachedCommandWithRetryExhaustsAttempts
+--- PASS: TestSendAttachedCommandWithRetryExhaustsAttempts (0.08s)
+=== RUN   TestAttachKeepsControlRoleConstant
+--- PASS: TestAttachKeepsControlRoleConstant (0.09s)
+=== RUN   TestIsProtocolControlFrame
+=== RUN   TestIsProtocolControlFrame/lease_request
+=== RUN   TestIsProtocolControlFrame/ok_response
+=== RUN   TestIsProtocolControlFrame/error_response
+=== RUN   TestIsProtocolControlFrame/pty_text
+=== RUN   TestIsProtocolControlFrame/json-looking_prompt
+=== RUN   TestIsProtocolControlFrame/empty
+--- PASS: TestIsProtocolControlFrame (0.00s)
+    --- PASS: TestIsProtocolControlFrame/lease_request (0.00s)
+    --- PASS: TestIsProtocolControlFrame/ok_response (0.00s)
+    --- PASS: TestIsProtocolControlFrame/error_response (0.00s)
+    --- PASS: TestIsProtocolControlFrame/pty_text (0.00s)
+    --- PASS: TestIsProtocolControlFrame/json-looking_prompt (0.00s)
+    --- PASS: TestIsProtocolControlFrame/empty (0.00s)
+=== RUN   TestScrubProtocolFramesFromOutput
+--- PASS: TestScrubProtocolFramesFromOutput (0.00s)
+=== RUN   TestWriteAgentConflictClassifiesRequiredResourceSelection
+--- PASS: TestWriteAgentConflictClassifiesRequiredResourceSelection (0.00s)
+=== RUN   TestWriteErrorPreservesMessageAndAddsStableCode
+--- PASS: TestWriteErrorPreservesMessageAndAddsStableCode (0.00s)
+=== RUN   TestRuntimeDetailResponsePreservesContractFields
+--- PASS: TestRuntimeDetailResponsePreservesContractFields (0.00s)
+=== RUN   TestStableErrorCodeDoesNotTreatUnknownAsZero
+--- PASS: TestStableErrorCodeDoesNotTreatUnknownAsZero (0.00s)
+=== RUN   TestFSBrowse
+--- PASS: TestFSBrowse (0.00s)
+=== RUN   TestFSBrowseDefaultsToLightweightDirectoryEntries
+--- PASS: TestFSBrowseDefaultsToLightweightDirectoryEntries (0.00s)
+=== RUN   TestDetectTechReturnsEmptyArrayWhenNothingIsDetected
+--- PASS: TestDetectTechReturnsEmptyArrayWhenNothingIsDetected (0.00s)
+=== RUN   TestFSInspect
+--- PASS: TestFSInspect (0.00s)
+=== RUN   TestFSMkdir
+--- PASS: TestFSMkdir (0.00s)
+=== RUN   TestIsWithinAllowedRoots
+--- PASS: TestIsWithinAllowedRoots (0.00s)
+=== RUN   TestIsWithinAllowedRootsProjectWorkspace
+--- PASS: TestIsWithinAllowedRootsProjectWorkspace (0.00s)
+=== RUN   TestIsWithinAllowedRootsOSTempDirectory
+--- PASS: TestIsWithinAllowedRootsOSTempDirectory (0.00s)
+=== RUN   TestFSMkdirRejectsOutsideAllowedRoots
+--- PASS: TestFSMkdirRejectsOutsideAllowedRoots (0.00s)
+=== RUN   TestFSMkdirRejectsSymlinkEscape
+--- PASS: TestFSMkdirRejectsSymlinkEscape (0.00s)
+=== RUN   TestGetGitRemoteRedactsCredentials
+--- PASS: TestGetGitRemoteRedactsCredentials (0.00s)
+=== RUN   TestNexusProjectsAndAgentsAPI
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestNexusProjectsAndAgentsAPI (0.03s)
+=== RUN   TestSystemDoctorAPIUsesSharedReadOnlyReport
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestSystemDoctorAPIUsesSharedReadOnlyReport (8.61s)
+=== RUN   TestSystemDoctorUsesHandlerDriverRegistry
+--- PASS: TestSystemDoctorUsesHandlerDriverRegistry (0.01s)
+=== RUN   TestNexusCSRFEnforcement
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestNexusCSRFEnforcement (0.13s)
+=== RUN   TestAgentConfigApplyRejectsUnallocatedProvider
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestAgentConfigApplyRejectsUnallocatedProvider (0.03s)
+=== RUN   TestResourceAllocationRejectsAutomaticPolicy
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestResourceAllocationRejectsAutomaticPolicy (0.02s)
+=== RUN   TestResourcesRefreshReturnsAccounts
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestResourcesRefreshReturnsAccounts (0.04s)
+=== RUN   TestSystemUpdateReturnsJSONNot501
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestSystemUpdateReturnsJSONNot501 (0.03s)
+=== RUN   TestMaestroUpdateRequiresExplicitContract
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestMaestroUpdateRequiresExplicitContract (0.10s)
+=== RUN   TestSystemUpdatesUsesSharedNexusUpdateService
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestSystemUpdatesUsesSharedNexusUpdateService (2.77s)
+=== RUN   TestProjectEventsAPI
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestProjectEventsAPI (0.04s)
+=== RUN   TestMissionAPIContractUsesApplicationBoundary
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestMissionAPIContractUsesApplicationBoundary (0.03s)
+=== RUN   TestFormatHostsLine
+--- PASS: TestFormatHostsLine (0.00s)
+=== RUN   TestNormalizedLine
+--- PASS: TestNormalizedLine (0.00s)
+=== RUN   TestFormatHostsLineRoundTrip
+--- PASS: TestFormatHostsLineRoundTrip (0.00s)
+=== RUN   TestIsHostsEntryPresentReadsFile
+    hosts_test.go:45: requires root to read /etc/hosts
+--- SKIP: TestIsHostsEntryPresentReadsFile (0.00s)
+=== RUN   TestEnsureAndRemoveIdempotency
+    hosts_test.go:58: requires root to modify /etc/hosts
+--- SKIP: TestEnsureAndRemoveIdempotency (0.00s)
+=== RUN   TestHostsEntryWithCustomHostname
+    hosts_test.go:98: requires root to modify /etc/hosts
+--- SKIP: TestHostsEntryWithCustomHostname (0.00s)
+=== RUN   TestHostsFileBackupNotNeeded
+--- PASS: TestHostsFileBackupNotNeeded (0.00s)
+=== RUN   TestRemote_SSHTunnel
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestRemote_SSHTunnel (0.02s)
+=== RUN   TestRegisterRoutesIncludesPublicHealthRoute
+--- PASS: TestRegisterRoutesIncludesPublicHealthRoute (0.00s)
+=== RUN   TestSystemInfoExposesVersionAndCapabilities
+--- PASS: TestSystemInfoExposesVersionAndCapabilities (6.08s)
+=== RUN   TestProjectSubrouteClassification
+--- PASS: TestProjectSubrouteClassification (0.00s)
+=== RUN   TestSessionRotateRouteReplacesSessionAndCSRF
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestSessionRotateRouteReplacesSessionAndCSRF (0.02s)
+=== RUN   TestServer_LoopbackCookieSurvivesRestart
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestServer_LoopbackCookieSurvivesRestart (0.03s)
+=== RUN   TestSessionLogoutRouteRevokesSession
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestSessionLogoutRouteRevokesSession (0.03s)
+=== RUN   TestServer_BootstrapAndAuth
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestServer_BootstrapAndAuth (2.51s)
+=== RUN   TestProvidersDocsCaptureUsesSyntheticInventory
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestProvidersDocsCaptureUsesSyntheticInventory (0.05s)
+=== RUN   TestServerBootstrapURLKeepsTokenInFragment
+sudo: Authentication failed, try again.
+sudo: Authentication failed, try again.
+sudo-rs: Maximum 3 incorrect authentication attempts
+nexus web: could not remove nexus.dev from /etc/hosts: sudo tee /etc/hosts: exit status 1
+--- PASS: TestServerBootstrapURLKeepsTokenInFragment (0.02s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/web	21.038s
+=== RUN   TestWriterSerializesConcurrentWrites
+--- PASS: TestWriterSerializesConcurrentWrites (0.05s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/websocketio	0.053s
+=== RUN   TestWorkspaceStore_AddListRemove
+--- PASS: TestWorkspaceStore_AddListRemove (0.00s)
+=== RUN   TestWorkspaceIDDistinctByPath
+--- PASS: TestWorkspaceIDDistinctByPath (0.00s)
+=== RUN   TestWorkspaceListSortedByRecency
+--- PASS: TestWorkspaceListSortedByRecency (0.00s)
+=== RUN   TestWorkspaceStoreRemoveResolvesFilesystemAliases
+--- PASS: TestWorkspaceStoreRemoveResolvesFilesystemAliases (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/control/workspace	0.015s
+=== RUN   TestListRecentConversations
+--- PASS: TestListRecentConversations (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/conversation	0.011s
+=== RUN   TestClassifyFailures
+=== RUN   TestClassifyFailures/Rate_limit_429_with_minutes
+=== RUN   TestClassifyFailures/Rate_limit_with_seconds
+=== RUN   TestClassifyFailures/Auth_required
+=== RUN   TestClassifyFailures/Quota_out_of_credits
+=== RUN   TestClassifyFailures/Network_failure
+=== RUN   TestClassifyFailures/Provider_503_Overloaded
+--- PASS: TestClassifyFailures (0.00s)
+    --- PASS: TestClassifyFailures/Rate_limit_429_with_minutes (0.00s)
+    --- PASS: TestClassifyFailures/Rate_limit_with_seconds (0.00s)
+    --- PASS: TestClassifyFailures/Auth_required (0.00s)
+    --- PASS: TestClassifyFailures/Quota_out_of_credits (0.00s)
+    --- PASS: TestClassifyFailures/Network_failure (0.00s)
+    --- PASS: TestClassifyFailures/Provider_503_Overloaded (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/classifier	0.004s
+=== RUN   TestCanonicalWorkspacePath
+--- PASS: TestCanonicalWorkspacePath (0.00s)
+=== RUN   TestResolvePathRefUsesDisplayCanonicalAndFilesystemIdentity
+--- PASS: TestResolvePathRefUsesDisplayCanonicalAndFilesystemIdentity (0.00s)
+=== RUN   TestConfigLoadSaveBindings
+--- PASS: TestConfigLoadSaveBindings (0.00s)
+=== RUN   TestConfigValidation
+--- PASS: TestConfigValidation (0.00s)
+=== RUN   TestConfigLanguageBackwardCompatibility
+--- PASS: TestConfigLanguageBackwardCompatibility (0.00s)
+=== RUN   TestIntelligenceConfigDefaultsOffAndPersistsWithoutSecret
+--- PASS: TestIntelligenceConfigDefaultsOffAndPersistsWithoutSecret (0.00s)
+=== RUN   TestConfigValidationRejectsInvalidIntelligenceMode
+--- PASS: TestConfigValidationRejectsInvalidIntelligenceMode (0.00s)
+=== RUN   TestValidateProfileNameRejectsFlagLikeNames
+--- PASS: TestValidateProfileNameRejectsFlagLikeNames (0.00s)
+=== RUN   TestDefaultProviderPrioritiesPreferConfiguredFallbackOrder
+--- PASS: TestDefaultProviderPrioritiesPreferConfiguredFallbackOrder (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/config	0.019s
+=== RUN   TestCooldownTracker
+--- PASS: TestCooldownTracker (0.00s)
+=== RUN   TestCooldownIsolatedByAccountScope
+--- PASS: TestCooldownIsolatedByAccountScope (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/cooldown	0.016s
+?   	github.com/kivervinicius/ai-cli/internal/core/exitcode	[no test files]
+=== RUN   TestFallbackExecution
+⚠ Profile codex:acc-1 hit rate-limit (HTTP 429 Too Many Requests). Automatically falling back to acc-2...
+⚠ Profile codex:acc-1 hit rate-limit (HTTP 429). Automatically falling back to acc-2...
+--- PASS: TestFallbackExecution (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/fallback	0.004s
+?   	github.com/kivervinicius/ai-cli/internal/core/model	[no test files]
+=== RUN   TestInstallationRegistrySeparatesDiscoveryFromRegistration
+--- PASS: TestInstallationRegistrySeparatesDiscoveryFromRegistration (0.00s)
+=== RUN   TestProviderRegistry
+--- PASS: TestProviderRegistry (0.00s)
+=== RUN   TestProviderRegistryNormalizesRegisteredIDs
+--- PASS: TestProviderRegistryNormalizesRegisteredIDs (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider	0.016s
+=== RUN   TestEmailFromIDTokenReadsURLSafeClaimsWithoutExposingToken
+--- PASS: TestEmailFromIDTokenReadsURLSafeClaimsWithoutExposingToken (0.00s)
+=== RUN   TestAGYSecretServiceIsOptIn
+--- PASS: TestAGYSecretServiceIsOptIn (0.00s)
+=== RUN   TestLinkSharedAgyItemsDoesNotOverwriteProfileSettings
+--- PASS: TestLinkSharedAgyItemsDoesNotOverwriteProfileSettings (0.00s)
+=== RUN   TestInspectAuthExpiredTokenWithoutRefreshToken
+--- PASS: TestInspectAuthExpiredTokenWithoutRefreshToken (0.00s)
+=== RUN   TestInspectAuthExpiredTokenWithRefreshToken
+--- PASS: TestInspectAuthExpiredTokenWithRefreshToken (0.00s)
+=== RUN   TestInspectAuthExpiredTokenResolvesEmailFromGoogleAccounts
+--- PASS: TestInspectAuthExpiredTokenResolvesEmailFromGoogleAccounts (0.00s)
+=== RUN   TestInspectAuthValidTokenWithRefreshToken
+--- PASS: TestInspectAuthValidTokenWithRefreshToken (0.00s)
+=== RUN   TestFetchLiveQuotaRefusesExpiredAccessToken
+--- PASS: TestFetchLiveQuotaRefusesExpiredAccessToken (0.00s)
+=== RUN   TestInspectAuthNoTokenFile
+--- PASS: TestInspectAuthNoTokenFile (0.00s)
+=== RUN   TestInspectAuthLoginKeyringAloneIsNotAuthenticated
+--- PASS: TestInspectAuthLoginKeyringAloneIsNotAuthenticated (0.00s)
+=== RUN   TestAgyClampPercent
+--- PASS: TestAgyClampPercent (0.00s)
+=== RUN   TestParseAgyQuotaOutputTreatsPercentAsRemaining
+--- PASS: TestParseAgyQuotaOutputTreatsPercentAsRemaining (0.00s)
+=== RUN   TestParseAgyQuotaOutputAcceptsSingleFamilyTSV
+--- PASS: TestParseAgyQuotaOutputAcceptsSingleFamilyTSV (0.00s)
+=== RUN   TestLegacyAGYQuotaKeepsClaudeAtZero
+--- PASS: TestLegacyAGYQuotaKeepsClaudeAtZero (0.00s)
+=== RUN   TestFormatAgyResetRelative
+--- PASS: TestFormatAgyResetRelative (0.00s)
+=== RUN   TestAgyQuotaCompleteAcceptsFullOutput
+--- PASS: TestAgyQuotaCompleteAcceptsFullOutput (0.00s)
+=== RUN   TestAgyQuotaCompleteAcceptsOnlyWeeklyWindows
+--- PASS: TestAgyQuotaCompleteAcceptsOnlyWeeklyWindows (0.00s)
+=== RUN   TestAgyQuotaCompleteAcceptsMixedPartialWindows
+--- PASS: TestAgyQuotaCompleteAcceptsMixedPartialWindows (0.00s)
+=== RUN   TestAgyQuotaCompleteAcceptsSingleGroup
+--- PASS: TestAgyQuotaCompleteAcceptsSingleGroup (0.00s)
+=== RUN   TestAgyQuotaCompleteRejectsEmptyWindows
+--- PASS: TestAgyQuotaCompleteRejectsEmptyWindows (0.00s)
+=== RUN   TestAgyQuotaCompleteRejectsUnknownGroup
+--- PASS: TestAgyQuotaCompleteRejectsUnknownGroup (0.00s)
+=== RUN   TestParseAgyQuotaOutputAcceptsOnlyWeeklyLines
+--- PASS: TestParseAgyQuotaOutputAcceptsOnlyWeeklyLines (0.00s)
+=== RUN   TestParseAgyQuotaOutputAcceptsSingleGroupOnly
+--- PASS: TestParseAgyQuotaOutputAcceptsSingleGroupOnly (0.00s)
+=== RUN   TestParseAgyQuotaOutputRejectsEmptyOutput
+--- PASS: TestParseAgyQuotaOutputRejectsEmptyOutput (0.00s)
+=== RUN   TestParseAgyQuotaOutputRejectsGarbage
+--- PASS: TestParseAgyQuotaOutputRejectsGarbage (0.00s)
+=== RUN   TestReadCachedQuotaFilesConvertsLiveToCached
+--- PASS: TestReadCachedQuotaFilesConvertsLiveToCached (0.00s)
+=== RUN   TestReadCachedQuotaFilesPreservesCachedStatus
+--- PASS: TestReadCachedQuotaFilesPreservesCachedStatus (0.00s)
+=== RUN   TestReadCachedQuotaFilesReturnsUnknownStatus
+--- PASS: TestReadCachedQuotaFilesReturnsUnknownStatus (0.00s)
+=== RUN   TestReadCachedQuotaFilesReturnsDifferentDataPerProfile
+--- PASS: TestReadCachedQuotaFilesReturnsDifferentDataPerProfile (0.00s)
+=== RUN   TestAgyParseCompleteRoundTripPartialWeekly
+--- PASS: TestAgyParseCompleteRoundTripPartialWeekly (0.00s)
+=== RUN   TestAgyParseCompleteRoundTripFull
+--- PASS: TestAgyParseCompleteRoundTripFull (0.00s)
+=== RUN   TestStaleCacheNotServedAfterSuccessfulLiveParse
+--- PASS: TestStaleCacheNotServedAfterSuccessfulLiveParse (0.00s)
+=== RUN   TestFormatAgyResetPastTimeReturnsRefreshing
+--- PASS: TestFormatAgyResetPastTimeReturnsRefreshing (0.00s)
+=== RUN   TestFormatAgyResetZeroDuration
+--- PASS: TestFormatAgyResetZeroDuration (0.00s)
+=== RUN   TestFormatAgyResetPassthrough
+--- PASS: TestFormatAgyResetPassthrough (0.00s)
+=== RUN   TestProfileIsolationDifferentKeyringPaths
+--- PASS: TestProfileIsolationDifferentKeyringPaths (0.00s)
+=== RUN   TestTrustworthyRejectsOldCache
+--- PASS: TestTrustworthyRejectsOldCache (0.00s)
+=== RUN   TestTrustworthyAcceptsFreshCache
+--- PASS: TestTrustworthyAcceptsFreshCache (0.00s)
+=== RUN   TestTrustworthyRejectsLiveStatus
+--- PASS: TestTrustworthyRejectsLiveStatus (0.00s)
+=== RUN   TestTrustworthyRejectsEstimatedStatus
+--- PASS: TestTrustworthyRejectsEstimatedStatus (0.00s)
+=== RUN   TestTrustworthyRejectsUnknownStatus
+--- PASS: TestTrustworthyRejectsUnknownStatus (0.00s)
+=== RUN   TestGetCachedUsageRejectsExpiredCache
+--- PASS: TestGetCachedUsageRejectsExpiredCache (0.00s)
+=== RUN   TestGetCachedUsageAcceptsFreshCache
+--- PASS: TestGetCachedUsageAcceptsFreshCache (0.00s)
+=== RUN   TestReadCachedQuotaFilesRejectsAccountMismatch
+--- PASS: TestReadCachedQuotaFilesRejectsAccountMismatch (0.00s)
+=== RUN   TestReadCachedQuotaFilesAcceptsMatchingAccount
+--- PASS: TestReadCachedQuotaFilesAcceptsMatchingAccount (0.00s)
+=== RUN   TestReadCachedQuotaFilesAcceptsWhenNoAuthEmail
+--- PASS: TestReadCachedQuotaFilesAcceptsWhenNoAuthEmail (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/agy	0.036s
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/claude	[no test files]
+=== RUN   TestAppServerReturnsOfficialLiveQuota
+--- PASS: TestAppServerReturnsOfficialLiveQuota (0.01s)
+=== RUN   TestAppServerSkipsNotificationsAndOutOfOrderIDs
+--- PASS: TestAppServerSkipsNotificationsAndOutOfOrderIDs (0.02s)
+=== RUN   TestAppServerRejectsMissingAccountID
+--- PASS: TestAppServerRejectsMissingAccountID (0.01s)
+=== RUN   TestAppServerRejectsMissingCodexHome
+--- PASS: TestAppServerRejectsMissingCodexHome (0.01s)
+=== RUN   TestAppServerRejectsForeignAccount
+--- PASS: TestAppServerRejectsForeignAccount (0.01s)
+=== RUN   TestAppServerRejectsForeignCodexHome
+--- PASS: TestAppServerRejectsForeignCodexHome (0.02s)
+=== RUN   TestAppServerHandlesRPCErrorAndGarbage
+=== RUN   TestAppServerHandlesRPCErrorAndGarbage/rpc-error
+=== RUN   TestAppServerHandlesRPCErrorAndGarbage/garbage
+=== RUN   TestAppServerHandlesRPCErrorAndGarbage/empty-result
+=== RUN   TestAppServerHandlesRPCErrorAndGarbage/no-primary
+--- PASS: TestAppServerHandlesRPCErrorAndGarbage (0.08s)
+    --- PASS: TestAppServerHandlesRPCErrorAndGarbage/rpc-error (0.04s)
+    --- PASS: TestAppServerHandlesRPCErrorAndGarbage/garbage (0.02s)
+    --- PASS: TestAppServerHandlesRPCErrorAndGarbage/empty-result (0.01s)
+    --- PASS: TestAppServerHandlesRPCErrorAndGarbage/no-primary (0.01s)
+=== RUN   TestAppServerBackendBlockWinsOverPercentages
+--- PASS: TestAppServerBackendBlockWinsOverPercentages (0.01s)
+=== RUN   TestAppServerPrefersCodexBucket
+--- PASS: TestAppServerPrefersCodexBucket (0.03s)
+=== RUN   TestAppServerTimeoutDoesNotHang
+--- PASS: TestAppServerTimeoutDoesNotHang (1.50s)
+=== RUN   TestAppServerProbeCoalescesConcurrentReaders
+--- PASS: TestAppServerProbeCoalescesConcurrentReaders (0.31s)
+=== RUN   TestAppServerProbeIsolatesProfiles
+--- PASS: TestAppServerProbeIsolatesProfiles (0.03s)
+=== RUN   TestAppServerDisabledByKillSwitch
+--- PASS: TestAppServerDisabledByKillSwitch (0.00s)
+=== RUN   TestAppServerRequiresVerifiableAccountID
+--- PASS: TestAppServerRequiresVerifiableAccountID (0.00s)
+=== RUN   TestAppServerFallsBackToRolloutWhenUnavailable
+--- PASS: TestAppServerFallsBackToRolloutWhenUnavailable (0.69s)
+=== RUN   TestAppServerWinsOverRollout
+--- PASS: TestAppServerWinsOverRollout (0.03s)
+=== RUN   TestAdoptSessionFromSiblingProfile
+--- PASS: TestAdoptSessionFromSiblingProfile (0.03s)
+=== RUN   TestPrepareSeedsSiblingSessionsForPicker
+--- PASS: TestPrepareSeedsSiblingSessionsForPicker (0.01s)
+=== RUN   TestForeignAccountRolloutIgnoredForQuota
+--- PASS: TestForeignAccountRolloutIgnoredForQuota (0.00s)
+=== RUN   TestRolloutBelongsRejectsMismatchedAccountID
+--- PASS: TestRolloutBelongsRejectsMismatchedAccountID (0.00s)
+=== RUN   TestTryAcquireTUILockNonBlocking
+--- PASS: TestTryAcquireTUILockNonBlocking (0.00s)
+=== RUN   TestRunAppServerRateLimitsRespectsTUILock
+--- PASS: TestRunAppServerRateLimitsRespectsTUILock (0.00s)
+=== RUN   TestGetUsageSkipsMigrationAndAppServerWhileTUILocked
+--- PASS: TestGetUsageSkipsMigrationAndAppServerWhileTUILocked (0.59s)
+=== RUN   TestPrepareUsesCanonicalHomeOnly
+--- PASS: TestPrepareUsesCanonicalHomeOnly (0.00s)
+=== RUN   TestPrepareMigratesLegacyConfigBeforeCreatingCanonicalConfig
+--- PASS: TestPrepareMigratesLegacyConfigBeforeCreatingCanonicalConfig (0.00s)
+=== RUN   TestPrepareWaitsForActiveTUILock
+--- PASS: TestPrepareWaitsForActiveTUILock (0.10s)
+=== RUN   TestEnvCODEXHome
+--- PASS: TestEnvCODEXHome (0.00s)
+=== RUN   TestCodexAdapterGetUsageFromIsolatedRollout
+--- PASS: TestCodexAdapterGetUsageFromIsolatedRollout (0.57s)
+=== RUN   TestCodexEmailInRolloutTextDoesNotStealAttribution
+--- PASS: TestCodexEmailInRolloutTextDoesNotStealAttribution (0.00s)
+=== RUN   TestCodexAttributionInvariantAtMostOneProfilePerRollout
+--- PASS: TestCodexAttributionInvariantAtMostOneProfilePerRollout (0.00s)
+=== RUN   TestCodexIsolatedProfileDoesNotSeeOtherProfileSessions
+--- PASS: TestCodexIsolatedProfileDoesNotSeeOtherProfileSessions (0.00s)
+=== RUN   TestCodexFetchedAtFromEventNotNow
+--- PASS: TestCodexFetchedAtFromEventNotNow (0.44s)
+=== RUN   TestCodexPastResetsAtNotExhausted
+--- PASS: TestCodexPastResetsAtNotExhausted (0.38s)
+=== RUN   TestCodexWindowMinutesMapsKind
+--- PASS: TestCodexWindowMinutesMapsKind (0.00s)
+=== RUN   TestCodexSharedSymlinkMigratedAway
+--- PASS: TestCodexSharedSymlinkMigratedAway (0.00s)
+=== RUN   TestCodexReverseReadStopsEarly
+--- PASS: TestCodexReverseReadStopsEarly (0.56s)
+=== RUN   TestFormatCodexResetTime
+--- PASS: TestFormatCodexResetTime (0.00s)
+=== RUN   TestCodexHostSameAccountAdoptsWhenNoIsolatedRollout
+--- PASS: TestCodexHostSameAccountAdoptsWhenNoIsolatedRollout (0.00s)
+=== RUN   TestCodexRolloutRankedByEventTimestampNotModTime
+--- PASS: TestCodexRolloutRankedByEventTimestampNotModTime (0.50s)
+=== RUN   TestCodexTolerantToPartiallyWrittenLastLine
+--- PASS: TestCodexTolerantToPartiallyWrittenLastLine (0.52s)
+=== RUN   TestHostOwnedAtFailsClosedBeforeFirstObservation
+--- PASS: TestHostOwnedAtFailsClosedBeforeFirstObservation (0.00s)
+=== RUN   TestHostCurrentOwnerAllowsFailsClosedWithoutLedgerEvidence
+--- PASS: TestHostCurrentOwnerAllowsFailsClosedWithoutLedgerEvidence (0.00s)
+=== RUN   TestCodexRateLimitsWithoutTokenCountType
+--- PASS: TestCodexRateLimitsWithoutTokenCountType (0.39s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/codex	6.913s
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/cursor	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/gemini	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/adapters/opencode	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/core/provider/mock	[no test files]
+=== RUN   TestEphemeralExecutionDoesNotPersistUsage
+--- PASS: TestEphemeralExecutionDoesNotPersistUsage (0.00s)
+=== RUN   TestQuotaEnginePersistenceAndRendering
+--- PASS: TestQuotaEnginePersistenceAndRendering (0.00s)
+=== RUN   TestFetchBatchConcurrency
+--- PASS: TestFetchBatchConcurrency (0.00s)
+=== RUN   TestQuotaViewBottleneckUnknownWithoutWindowsIsZero
+--- PASS: TestQuotaViewBottleneckUnknownWithoutWindowsIsZero (0.00s)
+=== RUN   TestQuotaViewBottleneckFullRemainingKeepsKind
+--- PASS: TestQuotaViewBottleneckFullRemainingKeepsKind (0.00s)
+=== RUN   TestBestGroupRemainingIndependentPools
+--- PASS: TestBestGroupRemainingIndependentPools (0.00s)
+=== RUN   TestCodexSinglePoolMinOfWindows
+--- PASS: TestCodexSinglePoolMinOfWindows (0.00s)
+=== RUN   TestBottleneckScorePrefersMoreUsableFamilies
+--- PASS: TestBottleneckScorePrefersMoreUsableFamilies (0.00s)
+=== RUN   TestStaleCachedSnapshotMarkedEstimatedByTrustworthy
+--- PASS: TestStaleCachedSnapshotMarkedEstimatedByTrustworthy (0.00s)
+=== RUN   TestUsageSnapshotRepresentsAbsoluteEvidenceWithoutInventingUnknowns
+--- PASS: TestUsageSnapshotRepresentsAbsoluteEvidenceWithoutInventingUnknowns (0.00s)
+=== RUN   TestFormatFreshnessDays
+--- PASS: TestFormatFreshnessDays (0.00s)
+=== RUN   TestSortModelGroupsUsesKeyNotDisplayName
+--- PASS: TestSortModelGroupsUsesKeyNotDisplayName (0.00s)
+=== RUN   TestAGYAvailabilityKeepsProfileUsableWhenOneModelGroupHasQuota
+--- PASS: TestAGYAvailabilityKeepsProfileUsableWhenOneModelGroupHasQuota (0.00s)
+=== RUN   TestAGYAvailabilityWhenEveryModelGroupHasQuota
+--- PASS: TestAGYAvailabilityWhenEveryModelGroupHasQuota (0.00s)
+=== RUN   TestAGYAvailabilityRejectsProfileWhenEveryModelGroupIsExhausted
+--- PASS: TestAGYAvailabilityRejectsProfileWhenEveryModelGroupIsExhausted (0.00s)
+=== RUN   TestLegacyAGYQuotaPreservesRemainingPercent
+--- PASS: TestLegacyAGYQuotaPreservesRemainingPercent (0.00s)
+=== RUN   TestLegacyAGYQuotaAvailableIsNotExhausted
+--- PASS: TestLegacyAGYQuotaAvailableIsNotExhausted (0.00s)
+=== RUN   TestCodexLegacyQuotaPreservesRemainingAndGroup
+--- PASS: TestCodexLegacyQuotaPreservesRemainingAndGroup (0.00s)
+=== RUN   TestAvailabilityLabelUnknownIsSemDadosNotDisponivel
+--- PASS: TestAvailabilityLabelUnknownIsSemDadosNotDisponivel (0.00s)
+=== RUN   TestAvailabilityLabelExhaustedFiveHour
+--- PASS: TestAvailabilityLabelExhaustedFiveHour (0.00s)
+=== RUN   TestScopedUsageRejectsOtherIdentity
+--- PASS: TestScopedUsageRejectsOtherIdentity (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/quota	0.017s
+=== RUN   TestSmartAccountSelector
+--- PASS: TestSmartAccountSelector (0.00s)
+=== RUN   TestMultiQuotaBottleneckSelection
+--- PASS: TestMultiQuotaBottleneckSelection (0.00s)
+=== RUN   TestKnownQuotaOutranksUnknownQuota
+--- PASS: TestKnownQuotaOutranksUnknownQuota (0.00s)
+=== RUN   TestDefaultProfileTieBreaker
+--- PASS: TestDefaultProfileTieBreaker (0.00s)
+=== RUN   TestSelectBestProfileEmptyCandidatesNeverNilResult
+--- PASS: TestSelectBestProfileEmptyCandidatesNeverNilResult (0.00s)
+=== RUN   TestCodexExhaustedFiveHourLosesToHealthyAccount
+--- PASS: TestCodexExhaustedFiveHourLosesToHealthyAccount (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/scheduler	0.023s
+=== RUN   TestRedaction
+=== RUN   TestRedaction/OpenAI_Key
+=== RUN   TestRedaction/Anthropic_Key
+=== RUN   TestRedaction/Google_OAuth_Token
+=== RUN   TestRedaction/Private_Key
+=== RUN   TestRedaction/JWT_Token
+=== RUN   TestRedaction/AWS_Access_Key
+=== RUN   TestRedaction/GitHub_Token
+=== RUN   TestRedaction/GitHub_OAuth_Token
+=== RUN   TestRedaction/Database_Connection_URI_Password
+=== RUN   TestRedaction/Password_with_special_chars
+=== RUN   TestRedaction/env_block
+=== RUN   TestRedaction/auth.json
+=== RUN   TestRedaction/cookies_header
+=== RUN   TestRedaction/pem_private_key
+=== RUN   TestRedaction/generic_credentials
+=== RUN   TestRedaction/Bearer_with_base64_padding
+=== RUN   TestRedaction/short_secret_value
+--- PASS: TestRedaction (0.00s)
+    --- PASS: TestRedaction/OpenAI_Key (0.00s)
+    --- PASS: TestRedaction/Anthropic_Key (0.00s)
+    --- PASS: TestRedaction/Google_OAuth_Token (0.00s)
+    --- PASS: TestRedaction/Private_Key (0.00s)
+    --- PASS: TestRedaction/JWT_Token (0.00s)
+    --- PASS: TestRedaction/AWS_Access_Key (0.00s)
+    --- PASS: TestRedaction/GitHub_Token (0.00s)
+    --- PASS: TestRedaction/GitHub_OAuth_Token (0.00s)
+    --- PASS: TestRedaction/Database_Connection_URI_Password (0.00s)
+    --- PASS: TestRedaction/Password_with_special_chars (0.00s)
+    --- PASS: TestRedaction/env_block (0.00s)
+    --- PASS: TestRedaction/auth.json (0.00s)
+    --- PASS: TestRedaction/cookies_header (0.00s)
+    --- PASS: TestRedaction/pem_private_key (0.00s)
+    --- PASS: TestRedaction/generic_credentials (0.00s)
+    --- PASS: TestRedaction/Bearer_with_base64_padding (0.00s)
+    --- PASS: TestRedaction/short_secret_value (0.00s)
+=== RUN   TestRedactSlice
+--- PASS: TestRedactSlice (0.00s)
+=== RUN   TestIsolationPolicies
+--- PASS: TestIsolationPolicies (0.00s)
+=== RUN   FuzzRedact
+=== RUN   FuzzRedact/seed#0
+=== RUN   FuzzRedact/seed#1
+=== RUN   FuzzRedact/seed#2
+=== RUN   FuzzRedact/seed#3
+=== RUN   FuzzRedact/seed#4
+=== RUN   FuzzRedact/seed#5
+=== RUN   FuzzRedact/seed#6
+=== RUN   FuzzRedact/seed#7
+--- PASS: FuzzRedact (0.00s)
+    --- PASS: FuzzRedact/seed#0 (0.00s)
+    --- PASS: FuzzRedact/seed#1 (0.00s)
+    --- PASS: FuzzRedact/seed#2 (0.00s)
+    --- PASS: FuzzRedact/seed#3 (0.00s)
+    --- PASS: FuzzRedact/seed#4 (0.00s)
+    --- PASS: FuzzRedact/seed#5 (0.00s)
+    --- PASS: FuzzRedact/seed#6 (0.00s)
+    --- PASS: FuzzRedact/seed#7 (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/security	0.011s
+=== RUN   TestSessionAggregationAndSearch
+--- PASS: TestSessionAggregationAndSearch (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/session	0.004s
+=== RUN   TestTelemetryLoggingAndStats
+--- PASS: TestTelemetryLoggingAndStats (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/core/telemetry	0.010s
+=== RUN   TestDeepLinkParser
+--- PASS: TestDeepLinkParser (0.00s)
+=== RUN   TestDeepLinkParserRejectsAmbiguousOrUnsafeTargets
+--- PASS: TestDeepLinkParserRejectsAmbiguousOrUnsafeTargets (0.00s)
+=== RUN   TestWindowStateManager
+--- PASS: TestWindowStateManager (0.00s)
+=== RUN   TestAutoStartQuotesExecutablePath
+--- PASS: TestAutoStartQuotesExecutablePath (0.00s)
+=== RUN   TestCapabilities
+--- PASS: TestCapabilities (0.00s)
+=== RUN   TestOpenExternalRejectsUnsafeSchemes
+--- PASS: TestOpenExternalRejectsUnsafeSchemes (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/desktop	0.029s
+=== RUN   TestBuildReportIsReadOnlyAndContainsStableChecks
+--- PASS: TestBuildReportIsReadOnlyAndContainsStableChecks (0.01s)
+=== RUN   TestBuildReportDoesNotClaimDesktopShellRuntimeWasVerified
+--- PASS: TestBuildReportDoesNotClaimDesktopShellRuntimeWasVerified (0.01s)
+=== RUN   TestBuildReportPlatformChecksAreEvidenceBound
+--- PASS: TestBuildReportPlatformChecksAreEvidenceBound (0.01s)
+=== RUN   TestBuildReportContainerSkipsNativeDesktopProbes
+--- PASS: TestBuildReportContainerSkipsNativeDesktopProbes (0.00s)
+=== RUN   TestWriteBundleAllowlistAndRedactionSurface
+--- PASS: TestWriteBundleAllowlistAndRedactionSurface (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/doctor	0.036s
+=== RUN   TestNormalize
+--- PASS: TestNormalize (0.00s)
+=== RUN   TestResolvePrecedence
+--- PASS: TestResolvePrecedence (0.00s)
+=== RUN   TestExtractGlobalFlagDoesNotConsumeProviderArgs
+--- PASS: TestExtractGlobalFlagDoesNotConsumeProviderArgs (0.00s)
+=== RUN   TestCatalogParity
+--- PASS: TestCatalogParity (0.00s)
+=== RUN   TestHumanizeHelpKeepsMaestroUpdateExplicit
+--- PASS: TestHumanizeHelpKeepsMaestroUpdateExplicit (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/localization	0.010s
+=== RUN   TestAgentApplicationServiceCRUDProjectsEffectiveState
+--- PASS: TestAgentApplicationServiceCRUDProjectsEffectiveState (0.04s)
+=== RUN   TestAgentApplicationServiceRejectsCanceledContext
+--- PASS: TestAgentApplicationServiceRejectsCanceledContext (0.07s)
+=== RUN   TestMatchAgentsUsesHardGatesAndDeterministicRanking
+--- PASS: TestMatchAgentsUsesHardGatesAndDeterministicRanking (0.00s)
+=== RUN   TestNormalizeAgentTaxonomy
+--- PASS: TestNormalizeAgentTaxonomy (0.00s)
+=== RUN   TestAgentRequiredCapabilitiesExcludeResourceGates
+--- PASS: TestAgentRequiredCapabilitiesExcludeResourceGates (0.00s)
+=== RUN   TestNormalizeAgentSpec_LegacyRoleCreatesMinimalCompatibleSpec
+--- PASS: TestNormalizeAgentSpec_LegacyRoleCreatesMinimalCompatibleSpec (0.00s)
+=== RUN   TestAgentSpecRoundTripsInRevisionConfig
+--- PASS: TestAgentSpecRoundTripsInRevisionConfig (0.00s)
+=== RUN   TestAgentSpecProviderSwitchPreservesPersistentSpecialization
+--- PASS: TestAgentSpecProviderSwitchPreservesPersistentSpecialization (0.08s)
+=== RUN   TestLocalAutopilotContractTraversesDiscoveryRoutingSkillsAndVerification
+    autopilot_contract_test.go:142: local validation evidence stream=ves_06G97X60DT7T0PA3E9GX86SPZ0 head=4eab8a5ae0adf126895f356c65153c188dc91c151f1ed5a1b815c4df8b3875dc sequence=2
+--- PASS: TestLocalAutopilotContractTraversesDiscoveryRoutingSkillsAndVerification (0.80s)
+=== RUN   TestCharacterization_LegacyAgentRoleAndGenerationRevision
+--- PASS: TestCharacterization_LegacyAgentRoleAndGenerationRevision (0.09s)
+=== RUN   TestCharacterization_WorkPackageRoleReachesExistingCompiler
+--- PASS: TestCharacterization_WorkPackageRoleReachesExistingCompiler (0.00s)
+=== RUN   TestComposerApplicationServiceSessionWorkflow
+--- PASS: TestComposerApplicationServiceSessionWorkflow (1.63s)
+=== RUN   TestComposerAndFlowRemainOptionalAcrossIntentPipeline
+--- PASS: TestComposerAndFlowRemainOptionalAcrossIntentPipeline (0.11s)
+=== RUN   TestFlowSemanticEditProducesWorkPlanRevisionPayload
+--- PASS: TestFlowSemanticEditProducesWorkPlanRevisionPayload (0.00s)
+=== RUN   TestComposerOperationsRejectCanceledContext
+--- PASS: TestComposerOperationsRejectCanceledContext (2.34s)
+=== RUN   TestComposerFinalizationCreatesPromptWithoutWorkPlan
+--- PASS: TestComposerFinalizationCreatesPromptWithoutWorkPlan (1.72s)
+=== RUN   TestComposerCanApplyBuiltinSkillWithoutMaestro
+--- PASS: TestComposerCanApplyBuiltinSkillWithoutMaestro (0.98s)
+=== RUN   TestMaterializePromptArtifactPreservesLineage
+--- PASS: TestMaterializePromptArtifactPreservesLineage (1.37s)
+=== RUN   TestComposerFlowSuitabilityExplainsItsRecommendation
+--- PASS: TestComposerFlowSuitabilityExplainsItsRecommendation (0.00s)
+=== RUN   TestReviewComposerPromptReportsGapsAndContradictions
+--- PASS: TestReviewComposerPromptReportsGapsAndContradictions (0.00s)
+=== RUN   TestComposerRevisionConflictIsRejected
+--- PASS: TestComposerRevisionConflictIsRejected (0.03s)
+=== RUN   TestComposerImportedPromptTracksUnknownsAndAppliesSkills
+--- PASS: TestComposerImportedPromptTracksUnknownsAndAppliesSkills (1.40s)
+=== RUN   TestComposerRefinementCreatesNextVersion
+--- PASS: TestComposerRefinementCreatesNextVersion (1.61s)
+=== RUN   TestResolveComposerUnknown
+--- PASS: TestResolveComposerUnknown (1.72s)
+=== RUN   TestParseAgentConfig
+--- PASS: TestParseAgentConfig (0.00s)
+=== RUN   TestParseAgentConfigEmpty
+--- PASS: TestParseAgentConfigEmpty (0.00s)
+=== RUN   TestAnalyzeImpactNoChange
+--- PASS: TestAnalyzeImpactNoChange (0.00s)
+=== RUN   TestAnalyzeImpactAgentSpecChangeRequiresNewSession
+--- PASS: TestAnalyzeImpactAgentSpecChangeRequiresNewSession (0.00s)
+=== RUN   TestAnalyzeImpactProviderChange
+--- PASS: TestAnalyzeImpactProviderChange (0.00s)
+=== RUN   TestAnalyzeImpactModelChange
+--- PASS: TestAnalyzeImpactModelChange (0.00s)
+=== RUN   TestAnalyzeImpactMaestroModeChange
+--- PASS: TestAnalyzeImpactMaestroModeChange (0.00s)
+=== RUN   TestAnalyzeImpactModeChangeRequiresNewSession
+--- PASS: TestAnalyzeImpactModeChangeRequiresNewSession (0.00s)
+=== RUN   TestAnalyzeImpactContinuityPolicyNewSession
+--- PASS: TestAnalyzeImpactContinuityPolicyNewSession (0.00s)
+=== RUN   TestSafeApplyCreatesRevision
+--- PASS: TestSafeApplyCreatesRevision (0.04s)
+=== RUN   TestSafeApplyStoppedAgentPersistsConfigWithoutLaunching
+--- PASS: TestSafeApplyStoppedAgentPersistsConfigWithoutLaunching (0.06s)
+=== RUN   TestStartAgentReusesPersistedConfigRevision
+--- PASS: TestStartAgentReusesPersistedConfigRevision (0.05s)
+=== RUN   TestSafeApplyNoop
+--- PASS: TestSafeApplyNoop (0.03s)
+=== RUN   TestAllocateResourcePersistsEligibleAccount
+--- PASS: TestAllocateResourcePersistsEligibleAccount (0.03s)
+=== RUN   TestAllocateResourceRejectsUnavailableAccount
+--- PASS: TestAllocateResourceRejectsUnavailableAccount (0.09s)
+=== RUN   TestResolveStartParamsRejectsUnpersistedOverride
+--- PASS: TestResolveStartParamsRejectsUnpersistedOverride (0.08s)
+=== RUN   TestContextReadinessStartsMissing
+--- PASS: TestContextReadinessStartsMissing (0.20s)
+=== RUN   TestPrepareContextRequiresDurableArtifacts
+--- PASS: TestPrepareContextRequiresDurableArtifacts (0.09s)
+=== RUN   TestPrepareContextWithBootstrapCreatesBaselineWithoutOverwriting
+--- PASS: TestPrepareContextWithBootstrapCreatesBaselineWithoutOverwriting (0.09s)
+=== RUN   TestPrepareContextFailsWhenConfiguredMaestroUnavailable
+--- PASS: TestPrepareContextFailsWhenConfiguredMaestroUnavailable (0.16s)
+=== RUN   TestPreparedContextBecomesStaleOnSourceAndMaestroDrift
+=== RUN   TestPreparedContextBecomesStaleOnSourceAndMaestroDrift/dirty
+=== RUN   TestPreparedContextBecomesStaleOnSourceAndMaestroDrift/head
+=== RUN   TestPreparedContextBecomesStaleOnSourceAndMaestroDrift/branch
+=== RUN   TestPreparedContextBecomesStaleOnSourceAndMaestroDrift/maestro-version
+--- PASS: TestPreparedContextBecomesStaleOnSourceAndMaestroDrift (0.59s)
+    --- PASS: TestPreparedContextBecomesStaleOnSourceAndMaestroDrift/dirty (0.12s)
+    --- PASS: TestPreparedContextBecomesStaleOnSourceAndMaestroDrift/head (0.16s)
+    --- PASS: TestPreparedContextBecomesStaleOnSourceAndMaestroDrift/branch (0.16s)
+    --- PASS: TestPreparedContextBecomesStaleOnSourceAndMaestroDrift/maestro-version (0.16s)
+=== RUN   TestDecomposePromptIntoFlowProposal_SimpleTask
+--- PASS: TestDecomposePromptIntoFlowProposal_SimpleTask (0.03s)
+=== RUN   TestDecomposePromptIntoFlowProposal_ComplexFeature
+--- PASS: TestDecomposePromptIntoFlowProposal_ComplexFeature (0.07s)
+=== RUN   TestPreflightFlow_PassesOnValidFlow
+--- PASS: TestPreflightFlow_PassesOnValidFlow (0.04s)
+=== RUN   TestPreflightFlow_RejectsCyclicDAG
+--- PASS: TestPreflightFlow_RejectsCyclicDAG (0.06s)
+=== RUN   TestCloneFlowToProjectClearsAgentBindingsAndPreservesLeaderSuggestion
+--- PASS: TestCloneFlowToProjectClearsAgentBindingsAndPreservesLeaderSuggestion (0.07s)
+=== RUN   TestGetFlowLeaderPolicyReturnsValidDefaultForUnconfiguredPlan
+--- PASS: TestGetFlowLeaderPolicyReturnsValidDefaultForUnconfiguredPlan (0.05s)
+=== RUN   TestSetFlowLeaderPolicyAllowsExplicitlyNoLeader
+--- PASS: TestSetFlowLeaderPolicyAllowsExplicitlyNoLeader (0.03s)
+=== RUN   TestCloneFlowToProjectPreservesNoLeaderPolicy
+--- PASS: TestCloneFlowToProjectPreservesNoLeaderPolicy (0.04s)
+=== RUN   TestFlowFacadeRoundTripPreservesWorkPlanContracts
+--- PASS: TestFlowFacadeRoundTripPreservesWorkPlanContracts (0.00s)
+=== RUN   TestFlowFacadeLegacyAllocationMapsToExisting
+--- PASS: TestFlowFacadeLegacyAllocationMapsToExisting (0.00s)
+=== RUN   TestFlowFacadePreservesCanonicalSkillIDs
+--- PASS: TestFlowFacadePreservesCanonicalSkillIDs (0.00s)
+=== RUN   TestFlowDAGDeterministicOrderWavesAndDependents
+--- PASS: TestFlowDAGDeterministicOrderWavesAndDependents (0.00s)
+=== RUN   TestFlowDAGRejectsUnknownDependencyDuplicateAndCycle
+--- PASS: TestFlowDAGRejectsUnknownDependencyDuplicateAndCycle (0.00s)
+=== RUN   TestFlowDAGOrderIsStableAcrossRuns
+--- PASS: TestFlowDAGOrderIsStableAcrossRuns (0.00s)
+=== RUN   TestFlowDAGRejectsStepWithUnknownPhase
+--- PASS: TestFlowDAGRejectsStepWithUnknownPhase (0.00s)
+=== RUN   TestDecideIntentRoutesAtomicFixDirectly
+--- PASS: TestDecideIntentRoutesAtomicFixDirectly (0.00s)
+=== RUN   TestDecideIntentUsesProjectFactsBeforeClarifying
+--- PASS: TestDecideIntentUsesProjectFactsBeforeClarifying (0.00s)
+=== RUN   TestDecideIntentUnrelatedFactsDoNotSkipClarification
+--- PASS: TestDecideIntentUnrelatedFactsDoNotSkipClarification (0.00s)
+=== RUN   TestDecideIntentRoutesCompleteMultiStepGoalToPlan
+--- PASS: TestDecideIntentRoutesCompleteMultiStepGoalToPlan (0.00s)
+=== RUN   TestDecideIntentC2DoesNotAskKnownTestTooling
+--- PASS: TestDecideIntentC2DoesNotAskKnownTestTooling (0.00s)
+=== RUN   TestDecideIntentC3CompleteSpecificationAsksNothing
+--- PASS: TestDecideIntentC3CompleteSpecificationAsksNothing (0.00s)
+=== RUN   TestDecideIntentC4ConflictingProductBehaviorAsksOneQuestion
+--- PASS: TestDecideIntentC4ConflictingProductBehaviorAsksOneQuestion (0.00s)
+=== RUN   TestIntentDecisionJSONContractRoundTrip
+--- PASS: TestIntentDecisionJSONContractRoundTrip (0.00s)
+=== RUN   TestDecideIntentOnlyClarifiesMaterialMissingObjective
+--- PASS: TestDecideIntentOnlyClarifiesMaterialMissingObjective (0.00s)
+=== RUN   TestPersistIntentDecisionFactsUsesExistingWorkPlanMetadata
+--- PASS: TestPersistIntentDecisionFactsUsesExistingWorkPlanMetadata (0.00s)
+=== RUN   TestMergeSkillCatalogDeduplicatesAndKeepsOperationalCopy
+--- PASS: TestMergeSkillCatalogDeduplicatesAndKeepsOperationalCopy (0.00s)
+=== RUN   TestMaestroCapabilitiesMergeProfileAndCanonicalCatalog
+--- PASS: TestMaestroCapabilitiesMergeProfileAndCanonicalCatalog (0.00s)
+=== RUN   TestMaestroUnavailableNeverFabricatesAdvice
+--- PASS: TestMaestroUnavailableNeverFabricatesAdvice (0.00s)
+=== RUN   TestMaestroAdviseFailureNeverFallsBackToSyntheticRecommendations
+--- PASS: TestMaestroAdviseFailureNeverFallsBackToSyntheticRecommendations (0.00s)
+=== RUN   TestFindOrquestradorDirUsesPortableDataDirProfiles
+--- PASS: TestFindOrquestradorDirUsesPortableDataDirProfiles (0.00s)
+=== RUN   TestMissionApplicationServiceCRUDAndDetail
+--- PASS: TestMissionApplicationServiceCRUDAndDetail (0.03s)
+=== RUN   TestMissionApplicationServiceRejectsCanceledContext
+--- PASS: TestMissionApplicationServiceRejectsCanceledContext (0.03s)
+=== RUN   TestPlanToRunnerSpecCarriesFlowStepContracts
+--- PASS: TestPlanToRunnerSpecCarriesFlowStepContracts (0.00s)
+=== RUN   TestFreezePlanUsesGenericCatalogWithoutMaestro
+--- PASS: TestFreezePlanUsesGenericCatalogWithoutMaestro (0.36s)
+=== RUN   TestFreezePlanMigratesLegacySkillFieldsThroughGenericCatalog
+--- PASS: TestFreezePlanMigratesLegacySkillFieldsThroughGenericCatalog (0.32s)
+=== RUN   TestFreezePlanDoesNotTreatLegacyMaestroGatesAsSkills
+--- PASS: TestFreezePlanDoesNotTreatLegacyMaestroGatesAsSkills (0.32s)
+=== RUN   TestValidateFlowExecutionContractRejectsContradictoryAssignment
+--- PASS: TestValidateFlowExecutionContractRejectsContradictoryAssignment (0.00s)
+=== RUN   TestStartMissionRunAutonomousRejectsMissingWorktreeAdmission
+--- PASS: TestStartMissionRunAutonomousRejectsMissingWorktreeAdmission (0.06s)
+=== RUN   TestNorthStar_PromptToFlowToPreflightCycle
+--- PASS: TestNorthStar_PromptToFlowToPreflightCycle (0.03s)
+=== RUN   TestInterventionResolutionSurvivesStoreReopen
+--- PASS: TestInterventionResolutionSurvivesStoreReopen (0.08s)
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext/save
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext/get
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext/list
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext/acquire_lease
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext/renew_lease
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext/release_lease
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext/save_context_capsule
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext/get_context_capsule
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext/save_work_receipt
+=== RUN   TestStoreRunRepositoryHonorsCanceledContext/get_work_receipt
+--- PASS: TestStoreRunRepositoryHonorsCanceledContext (0.04s)
+    --- PASS: TestStoreRunRepositoryHonorsCanceledContext/save (0.00s)
+    --- PASS: TestStoreRunRepositoryHonorsCanceledContext/get (0.00s)
+    --- PASS: TestStoreRunRepositoryHonorsCanceledContext/list (0.00s)
+    --- PASS: TestStoreRunRepositoryHonorsCanceledContext/acquire_lease (0.00s)
+    --- PASS: TestStoreRunRepositoryHonorsCanceledContext/renew_lease (0.00s)
+    --- PASS: TestStoreRunRepositoryHonorsCanceledContext/release_lease (0.00s)
+    --- PASS: TestStoreRunRepositoryHonorsCanceledContext/save_context_capsule (0.00s)
+    --- PASS: TestStoreRunRepositoryHonorsCanceledContext/get_context_capsule (0.00s)
+    --- PASS: TestStoreRunRepositoryHonorsCanceledContext/save_work_receipt (0.00s)
+    --- PASS: TestStoreRunRepositoryHonorsCanceledContext/get_work_receipt (0.00s)
+=== RUN   TestStartMissionRunApprovedRejectsStalePlanRevision
+--- PASS: TestStartMissionRunApprovedRejectsStalePlanRevision (0.04s)
+=== RUN   TestScheduleMissionFreezesApprovedPlanRevision
+--- PASS: TestScheduleMissionFreezesApprovedPlanRevision (0.04s)
+=== RUN   TestReleaseMissionWorkerCannotDeleteNewGeneration
+--- PASS: TestReleaseMissionWorkerCannotDeleteNewGeneration (0.00s)
+=== RUN   TestStartAgentUsesProjectWorkspace
+--- PASS: TestStartAgentUsesProjectWorkspace (0.04s)
+=== RUN   TestStartAgentNeverUsesServerCWD
+--- PASS: TestStartAgentNeverUsesServerCWD (0.04s)
+=== RUN   TestEffectiveStateReconciledInList
+--- PASS: TestEffectiveStateReconciledInList (0.04s)
+=== RUN   TestStartAgentRejectsEmptyProvider
+--- PASS: TestStartAgentRejectsEmptyProvider (0.03s)
+=== RUN   TestStopAgentVerifiedBarrier
+--- PASS: TestStopAgentVerifiedBarrier (0.08s)
+=== RUN   TestDeleteAgentWithLiveRuntimeRefuses
+--- PASS: TestDeleteAgentWithLiveRuntimeRefuses (0.03s)
+=== RUN   TestDeleteProjectWithLiveAgentsRefuses
+--- PASS: TestDeleteProjectWithLiveAgentsRefuses (0.03s)
+=== RUN   TestConfigRevisionNotDuplicatedOnRestart
+--- PASS: TestConfigRevisionNotDuplicatedOnRestart (0.03s)
+=== RUN   TestEffectiveStateDuringStop
+--- PASS: TestEffectiveStateDuringStop (0.03s)
+=== RUN   TestRecoverWithoutGenerationFails
+--- PASS: TestRecoverWithoutGenerationFails (0.03s)
+=== RUN   TestRecoverAlreadyAliveReturnsSession
+--- PASS: TestRecoverAlreadyAliveReturnsSession (0.03s)
+=== RUN   TestRecoverStoppedAgentFails
+--- PASS: TestRecoverStoppedAgentFails (0.03s)
+=== RUN   TestEffectiveStateStartingDeadRuntime
+--- PASS: TestEffectiveStateStartingDeadRuntime (0.03s)
+=== RUN   TestRecoverAgentDeadRuntimeStartsNewSessionUnlessNative
+--- PASS: TestRecoverAgentDeadRuntimeStartsNewSessionUnlessNative (0.03s)
+=== RUN   TestNexusUsesInjectedControlDriverRegistry
+--- PASS: TestNexusUsesInjectedControlDriverRegistry (0.00s)
+=== RUN   TestEffectiveAgentState
+--- PASS: TestEffectiveAgentState (0.03s)
+=== RUN   TestRecoverAgentRequiresKnownRuntime
+--- PASS: TestRecoverAgentRequiresKnownRuntime (0.03s)
+=== RUN   TestAskAgentReusesExistingAgentAndLiveRuntime
+--- PASS: TestAskAgentReusesExistingAgentAndLiveRuntime (0.03s)
+=== RUN   TestAskAgentCompilesPersistentSpecializationForCustomAgent
+--- PASS: TestAskAgentCompilesPersistentSpecializationForCustomAgent (0.03s)
+=== RUN   TestAskAgentStoppedUsesStartAndAskWithoutCreatingAgent
+--- PASS: TestAskAgentStoppedUsesStartAndAskWithoutCreatingAgent (0.08s)
+=== RUN   TestStartProjectShellUsesCanonicalPathAndCreatesNoAgent
+--- PASS: TestStartProjectShellUsesCanonicalPathAndCreatesNoAgent (0.03s)
+=== RUN   TestPlanApplicationServiceCRUDPreservesWorkPlanContracts
+--- PASS: TestPlanApplicationServiceCRUDPreservesWorkPlanContracts (0.06s)
+=== RUN   TestPlanApplicationServiceRejectsCanceledContext
+--- PASS: TestPlanApplicationServiceRejectsCanceledContext (0.04s)
+=== RUN   TestPackagesFromOutlinesDropsSchemaPlaceholders
+--- PASS: TestPackagesFromOutlinesDropsSchemaPlaceholders (0.00s)
+=== RUN   TestPackagesFromOutlinesResolvesTitleDependenciesToIDs
+--- PASS: TestPackagesFromOutlinesResolvesTitleDependenciesToIDs (0.00s)
+=== RUN   TestPackagesFromOutlinesSynthesizesWhenProviderCopiesSchema
+--- PASS: TestPackagesFromOutlinesSynthesizesWhenProviderCopiesSchema (0.00s)
+=== RUN   TestValidatePlanReadinessRejectsUnverifiableTask
+--- PASS: TestValidatePlanReadinessRejectsUnverifiableTask (0.00s)
+=== RUN   TestValidatePlanReadinessAcceptsCompleteTask
+--- PASS: TestValidatePlanReadinessAcceptsCompleteTask (0.00s)
+=== RUN   TestProjectApplicationServiceCRUDPreservesCoreRules
+--- PASS: TestProjectApplicationServiceCRUDPreservesCoreRules (0.04s)
+=== RUN   TestProjectApplicationServiceRejectsCanceledContext
+--- PASS: TestProjectApplicationServiceRejectsCanceledContext (0.06s)
+=== RUN   TestBoundedProjectIntelligenceContextGroundsComposerWithObservedFacts
+--- PASS: TestBoundedProjectIntelligenceContextGroundsComposerWithObservedFacts (0.06s)
+=== RUN   TestCompileAgentPromptWithoutSkills
+--- PASS: TestCompileAgentPromptWithoutSkills (0.00s)
+=== RUN   TestCompileTargetPackagePromptUsesPersistedGenericGuidance
+--- PASS: TestCompileTargetPackagePromptUsesPersistedGenericGuidance (0.00s)
+=== RUN   TestCompileAgentPromptWithValidatedSkills
+--- PASS: TestCompileAgentPromptWithValidatedSkills (0.02s)
+=== RUN   TestCompileAgentPromptRejectsDegradedMaestro
+--- PASS: TestCompileAgentPromptRejectsDegradedMaestro (0.00s)
+=== RUN   TestCompileAgentPromptForProjectResolvesBuiltinSkillWithoutMaestro
+--- PASS: TestCompileAgentPromptForProjectResolvesBuiltinSkillWithoutMaestro (0.64s)
+=== RUN   TestCompilePromptVariantsAreTraceableAndDistinct
+--- PASS: TestCompilePromptVariantsAreTraceableAndDistinct (0.00s)
+=== RUN   TestQuotaMonitorLeaseAllowsOneCollectorAndRecovers
+--- PASS: TestQuotaMonitorLeaseAllowsOneCollectorAndRecovers (0.00s)
+=== RUN   TestQuotaMonitorLeaseExpiresAfterLeaderCrash
+--- PASS: TestQuotaMonitorLeaseExpiresAfterLeaderCrash (0.01s)
+=== RUN   TestQuotaDropMonitor_StepDownAndSuppressionAtZero
+--- PASS: TestQuotaDropMonitor_StepDownAndSuppressionAtZero (0.00s)
+=== RUN   TestQuotaDropMonitor_UnknownQuotaIgnored
+--- PASS: TestQuotaDropMonitor_UnknownQuotaIgnored (0.00s)
+=== RUN   TestQuotaDropMonitor_AlertsIndependentModelGroups
+--- PASS: TestQuotaDropMonitor_AlertsIndependentModelGroups (0.00s)
+=== RUN   TestQuotaDropMonitor_DoesNotRepeatWhenResetCountdownChanges
+--- PASS: TestQuotaDropMonitor_DoesNotRepeatWhenResetCountdownChanges (0.00s)
+=== RUN   TestQuotaDropMonitor_RateLimitedTriggersExhaustedOnce
+--- PASS: TestQuotaDropMonitor_RateLimitedTriggersExhaustedOnce (0.00s)
+=== RUN   TestQuotaDropMonitor_FailoverRecommendationAndAffectedRuntime
+--- PASS: TestQuotaDropMonitor_FailoverRecommendationAndAffectedRuntime (0.02s)
+=== RUN   TestResourceApplicationServiceHonorsCancelledContext
+--- PASS: TestResourceApplicationServiceHonorsCancelledContext (0.00s)
+=== RUN   TestResourceApplicationServiceDelegatesRecommendation
+--- PASS: TestResourceApplicationServiceDelegatesRecommendation (0.00s)
+=== RUN   TestResourceApplicationServicePropagatesContextToContextualReader
+--- PASS: TestResourceApplicationServicePropagatesContextToContextualReader (0.00s)
+=== RUN   TestListResourcesContextHonorsCancellationBeforeProviderDiscovery
+--- PASS: TestListResourcesContextHonorsCancellationBeforeProviderDiscovery (0.00s)
+=== RUN   TestResourceRecommendation_Balanced
+--- PASS: TestResourceRecommendation_Balanced (0.00s)
+=== RUN   TestResourceRecommendation_ProviderPriorityControlsFallbackOrder
+--- PASS: TestResourceRecommendation_ProviderPriorityControlsFallbackOrder (0.00s)
+=== RUN   TestResourceRecommendation_PreserveQuota
+--- PASS: TestResourceRecommendation_PreserveQuota (0.00s)
+=== RUN   TestResourceRecommendation_CooldownRejection
+--- PASS: TestResourceRecommendation_CooldownRejection (0.00s)
+=== RUN   TestResourceRecommendation_UnknownQuotaDoesNotOutrankKnownLiveQuota
+--- PASS: TestResourceRecommendation_UnknownQuotaDoesNotOutrankKnownLiveQuota (0.00s)
+=== RUN   TestResourceRecommendation_RequiredCapabilitiesAreHardGate
+--- PASS: TestResourceRecommendation_RequiredCapabilitiesAreHardGate (0.00s)
+=== RUN   TestCapabilityBasedRoleScoring
+=== RUN   TestCapabilityBasedRoleScoring/reviewer_role_prefers_structured_events/approvals_capabilities
+=== RUN   TestCapabilityBasedRoleScoring/architect_role_prefers_sessions+resume_capabilities
+--- PASS: TestCapabilityBasedRoleScoring (0.00s)
+    --- PASS: TestCapabilityBasedRoleScoring/reviewer_role_prefers_structured_events/approvals_capabilities (0.00s)
+    --- PASS: TestCapabilityBasedRoleScoring/architect_role_prefers_sessions+resume_capabilities (0.00s)
+=== RUN   TestAccountSupportsHeadlessReview
+=== RUN   TestAccountSupportsHeadlessReview/both_supported
+=== RUN   TestAccountSupportsHeadlessReview/missing_headless
+=== RUN   TestAccountSupportsHeadlessReview/missing_submit_prompt
+=== RUN   TestAccountSupportsHeadlessReview/partial_headless
+=== RUN   TestAccountSupportsHeadlessReview/empty_capabilities
+--- PASS: TestAccountSupportsHeadlessReview (0.00s)
+    --- PASS: TestAccountSupportsHeadlessReview/both_supported (0.00s)
+    --- PASS: TestAccountSupportsHeadlessReview/missing_headless (0.00s)
+    --- PASS: TestAccountSupportsHeadlessReview/missing_submit_prompt (0.00s)
+    --- PASS: TestAccountSupportsHeadlessReview/partial_headless (0.00s)
+    --- PASS: TestAccountSupportsHeadlessReview/empty_capabilities (0.00s)
+=== RUN   TestBuildRoutingDecisionReportProjectsPersistedSelection
+--- PASS: TestBuildRoutingDecisionReportProjectsPersistedSelection (0.00s)
+=== RUN   TestBuildRoutingDecisionReportRejectsCorruptPersistedDecision
+--- PASS: TestBuildRoutingDecisionReportRejectsCorruptPersistedDecision (0.00s)
+=== RUN   TestBuildRoutingDecisionReportProjectsPersistedIntent
+--- PASS: TestBuildRoutingDecisionReportProjectsPersistedIntent (0.00s)
+=== RUN   TestBuildRoutingDecisionReportRejectsCorruptPersistedIntent
+--- PASS: TestBuildRoutingDecisionReportRejectsCorruptPersistedIntent (0.00s)
+=== RUN   TestRunApplicationServiceRejectsCanceledContext
+--- PASS: TestRunApplicationServiceRejectsCanceledContext (0.00s)
+=== RUN   TestRunApplicationServicePublishesCorrelatedMissionTimeline
+--- PASS: TestRunApplicationServicePublishesCorrelatedMissionTimeline (0.00s)
+=== RUN   TestRuntimeApplicationServiceStartDelegatesLaunch
+--- PASS: TestRuntimeApplicationServiceStartDelegatesLaunch (0.00s)
+=== RUN   TestRuntimeApplicationServiceRejectsCanceledContextBeforeLaunch
+--- PASS: TestRuntimeApplicationServiceRejectsCanceledContextBeforeLaunch (0.00s)
+=== RUN   TestRuntimeApplicationServiceReadsAndMutatesRegistry
+--- PASS: TestRuntimeApplicationServiceReadsAndMutatesRegistry (0.00s)
+=== RUN   TestRuntimeApplicationServiceWaitForExitHonorsCanceledContext
+--- PASS: TestRuntimeApplicationServiceWaitForExitHonorsCanceledContext (0.00s)
+=== RUN   TestRuntimeApplicationServiceControlRejectsCanceledContext
+=== RUN   TestRuntimeApplicationServiceControlRejectsCanceledContext/stop
+=== RUN   TestRuntimeApplicationServiceControlRejectsCanceledContext/mark_stopped
+=== RUN   TestRuntimeApplicationServiceControlRejectsCanceledContext/respond
+--- PASS: TestRuntimeApplicationServiceControlRejectsCanceledContext (0.00s)
+    --- PASS: TestRuntimeApplicationServiceControlRejectsCanceledContext/stop (0.00s)
+    --- PASS: TestRuntimeApplicationServiceControlRejectsCanceledContext/mark_stopped (0.00s)
+    --- PASS: TestRuntimeApplicationServiceControlRejectsCanceledContext/respond (0.00s)
+=== RUN   TestRuntimeCompletionOutcomeRequiresTerminalState
+--- PASS: TestRuntimeCompletionOutcomeRequiresTerminalState (0.00s)
+=== RUN   TestRuntimeRoutingDecisionPersistsExplainableSelectedFields
+--- PASS: TestRuntimeRoutingDecisionPersistsExplainableSelectedFields (0.00s)
+=== RUN   TestMissionRoutingProjectionPersistsActualSelectionAndAffinity
+--- PASS: TestMissionRoutingProjectionPersistsActualSelectionAndAffinity (0.00s)
+=== RUN   TestRuntimeRoutingPreferFallsBackWithoutMutatingDesiredPolicy
+--- PASS: TestRuntimeRoutingPreferFallsBackWithoutMutatingDesiredPolicy (0.00s)
+=== RUN   TestRuntimeRoutingPinFailsClosed
+--- PASS: TestRuntimeRoutingPinFailsClosed (0.00s)
+=== RUN   TestRuntimeRoutingUsesCheapCapableModelForSimpleTask
+--- PASS: TestRuntimeRoutingUsesCheapCapableModelForSimpleTask (0.00s)
+=== RUN   TestRuntimeRoutingRaisesReasoningFloorForArchitecture
+--- PASS: TestRuntimeRoutingRaisesReasoningFloorForArchitecture (0.00s)
+=== RUN   TestRuntimeRoutingPreferFallsBackWhenPreferredModelCannotSatisfyTask
+--- PASS: TestRuntimeRoutingPreferFallsBackWhenPreferredModelCannotSatisfyTask (0.00s)
+=== RUN   TestRuntimeRoutingUsesDeterministicTieBreak
+--- PASS: TestRuntimeRoutingUsesDeterministicTieBreak (0.00s)
+=== RUN   TestResolveTaskModelEscalatesAfterVerificationFailure
+--- PASS: TestResolveTaskModelEscalatesAfterVerificationFailure (0.00s)
+=== RUN   TestResolveTaskModelPinUnavailableBlocks
+--- PASS: TestResolveTaskModelPinUnavailableBlocks (0.00s)
+=== RUN   TestResolveTaskModelPreferDoesNotDefeatTaskCapability
+--- PASS: TestResolveTaskModelPreferDoesNotDefeatTaskCapability (0.00s)
+=== RUN   TestMissionRoutingProjectionPersistsTaskModelAffinity
+--- PASS: TestMissionRoutingProjectionPersistsTaskModelAffinity (0.00s)
+=== RUN   TestMissionRoutingProjectionPersistsAgentSelectionEvidence
+--- PASS: TestMissionRoutingProjectionPersistsAgentSelectionEvidence (0.00s)
+=== RUN   TestMissionRoutingProjectionPersistsSkillAndMaestroGuidanceReferences
+--- PASS: TestMissionRoutingProjectionPersistsSkillAndMaestroGuidanceReferences (0.00s)
+=== RUN   TestMissionTaskRequirementsPreservesModelPolicyAndEscalation
+--- PASS: TestMissionTaskRequirementsPreservesModelPolicyAndEscalation (0.00s)
+=== RUN   TestMissionAllocatePinFailsClosedAfterRateLimit
+--- PASS: TestMissionAllocatePinFailsClosedAfterRateLimit (0.00s)
+=== RUN   TestMissionAllocatePreferMayOpenPoolAfterRateLimit
+--- PASS: TestMissionAllocatePreferMayOpenPoolAfterRateLimit (0.00s)
+=== RUN   TestConfiguredModelCandidatesDoesNotInheritAgentModel
+--- PASS: TestConfiguredModelCandidatesDoesNotInheritAgentModel (0.00s)
+=== RUN   TestMissionAffinityModeManualIsPin
+--- PASS: TestMissionAffinityModeManualIsPin (0.00s)
+=== RUN   TestSchedulerBalancedSelectsHealthy
+--- PASS: TestSchedulerBalancedSelectsHealthy (0.00s)
+=== RUN   TestSchedulerFiltersUnauthenticated
+--- PASS: TestSchedulerFiltersUnauthenticated (0.00s)
+=== RUN   TestSchedulerFiltersRateLimited
+--- PASS: TestSchedulerFiltersRateLimited (0.00s)
+=== RUN   TestSchedulerFiltersCooldown
+--- PASS: TestSchedulerFiltersCooldown (0.00s)
+=== RUN   TestSchedulerFiltersUnhealthy
+--- PASS: TestSchedulerFiltersUnhealthy (0.00s)
+=== RUN   TestSchedulerNoEligible
+--- PASS: TestSchedulerNoEligible (0.00s)
+=== RUN   TestSchedulerPreserveQuotaPrefersHigherQuota
+--- PASS: TestSchedulerPreserveQuotaPrefersHigherQuota (0.00s)
+=== RUN   TestSchedulerPreferProvider
+--- PASS: TestSchedulerPreferProvider (0.00s)
+=== RUN   TestSchedulerManualOnlyMatchesExplicit
+--- PASS: TestSchedulerManualOnlyMatchesExplicit (0.00s)
+=== RUN   TestSchedulerContinuityPrefersSameProvider
+--- PASS: TestSchedulerContinuityPrefersSameProvider (0.00s)
+=== RUN   TestSchedulerExplainPath
+--- PASS: TestSchedulerExplainPath (0.00s)
+=== RUN   TestSchedulerFiltersUnavailable
+--- PASS: TestSchedulerFiltersUnavailable (0.00s)
+=== RUN   TestGenericSkillIDsResolveWithoutMaestro
+--- PASS: TestGenericSkillIDsResolveWithoutMaestro (0.52s)
+=== RUN   TestResolveSkillReferencesPreservesSelectionProvenance
+--- PASS: TestResolveSkillReferencesPreservesSelectionProvenance (0.21s)
+=== RUN   TestBuiltinCatalogCoversCoreExecutionSkillsWithoutMaestro
+--- PASS: TestBuiltinCatalogCoversCoreExecutionSkillsWithoutMaestro (0.27s)
+=== RUN   TestMaestroSkillSourceIsOptionalAndGeneric
+--- PASS: TestMaestroSkillSourceIsOptionalAndGeneric (0.00s)
+=== RUN   TestClassifyTaskRequirementsCoversCanonicalInputs
+=== RUN   TestClassifyTaskRequirementsCoversCanonicalInputs/corrija_a_UI_React
+=== RUN   TestClassifyTaskRequirementsCoversCanonicalInputs/crie_uma_API_REST_em_Go
+=== RUN   TestClassifyTaskRequirementsCoversCanonicalInputs/configure_Kubernetes
+=== RUN   TestClassifyTaskRequirementsCoversCanonicalInputs/faça_auditoria_de_segurança
+=== RUN   TestClassifyTaskRequirementsCoversCanonicalInputs/revise_este_PR_procurando_regressões
+=== RUN   TestClassifyTaskRequirementsCoversCanonicalInputs/crie_um_ecommerce_completo
+--- PASS: TestClassifyTaskRequirementsCoversCanonicalInputs (0.00s)
+    --- PASS: TestClassifyTaskRequirementsCoversCanonicalInputs/corrija_a_UI_React (0.00s)
+    --- PASS: TestClassifyTaskRequirementsCoversCanonicalInputs/crie_uma_API_REST_em_Go (0.00s)
+    --- PASS: TestClassifyTaskRequirementsCoversCanonicalInputs/configure_Kubernetes (0.00s)
+    --- PASS: TestClassifyTaskRequirementsCoversCanonicalInputs/faça_auditoria_de_segurança (0.00s)
+    --- PASS: TestClassifyTaskRequirementsCoversCanonicalInputs/revise_este_PR_procurando_regressões (0.00s)
+    --- PASS: TestClassifyTaskRequirementsCoversCanonicalInputs/crie_um_ecommerce_completo (0.00s)
+=== RUN   TestMissionValidationEvidenceBindsIdentityAndVerifiesChain
+--- PASS: TestMissionValidationEvidenceBindsIdentityAndVerifiesChain (0.04s)
+=== RUN   TestStableEvidenceIDIsIdempotent
+--- PASS: TestStableEvidenceIDIsIdempotent (0.00s)
+=== RUN   TestMissionValidationEvidenceRecordsFailedResultsAsFail
+--- PASS: TestMissionValidationEvidenceRecordsFailedResultsAsFail (0.13s)
+=== RUN   TestMissionValidationEvidenceCapturesBoundedToolchainEnvironment
+--- PASS: TestMissionValidationEvidenceCapturesBoundedToolchainEnvironment (0.19s)
+=== RUN   TestRunApplicationProjectsCanonicalValidationEvidence
+--- PASS: TestRunApplicationProjectsCanonicalValidationEvidence (0.06s)
+=== RUN   TestRunApplicationProjectsOnlyEvidenceForRequestedMission
+--- PASS: TestRunApplicationProjectsOnlyEvidenceForRequestedMission (0.10s)
+=== RUN   TestRunApplicationRejectsMissionEvidenceWithoutRunID
+--- PASS: TestRunApplicationRejectsMissionEvidenceWithoutRunID (0.05s)
+=== RUN   TestRunApplicationProjectsCompleteMissionEvidenceBeyondDefaultPage
+--- PASS: TestRunApplicationProjectsCompleteMissionEvidenceBeyondDefaultPage (0.06s)
+=== RUN   TestRunApplicationProjectsValidationEvidenceAfterStoreRestart
+--- PASS: TestRunApplicationProjectsValidationEvidenceAfterStoreRestart (0.04s)
+=== RUN   TestResolveExecutionWorkspaceDeveloperMapsToProject
+--- PASS: TestResolveExecutionWorkspaceDeveloperMapsToProject (0.00s)
+=== RUN   TestResolveExecutionWorkspaceAgentProjectOverridesWorktreeDefault
+--- PASS: TestResolveExecutionWorkspaceAgentProjectOverridesWorktreeDefault (0.00s)
+=== RUN   TestResolveAutonomousExecutionWorkspaceFailsClosedWithoutWorktree
+--- PASS: TestResolveAutonomousExecutionWorkspaceFailsClosedWithoutWorktree (0.00s)
+=== RUN   TestResolveExecutionWorkspaceWorktree
+--- PASS: TestResolveExecutionWorkspaceWorktree (0.04s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/nexus	20.670s
+=== RUN   TestAllowedPathSupportsRecursiveGlob
+--- PASS: TestAllowedPathSupportsRecursiveGlob (0.00s)
+=== RUN   TestForbiddenGitCommandHonorsContract
+--- PASS: TestForbiddenGitCommandHonorsContract (0.00s)
+=== RUN   TestChangedSinceDetectsModifiedPreexistingDirtyPath
+--- PASS: TestChangedSinceDetectsModifiedPreexistingDirtyPath (0.00s)
+=== RUN   TestValidateAllowedChangesRejectsOutOfScopeMutation
+--- PASS: TestValidateAllowedChangesRejectsOutOfScopeMutation (0.00s)
+=== RUN   TestGitChangedPathsIncludesTrackedStagedAndUntracked
+--- PASS: TestGitChangedPathsIncludesTrackedStagedAndUntracked (0.11s)
+=== RUN   TestWriteCommandGuardsBlocksGitPushAndProxiesSafeGit
+--- PASS: TestWriteCommandGuardsBlocksGitPushAndProxiesSafeGit (0.01s)
+=== RUN   TestRenderGuardBlocksDeployMutationButAllowsReadOnly
+--- PASS: TestRenderGuardBlocksDeployMutationButAllowsReadOnly (0.00s)
+=== RUN   TestRenderGuardBlocksNetworkSecretAndPaidToolsWithDeployDenied
+--- PASS: TestRenderGuardBlocksNetworkSecretAndPaidToolsWithDeployDenied (0.00s)
+=== RUN   TestWriteCommandGuardsBlocksNetworkToolsWhenDeployDenied
+--- PASS: TestWriteCommandGuardsBlocksNetworkToolsWhenDeployDenied (0.01s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/autonomyguard	0.140s
+=== RUN   TestInspectCodeIdentityTracksWorktreeAndUntrackedChanges
+--- PASS: TestInspectCodeIdentityTracksWorktreeAndUntrackedChanges (0.35s)
+=== RUN   TestDiscoverReturnsStructuredFactsWithProvenance
+--- PASS: TestDiscoverReturnsStructuredFactsWithProvenance (0.02s)
+=== RUN   TestDiscoverExtractsOperationalProjectIntelligence
+--- PASS: TestDiscoverExtractsOperationalProjectIntelligence (0.01s)
+=== RUN   TestDiscoverPreservesCommandsAcrossMultipleManifests
+--- PASS: TestDiscoverPreservesCommandsAcrossMultipleManifests (0.01s)
+=== RUN   TestBuildIsAllowlistedBoundedAndRedacted
+--- PASS: TestBuildIsAllowlistedBoundedAndRedacted (0.01s)
+=== RUN   TestBuildDoesNotRecursivelyWalkSourceTree
+--- PASS: TestBuildDoesNotRecursivelyWalkSourceTree (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/contextsnapshot	0.407s
+=== RUN   TestCLIProviderUnavailableWhenBackendIsNotCapabilityValidated
+--- PASS: TestCLIProviderUnavailableWhenBackendIsNotCapabilityValidated (0.00s)
+=== RUN   TestCLIProviderAnalyzeParsesJSONEnvelope
+--- PASS: TestCLIProviderAnalyzeParsesJSONEnvelope (0.00s)
+=== RUN   TestExtractJSONObjectIgnoresTrailingProseWithBraces
+--- PASS: TestExtractJSONObjectIgnoresTrailingProseWithBraces (0.00s)
+=== RUN   TestExtractJSONObjectRejectsNonObject
+--- PASS: TestExtractJSONObjectRejectsNonObject (0.00s)
+=== RUN   TestHeadlessPromptArgsMatchSupportedProviderCLIs
+=== RUN   TestHeadlessPromptArgsMatchSupportedProviderCLIs/claude
+=== RUN   TestHeadlessPromptArgsMatchSupportedProviderCLIs/agy
+=== RUN   TestHeadlessPromptArgsMatchSupportedProviderCLIs/gemini
+=== RUN   TestHeadlessPromptArgsMatchSupportedProviderCLIs/cursor
+=== RUN   TestHeadlessPromptArgsMatchSupportedProviderCLIs/opencode
+=== RUN   TestHeadlessPromptArgsMatchSupportedProviderCLIs/codex
+--- PASS: TestHeadlessPromptArgsMatchSupportedProviderCLIs (0.00s)
+    --- PASS: TestHeadlessPromptArgsMatchSupportedProviderCLIs/claude (0.00s)
+    --- PASS: TestHeadlessPromptArgsMatchSupportedProviderCLIs/agy (0.00s)
+    --- PASS: TestHeadlessPromptArgsMatchSupportedProviderCLIs/gemini (0.00s)
+    --- PASS: TestHeadlessPromptArgsMatchSupportedProviderCLIs/cursor (0.00s)
+    --- PASS: TestHeadlessPromptArgsMatchSupportedProviderCLIs/opencode (0.00s)
+    --- PASS: TestHeadlessPromptArgsMatchSupportedProviderCLIs/codex (0.00s)
+=== RUN   TestCLIProviderPlanIncludesProjectContext
+--- PASS: TestCLIProviderPlanIncludesProjectContext (0.00s)
+=== RUN   TestCLIProviderPlanFromGoalOneshot
+--- PASS: TestCLIProviderPlanFromGoalOneshot (0.00s)
+=== RUN   TestNexusEngine_AnalyzeRequiresConfiguredProvider
+--- PASS: TestNexusEngine_AnalyzeRequiresConfiguredProvider (0.00s)
+=== RUN   TestNexusEngine_AnalyzeAndClarifyUsesProvider
+--- PASS: TestNexusEngine_AnalyzeAndClarifyUsesProvider (0.00s)
+=== RUN   TestNexusEngine_GeneratePlanUsesConfiguredProvider
+--- PASS: TestNexusEngine_GeneratePlanUsesConfiguredProvider (0.00s)
+=== RUN   TestNexusEngine_CompilePromptDoesNotRequireProvider
+--- PASS: TestNexusEngine_CompilePromptDoesNotRequireProvider (0.00s)
+=== RUN   TestNexusEnginePassesBoundedContextToAnalyzeAndPlan
+--- PASS: TestNexusEnginePassesBoundedContextToAnalyzeAndPlan (0.00s)
+=== RUN   TestCompileExecutionContext_ComposesPersistentAndTaskRolesWithProvenance
+--- PASS: TestCompileExecutionContext_ComposesPersistentAndTaskRolesWithProvenance (0.00s)
+=== RUN   TestCompileExecutionContext_MaestroOffDoesNotAddGuidance
+--- PASS: TestCompileExecutionContext_MaestroOffDoesNotAddGuidance (0.00s)
+=== RUN   TestCompileExecutionContextUsesGenericGuidanceWithoutMaestro
+--- PASS: TestCompileExecutionContextUsesGenericGuidanceWithoutMaestro (0.00s)
+=== RUN   TestCompileExecutionContext_DevOpsSpecializationDiffersFromQA
+--- PASS: TestCompileExecutionContext_DevOpsSpecializationDiffersFromQA (0.00s)
+=== RUN   TestProviderFromConfigOffReturnsNil
+--- PASS: TestProviderFromConfigOffReturnsNil (0.00s)
+=== RUN   TestResolveAPIKeyReadsFileWithoutPersistingSecret
+--- PASS: TestResolveAPIKeyReadsFileWithoutPersistingSecret (0.00s)
+=== RUN   TestOpenAIProviderUnavailableReturnsErrorInsteadOfFallback
+--- PASS: TestOpenAIProviderUnavailableReturnsErrorInsteadOfFallback (0.00s)
+=== RUN   TestOpenAIProviderHTTPFailureIsNotConvertedToFallback
+--- PASS: TestOpenAIProviderHTTPFailureIsNotConvertedToFallback (0.00s)
+=== RUN   TestOpenAIPlanGenerationCannotMintMaestroSkills
+--- PASS: TestOpenAIPlanGenerationCannotMintMaestroSkills (0.00s)
+=== RUN   TestOpenAIAnalyzeIncludesBoundedProjectContext
+--- PASS: TestOpenAIAnalyzeIncludesBoundedProjectContext (0.00s)
+=== RUN   TestOpenAIPlanIncludesBoundedProjectContext
+--- PASS: TestOpenAIPlanIncludesBoundedProjectContext (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/intelligence	0.029s
+=== RUN   TestValidateStrictAllowsNoGatesWithoutMaestro
+--- PASS: TestValidateStrictAllowsNoGatesWithoutMaestro (0.00s)
+=== RUN   TestValidateStrictRejectsRequestedGatesWhenMaestroUnavailable
+--- PASS: TestValidateStrictRejectsRequestedGatesWhenMaestroUnavailable (0.00s)
+=== RUN   TestValidateStrictRejectsUnknownRequestedGate
+--- PASS: TestValidateStrictRejectsUnknownRequestedGate (0.00s)
+=== RUN   TestValidateStrictPreservesRequestedGateOrder
+--- PASS: TestValidateStrictPreservesRequestedGateOrder (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/maestrogates	0.011s
+=== RUN   TestNormalizeDependenciesResolvesUniqueTitlesToIDs
+--- PASS: TestNormalizeDependenciesResolvesUniqueTitlesToIDs (0.00s)
+=== RUN   TestNormalizeDependenciesRejectsUnknownDependency
+--- PASS: TestNormalizeDependenciesRejectsUnknownDependency (0.00s)
+=== RUN   TestNormalizeDependenciesRejectsAmbiguousTitle
+--- PASS: TestNormalizeDependenciesRejectsAmbiguousTitle (0.00s)
+=== RUN   TestNormalizeDependenciesRejectsCycles
+--- PASS: TestNormalizeDependenciesRejectsCycles (0.00s)
+=== RUN   TestNormalizeDependenciesRejectsDuplicateIDs
+--- PASS: TestNormalizeDependenciesRejectsDuplicateIDs (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/plangraph	0.024s
+=== RUN   TestAttentionCenter_GroupsCorrectly
+--- PASS: TestAttentionCenter_GroupsCorrectly (0.00s)
+=== RUN   TestAttentionCenter_NeedsUserCount
+--- PASS: TestAttentionCenter_NeedsUserCount (0.00s)
+=== RUN   TestAttentionCenter_GetAttention
+--- PASS: TestAttentionCenter_GetAttention (0.00s)
+=== RUN   TestMultiMissionIndependentProgression
+--- PASS: TestMultiMissionIndependentProgression (0.00s)
+=== RUN   TestResolveInterventionIdempotent
+--- PASS: TestResolveInterventionIdempotent (0.00s)
+=== RUN   TestStaleInterventionRejected
+--- PASS: TestStaleInterventionRejected (0.00s)
+=== RUN   TestResumeFromDurableCheckpoint
+--- PASS: TestResumeFromDurableCheckpoint (0.00s)
+=== RUN   TestQuotaFailoverNoAttention
+--- PASS: TestQuotaFailoverNoAttention (0.00s)
+=== RUN   TestNotificationDedupKey
+--- PASS: TestNotificationDedupKey (0.00s)
+=== RUN   TestAutonomyContractRespected
+--- PASS: TestAutonomyContractRespected (0.00s)
+=== RUN   TestCrossProjectAggregation
+--- PASS: TestCrossProjectAggregation (0.00s)
+=== RUN   TestClassifyAttention_BlockedNeedsUser
+--- PASS: TestClassifyAttention_BlockedNeedsUser (0.00s)
+=== RUN   TestClassifyAttention_FailedNoProgressWithEscalation
+--- PASS: TestClassifyAttention_FailedNoProgressWithEscalation (0.00s)
+=== RUN   TestClassifyAttention_FailedNoProgressWithoutEscalation
+--- PASS: TestClassifyAttention_FailedNoProgressWithoutEscalation (0.00s)
+=== RUN   TestClassifyAttention_CompletedVerified
+--- PASS: TestClassifyAttention_CompletedVerified (0.00s)
+=== RUN   TestClassifyAttention_Executing
+--- PASS: TestClassifyAttention_Executing (0.00s)
+=== RUN   TestClassifyAttention_Paused
+--- PASS: TestClassifyAttention_Paused (0.00s)
+=== RUN   TestClassifyAttention_NilRun
+--- PASS: TestClassifyAttention_NilRun (0.00s)
+=== RUN   TestAttentionFromRun_NeedsHumanFields
+--- PASS: TestAttentionFromRun_NeedsHumanFields (0.00s)
+=== RUN   TestAttentionFromRun_CompletedReturnsItem
+--- PASS: TestAttentionFromRun_CompletedReturnsItem (0.00s)
+=== RUN   TestAttentionFromRun_ExecutingReturnsNil
+--- PASS: TestAttentionFromRun_ExecutingReturnsNil (0.00s)
+=== RUN   TestAttentionDedupKey_StableForSameIntervention
+--- PASS: TestAttentionDedupKey_StableForSameIntervention (0.00s)
+=== RUN   TestAttentionDedupKey_DifferentForDifferentVersion
+--- PASS: TestAttentionDedupKey_DifferentForDifferentVersion (0.00s)
+=== RUN   TestAttentionDedupKey_EmptyForNil
+--- PASS: TestAttentionDedupKey_EmptyForNil (0.00s)
+=== RUN   TestApplyAutonomyContractPatchPreservesSafeDefaultsAndExplicitValues
+--- PASS: TestApplyAutonomyContractPatchPreservesSafeDefaultsAndExplicitValues (0.00s)
+=== RUN   TestApplyAutonomyContractPatchNilReturnsDefaults
+--- PASS: TestApplyAutonomyContractPatchNilReturnsDefaults (0.00s)
+=== RUN   TestMissionRunnerPersistsContextCapsuleBeforeCompileAndHandsOffReceipts
+--- PASS: TestMissionRunnerPersistsContextCapsuleBeforeCompileAndHandsOffReceipts (0.14s)
+=== RUN   TestMissionRunnerCreatesFactualFailedReceiptWithoutInventingEvidence
+--- PASS: TestMissionRunnerCreatesFactualFailedReceiptWithoutInventingEvidence (0.07s)
+=== RUN   TestRenderContextCapsuleIncludesReceiptsAndExcludesTranscriptSemantics
+--- PASS: TestRenderContextCapsuleIncludesReceiptsAndExcludesTranscriptSemantics (0.00s)
+=== RUN   TestReceiptChangedFilesIncludesCommittedPathWithSpaces
+--- PASS: TestReceiptChangedFilesIncludesCommittedPathWithSpaces (0.08s)
+=== RUN   TestFaultInjectionStoreReopenPreservesIntervention
+--- PASS: TestFaultInjectionStoreReopenPreservesIntervention (0.00s)
+=== RUN   TestFaultInjectionStaleRoutingJSONFailsClosed
+--- PASS: TestFaultInjectionStaleRoutingJSONFailsClosed (0.00s)
+=== RUN   TestFaultInjectionDuplicateInterventionResolvesOnce
+--- PASS: TestFaultInjectionDuplicateInterventionResolvesOnce (0.00s)
+=== RUN   TestFaultInjectionQuotaFailoverIsNotAttention
+--- PASS: TestFaultInjectionQuotaFailoverIsNotAttention (0.00s)
+=== RUN   TestOvernightSoakHarnessBounded
+--- PASS: TestOvernightSoakHarnessBounded (0.20s)
+=== RUN   TestMissionRunnerGlobalDefinitionOfDoneReopensAfterFailure
+--- PASS: TestMissionRunnerGlobalDefinitionOfDoneReopensAfterFailure (0.06s)
+=== RUN   TestResolveIntervention_DoesNotRedispatchUnknownExternalOutcome
+--- PASS: TestResolveIntervention_DoesNotRedispatchUnknownExternalOutcome (0.00s)
+=== RUN   TestExecuteNextStep_DoesNotRedispatchCompletedDispatchCheckpoint
+--- PASS: TestExecuteNextStep_DoesNotRedispatchCompletedDispatchCheckpoint (0.00s)
+=== RUN   TestExecuteNextStep_FailsClosedForUnknownDispatchWithoutIdentity
+--- PASS: TestExecuteNextStep_FailsClosedForUnknownDispatchWithoutIdentity (0.00s)
+=== RUN   TestResolveIntervention_Success
+--- PASS: TestResolveIntervention_Success (0.00s)
+=== RUN   TestResolveIntervention_Idempotent
+--- PASS: TestResolveIntervention_Idempotent (0.00s)
+=== RUN   TestResolveIntervention_ConflictingDecisionIsRejected
+--- PASS: TestResolveIntervention_ConflictingDecisionIsRejected (0.00s)
+=== RUN   TestResolveIntervention_StaleRequestHasNoBusinessMutation
+--- PASS: TestResolveIntervention_StaleRequestHasNoBusinessMutation (0.00s)
+=== RUN   TestResolveIntervention_StaleVersionAfterResolutionIsRejected
+--- PASS: TestResolveIntervention_StaleVersionAfterResolutionIsRejected (0.00s)
+=== RUN   TestResolveIntervention_RejectsOptionOutsideAutonomyContract
+--- PASS: TestResolveIntervention_RejectsOptionOutsideAutonomyContract (0.00s)
+=== RUN   TestResolveIntervention_PreservesParallelAndCompletedPackageIdentity
+--- PASS: TestResolveIntervention_PreservesParallelAndCompletedPackageIdentity (0.00s)
+=== RUN   TestResolveIntervention_AllowsRetryOnlyAfterProvenPreDispatchFailure
+--- PASS: TestResolveIntervention_AllowsRetryOnlyAfterProvenPreDispatchFailure (0.00s)
+=== RUN   TestExecuteNextStepUsesFailedNoProgressWithoutHumanBlocker
+--- PASS: TestExecuteNextStepUsesFailedNoProgressWithoutHumanBlocker (0.00s)
+=== RUN   TestResolveIntervention_StaleVersionRejected
+--- PASS: TestResolveIntervention_StaleVersionRejected (0.00s)
+=== RUN   TestResolveIntervention_StaleInterventionIDRejected
+--- PASS: TestResolveIntervention_StaleInterventionIDRejected (0.00s)
+=== RUN   TestResolveIntervention_NotBlockedRejected
+--- PASS: TestResolveIntervention_NotBlockedRejected (0.00s)
+=== RUN   TestResolveIntervention_NilNeedsHumanRejected
+--- PASS: TestResolveIntervention_NilNeedsHumanRejected (0.00s)
+=== RUN   TestResolveIntervention_ResetsStaleDispatchIntent
+--- PASS: TestResolveIntervention_ResetsStaleDispatchIntent (0.00s)
+=== RUN   TestBlockNeedsHuman_GeneratesIDAndVersion
+--- PASS: TestBlockNeedsHuman_GeneratesIDAndVersion (0.00s)
+=== RUN   TestSaveRunRejectsBlockedMissionWithoutActionableIntervention
+--- PASS: TestSaveRunRejectsBlockedMissionWithoutActionableIntervention (0.00s)
+=== RUN   TestMemoryRunRepositoryRejectsLiveLeaseReacquireBySameOwner
+--- PASS: TestMemoryRunRepositoryRejectsLiveLeaseReacquireBySameOwner (0.00s)
+=== RUN   TestMemoryRunRepositoryHonorsCanceledContext
+=== RUN   TestMemoryRunRepositoryHonorsCanceledContext/save
+=== RUN   TestMemoryRunRepositoryHonorsCanceledContext/get
+=== RUN   TestMemoryRunRepositoryHonorsCanceledContext/list
+=== RUN   TestMemoryRunRepositoryHonorsCanceledContext/acquire_lease
+=== RUN   TestMemoryRunRepositoryHonorsCanceledContext/renew_lease
+=== RUN   TestMemoryRunRepositoryHonorsCanceledContext/release_lease
+--- PASS: TestMemoryRunRepositoryHonorsCanceledContext (0.00s)
+    --- PASS: TestMemoryRunRepositoryHonorsCanceledContext/save (0.00s)
+    --- PASS: TestMemoryRunRepositoryHonorsCanceledContext/get (0.00s)
+    --- PASS: TestMemoryRunRepositoryHonorsCanceledContext/list (0.00s)
+    --- PASS: TestMemoryRunRepositoryHonorsCanceledContext/acquire_lease (0.00s)
+    --- PASS: TestMemoryRunRepositoryHonorsCanceledContext/renew_lease (0.00s)
+    --- PASS: TestMemoryRunRepositoryHonorsCanceledContext/release_lease (0.00s)
+=== RUN   TestMemoryEvidenceRepositoryHonorsCanceledContext
+--- PASS: TestMemoryEvidenceRepositoryHonorsCanceledContext (0.00s)
+=== RUN   TestMissionRunnerRequiresRealExecutorAndRespectsDependencies
+--- PASS: TestMissionRunnerRequiresRealExecutorAndRespectsDependencies (0.11s)
+=== RUN   TestMissionRunnerNeverAutoApprovesWithoutReviewerEvidence
+--- PASS: TestMissionRunnerNeverAutoApprovesWithoutReviewerEvidence (0.07s)
+=== RUN   TestMissionRunnerPersistsAcrossRunnerRecreation
+--- PASS: TestMissionRunnerPersistsAcrossRunnerRecreation (0.00s)
+=== RUN   TestMissionRunnerEnforcesTotalIterationBudget
+--- PASS: TestMissionRunnerEnforcesTotalIterationBudget (0.00s)
+=== RUN   TestMissionRunnerPauseResumeAndCancelAreDurable
+--- PASS: TestMissionRunnerPauseResumeAndCancelAreDurable (0.00s)
+=== RUN   TestMissionRunnerRunToTerminalExecutesAutonomously
+--- PASS: TestMissionRunnerRunToTerminalExecutesAutonomously (0.15s)
+=== RUN   TestMissionRunnerRenewsLeaseDuringLongProviderOperation
+--- PASS: TestMissionRunnerRenewsLeaseDuringLongProviderOperation (0.10s)
+=== RUN   TestMemoryRepositoryRejectsStaleFencedSave
+--- PASS: TestMemoryRepositoryRejectsStaleFencedSave (0.02s)
+=== RUN   TestMissionRunnerRetriesFromFailedStage
+--- PASS: TestMissionRunnerRetriesFromFailedStage (0.00s)
+=== RUN   TestMissionRunnerStopsRepeatedIdenticalFailuresAsNoProgress
+--- PASS: TestMissionRunnerStopsRepeatedIdenticalFailuresAsNoProgress (0.13s)
+=== RUN   TestMissionRunnerRecompilesImmutablePromptForRemediationAttempt
+--- PASS: TestMissionRunnerRecompilesImmutablePromptForRemediationAttempt (0.10s)
+=== RUN   TestVerificationFailureReturnsToAllocationForRuntimeEscalation
+--- PASS: TestVerificationFailureReturnsToAllocationForRuntimeEscalation (0.14s)
+=== RUN   TestManualControlAgentPrefersCurrentRunnablePackage
+--- PASS: TestManualControlAgentPrefersCurrentRunnablePackage (0.00s)
+=== RUN   TestManualControlAgentFallsBackToActiveAssignedPackage
+--- PASS: TestManualControlAgentFallsBackToActiveAssignedPackage (0.00s)
+=== RUN   TestRunToTerminalExecutesParallelGroupProviderTurnsConcurrently
+--- PASS: TestRunToTerminalExecutesParallelGroupProviderTurnsConcurrently (0.21s)
+=== RUN   TestParallelPackagesDoNotShareDefaultAgentImplicitly
+--- PASS: TestParallelPackagesDoNotShareDefaultAgentImplicitly (0.00s)
+=== RUN   TestMissionRunnerHonorsAutoRemediateDisabled
+--- PASS: TestMissionRunnerHonorsAutoRemediateDisabled (0.07s)
+=== RUN   TestOvernightAcceptanceSandbox
+--- PASS: TestOvernightAcceptanceSandbox (0.18s)
+=== RUN   TestMissionRunnerPersistsDispatchIntentBeforeProviderExecution
+--- PASS: TestMissionRunnerPersistsDispatchIntentBeforeProviderExecution (0.04s)
+=== RUN   TestMissionRunnerRestartRefusesUnknownInFlightDispatch
+--- PASS: TestMissionRunnerRestartRefusesUnknownInFlightDispatch (0.00s)
+=== RUN   TestMissionRunnerParallelGroupPersistsAllDispatchIntentsBeforeLaunch
+--- PASS: TestMissionRunnerParallelGroupPersistsAllDispatchIntentsBeforeLaunch (0.14s)
+=== RUN   TestRemediationPersistsStrategyChangeBeforeRetry
+--- PASS: TestRemediationPersistsStrategyChangeBeforeRetry (0.00s)
+=== RUN   TestNeedsHumanContractIsStructuredAndDurable
+--- PASS: TestNeedsHumanContractIsStructuredAndDurable (0.00s)
+=== RUN   TestMissionRunnerLifecycleCompletesOnlyAfterVerificationAndReview
+--- PASS: TestMissionRunnerLifecycleCompletesOnlyAfterVerificationAndReview (0.13s)
+=== RUN   TestMissionRunnerBoundedRetries
+--- PASS: TestMissionRunnerBoundedRetries (0.12s)
+=== RUN   TestMissionRunnerPreservesFlowStepExecutionContracts
+--- PASS: TestMissionRunnerPreservesFlowStepExecutionContracts (0.00s)
+=== RUN   TestMissionRunnerUsesStepVerificationRequirementsBeforeGlobalCommands
+--- PASS: TestMissionRunnerUsesStepVerificationRequirementsBeforeGlobalCommands (0.09s)
+=== RUN   TestMissionRunner_QuotaErrorRoutesToAllocatingForFailover
+--- PASS: TestMissionRunner_QuotaErrorRoutesToAllocatingForFailover (0.04s)
+=== RUN   TestVerificationEnginePreservesQuotedShellArguments
+--- PASS: TestVerificationEnginePreservesQuotedShellArguments (0.01s)
+=== RUN   TestValidateCommandAcceptsSafeCommands
+--- PASS: TestValidateCommandAcceptsSafeCommands (0.00s)
+=== RUN   TestValidateCommandRejectsDangerousCommands
+--- PASS: TestValidateCommandRejectsDangerousCommands (0.00s)
+=== RUN   TestRunVerificationBlocksDangerousCommand
+--- PASS: TestRunVerificationBlocksDangerousCommand (0.01s)
+=== RUN   TestDefaultAutonomyContractHasBoundedPackageTimeout
+--- PASS: TestDefaultAutonomyContractHasBoundedPackageTimeout (0.00s)
+=== RUN   TestProgressWatchdogIgnoresFreshExecutingWork
+--- PASS: TestProgressWatchdogIgnoresFreshExecutingWork (0.00s)
+=== RUN   TestProgressWatchdogFailsClosedOnStallWithoutNeedsUser
+--- PASS: TestProgressWatchdogFailsClosedOnStallWithoutNeedsUser (0.00s)
+=== RUN   TestProgressWatchdogDoesNotTouchTerminalStates
+--- PASS: TestProgressWatchdogDoesNotTouchTerminalStates (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/runner	2.414s
+=== RUN   TestCatalogResolvesBuiltinSkillsDeterministically
+--- PASS: TestCatalogResolvesBuiltinSkillsDeterministically (0.00s)
+=== RUN   TestCatalogDeduplicatesByVersionAndStableSourcePriority
+--- PASS: TestCatalogDeduplicatesByVersionAndStableSourcePriority (0.00s)
+=== RUN   TestDirectorySourceReadsBoundedSkillMarkdown
+--- PASS: TestDirectorySourceReadsBoundedSkillMarkdown (0.00s)
+=== RUN   TestCatalogSameVersionPrefersProjectOverMaestro
+--- PASS: TestCatalogSameVersionPrefersProjectOverMaestro (0.00s)
+=== RUN   TestNormalizeSkillHashIsStableAcrossObservationTime
+--- PASS: TestNormalizeSkillHashIsStableAcrossObservationTime (0.00s)
+=== RUN   TestCatalogWorksWhenOptionalSourcesAreUnavailable
+--- PASS: TestCatalogWorksWhenOptionalSourcesAreUnavailable (0.00s)
+=== RUN   TestDirectorySourceSkipsCyclicOptionalRoot
+--- PASS: TestDirectorySourceSkipsCyclicOptionalRoot (0.01s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/skills	0.018s
+=== RUN   TestClarificationRoundTripAndResolution
+--- PASS: TestClarificationRoundTripAndResolution (0.05s)
+=== RUN   TestComposerSessionPersistsBriefTurnsSkillsAndPromptArtifacts
+--- PASS: TestComposerSessionPersistsBriefTurnsSkillsAndPromptArtifacts (0.06s)
+=== RUN   TestComposerV2MigrationPersistsVariantsAndReceipts
+--- PASS: TestComposerV2MigrationPersistsVariantsAndReceipts (0.07s)
+=== RUN   TestContextReadinessRoundTrip
+--- PASS: TestContextReadinessRoundTrip (0.03s)
+=== RUN   TestFlowEvidenceSQLiteRoundTripAndStableIdentity
+--- PASS: TestFlowEvidenceSQLiteRoundTripAndStableIdentity (0.03s)
+=== RUN   TestFlowEvidenceSchemaDriftIsRepairedAndLegacyPreserved
+--- PASS: TestFlowEvidenceSchemaDriftIsRepairedAndLegacyPreserved (0.04s)
+=== RUN   TestValidateExpectedPlanRevisionRejectsStaleRevision
+--- PASS: TestValidateExpectedPlanRevisionRejectsStaleRevision (0.00s)
+=== RUN   TestValidateExpectedPlanRevisionAcceptsCurrentRevision
+--- PASS: TestValidateExpectedPlanRevisionAcceptsCurrentRevision (0.00s)
+=== RUN   TestWorkPlan_CRUD_And_Revisions
+--- PASS: TestWorkPlan_CRUD_And_Revisions (0.03s)
+=== RUN   TestMissionSchedule_AT_BecomesReady
+--- PASS: TestMissionSchedule_AT_BecomesReady (0.04s)
+=== RUN   TestMissionScheduleBindsRunID
+--- PASS: TestMissionScheduleBindsRunID (0.03s)
+=== RUN   TestMissionScheduleClaimIsAtomicAcrossWorkers
+--- PASS: TestMissionScheduleClaimIsAtomicAcrossWorkers (0.04s)
+=== RUN   TestMissionRunSaveIsFencedByLeaseToken
+--- PASS: TestMissionRunSaveIsFencedByLeaseToken (0.08s)
+=== RUN   TestStoreOpenMigratesIdempotently
+--- PASS: TestStoreOpenMigratesIdempotently (0.11s)
+=== RUN   TestEventCorrelationMigrationIsIdempotent
+--- PASS: TestEventCorrelationMigrationIsIdempotent (0.10s)
+=== RUN   TestProjectCRUD
+--- PASS: TestProjectCRUD (0.11s)
+=== RUN   TestCanonicalPathValidation
+--- PASS: TestCanonicalPathValidation (0.00s)
+=== RUN   TestListAgentSummaries
+--- PASS: TestListAgentSummaries (0.12s)
+=== RUN   TestAgentLifecycle
+--- PASS: TestAgentLifecycle (0.07s)
+=== RUN   TestProjectLayoutPersistence
+--- PASS: TestProjectLayoutPersistence (0.07s)
+=== RUN   TestProjectLayoutV4MonotonicRevision
+--- PASS: TestProjectLayoutV4MonotonicRevision (0.05s)
+=== RUN   TestProjectLayoutV4SurvivesProcessRestart
+--- PASS: TestProjectLayoutV4SurvivesProcessRestart (0.12s)
+=== RUN   TestValidationEvidenceAppendBuildsHashChainAndSupportsReadOnlyQueries
+--- PASS: TestValidationEvidenceAppendBuildsHashChainAndSupportsReadOnlyQueries (0.07s)
+=== RUN   TestValidationEvidenceAppendUsesCASAndIdempotencyKey
+--- PASS: TestValidationEvidenceAppendUsesCASAndIdempotencyKey (0.10s)
+=== RUN   TestValidationEvidenceChainDetectsTampering
+--- PASS: TestValidationEvidenceChainDetectsTampering (0.15s)
+=== RUN   TestValidationEvidenceRejectsInvalidPayload
+--- PASS: TestValidationEvidenceRejectsInvalidPayload (0.12s)
+=== RUN   TestEventsMetadata_RecordAndList
+--- PASS: TestEventsMetadata_RecordAndList (0.08s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/nexus/store	1.785s
+=== RUN   TestGetAccountInfo
+--- PASS: TestGetAccountInfo (0.01s)
+=== RUN   TestCreateListDefaultDelete
+--- PASS: TestCreateListDefaultDelete (0.01s)
+=== RUN   TestEnsureRandomSecretPermissions
+--- PASS: TestEnsureRandomSecretPermissions (0.00s)
+=== RUN   TestCursorProfilesAreSupported
+--- PASS: TestCursorProfilesAreSupported (0.00s)
+=== RUN   TestAccountScopeVersionsCredentialChanges
+--- PASS: TestAccountScopeVersionsCredentialChanges (0.00s)
+=== RUN   TestGetQuotaDetails
+--- PASS: TestGetQuotaDetails (0.00s)
+=== RUN   TestGetUsageSnapshotPreservesRateLimitedLastKnown
+--- PASS: TestGetUsageSnapshotPreservesRateLimitedLastKnown (0.00s)
+=== RUN   TestGetUsageSnapshotPreservesStaleWindowsAsEstimatedAfterRefreshFailure
+--- PASS: TestGetUsageSnapshotPreservesStaleWindowsAsEstimatedAfterRefreshFailure (0.01s)
+=== RUN   TestGetUsageSnapshotKeepsCodexLiveRolloutWithoutPrefixedScope
+--- PASS: TestGetUsageSnapshotKeepsCodexLiveRolloutWithoutPrefixedScope (0.70s)
+=== RUN   TestGetUsageSnapshotReusesFreshOfficialCodexReading
+--- PASS: TestGetUsageSnapshotReusesFreshOfficialCodexReading (0.01s)
+=== RUN   TestGetUsageSnapshotIgnoresRolloutDerivedCodexCache
+--- PASS: TestGetUsageSnapshotIgnoresRolloutDerivedCodexCache (0.82s)
+=== RUN   TestGetUsageSnapshotRefetchesOfficialCodexReadingAfterTTL
+--- PASS: TestGetUsageSnapshotRefetchesOfficialCodexReadingAfterTTL (0.89s)
+=== RUN   TestGetUsageSnapshotKeepsAdapterEstimatedInsteadOfSemDados
+--- PASS: TestGetUsageSnapshotKeepsAdapterEstimatedInsteadOfSemDados (0.93s)
+=== RUN   TestSnapshotBelongsToProfileRejectsForeignScope
+--- PASS: TestSnapshotBelongsToProfileRejectsForeignScope (0.00s)
+=== RUN   TestSnapshotBelongsToProfileAllowsCodexIdentityVersionBump
+--- PASS: TestSnapshotBelongsToProfileAllowsCodexIdentityVersionBump (0.00s)
+=== RUN   TestSnapshotBelongsToProfileRejectsCodexIdentityOutsideHistory
+--- PASS: TestSnapshotBelongsToProfileRejectsCodexIdentityOutsideHistory (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/profile	3.418s
+=== RUN   TestInstallerScriptSyntax
+--- PASS: TestInstallerScriptSyntax (0.02s)
+=== RUN   TestInstallerArchiveNamingMatchesGoReleaser
+--- PASS: TestInstallerArchiveNamingMatchesGoReleaser (0.00s)
+=== RUN   TestInstallerDoesNotSilentlyInstallMaestro
+--- PASS: TestInstallerDoesNotSilentlyInstallMaestro (0.00s)
+=== RUN   TestInstallersRequirePinnedArtifactsOrExplicitSourceBuild
+--- PASS: TestInstallersRequirePinnedArtifactsOrExplicitSourceBuild (0.00s)
+=== RUN   TestInstallerSupportsLatestIntegrityAndPathControls
+--- PASS: TestInstallerSupportsLatestIntegrityAndPathControls (0.00s)
+=== RUN   TestPowerShellInstallerUsesNexusPathAndPreservesLegacyPath
+--- PASS: TestPowerShellInstallerUsesNexusPathAndPreservesLegacyPath (0.00s)
+=== RUN   TestPublicLicenseMetadataMatchesLicenseFile
+--- PASS: TestPublicLicenseMetadataMatchesLicenseFile (0.00s)
+=== RUN   TestExecuteRestoresVersionWhenFrontendFails
+--- PASS: TestExecuteRestoresVersionWhenFrontendFails (0.00s)
+=== RUN   TestWithoutNodeOptionsRemovesPnPHook
+--- PASS: TestWithoutNodeOptionsRemovesPnPHook (0.00s)
+=== RUN   TestNextVersion
+=== RUN   TestNextVersion/patch
+=== RUN   TestNextVersion/minor
+=== RUN   TestNextVersion/major
+=== RUN   TestNextVersion/new_beta
+=== RUN   TestNextVersion/next_beta
+=== RUN   TestNextVersion/new_rc
+=== RUN   TestNextVersion/next_rc
+=== RUN   TestNextVersion/stable
+=== RUN   TestNextVersion/hotfix
+--- PASS: TestNextVersion (0.00s)
+    --- PASS: TestNextVersion/patch (0.00s)
+    --- PASS: TestNextVersion/minor (0.00s)
+    --- PASS: TestNextVersion/major (0.00s)
+    --- PASS: TestNextVersion/new_beta (0.00s)
+    --- PASS: TestNextVersion/next_beta (0.00s)
+    --- PASS: TestNextVersion/new_rc (0.00s)
+    --- PASS: TestNextVersion/next_rc (0.00s)
+    --- PASS: TestNextVersion/stable (0.00s)
+    --- PASS: TestNextVersion/hotfix (0.00s)
+=== RUN   TestValidateAndOptions
+--- PASS: TestValidateAndOptions (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/release	0.032s
+=== RUN   TestDefaultCredentialIsolatorPlatform
+--- PASS: TestDefaultCredentialIsolatorPlatform (0.00s)
+=== RUN   TestCredentialIsolationWrapCommand
+--- PASS: TestCredentialIsolationWrapCommand (0.00s)
+=== RUN   TestCredentialCapabilityIsTruthfulOnUnsupportedPlatforms
+--- PASS: TestCredentialCapabilityIsTruthfulOnUnsupportedPlatforms (0.00s)
+=== RUN   TestNoBrowserBinDirInstallsInertHelpers
+--- PASS: TestNoBrowserBinDirInstallsInertHelpers (0.00s)
+=== RUN   TestDisableSessionSecretServiceFailsClosedWithoutLeakingHostBus
+--- PASS: TestDisableSessionSecretServiceFailsClosedWithoutLeakingHostBus (0.00s)
+=== RUN   TestResolveCommandWindowsPrefersPathAndBuildsCmdLauncher
+--- PASS: TestResolveCommandWindowsPrefersPathAndBuildsCmdLauncher (0.00s)
+=== RUN   TestResolveCommandWindowsSupportsPowerShellShim
+--- PASS: TestResolveCommandWindowsSupportsPowerShellShim (0.00s)
+=== RUN   TestResolveCommandUnixUsesLookPath
+--- PASS: TestResolveCommandUnixUsesLookPath (0.00s)
+=== RUN   TestNormalizeInteractiveEnvReplacesDumbTerminal
+--- PASS: TestNormalizeInteractiveEnvReplacesDumbTerminal (0.00s)
+=== RUN   TestNormalizeInteractiveEnvPreservesNormalTerminal
+--- PASS: TestNormalizeInteractiveEnvPreservesNormalTerminal (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/runtime	0.025s
+?   	github.com/kivervinicius/ai-cli/internal/testutil	[no test files]
+?   	github.com/kivervinicius/ai-cli/internal/testutil/fakeagent	[no test files]
+=== RUN   TestFilterUsageRowsFindsAcrossIdentityAndGroup
+--- PASS: TestFilterUsageRowsFindsAcrossIdentityAndGroup (0.00s)
+=== RUN   TestFilterUsageRowsIncludesUnknownProviders
+--- PASS: TestFilterUsageRowsIncludesUnknownProviders (0.00s)
+=== RUN   TestUnifiedUsageEscAndQQuit
+--- PASS: TestUnifiedUsageEscAndQQuit (0.00s)
+=== RUN   TestUnifiedUsageUnconfiguredCLIsRendered
+--- PASS: TestUnifiedUsageUnconfiguredCLIsRendered (0.00s)
+=== RUN   TestUnifiedUsageModeTogglingAndFlags
+--- PASS: TestUnifiedUsageModeTogglingAndFlags (0.00s)
+=== RUN   TestUnifiedUsageRestoresSelectionAfterEmptyFilter
+--- PASS: TestUnifiedUsageRestoresSelectionAfterEmptyFilter (0.00s)
+=== RUN   TestUsageColumnsAdaptiveWidths
+--- PASS: TestUsageColumnsAdaptiveWidths (0.00s)
+=== RUN   TestUsageStatusLabelsFitStatusColumn
+--- PASS: TestUsageStatusLabelsFitStatusColumn (0.00s)
+=== RUN   TestTableBodyHeightFillsTerminal
+--- PASS: TestTableBodyHeightFillsTerminal (0.00s)
+=== RUN   TestFormatGroupStatusHonestLabels
+--- PASS: TestFormatGroupStatusHonestLabels (0.00s)
+=== RUN   TestFreshnessLineNamesStatusSourceAndAge
+--- PASS: TestFreshnessLineNamesStatusSourceAndAge (0.00s)
+=== RUN   TestFormatResetLineStripsEnglishPrefixes
+--- PASS: TestFormatResetLineStripsEnglishPrefixes (0.00s)
+=== RUN   TestFormatQuotaWindowShowsNumbersWhenRateLimited
+--- PASS: TestFormatQuotaWindowShowsNumbersWhenRateLimited (0.00s)
+=== RUN   TestBuildUsageRowsCarriesSourceAndRawStatus
+--- PASS: TestBuildUsageRowsCarriesSourceAndRawStatus (0.00s)
+=== RUN   TestBuildUsageRowsWithoutGroupsIsSemDados
+--- PASS: TestBuildUsageRowsWithoutGroupsIsSemDados (0.00s)
+=== RUN   TestRefreshKeyMarksAccountInFlight
+--- PASS: TestRefreshKeyMarksAccountInFlight (0.00s)
+=== RUN   TestAccountRefreshedReplacesOnlyThatAccount
+--- PASS: TestAccountRefreshedReplacesOnlyThatAccount (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/tui	0.016s
+=== RUN   TestManifestValidationRejectsExpiredDowngradeAndWrongTarget
+--- PASS: TestManifestValidationRejectsExpiredDowngradeAndWrongTarget (0.00s)
+=== RUN   TestManifestValidationAcceptsCompatibilityAndTarget
+--- PASS: TestManifestValidationAcceptsCompatibilityAndTarget (0.00s)
+=== RUN   TestUpdaterRollbackKeepsCurrentBinaryWhenRestoreFails
+--- PASS: TestUpdaterRollbackKeepsCurrentBinaryWhenRestoreFails (0.00s)
+=== RUN   TestUpdaterApplyManifestBindsTargetChecksum
+--- PASS: TestUpdaterApplyManifestBindsTargetChecksum (0.01s)
+=== RUN   TestVerifyManifest_ValidSignature
+--- PASS: TestVerifyManifest_ValidSignature (0.01s)
+=== RUN   TestVerifyManifest_TamperedManifest
+--- PASS: TestVerifyManifest_TamperedManifest (0.00s)
+=== RUN   TestVerifyManifest_UntrustedKeyID
+--- PASS: TestVerifyManifest_UntrustedKeyID (0.00s)
+=== RUN   TestUpdatePlan_ChecksumVerificationAndRollback
+--- PASS: TestUpdatePlan_ChecksumVerificationAndRollback (0.00s)
+=== RUN   TestCompareVersionsSemverCompliance
+--- PASS: TestCompareVersionsSemverCompliance (0.00s)
+=== RUN   TestCompareVersionsDowngradeRejection
+--- PASS: TestCompareVersionsDowngradeRejection (0.00s)
+=== RUN   TestNegative_CorruptedManifest
+--- PASS: TestNegative_CorruptedManifest (0.00s)
+=== RUN   TestNegative_EmptyKeyRing
+--- PASS: TestNegative_EmptyKeyRing (0.00s)
+=== RUN   TestNegative_ChecksumMismatch
+--- PASS: TestNegative_ChecksumMismatch (0.00s)
+=== RUN   TestNegative_DowngradeRejection
+--- PASS: TestNegative_DowngradeRejection (0.00s)
+=== RUN   TestNegative_ExpiredManifest
+--- PASS: TestNegative_ExpiredManifest (0.00s)
+=== RUN   TestNegative_MissingArtifactTarget
+--- PASS: TestNegative_MissingArtifactTarget (0.00s)
+=== RUN   TestNegative_ChannelMismatch
+--- PASS: TestNegative_ChannelMismatch (0.00s)
+=== RUN   TestNegative_PackageManagedSelfUpdate
+--- PASS: TestNegative_PackageManagedSelfUpdate (0.00s)
+=== RUN   TestNegative_ActiveWorkBlocksApply
+--- PASS: TestNegative_ActiveWorkBlocksApply (0.00s)
+=== RUN   TestNegative_HTTPErrorOnManifest
+--- PASS: TestNegative_HTTPErrorOnManifest (0.01s)
+=== RUN   TestNegative_UnsignedManifest
+--- PASS: TestNegative_UnsignedManifest (0.00s)
+=== RUN   TestNegative_CorruptArchive
+--- PASS: TestNegative_CorruptArchive (0.00s)
+=== RUN   TestNegative_PathTraversal
+--- PASS: TestNegative_PathTraversal (0.00s)
+=== RUN   TestNegative_TooLargeArchive
+--- PASS: TestNegative_TooLargeArchive (0.00s)
+=== RUN   TestNegative_ManualInstallArtifact
+--- PASS: TestNegative_ManualInstallArtifact (0.00s)
+=== RUN   TestNegative_RollbackNoBackup
+--- PASS: TestNegative_RollbackNoBackup (0.01s)
+=== RUN   TestNegative_UpdatePlanChecksumVerification
+--- PASS: TestNegative_UpdatePlanChecksumVerification (0.00s)
+=== RUN   TestNegative_VersionComparisonEdgeCases
+--- PASS: TestNegative_VersionComparisonEdgeCases (0.00s)
+=== RUN   TestServiceCheckAndApply
+--- PASS: TestServiceCheckAndApply (0.00s)
+=== RUN   TestServiceBlocksPackageManagedSelfUpdate
+--- PASS: TestServiceBlocksPackageManagedSelfUpdate (0.00s)
+=== RUN   TestServiceBlocksUpdateWhenActiveWorkPresent
+--- PASS: TestServiceBlocksUpdateWhenActiveWorkPresent (0.00s)
+=== RUN   TestServiceRejectsUnsignedManifest
+--- PASS: TestServiceRejectsUnsignedManifest (0.00s)
+=== RUN   TestServiceAcceptsDetachedManifestSignature
+--- PASS: TestServiceAcceptsDetachedManifestSignature (0.01s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/internal/update	0.105s
+=== RUN   TestFindBootstrapRequiresTokenAndRedactsNothingInReturnedValue
+--- PASS: TestFindBootstrapRequiresTokenAndRedactsNothingInReturnedValue (0.00s)
+=== RUN   TestParseBootstrapURLAcceptsPersistedFragmentToken
+--- PASS: TestParseBootstrapURLAcceptsPersistedFragmentToken (0.00s)
+=== RUN   TestBootstrapTokenFromURLExchangesFragmentToken
+--- PASS: TestBootstrapTokenFromURLExchangesFragmentToken (0.00s)
+=== RUN   TestCopyProfileTreeSkipsSymlinksAndCycles
+--- PASS: TestCopyProfileTreeSkipsSymlinksAndCycles (0.00s)
+=== RUN   TestNotAuthenticatedIsMachineClassifiable
+--- PASS: TestNotAuthenticatedIsMachineClassifiable (0.00s)
+=== RUN   TestResolveE2ERootUsesExplicitNonTemporaryDirectory
+--- PASS: TestResolveE2ERootUsesExplicitNonTemporaryDirectory (0.00s)
+=== RUN   TestResolveE2ERootRejectsNonEmptyExplicitDirectory
+--- PASS: TestResolveE2ERootRejectsNonEmptyExplicitDirectory (0.00s)
+=== RUN   TestResolveE2ERootRejectsSymlink
+--- PASS: TestResolveE2ERootRejectsSymlink (0.00s)
+=== RUN   TestResolveE2ERootRejectsOpenPermissions
+--- PASS: TestResolveE2ERootRejectsOpenPermissions (0.00s)
+=== RUN   TestResolveE2ERootCreatesDisposableTemporaryDirectory
+--- PASS: TestResolveE2ERootCreatesDisposableTemporaryDirectory (0.00s)
+=== RUN   TestResolveE2EProfileSourceUsesHostHomeNotProviderHome
+--- PASS: TestResolveE2EProfileSourceUsesHostHomeNotProviderHome (0.00s)
+=== RUN   TestResolveE2EProfileSourceHonorsExplicitOverride
+--- PASS: TestResolveE2EProfileSourceHonorsExplicitOverride (0.00s)
+=== RUN   TestProviderMarkerRequiresLiteralMarkerAndSanitizesANSI
+--- PASS: TestProviderMarkerRequiresLiteralMarkerAndSanitizesANSI (0.00s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/scripts	0.047s
+?   	github.com/kivervinicius/ai-cli/scripts/loadtest	[no test files]
+=== RUN   TestWriteSignedManifestSignsPublishedBytes
+--- PASS: TestWriteSignedManifestSignsPublishedBytes (0.01s)
+PASS
+ok  	github.com/kivervinicius/ai-cli/scripts/sign-update-manifest	0.028s
+?   	github.com/kivervinicius/ai-cli/web/node_modules/flatted/golang/pkg/flatted	[no test files]
+
+ RUN  v3.2.7 /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/ai-manager/web
+
+ ✓ src/app/routes.test.ts (9 tests) 19ms
+ ✓ src/design-system/theme/theme.test.ts (12 tests) 30ms
+ ✓ src/services/WorkspaceLayoutService.test.ts (6 tests) 14ms
+ ✓ src/workspace/presentation.test.ts (22 tests) 121ms
+ ✓ src/features/settings/intelligenceProfiles.test.ts (3 tests) 54ms
+ ✓ src/api.test.ts (8 tests) 85ms
+ ✓ src/features/projects/useProjectRailOutline.test.ts (4 tests) 58ms
+ ✓ src/nexus/api.test.ts (14 tests) 39ms
+ ✓ src/features/usage/usageModel.test.ts (5 tests) 30ms
+ ✓ src/features/work/planBuilderModel.test.ts (5 tests) 48ms
+ ✓ src/workspace/state.test.ts (8 tests) 23ms
+ ✓ src/features/work/flowModel.test.ts (14 tests) 79ms
+ ✓ src/app/documentTitle.test.ts (6 tests) 27ms
+ ✓ src/nexus/agentTerminalModel.test.ts (16 tests) 29ms
+ ✓ src/workspace/arrangePresets.test.ts (9 tests) 20ms
+ ✓ src/features/work/AttentionCenter.test.ts (6 tests) 7ms
+ ✓ src/features/work/directSessionModel.test.ts (8 tests) 6ms
+ ✓ src/app/maestroHonesty.test.ts (2 tests) 8ms
+ ✓ src/nexus/terminalProtocol.test.ts (7 tests) 19ms
+ ✓ src/features/overview/overviewResumeModel.test.ts (2 tests) 24ms
+ ✓ src/app/sessionModel.test.ts (2 tests) 3ms
+ ✓ src/app/activityModel.test.ts (1 test) 16ms
+ ✓ src/workspace/ptyLiveChrome.test.ts (4 tests) 94ms
+ ✓ src/workspace/arrange.test.ts (12 tests) 20ms
+ ✓ src/i18n/i18n.test.ts (7 tests) 60ms
+ ✓ src/features/projects/projectRail.test.ts (4 tests) 31ms
+ ✓ src/features/projects/projectDirectoryPicker.test.ts (2 tests) 34ms
+ ✓ src/workspace/surfaceAttention.test.ts (6 tests) 13ms
+ ✓ src/app/workspaceMissionRoute.test.ts (3 tests) 35ms
+ ✓ src/keyboard/KeyboardShortcutRegistry.test.ts (4 tests) 25ms
+ ✓ src/app/workspaceSurfaceStyles.test.ts (2 tests) 40ms
+ ✓ src/app/commands/registry.test.ts (4 tests) 16ms
+ ✓ src/nexus/terminalFitModel.test.ts (3 tests) 11ms
+ ✓ src/features/work/composerSessionModel.test.ts (1 test) 60ms
+ ✓ src/features/agents/askAgentModel.test.ts (2 tests) 10ms
+ ✓ src/app/attentionRadarModel.test.ts (7 tests) 74ms
+ ✓ src/features/work/missionAutonomyModel.test.ts (1 test) 35ms
+ ✓ src/nexus/terminalUsability.test.ts (6 tests) 45ms
+ ✓ src/nexus/terminalSettings.test.ts (6 tests) 27ms
+ ✓ src/workspace/model.test.ts (14 tests) 59ms
+ ✓ src/nexus/agentRecover.test.ts (4 tests) 44ms
+ ✓ src/workspace/taskbarHonesty.test.ts (2 tests) 6ms
+ ✓ src/components/AttentionNotification.test.ts (5 tests) 8ms
+ ✓ src/features/agents/NewAgentModal.test.tsx (1 test) 15ms
+ ✓ src/features/work/flowCanvasInput.test.ts (2 tests) 14ms
+ ✓ src/components/terminalViewModel.test.ts (3 tests) 16ms
+ ✓ src/features/overview/overviewRecover.test.ts (5 tests) 9ms
+ ✓ src/features/work/clarificationModel.test.ts (2 tests) 11ms
+ ✓ src/notifications/attentionDelivery.test.ts (2 tests) 10ms
+ ✓ src/app/tour/tour.test.ts (5 tests) 18ms
+ ✓ src/notifications/inAppNotificationModel.test.ts (7 tests) 14ms
+ ✓ src/app/projectSelection.test.ts (3 tests) 38ms
+ ✓ src/features/agents/terminalSkillsAndAlias.test.ts (3 tests) 16ms
+ ✓ src/notifications/notificationModel.test.ts (2 tests) 22ms
+ ✓ src/features/work/flowRunModel.test.ts (3 tests) 21ms
+ ✓ src/platform/platformBridge.test.ts (8 tests) 18ms
+ ✓ src/app/surfaces.test.ts (7 tests) 23ms
+ ✓ src/features/work/composerModel.test.ts (6 tests) 54ms
+ ✓ src/features/work/flowRunFilter.test.ts (2 tests) 5ms
+ ✓ src/components/attentionText.test.ts (2 tests) 4ms
+ ✓ src/app/routerIntegration.test.tsx (3 tests) 34ms
+ ✓ src/lib/safeArray.test.ts (3 tests) 14ms
+ ✓ src/notifications/attentionPushCopy.test.ts (3 tests) 3ms
+ ✓ src/features/work/planBuilderScheduling.test.ts (1 test) 4ms
+ ✓ src/app/versionHonesty.test.ts (2 tests) 11ms
+ ✓ src/design-system/primitives/ContextMenu.test.ts (1 test) 3ms
+ ✓ src/app/runtimeAgentMapping.test.ts (2 tests) 21ms
+
+ Test Files  67 passed (67)
+      Tests  346 passed (346)
+   Start at  00:51:46
+   Duration  13.19s (transform 6.05s, setup 0ms, collect 18.66s, tests 1.90s, environment 60ms, prepare 22.87s)
+
+Version consistency PASS: 0.5.0-beta.23

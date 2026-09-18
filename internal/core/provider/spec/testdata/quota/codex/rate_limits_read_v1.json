@@ -1,0 +1,17 @@
+{
+  "ordinaryUsageAllowed": true,
+  "accountId": "acct-demo",
+  "rateLimits": {
+    "limitId": "codex",
+    "primary": {
+      "usedPercent": 28.0,
+      "windowDurationMins": 300,
+      "resetsAt": 1780000000
+    },
+    "secondary": {
+      "usedPercent": 11.0,
+      "windowDurationMins": 10080,
+      "resetsAt": 1780600000
+    }
+  }
+}

@@ -1,21 +1,31 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Save, SlidersHorizontal } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card, EmptyState, Input, Select, Spinner } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { Agent, AgentConfig, ConfigImpact } from '../../types';
-const providers = ['', 'codex', 'claude', 'gemini', 'opencode', 'agy', 'cursor'].map((value) => ({
-  value,
-  label: value || 'Automatic',
-}));
+
 export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: () => void }> = ({
   agent,
   onApplied,
 }) => {
+  const { t } = useTranslation();
+
+  const providers = useMemo(
+    () =>
+      ['', 'codex', 'claude', 'gemini', 'opencode', 'agy', 'cursor'].map((value) => ({
+        value,
+        label: value || t('agentConfig.automatic', 'Automatic'),
+      })),
+    [t],
+  );
+
   const [config, setConfig] = useState<AgentConfig>({ provider: '', profile: 'default' });
   const [impact, setImpact] = useState<ConfigImpact | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
   useEffect(() => {
     if (!agent) {
       setLoading(false);
@@ -28,10 +38,12 @@ export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: ()
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
   }, [agent]);
+
   const update = <K extends keyof AgentConfig>(key: K, value: AgentConfig[K]) => {
     setConfig((current) => ({ ...current, [key]: value }));
     setImpact(null);
   };
+
   const preview = async () => {
     if (!agent) return;
     setBusy(true);
@@ -44,6 +56,7 @@ export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: ()
       setBusy(false);
     }
   };
+
   const apply = async () => {
     if (!agent) return;
     setBusy(true);
@@ -57,6 +70,7 @@ export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: ()
       setBusy(false);
     }
   };
+
   const modeTone = useMemo(
     () =>
       impact?.mode === 'NEW_SESSION'
@@ -66,34 +80,41 @@ export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: ()
           : 'success',
     [impact],
   );
+
   if (loading)
     return (
       <div className="nx-surface-center">
-        <Spinner label="Loading Agent configuration…" />
+        <Spinner label={t('agentConfig.loading', 'Loading Agent configuration…')} />
       </div>
     );
+
   if (!agent)
     return (
       <div className="nx-surface-center">
         <EmptyState
           icon={<SlidersHorizontal size={22} />}
-          title="Agent unavailable"
-          hint="The selected Agent no longer exists."
+          title={t('agentConfig.unavailable', 'Agent unavailable')}
+          hint={t('agentConfig.unavailableHint', 'The selected Agent no longer exists.')}
         />
       </div>
     );
+
   return (
     <div className="nx-surface-scroll">
       <div className="nx-page-header">
         <div>
-          <span className="nx-eyebrow">Agent configuration</span>
+          <span className="nx-eyebrow">{t('agentConfig.eyebrow', 'Agent configuration')}</span>
           <h1>{agent.name}</h1>
           <p>
-            Configuration is versioned. Safe Apply previews continuity impact before the runtime
-            changes.
+            {t(
+              'agentConfig.desc',
+              'Configuration is versioned. Safe Apply previews continuity impact before the runtime changes.',
+            )}
           </p>
         </div>
-        <Badge>{agent.continuity_status || 'continuity unknown'}</Badge>
+        <Badge>
+          {agent.continuity_status || t('agentConfig.continuityUnknown', 'continuity unknown')}
+        </Badge>
       </div>
       {error && (
         <Card className="nx-inline-error">
@@ -103,15 +124,15 @@ export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: ()
       )}
       <div className="nx-config-grid">
         <Card className="nx-config-card">
-          <h3>Provider & account</h3>
+          <h3>{t('agentConfig.providerAndAccount', 'Provider & account')}</h3>
           <Select
-            label="Provider"
+            label={t('agentConfig.provider', 'Provider')}
             value={config.provider || ''}
             onChange={(value) => update('provider', value)}
             options={providers}
           />
           <label>
-            Profile
+            {t('agentConfig.profile', 'Profile')}
             <Input
               value={config.profile || 'default'}
               onChange={(value) => update('profile', value)}
@@ -119,63 +140,66 @@ export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: ()
             />
           </label>
           <label>
-            Model
+            {t('agentConfig.model', 'Model')}
             <Input
               value={config.model || ''}
               onChange={(value) => update('model', value || undefined)}
-              placeholder="Provider default"
+              placeholder={t('agentConfig.providerDefault', 'Provider default')}
               mono
             />
           </label>
         </Card>
         <Card className="nx-config-card">
-          <h3>Execution</h3>
+          <h3>{t('agentConfig.execution', 'Execution')}</h3>
           <label>
-            Workspace override
+            {t('agentConfig.workspaceOverride', 'Workspace override')}
             <Input
               value={config.workspace || ''}
               onChange={(value) => update('workspace', value || undefined)}
-              placeholder="Inherit Project path"
+              placeholder={t('agentConfig.inheritProjectPath', 'Inherit Project path')}
               mono
             />
           </label>
           <Select
-            label="Isolation"
+            label={t('agentConfig.isolation', 'Isolation')}
             value={config.isolation || ''}
             onChange={(value) => update('isolation', value || undefined)}
             options={[
-              { value: '', label: 'Project default' },
-              { value: 'project', label: 'Project' },
-              { value: 'worktree', label: 'Worktree' },
-              { value: 'none', label: 'None' },
+              { value: '', label: t('agentConfig.projectDefault', 'Project default') },
+              { value: 'project', label: t('agentConfig.isolationProject', 'Project') },
+              { value: 'worktree', label: t('agentConfig.isolationWorktree', 'Worktree') },
+              { value: 'none', label: t('agentConfig.isolationNone', 'None') },
             ]}
           />
           <Select
-            label="Continuity"
+            label={t('agentConfig.continuity', 'Continuity')}
             value={config.continuity_policy || ''}
             onChange={(value) => update('continuity_policy', value || undefined)}
             options={[
-              { value: '', label: 'Automatic' },
-              { value: 'native', label: 'Native resume only' },
-              { value: 'new_session', label: 'Always new session' },
+              { value: '', label: t('agentConfig.automatic', 'Automatic') },
+              { value: 'native', label: t('agentConfig.continuityNative', 'Native resume only') },
+              {
+                value: 'new_session',
+                label: t('agentConfig.continuityNewSession', 'Always new session'),
+              },
             ]}
           />
         </Card>
         <Card className="nx-config-card">
-          <h3>Maestro & allocation</h3>
+          <h3>{t('agentConfig.maestroAndAllocation', 'Maestro & allocation')}</h3>
           <Select
-            label="Maestro"
+            label={t('agentConfig.maestro', 'Maestro')}
             value={config.maestro_mode || ''}
             onChange={(value) => update('maestro_mode', value || undefined)}
             options={[
-              { value: '', label: 'Project default' },
-              { value: 'OFF', label: 'Off' },
-              { value: 'ASSIST', label: 'Assist' },
-              { value: 'ORCHESTRATE', label: 'Orchestrate' },
+              { value: '', label: t('agentConfig.projectDefault', 'Project default') },
+              { value: 'OFF', label: t('agentConfig.maestroOff', 'Off') },
+              { value: 'ASSIST', label: t('agentConfig.maestroAssist', 'Assist') },
+              { value: 'ORCHESTRATE', label: t('agentConfig.maestroOrchestrate', 'Orchestrate') },
             ]}
           />
           <Select
-            label="Prefer provider"
+            label={t('agentConfig.preferProvider', 'Prefer provider')}
             value={config.allocation?.prefer_provider || ''}
             onChange={(value) =>
               update('allocation', { ...config.allocation, prefer_provider: value || undefined })
@@ -183,7 +207,7 @@ export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: ()
             options={providers}
           />
           <label>
-            Max concurrent
+            {t('agentConfig.maxConcurrent', 'Max concurrent')}
             <Input
               value={String(config.allocation?.max_concurrent || '')}
               onChange={(value) =>
@@ -204,15 +228,18 @@ export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: ()
           </div>
           <strong>
             {impact.requires_new_session
-              ? 'New provider session required'
+              ? t('agentConfig.newSessionRequired', 'New provider session required')
               : impact.requires_restart
-                ? 'Runtime restart required'
-                : 'Can be applied live'}
+                ? t('agentConfig.restartRequired', 'Runtime restart required')
+                : t('agentConfig.canApplyLive', 'Can be applied live')}
           </strong>
           <p>
             {(impact.changed_fields || []).length
-              ? `Changed: ${(impact.changed_fields || []).join(', ')}`
-              : 'No configuration differences detected.'}
+              ? t('agentConfig.changed', {
+                  fields: (impact.changed_fields || []).join(', '),
+                  defaultValue: `Changed: ${(impact.changed_fields || []).join(', ')}`,
+                })
+              : t('agentConfig.noDifferences', 'No configuration differences detected.')}
           </p>
           {(impact.warnings || []).map((warning) => (
             <small key={warning}>{warning}</small>
@@ -221,10 +248,10 @@ export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: ()
       )}
       <div className="nx-config-actions">
         <Button onClick={preview} disabled={busy}>
-          Preview impact
+          {t('agentConfig.previewImpact', 'Preview impact')}
         </Button>
         <Button tone="brand" onClick={apply} disabled={busy}>
-          <Save size={14} /> Safe Apply
+          <Save size={14} /> {t('agentConfig.safeApply', 'Safe Apply')}
         </Button>
       </div>
     </div>

@@ -1,12 +1,14 @@
 package driver
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	"github.com/IAPro-Community/nexus/internal/core/security"
 )
 
 // bootstrapProfile prepares a profile with non-credential conversation
@@ -25,13 +27,29 @@ func bootstrapProfile(provider string, p model.Profile) (string, error) {
 	}
 	hostHome := security.FindHostHome()
 	if hostHome == "" {
+		if provider == "codex" {
+			// Still run Prepare for CrossAccountResume seed across Nexus profiles.
+			_ = codex.New().Prepare(context.Background(), p)
+			home, _ = config.ProfileHome(provider, p.Name)
+		}
 		return home, nil
 	}
 	switch provider {
 	case "codex":
 		linkConversationArtifacts(home, filepath.Join(hostHome, ".codex"), []string{
-			"session_index.jsonl", "thread_history_1.sqlite", "thread_history_1.sqlite-wal", "thread_history_1.sqlite-shm", "sessions",
+			"rules", "skills", "customizations",
 		})
+		// Ensure isolated session dirs exist (do not symlink host sessions).
+		_ = os.MkdirAll(filepath.Join(home, "sessions"), 0700)
+		// Supervised launches previously skipped adapter.Prepare, so
+		// CrossAccountResume never seeded into CODEX_HOME. Mirror the direct path.
+		if err := codex.New().Prepare(context.Background(), p); err != nil {
+			return "", err
+		}
+		home, err = config.ProfileHome(provider, p.Name)
+		if err != nil {
+			return "", err
+		}
 	case "agy":
 		linkConversationArtifacts(filepath.Join(home, ".gemini"), filepath.Join(hostHome, ".gemini"), []string{
 			"antigravity-cli/history.jsonl", "antigravity-cli/conversation_summaries.db",

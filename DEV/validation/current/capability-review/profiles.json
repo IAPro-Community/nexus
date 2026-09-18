@@ -1,0 +1,204 @@
+[
+  {
+    "provider": "agy",
+    "name": "kiveromegasistemas",
+    "account_scope": {
+      "provider_id": "agy",
+      "profile_id": "kiveromegasistemas",
+      "account_id": "e3f534e1c8ac07869f49619eaad78c6b",
+      "identity_version": "1"
+    },
+    "created_at": "2026-08-27T12:02:10.365659575-04:00",
+    "account": {
+      "account_scope": {
+        "provider_id": "agy",
+        "profile_id": "kiveromegasistemas",
+        "account_id": "e3f534e1c8ac07869f49619eaad78c6b",
+        "identity_version": "1"
+      },
+      "email": "kiver.omegasistemas@gmail.com",
+      "plan": "Google AI Pro",
+      "status": "Token expired",
+      "health": "AUTH_REQUIRED",
+      "authenticated": false,
+      "expires_at": "0001-01-01T00:00:00Z",
+      "usage": {
+        "provider_id": "agy",
+        "profile_id": "kiveromegasistemas",
+        "status": "UNKNOWN",
+        "source": "NONE",
+        "fetched_at": "0001-01-01T00:00:00Z",
+        "windows": null,
+        "account_scope": {
+          "provider_id": "",
+          "profile_id": "",
+          "account_id": "",
+          "identity_version": ""
+        }
+      }
+    },
+    "is_default": true
+  },
+  {
+    "provider": "agy",
+    "name": "kivervinicius-gmail",
+    "account_scope": {
+      "provider_id": "agy",
+      "profile_id": "kivervinicius-gmail",
+      "account_id": "105629e7e7db3018fcd36b3c4285ebbb",
+      "identity_version": "1"
+    },
+    "created_at": "2026-08-27T12:01:11.75178486-04:00",
+    "account": {
+      "account_scope": {
+        "provider_id": "agy",
+        "profile_id": "kivervinicius-gmail",
+        "account_id": "105629e7e7db3018fcd36b3c4285ebbb",
+        "identity_version": "1"
+      },
+      "email": "kivervinicius@gmail.com",
+      "plan": "Google AI Pro",
+      "status": "Token expired",
+      "health": "AUTH_REQUIRED",
+      "authenticated": false,
+      "expires_at": "0001-01-01T00:00:00Z",
+      "usage": {
+        "provider_id": "agy",
+        "profile_id": "kivervinicius-gmail",
+        "status": "UNKNOWN",
+        "source": "NONE",
+        "fetched_at": "0001-01-01T00:00:00Z",
+        "windows": null,
+        "account_scope": {
+          "provider_id": "",
+          "profile_id": "",
+          "account_id": "",
+          "identity_version": ""
+        }
+      }
+    },
+    "is_default": false
+  },
+  {
+    "provider": "codex",
+    "name": "kiver.omegasistemas",
+    "account_scope": {
+      "provider_id": "codex",
+      "profile_id": "kiver.omegasistemas",
+      "account_id": "3551c29fcaafddddd0223d9526f5a5fd",
+      "identity_version": "14"
+    },
+    "created_at": "2026-08-27T11:57:43.188042577-04:00",
+    "account": {
+      "account_scope": {
+        "provider_id": "codex",
+        "profile_id": "kiver.omegasistemas",
+        "account_id": "3551c29fcaafddddd0223d9526f5a5fd",
+        "identity_version": "14"
+      },
+      "email": "kiver@omegasistemas.net.br",
+      "external_account_id": "802cf130-605a-4489-94f4-a6570dbdf8e7",
+      "plan": "ChatGPT Plus",
+      "status": "Subscription expired",
+      "health": "AUTH_REQUIRED",
+      "authenticated": false,
+      "expires_at": "2026-09-01T21:32:18Z",
+      "usage": {
+        "provider_id": "codex",
+        "profile_id": "kiver.omegasistemas",
+        "status": "UNKNOWN",
+        "source": "NONE",
+        "fetched_at": "0001-01-01T00:00:00Z",
+        "windows": null,
+        "account_scope": {
+          "provider_id": "",
+          "profile_id": "",
+          "account_id": "",
+          "identity_version": ""
+        }
+      }
+    },
+    "is_default": false
+  },
+  {
+    "provider": "codex",
+    "name": "kivergmail",
+    "account_scope": {
+      "provider_id": "codex",
+      "profile_id": "kivergmail",
+      "account_id": "81d85f3c23d959a5b447fbab6b4092d2",
+      "identity_version": "10"
+    },
+    "created_at": "2026-08-27T11:58:13.961565318-04:00",
+    "account": {
+      "account_scope": {
+        "provider_id": "codex",
+        "profile_id": "kivergmail",
+        "account_id": "81d85f3c23d959a5b447fbab6b4092d2",
+        "identity_version": "10"
+      },
+      "email": "kiver.omegaedu@gmail.com",
+      "external_account_id": "9cba8371-db95-468c-ad00-02e9ceddcb3e",
+      "plan": "ChatGPT Plus",
+      "status": "Authenticated",
+      "health": "HEALTHY",
+      "authenticated": true,
+      "expires_at": "2026-09-26T12:25:11Z",
+      "usage": {
+        "provider_id": "codex",
+        "profile_id": "kivergmail",
+        "status": "UNKNOWN",
+        "source": "NONE",
+        "fetched_at": "0001-01-01T00:00:00Z",
+        "windows": null,
+        "account_scope": {
+          "provider_id": "",
+          "profile_id": "",
+          "account_id": "",
+          "identity_version": ""
+        }
+      }
+    },
+    "is_default": true
+  },
+  {
+    "provider": "opencode",
+    "name": "opencode",
+    "account_scope": {
+      "provider_id": "opencode",
+      "profile_id": "opencode",
+      "account_id": "a85a45ad26d42c4a428e01149bc0d84d",
+      "identity_version": ""
+    },
+    "created_at": "2026-09-04T10:32:41.863474598-04:00",
+    "account": {
+      "account_scope": {
+        "provider_id": "opencode",
+        "profile_id": "opencode",
+        "account_id": "a85a45ad26d42c4a428e01149bc0d84d",
+        "identity_version": ""
+      },
+      "email": "",
+      "plan": "OpenCode Provider",
+      "status": "Not authenticated",
+      "health": "AUTH_REQUIRED",
+      "authenticated": false,
+      "expires_at": "0001-01-01T00:00:00Z",
+      "usage": {
+        "provider_id": "opencode",
+        "profile_id": "opencode",
+        "status": "UNKNOWN",
+        "source": "NONE",
+        "fetched_at": "0001-01-01T00:00:00Z",
+        "windows": null,
+        "account_scope": {
+          "provider_id": "",
+          "profile_id": "",
+          "account_id": "",
+          "identity_version": ""
+        }
+      }
+    },
+    "is_default": true
+  }
+]

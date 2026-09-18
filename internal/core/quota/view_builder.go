@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // BuildQuotaView transforms a UsageSnapshot into a QuotaView.
@@ -43,6 +43,8 @@ func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
 	for _, w := range snap.Windows {
 		gKey := w.Group
 		remaining := 0.0
+		kind := w.Kind
+		status := string(snap.Status)
 		if w.RemainingPercent != nil {
 			remaining = *w.RemainingPercent
 			if remaining < 0 {
@@ -51,24 +53,31 @@ func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
 			if remaining > 100 {
 				remaining = 100
 			}
+		} else {
+			// Missing percent must not become synthetic 0% exhausted.
+			kind = "unknown"
+			if status == "" || status == string(model.UsageLive) || status == string(model.UsageCached) || status == string(model.UsageEstimated) {
+				status = string(model.UsageUnknown)
+			}
 		}
 
 		label := WindowLabel(w.Kind)
 		_ = multiGroup
 		_ = gKey
 
-		bar := RenderBarWithPercent(remaining, string(snap.Status), 10)
+		bar := RenderBarWithPercent(remaining, status, 10)
 
 		// For multi-group AGY: if the group is "gemini" and kind is "5h"/"weekly",
 		// add model context to the label when ambiguous.
 		displayLabel := label
 
 		appended := Window{
-			Kind:      w.Kind,
+			Kind:      kind,
 			Label:     displayLabel,
 			Remaining: remaining,
 			ResetDesc: w.ResetDescription,
-			Status:    string(snap.Status),
+			ResetTime: w.ResetTime,
+			Status:    status,
 			Bar:       bar,
 		}
 		groupedWindows[gKey] = append(groupedWindows[gKey], appended)
@@ -77,6 +86,13 @@ func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
 	// Build ModelGroups in stable order.
 	for _, gKey := range groupKeys {
 		displayName := GroupDisplayName(gKey)
+		// Codex exposes a single GPT capacity pool, but the internal pool key
+		// is shared with AGY's Claude/GPT pool. Never leak that shared AGY label
+		// into Codex account surfaces: the provider identity is the truthful
+		// subject of this quota view.
+		if snap.ProviderID == "codex" {
+			displayName = "Codex"
+		}
 		// When there's only one group with key "" and no other groups,
 		// use the provider-specific model name as group display.
 		if !multiGroup && gKey == "" && snap.ModelName != "" {

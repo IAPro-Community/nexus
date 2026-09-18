@@ -70,13 +70,19 @@ export class KeyboardShortcutRegistry {
     );
 
     // If focus is inside terminal, NEVER hijack standard shell / terminal keys
+    // Only allow safe IDE triggers (Palette, Zen Focus, Rail Drawer, Tab Switch, New/Close Terminal)
     if (isTerminalTarget && this.activeScope !== 'dialog') {
-      // Allow only Global palette triggers like Ctrl+Shift+P or Ctrl+K if desired,
-      // but DO NOT hijack Ctrl+C, Ctrl+V, Ctrl+Shift+C, Ctrl+Shift+V, Enter, Arrows, etc.
-      const isGlobalCmd =
-        (event.ctrlKey || event.metaKey) &&
-        (event.key.toLowerCase() === 'k' || (event.shiftKey && event.key.toLowerCase() === 'p'));
-      if (!isGlobalCmd) {
+      const keyLower = event.key.toLowerCase();
+      const isCtrlOrMeta = event.ctrlKey || event.metaKey;
+      const isPalette = isCtrlOrMeta && (keyLower === 'k' || (event.shiftKey && keyLower === 'p'));
+      const isZenKey = event.key === 'F11' || (isCtrlOrMeta && event.shiftKey && keyLower === 'f');
+      const isRailToggle = isCtrlOrMeta && keyLower === 'b';
+      const isAltTab =
+        event.altKey && !event.ctrlKey && !event.metaKey && /^[1-9]$/.test(event.key);
+      const isTerminalMgmt =
+        isCtrlOrMeta && event.shiftKey && (keyLower === 't' || keyLower === 'w');
+
+      if (!isPalette && !isZenKey && !isRailToggle && !isAltTab && !isTerminalMgmt) {
         return;
       }
     }

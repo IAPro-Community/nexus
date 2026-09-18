@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 type AGYDriver struct{}
@@ -19,7 +20,7 @@ func NewAGYDriver() *AGYDriver { return &AGYDriver{} }
 func (d *AGYDriver) ProviderID() string { return "agy" }
 
 func (d *AGYDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	bin, err := runtime.LookPath("agy")
+	bin, err := spec.MustGet("agy").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "agy binary not found in PATH"}, nil
 	}
@@ -124,7 +125,8 @@ func (d *AGYDriver) Capabilities(ctx context.Context, p model.Profile) ControlCa
 }
 
 func (d *AGYDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs []string) (string, []string, []string, error) {
-	bin, err := runtime.LookPath("agy")
+	s := spec.MustGet("agy")
+	bin, err := s.ResolveBinary()
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -133,16 +135,15 @@ func (d *AGYDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs
 	if err != nil {
 		return "", nil, nil, err
 	}
-	env := runtime.EnvSet(os.Environ(), map[string]string{
-		"HOME":                             home,
-		"AI_PROFILE":                       p.Name,
-		"AI_PROVIDER":                      "agy",
-		"PYTHON_KEYRING_BACKEND":           "keyring.backends.null.Keyring",
-		"AI_HOST_DBUS_SESSION_BUS_ADDRESS": os.Getenv("DBUS_SESSION_BUS_ADDRESS"),
-		"PATH":                             runtime.EnhancedPATH(filepath.Dir(bin)),
-	}, "DBUS_SESSION_BUS_ADDRESS", "GNOME_KEYRING_CONTROL", "GNOME_KEYRING_PID")
+	env := s.OverlayEnv(os.Environ(), home, filepath.Dir(bin), p.Name)
 
-	wrappedBin, wrappedArgs := runtime.WrapWithIsolatedSecretService(bin, extraArgs)
+	wrappedBin, wrappedArgs := bin, extraArgs
+	// Keep supervised AGY launches prompt-free by default. The isolated
+	// Secret Service is available as an explicit opt-in for profiles that
+	// genuinely require keyring-backed credentials.
+	if os.Getenv("NEXUS_AGY_ENABLE_SECRET_SERVICE") == "1" {
+		wrappedBin, wrappedArgs = runtime.WrapWithIsolatedSecretService(bin, extraArgs)
+	}
 	return wrappedBin, wrappedArgs, env, nil
 }
 
@@ -157,9 +158,9 @@ func (d *AGYDriver) BuildResumeArgs(ctx context.Context, p model.Profile, provid
 	if strings.TrimSpace(providerSessionID) == "" {
 		return nil, fmt.Errorf("cannot resume agy session without valid session ID")
 	}
-	return []string{"--conversation=" + providerSessionID}, nil
+	return spec.MustGet("agy").Resume(providerSessionID), nil
 }
 
 func (d *AGYDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, kickoffPrompt string) ([]string, error) {
-	return []string{"-p", kickoffPrompt}, nil
+	return spec.MustGet("agy").Kickoff(kickoffPrompt), nil
 }

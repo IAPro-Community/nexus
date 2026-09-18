@@ -25,6 +25,23 @@
   }
 }
 
+@mixin nx-touch-target {
+  min-width: var(--nx-touch-min, 44px);
+  min-height: var(--nx-touch-min, 44px);
+}
+
+@mixin nx-phone {
+  @media (max-width: 820px) {
+    @content;
+  }
+}
+
+@mixin nx-coarse-pointer {
+  @media (pointer: coarse), (max-width: 820px) {
+    @content;
+  }
+}
+
 @mixin custom-scrollbar {
   &::-webkit-scrollbar {
     width: 6px;

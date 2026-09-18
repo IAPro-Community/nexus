@@ -150,7 +150,7 @@ export const WelcomeModal: React.FC<{
                   </tr>
                   <tr>
                     <td>
-                      <code>/nexus help</code> ou <code>/ai help</code>
+                      <code>/nexus help</code>
                     </td>
                     <td>{t('welcome.slashHelp')}</td>
                   </tr>

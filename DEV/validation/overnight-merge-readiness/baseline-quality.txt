@@ -1,0 +1,8 @@
+Checking formatting...
+All matched files use Prettier code style!
+internal/core/provider/adapters/codex/cross_account_sessions.go:340:75: mergeSessionIndexEntry - result 0 (error) is always nil (unparam)
+func mergeSessionIndexEntry(home, sessionID string, indexPaths ...string) error {
+                                                                          ^
+1 issues:
+* unparam: 1
+make: *** [Makefile:83: lint-go] Error 1

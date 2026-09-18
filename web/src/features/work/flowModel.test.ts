@@ -4,6 +4,7 @@ import {
   executionWaves,
   expandStepLocalized,
   flowFromWorkPlan,
+  flowGraphSignature,
   removeStepLocalized,
   splitStepLocalized,
   topologicalOrder,
@@ -51,6 +52,7 @@ const fixture = (): WorkPlan => ({
           parallel_group: 'impl',
           role: 'implementer',
           assignment_strategy: 'CREATE',
+          skill_ids: ['backend'],
           maestro_skills: ['backend'],
           relevant_paths: ['internal'],
           acceptance_criteria: ['b'],
@@ -103,6 +105,15 @@ describe('Flow editor compatibility model', () => {
     const flow = flowFromWorkPlan(plan);
     expect(flow.policy).toBe('AUTONOMOUS');
     expect(flowFromWorkPlan(workPlanFromFlow(flow, plan))).toEqual(flow);
+  });
+
+  it('round-trips canonical skill_ids while retaining legacy aliases', () => {
+    const plan = fixture();
+    const flow = flowFromWorkPlan(plan);
+    expect(flow.steps.find((step) => step.id === 'B')?.skillIds).toEqual(['backend']);
+    const roundTrip = workPlanFromFlow(flow, plan);
+    expect(roundTrip.phases[0].packages[1].skill_ids).toEqual(['backend']);
+    expect(roundTrip.phases[0].packages[1].maestro_skills).toEqual(['backend']);
   });
 
   it('treats nullable API phase collections as empty', () => {
@@ -315,5 +326,18 @@ describe('Flow phase and localized expansion contracts', () => {
     expect(
       expanded.steps.find((step) => step.id === 'B')!.acceptanceCriteria.length,
     ).toBeGreaterThan(flow.steps.find((step) => step.id === 'B')!.acceptanceCriteria.length);
+  });
+});
+
+describe('flowGraphSignature', () => {
+  it('stays stable across cloned flow objects with the same steps', () => {
+    const flow = flowFromWorkPlan(fixture());
+    expect(flowGraphSignature({ ...flow, title: 'Other' })).toBe(flowGraphSignature(flow));
+  });
+
+  it('changes when a dependency is added', () => {
+    const flow = flowFromWorkPlan(fixture());
+    const next = updateStepLocalized(flow, 'C', { dependencies: ['A', 'B'] });
+    expect(flowGraphSignature(next)).not.toBe(flowGraphSignature(flow));
   });
 });

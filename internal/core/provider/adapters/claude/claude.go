@@ -8,11 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/classifier"
-	"github.com/kivervinicius/ai-cli/internal/core/config"
-	"github.com/kivervinicius/ai-cli/internal/core/model"
-	"github.com/kivervinicius/ai-cli/internal/core/security"
-	"github.com/kivervinicius/ai-cli/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // Adapter implements the Provider interface for Anthropic Claude Code.
@@ -40,7 +41,7 @@ func (a *Adapter) Capabilities() model.Capabilities {
 }
 
 func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
-	bin, err := runtime.LookPath("claude")
+	bin, err := spec.MustGet("claude").ResolveBinary()
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "binary not found in PATH"}
 	}
@@ -79,7 +80,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 	if err := a.Prepare(ctx, p); err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
 	}
-	bin, err := runtime.LookPath("claude")
+	bin, err := spec.MustGet("claude").ResolveBinary()
 	if err != nil {
 		return model.Failure{Kind: model.FailureProvider, Message: "claude binary not found"}, err
 	}
@@ -137,7 +138,7 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 		},
 	}
 
-	// 1. Check ~/.claude.json
+	// Identity from ~/.claude.json is informative but not proof of a live token.
 	claudeJson := filepath.Join(home, ".claude.json")
 	if data, err := os.ReadFile(claudeJson); err == nil {
 		var cData struct {
@@ -150,55 +151,230 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 		if json.Unmarshal(data, &cData) == nil {
 			if cData.OAuthAccount.Email != "" {
 				info.Email = cData.OAuthAccount.Email
-				info.Authenticated = true
-				info.Status = "Authenticated"
-				info.Health = model.HealthHealthy
-				return info
-			}
-			if cData.UserID != "" {
+			} else if cData.UserID != "" {
 				info.Email = cData.UserID
-				info.Authenticated = true
-				info.Status = "Authenticated"
-				info.Health = model.HealthHealthy
-				return info
 			}
 		}
 	}
 
-	// 2. Check credentials.json in .claude/
-	credFile := filepath.Join(home, ".claude", "credentials.json")
-	if st, err := os.Stat(credFile); err == nil && st.Size() > 0 {
+	cred, ok := readClaudeCredentials(home)
+	if !ok {
+		// Preserve prior fail-open for identity-only installs that never wrote
+		// a credentials file: email/userID in .claude.json still counts.
+		if info.Email != "" {
+			info.Authenticated = true
+			info.Status = "Authenticated"
+			info.Health = model.HealthHealthy
+		}
+		return info
+	}
+	if cred.Email != "" {
+		info.Email = cred.Email
+	}
+	hasToken := cred.AccessToken != "" || cred.RefreshToken != ""
+	if !hasToken && info.Email == "" {
+		return info
+	}
+	if !hasToken {
 		info.Authenticated = true
 		info.Status = "Authenticated"
 		info.Health = model.HealthHealthy
+		return info
 	}
 
+	applyClaudeTokenExpiry(&info, cred)
 	return info
 }
 
-func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
-	snap := model.UsageSnapshot{
-		ProviderID: string(a.ID()),
-		ProfileID:  p.Name,
-		Status:     model.UsageUnknown,
-		Source:     model.SourceNone,
-		FetchedAt:  time.Now(),
-	}
+type claudeCredentialBlob struct {
+	Email        string
+	AccessToken  string
+	RefreshToken string
+	ExpiresAt    time.Time
+	HasExpiry    bool
+}
 
-	root, err := config.ProfileRoot(string(a.ID()), p.Name)
-	if err != nil {
-		return snap
+func readClaudeCredentials(home string) (claudeCredentialBlob, bool) {
+	candidates := []string{
+		filepath.Join(home, ".claude", ".credentials.json"),
+		filepath.Join(home, ".claude", "credentials.json"),
 	}
+	for _, path := range candidates {
+		data, err := os.ReadFile(path)
+		if err != nil || len(data) == 0 {
+			continue
+		}
+		if cred, ok := parseClaudeCredentialsJSON(data); ok {
+			return cred, true
+		}
+	}
+	return claudeCredentialBlob{}, false
+}
 
-	quotaFile := filepath.Join(root, "home", "usage.json")
-	if data, err := os.ReadFile(quotaFile); err == nil {
-		var s model.UsageSnapshot
-		if json.Unmarshal(data, &s) == nil {
-			return s
+func parseClaudeCredentialsJSON(data []byte) (claudeCredentialBlob, bool) {
+	// Flat schema used by older Nexus writes / some Claude builds.
+	var flat struct {
+		OAuthAccount struct {
+			Email string `json:"email"`
+		} `json:"oauthAccount"`
+		AccessToken  string `json:"accessToken"`
+		RefreshToken string `json:"refreshToken"`
+		Email        string `json:"email"`
+		ExpiresAt    any    `json:"expiresAt"`
+		Expiry       any    `json:"expiry"`
+	}
+	if json.Unmarshal(data, &flat) == nil {
+		email := strings.TrimSpace(flat.OAuthAccount.Email)
+		if email == "" {
+			email = strings.TrimSpace(flat.Email)
+		}
+		access := strings.TrimSpace(flat.AccessToken)
+		refresh := strings.TrimSpace(flat.RefreshToken)
+		exp, hasExp := parseClaudeExpiry(flat.ExpiresAt)
+		if !hasExp {
+			exp, hasExp = parseClaudeExpiry(flat.Expiry)
+		}
+		if email != "" || access != "" || refresh != "" {
+			return claudeCredentialBlob{
+				Email: email, AccessToken: access, RefreshToken: refresh,
+				ExpiresAt: exp, HasExpiry: hasExp,
+			}, true
 		}
 	}
 
+	// Nested Claude Code schema: { "claudeAiOauth": { ... } }
+	var nested struct {
+		ClaudeAiOauth struct {
+			AccessToken  string `json:"accessToken"`
+			RefreshToken string `json:"refreshToken"`
+			ExpiresAt    any    `json:"expiresAt"`
+			Email        string `json:"email"`
+		} `json:"claudeAiOauth"`
+	}
+	if json.Unmarshal(data, &nested) == nil {
+		access := strings.TrimSpace(nested.ClaudeAiOauth.AccessToken)
+		refresh := strings.TrimSpace(nested.ClaudeAiOauth.RefreshToken)
+		email := strings.TrimSpace(nested.ClaudeAiOauth.Email)
+		exp, hasExp := parseClaudeExpiry(nested.ClaudeAiOauth.ExpiresAt)
+		if email != "" || access != "" || refresh != "" {
+			return claudeCredentialBlob{
+				Email: email, AccessToken: access, RefreshToken: refresh,
+				ExpiresAt: exp, HasExpiry: hasExp,
+			}, true
+		}
+	}
+	return claudeCredentialBlob{}, false
+}
+
+func parseClaudeExpiry(raw any) (time.Time, bool) {
+	switch v := raw.(type) {
+	case nil:
+		return time.Time{}, false
+	case float64:
+		// Claude Code commonly stores epoch milliseconds.
+		if v > 1e12 {
+			return time.UnixMilli(int64(v)).UTC(), true
+		}
+		if v > 1e9 {
+			return time.Unix(int64(v), 0).UTC(), true
+		}
+		return time.Time{}, false
+	case string:
+		s := strings.TrimSpace(v)
+		if s == "" {
+			return time.Time{}, false
+		}
+		if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+			return t.UTC(), true
+		}
+		if t, err := time.Parse(time.RFC3339, s); err == nil {
+			return t.UTC(), true
+		}
+		return time.Time{}, false
+	case json.Number:
+		f, err := v.Float64()
+		if err != nil {
+			return time.Time{}, false
+		}
+		return parseClaudeExpiry(f)
+	default:
+		return time.Time{}, false
+	}
+}
+
+func applyClaudeTokenExpiry(info *model.AccountInfo, cred claudeCredentialBlob) {
+	if !cred.HasExpiry {
+		// No parseable expiry: keep prior fail-open so we do not invent a verdict.
+		info.Authenticated = true
+		info.Status = "Authenticated"
+		info.Health = model.HealthHealthy
+		return
+	}
+	if time.Now().Before(cred.ExpiresAt) {
+		info.Authenticated = true
+		info.Status = "Authenticated"
+		info.Health = model.HealthHealthy
+		info.ExpiresAt = cred.ExpiresAt
+		return
+	}
+	info.ExpiresAt = cred.ExpiresAt
+	if strings.TrimSpace(cred.RefreshToken) != "" {
+		info.Authenticated = true
+		info.Status = "Token expired (refreshable by Claude CLI)"
+		info.Health = model.HealthDegraded
+		return
+	}
+	info.Authenticated = false
+	info.Status = "Token expired"
+	info.Health = model.HealthAuthRequired
+}
+
+func (a *Adapter) GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
+	// Cache/last-known only — live Anthropic probes belong in RefreshUsage.
+	if snap, ok := readProfileUsageJSON(string(a.ID()), p.Name); ok {
+		return snap
+	}
+	snap := newClaudeUsageSnapshot(p)
+	home, err := config.ProfileHome(string(a.ID()), p.Name)
+	if err != nil {
+		snap.Error = err.Error()
+		return snap
+	}
+	_, found, credErr := readClaudeOAuthCredentials(home)
+	if credErr != nil {
+		snap.Error = credErr.Error()
+		return snap
+	}
+	if !found {
+		snap.Status = model.UsageUnsupported
+	}
 	return snap
+}
+
+// RefreshUsage always probes Anthropic's official OAuth usage endpoint.
+func (a *Adapter) RefreshUsage(ctx context.Context, p model.Profile) model.UsageSnapshot {
+	return a.getLiveUsage(ctx, p, true)
+}
+
+func readProfileUsageJSON(provider, profileName string) (model.UsageSnapshot, bool) {
+	root, err := config.ProfileRoot(provider, profileName)
+	if err != nil || root == "" {
+		return model.UsageSnapshot{}, false
+	}
+	data, err := os.ReadFile(filepath.Join(root, "usage.json"))
+	if err != nil {
+		return model.UsageSnapshot{}, false
+	}
+	var snap model.UsageSnapshot
+	if json.Unmarshal(data, &snap) != nil || snap.Status == "" || len(snap.Windows) == 0 {
+		return model.UsageSnapshot{}, false
+	}
+	if snap.Status == model.UsageLive {
+		snap.Status = model.UsageCached
+	}
+	snap.ProviderID = provider
+	snap.ProfileID = profileName
+	return snap, true
 }
 
 func (a *Adapter) ListConversations(ctx context.Context, p model.Profile, workspace string) ([]model.Session, error) {

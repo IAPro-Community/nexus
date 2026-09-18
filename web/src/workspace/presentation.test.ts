@@ -15,6 +15,8 @@ import {
   syncDesktopWindows,
   toggleDesktopMaximize,
   toggleDesktopMinimize,
+  toggleZenMode,
+  setZenMode,
 } from './presentation';
 import type { WorkspaceSurface } from './model';
 
@@ -351,5 +353,22 @@ describe('workspace presentation', () => {
     expect(state.windows['view:a'].icon).toBe('⚡');
     state = setPresentationMode(state, 'MOSAIC');
     expect(state.windows['view:a'].customTitle).toBe('Ops');
+  });
+
+  it('supports toggling and persisting zenMode (Focus Mode)', () => {
+    let state = createPresentationState('TABS');
+    expect(state.zenMode).toBe(false);
+
+    state = toggleZenMode(state);
+    expect(state.zenMode).toBe(true);
+
+    state = toggleZenMode(state);
+    expect(state.zenMode).toBe(false);
+
+    state = setZenMode(state, true);
+    expect(state.zenMode).toBe(true);
+
+    const migrated = migratePresentationState({ ...state, zenMode: true });
+    expect(migrated.zenMode).toBe(true);
   });
 });

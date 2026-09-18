@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
 
 var ErrMissingContextCapsule = errors.New("flow step context capsule is missing")
@@ -294,9 +294,13 @@ func (r *MissionRunner) ensureContextCapsule(ctx context.Context, run *MissionRu
 	branch := gitText(ctx, pkg.Workspace, "branch", "--show-current")
 	head := gitText(ctx, pkg.Workspace, "rev-parse", "HEAD")
 	baseline := workspaceMutationSnapshot(ctx, pkg.Workspace)
-	capsule := &ContextCapsule{ID: "capsule_" + ids.NewRuntimeID(), RunID: run.ID, ProjectID: run.ProjectID, FlowID: run.PlanID, FlowRevision: run.PlanRevision, Branch: branch, Head: head, DirtyFingerprint: snapshotFingerprint(baseline),
+	skillIDs := append([]string(nil), pkg.SkillIDs...)
+	if len(skillIDs) == 0 {
+		skillIDs = append(skillIDs, pkg.MaestroSkills...)
+	}
+	capsule := &ContextCapsule{ID: "capsule_" + ids.NewRuntimeID(), RunID: run.ID, ProjectID: run.ProjectID, FlowID: run.PlanID, FlowRevision: run.PlanRevision, Branch: branch, Head: head, DirtyFingerprint: snapshotFingerprint(baseline), HandoffJSON: pkg.HandoffJSON,
 		Step:          ContextCapsuleStep{ID: pkg.PackageID, Title: pkg.Title, Goal: pkg.Goal, Role: pkg.Role, Dependencies: capStrings(pkg.Dependencies, maxCapsuleStrings), AssignmentStrategy: pkg.AssignmentStrategy, VerificationRequirements: capStrings(pkg.VerificationRequirements, maxCapsuleStrings)},
-		RelevantPaths: capStrings(pkg.RelevantPaths, maxCapsuleStrings), DurableContextRefs: durableContextRefs(pkg.Workspace), DependencyReceipts: r.directDependencyReceipts(ctx, run, pkg), MaestroSkills: capStrings(pkg.MaestroSkills, maxCapsuleStrings), AcceptanceCriteria: capStrings(pkg.AcceptanceCriteria, maxCapsuleStrings), Constraints: capsuleConstraints(run.Contract), BaselineWorkspaceSnapshot: baseline, CreatedAt: time.Now().UTC()}
+		RelevantPaths: capStrings(pkg.RelevantPaths, maxCapsuleStrings), DurableContextRefs: durableContextRefs(pkg.Workspace), DependencyReceipts: r.directDependencyReceipts(ctx, run, pkg), SkillIDs: capStrings(skillIDs, maxCapsuleStrings), MaestroSkills: capStrings(pkg.MaestroSkills, maxCapsuleStrings), AcceptanceCriteria: capStrings(pkg.AcceptanceCriteria, maxCapsuleStrings), Constraints: capsuleConstraints(run.Contract), BaselineWorkspaceSnapshot: baseline, CreatedAt: time.Now().UTC()}
 	if err := evidence.SaveContextCapsule(ctx, capsule); err != nil {
 		// Keep storage/SQL details out of the user-facing error while retaining
 		// an errors.Is classification for the runner and telemetry.
@@ -348,7 +352,7 @@ func (r *MissionRunner) ensureWorkReceipt(ctx context.Context, run *MissionRun, 
 	if status == "FAILED" && strings.TrimSpace(pkg.ErrorMessage) != "" {
 		remaining = []string{strings.TrimSpace(pkg.ErrorMessage)}
 	}
-	receipt := &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: status, Summary: fmt.Sprintf("%s ended in %s", pkg.Title, status), ChangedFiles: changedFiles, Commands: receiptCommands(pkg.Verifications), Tests: append([]VerificationResult(nil), pkg.Verifications...), Decisions: []string{}, Artifacts: []string{}, RemainingIssues: remaining, Verification: append([]VerificationResult(nil), pkg.Verifications...), AgentID: pkg.AssignedAgent, BaseRevision: base, ResultRevision: resultRevision, StartedAt: pkg.StartedAt, CompletedAt: completed}
+	receipt := &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: status, Summary: fmt.Sprintf("%s ended in %s", pkg.Title, status), ChangedFiles: changedFiles, Commands: receiptCommands(pkg.Verifications), Tests: append([]VerificationResult(nil), pkg.Verifications...), Decisions: []string{}, Artifacts: []string{}, RemainingIssues: remaining, Verification: append([]VerificationResult(nil), pkg.Verifications...), HandoffJSON: pkg.HandoffJSON, AgentID: pkg.AssignedAgent, BaseRevision: base, ResultRevision: resultRevision, StartedAt: pkg.StartedAt, CompletedAt: completed}
 	if err := evidence.SaveWorkReceipt(ctx, receipt); err != nil {
 		return fmt.Errorf("persist work receipt: %w", err)
 	}
@@ -357,12 +361,46 @@ func (r *MissionRunner) ensureWorkReceipt(ctx context.Context, run *MissionRun, 
 }
 
 func (r *MissionRunner) saveRun(ctx context.Context, run *MissionRun) error {
+	refreshPhaseRuns(run)
+	if err := validateMissionRunLifecycle(run); err != nil {
+		return err
+	}
+	if run.watchFingerprint != "" {
+		current := progressFingerprint(run)
+		if current != run.watchFingerprint {
+			run.LastProgressAt = time.Now().UTC()
+			run.watchFingerprint = current
+		}
+	}
 	for i := range run.PackageRuns {
 		if err := r.ensureWorkReceipt(ctx, run, &run.PackageRuns[i]); err != nil {
 			return err
 		}
 	}
 	return r.repo.SaveRun(ctx, run)
+}
+
+func validateMissionRunLifecycle(run *MissionRun) error {
+	if run == nil {
+		return fmt.Errorf("mission run is required")
+	}
+	if run.State != StateBlockedNeedsUser {
+		return nil
+	}
+	if run.NeedsHuman == nil || run.NeedsHuman.ID == "" || run.NeedsHuman.Version < 1 || len(run.NeedsHuman.Options) == 0 {
+		return fmt.Errorf("BLOCKED_NEEDS_USER requires an actionable versioned human intervention")
+	}
+	for _, option := range run.NeedsHuman.Options {
+		if strings.TrimSpace(option.ID) == "" || strings.TrimSpace(string(option.Operation)) == "" {
+			return fmt.Errorf("BLOCKED_NEEDS_USER intervention contains an invalid option")
+		}
+		switch option.Operation {
+		case InterventionRetrySafePackage, InterventionReplanPackage, InterventionConfirmExternalOutcome:
+		default:
+			return fmt.Errorf("BLOCKED_NEEDS_USER intervention contains unsupported option %q", option.Operation)
+		}
+	}
+	return nil
 }
 
 // RenderContextCapsule produces the bounded prompt section supplied to the
@@ -386,8 +424,11 @@ func RenderContextCapsule(capsule *ContextCapsule) string {
 	if len(capsule.RelevantPaths) > 0 {
 		b.WriteString("Relevant paths:\n- " + strings.Join(capsule.RelevantPaths, "\n- ") + "\n")
 	}
-	if len(capsule.MaestroSkills) > 0 {
-		b.WriteString("Maestro skills:\n- " + strings.Join(capsule.MaestroSkills, "\n- ") + "\n")
+	if len(capsule.SkillIDs) > 0 {
+		b.WriteString("Selected skills:\n- " + strings.Join(capsule.SkillIDs, "\n- ") + "\n")
+	} else if len(capsule.MaestroSkills) > 0 {
+		// Compatibility for capsules created before the generic SkillIDs field.
+		b.WriteString("Selected skills:\n- " + strings.Join(capsule.MaestroSkills, "\n- ") + "\n")
 	}
 	if len(capsule.DependencyReceipts) > 0 {
 		b.WriteString("Dependency Work Receipts:\n")

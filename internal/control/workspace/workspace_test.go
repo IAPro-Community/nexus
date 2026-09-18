@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 func TestWorkspaceStore_AddListRemove(t *testing.T) {
@@ -83,7 +85,7 @@ func TestWorkspaceListSortedByRecency(t *testing.T) {
 	if len(list) < 2 {
 		t.Fatalf("expected at least 2 projects, got %d", len(list))
 	}
-	if list[0].Path != a {
+	if !config.FilesystemPathsEquivalent(list[0].Path, a) {
 		t.Errorf("expected most recently used project first, got %s", list[0].Path)
 	}
 	// Deterministic ordering: two equal timestamps tie-break by ID.

@@ -8,9 +8,8 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
 func TestMain(m *testing.M) {
@@ -27,6 +26,25 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestTunnelHostArmsTunnelAuthMode(t *testing.T) {
+	srv, err := NewServer(ServerOptions{
+		Host:       "127.0.0.1",
+		Port:       0,
+		NoOpen:     true,
+		TunnelHost: "example.trycloudflare.com",
+	})
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
+	if !srv.auth.IsTunnelActive() {
+		t.Fatal("TunnelHost must call SetTunnelActive(true) so CLI tunnel matches API auth policy")
+	}
+	if !srv.cookieSecure() {
+		t.Fatal("tunnel-active loopback cookies must be Secure")
+	}
+}
+
 func TestServer_BootstrapAndAuth(t *testing.T) {
 	srv, err := NewServer(ServerOptions{
 		Host: "127.0.0.1",
@@ -41,18 +59,19 @@ func TestServer_BootstrapAndAuth(t *testing.T) {
 	}()
 	defer srv.Shutdown(context.Background())
 
-	time.Sleep(50 * time.Millisecond)
-
 	jar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: jar}
 
-	// 1. Visit bootstrap URL with token: should exchange and set cookie
-	bootstrapURL := srv.BootstrapURL()
-	resp, err := client.Get(bootstrapURL)
+	// 1. Bootstrap via POST with token: should exchange and set cookie
+	body := strings.NewReader(`{"token":"` + srv.bootstrap + `"}`)
+	resp, err := client.Post(srv.URL()+"/api/v1/auth/bootstrap", "application/json", body)
 	if err != nil {
-		t.Fatalf("failed to visit bootstrap URL: %v", err)
+		t.Fatalf("failed to POST bootstrap token: %v", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("bootstrap POST returned %d", resp.StatusCode)
+	}
 
 	// 2. Check session endpoint
 	sessResp, err := client.Get(srv.URL() + "/api/v1/session")
@@ -174,30 +193,40 @@ func TestServer_BootstrapAndAuth(t *testing.T) {
 	}
 }
 
-func TestServer_BootstrapPreservesDeepLinkPath(t *testing.T) {
-	srv, err := NewServer(ServerOptions{Host: "127.0.0.1", Port: 0})
+func TestProvidersDocsCaptureUsesSyntheticInventory(t *testing.T) {
+	t.Setenv("NEXUS_DOCS_CAPTURE", "1")
+	client, srv := newTestClient(t)
+	resp, err := client.Get(srv.URL() + "/api/v1/providers")
 	if err != nil {
-		t.Fatalf("failed to create server: %v", err)
-	}
-	go func() { _ = srv.Start() }()
-	defer srv.Shutdown(context.Background())
-	time.Sleep(50 * time.Millisecond)
-
-	jar, _ := cookiejar.New(nil)
-	client := &http.Client{
-		Jar: jar,
-		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
-	bootstrap := srv.BootstrapURL()
-	deepLink := srv.URL() + "/updates?token=" + bootstrap[strings.LastIndex(bootstrap, "=")+1:]
-	resp, err := client.Get(deepLink)
-	if err != nil {
-		t.Fatalf("deep-link bootstrap request failed: %v", err)
+		t.Fatalf("providers request failed: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != "/updates" {
-		t.Fatalf("expected authenticated deep-link redirect, got status=%d location=%q", resp.StatusCode, resp.Header.Get("Location"))
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("providers returned %d", resp.StatusCode)
+	}
+	var providers []struct {
+		ID      string `json:"id"`
+		Version string `json:"version"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&providers); err != nil {
+		t.Fatalf("decode providers: %v", err)
+	}
+	if len(providers) != 1 || providers[0].ID != "demo-provider" || providers[0].Version != "synthetic-fixture" {
+		t.Fatalf("documentation capture exposed non-synthetic providers: %+v", providers)
+	}
+}
+
+func TestServerBootstrapURLKeepsTokenInFragment(t *testing.T) {
+	srv, err := NewServer(ServerOptions{Host: "127.0.0.1", Port: 0})
+	if err != nil {
+		t.Fatalf("create server: %v", err)
+	}
+	defer srv.Shutdown(context.Background())
+	bootstrapURL := srv.BootstrapURL()
+	if !strings.Contains(bootstrapURL, "/#nexus_bootstrap=") {
+		t.Fatalf("bootstrap URL must use browser fragment: %s", bootstrapURL)
+	}
+	if strings.Contains(bootstrapURL, "?") {
+		t.Fatalf("bootstrap token must not be placed in query string: %s", bootstrapURL)
 	}
 }

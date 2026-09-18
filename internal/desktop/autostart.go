@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 // AutoStartManager configures desktop application startup at user login.
@@ -71,9 +72,26 @@ Exec=%s --minimized
 Icon=nexus
 Terminal=false
 Categories=Development;
-`, m.AppName, m.ExecPath)
+`, m.AppName, desktopExecArg(m.ExecPath))
 
 		return os.WriteFile(desktopFile, []byte(content), 0644)
 	}
 	return nil
+}
+
+// desktopExecArg quotes a single executable argument according to the
+// freedesktop Desktop Entry Exec grammar. It prevents spaces or quotes in a
+// user-selected installation path from becoming additional arguments.
+func desktopExecArg(value string) string {
+	var b strings.Builder
+	b.Grow(len(value) + 2)
+	b.WriteByte('"')
+	for _, r := range value {
+		if r == '\\' || r == '"' {
+			b.WriteByte('\\')
+		}
+		b.WriteRune(r)
+	}
+	b.WriteByte('"')
+	return b.String()
 }

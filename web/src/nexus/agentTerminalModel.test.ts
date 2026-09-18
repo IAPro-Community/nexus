@@ -3,6 +3,7 @@ import {
   TERMINAL_MAX_RECONNECT_ATTEMPTS,
   agentTerminalWebSocketURL,
   isFatalTerminalAttachError,
+  isLiveRuntimeState,
   normalizeInitialPrompt,
   normalizeTerminalRole,
   isRecoverAlreadyAlive,
@@ -12,7 +13,8 @@ import {
   shouldShowTerminalRecoverOverlay,
   shouldFallbackRecoverToStart,
   nextBoundRuntimeId,
-  terminalAttachFailureMessage,
+  parseRuntimeChangedId,
+  terminalAttachFailure,
   terminalReconnectDelay,
 } from './agentTerminalModel';
 
@@ -29,6 +31,14 @@ describe('Agent terminal model', () => {
     expect(agentTerminalWebSocketURL('http:', 'localhost:3000', 'agt_1', 'rt_9', 'sess_abc')).toBe(
       'ws://localhost:3000/api/v1/agents/agt_1/terminal?runtime_id=rt_9&token=sess_abc',
     ));
+  it('omits auth token on Cloudflare Quick Tunnel hosts (cookie-only)', () =>
+    expect(
+      agentTerminalWebSocketURL('https:', 'abc.trycloudflare.com', 'agt_1', 'rt_9', 'sess_abc'),
+    ).toBe('wss://abc.trycloudflare.com/api/v1/agents/agt_1/terminal?runtime_id=rt_9'));
+  it('omits auth token on private --remote hosts (cookie-only)', () =>
+    expect(
+      agentTerminalWebSocketURL('http:', '192.168.1.10:13000', 'agt_1', 'rt_9', 'sess_abc'),
+    ).toBe('ws://192.168.1.10:13000/api/v1/agents/agt_1/terminal?runtime_id=rt_9'));
   it('supports agent-scoped reattachment after a runtime generation changes', () =>
     expect(agentTerminalWebSocketURL('http:', 'localhost:3000', 'agt_1')).toBe(
       'ws://localhost:3000/api/v1/agents/agt_1/terminal',
@@ -51,28 +61,51 @@ describe('Agent terminal model', () => {
     expect(normalizeInitialPrompt('  fix the failing tests  ')).toBe('fix the failing tests\n');
     expect(normalizeInitialPrompt('   ')).toBe('');
   });
-  it('keeps the last live runtime id when the poll briefly omits the agent', () => {
+  it('keeps the bound runtime when the poll briefly omits or swaps the agent runtime', () => {
     expect(nextBoundRuntimeId('rt_live', '')).toBe('rt_live');
-    expect(nextBoundRuntimeId('rt_live', 'rt_next')).toBe('rt_next');
+    expect(nextBoundRuntimeId('rt_live', 'rt_stale')).toBe('rt_live');
     expect(nextBoundRuntimeId('', 'rt_1')).toBe('rt_1');
+    expect(nextBoundRuntimeId('rt_live', 'rt_stale', 'rt_preferred')).toBe('rt_live');
+    expect(nextBoundRuntimeId('', 'rt_live', 'rt_dead')).toBe('rt_live');
+    expect(nextBoundRuntimeId('rt_old', 'rt_preferred', 'rt_preferred')).toBe('rt_preferred');
+  });
+  it('treats only live runtime states as attachable', () => {
+    expect(isLiveRuntimeState('RUNNING')).toBe(true);
+    expect(isLiveRuntimeState('STARTING')).toBe(true);
+    expect(isLiveRuntimeState('STOPPED')).toBe(false);
+    expect(isLiveRuntimeState('FAILED')).toBe(false);
   });
 
-  it('auto-recovers missing agent runtimes instead of looping reconnect', () => {
-    expect(shouldAutoRecoverAgentTerminal(false, '')).toBe(true);
+  it('parses runtime_changed payloads for the new generation id', () => {
+    expect(parseRuntimeChangedId('{"new_runtime_id":"rt_new"}')).toBe('rt_new');
+    expect(parseRuntimeChangedId({ new_runtime_id: 'rt_obj' })).toBe('rt_obj');
+    expect(parseRuntimeChangedId('not-json')).toBe('');
+    expect(parseRuntimeChangedId(null)).toBe('');
+  });
+
+  it('never auto-recovers or creates a second runtime on transport loss', () => {
+    expect(shouldAutoRecoverAgentTerminal(false, '')).toBe(false);
     expect(shouldAutoRecoverAgentTerminal(false, 'agent has no active runtime: not live')).toBe(
-      true,
+      false,
     );
-    expect(shouldAutoRecoverAgentTerminal(true, 'Runtime host is not running (eof)')).toBe(true);
-    expect(shouldAutoRecoverAgentTerminal(true, '')).toBe(false);
+    expect(shouldAutoRecoverAgentTerminal(true, 'Runtime host is not running (eof)')).toBe(false);
     expect(shouldAutoRecoverAgentTerminal(false, 'authentication required')).toBe(false);
   });
   it('detects fatal attach errors that must stop reconnect loops', () => {
     expect(isFatalTerminalAttachError('agent has no active runtime: not found')).toBe(true);
     expect(isFatalTerminalAttachError('Runtime host is not running (dial timeout)')).toBe(true);
     expect(isFatalTerminalAttachError('temporary blip')).toBe(false);
-    expect(terminalAttachFailureMessage('runtime not found: rt_x')).toContain('Recover/Start');
+    expect(terminalAttachFailure('runtime not found: rt_x')).toEqual({
+      kind: 'fatal_with_detail',
+      detail: 'runtime not found: rt_x',
+    });
+    expect(terminalAttachFailure('temporary blip')).toEqual({
+      kind: 'with_detail',
+      detail: 'temporary blip',
+    });
+    expect(terminalAttachFailure('  ')).toEqual({ kind: 'generic' });
   });
-  it('shows recover overlay while reconnecting after reboot, not only on ERROR', () => {
+  it('shows recover overlay only for real failures or explicit recovering', () => {
     expect(shouldShowTerminalRecoverOverlay({ connection: 'CONNECTED', recovering: false })).toBe(
       false,
     );
@@ -87,20 +120,16 @@ describe('Agent terminal model', () => {
       shouldShowTerminalRecoverOverlay({
         connection: 'CONNECTING',
         recovering: false,
-        connectingForMs: 400,
-      }),
-    ).toBe(false);
-    expect(
-      shouldShowTerminalRecoverOverlay({
-        connection: 'CONNECTING',
-        recovering: false,
         connectingForMs: 800,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(shouldShowTerminalRecoverOverlay({ connection: 'CONNECTING', recovering: true })).toBe(
       true,
     );
     expect(shouldShowTerminalRecoverOverlay({ connection: 'ERROR', recovering: false })).toBe(true);
+    expect(
+      shouldShowTerminalRecoverOverlay({ connection: 'DISCONNECTED', recovering: false }),
+    ).toBe(true);
   });
   it('falls back recover→start for recoverable host failures', () => {
     expect(shouldFallbackRecoverToStart('agent is STOPPED (use StartAgent to restart)')).toBe(true);

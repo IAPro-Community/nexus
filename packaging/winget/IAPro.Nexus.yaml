@@ -1,0 +1,25 @@
+# Winget manifest stubs for IAPro Nexus
+#
+# Publish only after a GitHub Release contains:
+#   - nexus-setup-Windows_x86_64.exe (NSIS)
+#   - checksums / SHA-256 for that installer
+#
+# Replace VERSION, SHA256, and URLs before submitting to
+# https://github.com/microsoft/winget-pkgs
+
+PackageIdentifier: IAPro.Nexus
+PackageVersion: 0.0.0-PLACEHOLDER
+PackageLocale: en-US
+Publisher: IAPro
+PackageName: IAPro Nexus
+License: Proprietary
+LicenseUrl: https://github.com/IAPro-Community/nexus/blob/main/LICENSE
+ShortDescription: Local workstation for operating coding agents
+Installers:
+  - Architecture: x64
+    InstallerType: nullsoft
+    InstallerUrl: https://github.com/IAPro-Community/nexus/releases/download/vVERSION/nexus-setup-Windows_x86_64.exe
+    InstallerSha256: REPLACE_WITH_RELEASE_SHA256
+    Scope: user
+ManifestType: singleton
+ManifestVersion: 1.6.0

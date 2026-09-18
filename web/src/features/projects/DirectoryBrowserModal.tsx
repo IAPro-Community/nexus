@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Folder,
-  FolderGit2,
   Home,
   Monitor,
   FileText,
@@ -10,14 +9,13 @@ import {
   CornerLeftUp,
   Search,
   Check,
-  GitBranch,
   Loader2,
-  ChevronRight,
   FolderPlus,
 } from 'lucide-react';
 import { Dialog, Button, Input, IconButton, Badge } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { FSBrowseResult, FSEntry } from '../../types';
+import styles from './DirectoryBrowserModal.module.scss';
 
 export const DirectoryBrowserModal: React.FC<{
   open: boolean;
@@ -27,6 +25,7 @@ export const DirectoryBrowserModal: React.FC<{
 }> = ({ open, onClose, initialPath, onSelectPath }) => {
   const { t } = useTranslation();
   const [currentPath, setCurrentPath] = useState(initialPath || '');
+  const [pathInput, setPathInput] = useState(initialPath || '');
   const [data, setData] = useState<FSBrowseResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
@@ -34,31 +33,57 @@ export const DirectoryBrowserModal: React.FC<{
   const [newFolderName, setNewFolderName] = useState('');
   const [mkdirBusy, setMkdirBusy] = useState(false);
   const [mkdirError, setMkdirError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const cacheRef = useRef(new Map<string, FSBrowseResult>());
+  const requestRef = useRef(0);
 
-  const loadDirectory = async (path?: string) => {
-    setLoading(true);
-    try {
-      const res = await nexus.browseFS(path);
-      setData(res);
-      setCurrentPath(res.current_path);
-      setQuery('');
-      setNewFolderOpen(false);
-    } catch (err) {
-      console.error('Failed to browse directory', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loadDirectory = useCallback(
+    async (path?: string) => {
+      const cacheKey = path?.trim() || '';
+      const cached = cacheRef.current.get(cacheKey);
+      if (cached) {
+        setData(cached);
+        setCurrentPath(cached.current_path);
+        setQuery('');
+        setLoadError('');
+        setNewFolderOpen(false);
+        return;
+      }
+
+      const requestId = ++requestRef.current;
+      setLoading(true);
+      setLoadError('');
+      try {
+        const res = await nexus.browseFS(path);
+        if (requestId !== requestRef.current) return;
+        cacheRef.current.set(res.current_path, res);
+        setData(res);
+        setCurrentPath(res.current_path);
+        setPathInput(res.current_path);
+        setQuery('');
+        setNewFolderOpen(false);
+      } catch (err) {
+        if (requestId === requestRef.current) {
+          setLoadError(err instanceof Error ? err.message : t('projectManager.browseError'));
+        }
+      } finally {
+        if (requestId === requestRef.current) setLoading(false);
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     if (open) {
+      cacheRef.current.clear();
+      setData(null);
       void loadDirectory(initialPath);
     }
-  }, [open, initialPath]);
+  }, [open, initialPath, loadDirectory]);
 
   const handleSelectCurrent = () => {
     if (!data) return;
-    const name = data.current_path.split('/').filter(Boolean).pop() || 'Project';
+    const name = data.current_path.split(/[/\\]/).filter(Boolean).pop() || 'Project';
     onSelectPath(data.current_path, name);
     onClose();
   };
@@ -76,6 +101,7 @@ export const DirectoryBrowserModal: React.FC<{
     try {
       const target = `${data.current_path}/${newFolderName.trim()}`;
       await nexus.mkdirFS(target);
+      cacheRef.current.delete(data.current_path);
       setNewFolderName('');
       setNewFolderOpen(false);
       void loadDirectory(target);
@@ -89,6 +115,13 @@ export const DirectoryBrowserModal: React.FC<{
   const filteredEntries = (data?.entries || []).filter(
     (e) => e.is_dir && e.name.toLowerCase().includes(query.toLowerCase()),
   );
+
+  const handlePathInputSubmit = () => {
+    const trimmed = pathInput.trim();
+    if (trimmed) {
+      void loadDirectory(trimmed);
+    }
+  };
 
   const getBookmarkIcon = (icon: string) => {
     switch (icon) {
@@ -106,10 +139,16 @@ export const DirectoryBrowserModal: React.FC<{
   };
 
   return (
-    <Dialog open={open} onClose={onClose} title={t('projectManager.browseOS')} wide>
-      <div className="nx-dir-picker">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t('projectManager.browseOS')}
+      full
+      className={styles.dialog}
+    >
+      <div className={styles.picker}>
         {/* Top OS Breadcrumbs bar */}
-        <div className="nx-dir-picker__breadcrumbs">
+        <div className={styles.breadcrumbs}>
           {data?.parent_path && (
             <IconButton
               label={t('projectManager.upDirectory')}
@@ -119,27 +158,20 @@ export const DirectoryBrowserModal: React.FC<{
             </IconButton>
           )}
 
-          <div className="nx-dir-breadcrumbs-list">
-            {(data?.breadcrumbs || []).map((crumb, idx, arr) => {
-              const label = crumb === '/' ? '/' : crumb.split('/').filter(Boolean).pop();
-              const isLast = idx === arr.length - 1;
-              return (
-                <React.Fragment key={crumb}>
-                  {idx > 0 && <ChevronRight size={12} className="nx-crumb-sep" />}
-                  <button
-                    type="button"
-                    className={`nx-crumb-btn ${isLast ? 'nx-crumb-btn--active' : ''}`}
-                    onClick={() => !isLast && loadDirectory(crumb)}
-                    disabled={isLast}
-                  >
-                    {label}
-                  </button>
-                </React.Fragment>
-              );
-            })}
-          </div>
+          <input
+            type="text"
+            className={styles.pathInput}
+            value={pathInput}
+            onChange={(e) => setPathInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handlePathInputSubmit();
+            }}
+            onBlur={handlePathInputSubmit}
+            placeholder={t('projectManager.pathPlaceholder')}
+            spellCheck={false}
+          />
 
-          <div className="nx-dir-picker__top-actions">
+          <div className={styles.topActions}>
             <Button size="sm" tone="ghost" onClick={() => setNewFolderOpen((prev) => !prev)}>
               <FolderPlus size={13} />
               <span>{t('projectManager.newFolder')}</span>
@@ -149,7 +181,7 @@ export const DirectoryBrowserModal: React.FC<{
 
         {/* New Folder Inline Form */}
         {newFolderOpen && (
-          <div className="nx-dir-mkdir-box">
+          <div className={styles.mkdirBox}>
             <Input
               value={newFolderName}
               onChange={setNewFolderName}
@@ -158,7 +190,7 @@ export const DirectoryBrowserModal: React.FC<{
               autoFocus
             />
             {mkdirError && <span className="nx-error-copy">{mkdirError}</span>}
-            <div className="nx-mkdir-actions">
+            <div className={styles.mkdirActions}>
               <Button size="sm" onClick={() => setNewFolderOpen(false)}>
                 {t('common.closeDialog')}
               </Button>
@@ -174,16 +206,16 @@ export const DirectoryBrowserModal: React.FC<{
           </div>
         )}
 
-        <div className="nx-dir-picker__body">
+        <div className={styles.body}>
           {/* OS Quick Bookmarks Sidebar */}
-          <div className="nx-dir-picker__sidebar">
-            <span className="nx-dir-sidebar-heading">{t('projectManager.bookmarks')}</span>
-            <div className="nx-dir-bookmarks-list">
+          <div className={styles.sidebar}>
+            <span className={styles.sidebarHeading}>{t('projectManager.bookmarks')}</span>
+            <div className={styles.bookmarksList}>
               {data?.bookmarks.map((b) => (
                 <button
                   type="button"
                   key={b.path}
-                  className={`nx-dir-bookmark-btn ${currentPath === b.path ? 'nx-dir-bookmark-btn--active' : ''}`}
+                  className={`${styles.bookmarkButton} ${currentPath === b.path ? styles.bookmarkActive : ''}`}
                   onClick={() => loadDirectory(b.path)}
                 >
                   {getBookmarkIcon(b.icon)}
@@ -194,52 +226,51 @@ export const DirectoryBrowserModal: React.FC<{
           </div>
 
           {/* Directory Explorer Pane */}
-          <div className="nx-dir-picker__main">
-            <div className="nx-dir-search-bar">
-              <Search size={13} className="nx-dir-search-icon" />
-              <Input value={query} onChange={setQuery} placeholder={t('common.search')} />
+          <div className={styles.main}>
+            <div className={styles.searchBar}>
+              <Search size={15} className={styles.searchIcon} />
+              <Input
+                className={styles.searchInput}
+                value={query}
+                onChange={setQuery}
+                placeholder={t('common.search')}
+              />
             </div>
 
             {loading ? (
-              <div className="nx-dir-loading">
+              <div className={styles.loading}>
                 <Loader2 size={24} className="nx-spin" />
                 <span>{t('common.loading')}</span>
               </div>
+            ) : loadError ? (
+              <div className={styles.empty} role="alert">
+                <p>{loadError}</p>
+                <Button size="sm" onClick={() => void loadDirectory(currentPath)}>
+                  {t('projectManager.retry')}
+                </Button>
+              </div>
             ) : (
-              <div className="nx-dir-entries-grid">
+              <div className={styles.entriesGrid}>
                 {filteredEntries.map((entry) => (
-                  <div
+                  <button
+                    type="button"
                     key={entry.path}
-                    className="nx-dir-entry-card"
+                    className={styles.entryCard}
+                    aria-label={t('projectManager.openFolder', { name: entry.name })}
                     onClick={() => handleSelectEntry(entry)}
                   >
-                    <div className="nx-dir-entry-icon">
-                      {entry.is_git ? (
-                        <FolderGit2 size={22} className="nx-git-folder-icon" />
-                      ) : (
-                        <Folder size={22} />
-                      )}
+                    <div className={styles.entryIcon}>
+                      <Folder size={22} />
                     </div>
-                    <div className="nx-dir-entry-meta">
+                    <div className={styles.entryMeta}>
                       <strong>{entry.name}</strong>
-                      <div className="nx-dir-entry-tags">
-                        {entry.is_git && (
-                          <span className="nx-git-tag">
-                            <GitBranch size={10} /> Git
-                          </span>
-                        )}
-                        {(entry.tech ?? []).slice(0, 2).map((t) => (
-                          <span key={t} className="nx-tech-tag">
-                            {t}
-                          </span>
-                        ))}
-                      </div>
+                      <span className={styles.entryHint}>{t('projectManager.openFolderHint')}</span>
                     </div>
-                  </div>
+                  </button>
                 ))}
 
                 {filteredEntries.length === 0 && (
-                  <div className="nx-dir-empty">
+                  <div className={styles.empty}>
                     <p>{t('projectManager.noProjects')}</p>
                   </div>
                 )}
@@ -249,13 +280,13 @@ export const DirectoryBrowserModal: React.FC<{
         </div>
 
         {/* Footer with Selected Folder info & confirmation button */}
-        <div className="nx-dir-picker__footer">
-          <div className="nx-dir-selected-info">
-            <span className="nx-dir-selected-label">Pasta Atual:</span>
+        <div className={styles.footer}>
+          <div className={styles.selectedInfo}>
+            <span className={styles.selectedLabel}>{t('projectManager.currentFolder')}</span>
             <code>{currentPath}</code>
             {data?.is_git && (
               <Badge tone="brand">
-                <GitBranch size={11} /> {data.git_branch || 'git'}
+                {t('projectManager.gitDetected', { branch: data.git_branch || 'main' })}
               </Badge>
             )}
             {data?.tech && data.tech.length > 0 && (
@@ -263,7 +294,7 @@ export const DirectoryBrowserModal: React.FC<{
             )}
           </div>
 
-          <div className="nx-dir-footer-actions">
+          <div className={styles.footerActions}>
             <Button onClick={onClose}>{t('common.closeDialog')}</Button>
             <Button tone="brand" onClick={handleSelectCurrent}>
               <Check size={14} />

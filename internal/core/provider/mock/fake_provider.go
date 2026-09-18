@@ -3,7 +3,7 @@ package mock
 import (
 	"context"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // FakeProvider implements Provider, AuthProvider, UsageProvider, and ConversationProvider for testing.

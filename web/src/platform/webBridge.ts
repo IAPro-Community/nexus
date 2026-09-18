@@ -1,4 +1,5 @@
 import { PlatformBridge } from './platformBridge';
+import { safeExternalUrl } from './externalUrl';
 import { PlatformCapabilities, FilePickerOptions, NotificationOptions } from './capabilities';
 
 export class WebBridge implements PlatformBridge {
@@ -42,8 +43,9 @@ export class WebBridge implements PlatformBridge {
   }
 
   async openExternal(url: string): Promise<void> {
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank', 'noopener,noreferrer');
+    const safeUrl = safeExternalUrl(url);
+    if (safeUrl && typeof window !== 'undefined') {
+      window.open(safeUrl, '_blank', 'noopener,noreferrer');
     }
   }
 

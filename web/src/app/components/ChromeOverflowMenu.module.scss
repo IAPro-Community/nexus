@@ -1,0 +1,55 @@
+@use '../../styles/mixins';
+
+.root {
+  flex: 0 0 auto;
+}
+
+.trigger {
+  @include mixins.nx-touch-target;
+  width: var(--nx-touch-min, 44px);
+  height: var(--nx-touch-min, 44px);
+}
+
+.menu {
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--nx-border-strong);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-surface-2);
+  box-shadow: var(--nx-shadow-lg, 0 14px 36px rgb(0 0 0 / 30%));
+  z-index: var(--nx-z-popover);
+}
+
+.item {
+  width: 100%;
+  min-height: var(--nx-touch-min, 44px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--nx-radius-sm);
+  background: transparent;
+  color: var(--nx-text-soft);
+  font: inherit;
+  font-size: 0.929rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover,
+.item[data-active='true'] {
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+}
+
+.item:focus-visible {
+  outline: none;
+  box-shadow: var(--nx-focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    transition: none;
+  }
+}

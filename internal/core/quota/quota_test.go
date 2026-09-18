@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kivervinicius/ai-cli/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 func TestQuotaEnginePersistenceAndRendering(t *testing.T) {
@@ -240,6 +240,34 @@ func TestStaleCachedSnapshotMarkedEstimatedByTrustworthy(t *testing.T) {
 	}
 }
 
+func TestUsageSnapshotRepresentsAbsoluteEvidenceWithoutInventingUnknowns(t *testing.T) {
+	limit := 1000.0
+	used := 125.0
+	remaining := 875.0
+	snapshot := model.UsageSnapshot{
+		ProviderID: "codex",
+		ProfileID:  "work",
+		Status:     model.UsageLive,
+		Source:     model.SourceOfficialAPI,
+		Confidence: model.UsageConfidenceHigh,
+		Windows: []model.UsageWindow{{
+			Kind:      "5h",
+			Limit:     &limit,
+			Used:      &used,
+			Remaining: &remaining,
+			Unit:      "tokens",
+		}},
+	}
+	if snapshot.Windows[0].Limit == nil || *snapshot.Windows[0].Remaining != remaining {
+		t.Fatalf("absolute usage evidence was not retained: %+v", snapshot.Windows[0])
+	}
+
+	unknown := model.UsageSnapshot{Status: model.UsageUnknown, Source: model.SourceNone}
+	if unknown.Windows != nil {
+		t.Fatalf("unknown snapshot must not gain synthetic windows: %+v", unknown.Windows)
+	}
+}
+
 func TestFormatFreshnessDays(t *testing.T) {
 	got := FormatFreshness(time.Now().Add(-8 * 24 * time.Hour))
 	if got != "8 days ago" {
@@ -418,8 +446,68 @@ func TestCodexLegacyQuotaPreservesRemainingAndGroup(t *testing.T) {
 	}
 
 	qv := BuildQuotaView(snap, "user@example.com", "Plus")
+	if len(qv.ModelGroups) != 1 || qv.ModelGroups[0].Name != "Codex" {
+		t.Fatalf("Codex quota group label=%q, want Codex", qv.ModelGroups[0].Name)
+	}
 	best, ok := qv.BestGroupRemaining()
 	if !ok || best != 70 {
 		t.Fatalf("BestGroupRemaining=%v ok=%v want 70 (min of 70/95, no phantom 0)", best, ok)
+	}
+}
+
+func TestAvailabilityLabelUnknownIsSemDadosNotDisponivel(t *testing.T) {
+	qv := &QuotaView{Status: string(model.UsageUnknown)}
+	qv.ComputeAvailability()
+	if qv.IsAvailable() {
+		t.Fatal("UNKNOWN quota must not be available for automatic allocation")
+	}
+	if got := qv.AvailabilityLabel(); got != "SEM DADOS" {
+		t.Fatalf("AvailabilityLabel=%q want SEM DADOS (never DISPONIVEL for unknown)", got)
+	}
+}
+
+func TestMissingRemainingPercentIsNotSyntheticZeroExhausted(t *testing.T) {
+	snap := model.UsageSnapshot{
+		ProviderID: "codex",
+		ProfileID:  "default",
+		Status:     model.UsageLive,
+		Windows: []model.UsageWindow{{
+			Kind:  "5h",
+			Group: "codex",
+			// RemainingPercent intentionally nil
+		}},
+	}
+	qv := BuildQuotaView(snap, "acct", "pro")
+	if len(qv.ModelGroups) == 0 || len(qv.ModelGroups[0].Windows) == 0 {
+		t.Fatal("expected synthetic unknown window")
+	}
+	w := qv.ModelGroups[0].Windows[0]
+	if w.Kind != "unknown" {
+		t.Fatalf("missing percent kind=%q want unknown (not measured 0%%)", w.Kind)
+	}
+	if qv.IsAvailable() {
+		t.Fatal("missing percent must not invent available capacity")
+	}
+}
+
+func TestAvailabilityLabelExhaustedFiveHour(t *testing.T) {
+	zero := 0.0
+	fifty := 56.0
+	qv := &QuotaView{
+		Status: string(model.UsageLive),
+		ModelGroups: []ModelGroup{{
+			Name: "Codex",
+			Windows: []Window{
+				{Kind: "5h", Remaining: zero, Status: string(model.UsageLive)},
+				{Kind: "weekly", Remaining: fifty, Status: string(model.UsageLive)},
+			},
+		}},
+	}
+	qv.ComputeAvailability()
+	if qv.IsAvailable() {
+		t.Fatal("5h=0 must not be available")
+	}
+	if got := qv.AvailabilityLabel(); got != "QUOTA ESGOTADA" {
+		t.Fatalf("AvailabilityLabel=%q want QUOTA ESGOTADA", got)
 	}
 }
