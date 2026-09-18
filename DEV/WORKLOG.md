@@ -4766,3 +4766,16 @@ build` PASS e Web reiniciado em HTTP 200.
 - Final local gates: `make quality-full`, `make build`, `make build-desktop`, `make web-verify`, `go vet ./...`, `go test -race ./...` PASS.
 - Real provider smoke: AGY PASS; Codex authenticated CLI reached but usage limit blocked completion; another Codex profile has an external rules symlink loop. No provider secret was recorded.
 - Verdict remains `NO-GO`: no authenticated Mission E2E/ledger stream ID, no Windows/macOS/native overnight evidence, and remaining Maestro compatibility leakage/live routing projection gaps.
+# 2026-09-18 — Proteção permanente contra falhas de teclado
+
+- Implementado controlador único de TTY com reset seguro e reassert após
+  entrada, Ctrl+C, encerramento inesperado e perda de conexão; restauração do
+  estado termios original ao sair.
+- Attach agora valida runtime, host PID/generation e identidade dos binários;
+  sessões incompatíveis ficam `STALE` com instrução de recriação, sem
+  encerramento automático.
+- Adicionado `nexus doctor terminal`, reset `--recover`, diagnóstico JSON e
+  cobertura para modos de teclado, sequências de setas, CPR/foco, Ctrl+C,
+  UTF-8, colagem e preservação do canal de comandos Nexus.
+- Verificação parcial concluída: focados, race focado, cross-compile e
+  `git diff --check` PASS; gates completos e smoke manual seguem no handoff.

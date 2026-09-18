@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 
+	controlterminal "github.com/IAPro-Community/nexus/internal/control/terminal"
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -214,6 +215,15 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 	cmd.Dir = cwd
 	cmd.Stdin = os.Stdin
 
+	// Direct provider launches own the caller's TTY just as supervised attach
+	// does. Reset private keyboard modes before Start and restore the captured
+	// terminal state on every exit path, including provider crashes.
+	tty := controlterminal.NewTTYController(os.Stdin, os.Stdout)
+	if err := tty.Enter(); err != nil {
+		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
+	}
+	defer func() { _ = tty.Restore() }()
+
 	var errBuf bytes.Buffer
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = io.MultiWriter(os.Stderr, &errBuf)
@@ -221,20 +231,34 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer signal.Stop(sigChan)
+	signalDone := make(chan struct{})
+	defer close(signalDone)
 
 	if err := cmd.Start(); err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
 	}
 
 	go func() {
-		for sig := range sigChan {
-			if cmd.Process != nil {
-				_ = cmd.Process.Signal(sig)
+		for {
+			select {
+			case <-signalDone:
+				return
+			case sig := <-sigChan:
+				if sig == os.Interrupt {
+					_ = tty.Reassert()
+				}
+				if cmd.Process != nil {
+					_ = cmd.Process.Signal(sig)
+				}
 			}
 		}
 	}()
 
 	err = cmd.Wait()
+	// A provider can leave private modes enabled even after a normal exit or a
+	// SIGINT-mediated cancellation. Reassert before deferred termios restore so
+	// the outer shell always receives a safe terminal.
+	_ = tty.Reassert()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {

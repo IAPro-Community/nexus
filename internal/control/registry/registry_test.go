@@ -370,3 +370,15 @@ func TestRuntimeSessionHostLive(t *testing.T) {
 		t.Fatal("current process must count as live")
 	}
 }
+
+func TestRuntimeSessionHostLiveUsesHostPIDForGeneration(t *testing.T) {
+	session := RuntimeSession{
+		State:          StateRunning,
+		PID:            os.Getpid(),
+		HostPID:        os.Getpid(),
+		HostGeneration: time.Now().UnixNano(),
+	}
+	if !session.HostLive() {
+		t.Fatal("host generation must be checked against HostPID, not provider PID")
+	}
+}

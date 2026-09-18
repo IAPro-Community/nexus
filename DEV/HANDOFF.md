@@ -1,5 +1,22 @@
 # Handoff
 
+## Proteção permanente contra falhas de teclado — 2026-09-18
+
+Implementado no worktree `nexus-capacity-worktree`, sem commit/push. O slice
+adiciona `TTYController` para reset/reassert/restore, filtro de `Ctrl+C` no
+attach, validação de compatibilidade por geração/PID/fingerprint, marcação de
+sessões antigas como `STALE`, e `nexus doctor terminal [--json|--recover]`.
+Também foram adicionados testes unitários, PTY, integração de attach e casos
+Web para preservar setas, Ctrl+C, colagem e UTF-8.
+
+Verificação concluída: focados e `make test-e2e` com race, `go vet ./...`,
+`make web-verify` (10/10), `make build`, `make format-check`, `git diff --check`
+e smoke de `doctor terminal --recover` em pseudo-TTY passaram. `go test ./...`
+com dados temporários ainda reproduz fixtures preexistentes fora deste slice;
+`make lint-go` mantém cinco diagnósticos preexistentes. O smoke manual
+`nexus codex --yolo` foi tentado, mas o ambiente não possui perfil Codex
+habilitado; Windows/macOS continuam não verificados.
+
 ## Soak de 8h concluído — 2026-09-15
 
 O soak executado no processo original terminou com **PASS**: `go test`

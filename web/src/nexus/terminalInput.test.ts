@@ -9,7 +9,11 @@ describe('shouldForwardTerminalInput', () => {
     },
   );
 
-  it('keeps mouse, keyboard, UTF-8 and explicit Ctrl+C bytes', () => {
+  it('keeps arrows, mouse, keyboard, UTF-8 and explicit Ctrl+C bytes', () => {
+    expect(shouldForwardTerminalInput('\x1bOA')).toBe(true);
+    expect(shouldForwardTerminalInput('\x1bOB')).toBe(true);
+    expect(shouldForwardTerminalInput('\x1b[A')).toBe(true);
+    expect(shouldForwardTerminalInput('\x1b[B')).toBe(true);
     expect(shouldForwardTerminalInput('\x1b[<0;10;4M')).toBe(true);
     expect(shouldForwardTerminalInput('\x1b[1;3u')).toBe(true);
     expect(shouldForwardTerminalInput('ação')).toBe(true);
@@ -27,6 +31,15 @@ describe('stripEmbeddedTerminalMetadata', () => {
     expect(stripEmbeddedTerminalMetadata('\x1b[Ils\r')).toBe('ls\r');
     expect(stripEmbeddedTerminalMetadata('go\x1b[12;34R\r')).toBe('go\r');
     expect(stripEmbeddedTerminalMetadata('\x1b[I')).toBe('');
+  });
+
+  it('drops standalone bare reports but preserves literal command text', () => {
+    expect(shouldForwardTerminalInput('[I')).toBe(false);
+    expect(shouldForwardTerminalInput('[12;34R')).toBe(false);
+    expect(stripEmbeddedTerminalMetadata('[I] literal')).toBe('[I] literal');
+    expect(stripEmbeddedTerminalMetadata('/status [12;34R literal')).toBe(
+      '/status [12;34R literal',
+    );
   });
 
   it('leaves plain text, mouse, Kitty and literals intact', () => {

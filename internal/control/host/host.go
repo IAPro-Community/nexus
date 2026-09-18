@@ -217,6 +217,12 @@ func (sh *SessionHost) Start() error {
 	sh.session.PID = sh.termBackend.PID()
 	sh.session.HostPID = os.Getpid()
 	sh.session.HostGeneration = time.Now().UnixNano()
+	if sh.session.HostBinaryPath == "" {
+		sh.session.HostBinaryPath, _ = os.Executable()
+	}
+	if sh.session.HostBinaryFingerprint == "" {
+		sh.session.HostBinaryFingerprint, _ = registry.BinaryFingerprint(sh.session.HostBinaryPath)
+	}
 	sh.session.State = registry.StateRunning
 	setStage(registry.StartupRunning, "")
 	sh.session.ControlEndpoint = protocol.EndpointPath(sh.session.RuntimeID)
@@ -532,26 +538,32 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 		quotaView := profile.GetQuotaView(sh.session.ProviderID, sh.session.ProfileID, "", "")
 		quotaPercent, _ := quotaView.Bottleneck()
 		status := protocol.StatusData{
-			RuntimeID:           sh.session.RuntimeID,
-			ProviderID:          sh.session.ProviderID,
-			ProfileID:           sh.session.ProfileID,
-			ProviderSessionID:   sh.session.ProviderSessionID,
-			Workspace:           sh.session.Workspace,
-			PID:                 sh.session.PID,
-			State:               string(sh.session.State),
-			StartupStage:        string(sh.session.StartupStage),
-			StageChangedAt:      sh.session.StageChangedAt,
-			LastFault:           security.Redact(string(sh.session.LastFault)),
-			ControlLevel:        string(sh.session.ControlLevel),
-			StartedAt:           sh.session.StartedAt,
-			DroppedOutputChunks: fanoutStats.DroppedChunks,
-			AttentionReason:     sh.session.AttentionReason,
-			AttentionContext:    security.Redact(sh.session.AttentionContext),
-			AttentionKind:       sh.session.AttentionKind,
-			PromptKind:          sh.session.PromptKind,
-			Continuity:          sh.session.Continuity,
-			QuotaStatus:         quotaView.Status,
-			QuotaPercent:        quotaPercent,
+			RuntimeID:                 sh.session.RuntimeID,
+			ProviderID:                sh.session.ProviderID,
+			ProfileID:                 sh.session.ProfileID,
+			ProviderSessionID:         sh.session.ProviderSessionID,
+			Workspace:                 sh.session.Workspace,
+			PID:                       sh.session.PID,
+			HostPID:                   sh.session.HostPID,
+			HostGeneration:            sh.session.HostGeneration,
+			HostBinaryPath:            sh.session.HostBinaryPath,
+			HostBinaryFingerprint:     sh.session.HostBinaryFingerprint,
+			ProviderBinaryPath:        sh.session.ProviderBinaryPath,
+			ProviderBinaryFingerprint: sh.session.ProviderBinaryFingerprint,
+			State:                     string(sh.session.State),
+			StartupStage:              string(sh.session.StartupStage),
+			StageChangedAt:            sh.session.StageChangedAt,
+			LastFault:                 security.Redact(string(sh.session.LastFault)),
+			ControlLevel:              string(sh.session.ControlLevel),
+			StartedAt:                 sh.session.StartedAt,
+			DroppedOutputChunks:       fanoutStats.DroppedChunks,
+			AttentionReason:           sh.session.AttentionReason,
+			AttentionContext:          security.Redact(sh.session.AttentionContext),
+			AttentionKind:             sh.session.AttentionKind,
+			PromptKind:                sh.session.PromptKind,
+			Continuity:                sh.session.Continuity,
+			QuotaStatus:               quotaView.Status,
+			QuotaPercent:              quotaPercent,
 		}
 		resp, _ = protocol.NewResponse(status)
 		resp.RuntimeID = status.RuntimeID

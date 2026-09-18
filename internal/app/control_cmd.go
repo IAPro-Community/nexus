@@ -22,6 +22,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/launcher"
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
+	controlterminal "github.com/IAPro-Community/nexus/internal/control/terminal"
 	controltui "github.com/IAPro-Community/nexus/internal/control/tui"
 	"github.com/IAPro-Community/nexus/internal/control/web"
 	"github.com/IAPro-Community/nexus/internal/core/config"
@@ -466,11 +467,68 @@ func controlAttachCmd(args []string) error {
 	return attachRuntime(args[0])
 }
 
+func validateAttachTarget(runtimeID string) (registry.RuntimeSession, error) {
+	reg := registry.DefaultRegistry()
+	session, ok := reg.Get(runtimeID)
+	if !ok {
+		return registry.RuntimeSession{}, fmt.Errorf("runtime %q not found; start a new session with: %s codex --yolo", runtimeID, progName())
+	}
+	if err := registry.ValidateAttachCompatibility(session); err != nil {
+		// Never terminate an old process implicitly. Mark it stale so the same
+		// diagnosis is visible to `doctor terminal` and the Web control plane.
+		_ = reg.UpdateState(runtimeID, registry.StateStale)
+		return registry.RuntimeSession{}, fmt.Errorf("runtime %q is incompatible and was not attached: %v; recreate the session with %s codex --yolo (the old process was not terminated)", runtimeID, err, progName())
+	}
+	return session, nil
+}
+
 func attachRuntime(runtimeID string) error {
 	return attachRuntimeWithInput(runtimeID, nil)
 }
 
+func containsTerminalInterrupt(input []byte) bool {
+	for _, b := range input {
+		if b == 0x03 {
+			return true
+		}
+	}
+	return false
+}
+
+// forwardAttachedInput is byte-transparent. Ctrl+C is observed only to
+// repair the user's outer terminal; the original byte always reaches the
+// provider runtime unchanged.
+func forwardAttachedInput(destination io.Writer, input []byte, reassert func()) error {
+	if _, err := destination.Write(input); err != nil {
+		return err
+	}
+	if containsTerminalInterrupt(input) && reassert != nil {
+		reassert()
+	}
+	return nil
+}
+
 func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error {
+	session, err := validateAttachTarget(runtimeID)
+	if err != nil {
+		return err
+	}
+	previousRuntime, hadPreviousRuntime := os.LookupEnv("NEXUS_RUNTIME_ID")
+	_ = os.Setenv("NEXUS_RUNTIME_ID", runtimeID)
+	defer func() {
+		if hadPreviousRuntime {
+			_ = os.Setenv("NEXUS_RUNTIME_ID", previousRuntime)
+		} else {
+			_ = os.Unsetenv("NEXUS_RUNTIME_ID")
+		}
+	}()
+
+	tty := controlterminal.NewTTYController(os.Stdin, os.Stdout)
+	if err := tty.Enter(); err != nil {
+		return err
+	}
+	defer func() { _ = tty.Restore() }()
+
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
 		return fmt.Errorf("failed to attach to runtime %q: %w", runtimeID, err)
@@ -480,13 +538,6 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 	// 1. Put user terminal into Raw Mode if stdin is a terminal
 	isTerm := term.IsTerminal(int(os.Stdin.Fd()))
 	if isTerm {
-		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-		if err == nil {
-			defer func() {
-				_ = term.Restore(int(os.Stdin.Fd()), oldState)
-			}()
-		}
-
 		// 2. Register window resize signal listener
 		sigChan := make(chan os.Signal, 1)
 		protocol.NotifyWinSizeChange(sigChan)
@@ -494,12 +545,17 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
+		interruptChan := make(chan os.Signal, 1)
+		signal.Notify(interruptChan, os.Interrupt)
+		defer signal.Stop(interruptChan)
 
 		go func() {
 			for {
 				select {
 				case <-ctx.Done():
 					return
+				case <-interruptChan:
+					_ = tty.Reassert()
 				case <-sigChan:
 					if w, h, err := term.GetSize(int(os.Stdin.Fd())); err == nil && w > 0 && h > 0 {
 						go func(rows, cols int) {
@@ -518,6 +574,18 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 		if w, h, err := term.GetSize(int(os.Stdin.Fd())); err == nil && w > 0 && h > 0 {
 			_ = client.Resize(h, w)
 		}
+	}
+
+	status, err := client.Status()
+	if err != nil {
+		_ = registry.DefaultRegistry().UpdateState(runtimeID, registry.StateStale)
+		return fmt.Errorf("runtime %q could not prove its host generation before attach: %v; recreate the session with %s codex --yolo", runtimeID, err, progName())
+	}
+	if status.RuntimeID != runtimeID || status.PID != session.PID ||
+		(status.HostPID > 0 && status.HostPID != session.HostPID) ||
+		(status.HostGeneration > 0 && status.HostGeneration != session.HostGeneration) {
+		_ = registry.DefaultRegistry().UpdateState(runtimeID, registry.StateStale)
+		return fmt.Errorf("runtime %q changed generation/PID before attach and was rejected; recreate the session with %s codex --yolo (the old process was not terminated)", runtimeID, progName())
 	}
 
 	// 3. Send Attach command to switch connection to raw streaming
@@ -560,11 +628,28 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 			errChan <- input(rawConn)
 			return
 		}
-		_, copyErr := io.Copy(rawConn, os.Stdin)
-		errChan <- copyErr
+		buf := make([]byte, 32*1024)
+		for {
+			n, readErr := os.Stdin.Read(buf)
+			if n > 0 {
+				if writeErr := forwardAttachedInput(rawConn, buf[:n], func() {
+					_ = tty.Reassert()
+				}); writeErr != nil {
+					errChan <- writeErr
+					return
+				}
+			}
+			if readErr != nil {
+				errChan <- readErr
+				return
+			}
+		}
 	}()
 
 	<-errChan
+	// The stream can end without Ctrl+C (provider crash, endpoint loss, or
+	// disconnect). Recover before deferred restoration on every exit.
+	_ = tty.Reassert()
 	return nil
 }
 
@@ -592,6 +677,9 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 			nread, err := os.Stdin.Read(buf)
 			if nread > 0 {
 				input := buf[:nread]
+				if containsTerminalInterrupt(input) {
+					_ = controlterminal.ResetKeyboardModes(os.Stdout)
+				}
 				if pendingASK != "" {
 					answer := input[0]
 					input = input[1:]

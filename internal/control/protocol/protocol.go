@@ -158,26 +158,32 @@ type ContinuityStatePayload struct {
 
 // StatusData contains runtime status reported by SessionHost.
 type StatusData struct {
-	RuntimeID           string    `json:"runtime_id"`
-	ProviderID          string    `json:"provider_id"`
-	ProfileID           string    `json:"profile_id"`
-	ProviderSessionID   string    `json:"provider_session_id,omitempty"`
-	Workspace           string    `json:"workspace"`
-	PID                 int       `json:"pid"`
-	State               string    `json:"state"`
-	StartupStage        string    `json:"startup_stage,omitempty"`
-	StageChangedAt      time.Time `json:"stage_changed_at,omitempty"`
-	LastFault           string    `json:"last_fault,omitempty"`
-	ControlLevel        string    `json:"control_level"`
-	StartedAt           time.Time `json:"started_at"`
-	QuotaStatus         string    `json:"quota_status,omitempty"`
-	QuotaPercent        float64   `json:"quota_percent,omitempty"`
-	DroppedOutputChunks uint64    `json:"dropped_output_chunks,omitempty"`
-	AttentionReason     string    `json:"attention_reason,omitempty"`
-	AttentionContext    string    `json:"attention_context,omitempty"`
-	AttentionKind       string    `json:"attention_kind,omitempty"`
-	PromptKind          string    `json:"prompt_kind,omitempty"`
-	Continuity          string    `json:"continuity,omitempty"`
+	RuntimeID                 string    `json:"runtime_id"`
+	ProviderID                string    `json:"provider_id"`
+	ProfileID                 string    `json:"profile_id"`
+	ProviderSessionID         string    `json:"provider_session_id,omitempty"`
+	Workspace                 string    `json:"workspace"`
+	PID                       int       `json:"pid"`
+	HostPID                   int       `json:"host_pid,omitempty"`
+	HostGeneration            int64     `json:"host_generation,omitempty"`
+	HostBinaryPath            string    `json:"host_binary_path,omitempty"`
+	HostBinaryFingerprint     string    `json:"host_binary_fingerprint,omitempty"`
+	ProviderBinaryPath        string    `json:"provider_binary_path,omitempty"`
+	ProviderBinaryFingerprint string    `json:"provider_binary_fingerprint,omitempty"`
+	State                     string    `json:"state"`
+	StartupStage              string    `json:"startup_stage,omitempty"`
+	StageChangedAt            time.Time `json:"stage_changed_at,omitempty"`
+	LastFault                 string    `json:"last_fault,omitempty"`
+	ControlLevel              string    `json:"control_level"`
+	StartedAt                 time.Time `json:"started_at"`
+	QuotaStatus               string    `json:"quota_status,omitempty"`
+	QuotaPercent              float64   `json:"quota_percent,omitempty"`
+	DroppedOutputChunks       uint64    `json:"dropped_output_chunks,omitempty"`
+	AttentionReason           string    `json:"attention_reason,omitempty"`
+	AttentionContext          string    `json:"attention_context,omitempty"`
+	AttentionKind             string    `json:"attention_kind,omitempty"`
+	PromptKind                string    `json:"prompt_kind,omitempty"`
+	Continuity                string    `json:"continuity,omitempty"`
 }
 
 // NewRequest creates a standard request.

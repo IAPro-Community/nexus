@@ -1,5 +1,31 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-18 — Proteção permanente contra falhas de teclado
+
+- PASS — testes Go focados de terminal, registry, host, launcher, runtime,
+  app, doctor, web e adapter Codex.
+- PASS — `go test -race` nos mesmos pacotes.
+- PASS — `make test-e2e` (terminal/protocol/host/web) com race detector.
+- PASS — cross-compile de testes para Windows/amd64 e Darwin/amd64 nos
+  pacotes de terminal, registry, app e web.
+- PASS — `go vet ./...`, `make build` e `make web-verify` (10/10 gates)
+  completos; o frontend passou 380 testes Vitest.
+- PARTIAL — `go test ./... -count=1` foi executado com diretório temporário,
+  mas mantém falhas pré-existentes de fixtures em `internal/conversation`,
+  adaptadores AGY/Claude, quota e profile; nenhum pacote afetado pelo slice
+  de TTY falhou.
+- PARTIAL — `make lint-go` mantém cinco diagnósticos pré-existentes fora do
+  slice (`misspell` em `internal/nexus/composer_brief.go` e três
+  `staticcheck` em app/capacitymonitor/store).
+- PASS — `git diff --check` e `gofmt` nos arquivos Go alterados.
+- PASS — `nexus doctor terminal --json` produziu schema
+  `nexus.doctor.terminal/v1` sem runtime conectado.
+- PASS — pseudo-TTY real executou `./nexus doctor terminal --recover` e
+  confirmou reset emitido, TTY e termios legíveis.
+- BLOCKED — smoke manual `nexus codex --yolo` foi tentado e retornou
+  `no enabled profiles configured for provider codex`; não foi criada sessão
+  autenticada. Execução nativa Windows/macOS continua UNVERIFIED.
+
 ## 2026-09-15 — Soak prolongado
 
 - **PASS** — `make overnight-soak DURATION=8h`, com duração observada de
@@ -1381,7 +1407,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-15T04:53:58Z
+## Frontend gate — 2026-09-18T22:32:16Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-
