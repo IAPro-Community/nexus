@@ -206,6 +206,7 @@ jobs:
           name: snapshot-dist-${{ github.sha }}
           path: dist
       - name: Install DEB and run nexus version
+        shell: bash
         run: |
           set -euo pipefail
           deb="$(find dist -maxdepth 1 -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' | head -n1)"
