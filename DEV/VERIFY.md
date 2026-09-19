@@ -1528,22 +1528,7 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-19T18:36:31Z
+## Frontend gate — 2026-09-19T18:44:50Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 
-
-## 2026-09-19 — capacity monitor revival T4–T9 + incremental reliability (autopilot)
-
-- PASS — `go test -count=1 ./internal/...` (inclui provider guardrails após correção do classificador).
-- PASS — `go test -race` em `capacitymonitor`, `nexus/store`, `core/cooldown`, `core/fallback`, `control/events`.
-- PASS — `go vet` nos pacotes tocados; `gofmt` limpo; `git diff --check` limpo.
-- PASS — `make build`, `make web-verify` 10/10, `make test-e2e` (terminal/protocol/host/web).
-- REGRESSION_THIS_BRANCH corrigida — `DeriveRoutingSwitchReason` usava `strings.Contains`
-  de quota/rate fora do classificador (guardrails `provider`/`spec` falharam); reescrito
-  sobre `classifier.Classify`, testes de explainability preservados e verdes.
-- REGRESSION_THIS_BRANCH corrigida (review próprio) — dispatcher inicial sem owner
-  auto-suprimia milestones do legado; `Coordinator` owner-tagged + `Forget` em falha.
-- PREEXISTING — `make docs-verify` bloqueado pelo manifesto visual stale (inalterado).
-- ENVIRONMENTAL — `go build ./...` puro reclama VCS stamping no worktree; `make build` canônico PASS.
-- NOT_VERIFIED — providers reais autenticados, Windows/macOS nativos, overnight/soak.
