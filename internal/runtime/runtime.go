@@ -33,7 +33,11 @@ exec "$@"`
 // can remain enabled after an interrupted TUI session. Those protocols make
 // normal keys arrive as CSI text in terminal emulators that do not fully
 // negotiate them (notably embedded VS Code terminals).
-const terminalKeyboardModeReset = "\x1b[<u\x1b[>4;0m\x1b[?1004l\x1b[?2004l"
+// The reset also leaves application cursor/keypad mode. Without DECCKM being
+// cleared, a TTY recovered after Ctrl+C can keep emitting SS3 arrow reports
+// (ESC O A/B), which older or embedded terminal bridges render as literal
+// characters in the provider prompt.
+const terminalKeyboardModeReset = "\x1b[<u\x1b[>4;0m\x1b[?1l\x1b>\x1b[?1004l\x1b[?2004l"
 
 func writeTerminalKeyboardModeReset(out io.Writer) {
 	_, _ = io.WriteString(out, terminalKeyboardModeReset)
@@ -264,8 +268,10 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 	defer func() { _ = tty.Restore() }()
 
 	var errBuf bytes.Buffer
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = io.MultiWriter(os.Stderr, &errBuf)
+	output := NewTerminalOutputScrubber(os.Stdout)
+	defer func() { _ = output.Flush() }()
+	cmd.Stdout = output
+	cmd.Stderr = io.MultiWriter(output, &errBuf)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

@@ -468,51 +468,17 @@ func controlAttachCmd(args []string) error {
 	return attachRuntime(args[0])
 }
 
-func validateAttachTarget(runtimeID string) (registry.RuntimeSession, error) {
-	reg := registry.DefaultRegistry()
-	session, ok := reg.Get(runtimeID)
-	if !ok {
-		return registry.RuntimeSession{}, fmt.Errorf("runtime %q not found; start a new session with: %s codex --yolo", runtimeID, progName())
-	}
-	if err := registry.ValidateAttachCompatibility(session); err != nil {
-		// Never terminate an old process implicitly. Mark it stale so the same
-		// diagnosis is visible to `doctor terminal` and the Web control plane.
-		_ = reg.UpdateState(runtimeID, registry.StateStale)
-		return registry.RuntimeSession{}, fmt.Errorf("runtime %q is incompatible and was not attached: %v; recreate the session with %s codex --yolo (the old process was not terminated)", runtimeID, err, progName())
-	}
-	return session, nil
-}
-
 func attachRuntime(runtimeID string) error {
 	return attachRuntimeWithInput(runtimeID, nil)
 }
 
-func containsTerminalInterrupt(input []byte) bool {
-	for _, b := range input {
-		if b == 0x03 {
-			return true
-		}
-	}
-	return false
-}
-
-// forwardAttachedInput is intentionally byte-transparent. It observes Ctrl+C
-// only to repair the outer terminal after a provider TUI has handled the
-// interruption; the original input always reaches the runtime unchanged.
-func forwardAttachedInput(destination io.Writer, input []byte, reassertKeyboardModes func()) error {
-	if _, err := destination.Write(input); err != nil {
-		return err
-	}
-	if containsTerminalInterrupt(input) && reassertKeyboardModes != nil {
-		reassertKeyboardModes()
-	}
-	return nil
-}
-
 func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error {
-	session, err := validateAttachTarget(runtimeID)
-	if err != nil {
-		return err
+	// No compatibility gate here (retired with the maximus sync): the runtime
+	// handshake below (generation/PID check) is the fail-closed attach
+	// authority. Unknown IDs still fail fast with a recreate hint.
+	session, ok := registry.DefaultRegistry().Get(runtimeID)
+	if !ok {
+		return fmt.Errorf("runtime %q not found; start a new session with: %s codex --yolo", runtimeID, progName())
 	}
 	previousRuntime, hadPreviousRuntime := os.LookupEnv("NEXUS_RUNTIME_ID")
 	_ = os.Setenv("NEXUS_RUNTIME_ID", runtimeID)
@@ -606,6 +572,10 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 	}
 
 	rawConn := client.RawConn()
+	output := nexusruntime.NewTerminalOutputScrubber(os.Stdout)
+	inputStream := nexusruntime.NewTerminalInputScrubber(rawConn)
+	defer func() { _ = output.Flush() }()
+	defer func() { _ = inputStream.Flush() }()
 
 	// 4. Stream stdout from runtime host to user terminal
 	errChan := make(chan error, 2)
@@ -616,10 +586,10 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 			buf := make([]byte, r.Buffered())
 			n, _ := r.Read(buf)
 			if n > 0 {
-				_, _ = os.Stdout.Write(buf[:n])
+				_, _ = output.Write(buf[:n])
 			}
 		}
-		_, copyErr := io.Copy(os.Stdout, rawConn)
+		_, copyErr := io.Copy(output, rawConn)
 		errChan <- copyErr
 	}()
 
@@ -627,25 +597,11 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 	go func() {
 		defer rawConn.Close()
 		if input != nil {
-			errChan <- input(rawConn)
+			errChan <- input(inputStream)
 			return
 		}
-		buf := make([]byte, 32*1024)
-		for {
-			n, readErr := os.Stdin.Read(buf)
-			if n > 0 {
-				if writeErr := forwardAttachedInput(rawConn, buf[:n], func() {
-					nexusruntime.ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
-				}); writeErr != nil {
-					errChan <- writeErr
-					return
-				}
-			}
-			if readErr != nil {
-				errChan <- readErr
-				return
-			}
-		}
+		_, copyErr := io.Copy(inputStream, os.Stdin)
+		errChan <- copyErr
 	}()
 
 	<-errChan
@@ -679,9 +635,6 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 			nread, err := os.Stdin.Read(buf)
 			if nread > 0 {
 				input := buf[:nread]
-				if containsTerminalInterrupt(input) {
-					nexusruntime.ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
-				}
 				if pendingASK != "" {
 					answer := input[0]
 					input = input[1:]

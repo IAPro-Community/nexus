@@ -23,6 +23,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/profile"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 const MaxFrameSize = 64 * 1024 // 64 KB max frame
@@ -278,10 +279,20 @@ func (sh *SessionHost) completeStartFailureLocked() {
 func (sh *SessionHost) streamReader(r io.Reader) {
 	buf := make([]byte, 4096)
 	var pending []byte
+	var filtered bytes.Buffer
+	scrubber := nexusruntime.NewTerminalOutputScrubber(&filtered)
+	flushFiltered := func() {
+		if filtered.Len() == 0 {
+			return
+		}
+		pending = append(pending, filtered.Bytes()...)
+		filtered.Reset()
+	}
 	for {
 		n, err := r.Read(buf)
 		if n > 0 {
-			pending = append(pending, buf[:n]...)
+			_, _ = scrubber.Write(buf[:n])
+			flushFiltered()
 			for {
 				idx := bytes.IndexByte(pending, '\n')
 				if idx < 0 {
@@ -318,6 +329,8 @@ func (sh *SessionHost) streamReader(r io.Reader) {
 			}
 		}
 		if err != nil {
+			_ = scrubber.Flush()
+			flushFiltered()
 			if len(pending) > 0 && !isHostProtocolControlFrame(pending) {
 				sh.ringBuffer.Write(pending)
 				sh.broadcast(pending)

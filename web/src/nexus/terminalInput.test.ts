@@ -20,11 +20,13 @@ describe('shouldForwardTerminalInput', () => {
     expect(shouldForwardTerminalInput(data)).toBe(false);
   });
 
-  it('keeps arrows, mouse, keyboard, UTF-8 and explicit Ctrl+C bytes', () => {
-    expect(shouldForwardTerminalInput('\x1bOA')).toBe(true);
-    expect(shouldForwardTerminalInput('\x1bOB')).toBe(true);
-    expect(shouldForwardTerminalInput('\x1b[A')).toBe(true);
-    expect(shouldForwardTerminalInput('\x1b[B')).toBe(true);
+  it('forwards real arrow-key input', () => {
+    for (const data of ['[A', '[B', '[C', '[D']) {
+      expect(shouldForwardTerminalInput(data)).toBe(true);
+    }
+  });
+
+  it('keeps mouse, keyboard, UTF-8 and explicit Ctrl+C bytes', () => {
     expect(shouldForwardTerminalInput('\x1b[<0;10;4M')).toBe(true);
     expect(shouldForwardTerminalInput('\x1b[1;3u')).toBe(true);
     expect(shouldForwardTerminalInput('ação')).toBe(true);
@@ -61,6 +63,11 @@ describe('stripEmbeddedTerminalMetadata', () => {
     expect(stripEmbeddedTerminalMetadata('[[A[B')).toBe('');
     expect(stripEmbeddedTerminalMetadata('[A')).toBe('[A');
     expect(stripEmbeddedTerminalMetadata('typed [A text')).toBe('typed [A text');
+  });
+
+  it('preserves coalesced ESC-prefixed navigation input', () => {
+    expect(stripEmbeddedTerminalMetadata('\x1b[C\x1b[D')).toBe('\x1b[C\x1b[D');
+    expect(stripEmbeddedTerminalMetadata('typed\x1b[C\x1b[D')).toBe('typed\x1b[C\x1b[D');
   });
 
   it('leaves plain text, mouse, Kitty and literals intact', () => {

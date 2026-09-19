@@ -46,9 +46,13 @@ const EMBEDDED_CPR_RE = /\x1b\[\d+;\d+R/g;
 const BARE_NAVIGATION_RE = /\[(?:[0-9;?]*\[)?[A-DHFO]/g;
 
 function stripBareNavigationBurst(data: string): string {
-  const matches = data.match(BARE_NAVIGATION_RE);
-  if (!matches || matches.length < 2) return data;
-  return data.replace(BARE_NAVIGATION_RE, '');
+  const matches = [...data.matchAll(BARE_NAVIGATION_RE)].filter(
+    (match) => match.index === 0 || data[match.index! - 1] !== '\x1b',
+  );
+  if (matches.length < 2) return data;
+  return data.replace(BARE_NAVIGATION_RE, (match, offset: number) => {
+    return offset > 0 && data[offset - 1] === '\x1b' ? match : '';
+  });
 }
 
 /** Removes embedded ESC-prefixed focus/CPR metadata from a forwarded chunk. */
