@@ -20,6 +20,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/nexus/capacitymonitor"
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -63,6 +64,8 @@ type Nexus struct {
 	schedulerOnce              sync.Once
 	scheduleCancel             context.CancelFunc
 	quotaMonitor               *QuotaMonitorService
+	capacityMonitor            *capacitymonitor.Monitor
+	capacityMonitorCancel      context.CancelFunc
 	attentionOnce              sync.Once
 	attentionCenter            *runner.AttentionCenter
 	projectIntelligenceMu      sync.Mutex
@@ -274,6 +277,7 @@ func (n *Nexus) StopQuotaMonitor() {
 // and orphaned goroutines.
 func (n *Nexus) Shutdown() {
 	n.StopQuotaMonitor()
+	n.StopCapacityMonitor()
 
 	// Stop the schedule loop goroutine.
 	if n.scheduleCancel != nil {
