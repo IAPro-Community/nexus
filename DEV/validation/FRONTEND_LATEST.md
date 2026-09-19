@@ -1,7 +1,7 @@
 # Frontend verification report
 
-- Generated: `2026-09-19T00:19:12Z`
-- Branch: `feat/capacity-monitor-revival` @ `41f5385`
+- Generated: `2026-09-19T18:36:31Z`
+- Branch: `feat/capacity-monitor-revival` @ `483f12e`
 - Verdict: **PASS** (10 pass / 0 fail)
 - Dirty web/dist tree: **yes**
 
@@ -9,16 +9,16 @@
 
 | Gate | Hard | Status | Duration | Detail |
 | --- | --- | --- | --- | --- |
-| Prettier (`prettier --check`) | yes | PASS | 5561ms | Checking formatting...<br>All matched files use Prettier code style! |
-| TypeScript (`tsc --noEmit`) | yes | PASS | 8295ms | ok |
-| ESLint (`eslint src`) | yes | PASS | 4635ms | ok |
-| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 1197ms | ok |
-| Null-safe API array access | yes | PASS | 64ms | sem .length/.map direto em campos nullable conhecidos |
-| Vitest (`vitest run`) | yes | PASS | 7194ms | ✓ src/features/work/composerModel.test.ts (12 tests) 41ms<br> ✓ src/platform/platformBridge.test.ts (8 tests) 12ms<br> ✓ src/services/WorkspaceLayoutService.test.ts (6 tests) 7ms<br> ✓ src/app/projectSelection.test.ts (9 tests) 12ms<br> ✓ src/app/surfaces.test.ts (7 tests) 18ms<br> ✓ src/features/work/flowCanvasInput.test.ts (4 tests) 7ms<br> ✓ src/components/AttentionNotification.test.ts (5 tests) 3ms<br> ✓ src/features/work/directSessionModel.test.ts (8 tests) 8ms<br> ✓ src/features/work/clari |
-| i18n catalog parity | yes | PASS | 959ms | RUN  v3.2.7 /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/nexus-capacity-worktree/web<br><br> ✓ src/i18n/i18n.test.ts (7 tests) 12ms<br><br> Test Files  1 passed (1)<br>      Tests  7 passed (7)<br>   Start at  20:19:39<br>   Duration  546ms (transform 185ms, setup 0ms, collect 239ms, tests 12ms, environment 0ms, prepare 75ms) |
-| Build + embed (`node scripts/build.mjs`) | yes | PASS | 1353ms | Nexus web build complete: /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/nexus-capacity-worktree/web/dist<br>≈ tailwindcss v4.3.3<br><br>Done in 205ms<br><br>  dist/bundle.js                                   349.6kb<br>  dist/chunks/chunk-2ZLYAPRU.js                    340.3kb<br>  dist/chunks/chunk-2NR5NDJ6.js                    278.7kb<br>  dist/chunks/FlowRunsHistorySurface-TQGAY3TB.js   214.4kb<br>  dist/chunks/chunk-WAVLDJEY.js                    194.7kb<br>  dist/bundle.css   |
-| Embed sync (web/dist ≡ internal/.../embedded) | yes | PASS | 0ms | bundles idênticos (358026 bytes) |
-| Critical UI markers in bundle | yes | PASS | 1ms | marcadores críticos presentes (7) |
+| Prettier (`prettier --check`) | yes | PASS | 6118ms | Checking formatting...<br>All matched files use Prettier code style! |
+| TypeScript (`tsc --noEmit`) | yes | PASS | 10248ms | ok |
+| ESLint (`eslint src`) | yes | PASS | 7704ms | ok |
+| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 2816ms | ok |
+| Null-safe API array access | yes | PASS | 197ms | sem .length/.map direto em campos nullable conhecidos |
+| Vitest (`vitest run`) | yes | PASS | 20231ms | ✓ src/app/routerIntegration.test.tsx (3 tests) 6ms<br> ✓ src/app/documentTitle.test.ts (6 tests) 5ms<br> ✓ src/nexus/terminalSettings.test.ts (6 tests) 6ms<br> ✓ src/keyboard/KeyboardShortcutRegistry.test.ts (4 tests) 7ms<br> ✓ src/app/workspaceSurfaceStyles.test.ts (2 tests) 6ms<br> ✓ src/features/work/projectIntelligencePresentation.test.ts (4 tests) 6ms<br> ✓ src/workspace/ptyLiveChrome.test.ts (4 tests) 4ms<br> ✓ src/lib/safeArray.test.ts (3 tests) 48ms<br> ✓ src/app/versionHonesty.test.ts ( |
+| i18n catalog parity | yes | PASS | 1773ms | RUN  v3.2.7 /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/nexus-capacity-worktree/web<br><br> ✓ src/i18n/i18n.test.ts (7 tests) 13ms<br><br> Test Files  1 passed (1)<br>      Tests  7 passed (7)<br>   Start at  18:37:18<br>   Duration  1.02s (transform 425ms, setup 0ms, collect 517ms, tests 13ms, environment 0ms, prepare 197ms) |
+| Build + embed (`node scripts/build.mjs`) | yes | PASS | 2839ms | Nexus web build complete: /projetos/tools/IAPro-Nexus-Workspace-OS-Handoff-2026-08-29/nexus-capacity-worktree/web/dist<br>≈ tailwindcss v4.3.3<br><br>Done in 482ms<br><br>  dist/bundle.js                                   351.9kb<br>  dist/chunks/chunk-6XQRYVMA.js                    340.3kb<br>  dist/chunks/chunk-2NR5NDJ6.js                    278.7kb<br>  dist/chunks/FlowRunsHistorySurface-BZXCZW5D.js   214.4kb<br>  dist/chunks/chunk-XNP5XJDR.js                    202.1kb<br>  dist/bundle.css   |
+| Embed sync (web/dist ≡ internal/.../embedded) | yes | PASS | 1ms | bundles idênticos (360353 bytes) |
+| Critical UI markers in bundle | yes | PASS | 33ms | marcadores críticos presentes (7) |
 
 ## Residual risks / next operator steps
 
@@ -29,71 +29,18 @@
 ### Dirty paths
 
 ```
-M  web/bun.lock
-M  web/package.json
-A  web/scripts/e2e-composer-workspace.mjs
-M  web/src/App.tsx
-M  web/src/api.ts
-A  web/src/app/ConversationSpikePage.module.scss
-A  web/src/app/ConversationSpikePage.tsx
-M  web/src/app/workspace-os.css
-M  web/src/features/agents/AgentsSurface.module.scss
-M  web/src/features/agents/AgentsSurface.tsx
-A  web/src/features/conversation/AgentActivity.module.scss
-A  web/src/features/conversation/AgentActivity.tsx
-A  web/src/features/conversation/ConversationSurface.module.scss
-A  web/src/features/conversation/ConversationSurface.tsx
-A  web/src/features/conversation/ToolCard.module.scss
-A  web/src/features/conversation/ToolCard.tsx
-A  web/src/features/conversation/index.ts
-A  web/src/features/conversation/nexusConversationMapper.test.ts
-A  web/src/features/conversation/nexusConversationMapper.ts
-A  web/src/features/conversation/types.ts
-A  web/src/features/conversation/useNexusAttachments.ts
-A  web/src/features/conversation/useNexusConversationRuntime.ts
-M  web/src/features/sessions/SessionsSurface.module.scss
-M  web/src/features/sessions/SessionsSurface.tsx
-M  web/src/features/usage/AccountLoginModal.module.scss
-M  web/src/features/usage/AccountLoginModal.tsx
-M  web/src/features/usage/UsageAccountCard.tsx
-M  web/src/features/usage/usageModel.ts
-M  web/src/features/work/ClarificationPrompt.module.scss
-M  web/src/features/work/ClarificationPrompt.tsx
-A  web/src/features/work/ComposerActionDock.tsx
-A  web/src/features/work/ComposerBriefOverview.tsx
-M  web/src/features/work/ComposerContextChips.tsx
-A  web/src/features/work/ComposerContextTab.tsx
-M  web/src/features/work/ComposerDestinations.tsx
-A  web/src/features/work/ComposerInspector.module.scss
-A  web/src/features/work/ComposerInspector.tsx
-A  web/src/features/work/ComposerPendingDecision.tsx
-A  web/src/features/work/ComposerReadiness.tsx
-M  web/src/features/work/ComposerSkills.tsx
-M  web/src/features/work/ComposerSurface.module.scss
-M  web/src/features/work/ComposerSurface.tsx
-A  web/src/features/work/ComposerWorkspaceHeader.module.scss
-A  web/src/features/work/ComposerWorkspaceHeader.tsx
-M  web/src/features/work/FlowCanvas.module.scss
-M  web/src/features/work/FlowCanvas.tsx
-M  web/src/features/work/FlowRunsHistorySurface.module.scss
-M  web/src/features/work/FlowRunsHistorySurface.tsx
-M  web/src/features/work/WorkSurface.module.scss
-M  web/src/features/work/WorkSurface.tsx
-A  web/src/features/work/composerBootstrapStream.ts
-A  web/src/features/work/composerConversationRunning.test.ts
-M  web/src/features/work/composerModel.test.ts
-M  web/src/features/work/composerModel.ts
-A  web/src/features/work/composerWorkspace.test.ts
-M  web/src/features/work/flowCanvasInput.test.ts
-M  web/src/features/work/flowModel.test.ts
-M  web/src/features/work/flowModel.ts
-M  web/src/features/work/useComposerSession.ts
-M  web/src/features/work/useFlowDraftEditor.ts
-M  web/src/i18n/resources.ts
-M  web/src/nexus/api.ts
-M  web/src/nexus/terminalInput.test.ts
-M  web/src/nexus/terminalInput.ts
-M  web/src/types.ts
+M web/src/features/settings/SettingsSurface.tsx
+ M web/src/features/usage/UsageAccountCard.tsx
+ M web/src/features/usage/UsageSurface.tsx
+ M web/src/features/work/FlowRunSurface.tsx
+ M web/src/i18n/resources.ts
+ M web/src/nexus/api.ts
+ M web/src/notifications/InAppNotificationCenter.tsx
+ M web/src/notifications/inAppNotificationModel.ts
+ M web/src/types.ts
+?? web/src/features/settings/CapacityMonitorSettings.module.scss
+?? web/src/features/settings/CapacityMonitorSettings.tsx
+?? web/src/notifications/capacityAlert.test.ts
 ```
 
 ## How to regenerate

@@ -1,5 +1,50 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-19 — Capacity Monitor Revival T4–T9 + incremental reliability (autopilot)
+
+Rodada conservadora no worktree `nexus-capacity-worktree`
+(`feat/capacity-monitor-revival`): nenhum subsistema novo — só
+`FIX_EXISTING`/`EXTEND_EXISTING`/`REUSE_EXISTING` sobre seams existentes.
+
+- `FIX_EXISTING` — `0021` única: `0021_conversation_events.sql` fundida em
+  `0021_capacity_monitor.sql` (decisão do Maestro; o runner marcava a versão
+  após o primeiro arquivo alfabético e o segundo nunca aplicava); repair
+  `repairCapacityMonitorSchema` cobre a deriva + `capacity_alert_states` (T6).
+- `EXTEND_EXISTING` — T4: `CapacityRecommender` (adapter fino sobre o
+  `RecommendResources` existente, advisory-only) injetado no monitor; eventos
+  degradados carregam candidato + motivo, sem migração automática.
+- `EXTEND_EXISTING` — T5: `ResetCycleKey`, `ShouldDeliver`, eventos/receipts
+  (`Put/Find/ListCapacityEvent`, `PutDeliveryReceipt`), ack/snooze com
+  enforcement no delivery, evento-antes-de-publicar (restart-safe).
+- `EXTEND_EXISTING` — single dispatcher (decisão do Maestro):
+  `capacitymonitor.Coordinator` owner-tagged entre monitor novo e
+  `QuotaDropMonitor` legado (gate no `dispatch()` via `SetDispatchGate`, nil
+  preserva legado); mesma-owner nunca se auto-suprime; `Forget` em falha de
+  persistência. Review próprio achou e corrigiu auto-supressão de milestones.
+- `REUSE_EXISTING` — T6: `CapacityApplicationService` + 5 rotas
+  (`status/history/preferences/ack/snooze`), UNKNOWN nunca saudável.
+- T8 mínimo (decisão do Maestro): `Start/StopCapacityMonitor` no processo
+  Nexus, consent-gated (`Enabled+BackgroundEnabled`, default OFF),
+  idempotente, lease-gated; `emptyProbeRegistry` até probes reais.
+- Routing/fallback (inspiração OpenCodex adaptada, sem framework novo):
+  `EffectiveCooldown` (Retry-After/ResetAt > heurística), fallback limitado
+  por elegíveis (anti ping-pong, causas tipadas), `ShouldRetainCurrentResource`
+  (sticky affinity), `DeriveRoutingSwitchReason` via `classifier.Classify`
+  (guardrail do provider exigiu; corrigida regressão de substring), `ExplainRoutingDecision`,
+  projeção de stage de Mission, memory E2E (PROJECT > INSTALL, secret
+  rejection), Composer reusa memórias (pedido atual vence).
+- Web: aba `capacity` + `CapacityMonitorSettings`, `capacityAlertFromEvent`
+  (fingerprint-dedup, recovered, recomendação), faixa de monitor no
+  `UsageAccountCard`, execution summary no `FlowRunSurface`; i18n en/pt-BR/es.
+- Gates: `go test ./internal/...` verde, `-race` nos concorrentes tocados,
+  `go vet` limpo, `make build`, `make web-verify` 10/10, `make test-e2e`
+  verde, `git diff --check` limpo. `go build ./...` puro falha em VCS
+  stamping do worktree (ambiental; `make build` canônico PASS).
+  `make docs-verify` segue bloqueado pelo manifesto visual stale (preexistente).
+- Ideias externas não implementadas registradas em
+  `DEV/FUTURE_EVOLUTION_FROM_OPENCODEX_OVERCLOCK.md`; relatório em
+  `DEV/validation/INCREMENTAL_EVOLUTION_REPORT.md`.
+
 ## 2026-09-19 — Correção durável de geração/PID no attach do Nexus
 
 - Corrigido `internal/control/launcher`: após o handshake IPC, a sessão agora

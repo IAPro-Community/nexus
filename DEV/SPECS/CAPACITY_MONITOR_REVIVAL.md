@@ -49,14 +49,38 @@ push remoto; providers novos; qualquer mudança em `QuotaDropMonitor` existente
       lease atômico, account_scope, NaN/Inf, jitter limitado, sem com ctx,
       backoff por pass totalmente falho, TTL adaptativo, fail-closed em erro
       de store, repeat read-only, nil-registry explícito.
-- [ ] T4 — bridge de recomendação sem ciclo de import (adapter sobre `RecommendResources`).
-- [ ] T5 — delivery: dedup por fingerprint + receipts via `internal/control/events`.
-- [ ] T6 — API web autenticada: status/history/preferences/ack/snooze + testes.
-- [ ] T7 — UI: `CapacityMonitorSettings` + `CapacityAlertCard` adaptados ao
-      `SettingsSurface`/notification center atuais (SCSS Modules, i18n, `t(...)`).
-- [ ] T8 — autostart Linux consent-gated + testes + doc de evidência beta.
-- [ ] T9 — gate final: `make quality`, `go test ./internal/nexus/... ./internal/core/quota/...`,
-      `git diff --check`; relatório em `DEV/validation/CAPACITY_MONITOR_REVIVAL_REPORT.md`.
+- [x] T4 — bridge de recomendação sem ciclo de import (adapter sobre `RecommendResources`).
+  FEITO: `capacitymonitor/recommendation.go` (`ResourceKey/Recommendation/Recommender`),
+  `internal/nexus/capacity_recommendation_bridge.go` (`CapacityRecommender` sobre o
+  `RecommendResources` existente, advisory-only, sem migração automática) + teste.
+- [x] T5 — delivery: dedup por fingerprint + receipts via `internal/control/events`.
+  FEITO: `ResetCycleKey` (reset real no fingerprint), `ShouldDeliver` (re-alerta só em
+  mudança de estado/janela/recurso/recovery/repeat explícita), `Put/FindCapacityEvent`,
+  `ListCapacityEvents`, `PutDeliveryReceipt`, `capacity_alert_states` (ack/snooze) com
+  enforcement no delivery, evento persistido ANTES de publicar (restart-safe) + testes.
+- [x] T6 — API web autenticada: status/history/preferences/ack/snooze + testes.
+  FEITO: `CapacityApplicationService` + `handlers_capacity.go`
+  (`/api/v1/capacity/status|history|preferences|ack|snooze`, auth+envelope atuais,
+  UNKNOWN nunca vira saudável, sem paths/credentials) + `handlers_capacity_test.go`.
+- [x] T7 — UI: `CapacityMonitorSettings` + `CapacityAlertCard` adaptados ao
+  `SettingsSurface`/notification center atuais (SCSS Modules, i18n, `t(...)`).
+  FEITO: aba `capacity` em `SettingsSurface`, `CapacityMonitorSettings.tsx`,
+  `capacityAlertFromEvent` (id por fingerprint, recovered, recomendação) ligado no
+  `InAppNotificationCenter` com fallback legado, faixa de monitor no
+  `UsageAccountCard` (estado/transição/ack), execution summary no `FlowRunSurface`
+  (skills/reasoning/isolation/routing mode+why). `make web-verify` 10/10.
+- [x] T8 — autostart Linux consent-gated + testes + doc de evidência beta.
+  FEITO (escopo mínimo decidido pelo Maestro): `Start/StopCapacityMonitor` hospedado
+  no processo Nexus (padrão `StartQuotaMonitor`), só com `Enabled+BackgroundEnabled`
+  (default OFF), idempotente, lease-gated, `Shutdown` desliga; sem daemon novo, sem
+  battery detector. Registro de probes de produção: `emptyProbeRegistry` (UNKNOWN
+  visível, nunca alerta) — probes reais em
+  `DEV/FUTURE_EVOLUTION_FROM_OPENCODEX_OVERCLOCK.md`.
+- [x] T9 — gate final: `make quality`, `go test ./internal/nexus/... ./internal/core/quota/...`,
+  `git diff --check`; relatório em `DEV/validation/CAPACITY_MONITOR_REVIVAL_REPORT.md`.
+  FEITO: `go test ./internal/...` verde, `-race` nos pacotes concorrentes tocados,
+  `go vet` limpo, `make build`, `make web-verify` 10/10, `make test-e2e` verde,
+  `git diff --check` limpo. Relatório: `DEV/validation/INCREMENTAL_EVOLUTION_REPORT.md`.
 
 ## Verificação por task
 

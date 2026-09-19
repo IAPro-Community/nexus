@@ -1,5 +1,17 @@
 # Handoff
 
+## Rodada incremental capacity-monitor-revival — 2026-09-19 (autopilot)
+
+Branch `feat/capacity-monitor-revival` pronta para revisão de merge (PR #3):
+T4–T9 do revival + reliability incremental, sem subsistema novo. Mudanças ainda
+NÃO commitadas no fechamento deste handoff — próxima ação: revisar o diff,
+criar os commits pequenos e push somente com autorização do Maestro. Gates
+locais verdes (detalhe em DEV/VERIFY.md); `make docs-verify` segue bloqueado
+(preexistente) e evidências nativas/live/overnight seguem UNVERIFIED. Sugestão
+de novo título do PR #3: `feat(capacity): revive monitor with recommendations,
+delivery and UI + incremental reliability` (terminal hardening + capacity
+revival + routing/memory/UX). Não alterar o PR remotamente sem autorização.
+
 ## Correção de attach por geração/PID — 2026-09-19
 
 - A causa foi corrigida no launcher: o `StatusData` do `SessionHost` agora é a
