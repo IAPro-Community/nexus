@@ -2,29 +2,127 @@
 
 ## 2026-09-18 — Proteção permanente contra falhas de teclado
 
-- PASS — testes Go focados de terminal, registry, host, launcher, runtime,
-  app, doctor, web e adapter Codex.
-- PASS — `go test -race` nos mesmos pacotes.
-- PASS — `make test-e2e` (terminal/protocol/host/web) com race detector.
-- PASS — cross-compile de testes para Windows/amd64 e Darwin/amd64 nos
-  pacotes de terminal, registry, app e web.
-- PASS — `go vet ./...`, `make build` e `make web-verify` (10/10 gates)
-  completos; o frontend passou 380 testes Vitest.
-- PARTIAL — `go test ./... -count=1` foi executado com diretório temporário,
-  mas mantém falhas pré-existentes de fixtures em `internal/conversation`,
-  adaptadores AGY/Claude, quota e profile; nenhum pacote afetado pelo slice
-  de TTY falhou.
-- PARTIAL — `make lint-go` mantém cinco diagnósticos pré-existentes fora do
-  slice (`misspell` em `internal/nexus/composer_brief.go` e três
-  `staticcheck` em app/capacitymonitor/store).
-- PASS — `git diff --check` e `gofmt` nos arquivos Go alterados.
-- PASS — `nexus doctor terminal --json` produziu schema
-  `nexus.doctor.terminal/v1` sem runtime conectado.
-- PASS — pseudo-TTY real executou `./nexus doctor terminal --recover` e
-  confirmou reset emitido, TTY e termios legíveis.
-- BLOCKED — smoke manual `nexus codex --yolo` foi tentado e retornou
-  `no enabled profiles configured for provider codex`; não foi criada sessão
-  autenticada. Execução nativa Windows/macOS continua UNVERIFIED.
+- PASS — testes Go afetados, `-race`, `make test-e2e`, `go vet ./...`,
+  `make build`, `make web-verify` (10/10) e cross-compile Windows/macOS.
+- PASS — pseudo-TTY executou `./nexus doctor terminal --recover` com reset
+  emitido e termios legível.
+- PARTIAL — `go test ./...` com dados temporários reproduz fixtures
+  preexistentes de conversation/AGY/Claude/quota/profile; nenhum pacote do
+  slice de TTY falhou.
+- PARTIAL — `make lint-go` mantém cinco diagnósticos preexistentes fora do
+  slice.
+- BLOCKED — smoke autenticado `nexus codex --yolo` sem perfil Codex habilitado;
+  Windows/macOS nativos continuam não verificados.
+
+## 2026-09-18 — Beta Linux CI closure preparation
+
+- PASS — `make quality` (format, frontend lint/styles/typecheck, 409 Vitest
+  tests, Go lint, Go tests and version contract).
+- PASS — release contract tests, Wails/Linux build, browser E2E/a11y/visual,
+  GoReleaser check and Linux snapshot, DEB container smoke and `make docs-verify`.
+- PASS — `actionlint` for CI/release workflows and `git diff --check`.
+- OPERATIONAL — repository runner `nexus-ci-dev-web-kiver` is online with
+  labels `self-hosted`, `Linux`, `X64`, `nexus-ci`.
+- PENDING — commit/push, hosted same-SHA 7/7 run, repeated Linux run, merge,
+  green `main`, distribution token and signed beta release.
+
+## 2026-09-17 — PR #2 Windows closure patch
+
+- PASS — `go test -v ./internal/core/provider/adapters/codex -run
+  '^TestPrepareEmptyDestWithManyRolloutsRespectsBudget$' -count=20`.
+- PASS — `go test -v ./internal/nexus -run
+  '^TestInterventionResolutionSurvivesStoreReopen$' -count=20`.
+- PASS — `go test ./internal/core/provider/adapters/codex/... ./internal/nexus/... -count=1`.
+- PASS — `go test -race ./internal/core/provider/adapters/codex/... ./internal/nexus/... -count=1`.
+- PASS — `git diff --check`.
+- PASS — `make web-verify` (10/10 gates; relatório frontend atualizado).
+- BLOCKED/EXISTING — `make docs-verify` detecta manifesto visual stale desde
+  `0ec7e750`; não relacionado às alterações desta correção e requer campanha
+  visual separada.
+- PENDING — native Windows repeated run, hosted same-SHA CI, maintainer merge,
+  `main` CI e tag beta.1 no commit entregue.
+
+## 2026-09-16 — Reassert após interrupção Codex
+
+- PASS — testes de regressão de `Ctrl+C`, forwarding byte-transparente e
+  bracketed paste: `go test ./internal/runtime ./internal/app -run
+  'Test(WriteTerminalKeyboardModeReset|TerminalKeyboardModeResetDisablesBracketedPaste|ForwardAttachedInput|ContainsTerminalInterrupt)$' -count=1`.
+- PASS — `go test ./internal/runtime ./internal/app ./internal/control/host -count=1`.
+- PASS — `go test -race ./internal/runtime ./internal/app -count=1`.
+- PASS — `make build && make LOCAL_BIN=/home/desenvolvedor/.local/bin install`.
+- PASS — binário instalado: `IAPro Nexus 1.0.0-beta.1`, commit `b3db75c`;
+  `git diff --check` limpo.
+- Observação operacional: PIDs 111266/111295 ainda executam a imagem anterior
+  `(deleted)` em memória e precisam de reinício para carregar esta correção.
+
+## 2026-09-16 — Guard persistente de teclado do terminal
+
+- PASS — `go test ./internal/runtime ./internal/app ./internal/control/host -count=1`.
+- PASS — `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`.
+- PASS — `git diff --check`.
+- Aplicado reset pontual de Kitty/CSI-u, modifyOtherKeys e foco estendido ao
+  TTY externo da sessão antiga, preservando o processo e seu contexto.
+
+## 2026-09-16 — Auditoria Contínua, Extração de E-mail do Cursor e Consolidação de Qualidade
+
+- PASS — `go test -v ./internal/core/provider/adapters/cursor/...`: 2/2 testes unitários aprovados (`TestInspectAuthMemoizesStatusProbe` e `TestInspectAuthExtractsEmail`).
+- PASS — `go test ./internal/core/provider/adapters/...`: 100% de aprovação em todos os adapters (`agy`, `claude`, `codex`, `cursor`, `gemini`, `opencode`).
+- PASS — `go test ./internal/...`: Todos os pacotes Go internos aprovados (`internal/app`, `internal/nexus/...`, `internal/control/...`, `internal/core/...`, `internal/profile`, `internal/tui`, etc.).
+- PASS — `make vet`: Go vet limpo (0 issues).
+- PASS — `/home/desenvolvedor/go/bin/golangci-lint run ./...`: 0 issues.
+- PASS — `make format-check`: Formatação Prettier e gofmt 100% conformes.
+- PASS — `make web-verify`: 10/10 gates aprovados (`format`, `typecheck`, `lint`, `stylelint`, `null-arrays`, `test` 379/379 Vitest, `i18n`, `build`, `embed-sync`, `ui-markers`).
+- PASS — `make security` (`govulncheck`): 0 vulnerabilidades detectadas.
+- PASS — `make version-check`: Todas as fontes consistentes em `v1.0.0-beta.1`.
+- PASS — `nexus list`: Exibe `kiver@omegasistemas.net.br` para o perfil `cursor:cursor` com status `Authenticated`.
+- PASS — `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`: Binário atualizado instalado em `/home/desenvolvedor/.local/bin/nexus`.
+- PASS — `GET http://127.0.0.1:13000/api/v1/health`: Retorna `{"status":"ok","timestamp":...,"version":"1.0.0-beta.1"}`.
+- NOT EXECUTED — `git commit` / `git push` (preservando o contrato de governança do Maestro).
+
+## 2026-09-16 — Correção de navegação CSI embutida
+
+- PASS — `npm --prefix web run lint` e `npm --prefix web run typecheck`.
+- PASS — `npm --prefix web test -- --run src/nexus/terminalInput.test.ts` (20/20).
+- PASS — `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`.
+- PASS — `make web-verify` com 10/10 gates e `git diff --check`.
+
+## 2026-09-15 — Revalidação completa da fundação conversacional (anti-perda)
+
+Evidência contra o stash `stash@{0}` + gates locais:
+
+- PASS — inventário: todos os arquivos conversation do stash no disco (feature, spike, bootstrap, handlers, 0021, ADR/docs).
+- PASS — wiring: Composer → `ConversationSurface`; NDJSON create; upload attachments; CSRF; `@assistant-ui/react`; `/dev/conversation-spike`; i18n `conversation` ×3.
+- PASS — DB `~/.local/share/ai-manager/nexus.db`: schema 21 + `kind`/`payload_json` + `conversation_attachments`.
+- PASS — `go test ./internal/nexus/store/ ./internal/nexus/ ./internal/control/web/ -count=1`
+- PASS — Vitest conversation + composerModel + i18n (19)
+- PASS — `make web-verify` 10/10 (`FRONTEND_2026-09-15T13-36-13Z.md`)
+- PASS — `nexus web :13000` serve UI nova; exe não deleted.
+- NOT EXECUTED — commit/push (aguardando Maestro).
+
+## 2026-09-15 — Resolução de Autenticação e UX do OpenCode (Modo Local, Multi-Provedor & Paridade CLI)
+
+- PASS — `go test -v ./internal/core/provider/adapters/opencode/...`: 7/7 testes unitários aprovados (capacidades Login/Logout, modo local sem login, Zen provider, DeepSeek provider, cópia segura de credenciais do host no `Prepare`, probes de cota).
+- PASS — `go test ./internal/profile/...`, `go test ./internal/nexus/...`, `go test ./internal/control/web/...`: 100% de aprovação sem regressões.
+- PASS — `npm --prefix web run check:styles`: SCSS Modules em estrita conformidade com allowlist.
+- PASS — `npm --prefix web run lint:styles`: Stylelint aprovado com 0 violações.
+- PASS — `npm --prefix web run typecheck`: TypeScript compilado limpo (0 erros).
+- PASS — `npm --prefix web run lint`: ESLint com `--max-warnings=0` aprovado.
+- PASS — `npm --prefix web test`: Vitest executou 71 arquivos e 379 testes com 100% de aprovação.
+- PASS — `make web-verify`: 10/10 gates automatizados aprovados (format, typecheck, lint, stylelint, null-arrays, test, i18n, build, embed-sync, ui-markers). Relatório em `DEV/validation/FRONTEND_LATEST.md`.
+- PASS — `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`: Binário compilado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
+- PASS — `curl -H "Authorization: Bearer <token>" http://127.0.0.1:13000/api/v1/resources`: OpenCode reportado com `authenticated: true`, `health: healthy`, `plan: OpenCode (deepseek)` e `account: deepseek`.
+- NOT EXECUTED — `git commit` e `git push` (em estrita conformidade com a constituição do Orquestrador).
+
+
+
+## 2026-09-15 — Fechamento v1.0.0-beta.1 (in-repo, worktree isolado)
+
+- PASS — `make lint-go` (0 issues; exclusão misspell em `composer_brief.go`; SA1019 com `//nolint:staticcheck`).
+- PASS — `go test -count=1 ./internal/nexus/ ./internal/app/ ./internal/control/host/ ./internal/control/web/ ./internal/core/provider/adapters/opencode/` (575 testes).
+- PASS — `make version-check` (`1.0.0-beta.1` consistente).
+- PASS — `make web-verify` 10/10 (`DEV/validation/FRONTEND_LATEST.md`, 2026-09-15T13:04:30Z).
+- ISOLATED — spike Conversation no stash `wip: conversation spike parked outside v1.0.0-beta.1`.
+- NOT EXECUTED — commit, push, tag, GitHub Release, environment `beta-signing` (exigem autorização).
 
 ## 2026-09-15 — Soak prolongado
 
@@ -1407,6 +1505,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-18T22:32:16Z
+## Frontend gate — 2026-09-19T00:19:12Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).

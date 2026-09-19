@@ -15,15 +15,15 @@ exige Composer, Flow ou Mission.
 Para usar um release no Linux/macOS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kivervinicius/ai-cli/main/install.sh | bash -s -- --version=latest
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
 nexus doctor
 ```
 
 No Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/kivervinicius/ai-cli/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version latest
+irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
+.\install.ps1 -Version v1.0.0-beta.1
 nexus doctor
 ```
 

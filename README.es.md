@@ -19,7 +19,7 @@ Camino recomendado (**zero-toolchain**): instala un binario de release. No requi
 **Linux / macOS:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kivervinicius/ai-cli/main/install.sh | bash -s -- --version=latest
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
@@ -27,8 +27,8 @@ nexus web
 **Windows (PowerShell):**
 
 ```powershell
-irm https://raw.githubusercontent.com/kivervinicius/ai-cli/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version latest
+irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
+.\install.ps1 -Version v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
@@ -37,7 +37,7 @@ nexus web
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
-cd ai-cli
+cd nexus
 bun --cwd web install --frozen-lockfile
 make build
 ./nexus doctor
@@ -75,4 +75,4 @@ La [integración con Maestro](docs/product/maestro.md) es opcional para el camin
 
 ## Comunidad
 
-[Seguridad](SECURITY.md) · [Soporte](SUPPORT.md) · [Gobernanza](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Licencia MIT](LICENSE)
+[Seguridad](SECURITY.md) · [Soporte](SUPPORT.md) · [Gobernanza](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Licencia Beta](LICENSE)

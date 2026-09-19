@@ -27,5 +27,5 @@ func launchPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, prom
 	if err != nil || result.Status == nexus.DispatchFailed || result.Status == nexus.DispatchRejected {
 		return
 	}
-	_, _ = n.AskAgent(ctx, session.AgentID, fmt.Sprintf("A Mission %s terminou em %s para a solicitação: %s. Revise a evidência e sintetize o resultado.", result.RunID, result.Run.State, prompt), false)
+	_, _ = n.AskAgent(ctx, session.AgentID, fmt.Sprintf("A Mission %s está em %s (dispatch %s) para a solicitação: %s. Revise a evidência e sintetize o resultado.", result.RunID, result.Run.State, result.Status, prompt), false)
 }

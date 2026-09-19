@@ -107,6 +107,19 @@ substitui seus arquivos diretamente.
 - [ ] README, suporte, segurança, changelog e matriz não exageram claims.
 - [ ] Tag/release recebeu autorização humana explícita.
 
+## Fechamento v1.0.0-beta.1 (operacional)
+
+O slice in-repo (lint, attach, install URLs, changelog, OpenCode auth, filtro de terminal) fica no worktree da branch `feat/nexus-maximum-delivery`. A spike de Conversation **não** entra nesta tag (stash `wip: conversation spike parked outside v1.0.0-beta.1`).
+
+Passos irreversíveis só com autorização explícita:
+
+1. Commit do freeze → push → CI 14/14 no SHA.
+2. Environment `beta-signing` (hoje: 0 environments no GitHub).
+3. Repo público ou `GH_TOKEN` documentado.
+4. `git tag -d v1.0.0-beta.1` se a tag local ainda for `be6c793`; retag no SHA verde; `git push origin v1.0.0-beta.1`.
+5. Conferir a GitHub Release e o canal `channel-beta`.
+6. Merge em `main` só depois da release existir — senão `install.sh` em `main` continua o produto `0.5.0-beta.23`.
+
 ## Rollback
 
 Rollback de release não apaga artefatos já distribuídos. Marque a versão como

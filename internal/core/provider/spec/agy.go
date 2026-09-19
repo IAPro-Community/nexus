@@ -23,6 +23,7 @@ var agySpec = Spec{
 		}
 		env := map[string]string{
 			"HOME":                             profileHome,
+			"USERPROFILE":                      profileHome,
 			"XDG_CONFIG_HOME":                  filepath.Join(profileHome, ".config"),
 			"XDG_CACHE_HOME":                   filepath.Join(profileHome, ".cache"),
 			"XDG_DATA_HOME":                    filepath.Join(profileHome, ".local", "share"),

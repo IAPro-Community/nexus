@@ -94,6 +94,9 @@ func (n *Nexus) ProbeIntelligence(ctx context.Context, projectID string) (Intell
 // ConfiguredIntelligenceProvider resolves the explicitly configured intelligence source.
 // Direct work never calls this function; Composer analysis/planning does.
 func (n *Nexus) ConfiguredIntelligenceProvider(ctx context.Context, projectID string) (intelligence.IntelligenceProvider, error) {
+	if n != nil && n.intelligenceProviderForTest != nil {
+		return n.intelligenceProviderForTest, nil
+	}
 	cfg, err := n.GetIntelligenceConfig()
 	if err != nil {
 		return nil, err

@@ -10,6 +10,7 @@ import (
 )
 
 func TestTelemetryEndpoints(t *testing.T) {
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
 	client, srv, _ := csrfClient(t)
 
 	// Ensure there is at least one test event logged so stats and history have data

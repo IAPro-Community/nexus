@@ -59,6 +59,14 @@ func (kr *KeyRing) AddKey(keyID string, pub ed25519.PublicKey) {
 	kr.keys[keyID] = pub
 }
 
+// RemoveKey revokes a trust-root (rotation completion or compromise).
+// Manifests signed by the removed key fail with ErrUntrustedKeyID while
+// manifests from remaining keys keep verifying: rotation never needs a
+// flag day.
+func (kr *KeyRing) RemoveKey(keyID string) {
+	delete(kr.keys, keyID)
+}
+
 func (kr *KeyRing) VerifyManifest(manifestBytes []byte, sigHex string) (*Manifest, error) {
 	var manifest Manifest
 	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {

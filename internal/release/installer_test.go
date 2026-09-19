@@ -276,9 +276,9 @@ func TestCIDesktopJobsFailClosedWithoutUpdatePublicKey(t *testing.T) {
 	if strings.Contains(ci, "ProductionTrustRootHex=${NEXUS_UPDATE_PUBLIC_KEY:-}") {
 		t.Fatal("desktop CI must not default missing updater public key to empty")
 	}
-	// Linux, macOS (and Windows via PowerShell) must refuse empty trust roots.
-	if strings.Count(ci, `test -n "${NEXUS_UPDATE_PUBLIC_KEY}"`) < 2 {
-		t.Fatal("Linux and macOS desktop CI must each fail-closed when NEXUS_UPDATE_PUBLIC_KEY is empty")
+	// The Linux beta desktop job must refuse an empty trust root.
+	if strings.Count(ci, `test -n "${NEXUS_UPDATE_PUBLIC_KEY}"`) < 1 {
+		t.Fatal("Linux desktop CI must fail-closed when NEXUS_UPDATE_PUBLIC_KEY is empty")
 	}
 	if !strings.Contains(ci, "NEXUS_UPDATE_PUBLIC_KEY is required for desktop CI") {
 		t.Fatal("desktop CI must document fail-closed updater key requirement")
@@ -287,11 +287,11 @@ func TestCIDesktopJobsFailClosedWithoutUpdatePublicKey(t *testing.T) {
 		t.Fatal("expected desktop-linux job in ci.yml")
 	}
 	linuxIdx := strings.Index(ci, "desktop-linux:")
-	windowsIdx := strings.Index(ci, "desktop-windows:")
-	if linuxIdx < 0 || windowsIdx < 0 || windowsIdx <= linuxIdx {
+	snapshotIdx := strings.Index(ci, "\n  snapshot:")
+	if linuxIdx < 0 || snapshotIdx < 0 || snapshotIdx <= linuxIdx {
 		t.Fatal("could not locate desktop-linux job block")
 	}
-	linuxBlock := ci[linuxIdx:windowsIdx]
+	linuxBlock := ci[linuxIdx:snapshotIdx]
 	if !strings.Contains(linuxBlock, `test -n "${NEXUS_UPDATE_PUBLIC_KEY}"`) {
 		t.Fatal("desktop-linux job must fail-closed when NEXUS_UPDATE_PUBLIC_KEY is empty")
 	}
@@ -370,8 +370,8 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(string(license), "MIT License") {
-		t.Fatalf("expected the vigente LICENSE file to be MIT, got %q", strings.SplitN(string(license), "\n", 2)[0])
+	if !strings.HasPrefix(string(license), "# IAPro Nexus — Proprietary Beta License") {
+		t.Fatalf("expected the vigente LICENSE file to be the proprietary beta license, got %q", strings.SplitN(string(license), "\n", 2)[0])
 	}
 
 	for _, name := range []string{"README.md", "README.en.md", "README.es.md"} {
@@ -381,10 +381,65 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 		}
 		text := string(data)
 		if strings.Contains(strings.ToLower(text), "apache") {
-			t.Errorf("%s still advertises Apache despite the MIT LICENSE", name)
+			t.Errorf("%s still advertises Apache despite the proprietary LICENSE", name)
 		}
-		if !strings.Contains(strings.ToLower(text), "mit") {
-			t.Errorf("%s does not advertise the vigente MIT license", name)
+		if strings.Contains(text, "MIT License") || strings.Contains(text, "Licencia MIT") || strings.Contains(text, "licença MIT") {
+			t.Errorf("%s still advertises MIT despite the proprietary LICENSE", name)
 		}
+		if !strings.Contains(strings.ToLower(text), "licen") {
+			t.Errorf("%s does not reference the vigente license", name)
+		}
+	}
+}
+
+// TestReleaseBuildsStripLocalPaths guards the closed-binary requirement:
+// every Go build that can reach beta users must pass -trimpath as a BUILD
+// flag (never inside -ldflags, which the linker rejects) so build machine
+// paths never embed in distributed artifacts.
+func TestReleaseBuildsStripLocalPaths(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	goreleaser, err := os.ReadFile(filepath.Join(root, ".goreleaser.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(goreleaser), "-trimpath") {
+		t.Error(".goreleaser.yaml builds must pass -trimpath")
+	}
+	for _, line := range strings.Split(string(goreleaser), "\n") {
+		if strings.Contains(line, "-trimpath") && strings.Contains(strings.ToLower(line), "ldflag") {
+			t.Errorf(".goreleaser.yaml must not put -trimpath inside ldflags (linker rejects it): %q", strings.TrimSpace(line))
+		}
+	}
+	makefile, err := os.ReadFile(filepath.Join(root, "Makefile"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range strings.Split(string(makefile), "\n") {
+		if strings.Contains(line, "LDFLAGS=") && strings.Contains(line, "-trimpath") {
+			t.Errorf("Makefile must pass -trimpath as a build flag, not inside LDFLAGS: %q", strings.TrimSpace(line))
+		}
+	}
+	if !strings.Contains(string(makefile), "go build -trimpath") {
+		t.Error("Makefile go builds must pass -trimpath")
+	}
+	if !strings.Contains(string(makefile), "GOFLAGS=-trimpath") {
+		t.Error("Makefile wails build must forward -trimpath via GOFLAGS")
+	}
+	ci, err := os.ReadFile(filepath.Join(root, ".github/workflows/ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, cmd := range []string{"go build -trimpath -o nexus", "go build -trimpath -v"} {
+		if !strings.Contains(string(ci), cmd) {
+			t.Errorf("ci.yml must build test binaries with %q", cmd)
+		}
+	}
+	// The Linux beta desktop job delegates to the Make target that forwards
+	// -trimpath to the Wails build.
+	if !strings.Contains(string(ci), "make build-desktop-wails") {
+		t.Error("ci.yml Linux Wails build must use the trimpath-enabled Make target")
 	}
 }

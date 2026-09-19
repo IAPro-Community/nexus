@@ -3,7 +3,6 @@ package nexus
 import (
 	"context"
 	"path/filepath"
-	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -130,19 +129,19 @@ func TestInterventionResolutionSurvivesStoreReopen(t *testing.T) {
 
 	probe := &restartProbeExecutor{}
 	recovered := &Nexus{st: reopened, runner: runner.NewMissionRunner(reopenedRepo, probe)}
-	if err := recovered.RecoverMissionRuns(ctx); err != nil {
+	workers, err := recovered.recoverMissionRuns(ctx)
+	if err != nil {
 		t.Fatal(err)
 	}
-	var final *runner.MissionRun
-	for attempts := 0; attempts < 10000; attempts++ {
-		final, err = reopenedRepo.GetRun(ctx, run.ID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if final.State == runner.StateCompletedVerified {
-			break
-		}
-		runtime.Gosched()
+	if len(workers) != 1 {
+		t.Fatalf("expected one recovered worker, got %d", len(workers))
+	}
+	if err := waitMissionWorker(t.Context(), workers[0]); err != nil {
+		t.Fatalf("recovered mission worker failed: %v", err)
+	}
+	final, err := reopenedRepo.GetRun(ctx, run.ID)
+	if err != nil {
+		t.Fatal(err)
 	}
 	if final.State != runner.StateCompletedVerified || final.ResumeRequest == nil || final.ResumeRequest.Status != "COMPLETED" {
 		t.Fatalf("recovered mission did not complete its pending resume: %+v", final)

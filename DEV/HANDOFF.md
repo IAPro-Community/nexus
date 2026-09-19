@@ -2,20 +2,130 @@
 
 ## Proteção permanente contra falhas de teclado — 2026-09-18
 
-Implementado no worktree `nexus-capacity-worktree`, sem commit/push. O slice
-adiciona `TTYController` para reset/reassert/restore, filtro de `Ctrl+C` no
-attach, validação de compatibilidade por geração/PID/fingerprint, marcação de
-sessões antigas como `STALE`, e `nexus doctor terminal [--json|--recover]`.
-Também foram adicionados testes unitários, PTY, integração de attach e casos
-Web para preservar setas, Ctrl+C, colagem e UTF-8.
+Este PR adiciona controlador único de TTY, validação de geração/PID/fingerprint
+no attach, marcação segura de sessões antigas e `nexus doctor terminal
+[--json|--recover]`. Testes cobrem Ctrl+C, setas, foco/CPR, UTF-8, colagem e
+separação do canal de comandos.
 
-Verificação concluída: focados e `make test-e2e` com race, `go vet ./...`,
-`make web-verify` (10/10), `make build`, `make format-check`, `git diff --check`
-e smoke de `doctor terminal --recover` em pseudo-TTY passaram. `go test ./...`
-com dados temporários ainda reproduz fixtures preexistentes fora deste slice;
-`make lint-go` mantém cinco diagnósticos preexistentes. O smoke manual
-`nexus codex --yolo` foi tentado, mas o ambiente não possui perfil Codex
-habilitado; Windows/macOS continuam não verificados.
+Verificação do slice: `make build`, `make web-verify`, `make test-e2e`, race dos
+pacotes afetados, `go vet ./...`, cross-compile e smoke de recuperação em
+pseudo-TTY passaram. Fixtures preexistentes de AGY/Claude/quota/profile e
+cinco diagnósticos preexistentes de lint continuam registrados como limitações.
+
+## Beta Linux CI closure preparation — 2026-09-18
+
+- The closure worktree is `feat/nexus-maximum-delivery` at `e2f40a5`; it is
+  intentionally dirty and not committed or pushed.
+- CI/release now define seven Linux beta gates on the repository runner
+  `nexus-ci`; Windows, macOS, NSIS and RPM remain source capabilities but are
+  explicitly unverified for this beta.
+- GoReleaser publishes Linux archives and DEB only; signed release requires a
+  public distribution token and Linux manifest keys.
+- The runner is online. Artifact cleanup preserved all 23 artifacts from
+  `cf2eb41` and removed 459 stale artifacts.
+- Local evidence is green: quality, Wails/Linux, browser hardening,
+  GoReleaser snapshot, DEB smoke and docs verification.
+- Next exact action: review the diff, create one Conventional Commit and push
+  only after Maestro authorization; then verify 7/7 and repeat Linux on the
+  same SHA.
+
+## Correção durável de protocolos de teclado Codex — 2026-09-16
+
+- A correção agora atua no momento que causava a regressão: após `Ctrl+C`, o
+  caminho direto e os attaches supervisionados (inclusive Lead) preservam o
+  byte `0x03` para o provider e reaplicam o reset dos protocolos opcionais do
+  terminal imediatamente, após 75 ms e após 300 ms.
+- O reset desativa Kitty/CSI-u, modifyOtherKeys, foco estendido e bracketed
+  paste; este último também protege o fluxo de `Ctrl+V` contra vazamento de
+  delimitadores de paste.
+- PASS: testes de runtime/app/host, mesmos pacotes com `-race`, `make build`,
+  instalação em `/home/desenvolvedor/.local/bin/nexus` e `git diff --check`.
+- O binário em disco é `b3db75c`, mas a sessão Codex em `pts/12` e seu host
+  ainda são imagens antigas marcadas `(deleted)` pelo kernel. O TTY foi
+  saneado pontualmente sem perder o contexto; para carregar a proteção nova,
+  encerre a sessão e execute `nexus codex --yolo` novamente.
+
+## Auditoria Contínua, Integração do Cursor e Consolidação de Qualidade — 2026-09-16
+
+1. **Adapter Cursor — Extração de E-mail de Autenticação**:
+   - `InspectAuth` (`internal/core/provider/adapters/cursor/cursor.go`): Anteriormente ignorava a saída de login do `cursor-agent status`, mantendo `info.Email = ""` e fazendo com que `nexus list` e o Web OS exibissem a conta como `(unauthenticated)`.
+   - Agora realiza o parse de `"Logged in as <email>"`. No ambiente local do Maestro, extrai com precisão `kiver@omegasistemas.net.br`.
+   - Novo teste unitário `TestInspectAuthExtractsEmail` adicionado em `cursor_test.go` cobrindo o fluxo com binário stub.
+
+2. **Paridade e Clareza Visual na CLI (`nexus list`)**:
+   - `internal/app/app.go`: O fallback da coluna `ACCOUNT / EMAIL` agora distingue contas autenticadas sem e-mail explícito (exibindo `—`) de contas não autenticadas (`(unauthenticated)`).
+   - O comando `nexus list` agora apresenta status e identidades consistentes para todos os 6 perfis configurados (`agy`, `codex`, `cursor`, `opencode`).
+
+3. **Status dos Gates Determinísticos (100% PASS)**:
+   - `make web-verify`: 10/10 gates aprovados (`format`, `typecheck`, `lint`, `stylelint`, `null-arrays`, `test` 379/379 Vitest, `i18n`, `build`, `embed-sync`, `ui-markers`).
+   - `make vet`: Aprovado sem warnings.
+   - `golangci-lint run ./...`: 0 issues encontradas.
+   - `go test ./internal/...`: Todos os pacotes internos Go aprovados.
+   - `make security` (`govulncheck`): Nenhuma vulnerabilidade detectada.
+   - `make version-check`: Contrato de versão consistente (`v1.0.0-beta.1`).
+
+4. **Ambiente em Execução**:
+   - Binário compilado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
+   - Servidor `nexus web` ativo em segundo plano na porta `13000` (`http://127.0.0.1:13000`), respondendo com HTTP 200 OK.
+   - Sem commits ou pushes conforme as regras de persistência e governança do repositório.
+
+## Resolução de Autenticação e UX do OpenCode — 2026-09-15
+
+## Atualização — filtro de entrada do Codex
+
+O filtro compartilhado do terminal agora remove relatórios de foco
+parametrizados/corrompidos (`ESC[0[I` e equivalentes), que apareciam como
+`0[I` no prompt. `Ctrl+V` continua sendo encaminhado. O binário foi
+recompilado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
+
+Sessões Codex já abertas precisam ser encerradas e iniciadas novamente para
+usar o bundle atualizado.
+
+Correção adicional aplicada para setas CSI embutidas (`ESC[C ESC[D`), que
+podiam aparecer como `[C[D` no prompt. Teste, build e instalação passaram; o
+binário atual é o commit `4f7ef0f`. Reinicie a sessão Codex para substituir
+processos já abertos.
+
+O launcher agora também limpa preventivamente os modos persistentes de teclado
+do TTY no início e no fim de sessões diretas ou supervisionadas. A sessão
+anterior estava executando um binário deletado em memória; seu TTY externo foi
+resetado sem encerrar o processo, mas uma nova sessão é necessária para usar o
+guard permanente.
+
+Resolvida a incompatibilidade arquitetural de autenticação do OpenCode no Nexus, adaptando tanto o backend Go quanto o Web OS para a realidade dos múltiplos modos operacionais do OpenCode:
+
+1. **Modos de Operação Reconhecidos**:
+   - **Modo Local / Self-Hosted (Ollama / Env)**: Quando nenhum provedor específico está configurado, o OpenCode é tratado como `HEALTHY` e `AUTHENTICATED`, com plano `"OpenCode Local (Ollama/Env)"`, dispensando logins ou chaves de nuvem e permitindo execução imediata.
+   - **Provedores Externos (DeepSeek, Claude, OpenAI)**: O `InspectAuth` analisa o mapa real do `auth.json` (`map[string]openCodeAuthEntry`). No ambiente local do Maestro, identificou com sucesso o provedor `"deepseek"`, marcando a conta como `"OpenCode (deepseek)"` com status `healthy`.
+   - **OpenCode Zen / Go**: Identificado quando a chave `"opencode"` está presente em `auth.json`, apontando para a nuvem oficial do OpenCode AI.
+
+2. **Herança de Credenciais & Login CLI**:
+   - `Prepare`: Sincroniza o `~/.local/share/opencode/auth.json` do host para o sandbox isolado do perfil caso ainda não exista.
+   - `nexus login opencode <profile>`: Dispara interativamente `opencode providers login` no terminal, permitindo que o usuário gerencie e adicione provedores de IA diretamente.
+
+3. **Web OS (UX & Modais)**:
+   - `UsageAccountCard`: Eliminado o falso alerta de "Requer Login"; conta do OpenCode exibe chips contextuais e ação primária "Abrir Terminal" para lançamento imediato.
+   - `AccountLoginModal`: Modal especializado explicando os 3 modos de operação, destacando o provedor ativo (`DeepSeek`), e oferecendo botões diretos para "Gerenciar Provedores no Terminal" e "Usar Modo Local".
+   - Internacionalização completa em `en`, `ptBR` e `es`.
+
+4. **Verificação**:
+   - 7/7 testes unitários do adapter OpenCode PASS.
+   - `make web-verify` 10/10 gates PASS.
+   - Binário compilado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
+   - Servidor web em background atualizado e validado na porta 13000.
+
+
+
+## Fechamento v1.0.0-beta.1 — 2026-09-15
+
+Worktree de freeze isolado: lint Linux, attach Composer, install URLs,
+changelog, OpenCode auth, filtro CSI do terminal, folga do lock Codex no
+Windows. Spike de Conversation está no stash
+`wip: conversation spike parked outside v1.0.0-beta.1` e **não** entra nesta
+tag. **Não** houve commit, tag, push nem publicação. Próxima ação humana:
+autorizar freeze commit (sem o stash), CI 14/14, `beta-signing`, repo público
+(ou GH_TOKEN), retag no SHA verde, GitHub Release, depois merge em `main`.
+Ver `DEV/validation/current/RELEASE_STATUS.md`.
 
 ## Soak de 8h concluído — 2026-09-15
 
@@ -1944,3 +2054,19 @@ configuration, native Windows/macOS and hosted same-SHA CI, PowerShell/native
 terminal gates, and authenticated Mission evidence still require execution in
 the appropriate environments. No push, merge, deploy or production secret was
 performed by this campaign. See `DEV/validation/production-finalization/FINAL_REPORT.md`.
+## Handoff — 2026-09-17 — PR #2 closure patch
+
+O worktree contém a correção dos dois failures observados no artifact Windows
+do SHA `cf2eb41`: seed Codex agora persiste estado em lote, e a recuperação de
+Mission aguarda o worker real com erro observável. O CI deixou de executar o
+workflow completo em `push` de `feat/**`/`fix/**`, mantendo `pull_request`,
+`main`, `master` e tags; concurrency cancela execuções obsoletas.
+
+Baseline remoto observada antes do patch: `19e233c5c4224b46e565b754b4ec92d28a757dd9`.
+O worktree está sem commit/push. Próxima ação: revisar o diff, autorizar um
+único commit, pushar, exigir todos os 14 jobs verdes e repetir o Windows duas
+vezes no mesmo SHA. A `main` continua sem proteção nativa por limitação do
+plano privado; merge exige maintainer e checklist manual. A tag remota
+`v1.0.0-beta.1` ainda aponta para `cf2eb41` e só deve ser recriada após CI verde
+na `main`. `make docs-verify` permanece bloqueado por manifesto visual stale
+preexistente, fora do escopo desta correção de estabilização.

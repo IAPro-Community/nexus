@@ -282,6 +282,19 @@ collect:
 		host = host[:crossAccountHostSeedCap]
 	}
 
+	// Load the destination state once. The previous implementation performed
+	// these reads and rewrote the complete destination index for every rollout;
+	// that is especially expensive on Windows and made Prepare exceed its
+	// launch budget for an empty profile with many rollouts.
+	destAccount := readCodexAuthAccountID(filepath.Join(home, "auth.json"))
+	marked := readCrossAccountSessionIDs(home)
+	destIndexPath := filepath.Join(home, "session_index.jsonl")
+	destIndex, _ := readSessionIndexMap(destIndexPath)
+	sourceIndexes := map[string][]sessionIndexEntry{}
+	sourceAccounts := map[string]string{}
+	var importedForeign []string
+	var newMarkers []crossAccountSessionRecord
+
 	for _, item := range append(sibling, host...) {
 		if time.Now().After(deadline) {
 			break
@@ -295,21 +308,48 @@ collect:
 			continue
 		}
 		sourceProfile := profileNameFromSessionsPath(item.path)
-		if shouldMarkCrossAccount(home, item.path, sourceProfile) {
-			if err := recordCrossAccountSession(home, item.sessionID, sourceProfile, item.path); err != nil {
-				_ = os.Remove(dst)
-				continue
+		if shouldMarkCrossAccountCached(item.path, sourceProfile, destAccount, sourceAccounts) {
+			if !marked[item.sessionID] {
+				marked[item.sessionID] = true
+				newMarkers = append(newMarkers, crossAccountSessionRecord{
+					SessionID: item.sessionID, SourceProfile: sourceProfile, SourcePath: item.path, AdoptedAt: time.Now().UTC(),
+				})
 			}
+			importedForeign = append(importedForeign, dst)
 		}
-		merged := false
+
+		var sourceEntry *sessionIndexEntry
 		for _, idxPath := range indexCandidatesForSessionsRoot(item.root) {
-			if mergeSessionIndexFromFile(home, item.sessionID, idxPath) {
-				merged = true
+			entries, ok := sourceIndexes[idxPath]
+			if !ok {
+				entries, _ = readSessionIndexEntries(idxPath)
+				sourceIndexes[idxPath] = entries
+			}
+			if entry, found := findSessionIndexEntry(entries, item.sessionID); found {
+				candidate := entry
+				sourceEntry = &candidate
 				break
 			}
 		}
-		if !merged && item.indexEntry != nil {
-			_ = appendSessionIndexEntry(home, *item.indexEntry)
+		if sourceEntry == nil {
+			sourceEntry = item.indexEntry
+		}
+		if sourceEntry != nil {
+			if previous, ok := destIndex[sourceEntry.ID]; !ok || indexEntryNewer(*sourceEntry, previous) {
+				destIndex[sourceEntry.ID] = *sourceEntry
+			}
+		}
+	}
+
+	if err := appendCrossAccountSessionRecords(home, newMarkers); err != nil {
+		for _, path := range importedForeign {
+			_ = os.Remove(path)
+		}
+		return fmt.Errorf("write cross-account session markers: %w", err)
+	}
+	if len(destIndex) > 0 {
+		if err := writeSessionIndexMap(destIndexPath, destIndex); err != nil {
+			return fmt.Errorf("write session index: %w", err)
 		}
 	}
 	return nil
@@ -335,34 +375,17 @@ func destHasRollouts(destRoot string) bool {
 // from GetUsage for this profile. Same chatgpt_account_id keeps quota attribution.
 func shouldMarkCrossAccount(destHome, sourcePath, sourceProfile string) bool {
 	destAcct := readCodexAuthAccountID(filepath.Join(destHome, "auth.json"))
-	if rolloutAcct := readRolloutAccountID(sourcePath); destAcct != "" && rolloutAcct != "" {
-		return !strings.EqualFold(destAcct, rolloutAcct)
-	}
-	if sourceProfile == "host" {
-		return true
-	}
-	if sourceProfile == "" {
-		// Destination-local path without a verifiable foreign account id:
-		// do not suppress quota for native sessions.
-		return false
-	}
-	srcHome := ""
+	return shouldMarkCrossAccountCached(sourcePath, sourceProfile, destAcct, map[string]string{})
+}
+
+func sourceHomeFromSessionsPath(sourcePath string) string {
 	parts := strings.Split(filepath.ToSlash(sourcePath), "/")
 	for i := 0; i < len(parts)-1; i++ {
 		if parts[i] == "codex" && i+1 < len(parts) && parts[i+1] != "home" && parts[i+1] != "sessions" {
-			srcHome = filepath.Join(strings.Join(parts[:i+2], "/"), "home")
-			break
+			return filepath.Join(strings.Join(parts[:i+2], "/"), "home")
 		}
 	}
-	if srcHome == "" {
-		return true
-	}
-	srcAcct := readCodexAuthAccountID(filepath.Join(srcHome, "auth.json"))
-	if destAcct != "" && srcAcct != "" && strings.EqualFold(destAcct, srcAcct) {
-		return false
-	}
-	// Unverifiable or mismatched sibling accounts: fail closed for quota.
-	return true
+	return ""
 }
 
 func isHostSessionsRoot(root string) bool {
@@ -439,11 +462,25 @@ func mergeSessionIndexEntry(home, sessionID string, indexPaths ...string) {
 }
 
 func mergeSessionIndexFromFile(home, sessionID, indexPath string) bool {
-	f, err := os.Open(indexPath)
+	entries, err := readSessionIndexEntries(indexPath)
 	if err != nil {
 		return false
 	}
+	entry, ok := findSessionIndexEntry(entries, sessionID)
+	if !ok {
+		return false
+	}
+	_ = appendSessionIndexEntry(home, entry)
+	return true
+}
+
+func readSessionIndexEntries(path string) ([]sessionIndexEntry, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
 	defer f.Close()
+	var entries []sessionIndexEntry
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -451,16 +488,20 @@ func mergeSessionIndexFromFile(home, sessionID, indexPath string) bool {
 			continue
 		}
 		var entry sessionIndexEntry
-		if json.Unmarshal([]byte(line), &entry) != nil || entry.ID == "" {
-			continue
+		if json.Unmarshal([]byte(line), &entry) == nil && entry.ID != "" {
+			entries = append(entries, entry)
 		}
-		if entry.ID != sessionID && !strings.Contains(entry.ID, sessionID) && !strings.Contains(sessionID, entry.ID) {
-			continue
-		}
-		_ = appendSessionIndexEntry(home, entry)
-		return true
 	}
-	return false
+	return entries, scanner.Err()
+}
+
+func findSessionIndexEntry(entries []sessionIndexEntry, sessionID string) (sessionIndexEntry, bool) {
+	for _, entry := range entries {
+		if entry.ID == sessionID || strings.Contains(entry.ID, sessionID) || strings.Contains(sessionID, entry.ID) {
+			return entry, true
+		}
+	}
+	return sessionIndexEntry{}, false
 }
 
 func appendSessionIndexEntry(home string, entry sessionIndexEntry) error {
@@ -574,6 +615,29 @@ func recordCrossAccountSession(home, sessionID, sourceProfile, sourcePath string
 	return err
 }
 
+func appendCrossAccountSessionRecords(home string, records []crossAccountSessionRecord) error {
+	if len(records) == 0 {
+		return nil
+	}
+	path := filepath.Join(home, crossAccountMarkerFile)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	var b strings.Builder
+	for _, rec := range records {
+		raw, err := json.Marshal(rec)
+		if err != nil {
+			return err
+		}
+		b.Write(raw)
+		b.WriteByte('\n')
+	}
+	_, err = io.WriteString(f, b.String())
+	return err
+}
+
 func readCrossAccountSessionIDs(home string) map[string]bool {
 	out := map[string]bool{}
 	path := filepath.Join(home, crossAccountMarkerFile)
@@ -595,6 +659,28 @@ func readCrossAccountSessionIDs(home string) map[string]bool {
 		out[rec.SessionID] = true
 	}
 	return out
+}
+
+func shouldMarkCrossAccountCached(sourcePath, sourceProfile, destAcct string, sourceAccounts map[string]string) bool {
+	if rolloutAcct := readRolloutAccountID(sourcePath); destAcct != "" && rolloutAcct != "" {
+		return !strings.EqualFold(destAcct, rolloutAcct)
+	}
+	if sourceProfile == "host" {
+		return true
+	}
+	if sourceProfile == "" {
+		return false
+	}
+	srcHome := sourceHomeFromSessionsPath(sourcePath)
+	if srcHome == "" {
+		return true
+	}
+	srcAcct, ok := sourceAccounts[srcHome]
+	if !ok {
+		srcAcct = readCodexAuthAccountID(filepath.Join(srcHome, "auth.json"))
+		sourceAccounts[srcHome] = srcAcct
+	}
+	return destAcct == "" || srcAcct == "" || !strings.EqualFold(destAcct, srcAcct)
 }
 
 // isCrossAccountResumeSession reports whether a rollout under the profile home

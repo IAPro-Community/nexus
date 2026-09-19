@@ -41,12 +41,30 @@ func TestEvaluateEligibilityGates(t *testing.T) {
 		{
 			name: "exhausted unavailable",
 			in: EligibilityInput{
-				View:          QuotaView{Status: "LIVE", Available: false},
+				View: QuotaView{
+					Status:       "LIVE",
+					Available:    false,
+					AvailReasons: AvailReasons{ExhaustedWindows: []string{"weekly", "claude_weekly"}},
+				},
 				Authenticated: true,
 				Health:        "healthy",
 			},
 			want: ReasonExhausted,
 			ok:   false,
+		},
+		{
+			name: "partial exhaustion remains eligible",
+			in: EligibilityInput{
+				View: QuotaView{
+					Status:       "CACHED",
+					Available:    true,
+					AvailReasons: AvailReasons{ExhaustedWindows: []string{"5h"}},
+				},
+				Authenticated: true,
+				Health:        "healthy",
+			},
+			want: ReasonOK,
+			ok:   true,
 		},
 		{
 			name: "unsupported auto",

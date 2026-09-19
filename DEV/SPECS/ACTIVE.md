@@ -2,15 +2,40 @@
 
 ## Slice ativo — proteção permanente contra falhas de teclado — 2026-09-18
 
-O terminal supervisionado/direct agora usa um controlador único de TTY que
-reaplica reset seguro na entrada, após interrupção/perda de conexão e antes da
-restauração do estado original. O reset desativa cursor application, Kitty/CSI-u,
-modifyOtherKeys, foco estendido e bracketed paste. O attach valida geração,
-PIDs e identidade dos binários; sessões antigas são marcadas `STALE` e recebem
-ação explícita de recriação, sem matar o processo silenciosamente. A nova
-superfície `nexus doctor terminal [--json|--recover]` expõe o estado e a
-recuperação disponível. Filtros Web continuam removendo somente metadados de
-foco/CPR conhecidos, preservando setas, Ctrl+C, colagem, UTF-8 e comandos.
+O terminal supervisionado/direct usa um controlador único de TTY que reaplica
+reset seguro na entrada, após interrupção/perda de conexão e antes da
+restauração. O attach valida geração, PIDs e identidade dos binários; sessões
+antigas são marcadas `STALE` e recebem ação explícita de recriação, sem matar o
+processo silenciosamente. `nexus doctor terminal [--json|--recover]` expõe o
+estado e a recuperação. Filtros Web removem apenas metadados conhecidos,
+preservando setas, Ctrl+C, colagem, UTF-8 e comandos literais.
+
+## Beta Linux closure scope — 2026-09-18
+
+The current closure candidate is locally certified for Linux only. GitHub-hosted
+jobs are blocked before start by billing state and no Windows/macOS machines
+are available. The executable beta CI contract is seven same-SHA Linux jobs:
+frontend, security, browser, Linux Go, Linux Wails, GoReleaser/DEB snapshot
+and DEB install smoke. Native Windows, macOS, NSIS and RPM evidence remain
+pending and are not release claims.
+
+## Closure update — 2026-09-17 — PR #2
+
+Os blockers determinísticos identificados no Windows foram corrigidos no
+worktree: seed cross-account em lote e sincronização determinística do worker
+de recuperação de Mission. O CI agora evita a duplicação de `push`/`pull_request`
+em branches de feature. Permanecem gates hosted/native: novo SHA commitado,
+14 jobs verdes, Windows repetido verde, merge commit, CI da `main` e retag
+`v1.0.0-beta.1`. Branch protection nativa permanece indisponível no plano
+privado e será mitigada operacionalmente.
+
+## Closure state — 2026-09-15 (v1.0.0-beta.1)
+
+Alvo desta spec: Community Preview `v1.0.0-beta.1`, não 1.0.0 estável.
+Slice de fechamento in-repo: lint, attach Composer, docs de install, changelog.
+Gates humanos restantes: freeze commit, CI same-SHA, `beta-signing`, visibilidade
+do repositório, tag no SHA verde, GitHub Release. Composer → Flow é o caminho Web
+de planejamento; Conductor permanece CLI.
 
 ## Closure state — 2026-09-13
 

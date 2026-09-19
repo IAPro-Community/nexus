@@ -227,7 +227,7 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
               <DropdownMenu.Content className={styles.menuContent} side="bottom" align="end">
-                {account.available && (
+                {(account.available || account.authenticated) && (
                   <DropdownMenu.Item className={styles.menuItem} onClick={handleTerminalLaunch}>
                     <Terminal size={14} />
                     {t('usage.openTerminalCta')}
@@ -240,13 +240,15 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
                   <RefreshCw size={14} className={refreshing ? 'nx-spin' : ''} />
                   {t('usage.refreshAccountCta')}
                 </DropdownMenu.Item>
-                {authRequired && (
+                {(authRequired || account.provider?.toLowerCase() === 'opencode') && (
                   <DropdownMenu.Item
                     className={styles.menuItem}
                     onClick={() => onRequestLogin(account)}
                   >
                     <KeyRound size={14} />
-                    {t('usage.loginCta')}
+                    {account.provider?.toLowerCase() === 'opencode'
+                      ? t('usage.configProvidersCta', 'Gerenciar provedores')
+                      : t('usage.loginCta')}
                   </DropdownMenu.Item>
                 )}
                 {!account.is_default && (
@@ -383,7 +385,7 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
                 <KeyRound size={13} />
                 {t('usage.loginCta')}
               </Button>
-            ) : account.available ? (
+            ) : account.available || account.authenticated ? (
               <Button size="sm" tone="brand" onClick={handleTerminalLaunch}>
                 <Terminal size={13} />
                 {t('usage.openTerminalCta')}

@@ -748,7 +748,11 @@ func profilesCmd(args []string) error {
 		}
 		email := acc.Email
 		if email == "" {
-			email = "(unauthenticated)"
+			if acc.Authenticated {
+				email = "—"
+			} else {
+				email = "(unauthenticated)"
+			}
 		}
 		if len(email) > 26 {
 			email = email[:24] + ".."

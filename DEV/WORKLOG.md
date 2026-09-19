@@ -1,5 +1,82 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-18 — Linux-only beta CI closure
+
+- Reworked CI and Signed Release for seven self-hosted Linux gates because
+  GitHub-hosted jobs are blocked by billing state and no Windows/macOS machines
+  exist. Unsupported platform tests remain in source but are not beta claims.
+- Restricted beta GoReleaser output to Linux archives and DEB; release fails
+  closed without the public distribution token and requires Linux manifest
+  artifacts.
+- Registered `nexus-ci-dev-web-kiver`, allowed `v*` in `beta-signing`, removed
+  459 stale GitHub artifacts and preserved all 23 artifacts from `cf2eb41`.
+- Refreshed synthetic visual evidence and updated release status.
+- PASS: `make quality`, Wails/Linux, browser E2E/a11y/visual, GoReleaser
+  check/snapshot, DEB smoke, `make docs-verify`, actionlint and diff check.
+- Next: review and authorize one commit/push, then verify 7/7 and repeat the
+  Linux run on the same SHA.
+
+## 2026-09-17 — Correção dos blockers de fechamento Windows da PR #2
+
+- Corrigido o seed de sessões cross-account para carregar markers, índices e
+  autenticação em lote, evitando reescritas do índice por rollout e preservando
+  isolamento copy-only e atribuição fail-closed.
+- Corrigida a sincronização do teste de recuperação de Mission: o worker agora
+  registra o erro de `RunToTerminal`, expõe conclusão interna e o teste aguarda
+  o ciclo real em vez de fazer polling CPU-tight.
+- Ajustado `.github/workflows/ci.yml` para não duplicar CI completo em `push` de
+  branches de feature; `pull_request`, `main`, `master` e tags continuam gates.
+- Atualizado `DEV/validation/current/RELEASE_STATUS.md` para a estratégia
+  private/closed-source e baseline `19e233c5c4224b46e565b754b4ec92d28a757dd9`.
+- Verificação PASS: ambos os testes focados `-count=20`, pacotes Codex/Nexus,
+  `-race` nos pacotes afetados e `git diff --check`. Sem commit ou push.
+
+## 2026-09-16 — Audit contínuo / Quality Gate Pass
+
+- **Cursor adapter — extração de e-mail**: `InspectAuth` agora parseia `"Logged in as <email>"` da saída de `cursor-agent status`; `nexus list` exibe `kiver@omegasistemas.net.br` em vez de `(unauthenticated)`. Novo teste `TestInspectAuthExtractsEmail` cobrindo o fluxo com binário stub.
+- **nexus list — display de contas autenticadas sem e-mail**: `app.go` distingue conta autenticada sem e-mail explícito (exibe `—`) de conta não autenticada (exibe `(unauthenticated)`).
+- **golangci-lint 0 issues**: Corrigido helper `attachmentURL` não utilizado em `handlers_conversation.go` — resposta do upload de attachment agora inclui campo `url` com URL canônica `/api/v1/attachments/<id>`.
+- **gofmt**: Arquivo `composer_turn_intelligence.go` reformatado (`gofmt -w -s`).
+- **Prettier / format-check**: Arquivo `flowCanvasInput.test.ts` reformatado via `prettier --write`.
+- **make web-verify 10/10**: format, typecheck, lint, stylelint, null-arrays, test, i18n, build, embed-sync, ui-markers — todos PASS.
+- **Go tests**: `internal/control/web`, `internal/core/quota`, `internal/core/scheduler`, `internal/app`, `internal/nexus/...` — todos PASS.
+- **govulncheck**: No vulnerabilities found.
+- **Binário recompilado e instalado**: `commit 57a1e46`, `v1.0.0-beta.1`, `/home/desenvolvedor/.local/bin/nexus`.
+- **Servidor web** reiniciado na porta 13000 e verificado via `GET /api/v1/health`.
+
+## 2026-09-15 — Fechamento in-repo da v1.0.0-beta.1
+
+- Corrigidos golangci-lint (`misspell` no catálogo PT, SA1019 no CLI legado) e folga de 3s no lock Codex Windows.
+- Attach/detach do Composer: symlink, LimitReader, UTF-8, `FINALIZED` preservado.
+- Telemetria HTTP de teste isolada via `AI_CLI_STATE_DIR`.
+- README/quick-start/installation apontam para `IAPro-Community/nexus` + `v1.0.0-beta.1`.
+- CHANGELOG deixou de ser Unreleased; ledger SHA falso `2b9c95693be7…` documentado.
+- Spike de Conversation isolada no stash `wip: conversation spike parked outside v1.0.0-beta.1`.
+
+## 2026-09-15 — Resolução de Autenticação e UX do OpenCode (Modo Local, Multi-Provedor & Paridade CLI)
+
+- **Backend Go (`internal/core/provider/adapters/opencode/`)**:
+  - `InspectAuth`: Corrigido parsing do `auth.json` para o formato real (`openCodeAuthFile` / `map[string]openCodeAuthEntry`).
+  - Reconhecimento dos 3 modos operacionais do OpenCode:
+    1. **OpenCode Zen / Go**: `auth["opencode"]` presente $\rightarrow$ `Plan: "OpenCode Zen"`, `Authenticated: true`, `Health: HealthHealthy`.
+    2. **Provedores Externos**: `auth["deepseek"]`, `auth["anthropic"]`, `auth["openai"]`, etc. $\rightarrow$ `Plan: "OpenCode (deepseek)"`, `Authenticated: true`, `Health: HealthHealthy`.
+    3. **Modo Local (Ollama/Env)**: Ausência de provedor em `auth.json` $\rightarrow$ `Plan: "OpenCode Local (Ollama/Env)"`, `Authenticated: true`, `Health: HealthHealthy`, `Status: "Ready (Local / No login required)"`.
+  - `config.BaseHome()`: Exportada função no pacote `config` para resolução precisa do diretório home do usuário host mesmo a partir de sandboxes de agente.
+  - `Prepare`: Sincronização segura do `auth.json` do host (`~/.local/share/opencode/auth.json`) para o sandbox isolado do perfil.
+  - `Login` & `Capabilities`: Ativado `Capabilities.Login = true` e `Capabilities.Logout = true`, delegando `Login()` para a execução interativa de `opencode providers login` no terminal.
+  - Testes unitários abrangentes em `opencode_test.go` cobrindo capacidades, modo local, Zen, DeepSeek e cópia de auth no `Prepare` (7/7 testes PASS).
+- **Frontend Web OS (`AccountLoginModal.tsx`, `UsageAccountCard.tsx`, `usageModel.ts`)**:
+  - `AccountLoginModal`: Interface especializada para o OpenCode apresentando com clareza os 3 modos (Modo Local / Ollama, Provedores Externos via API Key e OpenCode Zen / Go). Badge visual para provedor ativo detectado (ex: DeepSeek) e ações adaptativas ("Gerenciar Provedores no Terminal" e "Usar Modo Local").
+  - `UsageAccountCard`: Eliminado o falso positivo de "Requer Login" para o OpenCode; o botão primário de ação passa a ser "Abrir Terminal" quando autenticado/pronto; ação "Gerenciar provedores" preservada no menu contextual `...`.
+  - `usageModel`: `isAccountAuthRequired` atualizado para reconhecer que o OpenCode autenticado/pronto não exige login de nuvem.
+  - `resources.ts`: 16 novas chaves de i18n com paridade estrita em `en`, `ptBR` e `es`.
+- **Qualidade, Compilação e Instalação**:
+  - `make web-verify`: 10/10 gates aprovados (format, typecheck, lint, stylelint, null-arrays, test 379/379, i18n, build, embed-sync, ui-markers).
+  - `make build && make install LOCAL_BIN=/home/desenvolvedor/.local/bin`: Binário compilado e instalado localmente.
+  - Servidor `nexus web` reiniciado na porta 13000 com `GET /api/v1/resources` validado exibindo OpenCode com `authenticated: true`, `health: healthy`, e `plan: OpenCode (deepseek)`.
+
+
+
 ## 2026-09-15 — Soak de 8h concluído
 
 - `make overnight-soak DURATION=8h` passou após `28800.028s` (8h), sem falha.
@@ -4757,6 +4834,47 @@ build` PASS e Web reiniciado em HTTP 200.
   `go test ./internal/release -count=1`, `git diff --check` e `make quality`.
   `make web-verify` (10 gates) e `make security` também PASS. Sem commit ou
   push.
+
+## 2026-09-15 — Filtro de entrada para foco CSI parametrizado
+
+- Corrigido o vazamento de `ESC[0[I`/variantes parametrizadas para o prompt do
+  Codex no terminal xterm.js; `Ctrl+V` (`0x16`) permanece encaminhado.
+- Regressão adicionada em `web/src/nexus/terminalInput.test.ts`.
+- Verificação: teste focado 16/16, `make build`, instalação em
+  `/home/desenvolvedor/.local/bin/nexus` e `git diff --check` PASS.
+
+## 2026-09-16 — Navegação CSI embutida no terminal
+
+- Corrigido o vazamento de setas coalescidas com `ESC`, como `ESC[C ESC[D`,
+  que apareciam no Codex como `[C[D` ao navegar pelo teclado.
+- Regressão adicionada em `web/src/nexus/terminalInput.test.ts`; teste focado
+  agora 20/20.
+- PASS — ESLint, TypeScript, teste focado, build, instalação e
+  `git diff --check`. Binário instalado no commit `4f7ef0f`.
+
+## 2026-09-16 — Guard persistente de modos de teclado TTY
+
+- Adicionado guard compartilhado no runtime: antes/depois de uma TUI
+  interativa, desativa Kitty/CSI-u, modifyOtherKeys e foco estendido apenas
+  quando stdin/stdout são TTYs reais.
+- O guard cobre `RunInteractive` (direto) e o attach supervisionado usado por
+  `nexus codex`; pipes e JSON não recebem bytes ANSI.
+- PASS — `go test ./internal/runtime ./internal/app ./internal/control/host -count=1`,
+  build, instalação e `git diff --check`. A sessão antiga teve o TTY resetado
+  sem perder o processo; uma nova sessão adotará o guard.
+
+## 2026-09-16 — Reassert de teclado após `Ctrl+C`
+
+- A causa restante era a interrupção dentro de uma TUI Codex já supervisionada:
+  o attach anterior encaminhava `0x03` ao provider, mas não restaurava os
+  modos do TTY depois da transição de estado.
+- `forwardAttachedInput` mantém o fluxo byte-transparente e apenas observa
+  `Ctrl+C` para reassertir a limpeza do TTY; o fluxo de Lead recebeu a mesma
+  proteção. O runtime reaplica o reset agora, em 75 ms e em 300 ms.
+- O reset também desativa bracketed paste, além de Kitty/CSI-u,
+  modifyOtherKeys e foco estendido. Testes focados, pacotes com `-race`, build
+  e instalação no launcher canônico passaram. Sessões em memória devem ser
+  reiniciadas para adotar o binário novo.
 # 2026-09-11 — Nexus Final Closure verification and verdict
 
 - Recorded base SHA `2925ca746c198334f20d1e0cef7feb51e4f4f4e3`; no commit or push.

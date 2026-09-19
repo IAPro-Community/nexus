@@ -17,7 +17,7 @@ Uma pergunta por rodada, com opções quando a inteligência as sugerir. Premiss
 
 ## Contexto anexável (`@file`)
 
-Use **Anexar arquivo** na conversa para incluir trechos do repositório no brief. Cada arquivo entra em `referenced_files` com excerpt limitado (budget por arquivo e total) e aparece no preview do prompt sob **Context — Referenced files**.
+Use **Anexar arquivo** na conversa para incluir trechos do repositório no brief. Cada arquivo entra em `referenced_files` com excerpt limitado (budget por arquivo e total) e aparece no preview do prompt sob **Context — Referenced files**. Symlinks que saem do projeto, binários e sessão `FINALIZED` são recusados.
 
 ## Preview ao vivo
 

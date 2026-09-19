@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Select } from '../../design-system';
+import { Button, Input } from '../../design-system';
 import styles from './ClarificationPrompt.module.scss';
 
 export type ClarificationPromptItem = {
@@ -55,21 +55,27 @@ export const ClarificationPrompt: React.FC<{
   const [custom, setCustom] = useState('');
   const [useOther, setUseOther] = useState(options.length === 0);
   const [focusIndex, setFocusIndex] = useState(0);
+  const [remember, setRemember] = useState(false);
 
   useEffect(() => {
     setSelected(item.default_choice || firstOption);
     setCustom('');
     setUseOther(!hasOptions);
     setFocusIndex(0);
+    setRemember(false);
   }, [item.id, item.default_choice, optionsKey, firstOption, hasOptions]);
 
   const answerValue = resolveClarificationAnswer(useOther, custom, selected);
   const canSubmit = Boolean(answerValue) && !busy;
 
-  const submit = () => {
-    if (!canSubmit) return;
-    onAnswer(answerValue);
+  const commit = (value: string) => {
+    const next = value.trim();
+    if (!next || busy) return;
+    if (remember && onRemember) onRemember(next);
+    else onAnswer(next);
   };
+
+  const submit = () => commit(answerValue);
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (!options.length || useOther) {
@@ -91,7 +97,7 @@ export const ClarificationPrompt: React.FC<{
       setSelected(options[next]);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      submit();
+      commit(options[focusIndex] || selected);
     }
   };
 
@@ -121,10 +127,7 @@ export const ClarificationPrompt: React.FC<{
               data-active={selected === option ? 'true' : undefined}
               data-focused={focusIndex === index ? 'true' : undefined}
               disabled={busy}
-              onClick={() => {
-                setSelected(option);
-                setFocusIndex(index);
-              }}
+              onClick={() => commit(option)}
             >
               {option}
             </button>
@@ -138,23 +141,6 @@ export const ClarificationPrompt: React.FC<{
             {t('flow.otherOption', 'Other…')}
           </button>
         </div>
-      ) : options.length > 0 ? (
-        <Select
-          value={selected}
-          onChange={(value) => {
-            if (value === '__other__') {
-              setUseOther(true);
-              return;
-            }
-            setSelected(value);
-            setUseOther(false);
-          }}
-          placeholder={t('flow.chooseOption', 'Choose…')}
-          options={[
-            ...options.map((option) => ({ value: option, label: option })),
-            { value: '__other__', label: t('flow.otherOption', 'Other…') },
-          ]}
-        />
       ) : null}
 
       {(useOther || options.length === 0) && (
@@ -166,20 +152,29 @@ export const ClarificationPrompt: React.FC<{
         />
       )}
 
+      {showRemember && onRemember ? (
+        <label className={styles.remember}>
+          <input
+            type="checkbox"
+            checked={remember}
+            disabled={busy}
+            onChange={(event) => setRemember(event.target.checked)}
+          />
+          {t('work.rememberThisForProject', 'Remember this decision for this project')}
+        </label>
+      ) : null}
+
       <div className={styles.actions}>
         {allowDismiss && onDismiss ? (
           <Button size="sm" disabled={busy} onClick={onDismiss}>
             {t('work.composer.dismiss', 'Dismiss')}
           </Button>
         ) : null}
-        {showRemember && onRemember ? (
-          <Button size="sm" disabled={!canSubmit} onClick={() => onRemember(answerValue)}>
-            {t('work.rememberThis', 'Remember this')}
+        {useOther || options.length === 0 ? (
+          <Button size="sm" tone="brand" disabled={!canSubmit} onClick={submit}>
+            {t('work.composer.answer', 'Answer')}
           </Button>
         ) : null}
-        <Button size="sm" tone="brand" disabled={!canSubmit} onClick={submit}>
-          {t('work.composer.answer', 'Answer')}
-        </Button>
       </div>
     </section>
   );

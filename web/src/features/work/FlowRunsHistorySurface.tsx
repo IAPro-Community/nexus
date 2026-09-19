@@ -116,7 +116,7 @@ export const FlowRunsHistorySurface: React.FC<{
 
   if (selectedPlan) {
     return (
-      <div className={styles.canvasHost}>
+      <div className={`nx-surface-scroll ${styles.canvasHost}`}>
         <div className={styles.canvasBar}>
           <Button size="sm" onClick={() => setSelectedPlan(null)}>
             ← {t('flow.backToList', 'Voltar à lista')}
@@ -137,7 +137,7 @@ export const FlowRunsHistorySurface: React.FC<{
   }
 
   return (
-    <div className={styles.root}>
+    <div className={`nx-surface-scroll ${styles.root}`}>
       <div className={styles.header}>
         <div className={styles.title}>
           <History size={16} />

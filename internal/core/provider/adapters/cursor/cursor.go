@@ -143,8 +143,16 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 		info.Authenticated = true
 		info.Status = "Authenticated"
 		info.Health = model.HealthHealthy
-		// Cursor status output is provider-owned and not guaranteed structured;
-		// avoid scraping an email into an unstable contract.
+		for _, line := range strings.Split(out, "\n") {
+			lowerLine := strings.ToLower(line)
+			if idx := strings.Index(lowerLine, "logged in as "); idx != -1 {
+				candidate := strings.TrimSpace(line[idx+len("logged in as "):])
+				if candidate != "" && strings.Contains(candidate, "@") {
+					info.Email = candidate
+					break
+				}
+			}
+		}
 	}
 
 	cursorAuthCacheMu.Lock()

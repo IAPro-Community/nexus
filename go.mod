@@ -12,9 +12,10 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/wailsapp/wails/v2 v2.15.0
+	golang.org/x/image v0.45.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/term v0.45.0
-	golang.org/x/text v0.39.0
+	golang.org/x/text v0.41.0
 	modernc.org/sqlite v1.57.0
 )
 

@@ -1,0 +1,57 @@
+.root {
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md, 10px);
+  background: var(--nx-surface);
+  padding: 0.65rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.summary {
+  margin: 0;
+  color: var(--nx-text);
+  font-size: 0.9rem;
+}
+
+.detail {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--nx-radius-sm, 8px);
+  background: var(--nx-surface-sunken, color-mix(in srgb, var(--nx-surface) 85%, black));
+  color: var(--nx-text-muted);
+  font-size: 0.78rem;
+  overflow: auto;
+  max-height: 12rem;
+  white-space: pre-wrap;
+}
+
+.spin {
+  animation: nx-spin 1s linear infinite;
+}
+
+@keyframes nx-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}

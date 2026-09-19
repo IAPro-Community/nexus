@@ -53,6 +53,10 @@ export function setCSRFToken(token: string) {
   csrfToken = token;
 }
 
+export function getCSRFToken(): string {
+  return csrfToken;
+}
+
 export function getDesktopAuthToken(): string {
   return desktopAuthToken;
 }

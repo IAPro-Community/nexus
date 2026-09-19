@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RefreshCw, Sparkles } from 'lucide-react';
-import { Badge, Button } from '../../design-system';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '../../design-system';
 import type {
   Agent,
   ContextReadiness,
@@ -15,17 +15,7 @@ import { nexus } from '../../nexus/api';
 import { asArray } from '../../lib/safeArray';
 import { ComposerSurface } from './ComposerSurface';
 import { composerGateForReadiness } from './composerModel';
-import { ProjectIntelligenceInspector } from './ProjectIntelligenceInspector';
 import styles from './WorkSurface.module.scss';
-
-const readinessTone = (state: ContextReadinessState) =>
-  state === 'READY'
-    ? 'success'
-    : state === 'FAILED'
-      ? 'danger'
-      : state === 'STALE'
-        ? 'warning'
-        : 'default';
 
 const FLOW_DRAFT_KEY = (projectId: string) => `iapro:nexus:flow-draft:${projectId}`;
 
@@ -92,7 +82,9 @@ export const WorkSurface: React.FC<{
 
   const state: ContextReadinessState = readiness?.state ?? 'MISSING';
   const gate = composerGateForReadiness(state);
-  const intelligenceTone = intelligence?.available ? 'success' : 'warning';
+  const intelligenceLabel = intelligence?.available
+    ? intelligence.provider || t('work.intelligenceReady', 'READY')
+    : t('work.intelligenceOff', 'OFF');
 
   const prepareContext = async (createContext = false) => {
     setReadinessBusy(true);
@@ -122,57 +114,31 @@ export const WorkSurface: React.FC<{
   };
 
   return (
-    <div className="nx-surface-scroll nx-composer-surface nx-composer-workbench">
-      <div className="nx-page-header">
-        <div>
-          <span className="nx-eyebrow">
-            <Sparkles size={13} /> {t('work.composerEyebrow', 'Composer')}
-          </span>
-          <h1>{t('work.composerTitle', 'Elaboração de intenção')}</h1>
-          <p>
-            {t(
-              'work.composerIntro',
-              'Uma decisão por rodada. Depois: Copiar, enviar ao agente ou transformar em Flow.',
-            )}
-          </p>
+    <div
+      className={`nx-surface-scroll nx-composer-surface nx-composer-workbench ${styles.workbench}`}
+    >
+      {!gate.canMaterialize && gate.action !== 'WAIT' ? (
+        <div className={styles.contextFix}>
+          <Button
+            size="sm"
+            tone="brand"
+            disabled={readinessBusy}
+            onClick={() =>
+              void prepareContext(
+                gate.action === 'PREPARE' ||
+                  Boolean(readiness?.error?.includes('durable project context is missing')),
+              )
+            }
+          >
+            <RefreshCw size={13} />{' '}
+            {readinessBusy
+              ? t('work.checking', 'Verificando…')
+              : gate.action === 'PREPARE'
+                ? t('work.createBaseContext', 'Criar contexto base')
+                : t('work.refreshContext', 'Atualizar contexto')}
+          </Button>
         </div>
-        <div className={`nx-composer-header-actions ${styles.headerChips}`}>
-          <Badge tone={readinessTone(state)}>
-            {t('work.contextChip', 'Contexto')} {t(`work.gateState.${state}`, state)}
-          </Badge>
-          <Badge tone={intelligenceTone}>
-            {t('work.intelligenceChip', 'Intelligence')}{' '}
-            {intelligence?.available
-              ? `${t('work.intelligenceReady', 'READY')}${
-                  intelligence.provider ? ` · ${intelligence.provider}` : ''
-                }`
-              : t('work.intelligenceOff', 'OFF')}
-          </Badge>
-          <Badge tone={memoryCount > 0 ? 'success' : 'default'}>
-            {t('work.remembersChip', 'Nexus remembers')} · {memoryCount}
-          </Badge>
-          {!gate.canMaterialize && gate.action !== 'WAIT' && (
-            <Button
-              size="sm"
-              tone="brand"
-              disabled={readinessBusy}
-              onClick={() =>
-                void prepareContext(
-                  gate.action === 'PREPARE' ||
-                    Boolean(readiness?.error?.includes('durable project context is missing')),
-                )
-              }
-            >
-              <RefreshCw size={13} />{' '}
-              {readinessBusy
-                ? t('work.checking', 'Verificando…')
-                : gate.action === 'PREPARE'
-                  ? t('work.createBaseContext', 'Criar contexto base')
-                  : t('work.refreshContext', 'Atualizar contexto')}
-            </Button>
-          )}
-        </div>
-      </div>
+      ) : null}
 
       {!gate.canMaterialize && (
         <p className={styles.gateHint} data-state={state}>
@@ -189,17 +155,26 @@ export const WorkSurface: React.FC<{
       )}
 
       <div
-        className="nx-composer-flow-region"
+        className={`nx-composer-flow-region ${styles.flowRegion}`}
         data-gate={gate.canMaterialize ? 'ready' : 'destinations-blocked'}
       >
         <ComposerSurface
           project={project}
           destinationGate={gate}
+          contextState={state}
+          intelligenceReady={Boolean(intelligence?.available)}
+          intelligenceLabel={intelligenceLabel}
+          memoryCount={memoryCount}
+          contextRefreshing={readinessBusy}
+          onRefreshContext={() =>
+            void prepareContext(
+              gate.action === 'PREPARE' ||
+                Boolean(readiness?.error?.includes('durable project context is missing')),
+            )
+          }
           onTransformFlow={(artifact) => void materializeFlow(artifact)}
         />
       </div>
-
-      <ProjectIntelligenceInspector projectId={project.id} />
     </div>
   );
 };

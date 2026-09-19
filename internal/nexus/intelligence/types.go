@@ -206,6 +206,22 @@ const PlanGenerationTimeout = 90 * time.Second
 // IntelligenceProbeTimeout bounds the preflight round-trip before Refinar.
 const IntelligenceProbeTimeout = 20 * time.Second
 
+// ComposerBootstrapTimeout bounds Create-session intelligence enrichment
+// (ExtractBrief + AnalyzeIntent + ambiguities). Heuristics remain the fallback
+// when the CLI/OpenAI provider is slow or hung — otherwise the UI stays on
+// "Starting…" forever waiting for a headless agent that never returns.
+const ComposerBootstrapTimeout = 15 * time.Second
+
+// ComposerTurnIntelligenceTimeout bounds per-turn AnalyzeIntent / ExtractBrief /
+// EvaluateAmbiguities so a stuck or OOM-killed CLI cannot freeze the conversation.
+// Kept short: turns already have heuristic merge; CLI is enrichment only.
+const ComposerTurnIntelligenceTimeout = 15 * time.Second
+
+// MaxCLIContextBytes caps JSON context embedded in headless CLI prompts.
+// Oversized briefs (preview + file excerpts + facts) have caused agy to be
+// SIGKILL'd (OOM), which surfaces as "signal: killed" in Composer turns.
+const MaxCLIContextBytes = 12_000
+
 // WorkPackageOutline is the raw outline produced by an intelligence provider before optimization.
 type WorkPackageOutline struct {
 	Title        string   `json:"title"`

@@ -165,3 +165,23 @@ func TestCLIProviderPlanFromGoalOneshot(t *testing.T) {
 		t.Fatalf("unexpected packages %+v", packages)
 	}
 }
+
+func TestBoundContextJSONCapsOversizedPayload(t *testing.T) {
+	huge := map[string]any{"blob": strings.Repeat("Z", MaxCLIContextBytes+2048)}
+	out := boundContextJSON(huge)
+	if len(out) > MaxCLIContextBytes+32 {
+		t.Fatalf("expected capped context, got %d bytes", len(out))
+	}
+	if !strings.Contains(out, "[truncated]") {
+		t.Fatal("expected truncation marker")
+	}
+}
+
+func TestIsTransientIntelligenceFailure(t *testing.T) {
+	if !IsTransientIntelligenceFailure(errors.New("run cli:agy:x analyze intent: signal: killed")) {
+		t.Fatal("signal: killed must be transient")
+	}
+	if IsTransientIntelligenceFailure(errors.New("provider misconfigured")) {
+		t.Fatal("config errors are not transient")
+	}
+}

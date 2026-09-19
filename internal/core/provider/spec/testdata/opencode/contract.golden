@@ -10,6 +10,7 @@
     "OPENCODE_CONFIG_DIR",
     "OPENCODE_HOME",
     "PATH",
+    "USERPROFILE",
     "XDG_CACHE_HOME",
     "XDG_DATA_HOME"
   ],

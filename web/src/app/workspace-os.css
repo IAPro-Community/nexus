@@ -5247,6 +5247,8 @@ button {
 .nx-composer-flow-clean {
   display: grid;
   gap: 14px;
+  min-width: 0;
+  min-height: 0;
 }
 .nx-composer-goal-bar {
   display: grid;

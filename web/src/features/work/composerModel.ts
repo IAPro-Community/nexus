@@ -136,6 +136,111 @@ export function buildComposerBriefItems(
   return items.filter(([, value]) => value);
 }
 
+export type ComposerReadinessDisplay = {
+  mode: 'score' | 'semantic';
+  state: string;
+  score?: number;
+};
+
+/** Show a percentage only when the backend supplied a real positive score. */
+export function composerReadinessDisplay(
+  readiness?: { score?: number; state?: string } | null,
+): ComposerReadinessDisplay {
+  const state = String(readiness?.state || 'UNKNOWN');
+  const score = typeof readiness?.score === 'number' ? readiness.score : null;
+  if (score != null && Number.isFinite(score) && score > 0) {
+    return { mode: 'score', state, score: Math.max(0, Math.min(100, Math.round(score))) };
+  }
+  return { mode: 'semantic', state };
+}
+
+export type ComposerBriefStats = {
+  decisionsDefined: number;
+  decisionsPending: number;
+  premisesInferred: number;
+  risksIdentified: number;
+  openDoubts: number;
+};
+
+export function composerBriefStats(view: ComposerSessionView | null): ComposerBriefStats {
+  const unknowns = asArray<ComposerBriefUnknown>(view?.brief.unknowns);
+  const open = openComposerUnknowns(view);
+  const pendingDecisions = open.filter(
+    (item) => String(item.status || '').toUpperCase() !== 'INFERRED',
+  );
+  const risks = asStringArray(view?.brief.risks);
+  const questions = asStringArray(view?.brief.open_questions);
+  return {
+    decisionsDefined: asStringArray(view?.brief.decisions).length,
+    decisionsPending: pendingDecisions.length,
+    premisesInferred: unknowns.filter((item) => item.status === 'INFERRED').length,
+    risksIdentified: risks.length,
+    openDoubts: questions.length || pendingDecisions.length,
+  };
+}
+
+export function formatComposerRelativeTime(
+  iso: string | undefined,
+  now = Date.now(),
+  locale?: string,
+): string {
+  const ts = Date.parse(String(iso || ''));
+  if (!Number.isFinite(ts)) return '';
+  const deltaSec = Math.round((ts - now) / 1000);
+  const abs = Math.abs(deltaSec);
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  if (abs < 60) return rtf.format(Math.round(deltaSec), 'second');
+  if (abs < 3600) return rtf.format(Math.round(deltaSec / 60), 'minute');
+  if (abs < 86400) return rtf.format(Math.round(deltaSec / 3600), 'hour');
+  return rtf.format(Math.round(deltaSec / 86400), 'day');
+}
+
+export function composerExpectedOutcome(view: ComposerSessionView | null): string {
+  const dod = asStringArray(view?.brief.quality?.definition_of_done);
+  if (dod.length) return dod.join(' · ');
+  return asStringArray(
+    view?.brief.quality?.acceptance_criteria ?? view?.brief.success_criteria,
+  ).join(' · ');
+}
+
+export function composerScopeLines(view: ComposerSessionView | null): string[] {
+  const ctx = view?.brief.context;
+  if (Array.isArray(ctx)) return asStringArray(ctx);
+  if (ctx && typeof ctx === 'object') {
+    return [
+      ...asStringArray((ctx as { existing_state?: unknown }).existing_state),
+      ...asStringArray((ctx as { evidence?: unknown }).evidence),
+    ];
+  }
+  return [];
+}
+
+export type ComposerActionPhase = 'elaborating' | 'ready_review' | 'finalized';
+
+export function composerActionPhase(
+  view: ComposerSessionView | null,
+  hasArtifact: boolean,
+): ComposerActionPhase {
+  if (!view) return 'elaborating';
+  if (view.session.state === 'FINALIZED' || hasArtifact) return 'finalized';
+  const state = String(view.brief.readiness?.state || view.session.state || '').toUpperCase();
+  if (state === 'READY' || state === 'READY_WITH_ASSUMPTIONS' || state === 'READY_WITH_GAPS') {
+    return 'ready_review';
+  }
+  return 'elaborating';
+}
+
+export function composerConstraintLines(view: ComposerSessionView | null): string[] {
+  const raw = view?.brief.constraints;
+  if (Array.isArray(raw)) return asStringArray(raw);
+  if (raw && typeof raw === 'object') {
+    return Object.values(raw).flatMap((value) =>
+      Array.isArray(value) ? asStringArray(value) : typeof value === 'string' ? [value] : [],
+    );
+  }
+  return [];
+}
+
 export function composerGateForReadiness(state: ContextReadinessState): ComposerGate {
   switch (state) {
     case 'READY':
@@ -163,9 +268,11 @@ export function composerGateForReadiness(state: ContextReadinessState): Composer
         reason: REASONS.hydrating,
       };
     case 'STALE':
+      // Fingerprint drifted (dirty git, branch, Maestro). Context still exists —
+      // locking Send/Flow here leaves destinations dead for the whole coding session.
       return {
-        canMaterialize: false,
-        canExecute: false,
+        canMaterialize: true,
+        canExecute: true,
         action: 'REFRESH',
         reasonKey: 'work.gate.stale',
         reason: REASONS.stale,

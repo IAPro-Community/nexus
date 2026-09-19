@@ -9,6 +9,7 @@
     "CLAUDE_CONFIG_DIR",
     "HOME",
     "PATH",
+    "USERPROFILE",
     "XDG_CONFIG_HOME"
   ],
   "env_delete": null,

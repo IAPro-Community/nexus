@@ -15,22 +15,8 @@ import { Badge, Card, EmptyState, Input, Spinner } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { Agent, AgentDetail, TelemetryHistoryEvent, TelemetryStats } from '../../types';
 import { useTranslation } from 'react-i18next';
+import { formatOpenedAgo } from '../projects/projectRailRelativeTime';
 import styles from './SessionsSurface.module.scss';
-
-function formatRelativeTime(iso: string): string {
-  if (!iso) return '';
-  const now = Date.now();
-  const d = new Date(iso).getTime();
-  if (isNaN(d)) return iso;
-  const diffSec = Math.max(0, Math.floor((now - d) / 1000));
-  if (diffSec < 60) return `${diffSec}s atrás`;
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m atrás`;
-  const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours}h atrás`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d atrás`;
-}
 
 function formatDuration(ms?: number): string {
   if (!ms || ms <= 0) return '';
@@ -70,7 +56,7 @@ function eventIcon(type: string) {
 }
 
 export const SessionsSurface: React.FC<{ agents: Agent[] }> = ({ agents }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<'timeline' | 'generations'>('timeline');
   const [stats, setStats] = useState<TelemetryStats | null>(null);
   const [history, setHistory] = useState<TelemetryHistoryEvent[]>([]);
@@ -195,7 +181,7 @@ export const SessionsSurface: React.FC<{ agents: Agent[] }> = ({ agents }) => {
           </div>
 
           <div className={styles.metricCard}>
-            <div className={styles.metricValue} style={{ color: '#f59e0b' }}>
+            <div className={`${styles.metricValue} ${styles.metricValueWarning}`}>
               {stats?.total_fallbacks ?? 0}
             </div>
             <div className={styles.metricLabel}>
@@ -206,8 +192,7 @@ export const SessionsSurface: React.FC<{ agents: Agent[] }> = ({ agents }) => {
 
           <div className={styles.metricCard}>
             <div
-              className={styles.metricValue}
-              style={{ color: (stats?.total_rate_limits ?? 0) > 0 ? '#ef4444' : 'inherit' }}
+              className={`${styles.metricValue} ${(stats?.total_rate_limits ?? 0) > 0 ? styles.metricValueDanger : ''}`}
             >
               {stats?.total_rate_limits ?? 0}
             </div>
@@ -324,7 +309,7 @@ export const SessionsSurface: React.FC<{ agents: Agent[] }> = ({ agents }) => {
                             <Badge tone="warning">➔ {ev.fallback_profile}</Badge>
                           )}
                           <span className={styles.eventTime} title={ev.timestamp}>
-                            {formatRelativeTime(ev.timestamp)}
+                            {formatOpenedAgo(ev.timestamp, i18n.language, t('common.never'))}
                           </span>
                         </div>
 

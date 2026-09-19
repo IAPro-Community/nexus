@@ -143,7 +143,7 @@ build: web
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
 	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
 	echo "Building $(BINARY) v$$VERSION (commit: $$COMMIT)..."; \
-	go build -buildvcs=false -ldflags="$$LDFLAGS" -o $(BINARY) ./cmd/nexus; \
+	go build -trimpath -buildvcs=false -ldflags="$$LDFLAGS" -o $(BINARY) ./cmd/nexus; \
 	echo "Built $(BINARY) v$$VERSION at ./$(BINARY)"
 
 install-local: build
@@ -162,14 +162,14 @@ build-desktop: web
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
 	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
 	echo "Building nexus-desktop v$$VERSION (commit: $$COMMIT)..."; \
-	go build -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$$LDFLAGS" -o nexus-desktop ./cmd/nexus-desktop
+	go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$$LDFLAGS" -o nexus-desktop ./cmd/nexus-desktop
 
 build-desktop-wails: web
 	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
 	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
-	cd cmd/nexus-desktop && GOTOOLCHAIN=auto go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) build -clean -s -m -tags "$(DESKTOP_TAGS)" -ldflags "$$LDFLAGS"
+	cd cmd/nexus-desktop && GOTOOLCHAIN=auto GOFLAGS=-trimpath go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) build -clean -s -m -tags "$(DESKTOP_TAGS)" -ldflags "$$LDFLAGS"
 
 release-local:
 	go run ./cmd/nexus release

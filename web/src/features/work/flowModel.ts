@@ -121,6 +121,16 @@ export function flowFromWorkPlan(plan: WorkPlan): FlowDraftModel {
   };
 }
 
+/** Stable graph identity so React Flow does not rebuild nodes on object churn. */
+export function flowGraphSignature(flow: FlowDraftModel): string {
+  return (flow.steps || [])
+    .map(
+      (step) =>
+        `${step.id}:${step.title}:${step.status}:${step.phaseId}:${(step.dependencies || []).join(',')}`,
+    )
+    .join('|');
+}
+
 export function workPlanFromFlow(flow: FlowDraftModel, baseline: WorkPlan): WorkPlan {
   const facts = flow.structuredFacts ? { ...flow.structuredFacts } : {};
   if (flow.policyStored || flow.policy !== 'GUIDED') facts[FLOW_POLICY_FACT] = flow.policy;

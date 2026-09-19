@@ -19,12 +19,12 @@ Binário de release. **Não** exige Go, Bun nem Node.
 | Release CLI | `curl` ou `wget`, `tar`, `sha256sum`/`shasum` (Unix) ou PowerShell (Windows) |
 | Desktop nativo (opcional) | WebView2 (Windows) ou WebKitGTK (Linux) |
 | Maestro (opt-in) | Node.js + npm (`--with-maestro` / `-WithMaestro`) |
-| Compilar do fonte | Go 1.25+, Bun 1.3.9+, make, git |
+| Compilar do fonte (interno/dev apenas — não é o caminho do beta) | Go 1.25+, Bun 1.3.9+, make, git |
 
 ### Linux / macOS
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=latest
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
@@ -32,7 +32,7 @@ nexus web
 Versão pinada:
 
 ```bash
-bash install.sh --version=v0.5.0-beta.23
+bash install.sh --version=v1.0.0-beta.1
 ```
 
 Flags: `--no-desktop`, `--no-path`, `--with-maestro`, `--build-from-source`, `--yes`, `NEXUS_RELEASE_REPO=owner/repo`.
@@ -41,7 +41,7 @@ Flags: `--no-desktop`, `--no-path`, `--with-maestro`, `--build-from-source`, `--
 
 ```powershell
 irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version latest
+.\install.ps1 -Version v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
@@ -58,7 +58,7 @@ O instalador resolve a tag mais recente pela API do GitHub e valida o SHA-256 em
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
-cd ai-cli
+cd nexus
 bun --cwd web install --frozen-lockfile
 make build
 ./nexus version

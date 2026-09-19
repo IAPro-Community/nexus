@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
   Controls,
@@ -9,12 +9,13 @@ import {
   type Edge,
   type Node,
   type OnNodesChange,
+  type ReactFlowInstance,
   type XYPosition,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useTranslation } from 'react-i18next';
 import { Network } from 'lucide-react';
-import { executionWaves, type FlowDraftModel } from './flowModel';
+import { executionWaves, flowGraphSignature, type FlowDraftModel } from './flowModel';
 import { FlowTaskNode, type FlowTaskNodeData } from './FlowTaskNode';
 import styles from './FlowCanvas.module.scss';
 import { asArray } from '../../lib/safeArray';
@@ -51,24 +52,37 @@ export const FlowCanvas = ({
   const [nodes, setNodes] = useState<FlowNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [graphError, setGraphError] = useState<string | null>(null);
+  const graphSignature = useMemo(() => flowGraphSignature(flow), [flow]);
+  const flowRef = useRef(flow);
+  flowRef.current = flow;
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
+  const reactFlowRef = useRef<ReactFlowInstance<FlowNode> | null>(null);
+  const fitForSignatureRef = useRef<string | null>(null);
   const stepById = useMemo(
     () => new Map((flow.steps || []).map((step) => [step.id, step])),
     [flow.steps],
   );
 
   useEffect(() => {
+    const nextFlow = flowRef.current;
+    const selected = selectedIdRef.current;
     try {
-      const positions = initialPositions(flow);
-      setNodes(
-        (flow.steps || []).map((step) => ({
-          id: step.id,
-          type: 'task',
-          position: positions[step.id] || { x: 0, y: 0 },
-          data: { step, selected: false },
-        })),
-      );
+      const positions = initialPositions(nextFlow);
+      setNodes((current) => {
+        const byId = new Map(current.map((node) => [node.id, node]));
+        return (nextFlow.steps || []).map((step) => {
+          const existing = byId.get(step.id);
+          return {
+            id: step.id,
+            type: 'task' as const,
+            position: existing?.position || positions[step.id] || { x: 0, y: 0 },
+            data: { step, selected: step.id === selected },
+          };
+        });
+      });
       setEdges(
-        (flow.steps || []).flatMap((step) =>
+        (nextFlow.steps || []).flatMap((step) =>
           (step.dependencies || []).map((from) => ({
             id: `${from}-${step.id}`,
             source: from,
@@ -79,29 +93,49 @@ export const FlowCanvas = ({
         ),
       );
       setGraphError(null);
+      fitForSignatureRef.current = graphSignature;
     } catch (error) {
       setGraphError(error instanceof Error ? error.message : String(error));
       setNodes([]);
       setEdges([]);
     }
-  }, [flow]);
+  }, [graphSignature]);
 
   useEffect(() => {
-    setNodes((current) =>
-      current.map((node) => ({
-        ...node,
-        data: { ...node.data, selected: node.id === selectedId },
-      })),
-    );
+    setNodes((current) => {
+      let changed = false;
+      const next = current.map((node) => {
+        const selected = node.id === selectedId;
+        if (node.data.selected === selected) return node;
+        changed = true;
+        return { ...node, data: { ...node.data, selected } };
+      });
+      return changed ? next : current;
+    });
   }, [selectedId]);
 
-  const onNodesChange: OnNodesChange<FlowNode> = (changes) => {
-    setNodes((current) => applyNodeChanges(changes, current) as FlowNode[]);
-  };
-  const handleConnect = (connection: Connection) => {
-    if (!connection.source || !connection.target || connection.source === connection.target) return;
-    onConnect?.(connection.source, connection.target);
-  };
+  useEffect(() => {
+    if (!fitForSignatureRef.current || nodes.length === 0) return;
+    const instance = reactFlowRef.current;
+    if (!instance) return;
+    fitForSignatureRef.current = null;
+    instance.fitView({ padding: 0.2 });
+  }, [nodes]);
+
+  const onNodesChange = useCallback<OnNodesChange<FlowNode>>((changes) => {
+    setNodes((current) => applyNodeChanges(changes, current));
+  }, []);
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target || connection.source === connection.target)
+        return;
+      onConnect?.(connection.source, connection.target);
+    },
+    [onConnect],
+  );
+  const onInit = useCallback((instance: ReactFlowInstance<FlowNode>) => {
+    reactFlowRef.current = instance;
+  }, []);
 
   if (graphError)
     return (
@@ -132,9 +166,8 @@ export const FlowCanvas = ({
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onConnect={handleConnect}
+          onInit={onInit}
           onNodeClick={(_, node) => onSelect(node.id)}
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
           nodesDraggable
           nodesConnectable={Boolean(onConnect)}
           deleteKeyCode={null}

@@ -48,11 +48,11 @@ func resolveCommand(name, goos string, getenv func(string) string, stat func(str
 		return ResolvedCommand{ArtifactPath: path, LauncherPath: path, Kind: CommandExecutable, SearchedPaths: []string{path}}, nil
 	}
 
-	pathext := splitPathList(getenv("PATHEXT"), ";")
+	pathext := splitPathList(getenv("PATHEXT"), windowsListSeparator)
 	if len(pathext) == 0 {
 		pathext = []string{".COM", ".EXE", ".BAT", ".CMD", ".PS1"}
 	}
-	candidates := windowsCandidates(name, getenv, pathext)
+	candidates := windowsCandidates(name, getenv, pathext, goos)
 	for _, candidate := range candidates {
 		searched = append(searched, candidate)
 		info, err := stat(candidate)
@@ -64,11 +64,11 @@ func resolveCommand(name, goos string, getenv func(string) string, stat func(str
 	return ResolvedCommand{SearchedPaths: searched}, exec.ErrNotFound
 }
 
-func windowsCandidates(name string, getenv func(string) string, pathext []string) []string {
-	if filepath.IsAbs(name) || strings.ContainsAny(name, `\\/`) {
+func windowsCandidates(name string, getenv func(string) string, pathext []string, goos string) []string {
+	if filepath.IsAbs(name) || strings.ContainsAny(name, `\/`) {
 		return withExtensions(name, pathext)
 	}
-	paths := splitPathList(getenv("PATH"), ";")
+	paths := splitPathList(getenv("PATH"), pathListSeparatorForGOOS(goos))
 	paths = append(paths,
 		filepath.Join(getenv("APPDATA"), "npm"),
 		filepath.Join(getenv("LOCALAPPDATA"), "Programs"),
@@ -121,6 +121,20 @@ func windowsResolved(artifact string, getenv func(string) string, lookPath func(
 	default:
 		return ResolvedCommand{ArtifactPath: artifact, LauncherPath: artifact, Kind: CommandExecutable}
 	}
+}
+
+// windowsListSeparator is the PATH/PATHEXT list separator on Windows.
+// It is a constant (not os.PathListSeparator) because resolveCommand can
+// target Windows while the host runs another OS (e.g. in tests).
+const windowsListSeparator = ";"
+
+// pathListSeparatorForGOOS returns the PATH list separator for the target
+// OS, so cross-compiled/simulated resolution never inherits the host value.
+func pathListSeparatorForGOOS(goos string) string {
+	if goos == "windows" {
+		return windowsListSeparator
+	}
+	return ":"
 }
 
 func splitPathList(value, separator string) []string {

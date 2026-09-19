@@ -35,6 +35,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
 	"github.com/IAPro-Community/nexus/internal/profile"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 func controlCmd(args []string) error {
@@ -495,15 +496,15 @@ func containsTerminalInterrupt(input []byte) bool {
 	return false
 }
 
-// forwardAttachedInput is byte-transparent. Ctrl+C is observed only to
-// repair the user's outer terminal; the original byte always reaches the
-// provider runtime unchanged.
-func forwardAttachedInput(destination io.Writer, input []byte, reassert func()) error {
+// forwardAttachedInput is intentionally byte-transparent. It observes Ctrl+C
+// only to repair the outer terminal after a provider TUI has handled the
+// interruption; the original input always reaches the runtime unchanged.
+func forwardAttachedInput(destination io.Writer, input []byte, reassertKeyboardModes func()) error {
 	if _, err := destination.Write(input); err != nil {
 		return err
 	}
-	if containsTerminalInterrupt(input) && reassert != nil {
-		reassert()
+	if containsTerminalInterrupt(input) && reassertKeyboardModes != nil {
+		reassertKeyboardModes()
 	}
 	return nil
 }
@@ -537,6 +538,7 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 
 	// 1. Put user terminal into Raw Mode if stdin is a terminal
 	isTerm := term.IsTerminal(int(os.Stdin.Fd()))
+	defer nexusruntime.GuardInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)()
 	if isTerm {
 		// 2. Register window resize signal listener
 		sigChan := make(chan os.Signal, 1)
@@ -633,7 +635,7 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 			n, readErr := os.Stdin.Read(buf)
 			if n > 0 {
 				if writeErr := forwardAttachedInput(rawConn, buf[:n], func() {
-					_ = tty.Reassert()
+					nexusruntime.ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
 				}); writeErr != nil {
 					errChan <- writeErr
 					return
@@ -678,7 +680,7 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 			if nread > 0 {
 				input := buf[:nread]
 				if containsTerminalInterrupt(input) {
-					_ = controlterminal.ResetKeyboardModes(os.Stdout)
+					nexusruntime.ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
 				}
 				if pendingASK != "" {
 					answer := input[0]

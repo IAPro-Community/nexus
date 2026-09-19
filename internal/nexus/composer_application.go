@@ -19,7 +19,11 @@ func NewComposerApplicationService(n *Nexus) *ComposerApplicationService {
 }
 
 func (s *ComposerApplicationService) Create(ctx context.Context, projectID, goal, sourcePrompt, inputMode string) (*ComposerSessionView, error) {
-	view, err := s.nexus.CreateComposerSessionWithPrompt(ctx, projectID, goal, sourcePrompt)
+	return s.CreateWithProgress(ctx, projectID, goal, sourcePrompt, inputMode, nil)
+}
+
+func (s *ComposerApplicationService) CreateWithProgress(ctx context.Context, projectID, goal, sourcePrompt, inputMode string, sink ComposerProgressSink) (*ComposerSessionView, error) {
+	view, err := s.nexus.CreateComposerSessionWithPromptProgress(ctx, projectID, goal, sourcePrompt, sink)
 	if err != nil {
 		return nil, err
 	}
@@ -38,8 +42,8 @@ func (s *ComposerApplicationService) Get(ctx context.Context, sessionID string) 
 	return s.nexus.GetComposerSession(ctx, sessionID)
 }
 
-func (s *ComposerApplicationService) AddTurn(ctx context.Context, sessionID, content string, expectedRevision int) (*ComposerSessionView, error) {
-	return s.nexus.AddComposerTurnExpected(ctx, sessionID, store.ComposerUser, content, expectedRevision)
+func (s *ComposerApplicationService) AddTurn(ctx context.Context, sessionID, content string, expectedRevision int, attachments []ComposerAttachmentRef) (*ComposerSessionView, error) {
+	return s.nexus.AddComposerTurnExpected(ctx, sessionID, store.ComposerUser, content, expectedRevision, attachments)
 }
 
 func (s *ComposerApplicationService) UpdateSkill(ctx context.Context, sessionID, skillID, state string) (*ComposerSessionView, error) {

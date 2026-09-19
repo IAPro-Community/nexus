@@ -1,5 +1,10 @@
 <p align="center"><img src="nexus-logo.png" alt="IAPro Nexus" width="340"></p>
 
+> **Beta fechado v1.0.0-beta.1** — distribuído apenas como binário assinado
+> pelo canal oficial. Sem acesso ao código-fonte, sem build local.
+> Consulte [Beta Terms](docs/legal/BETA_TERMS.md) e
+> [Privacy](docs/legal/PRIVACY.md).
+
 <p align="center"><img src="docs/assets/promo/promo-nexus-hero.png" alt="IAPro Nexus — workstation local para coding agents" width="720"></p>
 
 <h1 align="center">IAPro Nexus</h1>
@@ -49,7 +54,7 @@ Caminho recomendado (**zero-toolchain**): baixe um binário de release. Não pre
 **Linux / macOS:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kivervinicius/ai-cli/main/install.sh | bash -s -- --version=latest
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
@@ -57,13 +62,13 @@ nexus web
 **Windows (PowerShell):**
 
 ```powershell
-irm https://raw.githubusercontent.com/kivervinicius/ai-cli/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version latest
+irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
+.\install.ps1 -Version v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
 
-`--version=latest` / `-Version latest` resolve a tag via API do GitHub e valida `checksums.txt` (integridade; ainda não é pinagem assinada). Para pinagem explícita use `--version=vX.Y.Z`.
+`--version=v1.0.0-beta.1` baixa o GitHub Release pinado e valida `checksums.txt` (integridade). `--version=latest` resolve a tag mais nova depois que a release existir. O repositório precisa ser público (ou use `GH_TOKEN`) para o download anônimo.
 
 Pré-requisitos do instalador de release: `curl` ou `wget`, `tar` e `sha256sum`/`shasum` (Unix) ou PowerShell (Windows). Desktop nativo pode exigir WebView2 (Windows) ou WebKitGTK (Linux).
 
@@ -73,7 +78,7 @@ Requisitos: Go 1.25+ e Bun 1.3.9+.
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
-cd ai-cli
+cd nexus
 bun --cwd web install --frozen-lockfile
 make build
 ./nexus doctor
@@ -153,4 +158,7 @@ Leia [SECURITY.md](SECURITY.md), [SUPPORT.md](SUPPORT.md), [GOVERNANCE.md](GOVER
 
 ## Licença
 
-Distribuído sob a [licença MIT](LICENSE).
+Software proprietário — distribuído como binário sob a [licença beta](LICENSE).
+Consulte também [Beta Terms](docs/legal/BETA_TERMS.md),
+[Privacy](docs/legal/PRIVACY.md) e
+[Third-Party Notices](docs/legal/THIRD_PARTY_NOTICES.md).

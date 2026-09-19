@@ -19,6 +19,9 @@ bin/
 *.sqlite
 *.sqlite*
 *.db
+*.db-wal
+*.db-shm
+*.db-journal
 conversation_summaries.db
 history.jsonl
 

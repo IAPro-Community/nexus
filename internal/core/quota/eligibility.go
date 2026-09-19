@@ -83,9 +83,11 @@ func EvaluateEligibility(in EligibilityInput) Eligibility {
 		return out
 	}
 
-	// Availability is evaluated before UNKNOWN so an explicitly unavailable
-	// account is rejected as exhausted/unavailable instead of "quota unknown".
-	if !in.View.Available || len(in.View.AvailReasons.ExhaustedWindows) > 0 {
+	// QuotaView.Available is the aggregate authority. ExhaustedWindows may
+	// contain partial diagnostics while another independent model group still
+	// has capacity (for example AGY Gemini exhausted, Claude/GPT available).
+	// Reject as exhausted only when no group remains available.
+	if !in.View.Available {
 		if status == string(model.UsageUnknown) || in.View.AvailReasons.UnknownQuota {
 			out.Reason = ReasonUnknownQuota
 			out.Confidence = "UNKNOWN"

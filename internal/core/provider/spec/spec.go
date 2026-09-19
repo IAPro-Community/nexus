@@ -75,10 +75,15 @@ func All() []Spec {
 	return result
 }
 
-// ResolveBinary tries BinaryCandidates via runtime.LookPath.
+// BinaryLookPath resolves provider binaries. It defaults to the
+// PATH-plus-developer-dirs lookup and is a variable (not a direct call) so
+// tests can stub binary presence without depending on host state.
+var BinaryLookPath = runtime.LookPath
+
+// ResolveBinary tries BinaryCandidates via BinaryLookPath.
 func (s Spec) ResolveBinary() (string, error) {
 	for _, candidate := range s.BinaryCandidates {
-		if bin, err := runtime.LookPath(candidate); err == nil {
+		if bin, err := BinaryLookPath(candidate); err == nil {
 			return bin, nil
 		}
 	}

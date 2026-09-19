@@ -38,12 +38,27 @@ type ComposerSession struct {
 	UpdatedAt          time.Time `json:"updated_at"`
 }
 type ComposerTurn struct {
-	ID        string    `json:"id"`
-	SessionID string    `json:"session_id"`
-	Sequence  int       `json:"sequence"`
-	Role      string    `json:"role"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          string    `json:"id"`
+	SessionID   string    `json:"session_id"`
+	Sequence    int       `json:"sequence"`
+	Role        string    `json:"role"`
+	Content     string    `json:"content"`
+	Kind        string    `json:"kind,omitempty"`
+	PayloadJSON string    `json:"payload_json,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// ConversationAttachment is a durable file reference owned by a composer/session thread.
+type ConversationAttachment struct {
+	ID           string    `json:"id"`
+	SessionID    string    `json:"session_id"`
+	Name         string    `json:"name"`
+	MimeType     string    `json:"mime_type"`
+	Size         int64     `json:"size"`
+	Type         string    `json:"type"`
+	StorageRef   string    `json:"storage_ref"`
+	MetadataJSON string    `json:"metadata_json,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 type ComposerSkillProposal struct {
 	SessionID     string    `json:"session_id"`
@@ -181,8 +196,11 @@ func (s *Store) AppendComposerTurn(in ComposerTurn) (*ComposerTurn, error) {
 		return nil, fmt.Errorf("invalid composer turn role")
 	}
 	in.Content = capComposerText(in.Content)
-	if in.Content == "" {
+	if in.Content == "" && strings.TrimSpace(in.PayloadJSON) == "" {
 		return nil, fmt.Errorf("composer turn content is required")
+	}
+	if in.Content == "" {
+		in.Content = " " // placeholder so legacy readers still see a non-empty body
 	}
 	if in.CreatedAt.IsZero() {
 		in.CreatedAt = time.Now().UTC()
@@ -195,7 +213,7 @@ func (s *Store) AppendComposerTurn(in ComposerTurn) (*ComposerTurn, error) {
 	if err := tx.QueryRow(`SELECT COALESCE(MAX(sequence),0)+1 FROM composer_turns WHERE session_id=?`, in.SessionID).Scan(&in.Sequence); err != nil {
 		return nil, err
 	}
-	if _, err := tx.Exec(`INSERT INTO composer_turns(id,session_id,sequence,role,content,created_at) VALUES(?,?,?,?,?,?)`, in.ID, in.SessionID, in.Sequence, in.Role, in.Content, in.CreatedAt.Format(time.RFC3339Nano)); err != nil {
+	if _, err := tx.Exec(`INSERT INTO composer_turns(id,session_id,sequence,role,content,kind,payload_json,created_at) VALUES(?,?,?,?,?,?,?,?)`, in.ID, in.SessionID, in.Sequence, in.Role, in.Content, in.Kind, in.PayloadJSON, in.CreatedAt.Format(time.RFC3339Nano)); err != nil {
 		return nil, err
 	}
 	if _, err := tx.Exec(`UPDATE composer_sessions SET updated_at=? WHERE id=?`, in.CreatedAt.Format(time.RFC3339Nano), in.SessionID); err != nil {
@@ -211,7 +229,7 @@ func (s *Store) ListComposerTurns(sessionID string, limit int) ([]ComposerTurn, 
 	if limit <= 0 || limit > 40 {
 		limit = 40
 	}
-	rows, err := s.db.Query(`SELECT id,session_id,sequence,role,content,created_at FROM composer_turns WHERE session_id=? ORDER BY sequence DESC LIMIT ?`, sessionID, limit)
+	rows, err := s.db.Query(`SELECT id,session_id,sequence,role,content,COALESCE(kind,''),COALESCE(payload_json,''),created_at FROM composer_turns WHERE session_id=? ORDER BY sequence DESC LIMIT ?`, sessionID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +238,7 @@ func (s *Store) ListComposerTurns(sessionID string, limit int) ([]ComposerTurn, 
 	for rows.Next() {
 		var item ComposerTurn
 		var created string
-		if err := rows.Scan(&item.ID, &item.SessionID, &item.Sequence, &item.Role, &item.Content, &created); err != nil {
+		if err := rows.Scan(&item.ID, &item.SessionID, &item.Sequence, &item.Role, &item.Content, &item.Kind, &item.PayloadJSON, &created); err != nil {
 			return nil, err
 		}
 		item.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
@@ -434,6 +452,84 @@ func normalizeComposerSkillState(state string) string {
 	default:
 		return ""
 	}
+}
+
+func (s *Store) CreateConversationAttachment(in ConversationAttachment) (*ConversationAttachment, error) {
+	if in.ID == "" {
+		in.ID = "att_" + ids.NewRuntimeID()
+	}
+	if strings.TrimSpace(in.SessionID) == "" || strings.TrimSpace(in.Name) == "" {
+		return nil, fmt.Errorf("session_id and name are required")
+	}
+	if in.Type == "" {
+		in.Type = "image"
+	}
+	if in.MetadataJSON == "" {
+		in.MetadataJSON = "{}"
+	}
+	if in.CreatedAt.IsZero() {
+		in.CreatedAt = time.Now().UTC()
+	}
+	_, err := s.db.Exec(
+		`INSERT INTO conversation_attachments(id,session_id,name,mime_type,size,type,storage_ref,metadata_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)`,
+		in.ID, in.SessionID, in.Name, in.MimeType, in.Size, in.Type, in.StorageRef, in.MetadataJSON, in.CreatedAt.Format(time.RFC3339Nano),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &in, nil
+}
+
+func (s *Store) GetConversationAttachment(id string) (*ConversationAttachment, error) {
+	var out ConversationAttachment
+	var created string
+	err := s.db.QueryRow(
+		`SELECT id,session_id,name,mime_type,size,type,storage_ref,COALESCE(metadata_json,'{}'),created_at FROM conversation_attachments WHERE id=?`,
+		id,
+	).Scan(&out.ID, &out.SessionID, &out.Name, &out.MimeType, &out.Size, &out.Type, &out.StorageRef, &out.MetadataJSON, &created)
+	if err != nil {
+		return nil, err
+	}
+	out.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
+	return &out, nil
+}
+
+func (s *Store) ListConversationAttachments(sessionID string) ([]ConversationAttachment, error) {
+	rows, err := s.db.Query(
+		`SELECT id,session_id,name,mime_type,size,type,storage_ref,COALESCE(metadata_json,'{}'),created_at FROM conversation_attachments WHERE session_id=? ORDER BY created_at ASC`,
+		sessionID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []ConversationAttachment{}
+	for rows.Next() {
+		var item ConversationAttachment
+		var created string
+		if err := rows.Scan(&item.ID, &item.SessionID, &item.Name, &item.MimeType, &item.Size, &item.Type, &item.StorageRef, &item.MetadataJSON, &created); err != nil {
+			return nil, err
+		}
+		item.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) UpdateConversationAttachment(in ConversationAttachment) error {
+	if strings.TrimSpace(in.ID) == "" {
+		return fmt.Errorf("attachment id is required")
+	}
+	_, err := s.db.Exec(
+		`UPDATE conversation_attachments SET name=?,mime_type=?,size=?,type=?,storage_ref=?,metadata_json=? WHERE id=?`,
+		in.Name, in.MimeType, in.Size, in.Type, in.StorageRef, in.MetadataJSON, in.ID,
+	)
+	return err
+}
+
+func (s *Store) DeleteConversationAttachment(id string) error {
+	_, err := s.db.Exec(`DELETE FROM conversation_attachments WHERE id=?`, id)
+	return err
 }
 
 var _ = sql.ErrNoRows

@@ -6,7 +6,7 @@ O build a partir do fonte requer Go 1.25+ e Bun 1.3.9+:
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
-cd ai-cli
+cd nexus
 bun --cwd web install --frozen-lockfile
 make build
 ./nexus doctor
@@ -31,6 +31,7 @@ Consulte [BUILD.md](../../BUILD.md) para o contrato de versão e release,
 | CLI e entrypoints | `cmd/`, `internal/app/` |
 | Core de projetos, agents, planos e Mission | `internal/nexus/` |
 | Web e API local | `internal/control/web/`, `web/src/` |
+| Fundação conversacional | `web/src/features/conversation/`, [NEXUS_CONVERSATION.md](../engineering/NEXUS_CONVERSATION.md), [ADR](../architecture/ADR-nexus-conversation-foundation.md) |
 | providers, perfis e quota | `internal/core/`, `internal/profile/` |
 | Desktop | `cmd/nexus-desktop/`, `internal/desktop/` |
 | testes e scripts | `internal/**/*_test.go`, `scripts/`, `web/scripts/` |

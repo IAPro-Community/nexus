@@ -1,22 +1,15 @@
 name: CI
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
-    branches:
-      - main
-      - master
-      - 'feat/**'
-      - 'fix/**'
-    tags:
-      - 'v*'
-
+    branches: [main, master]
+    tags: ['v*']
   pull_request:
-    branches:
-      - main
-      - master
-      - 'feat/**'
-      - 'fix/**'
-
+    branches: [main, master]
   workflow_dispatch:
 
 env:
@@ -27,123 +20,80 @@ env:
 jobs:
   frontend:
     name: Frontend (Format, Lint, Styles, Typecheck, Unit & Build)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
-
-      - name: Install Dependencies (frozen)
-        working-directory: ./web
+      - working-directory: web
         run: bun install --frozen-lockfile
-
-      - name: Format Check
-        working-directory: ./web
+      - working-directory: web
         run: bun run format:check
-
-      - name: Typecheck Frontend
-        working-directory: ./web
+      - working-directory: web
         run: bun run typecheck
-
-      - name: Lint Frontend
-        working-directory: ./web
+      - working-directory: web
         run: bun run lint
-
-      - name: Lint Styles
-        working-directory: ./web
+      - working-directory: web
         run: bun run lint:styles
-
-      - name: Verify stylesheet allowlist
-        working-directory: ./web
+      - working-directory: web
         run: bun run check:styles
-
-      - name: Unit Tests
-        working-directory: ./web
+      - working-directory: web
         run: bun run test
-
-      - name: Build Frontend
-        working-directory: ./web
+      - working-directory: web
         run: bun run build
-
-      - name: Verify embedded bundle is synchronized
-        working-directory: web
+      - working-directory: web
         run: bun run verify
 
   security:
     name: Security
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.25.14'
-          cache: true
-
-      - name: Run govulncheck
-        run: GOTOOLCHAIN=local go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+          cache: false
+      - run: GOTOOLCHAIN=local go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
 
   browser:
     name: Browser E2E, Axe & visual smoke
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: frontend
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.25.14'
-          cache: true
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+          cache: false
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
-
-      - name: Install frontend dependencies
-        working-directory: web
+      - working-directory: web
         run: bun install --frozen-lockfile
-
-      - name: Install Chromium
+      - name: Install Chromium browser only
         working-directory: web
-        run: bunx playwright install --with-deps chromium
-
-      - name: Build current Nexus binary
-        run: go build -o nexus ./cmd/nexus
-
-      - name: Run browser E2E
-        id: browser-e2e
+        run: bunx playwright install chromium
+      - run: go build -trimpath -o nexus ./cmd/nexus
+      - id: browser-e2e
         working-directory: web
         run: |
           set -o pipefail
           bun run test:e2e 2>&1 | tee "$RUNNER_TEMP/nexus-browser-e2e.log"
-
-      - name: Run browser a11y
-        id: browser-a11y
+      - id: browser-a11y
         if: always()
         working-directory: web
         run: |
           set -o pipefail
           bun run test:a11y 2>&1 | tee "$RUNNER_TEMP/nexus-browser-a11y.log"
-
-      - name: Run browser visual
-        id: browser-visual
+      - id: browser-visual
         if: always()
         working-directory: web
         run: |
           set -o pipefail
           bun run test:visual 2>&1 | tee "$RUNNER_TEMP/nexus-browser-visual.log"
-
       - name: Upload browser diagnostics
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: browser-diagnostics-${{ github.sha }}
@@ -152,595 +102,117 @@ jobs:
             .tempmediaStorage/e2e-failure-diagnostics.json
             .tempmediaStorage/e2e-failure.png
           if-no-files-found: ignore
-
-      - name: Assert browser verification
-        if: always()
+          retention-days: 2
+      - if: always()
         run: |
           test '${{ steps.browser-e2e.outcome }}' = success
           test '${{ steps.browser-a11y.outcome }}' = success
           test '${{ steps.browser-visual.outcome }}' = success
 
   test-linux:
-    name: Linux E2E (Go ${{ matrix.go }})
-    strategy:
-      matrix:
-        go: ['1.25.14']
-    runs-on: ubuntu-latest
+    name: Linux E2E (Go 1.25.14)
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
-          go-version: ${{ matrix.go }}
-          cache: true
-
-      - name: Gofmt Check
-        run: test -z "$(gofmt -l . | grep -v .worktrees)" || (gofmt -l . | grep -v .worktrees && exit 1)
-
-      - name: Vet
-        run: go vet ./...
-
-      - name: GolangCI-Lint
-        uses: golangci/golangci-lint-action@v7
+          go-version: '1.25.14'
+          cache: false
+      - run: test -z "$(gofmt -l . | grep -v .worktrees)" || (gofmt -l . | grep -v .worktrees && exit 1)
+      - run: go vet ./...
+      - uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.2
           args: --timeout=5m
-
-      - name: Test with Race Detector
-        run: go test -v -race ./...
-
-      - name: PTY & Unix Socket E2E
-        run: go test -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/...
-
-      - name: Runtime & Web E2E
-        run: go test -race -v -count=1 ./internal/control/host/... ./internal/control/web/...
-
-      - name: Build Binary
-        run: go build -v ./cmd/nexus
-
-  test-windows:
-    name: Windows E2E (ConPTY, Named Pipe, PowerShell)
-    strategy:
-      matrix:
-        go: ['1.25.14']
-    runs-on: windows-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ matrix.go }}
-          cache: true
-
-      - name: Vet
-        id: windows-vet
-        run: go vet ./...
-
-      - name: PowerShell installer syntax
-        id: windows-installer
-        if: always()
-        shell: pwsh
-        run: |
-          $tokens = $null
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path install.ps1),
-            [ref]$tokens,
-            [ref]$errors
-          ) | Out-Null
-          if ($errors.Count -gt 0) {
-            $errors | Format-List | Out-String | Write-Error
-            exit 1
-          }
-          Write-Host 'install.ps1 syntax PASS'
-
-      - name: Test
-        id: windows-tests
-        if: always()
-        shell: pwsh
-        run: |
-          $log = Join-Path $env:RUNNER_TEMP 'nexus-windows-go-test.log'
-          cmd /c "go test -v ./... > `"$log`" 2>&1"
-          $code = $LASTEXITCODE
-          Get-Content $log
-          exit $code
-
-      - name: ConPTY & Named Pipe E2E
-        id: windows-terminal-e2e
-        if: always()
-        shell: pwsh
-        run: |
-          $log = Join-Path $env:RUNNER_TEMP 'nexus-windows-terminal-ipc.log'
-          cmd /c "go test -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/... > `"$log`" 2>&1"
-          $code = $LASTEXITCODE
-          Get-Content $log
-          exit $code
-
-      - name: Runtime & Web E2E
-        id: windows-runtime-e2e
-        if: always()
-        shell: pwsh
-        run: |
-          $log = Join-Path $env:RUNNER_TEMP 'nexus-windows-runtime-web.log'
-          cmd /c "go test -v -count=1 ./internal/control/host/... ./internal/control/web/... > `"$log`" 2>&1"
-          $code = $LASTEXITCODE
-          Get-Content $log
-          exit $code
-
-      - name: Build Binary
-        id: windows-build
-        if: always()
-        run: go build -v -o nexus.exe ./cmd/nexus
-
-      - name: PowerShell Smoke Test
-        id: windows-smoke
-        if: always()
-        shell: pwsh
-        run: |
-          .\nexus.exe version
-          .\nexus.exe control --help | Select-Object -First 5
-
-      - name: Assert Windows diagnostics
-        if: always()
-        shell: pwsh
-        run: |
-          $outcomes = @(
-            '${{ steps.windows-vet.outcome }}',
-            '${{ steps.windows-installer.outcome }}',
-            '${{ steps.windows-tests.outcome }}',
-            '${{ steps.windows-terminal-e2e.outcome }}',
-            '${{ steps.windows-runtime-e2e.outcome }}',
-            '${{ steps.windows-build.outcome }}',
-            '${{ steps.windows-smoke.outcome }}'
-          )
-          Write-Host "Windows diagnostic outcomes: $($outcomes -join ', ')"
-          $failed = @($outcomes | Where-Object { $_ -ne 'success' })
-          if ($failed.Count -gt 0) { throw "One or more Windows diagnostics did not pass: $($outcomes -join ', ')" }
-
-      - name: Upload Windows diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-diagnostics-${{ github.sha }}
-          path: ${{ runner.temp }}/nexus-windows-*.log
-          if-no-files-found: ignore
-
-  test-macos:
-    name: macOS E2E (PTY, Socket, Resize, Install)
-    strategy:
-      matrix:
-        go: ['1.25.14']
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ matrix.go }}
-          cache: true
-
-      - name: Vet
-        id: macos-vet
-        run: go vet ./...
-
-      - name: Test with Race Detector
-        id: macos-race
-        if: always()
-        shell: bash
-        run: |
-          set -o pipefail
-          go test -v -race ./... 2>&1 | tee "$RUNNER_TEMP/nexus-macos-race.log"
-
-      - name: PTY, Socket & Runtime E2E
-        id: macos-runtime-e2e
-        if: always()
-        shell: bash
-        run: |
-          set -o pipefail
-          go test -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... 2>&1 | tee "$RUNNER_TEMP/nexus-macos-runtime-ipc.log"
-
-      - name: Web E2E
-        id: macos-web-e2e
-        if: always()
-        shell: bash
-        run: |
-          set -o pipefail
-          go test -race -v -count=1 ./internal/control/web/... 2>&1 | tee "$RUNNER_TEMP/nexus-macos-web.log"
-
-      - name: Build Binary
-        id: macos-build
-        if: always()
-        run: go build -v -o nexus ./cmd/nexus
-
-      - name: Installer Smoke Test (local install.sh)
-        id: macos-installer
-        if: always()
-        run: |
-          ./nexus version
-          # install.sh release-download path requires a GitHub release; build-from-source fallback is exercised by running from a source checkout
-          bash -n install.sh
-
-      - name: Assert macOS diagnostics
-        if: always()
-        shell: bash
-        run: |
-          outcomes=(
-            '${{ steps.macos-vet.outcome }}'
-            '${{ steps.macos-race.outcome }}'
-            '${{ steps.macos-runtime-e2e.outcome }}'
-            '${{ steps.macos-web-e2e.outcome }}'
-            '${{ steps.macos-build.outcome }}'
-            '${{ steps.macos-installer.outcome }}'
-          )
-          printf 'macOS diagnostic outcomes: %s\n' "${outcomes[*]}"
-          for outcome in "${outcomes[@]}"; do
-            if [[ "$outcome" != success ]]; then
-              printf 'One or more macOS diagnostics failed: %s\n' "${outcomes[*]}" >&2
-              exit 1
-            fi
-          done
-
-      - name: Upload macOS diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-diagnostics-${{ github.sha }}
-          path: ${{ runner.temp }}/nexus-macos-*.log
-          if-no-files-found: ignore
+      - run: go test -v -race ./...
+      - run: go test -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/...
+      - run: go test -race -v -count=1 ./internal/control/host/... ./internal/control/web/...
+      - run: go build -trimpath -v ./cmd/nexus
 
   desktop-linux:
     name: Desktop Linux (Wails native build)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: frontend
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Install Wails Linux dependencies
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v5
+      - name: Verify Wails system dependencies
+        run: |
+          pkg-config --exists gtk+-3.0
+          pkg-config --exists webkit2gtk-4.1
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.25.14'
-          cache: true
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+          cache: false
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
-
-      - name: Install frontend dependencies
-        working-directory: web
+      - working-directory: web
         run: bun install --frozen-lockfile
-
       - name: Build Linux desktop
         run: |
           set -euo pipefail
           test -n "${NEXUS_UPDATE_PUBLIC_KEY}" || {
-            echo "NEXUS_UPDATE_PUBLIC_KEY is required for desktop CI (fail-closed; refusing empty trust root)" >&2
+            echo "NEXUS_UPDATE_PUBLIC_KEY is required for desktop CI" >&2
             exit 1
           }
           make build-desktop-wails
           test -f cmd/nexus-desktop/build/bin/nexus-desktop
-
-      - name: Package Linux desktop artifact
-        run: tar -C cmd/nexus-desktop/build/bin -czf "$RUNNER_TEMP/nexus-desktop_Linux_x86_64.tar.gz" nexus-desktop
-
-      - name: Upload Linux desktop artifact
-        uses: actions/upload-artifact@v4
+      - run: tar -C cmd/nexus-desktop/build/bin -czf "$RUNNER_TEMP/nexus-desktop_Linux_x86_64.tar.gz" nexus-desktop
+      - uses: actions/upload-artifact@v4
         with:
           name: desktop-linux-${{ github.sha }}
           path: ${{ runner.temp }}/nexus-desktop_Linux_x86_64.tar.gz
           if-no-files-found: error
-
-  desktop-windows:
-    name: Desktop Windows (Wails native build)
-    runs-on: windows-latest
-    needs: frontend
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: '1.25.14'
-          cache: true
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.9
-
-      - name: Install frontend dependencies
-        working-directory: web
-        run: bun install --frozen-lockfile
-
-      - name: Build frontend for Wails
-        working-directory: web
-        run: bun run build
-
-      - name: Build Windows desktop with Wails
-        shell: pwsh
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:NEXUS_UPDATE_PUBLIC_KEY)) {
-            throw 'NEXUS_UPDATE_PUBLIC_KEY is required for desktop CI (fail-closed; refusing empty trust root)'
-          }
-          Set-Location cmd/nexus-desktop
-          $version = (Get-Content ../../VERSION).Trim()
-          $commit = (git -C ../.. rev-parse --short HEAD).Trim()
-          $buildDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-          $ldflags = "-s -w -X github.com/IAPro-Community/nexus/internal/buildinfo.Version=$version -X github.com/IAPro-Community/nexus/internal/buildinfo.Commit=$commit -X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate=$buildDate -X github.com/IAPro-Community/nexus/internal/update.ProductionTrustRootHex=$env:NEXUS_UPDATE_PUBLIC_KEY"
-          go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags $ldflags
-          if (-not (Test-Path build/bin/nexus-desktop.exe)) { throw 'Wails Windows artifact missing' }
-
-      - name: Package Windows desktop artifact
-        shell: pwsh
-        run: Compress-Archive -Path cmd/nexus-desktop/build/bin/nexus-desktop.exe -DestinationPath "$env:RUNNER_TEMP\nexus-desktop_Windows_x86_64.zip"
-
-      - name: Upload Windows desktop artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-windows-${{ github.sha }}
-          path: ${{ runner.temp }}/nexus-desktop_Windows_x86_64.zip
-          if-no-files-found: error
-
-  desktop-macos:
-    name: Desktop macOS (Wails native build)
-    runs-on: macos-latest
-    needs: frontend
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: '1.25.14'
-          cache: true
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.9
-
-      - name: Install frontend dependencies
-        working-directory: web
-        run: bun install --frozen-lockfile
-
-      - name: Build frontend for Wails
-        working-directory: web
-        run: bun run build
-
-      - name: Build macOS desktop with Wails
-        id: macos-desktop-build
-        run: |
-          set -euo pipefail
-          test -n "${NEXUS_UPDATE_PUBLIC_KEY}" || {
-            echo "NEXUS_UPDATE_PUBLIC_KEY is required for desktop CI (fail-closed; refusing empty trust root)" >&2
-            exit 1
-          }
-          exec > >(tee "$RUNNER_TEMP/nexus-desktop-macos-build.log") 2>&1
-          cd cmd/nexus-desktop
-          version="$(cat ../../VERSION)"
-          commit="$(git -C ../.. rev-parse --short HEAD)"
-          build_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          ldflags="-s -w -X github.com/IAPro-Community/nexus/internal/buildinfo.Version=$version -X github.com/IAPro-Community/nexus/internal/buildinfo.Commit=$commit -X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate=$build_date -X github.com/IAPro-Community/nexus/internal/update.ProductionTrustRootHex=${NEXUS_UPDATE_PUBLIC_KEY}"
-          go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags "$ldflags"
-          apps=()
-          while IFS= read -r app; do apps+=("$app"); done < <(find build/bin -maxdepth 1 -type d -name '*.app' -print)
-          test "${#apps[@]}" -eq 1 || {
-            printf 'Expected exactly one macOS app bundle, found %s\n' "${#apps[@]}" >&2
-            printf '%s\n' "${apps[@]}" >&2
-            exit 1
-          }
-          app="${apps[0]}"
-          test -f "$app/Contents/Info.plist"
-          executables=()
-          while IFS= read -r executable; do executables+=("$executable"); done < <(find "$app/Contents/MacOS" -maxdepth 1 -type f -perm -111 -print)
-          test "${#executables[@]}" -eq 1 || {
-            printf 'Expected exactly one executable in %s, found %s\n' "$app/Contents/MacOS" "${#executables[@]}" >&2
-            printf '%s\n' "${executables[@]}" >&2
-            exit 1
-          }
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$app/Contents/Info.plist" | grep -Fx 'IAPro Nexus'
-          expected_version="$(tr -d '[:space:]' < "$GITHUB_WORKSPACE/VERSION")"
-          short_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")"
-          # Wails may strip prerelease suffix from CFBundleShortVersionString; accept exact or numeric prefix.
-          case "$short_version" in
-            "$expected_version"|"${expected_version%%-*}") ;;
-            *)
-              printf 'CFBundleShortVersionString=%s does not match VERSION=%s\n' "$short_version" "$expected_version" >&2
-              exit 1
-              ;;
-          esac
-          # Fail closed on unescaped XML ampersands in plist string values.
-          if grep -E '<string>[^<]*&[^a]' "$app/Contents/Info.plist" >/dev/null; then
-            printf 'Info.plist contains unescaped ampersand in string value\n' >&2
-            exit 1
-          fi
-          printf 'Validated macOS bundle: %s (version %s)\n' "$app" "$short_version"
-
-      - name: Upload macOS desktop build diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-macos-build-diagnostics-${{ github.sha }}
-          path: ${{ runner.temp }}/nexus-desktop-macos-build.log
-          if-no-files-found: ignore
-
-      - name: Assert macOS desktop build
-        if: always()
-        run: test '${{ steps.macos-desktop-build.outcome }}' = success
-
-      - name: Package macOS desktop artifact
-        run: |
-          set -euo pipefail
-          apps=()
-          while IFS= read -r app; do apps+=("$app"); done < <(find cmd/nexus-desktop/build/bin -maxdepth 1 -type d -name '*.app' -print)
-          test "${#apps[@]}" -eq 1
-          ditto -c -k --sequesterRsrc --keepParent "${apps[0]}" "$RUNNER_TEMP/nexus-desktop_Darwin_arm64.zip"
-
-      - name: Upload macOS desktop artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-macos-${{ github.sha }}
-          path: ${{ runner.temp }}/nexus-desktop_Darwin_arm64.*
-          if-no-files-found: error
+          retention-days: 2
 
   snapshot:
     name: GoReleaser Snapshot Build
-    runs-on: ubuntu-latest
-    needs: [test-linux, test-windows, test-macos, frontend, desktop-linux, desktop-windows, desktop-macos]
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
+    needs: [test-linux, frontend, desktop-linux]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.25.14'
-          cache: true
-
-      - name: Install RPM tooling for nfpms
-        run: sudo apt-get update -y && sudo apt-get install -y rpm
-
-      - name: Set up GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+          cache: false
+      - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: v2.18.0
           args: release --snapshot --clean
-
-      - name: Verify Artifacts
+      - name: Verify Linux beta artifacts
         run: |
-          ls -la dist/
-          ls dist/*.tar.gz dist/*.zip dist/*.deb dist/*.rpm 2>/dev/null
-          test -f dist/checksums.txt && echo "checksums present"
-          test -f dist/nexus_Linux_x86_64.tar.gz && echo "linux/amd64 OK"
-          test -f dist/nexus_Linux_arm64.tar.gz && echo "linux/arm64 OK"
-          test -f dist/nexus_Darwin_x86_64.tar.gz && echo "darwin/amd64 OK"
-          test -f dist/nexus_Darwin_arm64.tar.gz && echo "darwin/arm64 OK"
-          test -f dist/nexus_Windows_x86_64.zip && echo "windows/amd64 OK"
-          test -f dist/nexus_Windows_arm64.zip && echo "windows/arm64 OK"
-          test "$(find dist -maxdepth 1 -name '*.deb' | wc -l)" -ge 1 && echo "deb packages OK"
-          test "$(find dist -maxdepth 1 -name '*.rpm' | wc -l)" -ge 1 && echo "rpm packages OK"
-
-      - name: Upload snapshot dist
-        uses: actions/upload-artifact@v4
+          set -euo pipefail
+          test -f dist/checksums.txt
+          test -f dist/nexus_Linux_x86_64.tar.gz
+          test -f dist/nexus_Linux_arm64.tar.gz
+          test "$(find dist -maxdepth 1 -name '*.deb' | wc -l)" -ge 1
+          test "$(find dist -maxdepth 1 -name '*.rpm' | wc -l)" -eq 0
+      - uses: actions/upload-artifact@v4
         with:
           name: snapshot-dist-${{ github.sha }}
           path: dist/
           if-no-files-found: error
+          retention-days: 2
 
   package-smoke-deb:
     name: Smoke DEB install
-    runs-on: ubuntu-latest
-    needs: [snapshot]
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
+    needs: snapshot
+    container: ubuntu:24.04
     steps:
-      - name: Download snapshot dist
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: snapshot-dist-${{ github.sha }}
           path: dist
       - name: Install DEB and run nexus version
+        shell: bash
         run: |
           set -euo pipefail
           deb="$(find dist -maxdepth 1 -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' | head -n1)"
-          if [ -z "$deb" ]; then
-            deb="$(find dist -maxdepth 1 -name '*.deb' | head -n1)"
-          fi
           test -n "$deb"
-          sudo dpkg -i "$deb" || sudo apt-get install -f -y
-          nexus version
-
-  package-smoke-rpm:
-    name: Smoke RPM install
-    runs-on: ubuntu-latest
-    needs: [snapshot]
-    container: fedora:41
-    steps:
-      - name: Download snapshot dist
-        uses: actions/download-artifact@v4
-        with:
-          name: snapshot-dist-${{ github.sha }}
-          path: dist
-      - name: Install RPM and run nexus version
-        run: |
-          set -euo pipefail
-          rpmfile="$(find dist -maxdepth 1 -name '*_linux_amd64.rpm' -o -name '*_linux_x86_64.rpm' | head -n1)"
-          if [ -z "$rpmfile" ]; then
-            rpmfile="$(find dist -maxdepth 1 -name '*.rpm' | head -n1)"
+          if ! dpkg -i "$deb"; then
+            apt-get update
+            apt-get install -f -y
           fi
-          test -n "$rpmfile"
-          dnf install -y "$rpmfile"
           nexus version
-
-  nsis-windows:
-    name: Windows NSIS installer
-    runs-on: windows-latest
-    needs: [snapshot, desktop-windows]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: Download snapshot dist
-        uses: actions/download-artifact@v4
-        with:
-          name: snapshot-dist-${{ github.sha }}
-          path: dist
-      - name: Download desktop Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: desktop-windows-${{ github.sha }}
-          path: native-artifacts
-      - name: Install NSIS
-        run: choco install nsis -y
-      - name: Stage installer payload
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p packaging/windows/payload
-          unzip -o dist/nexus_Windows_x86_64.zip -d packaging/windows/payload
-          # Desktop artifact may be zip or raw exe depending on CI upload.
-          if ls native-artifacts/nexus-desktop_Windows_x86_64.zip >/dev/null 2>&1; then
-            unzip -o native-artifacts/nexus-desktop_Windows_x86_64.zip -d packaging/windows/payload
-          elif ls native-artifacts/*.exe >/dev/null 2>&1; then
-            cp native-artifacts/*.exe packaging/windows/payload/
-          fi
-          cp packaging/windows/payload/nexus.exe packaging/windows/payload/ai.exe
-          test -f packaging/windows/payload/nexus.exe
-          test -f packaging/windows/payload/ai.exe
-          test -f packaging/windows/payload/nexus-desktop.exe
-          ls -la packaging/windows/payload
-      - name: Build NSIS package
-        shell: bash
-        run: |
-          set -euo pipefail
-          export PATH="/c/Program Files (x86)/NSIS:$PATH"
-          makensis packaging/windows/nexus.nsi
-          test -f packaging/windows/nexus-setup-Windows_x86_64.exe
-      - name: Installer smoke test
-        shell: pwsh
-        run: |
-          $installer = (Resolve-Path packaging/windows/nexus-setup-Windows_x86_64.exe).Path
-          $installDir = Join-Path $env:LOCALAPPDATA 'Programs\IAPro Nexus'
-          Start-Process -FilePath $installer -ArgumentList '/S' -Wait -NoNewWindow
-          if (-not (Test-Path (Join-Path $installDir 'nexus.exe'))) { throw 'NSIS did not install nexus.exe' }
-          if (-not (Test-Path (Join-Path $installDir 'ai.exe'))) { throw 'NSIS did not install ai.exe' }
-          if (-not (Test-Path (Join-Path $installDir 'nexus-desktop.exe'))) { throw 'NSIS did not install nexus-desktop.exe' }
-          & (Join-Path $installDir 'nexus.exe') version
-          Start-Process -FilePath (Join-Path $installDir 'Uninstall.exe') -ArgumentList '/S' -Wait -NoNewWindow
-          if (Test-Path $installDir) { throw 'NSIS uninstall did not remove the install directory' }
-      - name: Upload NSIS installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: nsis-windows-${{ github.sha }}
-          path: packaging/windows/nexus-setup-Windows_x86_64.exe
-          if-no-files-found: error

@@ -174,6 +174,77 @@ func TestMultiQuotaBottleneckSelection(t *testing.T) {
 	}
 }
 
+func TestAGYSelectsPartiallyAvailableAccountOverExhaustedDefault(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	stateDir := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_STATE_DIR", stateDir)
+
+	cfg := config.NewDefaultConfig()
+	cfg.Defaults = map[string]string{"agy": "kiveromegasistemas"}
+	qEng := quota.NewEngine(5 * time.Minute)
+	selector := NewSelector(cfg, qEng, cooldown.NewTracker())
+
+	zero, weekly49, claude66, claude100 := 0.0, 49.0, 66.0, 100.0
+	exhausted := model.UsageSnapshot{
+		ProviderID: "agy",
+		ProfileID:  "kiveromegasistemas",
+		Status:     model.UsageCached,
+		Source:     model.SourceCLIOutput,
+		FetchedAt:  time.Now(),
+		Windows: []model.UsageWindow{
+			{Kind: "weekly", Group: "gemini", RemainingPercent: &zero},
+			{Kind: "claude_weekly", Group: "claude_gpt", RemainingPercent: &zero},
+		},
+	}
+	partial := model.UsageSnapshot{
+		ProviderID: "agy",
+		ProfileID:  "kivervinicius-gmail",
+		Status:     model.UsageCached,
+		Source:     model.SourceCLIOutput,
+		FetchedAt:  time.Now(),
+		Windows: []model.UsageWindow{
+			{Kind: "weekly", Group: "gemini", RemainingPercent: &weekly49},
+			{Kind: "5h", Group: "gemini", RemainingPercent: &zero},
+			{Kind: "claude_weekly", Group: "claude_gpt", RemainingPercent: &claude66},
+			{Kind: "claude_5h", Group: "claude_gpt", RemainingPercent: &claude100},
+		},
+	}
+
+	candidates := []model.Profile{
+		{Provider: "agy", Name: "kiveromegasistemas"},
+		{Provider: "agy", Name: "kivervinicius-gmail"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"kiveromegasistemas": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage:         exhausted,
+		},
+		"kivervinicius-gmail": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage:         partial,
+		},
+	}
+
+	result, err := selector.SelectBestProfile(context.Background(), "agy", t.TempDir(), candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.SelectedProfile == nil || result.SelectedProfile.Name != "kivervinicius-gmail" {
+		t.Fatalf("selected=%#v want kivervinicius-gmail", result.SelectedProfile)
+	}
+	if result.Evaluations[0].Eligible {
+		t.Fatalf("exhausted default must be rejected: %#v", result.Evaluations[0])
+	}
+	if !result.Evaluations[1].Eligible {
+		t.Fatalf("partially available account must remain eligible: %#v", result.Evaluations[1])
+	}
+}
+
 func TestKnownQuotaOutranksUnknownQuota(t *testing.T) {
 	dataDir := t.TempDir()
 	cfgDir := t.TempDir()

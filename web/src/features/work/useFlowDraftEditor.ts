@@ -102,35 +102,64 @@ export function useFlowDraftEditor(options: {
     if (initialGoal.trim()) setAutoGoal((current) => current || initialGoal.trim());
   }, [initialGoal]);
 
+  const selectedPlanId = selectedPlan?.id;
+  const selectedPlanRevision = selectedPlan?.current_revision;
+
   useEffect(() => {
-    if (!selectedPlan) {
+    if (!selectedPlanId) {
       setRevisions([]);
       return;
     }
+    let cancelled = false;
     nexusApi
-      .getPlan(selectedPlan.id)
+      .getPlan(selectedPlanId)
       .then((detail) => {
+        if (cancelled) return;
         setRevisions(detail.revisions || []);
-        if (detail.plan.current_revision !== selectedPlan.current_revision)
-          setSelectedPlan(normalizeWorkPlan(detail.plan));
+        setSelectedPlan((current) => {
+          if (!current || current.id !== detail.plan.id) return current;
+          if (current.current_revision === detail.plan.current_revision) return current;
+          return normalizeWorkPlan(detail.plan);
+        });
       })
       .catch((error) => console.error('Failed to load plan revisions:', error));
-  }, [selectedPlan]);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPlanId, selectedPlanRevision]);
 
   useEffect(() => {
-    if (!selectedPlan) return;
+    if (!selectedPlanId) return;
+    let cancelled = false;
     nexusApi
-      .getFlowLeader(selectedPlan.id)
-      .then((policy) =>
-        setLeader((current) => ({
-          ...current,
-          ...policy,
-          role: policy.role?.trim() || current.role,
-          strategy: policy.strategy || current.strategy,
-        })),
-      )
-      .catch(() => setLeader({ role: 'orchestrator', strategy: 'AUTO' }));
-  }, [selectedPlan]);
+      .getFlowLeader(selectedPlanId)
+      .then((policy) => {
+        if (cancelled) return;
+        setLeader((current) => {
+          const role = policy.role?.trim() || current.role;
+          const strategy = policy.strategy || current.strategy;
+          if (
+            current.role === role &&
+            current.strategy === strategy &&
+            current.preferred_agent_id === policy.preferred_agent_id
+          ) {
+            return current;
+          }
+          return {
+            ...current,
+            ...policy,
+            role,
+            strategy,
+          };
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setLeader({ role: 'orchestrator', strategy: 'AUTO' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPlanId]);
 
   useEffect(() => {
     if (!selectedPlan) {
@@ -139,7 +168,9 @@ export function useFlowDraftEditor(options: {
       return;
     }
     const next = flowFromWorkPlan(selectedPlan);
-    setFlowDraft(next);
+    setFlowDraft((current) =>
+      current && JSON.stringify(current) === JSON.stringify(next) ? current : next,
+    );
     setSelectedStepId((current) =>
       current && next.steps.some((step) => step.id === current) ? current : next.steps[0]?.id || '',
     );
@@ -156,8 +187,12 @@ export function useFlowDraftEditor(options: {
     [autoGoal],
   );
 
+  const appliedInitialPlanId = useRef<string | null>(null);
   useEffect(() => {
-    if (initialPlan) selectGeneratedPlan(initialPlan);
+    if (!initialPlan) return;
+    if (appliedInitialPlanId.current === initialPlan.id) return;
+    appliedInitialPlanId.current = initialPlan.id;
+    selectGeneratedPlan(initialPlan);
   }, [initialPlan, selectGeneratedPlan]);
 
   const selectedStep = useMemo(
