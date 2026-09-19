@@ -3,6 +3,7 @@ package capacitymonitor
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -107,6 +108,10 @@ func (m *Monitor) Tick(ctx context.Context) error {
 	if err := thresholds.Validate(); err != nil {
 		thresholds = DefaultThresholds()
 	}
+	reminderInterval := time.Duration(prefs.ReminderIntervalSeconds) * time.Second
+	if reminderInterval < 0 {
+		reminderInterval = 0
+	}
 	if !prefs.Enabled {
 		return nil
 	}
@@ -160,7 +165,7 @@ tickLoop:
 		go func(p model.Profile) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			st, ok := m.evaluateProfile(ctx, p, thresholds, now)
+			st, ok := m.evaluateProfile(ctx, p, thresholds, reminderInterval, now)
 			wmu.Lock()
 			if ok {
 				evaluated++
@@ -346,7 +351,7 @@ func (m *Monitor) minProbeInterval() time.Duration {
 // transitions. It returns the worst state seen and whether the account
 // evaluated cleanly. Any store error fails the account (feeds backoff) instead
 // of announcing phantom transitions.
-func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thresholds Thresholds, now time.Time) (State, bool) {
+func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thresholds Thresholds, reminderInterval time.Duration, now time.Time) (State, bool) {
 	key := func(group, window string) string { return stateKey(prof.Provider, prof.Name, group, window) }
 
 	probe, ok := m.deps.ProbeRegistry.For(prof.Provider)
@@ -417,7 +422,7 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 		// attribution even when the state itself did not move — in place, with
 		// no new transition and no announcement.
 		if prev != state {
-			if err := m.persistTransition(prof.Provider, prof.Name, w.Group, w.Kind, state, reason, w.RemainingPercent, w.ResetDescription, snap.AccountScope, now); err != nil {
+			if err := m.persistTransition(ctx, prof.Provider, prof.Name, w.Group, w.Kind, state, reason, w.RemainingPercent, w.ResetTime, expiresOrZero(snap.ExpiresAt), w.ResetDescription, snap.AccountScope, reminderInterval, now); err != nil {
 				failed = true
 				continue
 			}
@@ -455,10 +460,14 @@ func (m *Monitor) loadState(k string) (store.CapacityStateRecord, bool, error) {
 	return rec, true, nil
 }
 
-// persistTransition writes the state and publishes alert-worthy bus events.
-// A write failure skips the announcement: the bus must never claim a
-// transition the store cannot prove on restart.
-func (m *Monitor) persistTransition(provider, profile, group, window string, state State, reason string, remaining *float64, resetDesc string, scope model.AccountScope, now time.Time) error {
+// persistTransition writes the state, then applies the T5 re-alert rule before
+// announcing: a new alert exists only on state change, new window, different
+// resource, recovery, or explicit repeat (reminder interval). A write or
+// lookup failure skips the announcement: the bus must never claim a
+// transition the store cannot prove on restart. The event row is persisted
+// BEFORE publishing so a crash-then-restart never duplicates it (restart-safe:
+// the next pass sees the same state and stays silent).
+func (m *Monitor) persistTransition(ctx context.Context, provider, profile, group, window string, state State, reason string, remaining *float64, resetTime *time.Time, snapshotExpiry time.Time, resetDesc string, scope model.AccountScope, reminderInterval time.Duration, now time.Time) error {
 	if err := m.deps.Store.UpsertCapacityState(store.CapacityStateRecord{
 		Key:      stateKey(provider, profile, group, window),
 		Provider: provider, Profile: profile,
@@ -469,8 +478,81 @@ func (m *Monitor) persistTransition(provider, profile, group, window string, sta
 	}); err != nil {
 		return err
 	}
-	m.publish(provider, profile, group, window, state, reason, remaining, resetDesc, scope)
+	resetCycle := ResetCycleKey(resetTime, snapshotExpiry)
+	fingerprint := DeriveFingerprint(provider, profile, group, window, string(state), resetCycle)
+	last, err := lastEventFor(m.deps.Store, fingerprint)
+	if err != nil {
+		return err
+	}
+	decision := ShouldDeliver(state, fingerprint, last, now, reminderInterval, false)
+	if !decision.Deliver {
+		return nil
+	}
+	// Human triage (T6 ack/snooze endpoints) is enforced here, not just
+	// surfaced: an acknowledged fingerprint stays silent on repeats and a
+	// snoozed one stays silent until its time passes. New states carry a new
+	// fingerprint, so ack/snooze can never suppress a genuinely new condition.
+	// A triage lookup failure fails closed to delivery (the bus path, not the
+	// human path, is the one that must never lose an alert on store error).
+	if triage, ok, terr := m.deps.Store.GetCapacityAlertState(fingerprint); terr == nil && ok {
+		if triage.Acked {
+			return nil
+		}
+		if triage.SnoozedUntil != nil && now.Before(*triage.SnoozedUntil) {
+			return nil
+		}
+	}
+	// Single dispatcher: when the legacy QuotaDropMonitor already announced
+	// this condition in the current cycle, this loop stays silent. The claim
+	// happens BEFORE the event row so a suppressed cycle leaves no row that
+	// would confuse the next pass. Nil gate allows (legacy tests, unwired).
+	dispatchKey := DispatchKey{
+		Provider: provider, Profile: profile,
+		Group: group, Window: window,
+		Class: ClassForState(state),
+	}
+	if !m.deps.Dispatcher.Claim(OwnerCapacityMonitor, dispatchKey, reminderInterval) {
+		return nil
+	}
+	eventID := fmt.Sprintf("%s@%d", fingerprint, now.UnixNano())
+	payload, _ := json.Marshal(map[string]any{
+		"state": string(state), "severity": string(state), "reason": reason,
+		"reset_cycle": resetCycle,
+	})
+	if err := m.deps.Store.PutCapacityEvent(store.CapacityEventRecord{
+		ID: eventID, Fingerprint: fingerprint,
+		EventType: string(eventTypeFor(state)),
+		Provider:  provider, Profile: profile,
+		QuotaGroup: group, WindowKind: window,
+		Severity: string(state), PayloadJSON: string(payload),
+		EmittedAt: now,
+	}); err != nil {
+		// The claim did not materialize: release it so the next pass retries
+		// instead of waiting out the TTL for an announcement that never
+		// happened. The bus still never claims what the store cannot prove.
+		m.deps.Dispatcher.Forget(dispatchKey)
+		return err
+	}
+	m.publish(ctx, provider, profile, group, window, state, reason, remaining, resetDesc, scope, fingerprint)
+	// Best-effort receipt: the canonical event is already durable; a receipt
+	// write failure must not un-publish it.
+	_ = m.deps.Store.PutDeliveryReceipt(store.DeliveryReceipt{
+		AlertID: eventID, Channel: "bus", Fingerprint: fingerprint,
+		Status: "delivered", DeliveredAt: now,
+	})
 	return nil
+}
+
+// eventTypeFor maps an alert-worthy state to its canonical bus type.
+func eventTypeFor(state State) events.EventType {
+	switch state {
+	case StateExhausted:
+		return events.EventQuotaExhausted
+	case StateWarning, StateCritical:
+		return events.EventQuotaLow
+	default:
+		return events.EventQuotaMonitorRecovered
+	}
 }
 
 // upsertState records an account-level fallback state idempotently: identical
@@ -501,7 +583,7 @@ func (m *Monitor) upsertState(provider, profile, group, window string, state Sta
 	})
 }
 
-func (m *Monitor) publish(provider, profile, group, window string, state State, reason string, remaining *float64, resetDesc string, scope model.AccountScope) {
+func (m *Monitor) publish(ctx context.Context, provider, profile, group, window string, state State, reason string, remaining *float64, resetDesc string, scope model.AccountScope, fingerprint string) {
 	var typ events.EventType
 	switch state {
 	case StateExhausted:
@@ -517,13 +599,13 @@ func (m *Monitor) publish(provider, profile, group, window string, state State, 
 		"provider": provider, "profile": profile,
 		"group": group, "window": window,
 		"state": string(state), "severity": string(state), "reason": reason,
-		// resetCycle stays empty: T5 owns reset-aware dedup and will refine
-		// the fingerprint inputs alongside event persistence. Scope is excluded
-		// on purpose: re-auth under a new identity keeps the same fingerprint
-		// so dedup continuity survives credential rotation (a simultaneous
-		// cross-account collision is impossible — profile names are unique
-		// per provider).
-		"fingerprint": DeriveFingerprint(provider, profile, group, window, string(state), ""),
+		// Scope is excluded on purpose: re-auth under a new identity keeps
+		// the same fingerprint so dedup continuity survives credential
+		// rotation (a simultaneous cross-account collision is impossible —
+		// profile names are unique per provider). The reset cycle IS part
+		// of the fingerprint (T5): a new quota window re-alerts even when
+		// the severity repeats.
+		"fingerprint": fingerprint,
 	}
 	if remaining != nil {
 		data["remaining_percent"] = *remaining
@@ -533,6 +615,19 @@ func (m *Monitor) publish(provider, profile, group, window string, state State, 
 	}
 	if key := scopeKey(scope); key != "" {
 		data["account_scope"] = key
+	}
+	// T4 recommendation bridge: advisory candidate + reason on degraded
+	// states only. Nil recommender (or unavailable/error) publishes without
+	// it — never a phantom candidate, never an automatic migration.
+	if m.deps.Recommender != nil && (state == StateWarning || state == StateCritical || state == StateExhausted) {
+		if rec, err := m.deps.Recommender.RecommendForLowResource(ctx,
+			ResourceKey{Provider: provider, Profile: profile, Group: group, Window: window}, reason); err == nil && rec.Available {
+			data["recommended_provider"] = rec.Provider
+			data["recommended_profile"] = rec.Profile
+			data["recommended_display_name"] = rec.DisplayName
+			data["recommendation_score"] = rec.Score
+			data["recommendation_reason"] = rec.Reason
+		}
 	}
 	m.deps.Bus.Publish(events.NewEvent("", provider, profile, typ, reason, data).WithAccountScope(scope))
 }

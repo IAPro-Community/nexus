@@ -17,6 +17,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/nexus/capacitymonitor"
 )
 
 const (
@@ -66,6 +67,19 @@ type QuotaDropMonitor struct {
 	stepDelta        float64
 	statePath        string
 	notifierDegraded bool
+	// dispatchGate is the optional single-dispatcher gate shared with the
+	// new capacity Monitor (see capacitymonitor.Coordinator). When nil the
+	// legacy path announces exactly as before; when set, a condition the
+	// new monitor already claimed in this cycle stays silent here.
+	dispatchGate *capacitymonitor.Coordinator
+}
+
+// SetDispatchGate wires the shared single dispatcher. Composition only: no
+// legacy threshold, milestone or failover behavior changes.
+func (m *QuotaDropMonitor) SetDispatchGate(gate *capacitymonitor.Coordinator) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.dispatchGate = gate
 }
 
 var (
@@ -298,7 +312,30 @@ func accountKey(acc ProviderAccount) string {
 }
 
 // dispatch delivers the notification through the OS notifier and the internal event bus.
+// Single dispatcher: when the new capacity Monitor already claimed this
+// condition in the current cycle, the legacy loop stays silent (no duplicate
+// native notification, no duplicate bus event). The gate check is the only
+// addition; milestone/step-down decisions above are untouched.
 func (m *QuotaDropMonitor) dispatch(action *QuotaNotificationAction) {
+	class := capacitymonitor.DispatchLow
+	if action.Kind == string(events.EventQuotaExhausted) {
+		class = capacitymonitor.DispatchExhausted
+	}
+	m.mu.Lock()
+	gate := m.dispatchGate
+	m.mu.Unlock()
+	// The legacy loop has no reminder-interval preference of its own; the
+	// claim TTL mirrors its milestone granularity (one step-down cycle).
+	// The gate never suppresses this loop's own milestone sequence: claims
+	// are owner-tagged, so only the new monitor's claims can silence a cycle
+	// here, never this loop's previous milestones.
+	if !gate.Claim(capacitymonitor.OwnerLegacyQuota, capacitymonitor.DispatchKey{
+		Provider: action.Provider, Profile: action.Profile,
+		Group: action.Group, Window: action.Window,
+		Class: class,
+	}, time.Hour) {
+		return
+	}
 	if m.notifier != nil {
 		tag := fmt.Sprintf("quota:%s:%s:%s", action.Provider, action.Profile, action.Kind)
 		if err := m.notifier.Notify(notify.Payload{

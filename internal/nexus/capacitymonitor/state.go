@@ -68,3 +68,21 @@ func DeriveFingerprint(provider, profile, group, window, severity, resetCycle st
 	sum := sha256.Sum256([]byte(raw))
 	return fmt.Sprintf("alert-%x", sum[:12])
 }
+
+// ResetCycleKey derives the real quota-window cycle for fingerprinting.
+//
+// Preference order: per-window reset time, then snapshot expiry, then unknown
+// (""). The display reset description is DELIBERATELY excluded: it commonly
+// changes on every refresh (e.g. a countdown from "2h 00m" to "1h 59m") and
+// would break same-condition dedup — the same reason QuotaDropMonitor keeps
+// ResetDesc out of its state identity. Without time evidence the cycle is
+// unknown and dedup falls back to provider/profile/group/window/severity.
+func ResetCycleKey(windowReset *time.Time, snapshotExpiry time.Time) string {
+	if windowReset != nil && !windowReset.IsZero() {
+		return "reset:" + windowReset.UTC().Format(time.RFC3339)
+	}
+	if !snapshotExpiry.IsZero() {
+		return "exp:" + snapshotExpiry.UTC().Format(time.RFC3339)
+	}
+	return ""
+}

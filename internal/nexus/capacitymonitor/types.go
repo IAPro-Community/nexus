@@ -138,6 +138,14 @@ type ProbeRegistry interface {
 // Dependencies supplies injected components to the monitor.
 // Activity/power detectors are intentionally absent in v1 (see slice doc);
 // the scheduler treats the host as neither active nor low-power until T8.
+// Recommender is optional: when nil the monitor publishes transitions without
+// a candidate (never a phantom recommendation). When set, WARNING/CRITICAL/
+// EXHAUSTED publications include the advisory candidate + reason; the monitor
+// never migrates workloads itself.
+// Dispatcher is the optional single-dispatcher gate shared with the legacy
+// QuotaDropMonitor. When nil it allows every announcement (previous
+// behavior); when set, the first loop to claim a condition per cycle wins
+// and the other stays silent, so the bus never carries duplicates.
 type Dependencies struct {
 	Profiles       func() ([]model.Profile, error)
 	ProbeRegistry  ProbeRegistry
@@ -145,6 +153,8 @@ type Dependencies struct {
 	Bus            *events.Bus
 	Clock          Clock
 	JitterSource   JitterSource
+	Recommender    Recommender
+	Dispatcher     *Coordinator
 	MaxConcurrency int
 	OwnerID        string
 	LeaseTTL       time.Duration
