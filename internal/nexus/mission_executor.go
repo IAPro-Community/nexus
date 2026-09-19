@@ -231,6 +231,17 @@ func buildMissionRoutingDecision(pkg *runner.PackageRun, agent store.Agent, req 
 	if len(evidence) > 0 {
 		agentSelection = evidence[0]
 	}
+	switchReason := DeriveRoutingSwitchReason(fallback, reason, pkg.FailureKind, pkg.ErrorMessage)
+	// Model-incapable fallback carries its own typed cause even when the
+	// resource itself did not fail: preferred model unavailable/incapable.
+	if switchReason == SwitchReasonPreferredUnavailable && modelPreference.Mode == AffinityPrefer && modelPreference.Value != "" && current.Model != modelPreference.Value {
+		switchReason = SwitchReasonModelIncapable
+	}
+	rejected := []string{}
+	if fallback && reason != "" {
+		rejected = append(rejected, fmt.Sprintf("requested %s:%s rejected: %s [%s]",
+			firstNonEmpty(desiredProvider, "(auto)"), firstNonEmpty(desiredProfile, "(auto)"), reason, switchReason))
+	}
 	return ExecutionRoutingDecision{
 		TaskID:               pkg.PackageID,
 		AgentID:              agent.ID,
@@ -250,7 +261,14 @@ func buildMissionRoutingDecision(pkg *runner.PackageRun, agent store.Agent, req 
 		MaestroGuidanceRef:   maestroGuidanceReference(req.Guidance),
 		Fallback:             fallback,
 		Reason:               reason,
+		Rejected:             rejected,
+		RejectedCandidates:   append([]string(nil), rejected...),
 		TaskClass:            req.TaskKind,
+		RequestedProvider:    desiredProvider,
+		RequestedProfile:     desiredProfile,
+		RequestedModel:       modelPreference.Value,
+		SwitchReason:         switchReason,
+		SwitchDetail:         reason,
 		CreatedAt:            time.Now().UTC(),
 	}
 }
