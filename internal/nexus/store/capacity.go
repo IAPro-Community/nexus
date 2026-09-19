@@ -477,3 +477,182 @@ func (s *Store) PruneCapacityHistory(before time.Time) error {
 	}
 	return nil
 }
+
+// T5 delivery persistence over the tables created by fused migration 0021.
+// Events are the dedup unit (one row per emitted alert); receipts are the
+// append-only per-channel proof (bus delivery, user ack/snooze). Raw provider
+// payloads are never persisted — only the redacted monitor fields.
+
+// CapacityEventRecord is one emitted capacity alert.
+type CapacityEventRecord struct {
+	ID          string    `json:"id"`
+	Fingerprint string    `json:"fingerprint"`
+	EventType   string    `json:"event_type"`
+	Provider    string    `json:"provider"`
+	Profile     string    `json:"profile"`
+	QuotaGroup  string    `json:"quota_group"`
+	WindowKind  string    `json:"window_kind"`
+	Severity    string    `json:"severity"`
+	PayloadJSON string    `json:"payload_json"`
+	EmittedAt   time.Time `json:"emitted_at"`
+}
+
+// DeliveryReceipt proves one delivery attempt of an alert on a channel
+// ("bus" for the internal event bus, "user" for ack/snooze actions).
+type DeliveryReceipt struct {
+	ID          int64     `json:"id"`
+	AlertID     string    `json:"alert_id"`
+	Channel     string    `json:"channel"`
+	Fingerprint string    `json:"fingerprint"`
+	Status      string    `json:"status"`
+	Error       string    `json:"error,omitempty"`
+	DeliveredAt time.Time `json:"delivered_at"`
+}
+
+// PutCapacityEvent persists an emitted alert idempotently: re-putting the same
+// ID overwrites instead of duplicating (restart-safe replays stay single).
+func (s *Store) PutCapacityEvent(rec CapacityEventRecord) error {
+	_, err := s.db.Exec(`
+		INSERT INTO capacity_events(
+			id, fingerprint, event_type, provider, profile, quota_group, window_kind, severity, payload_json, emitted_at
+		) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET
+			fingerprint = excluded.fingerprint,
+			event_type = excluded.event_type,
+			provider = excluded.provider,
+			profile = excluded.profile,
+			quota_group = excluded.quota_group,
+			window_kind = excluded.window_kind,
+			severity = excluded.severity,
+			payload_json = excluded.payload_json,
+			emitted_at = excluded.emitted_at
+	`, rec.ID, rec.Fingerprint, rec.EventType, rec.Provider, rec.Profile,
+		rec.QuotaGroup, rec.WindowKind, rec.Severity, rec.PayloadJSON, formatStoreTime(rec.EmittedAt))
+	return err
+}
+
+// FindCapacityEvent returns the most recent event with the fingerprint.
+// sql.ErrNoRows means the condition was never emitted (first sight).
+func (s *Store) FindCapacityEvent(fingerprint string) (CapacityEventRecord, error) {
+	row := s.db.QueryRow(`
+		SELECT id, fingerprint, event_type, provider, profile, quota_group, window_kind, severity, payload_json, emitted_at
+		FROM capacity_events WHERE fingerprint = ?
+		ORDER BY emitted_at DESC LIMIT 1
+	`, fingerprint)
+
+	var r CapacityEventRecord
+	var emittedStr string
+	if err := row.Scan(&r.ID, &r.Fingerprint, &r.EventType, &r.Provider, &r.Profile,
+		&r.QuotaGroup, &r.WindowKind, &r.Severity, &r.PayloadJSON, &emittedStr); err != nil {
+		return r, err
+	}
+	var err error
+	if r.EmittedAt, err = parseStoreTime(emittedStr); err != nil {
+		return r, fmt.Errorf("corrupt event emitted_at for %q: %w", r.ID, err)
+	}
+	return r, nil
+}
+
+// ListCapacityEvents returns recent events, newest first (history surface).
+func (s *Store) ListCapacityEvents(limit int) ([]CapacityEventRecord, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	rows, err := s.db.Query(`
+		SELECT id, fingerprint, event_type, provider, profile, quota_group, window_kind, severity, payload_json, emitted_at
+		FROM capacity_events
+		ORDER BY emitted_at DESC LIMIT ?
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []CapacityEventRecord
+	for rows.Next() {
+		var r CapacityEventRecord
+		var emittedStr string
+		if err := rows.Scan(&r.ID, &r.Fingerprint, &r.EventType, &r.Provider, &r.Profile,
+			&r.QuotaGroup, &r.WindowKind, &r.Severity, &r.PayloadJSON, &emittedStr); err != nil {
+			return nil, err
+		}
+		if t, err := parseStoreTime(emittedStr); err == nil {
+			r.EmittedAt = t
+		} else {
+			continue
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// PutDeliveryReceipt appends one per-channel delivery proof.
+func (s *Store) PutDeliveryReceipt(rec DeliveryReceipt) error {
+	_, err := s.db.Exec(`
+		INSERT INTO capacity_delivery_receipts(alert_id, channel, fingerprint, status, error, delivered_at)
+		VALUES(?, ?, ?, ?, ?, ?)
+	`, rec.AlertID, rec.Channel, rec.Fingerprint, rec.Status, rec.Error, formatStoreTime(rec.DeliveredAt))
+	return err
+}
+
+// AlertState is the human triage for one alert fingerprint: acknowledged
+// (seen/handled, suppresses repeats of the same fingerprint but never new
+// states — those carry a new fingerprint) and snoozed-until (suppresses all
+// delivery of the same fingerprint while in the future).
+type AlertState struct {
+	Fingerprint  string     `json:"fingerprint"`
+	Acked        bool       `json:"acked"`
+	SnoozedUntil *time.Time `json:"snoozed_until,omitempty"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+}
+
+// GetCapacityAlertState loads triage for a fingerprint. ok=false when the
+// human never triaged it (the common case: deliver normally).
+func (s *Store) GetCapacityAlertState(fingerprint string) (AlertState, bool, error) {
+	var st AlertState
+	var acked int
+	var snoozedStr *string
+	var updatedStr string
+	err := s.db.QueryRow(`
+		SELECT fingerprint, acked, snoozed_until, updated_at
+		FROM capacity_alert_states WHERE fingerprint = ?
+	`, fingerprint).Scan(&st.Fingerprint, &acked, &snoozedStr, &updatedStr)
+	if err != nil {
+		return AlertState{}, false, err
+	}
+	st.Acked = acked != 0
+	if snoozedStr != nil {
+		if t, perr := parseStoreTime(*snoozedStr); perr == nil {
+			st.SnoozedUntil = &t
+		}
+	}
+	if t, perr := parseStoreTime(updatedStr); perr == nil {
+		st.UpdatedAt = t
+	}
+	return st, true, nil
+}
+
+// PutCapacityAlertState upserts human triage for a fingerprint.
+func (s *Store) PutCapacityAlertState(st AlertState) error {
+	var snoozedStr *string
+	if st.SnoozedUntil != nil && !st.SnoozedUntil.IsZero() {
+		str := formatStoreTime(*st.SnoozedUntil)
+		snoozedStr = &str
+	}
+	acked := 0
+	if st.Acked {
+		acked = 1
+	}
+	_, err := s.db.Exec(`
+		INSERT INTO capacity_alert_states(fingerprint, acked, snoozed_until, updated_at)
+		VALUES(?, ?, ?, ?)
+		ON CONFLICT(fingerprint) DO UPDATE SET
+			acked = excluded.acked,
+			snoozed_until = excluded.snoozed_until,
+			updated_at = excluded.updated_at
+	`, st.Fingerprint, acked, snoozedStr, formatStoreTime(time.Now().UTC()))
+	return err
+}
