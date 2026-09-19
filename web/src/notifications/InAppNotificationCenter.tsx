@@ -9,6 +9,7 @@ import { Button, IconButton } from '../design-system';
 import { ContextDrawer } from '../design-system/primitives/ContextDrawer';
 import { buildAttentionRadar, type RadarRuntimeItem } from '../app/attentionRadarModel';
 import {
+  capacityAlertFromEvent,
   notificationFromQuotaEvent,
   notificationFromRuntime,
   type InAppNotification,
@@ -87,11 +88,32 @@ export const InAppNotificationCenter: React.FC<{
       .filter((notification): notification is InAppNotification => notification !== null);
 
     const quotaNotifs = (events || [])
-      .map((event) =>
-        notificationFromQuotaEvent(event, {
-          degradedTitle: t('attention.quotaMonitorDegraded'),
-          degradedMessage: (reason) => t('attention.quotaMonitorDegradedMessage', { reason }),
-        }),
+      .map(
+        (event) =>
+          capacityAlertFromEvent(event, {
+            lowTitle: (provider, remaining) =>
+              t('attention.capacityLow', { provider, remaining, defaultValue: '' }) ||
+              `Consumo de quota: ${provider} (${remaining})`,
+            exhaustedTitle: (provider) =>
+              t('attention.capacityExhausted', { provider, defaultValue: '' }) ||
+              `Quota esgotada: ${provider}`,
+            recoveredTitle: (provider) =>
+              t('attention.capacityRecovered', { provider, defaultValue: '' }) ||
+              `Quota recuperada: ${provider}`,
+            stateLabel: (state) => t(`attention.capacityState_${state}`, { defaultValue: state }),
+            resetLabel: (reset) =>
+              t('attention.capacityReset', { reset, defaultValue: '' }) || `reset ${reset}`,
+            freshnessLabel: (age) =>
+              t('attention.capacityFreshness', { age, defaultValue: '' }) ||
+              `Última leitura: ${age}`,
+            recommendationLabel: (name, reason) =>
+              t('attention.capacityRecommendation', { name, reason, defaultValue: '' }) ||
+              (reason ? `Recomendado: ${name} — ${reason}` : `Recomendado: ${name}`),
+          }) ||
+          notificationFromQuotaEvent(event, {
+            degradedTitle: t('attention.quotaMonitorDegraded'),
+            degradedMessage: (reason) => t('attention.quotaMonitorDegradedMessage', { reason }),
+          }),
       )
       .filter((notification): notification is InAppNotification => notification !== null);
 

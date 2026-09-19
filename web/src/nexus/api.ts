@@ -623,6 +623,29 @@ export const nexus = {
       body: JSON.stringify({ requirements, policy }),
     }),
 
+  // Capacity Monitor (revival T6)
+  getCapacityStatus: () => request<import('../types').CapacityStatus>('/api/v1/capacity/status'),
+  getCapacityHistory: (limit?: number) =>
+    request<import('../types').CapacityHistoryEvent[]>(
+      `/api/v1/capacity/history?limit=${encodeURIComponent(String(limit ?? 50))}`,
+    ),
+  getCapacityPreferences: () =>
+    request<import('../types').CapacityPreferences>('/api/v1/capacity/preferences'),
+  putCapacityPreferences: (prefs: import('../types').CapacityPreferences) =>
+    request<import('../types').CapacityPreferences>('/api/v1/capacity/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    }),
+  ackCapacityAlert: (fingerprint: string) =>
+    request<import('../types').CapacityAlertState>('/api/v1/capacity/ack', {
+      method: 'POST',
+      body: JSON.stringify({ fingerprint }),
+    }),
+  snoozeCapacityAlert: (fingerprint: string, until?: string) =>
+    request<import('../types').CapacityAlertState>('/api/v1/capacity/snooze', {
+      method: 'POST',
+      body: JSON.stringify({ fingerprint, until: until ?? '' }),
+    }),
   // Tunnel / Remote Access
   getTunnelStatus: () => request<import('../types').TunnelStatus>('/api/v1/tunnel/status'),
   startTunnel: () =>

@@ -6,6 +6,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Gauge,
   Globe,
   MonitorCog,
   Palette,
@@ -42,16 +43,24 @@ import { pushNotifications } from '../../notifications/PushNotificationManager';
 import { SystemDiagnosticsCard } from './SystemDiagnosticsCard';
 import { RemoteAccessTab } from './RemoteAccessTab';
 import { IntelligenceMemoriesPanel } from './IntelligenceMemoriesPanel';
+import { CapacityMonitorSettings } from './CapacityMonitorSettings';
 import type { SystemDoctorReport } from '../../nexus/api';
 import styles from './SettingsSurface.module.scss';
 
 type SettingsTab =
-  'appearance' | 'accessibility' | 'updates' | 'intelligence' | 'notifications' | 'remote';
+  | 'appearance'
+  | 'accessibility'
+  | 'updates'
+  | 'intelligence'
+  | 'capacity'
+  | 'notifications'
+  | 'remote';
 const SETTINGS_TABS: SettingsTab[] = [
   'appearance',
   'accessibility',
   'updates',
   'intelligence',
+  'capacity',
   'notifications',
   'remote',
 ];
@@ -297,6 +306,20 @@ export const SettingsSurface: React.FC<{
         >
           <Sparkles size={15} />
           <span>Nexus Intelligence</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="settings-tab-capacity"
+          aria-controls="settings-panel"
+          tabIndex={activeTab === 'capacity' ? 0 : -1}
+          aria-selected={activeTab === 'capacity'}
+          onKeyDown={onSettingsTabKeyDown}
+          className={`nx-settings-tab ${activeTab === 'capacity' ? 'nx-settings-tab--active' : ''}`}
+          onClick={() => setActiveTab('capacity')}
+        >
+          <Gauge size={15} />
+          <span>{t('settings.capacity', 'Capacity Monitor')}</span>
         </button>
         <button
           type="button"
@@ -711,6 +734,7 @@ export const SettingsSurface: React.FC<{
             />
           </Card>
         )}
+        {activeTab === 'capacity' && <CapacityMonitorSettings />}
         {activeTab === 'remote' && <RemoteAccessTab />}
       </div>
     </div>

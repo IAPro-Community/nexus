@@ -3,7 +3,12 @@ import { Cpu, Gauge, PanelRightClose, PanelRightOpen, Plus, RefreshCw, Search } 
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, SearchInput, Spinner } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import type { ProviderAccount, ProviderInfo, RecommendationResult } from '../../types';
+import type {
+  CapacityResourceStatus,
+  ProviderAccount,
+  ProviderInfo,
+  RecommendationResult,
+} from '../../types';
 import { asArray } from '../../lib/safeArray';
 import { AccountLoginModal } from './AccountLoginModal';
 import { RegisterProviderModal } from './RegisterProviderModal';
@@ -21,6 +26,25 @@ import {
 import { FRESHNESS_TICK_MS, USAGE_POLL_MS } from './usageRefresh';
 import styles from './UsageSurface.module.scss';
 
+// Worst-first rank so one card shows the most severe monitor state when a
+// provider/profile has several windows. UNKNOWN never outranks data.
+const monitorSeverityRank = (state: string): number => {
+  switch (state) {
+    case 'EXHAUSTED':
+      return 5;
+    case 'CRITICAL':
+      return 4;
+    case 'WARNING':
+      return 3;
+    case 'RECOVERED':
+      return 2;
+    case 'HEALTHY':
+      return 1;
+    default:
+      return 0;
+  }
+};
+
 export const UsageSurface: React.FC = () => {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState<ProviderAccount[]>([]);
@@ -34,6 +58,9 @@ export const UsageSurface: React.FC = () => {
   const [recommendLoading, setRecommendLoading] = useState(false);
   const [recommendError, setRecommendError] = useState('');
   const [installedProviders, setInstalledProviders] = useState<ProviderInfo[]>([]);
+  const [monitorByAccount, setMonitorByAccount] = useState<Record<string, CapacityResourceStatus>>(
+    {},
+  );
 
   // Search & Filtering State
   const [search, setSearch] = useState('');
@@ -97,6 +124,21 @@ export const UsageSurface: React.FC = () => {
     try {
       applyPayload(await nexus.listResources());
       void loadInstalledProviders();
+      // Capacity status is advisory: a failure here must never break usage.
+      try {
+        const status = await nexus.getCapacityStatus();
+        const byAccount: Record<string, CapacityResourceStatus> = {};
+        for (const res of asArray<CapacityResourceStatus>(status.resources)) {
+          const key = `${res.provider}/${res.profile}`;
+          const prev = byAccount[key];
+          if (!prev || monitorSeverityRank(res.state) > monitorSeverityRank(prev.state)) {
+            byAccount[key] = res;
+          }
+        }
+        setMonitorByAccount(byAccount);
+      } catch {
+        setMonitorByAccount({});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setAccounts([]);
@@ -370,7 +412,11 @@ export const UsageSurface: React.FC = () => {
                             (recommend?.recommended?.account?.provider === account.provider &&
                               recommend?.recommended?.account?.profile === account.profile)
                           }
+                          monitorState={
+                            monitorByAccount[`${account.provider}/${account.profile}`] || null
+                          }
                           onRefreshNeeded={() => refresh(account.provider, account.profile)}
+                          onCapacityChange={() => void load()}
                           onRequestLogin={(acc) => setLoginAccount(acc)}
                           onRequestExplain={() => setShowExplain(true)}
                           onAddProfile={(prov) => {

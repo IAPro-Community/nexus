@@ -85,6 +85,33 @@ const readSelectedResource = (pkg: PackageRun | undefined) => {
   }
 };
 
+// readExecutionSummary projects the unified execution summary from existing
+// models only: skills pinned on the package, reasoning/model from the routing
+// decision, isolation from the package workspace, and the routing mode with
+// its typed reason. Nothing is invented when the data is absent.
+const readExecutionSummary = (pkg: PackageRun | undefined) => {
+  if (!pkg) return null;
+  let routing: {
+    selected_reasoning?: string;
+    selected_model?: string;
+    fallback?: boolean;
+    reason?: string;
+  } = {};
+  try {
+    routing = JSON.parse(pkg.routing_decision || '{}') as typeof routing;
+  } catch {
+    routing = {};
+  }
+  const skills = [...asArray<string>(pkg.skill_ids), ...asArray<string>(pkg.maestro_skills)];
+  return {
+    skillsText: skills.join(', '),
+    reasoning: routing.selected_reasoning || routing.selected_model || '',
+    isolation: pkg.workspace || '',
+    fallback: routing.fallback === true,
+    reason: routing.reason || '',
+  };
+};
+
 export const FlowRunSurface: React.FC<{
   runId: string;
   project: Project;
@@ -245,6 +272,46 @@ export const FlowRunSurface: React.FC<{
             <strong>{t('flowRuns.actualResource')}</strong>
             <span>{readSelectedResource(currentPackage) || t('flowRuns.automaticResource')}</span>
           </div>
+          {(() => {
+            const summary = readExecutionSummary(currentPackage);
+            if (!summary) return null;
+            return (
+              <>
+                <div>
+                  <strong>{t('flowRuns.executionSkills')}</strong>
+                  <span>
+                    {summary.skillsText ? summary.skillsText : t('flowRuns.executionNoSkills')}
+                  </span>
+                </div>
+                {summary.reasoning ? (
+                  <div>
+                    <strong>{t('flowRuns.executionReasoning')}</strong>
+                    <span>{summary.reasoning}</span>
+                  </div>
+                ) : null}
+                {summary.isolation ? (
+                  <div>
+                    <strong>{t('flowRuns.executionIsolation')}</strong>
+                    <span>{summary.isolation}</span>
+                  </div>
+                ) : null}
+                <div>
+                  <strong>{t('flowRuns.executionRoutingMode')}</strong>
+                  <span>
+                    {summary.fallback
+                      ? t('flowRuns.executionFallback')
+                      : t('flowRuns.executionDirect')}
+                  </span>
+                </div>
+                {summary.reason ? (
+                  <div>
+                    <strong>{t('flowRuns.executionRoutingWhy')}</strong>
+                    <span>{summary.reason}</span>
+                  </div>
+                ) : null}
+              </>
+            );
+          })()}
         </Card>
       )}
 
