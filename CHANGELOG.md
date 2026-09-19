@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0-beta.2 — 2026-09-19 — Runtime attach reliability
+
+- Preserve the authoritative supervised-host PID, generation, and binary
+  identity during launcher registration so Codex and AGY sessions attach
+  reliably after startup.
+- Restart the matching Web process after local installation and recover stale
+  hosts left by older binaries.
+
 ## 1.0.0-beta.1 — 2026-09-15 — Community Preview
 
 Primeira versão pública candidata do IAPro Nexus: workstation local para

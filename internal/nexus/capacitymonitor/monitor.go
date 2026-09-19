@@ -397,7 +397,7 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 			failed = true
 			continue
 		}
-		var state State = StateUnknown
+		state := StateUnknown
 		reason := "untrusted snapshot status"
 		rec, found, err := m.loadState(key(w.Group, w.Kind))
 		if err != nil {

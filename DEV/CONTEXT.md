@@ -3,7 +3,13 @@
 ## Estado
 
 - Produto: IAPro Nexus Workspace OS.
-- Branch ativa: `feat/nexus-maximum-delivery`.
+- Versão operacional instalada: `1.0.0-beta.2`.
+- O launcher persiste a identidade autoritativa do `SessionHost` após o
+  handshake (`PID`, `HostPID`, `HostGeneration` e fingerprints); isso evita que
+  o registro final apague a geração usada pelo attach.
+- A instalação local reinicia apenas o `nexus web` associado ao binário
+  instalado, evitando hosts Web em memória com executável `(deleted)`.
+- Branch ativa neste worktree: `feat/capacity-monitor-revival`.
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.
 - Motor de Flags Canônicas e Normalização (`internal/control/flags`): mapeamento transparente de `--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan` e suporte a `Merged Help` (`nexus <provider> --help`).

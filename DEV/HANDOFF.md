@@ -1,5 +1,24 @@
 # Handoff
 
+## Correção de attach por geração/PID — 2026-09-19
+
+- A causa foi corrigida no launcher: o `StatusData` do `SessionHost` agora é a
+  fonte de verdade para `PID`, `HostPID`, `HostGeneration` e fingerprints no
+  registro final.
+- O binário instalado é `50b561c` em
+  `/home/desenvolvedor/.local/bin/nexus`; o Web está ativo em `127.0.0.1:13000`
+  com HTTP 200.
+- A versão instalada agora é `1.0.0-beta.2`, distinta da build anterior
+  `1.0.0-beta.1`; `nexus version --json` e o contrato de versão confirmam isso.
+- Smokes reais de Codex e AGY passaram sem a mensagem “changed generation/PID”.
+- O registro anterior foi preservado em
+  `/home/desenvolvedor/.local/share/ai-manager/runtimes.json.before-runtime-recovery-20260919-1208.bak`.
+- Não há hosts Nexus órfãos ativos; sessões novas devem ser criadas com
+  `nexus codex --yolo` ou `nexus agy` normalmente.
+- Próxima ação: revisar o diff e, somente com autorização do Maestro, criar o
+  commit Conventional Commit e fazer push. Os gates locais estão verdes;
+  `make lint-go` não reporta mais avisos.
+
 ## Proteção permanente contra falhas de teclado — 2026-09-18
 
 Este PR adiciona controlador único de TTY, validação de geração/PID/fingerprint

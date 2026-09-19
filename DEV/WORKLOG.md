@@ -1,5 +1,32 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-19 — Correção durável de geração/PID no attach do Nexus
+
+- Corrigido `internal/control/launcher`: após o handshake IPC, a sessão agora
+  copia `PID`, `HostPID`, `HostGeneration` e identidades binárias reportadas
+  pelo `SessionHost` antes do `Register` final. Isso impede que o snapshot do
+  launcher sobrescreva a geração real com zero.
+- Adicionada regressão ao teste de lançamento standalone, cobrindo a sessão
+  retornada e a sessão persistida no registro.
+- `Makefile`/`scripts/restart-web.sh` agora reiniciam apenas o Web que usa o
+  binário instalado, evitando processos `(deleted)` após troca atômica.
+- Binário `50b561c` recompilado e instalado em
+  `/home/desenvolvedor/.local/bin/nexus`; Web reiniciado na porta 13000.
+- Recuperação operacional: backup do registro em
+  `/home/desenvolvedor/.local/share/ai-manager/runtimes.json.before-runtime-recovery-20260919-1208.bak`
+  e encerramento dos oito hosts antigos incompatíveis.
+- Encerrado também o `__control-host` residual da captura de documentação, que
+  usava dados temporários e o binário antigo `(deleted)` do checkout legado.
+- Smoke real PASS para `nexus codex --yolo` e `nexus agy`: ambos persistiram
+  `host_generation` não-zero e iniciaram sem a rejeição de geração/PID.
+- Verificação PASS: `go test ./...`, `go test -race` nos pacotes de controle
+  afetados, `make format-check`, `make lint-go`, `make vet`, `make build`,
+  instalação e HTTP 200 no Web. Os dois avisos estáticos preexistentes foram
+  corrigidos sem alteração de comportamento.
+- Versão incrementada de `1.0.0-beta.1` para `1.0.0-beta.2` em `VERSION`, Web,
+  Wails e documentação de instalação; contrato de versão PASS e nova build
+  instalada às 12:26 UTC.
+
 ## 2026-09-18 — Linux-only beta CI closure
 
 - Reworked CI and Signed Release for seven self-hosted Linux gates because

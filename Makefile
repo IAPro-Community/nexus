@@ -154,7 +154,8 @@ install-local: build
 	chmod +x $(LOCAL_BIN)/$(BINARY).tmp; \
 	mv -f $(LOCAL_BIN)/$(BINARY).tmp $(LOCAL_BIN)/$(BINARY); \
 	rm -f $(LOCAL_BIN)/ai; \
-	echo "Installed $(BINARY) to $(LOCAL_BIN)/$(BINARY)"
+	echo "Installed $(BINARY) to $(LOCAL_BIN)/$(BINARY)"; \
+	./scripts/restart-web.sh "$(LOCAL_BIN)/$(BINARY)"
 
 build-desktop: web
 	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
@@ -188,6 +189,7 @@ install: build
 		mv -f $(LOCAL_BIN)/$(BINARY).tmp $(LOCAL_BIN)/$(BINARY); \
 		rm -f $(LOCAL_BIN)/ai; \
 		echo "Installed $(BINARY) to $(LOCAL_BIN)/$(BINARY)"; \
+		./scripts/restart-web.sh "$(LOCAL_BIN)/$(BINARY)"; \
 	fi
 
 clean:

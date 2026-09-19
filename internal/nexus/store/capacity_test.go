@@ -309,7 +309,7 @@ func TestStoreTimeFixedWidthOrders(t *testing.T) {
 	a := formatStoreTime(sec)
 	b := formatStoreTime(sec.Add(250 * time.Millisecond))
 	c := formatStoreTime(sec.Add(500 * time.Millisecond))
-	if !(a < b && b < c) {
+	if a >= b || b >= c {
 		t.Fatalf("ordering broken: %q < %q < %q", a, b, c)
 	}
 	for _, s := range []string{a, b, c} {

@@ -260,7 +260,25 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		return nil, fmt.Errorf("status handshake probe failed for runtime %s: %w", opts.RuntimeID, err)
 	}
 
+	// SessionHost assigns the authoritative process identity during Start and
+	// exposes it through the status handshake. Copy it back before the final
+	// registry write; otherwise this launcher-owned snapshot can replace the
+	// host's non-zero generation with the zero value from launch time.
 	sess.PID = status.PID
+	sess.HostPID = status.HostPID
+	sess.HostGeneration = status.HostGeneration
+	if status.HostBinaryPath != "" {
+		sess.HostBinaryPath = status.HostBinaryPath
+	}
+	if status.HostBinaryFingerprint != "" {
+		sess.HostBinaryFingerprint = status.HostBinaryFingerprint
+	}
+	if status.ProviderBinaryPath != "" {
+		sess.ProviderBinaryPath = status.ProviderBinaryPath
+	}
+	if status.ProviderBinaryFingerprint != "" {
+		sess.ProviderBinaryFingerprint = status.ProviderBinaryFingerprint
+	}
 	sess.State = registry.StateRunning
 	_ = l.reg.Register(sess)
 
