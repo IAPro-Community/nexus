@@ -65,9 +65,18 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 	}
 
 	if len(eligible) == 0 {
-		// Check if non-disabled profiles exist where auth can be attempted on launch
+		// Check if non-disabled profiles exist where auth can be attempted on launch.
+		// Excluded profiles from the current fallback cycle must never be
+		// re-offered here, otherwise A↔B ping-pong becomes possible.
+		excluded := make(map[string]bool, len(excludeProfiles))
+		for _, name := range excludeProfiles {
+			excluded[name] = true
+		}
 		var fallbackCandidates []CandidateEvaluation
 		for _, ev := range evals {
+			if excluded[ev.Profile.Name] {
+				continue
+			}
 			if !ev.Profile.Disabled && ev.RejectReason == "authentication required" {
 				fallbackCandidates = append(fallbackCandidates, ev)
 			}

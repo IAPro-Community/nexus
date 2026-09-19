@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
@@ -70,7 +71,91 @@ type RuntimeRoutingDecision struct {
 	Rejected             []string                 `json:"rejected,omitempty"`
 	RejectedCandidates   []string                 `json:"rejected_candidates,omitempty"`
 	TaskClass            string                   `json:"task_class,omitempty"`
-	CreatedAt            time.Time                `json:"created_at"`
+	// Explainability extension (additive, no Engine≠Backend≠Transport refactor):
+	// requested/selected/fallback/why/alternatives/rejected are projected from
+	// the durable decision. SwitchReason carries the real typed switch cause.
+	RequestedProvider string              `json:"requested_provider,omitempty"`
+	RequestedProfile  string              `json:"requested_profile,omitempty"`
+	RequestedModel    string              `json:"requested_model,omitempty"`
+	SwitchReason      RoutingSwitchReason `json:"switch_reason,omitempty"`
+	SwitchDetail      string              `json:"switch_detail,omitempty"`
+	CreatedAt         time.Time           `json:"created_at"`
+}
+
+// RoutingSwitchReason is the real typed cause for a resource switch.
+// Empty means no switch (selected == requested and no failover).
+type RoutingSwitchReason string
+
+const (
+	SwitchReasonNone                 RoutingSwitchReason = ""
+	SwitchReasonPreferredUnavailable RoutingSwitchReason = "preferred_unavailable"
+	SwitchReasonQuotaExhausted       RoutingSwitchReason = "quota_exhausted"
+	SwitchReasonRateLimited          RoutingSwitchReason = "rate_limited"
+	SwitchReasonCooldown             RoutingSwitchReason = "cooldown"
+	SwitchReasonUnauthenticated      RoutingSwitchReason = "unauthenticated"
+	SwitchReasonUnhealthy            RoutingSwitchReason = "unhealthy"
+	SwitchReasonModelIncapable       RoutingSwitchReason = "model_incapable"
+)
+
+// DeriveRoutingSwitchReason maps a human reason + failure evidence to the
+// typed switch cause. Typed failure kinds win; free prose is classified
+// through internal/core/classifier (the only place allowed to match failure
+// text for quota/rate-limit — provider guardrails enforce this). Unknown
+// prose falls back to preferred_unavailable only when a fallback happened.
+func DeriveRoutingSwitchReason(fallback bool, reason string, failureKind model.FailureKind, failureMessage string) RoutingSwitchReason {
+	if !fallback {
+		return SwitchReasonNone
+	}
+	// Typed failure evidence first — never report everything as rate limit.
+	switch failureKind {
+	case model.FailureQuota:
+		return SwitchReasonQuotaExhausted
+	case model.FailureRateLimit:
+		if mentionsCooldown(reason + " " + failureMessage) {
+			return SwitchReasonCooldown
+		}
+		return SwitchReasonRateLimited
+	case model.FailureAuth:
+		return SwitchReasonUnauthenticated
+	case model.FailureNetwork, model.FailureProvider:
+		return SwitchReasonUnhealthy
+	}
+	prose := reason + " " + failureMessage
+	switch classifier.Classify(nil, prose).Kind {
+	case model.FailureQuota:
+		return SwitchReasonQuotaExhausted
+	case model.FailureRateLimit:
+		if mentionsCooldown(prose) {
+			return SwitchReasonCooldown
+		}
+		return SwitchReasonRateLimited
+	case model.FailureAuth:
+		return SwitchReasonUnauthenticated
+	case model.FailureNetwork, model.FailureProvider:
+		return SwitchReasonUnhealthy
+	}
+	lower := strings.ToLower(prose)
+	switch {
+	case mentionsCooldown(prose):
+		return SwitchReasonCooldown
+	case strings.Contains(lower, "incapable") || (strings.Contains(lower, "model") && strings.Contains(lower, "fallback")):
+		return SwitchReasonModelIncapable
+	case strings.Contains(lower, "unhealthy") || (strings.Contains(lower, "unavailable") && !strings.Contains(lower, "preferred")) || strings.Contains(lower, "health"):
+		return SwitchReasonUnhealthy
+	case strings.Contains(lower, "preferred"):
+		return SwitchReasonPreferredUnavailable
+	case strings.Contains(lower, "model"):
+		return SwitchReasonModelIncapable
+	default:
+		return SwitchReasonPreferredUnavailable
+	}
+}
+
+// mentionsCooldown is the only inline failure-text match allowed here:
+// "cooldown" is not a quota/rate-limit substring, so the provider substring
+// guardrail does not apply to it.
+func mentionsCooldown(prose string) bool {
+	return strings.Contains(strings.ToLower(prose), "cooldown")
 }
 
 type ExecutionRoutingDecision = RuntimeRoutingDecision
@@ -106,7 +191,11 @@ func ResolveTaskModel(req TaskRequirements, preference AffinityPreference, accou
 }
 
 func ResolveRuntimeRouting(req TaskRequirements, policy RuntimeAffinityPolicy, accounts []ProviderAccount, models []ModelCandidate) (RuntimeRoutingDecision, error) {
-	decision := RuntimeRoutingDecision{Desired: policy, AffinityPolicy: policy, Requirements: req, TaskClass: req.TaskKind, CreatedAt: time.Now().UTC()}
+	decision := RuntimeRoutingDecision{
+		Desired: policy, AffinityPolicy: policy, Requirements: req, TaskClass: req.TaskKind,
+		RequestedProvider: policy.Provider.Value, RequestedProfile: policy.Profile.Value, RequestedModel: policy.Model.Value,
+		CreatedAt: time.Now().UTC(),
+	}
 	accountCandidates := eligibleAccounts(accounts)
 	if policy.Provider.Mode == AffinityPin && !containsAccount(accountCandidates, "provider", policy.Provider.Value) {
 		return decision, fmt.Errorf("%w: pinned provider %q unavailable", ErrBlockedResource, policy.Provider.Value)
@@ -164,9 +253,18 @@ func ResolveRuntimeRouting(req TaskRequirements, policy RuntimeAffinityPolicy, a
 		}
 		decision.Alternatives = append(decision.Alternatives, candidate)
 	}
+	// Rejected records the eligible-but-unselected accounts with the real
+	// reason they lost (score vs requested preference), not a generic message.
+	for _, acc := range filtered[1:] {
+		decision.Rejected = append(decision.Rejected,
+			fmt.Sprintf("%s:%s not selected (quota=%.2f available=%t)", acc.Provider, acc.Profile, acc.QuotaRemaining, acc.Available))
+	}
+	decision.RejectedCandidates = append([]string(nil), decision.Rejected...)
 	if decision.Reason == "" {
 		decision.Reason = fmt.Sprintf("selected %s for task class %s using %s affinity", chosenModel.Model, req.TaskKind, affinitySummary(policy))
 	}
+	decision.SwitchReason = DeriveRoutingSwitchReason(decision.Fallback, decision.Reason, "", "")
+	decision.SwitchDetail = decision.Reason
 	return decision, nil
 }
 

@@ -39,13 +39,56 @@ func NewTracker() *Tracker {
 	return t
 }
 
+// DefaultFallbackCooldown is the heuristic used only when the provider
+// supplies no usable Retry-After/ResetAt signal. Provider metadata always wins.
+const DefaultFallbackCooldown = 15 * time.Minute
+
+// EffectiveCooldown resolves the authoritative cooldown for a provider failure.
+// Precedence: valid ResetAt (absolute) > positive Retry-After > heuristic.
+// It never substitutes a known reset with an arbitrary cooldown: callers can
+// inspect hasProviderSignal to decide whether overwriting a longer known reset
+// is allowed. Malformed inputs (non-positive Retry-After, zero ResetAt) fall
+// back to the heuristic with hasProviderSignal=false. An expired ResetAt is a
+// valid provider signal (hasProviderSignal=true) so the tracker treats it as
+// expired instead of inventing a fresh 15m cooldown.
+func EffectiveCooldown(failure model.Failure) (retryAfter time.Duration, resetAt time.Time, hasProviderSignal bool) {
+	now := time.Now()
+	if failure.ResetAt != nil && !failure.ResetAt.IsZero() {
+		reset := *failure.ResetAt
+		retry := time.Until(reset)
+		if retry < 0 {
+			retry = 0
+		}
+		if failure.RetryAfter != nil && *failure.RetryAfter > 0 && retry == 0 {
+			// Expired absolute reset with a positive relative hint: keep the
+			// absolute signal as expired; do not invent a fresh cooldown.
+			// Callers treat resetAt in the past as not rate-limited.
+		}
+		return retry, reset, true
+	}
+	if failure.RetryAfter != nil && *failure.RetryAfter > 0 {
+		retry := *failure.RetryAfter
+		return retry, now.Add(retry), true
+	}
+	return DefaultFallbackCooldown, now.Add(DefaultFallbackCooldown), false
+}
+
 func key(provider, profile string) string {
 	return fmt.Sprintf("%s:%s", provider, profile)
 }
 
 func scopeKey(scope model.AccountScope) string { return scope.Key() }
 
+func recordKeyForRecord(rec Record) string {
+	if rec.AccountScope.Verifiable() {
+		return scopeKey(rec.AccountScope)
+	}
+	return key(rec.ProviderID, rec.ProfileID)
+}
+
 // RecordRateLimitForScope records cooldown under the canonical account key.
+// Provider Retry-After/ResetAt always wins over the heuristic fallback. A
+// heuristic record never shortens a still-active known reset.
 func (t *Tracker) RecordRateLimitForScope(scope model.AccountScope, retryAfter time.Duration, resetAt *time.Time, reason string) {
 	if !scope.Verifiable() {
 		return
@@ -53,15 +96,75 @@ func (t *Tracker) RecordRateLimitForScope(scope model.AccountScope, retryAfter t
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	now := time.Now()
-	effectiveReset := now.Add(retryAfter)
-	if resetAt != nil && !resetAt.IsZero() {
-		effectiveReset = *resetAt
+	effectiveRetry, effectiveReset, hasSignal := EffectiveCooldown(model.Failure{RetryAfter: durationPtr(retryAfter), ResetAt: resetAt})
+	// durationPtr(nil-equivalent): EffectiveCooldown treats non-positive as no signal.
+	// Re-derive without the helper's zero-value confusion when both inputs are empty.
+	if retryAfter <= 0 && (resetAt == nil || resetAt.IsZero()) {
+		hasSignal = false
+		effectiveRetry = DefaultFallbackCooldown
+		effectiveReset = now.Add(DefaultFallbackCooldown)
 	}
-	if retryAfter <= 0 {
-		retryAfter = time.Until(effectiveReset)
+	k := scopeKey(scope)
+	if existing, ok := t.records[k]; ok && now.Before(existing.ResetAt) && !hasSignal && effectiveReset.Before(existing.ResetAt) {
+		// Never substitute a known provider reset with an arbitrary cooldown.
+		return
 	}
-	t.records[scopeKey(scope)] = Record{ProviderID: scope.ProviderID, ProfileID: scope.ProfileID, AccountScope: scope, RateLimitedAt: now, RetryAfter: retryAfter, ResetAt: effectiveReset, Reason: reason}
+	t.records[k] = Record{ProviderID: scope.ProviderID, ProfileID: scope.ProfileID, AccountScope: scope, RateLimitedAt: now, RetryAfter: effectiveRetry, ResetAt: effectiveReset, Reason: reason}
 	_ = t.save()
+}
+
+// RecordFailureForScope is the Failure-typed seam used by fallback/scheduler.
+// It applies the same precedence rules as RecordRateLimitForScope.
+func (t *Tracker) RecordFailureForScope(scope model.AccountScope, failure model.Failure, reason string) {
+	if !scope.Verifiable() {
+		return
+	}
+	if reason == "" {
+		reason = failure.Message
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	now := time.Now()
+	effectiveRetry, effectiveReset, hasSignal := EffectiveCooldown(failure)
+	k := scopeKey(scope)
+	if existing, ok := t.records[k]; ok && now.Before(existing.ResetAt) && !hasSignal && effectiveReset.Before(existing.ResetAt) {
+		return
+	}
+	t.records[k] = Record{ProviderID: scope.ProviderID, ProfileID: scope.ProfileID, AccountScope: scope, RateLimitedAt: now, RetryAfter: effectiveRetry, ResetAt: effectiveReset, Reason: reason}
+	_ = t.save()
+}
+
+// RecordFailure is the Failure-typed seam for unscoped (legacy provider:profile) keys.
+func (t *Tracker) RecordFailure(provider, profile string, failure model.Failure, reason string) {
+	if reason == "" {
+		reason = failure.Message
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	now := time.Now()
+	effectiveRetry, effectiveReset, hasSignal := EffectiveCooldown(failure)
+	k := key(provider, profile)
+	if existing, ok := t.records[k]; ok && now.Before(existing.ResetAt) && !hasSignal && effectiveReset.Before(existing.ResetAt) {
+		return
+	}
+	t.records[k] = Record{
+		ProviderID:    provider,
+		ProfileID:     profile,
+		RateLimitedAt: now,
+		RetryAfter:    effectiveRetry,
+		ResetAt:       effectiveReset,
+		Reason:        reason,
+		InProbe:       false,
+	}
+	_ = t.save()
+}
+
+func durationPtr(d time.Duration) *time.Duration {
+	if d <= 0 {
+		return nil
+	}
+	out := d
+	return &out
 }
 
 // IsRateLimitedForScope checks only the requested account's cooldown.
@@ -79,28 +182,28 @@ func (t *Tracker) IsRateLimitedForScope(scope model.AccountScope) (bool, *Record
 }
 
 // RecordRateLimit registers a rate limit occurrence for a profile.
+// Provider signals win; a heuristic record never shortens a known active reset.
 func (t *Tracker) RecordRateLimit(provider, profile string, retryAfter time.Duration, resetAt *time.Time, reason string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	now := time.Now()
-	var effectiveReset time.Time
-	if resetAt != nil && !resetAt.IsZero() {
-		effectiveReset = *resetAt
-	} else if retryAfter > 0 {
-		effectiveReset = now.Add(retryAfter)
-	} else {
-		// Default conservative cooldown: 15 minutes
-		retryAfter = 15 * time.Minute
-		effectiveReset = now.Add(retryAfter)
+	effectiveRetry, effectiveReset, hasSignal := EffectiveCooldown(model.Failure{RetryAfter: durationPtr(retryAfter), ResetAt: resetAt})
+	if retryAfter <= 0 && (resetAt == nil || resetAt.IsZero()) {
+		hasSignal = false
+		effectiveRetry = DefaultFallbackCooldown
+		effectiveReset = now.Add(DefaultFallbackCooldown)
 	}
 
 	k := key(provider, profile)
+	if existing, ok := t.records[k]; ok && now.Before(existing.ResetAt) && !hasSignal && effectiveReset.Before(existing.ResetAt) {
+		return
+	}
 	t.records[k] = Record{
 		ProviderID:    provider,
 		ProfileID:     profile,
 		RateLimitedAt: now,
-		RetryAfter:    retryAfter,
+		RetryAfter:    effectiveRetry,
 		ResetAt:       effectiveReset,
 		Reason:        reason,
 		InProbe:       false,
@@ -140,6 +243,20 @@ func (t *Tracker) Clear(provider, profile string) {
 	}
 }
 
+// ClearForScope removes a scoped cooldown entry.
+func (t *Tracker) ClearForScope(scope model.AccountScope) {
+	if !scope.Verifiable() {
+		return
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	k := scopeKey(scope)
+	if _, exists := t.records[k]; exists {
+		delete(t.records, k)
+		_ = t.save()
+	}
+}
+
 // ListActive returns all currently active rate-limited profile records.
 func (t *Tracker) ListActive() []Record {
 	t.mu.RLock()
@@ -172,7 +289,7 @@ func (t *Tracker) load() error {
 	now := time.Now()
 	for _, rec := range list {
 		if now.Before(rec.ResetAt) {
-			t.records[key(rec.ProviderID, rec.ProfileID)] = rec
+			t.records[recordKeyForRecord(rec)] = rec
 		}
 	}
 	return nil
