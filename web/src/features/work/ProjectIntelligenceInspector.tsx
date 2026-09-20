@@ -46,7 +46,7 @@ export const ProjectIntelligenceInspector: React.FC<{ projectId: string }> = ({ 
       return;
     }
     const timer = window.setInterval(() => {
-      void refresh();
+      if (!document.hidden) void refresh();
     }, 1500);
     return () => window.clearInterval(timer);
   }, [refresh, scanState]);
