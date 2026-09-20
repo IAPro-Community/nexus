@@ -355,14 +355,10 @@ func MarkMemoryCoveredUnknowns(brief *LivingBrief, facts map[string]string) {
 	}
 	for i := range brief.Unknowns {
 		u := &brief.Unknowns[i]
-		if u.Status == PromptUnknownAnswered || u.Status == PromptUnknownConfirmed || u.Status == PromptUnknownDismissed {
-			// Preserve explicit user answers; only retag when the confirmed
-			// value actually came from memory (brief value == memory value
-			// and source is not already USER with a different value).
-			// Fall through to the equality check below so a memory-coincidence
-			// still gets MEMORY provenance, but never overwrite a conflicting
-			// USER answer (summary != memory).
-		}
+		// Answered/Confirmed/Dismissed unknowns fall through to the equality
+		// check below on purpose: an explicit conflicting USER answer never
+		// matches memory and is skipped, while a memory-coincidence still
+		// gets MEMORY provenance. Never overwrite a conflicting value here.
 		memVal := memoryForField[u.Field]
 		if memVal == "" {
 			continue

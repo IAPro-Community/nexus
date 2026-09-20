@@ -59,11 +59,10 @@ func EffectiveCooldown(failure model.Failure) (retryAfter time.Duration, resetAt
 		if retry < 0 {
 			retry = 0
 		}
-		if failure.RetryAfter != nil && *failure.RetryAfter > 0 && retry == 0 {
-			// Expired absolute reset with a positive relative hint: keep the
-			// absolute signal as expired; do not invent a fresh cooldown.
-			// Callers treat resetAt in the past as not rate-limited.
-		}
+		// An expired absolute reset (retry == 0) keeps ResetAt precedence over a
+		// positive relative RetryAfter hint: keep the absolute signal expired
+		// and do not invent a fresh cooldown. Callers treat resetAt in the
+		// past as not rate-limited.
 		return retry, reset, true
 	}
 	if failure.RetryAfter != nil && *failure.RetryAfter > 0 {
