@@ -1,9 +1,9 @@
 <p align="center"><img src="nexus-logo.png" alt="IAPro Nexus" width="340"></p>
 
-> **Beta fechado v1.0.0-beta.2 (release candidate)** — build local verificada;
+> **Beta fechado v1.0.0-beta.3 (release candidate)** — build local verificada;
 > a tag/release pública correspondente ainda não foi confirmada neste branch.
-> Verifique se a tag `v1.0.0-beta.2` e o GitHub Release existem antes de
-> baixar binários (`git ls-remote --tags origin v1.0.0-beta.2`).
+> Verifique se a tag `v1.0.0-beta.3` e o GitHub Release existem antes de
+> baixar binários (`git ls-remote --tags origin v1.0.0-beta.3`).
 > Consulte [Beta Terms](docs/legal/BETA_TERMS.md) e
 > [Privacy](docs/legal/PRIVACY.md).
 
@@ -56,7 +56,7 @@ Caminho recomendado (**zero-toolchain**): baixe um binário de release. Não pre
 **Linux / macOS:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.2
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.3
 nexus doctor
 nexus web
 ```
@@ -65,12 +65,12 @@ nexus web
 
 ```powershell
 irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.2
+.\install.ps1 -Version v1.0.0-beta.3
 nexus doctor
 nexus web
 ```
 
-`--version=v1.0.0-beta.2` baixa o GitHub Release pinado e valida `checksums.txt` (integridade) — exige que tag e release existam; se ainda não publicados, compile do fonte abaixo. `--version=latest` resolve a tag mais nova depois que a release existir. O repositório precisa ser público (ou use `GH_TOKEN`) para o download anônimo.
+`--version=v1.0.0-beta.3` baixa o GitHub Release pinado e valida `checksums.txt` (integridade) — exige que tag e release existam; se ainda não publicados, compile do fonte abaixo. `--version=latest` resolve a tag mais nova depois que a release existir. O repositório precisa ser público (ou use `GH_TOKEN`) para o download anônimo.
 
 Pré-requisitos do instalador de release: `curl` ou `wget`, `tar` e `sha256sum`/`shasum` (Unix) ou PowerShell (Windows). Desktop nativo pode exigir WebView2 (Windows) ou WebKitGTK (Linux).
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0-beta.3 — 2026-09-20 — Surface isolation and Flow recovery
+
+- Mount only the active product surface; inactive ones unmount while
+  TerminalsHost stays alive (no PTY recreation, no history loss).
+- Flow drafts persist across surface switches; stale refreshes are dropped
+  by a latest-wins guard.
+- BLOCKED_NEEDS_USER resolves through the run intervention instead of a
+  misleading Resume/Return (Resume remains for PAUSED only).
+- Flow Run UX hierarchy with progressive disclosure, localized in
+  pt-BR/en/es; deep-review findings fixed (duplicate restore ids, focus
+  lifecycle, per-plan draft keys).
+
 ## 1.0.0-beta.2 — 2026-09-19 — Runtime attach reliability
 
 - Preserve the authoritative supervised-host PID, generation, and binary
