@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   Bot,
@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import type {
   Agent,
   FlowRunEvidence,
+  InterventionOption,
   MissionRun,
   PackageRun,
   Project,
@@ -29,6 +30,7 @@ import type {
 import { asArray, asStringArray } from '../../lib/safeArray';
 import { flowFromWorkPlan } from './flowModel';
 import { flowRunStateFromMission, packageRunState, type FlowRunState } from './flowRunModel';
+import { createRefreshGuard } from './flowRefreshGuard';
 
 const terminalMissionStates = new Set([
   'COMPLETED_VERIFIED',
@@ -47,15 +49,8 @@ const toneFor = (state: FlowRunState): 'default' | 'brand' | 'success' | 'warnin
   return 'default';
 };
 
-const receiptSummary = (receipt?: WorkReceipt) => {
-  if (!receipt) return 'No receipt yet';
-  const files = asStringArray(receipt.changed_files);
-  const commands = asStringArray(receipt.commands);
-  if (files.length) return `${files.length} changed file${files.length === 1 ? '' : 's'}`;
-  if (commands.length)
-    return `${commands.length} verified command${commands.length === 1 ? '' : 's'}`;
-  return receipt.summary || receipt.status;
-};
+const providerIssuePattern =
+  /provider|quota|budget|credential|auth|rate.?limit|resource|unauthorized|forbidden|insufficient|payment/i;
 
 const readMissionTeamSelection = (plan: WorkPlan | null): MissionTeamSelection | null => {
   const raw = plan?.structured_facts?.['nexus.mission_team.selection'];
@@ -117,7 +112,8 @@ export const FlowRunSurface: React.FC<{
   project: Project;
   agents: Agent[];
   onOpenAgent?: (agent: Agent) => void;
-}> = ({ runId, project, agents, onOpenAgent }) => {
+  onOpenResources?: () => void;
+}> = ({ runId, project, agents, onOpenAgent, onOpenResources }) => {
   const { t } = useTranslation();
   const [run, setRun] = useState<MissionRun | null>(null);
   const [evidence, setEvidence] = useState<FlowRunEvidence>({
@@ -128,19 +124,42 @@ export const FlowRunSurface: React.FC<{
   const [plan, setPlan] = useState<WorkPlan | null>(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [resolvingOption, setResolvingOption] = useState('');
+  const [decisionNotice, setDecisionNotice] = useState('');
+  const interventionRef = useRef<HTMLDivElement>(null);
+  // Latest-wins guard: refresh() calls overlap (manual click + 1500ms poll).
+  // A slow earlier request must never overwrite fresher state that arrived later.
+  const refreshGuardRef = useRef(createRefreshGuard());
+
+  const receiptSummary = useCallback(
+    (receipt?: WorkReceipt) => {
+      if (!receipt) return t('flowRun.noReceipt');
+      const files = asStringArray(receipt.changed_files);
+      const commands = asStringArray(receipt.commands);
+      if (files.length) return t('flowRun.changedFiles', { count: files.length });
+      if (commands.length) return t('flowRun.verifiedCommands', { count: commands.length });
+      return receipt.summary || receipt.status;
+    },
+    [t],
+  );
 
   const refresh = useCallback(async () => {
+    const guard = refreshGuardRef.current;
+    const seq = guard.next();
     try {
       const current = await nexusApi.getRun(runId);
+      if (!guard.isLatest(seq)) return;
       setRun(current);
       const [nextEvidence, detail] = await Promise.all([
         nexusApi.getRunEvidence(runId),
         plan?.id === current.plan_id ? Promise.resolve(null) : nexusApi.getPlan(current.plan_id),
       ]);
+      if (!guard.isLatest(seq)) return;
       setEvidence(nextEvidence);
       if (detail) setPlan(detail.plan);
       setError('');
     } catch (err) {
+      if (!guard.isLatest(seq)) return;
       setError(err instanceof Error ? err.message : String(err));
     }
   }, [runId, plan?.id]);
@@ -156,19 +175,33 @@ export const FlowRunSurface: React.FC<{
       run.state === 'BLOCKED_NEEDS_USER'
     )
       return;
-    const timer = window.setInterval(() => void refresh(), 1500);
-    return () => window.clearInterval(timer);
+    // Hidden documents (browser tab or backgrounded view) must not keep
+    // polling; refresh immediately when visible again.
+    const tick = () => {
+      if (!document.hidden) void refresh();
+    };
+    const timer = window.setInterval(tick, 1500);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
   }, [run, refresh]);
 
   const flow = useMemo(() => (plan ? flowFromWorkPlan(plan) : null), [plan]);
   const userState = flowRunStateFromMission(run?.state || 'PENDING');
   const missionTeam = useMemo(() => readMissionTeamSelection(plan), [plan]);
+  const packageRuns = useMemo(() => asArray<PackageRun>(run?.package_runs), [run]);
   const currentPackage = useMemo(
     () =>
-      (run?.package_runs || []).find(
+      packageRuns.find(
         (pkg) => pkg.phase_id === run?.current_phase_id && pkg.state !== 'VERIFIED',
-      ) || (run?.package_runs || [])[run?.current_pkg_index || 0],
-    [run],
+      ) || packageRuns[run?.current_pkg_index || 0],
+    [packageRuns, run],
+  );
+  const verifiedCount = useMemo(
+    () => packageRuns.filter((pkg) => pkg.state === 'VERIFIED').length,
+    [packageRuns],
   );
   const capsules = useMemo(
     () => new Map(evidence.capsules.map((item) => [item.step.id, item])),
@@ -194,6 +227,35 @@ export const FlowRunSurface: React.FC<{
     }
   };
 
+  const resolveOption = async (optionId: string) => {
+    const intervention = run?.needs_human;
+    if (!run || !intervention || busy || resolvingOption) return;
+    setResolvingOption(optionId);
+    setError('');
+    try {
+      // Same intervention model + resolve API as the Attention Center: no
+      // second decision system, the decision is recorded on the run itself.
+      const updated = await nexusApi.resolveIntervention(
+        run.id,
+        intervention.id,
+        intervention.version,
+        optionId,
+      );
+      setRun(updated);
+      setDecisionNotice(t('flowRun.decisionResolved'));
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setResolvingOption('');
+    }
+  };
+
+  const focusIntervention = () => {
+    interventionRef.current?.scrollIntoView({ block: 'nearest' });
+    interventionRef.current?.focus();
+  };
+
   const openAgent = async (agentId: string) => {
     if (!agentId || !onOpenAgent) return;
     const known = agents.find((agent) => agent.id === agentId);
@@ -212,42 +274,148 @@ export const FlowRunSurface: React.FC<{
   if (!run) {
     return (
       <div className="nx-surface-center">
-        <Spinner label="Loading Flow Run…" />
+        <Spinner label={t('flowRun.loading')} />
         {error && <InlineAlert tone="danger">{error}</InlineAlert>}
       </div>
     );
   }
 
   const canMutate = !terminalMissionStates.has(run.state);
-  const resumable = run.state === 'PAUSED' || run.state === 'BLOCKED_NEEDS_USER';
+  const isBlocked = run.state === 'BLOCKED_NEEDS_USER';
+  const resumable = run.state === 'PAUSED';
+  const intervention = run.needs_human;
+  const interventionOptions = asArray<InterventionOption>(intervention?.options);
+  const needsAction = isBlocked || userState === 'BLOCKED' || userState === 'FAILED';
+  const providerIssue =
+    providerIssuePattern.test(error || '') ||
+    providerIssuePattern.test(run.paused_reason || '') ||
+    packageRuns.some((pkg) => providerIssuePattern.test(pkg.error_message || ''));
 
   return (
     <div className="nx-surface-scroll nx-flow-run-surface" data-run-id={run.id}>
       <div className="nx-page-header">
         <div>
           <span className="nx-eyebrow">
-            <Activity size={13} /> FLOW RUN
+            <Activity size={13} /> {t('flowRun.eyebrow')}
           </span>
           <h1>{flow?.title || plan?.title || `Run ${run.id}`}</h1>
-          <p>Durable Mission Runner execution · Project {project.name}</p>
+          <p>{t('flowRun.subtitle', { project: project.name })}</p>
         </div>
         <div className="nx-flow-run-header-meta">
           <Badge>Rev {run.plan_revision}</Badge>
           <Badge tone="brand">{flow?.policy || 'GUIDED'}</Badge>
-          <Badge tone={toneFor(userState)}>{userState}</Badge>
+          <Badge tone={toneFor(userState)}>{t(`flow.state.${userState}`, userState)}</Badge>
         </div>
       </div>
 
+      <Card className="nx-flow-run-status">
+        <div>
+          <strong>
+            {t('flowRun.statusStep', { done: verifiedCount, total: packageRuns.length })}
+          </strong>
+          <span>{currentPackage?.title || run.current_phase_id || t('common.unknown')}</span>
+        </div>
+        <div>
+          <strong>{t('flowRun.statusAgent')}</strong>
+          <span>{currentPackage?.assigned_agent || t('flowRun.awaitingAllocation')}</span>
+        </div>
+        <div>
+          <strong>{t('flowRun.statusState')}</strong>
+          <span>{t(`flow.state.${userState}`, userState)}</span>
+        </div>
+        <div>
+          <strong>{t('flowRun.statusAction')}</strong>
+          <span>{needsAction ? t('flowRun.actionRequired') : t('flowRun.noActionRequired')}</span>
+        </div>
+      </Card>
+
       {error && (
-        <InlineAlert tone="danger" title="Flow Run action failed">
-          {error}
+        <>
+          <InlineAlert tone="danger" title={t('flowRun.actionFailed')}>
+            {error}
+          </InlineAlert>
+          <div className="nx-flow-run-error-actions">
+            <Button size="sm" onClick={() => void refresh()} disabled={Boolean(busy)}>
+              <RefreshCw size={12} /> {t('flowRun.retry')}
+            </Button>
+            {isBlocked && interventionOptions.length > 0 && (
+              <Button size="sm" tone="brand" onClick={focusIntervention}>
+                {t('flowRun.reviewDecision')}
+              </Button>
+            )}
+            {providerIssue && onOpenResources && (
+              <Button size="sm" onClick={onOpenResources}>
+                {t('flowRun.openResources')}
+              </Button>
+            )}
+          </div>
+          {providerIssue && <p className="nx-flow-run-hint">{t('flowRun.resourcesHint')}</p>}
+          <details className="nx-flow-run-error-detail">
+            <summary>{t('flowRun.errorDetails')}</summary>
+            <code>{error}</code>
+          </details>
+        </>
+      )}
+      {isBlocked && (
+        <InlineAlert tone="warning" title={t('flowRun.needsDecision')}>
+          {run.paused_reason || t('flowRun.blockedFallback')}
         </InlineAlert>
       )}
-      {run.state === 'BLOCKED_NEEDS_USER' && (
-        <InlineAlert tone="warning" title="Human decision required">
-          {run.paused_reason ||
-            'Execution stopped fail-closed and will not redispatch automatically.'}
-        </InlineAlert>
+      {decisionNotice && <InlineAlert tone="success">{decisionNotice}</InlineAlert>}
+
+      {isBlocked && intervention && (
+        <Card className="nx-flow-run-decision" data-intervention={intervention.id}>
+          <div ref={interventionRef} tabIndex={-1} aria-label={t('flowRun.needsDecision')}>
+            {intervention.question && (
+              <div>
+                <strong>{t('flowRun.decisionQuestion')}</strong>
+                <p>{intervention.question}</p>
+              </div>
+            )}
+            {intervention.context && (
+              <div>
+                <strong>{t('flowRun.decisionContext')}</strong>
+                <p>{intervention.context}</p>
+              </div>
+            )}
+            {intervention.impact && (
+              <div>
+                <strong>{t('flowRun.decisionImpact')}</strong>
+                <p>{intervention.impact}</p>
+              </div>
+            )}
+            {asArray<string>(intervention.recommended_actions).length > 0 && (
+              <ul className="nx-flow-run-decision__recommended">
+                {asArray<string>(intervention.recommended_actions).map((action) => (
+                  <li key={action}>
+                    <CircleAlert size={11} /> {action}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {interventionOptions.length > 0 && (
+              <div>
+                <strong>{t('flowRun.decisionOptions')}</strong>
+                <div className="nx-flow-run-decision__options">
+                  {interventionOptions.map((option) => (
+                    <Button
+                      key={option.id}
+                      size="sm"
+                      tone="brand"
+                      disabled={
+                        Boolean(busy) || (Boolean(resolvingOption) && resolvingOption !== option.id)
+                      }
+                      onClick={() => void resolveOption(option.id)}
+                    >
+                      <Play size={12} />{' '}
+                      {resolvingOption === option.id ? t('flowRun.resolving') : option.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
       )}
 
       {missionTeam && (
@@ -276,7 +444,8 @@ export const FlowRunSurface: React.FC<{
             const summary = readExecutionSummary(currentPackage);
             if (!summary) return null;
             return (
-              <>
+              <details className="nx-flow-run-advanced">
+                <summary>{t('flowRun.advancedDetails')}</summary>
                 <div>
                   <strong>{t('flowRuns.executionSkills')}</strong>
                   <span>
@@ -309,38 +478,44 @@ export const FlowRunSurface: React.FC<{
                     <span>{summary.reason}</span>
                   </div>
                 ) : null}
-              </>
+              </details>
             );
           })()}
         </Card>
       )}
 
-      <Card className="nx-flow-run-overview">
-        <div>
-          <strong>Execution snapshot</strong>
-          <code>{run.execution_snapshot_id || '—'}</code>
-        </div>
-        <div>
-          <strong>Progress</strong>
-          <span>
-            {(run.package_runs || []).filter((pkg) => pkg.state === 'VERIFIED').length} /{' '}
-            {(run.package_runs || []).length} verified
-          </span>
-        </div>
-        <div>
-          <strong>Iteration budget</strong>
-          <span>
-            {run.total_iterations} / {run.contract.max_total_iterations}
-          </span>
-        </div>
-        <div>
-          <strong>Verification</strong>
-          <span>{run.contract.require_verification ? 'Required' : 'Contract disabled'}</span>
-        </div>
-      </Card>
+      <details className="nx-flow-run-advanced">
+        <summary>{t('flowRun.advancedDetails')}</summary>
+        <Card className="nx-flow-run-overview">
+          <div>
+            <strong>{t('flowRun.execSnapshot')}</strong>
+            <code>{run.execution_snapshot_id || '—'}</code>
+          </div>
+          <div>
+            <strong>{t('flowRun.progress')}</strong>
+            <span>
+              {t('flowRun.progressValue', { done: verifiedCount, total: packageRuns.length })}
+            </span>
+          </div>
+          <div>
+            <strong>{t('flowRun.iterationBudget')}</strong>
+            <span>
+              {run.total_iterations} / {run.contract.max_total_iterations}
+            </span>
+          </div>
+          <div>
+            <strong>{t('flowRun.verification')}</strong>
+            <span>
+              {run.contract.require_verification
+                ? t('flowRun.verificationRequired')
+                : t('flowRun.verificationDisabled')}
+            </span>
+          </div>
+        </Card>
+      </details>
 
       <div className="nx-flow-run-grid">
-        {(run.package_runs || []).map((pkg, index) => {
+        {packageRuns.map((pkg, index) => {
           const state = packageRunState(pkg.state);
           const capsule = capsules.get(pkg.package_id);
           const receipt = receipts.get(pkg.package_id);
@@ -352,34 +527,34 @@ export const FlowRunSurface: React.FC<{
             <Card className="nx-flow-run-step" data-state={state} key={pkg.id}>
               <div className="nx-flow-run-step__header">
                 <div>
-                  <small>Step {index + 1}</small>
+                  <small>{t('flowRun.stepN', { n: index + 1 })}</small>
                   <strong>{pkg.title}</strong>
                 </div>
-                <Badge tone={toneFor(state)}>{state}</Badge>
+                <Badge tone={toneFor(state)}>{t(`flow.state.${state}`, state)}</Badge>
               </div>
-              <p>{pkg.goal || 'No additional goal text.'}</p>
+              <p>{pkg.goal || t('flowRun.noGoal')}</p>
               <div className="nx-flow-run-step__meta">
                 <span>
-                  <Bot size={11} /> {pkg.assigned_agent || 'Awaiting allocation'}
+                  <Bot size={11} /> {pkg.assigned_agent || t('flowRun.awaitingAllocation')}
                 </span>
                 <span>
-                  <Clock3 size={11} /> attempt {pkg.attempt}
+                  <Clock3 size={11} /> {t('flowRun.attempt', { n: pkg.attempt })}
                 </span>
               </div>
               {(pkg.dependencies || []).length ? (
                 <small className="nx-flow-run-deps">
-                  after {(pkg.dependencies || []).join(', ')}
+                  {t('flowRun.afterDeps', { deps: (pkg.dependencies || []).join(', ') })}
                 </small>
               ) : (
-                <small className="nx-flow-run-deps">entry Step</small>
+                <small className="nx-flow-run-deps">{t('flowRun.entryStep')}</small>
               )}
 
               <div className="nx-flow-run-evidence-row">
                 <span data-ready={capsule ? 'true' : 'false'}>
                   <FileCode2 size={11} />{' '}
                   {capsule
-                    ? `Capsule · ${dependencyReceiptCount} receipt input${dependencyReceiptCount === 1 ? '' : 's'}`
-                    : 'Capsule pending'}
+                    ? t('flowRun.capsuleReady', { count: dependencyReceiptCount })
+                    : t('flowRun.capsulePending')}
                 </span>
                 <span data-ready={receipt ? 'true' : 'false'}>
                   <ShieldCheck size={11} /> {receiptSummary(receipt)}
@@ -394,27 +569,23 @@ export const FlowRunSurface: React.FC<{
                     ) : (
                       <CircleAlert size={12} />
                     )}{' '}
-                    Work Receipt
+                    {t('flowRun.workReceipt')}
                   </summary>
                   <div>
-                    <strong>Summary</strong>
+                    <strong>{t('flowRun.receiptSummary')}</strong>
                     <span>{receipt.summary}</span>
                   </div>
                   <div>
-                    <strong>Files</strong>
-                    <span>
-                      {files.length ? files.join(', ') : 'No factual file changes captured'}
-                    </span>
+                    <strong>{t('flowRun.receiptFiles')}</strong>
+                    <span>{files.length ? files.join(', ') : t('flowRun.noFileChanges')}</span>
                   </div>
                   <div>
-                    <strong>Commands</strong>
-                    <span>
-                      {commands.length ? commands.join(' · ') : 'No verification commands captured'}
-                    </span>
+                    <strong>{t('flowRun.receiptCommands')}</strong>
+                    <span>{commands.length ? commands.join(' · ') : t('flowRun.noCommands')}</span>
                   </div>
                   {remaining.length > 0 && (
                     <div>
-                      <strong>Remaining</strong>
+                      <strong>{t('flowRun.receiptRemaining')}</strong>
                       <span>{remaining.join(' · ')}</span>
                     </div>
                   )}
@@ -424,7 +595,7 @@ export const FlowRunSurface: React.FC<{
               {pkg.error_message && <InlineAlert tone="danger">{pkg.error_message}</InlineAlert>}
               {pkg.assigned_agent && onOpenAgent && (
                 <Button size="sm" onClick={() => void openAgent(pkg.assigned_agent)}>
-                  <TerminalSquare size={12} /> Open Agent
+                  <TerminalSquare size={12} /> {t('flowRun.openAgent')}
                 </Button>
               )}
             </Card>
@@ -434,9 +605,9 @@ export const FlowRunSurface: React.FC<{
 
       <div className="nx-flow-run-actions">
         <Button size="sm" onClick={() => void refresh()} disabled={Boolean(busy)}>
-          <RefreshCw size={12} /> Refresh
+          <RefreshCw size={12} /> {t('flowRun.refresh')}
         </Button>
-        {canMutate && !resumable && (
+        {canMutate && !resumable && !isBlocked && (
           <Button
             size="sm"
             onClick={() =>
@@ -446,10 +617,10 @@ export const FlowRunSurface: React.FC<{
             }
             disabled={Boolean(busy)}
           >
-            <Pause size={12} /> Pause
+            <Pause size={12} /> {t('flowRun.pause')}
           </Button>
         )}
-        {canMutate && !resumable && (
+        {canMutate && !resumable && !isBlocked && (
           <Button
             size="sm"
             onClick={() =>
@@ -459,23 +630,22 @@ export const FlowRunSurface: React.FC<{
             }
             disabled={Boolean(busy)}
           >
-            <TerminalSquare size={12} /> Take Control
+            <TerminalSquare size={12} /> {t('flowRun.takeControl')}
           </Button>
         )}
         {resumable && (
           <Button
             size="sm"
             tone="brand"
-            onClick={() =>
-              void perform('resume', () =>
-                run.state === 'PAUSED'
-                  ? nexusApi.resumeRun(run.id)
-                  : nexusApi.returnToMission(run.id),
-              )
-            }
+            onClick={() => void perform('resume', () => nexusApi.resumeRun(run.id))}
             disabled={Boolean(busy)}
           >
-            <Play size={12} /> Resume / Return
+            <Play size={12} /> {t('flowRun.resume')}
+          </Button>
+        )}
+        {isBlocked && interventionOptions.length > 0 && (
+          <Button size="sm" tone="brand" onClick={focusIntervention}>
+            <Play size={12} /> {t('flowRun.reviewDecision')}
           </Button>
         )}
         {canMutate && (
@@ -489,7 +659,7 @@ export const FlowRunSurface: React.FC<{
             }
             disabled={Boolean(busy)}
           >
-            <Square size={12} /> Cancel
+            <Square size={12} /> {t('flowRun.cancel')}
           </Button>
         )}
       </div>
