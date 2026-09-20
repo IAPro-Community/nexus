@@ -3,7 +3,8 @@
 Branch: `feat/capacity-monitor-revival` · Base: `origin/main` (`b8d9962`)
 Prior remote HEAD: `7813105a15429a3bee3cd56f5505ee54d9c42ce1`
 Code-freeze HEAD (this round, 5 commits): `8156836a03fbbbed116cfd312756e273b9b8b65b`
-Docs commit: see `git log --oneline -2` (this file ships in it).
+Review-fix HEAD: `acf2ef3` (deep-review findings addressed, §11)
+Docs commit: see `git log --oneline -3` (this file ships in it).
 
 PR: #3 — suggested new title/body in §9 (remote update NOT executed: no
 network/auth in this environment; Maestro/repo policy decision pending).
@@ -137,7 +138,32 @@ Body:
 > `web/scripts/e2e-surface-isolation.mjs`); Windows/macOS gates per repo
 > policy; same-SHA CI pending push authorization.
 
-## 10. Verdict
+## 10. Deep review (post-push, 3 parallel reviewers)
+
+- Workspace: 8 findings → 5 accepted (aria-controls dangling fixed,
+  focus rescue on unmount, DesktopWorkspace menu clearing on deactivate,
+  zero-rect canvas guard), 1 preexisting noted (no arrow-key roving on
+  product tabs), 2 rejected with rationale (keep-alive cache contradicts
+  the P0 unmount mandate; modal-state lift contradicts portal-disposal).
+- Flow: 17 findings → 11 accepted incl. 1 REAL BUG fixed (persist effect
+  could write the previous plan's draft under a newly selected plan id;
+  fixed with seeded-plan gate + per-plan storage keys + shape-validated
+  restore). 6 rejected with evidence (stale-flash claim contradicted by
+  guard order; double-fetch harmless; JSON perf preexisting; 409 handling
+  would guess an unknown backend contract; empty-list degradation
+  intentional; error-swallowing intentional).
+- E2E/API: 12 findings → 9 accepted (server leak on timeout, token-safe
+  diagnostics with `nexus_bootstrap` redaction + hash strip, tmpdir
+  cleanup, flake tolerances). Capacity auth concern answered: all
+  capacity routes sit behind `authMiddleware` (routes.go:96-100).
+  Threshold/fingerprint hardening filed as follow-up LOWs (localhost
+  trust boundary, 1MB body cap, prior-reviewed code — not this round).
+- E2E pageError allowlist kept deliberately (matches existing harness
+  pattern for a known xterm quirk).
+- Post-fix gates: `make web-verify` 10/10, 422 vitest, typecheck, lint,
+  format all PASS; no Go files touched.
+
+## 11. Verdict
 
 **MERGE_CANDIDATE = CONDITIONAL.**
 

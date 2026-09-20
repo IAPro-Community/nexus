@@ -22,7 +22,9 @@ E2E dedicado (`e2e-surface-isolation.mjs`) + fixture. Gates: web-verify
 10/10, 418 vitest, Go full + vet + race (capacitymonitor/store/control/
 runtime). Browser E2E/Axe e push + CI same-SHA NOT_EXECUTED (limite
 externo do ambiente) → veredito CONDITIONAL. Evidência:
-`DEV/validation/SURFACE_ISOLATION_REPORT.md`.
+`DEV/validation/SURFACE_ISOLATION_REPORT.md` (§10: deep review com 3
+revisores paralelos; 1 HIGH real corrigido — persist race entre drafts;
+veredito mantém CONDITIONAL pelos 2 limites externos).
 
 ## 2026-09-19 — Capacity Monitor Revival T4–T9 + incremental reliability (autopilot)
 
