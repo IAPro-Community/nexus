@@ -13,6 +13,25 @@ import styles from './FlowRunsHistorySurface.module.scss';
 type Track = 'drafts' | 'runs';
 type RunFilter = 'ALL' | 'ACTIVE' | 'COMPLETED' | 'FAILED';
 
+const SELECTED_PLAN_KEY = (projectId: string) => `nexus:flow:selected-plan:${projectId}`;
+
+const readSelectedPlanId = (projectId: string): string => {
+  try {
+    return window.sessionStorage.getItem(SELECTED_PLAN_KEY(projectId)) || '';
+  } catch {
+    return '';
+  }
+};
+
+const writeSelectedPlanId = (projectId: string, planId: string): void => {
+  try {
+    if (planId) window.sessionStorage.setItem(SELECTED_PLAN_KEY(projectId), planId);
+    else window.sessionStorage.removeItem(SELECTED_PLAN_KEY(projectId));
+  } catch {
+    /* ignore */
+  }
+};
+
 export const FlowRunsHistorySurface: React.FC<{
   project: Project;
   agents?: Agent[];
@@ -54,7 +73,9 @@ export const FlowRunsHistorySurface: React.FC<{
 
       let pendingId = '';
       try {
-        pendingId = window.sessionStorage.getItem(FLOW_DRAFT_KEY(project.id)) || '';
+        pendingId =
+          window.sessionStorage.getItem(FLOW_DRAFT_KEY(project.id)) ||
+          readSelectedPlanId(project.id);
       } catch {
         pendingId = '';
       }
@@ -82,6 +103,10 @@ export const FlowRunsHistorySurface: React.FC<{
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    writeSelectedPlanId(project.id, selectedPlan?.id || '');
+  }, [project.id, selectedPlan?.id]);
 
   const draftPlans = useMemo(() => {
     const runPlanIds = new Set(runs.map((run) => run.plan_id).filter(Boolean));

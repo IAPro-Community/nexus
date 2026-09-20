@@ -26,6 +26,9 @@ import {
   chipsFromPlan,
   composerDraftStorageKey,
   composerHistoryStorageKey,
+  flowDraftSessionKey,
+  loadStoredFlowDraft,
+  persistStoredFlowDraft,
   loadGoalHistory,
   loadStoredGoal,
   persistStoredGoal,
@@ -83,6 +86,7 @@ export function useFlowDraftEditor(options: {
 
   const composerDraftKey = composerDraftStorageKey(project.id);
   const composerHistoryKey = composerHistoryStorageKey(project.id);
+  const flowDraftKey = flowDraftSessionKey(project.id);
 
   useEffect(() => {
     const saved = loadStoredGoal(composerDraftKey);
@@ -168,13 +172,35 @@ export function useFlowDraftEditor(options: {
       return;
     }
     const next = flowFromWorkPlan(selectedPlan);
+    // Restore unsaved step edits that survived a surface unmount (product-surface
+    // isolation) when they still apply to this exact plan revision.
+    const stored = loadStoredFlowDraft(flowDraftSessionKey(project.id));
+    if (
+      stored &&
+      stored.planId === selectedPlan.id &&
+      stored.revision === selectedPlan.current_revision &&
+      stored.draft &&
+      typeof stored.draft === 'object' &&
+      Array.isArray((stored.draft as FlowDraftModel).steps)
+    ) {
+      const restored = stored.draft as FlowDraftModel;
+      setFlowDraft((current) =>
+        current && JSON.stringify(current) === JSON.stringify(restored) ? current : restored,
+      );
+      setSelectedStepId((current) =>
+        current && restored.steps.some((step) => step.id === current)
+          ? current
+          : restored.steps[0]?.id || '',
+      );
+      return;
+    }
     setFlowDraft((current) =>
       current && JSON.stringify(current) === JSON.stringify(next) ? current : next,
     );
     setSelectedStepId((current) =>
       current && next.steps.some((step) => step.id === current) ? current : next.steps[0]?.id || '',
     );
-  }, [selectedPlan]);
+  }, [selectedPlan, project.id]);
 
   const selectGeneratedPlan = useCallback(
     (plan: WorkPlan) => {
@@ -207,6 +233,22 @@ export function useFlowDraftEditor(options: {
     flowDraft && baselineFlow && JSON.stringify(flowDraft) !== JSON.stringify(baselineFlow),
   );
   const flowErrors = useMemo(() => (flowDraft ? validateFlow(flowDraft) : []), [flowDraft]);
+
+  // Keep unsaved step edits alive across product-surface unmounts. Anything
+  // persisted to the server clears the session copy via the clean-draft path.
+  useEffect(() => {
+    if (!selectedPlan) return;
+    if (flowDirty && flowDraft) {
+      persistStoredFlowDraft(flowDraftKey, {
+        planId: selectedPlan.id,
+        revision: selectedPlan.current_revision,
+        draft: flowDraft,
+      });
+    } else {
+      const stored = loadStoredFlowDraft(flowDraftKey);
+      if (stored && stored.planId === selectedPlan.id) persistStoredFlowDraft(flowDraftKey, null);
+    }
+  }, [flowDirty, flowDraft, selectedPlan, flowDraftKey]);
 
   const cancelGenerate = useCallback(() => {
     generateAbortRef.current?.abort();
@@ -356,6 +398,7 @@ export function useFlowDraftEditor(options: {
           workPlanFromFlow(nextDraft, selectedPlan),
           'Flow approved for execution',
         );
+        persistStoredFlowDraft(flowDraftKey, null);
       }
       const run = await nexusApi.runPlan(approved.id, approved.current_revision);
       onRunCreated?.(run);
@@ -370,7 +413,7 @@ export function useFlowDraftEditor(options: {
     } finally {
       setRunBusy(false);
     }
-  }, [flowDirty, flowDraft, onRunCreated, persistPlan, selectedPlan, t]);
+  }, [flowDirty, flowDraft, onRunCreated, persistPlan, selectedPlan, t, flowDraftKey]);
 
   const runPreflight = useCallback(async () => {
     if (!selectedPlan) return;
