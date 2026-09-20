@@ -356,3 +356,5 @@
 - 2026-09-19T18:36:31Z · PASS · feat/capacity-monitor-revival@483f12e · failed=[-] · DEV/validation/FRONTEND_2026-09-19T18-36-31Z.md
 - 2026-09-19T18:44:50Z · PASS · feat/capacity-monitor-revival@4c5ba68 · failed=[-] · DEV/validation/FRONTEND_2026-09-19T18-44-50Z.md
 - 2026-09-19T20:49:06Z · PASS · review/maximus-terminal-sync@dc8b8ce · failed=[-] · DEV/validation/FRONTEND_2026-09-19T20-49-06Z.md
+- 2026-09-20T02:40:13Z · FAIL · feat/capacity-monitor-revival@7813105 · failed=[format] · DEV/validation/FRONTEND_2026-09-20T02-40-13Z.md
+- 2026-09-20T02:41:21Z · PASS · feat/capacity-monitor-revival@7813105 · failed=[-] · DEV/validation/FRONTEND_2026-09-20T02-41-21Z.md

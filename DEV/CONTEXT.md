@@ -33,7 +33,8 @@
 
 - Web local deve escutar em `127.0.0.1`; wildcard exige desenho remoto explícito.
 - Dados de quota sem fonte/data verificável devem ser tratados como `UNKNOWN`.
-- O worktree contém alterações não commitadas; não sobrescrever mudanças alheias.
+- O worktree fecha a rodada surface-isolation 2026-09-20 commitada (código
+  `63132df..8156836` + docs deste commit); não sobrescrever mudanças alheias.
 
 ## Consolidação arquitetural 2026-09-10
 

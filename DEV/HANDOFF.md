@@ -1,16 +1,32 @@
 # Handoff
 
+## Rodada cirúrgica surface-isolation — 2026-09-20 (autopilot)
+
+Fechamento final do branch `feat/capacity-monitor-revival` (PR #3): P0
+Surface Isolation + Flow recovery, sem reimplementar nada (Capacity T0–T9,
+scheduler, runtime, router, memória intactos). 5 commits sobre `7813105`:
+`63132df` (isolate surfaces, TerminalsHost keep-alive), `c20eca7` (drafts
+persistem após unmount), `cfdbbb8` (stale-refresh guard + teste
+determinístico), `bbc964d` (BLOCKED→intervenção, UX localizada
+pt-BR/en/es), `8156836` (E2E dedicado + fixture). Gates locais verdes:
+`make web-verify` 10/10, 418 vitest, `go test ./internal/...`, `go vet`,
+race em capacitymonitor/store/control/runtime. E2E browser/Axe e push +
+CI same-SHA: NOT_EXECUTED por limite externo do ambiente (sem libs do
+chromium, sem credencial de rede) — veredito CONDITIONAL e evidência
+completa em `DEV/validation/SURFACE_ISOLATION_REPORT.md`. Texto pronto
+para o PR #3 no §9 do relatório (não aplicado remotamente).
+
 ## Rodada incremental capacity-monitor-revival — 2026-09-19 (autopilot)
 
 Branch `feat/capacity-monitor-revival` pronta para revisão de merge (PR #3):
-T4–T9 do revival + reliability incremental, sem subsistema novo. Mudanças ainda
-NÃO commitadas no fechamento deste handoff — próxima ação: revisar o diff,
-criar os commits pequenos e push somente com autorização do Maestro. Gates
-locais verdes (detalhe em DEV/VERIFY.md); `make docs-verify` segue bloqueado
-(preexistente) e evidências nativas/live/overnight seguem UNVERIFIED. Sugestão
-de novo título do PR #3: `feat(capacity): revive monitor with recommendations,
-delivery and UI + incremental reliability` (terminal hardening + capacity
-revival + routing/memory/UX). Não alterar o PR remotamente sem autorização.
+T4–T9 do revival + reliability incremental, sem subsistema novo. O trabalho
+desta rodada foi commitado e pushado (`dc8b8ce..7813105`, origin confere).
+Gates locais verdes (detalhe em DEV/VERIFY.md); `make docs-verify` segue
+bloqueado (preexistente) e evidências nativas/live/overnight seguem
+UNVERIFIED. Sugestão de novo título do PR #3: `feat(capacity): revive
+monitor with recommendations, delivery and UI + incremental reliability`
+(terminal hardening + capacity revival + routing/memory/UX). Não alterar o
+PR remotamente sem autorização.
 
 ## Correção de attach por geração/PID — 2026-09-19
 

@@ -1,5 +1,18 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-20 — Surgical closure: surface isolation + Flow recovery (autopilot)
+
+Rodada final sobre `feat/capacity-monitor-revival` (5 commits
+`63132df..8156836` + docs): P0 isolation (uma product surface montada,
+TerminalsHost keep-alive via hidden/inert), drafts persistidos após
+unmount, stale-refresh guard com teste determinístico, BLOCKED→intervenção
+(sem Resume/Return enganoso), UX localizada pt-BR/en/es com paridade,
+E2E dedicado (`e2e-surface-isolation.mjs`) + fixture. Gates: web-verify
+10/10, 418 vitest, Go full + vet + race (capacitymonitor/store/control/
+runtime). Browser E2E/Axe e push + CI same-SHA NOT_EXECUTED (limite
+externo do ambiente) → veredito CONDITIONAL. Evidência:
+`DEV/validation/SURFACE_ISOLATION_REPORT.md`.
+
 ## 2026-09-19 — Capacity Monitor Revival T4–T9 + incremental reliability (autopilot)
 
 Rodada conservadora no worktree `nexus-capacity-worktree`
