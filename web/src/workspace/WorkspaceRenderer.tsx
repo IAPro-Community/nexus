@@ -746,7 +746,8 @@ const TerminalsHost: React.FC<{
       <header className="nx-terminals-host__chrome">
         <div className="nx-terminals-host__title">
           <TerminalSquare size={14} />
-          <strong>
+          <h1 className="nx-sr-only">{t('nav.terminals')}</h1>
+          <strong aria-hidden="true">
             {t('nav.terminals')} · {t('nav.ptyCount', { count: ptySurfaces.length })}
           </strong>
         </div>

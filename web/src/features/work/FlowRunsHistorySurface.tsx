@@ -171,7 +171,8 @@ export const FlowRunsHistorySurface: React.FC<{
       <div className={styles.header}>
         <div className={styles.title}>
           <History size={16} />
-          <strong>{t('flow.studioTitle', 'Flow Studio')}</strong>
+          <h1 className="nx-sr-only">{t('flow.studioTitle', 'Flow Studio')}</h1>
+          <strong aria-hidden="true">{t('flow.studioTitle', 'Flow Studio')}</strong>
           <Badge tone="default">{track === 'drafts' ? draftPlans.length : runs.length}</Badge>
         </div>
         <div className={styles.actions}>
