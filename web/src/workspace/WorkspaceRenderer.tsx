@@ -467,6 +467,14 @@ const WorkspaceStackView: React.FC<{
   const terminalsActive = activeProduct?.type === 'terminals';
   useEffect(() => {
     setTabMenu(null);
+    // If focus was inside the panel that just unmounted/hid, move it to the
+    // newly active tab instead of stranding it on <body>.
+    const active = document.activeElement;
+    if (active && active !== document.body && !document.contains(active)) {
+      document.getElementById(`nx-tab-${activeId}`)?.focus();
+    } else if (active instanceof Element && active.closest?.('.nx-workspace-panel[hidden]')) {
+      document.getElementById(`nx-tab-${activeId}`)?.focus();
+    }
   }, [activeId]);
   const closeSurface = (surface: WorkspaceSurface) =>
     onRequestClose ? onRequestClose(surface) : close(surface.id);
@@ -517,7 +525,7 @@ const WorkspaceStackView: React.FC<{
                 <button
                   draggable={!pinned}
                   id={`nx-tab-${surface.id}`}
-                  aria-controls={`nx-panel-${surface.id}`}
+                  aria-controls={activeId === surface.id ? `nx-panel-${surface.id}` : undefined}
                   type="button"
                   role="tab"
                   aria-selected={activeId === surface.id}
@@ -847,6 +855,7 @@ const TerminalsHost: React.FC<{
             surfaces={ptySurfaces}
             renderSurface={renderSurface}
             onRequestClose={onRequestClose}
+            active={active}
           />
         ) : (
           <div className="nx-terminals-inner-tabs">
@@ -1023,7 +1032,8 @@ const DesktopWorkspace: React.FC<{
   surfaces: WorkspaceSurface[];
   renderSurface: (surface: WorkspaceSurface) => React.ReactNode;
   onRequestClose?: (surface: WorkspaceSurface) => void;
-}> = ({ surfaces, renderSurface, onRequestClose }) => {
+  active: boolean;
+}> = ({ surfaces, renderSurface, onRequestClose, active }) => {
   const { t } = useTranslation();
   const workspace = useWorkspace();
   const presentation = useWorkspacePresentation();
@@ -1045,6 +1055,15 @@ const DesktopWorkspace: React.FC<{
   } | null>(null);
   const closeSurface = (surface: WorkspaceSurface) =>
     onRequestClose ? onRequestClose(surface) : workspace.close(surface.id);
+  // Body portals owned here must not outlive the terminals panel: when it
+  // hides, any open window/chrome menu would overlay the new surface.
+  useEffect(() => {
+    if (!active) {
+      setChromeMenuViewId(null);
+      setChromeMenuPoint(null);
+      setWindowMenu(null);
+    }
+  }, [active]);
   const terminalSurfaces = surfaces.filter(isPtySurface);
   const mosaic = presentation.state.mode === 'MOSAIC';
   // Minimize then move keyboard focus to the shelf restore control: focus
@@ -1099,6 +1118,9 @@ const DesktopWorkspace: React.FC<{
     if (!host) return;
     const publish = () => {
       const rect = host.getBoundingClientRect();
+      // While the terminals panel is hidden the rect is zero; publishing a
+      // fallback canvas would clobber the desktop layout for no reason.
+      if (rect.width <= 0 || rect.height <= 0) return;
       presentation.setCanvas({
         x: 8,
         y: 8,

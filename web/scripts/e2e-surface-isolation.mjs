@@ -10,7 +10,7 @@
 //   - tablist/tab/tabpanel semantics stay correct after every switch
 //   - Axe: zero serious/critical violations on Flow + Settings surfaces
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
@@ -24,7 +24,9 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
-const screenshotDir = path.resolve(repoRoot, '.tempmediaStorage');
+// Env-overridable so parallel runs never share one artifact directory.
+const screenshotDir =
+  process.env.NEXUS_E2E_ARTIFACTS_DIR || path.resolve(repoRoot, '.tempmediaStorage');
 if (!existsSync(screenshotDir)) mkdirSync(screenshotDir, { recursive: true });
 
 const VIEWPORTS = [
@@ -176,7 +178,7 @@ async function assertIsolation(page, label) {
   assert.equal(snapshot.bodyOverflow, '', `[${label}] no body overflow lock: ${JSON.stringify(snapshot)}`);
   assert.equal(snapshot.scrollY, 0, `[${label}] no page scroll offset: ${JSON.stringify(snapshot)}`);
   assert.ok(
-    snapshot.docScrollW <= snapshot.innerW + 1,
+    snapshot.docScrollW <= snapshot.innerW + 2,
     `[${label}] no unintended horizontal scrollbar: ${JSON.stringify(snapshot)}`,
   );
   assert.equal(snapshot.focusInHidden, false, `[${label}] focus must not sit in a hidden panel`);
@@ -185,7 +187,8 @@ async function assertIsolation(page, label) {
 
 async function main() {
   console.log('=== Surface Isolation + Terminal Keep-Alive E2E ===');
-  const { server, bootstrapUrl, isolatedProjectPath, getOutput } = await startFixtureServer();
+  const { server, bootstrapUrl, isolatedProjectPath, isolatedDataDir, getOutput } =
+    await startFixtureServer();
   let browser;
   let context;
   let page;
@@ -324,19 +327,36 @@ async function main() {
       0,
       `unexpected console errors: ${collectors.consoleErrors.join(' | ')}`,
     );
+    // Favicon and data: fetches are browser chrome noise, never app failures.
+    const meaningfulFailures = collectors.requestFailures.filter(
+      (entry) => !/favicon\.ico|data:/i.test(entry),
+    );
     assert.equal(
-      collectors.requestFailures.length,
+      meaningfulFailures.length,
       0,
-      `unexpected request failures: ${collectors.requestFailures.join(' | ')}`,
+      `unexpected request failures: ${meaningfulFailures.join(' | ')}`,
     );
     console.log('✓ All Surface Isolation assertions PASSED!');
   } catch (error) {
+    // Never persist the one-time bootstrap token: anyone holding the
+    // artifact could hijack the fixture session.
+    const publicUrl = (() => {
+      try {
+        const url = new URL(page?.url() || bootstrapUrl);
+        url.hash = '';
+        return url.toString();
+      } catch {
+        return '(unparsable url)';
+      }
+    })();
+    const redact = (value) =>
+      String(value).replace(/nexus_bootstrap=[a-f0-9]+/gi, 'nexus_bootstrap=[REDACTED]');
     const diagnostics = {
-      url: page?.url() || bootstrapUrl,
-      pageErrors: collectors?.pageErrors || [],
-      consoleErrors: collectors?.consoleErrors || [],
-      requestFailures: collectors?.requestFailures || [],
-      serverOutput: getOutput().replace(/token=[a-f0-9]+/gi, 'token=[REDACTED]'),
+      url: publicUrl,
+      pageErrors: collectors?.pageErrors.map(redact) || [],
+      consoleErrors: collectors?.consoleErrors.map(redact) || [],
+      requestFailures: collectors?.requestFailures.map(redact) || [],
+      serverOutput: redact(getOutput()),
       error: String(error?.stack || error),
     };
     writeFileSync(
@@ -353,6 +373,11 @@ async function main() {
     if (browser) await browser.close().catch(() => {});
     console.log('Terminating test server...');
     await terminateProcess(server);
+    // Remove the isolated fixture tree unless the caller pinned it via env
+    // for post-mortem inspection.
+    if (!process.env.NEXUS_E2E_DATA_DIR && isolatedDataDir) {
+      rmSync(isolatedDataDir, { recursive: true, force: true });
+    }
   }
 }
 

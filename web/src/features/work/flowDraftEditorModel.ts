@@ -11,11 +11,12 @@ export const composerDraftStorageKey = (projectId: string): string =>
 export const composerHistoryStorageKey = (projectId: string): string =>
   `nexus:composer:history:${projectId}`;
 
-/** Session key for the unsaved Flow step-draft of one project. Survives surface
+/** Session key for the unsaved Flow step-draft of one plan. Survives surface
  *  unmounts (product-surface isolation) within the tab session; the server plan
- *  remains the source of truth for anything persisted. */
-export const flowDraftSessionKey = (projectId: string): string =>
-  `nexus:flow:draft-edits:${projectId}`;
+ *  remains the source of truth for anything persisted. Keyed per plan so
+ *  switching drafts cannot cross-contaminate step edits. */
+export const flowDraftSessionKey = (projectId: string, planId: string): string =>
+  `nexus:flow:draft-edits:${projectId}:${planId}`;
 
 export interface StoredFlowDraft {
   planId: string;
@@ -29,7 +30,9 @@ export function loadStoredFlowDraft(key: string): StoredFlowDraft | null {
     const raw = window.sessionStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredFlowDraft;
-    if (!parsed || typeof parsed.planId !== 'string' || !parsed.draft) return null;
+    if (!parsed || typeof parsed.planId !== 'string' || typeof parsed.revision !== 'number')
+      return null;
+    if (!parsed.draft || typeof parsed.draft !== 'object') return null;
     return parsed;
   } catch {
     return null;

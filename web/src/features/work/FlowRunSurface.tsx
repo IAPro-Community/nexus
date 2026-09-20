@@ -18,6 +18,7 @@ import { nexusApi } from '../../nexus/api';
 import { useTranslation } from 'react-i18next';
 import type {
   Agent,
+  ContextCapsule,
   FlowRunEvidence,
   InterventionOption,
   MissionRun,
@@ -127,6 +128,11 @@ export const FlowRunSurface: React.FC<{
   const [resolvingOption, setResolvingOption] = useState('');
   const [decisionNotice, setDecisionNotice] = useState('');
   const interventionRef = useRef<HTMLDivElement>(null);
+  // Synchronous action guards: setState is async, so two rapid clicks (or a
+  // pause/cancel racing an intervention resolve) would both pass the `busy`
+  // check before re-render. Refs flip synchronously.
+  const busyRef = useRef(false);
+  const resolvingRef = useRef(false);
   // Latest-wins guard: refresh() calls overlap (manual click + 1500ms poll).
   // A slow earlier request must never overwrite fresher state that arrived later.
   const refreshGuardRef = useRef(createRefreshGuard());
@@ -155,7 +161,12 @@ export const FlowRunSurface: React.FC<{
         plan?.id === current.plan_id ? Promise.resolve(null) : nexusApi.getPlan(current.plan_id),
       ]);
       if (!guard.isLatest(seq)) return;
-      setEvidence(nextEvidence);
+      // Normalize at the API boundary: Go encodes empty slices as null.
+      setEvidence({
+        run_id: nextEvidence.run_id || runId,
+        capsules: asArray<ContextCapsule>(nextEvidence.capsules),
+        receipts: asArray<WorkReceipt>(nextEvidence.receipts),
+      });
       if (detail) setPlan(detail.plan);
       setError('');
     } catch (err) {
@@ -186,7 +197,10 @@ export const FlowRunSurface: React.FC<{
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', tick);
     };
-  }, [run, refresh]);
+    // Depend on stable scalars: `run` identity changes on every refresh,
+    // which would otherwise tear down and rebuild the interval each tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run?.id, run?.state, refresh]);
 
   const flow = useMemo(() => (plan ? flowFromWorkPlan(plan) : null), [plan]);
   const userState = flowRunStateFromMission(run?.state || 'PENDING');
@@ -213,7 +227,8 @@ export const FlowRunSurface: React.FC<{
   );
 
   const perform = async (name: string, action: () => Promise<MissionRun>) => {
-    if (busy) return;
+    if (busyRef.current || resolvingRef.current) return;
+    busyRef.current = true;
     setBusy(name);
     setError('');
     try {
@@ -223,13 +238,15 @@ export const FlowRunSurface: React.FC<{
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
+      busyRef.current = false;
       setBusy('');
     }
   };
 
   const resolveOption = async (optionId: string) => {
     const intervention = run?.needs_human;
-    if (!run || !intervention || busy || resolvingOption) return;
+    if (!run || !intervention || busyRef.current || resolvingRef.current) return;
+    resolvingRef.current = true;
     setResolvingOption(optionId);
     setError('');
     try {
@@ -247,6 +264,7 @@ export const FlowRunSurface: React.FC<{
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
+      resolvingRef.current = false;
       setResolvingOption('');
     }
   };
@@ -255,6 +273,13 @@ export const FlowRunSurface: React.FC<{
     interventionRef.current?.scrollIntoView({ block: 'nearest' });
     interventionRef.current?.focus();
   };
+
+  // A recorded decision belongs to one intervention: clear it when the run
+  // or its pending intervention changes so stale success never lingers.
+  const interventionId = run?.needs_human?.id || '';
+  useEffect(() => {
+    setDecisionNotice('');
+  }, [runId, run?.id, interventionId]);
 
   const openAgent = async (agentId: string) => {
     if (!agentId || !onOpenAgent) return;
@@ -365,7 +390,12 @@ export const FlowRunSurface: React.FC<{
 
       {isBlocked && intervention && (
         <Card className="nx-flow-run-decision" data-intervention={intervention.id}>
-          <div ref={interventionRef} tabIndex={-1} aria-label={t('flowRun.needsDecision')}>
+          <div
+            ref={interventionRef}
+            tabIndex={-1}
+            role="region"
+            aria-label={t('flowRun.needsDecision')}
+          >
             {intervention.question && (
               <div>
                 <strong>{t('flowRun.decisionQuestion')}</strong>
@@ -500,13 +530,13 @@ export const FlowRunSurface: React.FC<{
           <div>
             <strong>{t('flowRun.iterationBudget')}</strong>
             <span>
-              {run.total_iterations} / {run.contract.max_total_iterations}
+              {run.total_iterations} / {run.contract?.max_total_iterations ?? '—'}
             </span>
           </div>
           <div>
             <strong>{t('flowRun.verification')}</strong>
             <span>
-              {run.contract.require_verification
+              {run.contract?.require_verification
                 ? t('flowRun.verificationRequired')
                 : t('flowRun.verificationDisabled')}
             </span>

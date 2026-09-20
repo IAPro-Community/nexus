@@ -60,18 +60,29 @@ export async function startFixtureServer() {
     NEXUS_E2E_PROJECT_PATH: isolatedProjectPath,
   };
   let serverOutput = '';
+  const appendOutput = (chunk) => {
+    serverOutput += chunk.toString();
+    // Cap the retained tail: long soaks must not grow memory unbounded.
+    if (serverOutput.length > 65536) serverOutput = serverOutput.slice(-65536);
+  };
   const server = spawn(binPath, ['web', '--port', '0', '--listen', '127.0.0.1', '--no-open'], {
     cwd: repoRoot,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: serverEnv,
   });
+  const killServer = () => terminateProcess(server);
 
+  const bootstrapTimeoutMs = Number(process.env.NEXUS_E2E_TIMEOUT_MS || 12000);
   const bootstrapUrl = await new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       clearInterval(poll);
-      reject(new Error(`Timed out waiting for server bootstrap URL. Output:\n${serverOutput}`));
-    }, 12000);
+      // The caller never receives the handle on this path, so kill here to
+      // avoid leaking the spawned server.
+      killServer().finally(() => {
+        reject(new Error(`Timed out waiting for server bootstrap URL. Output:\n${serverOutput}`));
+      });
+    }, bootstrapTimeoutMs);
     let resolved = false;
     const resolveFromListenState = () => {
       const result = spawnSync(binPath, ['web', 'url'], {
@@ -92,10 +103,10 @@ export async function startFixtureServer() {
       if (!resolved) resolveFromListenState();
     }, 100);
     server.stdout.on('data', (chunk) => {
-      serverOutput += chunk.toString();
+      appendOutput(chunk);
     });
     server.stderr.on('data', (chunk) => {
-      serverOutput += chunk.toString();
+      appendOutput(chunk);
     });
     server.on('exit', (code) => {
       clearTimeout(timer);
@@ -104,7 +115,14 @@ export async function startFixtureServer() {
     });
   });
 
-  return { server, serverEnv, bootstrapUrl, isolatedProjectPath, getOutput: () => serverOutput };
+  return {
+    server,
+    serverEnv,
+    bootstrapUrl,
+    isolatedProjectPath,
+    isolatedDataDir,
+    getOutput: () => serverOutput,
+  };
 }
 
 export async function launchFixtureBrowser(bootstrapUrl) {

@@ -49,7 +49,10 @@ export const FlowRunsHistorySurface: React.FC<{
   const [newGoal, setNewGoal] = useState('');
   const [creating, setCreating] = useState(false);
 
+  const loadSeqRef = React.useRef(0);
   const load = useCallback(async () => {
+    const seq = (loadSeqRef.current += 1);
+    const isLatest = () => loadSeqRef.current === seq;
     setLoading(true);
     setError('');
     try {
@@ -57,6 +60,7 @@ export const FlowRunsHistorySurface: React.FC<{
         nexusApi.getRuns().catch(() => []),
         nexusApi.getPlans(project.id).catch(() => []),
       ]);
+      if (!isLatest()) return;
       const nextRuns = asArray(runList).filter((run): run is MissionRun => {
         const item = run as MissionRun;
         return (
@@ -92,11 +96,12 @@ export const FlowRunsHistorySurface: React.FC<{
         }
       }
     } catch (err) {
+      if (!isLatest()) return;
       setError(err instanceof Error ? err.message : String(err));
       setRuns([]);
       setPlans([]);
     } finally {
-      setLoading(false);
+      if (isLatest()) setLoading(false);
     }
   }, [project.id]);
 
