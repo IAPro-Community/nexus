@@ -219,6 +219,10 @@ type accountsRefreshedMsg struct {
 
 const quotaPollInterval = 60 * time.Second
 
+// staleQuotaAge is the threshold after which a cached quota reading is
+// considered stale and an age suffix is appended to the STATUS column.
+const staleQuotaAge = 45 * time.Minute
+
 func quotaPollTick() tea.Cmd {
 	return tea.Tick(quotaPollInterval, func(time.Time) tea.Msg {
 		return quotaPollTickMsg{}
@@ -841,13 +845,15 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Count results for status message.
 		ok, stale := 0, 0
 		for _, sub := range msg.results {
-			if len(sub.rows) > 0 {
-				switch sub.rows[0].SnapshotStatus {
-				case "UNKNOWN", "UNSUPPORTED", "":
-					stale++
-				default:
-					ok++
-				}
+			if len(sub.rows) == 0 {
+				stale++
+				continue
+			}
+			switch sub.rows[0].SnapshotStatus {
+			case string(model.UsageUnknown), string(model.UsageUnsupported), string(model.UsageError), "":
+				stale++
+			default:
+				ok++
 			}
 		}
 		total := len(msg.results)
@@ -1539,7 +1545,7 @@ func renderAccountCells(row UsageTableRow, cols []table.Column, index int) []str
 			cells = append(cells, renderTableCell(formatQuotaCell(row.Weekly, weeklyWidth, row.Status), c.Width, usageQuotaStyle(row.Status, row.Weekly)))
 		case "STATUS":
 			statusDisplay := row.Status
-			if !row.FetchedAt.IsZero() && time.Since(row.FetchedAt) > 60*time.Minute {
+			if !row.FetchedAt.IsZero() && time.Since(row.FetchedAt) > staleQuotaAge {
 				statusDisplay = statusDisplay + " · " + compactAge(row.FetchedAt)
 			}
 			cells = append(cells, renderTableCell(statusDisplay, c.Width, usageStatusStyle(row.Status)))
