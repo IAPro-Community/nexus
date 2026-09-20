@@ -460,6 +460,14 @@ const WorkspaceStackView: React.FC<{
       ? activeRaw
       : productTabs.find((tab) => tab.type === 'terminals') || productTabs[0];
   const activeId = activeProduct?.id || stack.activeId;
+  // Surface isolation contract: inactive product surfaces unmount. Their React
+  // portals unmount with them, so no orphan dialog/backdrop/focus-trap can leak.
+  // TerminalsHost is the deliberate keep-alive exception (PTY/runtime continuity).
+  const terminalsSurface = productTabs.find((tab) => tab.type === 'terminals');
+  const terminalsActive = activeProduct?.type === 'terminals';
+  useEffect(() => {
+    setTabMenu(null);
+  }, [activeId]);
   const closeSurface = (surface: WorkspaceSurface) =>
     onRequestClose ? onRequestClose(surface) : close(surface.id);
   const legacyTitleKeys: Record<string, string> = {
@@ -504,6 +512,8 @@ const WorkspaceStackView: React.FC<{
               <button
                 draggable={!pinned}
                 key={surface.id}
+                id={`nx-tab-${surface.id}`}
+                aria-controls={`nx-panel-${surface.id}`}
                 type="button"
                 role="tab"
                 aria-selected={activeId === surface.id}
@@ -582,27 +592,37 @@ const WorkspaceStackView: React.FC<{
         }
       />
       <div className="nx-workspace-stack__body">
-        {productTabs.map((surface) => (
+        {terminalsSurface && (
           <div
-            key={surface.id}
             role="tabpanel"
-            aria-hidden={activeId !== surface.id}
-            data-active={activeId === surface.id ? 'true' : 'false'}
+            id={`nx-panel-${terminalsSurface.id}`}
+            aria-labelledby={`nx-tab-${terminalsSurface.id}`}
+            hidden={!terminalsActive}
+            inert={!terminalsActive}
+            data-active={terminalsActive ? 'true' : 'false'}
+            className="nx-workspace-panel nx-workspace-panel--terminals"
+          >
+            <TerminalsHost
+              ptySurfaces={ptyTabs}
+              renderSurface={renderSurface}
+              onRequestClose={onRequestClose}
+              createActions={createActions}
+              active={terminalsActive}
+            />
+          </div>
+        )}
+        {activeProduct && activeProduct.type !== 'terminals' && (
+          <div
+            key={activeProduct.id}
+            role="tabpanel"
+            id={`nx-panel-${activeProduct.id}`}
+            aria-labelledby={`nx-tab-${activeProduct.id}`}
+            data-active="true"
             className="nx-workspace-panel"
           >
-            {surface.type === 'terminals' ? (
-              <TerminalsHost
-                ptySurfaces={ptyTabs}
-                renderSurface={renderSurface}
-                onRequestClose={onRequestClose}
-                createActions={createActions}
-                active={activeId === surface.id}
-              />
-            ) : (
-              renderSurface(surface)
-            )}
+            {renderSurface(activeProduct)}
           </div>
-        ))}
+        )}
       </div>
     </section>
   );
