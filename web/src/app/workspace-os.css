@@ -829,12 +829,33 @@ button {
   color: var(--nx-text);
   box-shadow: inset 0 -2px var(--nx-accent);
 }
+/* Tab + close-button wrapper: keeps both activatable without nesting
+   interactive elements (button-in-button is invalid HTML and confuses AT). */
+.nx-workspace-tab__item {
+  display: flex;
+  align-items: stretch;
+  border-right: 1px solid var(--nx-border);
+}
+.nx-workspace-tab__item > .nx-workspace-tab {
+  flex: 1 1 auto;
+  border-right: 0;
+}
+.nx-workspace-tab__item > .nx-workspace-tab__close {
+  align-self: center;
+  margin-right: 6px;
+}
 .nx-workspace-tab__close {
   display: grid;
   place-items: center;
   padding: 2px;
   border-radius: 4px;
   color: var(--nx-subtle);
+}
+button.nx-workspace-tab__close {
+  background: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
 }
 .nx-workspace-tab__close:hover {
   background: var(--nx-danger-soft);
@@ -5360,6 +5381,12 @@ button {
 }
 .nx-desktop-dock[hidden] {
   display: none !important;
+}
+/* Minimized desktop windows stay mounted (xterm/socket/scrollback alive)
+ * but must not participate in layout: author display:grid beats UA
+ * [hidden], so scope the override instead of using !important. */
+.nx-desktop-workspace .nx-desktop-window[hidden] {
+  display: none;
 }
 .nx-desktop-dock:empty {
   display: none;

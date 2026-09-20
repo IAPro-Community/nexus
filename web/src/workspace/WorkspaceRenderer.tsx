@@ -509,55 +509,60 @@ const WorkspaceStackView: React.FC<{
             const TabIcon = PRODUCT_TAB_ICONS[surface.type] || Layers;
             const pinned = isPinnedProductTab(surface);
             return (
-              <button
-                draggable={!pinned}
+              <div
                 key={surface.id}
-                id={`nx-tab-${surface.id}`}
-                aria-controls={`nx-panel-${surface.id}`}
-                type="button"
-                role="tab"
-                aria-selected={activeId === surface.id}
+                className="nx-workspace-tab__item"
                 data-active={activeId === surface.id ? 'true' : 'false'}
-                data-pinned={pinned ? 'true' : undefined}
-                data-kind={surface.type}
-                data-attention={surface.data?.hasAttention === 'true' ? 'true' : undefined}
-                data-unread={surface.data?.unreadAttention === 'true' ? 'true' : undefined}
-                className="nx-workspace-tab"
-                onDragStart={(event) => {
-                  if (pinned) {
-                    event.preventDefault();
-                    return;
-                  }
-                  setDraggedSurface(surface.id);
-                  event.dataTransfer.setData('application/x-nexus-surface', surface.id);
-                  event.dataTransfer.effectAllowed = 'move';
-                }}
-                onClick={() =>
-                  onActivateSurface ? onActivateSurface(surface) : activate(surface.id)
-                }
-                onContextMenu={(event) => {
-                  if (surface.closable === false) return;
-                  setTabMenu({ surface, point: contextMenuFromEvent(event) });
-                }}
               >
-                <span className="nx-workspace-tab__icon" aria-hidden="true">
-                  <TabIcon size={16} strokeWidth={2.25} />
-                </span>
-                {(surface.data?.hasAttention === 'true' ||
-                  surface.data?.unreadAttention === 'true') && (
-                  <span
-                    className="nx-workspace-tab__attention-dot"
-                    data-kind={surface.data?.attentionKind || undefined}
-                    data-unread={surface.data?.unreadAttention === 'true' ? 'true' : undefined}
-                    role="img"
-                    aria-label={t('workspace.needsAttention', 'needs attention')}
-                  />
-                )}
-                <span className="nx-workspace-tab__label">{displayTitle(surface)}</span>
+                <button
+                  draggable={!pinned}
+                  id={`nx-tab-${surface.id}`}
+                  aria-controls={`nx-panel-${surface.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeId === surface.id}
+                  data-active={activeId === surface.id ? 'true' : 'false'}
+                  data-pinned={pinned ? 'true' : undefined}
+                  data-kind={surface.type}
+                  data-attention={surface.data?.hasAttention === 'true' ? 'true' : undefined}
+                  data-unread={surface.data?.unreadAttention === 'true' ? 'true' : undefined}
+                  className="nx-workspace-tab"
+                  onDragStart={(event) => {
+                    if (pinned) {
+                      event.preventDefault();
+                      return;
+                    }
+                    setDraggedSurface(surface.id);
+                    event.dataTransfer.setData('application/x-nexus-surface', surface.id);
+                    event.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onClick={() =>
+                    onActivateSurface ? onActivateSurface(surface) : activate(surface.id)
+                  }
+                  onContextMenu={(event) => {
+                    if (surface.closable === false) return;
+                    setTabMenu({ surface, point: contextMenuFromEvent(event) });
+                  }}
+                >
+                  <span className="nx-workspace-tab__icon" aria-hidden="true">
+                    <TabIcon size={16} strokeWidth={2.25} />
+                  </span>
+                  {(surface.data?.hasAttention === 'true' ||
+                    surface.data?.unreadAttention === 'true') && (
+                    <span
+                      className="nx-workspace-tab__attention-dot"
+                      data-kind={surface.data?.attentionKind || undefined}
+                      data-unread={surface.data?.unreadAttention === 'true' ? 'true' : undefined}
+                      role="img"
+                      aria-label={t('workspace.needsAttention', 'needs attention')}
+                    />
+                  )}
+                  <span className="nx-workspace-tab__label">{displayTitle(surface)}</span>
+                </button>
                 {surface.closable !== false && (
-                  <span
+                  <button
+                    type="button"
                     className="nx-workspace-tab__close"
-                    role="button"
                     aria-label={t('workspace.closeNamed', { name: displayTitle(surface) })}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -565,9 +570,9 @@ const WorkspaceStackView: React.FC<{
                     }}
                   >
                     <X size={11} />
-                  </span>
+                  </button>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -597,8 +602,8 @@ const WorkspaceStackView: React.FC<{
             role="tabpanel"
             id={`nx-panel-${terminalsSurface.id}`}
             aria-labelledby={`nx-tab-${terminalsSurface.id}`}
-            hidden={!terminalsActive}
-            inert={!terminalsActive}
+            hidden={!terminalsActive || undefined}
+            inert={!terminalsActive || undefined}
             data-active={terminalsActive ? 'true' : 'false'}
             className="nx-workspace-panel nx-workspace-panel--terminals"
           >
@@ -655,6 +660,17 @@ const TerminalsHost: React.FC<{
   const minimizedPtys = ptySurfaces.filter(
     (surface) => presentation.state.windows[surfaceViewId(surface)]?.minimized,
   );
+  // Surface switch away from terminals: close ownerless menu portals living
+  // in document.body (inert on the panel cannot reach them).
+  const hostWasActive = useRef(active);
+  useEffect(() => {
+    if (hostWasActive.current && !active) {
+      setTabMenu(null);
+      setChromeMenuViewId(null);
+      setChromeMenuPoint(null);
+    }
+    hostWasActive.current = active;
+  }, [active]);
 
   useEffect(() => {
     const activePtyViewId = presentation.state.activePtyViewId;
@@ -676,6 +692,15 @@ const TerminalsHost: React.FC<{
       presentation.focus(viewId);
     }
   };
+  // Restore a minimized PTY in one dispatch, then nudge layout observers (the
+  // xterm was 0x0 while hidden). Focus stays with the user: the restore chip
+  // unmounts, so focus falls back to body and click-to-focus resumes.
+  const restoreView = (viewId: string) => {
+    presentation.restore(viewId);
+    window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+  };
 
   return (
     <div className="nx-terminals-host" data-active={active ? 'true' : 'false'}>
@@ -683,11 +708,15 @@ const TerminalsHost: React.FC<{
         <div className="nx-terminals-host__title">
           <TerminalSquare size={14} />
           <strong>
-            {t('nav.terminals')} · {ptySurfaces.length} PTY{ptySurfaces.length === 1 ? '' : 's'}
+            {t('nav.terminals')} · {t('nav.ptyCount', { count: ptySurfaces.length })}
           </strong>
         </div>
         {windowed && minimizedPtys.length > 0 ? (
-          <div className="nx-minimized-chips" aria-label={t('workspace.minimizedShelf')}>
+          <div
+            className="nx-minimized-chips"
+            role="group"
+            aria-label={t('workspace.minimizedShelf')}
+          >
             <span className="nx-minimized-chips__label">{t('workspace.minimizedShelf')}</span>
             {minimizedPtys.map((surface) => {
               const viewId = surfaceViewId(surface);
@@ -702,12 +731,11 @@ const TerminalsHost: React.FC<{
                 <button
                   key={viewId}
                   type="button"
+                  id={`nx-restore-${viewId}`}
                   title={t('workspace.restoreNamed', { name: label })}
+                  aria-label={t('workspace.restoreNamed', { name: label })}
                   data-unread={surface.data?.unreadAttention === 'true' ? 'true' : undefined}
-                  onClick={() => {
-                    presentation.minimize(viewId);
-                    presentation.focus(viewId);
-                  }}
+                  onClick={() => restoreView(viewId)}
                 >
                   {win?.icon ? <span aria-hidden="true">{win.icon}</span> : <Minus size={11} />}
                   {label}
@@ -766,7 +794,7 @@ const TerminalsHost: React.FC<{
       </header>
       <div className="nx-terminals-host__body">
         {ptySurfaces.length === 0 ? (
-          <div className="nx-terminals-empty">
+          <div className="nx-terminals-empty" role="status">
             <TerminalSquare size={26} />
             <strong>{t('workspace.noTerminalsOpen', 'Nenhum terminal aberto')}</strong>
             <p>
@@ -826,6 +854,19 @@ const TerminalsHost: React.FC<{
               className="nx-workspace-tabs nx-pty-tabs"
               role="tablist"
               aria-label={t('workspace.ptyTabs', 'Abas PTY')}
+              onKeyDown={(event) => {
+                if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+                const tabs = Array.from(
+                  event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+                );
+                const current = tabs.indexOf(document.activeElement as HTMLButtonElement);
+                if (current === -1) return;
+                event.preventDefault();
+                const next =
+                  (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                tabs[next]?.focus();
+                tabs[next]?.click();
+              }}
             >
               {ptySurfaces.map((surface) => {
                 const viewId = surfaceViewId(surface);
@@ -853,6 +894,8 @@ const TerminalsHost: React.FC<{
                     <button
                       type="button"
                       role="tab"
+                      id={`nx-pty-tab-${surface.id}`}
+                      aria-controls={`nx-pty-panel-${surface.id}`}
                       className="nx-workspace-tab"
                       data-active={focusedPtyId === surface.id ? 'true' : 'false'}
                       data-attention={
@@ -879,6 +922,19 @@ const TerminalsHost: React.FC<{
                       ) : null}
                       <span className="nx-workspace-tab__label">{tabLabel}</span>
                     </button>
+                    {surface.closable !== false && onRequestClose && (
+                      <button
+                        type="button"
+                        className="nx-workspace-tab__close"
+                        aria-label={t('workspace.closeNamed', { name: tabLabel })}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onRequestClose(surface);
+                        }}
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
                     <WindowChromeMenu
                       viewId={viewId}
                       open={chromeMenuViewId === viewId}
@@ -892,33 +948,28 @@ const TerminalsHost: React.FC<{
                       icon={icon}
                       onPatch={(chrome) => presentation.patchChrome(viewId, chrome)}
                     />
-                    {surface.closable !== false && onRequestClose && (
-                      <span
-                        className="nx-workspace-tab__close"
-                        role="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onRequestClose(surface);
-                        }}
-                      >
-                        <X size={11} />
-                      </span>
-                    )}
                   </div>
                 );
               })}
             </div>
             <div className="nx-terminals-inner-panels">
-              {ptySurfaces.map((surface) => (
-                <div
-                  key={surface.id}
-                  className="nx-workspace-panel"
-                  data-active={focusedPtyId === surface.id ? 'true' : 'false'}
-                  aria-hidden={focusedPtyId !== surface.id}
-                >
-                  {renderSurface(surface)}
-                </div>
-              ))}
+              {ptySurfaces.map((surface) => {
+                const ptyActive = focusedPtyId === surface.id;
+                return (
+                  <div
+                    key={surface.id}
+                    role="tabpanel"
+                    id={`nx-pty-panel-${surface.id}`}
+                    aria-labelledby={`nx-pty-tab-${surface.id}`}
+                    hidden={!ptyActive || undefined}
+                    inert={!ptyActive || undefined}
+                    className="nx-workspace-panel"
+                    data-active={ptyActive ? 'true' : 'false'}
+                  >
+                    {renderSurface(surface)}
+                  </div>
+                );
+              })}
             </div>
             <ContextMenu
               open={tabMenu?.point ?? null}
@@ -996,6 +1047,24 @@ const DesktopWorkspace: React.FC<{
     onRequestClose ? onRequestClose(surface) : workspace.close(surface.id);
   const terminalSurfaces = surfaces.filter(isPtySurface);
   const mosaic = presentation.state.mode === 'MOSAIC';
+  // Minimize then move keyboard focus to the shelf restore control: focus
+  // must never stay inside the now-hidden window subtree.
+  const minimizeView = (viewId: string) => {
+    setChromeMenuViewId(null);
+    setChromeMenuPoint(null);
+    setWindowMenu(null);
+    presentation.minimize(viewId);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`nx-restore-${viewId}`)?.focus();
+    });
+  };
+  // Single-dispatch restore + layout nudge for the 0x0-hidden xterm.
+  const restoreDesktopView = (viewId: string) => {
+    presentation.restore(viewId);
+    window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+  };
   const activeViewId = presentation.state.activePtyViewId;
   const [layoutMotion, setLayoutMotion] = useState(false);
   const previousMode = useRef(presentation.state.mode);
@@ -1147,7 +1216,12 @@ const DesktopWorkspace: React.FC<{
       data-layout-motion={layoutMotion ? 'true' : undefined}
     >
       {windows.map(({ surface, win }) => {
-        if (!win || win.minimized) return null;
+        if (!win) return null;
+        // Minimized windows stay mounted but hidden (display:none keeps the
+        // xterm instance, WebSocket and scrollback alive): minimize must not
+        // unmount the PTY. Backend runtime survives regardless; this preserves
+        // output continuity and fit state on restore.
+        const minimized = win.minimized === true;
         const viewId = surfaceViewId(surface);
         const live = liveChromeFor(liveByViewId, viewId);
         const questionnaire = live.questionnaire;
@@ -1182,6 +1256,8 @@ const DesktopWorkspace: React.FC<{
             key={viewId}
             className="nx-desktop-window"
             data-view-id={viewId}
+            hidden={minimized || undefined}
+            inert={minimized || undefined}
             data-maximized={win.maximized ? 'true' : 'false'}
             data-mosaic={mosaic ? 'true' : undefined}
             data-active={activeViewId === viewId ? 'true' : undefined}
@@ -1284,11 +1360,8 @@ const DesktopWorkspace: React.FC<{
                   onPatch={(chrome) => presentation.patchChrome(viewId, chrome)}
                 />
                 <IconButton
-                  label={t('workspace.minimizeAgent', {
-                    agent: agentName,
-                    defaultValue: `Minimizar ${agentName}`,
-                  })}
-                  onClick={() => presentation.minimize(viewId)}
+                  label={t('workspace.minimizeAgent', { agent: agentName })}
+                  onClick={() => minimizeView(viewId)}
                 >
                   <Minus size={13} />
                 </IconButton>
@@ -1296,14 +1369,8 @@ const DesktopWorkspace: React.FC<{
                   <IconButton
                     label={
                       win.maximized
-                        ? t('workspace.restoreAgent', {
-                            agent: agentName,
-                            defaultValue: `Restaurar ${agentName}`,
-                          })
-                        : t('workspace.maximizeAgent', {
-                            agent: agentName,
-                            defaultValue: `Maximizar ${agentName}`,
-                          })
+                        ? t('workspace.restoreAgent', { agent: agentName })
+                        : t('workspace.maximizeAgent', { agent: agentName })
                     }
                     onClick={() => presentation.maximize(viewId)}
                   >
@@ -1312,10 +1379,7 @@ const DesktopWorkspace: React.FC<{
                 )}
                 {surface.closable !== false && (
                   <IconButton
-                    label={t('workspace.closeAgent', {
-                      agent: agentName,
-                      defaultValue: `Fechar ${agentName}`,
-                    })}
+                    label={t('workspace.closeAgent', { agent: agentName })}
                     onClick={() => closeSurface(surface)}
                   >
                     <X size={13} />
@@ -1401,7 +1465,7 @@ const DesktopWorkspace: React.FC<{
           );
         })}
       {mosaic && windows.length > 0 && windows.every(({ win }) => win?.minimized) && (
-        <div className="nx-mosaic-all-minimized">
+        <div className="nx-mosaic-all-minimized" role="status">
           <Minus size={18} />
           <strong>{t('workspace.minimizedShelf')}</strong>
           <p>{t('workspace.mosaicAllMinimized')}</p>
@@ -1409,6 +1473,7 @@ const DesktopWorkspace: React.FC<{
       )}
       <div
         className="nx-desktop-dock"
+        role="group"
         data-kind={mosaic ? 'shelf' : 'float'}
         hidden={windows.every(({ win }) => !win?.minimized)}
         aria-label={t('workspace.minimizedShelf')}
@@ -1429,12 +1494,11 @@ const DesktopWorkspace: React.FC<{
               <button
                 type="button"
                 key={viewId}
+                id={`nx-restore-${viewId}`}
                 title={t('workspace.restoreNamed', { name: label })}
+                aria-label={t('workspace.restoreNamed', { name: label })}
                 data-unread={unread ? 'true' : undefined}
-                onClick={() => {
-                  presentation.minimize(viewId);
-                  presentation.focus(viewId);
-                }}
+                onClick={() => restoreDesktopView(viewId)}
                 onContextMenu={(event) => {
                   setWindowMenu({ viewId, surface, point: contextMenuFromEvent(event) });
                 }}
@@ -1472,8 +1536,7 @@ const DesktopWorkspace: React.FC<{
               label: t('workspace.windowRestore'),
               icon: <Minimize2 size={13} />,
               onSelect: () => {
-                presentation.minimize(windowMenu.viewId);
-                presentation.focus(windowMenu.viewId);
+                restoreDesktopView(windowMenu.viewId);
               },
             });
           } else {
@@ -1482,7 +1545,7 @@ const DesktopWorkspace: React.FC<{
               id: 'min',
               label: t('workspace.windowMinimize'),
               icon: <Minus size={13} />,
-              onSelect: () => presentation.minimize(windowMenu.viewId),
+              onSelect: () => minimizeView(windowMenu.viewId),
             });
             if (!mosaic) {
               items.push({

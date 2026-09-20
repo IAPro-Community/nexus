@@ -64,6 +64,8 @@ export const en = {
     settings: 'Settings',
     providers: 'Providers',
     runtimes: 'Runtime Control',
+    ptyCount_one: '{{count}} PTY',
+    ptyCount_other: '{{count}} PTYs',
   },
   settings: {
     eyebrow: 'Personalization & Maintenance',
@@ -1888,6 +1890,8 @@ export const ptBR = {
     settings: 'Configurações',
     providers: 'Provedores',
     runtimes: 'Controle de execução',
+    ptyCount_one: '{{count}} PTY',
+    ptyCount_other: '{{count}} PTYs',
   },
   settings: {
     eyebrow: 'Personalização e manutenção',
@@ -3721,6 +3725,8 @@ export const es = {
     settings: 'Configuración',
     providers: 'Proveedores',
     runtimes: 'Control de ejecución',
+    ptyCount_one: '{{count}} PTY',
+    ptyCount_other: '{{count}} PTYs',
   },
   settings: {
     eyebrow: 'Personalización y mantenimiento',
