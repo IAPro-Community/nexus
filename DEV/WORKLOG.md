@@ -1,5 +1,16 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-20 — Full close: minimize-hide, capacity E2E, beta truth, reports
+
+Sobre `feat/capacity-monitor-revival` @ `4cb4e26` (unmount aceito pelo
+Maestro): PTY minimizado agora `hidden`+`inert` (não desmonta; xterm/socket/
+scrollback vivos); `test:e2e:capacity` novo PASS (servidor real isolado);
+READMEs marcam beta.2 como candidate (sem tag/release confirmada);
+`CAPACITY_MONITOR_REVIVAL_REPORT.md` criado (GO local, CONDITIONAL global).
+Gates: go zero FAIL, race, vet, build, test-e2e, web-verify 10/10, vitest
+76/418, security limpo, diff-check limpo. Browser E2E NOT_EXECUTED
+(libatk ausente — ENVIRONMENTAL). Push/CI bloqueados (sem rede).
+
 ## 2026-09-20 — Surgical closure: surface isolation + Flow recovery (autopilot)
 
 Rodada final sobre `feat/capacity-monitor-revival` (5 commits

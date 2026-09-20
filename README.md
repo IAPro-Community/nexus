@@ -1,7 +1,9 @@
 <p align="center"><img src="nexus-logo.png" alt="IAPro Nexus" width="340"></p>
 
-> **Beta fechado v1.0.0-beta.2** — distribuído apenas como binário assinado
-> pelo canal oficial. Sem acesso ao código-fonte, sem build local.
+> **Beta fechado v1.0.0-beta.2 (release candidate)** — build local verificada;
+> a tag/release pública correspondente ainda não foi confirmada neste branch.
+> Verifique se a tag `v1.0.0-beta.2` e o GitHub Release existem antes de
+> baixar binários (`git ls-remote --tags origin v1.0.0-beta.2`).
 > Consulte [Beta Terms](docs/legal/BETA_TERMS.md) e
 > [Privacy](docs/legal/PRIVACY.md).
 
@@ -68,7 +70,7 @@ nexus doctor
 nexus web
 ```
 
-`--version=v1.0.0-beta.2` baixa o GitHub Release pinado e valida `checksums.txt` (integridade). `--version=latest` resolve a tag mais nova depois que a release existir. O repositório precisa ser público (ou use `GH_TOKEN`) para o download anônimo.
+`--version=v1.0.0-beta.2` baixa o GitHub Release pinado e valida `checksums.txt` (integridade) — exige que tag e release existam; se ainda não publicados, compile do fonte abaixo. `--version=latest` resolve a tag mais nova depois que a release existir. O repositório precisa ser público (ou use `GH_TOKEN`) para o download anônimo.
 
 Pré-requisitos do instalador de release: `curl` ou `wget`, `tar` e `sha256sum`/`shasum` (Unix) ou PowerShell (Windows). Desktop nativo pode exigir WebView2 (Windows) ou WebKitGTK (Linux).
 

@@ -35,7 +35,7 @@ nexus doctor
 nexus web
 ```
 
-`--version=v1.0.0-beta.2` downloads the pinned GitHub Release and verifies `checksums.txt` (integrity). `--version=latest` resolves the newest tag after the release exists. The repository must be public (or set `GH_TOKEN`) for anonymous download.
+`--version=v1.0.0-beta.2` downloads the pinned GitHub Release and verifies `checksums.txt` (integrity) — this requires the tag and release to exist; if not yet published, build from source below. `--version=latest` resolves the newest tag after the release exists. The repository must be public (or set `GH_TOKEN`) for anonymous download.
 
 Release installer prerequisites: `curl` or `wget`, `tar`, and `sha256sum`/`shasum` (Unix), or PowerShell (Windows). Native desktop may need WebView2 (Windows) or WebKitGTK (Linux).
 

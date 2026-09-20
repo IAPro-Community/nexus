@@ -20,6 +20,7 @@
     "verify": "node scripts/verify-report.mjs",
     "test:e2e": "node scripts/e2e-hardening-verify.mjs",
     "test:e2e:composer": "node scripts/e2e-composer-workspace.mjs",
+    "test:e2e:capacity": "node scripts/e2e-capacity.mjs",
     "test:a11y": "node scripts/e2e-hardening-verify.mjs",
     "test:visual": "node scripts/e2e-hardening-verify.mjs",
     "test:e2e-hardening": "node scripts/e2e-hardening-verify.mjs",

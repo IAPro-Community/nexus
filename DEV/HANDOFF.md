@@ -1,5 +1,29 @@
 # Handoff
 
+## Fechamento total autopilot — 2026-09-20 (sobre `4cb4e26`)
+
+Aceito unmount (decisão do Maestro; E2E `8156836` já afirmava). Novidades da
+rodada: PTY minimizado não desmonta mais (`hidden`+`inert`, runtime/scrollback
+preservados); `test:e2e:capacity` novo e PASS contra servidor real (auth, CSRF,
+status/history/preferences/ack/snooze); beta.2 rotulada candidate nos READMEs
+(sem tag/release confirmada offline); `CAPACITY_MONITOR_REVIVAL_REPORT.md`
+criado. Browser E2E bloqueado (libatk ausente — ENVIRONMENTAL). Push/CI
+remoto seguem bloqueados (sem rede p/ github) → `MERGE_CANDIDATE = CONDITIONAL`.
+Próximo: revisar diff, commits pequenos, publicar quando houver credencial.
+
+### Review independente incorporado (mesma rodada)
+BLOCKERs corrigidos: `hidden` vencido por `display:grid` (regra com
+especificidade, sem `!important`); portais fora do `inert` (menus fecham na
+troca/minimize); painéis PTY internos só com `aria-hidden` (agora
+`hidden`+`inert`+`tabpanel`, `data-active` preservado p/ fit). HIGHs:
+`inert` normalizado, foco realocado ao minimizar, menus limpos, roles,
+botões nativos (sem button-in-button — tabs reestruturados), arrow-keys +
+ids nos tablists, Origin real no E2E, `restore()` explícito em vez de
+toggle+focus. E2E reforçado (401s, CSRF PUT, cap 30d, fingerprint, cookies
+HttpOnly/SameSite). Notas p/ relatório: buffers 50×100k sem free no stop;
+`runs.json` antigos sem backfill; E2E de superfície conta host de terminais
+como exceção keep-alive deliberada.
+
 ## Rodada cirúrgica surface-isolation — 2026-09-20 (autopilot)
 
 Fechamento final do branch `feat/capacity-monitor-revival` (PR #3): P0
