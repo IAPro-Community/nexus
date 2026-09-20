@@ -658,7 +658,8 @@ export function restoreDesktopWindow(
   viewId: string,
 ): WorkspacePresentationState {
   const current = state.windows[viewId];
-  if (!current) return setActivePtyView(state, viewId);
+  // Unknown ids must not dangle activePtyViewId: no-op instead.
+  if (!current) return state;
   if (!current.minimized) return focusDesktopWindow(state, viewId);
   const unminimized = patchWindow(state, viewId, { minimized: false });
   const focused = focusDesktopWindow(unminimized, viewId);

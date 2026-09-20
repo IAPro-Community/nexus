@@ -236,10 +236,12 @@ describe('workspace presentation', () => {
     expect(state.activePtyViewId).toBe('view:a');
   });
 
-  it('restore on unknown view falls back to pty selection', () => {
+  it('restore on unknown view is a no-op (never dangles activePtyViewId)', () => {
     let state = syncDesktopWindows(createPresentationState('DESKTOP'), [surface('a')]);
+    const before = state;
     state = restoreDesktopWindow(state, 'view:missing');
-    expect(state.activePtyViewId).toBe('view:missing');
+    expect(state).toBe(before);
+    expect(state.activePtyViewId).not.toBe('view:missing');
   });
 
   it('resizes adjacent mosaic tiles and supports free mosaic move/swap', () => {

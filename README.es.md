@@ -1,5 +1,10 @@
 # IAPro Nexus
 
+> **Beta cerrada v1.0.0-beta.2 (release candidate)** — compilación local verificada;
+> la tag/release pública correspondiente aún no está confirmada en este branch.
+> Verifique que la tag `v1.0.0-beta.2` y el GitHub Release existan antes de
+> descargar binarios (`git ls-remote --tags origin v1.0.0-beta.2`).
+
 **Una estación de trabajo local para operar coding agents.**
 
 Proyectos, agentes persistentes, sesiones de terminal supervisadas, proveedores, worktrees y automatización en una experiencia integrada de Web, Desktop y CLI.
@@ -45,6 +50,8 @@ make build
 ```
 
 Después sigue **+ New → AI Session → proveedor → terminal**. No necesitas abrir Composer, Flow o Mission para trabajar directamente.
+
+`--version=v1.0.0-beta.2` descarga el GitHub Release fijado y verifica `checksums.txt` (integridad) — esto requiere que existan la tag y la release; si aún no se publicaron, compile desde el código abajo. El repositorio debe ser público (o configure `GH_TOKEN`) para la descarga anónima.
 
 ## Web, Desktop y CLI
 

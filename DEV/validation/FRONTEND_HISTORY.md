@@ -365,3 +365,5 @@
 - 2026-09-20T12:12:43Z · PASS · feat/capacity-monitor-revival@4cb4e26 · failed=[-] · DEV/validation/FRONTEND_2026-09-20T12-12-43Z.md
 - 2026-09-20T12:28:10Z · PASS · feat/capacity-monitor-revival@7f82f22 · failed=[-] · DEV/validation/FRONTEND_2026-09-20T12-28-10Z.md
 - 2026-09-20T12:32:50Z · PASS · feat/capacity-monitor-revival@cf5e2c7 · failed=[-] · DEV/validation/FRONTEND_2026-09-20T12-32-50Z.md
+- 2026-09-20T12:35:23Z · FAIL · feat/capacity-monitor-revival@68f7aff · failed=[test] · DEV/validation/FRONTEND_2026-09-20T12-35-23Z.md
+- 2026-09-20T12:36:23Z · PASS · feat/capacity-monitor-revival@68f7aff · failed=[-] · DEV/validation/FRONTEND_2026-09-20T12-36-23Z.md

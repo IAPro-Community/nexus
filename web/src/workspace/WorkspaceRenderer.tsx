@@ -512,7 +512,34 @@ const WorkspaceStackView: React.FC<{
       }}
     >
       <header className="nx-workspace-stack__tabs">
-        <div className="nx-workspace-tabs" role="tablist" aria-label={t('shell.openSurfaces')}>
+        <div
+          className="nx-workspace-tabs"
+          role="tablist"
+          aria-label={t('shell.openSurfaces')}
+          onKeyDown={(event) => {
+            // Manual activation: arrows move focus only, Enter/Space activates.
+            if (
+              event.key !== 'ArrowRight' &&
+              event.key !== 'ArrowLeft' &&
+              event.key !== 'Home' &&
+              event.key !== 'End'
+            )
+              return;
+            const tabs = Array.from(
+              event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+            );
+            const current = tabs.indexOf(document.activeElement as HTMLButtonElement);
+            if (current === -1) return;
+            event.preventDefault();
+            const next =
+              event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? tabs.length - 1
+                  : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+            tabs[next]?.focus();
+          }}
+        >
           {productTabs.map((surface) => {
             const TabIcon = PRODUCT_TAB_ICONS[surface.type] || Layers;
             const pinned = isPinnedProductTab(surface);
@@ -701,12 +728,16 @@ const TerminalsHost: React.FC<{
     }
   };
   // Restore a minimized PTY in one dispatch, then nudge layout observers (the
-  // xterm was 0x0 while hidden). Focus stays with the user: the restore chip
-  // unmounts, so focus falls back to body and click-to-focus resumes.
+  // xterm was 0x0 while hidden). Focus moves to the restored PTY tab: the
+  // restore chip unmounts, so focus must not fall back to body.
   const restoreView = (viewId: string) => {
     presentation.restore(viewId);
+    const surface = ptySurfaces.find((item) => surfaceViewId(item) === viewId);
     window.requestAnimationFrame(() => {
-      window.dispatchEvent(new Event('resize'));
+      window.requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('resize'));
+        if (surface) document.getElementById(`nx-pty-tab-${surface.id}`)?.focus();
+      });
     });
   };
 
@@ -864,7 +895,13 @@ const TerminalsHost: React.FC<{
               role="tablist"
               aria-label={t('workspace.ptyTabs', 'Abas PTY')}
               onKeyDown={(event) => {
-                if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+                if (
+                  event.key !== 'ArrowRight' &&
+                  event.key !== 'ArrowLeft' &&
+                  event.key !== 'Home' &&
+                  event.key !== 'End'
+                )
+                  return;
                 const tabs = Array.from(
                   event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
                 );
@@ -872,7 +909,12 @@ const TerminalsHost: React.FC<{
                 if (current === -1) return;
                 event.preventDefault();
                 const next =
-                  (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                  event.key === 'Home'
+                    ? 0
+                    : event.key === 'End'
+                      ? tabs.length - 1
+                      : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) %
+                        tabs.length;
                 tabs[next]?.focus();
                 tabs[next]?.click();
               }}
@@ -1066,22 +1108,33 @@ const DesktopWorkspace: React.FC<{
   }, [active]);
   const terminalSurfaces = surfaces.filter(isPtySurface);
   const mosaic = presentation.state.mode === 'MOSAIC';
-  // Minimize then move keyboard focus to the shelf restore control: focus
-  // must never stay inside the now-hidden window subtree.
+  // Minimize then move keyboard focus to the shelf restore control — but only
+  // when focus was inside the minimized window. Double rAF waits for React to
+  // commit the hidden subtree and the shelf chip before focusing.
   const minimizeView = (viewId: string) => {
+    const hadFocus =
+      document.activeElement instanceof Element &&
+      Boolean(document.activeElement.closest?.(`[data-view-id="${viewId}"]`));
     setChromeMenuViewId(null);
     setChromeMenuPoint(null);
     setWindowMenu(null);
     presentation.minimize(viewId);
+    if (!hadFocus) return;
     window.requestAnimationFrame(() => {
-      document.getElementById(`nx-restore-${viewId}`)?.focus();
+      window.requestAnimationFrame(() => {
+        document.getElementById(`nx-restore-${viewId}`)?.focus();
+      });
     });
   };
-  // Single-dispatch restore + layout nudge for the 0x0-hidden xterm.
+  // Single-dispatch restore + layout nudge for the 0x0-hidden xterm, then move
+  // focus into the restored window (the invoking dock chip may unmount).
   const restoreDesktopView = (viewId: string) => {
     presentation.restore(viewId);
     window.requestAnimationFrame(() => {
-      window.dispatchEvent(new Event('resize'));
+      window.requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('resize'));
+        document.getElementById(`nx-window-${viewId}`)?.focus();
+      });
     });
   };
   const activeViewId = presentation.state.activePtyViewId;
@@ -1276,6 +1329,8 @@ const DesktopWorkspace: React.FC<{
         return (
           <section
             key={viewId}
+            id={`nx-window-${viewId}`}
+            tabIndex={-1}
             className="nx-desktop-window"
             data-view-id={viewId}
             hidden={minimized || undefined}
@@ -1516,7 +1571,7 @@ const DesktopWorkspace: React.FC<{
               <button
                 type="button"
                 key={viewId}
-                id={`nx-restore-${viewId}`}
+                id={`nx-restore-dock-${viewId}`}
                 title={t('workspace.restoreNamed', { name: label })}
                 aria-label={t('workspace.restoreNamed', { name: label })}
                 data-unread={unread ? 'true' : undefined}

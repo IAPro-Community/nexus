@@ -61,6 +61,16 @@ async function main() {
       const res = await api(origin, 'POST', '/api/v1/capacity/ack', { body: { fingerprint: 'x' } });
       assert.equal(res.status, 401, 'capacity ack without session must be 401');
     }
+    {
+      const res = await api(origin, 'GET', '/api/v1/capacity/preferences');
+      assert.equal(res.status, 401, 'capacity preferences without session must be 401');
+    }
+    {
+      const res = await api(origin, 'POST', '/api/v1/capacity/snooze', {
+        body: { fingerprint: 'x' },
+      });
+      assert.equal(res.status, 401, 'capacity snooze without session must be 401');
+    }
 
     // Bootstrap exchange (same as the web client initSession).
     const fragment = new URL(bootstrapUrl).hash.replace(/^#/, '');
@@ -91,6 +101,13 @@ async function main() {
       const prefs = (await api(origin, 'GET', '/api/v1/capacity/preferences', { csrf })).data;
       const res = await api(origin, 'PUT', '/api/v1/capacity/preferences', { body: prefs });
       assert.equal(res.status, 403, 'preferences PUT without CSRF must be 403');
+    }
+    {
+      const future = new Date(Date.now() + 3600_000).toISOString();
+      const res = await api(origin, 'POST', '/api/v1/capacity/snooze', {
+        body: { fingerprint: 'alert-e2e-1', until: future },
+      });
+      assert.equal(res.status, 403, 'snooze without CSRF must be 403');
     }
 
     // 3. Fresh status: enabled defaults, empty resources (unknown, never
@@ -178,6 +195,12 @@ async function main() {
         body: { fingerprint: 'alert-e2e-1', until: tooFar },
       });
       assert.equal(capped.status, 400, 'snooze past 30 days must be 400');
+      const boundary = new Date(Date.now() + 30 * 86400_000 - 60_000).toISOString();
+      const edge = await api(origin, 'POST', '/api/v1/capacity/snooze', {
+        csrf,
+        body: { fingerprint: 'alert-e2e-1', until: boundary },
+      });
+      assert.equal(edge.status, 200, 'snooze inside 30 days must be 200');
       const future = new Date(Date.now() + 3600_000).toISOString();
       const set = await api(origin, 'POST', '/api/v1/capacity/snooze', {
         csrf,
