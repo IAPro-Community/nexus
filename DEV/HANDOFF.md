@@ -1,5 +1,20 @@
 # Handoff
 
+## Rodada merge closure — 2026-09-20 (autopilot, CI #143 vermelho)
+
+Fecha os blockers do CI same-SHA sem features novas: overlap topbar
+(Create × update badge @1280 → disclosure icon-only ≤1366px com
+aria-label + assert bilateral no hardening E2E), 2× SA9003 removidos sem
+mudar semântica (`cooldown.go`, `intelligence_memory.go`; `make lint-go`
+0 issues), `test:e2e:surface` ligado ao package + CI (steps próprios
+surface/capacity com logs, gate final estendido, `if: always()`
+preservado), h1 sr-only em Terminais/Flow (Axe `page-has-heading-one`
+moderate endereçado). Gates locais: web-verify 10/10, Go full + vet +
+race (cooldown, capacitymonitor, store, control, runtime, nexus).
+Push + CI same-SHA deste HEAD pendem de credencial neste ambiente.
+Texto final do PR #3 no §9 de
+`DEV/validation/SURFACE_ISOLATION_REPORT.md` (não aplicado remotamente).
+
 ## Fechamento total autopilot — 2026-09-20 (sobre `4cb4e26`)
 
 Aceito unmount (decisão do Maestro; E2E `8156836` já afirmava). Novidades da

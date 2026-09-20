@@ -80,3 +80,14 @@ nativas/live/overnight; throttle de `onCapacityChange` (reload cheio após ack).
 **GO local**: base correta, sem duplicação arquitetural, gates verdes,
 adendo honesto do que é UNVERIFIED. Falta: revisão humana do diff, commits,
 push autorizado, CI same-SHA, e o título novo do PR #3.
+
+## Adendo 2026-09-20 — merge closure (sem features)
+
+Rodadas posteriores (surface isolation, deep review, merge closure) não
+alteraram a arquitetura Capacity: T0–T9 intactos, sem subsistema novo.
+Terminologia mantida: monitor infrastructure = implemented; production
+per-provider probes = pending/deferred (nunca "monitoramento real
+completo"). CI #143 vermelho foi fechado localmente (topbar @1280,
+SA9003 ×2, E2E surface/capacity ligados ao Browser CI, h1 sr-only);
+push + CI same-SHA do HEAD final pendem de credencial. Estado e veredito
+atuais em `DEV/validation/SURFACE_ISOLATION_REPORT.md` (§11–§12).

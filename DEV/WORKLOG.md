@@ -1,5 +1,16 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-20 — Merge closure: CI blockers (autopilot, sem features)
+
+CI #143 vermelho → corrigido localmente: topbar overlap @1280 (badge
+icon-only ≤1366px + assert bilateral com geometria no E2E), SA9003 em
+`cooldown.go`/`intelligence_memory.go` removidos com semântica intacta
+(`make lint-go` 0 issues), `test:e2e:surface` criado e ligado ao Browser
+CI em steps próprios (browser/surface/capacity/a11y/visual, logs
+separados, gate final estendido), h1 sr-only Terminais/Flow. Gates:
+web-verify 10/10, Go full + vet + race completo nos pacotes tocados.
+Push + same-SHA CI pendentes (sem credencial neste ambiente).
+
 ## 2026-09-20 — Full close: minimize-hide, capacity E2E, beta truth, reports
 
 Sobre `feat/capacity-monitor-revival` @ `4cb4e26` (unmount aceito pelo
