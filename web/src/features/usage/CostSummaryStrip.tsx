@@ -109,10 +109,13 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
             <span>{summary.budget.message}</span>
             {summary.budget.active_limit_microusd ? (
               <small>
-                {t('usage.activeCostLimit', 'Limite ativo')}: {' '}
+                {t('usage.activeCostLimit', 'Limite ativo')}:{' '}
                 {formatUSD(summary.budget.active_limit_microusd)}
                 {summary.budget.requires_confirmation ? (
-                  <> · {t('usage.costConfirmationRequired', 'nova execução cara exige confirmação')}</>
+                  <>
+                    {' '}
+                    · {t('usage.costConfirmationRequired', 'nova execução cara exige confirmação')}
+                  </>
                 ) : null}
               </small>
             ) : null}
@@ -127,7 +130,7 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
             <span>{summary.anomaly.message}</span>
             {summary.anomaly.triggered && summary.anomaly.latest_cost_microusd ? (
               <small>
-                {summary.anomaly.provider}:{summary.anomaly.profile} · {' '}
+                {summary.anomaly.provider}:{summary.anomaly.profile} ·{' '}
                 {formatUSD(summary.anomaly.latest_cost_microusd)}
                 {summary.anomaly.threshold_microusd ? (
                   <> &gt; {formatUSD(summary.anomaly.threshold_microusd)}</>
