@@ -112,6 +112,8 @@ func TestCostObservationFiltersByMissionProviderAndTime(t *testing.T) {
 		t.Fatalf("filtered rows=%+v, want one m1/codex observation", rows)
 	}
 
+}
+
 func TestCostSummarySeparatesMeasuredFromUnknown(t *testing.T) {
 	s := openTestStore(t)
 	cost := int64(5000)
@@ -147,4 +149,3 @@ func TestCostSummarySeparatesMeasuredFromUnknown(t *testing.T) {
 	}
 }
 
-}
