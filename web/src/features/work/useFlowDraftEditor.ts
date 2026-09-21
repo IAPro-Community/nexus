@@ -430,28 +430,24 @@ export function useFlowDraftEditor(options: {
       const preview = await nexusApi.previewPlanExecution(approved.id);
       setExecutionPreview(preview);
       if (preview.revision !== approved.current_revision) {
-        setPlanError(
-          t(
-            'flow.executionPreviewRevisionMismatch',
-            'A revisão mudou durante a preparação. Revise o plano de execução novamente antes de iniciar.',
-          ),
+        const revisionMismatch = t(
+          'flow.executionPreviewRevisionMismatch',
+          'A revisão mudou durante a preparação. Revise o plano de execução novamente antes de iniciar.',
         );
+        setPlanError(revisionMismatch);
         return;
       }
       if (!preview.ready) {
-        setFlowNotice(
-          t(
-            'flow.executionPreviewBlocked',
-            'Execution Preview encontrou bloqueios antes do GO.',
-          ),
+        const blockedNotice = t(
+          'flow.executionPreviewBlocked',
+          'Execution Preview encontrou bloqueios antes do GO.',
         );
-        setPlanError(
-          preview.blockers?.join(' · ') ||
-            t(
-              'flow.executionPreviewNoEligibleRoute',
-              'Nenhuma combinação elegível de Agent e recurso está disponível para todas as etapas.',
-            ),
+        const noEligibleRoute = t(
+          'flow.executionPreviewNoEligibleRoute',
+          'Nenhuma combinação elegível de Agent e recurso está disponível para todas as etapas.',
         );
+        setFlowNotice(blockedNotice);
+        setPlanError(preview.blockers?.join(' · ') || noEligibleRoute);
         return;
       }
 
@@ -477,27 +473,24 @@ export function useFlowDraftEditor(options: {
       setPlanError('');
       const preview = await nexusApi.previewPlanExecution(selectedPlan.id);
       setExecutionPreview(preview);
+
+      let notice = preview.ready
+        ? t(
+            'flow.executionPreviewReady',
+            'Execution Preview pronto: especialistas e recursos atuais foram avaliados sem iniciar execução.',
+          )
+        : t(
+            'flow.executionPreviewBlocked',
+            'Execution Preview encontrou bloqueios antes do GO.',
+          );
       if (flowDirty) {
-        setFlowNotice(
-          t(
-            'flow.executionPreviewSavedRevision',
-            'Execution Preview usa a revisão salva {{revision}}; alterações locais ainda não salvas não estão incluídas.',
-            { revision: preview.revision },
-          ),
-        );
-      } else {
-        setFlowNotice(
-          preview.ready
-            ? t(
-                'flow.executionPreviewReady',
-                'Execution Preview pronto: especialistas e recursos atuais foram avaliados sem iniciar execução.',
-              )
-            : t(
-                'flow.executionPreviewBlocked',
-                'Execution Preview encontrou bloqueios antes do GO.',
-              ),
+        notice = t(
+          'flow.executionPreviewSavedRevision',
+          'Execution Preview usa a revisão salva {{revision}}; alterações locais ainda não salvas não estão incluídas.',
+          { revision: preview.revision },
         );
       }
+      setFlowNotice(notice);
     } catch (err) {
       setPlanError(err instanceof Error ? err.message : String(err));
     } finally {
