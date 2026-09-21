@@ -26,19 +26,32 @@ func TestCatalogResolvesBuiltinSkillsDeterministically(t *testing.T) {
 	}
 }
 
-func TestCatalogDeduplicatesByVersionAndStableSourcePriority(t *testing.T) {
-	first := staticSource{id: "first", skills: []Skill{{ID: "shared", Name: "old", Version: "1.0.0", Source: SourceProject}}}
-	second := staticSource{id: "second", skills: []Skill{{ID: "shared", Name: "new", Version: "2.0.0", Source: SourceUser}}}
-	catalog, err := NewCatalog(first, second)
+func TestCatalogPreservesSourcePrecedenceBeforeVersion(t *testing.T) {
+	project := staticSource{id: "project", skills: []Skill{{ID: "shared", Name: "project", Version: "1.0.0", Source: SourceProject}}}
+	user := staticSource{id: "user", skills: []Skill{{ID: "shared", Name: "user-newer", Version: "9.0.0", Source: SourceUser}}}
+	catalog, err := NewCatalog(user, project)
 	if err != nil {
 		t.Fatal(err)
 	}
 	resolved, ok := catalog.Resolve("shared")
-	if !ok || resolved.Version != "2.0.0" || resolved.Source != SourceUser {
-		t.Fatalf("expected highest version with deterministic source tie-break, got %+v", resolved)
+	if !ok || resolved.Version != "1.0.0" || resolved.Source != SourceProject {
+		t.Fatalf("project ownership must outrank newer user copies, got %+v", resolved)
 	}
 	if resolved.Copies != 2 {
 		t.Fatalf("expected two discovered copies, got %d", resolved.Copies)
+	}
+}
+
+func TestCatalogUsesHighestVersionWithinSameSourceTier(t *testing.T) {
+	older := staticSource{id: "project-a", skills: []Skill{{ID: "shared", Name: "old", Version: "1.0.0", Source: SourceProject}}}
+	newer := staticSource{id: "project-b", skills: []Skill{{ID: "shared", Name: "new", Version: "2.0.0", Source: SourceProject}}}
+	catalog, err := NewCatalog(older, newer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, ok := catalog.Resolve("shared")
+	if !ok || resolved.Version != "2.0.0" || resolved.Source != SourceProject {
+		t.Fatalf("highest version should win inside one source tier, got %+v", resolved)
 	}
 }
 
@@ -63,6 +76,35 @@ func TestDirectorySourceReadsBoundedSkillMarkdown(t *testing.T) {
 	}
 	if items[0].Hash == "" || items[0].Instructions == "" || len(items[0].Capabilities) != 2 {
 		t.Fatalf("skill metadata/provenance not parsed: %+v", items[0])
+	}
+}
+
+func TestDirectorySourceNeverExecutesSkillScriptsDuringDiscovery(t *testing.T) {
+	root := t.TempDir()
+	skillDir := filepath.Join(root, "safe-skill")
+	scriptsDir := filepath.Join(skillDir, "scripts")
+	if err := os.MkdirAll(scriptsDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("---\nid: safe-skill\n---\nInspect only.\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(root, "executed")
+	script := "#!/bin/sh\nprintf executed > " + marker + "\n"
+	if err := os.WriteFile(filepath.Join(scriptsDir, "danger.sh"), []byte(script), 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	source := NewDirectorySource("project", SourceProject, []string{root})
+	items, err := source.Discover(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].ID != "safe-skill" {
+		t.Fatalf("unexpected discovery result: %+v", items)
+	}
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatalf("skill discovery executed a colocated script: %v", err)
 	}
 }
 
