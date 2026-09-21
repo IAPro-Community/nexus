@@ -85,6 +85,7 @@ export function useFlowDraftEditor(options: {
   const [preflightBusy, setPreflightBusy] = useState(false);
   const [executionPreview, setExecutionPreview] = useState<PlanExecutionPreview | null>(null);
   const [executionPreviewBusy, setExecutionPreviewBusy] = useState(false);
+  const [pendingCostConfirmationToken, setPendingCostConfirmationToken] = useState('');
   const [studioView, setStudioView] = useState<StudioView>('pipeline');
 
   const composerDraftKey = composerDraftStorageKey(project.id);
@@ -117,6 +118,7 @@ export function useFlowDraftEditor(options: {
 
   useEffect(() => {
     setExecutionPreview(null);
+    setPendingCostConfirmationToken('');
   }, [selectedPlanId, selectedPlanRevision]);
 
   useEffect(() => {
@@ -446,12 +448,48 @@ export function useFlowDraftEditor(options: {
           'flow.executionPreviewNoEligibleRoute',
           'Nenhuma combinação elegível de Agent e recurso está disponível para todas as etapas.',
         );
+        setPendingCostConfirmationToken('');
         setFlowNotice(blockedNotice);
         setPlanError(preview.blockers?.join(' · ') || noEligibleRoute);
         return;
       }
 
-      const run = await nexusApi.runPlan(approved.id, approved.current_revision);
+      const costToken = preview.cost_confirmation_required
+        ? preview.cost_confirmation_token || ''
+        : '';
+      if (preview.cost_confirmation_required) {
+        if (!costToken) {
+          setPendingCostConfirmationToken('');
+          setPlanError(
+            t(
+              'flow.costConfirmationUnavailable',
+              'A política de custo exige confirmação, mas o preview não produziu um token válido. Atualize o plano de execução.',
+            ),
+          );
+          return;
+        }
+        if (pendingCostConfirmationToken !== costToken) {
+          setPendingCostConfirmationToken(costToken);
+          setFlowNotice(
+            t(
+              'flow.costConfirmationRequired',
+              'O estado atual de custo exige confirmação explícita. Revise o plano de execução e clique em Confirmar custo e executar.',
+            ),
+          );
+          return;
+        }
+      } else {
+        setPendingCostConfirmationToken('');
+      }
+
+      const run = await nexusApi.runPlan(
+        approved.id,
+        approved.current_revision,
+        undefined,
+        undefined,
+        costToken || undefined,
+      );
+      setPendingCostConfirmationToken('');
       onRunCreated?.(run);
       setFlowNotice(
         t('flow.runStarted', 'Flow Run {{id}} iniciado a partir da revisão {{revision}}.', {
@@ -464,7 +502,16 @@ export function useFlowDraftEditor(options: {
     } finally {
       setRunBusy(false);
     }
-  }, [flowDirty, flowDraft, onRunCreated, persistPlan, selectedPlan, t, project.id]);
+  }, [
+    flowDirty,
+    flowDraft,
+    onRunCreated,
+    pendingCostConfirmationToken,
+    persistPlan,
+    selectedPlan,
+    t,
+    project.id,
+  ]);
 
   const runExecutionPreview = useCallback(async () => {
     if (!selectedPlan) return;
@@ -473,6 +520,9 @@ export function useFlowDraftEditor(options: {
       setPlanError('');
       const preview = await nexusApi.previewPlanExecution(selectedPlan.id);
       setExecutionPreview(preview);
+      setPendingCostConfirmationToken(
+        preview.cost_confirmation_required ? preview.cost_confirmation_token || '' : '',
+      );
 
       let notice = preview.ready
         ? t(
@@ -631,6 +681,7 @@ export function useFlowDraftEditor(options: {
     preflightBusy,
     executionPreview,
     executionPreviewBusy,
+    costConfirmationPending: Boolean(pendingCostConfirmationToken),
     studioView,
     setStudioView,
     selectedStep,
