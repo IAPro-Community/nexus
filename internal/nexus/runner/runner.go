@@ -604,6 +604,35 @@ func (r *MissionRunner) verifyGlobalDefinition(ctx, operationCtx context.Context
 		}
 	}
 	workspace, err := resolveIntegratedVerificationWorkspace(run)
+	if errors.Is(err, ErrDeliveryIntegrationRequired) {
+		integrator, ok := r.executor.(DeliveryIntegrator)
+		if !ok {
+			run.State = StateFailedVerification
+			run.PausedReason = err.Error()
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, err
+		}
+		integration, integrationErr := integrator.IntegrateDelivery(operationCtx, run)
+		if integrationErr != nil {
+			run.State = StateFailedVerification
+			run.PausedReason = "delivery integration failed: " + integrationErr.Error()
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, fmt.Errorf("integrate Mission delivery: %w", integrationErr)
+		}
+		if strings.TrimSpace(integration.Workspace) == "" {
+			run.State = StateFailedVerification
+			run.PausedReason = "delivery integration returned no verification workspace"
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, fmt.Errorf("integrate Mission delivery: empty workspace")
+		}
+		run.IntegratedWorkspace = integration.Workspace
+		run.DeliveryIntegration = &integration
+		workspace = integration.Workspace
+		err = nil
+	}
 	if err != nil {
 		run.State = StateFailedVerification
 		run.PausedReason = err.Error()
@@ -704,7 +733,7 @@ func resolveIntegratedVerificationWorkspace(run *MissionRun) (string, error) {
 		// holds mutations, never the untouched baseline alone.
 		return nonCanonical[0], nil
 	}
-	return "", fmt.Errorf("global Definition of Done requires an integrated tree; agent worktrees are not merged into %s", canonical)
+	return "", fmt.Errorf("%w: global Definition of Done requires an integrated tree; agent worktrees are not merged into %s", ErrDeliveryIntegrationRequired, canonical)
 }
 
 func (r *MissionRunner) PauseRun(ctx context.Context, runID, reason string) (*MissionRun, error) {
