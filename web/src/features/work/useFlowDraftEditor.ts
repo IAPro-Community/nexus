@@ -6,6 +6,7 @@ import type {
   FlowLeaderPolicy,
   FlowPreflightReport,
   MissionRun,
+  PlanExecutionPreview,
   PlanRevision,
   Project,
   WorkPlan,
@@ -82,6 +83,8 @@ export function useFlowDraftEditor(options: {
   });
   const [preflightReport, setPreflightReport] = useState<FlowPreflightReport | null>(null);
   const [preflightBusy, setPreflightBusy] = useState(false);
+  const [executionPreview, setExecutionPreview] = useState<PlanExecutionPreview | null>(null);
+  const [executionPreviewBusy, setExecutionPreviewBusy] = useState(false);
   const [studioView, setStudioView] = useState<StudioView>('pipeline');
 
   const composerDraftKey = composerDraftStorageKey(project.id);
@@ -111,6 +114,10 @@ export function useFlowDraftEditor(options: {
 
   const selectedPlanId = selectedPlan?.id;
   const selectedPlanRevision = selectedPlan?.current_revision;
+
+  useEffect(() => {
+    setExecutionPreview(null);
+  }, [selectedPlanId, selectedPlanRevision]);
 
   useEffect(() => {
     if (!selectedPlanId) {
@@ -431,6 +438,41 @@ export function useFlowDraftEditor(options: {
     }
   }, [flowDirty, flowDraft, onRunCreated, persistPlan, selectedPlan, t, project.id]);
 
+  const runExecutionPreview = useCallback(async () => {
+    if (!selectedPlan) return;
+    try {
+      setExecutionPreviewBusy(true);
+      setPlanError('');
+      const preview = await nexusApi.previewPlanExecution(selectedPlan.id);
+      setExecutionPreview(preview);
+      if (flowDirty) {
+        setFlowNotice(
+          t(
+            'flow.executionPreviewSavedRevision',
+            'Execution Preview usa a revisão salva {{revision}}; alterações locais ainda não salvas não estão incluídas.',
+            { revision: preview.revision },
+          ),
+        );
+      } else {
+        setFlowNotice(
+          preview.ready
+            ? t(
+                'flow.executionPreviewReady',
+                'Execution Preview pronto: especialistas e recursos atuais foram avaliados sem iniciar execução.',
+              )
+            : t(
+                'flow.executionPreviewBlocked',
+                'Execution Preview encontrou bloqueios antes do GO.',
+              ),
+        );
+      }
+    } catch (err) {
+      setPlanError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExecutionPreviewBusy(false);
+    }
+  }, [flowDirty, selectedPlan, t]);
+
   const runPreflight = useCallback(async () => {
     if (!selectedPlan) return;
     try {
@@ -565,6 +607,8 @@ export function useFlowDraftEditor(options: {
     setLeader,
     preflightReport,
     preflightBusy,
+    executionPreview,
+    executionPreviewBusy,
     studioView,
     setStudioView,
     selectedStep,
@@ -576,6 +620,7 @@ export function useFlowDraftEditor(options: {
     createManualPlan,
     saveLeader,
     launchRun,
+    runExecutionPreview,
     runPreflight,
     changeFlowStep,
     runStepAction,
