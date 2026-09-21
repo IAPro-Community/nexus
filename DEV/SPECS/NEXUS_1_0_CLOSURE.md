@@ -125,6 +125,33 @@ Nexus 1.0 can be released only when the release candidate has:
 
 ## 4. Milestones
 
+### P0 — Composer Execution Spine
+
+Composer → Flow → Mission is the primary product spine for Nexus 1.0. The canonical
+contract is [`DEV/SPECS/COMPOSER_EXECUTION_SPINE.md`](./COMPOSER_EXECUTION_SPINE.md).
+
+Before treating Capacity, Agent Modes, Skills or Cost as independent feature work, Nexus
+must expose a revision-bound, side-effect-free Execution Preview for a WorkPlan. Each
+WorkPackage must be able to explain:
+
+- the classified TaskRequirements;
+- WHO would execute it (existing Agent or specialist creation);
+- WITH WHAT provider/profile/account;
+- model selection when real inventory/evidence exists;
+- skills, isolation and verification requirements;
+- current blockers;
+- later, capacity and cost/budget evidence.
+
+Mission remains the only execution authority and revalidates live state at GO time.
+Preview may differ from actual routing only with an explicit persisted reason.
+
+Exit:
+- complete prompt → PromptArtifact → Flow → Execution Preview works;
+- vague prompt/clarification converges to the same downstream path;
+- preview starts no Agent/runtime/Mission and mutates no allocation;
+- browser North-star coverage exists;
+- no new planner/scheduler/runner is introduced.
+
 ### M0 — baseline closure and truth alignment
 
 Baseline PR #3 is merged and CI #149 is green.
@@ -142,6 +169,8 @@ Exit:
 - no contradictory current-version claims.
 
 ### M1 — production Capacity Intelligence
+
+Capacity is an evidence provider for the Composer Execution Spine and Mission routing; it is not a separate routing engine.
 
 Use existing `quota.Probe` / Capacity Monitor contracts.
 
@@ -187,7 +216,7 @@ Exit:
 - no empty production registry for claimed providers;
 - alert/recommendation UI fed by real observations.
 
-### M2 — Agent Modes and canonical AgentMatcher
+### M2 — Agent Modes and AgentMatcher productization
 
 Presets backed by AgentSpec, not prompt aliases:
 
@@ -211,7 +240,7 @@ Mode policy includes:
 
 Reviewer and Investigator are read-only by default.
 
-Create one canonical `AgentMatcher`.
+Use and certify the existing canonical `MatchAgents` boundary everywhere the Composer Execution Spine and Mission need to choose a persistent specialist. Do not create a second matcher.
 
 Input:
 - TaskRequirements;
