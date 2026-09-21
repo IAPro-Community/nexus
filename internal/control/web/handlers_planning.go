@@ -439,6 +439,24 @@ func (h *NexusHandler) handleFlowClone(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, clone)
 }
 
+func (h *NexusHandler) handlePlanExecutionPreview(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	planID := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1/plans/"), "/execution-preview")
+	if planID == "" {
+		writeError(w, http.StatusBadRequest, "plan id is required")
+		return
+	}
+	preview, err := h.nexus.PreviewPlanExecution(r.Context(), planID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, preview)
+}
+
 func (h *NexusHandler) handleFlowPreflight(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost && r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
