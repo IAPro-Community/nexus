@@ -30,8 +30,24 @@ const REASONS: Record<string, string> = {
 export function composerNeedsGapConfirmation(brief: {
   open_questions?: string[];
   readiness?: { state?: string };
+  unknowns?: Array<{ severity?: string; status?: string }>;
 }): boolean {
-  return brief.readiness?.state === 'BLOCKED' || (brief.open_questions?.length ?? 0) > 0;
+  if (brief.readiness?.state === 'BLOCKED') return true;
+
+  const unknowns = brief.unknowns;
+  if (Array.isArray(unknowns) && unknowns.length > 0) {
+    return unknowns.some(
+      (unknown) =>
+        String(unknown.severity || '').toUpperCase() === 'BLOCKING' &&
+        !['ANSWERED', 'CONFIRMED', 'DISMISSED'].includes(
+          String(unknown.status || '').toUpperCase(),
+        ),
+    );
+  }
+
+  // Compatibility fallback for older payloads that did not expose structured
+  // unknown severity. Current Composer views always include structured unknowns.
+  return (brief.open_questions?.length ?? 0) > 0;
 }
 
 /** Prefer a readable session label over keyboard-spam or raw IDs. */
