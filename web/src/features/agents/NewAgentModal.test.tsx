@@ -41,5 +41,4 @@ describe('canonical persistent agent presets', () => {
       ).toBe(true);
     }
   });
-
 });
