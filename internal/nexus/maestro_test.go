@@ -160,6 +160,7 @@ func TestMaestroVerifyRejectsSecretLikeInputBeforeExecution(t *testing.T) {
 	if _, statErr := os.Stat(marker); !os.IsNotExist(statErr) {
 		t.Fatalf("Maestro process was invoked for rejected input: %v", statErr)
 	}
+}
 
 func TestMaestroCapabilitiesUsesExplicitSkillsListContract(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
