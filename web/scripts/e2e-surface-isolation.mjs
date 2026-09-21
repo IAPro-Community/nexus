@@ -207,15 +207,32 @@ async function main() {
     await page.waitForSelector('.nx-os-shell', { timeout: 10000 });
     await page.waitForSelector('.nx-workspace-tab[data-kind]', { timeout: 10000 });
 
-    const kinds = await page.evaluate(() =>
+    let kinds = await page.evaluate(() =>
       [...document.querySelectorAll('.nx-workspace-tab[data-kind]')].map((el) =>
         el.getAttribute('data-kind'),
       ),
     );
-    console.log(`  product tabs: ${kinds.join(', ')}`);
-    for (const required of ['overview', 'terminals', 'work', 'missions']) {
-      assert.ok(kinds.includes(required), `layout must own the ${required} product tab`);
+    console.log(`  initial product tabs: ${kinds.join(', ')}`);
+
+    // Overview, Terminals and Composer are pinned by the workspace. Flow is
+    // intentionally lazy/on-demand, so open it through the real Overview UI
+    // before asserting the cross-surface lifecycle contract.
+    for (const required of ['overview', 'terminals', 'work']) {
+      assert.ok(kinds.includes(required), `layout must own the pinned ${required} product tab`);
     }
+    if (!kinds.includes('missions')) {
+      const flowButton = page.getByRole('button', { name: /flow/i }).first();
+      await flowButton.waitFor({ state: 'visible', timeout: 10000 });
+      await flowButton.click();
+      await page.waitForSelector('.nx-workspace-tab[data-kind="missions"]', { timeout: 10000 });
+      kinds = await page.evaluate(() =>
+        [...document.querySelectorAll('.nx-workspace-tab[data-kind]')].map((el) =>
+          el.getAttribute('data-kind'),
+        ),
+      );
+      console.log(`  product tabs after opening Flow: ${kinds.join(', ')}`);
+    }
+    assert.ok(kinds.includes('missions'), 'Flow action must open the missions product tab');
 
     // Terminal keep-alive baseline: pin the host DOM node identity.
     const hostPinned = await page.evaluate(() => {
