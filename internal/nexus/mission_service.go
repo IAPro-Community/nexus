@@ -195,7 +195,23 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 	return run, nil
 }
 
+type MissionAdmissionOptions struct {
+	CostConfirmationToken string
+}
+
 func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, approvedRevision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool) (*runner.MissionRun, error) {
+	return n.StartMissionRunApprovedWithOptions(
+		ctx,
+		planID,
+		approvedRevision,
+		defaultAgentID,
+		contract,
+		autonomous,
+		MissionAdmissionOptions{},
+	)
+}
+
+func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID string, approvedRevision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, options MissionAdmissionOptions) (*runner.MissionRun, error) {
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -217,7 +233,38 @@ func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, appr
 	if !preflight.Ready {
 		return nil, fmt.Errorf("approved mission blocked by preflight")
 	}
+	if err := validateCostBudgetAdmission(ctx, st, plan, options.CostConfirmationToken); err != nil {
+		return nil, err
+	}
 	return n.startMissionRunAtRevision(ctx, plan, approvedRevision, defaultAgentID, contract, autonomous, preflight)
+}
+
+func validateCostBudgetAdmission(ctx context.Context, st *store.Store, plan *store.WorkPlan, confirmationToken string) error {
+	if st == nil || plan == nil {
+		return fmt.Errorf("cost budget admission requires store and plan")
+	}
+	prefs, err := st.GetCostPreferences()
+	if err != nil {
+		return fmt.Errorf("read cost budget policy: %w", err)
+	}
+	if !prefs.Enabled || (prefs.HardLimitMicroUSD == 0 && prefs.EmergencyLimitMicroUSD == 0) {
+		return nil
+	}
+	summary, err := NewCostApplicationService(st).Summary(ctx, plan.ProjectID, 0)
+	if err != nil {
+		return fmt.Errorf("cost budget admission unavailable: %w", err)
+	}
+	if !summary.Budget.RequiresConfirmation {
+		return nil
+	}
+	expected := costBudgetConfirmationToken(plan.ID, plan.CurrentRevision, summary)
+	if expected == "" || strings.TrimSpace(confirmationToken) != expected {
+		return fmt.Errorf(
+			"COST_BUDGET_CONFIRMATION_REQUIRED: %s Run Execution Preview again and explicitly confirm the current cost state.",
+			summary.Budget.Message,
+		)
+	}
+	return nil
 }
 
 func (n *Nexus) startMissionRunAtRevision(ctx context.Context, plan *store.WorkPlan, revision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, admission ...*FlowPreflightReport) (*runner.MissionRun, error) {
