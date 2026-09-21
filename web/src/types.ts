@@ -1210,7 +1210,6 @@ export interface FlowRunEvidence {
   receipts: WorkReceipt[];
 }
 
-
 export interface DeliveryIntegrationEvidence {
   workspace?: string;
   base_revision?: string;
