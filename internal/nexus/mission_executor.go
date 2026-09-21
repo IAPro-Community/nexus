@@ -747,7 +747,7 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 	if strings.TrimSpace(pkg.AssignedAgent) == "" {
 		return runner.ExecutionResult{}, fmt.Errorf("package has no assigned persistent agent")
 	}
-	result, err := e.n.executeAgentPrompt(ctx, pkg.AssignedAgent, pkg.Workspace, prompt, agentPromptPolicy{Contract: run.Contract})
+	result, err := e.n.executeAgentPrompt(ctx, pkg.AssignedAgent, pkg.Workspace, prompt, agentPromptPolicy{Contract: run.Contract, MissionRunID: run.ID, PackageID: pkg.PackageID})
 	if err != nil {
 		if result == nil {
 			return runner.ExecutionResult{}, err
@@ -824,7 +824,7 @@ func (e *nexusPackageExecutor) Review(ctx context.Context, run *runner.MissionRu
 
 	reviewPrompt := buildReviewPrompt(pkg)
 	before, _ := workspaceFingerprint(ctx, reviewWorkspace)
-	result, err := e.n.executeAgentPrompt(ctx, reviewer.ID, reviewWorkspace, reviewPrompt, agentPromptPolicy{Contract: run.Contract, Review: true})
+	result, err := e.n.executeAgentPrompt(ctx, reviewer.ID, reviewWorkspace, reviewPrompt, agentPromptPolicy{Contract: run.Contract, Review: true, MissionRunID: run.ID, PackageID: pkg.PackageID})
 	if err != nil {
 		return runner.ReviewVerdict{}, fmt.Errorf("reviewer execution failed: %w", err)
 	}
