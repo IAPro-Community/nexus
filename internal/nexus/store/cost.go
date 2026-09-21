@@ -209,3 +209,124 @@ func (s *Store) ListCostObservations(filter CostObservationFilter) ([]CostObserv
 	}
 	return out, nil
 }
+
+type CostAggregate struct {
+	ObservationCount        int64 `json:"observation_count"`
+	KnownCostObservations   int64 `json:"known_cost_observations"`
+	UnknownCostObservations int64 `json:"unknown_cost_observations"`
+	KnownTokenObservations  int64 `json:"known_token_observations"`
+	CostMicroUSD            int64 `json:"cost_microusd"`
+	InputTokens             int64 `json:"input_tokens"`
+	CachedInputTokens       int64 `json:"cached_input_tokens"`
+	OutputTokens            int64 `json:"output_tokens"`
+	ReasoningTokens         int64 `json:"reasoning_tokens"`
+	DurationMS              int64 `json:"duration_ms"`
+}
+
+type ProviderCostAggregate struct {
+	Provider string `json:"provider"`
+	Profile  string `json:"profile"`
+	CostAggregate
+}
+
+func costFilterClause(filter CostObservationFilter) (string, []any) {
+	var conditions []string
+	var args []any
+	add := func(condition string, value any) {
+		conditions = append(conditions, condition)
+		args = append(args, value)
+	}
+	if strings.TrimSpace(filter.ProjectID) != "" {
+		add("project_id = ?", strings.TrimSpace(filter.ProjectID))
+	}
+	if strings.TrimSpace(filter.MissionRunID) != "" {
+		add("mission_run_id = ?", strings.TrimSpace(filter.MissionRunID))
+	}
+	if strings.TrimSpace(filter.AgentID) != "" {
+		add("agent_id = ?", strings.TrimSpace(filter.AgentID))
+	}
+	if strings.TrimSpace(filter.Provider) != "" {
+		add("provider = ?", strings.TrimSpace(filter.Provider))
+	}
+	if strings.TrimSpace(filter.Profile) != "" {
+		add("profile = ?", strings.TrimSpace(filter.Profile))
+	}
+	if !filter.Since.IsZero() {
+		add("observed_at >= ?", formatStoreTime(filter.Since))
+	}
+	if len(conditions) == 0 {
+		return "", args
+	}
+	return " WHERE " + strings.Join(conditions, " AND "), args
+}
+
+const costAggregateColumns = `
+	COUNT(*),
+	COALESCE(SUM(CASE WHEN cost_microusd IS NOT NULL THEN 1 ELSE 0 END),0),
+	COALESCE(SUM(CASE WHEN cost_microusd IS NULL THEN 1 ELSE 0 END),0),
+	COALESCE(SUM(CASE WHEN input_tokens IS NOT NULL OR cached_input_tokens IS NOT NULL OR output_tokens IS NOT NULL OR reasoning_tokens IS NOT NULL THEN 1 ELSE 0 END),0),
+	COALESCE(SUM(cost_microusd),0),
+	COALESCE(SUM(input_tokens),0),
+	COALESCE(SUM(cached_input_tokens),0),
+	COALESCE(SUM(output_tokens),0),
+	COALESCE(SUM(reasoning_tokens),0),
+	COALESCE(SUM(duration_ms),0)`
+
+func (s *Store) SummarizeCostObservations(filter CostObservationFilter) (CostAggregate, error) {
+	where, args := costFilterClause(filter)
+	row := s.db.QueryRow("SELECT "+costAggregateColumns+" FROM cost_observations"+where, args...)
+	var agg CostAggregate
+	err := row.Scan(
+		&agg.ObservationCount,
+		&agg.KnownCostObservations,
+		&agg.UnknownCostObservations,
+		&agg.KnownTokenObservations,
+		&agg.CostMicroUSD,
+		&agg.InputTokens,
+		&agg.CachedInputTokens,
+		&agg.OutputTokens,
+		&agg.ReasoningTokens,
+		&agg.DurationMS,
+	)
+	if err != nil {
+		return CostAggregate{}, fmt.Errorf("summarize cost observations: %w", err)
+	}
+	return agg, nil
+}
+
+func (s *Store) SummarizeCostByProvider(filter CostObservationFilter) ([]ProviderCostAggregate, error) {
+	where, args := costFilterClause(filter)
+	rows, err := s.db.Query(
+		"SELECT provider,profile,"+costAggregateColumns+" FROM cost_observations"+where+" GROUP BY provider,profile ORDER BY COALESCE(SUM(cost_microusd),0) DESC, provider, profile",
+		args...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("summarize cost by provider: %w", err)
+	}
+	defer rows.Close()
+	out := make([]ProviderCostAggregate, 0)
+	for rows.Next() {
+		var row ProviderCostAggregate
+		if err := rows.Scan(
+			&row.Provider,
+			&row.Profile,
+			&row.ObservationCount,
+			&row.KnownCostObservations,
+			&row.UnknownCostObservations,
+			&row.KnownTokenObservations,
+			&row.CostMicroUSD,
+			&row.InputTokens,
+			&row.CachedInputTokens,
+			&row.OutputTokens,
+			&row.ReasoningTokens,
+			&row.DurationMS,
+		); err != nil {
+			return nil, fmt.Errorf("scan cost provider aggregate: %w", err)
+		}
+		out = append(out, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate cost provider aggregates: %w", err)
+	}
+	return out, nil
+}
