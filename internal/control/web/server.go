@@ -384,6 +384,10 @@ func (s *Server) routeRun(h *NexusHandler) http.HandlerFunc {
 			h.handleRunValidationEvidence(w, r, parts[0])
 			return
 		}
+		if len(parts) == 2 && strings.EqualFold(parts[1], "evidence-bundle") {
+			h.handleRunEvidenceBundle(w, r, parts[0])
+			return
+		}
 		h.handleRunDetail(w, r)
 	}
 }
