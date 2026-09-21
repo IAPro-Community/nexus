@@ -12,4 +12,34 @@ describe('canonical persistent agent presets', () => {
       expect(preset.agentSpec.capabilities?.length).toBeGreaterThan(0);
     }
   });
+  it('includes the Nexus 1.0 specialist modes', () => {
+    const ids = new Set(CANONICAL_AGENT_TYPES.map((preset) => preset.id));
+    for (const id of [
+      'senior-developer',
+      'investigator',
+      'architect',
+      'security-reviewer',
+      'performance-investigator',
+    ]) {
+      expect(ids.has(id)).toBe(true);
+    }
+  });
+
+  it('keeps review and investigation specialties conservative by default', () => {
+    for (const id of [
+      'code-reviewer',
+      'investigator',
+      'security-reviewer',
+      'performance-investigator',
+    ]) {
+      const preset = CANONICAL_AGENT_TYPES.find((candidate) => candidate.id === id);
+      expect(preset?.defaultMode).toBe('Safe');
+      expect(
+        preset?.agentSpec.constraints?.some((constraint) =>
+          constraint.toLowerCase().includes('read-only'),
+        ),
+      ).toBe(true);
+    }
+  });
+
 });
