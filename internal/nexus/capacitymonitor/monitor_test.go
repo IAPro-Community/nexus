@@ -293,8 +293,8 @@ func TestTickRejectsUnsafeProbeDescriptor(t *testing.T) {
 		[]model.Profile{{Provider: "codex", Name: "unsafe"}},
 		&stubRegistry{probes: map[string]quota.Probe{"codex": probe}}, nil)
 
-	if err := m.Tick(context.Background()); err == nil {
-		t.Fatal("unsafe probe descriptor must fail the monitor tick")
+	if err := m.Tick(context.Background()); err != nil {
+		t.Fatalf("unsafe provider probe must fail closed per-profile without aborting the monitor pass: %v", err)
 	}
 	if counter.count() != 0 {
 		t.Fatalf("unsafe probe published %d events, want 0", counter.count())
@@ -305,6 +305,9 @@ func TestTickRejectsUnsafeProbeDescriptor(t *testing.T) {
 	}
 	if rec.State != string(StateUnknown) || rec.Reason != "unsafe probe descriptor" {
 		t.Fatalf("unsafe probe state=%+v, want UNKNOWN with explicit reason", rec)
+	}
+	if got := m.Status().ConsecutiveFailures; got == 0 {
+		t.Fatal("unsafe descriptor must contribute to monitor backoff diagnostics")
 	}
 }
 
