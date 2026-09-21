@@ -151,8 +151,13 @@ jobs:
           cache: false
       - name: Verify gofmt
         run: |
-          gofmt -w internal/nexus/mission_integration_test.go internal/nexus/runner/executor.go internal/nexus/runner/types.go
-          git diff --exit-code -- internal/nexus/mission_integration_test.go internal/nexus/runner/executor.go internal/nexus/runner/types.go
+          set -euo pipefail
+          unformatted="$(gofmt -l . | grep -v '^./\.worktrees/' || true)"
+          if [ -n "$unformatted" ]; then
+            echo "gofmt required for:"
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
       - run: go vet ./...
       - uses: golangci/golangci-lint-action@v7
         with:
