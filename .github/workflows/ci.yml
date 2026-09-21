@@ -28,8 +28,23 @@ jobs:
           bun-version: 1.3.9
       - working-directory: web
         run: bun install --frozen-lockfile
-      - working-directory: web
-        run: bun run format:check
+      - name: Verify frontend formatting
+        working-directory: web
+        run: |
+          set -euo pipefail
+          if bun run format:check; then
+            exit 0
+          fi
+          mapfile -t files < <(bunx prettier --list-different 'src/**/*.{ts,tsx,css,json}')
+          for file in "${files[@]}"; do
+            [ -n "$file" ] || continue
+            formatted="$RUNNER_TEMP/prettier-${file//\//_}"
+            bunx prettier "$file" > "$formatted"
+            echo "::group::prettier diff $file"
+            diff -u "$file" "$formatted" || true
+            echo "::endgroup::"
+          done
+          exit 1
       - working-directory: web
         run: bun run typecheck
       - working-directory: web
