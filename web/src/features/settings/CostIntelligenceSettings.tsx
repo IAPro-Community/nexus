@@ -72,14 +72,9 @@ export const CostIntelligenceSettings: React.FC = () => {
 
     const soft = dollarsToMicroUSD(draft.softUSD, prefs.soft_limit_microusd);
     const hard = dollarsToMicroUSD(draft.hardUSD, prefs.hard_limit_microusd);
-    const emergency = dollarsToMicroUSD(
-      draft.emergencyUSD,
-      prefs.emergency_limit_microusd,
-    );
+    const emergency = dollarsToMicroUSD(draft.emergencyUSD, prefs.emergency_limit_microusd);
     const configured = [soft, hard, emergency].filter((value) => value > 0);
-    if (
-      configured.some((value, index) => index > 0 && value <= configured[index - 1])
-    ) {
+    if (configured.some((value, index) => index > 0 && value <= configured[index - 1])) {
       setError(
         t(
           'settings.costInvalidBudgets',
@@ -185,10 +180,7 @@ export const CostIntelligenceSettings: React.FC = () => {
         )}
       />
 
-      <section
-        className={styles.section}
-        aria-label={t('settings.costBudgets', 'Budgets')}
-      >
+      <section className={styles.section} aria-label={t('settings.costBudgets', 'Budgets')}>
         <h3>{t('settings.costBudgets', 'Budgets')}</h3>
         <p className={styles.note}>
           {t(
@@ -225,9 +217,7 @@ export const CostIntelligenceSettings: React.FC = () => {
             <span>{t('settings.costEmergencyUSD', 'Emergency limit (USD)')}</span>
             <Input
               value={draft.emergencyUSD}
-              onChange={(value) =>
-                setDraft((current) => ({ ...current, emergencyUSD: value }))
-              }
+              onChange={(value) => setDraft((current) => ({ ...current, emergencyUSD: value }))}
               inputMode="decimal"
             />
           </label>
@@ -257,9 +247,7 @@ export const CostIntelligenceSettings: React.FC = () => {
             />
           </label>
           <label>
-            <span>
-              {t('settings.costAnomalySamples', 'Minimum historical samples')}
-            </span>
+            <span>{t('settings.costAnomalySamples', 'Minimum historical samples')}</span>
             <Input
               value={draft.anomalyMinimumSamples}
               onChange={(value) =>
@@ -269,14 +257,10 @@ export const CostIntelligenceSettings: React.FC = () => {
             />
           </label>
           <label>
-            <span>
-              {t('settings.costAnomalyMinUSD', 'Minimum anomaly cost (USD)')}
-            </span>
+            <span>{t('settings.costAnomalyMinUSD', 'Minimum anomaly cost (USD)')}</span>
             <Input
               value={draft.anomalyMinUSD}
-              onChange={(value) =>
-                setDraft((current) => ({ ...current, anomalyMinUSD: value }))
-              }
+              onChange={(value) => setDraft((current) => ({ ...current, anomalyMinUSD: value }))}
               inputMode="decimal"
             />
           </label>
