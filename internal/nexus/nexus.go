@@ -19,6 +19,8 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/device"
+	"github.com/IAPro-Community/nexus/internal/core/entitlement"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/nexus/capacitymonitor"
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
@@ -70,6 +72,8 @@ type Nexus struct {
 	attentionCenter            *runner.AttentionCenter
 	projectIntelligenceMu      sync.Mutex
 	projectIntelligenceRunning map[string]bool
+	entitlementService         entitlement.Service
+	entitlementSubjectID       string
 
 	// Runtime change observers (set by the web layer to avoid circular imports).
 	onRuntimeChanged func(agentID, oldRuntimeID, newRuntimeID, provider, profile, continuity string)
@@ -174,7 +178,12 @@ func Default() *Nexus {
 			// runtime features degrade gracefully instead of panicking.
 			st = nil
 		}
-		defaultNexus = &Nexus{st: st, launcher: &prodLauncher{l: launcher.Default()}, drivers: driver.DefaultRegistry(), runtimeReg: registry.DefaultRegistry(), workers: map[string]*missionWorker{}, projectIntelligenceRunning: map[string]bool{}}
+		defaultNexus = &Nexus{
+			st: st, launcher: &prodLauncher{l: launcher.Default()}, drivers: driver.DefaultRegistry(),
+			runtimeReg: registry.DefaultRegistry(), workers: map[string]*missionWorker{},
+			projectIntelligenceRunning: map[string]bool{},
+			entitlementService: entitlement.StaticService{Grants: entitlement.BetaGrants()},
+		}
 		defaultNexus.quotaMonitor = NewQuotaMonitorService(DefaultQuotaDropMonitor(), events.DefaultBus())
 		if st != nil {
 			events.DefaultBus().SetRecorder(func(e events.Event) {
@@ -198,6 +207,63 @@ func Default() *Nexus {
 		}
 	})
 	return defaultNexus
+}
+
+// SetEntitlementService replaces the capability resolver. The beta product uses
+// a local StaticService; future signed/server-backed grants plug into the same
+// boundary without changing feature call sites.
+func (n *Nexus) SetEntitlementService(service entitlement.Service) {
+	if n == nil {
+		return
+	}
+	n.mu.Lock()
+	n.entitlementService = service
+	n.mu.Unlock()
+}
+
+// RequireCapability is the server-side product gate. UI visibility is never
+// treated as authorization. The installation identity is privacy-safe and is
+// used only as the local entitlement subject until account identity exists.
+func (n *Nexus) RequireCapability(ctx context.Context, capability entitlement.Capability) error {
+	if n == nil {
+		return fmt.Errorf("entitlement service unavailable")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	n.mu.RLock()
+	service := n.entitlementService
+	subject := n.entitlementSubjectID
+	n.mu.RUnlock()
+	if service == nil {
+		service = entitlement.StaticService{Grants: entitlement.BetaGrants()}
+	}
+	if strings.TrimSpace(subject) == "" {
+		dataDir, err := config.DataDir()
+		if err != nil {
+			return fmt.Errorf("resolve entitlement data dir: %w", err)
+		}
+		subject, err = device.LoadOrCreate(dataDir)
+		if err != nil {
+			return fmt.Errorf("resolve entitlement installation identity: %w", err)
+		}
+		n.mu.Lock()
+		if n.entitlementSubjectID == "" {
+			n.entitlementSubjectID = subject
+		} else {
+			subject = n.entitlementSubjectID
+		}
+		n.mu.Unlock()
+	}
+	grants, err := service.GrantsFor(ctx, subject)
+	if err != nil {
+		return fmt.Errorf("resolve entitlement: %w", err)
+	}
+	if !entitlement.Require(grants, capability) {
+		return fmt.Errorf("capability %s is not granted", capability)
+	}
+	return nil
 }
 
 func (n *Nexus) runtimeRegistry() *registry.Registry {
