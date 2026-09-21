@@ -35,6 +35,7 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
     preflightBusy,
     executionPreview,
     executionPreviewBusy,
+    costConfirmationPending,
     cancelGenerate,
     generatePlan,
     createManualPlan,
@@ -125,7 +126,9 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
               <Play size={14} />{' '}
               {runBusy
                 ? t('flow.starting', 'Iniciando…')
-                : t('flow.approveAndRun', 'Approve & Run')}
+                : costConfirmationPending
+                  ? t('flow.confirmCostAndRun', 'Confirmar custo e executar')
+                  : t('flow.approveAndRun', 'Approve & Run')}
             </Button>
           </div>
         </div>
@@ -153,6 +156,45 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
             </Badge>
           </div>
           <div className={styles.preflightList}>
+            <div className={styles.preflightItem}>
+              <div>
+                <span className={styles.preflightCheckText}>
+                  {t('flow.costPolicy', 'Política de custo')} · {executionPreview.cost_budget.level}
+                </span>
+                <small className={styles.preflightCheckSub}>
+                  {executionPreview.cost_budget.message}
+                </small>
+                {executionPreview.cost_anomaly.triggered ? (
+                  <small className={styles.preflightCheckSub}>
+                    {executionPreview.cost_anomaly.message}
+                  </small>
+                ) : null}
+              </div>
+              <Badge
+                tone={
+                  executionPreview.cost_confirmation_required
+                    ? 'warning'
+                    : executionPreview.cost_budget.level === 'OK'
+                      ? 'success'
+                      : 'default'
+                }
+              >
+                {executionPreview.cost_confirmation_required
+                  ? t('flow.costConfirmationBadge', 'Confirmação')
+                  : executionPreview.cost_budget.level}
+              </Badge>
+            </div>
+            {(executionPreview.warnings || []).map((warning) => (
+              <div key={warning} className={styles.preflightItem}>
+                <div>
+                  <span className={styles.preflightCheckText}>
+                    {t('flow.executionWarning', 'Aviso')}
+                  </span>
+                  <small className={styles.preflightCheckSub}>{warning}</small>
+                </div>
+                <Badge tone="warning">{t('flow.warning', 'Aviso')}</Badge>
+              </div>
+            ))}
             {(executionPreview.steps || []).map((step) => {
               const agentLabel = step.agent.will_create
                 ? t('flow.executionPreviewCreateAgent', 'Criar especialista: {{role}}', {
