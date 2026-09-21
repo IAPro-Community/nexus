@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CANONICAL_AGENT_TYPES } from './NewAgentModal';
+import { CANONICAL_AGENT_TYPES, DEFAULT_AGENT_PRESET } from './NewAgentModal';
 
 describe('canonical persistent agent presets', () => {
   it('defines behavioral specialization for every specialty', () => {
@@ -41,4 +41,8 @@ describe('canonical persistent agent presets', () => {
       ).toBe(true);
     }
   });
+  it('preserves the established backend default independent of preset ordering', () => {
+    expect(DEFAULT_AGENT_PRESET.id).toBe('backend-engineer');
+  });
+
 });
