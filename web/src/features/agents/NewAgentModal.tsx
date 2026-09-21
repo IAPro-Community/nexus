@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Bot,
@@ -16,334 +16,89 @@ import {
 import { Button, Card, Dialog, Input, Select } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import { isRequiredResourceSelection } from '../../nexus/agentTerminalModel';
-import type { Agent, AgentSpec, Project } from '../../types';
+import type { Agent, AgentMode, Project } from '../../types';
 import styles from './NewAgentModal.module.scss';
 
-export interface AgentTypePreset {
-  id: string;
+type ModePresentation = {
   name: string;
-  role: string;
   description: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
-  defaultProvider: string;
-  defaultMode: 'Safe' | 'YOLO';
-  recommendedSkills: string[];
-  agentSpec: AgentSpec;
-}
+};
 
-export const CANONICAL_AGENT_TYPES: AgentTypePreset[] = [
-  {
-    id: 'generalist',
-    name: 'Generalist Engineer',
-    role: 'generalist',
-    description: 'Execução abrangente, tarefas multiárea e coordenação técnica.',
+// Behavioral specialization is owned by the Go Agent Mode catalog. This map is
+// presentation-only: changing it cannot alter AgentSpec or execution policy.
+export const AGENT_MODE_PRESENTATION: Record<string, ModePresentation> = {
+  developer: {
+    name: 'Developer',
+    description: 'Implementação, correções e evolução incremental com testes.',
     icon: Bot,
-    defaultProvider: 'claude',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-repo-health'],
-    agentSpec: {
-      role: 'generalist',
-      instructions: [
-        'Decomponha tarefas amplas antes de executar e coordene dependências com clareza.',
-      ],
-      responsibilities: ['Conectar decisões de produto, código, testes e documentação.'],
-      capabilities: ['analysis', 'implementation', 'coordination'],
-      domains: ['product', 'software-engineering'],
-      strengths: ['systems-thinking', 'coordination'],
-      tags: ['generalist', 'multi-area'],
-      verification_policy: { require_evidence: true, require_tests: true },
-    },
   },
-  {
-    id: 'senior-developer',
+  'senior-developer': {
     name: 'Senior Developer',
-    role: 'senior-developer',
     description: 'Mudanças complexas, refactors cross-cutting e decisões técnicas de alto impacto.',
     icon: Bot,
-    defaultProvider: 'codex',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-repo-health', 'skill-systematic-debugging'],
-    agentSpec: {
-      role: 'senior-developer',
-      instructions: [
-        'Entenda invariantes e impactos sistêmicos antes de alterar código; prefira evolução incremental e verificável.',
-      ],
-      responsibilities: [
-        'Executar mudanças complexas, orientar trade-offs e preservar compatibilidade entre áreas.',
-      ],
-      capabilities: ['implementation', 'code_review', 'architecture', 'debugging'],
-      domains: ['software-engineering', 'cross-cutting'],
-      strengths: ['systems-thinking', 'refactoring', 'risk-management'],
-      tags: ['senior', 'cross-cutting'],
-      verification_policy: { require_evidence: true, require_tests: true },
-    },
   },
-  {
-    id: 'investigator',
-    name: 'Investigator',
-    role: 'investigator',
-    description:
-      'Causa raiz, comportamento intermitente, logs e diagnóstico orientado por evidência.',
-    icon: Search,
-    defaultProvider: 'codex',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-systematic-debugging', 'skill-verification-before-completion'],
-    agentSpec: {
-      role: 'investigator',
-      instructions: [
-        'Reproduza, isole variáveis e colete evidência antes de propor correção.',
-        'Comece em modo de investigação; só recomende alteração quando a causa raiz estiver sustentada por evidência.',
-      ],
-      responsibilities: [
-        'Diagnosticar falhas e produzir hipótese, evidência, causa raiz e próximos passos.',
-      ],
-      capabilities: ['debugging', 'root_cause_analysis', 'log_analysis'],
-      constraints: [
-        'Read-only by default until the root cause is evidenced and remediation is explicitly assigned.',
-      ],
-      domains: ['diagnostics', 'quality'],
-      strengths: ['hypothesis-testing', 'evidence-gathering'],
-      tags: ['investigation', 'root-cause'],
-      verification_policy: { require_evidence: true, require_tests: false },
-    },
-  },
-  {
-    id: 'architect',
-    name: 'Software Architect',
-    role: 'architect',
-    description: 'Arquitetura, contratos, trade-offs, ADRs e evolução estrutural do sistema.',
-    icon: Layers,
-    defaultProvider: 'claude',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-adr', 'skill-repo-health'],
-    agentSpec: {
-      role: 'architect',
-      instructions: [
-        'Modele limites, contratos, dependências e trade-offs antes de recomendar mudanças estruturais.',
-      ],
-      responsibilities: [
-        'Definir arquitetura evolutiva, registrar decisões e identificar riscos sistêmicos.',
-      ],
-      capabilities: ['architecture', 'system_design', 'tradeoff_analysis'],
-      domains: ['architecture', 'software-engineering'],
-      strengths: ['systems-thinking', 'decision-records'],
-      tags: ['architecture', 'design'],
-      verification_policy: { require_evidence: true, require_tests: false },
-    },
-  },
-  {
-    id: 'security-reviewer',
-    name: 'Security Reviewer',
-    role: 'security-reviewer',
-    description:
-      'Threat modeling, autenticação, autorização, secrets e revisão de superfícies de ataque.',
+  reviewer: {
+    name: 'Reviewer',
+    description: 'Revisão crítica de diffs, regressões, evidências e qualidade.',
     icon: Shield,
-    defaultProvider: 'claude',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-saas-security-scan', 'skill-quality-gate'],
-    agentSpec: {
-      role: 'security-reviewer',
-      instructions: [
-        'Revise ameaças, fronteiras de confiança e regressões de segurança sem assumir que ausência de evidência é segurança.',
-      ],
-      responsibilities: [
-        'Identificar vulnerabilidades, severidade, evidência e mitigação recomendada.',
-      ],
-      capabilities: ['security', 'code_review', 'threat_modeling'],
-      constraints: [
-        'Read-only by default; remediation belongs to an explicitly assigned implementation task.',
-      ],
-      domains: ['security', 'quality'],
-      strengths: ['threat-modeling', 'risk-classification'],
-      tags: ['security', 'review'],
-      verification_policy: { require_evidence: true, require_tests: false },
-    },
   },
-  {
-    id: 'performance-investigator',
-    name: 'Performance Investigator',
-    role: 'performance-investigator',
-    description: 'Profiling, latência, throughput, memória e regressões de desempenho.',
-    icon: Zap,
-    defaultProvider: 'codex',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-systematic-debugging', 'skill-verification-before-completion'],
-    agentSpec: {
-      role: 'performance-investigator',
-      instructions: [
-        'Estabeleça baseline e reproduza o gargalo antes de otimizar; compare resultados depois da mudança.',
-      ],
-      responsibilities: [
-        'Medir gargalos, explicar a causa e definir experimentos de desempenho reproduzíveis.',
-      ],
-      capabilities: ['performance_analysis', 'profiling', 'benchmarking'],
-      constraints: [
-        'Read-only by default until the bottleneck is measured and remediation is explicitly assigned.',
-      ],
-      domains: ['performance', 'diagnostics'],
-      strengths: ['measurement', 'profiling'],
-      tags: ['performance', 'investigation'],
-      verification_policy: { require_evidence: true, require_tests: false },
-    },
+  investigator: {
+    name: 'Investigator',
+    description: 'Causa raiz, comportamento intermitente, logs e diagnóstico orientado por evidência.',
+    icon: Search,
   },
-  {
-    id: 'backend-engineer',
-    name: 'Backend Engineer',
-    role: 'backend-engineer',
-    description: 'APIs, microsserviços, banco de dados e arquitetura server-side.',
-    icon: Server,
-    defaultProvider: 'codex',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-database-migrations', 'skill-systematic-debugging'],
-    agentSpec: {
-      role: 'backend-engineer',
-      instructions: [
-        'Priorize contratos estáveis, validação de entrada e observabilidade no backend.',
-      ],
-      responsibilities: ['Projetar APIs, persistência e serviços server-side resilientes.'],
-      capabilities: ['go', 'rest_api', 'database'],
-      domains: ['backend', 'distributed-systems'],
-      strengths: ['api-design', 'reliability'],
-      tags: ['backend', 'server-side'],
-      verification_policy: { require_evidence: true, require_tests: true },
-    },
+  architect: {
+    name: 'Architect',
+    description: 'Arquitetura, contratos, trade-offs, ADRs e evolução estrutural.',
+    icon: Layers,
   },
-  {
-    id: 'frontend-engineer',
-    name: 'Frontend Engineer',
-    role: 'frontend-engineer',
-    description: 'UI, design system, acessibilidade, estado e UX de produto.',
-    icon: Palette,
-    defaultProvider: 'claude',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-modern-ui-patterns', 'skill-frontend-ux-guardrails'],
-    agentSpec: {
-      role: 'frontend-engineer',
-      instructions: [
-        'Preserve acessibilidade, responsividade, i18n e os tokens visuais existentes.',
-      ],
-      responsibilities: ['Implementar interfaces React coesas e verificáveis.'],
-      capabilities: ['react', 'typescript', 'accessibility', 'ui'],
-      domains: ['frontend', 'web'],
-      strengths: ['ux', 'component-design'],
-      tags: ['frontend', 'react'],
-      verification_policy: { require_evidence: true, require_tests: true },
-    },
+  'security-reviewer': {
+    name: 'Security Reviewer',
+    description: 'Threat modeling, autenticação, autorização, secrets e superfícies de ataque.',
+    icon: Shield,
   },
-  {
-    id: 'qa-engineer',
-    name: 'QA & Test Engineer',
-    role: 'qa-engineer',
+  'qa-engineer': {
+    name: 'QA Engineer',
     description: 'Testes automatizados E2E, cobertura, regressão e smoke tests.',
     icon: Zap,
-    defaultProvider: 'codex',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-webapp-testing', 'skill-verification-before-completion'],
-    agentSpec: {
-      role: 'qa-engineer',
-      instructions: [
-        'Reproduza falhas, cubra regressões e exija evidência observável antes de concluir.',
-      ],
-      responsibilities: ['Projetar testes unitários, integração, E2E e smoke tests.'],
-      capabilities: ['testing', 'e2e', 'regression_analysis'],
-      domains: ['quality', 'verification'],
-      strengths: ['reproduction', 'regression-detection'],
-      tags: ['qa', 'testing'],
-      verification_policy: { require_evidence: true, require_tests: true },
-    },
   },
-  {
-    id: 'code-reviewer',
-    name: 'Code Reviewer',
-    role: 'code-reviewer',
-    description: 'Auditoria de diffs, segurança estática, conformidade e clean code.',
-    icon: Shield,
-    defaultProvider: 'claude',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-saas-security-scan', 'skill-quality-gate'],
-    agentSpec: {
-      role: 'code-reviewer',
-      instructions: [
-        'Procure riscos, regressões e claims sem evidência; classifique severidade objetivamente.',
-      ],
-      responsibilities: ['Revisar diffs, segurança, compatibilidade e qualidade de implementação.'],
-      capabilities: ['code_review', 'security', 'risk_analysis'],
-      constraints: [
-        'Read-only by default; remediation must be assigned to an implementation task.',
-      ],
-      domains: ['quality', 'security'],
-      strengths: ['critical-reading', 'risk-classification'],
-      tags: ['review', 'security'],
-      verification_policy: { require_evidence: true, require_tests: true },
-    },
+  'performance-investigator': {
+    name: 'Performance Investigator',
+    description: 'Profiling, latência, throughput, memória e regressões de desempenho.',
+    icon: Zap,
   },
-  {
-    id: 'devops-release',
+  'documentation-specialist': {
+    name: 'Documentation Specialist',
+    description: 'Documentação de arquitetura, manuais, ADRs, guias e handoff.',
+    icon: FileText,
+  },
+  generalist: {
+    name: 'Generalist Engineer',
+    description: 'Execução abrangente, tarefas multiárea e coordenação técnica.',
+    icon: Bot,
+  },
+  'backend-engineer': {
+    name: 'Backend Engineer',
+    description: 'APIs, microsserviços, banco de dados e arquitetura server-side.',
+    icon: Server,
+  },
+  'frontend-engineer': {
+    name: 'Frontend Engineer',
+    description: 'UI, design system, acessibilidade, estado e UX de produto.',
+    icon: Palette,
+  },
+  'devops-release': {
     name: 'DevOps & Release',
-    role: 'devops-release',
     description: 'Pipelines CI/CD, Docker, packaging e confiabilidade operacional.',
     icon: Layers,
-    defaultProvider: 'agy',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-release-engineering', 'skill-incident-response'],
-    agentSpec: {
-      role: 'devops-release',
-      instructions: ['Priorize reprodutibilidade, rollback seguro e observabilidade operacional.'],
-      responsibilities: ['Manter CI/CD, empacotamento, deploy e resposta operacional.'],
-      capabilities: ['ci_cd', 'docker', 'release', 'operations'],
-      domains: ['devops', 'release-engineering'],
-      strengths: ['automation', 'rollback-planning'],
-      tags: ['devops', 'release'],
-      verification_policy: { require_evidence: true, require_tests: true },
-    },
   },
-  {
-    id: 'data-analyst',
+  'data-analyst': {
     name: 'Data Analyst',
-    role: 'data-analyst',
     description: 'Modelagem analítica, consultas SQL e insights de dados.',
     icon: Database,
-    defaultProvider: 'codex',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-unified-analytics'],
-    agentSpec: {
-      role: 'data-analyst',
-      instructions: ['Declare a origem dos dados, incertezas e critérios usados nas conclusões.'],
-      responsibilities: ['Modelar consultas, métricas e análises reproduzíveis.'],
-      capabilities: ['sql', 'analytics', 'data_modeling'],
-      domains: ['data', 'analytics'],
-      strengths: ['measurement', 'evidence-based-analysis'],
-      tags: ['data', 'analytics'],
-      verification_policy: { require_evidence: true, require_tests: false },
-    },
   },
-  {
-    id: 'docs-writer',
-    name: 'Technical Writer',
-    role: 'docs-writer',
-    description: 'Documentação de arquitetura, manuais, ADRs e handoff.',
-    icon: FileText,
-    defaultProvider: 'claude',
-    defaultMode: 'Safe',
-    recommendedSkills: ['skill-adr', 'skill-deep-wiki'],
-    agentSpec: {
-      role: 'docs-writer',
-      instructions: [
-        'Escreva para o público correto, preserve histórico e diferencie fato de hipótese.',
-      ],
-      responsibilities: ['Produzir arquitetura, guias operacionais, ADRs e handoffs navegáveis.'],
-      capabilities: ['technical_writing', 'architecture_docs', 'documentation'],
-      domains: ['documentation', 'architecture'],
-      strengths: ['clarity', 'knowledge-organization'],
-      tags: ['docs', 'architecture'],
-      verification_policy: { require_evidence: true, require_tests: false },
-    },
-  },
-];
-
-export const DEFAULT_AGENT_PRESET =
-  CANONICAL_AGENT_TYPES.find((preset) => preset.id === 'backend-engineer') ??
-  CANONICAL_AGENT_TYPES[0];
+};
 
 export const NATIVE_PROVIDERS = [
   { id: 'claude', label: 'Claude (nexus claude)', alias: 'nexus claude' },
@@ -353,6 +108,25 @@ export const NATIVE_PROVIDERS = [
   { id: 'cursor', label: 'Cursor (nexus cursor)', alias: 'nexus cursor' },
 ];
 
+function presentationFor(mode: AgentMode): ModePresentation {
+  return (
+    AGENT_MODE_PRESENTATION[mode.id] ?? {
+      name: mode.id
+        .split('-')
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' '),
+      description: mode.role,
+      icon: Bot,
+    }
+  );
+}
+
+function executionModeFor(mode: AgentMode): 'Safe' | 'YOLO' {
+  if (mode.read_only_by_default) return 'Safe';
+  return mode.default_execution_mode === 'YOLO' ? 'YOLO' : 'Safe';
+}
+
 export const NewAgentModal: React.FC<{
   open: boolean;
   onClose: () => void;
@@ -360,22 +134,64 @@ export const NewAgentModal: React.FC<{
   onCreated: (agent: Agent) => void;
 }> = ({ open, onClose, project, onCreated }) => {
   const { t } = useTranslation();
-  const [selectedType, setSelectedType] = useState<AgentTypePreset>(DEFAULT_AGENT_PRESET);
-  const [name, setName] = useState(DEFAULT_AGENT_PRESET.name);
+  const [agentModes, setAgentModes] = useState<AgentMode[]>([]);
+  const [selectedType, setSelectedType] = useState<AgentMode | null>(null);
+  const [name, setName] = useState('');
   const [origin, setOrigin] = useState<'native' | 'custom'>('native');
-  const [provider, setProvider] = useState(DEFAULT_AGENT_PRESET.defaultProvider);
+  const [provider, setProvider] = useState('codex');
   const [mode, setMode] = useState<'Safe' | 'YOLO'>('Safe');
   const [commandTemplate, setCommandTemplate] = useState(
     'docker exec -it -w "{cwd}" vpn-dev-workspace-terminal-1 opencode {args}',
   );
   const [busy, setBusy] = useState(false);
+  const [loadingModes, setLoadingModes] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSelectType = (preset: AgentTypePreset) => {
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    setLoadingModes(true);
+    setError('');
+    void nexus
+      .listAgentModes()
+      .then((modes) => {
+        if (!alive) return;
+        if (modes.length === 0) {
+          throw new Error('Nexus returned an empty Agent Mode catalog.');
+        }
+        setAgentModes(modes);
+        const initial =
+          modes.find((candidate) => candidate.id === 'developer') ??
+          modes.find((candidate) => candidate.id === 'backend-engineer') ??
+          modes[0];
+        setSelectedType(initial);
+        setName(presentationFor(initial).name);
+        setProvider(initial.default_provider || 'codex');
+        setMode(executionModeFor(initial));
+      })
+      .catch((err: unknown) => {
+        if (!alive) return;
+        setAgentModes([]);
+        setSelectedType(null);
+        setError(
+          err instanceof Error
+            ? `Não foi possível carregar os Agent Modes: ${err.message}`
+            : 'Não foi possível carregar os Agent Modes.',
+        );
+      })
+      .finally(() => {
+        if (alive) setLoadingModes(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [open]);
+
+  const handleSelectType = (preset: AgentMode) => {
     setSelectedType(preset);
-    setName(preset.name);
-    setProvider(preset.defaultProvider);
-    setMode(preset.defaultMode);
+    setName(presentationFor(preset).name);
+    setProvider(preset.default_provider || 'codex');
+    setMode(executionModeFor(preset));
   };
 
   const resolvedPreview =
@@ -386,19 +202,19 @@ export const NewAgentModal: React.FC<{
           .replace('{args}', mode === 'YOLO' ? '--yolo' : '');
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !selectedType) return;
     setBusy(true);
     setError('');
     let created: Agent | undefined;
     try {
-      // 1. Create persistent agent in database
       created = await nexus.createAgent(project.id, name.trim(), selectedType.role);
 
-      // 2. Configure revision with provider & adapter options
       const extraArgs: string[] = [];
       if (mode === 'YOLO') extraArgs.push('--yolo');
 
-      const configOptions: Record<string, any> = {
+      const configOptions: Record<string, unknown> = {
+        agent_mode_id: selectedType.id,
+        read_only_by_default: Boolean(selectedType.read_only_by_default),
         role_type: selectedType.role,
         origin,
         mode,
@@ -418,7 +234,7 @@ export const NewAgentModal: React.FC<{
         profile: 'default',
         isolation: 'project',
         workspace: project.canonical_path || undefined,
-        agent_spec: selectedType.agentSpec,
+        agent_spec: selectedType.agent_spec,
         options: configOptions,
       });
 
@@ -427,8 +243,6 @@ export const NewAgentModal: React.FC<{
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (created && isRequiredResourceSelection(message)) {
-        // The Agent is intentionally kept persistent. The terminal opens its
-        // resource picker so the user can allocate an available provider.
         onCreated(created);
         onClose();
         return;
@@ -444,13 +258,13 @@ export const NewAgentModal: React.FC<{
       <div className={styles.modalBody}>
         {error && <Card className="nx-inline-error">{error}</Card>}
 
-        {/* 1. Escolha da Especialidade */}
         <div>
           <label className={styles.sectionLabel}>{t('agents.selectSpecialty')}</label>
           <div className={styles.presetsGrid}>
-            {CANONICAL_AGENT_TYPES.map((preset) => {
-              const Icon = preset.icon;
-              const isSelected = selectedType.id === preset.id;
+            {agentModes.map((preset) => {
+              const presentation = presentationFor(preset);
+              const Icon = presentation.icon;
+              const isSelected = selectedType?.id === preset.id;
               return (
                 <button
                   type="button"
@@ -463,22 +277,21 @@ export const NewAgentModal: React.FC<{
                     <Icon size={15} />
                   </span>
                   <div className={styles.presetContent}>
-                    <strong className={styles.presetTitle}>{preset.name}</strong>
-                    <small className={styles.presetDesc}>{preset.description}</small>
+                    <strong className={styles.presetTitle}>{presentation.name}</strong>
+                    <small className={styles.presetDesc}>{presentation.description}</small>
                   </div>
                 </button>
               );
             })}
           </div>
+          {loadingModes && <small className={styles.hintText}>Carregando especialidades…</small>}
         </div>
 
-        {/* 2. Nome do Agente */}
         <div className={styles.fieldGroup}>
           <label className={styles.sectionLabel}>{t('agents.displayNameField')}</label>
           <Input value={name} onChange={setName} placeholder={t('agents.namePlaceholder')} />
         </div>
 
-        {/* 3. Origem e Adaptador de Execução */}
         <div className={styles.fieldGroup}>
           <label className={styles.sectionLabel}>{t('agents.executionOrigin')}</label>
           <div className={styles.buttonRow}>
@@ -528,26 +341,41 @@ export const NewAgentModal: React.FC<{
           )}
         </div>
 
-        {/* 4. Modo Inicial */}
         <div className={styles.fieldGroup}>
           <label className={styles.sectionLabel}>{t('agents.operationalMode')}</label>
           <div className={styles.buttonRow}>
-            {(['Safe', 'YOLO'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                className="nx-button"
-                data-size="sm"
-                data-tone={mode === m ? (m === 'YOLO' ? 'warning' : 'brand') : 'default'}
-                onClick={() => setMode(m)}
-              >
-                {m === 'YOLO' ? t('agents.modeYolo') : t('agents.modeSafe')}
-              </button>
-            ))}
+            {(['Safe', 'YOLO'] as const).map((candidateMode) => {
+              const disabled =
+                candidateMode === 'YOLO' && Boolean(selectedType?.read_only_by_default);
+              return (
+                <button
+                  key={candidateMode}
+                  type="button"
+                  className="nx-button"
+                  data-size="sm"
+                  data-tone={
+                    mode === candidateMode
+                      ? candidateMode === 'YOLO'
+                        ? 'warning'
+                        : 'brand'
+                      : 'default'
+                  }
+                  disabled={disabled}
+                  onClick={() => setMode(candidateMode)}
+                >
+                  {candidateMode === 'YOLO' ? t('agents.modeYolo') : t('agents.modeSafe')}
+                </button>
+              );
+            })}
           </div>
+          {selectedType?.read_only_by_default && (
+            <small className={styles.hintText}>
+              Esta especialidade é read-only por padrão; alterações devem ser delegadas a uma
+              tarefa de implementação.
+            </small>
+          )}
         </div>
 
-        {/* 5. Preview do Comando Resolvido */}
         <div className={styles.previewBox}>
           <div className={styles.previewHeader}>
             <Terminal size={12} />
@@ -556,12 +384,15 @@ export const NewAgentModal: React.FC<{
           <code className={styles.previewCode}>{resolvedPreview}</code>
         </div>
 
-        {/* Ações */}
         <div className={styles.actionsRow}>
           <Button onClick={onClose} disabled={busy}>
             {t('common.cancel')}
           </Button>
-          <Button tone="brand" onClick={handleCreate} disabled={busy || !name.trim()}>
+          <Button
+            tone="brand"
+            onClick={handleCreate}
+            disabled={busy || loadingModes || !selectedType || !name.trim()}
+          >
             <Play size={13} /> {busy ? t('agents.creating') : t('agents.createAndOpenTerminal')}
           </Button>
         </div>

@@ -583,6 +583,16 @@ export interface AgentConfig {
   agent_spec?: AgentSpec;
 }
 
+export interface AgentMode {
+  id: string;
+  role: string;
+  default_provider?: string;
+  default_execution_mode: 'Safe' | 'YOLO' | string;
+  recommended_skill_ids?: string[];
+  read_only_by_default?: boolean;
+  agent_spec: AgentSpec;
+}
+
 export interface AgentSpec {
   role?: string;
   instructions?: string[];

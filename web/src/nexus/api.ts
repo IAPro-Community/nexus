@@ -3,6 +3,7 @@
 import {
   Project,
   Agent,
+  AgentMode,
   AgentDetail,
   RuntimeSession,
   AgentConfig,
@@ -225,6 +226,7 @@ export const nexus = {
       },
     ),
 
+  listAgentModes: () => request<AgentMode[]>('/api/v1/agent-modes'),
   listAgents: (projectId: string) => request<Agent[]>(`/api/v1/projects/${projectId}/agents`),
   createAgent: (projectId: string, name: string, role?: string) =>
     request<Agent>(`/api/v1/projects/${projectId}/agents`, {
