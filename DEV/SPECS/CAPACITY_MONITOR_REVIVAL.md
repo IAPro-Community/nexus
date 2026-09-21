@@ -69,13 +69,14 @@ push remoto; providers novos; qualquer mudança em `QuotaDropMonitor` existente
   `InAppNotificationCenter` com fallback legado, faixa de monitor no
   `UsageAccountCard` (estado/transição/ack), execution summary no `FlowRunSurface`
   (skills/reasoning/isolation/routing mode+why). `make web-verify` 10/10.
-- [x] T8 — autostart Linux consent-gated + testes + doc de evidência beta.
-  FEITO (escopo mínimo decidido pelo Maestro): `Start/StopCapacityMonitor` hospedado
-  no processo Nexus (padrão `StartQuotaMonitor`), só com `Enabled+BackgroundEnabled`
-  (default OFF), idempotente, lease-gated, `Shutdown` desliga; sem daemon novo, sem
-  battery detector. Registro de probes de produção: `emptyProbeRegistry` (UNKNOWN
-  visível, nunca alerta) — probes reais em
-  `DEV/FUTURE_EVOLUTION_FROM_OPENCODEX_OVERCLOCK.md`.
+- [x] T8 — lifecycle consent-gated + testes + doc de evidência beta.
+  FEITO: `Start/StopCapacityMonitor` é hospedado no processo Nexus, só com
+  `Enabled+BackgroundEnabled` (background default OFF), idempotente e lease-gated;
+  `Core.Start` restaura opt-in persistido, Settings aplica enable/disable sem restart e
+  `Shutdown` encerra o loop. O registry de produção não é mais vazio: ele usa probes
+  read-only sobre a cache canônica de quota para Codex/AGY/Claude/Gemini. A coleta LIVE
+  continua pertencendo ao `QuotaMonitorService`/adapters existentes, evitando polling
+  duplicado e preservando UNKNOWN/ESTIMATED quando não existe evidência confiável.
 - [x] T9 — gate final: `make quality`, `go test ./internal/nexus/... ./internal/core/quota/...`,
   `git diff --check`; relatório em `DEV/validation/CAPACITY_MONITOR_REVIVAL_REPORT.md`.
   FEITO: `go test ./internal/...` verde, `-race` nos pacotes concorrentes tocados,
