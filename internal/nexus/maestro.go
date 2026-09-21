@@ -604,6 +604,94 @@ func readSkillPrompt(orqDir, skillID string) string {
 	return strings.TrimSpace(string(data))
 }
 
+func (c *MaestroClient) querySkillsList() ([]MaestroSkillDesc, error) {
+	if c == nil || strings.TrimSpace(c.maestroBin) == "" {
+		return nil, fmt.Errorf("no maestro binary")
+	}
+	out, err := exec.Command(c.maestroBin, "skills", "list", "--json").Output()
+	if err != nil {
+		return nil, err
+	}
+	var envelope struct {
+		Skills []MaestroSkillDesc `json:"skills"`
+	}
+	if err := json.Unmarshal(out, &envelope); err == nil && len(envelope.Skills) > 0 {
+		return normalizeMaestroSkillList(envelope.Skills), nil
+	}
+	var direct []MaestroSkillDesc
+	if err := json.Unmarshal(out, &direct); err != nil {
+		return nil, fmt.Errorf("decode maestro skills list: %w", err)
+	}
+	if len(direct) == 0 {
+		return nil, fmt.Errorf("maestro skills list returned no skills")
+	}
+	return normalizeMaestroSkillList(direct), nil
+}
+
+func normalizeMaestroSkillList(skills []MaestroSkillDesc) []MaestroSkillDesc {
+	byID := make(map[string]MaestroSkillDesc, len(skills))
+	for _, skill := range skills {
+		skill.ID = strings.TrimSpace(skill.ID)
+		if skill.ID == "" {
+			continue
+		}
+		if strings.TrimSpace(skill.Name) == "" {
+			skill.Name = skill.ID
+		}
+		byID[skill.ID] = skill
+	}
+	result := make([]MaestroSkillDesc, 0, len(byID))
+	for _, skill := range byID {
+		result = append(result, skill)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
+	return result
+}
+
+func mergeMaestroSkillMetadata(authoritative, fallback []MaestroSkillDesc) []MaestroSkillDesc {
+	merged := make(map[string]MaestroSkillDesc, len(authoritative)+len(fallback))
+	for _, skill := range fallback {
+		if strings.TrimSpace(skill.ID) != "" {
+			merged[skill.ID] = skill
+		}
+	}
+	for _, skill := range authoritative {
+		if strings.TrimSpace(skill.ID) == "" {
+			continue
+		}
+		if previous, ok := merged[skill.ID]; ok {
+			if skill.Name == "" {
+				skill.Name = previous.Name
+			}
+			if skill.Description == "" {
+				skill.Description = previous.Description
+			}
+			if skill.Category == "" {
+				skill.Category = previous.Category
+			}
+			if skill.Risk == "" {
+				skill.Risk = previous.Risk
+			}
+			if len(skill.Triggers) == 0 {
+				skill.Triggers = append([]string(nil), previous.Triggers...)
+			}
+			if len(skill.Aliases) == 0 {
+				skill.Aliases = append([]string(nil), previous.Aliases...)
+			}
+			if skill.Prompt == "" {
+				skill.Prompt = previous.Prompt
+			}
+		}
+		merged[skill.ID] = skill
+	}
+	result := make([]MaestroSkillDesc, 0, len(merged))
+	for _, skill := range merged {
+		result = append(result, skill)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
+	return result
+}
+
 func (c *MaestroClient) queryCapabilities() (*MaestroCapability, error) {
 	if c.maestroBin == "" {
 		orqDir := findOrquestradorDir()
@@ -613,15 +701,25 @@ func (c *MaestroClient) queryCapabilities() (*MaestroCapability, error) {
 		return nil, fmt.Errorf("no maestro binary")
 	}
 
-	// 1. First try standalone 'capabilities --json' if supported in future CLI versions
+	// 1. Prefer the machine-readable Maestro v1 contracts. Capabilities owns
+	// modes/gates/processes; skills list owns the skill inventory. Local
+	// manifests remain a bounded fallback/enrichment source for SKILL.md content.
 	cmd := exec.Command(c.maestroBin, "capabilities", "--json")
 	if out, err := cmd.Output(); err == nil {
 		var cap MaestroCapability
 		if err := json.Unmarshal(out, &cap); err == nil && cap.Version != "" {
+			var localSkills []MaestroSkillDesc
 			if dirs := findOrquestradorDirs(); len(dirs) > 0 {
 				if local, localErr := c.queryCapabilitiesFromDirs(dirs); localErr == nil {
-					cap.Skills = local.Skills
+					localSkills = local.Skills
 				}
+			}
+			if cliSkills, skillsErr := c.querySkillsList(); skillsErr == nil {
+				cap.Skills = mergeMaestroSkillMetadata(cliSkills, localSkills)
+			} else if len(cap.Skills) > 0 {
+				cap.Skills = mergeMaestroSkillMetadata(cap.Skills, localSkills)
+			} else {
+				cap.Skills = localSkills
 			}
 			return &cap, nil
 		}
@@ -638,14 +736,19 @@ func (c *MaestroClient) queryCapabilities() (*MaestroCapability, error) {
 		version = "0.2.4"
 	}
 
-	// 3. Read dynamic skills and gates from .orquestrador directory
-	dirs := findOrquestradorDirs()
-	var skillDescs []MaestroSkillDesc
-	if len(dirs) > 0 {
-		cap, err := c.queryCapabilitiesFromDirs(dirs)
-		if err == nil && cap != nil {
-			skillDescs = cap.Skills
+	// 3. Resolve the explicit skills-list contract, then enrich/fallback from
+	// bounded local .orquestrador roots when the installed Maestro is older.
+	var localSkills []MaestroSkillDesc
+	if dirs := findOrquestradorDirs(); len(dirs) > 0 {
+		if cap, localErr := c.queryCapabilitiesFromDirs(dirs); localErr == nil && cap != nil {
+			localSkills = cap.Skills
 		}
+	}
+	var skillDescs []MaestroSkillDesc
+	if cliSkills, skillsErr := c.querySkillsList(); skillsErr == nil {
+		skillDescs = mergeMaestroSkillMetadata(cliSkills, localSkills)
+	} else {
+		skillDescs = localSkills
 	}
 
 	sort.Slice(skillDescs, func(i, j int) bool {
