@@ -89,6 +89,58 @@ func TestIntelligenceMemoryProjectE2EReloadPrecedenceAndSecret(t *testing.T) {
 		t.Fatalf("secret promote leaked into facts")
 	}
 
+	// Recall is bounded and deterministic; PROJECT wins precedence without
+	// hiding the INSTALL source from reflection/conflict diagnostics.
+	recall, err := consumer.RecallIntelligenceMemories(ctx, MemoryRecallRequest{
+		ProjectID: project.ID,
+		Keys:      []string{"quality.verification"},
+		Limit:     8,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(recall.Items) != 2 {
+		t.Fatalf("expected project + install recall rows, got %+v", recall.Items)
+	}
+	if recall.Items[0].Memory.Scope != MemoryScopeProject || recall.Items[0].Memory.Value != "make quality" {
+		t.Fatalf("PROJECT recall must rank first, got %+v", recall.Items[0])
+	}
+	reflection, err := consumer.ReflectIntelligenceMemories(ctx, MemoryRecallRequest{
+		ProjectID: project.ID,
+		Keys:      []string{"quality.verification"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reflection.Mode != "DETERMINISTIC" || len(reflection.Effective) != 1 {
+		t.Fatalf("unexpected reflection: %+v", reflection)
+	}
+	if reflection.Effective[0].Memory.Value != "make quality" {
+		t.Fatalf("reflection effective value=%q, want project value", reflection.Effective[0].Memory.Value)
+	}
+	if len(reflection.Conflicts) != 1 || reflection.Conflicts[0].Effective != MemoryScopeProject {
+		t.Fatalf("expected explicit INSTALL/PROJECT conflict, got %+v", reflection.Conflicts)
+	}
+	beforeReflectFacts, err := consumer.MemoryFactsMap(ctx, project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := consumer.ReflectIntelligenceMemories(ctx, MemoryRecallRequest{ProjectID: project.ID}); err != nil {
+		t.Fatal(err)
+	}
+	afterReflectFacts, err := consumer.MemoryFactsMap(ctx, project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(beforeReflectFacts) != len(afterReflectFacts) {
+		t.Fatalf("reflection must not persist memory: before=%#v after=%#v", beforeReflectFacts, afterReflectFacts)
+	}
+	for key, value := range beforeReflectFacts {
+		if afterReflectFacts[key] != value {
+			t.Fatalf("reflection mutated memory fact %q: before=%q after=%q", key, value, afterReflectFacts[key])
+		}
+	}
+
 	// Consumer uses the fact: Composer brief must not re-ask verification.
 	brief := newComposerBrief("melhorar o dashboard", "")
 	ApplyMemoriesToBrief(&brief, facts)
