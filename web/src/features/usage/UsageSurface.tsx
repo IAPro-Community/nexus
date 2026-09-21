@@ -5,12 +5,14 @@ import { Button, EmptyState, SearchInput, Spinner } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type {
   CapacityResourceStatus,
+  CostSummary,
   ProviderAccount,
   ProviderInfo,
   RecommendationResult,
 } from '../../types';
 import { asArray } from '../../lib/safeArray';
 import { AccountLoginModal } from './AccountLoginModal';
+import { CostSummaryStrip } from './CostSummaryStrip';
 import { RegisterProviderModal } from './RegisterProviderModal';
 import { SchedulerExplainModal } from './SchedulerExplainModal';
 import { UsageAccountCard } from './UsageAccountCard';
@@ -61,6 +63,7 @@ export const UsageSurface: React.FC = () => {
   const [monitorByAccount, setMonitorByAccount] = useState<Record<string, CapacityResourceStatus>>(
     {},
   );
+  const [costSummary, setCostSummary] = useState<CostSummary | null>(null);
 
   // Search & Filtering State
   const [search, setSearch] = useState('');
@@ -100,6 +103,15 @@ export const UsageSurface: React.FC = () => {
     }
   }, []);
 
+  const loadCostSummary = useCallback(async () => {
+    try {
+      setCostSummary(await nexus.getCostSummary(7));
+    } catch {
+      // Cost Intelligence is advisory. Missing evidence must not break quota UX.
+      setCostSummary(null);
+    }
+  }, []);
+
   const applyPayload = useCallback(
     (
       data: { accounts?: ProviderAccount[]; policy?: string },
@@ -124,6 +136,7 @@ export const UsageSurface: React.FC = () => {
     try {
       applyPayload(await nexus.listResources());
       void loadInstalledProviders();
+      void loadCostSummary();
       // Capacity status is advisory: a failure here must never break usage.
       try {
         const status = await nexus.getCapacityStatus();
@@ -145,7 +158,7 @@ export const UsageSurface: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [applyPayload, loadInstalledProviders]);
+  }, [applyPayload, loadCostSummary, loadInstalledProviders]);
 
   const softReload = useCallback(async () => {
     if (document.hidden) return;
@@ -163,13 +176,14 @@ export const UsageSurface: React.FC = () => {
       try {
         applyPayload(await nexus.refreshResources(provider, profile));
         void loadInstalledProviders();
+        void loadCostSummary();
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
         setRefreshing(false);
       }
     },
-    [applyPayload, loadInstalledProviders],
+    [applyPayload, loadCostSummary, loadInstalledProviders],
   );
 
   useEffect(() => {
@@ -292,6 +306,8 @@ export const UsageSurface: React.FC = () => {
             onSelectStatusFilter={setStatusFilter}
             onSelectBest={handleSelectBest}
           />
+
+          <CostSummaryStrip summary={costSummary} />
 
           <div className={styles.toolbar}>
             <div className={styles.searchWrap}>
