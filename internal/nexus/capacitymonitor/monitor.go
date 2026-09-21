@@ -581,7 +581,7 @@ func (m *Monitor) upsertState(provider, profile, window string, state State, rea
 	}
 	return m.deps.Store.UpsertCapacityState(store.CapacityStateRecord{
 		Key: k, Provider: provider, Profile: profile,
-		QuotaGroup: group, WindowKind: window,
+		QuotaGroup: "", WindowKind: window,
 		State: string(state), Reason: reason, TransitionedAt: now, UpdatedAt: now,
 		AccountScope: scopeKey(scope),
 	})
