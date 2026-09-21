@@ -173,7 +173,7 @@ func TestPreviewPlanExecutionBlocksWhenNoEligibleResourceExists(t *testing.T) {
 	accounts := []ProviderAccount{{
 		ID: "unknown", Provider: "codex", Profile: "main", DisplayName: "Codex unknown",
 		Authenticated: true, Available: true, Health: "healthy",
-		QuotaView: &quota.QuotaView{Status: "UNKNOWN"},
+		QuotaView:    &quota.QuotaView{Status: "UNKNOWN"},
 		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 	}}
 
