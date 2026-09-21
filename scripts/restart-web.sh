@@ -18,8 +18,20 @@ if [ ! -x "$BIN" ]; then
   exit 1
 fi
 
-# Find a running nexus web process (exclude this script's own grep).
-PID=$(pgrep -f "nexus web" 2>/dev/null | head -1 || true)
+# Find the first Web process launched from the binary being installed. This
+# specifically catches a Unix process whose executable became "(deleted)"
+# after an atomic replacement, while leaving unrelated Nexus installations
+# alone.
+PID=""
+for candidate in $(pgrep -f 'nexus web' 2>/dev/null || true); do
+  RAW=$(ps -p "$candidate" -o args= 2>/dev/null || true)
+  case "$RAW" in
+    *"$BIN web"*)
+      PID="$candidate"
+      break
+      ;;
+  esac
+done
 
 if [ -z "$PID" ]; then
   echo "ℹ  No running 'nexus web' process found — skipping restart."

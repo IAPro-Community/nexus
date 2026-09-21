@@ -309,22 +309,78 @@ func normalizeMemoryKey(key string) string {
 }
 
 // ApplyMemoriesToBrief marks habit fields covered by memory as inferred so the
-// Composer refinery does not re-ask them.
+// Composer refinery does not re-ask them. It reuses MemoryFactsMap/LivingBrief
+// and never overwrites the current request: when the brief already carries a
+// value for a habit field (user goal/turn), memory does not append a second
+// competing value — the current request wins the conflict.
 func ApplyMemoriesToBrief(brief *LivingBrief, facts map[string]string) {
 	if brief == nil || len(facts) == 0 {
 		return
 	}
 	if v := firstMemoryValue(facts, "quality.verification", "verification"); v != "" {
-		brief.Quality.Verification = appendUnique(brief.Quality.Verification, v)
+		if len(brief.Quality.Verification) == 0 {
+			brief.Quality.Verification = appendUnique(brief.Quality.Verification, v)
+		}
 	}
 	if v := firstMemoryValue(facts, "quality.testing", "testing"); v != "" {
-		brief.Quality.Testing = appendUnique(brief.Quality.Testing, v)
+		if len(brief.Quality.Testing) == 0 {
+			brief.Quality.Testing = appendUnique(brief.Quality.Testing, v)
+		}
 	}
 	if v := firstMemoryValue(facts, "environment.stack"); v != "" {
-		brief.Environment.Stack = appendUnique(brief.Environment.Stack, v)
+		if len(brief.Environment.Stack) == 0 {
+			brief.Environment.Stack = appendUnique(brief.Environment.Stack, v)
+		}
 	}
 	if v := firstMemoryValue(facts, "execution.autonomy"); v != "" {
 		brief.Execution.Autonomy = firstNonEmpty(brief.Execution.Autonomy, v)
+	}
+}
+
+// MarkMemoryCoveredUnknowns tags unknowns whose valid preference already
+// exists in durable memory so Composer does not repeat the question. It must
+// run after refreshComposerBrief. Resolved user answers are preserved: only
+// OPEN/INFERRED unknowns whose brief value equals the memory value are marked
+// INFERRED with Source MEMORY. When the current request already supplied a
+// different value, ApplyMemoriesToBrief skipped memory, the brief value differs
+// from memory, and this function leaves the USER answer untouched.
+func MarkMemoryCoveredUnknowns(brief *LivingBrief, facts map[string]string) {
+	if brief == nil || len(facts) == 0 || len(brief.Unknowns) == 0 {
+		return
+	}
+	memoryForField := map[string]string{
+		"quality.verification": firstMemoryValue(facts, "quality.verification", "verification"),
+		"quality.testing":      firstMemoryValue(facts, "quality.testing", "testing"),
+		"environment.stack":    firstMemoryValue(facts, "environment.stack"),
+	}
+	for i := range brief.Unknowns {
+		u := &brief.Unknowns[i]
+		// Answered/Confirmed/Dismissed unknowns fall through to the equality
+		// check below on purpose: an explicit conflicting USER answer never
+		// matches memory and is skipped, while a memory-coincidence still
+		// gets MEMORY provenance. Never overwrite a conflicting value here.
+		memVal := memoryForField[u.Field]
+		if memVal == "" {
+			continue
+		}
+		summary, _, _ := evaluateBriefField(*brief, u.Field)
+		if summary == "" || summary != memVal {
+			// Current request wins the conflict: brief carries a different
+			// (user) value, so do not retag as MEMORY.
+			continue
+		}
+		if u.Status == PromptUnknownAnswered || u.Status == PromptUnknownConfirmed || u.Status == PromptUnknownDismissed {
+			// Value matches memory exactly: retag provenance to MEMORY without
+			// reopening the question.
+			if u.Source == "USER" && u.Answer != "" && u.Answer != memVal {
+				continue
+			}
+		}
+		u.Status = PromptUnknownInferred
+		u.Answer = ""
+		u.InferredValue = memVal
+		u.Confidence = "HIGH"
+		u.Source = "MEMORY"
 	}
 }
 

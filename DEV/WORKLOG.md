@@ -1,5 +1,114 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-20 — Merge closure: CI blockers (autopilot, sem features)
+
+CI #143 vermelho → corrigido localmente: topbar overlap @1280 (badge
+icon-only ≤1366px + assert bilateral com geometria no E2E), SA9003 em
+`cooldown.go`/`intelligence_memory.go` removidos com semântica intacta
+(`make lint-go` 0 issues), `test:e2e:surface` criado e ligado ao Browser
+CI em steps próprios (browser/surface/capacity/a11y/visual, logs
+separados, gate final estendido), h1 sr-only Terminais/Flow. Gates:
+web-verify 10/10, Go full + vet + race completo nos pacotes tocados.
+Push + same-SHA CI pendentes (sem credencial neste ambiente).
+
+## 2026-09-20 — Full close: minimize-hide, capacity E2E, beta truth, reports
+
+Sobre `feat/capacity-monitor-revival` @ `4cb4e26` (unmount aceito pelo
+Maestro): PTY minimizado agora `hidden`+`inert` (não desmonta; xterm/socket/
+scrollback vivos); `test:e2e:capacity` novo PASS (servidor real isolado);
+READMEs marcam beta.2 como candidate (sem tag/release confirmada);
+`CAPACITY_MONITOR_REVIVAL_REPORT.md` criado (GO local, CONDITIONAL global).
+Gates: go zero FAIL, race, vet, build, test-e2e, web-verify 10/10, vitest
+76/418, security limpo, diff-check limpo. Browser E2E NOT_EXECUTED
+(libatk ausente — ENVIRONMENTAL). Push/CI bloqueados (sem rede).
+
+## 2026-09-20 — Surgical closure: surface isolation + Flow recovery (autopilot)
+
+Rodada final sobre `feat/capacity-monitor-revival` (5 commits
+`63132df..8156836` + docs): P0 isolation (uma product surface montada,
+TerminalsHost keep-alive via hidden/inert), drafts persistidos após
+unmount, stale-refresh guard com teste determinístico, BLOCKED→intervenção
+(sem Resume/Return enganoso), UX localizada pt-BR/en/es com paridade,
+E2E dedicado (`e2e-surface-isolation.mjs`) + fixture. Gates: web-verify
+10/10, 418 vitest, Go full + vet + race (capacitymonitor/store/control/
+runtime). Browser E2E/Axe e push + CI same-SHA NOT_EXECUTED (limite
+externo do ambiente) → veredito CONDITIONAL. Evidência:
+`DEV/validation/SURFACE_ISOLATION_REPORT.md` (§10: deep review com 3
+revisores paralelos; 1 HIGH real corrigido — persist race entre drafts;
+veredito mantém CONDITIONAL pelos 2 limites externos).
+
+## 2026-09-19 — Capacity Monitor Revival T4–T9 + incremental reliability (autopilot)
+
+Rodada conservadora no worktree `nexus-capacity-worktree`
+(`feat/capacity-monitor-revival`): nenhum subsistema novo — só
+`FIX_EXISTING`/`EXTEND_EXISTING`/`REUSE_EXISTING` sobre seams existentes.
+
+- `FIX_EXISTING` — `0021` única: `0021_conversation_events.sql` fundida em
+  `0021_capacity_monitor.sql` (decisão do Maestro; o runner marcava a versão
+  após o primeiro arquivo alfabético e o segundo nunca aplicava); repair
+  `repairCapacityMonitorSchema` cobre a deriva + `capacity_alert_states` (T6).
+- `EXTEND_EXISTING` — T4: `CapacityRecommender` (adapter fino sobre o
+  `RecommendResources` existente, advisory-only) injetado no monitor; eventos
+  degradados carregam candidato + motivo, sem migração automática.
+- `EXTEND_EXISTING` — T5: `ResetCycleKey`, `ShouldDeliver`, eventos/receipts
+  (`Put/Find/ListCapacityEvent`, `PutDeliveryReceipt`), ack/snooze com
+  enforcement no delivery, evento-antes-de-publicar (restart-safe).
+- `EXTEND_EXISTING` — single dispatcher (decisão do Maestro):
+  `capacitymonitor.Coordinator` owner-tagged entre monitor novo e
+  `QuotaDropMonitor` legado (gate no `dispatch()` via `SetDispatchGate`, nil
+  preserva legado); mesma-owner nunca se auto-suprime; `Forget` em falha de
+  persistência. Review próprio achou e corrigiu auto-supressão de milestones.
+- `REUSE_EXISTING` — T6: `CapacityApplicationService` + 5 rotas
+  (`status/history/preferences/ack/snooze`), UNKNOWN nunca saudável.
+- T8 mínimo (decisão do Maestro): `Start/StopCapacityMonitor` no processo
+  Nexus, consent-gated (`Enabled+BackgroundEnabled`, default OFF),
+  idempotente, lease-gated; `emptyProbeRegistry` até probes reais.
+- Routing/fallback (inspiração OpenCodex adaptada, sem framework novo):
+  `EffectiveCooldown` (Retry-After/ResetAt > heurística), fallback limitado
+  por elegíveis (anti ping-pong, causas tipadas), `ShouldRetainCurrentResource`
+  (sticky affinity), `DeriveRoutingSwitchReason` via `classifier.Classify`
+  (guardrail do provider exigiu; corrigida regressão de substring), `ExplainRoutingDecision`,
+  projeção de stage de Mission, memory E2E (PROJECT > INSTALL, secret
+  rejection), Composer reusa memórias (pedido atual vence).
+- Web: aba `capacity` + `CapacityMonitorSettings`, `capacityAlertFromEvent`
+  (fingerprint-dedup, recovered, recomendação), faixa de monitor no
+  `UsageAccountCard`, execution summary no `FlowRunSurface`; i18n en/pt-BR/es.
+- Gates: `go test ./internal/...` verde, `-race` nos concorrentes tocados,
+  `go vet` limpo, `make build`, `make web-verify` 10/10, `make test-e2e`
+  verde, `git diff --check` limpo. `go build ./...` puro falha em VCS
+  stamping do worktree (ambiental; `make build` canônico PASS).
+  `make docs-verify` segue bloqueado pelo manifesto visual stale (preexistente).
+- Ideias externas não implementadas registradas em
+  `DEV/FUTURE_EVOLUTION_FROM_OPENCODEX_OVERCLOCK.md`; relatório em
+  `DEV/validation/INCREMENTAL_EVOLUTION_REPORT.md`.
+
+## 2026-09-19 — Correção durável de geração/PID no attach do Nexus
+
+- Corrigido `internal/control/launcher`: após o handshake IPC, a sessão agora
+  copia `PID`, `HostPID`, `HostGeneration` e identidades binárias reportadas
+  pelo `SessionHost` antes do `Register` final. Isso impede que o snapshot do
+  launcher sobrescreva a geração real com zero.
+- Adicionada regressão ao teste de lançamento standalone, cobrindo a sessão
+  retornada e a sessão persistida no registro.
+- `Makefile`/`scripts/restart-web.sh` agora reiniciam apenas o Web que usa o
+  binário instalado, evitando processos `(deleted)` após troca atômica.
+- Binário `50b561c` recompilado e instalado em
+  `/home/desenvolvedor/.local/bin/nexus`; Web reiniciado na porta 13000.
+- Recuperação operacional: backup do registro em
+  `/home/desenvolvedor/.local/share/ai-manager/runtimes.json.before-runtime-recovery-20260919-1208.bak`
+  e encerramento dos oito hosts antigos incompatíveis.
+- Encerrado também o `__control-host` residual da captura de documentação, que
+  usava dados temporários e o binário antigo `(deleted)` do checkout legado.
+- Smoke real PASS para `nexus codex --yolo` e `nexus agy`: ambos persistiram
+  `host_generation` não-zero e iniciaram sem a rejeição de geração/PID.
+- Verificação PASS: `go test ./...`, `go test -race` nos pacotes de controle
+  afetados, `make format-check`, `make lint-go`, `make vet`, `make build`,
+  instalação e HTTP 200 no Web. Os dois avisos estáticos preexistentes foram
+  corrigidos sem alteração de comportamento.
+- Versão incrementada de `1.0.0-beta.1` para `1.0.0-beta.2` em `VERSION`, Web,
+  Wails e documentação de instalação; contrato de versão PASS e nova build
+  instalada às 12:26 UTC.
+
 ## 2026-09-18 — Linux-only beta CI closure
 
 - Reworked CI and Signed Release for seven self-hosted Linux gates because
@@ -4884,3 +4993,16 @@ build` PASS e Web reiniciado em HTTP 200.
 - Final local gates: `make quality-full`, `make build`, `make build-desktop`, `make web-verify`, `go vet ./...`, `go test -race ./...` PASS.
 - Real provider smoke: AGY PASS; Codex authenticated CLI reached but usage limit blocked completion; another Codex profile has an external rules symlink loop. No provider secret was recorded.
 - Verdict remains `NO-GO`: no authenticated Mission E2E/ledger stream ID, no Windows/macOS/native overnight evidence, and remaining Maestro compatibility leakage/live routing projection gaps.
+# 2026-09-18 — Proteção permanente contra falhas de teclado
+
+- Implementado controlador único de TTY com reset seguro e reassert após
+  entrada, Ctrl+C, encerramento inesperado e perda de conexão; restauração do
+  estado termios original ao sair.
+- Attach agora valida runtime, host PID/generation e identidade dos binários;
+  sessões incompatíveis ficam `STALE` com instrução de recriação, sem
+  encerramento automático.
+- Adicionado `nexus doctor terminal`, reset `--recover`, diagnóstico JSON e
+  cobertura para modos de teclado, sequências de setas, CPR/foco, Ctrl+C,
+  UTF-8, colagem e preservação do canal de comandos Nexus.
+- Verificação parcial concluída: focados, race focado, cross-compile e
+  `git diff --check` PASS; gates completos e smoke manual seguem no handoff.

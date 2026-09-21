@@ -29,6 +29,43 @@ type RoutingDecisionReportEntry struct {
 	Decision  RuntimeRoutingDecision `json:"decision"`
 }
 
+// RoutingExplainability is the transport-facing explainability projection for
+// one persisted decision: requested/selected/fallback/why plus alternatives,
+// rejected and the real typed switch cause. It never recomputes routing.
+type RoutingExplainability struct {
+	RequestedProvider string              `json:"requested_provider,omitempty"`
+	RequestedProfile  string              `json:"requested_profile,omitempty"`
+	RequestedModel    string              `json:"requested_model,omitempty"`
+	SelectedProvider  string              `json:"selected_provider,omitempty"`
+	SelectedProfile   string              `json:"selected_profile,omitempty"`
+	SelectedModel     string              `json:"selected_model,omitempty"`
+	Fallback          bool                `json:"fallback"`
+	Why               string              `json:"why,omitempty"`
+	SwitchReason      RoutingSwitchReason `json:"switch_reason,omitempty"`
+	SwitchDetail      string              `json:"switch_detail,omitempty"`
+	Alternatives      []ModelCandidate    `json:"alternatives,omitempty"`
+	Rejected          []string            `json:"rejected,omitempty"`
+}
+
+// ExplainRoutingDecision projects the persisted explainability fields without
+// re-running routing or inventing Engine≠Backend≠Transport detail.
+func ExplainRoutingDecision(decision RuntimeRoutingDecision) RoutingExplainability {
+	return RoutingExplainability{
+		RequestedProvider: decision.RequestedProvider,
+		RequestedProfile:  decision.RequestedProfile,
+		RequestedModel:    decision.RequestedModel,
+		SelectedProvider:  decision.SelectedProvider,
+		SelectedProfile:   decision.SelectedProfile,
+		SelectedModel:     decision.SelectedModel,
+		Fallback:          decision.Fallback,
+		Why:               decision.Reason,
+		SwitchReason:      decision.SwitchReason,
+		SwitchDetail:      decision.SwitchDetail,
+		Alternatives:      append([]ModelCandidate(nil), decision.Alternatives...),
+		Rejected:          append([]string(nil), decision.Rejected...),
+	}
+}
+
 // BuildRoutingDecisionReport reads only durable package decisions. A corrupt
 // decision is an integrity error, not an invitation to synthesize an answer.
 func BuildRoutingDecisionReport(run *runner.MissionRun) (RoutingDecisionReport, error) {

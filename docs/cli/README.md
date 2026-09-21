@@ -72,6 +72,7 @@ de automatizar.
 | `nexus bind`, `unbind`, `bindings` | gerencia preferências por workspace |
 | `nexus explain <provider>` | explica a decisão de seleção |
 | `nexus doctor [--json\|--bundle]` | gera diagnóstico local |
+| `nexus doctor terminal [--json\|--recover]` | diagnostica e recupera o estado do terminal |
 | `nexus security [profile] [--json]` | audita isolamento e compartilhamento |
 | `nexus history`, `stats`, `export` | consulta/extrai dados locais |
 | `nexus issue-report` | cria relatório diagnóstico |

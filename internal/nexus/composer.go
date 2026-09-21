@@ -178,6 +178,12 @@ func (n *Nexus) CreateComposerSessionWithPromptProgress(ctx context.Context, pro
 
 	progress.Step("persist", "started")
 	refreshComposerBrief(&brief)
+	// Memory reuse: a valid durable preference must not be re-asked. Mark
+	// memory-covered unknowns with Source MEMORY after the final refresh; the
+	// current request already won any conflict inside ApplyMemoriesToBrief.
+	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
+		MarkMemoryCoveredUnknowns(&brief, memFacts)
+	}
 	briefJSON, _ := json.Marshal(brief)
 	sessionState := composerSessionStateFromBrief(brief)
 	session, err := st.CreateComposerSession(store.ComposerSession{
@@ -349,6 +355,9 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 			turnCancel()
 		}
 		refreshComposerBrief(&brief)
+		if memFacts, memErr := n.MemoryFactsMap(ctx, session.ProjectID); memErr == nil {
+			MarkMemoryCoveredUnknowns(&brief, memFacts)
+		}
 		response := strings.TrimSpace(strings.Join([]string{intelligenceNotice, composeAssistantReply(brief)}, "\n\n"))
 		if strings.TrimSpace(response) != "" {
 			if _, err := st.AppendComposerTurn(store.ComposerTurn{SessionID: sessionID, Role: store.ComposerAssistant, Content: response}); err != nil {

@@ -40,6 +40,21 @@ somente a parte sanitizada da saída para análise.
 **Como validar:** o runtime aparece ativo e o terminal aceita um comando simples
 no projeto correto.
 
+## O teclado ficou com setas estranhas ou Ctrl+C não recuperou a sessão
+
+**Causa provável:** o terminal recebeu modos privados de teclado de uma TUI
+interrompida, ou o runtime persistido pertence a uma geração antiga do Nexus.
+
+**Solução:** execute `nexus doctor terminal` para ver os modos, a geração e a
+compatibilidade do runtime. Para emitir o reset seguro imediatamente, use
+`nexus doctor terminal --recover`; depois anexe novamente. Se o diagnóstico
+marcar a sessão como incompatível, recrie-a com `nexus codex --yolo`. O Nexus
+não encerra automaticamente o processo antigo.
+
+**Como validar:** as setas, `Ctrl+C`, colagem e texto UTF-8 devem chegar ao
+provider sem relatórios de foco/CPR; `nexus doctor terminal --json` deve mostrar
+o runtime como `current-and-compatible` antes do attach.
+
 ## Desktop não inicia
 
 **Causa provável:** o build nativo ou a dependência da plataforma não foi

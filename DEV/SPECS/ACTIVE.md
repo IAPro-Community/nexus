@@ -1,5 +1,15 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Slice ativo — proteção permanente contra falhas de teclado — 2026-09-18
+
+O terminal supervisionado/direct usa um controlador único de TTY que reaplica
+reset seguro na entrada, após interrupção/perda de conexão e antes da
+restauração. O attach valida geração, PIDs e identidade dos binários; sessões
+antigas são marcadas `STALE` e recebem ação explícita de recriação, sem matar o
+processo silenciosamente. `nexus doctor terminal [--json|--recover]` expõe o
+estado e a recuperação. Filtros Web removem apenas metadados conhecidos,
+preservando setas, Ctrl+C, colagem, UTF-8 e comandos literais.
+
 ## Beta Linux closure scope — 2026-09-18
 
 The current closure candidate is locally certified for Linux only. GitHub-hosted

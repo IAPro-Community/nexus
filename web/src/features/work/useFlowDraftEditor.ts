@@ -26,6 +26,9 @@ import {
   chipsFromPlan,
   composerDraftStorageKey,
   composerHistoryStorageKey,
+  flowDraftSessionKey,
+  loadStoredFlowDraft,
+  persistStoredFlowDraft,
   loadGoalHistory,
   loadStoredGoal,
   persistStoredGoal,
@@ -83,6 +86,10 @@ export function useFlowDraftEditor(options: {
 
   const composerDraftKey = composerDraftStorageKey(project.id);
   const composerHistoryKey = composerHistoryStorageKey(project.id);
+  // Tracks which plan the in-memory draft was seeded for. The persist effect
+  // must not write a stale previous-plan draft under a newly selected plan id
+  // in the transition render before this sync effect re-seeds the draft.
+  const seededPlanRef = useRef('');
 
   useEffect(() => {
     const saved = loadStoredGoal(composerDraftKey);
@@ -163,18 +170,50 @@ export function useFlowDraftEditor(options: {
 
   useEffect(() => {
     if (!selectedPlan) {
+      seededPlanRef.current = '';
       setFlowDraft(null);
       setSelectedStepId('');
       return;
     }
+    seededPlanRef.current = selectedPlan.id;
     const next = flowFromWorkPlan(selectedPlan);
+    // Restore unsaved step edits that survived a surface unmount (product-surface
+    // isolation) when they still apply to this exact plan revision.
+    const stored = loadStoredFlowDraft(flowDraftSessionKey(project.id, selectedPlan.id));
+    const restored =
+      stored &&
+      stored.planId === selectedPlan.id &&
+      stored.revision === selectedPlan.current_revision &&
+      stored.draft &&
+      typeof stored.draft === 'object' &&
+      Array.isArray((stored.draft as FlowDraftModel).steps) &&
+      (stored.draft as FlowDraftModel).steps.every(
+        (step) =>
+          step &&
+          typeof step === 'object' &&
+          typeof (step as FlowStepModel).id === 'string' &&
+          typeof (step as FlowStepModel).title === 'string',
+      )
+        ? (stored.draft as FlowDraftModel)
+        : null;
+    if (restored) {
+      setFlowDraft((current) =>
+        current && JSON.stringify(current) === JSON.stringify(restored) ? current : restored,
+      );
+      setSelectedStepId((current) =>
+        current && restored.steps.some((step) => step.id === current)
+          ? current
+          : restored.steps[0]?.id || '',
+      );
+      return;
+    }
     setFlowDraft((current) =>
       current && JSON.stringify(current) === JSON.stringify(next) ? current : next,
     );
     setSelectedStepId((current) =>
       current && next.steps.some((step) => step.id === current) ? current : next.steps[0]?.id || '',
     );
-  }, [selectedPlan]);
+  }, [selectedPlan, project.id]);
 
   const selectGeneratedPlan = useCallback(
     (plan: WorkPlan) => {
@@ -207,6 +246,25 @@ export function useFlowDraftEditor(options: {
     flowDraft && baselineFlow && JSON.stringify(flowDraft) !== JSON.stringify(baselineFlow),
   );
   const flowErrors = useMemo(() => (flowDraft ? validateFlow(flowDraft) : []), [flowDraft]);
+
+  // Keep unsaved step edits alive across product-surface unmounts. Anything
+  // persisted to the server clears the session copy via the clean-draft path.
+  // The seeded-plan gate skips the transition render where the draft still
+  // belongs to the previously selected plan.
+  useEffect(() => {
+    if (!selectedPlan || seededPlanRef.current !== selectedPlan.id) return;
+    const key = flowDraftSessionKey(project.id, selectedPlan.id);
+    if (flowDirty && flowDraft) {
+      persistStoredFlowDraft(key, {
+        planId: selectedPlan.id,
+        revision: selectedPlan.current_revision,
+        draft: flowDraft,
+      });
+    } else {
+      const stored = loadStoredFlowDraft(key);
+      if (stored && stored.planId === selectedPlan.id) persistStoredFlowDraft(key, null);
+    }
+  }, [flowDirty, flowDraft, selectedPlan, project.id]);
 
   const cancelGenerate = useCallback(() => {
     generateAbortRef.current?.abort();
@@ -356,6 +414,7 @@ export function useFlowDraftEditor(options: {
           workPlanFromFlow(nextDraft, selectedPlan),
           'Flow approved for execution',
         );
+        persistStoredFlowDraft(flowDraftSessionKey(project.id, selectedPlan.id), null);
       }
       const run = await nexusApi.runPlan(approved.id, approved.current_revision);
       onRunCreated?.(run);
@@ -370,7 +429,7 @@ export function useFlowDraftEditor(options: {
     } finally {
       setRunBusy(false);
     }
-  }, [flowDirty, flowDraft, onRunCreated, persistPlan, selectedPlan, t]);
+  }, [flowDirty, flowDraft, onRunCreated, persistPlan, selectedPlan, t, project.id]);
 
   const runPreflight = useCallback(async () => {
     if (!selectedPlan) return;

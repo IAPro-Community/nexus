@@ -502,7 +502,8 @@ func usage() {
   %s unbind <provider>            Unbind current workspace
   %s bindings [--json]            List all active workspace bindings
   %s explain <provider>           Explain account selection decision and scores
-  %s doctor [--json|--bundle]     Deep diagnostics of runtime, keyrings & CLIs
+  %s doctor [terminal] [--json|--bundle|--recover]
+                                Deep diagnostics; terminal audits TTY modes, generations & recovery
   %s security [profile] [--json]  Audit file sharing and isolation boundary
   %s history [--json]             View local session execution log
   %s stats [--json]               Aggregated statistics (sessions, fallbacks, rate limits)
@@ -1321,6 +1322,9 @@ func explainCmd(args []string) error {
 }
 
 func doctorCmd(args []string) error {
+	if len(args) > 0 && args[0] == "terminal" {
+		return terminalDoctorCmd(args[1:])
+	}
 	reg := initRegistry()
 	ctx := context.Background()
 	detections := reg.DetectAll(ctx)

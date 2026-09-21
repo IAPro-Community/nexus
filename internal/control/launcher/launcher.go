@@ -127,6 +127,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	if strings.TrimSpace(title) == "" {
 		title = fmt.Sprintf("%s (%s)", strings.ToUpper(opts.ProviderID), opts.ProfileID)
 	}
+	hostBinaryPath, _ := os.Executable()
+	hostBinaryFingerprint, _ := registry.BinaryFingerprint(hostBinaryPath)
+	providerBinaryFingerprint, _ := registry.BinaryFingerprint(bin)
 
 	// Detached hosts consume arguments through a one-time private envelope;
 	// standalone hosts can keep them in memory without registry persistence.
@@ -135,28 +138,32 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		registryArgs = nil
 	}
 	sess := registry.RuntimeSession{
-		RuntimeID:         opts.RuntimeID,
-		AgentID:           opts.AgentID,
-		ProjectID:         opts.ProjectID,
-		ProjectName:       opts.ProjectName,
-		Title:             title,
-		ProviderID:        opts.ProviderID,
-		ProfileID:         opts.ProfileID,
-		AccountScope:      opts.AccountScope,
-		ProviderSessionID: opts.ProviderSessionID,
-		Model:             launchModel,
-		Workspace:         opts.Workspace,
-		Binary:            bin,
-		Args:              registryArgs,
-		Env:               env,
-		State:             registry.StateStarting,
-		ControlLevel:      d.EffectiveCaps(ctx, prof).ControlLevel,
-		ControlEndpoint:   protocol.EndpointPath(opts.RuntimeID),
-		StartedAt:         time.Now(),
-		MachineID:         registry.LocalMachineID(),
-		Location:          "local",
-		Transport:         "ipc",
-		Labels:            cloneLabels(opts.Labels),
+		RuntimeID:                 opts.RuntimeID,
+		AgentID:                   opts.AgentID,
+		ProjectID:                 opts.ProjectID,
+		ProjectName:               opts.ProjectName,
+		Title:                     title,
+		ProviderID:                opts.ProviderID,
+		ProfileID:                 opts.ProfileID,
+		AccountScope:              opts.AccountScope,
+		ProviderSessionID:         opts.ProviderSessionID,
+		Model:                     launchModel,
+		Workspace:                 opts.Workspace,
+		Binary:                    bin,
+		HostBinaryPath:            hostBinaryPath,
+		HostBinaryFingerprint:     hostBinaryFingerprint,
+		ProviderBinaryPath:        bin,
+		ProviderBinaryFingerprint: providerBinaryFingerprint,
+		Args:                      registryArgs,
+		Env:                       env,
+		State:                     registry.StateStarting,
+		ControlLevel:              d.EffectiveCaps(ctx, prof).ControlLevel,
+		ControlEndpoint:           protocol.EndpointPath(opts.RuntimeID),
+		StartedAt:                 time.Now(),
+		MachineID:                 registry.LocalMachineID(),
+		Location:                  "local",
+		Transport:                 "ipc",
+		Labels:                    cloneLabels(opts.Labels),
 	}
 
 	if err := l.reg.Register(sess); err != nil {
@@ -253,7 +260,25 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		return nil, fmt.Errorf("status handshake probe failed for runtime %s: %w", opts.RuntimeID, err)
 	}
 
+	// SessionHost assigns the authoritative process identity during Start and
+	// exposes it through the status handshake. Copy it back before the final
+	// registry write; otherwise this launcher-owned snapshot can replace the
+	// host's non-zero generation with the zero value from launch time.
 	sess.PID = status.PID
+	sess.HostPID = status.HostPID
+	sess.HostGeneration = status.HostGeneration
+	if status.HostBinaryPath != "" {
+		sess.HostBinaryPath = status.HostBinaryPath
+	}
+	if status.HostBinaryFingerprint != "" {
+		sess.HostBinaryFingerprint = status.HostBinaryFingerprint
+	}
+	if status.ProviderBinaryPath != "" {
+		sess.ProviderBinaryPath = status.ProviderBinaryPath
+	}
+	if status.ProviderBinaryFingerprint != "" {
+		sess.ProviderBinaryFingerprint = status.ProviderBinaryFingerprint
+	}
 	sess.State = registry.StateRunning
 	_ = l.reg.Register(sess)
 

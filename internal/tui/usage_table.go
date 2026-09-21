@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/buildinfo"
 	"github.com/IAPro-Community/nexus/internal/conversation"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -211,7 +212,16 @@ type accountRefreshedMsg struct {
 	acc      model.AccountInfo
 }
 
+// accountsRefreshedMsg carries the result of an on-demand refresh of all accounts.
+type accountsRefreshedMsg struct {
+	results []accountRefreshedMsg
+}
+
 const quotaPollInterval = 60 * time.Second
+
+// staleQuotaAge is the threshold after which a cached quota reading is
+// considered stale and an age suffix is appended to the STATUS column.
+const staleQuotaAge = 45 * time.Minute
 
 func quotaPollTick() tea.Cmd {
 	return tea.Tick(quotaPollInterval, func(time.Time) tea.Msg {
@@ -266,6 +276,39 @@ func refreshAccountCmd(provider, profileName string, defaults map[string]string)
 			rows:     buildUsageRows(provider, profileName, qv, acc, defaults),
 			acc:      acc,
 		}
+	}
+}
+
+// refreshAllCmd forces a live refresh of every configured profile concurrently.
+func refreshAllCmd(profiles []model.Profile, defaults map[string]string) tea.Cmd {
+	return func() tea.Msg {
+		var (
+			mu      sync.Mutex
+			wg      sync.WaitGroup
+			results []accountRefreshedMsg
+			sem     = make(chan struct{}, 4)
+		)
+		for _, p := range profiles {
+			wg.Add(1)
+			go func(p model.Profile) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				profile.RefreshUsageSnapshot(p.Provider, p.Name)
+				acc := profile.GetAccountInfo(p.Provider, p.Name)
+				qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
+				mu.Lock()
+				results = append(results, accountRefreshedMsg{
+					provider: p.Provider,
+					profile:  p.Name,
+					rows:     buildUsageRows(p.Provider, p.Name, qv, acc, defaults),
+					acc:      acc,
+				})
+				mu.Unlock()
+			}(p)
+		}
+		wg.Wait()
+		return accountsRefreshedMsg{results: results}
 	}
 }
 
@@ -766,6 +809,61 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case accountsRefreshedMsg:
+		// Merge all refreshed accounts into allAccounts.
+		for _, sub := range msg.results {
+			key := sub.provider + ":" + sub.profile
+			kept := make([]UsageTableRow, 0, len(m.allAccounts)+len(sub.rows))
+			inserted := false
+			for _, row := range m.allAccounts {
+				if row.Provider == sub.provider && row.Profile == sub.profile && !row.IsUnconfigured {
+					if !inserted {
+						kept = append(kept, sub.rows...)
+						inserted = true
+					}
+					continue
+				}
+				kept = append(kept, row)
+			}
+			if !inserted {
+				kept = append(kept, sub.rows...)
+			}
+			for i := range kept {
+				if m.options.Defaults[kept[i].Provider] == kept[i].Profile {
+					kept[i].IsDefault = true
+				}
+			}
+			m.allAccounts = kept
+			if m.options.Accounts == nil {
+				m.options.Accounts = map[string]model.AccountInfo{}
+			}
+			m.options.Accounts[key] = sub.acc
+			delete(m.cachedQuotaView, key)
+			delete(m.refreshing, key)
+		}
+		m.refreshFilteredAccounts()
+		// Count results for status message.
+		ok, stale := 0, 0
+		for _, sub := range msg.results {
+			if len(sub.rows) == 0 {
+				stale++
+				continue
+			}
+			switch sub.rows[0].SnapshotStatus {
+			case string(model.UsageUnknown), string(model.UsageUnsupported), string(model.UsageError), "":
+				stale++
+			default:
+				ok++
+			}
+		}
+		total := len(msg.results)
+		if stale > 0 {
+			m.statusMsg = fmt.Sprintf("%d atualizada(s) · %d sem dados", ok, stale)
+		} else {
+			m.statusMsg = fmt.Sprintf("%d conta(s) atualizada(s)", total)
+		}
+		return m, nil
+
 	case spinnerTickMsg:
 		if m.loadingQuotas || m.loadingSessions || len(m.refreshing) > 0 {
 			m.spinFrame = (m.spinFrame + 1) % 4
@@ -935,7 +1033,7 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			return m, nil
-		case "r", "R":
+		case "r":
 			// Re-read quota for the highlighted account without blocking the UI.
 			if m.activeTab == TabAccounts && len(m.filteredAccounts) > 0 {
 				idx := m.accountTable.Cursor()
@@ -959,6 +1057,22 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						spinnerTick(),
 					)
 				}
+			}
+			return m, nil
+		case "R":
+			// Force a live refresh of all configured accounts.
+			if m.activeTab == TabAccounts && len(m.options.ProfilesToLoad) > 0 {
+				if m.refreshing == nil {
+					m.refreshing = map[string]bool{}
+				}
+				for _, p := range m.options.ProfilesToLoad {
+					m.refreshing[p.Provider+":"+p.Name] = true
+				}
+				m.statusMsg = "atualizando todas as contas…"
+				return m, tea.Batch(
+					refreshAllCmd(m.options.ProfilesToLoad, m.options.Defaults),
+					spinnerTick(),
+				)
 			}
 			return m, nil
 		case "l", "L":
@@ -1183,7 +1297,7 @@ func (m usageTableModel) View() string {
 
 	headerLeft := fmt.Sprintf("%s %s  %s %s %s  %s",
 		titleStyle.Render("Nexus"),
-		subStyle.Render("v0.4.0"),
+		subStyle.Render("v"+buildinfo.Version),
 		safePill, yoloPill, planPill, contPill)
 	headerRight := subStyle.Render("~/" + wsBasename)
 	gap := availWidth - lipgloss.Width(headerLeft) - lipgloss.Width(headerRight)
@@ -1278,11 +1392,11 @@ func (m usageTableModel) View() string {
 		previewLine = previewLine + "  " + status
 	}
 
-	helpText := "↑↓  ⏎ lançar  a add  r atualizar  s detalhe  d padrão  l login  / filtro  q sair"
+	helpText := "↑↓  ⏎ lançar  a add  r conta  R tudo  s detalhe  d padrão  l login  / filtro  q sair"
 	if m.filter.Focused() {
 		helpText = "digite para filtrar · Enter/Esc conclui"
 	} else if m.activeTab == TabAccounts && m.accountTable.Cursor() >= 0 && m.accountTable.Cursor() < len(m.filteredAccounts) && m.filteredAccounts[m.accountTable.Cursor()].IsUnconfigured {
-		helpText = "↑↓  ⏎/a adicionar perfil  r atualizar  s detalhe  / filtro  q sair"
+		helpText = "↑↓  ⏎/a adicionar perfil  r conta  R tudo  s detalhe  / filtro  q sair"
 	} else if availWidth < 90 {
 		helpText = "↑↓  ⏎ lançar  a add  s detalhe  / filtro  q sair"
 	}
@@ -1430,7 +1544,11 @@ func renderAccountCells(row UsageTableRow, cols []table.Column, index int) []str
 		case "SEMANA":
 			cells = append(cells, renderTableCell(formatQuotaCell(row.Weekly, weeklyWidth, row.Status), c.Width, usageQuotaStyle(row.Status, row.Weekly)))
 		case "STATUS":
-			cells = append(cells, renderTableCell(row.Status, c.Width, usageStatusStyle(row.Status)))
+			statusDisplay := row.Status
+			if !row.FetchedAt.IsZero() && time.Since(row.FetchedAt) > staleQuotaAge {
+				statusDisplay = statusDisplay + " · " + compactAge(row.FetchedAt)
+			}
+			cells = append(cells, renderTableCell(statusDisplay, c.Width, usageStatusStyle(row.Status)))
 		default:
 			cells = append(cells, renderTableCell("", c.Width, lipgloss.NewStyle()))
 		}
@@ -1447,15 +1565,28 @@ func renderTableCell(value string, width int, style lipgloss.Style) string {
 	return style.Padding(0, 1).Render(inner)
 }
 
-func formatQuotaCell(raw string, width int, _ string) string {
+func formatQuotaCell(raw string, width int, status string) string {
 	if raw == "" || raw == "—" {
 		return "—"
 	}
 	if width <= 0 || lipgloss.Width(raw) <= width {
 		return raw
 	}
-	// Prefer keeping bar + percent; drop reset when the column is tight.
+	// For rate-limited accounts, the reset time is the most actionable signal.
+	// Prefer keeping percent + reset and drop the bar when the column is tight.
+	isRateLimited := status == "RATE LTD" || status == "RATE LIMITED"
 	if idx := strings.Index(raw, " · "); idx > 0 {
+		if isRateLimited {
+			textReset := strings.TrimSpace(raw[idx+3:])
+			percent := strings.TrimSpace(raw[:idx])
+			if idx2 := strings.Index(percent, "] "); idx2 > 0 {
+				percent = strings.TrimSpace(percent[idx2+2:])
+			}
+			keep := percent + " · " + textReset
+			if lipgloss.Width(keep) <= width {
+				return keep
+			}
+		}
 		compact := strings.TrimSpace(raw[:idx])
 		if lipgloss.Width(compact) <= width {
 			return compact
@@ -1487,6 +1618,10 @@ func usageQuotaStyle(status, value string) lipgloss.Style {
 	case "ESGOTADA", "RATE LTD", "SEM QUOTA", "RATE LIMITED":
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
 	case "OK", "COM QUOTA":
+		pct, ok := parseQuotaPercent(value)
+		if ok && pct <= 30 {
+			return lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
+		}
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
 	case "ESTIMADA":
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("208"))

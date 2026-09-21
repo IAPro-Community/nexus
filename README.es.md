@@ -1,5 +1,10 @@
 # IAPro Nexus
 
+> **Beta cerrada v1.0.0-beta.3 (release candidate)** — compilación local verificada;
+> la tag/release pública correspondiente aún no está confirmada en este branch.
+> Verifique que la tag `v1.0.0-beta.3` y el GitHub Release existan antes de
+> descargar binarios (`git ls-remote --tags origin v1.0.0-beta.3`).
+
 **Una estación de trabajo local para operar coding agents.**
 
 Proyectos, agentes persistentes, sesiones de terminal supervisadas, proveedores, worktrees y automatización en una experiencia integrada de Web, Desktop y CLI.
@@ -19,7 +24,7 @@ Camino recomendado (**zero-toolchain**): instala un binario de release. No requi
 **Linux / macOS:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.3
 nexus doctor
 nexus web
 ```
@@ -28,7 +33,7 @@ nexus web
 
 ```powershell
 irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.1
+.\install.ps1 -Version v1.0.0-beta.3
 nexus doctor
 nexus web
 ```
@@ -45,6 +50,8 @@ make build
 ```
 
 Después sigue **+ New → AI Session → proveedor → terminal**. No necesitas abrir Composer, Flow o Mission para trabajar directamente.
+
+`--version=v1.0.0-beta.3` descarga el GitHub Release fijado y verifica `checksums.txt` (integridad) — esto requiere que existan la tag y la release; si aún no se publicaron, compile desde el código abajo. El repositorio debe ser público (o configure `GH_TOKEN`) para la descarga anónima.
 
 ## Web, Desktop y CLI
 

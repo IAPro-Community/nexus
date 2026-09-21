@@ -18,8 +18,8 @@ export function shouldForwardTerminalInput(data: string): boolean {
     // eslint-disable-next-line no-control-regex
     /^\x1b\[[0-9;]*(?:\[[iIO]|[iIO])$/.test(data) ||
     /^\[[0-9;]*(?:\[[iIO]|[iIO])$/.test(data) ||
-    // eslint-disable-next-line no-control-regex
-    /^\x1b\[[0-9;?]*[A-DHFO]$/.test(data) ||
+    // ESC-prefixed CSI arrows are real user input and must pass through;
+    // only ESC-less forms are eligible for navigation metadata filtering.
     /^\[[0-9;?]*[A-DHFO]$/.test(data) ||
     // eslint-disable-next-line no-control-regex
     /^\x1b\[\d+;\d+R$/.test(data) ||
@@ -39,11 +39,6 @@ export function shouldForwardTerminalInput(data: string): boolean {
 const EMBEDDED_FOCUS_RE = /\x1b\[[0-9;]*(?:\[[iIO]|[iIO])/g;
 // eslint-disable-next-line no-control-regex
 const EMBEDDED_CPR_RE = /\x1b\[\d+;\d+R/g;
-// Arrow/navigation reports can arrive in one xterm onData chunk. If the
-// bridge consumes ESC while rendering, the remaining "[C[D" becomes prompt
-// text; remove the ESC-prefixed form before the bare burst scrubber runs.
-// eslint-disable-next-line no-control-regex
-const EMBEDDED_NAVIGATION_RE = /\x1b\[[0-9;?]*[A-DHFO]/g;
 // A broken terminal bridge can drop ESC and coalesce arrow/focus reports into
 // a burst such as "[B[A[A[B[C" (or even "[[A"). Only scrub bare reports when
 // there is a burst, or when the whole chunk is one report, so ordinary text
@@ -51,17 +46,18 @@ const EMBEDDED_NAVIGATION_RE = /\x1b\[[0-9;?]*[A-DHFO]/g;
 const BARE_NAVIGATION_RE = /\[(?:[0-9;?]*\[)?[A-DHFO]/g;
 
 function stripBareNavigationBurst(data: string): string {
-  const matches = data.match(BARE_NAVIGATION_RE);
-  if (!matches || matches.length < 2) return data;
-  return data.replace(BARE_NAVIGATION_RE, '');
+  const matches = [...data.matchAll(BARE_NAVIGATION_RE)].filter(
+    (match) => match.index === 0 || data[match.index! - 1] !== '\x1b',
+  );
+  if (matches.length < 2) return data;
+  return data.replace(BARE_NAVIGATION_RE, (match, offset: number) => {
+    return offset > 0 && data[offset - 1] === '\x1b' ? match : '';
+  });
 }
 
 /** Removes embedded ESC-prefixed focus/CPR metadata from a forwarded chunk. */
 export function stripEmbeddedTerminalMetadata(data: string): string {
   if (!data) return data;
-  const withoutEscMetadata = data
-    .replace(EMBEDDED_FOCUS_RE, '')
-    .replace(EMBEDDED_CPR_RE, '')
-    .replace(EMBEDDED_NAVIGATION_RE, '');
+  const withoutEscMetadata = data.replace(EMBEDDED_FOCUS_RE, '').replace(EMBEDDED_CPR_RE, '');
   return stripBareNavigationBurst(withoutEscMetadata);
 }

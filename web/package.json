@@ -1,6 +1,6 @@
 {
   "name": "iapro-nexus-web",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.4",
   "packageManager": "bun@1.3.9",
   "type": "module",
   "scripts": {
@@ -20,6 +20,8 @@
     "verify": "node scripts/verify-report.mjs",
     "test:e2e": "node scripts/e2e-hardening-verify.mjs",
     "test:e2e:composer": "node scripts/e2e-composer-workspace.mjs",
+    "test:e2e:surface": "node scripts/e2e-surface-isolation.mjs",
+    "test:e2e:capacity": "node scripts/e2e-capacity.mjs",
     "test:a11y": "node scripts/e2e-hardening-verify.mjs",
     "test:visual": "node scripts/e2e-hardening-verify.mjs",
     "test:e2e-hardening": "node scripts/e2e-hardening-verify.mjs",

@@ -1,5 +1,42 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-19 — Correção do attach por geração/PID
+
+- PASS — `go test ./...`.
+- PASS — `go test -race ./internal/control/launcher ./internal/control/protocol ./internal/control/host`.
+- PASS — `make format-check` e `make vet`.
+- PASS — `make build` e `make install-local`; binário instalado em
+  `/home/desenvolvedor/.local/bin/nexus`, commit `50b561c`.
+- PASS — Web reiniciado pelo binário novo e `GET http://127.0.0.1:13000`
+  retornou HTTP 200.
+- PASS — smoke real `nexus codex --yolo`: runtime iniciou com
+  `host_generation` não-zero e sem “changed generation/PID”.
+- PASS — smoke real `nexus agy`: runtime iniciou com `host_generation`
+  não-zero e sem “changed generation/PID”.
+- PASS — os hosts antigos incompatíveis foram encerrados após backup explícito
+  do registro; nenhum `__control-host` órfão permaneceu.
+- PASS — o host residual de captura de documentação em `/tmp` também foi
+  encerrado via protocolo, sem alterar o registro principal.
+- PASS — `make lint-go` após corrigir os dois avisos estáticos preexistentes
+  (`ST1023` e `QF1001`) sem alteração de comportamento.
+- PASS — versão `1.0.0-beta.2` consistente em `VERSION`, `web/package.json` e
+  `cmd/nexus-desktop/wails.json`; binário instalado reporta a mesma versão.
+- NOT EXECUTED — commit/push, conforme o contrato do Maestro.
+
+## 2026-09-18 — Proteção permanente contra falhas de teclado
+
+- PASS — testes Go afetados, `-race`, `make test-e2e`, `go vet ./...`,
+  `make build`, `make web-verify` (10/10) e cross-compile Windows/macOS.
+- PASS — pseudo-TTY executou `./nexus doctor terminal --recover` com reset
+  emitido e termios legível.
+- PARTIAL — `go test ./...` com dados temporários reproduz fixtures
+  preexistentes de conversation/AGY/Claude/quota/profile; nenhum pacote do
+  slice de TTY falhou.
+- PARTIAL — `make lint-go` mantém cinco diagnósticos preexistentes fora do
+  slice.
+- BLOCKED — smoke autenticado `nexus codex --yolo` sem perfil Codex habilitado;
+  Windows/macOS nativos continuam não verificados.
+
 ## 2026-09-18 — Beta Linux CI closure preparation
 
 - PASS — `make quality` (format, frontend lint/styles/typecheck, 409 Vitest
@@ -1491,6 +1528,7 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-17T17:42:21Z
+## Frontend gate — 2026-09-20T13:15:06Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
+

@@ -239,6 +239,7 @@ export const WorkspaceSurfaceHost: React.FC<{
           project={project}
           agents={agents}
           onOpenAgent={terminal}
+          onOpenResources={() => open('resources')}
         />
       ) : (
         <EmptyState title="Flow Run unavailable" />

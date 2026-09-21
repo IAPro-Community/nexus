@@ -211,6 +211,77 @@ export interface ResourceAllocation {
   persisted: boolean;
 }
 
+// Capacity Monitor (revival T6): read-model projection of the SQLite monitor.
+// Unknown stays unknown: an empty resources list means "no data", never healthy.
+export type CapacityMonitorState =
+  'UNKNOWN' | 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'EXHAUSTED' | 'RECOVERED';
+
+export interface CapacityResourceStatus {
+  key: string;
+  provider: string;
+  profile: string;
+  quota_group: string;
+  window_kind: string;
+  state: CapacityMonitorState | string;
+  fingerprint?: string;
+  reason?: string;
+  transitioned_at: string;
+  last_observed_at: string;
+  remaining_percent?: number | null;
+  reset_description?: string;
+  acked: boolean;
+  snoozed_until?: string | null;
+}
+
+export interface CapacityPreferences {
+  enabled: boolean;
+  background_enabled: boolean;
+  warning_threshold: number;
+  critical_threshold: number;
+  exhausted_threshold: number;
+  recovery_threshold: number;
+  reminder_interval_seconds: number;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start_utc: string;
+  quiet_hours_end_utc: string;
+  exhausted_bypass_quiet_hours: boolean;
+  browser_notifications_enabled: boolean;
+  native_notifications_enabled: boolean;
+  lock_screen_safe_copy: boolean;
+  updated_at: string;
+}
+
+export interface CapacityStatus {
+  enabled: boolean;
+  monitored_resources: number;
+  resources: CapacityResourceStatus[];
+  lease_owner?: string;
+  lease_expires_at?: string;
+  preferences: CapacityPreferences;
+}
+
+export interface CapacityHistoryEvent {
+  id: string;
+  fingerprint: string;
+  event_type: string;
+  provider: string;
+  profile: string;
+  quota_group: string;
+  window_kind: string;
+  severity: string;
+  payload_json: string;
+  emitted_at: string;
+  acked: boolean;
+  snoozed_until?: string | null;
+}
+
+export interface CapacityAlertState {
+  fingerprint: string;
+  acked: boolean;
+  snoozed_until?: string | null;
+  updated_at: string;
+}
+
 export interface EventRecord {
   id: string;
   correlation_id?: string;

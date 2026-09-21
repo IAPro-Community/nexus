@@ -67,6 +67,13 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		writeError(w, http.StatusNotFound, "runtime host is not running")
 		return
 	}
+	if err := registry.ValidateAttachCompatibility(sess); err != nil {
+		// Preserve the process for explicit user cleanup, but make the runtime
+		// non-attachable and actionable instead of opening a silent black TTY.
+		_ = reg.UpdateState(runtimeID, registry.StateStale)
+		writeError(w, http.StatusConflict, "runtime is incompatible with the current Nexus binary; recreate the session with nexus codex --yolo")
+		return
+	}
 
 	// Dial the control endpoint before upgrading. A live PID/STARTING row is
 	// not enough on Windows when the named pipe was never created; prefer HTTP

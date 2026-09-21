@@ -61,46 +61,50 @@ const (
 // RuntimeSession represents a managed execution session under AI Control.
 // Note: Secrets, OAuth tokens, and API keys are NEVER stored in this struct or persisted.
 type RuntimeSession struct {
-	RuntimeID            string             `json:"runtime_id"`
-	AgentID              string             `json:"agent_id,omitempty"`
-	Title                string             `json:"title,omitempty"`
-	ProviderID           string             `json:"provider_id"`
-	ProfileID            string             `json:"profile_id"`
-	AccountScope         model.AccountScope `json:"account_scope,omitempty"`
-	ProviderSessionID    string             `json:"provider_session_id,omitempty"`
-	Model                string             `json:"model,omitempty"`
-	Workspace            string             `json:"workspace"`
-	PID                  int                `json:"pid"`
-	HostPID              int                `json:"host_pid,omitempty"`
-	HostGeneration       int64              `json:"host_generation,omitempty"`
-	Binary               string             `json:"-"`
-	Args                 []string           `json:"-"`
-	Env                  []string           `json:"-"`
-	State                RuntimeState       `json:"state"`
-	StartupStage         StartupStage       `json:"startup_stage,omitempty"`
-	StageChangedAt       time.Time          `json:"stage_changed_at,omitempty"`
-	LastFault            StartupFault       `json:"last_fault,omitempty"`
-	ControlLevel         ControlLevel       `json:"control_level"`
-	StartedAt            time.Time          `json:"started_at"`
-	UpdatedAt            time.Time          `json:"updated_at"`
-	ControlEndpoint      string             `json:"control_endpoint"`
-	ParentRuntimeID      string             `json:"parent_runtime_id,omitempty"`
-	HandoffType          string             `json:"handoff_type,omitempty"`
-	Continuity           string             `json:"continuity,omitempty"`
-	LineageID            string             `json:"lineage_id,omitempty"`
-	Labels               map[string]string  `json:"labels,omitempty"`
-	MachineID            string             `json:"machine_id,omitempty"`
-	Location             string             `json:"location,omitempty"`
-	Transport            string             `json:"transport,omitempty"`
-	AttentionReason      string             `json:"attention_reason,omitempty"`
-	AttentionContext     string             `json:"attention_context,omitempty"`
-	PromptKind           string             `json:"prompt_kind,omitempty"`    // yn | choice | free_text | none
-	AttentionKind        string             `json:"attention_kind,omitempty"` // needs_user | working | completed | error | idle
-	AttentionFingerprint string             `json:"attention_fingerprint,omitempty"`
-	ProjectID            string             `json:"project_id,omitempty"`
-	ProjectName          string             `json:"project_name,omitempty"`
-	LastTaskSummary      string             `json:"last_task_summary,omitempty"`
-	DynamicTitle         string             `json:"dynamic_title,omitempty"`
+	RuntimeID                 string             `json:"runtime_id"`
+	AgentID                   string             `json:"agent_id,omitempty"`
+	Title                     string             `json:"title,omitempty"`
+	ProviderID                string             `json:"provider_id"`
+	ProfileID                 string             `json:"profile_id"`
+	AccountScope              model.AccountScope `json:"account_scope,omitempty"`
+	ProviderSessionID         string             `json:"provider_session_id,omitempty"`
+	Model                     string             `json:"model,omitempty"`
+	Workspace                 string             `json:"workspace"`
+	PID                       int                `json:"pid"`
+	HostPID                   int                `json:"host_pid,omitempty"`
+	HostGeneration            int64              `json:"host_generation,omitempty"`
+	HostBinaryPath            string             `json:"host_binary_path,omitempty"`
+	HostBinaryFingerprint     string             `json:"host_binary_fingerprint,omitempty"`
+	ProviderBinaryPath        string             `json:"provider_binary_path,omitempty"`
+	ProviderBinaryFingerprint string             `json:"provider_binary_fingerprint,omitempty"`
+	Binary                    string             `json:"-"`
+	Args                      []string           `json:"-"`
+	Env                       []string           `json:"-"`
+	State                     RuntimeState       `json:"state"`
+	StartupStage              StartupStage       `json:"startup_stage,omitempty"`
+	StageChangedAt            time.Time          `json:"stage_changed_at,omitempty"`
+	LastFault                 StartupFault       `json:"last_fault,omitempty"`
+	ControlLevel              ControlLevel       `json:"control_level"`
+	StartedAt                 time.Time          `json:"started_at"`
+	UpdatedAt                 time.Time          `json:"updated_at"`
+	ControlEndpoint           string             `json:"control_endpoint"`
+	ParentRuntimeID           string             `json:"parent_runtime_id,omitempty"`
+	HandoffType               string             `json:"handoff_type,omitempty"`
+	Continuity                string             `json:"continuity,omitempty"`
+	LineageID                 string             `json:"lineage_id,omitempty"`
+	Labels                    map[string]string  `json:"labels,omitempty"`
+	MachineID                 string             `json:"machine_id,omitempty"`
+	Location                  string             `json:"location,omitempty"`
+	Transport                 string             `json:"transport,omitempty"`
+	AttentionReason           string             `json:"attention_reason,omitempty"`
+	AttentionContext          string             `json:"attention_context,omitempty"`
+	PromptKind                string             `json:"prompt_kind,omitempty"`    // yn | choice | free_text | none
+	AttentionKind             string             `json:"attention_kind,omitempty"` // needs_user | working | completed | error | idle
+	AttentionFingerprint      string             `json:"attention_fingerprint,omitempty"`
+	ProjectID                 string             `json:"project_id,omitempty"`
+	ProjectName               string             `json:"project_name,omitempty"`
+	LastTaskSummary           string             `json:"last_task_summary,omitempty"`
+	DynamicTitle              string             `json:"dynamic_title,omitempty"`
 }
 
 // IsActive returns true if the runtime is in an operational lifecycle state.
@@ -115,8 +119,10 @@ func (s RuntimeSession) IsActive() bool {
 
 // HostLive reports whether the SessionHost process behind this registry row is
 // still usable. After a machine or service restart, runtimes.json still lists
-// the previous generation; the PID and host-generation checks reject those
-// zombies so the terminal WS can 404 instead of upgrading into a black screen.
+// the previous generation; the host PID and host-generation checks reject
+// those zombies so the terminal WS can 404 instead of upgrading into a black
+// screen. The provider PID is intentionally not used for generation matching:
+// HostGeneration belongs to the SessionHost, not its child process.
 //
 // STARTING without a PID is not treated as live: callers must wait for the
 // control endpoint (named pipe / unix socket) before advertising attachability.
@@ -126,11 +132,15 @@ func (s RuntimeSession) HostLive() bool {
 	if s.Transport == "mock" {
 		return true
 	}
-	if s.PID <= 0 {
+	hostPID := s.HostPID
+	if hostPID <= 0 {
+		hostPID = s.PID
+	}
+	if hostPID <= 0 {
 		return false
 	}
 	if s.HostGeneration > 0 {
-		return IsProcessAliveWithGeneration(s.PID, s.HostGeneration)
+		return IsProcessAliveWithGeneration(hostPID, s.HostGeneration)
 	}
-	return IsProcessAlive(s.PID)
+	return IsProcessAlive(hostPID)
 }

@@ -649,6 +649,23 @@ export function focusDesktopWindow(
   };
 }
 
+// restoreDesktopWindow is the single explicit minimize→visible transition:
+// un-minimize and focus in one dispatch, in every presentation mode. Callers
+// must prefer it over minimize()+focus() toggle pairs, whose two renders can
+// interleave with zIndex bumps (DESKTOP) or no-op on minimized tiles (MOSAIC).
+export function restoreDesktopWindow(
+  state: WorkspacePresentationState,
+  viewId: string,
+): WorkspacePresentationState {
+  const current = state.windows[viewId];
+  // Unknown ids must not dangle activePtyViewId: no-op instead.
+  if (!current) return state;
+  if (!current.minimized) return focusDesktopWindow(state, viewId);
+  const unminimized = patchWindow(state, viewId, { minimized: false });
+  const focused = focusDesktopWindow(unminimized, viewId);
+  return focused.mode === 'MOSAIC' ? tileMosaicWindows(focused) : focused;
+}
+
 export function moveDesktopWindow(
   state: WorkspacePresentationState,
   viewId: string,

@@ -166,6 +166,7 @@ export const NexusShell: React.FC<{
                     onClick={() => onSettings('updates')}
                     className="nx-update-indicator"
                     title={t('settings.updates')}
+                    aria-label={t('settings.updates')}
                   >
                     <ArrowUpCircle size={13} className="nx-spin-slow" />
                     <span className="nx-update-badge">{t('settings.updates')}</span>

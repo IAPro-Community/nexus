@@ -11,6 +11,7 @@ import {
   rearrangeSmart,
   resizeAdjacentDesktopWindows,
   resizeDesktopWindow,
+  restoreDesktopWindow,
   setPresentationMode,
   syncDesktopWindows,
   toggleDesktopMaximize,
@@ -193,6 +194,54 @@ describe('workspace presentation', () => {
     expect(state.windows['view:a'].y + state.windows['view:a'].height).toBeLessThanOrEqual(
       state.canvas.y + state.canvas.height,
     );
+  });
+
+  it('restores a minimized window in one dispatch (desktop)', () => {
+    let state = syncDesktopWindows(
+      { ...createPresentationState('DESKTOP'), canvas: { x: 8, y: 8, width: 1000, height: 600 } },
+      [surface('a'), surface('b')],
+    );
+    state = toggleDesktopMinimize(state, 'view:a');
+    expect(state.windows['view:a'].minimized).toBe(true);
+    state = restoreDesktopWindow(state, 'view:a');
+    expect(state.windows['view:a'].minimized).toBe(false);
+    expect(state.activePtyViewId).toBe('view:a');
+  });
+
+  it('restores a minimized tile and retiles mosaic', () => {
+    let state = syncDesktopWindows(
+      { ...createPresentationState('MOSAIC'), canvas: { x: 8, y: 8, width: 1000, height: 600 } },
+      [surface('a'), surface('b')],
+    );
+    state = setPresentationMode(state, 'MOSAIC');
+    state = toggleDesktopMinimize(state, 'view:b');
+    expect(state.windows['view:b'].minimized).toBe(true);
+    state = restoreDesktopWindow(state, 'view:b');
+    expect(state.windows['view:b'].minimized).toBe(false);
+    expect(state.tiled).toBe(true);
+    expect(state.windows['view:a'].y + state.windows['view:a'].height).toBeLessThanOrEqual(
+      state.canvas.y + state.canvas.height,
+    );
+  });
+
+  it('restore on a visible window only focuses', () => {
+    let state = syncDesktopWindows(createPresentationState('DESKTOP'), [
+      surface('a'),
+      surface('b'),
+    ]);
+    const before = state.windows['view:a'];
+    state = restoreDesktopWindow(state, 'view:a');
+    expect(state.windows['view:a'].minimized).toBe(false);
+    expect(state.windows['view:a'].x).toBe(before.x);
+    expect(state.activePtyViewId).toBe('view:a');
+  });
+
+  it('restore on unknown view is a no-op (never dangles activePtyViewId)', () => {
+    let state = syncDesktopWindows(createPresentationState('DESKTOP'), [surface('a')]);
+    const before = state;
+    state = restoreDesktopWindow(state, 'view:missing');
+    expect(state).toBe(before);
+    expect(state.activePtyViewId).not.toBe('view:missing');
   });
 
   it('resizes adjacent mosaic tiles and supports free mosaic move/swap', () => {

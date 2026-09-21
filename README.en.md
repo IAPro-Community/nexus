@@ -21,7 +21,7 @@ Recommended path (**zero-toolchain**): install a release binary. No Go, Bun, or 
 **Linux / macOS:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.3
 nexus doctor
 nexus web
 ```
@@ -30,12 +30,12 @@ nexus web
 
 ```powershell
 irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.1
+.\install.ps1 -Version v1.0.0-beta.3
 nexus doctor
 nexus web
 ```
 
-`--version=v1.0.0-beta.1` downloads the pinned GitHub Release and verifies `checksums.txt` (integrity). `--version=latest` resolves the newest tag after the release exists. The repository must be public (or set `GH_TOKEN`) for anonymous download.
+`--version=v1.0.0-beta.3` downloads the pinned GitHub Release and verifies `checksums.txt` (integrity) — this requires the tag and release to exist; if not yet published, build from source below. `--version=latest` resolves the newest tag after the release exists. The repository must be public (or set `GH_TOKEN`) for anonymous download.
 
 Release installer prerequisites: `curl` or `wget`, `tar`, and `sha256sum`/`shasum` (Unix), or PowerShell (Windows). Native desktop may need WebView2 (Windows) or WebKitGTK (Linux).
 

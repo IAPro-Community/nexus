@@ -22,6 +22,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/launcher"
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
+	controlterminal "github.com/IAPro-Community/nexus/internal/control/terminal"
 	controltui "github.com/IAPro-Community/nexus/internal/control/tui"
 	"github.com/IAPro-Community/nexus/internal/control/web"
 	"github.com/IAPro-Community/nexus/internal/core/config"
@@ -471,29 +472,30 @@ func attachRuntime(runtimeID string) error {
 	return attachRuntimeWithInput(runtimeID, nil)
 }
 
-func containsTerminalInterrupt(input []byte) bool {
-	for _, b := range input {
-		if b == 0x03 {
-			return true
-		}
+func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error {
+	// No compatibility gate here (retired with the maximus sync): the runtime
+	// handshake below (generation/PID check) is the fail-closed attach
+	// authority. Unknown IDs still fail fast with a recreate hint.
+	session, ok := registry.DefaultRegistry().Get(runtimeID)
+	if !ok {
+		return fmt.Errorf("runtime %q not found; start a new session with: %s codex --yolo", runtimeID, progName())
 	}
-	return false
-}
+	previousRuntime, hadPreviousRuntime := os.LookupEnv("NEXUS_RUNTIME_ID")
+	_ = os.Setenv("NEXUS_RUNTIME_ID", runtimeID)
+	defer func() {
+		if hadPreviousRuntime {
+			_ = os.Setenv("NEXUS_RUNTIME_ID", previousRuntime)
+		} else {
+			_ = os.Unsetenv("NEXUS_RUNTIME_ID")
+		}
+	}()
 
-// forwardAttachedInput is intentionally byte-transparent. It observes Ctrl+C
-// only to repair the outer terminal after a provider TUI has handled the
-// interruption; the original input always reaches the runtime unchanged.
-func forwardAttachedInput(destination io.Writer, input []byte, reassertKeyboardModes func()) error {
-	if _, err := destination.Write(input); err != nil {
+	tty := controlterminal.NewTTYController(os.Stdin, os.Stdout)
+	if err := tty.Enter(); err != nil {
 		return err
 	}
-	if containsTerminalInterrupt(input) && reassertKeyboardModes != nil {
-		reassertKeyboardModes()
-	}
-	return nil
-}
+	defer func() { _ = tty.Restore() }()
 
-func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error {
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
 		return fmt.Errorf("failed to attach to runtime %q: %w", runtimeID, err)
@@ -504,13 +506,6 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 	isTerm := term.IsTerminal(int(os.Stdin.Fd()))
 	defer nexusruntime.GuardInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)()
 	if isTerm {
-		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-		if err == nil {
-			defer func() {
-				_ = term.Restore(int(os.Stdin.Fd()), oldState)
-			}()
-		}
-
 		// 2. Register window resize signal listener
 		sigChan := make(chan os.Signal, 1)
 		protocol.NotifyWinSizeChange(sigChan)
@@ -518,12 +513,17 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
+		interruptChan := make(chan os.Signal, 1)
+		signal.Notify(interruptChan, os.Interrupt)
+		defer signal.Stop(interruptChan)
 
 		go func() {
 			for {
 				select {
 				case <-ctx.Done():
 					return
+				case <-interruptChan:
+					_ = tty.Reassert()
 				case <-sigChan:
 					if w, h, err := term.GetSize(int(os.Stdin.Fd())); err == nil && w > 0 && h > 0 {
 						go func(rows, cols int) {
@@ -544,6 +544,18 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 		}
 	}
 
+	status, err := client.Status()
+	if err != nil {
+		_ = registry.DefaultRegistry().UpdateState(runtimeID, registry.StateStale)
+		return fmt.Errorf("runtime %q could not prove its host generation before attach: %v; recreate the session with %s codex --yolo", runtimeID, err, progName())
+	}
+	if status.RuntimeID != runtimeID || status.PID != session.PID ||
+		(status.HostPID > 0 && status.HostPID != session.HostPID) ||
+		(status.HostGeneration > 0 && status.HostGeneration != session.HostGeneration) {
+		_ = registry.DefaultRegistry().UpdateState(runtimeID, registry.StateStale)
+		return fmt.Errorf("runtime %q changed generation/PID before attach and was rejected; recreate the session with %s codex --yolo (the old process was not terminated)", runtimeID, progName())
+	}
+
 	// 3. Send Attach command to switch connection to raw streaming
 	resp, err := client.Send(protocol.CmdAttach, nil)
 	if err != nil {
@@ -560,6 +572,10 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 	}
 
 	rawConn := client.RawConn()
+	output := nexusruntime.NewTerminalOutputScrubber(os.Stdout)
+	inputStream := nexusruntime.NewTerminalInputScrubber(rawConn)
+	defer func() { _ = output.Flush() }()
+	defer func() { _ = inputStream.Flush() }()
 
 	// 4. Stream stdout from runtime host to user terminal
 	errChan := make(chan error, 2)
@@ -570,10 +586,10 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 			buf := make([]byte, r.Buffered())
 			n, _ := r.Read(buf)
 			if n > 0 {
-				_, _ = os.Stdout.Write(buf[:n])
+				_, _ = output.Write(buf[:n])
 			}
 		}
-		_, copyErr := io.Copy(os.Stdout, rawConn)
+		_, copyErr := io.Copy(output, rawConn)
 		errChan <- copyErr
 	}()
 
@@ -581,28 +597,17 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 	go func() {
 		defer rawConn.Close()
 		if input != nil {
-			errChan <- input(rawConn)
+			errChan <- input(inputStream)
 			return
 		}
-		buf := make([]byte, 32*1024)
-		for {
-			n, readErr := os.Stdin.Read(buf)
-			if n > 0 {
-				if writeErr := forwardAttachedInput(rawConn, buf[:n], func() {
-					nexusruntime.ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
-				}); writeErr != nil {
-					errChan <- writeErr
-					return
-				}
-			}
-			if readErr != nil {
-				errChan <- readErr
-				return
-			}
-		}
+		_, copyErr := io.Copy(inputStream, os.Stdin)
+		errChan <- copyErr
 	}()
 
 	<-errChan
+	// The stream can end without Ctrl+C (provider crash, endpoint loss, or
+	// disconnect). Recover before deferred restoration on every exit.
+	_ = tty.Reassert()
 	return nil
 }
 
@@ -630,9 +635,6 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 			nread, err := os.Stdin.Read(buf)
 			if nread > 0 {
 				input := buf[:nread]
-				if containsTerminalInterrupt(input) {
-					nexusruntime.ReassertInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)
-				}
 				if pendingASK != "" {
 					answer := input[0]
 					input = input[1:]

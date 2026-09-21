@@ -20,6 +20,12 @@ func TestTerminalKeyboardModeResetDisablesBracketedPaste(t *testing.T) {
 	}
 }
 
+func TestTerminalKeyboardModeResetLeavesApplicationCursorMode(t *testing.T) {
+	if !strings.Contains(terminalKeyboardModeReset, "\x1b[?1l") {
+		t.Fatalf("keyboard reset does not disable application cursor mode: %q", terminalKeyboardModeReset)
+	}
+}
+
 func TestNormalizeInteractiveEnvReplacesDumbTerminal(t *testing.T) {
 	env := []string{"PATH=/bin", "TERM=dumb", "LANG=pt_BR.UTF-8"}
 	normalized := NormalizeInteractiveEnv(env)

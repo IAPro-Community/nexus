@@ -1,43 +1,49 @@
 package app
 
 import (
-	"bytes"
+	"os"
 	"testing"
+
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
-func TestForwardAttachedInputReassertsKeyboardResetAfterCtrlC(t *testing.T) {
-	var destination bytes.Buffer
-	resets := 0
-	input := []byte("hello\x03world")
-
-	if err := forwardAttachedInput(&destination, input, func() { resets++ }); err != nil {
-		t.Fatalf("forwardAttachedInput: %v", err)
+// The attach data path moved to scrubber-based streaming
+// (NewTerminalInputScrubber/NewTerminalOutputScrubber, covered by
+// terminal_output_test.go). This file guards what remains: the kept
+// ReassertInteractiveTerminalKeyboardModes used by direct provider runs and
+// the attach exit path. It must never emit bytes for non-terminals.
+func TestReassertKeyboardModesNilSafe(t *testing.T) {
+	nexusruntime.ReassertInteractiveTerminalKeyboardModes(nil, nil)
+	f, err := os.CreateTemp("", "nexus-guard")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if got := destination.String(); got != string(input) {
-		t.Fatalf("forwarded input = %q, want %q", got, input)
-	}
-	if resets != 1 {
-		t.Fatalf("keyboard reset calls = %d, want 1", resets)
-	}
+	defer func() { _ = os.Remove(f.Name()) }()
+	nexusruntime.ReassertInteractiveTerminalKeyboardModes(f, f)
+	_ = f.Close()
 }
 
-func TestForwardAttachedInputDoesNotResetForOrdinaryInput(t *testing.T) {
-	var destination bytes.Buffer
-	resets := 0
-
-	if err := forwardAttachedInput(&destination, []byte("normal input\r"), func() { resets++ }); err != nil {
-		t.Fatalf("forwardAttachedInput: %v", err)
+func TestReassertKeyboardModesPipeIsNoop(t *testing.T) {
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
 	}
-	if resets != 0 {
-		t.Fatalf("keyboard reset calls = %d, want 0", resets)
-	}
+	defer func() { _ = reader.Close() }()
+	defer func() { _ = writer.Close() }()
+	// Pipes are not terminals: no reset bytes may be written.
+	nexusruntime.ReassertInteractiveTerminalKeyboardModes(reader, writer)
 }
 
-func TestContainsTerminalInterrupt(t *testing.T) {
-	if !containsTerminalInterrupt([]byte("before\x03after")) {
-		t.Fatal("Ctrl+C was not detected")
+func TestGuardKeyboardModesPipeReturnsCleanup(t *testing.T) {
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
 	}
-	if containsTerminalInterrupt([]byte("ordinary input\r")) {
-		t.Fatal("ordinary input was treated as Ctrl+C")
+	defer func() { _ = reader.Close() }()
+	defer func() { _ = writer.Close() }()
+	cleanup := nexusruntime.GuardInteractiveTerminalKeyboardModes(reader, writer)
+	if cleanup == nil {
+		t.Fatal("expected non-nil cleanup func")
 	}
+	cleanup()
 }

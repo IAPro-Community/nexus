@@ -13,6 +13,25 @@ import styles from './FlowRunsHistorySurface.module.scss';
 type Track = 'drafts' | 'runs';
 type RunFilter = 'ALL' | 'ACTIVE' | 'COMPLETED' | 'FAILED';
 
+const SELECTED_PLAN_KEY = (projectId: string) => `nexus:flow:selected-plan:${projectId}`;
+
+const readSelectedPlanId = (projectId: string): string => {
+  try {
+    return window.sessionStorage.getItem(SELECTED_PLAN_KEY(projectId)) || '';
+  } catch {
+    return '';
+  }
+};
+
+const writeSelectedPlanId = (projectId: string, planId: string): void => {
+  try {
+    if (planId) window.sessionStorage.setItem(SELECTED_PLAN_KEY(projectId), planId);
+    else window.sessionStorage.removeItem(SELECTED_PLAN_KEY(projectId));
+  } catch {
+    /* ignore */
+  }
+};
+
 export const FlowRunsHistorySurface: React.FC<{
   project: Project;
   agents?: Agent[];
@@ -30,7 +49,10 @@ export const FlowRunsHistorySurface: React.FC<{
   const [newGoal, setNewGoal] = useState('');
   const [creating, setCreating] = useState(false);
 
+  const loadSeqRef = React.useRef(0);
   const load = useCallback(async () => {
+    const seq = (loadSeqRef.current += 1);
+    const isLatest = () => loadSeqRef.current === seq;
     setLoading(true);
     setError('');
     try {
@@ -38,6 +60,7 @@ export const FlowRunsHistorySurface: React.FC<{
         nexusApi.getRuns().catch(() => []),
         nexusApi.getPlans(project.id).catch(() => []),
       ]);
+      if (!isLatest()) return;
       const nextRuns = asArray(runList).filter((run): run is MissionRun => {
         const item = run as MissionRun;
         return (
@@ -54,7 +77,9 @@ export const FlowRunsHistorySurface: React.FC<{
 
       let pendingId = '';
       try {
-        pendingId = window.sessionStorage.getItem(FLOW_DRAFT_KEY(project.id)) || '';
+        pendingId =
+          window.sessionStorage.getItem(FLOW_DRAFT_KEY(project.id)) ||
+          readSelectedPlanId(project.id);
       } catch {
         pendingId = '';
       }
@@ -71,17 +96,22 @@ export const FlowRunsHistorySurface: React.FC<{
         }
       }
     } catch (err) {
+      if (!isLatest()) return;
       setError(err instanceof Error ? err.message : String(err));
       setRuns([]);
       setPlans([]);
     } finally {
-      setLoading(false);
+      if (isLatest()) setLoading(false);
     }
   }, [project.id]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    writeSelectedPlanId(project.id, selectedPlan?.id || '');
+  }, [project.id, selectedPlan?.id]);
 
   const draftPlans = useMemo(() => {
     const runPlanIds = new Set(runs.map((run) => run.plan_id).filter(Boolean));
@@ -141,7 +171,8 @@ export const FlowRunsHistorySurface: React.FC<{
       <div className={styles.header}>
         <div className={styles.title}>
           <History size={16} />
-          <strong>{t('flow.studioTitle', 'Flow Studio')}</strong>
+          <h1 className="nx-sr-only">{t('flow.studioTitle', 'Flow Studio')}</h1>
+          <strong aria-hidden="true">{t('flow.studioTitle', 'Flow Studio')}</strong>
           <Badge tone="default">{track === 'drafts' ? draftPlans.length : runs.length}</Badge>
         </div>
         <div className={styles.actions}>

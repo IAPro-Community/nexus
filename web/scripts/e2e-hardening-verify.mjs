@@ -159,7 +159,8 @@ async function main() {
       { width: 390, height: 844, name: 'mobile-iphone' },
       { width: 768, height: 1024, name: 'tablet' },
       { width: 1024, height: 768, name: 'laptop-compact' },
-      { width: 1280, height: 800, name: 'laptop-critical' },
+      { width: 1280, height: 800, name: 'laptop-regression' },
+      { width: 1366, height: 768, name: 'laptop-risk' },
       { width: 1440, height: 900, name: 'desktop' },
     ];
 
@@ -438,6 +439,35 @@ async function main() {
         true,
         `Create menu button must be topmost element at ${vp.width}px: ${JSON.stringify(elementAtPoint)}`,
       );
+
+      // Bilateral guard (topbar overlap regression): when the update
+      // indicator is present it must also own its own center point, and the
+      // two controls must not intersect. Geometry is dumped on failure so
+      // the next overlap (if any) is diagnosable from CI artifacts alone.
+      const updateBtn = page.locator('.nx-update-indicator').first();
+      if ((await updateBtn.count()) > 0 && (await updateBtn.isVisible())) {
+        const updateBox = await updateBtn.boundingBox();
+        assert.ok(updateBox, `Update indicator must have bounding box at ${vp.width}px`);
+        const updateHit = await page.evaluate(({ x, y }) => {
+          const el = document.elementFromPoint(x, y);
+          if (!el) return null;
+          return {
+            inside: Boolean(el.closest?.('.nx-update-indicator')),
+            tag: el.tagName,
+            className: typeof el.className === 'string' ? el.className : null,
+          };
+        }, { x: updateBox.x + updateBox.width / 2, y: updateBox.y + updateBox.height / 2 });
+        assert.ok(
+          updateHit?.inside,
+          `Update indicator must own its center at ${vp.width}px (hit: ${JSON.stringify(updateHit)}, update: ${JSON.stringify(updateBox)}, create: ${JSON.stringify(box)})`,
+        );
+        const disjoint =
+          updateBox.x >= box.x + box.width - 1 || box.x >= updateBox.x + updateBox.width - 1;
+        assert.ok(
+          disjoint,
+          `Create button and update indicator must not intersect at ${vp.width}px (create: ${JSON.stringify(box)}, update: ${JSON.stringify(updateBox)})`,
+        );
+      }
 
       const shotPath = path.join(screenshotDir, `e2e_bp_${vp.width}.png`);
       await page.screenshot({ path: shotPath });

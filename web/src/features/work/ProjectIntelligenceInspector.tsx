@@ -45,10 +45,15 @@ export const ProjectIntelligenceInspector: React.FC<{ projectId: string }> = ({ 
     if (!isScanInFlight(scanState)) {
       return;
     }
-    const timer = window.setInterval(() => {
-      void refresh();
-    }, 1500);
-    return () => window.clearInterval(timer);
+    const tick = () => {
+      if (!document.hidden) void refresh();
+    };
+    const timer = window.setInterval(tick, 1500);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
   }, [refresh, scanState]);
 
   const requestScan = async () => {

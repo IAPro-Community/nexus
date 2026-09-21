@@ -43,15 +43,31 @@ func TestRuntimeLauncher_StandaloneLaunchAndHandshake(t *testing.T) {
 	if err != nil {
 		t.Fatalf("launcher failed: %v", err)
 	}
-
 	if sess.RuntimeID != runtimeID {
 		t.Errorf("expected runtime ID %s, got %s", runtimeID, sess.RuntimeID)
 	}
 	if sess.State != "RUNNING" {
 		t.Errorf("expected state RUNNING, got %s", sess.State)
 	}
+	if sess.PID <= 0 {
+		t.Errorf("expected provider PID from status handshake, got %d", sess.PID)
+	}
+	if sess.HostPID <= 0 {
+		t.Errorf("expected host PID from status handshake, got %d", sess.HostPID)
+	}
+	if sess.HostGeneration <= 0 {
+		t.Errorf("expected non-zero host generation from status handshake, got %d", sess.HostGeneration)
+	}
 	if sess.Labels["nexus.interactive_lead"] != "true" {
 		t.Fatalf("expected launcher labels to persist, got %#v", sess.Labels)
+	}
+
+	persisted, ok := l.reg.Get(runtimeID)
+	if !ok {
+		t.Fatalf("expected launched runtime %s in registry", runtimeID)
+	}
+	if persisted.HostPID != sess.HostPID || persisted.HostGeneration != sess.HostGeneration {
+		t.Fatalf("registry lost host identity: persisted host=%d generation=%d, returned host=%d generation=%d", persisted.HostPID, persisted.HostGeneration, sess.HostPID, sess.HostGeneration)
 	}
 }
 

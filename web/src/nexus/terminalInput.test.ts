@@ -13,12 +13,17 @@ describe('shouldForwardTerminalInput', () => {
     '[0[I',
     '\x1b[1;2O',
     '[1;2O',
-    '\x1b[A',
     '[A',
     '\x1b[12;34R',
     '[12;34R',
   ])('drops leaked focus/CPR sequence %j', (data) => {
     expect(shouldForwardTerminalInput(data)).toBe(false);
+  });
+
+  it('forwards real arrow-key input', () => {
+    for (const data of ['[A', '[B', '[C', '[D']) {
+      expect(shouldForwardTerminalInput(data)).toBe(true);
+    }
   });
 
   it('keeps mouse, keyboard, UTF-8 and explicit Ctrl+C bytes', () => {
@@ -44,6 +49,15 @@ describe('stripEmbeddedTerminalMetadata', () => {
     expect(stripEmbeddedTerminalMetadata('\x1b[I')).toBe('');
   });
 
+  it('drops standalone bare reports but preserves literal command text', () => {
+    expect(shouldForwardTerminalInput('[I')).toBe(false);
+    expect(shouldForwardTerminalInput('[12;34R')).toBe(false);
+    expect(stripEmbeddedTerminalMetadata('[I] literal')).toBe('[I] literal');
+    expect(stripEmbeddedTerminalMetadata('/status [12;34R literal')).toBe(
+      '/status [12;34R literal',
+    );
+  });
+
   it('strips bursts whose ESC bytes were lost by the terminal bridge', () => {
     expect(stripEmbeddedTerminalMetadata('> [B[A[A[B[C[D[D[C')).toBe('> ');
     expect(stripEmbeddedTerminalMetadata('[[A[B')).toBe('');
@@ -51,9 +65,9 @@ describe('stripEmbeddedTerminalMetadata', () => {
     expect(stripEmbeddedTerminalMetadata('typed [A text')).toBe('typed [A text');
   });
 
-  it('strips coalesced ESC-prefixed navigation reports', () => {
-    expect(stripEmbeddedTerminalMetadata('\x1b[C\x1b[D')).toBe('');
-    expect(stripEmbeddedTerminalMetadata('typed\x1b[C\x1b[D')).toBe('typed');
+  it('preserves coalesced ESC-prefixed navigation input', () => {
+    expect(stripEmbeddedTerminalMetadata('\x1b[C\x1b[D')).toBe('\x1b[C\x1b[D');
+    expect(stripEmbeddedTerminalMetadata('typed\x1b[C\x1b[D')).toBe('typed\x1b[C\x1b[D');
   });
 
   it('leaves plain text, mouse, Kitty and literals intact', () => {
@@ -62,5 +76,6 @@ describe('stripEmbeddedTerminalMetadata', () => {
     expect(stripEmbeddedTerminalMetadata('\x1b[1;3u')).toBe('\x1b[1;3u');
     expect(stripEmbeddedTerminalMetadata('/e[31m literal')).toBe('/e[31m literal');
     expect(stripEmbeddedTerminalMetadata('[I] array index')).toBe('[I] array index');
+    expect(stripEmbeddedTerminalMetadata('typed\x1b[C')).toBe('typed\x1b[C');
   });
 });

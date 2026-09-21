@@ -870,3 +870,187 @@ func TestUnifiedUsage_AddProfileModal_CancelsOnEsc(t *testing.T) {
 		t.Fatalf("expected nil chosenResult, got %#v", m.chosenResult)
 	}
 }
+
+func TestRefreshAllKeyMarksAllProfilesInFlight(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{
+			{Provider: "codex", Profile: "work", Status: "OK"},
+			{Provider: "agy", Profile: "personal", Status: "OK"},
+		},
+		ProfilesToLoad: []model.Profile{
+			{Provider: "codex", Name: "work"},
+			{Provider: "agy", Name: "personal"},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'R'}})
+	m = res.(usageTableModel)
+	if cmd == nil {
+		t.Fatal("expected an async refresh-all command")
+	}
+	if !m.refreshing["codex:work"] {
+		t.Fatal("codex:work should be marked in flight")
+	}
+	if !m.refreshing["agy:personal"] {
+		t.Fatal("agy:personal should be marked in flight")
+	}
+	if m.quitting {
+		t.Fatal("refresh-all must not quit the TUI")
+	}
+}
+
+func TestRefreshAllKeyNoopWithoutProfiles(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{{Provider: "codex", Profile: "work"}},
+	}
+	m := newUnifiedUsageModel(opts)
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'R'}})
+	if cmd != nil {
+		t.Fatal("R with no ProfilesToLoad should return nil cmd")
+	}
+}
+
+func TestAccountsRefreshedMergeResults(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{
+			{Provider: "codex", Profile: "work", Status: "SEM DADOS"},
+			{Provider: "agy", Profile: "personal", Status: "OK"},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	m.refreshing = map[string]bool{"codex:work": true, "agy:personal": true}
+	msg := accountsRefreshedMsg{results: []accountRefreshedMsg{
+		{provider: "codex", profile: "work",
+			rows: []UsageTableRow{{Provider: "codex", Profile: "work", Status: "OK",
+				SnapshotStatus: string(model.UsageLive), Source: string(model.SourceOfficialAPI), FetchedAt: time.Now()}},
+			acc: model.AccountInfo{Email: "work@example.com"}},
+		{provider: "agy", profile: "personal",
+			rows: []UsageTableRow{{Provider: "agy", Profile: "personal", Status: "ESGOTADA",
+				SnapshotStatus: string(model.UsageCached), Source: string(model.SourceCLIOutput), FetchedAt: time.Now()}},
+			acc: model.AccountInfo{Email: "personal@example.com"}},
+	}}
+	res, _ := m.Update(msg)
+	m = res.(usageTableModel)
+	if m.refreshing["codex:work"] || m.refreshing["agy:personal"] {
+		t.Fatal("all refreshing markers should be cleared")
+	}
+	if len(m.allAccounts) != 2 {
+		t.Fatalf("expected 2 accounts, got %d", len(m.allAccounts))
+	}
+	if !strings.Contains(m.statusMsg, "2 conta(s) atualizada(s)") {
+		t.Fatalf("status message should report 2 updated, got %q", m.statusMsg)
+	}
+}
+
+func TestAccountsRefreshedMixedOkAndStale(t *testing.T) {
+	opts := UnifiedUsageOptions{
+		Rows: []UsageTableRow{
+			{Provider: "codex", Profile: "work"},
+			{Provider: "agy", Profile: "personal"},
+		},
+	}
+	m := newUnifiedUsageModel(opts)
+	msg := accountsRefreshedMsg{results: []accountRefreshedMsg{
+		{provider: "codex", profile: "work",
+			rows: []UsageTableRow{{Provider: "codex", Profile: "work",
+				SnapshotStatus: string(model.UsageLive), Source: string(model.SourceOfficialAPI), FetchedAt: time.Now()}},
+			acc: model.AccountInfo{}},
+		{provider: "agy", profile: "personal",
+			rows: []UsageTableRow{{Provider: "agy", Profile: "personal",
+				SnapshotStatus: string(model.UsageUnknown), Source: string(model.SourceNone), FetchedAt: time.Time{}}},
+			acc: model.AccountInfo{}},
+	}}
+	res, _ := m.Update(msg)
+	m = res.(usageTableModel)
+	if !strings.Contains(m.statusMsg, "1 atualizada(s) · 1 sem dados") {
+		t.Fatalf("status should report 1 ok + 1 stale, got %q", m.statusMsg)
+	}
+}
+
+func TestFormatQuotaCellRateLimitedPreservesReset(t *testing.T) {
+	raw := "[█████████░] 96% \u00b7 12:12"
+	got := formatQuotaCell(raw, 18, "RATE LTD")
+	if !strings.Contains(got, "96%") || !strings.Contains(got, "12:12") {
+		t.Fatalf("RATE LTD should preserve percent + reset, got %q", got)
+	}
+	if strings.Contains(got, "[") {
+		t.Fatalf("RATE LTD should drop the bar, got %q", got)
+	}
+}
+
+func TestFormatQuotaCellRateLimitedFullWidthKeepsBar(t *testing.T) {
+	raw := "[█████████░] 96% \u00b7 12:12"
+	got := formatQuotaCell(raw, 40, "RATE LTD")
+	if got != raw {
+		t.Fatalf("wide column should return raw unchanged, got %q", got)
+	}
+}
+
+func TestFormatQuotaCellNonRateLimitedDropsResetFirst(t *testing.T) {
+	raw := "[██████████] 100% \u00b7 4h 59m"
+	got := formatQuotaCell(raw, 20, "OK")
+	if strings.Contains(got, "\u00b7") {
+		t.Fatalf("non-RATE-LTD should drop reset first, got %q", got)
+	}
+	if !strings.Contains(got, "100%") {
+		t.Fatalf("should keep percent, got %q", got)
+	}
+}
+
+func TestUsageQuotaStyleAmberForLowQuota(t *testing.T) {
+	// Verify the parse path: 15% → amber branch (≤30), 100% → green branch, 0% → red (exhausted)
+	pct15, ok15 := parseQuotaPercent("[████░░░░░░] 15% \u00b7 12:12")
+	if !ok15 || pct15 != 15 {
+		t.Fatalf("parseQuotaPercent for 15%%: %.0f, %v", pct15, ok15)
+	}
+	if pct15 > 30 {
+		t.Fatal("15% should trigger amber (<=30) branch")
+	}
+	pct100, ok100 := parseQuotaPercent("[██████████] 100% \u00b7 12:12")
+	if !ok100 || pct100 != 100 {
+		t.Fatalf("parseQuotaPercent for 100%%: %.0f, %v", pct100, ok100)
+	}
+	if pct100 <= 30 {
+		t.Fatal("100% should NOT trigger amber branch")
+	}
+	// Exhausted: quotaLooksExhausted must fire for 0%
+	if !quotaLooksExhausted("[\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591] 0%") {
+		t.Fatal("0% should be detected as exhausted")
+	}
+	// Non-exhausted: 15% is NOT exhausted
+	if quotaLooksExhausted("[████░░░░░░] 15% \u00b7 12:12") {
+		t.Fatal("15% should NOT be detected as exhausted")
+	}
+}
+
+func TestStaleQuotaAgeConstantValue(t *testing.T) {
+	if staleQuotaAge != 45*time.Minute {
+		t.Fatalf("staleQuotaAge = %v, want 45m", staleQuotaAge)
+	}
+}
+
+func TestRenderAccountCellsStalenessSuffix(t *testing.T) {
+	row := UsageTableRow{
+		Provider: "codex", Profile: "work", Status: "OK",
+		SnapshotStatus: string(model.UsageLive), FetchedAt: time.Now().Add(-2 * time.Hour),
+	}
+	cols := usageColumns(120)
+	cells := renderAccountCells(row, cols, 1)
+	statusCell := cells[len(cells)-1]
+	if !strings.Contains(statusCell, "h\u00e1") {
+		t.Fatalf("stale STATUS should contain age suffix, got %q", statusCell)
+	}
+}
+
+func TestRenderAccountCellsFreshNoSuffix(t *testing.T) {
+	row := UsageTableRow{
+		Provider: "codex", Profile: "work", Status: "OK",
+		SnapshotStatus: string(model.UsageLive), FetchedAt: time.Now().Add(-5 * time.Minute),
+	}
+	cols := usageColumns(120)
+	cells := renderAccountCells(row, cols, 1)
+	statusCell := cells[len(cells)-1]
+	if strings.Contains(statusCell, "h\u00e1") {
+		t.Fatalf("fresh STATUS should not have age suffix, got %q", statusCell)
+	}
+}

@@ -9,6 +9,7 @@ import {
   resizeAdjacentDesktopWindows,
   resizeDesktopWindow,
   resizeMosaicWindow,
+  restoreDesktopWindow,
   setActivePtyView,
   setPresentationCanvas,
   setPresentationMode,
@@ -55,6 +56,7 @@ interface ContextValue {
     chrome: { customTitle?: string; accent?: string; icon?: string },
   ) => void;
   minimize: (viewId: string) => void;
+  restore: (viewId: string) => void;
   maximize: (viewId: string) => void;
   setCanvas: (canvas: ArrangeBounds) => void;
   rearrange: () => void;
@@ -96,6 +98,7 @@ type Action =
       chrome: { customTitle?: string; accent?: string; icon?: string };
     }
   | { type: 'minimize'; viewId: string }
+  | { type: 'restore'; viewId: string }
   | { type: 'maximize'; viewId: string }
   | { type: 'canvas'; canvas: ArrangeBounds }
   | { type: 'rearrange' }
@@ -162,6 +165,8 @@ function reducer(state: WorkspacePresentationState, action: Action): WorkspacePr
       return patchDesktopWindowChrome(state, action.viewId, action.chrome);
     case 'minimize':
       return toggleDesktopMinimize(state, action.viewId);
+    case 'restore':
+      return restoreDesktopWindow(state, action.viewId);
     case 'maximize':
       return toggleDesktopMaximize(state, action.viewId);
     case 'canvas':
@@ -207,6 +212,7 @@ export const WorkspacePresentationProvider: React.FC<{
         dispatch({ type: 'resizeAdjacent', firstId, secondId, orientation, delta }),
       patchChrome: (viewId, chrome) => dispatch({ type: 'patchChrome', viewId, chrome }),
       minimize: (viewId) => dispatch({ type: 'minimize', viewId }),
+      restore: (viewId) => dispatch({ type: 'restore', viewId }),
       maximize: (viewId) => dispatch({ type: 'maximize', viewId }),
       setCanvas: (canvas) => dispatch({ type: 'canvas', canvas }),
       rearrange: () => dispatch({ type: 'rearrange' }),

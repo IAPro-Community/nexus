@@ -25,7 +25,7 @@ import {
   Progress,
 } from '../../design-system';
 import { translateStatus } from '../../i18n';
-import type { ProviderAccount } from '../../types';
+import type { CapacityResourceStatus, ProviderAccount } from '../../types';
 import { asArray } from '../../lib/safeArray';
 import { nexus } from '../../nexus/api';
 import {
@@ -57,18 +57,31 @@ export interface UsageAccountCardProps {
   account: ProviderAccount;
   now?: number;
   isRecommended?: boolean;
+  monitorState?: CapacityResourceStatus | null;
   onRefreshNeeded: () => Promise<void>;
+  onCapacityChange?: () => void;
   onRequestLogin: (account: ProviderAccount) => void;
   onRequestExplain: () => void;
   onOpenTerminal?: (provider: string, profile: string) => void;
   onAddProfile?: (provider: string) => void;
 }
 
+const monitorTone = (state: string) =>
+  state === 'HEALTHY' || state === 'RECOVERED'
+    ? 'success'
+    : state === 'WARNING'
+      ? 'warning'
+      : state === 'CRITICAL' || state === 'EXHAUSTED'
+        ? 'danger'
+        : 'default';
+
 export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
   account,
   now,
   isRecommended,
+  monitorState,
   onRefreshNeeded,
+  onCapacityChange,
   onRequestLogin,
   onRequestExplain,
   onOpenTerminal,
@@ -77,6 +90,7 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
   const { t, i18n } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [acking, setAcking] = useState(false);
 
   const qv = account.quota_view;
   const groups = asArray<
@@ -106,6 +120,20 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleAckMonitor = async () => {
+    if (!monitorState?.fingerprint) return;
+    setAcking(true);
+    try {
+      await nexus.ackCapacityAlert(monitorState.fingerprint);
+      toast.success(t('settings.capacityAcked', 'Acknowledged'));
+      onCapacityChange?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAcking(false);
     }
   };
 
@@ -309,6 +337,34 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
         ) : null}
 
         <div className={styles.quota}>
+          {monitorState && monitorState.state !== 'UNKNOWN' ? (
+            <p className={styles.stateLine} data-state={monitorState.state.toLowerCase()}>
+              <Badge tone={monitorTone(monitorState.state)}>
+                {t(`attention.capacityState_${monitorState.state}`, {
+                  defaultValue: monitorState.state,
+                })}
+              </Badge>
+              {(() => {
+                const moved = relativeAge(monitorState.transitioned_at, now);
+                const stateLabel = t(`attention.capacityState_${monitorState.state}`, {
+                  defaultValue: monitorState.state,
+                });
+                return moved
+                  ? t(`usage.freshness.${moved.unit}`, {
+                      status: stateLabel,
+                      count: moved.count,
+                    })
+                  : stateLabel;
+              })()}
+              {monitorState.acked ? (
+                <span>{t('settings.capacityAcked', 'Acknowledged')}</span>
+              ) : monitorState.fingerprint ? (
+                <Button size="sm" disabled={acking} onClick={() => void handleAckMonitor()}>
+                  {t('settings.capacityAck', 'Acknowledge')}
+                </Button>
+              ) : null}
+            </p>
+          ) : null}
           {groups.length > 0 ? (
             groups.map((group, index) => {
               const groupLabelKey = displayLabelKey(group.name, group.key);

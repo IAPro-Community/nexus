@@ -1,5 +1,103 @@
 # Handoff
 
+## Rodada merge closure — 2026-09-20 (autopilot, CI #143 vermelho)
+
+Fecha os blockers do CI same-SHA sem features novas: overlap topbar
+(Create × update badge @1280 → disclosure icon-only ≤1366px com
+aria-label + assert bilateral no hardening E2E), 2× SA9003 removidos sem
+mudar semântica (`cooldown.go`, `intelligence_memory.go`; `make lint-go`
+0 issues), `test:e2e:surface` ligado ao package + CI (steps próprios
+surface/capacity com logs, gate final estendido, `if: always()`
+preservado), h1 sr-only em Terminais/Flow (Axe `page-has-heading-one`
+moderate endereçado). Gates locais: web-verify 10/10, Go full + vet +
+race (cooldown, capacitymonitor, store, control, runtime, nexus).
+Push + CI same-SHA deste HEAD pendem de credencial neste ambiente.
+Texto final do PR #3 no §9 de
+`DEV/validation/SURFACE_ISOLATION_REPORT.md` (não aplicado remotamente).
+
+## Fechamento total autopilot — 2026-09-20 (sobre `4cb4e26`)
+
+Aceito unmount (decisão do Maestro; E2E `8156836` já afirmava). Novidades da
+rodada: PTY minimizado não desmonta mais (`hidden`+`inert`, runtime/scrollback
+preservados); `test:e2e:capacity` novo e PASS contra servidor real (auth, CSRF,
+status/history/preferences/ack/snooze); beta.2 rotulada candidate nos READMEs
+(sem tag/release confirmada offline); `CAPACITY_MONITOR_REVIVAL_REPORT.md`
+criado. Browser E2E bloqueado (libatk ausente — ENVIRONMENTAL). Push/CI
+remoto seguem bloqueados (sem rede p/ github) → `MERGE_CANDIDATE = CONDITIONAL`.
+Próximo: revisar diff, commits pequenos, publicar quando houver credencial.
+
+### Review independente incorporado (mesma rodada)
+BLOCKERs corrigidos: `hidden` vencido por `display:grid` (regra com
+especificidade, sem `!important`); portais fora do `inert` (menus fecham na
+troca/minimize); painéis PTY internos só com `aria-hidden` (agora
+`hidden`+`inert`+`tabpanel`, `data-active` preservado p/ fit). HIGHs:
+`inert` normalizado, foco realocado ao minimizar, menus limpos, roles,
+botões nativos (sem button-in-button — tabs reestruturados), arrow-keys +
+ids nos tablists, Origin real no E2E, `restore()` explícito em vez de
+toggle+focus. E2E reforçado (401s, CSRF PUT, cap 30d, fingerprint, cookies
+HttpOnly/SameSite). Notas p/ relatório: buffers 50×100k sem free no stop;
+`runs.json` antigos sem backfill; E2E de superfície conta host de terminais
+como exceção keep-alive deliberada.
+
+## Rodada cirúrgica surface-isolation — 2026-09-20 (autopilot)
+
+Fechamento final do branch `feat/capacity-monitor-revival` (PR #3): P0
+Surface Isolation + Flow recovery, sem reimplementar nada (Capacity T0–T9,
+scheduler, runtime, router, memória intactos). 5 commits sobre `7813105`:
+`63132df` (isolate surfaces, TerminalsHost keep-alive), `c20eca7` (drafts
+persistem após unmount), `cfdbbb8` (stale-refresh guard + teste
+determinístico), `bbc964d` (BLOCKED→intervenção, UX localizada
+pt-BR/en/es), `8156836` (E2E dedicado + fixture). Gates locais verdes:
+`make web-verify` 10/10, 418 vitest, `go test ./internal/...`, `go vet`,
+race em capacitymonitor/store/control/runtime. E2E browser/Axe e push +
+CI same-SHA: NOT_EXECUTED por limite externo do ambiente (sem libs do
+chromium, sem credencial de rede) — veredito CONDITIONAL e evidência
+completa em `DEV/validation/SURFACE_ISOLATION_REPORT.md`. Texto pronto
+para o PR #3 no §9 do relatório (não aplicado remotamente).
+
+## Rodada incremental capacity-monitor-revival — 2026-09-19 (autopilot)
+
+Branch `feat/capacity-monitor-revival` pronta para revisão de merge (PR #3):
+T4–T9 do revival + reliability incremental, sem subsistema novo. O trabalho
+desta rodada foi commitado e pushado (`dc8b8ce..7813105`, origin confere).
+Gates locais verdes (detalhe em DEV/VERIFY.md); `make docs-verify` segue
+bloqueado (preexistente) e evidências nativas/live/overnight seguem
+UNVERIFIED. Sugestão de novo título do PR #3: `feat(capacity): revive
+monitor with recommendations, delivery and UI + incremental reliability`
+(terminal hardening + capacity revival + routing/memory/UX). Não alterar o
+PR remotamente sem autorização.
+
+## Correção de attach por geração/PID — 2026-09-19
+
+- A causa foi corrigida no launcher: o `StatusData` do `SessionHost` agora é a
+  fonte de verdade para `PID`, `HostPID`, `HostGeneration` e fingerprints no
+  registro final.
+- O binário instalado é `50b561c` em
+  `/home/desenvolvedor/.local/bin/nexus`; o Web está ativo em `127.0.0.1:13000`
+  com HTTP 200.
+- A versão instalada agora é `1.0.0-beta.2`, distinta da build anterior
+  `1.0.0-beta.1`; `nexus version --json` e o contrato de versão confirmam isso.
+- Smokes reais de Codex e AGY passaram sem a mensagem “changed generation/PID”.
+- O registro anterior foi preservado em
+  `/home/desenvolvedor/.local/share/ai-manager/runtimes.json.before-runtime-recovery-20260919-1208.bak`.
+- Não há hosts Nexus órfãos ativos; sessões novas devem ser criadas com
+  `nexus codex --yolo` ou `nexus agy` normalmente.
+- Próxima ação: revisar o diff e, somente com autorização do Maestro, criar o
+  commit Conventional Commit e fazer push. Os gates locais estão verdes;
+  `make lint-go` não reporta mais avisos.
+
+## Proteção permanente contra falhas de teclado — 2026-09-18
+
+Este PR adiciona controlador único de TTY, validação de geração/PID/fingerprint
+no attach, marcação segura de sessões antigas e `nexus doctor terminal
+[--json|--recover]`. Testes cobrem Ctrl+C, setas, foco/CPR, UTF-8, colagem e
+separação do canal de comandos.
+
+Verificação do slice: `make build`, `make web-verify`, `make test-e2e`, race dos
+pacotes afetados, `go vet ./...`, cross-compile e smoke de recuperação em
+pseudo-TTY passaram. Fixtures preexistentes de AGY/Claude/quota/profile e
+cinco diagnósticos preexistentes de lint continuam registrados como limitações.
+
 ## Beta Linux CI closure preparation — 2026-09-18
 
 - The closure worktree is `feat/nexus-maximum-delivery` at `e2f40a5`; it is
