@@ -40,7 +40,7 @@ describe('formatComposerSessionTitle', () => {
 });
 
 describe('Composer finalization guard', () => {
-  it('detects blocking readiness or open questions before a finalize request', () => {
+  it('requires confirmation for genuinely blocking gaps', () => {
     expect(
       composerNeedsGapConfirmation({
         open_questions: [],
@@ -50,18 +50,39 @@ describe('Composer finalization guard', () => {
     expect(
       composerNeedsGapConfirmation({
         open_questions: ['Which provider?'],
-        readiness: { state: 'READY' },
+        readiness: { state: 'READY_WITH_ASSUMPTIONS' },
+        unknowns: [{ severity: 'BLOCKING', status: 'OPEN' }],
       }),
     ).toBe(true);
   });
 
-  it('allows finalization when readiness is clear and no questions remain', () => {
+  it('does not interrupt a complete prompt for recommended open details', () => {
+    expect(
+      composerNeedsGapConfirmation({
+        open_questions: ['Do you want an additional screenshot?'],
+        readiness: { state: 'READY_WITH_ASSUMPTIONS' },
+        unknowns: [{ severity: 'RECOMMENDED', status: 'OPEN' }],
+      }),
+    ).toBe(false);
+  });
+
+  it('allows finalization when blocking unknowns were resolved', () => {
     expect(
       composerNeedsGapConfirmation({
         open_questions: [],
         readiness: { state: 'READY' },
+        unknowns: [{ severity: 'BLOCKING', status: 'ANSWERED' }],
       }),
     ).toBe(false);
+  });
+
+  it('keeps the legacy open-question fallback when structured unknowns are absent', () => {
+    expect(
+      composerNeedsGapConfirmation({
+        open_questions: ['Legacy question'],
+        readiness: { state: 'READY' },
+      }),
+    ).toBe(true);
   });
 });
 
