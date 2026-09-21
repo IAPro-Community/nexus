@@ -340,8 +340,10 @@ type MissionRun struct {
 	ProjectID           string                `json:"project_id"`
 	LeadAgentID         string                `json:"lead_agent_id,omitempty"`
 	Autonomous          bool                  `json:"autonomous,omitempty"`
-	Workspace           string                `json:"workspace"`
-	State               State                 `json:"state"`
+	Workspace           string                       `json:"workspace"`
+	IntegratedWorkspace string                       `json:"integrated_workspace,omitempty"`
+	DeliveryIntegration *DeliveryIntegrationEvidence `json:"delivery_integration,omitempty"`
+	State               State                        `json:"state"`
 	Contract            AutonomyContract      `json:"contract"`
 	CurrentPkgIndex     int                   `json:"current_pkg_index"` // compatibility/UI hint only
 	CurrentPhaseID      string                `json:"current_phase_id,omitempty"`
