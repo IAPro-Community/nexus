@@ -2,7 +2,10 @@ package nexus
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"math"
 	"sort"
 	"strings"
@@ -185,6 +188,26 @@ func (s *CostApplicationService) Observations(ctx context.Context, filter store.
 		return nil, err
 	}
 	return st.ListCostObservations(filter)
+}
+
+func costBudgetConfirmationToken(planID string, revision int, summary CostSummary) string {
+	if !summary.Budget.RequiresConfirmation {
+		return ""
+	}
+	fingerprint := fmt.Sprintf(
+		"%s|%d|%s|%d|%d|%s|%t|%d|%s",
+		strings.TrimSpace(planID),
+		revision,
+		summary.Budget.Level,
+		summary.Budget.KnownCostMicroUSD,
+		summary.Budget.ActiveLimitMicroUSD,
+		summary.Budget.Evidence,
+		summary.Preferences.Enabled,
+		summary.Preferences.WindowDays,
+		summary.Preferences.UpdatedAt.UTC().Format(time.RFC3339Nano),
+	)
+	digest := sha256.Sum256([]byte(fingerprint))
+	return hex.EncodeToString(digest[:])
 }
 
 func evaluateCostBudget(aggregate store.CostAggregate, prefs store.CostPreferences, evidence CostEvidenceState) CostBudgetAssessment {
