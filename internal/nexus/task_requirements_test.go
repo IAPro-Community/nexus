@@ -10,8 +10,11 @@ func TestClassifyTaskRequirementsCoversCanonicalInputs(t *testing.T) {
 		{"corrija a UI React", "frontend-engineer", "frontend", "react", false},
 		{"crie uma API REST em Go", "backend-engineer", "backend", "go", false},
 		{"configure Kubernetes", "devops", "kubernetes", "kubernetes", false},
-		{"faça auditoria de segurança", "security", "security", "security", false},
+		{"faça auditoria de segurança", "security-reviewer", "security", "security", false},
 		{"revise este PR procurando regressões", "reviewer", "quality", "code_review", false},
+		{"investigue a causa raiz de uma falha intermitente", "investigator", "diagnostics", "root_cause_analysis", false},
+		{"faça profiling e benchmark da latência", "performance-investigator", "performance", "performance_analysis", false},
+		{"desenhe a arquitetura e registre um ADR", "architect", "architecture", "architecture", false},
 		{"crie um ecommerce completo", "generalist", "product", "", true},
 	}
 
