@@ -156,6 +156,12 @@ jobs:
           if [ -n "$unformatted" ]; then
             echo "gofmt required for:"
             printf '%s\n' "$unformatted"
+            while IFS= read -r file; do
+              [ -n "$file" ] || continue
+              echo "::group::gofmt diff $file"
+              gofmt -d "$file"
+              echo "::endgroup::"
+            done <<< "$unformatted"
             exit 1
           fi
       - run: go vet ./...
