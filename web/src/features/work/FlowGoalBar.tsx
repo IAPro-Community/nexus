@@ -33,11 +33,14 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
     setLeader,
     preflightReport,
     preflightBusy,
+    executionPreview,
+    executionPreviewBusy,
     cancelGenerate,
     generatePlan,
     createManualPlan,
     saveLeader,
     launchRun,
+    runExecutionPreview,
     runPreflight,
   } = controller;
 
@@ -99,6 +102,15 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                 ? t('flow.unsavedChanges', 'Alterações não salvas')
                 : t('flow.revisionN', 'Revisão {{n}}', { n: selectedPlan.current_revision })}
             </Badge>
+            <Button
+              disabled={!selectedPlan || executionPreviewBusy}
+              onClick={() => void runExecutionPreview()}
+            >
+              <Sparkles size={14} />{' '}
+              {executionPreviewBusy
+                ? t('flow.executionPreviewLoading', 'Avaliando execução…')
+                : t('flow.executionPreview', 'Plano de execução')}
+            </Button>
             <Button disabled={!selectedPlan || preflightBusy} onClick={() => void runPreflight()}>
               <Route size={14} />{' '}
               {preflightBusy
@@ -115,6 +127,69 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                 ? t('flow.starting', 'Iniciando…')
                 : t('flow.approveAndRun', 'Approve & Run')}
             </Button>
+          </div>
+        </div>
+      )}
+
+      {executionPreview && (
+        <div className={styles.preflightCard}>
+          <div className={styles.preflightHeader}>
+            <div>
+              <strong>{t('flow.executionPreviewTitle', 'Plano de execução')}</strong>
+              <small className={styles.preflightCheckSub}>
+                {t('flow.executionPreviewRevision', 'Revisão {{n}} · sem iniciar Agents ou runtimes', {
+                  n: executionPreview.revision,
+                })}
+              </small>
+            </div>
+            <Badge tone={executionPreview.ready ? 'success' : 'danger'}>
+              {executionPreview.ready
+                ? t('flow.executionPreviewReadyBadge', 'Executável')
+                : t('flow.blocked', 'Bloqueado')}
+            </Badge>
+          </div>
+          <div className={styles.preflightList}>
+            {(executionPreview.steps || []).map((step) => {
+              const agentLabel = step.agent.will_create
+                ? t('flow.executionPreviewCreateAgent', 'Criar especialista: {{role}}', {
+                    role: step.agent.role || step.role || 'Agent',
+                  })
+                : step.agent.name ||
+                  t('flow.executionPreviewAgentUnknown', 'Agent ainda não definido');
+              const resourceLabel = step.resource.provider
+                ? `${step.resource.provider}${step.resource.profile ? ` / ${step.resource.profile}` : ''}`
+                : t('flow.executionPreviewResourceUnknown', 'recurso indisponível');
+              const modelLabel = step.model.model
+                ? ` · ${step.model.model}`
+                : step.model.evidence === 'UNKNOWN'
+                  ? ` · ${t('flow.executionPreviewModelAuto', 'modelo por evidência em runtime')}`
+                  : '';
+              return (
+                <div key={step.package_id} className={styles.preflightItem}>
+                  <div>
+                    <span className={styles.preflightCheckText}>{step.title}</span>
+                    <small className={styles.preflightCheckSub}>
+                      {agentLabel} → {resourceLabel}
+                      {modelLabel}
+                    </small>
+                    <small className={styles.preflightCheckSub}>
+                      {step.agent.reason}
+                      {step.resource.reason ? ` · ${step.resource.reason}` : ''}
+                    </small>
+                    {(step.blockers || []).length > 0 && (
+                      <small className={styles.preflightCheckSub}>
+                        {step.blockers?.join(' · ')}
+                      </small>
+                    )}
+                  </div>
+                  <Badge tone={step.ready ? 'success' : 'danger'}>
+                    {step.ready
+                      ? t('flow.executionPreviewStepReady', 'Pronto')
+                      : t('flow.blocked', 'Bloqueado')}
+                  </Badge>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
