@@ -30,18 +30,39 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		req.RequiresDecomposition = true
 	case containsAny(text, "auditoria de segurança", "security audit", "segurança", "security", "csrf", "oauth"):
 		req.TaskKind = "security"
-		req.Role = "security"
-		req.PreferredRoles = []string{"security", "reviewer"}
-		req.AcceptableRoles = []string{"security", "reviewer", "qa"}
+		req.Role = "security-reviewer"
+		req.PreferredRoles = []string{"security-reviewer", "reviewer"}
+		req.AcceptableRoles = []string{"security-reviewer", "reviewer", "qa"}
 		req.Domains = []string{"security", "backend"}
 		req.RequiredCapabilities = append(req.RequiredCapabilities, "security")
 	case containsAny(text, "revise este pr", "review", "regressões", "regressoes", "pull request"):
 		req.TaskKind = "review"
 		req.Role = "reviewer"
 		req.PreferredRoles = []string{"reviewer", "qa"}
-		req.AcceptableRoles = []string{"reviewer", "qa", "security"}
+		req.AcceptableRoles = []string{"reviewer", "qa", "security-reviewer"}
 		req.Domains = []string{"quality", "verification"}
 		req.RequiredCapabilities = append(req.RequiredCapabilities, "code_review")
+	case containsAny(text, "performance", "profiling", "profile", "latência", "latencia", "throughput", "benchmark", "memory leak", "vazamento de memória", "vazamento de memoria"):
+		req.TaskKind = "investigation"
+		req.Role = "performance-investigator"
+		req.PreferredRoles = []string{"performance-investigator", "investigator"}
+		req.AcceptableRoles = []string{"performance-investigator", "investigator", "senior-developer", "generalist"}
+		req.Domains = []string{"performance", "diagnostics"}
+		req.RequiredCapabilities = append(req.RequiredCapabilities, "performance_analysis")
+	case containsAny(text, "investigue", "investigate", "root cause", "causa raiz", "debug", "diagnostique", "diagnose", "flaky", "intermitente"):
+		req.TaskKind = "investigation"
+		req.Role = "investigator"
+		req.PreferredRoles = []string{"investigator", "senior-developer"}
+		req.AcceptableRoles = []string{"investigator", "senior-developer", "generalist"}
+		req.Domains = []string{"diagnostics", "quality"}
+		req.RequiredCapabilities = append(req.RequiredCapabilities, "root_cause_analysis")
+	case containsAny(text, "arquitetura", "architecture", "system design", "design de sistema", "adr", "trade-off", "tradeoff"):
+		req.TaskKind = "architecture"
+		req.Role = "architect"
+		req.PreferredRoles = []string{"architect", "senior-developer"}
+		req.AcceptableRoles = []string{"architect", "senior-developer", "generalist"}
+		req.Domains = []string{"architecture", "software-engineering"}
+		req.RequiredCapabilities = append(req.RequiredCapabilities, "architecture")
 	case containsAny(text, "kubernetes", "k8s", "deploy", "infraestrutura", "infra"):
 		req.TaskKind = "coding"
 		req.Role = "devops"
