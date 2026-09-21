@@ -282,6 +282,63 @@ export interface CapacityAlertState {
   updated_at: string;
 }
 
+export type CostEvidenceState = 'EMPTY' | 'ATTRIBUTION_ONLY' | 'PARTIAL' | 'MEASURED';
+
+export interface CostAggregate {
+  observation_count: number;
+  known_cost_observations: number;
+  unknown_cost_observations: number;
+  known_token_observations: number;
+  cost_microusd: number;
+  input_tokens: number;
+  cached_input_tokens: number;
+  output_tokens: number;
+  reasoning_tokens: number;
+  duration_ms: number;
+}
+
+export interface ProviderCostAggregate extends CostAggregate {
+  provider: string;
+  profile: string;
+}
+
+export interface CostSummary {
+  since: string;
+  generated_at: string;
+  project_id?: string;
+  aggregate: CostAggregate;
+  by_provider: ProviderCostAggregate[];
+  cost_evidence: CostEvidenceState;
+  token_evidence: CostEvidenceState;
+}
+
+export interface CostObservation {
+  id: string;
+  project_id?: string;
+  mission_run_id?: string;
+  package_id?: string;
+  invocation_id?: string;
+  agent_id?: string;
+  runtime_generation_id?: string;
+  runtime_id?: string;
+  provider?: string;
+  profile?: string;
+  model?: string;
+  branch?: string;
+  workspace_kind?: string;
+  input_tokens?: number;
+  cached_input_tokens?: number;
+  output_tokens?: number;
+  reasoning_tokens?: number;
+  duration_ms: number;
+  cost_microusd?: number;
+  cost_kind: 'PROVIDER_REPORTED' | 'API_EQUIVALENT_ESTIMATE' | 'INFERRED' | 'UNKNOWN';
+  source: string;
+  status?: string;
+  account_scope?: string;
+  observed_at: string;
+}
+
 export interface EventRecord {
   id: string;
   correlation_id?: string;
