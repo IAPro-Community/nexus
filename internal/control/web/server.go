@@ -345,6 +345,8 @@ func (s *Server) routePlan(h *NexusHandler) http.HandlerFunc {
 			h.handleFlowLeader(w, r)
 		case strings.HasSuffix(r.URL.Path, "/clone"):
 			h.handleFlowClone(w, r)
+		case strings.HasSuffix(r.URL.Path, "/execution-preview"):
+			h.handlePlanExecutionPreview(w, r)
 		case strings.HasSuffix(r.URL.Path, "/preflight"):
 			h.handleFlowPreflight(w, r)
 		default:
