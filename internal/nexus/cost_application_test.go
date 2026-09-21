@@ -20,7 +20,7 @@ func TestEvaluateCostBudgetNeverTreatsPartialEvidenceAsHeadroom(t *testing.T) {
 		wantLevel    CostBudgetLevel
 		confirmation bool
 	}{
-		{name: "partial below limits stays unknown", known: 50, evidence: CostEvidencePartial, wantLevel: CostBudgetUnknown},
+		{name: "partial below hard limit stays unknown and requires confirmation", known: 50, evidence: CostEvidencePartial, wantLevel: CostBudgetUnknown, confirmation: true},
 		{name: "measured below limits is ok", known: 50, evidence: CostEvidenceMeasured, wantLevel: CostBudgetOK},
 		{name: "known lower bound can prove soft exceeded", known: 100, evidence: CostEvidencePartial, wantLevel: CostBudgetSoft},
 		{name: "known lower bound can prove hard exceeded", known: 200, evidence: CostEvidencePartial, wantLevel: CostBudgetHard, confirmation: true},
