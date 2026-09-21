@@ -77,7 +77,9 @@ export const CostIntelligenceSettings: React.FC = () => {
       prefs.emergency_limit_microusd,
     );
     const configured = [soft, hard, emergency].filter((value) => value > 0);
-    if (configured.some((value, index) => index > 0 && value <= configured[index - 1])) {
+    if (
+      configured.some((value, index) => index > 0 && value <= configured[index - 1])
+    ) {
       setError(
         t(
           'settings.costInvalidBudgets',
@@ -183,7 +185,10 @@ export const CostIntelligenceSettings: React.FC = () => {
         )}
       />
 
-      <section className={styles.section} aria-label={t('settings.costBudgets', 'Budgets')}>
+      <section
+        className={styles.section}
+        aria-label={t('settings.costBudgets', 'Budgets')}
+      >
         <h3>{t('settings.costBudgets', 'Budgets')}</h3>
         <p className={styles.note}>
           {t(
