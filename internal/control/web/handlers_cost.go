@@ -1,6 +1,8 @@
 package web
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -99,4 +101,35 @@ func (h *NexusHandler) handleCostObservations(w http.ResponseWriter, r *http.Req
 		rows = []store.CostObservation{}
 	}
 	writeJSON(w, http.StatusOK, rows)
+}
+
+func (h *NexusHandler) handleCostPreferences(w http.ResponseWriter, r *http.Request) {
+	svc, ok := h.costService()
+	if !ok {
+		writeError(w, http.StatusServiceUnavailable, "cost ledger unavailable")
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		prefs, err := svc.Preferences(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, prefs)
+	case http.MethodPut:
+		var prefs store.CostPreferences
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&prefs); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid body")
+			return
+		}
+		saved, err := svc.PutPreferences(r.Context(), prefs)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, saved)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
 }
