@@ -14,7 +14,7 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 	req := TaskRequirements{
 		TaskKind:             "coding",
 		Role:                 "implementer",
-		AcceptableRoles:      []string{"fullstack-engineer", "generalist"},
+		AcceptableRoles:      []string{"developer", "fullstack-engineer", "generalist"},
 		RequiredCapabilities: []string{"headless", "submit_prompt"},
 		Confidence:           "MEDIUM",
 		Source:               "natural-language",
@@ -63,6 +63,13 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		req.AcceptableRoles = []string{"architect", "senior-developer", "generalist"}
 		req.Domains = []string{"architecture", "software-engineering"}
 		req.RequiredCapabilities = append(req.RequiredCapabilities, "architecture")
+	case containsAny(text, "documentação", "documentacao", "documentation", "readme", "manual", "handoff"):
+		req.TaskKind = "documentation"
+		req.Role = "documentation-specialist"
+		req.PreferredRoles = []string{"documentation-specialist"}
+		req.AcceptableRoles = []string{"documentation-specialist", "developer", "generalist"}
+		req.Domains = []string{"documentation"}
+		req.RequiredCapabilities = append(req.RequiredCapabilities, "documentation")
 	case containsAny(text, "kubernetes", "k8s", "deploy", "infraestrutura", "infra"):
 		req.TaskKind = "coding"
 		req.Role = "devops"

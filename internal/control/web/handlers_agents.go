@@ -11,6 +11,16 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
+// handleAgentModes GET /api/v1/agent-modes returns the canonical behavioral
+// presets. Icons/labels stay presentation concerns in the Web client.
+func (h *NexusHandler) handleAgentModes(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	writeJSON(w, http.StatusOK, nexus.CanonicalAgentModes())
+}
+
 // handleAgentsList GET /api/v1/projects/{projectID}/agents
 func (h *NexusHandler) handleAgentsList(w http.ResponseWriter, r *http.Request) {
 	projectID := projectIDFromPath(r.URL.Path)

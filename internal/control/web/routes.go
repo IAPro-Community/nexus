@@ -48,6 +48,7 @@ func registerNexusRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/projects", s.authMiddleware(h.handleProjectsList))
 	mux.HandleFunc("/api/v1/projects/summaries", s.authMiddleware(h.handleProjectSummaries))
 	mux.HandleFunc("/api/v1/projects/", s.routeProject(h))
+	mux.HandleFunc("/api/v1/agent-modes", s.authMiddleware(h.handleAgentModes))
 	mux.HandleFunc("/api/v1/agents/", s.routeAgent(h))
 	mux.HandleFunc("/api/v1/resources", s.authMiddleware(h.handleResourcesList))
 	mux.HandleFunc("/api/v1/resources/refresh", s.authMiddleware(h.handleResourcesRefresh))

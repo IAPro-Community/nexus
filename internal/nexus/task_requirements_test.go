@@ -15,6 +15,7 @@ func TestClassifyTaskRequirementsCoversCanonicalInputs(t *testing.T) {
 		{"investigue a causa raiz de uma falha intermitente", "investigator", "diagnostics", "root_cause_analysis", false},
 		{"faça profiling e benchmark da latência", "performance-investigator", "performance", "performance_analysis", false},
 		{"desenhe a arquitetura e registre um ADR", "architect", "architecture", "architecture", false},
+		{"atualize a documentação e o README", "documentation-specialist", "documentation", "documentation", false},
 		{"crie um ecommerce completo", "generalist", "product", "", true},
 	}
 
