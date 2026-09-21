@@ -575,6 +575,10 @@ export const nexus = {
   getRun: (runId: string) => request<import('../types').MissionRun>(`/api/v1/runs/${runId}`),
   getRunEvidence: (runId: string) =>
     request<import('../types').FlowRunEvidence>(`/api/v1/runs/${runId}/evidence`),
+  getRunEvidenceBundle: (runId: string) =>
+    request<import('../types').MissionEvidenceBundle>(
+      `/api/v1/runs/${runId}/evidence-bundle`,
+    ),
   pauseRun: (runId: string, reason?: string) =>
     request<import('../types').MissionRun>(`/api/v1/runs/${runId}/pause`, {
       method: 'POST',
