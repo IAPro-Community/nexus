@@ -1210,6 +1210,34 @@ export interface FlowRunEvidence {
   receipts: WorkReceipt[];
 }
 
+
+export interface DeliveryIntegrationEvidence {
+  workspace?: string;
+  base_revision?: string;
+  package_ids?: string[];
+  changed_files?: string[];
+  integrated_at: string;
+}
+
+export interface MissionEvidenceBundle {
+  version: string;
+  run_id: string;
+  plan_id?: string;
+  plan_revision?: number;
+  state: string;
+  generated_at: string;
+  completed_verified: boolean;
+  evidence_complete: boolean;
+  missing_evidence?: string[];
+  integrated_workspace?: string;
+  delivery_integration?: DeliveryIntegrationEvidence;
+  capsules: ContextCapsule[];
+  receipts: WorkReceipt[];
+  routing: RoutingDecisionReport;
+  validation: ValidationEvidenceReport;
+  global_verifications?: VerificationResult[];
+}
+
 export interface ValidationEvidenceStream {
   id: string;
   project_id?: string;
@@ -1449,6 +1477,8 @@ export interface MissionRun {
   execution_snapshot_id?: string;
   project_id: string;
   workspace: string;
+  integrated_workspace?: string;
+  delivery_integration?: DeliveryIntegrationEvidence;
   state: string;
   contract: AutonomyContract;
   current_pkg_index: number;
