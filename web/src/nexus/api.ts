@@ -544,7 +544,9 @@ export const nexus = {
   previewPlanExecution: (planId: string) =>
     request<import('../types').PlanExecutionPreview>(
       `/api/v1/plans/${planId}/execution-preview`,
-      { method: 'POST' },
+      {
+        method: 'POST',
+      },
     ),
   preflightFlow: (planId: string) =>
     request<import('../types').FlowPreflightReport>(`/api/v1/plans/${planId}/preflight`, {
