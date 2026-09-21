@@ -30,8 +30,11 @@ line (`7813105`).
   (fingerprint ids, recovery, recommendation), usage monitor strip + ack,
   flow execution summary; i18n en/pt-BR/es.
 - **T8**: `Start/StopCapacityMonitor`, consent-gated
-  (`Enabled+BackgroundEnabled`, default OFF), idempotent, lease-gated,
-  `Shutdown` hook; `emptyProbeRegistry` until real probes.
+  (`Enabled+BackgroundEnabled`, background default OFF), idempotent, lease-gated,
+  restored by `Core.Start`, immediately reconciled by Settings and stopped by
+  `Shutdown`. Production registry reads the canonical quota observation cache for
+  Codex/AGY/Claude/Gemini; the existing `QuotaMonitorService` remains the single
+  LIVE collector, so Capacity never launches duplicate provider probes.
 - **T9**: this report + gates below.
 
 ## 4. Tests (executed 2026-09-20, HEAD `4cb4e26` + round)
@@ -57,7 +60,10 @@ snooze/ack enforced in delivery path; lease leadership across restarts;
 recovery via `RECOVERED` transition + hysteresis (spec thresholds).
 
 ## 6. Known limitations
-- Real provider probes: `emptyProbeRegistry` (UNKNOWN visible, never alerts).
+- Provider-native LIVE evidence still depends on the existing authenticated
+  `QuotaMonitorService` adapters and must be certified with real accounts per provider.
+  Capacity's own registry is intentionally read-only/cache-backed; it never upgrades
+  UNKNOWN/ESTIMATED evidence or starts a second provider probe.
 - `runs.json` files predating terminal metadata-only persistence still hold
   old raw args/output (no backfill scrub).
 - Terminal output buffers capped in memory (50 × 100k), freed only by cap.
