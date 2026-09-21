@@ -302,6 +302,45 @@ export interface ProviderCostAggregate extends CostAggregate {
   profile: string;
 }
 
+export interface CostPreferences {
+  enabled: boolean;
+  window_days: number;
+  soft_limit_microusd: number;
+  hard_limit_microusd: number;
+  emergency_limit_microusd: number;
+  anomaly_multiplier: number;
+  anomaly_minimum_samples: number;
+  anomaly_min_cost_microusd: number;
+  updated_at: string;
+}
+
+export type CostBudgetLevel = 'DISABLED' | 'UNKNOWN' | 'OK' | 'SOFT' | 'HARD' | 'EMERGENCY';
+
+export interface CostBudgetAssessment {
+  level: CostBudgetLevel;
+  known_cost_microusd: number;
+  evidence: CostEvidenceState;
+  active_limit_microusd?: number;
+  requires_confirmation: boolean;
+  message: string;
+}
+
+export type CostAnomalyStatus = 'UNKNOWN' | 'INSUFFICIENT' | 'NORMAL' | 'ANOMALY';
+
+export interface CostAnomalyAssessment {
+  status: CostAnomalyStatus;
+  triggered: boolean;
+  provider?: string;
+  profile?: string;
+  cost_kind?: CostObservation['cost_kind'];
+  latest_cost_microusd?: number;
+  baseline_median_microusd?: number;
+  threshold_microusd?: number;
+  historical_samples: number;
+  observed_at?: string;
+  message: string;
+}
+
 export interface CostSummary {
   since: string;
   generated_at: string;
@@ -310,6 +349,9 @@ export interface CostSummary {
   by_provider: ProviderCostAggregate[];
   cost_evidence: CostEvidenceState;
   token_evidence: CostEvidenceState;
+  preferences: CostPreferences;
+  budget: CostBudgetAssessment;
+  anomaly: CostAnomalyAssessment;
 }
 
 export interface CostObservation {
