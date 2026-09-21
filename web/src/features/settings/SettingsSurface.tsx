@@ -44,6 +44,7 @@ import { SystemDiagnosticsCard } from './SystemDiagnosticsCard';
 import { RemoteAccessTab } from './RemoteAccessTab';
 import { IntelligenceMemoriesPanel } from './IntelligenceMemoriesPanel';
 import { CapacityMonitorSettings } from './CapacityMonitorSettings';
+import { CostIntelligenceSettings } from './CostIntelligenceSettings';
 import type { SystemDoctorReport } from '../../nexus/api';
 import styles from './SettingsSurface.module.scss';
 
@@ -734,7 +735,12 @@ export const SettingsSurface: React.FC<{
             />
           </Card>
         )}
-        {activeTab === 'capacity' && <CapacityMonitorSettings />}
+        {activeTab === 'capacity' && (
+          <>
+            <CapacityMonitorSettings />
+            <CostIntelligenceSettings />
+          </>
+        )}
         {activeTab === 'remote' && <RemoteAccessTab />}
       </div>
     </div>
