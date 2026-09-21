@@ -45,6 +45,37 @@ func TestDecomposePromptIntoFlowProposal_SimpleTask(t *testing.T) {
 	}
 }
 
+func TestDecomposePromptIntoFlowProposal_UsesCompleteSourcePromptForAtomicity(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "DecompComposer", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	proposal, err := n.DecomposePromptIntoFlowProposal(context.Background(), FlowDecompositionRequest{
+		ProjectID: project.ID,
+		Goal:      "Implement Google OAuth login safely",
+		SourcePrompt: `Implement Google OAuth login safely.
+Backend: implement the Go callback and session contract.
+Frontend: implement the React sign-in and session handling.
+Testing: add backend, frontend and browser regression tests.
+Independent review must validate security and regressions.`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(proposal.Flow.Steps); got < 4 {
+		t.Fatalf("short display goal must not collapse a complete multi-domain prompt: got %d steps", got)
+	}
+	if err := ValidateFlowDAG(proposal.Flow); err != nil {
+		t.Fatalf("proposal DAG is invalid: %v", err)
+	}
+}
+
 func TestDecomposePromptIntoFlowProposal_ComplexFeature(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
