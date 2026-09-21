@@ -103,13 +103,24 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 		}
 	}
 
-	archetype := string(classifyPromptArchetype(goal + "\n" + sourcePrompt))
+	planningText := strings.TrimSpace(strings.Join([]string{goal, sourcePrompt}, "\n"))
+	archetype := string(classifyPromptArchetype(planningText))
+	delegation := DecideDelegation(planningText, req.DelegationMode)
 
-	// Determine if simple
-	lowerGoal := strings.ToLower(goal + " " + sourcePrompt)
-	isAtomic := req.Simple || strings.Contains(lowerGoal, "fix typo") || strings.Contains(lowerGoal, "ajuste de digitação") ||
-		strings.Contains(lowerGoal, "quick fix") || strings.Contains(lowerGoal, "simple fix") ||
-		(len(strings.Fields(goal)) <= 5 && !strings.Contains(lowerGoal, "refactor") && !strings.Contains(lowerGoal, "e2e") && !strings.Contains(lowerGoal, "system"))
+	// Atomicity must be decided from the complete execution intent, not only
+	// from a short display goal. A complete Composer artifact can have a concise
+	// title while still containing independent backend/frontend/QA workstreams.
+	lowerGoal := strings.ToLower(planningText)
+	explicitAtomic := strings.Contains(lowerGoal, "fix typo") ||
+		strings.Contains(lowerGoal, "ajuste de digitação") ||
+		strings.Contains(lowerGoal, "quick fix") ||
+		strings.Contains(lowerGoal, "simple fix")
+	isAtomic := req.Simple || explicitAtomic ||
+		(!delegation.Delegate &&
+			len(strings.Fields(planningText)) <= 12 &&
+			!strings.Contains(lowerGoal, "refactor") &&
+			!strings.Contains(lowerGoal, "e2e") &&
+			!strings.Contains(lowerGoal, "system"))
 
 	title := firstNonEmpty(goal, "Flow Proposal")
 	verification := projectVerificationCommands(project.CanonicalPath)
@@ -128,7 +139,6 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	}
-	delegation := DecideDelegation(goal, req.DelegationMode)
 	if facts, factErr := PersistDelegationDecisionFacts(nil, delegation); factErr == nil {
 		flow.StructuredFacts = facts
 	}
@@ -196,13 +206,13 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 			},
 		}
 	}
-	intent := DecideIntent(goal, nil)
+	intent := DecideIntent(planningText, nil)
 	if isAtomic {
 		intent.Strategy = IntentDirect
 		intent.Confidence = "HIGH"
 		intent.RecommendedAction = "execute_single_work_unit"
 	}
-	selection := SelectMissionTeam(goal, intent)
+	selection := SelectMissionTeam(planningText, intent)
 	if NormalizeDelegationMode(req.DelegationMode) == DelegationOff {
 		selection = MissionTeamSelection{Version: MissionTeamVersion, Strategy: intent.Strategy, Direct: true, CostClass: "DIRECT", Reason: "delegation mode OFF keeps execution with the Lead", CreatedAt: time.Now().UTC()}
 	}
