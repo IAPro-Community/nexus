@@ -257,7 +257,9 @@ export const CostIntelligenceSettings: React.FC = () => {
             />
           </label>
           <label>
-            <span>{t('settings.costAnomalySamples', 'Minimum historical samples')}</span>
+            <span>
+              {t('settings.costAnomalySamples', 'Minimum historical samples')}
+            </span>
             <Input
               value={draft.anomalyMinimumSamples}
               onChange={(value) =>
@@ -267,7 +269,9 @@ export const CostIntelligenceSettings: React.FC = () => {
             />
           </label>
           <label>
-            <span>{t('settings.costAnomalyMinUSD', 'Minimum anomaly cost (USD)')}</span>
+            <span>
+              {t('settings.costAnomalyMinUSD', 'Minimum anomaly cost (USD)')}
+            </span>
             <Input
               value={draft.anomalyMinUSD}
               onChange={(value) =>
