@@ -91,7 +91,7 @@ export function flowFromWorkPlan(plan: WorkPlan): FlowDraftModel {
         profile: pkg.profile,
         skillIds: clone(pkg.skill_ids || pkg.maestro_skills),
         maestroGates: clone(pkg.maestro_gates),
-        maestroSkills: clone(pkg.maestro_skills),
+        maestroSkills: clone(pkg.maestro_skills || pkg.skill_ids),
         relevantPaths: clone(pkg.relevant_paths),
         acceptanceCriteria: clone(pkg.acceptance_criteria),
         verificationRequirements: clone(pkg.verification_requirements),
