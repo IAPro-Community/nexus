@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // EvidenceBundle is the bounded, read-only proof projection for one Mission.
@@ -113,8 +114,7 @@ func (s *RunApplicationService) EvidenceBundle(ctx context.Context, runID string
 			bundle.MissingEvidence = append(bundle.MissingEvidence, "work_receipt:"+pkg.PackageID)
 			continue
 		}
-		if !strings.EqualFold(strings.TrimSpace(receipt.Status), "VERIFIED") &&
-			!strings.EqualFold(strings.TrimSpace(receipt.Status), "COMPLETED") {
+		if !strings.EqualFold(strings.TrimSpace(receipt.Status), "VERIFIED") {
 			bundle.MissingEvidence = append(bundle.MissingEvidence, "verified_work_receipt:"+pkg.PackageID)
 		}
 	}
@@ -129,6 +129,19 @@ func (s *RunApplicationService) EvidenceBundle(ctx context.Context, runID string
 	}
 	if len(validation.Entries) == 0 {
 		bundle.MissingEvidence = append(bundle.MissingEvidence, "validation_entries")
+	} else {
+		hasPass := false
+		for _, entry := range validation.Entries {
+			switch entry.Outcome {
+			case store.EvidencePass:
+				hasPass = true
+			case store.EvidenceFail:
+				bundle.MissingEvidence = append(bundle.MissingEvidence, "validation_failure")
+			}
+		}
+		if !hasPass {
+			bundle.MissingEvidence = append(bundle.MissingEvidence, "validation_pass")
+		}
 	}
 	if len(run.GlobalVerifications) == 0 {
 		bundle.MissingEvidence = append(bundle.MissingEvidence, "global_verification")
