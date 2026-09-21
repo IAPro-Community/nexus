@@ -1591,6 +1591,11 @@ export interface PlanExecutionPreview {
   ready: boolean;
   steps: StepExecutionPreview[];
   blockers?: string[];
+  warnings?: string[];
+  cost_budget: CostBudgetAssessment;
+  cost_anomaly: CostAnomalyAssessment;
+  cost_confirmation_required: boolean;
+  cost_confirmation_token?: string;
   generated_at: string;
 }
 
