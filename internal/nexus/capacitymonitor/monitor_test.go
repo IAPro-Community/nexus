@@ -281,6 +281,33 @@ func TestTickMissingProbeStaysUnknown(t *testing.T) {
 	}
 }
 
+func TestTickRejectsUnsafeProbeDescriptor(t *testing.T) {
+	probe := &stubProbe{
+		desc: quota.ProbeDescriptor{
+			ReadOnly:    false,
+			Granularity: quota.ProbeGranularityGroup,
+		},
+		snap: liveSnapshot(0, model.UsageLive),
+	}
+	m, s, counter := testMonitor(t,
+		[]model.Profile{{Provider: "codex", Name: "unsafe"}},
+		&stubRegistry{probes: map[string]quota.Probe{"codex": probe}}, nil)
+
+	if err := m.Tick(context.Background()); err == nil {
+		t.Fatal("unsafe probe descriptor must fail the monitor tick")
+	}
+	if counter.count() != 0 {
+		t.Fatalf("unsafe probe published %d events, want 0", counter.count())
+	}
+	rec, err := s.GetCapacityState("codex|unsafe||")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.State != string(StateUnknown) || rec.Reason != "unsafe probe descriptor" {
+		t.Fatalf("unsafe probe state=%+v, want UNKNOWN with explicit reason", rec)
+	}
+}
+
 func TestTickUntrustedSnapshotSilent(t *testing.T) {
 	probe := &stubProbe{
 		desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
