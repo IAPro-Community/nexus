@@ -29,7 +29,6 @@ type GlobalValidationEvidenceRecorder interface {
 	RecordGlobalValidationEvidence(context.Context, *MissionRun, []VerificationResult) error
 }
 
-
 var ErrDeliveryIntegrationRequired = errors.New("mission delivery integration is required")
 
 // DeliveryIntegrationEvidence is a bounded factual record of materializing
