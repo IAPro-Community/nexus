@@ -26,6 +26,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	profilepkg "github.com/IAPro-Community/nexus/internal/profile"
 )
 
 type agentPromptExecution struct {
@@ -35,8 +36,10 @@ type agentPromptExecution struct {
 }
 
 type agentPromptPolicy struct {
-	Contract runner.AutonomyContract
-	Review   bool
+	Contract     runner.AutonomyContract
+	Review       bool
+	MissionRunID string
+	PackageID    string
 }
 
 // executeAgentPrompt runs one autonomous, headless provider turn under a real
@@ -206,13 +209,43 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	// Record invocation completion for observability.
 	finishedAt := time.Now().UTC()
 	invocation.FinishedAt = &finishedAt
+	status := "COMPLETED"
 	if runErr != nil {
 		invocation.Status = AgentInvocationFailed
 		invocation.Errors = []string{runErr.Error()}
+		status = "FAILED"
 	} else {
 		invocation.Status = AgentInvocationCompleted
 	}
 	_ = RecordAgentInvocation(st, invocation)
+
+	// Cost Intelligence is observational: duration and attribution are known
+	// here, while token/cost fields remain NULL until a trustworthy provider
+	// source reports them. UNKNOWN must never be serialized as zero.
+	accountScope := ""
+	if info := profilepkg.GetAccountInfo(cfg.Provider, cfg.Profile); info.AccountScope.Verifiable() {
+		accountScope = info.AccountScope.Key()
+	}
+	_, _ = st.RecordCostObservation(store.CostObservation{
+		ProjectID:           agent.ProjectID,
+		MissionRunID:        policy.MissionRunID,
+		PackageID:           policy.PackageID,
+		InvocationID:        goalID,
+		AgentID:             agent.ID,
+		RuntimeGenerationID: generation.ID,
+		RuntimeID:           sess.RuntimeID,
+		Provider:            cfg.Provider,
+		Profile:             cfg.Profile,
+		Model:               cfg.Model,
+		Branch:              executionBranch(ctx, workspace),
+		WorkspaceKind:       cfg.Isolation,
+		DurationMS:          max(finishedAt.Sub(startedAt).Milliseconds(), 0),
+		CostKind:            store.CostKindUnknown,
+		Source:              "runtime_observation",
+		Status:              status,
+		AccountScope:        accountScope,
+		ObservedAt:          finishedAt,
+	})
 
 	if runErr != nil {
 		failure := classifier.Classify(runErr, output)
@@ -220,6 +253,23 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 			fmt.Errorf("autonomous runtime %s failed: %w", sess.RuntimeID, runErr)
 	}
 	return &agentPromptExecution{RuntimeID: sess.RuntimeID, Output: output}, nil
+}
+
+func executionBranch(ctx context.Context, workspace string) string {
+	if strings.TrimSpace(workspace) == "" {
+		return ""
+	}
+	branchCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(branchCtx, "git", "-C", workspace, "rev-parse", "--abbrev-ref", "HEAD").Output()
+	if err != nil {
+		return ""
+	}
+	branch := strings.TrimSpace(string(out))
+	if branch == "HEAD" {
+		return ""
+	}
+	return branch
 }
 
 func missionProviderArgs(provider string, args []string, policy agentPromptPolicy) ([]string, error) {
