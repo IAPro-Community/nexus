@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	CostKindProviderReported     = "PROVIDER_REPORTED"
+	CostKindProviderReported      = "PROVIDER_REPORTED"
 	CostKindAPIEquivalentEstimate = "API_EQUIVALENT_ESTIMATE"
-	CostKindInferred             = "INFERRED"
-	CostKindUnknown              = "UNKNOWN"
+	CostKindInferred              = "INFERRED"
+	CostKindUnknown               = "UNKNOWN"
 )
 
 // CostObservation is one local, attribution-safe execution observation.
