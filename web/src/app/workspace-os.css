@@ -7793,11 +7793,13 @@ button.nx-workspace-tab__close {
 .nx-topbar__context {
   display: flex !important;
   align-items: center !important;
-  flex: 0 1 auto !important;
+  /* Context owns its intrinsic controls. Let the status cluster consume the
+     remaining width instead of shrinking the Create button underneath it. */
+  flex: 0 0 auto !important;
   min-width: 0 !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   gap: 8px !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
 }
 
 .nx-topbar__actions {
@@ -7813,8 +7815,11 @@ button.nx-workspace-tab__close {
   align-items: center !important;
   justify-content: flex-end !important;
   order: 3 !important;
-  flex: 1 0 auto !important;
+  /* Basis zero is intentional: status yields to the context cluster while
+     still filling all remaining space. This prevents sibling overlap. */
+  flex: 1 1 0 !important;
   min-width: 0 !important;
+  overflow: hidden !important;
   gap: 8px !important;
 }
 
@@ -7848,11 +7853,10 @@ button.nx-workspace-tab__close {
   flex-shrink: 0 !important;
 }
 
-@media (max-width: 1366px) {
-  /* Intermediate widths (1024–1366): the status cluster competes with the
-     context cluster for topbar space. Collapse the update badge to its
-     icon: the button stays mounted, focusable and clickable (it carries an
-     explicit aria-label), only the text label yields. */
+@media (max-width: 1440px) {
+  /* Intermediate laptop/desktop widths: the status cluster competes with the
+     context cluster for topbar space. Collapse only the update text; the
+     button remains mounted, focusable and clickable via its aria-label. */
   .nx-topbar__status .nx-update-badge {
     display: none;
   }
