@@ -9,6 +9,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/security"
 )
 
 const (
@@ -18,9 +19,10 @@ const (
 )
 
 type missionSchedulePayload struct {
-	AgentID      string                  `json:"agent_id,omitempty"`
-	PlanRevision int                     `json:"plan_revision"`
-	Contract     runner.AutonomyContract `json:"contract"`
+	AgentID               string                  `json:"agent_id,omitempty"`
+	PlanRevision          int                     `json:"plan_revision"`
+	Contract              runner.AutonomyContract `json:"contract"`
+	CostConfirmationToken string                  `json:"cost_confirmation_token,omitempty"`
 }
 
 func (n *Nexus) ScheduleMission(ctx context.Context, planID string, args ...interface{}) (*store.MissionSchedule, error) {
@@ -45,6 +47,13 @@ func (n *Nexus) ScheduleMission(ctx context.Context, planID string, args ...inte
 	} else {
 		return nil, fmt.Errorf("invalid schedule arguments")
 	}
+	return n.ScheduleMissionWithOptions(ctx, planID, approved, mode, scheduledFor, afterRunID, agentID, contract, MissionAdmissionOptions{})
+}
+
+// ScheduleMissionWithOptions is the typed product boundary for durable Mission
+// scheduling. The legacy variadic facade remains for CLI/domain compatibility,
+// while UI/API callers can bind an exact revision and budget confirmation.
+func (n *Nexus) ScheduleMissionWithOptions(ctx context.Context, planID string, approved int, mode string, scheduledFor *time.Time, afterRunID, agentID string, contract runner.AutonomyContract, options MissionAdmissionOptions) (*store.MissionSchedule, error) {
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -78,7 +87,12 @@ func (n *Nexus) ScheduleMission(ctx context.Context, planID string, args ...inte
 	if _, _, err := loadWorkPlanRevision(st, plan.ID, approved); err != nil {
 		return nil, fmt.Errorf("approved schedule revision %d is unavailable: %w", approved, err)
 	}
-	payload, err := json.Marshal(missionSchedulePayload{AgentID: agentID, PlanRevision: approved, Contract: normalizeAutonomyContract(contract, "")})
+	payload, err := json.Marshal(missionSchedulePayload{
+		AgentID:               agentID,
+		PlanRevision:          approved,
+		Contract:              normalizeAutonomyContract(contract, ""),
+		CostConfirmationToken: strings.TrimSpace(options.CostConfirmationToken),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +193,7 @@ func (n *Nexus) processMissionSchedules(ctx context.Context) error {
 		if schedule.Status == store.SchedulePending && schedule.Mode == ScheduleAfterRun && schedule.AfterRunID != "" {
 			dependency, depErr := n.Runner().GetRun(ctx, schedule.AfterRunID)
 			if depErr == nil && runner.IsTerminalState(dependency.State) && dependency.State != runner.StateCompletedVerified {
-				_ = st.UpdateMissionScheduleStatus(schedule.ID, store.ScheduleFailed)
+				_ = st.FailMissionSchedule(schedule.ID, fmt.Sprintf("dependency mission %s ended in %s", dependency.ID, dependency.State))
 				continue
 			}
 		}
@@ -193,7 +207,11 @@ func (n *Nexus) processMissionSchedules(ctx context.Context) error {
 		if run.State == runner.StateCompletedVerified {
 			_ = st.UpdateMissionScheduleStatus(schedule.ID, store.ScheduleCompleted)
 		} else if runner.IsTerminalState(run.State) {
-			_ = st.UpdateMissionScheduleStatus(schedule.ID, store.ScheduleFailed)
+			reason := fmt.Sprintf("mission run %s ended in %s", run.ID, run.State)
+			if strings.TrimSpace(run.PausedReason) != "" {
+				reason += ": " + run.PausedReason
+			}
+			_ = st.FailMissionSchedule(schedule.ID, security.Redact(reason))
 		}
 	}
 
@@ -207,7 +225,7 @@ func (n *Nexus) processMissionSchedules(ctx context.Context) error {
 		}
 		var payload missionSchedulePayload
 		if err := json.Unmarshal([]byte(schedule.ContractJSON), &payload); err != nil {
-			_ = st.UpdateMissionScheduleStatus(schedule.ID, store.ScheduleFailed)
+			_ = st.FailMissionSchedule(schedule.ID, "invalid persisted schedule payload")
 			continue
 		}
 		claimed, claimErr := st.ClaimMissionSchedule(schedule.ID)
@@ -219,18 +237,18 @@ func (n *Nexus) processMissionSchedules(ctx context.Context) error {
 			// was read. It owns responsibility for creating this run.
 			continue
 		}
-		run, startErr := n.startScheduledMissionRun(ctx, schedule.PlanID, payload.PlanRevision, payload.AgentID, payload.Contract, MissionAdmissionOptions{})
+		run, startErr := n.startScheduledMissionRun(ctx, schedule.PlanID, payload.PlanRevision, payload.AgentID, payload.Contract, MissionAdmissionOptions{CostConfirmationToken: payload.CostConfirmationToken})
 		if startErr != nil {
 			// WHEN_RESOURCES waits without claiming while no autonomous resource is
 			// available. After a schedule is atomically claimed, admission failures
 			// are durable failures: silently returning to PENDING can loop forever
 			// on stale budget/policy/plan errors every scheduler tick.
-			_ = st.UpdateMissionScheduleStatus(schedule.ID, store.ScheduleFailed)
+			_ = st.FailMissionSchedule(schedule.ID, security.Redact(startErr.Error()))
 			continue
 		}
 		if err := st.BindMissionScheduleRun(schedule.ID, run.ID); err != nil {
 			_, _ = n.CancelMissionRun(ctx, run.ID, "schedule binding failed")
-			_ = st.UpdateMissionScheduleStatus(schedule.ID, store.ScheduleFailed)
+			_ = st.FailMissionSchedule(schedule.ID, security.Redact("schedule binding failed: "+err.Error()))
 		}
 	}
 	return nil

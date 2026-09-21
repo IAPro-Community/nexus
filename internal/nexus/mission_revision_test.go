@@ -154,3 +154,109 @@ func TestCostBudgetAdmissionRequiresFreshExplicitConfirmation(t *testing.T) {
 		t.Fatal("stale confirmation token must be rejected after cost evidence changes")
 	}
 }
+
+func TestScheduleMissionWithOptionsPersistsBudgetConfirmation(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Plan", "", []store.PlanPhase{{
+		Title: "Phase",
+		Packages: []store.WorkPackage{{
+			Title: "A", Goal: "A", Status: "READY", Role: "implementer", AcceptanceCriteria: []string{"done"},
+		}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	item, err := n.ScheduleMissionWithOptions(
+		context.Background(),
+		plan.ID,
+		plan.CurrentRevision,
+		ScheduleWhenResources,
+		nil,
+		"",
+		"",
+		runner.DefaultAutonomyContract(),
+		MissionAdmissionOptions{CostConfirmationToken: "budget-token"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload missionSchedulePayload
+	if err := json.Unmarshal([]byte(item.ContractJSON), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.CostConfirmationToken != "budget-token" {
+		t.Fatalf("cost confirmation token=%q, want persisted token", payload.CostConfirmationToken)
+	}
+}
+
+func TestScheduleAdmissionFailureIsDurableAndDoesNotRetrySilently(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Plan", "", []store.PlanPhase{{
+		Title: "Phase",
+		Packages: []store.WorkPackage{{
+			Title: "A", Goal: "A", Status: "READY", Role: "implementer",
+			AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"true"},
+		}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	when := time.Now().UTC().Add(-time.Second)
+	item, err := n.ScheduleMission(context.Background(), plan.ID, plan.CurrentRevision, ScheduleAt, &when, "", "", runner.DefaultAutonomyContract())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := n.processMissionSchedules(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetMissionSchedule(item.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != store.ScheduleFailed || got.AttemptCount != 1 || got.LastAttemptAt == nil || got.LastError == "" {
+		t.Fatalf("failed schedule diagnostics missing: %+v", got)
+	}
+}
+
+func TestWhenResourcesDoesNotClaimWithoutEligibleResource(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Plan", "", []store.PlanPhase{{
+		Title: "Phase",
+		Packages: []store.WorkPackage{{
+			Title: "A", Goal: "A", Status: "READY", Role: "implementer",
+			AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"true"},
+		}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	item, err := n.ScheduleMission(context.Background(), plan.ID, plan.CurrentRevision, ScheduleWhenResources, nil, "", "", runner.DefaultAutonomyContract())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := n.processMissionSchedules(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetMissionSchedule(item.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != store.SchedulePending || got.AttemptCount != 0 || got.LastAttemptAt != nil {
+		t.Fatalf("WHEN_RESOURCES should wait without spinning when no resource is eligible: %+v", got)
+	}
+}
