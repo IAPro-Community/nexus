@@ -130,4 +130,3 @@ func TestCostBudgetAdmissionRequiresFreshExplicitConfirmation(t *testing.T) {
 		t.Fatal("stale confirmation token must be rejected after cost evidence changes")
 	}
 }
-
