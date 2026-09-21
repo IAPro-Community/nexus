@@ -527,7 +527,7 @@ func (m *Monitor) persistTransition(ctx context.Context, provider, profile, grou
 		ID: eventID, Fingerprint: fingerprint,
 		EventType: string(eventTypeFor(state)),
 		Provider:  provider, Profile: profile,
-		QuotaGroup: "", WindowKind: window,
+		QuotaGroup: "", WindowKind: "",
 		Severity: string(state), PayloadJSON: string(payload),
 		EmittedAt: now,
 	}); err != nil {
