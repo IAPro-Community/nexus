@@ -650,6 +650,36 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ fingerprint, until: until ?? '' }),
     }),
+
+  // Local Cost Intelligence. Unknown token/cost evidence stays absent rather
+  // than being coerced to zero.
+  getCostSummary: (days = 7, projectId?: string) => {
+    const params = new URLSearchParams({ days: String(days) });
+    if (projectId) params.set('project_id', projectId);
+    return request<import('../types').CostSummary>(`/api/v1/cost/summary?${params.toString()}`);
+  },
+  getCostObservations: (options?: {
+    limit?: number;
+    days?: number;
+    projectId?: string;
+    missionRunId?: string;
+    agentId?: string;
+    provider?: string;
+    profile?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (options?.limit) params.set('limit', String(options.limit));
+    if (options?.days) params.set('days', String(options.days));
+    if (options?.projectId) params.set('project_id', options.projectId);
+    if (options?.missionRunId) params.set('mission_run_id', options.missionRunId);
+    if (options?.agentId) params.set('agent_id', options.agentId);
+    if (options?.provider) params.set('provider', options.provider);
+    if (options?.profile) params.set('profile', options.profile);
+    const qs = params.toString();
+    return request<import('../types').CostObservation[]>(
+      `/api/v1/cost/observations${qs ? `?${qs}` : ''}`,
+    );
+  },
   // Tunnel / Remote Access
   getTunnelStatus: () => request<import('../types').TunnelStatus>('/api/v1/tunnel/status'),
   startTunnel: () =>
