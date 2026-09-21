@@ -356,20 +356,20 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 
 	probe, ok := m.deps.ProbeRegistry.For(prof.Provider)
 	if !ok {
-		if err := m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "no probe for provider", prof.AccountScope, now); err != nil {
+		if err := m.upsertState(prof.Provider, prof.Name, "", StateUnknown, "no probe for provider", prof.AccountScope, now); err != nil {
 			return StateUnknown, false
 		}
 		return StateUnknown, true
 	}
 	if err := probe.Descriptor().Validate(); err != nil {
-		_ = m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "unsafe probe descriptor", prof.AccountScope, now)
+		_ = m.upsertState(prof.Provider, prof.Name, "", StateUnknown, "unsafe probe descriptor", prof.AccountScope, now)
 		return StateUnknown, false
 	}
 	snap, err := probe.Probe(ctx, prof)
 	if err != nil {
 		// Best-effort visibility row; the account still counts as failed so
 		// persistent probe outages feed the backoff ladder.
-		_ = m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "probe error", prof.AccountScope, now)
+		_ = m.upsertState(prof.Provider, prof.Name, "", StateUnknown, "probe error", prof.AccountScope, now)
 		return StateUnknown, false
 	}
 	scope := scopeKey(snap.AccountScope)
@@ -386,7 +386,7 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 	if len(snap.Windows) == 0 {
 		// No windows: a single account-level UNKNOWN, persisted once so
 		// coverage stays visible instead of silently absent.
-		if err := m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "no windows in snapshot", snap.AccountScope, now); err != nil {
+		if err := m.upsertState(prof.Provider, prof.Name, "", StateUnknown, "no windows in snapshot", snap.AccountScope, now); err != nil {
 			return StateUnknown, false
 		}
 		return StateUnknown, true
@@ -475,7 +475,7 @@ func (m *Monitor) persistTransition(ctx context.Context, provider, profile, grou
 	if err := m.deps.Store.UpsertCapacityState(store.CapacityStateRecord{
 		Key:      stateKey(provider, profile, group, window),
 		Provider: provider, Profile: profile,
-		QuotaGroup: group, WindowKind: window,
+		QuotaGroup: "", WindowKind: window,
 		State: string(state), Reason: reason,
 		TransitionedAt: now, UpdatedAt: now,
 		AccountScope: scopeKey(scope),
@@ -563,8 +563,8 @@ func eventTypeFor(state State) events.EventType {
 // repeats are read-only, so TransitionedAt never drifts on no-change ticks and
 // there is no write churn. Changed reason or scope refreshes the diagnostic
 // columns without moving the transition moment. It never publishes events.
-func (m *Monitor) upsertState(provider, profile, group, window string, state State, reason string, scope model.AccountScope, now time.Time) error {
-	k := stateKey(provider, profile, group, window)
+func (m *Monitor) upsertState(provider, profile, window string, state State, reason string, scope model.AccountScope, now time.Time) error {
+	k := stateKey(provider, profile, "", window)
 	rec, found, err := m.loadState(k)
 	if err != nil {
 		return err
