@@ -236,3 +236,28 @@ func TestPreviewPlanExecutionRequiresCostConfirmationWithoutClaimingHeadroom(t *
 	}
 }
 
+
+func TestValidateApprovedExecutionPreviewFailsClosed(t *testing.T) {
+	cases := []struct {
+		name    string
+		preview *PlanExecutionPreview
+		wantErr bool
+	}{
+		{name: "missing", preview: nil, wantErr: true},
+		{name: "wrong plan", preview: &PlanExecutionPreview{PlanID: "other", Revision: 3, Ready: true}, wantErr: true},
+		{name: "stale revision", preview: &PlanExecutionPreview{PlanID: "plan", Revision: 2, Ready: true}, wantErr: true},
+		{name: "no eligible route", preview: &PlanExecutionPreview{PlanID: "plan", Revision: 3, Ready: false, Blockers: []string{"no provider account"}}, wantErr: true},
+		{name: "fresh and ready", preview: &PlanExecutionPreview{PlanID: "plan", Revision: 3, Ready: true}, wantErr: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateApprovedExecutionPreview(tc.preview, "plan", 3)
+			if tc.wantErr && err == nil {
+				t.Fatal("expected validation error")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("unexpected validation error: %v", err)
+			}
+		})
+	}
+}

@@ -20,10 +20,11 @@ import (
 // missionExecutionSnapshot is immutable input for one approved MissionRun.
 // The live WorkPlan may continue evolving without changing an active run.
 type missionExecutionSnapshot struct {
-	Plan      store.WorkPlan          `json:"plan"`
-	Contract  runner.AutonomyContract `json:"contract"`
-	Preflight *FlowPreflightReport    `json:"preflight,omitempty"`
-	Goal      *GoalContract           `json:"goal,omitempty"`
+	Plan             store.WorkPlan          `json:"plan"`
+	Contract         runner.AutonomyContract `json:"contract"`
+	Preflight        *FlowPreflightReport    `json:"preflight,omitempty"`
+	ExecutionPreview *PlanExecutionPreview   `json:"execution_preview,omitempty"`
+	Goal             *GoalContract           `json:"goal,omitempty"`
 }
 
 type missionWorker struct {
@@ -233,6 +234,13 @@ func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID s
 	if plan.CurrentRevision != approvedRevision {
 		return nil, fmt.Errorf("approved plan revision %d is stale; current is %d", approvedRevision, plan.CurrentRevision)
 	}
+	preview, err := n.PreviewPlanExecution(ctx, planID)
+	if err != nil {
+		return nil, fmt.Errorf("refresh execution preview before approved mission: %w", err)
+	}
+	if err := validateApprovedExecutionPreview(preview, planID, approvedRevision); err != nil {
+		return nil, err
+	}
 	preflight, err := n.PreflightFlowStrict(ctx, planID, autonomous)
 	if err != nil {
 		return nil, fmt.Errorf("run preflight before approved mission: %w", err)
@@ -243,7 +251,27 @@ func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID s
 	if err := validateCostBudgetAdmission(ctx, st, plan, options.CostConfirmationToken); err != nil {
 		return nil, err
 	}
-	return n.startMissionRunAtRevision(ctx, plan, approvedRevision, defaultAgentID, contract, autonomous, preflight)
+	return n.startMissionRunAtRevisionWithAdmission(ctx, plan, approvedRevision, defaultAgentID, contract, autonomous, preflight, preview)
+}
+
+func validateApprovedExecutionPreview(preview *PlanExecutionPreview, planID string, approvedRevision int) error {
+	if preview == nil {
+		return fmt.Errorf("approved mission requires a fresh execution preview")
+	}
+	if preview.PlanID != planID {
+		return fmt.Errorf("execution preview belongs to plan %s, expected %s", preview.PlanID, planID)
+	}
+	if preview.Revision != approvedRevision {
+		return fmt.Errorf("execution preview revision %d is stale; approved revision is %d", preview.Revision, approvedRevision)
+	}
+	if !preview.Ready {
+		reason := strings.Join(preview.Blockers, "; ")
+		if strings.TrimSpace(reason) == "" {
+			reason = "no eligible execution route"
+		}
+		return fmt.Errorf("approved mission blocked by execution preview: %s", reason)
+	}
+	return nil
 }
 
 func validateCostBudgetAdmission(ctx context.Context, st *store.Store, plan *store.WorkPlan, confirmationToken string) error {
@@ -283,6 +311,14 @@ func validateCostBudgetAdmission(ctx context.Context, st *store.Store, plan *sto
 }
 
 func (n *Nexus) startMissionRunAtRevision(ctx context.Context, plan *store.WorkPlan, revision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, admission ...*FlowPreflightReport) (*runner.MissionRun, error) {
+	var preflight *FlowPreflightReport
+	if len(admission) > 0 {
+		preflight = admission[0]
+	}
+	return n.startMissionRunAtRevisionWithAdmission(ctx, plan, revision, defaultAgentID, contract, autonomous, preflight, nil)
+}
+
+func (n *Nexus) startMissionRunAtRevisionWithAdmission(ctx context.Context, plan *store.WorkPlan, revision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, preflight *FlowPreflightReport, preview *PlanExecutionPreview) (*runner.MissionRun, error) {
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -301,11 +337,7 @@ func (n *Nexus) startMissionRunAtRevision(ctx context.Context, plan *store.WorkP
 	}
 	bindLeadAgent(&frozen, defaultAgentID)
 	contract = normalizeAutonomyContract(contract, project.CanonicalPath)
-	var preflight *FlowPreflightReport
-	if len(admission) > 0 {
-		preflight = admission[0]
-	}
-	env, err := json.Marshal(missionExecutionSnapshot{Plan: frozen, Contract: contract, Preflight: preflight})
+	env, err := json.Marshal(missionExecutionSnapshot{Plan: frozen, Contract: contract, Preflight: preflight, ExecutionPreview: preview})
 	if err != nil {
 		return nil, err
 	}

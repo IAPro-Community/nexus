@@ -98,6 +98,13 @@ func (s *RunApplicationService) Routing(ctx context.Context, runID string) (Rout
 	if err != nil {
 		return RoutingDecisionReport{}, err
 	}
+	if run.ExecutionSnapshotID != "" {
+		snapshot, snapshotErr := s.nexus.loadMissionSnapshot(run)
+		if snapshotErr != nil {
+			return RoutingDecisionReport{}, snapshotErr
+		}
+		return BuildRoutingDecisionReportWithPlanAndPreview(run, &snapshot.Plan, snapshot.ExecutionPreview)
+	}
 	if plan, planErr := s.nexus.GetWorkPlan(ctx, run.PlanID); planErr == nil {
 		return BuildRoutingDecisionReportWithPlan(run, plan)
 	}
