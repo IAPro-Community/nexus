@@ -82,7 +82,8 @@ export const CANONICAL_AGENT_TYPES: AgentTypePreset[] = [
     id: 'investigator',
     name: 'Investigator',
     role: 'investigator',
-    description: 'Causa raiz, comportamento intermitente, logs e diagnóstico orientado por evidência.',
+    description:
+      'Causa raiz, comportamento intermitente, logs e diagnóstico orientado por evidência.',
     icon: Search,
     defaultProvider: 'codex',
     defaultMode: 'Safe',
@@ -93,9 +94,13 @@ export const CANONICAL_AGENT_TYPES: AgentTypePreset[] = [
         'Reproduza, isole variáveis e colete evidência antes de propor correção.',
         'Comece em modo de investigação; só recomende alteração quando a causa raiz estiver sustentada por evidência.',
       ],
-      responsibilities: ['Diagnosticar falhas e produzir hipótese, evidência, causa raiz e próximos passos.'],
+      responsibilities: [
+        'Diagnosticar falhas e produzir hipótese, evidência, causa raiz e próximos passos.',
+      ],
       capabilities: ['debugging', 'root_cause_analysis', 'log_analysis'],
-      constraints: ['Read-only by default until the root cause is evidenced and remediation is explicitly assigned.'],
+      constraints: [
+        'Read-only by default until the root cause is evidenced and remediation is explicitly assigned.',
+      ],
       domains: ['diagnostics', 'quality'],
       strengths: ['hypothesis-testing', 'evidence-gathering'],
       tags: ['investigation', 'root-cause'],
@@ -116,7 +121,9 @@ export const CANONICAL_AGENT_TYPES: AgentTypePreset[] = [
       instructions: [
         'Modele limites, contratos, dependências e trade-offs antes de recomendar mudanças estruturais.',
       ],
-      responsibilities: ['Definir arquitetura evolutiva, registrar decisões e identificar riscos sistêmicos.'],
+      responsibilities: [
+        'Definir arquitetura evolutiva, registrar decisões e identificar riscos sistêmicos.',
+      ],
       capabilities: ['architecture', 'system_design', 'tradeoff_analysis'],
       domains: ['architecture', 'software-engineering'],
       strengths: ['systems-thinking', 'decision-records'],
@@ -128,7 +135,8 @@ export const CANONICAL_AGENT_TYPES: AgentTypePreset[] = [
     id: 'security-reviewer',
     name: 'Security Reviewer',
     role: 'security-reviewer',
-    description: 'Threat modeling, autenticação, autorização, secrets e revisão de superfícies de ataque.',
+    description:
+      'Threat modeling, autenticação, autorização, secrets e revisão de superfícies de ataque.',
     icon: Shield,
     defaultProvider: 'claude',
     defaultMode: 'Safe',
@@ -138,9 +146,13 @@ export const CANONICAL_AGENT_TYPES: AgentTypePreset[] = [
       instructions: [
         'Revise ameaças, fronteiras de confiança e regressões de segurança sem assumir que ausência de evidência é segurança.',
       ],
-      responsibilities: ['Identificar vulnerabilidades, severidade, evidência e mitigação recomendada.'],
+      responsibilities: [
+        'Identificar vulnerabilidades, severidade, evidência e mitigação recomendada.',
+      ],
       capabilities: ['security', 'code_review', 'threat_modeling'],
-      constraints: ['Read-only by default; remediation belongs to an explicitly assigned implementation task.'],
+      constraints: [
+        'Read-only by default; remediation belongs to an explicitly assigned implementation task.',
+      ],
       domains: ['security', 'quality'],
       strengths: ['threat-modeling', 'risk-classification'],
       tags: ['security', 'review'],
@@ -161,9 +173,13 @@ export const CANONICAL_AGENT_TYPES: AgentTypePreset[] = [
       instructions: [
         'Estabeleça baseline e reproduza o gargalo antes de otimizar; compare resultados depois da mudança.',
       ],
-      responsibilities: ['Medir gargalos, explicar a causa e definir experimentos de desempenho reproduzíveis.'],
+      responsibilities: [
+        'Medir gargalos, explicar a causa e definir experimentos de desempenho reproduzíveis.',
+      ],
       capabilities: ['performance_analysis', 'profiling', 'benchmarking'],
-      constraints: ['Read-only by default until the bottleneck is measured and remediation is explicitly assigned.'],
+      constraints: [
+        'Read-only by default until the bottleneck is measured and remediation is explicitly assigned.',
+      ],
       domains: ['performance', 'diagnostics'],
       strengths: ['measurement', 'profiling'],
       tags: ['performance', 'investigation'],
@@ -252,7 +268,9 @@ export const CANONICAL_AGENT_TYPES: AgentTypePreset[] = [
       ],
       responsibilities: ['Revisar diffs, segurança, compatibilidade e qualidade de implementação.'],
       capabilities: ['code_review', 'security', 'risk_analysis'],
-      constraints: ['Read-only by default; remediation must be assigned to an implementation task.'],
+      constraints: [
+        'Read-only by default; remediation must be assigned to an implementation task.',
+      ],
       domains: ['quality', 'security'],
       strengths: ['critical-reading', 'risk-classification'],
       tags: ['review', 'security'],
