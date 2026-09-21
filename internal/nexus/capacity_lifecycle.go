@@ -4,20 +4,13 @@ import (
 	"context"
 
 	"github.com/IAPro-Community/nexus/internal/control/events"
-	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/nexus/capacitymonitor"
 	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
-// emptyProbeRegistry is the T8 production registry until provider probes
-// land (recorded in DEV/FUTURE_EVOLUTION_FROM_OPENCODEX_OVERCLOCK.md).
-// Unknown providers project StateUnknown rows — visible but never alerting,
-// so autostart is safe before probes exist.
-type emptyProbeRegistry struct{}
-
-func (emptyProbeRegistry) For(string) (quota.Probe, bool) { return nil, false }
-func (emptyProbeRegistry) Providers() []string            { return nil }
-
+// The hosted monitor consumes the canonical quota observation cache through a
+// read-only ProbeRegistry. QuotaMonitorService remains the single live
+// collector, avoiding duplicate provider/API/app-server probes.
 // StartCapacityMonitor hosts the capacity Monitor loop in the Nexus process
 // exactly once, mirroring StartQuotaMonitor. Consent-gated: it starts only
 // when preferences exist with Enabled AND BackgroundEnabled (default OFF).
@@ -45,7 +38,7 @@ func (n *Nexus) StartCapacityMonitor(ctx context.Context) {
 	DefaultQuotaDropMonitor().SetDispatchGate(gate)
 	mon := capacitymonitor.NewMonitor(capacitymonitor.Dependencies{
 		Profiles:      profile.List,
-		ProbeRegistry: emptyProbeRegistry{},
+		ProbeRegistry: profile.NewCapacityProbeRegistry(),
 		Store:         st,
 		Bus:           events.DefaultBus(),
 		Clock:         capacitymonitor.RealClock{},
