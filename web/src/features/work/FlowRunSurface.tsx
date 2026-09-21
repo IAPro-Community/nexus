@@ -21,6 +21,7 @@ import type {
   ContextCapsule,
   FlowRunEvidence,
   InterventionOption,
+  MissionEvidenceBundle,
   MissionRun,
   PackageRun,
   Project,
@@ -122,6 +123,7 @@ export const FlowRunSurface: React.FC<{
     capsules: [],
     receipts: [],
   });
+  const [evidenceBundle, setEvidenceBundle] = useState<MissionEvidenceBundle | null>(null);
   const [plan, setPlan] = useState<WorkPlan | null>(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -156,9 +158,10 @@ export const FlowRunSurface: React.FC<{
       const current = await nexusApi.getRun(runId);
       if (!guard.isLatest(seq)) return;
       setRun(current);
-      const [nextEvidence, detail] = await Promise.all([
+      const [nextEvidence, detail, nextBundle] = await Promise.all([
         nexusApi.getRunEvidence(runId),
         plan?.id === current.plan_id ? Promise.resolve(null) : nexusApi.getPlan(current.plan_id),
+        nexusApi.getRunEvidenceBundle(runId).catch(() => null),
       ]);
       if (!guard.isLatest(seq)) return;
       // Normalize at the API boundary: Go encodes empty slices as null.
@@ -167,6 +170,7 @@ export const FlowRunSurface: React.FC<{
         capsules: asArray<ContextCapsule>(nextEvidence.capsules),
         receipts: asArray<WorkReceipt>(nextEvidence.receipts),
       });
+      setEvidenceBundle(nextBundle);
       if (detail) setPlan(detail.plan);
       setError('');
     } catch (err) {
@@ -353,6 +357,45 @@ export const FlowRunSurface: React.FC<{
           <span>{needsAction ? t('flowRun.actionRequired') : t('flowRun.noActionRequired')}</span>
         </div>
       </Card>
+
+      {evidenceBundle && (
+        <Card
+          className="nx-flow-run-status"
+          data-evidence-complete={evidenceBundle.evidence_complete ? 'true' : 'false'}
+        >
+          <div>
+            <strong>{t('flowRun.evidenceBundle', 'Evidence Bundle')}</strong>
+            <span>
+              {evidenceBundle.evidence_complete
+                ? t('flowRun.evidenceComplete', 'Complete and verified')
+                : t('flowRun.evidenceIncomplete', 'Evidence still incomplete')}
+            </span>
+          </div>
+          <div>
+            <strong>{t('flowRun.evidenceReceipts', 'Verified receipts')}</strong>
+            <span>
+              {evidenceBundle.receipts.filter((receipt) => receipt.status === 'VERIFIED').length}/
+              {packageRuns.length}
+            </span>
+          </div>
+          <div>
+            <strong>{t('flowRun.evidenceChain', 'Validation chain')}</strong>
+            <span>
+              {evidenceBundle.validation.chain_verified
+                ? t('flowRun.evidenceChainVerified', 'Verified')
+                : t('flowRun.evidenceChainMissing', 'Not verified')}
+            </span>
+          </div>
+          <div>
+            <strong>{t('flowRun.evidenceMissing', 'Missing proof')}</strong>
+            <span>
+              {asArray<string>(evidenceBundle.missing_evidence).length
+                ? asArray<string>(evidenceBundle.missing_evidence).join(' · ')
+                : t('flowRun.evidenceNoneMissing', 'None')}
+            </span>
+          </div>
+        </Card>
+      )}
 
       {error && (
         <>
