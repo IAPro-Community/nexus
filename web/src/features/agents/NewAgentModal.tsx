@@ -35,8 +35,7 @@ export const AGENT_MODE_PRESENTATION: Record<string, ModePresentation> = {
   },
   'senior-developer': {
     name: 'Senior Developer',
-    description:
-      'Mudanças complexas, refactors cross-cutting e decisões técnicas de alto impacto.',
+    description: 'Mudanças complexas, refactors cross-cutting e decisões técnicas de alto impacto.',
     icon: Bot,
   },
   reviewer: {
@@ -347,7 +346,8 @@ export const NewAgentModal: React.FC<{
           <label className={styles.sectionLabel}>{t('agents.operationalMode')}</label>
           <div className={styles.buttonRow}>
             {(['Safe', 'YOLO'] as const).map((candidateMode) => {
-              const disabled = candidateMode === 'YOLO' && Boolean(selectedType?.read_only_by_default);
+              const disabled =
+                candidateMode === 'YOLO' && Boolean(selectedType?.read_only_by_default);
               return (
                 <button
                   key={candidateMode}
@@ -371,8 +371,8 @@ export const NewAgentModal: React.FC<{
           </div>
           {selectedType?.read_only_by_default && (
             <small className={styles.hintText}>
-              Esta especialidade é read-only por padrão; alterações devem ser delegadas a uma
-              tarefa de implementação.
+              Esta especialidade é read-only por padrão; alterações devem ser delegadas a uma tarefa
+              de implementação.
             </small>
           )}
         </div>
