@@ -541,6 +541,11 @@ export const nexus = {
       plan: import('../types').WorkPlan;
       leader: import('../types').FlowLeaderPolicy;
     }>(`/api/v1/plans/${planId}/leader`, { method: 'PUT', body: JSON.stringify(leader) }),
+  previewPlanExecution: (planId: string) =>
+    request<import('../types').PlanExecutionPreview>(
+      `/api/v1/plans/${planId}/execution-preview`,
+      { method: 'POST' },
+    ),
   preflightFlow: (planId: string) =>
     request<import('../types').FlowPreflightReport>(`/api/v1/plans/${planId}/preflight`, {
       method: 'POST',
