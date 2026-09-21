@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — source v1.0.0-beta.4 — Nexus 1.0 closure
+
+- Added the Composer → PromptArtifact → Flow → revision-bound Execution Preview North Star, with no Agent/runtime/Mission side effects during preview.
+- Productized persistent specialist Agent Modes and canonical AgentMatcher taxonomy for senior development, investigation, architecture, security review and performance investigation.
+- Kept Capacity collection on the canonical quota path while exposing production observation probes without a second poller.
+- Hardened Skills v1 Flow round-trip so canonical `skill_ids` preserve the legacy alias without making Maestro a second catalog authority.
+- Added a local observational Cost Intelligence ledger with explicit evidence kinds; unknown tokens/cost stay unknown rather than zero.
+- Added persisted soft/hard/emergency cost policy, comparable-sample anomaly detection and Settings/Usage surfaces.
+- Added cost-aware Execution Preview and evidence-bound confirmation before starting new Mission work under hard/emergency or unknown hard-budget headroom.
+- Restored the frontend format gate to a real repository-wide Prettier check.
+
+
 ## 1.0.0-beta.3 — 2026-09-20 — Surface isolation and Flow recovery
 
 - Mount only the active product surface; inactive ones unmount while
