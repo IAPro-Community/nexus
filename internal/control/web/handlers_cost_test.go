@@ -109,3 +109,61 @@ func TestCostSummaryRejectsInvalidDays(t *testing.T) {
 		t.Fatalf("status=%d, want 400", resp.StatusCode)
 	}
 }
+
+func TestCostPreferencesEndpointsRoundTripAndRejectInvalidPolicy(t *testing.T) {
+	nexus.ResetDefaultForTest()
+	t.Cleanup(nexus.ResetDefaultForTest)
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+
+	client, srv, csrf := csrfClient(t)
+
+	resp, err := client.Get(srv.URL() + "/api/v1/cost/preferences")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		t.Fatalf("GET preferences status=%d, want 200", resp.StatusCode)
+	}
+	var defaults store.CostPreferences
+	if err := json.NewDecoder(resp.Body).Decode(&defaults); err != nil {
+		resp.Body.Close()
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if !defaults.Enabled || defaults.WindowDays != 7 || defaults.SoftLimitMicroUSD != 0 {
+		t.Fatalf("unexpected cost defaults: %+v", defaults)
+	}
+
+	prefs := defaults
+	prefs.SoftLimitMicroUSD = 1_000_000
+	prefs.HardLimitMicroUSD = 2_000_000
+	prefs.EmergencyLimitMicroUSD = 3_000_000
+	body, _ := json.Marshal(prefs)
+	resp = putJSON(t, client, csrf, srv.URL()+"/api/v1/cost/preferences", body)
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		t.Fatalf("PUT preferences status=%d, want 200", resp.StatusCode)
+	}
+	var saved store.CostPreferences
+	if err := json.NewDecoder(resp.Body).Decode(&saved); err != nil {
+		resp.Body.Close()
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if saved.HardLimitMicroUSD != 2_000_000 || saved.EmergencyLimitMicroUSD != 3_000_000 {
+		t.Fatalf("saved preferences=%+v", saved)
+	}
+
+	invalid := saved
+	invalid.SoftLimitMicroUSD = 2_000_000
+	invalid.HardLimitMicroUSD = 1_000_000
+	body, _ = json.Marshal(invalid)
+	resp = putJSON(t, client, csrf, srv.URL()+"/api/v1/cost/preferences", body)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("inverted thresholds status=%d, want 400", resp.StatusCode)
+	}
+}
+
