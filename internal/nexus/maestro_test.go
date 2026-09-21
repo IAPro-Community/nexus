@@ -160,5 +160,40 @@ func TestMaestroVerifyRejectsSecretLikeInputBeforeExecution(t *testing.T) {
 	if _, statErr := os.Stat(marker); !os.IsNotExist(statErr) {
 		t.Fatalf("Maestro process was invoked for rejected input: %v", statErr)
 	}
+
+func TestMaestroCapabilitiesUsesExplicitSkillsListContract(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	script := `if [ "$1" = "capabilities" ] && [ "$2" = "--json" ]; then
+  printf '%s\n' '{"version":"1.0.0","modes":["OFF","ASSIST","ORCHESTRATE"],"skills":[],"gates":["review"],"processes":["verification"]}'
+  exit 0
+fi
+if [ "$1" = "skills" ] && [ "$2" = "list" ] && [ "$3" = "--json" ]; then
+  printf '%s\n' '{"skills":[{"id":"security-review","name":"Security Review","description":"Review security","version":"1.2.0","risk":"medium","triggers":["security"]}]}'
+  exit 0
+fi
+if [ "$1" = "version" ] || [ "$1" = "--version" ]; then
+  echo 1.0.0
+  exit 0
+fi
+exit 2
+`
+	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
+	client := &MaestroClient{maestroBin: bin}
+	capabilities, err := client.queryCapabilities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if capabilities.Version != "1.0.0" || len(capabilities.Gates) != 1 || len(capabilities.Processes) != 1 {
+		t.Fatalf("capabilities contract was not preserved: %+v", capabilities)
+	}
+	if len(capabilities.Skills) != 1 || capabilities.Skills[0].ID != "security-review" {
+		t.Fatalf("skills list contract was not consumed: %+v", capabilities.Skills)
+	}
+	if capabilities.Skills[0].Version != "1.2.0" || capabilities.Skills[0].Triggers[0] != "security" {
+		t.Fatalf("skills metadata was lost: %+v", capabilities.Skills[0])
+	}
+}
+
 }
 
