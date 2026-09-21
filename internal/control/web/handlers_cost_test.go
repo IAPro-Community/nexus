@@ -166,4 +166,3 @@ func TestCostPreferencesEndpointsRoundTripAndRejectInvalidPolicy(t *testing.T) {
 		t.Fatalf("inverted thresholds status=%d, want 400", resp.StatusCode)
 	}
 }
-
