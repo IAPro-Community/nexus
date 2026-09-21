@@ -1414,6 +1414,87 @@ export interface RecommendationResult {
   explanation: string;
 }
 
+export interface ExecutionTaskRequirements {
+  task_kind: string;
+  role: string;
+  preferred_roles?: string[];
+  acceptable_roles?: string[];
+  domains?: string[];
+  required_capabilities?: string[];
+  preferred_capabilities?: string[];
+  desired_strengths?: string[];
+  constraints?: string[];
+  estimated_complexity?: string;
+  estimated_tokens?: number;
+  requires_decomposition?: boolean;
+  confidence?: string;
+  source?: string;
+  prefer_provider?: string;
+  project_policy?: string;
+}
+
+export interface PreviewAgentDecision {
+  agent_id?: string;
+  name?: string;
+  role?: string;
+  score?: number;
+  confidence?: string;
+  reason: string;
+  will_create?: boolean;
+  candidate_count?: number;
+}
+
+export interface PreviewResourceDecision {
+  account_id?: string;
+  provider?: string;
+  profile?: string;
+  display_name?: string;
+  policy?: string;
+  score?: number;
+  confidence?: string;
+  reason: string;
+  health?: string;
+  freshness?: string;
+  quota_remaining?: number;
+  candidate_count?: number;
+}
+
+export interface PreviewModelDecision {
+  model?: string;
+  fallback?: boolean;
+  reason: string;
+  evidence: string;
+}
+
+export interface StepExecutionPreview {
+  package_id: string;
+  phase_id?: string;
+  title: string;
+  role?: string;
+  assignment_strategy?: string;
+  resource_policy?: string;
+  task_requirements: ExecutionTaskRequirements;
+  agent: PreviewAgentDecision;
+  resource: PreviewResourceDecision;
+  model: PreviewModelDecision;
+  skills?: string[];
+  acceptance_criteria?: string[];
+  verification_requirements?: string[];
+  required_evidence?: string[];
+  ready: boolean;
+  blockers?: string[];
+}
+
+export interface PlanExecutionPreview {
+  plan_id: string;
+  project_id: string;
+  revision: number;
+  ready: boolean;
+  steps: StepExecutionPreview[];
+  blockers?: string[];
+  generated_at: string;
+}
+
 export interface FlowPreflightCheck {
   key: string;
   label: string;
