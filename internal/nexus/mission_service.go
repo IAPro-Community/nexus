@@ -254,11 +254,19 @@ func validateCostBudgetAdmission(ctx context.Context, st *store.Store, plan *sto
 	if err != nil {
 		return fmt.Errorf("cost budget admission unavailable: %w", err)
 	}
+	expected := costBudgetConfirmationToken(plan.ID, plan.CurrentRevision, summary)
+	provided := strings.TrimSpace(confirmationToken)
 	if !summary.Budget.RequiresConfirmation {
+		// A previously-issued token is revision/evidence-bound. If cost evidence
+		// changed after preview (even toward a safer measured state), require the
+		// caller to discard the stale acknowledgement and re-enter with the fresh
+		// admission state. This keeps GO tied to the preview the user actually saw.
+		if provided != "" {
+			return fmt.Errorf("cost budget confirmation is stale; run Execution Preview again for the current cost state")
+		}
 		return nil
 	}
-	expected := costBudgetConfirmationToken(plan.ID, plan.CurrentRevision, summary)
-	if expected == "" || strings.TrimSpace(confirmationToken) != expected {
+	if expected == "" || provided != expected {
 		return fmt.Errorf(
 			"cost budget confirmation required: %s run Execution Preview again and explicitly confirm the current cost state",
 			summary.Budget.Message,
