@@ -117,7 +117,7 @@ func (n *Nexus) previewPlanExecution(ctx context.Context, st *store.Store, plan 
 	}
 	for _, phase := range plan.Phases {
 		for _, pkg := range phase.Packages {
-			step := n.previewWorkPackageExecution(st, phase.ID, pkg, agents, accounts, resourceErr)
+			step := n.previewWorkPackageExecution(st, plan.ProjectID, phase.ID, pkg, agents, accounts, resourceErr)
 			preview.Steps = append(preview.Steps, step)
 			if !step.Ready {
 				preview.Ready = false
@@ -130,7 +130,7 @@ func (n *Nexus) previewPlanExecution(ctx context.Context, st *store.Store, plan 
 	return preview, nil
 }
 
-func (n *Nexus) previewWorkPackageExecution(st *store.Store, phaseID string, pkg store.WorkPackage, agents []store.Agent, accounts []ProviderAccount, resourceErr error) StepExecutionPreview {
+func (n *Nexus) previewWorkPackageExecution(st *store.Store, projectID, phaseID string, pkg store.WorkPackage, agents []store.Agent, accounts []ProviderAccount, resourceErr error) StepExecutionPreview {
 	runPkg := &runner.PackageRun{
 		PackageID:          pkg.ID,
 		PhaseID:            phaseID,
@@ -178,7 +178,7 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, phaseID string, pkg
 		},
 	}
 
-	selectedAgent, agentCfg, agentDecision, agentBlocker := previewAgentForPackage(st, pkg, req, agents)
+	selectedAgent, agentCfg, agentDecision, agentBlocker := previewAgentForPackage(st, projectID, pkg, req, agents)
 	step.Agent = agentDecision
 	if agentBlocker != "" {
 		step.Ready = false
@@ -284,7 +284,7 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, phaseID string, pkg
 	return step
 }
 
-func previewAgentForPackage(st *store.Store, pkg store.WorkPackage, req TaskRequirements, agents []store.Agent) (store.Agent, AgentConfig, PreviewAgentDecision, string) {
+func previewAgentForPackage(st *store.Store, projectID string, pkg store.WorkPackage, req TaskRequirements, agents []store.Agent) (store.Agent, AgentConfig, PreviewAgentDecision, string) {
 	strategy := strings.ToUpper(strings.TrimSpace(pkg.AssignmentStrategy))
 	if strategy == "" && strings.TrimSpace(pkg.AgentAllocation) != "" {
 		strategy = string(FlowAssignmentExisting)
@@ -295,7 +295,7 @@ func previewAgentForPackage(st *store.Store, pkg store.WorkPackage, req TaskRequ
 		if strings.TrimSpace(pkg.AgentAllocation) == "" {
 			return store.Agent{}, AgentConfig{}, PreviewAgentDecision{Reason: "EXISTING requires an Agent"}, "existing assignment requires an Agent"
 		}
-		agent, err := st.GetAgent(pkg.AgentAllocation, "")
+		agent, err := st.GetAgent(pkg.AgentAllocation, projectID)
 		if err != nil {
 			return store.Agent{}, AgentConfig{}, PreviewAgentDecision{AgentID: pkg.AgentAllocation, Reason: "Pinned Agent is unavailable"}, "pinned Agent is unavailable"
 		}
