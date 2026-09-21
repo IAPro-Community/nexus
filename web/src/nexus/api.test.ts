@@ -259,4 +259,30 @@ describe('Flow Run evidence API', () => {
     const init = (fetchMock.mock.calls[0][1] || {}) as RequestInit;
     expect(init.method).toBeUndefined();
   });
+
+  it('loads the canonical evidence bundle as a read-only projection', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          version: '1',
+          run_id: 'run-1',
+          state: 'COMPLETED_VERIFIED',
+          generated_at: new Date().toISOString(),
+          completed_verified: true,
+          evidence_complete: true,
+          capsules: [],
+          receipts: [],
+          routing: { run_id: 'run-1', decisions: [] },
+          validation: { run_id: 'run-1', entries: [], chain_verified: true },
+        }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await nexusApi.getRunEvidenceBundle('run-1');
+    expect(String(fetchMock.mock.calls[0][0])).toContain(
+      '/api/v1/runs/run-1/evidence-bundle',
+    );
+    const init = (fetchMock.mock.calls[0][1] || {}) as RequestInit;
+    expect(init.method).toBeUndefined();
+  });
 });
