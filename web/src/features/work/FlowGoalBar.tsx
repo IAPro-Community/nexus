@@ -137,9 +137,13 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
             <div>
               <strong>{t('flow.executionPreviewTitle', 'Plano de execução')}</strong>
               <small className={styles.preflightCheckSub}>
-                {t('flow.executionPreviewRevision', 'Revisão {{n}} · sem iniciar Agents ou runtimes', {
-                  n: executionPreview.revision,
-                })}
+                {t(
+                  'flow.executionPreviewRevision',
+                  'Revisão {{n}} · sem iniciar Agents ou runtimes',
+                  {
+                    n: executionPreview.revision,
+                  },
+                )}
               </small>
             </div>
             <Badge tone={executionPreview.ready ? 'success' : 'danger'}>
@@ -157,7 +161,9 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                 : step.agent.name ||
                   t('flow.executionPreviewAgentUnknown', 'Agent ainda não definido');
               const resourceLabel = step.resource.provider
-                ? `${step.resource.provider}${step.resource.profile ? ` / ${step.resource.profile}` : ''}`
+                ? `${step.resource.provider}${
+                    step.resource.profile ? ` / ${step.resource.profile}` : ''
+                  }`
                 : t('flow.executionPreviewResourceUnknown', 'recurso indisponível');
               const modelLabel = step.model.model
                 ? ` · ${step.model.model}`
