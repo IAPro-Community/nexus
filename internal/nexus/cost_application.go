@@ -3,6 +3,7 @@ package nexus
 import (
 	"context"
 	"errors"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -271,9 +272,14 @@ func evaluateCostAnomaly(observations []store.CostObservation, prefs store.CostP
 	sort.Slice(history, func(i, j int) bool { return history[i] < history[j] })
 	median := history[len(history)/2]
 	if len(history)%2 == 0 {
-		median = (history[len(history)/2-1] + history[len(history)/2]) / 2
+		low, high := history[len(history)/2-1], history[len(history)/2]
+		median = low + (high-low)/2
 	}
-	threshold := int64(float64(median) * prefs.AnomalyMultiplier)
+	scaledThreshold := float64(median) * prefs.AnomalyMultiplier
+	threshold := int64(math.MaxInt64)
+	if scaledThreshold < float64(math.MaxInt64) {
+		threshold = int64(scaledThreshold)
+	}
 	if threshold < prefs.AnomalyMinCostMicroUSD {
 		threshold = prefs.AnomalyMinCostMicroUSD
 	}
