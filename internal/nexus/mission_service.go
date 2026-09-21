@@ -260,7 +260,7 @@ func validateCostBudgetAdmission(ctx context.Context, st *store.Store, plan *sto
 	expected := costBudgetConfirmationToken(plan.ID, plan.CurrentRevision, summary)
 	if expected == "" || strings.TrimSpace(confirmationToken) != expected {
 		return fmt.Errorf(
-			"COST_BUDGET_CONFIRMATION_REQUIRED: %s Run Execution Preview again and explicitly confirm the current cost state.",
+			"cost budget confirmation required: %s run Execution Preview again and explicitly confirm the current cost state",
 			summary.Budget.Message,
 		)
 	}
