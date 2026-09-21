@@ -185,3 +185,54 @@ func TestPreviewPlanExecutionBlocksWhenNoEligibleResourceExists(t *testing.T) {
 		t.Fatalf("UNKNOWN-only resource pool must block automatic preview: %+v", preview)
 	}
 }
+
+func TestPreviewPlanExecutionRequiresCostConfirmationWithoutClaimingHeadroom(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Cost preview", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Budgeted plan", "", []store.PlanPhase{{
+		ID: "phase", Title: "Build", Order: 1,
+		Packages: []store.WorkPackage{{
+			ID: "step", Title: "Build", Goal: "Build safely", Status: "READY", Role: "implementer",
+			AssignmentStrategy: "AUTO", ResourcePolicy: "BALANCED",
+		}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefs := store.DefaultCostPreferences()
+	prefs.HardLimitMicroUSD = 1_000_000
+	if err := st.PutCostPreferences(prefs); err != nil {
+		t.Fatal(err)
+	}
+	accounts := []ProviderAccount{{
+		ID: "codex-main", Provider: "codex", Profile: "main", DisplayName: "Codex main",
+		Authenticated: true, Available: true, Health: "healthy",
+		QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.80,
+		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
+	}}
+
+	preview, err := n.previewPlanExecution(context.Background(), st, plan, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !preview.Ready {
+		t.Fatalf("cost confirmation is an admission decision, not a resource blocker: %+v", preview)
+	}
+	if !preview.CostConfirmationRequired || preview.CostConfirmationToken == "" {
+		t.Fatalf("preview must require an evidence-bound confirmation token: %+v", preview)
+	}
+	if preview.CostBudget.Level != CostBudgetUnknown {
+		t.Fatalf("budget level=%s, want UNKNOWN because cost headroom is unmeasured", preview.CostBudget.Level)
+	}
+	if len(preview.Warnings) == 0 {
+		t.Fatal("cost uncertainty must be visible in preview warnings")
+	}
+}
+
