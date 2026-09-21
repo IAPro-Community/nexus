@@ -342,7 +342,8 @@ export const CANONICAL_AGENT_TYPES: AgentTypePreset[] = [
 ];
 
 export const DEFAULT_AGENT_PRESET =
-  CANONICAL_AGENT_TYPES.find((preset) => preset.id === 'backend-engineer') ?? CANONICAL_AGENT_TYPES[0];
+  CANONICAL_AGENT_TYPES.find((preset) => preset.id === 'backend-engineer') ??
+  CANONICAL_AGENT_TYPES[0];
 
 export const NATIVE_PROVIDERS = [
   { id: 'claude', label: 'Claude (nexus claude)', alias: 'nexus claude' },
