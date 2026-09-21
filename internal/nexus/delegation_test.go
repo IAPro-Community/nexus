@@ -149,7 +149,6 @@ func TestCreateMissionAgentPersistsRichAgentSpecWithoutRuntimeAffinity(t *testin
 	if !config.AgentSpec.VerificationPolicy.RequireTests {
 		t.Fatal("created specialist must carry verification policy")
 	}
-
 }
 
 func TestMissionAgentSpecSpecializesOperationalModes(t *testing.T) {
