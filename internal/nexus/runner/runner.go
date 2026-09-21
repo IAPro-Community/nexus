@@ -555,6 +555,15 @@ func (r *MissionRunner) markRemediation(run *MissionRun, pkg *PackageRun, retryF
 }
 
 func (r *MissionRunner) completeRun(ctx context.Context, run *MissionRun) (*MissionRun, bool, error) {
+	if run == nil {
+		return nil, false, fmt.Errorf("cannot complete a nil mission run")
+	}
+	if !allPackagesVerified(run) {
+		return run, false, fmt.Errorf("cannot complete mission %s: not all packages are verified", run.ID)
+	}
+	if run.State == StateBlockedNeedsUser || (run.NeedsHuman != nil && !run.NeedsHuman.Resolved) {
+		return run, false, fmt.Errorf("cannot complete mission %s: human intervention is still pending", run.ID)
+	}
 	now := time.Now().UTC()
 	run.State = StateCompletedVerified
 	if run.ResumeRequest != nil && run.ResumeRequest.Status != "COMPLETED" {
