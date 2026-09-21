@@ -89,6 +89,7 @@ func TestFindOrquestradorDirUsesPortableDataDirProfiles(t *testing.T) {
 	if got := findOrquestradorDir(); got != expected {
 		t.Fatalf("expected %q, got %q", expected, got)
 	}
+}
 
 func TestMaestroVerifyContractPassesThroughMachineReadableVerdict(t *testing.T) {
 	script := `if [ "$1" = "verify" ] && [ "$2" = "--json" ]; then
@@ -161,4 +162,3 @@ func TestMaestroVerifyRejectsSecretLikeInputBeforeExecution(t *testing.T) {
 	}
 }
 
-}
