@@ -147,6 +147,8 @@ func TestMissionTeamRuntimeOverrideRemainsPreferenceAndRoundTrips(t *testing.T) 
 		t.Fatalf("runtime preference was lost across Flow/WorkPlan projection: %+v", plan.Phases)
 	}
 
+}
+
 func TestMissionTeamOperationalRolesUseCanonicalAgentModes(t *testing.T) {
 	bugFix, err := MissionTeamPresetDefinitionFor(PresetBugFix)
 	if err != nil {
@@ -174,4 +176,3 @@ func TestMissionTeamOperationalRolesUseCanonicalAgentModes(t *testing.T) {
 	}
 }
 
-}
