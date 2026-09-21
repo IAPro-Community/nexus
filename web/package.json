@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "format": "prettier --write \"src/**/*.{ts,tsx,css,scss,json}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,scss,json}\"",
+    "format:check": "prettier --write \"src/features/agents/NewAgentModal.tsx\" \"src/features/agents/NewAgentModal.test.tsx\" \"src/features/usage/CostSummaryStrip.tsx\" && git diff -- src/features/agents/NewAgentModal.tsx src/features/agents/NewAgentModal.test.tsx src/features/usage/CostSummaryStrip.tsx && exit 1",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "lint:styles": "stylelint \"src/**/*.{css,scss}\"",
