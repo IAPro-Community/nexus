@@ -8,7 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"testing"\n\t"time"
+	"testing"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
