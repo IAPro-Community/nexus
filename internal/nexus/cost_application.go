@@ -53,17 +53,17 @@ const (
 )
 
 type CostAnomalyAssessment struct {
-	Status              CostAnomalyStatus `json:"status"`
-	Triggered           bool              `json:"triggered"`
-	Provider            string            `json:"provider,omitempty"`
-	Profile             string            `json:"profile,omitempty"`
-	CostKind            string            `json:"cost_kind,omitempty"`
-	LatestCostMicroUSD  int64             `json:"latest_cost_microusd,omitempty"`
-	BaselineMedianMicroUSD int64          `json:"baseline_median_microusd,omitempty"`
-	ThresholdMicroUSD   int64             `json:"threshold_microusd,omitempty"`
-	HistoricalSamples   int               `json:"historical_samples"`
-	ObservedAt          time.Time         `json:"observed_at,omitempty"`
-	Message             string            `json:"message"`
+	Status                 CostAnomalyStatus `json:"status"`
+	Triggered              bool              `json:"triggered"`
+	Provider               string            `json:"provider,omitempty"`
+	Profile                string            `json:"profile,omitempty"`
+	CostKind               string            `json:"cost_kind,omitempty"`
+	LatestCostMicroUSD     int64             `json:"latest_cost_microusd,omitempty"`
+	BaselineMedianMicroUSD int64             `json:"baseline_median_microusd,omitempty"`
+	ThresholdMicroUSD      int64             `json:"threshold_microusd,omitempty"`
+	HistoricalSamples      int               `json:"historical_samples"`
+	ObservedAt             time.Time         `json:"observed_at,omitempty"`
+	Message                string            `json:"message"`
 }
 
 type CostSummary struct {
