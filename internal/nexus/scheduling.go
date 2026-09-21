@@ -9,7 +9,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
-	"github.com/IAPro-Community/nexus/internal/security"
+	"github.com/IAPro-Community/nexus/internal/core/security"
 )
 
 const (
