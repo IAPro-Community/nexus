@@ -142,7 +142,10 @@ jobs:
         with:
           go-version: '1.25.14'
           cache: false
-      - run: test -z "$(gofmt -l . | grep -v .worktrees)" || (gofmt -l . | grep -v .worktrees && exit 1)
+      - run: |
+          gofmt -w internal/nexus/mission_integration_test.go internal/nexus/runner/executor.go internal/nexus/runner/types.go
+          git diff -- internal/nexus/mission_integration_test.go internal/nexus/runner/executor.go internal/nexus/runner/types.go
+          exit 1
       - run: go vet ./...
       - uses: golangci/golangci-lint-action@v7
         with:
