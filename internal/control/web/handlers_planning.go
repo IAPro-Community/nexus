@@ -540,9 +540,9 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 		autonomous = *body.Autonomous
 	}
 	run, err := h.runs.Start(r.Context(), nexus.RunStartRequest{
-		PlanID:     planID,
-		Revision:   body.PlanRevision,
-		AgentID:    body.AgentID,
+		PlanID:                planID,
+		Revision:              body.PlanRevision,
+		AgentID:               body.AgentID,
 		Contract:              contract,
 		Autonomous:            autonomous,
 		CostConfirmationToken: body.CostConfirmationToken,

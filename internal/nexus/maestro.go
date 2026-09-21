@@ -313,7 +313,6 @@ type AdviceResponse struct {
 	Degraded    bool             `json:"degraded,omitempty"`
 }
 
-
 type MaestroVerifyRequest struct {
 	Version      string           `json:"version"`
 	Lifecycle    MaestroLifecycle `json:"lifecycle"`
@@ -330,8 +329,8 @@ type MaestroVerifyResponse struct {
 	Lifecycle       MaestroLifecycle `json:"lifecycle"`
 	Passed          bool             `json:"passed"`
 	RequiredActions []string         `json:"required_actions,omitempty"`
-	Explanation    string           `json:"explanation,omitempty"`
-	Degraded       bool             `json:"degraded,omitempty"`
+	Explanation     string           `json:"explanation,omitempty"`
+	Degraded        bool             `json:"degraded,omitempty"`
 }
 
 // Recommendation is a single actionable recommendation from Maestro.

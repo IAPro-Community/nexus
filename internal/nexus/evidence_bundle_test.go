@@ -63,11 +63,11 @@ func TestEvidenceBundleRequiresAndProjectsCanonicalProof(t *testing.T) {
 		Workspace:    root,
 		State:        runner.StateCompletedVerified,
 		PackageRuns: []runner.PackageRun{{
-			PackageID: "package-1",
-			Title:     "Build",
-			Workspace: root,
-			State:     runner.StateVerified,
-			StartedAt: now,
+			PackageID:  "package-1",
+			Title:      "Build",
+			Workspace:  root,
+			State:      runner.StateVerified,
+			StartedAt:  now,
 			FinishedAt: &now,
 		}},
 		GlobalVerifications: []runner.VerificationResult{verification},
@@ -84,14 +84,14 @@ func TestEvidenceBundleRequiresAndProjectsCanonicalProof(t *testing.T) {
 		t.Fatal("store run repository must implement runner.EvidenceRepository")
 	}
 	if err := evidenceRepo.SaveWorkReceipt(context.Background(), &runner.WorkReceipt{
-		ID:          "receipt-evidence-bundle",
-		RunID:       run.ID,
-		StepID:      "package-1",
-		Status:      "VERIFIED",
-		Summary:     "package verified",
+		ID:           "receipt-evidence-bundle",
+		RunID:        run.ID,
+		StepID:       "package-1",
+		Status:       "VERIFIED",
+		Summary:      "package verified",
 		Verification: []runner.VerificationResult{verification},
-		StartedAt:   now,
-		CompletedAt: now,
+		StartedAt:    now,
+		CompletedAt:  now,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -159,9 +159,9 @@ func TestEvidenceBundleDoesNotPromoteTerminalStateWithoutProof(t *testing.T) {
 			PackageID: "package-1", Title: "Build", Workspace: root, State: runner.StateVerified,
 		}},
 		GlobalVerifications: []runner.VerificationResult{{Command: "true", Passed: true}},
-		StartedAt: now,
-		UpdatedAt: now,
-		CompletedAt: &now,
+		StartedAt:           now,
+		UpdatedAt:           now,
+		CompletedAt:         &now,
 	}
 	repo := newStoreRunRepository(st)
 	if err := repo.SaveRun(context.Background(), run); err != nil {

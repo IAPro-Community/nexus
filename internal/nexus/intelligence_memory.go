@@ -52,7 +52,6 @@ type MergedIntelligenceMemory struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
-
 type MemoryRecallRequest struct {
 	ProjectID string   `json:"project_id,omitempty"`
 	Keys      []string `json:"keys,omitempty"`

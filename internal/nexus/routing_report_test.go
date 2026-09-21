@@ -96,9 +96,9 @@ func TestBuildRoutingDecisionReportComparesApprovedExecutionPreview(t *testing.T
 		GeneratedAt: time.Date(2026, 9, 21, 18, 0, 0, 0, time.UTC),
 		Steps: []StepExecutionPreview{{
 			PackageID: "step-1",
-			Agent: PreviewAgentDecision{AgentID: "agent-1"},
-			Resource: PreviewResourceDecision{Provider: "codex", Profile: "main"},
-			Model: PreviewModelDecision{Model: "strong"},
+			Agent:     PreviewAgentDecision{AgentID: "agent-1"},
+			Resource:  PreviewResourceDecision{Provider: "codex", Profile: "main"},
+			Model:     PreviewModelDecision{Model: "strong"},
 		}},
 	}
 	report, err := BuildRoutingDecisionReportWithPlanAndPreview(&runner.MissionRun{
@@ -134,9 +134,9 @@ func TestBuildRoutingDecisionReportDoesNotInventPreviewDivergence(t *testing.T) 
 		PlanID: "plan-1", Revision: 2, GeneratedAt: time.Now().UTC(),
 		Steps: []StepExecutionPreview{{
 			PackageID: "step-1",
-			Agent: PreviewAgentDecision{AgentID: "agent-1"},
-			Resource: PreviewResourceDecision{Provider: "codex", Profile: "main"},
-			Model: PreviewModelDecision{Model: "strong"},
+			Agent:     PreviewAgentDecision{AgentID: "agent-1"},
+			Resource:  PreviewResourceDecision{Provider: "codex", Profile: "main"},
+			Model:     PreviewModelDecision{Model: "strong"},
 		}},
 	}
 	report, err := BuildRoutingDecisionReportWithPlanAndPreview(&runner.MissionRun{

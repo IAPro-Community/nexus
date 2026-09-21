@@ -182,7 +182,7 @@ func Default() *Nexus {
 			st: st, launcher: &prodLauncher{l: launcher.Default()}, drivers: driver.DefaultRegistry(),
 			runtimeReg: registry.DefaultRegistry(), workers: map[string]*missionWorker{},
 			projectIntelligenceRunning: map[string]bool{},
-			entitlementService: entitlement.StaticService{Grants: entitlement.BetaGrants()},
+			entitlementService:         entitlement.StaticService{Grants: entitlement.BetaGrants()},
 		}
 		defaultNexus.quotaMonitor = NewQuotaMonitorService(DefaultQuotaDropMonitor(), events.DefaultBus())
 		if st != nil {

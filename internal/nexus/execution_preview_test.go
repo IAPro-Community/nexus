@@ -236,7 +236,6 @@ func TestPreviewPlanExecutionRequiresCostConfirmationWithoutClaimingHeadroom(t *
 	}
 }
 
-
 func TestValidateApprovedExecutionPreviewFailsClosed(t *testing.T) {
 	cases := []struct {
 		name    string

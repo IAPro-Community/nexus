@@ -58,15 +58,15 @@ type CostObservationFilter struct {
 }
 
 type CostPreferences struct {
-	Enabled                   bool      `json:"enabled"`
-	WindowDays                int       `json:"window_days"`
-	SoftLimitMicroUSD         int64     `json:"soft_limit_microusd"`
-	HardLimitMicroUSD         int64     `json:"hard_limit_microusd"`
-	EmergencyLimitMicroUSD    int64     `json:"emergency_limit_microusd"`
-	AnomalyMultiplier         float64   `json:"anomaly_multiplier"`
-	AnomalyMinimumSamples     int       `json:"anomaly_minimum_samples"`
-	AnomalyMinCostMicroUSD    int64     `json:"anomaly_min_cost_microusd"`
-	UpdatedAt                 time.Time `json:"updated_at"`
+	Enabled                bool      `json:"enabled"`
+	WindowDays             int       `json:"window_days"`
+	SoftLimitMicroUSD      int64     `json:"soft_limit_microusd"`
+	HardLimitMicroUSD      int64     `json:"hard_limit_microusd"`
+	EmergencyLimitMicroUSD int64     `json:"emergency_limit_microusd"`
+	AnomalyMultiplier      float64   `json:"anomaly_multiplier"`
+	AnomalyMinimumSamples  int       `json:"anomaly_minimum_samples"`
+	AnomalyMinCostMicroUSD int64     `json:"anomaly_min_cost_microusd"`
+	UpdatedAt              time.Time `json:"updated_at"`
 }
 
 func DefaultCostPreferences() CostPreferences {
@@ -185,11 +185,11 @@ func (s *Store) PutCostPreferences(p CostPreferences) error {
 
 func validateCostObservation(obs CostObservation) error {
 	for name, value := range map[string]*int64{
-		"input_tokens": obs.InputTokens,
+		"input_tokens":        obs.InputTokens,
 		"cached_input_tokens": obs.CachedInputTokens,
-		"output_tokens": obs.OutputTokens,
-		"reasoning_tokens": obs.ReasoningTokens,
-		"cost_microusd": obs.CostMicroUSD,
+		"output_tokens":       obs.OutputTokens,
+		"reasoning_tokens":    obs.ReasoningTokens,
+		"cost_microusd":       obs.CostMicroUSD,
 	} {
 		if value != nil && *value < 0 {
 			return fmt.Errorf("%s must not be negative", name)

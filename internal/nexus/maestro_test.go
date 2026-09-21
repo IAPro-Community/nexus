@@ -144,7 +144,7 @@ func TestMaestroVerifyRejectsSecretLikeInputBeforeExecution(t *testing.T) {
 	script := "touch " + marker + "\nexit 0\n"
 	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
 	c := &MaestroClient{
-		status: MaestroStatus{Available: true, Mode: MaestroAssist},
+		status:     MaestroStatus{Available: true, Mode: MaestroAssist},
 		maestroBin: bin,
 	}
 	resp, err := c.Verify(context.Background(), MaestroVerifyRequest{
@@ -195,4 +195,3 @@ exit 2
 		t.Fatalf("skills metadata was lost: %+v", capabilities.Skills[0])
 	}
 }
-

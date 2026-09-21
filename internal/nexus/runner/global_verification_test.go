@@ -160,7 +160,6 @@ func (e *worktreeAllocatorExecutor) Allocate(ctx context.Context, run *MissionRu
 	return AllocationResult{AgentID: "agt-wt", Workspace: e.workspace}, nil
 }
 
-
 type integratingWorktreeExecutor struct {
 	fakeExecutor
 	workspaces       map[string]string

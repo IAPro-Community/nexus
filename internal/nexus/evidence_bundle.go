@@ -17,22 +17,22 @@ import (
 // ValidationEvidenceStream stores; it does not introduce a second evidence
 // ledger and it never includes raw provider transcripts.
 type EvidenceBundle struct {
-	Version             string                       `json:"version"`
-	RunID               string                       `json:"run_id"`
-	PlanID              string                       `json:"plan_id,omitempty"`
-	PlanRevision        int                          `json:"plan_revision,omitempty"`
-	State               runner.State                 `json:"state"`
-	GeneratedAt         time.Time                    `json:"generated_at"`
-	CompletedVerified   bool                         `json:"completed_verified"`
-	EvidenceComplete    bool                         `json:"evidence_complete"`
-	MissingEvidence     []string                     `json:"missing_evidence,omitempty"`
-	IntegratedWorkspace string                       `json:"integrated_workspace,omitempty"`
+	Version             string                              `json:"version"`
+	RunID               string                              `json:"run_id"`
+	PlanID              string                              `json:"plan_id,omitempty"`
+	PlanRevision        int                                 `json:"plan_revision,omitempty"`
+	State               runner.State                        `json:"state"`
+	GeneratedAt         time.Time                           `json:"generated_at"`
+	CompletedVerified   bool                                `json:"completed_verified"`
+	EvidenceComplete    bool                                `json:"evidence_complete"`
+	MissingEvidence     []string                            `json:"missing_evidence,omitempty"`
+	IntegratedWorkspace string                              `json:"integrated_workspace,omitempty"`
 	DeliveryIntegration *runner.DeliveryIntegrationEvidence `json:"delivery_integration,omitempty"`
-	Capsules            []runner.ContextCapsule      `json:"capsules"`
-	Receipts            []runner.WorkReceipt         `json:"receipts"`
-	Routing             RoutingDecisionReport        `json:"routing"`
-	Validation          ValidationEvidenceReport     `json:"validation"`
-	GlobalVerifications []runner.VerificationResult  `json:"global_verifications,omitempty"`
+	Capsules            []runner.ContextCapsule             `json:"capsules"`
+	Receipts            []runner.WorkReceipt                `json:"receipts"`
+	Routing             RoutingDecisionReport               `json:"routing"`
+	Validation          ValidationEvidenceReport            `json:"validation"`
+	GlobalVerifications []runner.VerificationResult         `json:"global_verifications,omitempty"`
 }
 
 // EvidenceBundle returns one trustworthy projection of the durable evidence

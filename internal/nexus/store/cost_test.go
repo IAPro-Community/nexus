@@ -72,9 +72,9 @@ func TestCostObservationRejectsInvalidNegativeEvidence(t *testing.T) {
 	s := openTestStore(t)
 	if _, err := s.RecordCostObservation(CostObservation{
 		CostKind:    CostKindInferred,
-		Source:     "test",
+		Source:      "test",
 		InputTokens: int64ptr(-1),
-		ObservedAt: time.Now().UTC(),
+		ObservedAt:  time.Now().UTC(),
 	}); err == nil {
 		t.Fatal("negative token evidence must be rejected")
 	}
