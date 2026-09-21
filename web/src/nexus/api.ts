@@ -554,7 +554,13 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ package_id: packageId, phase_id: phaseId }),
     }),
-  runPlan: (planId: string, planRevision: number, agentId?: string, maxRetries?: number) =>
+  runPlan: (
+    planId: string,
+    planRevision: number,
+    agentId?: string,
+    maxRetries?: number,
+    costConfirmationToken?: string,
+  ) =>
     request<import('../types').MissionRun>(`/api/v1/plans/${planId}/run`, {
       method: 'POST',
       body: JSON.stringify({
@@ -562,6 +568,7 @@ export const nexus = {
         plan_revision: planRevision,
         max_retries: maxRetries,
         autonomous: true,
+        cost_confirmation_token: costConfirmationToken,
       }),
     }),
   getRuns: () => request<import('../types').MissionRun[]>('/api/v1/runs'),
