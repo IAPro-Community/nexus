@@ -218,7 +218,11 @@ func evaluateCostBudget(aggregate store.CostAggregate, prefs store.CostPreferenc
 	}
 	if evidence != CostEvidenceMeasured {
 		assessment.Level = CostBudgetUnknown
+		assessment.RequiresConfirmation = prefs.HardLimitMicroUSD > 0 || prefs.EmergencyLimitMicroUSD > 0
 		assessment.Message = "Budget headroom cannot be proven because some execution cost is unknown."
+		if assessment.RequiresConfirmation {
+			assessment.Message += " New expensive work requires explicit confirmation under uncertainty."
+		}
 		return assessment
 	}
 	assessment.Level = CostBudgetOK
