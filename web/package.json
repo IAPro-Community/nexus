@@ -27,7 +27,8 @@
     "test:e2e-hardening": "node scripts/e2e-hardening-verify.mjs",
     "docs:capture": "node scripts/docs-capture.mjs",
     "quality": "npm run check:styles && npm run format:check && npm run lint && npm run lint:styles && npm run typecheck && npm run test",
-    "quality:full": "npm run quality && npm run build"
+    "quality:full": "npm run quality && npm run build",
+    "test:e2e:composer-spine": "node scripts/e2e-composer-execution-spine.mjs"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.15.20",
