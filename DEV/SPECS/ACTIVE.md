@@ -1,5 +1,22 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Programa ativo — Nexus 1.0 Product Closure — 2026-09-20
+
+Baseline canônico: `main@7605f702cce220b4111d51d06a34b37f7e0a9a8d`, merge do PR #3 após
+CI #149 totalmente verde. A partir deste ponto, o fechamento 1.0 é regido por
+[`DEV/SPECS/NEXUS_1_0_CLOSURE.md`](./NEXUS_1_0_CLOSURE.md).
+
+A campanha preserva as autoridades existentes (AgentSpec, ResourceScheduler,
+Mission runner, IntelligenceMemory, Capacity Monitor, SessionHost/TerminalsHost,
+Attention/interventions, entitlement boundary e integração opcional com Maestro)
+e proíbe subsistemas paralelos. A ordem de execução é: truth alignment →
+production Capacity probes → Agent Modes + canonical AgentMatcher → Skills v1 →
+Cost Intelligence/budgets → Unified Work Mode → Mission certification/Evidence →
+Memory 1.0 → Maestro contract v1 → commercial + native release certification.
+
+Nenhum item histórico abaixo substitui o contrato atual desta seção.
+
+
 ## Slice ativo — proteção permanente contra falhas de teclado — 2026-09-18
 
 O terminal supervisionado/direct usa um controlador único de TTY que reaplica
