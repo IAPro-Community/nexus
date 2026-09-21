@@ -70,12 +70,16 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
       <div className={styles.metrics}>
         <div className={styles.metric}>
           <span>{t('usage.knownCost', 'Custo conhecido')}</span>
-          <strong>{costKnown ? formatUSD(aggregate.cost_microusd) : t('common.unknown', 'Desconhecido')}</strong>
+          <strong>
+            {costKnown ? formatUSD(aggregate.cost_microusd) : t('common.unknown', 'Desconhecido')}
+          </strong>
           <small data-state={summary.cost_evidence}>{summary.cost_evidence}</small>
         </div>
         <div className={styles.metric}>
           <span>{t('usage.knownTokens', 'Tokens conhecidos')}</span>
-          <strong>{tokensKnown ? formatNumber(knownTokens) : t('common.unknown', 'Desconhecido')}</strong>
+          <strong>
+            {tokensKnown ? formatNumber(knownTokens) : t('common.unknown', 'Desconhecido')}
+          </strong>
           <small data-state={summary.token_evidence}>{summary.token_evidence}</small>
         </div>
         <div className={styles.metric}>
