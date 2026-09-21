@@ -663,7 +663,9 @@ export const nexus = {
   getCostSummary: (days = 7, projectId?: string) => {
     const params = new URLSearchParams({ days: String(days) });
     if (projectId) params.set('project_id', projectId);
-    return request<import('../types').CostSummary>(`/api/v1/cost/summary?${params.toString()}`);
+    return request<import('../types').CostSummary>(
+      `/api/v1/cost/summary?${params.toString()}`,
+    );
   },
   getCostPreferences: () =>
     request<import('../types').CostPreferences>('/api/v1/cost/preferences'),
