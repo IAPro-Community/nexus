@@ -177,7 +177,7 @@ func normalizeAgentTaxonomy(value string) string {
 		return "backend-engineer"
 	case "fullstack", "full-stack", "fullstack-developer":
 		return "fullstack-engineer"
-	case "qa-engineer", "test-engineer", "tester":
+	case "qa-engineer", "test-engineer", "tester", "verifier":
 		return "qa"
 	case "code-reviewer", "review":
 		return "reviewer"
@@ -185,7 +185,7 @@ func normalizeAgentTaxonomy(value string) string {
 		return "security-reviewer"
 	case "software-architect", "solution-architect":
 		return "architect"
-	case "debugger", "root-cause-investigator":
+	case "debugger", "root-cause-investigator", "diagnostician":
 		return "investigator"
 	case "performance", "performance-engineer":
 		return "performance-investigator"
