@@ -208,6 +208,11 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	if err != nil {
 		return runner.AllocationResult{}, err
 	}
+	if run.Autonomous && pkg.ContextCapsule == nil {
+		if err := prepareAutonomousPackageWorkspace(ctx, run, pkg, project.CanonicalPath, workspace); err != nil {
+			return runner.AllocationResult{}, fmt.Errorf("prepare autonomous package workspace: %w", err)
+		}
+	}
 	return runner.AllocationResult{AgentID: agent.ID, Workspace: workspace}, nil
 }
 
