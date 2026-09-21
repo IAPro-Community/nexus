@@ -736,6 +736,23 @@ func (h *NexusHandler) handleRunValidationEvidence(w http.ResponseWriter, r *htt
 	writeJSON(w, http.StatusOK, report)
 }
 
+func (h *NexusHandler) handleRunEvidenceBundle(w http.ResponseWriter, r *http.Request, runID string) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if _, err := h.runs.Get(r.Context(), runID); err != nil {
+		writeError(w, http.StatusNotFound, "run not found")
+		return
+	}
+	bundle, err := h.runs.EvidenceBundle(r.Context(), runID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, bundle)
+}
+
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {
 		if strings.TrimSpace(value) != "" {
