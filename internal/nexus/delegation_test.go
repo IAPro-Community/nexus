@@ -150,6 +150,8 @@ func TestCreateMissionAgentPersistsRichAgentSpecWithoutRuntimeAffinity(t *testin
 		t.Fatal("created specialist must carry verification policy")
 	}
 
+}
+
 func TestMissionAgentSpecSpecializesOperationalModes(t *testing.T) {
 	tests := []struct {
 		role           string
@@ -193,4 +195,3 @@ func TestMissionAgentSpecSpecializesOperationalModes(t *testing.T) {
 	}
 }
 
-}
