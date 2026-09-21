@@ -341,6 +341,9 @@ export const CANONICAL_AGENT_TYPES: AgentTypePreset[] = [
   },
 ];
 
+export const DEFAULT_AGENT_PRESET =
+  CANONICAL_AGENT_TYPES.find((preset) => preset.id === 'backend-engineer') ?? CANONICAL_AGENT_TYPES[0];
+
 export const NATIVE_PROVIDERS = [
   { id: 'claude', label: 'Claude (nexus claude)', alias: 'nexus claude' },
   { id: 'codex', label: 'Codex (nexus codex)', alias: 'nexus codex' },
@@ -356,10 +359,10 @@ export const NewAgentModal: React.FC<{
   onCreated: (agent: Agent) => void;
 }> = ({ open, onClose, project, onCreated }) => {
   const { t } = useTranslation();
-  const [selectedType, setSelectedType] = useState<AgentTypePreset>(CANONICAL_AGENT_TYPES[1]);
-  const [name, setName] = useState(CANONICAL_AGENT_TYPES[1].name);
+  const [selectedType, setSelectedType] = useState<AgentTypePreset>(DEFAULT_AGENT_PRESET);
+  const [name, setName] = useState(DEFAULT_AGENT_PRESET.name);
   const [origin, setOrigin] = useState<'native' | 'custom'>('native');
-  const [provider, setProvider] = useState(CANONICAL_AGENT_TYPES[1].defaultProvider);
+  const [provider, setProvider] = useState(DEFAULT_AGENT_PRESET.defaultProvider);
   const [mode, setMode] = useState<'Safe' | 'YOLO'>('Safe');
   const [commandTemplate, setCommandTemplate] = useState(
     'docker exec -it -w "{cwd}" vpn-dev-workspace-terminal-1 opencode {args}',
