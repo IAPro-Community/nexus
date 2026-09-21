@@ -111,4 +111,40 @@ func TestCostObservationFiltersByMissionProviderAndTime(t *testing.T) {
 	if len(rows) != 1 || rows[0].MissionRunID != "m1" || rows[0].Provider != "codex" {
 		t.Fatalf("filtered rows=%+v, want one m1/codex observation", rows)
 	}
+
+func TestCostSummarySeparatesMeasuredFromUnknown(t *testing.T) {
+	s := openTestStore(t)
+	cost := int64(5000)
+	input := int64(100)
+	for _, obs := range []CostObservation{
+		{ProjectID: "p", Provider: "codex", Profile: "a", InputTokens: &input, CostMicroUSD: &cost, CostKind: CostKindProviderReported, Source: "provider", DurationMS: 100, ObservedAt: time.Now().UTC()},
+		{ProjectID: "p", Provider: "codex", Profile: "a", CostKind: CostKindUnknown, Source: "runtime", DurationMS: 200, ObservedAt: time.Now().UTC()},
+		{ProjectID: "p", Provider: "claude", Profile: "b", CostKind: CostKindUnknown, Source: "runtime", DurationMS: 300, ObservedAt: time.Now().UTC()},
+	} {
+		if _, err := s.RecordCostObservation(obs); err != nil {
+			t.Fatal(err)
+		}
+	}
+	agg, err := s.SummarizeCostObservations(CostObservationFilter{ProjectID: "p"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if agg.ObservationCount != 3 || agg.KnownCostObservations != 1 || agg.UnknownCostObservations != 2 {
+		t.Fatalf("cost counts=%+v", agg)
+	}
+	if agg.KnownTokenObservations != 1 || agg.InputTokens != 100 || agg.CostMicroUSD != 5000 || agg.DurationMS != 600 {
+		t.Fatalf("aggregate evidence=%+v", agg)
+	}
+	providers, err := s.SummarizeCostByProvider(CostObservationFilter{ProjectID: "p"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(providers) != 2 {
+		t.Fatalf("provider aggregates=%+v, want 2", providers)
+	}
+	if providers[0].Provider != "codex" || providers[0].CostMicroUSD != 5000 {
+		t.Fatalf("provider ordering/evidence=%+v", providers)
+	}
+}
+
 }
