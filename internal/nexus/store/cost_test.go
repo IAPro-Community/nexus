@@ -71,15 +71,15 @@ func TestCostObservationRoundTripPreservesUnknownAndKnownEvidence(t *testing.T) 
 func TestCostObservationRejectsInvalidNegativeEvidence(t *testing.T) {
 	s := openTestStore(t)
 	if _, err := s.RecordCostObservation(CostObservation{
-		CostKind:     CostKindInferred,
-		Source:       "test",
-		InputTokens:  int64ptr(-1),
-		ObservedAt:   time.Now().UTC(),
+		CostKind:    CostKindInferred,
+		Source:     "test",
+		InputTokens: int64ptr(-1),
+		ObservedAt: time.Now().UTC(),
 	}); err == nil {
 		t.Fatal("negative token evidence must be rejected")
 	}
 	if _, err := s.RecordCostObservation(CostObservation{
-		CostKind:    "FAKE",
+		CostKind:   "FAKE",
 		Source:      "test",
 		ObservedAt:  time.Now().UTC(),
 	}); err == nil {
@@ -148,4 +148,3 @@ func TestCostSummarySeparatesMeasuredFromUnknown(t *testing.T) {
 		t.Fatalf("provider ordering/evidence=%+v", providers)
 	}
 }
-
