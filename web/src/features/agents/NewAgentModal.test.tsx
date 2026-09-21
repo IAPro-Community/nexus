@@ -44,5 +44,4 @@ describe('canonical persistent agent presets', () => {
   it('preserves the established backend default independent of preset ordering', () => {
     expect(DEFAULT_AGENT_PRESET.id).toBe('backend-engineer');
   });
-
 });
