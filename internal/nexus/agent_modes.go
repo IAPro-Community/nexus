@@ -1,6 +1,11 @@
 package nexus
 
-import "github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+)
 
 // AgentMode is a product preset over the existing persistent Agent/AgentSpec
 // model. It contains no provider runtime state and does not replace
@@ -260,4 +265,52 @@ func cloneAgentMode(mode AgentMode) AgentMode {
 	mode.AgentSpec.Strengths = append([]string(nil), mode.AgentSpec.Strengths...)
 	mode.AgentSpec.Tags = append([]string(nil), mode.AgentSpec.Tags...)
 	return mode
+}
+
+func validateAgentModeConfiguration(cfg AgentConfig) error {
+	mode, ok := AgentModeForRole(cfg.AgentSpec.Role)
+	if !ok || !mode.ReadOnlyByDefault {
+		return nil
+	}
+	if strings.EqualFold(agentModeStringOption(cfg.Options, "mode"), "YOLO") {
+		return fmt.Errorf("Agent Mode %s is read-only by default and cannot use YOLO mode", mode.ID)
+	}
+	if strings.EqualFold(agentModeStringOption(cfg.Options, "execution_adapter"), "command_template") {
+		return fmt.Errorf("Agent Mode %s is read-only by default; custom command templates have no verified read-only contract", mode.ID)
+	}
+	for _, arg := range agentModeStringSliceOption(cfg.Options, "extra_args") {
+		normalized := strings.ToLower(strings.TrimSpace(arg))
+		if normalized == "--yolo" || normalized == "--dangerously-skip-permissions" || normalized == "--full-auto" {
+			return fmt.Errorf("Agent Mode %s rejected unsafe execution argument %q", mode.ID, arg)
+		}
+	}
+	return nil
+}
+
+func agentModeStringOption(options map[string]any, key string) string {
+	if options == nil {
+		return ""
+	}
+	value, _ := options[key].(string)
+	return strings.TrimSpace(value)
+}
+
+func agentModeStringSliceOption(options map[string]any, key string) []string {
+	if options == nil {
+		return nil
+	}
+	switch value := options[key].(type) {
+	case []string:
+		return append([]string(nil), value...)
+	case []any:
+		out := make([]string, 0, len(value))
+		for _, item := range value {
+			if text, ok := item.(string); ok {
+				out = append(out, text)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
 }

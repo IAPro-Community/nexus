@@ -231,6 +231,9 @@ func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentCon
 		}
 	}
 	proposed = NormalizeAgentSpec(agent, proposed)
+	if err := validateAgentModeConfiguration(proposed); err != nil {
+		return nil, err
+	}
 
 	// Analyze impact.
 	impact := AnalyzeImpact(current, proposed)

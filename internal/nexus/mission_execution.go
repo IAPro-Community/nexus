@@ -75,6 +75,7 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	if err != nil {
 		return nil, err
 	}
+	policy = applyAgentModeExecutionPolicy(cfg, policy)
 	if cfg.Provider == "" || cfg.Profile == "" {
 		return nil, fmt.Errorf("agent %s has no persisted provider/profile", agentID)
 	}
@@ -253,6 +254,13 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 			fmt.Errorf("autonomous runtime %s failed: %w", sess.RuntimeID, runErr)
 	}
 	return &agentPromptExecution{RuntimeID: sess.RuntimeID, Output: output}, nil
+}
+
+func applyAgentModeExecutionPolicy(cfg AgentConfig, policy agentPromptPolicy) agentPromptPolicy {
+	if mode, ok := AgentModeForRole(cfg.AgentSpec.Role); ok && mode.ReadOnlyByDefault {
+		policy.Review = true
+	}
+	return policy
 }
 
 func executionBranch(ctx context.Context, workspace string) string {
