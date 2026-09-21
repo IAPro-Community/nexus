@@ -148,3 +148,52 @@ func TestCostSummarySeparatesMeasuredFromUnknown(t *testing.T) {
 		t.Fatalf("provider ordering/evidence=%+v", providers)
 	}
 }
+
+func TestCostPreferencesDefaultsRoundTripAndValidation(t *testing.T) {
+	s := openTestStore(t)
+
+	defaults, err := s.GetCostPreferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !defaults.Enabled || defaults.WindowDays != 7 || defaults.AnomalyMultiplier != 3 || defaults.AnomalyMinimumSamples != 5 {
+		t.Fatalf("unexpected defaults: %+v", defaults)
+	}
+	if defaults.SoftLimitMicroUSD != 0 || defaults.HardLimitMicroUSD != 0 || defaults.EmergencyLimitMicroUSD != 0 {
+		t.Fatalf("budgets must be opt-in, got %+v", defaults)
+	}
+
+	prefs := defaults
+	prefs.WindowDays = 30
+	prefs.SoftLimitMicroUSD = 1_000_000
+	prefs.HardLimitMicroUSD = 2_000_000
+	prefs.EmergencyLimitMicroUSD = 3_000_000
+	prefs.AnomalyMultiplier = 4
+	prefs.AnomalyMinimumSamples = 8
+	prefs.AnomalyMinCostMicroUSD = 250_000
+	prefs.UpdatedAt = time.Now().UTC().Truncate(time.Millisecond)
+	if err := s.PutCostPreferences(prefs); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetCostPreferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.WindowDays != prefs.WindowDays ||
+		got.SoftLimitMicroUSD != prefs.SoftLimitMicroUSD ||
+		got.HardLimitMicroUSD != prefs.HardLimitMicroUSD ||
+		got.EmergencyLimitMicroUSD != prefs.EmergencyLimitMicroUSD ||
+		got.AnomalyMultiplier != prefs.AnomalyMultiplier ||
+		got.AnomalyMinimumSamples != prefs.AnomalyMinimumSamples ||
+		got.AnomalyMinCostMicroUSD != prefs.AnomalyMinCostMicroUSD {
+		t.Fatalf("cost preferences round trip lost data: got=%+v want=%+v", got, prefs)
+	}
+
+	invalid := prefs
+	invalid.SoftLimitMicroUSD = 2_000_000
+	invalid.HardLimitMicroUSD = 1_000_000
+	if err := s.PutCostPreferences(invalid); err == nil {
+		t.Fatal("inverted budget thresholds must be rejected")
+	}
+}
+
