@@ -1,6 +1,7 @@
 package nexus
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -88,4 +89,76 @@ func TestFindOrquestradorDirUsesPortableDataDirProfiles(t *testing.T) {
 	if got := findOrquestradorDir(); got != expected {
 		t.Fatalf("expected %q, got %q", expected, got)
 	}
+
+func TestMaestroVerifyContractPassesThroughMachineReadableVerdict(t *testing.T) {
+	script := `if [ "$1" = "verify" ] && [ "$2" = "--json" ]; then
+  cat >/dev/null
+  printf '%s\n' '{"version":"1.0.0","lifecycle":"VERIFY","passed":true,"required_actions":[],"explanation":"all required checks passed"}'
+  exit 0
+fi
+exit 2
+`
+	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
+	c := &MaestroClient{
+		status: MaestroStatus{
+			Available: true,
+			Mode:      MaestroAssist,
+			Capabilities: &MaestroCapability{
+				Version: MaestroVersion,
+			},
+		},
+		maestroBin: bin,
+	}
+	resp, err := c.Verify(context.Background(), MaestroVerifyRequest{
+		ProjectID:    "project-1",
+		MissionID:    "run-1",
+		ChangedPaths: []string{"internal/nexus/maestro.go"},
+		Checks:       []string{"go test ./..."},
+		EvidenceRefs: []string{"evidence://run-1/tests"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !resp.Passed || resp.Degraded || resp.Lifecycle != MaestroLifecycleVerify {
+		t.Fatalf("unexpected verify response: %+v", resp)
+	}
+}
+
+func TestMaestroVerifyUnavailableNeverFabricatesPass(t *testing.T) {
+	c := &MaestroClient{status: MaestroStatus{Available: false, Mode: MaestroOff}}
+	resp, err := c.Verify(context.Background(), MaestroVerifyRequest{
+		ProjectID: "project-1",
+		MissionID: "run-1",
+	})
+	if err == nil {
+		t.Fatal("expected degraded verify error")
+	}
+	if resp.Passed || !resp.Degraded {
+		t.Fatalf("unavailable Maestro must fail closed: %+v", resp)
+	}
+}
+
+func TestMaestroVerifyRejectsSecretLikeInputBeforeExecution(t *testing.T) {
+	marker := filepath.Join(t.TempDir(), "called")
+	script := "touch " + marker + "\nexit 0\n"
+	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
+	c := &MaestroClient{
+		status: MaestroStatus{Available: true, Mode: MaestroAssist},
+		maestroBin: bin,
+	}
+	resp, err := c.Verify(context.Background(), MaestroVerifyRequest{
+		ProjectID:    "project-1",
+		EvidenceRefs: []string{"token=super-secret"},
+	})
+	if err == nil {
+		t.Fatal("secret-like verify input must be rejected")
+	}
+	if resp == nil || resp.Passed || !resp.Degraded {
+		t.Fatalf("secret rejection must fail closed: %+v", resp)
+	}
+	if _, statErr := os.Stat(marker); !os.IsNotExist(statErr) {
+		t.Fatalf("Maestro process was invoked for rejected input: %v", statErr)
+	}
+}
+
 }
