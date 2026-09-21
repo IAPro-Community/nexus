@@ -280,6 +280,93 @@ func maestroGuidanceReference(guidance *intelligence.ExecutionGuidance) string {
 	return strings.TrimSpace(guidance.Reference)
 }
 
+func missionAgentSpec(role string, requirements TaskRequirements) intelligence.AgentSpec {
+	role = strings.TrimSpace(role)
+	normalizedRole := normalizeAgentTaxonomy(role)
+	spec := intelligence.AgentSpec{
+		Role:               role,
+		Responsibilities:   []string{fmt.Sprintf("Executar o workstream especializado %s dentro dos artefatos atribuídos", role)},
+		Capabilities:       appendUniqueStrings(agentRequiredCapabilities(requirements.RequiredCapabilities), requirements.PreferredCapabilities...),
+		Domains:            append([]string(nil), requirements.Domains...),
+		Strengths:          append([]string(nil), requirements.DesiredStrengths...),
+		Constraints:        append([]string(nil), requirements.Constraints...),
+		VerificationPolicy: intelligence.VerificationPolicy{RequireEvidence: true, RequireTests: true},
+	}
+
+	addInstruction := func(values ...string) {
+		spec.Instructions = appendUniqueStrings(spec.Instructions, values...)
+	}
+	addResponsibility := func(values ...string) {
+		spec.Responsibilities = appendUniqueStrings(spec.Responsibilities, values...)
+	}
+	addCapability := func(values ...string) {
+		spec.Capabilities = appendUniqueStrings(spec.Capabilities, values...)
+	}
+	addConstraint := func(values ...string) {
+		spec.Constraints = appendUniqueStrings(spec.Constraints, values...)
+	}
+	addStrength := func(values ...string) {
+		spec.Strengths = appendUniqueStrings(spec.Strengths, values...)
+	}
+
+	switch normalizedRole {
+	case "senior-developer":
+		addInstruction("Entenda invariantes e impactos sistêmicos antes de alterar código; prefira evolução incremental e verificável.")
+		addResponsibility("Executar mudanças complexas, orientar trade-offs e preservar compatibilidade entre áreas.")
+		addCapability("implementation", "code_review", "architecture", "debugging")
+		addStrength("systems-thinking", "refactoring", "risk-management")
+	case "investigator":
+		addInstruction(
+			"Reproduza e isole a falha antes de propor correção.",
+			"Colete evidência suficiente para sustentar a causa raiz e diferencie hipótese de fato.",
+		)
+		addResponsibility("Produzir hipótese, evidência, causa raiz e próximos passos reproduzíveis.")
+		addCapability("debugging", "root_cause_analysis", "log_analysis")
+		addConstraint("Investigue sem editar a implementação enquanto a causa raiz não estiver comprovada e a remediação não tiver sido atribuída.")
+		addStrength("hypothesis-testing", "evidence-gathering")
+		spec.VerificationPolicy.RequireTests = false
+	case "architect":
+		addInstruction("Modele limites, contratos, dependências e trade-offs antes de recomendar mudanças estruturais.")
+		addResponsibility("Definir arquitetura evolutiva, registrar decisões e identificar riscos sistêmicos.")
+		addCapability("architecture", "system_design", "tradeoff_analysis")
+		addStrength("systems-thinking", "decision-records")
+		spec.VerificationPolicy.RequireTests = false
+	case "security-reviewer":
+		addInstruction("Revise ameaças, fronteiras de confiança e regressões de segurança; ausência de evidência não é evidência de segurança.")
+		addResponsibility("Identificar vulnerabilidades, severidade, evidência e mitigação recomendada.")
+		addCapability("security", "code_review", "threat_modeling")
+		addConstraint("Revisão é read-only; qualquer remediação deve ser atribuída a um workstream de implementação.")
+		addStrength("threat-modeling", "risk-classification")
+		spec.VerificationPolicy.RequireTests = false
+	case "performance-investigator":
+		addInstruction("Estabeleça baseline e reproduza o gargalo antes de otimizar; compare resultados depois da mudança.")
+		addResponsibility("Medir gargalos, explicar a causa e definir experimentos de desempenho reproduzíveis.")
+		addCapability("performance_analysis", "profiling", "benchmarking")
+		addConstraint("Investigue sem editar a implementação até que o gargalo esteja medido e a remediação seja atribuída.")
+		addStrength("measurement", "profiling")
+		spec.VerificationPolicy.RequireTests = false
+	case "reviewer":
+		addInstruction("Procure riscos, regressões e claims sem evidência; classifique severidade objetivamente.")
+		addResponsibility("Revisar diffs, compatibilidade, qualidade e evidência de verificação.")
+		addCapability("code_review", "risk_analysis")
+		addConstraint("Revisão é read-only; remediation pertence a um workstream de implementação.")
+		spec.VerificationPolicy.RequireTests = false
+	case "qa":
+		addInstruction("Reproduza falhas, cubra regressões e exija evidência observável antes de concluir.")
+		addResponsibility("Projetar e executar testes unitários, integração, E2E e smoke conforme o escopo.")
+		addCapability("testing", "e2e", "regression_analysis")
+		addStrength("reproduction", "regression-detection")
+	case "devops":
+		addInstruction("Priorize reprodutibilidade, rollback seguro e observabilidade operacional.")
+		addCapability("ci_cd", "release", "operations")
+	case "backend-engineer":
+		addInstruction("Priorize contratos estáveis, validação de entrada e observabilidade no backend.")
+	case "frontend-engineer":
+		addInstruction("Preserve acessibilidade, responsividade, i18n e os tokens visuais existentes.")
+	}
+	return spec
+}
+
 func createMissionAgent(st *store.Store, projectID string, pkg *runner.PackageRun, prefix string) (store.Agent, error) {
 	name := strings.TrimSpace(pkg.Title)
 	if name == "" {
@@ -290,15 +377,7 @@ func createMissionAgent(st *store.Store, projectID string, pkg *runner.PackageRu
 	if len(requirements.PreferredRoles) > 0 {
 		role = requirements.PreferredRoles[0]
 	}
-	spec := intelligence.AgentSpec{
-		Role:               role,
-		Responsibilities:   []string{fmt.Sprintf("Executar o workstream especializado %s dentro dos artefatos atribuídos", role)},
-		Capabilities:       appendUniqueStrings(agentRequiredCapabilities(requirements.RequiredCapabilities), requirements.PreferredCapabilities...),
-		Domains:            append([]string(nil), requirements.Domains...),
-		Strengths:          append([]string(nil), requirements.DesiredStrengths...),
-		Constraints:        append([]string(nil), requirements.Constraints...),
-		VerificationPolicy: intelligence.VerificationPolicy{RequireEvidence: true, RequireTests: true},
-	}
+	spec := missionAgentSpec(role, requirements)
 	agent, err := st.CreateAgent(store.Agent{ProjectID: projectID, Name: prefix + name, Role: role})
 	if err != nil {
 		return store.Agent{}, err
@@ -827,6 +906,13 @@ func (e *nexusPackageExecutor) ensureReviewerAgent(ctx context.Context, st *stor
 	}
 	selected := recommendation.Recommended.Account
 	current, _ := currentAgentConfig(st, reviewer)
+	current.AgentSpec = missionAgentSpec("reviewer", TaskRequirements{
+		TaskKind:             "review",
+		Role:                 "reviewer",
+		PreferredRoles:       []string{"reviewer"},
+		RequiredCapabilities: []string{"code_review"},
+		Domains:              []string{"quality", "verification"},
+	})
 	current.Provider = selected.Provider
 	current.Profile = selected.Profile
 	// Review is executed against the implementer's concrete worktree and must
