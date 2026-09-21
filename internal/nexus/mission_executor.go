@@ -316,7 +316,7 @@ func missionAgentSpec(role string, requirements TaskRequirements) intelligence.A
 
 	switch normalizedRole {
 	case "senior-developer":
-		addInstruction("Entenda invariantes e impactos sistêmicos antes de alterar código; prefira evolução incremental e verificável.")
+		addInstruction("Understand system invariants and cross-cutting impact before changing code; prefer incremental, verifiable evolution.")
 		addResponsibility("Executar mudanças complexas, orientar trade-offs e preservar compatibilidade entre áreas.")
 		addCapability("implementation", "code_review", "architecture", "debugging")
 		addStrength("systems-thinking", "refactoring", "risk-management")
@@ -345,7 +345,7 @@ func missionAgentSpec(role string, requirements TaskRequirements) intelligence.A
 		spec.VerificationPolicy.RequireTests = false
 	case "performance-investigator":
 		addInstruction("Estabeleça baseline e reproduza o gargalo antes de otimizar; compare resultados depois da mudança.")
-		addResponsibility("Medir gargalos, explicar a causa e definir experimentos de desempenho reproduzíveis.")
+		addResponsibility("Measure bottlenecks, explain root cause, and define reproducible performance experiments.")
 		addCapability("performance_analysis", "profiling", "benchmarking")
 		addConstraint("Investigue sem editar a implementação até que o gargalo esteja medido e a remediação seja atribuída.")
 		addStrength("measurement", "profiling")
@@ -362,7 +362,7 @@ func missionAgentSpec(role string, requirements TaskRequirements) intelligence.A
 		addCapability("testing", "e2e", "regression_analysis")
 		addStrength("reproduction", "regression-detection")
 	case "devops":
-		addInstruction("Priorize reprodutibilidade, rollback seguro e observabilidade operacional.")
+		addInstruction("Prioritize reproducibility, safe rollback, and operational observability.")
 		addCapability("ci_cd", "release", "operations")
 	case "backend-engineer":
 		addInstruction("Priorize contratos estáveis, validação de entrada e observabilidade no backend.")
