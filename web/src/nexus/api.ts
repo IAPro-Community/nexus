@@ -658,6 +658,13 @@ export const nexus = {
     if (projectId) params.set('project_id', projectId);
     return request<import('../types').CostSummary>(`/api/v1/cost/summary?${params.toString()}`);
   },
+  getCostPreferences: () =>
+    request<import('../types').CostPreferences>('/api/v1/cost/preferences'),
+  putCostPreferences: (prefs: import('../types').CostPreferences) =>
+    request<import('../types').CostPreferences>('/api/v1/cost/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    }),
   getCostObservations: (options?: {
     limit?: number;
     days?: number;
