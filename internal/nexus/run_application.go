@@ -20,11 +20,12 @@ type RunApplicationService struct {
 
 // RunStartRequest contains the approved inputs needed to create a MissionRun.
 type RunStartRequest struct {
-	PlanID     string
-	Revision   int
-	AgentID    string
-	Contract   runner.AutonomyContract
-	Autonomous bool
+	PlanID                string
+	Revision              int
+	AgentID               string
+	Contract              runner.AutonomyContract
+	Autonomous            bool
+	CostConfirmationToken string
 }
 
 // RunStepResult is the stable application result for one diagnostic step.
@@ -55,7 +56,15 @@ func (s *RunApplicationService) Start(ctx context.Context, req RunStartRequest) 
 	if err := s.ready(ctx); err != nil {
 		return nil, err
 	}
-	run, err := s.nexus.StartMissionRunApproved(ctx, req.PlanID, req.Revision, req.AgentID, req.Contract, req.Autonomous)
+	run, err := s.nexus.StartMissionRunApprovedWithOptions(
+		ctx,
+		req.PlanID,
+		req.Revision,
+		req.AgentID,
+		req.Contract,
+		req.Autonomous,
+		MissionAdmissionOptions{CostConfirmationToken: req.CostConfirmationToken},
+	)
 	if err != nil {
 		return nil, err
 	}
