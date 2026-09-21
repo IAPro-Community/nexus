@@ -181,6 +181,16 @@ func normalizeAgentTaxonomy(value string) string {
 		return "qa"
 	case "code-reviewer", "review":
 		return "reviewer"
+	case "security", "security-auditor", "appsec", "security-review":
+		return "security-reviewer"
+	case "software-architect", "solution-architect":
+		return "architect"
+	case "debugger", "root-cause-investigator":
+		return "investigator"
+	case "performance", "performance-engineer":
+		return "performance-investigator"
+	case "senior", "senior-engineer":
+		return "senior-developer"
 	case "devops-release":
 		return "devops"
 	}
