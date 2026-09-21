@@ -812,11 +812,11 @@ func (c *MaestroClient) Verify(ctx context.Context, req MaestroVerifyRequest) (*
 
 func sanitizeMaestroVerifyRequest(req *MaestroVerifyRequest) error {
 	if req == nil {
-		return fmt.Errorf("Maestro verify request is required")
+		return fmt.Errorf("maestro verify request is required")
 	}
 	clean := func(values []string, maxItems, maxLen int) ([]string, error) {
 		if len(values) > maxItems {
-			return nil, fmt.Errorf("Maestro verify input exceeds %d items", maxItems)
+			return nil, fmt.Errorf("maestro verify input exceeds %d items", maxItems)
 		}
 		out := make([]string, 0, len(values))
 		for _, value := range values {
@@ -825,7 +825,7 @@ func sanitizeMaestroVerifyRequest(req *MaestroVerifyRequest) error {
 				continue
 			}
 			if len(value) > maxLen {
-				return nil, fmt.Errorf("Maestro verify input item exceeds %d bytes", maxLen)
+				return nil, fmt.Errorf("maestro verify input item exceeds %d bytes", maxLen)
 			}
 			if LooksLikeSecret(value) {
 				return nil, fmt.Errorf("refusing secret-like Maestro verify input")
