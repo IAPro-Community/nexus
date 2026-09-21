@@ -79,7 +79,11 @@ func TestEvidenceBundleRequiresAndProjectsCanonicalProof(t *testing.T) {
 	if err := repo.SaveRun(context.Background(), run); err != nil {
 		t.Fatal(err)
 	}
-	if err := repo.SaveWorkReceipt(context.Background(), &runner.WorkReceipt{
+	evidenceRepo, ok := repo.(runner.EvidenceRepository)
+	if !ok {
+		t.Fatal("store run repository must implement runner.EvidenceRepository")
+	}
+	if err := evidenceRepo.SaveWorkReceipt(context.Background(), &runner.WorkReceipt{
 		ID:          "receipt-evidence-bundle",
 		RunID:       run.ID,
 		StepID:      "package-1",
@@ -163,7 +167,11 @@ func TestEvidenceBundleDoesNotPromoteTerminalStateWithoutProof(t *testing.T) {
 	if err := repo.SaveRun(context.Background(), run); err != nil {
 		t.Fatal(err)
 	}
-	if err := repo.SaveWorkReceipt(context.Background(), &runner.WorkReceipt{
+	evidenceRepo, ok := repo.(runner.EvidenceRepository)
+	if !ok {
+		t.Fatal("store run repository must implement runner.EvidenceRepository")
+	}
+	if err := evidenceRepo.SaveWorkReceipt(context.Background(), &runner.WorkReceipt{
 		ID: "receipt-evidence-missing", RunID: run.ID, StepID: "package-1",
 		Status: "VERIFIED", Summary: "package verified", CompletedAt: now,
 	}); err != nil {
