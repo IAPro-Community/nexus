@@ -313,6 +313,27 @@ type AdviceResponse struct {
 	Degraded    bool             `json:"degraded,omitempty"`
 }
 
+
+type MaestroVerifyRequest struct {
+	Version      string           `json:"version"`
+	Lifecycle    MaestroLifecycle `json:"lifecycle"`
+	ProjectID    string           `json:"project_id,omitempty"`
+	MissionID    string           `json:"mission_id,omitempty"`
+	ChangedPaths []string         `json:"changed_paths,omitempty"`
+	Checks       []string         `json:"checks,omitempty"`
+	EvidenceRefs []string         `json:"evidence_refs,omitempty"`
+	RiskSignals  []string         `json:"risk_signals,omitempty"`
+}
+
+type MaestroVerifyResponse struct {
+	Version         string           `json:"version"`
+	Lifecycle       MaestroLifecycle `json:"lifecycle"`
+	Passed          bool             `json:"passed"`
+	RequiredActions []string         `json:"required_actions,omitempty"`
+	Explanation    string           `json:"explanation,omitempty"`
+	Degraded       bool             `json:"degraded,omitempty"`
+}
+
 // Recommendation is a single actionable recommendation from Maestro.
 type Recommendation struct {
 	ID          string         `json:"id"`
@@ -744,6 +765,92 @@ func (c *MaestroClient) GetAdvice(ctx AdviceContext, intent string) (*AdviceResp
 	return &AdviceResponse{
 		Version: version, Mode: MaestroOff, Lifecycle: lifecycle, Degraded: true,
 	}, fmt.Errorf("maestro advise unavailable or returned an invalid contract (MAESTRO_DEGRADED)")
+}
+
+func (c *MaestroClient) Verify(ctx context.Context, req MaestroVerifyRequest) (*MaestroVerifyResponse, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if req.Version == "" {
+		req.Version = MaestroVersion
+	}
+	req.Lifecycle = MaestroLifecycleVerify
+	if err := sanitizeMaestroVerifyRequest(&req); err != nil {
+		return &MaestroVerifyResponse{
+			Version: req.Version, Lifecycle: MaestroLifecycleVerify, Passed: false, Degraded: true,
+		}, err
+	}
+	if c == nil || !c.status.Available || c.maestroBin == "" {
+		return &MaestroVerifyResponse{
+			Version: req.Version, Lifecycle: MaestroLifecycleVerify, Passed: false, Degraded: true,
+		}, fmt.Errorf("maestro unavailable (MAESTRO_DEGRADED)")
+	}
+
+	raw, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal Maestro verify request: %w", err)
+	}
+	verifyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(verifyCtx, c.maestroBin, "verify", "--json")
+	cmd.Stdin = stringToReader(raw)
+	out, err := cmd.Output()
+	if err != nil {
+		return &MaestroVerifyResponse{
+			Version: req.Version, Lifecycle: MaestroLifecycleVerify, Passed: false, Degraded: true,
+		}, fmt.Errorf("maestro verify unavailable or failed (MAESTRO_DEGRADED): %w", err)
+	}
+	var resp MaestroVerifyResponse
+	if err := json.Unmarshal(out, &resp); err != nil || strings.TrimSpace(resp.Version) == "" {
+		return &MaestroVerifyResponse{
+			Version: req.Version, Lifecycle: MaestroLifecycleVerify, Passed: false, Degraded: true,
+		}, fmt.Errorf("maestro verify returned an invalid contract (MAESTRO_DEGRADED)")
+	}
+	resp.Lifecycle = MaestroLifecycleVerify
+	return &resp, nil
+}
+
+func sanitizeMaestroVerifyRequest(req *MaestroVerifyRequest) error {
+	if req == nil {
+		return fmt.Errorf("Maestro verify request is required")
+	}
+	clean := func(values []string, maxItems, maxLen int) ([]string, error) {
+		if len(values) > maxItems {
+			return nil, fmt.Errorf("Maestro verify input exceeds %d items", maxItems)
+		}
+		out := make([]string, 0, len(values))
+		for _, value := range values {
+			value = strings.TrimSpace(value)
+			if value == "" {
+				continue
+			}
+			if len(value) > maxLen {
+				return nil, fmt.Errorf("Maestro verify input item exceeds %d bytes", maxLen)
+			}
+			if LooksLikeSecret(value) {
+				return nil, fmt.Errorf("refusing secret-like Maestro verify input")
+			}
+			out = append(out, value)
+		}
+		return out, nil
+	}
+	var err error
+	if req.ChangedPaths, err = clean(req.ChangedPaths, 256, 1024); err != nil {
+		return err
+	}
+	if req.Checks, err = clean(req.Checks, 128, 2048); err != nil {
+		return err
+	}
+	if req.EvidenceRefs, err = clean(req.EvidenceRefs, 256, 2048); err != nil {
+		return err
+	}
+	if req.RiskSignals, err = clean(req.RiskSignals, 128, 2048); err != nil {
+		return err
+	}
+	if LooksLikeSecret(req.ProjectID) || LooksLikeSecret(req.MissionID) {
+		return fmt.Errorf("refusing secret-like Maestro verify identifiers")
+	}
+	return nil
 }
 
 func normalizeMaestroLifecycle(value MaestroLifecycle) MaestroLifecycle {
