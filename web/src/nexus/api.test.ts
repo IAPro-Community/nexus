@@ -279,9 +279,7 @@ describe('Flow Run evidence API', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     await nexusApi.getRunEvidenceBundle('run-1');
-    expect(String(fetchMock.mock.calls[0][0])).toContain(
-      '/api/v1/runs/run-1/evidence-bundle',
-    );
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/runs/run-1/evidence-bundle');
     const init = (fetchMock.mock.calls[0][1] || {}) as RequestInit;
     expect(init.method).toBeUndefined();
   });
