@@ -146,7 +146,6 @@ func TestMissionTeamRuntimeOverrideRemainsPreferenceAndRoundTrips(t *testing.T) 
 	if plan.Phases[0].Packages[0].DesiredProvider != "codex" || plan.Phases[1].Packages[0].DesiredProvider != "agy" {
 		t.Fatalf("runtime preference was lost across Flow/WorkPlan projection: %+v", plan.Phases)
 	}
-
 }
 
 func TestMissionTeamOperationalRolesUseCanonicalAgentModes(t *testing.T) {
