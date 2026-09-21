@@ -87,8 +87,8 @@ func TestMerged0021FreshCoversBothHalves(t *testing.T) {
 		}
 	}
 	v, err := s.SchemaVersion()
-	if err != nil || v != 22 {
-		t.Fatalf("schema version = %d,%v, want 22 (0021 remains fused; 0022 adds cost ledger)", v, err)
+	if err != nil || v != 23 {
+		t.Fatalf("schema version = %d,%v, want 23 (0021 remains fused; 0022 adds cost ledger; 0023 adds cost preferences)", v, err)
 	}
 }
 
