@@ -176,10 +176,10 @@ func integrationVerifiedPackage(id, workspace, base string, deps []string, basel
 	}
 	now := integrationTestTime()
 	return runner.PackageRun{
-		PackageID: id,
-		Workspace: workspace,
-		Dependencies: deps,
-		State: runner.StateVerified,
+		PackageID:      id,
+		Workspace:      workspace,
+		Dependencies:   deps,
+		State:          runner.StateVerified,
 		ContextCapsule: &runner.ContextCapsule{Head: base, BaselineWorkspaceSnapshot: baseline},
 		WorkReceipt: &runner.WorkReceipt{
 			ID: "receipt-" + id, RunID: "run", StepID: id, Status: "VERIFIED",
