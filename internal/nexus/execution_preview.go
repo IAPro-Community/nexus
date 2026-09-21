@@ -14,13 +14,18 @@ import (
 // would attempt for one WorkPlan revision. It is advisory: Mission admission
 // revalidates live state immediately before dispatch.
 type PlanExecutionPreview struct {
-	PlanID      string                 `json:"plan_id"`
-	ProjectID   string                 `json:"project_id"`
-	Revision    int                    `json:"revision"`
-	Ready       bool                   `json:"ready"`
-	Steps       []StepExecutionPreview `json:"steps"`
-	Blockers    []string               `json:"blockers,omitempty"`
-	GeneratedAt time.Time              `json:"generated_at"`
+	PlanID                   string                 `json:"plan_id"`
+	ProjectID                string                 `json:"project_id"`
+	Revision                 int                    `json:"revision"`
+	Ready                    bool                   `json:"ready"`
+	Steps                    []StepExecutionPreview `json:"steps"`
+	Blockers                 []string               `json:"blockers,omitempty"`
+	Warnings                 []string               `json:"warnings,omitempty"`
+	CostBudget               CostBudgetAssessment   `json:"cost_budget"`
+	CostAnomaly              CostAnomalyAssessment  `json:"cost_anomaly"`
+	CostConfirmationRequired bool                   `json:"cost_confirmation_required"`
+	CostConfirmationToken    string                 `json:"cost_confirmation_token,omitempty"`
+	GeneratedAt              time.Time              `json:"generated_at"`
 }
 
 // StepExecutionPreview explains WHO and WITH WHAT Nexus would currently use
@@ -114,6 +119,32 @@ func (n *Nexus) previewPlanExecution(ctx context.Context, st *store.Store, plan 
 		Ready:       true,
 		Steps:       []StepExecutionPreview{},
 		GeneratedAt: time.Now().UTC(),
+	}
+	costSummary, costErr := NewCostApplicationService(st).Summary(ctx, plan.ProjectID, 0)
+	if costErr != nil {
+		prefs, prefsErr := st.GetCostPreferences()
+		if prefsErr != nil || (prefs.Enabled && (prefs.HardLimitMicroUSD > 0 || prefs.EmergencyLimitMicroUSD > 0)) {
+			preview.Ready = false
+			preview.Blockers = append(preview.Blockers, "cost budget admission unavailable: "+costErr.Error())
+		} else {
+			preview.Warnings = append(preview.Warnings, "Cost Intelligence unavailable: "+costErr.Error())
+		}
+	} else {
+		preview.CostBudget = costSummary.Budget
+		preview.CostAnomaly = costSummary.Anomaly
+		preview.CostConfirmationRequired = costSummary.Budget.RequiresConfirmation
+		preview.CostConfirmationToken = costBudgetConfirmationToken(plan.ID, plan.CurrentRevision, costSummary)
+		switch costSummary.Budget.Level {
+		case CostBudgetSoft:
+			preview.Warnings = append(preview.Warnings, costSummary.Budget.Message)
+		case CostBudgetHard, CostBudgetEmergency, CostBudgetUnknown:
+			if costSummary.Budget.RequiresConfirmation {
+				preview.Warnings = append(preview.Warnings, costSummary.Budget.Message)
+			}
+		}
+		if costSummary.Anomaly.Triggered {
+			preview.Warnings = append(preview.Warnings, costSummary.Anomaly.Message)
+		}
 	}
 	for _, phase := range plan.Phases {
 		for _, pkg := range phase.Packages {
