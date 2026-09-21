@@ -74,13 +74,13 @@ Do not push, merge, deploy, or weaken existing authentication controls.`
 		{
 			ID: "codex-main", Provider: "codex", Profile: "main", DisplayName: "Codex main",
 			Authenticated: true, Available: true, Health: "healthy",
-			QuotaView:    &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.82,
+			QuotaView:       &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.82,
 			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED", "testing": "SUPPORTED"},
 		},
 		{
 			ID: "claude-review", Provider: "claude", Profile: "review", DisplayName: "Claude review",
 			Authenticated: true, Available: true, Health: "healthy",
-			QuotaView:    &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.64,
+			QuotaView:       &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.64,
 			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED", "testing": "SUPPORTED"},
 		},
 	}
