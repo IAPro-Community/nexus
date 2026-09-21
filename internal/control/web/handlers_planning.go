@@ -512,6 +512,7 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 		PackageTimeoutSeconds int      `json:"package_timeout_seconds"`
 		VerificationCommands  []string `json:"verification_commands"`
 		Autonomous            *bool    `json:"autonomous"`
+		CostConfirmationToken string   `json:"cost_confirmation_token"`
 	}
 	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -542,8 +543,9 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 		PlanID:     planID,
 		Revision:   body.PlanRevision,
 		AgentID:    body.AgentID,
-		Contract:   contract,
-		Autonomous: autonomous,
+		Contract:              contract,
+		Autonomous:            autonomous,
+		CostConfirmationToken: body.CostConfirmationToken,
 	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
