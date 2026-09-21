@@ -70,6 +70,8 @@ func registerPlanningRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/intelligence", s.authMiddleware(h.handleIntelligence))
 	mux.HandleFunc("/api/v1/intelligence/probe", s.authMiddleware(h.handleIntelligenceProbe))
 	mux.HandleFunc("/api/v1/intelligence/memories", s.authMiddleware(h.handleIntelligenceMemories))
+	mux.HandleFunc("/api/v1/intelligence/memories/recall", s.authMiddleware(h.handleIntelligenceMemoryRecall))
+	mux.HandleFunc("/api/v1/intelligence/memories/reflect", s.authMiddleware(h.handleIntelligenceMemoryReflect))
 	mux.HandleFunc("/api/v1/intelligence/memories/", s.authMiddleware(h.handleIntelligenceMemoryDelete))
 	mux.HandleFunc("/api/v1/clarifications/", s.authMiddleware(h.handleClarification))
 	mux.HandleFunc("/api/v1/composer-sessions/", s.authMiddleware(h.handleComposerSession))
