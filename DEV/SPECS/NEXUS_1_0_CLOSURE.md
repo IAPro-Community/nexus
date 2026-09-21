@@ -157,12 +157,24 @@ Exit:
 Baseline PR #3 is merged and CI #149 is green.
 
 Tasks:
-- [ ] verify `main` points at or contains merge commit `7605f702...`.
-- [ ] record main CI evidence when available.
-- [ ] align VERSION / README / CHANGELOG / current release status.
-- [ ] remove stale beta.1/beta.2 “current” claims where they are no longer current.
-- [ ] preserve historical validation reports as historical evidence, not current truth.
-- [ ] make this spec the active closure contract.
+- [x] verify `main` points at or contains merge commit `7605f702...`.
+- [x] record main CI evidence when available.
+- [x] align VERSION / README / CHANGELOG / current release status.
+- [x] remove stale beta.1/beta.2 “current” claims where they are no longer current.
+- [x] preserve historical validation reports as historical evidence, not current truth.
+- [x] make this spec the active closure contract.
+
+Evidence recorded 2026-09-21:
+- `main` points exactly at `7605f702cce220b4111d51d06a34b37f7e0a9a8d`.
+- PR-head CI #149 is the green baseline evidence. The later `main` push run
+  `35547840452` is recorded as a non-green/partial run: Linux and Security
+  completed successfully, while Frontend was cancelled and dependent jobs did
+  not execute. It is not promoted to green evidence.
+- source truth is `1.0.0-beta.4` across VERSION/README/CHANGELOG/current status.
+- repository tag inventory still exposes `v1.0.0-beta.1` as the published beta
+  tag; install docs may pin that artifact but must not describe it as current source.
+- older validation/candidate material is explicitly historical; this file and
+  `DEV/validation/current/RELEASE_STATUS.md` are the active closure authorities.
 
 Exit:
 - one authoritative current release-status document;

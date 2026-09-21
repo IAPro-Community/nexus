@@ -14,6 +14,10 @@ Instale o Nexus no **host** via scripts de release. Este documento **não** cobr
 
 Binário de release. **Não** exige Go, Bun nem Node.
 
+> Os exemplos pinam `v1.0.0-beta.1`, que é a tag beta publicada disponível.
+> `1.0.0-beta.4` é atualmente versão de fonte/candidato em fechamento, não uma
+> afirmação de que exista um release publicado com essa tag.
+
 | Caminho | Pré-requisitos |
 | --- | --- |
 | Release CLI | `curl` ou `wget`, `tar`, `sha256sum`/`shasum` (Unix) ou PowerShell (Windows) |

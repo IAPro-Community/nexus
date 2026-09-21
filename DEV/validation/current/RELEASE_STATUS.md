@@ -5,7 +5,9 @@ SOURCE_VERSION: 1.0.0-beta.4
 BASELINE_MAIN_SHA: 7605f702cce220b4111d51d06a34b37f7e0a9a8d
 BASELINE_PR3_HEAD: 300ccbeee4f145f80ebce13c9cefafcb01acefc3
 BASELINE_CI_RUN: 35547298239 (#149)
-UPDATED_AT: 2026-09-20
+BASELINE_MAIN_PUSH_CI_RUN: 35547840452 (PARTIAL / NON-GREEN)
+LATEST_PUBLISHED_BETA_TAG: v1.0.0-beta.1
+UPDATED_AT: 2026-09-21
 
 ## Current truth
 
@@ -27,7 +29,15 @@ The verified PR-head gates were:
 10. DEB install smoke — PASS
 
 The source version currently reports `1.0.0-beta.4`. This does NOT mean a public
-`v1.0.0-beta.4` tag or release has been certified or published.
+`v1.0.0-beta.4` tag or release has been certified or published. Repository tag
+inventory currently exposes `v1.0.0-beta.1` as the published beta tag, so install
+documentation that explicitly pins that tag is an artifact reference rather than a
+claim that beta.1 is the current source version.
+
+The post-merge `main` push CI run `35547840452` is also retained as evidence:
+Linux and Security passed, Frontend was cancelled, and dependent jobs were skipped.
+That run is therefore NON-GREEN/PARTIAL and must not replace the fully green PR-head
+CI #149 baseline.
 
 ## Active release program
 
@@ -78,5 +88,6 @@ Before any stable release:
 `NEXUS_1_0_CANDIDATE = NO_GO`
 
 Reason: the 1.0 closure implementation and native release certification are still in
-progress. This is not a regression verdict for the PR #3 baseline, which is merged and
-green; it is the stable 1.0 release verdict.
+progress. This is not a regression verdict for the PR #3 baseline: the PR-head
+same-SHA evidence is green, while the later `main` push run is explicitly recorded as
+partial/non-green. The verdict here is for stable 1.0 release readiness.

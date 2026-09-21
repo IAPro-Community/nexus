@@ -9,6 +9,10 @@ exige Composer, Flow ou Mission.
 > Estado: **Disponível** para a CLI e Web locais. A evidência de Desktop e de
 > providers autenticados varia por plataforma e perfil; confirme com
 > `nexus doctor` e `nexus providers status --json`.
+>
+> Os comandos abaixo pinam `v1.0.0-beta.1` porque essa é a tag beta publicada
+> disponível. A versão de fonte `1.0.0-beta.4` está em fechamento e não deve ser
+> tratada como release publicada até a certificação e criação da tag correspondente.
 
 ## 1. Instale
 

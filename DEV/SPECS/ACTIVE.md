@@ -16,6 +16,15 @@ Memory 1.0 → Maestro contract v1 → commercial + native release certification
 
 Nenhum item histórico abaixo substitui o contrato atual desta seção.
 
+## Limite do registro histórico
+
+Tudo abaixo deste marcador é preservado como histórico datado. Termos como
+“ativo”, “current”, “candidate” ou versões beta usados nos títulos/textos abaixo
+descrevem o estado observado naquela data e **não** substituem a verdade atual.
+Para estado de release use exclusivamente
+[`DEV/validation/current/RELEASE_STATUS.md`](../validation/current/RELEASE_STATUS.md);
+para escopo de fechamento use
+[`DEV/SPECS/NEXUS_1_0_CLOSURE.md`](./NEXUS_1_0_CLOSURE.md).
 
 ## Slice ativo — proteção permanente contra falhas de teclado — 2026-09-18
 
