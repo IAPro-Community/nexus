@@ -175,4 +175,3 @@ func TestMissionTeamOperationalRolesUseCanonicalAgentModes(t *testing.T) {
 		t.Fatal("release candidate preset must contain a security review phase")
 	}
 }
-
