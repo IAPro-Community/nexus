@@ -361,6 +361,10 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 		}
 		return StateUnknown, true
 	}
+	if err := probe.Descriptor().Validate(); err != nil {
+		_ = m.upsertState(prof.Provider, prof.Name, "", "", StateUnknown, "unsafe probe descriptor", prof.AccountScope, now)
+		return StateUnknown, false
+	}
 	snap, err := probe.Probe(ctx, prof)
 	if err != nil {
 		// Best-effort visibility row; the account still counts as failed so
