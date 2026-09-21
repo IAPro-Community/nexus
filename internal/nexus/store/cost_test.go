@@ -80,8 +80,8 @@ func TestCostObservationRejectsInvalidNegativeEvidence(t *testing.T) {
 	}
 	if _, err := s.RecordCostObservation(CostObservation{
 		CostKind:   "FAKE",
-		Source:      "test",
-		ObservedAt:  time.Now().UTC(),
+		Source:     "test",
+		ObservedAt: time.Now().UTC(),
 	}); err == nil {
 		t.Fatal("unknown cost kind must be rejected")
 	}
@@ -111,7 +111,6 @@ func TestCostObservationFiltersByMissionProviderAndTime(t *testing.T) {
 	if len(rows) != 1 || rows[0].MissionRunID != "m1" || rows[0].Provider != "codex" {
 		t.Fatalf("filtered rows=%+v, want one m1/codex observation", rows)
 	}
-
 }
 
 func TestCostSummarySeparatesMeasuredFromUnknown(t *testing.T) {
@@ -196,4 +195,3 @@ func TestCostPreferencesDefaultsRoundTripAndValidation(t *testing.T) {
 		t.Fatal("inverted budget thresholds must be rejected")
 	}
 }
-
