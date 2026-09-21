@@ -479,10 +479,7 @@ export function useFlowDraftEditor(options: {
             'flow.executionPreviewReady',
             'Execution Preview pronto: especialistas e recursos atuais foram avaliados sem iniciar execução.',
           )
-        : t(
-            'flow.executionPreviewBlocked',
-            'Execution Preview encontrou bloqueios antes do GO.',
-          );
+        : t('flow.executionPreviewBlocked', 'Execution Preview encontrou bloqueios antes do GO.');
       if (flowDirty) {
         notice = t(
           'flow.executionPreviewSavedRevision',
