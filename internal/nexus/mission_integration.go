@@ -267,7 +267,7 @@ func recreateDetachedIntegrationWorktree(ctx context.Context, canonical, target,
 
 func missionTopologicalPackages(run *runner.MissionRun) ([]*runner.PackageRun, error) {
 	if run == nil {
-		return nil, fmt.Errorf("Mission run is required")
+		return nil, fmt.Errorf("mission run is required")
 	}
 	byID := map[string]*runner.PackageRun{}
 	indegree := map[string]int{}
@@ -275,7 +275,7 @@ func missionTopologicalPackages(run *runner.MissionRun) ([]*runner.PackageRun, e
 	for i := range run.PackageRuns {
 		pkg := &run.PackageRuns[i]
 		if strings.TrimSpace(pkg.PackageID) == "" {
-			return nil, fmt.Errorf("Mission package ID is required")
+			return nil, fmt.Errorf("mission package ID is required")
 		}
 		byID[pkg.PackageID] = pkg
 		indegree[pkg.PackageID] = len(pkg.Dependencies)
@@ -306,7 +306,7 @@ func missionTopologicalPackages(run *runner.MissionRun) ([]*runner.PackageRun, e
 		}
 	}
 	if len(out) != len(run.PackageRuns) {
-		return nil, fmt.Errorf("Mission dependency graph is cyclic or incomplete")
+		return nil, fmt.Errorf("mission dependency graph is cyclic or incomplete")
 	}
 	return out, nil
 }
