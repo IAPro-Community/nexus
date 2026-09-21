@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/core/entitlement"
 	"github.com/IAPro-Community/nexus/internal/nexus/autonomyguard"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -129,6 +130,9 @@ func validateFlowExecutionContract(plan store.WorkPlan) error {
 // StartMissionRun binds an immutable plan revision/snapshot and starts the
 // durable state machine. autonomous=true starts a background worker immediately.
 func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID string, contract runner.AutonomyContract, autonomous bool) (*runner.MissionRun, error) {
+	if err := n.RequireCapability(ctx, entitlement.CapMissionsRun); err != nil {
+		return nil, fmt.Errorf("mission entitlement denied: %w", err)
+	}
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -212,6 +216,9 @@ func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, appr
 }
 
 func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID string, approvedRevision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, options MissionAdmissionOptions) (*runner.MissionRun, error) {
+	if err := n.RequireCapability(ctx, entitlement.CapMissionsRun); err != nil {
+		return nil, fmt.Errorf("mission entitlement denied: %w", err)
+	}
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
