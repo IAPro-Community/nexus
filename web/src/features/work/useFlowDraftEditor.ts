@@ -423,6 +423,38 @@ export function useFlowDraftEditor(options: {
         );
         persistStoredFlowDraft(flowDraftSessionKey(project.id, selectedPlan.id), null);
       }
+
+      // GO is never based on a stale preview. Re-evaluate the exact persisted
+      // revision immediately before Mission admission. This is still
+      // side-effect-free: Mission remains the only execution authority.
+      const preview = await nexusApi.previewPlanExecution(approved.id);
+      setExecutionPreview(preview);
+      if (preview.revision !== approved.current_revision) {
+        setPlanError(
+          t(
+            'flow.executionPreviewRevisionMismatch',
+            'A revisão mudou durante a preparação. Revise o plano de execução novamente antes de iniciar.',
+          ),
+        );
+        return;
+      }
+      if (!preview.ready) {
+        setFlowNotice(
+          t(
+            'flow.executionPreviewBlocked',
+            'Execution Preview encontrou bloqueios antes do GO.',
+          ),
+        );
+        setPlanError(
+          preview.blockers?.join(' · ') ||
+            t(
+              'flow.executionPreviewNoEligibleRoute',
+              'Nenhuma combinação elegível de Agent e recurso está disponível para todas as etapas.',
+            ),
+        );
+        return;
+      }
+
       const run = await nexusApi.runPlan(approved.id, approved.current_revision);
       onRunCreated?.(run);
       setFlowNotice(
