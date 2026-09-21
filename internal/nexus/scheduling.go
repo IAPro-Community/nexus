@@ -75,6 +75,9 @@ func (n *Nexus) ScheduleMission(ctx context.Context, planID string, args ...inte
 	if approved == 0 {
 		approved = plan.CurrentRevision
 	}
+	if _, _, err := loadWorkPlanRevision(st, plan.ID, approved); err != nil {
+		return nil, fmt.Errorf("approved schedule revision %d is unavailable: %w", approved, err)
+	}
 	payload, err := json.Marshal(missionSchedulePayload{AgentID: agentID, PlanRevision: approved, Contract: normalizeAutonomyContract(contract, "")})
 	if err != nil {
 		return nil, err
@@ -123,6 +126,44 @@ func (n *Nexus) StartScheduleLoop() {
 			}
 		}()
 	})
+}
+
+func (n *Nexus) startScheduledMissionRun(ctx context.Context, planID string, revision int, agentID string, contract runner.AutonomyContract, options MissionAdmissionOptions) (*runner.MissionRun, error) {
+	st, err := n.OpenProject()
+	if err != nil {
+		return nil, err
+	}
+	frozen, _, err := loadWorkPlanRevision(st, planID, revision)
+	if err != nil {
+		return nil, fmt.Errorf("load scheduled plan revision: %w", err)
+	}
+	accounts, resourceErr := n.ListResourcesContext(ctx)
+	preview, err := n.previewPlanExecution(ctx, st, frozen, accounts, resourceErr)
+	if err != nil {
+		return nil, fmt.Errorf("refresh scheduled execution preview: %w", err)
+	}
+	if err := validateApprovedExecutionPreview(preview, planID, revision); err != nil {
+		return nil, err
+	}
+	preflight := &FlowPreflightReport{
+		PlanID:      planID,
+		Revision:    revision,
+		Ready:       true,
+		Strict:      true,
+		GeneratedAt: time.Now().UTC(),
+		Checks:      []FlowPreflightCheck{},
+	}
+	preflight, err = n.strictAdmissionForPlan(ctx, *frozen, preflight, true)
+	if err != nil {
+		return nil, fmt.Errorf("run strict preflight for scheduled mission: %w", err)
+	}
+	if !preflight.Ready {
+		return nil, fmt.Errorf("scheduled mission blocked by strict preflight")
+	}
+	if err := validateCostBudgetAdmission(ctx, st, frozen, options.CostConfirmationToken); err != nil {
+		return nil, err
+	}
+	return n.startMissionRunAtRevisionWithAdmission(ctx, frozen, revision, agentID, contract, true, preflight, preview)
 }
 
 func (n *Nexus) processMissionSchedules(ctx context.Context) error {
@@ -178,15 +219,13 @@ func (n *Nexus) processMissionSchedules(ctx context.Context) error {
 			// was read. It owns responsibility for creating this run.
 			continue
 		}
-		run, startErr := n.StartMissionRunApproved(ctx, schedule.PlanID, payload.PlanRevision, payload.AgentID, payload.Contract, true)
+		run, startErr := n.startScheduledMissionRun(ctx, schedule.PlanID, payload.PlanRevision, payload.AgentID, payload.Contract, MissionAdmissionOptions{})
 		if startErr != nil {
-			// Resource/transient failures remain pending for WHEN_RESOURCES; fixed
-			// time/dependency schedules become FAILED and are visible to the user.
-			if schedule.Mode != ScheduleWhenResources {
-				_ = st.UpdateMissionScheduleStatus(schedule.ID, store.ScheduleFailed)
-			} else {
-				_ = st.UpdateMissionScheduleStatus(schedule.ID, store.SchedulePending)
-			}
+			// WHEN_RESOURCES waits without claiming while no autonomous resource is
+			// available. After a schedule is atomically claimed, admission failures
+			// are durable failures: silently returning to PENDING can loop forever
+			// on stale budget/policy/plan errors every scheduler tick.
+			_ = st.UpdateMissionScheduleStatus(schedule.ID, store.ScheduleFailed)
 			continue
 		}
 		if err := st.BindMissionScheduleRun(schedule.ID, run.ID); err != nil {

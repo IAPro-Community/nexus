@@ -64,15 +64,39 @@ func TestScheduleMissionFreezesApprovedPlanRevision(t *testing.T) {
 		t.Fatal("expected a new current revision")
 	}
 
-	run, err := n.startMissionRunAtRevision(context.Background(), updated, payload.PlanRevision, payload.AgentID, payload.Contract, false)
+	frozen, _, err := loadWorkPlanRevision(st, updated.ID, payload.PlanRevision)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if run.PlanRevision != approved {
-		t.Fatalf("run revision=%d want=%d", run.PlanRevision, approved)
+	if frozen.CurrentRevision != approved {
+		t.Fatalf("frozen revision=%d want=%d", frozen.CurrentRevision, approved)
 	}
-	if got := run.PackageRuns[0].Title; got != "Original" {
-		t.Fatalf("scheduled run used mutable plan, package=%q", got)
+	if got := frozen.Phases[0].Packages[0].Title; got != "Original" {
+		t.Fatalf("scheduled revision used mutable plan, package=%q", got)
+	}
+	if _, err := n.ScheduleMission(context.Background(), updated.ID, approved, ScheduleWhenResources, nil, "", "", runner.DefaultAutonomyContract()); err != nil {
+		t.Fatalf("historical approved revision must remain schedulable after later edits: %v", err)
+	}
+}
+
+func TestScheduleMissionRejectsUnknownPlanRevision(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Plan", "", []store.PlanPhase{{
+		Title: "Phase",
+		Packages: []store.WorkPackage{{
+			Title: "A", Goal: "A", Status: "READY", Role: "implementer", AcceptanceCriteria: []string{"done"},
+		}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.ScheduleMission(context.Background(), plan.ID, plan.CurrentRevision+100, ScheduleWhenResources, nil, "", "", runner.DefaultAutonomyContract()); err == nil {
+		t.Fatal("schedule must reject a plan revision that has no immutable snapshot")
 	}
 }
 

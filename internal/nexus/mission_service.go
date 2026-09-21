@@ -327,17 +327,13 @@ func (n *Nexus) startMissionRunAtRevisionWithAdmission(ctx context.Context, plan
 	if err != nil {
 		return nil, err
 	}
-	rev, err := st.GetPlanRevision(plan.ID, revision)
+	frozen, rev, err := loadWorkPlanRevision(st, plan.ID, revision)
 	if err != nil {
 		return nil, err
 	}
-	var frozen store.WorkPlan
-	if err := json.Unmarshal([]byte(rev.SnapshotJSON), &frozen); err != nil {
-		return nil, err
-	}
-	bindLeadAgent(&frozen, defaultAgentID)
+	bindLeadAgent(frozen, defaultAgentID)
 	contract = normalizeAutonomyContract(contract, project.CanonicalPath)
-	env, err := json.Marshal(missionExecutionSnapshot{Plan: frozen, Contract: contract, Preflight: preflight, ExecutionPreview: preview})
+	env, err := json.Marshal(missionExecutionSnapshot{Plan: *frozen, Contract: contract, Preflight: preflight, ExecutionPreview: preview})
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +341,7 @@ func (n *Nexus) startMissionRunAtRevisionWithAdmission(ctx context.Context, plan
 	if err != nil {
 		return nil, err
 	}
-	spec, err := planToRunnerSpec(&frozen, snapshot.ID)
+	spec, err := planToRunnerSpec(frozen, snapshot.ID)
 	if err != nil {
 		return nil, err
 	}
