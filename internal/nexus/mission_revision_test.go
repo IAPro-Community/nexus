@@ -74,3 +74,59 @@ func TestScheduleMissionFreezesApprovedPlanRevision(t *testing.T) {
 		t.Fatalf("scheduled run used mutable plan, package=%q", got)
 	}
 }
+
+func TestCostBudgetAdmissionRequiresFreshExplicitConfirmation(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Budgeted", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Plan", "", []store.PlanPhase{{
+		Title: "Phase",
+		Packages: []store.WorkPackage{{
+			Title: "A", Goal: "A", Status: "READY", Role: "implementer", AcceptanceCriteria: []string{"done"},
+		}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefs := store.DefaultCostPreferences()
+	prefs.HardLimitMicroUSD = 1_000_000
+	if err := st.PutCostPreferences(prefs); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := validateCostBudgetAdmission(context.Background(), st, plan, ""); err == nil {
+		t.Fatal("hard budget with unknown headroom must require explicit confirmation")
+	}
+
+	summary, err := NewCostApplicationService(st).Summary(context.Background(), project.ID, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := costBudgetConfirmationToken(plan.ID, plan.CurrentRevision, summary)
+	if token == "" {
+		t.Fatal("expected non-empty confirmation token")
+	}
+	if err := validateCostBudgetAdmission(context.Background(), st, plan, token); err != nil {
+		t.Fatalf("fresh confirmation rejected: %v", err)
+	}
+
+	knownCost := int64(250_000)
+	if _, err := st.RecordCostObservation(store.CostObservation{
+		ProjectID: project.ID, Provider: "codex", Profile: "work",
+		CostMicroUSD: &knownCost, CostKind: store.CostKindProviderReported,
+		Source: "provider_response", Status: "COMPLETED",
+		ObservedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateCostBudgetAdmission(context.Background(), st, plan, token); err == nil {
+		t.Fatal("stale confirmation token must be rejected after cost evidence changes")
+	}
+}
+
