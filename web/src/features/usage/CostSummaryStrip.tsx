@@ -99,6 +99,44 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
         </div>
       </div>
 
+      <div className={styles.signals}>
+        <div className={styles.signal} data-state={summary.budget.level}>
+          <TriangleAlert size={13} />
+          <div>
+            <strong>
+              {t('usage.costBudget', 'Budget')}: {summary.budget.level}
+            </strong>
+            <span>{summary.budget.message}</span>
+            {summary.budget.active_limit_microusd ? (
+              <small>
+                {t('usage.activeCostLimit', 'Limite ativo')}: {' '}
+                {formatUSD(summary.budget.active_limit_microusd)}
+                {summary.budget.requires_confirmation ? (
+                  <> · {t('usage.costConfirmationRequired', 'nova execução cara exige confirmação')}</>
+                ) : null}
+              </small>
+            ) : null}
+          </div>
+        </div>
+        <div className={styles.signal} data-state={summary.anomaly.status}>
+          <TriangleAlert size={13} />
+          <div>
+            <strong>
+              {t('usage.costAnomaly', 'Anomalia de custo')}: {summary.anomaly.status}
+            </strong>
+            <span>{summary.anomaly.message}</span>
+            {summary.anomaly.triggered && summary.anomaly.latest_cost_microusd ? (
+              <small>
+                {summary.anomaly.provider}:{summary.anomaly.profile} · {' '}
+                {formatUSD(summary.anomaly.latest_cost_microusd)}
+                {summary.anomaly.threshold_microusd ? (
+                  <> &gt; {formatUSD(summary.anomaly.threshold_microusd)}</>
+                ) : null}
+              </small>
+            ) : null}
+          </div>
+        </div>
+      </div>
       {summary.by_provider.length > 0 ? (
         <div className={styles.providers}>
           <Database size={13} />
