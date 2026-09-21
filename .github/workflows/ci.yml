@@ -92,6 +92,12 @@ jobs:
         run: |
           set -o pipefail
           bun run test:e2e:capacity 2>&1 | tee "$RUNNER_TEMP/nexus-browser-capacity.log"
+      - id: composer-spine-e2e
+        if: always()
+        working-directory: web
+        run: |
+          set -o pipefail
+          bun run test:e2e:composer-spine 2>&1 | tee "$RUNNER_TEMP/nexus-browser-composer-spine.log"
       - id: browser-a11y
         if: always()
         working-directory: web
@@ -115,6 +121,7 @@ jobs:
             .tempmediaStorage/e2e-failure.png
             .tempmediaStorage/e2e-surface-failure-diagnostics.json
             .tempmediaStorage/e2e-surface-failure.png
+            DEV/validation/composer-execution-spine/
           if-no-files-found: ignore
           retention-days: 2
       - if: always()
@@ -122,6 +129,7 @@ jobs:
           test '${{ steps.browser-e2e.outcome }}' = success
           test '${{ steps.surface-e2e.outcome }}' = success
           test '${{ steps.capacity-e2e.outcome }}' = success
+          test '${{ steps.composer-spine-e2e.outcome }}' = success
           test '${{ steps.browser-a11y.outcome }}' = success
           test '${{ steps.browser-visual.outcome }}' = success
 
