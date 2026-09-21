@@ -98,6 +98,8 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/capacity/preferences", s.authMiddleware(h.handleCapacityPreferences))
 	mux.HandleFunc("/api/v1/capacity/ack", s.authMiddleware(h.handleCapacityAck))
 	mux.HandleFunc("/api/v1/capacity/snooze", s.authMiddleware(h.handleCapacitySnooze))
+	mux.HandleFunc("/api/v1/cost/summary", s.authMiddleware(h.handleCostSummary))
+	mux.HandleFunc("/api/v1/cost/observations", s.authMiddleware(h.handleCostObservations))
 }
 
 func registerFilesystemRoutes(mux *http.ServeMux, deps routeDependencies) {
