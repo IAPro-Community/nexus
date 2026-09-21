@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -54,6 +55,132 @@ type CostObservationFilter struct {
 	Profile      string
 	Since        time.Time
 	Limit        int
+}
+
+type CostPreferences struct {
+	Enabled                   bool      `json:"enabled"`
+	WindowDays                int       `json:"window_days"`
+	SoftLimitMicroUSD         int64     `json:"soft_limit_microusd"`
+	HardLimitMicroUSD         int64     `json:"hard_limit_microusd"`
+	EmergencyLimitMicroUSD    int64     `json:"emergency_limit_microusd"`
+	AnomalyMultiplier         float64   `json:"anomaly_multiplier"`
+	AnomalyMinimumSamples     int       `json:"anomaly_minimum_samples"`
+	AnomalyMinCostMicroUSD    int64     `json:"anomaly_min_cost_microusd"`
+	UpdatedAt                 time.Time `json:"updated_at"`
+}
+
+func DefaultCostPreferences() CostPreferences {
+	return CostPreferences{
+		Enabled:                true,
+		WindowDays:             7,
+		AnomalyMultiplier:      3.0,
+		AnomalyMinimumSamples:  5,
+		AnomalyMinCostMicroUSD: 100000,
+		UpdatedAt:              time.Now().UTC(),
+	}
+}
+
+func ValidateCostPreferences(p CostPreferences) error {
+	if p.WindowDays < 1 || p.WindowDays > 365 {
+		return fmt.Errorf("window_days must be between 1 and 365")
+	}
+	if p.SoftLimitMicroUSD < 0 || p.HardLimitMicroUSD < 0 || p.EmergencyLimitMicroUSD < 0 {
+		return fmt.Errorf("cost limits must not be negative")
+	}
+	limits := []struct {
+		name  string
+		value int64
+	}{
+		{"soft_limit_microusd", p.SoftLimitMicroUSD},
+		{"hard_limit_microusd", p.HardLimitMicroUSD},
+		{"emergency_limit_microusd", p.EmergencyLimitMicroUSD},
+	}
+	var previous int64
+	var previousName string
+	for _, limit := range limits {
+		if limit.value == 0 {
+			continue
+		}
+		if previous > 0 && limit.value <= previous {
+			return fmt.Errorf("%s must be greater than %s", limit.name, previousName)
+		}
+		previous = limit.value
+		previousName = limit.name
+	}
+	if p.AnomalyMultiplier < 1 {
+		return fmt.Errorf("anomaly_multiplier must be at least 1")
+	}
+	if p.AnomalyMinimumSamples < 3 || p.AnomalyMinimumSamples > 1000 {
+		return fmt.Errorf("anomaly_minimum_samples must be between 3 and 1000")
+	}
+	if p.AnomalyMinCostMicroUSD < 0 {
+		return fmt.Errorf("anomaly_min_cost_microusd must not be negative")
+	}
+	return nil
+}
+
+func (s *Store) GetCostPreferences() (CostPreferences, error) {
+	row := s.db.QueryRow(`
+		SELECT enabled, window_days, soft_limit_microusd, hard_limit_microusd,
+		       emergency_limit_microusd, anomaly_multiplier, anomaly_minimum_samples,
+		       anomaly_min_cost_microusd, updated_at
+		FROM cost_preferences WHERE id = 1
+	`)
+	var p CostPreferences
+	var enabled int
+	var updated string
+	err := row.Scan(
+		&enabled, &p.WindowDays, &p.SoftLimitMicroUSD, &p.HardLimitMicroUSD,
+		&p.EmergencyLimitMicroUSD, &p.AnomalyMultiplier, &p.AnomalyMinimumSamples,
+		&p.AnomalyMinCostMicroUSD, &updated,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return DefaultCostPreferences(), nil
+	}
+	if err != nil {
+		return CostPreferences{}, err
+	}
+	p.Enabled = enabled == 1
+	p.UpdatedAt, err = parseStoreTime(updated)
+	if err != nil {
+		return CostPreferences{}, fmt.Errorf("corrupt cost preferences updated_at: %w", err)
+	}
+	return p, nil
+}
+
+func (s *Store) PutCostPreferences(p CostPreferences) error {
+	if err := ValidateCostPreferences(p); err != nil {
+		return err
+	}
+	if p.UpdatedAt.IsZero() {
+		p.UpdatedAt = time.Now().UTC()
+	}
+	enabled := 0
+	if p.Enabled {
+		enabled = 1
+	}
+	_, err := s.db.Exec(`
+		INSERT INTO cost_preferences(
+			id, enabled, window_days, soft_limit_microusd, hard_limit_microusd,
+			emergency_limit_microusd, anomaly_multiplier, anomaly_minimum_samples,
+			anomaly_min_cost_microusd, updated_at
+		) VALUES(1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET
+			enabled = excluded.enabled,
+			window_days = excluded.window_days,
+			soft_limit_microusd = excluded.soft_limit_microusd,
+			hard_limit_microusd = excluded.hard_limit_microusd,
+			emergency_limit_microusd = excluded.emergency_limit_microusd,
+			anomaly_multiplier = excluded.anomaly_multiplier,
+			anomaly_minimum_samples = excluded.anomaly_minimum_samples,
+			anomaly_min_cost_microusd = excluded.anomaly_min_cost_microusd,
+			updated_at = excluded.updated_at
+	`,
+		enabled, p.WindowDays, p.SoftLimitMicroUSD, p.HardLimitMicroUSD,
+		p.EmergencyLimitMicroUSD, p.AnomalyMultiplier, p.AnomalyMinimumSamples,
+		p.AnomalyMinCostMicroUSD, formatStoreTime(p.UpdatedAt),
+	)
+	return err
 }
 
 func validateCostObservation(obs CostObservation) error {
