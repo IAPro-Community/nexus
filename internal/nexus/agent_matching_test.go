@@ -34,6 +34,12 @@ func TestNormalizeAgentTaxonomy(t *testing.T) {
 		{"frontend_dev", "frontend-engineer"},
 		{"backend", "backend-engineer"},
 		{"reviewer", "reviewer"},
+		{"security", "security-reviewer"},
+		{"security_auditor", "security-reviewer"},
+		{"software architect", "architect"},
+		{"root_cause_investigator", "investigator"},
+		{"performance engineer", "performance-investigator"},
+		{"senior engineer", "senior-developer"},
 	} {
 		if got := normalizeAgentTaxonomy(test.input); got != test.want {
 			t.Errorf("normalizeAgentTaxonomy(%q)=%q, want %q", test.input, got, test.want)
