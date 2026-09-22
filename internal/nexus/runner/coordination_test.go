@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -256,8 +257,9 @@ func TestMissionRunnerMaterializesCoordinationAsDynamicWork(t *testing.T) {
 		Operation:         CoordinationDelegate,
 		Subject:           "inspect token persistence",
 		Objective:         "independently inspect token persistence and report evidence",
-		PreferredRole:     "backend-reviewer",
-		PreferredProvider: "codex",
+		PreferredRole:        "backend-reviewer",
+		PreferredProvider:    "codex",
+		RequiredCapabilities: []string{"code_review"},
 	})
 	if err != nil {
 		t.Fatalf("submit coordination: %v", err)
@@ -277,6 +279,18 @@ func TestMissionRunnerMaterializesCoordinationAsDynamicWork(t *testing.T) {
 	}
 	if child.DesiredProvider != "codex" || child.Role != "backend-reviewer" {
 		t.Fatalf("coordination preferences were not projected: %#v", child)
+	}
+	var taskRequirements struct {
+		TaskKind             string   `json:"task_kind"`
+		Role                 string   `json:"role"`
+		RequiredCapabilities []string `json:"required_capabilities"`
+	}
+	if err := json.Unmarshal([]byte(child.TaskRequirements), &taskRequirements); err != nil {
+		t.Fatalf("decode dynamic task requirements: %v", err)
+	}
+	if taskRequirements.TaskKind != "coordination" || taskRequirements.Role != "backend-reviewer" ||
+		len(taskRequirements.RequiredCapabilities) != 1 || taskRequirements.RequiredCapabilities[0] != "code_review" {
+		t.Fatalf("coordination requirements did not reach scheduler contract: %+v", taskRequirements)
 	}
 	again, err := r.MaterializeCoordinationWork(ctx, run.ID, req.ID)
 	if err != nil {
