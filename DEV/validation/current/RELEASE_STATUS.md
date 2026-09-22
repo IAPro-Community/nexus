@@ -94,6 +94,25 @@ Before any stable release:
 - release artifacts must be produced from the final clean candidate;
 - external signing/notarization limitations must be stated truthfully.
 
+## Stable certification contract
+
+Stable release now has an executable certification boundary rather than a checklist-only
+claim. `.github/workflows/stable-certification.yml` must complete successfully on the
+exact candidate SHA before a non-prerelease version can pass `release.yml`.
+
+The stable certification performs:
+
+- exact-SHA and canonical update trust-root checks;
+- exact-SHA candidate build and release/update contract tests;
+- authenticated direct-provider probes;
+- a black-box autonomous Mission that must end in `COMPLETED_VERIFIED`;
+- an 8-hour process-level Web soak with HTTP health probes;
+- a deliberate Web restart during the soak;
+- a second provider/Mission checkpoint after the soak window.
+
+The historical in-memory `TestOvernightSoakHarnessBounded` remains a state-machine
+test only and is not accepted as stable-release soak evidence.
+
 ## Current verdict
 
 `NEXUS_1_0_CANDIDATE = NO_GO`
