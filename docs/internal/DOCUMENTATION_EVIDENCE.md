@@ -58,4 +58,4 @@ Em caso de divergência documental:
 5. relatórios históricos.
 
 O status de release continua em
-[`DEV/validation/current/RELEASE_STATUS.md`](../../DEV/validation/current/RELEASE_STATUS.md).
+[status público da release](../release-status.md).
