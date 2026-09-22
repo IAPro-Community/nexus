@@ -94,16 +94,28 @@ second scheduler or coordination engine:
 
 ### In-flight provider safety boundary
 
-Nexus 1.0 does **not** replay an already-dispatched package merely because that
-provider asks for more information or delegation. Replaying such a package can
-repeat external side effects. Coordination is accepted at Mission control
-boundaries where the MissionRunner can durably own the transition.
+Nexus 1.0 never blindly replays an already-dispatched package merely because a
+provider asks for more information or delegation. A completed provider turn may
+emit the bounded `NEXUS_COORDINATION_REQUEST` protocol only before producing
+side effects. The executor accepts automatic continuation only when both of the
+following are positively proven:
 
-A future provider-native tool callback may submit coordination during an active
-turn only after the provider/session adapter can prove a safe continuation
-identity or an equivalent non-replay protocol. Until then, an in-flight request
-must fail closed rather than bypass the Mission lease or create a peer-to-peer
-Agent mesh. This is a safety boundary, not a second execution path.
+- the workspace replay fingerprint, including Git HEAD, tracked/index changes and
+  untracked content, is unchanged; and
+- the Mission contract forbids destructive Git, push, deploy, external network,
+  secret access and paid-service side effects.
+
+When that proof holds, MissionRunner persists/materializes the coordination
+request, makes the dynamic child a dependency of the source package, records the
+child WorkReceipt, refreshes the source ContextCapsule and starts a fresh
+provider turn under the same persistent Agent identity. This is durable
+continuation through Mission evidence, not provider-session replay.
+
+If workspace evidence is unavailable/changed or the contract permits external
+side effects, the Mission fails closed into an actionable human intervention
+instead of replaying the source package. A future provider-native callback may
+remove the fresh-turn boundary after the adapter can prove a safe continuation
+identity. No peer-to-peer Agent mesh is introduced.
 
 ## Delivery sequence
 
