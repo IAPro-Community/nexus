@@ -560,25 +560,25 @@ func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, pro
 		case "COMPLETED_VERIFIED":
 			goto completed
 		case "FAILED", "FAILED_NO_PROGRESS", "FAILED_BUDGET_EXCEEDED", "FAILED_VERIFICATION", "CANCELED_BY_USER":
-			return fmt.Errorf("Mission E2E terminated in %s", run.State)
+			return fmt.Errorf("mission E2E terminated in %s", run.State)
 		case "BLOCKED_NEEDS_USER", "PAUSED":
-			return fmt.Errorf("Mission E2E requires intervention in state %s", run.State)
+			return fmt.Errorf("mission E2E requires intervention in state %s", run.State)
 		}
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("Mission E2E timed out in state %s: %w", run.State, ctx.Err())
+			return fmt.Errorf("mission E2E timed out in state %s: %w", run.State, ctx.Err())
 		case <-ticker.C:
 		}
 	}
 
 completed:
 	if len(run.PackageRuns) != 1 {
-		return fmt.Errorf("Mission E2E expected exactly one package run, got %d", len(run.PackageRuns))
+		return fmt.Errorf("mission E2E expected exactly one package run, got %d", len(run.PackageRuns))
 	}
 	pkg := run.PackageRuns[0]
 	if pkg.PackageID != "mission-e2e" || pkg.State != "VERIFIED" ||
 		pkg.AssignedAgent == "" || pkg.AssignedRuntime == "" || strings.TrimSpace(pkg.Workspace) == "" {
-		return fmt.Errorf("Mission E2E package lacks verified execution identity: %+v", pkg)
+		return fmt.Errorf("mission E2E package lacks verified execution identity: %+v", pkg)
 	}
 	agentIDs[pkg.AssignedAgent] = struct{}{}
 
@@ -588,10 +588,10 @@ completed:
 		return fmt.Errorf("read Mission E2E marker from isolated worktree: %w", err)
 	}
 	if string(markerBytes) != missionE2EMarker+"\n" {
-		return fmt.Errorf("Mission E2E marker content mismatch")
+		return fmt.Errorf("mission E2E marker content mismatch")
 	}
 	if filepath.Clean(pkg.Workspace) == filepath.Clean(projectPath) {
-		return fmt.Errorf("Mission E2E autonomous package executed in the source checkout instead of an isolated worktree")
+		return fmt.Errorf("mission E2E autonomous package executed in the source checkout instead of an isolated worktree")
 	}
 
 	var evidence missionE2EEvidence
@@ -599,15 +599,15 @@ completed:
 		return fmt.Errorf("read Mission E2E evidence: %w", err)
 	}
 	if len(evidence.Capsules) == 0 {
-		return fmt.Errorf("Mission E2E produced no persisted ContextCapsule")
+		return fmt.Errorf("mission E2E produced no persisted ContextCapsule")
 	}
 	if len(evidence.Receipts) != 1 {
-		return fmt.Errorf("Mission E2E expected one WorkReceipt, got %d", len(evidence.Receipts))
+		return fmt.Errorf("mission E2E expected one WorkReceipt, got %d", len(evidence.Receipts))
 	}
 	receipt := evidence.Receipts[0]
 	if receipt.StepID != "mission-e2e" || receipt.Status != "VERIFIED" ||
 		len(receipt.ChangedFiles) != 1 || filepath.ToSlash(receipt.ChangedFiles[0]) != missionE2EMarkerFile {
-		return fmt.Errorf("Mission E2E WorkReceipt does not prove the expected isolated change: %+v", receipt)
+		return fmt.Errorf("mission E2E WorkReceipt does not prove the expected isolated change: %+v", receipt)
 	}
 	return nil
 }
