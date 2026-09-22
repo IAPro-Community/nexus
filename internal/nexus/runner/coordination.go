@@ -80,3 +80,115 @@ func ValidateCoordinationRequest(req CoordinationRequest) error {
 	}
 	return nil
 }
+
+
+func cloneCoordinationRequest(in CoordinationRequest) CoordinationRequest {
+	out := in
+	out.RequiredCapabilities = append([]string(nil), in.RequiredCapabilities...)
+	out.ArtifactRefs = append([]string(nil), in.ArtifactRefs...)
+	return out
+}
+
+// SubmitCoordinationRequest durably appends a validated request to the owning
+// MissionRun. Replaying the same request ID is idempotent only when the
+// semantic request is unchanged.
+func (r *MissionRunner) SubmitCoordinationRequest(ctx context.Context, runID string, req CoordinationRequest) (*CoordinationRequest, error) {
+	if r == nil || r.repo == nil {
+		return nil, fmt.Errorf("mission runner repository is unavailable")
+	}
+	runID = strings.TrimSpace(runID)
+	if runID == "" {
+		return nil, fmt.Errorf("coordination run id is required")
+	}
+	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
+	if err != nil {
+		return nil, err
+	}
+	leaseToken := run.LeaseToken
+	defer func() { _ = r.repo.ReleaseLease(context.Background(), runID, r.owner, leaseToken) }()
+
+	if req.RunID == "" {
+		req.RunID = runID
+	}
+	if req.RunID != runID {
+		return nil, fmt.Errorf("coordination request run_id %q does not match owning run %q", req.RunID, runID)
+	}
+	if req.Status == "" {
+		req.Status = CoordinationPending
+	}
+	if req.CreatedAt.IsZero() {
+		req.CreatedAt = time.Now().UTC()
+	}
+	if err := ValidateCoordinationRequest(req); err != nil {
+		return nil, err
+	}
+	if isTerminalRunState(run.State) {
+		return nil, fmt.Errorf("mission run %s is terminal and cannot accept coordination", run.ID)
+	}
+	if packageIndex(run, req.SourcePackageID) < 0 {
+		return nil, fmt.Errorf("coordination source package %q does not belong to mission run %s", req.SourcePackageID, run.ID)
+	}
+	for i := range run.CoordinationRequests {
+		existing := &run.CoordinationRequests[i]
+		if existing.ID != req.ID {
+			continue
+		}
+		if existing.RunID == req.RunID &&
+			existing.SourcePackageID == req.SourcePackageID &&
+			existing.Operation == req.Operation &&
+			existing.Subject == req.Subject &&
+			existing.Objective == req.Objective {
+			copy := cloneCoordinationRequest(*existing)
+			return &copy, nil
+		}
+		return nil, fmt.Errorf("coordination request id %q already exists with different semantics", req.ID)
+	}
+	run.CoordinationRequests = append(run.CoordinationRequests, cloneCoordinationRequest(req))
+	run.UpdatedAt = time.Now().UTC()
+	if err := r.saveRun(ctx, run); err != nil {
+		return nil, err
+	}
+	saved := cloneCoordinationRequest(req)
+	return &saved, nil
+}
+
+// ResolveCoordinationRequest closes a durable coordination request without
+// mutating the sealed mission objective. Child-work materialization remains a
+// separate MissionRunner concern.
+func (r *MissionRunner) ResolveCoordinationRequest(ctx context.Context, runID, requestID string, status CoordinationStatus, summary, receiptID string) (*CoordinationRequest, error) {
+	if status != CoordinationResolved && status != CoordinationRejected && status != CoordinationCanceled {
+		return nil, fmt.Errorf("coordination resolution status %q is not terminal", status)
+	}
+	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
+	if err != nil {
+		return nil, err
+	}
+	leaseToken := run.LeaseToken
+	defer func() { _ = r.repo.ReleaseLease(context.Background(), runID, r.owner, leaseToken) }()
+
+	for i := range run.CoordinationRequests {
+		req := &run.CoordinationRequests[i]
+		if req.ID != requestID {
+			continue
+		}
+		if req.Status != CoordinationPending {
+			if req.Status == status && req.ResolutionSummary == summary && req.ResultReceiptID == receiptID {
+				copy := cloneCoordinationRequest(*req)
+				return &copy, nil
+			}
+			return nil, fmt.Errorf("coordination request %q is already %s", requestID, req.Status)
+		}
+		now := time.Now().UTC()
+		req.Status = status
+		req.ResolvedAt = &now
+		req.ResolutionSummary = strings.TrimSpace(summary)
+		req.ResultReceiptID = strings.TrimSpace(receiptID)
+		run.UpdatedAt = now
+		if err := r.saveRun(ctx, run); err != nil {
+			return nil, err
+		}
+		copy := cloneCoordinationRequest(*req)
+		return &copy, nil
+	}
+	return nil, fmt.Errorf("coordination request %q not found in mission run %s", requestID, runID)
+}
