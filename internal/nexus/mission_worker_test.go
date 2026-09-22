@@ -32,7 +32,6 @@ func TestReleaseMissionWorkerCannotDeleteNewGeneration(t *testing.T) {
 	}
 }
 
-
 func TestWaitMissionWorkerReturnsDurableTerminalRun(t *testing.T) {
 	repo := runner.NewMemoryRunRepository()
 	missionRunner := runner.NewMissionRunner(repo, nil)
