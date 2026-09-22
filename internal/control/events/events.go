@@ -47,9 +47,6 @@ const (
 	EventHumanInterventionResolved      EventType = "HUMAN_INTERVENTION_RESOLVED"
 	EventHumanInterventionStaleRejected EventType = "HUMAN_INTERVENTION_STALE_REJECTED"
 	EventMissionResumeRequested         EventType = "MISSION_RESUME_REQUESTED"
-	EventMissionCoordinationRequested   EventType = "MISSION_COORDINATION_REQUESTED"
-	EventMissionCoordinationMaterialized EventType = "MISSION_COORDINATION_MATERIALIZED"
-	EventMissionCoordinationResolved    EventType = "MISSION_COORDINATION_RESOLVED"
 	EventError                          EventType = "ERROR"
 )
 
