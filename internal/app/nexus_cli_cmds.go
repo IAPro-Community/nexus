@@ -112,18 +112,37 @@ func planCmd(args []string) error {
 		if err != nil {
 			return err
 		}
-		out, _ := json.MarshalIndent(map[string]any{
-			"run_id":     run.ID,
-			"state":      run.State,
+		return waitAndPrintMission(context.Background(), n, run, map[string]any{
 			"autonomous": true,
 			"plan_id":    args[1],
-		}, "", "  ")
-		fmt.Println(string(out))
-		return nil
+		})
 
 	default:
 		return fmt.Errorf("subcomando de plano desconhecido: %s", args[0])
 	}
+}
+
+func waitAndPrintMission(ctx context.Context, n *nexus.Nexus, started *runner.MissionRun, fields map[string]any) error {
+	if started == nil {
+		return fmt.Errorf("mission start returned no run")
+	}
+	final, waitErr := n.WaitMissionWorker(ctx, started.ID)
+	if final == nil {
+		final = started
+	}
+	result := map[string]any{
+		"run_id": final.ID,
+		"state":  final.State,
+	}
+	for key, value := range fields {
+		result[key] = value
+	}
+	if final.CompletedAt != nil {
+		result["completed_at"] = final.CompletedAt
+	}
+	out, _ := json.MarshalIndent(result, "", "  ")
+	fmt.Println(string(out))
+	return waitErr
 }
 
 func agentsCmd(args []string) error {
