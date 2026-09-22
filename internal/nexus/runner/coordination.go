@@ -22,18 +22,18 @@ const (
 type CoordinationStatus string
 
 const (
-	CoordinationPending   CoordinationStatus = "PENDING"
-	CoordinationResolved  CoordinationStatus = "RESOLVED"
-	CoordinationRejected  CoordinationStatus = "REJECTED"
-	CoordinationCanceled  CoordinationStatus = "CANCELED"
+	CoordinationPending  CoordinationStatus = "PENDING"
+	CoordinationResolved CoordinationStatus = "RESOLVED"
+	CoordinationRejected CoordinationStatus = "REJECTED"
+	CoordinationCanceled CoordinationStatus = "CANCELED"
 )
 
 // CoordinationRequest is a Mission-owned request raised by an executing Agent.
 // It is intentionally provider-neutral: source/target are Agent/task concepts,
 // while provider/profile/model selection stays with ResourceScheduler.
 type CoordinationRequest struct {
-	ID                  string                `json:"id"`
-	RunID               string                `json:"run_id"`
+	ID                   string                `json:"id"`
+	RunID                string                `json:"run_id"`
 	SourcePackageID      string                `json:"source_package_id"`
 	SourceAgentID        string                `json:"source_agent_id,omitempty"`
 	Operation            CoordinationOperation `json:"operation"`
