@@ -44,6 +44,14 @@ rm -rf "$PREFIX/lib/nexus" "$PREFIX/lib/ai-manager"
 remove_file "$HOME/.local/share/applications/iapro-nexus.desktop"
 remove_file "$HOME/Desktop/IAPro Nexus.desktop"
 
+# macOS user-local Wails app bundle.
+for app in "$HOME/Applications/IAPro Nexus.app" "$HOME/Applications/nexus-desktop.app"; do
+    if [ -d "$app" ]; then
+        rm -rf "$app"
+        echo "Removed $app"
+    fi
+done
+
 # Remove only PATH lines that the Nexus installer itself marked. Leave any
 # pre-existing ~/.local/bin configuration untouched.
 cleanup_shell_rc() {
