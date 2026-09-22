@@ -74,11 +74,7 @@ func NewService(cfg ServiceConfig) *Service {
 	}
 	ch := cfg.Channel
 	if ch == "" {
-		if strings.Contains(strings.ToLower(ver), "beta") {
-			ch = "beta"
-		} else {
-			ch = "stable"
-		}
+		ch = channelForVersion(ver)
 	}
 	execP := cfg.ExecPath
 	if execP == "" {
@@ -110,6 +106,16 @@ func NewService(cfg ServiceConfig) *Service {
 		method:      meth,
 		workTracker: cfg.WorkTracker,
 	}
+}
+
+func channelForVersion(version string) string {
+	lower := strings.ToLower(strings.TrimSpace(version))
+	if strings.Contains(lower, "-alpha.") ||
+		strings.Contains(lower, "-beta.") ||
+		strings.Contains(lower, "-rc.") {
+		return "beta"
+	}
+	return "stable"
 }
 
 // Check inspects the registry and evaluates update eligibility.
