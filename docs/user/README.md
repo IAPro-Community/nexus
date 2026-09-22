@@ -33,5 +33,5 @@ Nenhum dos dois certifica provider, conta ou plataforma por si só.
 
 A documentação de produto pode descrever capacidades implementadas no source
 candidato antes de a release estável estar autorizada. Consulte sempre o
-[status autoritativo](../../DEV/validation/current/RELEASE_STATUS.md) para
+[status público da release](../release-status.md) para
 claims de release.
