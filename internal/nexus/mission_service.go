@@ -526,20 +526,7 @@ func (n *Nexus) WaitMissionWorker(ctx context.Context, runID string) (*runner.Mi
 		if err != nil {
 			return nil, err
 		}
-		switch run.State {
-		case runner.StateCompletedVerified,
-			runner.StateFailed,
-			runner.StateFailedNoProgress,
-			runner.StateFailedBudgetExceeded,
-			runner.StateFailedVerification,
-			runner.StateBlockedNeedsUser,
-			runner.StatePaused,
-			runner.StateCanceledByUser,
-			runner.StateEscalated:
-			return run, nil
-		default:
-			return run, fmt.Errorf("mission %s has no active worker while state=%s", runID, run.State)
-		}
+		return run, settledMissionError(run)
 	}
 
 	select {
@@ -556,7 +543,35 @@ func (n *Nexus) WaitMissionWorker(ctx context.Context, runID string) (*runner.Mi
 	if worker.err != nil {
 		return run, worker.err
 	}
-	return run, nil
+	return run, settledMissionError(run)
+}
+
+func settledMissionError(run *runner.MissionRun) error {
+	if run == nil {
+		return fmt.Errorf("mission worker settled without durable run state")
+	}
+	switch run.State {
+	case runner.StateCompletedVerified:
+		return nil
+	case runner.StateFailed,
+		runner.StateFailedNoProgress,
+		runner.StateFailedBudgetExceeded,
+		runner.StateFailedVerification,
+		runner.StateBlockedNeedsUser,
+		runner.StatePaused,
+		runner.StateCanceledByUser,
+		runner.StateEscalated:
+		reason := strings.TrimSpace(run.PausedReason)
+		if run.NeedsHuman != nil && !run.NeedsHuman.Resolved && strings.TrimSpace(run.NeedsHuman.Summary) != "" {
+			reason = strings.TrimSpace(run.NeedsHuman.Summary)
+		}
+		if reason == "" {
+			return fmt.Errorf("mission stopped in state %s", run.State)
+		}
+		return fmt.Errorf("mission stopped in state %s: %s", run.State, reason)
+	default:
+		return fmt.Errorf("mission %s has no active worker while state=%s", run.ID, run.State)
+	}
 }
 
 // restartMissionWorker performs an ownership handoff for a resolved run. The
