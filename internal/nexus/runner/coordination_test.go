@@ -364,7 +364,6 @@ func TestMissionRunnerCoordinationResolvesFromChildReceipt(t *testing.T) {
 	}
 }
 
-
 func TestValidateCoordinationRequestRejectsOversizedPayload(t *testing.T) {
 	req := CoordinationRequest{
 		ID:              "coord_oversized",
