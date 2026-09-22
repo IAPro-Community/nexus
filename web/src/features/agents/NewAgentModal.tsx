@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Bot,
@@ -148,22 +148,25 @@ export const NewAgentModal: React.FC<{
   const [loadingModes, setLoadingModes] = useState(false);
   const [error, setError] = useState('');
 
-  const localizedPresentationFor = (agentMode: AgentMode): ModePresentation => {
-    const fallback = presentationFor(agentMode);
-    return {
-      ...fallback,
-      name: String(
-        t(`agents.agentModes.${agentMode.id}.name`, {
-          defaultValue: fallback.name,
-        }),
-      ),
-      description: String(
-        t(`agents.agentModes.${agentMode.id}.description`, {
-          defaultValue: fallback.description,
-        }),
-      ),
-    };
-  };
+  const localizedPresentationFor = useCallback(
+    (agentMode: AgentMode): ModePresentation => {
+      const fallback = presentationFor(agentMode);
+      return {
+        ...fallback,
+        name: String(
+          t(`agents.agentModes.${agentMode.id}.name`, {
+            defaultValue: fallback.name,
+          }),
+        ),
+        description: String(
+          t(`agents.agentModes.${agentMode.id}.description`, {
+            defaultValue: fallback.description,
+          }),
+        ),
+      };
+    },
+    [t],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -203,7 +206,7 @@ export const NewAgentModal: React.FC<{
     return () => {
       alive = false;
     };
-  }, [open]);
+  }, [open, localizedPresentationFor]);
 
   const handleSelectType = (preset: AgentMode) => {
     setSelectedType(preset);
