@@ -147,7 +147,6 @@ func TestMissionRunnerCoordinationRequestReturnsReceiptToSameSourceWork(t *testi
 	}
 }
 
-
 type unsafeCoordinationExecutor struct {
 	workspace string
 }
