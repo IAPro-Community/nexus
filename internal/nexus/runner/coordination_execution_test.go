@@ -148,10 +148,12 @@ func TestMissionRunnerCoordinationRequestReturnsReceiptToSameSourceWork(t *testi
 }
 
 
-type unsafeCoordinationExecutor struct{}
+type unsafeCoordinationExecutor struct {
+	workspace string
+}
 
-func (unsafeCoordinationExecutor) Allocate(_ context.Context, _ *MissionRun, _ *PackageRun) (AllocationResult, error) {
-	return AllocationResult{AgentID: "agent-source", Workspace: "/tmp"}, nil
+func (e unsafeCoordinationExecutor) Allocate(_ context.Context, _ *MissionRun, _ *PackageRun) (AllocationResult, error) {
+	return AllocationResult{AgentID: "agent-source", Workspace: e.workspace}, nil
 }
 
 func (unsafeCoordinationExecutor) Compile(_ context.Context, _ *MissionRun, pkg *PackageRun) (PromptArtifact, error) {
@@ -175,7 +177,7 @@ func (unsafeCoordinationExecutor) Review(context.Context, *MissionRun, *PackageR
 
 func TestMissionRunnerBlocksCoordinationWithoutReplaySafetyProof(t *testing.T) {
 	ctx := context.Background()
-	r := NewMissionRunner(NewMemoryRunRepository(), unsafeCoordinationExecutor{})
+	r := NewMissionRunner(NewMemoryRunRepository(), unsafeCoordinationExecutor{workspace: t.TempDir()})
 	run, err := r.StartMissionRun(ctx, PlanSpec{
 		ID:        "plan-unsafe-coordination",
 		ProjectID: "project-unsafe-coordination",
