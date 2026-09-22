@@ -23,8 +23,13 @@ OLD_VERSION="${NEXUS_LIFECYCLE_OLD_VERSION:-$default_old_version}"
 MISMATCH_VERSION="${CANDIDATE_VERSION}-mismatch.1"
 
 canonical="$(tr -d '[:space:]' < UPDATE_PUBLIC_KEY)"
+canonical_key_id="$(tr -d '\r\n[:space:]' < UPDATE_KEY_ID)"
 test "$NEXUS_UPDATE_PUBLIC_KEY" = "$canonical" || {
     echo "NEXUS_UPDATE_PUBLIC_KEY does not match UPDATE_PUBLIC_KEY" >&2
+    exit 1
+}
+test "$NEXUS_UPDATE_KEY_ID" = "$canonical_key_id" || {
+    echo "NEXUS_UPDATE_KEY_ID does not match UPDATE_KEY_ID" >&2
     exit 1
 }
 
@@ -142,6 +147,17 @@ install_version "$CANDIDATE_VERSION" "$prefix/bin"
 installed_candidate="$("$prefix/bin/nexus" version --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])')"
 test "$installed_candidate" = "$CANDIDATE_VERSION"
 
+echo "== signed self-update: $OLD_VERSION -> $CANDIDATE_VERSION =="
+update_prefix="$root/update-prefix"
+mkdir -p "$update_prefix/bin"
+install -m 0755 "$old_bin" "$update_prefix/bin/nexus"
+HOME="$home" \
+NEXUS_UPDATE_REGISTRY_URL="$base/v$CANDIDATE_VERSION/update-manifest.json" \
+NEXUS_INSTALL_METHOD=STANDALONE \
+"$update_prefix/bin/nexus" update
+updated_version="$("$update_prefix/bin/nexus" version --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])')"
+test "$updated_version" = "$CANDIDATE_VERSION"
+
 echo "== signed wrong-version artifact must fail =="
 if install_version "$MISMATCH_VERSION" "$mismatch_prefix/bin"; then
     echo "Installer accepted a correctly signed archive containing the wrong embedded version" >&2
@@ -175,6 +191,7 @@ test ! -e "$home/.local/share/nexus"
 cat > "$root/result.txt" <<EOF
 signed install: PASS
 signed upgrade: PASS
+signed self-update: PASS
 embedded version identity: PASS
 tamper rejection: PASS
 uninstall preserve-data: PASS
