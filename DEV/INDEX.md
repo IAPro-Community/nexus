@@ -1,5 +1,24 @@
 # DEV Master Index
 
+> **Documentação pública canônica:** [README](../README.md) →
+> [docs/README](../docs/README.md) →
+> [Como funciona](../docs/product/how-it-works.md) →
+> [Arquitetura](../ARCHITECTURE.md).
+>
+> `DEV/` é ledger de engenharia, specs e evidência. Relatórios históricos não
+> substituem a documentação pública nem o
+> [status corrente de release](validation/current/RELEASE_STATUS.md).
+
+## Contratos públicos v1
+
+- [Como o Nexus funciona](../docs/product/how-it-works.md)
+- [Coordenação entre Agents](../docs/product/agent-coordination.md)
+- [Runtime da Mission](../docs/architecture/mission-runtime.md)
+- [Guardrails](../docs/architecture/guardrails.md)
+- [Modelo mental](../docs/product/mental-model.md)
+- [Matriz de funcionalidades](../docs/reference/feature-matrix.md)
+
+
 Guia e índice de navegação estruturada da documentação de engenharia e governança do IAPro Nexus.
 
 **Current release status for HEAD:** [`validation/current/RELEASE_STATUS.md`](validation/current/RELEASE_STATUS.md)
