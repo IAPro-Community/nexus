@@ -343,9 +343,7 @@ describe('Mission coordination API', () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain(
       '/api/v1/runs/run-1/coordination-materialize',
     );
-    expect(String(fetchMock.mock.calls[1][0])).toContain(
-      '/api/v1/runs/run-1/coordination-resolve',
-    );
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/api/v1/runs/run-1/coordination-resolve');
     expect((fetchMock.mock.calls[0][1] as RequestInit).method).toBe('POST');
     expect((fetchMock.mock.calls[1][1] as RequestInit).method).toBe('POST');
   });
