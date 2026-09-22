@@ -1054,6 +1054,13 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 		return fmt.Errorf("unsafe coordination boundary: %s", reason)
 	}
 	if len(outcome.CoordinationRequests) > 0 {
+		if !outcome.CoordinationReplaySafe {
+			r.blockNeedsHuman(run, pkg, "COORDINATION_REPLAY_UNPROVEN",
+				"Agent requested coordination without positive proof that replay is side-effect safe.",
+				"Review the partial execution before allowing the package to run again.",
+				[]string{"Inspect workspace changes", "Confirm no external side effects occurred", "Resume with an explicit plan"})
+			return fmt.Errorf("coordination replay safety was not proven")
+		}
 		sourceID := pkg.PackageID
 		if err := r.acceptExecutionCoordination(run, sourceID, outcome.CoordinationRequests); err != nil {
 			r.blockNeedsHuman(run, pkg, "COORDINATION_REJECTED", err.Error(),
@@ -1183,6 +1190,16 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 			continue
 		}
 		if len(res.outcome.CoordinationRequests) > 0 {
+			if !res.outcome.CoordinationReplaySafe {
+				r.blockNeedsHuman(run, pkg, "COORDINATION_REPLAY_UNPROVEN",
+					"Agent requested coordination without positive proof that replay is side-effect safe.",
+					"Review the partial execution before allowing the package to run again.",
+					[]string{"Inspect workspace changes", "Confirm no external side effects occurred", "Resume with an explicit plan"})
+				if firstErr == nil {
+					firstErr = fmt.Errorf("coordination replay safety was not proven")
+				}
+				continue
+			}
 			sourceID := pkg.PackageID
 			if err := r.acceptExecutionCoordination(run, sourceID, res.outcome.CoordinationRequests); err != nil {
 				r.blockNeedsHuman(run, pkg, "COORDINATION_REJECTED", err.Error(),
