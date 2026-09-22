@@ -32,14 +32,7 @@ export const ComposerSkills: React.FC<{
   onUpdateSkill: (skillId: string, state: 'ACCEPTED' | 'REJECTED') => void;
   onSelectCatalogSkill: (skillId: string) => void;
   compact?: boolean;
-}> = ({
-  skills,
-  catalog,
-  busy,
-  onUpdateSkill,
-  onSelectCatalogSkill,
-  compact = false,
-}) => {
+}> = ({ skills, catalog, busy, onUpdateSkill, onSelectCatalogSkill, compact = false }) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
 

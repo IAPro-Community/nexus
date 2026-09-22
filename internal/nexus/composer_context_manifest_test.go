@@ -116,7 +116,6 @@ func TestRankComposerSkillCandidatesLoadsOnlyRelevantSkills(t *testing.T) {
 	}
 }
 
-
 func TestComposerExecutionBriefPreservesLegacyReferencedFiles(t *testing.T) {
 	brief := newComposerBrief("legacy task", "")
 	brief.Context.ReferencedFiles = []ContextFileRef{{

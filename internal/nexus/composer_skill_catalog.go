@@ -16,15 +16,15 @@ const composerSkillCatalogLimit = 100
 // Prompt instructions, permissions and local provenance paths never cross this
 // boundary; they are resolved again server-side only when a skill is applied.
 type ComposerSkillCatalogItem struct {
-	ID           string                  `json:"id"`
-	Name         string                  `json:"name"`
-	Description  string                  `json:"description,omitempty"`
-	Source       nexusskills.SourceID    `json:"source"`
-	Version      string                  `json:"version,omitempty"`
-	Risk         string                  `json:"risk,omitempty"`
+	ID           string                   `json:"id"`
+	Name         string                   `json:"name"`
+	Description  string                   `json:"description,omitempty"`
+	Source       nexusskills.SourceID     `json:"source"`
+	Version      string                   `json:"version,omitempty"`
+	Risk         string                   `json:"risk,omitempty"`
 	Availability nexusskills.Availability `json:"availability"`
-	Capabilities []string                `json:"capabilities,omitempty"`
-	Triggers     []string                `json:"triggers,omitempty"`
+	Capabilities []string                 `json:"capabilities,omitempty"`
+	Triggers     []string                 `json:"triggers,omitempty"`
 }
 
 type composerSkillCatalogMatch struct {
@@ -48,7 +48,7 @@ func (n *Nexus) ListComposerSkillCatalog(ctx context.Context, projectID, query s
 			Source: skill.Source, Version: skill.Version, Risk: skill.Risk,
 			Availability: skill.Availability,
 			Capabilities: append([]string(nil), skill.Capabilities...),
-			Triggers: append([]string(nil), skill.Triggers...),
+			Triggers:     append([]string(nil), skill.Triggers...),
 		}
 		score := composerSkillCatalogScore(item, query)
 		if query != "" && score == 0 {
@@ -145,7 +145,7 @@ func (n *Nexus) SelectComposerSkill(ctx context.Context, sessionID, skillID stri
 	}
 	if _, err := st.UpsertComposerSkillProposal(store.ComposerSkillProposal{
 		SessionID: sessionID, SkillID: skill.ID, State: state,
-		Reason: "Selected manually from the source-agnostic Nexus Skill Catalog.",
+		Reason:        "Selected manually from the source-agnostic Nexus Skill Catalog.",
 		Applicability: skill.Description, Risk: skill.Risk, Source: string(skill.Source),
 		Version: skill.Version, Available: true,
 	}); err != nil {
