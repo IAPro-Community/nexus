@@ -78,6 +78,33 @@ Project → Mission history must be able to explain:
 The Flow UI is optional for operating the product, but not optional as a
 projection of persisted orchestration truth.
 
+## Nexus 1.0 implementation boundary
+
+The 1.0 implementation uses the existing Mission authority and does not add a
+second scheduler or coordination engine:
+
+- supervised conversation promotion reuses Conductor → WorkPlan → MissionRun;
+- coordination requests are durable MissionRun state with semantic idempotency;
+- NEED_INFO first attempts exact-key recall from existing IntelligenceMemory;
+- ARTIFACT_REQUEST first attempts exact artifact reuse from existing WorkReceipts;
+- requests that still require work materialize as additive dynamic PackageRuns;
+- dynamic packages retain request/source-package lineage and are visible in Flow Run;
+- verified/failed child WorkReceipts close the owning coordination request;
+- restart/replay must preserve lineage and must not duplicate the dynamic child.
+
+### In-flight provider safety boundary
+
+Nexus 1.0 does **not** replay an already-dispatched package merely because that
+provider asks for more information or delegation. Replaying such a package can
+repeat external side effects. Coordination is accepted at Mission control
+boundaries where the MissionRunner can durably own the transition.
+
+A future provider-native tool callback may submit coordination during an active
+turn only after the provider/session adapter can prove a safe continuation
+identity or an equivalent non-replay protocol. Until then, an in-flight request
+must fail closed rather than bypass the Mission lease or create a peer-to-peer
+Agent mesh. This is a safety boundary, not a second execution path.
+
 ## Delivery sequence
 
 First establish the typed Mission coordination contract and durability. Then
