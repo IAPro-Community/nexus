@@ -134,7 +134,7 @@ jobs:
         run: |
           set -euo pipefail
           case "$RELEASE_VERSION" in v*) ;; *) echo "Release version must be a v-prefixed tag" >&2; exit 1;; esac
-          SOURCE_VERSION="v$(tr -d '\\r\\n' < VERSION)"
+          SOURCE_VERSION="v$(tr -d '\r\n' < VERSION)"
           test "$RELEASE_VERSION" = "$SOURCE_VERSION" || {
             echo "Release version $RELEASE_VERSION does not match source VERSION $SOURCE_VERSION" >&2
             exit 1
