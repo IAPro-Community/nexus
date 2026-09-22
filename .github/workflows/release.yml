@@ -91,6 +91,27 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      - name: Validar identidade da release
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          set -euo pipefail
+          case "$RELEASE_VERSION" in
+            v*) ;;
+            *) echo "Release version must be a v-prefixed tag" >&2; exit 1 ;;
+          esac
+          SOURCE_VERSION="v$(tr -d '\r\n' < VERSION)"
+          test "$RELEASE_VERSION" = "$SOURCE_VERSION" || {
+            echo "Release version $RELEASE_VERSION does not match source VERSION $SOURCE_VERSION" >&2
+            exit 1
+          }
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            TAG_SHA="$(git rev-list -n1 "$GITHUB_REF_NAME")"
+            test "$TAG_SHA" = "$GITHUB_SHA" || {
+              echo "Release tag $GITHUB_REF_NAME points to $TAG_SHA, expected $GITHUB_SHA" >&2
+              exit 1
+            }
+          fi
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25.14'
@@ -107,10 +128,12 @@ jobs:
           go test -race ./...
           go vet ./...
       - uses: goreleaser/goreleaser-action@v6
+        env:
+          GORELEASER_CURRENT_TAG: ${{ inputs.version || github.ref_name }}
         with:
           distribution: goreleaser
           version: v2.18.0
-          args: release --clean
+          args: release --clean --skip=publish
       - name: Promote same-SHA native desktop artifacts
         env:
           GH_TOKEN: ${{ github.token }}
@@ -133,19 +156,6 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           set -euo pipefail
-          case "$RELEASE_VERSION" in v*) ;; *) echo "Release version must be a v-prefixed tag" >&2; exit 1;; esac
-          SOURCE_VERSION="v$(tr -d '\r\n' < VERSION)"
-          test "$RELEASE_VERSION" = "$SOURCE_VERSION" || {
-            echo "Release version $RELEASE_VERSION does not match source VERSION $SOURCE_VERSION" >&2
-            exit 1
-          }
-          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
-            TAG_SHA="$(git rev-list -n1 "$GITHUB_REF_NAME")"
-            test "$TAG_SHA" = "$GITHUB_SHA" || {
-              echo "Release tag $GITHUB_REF_NAME points to $TAG_SHA, expected $GITHUB_SHA" >&2
-              exit 1
-            }
-          fi
           test -n "$NEXUS_UPDATE_PRIVATE_KEY"
           test -n "$NEXUS_UPDATE_KEY_ID"
           test -n "$NEXUS_UPDATE_PUBLIC_KEY"
@@ -195,6 +205,7 @@ jobs:
         with:
           repository: ${{ vars.NEXUS_DIST_REPO || 'IAPro-Community/nexus-releases' }}
           token: ${{ secrets.NEXUS_DIST_TOKEN }}
+          tag_name: ${{ inputs.version || github.ref_name }}
           files: |
             dist/*
             native-artifacts/*
