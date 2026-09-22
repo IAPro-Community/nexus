@@ -147,3 +147,142 @@ func TestMissionRunnerCoordinationRejectsForeignSourcePackage(t *testing.T) {
 		t.Fatal("foreign source package must be rejected")
 	}
 }
+
+
+func TestMissionRunnerMaterializesCoordinationAsDynamicWork(t *testing.T) {
+	repo := NewMemoryRunRepository()
+	r := NewMissionRunner(repo, coordinationTestExecutor{})
+	ctx := context.Background()
+	now := time.Now().UTC()
+	run := &MissionRun{
+		ID:           "run_dynamic",
+		PlanID:       "plan_dynamic",
+		PlanRevision: 1,
+		ProjectID:    "project_dynamic",
+		Workspace:    "/tmp/project",
+		State:        StateExecuting,
+		Contract:     DefaultAutonomyContract(),
+		PackageRuns: []PackageRun{
+			{ID: "pkgrun_dep", PackageID: "dep", State: StateVerified, StartedAt: now},
+			{ID: "pkgrun_parent", PackageID: "parent", State: StateExecuting, Dependencies: []string{"dep"}, Priority: "HIGH", RelevantPaths: []string{"internal/auth"}, StartedAt: now},
+		},
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+	if err := repo.SaveRun(ctx, run); err != nil {
+		t.Fatalf("save run: %v", err)
+	}
+	req, err := r.SubmitCoordinationRequest(ctx, run.ID, CoordinationRequest{
+		ID: "coord_delegate",
+		SourcePackageID: "parent",
+		SourceAgentID: "agent_lead",
+		Operation: CoordinationDelegate,
+		Subject: "inspect token persistence",
+		Objective: "independently inspect token persistence and report evidence",
+		PreferredRole: "backend-reviewer",
+		PreferredProvider: "codex",
+	})
+	if err != nil {
+		t.Fatalf("submit coordination: %v", err)
+	}
+	child, err := r.MaterializeCoordinationWork(ctx, run.ID, req.ID)
+	if err != nil {
+		t.Fatalf("materialize coordination: %v", err)
+	}
+	if !child.DynamicWork || child.ParentPackageID != "parent" || child.CoordinationRequestID != req.ID {
+		t.Fatalf("missing dynamic provenance: %#v", child)
+	}
+	if child.State != StateReady {
+		t.Fatalf("verified inherited dependencies should make child READY, got %s", child.State)
+	}
+	if len(child.Dependencies) != 1 || child.Dependencies[0] != "dep" {
+		t.Fatalf("dynamic work must inherit safe prerequisites without depending on executing parent: %#v", child.Dependencies)
+	}
+	if child.DesiredProvider != "codex" || child.Role != "backend-reviewer" {
+		t.Fatalf("coordination preferences were not projected: %#v", child)
+	}
+	again, err := r.MaterializeCoordinationWork(ctx, run.ID, req.ID)
+	if err != nil {
+		t.Fatalf("idempotent materialization: %v", err)
+	}
+	if again.PackageID != child.PackageID {
+		t.Fatalf("materialization must be idempotent: %s != %s", again.PackageID, child.PackageID)
+	}
+	stored, err := repo.GetRun(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("reload run: %v", err)
+	}
+	if len(stored.PackageRuns) != 3 {
+		t.Fatalf("expected one dynamic child, got %d packages", len(stored.PackageRuns))
+	}
+	if stored.CoordinationRequests[0].ChildPackageID != child.PackageID || stored.CoordinationRequests[0].MaterializedAt == nil {
+		t.Fatalf("coordination request must retain child lineage: %#v", stored.CoordinationRequests[0])
+	}
+}
+
+func TestMissionRunnerCoordinationResolvesFromChildReceipt(t *testing.T) {
+	repo := NewMemoryRunRepository()
+	r := NewMissionRunner(repo, coordinationTestExecutor{})
+	ctx := context.Background()
+	now := time.Now().UTC()
+	run := &MissionRun{
+		ID: "run_receipt",
+		PlanID: "plan_receipt",
+		PlanRevision: 1,
+		ProjectID: "project_receipt",
+		Workspace: "/tmp/project",
+		State: StateExecuting,
+		Contract: DefaultAutonomyContract(),
+		PackageRuns: []PackageRun{{ID: "pkgrun_parent", PackageID: "parent", State: StateExecuting, StartedAt: now}},
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+	if err := repo.SaveRun(ctx, run); err != nil {
+		t.Fatalf("save run: %v", err)
+	}
+	req, err := r.SubmitCoordinationRequest(ctx, run.ID, CoordinationRequest{
+		ID: "coord_review",
+		SourcePackageID: "parent",
+		Operation: CoordinationReviewRequest,
+		Subject: "security review",
+		Objective: "review authentication changes independently",
+	})
+	if err != nil {
+		t.Fatalf("submit: %v", err)
+	}
+	child, err := r.MaterializeCoordinationWork(ctx, run.ID, req.ID)
+	if err != nil {
+		t.Fatalf("materialize: %v", err)
+	}
+	stored, err := repo.GetRun(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	dynamic := packageByID(stored, child.PackageID)
+	if dynamic == nil {
+		t.Fatal("dynamic package missing")
+	}
+	finished := time.Now().UTC()
+	dynamic.State = StateVerified
+	dynamic.FinishedAt = &finished
+	dynamic.WorkReceipt = &WorkReceipt{
+		ID: "receipt_dynamic",
+		RunID: run.ID,
+		StepID: dynamic.PackageID,
+		Status: "VERIFIED",
+		Summary: "independent security review completed",
+		StartedAt: dynamic.StartedAt,
+		CompletedAt: finished,
+	}
+	if err := r.saveRun(ctx, stored); err != nil {
+		t.Fatalf("save completed dynamic work: %v", err)
+	}
+	reloaded, err := repo.GetRun(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("reload resolved run: %v", err)
+	}
+	got := coordinationRequestByID(reloaded, req.ID)
+	if got == nil || got.Status != CoordinationResolved || got.ResultReceiptID != "receipt_dynamic" || got.ResolvedAt == nil {
+		t.Fatalf("coordination must resolve from verified receipt: %#v", got)
+	}
+}
