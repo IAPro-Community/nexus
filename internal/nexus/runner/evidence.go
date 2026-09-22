@@ -240,7 +240,7 @@ func (r *MissionRunner) hydrateEvidence(ctx context.Context, run *MissionRun) {
 	}
 	for i := range run.PackageRuns {
 		pkg := &run.PackageRuns[i]
-		if pkg.ContextCapsule == nil {
+		if pkg.ContextCapsule == nil && !pkg.ContextRefreshRequired {
 			if capsule, getErr := evidence.GetContextCapsule(ctx, run.ID, pkg.PackageID); getErr == nil {
 				pkg.ContextCapsule = capsule
 			}
@@ -284,8 +284,11 @@ func (r *MissionRunner) directDependencyReceipts(ctx context.Context, run *Missi
 }
 
 func (r *MissionRunner) ensureContextCapsule(ctx context.Context, run *MissionRun, pkg *PackageRun) error {
-	if pkg.ContextCapsule != nil {
+	if pkg.ContextCapsule != nil && !pkg.ContextRefreshRequired {
 		return nil
+	}
+	if pkg.ContextRefreshRequired {
+		pkg.ContextCapsule = nil
 	}
 	evidence, err := evidenceRepository(r.repo)
 	if err != nil {
@@ -307,6 +310,7 @@ func (r *MissionRunner) ensureContextCapsule(ctx context.Context, run *MissionRu
 		return fmt.Errorf("%w: SCHEMA_UNAVAILABLE", ErrInfrastructureFailure)
 	}
 	pkg.ContextCapsule = capsule
+	pkg.ContextRefreshRequired = false
 	return nil
 }
 
