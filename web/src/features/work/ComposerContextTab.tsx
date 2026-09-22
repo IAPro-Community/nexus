@@ -14,7 +14,9 @@ import { ProjectIntelligenceInspector } from './ProjectIntelligenceInspector';
 import styles from './ComposerInspector.module.scss';
 
 function shortContextSummary(item: ComposerContextItem): string {
-  const compact = String(item.summary || '').replace(/\s+/g, ' ').trim();
+  const compact = String(item.summary || '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (compact.length <= 180) return compact;
   return `${compact.slice(0, 177)}…`;
 }
@@ -68,8 +70,8 @@ export const ComposerContextTab: React.FC<{
               {t('work.composer.estimatedTokens', 'estimated tokens')} · {budgetPercent}%
             </p>
             <p className={styles.meta}>
-              KEEP {manifest.budget.kept_items} · REFERENCE {manifest.budget.referenced_items} · DROP{' '}
-              {manifest.budget.dropped_items}
+              KEEP {manifest.budget.kept_items} · REFERENCE {manifest.budget.referenced_items} ·
+              DROP {manifest.budget.dropped_items}
             </p>
             {kept.length ? (
               <ul className={styles.plainList}>
@@ -143,12 +145,15 @@ export const ComposerContextTab: React.FC<{
         <details className={styles.collapse}>
           <summary>
             <span>
-              {t('work.composer.contextWarnings', 'Discovery warnings')} · {manifest?.warnings?.length}
+              {t('work.composer.contextWarnings', 'Discovery warnings')} ·{' '}
+              {manifest?.warnings?.length}
             </span>
             <ChevronRight size={14} aria-hidden />
           </summary>
           <ul className={styles.plainList}>
-            {manifest?.warnings?.map((warning) => <li key={warning}>{warning}</li>)}
+            {manifest?.warnings?.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
           </ul>
         </details>
       ) : null}

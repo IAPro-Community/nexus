@@ -174,7 +174,6 @@ describe('composerExpectedOutcome', () => {
   });
 });
 
-
 describe('composer context manifest projection', () => {
   it('separates kept, referenced and dropped context without inventing entries', () => {
     const view = {
