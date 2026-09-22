@@ -114,12 +114,14 @@ export const nexus = {
     goal: string,
     inputMode: 'IDEA' | 'EXISTING_PROMPT',
     sourcePrompt?: string,
+    signal?: AbortSignal,
   ) =>
     request<import('../types').ComposerSessionView>(
       `/api/v1/projects/${projectId}/composer-sessions`,
       {
         method: 'POST',
         body: JSON.stringify({ goal, input_mode: inputMode, source_prompt: sourcePrompt || '' }),
+        signal,
       },
     ),
   getComposerSession: (id: string) =>
@@ -135,6 +137,7 @@ export const nexus = {
       url?: string;
       size?: number;
     }>,
+    signal?: AbortSignal,
   ) =>
     request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}/turns`, {
       method: 'POST',
@@ -143,6 +146,7 @@ export const nexus = {
         expected_revision: expectedRevision,
         attachments: attachments || undefined,
       }),
+      signal,
     }),
   uploadComposerAttachment: async (sessionId: string, file: File) => {
     const { getCSRFToken, getDesktopAuthToken, getDesktopBaseUrl, NexusRequestError } =
