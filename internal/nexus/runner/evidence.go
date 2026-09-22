@@ -352,7 +352,13 @@ func (r *MissionRunner) ensureWorkReceipt(ctx context.Context, run *MissionRun, 
 	if status == "FAILED" && strings.TrimSpace(pkg.ErrorMessage) != "" {
 		remaining = []string{strings.TrimSpace(pkg.ErrorMessage)}
 	}
-	receipt := &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: status, Summary: fmt.Sprintf("%s ended in %s", pkg.Title, status), ChangedFiles: changedFiles, Commands: receiptCommands(pkg.Verifications), Tests: append([]VerificationResult(nil), pkg.Verifications...), Decisions: []string{}, Artifacts: []string{}, RemainingIssues: remaining, Verification: append([]VerificationResult(nil), pkg.Verifications...), HandoffJSON: pkg.HandoffJSON, AgentID: pkg.AssignedAgent, BaseRevision: base, ResultRevision: resultRevision, StartedAt: pkg.StartedAt, CompletedAt: completed}
+	summary := strings.TrimSpace(pkg.ResultSummary)
+	if summary == "" {
+		summary = fmt.Sprintf("%s ended in %s", pkg.Title, status)
+	} else {
+		summary = boundedCoordinationSummary(summary)
+	}
+	receipt := &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: status, Summary: summary, ChangedFiles: changedFiles, Commands: receiptCommands(pkg.Verifications), Tests: append([]VerificationResult(nil), pkg.Verifications...), Decisions: []string{}, Artifacts: []string{}, RemainingIssues: remaining, Verification: append([]VerificationResult(nil), pkg.Verifications...), HandoffJSON: pkg.HandoffJSON, AgentID: pkg.AssignedAgent, BaseRevision: base, ResultRevision: resultRevision, StartedAt: pkg.StartedAt, CompletedAt: completed}
 	if err := evidence.SaveWorkReceipt(ctx, receipt); err != nil {
 		return fmt.Errorf("persist work receipt: %w", err)
 	}
