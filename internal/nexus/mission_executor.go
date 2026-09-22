@@ -918,6 +918,23 @@ func (e *nexusPackageExecutor) resolveCoordinationLocally(ctx context.Context, r
 	return runner.ExecutionResult{}, false
 }
 
+func coordinationReplaySafety(contract runner.AutonomyContract, before, after string) (bool, string) {
+	if strings.TrimSpace(before) == "" || strings.TrimSpace(after) == "" {
+		return false, "workspace replay fingerprint is unavailable"
+	}
+	if before != after {
+		return false, "workspace changed before the coordination request was returned"
+	}
+	if !contract.DisallowDestructiveGit {
+		return false, "destructive git operations are allowed by the Mission contract"
+	}
+	if contract.AllowGitPush || contract.AllowDeploy || contract.AllowExternalNetwork ||
+		contract.AllowSecretAccess || contract.AllowPaidServices {
+		return false, "Mission contract allows external side-effect capabilities"
+	}
+	return true, ""
+}
+
 func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun, prompt string) (runner.ExecutionResult, error) {
 	if strings.TrimSpace(pkg.AssignedAgent) == "" {
 		return runner.ExecutionResult{}, fmt.Errorf("package has no assigned persistent agent")
@@ -926,7 +943,7 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 		return local, nil
 	}
 
-	before, _ := workspaceFingerprint(ctx, pkg.Workspace)
+	before, beforeFingerprintErr := workspaceFingerprint(ctx, pkg.Workspace)
 	result, err := e.n.executeAgentPrompt(ctx, pkg.AssignedAgent, pkg.Workspace, prompt, agentPromptPolicy{Contract: run.Contract, MissionRunID: run.ID, PackageID: pkg.PackageID})
 	if err != nil {
 		if result == nil {
@@ -939,11 +956,14 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 	if parseErr != nil {
 		return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output}, fmt.Errorf("parse Mission coordination output: %w", parseErr)
 	}
+	replaySafe := false
 	unsafeReason := ""
 	if len(coordinationRequests) > 0 {
-		after, _ := workspaceFingerprint(ctx, pkg.Workspace)
-		if before != "" && after != "" && before != after {
-			unsafeReason = "workspace changed before the coordination request was returned"
+		after, afterFingerprintErr := workspaceFingerprint(ctx, pkg.Workspace)
+		if beforeFingerprintErr != nil || afterFingerprintErr != nil {
+			unsafeReason = "workspace replay fingerprint could not be established"
+		} else {
+			replaySafe, unsafeReason = coordinationReplaySafety(run.Contract, before, after)
 		}
 	}
 
@@ -975,8 +995,11 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 		))
 	}
 	return runner.ExecutionResult{
-		RuntimeID: result.RuntimeID, Output: result.Output,
-		CoordinationRequests: coordinationRequests, CoordinationUnsafeReason: unsafeReason,
+		RuntimeID:                result.RuntimeID,
+		Output:                   result.Output,
+		CoordinationRequests:     coordinationRequests,
+		CoordinationReplaySafe:   replaySafe,
+		CoordinationUnsafeReason: unsafeReason,
 	}, nil
 }
 
