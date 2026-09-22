@@ -21,7 +21,8 @@ Recommended path (**zero-toolchain**): install a release binary. No Go, Bun, or 
 **Linux / macOS:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.3
+curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
+bash install.sh --version=v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
@@ -29,15 +30,15 @@ nexus web
 **Windows (PowerShell):**
 
 ```powershell
-irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.3
+irm https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.ps1 -OutFile install.ps1
+.\install.ps1 -Version v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
 
-`--version=v1.0.0-beta.3` downloads the pinned GitHub Release and verifies `checksums.txt` (integrity) — this requires the tag and release to exist; if not yet published, build from source below. `--version=latest` resolves the newest tag after the release exists. The repository must be public (or set `GH_TOKEN`) for anonymous download.
+The pinned installer is downloaded from the public binaries-only distribution repository. It refuses unsigned releases, verifies the Ed25519 manifest, checks the artifact SHA-256, and confirms the embedded binary version before replacement. `--version=latest` means GitHub's latest non-prerelease release; while the project is beta, use the explicit beta tag shown above.
 
-Release installer prerequisites: `curl` or `wget`, `tar`, and `sha256sum`/`shasum` (Unix), or PowerShell (Windows). Native desktop may need WebView2 (Windows) or WebKitGTK (Linux).
+Release installer prerequisites: `curl` or `wget`, `tar`, SHA-256 tooling, and Python 3 with the `cryptography` package for Ed25519 verification on Unix; Windows uses PowerShell plus Python 3/`cryptography`. Native Desktop may additionally need WebView2 (Windows) or WebKitGTK (Linux).
 
 ### Developers (build from source)
 
