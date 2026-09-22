@@ -206,7 +206,7 @@ func (s *Store) AppendComposerTurn(in ComposerTurn) (*ComposerTurn, error) {
 	if in.Role != "USER" && in.Role != "ASSISTANT" {
 		return nil, fmt.Errorf("invalid composer turn role")
 	}
-	in.Content = capComposerText(in.Content)
+	in.Content = capComposerTurnText(in.Content)
 	if in.Content == "" && strings.TrimSpace(in.PayloadJSON) == "" {
 		return nil, fmt.Errorf("composer turn content is required")
 	}
@@ -444,6 +444,17 @@ func (s *Store) RecordComposerDestinationReceipt(in ComposerDestinationReceipt) 
 		return nil, err
 	}
 	return &in, nil
+}
+
+// capComposerTurnText keeps individual conversation turns bounded. PromptArtifact
+// has its own explicit size contract and must never use this truncating helper.
+func capComposerTurnText(value string) string {
+	value = strings.TrimSpace(value)
+	const max = 8 * 1024
+	if len(value) > max {
+		return value[:max]
+	}
+	return value
 }
 
 func boolToInt(value bool) int {
