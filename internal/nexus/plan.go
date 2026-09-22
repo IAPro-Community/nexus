@@ -248,10 +248,6 @@ func (n *Nexus) compilePackagePromptFromPlan(ctx context.Context, plan *store.Wo
 	return compileTargetPackagePromptForAgent(ctx, plan, targetPkg, intelligence.AgentSpec{Role: targetPkg.Role}, validatedSkills, contracts...)
 }
 
-func compileTargetPackagePrompt(ctx context.Context, plan *store.WorkPlan, targetPkg *store.WorkPackage, validatedSkills []string) (*intelligence.PromptCompilationResult, error) {
-	return compileTargetPackagePromptForAgent(ctx, plan, targetPkg, intelligence.AgentSpec{Role: targetPkg.Role}, validatedSkills)
-}
-
 func compileTargetPackagePromptForAgent(ctx context.Context, plan *store.WorkPlan, targetPkg *store.WorkPackage, agentSpec intelligence.AgentSpec, validatedSkills []string, frozenContracts ...FrozenSkillContract) (*intelligence.PromptCompilationResult, error) {
 	guidance := guidanceForWorkPackage(targetPkg)
 	compiled, err := intelligence.NewNexusEngine(nil).CompileExecutionContext(ctx, intelligence.ExecutionContextRequest{

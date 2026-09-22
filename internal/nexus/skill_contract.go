@@ -262,6 +262,3 @@ func canonicalSkillIDs(ids []string) []string {
 	return uniqueStrings(ids)
 }
 
-func skillIDsErrorContext(ids []string) string {
-	return strings.Join(canonicalSkillIDs(ids), ", ")
-}
