@@ -70,7 +70,6 @@ func TestArtifactKeysMapGoReleaserAndDesktopNames(t *testing.T) {
 	}
 }
 
-
 func TestAllowedArtifactBaseURL(t *testing.T) {
 	cases := []struct {
 		raw  string
