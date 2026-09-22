@@ -390,7 +390,11 @@ if ($MaestroCmd) {
 
 Write-Host "✓ Successfully installed IAPro Nexus to $TargetPath" -ForegroundColor Green
 
-if ($InstallDesktop -and $IsWindowsOS -and -not [string]::IsNullOrWhiteSpace($Version)) {
+if ($InstallDesktop -and $IsWindowsOS -and $Arch -ne "x86_64" -and -not [string]::IsNullOrWhiteSpace($Version)) {
+    Write-Host "⚠️  Native Desktop is not published/certified for Windows/$Arch; CLI/Core installation remains valid." -ForegroundColor Yellow
+}
+
+if ($InstallDesktop -and $IsWindowsOS -and $Arch -eq "x86_64" -and -not [string]::IsNullOrWhiteSpace($Version)) {
     $DesktopArchiveName = "nexus-desktop_Windows_${Arch}.zip"
     $DesktopDownloadUrl = "$ReleaseDownloadBase/v$Version/$DesktopArchiveName"
     $DesktopZipPath = Join-Path $TempDir $DesktopArchiveName
