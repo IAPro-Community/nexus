@@ -27,6 +27,21 @@ func (f *fakeWorkTracker) HasActiveWork() (bool, string) {
 	return f.hasWork, f.reason
 }
 
+func TestChannelForVersionClassifiesPrereleases(t *testing.T) {
+	cases := map[string]string{
+		"1.0.0-alpha.1": "beta",
+		"1.0.0-beta.1":  "beta",
+		"1.0.0-rc.1":    "beta",
+		"1.0.0":         "stable",
+		"dev":           "stable",
+	}
+	for version, want := range cases {
+		if got := channelForVersion(version); got != want {
+			t.Errorf("channelForVersion(%q)=%q, want %q", version, got, want)
+		}
+	}
+}
+
 func TestServiceCheckAndApply(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 
