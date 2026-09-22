@@ -4,13 +4,13 @@ import "testing"
 
 func TestCanonicalAgentModesCoverNexusOneContract(t *testing.T) {
 	required := map[string]string{
-		"developer": "developer",
-		"senior-developer": "senior-developer",
-		"reviewer": "reviewer",
-		"investigator": "investigator",
-		"architect": "architect",
-		"security-reviewer": "security-reviewer",
-		"qa-engineer": "qa-engineer",
+		"developer":                "developer",
+		"senior-developer":         "senior-developer",
+		"reviewer":                 "reviewer",
+		"investigator":             "investigator",
+		"architect":                "architect",
+		"security-reviewer":        "security-reviewer",
+		"qa-engineer":              "qa-engineer",
 		"performance-investigator": "performance-investigator",
 		"documentation-specialist": "documentation-specialist",
 	}
@@ -43,8 +43,8 @@ func TestAgentModesMarkInvestigationAndReviewReadOnlyByDefault(t *testing.T) {
 
 func TestAgentModeRoleAliasesPreserveLegacyAgents(t *testing.T) {
 	for legacy, want := range map[string]string{
-		"code-reviewer": "reviewer",
-		"docs-writer": "documentation-specialist",
+		"code-reviewer":    "reviewer",
+		"docs-writer":      "documentation-specialist",
 		"technical-writer": "documentation-specialist",
 	} {
 		mode, ok := AgentModeForRole(legacy)

@@ -23,7 +23,7 @@ func TestReadOnlyAgentModeRejectsUnsafeConfiguration(t *testing.T) {
 func TestReadOnlyAgentModeAllowsSafeNativeConfiguration(t *testing.T) {
 	cfg := AgentConfig{
 		AgentSpec: mustAgentMode(t, "investigator").AgentSpec,
-		Options: map[string]any{"mode": "Safe", "execution_adapter": "native_alias"},
+		Options:   map[string]any{"mode": "Safe", "execution_adapter": "native_alias"},
 	}
 	if err := validateAgentModeConfiguration(cfg); err != nil {
 		t.Fatalf("safe native read-only config rejected: %v", err)
