@@ -84,7 +84,6 @@ func TestMissionProviderArgsGeminiFailsClosedWithoutCrossPlatformIsolationProof(
 	}
 }
 
-
 func TestWorkspaceFingerprintChangesAfterCleanLocalCommit(t *testing.T) {
 	root := t.TempDir()
 	git := func(args ...string) {
