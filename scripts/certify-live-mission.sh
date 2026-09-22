@@ -68,7 +68,7 @@ git -C "$project" commit -qm "certification fixture"
 export NEXUS_DATA_DIR="$data"
 export AI_CLI_DATA_DIR="$data"
 
-"$NEXUS_BIN" projects add "$project" >"$root/project-add.log"
+"$NEXUS_BIN" projects add "$project" --name "Nexus Live Mission Certification" --isolation worktree >"$root/project-add.log"
 
 goal="In this project create mission-output.txt containing exactly ${MARKER}. Do not change package.json or verify.mjs. Run npm test. The task is complete only when npm test exits successfully and the final Mission verification passes."
 
