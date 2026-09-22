@@ -21,6 +21,7 @@ $MaestroExit = 0
 $Repo = if ($env:NEXUS_RELEASE_REPO) { $env:NEXUS_RELEASE_REPO } else { "IAPro-Community/nexus-releases" }
 $GithubUrl = "https://github.com/$Repo"
 $GithubApi = "https://api.github.com/repos/$Repo"
+$ReleaseDownloadBase = if ($env:NEXUS_RELEASE_BASE_URL) { $env:NEXUS_RELEASE_BASE_URL.TrimEnd('/') } else { "$GithubUrl/releases/download" }
 # Source checkouts (-SourceRef builds) always come from the private source
 # repository, never from the binaries mirror.
 $SourceRepo = if ($env:NEXUS_SOURCE_REPO) { $env:NEXUS_SOURCE_REPO } else { "IAPro-Community/nexus" }
@@ -234,8 +235,7 @@ $Arch = if ([System.Environment]::Is64BitOperatingSystem) {
 $OsName = if ($IsWindowsOS) { "Windows" } elseif ($IsMacOS) { "Darwin" } else { "Linux" }
 $ArchiveExt = if ($IsWindowsOS) { "zip" } else { "tar.gz" }
 $ArchiveName = "nexus_${OsName}_${Arch}.${ArchiveExt}"
-$DownloadUrl = "$GithubUrl/releases/download/v$Version/$ArchiveName"
-$ChecksumsUrl = "$GithubUrl/releases/download/v$Version/checksums.txt"
+$DownloadUrl = "$ReleaseDownloadBase/v$Version/$ArchiveName"
 
 $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
@@ -246,8 +246,8 @@ try {
         # 1) Fetch and verify signed manifest before downloading the artifact.
         $ManifestPath = Join-Path $TempDir "update-manifest.json"
         $SigPath = Join-Path $TempDir "update-manifest.sig"
-        $ManifestUrl = "$GithubUrl/releases/download/v$Version/update-manifest.json"
-        $SigUrl = "$GithubUrl/releases/download/v$Version/update-manifest.sig"
+        $ManifestUrl = "$ReleaseDownloadBase/v$Version/update-manifest.json"
+        $SigUrl = "$ReleaseDownloadBase/v$Version/update-manifest.sig"
         Invoke-WebRequest -Uri $ManifestUrl -OutFile $ManifestPath -UseBasicParsing
         Write-Host "Signed manifest downloaded" -ForegroundColor Green
         Invoke-WebRequest -Uri $SigUrl -OutFile $SigPath -UseBasicParsing
@@ -383,7 +383,7 @@ Write-Host "✓ Successfully installed IAPro Nexus to $TargetPath" -ForegroundCo
 
 if ($InstallDesktop -and $IsWindowsOS -and -not [string]::IsNullOrWhiteSpace($Version)) {
     $DesktopArchiveName = "nexus-desktop_Windows_${Arch}.zip"
-    $DesktopDownloadUrl = "$GithubUrl/releases/download/v$Version/$DesktopArchiveName"
+    $DesktopDownloadUrl = "$ReleaseDownloadBase/v$Version/$DesktopArchiveName"
     $DesktopZipPath = Join-Path $TempDir $DesktopArchiveName
     $ManifestPath = Join-Path $TempDir "update-manifest.json"
     $SigPath = Join-Path $TempDir "update-manifest.sig"
@@ -391,8 +391,8 @@ if ($InstallDesktop -and $IsWindowsOS -and -not [string]::IsNullOrWhiteSpace($Ve
     try {
         Write-Host "Attempting to install the native IAPro Nexus Desktop shell..." -ForegroundColor Yellow
         if (-not (Test-Path $ManifestPath) -or -not (Test-Path $SigPath)) {
-            $ManifestUrl = "$GithubUrl/releases/download/v$Version/update-manifest.json"
-            $SigUrl = "$GithubUrl/releases/download/v$Version/update-manifest.sig"
+            $ManifestUrl = "$ReleaseDownloadBase/v$Version/update-manifest.json"
+            $SigUrl = "$ReleaseDownloadBase/v$Version/update-manifest.sig"
             Invoke-WebRequest -Uri $ManifestUrl -OutFile $ManifestPath -UseBasicParsing
             Invoke-WebRequest -Uri $SigUrl -OutFile $SigPath -UseBasicParsing
         }
