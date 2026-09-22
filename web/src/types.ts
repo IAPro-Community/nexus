@@ -1499,6 +1499,9 @@ export interface PackageRun {
   remediation_context?: string;
   context_capsule?: ContextCapsule;
   work_receipt?: WorkReceipt;
+  dynamic_work?: boolean;
+  parent_package_id?: string;
+  coordination_request_id?: string;
   started_at: string;
   finished_at?: string;
 }
@@ -1526,6 +1529,40 @@ export interface PhaseRun {
   updated_at: string;
 }
 
+export type CoordinationOperation =
+  | 'NEED_INFO'
+  | 'DELEGATE'
+  | 'ARTIFACT_REQUEST'
+  | 'REVIEW_REQUEST';
+
+export type CoordinationStatus = 'PENDING' | 'RESOLVED' | 'REJECTED' | 'FAILED' | 'CANCELED';
+
+export interface CoordinationRequest {
+  id: string;
+  run_id: string;
+  source_package_id: string;
+  source_agent_id?: string;
+  operation: CoordinationOperation;
+  subject: string;
+  objective?: string;
+  preferred_role?: string;
+  preferred_provider?: string;
+  required_capabilities?: string[];
+  artifact_refs?: string[];
+  status: CoordinationStatus;
+  child_package_id?: string;
+  materialized_at?: string;
+  created_at: string;
+  resolved_at?: string;
+  result_receipt_id?: string;
+  resolution_summary?: string;
+}
+
+export interface RunCoordinationResult {
+  request: CoordinationRequest;
+  child?: PackageRun;
+}
+
 export interface MissionRun {
   id: string;
   plan_id: string;
@@ -1549,6 +1586,7 @@ export interface MissionRun {
   global_verifications?: VerificationResult[];
   needs_human?: HumanIntervention;
   resume_request?: MissionResumeRequest;
+  coordination_requests?: CoordinationRequest[];
 }
 
 export interface MissionResumeRequest {
