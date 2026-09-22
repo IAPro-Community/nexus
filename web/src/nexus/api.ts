@@ -588,6 +588,51 @@ export const nexus = {
     }),
   getRuns: () => request<import('../types').MissionRun[]>('/api/v1/runs'),
   getRun: (runId: string) => request<import('../types').MissionRun>(`/api/v1/runs/${runId}`),
+  getRunCoordination: (runId: string) =>
+    request<import('../types').CoordinationRequest[]>(`/api/v1/runs/${runId}/coordination`),
+  submitRunCoordination: (
+    runId: string,
+    requestBody: {
+      request_id: string;
+      source_package_id: string;
+      source_agent_id?: string;
+      operation: import('../types').CoordinationOperation;
+      subject: string;
+      objective?: string;
+      preferred_role?: string;
+      preferred_provider?: string;
+      required_capabilities?: string[];
+      artifact_refs?: string[];
+      materialize?: boolean;
+    },
+  ) =>
+    request<import('../types').RunCoordinationResult>(`/api/v1/runs/${runId}/coordination`, {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    }),
+  materializeRunCoordination: (runId: string, requestId: string) =>
+    request<import('../types').RunCoordinationResult>(
+      `/api/v1/runs/${runId}/coordination-materialize`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ request_id: requestId }),
+      },
+    ),
+  resolveRunCoordination: (
+    runId: string,
+    requestId: string,
+    status: import('../types').CoordinationStatus,
+    options?: { resolutionSummary?: string; resultReceiptId?: string },
+  ) =>
+    request<import('../types').CoordinationRequest>(`/api/v1/runs/${runId}/coordination-resolve`, {
+      method: 'POST',
+      body: JSON.stringify({
+        request_id: requestId,
+        status,
+        resolution_summary: options?.resolutionSummary,
+        result_receipt_id: options?.resultReceiptId,
+      }),
+    }),
   getRunEvidence: (runId: string) =>
     request<import('../types').FlowRunEvidence>(`/api/v1/runs/${runId}/evidence`),
   getRunEvidenceBundle: (runId: string) =>
