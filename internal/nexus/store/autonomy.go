@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/ids"
@@ -185,6 +186,34 @@ func (s *Store) ListMissionRuns() ([]MissionRunRecord, error) {
 	}
 	defer rows.Close()
 	var out []MissionRunRecord
+	for rows.Next() {
+		rec, err := scanMissionRun(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *rec)
+	}
+	return out, rows.Err()
+}
+
+
+// ListMissionRunsForProject returns only the newest bounded Mission runs for
+// one project. Context consumers must not scan the global run ledger and then
+// filter in memory.
+func (s *Store) ListMissionRunsForProject(projectID string, limit int) ([]MissionRunRecord, error) {
+	if strings.TrimSpace(projectID) == "" {
+		return nil, fmt.Errorf("project id is required")
+	}
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+	rows, err := s.db.Query(`SELECT id,plan_id,project_id,state,payload_json,lease_owner,lease_token,lease_expires_at,heartbeat_at,created_at,updated_at
+		FROM mission_runs WHERE project_id=? ORDER BY updated_at DESC LIMIT ?`, projectID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]MissionRunRecord, 0, limit)
 	for rows.Next() {
 		rec, err := scanMissionRun(rows)
 		if err != nil {

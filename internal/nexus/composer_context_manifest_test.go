@@ -48,7 +48,17 @@ func TestComposerContextManifestKeepsMissionHistoryReferenceOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	otherProject, err := st.CreateProject(store.Project{Name: "Other Mission Context", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
 	now := time.Now().UTC()
+	if err := st.UpsertMissionRun(store.MissionRunRecord{
+		ID: "run-other-project", PlanID: "plan-other", ProjectID: otherProject.ID,
+		State: "COMPLETED_VERIFIED", PayloadJSON: "{\"must_not_leak\":true}", CreatedAt: now.Add(time.Minute), UpdatedAt: now.Add(time.Minute),
+	}); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.UpsertMissionRun(store.MissionRunRecord{
 		ID: "run-context-manifest", PlanID: "plan-context-manifest", ProjectID: project.ID,
 		State: "COMPLETED_VERIFIED", PayloadJSON: "{}", CreatedAt: now, UpdatedAt: now,
@@ -61,6 +71,9 @@ func TestComposerContextManifestKeepsMissionHistoryReferenceOnly(t *testing.T) {
 	}
 	found := false
 	for _, item := range manifest.Items {
+		if item.Kind == "MISSION_REFERENCE" && item.Locator == "run-other-project" {
+			t.Fatalf("Mission from another project leaked into context: %+v", item)
+		}
 		if item.Kind != "MISSION_REFERENCE" || item.Locator != "run-context-manifest" {
 			continue
 		}

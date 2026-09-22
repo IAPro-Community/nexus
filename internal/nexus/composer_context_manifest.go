@@ -181,19 +181,11 @@ func (n *Nexus) BuildComposerContextManifest(ctx context.Context, projectID stri
 		manifest.Warnings = append(manifest.Warnings, "skill catalog unavailable: "+catalogErr.Error())
 	}
 
-	if runs, runsErr := st.ListMissionRuns(); runsErr == nil {
-		added := 0
+	if runs, runsErr := st.ListMissionRunsForProject(projectID, composerContextMaxMissionRefs); runsErr == nil {
 		for _, run := range runs {
-			if run.ProjectID != projectID {
-				continue
-			}
 			add("MISSION_REFERENCE", "mission", run.ID,
 				fmt.Sprintf("Mission %s · plan %s · state %s · updated %s", run.ID, run.PlanID, run.State, run.UpdatedAt.UTC().Format(time.RFC3339)),
 				"OBSERVED", "Recent Mission is available by reference; raw transcripts are intentionally excluded.", 35, true)
-			added++
-			if added >= composerContextMaxMissionRefs {
-				break
-			}
 		}
 	} else {
 		manifest.Warnings = append(manifest.Warnings, "mission references unavailable: "+runsErr.Error())
@@ -260,6 +252,9 @@ func rankComposerSkillCandidates(catalog nexusskills.Catalog, brief LivingBrief)
 	}
 	out := []composerRankedSkill{}
 	for _, skill := range catalog.Library {
+		if skill.Availability != nexusskills.AvailabilityAvailable {
+			continue
+		}
 		hay := strings.ToLower(strings.Join([]string{
 			skill.ID, skill.Name, skill.Description,
 			strings.Join(skill.Capabilities, " "), strings.Join(skill.Triggers, " "),
