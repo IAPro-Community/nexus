@@ -48,10 +48,7 @@ func removeProviderLaunchFlag(args []string, wanted string) []string {
 // immediate-submit path; --no-lead is the explicit byte-transparent opt-out.
 // --lead remains accepted for compatibility and explicitness.
 func wantInteractiveLead(args []string) bool {
-	if hasProviderLaunchFlag(args, "--no-lead") {
-		return false
-	}
-	return true
+	return !hasProviderLaunchFlag(args, "--no-lead")
 }
 
 // executeProviderSupervised launches the provider through the same persistent
