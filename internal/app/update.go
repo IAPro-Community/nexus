@@ -61,7 +61,7 @@ func updateCmd(args []string) error {
 
 	if subcmd == "check" {
 		res, err := svc.Check(ctx)
-		if err != nil && res == nil {
+		if err != nil {
 			return fmt.Errorf("update check failed: %w", err)
 		}
 		if asJSON {
