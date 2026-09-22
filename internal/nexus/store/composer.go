@@ -446,15 +446,6 @@ func (s *Store) RecordComposerDestinationReceipt(in ComposerDestinationReceipt) 
 	return &in, nil
 }
 
-func capComposerText(value string) string {
-	value = strings.TrimSpace(value)
-	const max = 8 * 1024
-	if len(value) > max {
-		return value[:max]
-	}
-	return value
-}
-
 func boolToInt(value bool) int {
 	if value {
 		return 1
