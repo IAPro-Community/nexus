@@ -83,7 +83,7 @@ func (n *Nexus) AttachComposerContextFile(ctx context.Context, sessionID, relPat
 	}
 	brief.Context.ReferencedFiles = next
 	refreshComposerBrief(&brief)
-	return n.persistComposerSessionExpected(st, session, brief, expectedRevision)
+	return n.persistComposerSessionExpected(ctx, st, session, brief, expectedRevision)
 }
 
 // DetachComposerContextFile removes a previously attached file reference.

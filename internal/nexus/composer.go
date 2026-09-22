@@ -23,6 +23,7 @@ type ComposerSessionView struct {
 	Artifacts       []store.PromptArtifact        `json:"artifacts,omitempty"`
 	FlowSuitability FlowSuitabilityAssessment     `json:"flow_suitability"`
 	PromptReview    ComposerPromptReview          `json:"prompt_review,omitempty"`
+	ContextManifest ComposerContextManifest       `json:"context_manifest"`
 }
 
 // ComposerAttachmentRef is the durable image reference embedded in a turn payload.
@@ -155,20 +156,28 @@ func (n *Nexus) CreateComposerSessionWithPromptProgress(ctx context.Context, pro
 		progress.Step("project_intel", "skipped")
 	}
 
+	progress.Step("context_discovery", "started")
+	manifest, manifestErr := n.BuildComposerContextManifest(ctx, projectID, brief)
+	if manifestErr != nil {
+		progress.Step("context_discovery", "skipped")
+	} else {
+		progress.Step("context_discovery", "done")
+	}
+
 	// Heuristics (newComposerBrief -> mergeTextIntoBrief) run first; enrich the
 	// brief with provider-extracted structure only when a provider is available.
 	// Bound the provider budget so a hung headless CLI cannot strand Create on
 	// "Starting…" forever — heuristics already seeded the brief above.
 	bootCtx, bootCancel := context.WithTimeout(ctx, composerBootstrapTimeout)
 	progress.Step("extract_brief", "started")
-	n.enrichComposerBriefFromText(bootCtx, projectID, &brief, firstNonEmpty(sourcePrompt, goal))
+	n.enrichComposerBriefFromText(bootCtx, projectID, &brief, firstNonEmpty(sourcePrompt, goal), &manifest)
 	if bootCtx.Err() != nil {
 		progress.Step("extract_brief", "skipped")
 	} else {
 		progress.Step("extract_brief", "done")
 	}
 	progress.Step("unknowns", "started")
-	n.seedComposerIntelligenceUnknowns(bootCtx, projectID, &brief)
+	n.seedComposerIntelligenceUnknowns(bootCtx, projectID, &brief, &manifest)
 	if bootCtx.Err() != nil {
 		progress.Step("unknowns", "skipped")
 	} else {
@@ -184,14 +193,18 @@ func (n *Nexus) CreateComposerSessionWithPromptProgress(ctx context.Context, pro
 	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
 		MarkMemoryCoveredUnknowns(&brief, memFacts)
 	}
+	if finalManifest, finalManifestErr := n.BuildComposerContextManifest(ctx, projectID, brief); finalManifestErr == nil {
+		manifest = finalManifest
+	}
 	briefJSON, _ := json.Marshal(brief)
 	sessionState := composerSessionStateFromBrief(brief)
 	session, err := st.CreateComposerSession(store.ComposerSession{
 		ProjectID:          projectID,
 		Title:              firstNonEmpty(brief.Intent.Objective, brief.Goal),
 		State:              sessionState,
-		ContextFingerprint: project.CanonicalPath,
-		BriefJSON:          string(briefJSON),
+		ContextFingerprint:  project.CanonicalPath,
+		BriefJSON:           string(briefJSON),
+		ContextManifestJSON: mustComposerContextManifestJSON(manifest),
 	})
 	if err != nil {
 		progress.Step("persist", "error")
@@ -205,25 +218,22 @@ func (n *Nexus) CreateComposerSessionWithPromptProgress(ctx context.Context, pro
 }
 
 func seedComposerSkillProposals(st *store.Store, sessionID string, brief LivingBrief, catalog nexusskills.Catalog) {
-	for _, skill := range catalog.Library {
-		// Builtins remain resolvable for explicit task selection, but are not
-		// auto-suggested into every Composer session; this preserves the existing
-		// proposal surface for project/user/optional external skills.
-		if skill.Source == nexusskills.SourceBuiltin {
-			continue
-		}
-		if !skillRelevantToComposer(skill, brief) {
-			continue
-		}
+	for _, ranked := range rankComposerSkillCandidates(catalog, brief) {
+		skill := ranked.Skill
 		_, _ = st.UpsertComposerSkillProposal(store.ComposerSkillProposal{
-			SessionID: sessionID, SkillID: skill.ID, State: store.ComposerSkillSuggested,
-			Reason:        "Discovered from the source-agnostic Nexus Skill Catalog.",
+			SessionID: sessionID,
+			SkillID: skill.ID,
+			State: store.ComposerSkillSuggested,
+			Reason: strings.Join(ranked.Reasons, "; "),
 			Applicability: firstNonEmpty(skill.Description, "Compatible with this Composer brief."),
-			Risk:          skill.Risk, Source: string(skill.Source), Version: firstNonEmpty(skill.Version, "1.0.0"), Available: true,
+			Risk: skill.Risk,
+			Source: string(skill.Source),
+			Version: firstNonEmpty(skill.Version, "1.0.0"),
+			Available: true,
+			RecommendationScore: ranked.Score,
 		})
 	}
 }
-
 func skillRelevantToComposer(skill nexusskills.Skill, brief LivingBrief) bool {
 	text := strings.ToLower(skill.ID + " " + skill.Name + " " + skill.Description + " " + strings.Join(skill.Triggers, " "))
 	if len(brief.Constraints.Security) > 0 || brief.Intent.Archetype == PromptArchetypeSecurity {
@@ -315,11 +325,8 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 					"project_id": session.ProjectID,
 					"brief":      compactComposerIntelligenceBrief(brief),
 				}
-				if grounded, groundedErr := n.BoundedProjectIntelligenceContext(turnCtx, session.ProjectID); groundedErr == nil {
-					contextData["project_intelligence"] = grounded
-				}
-				if memFacts, memErr := n.MemoryFactsMap(turnCtx, session.ProjectID); memErr == nil && len(memFacts) > 0 {
-					contextData["intelligence_memories"] = memFacts
+				if manifest, manifestErr := n.BuildComposerContextManifest(turnCtx, session.ProjectID, brief); manifestErr == nil {
+					contextData["context_manifest"] = manifest.IntelligenceContext()
 				}
 				analysis, analyzeErr := provider.AnalyzeIntent(turnCtx, content, contextData)
 				if analyzeErr != nil {
@@ -365,7 +372,7 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 			}
 		}
 	}
-	return n.persistComposerSessionExpected(st, session, brief, expectedRevision)
+	return n.persistComposerSessionExpected(ctx, st, session, brief, expectedRevision)
 }
 
 func (n *Nexus) UpdateComposerSkillState(ctx context.Context, sessionID, skillID, state string) (*ComposerSessionView, error) {
@@ -452,7 +459,12 @@ func (n *Nexus) FinalizeComposerSession(ctx context.Context, sessionID string, s
 	if err != nil {
 		return nil, err
 	}
-	contextJSON, _ := json.Marshal(map[string]any{"project_id": session.ProjectID, "brief": brief})
+	manifest := decodeComposerContextManifest(session.ContextManifestJSON)
+	if refreshedManifest, manifestErr := n.BuildComposerContextManifest(ctx, session.ProjectID, brief); manifestErr == nil {
+		manifest = refreshedManifest
+		session.ContextManifestJSON = mustComposerContextManifestJSON(manifest)
+	}
+	contextJSON, _ := json.Marshal(map[string]any{"project_id": session.ProjectID, "brief": brief, "context_manifest": manifest})
 	skillJSON, _ := json.Marshal(compiled.ValidatedSkills)
 	artifact, err := st.CreatePromptArtifact(store.PromptArtifact{
 		SessionID:    sessionID,
@@ -559,7 +571,7 @@ func (n *Nexus) ResolveComposerUnknownExpected(ctx context.Context, sessionID, u
 		return nil, fmt.Errorf("unknown %q not found in session %q", unknownID, sessionID)
 	}
 	refreshComposerBrief(&brief)
-	view, err := n.persistComposerSessionExpected(st, session, brief, expectedRevision)
+	view, err := n.persistComposerSessionExpected(ctx, st, session, brief, expectedRevision)
 	if err != nil {
 		return nil, err
 	}
@@ -631,11 +643,15 @@ func (n *Nexus) composeSessionView(st *store.Store, session store.ComposerSessio
 		Artifacts:       artifacts,
 		FlowSuitability: AssessComposerFlowSuitability(brief),
 		PromptReview:    ReviewComposerPrompt(brief),
+		ContextManifest: decodeComposerContextManifest(session.ContextManifestJSON),
 	}, nil
 }
 
-func (n *Nexus) persistComposerSessionExpected(st *store.Store, session *store.ComposerSession, brief LivingBrief, expectedRevision int) (*ComposerSessionView, error) {
+func (n *Nexus) persistComposerSessionExpected(ctx context.Context, st *store.Store, session *store.ComposerSession, brief LivingBrief, expectedRevision int) (*ComposerSessionView, error) {
 	session.Title = firstNonEmpty(brief.Intent.Objective, brief.Goal, session.Title)
+	if manifest, manifestErr := n.BuildComposerContextManifest(ctx, session.ProjectID, brief); manifestErr == nil {
+		session.ContextManifestJSON = mustComposerContextManifestJSON(manifest)
+	}
 	if session.State != store.ComposerFinalized {
 		session.State = composerSessionStateFromBrief(brief)
 	}
@@ -682,7 +698,7 @@ func composeAssistantReply(brief LivingBrief) string {
 // extract structured brief fields from free-form text and merges them into the
 // brief. It is a no-op when no provider is available, so heuristics remain the
 // deterministic fallback. Provider resolution mirrors seedComposerIntelligenceUnknowns.
-func (n *Nexus) enrichComposerBriefFromText(ctx context.Context, projectID string, brief *LivingBrief, text string) {
+func (n *Nexus) enrichComposerBriefFromText(ctx context.Context, projectID string, brief *LivingBrief, text string, manifest *ComposerContextManifest) {
 	if brief == nil || strings.TrimSpace(text) == "" {
 		return
 	}
@@ -691,24 +707,20 @@ func (n *Nexus) enrichComposerBriefFromText(ctx context.Context, projectID strin
 		return
 	}
 	contextData := map[string]any{"project_id": projectID, "brief": compactComposerIntelligenceBrief(*brief)}
-	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
-		contextData["project_intelligence"] = grounded
-	}
-	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
-		contextData["intelligence_memories"] = memFacts
+	if manifest != nil {
+		contextData["context_manifest"] = manifest.IntelligenceContext()
 	}
 	if extraction, extractErr := provider.ExtractBrief(ctx, text, contextData); extractErr == nil {
 		applyBriefExtraction(brief, extraction)
 	}
 }
 
-func (n *Nexus) seedComposerIntelligenceUnknowns(ctx context.Context, projectID string, brief *LivingBrief) {
+func (n *Nexus) seedComposerIntelligenceUnknowns(ctx context.Context, projectID string, brief *LivingBrief, manifest *ComposerContextManifest) {
 	if brief == nil {
 		return
 	}
 	provider, err := n.ConfiguredIntelligenceProvider(ctx, projectID)
 	if err != nil || provider == nil || !provider.Available(ctx) {
-		// Deterministic shallowness question when no provider is configured.
 		if PromptIsShallow(*brief) {
 			MergeIntelligenceUnknowns(brief, []intelligence.AmbiguityItem{{
 				Key: "quality.acceptance_criteria", Level: intelligence.AmbiguityBlocking,
@@ -724,11 +736,8 @@ func (n *Nexus) seedComposerIntelligenceUnknowns(ctx context.Context, projectID 
 		return
 	}
 	contextData := map[string]any{"project_id": projectID, "brief": compactComposerIntelligenceBrief(*brief)}
-	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
-		contextData["project_intelligence"] = grounded
-	}
-	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
-		contextData["intelligence_memories"] = memFacts
+	if manifest != nil {
+		contextData["context_manifest"] = manifest.IntelligenceContext()
 	}
 	goal := firstNonEmpty(brief.Goal, brief.Intent.Objective)
 	analysis, analyzeErr := provider.AnalyzeIntent(ctx, goal, contextData)
