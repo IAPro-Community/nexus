@@ -377,6 +377,7 @@ func (r *MissionRunner) saveRun(ctx context.Context, run *MissionRun) error {
 			return err
 		}
 	}
+	reconcileCoordinationRequests(run)
 	return r.repo.SaveRun(ctx, run)
 }
 
