@@ -404,5 +404,6 @@ type ExecutionResult struct {
 	Output                   string                `json:"output,omitempty"`
 	Failure                  model.Failure         `json:"failure,omitempty"`
 	CoordinationRequests     []CoordinationRequest `json:"coordination_requests,omitempty"`
+	CoordinationReplaySafe   bool                  `json:"coordination_replay_safe,omitempty"`
 	CoordinationUnsafeReason string                `json:"coordination_unsafe_reason,omitempty"`
 }
