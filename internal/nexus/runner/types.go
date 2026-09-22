@@ -225,6 +225,9 @@ type PackageRun struct {
 	ExitCriteria             []string             `json:"exit_criteria,omitempty"`
 	RequiredEvidence         []string             `json:"required_evidence,omitempty"`
 	HandoffJSON              string               `json:"handoff,omitempty"`
+	DynamicWork              bool                 `json:"dynamic_work,omitempty"`
+	ParentPackageID          string               `json:"parent_package_id,omitempty"`
+	CoordinationRequestID    string               `json:"coordination_request_id,omitempty"`
 	ContextCapsule           *ContextCapsule      `json:"context_capsule,omitempty"`
 	WorkReceipt              *WorkReceipt         `json:"work_receipt,omitempty"`
 	State                    State                `json:"state"`
