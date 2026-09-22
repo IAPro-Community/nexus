@@ -6,6 +6,21 @@ import (
 	"time"
 )
 
+type coordinationTestExecutor struct{}
+
+func (coordinationTestExecutor) Allocate(context.Context, *MissionRun, *PackageRun) (AllocationResult, error) {
+	return AllocationResult{}, nil
+}
+func (coordinationTestExecutor) Compile(context.Context, *MissionRun, *PackageRun) (PromptArtifact, error) {
+	return PromptArtifact{}, nil
+}
+func (coordinationTestExecutor) Execute(context.Context, *MissionRun, *PackageRun, string) (ExecutionResult, error) {
+	return ExecutionResult{}, nil
+}
+func (coordinationTestExecutor) Review(context.Context, *MissionRun, *PackageRun) (ReviewVerdict, error) {
+	return ReviewVerdict{}, nil
+}
+
 func TestValidateCoordinationRequest(t *testing.T) {
 	base := CoordinationRequest{
 		ID:              "coord_1",
@@ -44,7 +59,7 @@ func TestValidateCoordinationRequest(t *testing.T) {
 
 func TestMissionRunnerCoordinationLifecycleIsDurableAndIdempotent(t *testing.T) {
 	repo := NewMemoryRunRepository()
-	r := NewMissionRunner(repo, fakePackageExecutor{})
+	r := NewMissionRunner(repo, coordinationTestExecutor{})
 	ctx := context.Background()
 
 	run := &MissionRun{
@@ -106,7 +121,7 @@ func TestMissionRunnerCoordinationLifecycleIsDurableAndIdempotent(t *testing.T) 
 
 func TestMissionRunnerCoordinationRejectsForeignSourcePackage(t *testing.T) {
 	repo := NewMemoryRunRepository()
-	r := NewMissionRunner(repo, fakePackageExecutor{})
+	r := NewMissionRunner(repo, coordinationTestExecutor{})
 	ctx := context.Background()
 	run := &MissionRun{
 		ID: "run_coord_invalid",
