@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IAPro Nexus installer (Linux / macOS) — zero-toolchain release path.
+# IAPro Nexus installer (Linux / macOS) — prebuilt signed-release path.
 # Usage:
 #   ./install.sh --version=vX.Y.Z
 #   ./install.sh --version=latest
@@ -40,7 +40,7 @@ for arg in "$@"; do
         --yes|-y) YES_MODE=true ;;
         --help|-h)
             cat <<'EOF'
-IAPro Nexus installer (zero-toolchain release path)
+IAPro Nexus installer (prebuilt signed-release path)
 
   --version=vX.Y.Z|latest   Pin a release, or resolve the newest tag via GitHub API
   --no-desktop              Skip native desktop artifact
@@ -123,7 +123,7 @@ if [ -n "$VERSION" ] && ! printf '%s' "$VERSION" | grep -Eq '^v?[0-9]+\.[0-9]+\.
     exit 2
 fi
 
-echo "=== IAPro Nexus Installer (Zero-Toolchain Release) ==="
+echo "=== IAPro Nexus Installer (Signed Prebuilt Release) ==="
 echo "Release repo: ${REPO}"
 
 OS="$(uname -s)"
@@ -190,15 +190,29 @@ sha256_file() {
 
 install_cli_from_dir() {
     local dir="$1"
+    local expected_version="$2"
+    local source_binary=""
+
     if [ -f "${dir}/nexus" ]; then
-        install -m 0755 "${dir}/nexus" "${TMP_DIR}/nexus.install"
-        mv -f "${TMP_DIR}/nexus.install" "${TARGET_DIR}/nexus"
-        INSTALL_SUCCESS=1
+        source_binary="${dir}/nexus"
     elif [ -f "${dir}/ai" ]; then
-        install -m 0755 "${dir}/ai" "${TMP_DIR}/nexus.install"
-        mv -f "${TMP_DIR}/nexus.install" "${TARGET_DIR}/nexus"
-        INSTALL_SUCCESS=1
+        source_binary="${dir}/ai"
+    else
+        echo "ERROR: verified archive does not contain nexus/ai executable" >&2
+        return 1
     fi
+
+    chmod +x "$source_binary"
+    local actual_version
+    actual_version="$("$source_binary" version --json 2>/dev/null | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
+    if [ -z "$actual_version" ] || [ "$actual_version" != "$expected_version" ]; then
+        echo "ERROR: signed artifact binary version mismatch: expected ${expected_version}, got ${actual_version:-unknown}" >&2
+        return 1
+    fi
+
+    install -m 0755 "$source_binary" "${TMP_DIR}/nexus.install"
+    mv -f "${TMP_DIR}/nexus.install" "${TARGET_DIR}/nexus"
+    INSTALL_SUCCESS=1
 }
 
 # Ed25519 public key for manifest signature verification (matches internal/update ProductionTrustRoot).
@@ -336,7 +350,7 @@ download_and_verify_archive() {
             ;;
     esac
     case "$archive_name" in
-        nexus_*) install_cli_from_dir "$TMP_DIR" ;;
+        nexus_*) install_cli_from_dir "$TMP_DIR" "$version_plain" ;;
     esac
 }
 
