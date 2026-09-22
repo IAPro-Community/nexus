@@ -56,6 +56,7 @@ export function useComposerSession(project: Project) {
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [bootstrapActivity, setBootstrapActivity] = useState<NexusActivityPayload | null>(null);
   const createAbort = useRef<AbortController | null>(null);
+  const skillCatalogRequest = useRef(0);
 
   const selectedSkillIds = useMemo(
     () =>
@@ -121,10 +122,15 @@ export function useComposerSession(project: Project) {
   }, [project.id]);
 
   useEffect(() => {
+    const request = ++skillCatalogRequest.current;
     void nexus
       .listComposerSkillCatalog(project.id)
-      .then((items) => setSkillCatalog(items || []))
-      .catch(() => setSkillCatalog([]));
+      .then((items) => {
+        if (request === skillCatalogRequest.current) setSkillCatalog(items || []);
+      })
+      .catch(() => {
+        if (request === skillCatalogRequest.current) setSkillCatalog([]);
+      });
   }, [project.id]);
 
   const briefItems = useMemo(() => (view ? buildComposerBriefItems(view, t) : []), [t, view]);
@@ -323,11 +329,12 @@ export function useComposerSession(project: Project) {
 
   const searchSkillCatalog = useCallback(
     async (query: string) => {
+      const request = ++skillCatalogRequest.current;
       try {
         const items = await nexus.listComposerSkillCatalog(project.id, query);
-        setSkillCatalog(items || []);
+        if (request === skillCatalogRequest.current) setSkillCatalog(items || []);
       } catch {
-        setSkillCatalog([]);
+        if (request === skillCatalogRequest.current) setSkillCatalog([]);
       }
     },
     [project.id],
