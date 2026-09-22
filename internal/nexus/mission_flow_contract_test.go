@@ -45,7 +45,7 @@ func TestFreezePlanUsesGenericCatalogWithoutMaestro(t *testing.T) {
 	plan := store.WorkPlan{ID: "plan", ProjectID: project.ID, CurrentRevision: 1, Phases: []store.PlanPhase{{ID: "phase", Packages: []store.WorkPackage{{
 		ID: "step", Title: "Step", Goal: "Goal", Role: "tester", Status: "READY", AssignmentStrategy: "AUTO", SkillIDs: []string{"coding"}, AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"true"},
 	}}}}}
-	frozen, err := freezePlanForExecution(n, plan)
+	frozen, _, err := freezePlanForExecution(n, plan)
 	if err != nil {
 		t.Fatalf("generic SkillIDs must freeze without Maestro: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestFreezePlanMigratesLegacySkillFieldsThroughGenericCatalog(t *testing.T) 
 	plan := store.WorkPlan{ID: "legacy-plan", ProjectID: project.ID, CurrentRevision: 1, Phases: []store.PlanPhase{{ID: "phase", Packages: []store.WorkPackage{{
 		ID: "step", Title: "Step", Goal: "Goal", Role: "tester", Status: "READY", AssignmentStrategy: "AUTO", MaestroSkills: []string{"testing"}, AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"true"},
 	}}}}}
-	frozen, err := freezePlanForExecution(n, plan)
+	frozen, _, err := freezePlanForExecution(n, plan)
 	if err != nil {
 		t.Fatalf("legacy skill fields should use the generic catalog without Maestro: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestFreezePlanDoesNotTreatLegacyMaestroGatesAsSkills(t *testing.T) {
 			AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"true"},
 		}}}},
 	}
-	frozen, err := freezePlanForExecution(n, plan)
+	frozen, _, err := freezePlanForExecution(n, plan)
 	if err != nil {
 		t.Fatalf("legacy gate should not be resolved as a Skill: %v", err)
 	}
