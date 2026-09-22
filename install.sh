@@ -11,6 +11,7 @@ set -euo pipefail
 REPO="${NEXUS_RELEASE_REPO:-IAPro-Community/nexus-releases}"
 GITHUB_URL="https://github.com/${REPO}"
 GITHUB_API="https://api.github.com/repos/${REPO}"
+RELEASE_DOWNLOAD_BASE="${NEXUS_RELEASE_BASE_URL:-${GITHUB_URL}/releases/download}"
 # Source checkouts (--build-from-source) always come from the private source
 # repository, never from the binaries mirror.
 SOURCE_REPO="${NEXUS_SOURCE_REPO:-IAPro-Community/nexus}"
@@ -51,7 +52,7 @@ IAPro Nexus installer (zero-toolchain release path)
   --yes                     Non-interactive toolchain install for source builds
 
 Environment:
-  NEXUS_VERSION, NEXUS_SOURCE_REF, NEXUS_RELEASE_REPO, NEXUS_INSTALL_DIR
+  NEXUS_VERSION, NEXUS_SOURCE_REF, NEXUS_RELEASE_REPO, NEXUS_RELEASE_BASE_URL, NEXUS_INSTALL_DIR
 EOF
             exit 0
             ;;
@@ -268,7 +269,7 @@ print('', end='')
 download_and_verify_archive() {
     local archive_name="$1"
     local version_plain="$2"
-    local release_url="${GITHUB_URL}/releases/download/v${version_plain}"
+    local release_url="${RELEASE_DOWNLOAD_BASE}/v${version_plain}"
     local archive_path="${TMP_DIR}/${archive_name}"
     local manifest_path="${TMP_DIR}/update-manifest.json"
     local sig_path="${TMP_DIR}/update-manifest.sig"
