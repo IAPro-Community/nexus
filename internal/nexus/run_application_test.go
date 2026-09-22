@@ -101,7 +101,6 @@ func TestRunApplicationServicePublishesCoordinationTransition(t *testing.T) {
 	}
 }
 
-
 func TestRunApplicationServiceResolvesArtifactCoordinationFromReceipt(t *testing.T) {
 	ctx := context.Background()
 	repo := runner.NewMemoryRunRepository()
