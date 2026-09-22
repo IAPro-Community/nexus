@@ -20,8 +20,10 @@ type contractSnapshot struct {
 	Kickoff          []string    `json:"kickoff"`
 	Resume           []string    `json:"resume"`
 	AutoApproval     []string    `json:"auto_approval"`
-	ReviewMode       []string    `json:"review_mode"`
-	Quota            QuotaSource `json:"quota"`
+	ReviewMode          []string           `json:"review_mode"`
+	AutonomousIsolation IsolationGuarantee `json:"autonomous_isolation"`
+	ReviewIsolation     IsolationGuarantee `json:"review_isolation"`
+	Quota               QuotaSource        `json:"quota"`
 	KnownVersions    []string    `json:"known_versions"`
 }
 
@@ -85,8 +87,10 @@ func snapshotOf(s Spec) contractSnapshot {
 		Kickoff:          kickoff,
 		Resume:           resume,
 		AutoApproval:     append([]string(nil), s.AutoApproval...),
-		ReviewMode:       append([]string(nil), s.ReviewMode...),
-		Quota:            s.Quota,
+		ReviewMode:          append([]string(nil), s.ReviewMode...),
+		AutonomousIsolation: s.AutonomousIsolationLevel(),
+		ReviewIsolation:     s.ReviewIsolationLevel(),
+		Quota:               s.Quota,
 		KnownVersions:    append([]string(nil), s.KnownVersions...),
 	}
 }

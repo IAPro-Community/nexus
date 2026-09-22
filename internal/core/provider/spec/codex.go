@@ -36,7 +36,9 @@ var codexSpec = Spec{
 	// Codex review turns use the headless exec contract in a read-only
 	// sandbox. The executor places these root options before `exec` so the
 	// installed CLI accepts them and cannot mutate the implementation worktree.
-	ReviewMode:    []string{"--sandbox", "read-only", "--ask-for-approval", "never"},
-	Quota:         QuotaLiveRPC,
+	ReviewMode:          []string{"--sandbox", "read-only", "--ask-for-approval", "never"},
+	AutonomousIsolation: IsolationWorkspaceWriteNoNetwork,
+	ReviewIsolation:     IsolationReadOnlyNoNetwork,
+	Quota:               QuotaLiveRPC,
 	KnownVersions: []string{"0.50.0"},
 }

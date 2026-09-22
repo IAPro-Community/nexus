@@ -9,8 +9,13 @@ import (
 
 // QuotaSource describes how a provider obtains attributable usage data.
 type QuotaSource string
+type IsolationGuarantee string
 
 const (
+	IsolationUnverified             IsolationGuarantee = "UNVERIFIED"
+	IsolationWorkspaceWriteNoNetwork IsolationGuarantee = "WORKSPACE_WRITE_NO_NETWORK"
+	IsolationReadOnlyNoNetwork       IsolationGuarantee = "READ_ONLY_NO_NETWORK"
+
 	QuotaLiveHTTP    QuotaSource = "LIVE_HTTP"
 	QuotaLiveRPC     QuotaSource = "LIVE_RPC"
 	QuotaLiveCLI     QuotaSource = "LIVE_CLI"
@@ -32,7 +37,9 @@ type Spec struct {
 	Kickoff          func(prompt string) []string
 	Resume           func(sessionID string) []string
 	AutoApproval     []string
-	ReviewMode       []string
+	ReviewMode          []string
+	AutonomousIsolation IsolationGuarantee
+	ReviewIsolation     IsolationGuarantee
 	// ClearLine is the provider-native control sequence used before a prompt
 	// promoted from an interactive terminal is replaced by Nexus' banner.
 	ClearLine     string
@@ -50,6 +57,20 @@ var registry = map[string]Spec{
 }
 
 var orderedIDs = []string{"agy", "claude", "codex", "cursor", "gemini", "opencode"}
+
+func (s Spec) AutonomousIsolationLevel() IsolationGuarantee {
+	if s.AutonomousIsolation == "" {
+		return IsolationUnverified
+	}
+	return s.AutonomousIsolation
+}
+
+func (s Spec) ReviewIsolationLevel() IsolationGuarantee {
+	if s.ReviewIsolation == "" {
+		return IsolationUnverified
+	}
+	return s.ReviewIsolation
+}
 
 // Get returns the Spec for a provider id.
 func Get(id string) (Spec, bool) {

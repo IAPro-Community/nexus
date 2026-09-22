@@ -17,6 +17,8 @@ Every provider has one [`ProviderSpec`](../../internal/core/provider/spec/) unde
 | Kickoff / resume args | `Kickoff` / `Resume` |
 | Mission auto-approval | `AutoApproval` |
 | Read-only review mode | `ReviewMode` |
+| Autonomous containment | `AutonomousIsolation` |
+| Review containment | `ReviewIsolation` |
 | Quota source class | `Quota` (`LIVE_HTTP` / `LIVE_RPC` / `LIVE_CLI` / `UNSUPPORTED`) |
 | Fixture-tested CLI versions | `KnownVersions` |
 
@@ -30,6 +32,24 @@ Canonical quota parser fixtures live in
 `internal/core/provider/spec/testdata/quota/<provider>/`. Changing a live
 response shape requires updating those fixtures and the adapter testdata copies
 together.
+
+## Autonomous isolation
+
+The ProviderSpec is also the source of truth for whether a provider can enforce
+Nexus' restrictive autonomous contract. `WORKSPACE_WRITE_NO_NETWORK` means the
+provider has a verified provider-native sandbox that confines writes to the
+workspace and denies network access by default. `READ_ONLY_NO_NETWORK` is the
+corresponding review guarantee.
+
+The default Mission contract requires verified containment. Providers marked
+`UNVERIFIED` are excluded by the existing ResourceScheduler and fail closed if
+they reach launch. They can only use coding auto-approval when the caller
+explicitly opts into an unrestricted contract. Review always requires verified
+read-only containment.
+
+Codex uses `workspace-write` / `read-only`. Gemini is launched with an
+explicit `--sandbox` for both coding and review. Command shims remain
+defense-in-depth; they are not treated as the sandbox boundary.
 
 ## Quota honesty
 

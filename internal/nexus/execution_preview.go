@@ -251,6 +251,13 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, projectID, phaseID 
 		step.Resource.Reason = candidateErr.Error()
 		return step
 	}
+	candidateAccounts, isolationRejected := filterAccountsByAutonomyIsolation(candidateAccounts, runner.DefaultAutonomyContract(), false)
+	if len(candidateAccounts) == 0 && len(isolationRejected) > 0 {
+		step.Ready = false
+		step.Blockers = append(step.Blockers, "no provider satisfies the default Mission isolation contract: "+strings.Join(isolationRejected, "; "))
+		step.Resource.Reason = "Provider isolation contract is not verified"
+		return step
+	}
 	if len(candidateAccounts) == 0 {
 		step.Ready = false
 		step.Blockers = append(step.Blockers, "no eligible provider account for this step")

@@ -120,6 +120,10 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	if candidateErr != nil {
 		return runner.AllocationResult{}, candidateErr
 	}
+	candidateAccounts, isolationRejected := filterAccountsByAutonomyIsolation(candidateAccounts, run.Contract, false)
+	if len(candidateAccounts) == 0 && len(isolationRejected) > 0 {
+		return runner.AllocationResult{}, fmt.Errorf("%w: no provider satisfies the Mission isolation contract for Flow Step %s: %s", ErrBlockedResource, pkg.PackageID, strings.Join(isolationRejected, "; "))
+	}
 	if len(candidateAccounts) == 0 {
 		if preferenceMode == AffinityPin {
 			return runner.AllocationResult{}, fmt.Errorf("%w: pinned runtime has no eligible account for Flow Step %s", ErrBlockedResource, pkg.PackageID)
@@ -877,7 +881,10 @@ func (e *nexusPackageExecutor) ensureReviewerAgent(ctx context.Context, st *stor
 	}
 	reviewAccounts := make([]ProviderAccount, 0, len(accounts))
 	for _, account := range accounts {
-		if accountSupportsHeadlessReview(account) {
+		if !accountSupportsHeadlessReview(account) {
+			continue
+		}
+		if ok, _ := providerSatisfiesAutonomyIsolation(account.Provider, run.Contract, true); ok {
 			reviewAccounts = append(reviewAccounts, account)
 		}
 	}
@@ -907,7 +914,7 @@ func (e *nexusPackageExecutor) ensureReviewerAgent(ctx context.Context, st *stor
 	}
 	recommendation := RecommendResources(accounts, req, PolicyBalanced)
 	if recommendation.Recommended == nil {
-		return store.Agent{}, fmt.Errorf("no eligible reviewer provider/profile")
+		return store.Agent{}, fmt.Errorf("no eligible reviewer provider/profile with verified read-only isolation")
 	}
 	selected := recommendation.Recommended.Account
 	current, _ := currentAgentConfig(st, reviewer)

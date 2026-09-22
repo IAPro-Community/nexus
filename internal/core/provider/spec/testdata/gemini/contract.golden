@@ -23,14 +23,18 @@
   ],
   "auto_approval": [
     "--approval-mode=yolo",
+    "--sandbox",
     "--output-format",
     "text"
   ],
   "review_mode": [
     "--approval-mode=plan",
+    "--sandbox",
     "--output-format",
     "text"
   ],
+  "autonomous_isolation": "WORKSPACE_WRITE_NO_NETWORK",
+  "review_isolation": "READ_ONLY_NO_NETWORK",
   "quota": "LIVE_HTTP",
   "known_versions": [
     "0.28.2"

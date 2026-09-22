@@ -34,35 +34,52 @@ func TestMissionProviderArgsCodexReviewUsesReadOnlyExecSandbox(t *testing.T) {
 	}
 }
 
-func TestMissionProviderArgsOpenCodeReviewUsesPermissionModePlan(t *testing.T) {
-	got, err := missionProviderArgs("opencode", []string{"run", "review the code"}, agentPromptPolicy{
+func TestMissionProviderArgsOpenCodeFailsClosedWithoutVerifiedIsolation(t *testing.T) {
+	_, err := missionProviderArgs("opencode", []string{"run", "edit the file"}, agentPromptPolicy{
 		Contract: runner.DefaultAutonomyContract(),
-		Review:   true,
 	})
-	if err != nil {
-		t.Fatalf("missionProviderArgs returned error: %v", err)
-	}
-	// For non-Codex providers, ReviewMode flags are appended after the prompt.
-	want := []string{"run", "review the code", "--permission-mode", "plan"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("opencode review args = %#v, want %#v", got, want)
+	if err == nil {
+		t.Fatal("expected restrictive default contract to reject unverified OpenCode isolation")
 	}
 }
 
-func TestMissionProviderArgsOpenCodeReviewFailsWithoutReviewMode(t *testing.T) {
-	// This test verifies that if ReviewMode were nil, review would fail.
-	// Since we've set ReviewMode in the spec, this test documents the expected behavior.
-	// In a real scenario, if ReviewMode is empty, missionProviderArgs returns an error.
-	got, err := missionProviderArgs("opencode", []string{"run", "edit the file"}, agentPromptPolicy{
-		Contract: runner.DefaultAutonomyContract(),
-		Review:   false,
-	})
+func TestMissionProviderArgsOpenCodeAllowsExplicitUnrestrictedContract(t *testing.T) {
+	contract := runner.DefaultAutonomyContract()
+	contract.DisallowDestructiveGit = false
+	contract.AllowGitPush = true
+	contract.AllowDeploy = true
+	contract.AllowExternalNetwork = true
+	contract.AllowSecretAccess = true
+	contract.AllowPaidServices = true
+	got, err := missionProviderArgs("opencode", []string{"run", "edit the file"}, agentPromptPolicy{Contract: contract})
 	if err != nil {
-		t.Fatalf("missionProviderArgs returned error: %v", err)
+		t.Fatalf("explicit unrestricted contract should allow provider-native auto mode: %v", err)
 	}
-	// Without Review mode, opencode should use auto-approval flags after "run".
 	want := []string{"run", "--auto", "edit the file"}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("opencode non-review args = %#v, want %#v", got, want)
+		t.Fatalf("opencode unrestricted args = %#v, want %#v", got, want)
+	}
+}
+
+func TestMissionProviderArgsOpenCodeReviewFailsClosedWithoutVerifiedIsolation(t *testing.T) {
+	_, err := missionProviderArgs("opencode", []string{"run", "review the code"}, agentPromptPolicy{
+		Contract: runner.DefaultAutonomyContract(),
+		Review:   true,
+	})
+	if err == nil {
+		t.Fatal("expected OpenCode review to fail without verified read-only isolation")
+	}
+}
+
+func TestMissionProviderArgsGeminiUsesExplicitSandbox(t *testing.T) {
+	got, err := missionProviderArgs("gemini", []string{"-p", "edit safely"}, agentPromptPolicy{
+		Contract: runner.DefaultAutonomyContract(),
+	})
+	if err != nil {
+		t.Fatalf("gemini sandboxed Mission args failed: %v", err)
+	}
+	want := []string{"-p", "edit safely", "--approval-mode=yolo", "--sandbox", "--output-format", "text"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("gemini args = %#v, want %#v", got, want)
 	}
 }

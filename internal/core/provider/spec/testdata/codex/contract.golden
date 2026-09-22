@@ -38,6 +38,8 @@
     "--ask-for-approval",
     "never"
   ],
+  "autonomous_isolation": "WORKSPACE_WRITE_NO_NETWORK",
+  "review_isolation": "READ_ONLY_NO_NETWORK",
   "quota": "LIVE_RPC",
   "known_versions": [
     "0.50.0"

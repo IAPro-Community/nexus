@@ -280,12 +280,58 @@ func executionBranch(ctx context.Context, workspace string) string {
 	return branch
 }
 
+func autonomyRequiresVerifiedIsolation(contract runner.AutonomyContract) bool {
+	return contract.DisallowDestructiveGit ||
+		!contract.AllowGitPush ||
+		!contract.AllowDeploy ||
+		!contract.AllowExternalNetwork ||
+		!contract.AllowSecretAccess ||
+		!contract.AllowPaidServices ||
+		len(contract.AllowedFilePatterns) > 0
+}
+
+func providerSatisfiesAutonomyIsolation(provider string, contract runner.AutonomyContract, review bool) (bool, string) {
+	providerSpec, ok := spec.Get(strings.ToLower(strings.TrimSpace(provider)))
+	if !ok {
+		return false, "provider contract is unknown"
+	}
+	if review {
+		if providerSpec.ReviewIsolationLevel() != spec.IsolationReadOnlyNoNetwork {
+			return false, "read-only/no-network isolation is not verified for this provider"
+		}
+		return true, ""
+	}
+	if !autonomyRequiresVerifiedIsolation(contract) {
+		return true, ""
+	}
+	if providerSpec.AutonomousIsolationLevel() != spec.IsolationWorkspaceWriteNoNetwork {
+		return false, "workspace-write/no-network isolation is not verified for this provider"
+	}
+	return true, ""
+}
+
+func filterAccountsByAutonomyIsolation(accounts []ProviderAccount, contract runner.AutonomyContract, review bool) ([]ProviderAccount, []string) {
+	eligible := make([]ProviderAccount, 0, len(accounts))
+	rejected := make([]string, 0)
+	for _, account := range accounts {
+		if ok, reason := providerSatisfiesAutonomyIsolation(account.Provider, contract, review); ok {
+			eligible = append(eligible, account)
+		} else {
+			rejected = append(rejected, fmt.Sprintf("%s:%s (%s)", account.Provider, account.Profile, reason))
+		}
+	}
+	return eligible, rejected
+}
+
 func missionProviderArgs(provider string, args []string, policy agentPromptPolicy) ([]string, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	out := append([]string(nil), args...)
 	providerSpec, ok := spec.Get(provider)
 	if !ok {
 		return nil, fmt.Errorf("provider %s is not approved for autonomous coding", provider)
+	}
+	if supported, reason := providerSatisfiesAutonomyIsolation(provider, policy.Contract, policy.Review); !supported {
+		return nil, fmt.Errorf("provider %s cannot satisfy the Mission isolation contract: %s", provider, reason)
 	}
 	if policy.Review {
 		if len(providerSpec.ReviewMode) == 0 {
