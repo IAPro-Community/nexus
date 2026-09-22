@@ -329,6 +329,42 @@ func TestInstallersSupportExplicitTargetsAndMacOSDesktopZip(t *testing.T) {
 	}
 }
 
+func TestInstallerDesktopArchitectureMatrixDoesNotBreakCLI(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	shBytes, err := os.ReadFile(filepath.Join(root, "install.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	psBytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sh, ps := string(shBytes), string(psBytes)
+
+	for _, required := range []string{
+		"DESKTOP_SUPPORTED=false",
+		"Linux_x86_64|Darwin_arm64",
+		"Native Desktop is not published/certified",
+		"[ \"$DESKTOP_SUPPORTED\" = true ]",
+	} {
+		if !strings.Contains(sh, required) {
+			t.Errorf("install.sh missing truthful Desktop architecture guard %q", required)
+		}
+	}
+	for _, required := range []string{
+		"$Arch -ne \"x86_64\"",
+		"$Arch -eq \"x86_64\"",
+		"Native Desktop is not published/certified",
+	} {
+		if !strings.Contains(ps, required) {
+			t.Errorf("install.ps1 missing truthful Desktop architecture guard %q", required)
+		}
+	}
+}
+
 func TestInstallersRequireSignedManifestForDesktop(t *testing.T) {
 	root, err := filepath.Abs("../..")
 	if err != nil {
