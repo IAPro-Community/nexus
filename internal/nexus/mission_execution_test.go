@@ -1,6 +1,10 @@
 package nexus
 
 import (
+	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -77,5 +81,54 @@ func TestMissionProviderArgsGeminiFailsClosedWithoutCrossPlatformIsolationProof(
 	})
 	if err == nil {
 		t.Fatal("expected restrictive default contract to reject unverified Gemini isolation")
+	}
+}
+
+
+func TestWorkspaceFingerprintChangesAfterCleanLocalCommit(t *testing.T) {
+	root := t.TempDir()
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, output)
+		}
+	}
+
+	git("init")
+	git("config", "user.name", "Nexus Test")
+	git("config", "user.email", "nexus@example.invalid")
+	file := filepath.Join(root, "proof.txt")
+	if err := os.WriteFile(file, []byte("v1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	git("add", "proof.txt")
+	git("commit", "-m", "initial")
+
+	before, err := workspaceFingerprint(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(file, []byte("v2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	git("add", "proof.txt")
+	git("commit", "-m", "second")
+
+	status, err := exec.Command("git", "-C", root, "status", "--porcelain").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(status) != 0 {
+		t.Fatalf("fixture must be clean after commit, status=%q", status)
+	}
+
+	after, err := workspaceFingerprint(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if before == after {
+		t.Fatal("workspace fingerprint must include Git HEAD so a clean local commit crosses the replay boundary")
 	}
 }
