@@ -67,6 +67,29 @@ func (h *NexusHandler) handleProjectPlans(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// handleProjectSkillCatalog exposes browser-safe Nexus Skill metadata.
+// GET /api/v1/projects/{projectID}/skills?q=...
+func (h *NexusHandler) handleProjectSkillCatalog(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project id")
+		return
+	}
+	items, err := h.composer.SkillCatalog(r.Context(), projectID, r.URL.Query().Get("q"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if items == nil {
+		items = []nexus.ComposerSkillCatalogItem{}
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
 // handleProjectComposerSessions creates or lists durable prompt elaborations.
 func (h *NexusHandler) handleProjectComposerSessions(w http.ResponseWriter, r *http.Request) {
 	projectID := projectIDFromPath(r.URL.Path)
@@ -244,6 +267,27 @@ func (h *NexusHandler) handleComposerSession(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		writeJSON(w, http.StatusCreated, view)
+		return
+	}
+	if strings.HasSuffix(id, "/skills") {
+		id = strings.TrimSuffix(id, "/skills")
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, "POST required to select a skill")
+			return
+		}
+		var body struct {
+			SkillID string `json:"skill_id"`
+		}
+		if json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body) != nil || strings.TrimSpace(body.SkillID) == "" {
+			writeError(w, http.StatusBadRequest, "skill_id is required")
+			return
+		}
+		view, err := h.composer.SelectSkill(r.Context(), id, body.SkillID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, view)
 		return
 	}
 	if strings.Contains(id, "/skills/") {
