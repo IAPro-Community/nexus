@@ -70,9 +70,24 @@ nexus doctor
 nexus web
 ```
 
-`--version=latest` baixa o GitHub Release pinado e valida `checksums.txt` (integridade) — exige que tag e release existam; se ainda não publicados, compile do fonte abaixo. `--version=latest` resolve a tag mais nova depois que a release existir. O repositório precisa ser público (ou use `GH_TOKEN`) para o download anônimo.
+`--version=latest` resolve a tag publicada, mas a instalação só prossegue quando o `update-manifest.json` e sua assinatura Ed25519 são válidos e o SHA-256 do artefato corresponde ao manifesto assinado. Não há fallback para release não assinada.
 
-Pré-requisitos do instalador de release: `curl` ou `wget`, `tar` e `sha256sum`/`shasum` (Unix) ou PowerShell (Windows). Desktop nativo pode exigir WebView2 (Windows) ou WebKitGTK (Linux).
+Pré-requisitos do instalador de release: `curl` ou `wget`, `tar`, Python 3 com `cryptography` para validação Ed25519 e `sha256sum`/`shasum` (Unix), ou PowerShell/Python no Windows. Desktop nativo pode exigir WebView2 (Windows) ou WebKitGTK (Linux).
+
+**Desinstalação (dados preservados por padrão):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/uninstall.sh | bash
+# opcional: também remover configuração/dados Nexus
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/uninstall.sh | bash -s -- --purge-data
+```
+
+```powershell
+irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/uninstall.ps1 -OutFile uninstall.ps1
+.\uninstall.ps1
+```
+
+A desinstalação remove binários/atalhos gerenciados pelo Nexus; no Windows, perfis e dados de projeto são preservados.
 
 ### Desenvolvedores (compilar do fonte)
 
