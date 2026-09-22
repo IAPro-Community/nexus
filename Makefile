@@ -73,17 +73,43 @@ overnight-smoke:
 	@go test -count=1 -timeout 20m ./internal/nexus/runner -run 'Test(MissionTeamPlannerBuilderReviewerVerifier|OvernightAcceptanceSandbox|OvernightSoakHarnessBounded|ProgressWatchdog|FaultInjection)'
 
 # Local-only authenticated provider smoke (not part of CI quality).
+# This gate is intentionally fail-closed: LIVE inventory is necessary but not
+# sufficient. Every required provider must also complete a real headless Direct
+# turn and return the exact marker on its own output line.
+SMOKE_REQUIRED_PROVIDERS ?= codex agy claude gemini
+SMOKE_PROVIDER_MARKER ?= NEXUS_PROVIDER_SMOKE_OK
 smoke-providers:
 	@echo "Refreshing live usage (requires authenticated local profiles)…"
 	@nexus usage --refresh --json >/tmp/nexus-usage-smoke.json
-	@python3 -c 'import json,sys; rows=json.load(open("/tmp/nexus-usage-smoke.json")); want={"agy","codex","claude","gemini"}; got={r.get("provider_id") or r.get("ProviderID","") for r in rows if (r.get("status") or r.get("Status",""))=="LIVE"}; missing=sorted(want-got); \
+	@SMOKE_REQUIRED_PROVIDERS="$(SMOKE_REQUIRED_PROVIDERS)" python3 -c 'import json,os,sys; rows=json.load(open("/tmp/nexus-usage-smoke.json")); want=set(os.environ["SMOKE_REQUIRED_PROVIDERS"].split()); got={r.get("provider_id") or r.get("ProviderID","") for r in rows if (r.get("status") or r.get("Status",""))=="LIVE"}; missing=sorted(want-got); \
 print("LIVE providers:", ", ".join(sorted(got)) or "(none)"); \
 sys.exit("missing LIVE for: "+", ".join(missing) if missing else 0)'
-	@for p in codex agy claude gemini opencode cursor; do \
-	  echo "direct smoke $$p"; \
-	  nexus $$p --direct --print "ok" >/tmp/nexus-$$p-smoke.txt 2>/tmp/nexus-$$p-smoke.err || true; \
-	done
-	@echo "smoke-providers finished (inspect /tmp/nexus-*-smoke.*)"
+	@set -eu; \
+	failures=""; \
+	for p in $(SMOKE_REQUIRED_PROVIDERS); do \
+	  out="/tmp/nexus-$p-smoke.txt"; \
+	  err="/tmp/nexus-$p-smoke.err"; \
+	  rm -f "$out" "$err"; \
+	  echo "direct smoke $p"; \
+	  if nexus "$p" --direct --print "Reply with exactly $(SMOKE_PROVIDER_MARKER) and nothing else." >"$out" 2>"$err"; then \
+	    if python3 -c 'import re,sys; data=open(sys.argv[1], errors="replace").read(); data=re.sub(r"\\x1b\\[[0-?]*[ -/]*[@-~]", "", data); marker=sys.argv[2]; sys.exit(0 if any(line.strip()==marker for line in data.splitlines()) else 1)' "$out" "$(SMOKE_PROVIDER_MARKER)"; then \
+	      echo "PASS $p"; \
+	    else \
+	      echo "FAIL $p: provider exited 0 but did not return the exact marker" >&2; \
+	      failures="$failures $p"; \
+	    fi; \
+	  else \
+	    code=$?; \
+	    echo "FAIL $p: direct smoke exited $code" >&2; \
+	    failures="$failures $p"; \
+	  fi; \
+	done; \
+	if [ -n "$failures" ]; then \
+	  echo "provider smoke failed for:$failures" >&2; \
+	  echo "inspect /tmp/nexus-<provider>-smoke.{txt,err} for sanitized local diagnostics" >&2; \
+	  exit 1; \
+	fi; \
+	echo "smoke-providers PASS: $(SMOKE_REQUIRED_PROVIDERS)"
 
 DURATION ?= 30s
 overnight-soak:
