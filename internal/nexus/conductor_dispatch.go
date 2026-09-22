@@ -3,6 +3,7 @@ package nexus
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/ids"
@@ -22,8 +23,14 @@ type DispatchRequest struct {
 	DelegationMode DelegationMode `json:"delegation_mode"`
 	// GoalID is optional; when empty, a new one is generated.
 	GoalID string `json:"goal_id,omitempty"`
-	// AutoPromoteToMission skips user confirmation.
+	// AutoPromoteToMission confirms that an upstream policy boundary already
+	// decided this request deserves durable Mission/Flow execution. It does not
+	// imply multi-agent delegation.
 	AutoPromoteToMission bool `json:"auto_promote_to_mission"`
+	// PromotionSource and SourceRuntimeID are optional audit lineage. They are
+	// persisted as WorkPlan facts and never participate in Agent identity.
+	PromotionSource string `json:"promotion_source,omitempty"`
+	SourceRuntimeID string `json:"source_runtime_id,omitempty"`
 }
 
 // DispatchResult is the output of Conductor.Dispatch.
@@ -109,14 +116,18 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 	// Step 2: Create work plan from flow.
 	flowPlan := WorkPlanFromFlow(proposal.Flow)
 	decision, err := ReadDelegationDecisionFacts(flowPlan.StructuredFacts)
-	if err != nil || !decision.Delegate {
-		if err == nil {
-			err = fmt.Errorf("dispatch brake rejected the delegated topology")
-		}
+	if err != nil {
 		return &DispatchResult{
 			GoalID: req.GoalID,
 			Status: DispatchRejected,
 			Error:  fmt.Sprintf("validate delegation decision: %v", err),
+		}, nil
+	}
+	if !dispatchTopologyAllowed(req, decision) {
+		return &DispatchResult{
+			GoalID: req.GoalID,
+			Status: DispatchRejected,
+			Error:  "validate delegation decision: dispatch brake rejected the delegated topology",
 		}, nil
 	}
 
@@ -129,6 +140,16 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 			Status: DispatchFailed,
 			Error:  fmt.Sprintf("persist delegation decision: %v", err),
 		}, nil
+	}
+	if req.AutoPromoteToMission {
+		facts["nexus.dispatch.auto_promoted"] = "true"
+		facts["nexus.dispatch.goal_id"] = req.GoalID
+		if source := strings.TrimSpace(req.PromotionSource); source != "" {
+			facts["nexus.dispatch.promotion_source"] = source
+		}
+		if runtimeID := strings.TrimSpace(req.SourceRuntimeID); runtimeID != "" {
+			facts["nexus.dispatch.source_runtime_id"] = runtimeID
+		}
 	}
 
 	// Step 4: Create work plan.
@@ -157,6 +178,10 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 		Status: DispatchAccepted,
 		Run:    run,
 	}, nil
+}
+
+func dispatchTopologyAllowed(req DispatchRequest, decision DelegationDecision) bool {
+	return decision.Delegate || req.AutoPromoteToMission
 }
 
 // Dispatch is the synchronous Core entrypoint for routing a goal through the

@@ -67,9 +67,10 @@ func NormalizeMode(mode Mode) Mode {
 	}
 }
 
-// Decide classifies one complete line. OFF and non-delegable/clarifying work
-// always remain with the existing Lead; ASK reports a confirmation boundary;
-// AUTO promotes only when all existing policy gates agree.
+// Decide classifies one complete line. OFF, DIRECT and clarifying work remain
+// with the existing Lead. PLAN intent is Mission-worthy even when no fan-out is
+// beneficial: delegation shapes the Mission topology, it does not decide
+// whether durable Mission/Flow history should exist.
 func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode) (Decision, error) {
 	mode = NormalizeMode(mode)
 	line = strings.TrimSpace(line)
@@ -98,16 +99,20 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = "intent requires clarification before promotion"
 		return result, nil
 	}
-	if !delegation.Delegate {
-		result.Reason = delegation.Reason
+	if intent.Strategy == nexus.IntentDirect {
+		result.Reason = "direct intent stays with the interactive Lead"
 		return result, nil
 	}
 	if mode == ModeAsk {
 		result.Action = Ask
-		result.Reason = "delegation is eligible but ASK mode requires confirmation"
+		result.Reason = "mission-worthy plan requires confirmation before promotion"
 		return result, nil
 	}
 	result.Action = Promote
-	result.Reason = delegation.Reason
+	if delegation.Delegate {
+		result.Reason = delegation.Reason
+	} else {
+		result.Reason = "plan intent is Mission-worthy; delegation remains a topology decision"
+	}
 	return result, nil
 }
