@@ -459,7 +459,10 @@ export function useFlowDraftEditor(options: {
         return;
       }
 
-      if (!previouslyApprovedPreviewToken || previouslyApprovedPreviewToken !== preview.approval_token) {
+      if (
+        !previouslyApprovedPreviewToken ||
+        previouslyApprovedPreviewToken !== preview.approval_token
+      ) {
         setPendingCostConfirmationToken(
           preview.cost_confirmation_required ? preview.cost_confirmation_token || '' : '',
         );
