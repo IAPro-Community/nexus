@@ -115,3 +115,15 @@ func TestRankComposerSkillCandidatesLoadsOnlyRelevantSkills(t *testing.T) {
 		t.Fatalf("relevant skills were not surfaced: %+v", ranked)
 	}
 }
+
+
+func TestComposerExecutionBriefPreservesLegacyReferencedFiles(t *testing.T) {
+	brief := newComposerBrief("legacy task", "")
+	brief.Context.ReferencedFiles = []ContextFileRef{{
+		Path: "legacy/context.txt", Excerpt: "explicit legacy context", Hash: "hash",
+	}}
+	got := composerExecutionBrief(brief, ComposerContextManifest{})
+	if len(got.Context.ReferencedFiles) != 1 || got.Context.ReferencedFiles[0].Path != "legacy/context.txt" {
+		t.Fatalf("legacy artifact context must remain intact without manifest evidence: %+v", got.Context.ReferencedFiles)
+	}
+}

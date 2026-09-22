@@ -224,6 +224,12 @@ func (n *Nexus) BuildComposerContextManifest(ctx context.Context, projectID stri
 }
 
 func composerExecutionBrief(brief LivingBrief, manifest ComposerContextManifest) LivingBrief {
+	if strings.TrimSpace(manifest.Fingerprint) == "" {
+		// Legacy PromptArtifacts predate context-decision evidence. Preserve
+		// their explicit file context instead of pretending Nexus knows which
+		// references would have been KEEP or DROP.
+		return brief
+	}
 	keepPaths := make(map[string]struct{})
 	for _, item := range manifest.Items {
 		if item.Kind == "REFERENCED_FILE" && item.Decision == ComposerContextKeep && strings.TrimSpace(item.Locator) != "" {
