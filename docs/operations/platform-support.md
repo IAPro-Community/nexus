@@ -18,6 +18,19 @@ prova execução nativa.
 | Updater | manifesto/checksum/assinatura | manifesto/checksum/assinatura | manifesto/checksum/assinatura |
 | Native CI | obrigatório | obrigatório | obrigatório |
 
+### Arquiteturas de artefato
+
+A matriz de artefatos de CLI/Core é mais ampla que a matriz Desktop:
+
+| Artefato | Linux amd64 | Linux arm64 | Windows amd64 | Windows arm64 | macOS amd64 | macOS arm64 |
+| --- | --- | --- | --- | --- | --- | --- |
+| CLI/Core archive | publicado pelo GoReleaser | publicado pelo GoReleaser | publicado pelo GoReleaser | publicado pelo GoReleaser | publicado pelo GoReleaser | publicado pelo GoReleaser |
+| Desktop nativo | candidato exige CI nativo | **não publicado** | candidato exige CI nativo | **não publicado** | **não publicado** | candidato exige CI nativo |
+
+O instalador não transforma ausência de Desktop em falha do CLI. Em arquiteturas sem
+Desktop publicado/certificado, instala o CLI/Core e informa explicitamente que o shell
+nativo não está disponível naquele alvo.
+
 O status oficial de cada célula deve vir do CI nativo e do relatório da mesma
 revisão. Para diagnóstico, consulte [troubleshooting](troubleshooting.md) e
 use `nexus doctor --json`. Não trate uma plataforma como suportada apenas
