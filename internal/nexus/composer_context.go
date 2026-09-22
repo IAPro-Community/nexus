@@ -128,7 +128,7 @@ func (n *Nexus) DetachComposerContextFile(ctx context.Context, sessionID, relPat
 	}
 	brief.Context.ReferencedFiles = next
 	refreshComposerBrief(&brief)
-	return n.persistComposerSessionExpected(st, session, brief, expectedRevision)
+	return n.persistComposerSessionExpected(ctx, st, session, brief, expectedRevision)
 }
 
 // resolveComposerContextPath validates relPath against root, rejecting absolute
