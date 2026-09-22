@@ -245,9 +245,9 @@ func (s *RunApplicationService) SubmitCoordination(ctx context.Context, runID st
 	}
 	run, _ := s.nexus.Runner().GetRun(ctx, runID)
 	s.publishRunEvent(run, events.EventMissionStepCompleted, "Mission coordination requested", map[string]any{
-		"request_id": saved.ID,
-		"operation": saved.Operation,
-		"source_package_id": saved.SourcePackageID,
+		"request_id":         saved.ID,
+		"operation":          saved.Operation,
+		"source_package_id":  saved.SourcePackageID,
 		"coordination_phase": "REQUESTED",
 	})
 	result := &RunCoordinationResult{Request: saved}
@@ -270,9 +270,9 @@ func (s *RunApplicationService) SubmitCoordination(ctx context.Context, runID st
 		}
 	}
 	s.publishRunEvent(refreshed, events.EventMissionStepCompleted, "Mission coordination materialized as dynamic work", map[string]any{
-		"request_id": saved.ID,
-		"child_package_id": child.PackageID,
-		"source_package_id": saved.SourcePackageID,
+		"request_id":         saved.ID,
+		"child_package_id":   child.PackageID,
+		"source_package_id":  saved.SourcePackageID,
 		"coordination_phase": "MATERIALIZED",
 	})
 	return result, nil
@@ -302,9 +302,9 @@ func (s *RunApplicationService) MaterializeCoordination(ctx context.Context, run
 		return nil, fmt.Errorf("coordination request %q not found after materialization", requestID)
 	}
 	s.publishRunEvent(run, events.EventMissionStepCompleted, "Mission coordination materialized as dynamic work", map[string]any{
-		"request_id": requestID,
-		"child_package_id": child.PackageID,
-		"source_package_id": request.SourcePackageID,
+		"request_id":         requestID,
+		"child_package_id":   child.PackageID,
+		"source_package_id":  request.SourcePackageID,
 		"coordination_phase": "MATERIALIZED",
 	})
 	return &RunCoordinationResult{Request: request, Child: child}, nil
@@ -320,9 +320,9 @@ func (s *RunApplicationService) ResolveCoordination(ctx context.Context, runID, 
 	}
 	run, _ := s.nexus.Runner().GetRun(ctx, runID)
 	s.publishRunEvent(run, events.EventMissionStepCompleted, "Mission coordination resolved", map[string]any{
-		"request_id": requestID,
-		"status": status,
-		"receipt_id": receiptID,
+		"request_id":         requestID,
+		"status":             status,
+		"receipt_id":         receiptID,
 		"coordination_phase": "RESOLVED",
 	})
 	return resolved, nil
