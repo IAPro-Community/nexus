@@ -372,7 +372,6 @@ func run(ctx context.Context, safeApply, mission bool) error {
 	return nil
 }
 
-
 const missionE2EMarkerFile = "nexus-e2e-mission.txt"
 const missionE2EMarker = "NEXUS_MISSION_E2E_OK"
 
@@ -420,14 +419,14 @@ type missionE2ERun struct {
 }
 
 type missionE2EReceipt struct {
-	StepID       string `json:"step_id"`
-	Status       string `json:"status"`
+	StepID       string   `json:"step_id"`
+	Status       string   `json:"status"`
 	ChangedFiles []string `json:"changed_files"`
 }
 
 type missionE2EEvidence struct {
-	Capsules []json.RawMessage     `json:"capsules"`
-	Receipts []missionE2EReceipt   `json:"receipts"`
+	Capsules []json.RawMessage   `json:"capsules"`
+	Receipts []missionE2EReceipt `json:"receipts"`
 }
 
 func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, profile, projectPath string) error {
@@ -475,10 +474,10 @@ func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, pro
 		"title":       "Authenticated Mission E2E",
 		"description": goal,
 		"facts": map[string]string{
-			"nexus.intent_decision": string(intentRaw),
-			"nexus.intent_strategy": "PLAN",
+			"nexus.intent_decision":   string(intentRaw),
+			"nexus.intent_strategy":   "PLAN",
 			"nexus.intent_confidence": "HIGH",
-			"nexus.delegation_mode": "OFF",
+			"nexus.delegation_mode":   "OFF",
 		},
 		"phases": []map[string]any{{
 			"id":    "phase-e2e",
@@ -486,23 +485,23 @@ func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, pro
 			"order": 1,
 			"type":  "IMPLEMENTATION",
 			"packages": []map[string]any{{
-				"id":                         "mission-e2e",
-				"title":                      "Create Mission E2E marker",
-				"goal":                       goal,
-				"priority":                   "HIGH",
-				"status":                     "READY",
-				"dependencies":               []string{},
-				"role":                       "implementer",
-				"phase_type":                 "IMPLEMENTATION",
-				"review_required":            false,
-				"assignment_strategy":        "CREATE",
-				"resource_policy":            "MANUAL",
-				"provider":                   provider,
-				"profile":                    profile,
-				"relevant_paths":             []string{missionE2EMarkerFile},
-				"acceptance_criteria":        []string{"marker file exists with the exact requested content and no unrelated file changed"},
-				"verification_requirements":  []string{"git diff --check"},
-				"required_evidence":          []string{"VERIFICATION_PASSED"},
+				"id":                        "mission-e2e",
+				"title":                     "Create Mission E2E marker",
+				"goal":                      goal,
+				"priority":                  "HIGH",
+				"status":                    "READY",
+				"dependencies":              []string{},
+				"role":                      "implementer",
+				"phase_type":                "IMPLEMENTATION",
+				"review_required":           false,
+				"assignment_strategy":       "CREATE",
+				"resource_policy":           "MANUAL",
+				"provider":                  provider,
+				"profile":                   profile,
+				"relevant_paths":            []string{missionE2EMarkerFile},
+				"acceptance_criteria":       []string{"marker file exists with the exact requested content and no unrelated file changed"},
+				"verification_requirements": []string{"git diff --check"},
+				"required_evidence":         []string{"VERIFICATION_PASSED"},
 			}},
 		}},
 	}, &plan); err != nil {
@@ -532,9 +531,9 @@ func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, pro
 	}
 
 	runBody := map[string]any{
-		"plan_revision":          plan.CurrentRevision,
+		"plan_revision":           plan.CurrentRevision,
 		"execution_preview_token": preview.ApprovalToken,
-		"autonomous":             true,
+		"autonomous":              true,
 	}
 	if preview.CostConfirmationRequired {
 		if strings.TrimSpace(preview.CostConfirmationToken) == "" {
