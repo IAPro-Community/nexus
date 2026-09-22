@@ -140,10 +140,10 @@ func composerArtifactExecutionContext(artifact store.PromptArtifact, session sto
 		}
 	}
 	if strings.TrimSpace(envelope.ProjectID) != "" && envelope.ProjectID != session.ProjectID {
-		return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("Composer artifact project %s does not match session project %s", envelope.ProjectID, session.ProjectID)
+		return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("composer artifact project %s does not match session project %s", envelope.ProjectID, session.ProjectID)
 	}
 	if strings.TrimSpace(envelope.ContextManifest.ProjectID) != "" && envelope.ContextManifest.ProjectID != session.ProjectID {
-		return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("Composer context manifest project %s does not match session project %s", envelope.ContextManifest.ProjectID, session.ProjectID)
+		return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("composer context manifest project %s does not match session project %s", envelope.ContextManifest.ProjectID, session.ProjectID)
 	}
 	if strings.TrimSpace(envelope.Brief.Goal) != "" || strings.TrimSpace(envelope.Brief.Intent.Objective) != "" {
 		return envelope.Brief, envelope.ContextManifest, nil
