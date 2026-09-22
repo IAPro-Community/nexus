@@ -155,7 +155,7 @@ $TargetPath = Join-Path $TargetDir $BinaryName
 $Installed = $false
 
 # Ed25519 public key for manifest signature verification (matches internal/update ProductionTrustRoot).
-$NexusPubKey = "8284672c22f6179ec76ea2c7c5007d5742e719a55de0b7dfff96a3560e0cd7b2"
+$NexusPubKey = "ee2e268394ce6a0634a9ea2f414ee831dd536d12f7e2b80107f94566e58aa334"
 
 function Verify-ManifestSignature {
     param([string]$ManifestPath, [string]$SigPath)
