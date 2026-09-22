@@ -1,15 +1,51 @@
 # Changelog
 
-## Unreleased — source v1.0.0-beta.4 — Nexus 1.0 closure
+## Unreleased — source v1.0.0-beta.4 — fechamento do Nexus 1.0
 
-- Added the Composer → PromptArtifact → Flow → revision-bound Execution Preview North Star, with no Agent/runtime/Mission side effects during preview.
-- Productized persistent specialist Agent Modes and canonical AgentMatcher taxonomy for senior development, investigation, architecture, security review and performance investigation.
-- Kept Capacity collection on the canonical quota path while exposing production observation probes without a second poller.
-- Hardened Skills v1 Flow round-trip so canonical `skill_ids` preserve the legacy alias without making Maestro a second catalog authority.
-- Added a local observational Cost Intelligence ledger with explicit evidence kinds; unknown tokens/cost stay unknown rather than zero.
-- Added persisted soft/hard/emergency cost policy, comparable-sample anomaly detection and Settings/Usage surfaces.
-- Added cost-aware Execution Preview and evidence-bound confirmation before starting new Mission work under hard/emergency or unknown hard-budget headroom.
-- Restored the frontend format gate to a real repository-wide Prettier check.
+> Esta seção descreve o **source candidato**. Não afirma publicação nem
+> certificação de uma release estável.
+
+### Adicionado
+
+- Fluxo canônico Composer → PromptArtifact → WorkPlan → Flow → Execution Preview
+  → GO explícito → MissionRunner, sem side effects durante preview.
+- Agent Modes persistentes e taxonomia canônica do AgentMatcher para
+  desenvolvimento, investigação, arquitetura, segurança, QA e revisão.
+- Skills v1 com catálogo/provenance e integração opcional com Maestro.
+- Cost Intelligence observacional, budgets e detecção de anomalia sem converter
+  custo desconhecido em zero.
+- Coordenação tipada entre Agents com `NEED_INFO`, `ARTIFACT_REQUEST`,
+  `REVIEW_REQUEST` e `DELEGATE`.
+- Resolução de coordenação por memory/receipts/artifacts antes de materializar
+  child work.
+- Child packages duráveis com lineage, capabilities para o scheduler e
+  WorkReceipt de resposta.
+- Continuação segura da package de origem sob a mesma identidade persistente de
+  Agent, condicionada a prova positiva de replay safety.
+- Limites de fan-out e payload para coordenação gerada por provider.
+- Documentação v1 em PT-BR, incluindo diagramas canônicos versionados em
+  `docs/assets/diagrams/`.
+
+### Alterado
+
+- `WorkPlan` permanece a fonte de verdade; Flow é explicitamente sua projeção,
+  não um segundo planner.
+- AgentMatcher escolhe **quem**; ResourceScheduler escolhe **com qual recurso**.
+- Preferência de provider em coordenação permanece preferência e não herda
+  autoridade MANUAL/PIN do trabalho de origem.
+- Mission/coordenação passaram a ser documentadas separando
+  **implementação no source candidato** de **certificação de release**.
+- Capacity continua no caminho canônico de quota/observação, sem segundo poller.
+- O gate de frontend voltou a usar verificação Prettier real em todo o
+  repositório.
+
+### Segurança e confiabilidade
+
+- Replay de coordenação falha fechado quando workspace/fingerprint não comprova
+  ausência de mutação ou quando o contrato autoriza side effects externos.
+- Dispatch externo com resultado desconhecido continua sem reexecução cega.
+- UNKNOWN permanece UNKNOWN em quota, custo, suporte e evidência.
+- Push/deploy continuam condicionados a autorização explícita.
 
 
 ## 1.0.0-beta.3 — 2026-09-20 — Surface isolation and Flow recovery
