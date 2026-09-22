@@ -27,16 +27,16 @@ const (
 
 // ComposerSession stores one durable, project-scoped prompt elaboration.
 type ComposerSession struct {
-	ID                 string    `json:"id"`
-	ProjectID          string    `json:"project_id"`
-	Title              string    `json:"title"`
-	State              string    `json:"state"`
-	ContextFingerprint string    `json:"context_fingerprint"`
+	ID                  string    `json:"id"`
+	ProjectID           string    `json:"project_id"`
+	Title               string    `json:"title"`
+	State               string    `json:"state"`
+	ContextFingerprint  string    `json:"context_fingerprint"`
 	BriefJSON           string    `json:"brief_json"`
 	ContextManifestJSON string    `json:"-"`
 	Revision            int       `json:"revision"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
 }
 type ComposerTurn struct {
 	ID          string    `json:"id"`
@@ -62,13 +62,13 @@ type ConversationAttachment struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 type ComposerSkillProposal struct {
-	SessionID     string    `json:"session_id"`
-	SkillID       string    `json:"skill_id"`
-	State         string    `json:"state"`
-	Reason        string    `json:"reason"`
-	Applicability string    `json:"applicability"`
-	Risk          string    `json:"risk"`
-	Source        string    `json:"source,omitempty"`
+	SessionID           string    `json:"session_id"`
+	SkillID             string    `json:"skill_id"`
+	State               string    `json:"state"`
+	Reason              string    `json:"reason"`
+	Applicability       string    `json:"applicability"`
+	Risk                string    `json:"risk"`
+	Source              string    `json:"source,omitempty"`
 	Version             string    `json:"version,omitempty"`
 	Available           bool      `json:"available"`
 	RecommendationScore int       `json:"recommendation_score,omitempty"`

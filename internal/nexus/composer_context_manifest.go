@@ -43,7 +43,7 @@ type ComposerContextItem struct {
 }
 
 type ComposerContextBudget struct {
-	MaxEstimatedTokens int `json:"max_estimated_tokens"`
+	MaxEstimatedTokens  int `json:"max_estimated_tokens"`
 	UsedEstimatedTokens int `json:"used_estimated_tokens"`
 	KeptItems           int `json:"kept_items"`
 	ReferencedItems     int `json:"referenced_items"`
@@ -246,7 +246,7 @@ func (m ComposerContextManifest) IntelligenceContext() map[string]any {
 		"version":     m.Version,
 		"fingerprint": m.Fingerprint,
 		"budget": map[string]any{
-			"max_estimated_tokens": m.Budget.MaxEstimatedTokens,
+			"max_estimated_tokens":  m.Budget.MaxEstimatedTokens,
 			"used_estimated_tokens": m.Budget.UsedEstimatedTokens,
 		},
 		"items": items,

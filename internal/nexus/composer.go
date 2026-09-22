@@ -199,9 +199,9 @@ func (n *Nexus) CreateComposerSessionWithPromptProgress(ctx context.Context, pro
 	briefJSON, _ := json.Marshal(brief)
 	sessionState := composerSessionStateFromBrief(brief)
 	session, err := st.CreateComposerSession(store.ComposerSession{
-		ProjectID:          projectID,
-		Title:              firstNonEmpty(brief.Intent.Objective, brief.Goal),
-		State:              sessionState,
+		ProjectID:           projectID,
+		Title:               firstNonEmpty(brief.Intent.Objective, brief.Goal),
+		State:               sessionState,
 		ContextFingerprint:  project.CanonicalPath,
 		BriefJSON:           string(briefJSON),
 		ContextManifestJSON: mustComposerContextManifestJSON(manifest),
@@ -221,15 +221,15 @@ func seedComposerSkillProposals(st *store.Store, sessionID string, brief LivingB
 	for _, ranked := range rankComposerSkillCandidates(catalog, brief) {
 		skill := ranked.Skill
 		_, _ = st.UpsertComposerSkillProposal(store.ComposerSkillProposal{
-			SessionID: sessionID,
-			SkillID: skill.ID,
-			State: store.ComposerSkillSuggested,
-			Reason: strings.Join(ranked.Reasons, "; "),
-			Applicability: firstNonEmpty(skill.Description, "Compatible with this Composer brief."),
-			Risk: skill.Risk,
-			Source: string(skill.Source),
-			Version: firstNonEmpty(skill.Version, "1.0.0"),
-			Available: true,
+			SessionID:           sessionID,
+			SkillID:             skill.ID,
+			State:               store.ComposerSkillSuggested,
+			Reason:              strings.Join(ranked.Reasons, "; "),
+			Applicability:       firstNonEmpty(skill.Description, "Compatible with this Composer brief."),
+			Risk:                skill.Risk,
+			Source:              string(skill.Source),
+			Version:             firstNonEmpty(skill.Version, "1.0.0"),
+			Available:           true,
 			RecommendationScore: ranked.Score,
 		})
 	}
