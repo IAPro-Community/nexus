@@ -450,7 +450,6 @@ func boundedCoordinationSummary(value string) string {
 	return value
 }
 
-
 func (r *MissionRunner) acceptExecutionCoordination(run *MissionRun, sourcePackageID string, requests []CoordinationRequest) error {
 	if len(requests) == 0 {
 		return nil
