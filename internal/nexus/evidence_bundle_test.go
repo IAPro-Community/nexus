@@ -71,6 +71,7 @@ func TestEvidenceBundleRequiresAndProjectsCanonicalProof(t *testing.T) {
 			FinishedAt: &now,
 		}},
 		GlobalVerifications: []runner.VerificationResult{verification},
+		NeedsHuman:          &runner.HumanIntervention{Resolved: true},
 		StartedAt:           now,
 		UpdatedAt:           now,
 		CompletedAt:         &now,
@@ -159,6 +160,7 @@ func TestEvidenceBundleDoesNotPromoteTerminalStateWithoutProof(t *testing.T) {
 			PackageID: "package-1", Title: "Build", Workspace: root, State: runner.StateVerified,
 		}},
 		GlobalVerifications: []runner.VerificationResult{{Command: "true", Passed: true}},
+		NeedsHuman:          &runner.HumanIntervention{Resolved: false},
 		StartedAt:           now,
 		UpdatedAt:           now,
 		CompletedAt:         &now,
@@ -188,6 +190,7 @@ func TestEvidenceBundleDoesNotPromoteTerminalStateWithoutProof(t *testing.T) {
 	for _, required := range []string{
 		"validation_chain_verified",
 		"validation_entries",
+		"unresolved_human_intervention",
 	} {
 		if !slices.Contains(bundle.MissingEvidence, required) {
 			t.Fatalf("missing_evidence=%v, want %q", bundle.MissingEvidence, required)
