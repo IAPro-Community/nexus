@@ -399,6 +399,12 @@ func materializeCoordinationWorkInRun(run *MissionRun, requestID string) (*Packa
 	if role == "" {
 		role = defaultCoordinationRole(req.Operation)
 	}
+	resourcePolicy := source.ResourcePolicy
+	if strings.TrimSpace(req.PreferredProvider) != "" {
+		// A coordination request may prefer a provider, but never upgrades that
+		// preference into the source package's MANUAL/PIN authority.
+		resourcePolicy = "PREFER_PROVIDER"
+	}
 	dependencies := append([]string(nil), source.Dependencies...)
 	state := StatePending
 	if dependenciesVerified(run, dependencies) {
@@ -436,7 +442,7 @@ func materializeCoordinationWorkInRun(run *MissionRun, requestID string) (*Packa
 		TaskRequirements:      string(taskRequirements),
 		Dependencies:          dependencies,
 		AssignmentStrategy:    "AUTO",
-		ResourcePolicy:        source.ResourcePolicy,
+		ResourcePolicy:        resourcePolicy,
 		DesiredProvider:       strings.TrimSpace(req.PreferredProvider),
 		RelevantPaths:         append([]string(nil), source.RelevantPaths...),
 		HandoffJSON:           string(handoff),
