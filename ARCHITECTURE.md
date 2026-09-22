@@ -1,132 +1,355 @@
-# Architecture: IAPro Nexus Workspace OS
+# Arquitetura do IAPro Nexus v1
+
+Esta página descreve a arquitetura canônica atual. Documentos históricos em
+`DEV/` preservam decisões e campanhas antigas, mas não substituem este mapa.
+
+![Arquitetura lógica do Nexus v1](docs/assets/diagrams/nexus-v1-components.svg)
+
+## 1. Princípios
+
+1. **Nexus é o runtime e control plane.**
+2. **Agent é identidade persistente; provider é recurso de execução.**
+3. **WorkPlan é a fonte de verdade do plano; Flow é sua projeção visual.**
+4. **MissionRunner é a autoridade de execução durável.**
+5. **ResourceScheduler escolhe com qual recurso executar; não escolhe a identidade do Agent.**
+6. **Evidência, não texto do modelo, determina sucesso.**
+7. **Maestro é integração metodológica opcional, não um segundo orquestrador.**
+8. **UNKNOWN nunca é promovido implicitamente a sucesso.**
+9. **Side effects sem prova de segurança falham fechado.**
+10. **CLI, Web e Desktop consomem o mesmo Core.**
+
+## 2. Visão de alto nível
 
 ```text
-                                 nexus CLI / TUI / Web
-                                          │
-                            Provider Registry & Dispatcher
-                                          │
-         ┌──────────────┬────────────┼────────────┬──────────────┐
-         │              │            │            │              │
-       Codex           AGY         Claude      OpenCode        Gemini
-      Adapter        Adapter      Adapter      Adapter        Adapter
-         │              │            │            │              │
-     CODEX_HOME    profile HOME   CLAUDE_HOME  OPENCODE_HOME  GEMINI_HOME
-    per profile   XDG per profile per profile  per profile    per profile
-         │        D-Bus keyring      │            │              │
-         │              │            │            │              │
-   official codex  official agy official claude official opencode official gemini
-         │              │            │            │              │
-         └──────────────┴────────────┼────────────┴──────────────┘
-                                          │
-                                  current directory
-                                 same Linux UID/GID
+                         ┌───────────────┐
+                         │   Usuário     │
+                         └──────┬────────┘
+                                │
+                 ┌──────────────┼──────────────┐
+                 │              │              │
+               CLI             Web          Desktop
+                 └──────────────┼──────────────┘
+                                ↓
+                         ┌───────────────┐
+                         │  Nexus Core   │
+                         └──────┬────────┘
+                                │
+      ┌─────────────────────────┼─────────────────────────┐
+      │                         │                         │
+      ↓                         ↓                         ↓
+ Projects / Agents       Composer / WorkPlan       Runtime / Providers
+      │                         │                         │
+      │                         ↓                         │
+      │                       Flow                        │
+      │                         │                         │
+      └─────────────────────────┼─────────────────────────┘
+                                ↓
+                               GO
+                                ↓
+                         ┌───────────────┐
+                         │ MissionRunner │
+                         └──────┬────────┘
+                                │
+              ┌─────────────────┼──────────────────┐
+              ↓                 ↓                  ↓
+       ResourceScheduler    Worktrees          Gates/Review
+              │                 │                  │
+              └──────────────┬──┴──────────────────┘
+                             ↓
+                           Agents
+                             ↓
+                 WorkReceipt / Artifacts
+                             ↓
+                    Global Definition of Done
+                             ↓
+                    COMPLETED_VERIFIED
 ```
 
----
+## 3. Fronteiras de responsabilidade
 
-## 1. Core Principles
+### Nexus Core
 
-- **No Central OAuth Proxy**: Authentication and refresh tokens are owned by official CLIs. `nexus` manages process isolation, environment variables, and credential storage paths.
-- **Honest Quota Engine**: Never presents missing data as 100%. Quotas explicitly report `LIVE`, `CACHED`, `UNKNOWN`, `RATE_LIMITED`, or `UNSUPPORTED`.
-- **Smart Account Selection**: Scores candidate accounts based on capacity, health, project bindings, and priorities.
-- **Automatic Fallback**: Recovers from 429 rate limits by switching to the next best account seamlessly.
+O Core mantém:
 
----
+- projects e workspaces;
+- Agents e revisões;
+- runtime generations;
+- provider registry/drivers;
+- sessions e terminal transport;
+- plans e revisions;
+- Composer;
+- Flow;
+- Missions e runs;
+- resource scheduling;
+- intelligence/memory;
+- events;
+- evidence;
+- recovery;
+- security boundaries.
 
-## 2. Component Diagram
+As superfícies não devem duplicar essas regras.
 
-```mermaid
-flowchart TB
-    CLI["nexus CLI / TUI / Web Workspace OS"] --> Dispatcher["Command Dispatcher & Controller"]
-    Dispatcher --> Scheduler["Smart Account Selector"]
-    Dispatcher --> Registry["Provider Registry"]
-    Dispatcher --> SessionIndex["Universal Session Index"]
-    Dispatcher --> SecurityEngine["Isolation & Security Engine"]
+### Web / Desktop / CLI
 
-    Scheduler --> QuotaEngine["Usage & Quota Engine (TTL / Cache)"]
-    Scheduler --> Cooldown["Cooldown & Rate Limit Tracker"]
-    Scheduler --> Config["Config & Project Bindings Store"]
+São adaptadores e experiências de operação.
 
-    Registry --> CodexAdapter["Codex Provider Adapter"]
-    Registry --> AGYAdapter["AGY Provider Adapter"]
-    Registry --> ClaudeAdapter["Claude Code Adapter"]
-    Registry --> OpenCodeAdapter["OpenCode Adapter"]
-    Registry --> GeminiAdapter["Gemini CLI Adapter"]
+- **CLI**: scripting, diagnóstico, provider passthrough, execução headless.
+- **Web**: operação visual, Projects, Agents, Composer, Flow e Mission.
+- **Desktop**: shell nativo da mesma aplicação quando a plataforma está certificada.
 
-    CodexAdapter --> IsolatedRuntime["Isolated Process Runtime (PTY / Signals)"]
-    AGYAdapter --> IsolatedRuntime
-    ClaudeAdapter --> IsolatedRuntime
-    OpenCodeAdapter --> IsolatedRuntime
-    GeminiAdapter --> IsolatedRuntime
+### Maestro
+
+Maestro fornece, quando habilitado:
+
+- metodologia;
+- skills;
+- risco;
+- gates;
+- padrões de review/verificação.
+
+Nexus continua responsável por execução, scheduler, Agents, workspaces e
+persistência.
+
+## 4. Modelo de Agent
+
+```text
+Agent (identidade persistente)
+├── AgentSpec
+├── AgentRevision (snapshot imutável)
+└── RuntimeGeneration
+    └── ProviderSession
 ```
 
----
+Provider/model/profile podem mudar sem mudar a identidade do Agent.
 
-## 3. Run & Fallback Sequence
+A seleção é deliberadamente separada:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User
-    participant CLI as nexus CLI
-    participant Selector as AccountSelector
-    participant Runtime as IsolatedRuntime
-    participant Adapter as ProviderAdapter
-    participant Cooldown as CooldownTracker
-
-    User->>CLI: nexus codex
-    CLI->>Selector: SelectBestProfile(codex)
-    Selector-->>CLI: Selected: profile-work (Capacity: 85%)
-    CLI->>Runtime: RunInteractive(profile-work, args)
-    Runtime->>Adapter: Execute Official CLI
-    Adapter-->>Runtime: Process Exits with 429 RateLimit
-    Runtime-->>CLI: Execution Result: Failure(Kind=RateLimitFailure)
-    CLI->>Cooldown: RecordRateLimit(codex, profile-work, 30m)
-    CLI->>Selector: SelectBestProfile(codex, exclude=[profile-work])
-    Selector-->>CLI: Selected: profile-personal (Capacity: 70%)
-    CLI->>User: ⚠ profile-work rate-limited. Falling back to profile-personal...
-    CLI->>Runtime: RunInteractive(profile-personal, args)
-    Runtime->>Adapter: Execute Official CLI
-    Adapter-->>User: Interactive Session Connected
+```text
+TaskRequirements
+      ↓
+ AgentMatcher       → QUEM
+      ↓
+ ResourceScheduler  → COM QUAL RECURSO
 ```
 
----
+Essa separação evita que preferência de provider se torne identidade ou
+autoridade de execução.
 
-## 4. Provider Capabilities Matrix
+## 5. Planejamento
 
-| Provider | Profiles | Isolation | Usage | Resume Syntax | Cross-Account Resume | Auto Selection |
-|---|---|---|---|---|---|---|
-| **Codex** | Unlimited | `CODEX_HOME` | `LIVE` / `CACHED` | `codex resume <id>` | Yes (shared sessions) | Yes |
-| **AGY** | Unlimited | D-Bus Keyring + `HOME` | `LIVE` / `CACHED` | `agy --conversation=<id>` | Yes (shared brain) | Yes |
-| **Claude Code** | Unlimited | `CLAUDE_CONFIG_DIR` + `HOME` | `LIVE` / `UNKNOWN` | `claude --resume <id>` | No | Yes |
-| **OpenCode** | Unlimited | `OPENCODE_CONFIG_DIR` + `XDG` | `LIVE` / `UNKNOWN` | `opencode -s <id>` | Yes | Yes |
-| **Gemini CLI** | Unlimited | `GEMINI_CLI_HOME` + `HOME` | `LIVE` / `UNKNOWN` | `gemini -r <id>` | No | Yes |
+![Fluxo ponta a ponta](docs/assets/diagrams/nexus-v1-flow.svg)
 
----
+### Composer
 
-## 5. Nexus Supervised Runtimes Architecture
+Converte intenção/contexto em `PromptArtifact` estruturado, com critérios,
+restrições, riscos e gaps explícitos.
 
-The Nexus Control Plane introduces a supervised runtime model where AI developer tools execute inside a managed host wrapper. This wrapper provides cross-provider interoperability, resilient handoffs, and capability discovery.
+### WorkPlan
 
-### Core Concepts
+É o contrato semântico/versionado da execução. Contém phases/packages,
+dependências, requisitos e critérios.
 
-- **Session Host (`internal/control/host`)**: The background daemon wrapper for a single provider process. It manages a persistent Unix Domain Socket (or Windows Named Pipe) for RPC commands and interactive terminal data streaming.
-- **Control Drivers (`internal/control/driver`)**: Provider-specific adapters that declare runtime capabilities (e.g., `Process`, `Terminal`, `Sessions`, `Resume`, `SlashControl`) and construct exact execution binaries and environments.
-- **Session Registry (`internal/control/registry`)**: A unified, cross-process persistent registry tracking all active runtime sessions, PIDs, host PIDs, and active states (`STARTING`, `RUNNING`, `STOPPED`, `HANDOFF`).
-- **Handoff Engine (`internal/control/handoff`)**: Orchestrates safe state transitions, capturing bounded `WorkCheckpoints` (git branches, diff stats, goal) and persisting `LineageRecords` to safely move work between profiles or providers.
+### Flow
 
-### Inter-Process Control Flow
+É a projeção visual do WorkPlan. Mover/reorganizar trabalho deve alterar o
+modelo canônico, não uma cópia paralela.
 
-1. The `nexus start` (or `nexus control start`) command provisions a new `registry.RuntimeSession`, spawns `nexus __control-host` in the background, and immediately attaches to the new socket.
-2. The background `SessionHost` runs the actual provider CLI (via PTY) and broadcasts stdout to all attached clients via a ring buffer.
-3. Attached user terminals send input which the `SessionHost` intercepts using a `SlashRouter`.
-4. Commands like `/nexus handoff` trigger asynchronous transactional handoff routines that quiesce the current process, launch the target process, and safely link session IDs before stopping the source process.
+### GO
 
----
+Congela e autoriza uma revisão específica para execução.
 
-## 6. Canonical Flags Normalization & Merged Help
+## 6. MissionRunner
 
-To provide seamless developer ergonomics across disparate AI coding tools, Nexus provides a unified flag normalization and help engine (`internal/control/flags`):
+Leia [Runtime da Mission](docs/architecture/mission-runtime.md).
 
-- **Canonical Flag Translation**: Common universal options (`--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan`) are intercepted and translated to each CLI's native syntax before execution. Native options are never shadowed and remain 100% supported.
-- **Merged Help Pipeline**: Invoking `nexus <provider> --help` or `nexus help <provider>` inspects provider capabilities, generates an informative comparison banner of canonical aliases, and transparently passes through the complete native CLI help output.
+`MissionRunner` é uma máquina de estados persistente:
+
+```text
+READY → ALLOCATE → COMPILE → EXECUTE → TESTING → REVIEW → VERIFIED
+```
+
+A execução possui:
+
+- lease/fencing;
+- dispatch identity;
+- retry/remediation;
+- no-progress detection;
+- dependency graph;
+- parallel groups;
+- recovery;
+- human intervention;
+- global verification.
+
+## 7. ResourceScheduler
+
+O scheduler seleciona provider/profile/model com base em:
+
+- capability requirements;
+- policy;
+- preferência ou pin explícito;
+- disponibilidade;
+- quota/capacity;
+- isolamento suportado;
+- saúde/evidência.
+
+`PREFER` é fallible. `PIN` é fail-closed.
+
+O scheduler não substitui AgentMatcher e não cria um Agent novo por decisão de
+provider.
+
+## 8. Workspaces e isolamento
+
+- Direct pode operar no workspace do projeto.
+- Escrita autônoma prefere worktree dedicado.
+- Escrita paralela exige isolamento.
+- Review/Investigation é read-only quando o provider comprova esse modo.
+- Nenhuma Mission deve sobrescrever silenciosamente o trabalho de outra.
+
+## 9. Contexto e evidência
+
+O Nexus evita usar transcript bruto como memória canônica.
+
+### ContextCapsule
+
+Handoff limitado com:
+
+- objetivo;
+- dependências;
+- receipts;
+- relevant paths;
+- critérios;
+- constraints;
+- handoff metadata.
+
+### WorkReceipt
+
+Registra resultado de uma package:
+
+- status;
+- summary;
+- changed files;
+- commands;
+- testes;
+- artifacts;
+- verification;
+- Agent;
+- revisões Git quando disponíveis.
+
+### Evidence Bundle
+
+Agrupa evidência necessária para auditoria/release de uma Mission.
+
+## 10. Coordenação entre Agents
+
+![Coordenação entre Agents](docs/assets/diagrams/nexus-v1-agent-coordination.svg)
+
+O protocolo v1 é fechado:
+
+- `NEED_INFO`;
+- `ARTIFACT_REQUEST`;
+- `REVIEW_REQUEST`;
+- `DELEGATE`.
+
+Toda solicitação passa pelo MissionRunner. Não existe peer-to-peer livre como
+fonte de estado.
+
+Detalhes: [Coordenação entre Agents](docs/product/agent-coordination.md).
+
+## 11. Segurança e side effects
+
+![Guardrails](docs/assets/diagrams/nexus-v1-guardrails.svg)
+
+A autoridade principal é o `AutonomyContract`.
+
+Exemplos de enforcement:
+
+- `AllowedFilePatterns`;
+- `DisallowDestructiveGit`;
+- `AllowGitPush`;
+- `AllowDeploy`;
+- `AllowExternalNetwork`;
+- `AllowSecretAccess`;
+- `AllowPaidServices`;
+- retries/iterations/no-progress;
+- human operations permitidas.
+
+Leia [Guardrails](docs/architecture/guardrails.md).
+
+## 12. Provider layer
+
+Providers são adaptadores para CLIs/runtimes oficiais. O Nexus:
+
+- detecta capabilities;
+- prepara ambiente isolado;
+- gerencia profile/config paths;
+- executa PTY/ConPTY;
+- registra runtime/session;
+- observa quota quando existe evidência;
+- classifica falhas;
+- permite fallback conforme policy.
+
+Autenticação permanece pertencendo ao provider oficial. O Nexus não é um proxy
+OAuth central.
+
+## 13. Runtime supervisionado
+
+Componentes relevantes:
+
+- `internal/control/host`: processo supervisionado;
+- `internal/control/driver`: adapters/capabilities;
+- `internal/control/registry`: sessions/runtimes;
+- `internal/control/terminal`: PTY/ConPTY;
+- `internal/control/events`: eventos estruturados;
+- `internal/nexus/runner`: Mission state machine;
+- `internal/nexus/store`: persistência de produto.
+
+## 14. Persistência
+
+Estado durável usa stores locais/SQLite conforme o domínio. A persistência deve
+suportar:
+
+- restart;
+- idempotência;
+- lineage;
+- recovery;
+- evidence;
+- leitura pelas superfícies sem reconstruir estado a partir de transcripts.
+
+## 15. API local
+
+A API `/api/v1` é interna às superfícies do produto. Ela usa bootstrap/session
+local, CSRF e loopback por padrão. Não é um SDK público estável.
+
+Scripts devem preferir CLI/`--json` quando possível.
+
+## 16. Status de plataforma
+
+Build e execução nativa são gates diferentes. Cross-compilation não prova
+runtime real.
+
+Consulte [Suporte de plataformas](docs/operations/platform-support.md) e o
+[status de release](DEV/validation/current/RELEASE_STATUS.md).
+
+## 17. Documentos técnicos relacionados
+
+- [Arquitetura detalhada](docs/architecture/overview.md)
+- [Nexus Core](docs/architecture/core.md)
+- [Mission runtime](docs/architecture/mission-runtime.md)
+- [Guardrails](docs/architecture/guardrails.md)
+- [Provider contract](docs/architecture/provider-contract.md)
+- [Runtime lifecycle](docs/architecture/runtime-lifecycle.md)
+- [Mission Teams](docs/architecture/mission-teams.md)
+- [Resource routing](docs/architecture/resource-routing.md)
+- [Events](docs/architecture/events.md)
+
+## 18. O que esta arquitetura não faz
+
+A v1 não cria:
+
+- proxy universal de LLM;
+- segundo scheduler;
+- segundo memory engine;
+- segundo formato de plano;
+- peer-to-peer mesh de Agents;
+- permissão implícita de push/deploy;
+- falsa certificação de plataforma sem evidência.
