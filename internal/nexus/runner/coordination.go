@@ -491,6 +491,7 @@ func (r *MissionRunner) acceptExecutionCoordination(run *MissionRun, sourcePacka
 	source.ResumeAgentID = source.AssignedAgent
 	source.State = StatePending
 	source.ContextCapsule = nil
+	source.ContextRefreshRequired = true
 	source.PromptVersionID = ""
 	source.CompiledPrompt = ""
 	source.ResultSummary = ""
