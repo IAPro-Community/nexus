@@ -52,8 +52,15 @@ func (e *nexusPackageExecutor) IntegrateDelivery(ctx context.Context, run *runne
 	if err != nil {
 		return runner.DeliveryIntegrationEvidence{}, err
 	}
-	target := filepath.Join(dataDir, "integrations", run.ProjectID, run.ID)
-	if err := recreateDetachedIntegrationWorktree(ctx, project.CanonicalPath, target, base); err != nil {
+	if err := validateIntegrationPathSegment("project id", run.ProjectID); err != nil {
+		return runner.DeliveryIntegrationEvidence{}, err
+	}
+	if err := validateIntegrationPathSegment("mission run id", run.ID); err != nil {
+		return runner.DeliveryIntegrationEvidence{}, err
+	}
+	integrationRoot := filepath.Join(dataDir, "integrations")
+	target := filepath.Join(integrationRoot, run.ProjectID, run.ID)
+	if err := recreateDetachedIntegrationWorktree(ctx, project.CanonicalPath, integrationRoot, target, base); err != nil {
 		return runner.DeliveryIntegrationEvidence{}, err
 	}
 
@@ -243,8 +250,17 @@ func applyPackageDeliveryDelta(ctx context.Context, run *runner.MissionRun, pkg 
 	return nil
 }
 
-func recreateDetachedIntegrationWorktree(ctx context.Context, canonical, target, base string) error {
-	if !pathWithinRoot(target, filepath.Dir(filepath.Dir(target))) {
+func validateIntegrationPathSegment(name, value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" || value == "." || value == ".." ||
+		strings.ContainsAny(value, `/\\`) || filepath.Base(value) != value {
+		return fmt.Errorf("unsafe integration %s %q", name, value)
+	}
+	return nil
+}
+
+func recreateDetachedIntegrationWorktree(ctx context.Context, canonical, integrationRoot, target, base string) error {
+	if strings.TrimSpace(integrationRoot) == "" || !pathWithinRoot(target, integrationRoot) {
 		return fmt.Errorf("integration target escapes Nexus integration root")
 	}
 	if _, err := os.Stat(target); err == nil {
