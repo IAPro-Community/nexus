@@ -124,7 +124,7 @@ export const ComposerSurface: React.FC<{
     isRunning: conversationRunning,
     isDisabled: view?.session.state === 'FINALIZED',
     onSend,
-    onCancel: composer.cancelCreate,
+    onCancel: composer.cancelConversation,
   });
 
   const canMaterialize = destinationGate?.canMaterialize ?? true;
@@ -146,7 +146,7 @@ export const ComposerSurface: React.FC<{
         {bootstrapActivity ? (
           <div className={styles.bootstrapActivity}>
             <AgentActivity activity={bootstrapActivity} />
-            <Button size="sm" onClick={composer.cancelCreate}>
+            <Button size="sm" onClick={composer.cancelConversation}>
               {t('conversation.stop', 'Stop')}
             </Button>
           </div>
