@@ -60,6 +60,17 @@ jobs:
       - working-directory: web
         run: bun run verify
 
+  release-config:
+    name: Release configuration
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: v2.18.0
+          args: check
+
   security:
     name: Security
     runs-on: [self-hosted, Linux, X64, nexus-ci]
