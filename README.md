@@ -106,6 +106,14 @@ Composer, Flow, Mission e Maestro **não são pré-requisitos** para esse caminh
 
 → [Quick Start completo](docs/quick-start.md)
 
+## Veja o produto
+
+![Workspace real do Nexus em fixture sintética](docs/assets/screenshots/workspace-overview.png)
+
+O [tour visual](docs/product/visual-tour.md) contém as principais superfícies
+capturadas automaticamente. Screenshots reais e diagramas conceituais têm
+classificações diferentes e não substituem certificação de plataforma.
+
 ## Como escolher o modo de trabalho
 
 | Situação | Use |
