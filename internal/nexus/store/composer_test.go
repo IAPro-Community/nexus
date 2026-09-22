@@ -93,6 +93,32 @@ func TestComposerTurnRemainsBoundedWithoutAffectingPromptArtifact(t *testing.T) 
 	}
 }
 
+func TestComposerTurnDoesNotSilentlyTruncate(t *testing.T) {
+	st := openTestStore(t)
+	project, err := st.CreateProject(Project{Name: "Composer turn size", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(ComposerSession{ProjectID: project.ID, BriefJSON: `{"goal":"large input"}`})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content := strings.Repeat("input ", 8*1024)
+	turn, err := st.AppendComposerTurn(ComposerTurn{SessionID: session.ID, Role: ComposerUser, Content: content})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if turn.Content != strings.TrimSpace(content) {
+		t.Fatalf("composer turn was silently modified: got %d bytes want %d", len(turn.Content), len(strings.TrimSpace(content)))
+	}
+
+	tooLarge := strings.Repeat("x", maxComposerTurnBytes+1)
+	if _, err := st.AppendComposerTurn(ComposerTurn{SessionID: session.ID, Role: ComposerUser, Content: tooLarge}); err == nil {
+		t.Fatal("expected oversized Composer turn to fail explicitly")
+	}
+}
+
 func TestPromptArtifactDoesNotSilentlyTruncate(t *testing.T) {
 	st := openTestStore(t)
 	project, err := st.CreateProject(Project{Name: "Prompt artifact size", CanonicalPath: t.TempDir()})
