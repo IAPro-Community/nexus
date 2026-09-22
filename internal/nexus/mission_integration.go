@@ -52,10 +52,10 @@ func (e *nexusPackageExecutor) IntegrateDelivery(ctx context.Context, run *runne
 	if err != nil {
 		return runner.DeliveryIntegrationEvidence{}, err
 	}
-	if err := validateIntegrationPathSegment("project id", run.ProjectID); err != nil {
+	if err := validateManagedPathSegment("project id", run.ProjectID); err != nil {
 		return runner.DeliveryIntegrationEvidence{}, err
 	}
-	if err := validateIntegrationPathSegment("mission run id", run.ID); err != nil {
+	if err := validateManagedPathSegment("mission run id", run.ID); err != nil {
 		return runner.DeliveryIntegrationEvidence{}, err
 	}
 	integrationRoot := filepath.Join(dataDir, "integrations")
@@ -246,15 +246,6 @@ func applyPackageDeliveryDelta(ctx context.Context, run *runner.MissionRun, pkg 
 			return fmt.Errorf("materialize package %s path %s: %w", pkg.PackageID, clean, err)
 		}
 		owners[clean] = deliveryFileOwner{PackageID: pkg.PackageID, State: state}
-	}
-	return nil
-}
-
-func validateIntegrationPathSegment(name, value string) error {
-	value = strings.TrimSpace(value)
-	if value == "" || value == "." || value == ".." ||
-		strings.ContainsAny(value, `/\\`) || filepath.Base(value) != value {
-		return fmt.Errorf("unsafe integration %s %q", name, value)
 	}
 	return nil
 }
@@ -490,16 +481,6 @@ func copyDeliveryPath(source, destination, integrationRoot string) error {
 	}
 	ok = true
 	return nil
-}
-
-func pathWithinRoot(path, root string) bool {
-	absPath, err1 := filepath.Abs(path)
-	absRoot, err2 := filepath.Abs(root)
-	if err1 != nil || err2 != nil {
-		return false
-	}
-	rel, err := filepath.Rel(absRoot, absPath)
-	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator))
 }
 
 func sortedMapKeys[T any](values map[string]T) []string {
