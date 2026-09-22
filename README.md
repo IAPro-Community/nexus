@@ -68,7 +68,8 @@ publicada.
 **Linux / macOS**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
+curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
+bash install.sh --version=v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
@@ -76,7 +77,7 @@ nexus web
 **Windows PowerShell**
 
 ```powershell
-irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
+irm https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.ps1 -OutFile install.ps1
 .\install.ps1 -Version v1.0.0-beta.1
 nexus doctor
 nexus web
