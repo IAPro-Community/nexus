@@ -310,14 +310,6 @@ func validateCostBudgetAdmission(ctx context.Context, st *store.Store, plan *sto
 	return nil
 }
 
-func (n *Nexus) startMissionRunAtRevision(ctx context.Context, plan *store.WorkPlan, revision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, admission ...*FlowPreflightReport) (*runner.MissionRun, error) {
-	var preflight *FlowPreflightReport
-	if len(admission) > 0 {
-		preflight = admission[0]
-	}
-	return n.startMissionRunAtRevisionWithAdmission(ctx, plan, revision, defaultAgentID, contract, autonomous, preflight, nil)
-}
-
 func (n *Nexus) startMissionRunAtRevisionWithAdmission(ctx context.Context, plan *store.WorkPlan, revision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, preflight *FlowPreflightReport, preview *PlanExecutionPreview) (*runner.MissionRun, error) {
 	st, err := n.OpenProject()
 	if err != nil {

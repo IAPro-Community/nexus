@@ -234,17 +234,6 @@ func seedComposerSkillProposals(st *store.Store, sessionID string, brief LivingB
 		})
 	}
 }
-func skillRelevantToComposer(skill nexusskills.Skill, brief LivingBrief) bool {
-	text := strings.ToLower(skill.ID + " " + skill.Name + " " + skill.Description + " " + strings.Join(skill.Triggers, " "))
-	if len(brief.Constraints.Security) > 0 || brief.Intent.Archetype == PromptArchetypeSecurity {
-		return strings.Contains(text, "secur") || strings.Contains(text, "auth")
-	}
-	if brief.Intent.Archetype == PromptArchetypeResearch {
-		return strings.Contains(text, "research") || strings.Contains(text, "review")
-	}
-	return true
-}
-
 func (n *Nexus) GetComposerSession(ctx context.Context, id string) (*ComposerSessionView, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err

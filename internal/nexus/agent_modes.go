@@ -42,7 +42,7 @@ var canonicalAgentModes = []AgentMode{
 		RecommendedSkillIDs: []string{"skill-repo-health", "skill-systematic-debugging"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "senior-developer",
-			Instructions:       []string{"Entenda invariantes e impactos sistêmicos antes de alterar código; prefira evolução incremental e verificável."},
+			Instructions:       []string{"Entenda invariantes e efeitos sistêmicos antes de alterar código; prefira evolução incremental e verificável."},
 			Responsibilities:   []string{"Executar mudanças complexas, orientar trade-offs e preservar compatibilidade entre áreas."},
 			Capabilities:       []string{"implementation", "code_review", "architecture", "debugging"},
 			Domains:            []string{"software-engineering", "cross-cutting"},
@@ -130,7 +130,7 @@ var canonicalAgentModes = []AgentMode{
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "performance-investigator",
 			Instructions:       []string{"Estabeleça baseline e reproduza o gargalo antes de otimizar; compare resultados depois da mudança."},
-			Responsibilities:   []string{"Medir gargalos, explicar a causa e definir experimentos de desempenho reproduzíveis."},
+			Responsibilities:   []string{"Medir gargalos, explicar a causa e definir testes controlados de desempenho reproduzíveis."},
 			Capabilities:       []string{"performance_analysis", "profiling", "benchmarking"},
 			Constraints:        []string{"Read-only by default until the bottleneck is measured and remediation is explicitly assigned."},
 			Domains:            []string{"performance", "diagnostics"},
@@ -200,8 +200,8 @@ var canonicalAgentModes = []AgentMode{
 		RecommendedSkillIDs: []string{"skill-release-engineering", "skill-incident-response"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "devops-release",
-			Instructions:       []string{"Priorize reprodutibilidade, rollback seguro e observabilidade operacional."},
-			Responsibilities:   []string{"Manter CI/CD, empacotamento, deploy e resposta operacional."},
+			Instructions:       []string{"Priorize reprodutibilidade, rollback seguro e observabilidade da operação."},
+			Responsibilities:   []string{"Manter CI/CD, empacotamento, deploy e resposta de operação."},
 			Capabilities:       []string{"ci_cd", "docker", "release", "operations"},
 			Domains:            []string{"devops", "release-engineering"},
 			Strengths:          []string{"automation", "rollback-planning"},
@@ -273,15 +273,15 @@ func validateAgentModeConfiguration(cfg AgentConfig) error {
 		return nil
 	}
 	if strings.EqualFold(agentModeStringOption(cfg.Options, "mode"), "YOLO") {
-		return fmt.Errorf("Agent Mode %s is read-only by default and cannot use YOLO mode", mode.ID)
+		return fmt.Errorf("agent mode %s is read-only by default and cannot use YOLO mode", mode.ID)
 	}
 	if strings.EqualFold(agentModeStringOption(cfg.Options, "execution_adapter"), "command_template") {
-		return fmt.Errorf("Agent Mode %s is read-only by default; custom command templates have no verified read-only contract", mode.ID)
+		return fmt.Errorf("agent mode %s is read-only by default; custom command templates have no verified read-only contract", mode.ID)
 	}
 	for _, arg := range agentModeStringSliceOption(cfg.Options, "extra_args") {
 		normalized := strings.ToLower(strings.TrimSpace(arg))
 		if normalized == "--yolo" || normalized == "--dangerously-skip-permissions" || normalized == "--full-auto" {
-			return fmt.Errorf("Agent Mode %s rejected unsafe execution argument %q", mode.ID, arg)
+			return fmt.Errorf("agent mode %s rejected unsafe execution argument %q", mode.ID, arg)
 		}
 	}
 	return nil
