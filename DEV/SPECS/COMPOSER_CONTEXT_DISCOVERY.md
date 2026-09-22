@@ -86,9 +86,14 @@ The Composer Context tab exposes:
 - discovery warnings;
 - existing manual context-file controls and Project Intelligence inspector.
 
-Skill recommendations are source-agnostic. The UI shows source, version, score,
-reason and supports local search. The UI does not rank independently; it mirrors the
-backend proposal order.
+Skill recommendations are source-agnostic. The UI shows source, version, score
+and reason. It also searches a bounded browser-safe projection of the full Nexus Skill
+Catalog so users can explicitly add a relevant skill even when it was not recommended.
+The catalog endpoint exposes metadata only (id, name, description, source, version,
+risk, availability, capabilities and triggers); instructions, permissions and local
+provenance paths remain server-side. Selecting a catalog result reuses the existing
+Composer skill proposal state machine and becomes ACCEPTED. The UI does not create a
+second skill registry or independently execute skill content.
 
 ## 6. Flow impact
 

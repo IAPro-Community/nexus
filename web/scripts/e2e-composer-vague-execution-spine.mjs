@@ -84,6 +84,21 @@ async function main() {
   const session = await getJSON(context, `${apiOrigin}/api/v1/session`);
   assert.ok(session.csrf_token, 'authenticated fixture must expose a CSRF token');
 
+  const skillCatalog = await getJSON(
+    context,
+    `${apiOrigin}/api/v1/projects/${project.id}/skills?q=security`,
+  );
+  assert.ok(Array.isArray(skillCatalog) && skillCatalog.length > 0, 'skill catalog must be searchable');
+  assert.ok(
+    skillCatalog.every(
+      (skill) =>
+        !Object.prototype.hasOwnProperty.call(skill, 'instructions') &&
+        !Object.prototype.hasOwnProperty.call(skill, 'permissions') &&
+        !Object.prototype.hasOwnProperty.call(skill, 'provenance'),
+    ),
+    'browser skill catalog must expose metadata only',
+  );
+
   const prepare = await context.request.post(
     `${apiOrigin}/api/v1/projects/${project.id}/context/prepare`,
     {
@@ -274,6 +289,7 @@ async function main() {
           budget: finalized.context_manifest?.budget,
           item_count: finalized.context_manifest?.items?.length || 0,
         },
+        skill_catalog_count: skillCatalog.length,
         console_errors: collectors.consoleErrors,
         page_errors: collectors.pageErrors,
         request_failures: collectors.requestFailures,
