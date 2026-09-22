@@ -16,7 +16,7 @@ IAPro Nexus is a local workstation for working with coding agents. It organizes 
 
 ## Start in minutes
 
-Recommended path (**zero-toolchain**): install a release binary. No Go, Bun, or Node required.
+Recommended path: install a signed prebuilt release. No Go, Bun, or Node toolchain is required; Ed25519 verification currently requires Python 3 with `cryptography`.
 
 **Linux / macOS:**
 
@@ -71,8 +71,8 @@ See the [platform support matrix](docs/operations/platform-support.md) before tr
 
 - [Documentation map](docs/README.md)
 - [Getting started index](docs/getting-started/README.md)
-- [Native install (zero-toolchain)](docs/getting-started/installation.md)
-- [Native packages (DEB/RPM/NSIS)](docs/getting-started/packages.md)
+- [Signed native install](docs/getting-started/installation.md)
+- [Packages and native artifacts](docs/getting-started/packages.md)
 - [Docker compatibility](docs/getting-started/docker-compat.md)
 - [Visual tour](docs/product/visual-tour.md)
 - [Direct workflow](docs/product/direct.md)
