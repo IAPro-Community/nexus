@@ -337,8 +337,15 @@ Need backend and frontend changes.`)
 	if len(finalView.Artifacts) != 1 || finalView.Artifacts[0].Version != 1 {
 		t.Fatalf("expected persisted artifact history, got %+v", finalView.Artifacts)
 	}
-	if finalView.Skills[0].State != store.ComposerSkillApplied {
-		t.Fatalf("expected applied skill state, got %+v", finalView.Skills)
+	applied := false
+	for _, skill := range finalView.Skills {
+		if skill.SkillID == "skill-webapp-testing" && skill.State == store.ComposerSkillApplied {
+			applied = true
+			break
+		}
+	}
+	if !applied {
+		t.Fatalf("expected skill-webapp-testing to be applied, got %+v", finalView.Skills)
 	}
 }
 

@@ -249,6 +249,54 @@ func composerExecutionBrief(brief LivingBrief, manifest ComposerContextManifest)
 	return brief
 }
 
+// renderComposerExecutionPrompt renders the admitted execution context and
+// enforces the context-manifest KEEP invariant. Referenced files selected as
+// KEEP must be present in the executable PromptArtifact even if another
+// rendering layer omits them; DROP and REFERENCE_ONLY items remain excluded.
+func renderComposerExecutionPrompt(brief LivingBrief, manifest ComposerContextManifest) string {
+	prompt := renderCanonicalPrompt(composerExecutionBrief(brief, manifest))
+	if strings.TrimSpace(manifest.Fingerprint) == "" {
+		return prompt
+	}
+
+	missing := make([]ComposerContextItem, 0)
+	for _, item := range manifest.Items {
+		if item.Kind != "REFERENCED_FILE" || item.Decision != ComposerContextKeep {
+			continue
+		}
+		locator := strings.TrimSpace(item.Locator)
+		if locator == "" || strings.Contains(prompt, locator) {
+			continue
+		}
+		missing = append(missing, item)
+	}
+	if len(missing) == 0 {
+		return prompt
+	}
+
+	var b strings.Builder
+	b.WriteString(strings.TrimSpace(prompt))
+	if b.Len() > 0 {
+		b.WriteString("\n\n")
+	}
+	b.WriteString("# Context — Manifest KEEP\n")
+	for _, item := range missing {
+		locator := strings.TrimSpace(item.Locator)
+		b.WriteString("- ")
+		b.WriteString(locator)
+		b.WriteString("\n")
+		summary := strings.TrimSpace(item.Summary)
+		if summary != "" && summary != locator {
+			b.WriteString("  ")
+			b.WriteString(summary)
+			if !strings.HasSuffix(summary, "\n") {
+				b.WriteString("\n")
+			}
+		}
+	}
+	return strings.TrimSpace(b.String())
+}
+
 func composerExecutionContextJSON(projectID string, brief LivingBrief, manifest ComposerContextManifest) string {
 	payload := map[string]any{
 		"project_id": projectID,

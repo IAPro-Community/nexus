@@ -313,7 +313,9 @@ export const NewAgentModal: React.FC<{
               );
             })}
           </div>
-          {loadingModes && <small className={styles.hintText}>{t('agents.agentModesLoading')}</small>}
+          {loadingModes && (
+            <small className={styles.hintText}>{t('agents.agentModesLoading')}</small>
+          )}
         </div>
 
         <div className={styles.fieldGroup}>

@@ -473,8 +473,7 @@ func (n *Nexus) FinalizeComposerSession(ctx context.Context, sessionID string, s
 		manifest = refreshedManifest
 		session.ContextManifestJSON = mustComposerContextManifestJSON(manifest)
 	}
-	executionBrief := composerExecutionBrief(brief, manifest)
-	compiled, err := compileComposerPromptWithCatalog(renderCanonicalPrompt(executionBrief), validatedSkills, catalog)
+	compiled, err := compileComposerPromptWithCatalog(renderComposerExecutionPrompt(brief, manifest), validatedSkills, catalog)
 	if err != nil {
 		return nil, err
 	}
