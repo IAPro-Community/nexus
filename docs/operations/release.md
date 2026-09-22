@@ -22,8 +22,8 @@ O candidato final deve provar, conforme o escopo declarado:
 - Desktop quando declarado;
 - install/upgrade/uninstall;
 - update/integridade;
-- artifacts e checksums;
-- signing/notarização quando prometidos;
+- artifacts, hashes e manifesto assinado;
+- signing/notarização somente quando efetivamente prometidos/publicados;
 - provider smoke;
 - Mission smoke;
 - dogfooding/soak;
@@ -52,7 +52,7 @@ Veja [Suporte de plataformas](platform-support.md).
 Formas documentadas:
 
 - scripts: [Instalação nativa](../getting-started/installation.md);
-- DEB/RPM/NSIS/winget: [Pacotes](../getting-started/packages.md);
+- DEB e archives de CLI/Desktop: [Pacotes](../getting-started/packages.md);
 - Docker: [Compatibilidade Docker](../getting-started/docker-compat.md).
 
 Docker não certifica Desktop nativo.
@@ -63,6 +63,12 @@ Maestro é opt-in. Não deve ser instalado silenciosamente nem virar dependênci
 da execução básica do Nexus.
 
 ## Stable v1
+
+Além do CI nativo exato do SHA, a stable exige o workflow de certificação do
+mesmo SHA. O gate executável cobre lifecycle assinado (install, upgrade,
+self-update, rejeição de tamper e uninstall), provider/Mission reais e soak
+cumulativo de 8 horas dividido em segmentos compatíveis com o limite de duração
+por step do GitHub Actions.
 
 Somente promova a release estável quando o status autoritativo mudar com
 evidência correspondente. Até lá, documentação do source candidato não deve ser
