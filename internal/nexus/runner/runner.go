@@ -1046,6 +1046,35 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 	finishDispatch(pkg, DispatchCompleted)
 	pkg.ErrorMessage = ""
 	pkg.FailureKind = model.FailureNone
+
+	if reason := strings.TrimSpace(outcome.CoordinationUnsafeReason); reason != "" {
+		r.blockNeedsHuman(run, pkg, "UNSAFE_COORDINATION_AFTER_SIDE_EFFECT", reason,
+			"An Agent requested coordination after mutating its workspace. Review the changes before any replay or continuation.",
+			[]string{"Inspect workspace changes", "Keep or revert partial work", "Resume with an explicit plan"})
+		return fmt.Errorf("unsafe coordination boundary: %s", reason)
+	}
+	if len(outcome.CoordinationRequests) > 0 {
+		sourceID := pkg.PackageID
+		if err := r.acceptExecutionCoordination(run, sourceID, outcome.CoordinationRequests); err != nil {
+			r.blockNeedsHuman(run, pkg, "COORDINATION_REJECTED", err.Error(),
+				"The coordination request could not be materialized safely.",
+				[]string{"Inspect coordination request", "Adjust the plan or request", "Resume after correction"})
+			return err
+		}
+		return nil
+	}
+
+	pkg.ResumeAgentID = ""
+	if pkg.DynamicWork && coordinationOperationForPackage(run, pkg) == CoordinationNeedInfo {
+		pkg.ResultSummary = boundedCoordinationSummary(outcome.Output)
+		if pkg.ResultSummary == "" {
+			return fmt.Errorf("NEED_INFO coordination returned an empty answer")
+		}
+		pkg.State = StateVerified
+		now := time.Now().UTC()
+		pkg.FinishedAt = &now
+		return nil
+	}
 	pkg.State = StateTesting
 	return nil
 }
@@ -1143,6 +1172,43 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 		finishDispatch(pkg, DispatchCompleted)
 		pkg.ErrorMessage = ""
 		pkg.FailureKind = model.FailureNone
+
+		if reason := strings.TrimSpace(res.outcome.CoordinationUnsafeReason); reason != "" {
+			r.blockNeedsHuman(run, pkg, "UNSAFE_COORDINATION_AFTER_SIDE_EFFECT", reason,
+				"An Agent requested coordination after mutating its workspace. Review the changes before any replay or continuation.",
+				[]string{"Inspect workspace changes", "Keep or revert partial work", "Resume with an explicit plan"})
+			if firstErr == nil {
+				firstErr = fmt.Errorf("unsafe coordination boundary: %s", reason)
+			}
+			continue
+		}
+		if len(res.outcome.CoordinationRequests) > 0 {
+			sourceID := pkg.PackageID
+			if err := r.acceptExecutionCoordination(run, sourceID, res.outcome.CoordinationRequests); err != nil {
+				r.blockNeedsHuman(run, pkg, "COORDINATION_REJECTED", err.Error(),
+					"The coordination request could not be materialized safely.",
+					[]string{"Inspect coordination request", "Adjust the plan or request", "Resume after correction"})
+				if firstErr == nil {
+					firstErr = err
+				}
+			}
+			continue
+		}
+
+		pkg.ResumeAgentID = ""
+		if pkg.DynamicWork && coordinationOperationForPackage(run, pkg) == CoordinationNeedInfo {
+			pkg.ResultSummary = boundedCoordinationSummary(res.outcome.Output)
+			if pkg.ResultSummary == "" {
+				if firstErr == nil {
+					firstErr = fmt.Errorf("NEED_INFO coordination returned an empty answer")
+				}
+				continue
+			}
+			pkg.State = StateVerified
+			now := time.Now().UTC()
+			pkg.FinishedAt = &now
+			continue
+		}
 		pkg.State = StateTesting
 	}
 	return firstErr
