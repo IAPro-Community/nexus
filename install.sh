@@ -24,6 +24,7 @@ WITH_MAESTRO=false
 NO_PATH=false
 YES_MODE=false
 MAESTRO_EXIT=0
+INSTALL_DIR="${NEXUS_INSTALL_DIR:-}"
 
 for arg in "$@"; do
     case "$arg" in
@@ -34,6 +35,7 @@ for arg in "$@"; do
         --no-desktop) INSTALL_DESKTOP=false ;;
         --with-maestro) WITH_MAESTRO=true ;;
         --no-path) NO_PATH=true ;;
+        --install-dir=*) INSTALL_DIR="${arg#--install-dir=}" ;;
         --yes|-y) YES_MODE=true ;;
         --help|-h)
             cat <<'EOF'
@@ -42,13 +44,14 @@ IAPro Nexus installer (zero-toolchain release path)
   --version=vX.Y.Z|latest   Pin a release, or resolve the newest tag via GitHub API
   --no-desktop              Skip native desktop artifact
   --no-path                 Do not append ~/.local/bin to shell rc files
+  --install-dir=<path>       Install CLI/Desktop binaries into an explicit directory
   --with-maestro            Opt-in Maestro npm install
   --build-from-source       Build with Go+Bun+make (dev path)
   --source-ref=<ref>        Clone ref when building from source without a checkout
   --yes                     Non-interactive toolchain install for source builds
 
 Environment:
-  NEXUS_VERSION, NEXUS_SOURCE_REF, NEXUS_RELEASE_REPO
+  NEXUS_VERSION, NEXUS_SOURCE_REF, NEXUS_RELEASE_REPO, NEXUS_INSTALL_DIR
 EOF
             exit 0
             ;;
@@ -162,7 +165,11 @@ resolve_nexus_target_dir() {
     printf '%s/.local/bin\n' "$HOME"
 }
 
-TARGET_DIR="$(resolve_nexus_target_dir)"
+if [ -n "$INSTALL_DIR" ]; then
+    TARGET_DIR="$INSTALL_DIR"
+else
+    TARGET_DIR="$(resolve_nexus_target_dir)"
+fi
 mkdir -p "$TARGET_DIR"
 
 INSTALL_SUCCESS=0
@@ -308,8 +315,28 @@ download_and_verify_archive() {
     fi
     echo "SHA-256 verified"
 
-    tar -xzf "$archive_path" -C "$TMP_DIR"
-    install_cli_from_dir "$TMP_DIR"
+    case "$archive_name" in
+        *.tar.gz|*.tgz)
+            tar -xzf "$archive_path" -C "$TMP_DIR"
+            ;;
+        *.zip)
+            if command -v ditto >/dev/null 2>&1; then
+                ditto -x -k "$archive_path" "$TMP_DIR"
+            elif command -v unzip >/dev/null 2>&1; then
+                unzip -q -o "$archive_path" -d "$TMP_DIR"
+            else
+                echo "Need ditto (macOS) or unzip to extract ${archive_name}." >&2
+                return 1
+            fi
+            ;;
+        *)
+            echo "Unsupported verified archive format: ${archive_name}" >&2
+            return 1
+            ;;
+    esac
+    case "$archive_name" in
+        nexus_*) install_cli_from_dir "$TMP_DIR" ;;
+    esac
 }
 
 ensure_go() {
@@ -475,7 +502,17 @@ if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ]; then
     echo "Attempting to install the native IAPro Nexus Desktop shell..."
     if download_and_verify_archive "$DESKTOP_ARCHIVE_NAME" "$VERSION_PLAIN"; then
         if [ "$OS_NAME" = "Darwin" ]; then
-            echo "⚠️  macOS Desktop archive verified; extract/app install is platform-specific and left to the .app bundle workflow." >&2
+            source_app="$(find "$TMP_DIR" -maxdepth 2 -type d -name '*.app' -print -quit)"
+            if [ -z "$source_app" ]; then
+                echo "ERROR: macOS Desktop .app bundle missing from verified archive ${DESKTOP_ARCHIVE_NAME}" >&2
+                exit 1
+            fi
+            applications_dir="${HOME}/Applications"
+            mkdir -p "$applications_dir"
+            app_target="${applications_dir}/$(basename "$source_app")"
+            rm -rf "$app_target"
+            ditto "$source_app" "$app_target"
+            echo "✓ Native Desktop installed to ${app_target}"
         else
             tar -xzf "${TMP_DIR}/${DESKTOP_ARCHIVE_NAME}" -C "$TMP_DIR"
             DESKTOP_BINARY="${TMP_DIR}/nexus-desktop"
