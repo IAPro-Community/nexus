@@ -77,7 +77,7 @@ plataforma. Consulte [suporte de plataformas](operations/platform-support.md).
 ## O source v1 significa que a release v1 está publicada?
 
 Não. Implementação funcional e certificação de release são gates distintos.
-Consulte [RELEASE_STATUS](../DEV/validation/current/RELEASE_STATUS.md).
+Consulte [status da release](release-status.md).
 
 ## Como reporto um erro sem expor dados?
 
