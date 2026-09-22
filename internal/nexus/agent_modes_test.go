@@ -1,6 +1,10 @@
 package nexus
 
-import "testing"
+import (
+	"testing"
+
+	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
+)
 
 func TestCanonicalAgentModesCoverNexusOneContract(t *testing.T) {
 	required := map[string]string{
@@ -61,5 +65,19 @@ func TestCanonicalAgentModesReturnsDefensiveCopies(t *testing.T) {
 	second := CanonicalAgentModes()
 	if second[0].AgentSpec.Instructions[0] == "mutated" || second[0].RecommendedSkillIDs[0] == "mutated" {
 		t.Fatal("Agent Mode catalog leaked mutable slices")
+	}
+}
+
+func TestCanonicalAgentModeRecommendedSkillsAlwaysResolve(t *testing.T) {
+	catalog, err := nexusskills.NewCatalog(nexusskills.NewBuiltinSource())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, mode := range CanonicalAgentModes() {
+		for _, skillID := range mode.RecommendedSkillIDs {
+			if _, ok := catalog.Resolve(skillID); !ok {
+				t.Fatalf("Agent Mode %s recommends unresolved built-in skill %q", mode.ID, skillID)
+			}
+		}
 	}
 }

@@ -25,7 +25,7 @@ type AgentMode struct {
 var canonicalAgentModes = []AgentMode{
 	{
 		ID: "developer", Role: "developer", DefaultProvider: "codex", DefaultExecutionMode: "Safe",
-		RecommendedSkillIDs: []string{"skill-repo-health", "skill-verification-before-completion"},
+		RecommendedSkillIDs: []string{"coding", "testing", "verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "developer",
 			Instructions:       []string{"Implemente mudanças pequenas e médias de forma incremental, mantendo testes e compatibilidade."},
@@ -39,7 +39,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "senior-developer", Role: "senior-developer", DefaultProvider: "codex", DefaultExecutionMode: "Safe",
-		RecommendedSkillIDs: []string{"skill-repo-health", "skill-systematic-debugging"},
+		RecommendedSkillIDs: []string{"coding", "debugging", "architecture", "review"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "senior-developer",
 			Instructions:       []string{"Entenda invariantes e efeitos sistêmicos antes de alterar código; prefira evolução incremental e verificável."},
@@ -53,7 +53,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "reviewer", Role: "reviewer", DefaultProvider: "claude", DefaultExecutionMode: "Safe", ReadOnlyByDefault: true,
-		RecommendedSkillIDs: []string{"skill-quality-gate", "skill-verification-before-completion"},
+		RecommendedSkillIDs: []string{"review", "verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "reviewer",
 			Instructions:       []string{"Procure riscos, regressões e claims sem evidência; classifique severidade objetivamente."},
@@ -68,7 +68,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "investigator", Role: "investigator", DefaultProvider: "codex", DefaultExecutionMode: "Safe", ReadOnlyByDefault: true,
-		RecommendedSkillIDs: []string{"skill-systematic-debugging", "skill-verification-before-completion"},
+		RecommendedSkillIDs: []string{"debugging", "verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "investigator",
 			Instructions:       []string{"Reproduza, isole variáveis e colete evidência antes de propor correção.", "Comece em modo de investigação; só recomende alteração quando a causa raiz estiver sustentada por evidência."},
@@ -83,7 +83,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "architect", Role: "architect", DefaultProvider: "claude", DefaultExecutionMode: "Safe",
-		RecommendedSkillIDs: []string{"skill-adr", "skill-repo-health"},
+		RecommendedSkillIDs: []string{"architecture", "review"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "architect",
 			Instructions:       []string{"Modele limites, contratos, dependências e trade-offs antes de recomendar mudanças estruturais."},
@@ -97,7 +97,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "security-reviewer", Role: "security-reviewer", DefaultProvider: "claude", DefaultExecutionMode: "Safe", ReadOnlyByDefault: true,
-		RecommendedSkillIDs: []string{"skill-saas-security-scan", "skill-quality-gate"},
+		RecommendedSkillIDs: []string{"security", "review", "verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "security-reviewer",
 			Instructions:       []string{"Revise ameaças, fronteiras de confiança e regressões de segurança sem assumir que ausência de evidência é segurança."},
@@ -112,7 +112,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "qa-engineer", Role: "qa-engineer", DefaultProvider: "codex", DefaultExecutionMode: "Safe",
-		RecommendedSkillIDs: []string{"skill-webapp-testing", "skill-verification-before-completion"},
+		RecommendedSkillIDs: []string{"testing", "verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "qa-engineer",
 			Instructions:       []string{"Reproduza falhas, cubra regressões e exija evidência observável antes de concluir."},
@@ -126,7 +126,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "performance-investigator", Role: "performance-investigator", DefaultProvider: "codex", DefaultExecutionMode: "Safe", ReadOnlyByDefault: true,
-		RecommendedSkillIDs: []string{"skill-systematic-debugging", "skill-verification-before-completion"},
+		RecommendedSkillIDs: []string{"debugging", "verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "performance-investigator",
 			Instructions:       []string{"Estabeleça baseline e reproduza o gargalo antes de otimizar; compare resultados depois da mudança."},
@@ -141,7 +141,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "documentation-specialist", Role: "documentation-specialist", DefaultProvider: "claude", DefaultExecutionMode: "Safe",
-		RecommendedSkillIDs: []string{"skill-adr", "skill-deep-wiki"},
+		RecommendedSkillIDs: []string{"architecture", "context-handoff", "verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "documentation-specialist",
 			Instructions:       []string{"Escreva para o público correto, preserve histórico e diferencie fato de hipótese."},
@@ -155,7 +155,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "generalist", Role: "generalist", DefaultProvider: "claude", DefaultExecutionMode: "Safe",
-		RecommendedSkillIDs: []string{"skill-repo-health"},
+		RecommendedSkillIDs: []string{"coding", "delegation", "verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "generalist",
 			Instructions:       []string{"Decomponha tarefas amplas antes de executar e coordene dependências com clareza."},
@@ -169,7 +169,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "backend-engineer", Role: "backend-engineer", DefaultProvider: "codex", DefaultExecutionMode: "Safe",
-		RecommendedSkillIDs: []string{"skill-database-migrations", "skill-systematic-debugging"},
+		RecommendedSkillIDs: []string{"backend", "debugging", "testing"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "backend-engineer",
 			Instructions:       []string{"Priorize contratos estáveis, validação de entrada e observabilidade no backend."},
@@ -183,7 +183,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "frontend-engineer", Role: "frontend-engineer", DefaultProvider: "claude", DefaultExecutionMode: "Safe",
-		RecommendedSkillIDs: []string{"skill-modern-ui-patterns", "skill-frontend-ux-guardrails"},
+		RecommendedSkillIDs: []string{"frontend", "testing", "verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "frontend-engineer",
 			Instructions:       []string{"Preserve acessibilidade, responsividade, i18n e os tokens visuais existentes."},
@@ -197,7 +197,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "devops-release", Role: "devops-release", DefaultProvider: "agy", DefaultExecutionMode: "Safe",
-		RecommendedSkillIDs: []string{"skill-release-engineering", "skill-incident-response"},
+		RecommendedSkillIDs: []string{"devops", "verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "devops-release",
 			Instructions:       []string{"Priorize reprodutibilidade, rollback seguro e observabilidade da operação."},
@@ -211,7 +211,7 @@ var canonicalAgentModes = []AgentMode{
 	},
 	{
 		ID: "data-analyst", Role: "data-analyst", DefaultProvider: "codex", DefaultExecutionMode: "Safe",
-		RecommendedSkillIDs: []string{"skill-unified-analytics"},
+		RecommendedSkillIDs: []string{"verification"},
 		AgentSpec: intelligence.AgentSpec{
 			Role:               "data-analyst",
 			Instructions:       []string{"Declare a origem dos dados, incertezas e critérios usados nas conclusões."},
