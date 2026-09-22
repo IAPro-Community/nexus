@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="t d">
+<title id="t">Nexus v1 — fluxo ponta a ponta</title><desc id="d">Sete etapas do objetivo ao estado COMPLETED_VERIFIED.</desc>
+<defs><linearGradient id="bg" x1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#10132a"/></linearGradient><style>
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;fill:#ecf4ff}.m{fill:#9fb0c8}.h{font-size:46px;font-weight:800}.s{font-size:20px}.n{font-size:20px;font-weight:800}.tt{font-size:17px;font-weight:750}.p{font-size:14px;fill:#b8c7db}.b{fill:#0d1c32;stroke:#2791d4;stroke-width:1.5}.v{fill:#1b1638;stroke:#8653dc;stroke-width:1.5}.g{fill:#08372f;stroke:#22c79a;stroke-width:1.7}.a{stroke:#8ca1c1;stroke-width:2;fill:none;marker-end:url(#a)}
+</style><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0L9 4.5 0 9z" fill="#8ca1c1"/></marker></defs>
+<rect width="1280" height="720" fill="url(#bg)"/><text x="48" y="84" class="h">Nexus <tspan fill="#38bdf8">v1</tspan> — Fluxo ponta a ponta</text><text x="48" y="120" class="s m">Do objetivo inicial até a entrega validada.</text>
+<g transform="translate(42 188)">
+<g><rect width="150" height="248" rx="16" class="b"/><circle cx="75" cy="42" r="21" fill="#0f70b7"/><text x="75" y="49" text-anchor="middle" class="n">1</text><text x="75" y="91" text-anchor="middle" class="tt">Objetivo / Prompt</text><text x="75" y="121" text-anchor="middle" class="p">Intenção, escopo</text><text x="75" y="142" text-anchor="middle" class="p">e resultado esperado</text></g>
+<path d="M150 124H172" class="a"/>
+<g transform="translate(172)"><rect width="150" height="248" rx="16" class="v"/><circle cx="75" cy="42" r="21" fill="#6d32ba"/><text x="75" y="49" text-anchor="middle" class="n">2</text><text x="75" y="91" text-anchor="middle" class="tt">Composer</text><text x="75" y="121" text-anchor="middle" class="p">Refina contexto,</text><text x="75" y="142" text-anchor="middle" class="p">aceite e restrições</text></g>
+<path d="M322 124H344" class="a"/>
+<g transform="translate(344)"><rect width="150" height="248" rx="16" class="b"/><circle cx="75" cy="42" r="21" fill="#0f70b7"/><text x="75" y="49" text-anchor="middle" class="n">3</text><text x="75" y="91" text-anchor="middle" class="tt">WorkPlan</text><text x="75" y="121" text-anchor="middle" class="p">Plano canônico</text><text x="75" y="142" text-anchor="middle" class="p">versionado</text></g>
+<path d="M494 124H516" class="a"/>
+<g transform="translate(516)"><rect width="150" height="248" rx="16" class="v"/><circle cx="75" cy="42" r="21" fill="#6d32ba"/><text x="75" y="49" text-anchor="middle" class="n">4</text><text x="75" y="91" text-anchor="middle" class="tt">Flow</text><text x="75" y="121" text-anchor="middle" class="p">Representação visual</text><text x="75" y="142" text-anchor="middle" class="p">e dependências</text></g>
+<path d="M666 124H688" class="a"/>
+<g transform="translate(688)"><rect width="130" height="248" rx="16" class="g"/><circle cx="65" cy="42" r="21" fill="#08775f"/><text x="65" y="49" text-anchor="middle" class="n">5</text><text x="65" y="91" text-anchor="middle" class="tt">GO</text><text x="65" y="121" text-anchor="middle" class="p">Congela a revisão</text><text x="65" y="142" text-anchor="middle" class="p">autorizada</text></g>
+<path d="M818 124H840" class="a"/>
+<g transform="translate(840)"><rect width="150" height="248" rx="16" class="v"/><circle cx="75" cy="42" r="21" fill="#6d32ba"/><text x="75" y="49" text-anchor="middle" class="n">6</text><text x="75" y="91" text-anchor="middle" class="tt">Mission</text><text x="75" y="121" text-anchor="middle" class="p">Executa, testa, revisa</text><text x="75" y="142" text-anchor="middle" class="p">e converge</text></g>
+<path d="M990 124H1012" class="a"/>
+<g transform="translate(1012)"><rect width="184" height="248" rx="16" class="b"/><circle cx="92" cy="42" r="21" fill="#0f70b7"/><text x="92" y="49" text-anchor="middle" class="n">7</text><text x="92" y="91" text-anchor="middle" class="tt">COMPLETED_VERIFIED</text><text x="92" y="121" text-anchor="middle" class="p">DoD global e</text><text x="92" y="142" text-anchor="middle" class="p">evidência persistida</text></g>
+</g>
+<g transform="translate(42 474)"><rect width="1196" height="145" rx="16" fill="#0b1627" stroke="#1f5f8d"/><text x="28" y="38" font-size="23" font-weight="800">Pilares do fluxo</text>
+<g transform="translate(28 58)"><rect width="350" height="62" rx="12" class="b"/><text x="18" y="26" class="tt">Contexto</text><text x="18" y="47" class="p">memória, arquivos, decisões e estado do projeto</text></g>
+<g transform="translate(397 58)"><rect width="350" height="62" rx="12" class="v"/><text x="18" y="26" class="tt">Execução</text><text x="18" y="47" class="p">agentes, scheduler, worktrees e recovery</text></g>
+<g transform="translate(766 58)"><rect width="392" height="62" rx="12" class="b"/><text x="18" y="26" class="tt">Evidência</text><text x="18" y="47" class="p">WorkReceipt, ContextCapsule, artifacts e DoD</text></g></g>
+<text x="48" y="676" font-size="14" class="m">Pipeline canônico do Nexus v1 • PT-BR</text>
+</svg>
