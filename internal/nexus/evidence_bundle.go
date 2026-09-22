@@ -121,7 +121,7 @@ func (s *RunApplicationService) EvidenceBundle(ctx context.Context, runID string
 	if !bundle.CompletedVerified {
 		bundle.MissingEvidence = append(bundle.MissingEvidence, "mission_completed_verified")
 	}
-	if run.NeedsHuman != nil {
+	if run.NeedsHuman != nil && !run.NeedsHuman.Resolved {
 		bundle.MissingEvidence = append(bundle.MissingEvidence, "unresolved_human_intervention")
 	}
 	if !validation.ChainVerified {
