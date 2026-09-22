@@ -111,7 +111,7 @@ jobs:
       - name: Verify canonical updater trust root
         run: |
           set -euo pipefail
-          canonical="$(tr -d '\r\n[:space:]' < UPDATE_PUBLIC_KEY)"
+          canonical="$(tr -d '[:space:]' < UPDATE_PUBLIC_KEY)"
           test "${#canonical}" -eq 64
           test -n "$NEXUS_UPDATE_PUBLIC_KEY"
           test "$NEXUS_UPDATE_PUBLIC_KEY" = "$canonical" || {
