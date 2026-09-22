@@ -77,7 +77,7 @@ de automatizar.
 | `nexus history`, `stats`, `export` | consulta/extrai dados locais |
 | `nexus issue-report` | cria relatório diagnóstico |
 | `nexus config <show\|validate>` | lê ou valida configuração |
-| `nexus update` | atualiza somente o Nexus |
+| `nexus update [check] [--channel beta\|stable]` | verifica/aplica update do Nexus; mudança de canal é explícita |
 | `nexus maestro <status\|doctor\|update>` | administra a integração Maestro opcional |
 | `nexus completion <bash\|zsh\|fish>` | gera completion de shell |
 | `nexus version [--json]` | mostra versão e plataforma |
