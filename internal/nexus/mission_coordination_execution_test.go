@@ -43,3 +43,29 @@ func TestParseExecutionCoordinationRequestsFailsClosedOnMalformedMarker(t *testi
 		t.Fatal("malformed coordination marker must fail closed")
 	}
 }
+
+
+func TestCoordinationReplaySafetyRequiresStableWorkspaceAndRestrictedContract(t *testing.T) {
+	contract := runner.DefaultAutonomyContract()
+	safe, reason := coordinationReplaySafety(contract, "same-fingerprint", "same-fingerprint")
+	if !safe || reason != "" {
+		t.Fatalf("default restricted contract with stable fingerprint should be replay-safe: safe=%v reason=%q", safe, reason)
+	}
+
+	contract.AllowExternalNetwork = true
+	safe, reason = coordinationReplaySafety(contract, "same-fingerprint", "same-fingerprint")
+	if safe || reason == "" {
+		t.Fatalf("external network permission must block automatic replay: safe=%v reason=%q", safe, reason)
+	}
+
+	contract = runner.DefaultAutonomyContract()
+	safe, reason = coordinationReplaySafety(contract, "before", "after")
+	if safe || reason == "" {
+		t.Fatalf("workspace mutation must block automatic replay: safe=%v reason=%q", safe, reason)
+	}
+
+	safe, reason = coordinationReplaySafety(contract, "", "after")
+	if safe || reason == "" {
+		t.Fatalf("missing fingerprint evidence must block automatic replay: safe=%v reason=%q", safe, reason)
+	}
+}
