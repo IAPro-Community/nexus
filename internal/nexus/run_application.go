@@ -140,6 +140,7 @@ func (s *RunApplicationService) Step(ctx context.Context, runID string) (*RunSte
 	if before != nil && before.ResumeRequest != nil && before.ResumeRequest.Status == "PENDING" {
 		s.publishRunEvent(run, events.EventMissionResumed, "Mission resume started", map[string]any{"idempotency_key": before.ResumeRequest.IdempotencyKey})
 	}
+	s.publishCoordinationTransitions(before, run)
 	if completed {
 		s.publishRunEvent(run, events.EventMissionCompleted, "Mission run completed", map[string]any{"run_id": runID})
 	} else {
@@ -325,6 +326,30 @@ func (s *RunApplicationService) ResolveCoordination(ctx context.Context, runID, 
 		"coordination_phase": "RESOLVED",
 	})
 	return resolved, nil
+}
+
+func (s *RunApplicationService) publishCoordinationTransitions(before, after *runner.MissionRun) {
+	if after == nil {
+		return
+	}
+	previous := map[string]runner.CoordinationStatus{}
+	if before != nil {
+		for _, request := range before.CoordinationRequests {
+			previous[request.ID] = request.Status
+		}
+	}
+	for _, request := range after.CoordinationRequests {
+		if request.Status == runner.CoordinationPending || previous[request.ID] == request.Status {
+			continue
+		}
+		s.publishRunEvent(after, events.EventMissionStepCompleted, "Mission coordination state changed", map[string]any{
+			"request_id":         request.ID,
+			"status":             request.Status,
+			"receipt_id":         request.ResultReceiptID,
+			"child_package_id":   request.ChildPackageID,
+			"coordination_phase": "RESOLVED",
+		})
+	}
 }
 
 func (s *RunApplicationService) Attention(ctx context.Context) (*runner.AttentionGroup, error) {
