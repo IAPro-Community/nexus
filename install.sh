@@ -109,8 +109,9 @@ resolve_latest_version() {
         echo "GitHub API response did not contain a tag_name." >&2
         exit 1
     fi
-    # Integrity only: tag is resolved then assets are checksum-verified. Not strong authenticity.
-    echo "Resolved --version=latest to ${tag} (tag resolve only; install still requires signed update-manifest)." >&2
+    # Tag discovery is mutable metadata. Authenticity is established only after
+    # the selected release's Ed25519 manifest and artifact digest verify.
+    echo "Resolved --version=latest to ${tag} (tag discovery only; install still requires signed update-manifest)." >&2
     printf '%s' "$tag"
 }
 
