@@ -201,7 +201,6 @@ func (r *MissionRunner) ResolveCoordinationRequest(ctx context.Context, runID, r
 	return nil, fmt.Errorf("coordination request %q not found in mission run %s", requestID, runID)
 }
 
-
 func coordinationPackageID(requestID string) string {
 	sum := sha256.Sum256([]byte(strings.TrimSpace(requestID)))
 	return "coord_" + hex.EncodeToString(sum[:8])
