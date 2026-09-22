@@ -40,5 +40,5 @@ var codexSpec = Spec{
 	AutonomousIsolation: IsolationWorkspaceWriteNoNetwork,
 	ReviewIsolation:     IsolationReadOnlyNoNetwork,
 	Quota:               QuotaLiveRPC,
-	KnownVersions: []string{"0.50.0"},
+	KnownVersions:       []string{"0.50.0"},
 }

@@ -13,18 +13,18 @@ import (
 var updateGoldens = flag.Bool("update", false, "update provider contract goldens")
 
 type contractSnapshot struct {
-	ID               string      `json:"id"`
-	BinaryCandidates []string    `json:"binary_candidates"`
-	EnvKeys          []string    `json:"env_keys"`
-	EnvDelete        []string    `json:"env_delete"`
-	Kickoff          []string    `json:"kickoff"`
-	Resume           []string    `json:"resume"`
-	AutoApproval     []string    `json:"auto_approval"`
+	ID                  string             `json:"id"`
+	BinaryCandidates    []string           `json:"binary_candidates"`
+	EnvKeys             []string           `json:"env_keys"`
+	EnvDelete           []string           `json:"env_delete"`
+	Kickoff             []string           `json:"kickoff"`
+	Resume              []string           `json:"resume"`
+	AutoApproval        []string           `json:"auto_approval"`
 	ReviewMode          []string           `json:"review_mode"`
 	AutonomousIsolation IsolationGuarantee `json:"autonomous_isolation"`
 	ReviewIsolation     IsolationGuarantee `json:"review_isolation"`
 	Quota               QuotaSource        `json:"quota"`
-	KnownVersions    []string    `json:"known_versions"`
+	KnownVersions       []string           `json:"known_versions"`
 }
 
 func TestContractGoldens(t *testing.T) {
@@ -80,17 +80,17 @@ func snapshotOf(s Spec) contractSnapshot {
 		resume = s.Resume("{session}")
 	}
 	return contractSnapshot{
-		ID:               s.ID,
-		BinaryCandidates: append([]string(nil), s.BinaryCandidates...),
-		EnvKeys:          keys,
-		EnvDelete:        deleteKeys,
-		Kickoff:          kickoff,
-		Resume:           resume,
-		AutoApproval:     append([]string(nil), s.AutoApproval...),
+		ID:                  s.ID,
+		BinaryCandidates:    append([]string(nil), s.BinaryCandidates...),
+		EnvKeys:             keys,
+		EnvDelete:           deleteKeys,
+		Kickoff:             kickoff,
+		Resume:              resume,
+		AutoApproval:        append([]string(nil), s.AutoApproval...),
 		ReviewMode:          append([]string(nil), s.ReviewMode...),
 		AutonomousIsolation: s.AutonomousIsolationLevel(),
 		ReviewIsolation:     s.ReviewIsolationLevel(),
 		Quota:               s.Quota,
-		KnownVersions:    append([]string(nil), s.KnownVersions...),
+		KnownVersions:       append([]string(nil), s.KnownVersions...),
 	}
 }

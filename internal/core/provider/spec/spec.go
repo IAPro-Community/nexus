@@ -12,7 +12,7 @@ type QuotaSource string
 type IsolationGuarantee string
 
 const (
-	IsolationUnverified             IsolationGuarantee = "UNVERIFIED"
+	IsolationUnverified              IsolationGuarantee = "UNVERIFIED"
 	IsolationWorkspaceWriteNoNetwork IsolationGuarantee = "WORKSPACE_WRITE_NO_NETWORK"
 	IsolationReadOnlyNoNetwork       IsolationGuarantee = "READ_ONLY_NO_NETWORK"
 
@@ -29,14 +29,14 @@ type FlagTable map[string]CanonicalAlias
 // mission launch contracts. Adapters, drivers and mission execution must derive
 // from Spec instead of maintaining parallel tables.
 type Spec struct {
-	ID               string
-	BinaryCandidates []string
-	EnvKeys          func(profileHome, binDir, profileName string) map[string]string
-	EnvDelete        []string
-	Flags            FlagTable
-	Kickoff          func(prompt string) []string
-	Resume           func(sessionID string) []string
-	AutoApproval     []string
+	ID                  string
+	BinaryCandidates    []string
+	EnvKeys             func(profileHome, binDir, profileName string) map[string]string
+	EnvDelete           []string
+	Flags               FlagTable
+	Kickoff             func(prompt string) []string
+	Resume              func(sessionID string) []string
+	AutoApproval        []string
 	ReviewMode          []string
 	AutonomousIsolation IsolationGuarantee
 	ReviewIsolation     IsolationGuarantee

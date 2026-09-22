@@ -32,5 +32,5 @@ var geminiSpec = Spec{
 	AutonomousIsolation: IsolationWorkspaceWriteNoNetwork,
 	ReviewIsolation:     IsolationReadOnlyNoNetwork,
 	Quota:               QuotaLiveHTTP,
-	KnownVersions: []string{"0.28.2"},
+	KnownVersions:       []string{"0.28.2"},
 }
