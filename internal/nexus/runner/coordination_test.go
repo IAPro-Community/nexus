@@ -118,6 +118,82 @@ func TestMissionRunnerCoordinationLifecycleIsDurableAndIdempotent(t *testing.T) 
 	}
 }
 
+func TestMissionRunnerCoordinationRejectsSemanticDriftForSameID(t *testing.T) {
+	repo := NewMemoryRunRepository()
+	r := NewMissionRunner(repo, coordinationTestExecutor{})
+	ctx := context.Background()
+	now := time.Now().UTC()
+	run := &MissionRun{
+		ID:           "run_coord_drift",
+		PlanID:       "plan_coord_drift",
+		PlanRevision: 1,
+		ProjectID:    "project_coord",
+		Workspace:    "/tmp/project",
+		State:        StateExecuting,
+		Contract:     DefaultAutonomyContract(),
+		PackageRuns:  []PackageRun{{ID: "pkgrun_1", PackageID: "step_1", State: StateExecuting}},
+		StartedAt:    now,
+		UpdatedAt:    now,
+	}
+	if err := repo.SaveRun(ctx, run); err != nil {
+		t.Fatalf("save run: %v", err)
+	}
+	base := CoordinationRequest{
+		ID:                   "coord_same",
+		SourcePackageID:      "step_1",
+		Operation:            CoordinationDelegate,
+		Subject:              "review auth",
+		Objective:            "review auth independently",
+		PreferredProvider:    "codex",
+		RequiredCapabilities: []string{"code_review"},
+	}
+	if _, err := r.SubmitCoordinationRequest(ctx, run.ID, base); err != nil {
+		t.Fatalf("initial submit: %v", err)
+	}
+	changed := base
+	changed.PreferredProvider = "claude"
+	if _, err := r.SubmitCoordinationRequest(ctx, run.ID, changed); err == nil {
+		t.Fatal("same coordination id with changed semantics must fail closed")
+	}
+}
+
+func TestMissionRunnerCoordinationResolutionNormalizesWhitespaceForIdempotency(t *testing.T) {
+	repo := NewMemoryRunRepository()
+	r := NewMissionRunner(repo, coordinationTestExecutor{})
+	ctx := context.Background()
+	now := time.Now().UTC()
+	run := &MissionRun{
+		ID:           "run_coord_resolution",
+		PlanID:       "plan_coord_resolution",
+		PlanRevision: 1,
+		ProjectID:    "project_coord",
+		Workspace:    "/tmp/project",
+		State:        StateExecuting,
+		Contract:     DefaultAutonomyContract(),
+		PackageRuns:  []PackageRun{{ID: "pkgrun_1", PackageID: "step_1", State: StateExecuting}},
+		StartedAt:    now,
+		UpdatedAt:    now,
+	}
+	if err := repo.SaveRun(ctx, run); err != nil {
+		t.Fatalf("save run: %v", err)
+	}
+	req, err := r.SubmitCoordinationRequest(ctx, run.ID, CoordinationRequest{
+		ID:              "coord_ws",
+		SourcePackageID: "step_1",
+		Operation:       CoordinationNeedInfo,
+		Subject:         "verification",
+	})
+	if err != nil {
+		t.Fatalf("submit: %v", err)
+	}
+	if _, err := r.ResolveCoordinationRequest(ctx, run.ID, req.ID, CoordinationResolved, " answer ", " receipt "); err != nil {
+		t.Fatalf("first resolve: %v", err)
+	}
+	if _, err := r.ResolveCoordinationRequest(ctx, run.ID, req.ID, CoordinationResolved, "answer", "receipt"); err != nil {
+		t.Fatalf("normalized duplicate resolve must be idempotent: %v", err)
+	}
+}
+
 func TestMissionRunnerCoordinationRejectsForeignSourcePackage(t *testing.T) {
 	repo := NewMemoryRunRepository()
 	r := NewMissionRunner(repo, coordinationTestExecutor{})
