@@ -109,6 +109,27 @@ describe('nexus API request errors', () => {
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.signal).toBe(controller.signal);
   });
+
+  it('forwards Composer AbortSignal to attachment uploads', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          id: 'att-1',
+          name: 'shot.png',
+          mime_type: 'image/png',
+          size: 3,
+        }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
+    const file = new File(['png'], 'shot.png', { type: 'image/png' });
+
+    await nexusApi.uploadComposerAttachment('session-1', file, controller.signal);
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBe(controller.signal);
+  });
 });
 
 describe('system metadata API', () => {
