@@ -20,7 +20,18 @@ command -v "$TIMEOUT_BIN" >/dev/null
 root="$(mktemp -d)"
 project="$root/project"
 data="$root/data"
-mkdir -p "$project" "$data"
+state="$root/state"
+mkdir -p "$project" "$data" "$state"
+
+# Keep test-owned project/database/state isolated without hiding the authenticated
+# provider profiles that make this a real-provider certification. Profiles are
+# referenced through a symlink; they are never copied into the fixture.
+host_data="$("$NEXUS_BIN" paths | sed -n 's/^data:[[:space:]]*//p' | head -n1)"
+if [ -z "$host_data" ] || [ ! -d "$host_data/profiles" ]; then
+    echo "No host Nexus provider profiles directory found (data=${host_data:-unknown})" >&2
+    exit 2
+fi
+ln -s "$host_data/profiles" "$data/profiles"
 
 cleanup() {
     rm -rf "$root"
@@ -67,6 +78,8 @@ git -C "$project" commit -qm "certification fixture"
 
 export NEXUS_DATA_DIR="$data"
 export AI_CLI_DATA_DIR="$data"
+export NEXUS_STATE_DIR="$state"
+export AI_CLI_STATE_DIR="$state"
 
 "$NEXUS_BIN" projects add "$project" --name "Nexus Live Mission Certification" --isolation worktree >"$root/project-add.log"
 
