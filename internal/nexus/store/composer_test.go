@@ -64,7 +64,7 @@ func TestComposerSessionPersistsBriefTurnsSkillsAndPromptArtifacts(t *testing.T)
 	}
 }
 
-func TestComposerTurnRemainsBoundedWithoutAffectingPromptArtifact(t *testing.T) {
+func TestComposerTurnLimitDoesNotAlterAcceptedContentOrPromptArtifact(t *testing.T) {
 	st := openTestStore(t)
 	project, err := st.CreateProject(Project{Name: "Composer turn size", CanonicalPath: t.TempDir()})
 	if err != nil {
@@ -80,8 +80,8 @@ func TestComposerTurnRemainsBoundedWithoutAffectingPromptArtifact(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := len(turn.Content), 8*1024; got != want {
-		t.Fatalf("composer turn size=%d want=%d", got, want)
+	if turn.Content != content {
+		t.Fatalf("accepted Composer turn was modified: got %d bytes want %d", len(turn.Content), len(content))
 	}
 
 	artifact, err := st.CreatePromptArtifact(PromptArtifact{SessionID: session.ID, Content: content})
@@ -89,7 +89,7 @@ func TestComposerTurnRemainsBoundedWithoutAffectingPromptArtifact(t *testing.T) 
 		t.Fatal(err)
 	}
 	if artifact.Content != content {
-		t.Fatalf("prompt artifact inherited turn truncation: got %d bytes want %d", len(artifact.Content), len(content))
+		t.Fatalf("prompt artifact content was modified: got %d bytes want %d", len(artifact.Content), len(content))
 	}
 }
 

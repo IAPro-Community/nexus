@@ -236,16 +236,19 @@ func composerExecutionBrief(brief LivingBrief, manifest ComposerContextManifest)
 			keepPaths[item.Locator] = struct{}{}
 		}
 	}
-	if len(brief.Context.ReferencedFiles) == 0 {
-		return brief
-	}
-	filtered := make([]ContextFileRef, 0, len(brief.Context.ReferencedFiles))
-	for _, file := range brief.Context.ReferencedFiles {
-		if _, keep := keepPaths[file.Path]; keep {
-			filtered = append(filtered, file)
+	if len(brief.Context.ReferencedFiles) > 0 {
+		filtered := make([]ContextFileRef, 0, len(brief.Context.ReferencedFiles))
+		for _, file := range brief.Context.ReferencedFiles {
+			if _, keep := keepPaths[file.Path]; keep {
+				filtered = append(filtered, file)
+			}
 		}
+		brief.Context.ReferencedFiles = filtered
 	}
-	brief.Context.ReferencedFiles = filtered
+	// Preview is a derived field. The immutable audit brief may contain the
+	// pre-pruning preview, so recompute it from the admitted execution brief
+	// instead of serializing stale DROP/REFERENCE_ONLY context downstream.
+	brief.Preview = renderCanonicalPrompt(brief)
 	return brief
 }
 
