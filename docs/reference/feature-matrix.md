@@ -1,22 +1,31 @@
 # Matriz de funcionalidades
 
-Os estados descrevem a presença da capacidade no produto. Eles não substituem a
-evidência de uma conta autenticada ou de um sistema operacional específico.
+Esta matriz descreve presença funcional no **source candidato**. Ela não
+substitui certificação de release, evidência de provider autenticado ou execução
+nativa em cada sistema operacional.
 
-| Feature | Web | CLI | Desktop | API local | Status |
+| Feature | Web | CLI | Desktop | API local | Estado |
 | --- | ---: | ---: | ---: | ---: | --- |
-| Projetos e workspace | ✅ | ✅ | quando a shell nativa estiver disponível | ✅ | Disponível |
-| Agents persistentes | ✅ | ✅ | quando a shell nativa estiver disponível | ✅ | Disponível |
-| Sessão Direct e terminal | ✅ | ✅ | evidência por plataforma | ✅ | Disponível |
-| Providers, perfis e quota | ✅ | ✅ | quando a shell nativa estiver disponível | ✅ | Disponível com estados de evidência |
-| Composer | ✅ | por plan/compile | evidência por plataforma | ✅ | Disponível |
-| Flow / WorkPlan | ✅ | ✅ | evidência por plataforma | ✅ | Disponível |
-| Mission / execução verificada | ✅ | `nexus run` / plan | evidência por plataforma | ✅ | Experimental |
-| Delegação automática do Lead | sessão interativa | `nexus <provider> --supervised` | não certificada separadamente | ✅ | Experimental |
-| Maestro opcional | ✅ | ✅ | evidência por plataforma | ✅ | Opcional / Experimental |
-| Atualização | ✅ | ✅ | depende do pacote | ✅ | Disponível com requisitos de assinatura/pacote |
-| Tunnel remoto | ✅ | ✅ | — | ✅ | Disponível; requer revisão de segurança |
+| Projects/workspaces | ✅ | ✅ | via Core | ✅ | Disponível |
+| Agents persistentes | ✅ | ✅ | via Core | ✅ | Disponível |
+| Direct + terminal | ✅ | ✅ | depende de evidência nativa | ✅ | Disponível |
+| Providers/profiles/quota | ✅ | ✅ | via Core | ✅ | Disponível com qualidade de evidência |
+| Composer | ✅ | operações relacionadas | via Core | ✅ | Disponível |
+| WorkPlan / Flow | ✅ | ✅ | via Core | ✅ | Disponível |
+| MissionRunner | ✅ | ✅ | via Core | ✅ | Implementado no source candidato |
+| Coordination requests | ✅ no Flow Run | indireto via Mission | via Core | ✅ | Implementado no source candidato |
+| Mission Teams | ✅ projeção | ✅ | via Core | ✅ | Implementado no source candidato |
+| Maestro | ✅ | ✅ | via Core | ✅ | Opcional |
+| Update | ✅ | ✅ | depende de pacote/plataforma | ✅ | Disponível com gates de integridade |
+| Tunnel | ✅ | ✅ | — | ✅ | Disponível; operação sensível |
 
-Veja [suporte por plataforma](../operations/platform-support.md) para limites
-de Linux, macOS e Windows, e [evidência de documentação](../internal/DOCUMENTATION_EVIDENCE.md)
-para a origem de cada afirmação.
+## Interpretação
+
+- **Disponível**: contrato e implementação presentes.
+- **Implementado no source candidato**: funcionalidade existe no fechamento v1,
+  mas a autorização de release estável ainda depende dos gates de certificação.
+- **via Core**: Desktop não implementa regra própria; consome o mesmo Core.
+- **depende de evidência nativa**: não inferir suporte de cross-compilation.
+
+Veja [suporte por plataforma](../operations/platform-support.md) e o
+[status autoritativo da release](../../DEV/validation/current/RELEASE_STATUS.md).
