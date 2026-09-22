@@ -1,5 +1,5 @@
 # IAPro Nexus Installer for PowerShell (Windows & PowerShell Core)
-# Zero-toolchain release path. Usage:
+# Prebuilt signed-release path. Usage:
 #   .\install.ps1 -Version v0.5.0-beta.23
 #   .\install.ps1 -Version latest
 #   .\install.ps1 -BuildFromSource
@@ -116,7 +116,7 @@ function Ensure-WebView2 {
     }
 }
 
-Write-Host "=== IAPro Nexus Installer (Zero-Toolchain Release) ===" -ForegroundColor Cyan
+Write-Host "=== IAPro Nexus Installer (Signed Prebuilt Release) ===" -ForegroundColor Cyan
 Write-Host "Release repo: $Repo" -ForegroundColor Gray
 
 if ([string]::IsNullOrWhiteSpace($Version) -and -not $BuildFromSource) {
@@ -292,6 +292,15 @@ try {
             $ExtractedBin = Join-Path $TempDir $AiAliasName
         }
         if (Test-Path $ExtractedBin) {
+            $VersionJson = (& $ExtractedBin version --json 2>$null) -join "`n"
+            try {
+                $EmbeddedVersion = ($VersionJson | ConvertFrom-Json).version
+            } catch {
+                throw "Verified artifact could not report valid version metadata."
+            }
+            if ([string]::IsNullOrWhiteSpace($EmbeddedVersion) -or $EmbeddedVersion -ne $Version) {
+                throw "Signed artifact binary version mismatch: expected $Version, got $EmbeddedVersion"
+            }
             $Staging = Join-Path $TempDir "nexus.install"
             Copy-Item -Path $ExtractedBin -Destination $Staging -Force
             Move-Item -Path $Staging -Destination $TargetPath -Force
