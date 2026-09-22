@@ -82,9 +82,9 @@ func TestMissionRunnerCoordinationRequestReturnsReceiptToSameSourceWork(t *testi
 		}},
 	}
 	run, err := r.StartMissionRun(ctx, plan, t.TempDir(), AutonomyContract{
-		MaxRetries:         2,
-		MaxTotalIterations: 40,
-		MaxNoProgress:      3,
+		MaxRetries:          2,
+		MaxTotalIterations:  40,
+		MaxNoProgress:       3,
 		RequireVerification: false,
 	}, "agent-source")
 	if err != nil {
