@@ -54,38 +54,43 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	strategy := strings.ToUpper(strings.TrimSpace(pkg.AssignmentStrategy))
 	var agent store.Agent
 	var agentEvidence agentSelectionEvidence
-	switch strategy {
-	case "": // legacy WorkPlan behavior
-		if strings.TrimSpace(pkg.AssignedAgent) != "" {
+	if resumeAgentID := strings.TrimSpace(pkg.ResumeAgentID); resumeAgentID != "" {
+		agent, err = st.GetAgent(resumeAgentID, run.ProjectID)
+		agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "resume same Agent identity after Mission coordination"}
+	} else {
+		switch strategy {
+		case "": // legacy WorkPlan behavior
+			if strings.TrimSpace(pkg.AssignedAgent) != "" {
+				agent, err = st.GetAgent(pkg.AssignedAgent, run.ProjectID)
+				agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "existing Agent assignment"}
+			} else {
+				agent, agentEvidence, err = e.selectReusableAgent(st, run, pkg)
+				if err == store.ErrNotFound {
+					agent, err = createMissionAgent(st, run.ProjectID, pkg, "Mission · ")
+					agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from task requirements"}
+				}
+			}
+		case string(FlowAssignmentExisting):
+			if strings.TrimSpace(pkg.AssignedAgent) == "" {
+				return runner.AllocationResult{}, fmt.Errorf("EXISTING Flow Step %s has no AgentID", pkg.PackageID)
+			}
+			if agentReservedInRun(run, pkg.AssignedAgent, pkg.PackageID) {
+				return runner.AllocationResult{}, fmt.Errorf("agent %s is already assigned to another active Flow Step", pkg.AssignedAgent)
+			}
 			agent, err = st.GetAgent(pkg.AssignedAgent, run.ProjectID)
-			agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "existing Agent assignment"}
-		} else {
+			agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "existing Flow Agent assignment"}
+		case string(FlowAssignmentCreate):
+			agent, err = createMissionAgent(st, run.ProjectID, pkg, "Flow · ")
+			agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from Flow task requirements"}
+		case string(FlowAssignmentAuto):
 			agent, agentEvidence, err = e.selectReusableAgent(st, run, pkg)
 			if err == store.ErrNotFound {
-				agent, err = createMissionAgent(st, run.ProjectID, pkg, "Mission · ")
+				agent, err = createMissionAgent(st, run.ProjectID, pkg, "Auto · ")
 				agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from task requirements"}
 			}
+		default:
+			return runner.AllocationResult{}, fmt.Errorf("unsupported Flow assignment strategy %q", pkg.AssignmentStrategy)
 		}
-	case string(FlowAssignmentExisting):
-		if strings.TrimSpace(pkg.AssignedAgent) == "" {
-			return runner.AllocationResult{}, fmt.Errorf("EXISTING Flow Step %s has no AgentID", pkg.PackageID)
-		}
-		if agentReservedInRun(run, pkg.AssignedAgent, pkg.PackageID) {
-			return runner.AllocationResult{}, fmt.Errorf("agent %s is already assigned to another active Flow Step", pkg.AssignedAgent)
-		}
-		agent, err = st.GetAgent(pkg.AssignedAgent, run.ProjectID)
-		agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "existing Flow Agent assignment"}
-	case string(FlowAssignmentCreate):
-		agent, err = createMissionAgent(st, run.ProjectID, pkg, "Flow · ")
-		agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from Flow task requirements"}
-	case string(FlowAssignmentAuto):
-		agent, agentEvidence, err = e.selectReusableAgent(st, run, pkg)
-		if err == store.ErrNotFound {
-			agent, err = createMissionAgent(st, run.ProjectID, pkg, "Auto · ")
-			agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from task requirements"}
-		}
-	default:
-		return runner.AllocationResult{}, fmt.Errorf("unsupported Flow assignment strategy %q", pkg.AssignmentStrategy)
 	}
 	if err != nil {
 		return runner.AllocationResult{}, fmt.Errorf("allocate persistent Agent: %w", err)
@@ -660,6 +665,15 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 	if pkg.ContextCapsule == nil {
 		return runner.PromptArtifact{}, runner.ErrMissingContextCapsule
 	}
+	if pkg.DynamicWork && strings.TrimSpace(pkg.CoordinationRequestID) != "" {
+		content := buildDynamicCoordinationPrompt(run, pkg)
+		if capsule := strings.TrimSpace(runner.RenderContextCapsule(pkg.ContextCapsule)); capsule != "" {
+			content += "\n\n" + capsule
+		}
+		content += missionCoordinationPromptInstructions()
+		content += autonomyPromptBoundaries(run.Contract)
+		return e.persistMissionPrompt(run, pkg, content)
+	}
 	snapshot, err := e.n.loadMissionSnapshot(run)
 	if err != nil {
 		return runner.PromptArtifact{}, err
@@ -716,8 +730,16 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 		content += "\n\n## Remediation evidence from the previous attempt\n" + strings.TrimSpace(pkg.RemediationContext) +
 			"\n\nAddress the evidence above. Do not repeat the same failed approach without a concrete change."
 	}
+	content += missionCoordinationPromptInstructions()
 	content += autonomyPromptBoundaries(run.Contract)
+	return e.persistMissionPrompt(run, pkg, content)
+}
 
+func (e *nexusPackageExecutor) persistMissionPrompt(run *runner.MissionRun, pkg *runner.PackageRun, content string) (runner.PromptArtifact, error) {
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return runner.PromptArtifact{}, fmt.Errorf("compiled prompt is empty")
+	}
 	h := sha256.Sum256([]byte(content))
 	created, err := e.n.st.CreatePromptVersion(store.PromptVersion{
 		PlanID:       run.PlanID,
@@ -730,6 +752,48 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 		return runner.PromptArtifact{}, fmt.Errorf("persist immutable prompt version: %w", err)
 	}
 	return runner.PromptArtifact{VersionID: created.ID, Content: content}, nil
+}
+
+func buildDynamicCoordinationPrompt(run *runner.MissionRun, pkg *runner.PackageRun) string {
+	var req *runner.CoordinationRequest
+	for i := range run.CoordinationRequests {
+		if run.CoordinationRequests[i].ID == pkg.CoordinationRequestID {
+			req = &run.CoordinationRequests[i]
+			break
+		}
+	}
+	if req == nil {
+		return "Resolve the Mission coordination work described by this package. Return a concise factual result with evidence."
+	}
+	return fmt.Sprintf(`You are resolving a durable Mission coordination request.
+
+Operation: %s
+Subject: %s
+Objective: %s
+Source package: %s
+Source Agent: %s
+
+Return the smallest factual result that lets the source Agent continue.
+For NEED_INFO, investigate read-only and return the answer plus concise evidence.
+For ARTIFACT_REQUEST, return the exact durable artifact reference(s), creating work only when necessary.
+For REVIEW_REQUEST, return an independent review result.
+For DELEGATE, complete only the bounded delegated objective.
+Do not broaden the sealed Mission scope.`,
+		req.Operation, req.Subject, req.Objective, req.SourcePackageID, req.SourceAgentID)
+}
+
+func missionCoordinationPromptInstructions() string {
+	return `
+
+## Mission coordination protocol
+If this step cannot continue safely without information, an artifact, bounded delegation, or an independent review, stop before modifying files or causing external side effects and emit one line per request using exactly:
+NEXUS_COORDINATION_REQUEST: {"operation":"NEED_INFO","subject":"concise question or exact memory key","objective":"what is needed","preferred_role":"investigator","preferred_provider":"","required_capabilities":[],"artifact_refs":[]}
+
+Allowed operations are NEED_INFO, DELEGATE, ARTIFACT_REQUEST, REVIEW_REQUEST.
+DELEGATE requires a non-empty objective.
+After emitting a coordination request, stop the turn and do not claim task completion.
+Never emit a coordination request after modifying the workspace or performing an external side effect.
+`
 }
 
 func autonomyPromptBoundaries(contract runner.AutonomyContract) string {
@@ -752,10 +816,117 @@ func autonomyPromptBoundaries(contract runner.AutonomyContract) string {
 	return "\n\n## Autonomy boundaries\n- " + strings.Join(rules, "\n- ")
 }
 
+type coordinationRequestEnvelope struct {
+	Operation            runner.CoordinationOperation `json:"operation"`
+	Subject              string                       `json:"subject"`
+	Objective            string                       `json:"objective,omitempty"`
+	PreferredRole        string                       `json:"preferred_role,omitempty"`
+	PreferredProvider    string                       `json:"preferred_provider,omitempty"`
+	RequiredCapabilities []string                     `json:"required_capabilities,omitempty"`
+	ArtifactRefs         []string                     `json:"artifact_refs,omitempty"`
+}
+
+const coordinationRequestMarker = "NEXUS_COORDINATION_REQUEST:"
+
+func parseExecutionCoordinationRequests(output string, run *runner.MissionRun, pkg *runner.PackageRun) ([]runner.CoordinationRequest, error) {
+	requests := []runner.CoordinationRequest{}
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, coordinationRequestMarker) {
+			continue
+		}
+		raw := strings.TrimSpace(strings.TrimPrefix(line, coordinationRequestMarker))
+		if raw == "" {
+			return nil, fmt.Errorf("empty coordination request marker")
+		}
+		var envelope coordinationRequestEnvelope
+		if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
+			return nil, fmt.Errorf("decode coordination request: %w", err)
+		}
+		req := runner.CoordinationRequest{
+			RunID: run.ID, SourcePackageID: pkg.PackageID, SourceAgentID: pkg.AssignedAgent,
+			Operation: envelope.Operation, Subject: strings.TrimSpace(envelope.Subject), Objective: strings.TrimSpace(envelope.Objective),
+			PreferredRole: strings.TrimSpace(envelope.PreferredRole), PreferredProvider: strings.TrimSpace(envelope.PreferredProvider),
+			RequiredCapabilities: append([]string(nil), envelope.RequiredCapabilities...), ArtifactRefs: append([]string(nil), envelope.ArtifactRefs...),
+			Status: runner.CoordinationPending, CreatedAt: time.Now().UTC(),
+		}
+		if err := runner.ValidateCoordinationRequest(runner.CoordinationRequest{
+			ID: "pending-id", RunID: req.RunID, SourcePackageID: req.SourcePackageID, SourceAgentID: req.SourceAgentID,
+			Operation: req.Operation, Subject: req.Subject, Objective: req.Objective, PreferredRole: req.PreferredRole,
+			PreferredProvider: req.PreferredProvider, RequiredCapabilities: req.RequiredCapabilities, ArtifactRefs: req.ArtifactRefs,
+			Status: req.Status, CreatedAt: req.CreatedAt,
+		}); err != nil {
+			return nil, err
+		}
+		requests = append(requests, req)
+	}
+	return requests, nil
+}
+
+func coordinationRequestForDynamicPackage(run *runner.MissionRun, pkg *runner.PackageRun) *runner.CoordinationRequest {
+	if run == nil || pkg == nil || strings.TrimSpace(pkg.CoordinationRequestID) == "" {
+		return nil
+	}
+	for i := range run.CoordinationRequests {
+		if run.CoordinationRequests[i].ID == pkg.CoordinationRequestID {
+			return &run.CoordinationRequests[i]
+		}
+	}
+	return nil
+}
+
+func (e *nexusPackageExecutor) resolveCoordinationLocally(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun) (runner.ExecutionResult, bool) {
+	req := coordinationRequestForDynamicPackage(run, pkg)
+	if req == nil {
+		return runner.ExecutionResult{}, false
+	}
+	if req.Operation == runner.CoordinationNeedInfo {
+		key := strings.TrimSpace(req.Subject)
+		if key != "" {
+			recall, err := e.n.RecallIntelligenceMemories(ctx, MemoryRecallRequest{ProjectID: run.ProjectID, Keys: []string{key}, Limit: 1})
+			if err == nil {
+				for _, item := range recall.Items {
+					if normalizeMemoryKey(item.Memory.Key) == normalizeMemoryKey(key) && strings.TrimSpace(item.Memory.Value) != "" {
+						return runner.ExecutionResult{RuntimeID: "memory:" + item.Memory.ID, Output: item.Memory.Value}, true
+					}
+				}
+			}
+		}
+	}
+	if req.Operation == runner.CoordinationArtifactRequest && len(req.ArtifactRefs) > 0 {
+		found := make(map[string]string, len(req.ArtifactRefs))
+		for _, packageRun := range run.PackageRuns {
+			if packageRun.WorkReceipt == nil {
+				continue
+			}
+			for _, artifact := range packageRun.WorkReceipt.Artifacts {
+				for _, wanted := range req.ArtifactRefs {
+					if strings.TrimSpace(artifact) == strings.TrimSpace(wanted) {
+						found[wanted] = packageRun.WorkReceipt.ID
+					}
+				}
+			}
+		}
+		if len(found) == len(req.ArtifactRefs) {
+			parts := make([]string, 0, len(req.ArtifactRefs))
+			for _, ref := range req.ArtifactRefs {
+				parts = append(parts, fmt.Sprintf("%s (receipt %s)", ref, found[ref]))
+			}
+			return runner.ExecutionResult{RuntimeID: "receipt:artifact-reuse", Output: "Existing durable artifacts: " + strings.Join(parts, ", ")}, true
+		}
+	}
+	return runner.ExecutionResult{}, false
+}
+
 func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun, prompt string) (runner.ExecutionResult, error) {
 	if strings.TrimSpace(pkg.AssignedAgent) == "" {
 		return runner.ExecutionResult{}, fmt.Errorf("package has no assigned persistent agent")
 	}
+	if local, ok := e.resolveCoordinationLocally(ctx, run, pkg); ok {
+		return local, nil
+	}
+
+	before, _ := workspaceFingerprint(ctx, pkg.Workspace)
 	result, err := e.n.executeAgentPrompt(ctx, pkg.AssignedAgent, pkg.Workspace, prompt, agentPromptPolicy{Contract: run.Contract, MissionRunID: run.ID, PackageID: pkg.PackageID})
 	if err != nil {
 		if result == nil {
@@ -763,6 +934,19 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 		}
 		return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output, Failure: result.Failure}, err
 	}
+
+	coordinationRequests, parseErr := parseExecutionCoordinationRequests(result.Output, run, pkg)
+	if parseErr != nil {
+		return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output}, fmt.Errorf("parse Mission coordination output: %w", parseErr)
+	}
+	unsafeReason := ""
+	if len(coordinationRequests) > 0 {
+		after, _ := workspaceFingerprint(ctx, pkg.Workspace)
+		if before != "" && after != "" && before != after {
+			unsafeReason = "workspace changed before the coordination request was returned"
+		}
+	}
+
 	if len(run.Contract.AllowedFilePatterns) > 0 {
 		changed, guardErr := autonomyguard.GitChangedPaths(ctx, pkg.Workspace)
 		if guardErr != nil {
@@ -790,7 +974,10 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 			},
 		))
 	}
-	return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output}, nil
+	return runner.ExecutionResult{
+		RuntimeID: result.RuntimeID, Output: result.Output,
+		CoordinationRequests: coordinationRequests, CoordinationUnsafeReason: unsafeReason,
+	}, nil
 }
 
 func (e *nexusPackageExecutor) Review(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun) (runner.ReviewVerdict, error) {
