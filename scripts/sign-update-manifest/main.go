@@ -178,7 +178,10 @@ func decodePublicKey(value string) (ed25519.PublicKey, error) {
 }
 
 func channel(version string) string {
-	if strings.Contains(strings.ToLower(version), "beta") {
+	lower := strings.ToLower(strings.TrimSpace(version))
+	if strings.Contains(lower, "-alpha.") ||
+		strings.Contains(lower, "-beta.") ||
+		strings.Contains(lower, "-rc.") {
 		return "beta"
 	}
 	return "stable"
