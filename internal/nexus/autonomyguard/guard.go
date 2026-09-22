@@ -57,10 +57,8 @@ func ForbiddenGitCommand(args []string, disallowDestructive, allowPush bool) boo
 		return containsFlag(rest, "-D") || containsFlag(rest, "--delete-force")
 	case "checkout":
 		return containsToken(rest, "--")
-	case "restore":
+	case "restore", "merge", "rebase", "cherry-pick":
 		return true
-	case "rebase":
-		return containsFlag(rest, "--onto") || containsFlag(rest, "--abort")
 	}
 	return false
 }
