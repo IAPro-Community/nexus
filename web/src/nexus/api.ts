@@ -103,6 +103,12 @@ export const nexus = {
     request<import('../types').ComposerSession[]>(
       `/api/v1/projects/${projectId}/composer-sessions`,
     ),
+  listComposerSkillCatalog: (projectId: string, query = '') => {
+    const suffix = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : '';
+    return request<import('../types').ComposerSkillCatalogItem[]>(
+      `/api/v1/projects/${projectId}/skills${suffix}`,
+    );
+  },
   createComposerSessionWithMode: (
     projectId: string,
     goal: string,
@@ -174,6 +180,11 @@ export const nexus = {
       `/api/v1/composer-sessions/${id}/skills/${encodeURIComponent(skillId)}`,
       { method: 'PATCH', body: JSON.stringify({ state }) },
     ),
+  selectComposerSkill: (id: string, skillId: string) =>
+    request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}/skills`, {
+      method: 'POST',
+      body: JSON.stringify({ skill_id: skillId }),
+    }),
   finalizeComposerSession: (id: string, skillIds: string[] = [], confirmGaps = false) =>
     request<import('../types').PromptArtifact>(`/api/v1/composer-sessions/${id}/finalize`, {
       method: 'POST',

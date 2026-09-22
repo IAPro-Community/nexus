@@ -61,6 +61,7 @@ export const ComposerSurface: React.FC<{
     refineText,
     showRefineInput,
     agents,
+    skillCatalog,
     selectedAgentId,
     nextUnknown,
     actionableGaps,
@@ -181,7 +182,9 @@ export const ComposerSurface: React.FC<{
       onRefineTextChange={composer.setRefineText}
       onCancelRefine={() => composer.setShowRefineInput(false)}
       onRefine={() => void composer.refine()}
+      skillCatalog={skillCatalog}
       onUpdateSkill={(skillId, state) => void composer.updateSkill(skillId, state)}
+      onSelectCatalogSkill={(skillId) => void composer.selectCatalogSkill(skillId)}
       onAttach={(path) => void composer.attachContext(path)}
       onDetach={(path) => void composer.detachContext(path)}
       onCopy={() => void composer.copy()}

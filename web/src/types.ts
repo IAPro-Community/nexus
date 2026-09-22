@@ -989,6 +989,18 @@ export interface ComposerSkillProposal {
   updated_at: string;
 }
 
+export interface ComposerSkillCatalogItem {
+  id: string;
+  name: string;
+  description?: string;
+  source: string;
+  version?: string;
+  risk?: string;
+  availability: string;
+  capabilities?: string[];
+  triggers?: string[];
+}
+
 export type ComposerContextDecision = 'KEEP' | 'REFERENCE_ONLY' | 'DROP';
 
 export interface ComposerContextItem {

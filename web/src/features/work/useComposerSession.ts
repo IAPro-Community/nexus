@@ -6,6 +6,7 @@ import type {
   Agent,
   ComposerSession,
   ComposerSessionView,
+  ComposerSkillCatalogItem,
   Project,
   PromptArtifact,
 } from '../../types';
@@ -51,6 +52,7 @@ export function useComposerSession(project: Project) {
   const [refineText, setRefineText] = useState('');
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [skillCatalog, setSkillCatalog] = useState<ComposerSkillCatalogItem[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [bootstrapActivity, setBootstrapActivity] = useState<NexusActivityPayload | null>(null);
   const createAbort = useRef<AbortController | null>(null);
@@ -116,6 +118,13 @@ export function useComposerSession(project: Project) {
         setSelectedAgentId((current) => current || next[0]?.id || '');
       })
       .catch(() => undefined);
+  }, [project.id]);
+
+  useEffect(() => {
+    void nexus
+      .listComposerSkillCatalog(project.id)
+      .then((items) => setSkillCatalog(items || []))
+      .catch(() => setSkillCatalog([]));
   }, [project.id]);
 
   const briefItems = useMemo(() => (view ? buildComposerBriefItems(view, t) : []), [t, view]);
@@ -312,6 +321,12 @@ export function useComposerSession(project: Project) {
       setView(await nexus.updateComposerSkillState(view.session.id, skillId, state));
     });
 
+  const selectCatalogSkill = (skillId: string) =>
+    runBusy(async () => {
+      if (!view) return;
+      setView(await nexus.selectComposerSkill(view.session.id, skillId));
+    });
+
   const attachContext = (path: string) =>
     runBusy(async () => {
       if (!view) return;
@@ -366,6 +381,7 @@ export function useComposerSession(project: Project) {
     refineText,
     showRefineInput,
     agents,
+    skillCatalog,
     selectedAgentId,
     briefItems,
     nextUnknown,
@@ -386,6 +402,7 @@ export function useComposerSession(project: Project) {
     resolveUnknown,
     rememberUnknown,
     updateSkill,
+    selectCatalogSkill,
     attachContext,
     detachContext,
     copy,

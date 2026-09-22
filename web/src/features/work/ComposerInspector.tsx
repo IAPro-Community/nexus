@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Pencil } from 'lucide-react';
 import { Button } from '../../design-system';
-import type { Agent, ComposerSessionView, Project, PromptArtifact } from '../../types';
+import type {
+  Agent,
+  ComposerSessionView,
+  ComposerSkillCatalogItem,
+  Project,
+  PromptArtifact,
+} from '../../types';
 import { asArray, asStringArray } from '../../lib/safeArray';
 import type { ComposerBriefUnknown, ComposerGate } from './composerModel';
 import { ComposerBriefOverview } from './ComposerBriefOverview';
@@ -39,7 +45,9 @@ export const ComposerInspector: React.FC<{
   onRefineTextChange: (value: string) => void;
   onCancelRefine: () => void;
   onRefine: () => void;
+  skillCatalog: ComposerSkillCatalogItem[];
   onUpdateSkill: (skillId: string, state: 'ACCEPTED' | 'REJECTED') => void;
+  onSelectCatalogSkill: (skillId: string) => void;
   onAttach: (path: string) => void;
   onDetach: (path: string) => void;
   onCopy: () => void;
@@ -78,7 +86,9 @@ export const ComposerInspector: React.FC<{
   onRefineTextChange,
   onCancelRefine,
   onRefine,
+  skillCatalog,
   onUpdateSkill,
+  onSelectCatalogSkill,
   onAttach,
   onDetach,
   onCopy,
@@ -166,9 +176,11 @@ export const ComposerInspector: React.FC<{
               </summary>
               <ComposerSkills
                 skills={view.skills || []}
+                catalog={skillCatalog}
                 busy={busy}
                 compact
                 onUpdateSkill={onUpdateSkill}
+                onSelectCatalogSkill={onSelectCatalogSkill}
               />
             </details>
             {motivation.length > 0 ? (
