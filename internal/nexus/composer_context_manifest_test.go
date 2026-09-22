@@ -52,15 +52,23 @@ func TestComposerContextManifestKeepsMissionHistoryReferenceOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	projectPlan, err := st.CreateWorkPlan(store.WorkPlan{ProjectID: project.ID, Title: "Context plan"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherPlan, err := st.CreateWorkPlan(store.WorkPlan{ProjectID: otherProject.ID, Title: "Other context plan"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	now := time.Now().UTC()
 	if err := st.UpsertMissionRun(store.MissionRunRecord{
-		ID: "run-other-project", PlanID: "plan-other", ProjectID: otherProject.ID,
+		ID: "run-other-project", PlanID: otherPlan.ID, ProjectID: otherProject.ID,
 		State: "COMPLETED_VERIFIED", PayloadJSON: "{\"must_not_leak\":true}", CreatedAt: now.Add(time.Minute), UpdatedAt: now.Add(time.Minute),
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.UpsertMissionRun(store.MissionRunRecord{
-		ID: "run-context-manifest", PlanID: "plan-context-manifest", ProjectID: project.ID,
+		ID: "run-context-manifest", PlanID: projectPlan.ID, ProjectID: project.ID,
 		State: "COMPLETED_VERIFIED", PayloadJSON: "{}", CreatedAt: now, UpdatedAt: now,
 	}); err != nil {
 		t.Fatal(err)

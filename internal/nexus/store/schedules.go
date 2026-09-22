@@ -46,7 +46,11 @@ func (s *Store) CreateMissionSchedule(item MissionSchedule) (*MissionSchedule, e
 	now := time.Now().UTC()
 	item.CreatedAt, item.UpdatedAt = now, now
 	_, err := s.db.Exec(`INSERT INTO mission_schedules(id,plan_id,project_id,mode,scheduled_for,after_run_id,status,run_id,contract_json,last_error,attempt_count,last_attempt_at,created_at,updated_at)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?)`, item.ID, item.PlanID, item.ProjectID, item.Mode, nullableTime(item.ScheduledFor), nullableString(item.AfterRunID), item.Status, nullableString(item.RunID), item.ContractJSON, now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		item.ID, item.PlanID, item.ProjectID, item.Mode, nullableTime(item.ScheduledFor),
+		nullableString(item.AfterRunID), item.Status, nullableString(item.RunID), item.ContractJSON,
+		item.LastError, item.AttemptCount, nullableTime(item.LastAttemptAt),
+		now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +90,7 @@ func (s *Store) ListMissionSchedules(projectID string) ([]MissionSchedule, error
 // is satisfied. WHEN_RESOURCES remains pending until the Nexus scheduler also
 // confirms an eligible provider resource.
 func (s *Store) ListReadyMissionSchedules(now time.Time) ([]MissionSchedule, error) {
-	rows, err := s.db.Query(`SELECT s.id,s.plan_id,s.project_id,s.mode,s.scheduled_for,s.after_run_id,s.status,s.run_id,s.contract_json,s.created_at,s.updated_at
+	rows, err := s.db.Query(`SELECT s.id,s.plan_id,s.project_id,s.mode,s.scheduled_for,s.after_run_id,s.status,s.run_id,s.contract_json,s.last_error,s.attempt_count,s.last_attempt_at,s.created_at,s.updated_at
 		FROM mission_schedules s
 		LEFT JOIN mission_runs r ON r.id=s.after_run_id
 		WHERE s.status=? AND (
