@@ -65,4 +65,4 @@ planner.
 
 Um diagrama de arquitetura não certifica um sistema operacional. Consulte
 [suporte de plataformas](../operations/platform-support.md) e o
-[status de release](../../DEV/validation/current/RELEASE_STATUS.md).
+[status de release](../release-status.md).
