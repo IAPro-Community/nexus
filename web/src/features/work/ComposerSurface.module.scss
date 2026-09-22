@@ -600,8 +600,9 @@
 }
 
 .contextChipRemove {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
 }
 
 .contextPicker {
@@ -693,6 +694,13 @@
     height: auto;
   }
 
+  .contextChipRemove {
+    width: var(--nx-touch-min, 44px);
+    min-width: var(--nx-touch-min, 44px);
+    height: var(--nx-touch-min, 44px);
+    margin-block: -8px;
+  }
+
   .destinationActions,
   .artifactActions,
   .flexRowGap8Center,
@@ -752,6 +760,9 @@
 .conversationShell {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   min-height: 0;
   height: 100%;
   flex: 1;
