@@ -148,7 +148,6 @@ func TestMissionRunnerCoordinationRejectsForeignSourcePackage(t *testing.T) {
 	}
 }
 
-
 func TestMissionRunnerMaterializesCoordinationAsDynamicWork(t *testing.T) {
 	repo := NewMemoryRunRepository()
 	r := NewMissionRunner(repo, coordinationTestExecutor{})
@@ -173,13 +172,13 @@ func TestMissionRunnerMaterializesCoordinationAsDynamicWork(t *testing.T) {
 		t.Fatalf("save run: %v", err)
 	}
 	req, err := r.SubmitCoordinationRequest(ctx, run.ID, CoordinationRequest{
-		ID: "coord_delegate",
-		SourcePackageID: "parent",
-		SourceAgentID: "agent_lead",
-		Operation: CoordinationDelegate,
-		Subject: "inspect token persistence",
-		Objective: "independently inspect token persistence and report evidence",
-		PreferredRole: "backend-reviewer",
+		ID:                "coord_delegate",
+		SourcePackageID:   "parent",
+		SourceAgentID:     "agent_lead",
+		Operation:         CoordinationDelegate,
+		Subject:           "inspect token persistence",
+		Objective:         "independently inspect token persistence and report evidence",
+		PreferredRole:     "backend-reviewer",
 		PreferredProvider: "codex",
 	})
 	if err != nil {
@@ -226,26 +225,26 @@ func TestMissionRunnerCoordinationResolvesFromChildReceipt(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
 	run := &MissionRun{
-		ID: "run_receipt",
-		PlanID: "plan_receipt",
+		ID:           "run_receipt",
+		PlanID:       "plan_receipt",
 		PlanRevision: 1,
-		ProjectID: "project_receipt",
-		Workspace: "/tmp/project",
-		State: StateExecuting,
-		Contract: DefaultAutonomyContract(),
-		PackageRuns: []PackageRun{{ID: "pkgrun_parent", PackageID: "parent", State: StateExecuting, StartedAt: now}},
-		StartedAt: now,
-		UpdatedAt: now,
+		ProjectID:    "project_receipt",
+		Workspace:    "/tmp/project",
+		State:        StateExecuting,
+		Contract:     DefaultAutonomyContract(),
+		PackageRuns:  []PackageRun{{ID: "pkgrun_parent", PackageID: "parent", State: StateExecuting, StartedAt: now}},
+		StartedAt:    now,
+		UpdatedAt:    now,
 	}
 	if err := repo.SaveRun(ctx, run); err != nil {
 		t.Fatalf("save run: %v", err)
 	}
 	req, err := r.SubmitCoordinationRequest(ctx, run.ID, CoordinationRequest{
-		ID: "coord_review",
+		ID:              "coord_review",
 		SourcePackageID: "parent",
-		Operation: CoordinationReviewRequest,
-		Subject: "security review",
-		Objective: "review authentication changes independently",
+		Operation:       CoordinationReviewRequest,
+		Subject:         "security review",
+		Objective:       "review authentication changes independently",
 	})
 	if err != nil {
 		t.Fatalf("submit: %v", err)
@@ -266,12 +265,12 @@ func TestMissionRunnerCoordinationResolvesFromChildReceipt(t *testing.T) {
 	dynamic.State = StateVerified
 	dynamic.FinishedAt = &finished
 	dynamic.WorkReceipt = &WorkReceipt{
-		ID: "receipt_dynamic",
-		RunID: run.ID,
-		StepID: dynamic.PackageID,
-		Status: "VERIFIED",
-		Summary: "independent security review completed",
-		StartedAt: dynamic.StartedAt,
+		ID:          "receipt_dynamic",
+		RunID:       run.ID,
+		StepID:      dynamic.PackageID,
+		Status:      "VERIFIED",
+		Summary:     "independent security review completed",
+		StartedAt:   dynamic.StartedAt,
 		CompletedAt: finished,
 	}
 	if err := r.saveRun(ctx, stored); err != nil {
