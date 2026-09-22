@@ -427,6 +427,30 @@ func appendUniquePackageID(values []string, value string) []string {
 	return append(values, value)
 }
 
+func coordinationOperationForPackage(run *MissionRun, pkg *PackageRun) CoordinationOperation {
+	if run == nil || pkg == nil || strings.TrimSpace(pkg.CoordinationRequestID) == "" {
+		return ""
+	}
+	if req := coordinationRequestByID(run, pkg.CoordinationRequestID); req != nil {
+		return req.Operation
+	}
+	return ""
+}
+
+func boundedCoordinationSummary(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	const maxRunes = 8192
+	runes := []rune(value)
+	if len(runes) > maxRunes {
+		return string(runes[:maxRunes]) + "…"
+	}
+	return value
+}
+
+
 func (r *MissionRunner) acceptExecutionCoordination(run *MissionRun, sourcePackageID string, requests []CoordinationRequest) error {
 	if len(requests) == 0 {
 		return nil
