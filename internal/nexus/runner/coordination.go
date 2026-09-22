@@ -359,11 +359,12 @@ func reconcileCoordinationRequests(run *MissionRun) {
 		req.ResolvedAt = &now
 		req.ResultReceiptID = child.WorkReceipt.ID
 		req.ResolutionSummary = child.WorkReceipt.Summary
-		if child.WorkReceipt.Status == "VERIFIED" {
+		switch child.WorkReceipt.Status {
+		case "VERIFIED":
 			req.Status = CoordinationResolved
-		} else if child.WorkReceipt.Status == "FAILED" {
+		case "FAILED":
 			req.Status = CoordinationFailed
-		} else {
+		default:
 			req.ResolvedAt = nil
 			req.ResultReceiptID = ""
 			req.ResolutionSummary = ""
