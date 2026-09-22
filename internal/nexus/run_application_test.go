@@ -38,6 +38,12 @@ func TestRunApplicationServiceRejectsCanceledContext(t *testing.T) {
 	wantCanceled(t, err)
 	_, err = service.Cancel(ctx, "run-1", "test")
 	wantCanceled(t, err)
+	_, err = service.SubmitCoordination(ctx, "run-1", runner.CoordinationRequest{}, false)
+	wantCanceled(t, err)
+	_, err = service.MaterializeCoordination(ctx, "run-1", "coord-1")
+	wantCanceled(t, err)
+	_, err = service.ResolveCoordination(ctx, "run-1", "coord-1", runner.CoordinationResolved, "", "")
+	wantCanceled(t, err)
 }
 
 func TestRunApplicationServicePublishesCorrelatedMissionTimeline(t *testing.T) {
@@ -52,5 +58,45 @@ func TestRunApplicationServicePublishesCorrelatedMissionTimeline(t *testing.T) {
 	}
 	if history[0].Data["project_id"] != "project-1" || history[0].Data["agent_id"] != "agent-1" {
 		t.Fatalf("mission event lacks durable ownership identity: %+v", history[0].Data)
+	}
+}
+
+
+func TestRunApplicationServicePublishesCoordinationTransition(t *testing.T) {
+	bus := events.NewBus(10)
+	service := NewRunApplicationServiceWithBus(nil, bus)
+	before := &runner.MissionRun{
+		ID: "run-coord",
+		ProjectID: "project-1",
+		CurrentPkgIndex: 0,
+		PackageRuns: []runner.PackageRun{{AssignedRuntime: "runtime-1", AssignedAgent: "agent-1"}},
+		CoordinationRequests: []runner.CoordinationRequest{{
+			ID: "coord-1",
+			Status: runner.CoordinationPending,
+		}},
+	}
+	after := &runner.MissionRun{
+		ID: "run-coord",
+		ProjectID: "project-1",
+		CurrentPkgIndex: 0,
+		PackageRuns: []runner.PackageRun{{AssignedRuntime: "runtime-1", AssignedAgent: "agent-1"}},
+		CoordinationRequests: []runner.CoordinationRequest{{
+			ID: "coord-1",
+			Status: runner.CoordinationResolved,
+			ChildPackageID: "coord-child",
+			ResultReceiptID: "receipt-1",
+		}},
+	}
+
+	service.publishCoordinationTransitions(before, after)
+	history := bus.GetHistory("runtime-1", 5)
+	if len(history) != 1 {
+		t.Fatalf("expected one coordination transition event, got %d", len(history))
+	}
+	if history[0].CorrelationID != "run-coord" || history[0].Data["request_id"] != "coord-1" {
+		t.Fatalf("unexpected coordination transition event: %+v", history[0])
+	}
+	if history[0].Data["coordination_phase"] != "RESOLVED" || history[0].Data["receipt_id"] != "receipt-1" {
+		t.Fatalf("coordination transition event lacks durable lineage: %+v", history[0].Data)
 	}
 }
