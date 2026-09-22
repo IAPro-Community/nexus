@@ -80,6 +80,21 @@ func TestWaitMissionWorkerReturnsWorkerFailureWithDurableState(t *testing.T) {
 	}
 }
 
+func TestWaitMissionWorkerReturnsFailureWhenWorkerAlreadyReleased(t *testing.T) {
+	repo := runner.NewMemoryRunRepository()
+	missionRunner := runner.NewMissionRunner(repo, nil)
+	run := &runner.MissionRun{ID: "run-fast-failed", State: runner.StateFailedVerification, PausedReason: "global verification failed"}
+	if err := repo.SaveRun(context.Background(), run); err != nil {
+		t.Fatal(err)
+	}
+	n := &Nexus{runner: missionRunner, workers: map[string]*missionWorker{}}
+
+	got, err := n.WaitMissionWorker(context.Background(), run.ID)
+	if err == nil || !strings.Contains(err.Error(), "FAILED_VERIFICATION") {
+		t.Fatalf("fast failed Mission must retain non-zero CLI semantics: run=%+v err=%v", got, err)
+	}
+}
+
 func TestWaitMissionWorkerRejectsOrphanedActiveRun(t *testing.T) {
 	repo := runner.NewMemoryRunRepository()
 	missionRunner := runner.NewMissionRunner(repo, nil)
