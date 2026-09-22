@@ -20,7 +20,14 @@ func TestInstallerScriptSyntax(t *testing.T) {
 		t.Fatalf("failed to determine repository root: %v", err)
 	}
 
-	scripts := []string{"install.sh", "uninstall.sh", "scripts/package-linux-beta.sh"}
+	scripts := []string{
+		"install.sh",
+		"uninstall.sh",
+		"scripts/package-linux-beta.sh",
+		"scripts/certify-live-mission.sh",
+		"scripts/certify-live-soak.sh",
+		"scripts/smoke-providers.sh",
+	}
 	for _, s := range scripts {
 		scriptPath := filepath.Join(root, s)
 		if _, err := os.Stat(scriptPath); err != nil {
