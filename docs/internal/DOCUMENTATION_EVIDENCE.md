@@ -1,27 +1,61 @@
 # Evidence ledger da documentação
 
-Esta tabela liga as afirmações relevantes a fontes que podem ser revisadas. Ela
-é um mecanismo contra documentação inventada: testes demonstram contratos de
-código, não sucesso de uma conta/provider em todos os ambientes.
+Este ledger liga afirmações públicas relevantes a implementação e testes
+revisáveis. Ele existe para impedir documentação inventada.
 
-| Afirmação | Evidência primária | Evidência de teste / operação | Página pública |
+> Teste de contrato comprova comportamento do source; não comprova sozinho
+> disponibilidade de conta/provider nem certificação nativa de plataforma.
+
+| Afirmação pública | Evidência primária | Testes / evidência operacional | Página pública |
 | --- | --- | --- | --- |
-| Nexus possui Web, Desktop e CLI sobre um Core | `cmd/nexus/main.go`, `cmd/nexus-desktop/main.go`, `internal/nexus/` | `internal/desktop/desktop_test.go`, `web/src/app/routes.test.ts` | [visão geral](../product/overview.md) |
-| Direct não exige Composer ou Flow | `web/src/features/work/directSessionModel.ts`, `docs/product/direct.md` | `directSessionModel.test.ts` | [Quick Start](../quick-start.md) |
-| Agent e runtime são conceitos separados | `internal/nexus/agent_application.go`, `internal/nexus/runtime_application.go` | `agent_application_test.go`, `runtime_application_test.go` | [Agentes](../product/agents.md) |
-| Provider/perfil/quota têm estados explícitos | `internal/profile/usage.go`, `internal/nexus/quota_monitor.go` | `usage_test.go`, `quota_monitor_test.go` | [providers e quota](../product/providers-and-usage.md) |
-| Composer, WorkPlan e Flow existem no Core | `internal/nexus/composer_application.go`, `plan_application.go`, `flow.go` | `composer_application_test.go`, `plan_application_test.go`, `flow_test.go` | [Composer](../product/composer.md), [Flow](../product/flow.md) |
-| Mission mantém evidência e verificação global | `internal/nexus/runner/`, `internal/nexus/validation_evidence.go` | `global_verification_test.go`, `evidence_test.go` | [Missions](../product/missions.md) |
-| Delegação do Lead é política separada de matching e routing | `internal/nexus/delegation.go`, `interactive_lead.go`, `agent_matching.go`, `runtime_routing.go` | `delegation_test.go`, `interactive_lead_test.go`, `agent_matching_test.go` | [funcionalidades](../features/index.md) |
-| A API local usa sessão, bootstrap e middleware | `internal/control/web/routes.go`, `server.go` | `server_routes_test.go`, handlers | [API local](../api/README.md) |
-| A CLI expõe comandos e aliases canônicos | `internal/app/`, `cmd/nexus/main.go` | `go run ./cmd/nexus --help` em 2026-09-13 | [CLI](../cli/README.md) |
-| Capturas são sintéticas e automatizadas | `web/scripts/docs-capture.mjs`, `docs/assets/screenshots/manifest.json` | `scripts/docs-verify.mjs` | [tour visual](../product/visual-tour.md) |
-| Atualizações verificam manifest/assinatura | `internal/update/`, `install.sh`, `install.ps1` | `internal/update/negative_test.go`, `internal/release/installer_test.go` | [atualizações](../architecture/updates.md) |
+| Web, Desktop e CLI consomem um Core comum | `cmd/nexus/main.go`, `cmd/nexus-desktop/main.go`, `internal/nexus/` | desktop/routes tests | [Visão geral](../product/overview.md) |
+| Direct não exige Composer/Flow/Mission | `web/src/features/work/directSessionModel.ts` | `directSessionModel.test.ts` | [Direct](../product/direct.md) |
+| Agent é separado de runtime/provider | agent/runtime application boundaries | agent/runtime tests | [Agents](../product/agents.md) |
+| AgentMatcher escolhe WHO e Scheduler escolhe recurso | `internal/nexus/agent_matching.go`, resource/routing code | matching/routing tests | [Modelo mental](../product/mental-model.md) |
+| Quota/capacity possui qualidade explícita | `internal/profile/usage.go`, quota monitor | usage/quota tests | [Providers](../product/providers-and-usage.md) |
+| Composer produz planejamento estruturado | composer application/compiler | composer tests | [Composer](../product/composer.md) |
+| WorkPlan é o plano canônico e Flow sua projeção | plan/flow code e revision contracts | plan/flow round-trip tests | [Flow](../product/flow.md) |
+| GO associa execução a revisão aprovada | execution snapshot / mission start path | preview/mission tests | [Como funciona](../product/how-it-works.md) |
+| MissionRunner é máquina de estado durável | `internal/nexus/runner/runner.go` | runner/restart/race tests | [Runtime da Mission](../architecture/mission-runtime.md) |
+| ContextCapsule é handoff limitado | `internal/nexus/runner/evidence.go` | `evidence_test.go` | [Missions](../product/missions.md) |
+| WorkReceipt registra resultado/evidência | `internal/nexus/runner/evidence.go` | `evidence_test.go` | [Missions](../product/missions.md) |
+| DoD global impede false DONE | runner global verification | `global_verification_test.go` | [Runtime da Mission](../architecture/mission-runtime.md) |
+| Coordenação possui operações tipadas e estado durável | `internal/nexus/runner/coordination.go` | `coordination_test.go` | [Coordenação](../product/agent-coordination.md) |
+| Replay da mesma request é idempotente | coordination request IDs/materialization | coordination persistence/replay tests | [Coordenação](../product/agent-coordination.md) |
+| Miss de contexto pode gerar child PackageRun | `materializeCoordinationWorkInRun` | coordination execution tests | [Coordenação](../product/agent-coordination.md) |
+| NEED_INFO consulta memória antes de worker | mission executor local resolver | mission coordination execution tests | [Coordenação](../product/agent-coordination.md) |
+| ARTIFACT_REQUEST pode reutilizar receipt/artifact | mission executor local resolver | coordination tests | [Coordenação](../product/agent-coordination.md) |
+| Resposta da child volta por WorkReceipt/ContextCapsule | runner coordination + evidence | `coordination_execution_test.go` | [Coordenação](../product/agent-coordination.md) |
+| Retomada preserva Agent identity | ResumeAgentID/allocation path | coordination execution lifecycle test | [Coordenação](../product/agent-coordination.md) |
+| Replay inseguro falha fechado | `coordinationReplaySafety`, runner intervention | mission/runner coordination safety tests | [Guardrails](../architecture/guardrails.md) |
+| Fingerprint inclui Git HEAD e workspace state | `workspaceFingerprint` | mission execution tests | [Guardrails](../architecture/guardrails.md) |
+| Fan-out/payload de coordenação é limitado | coordination validation ceilings | coordination bound tests | [Coordenação](../product/agent-coordination.md) |
+| Required capabilities chegam ao Scheduler | dynamic package TaskRequirements | scheduler capability coordination test | [Coordenação](../product/agent-coordination.md) |
+| Preferred provider continua preferência, não PIN | coordination materialization resource policy | preferred-provider test | [Coordenação](../product/agent-coordination.md) |
+| Maestro é opcional e não substitui runtime | Maestro boundary + capability integration | integration tests/status handling | [Maestro](../product/maestro.md) |
+| API local usa autenticação/bootstrap/middleware | `internal/control/web/` | server/routes tests | [API local](../api/README.md) |
+| Screenshots usam fixture sintética | docs capture script + manifesto | docs verification | [Tour visual](../product/visual-tour.md) |
+| Diagramas v1 são conceituais e versionados | `docs/assets/diagrams/` | revisão documental | [Assets](../assets/README.md) |
+| Update/release possuem verificação de integridade | update/release/installers | release/update negative tests | [Release](../operations/release.md) |
 
 ## Convenções
 
-- **Disponível**: implementação e contrato/teste verificáveis estão presentes.
-- **Experimental/Beta**: implementação presente, mas cobertura operacional,
-  compatibilidade de plataforma ou integração externa permanece condicionada.
-- **Interna**: interface destinada às superfícies do próprio Nexus, sem
-  compromisso de estabilidade para terceiros.
+- **Disponível**: implementação e contrato verificáveis presentes.
+- **Implementado no source candidato**: código existe, mas a release estável
+  ainda depende de certificação.
+- **Experimental/Beta**: escopo operacional/compatibilidade ainda restrito.
+- **Interna**: interface sem compromisso público de estabilidade.
+- **UNKNOWN**: ausência de evidência suficiente.
+
+## Precedência
+
+Em caso de divergência documental:
+
+1. comportamento atual de código/teste;
+2. documentação pública canônica;
+3. status corrente de release;
+4. specs ativas;
+5. relatórios históricos.
+
+O status de release continua em
+[`DEV/validation/current/RELEASE_STATUS.md`](../../DEV/validation/current/RELEASE_STATUS.md).
