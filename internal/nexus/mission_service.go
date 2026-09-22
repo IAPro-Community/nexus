@@ -234,7 +234,8 @@ func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID s
 	if plan.CurrentRevision != approvedRevision {
 		return nil, fmt.Errorf("approved plan revision %d is stale; current is %d", approvedRevision, plan.CurrentRevision)
 	}
-	preview, err := n.PreviewPlanExecution(ctx, planID)
+	accounts, resourceErr := n.ListResourcesContext(ctx)
+	preview, err := n.previewPlanExecutionWithContract(ctx, st, plan, accounts, resourceErr, contract, autonomous)
 	if err != nil {
 		return nil, fmt.Errorf("refresh execution preview before approved mission: %w", err)
 	}

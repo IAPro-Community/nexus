@@ -102,6 +102,10 @@ func (n *Nexus) PreviewPlanExecution(ctx context.Context, planID string) (*PlanE
 }
 
 func (n *Nexus) previewPlanExecution(ctx context.Context, st *store.Store, plan *store.WorkPlan, accounts []ProviderAccount, resourceErr error) (*PlanExecutionPreview, error) {
+	return n.previewPlanExecutionWithContract(ctx, st, plan, accounts, resourceErr, runner.DefaultAutonomyContract(), true)
+}
+
+func (n *Nexus) previewPlanExecutionWithContract(ctx context.Context, st *store.Store, plan *store.WorkPlan, accounts []ProviderAccount, resourceErr error, contract runner.AutonomyContract, autonomous bool) (*PlanExecutionPreview, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -148,7 +152,7 @@ func (n *Nexus) previewPlanExecution(ctx context.Context, st *store.Store, plan 
 	}
 	for _, phase := range plan.Phases {
 		for _, pkg := range phase.Packages {
-			step := n.previewWorkPackageExecution(st, plan.ProjectID, phase.ID, pkg, agents, accounts, resourceErr)
+			step := n.previewWorkPackageExecution(st, plan.ProjectID, phase.ID, pkg, agents, accounts, resourceErr, contract, autonomous)
 			preview.Steps = append(preview.Steps, step)
 			if !step.Ready {
 				preview.Ready = false
@@ -161,7 +165,7 @@ func (n *Nexus) previewPlanExecution(ctx context.Context, st *store.Store, plan 
 	return preview, nil
 }
 
-func (n *Nexus) previewWorkPackageExecution(st *store.Store, projectID, phaseID string, pkg store.WorkPackage, agents []store.Agent, accounts []ProviderAccount, resourceErr error) StepExecutionPreview {
+func (n *Nexus) previewWorkPackageExecution(st *store.Store, projectID, phaseID string, pkg store.WorkPackage, agents []store.Agent, accounts []ProviderAccount, resourceErr error, contract runner.AutonomyContract, autonomous bool) StepExecutionPreview {
 	runPkg := &runner.PackageRun{
 		PackageID:          pkg.ID,
 		PhaseID:            phaseID,
@@ -251,12 +255,15 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, projectID, phaseID 
 		step.Resource.Reason = candidateErr.Error()
 		return step
 	}
-	candidateAccounts, isolationRejected := filterAccountsByAutonomyIsolation(candidateAccounts, runner.DefaultAutonomyContract(), false)
-	if len(candidateAccounts) == 0 && len(isolationRejected) > 0 {
-		step.Ready = false
-		step.Blockers = append(step.Blockers, "no provider satisfies the default Mission isolation contract: "+strings.Join(isolationRejected, "; "))
-		step.Resource.Reason = "Provider isolation contract is not verified"
-		return step
+	if autonomous {
+		var isolationRejected []string
+		candidateAccounts, isolationRejected = filterAccountsByAutonomyIsolation(candidateAccounts, contract, false)
+		if len(candidateAccounts) == 0 && len(isolationRejected) > 0 {
+			step.Ready = false
+			step.Blockers = append(step.Blockers, "no provider satisfies the approved Mission isolation contract: "+strings.Join(isolationRejected, "; "))
+			step.Resource.Reason = "Provider isolation contract is not verified"
+			return step
+		}
 	}
 	if len(candidateAccounts) == 0 {
 		step.Ready = false

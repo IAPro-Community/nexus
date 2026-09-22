@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -258,5 +259,69 @@ func TestValidateApprovedExecutionPreviewFailsClosed(t *testing.T) {
 				t.Fatalf("unexpected validation error: %v", err)
 			}
 		})
+	}
+}
+
+func TestExecutionPreviewAdmissionUsesApprovedAutonomyContract(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Contract preview", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Explicit contract", "", []store.PlanPhase{{
+		ID: "phase", Title: "Build", Order: 1,
+		Packages: []store.WorkPackage{{
+			ID: "step", Title: "Build", Goal: "Build with explicit permissions", Status: "READY",
+			Role: "implementer", AssignmentStrategy: "AUTO", ResourcePolicy: "BALANCED",
+		}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	accounts := []ProviderAccount{{
+		ID: "gemini-main", Provider: "gemini", Profile: "default", DisplayName: "Gemini",
+		Authenticated: true, Available: true, Health: "healthy",
+		QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.8,
+		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
+	}}
+
+	defaultPreview, err := n.previewPlanExecution(context.Background(), st, plan, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if defaultPreview.Ready {
+		t.Fatal("default autonomous preview must reject unverified provider isolation")
+	}
+
+	unrestricted := runner.DefaultAutonomyContract()
+	unrestricted.DisallowDestructiveGit = false
+	unrestricted.AllowGitPush = true
+	unrestricted.AllowDeploy = true
+	unrestricted.AllowExternalNetwork = true
+	unrestricted.AllowSecretAccess = true
+	unrestricted.AllowPaidServices = true
+
+	approvedPreview, err := n.previewPlanExecutionWithContract(
+		context.Background(), st, plan, accounts, nil, unrestricted, true,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !approvedPreview.Ready {
+		t.Fatalf("explicit unrestricted contract should be previewed as approved: %+v", approvedPreview.Blockers)
+	}
+
+	interactivePreview, err := n.previewPlanExecutionWithContract(
+		context.Background(), st, plan, accounts, nil, runner.DefaultAutonomyContract(), false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !interactivePreview.Ready {
+		t.Fatalf("non-autonomous run should not require autonomous provider isolation: %+v", interactivePreview.Blockers)
 	}
 }

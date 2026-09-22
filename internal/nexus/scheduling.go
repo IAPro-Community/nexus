@@ -152,7 +152,7 @@ func (n *Nexus) startScheduledMissionRun(ctx context.Context, planID string, rev
 		return nil, fmt.Errorf("load scheduled plan revision: %w", err)
 	}
 	accounts, resourceErr := n.ListResourcesContext(ctx)
-	preview, err := n.previewPlanExecution(ctx, st, frozen, accounts, resourceErr)
+	preview, err := n.previewPlanExecutionWithContract(ctx, st, frozen, accounts, resourceErr, contract, true)
 	if err != nil {
 		return nil, fmt.Errorf("refresh scheduled execution preview: %w", err)
 	}
