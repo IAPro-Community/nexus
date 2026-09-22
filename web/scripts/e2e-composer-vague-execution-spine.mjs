@@ -137,6 +137,30 @@ async function main() {
   assert.ok(sessionId, 'vague-goal Composer session must persist');
 
   let view = await getJSON(context, `${apiOrigin}/api/v1/composer-sessions/${sessionId}`);
+  assert.ok(view.context_manifest?.fingerprint, 'Composer must persist a context manifest fingerprint');
+  assert.ok(
+    Number(view.context_manifest?.budget?.used_estimated_tokens || 0) <=
+      Number(view.context_manifest?.budget?.max_estimated_tokens || 0),
+    'Composer context manifest must stay within its declared budget',
+  );
+  assert.ok(
+    Array.isArray(view.context_manifest?.items) &&
+      view.context_manifest.items.some((item) => item.decision === 'KEEP'),
+    'Composer context manifest must contain at least one KEEP item',
+  );
+  assert.ok(
+    (view.context_manifest?.items || [])
+      .filter((item) => item.kind === 'MISSION_REFERENCE')
+      .every((item) => item.decision === 'REFERENCE_ONLY'),
+    'Mission history must remain reference-only in Composer context',
+  );
+
+  const contextTab = page.getByRole('tab', { name: /context|contexto/i });
+  await contextTab.click();
+  await page
+    .getByRole('heading', { name: /context discovery|descoberta.*contexto/i })
+    .waitFor({ state: 'visible', timeout: 15000 });
+
   const initialBlocking = openBlockingUnknowns(view).length;
   assert.ok(initialBlocking > 0, 'vague goal must exercise at least one material clarification');
 
@@ -245,6 +269,11 @@ async function main() {
         preview_ready: preview.ready,
         step_count: preview.steps.length,
         blockers: preview.blockers || [],
+        context_manifest: {
+          fingerprint: finalized.context_manifest?.fingerprint,
+          budget: finalized.context_manifest?.budget,
+          item_count: finalized.context_manifest?.items?.length || 0,
+        },
         console_errors: collectors.consoleErrors,
         page_errors: collectors.pageErrors,
         request_failures: collectors.requestFailures,
