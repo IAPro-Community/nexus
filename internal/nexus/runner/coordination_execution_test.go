@@ -45,7 +45,8 @@ func (e *coordinationExecutionExecutor) Execute(_ context.Context, _ *MissionRun
 	e.sourceRuns++
 	if e.sourceRuns == 1 {
 		return ExecutionResult{
-			RuntimeID: "runtime-source-first",
+			RuntimeID:              "runtime-source-first",
+			CoordinationReplaySafe: true,
 			CoordinationRequests: []CoordinationRequest{{
 				Operation: CoordinationNeedInfo,
 				Subject:   "architecture.auth_endpoint",
