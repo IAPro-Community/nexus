@@ -50,6 +50,7 @@ export const ComposerSurface: React.FC<{
   const [inspectorOpen, setInspectorOpen] = useState(
     () => typeof window === 'undefined' || window.matchMedia('(min-width: 768px)').matches,
   );
+  const [threadEndFocusRequest, setThreadEndFocusRequest] = useState(0);
   const {
     sessions,
     view,
@@ -195,6 +196,10 @@ export const ComposerSurface: React.FC<{
       onSendToAgent={composer.sendToAgent}
       onReviewFinalize={() => void composer.finalize()}
       onFinalizeWithGaps={() => void composer.finalize(true)}
+      onFocusThread={() => {
+        setInspectorOpen(false);
+        setThreadEndFocusRequest((value) => value + 1);
+      }}
       contextRefreshing={contextRefreshing}
       onRefreshContext={onRefreshContext}
     />
@@ -242,6 +247,7 @@ export const ComposerSurface: React.FC<{
             </Button>
           </div>
         }
+        threadEndFocusRequest={threadEndFocusRequest}
         threadEnd={
           nextUnknown && !isFinalized ? (
             <ClarificationPrompt
