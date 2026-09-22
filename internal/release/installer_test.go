@@ -248,7 +248,7 @@ func TestInstallerSupportsLatestIntegrityAndPathControls(t *testing.T) {
 	for _, required := range []string{
 		`"$VERSION" = "latest"`,
 		"api.github.com/repos",
-		"checksum integrity",
+		"signed update-manifest",
 		"MAESTRO_EXIT=2",
 		"nexus doctor",
 		"append_path_rc",
@@ -265,7 +265,7 @@ func TestInstallerSupportsLatestIntegrityAndPathControls(t *testing.T) {
 	for _, required := range []string{
 		`Version -eq "latest"`,
 		"api.github.com/repos",
-		"checksum integrity",
+		"signed update manifest",
 		"MaestroExit = 2",
 		"nexus doctor",
 		"Ensure-WebView2",
@@ -275,6 +275,43 @@ func TestInstallerSupportsLatestIntegrityAndPathControls(t *testing.T) {
 	} {
 		if !strings.Contains(psText, required) {
 			t.Errorf("install.ps1 missing contract element %q", required)
+		}
+	}
+}
+
+func TestInstallersSupportExplicitTargetsAndMacOSDesktopZip(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	shBytes, err := os.ReadFile(filepath.Join(root, "install.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	psBytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sh, ps := string(shBytes), string(psBytes)
+
+	for _, required := range []string{
+		"--install-dir=",
+		"NEXUS_INSTALL_DIR",
+		`*.zip)`,
+		`ditto -x -k`,
+		`-name '*.app'`,
+		`applications_dir="${HOME}/Applications"`,
+	} {
+		if !strings.Contains(sh, required) {
+			t.Errorf("install.sh missing explicit-target/macOS desktop contract %q", required)
+		}
+	}
+	for _, required := range []string{
+		`[string]$InstallDir = $env:NEXUS_INSTALL_DIR`,
+		`[System.IO.Path]::GetFullPath($InstallDir)`,
+	} {
+		if !strings.Contains(ps, required) {
+			t.Errorf("install.ps1 missing explicit install target contract %q", required)
 		}
 	}
 }
