@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
