@@ -1,9 +1,8 @@
 # IAPro Nexus
 
-> **Beta cerrada v1.0.0-beta.3 (release candidate)** — compilación local verificada;
-> la tag/release pública correspondiente aún no está confirmada en este branch.
-> Verifique que la tag `v1.0.0-beta.3` y el GitHub Release existan antes de
-> descargar binarios (`git ls-remote --tags origin v1.0.0-beta.3`).
+> **Estado de release:** el source está en el programa de cierre de Nexus 1.0.
+> La documentación pública registra `v1.0.0-beta.1` como la beta publicada;
+> una versión superior en el source no equivale a una release pública ni a GA.
 
 **Una estación de trabajo local para operar coding agents.**
 
@@ -19,7 +18,7 @@ IAPro Nexus es una estación de trabajo local para trabajar con coding agents. O
 
 ## Empieza en minutos
 
-Camino recomendado (**zero-toolchain**): instala un binario de release. No requiere Go, Bun ni Node.
+Camino recomendado: instala una release precompilada y firmada. No requiere toolchain Go/Bun/Node; la verificación Ed25519 actualmente usa Python 3 con `cryptography`.
 
 **Linux / macOS:**
 
@@ -52,7 +51,7 @@ make build
 
 Después sigue **+ New → AI Session → proveedor → terminal**. No necesitas abrir Composer, Flow o Mission para trabajar directamente.
 
-`--version=v1.0.0-beta.3` descarga el GitHub Release fijado y verifica `checksums.txt` (integridad) — esto requiere que existan la tag y la release; si aún no se publicaron, compile desde el código abajo. El repositorio debe ser público (o configure `GH_TOKEN`) para la descarga anónima.
+El instalador se descarga del repositorio público de binarios. Para el payload exige un manifiesto Ed25519 válido, SHA-256 coincidente y que la versión embebida del binario sea exactamente la solicitada. Mientras la línea pública sea beta, use la tag beta explícita; `latest` representa la latest no-prerelease de GitHub.
 
 ## Web, Desktop y CLI
 
