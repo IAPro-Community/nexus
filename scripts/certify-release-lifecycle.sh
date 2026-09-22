@@ -14,7 +14,12 @@ set -euo pipefail
 NEXUS_BIN="${NEXUS_BIN:-./nexus}"
 CANDIDATE_VERSION="${NEXUS_RELEASE_VERSION:-$(tr -d '\r\n[:space:]' < VERSION)}"
 CANDIDATE_VERSION="${CANDIDATE_VERSION#v}"
-OLD_VERSION="${NEXUS_LIFECYCLE_OLD_VERSION:-0.9.999-cert.1}"
+if [[ "$CANDIDATE_VERSION" =~ -(alpha|beta|rc)\. ]]; then
+    default_old_version="0.9.999-beta.cert.1"
+else
+    default_old_version="0.9.999-cert.1"
+fi
+OLD_VERSION="${NEXUS_LIFECYCLE_OLD_VERSION:-$default_old_version}"
 MISMATCH_VERSION="${CANDIDATE_VERSION}-mismatch.1"
 
 canonical="$(tr -d '[:space:]' < UPDATE_PUBLIC_KEY)"
