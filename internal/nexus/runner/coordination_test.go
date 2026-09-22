@@ -251,12 +251,12 @@ func TestMissionRunnerMaterializesCoordinationAsDynamicWork(t *testing.T) {
 		t.Fatalf("save run: %v", err)
 	}
 	req, err := r.SubmitCoordinationRequest(ctx, run.ID, CoordinationRequest{
-		ID:                "coord_delegate",
-		SourcePackageID:   "parent",
-		SourceAgentID:     "agent_lead",
-		Operation:         CoordinationDelegate,
-		Subject:           "inspect token persistence",
-		Objective:         "independently inspect token persistence and report evidence",
+		ID:                   "coord_delegate",
+		SourcePackageID:      "parent",
+		SourceAgentID:        "agent_lead",
+		Operation:            CoordinationDelegate,
+		Subject:              "inspect token persistence",
+		Objective:            "independently inspect token persistence and report evidence",
 		PreferredRole:        "backend-reviewer",
 		PreferredProvider:    "codex",
 		RequiredCapabilities: []string{"code_review"},
