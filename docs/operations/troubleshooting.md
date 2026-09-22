@@ -77,3 +77,43 @@ e [atenção humana](../product/interaction-model.md).
 
 Ao abrir um issue, informe sistema operacional, versão (`nexus version --json`),
 comando, trecho de erro sanitizado e passos de reprodução.
+
+
+## A Mission bloqueou uma coordenação por replay não comprovado
+
+**Sintoma:** a Mission entra em `BLOCKED_NEEDS_USER` com motivo como
+`COORDINATION_REPLAY_UNPROVEN` ou informa que não é seguro repetir a package.
+
+**Por que acontece:** um Agent pediu informação/delegação depois de um provider
+turn, mas o Nexus não conseguiu provar simultaneamente que o workspace permaneceu
+inalterado e que o contrato proibia side effects externos relevantes.
+
+**O que fazer:**
+
+1. abra a intervenção da Mission;
+2. revise alterações do workspace e Git HEAD;
+3. confirme se houve qualquer operação externa (push, deploy, rede, serviço pago
+   ou acesso a secret);
+4. não use “retry” cegamente;
+5. escolha uma opção de retomada explícita somente depois de reconciliar o
+   estado real.
+
+**Como validar:** depois da resolução, a Mission deve continuar por uma transição
+persistida; não deve aparecer uma segunda execução silenciosa da mesma operação
+externa.
+
+Veja [Coordenação entre Agents](../product/agent-coordination.md) e
+[Guardrails](../architecture/guardrails.md).
+
+## Uma child package de coordenação não apareceu ou não concluiu
+
+**Causa provável:** o pedido foi resolvido por memória/artifact existente,
+falhou na validação, excedeu limites de fan-out/payload, ou a child está
+aguardando dependências/recursos.
+
+**Solução:** abra o Flow Run e verifique request, lineage, status da child,
+resource allocation e WorkReceipt. Um pedido resolvido localmente pode não gerar
+novo nó de trabalho, por design.
+
+**Como validar:** requests que exigem trabalho devem ter `ChildPackageID`;
+requests concluídas por child devem apontar para o `ResultReceiptID`.
