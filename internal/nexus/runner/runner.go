@@ -849,7 +849,7 @@ func (r *MissionRunner) resolveIntervention(ctx context.Context, runID, interven
 		return nil, false, fmt.Errorf("%w: option %q is outside intervention scope", ErrInvalidInterventionOption, optionID)
 	}
 	pkg := packageForIntervention(run, option)
-	if err := applyInterventionOption(run, pkg, option); err != nil {
+	if err := applyInterventionOption(pkg, option); err != nil {
 		return nil, false, err
 	}
 
@@ -909,7 +909,7 @@ func packageForIntervention(run *MissionRun, option InterventionOption) *Package
 	return nil
 }
 
-func applyInterventionOption(run *MissionRun, pkg *PackageRun, option InterventionOption) error {
+func applyInterventionOption(pkg *PackageRun, option InterventionOption) error {
 	if pkg == nil {
 		return fmt.Errorf("%w: intervention package is missing", ErrInvalidInterventionOption)
 	}
