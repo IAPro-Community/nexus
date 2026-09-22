@@ -1530,10 +1530,7 @@ export interface PhaseRun {
 }
 
 export type CoordinationOperation =
-  | 'NEED_INFO'
-  | 'DELEGATE'
-  | 'ARTIFACT_REQUEST'
-  | 'REVIEW_REQUEST';
+  'NEED_INFO' | 'DELEGATE' | 'ARTIFACT_REQUEST' | 'REVIEW_REQUEST';
 
 export type CoordinationStatus = 'PENDING' | 'RESOLVED' | 'REJECTED' | 'FAILED' | 'CANCELED';
 
