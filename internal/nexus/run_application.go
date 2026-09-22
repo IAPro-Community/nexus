@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/events"
 	"github.com/IAPro-Community/nexus/internal/core/security"
