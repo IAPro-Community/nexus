@@ -93,3 +93,18 @@ func TestAllowedArtifactBaseURL(t *testing.T) {
 		}
 	}
 }
+
+
+func TestReleaseChannelClassification(t *testing.T) {
+	cases := map[string]string{
+		"v1.0.0-alpha.1": "beta",
+		"v1.0.0-beta.1":  "beta",
+		"v1.0.0-rc.1":    "beta",
+		"v1.0.0":         "stable",
+	}
+	for version, want := range cases {
+		if got := channel(version); got != want {
+			t.Errorf("channel(%q)=%q, want %q", version, got, want)
+		}
+	}
+}
