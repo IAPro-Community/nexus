@@ -170,10 +170,21 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
     fullPage: true,
   });
 
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 5000 });
+  await assertThemeApplied(page, theme);
+  await assertComposerLayout(page, `${theme.preset} tablet`);
+  await assertA11y(page, theme);
+  await page.screenshot({
+    path: path.join(screenshotDir, `${theme.preset}-tablet.png`),
+    fullPage: true,
+  });
+
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 5000 });
   await assertThemeApplied(page, theme);
   await assertComposerLayout(page, `${theme.preset} mobile`);
+  await assertA11y(page, theme);
   await page.screenshot({
     path: path.join(screenshotDir, `${theme.preset}-mobile.png`),
     fullPage: true,
@@ -200,14 +211,27 @@ async function main() {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
+  const themeFailures = [];
   for (const theme of themes) {
     console.log(`composer theme validation: ${theme.preset}`);
-    await selectThemeThroughSettings(page, apiOrigin, theme);
-    await validateComposerTheme(page, apiOrigin, project, theme);
+    try {
+      await selectThemeThroughSettings(page, apiOrigin, theme);
+      await validateComposerTheme(page, apiOrigin, project, theme);
+    } catch (error) {
+      const detail = error instanceof Error ? error.stack || error.message : String(error);
+      themeFailures.push(`${theme.preset}: ${detail}`);
+      console.error(`composer theme validation failed: ${theme.preset}`);
+      console.error(detail);
+    }
   }
 
   assert.deepEqual(pageErrors, [], `browser page errors: ${pageErrors.join(' | ')}`);
   assert.deepEqual(consoleErrors, [], `browser console errors: ${consoleErrors.join(' | ')}`);
+  assert.equal(
+    themeFailures.length,
+    0,
+    `Composer theme matrix failures:\n${themeFailures.join('\n\n')}`,
+  );
   console.log('composer theme visual e2e PASS');
 }
 
