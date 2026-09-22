@@ -154,7 +154,11 @@ export const ConversationSurface: React.FC<ConversationSurfaceProps> = ({
               </div>
             ) : null}
 
-            {error ? <div className={styles.error}>{error}</div> : null}
+            {error ? (
+              <div className={styles.error} role="alert" aria-live="assertive">
+                {error}
+              </div>
+            ) : null}
 
             {pendingAttachments.length > 0 ? (
               <ul
