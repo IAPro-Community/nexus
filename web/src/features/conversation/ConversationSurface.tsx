@@ -33,6 +33,7 @@ export type ConversationSurfaceProps = {
   header?: React.ReactNode;
   footer?: React.ReactNode;
   threadEnd?: React.ReactNode;
+  threadEndFocusRequest?: number;
   composerLeading?: React.ReactNode;
   composerTrailing?: React.ReactNode;
   error?: string;
@@ -71,6 +72,7 @@ export const ConversationSurface: React.FC<ConversationSurfaceProps> = ({
   header,
   footer,
   threadEnd,
+  threadEndFocusRequest = 0,
   composerLeading,
   composerTrailing,
   error,
@@ -78,6 +80,7 @@ export const ConversationSurface: React.FC<ConversationSurfaceProps> = ({
 }) => {
   const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
+  const threadEndRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const compactViewport = useMediaQuery('(max-width: 767px)');
   const useDrawer =
@@ -94,6 +97,15 @@ export const ConversationSurface: React.FC<ConversationSurfaceProps> = ({
   );
 
   const inspectorLabel = inspectorTitle || t('conversation.inspector', 'Details');
+
+  useEffect(() => {
+    if (!threadEndFocusRequest) return;
+    threadEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const focusable = threadEndRef.current?.querySelector<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.focus({ preventScroll: true });
+  }, [threadEndFocusRequest]);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -136,7 +148,11 @@ export const ConversationSurface: React.FC<ConversationSurfaceProps> = ({
               />
             </ThreadPrimitive.Viewport>
 
-            {threadEnd ? <div className={styles.threadEnd}>{threadEnd}</div> : null}
+            {threadEnd ? (
+              <div ref={threadEndRef} className={styles.threadEnd} tabIndex={-1}>
+                {threadEnd}
+              </div>
+            ) : null}
 
             {error ? <div className={styles.error}>{error}</div> : null}
 
