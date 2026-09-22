@@ -228,6 +228,8 @@ type PackageRun struct {
 	DynamicWork              bool                 `json:"dynamic_work,omitempty"`
 	ParentPackageID          string               `json:"parent_package_id,omitempty"`
 	CoordinationRequestID    string               `json:"coordination_request_id,omitempty"`
+	ResumeAgentID            string               `json:"resume_agent_id,omitempty"`
+	ResultSummary            string               `json:"result_summary,omitempty"`
 	ContextCapsule           *ContextCapsule      `json:"context_capsule,omitempty"`
 	WorkReceipt              *WorkReceipt         `json:"work_receipt,omitempty"`
 	State                    State                `json:"state"`
@@ -398,7 +400,9 @@ type PromptArtifact struct {
 }
 
 type ExecutionResult struct {
-	RuntimeID string        `json:"runtime_id"`
-	Output    string        `json:"output,omitempty"`
-	Failure   model.Failure `json:"failure,omitempty"`
+	RuntimeID                string                `json:"runtime_id"`
+	Output                   string                `json:"output,omitempty"`
+	Failure                  model.Failure         `json:"failure,omitempty"`
+	CoordinationRequests     []CoordinationRequest `json:"coordination_requests,omitempty"`
+	CoordinationUnsafeReason string                `json:"coordination_unsafe_reason,omitempty"`
 }
