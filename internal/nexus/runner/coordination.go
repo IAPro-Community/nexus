@@ -404,6 +404,15 @@ func materializeCoordinationWorkInRun(run *MissionRun, requestID string) (*Packa
 	if dependenciesVerified(run, dependencies) {
 		state = StateReady
 	}
+	taskRequirements, err := json.Marshal(map[string]any{
+		"task_kind":             "coordination",
+		"role":                  role,
+		"required_capabilities": append([]string(nil), req.RequiredCapabilities...),
+		"source":                "mission_coordination",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("encode coordination task requirements: %w", err)
+	}
 	handoff, _ := json.Marshal(map[string]any{
 		"coordination_request_id": req.ID,
 		"operation":               req.Operation,
@@ -424,6 +433,7 @@ func materializeCoordinationWorkInRun(run *MissionRun, requestID string) (*Packa
 		Goal:                  goal,
 		Priority:              source.Priority,
 		Role:                  role,
+		TaskRequirements:      string(taskRequirements),
 		Dependencies:          dependencies,
 		AssignmentStrategy:    "AUTO",
 		ResourcePolicy:        source.ResourcePolicy,
