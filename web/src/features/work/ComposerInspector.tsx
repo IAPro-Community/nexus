@@ -157,7 +157,7 @@ export const ComposerInspector: React.FC<{
             <details className={styles.collapse} open={suggestedSkills > 0}>
               <summary>
                 <span>
-                  {t('work.composer.maestroSkills', 'Maestro skills')}
+                  {t('work.composer.skills', 'Skills')}
                   {suggestedSkills > 0
                     ? ` · ${t('work.composer.skillsSuggested', '{{count}} suggested', { count: suggestedSkills })}`
                     : ''}
