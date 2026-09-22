@@ -248,6 +248,14 @@ export const NewAgentModal: React.FC<{
         onClose();
         return;
       }
+      if (created) {
+        try {
+          await nexus.deleteAgent(created.id);
+        } catch {
+          // Preserve the original configuration error. The agent surface can
+          // still remove the orphan explicitly if rollback itself fails.
+        }
+      }
       setError(message);
     } finally {
       setBusy(false);
