@@ -11,6 +11,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/IAPro-Community/nexus/internal/core/security"
 	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
 )
 
@@ -93,7 +94,7 @@ func (n *Nexus) BuildComposerContextManifest(ctx context.Context, projectID stri
 	candidates := []composerContextCandidate{}
 
 	add := func(kind, source, locator, summary, confidence, reason string, priority int, referenceOnly bool) {
-		summary = boundedComposerContextSummary(summary, 4096)
+		summary = security.Redact(boundedComposerContextSummary(summary, 4096))
 		if strings.TrimSpace(summary) == "" {
 			return
 		}
