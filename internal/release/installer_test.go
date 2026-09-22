@@ -1,6 +1,7 @@
 package release
 
 import (
+	"encoding/hex"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,6 +32,40 @@ func TestInstallerScriptSyntax(t *testing.T) {
 		if err != nil {
 			t.Errorf("bash syntax error in %s: %v\nOutput:\n%s", s, err, string(output))
 		}
+	}
+}
+
+func TestInstallerTrustRootMatchesCanonicalAndCI(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyBytes, err := os.ReadFile(filepath.Join(root, "UPDATE_PUBLIC_KEY"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonical := strings.TrimSpace(string(keyBytes))
+	decoded, err := hex.DecodeString(canonical)
+	if err != nil || len(decoded) != 32 {
+		t.Fatalf("UPDATE_PUBLIC_KEY must contain one 32-byte Ed25519 public key in hex")
+	}
+
+	shBytes, err := os.ReadFile(filepath.Join(root, "install.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	psBytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(shBytes), `NEXUS_PUBKEY="`+canonical+`"`) {
+		t.Fatal("install.sh trust root does not match UPDATE_PUBLIC_KEY")
+	}
+	if !strings.Contains(string(psBytes), `$NexusPubKey = "`+canonical+`"`) {
+		t.Fatal("install.ps1 trust root does not match UPDATE_PUBLIC_KEY")
+	}
+	if configured := strings.TrimSpace(os.Getenv("NEXUS_UPDATE_PUBLIC_KEY")); configured != "" && configured != canonical {
+		t.Fatalf("CI/release NEXUS_UPDATE_PUBLIC_KEY=%s does not match checked-in UPDATE_PUBLIC_KEY=%s", configured, canonical)
 	}
 }
 
@@ -79,6 +114,19 @@ func TestInstallerArchiveNamingMatchesGoReleaser(t *testing.T) {
 		// Verify install.ps1 constructs nexus_${OsName}_${Arch}.${ArchiveExt}
 		if !strings.Contains(installPs1, `nexus_${OsName}_${Arch}.${ArchiveExt}`) {
 			t.Errorf("install.ps1 missing archive format pattern for %s", p.platform)
+		}
+	}
+
+	for _, required := range []string{
+		"- linux",
+		"- darwin",
+		"- windows",
+		"format_overrides:",
+		"goos: windows",
+		"formats: [zip]",
+	} {
+		if !strings.Contains(goreleaserContent, required) {
+			t.Errorf(".goreleaser.yaml missing cross-platform release contract %q", required)
 		}
 	}
 
