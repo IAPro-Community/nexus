@@ -56,7 +56,6 @@ func TestValidateCoordinationRequest(t *testing.T) {
 	}
 }
 
-
 func TestMissionRunnerCoordinationLifecycleIsDurableAndIdempotent(t *testing.T) {
 	repo := NewMemoryRunRepository()
 	r := NewMissionRunner(repo, coordinationTestExecutor{})
