@@ -91,6 +91,18 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      - name: Verify canonical updater trust root
+        run: |
+          set -euo pipefail
+          canonical="$(tr -d '\r\n[:space:]' < UPDATE_PUBLIC_KEY)"
+          test "${#canonical}" -eq 64
+          test -n "$NEXUS_UPDATE_PUBLIC_KEY"
+          test "$NEXUS_UPDATE_PUBLIC_KEY" = "$canonical" || {
+            echo "NEXUS_UPDATE_PUBLIC_KEY does not match UPDATE_PUBLIC_KEY" >&2
+            exit 1
+          }
+          grep -Fq "NEXUS_PUBKEY=\"$canonical\"" install.sh
+          grep -Fq "\$NexusPubKey = \"$canonical\"" install.ps1
       - name: Validar identidade da release
         env:
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
@@ -147,6 +159,10 @@ jobs:
           test -f native-artifacts/nexus-desktop_Linux_x86_64.tar.gz
           test -f native-artifacts/nexus-desktop_Windows_x86_64.zip
           test -f native-artifacts/nexus-desktop_Darwin_arm64.zip
+      - name: Stage release installers before manifest signing
+        run: |
+          set -euo pipefail
+          cp install.sh install.ps1 uninstall.sh uninstall.ps1 dist/
       - name: Generate signed cross-platform update manifest
         env:
           NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
@@ -183,15 +199,15 @@ jobs:
           if missing:
               raise SystemExit(f'signed manifest missing keys: {missing}')
           PY
+      - name: Stage legal documents before provenance attestation
+        run: |
+          set -euo pipefail
+          cp docs/legal/BETA_TERMS.md docs/legal/PRIVACY.md dist/
       - uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
             dist/*
             native-artifacts/*
-      - name: Stage installers and legal documents
-        run: |
-          set -euo pipefail
-          cp install.sh install.ps1 uninstall.sh uninstall.ps1 docs/legal/BETA_TERMS.md docs/legal/PRIVACY.md dist/
       - name: Require public distribution credential
         env:
           NEXUS_DIST_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
