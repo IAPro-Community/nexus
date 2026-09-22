@@ -1682,6 +1682,7 @@ export interface PlanExecutionPreview {
   cost_anomaly: CostAnomalyAssessment;
   cost_confirmation_required: boolean;
   cost_confirmation_token?: string;
+  approval_token: string;
   generated_at: string;
 }
 

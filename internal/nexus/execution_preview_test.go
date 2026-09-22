@@ -325,3 +325,35 @@ func TestExecutionPreviewAdmissionUsesApprovedAutonomyContract(t *testing.T) {
 		t.Fatalf("non-autonomous run should not require autonomous provider isolation: %+v", interactivePreview.Blockers)
 	}
 }
+
+
+func TestExecutionPreviewApprovalTokenBindsSemanticRoute(t *testing.T) {
+	base := &PlanExecutionPreview{
+		PlanID: "plan-1", ProjectID: "project-1", Revision: 7, Ready: true,
+		Steps: []StepExecutionPreview{{
+			PackageID: "pkg-1", PhaseID: "phase-1", Assignment: "AUTO", ResourcePolicy: "BALANCED",
+			Agent: PreviewAgentDecision{AgentID: "agent-1", Role: "developer", Reason: "matched"},
+			Resource: PreviewResourceDecision{AccountID: "account-1", Provider: "codex", Profile: "work", Reason: "eligible"},
+			Model: PreviewModelDecision{Model: "gpt", Reason: "selected", Evidence: "LIVE"},
+			Skills: []string{"testing"}, Ready: true,
+		}},
+		CostBudget: CostBudgetAssessment{Level: CostBudgetOK, Evidence: CostEvidenceMeasured},
+		CostAnomaly: CostAnomalyAssessment{Status: CostAnomalyNormal},
+	}
+	first := executionPreviewApprovalToken(base)
+	if first == "" {
+		t.Fatal("expected execution preview approval token")
+	}
+	copyPreview := *base
+	copyPreview.GeneratedAt = time.Now().UTC().Add(time.Hour)
+	if got := executionPreviewApprovalToken(&copyPreview); got != first {
+		t.Fatalf("generated_at must not destabilize approval token: got %s want %s", got, first)
+	}
+	copyPreview.Steps = append([]StepExecutionPreview(nil), base.Steps...)
+	copyPreview.Steps[0] = base.Steps[0]
+	copyPreview.Steps[0].Resource = base.Steps[0].Resource
+	copyPreview.Steps[0].Resource.Profile = "fallback"
+	if got := executionPreviewApprovalToken(&copyPreview); got == first {
+		t.Fatal("routing change must invalidate execution preview approval token")
+	}
+}

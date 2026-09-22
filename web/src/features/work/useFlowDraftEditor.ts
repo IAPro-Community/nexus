@@ -430,6 +430,11 @@ export function useFlowDraftEditor(options: {
       // revision immediately before Mission admission. This is still
       // side-effect-free: Mission remains the only execution authority.
       const preview = await nexusApi.previewPlanExecution(approved.id);
+      const previouslyApprovedPreviewToken =
+        executionPreview?.plan_id === approved.id &&
+        executionPreview.revision === approved.current_revision
+          ? executionPreview.approval_token
+          : '';
       setExecutionPreview(preview);
       if (preview.revision !== approved.current_revision) {
         const revisionMismatch = t(
@@ -451,6 +456,19 @@ export function useFlowDraftEditor(options: {
         setPendingCostConfirmationToken('');
         setFlowNotice(blockedNotice);
         setPlanError(preview.blockers?.join(' · ') || noEligibleRoute);
+        return;
+      }
+
+      if (!previouslyApprovedPreviewToken || previouslyApprovedPreviewToken !== preview.approval_token) {
+        setPendingCostConfirmationToken(
+          preview.cost_confirmation_required ? preview.cost_confirmation_token || '' : '',
+        );
+        setFlowNotice(
+          t(
+            'flow.executionPreviewApprovalRequired',
+            'O plano de execução foi atualizado. Revise Agent, recurso, modelo, custo e bloqueios; depois clique em GO novamente para aprovar exatamente esta preview.',
+          ),
+        );
         return;
       }
 
@@ -488,6 +506,7 @@ export function useFlowDraftEditor(options: {
         undefined,
         undefined,
         costToken || undefined,
+        preview.approval_token,
       );
       setPendingCostConfirmationToken('');
       onRunCreated?.(run);
@@ -507,6 +526,7 @@ export function useFlowDraftEditor(options: {
     flowDraft,
     onRunCreated,
     pendingCostConfirmationToken,
+    executionPreview,
     persistPlan,
     selectedPlan,
     t,

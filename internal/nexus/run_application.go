@@ -26,6 +26,7 @@ type RunStartRequest struct {
 	Contract              runner.AutonomyContract
 	Autonomous            bool
 	CostConfirmationToken string
+	ExecutionPreviewToken string
 }
 
 // RunStepResult is the stable application result for one diagnostic step.
@@ -63,7 +64,10 @@ func (s *RunApplicationService) Start(ctx context.Context, req RunStartRequest) 
 		req.AgentID,
 		req.Contract,
 		req.Autonomous,
-		MissionAdmissionOptions{CostConfirmationToken: req.CostConfirmationToken},
+		MissionAdmissionOptions{
+			CostConfirmationToken: req.CostConfirmationToken,
+			ExecutionPreviewToken: req.ExecutionPreviewToken,
+		},
 	)
 	if err != nil {
 		return nil, err

@@ -201,7 +201,8 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 }
 
 type MissionAdmissionOptions struct {
-	CostConfirmationToken string
+	CostConfirmationToken    string
+	ExecutionPreviewToken    string
 }
 
 func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, approvedRevision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool) (*runner.MissionRun, error) {
@@ -241,6 +242,9 @@ func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID s
 	}
 	if err := validateApprovedExecutionPreview(preview, planID, approvedRevision); err != nil {
 		return nil, err
+	}
+	if token := strings.TrimSpace(options.ExecutionPreviewToken); token != "" && token != preview.ApprovalToken {
+		return nil, fmt.Errorf("execution preview changed after approval; run Execution Preview again before GO")
 	}
 	preflight, err := n.PreflightFlowStrict(ctx, planID, autonomous)
 	if err != nil {

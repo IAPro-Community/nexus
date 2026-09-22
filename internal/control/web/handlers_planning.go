@@ -557,6 +557,7 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 		VerificationCommands  []string `json:"verification_commands"`
 		Autonomous            *bool    `json:"autonomous"`
 		CostConfirmationToken string   `json:"cost_confirmation_token"`
+		ExecutionPreviewToken string   `json:"execution_preview_token"`
 	}
 	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -564,6 +565,10 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.PlanRevision <= 0 {
 		writeError(w, http.StatusBadRequest, "plan_revision is required")
+		return
+	}
+	if strings.TrimSpace(body.ExecutionPreviewToken) == "" {
+		writeError(w, http.StatusBadRequest, "execution_preview_token is required; run Execution Preview and approve the current route before GO")
 		return
 	}
 	contract := runner.DefaultAutonomyContract()
@@ -590,6 +595,7 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 		Contract:              contract,
 		Autonomous:            autonomous,
 		CostConfirmationToken: body.CostConfirmationToken,
+		ExecutionPreviewToken: body.ExecutionPreviewToken,
 	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())

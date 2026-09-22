@@ -573,6 +573,7 @@ export const nexus = {
     agentId?: string,
     maxRetries?: number,
     costConfirmationToken?: string,
+    executionPreviewToken?: string,
   ) =>
     request<import('../types').MissionRun>(`/api/v1/plans/${planId}/run`, {
       method: 'POST',
@@ -582,6 +583,7 @@ export const nexus = {
         max_retries: maxRetries,
         autonomous: true,
         cost_confirmation_token: costConfirmationToken,
+        execution_preview_token: executionPreviewToken,
       }),
     }),
   getRuns: () => request<import('../types').MissionRun[]>('/api/v1/runs'),

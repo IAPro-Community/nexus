@@ -2,6 +2,9 @@ package nexus
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -25,6 +28,7 @@ type PlanExecutionPreview struct {
 	CostAnomaly              CostAnomalyAssessment  `json:"cost_anomaly"`
 	CostConfirmationRequired bool                   `json:"cost_confirmation_required"`
 	CostConfirmationToken    string                 `json:"cost_confirmation_token,omitempty"`
+	ApprovalToken            string                 `json:"approval_token"`
 	GeneratedAt              time.Time              `json:"generated_at"`
 }
 
@@ -162,7 +166,79 @@ func (n *Nexus) previewPlanExecutionWithContract(ctx context.Context, st *store.
 			}
 		}
 	}
+	preview.ApprovalToken = executionPreviewApprovalToken(preview)
 	return preview, nil
+}
+
+type executionPreviewApprovalStep struct {
+	PackageID      string   `json:"package_id"`
+	PhaseID        string   `json:"phase_id,omitempty"`
+	Assignment     string   `json:"assignment,omitempty"`
+	ResourcePolicy string   `json:"resource_policy,omitempty"`
+	AgentID        string   `json:"agent_id,omitempty"`
+	AgentRole      string   `json:"agent_role,omitempty"`
+	WillCreate     bool     `json:"will_create,omitempty"`
+	Provider       string   `json:"provider,omitempty"`
+	Profile        string   `json:"profile,omitempty"`
+	AccountID      string   `json:"account_id,omitempty"`
+	Model          string   `json:"model,omitempty"`
+	ModelFallback  bool     `json:"model_fallback,omitempty"`
+	Skills         []string `json:"skills,omitempty"`
+	Ready          bool     `json:"ready"`
+	Blockers       []string `json:"blockers,omitempty"`
+}
+
+func executionPreviewApprovalToken(preview *PlanExecutionPreview) string {
+	if preview == nil {
+		return ""
+	}
+	steps := make([]executionPreviewApprovalStep, 0, len(preview.Steps))
+	for _, step := range preview.Steps {
+		steps = append(steps, executionPreviewApprovalStep{
+			PackageID: step.PackageID, PhaseID: step.PhaseID, Assignment: step.Assignment,
+			ResourcePolicy: step.ResourcePolicy, AgentID: step.Agent.AgentID, AgentRole: step.Agent.Role,
+			WillCreate: step.Agent.WillCreate, Provider: step.Resource.Provider, Profile: step.Resource.Profile,
+			AccountID: step.Resource.AccountID, Model: step.Model.Model, ModelFallback: step.Model.Fallback,
+			Skills: append([]string(nil), step.Skills...), Ready: step.Ready,
+			Blockers: append([]string(nil), step.Blockers...),
+		})
+	}
+	payload := struct {
+		PlanID                   string                `json:"plan_id"`
+		ProjectID                string                `json:"project_id"`
+		Revision                 int                   `json:"revision"`
+		Ready                    bool                  `json:"ready"`
+		Steps                    []executionPreviewApprovalStep `json:"steps"`
+		Blockers                 []string              `json:"blockers,omitempty"`
+		CostLevel                CostBudgetLevel       `json:"cost_level"`
+		CostEvidence             CostEvidenceState     `json:"cost_evidence"`
+		KnownCostMicroUSD        int64                 `json:"known_cost_microusd"`
+		ActiveLimitMicroUSD      int64                 `json:"active_limit_microusd"`
+		CostConfirmationRequired bool                  `json:"cost_confirmation_required"`
+		CostConfirmationToken    string                `json:"cost_confirmation_token,omitempty"`
+		AnomalyStatus            CostAnomalyStatus     `json:"anomaly_status"`
+		AnomalyTriggered         bool                  `json:"anomaly_triggered"`
+		AnomalyProvider          string                `json:"anomaly_provider,omitempty"`
+		AnomalyProfile           string                `json:"anomaly_profile,omitempty"`
+		AnomalyLatestMicroUSD    int64                 `json:"anomaly_latest_microusd,omitempty"`
+		AnomalyThresholdMicroUSD int64                 `json:"anomaly_threshold_microusd,omitempty"`
+	}{
+		PlanID: preview.PlanID, ProjectID: preview.ProjectID, Revision: preview.Revision,
+		Ready: preview.Ready, Steps: steps, Blockers: append([]string(nil), preview.Blockers...),
+		CostLevel: preview.CostBudget.Level, CostEvidence: preview.CostBudget.Evidence,
+		KnownCostMicroUSD: preview.CostBudget.KnownCostMicroUSD, ActiveLimitMicroUSD: preview.CostBudget.ActiveLimitMicroUSD,
+		CostConfirmationRequired: preview.CostConfirmationRequired, CostConfirmationToken: preview.CostConfirmationToken,
+		AnomalyStatus: preview.CostAnomaly.Status, AnomalyTriggered: preview.CostAnomaly.Triggered,
+		AnomalyProvider: preview.CostAnomaly.Provider, AnomalyProfile: preview.CostAnomaly.Profile,
+		AnomalyLatestMicroUSD: preview.CostAnomaly.LatestCostMicroUSD,
+		AnomalyThresholdMicroUSD: preview.CostAnomaly.ThresholdMicroUSD,
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(raw)
+	return "epv_" + hex.EncodeToString(sum[:])
 }
 
 func (n *Nexus) previewWorkPackageExecution(st *store.Store, projectID, phaseID string, pkg store.WorkPackage, agents []store.Agent, accounts []ProviderAccount, resourceErr error, contract runner.AutonomyContract, autonomous bool) StepExecutionPreview {
