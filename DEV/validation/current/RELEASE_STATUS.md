@@ -39,6 +39,17 @@ Linux and Security passed, Frontend was cancelled, and dependent jobs were skipp
 That run is therefore NON-GREEN/PARTIAL and must not replace the fully green PR-head
 CI #149 baseline.
 
+## PR merge-result identity
+
+GitHub pull-request CI is intentionally merge-result evidence: the workflow run is
+associated with the PR head, while the default checkout executes GitHub's synthetic
+merge commit for that head against the target branch. This validates mergeability but
+must not be described as literal exact-HEAD execution.
+
+Exact-SHA release certification is a separate gate: the final release/tag workflow must
+run and pass on the immutable release SHA itself. Artifact provenance and stable-release
+claims must use that exact release SHA, not a pull-request synthetic merge SHA.
+
 ## Active release program
 
 The active program is Nexus 1.0 Product Closure on
