@@ -332,6 +332,16 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 					_ = r.saveRun(ctx, run)
 					return run, false, err
 				}
+				if run.State == StateBlockedNeedsUser && run.NeedsHuman != nil && !run.NeedsHuman.Resolved {
+					// executeOne already crossed a typed human-intervention boundary.
+					// Do not erase that durable state by routing the same error into
+					// automatic remediation/no-progress handling.
+					run.UpdatedAt = time.Now().UTC()
+					if saveErr := r.saveRun(ctx, run); saveErr != nil {
+						return run, false, saveErr
+					}
+					return run, false, err
+				}
 				retryFrom := StateCompiling
 				if isQuotaOrRateLimitFailure(pkg.FailureKind) {
 					retryFrom = StateAllocating
