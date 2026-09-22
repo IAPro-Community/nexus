@@ -73,7 +73,7 @@ Comece por [Como o Nexus funciona](product/how-it-works.md).
 
 > **Importante:** implementação no source candidato não equivale a release
 > estável certificada. Consulte
-> [RELEASE_STATUS](../DEV/validation/current/RELEASE_STATUS.md).
+> [status da release](release-status.md).
 
 ## Delegação automática do Lead
 
