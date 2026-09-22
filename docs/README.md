@@ -79,7 +79,7 @@ estender o Nexus.
 - [Troubleshooting](operations/troubleshooting.md)
 - [Suporte de plataformas](operations/platform-support.md)
 - [Release](operations/release.md)
-- [Security](security.md)
+- [Segurança](security.pt-BR.md)
 
 ### 5. Referência
 
