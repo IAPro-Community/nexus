@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="t d">
+<title id="t">Nexus v1 — componentes do sistema</title><desc id="d">Camadas de entrada, planejamento, execução, evidência, governança e integração com Maestro.</desc>
+<defs><linearGradient id="bg" x1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#10132a"/></linearGradient><style>
+text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;fill:#edf4ff}.m{fill:#a4b5cb}.h{font-size:44px;font-weight:800}.layer{font-size:21px;font-weight:800}.box{fill:#0d1c32;stroke:#2489cb;stroke-width:1.3}.v{fill:#1b1638;stroke:#8151d6;stroke-width:1.3}.g{fill:#08372f;stroke:#22c79a;stroke-width:1.3}.label{font-size:16px;font-weight:700}.sub{font-size:13px;fill:#b6c4d8}
+</style></defs><rect width="1280" height="720" fill="url(#bg)"/>
+<text x="44" y="76" class="h">Nexus <tspan fill="#38bdf8">v1</tspan> — Componentes do sistema</text><text x="44" y="111" font-size="20" class="m">Mapa lógico do produto e das fronteiras de responsabilidade.</text>
+<g transform="translate(38 154)">
+<g><rect width="946" height="78" rx="14" class="box"/><text x="22" y="32" class="layer" fill="#38bdf8">01 Entrada</text>
+<rect x="205" y="14" width="210" height="50" rx="10" class="box"/><text x="310" y="44" text-anchor="middle" class="label">Prompt / Objetivo</text>
+<rect x="432" y="14" width="220" height="50" rx="10" class="box"/><text x="542" y="44" text-anchor="middle" class="label">Contexto / arquivos</text>
+<rect x="669" y="14" width="250" height="50" rx="10" class="box"/><text x="794" y="44" text-anchor="middle" class="label">Skills / Intelligence</text></g>
+<g transform="translate(0 90)"><rect width="946" height="78" rx="14" class="v"/><text x="22" y="32" class="layer" fill="#c084fc">02 Planejamento</text>
+<rect x="205" y="14" width="210" height="50" rx="10" class="v"/><text x="310" y="44" text-anchor="middle" class="label">Composer</text>
+<rect x="432" y="14" width="220" height="50" rx="10" class="v"/><text x="542" y="44" text-anchor="middle" class="label">WorkPlan</text>
+<rect x="669" y="14" width="250" height="50" rx="10" class="v"/><text x="794" y="44" text-anchor="middle" class="label">Flow</text></g>
+<g transform="translate(0 180)"><rect width="946" height="78" rx="14" class="g"/><text x="22" y="32" class="layer" fill="#34d399">03 Execução</text>
+<rect x="205" y="14" width="125" height="50" rx="10" class="g"/><text x="267" y="44" text-anchor="middle" class="label">GO</text>
+<rect x="344" y="14" width="178" height="50" rx="10" class="v"/><text x="433" y="44" text-anchor="middle" class="label">MissionRunner</text>
+<rect x="536" y="14" width="150" height="50" rx="10" class="box"/><text x="611" y="44" text-anchor="middle" class="label">Scheduler</text>
+<rect x="700" y="14" width="105" height="50" rx="10" class="box"/><text x="752" y="44" text-anchor="middle" class="label">Agents</text>
+<rect x="819" y="14" width="100" height="50" rx="10" class="box"/><text x="869" y="44" text-anchor="middle" class="label">Worktrees</text></g>
+<g transform="translate(0 270)"><rect width="946" height="78" rx="14" class="v"/><text x="22" y="32" class="layer" fill="#c084fc">04 Evidência</text>
+<rect x="205" y="14" width="210" height="50" rx="10" class="v"/><text x="310" y="44" text-anchor="middle" class="label">Intelligence Memory</text>
+<rect x="432" y="14" width="150" height="50" rx="10" class="v"/><text x="507" y="44" text-anchor="middle" class="label">WorkReceipt</text>
+<rect x="596" y="14" width="160" height="50" rx="10" class="v"/><text x="676" y="44" text-anchor="middle" class="label">ContextCapsule</text>
+<rect x="770" y="14" width="149" height="50" rx="10" class="v"/><text x="844" y="44" text-anchor="middle" class="label">Artifacts</text></g>
+<g transform="translate(0 360)"><rect width="946" height="78" rx="14" class="box"/><text x="22" y="32" class="layer" fill="#38bdf8">05 Governança</text>
+<rect x="205" y="14" width="165" height="50" rx="10" class="box"/><text x="287" y="44" text-anchor="middle" class="label">Global DoD</text>
+<rect x="384" y="14" width="165" height="50" rx="10" class="box"/><text x="466" y="44" text-anchor="middle" class="label">Recovery</text>
+<rect x="563" y="14" width="170" height="50" rx="10" class="box"/><text x="648" y="44" text-anchor="middle" class="label">Human intervention</text>
+<rect x="747" y="14" width="172" height="50" rx="10" class="box"/><text x="833" y="44" text-anchor="middle" class="label">Resource policy</text></g>
+</g>
+<g transform="translate(1008 154)"><rect width="234" height="438" rx="16" class="v"/><text x="22" y="38" class="layer">Integração com</text><text x="22" y="68" font-size="27" font-weight="800" fill="#c084fc">Maestro</text>
+<text x="22" y="110" class="sub">Metodologia, skills, risco,</text><text x="22" y="129" class="sub">gates e políticas de verificação.</text>
+<text x="22" y="182" class="label">Método</text><text x="22" y="205" class="sub">processo e boas práticas</text>
+<text x="22" y="250" class="label">Skills</text><text x="22" y="273" class="sub">catálogo e padrões reutilizáveis</text>
+<text x="22" y="318" class="label">Risco + gates</text><text x="22" y="341" class="sub">critérios e validações</text>
+<text x="22" y="390" class="sub">Nexus continua funcional</text><text x="22" y="410" class="sub">sem Maestro.</text></g>
+<text x="44" y="664" font-size="14" class="m">Arquitetura lógica do Nexus v1 • PT-BR</text>
+</svg>
