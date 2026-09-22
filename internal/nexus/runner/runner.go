@@ -918,11 +918,16 @@ func applyInterventionOption(run *MissionRun, pkg *PackageRun, option Interventi
 		if pkg.DispatchState != DispatchUnknownExternalOutcome && pkg.DispatchState != DispatchIntent {
 			return fmt.Errorf("%w: external outcome for package %s is not awaiting reconciliation", ErrInvalidInterventionOption, pkg.PackageID)
 		}
-		pkg.DispatchState = DispatchUnknownExternalOutcome
-		pkg.State = StateVerified
-		if pkg.WorkReceipt == nil {
-			pkg.WorkReceipt = &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: "EXTERNAL_OUTCOME_CONFIRMED", Summary: "External outcome explicitly confirmed by a human.", StartedAt: pkg.StartedAt, CompletedAt: time.Now().UTC()}
-		}
+		// Human reconciliation proves only that the external dispatch completed.
+		// It is not package verification evidence. Resume at TESTING so package
+		// verification and any required independent review still run normally.
+		pkg.DispatchState = DispatchCompleted
+		pkg.State = StateTesting
+		pkg.WorkReceipt = nil
+		pkg.FinishedAt = nil
+		pkg.ErrorMessage = ""
+		pkg.FailureKind = model.FailureNone
+		pkg.ResultSummary = "External outcome explicitly confirmed by a human; package verification is still required."
 	case InterventionRetrySafePackage:
 		if pkg.State == StateVerified || (pkg.DispatchState != DispatchNone && pkg.DispatchState != DispatchFailedBeforeDispatch) {
 			return fmt.Errorf("%w: package %s is not proven safe to retry", ErrInterventionPolicyDenied, pkg.PackageID)
