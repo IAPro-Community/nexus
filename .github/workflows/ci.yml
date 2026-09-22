@@ -196,6 +196,28 @@ jobs:
       - run: go test -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/...
       - run: go test -race -v -count=1 ./internal/control/host/... ./internal/control/web/...
       - run: go build -trimpath -v ./cmd/nexus
+      - name: Unix installer/uninstaller lifecycle smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n install.sh
+          bash -n uninstall.sh
+          root="$(mktemp -d)"
+          home="$root/home"
+          prefix="$root/prefix"
+          mkdir -p "$home/.local/share/applications" "$home/Desktop" "$home/.local/share/nexus" "$prefix/bin"
+          touch "$prefix/bin/nexus" "$prefix/bin/nexus-desktop" "$prefix/bin/maestro" "$prefix/bin/orquestrador"
+          touch "$home/.local/share/applications/iapro-nexus.desktop" "$home/Desktop/IAPro Nexus.desktop"
+          printf '# existing\n# IAPro Nexus\nexport PATH="$HOME/.local/bin:$PATH"\n' > "$home/.bashrc"
+          HOME="$home" PREFIX="$prefix" bash ./uninstall.sh
+          HOME="$home" PREFIX="$prefix" bash ./uninstall.sh
+          test ! -e "$prefix/bin/nexus"
+          test ! -e "$prefix/bin/nexus-desktop"
+          test ! -e "$home/.local/share/applications/iapro-nexus.desktop"
+          test ! -e "$home/Desktop/IAPro Nexus.desktop"
+          test -d "$home/.local/share/nexus"
+          ! grep -Fq '# IAPro Nexus' "$home/.bashrc"
+          grep -Fq '# existing' "$home/.bashrc"
 
   test-windows:
     name: Windows E2E (ConPTY, Named Pipe, PowerShell)
@@ -228,10 +250,17 @@ jobs:
           go build -trimpath -o nexus.exe ./cmd/nexus
           .\nexus.exe version
           .\nexus.exe doctor --json | Out-File -Encoding utf8 "$env:RUNNER_TEMP\nexus-doctor-windows.json"
-      - name: Parse PowerShell installer
+      - name: Parse PowerShell installer/uninstaller and smoke uninstall
         shell: pwsh
         run: |
           [void][scriptblock]::Create((Get-Content -Raw ./install.ps1))
+          [void][scriptblock]::Create((Get-Content -Raw ./uninstall.ps1))
+          $tmp = Join-Path $env:RUNNER_TEMP "nexus-uninstall-smoke"
+          New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+          Set-Content -Path (Join-Path $tmp "nexus.exe") -Value "fixture"
+          ./uninstall.ps1 -InstallDir $tmp -SkipPathCleanup -SkipDesktopShortcut
+          if (Test-Path $tmp) { throw "uninstall.ps1 did not remove the test install directory" }
+          ./uninstall.ps1 -InstallDir $tmp -SkipPathCleanup -SkipDesktopShortcut
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -443,3 +472,8 @@ jobs:
             apt-get install -f -y
           fi
           nexus version
+          dpkg -r nexus
+          if command -v nexus >/dev/null 2>&1; then
+            echo "nexus command still present after DEB uninstall" >&2
+            exit 1
+          fi
