@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/events"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
@@ -97,5 +98,74 @@ func TestRunApplicationServicePublishesCoordinationTransition(t *testing.T) {
 	}
 	if history[0].Data["coordination_phase"] != "RESOLVED" || history[0].Data["receipt_id"] != "receipt-1" {
 		t.Fatalf("coordination transition event lacks durable lineage: %+v", history[0].Data)
+	}
+}
+
+
+func TestRunApplicationServiceResolvesArtifactCoordinationFromReceipt(t *testing.T) {
+	ctx := context.Background()
+	repo := runner.NewMemoryRunRepository()
+	missionRunner := runner.NewMissionRunner(repo, nil)
+	n := &Nexus{runner: missionRunner}
+	service := NewRunApplicationService(n)
+	now := time.Now().UTC()
+	run := &runner.MissionRun{
+		ID:           "run-artifact",
+		PlanID:       "plan-artifact",
+		PlanRevision: 1,
+		ProjectID:    "project-artifact",
+		Workspace:    "/tmp/project",
+		State:        runner.StateExecuting,
+		Contract:     runner.DefaultAutonomyContract(),
+		PackageRuns: []runner.PackageRun{{
+			ID:        "pkgrun-source",
+			PackageID: "source",
+			State:     runner.StateVerified,
+			StartedAt: now,
+			WorkReceipt: &runner.WorkReceipt{
+				ID:          "receipt-source",
+				RunID:       "run-artifact",
+				StepID:      "source",
+				Status:      "VERIFIED",
+				Summary:     "schema artifact produced",
+				Artifacts:   []string{"artifacts/schema.json"},
+				StartedAt:   now,
+				CompletedAt: now,
+			},
+		}},
+		CoordinationRequests: []runner.CoordinationRequest{{
+			ID:              "coord-artifact",
+			RunID:           "run-artifact",
+			SourcePackageID: "source",
+			Operation:       runner.CoordinationArtifactRequest,
+			Subject:         "schema",
+			ArtifactRefs:    []string{"artifacts/schema.json"},
+			Status:          runner.CoordinationPending,
+			CreatedAt:       now,
+		}},
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+	if err := repo.SaveRun(ctx, run); err != nil {
+		t.Fatal(err)
+	}
+
+	resolved, source, ok := service.resolveCoordinationFromDurableContext(
+		ctx,
+		run,
+		&run.CoordinationRequests[0],
+	)
+	if !ok || source != "WORK_RECEIPT" {
+		t.Fatalf("expected WorkReceipt resolution, ok=%v source=%q", ok, source)
+	}
+	if resolved.Status != runner.CoordinationResolved || resolved.ResultReceiptID != "receipt-source" {
+		t.Fatalf("unexpected durable resolution: %+v", resolved)
+	}
+	loaded, err := repo.GetRun(ctx, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.CoordinationRequests[0].Status != runner.CoordinationResolved {
+		t.Fatalf("resolution was not persisted: %+v", loaded.CoordinationRequests[0])
 	}
 }
