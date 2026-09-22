@@ -3,6 +3,8 @@ package app
 import (
 	"bytes"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,6 +46,21 @@ func captureStdout(f func() error) (string, error) {
 		return buf.String(), closeErr
 	}
 	return buf.String(), copyErr
+}
+
+func TestUpdateCommandFailsClosedWhenApplyFails(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "registry unavailable", http.StatusInternalServerError)
+	}))
+	defer ts.Close()
+
+	t.Setenv("NEXUS_UPDATE_REGISTRY_URL", ts.URL+"/update-manifest.json")
+	t.Setenv("NEXUS_INSTALL_METHOD", "STANDALONE")
+
+	_, err := captureStdout(func() error { return updateCmd(nil) })
+	if err == nil || !strings.Contains(err.Error(), "update could not be applied") {
+		t.Fatalf("update command must return a non-zero error when apply fails, got %v", err)
+	}
 }
 
 func TestCaptureStdoutDrainsLargeOutput(t *testing.T) {
