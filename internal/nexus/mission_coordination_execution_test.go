@@ -44,7 +44,6 @@ func TestParseExecutionCoordinationRequestsFailsClosedOnMalformedMarker(t *testi
 	}
 }
 
-
 func TestCoordinationReplaySafetyRequiresStableWorkspaceAndRestrictedContract(t *testing.T) {
 	contract := runner.DefaultAutonomyContract()
 	safe, reason := coordinationReplaySafety(contract, "same-fingerprint", "same-fingerprint")
