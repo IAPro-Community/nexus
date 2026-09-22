@@ -173,7 +173,9 @@ async function main() {
   const contextTab = page.getByRole('tab', { name: /context|contexto/i });
   await contextTab.click();
   await page
-    .getByRole('heading', { name: /context discovery|descoberta.*contexto/i })
+    .getByRole('heading', {
+      name: /context discovery|context used|descoberta.*contexto|contexto utilizado/i,
+    })
     .waitFor({ state: 'visible', timeout: 15000 });
 
   const initialBlocking = openBlockingUnknowns(view).length;
