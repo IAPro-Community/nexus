@@ -28,4 +28,4 @@ nativa em cada sistema operacional.
 - **depende de evidência nativa**: não inferir suporte de cross-compilation.
 
 Veja [suporte por plataforma](../operations/platform-support.md) e o
-[status autoritativo da release](../../DEV/validation/current/RELEASE_STATUS.md).
+[status público da release](../release-status.md).
