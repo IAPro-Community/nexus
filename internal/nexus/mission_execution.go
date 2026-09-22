@@ -1,6 +1,7 @@
 package nexus
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -446,6 +447,16 @@ func workspaceFingerprint(ctx context.Context, workspace string) (string, error)
 	}
 	root := strings.TrimSpace(string(rootOut))
 	h := sha256.New()
+
+	// Include the Git object identity, not only worktree/index deltas. A local
+	// commit can leave status/diff clean while still crossing a replay boundary.
+	headOut, err := exec.CommandContext(ctx, "git", "-C", root, "rev-parse", "HEAD").Output()
+	if err != nil {
+		return "", err
+	}
+	_, _ = h.Write([]byte("HEAD\x00"))
+	_, _ = h.Write(bytes.TrimSpace(headOut))
+	_, _ = h.Write([]byte("\x00"))
 
 	for _, args := range [][]string{
 		{"-C", root, "status", "--porcelain=v2", "-z"},
