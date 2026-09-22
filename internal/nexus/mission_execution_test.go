@@ -14,7 +14,7 @@ func TestMissionProviderArgsCodexPlacesApprovalFlagsBeforePrompt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("missionProviderArgs returned error: %v", err)
 	}
-	want := []string{"--ask-for-approval", "never", "--sandbox", "workspace-write", "exec", "write the validation note"}
+	want := []string{"--ask-for-approval", "never", "--sandbox", "workspace-write", "-c", "sandbox_workspace_write.network_access=false", "exec", "write the validation note"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("codex args = %#v, want %#v", got, want)
 	}
@@ -71,15 +71,11 @@ func TestMissionProviderArgsOpenCodeReviewFailsClosedWithoutVerifiedIsolation(t 
 	}
 }
 
-func TestMissionProviderArgsGeminiUsesExplicitSandbox(t *testing.T) {
-	got, err := missionProviderArgs("gemini", []string{"-p", "edit safely"}, agentPromptPolicy{
+func TestMissionProviderArgsGeminiFailsClosedWithoutCrossPlatformIsolationProof(t *testing.T) {
+	_, err := missionProviderArgs("gemini", []string{"-p", "edit safely"}, agentPromptPolicy{
 		Contract: runner.DefaultAutonomyContract(),
 	})
-	if err != nil {
-		t.Fatalf("gemini sandboxed Mission args failed: %v", err)
-	}
-	want := []string{"-p", "edit safely", "--approval-mode=yolo", "--sandbox", "--output-format", "text"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("gemini args = %#v, want %#v", got, want)
+	if err == nil {
+		t.Fatal("expected restrictive default contract to reject unverified Gemini isolation")
 	}
 }

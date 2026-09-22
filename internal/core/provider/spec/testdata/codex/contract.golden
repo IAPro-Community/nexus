@@ -30,7 +30,9 @@
     "--ask-for-approval",
     "never",
     "--sandbox",
-    "workspace-write"
+    "workspace-write",
+    "-c",
+    "sandbox_workspace_write.network_access=false"
   ],
   "review_mode": [
     "--sandbox",

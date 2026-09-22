@@ -29,8 +29,8 @@ var geminiSpec = Spec{
 	},
 	AutoApproval:        []string{"--approval-mode=yolo", "--sandbox", "--output-format", "text"},
 	ReviewMode:          []string{"--approval-mode=plan", "--sandbox", "--output-format", "text"},
-	AutonomousIsolation: IsolationWorkspaceWriteNoNetwork,
-	ReviewIsolation:     IsolationReadOnlyNoNetwork,
+	AutonomousIsolation: IsolationUnverified,
+	ReviewIsolation:     IsolationUnverified,
 	Quota:               QuotaLiveHTTP,
 	KnownVersions:       []string{"0.28.2"},
 }

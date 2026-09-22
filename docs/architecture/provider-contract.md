@@ -47,9 +47,13 @@ they reach launch. They can only use coding auto-approval when the caller
 explicitly opts into an unrestricted contract. Review always requires verified
 read-only containment.
 
-Codex uses `workspace-write` / `read-only`. Gemini is launched with an
-explicit `--sandbox` for both coding and review. Command shims remain
-defense-in-depth; they are not treated as the sandbox boundary.
+Codex uses `workspace-write` / `read-only`; autonomous coding also forces
+`sandbox_workspace_write.network_access=false` so a profile-level override
+cannot silently reopen network access. Gemini may still be launched with
+`--sandbox` when an unrestricted contract explicitly permits it, but its
+cross-platform no-network/read-only guarantees are marked `UNVERIFIED` until
+Nexus can prove them per platform. Command shims remain defense-in-depth; they
+are not treated as the sandbox boundary.
 
 ## Quota honesty
 
