@@ -95,6 +95,20 @@ describe('nexus API request errors', () => {
     const [, init] = fetchMock.mock.calls[0];
     expect(init.headers.get('X-CSRF-Token')).toBe('nexus-shared-csrf');
   });
+
+  it('forwards Composer AbortSignal to the active turn request', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ session: { id: 'session-1', revision: 2 } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
+
+    await nexusApi.addComposerTurn('session-1', 'continue', 1, undefined, controller.signal);
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBe(controller.signal);
+  });
 });
 
 describe('system metadata API', () => {
