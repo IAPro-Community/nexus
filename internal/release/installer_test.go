@@ -26,6 +26,7 @@ func TestInstallerScriptSyntax(t *testing.T) {
 		"scripts/package-linux-beta.sh",
 		"scripts/certify-live-mission.sh",
 		"scripts/certify-live-soak.sh",
+		"scripts/certify-release-lifecycle.sh",
 		"scripts/smoke-providers.sh",
 	}
 	for _, s := range scripts {
@@ -52,6 +53,14 @@ func TestInstallerTrustRootMatchesCanonicalAndCI(t *testing.T) {
 		t.Fatal(err)
 	}
 	canonical := strings.TrimSpace(string(keyBytes))
+	keyIDBytes, err := os.ReadFile(filepath.Join(root, "UPDATE_KEY_ID"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonicalKeyID := strings.TrimSpace(string(keyIDBytes))
+	if canonicalKeyID != "nexus-signing-key-2026-v1" {
+		t.Fatalf("UPDATE_KEY_ID=%q does not match updater ProductionTrustRootKeyID", canonicalKeyID)
+	}
 	decoded, err := hex.DecodeString(canonical)
 	if err != nil || len(decoded) != 32 {
 		t.Fatalf("UPDATE_PUBLIC_KEY must contain one 32-byte Ed25519 public key in hex")
@@ -297,6 +306,8 @@ func TestInstallersSupportExplicitTargetsAndMacOSDesktopZip(t *testing.T) {
 	for _, required := range []string{
 		"--install-dir=",
 		"NEXUS_INSTALL_DIR",
+		"NEXUS_RELEASE_BASE_URL",
+		"binary version mismatch",
 		`*.zip)`,
 		`ditto -x -k`,
 		`-name '*.app'`,
@@ -309,6 +320,8 @@ func TestInstallersSupportExplicitTargetsAndMacOSDesktopZip(t *testing.T) {
 	for _, required := range []string{
 		`[string]$InstallDir = $env:NEXUS_INSTALL_DIR`,
 		`[System.IO.Path]::GetFullPath($InstallDir)`,
+		`NEXUS_RELEASE_BASE_URL`,
+		`binary version mismatch`,
 	} {
 		if !strings.Contains(ps, required) {
 			t.Errorf("install.ps1 missing explicit install target contract %q", required)
