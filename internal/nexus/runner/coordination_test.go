@@ -242,7 +242,7 @@ func TestMissionRunnerMaterializesCoordinationAsDynamicWork(t *testing.T) {
 		Contract:     DefaultAutonomyContract(),
 		PackageRuns: []PackageRun{
 			{ID: "pkgrun_dep", PackageID: "dep", State: StateVerified, StartedAt: now},
-			{ID: "pkgrun_parent", PackageID: "parent", State: StateExecuting, Dependencies: []string{"dep"}, Priority: "HIGH", RelevantPaths: []string{"internal/auth"}, StartedAt: now},
+			{ID: "pkgrun_parent", PackageID: "parent", State: StateExecuting, Dependencies: []string{"dep"}, Priority: "HIGH", ResourcePolicy: "MANUAL", RelevantPaths: []string{"internal/auth"}, StartedAt: now},
 		},
 		StartedAt: now,
 		UpdatedAt: now,
@@ -279,6 +279,9 @@ func TestMissionRunnerMaterializesCoordinationAsDynamicWork(t *testing.T) {
 	}
 	if child.DesiredProvider != "codex" || child.Role != "backend-reviewer" {
 		t.Fatalf("coordination preferences were not projected: %#v", child)
+	}
+	if child.ResourcePolicy != "PREFER_PROVIDER" {
+		t.Fatalf("preferred provider must not inherit MANUAL/PIN source policy: %q", child.ResourcePolicy)
 	}
 	var taskRequirements struct {
 		TaskKind             string   `json:"task_kind"`
