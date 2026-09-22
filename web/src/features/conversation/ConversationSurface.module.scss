@@ -2,6 +2,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   min-height: 0;
   height: 100%;
   background: var(--nx-bg, var(--nx-surface));
@@ -23,11 +26,15 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   min-height: 0;
 }
 
 .viewport {
   flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
   overflow: auto;
   padding: 1rem 1.5rem 1.25rem;
   display: flex;
@@ -150,7 +157,9 @@
 
 .composerDock {
   width: 100%;
-  max-width: 52rem;
+  min-width: 0;
+  max-width: min(52rem, 100%);
+  box-sizing: border-box;
   margin-inline: auto;
   padding: 0 1.5rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
   position: sticky;
@@ -161,6 +170,10 @@
 .composer {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   align-items: end;
   gap: 0.35rem;
   padding: 0.45rem 0.5rem 0.45rem 0.55rem;
@@ -177,6 +190,7 @@
 .composerTools,
 .composerActions {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 0.15rem;
 }
@@ -312,6 +326,15 @@
   .pendingList,
   .threadEnd {
     padding-inline: 0.85rem;
+  }
+
+  .composer {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .composerTools,
+  .composerActions {
+    flex-shrink: 1;
   }
 
   .threadEnd {
