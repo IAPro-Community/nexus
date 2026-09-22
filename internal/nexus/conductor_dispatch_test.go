@@ -50,7 +50,6 @@ func TestGeneratedGoalIDIsULID(t *testing.T) {
 	}
 }
 
-
 func TestDispatchTopologySeparatesMissionPromotionFromDelegation(t *testing.T) {
 	nonDelegated := DelegationDecision{Delegate: false}
 	if dispatchTopologyAllowed(DispatchRequest{}, nonDelegated) {

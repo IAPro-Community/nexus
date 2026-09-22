@@ -44,7 +44,6 @@ func TestPromoterDecideASKRequiresConfirmation(t *testing.T) {
 	}
 }
 
-
 func TestPromoterDecideAUTOPlanPromotesWithoutDelegation(t *testing.T) {
 	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
 		return nexus.IntentDecision{Strategy: nexus.IntentPlan}, nil
