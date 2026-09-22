@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -90,6 +91,19 @@ func ValidateCoordinationRequest(req CoordinationRequest) error {
 	return nil
 }
 
+func coordinationSemanticallyEqual(left, right CoordinationRequest) bool {
+	return left.RunID == right.RunID &&
+		left.SourcePackageID == right.SourcePackageID &&
+		left.SourceAgentID == right.SourceAgentID &&
+		left.Operation == right.Operation &&
+		left.Subject == right.Subject &&
+		left.Objective == right.Objective &&
+		left.PreferredRole == right.PreferredRole &&
+		left.PreferredProvider == right.PreferredProvider &&
+		slices.Equal(left.RequiredCapabilities, right.RequiredCapabilities) &&
+		slices.Equal(left.ArtifactRefs, right.ArtifactRefs)
+}
+
 func cloneCoordinationRequest(in CoordinationRequest) CoordinationRequest {
 	out := in
 	out.RequiredCapabilities = append([]string(nil), in.RequiredCapabilities...)
@@ -141,11 +155,7 @@ func (r *MissionRunner) SubmitCoordinationRequest(ctx context.Context, runID str
 		if existing.ID != req.ID {
 			continue
 		}
-		if existing.RunID == req.RunID &&
-			existing.SourcePackageID == req.SourcePackageID &&
-			existing.Operation == req.Operation &&
-			existing.Subject == req.Subject &&
-			existing.Objective == req.Objective {
+		if coordinationSemanticallyEqual(*existing, req) {
 			copy := cloneCoordinationRequest(*existing)
 			return &copy, nil
 		}
@@ -164,6 +174,8 @@ func (r *MissionRunner) SubmitCoordinationRequest(ctx context.Context, runID str
 // mutating the sealed mission objective. Child-work materialization remains a
 // separate MissionRunner concern.
 func (r *MissionRunner) ResolveCoordinationRequest(ctx context.Context, runID, requestID string, status CoordinationStatus, summary, receiptID string) (*CoordinationRequest, error) {
+	summary = strings.TrimSpace(summary)
+	receiptID = strings.TrimSpace(receiptID)
 	if status != CoordinationResolved && status != CoordinationRejected && status != CoordinationFailed && status != CoordinationCanceled {
 		return nil, fmt.Errorf("coordination resolution status %q is not terminal", status)
 	}
@@ -189,8 +201,8 @@ func (r *MissionRunner) ResolveCoordinationRequest(ctx context.Context, runID, r
 		now := time.Now().UTC()
 		req.Status = status
 		req.ResolvedAt = &now
-		req.ResolutionSummary = strings.TrimSpace(summary)
-		req.ResultReceiptID = strings.TrimSpace(receiptID)
+		req.ResolutionSummary = summary
+		req.ResultReceiptID = receiptID
 		run.UpdatedAt = now
 		if err := r.saveRun(ctx, run); err != nil {
 			return nil, err
