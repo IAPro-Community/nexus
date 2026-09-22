@@ -153,7 +153,19 @@ async function main() {
   const turnIntoFlow = page.getByRole('button', {
     name: /turn into flow|transformar.*flow|converter.*flow/i,
   });
-  await turnIntoFlow.waitFor({ state: 'visible', timeout: 30000 });
+  const finalizeWithGaps = page.getByRole('button', {
+    name: /finish with confirmed gaps|finalizar com lacunas|concluir com lacunas/i,
+  });
+
+  const firstDestination = await Promise.race([
+    turnIntoFlow.waitFor({ state: 'visible', timeout: 30000 }).then(() => 'flow'),
+    finalizeWithGaps.waitFor({ state: 'visible', timeout: 30000 }).then(() => 'confirm-gaps'),
+  ]);
+
+  if (firstDestination === 'confirm-gaps') {
+    await finalizeWithGaps.click();
+    await turnIntoFlow.waitFor({ state: 'visible', timeout: 30000 });
+  }
 
   const finalized = await getJSON(
     context,
