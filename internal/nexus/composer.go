@@ -211,27 +211,51 @@ func (n *Nexus) CreateComposerSessionWithPromptProgress(ctx context.Context, pro
 		return nil, err
 	}
 	if catalog, catalogErr := n.skillCatalogForProject(projectID); catalogErr == nil {
-		seedComposerSkillProposals(st, session.ID, brief, catalog)
+		reconcileComposerSkillProposals(st, session.ID, brief, catalog)
 	}
 	progress.Step("persist", "done")
 	return n.composeSessionView(st, *session, brief)
 }
 
-func seedComposerSkillProposals(st *store.Store, sessionID string, brief LivingBrief, catalog nexusskills.Catalog) {
-	for _, ranked := range rankComposerSkillCandidates(catalog, brief) {
-		skill := ranked.Skill
+func reconcileComposerSkillProposals(st *store.Store, sessionID string, brief LivingBrief, catalog nexusskills.Catalog) {
+	existing, err := st.ListComposerSkillProposals(sessionID)
+	if err != nil {
+		return
+	}
+	byID := make(map[string]store.ComposerSkillProposal, len(existing))
+	for _, proposal := range existing {
+		byID[proposal.SkillID] = proposal
+	}
+
+	ranked := rankComposerSkillCandidates(catalog, brief)
+	current := make(map[string]struct{}, len(ranked))
+	for _, candidate := range ranked {
+		skill := candidate.Skill
+		current[skill.ID] = struct{}{}
+		if previous, ok := byID[skill.ID]; ok && previous.State != store.ComposerSkillSuggested {
+			continue
+		}
 		_, _ = st.UpsertComposerSkillProposal(store.ComposerSkillProposal{
 			SessionID:           sessionID,
 			SkillID:             skill.ID,
 			State:               store.ComposerSkillSuggested,
-			Reason:              strings.Join(ranked.Reasons, "; "),
+			Reason:              strings.Join(candidate.Reasons, "; "),
 			Applicability:       firstNonEmpty(skill.Description, "Compatible with this Composer brief."),
 			Risk:                skill.Risk,
 			Source:              string(skill.Source),
 			Version:             firstNonEmpty(skill.Version, "1.0.0"),
 			Available:           true,
-			RecommendationScore: ranked.Score,
+			RecommendationScore: candidate.Score,
 		})
+	}
+	for _, proposal := range existing {
+		if proposal.State != store.ComposerSkillSuggested {
+			continue
+		}
+		if _, stillRelevant := current[proposal.SkillID]; stillRelevant {
+			continue
+		}
+		_ = st.DeleteSuggestedComposerSkillProposal(sessionID, proposal.SkillID)
 	}
 }
 func (n *Nexus) GetComposerSession(ctx context.Context, id string) (*ComposerSessionView, error) {
@@ -648,6 +672,9 @@ func (n *Nexus) persistComposerSessionExpected(ctx context.Context, st *store.St
 	session.BriefJSON = mustJSON(brief)
 	if err := st.UpdateComposerSessionExpected(*session, expectedRevision); err != nil {
 		return nil, err
+	}
+	if catalog, catalogErr := n.skillCatalogForProject(session.ProjectID); catalogErr == nil {
+		reconcileComposerSkillProposals(st, session.ID, brief, catalog)
 	}
 	if expectedRevision > 0 {
 		session.Revision = expectedRevision + 1

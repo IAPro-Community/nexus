@@ -57,11 +57,15 @@ export const ComposerSkills: React.FC<{
   const visibleProposals = useMemo(() => {
     const q = query.trim().toLowerCase();
     return [...skills]
-      .sort(
-        (left, right) =>
+      .sort((left, right) => {
+        const statePriority = (state: ComposerSkillProposal['state']) =>
+          state === 'APPLIED' ? 3 : state === 'ACCEPTED' ? 2 : state === 'SUGGESTED' ? 1 : 0;
+        return (
+          statePriority(right.state) - statePriority(left.state) ||
           Number(right.recommendation_score || 0) - Number(left.recommendation_score || 0) ||
-          left.skill_id.localeCompare(right.skill_id),
-      )
+          left.skill_id.localeCompare(right.skill_id)
+        );
+      })
       .filter((skill) => {
         if (!q) return true;
         return [skill.skill_id, skill.source, skill.reason, skill.applicability]

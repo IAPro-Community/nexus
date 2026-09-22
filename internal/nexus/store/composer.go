@@ -298,6 +298,15 @@ func (s *Store) ListComposerSkillProposals(sessionID string) ([]ComposerSkillPro
 	return out, rows.Err()
 }
 
+func (s *Store) DeleteSuggestedComposerSkillProposal(sessionID, skillID string) error {
+	res, err := s.db.Exec(`DELETE FROM composer_skill_proposals WHERE session_id=? AND skill_id=? AND state=?`, sessionID, skillID, ComposerSkillSuggested)
+	if err != nil {
+		return err
+	}
+	_, _ = res.RowsAffected()
+	return nil
+}
+
 func (s *Store) SetComposerSkillState(sessionID, skillID, state string) error {
 	state = normalizeComposerSkillState(state)
 	if state == "" {

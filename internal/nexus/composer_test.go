@@ -196,6 +196,50 @@ func TestComposerRevisionConflictIsRejected(t *testing.T) {
 	}
 }
 
+func TestComposerSkillRecommendationsFollowBriefWithoutOverwritingUserDecision(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Skill Reconcile", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(store.ComposerSession{
+		ProjectID: project.ID,
+		Title:     "Skill reconcile",
+		BriefJSON: mustJSON(newComposerBrief("security audit", "")),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalog := nexusskills.Catalog{Library: []nexusskills.Skill{
+		{ID: "security", Name: "Security", Description: "security audit", Source: nexusskills.SourceBuiltin, Availability: nexusskills.AvailabilityAvailable},
+		{ID: "documentation", Name: "Documentation", Description: "documentation readme", Source: nexusskills.SourceBuiltin, Availability: nexusskills.AvailabilityAvailable},
+	}}
+	reconcileComposerSkillProposals(st, session.ID, newComposerBrief("security audit", ""), catalog)
+	if err := st.SetComposerSkillState(session.ID, "security", store.ComposerSkillAccepted); err != nil {
+		t.Fatal(err)
+	}
+	reconcileComposerSkillProposals(st, session.ID, newComposerBrief("documentation readme", ""), catalog)
+
+	proposals, err := st.ListComposerSkillProposals(session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	states := map[string]string{}
+	for _, proposal := range proposals {
+		states[proposal.SkillID] = proposal.State
+	}
+	if states["security"] != store.ComposerSkillAccepted {
+		t.Fatalf("explicit user decision was overwritten: %+v", states)
+	}
+	if states["documentation"] != store.ComposerSkillSuggested {
+		t.Fatalf("new relevant recommendation missing: %+v", states)
+	}
+}
+
 func TestComposerImportedPromptTracksUnknownsAndAppliesSkills(t *testing.T) {
 	n := openTestNexus(t)
 	n.maestroStatus = func() MaestroStatus {
