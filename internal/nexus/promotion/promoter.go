@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus"
 )
@@ -53,6 +54,10 @@ type Promoter struct {
 	Nexus        *nexus.Nexus
 	DecideIntent IntentDecider
 }
+
+// InteractiveDecisionTimeout is the shared latency budget for deciding
+// whether Enter stays with the Lead or promotes the prompt to a Mission.
+const InteractiveDecisionTimeout = 250 * time.Millisecond
 
 func NewPromoter(n *nexus.Nexus) Promoter { return Promoter{Nexus: n} }
 
