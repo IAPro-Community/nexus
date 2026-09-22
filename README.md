@@ -194,7 +194,7 @@ A v1 opera com **fail closed**:
 - mudanças materiais podem exigir intervenção humana.
 
 → [Guardrails](docs/architecture/guardrails.md) ·
-[Segurança](docs/security.md)
+[Segurança](docs/security.pt-BR.md)
 
 ## Nexus e Maestro
 
