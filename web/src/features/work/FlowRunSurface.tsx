@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import type {
   Agent,
   ContextCapsule,
+  CoordinationRequest,
   FlowRunEvidence,
   InterventionOption,
   MissionEvidenceBundle,
@@ -210,6 +211,10 @@ export const FlowRunSurface: React.FC<{
   const userState = flowRunStateFromMission(run?.state || 'PENDING');
   const missionTeam = useMemo(() => readMissionTeamSelection(plan), [plan]);
   const packageRuns = useMemo(() => asArray<PackageRun>(run?.package_runs), [run]);
+  const coordinationRequests = useMemo(
+    () => asArray<CoordinationRequest>(run?.coordination_requests),
+    [run],
+  );
   const currentPackage = useMemo(
     () =>
       packageRuns.find(
@@ -587,6 +592,35 @@ export const FlowRunSurface: React.FC<{
         </Card>
       </details>
 
+      {coordinationRequests.length > 0 && (
+        <details className="nx-flow-run-advanced" open>
+          <summary>
+            {t('flowRun.dynamicCoordination', { count: coordinationRequests.length })}
+          </summary>
+          <Card className="nx-flow-run-overview">
+            {coordinationRequests.map((request) => (
+              <div key={request.id} data-coordination-status={request.status}>
+                <strong>
+                  {request.operation} ·{' '}
+                  {t(`flowRun.coordinationStatus.${request.status}`, request.status)}
+                </strong>
+                <span>
+                  {request.subject} ·{' '}
+                  {request.child_package_id
+                    ? t('flowRun.coordinationLineage', {
+                        source: request.source_package_id,
+                        child: request.child_package_id,
+                      })
+                    : t('flowRun.coordinationPendingMaterialization', {
+                        source: request.source_package_id,
+                      })}
+                </span>
+              </div>
+            ))}
+          </Card>
+        </details>
+      )}
+
       <div className="nx-flow-run-grid">
         {packageRuns.map((pkg, index) => {
           const state = packageRunState(pkg.state);
@@ -602,6 +636,13 @@ export const FlowRunSurface: React.FC<{
                 <div>
                   <small>{t('flowRun.stepN', { n: index + 1 })}</small>
                   <strong>{pkg.title}</strong>
+                  {pkg.dynamic_work ? (
+                    <small>
+                      {t('flowRun.dynamicWorkFrom', {
+                        parent: pkg.parent_package_id || t('common.unknown'),
+                      })}
+                    </small>
+                  ) : null}
                 </div>
                 <Badge tone={toneFor(state)}>{t(`flow.state.${state}`, state)}</Badge>
               </div>
