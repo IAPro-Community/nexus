@@ -565,9 +565,48 @@ async function main() {
       'Comfortable card height must be strictly greater than Compact',
     );
 
+    console.log('6.1. Testing system theme follows OS color scheme...');
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.evaluate(() => {
+      localStorage.setItem(
+        'iapro:nexus:theme:v1',
+        JSON.stringify({
+          scheme: 'system',
+          accent: 'purple',
+          density: 'compact',
+          reducedMotion: false,
+          preset: 'nexus-dark',
+          isCustomized: false,
+          fontScale: 1,
+        }),
+      );
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.nx-os-shell', { state: 'visible', timeout: 10000 });
+    await page.waitForFunction(
+      () =>
+        document.documentElement.dataset.theme === 'light' &&
+        getComputedStyle(document.documentElement).getPropertyValue('--nx-bg').trim() === '#f4f6fa',
+    );
+    assert.equal(
+      await page.evaluate(() => document.documentElement.style.colorScheme),
+      'light',
+      'system theme must expose a light browser color-scheme when the OS is light',
+    );
+
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+    assert.notEqual(
+      await page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue('--nx-bg').trim(),
+      ),
+      '#f4f6fa',
+      'system theme must leave the light palette when the OS switches to dark',
+    );
+
     const settingsShot = path.join(screenshotDir, 'e2e_settings_accordion.png');
     await page.screenshot({ path: settingsShot });
-    console.log(`  ✓ Settings & Accordion verified (shot: ${settingsShot})`);
+    console.log(`  ✓ Settings, themes & Accordion verified (shot: ${settingsShot})`);
 
     console.log('✓ All E2E Hardening assertions PASSED successfully!');
   } catch (error) {
