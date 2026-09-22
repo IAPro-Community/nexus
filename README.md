@@ -1,97 +1,90 @@
-<p align="center"><img src="nexus-logo.png" alt="IAPro Nexus" width="340"></p>
-
-> **Source candidate v1.0.0-beta.4 — Nexus 1.0 closure in progress.**
-> O source reporta `1.0.0-beta.4`, mas isso **não** prova que a tag ou um
-> GitHub Release beta.4 tenham sido publicados/certificados. O status autoritativo
-> da release está em [RELEASE_STATUS](DEV/validation/current/RELEASE_STATUS.md).
-> Consulte [Beta Terms](docs/legal/BETA_TERMS.md) e
-> [Privacy](docs/legal/PRIVACY.md).
-
-<p align="center"><img src="docs/assets/promo/promo-nexus-hero.png" alt="IAPro Nexus — workstation local para coding agents" width="720"></p>
+<p align="center">
+  <img src="nexus-logo.png" alt="IAPro Nexus" width="320">
+</p>
 
 <h1 align="center">IAPro Nexus</h1>
 
-<p align="center"><strong>Uma workstation local para operar coding agents.</strong></p>
+<p align="center"><strong>Uma workstation local e um control plane para coding agents.</strong></p>
 
-<p align="center">Projetos, agentes persistentes, sessões de terminal supervisionadas, providers, worktrees e automação em uma experiência integrada de Web, Desktop e CLI.</p>
+<p align="center">
+Transforme objetivos em trabalho executável, coordene Agents persistentes, escolha recursos de IA,
+execute com isolamento e só conclua quando houver evidência verificável.
+</p>
 
-<p align="center"><a href="README.en.md">English</a> · <a href="README.es.md">Español</a> · <a href="docs/README.md">Documentação</a></p>
+<p align="center">
+  <a href="docs/quick-start.md">Quick Start</a> ·
+  <a href="docs/product/how-it-works.md">Como funciona</a> ·
+  <a href="docs/README.md">Documentação</a> ·
+  <a href="README.en.md">English</a> ·
+  <a href="README.es.md">Español</a>
+</p>
 
-![IAPro Nexus workspace](docs/assets/screenshots/workspace-overview.png)
+![Visão geral do Nexus v1](docs/assets/diagrams/nexus-v1-overview.svg)
+
+> **Estado da v1:** o source está no programa de fechamento do Nexus 1.0 e reporta
+> `1.0.0-beta.4`. Isso **não** significa que uma release estável v1 esteja
+> certificada ou publicada. A verdade autoritativa está em
+> [RELEASE_STATUS](DEV/validation/current/RELEASE_STATUS.md).
 
 ## TL;DR
 
-IAPro Nexus é uma workstation local para trabalhar com coding agents. Ele organiza projetos, agentes persistentes, sessões, terminais supervisionados, providers, worktrees e uso/quota em um único Core. O caminho mais simples é: abrir um projeto, criar uma AI Session, escolher um provider e trabalhar no terminal. Composer, Flow, Mission e Maestro são camadas progressivas; não são pré-requisitos para o trabalho direto.
+O Nexus reúne em um único Core:
 
-Com ele você pode:
+- Projects e workspaces;
+- Agents persistentes;
+- providers, perfis, modelos e quota;
+- terminais e runtimes supervisionados;
+- Composer, WorkPlan e Flow;
+- Missions duráveis;
+- worktrees isolados;
+- Scheduler e políticas de recurso;
+- memória, receipts, artifacts e evidência;
+- recovery, intervenção humana e Definition of Done global.
 
-- iniciar uma sessão de IA no projeto sem montar uma pilha de orquestração;
-- manter a identidade do agente enquanto o runtime e o provider mudam;
-- observar disponibilidade e quota sem transformar ausência de dados em sucesso;
-- usar planejamento, dependências e verificação somente quando o objetivo pedir.
+Para uma tarefa simples, use **Direct**. Para um objetivo complexo, o caminho
+canônico é:
 
-→ [Quick Start de 5–10 minutos](docs/quick-start.md)
+```text
+Objetivo → Composer → WorkPlan → Flow → GO → MissionRunner → Agents → Evidência → COMPLETED_VERIFIED
+```
 
-## O que este produto melhora?
+→ [Entenda o fluxo ponta a ponta](docs/product/how-it-works.md)
 
-| Antes / problema | Com o Nexus |
-| --- | --- |
-| Cada CLI de coding agent tem contexto, perfil e terminal próprios. | Projetos, perfis, sessões e workspaces ficam visíveis em uma workstation local única. |
-| Trocar de provider pode perder o contexto operacional. | O Agent é uma identidade persistente; provider/modelo são recursos de execução roteados separadamente. |
-| Acompanhar quota ou falha exige consultar ferramentas diferentes. | Estados como `LIVE`, `CACHED`, `ESTIMATED` e `UNKNOWN` deixam explícita a qualidade da evidência. |
-| Todo trabalho precisa de um fluxo pesado de planejamento. | O caminho Direct abre uma sessão imediatamente; Composer, Flow e Mission são opt-in progressivos. |
+## Comece em 5–10 minutos
 
-## Por que Nexus?
+O caminho recomendado para primeiro uso é **Direct**:
 
-- **Trabalho direto primeiro:** projeto → AI Session → provider → terminal.
-- **Agentes persistentes:** a identidade do agente permanece mesmo quando uma geração de runtime termina.
-- **Operação local:** processos, filesystem, sessões e workspaces ficam sob o controle do Nexus.
-- **Automação gradual:** use Composer, Flow e Mission quando planejamento, dependências, paralelismo ou verificação justificarem a complexidade.
-- **Honestidade operacional:** uso, continuidade, disponibilidade de provider e suporte de plataforma só são apresentados como verificados quando há evidência.
+```text
+Project → + New → AI Session → Provider → Terminal
+```
 
-## Comece em poucos minutos
+### Release publicada
 
-Caminho recomendado (**zero-toolchain**): baixe um binário de release. Não precisa de Go, Bun nem Node.
+A documentação de instalação usa a última beta publicada indicada pelo
+[status de release](DEV/validation/current/RELEASE_STATUS.md). Enquanto a v1
+estável não estiver certificada, não confunda versão do source com release
+publicada.
 
-**Linux / macOS:**
+**Linux / macOS**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=latest
+curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
 
-**Windows (PowerShell):**
+**Windows PowerShell**
 
 ```powershell
 irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version latest
+.\install.ps1 -Version v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
 
-`--version=latest` resolve a tag publicada, mas a instalação só prossegue quando o `update-manifest.json` e sua assinatura Ed25519 são válidos e o SHA-256 do artefato corresponde ao manifesto assinado. Não há fallback para release não assinada.
+### Compilar do source
 
-Pré-requisitos do instalador de release: `curl` ou `wget`, `tar`, Python 3 com `cryptography` para validação Ed25519 e `sha256sum`/`shasum` (Unix), ou PowerShell/Python no Windows. Desktop nativo pode exigir WebView2 (Windows) ou WebKitGTK (Linux).
-
-**Desinstalação (dados preservados por padrão):**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/uninstall.sh | bash
-# opcional: também remover configuração/dados Nexus
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/uninstall.sh | bash -s -- --purge-data
-```
-
-```powershell
-irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/uninstall.ps1 -OutFile uninstall.ps1
-.\uninstall.ps1
-```
-
-A desinstalação remove binários/atalhos gerenciados pelo Nexus; no Windows, perfis e dados de projeto são preservados.
-
-### Desenvolvedores (compilar do fonte)
-
-Requisitos: Go 1.25+ e Bun 1.3.9+.
+Requisitos de desenvolvimento: Go 1.25+, Bun 1.3.9+, Git e Make.
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
@@ -102,80 +95,169 @@ make build
 ./nexus web
 ```
 
-Ou: `./install.sh --build-from-source [--yes]` / `.\install.ps1 -BuildFromSource`.
+Depois:
 
-Abra a URL de bootstrap exibida por `nexus web`. Ela usa loopback por padrão e autentica a sessão no navegador.
+1. adicione um projeto;
+2. use **+ New → AI Session**;
+3. selecione um provider disponível;
+4. trabalhe no terminal.
 
-1. Abra ou adicione um projeto.
-2. Escolha **AI Session** em **+ New**.
-3. Escolha um provider disponível localmente.
-4. Abra o terminal e trabalhe normalmente.
+Composer, Flow, Mission e Maestro **não são pré-requisitos** para esse caminho.
 
-Não é necessário abrir Composer, Flow ou Mission para esse caminho.
+→ [Quick Start completo](docs/quick-start.md)
 
-## As três superfícies
+## Como escolher o modo de trabalho
 
-| Superfície | Melhor uso |
+| Situação | Use |
 | --- | --- |
-| **Nexus Web** | Controle, observação e administração no navegador local. |
-| **Nexus Desktop** | Shell nativo Wails quando o build e a plataforma tiverem evidência correspondente. |
-| **Nexus CLI** | Automação, scripting, diagnóstico, execução headless e operação no terminal. |
+| correção pequena, debugging, exploração | **Direct** |
+| ideia ainda precisa de clareza | **Composer** |
+| quer revisar etapas/dependências | **Flow** |
+| trabalho longo, multi-Agent ou com gates | **Mission** |
+| quer metodologia, skills e gates externos | **Maestro** opcional |
 
-Todas apontam para o Core compartilhado quando a capacidade está disponível. Consulte o [status por plataforma](docs/operations/platform-support.md) antes de tratar uma capacidade nativa como suportada.
+![Fluxo ponta a ponta](docs/assets/diagrams/nexus-v1-flow.svg)
 
-## Capacidades principais
+## O modelo da v1
 
-| Capacidade | Estado documental |
+### Agent ≠ provider
+
+Um **Agent** é uma identidade persistente. Codex, Claude, Gemini, AGY, OpenCode
+e outros executores são recursos que podem ser selecionados conforme
+capacidade, policy e disponibilidade.
+
+```text
+Agent
+ ├─ AgentSpec
+ ├─ AgentRevision
+ └─ RuntimeGeneration
+      └─ ProviderSession
+```
+
+Isso evita acoplar o papel do trabalhador a um provider específico.
+
+### WorkPlan é a fonte de verdade
+
+Composer transforma intenção em um artefato estruturado. O **WorkPlan** é o
+plano semântico/versionado. O **Flow** é a projeção visual e editável desse
+mesmo plano.
+
+Não existe um segundo scheduler ou um segundo formato de plano escondido na UI.
+
+### GO é um boundary real
+
+**GO** autoriza uma revisão específica do plano. A partir daí, a Mission executa
+essa revisão sob políticas, isolamento, gates e evidência.
+
+### Mission conclui por evidência
+
+O runtime não aceita “done” textual como sucesso. Uma Mission pode exigir:
+
+- testes;
+- verificações;
+- review independente;
+- artifacts;
+- critérios de aceite;
+- ausência de intervenção pendente;
+- Definition of Done global.
+
+O estado final é `COMPLETED_VERIFIED`.
+
+## Coordenação entre Agents
+
+Agents podem solicitar contexto, artifact, revisão ou trabalho auxiliar por um
+protocolo fechado:
+
+- `NEED_INFO`;
+- `ARTIFACT_REQUEST`;
+- `REVIEW_REQUEST`;
+- `DELEGATE`.
+
+Toda coordenação passa pelo `MissionRunner`. O Nexus tenta memória/receipts
+antes de criar outra execução e bloqueia replay quando não consegue provar
+segurança.
+
+![Coordenação entre Agents](docs/assets/diagrams/nexus-v1-agent-coordination.svg)
+
+→ [Como funciona a coordenação](docs/product/agent-coordination.md)
+
+## Segurança e guardrails
+
+A v1 opera com **fail closed**:
+
+- push/deploy não são permissões implícitas;
+- reviewers/investigators são read-only por padrão;
+- escrita paralela usa worktrees isolados;
+- dispatch externo desconhecido não é repetido cegamente;
+- ausência de evidência não vira sucesso;
+- retries e no-progress são limitados;
+- mudanças materiais podem exigir intervenção humana.
+
+→ [Guardrails](docs/architecture/guardrails.md) ·
+[Segurança](docs/security.md)
+
+## Nexus e Maestro
+
+```text
+Nexus   → execução, Agents, runtimes, providers, workspaces, UX e evidência
+Maestro → metodologia, skills, risco, gates e políticas de verificação
+```
+
+O [Orquestrador Maestro](https://github.com/IAPro-Community/Orquestrador-Maestro)
+é opcional. Sem ele, Direct, Agents, Composer, Flow e Mission continuam sendo
+capacidades do Nexus.
+
+## Superfícies
+
+| Superfície | Uso principal |
 | --- | --- |
-| Projects, sessões e agentes | Implementado no Core e na Web; consulte [Agentes](docs/product/agents.md). |
-| Terminal local | Implementado com xterm na Web e backends de terminal do sistema; evidência varia por plataforma. |
-| Providers e usage/quota | Implementado com estados honestos como `LIVE`, `CACHED`, `ESTIMATED` e `UNKNOWN`. |
-| Composer | Superfície de refinamento e compilação de prompt; veja [Composer](docs/product/composer.md). |
-| Flow | Superfície de plano e execução; veja [Flow](docs/product/flow.md). |
-| Mission/Autopilot | Capacidade avançada em evolução; consulte a evidência antes de tratar como certificada. |
-| Maestro | Integração opcional de método, skills, risco e gates; veja [Maestro](docs/product/maestro.md). |
+| **Web** | operação visual local, Projects, Agents, Composer, Flow e Missions |
+| **Desktop** | shell nativo quando a plataforma possui evidência correspondente |
+| **CLI** | automação, diagnóstico, scripting, execução headless e terminal |
 
-## Veja o produto
-
-- [Tour visual](docs/product/visual-tour.md)
-- [Caminho direto](docs/product/direct.md)
-- [Agentes e terminais](docs/product/agents.md)
-- [Composer, Flow e Mission](docs/product/composer.md)
-
-As imagens são capturas automatizadas do produto real e possuem origem registrada no [manifesto visual](docs/assets/screenshots/manifest.json). Uma imagem não substitui a matriz de suporte nativo.
+Suporte nativo depende de evidência por sistema operacional. Veja
+[Suporte de plataformas](docs/operations/platform-support.md).
 
 ## Documentação
 
-Guias de distribuição **separados**:
+| Quero… | Documento |
+| --- | --- |
+| usar agora | [Quick Start](docs/quick-start.md) |
+| entender o produto inteiro | [Como funciona](docs/product/how-it-works.md) |
+| ver interfaces reais | [Tour visual](docs/product/visual-tour.md) |
+| entender Composer | [Composer](docs/product/composer.md) |
+| entender Flow | [Flow](docs/product/flow.md) |
+| entender Missions | [Missions](docs/product/missions.md) |
+| entender Agents | [Agents](docs/product/agents.md) |
+| entender coordenação dinâmica | [Coordenação entre Agents](docs/product/agent-coordination.md) |
+| entender arquitetura | [Arquitetura](ARCHITECTURE.md) |
+| operar/diagnosticar | [Operação](docs/operations/README.md) |
+| consultar CLI | [CLI](docs/cli/README.md) |
+| verificar funcionalidades | [Matriz](docs/reference/feature-matrix.md) |
+| contribuir | [CONTRIBUTING](CONTRIBUTING.md) |
 
-- [Quick Start](docs/quick-start.md)
-- [Funcionalidades por objetivo](docs/features/index.md)
-- [Documentação para usuários](docs/user/README.md)
-- [Referência da CLI](docs/cli/README.md)
-- [Visuais (ajuda/divulgação)](docs/getting-started/visuals.md)
-- [Getting Started (índice)](docs/getting-started/README.md)
-- [Instalação nativa](docs/getting-started/installation.md)
-- [Pacotes DEB/RPM/NSIS](docs/getting-started/packages.md)
-- [Docker (compatibilidade)](docs/getting-started/docker-compat.md)
-- [Mapa por intenção](docs/README.md)
-- [Modelo mental](docs/product/mental-model.md)
-- [Providers e quota](docs/product/providers-and-usage.md)
-- [Desktop](docs/desktop/overview.md)
-- [Arquitetura](docs/architecture/overview.md)
-- [Troubleshooting](docs/operations/troubleshooting.md)
-- [Contribuição](CONTRIBUTING.md)
+A entrada canônica é [docs/README.md](docs/README.md).
 
-## Maestro, sem dependência obrigatória
+## Honestidade operacional
 
-O Nexus é o produto operacional: projetos, agents, sessions, runtimes, providers, workspaces e UX. O [Orquestrador Maestro](https://github.com/IAPro-Community/Orquestrador-Maestro) contribui com método, skills, risco, processo, revisão e políticas de verificação. O caminho Direct continua funcionando sem Maestro; quando a integração estiver indisponível, o estado deve ser explicitamente degradado, nunca inventado.
+O Nexus diferencia estados como `LIVE`, `CACHED`, `ESTIMATED`,
+`UNKNOWN`, `VERIFIED` e `UNVERIFIED`. Documentação, UI e release gates não
+devem transformar ausência de evidência em um resultado positivo.
 
-## Segurança e comunidade
+Capturas reais do produto ficam em `docs/assets/screenshots/` com manifesto.
+Diagramas conceituais ficam em `docs/assets/diagrams/`.
 
-Leia [SECURITY.md](SECURITY.md), [SUPPORT.md](SUPPORT.md), [GOVERNANCE.md](GOVERNANCE.md) e [ROADMAP.md](ROADMAP.md). O CHANGELOG registra mudanças entregues; o ROADMAP registra apenas trabalho futuro.
+## Status de release
+
+A documentação de produto descreve **como o source candidato funciona**. A
+autorização para uma release estável exige certificação separada do mesmo SHA,
+incluindo plataformas nativas e demais gates definidos no programa de fechamento.
+
+→ [Status autoritativo](DEV/validation/current/RELEASE_STATUS.md)
 
 ## Licença
 
-Software proprietário — distribuído como binário sob a [licença beta](LICENSE).
-Consulte também [Beta Terms](docs/legal/BETA_TERMS.md),
+Software proprietário distribuído conforme [LICENSE](LICENSE) e os
+[Beta Terms](docs/legal/BETA_TERMS.md). Consulte também
 [Privacy](docs/legal/PRIVACY.md) e
 [Third-Party Notices](docs/legal/THIRD_PARTY_NOTICES.md).
