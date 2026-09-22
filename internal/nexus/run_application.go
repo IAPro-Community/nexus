@@ -229,6 +229,100 @@ func (s *RunApplicationService) ResolveIntervention(ctx context.Context, runID, 
 	return run, err
 }
 
+type RunCoordinationResult struct {
+	Request *runner.CoordinationRequest `json:"request"`
+	Child   *runner.PackageRun          `json:"child,omitempty"`
+}
+
+func (s *RunApplicationService) SubmitCoordination(ctx context.Context, runID string, req runner.CoordinationRequest, materialize bool) (*RunCoordinationResult, error) {
+	if err := s.ready(ctx); err != nil {
+		return nil, err
+	}
+	saved, err := s.nexus.Runner().SubmitCoordinationRequest(ctx, runID, req)
+	if err != nil {
+		return nil, err
+	}
+	run, _ := s.nexus.Runner().GetRun(ctx, runID)
+	s.publishRunEvent(run, events.EventMissionCoordinationRequested, "Mission coordination requested", map[string]any{
+		"request_id": saved.ID,
+		"operation": saved.Operation,
+		"source_package_id": saved.SourcePackageID,
+	})
+	result := &RunCoordinationResult{Request: saved}
+	if !materialize {
+		return result, nil
+	}
+	child, err := s.nexus.Runner().MaterializeCoordinationWork(ctx, runID, saved.ID)
+	if err != nil {
+		return nil, err
+	}
+	result.Child = child
+	refreshed, _ := s.nexus.Runner().GetRun(ctx, runID)
+	if refreshed != nil {
+		for i := range refreshed.CoordinationRequests {
+			if refreshed.CoordinationRequests[i].ID == saved.ID {
+				copy := refreshed.CoordinationRequests[i]
+				result.Request = &copy
+				break
+			}
+		}
+	}
+	s.publishRunEvent(refreshed, events.EventMissionCoordinationMaterialized, "Mission coordination materialized as dynamic work", map[string]any{
+		"request_id": saved.ID,
+		"child_package_id": child.PackageID,
+		"source_package_id": saved.SourcePackageID,
+	})
+	return result, nil
+}
+
+func (s *RunApplicationService) MaterializeCoordination(ctx context.Context, runID, requestID string) (*RunCoordinationResult, error) {
+	if err := s.ready(ctx); err != nil {
+		return nil, err
+	}
+	child, err := s.nexus.Runner().MaterializeCoordinationWork(ctx, runID, requestID)
+	if err != nil {
+		return nil, err
+	}
+	run, err := s.nexus.Runner().GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	var request *runner.CoordinationRequest
+	for i := range run.CoordinationRequests {
+		if run.CoordinationRequests[i].ID == requestID {
+			copy := run.CoordinationRequests[i]
+			request = &copy
+			break
+		}
+	}
+	if request == nil {
+		return nil, fmt.Errorf("coordination request %q not found after materialization", requestID)
+	}
+	s.publishRunEvent(run, events.EventMissionCoordinationMaterialized, "Mission coordination materialized as dynamic work", map[string]any{
+		"request_id": requestID,
+		"child_package_id": child.PackageID,
+		"source_package_id": request.SourcePackageID,
+	})
+	return &RunCoordinationResult{Request: request, Child: child}, nil
+}
+
+func (s *RunApplicationService) ResolveCoordination(ctx context.Context, runID, requestID string, status runner.CoordinationStatus, summary, receiptID string) (*runner.CoordinationRequest, error) {
+	if err := s.ready(ctx); err != nil {
+		return nil, err
+	}
+	resolved, err := s.nexus.Runner().ResolveCoordinationRequest(ctx, runID, requestID, status, summary, receiptID)
+	if err != nil {
+		return nil, err
+	}
+	run, _ := s.nexus.Runner().GetRun(ctx, runID)
+	s.publishRunEvent(run, events.EventMissionCoordinationResolved, "Mission coordination resolved", map[string]any{
+		"request_id": requestID,
+		"status": status,
+		"receipt_id": receiptID,
+	})
+	return resolved, nil
+}
+
 func (s *RunApplicationService) Attention(ctx context.Context) (*runner.AttentionGroup, error) {
 	if err := s.ready(ctx); err != nil {
 		return nil, err
