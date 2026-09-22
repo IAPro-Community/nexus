@@ -1,6 +1,8 @@
 # Final hardening report
 
-STATUS: CURRENT  
+> **EVIDÊNCIA HISTÓRICA — NÃO É O STATUS ATUAL DE RELEASE.** Este relatório registra uma validação anterior em outro SHA/branch. A fonte de verdade atual para o fechamento do Nexus 1.0 é [RELEASE_STATUS.md](./RELEASE_STATUS.md) e a spec [NEXUS_1_0_CLOSURE.md](../../SPECS/NEXUS_1_0_CLOSURE.md). Não use qualquer GO deste arquivo como autorização de merge ou release do candidato atual.
+
+STATUS: HISTORICAL / SUPERSEDED  
 GIT_SHA: `3760df2d5b3c6656c9c32d9cfc5d922d352c2644` (BASE) + uncommitted hardening on the worktree  
 GENERATED_AT: 2026-09-12  
 ENVIRONMENT: Linux x86_64, go1.25.0, Node v22.17.0, npm 10.9.2 / pnpm 11.18.0  

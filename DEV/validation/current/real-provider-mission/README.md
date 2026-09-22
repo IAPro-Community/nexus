@@ -1,5 +1,7 @@
 # Real-provider Mission evidence
 
+> **EVIDÊNCIA HISTÓRICA DE PROVIDER REAL.** Os resultados abaixo pertencem ao ambiente/SHA observado em 14/09/2026 e não certificam o HEAD atual. Consulte [../RELEASE_STATUS.md](../RELEASE_STATUS.md) para o estado corrente.
+
 Status: `PASS` for an autonomous Nexus Mission on this worktree.
 Observed: `2026-09-14T02:43:47Z` (Linux amd64, local build).
 
