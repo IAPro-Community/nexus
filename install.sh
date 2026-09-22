@@ -147,6 +147,13 @@ case "$ARCH" in
         ;;
 esac
 
+# Native Desktop artifacts are currently published only for the architectures
+# backed by native CI. CLI/Core release artifacts cover a broader matrix.
+DESKTOP_SUPPORTED=false
+case "${OS_NAME}_${ARCH_NAME}" in
+    Linux_x86_64|Darwin_arm64) DESKTOP_SUPPORTED=true ;;
+esac
+
 # Install into the directory that the current shell resolves first. This keeps
 # `type -a nexus` and the binary we just installed in sync when an older copy
 # exists in a higher-priority PATH entry. A fresh installation still defaults
@@ -507,7 +514,11 @@ warn_webkitgtk() {
     fi
 }
 
-if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ]; then
+if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ] && [ "$DESKTOP_SUPPORTED" != true ]; then
+    echo "⚠️  Native Desktop is not published/certified for ${OS_NAME}/${ARCH_NAME}; CLI/Core installation remains valid." >&2
+fi
+
+if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ] && [ "$DESKTOP_SUPPORTED" = true ]; then
     if [ "$OS_NAME" = "Darwin" ]; then
         DESKTOP_ARCHIVE_NAME="nexus-desktop_${OS_NAME}_${ARCH_NAME}.zip"
     else
