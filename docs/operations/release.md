@@ -9,7 +9,7 @@ prova publicação/certificação.
 
 Antes de distribuir, consulte:
 
-[`DEV/validation/current/RELEASE_STATUS.md`](../../DEV/validation/current/RELEASE_STATUS.md)
+[Status público da release](../release-status.md)
 
 ## Gates conceituais
 
