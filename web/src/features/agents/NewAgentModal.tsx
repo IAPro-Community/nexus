@@ -148,6 +148,23 @@ export const NewAgentModal: React.FC<{
   const [loadingModes, setLoadingModes] = useState(false);
   const [error, setError] = useState('');
 
+  const localizedPresentationFor = (agentMode: AgentMode): ModePresentation => {
+    const fallback = presentationFor(agentMode);
+    return {
+      ...fallback,
+      name: String(
+        t(`agents.agentModes.${agentMode.id}.name`, {
+          defaultValue: fallback.name,
+        }),
+      ),
+      description: String(
+        t(`agents.agentModes.${agentMode.id}.description`, {
+          defaultValue: fallback.description,
+        }),
+      ),
+    };
+  };
+
   useEffect(() => {
     if (!open) return;
     let alive = true;
@@ -166,7 +183,7 @@ export const NewAgentModal: React.FC<{
           modes.find((candidate) => candidate.id === 'backend-engineer') ??
           modes[0];
         setSelectedType(initial);
-        setName(presentationFor(initial).name);
+        setName(localizedPresentationFor(initial).name);
         setProvider(initial.default_provider || 'codex');
         setMode(executionModeFor(initial));
       })
@@ -190,7 +207,7 @@ export const NewAgentModal: React.FC<{
 
   const handleSelectType = (preset: AgentMode) => {
     setSelectedType(preset);
-    setName(presentationFor(preset).name);
+    setName(localizedPresentationFor(preset).name);
     setProvider(preset.default_provider || 'codex');
     setMode(executionModeFor(preset));
   };
@@ -271,7 +288,7 @@ export const NewAgentModal: React.FC<{
           <label className={styles.sectionLabel}>{t('agents.selectSpecialty')}</label>
           <div className={styles.presetsGrid}>
             {agentModes.map((preset) => {
-              const presentation = presentationFor(preset);
+              const presentation = localizedPresentationFor(preset);
               const Icon = presentation.icon;
               const isSelected = selectedType?.id === preset.id;
               return (
@@ -293,7 +310,7 @@ export const NewAgentModal: React.FC<{
               );
             })}
           </div>
-          {loadingModes && <small className={styles.hintText}>Carregando especialidades…</small>}
+          {loadingModes && <small className={styles.hintText}>{t('agents.agentModesLoading')}</small>}
         </div>
 
         <div className={styles.fieldGroup}>
@@ -378,10 +395,7 @@ export const NewAgentModal: React.FC<{
             })}
           </div>
           {selectedType?.read_only_by_default && (
-            <small className={styles.hintText}>
-              Esta especialidade é read-only por padrão; alterações devem ser delegadas a uma tarefa
-              de implementação.
-            </small>
+            <small className={styles.hintText}>{t('agents.agentModeReadOnlyHint')}</small>
           )}
         </div>
 
