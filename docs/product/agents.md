@@ -42,3 +42,23 @@ um system prompt gigante como substituto do modelo.
 
 Use Agents para tarefas recorrentes ou papéis especializados. Use AI Session
 para uma interação concreta. `UNKNOWN` e `UNVERIFIED` não significam sucesso.
+
+
+## Coordenação durante uma Mission
+
+Um Agent não cria outro Agent/provider diretamente quando precisa de ajuda.
+Durante uma Mission ele pode emitir uma solicitação tipada ao MissionRunner:
+
+- `NEED_INFO`;
+- `ARTIFACT_REQUEST`;
+- `REVIEW_REQUEST`;
+- `DELEGATE`.
+
+O Nexus tenta reutilizar contexto durável antes de materializar child work.
+Quando outro especialista é necessário, AgentMatcher e ResourceScheduler
+continuam sendo as autoridades de seleção.
+
+A package de origem recebe o resultado através de WorkReceipt/ContextCapsule e
+mantém sua identidade persistente.
+
+Veja [Coordenação entre Agents](agent-coordination.md).
