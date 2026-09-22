@@ -201,8 +201,8 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 }
 
 type MissionAdmissionOptions struct {
-	CostConfirmationToken    string
-	ExecutionPreviewToken    string
+	CostConfirmationToken string
+	ExecutionPreviewToken string
 }
 
 func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, approvedRevision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool) (*runner.MissionRun, error) {

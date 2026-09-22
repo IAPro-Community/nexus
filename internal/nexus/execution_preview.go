@@ -204,24 +204,24 @@ func executionPreviewApprovalToken(preview *PlanExecutionPreview) string {
 		})
 	}
 	payload := struct {
-		PlanID                   string                `json:"plan_id"`
-		ProjectID                string                `json:"project_id"`
-		Revision                 int                   `json:"revision"`
-		Ready                    bool                  `json:"ready"`
+		PlanID                   string                         `json:"plan_id"`
+		ProjectID                string                         `json:"project_id"`
+		Revision                 int                            `json:"revision"`
+		Ready                    bool                           `json:"ready"`
 		Steps                    []executionPreviewApprovalStep `json:"steps"`
-		Blockers                 []string              `json:"blockers,omitempty"`
-		CostLevel                CostBudgetLevel       `json:"cost_level"`
-		CostEvidence             CostEvidenceState     `json:"cost_evidence"`
-		KnownCostMicroUSD        int64                 `json:"known_cost_microusd"`
-		ActiveLimitMicroUSD      int64                 `json:"active_limit_microusd"`
-		CostConfirmationRequired bool                  `json:"cost_confirmation_required"`
-		CostConfirmationToken    string                `json:"cost_confirmation_token,omitempty"`
-		AnomalyStatus            CostAnomalyStatus     `json:"anomaly_status"`
-		AnomalyTriggered         bool                  `json:"anomaly_triggered"`
-		AnomalyProvider          string                `json:"anomaly_provider,omitempty"`
-		AnomalyProfile           string                `json:"anomaly_profile,omitempty"`
-		AnomalyLatestMicroUSD    int64                 `json:"anomaly_latest_microusd,omitempty"`
-		AnomalyThresholdMicroUSD int64                 `json:"anomaly_threshold_microusd,omitempty"`
+		Blockers                 []string                       `json:"blockers,omitempty"`
+		CostLevel                CostBudgetLevel                `json:"cost_level"`
+		CostEvidence             CostEvidenceState              `json:"cost_evidence"`
+		KnownCostMicroUSD        int64                          `json:"known_cost_microusd"`
+		ActiveLimitMicroUSD      int64                          `json:"active_limit_microusd"`
+		CostConfirmationRequired bool                           `json:"cost_confirmation_required"`
+		CostConfirmationToken    string                         `json:"cost_confirmation_token,omitempty"`
+		AnomalyStatus            CostAnomalyStatus              `json:"anomaly_status"`
+		AnomalyTriggered         bool                           `json:"anomaly_triggered"`
+		AnomalyProvider          string                         `json:"anomaly_provider,omitempty"`
+		AnomalyProfile           string                         `json:"anomaly_profile,omitempty"`
+		AnomalyLatestMicroUSD    int64                          `json:"anomaly_latest_microusd,omitempty"`
+		AnomalyThresholdMicroUSD int64                          `json:"anomaly_threshold_microusd,omitempty"`
 	}{
 		PlanID: preview.PlanID, ProjectID: preview.ProjectID, Revision: preview.Revision,
 		Ready: preview.Ready, Steps: steps, Blockers: append([]string(nil), preview.Blockers...),
@@ -230,7 +230,7 @@ func executionPreviewApprovalToken(preview *PlanExecutionPreview) string {
 		CostConfirmationRequired: preview.CostConfirmationRequired, CostConfirmationToken: preview.CostConfirmationToken,
 		AnomalyStatus: preview.CostAnomaly.Status, AnomalyTriggered: preview.CostAnomaly.Triggered,
 		AnomalyProvider: preview.CostAnomaly.Provider, AnomalyProfile: preview.CostAnomaly.Profile,
-		AnomalyLatestMicroUSD: preview.CostAnomaly.LatestCostMicroUSD,
+		AnomalyLatestMicroUSD:    preview.CostAnomaly.LatestCostMicroUSD,
 		AnomalyThresholdMicroUSD: preview.CostAnomaly.ThresholdMicroUSD,
 	}
 	raw, err := json.Marshal(payload)

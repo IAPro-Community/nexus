@@ -326,18 +326,17 @@ func TestExecutionPreviewAdmissionUsesApprovedAutonomyContract(t *testing.T) {
 	}
 }
 
-
 func TestExecutionPreviewApprovalTokenBindsSemanticRoute(t *testing.T) {
 	base := &PlanExecutionPreview{
 		PlanID: "plan-1", ProjectID: "project-1", Revision: 7, Ready: true,
 		Steps: []StepExecutionPreview{{
 			PackageID: "pkg-1", PhaseID: "phase-1", Assignment: "AUTO", ResourcePolicy: "BALANCED",
-			Agent: PreviewAgentDecision{AgentID: "agent-1", Role: "developer", Reason: "matched"},
+			Agent:    PreviewAgentDecision{AgentID: "agent-1", Role: "developer", Reason: "matched"},
 			Resource: PreviewResourceDecision{AccountID: "account-1", Provider: "codex", Profile: "work", Reason: "eligible"},
-			Model: PreviewModelDecision{Model: "gpt", Reason: "selected", Evidence: "LIVE"},
-			Skills: []string{"testing"}, Ready: true,
+			Model:    PreviewModelDecision{Model: "gpt", Reason: "selected", Evidence: "LIVE"},
+			Skills:   []string{"testing"}, Ready: true,
 		}},
-		CostBudget: CostBudgetAssessment{Level: CostBudgetOK, Evidence: CostEvidenceMeasured},
+		CostBudget:  CostBudgetAssessment{Level: CostBudgetOK, Evidence: CostEvidenceMeasured},
 		CostAnomaly: CostAnomalyAssessment{Status: CostAnomalyNormal},
 	}
 	first := executionPreviewApprovalToken(base)
