@@ -61,29 +61,28 @@ func TestRunApplicationServicePublishesCorrelatedMissionTimeline(t *testing.T) {
 	}
 }
 
-
 func TestRunApplicationServicePublishesCoordinationTransition(t *testing.T) {
 	bus := events.NewBus(10)
 	service := NewRunApplicationServiceWithBus(nil, bus)
 	before := &runner.MissionRun{
-		ID: "run-coord",
-		ProjectID: "project-1",
+		ID:              "run-coord",
+		ProjectID:       "project-1",
 		CurrentPkgIndex: 0,
-		PackageRuns: []runner.PackageRun{{AssignedRuntime: "runtime-1", AssignedAgent: "agent-1"}},
+		PackageRuns:     []runner.PackageRun{{AssignedRuntime: "runtime-1", AssignedAgent: "agent-1"}},
 		CoordinationRequests: []runner.CoordinationRequest{{
-			ID: "coord-1",
+			ID:     "coord-1",
 			Status: runner.CoordinationPending,
 		}},
 	}
 	after := &runner.MissionRun{
-		ID: "run-coord",
-		ProjectID: "project-1",
+		ID:              "run-coord",
+		ProjectID:       "project-1",
 		CurrentPkgIndex: 0,
-		PackageRuns: []runner.PackageRun{{AssignedRuntime: "runtime-1", AssignedAgent: "agent-1"}},
+		PackageRuns:     []runner.PackageRun{{AssignedRuntime: "runtime-1", AssignedAgent: "agent-1"}},
 		CoordinationRequests: []runner.CoordinationRequest{{
-			ID: "coord-1",
-			Status: runner.CoordinationResolved,
-			ChildPackageID: "coord-child",
+			ID:              "coord-1",
+			Status:          runner.CoordinationResolved,
+			ChildPackageID:  "coord-child",
 			ResultReceiptID: "receipt-1",
 		}},
 	}
