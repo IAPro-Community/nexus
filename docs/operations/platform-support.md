@@ -13,7 +13,7 @@ prova execução nativa.
 | Desktop Wails build | binário ELF | `.exe` | bundle `.app` |
 | Desktop runtime smoke | somente com evidência nativa | somente com evidência nativa | somente com evidência nativa |
 | Instalação por script | [`install.sh`](../getting-started/installation.md) | [`install.ps1`](../getting-started/installation.md) | `install.sh` |
-| Pacotes | DEB/RPM ([packages](../getting-started/packages.md)) | NSIS; winget após release ([packages](../getting-started/packages.md)) | app/DMG quando publicados |
+| Pacotes/artefatos v1 | DEB + CLI/Desktop archives ([packages](../getting-started/packages.md)) | CLI/Desktop ZIP; NSIS/winget ainda não certificados ([packages](../getting-started/packages.md)) | CLI tar.gz + Desktop .app ZIP em arm64; DMG não publicado |
 | Docker (compat) | [docker-compat](../getting-started/docker-compat.md) — CLI+Web headless | mesmo (via WSL/Docker Desktop); Desktop nativo separado | mesmo headless |
 | Updater | manifesto/checksum/assinatura | manifesto/checksum/assinatura | manifesto/checksum/assinatura |
 | Native CI | obrigatório | obrigatório | obrigatório |
