@@ -261,4 +261,3 @@ func resolveSkillReferences(n *Nexus, projectID string, requested []string) ([]n
 func canonicalSkillIDs(ids []string) []string {
 	return uniqueStrings(ids)
 }
-
