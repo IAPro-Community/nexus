@@ -20,7 +20,7 @@ jobs:
     name: Stable 8h live certification
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     environment: beta-signing
-    timeout-minutes: 600
+    timeout-minutes: 660
     steps:
       - uses: actions/checkout@v5
         with:
@@ -70,13 +70,32 @@ jobs:
           set -euo pipefail
           bash ./scripts/certify-release-lifecycle.sh
 
-      - name: Run real 8h provider and Mission soak
+      # GitHub caps an individual step at 360 minutes even on self-hosted
+      # runners. Two 4h segments preserve 8h cumulative process-level soak while
+      # keeping each segment inside the platform limit.
+      - name: Run live provider and Mission soak — segment 1/2 (4h)
         shell: bash
+        timeout-minutes: 300
         env:
           NEXUS_BIN: ${{ github.workspace }}/nexus
-          NEXUS_LIVE_SOAK_DURATION: 8h
+          NEXUS_LIVE_SOAK_DURATION: 4h
           NEXUS_LIVE_SOAK_PROBE_INTERVAL: 60s
-          NEXUS_LIVE_SOAK_WORKDIR: ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}
+          NEXUS_LIVE_MISSION_TIMEOUT: 20m
+          NEXUS_LIVE_SOAK_WORKDIR: ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}-part1
+          SMOKE_REQUIRED_PROVIDERS: codex agy claude gemini
+        run: |
+          set -euo pipefail
+          bash ./scripts/certify-live-soak.sh
+
+      - name: Run live provider and Mission soak — segment 2/2 (4h)
+        shell: bash
+        timeout-minutes: 300
+        env:
+          NEXUS_BIN: ${{ github.workspace }}/nexus
+          NEXUS_LIVE_SOAK_DURATION: 4h
+          NEXUS_LIVE_SOAK_PROBE_INTERVAL: 60s
+          NEXUS_LIVE_MISSION_TIMEOUT: 20m
+          NEXUS_LIVE_SOAK_WORKDIR: ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}-part2
           SMOKE_REQUIRED_PROVIDERS: codex agy claude gemini
         run: |
           set -euo pipefail
@@ -88,7 +107,8 @@ jobs:
         with:
           name: stable-certification-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}
+            ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}-part1
+            ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}-part2
             ${{ runner.temp }}/nexus-release-lifecycle-${{ github.sha }}
           if-no-files-found: warn
           retention-days: 30
