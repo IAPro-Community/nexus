@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   composerActionPhase,
   composerBriefStats,
+  composerContextBudgetPercent,
+  composerContextItems,
   composerExpectedOutcome,
   composerGateForReadiness,
   composerNeedsGapConfirmation,
@@ -169,5 +171,60 @@ describe('composerExpectedOutcome', () => {
         },
       } as unknown as ComposerSessionView),
     ).toBe('Merged to main');
+  });
+});
+
+
+describe('composer context manifest projection', () => {
+  it('separates kept, referenced and dropped context without inventing entries', () => {
+    const view = {
+      context_manifest: {
+        version: '1',
+        project_id: 'p1',
+        fingerprint: 'fp',
+        generated_at: '2026-09-21T00:00:00Z',
+        budget: {
+          max_estimated_tokens: 100,
+          used_estimated_tokens: 40,
+          kept_items: 1,
+          referenced_items: 1,
+          dropped_items: 1,
+        },
+        items: [
+          {
+            id: 'keep',
+            kind: 'PROJECT_FACT',
+            source: 'project',
+            summary: 'fact',
+            decision: 'KEEP',
+            reason: 'relevant',
+            estimated_tokens: 40,
+          },
+          {
+            id: 'ref',
+            kind: 'MISSION_REFERENCE',
+            source: 'mission',
+            summary: 'mission',
+            decision: 'REFERENCE_ONLY',
+            reason: 'reference',
+            estimated_tokens: 10,
+          },
+          {
+            id: 'drop',
+            kind: 'PROJECT_FACT',
+            source: 'project',
+            summary: 'noise',
+            decision: 'DROP',
+            reason: 'budget',
+            estimated_tokens: 70,
+          },
+        ],
+      },
+    } as unknown as ComposerSessionView;
+
+    expect(composerContextItems(view, 'KEEP').map((item) => item.id)).toEqual(['keep']);
+    expect(composerContextItems(view, 'REFERENCE_ONLY').map((item) => item.id)).toEqual(['ref']);
+    expect(composerContextItems(view, 'DROP').map((item) => item.id)).toEqual(['drop']);
+    expect(composerContextBudgetPercent(view)).toBe(40);
   });
 });

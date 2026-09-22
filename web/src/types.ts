@@ -982,7 +982,41 @@ export interface ComposerSkillProposal {
   reason: string;
   applicability: string;
   risk: string;
+  source?: string;
+  version?: string;
+  available?: boolean;
+  recommendation_score?: number;
   updated_at: string;
+}
+
+export type ComposerContextDecision = 'KEEP' | 'REFERENCE_ONLY' | 'DROP';
+
+export interface ComposerContextItem {
+  id: string;
+  kind: string;
+  source: string;
+  locator?: string;
+  summary: string;
+  confidence?: string;
+  decision: ComposerContextDecision;
+  reason: string;
+  estimated_tokens: number;
+}
+
+export interface ComposerContextManifest {
+  version: string;
+  project_id: string;
+  fingerprint: string;
+  generated_at: string;
+  budget: {
+    max_estimated_tokens: number;
+    used_estimated_tokens: number;
+    kept_items: number;
+    referenced_items: number;
+    dropped_items: number;
+  };
+  items: ComposerContextItem[];
+  warnings?: string[];
 }
 export interface PromptArtifact {
   id: string;
@@ -1066,6 +1100,7 @@ export interface ComposerSessionView {
   artifacts?: PromptArtifact[];
   flow_suitability?: FlowSuitabilityAssessment;
   prompt_review?: ComposerPromptReview;
+  context_manifest?: ComposerContextManifest;
 }
 
 export interface IntelligenceMemory {
