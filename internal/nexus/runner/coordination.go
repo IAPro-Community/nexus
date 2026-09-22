@@ -114,32 +114,51 @@ func cloneCoordinationRequest(in CoordinationRequest) CoordinationRequest {
 // SubmitCoordinationRequest durably appends a validated request to the owning
 // MissionRun. Replaying the same request ID is idempotent only when the
 // semantic request is unchanged.
-func (r *MissionRunner) SubmitCoordinationRequest(ctx context.Context, runID string, req CoordinationRequest) (*CoordinationRequest, error) {
-	if r == nil || r.repo == nil {
-		return nil, fmt.Errorf("mission runner repository is unavailable")
-	}
-	runID = strings.TrimSpace(runID)
-	if runID == "" {
-		return nil, fmt.Errorf("coordination run id is required")
-	}
-	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
-	if err != nil {
-		return nil, err
-	}
-	leaseToken := run.LeaseToken
-	defer func() { _ = r.repo.ReleaseLease(context.Background(), runID, r.owner, leaseToken) }()
+func coordinationRequestID(req CoordinationRequest) string {
+	payload, _ := json.Marshal(struct {
+		RunID                string                `json:"run_id"`
+		SourcePackageID      string                `json:"source_package_id"`
+		SourceAgentID        string                `json:"source_agent_id,omitempty"`
+		Operation            CoordinationOperation `json:"operation"`
+		Subject              string                `json:"subject"`
+		Objective            string                `json:"objective,omitempty"`
+		PreferredRole        string                `json:"preferred_role,omitempty"`
+		PreferredProvider    string                `json:"preferred_provider,omitempty"`
+		RequiredCapabilities []string              `json:"required_capabilities,omitempty"`
+		ArtifactRefs         []string              `json:"artifact_refs,omitempty"`
+	}{
+		RunID: req.RunID, SourcePackageID: req.SourcePackageID, SourceAgentID: req.SourceAgentID,
+		Operation: req.Operation, Subject: strings.TrimSpace(req.Subject), Objective: strings.TrimSpace(req.Objective),
+		PreferredRole: strings.TrimSpace(req.PreferredRole), PreferredProvider: strings.TrimSpace(req.PreferredProvider),
+		RequiredCapabilities: req.RequiredCapabilities, ArtifactRefs: req.ArtifactRefs,
+	})
+	sum := sha256.Sum256(payload)
+	return "coordreq_" + hex.EncodeToString(sum[:8])
+}
 
-	if req.RunID == "" {
-		req.RunID = runID
+func appendCoordinationRequestInRun(run *MissionRun, req CoordinationRequest) (*CoordinationRequest, error) {
+	if run == nil {
+		return nil, fmt.Errorf("mission run is required")
 	}
-	if req.RunID != runID {
-		return nil, fmt.Errorf("coordination request run_id %q does not match owning run %q", req.RunID, runID)
+	if req.RunID == "" {
+		req.RunID = run.ID
+	}
+	if req.RunID != run.ID {
+		return nil, fmt.Errorf("coordination request run_id %q does not match owning run %q", req.RunID, run.ID)
+	}
+	if req.SourceAgentID == "" {
+		if source := packageByID(run, req.SourcePackageID); source != nil {
+			req.SourceAgentID = source.AssignedAgent
+		}
 	}
 	if req.Status == "" {
 		req.Status = CoordinationPending
 	}
 	if req.CreatedAt.IsZero() {
 		req.CreatedAt = time.Now().UTC()
+	}
+	if req.ID == "" {
+		req.ID = coordinationRequestID(req)
 	}
 	if err := ValidateCoordinationRequest(req); err != nil {
 		return nil, err
@@ -163,11 +182,36 @@ func (r *MissionRunner) SubmitCoordinationRequest(ctx context.Context, runID str
 	}
 	run.CoordinationRequests = append(run.CoordinationRequests, cloneCoordinationRequest(req))
 	run.UpdatedAt = time.Now().UTC()
+	saved := cloneCoordinationRequest(req)
+	return &saved, nil
+}
+
+// SubmitCoordinationRequest durably appends a validated request to the owning
+// MissionRun. Replaying the same request ID is idempotent only when the
+// semantic request is unchanged.
+func (r *MissionRunner) SubmitCoordinationRequest(ctx context.Context, runID string, req CoordinationRequest) (*CoordinationRequest, error) {
+	if r == nil || r.repo == nil {
+		return nil, fmt.Errorf("mission runner repository is unavailable")
+	}
+	runID = strings.TrimSpace(runID)
+	if runID == "" {
+		return nil, fmt.Errorf("coordination run id is required")
+	}
+	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
+	if err != nil {
+		return nil, err
+	}
+	leaseToken := run.LeaseToken
+	defer func() { _ = r.repo.ReleaseLease(context.Background(), runID, r.owner, leaseToken) }()
+
+	saved, err := appendCoordinationRequestInRun(run, req)
+	if err != nil {
+		return nil, err
+	}
 	if err := r.saveRun(ctx, run); err != nil {
 		return nil, err
 	}
-	saved := cloneCoordinationRequest(req)
-	return &saved, nil
+	return saved, nil
 }
 
 // ResolveCoordinationRequest closes a durable coordination request without
@@ -241,17 +285,23 @@ func dependenciesVerified(run *MissionRun, dependencies []string) bool {
 // Mission-owned child PackageRun. The source package is never rewound or
 // re-dispatched; dynamic work is additive and therefore cannot duplicate an
 // already-crossed provider side effect.
-func (r *MissionRunner) MaterializeCoordinationWork(ctx context.Context, runID, requestID string) (*PackageRun, error) {
-	if r == nil || r.repo == nil {
-		return nil, fmt.Errorf("mission runner repository is unavailable")
+func defaultCoordinationRole(operation CoordinationOperation) string {
+	switch operation {
+	case CoordinationNeedInfo, CoordinationArtifactRequest:
+		return "investigator"
+	case CoordinationReviewRequest:
+		return "reviewer"
+	case CoordinationDelegate:
+		return "implementer"
+	default:
+		return ""
 	}
-	run, err := r.repo.AcquireLease(ctx, strings.TrimSpace(runID), r.owner, r.leaseTTL)
-	if err != nil {
-		return nil, err
-	}
-	leaseToken := run.LeaseToken
-	defer func() { _ = r.repo.ReleaseLease(context.Background(), run.ID, r.owner, leaseToken) }()
+}
 
+func materializeCoordinationWorkInRun(run *MissionRun, requestID string) (*PackageRun, error) {
+	if run == nil {
+		return nil, fmt.Errorf("mission run is required")
+	}
 	if isTerminalRunState(run.State) {
 		return nil, fmt.Errorf("mission run %s is terminal and cannot materialize coordination work", run.ID)
 	}
@@ -281,9 +331,6 @@ func (r *MissionRunner) MaterializeCoordinationWork(ctx context.Context, runID, 
 		now := time.Now().UTC()
 		req.MaterializedAt = &now
 		run.UpdatedAt = now
-		if err := r.saveRun(ctx, run); err != nil {
-			return nil, err
-		}
 		copy := *existing
 		return &copy, nil
 	}
@@ -293,8 +340,8 @@ func (r *MissionRunner) MaterializeCoordinationWork(ctx context.Context, runID, 
 		goal = strings.TrimSpace(req.Subject)
 	}
 	role := strings.TrimSpace(req.PreferredRole)
-	if role == "" && req.Operation == CoordinationReviewRequest {
-		role = "reviewer"
+	if role == "" {
+		role = defaultCoordinationRole(req.Operation)
 	}
 	dependencies := append([]string(nil), source.Dependencies...)
 	state := StatePending
@@ -304,9 +351,12 @@ func (r *MissionRunner) MaterializeCoordinationWork(ctx context.Context, runID, 
 	handoff, _ := json.Marshal(map[string]any{
 		"coordination_request_id": req.ID,
 		"operation":               req.Operation,
+		"subject":                 req.Subject,
+		"objective":               req.Objective,
 		"source_package_id":       req.SourcePackageID,
 		"source_agent_id":         req.SourceAgentID,
 		"artifact_refs":           req.ArtifactRefs,
+		"required_capabilities":   req.RequiredCapabilities,
 	})
 	now := time.Now().UTC()
 	child := PackageRun{
@@ -335,11 +385,98 @@ func (r *MissionRunner) MaterializeCoordinationWork(ctx context.Context, runID, 
 	req.ChildPackageID = child.PackageID
 	req.MaterializedAt = &now
 	run.UpdatedAt = now
+	saved := child
+	return &saved, nil
+}
+
+// MaterializeCoordinationWork turns one durable coordination request into a
+// Mission-owned child PackageRun. The source package is never rewound or
+// re-dispatched; dynamic work is additive and therefore cannot duplicate an
+// already-crossed provider side effect.
+func (r *MissionRunner) MaterializeCoordinationWork(ctx context.Context, runID, requestID string) (*PackageRun, error) {
+	if r == nil || r.repo == nil {
+		return nil, fmt.Errorf("mission runner repository is unavailable")
+	}
+	run, err := r.repo.AcquireLease(ctx, strings.TrimSpace(runID), r.owner, r.leaseTTL)
+	if err != nil {
+		return nil, err
+	}
+	leaseToken := run.LeaseToken
+	defer func() { _ = r.repo.ReleaseLease(context.Background(), run.ID, r.owner, leaseToken) }()
+
+	saved, err := materializeCoordinationWorkInRun(run, requestID)
+	if err != nil {
+		return nil, err
+	}
 	if err := r.saveRun(ctx, run); err != nil {
 		return nil, err
 	}
-	saved := child
-	return &saved, nil
+	return saved, nil
+}
+
+func appendUniquePackageID(values []string, value string) []string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return values
+	}
+	for _, existing := range values {
+		if existing == value {
+			return values
+		}
+	}
+	return append(values, value)
+}
+
+func (r *MissionRunner) acceptExecutionCoordination(run *MissionRun, sourcePackageID string, requests []CoordinationRequest) error {
+	if len(requests) == 0 {
+		return nil
+	}
+	source := packageByID(run, sourcePackageID)
+	if source == nil {
+		return fmt.Errorf("coordination source package %q not found", sourcePackageID)
+	}
+	childIDs := make([]string, 0, len(requests))
+	for _, incoming := range requests {
+		incoming.RunID = run.ID
+		incoming.SourcePackageID = source.PackageID
+		if strings.TrimSpace(incoming.SourceAgentID) == "" {
+			incoming.SourceAgentID = source.AssignedAgent
+		}
+		incoming.Status = CoordinationPending
+		saved, err := appendCoordinationRequestInRun(run, incoming)
+		if err != nil {
+			return err
+		}
+		if saved.Status != CoordinationPending {
+			return fmt.Errorf("coordination request %q is already %s", saved.ID, saved.Status)
+		}
+		child, err := materializeCoordinationWorkInRun(run, saved.ID)
+		if err != nil {
+			return err
+		}
+		childIDs = append(childIDs, child.PackageID)
+	}
+
+	source = packageByID(run, sourcePackageID)
+	if source == nil {
+		return fmt.Errorf("coordination source package %q disappeared after materialization", sourcePackageID)
+	}
+	for _, childID := range childIDs {
+		source.Dependencies = appendUniquePackageID(source.Dependencies, childID)
+	}
+	source.ResumeAgentID = source.AssignedAgent
+	source.State = StatePending
+	source.ContextCapsule = nil
+	source.PromptVersionID = ""
+	source.CompiledPrompt = ""
+	source.ResultSummary = ""
+	source.Verifications = nil
+	source.FinishedAt = nil
+	source.ErrorMessage = ""
+	source.FailureKind = ""
+	resetDispatch(source)
+	run.UpdatedAt = time.Now().UTC()
+	return nil
 }
 
 func reconcileCoordinationRequests(run *MissionRun) {
