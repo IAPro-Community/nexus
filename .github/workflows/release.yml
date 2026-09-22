@@ -50,19 +50,35 @@ jobs:
           )
           run_id=''
           for attempt in $(seq 1 60); do
-            run_json="$(gh run list --workflow ci.yml --commit "$SHA" --limit 1 --json databaseId,status,conclusion,headSha)"
-            run_id="$(jq -r '.[0].databaseId // empty' <<<"$run_json")"
-            run_status="$(jq -r '.[0].status // empty' <<<"$run_json")"
-            run_conclusion="$(jq -r '.[0].conclusion // empty' <<<"$run_json")"
-            run_sha="$(jq -r '.[0].headSha // empty' <<<"$run_json")"
+            run_json="$(gh run list --workflow ci.yml --commit "$SHA" --limit 20 --json databaseId,status,conclusion,headSha,event)"
+            candidate="$(jq -c --arg sha "$SHA" '
+              [.[] |
+                select(.headSha == $sha) |
+                select(.event == "push" or .event == "workflow_dispatch")
+              ] |
+              sort_by(.databaseId) |
+              last // empty
+            ' <<<"$run_json")"
+            run_id="$(jq -r '.databaseId // empty' <<<"${candidate:-{}}")"
+            run_status="$(jq -r '.status // empty' <<<"${candidate:-{}}")"
+            run_conclusion="$(jq -r '.conclusion // empty' <<<"${candidate:-{}}")"
+            run_sha="$(jq -r '.headSha // empty' <<<"${candidate:-{}}")"
+            run_event="$(jq -r '.event // empty' <<<"${candidate:-{}}")"
             if [ -n "$run_id" ] && [ "$run_sha" = "$SHA" ] && [ "$run_status" = completed ]; then
               break
             fi
-            echo "Waiting for CI for $SHA (attempt $attempt/60; run=${run_id:-none}; status=${run_status:-none})"
+            echo "Waiting for exact-SHA non-PR CI for $SHA (attempt $attempt/60; run=${run_id:-none}; event=${run_event:-none}; status=${run_status:-none})"
             run_id=''
             sleep 30
           done
-          test -n "$run_id" || { echo "No completed CI run found for $SHA" >&2; exit 1; }
+          test -n "$run_id" || {
+            echo "No completed exact-SHA push/workflow_dispatch CI run found for $SHA. pull_request synthetic-merge runs are not release evidence." >&2
+            exit 1
+          }
+          case "$run_event" in
+            push|workflow_dispatch) ;;
+            *) echo "Refusing non-exact CI event $run_event for release SHA $SHA" >&2; exit 1 ;;
+          esac
           test "$run_conclusion" = success || {
             echo "CI run $run_id for $SHA concluded $run_conclusion" >&2
             gh run view "$run_id" --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv' >&2
