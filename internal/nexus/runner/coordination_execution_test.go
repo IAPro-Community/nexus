@@ -77,9 +77,10 @@ func TestMissionRunnerCoordinationRequestReturnsReceiptToSameSourceWork(t *testi
 		ProjectID: "project-coordination-e2e",
 		Revision:  1,
 		Packages: []PackageSpec{{
-			ID:    "source",
-			Title: "Implement authentication client",
-			Goal:  "Implement the authentication client against the canonical endpoint",
+			ID:        "source",
+			PhaseType: phaseImplementation,
+			Title:     "Implement authentication client",
+			Goal:      "Implement the authentication client against the canonical endpoint",
 		}},
 	}
 	run, err := r.StartMissionRun(ctx, plan, t.TempDir(), AutonomyContract{
