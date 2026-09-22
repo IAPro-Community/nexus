@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -80,7 +81,6 @@ func ValidateCoordinationRequest(req CoordinationRequest) error {
 	}
 	return nil
 }
-
 
 func cloneCoordinationRequest(in CoordinationRequest) CoordinationRequest {
 	out := in
