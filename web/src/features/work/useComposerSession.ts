@@ -55,7 +55,7 @@ export function useComposerSession(project: Project) {
   const [skillCatalog, setSkillCatalog] = useState<ComposerSkillCatalogItem[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [bootstrapActivity, setBootstrapActivity] = useState<NexusActivityPayload | null>(null);
-  const createAbort = useRef<AbortController | null>(null);
+  const conversationAbort = useRef<AbortController | null>(null);
   const skillCatalogRequest = useRef(0);
 
   const selectedSkillIds = useMemo(
@@ -92,6 +92,13 @@ export function useComposerSession(project: Project) {
       }
     },
     [t],
+  );
+
+  useEffect(
+    () => () => {
+      conversationAbort.current?.abort();
+    },
+    [],
   );
 
   useEffect(() => {
@@ -159,9 +166,9 @@ export function useComposerSession(project: Project) {
     runBusy(
       async () => {
         if (!draft.trim()) return;
-        createAbort.current?.abort();
+        conversationAbort.current?.abort();
         const controller = new AbortController();
-        createAbort.current = controller;
+        conversationAbort.current = controller;
         const steps = new Map<string, NexusActivityItem['status']>();
         const refreshActivity = () =>
           setBootstrapActivity(
@@ -207,6 +214,7 @@ export function useComposerSession(project: Project) {
               draft.trim(),
               mode,
               mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : undefined,
+              controller.signal,
             );
             setView(next);
             setArtifact(null);
@@ -216,14 +224,15 @@ export function useComposerSession(project: Project) {
           }
           throw err;
         } finally {
-          if (createAbort.current === controller) createAbort.current = null;
+          if (controller.signal.aborted) setBootstrapActivity(null);
+          if (conversationAbort.current === controller) conversationAbort.current = null;
         }
       },
       { conversation: true },
     );
 
-  const cancelCreate = () => {
-    createAbort.current?.abort();
+  const cancelConversation = () => {
+    conversationAbort.current?.abort();
   };
 
   const sendText = (
@@ -240,16 +249,24 @@ export function useComposerSession(project: Project) {
       async () => {
         if (!view) return;
         if (!text.trim() && !(attachments && attachments.length)) return;
-        setView(
-          await nexus.addComposerTurn(
-            view.session.id,
-            text.trim(),
-            view.session.revision,
-            attachments,
-          ),
-        );
-        setMessage('');
-        await refreshSessions();
+        conversationAbort.current?.abort();
+        const controller = new AbortController();
+        conversationAbort.current = controller;
+        try {
+          setView(
+            await nexus.addComposerTurn(
+              view.session.id,
+              text.trim(),
+              view.session.revision,
+              attachments,
+              controller.signal,
+            ),
+          );
+          setMessage('');
+          await refreshSessions();
+        } finally {
+          if (conversationAbort.current === controller) conversationAbort.current = null;
+        }
       },
       { conversation: true },
     );
@@ -383,6 +400,7 @@ export function useComposerSession(project: Project) {
   };
 
   const resetSession = () => {
+    cancelConversation();
     setView(null);
     setArtifact(null);
     setBootstrapActivity(null);
@@ -413,7 +431,7 @@ export function useComposerSession(project: Project) {
     setShowRefineInput,
     setSelectedAgentId,
     create,
-    cancelCreate,
+    cancelConversation,
     send,
     sendText,
     finalize,
