@@ -43,23 +43,26 @@ func removeProviderLaunchFlag(args []string, wanted string) []string {
 	return out
 }
 
-// wantInteractiveLead is the opt-in for binding a persistent Lead Agent and
-// holding Enter for Mission promotion. Default supervised shortcuts stay
-// byte-transparent so provider slash commands (/status, /model) work like a
-// native CLI.
+// wantInteractiveLead makes the V1 supervised experience Mission-aware by
+// default. Provider-native commands remain responsive through LineShadow's
+// immediate-submit path; --no-lead is the explicit byte-transparent opt-out.
+// --lead remains accepted for compatibility and explicitness.
 func wantInteractiveLead(args []string) bool {
-	return hasProviderLaunchFlag(args, "--lead")
+	if hasProviderLaunchFlag(args, "--no-lead") {
+		return false
+	}
+	return true
 }
 
 // executeProviderSupervised launches the provider through the same persistent
-// SessionHost used by Web/Desktop. Interactive TTY defaults to a
-// byte-transparent attach. Pass withLead=true (--lead) to bind a Lead Agent
-// and enable Mission promotion on submit.
+// SessionHost used by Web/Desktop. Interactive TTY is Mission-aware by default;
+// withLead=false (--no-lead) keeps the legacy byte-transparent attach.
 func executeProviderSupervised(provName, explicitProfile string, args []string, withLead bool) error {
 	if strings.TrimSpace(provName) == "" {
 		return fmt.Errorf("provider is required for supervised launch")
 	}
 	args = removeProviderLaunchFlag(args, "--lead")
+	args = removeProviderLaunchFlag(args, "--no-lead")
 
 	fmt.Fprintf(os.Stderr, "⚡ [nexus] iniciando %s…\n", provName)
 
