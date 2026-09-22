@@ -146,3 +146,71 @@ func TestMissionRunnerCoordinationRequestReturnsReceiptToSameSourceWork(t *testi
 		t.Fatalf("source package does not depend on coordination child: %v", source.Dependencies)
 	}
 }
+
+
+type unsafeCoordinationExecutor struct{}
+
+func (unsafeCoordinationExecutor) Allocate(_ context.Context, _ *MissionRun, _ *PackageRun) (AllocationResult, error) {
+	return AllocationResult{AgentID: "agent-source", Workspace: "/tmp"}, nil
+}
+
+func (unsafeCoordinationExecutor) Compile(_ context.Context, _ *MissionRun, pkg *PackageRun) (PromptArtifact, error) {
+	return PromptArtifact{VersionID: "prompt-" + pkg.PackageID, Content: pkg.Goal}, nil
+}
+
+func (unsafeCoordinationExecutor) Execute(_ context.Context, _ *MissionRun, _ *PackageRun, _ string) (ExecutionResult, error) {
+	return ExecutionResult{
+		RuntimeID: "runtime-source",
+		CoordinationRequests: []CoordinationRequest{{
+			Operation: CoordinationNeedInfo,
+			Subject:   "architecture.auth_endpoint",
+			Objective: "resolve the canonical endpoint",
+		}},
+	}, nil
+}
+
+func (unsafeCoordinationExecutor) Review(context.Context, *MissionRun, *PackageRun) (ReviewVerdict, error) {
+	return ReviewVerdict{}, fmt.Errorf("review not expected")
+}
+
+func TestMissionRunnerBlocksCoordinationWithoutReplaySafetyProof(t *testing.T) {
+	ctx := context.Background()
+	r := NewMissionRunner(NewMemoryRunRepository(), unsafeCoordinationExecutor{})
+	run, err := r.StartMissionRun(ctx, PlanSpec{
+		ID:        "plan-unsafe-coordination",
+		ProjectID: "project-unsafe-coordination",
+		Revision:  1,
+		Packages: []PackageSpec{{
+			ID:    "source",
+			Title: "Source",
+			Goal:  "Implement source",
+		}},
+	}, t.TempDir(), AutonomyContract{
+		MaxRetries:         1,
+		MaxTotalIterations: 10,
+		MaxNoProgress:      2,
+	}, "agent-source")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var stepErr error
+	for i := 0; i < 5; i++ {
+		run, _, stepErr = r.ExecuteNextStep(ctx, run.ID)
+		if stepErr != nil {
+			break
+		}
+	}
+	if stepErr == nil {
+		t.Fatal("coordination without replay-safety proof must block")
+	}
+	if run.State != StateBlockedNeedsUser {
+		t.Fatalf("state=%s want %s", run.State, StateBlockedNeedsUser)
+	}
+	if run.NeedsHuman == nil || run.NeedsHuman.ReasonCode != "COORDINATION_REPLAY_UNPROVEN" {
+		t.Fatalf("unexpected human intervention: %+v", run.NeedsHuman)
+	}
+	if len(run.CoordinationRequests) != 0 {
+		t.Fatalf("unsafe request must not be materialized, got %d requests", len(run.CoordinationRequests))
+	}
+}
