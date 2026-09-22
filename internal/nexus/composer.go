@@ -444,14 +444,15 @@ func (n *Nexus) FinalizeComposerSession(ctx context.Context, sessionID string, s
 		skills = append(skills, *proposal)
 		proposalIDs[skillID] = struct{}{}
 	}
-	compiled, err := compileComposerPromptWithCatalog(renderCanonicalPrompt(brief), validatedSkills, catalog)
-	if err != nil {
-		return nil, err
-	}
 	manifest := decodeComposerContextManifest(session.ContextManifestJSON)
 	if refreshedManifest, manifestErr := n.BuildComposerContextManifest(ctx, session.ProjectID, brief); manifestErr == nil {
 		manifest = refreshedManifest
 		session.ContextManifestJSON = mustComposerContextManifestJSON(manifest)
+	}
+	executionBrief := composerExecutionBrief(brief, manifest)
+	compiled, err := compileComposerPromptWithCatalog(renderCanonicalPrompt(executionBrief), validatedSkills, catalog)
+	if err != nil {
+		return nil, err
 	}
 	contextJSON, _ := json.Marshal(map[string]any{"project_id": session.ProjectID, "brief": brief, "context_manifest": manifest})
 	skillJSON, _ := json.Marshal(compiled.ValidatedSkills)

@@ -36,9 +36,9 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 	if err != nil {
 		return nil, err
 	}
-	var brief LivingBrief
-	if err := json.Unmarshal([]byte(session.BriefJSON), &brief); err != nil {
-		return nil, fmt.Errorf("decode composer brief: %w", err)
+	brief, manifest, err := composerArtifactExecutionContext(*artifact, *session)
+	if err != nil {
+		return nil, err
 	}
 	title := firstNonEmpty(brief.Intent.Objective, brief.Goal, "Composer Flow")
 	facts := map[string]string{
@@ -46,11 +46,14 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		"nexus.source_artifact_revision": fmt.Sprintf("%d", artifact.Version),
 		"nexus.source_artifact_hash":     artifact.Hash,
 	}
+	if strings.TrimSpace(manifest.Fingerprint) != "" {
+		facts["nexus.source_context_manifest_fingerprint"] = manifest.Fingerprint
+	}
 	if motivation, marshalErr := json.Marshal(brief.Motivation); marshalErr == nil {
 		facts["composer.motivation_map"] = string(motivation)
 	}
 	for key, value := range map[string]string{
-		"composer.context":   artifact.ContextJSON,
+		"composer.context":   composerExecutionContextJSON(session.ProjectID, brief, manifest),
 		"composer.skill_ids": artifact.SkillIDsJSON,
 	} {
 		if strings.TrimSpace(value) != "" {
@@ -121,6 +124,38 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		return nil, err
 	}
 	return plan, nil
+}
+
+type composerArtifactContextEnvelope struct {
+	ProjectID       string                  `json:"project_id"`
+	Brief           LivingBrief             `json:"brief"`
+	ContextManifest ComposerContextManifest `json:"context_manifest"`
+}
+
+func composerArtifactExecutionContext(artifact store.PromptArtifact, session store.ComposerSession) (LivingBrief, ComposerContextManifest, error) {
+	var envelope composerArtifactContextEnvelope
+	if strings.TrimSpace(artifact.ContextJSON) != "" {
+		if err := json.Unmarshal([]byte(artifact.ContextJSON), &envelope); err != nil {
+			return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("decode Composer artifact context: %w", err)
+		}
+	}
+	if strings.TrimSpace(envelope.ProjectID) != "" && envelope.ProjectID != session.ProjectID {
+		return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("Composer artifact project %s does not match session project %s", envelope.ProjectID, session.ProjectID)
+	}
+	if strings.TrimSpace(envelope.ContextManifest.ProjectID) != "" && envelope.ContextManifest.ProjectID != session.ProjectID {
+		return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("Composer context manifest project %s does not match session project %s", envelope.ContextManifest.ProjectID, session.ProjectID)
+	}
+	if strings.TrimSpace(envelope.Brief.Goal) != "" || strings.TrimSpace(envelope.Brief.Intent.Objective) != "" {
+		return envelope.Brief, envelope.ContextManifest, nil
+	}
+
+	// Legacy PromptArtifacts predate the frozen Composer envelope. Preserve
+	// compatibility by falling back to the session brief only for those rows.
+	var legacyBrief LivingBrief
+	if err := json.Unmarshal([]byte(session.BriefJSON), &legacyBrief); err != nil {
+		return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("decode legacy Composer brief: %w", err)
+	}
+	return legacyBrief, decodeComposerContextManifest(session.ContextManifestJSON), nil
 }
 
 func decodeStringArray(raw string) []string {

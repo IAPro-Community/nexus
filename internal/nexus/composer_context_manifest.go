@@ -223,6 +223,41 @@ func (n *Nexus) BuildComposerContextManifest(ctx context.Context, projectID stri
 	return manifest, nil
 }
 
+func composerExecutionBrief(brief LivingBrief, manifest ComposerContextManifest) LivingBrief {
+	keepPaths := make(map[string]struct{})
+	for _, item := range manifest.Items {
+		if item.Kind == "REFERENCED_FILE" && item.Decision == ComposerContextKeep && strings.TrimSpace(item.Locator) != "" {
+			keepPaths[item.Locator] = struct{}{}
+		}
+	}
+	if len(brief.Context.ReferencedFiles) == 0 {
+		return brief
+	}
+	filtered := make([]ContextFileRef, 0, len(brief.Context.ReferencedFiles))
+	for _, file := range brief.Context.ReferencedFiles {
+		if _, keep := keepPaths[file.Path]; keep {
+			filtered = append(filtered, file)
+		}
+	}
+	brief.Context.ReferencedFiles = filtered
+	return brief
+}
+
+func composerExecutionContextJSON(projectID string, brief LivingBrief, manifest ComposerContextManifest) string {
+	payload := map[string]any{
+		"project_id": projectID,
+		"brief":      composerExecutionBrief(brief, manifest),
+	}
+	if strings.TrimSpace(manifest.Fingerprint) != "" {
+		payload["context_manifest"] = manifest.IntelligenceContext()
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return "{}"
+	}
+	return string(raw)
+}
+
 func (m ComposerContextManifest) IntelligenceContext() map[string]any {
 	items := make([]map[string]any, 0, m.Budget.KeptItems)
 	for _, item := range m.Items {

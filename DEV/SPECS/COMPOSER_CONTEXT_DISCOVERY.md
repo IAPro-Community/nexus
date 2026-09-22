@@ -52,6 +52,13 @@ The provider never receives raw Mission transcripts from this phase. Mission ent
 are pointers with run id, plan id, state and timestamp. Skills are metadata candidates;
 their instructions are loaded only through the existing explicit skill selection path.
 
+The immutable PromptArtifact stores the **full audit envelope** (brief + full manifest).
+Its executable prompt is compiled from an execution brief in which referenced files
+not classified as KEEP are removed. When that artifact becomes a Flow, structured
+execution facts carry only the KEEP projection plus the manifest fingerprint. DROP and
+REFERENCE_ONLY remain retrievable through the source artifact, never copied into the
+Mission prompt.
+
 ## 4. Context budget
 
 The 1.0 budget uses a deterministic conservative token estimate. It is a context-size
