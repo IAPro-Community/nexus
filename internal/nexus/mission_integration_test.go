@@ -69,7 +69,7 @@ func TestMissionDeliveryIntegrationRejectsTraversalRunID(t *testing.T) {
 		ID: "../escape-target", ProjectID: project.ID, Workspace: project.CanonicalPath, Autonomous: true,
 	}
 	_, err = (&nexusPackageExecutor{n: n}).IntegrateDelivery(context.Background(), run)
-	if err == nil || !strings.Contains(err.Error(), "unsafe integration mission run id") {
+	if err == nil || !strings.Contains(err.Error(), "unsafe managed mission run id") {
 		t.Fatalf("path-traversal run ID must fail closed, got %v", err)
 	}
 	if got, err := os.ReadFile(sentinel); err != nil || string(got) != "keep" {
