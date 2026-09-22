@@ -7,7 +7,7 @@ BASELINE_PR3_HEAD: 300ccbeee4f145f80ebce13c9cefafcb01acefc3
 BASELINE_CI_RUN: 35547298239 (#149)
 BASELINE_MAIN_PUSH_CI_RUN: 35547840452 (PARTIAL / NON-GREEN)
 LATEST_PUBLISHED_BETA_TAG: v1.0.0-beta.1
-UPDATED_AT: 2026-09-21
+UPDATED_AT: 2026-09-22
 
 ## Current truth
 
@@ -112,6 +112,70 @@ The stable certification performs:
 
 The historical in-memory `TestOvernightSoakHarnessBounded` remains a state-machine
 test only and is not accepted as stable-release soak evidence.
+
+## Closure hardening — 2026-09-22
+
+The closure branch was re-audited against the executable product and release
+boundaries. The following source-level blockers were corrected rather than
+deferred to certification:
+
+- human confirmation of an unknown external dispatch no longer fabricates
+  `VERIFIED`; the package returns to `TESTING` and must produce real verification
+  evidence;
+- Evidence Bundle no longer treats an already resolved human intervention as
+  unresolved evidence;
+- Composer Stop now aborts the active request, including attachment transfer, and
+  asynchronous errors are announced accessibly;
+- Composer narrow-layout overflow, mobile touch targets and the full theme/device
+  visual matrix were hardened;
+- CLI `nexus run` / `plan run` now remain alive with the canonical Mission worker
+  instead of abandoning an in-process goroutine; terminal/blocked/failure states
+  preserve non-zero CLI semantics;
+- project registration can explicitly request `--isolation worktree`, avoiding an
+  autonomous-Mission/default-isolation mismatch;
+- GoReleaser now defines the CLI artifact matrix for Linux, Windows and macOS and
+  packages Windows archives as ZIP;
+- Windows and Unix uninstallers are explicit/idempotent, preserve data by default,
+  and the lifecycle includes DEB removal;
+- the updater trust root and key ID have versioned sources of truth
+  (`UPDATE_PUBLIC_KEY`, `UPDATE_KEY_ID`) and release secrets must match them;
+- install scripts verify detached Ed25519 manifest signature, signed artifact digest
+  and embedded binary version before replacement;
+- the macOS installer correctly extracts the verified Desktop ZIP/`.app`; unsupported
+  Desktop architectures no longer turn a valid CLI install into a failure;
+- `nexus update check` now fails closed on registry/signature errors, update apply
+  failures return a non-zero result, and channel migration is explicit via
+  `--channel beta|stable`;
+- alpha/beta/RC channel classification is consistent between signer, updater and
+  release workflow;
+- stable certification now exercises signed install, installer upgrade, self-update,
+  tamper rejection, uninstall/purge, explicit beta→stable promotion, authenticated
+  provider/Mission execution and an 8-hour cumulative process-level soak with restart;
+- release provenance rejects pull-request synthetic-merge CI as exact-SHA evidence;
+  only exact-SHA `push` or `workflow_dispatch` CI can authorize artifacts;
+- public installation/package documentation now matches the private-source /
+  binaries-only distribution model and no longer advertises RPM/NSIS/winget as
+  produced v1 artifacts.
+
+The 8-hour soak is split into two four-hour execution segments because GitHub limits an
+individual Actions step to 360 minutes. Both segments run on the same exact candidate
+SHA and retain separate evidence.
+
+### Evidence still external
+
+These corrections do **not** convert the candidate to GO by themselves. The current PR
+Actions runs are reaching `pending` without creating jobs; previous superseded runs
+were cancelled by workflow concurrency. Therefore there is still no fresh native
+Linux/Windows/macOS, browser, security, release snapshot or Desktop execution evidence
+for the current closure head.
+
+Stable remains fail-closed until:
+
+1. Actions can actually schedule the required jobs;
+2. exact-SHA non-PR CI passes every required platform/release gate;
+3. the protected signing environment provides the canonical key/key-id pair;
+4. stable certification completes the signed lifecycle and both four-hour live-soak
+   segments on that exact SHA.
 
 ## Current verdict
 
