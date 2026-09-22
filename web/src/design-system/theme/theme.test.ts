@@ -107,6 +107,22 @@ describe('theme model', () => {
 });
 
 describe('resolveThemeStyleVariables', () => {
+  it('faz o preset padrão acompanhar o tema claro do sistema sem marcar customização', () => {
+    const vars = resolveThemeStyleVariables(
+      {
+        ...defaultThemePreferences,
+        scheme: 'system',
+        preset: 'nexus-dark',
+        isCustomized: false,
+      },
+      'light',
+    );
+
+    expect(vars['--nx-bg']).toBe('#f4f6fa');
+    expect(vars['--nx-surface']).toBe('#ffffff');
+    expect(vars['--nx-text']).toBe('#141821');
+  });
+
   it('aplica variáveis nativas do preset quando isCustomized é false', () => {
     const vars = resolveThemeStyleVariables(
       {
