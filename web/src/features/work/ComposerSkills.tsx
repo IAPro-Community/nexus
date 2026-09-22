@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card, Input } from '../../design-system';
 import type { ComposerSkillCatalogItem, ComposerSkillProposal } from '../../types';
@@ -30,11 +30,29 @@ export const ComposerSkills: React.FC<{
   catalog: ComposerSkillCatalogItem[];
   busy: boolean;
   onUpdateSkill: (skillId: string, state: 'ACCEPTED' | 'REJECTED') => void;
+  onSearchCatalog: (query: string) => Promise<void>;
   onSelectCatalogSkill: (skillId: string) => void;
   compact?: boolean;
-}> = ({ skills, catalog, busy, onUpdateSkill, onSelectCatalogSkill, compact = false }) => {
+}> = ({
+  skills,
+  catalog,
+  busy,
+  onUpdateSkill,
+  onSearchCatalog,
+  onSelectCatalogSkill,
+  compact = false,
+}) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    const normalized = query.trim();
+    if (normalized.length < 2) return undefined;
+    const timer = window.setTimeout(() => {
+      void onSearchCatalog(normalized);
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [onSearchCatalog, query]);
 
   const visibleProposals = useMemo(() => {
     const q = query.trim().toLowerCase();

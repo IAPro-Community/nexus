@@ -47,6 +47,7 @@ export const ComposerInspector: React.FC<{
   onRefine: () => void;
   skillCatalog: ComposerSkillCatalogItem[];
   onUpdateSkill: (skillId: string, state: 'ACCEPTED' | 'REJECTED') => void;
+  onSearchSkillCatalog: (query: string) => Promise<void>;
   onSelectCatalogSkill: (skillId: string) => void;
   onAttach: (path: string) => void;
   onDetach: (path: string) => void;
@@ -88,6 +89,7 @@ export const ComposerInspector: React.FC<{
   onRefine,
   skillCatalog,
   onUpdateSkill,
+  onSearchSkillCatalog,
   onSelectCatalogSkill,
   onAttach,
   onDetach,
@@ -180,6 +182,7 @@ export const ComposerInspector: React.FC<{
                 busy={busy}
                 compact
                 onUpdateSkill={onUpdateSkill}
+                onSearchCatalog={onSearchSkillCatalog}
                 onSelectCatalogSkill={onSelectCatalogSkill}
               />
             </details>

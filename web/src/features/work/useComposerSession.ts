@@ -321,6 +321,18 @@ export function useComposerSession(project: Project) {
       setView(await nexus.updateComposerSkillState(view.session.id, skillId, state));
     });
 
+  const searchSkillCatalog = useCallback(
+    async (query: string) => {
+      try {
+        const items = await nexus.listComposerSkillCatalog(project.id, query);
+        setSkillCatalog(items || []);
+      } catch {
+        setSkillCatalog([]);
+      }
+    },
+    [project.id],
+  );
+
   const selectCatalogSkill = (skillId: string) =>
     runBusy(async () => {
       if (!view) return;
@@ -402,6 +414,7 @@ export function useComposerSession(project: Project) {
     resolveUnknown,
     rememberUnknown,
     updateSkill,
+    searchSkillCatalog,
     selectCatalogSkill,
     attachContext,
     detachContext,

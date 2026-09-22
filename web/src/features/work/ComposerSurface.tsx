@@ -184,6 +184,7 @@ export const ComposerSurface: React.FC<{
       onRefine={() => void composer.refine()}
       skillCatalog={skillCatalog}
       onUpdateSkill={(skillId, state) => void composer.updateSkill(skillId, state)}
+      onSearchSkillCatalog={composer.searchSkillCatalog}
       onSelectCatalogSkill={(skillId) => void composer.selectCatalogSkill(skillId)}
       onAttach={(path) => void composer.attachContext(path)}
       onDetach={(path) => void composer.detachContext(path)}
