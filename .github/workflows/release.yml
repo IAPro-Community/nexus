@@ -37,6 +37,7 @@ jobs:
           required=(
             'Frontend (Format, Lint, Styles, Typecheck, Unit & Build)'
             'Security'
+            'Release configuration'
             'Browser E2E, Axe & visual smoke'
             'Linux E2E (Go 1.25.14)'
             'Windows E2E (ConPTY, Named Pipe, PowerShell)'
