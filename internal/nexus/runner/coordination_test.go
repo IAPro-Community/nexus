@@ -2,6 +2,8 @@ package runner
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -359,5 +361,120 @@ func TestMissionRunnerCoordinationResolvesFromChildReceipt(t *testing.T) {
 	got := coordinationRequestByID(reloaded, req.ID)
 	if got == nil || got.Status != CoordinationResolved || got.ResultReceiptID != "receipt_dynamic" || got.ResolvedAt == nil {
 		t.Fatalf("coordination must resolve from verified receipt: %#v", got)
+	}
+}
+
+
+func TestValidateCoordinationRequestRejectsOversizedPayload(t *testing.T) {
+	req := CoordinationRequest{
+		ID:              "coord_oversized",
+		RunID:           "run_oversized",
+		SourcePackageID: "source",
+		Operation:       CoordinationNeedInfo,
+		Subject:         strings.Repeat("x", maxCoordinationSubjectBytes+1),
+		Status:          CoordinationPending,
+	}
+	if err := ValidateCoordinationRequest(req); err == nil {
+		t.Fatal("oversized coordination subject must fail closed")
+	}
+
+	req.Subject = "bounded"
+	req.RequiredCapabilities = make([]string, maxCoordinationListItems+1)
+	for i := range req.RequiredCapabilities {
+		req.RequiredCapabilities[i] = "capability"
+	}
+	if err := ValidateCoordinationRequest(req); err == nil {
+		t.Fatal("oversized coordination capability list must fail closed")
+	}
+}
+
+func TestMissionRunnerRejectsCoordinationFanOutBeforeMaterializingChildren(t *testing.T) {
+	now := time.Now().UTC()
+	run := &MissionRun{
+		ID:           "run_fanout",
+		PlanID:       "plan_fanout",
+		PlanRevision: 1,
+		ProjectID:    "project_fanout",
+		State:        StateExecuting,
+		PackageRuns: []PackageRun{{
+			ID:            "pkgrun_source",
+			PackageID:     "source",
+			AssignedAgent: "agent-source",
+			State:         StateExecuting,
+			StartedAt:     now,
+		}},
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+	requests := make([]CoordinationRequest, maxCoordinationRequestsPerTurn+1)
+	for i := range requests {
+		requests[i] = CoordinationRequest{
+			Operation: CoordinationNeedInfo,
+			Subject:   fmt.Sprintf("fact-%d", i),
+		}
+	}
+	r := &MissionRunner{}
+	if err := r.acceptExecutionCoordination(run, "source", requests); err == nil {
+		t.Fatal("coordination fan-out above safe turn limit must fail closed")
+	}
+	if len(run.CoordinationRequests) != 0 || len(run.PackageRuns) != 1 {
+		t.Fatalf("fan-out rejection must be atomic: requests=%d packages=%d", len(run.CoordinationRequests), len(run.PackageRuns))
+	}
+	if run.PackageRuns[0].State != StateExecuting {
+		t.Fatalf("source package changed despite rejected fan-out: %s", run.PackageRuns[0].State)
+	}
+}
+
+func TestMissionCoordinationTotalLimitPreservesIdempotentReplay(t *testing.T) {
+	now := time.Now().UTC()
+	run := &MissionRun{
+		ID:           "run_total_limit",
+		PlanID:       "plan_total_limit",
+		PlanRevision: 1,
+		ProjectID:    "project_total_limit",
+		State:        StateExecuting,
+		PackageRuns: []PackageRun{{
+			ID:            "pkgrun_source",
+			PackageID:     "source",
+			AssignedAgent: "agent-source",
+			State:         StateExecuting,
+			StartedAt:     now,
+		}},
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+	var first CoordinationRequest
+	for i := 0; i < maxCoordinationRequestsPerMission; i++ {
+		req := CoordinationRequest{
+			ID:              fmt.Sprintf("coord_limit_%d", i),
+			RunID:           run.ID,
+			SourcePackageID: "source",
+			SourceAgentID:   "agent-source",
+			Operation:       CoordinationNeedInfo,
+			Subject:         fmt.Sprintf("fact-%d", i),
+			Status:          CoordinationPending,
+			CreatedAt:       now,
+		}
+		if i == 0 {
+			first = req
+		}
+		if _, err := appendCoordinationRequestInRun(run, req); err != nil {
+			t.Fatalf("append request %d: %v", i, err)
+		}
+	}
+	if _, err := appendCoordinationRequestInRun(run, CoordinationRequest{
+		ID:              "coord_over_limit",
+		RunID:           run.ID,
+		SourcePackageID: "source",
+		SourceAgentID:   "agent-source",
+		Operation:       CoordinationNeedInfo,
+		Subject:         "one more fact",
+		Status:          CoordinationPending,
+		CreatedAt:       now,
+	}); err == nil {
+		t.Fatal("mission coordination total limit must reject new semantic work")
+	}
+	if _, err := appendCoordinationRequestInRun(run, first); err != nil {
+		t.Fatalf("idempotent replay must remain valid at the total limit: %v", err)
 	}
 }
