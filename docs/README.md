@@ -151,9 +151,9 @@ arquivos são históricos e preservam decisões de uma revisão específica.
 
 Para evitar confusão:
 
-- estado atual de release: [RELEASE_STATUS](../DEV/validation/current/RELEASE_STATUS.md);
-- contrato de fechamento: [NEXUS_1_0_CLOSURE](../DEV/SPECS/NEXUS_1_0_CLOSURE.md);
-- índice interno: [DEV/INDEX](../DEV/INDEX.md).
+- estado público de release: [Status da release](release-status.md);
+- contrato interno de fechamento: `DEV/SPECS/NEXUS_1_0_CLOSURE.md`;
+- índice interno: `DEV/INDEX.md`.
 
 ## Guia editorial
 
