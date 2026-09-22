@@ -1,60 +1,74 @@
-# Pacotes nativos (DEB / RPM / NSIS / winget)
+# Pacotes e artefatos nativos
 
-![Pacotes nativos DEB RPM NSIS winget](../assets/help/help-install-packages.png)
+A distribuição v1 separa três caminhos: instalação por script assinado,
+pacote DEB para Linux e archives nativos de CLI/Desktop. Não trate arquivos de
+packaging presentes no source como artefatos publicados sem um gate correspondente
+no CI/release.
 
-Distribuição por **pacote de sistema** ou instalador gráfico. Separado da instalação via script ([installation.md](installation.md)) e do Docker ([docker-compat.md](docker-compat.md)).
+## Linux — DEB
 
-## Linux — DEB e RPM
+O GoReleaser gera **DEB** via `nfpms` em
+[`.goreleaser.yaml`](../../.goreleaser.yaml).
 
-Gerados pelo GoReleaser (`nfpms` em [`.goreleaser.yaml`](../../.goreleaser.yaml)).
-
-- Artefatos típicos na release: `nexus_*_linux_amd64.deb`, `nexus_*_linux_amd64.rpm` (e arm64 quando aplicável).
-- Binário em `/usr/local/bin/nexus`.
-- O CI faz smoke: `dpkg -i` (Ubuntu) e `rpm -i` (Fedora) → `nexus version`.
+- artefatos: `nexus_*_linux_amd64.deb` e `nexus_*_linux_arm64.deb` quando o build correspondente existir;
+- binário: `/usr/local/bin/nexus`;
+- CI atual: instala o DEB em Ubuntu, executa `nexus version`, remove o pacote e
+  verifica que o comando desapareceu;
+- Desktop Wails não faz parte do DEB CLI.
 
 ### Debian / Ubuntu
 
 ```bash
-# Baixe o .deb da release correspondente e:
 sudo dpkg -i nexus_*_linux_amd64.deb
 # se faltar dependência:
 sudo apt-get install -f -y
 nexus version
 ```
 
-### Fedora / RHEL
+## Archives de CLI
 
-```bash
-sudo rpm -i nexus_*_linux_amd64.rpm
-nexus version
-```
+O GoReleaser produz archives de CLI para:
 
-Desktop Wails **não** entra no pacote CLI; use o artefato `nexus-desktop_*` da mesma release ou o instalador de script com desktop.
+- Linux amd64 e arm64: `.tar.gz`;
+- Windows amd64 e arm64: `.zip`;
+- macOS amd64 e arm64: `.tar.gz`.
 
-## Windows — NSIS
+O instalador assinado seleciona o archive correto, valida manifesto Ed25519,
+SHA-256 e a versão embutida no binário antes da substituição.
 
-Job CI dedicado gera `nexus-setup-Windows_x86_64.exe` ([`packaging/windows/nexus.nsi`](../../packaging/windows/nexus.nsi)).
+→ [Instalação por script](installation.md)
 
-- Instala em `%LOCALAPPDATA%\Programs\IAPro Nexus`
-- Inclui `nexus.exe`; inclui `nexus-desktop.exe` quando o artefato desktop estiver no payload
-- Ajusta PATH do usuário e cria atalho no Desktop quando houver desktop
-- A release **exige** esse artefato no gate de publicação
+## Desktop nativo
 
-```powershell
-# Após baixar da GitHub Release:
-.\nexus-setup-Windows_x86_64.exe
-nexus doctor
-nexus web
-```
+Os artefatos Desktop atualmente exigidos pelo pipeline de fechamento são:
 
-Fallback sem instalador gráfico: [installation.md — Windows](installation.md#windows-powershell).
+- Linux x86_64: `nexus-desktop_Linux_x86_64.tar.gz`;
+- Windows x86_64: `nexus-desktop_Windows_x86_64.zip`;
+- macOS arm64: `nexus-desktop_Darwin_arm64.zip`.
 
-## Windows — winget
+Arquiteturas de CLI sem Desktop correspondente continuam instaláveis; o
+instalador informa explicitamente que o shell nativo não está publicado naquele
+alvo.
 
-Manifesto stub em [`packaging/winget/IAPro.Nexus.yaml`](../../packaging/winget/IAPro.Nexus.yaml).
+→ [Suporte de plataformas](../operations/platform-support.md)
 
-Só publique no repositório winget-pkgs **depois** de existir NSIS estável na release com SHA-256 real. Substitua `VERSION` e `InstallerSha256` no manifesto antes do PR.
+## RPM, NSIS e winget
 
-## Relação com a matriz
+Existem arquivos preparatórios no source para alguns formatos futuros, mas o
+pipeline v1 atual **não publica nem certifica** RPM, NSIS ou winget.
 
-Status por OS: [platform-support.md](../operations/platform-support.md).
+Em particular:
+
+- o CI atual verifica explicitamente que o snapshot GoReleaser contém zero RPMs;
+- não há job NSIS no workflow de CI atual;
+- o manifesto winget é apenas material preparatório e não deve ser publicado
+  até existir um instalador Windows estável, assinado e com SHA-256 real.
+
+Esses formatos só podem mudar para “publicados” quando houver geração,
+assinatura quando aplicável, smoke nativo e gate de release correspondente.
+
+## Regra de evidência
+
+A presença de `packaging/*` ou de um arquivo de configuração não é evidência de
+distribuição. A fonte de verdade é a combinação do workflow da revisão, artefato
+gerado e smoke da mesma revisão.
