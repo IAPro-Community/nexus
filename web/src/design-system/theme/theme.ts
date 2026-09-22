@@ -150,11 +150,13 @@ export function resolveThemeStyleVariables(
   const preset = THEME_PRESETS[presetKey] || THEME_PRESETS['nexus-dark'];
   const finalVars: Record<string, string> = { ...preset.vars };
 
-  if (prefs.isCustomized) {
+  if (prefs.isCustomized || prefs.scheme === 'system') {
     if (resolvedScheme !== preset.scheme) {
       Object.assign(finalVars, SCHEME_OVERRIDE_VARS[resolvedScheme] || {});
     }
-    Object.assign(finalVars, ACCENT_OVERRIDE_VARS[prefs.accent] || {});
+    if (prefs.isCustomized) {
+      Object.assign(finalVars, ACCENT_OVERRIDE_VARS[prefs.accent] || {});
+    }
   }
 
   return finalVars;
