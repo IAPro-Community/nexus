@@ -70,8 +70,8 @@ func TestComposerContextManifestAndSkillScoreRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	session, err := st.CreateComposerSession(ComposerSession{
-		ProjectID: project.ID,
-		BriefJSON: `{"goal":"inspect context"}`,
+		ProjectID:           project.ID,
+		BriefJSON:           `{"goal":"inspect context"}`,
 		ContextManifestJSON: `{"version":"1","fingerprint":"ctx-fp"}`,
 	})
 	if err != nil {
