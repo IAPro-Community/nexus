@@ -79,6 +79,22 @@ jobs:
           done
           echo "ci-run-id=$run_id" >> "$GITHUB_OUTPUT"
 
+          RELEASE_VERSION="${{ inputs.version || github.ref_name }}"
+          case "$RELEASE_VERSION" in
+            *-alpha.*|*-beta.*|*-rc.*)
+              echo "Prerelease $RELEASE_VERSION: stable 8h certification is not required."
+              ;;
+            *)
+              certification_json="$(gh run list --workflow stable-certification.yml --commit "$SHA" --limit 20 --json databaseId,status,conclusion,headSha)"
+              certification_id="$(jq -r '[.[] | select(.headSha == $sha and .status == "completed" and .conclusion == "success")][0].databaseId // empty' --arg sha "$SHA" <<<"$certification_json")"
+              test -n "$certification_id" || {
+                echo "Stable release requires a successful Stable Certification workflow on exact SHA $SHA" >&2
+                exit 1
+              }
+              echo "Stable certification run: $certification_id"
+              ;;
+          esac
+
   release:
     needs: same-sha-gate
     runs-on: [self-hosted, Linux, X64, nexus-ci]
