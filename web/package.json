@@ -29,7 +29,8 @@
     "quality": "npm run check:styles && npm run format:check && npm run lint && npm run lint:styles && npm run typecheck && npm run test",
     "quality:full": "npm run quality && npm run build",
     "test:e2e:composer-spine": "node scripts/e2e-composer-execution-spine.mjs",
-    "test:e2e:composer-vague-spine": "node scripts/e2e-composer-vague-execution-spine.mjs"
+    "test:e2e:composer-vague-spine": "node scripts/e2e-composer-vague-execution-spine.mjs",
+    "test:e2e:composer-themes": "node scripts/e2e-composer-themes.mjs"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.15.20",
