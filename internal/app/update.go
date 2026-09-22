@@ -86,8 +86,7 @@ func updateCmd(args []string) error {
 
 	receipt, err := svc.Apply(ctx)
 	if err != nil {
-		fmt.Printf("\n⚠️  Update could not be applied: %v\n", err)
-		return nil
+		return fmt.Errorf("update could not be applied: %w", err)
 	}
 
 	if asJSON {
