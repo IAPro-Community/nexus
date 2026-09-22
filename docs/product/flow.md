@@ -15,3 +15,24 @@ Criar um draft não inicia Agent, MissionRun ou runtime. Prefira trazer um promp
 Dúvidas críticas reutilizam o mesmo contrato de esclarecimento do Composer e não repregunta o que sessão ou memória já cobriram.
 
 No modo Execution (`FlowRunSurface`), observe estados, attempts, artifacts, blockers e verification reais.
+
+
+## Coordenação dinâmica no Flow Run
+
+Quando uma Mission materializa trabalho auxiliar a partir de uma solicitação
+`NEED_INFO`, `ARTIFACT_REQUEST`, `REVIEW_REQUEST` ou `DELEGATE`, o
+trabalho dinâmico continua pertencendo à mesma Mission.
+
+O Flow Run apresenta a projeção dessa verdade persistida:
+
+- request e status de coordenação;
+- package de origem;
+- child package dinâmica;
+- lineage;
+- materialização pendente/concluída;
+- WorkReceipt/resultados quando disponíveis.
+
+Isso não transforma Flow em scheduler. O `MissionRunner` continua sendo a
+autoridade da execução.
+
+Veja [Coordenação entre Agents](agent-coordination.md).
