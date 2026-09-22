@@ -382,7 +382,7 @@ func validateMissionE2EProject(ctx context.Context, projectPath string) error {
 	} {
 		cmd := exec.CommandContext(ctx, "git", args...)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("Mission E2E requires an initialized Git repository with HEAD: git %v: %w: %s", args, err, strings.TrimSpace(string(out)))
+			return fmt.Errorf("mission E2E requires an initialized Git repository with HEAD: git %v: %w: %s", args, err, strings.TrimSpace(string(out)))
 		}
 	}
 	status, err := exec.CommandContext(ctx, "git", "-C", projectPath, "status", "--porcelain").Output()
@@ -390,7 +390,7 @@ func validateMissionE2EProject(ctx context.Context, projectPath string) error {
 		return fmt.Errorf("inspect Mission E2E project status: %w", err)
 	}
 	if strings.TrimSpace(string(status)) != "" {
-		return fmt.Errorf("Mission E2E requires a clean disposable repository; working tree has local changes")
+		return fmt.Errorf("mission E2E requires a clean disposable repository; working tree has local changes")
 	}
 	return nil
 }
@@ -431,7 +431,7 @@ type missionE2EEvidence struct {
 
 func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, profile, projectPath string) error {
 	if api == nil {
-		return fmt.Errorf("Mission E2E API client is required")
+		return fmt.Errorf("mission E2E API client is required")
 	}
 	if err := api.do(ctx, http.MethodPatch, "/api/v1/projects/"+url.PathEscape(projectID), map[string]any{
 		"default_isolation": "worktree",
@@ -508,7 +508,7 @@ func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, pro
 		return fmt.Errorf("create Mission E2E plan: %w", err)
 	}
 	if plan.ID == "" || plan.CurrentRevision <= 0 {
-		return fmt.Errorf("Mission E2E plan returned invalid identity/revision")
+		return fmt.Errorf("mission E2E plan returned invalid identity/revision")
 	}
 
 	var preview missionE2EPreview
@@ -516,7 +516,7 @@ func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, pro
 		return fmt.Errorf("Mission E2E execution preview: %w", err)
 	}
 	if !preview.Ready || preview.ApprovalToken == "" || preview.Revision != plan.CurrentRevision {
-		return fmt.Errorf("Mission E2E preview not ready: revision=%d ready=%t blockers=%v", preview.Revision, preview.Ready, preview.Blockers)
+		return fmt.Errorf("mission E2E preview not ready: revision=%d ready=%t blockers=%v", preview.Revision, preview.Ready, preview.Blockers)
 	}
 
 	var preflight struct {
