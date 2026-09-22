@@ -20,18 +20,18 @@ const sourceArtifactFactKey = "nexus.source_artifact_id"
 // provenance paths and operational permissions: Skills remain knowledge, not
 // executable plugins or authority grants.
 type FrozenSkillContract struct {
-	ID           string                `json:"id"`
-	Source       nexusskills.SourceID  `json:"source"`
-	Version      string                `json:"version"`
-	SkillHash    string                `json:"skill_hash"`
-	Instructions string                `json:"instructions"`
-	ContractHash string                `json:"contract_hash"`
+	ID           string               `json:"id"`
+	Source       nexusskills.SourceID `json:"source"`
+	Version      string               `json:"version"`
+	SkillHash    string               `json:"skill_hash"`
+	Instructions string               `json:"instructions"`
+	ContractHash string               `json:"contract_hash"`
 }
 
 func freezeSkillContract(skill nexusskills.Skill) FrozenSkillContract {
 	contract := FrozenSkillContract{
 		ID: strings.TrimSpace(skill.ID), Source: skill.Source,
-		Version: firstNonEmpty(strings.TrimSpace(skill.Version), "unknown"),
+		Version:   firstNonEmpty(strings.TrimSpace(skill.Version), "unknown"),
 		SkillHash: strings.TrimSpace(skill.Hash), Instructions: strings.TrimSpace(skill.Instructions),
 	}
 	contract.ContractHash = frozenSkillContractHash(contract)
