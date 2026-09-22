@@ -24,7 +24,7 @@ execute com isolamento e só conclua quando houver evidência verificável.
 > **Estado da v1:** o source está no programa de fechamento do Nexus 1.0 e reporta
 > `1.0.0-beta.4`. Isso **não** significa que uma release estável v1 esteja
 > certificada ou publicada. A verdade autoritativa está em
-> [RELEASE_STATUS](DEV/validation/current/RELEASE_STATUS.md).
+> [RELEASE_STATUS](docs/release-status.md).
 
 ## TL;DR
 
@@ -61,7 +61,7 @@ Project → + New → AI Session → Provider → Terminal
 ### Release publicada
 
 A documentação de instalação usa a última beta publicada indicada pelo
-[status de release](DEV/validation/current/RELEASE_STATUS.md). Enquanto a v1
+[status de release](docs/release-status.md). Enquanto a v1
 estável não estiver certificada, não confunda versão do source com release
 publicada.
 
@@ -253,7 +253,7 @@ A documentação de produto descreve **como o source candidato funciona**. A
 autorização para uma release estável exige certificação separada do mesmo SHA,
 incluindo plataformas nativas e demais gates definidos no programa de fechamento.
 
-→ [Status autoritativo](DEV/validation/current/RELEASE_STATUS.md)
+→ [Status autoritativo](docs/release-status.md)
 
 ## Licença
 
