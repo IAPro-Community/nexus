@@ -19,6 +19,7 @@ jobs:
   certify:
     name: Stable 8h live certification
     runs-on: [self-hosted, Linux, X64, nexus-ci]
+    environment: beta-signing
     timeout-minutes: 600
     steps:
       - uses: actions/checkout@v5
@@ -57,6 +58,18 @@ jobs:
           set -euo pipefail
           go test -count=1 ./internal/release ./internal/update/...
 
+      - name: Certify signed install upgrade self-update and uninstall
+        shell: bash
+        env:
+          NEXUS_BIN: ${{ github.workspace }}/nexus
+          NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
+          NEXUS_UPDATE_PUBLIC_KEY: ${{ vars.NEXUS_UPDATE_PUBLIC_KEY }}
+          NEXUS_UPDATE_KEY_ID: ${{ secrets.NEXUS_UPDATE_KEY_ID }}
+          NEXUS_RELEASE_LIFECYCLE_WORKDIR: ${{ runner.temp }}/nexus-release-lifecycle-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          bash ./scripts/certify-release-lifecycle.sh
+
       - name: Run real 8h provider and Mission soak
         shell: bash
         env:
@@ -74,6 +87,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: stable-certification-${{ github.sha }}
-          path: ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}
+            ${{ runner.temp }}/nexus-release-lifecycle-${{ github.sha }}
           if-no-files-found: warn
           retention-days: 30
