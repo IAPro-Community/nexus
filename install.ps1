@@ -7,6 +7,7 @@
 param(
     [switch]$WithMaestro = $false,
     [switch]$NoDesktop = $false,
+    [string]$InstallDir = $env:NEXUS_INSTALL_DIR,
     [string]$Version = $env:NEXUS_VERSION,
     [switch]$BuildFromSource = $false,
     [string]$SourceRef = $env:NEXUS_SOURCE_REF,
@@ -86,7 +87,7 @@ function Resolve-LatestVersion {
             if (-not $resp.tag_name) {
                 throw "GitHub API response did not contain tag_name."
             }
-            Write-Host "Resolved -Version latest to $($resp.tag_name) (checksum integrity; not a signed pin)." -ForegroundColor Yellow
+            Write-Host "Resolved -Version latest to $($resp.tag_name); installation still requires the signed update manifest." -ForegroundColor Yellow
             return [string]$resp.tag_name
         } catch {
             if ($attempt -ge 3) { throw }
@@ -135,7 +136,10 @@ if (-not [string]::IsNullOrWhiteSpace($Version)) {
 $BinaryName = if ($IsWindowsOS) { "nexus.exe" } else { "nexus" }
 $AiAliasName = if ($IsWindowsOS) { "ai.exe" } else { "ai" }
 
-if ($IsWindowsOS) {
+if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
+    $TargetDir = [System.IO.Path]::GetFullPath($InstallDir)
+    $LegacyTargetDir = ""
+} elseif ($IsWindowsOS) {
     $TargetDir = Join-Path $env:LOCALAPPDATA "Programs\IAPro Nexus"
     $LegacyTargetDir = Join-Path $env:LOCALAPPDATA "Programs\ai-cli"
 } else {
