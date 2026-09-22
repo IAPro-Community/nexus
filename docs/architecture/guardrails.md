@@ -78,4 +78,4 @@ Documentação, logs, evidence bundles e relatórios devem permanecer
 sanitizados. Nunca persistir deliberadamente tokens, cookies, chaves ou
 transcrições privadas como “evidência”.
 
-Veja também [Segurança](../security.md).
+Veja também [Segurança](../security.pt-BR.md).
