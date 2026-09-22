@@ -61,8 +61,8 @@ func main() {
 		*baseURL = "https://github.com/IAPro-Community/nexus/releases/download/v" + strings.TrimPrefix(*version, "v")
 	}
 	parsedBase, err := url.Parse(*baseURL)
-	if err != nil || parsedBase.Scheme != "https" || parsedBase.Host == "" {
-		panic("base-url must be an absolute https URL")
+	if err != nil || !allowedArtifactBaseURL(parsedBase) {
+		panic("base-url must be absolute https, or http on loopback for local certification")
 	}
 	base := strings.TrimRight(*baseURL, "/")
 	key, err := decodePrivateKey(*privateKey)
@@ -126,6 +126,24 @@ func main() {
 	}
 	if err := writeSignedManifest(outDir, bytes, key); err != nil {
 		panic(err)
+	}
+}
+
+func allowedArtifactBaseURL(u *url.URL) bool {
+	if u == nil || u.Host == "" {
+		return false
+	}
+	if u.Scheme == "https" {
+		return true
+	}
+	if u.Scheme != "http" {
+		return false
+	}
+	switch strings.ToLower(u.Hostname()) {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	default:
+		return false
 	}
 }
 
