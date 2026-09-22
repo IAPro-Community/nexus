@@ -148,7 +148,7 @@ export const nexus = {
       }),
       signal,
     }),
-  uploadComposerAttachment: async (sessionId: string, file: File) => {
+  uploadComposerAttachment: async (sessionId: string, file: File, signal?: AbortSignal) => {
     const { getCSRFToken, getDesktopAuthToken, getDesktopBaseUrl, NexusRequestError } =
       await import('../api');
     const headers: Record<string, string> = { Accept: 'application/json' };
@@ -164,6 +164,7 @@ export const nexus = {
       method: 'POST',
       headers,
       body: form,
+      signal,
       credentials: 'include',
     });
     if (!res.ok) {
