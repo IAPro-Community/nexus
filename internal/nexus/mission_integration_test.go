@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -47,6 +48,33 @@ func TestMissionDeliveryIntegrationCombinesParallelDisjointWorktrees(t *testing.
 		t.Fatalf("integration packages=%v, want 2", evidence.PackageIDs)
 	}
 	_ = st
+}
+
+func TestMissionDeliveryIntegrationRejectsTraversalRunID(t *testing.T) {
+	n, _, project, _ := integrationTestProject(t)
+	dataDir, err := config.DataDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(dataDir, "escape-target")
+	if err := os.MkdirAll(outside, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sentinel := filepath.Join(outside, "sentinel.txt")
+	if err := os.WriteFile(sentinel, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	run := &runner.MissionRun{
+		ID: "../escape-target", ProjectID: project.ID, Workspace: project.CanonicalPath, Autonomous: true,
+	}
+	_, err = (&nexusPackageExecutor{n: n}).IntegrateDelivery(context.Background(), run)
+	if err == nil || !strings.Contains(err.Error(), "unsafe integration mission run id") {
+		t.Fatalf("path-traversal run ID must fail closed, got %v", err)
+	}
+	if got, err := os.ReadFile(sentinel); err != nil || string(got) != "keep" {
+		t.Fatalf("rejected integration traversal modified outside path: data=%q err=%v", got, err)
+	}
 }
 
 func TestMissionDeliveryIntegrationRejectsParallelPathConflict(t *testing.T) {
