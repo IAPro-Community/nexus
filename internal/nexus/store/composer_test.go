@@ -63,6 +63,53 @@ func TestComposerSessionPersistsBriefTurnsSkillsAndPromptArtifacts(t *testing.T)
 	}
 }
 
+func TestComposerContextManifestAndSkillScoreRoundTrip(t *testing.T) {
+	st := openTestStore(t)
+	project, err := st.CreateProject(Project{Name: "Composer context manifest", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(ComposerSession{
+		ProjectID: project.ID,
+		BriefJSON: `{"goal":"inspect context"}`,
+		ContextManifestJSON: `{"version":"1","fingerprint":"ctx-fp"}`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := st.GetComposerSession(session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.ContextManifestJSON != session.ContextManifestJSON {
+		t.Fatalf("context manifest did not round-trip: got %q want %q", loaded.ContextManifestJSON, session.ContextManifestJSON)
+	}
+	if _, err := st.UpsertComposerSkillProposal(ComposerSkillProposal{
+		SessionID: session.ID, SkillID: "security", State: ComposerSkillSuggested,
+		Reason: "security match", RecommendationScore: 42,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	skills, err := st.ListComposerSkillProposals(session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(skills) != 1 || skills[0].RecommendationScore != 42 {
+		t.Fatalf("skill recommendation score did not round-trip: %+v", skills)
+	}
+	session.ContextManifestJSON = `{"version":"1","fingerprint":"ctx-fp-2"}`
+	if err := st.UpdateComposerSession(*session); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err = st.GetComposerSession(session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.ContextManifestJSON != session.ContextManifestJSON {
+		t.Fatalf("updated context manifest did not persist: got %q want %q", loaded.ContextManifestJSON, session.ContextManifestJSON)
+	}
+}
+
 func TestComposerV2MigrationPersistsVariantsAndReceipts(t *testing.T) {
 	st := openTestStore(t)
 	project, err := st.CreateProject(Project{Name: "Composer v2", CanonicalPath: t.TempDir()})
