@@ -284,3 +284,70 @@ describe('Flow Run evidence API', () => {
     expect(init.method).toBeUndefined();
   });
 });
+
+
+describe('Mission coordination API', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('submits typed coordination through the run-scoped endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          request: {
+            id: 'coord-1',
+            run_id: 'run-1',
+            source_package_id: 'pkg-1',
+            operation: 'DELEGATE',
+            subject: 'review auth',
+            status: 'PENDING',
+            created_at: new Date().toISOString(),
+          },
+        }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await nexusApi.submitRunCoordination('run-1', {
+      request_id: 'coord-1',
+      source_package_id: 'pkg-1',
+      operation: 'DELEGATE',
+      subject: 'review auth',
+      objective: 'review authentication independently',
+      materialize: true,
+    });
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/runs/run-1/coordination');
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      request_id: 'coord-1',
+      source_package_id: 'pkg-1',
+      operation: 'DELEGATE',
+      materialize: true,
+    });
+  });
+
+  it('uses explicit materialize and resolve actions without overloading Mission step', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ request: { id: 'coord-1' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await nexusApi.materializeRunCoordination('run-1', 'coord-1');
+    await nexusApi.resolveRunCoordination('run-1', 'coord-1', 'REJECTED', {
+      resolutionSummary: 'not required',
+    });
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain(
+      '/api/v1/runs/run-1/coordination-materialize',
+    );
+    expect(String(fetchMock.mock.calls[1][0])).toContain(
+      '/api/v1/runs/run-1/coordination-resolve',
+    );
+    expect((fetchMock.mock.calls[0][1] as RequestInit).method).toBe('POST');
+    expect((fetchMock.mock.calls[1][1] as RequestInit).method).toBe('POST');
+  });
+});
