@@ -134,6 +134,18 @@ jobs:
         run: |
           set -euo pipefail
           case "$RELEASE_VERSION" in v*) ;; *) echo "Release version must be a v-prefixed tag" >&2; exit 1;; esac
+          SOURCE_VERSION="v$(tr -d '\\r\\n' < VERSION)"
+          test "$RELEASE_VERSION" = "$SOURCE_VERSION" || {
+            echo "Release version $RELEASE_VERSION does not match source VERSION $SOURCE_VERSION" >&2
+            exit 1
+          }
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            TAG_SHA="$(git rev-list -n1 "$GITHUB_REF_NAME")"
+            test "$TAG_SHA" = "$GITHUB_SHA" || {
+              echo "Release tag $GITHUB_REF_NAME points to $TAG_SHA, expected $GITHUB_SHA" >&2
+              exit 1
+            }
+          fi
           test -n "$NEXUS_UPDATE_PRIVATE_KEY"
           test -n "$NEXUS_UPDATE_KEY_ID"
           test -n "$NEXUS_UPDATE_PUBLIC_KEY"
