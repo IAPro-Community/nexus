@@ -64,6 +64,10 @@ func TestComposerOperationsRejectCanceledContext(t *testing.T) {
 		_, err := n.ResolveComposerUnknownExpected(ctx, session.Session.ID, "missing", "answer", "ANSWERED", 0)
 		return err
 	})
+	assertCanceled("resolve wrapper", func() error {
+		_, err := n.ResolveComposerUnknown(ctx, session.Session.ID, "missing", "answer", "ANSWERED")
+		return err
+	})
 }
 
 func TestComposerFinalizationCreatesPromptWithoutWorkPlan(t *testing.T) {

@@ -549,8 +549,8 @@ func (n *Nexus) RefineComposerArtifact(ctx context.Context, sessionID, refinemen
 
 // ResolveComposerUnknown updates the status and answer of a single unknown
 // item in the living brief and re-evaluates readiness.
-func (n *Nexus) ResolveComposerUnknown(_ context.Context, sessionID, unknownID, answer, status string) (*ComposerSessionView, error) {
-	return n.ResolveComposerUnknownExpected(context.Background(), sessionID, unknownID, answer, status, 0)
+func (n *Nexus) ResolveComposerUnknown(ctx context.Context, sessionID, unknownID, answer, status string) (*ComposerSessionView, error) {
+	return n.ResolveComposerUnknownExpected(ctx, sessionID, unknownID, answer, status, 0)
 }
 
 func (n *Nexus) ResolveComposerUnknownExpected(ctx context.Context, sessionID, unknownID, answer, status string, expectedRevision int) (*ComposerSessionView, error) {
