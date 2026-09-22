@@ -96,7 +96,6 @@ func TestLaunchableProfilesExplicitBusyRemainsLaunchable(t *testing.T) {
 	}
 }
 
-
 func TestStripControlFlagsRemovesNoLead(t *testing.T) {
 	r := NewLaunchModeResolver(LaunchModeInput{
 		Args:       []string{"--no-lead", "--yolo"},
