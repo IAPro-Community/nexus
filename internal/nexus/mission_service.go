@@ -505,6 +505,60 @@ func (n *Nexus) StartMissionWorker(runID string) {
 	_ = n.startMissionWorker(runID, false)
 }
 
+// WaitMissionWorker keeps short-lived callers (notably the CLI) alive while
+// the canonical autonomous worker owns the Mission. It never runs a second
+// MissionRunner loop. Web/server callers do not need this because their host
+// process remains alive and RecoverMissionRuns restores durable work on restart.
+func (n *Nexus) WaitMissionWorker(ctx context.Context, runID string) (*runner.MissionRun, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	runID = strings.TrimSpace(runID)
+	if runID == "" {
+		return nil, fmt.Errorf("mission run id is required")
+	}
+
+	n.workersMu.Lock()
+	worker := n.workers[runID]
+	n.workersMu.Unlock()
+	if worker == nil {
+		run, err := n.Runner().GetRun(ctx, runID)
+		if err != nil {
+			return nil, err
+		}
+		switch run.State {
+		case runner.StateCompletedVerified,
+			runner.StateFailed,
+			runner.StateFailedNoProgress,
+			runner.StateFailedBudgetExceeded,
+			runner.StateFailedVerification,
+			runner.StateBlockedNeedsUser,
+			runner.StatePaused,
+			runner.StateCanceledByUser,
+			runner.StateEscalated:
+			return run, nil
+		default:
+			return run, fmt.Errorf("mission %s has no active worker while state=%s", runID, run.State)
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+		run, _ := n.Runner().GetRun(context.Background(), runID)
+		return run, ctx.Err()
+	case <-worker.done:
+	}
+
+	run, err := n.Runner().GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if worker.err != nil {
+		return run, worker.err
+	}
+	return run, nil
+}
+
 // restartMissionWorker performs an ownership handoff for a resolved run. The
 // old worker is canceled and joined before the new generation is registered;
 // its defer can therefore never remove the new owner.
