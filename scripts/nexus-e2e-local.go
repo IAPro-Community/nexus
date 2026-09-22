@@ -513,7 +513,7 @@ func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, pro
 
 	var preview missionE2EPreview
 	if err := api.do(ctx, http.MethodPost, "/api/v1/plans/"+url.PathEscape(plan.ID)+"/execution-preview", map[string]any{}, &preview); err != nil {
-		return fmt.Errorf("Mission E2E execution preview: %w", err)
+		return fmt.Errorf("mission E2E execution preview: %w", err)
 	}
 	if !preview.Ready || preview.ApprovalToken == "" || preview.Revision != plan.CurrentRevision {
 		return fmt.Errorf("mission E2E preview not ready: revision=%d ready=%t blockers=%v", preview.Revision, preview.Ready, preview.Blockers)
@@ -524,10 +524,10 @@ func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, pro
 		Blockers []string `json:"blockers"`
 	}
 	if err := api.do(ctx, http.MethodPost, "/api/v1/plans/"+url.PathEscape(plan.ID)+"/preflight", map[string]any{}, &preflight); err != nil {
-		return fmt.Errorf("Mission E2E preflight: %w", err)
+		return fmt.Errorf("mission E2E preflight: %w", err)
 	}
 	if !preflight.Ready {
-		return fmt.Errorf("Mission E2E preflight blocked: %v", preflight.Blockers)
+		return fmt.Errorf("mission E2E preflight blocked: %v", preflight.Blockers)
 	}
 
 	runBody := map[string]any{
@@ -537,7 +537,7 @@ func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, pro
 	}
 	if preview.CostConfirmationRequired {
 		if strings.TrimSpace(preview.CostConfirmationToken) == "" {
-			return fmt.Errorf("Mission E2E cost confirmation is required but preview returned no token")
+			return fmt.Errorf("mission E2E cost confirmation is required but preview returned no token")
 		}
 		runBody["cost_confirmation_token"] = preview.CostConfirmationToken
 	}
@@ -547,7 +547,7 @@ func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, pro
 		return fmt.Errorf("start Mission E2E run: %w", err)
 	}
 	if run.ID == "" {
-		return fmt.Errorf("Mission E2E run returned empty id")
+		return fmt.Errorf("mission E2E run returned empty id")
 	}
 
 	ticker := time.NewTicker(time.Second)
