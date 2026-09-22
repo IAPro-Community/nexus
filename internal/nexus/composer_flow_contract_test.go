@@ -108,9 +108,13 @@ func TestComposerArtifactExecutionContextExcludesDroppedAndReferenceOnlySources(
 	if err != nil {
 		t.Fatal(err)
 	}
+	previousPlan, err := st.CreateWorkPlan(store.WorkPlan{ProjectID: project.ID, Title: "Previous mission"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	now := time.Now().UTC()
 	if err := st.UpsertMissionRun(store.MissionRunRecord{
-		ID: "run-reference-only", PlanID: "plan-old", ProjectID: project.ID,
+		ID: "run-reference-only", PlanID: previousPlan.ID, ProjectID: project.ID,
 		State: "COMPLETED_VERIFIED", PayloadJSON: `{"secret":"must-not-flow"}`, CreatedAt: now, UpdatedAt: now,
 	}); err != nil {
 		t.Fatal(err)

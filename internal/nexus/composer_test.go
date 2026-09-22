@@ -248,7 +248,14 @@ Need backend and frontend changes.`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Skills[0].State != store.ComposerSkillAccepted {
+	var acceptedSkill *store.ComposerSkillProposal
+	for i := range updated.Skills {
+		if updated.Skills[i].SkillID == "skill-webapp-testing" {
+			acceptedSkill = &updated.Skills[i]
+			break
+		}
+	}
+	if acceptedSkill == nil || acceptedSkill.State != store.ComposerSkillAccepted {
 		t.Fatalf("skill state not persisted: %+v", updated.Skills)
 	}
 	updated, err = n.AddComposerTurn(context.Background(), view.Session.ID, store.ComposerUser, "Use Go in the backend and React in the frontend. Success means users can sign in with Google, we add regression coverage, and verification runs through go test plus npm test.")

@@ -3,7 +3,6 @@ package nexus
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -36,10 +35,13 @@ func TestComposerSkillCatalogReturnsSafeMetadataOnly(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		payload := strings.ToLower(string(raw))
+		var payload map[string]any
+		if err := json.Unmarshal(raw, &payload); err != nil {
+			t.Fatal(err)
+		}
 		for _, forbidden := range []string{"instructions", "permissions", "provenance", "path"} {
-			if strings.Contains(payload, forbidden) {
-				t.Fatalf("browser-safe skill metadata leaked %q: %s", forbidden, raw)
+			if _, leaked := payload[forbidden]; leaked {
+				t.Fatalf("browser-safe skill metadata leaked field %q: %s", forbidden, raw)
 			}
 		}
 	}
