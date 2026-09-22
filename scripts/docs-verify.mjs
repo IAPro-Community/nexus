@@ -16,6 +16,17 @@ const required = [
   'docs/product/visual-tour.md', 'docs/assets/screenshots/manifest.json',
   'docs/assets/screenshots/workspace-overview.png',
   'docs/assets/demos/direct-workflow.webm',
+  'docs/release-status.md',
+  'docs/product/how-it-works.md',
+  'docs/product/agent-coordination.md',
+  'docs/architecture/mission-runtime.md',
+  'docs/architecture/guardrails.md',
+  'docs/assets/diagrams/nexus-v1-overview.svg',
+  'docs/assets/diagrams/nexus-v1-flow.svg',
+  'docs/assets/diagrams/nexus-v1-components.svg',
+  'docs/assets/diagrams/nexus-v1-agent-coordination.svg',
+  'docs/assets/diagrams/nexus-v1-mission-lifecycle.svg',
+  'docs/assets/diagrams/nexus-v1-guardrails.svg',
 ];
 const errors = [];
 for (const file of required) if (!existsSync(path.join(root, file))) errors.push(`missing required file: ${file}`);
