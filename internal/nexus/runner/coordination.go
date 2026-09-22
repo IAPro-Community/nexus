@@ -34,6 +34,17 @@ const (
 	CoordinationRejected CoordinationStatus = "REJECTED"
 	CoordinationFailed   CoordinationStatus = "FAILED"
 	CoordinationCanceled CoordinationStatus = "CANCELED"
+
+	// These are safety ceilings, not a competing delegation policy. The
+	// canonical planner still decides whether delegation is useful; the runner
+	// merely prevents provider output from exploding into unbounded child work.
+	maxCoordinationRequestsPerTurn    = 3
+	maxCoordinationRequestsPerMission = 12
+	maxCoordinationSubjectBytes       = 1024
+	maxCoordinationObjectiveBytes     = 8192
+	maxCoordinationPreferenceBytes    = 256
+	maxCoordinationListItems          = 16
+	maxCoordinationListItemBytes      = 1024
 )
 
 // CoordinationRequest is a Mission-owned request raised by an executing Agent.
@@ -60,6 +71,25 @@ type CoordinationRequest struct {
 	ResolutionSummary    string                `json:"resolution_summary,omitempty"`
 }
 
+func validateCoordinationString(name, value string, maxBytes int) error {
+	if len(strings.TrimSpace(value)) > maxBytes {
+		return fmt.Errorf("coordination %s exceeds %d bytes", name, maxBytes)
+	}
+	return nil
+}
+
+func validateCoordinationList(name string, values []string) error {
+	if len(values) > maxCoordinationListItems {
+		return fmt.Errorf("coordination %s exceeds %d items", name, maxCoordinationListItems)
+	}
+	for _, value := range values {
+		if len(strings.TrimSpace(value)) > maxCoordinationListItemBytes {
+			return fmt.Errorf("coordination %s item exceeds %d bytes", name, maxCoordinationListItemBytes)
+		}
+	}
+	return nil
+}
+
 // ValidateCoordinationRequest enforces the architectural boundary before a
 // request can become durable Mission state.
 func ValidateCoordinationRequest(req CoordinationRequest) error {
@@ -82,6 +112,29 @@ func ValidateCoordinationRequest(req CoordinationRequest) error {
 	}
 	if req.Operation == CoordinationDelegate && strings.TrimSpace(req.Objective) == "" {
 		return fmt.Errorf("DELEGATE coordination requires objective")
+	}
+	for name, value := range map[string]string{
+		"subject":            req.Subject,
+		"objective":          req.Objective,
+		"preferred_role":     req.PreferredRole,
+		"preferred_provider": req.PreferredProvider,
+	} {
+		limit := maxCoordinationPreferenceBytes
+		switch name {
+		case "subject":
+			limit = maxCoordinationSubjectBytes
+		case "objective":
+			limit = maxCoordinationObjectiveBytes
+		}
+		if err := validateCoordinationString(name, value, limit); err != nil {
+			return err
+		}
+	}
+	if err := validateCoordinationList("required_capabilities", req.RequiredCapabilities); err != nil {
+		return err
+	}
+	if err := validateCoordinationList("artifact_refs", req.ArtifactRefs); err != nil {
+		return err
 	}
 	switch req.Status {
 	case CoordinationPending, CoordinationResolved, CoordinationRejected, CoordinationFailed, CoordinationCanceled:
@@ -179,6 +232,9 @@ func appendCoordinationRequestInRun(run *MissionRun, req CoordinationRequest) (*
 			return &copy, nil
 		}
 		return nil, fmt.Errorf("coordination request id %q already exists with different semantics", req.ID)
+	}
+	if len(run.CoordinationRequests) >= maxCoordinationRequestsPerMission {
+		return nil, fmt.Errorf("mission coordination limit reached: %d requests", maxCoordinationRequestsPerMission)
 	}
 	run.CoordinationRequests = append(run.CoordinationRequests, cloneCoordinationRequest(req))
 	run.UpdatedAt = time.Now().UTC()
@@ -453,6 +509,9 @@ func boundedCoordinationSummary(value string) string {
 func (r *MissionRunner) acceptExecutionCoordination(run *MissionRun, sourcePackageID string, requests []CoordinationRequest) error {
 	if len(requests) == 0 {
 		return nil
+	}
+	if len(requests) > maxCoordinationRequestsPerTurn {
+		return fmt.Errorf("coordination fan-out exceeds safe turn limit: %d > %d", len(requests), maxCoordinationRequestsPerTurn)
 	}
 	source := packageByID(run, sourcePackageID)
 	if source == nil {
