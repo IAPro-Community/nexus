@@ -78,6 +78,7 @@ consulte [troubleshooting](operations/troubleshooting.md).
 ## Próximos passos
 
 - [Descobrir funcionalidades](features/index.md)
-- [Entender Direct, Composer, Flow e Mission](product/mental-model.md)
+- [Entender como o Nexus funciona ponta a ponta](product/how-it-works.md)
+- [Consultar o modelo mental](product/mental-model.md)
 - [Configurar providers e quota](product/providers-and-usage.md)
 - [Referência da CLI](cli/README.md)
