@@ -348,6 +348,41 @@ Add:
 
 Composer becomes the primary complex-work entry point without creating a new engine.
 
+The Composer bootstrap now has an explicit **Context Discovery** phase. It composes
+existing Nexus sources instead of introducing another planner or context engine:
+
+```text
+User goal
+  -> Brief seed
+  -> Git identity / Context Readiness
+  -> IntelligenceMemory recall
+  -> Project Intelligence facts
+  -> Context Discovery + budget
+       -> KEEP            (bounded provider context)
+       -> REFERENCE_ONLY  (discoverable evidence/skills/Missions)
+       -> DROP            (visible provenance, excluded from model context)
+  -> brief extraction / material clarifications
+  -> Finalize
+  -> Flow
+  -> Execution Preview
+  -> explicit GO
+  -> Mission
+```
+
+The durable `ComposerContextManifest` is the explanation boundary for this phase.
+It records provenance, estimated token cost, inclusion/exclusion reason and a stable
+fingerprint. Final PromptArtifacts freeze the manifest used to produce the Flow.
+
+Rules:
+- explicit user file context outranks inferred repository context;
+- Project/Install memory is bounded and current user input still wins conflicts;
+- Project Intelligence remains static/bounded and never executes project commands;
+- recent Missions enter as `REFERENCE_ONLY` pointers, never raw transcripts;
+- Skill Catalog candidates enter as `REFERENCE_ONLY` until explicitly applied;
+- only `KEEP` items reach the intelligence provider;
+- context exhaustion produces `DROP`, never silent truncation or fake completeness;
+- no Freebuff runtime/code dependency is introduced; only the context-first pattern is reused.
+
 User sees:
 - objective;
 - gathered context;
