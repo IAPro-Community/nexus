@@ -191,7 +191,7 @@ jobs:
       - name: Stage installers and legal documents
         run: |
           set -euo pipefail
-          cp install.sh install.ps1 docs/legal/BETA_TERMS.md docs/legal/PRIVACY.md dist/
+          cp install.sh install.ps1 uninstall.sh uninstall.ps1 docs/legal/BETA_TERMS.md docs/legal/PRIVACY.md dist/
       - name: Require public distribution credential
         env:
           NEXUS_DIST_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
