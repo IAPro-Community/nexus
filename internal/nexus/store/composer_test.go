@@ -1,6 +1,7 @@
 package store
 
 import (
+	"strings"
 	"path/filepath"
 	"testing"
 )
@@ -60,6 +61,32 @@ func TestComposerSessionPersistsBriefTurnsSkillsAndPromptArtifacts(t *testing.T)
 	artifacts, err := st.ListPromptArtifacts(session.ID)
 	if err != nil || len(artifacts) != 1 || artifacts[0].ID != artifact.ID {
 		t.Fatalf("unexpected artifacts: %+v, %v", artifacts, err)
+	}
+}
+
+func TestPromptArtifactDoesNotSilentlyTruncate(t *testing.T) {
+	st := openTestStore(t)
+	project, err := st.CreateProject(Project{Name: "Prompt artifact size", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(ComposerSession{ProjectID: project.ID, BriefJSON: `{"goal":"large prompt"}`})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content := strings.Repeat("x", 32*1024)
+	artifact, err := st.CreatePromptArtifact(PromptArtifact{SessionID: session.ID, Content: content})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if artifact.Content != content {
+		t.Fatalf("prompt artifact was silently modified: got %d bytes want %d", len(artifact.Content), len(content))
+	}
+
+	tooLarge := strings.Repeat("x", maxPromptArtifactBytes+1)
+	if _, err := st.CreatePromptArtifact(PromptArtifact{SessionID: session.ID, Content: tooLarge}); err == nil {
+		t.Fatal("expected oversized prompt artifact to fail explicitly")
 	}
 }
 

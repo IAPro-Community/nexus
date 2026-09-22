@@ -322,10 +322,15 @@ func (s *Store) SetComposerSkillState(sessionID, skillID, state string) error {
 	return nil
 }
 
+const maxPromptArtifactBytes = 256 * 1024
+
 func (s *Store) CreatePromptArtifact(in PromptArtifact) (*PromptArtifact, error) {
-	in.Content = capComposerText(in.Content)
+	in.Content = strings.TrimSpace(in.Content)
 	if in.Content == "" {
 		return nil, fmt.Errorf("prompt artifact content is required")
+	}
+	if len(in.Content) > maxPromptArtifactBytes {
+		return nil, fmt.Errorf("prompt artifact content exceeds %d-byte limit", maxPromptArtifactBytes)
 	}
 	if in.ID == "" {
 		in.ID = "prm_" + ids.NewRuntimeID()
@@ -439,15 +444,6 @@ func (s *Store) RecordComposerDestinationReceipt(in ComposerDestinationReceipt) 
 		return nil, err
 	}
 	return &in, nil
-}
-
-func capComposerText(value string) string {
-	value = strings.TrimSpace(value)
-	const max = 8 * 1024
-	if len(value) > max {
-		return value[:max]
-	}
-	return value
 }
 
 func boolToInt(value bool) int {
