@@ -362,6 +362,7 @@ type MissionRun struct {
 	GlobalVerifications []VerificationResult         `json:"global_verifications,omitempty"`
 	NeedsHuman          *HumanIntervention           `json:"needs_human,omitempty"`
 	ResumeRequest       *MissionResumeRequest        `json:"resume_request,omitempty"`
+	CoordinationRequests []CoordinationRequest        `json:"coordination_requests,omitempty"`
 
 	watchFingerprint string `json:"-"`
 }
