@@ -67,7 +67,8 @@ prefix="$root/prefix"
 bad_prefix="$root/bad-prefix"
 mismatch_prefix="$root/mismatch-prefix"
 old_bin="$root/old/nexus"
-mkdir -p "$serve" "$home" "$prefix/bin" "$bad_prefix/bin" "$mismatch_prefix/bin" "$(dirname "$old_bin")"
+beta_bin="$root/beta/nexus"
+mkdir -p "$serve" "$home" "$prefix/bin" "$bad_prefix/bin" "$mismatch_prefix/bin" "$(dirname "$old_bin")" "$(dirname "$beta_bin")"
 
 server_pid=""
 cleanup() {
@@ -86,6 +87,17 @@ go build -trimpath -ldflags="-s -w -X github.com/IAPro-Community/nexus/internal/
 
 old_reported="$("$old_bin" version --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])')"
 test "$old_reported" = "$OLD_VERSION"
+
+candidate_is_prerelease=false
+if [[ "$CANDIDATE_VERSION" =~ -(alpha|beta|rc)\. ]]; then
+    candidate_is_prerelease=true
+else
+    beta_predecessor_version="0.9.998-beta.cert.1"
+    go build -trimpath -ldflags="-s -w -X github.com/IAPro-Community/nexus/internal/buildinfo.Version=$beta_predecessor_version -X github.com/IAPro-Community/nexus/internal/buildinfo.Commit=lifecycle-beta -X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate=$build_date -X github.com/IAPro-Community/nexus/internal/update.ProductionTrustRootHex=$NEXUS_UPDATE_PUBLIC_KEY" \
+        -o "$beta_bin" ./cmd/nexus
+    beta_reported="$("$beta_bin" version --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])')"
+    test "$beta_reported" = "$beta_predecessor_version"
+fi
 
 port="$(python3 - <<'PY'
 import socket
@@ -158,6 +170,19 @@ NEXUS_INSTALL_METHOD=STANDALONE \
 updated_version="$("$update_prefix/bin/nexus" version --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])')"
 test "$updated_version" = "$CANDIDATE_VERSION"
 
+if [ "$candidate_is_prerelease" = false ]; then
+    echo "== explicit channel promotion: beta -> stable =="
+    channel_prefix="$root/channel-prefix"
+    mkdir -p "$channel_prefix/bin"
+    install -m 0755 "$beta_bin" "$channel_prefix/bin/nexus"
+    HOME="$home" \
+    NEXUS_UPDATE_REGISTRY_URL="$base/v$CANDIDATE_VERSION/update-manifest.json" \
+    NEXUS_INSTALL_METHOD=STANDALONE \
+    "$channel_prefix/bin/nexus" update --channel stable
+    promoted_version="$("$channel_prefix/bin/nexus" version --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])')"
+    test "$promoted_version" = "$CANDIDATE_VERSION"
+fi
+
 echo "== signed wrong-version artifact must fail =="
 if install_version "$MISMATCH_VERSION" "$mismatch_prefix/bin"; then
     echo "Installer accepted a correctly signed archive containing the wrong embedded version" >&2
@@ -192,6 +217,7 @@ cat > "$root/result.txt" <<EOF
 signed install: PASS
 signed upgrade: PASS
 signed self-update: PASS
+explicit beta-to-stable channel promotion: PASS-or-N/A-for-prerelease
 embedded version identity: PASS
 tamper rejection: PASS
 uninstall preserve-data: PASS
