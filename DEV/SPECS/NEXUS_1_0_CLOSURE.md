@@ -526,30 +526,39 @@ Native release matrix must certify:
 
 ## 5. Security policy for autonomous work
 
-Formal capability policy:
+The **canonical 1.0 enforcement authority is the existing
+`runner.AutonomyContract`**, combined with provider-native isolation,
+worktree isolation and post-execution path validation. Nexus MUST NOT create a
+second permission engine merely to expose different capability names.
 
-```text
-read.files
-write.files
-run.tests
-run.commands
-network
-browser
-git.commit
-git.push
-git.merge
-mcp
-secrets
-deploy
-```
+The product may project these controls with user-facing capability labels such
+as `read.files`, `write.files`, `run.tests`, `run.commands`,
+`network`, `browser`, `git.commit`, `git.push`, `git.merge`,
+`mcp`, `secrets` and `deploy`. A projected capability that has no
+enforced 1.0 mapping remains unavailable/UNKNOWN; it must never become an
+implicit grant.
 
-AgentSpec may request capabilities. WorkPackage may require them. Policy decides.
+Current enforced mappings include:
+- file mutation scope → isolated workspace plus `AllowedFilePatterns`;
+- network → `AllowExternalNetwork` plus a verified provider sandbox when the
+  contract is restrictive;
+- secrets → `AllowSecretAccess`;
+- remote git push → `AllowGitPush`;
+- deploy/publish/release → `AllowDeploy`;
+- destructive git → `DisallowDestructiveGit`;
+- test/verification execution → supervised Mission verification commands.
+
+AgentSpec and WorkPackage capability metadata describe task/provider fit; they
+are **not** operational permission grants.
 
 Default rules:
-- Reviewer/Investigator: no source write, push, merge or deploy.
-- autonomous write: worktree preferred.
-- parallel autonomous write: isolated worktree required.
-- push/merge/deploy: explicit policy/human authorization.
+- autonomous Reviewer/Investigator execution is read-only and requires a
+  provider with verified read-only isolation;
+- autonomous write prefers an isolated worktree; parallel autonomous write
+  requires isolated worktrees;
+- Agents do not own delivery merge: Nexus integrates verified package deltas;
+- push/deploy and secret/network access remain denied unless the
+  `AutonomyContract` explicitly allows them;
 - provider CLI authentication remains provider-owned.
 
 ## 6. Worktree policy

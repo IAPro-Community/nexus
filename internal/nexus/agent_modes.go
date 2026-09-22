@@ -11,7 +11,7 @@ import (
 // model. It contains no provider runtime state and does not replace
 // AutonomyContract: operational permissions remain enforced by Mission/runtime
 // boundaries. ReadOnlyByDefault is an execution-policy signal for surfaces that
-// launch this specialist outside an explicit implementation assignment.
+// launch this specialist autonomously outside an explicit implementation assignment.
 type AgentMode struct {
 	ID                   string                 `json:"id"`
 	Role                 string                 `json:"role"`

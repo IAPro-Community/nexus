@@ -220,12 +220,12 @@ func (n *Nexus) processMissionSchedules(ctx context.Context) error {
 		return err
 	}
 	for _, schedule := range ready {
-		if schedule.Mode == ScheduleWhenResources && !n.hasAutonomousResource() {
-			continue
-		}
 		var payload missionSchedulePayload
 		if err := json.Unmarshal([]byte(schedule.ContractJSON), &payload); err != nil {
 			_ = st.FailMissionSchedule(schedule.ID, "invalid persisted schedule payload")
+			continue
+		}
+		if schedule.Mode == ScheduleWhenResources && !n.hasAutonomousResource(payload.Contract) {
 			continue
 		}
 		claimed, claimErr := st.ClaimMissionSchedule(schedule.ID)
@@ -254,11 +254,26 @@ func (n *Nexus) processMissionSchedules(ctx context.Context) error {
 	return nil
 }
 
-func (n *Nexus) hasAutonomousResource() bool {
+func (n *Nexus) hasAutonomousResource(contract runner.AutonomyContract) bool {
 	accounts, err := n.ListResources()
-	if err != nil || len(accounts) == 0 {
+	if err != nil {
 		return false
 	}
-	rec := RecommendResources(accounts, TaskRequirements{TaskKind: "coding", Role: "implementer", RequiredCapabilities: []string{"headless", "submit_prompt"}}, PolicyBalanced)
+	return hasAutonomousResourceForContract(accounts, contract)
+}
+
+func hasAutonomousResourceForContract(accounts []ProviderAccount, contract runner.AutonomyContract) bool {
+	if len(accounts) == 0 {
+		return false
+	}
+	eligible, _ := filterAccountsByAutonomyIsolation(accounts, contract, false)
+	if len(eligible) == 0 {
+		return false
+	}
+	rec := RecommendResources(eligible, TaskRequirements{
+		TaskKind:             "coding",
+		Role:                 "implementer",
+		RequiredCapabilities: []string{"headless", "submit_prompt"},
+	}, PolicyBalanced)
 	return rec.Recommended != nil
 }

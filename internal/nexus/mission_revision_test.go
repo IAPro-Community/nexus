@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -258,5 +259,39 @@ func TestWhenResourcesDoesNotClaimWithoutEligibleResource(t *testing.T) {
 	}
 	if got.Status != store.SchedulePending || got.AttemptCount != 0 || got.LastAttemptAt != nil {
 		t.Fatalf("WHEN_RESOURCES should wait without spinning when no resource is eligible: %+v", got)
+	}
+}
+
+func TestAutonomousResourceReadinessHonorsIsolationContract(t *testing.T) {
+	live := &quota.QuotaView{Status: "LIVE"}
+	base := ProviderAccount{
+		Profile: "default", Authenticated: true, Available: true, Health: "healthy",
+		QuotaView: live, QuotaRemaining: 0.8,
+		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
+	}
+
+	gemini := base
+	gemini.ID = "gemini-default"
+	gemini.Provider = "gemini"
+	if hasAutonomousResourceForContract([]ProviderAccount{gemini}, runner.DefaultAutonomyContract()) {
+		t.Fatal("WHEN_RESOURCES must not claim for an unverified isolation provider")
+	}
+
+	codex := base
+	codex.ID = "codex-default"
+	codex.Provider = "codex"
+	if !hasAutonomousResourceForContract([]ProviderAccount{codex}, runner.DefaultAutonomyContract()) {
+		t.Fatal("verified Codex isolation should satisfy the default autonomous contract")
+	}
+
+	unrestricted := runner.DefaultAutonomyContract()
+	unrestricted.DisallowDestructiveGit = false
+	unrestricted.AllowGitPush = true
+	unrestricted.AllowDeploy = true
+	unrestricted.AllowExternalNetwork = true
+	unrestricted.AllowSecretAccess = true
+	unrestricted.AllowPaidServices = true
+	if !hasAutonomousResourceForContract([]ProviderAccount{gemini}, unrestricted) {
+		t.Fatal("explicit unrestricted contract should not require verified containment")
 	}
 }
