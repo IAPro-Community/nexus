@@ -231,6 +231,7 @@ type PackageRun struct {
 	ResumeAgentID            string               `json:"resume_agent_id,omitempty"`
 	ResultSummary            string               `json:"result_summary,omitempty"`
 	ContextCapsule           *ContextCapsule      `json:"context_capsule,omitempty"`
+	ContextRefreshRequired  bool                 `json:"context_refresh_required,omitempty"`
 	WorkReceipt              *WorkReceipt         `json:"work_receipt,omitempty"`
 	State                    State                `json:"state"`
 	Attempt                  int                  `json:"attempt"`
