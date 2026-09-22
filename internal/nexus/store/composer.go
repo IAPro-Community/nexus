@@ -32,8 +32,9 @@ type ComposerSession struct {
 	Title              string    `json:"title"`
 	State              string    `json:"state"`
 	ContextFingerprint string    `json:"context_fingerprint"`
-	BriefJSON          string    `json:"brief_json"`
-	Revision           int       `json:"revision"`
+	BriefJSON           string    `json:"brief_json"`
+	ContextManifestJSON string    `json:"-"`
+	Revision            int       `json:"revision"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }
@@ -68,9 +69,10 @@ type ComposerSkillProposal struct {
 	Applicability string    `json:"applicability"`
 	Risk          string    `json:"risk"`
 	Source        string    `json:"source,omitempty"`
-	Version       string    `json:"version,omitempty"`
-	Available     bool      `json:"available"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	Version             string    `json:"version,omitempty"`
+	Available           bool      `json:"available"`
+	RecommendationScore int       `json:"recommendation_score,omitempty"`
+	UpdatedAt           time.Time `json:"updated_at"`
 }
 type PromptArtifact struct {
 	ID           string    `json:"id"`
@@ -122,7 +124,10 @@ func (s *Store) CreateComposerSession(in ComposerSession) (*ComposerSession, err
 	if in.Revision <= 0 {
 		in.Revision = 1
 	}
-	_, err := s.db.Exec(`INSERT INTO composer_sessions(id,project_id,title,state,context_fingerprint,brief_json,revision,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`, in.ID, in.ProjectID, in.Title, in.State, in.ContextFingerprint, in.BriefJSON, in.Revision, now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
+	if in.ContextManifestJSON == "" {
+		in.ContextManifestJSON = "{}"
+	}
+	_, err := s.db.Exec(`INSERT INTO composer_sessions(id,project_id,title,state,context_fingerprint,brief_json,context_manifest_json,revision,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)`, in.ID, in.ProjectID, in.Title, in.State, in.ContextFingerprint, in.BriefJSON, in.ContextManifestJSON, in.Revision, now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, fmt.Errorf("create composer session: %w", err)
 	}
@@ -132,7 +137,7 @@ func (s *Store) CreateComposerSession(in ComposerSession) (*ComposerSession, err
 func (s *Store) GetComposerSession(id string) (*ComposerSession, error) {
 	var out ComposerSession
 	var created, updated string
-	err := s.db.QueryRow(`SELECT id,project_id,title,state,context_fingerprint,brief_json,revision,created_at,updated_at FROM composer_sessions WHERE id=?`, id).Scan(&out.ID, &out.ProjectID, &out.Title, &out.State, &out.ContextFingerprint, &out.BriefJSON, &out.Revision, &created, &updated)
+	err := s.db.QueryRow(`SELECT id,project_id,title,state,context_fingerprint,brief_json,context_manifest_json,revision,created_at,updated_at FROM composer_sessions WHERE id=?`, id).Scan(&out.ID, &out.ProjectID, &out.Title, &out.State, &out.ContextFingerprint, &out.BriefJSON, &out.ContextManifestJSON, &out.Revision, &created, &updated)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +147,7 @@ func (s *Store) GetComposerSession(id string) (*ComposerSession, error) {
 }
 
 func (s *Store) ListComposerSessions(projectID string) ([]ComposerSession, error) {
-	rows, err := s.db.Query(`SELECT id,project_id,title,state,context_fingerprint,brief_json,revision,created_at,updated_at FROM composer_sessions WHERE project_id=? ORDER BY updated_at DESC`, projectID)
+	rows, err := s.db.Query(`SELECT id,project_id,title,state,context_fingerprint,brief_json,context_manifest_json,revision,created_at,updated_at FROM composer_sessions WHERE project_id=? ORDER BY updated_at DESC`, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +156,7 @@ func (s *Store) ListComposerSessions(projectID string) ([]ComposerSession, error
 	for rows.Next() {
 		var item ComposerSession
 		var created, updated string
-		if err := rows.Scan(&item.ID, &item.ProjectID, &item.Title, &item.State, &item.ContextFingerprint, &item.BriefJSON, &item.Revision, &created, &updated); err != nil {
+		if err := rows.Scan(&item.ID, &item.ProjectID, &item.Title, &item.State, &item.ContextFingerprint, &item.BriefJSON, &item.ContextManifestJSON, &item.Revision, &created, &updated); err != nil {
 			return nil, err
 		}
 		item.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
@@ -163,7 +168,10 @@ func (s *Store) ListComposerSessions(projectID string) ([]ComposerSession, error
 
 func (s *Store) UpdateComposerSession(in ComposerSession) error {
 	in.UpdatedAt = time.Now().UTC()
-	res, err := s.db.Exec(`UPDATE composer_sessions SET title=?,state=?,context_fingerprint=?,brief_json=?,revision=revision+1,updated_at=? WHERE id=?`, in.Title, in.State, in.ContextFingerprint, in.BriefJSON, in.UpdatedAt.Format(time.RFC3339Nano), in.ID)
+	if in.ContextManifestJSON == "" {
+		in.ContextManifestJSON = "{}"
+	}
+	res, err := s.db.Exec(`UPDATE composer_sessions SET title=?,state=?,context_fingerprint=?,brief_json=?,context_manifest_json=?,revision=revision+1,updated_at=? WHERE id=?`, in.Title, in.State, in.ContextFingerprint, in.BriefJSON, in.ContextManifestJSON, in.UpdatedAt.Format(time.RFC3339Nano), in.ID)
 	if err != nil {
 		return err
 	}
@@ -178,7 +186,10 @@ func (s *Store) UpdateComposerSessionExpected(in ComposerSession, expectedRevisi
 		return s.UpdateComposerSession(in)
 	}
 	in.UpdatedAt = time.Now().UTC()
-	res, err := s.db.Exec(`UPDATE composer_sessions SET title=?,state=?,context_fingerprint=?,brief_json=?,revision=revision+1,updated_at=? WHERE id=? AND revision=?`, in.Title, in.State, in.ContextFingerprint, in.BriefJSON, in.UpdatedAt.Format(time.RFC3339Nano), in.ID, expectedRevision)
+	if in.ContextManifestJSON == "" {
+		in.ContextManifestJSON = "{}"
+	}
+	res, err := s.db.Exec(`UPDATE composer_sessions SET title=?,state=?,context_fingerprint=?,brief_json=?,context_manifest_json=?,revision=revision+1,updated_at=? WHERE id=? AND revision=?`, in.Title, in.State, in.ContextFingerprint, in.BriefJSON, in.ContextManifestJSON, in.UpdatedAt.Format(time.RFC3339Nano), in.ID, expectedRevision)
 	if err != nil {
 		return err
 	}
@@ -259,14 +270,14 @@ func (s *Store) UpsertComposerSkillProposal(in ComposerSkillProposal) (*Composer
 	if in.Source == "" {
 		in.Source = "Nexus"
 	}
-	_, err := s.db.Exec(`INSERT INTO composer_skill_proposals(session_id,skill_id,state,reason,applicability,risk,source,version,available,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(session_id,skill_id) DO UPDATE SET state=excluded.state,reason=excluded.reason,applicability=excluded.applicability,risk=excluded.risk,source=excluded.source,version=excluded.version,available=excluded.available,updated_at=excluded.updated_at`, in.SessionID, in.SkillID, in.State, in.Reason, in.Applicability, in.Risk, in.Source, in.Version, boolToInt(in.Available), in.UpdatedAt.Format(time.RFC3339Nano))
+	_, err := s.db.Exec(`INSERT INTO composer_skill_proposals(session_id,skill_id,state,reason,applicability,risk,source,version,available,recommendation_score,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(session_id,skill_id) DO UPDATE SET state=excluded.state,reason=excluded.reason,applicability=excluded.applicability,risk=excluded.risk,source=excluded.source,version=excluded.version,available=excluded.available,recommendation_score=excluded.recommendation_score,updated_at=excluded.updated_at`, in.SessionID, in.SkillID, in.State, in.Reason, in.Applicability, in.Risk, in.Source, in.Version, boolToInt(in.Available), in.RecommendationScore, in.UpdatedAt.Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, err
 	}
 	return &in, nil
 }
 func (s *Store) ListComposerSkillProposals(sessionID string) ([]ComposerSkillProposal, error) {
-	rows, err := s.db.Query(`SELECT session_id,skill_id,state,reason,applicability,risk,source,version,available,updated_at FROM composer_skill_proposals WHERE session_id=? ORDER BY skill_id`, sessionID)
+	rows, err := s.db.Query(`SELECT session_id,skill_id,state,reason,applicability,risk,source,version,available,recommendation_score,updated_at FROM composer_skill_proposals WHERE session_id=? ORDER BY recommendation_score DESC, skill_id`, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +287,7 @@ func (s *Store) ListComposerSkillProposals(sessionID string) ([]ComposerSkillPro
 		var item ComposerSkillProposal
 		var updated string
 		var available int
-		if err := rows.Scan(&item.SessionID, &item.SkillID, &item.State, &item.Reason, &item.Applicability, &item.Risk, &item.Source, &item.Version, &available, &updated); err != nil {
+		if err := rows.Scan(&item.SessionID, &item.SkillID, &item.State, &item.Reason, &item.Applicability, &item.Risk, &item.Source, &item.Version, &available, &item.RecommendationScore, &updated); err != nil {
 			return nil, err
 		}
 		item.Available = available != 0
