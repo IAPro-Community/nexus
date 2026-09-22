@@ -196,7 +196,6 @@ func (s *Store) ListMissionRuns() ([]MissionRunRecord, error) {
 	return out, rows.Err()
 }
 
-
 // ListMissionRunsForProject returns only the newest bounded Mission runs for
 // one project. Context consumers must not scan the global run ledger and then
 // filter in memory.
