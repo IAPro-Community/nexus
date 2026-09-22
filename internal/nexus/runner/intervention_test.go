@@ -57,6 +57,9 @@ func TestResolveIntervention_DoesNotRedispatchUnknownExternalOutcome(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
+	if got := resolved.PackageRuns[0]; got.State != StateTesting || got.DispatchState != DispatchCompleted || got.WorkReceipt != nil {
+		t.Fatalf("human reconciliation must resume verification without fabricating a verified receipt: %+v", got)
+	}
 	for attempt := 0; attempt < 2; attempt++ {
 		duplicate, duplicateErr := r.ResolveIntervention(context.Background(), run.ID, "intervention-a", 1, "confirm-external-completion", "retrying-client")
 		if duplicateErr != nil || duplicate.NeedsHuman.Resolution.IdempotencyKey != resolved.NeedsHuman.Resolution.IdempotencyKey {
@@ -155,6 +158,9 @@ func TestResolveIntervention_Success(t *testing.T) {
 	}
 	if resolved.NeedsHuman.ResolvedAt == nil {
 		t.Fatal("expected ResolvedAt to be set")
+	}
+	if resolved.PackageRuns[0].State != StateTesting || resolved.PackageRuns[0].DispatchState != DispatchCompleted {
+		t.Fatalf("confirmed external completion must continue through verification: %+v", resolved.PackageRuns[0])
 	}
 }
 
@@ -340,8 +346,8 @@ func TestResolveIntervention_PreservesParallelAndCompletedPackageIdentity(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resolved.PackageRuns[0].DispatchState != DispatchUnknownExternalOutcome || resolved.PackageRuns[0].DispatchID != "dispatch-a" {
-		t.Fatalf("target package dispatch identity changed: %+v", resolved.PackageRuns[0])
+	if resolved.PackageRuns[0].DispatchState != DispatchCompleted || resolved.PackageRuns[0].DispatchID != "dispatch-a" || resolved.PackageRuns[0].State != StateTesting {
+		t.Fatalf("target package was not reconciled into verification: %+v", resolved.PackageRuns[0])
 	}
 	if resolved.PackageRuns[1].DispatchState != DispatchUnknownExternalOutcome || resolved.PackageRuns[1].DispatchID != "dispatch-b" {
 		t.Fatalf("unrelated executing package was reset: %+v", resolved.PackageRuns[1])
@@ -510,8 +516,8 @@ func TestResolveIntervention_ResetsStaleDispatchIntent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if resolved.PackageRuns[0].DispatchState != DispatchUnknownExternalOutcome || resolved.PackageRuns[0].DispatchID != "dispatch_old" {
-		t.Fatalf("resolution must preserve unknown dispatch identity, got state=%s id=%s", resolved.PackageRuns[0].DispatchState, resolved.PackageRuns[0].DispatchID)
+	if resolved.PackageRuns[0].DispatchState != DispatchCompleted || resolved.PackageRuns[0].DispatchID != "dispatch_old" || resolved.PackageRuns[0].State != StateTesting {
+		t.Fatalf("resolution must reconcile the dispatch without skipping verification, got dispatch=%s state=%s id=%s", resolved.PackageRuns[0].DispatchState, resolved.PackageRuns[0].State, resolved.PackageRuns[0].DispatchID)
 	}
 }
 
