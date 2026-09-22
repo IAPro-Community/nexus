@@ -333,35 +333,35 @@ type HumanIntervention struct {
 }
 
 type MissionRun struct {
-	ID                  string                       `json:"id"`
-	PlanID              string                       `json:"plan_id"`
-	PlanRevision        int                          `json:"plan_revision"`
-	ExecutionSnapshotID string                       `json:"execution_snapshot_id,omitempty"`
-	ProjectID           string                       `json:"project_id"`
-	LeadAgentID         string                       `json:"lead_agent_id,omitempty"`
-	Autonomous          bool                         `json:"autonomous,omitempty"`
-	Workspace           string                       `json:"workspace"`
-	IntegratedWorkspace string                       `json:"integrated_workspace,omitempty"`
-	DeliveryIntegration *DeliveryIntegrationEvidence `json:"delivery_integration,omitempty"`
-	State               State                        `json:"state"`
-	Contract            AutonomyContract             `json:"contract"`
-	CurrentPkgIndex     int                          `json:"current_pkg_index"` // compatibility/UI hint only
-	CurrentPhaseID      string                       `json:"current_phase_id,omitempty"`
-	TotalIterations     int                          `json:"total_iterations"`
-	PackageRuns         []PackageRun                 `json:"package_runs"`
-	PhaseRuns           []PhaseRun                   `json:"phase_runs,omitempty"`
-	LeaseOwner          string                       `json:"lease_owner,omitempty"`
-	LeaseToken          string                       `json:"lease_token,omitempty"`
-	LeaseExpiresAt      *time.Time                   `json:"lease_expires_at,omitempty"`
-	HeartbeatAt         *time.Time                   `json:"heartbeat_at,omitempty"`
-	PausedReason        string                       `json:"paused_reason,omitempty"`
-	StartedAt           time.Time                    `json:"started_at"`
-	LastProgressAt      time.Time                    `json:"last_progress_at,omitempty"`
-	UpdatedAt           time.Time                    `json:"updated_at"`
-	CompletedAt         *time.Time                   `json:"completed_at,omitempty"`
-	GlobalVerifications []VerificationResult         `json:"global_verifications,omitempty"`
-	NeedsHuman          *HumanIntervention           `json:"needs_human,omitempty"`
-	ResumeRequest       *MissionResumeRequest        `json:"resume_request,omitempty"`
+	ID                   string                       `json:"id"`
+	PlanID               string                       `json:"plan_id"`
+	PlanRevision         int                          `json:"plan_revision"`
+	ExecutionSnapshotID  string                       `json:"execution_snapshot_id,omitempty"`
+	ProjectID            string                       `json:"project_id"`
+	LeadAgentID          string                       `json:"lead_agent_id,omitempty"`
+	Autonomous           bool                         `json:"autonomous,omitempty"`
+	Workspace            string                       `json:"workspace"`
+	IntegratedWorkspace  string                       `json:"integrated_workspace,omitempty"`
+	DeliveryIntegration  *DeliveryIntegrationEvidence `json:"delivery_integration,omitempty"`
+	State                State                        `json:"state"`
+	Contract             AutonomyContract             `json:"contract"`
+	CurrentPkgIndex      int                          `json:"current_pkg_index"` // compatibility/UI hint only
+	CurrentPhaseID       string                       `json:"current_phase_id,omitempty"`
+	TotalIterations      int                          `json:"total_iterations"`
+	PackageRuns          []PackageRun                 `json:"package_runs"`
+	PhaseRuns            []PhaseRun                   `json:"phase_runs,omitempty"`
+	LeaseOwner           string                       `json:"lease_owner,omitempty"`
+	LeaseToken           string                       `json:"lease_token,omitempty"`
+	LeaseExpiresAt       *time.Time                   `json:"lease_expires_at,omitempty"`
+	HeartbeatAt          *time.Time                   `json:"heartbeat_at,omitempty"`
+	PausedReason         string                       `json:"paused_reason,omitempty"`
+	StartedAt            time.Time                    `json:"started_at"`
+	LastProgressAt       time.Time                    `json:"last_progress_at,omitempty"`
+	UpdatedAt            time.Time                    `json:"updated_at"`
+	CompletedAt          *time.Time                   `json:"completed_at,omitempty"`
+	GlobalVerifications  []VerificationResult         `json:"global_verifications,omitempty"`
+	NeedsHuman           *HumanIntervention           `json:"needs_human,omitempty"`
+	ResumeRequest        *MissionResumeRequest        `json:"resume_request,omitempty"`
 	CoordinationRequests []CoordinationRequest        `json:"coordination_requests,omitempty"`
 
 	watchFingerprint string `json:"-"`

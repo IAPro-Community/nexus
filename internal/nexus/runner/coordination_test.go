@@ -62,26 +62,26 @@ func TestMissionRunnerCoordinationLifecycleIsDurableAndIdempotent(t *testing.T) 
 	ctx := context.Background()
 
 	run := &MissionRun{
-		ID: "run_coord",
-		PlanID: "plan_coord",
+		ID:           "run_coord",
+		PlanID:       "plan_coord",
 		PlanRevision: 1,
-		ProjectID: "project_coord",
-		Workspace: "/tmp/project",
-		State: StateExecuting,
-		Contract: DefaultAutonomyContract(),
-		PackageRuns: []PackageRun{{ID: "pkgrun_1", PackageID: "step_1", State: StateExecuting}},
-		StartedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		ProjectID:    "project_coord",
+		Workspace:    "/tmp/project",
+		State:        StateExecuting,
+		Contract:     DefaultAutonomyContract(),
+		PackageRuns:  []PackageRun{{ID: "pkgrun_1", PackageID: "step_1", State: StateExecuting}},
+		StartedAt:    time.Now().UTC(),
+		UpdatedAt:    time.Now().UTC(),
 	}
 	if err := repo.SaveRun(ctx, run); err != nil {
 		t.Fatalf("save run: %v", err)
 	}
 
 	req := CoordinationRequest{
-		ID: "coord_1",
+		ID:              "coord_1",
 		SourcePackageID: "step_1",
-		Operation: CoordinationNeedInfo,
-		Subject: "authentication persistence",
+		Operation:       CoordinationNeedInfo,
+		Subject:         "authentication persistence",
 	}
 	first, err := r.SubmitCoordinationRequest(ctx, run.ID, req)
 	if err != nil {
@@ -123,25 +123,25 @@ func TestMissionRunnerCoordinationRejectsForeignSourcePackage(t *testing.T) {
 	r := NewMissionRunner(repo, coordinationTestExecutor{})
 	ctx := context.Background()
 	run := &MissionRun{
-		ID: "run_coord_invalid",
-		PlanID: "plan_coord_invalid",
+		ID:           "run_coord_invalid",
+		PlanID:       "plan_coord_invalid",
 		PlanRevision: 1,
-		ProjectID: "project_coord",
-		Workspace: "/tmp/project",
-		State: StateExecuting,
-		Contract: DefaultAutonomyContract(),
-		PackageRuns: []PackageRun{{ID: "pkgrun_1", PackageID: "step_1", State: StateExecuting}},
-		StartedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		ProjectID:    "project_coord",
+		Workspace:    "/tmp/project",
+		State:        StateExecuting,
+		Contract:     DefaultAutonomyContract(),
+		PackageRuns:  []PackageRun{{ID: "pkgrun_1", PackageID: "step_1", State: StateExecuting}},
+		StartedAt:    time.Now().UTC(),
+		UpdatedAt:    time.Now().UTC(),
 	}
 	if err := repo.SaveRun(ctx, run); err != nil {
 		t.Fatalf("save run: %v", err)
 	}
 	_, err := r.SubmitCoordinationRequest(ctx, run.ID, CoordinationRequest{
-		ID: "coord_foreign",
+		ID:              "coord_foreign",
 		SourcePackageID: "step_missing",
-		Operation: CoordinationNeedInfo,
-		Subject: "missing package",
+		Operation:       CoordinationNeedInfo,
+		Subject:         "missing package",
 	})
 	if err == nil {
 		t.Fatal("foreign source package must be rejected")
