@@ -1072,8 +1072,10 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 	}
 
 	pkg.ResumeAgentID = ""
-	if pkg.DynamicWork && coordinationOperationForPackage(run, pkg) == CoordinationNeedInfo {
+	if pkg.DynamicWork && strings.TrimSpace(pkg.CoordinationRequestID) != "" {
 		pkg.ResultSummary = boundedCoordinationSummary(outcome.Output)
+	}
+	if pkg.DynamicWork && coordinationOperationForPackage(run, pkg) == CoordinationNeedInfo {
 		if pkg.ResultSummary == "" {
 			return fmt.Errorf("NEED_INFO coordination returned an empty answer")
 		}
@@ -1213,8 +1215,10 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 		}
 
 		pkg.ResumeAgentID = ""
-		if pkg.DynamicWork && coordinationOperationForPackage(run, pkg) == CoordinationNeedInfo {
+		if pkg.DynamicWork && strings.TrimSpace(pkg.CoordinationRequestID) != "" {
 			pkg.ResultSummary = boundedCoordinationSummary(res.outcome.Output)
+		}
+		if pkg.DynamicWork && coordinationOperationForPackage(run, pkg) == CoordinationNeedInfo {
 			if pkg.ResultSummary == "" {
 				if firstErr == nil {
 					firstErr = fmt.Errorf("NEED_INFO coordination returned an empty answer")
