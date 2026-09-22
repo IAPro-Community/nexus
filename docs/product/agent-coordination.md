@@ -96,5 +96,4 @@ Mudanças materiais precisam de revisão do plano ou intervenção.
 
 ## Especificação técnica
 
-A especificação detalhada está em
-[`DEV/SPECS/CONVERSATIONAL_MISSION_COORDINATION.md`](../../DEV/SPECS/CONVERSATIONAL_MISSION_COORDINATION.md).
+A especificação técnica interna correspondente é mantida em `DEV/SPECS/CONVERSATIONAL_MISSION_COORDINATION.md` para maintainers e auditoria.
