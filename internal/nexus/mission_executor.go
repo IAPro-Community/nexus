@@ -664,7 +664,7 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 	if err != nil {
 		return runner.PromptArtifact{}, err
 	}
-	compiled, err := compilePackagePromptFromExecutionSnapshot(ctx, &snapshot.Plan, pkg.PhaseID, pkg.PackageID)
+	compiled, err := compilePackagePromptFromExecutionSnapshot(ctx, &snapshot.Plan, pkg.PhaseID, pkg.PackageID, snapshot.SkillContracts)
 	if err != nil {
 		return runner.PromptArtifact{}, err
 	}
@@ -684,7 +684,7 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 		for _, phase := range snapshot.Plan.Phases {
 			for _, target := range phase.Packages {
 				if target.ID == pkg.PackageID {
-					compiledForAgent, compileErr := compileTargetPackagePromptForAgent(ctx, &snapshot.Plan, &target, cfg.AgentSpec, packageSkillIDs(target))
+					compiledForAgent, compileErr := compileTargetPackagePromptForAgent(ctx, &snapshot.Plan, &target, cfg.AgentSpec, packageSkillIDs(target), snapshot.SkillContracts...)
 					if compileErr != nil {
 						return runner.PromptArtifact{}, compileErr
 					}

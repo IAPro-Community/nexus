@@ -477,7 +477,14 @@ func (n *Nexus) FinalizeComposerSession(ctx context.Context, sessionID string, s
 	if err != nil {
 		return nil, err
 	}
-	contextJSON, _ := json.Marshal(map[string]any{"project_id": session.ProjectID, "brief": brief, "context_manifest": manifest})
+	frozenSkills, err := frozenSkillContractsFromCatalog(catalog, validatedSkills)
+	if err != nil {
+		return nil, err
+	}
+	contextJSON, _ := json.Marshal(map[string]any{
+		"project_id": session.ProjectID, "brief": brief, "context_manifest": manifest,
+		"skill_contracts": frozenSkills,
+	})
 	skillJSON, _ := json.Marshal(compiled.ValidatedSkills)
 	artifact, err := st.CreatePromptArtifact(store.PromptArtifact{
 		SessionID:    sessionID,

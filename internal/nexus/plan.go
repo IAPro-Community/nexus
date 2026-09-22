@@ -130,6 +130,7 @@ type composerArtifactContextEnvelope struct {
 	ProjectID       string                  `json:"project_id"`
 	Brief           LivingBrief             `json:"brief"`
 	ContextManifest ComposerContextManifest `json:"context_manifest"`
+	SkillContracts  []FrozenSkillContract   `json:"skill_contracts,omitempty"`
 }
 
 func composerArtifactExecutionContext(artifact store.PromptArtifact, session store.ComposerSession) (LivingBrief, ComposerContextManifest, error) {
@@ -236,14 +237,22 @@ func (n *Nexus) compilePackagePromptFromPlan(ctx context.Context, plan *store.Wo
 	if err != nil {
 		return nil, err
 	}
-	return compileTargetPackagePrompt(ctx, plan, targetPkg, validatedSkills)
+	catalog, err := n.skillCatalogForProject(plan.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	contracts, err := frozenSkillContractsFromCatalog(catalog, validatedSkills)
+	if err != nil {
+		return nil, err
+	}
+	return compileTargetPackagePromptForAgent(ctx, plan, targetPkg, intelligence.AgentSpec{Role: targetPkg.Role}, validatedSkills, contracts...)
 }
 
 func compileTargetPackagePrompt(ctx context.Context, plan *store.WorkPlan, targetPkg *store.WorkPackage, validatedSkills []string) (*intelligence.PromptCompilationResult, error) {
 	return compileTargetPackagePromptForAgent(ctx, plan, targetPkg, intelligence.AgentSpec{Role: targetPkg.Role}, validatedSkills)
 }
 
-func compileTargetPackagePromptForAgent(ctx context.Context, plan *store.WorkPlan, targetPkg *store.WorkPackage, agentSpec intelligence.AgentSpec, validatedSkills []string) (*intelligence.PromptCompilationResult, error) {
+func compileTargetPackagePromptForAgent(ctx context.Context, plan *store.WorkPlan, targetPkg *store.WorkPackage, agentSpec intelligence.AgentSpec, validatedSkills []string, frozenContracts ...FrozenSkillContract) (*intelligence.PromptCompilationResult, error) {
 	guidance := guidanceForWorkPackage(targetPkg)
 	compiled, err := intelligence.NewNexusEngine(nil).CompileExecutionContext(ctx, intelligence.ExecutionContextRequest{
 		Agent:    agentSpec,
@@ -255,7 +264,7 @@ func compileTargetPackagePromptForAgent(ctx context.Context, plan *store.WorkPla
 	if err != nil {
 		return nil, err
 	}
-	return &intelligence.PromptCompilationResult{
+	result := &intelligence.PromptCompilationResult{
 		PackageTitle:    targetPkg.Title,
 		SystemPrompt:    compiled.SystemInstructions,
 		UserPrompt:      compiled.TaskInstructions,
@@ -264,7 +273,28 @@ func compileTargetPackagePromptForAgent(ctx context.Context, plan *store.WorkPla
 		Constraints:     append([]string(nil), compiled.Context...),
 		EstimatedTokens: (len(compiled.SystemInstructions) + len(compiled.TaskInstructions)) / 4,
 		CompiledAt:      time.Now().UTC(),
-	}, nil
+	}
+	if len(validatedSkills) > 0 && len(frozenContracts) > 0 {
+		selected, selectErr := frozenSkillContractsForIDs(frozenContracts, validatedSkills)
+		if selectErr != nil {
+			return nil, selectErr
+		}
+		var skillSections []string
+		for _, contract := range selected {
+			if strings.TrimSpace(contract.Instructions) == "" {
+				continue
+			}
+			skillSections = append(skillSections, fmt.Sprintf(
+				"### %s (source=%s version=%s skill_hash=%s contract_hash=%s)\n%s",
+				contract.ID, contract.Source, contract.Version, contract.SkillHash, contract.ContractHash, contract.Instructions,
+			))
+		}
+		if len(skillSections) > 0 {
+			result.SystemPrompt += "\n\n## Frozen Nexus Skill Contracts\n" + strings.Join(skillSections, "\n\n")
+			result.EstimatedTokens = (len(result.SystemPrompt) + len(result.UserPrompt)) / 4
+		}
+	}
+	return result, nil
 }
 
 func guidanceForWorkPackage(pkg *store.WorkPackage) intelligence.ExecutionGuidance {
@@ -283,7 +313,7 @@ func guidanceForWorkPackage(pkg *store.WorkPackage) intelligence.ExecutionGuidan
 
 // compilePackagePromptFromExecutionSnapshot trusts only Maestro gates already
 // frozen into the approved snapshot. It never consults mutable live planning state.
-func compilePackagePromptFromExecutionSnapshot(ctx context.Context, plan *store.WorkPlan, phaseID, packageID string) (*intelligence.PromptCompilationResult, error) {
+func compilePackagePromptFromExecutionSnapshot(ctx context.Context, plan *store.WorkPlan, phaseID, packageID string, frozenContracts []FrozenSkillContract) (*intelligence.PromptCompilationResult, error) {
 	if plan == nil {
 		return nil, fmt.Errorf("work plan snapshot is required")
 	}
@@ -295,7 +325,7 @@ func compilePackagePromptFromExecutionSnapshot(ctx context.Context, plan *store.
 		for i := range ph.Packages {
 			pkg := &ph.Packages[i]
 			if pkg.ID == packageID {
-				return compileTargetPackagePrompt(ctx, plan, pkg, packageSkillIDs(*pkg))
+				return compileTargetPackagePromptForAgent(ctx, plan, pkg, intelligence.AgentSpec{Role: pkg.Role}, packageSkillIDs(*pkg), frozenContracts...)
 			}
 		}
 	}

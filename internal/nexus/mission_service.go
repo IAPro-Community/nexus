@@ -24,6 +24,7 @@ type missionExecutionSnapshot struct {
 	Contract         runner.AutonomyContract `json:"contract"`
 	Preflight        *FlowPreflightReport    `json:"preflight,omitempty"`
 	ExecutionPreview *PlanExecutionPreview   `json:"execution_preview,omitempty"`
+	SkillContracts   []FrozenSkillContract   `json:"skill_contracts,omitempty"`
 	Goal             *GoalContract           `json:"goal,omitempty"`
 }
 
@@ -68,26 +69,35 @@ func planToRunnerSpec(plan *store.WorkPlan, snapshotID string) (runner.PlanSpec,
 	return spec, nil
 }
 
-func freezePlanForExecution(n *Nexus, plan store.WorkPlan) (store.WorkPlan, error) {
+func freezePlanForExecution(n *Nexus, plan store.WorkPlan) (store.WorkPlan, []FrozenSkillContract, error) {
 	if err := validateFlowExecutionContract(plan); err != nil {
-		return store.WorkPlan{}, err
+		return store.WorkPlan{}, nil, err
+	}
+	contracts, err := resolveFrozenSkillContractsForPlan(n, &plan)
+	if err != nil {
+		return store.WorkPlan{}, nil, err
+	}
+	contractIDs := make(map[string]struct{}, len(contracts))
+	for _, contract := range contracts {
+		contractIDs[contract.ID] = struct{}{}
 	}
 	for pi := range plan.Phases {
 		for wi := range plan.Phases[pi].Packages {
 			pkg := &plan.Phases[pi].Packages[wi]
-			requested := packageSkillIDs(*pkg)
-			validated, err := validateGenericSkillIDs(n, plan.ProjectID, requested)
-			if err != nil {
-				return store.WorkPlan{}, fmt.Errorf("freeze skills for package %s (%s): %w", pkg.ID, skillIDsErrorContext(requested), err)
+			requested := canonicalSkillIDs(packageSkillIDs(*pkg))
+			for _, id := range requested {
+				if _, ok := contractIDs[id]; !ok {
+					return store.WorkPlan{}, nil, fmt.Errorf("freeze skills for package %s: skill %q has no immutable contract", pkg.ID, id)
+				}
 			}
-			pkg.SkillIDs = append([]string(nil), validated...)
+			pkg.SkillIDs = append([]string(nil), requested...)
 			// The immutable execution snapshot carries one validated Skill set in
 			// the canonical and legacy Skill fields. Process gates remain separate
 			// metadata and are never reinterpreted as Skills.
-			pkg.MaestroSkills = append([]string(nil), validated...)
+			pkg.MaestroSkills = append([]string(nil), requested...)
 		}
 	}
-	return plan, nil
+	return plan, contracts, nil
 }
 
 func validateFlowExecutionContract(plan store.WorkPlan) error {
@@ -172,12 +182,12 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 		}
 	}
 
-	frozenPlan, err := freezePlanForExecution(n, *plan)
+	frozenPlan, skillContracts, err := freezePlanForExecution(n, *plan)
 	if err != nil {
 		return nil, err
 	}
 	bindLeadAgent(&frozenPlan, defaultAgentID)
-	envelope, err := json.Marshal(missionExecutionSnapshot{Plan: frozenPlan, Contract: contract, Preflight: preflight})
+	envelope, err := json.Marshal(missionExecutionSnapshot{Plan: frozenPlan, Contract: contract, Preflight: preflight, SkillContracts: skillContracts})
 	if err != nil {
 		return nil, fmt.Errorf("encode mission execution snapshot: %w", err)
 	}
@@ -324,13 +334,18 @@ func (n *Nexus) startMissionRunAtRevisionWithAdmission(ctx context.Context, plan
 	if err != nil {
 		return nil, err
 	}
-	frozen, rev, err := loadWorkPlanRevision(st, plan.ID, revision)
+	frozenRevision, rev, err := loadWorkPlanRevision(st, plan.ID, revision)
 	if err != nil {
 		return nil, err
 	}
+	frozenPlan, skillContracts, err := freezePlanForExecution(n, *frozenRevision)
+	if err != nil {
+		return nil, err
+	}
+	frozen := &frozenPlan
 	bindLeadAgent(frozen, defaultAgentID)
 	contract = normalizeAutonomyContract(contract, project.CanonicalPath)
-	env, err := json.Marshal(missionExecutionSnapshot{Plan: *frozen, Contract: contract, Preflight: preflight, ExecutionPreview: preview})
+	env, err := json.Marshal(missionExecutionSnapshot{Plan: *frozen, Contract: contract, Preflight: preflight, ExecutionPreview: preview, SkillContracts: skillContracts})
 	if err != nil {
 		return nil, err
 	}
