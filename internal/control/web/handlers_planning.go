@@ -664,26 +664,17 @@ func (h *NexusHandler) handleRunDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if strings.HasPrefix(action, "coordination") {
+		h.handleRunCoordination(w, r, runID, action)
+		return
+	}
+
 	var body struct {
 		Reason         string `json:"reason"`
 		InterventionID string `json:"intervention_id"`
 		Version        int    `json:"version"`
 		OptionID       string `json:"option_id"`
-		ResolvedBy          string                       `json:"resolved_by"`
-		RequestID           string                       `json:"request_id"`
-		SourcePackageID     string                       `json:"source_package_id"`
-		SourceAgentID       string                       `json:"source_agent_id"`
-		CoordinationOp      runner.CoordinationOperation `json:"operation"`
-		Subject             string                       `json:"subject"`
-		Objective           string                       `json:"objective"`
-		PreferredRole       string                       `json:"preferred_role"`
-		PreferredProvider   string                       `json:"preferred_provider"`
-		RequiredCapabilities []string                    `json:"required_capabilities"`
-		ArtifactRefs        []string                     `json:"artifact_refs"`
-		Materialize         bool                         `json:"materialize"`
-		CoordinationStatus  runner.CoordinationStatus    `json:"status"`
-		ResolutionSummary   string                       `json:"resolution_summary"`
-		ResultReceiptID     string                       `json:"result_receipt_id"`
+		ResolvedBy     string `json:"resolved_by"`
 	}
 	_ = json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body)
 	var (
@@ -707,60 +698,6 @@ func (h *NexusHandler) handleRunDetail(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		run, err = h.runs.ResolveIntervention(r.Context(), runID, body.InterventionID, body.Version, body.OptionID, body.ResolvedBy)
-	case "coordination":
-		if strings.TrimSpace(body.RequestID) == "" || strings.TrimSpace(body.SourcePackageID) == "" || strings.TrimSpace(body.Subject) == "" {
-			writeError(w, http.StatusBadRequest, "request_id, source_package_id and subject are required")
-			return
-		}
-		result, coordinationErr := h.runs.SubmitCoordination(r.Context(), runID, runner.CoordinationRequest{
-			ID:                   body.RequestID,
-			SourcePackageID:      body.SourcePackageID,
-			SourceAgentID:        body.SourceAgentID,
-			Operation:            body.CoordinationOp,
-			Subject:              body.Subject,
-			Objective:            body.Objective,
-			PreferredRole:        body.PreferredRole,
-			PreferredProvider:    body.PreferredProvider,
-			RequiredCapabilities: body.RequiredCapabilities,
-			ArtifactRefs:         body.ArtifactRefs,
-		}, body.Materialize)
-		if coordinationErr != nil {
-			writeError(w, http.StatusConflict, coordinationErr.Error())
-			return
-		}
-		writeJSON(w, http.StatusCreated, result)
-		return
-	case "coordination-materialize":
-		if strings.TrimSpace(body.RequestID) == "" {
-			writeError(w, http.StatusBadRequest, "request_id is required")
-			return
-		}
-		result, coordinationErr := h.runs.MaterializeCoordination(r.Context(), runID, body.RequestID)
-		if coordinationErr != nil {
-			writeError(w, http.StatusConflict, coordinationErr.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, result)
-		return
-	case "coordination-resolve":
-		if strings.TrimSpace(body.RequestID) == "" || body.CoordinationStatus == "" {
-			writeError(w, http.StatusBadRequest, "request_id and status are required")
-			return
-		}
-		result, coordinationErr := h.runs.ResolveCoordination(
-			r.Context(),
-			runID,
-			body.RequestID,
-			body.CoordinationStatus,
-			body.ResolutionSummary,
-			body.ResultReceiptID,
-		)
-		if coordinationErr != nil {
-			writeError(w, http.StatusConflict, coordinationErr.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, result)
-		return
 	case "step", "":
 		result, stepErr := h.runs.Step(r.Context(), runID)
 		err = stepErr
@@ -777,6 +714,93 @@ func (h *NexusHandler) handleRunDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, run)
+}
+
+func (h *NexusHandler) handleRunCoordination(w http.ResponseWriter, r *http.Request, runID, action string) {
+	switch action {
+	case "coordination":
+		var body struct {
+			RequestID            string                       `json:"request_id"`
+			SourcePackageID      string                       `json:"source_package_id"`
+			SourceAgentID        string                       `json:"source_agent_id"`
+			Operation            runner.CoordinationOperation `json:"operation"`
+			Subject              string                       `json:"subject"`
+			Objective            string                       `json:"objective"`
+			PreferredRole        string                       `json:"preferred_role"`
+			PreferredProvider    string                       `json:"preferred_provider"`
+			RequiredCapabilities []string                     `json:"required_capabilities"`
+			ArtifactRefs         []string                     `json:"artifact_refs"`
+			Materialize          bool                         `json:"materialize"`
+		}
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		if strings.TrimSpace(body.RequestID) == "" || strings.TrimSpace(body.SourcePackageID) == "" ||
+			strings.TrimSpace(body.Subject) == "" || body.Operation == "" {
+			writeError(w, http.StatusBadRequest, "request_id, source_package_id, operation and subject are required")
+			return
+		}
+		result, err := h.runs.SubmitCoordination(r.Context(), runID, runner.CoordinationRequest{
+			ID:                   body.RequestID,
+			SourcePackageID:      body.SourcePackageID,
+			SourceAgentID:        body.SourceAgentID,
+			Operation:            body.Operation,
+			Subject:              body.Subject,
+			Objective:            body.Objective,
+			PreferredRole:        body.PreferredRole,
+			PreferredProvider:    body.PreferredProvider,
+			RequiredCapabilities: body.RequiredCapabilities,
+			ArtifactRefs:         body.ArtifactRefs,
+		}, body.Materialize)
+		if err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, result)
+	case "coordination-materialize":
+		var body struct {
+			RequestID string `json:"request_id"`
+		}
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil ||
+			strings.TrimSpace(body.RequestID) == "" {
+			writeError(w, http.StatusBadRequest, "request_id is required")
+			return
+		}
+		result, err := h.runs.MaterializeCoordination(r.Context(), runID, body.RequestID)
+		if err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	case "coordination-resolve":
+		var body struct {
+			RequestID         string                    `json:"request_id"`
+			Status            runner.CoordinationStatus `json:"status"`
+			ResolutionSummary string                    `json:"resolution_summary"`
+			ResultReceiptID   string                    `json:"result_receipt_id"`
+		}
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil ||
+			strings.TrimSpace(body.RequestID) == "" || body.Status == "" {
+			writeError(w, http.StatusBadRequest, "request_id and status are required")
+			return
+		}
+		result, err := h.runs.ResolveCoordination(
+			r.Context(),
+			runID,
+			body.RequestID,
+			body.Status,
+			body.ResolutionSummary,
+			body.ResultReceiptID,
+		)
+		if err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	default:
+		writeError(w, http.StatusNotFound, "unknown coordination action")
+	}
 }
 
 // handleRunEvidence returns only typed, bounded Flow evidence. Raw Agent or
