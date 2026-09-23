@@ -19,9 +19,9 @@ func TestBuildHUDProjectionPreservesUnknown(t *testing.T) {
 			Profile:  "default",
 			Health:   "unknown",
 			QuotaView: &quota.QuotaView{
-				Provider: "codex",
-				Profile:  "default",
-				Status:   "UNKNOWN",
+				Provider:     "codex",
+				Profile:      "default",
+				Status:       "UNKNOWN",
 				AvailReasons: quota.AvailReasons{UnknownQuota: true},
 			},
 		}},
@@ -131,7 +131,6 @@ func TestHUDPrimaryCriticalAlertWins(t *testing.T) {
 		t.Fatalf("primary=%+v, want critical alert", state.Primary)
 	}
 }
-
 
 func TestLoadHUDRecommendationUsesDurableCapacityEvent(t *testing.T) {
 	st, err := store.Open(filepath.Join(t.TempDir(), "hud.db"))
