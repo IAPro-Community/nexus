@@ -1,0 +1,59 @@
+import React, { useEffect, useState } from 'react';
+import { ThemeProvider } from '../design-system';
+import { initSession } from '../api';
+import { NexusHud } from '../features/hud/NexusHud';
+import styles from './DesktopHudApp.module.scss';
+
+export const isDesktopHudApp = () =>
+  typeof window !== 'undefined' && Boolean(window.go?.desktop?.HUDController);
+
+export const DesktopHudApp: React.FC = () => {
+  const [ready, setReady] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void initSession()
+      .then((session) => {
+        if (!active) return;
+        setAuthenticated(session.authenticated);
+      })
+      .finally(() => {
+        if (active) setReady(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const capture = () => {
+      void window.go?.desktop?.HUDController?.CaptureHUDWindowState?.();
+    };
+    window.addEventListener('blur', capture);
+    window.addEventListener('beforeunload', capture);
+    return () => {
+      window.removeEventListener('blur', capture);
+      window.removeEventListener('beforeunload', capture);
+    };
+  }, []);
+
+  if (!ready) {
+    return <div className={styles.status}>Nexus HUD</div>;
+  }
+  if (!authenticated) {
+    return (
+      <div className={styles.status} role="alert">
+        HUD offline · não foi possível anexar à sessão local do Nexus.
+      </div>
+    );
+  }
+
+  return (
+    <ThemeProvider>
+      <main className={styles.root}>
+        <NexusHud native />
+      </main>
+    </ThemeProvider>
+  );
+};
