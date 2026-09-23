@@ -166,7 +166,7 @@ type hudCacheEntry struct {
 // projection. It delegates every fact and decision to existing Nexus services.
 type HUDApplicationService struct {
 	nexus     *Nexus
-	resources *ResourceApplicationService
+	projects  *ProjectApplicationService
 	agents    *AgentApplicationService
 	runs      *RunApplicationService
 
@@ -177,9 +177,9 @@ type HUDApplicationService struct {
 func NewHUDApplicationService(n *Nexus) *HUDApplicationService {
 	return &HUDApplicationService{
 		nexus:     n,
-		resources: NewResourceApplicationService(n),
-		agents:    NewAgentApplicationService(n),
-		runs:      NewRunApplicationService(n),
+		projects: NewProjectApplicationService(n),
+		agents:   NewAgentApplicationService(n),
+		runs:     NewRunApplicationService(n),
 		cache:     make(map[string]hudCacheEntry),
 	}
 }
@@ -218,38 +218,39 @@ func (s *HUDApplicationService) State(ctx context.Context, projectID string) (HU
 		return HUDState{}, err
 	}
 
-	accounts, resourceErr := s.resources.List(ctx)
+	// Do not call ResourceApplicationService.List here: that path performs
+	// provider detection/effective-capability probes. HUD refresh must consume
+	// already-materialized state and never create a second polling loop.
+	system.Resources = "SNAPSHOT_ONLY"
 	var recommendation *RecommendationResult
-	if resourceErr != nil {
-		system.Resources = "UNAVAILABLE"
-	} else {
-		// Keep parity with the generic recommendation already exposed by Usage.
-		// This is advisory only and never allocates/switches a resource.
-		result, recommendErr := s.resources.Recommend(ctx, accounts, TaskRequirements{
-			TaskKind: "general",
-			Role:     "developer",
-			Source:   "HUD_GENERAL",
-		}, PolicyBalanced)
-		if recommendErr != nil {
-			system.Resources = "UNAVAILABLE"
-		} else {
-			recommendation = &result
-		}
-	}
 
 	var agents []store.Agent
 	agentDetails := map[string]AgentDetailView{}
 	if projectID != "" {
 		agents, err = s.agents.List(ctx, projectID)
-		if err != nil {
-			system.Agents = "UNAVAILABLE"
-			agents = nil
+	} else {
+		projects, projectErr := s.projects.List(ctx)
+		if projectErr != nil {
+			err = projectErr
 		} else {
-			for _, agent := range agents {
-				detail, detailErr := s.agents.Detail(ctx, agent.ID)
-				if detailErr == nil {
-					agentDetails[agent.ID] = detail
+			for _, project := range projects {
+				projectAgents, listErr := s.agents.List(ctx, project.ID)
+				if listErr != nil {
+					err = listErr
+					break
 				}
+				agents = append(agents, projectAgents...)
+			}
+		}
+	}
+	if err != nil {
+		system.Agents = "UNAVAILABLE"
+		agents = nil
+	} else {
+		for _, agent := range agents {
+			detail, detailErr := s.agents.Detail(ctx, agent.ID)
+			if detailErr == nil {
+				agentDetails[agent.ID] = detail
 			}
 		}
 	}
@@ -278,7 +279,6 @@ func (s *HUDApplicationService) State(ctx context.Context, projectID string) (HU
 		GeneratedAt:      now,
 		ProjectID:        projectID,
 		Capacity:         capacity,
-		Accounts:         accounts,
 		Recommendation:   recommendation,
 		Agents:           agents,
 		AgentDetails:     agentDetails,
@@ -359,12 +359,19 @@ func buildHUDProviders(accounts []ProviderAccount, capacity CapacityStatus) []HU
 				Health:        "UNKNOWN",
 				Availability:  "UNKNOWN",
 				CapacityState: nonEmptyUpper(resource.State),
-				Freshness:     "UNKNOWN",
+				Source:         resource.Source,
+				Freshness:      nonEmptyUpper(resource.ObservationStatus),
 				Windows:       []HUDWindow{},
 			}
 			byKey[key] = item
 		}
 		item.CapacityState = higherCapacityState(item.CapacityState, resource.State)
+		if strings.TrimSpace(resource.Source) != "" {
+			item.Source = resource.Source
+		}
+		if strings.TrimSpace(resource.ObservationStatus) != "" {
+			item.Freshness = nonEmptyUpper(resource.ObservationStatus)
+		}
 		remaining := cloneFloat(resource.RemainingPercent)
 		item.Windows = append(item.Windows, HUDWindow{
 			Group:            resource.QuotaGroup,
