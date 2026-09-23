@@ -158,6 +158,25 @@ eventos existentes e revalidação centralizada/bounded. O objetivo do Desktop H
 em idle é CPU praticamente zero; métricas devem ser registradas no relatório de
 entrega antes de qualquer claim estável.
 
+## PWA
+
+**Decisão M1: DEFERRED.**
+
+O Web HUD não depende de PWA e já é uma superfície oficial do Nexus Web OS. O
+frontend atual não possui um service worker/manifest canônico que possa ser
+estendido sem introduzir uma nova política de cache, atualização e recuperação.
+
+Adicionar PWA no primeiro milestone aumentaria o blast radius do fechamento sem
+resolver uma dependência funcional do HUD. A evolução para installable web app,
+standalone mode, browser notifications e badge continua prevista para o
+milestone de UX avançada, desde que:
+
+- reutilize o pipeline de notifications existente;
+- não crie cache paralelo de estado operacional;
+- invalide dados de Capacity/Agents/Missions corretamente;
+- não apresente estado stale como atual;
+- possua estratégia explícita de update/rollback do service worker.
+
 ## Limitações conhecidas do M1
 
 - Windows e macOS continuam `UNVERIFIED` até execução nativa.
