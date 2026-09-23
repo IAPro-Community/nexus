@@ -168,7 +168,7 @@ Evidence recorded 2026-09-21:
   `35547840452` is recorded as a non-green/partial run: Linux and Security
   completed successfully, while Frontend was cancelled and dependent jobs did
   not execute. It is not promoted to green evidence.
-- source truth is `1.0.0-beta.4` across VERSION/README/CHANGELOG/current status.
+- source truth is `1.0.0` across VERSION/README/CHANGELOG/current status; publication still requires same-SHA stable certification.
 - repository tag inventory still exposes `v1.0.0-beta.1` as the published beta
   tag; install docs may pin that artifact but must not describe it as current source.
 - older validation/candidate material is explicitly historical; this file and
