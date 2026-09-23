@@ -527,9 +527,16 @@ jobs:
             apt-get update
             apt-get install -f -y
           fi
+          installed_path="$(command -v nexus)"
+          test -n "$installed_path"
           nexus version
           dpkg -r nexus
+          hash -r
+          if [ -e "$installed_path" ]; then
+            echo "nexus binary still exists after DEB uninstall: $installed_path" >&2
+            exit 1
+          fi
           if command -v nexus >/dev/null 2>&1; then
-            echo "nexus command still present after DEB uninstall" >&2
+            echo "another nexus command is still resolvable after DEB uninstall: $(command -v nexus)" >&2
             exit 1
           fi
