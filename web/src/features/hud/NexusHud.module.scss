@@ -130,8 +130,8 @@
 .dragHandle:focus-visible {
   background: var(--nx-surface-raised);
   color: var(--nx-text);
-  outline: 2px solid var(--nx-focus-ring);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: var(--nx-focus-ring);
 }
 
 .dragHandle {
