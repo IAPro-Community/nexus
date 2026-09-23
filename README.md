@@ -211,6 +211,32 @@ O [Orquestrador Maestro](https://github.com/IAPro-Community/Orquestrador-Maestro
 é opcional. Sem ele, Direct, Agents, Composer, Flow e Mission continuam sendo
 capacidades do Nexus.
 
+## Nexus HUD
+
+> **Experimental no source desta branch.** O HUD não altera a matriz estável da
+> Nexus v1 e não é anunciado como feature multiplataforma até existir
+> certificação nativa same-SHA.
+
+**Seu Nexus, sempre visível.** O Nexus HUD projeta o estado operacional já
+mantido pelo Core — Capacity Monitor, ResourceScheduler, Cost Intelligence,
+Agents e Missions — em duas superfícies:
+
+- **Web HUD:** barra/widget persistente no Nexus Web OS, com adaptação mobile;
+- **Desktop HUD:** gadget nativo Wails independente da janela principal.
+
+O HUD é uma projeção, não um segundo monitor. Ele não executa provider probes,
+não recalcula routing no frontend, não estima custo sem evidência e não usa LLM.
+
+```text
+Capacity + Scheduler + Cost + Agents + Missions
+                    ↓
+              HUD Projection
+               ↙          ↘
+        Desktop HUD      Web HUD
+```
+
+Rollout inicial: feature flag `hud`, desligada por padrão. Consulte
+[produto e limitações](docs/product/hud.md).
 ## Superfícies
 
 | Superfície | Uso principal |
