@@ -60,13 +60,14 @@ const alertCopy = (alert?: HudAlert) => {
   };
 };
 
-const primaryCopy = (state: HudState) => {
+const primaryCopy = (state: HudState, requestedMode: HudPresentationPreferences['mode']) => {
+  const effectiveKind = requestedMode === 'AUTO' || requestedMode === 'MINIMAL' ? state.primary.kind : requestedMode;
   const alert = state.alerts.find((item) => item.severity === 'CRITICAL') || state.alerts[0];
-  if (state.primary.kind === 'ALERT' && alert) {
+  if (effectiveKind === 'ALERT' && alert) {
     return { kind: 'ALERT', icon: CircleAlert, ...alertCopy(alert)! };
   }
   const mission = activeMission(state.missions);
-  if (state.primary.kind === 'MISSION' && mission) {
+  if (effectiveKind === 'MISSION' && mission) {
     return {
       kind: 'MISSION',
       icon: Workflow,
@@ -78,7 +79,7 @@ const primaryCopy = (state: HudState) => {
     };
   }
   const agent = state.agents.find((item) => item.id === state.primary.id) || state.agents.find(isWorkingAgent);
-  if (state.primary.kind === 'AGENT' && agent) {
+  if (effectiveKind === 'AGENT' && agent) {
     return {
       kind: 'AGENT',
       icon: Bot,
@@ -86,7 +87,7 @@ const primaryCopy = (state: HudState) => {
       detail: [agent.provider, agent.model, agent.status].filter(Boolean).join(' · '),
     };
   }
-  if (state.primary.kind === 'RESOURCE' && state.recommendation) {
+  if (effectiveKind === 'RESOURCE' && state.recommendation) {
     return {
       kind: 'RESOURCE',
       icon: Zap,
@@ -190,10 +191,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
 
   const state = response?.state;
   const cost = useMemo(() => formatHudCost(state?.cost), [state?.cost]);
-  const primary = useMemo(() => (state ? primaryCopy(state) : null), [state]);
+  const primary = useMemo(() => (state ? primaryCopy(state, prefs.mode) : null), [state, prefs.mode]);
   const topAlert = state?.alerts[0];
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
   const mission = state ? activeMission(state.missions) : undefined;
+  const modeShows = (kind: 'CAPACITY' | 'RESOURCE' | 'AGENT' | 'MISSION' | 'ALERT' | 'COST') =>
+    prefs.mode === 'AUTO' ||
+    (prefs.mode === 'MINIMAL' && kind === 'CAPACITY') ||
+    prefs.mode === kind;
 
   const updatePrefs = (patch: Partial<HudPresentationPreferences>) => {
     const next = { ...prefs, ...patch };
@@ -257,9 +262,10 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   };
 
   const onDragPointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (dragState.current?.pointerId !== event.pointerId) return;
+    const drag = dragState.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
     dragState.current = null;
-    saveHudPreferences(prefs);
+    updateFloatingPosition(event.clientX - drag.offsetX, event.clientY - drag.offsetY, true);
   };
 
   const onDragKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -307,7 +313,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           </div>
 
           <div className={styles.metrics}>
-            {prefs.showCapacity &&
+            {prefs.showCapacity && modeShows('CAPACITY') &&
               state.providers.slice(0, 4).map((provider) => (
                 <button
                   type="button"
@@ -321,7 +327,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   <strong>{providerCapacityLabel(provider)}</strong>
                 </button>
               ))}
-            {prefs.showRecommendation && state.recommendation ? (
+            {prefs.showRecommendation && modeShows('RESOURCE') && state.recommendation ? (
               <button
                 type="button"
                 className={styles.metric}
@@ -332,7 +338,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 <strong>{state.recommendation.provider}</strong>
               </button>
             ) : null}
-            {prefs.showAgents && activeAgents.length > 0 ? (
+            {prefs.showAgents && modeShows('AGENT') && activeAgents.length > 0 ? (
               <button
                 type="button"
                 className={styles.metric}
@@ -343,7 +349,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 <strong>{activeAgents.length}</strong>
               </button>
             ) : null}
-            {prefs.showMissions && mission ? (
+            {prefs.showMissions && modeShows('MISSION') && mission ? (
               <button
                 type="button"
                 className={styles.metric}
@@ -361,7 +367,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 </strong>
               </button>
             ) : null}
-            {prefs.showCost && !prefs.privacyMode ? (
+            {prefs.showCost && modeShows('COST') && !prefs.privacyMode ? (
               <span
                 className={styles.metric}
                 aria-label={`Custo ${cost.semantics}: ${cost.label}`}
@@ -421,17 +427,20 @@ export const NexusHud: React.FC<NexusHudProps> = ({
 
         {expanded && (
           <div className={styles.expanded}>
-            {primary ? (
+            {primary ? (() => {
+              const PrimaryIcon = primary.icon;
+              return (
               <section className={styles.primary} data-kind={primary.kind}>
-                <primary.icon size={18} aria-hidden="true" />
+                <PrimaryIcon size={18} aria-hidden="true" />
                 <div className={styles.primaryText}>
                   <strong>{primary.title}</strong>
                   <span>{primary.detail}</span>
                 </div>
               </section>
-            ) : null}
+              );
+            })() : null}
 
-            {topAlert ? (
+            {topAlert && modeShows('ALERT') ? (
               <div className={styles.actionRow}>
                 <button
                   type="button"
@@ -452,7 +461,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </div>
             ) : null}
 
-            {prefs.showCapacity ? (
+            {prefs.showCapacity && modeShows('CAPACITY') ? (
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <h3>Capacity</h3>
@@ -505,7 +514,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </section>
             ) : null}
 
-            {prefs.showRecommendation && state.recommendation ? (
+            {prefs.showRecommendation && modeShows('RESOURCE') && state.recommendation ? (
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <h3>ResourceScheduler</h3>
@@ -529,7 +538,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </section>
             ) : null}
 
-            {prefs.showAgents && state.agents.length > 0 ? (
+            {prefs.showAgents && modeShows('AGENT') && state.agents.length > 0 ? (
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <h3>Agents</h3>
@@ -556,7 +565,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </section>
             ) : null}
 
-            {prefs.showMissions && mission ? (
+            {prefs.showMissions && modeShows('MISSION') && mission ? (
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <h3>Mission</h3>
@@ -586,7 +595,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </section>
             ) : null}
 
-            {prefs.showCost && !prefs.privacyMode && state.cost ? (
+            {prefs.showCost && modeShows('COST') && !prefs.privacyMode && state.cost ? (
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <h3>Cost Intelligence</h3>
