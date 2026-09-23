@@ -2,6 +2,7 @@ package nexus
 
 import (
 	"context"
+	"encoding/json"
 	"sort"
 	"strings"
 	"sync"
@@ -150,7 +151,7 @@ type HUDProjectionInput struct {
 	ProjectID        string
 	Capacity         CapacityStatus
 	Accounts         []ProviderAccount
-	Recommendation   *RecommendationResult
+	Recommendation   *HUDRecommendation
 	Agents           []store.Agent
 	AgentDetails     map[string]AgentDetailView
 	Runs             []*runner.MissionRun
@@ -224,7 +225,10 @@ func (s *HUDApplicationService) State(ctx context.Context, projectID string) (HU
 	// provider detection/effective-capability probes. HUD refresh must consume
 	// already-materialized state and never create a second polling loop.
 	system.Resources = "SNAPSHOT_ONLY"
-	var recommendation *RecommendationResult
+	recommendation := loadHUDRecommendation(st)
+	if recommendation != nil {
+		system.Resources = "CANONICAL_EVENT"
+	}
 	accounts, snapshotErr := loadHUDQuotaSnapshots()
 	if snapshotErr != nil {
 		system.Resources = "SNAPSHOT_UNAVAILABLE"
@@ -318,30 +322,9 @@ func BuildHUDProjection(input HUDProjectionInput) HUDState {
 	if state.System.CacheTTLMillis == 0 {
 		state.System.CacheTTLMillis = hudProjectionCacheTTL.Milliseconds()
 	}
-	if input.Recommendation != nil && input.Recommendation.Recommended != nil {
-		top := input.Recommendation.Recommended
-		rec := HUDRecommendation{
-			Provider:    top.Account.Provider,
-			Profile:     top.Account.Profile,
-			DisplayName: top.Account.DisplayName,
-			Score:       top.TotalScore,
-			Confidence:  nonEmptyUpper(top.Confidence),
-			Explanation: input.Recommendation.Explanation,
-			Context:     "GENERAL",
-		}
-		for _, candidate := range input.Recommendation.Candidates {
-			if candidate.Rank <= 1 || !candidate.Eligible {
-				continue
-			}
-			label := candidate.Account.DisplayName
-			if strings.TrimSpace(label) == "" {
-				label = strings.Trim(candidate.Account.Provider+":"+candidate.Account.Profile, ":")
-			}
-			rec.Alternatives = append(rec.Alternatives, label)
-			if len(rec.Alternatives) == 3 {
-				break
-			}
-		}
+	if input.Recommendation != nil {
+		rec := *input.Recommendation
+		rec.Alternatives = append([]string(nil), input.Recommendation.Alternatives...)
 		state.Recommendation = &rec
 	}
 	if input.Cost != nil {
@@ -349,6 +332,46 @@ func BuildHUDProjection(input HUDProjectionInput) HUDState {
 	}
 	state.Primary = chooseHUDPrimary(state)
 	return state
+}
+
+
+
+func loadHUDRecommendation(st *store.Store) *HUDRecommendation {
+	if st == nil {
+		return nil
+	}
+	events, err := st.ListCapacityEvents(50)
+	if err != nil {
+		return nil
+	}
+	for _, event := range events {
+		if strings.TrimSpace(event.PayloadJSON) == "" {
+			continue
+		}
+		var payload struct {
+			Provider    string  `json:"recommended_provider"`
+			Profile     string  `json:"recommended_profile"`
+			DisplayName string  `json:"recommended_display_name"`
+			Score       float64 `json:"recommendation_score"`
+			Reason      string  `json:"recommendation_reason"`
+		}
+		if json.Unmarshal([]byte(event.PayloadJSON), &payload) != nil {
+			continue
+		}
+		if strings.TrimSpace(payload.Provider) == "" {
+			continue
+		}
+		return &HUDRecommendation{
+			Provider:     payload.Provider,
+			Profile:      payload.Profile,
+			DisplayName:  payload.DisplayName,
+			Score:        payload.Score,
+			Confidence:   "UNKNOWN",
+			Explanation:  payload.Reason,
+			Context:      "CAPACITY_ALERT",
+		}
+	}
+	return nil
 }
 
 
