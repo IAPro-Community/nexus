@@ -6,9 +6,9 @@ Em 5–10 minutos você pode instalar o Nexus, abrir a Web local, adicionar um
 projeto e iniciar uma AI Session. O exemplo usa o fluxo **Direct**, que não
 exige Composer, Flow ou Mission.
 
-> Estado: **Disponível** para a CLI e Web locais. A evidência de Desktop e de
-> providers autenticados varia por plataforma e perfil; confirme com
-> `nexus doctor` e `nexus providers status --json`.
+> Estado: **Disponível** para a CLI/Web e Desktop Linux x86_64 no escopo v1.
+> Windows/macOS estão deferidos e não são targets suportados desta release.
+> Confirme providers locais com `nexus doctor` e `nexus providers status --json`.
 >
 > Os comandos abaixo pinam `v1.0.0-beta.1` porque essa é a tag beta publicada
 > disponível. A versão de fonte `1.0.0-beta.4` está em fechamento e não deve ser
@@ -16,7 +16,7 @@ exige Composer, Flow ou Mission.
 
 ## 1. Instale
 
-Para usar um release no Linux/macOS:
+O target suportado da v1 é **Linux amd64**:
 
 ```bash
 curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
@@ -24,18 +24,13 @@ bash install.sh --version=v1.0.0-beta.1
 nexus doctor
 ```
 
-No Windows PowerShell:
-
-```powershell
-irm https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.1
-nexus doctor
-```
-
 O installer vem do repositório público de binários e o payload é aceito somente
 após manifesto Ed25519 válido, SHA-256 correspondente e versão interna coerente.
 Enquanto a linha pública for beta, use a tag beta explícita; `latest` representa
 o latest não-prerelease do GitHub.
+
+Windows/macOS não fazem parte da matriz suportada da v1.
+
 Veja os pré-requisitos e opções em [instalação nativa](getting-started/installation.md).
 
 ## 2. Abra a workstation local
