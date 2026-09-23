@@ -7,7 +7,7 @@ ifeq ($(shell go env GOOS),linux)
 DESKTOP_TAGS = production,webkit2_41
 endif
 
-.PHONY: all build build-desktop build-desktop-wails web web-verify docs-verify test race vet install install-local release-local bump clean format format-check lint-frontend lint-styles lint-styles-fix lint-fix lint-go typecheck test-frontend test-go test-e2e security quality quality-full golangci-lint version-check test-updater-negative test-update-integration release-dry-run browser-functional browser-a11y browser-visual browser-all verify-update coverage e2e attention-e2e overnight-smoke overnight-soak release-proof smoke-providers
+.PHONY: all build build-desktop build-desktop-wails build-hud build-hud-wails web web-verify docs-verify test race vet install install-local release-local bump clean format format-check lint-frontend lint-styles lint-styles-fix lint-fix lint-go typecheck test-frontend test-go test-e2e security quality quality-full golangci-lint version-check test-updater-negative test-update-integration release-dry-run browser-functional browser-a11y browser-visual browser-all verify-update coverage e2e attention-e2e overnight-smoke overnight-soak release-proof smoke-providers
 
 all: build
 
@@ -168,6 +168,22 @@ build-desktop-wails: web
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
 	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
 	cd cmd/nexus-desktop && GOTOOLCHAIN=auto GOFLAGS=-trimpath go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) build -clean -s -m -tags "$(DESKTOP_TAGS)" -ldflags "$$LDFLAGS"
+
+
+build-hud: web
+	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
+	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
+	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
+	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
+	echo "Building nexus-hud v$$VERSION (commit: $$COMMIT)..."; \
+	go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$$LDFLAGS" -o nexus-hud ./cmd/nexus-hud
+
+build-hud-wails: web
+	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
+	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
+	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
+	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
+	cd cmd/nexus-hud && GOTOOLCHAIN=auto GOFLAGS=-trimpath go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) build -clean -s -m -tags "$(DESKTOP_TAGS)" -ldflags "$$LDFLAGS"
 
 release-local:
 	go run ./cmd/nexus release
