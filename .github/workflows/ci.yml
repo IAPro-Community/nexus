@@ -269,11 +269,18 @@ jobs:
           }
           make build-desktop-wails
           test -f cmd/nexus-desktop/build/bin/nexus-desktop
-      - run: tar -C cmd/nexus-desktop/build/bin -czf "$RUNNER_TEMP/nexus-desktop_Linux_x86_64.tar.gz" nexus-desktop
+          make build-hud-wails
+          test -f cmd/nexus-hud/build/bin/nexus-hud
+      - name: Package Linux desktop surfaces
+        run: |
+          tar -C cmd/nexus-desktop/build/bin -czf "$RUNNER_TEMP/nexus-desktop_Linux_x86_64.tar.gz" nexus-desktop
+          tar -C cmd/nexus-hud/build/bin -czf "$RUNNER_TEMP/nexus-hud_Linux_x86_64.tar.gz" nexus-hud
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-linux-${{ github.sha }}
-          path: ${{ runner.temp }}/nexus-desktop_Linux_x86_64.tar.gz
+          path: |
+            ${{ runner.temp }}/nexus-desktop_Linux_x86_64.tar.gz
+            ${{ runner.temp }}/nexus-hud_Linux_x86_64.tar.gz
           if-no-files-found: error
           retention-days: 2
 
@@ -350,10 +357,18 @@ jobs:
           $exe = Get-ChildItem cmd/nexus-desktop/build/bin -Filter *.exe | Select-Object -First 1
           if (-not $exe) { throw "Wails Windows executable not found" }
           Compress-Archive -Path $exe.FullName -DestinationPath "$env:RUNNER_TEMP\nexus-desktop_Windows_x86_64.zip" -Force
+          Push-Location cmd/nexus-hud
+          go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags "$ldflags"
+          Pop-Location
+          $hudExe = Get-ChildItem cmd/nexus-hud/build/bin -Filter *.exe | Select-Object -First 1
+          if (-not $hudExe) { throw "Nexus HUD Windows executable not found" }
+          Compress-Archive -Path $hudExe.FullName -DestinationPath "$env:RUNNER_TEMP\nexus-hud_Windows_x86_64.zip" -Force
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-windows-${{ inputs.native_target_sha }}
-          path: ${{ runner.temp }}\nexus-desktop_Windows_x86_64.zip
+          path: |
+            ${{ runner.temp }}\nexus-desktop_Windows_x86_64.zip
+            ${{ runner.temp }}\nexus-hud_Windows_x86_64.zip
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v4
@@ -422,10 +437,19 @@ jobs:
           APP="$(find cmd/nexus-desktop/build/bin -maxdepth 1 -type d -name '*.app' -print -quit)"
           test -n "$APP"
           ditto -c -k --sequesterRsrc --keepParent "$APP" "$RUNNER_TEMP/nexus-desktop_Darwin_arm64.zip"
+          (
+            cd cmd/nexus-hud
+            go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags "$LDFLAGS"
+          )
+          HUD_APP="$(find cmd/nexus-hud/build/bin -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "$HUD_APP"
+          ditto -c -k --sequesterRsrc --keepParent "$HUD_APP" "$RUNNER_TEMP/nexus-hud_Darwin_arm64.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-macos-${{ inputs.native_target_sha }}
-          path: ${{ runner.temp }}/nexus-desktop_Darwin_arm64.zip
+          path: |
+            ${{ runner.temp }}/nexus-desktop_Darwin_arm64.zip
+            ${{ runner.temp }}/nexus-hud_Darwin_arm64.zip
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v4
@@ -459,7 +483,9 @@ jobs:
           test "${#TARGET_SHA}" -eq 40
           printf '%s\n' "$TARGET_SHA" > certified-sha.txt
           sha256sum native/windows/nexus-desktop_Windows_x86_64.zip > windows.sha256
+          sha256sum native/windows/nexus-hud_Windows_x86_64.zip > windows-hud.sha256
           sha256sum native/macos/nexus-desktop_Darwin_arm64.zip > macos.sha256
+          sha256sum native/macos/nexus-hud_Darwin_arm64.zip > macos-hud.sha256
           {
             printf 'sha=%s\n' "$TARGET_SHA"
             printf 'windows_runner=self-hosted/windows/x64/nexus-windows\n'
@@ -471,7 +497,9 @@ jobs:
           path: |
             certified-sha.txt
             windows.sha256
+            windows-hud.sha256
             macos.sha256
+            macos-hud.sha256
             native-certification.txt
           if-no-files-found: error
           retention-days: 30
