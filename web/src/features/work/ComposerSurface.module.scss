@@ -366,6 +366,9 @@
 
 .goalBar {
   display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   gap: 10px;
   padding: 14px 16px;
   border: 1px solid color-mix(in srgb, var(--nx-accent) 35%, var(--nx-border));
@@ -387,6 +390,9 @@
 
 .deliberative {
   display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   gap: 14px;
   max-width: 1180px;
   margin: 0 auto;
@@ -642,6 +648,23 @@
 @media (max-width: 640px) {
   .goalBar {
     padding: 10px 12px;
+  }
+
+  .goalBarLabel {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .goalBarLabel > .flexRowGap4 {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .goalBarLabel > .flexRowGap4 > :global(.nx-button) {
+    flex: 1 1 9rem;
+    min-width: 0;
   }
 
   .goalBarRow {
