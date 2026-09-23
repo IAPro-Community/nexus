@@ -212,6 +212,13 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     saveHudPreferences(next);
   };
 
+  const setExpandedState = (next: boolean) => {
+    setExpanded(next);
+    if (native) {
+      void window.go?.desktop?.HUDController?.SetHUDExpanded?.(next);
+    }
+  };
+
   const hideHUD = () => {
     if (native && window.go?.desktop?.HUDController?.HideHUD) {
       void window.go.desktop.HUDController.HideHUD();
@@ -331,7 +338,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 type="button"
                 className={styles.metric}
                 data-state={topAlert.severity}
-                onClick={() => setExpanded(true)}
+                onClick={() => setExpandedState(true)}
                 aria-label={`Alerta ${topAlert.severity}: ${topAlert.provider || 'provider'} ${topAlert.remaining_percent === undefined ? 'capacidade desconhecida' : `${Math.round(topAlert.remaining_percent)}% restante`}`}
               >
                 <CircleAlert size={12} aria-hidden="true" />
@@ -434,15 +441,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               className={styles.iconButton}
               aria-expanded={expanded}
               aria-label={expanded ? 'Recolher Nexus HUD' : 'Expandir Nexus HUD'}
-              onClick={() =>
-                setExpanded((current) => {
-                  const next = !current;
-                  if (native) {
-                    void window.go?.desktop?.HUDController?.SetHUDExpanded?.(next);
-                  }
-                  return next;
-                })
-              }
+              onClick={() => setExpandedState(!expanded)}
             >
               {expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
             </button>
