@@ -199,10 +199,10 @@ jobs:
           mkdir -p native-artifacts
           gh run download "$CI_RUN_ID" --name "desktop-linux-${GITHUB_SHA}" --dir native-artifacts
           test -f native-artifacts/nexus-desktop_Linux_x86_64.tar.gz
-      - name: Stage release installers before manifest signing
+      - name: Stage Nexus v1 Linux installers before manifest signing
         run: |
           set -euo pipefail
-          cp install.sh install.ps1 uninstall.sh uninstall.ps1 dist/
+          cp install.sh uninstall.sh dist/
       - name: Generate signed cross-platform update manifest
         env:
           NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
