@@ -62,7 +62,8 @@ const alertCopy = (alert?: HudAlert) => {
 };
 
 const primaryCopy = (state: HudState, requestedMode: HudPresentationPreferences['mode']) => {
-  const effectiveKind = requestedMode === 'AUTO' || requestedMode === 'MINIMAL' ? state.primary.kind : requestedMode;
+  const effectiveKind =
+    requestedMode === 'AUTO' || requestedMode === 'MINIMAL' ? state.primary.kind : requestedMode;
   const alert = state.alerts.find((item) => item.severity === 'CRITICAL') || state.alerts[0];
   if (effectiveKind === 'ALERT' && alert) {
     return { kind: 'ALERT', icon: CircleAlert, ...alertCopy(alert)! };
@@ -79,7 +80,8 @@ const primaryCopy = (state: HudState, requestedMode: HudPresentationPreferences[
         `${mission.completed_packages}/${mission.total_packages} packages`,
     };
   }
-  const agent = state.agents.find((item) => item.id === state.primary.id) || state.agents.find(isWorkingAgent);
+  const agent =
+    state.agents.find((item) => item.id === state.primary.id) || state.agents.find(isWorkingAgent);
   if (effectiveKind === 'AGENT' && agent) {
     return {
       kind: 'AGENT',
@@ -100,7 +102,9 @@ const primaryCopy = (state: HudState, requestedMode: HudPresentationPreferences[
     kind: 'CAPACITY',
     icon: Gauge,
     title: 'Capacity',
-    detail: state.providers.length ? `${state.providers.length} recursos monitorados` : 'Sem dados de provider',
+    detail: state.providers.length
+      ? `${state.providers.length} recursos monitorados`
+      : 'Sem dados de provider',
   };
 };
 
@@ -151,9 +155,12 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     window.addEventListener('focus', onFocus);
 
     const ttl = response?.state?.system.cache_ttl_millis || MIN_REFRESH_MS;
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void refresh();
-    }, Math.max(MIN_REFRESH_MS, ttl));
+    const timer = window.setInterval(
+      () => {
+        if (document.visibilityState === 'visible') void refresh();
+      },
+      Math.max(MIN_REFRESH_MS, ttl),
+    );
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
@@ -193,7 +200,10 @@ export const NexusHud: React.FC<NexusHudProps> = ({
 
   const state = response?.state;
   const cost = useMemo(() => formatHudCost(state?.cost), [state?.cost]);
-  const primary = useMemo(() => (state ? primaryCopy(state, prefs.mode) : null), [state, prefs.mode]);
+  const primary = useMemo(
+    () => (state ? primaryCopy(state, prefs.mode) : null),
+    [state, prefs.mode],
+  );
   const topAlert = state?.alerts[0];
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
   const mission = state ? activeMission(state.missions) : undefined;
@@ -297,11 +307,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     else if (event.key === 'ArrowDown') dy = FLOATING_KEYBOARD_STEP;
     else return;
     event.preventDefault();
-    updateFloatingPosition(
-      prefs.floatingPosition.x + dx,
-      prefs.floatingPosition.y + dy,
-      true,
-    );
+    updateFloatingPosition(prefs.floatingPosition.x + dx, prefs.floatingPosition.y + dy, true);
   };
 
   if ((!prefs.enabled && !native) || !response?.enabled || !state) return null;
@@ -350,7 +356,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 </strong>
               </button>
             ) : null}
-            {prefs.showCapacity && modeShows('CAPACITY') &&
+            {prefs.showCapacity &&
+              modeShows('CAPACITY') &&
               state.providers.slice(0, 4).map((provider) => (
                 <button
                   type="button"
@@ -392,7 +399,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 className={styles.metric}
                 data-state={mission.needs_user ? 'WARNING' : mission.state}
                 onClick={onOpenMissions}
-                aria-label={mission.needs_user ? 'Mission aguardando intervenção' : `Mission ${mission.state}`}
+                aria-label={
+                  mission.needs_user ? 'Mission aguardando intervenção' : `Mission ${mission.state}`
+                }
               >
                 <Workflow size={12} aria-hidden="true" />
                 <strong>
@@ -405,10 +414,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </button>
             ) : null}
             {prefs.showCost && modeShows('COST') && !prefs.privacyMode ? (
-              <span
-                className={styles.metric}
-                aria-label={`Custo ${cost.semantics}: ${cost.label}`}
-              >
+              <span className={styles.metric} aria-label={`Custo ${cost.semantics}: ${cost.label}`}>
                 <strong>{cost.label}</strong>
               </span>
             ) : null}
@@ -424,17 +430,17 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </span>
             ) : null}
             {!native ? (
-            <button
-              type="button"
-              className={styles.dragHandle}
-              aria-label="Mover Nexus HUD. Use as setas do teclado ou arraste."
-              onPointerDown={onDragPointerDown}
-              onPointerMove={onDragPointerMove}
-              onPointerUp={onDragPointerUp}
-              onKeyDown={onDragKeyDown}
-            >
-              <GripHorizontal size={15} aria-hidden="true" />
-            </button>
+              <button
+                type="button"
+                className={styles.dragHandle}
+                aria-label="Mover Nexus HUD. Use as setas do teclado ou arraste."
+                onPointerDown={onDragPointerDown}
+                onPointerMove={onDragPointerMove}
+                onPointerUp={onDragPointerUp}
+                onKeyDown={onDragKeyDown}
+              >
+                <GripHorizontal size={15} aria-hidden="true" />
+              </button>
             ) : null}
             <button
               type="button"
@@ -468,18 +474,20 @@ export const NexusHud: React.FC<NexusHudProps> = ({
 
         {expanded && (
           <div className={styles.expanded}>
-            {primary ? (() => {
-              const PrimaryIcon = primary.icon;
-              return (
-              <section className={styles.primary} data-kind={primary.kind}>
-                <PrimaryIcon size={18} aria-hidden="true" />
-                <div className={styles.primaryText}>
-                  <strong>{primary.title}</strong>
-                  <span>{primary.detail}</span>
-                </div>
-              </section>
-              );
-            })() : null}
+            {primary
+              ? (() => {
+                  const PrimaryIcon = primary.icon;
+                  return (
+                    <section className={styles.primary} data-kind={primary.kind}>
+                      <PrimaryIcon size={18} aria-hidden="true" />
+                      <div className={styles.primaryText}>
+                        <strong>{primary.title}</strong>
+                        <span>{primary.detail}</span>
+                      </div>
+                    </section>
+                  );
+                })()
+              : null}
 
             {topAlert && modeShows('ALERT') ? (
               <div className={styles.actionRow}>
@@ -543,8 +551,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                           />
                         </div>
                         <div className={styles.providerMeta}>
-                          <span>{provider.limiting_window?.label || provider.limiting_window?.kind || 'janela desconhecida'}</span>
-                          <span>{provider.limiting_window?.reset_description || 'reset desconhecido'}</span>
+                          <span>
+                            {provider.limiting_window?.label ||
+                              provider.limiting_window?.kind ||
+                              'janela desconhecida'}
+                          </span>
+                          <span>
+                            {provider.limiting_window?.reset_description || 'reset desconhecido'}
+                          </span>
                           <span>{provider.freshness}</span>
                           <span>{provider.source || 'fonte desconhecida'}</span>
                         </div>
