@@ -27,6 +27,7 @@ type NexusHandler struct {
 	plans                 *nexus.PlanApplicationService
 	composer              *nexus.ComposerApplicationService
 	runs                  *nexus.RunApplicationService
+	hud                   *nexus.HUDApplicationService
 	hostFilesystemEnabled bool
 }
 
@@ -92,6 +93,7 @@ func NewNexusHandler(auth *AuthManager) *NexusHandler {
 		plans:                 nexus.NewPlanApplicationService(n),
 		composer:              nexus.NewComposerApplicationService(n),
 		runs:                  nexus.NewRunApplicationService(n),
+		hud:                   nexus.NewHUDApplicationService(n),
 		hostFilesystemEnabled: true,
 	}
 }
