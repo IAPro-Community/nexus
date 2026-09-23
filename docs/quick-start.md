@@ -11,8 +11,8 @@ exige Composer, Flow ou Mission.
 > Confirme providers locais com `nexus doctor` e `nexus providers status --json`.
 >
 > Os comandos abaixo pinam `v1.0.0-beta.1` porque essa é a tag beta publicada
-> disponível. A versão de fonte `1.0.0-beta.4` está em fechamento e não deve ser
-> tratada como release publicada até a certificação e criação da tag correspondente.
+> disponível. O source candidato final reporta `1.0.0`, mas não deve ser tratado
+> como release publicada até a certificação estável e criação da tag correspondente.
 
 ## 1. Instale
 
