@@ -26,15 +26,15 @@ frontend, segurança, Browser E2E/Axe/visual, Go/race/vet/lint, Desktop Linux,
 GoReleaser snapshot e smoke de pacote DEB.
 
 Windows e macOS são gates de **certificação nativa do candidato**, não jobs de todo
-commit. O workflow manual `.github/workflows/native-certification.yml` recebe o
+commit. O workflow manual manual mode of `.github/workflows/ci.yml` recebe o
 `target_sha` completo e exige:
 
 - Windows amd64: `[self-hosted, Windows, X64, nexus-windows]`;
 - macOS arm64: `[self-hosted, macOS, ARM64, nexus-macos]`.
 
 As duas máquinas podem permanecer offline durante o desenvolvimento normal. Para
-certificar um candidato, inicie os runners, execute **Native Certification** para o SHA
-congelado e aguarde os dois jobs nativos. O workflow só sela
+certificar um candidato, inicie os runners, execute **CI** manually with `native_target_sha=<SHA>` for the SHA
+congelado e aguarde os dois jobs nativos. The native mode only seals
 `native-certification-<sha>` depois que Windows e macOS passarem. Esse artefato contém
 `certified-sha.txt` e os hashes dos binários Desktop produzidos.
 
