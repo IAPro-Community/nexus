@@ -1,36 +1,28 @@
 # Instalação nativa por release assinada
 
-![Instalação nativa install.sh / install.ps1](../assets/help/help-install-native.png)
-
-O caminho recomendado para usuários de uma release é instalar os artefatos
-pré-compilados publicados no repositório **binário** do Nexus. O source pode
-permanecer privado; o bootstrap do cliente não depende de acesso ao repositório
-de código.
-
-Este guia não cobre Docker nem desenvolvimento a partir do source.
+O caminho suportado da release estável Nexus v1 é **Linux amd64**. O source
+contém implementações para outros sistemas, mas Windows/macOS não fazem parte
+da matriz certificada desta v1.
 
 | Quero… | Documento |
 | --- | --- |
-| DEB e matriz de artefatos nativos | [Pacotes e artefatos](packages.md) |
+| DEB e matriz de artefatos | [Pacotes e artefatos](packages.md) |
 | Rodar no Docker (CLI + Web) | [Docker compatibilidade](docker-compat.md) |
 | Compilar o source como desenvolvedor | [Build](../../BUILD.md) |
-| Índice getting-started | [README](README.md) |
+| Ver a matriz de suporte | [Suporte de plataformas](../operations/platform-support.md) |
 
 ## Release pública atualmente documentada
 
 A documentação pública mantém `v1.0.0-beta.1` como última beta publicada
-registrada. A versão do source candidato pode ser superior e **não** implica que
-o mesmo tag já esteja distribuído.
+registrada. A versão do source candidato pode ser superior e não implica que o
+mesmo tag já esteja distribuído.
 
-Enquanto a linha pública for beta, use a tag beta explícita. O valor
-`latest` consulta o endpoint `releases/latest` do GitHub, que representa a
-release mais recente marcada como latest/não-prerelease; ele não é um atalho
-confiável para “beta mais nova”.
+Enquanto a linha pública for beta, use uma tag explícita. O valor `latest`
+não deve ser usado como sinônimo de “beta mais nova”.
 
-## Linux / macOS
+## Linux amd64
 
-Baixe o próprio instalador da release binária imutável e depois execute-o
-pinando a mesma versão:
+Baixe o instalador da própria release e pine a mesma versão:
 
 ```bash
 curl -fsSL \
@@ -42,15 +34,16 @@ nexus doctor
 nexus web
 ```
 
-Pré-requisitos do caminho pré-compilado:
+Pré-requisitos:
 
+- Linux amd64;
 - `curl` ou `wget`;
-- `tar`; para Desktop macOS, `ditto` nativo é usado;
+- `tar`;
 - `sha256sum` ou `shasum`;
-- Python 3 com o pacote `cryptography`, usado para verificar Ed25519;
-- WebKitGTK somente para o Desktop Linux.
+- Python 3 com `cryptography` para Ed25519;
+- WebKitGTK apenas para o Desktop Linux.
 
-O instalador aceita, entre outros:
+Parâmetros principais:
 
 ```text
 --no-desktop
@@ -61,40 +54,19 @@ O instalador aceita, entre outros:
 ```
 
 `NEXUS_INSTALL_DIR` é o equivalente por ambiente. `NEXUS_RELEASE_REPO` e
-`NEXUS_RELEASE_BASE_URL` existem para distribuição interna/certificação; não
-são necessários no fluxo normal do cliente.
+`NEXUS_RELEASE_BASE_URL` existem para distribuição interna/certificação.
 
-## Windows PowerShell
+## Windows e macOS
 
-```powershell
-irm https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.1
-nexus doctor
-nexus web
-```
+**Não são targets suportados/publicados pela release estável v1.**
 
-Pré-requisitos:
-
-- PowerShell;
-- Python 3 com `cryptography` para a verificação Ed25519;
-- WebView2 somente para o Desktop Windows.
-
-Parâmetros principais:
-
-```text
--NoDesktop
--InstallDir <path>
--WithMaestro
--Version vX.Y.Z
-```
-
-O Windows ARM64 pode receber o CLI quando o archive correspondente estiver
-publicado, mas o Desktop v1 atual é produzido/certificado somente em Windows
-x86_64. Ausência de Desktop não invalida a instalação do CLI.
+Os paths de source, scripts PowerShell e código de runtime permanecem no
+repositório para desenvolvimento e para a futura campanha de certificação.
+Não use a existência desses arquivos como sinal de suporte de produção.
 
 ## O que o instalador verifica
 
-A instalação é **fail closed**. Para um release pinado, o fluxo é:
+A instalação é fail-closed:
 
 ```text
 update-manifest.json
@@ -122,13 +94,11 @@ substituição do binário
 Se assinatura, hash, artifact, extração ou versão interna divergirem, o binário
 não é aceito.
 
-A chave pública e o key ID usados pelo build de release são versionados no
-source por `UPDATE_PUBLIC_KEY` e `UPDATE_KEY_ID`; o workflow de publicação
-falha quando os secrets protegidos divergem desses contratos.
+A chave pública e o key ID usados pelo build de release são versionados em
+`UPDATE_PUBLIC_KEY` e `UPDATE_KEY_ID`; o workflow de publicação falha quando
+os secrets protegidos divergem desses contratos.
 
 ## Upgrade
-
-Para uma versão dentro do mesmo canal:
 
 ```bash
 nexus update check
@@ -136,18 +106,13 @@ nexus update
 ```
 
 Instalações gerenciadas por pacote não são sobrescritas silenciosamente pelo
-self-updater; o Nexus orienta o comando do gerenciador correspondente.
+self-updater.
 
-Para migrar deliberadamente de uma beta para a linha stable, use a versão
-stable pinada com o instalador assinado ou, em versões que suportem a opção de
-canal, use `nexus update --channel stable`. A troca de canal é explícita; um
-cliente beta não deve ser promovido silenciosamente para stable.
+Para migrar deliberadamente de beta para stable, use a versão stable pinada com
+o instalador assinado ou `nexus update --channel stable` quando o cliente
+suportar troca de canal.
 
 ## Desinstalação
-
-Os uninstallers também são publicados como assets da release.
-
-### Linux / macOS
 
 ```bash
 curl -fsSL \
@@ -157,21 +122,11 @@ curl -fsSL \
 bash uninstall.sh
 ```
 
-Por padrão, binários e launchers gerenciados pelo Nexus são removidos e dados
-do usuário são preservados. Para remover também dados/configuração Nexus:
+Por padrão, os dados do usuário são preservados. Para removê-los também:
 
 ```bash
 bash uninstall.sh --purge-data
 ```
-
-### Windows
-
-```powershell
-irm https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/uninstall.ps1 -OutFile uninstall.ps1
-.\uninstall.ps1
-```
-
-O uninstaller Windows preserva perfis e dados de projeto.
 
 ## Desenvolvimento a partir do source
 
@@ -188,9 +143,8 @@ make build
 ./nexus doctor
 ```
 
-Também existem `./install.sh --build-from-source` e
-`.\install.ps1 -BuildFromSource` para ambientes de desenvolvimento com
-acesso ao source.
+Builds de desenvolvimento em outros sistemas podem funcionar, mas isso não os
+transforma em plataformas suportadas da v1.
 
 ## Diagnóstico
 
@@ -198,8 +152,7 @@ acesso ao source.
 nexus doctor --json
 ```
 
-No Docker, probes de Desktop/WebView2/ConPTY aparecem como N/A. Veja
-[Docker compatibilidade](docker-compat.md).
+No Docker, probes de Desktop e runtimes nativos podem aparecer como N/A.
 
 ## Próximo passo
 
