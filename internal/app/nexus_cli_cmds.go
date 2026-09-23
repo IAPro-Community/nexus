@@ -233,6 +233,9 @@ func parseProjectAddArgs(args []string) (projectAddOptions, error) {
 			if i+1 >= len(args) || strings.TrimSpace(args[i+1]) == "" {
 				return projectAddOptions{}, fmt.Errorf("--name requer um valor")
 			}
+			if opts.Name != "" {
+				return projectAddOptions{}, fmt.Errorf("nome do projeto informado mais de uma vez")
+			}
 			opts.Name = args[i+1]
 			i++
 		case "--isolation":
