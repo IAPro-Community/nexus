@@ -36,18 +36,18 @@ type HUDWindow struct {
 }
 
 type HUDProvider struct {
-	Provider          string      `json:"provider"`
-	Profile           string      `json:"profile"`
-	DisplayName       string      `json:"display_name,omitempty"`
-	Health            string      `json:"health"`
-	Availability      string      `json:"availability"`
-	CapacityState     string      `json:"capacity_state"`
-	Source            string      `json:"source,omitempty"`
-	Freshness         string      `json:"freshness"`
-	LastUpdated       *time.Time  `json:"last_updated,omitempty"`
-	RateLimited       bool        `json:"rate_limited"`
-	LimitingWindow    *HUDWindow  `json:"limiting_window,omitempty"`
-	Windows           []HUDWindow `json:"windows"`
+	Provider       string      `json:"provider"`
+	Profile        string      `json:"profile"`
+	DisplayName    string      `json:"display_name,omitempty"`
+	Health         string      `json:"health"`
+	Availability   string      `json:"availability"`
+	CapacityState  string      `json:"capacity_state"`
+	Source         string      `json:"source,omitempty"`
+	Freshness      string      `json:"freshness"`
+	LastUpdated    *time.Time  `json:"last_updated,omitempty"`
+	RateLimited    bool        `json:"rate_limited"`
+	LimitingWindow *HUDWindow  `json:"limiting_window,omitempty"`
+	Windows        []HUDWindow `json:"windows"`
 }
 
 type HUDRecommendation struct {
@@ -91,16 +91,16 @@ type HUDMission struct {
 }
 
 type HUDAlert struct {
-	Fingerprint       string     `json:"fingerprint"`
-	Category          string     `json:"category"`
-	Severity          string     `json:"severity"`
-	Provider          string     `json:"provider,omitempty"`
-	Profile           string     `json:"profile,omitempty"`
-	Reason            string     `json:"reason,omitempty"`
-	RemainingPercent  *float64   `json:"remaining_percent,omitempty"`
-	Acked             bool       `json:"acked"`
-	SnoozedUntil      *time.Time `json:"snoozed_until,omitempty"`
-	LastObservedAt    time.Time  `json:"last_observed_at"`
+	Fingerprint      string     `json:"fingerprint"`
+	Category         string     `json:"category"`
+	Severity         string     `json:"severity"`
+	Provider         string     `json:"provider,omitempty"`
+	Profile          string     `json:"profile,omitempty"`
+	Reason           string     `json:"reason,omitempty"`
+	RemainingPercent *float64   `json:"remaining_percent,omitempty"`
+	Acked            bool       `json:"acked"`
+	SnoozedUntil     *time.Time `json:"snoozed_until,omitempty"`
+	LastObservedAt   time.Time  `json:"last_observed_at"`
 }
 
 type HUDCostKindTotal struct {
@@ -110,13 +110,13 @@ type HUDCostKindTotal struct {
 }
 
 type HUDCostSummary struct {
-	Evidence                CostEvidenceState `json:"evidence"`
-	TokenEvidence           CostEvidenceState `json:"token_evidence"`
-	KnownMicroUSD           int64             `json:"known_microusd"`
-	UnknownObservationCount int64             `json:"unknown_observation_count"`
-	BudgetLevel             CostBudgetLevel   `json:"budget_level"`
+	Evidence                CostEvidenceState  `json:"evidence"`
+	TokenEvidence           CostEvidenceState  `json:"token_evidence"`
+	KnownMicroUSD           int64              `json:"known_microusd"`
+	UnknownObservationCount int64              `json:"unknown_observation_count"`
+	BudgetLevel             CostBudgetLevel    `json:"budget_level"`
 	ByKind                  []HUDCostKindTotal `json:"by_kind"`
-	GeneratedAt             time.Time         `json:"generated_at,omitempty"`
+	GeneratedAt             time.Time          `json:"generated_at,omitempty"`
 }
 
 type HUDPrimary struct {
@@ -134,16 +134,16 @@ type HUDSystemState struct {
 }
 
 type HUDState struct {
-	GeneratedAt    time.Time           `json:"generated_at"`
-	ProjectID      string              `json:"project_id,omitempty"`
-	Providers      []HUDProvider       `json:"providers"`
-	Recommendation *HUDRecommendation  `json:"recommendation,omitempty"`
-	Agents         []HUDAgent          `json:"agents"`
-	Missions       []HUDMission        `json:"missions"`
-	Alerts         []HUDAlert          `json:"alerts"`
-	Cost           *HUDCostSummary     `json:"cost,omitempty"`
-	Primary        HUDPrimary          `json:"primary"`
-	System         HUDSystemState      `json:"system"`
+	GeneratedAt    time.Time          `json:"generated_at"`
+	ProjectID      string             `json:"project_id,omitempty"`
+	Providers      []HUDProvider      `json:"providers"`
+	Recommendation *HUDRecommendation `json:"recommendation,omitempty"`
+	Agents         []HUDAgent         `json:"agents"`
+	Missions       []HUDMission       `json:"missions"`
+	Alerts         []HUDAlert         `json:"alerts"`
+	Cost           *HUDCostSummary    `json:"cost,omitempty"`
+	Primary        HUDPrimary         `json:"primary"`
+	System         HUDSystemState     `json:"system"`
 }
 
 type HUDProjectionInput struct {
@@ -168,10 +168,10 @@ type hudCacheEntry struct {
 // HUDApplicationService owns only assembly/cache of the read-only HUD
 // projection. It delegates every fact and decision to existing Nexus services.
 type HUDApplicationService struct {
-	nexus     *Nexus
-	projects  *ProjectApplicationService
-	agents    *AgentApplicationService
-	runs      *RunApplicationService
+	nexus    *Nexus
+	projects *ProjectApplicationService
+	agents   *AgentApplicationService
+	runs     *RunApplicationService
 
 	mu    sync.Mutex
 	cache map[string]hudCacheEntry
@@ -179,11 +179,11 @@ type HUDApplicationService struct {
 
 func NewHUDApplicationService(n *Nexus) *HUDApplicationService {
 	return &HUDApplicationService{
-		nexus:     n,
+		nexus:    n,
 		projects: NewProjectApplicationService(n),
 		agents:   NewAgentApplicationService(n),
 		runs:     NewRunApplicationService(n),
-		cache:     make(map[string]hudCacheEntry),
+		cache:    make(map[string]hudCacheEntry),
 	}
 }
 
@@ -335,7 +335,6 @@ func BuildHUDProjection(input HUDProjectionInput) HUDState {
 }
 
 
-
 func loadHUDRecommendation(st *store.Store) *HUDRecommendation {
 	if st == nil {
 		return nil
@@ -362,18 +361,17 @@ func loadHUDRecommendation(st *store.Store) *HUDRecommendation {
 			continue
 		}
 		return &HUDRecommendation{
-			Provider:     payload.Provider,
-			Profile:      payload.Profile,
-			DisplayName:  payload.DisplayName,
-			Score:        payload.Score,
-			Confidence:   "UNKNOWN",
-			Explanation:  payload.Reason,
-			Context:      "CAPACITY_ALERT",
+			Provider:    payload.Provider,
+			Profile:     payload.Profile,
+			DisplayName: payload.DisplayName,
+			Score:       payload.Score,
+			Confidence:  "UNKNOWN",
+			Explanation: payload.Reason,
+			Context:     "CAPACITY_ALERT",
 		}
 	}
 	return nil
 }
-
 
 func loadHUDQuotaSnapshots() ([]ProviderAccount, error) {
 	profiles, err := profile.List()
@@ -385,22 +383,21 @@ func loadHUDQuotaSnapshots() ([]ProviderAccount, error) {
 		snapshot := profile.PeekUsageSnapshot(p.Provider, p.Name)
 		view := quota.BuildQuotaView(snapshot, snapshot.Account, "")
 		accounts = append(accounts, ProviderAccount{
-			ID:             p.Provider + ":" + p.Name,
-			Provider:       p.Provider,
-			Profile:        p.Name,
-			DisplayName:    p.Provider + " (" + p.Name + ")",
-			Health:         "unknown",
-			Available:      view.IsAvailable(),
-			AvailReasons:   &view.AvailReasons,
-			QuotaView:      &view,
-			RateLimited:    strings.EqualFold(view.Status, "RATE_LIMITED"),
-			NetworkError:   strings.EqualFold(view.Status, "ERROR"),
-			LastChecked:    view.FetchedAt,
+			ID:           p.Provider + ":" + p.Name,
+			Provider:     p.Provider,
+			Profile:      p.Name,
+			DisplayName:  p.Provider + " (" + p.Name + ")",
+			Health:       "unknown",
+			Available:    view.IsAvailable(),
+			AvailReasons: &view.AvailReasons,
+			QuotaView:    &view,
+			RateLimited:  strings.EqualFold(view.Status, "RATE_LIMITED"),
+			NetworkError: strings.EqualFold(view.Status, "ERROR"),
+			LastChecked:  view.FetchedAt,
 		})
 	}
 	return accounts, nil
 }
-
 
 func buildHUDProviders(accounts []ProviderAccount, capacity CapacityStatus) []HUDProvider {
 	byKey := make(map[string]*HUDProvider)
@@ -417,8 +414,8 @@ func buildHUDProviders(accounts []ProviderAccount, capacity CapacityStatus) []HU
 				Health:        "UNKNOWN",
 				Availability:  "UNKNOWN",
 				CapacityState: nonEmptyUpper(resource.State),
-				Source:         resource.Source,
-				Freshness:      nonEmptyUpper(resource.ObservationStatus),
+				Source:        resource.Source,
+				Freshness:     nonEmptyUpper(resource.ObservationStatus),
 				Windows:       []HUDWindow{},
 			}
 			byKey[key] = item
