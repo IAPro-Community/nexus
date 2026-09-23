@@ -1,7 +1,11 @@
 # Current release status
 
-STATUS: NEXUS_1_0_CLOSURE_IN_PROGRESS
+STATUS: NEXUS_1_0_RELEASE_CANDIDATE_NO_GO
 SOURCE_VERSION: 1.0.0
+PR4_HEAD_SHA: 0d6e9c667af39b7534002d060848acfc9eb8e265
+PR4_MERGED_SHA: 5a61d3152b23b002b39e8b4b8988924db39956b2
+PR4_CI_RUN: 35843620775 (#668, pull_request, SUCCESS)
+POST_MERGE_CI_RUN: 35849031522 (#669, push, SUCCESS on 5a61d3152b23b002b39e8b4b8988924db39956b2)
 BASELINE_MAIN_SHA: 7605f702cce220b4111d51d06a34b37f7e0a9a8d
 BASELINE_PR3_HEAD: 300ccbeee4f145f80ebce13c9cefafcb01acefc3
 BASELINE_CI_RUN: 35547298239 (#149)
@@ -10,6 +14,22 @@ LATEST_PUBLISHED_BETA_TAG: v1.0.0-beta.1
 UPDATED_AT: 2026-09-23
 
 ## Current truth
+
+PR #4 (`feat/nexus-1.0-closure`) was squash-merged into `main` on 2026-09-23.
+The source-closure head `0d6e9c667af39b7534002d060848acfc9eb8e265` passed CI #668 before merge.
+The resulting `main` SHA `5a61d3152b23b002b39e8b4b8988924db39956b2` then passed exact-SHA push CI #669
+(run `35849031522`) with the Linux amd64 v1 matrix green: Frontend, Linux E2E,
+Security, Release configuration, Browser E2E/Axe/visual, Desktop Linux Wails,
+GoReleaser Snapshot and Smoke DEB. Windows amd64 and macOS arm64 remained
+DEFERRED / UNVERIFIED and were skipped by policy, not counted as PASS.
+
+CI #669 produced exact-SHA artifacts named with `5a61d3152b23b002b39e8b4b8988924db39956b2`.
+No stable `v1.0.0` publication is authorized yet: Stable Certification, signing,
+authenticated provider/Mission checkpoints and the live 8-hour soak are still pending.
+Any commit after `5a61d315...` creates a new candidate SHA and requires fresh exact-SHA
+CI before Stable Certification can authorize publication.
+
+### Historical baseline
 
 PR #3 was merged into `main` as
 `7605f702cce220b4111d51d06a34b37f7e0a9a8d` after same-SHA CI #149 completed
@@ -52,8 +72,8 @@ claims must use that exact release SHA, not a pull-request synthetic merge SHA.
 
 ## Active release program
 
-The active program is Nexus 1.0 Product Closure on
-`feat/nexus-1.0-closure`. The canonical contract is
+The source-closure PR has been merged. The active program is now the Linux amd64
+stable-certification and publication path. The canonical closure contract remains
 `DEV/SPECS/NEXUS_1_0_CLOSURE.md`.
 
 The program must close, with evidence:
@@ -171,13 +191,17 @@ SHA and retain separate evidence.
 
 ### Evidence still external
 
-The source-level closure is not equivalent to a published stable release. Before a
-stable `v1.0.0` can be published, the final immutable SHA still needs:
+The source-level closure and CI #669 are not equivalent to a published stable release.
+Before stable `v1.0.0` can be published, the final immutable candidate SHA still needs:
 
-1. a green exact-SHA Linux/Web/release-preparation CI run;
+1. green exact-SHA Linux/Web/release-preparation CI on that final SHA;
 2. the protected signing environment with the canonical key/key-id pair;
-3. successful Stable Certification on that exact SHA, including signed lifecycle,
+3. successful Stable Certification on that same SHA, including signed lifecycle,
    authenticated provider/Mission checkpoints and both live-soak segments.
+
+CI #669 is exact-SHA evidence for `5a61d3152b23b002b39e8b4b8988924db39956b2` only.
+If this status synchronization or any later change is merged, #669 becomes historical
+post-merge evidence and the new `main` SHA must pass exact-SHA CI again before certification.
 
 Windows/macOS are not part of this v1 release boundary and therefore are not blockers.
 
@@ -185,6 +209,7 @@ Windows/macOS are not part of this v1 release boundary and therefore are not blo
 
 `NEXUS_1_0_CANDIDATE = NO_GO`
 
-Reason: the source closure is converging, but the final Linux-only release SHA has not
-yet completed exact-SHA release evidence and Stable Certification. Windows/macOS are
-explicitly deferred and are no longer part of the v1 GO/NO-GO decision.
+Reason: source closure is merged and CI #669 proved the first post-merge SHA on the
+Linux-only matrix, but the final immutable candidate must still have exact-SHA CI after
+any subsequent repository change and must complete Stable Certification. Windows/macOS
+remain explicitly deferred and are not part of the v1 GO/NO-GO decision.
