@@ -156,7 +156,10 @@ func TestLoadHUDRecommendationUsesDurableCapacityEvent(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	rec := loadHUDRecommendation(st)
+	capacity := CapacityStatus{Resources: []CapacityResourceStatus{{
+		Provider: "codex", Profile: "work", State: "CRITICAL", Fingerprint: "fp-1",
+	}}}
+	rec := loadHUDRecommendation(st, capacity)
 	if rec == nil {
 		t.Fatal("expected durable recommendation")
 	}
@@ -165,5 +168,36 @@ func TestLoadHUDRecommendationUsesDurableCapacityEvent(t *testing.T) {
 	}
 	if rec.Confidence != "UNKNOWN" {
 		t.Fatalf("confidence=%q, want UNKNOWN when event has no confidence evidence", rec.Confidence)
+	}
+}
+
+
+func TestLoadHUDRecommendationDropsRecoveredEvent(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "hud-recovered.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+
+	payload, err := json.Marshal(map[string]any{
+		"recommended_provider": "claude",
+		"recommended_profile":  "backup",
+		"recommendation_reason": "fallback",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutCapacityEvent(store.CapacityEventRecord{
+		ID: "evt-old", Fingerprint: "fp-old", EventType: "QUOTA_LOW",
+		Provider: "codex", Profile: "work", Severity: "CRITICAL",
+		PayloadJSON: string(payload), EmittedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	capacity := CapacityStatus{Resources: []CapacityResourceStatus{{
+		Provider: "codex", Profile: "work", State: "RECOVERED", Fingerprint: "fp-recovered",
+	}}}
+	if rec := loadHUDRecommendation(st, capacity); rec != nil {
+		t.Fatalf("stale recommendation survived recovery: %+v", rec)
 	}
 }
