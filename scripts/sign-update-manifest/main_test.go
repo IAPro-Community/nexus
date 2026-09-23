@@ -94,7 +94,6 @@ func TestAllowedArtifactBaseURL(t *testing.T) {
 	}
 }
 
-
 func TestReleaseChannelClassification(t *testing.T) {
 	cases := map[string]string{
 		"v1.0.0-alpha.1": "beta",
