@@ -146,7 +146,6 @@ jobs:
             exit 1
           }
           grep -Fq "NEXUS_PUBKEY=\"$canonical\"" install.sh
-          grep -Fq "\$NexusPubKey = \"$canonical\"" install.ps1
       - name: Validar identidade da release
         env:
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
@@ -203,7 +202,7 @@ jobs:
         run: |
           set -euo pipefail
           cp install.sh uninstall.sh dist/
-      - name: Generate signed cross-platform update manifest
+      - name: Generate signed Nexus v1 Linux update manifest
         env:
           NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
           NEXUS_UPDATE_KEY_ID: ${{ secrets.NEXUS_UPDATE_KEY_ID }}
