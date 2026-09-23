@@ -7,8 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 const hudProjectionCacheTTL = 15 * time.Second
@@ -223,6 +225,10 @@ func (s *HUDApplicationService) State(ctx context.Context, projectID string) (HU
 	// already-materialized state and never create a second polling loop.
 	system.Resources = "SNAPSHOT_ONLY"
 	var recommendation *RecommendationResult
+	accounts, snapshotErr := loadHUDQuotaSnapshots()
+	if snapshotErr != nil {
+		system.Resources = "SNAPSHOT_UNAVAILABLE"
+	}
 
 	var agents []store.Agent
 	agentDetails := map[string]AgentDetailView{}
@@ -279,6 +285,7 @@ func (s *HUDApplicationService) State(ctx context.Context, projectID string) (HU
 		GeneratedAt:      now,
 		ProjectID:        projectID,
 		Capacity:         capacity,
+		Accounts:         accounts,
 		Recommendation:   recommendation,
 		Agents:           agents,
 		AgentDetails:     agentDetails,
@@ -343,6 +350,34 @@ func BuildHUDProjection(input HUDProjectionInput) HUDState {
 	state.Primary = chooseHUDPrimary(state)
 	return state
 }
+
+
+func loadHUDQuotaSnapshots() ([]ProviderAccount, error) {
+	profiles, err := profile.List()
+	if err != nil {
+		return nil, err
+	}
+	accounts := make([]ProviderAccount, 0, len(profiles))
+	for _, p := range profiles {
+		snapshot := profile.PeekUsageSnapshot(p.Provider, p.Name)
+		view := quota.BuildQuotaView(snapshot, snapshot.Account, "")
+		accounts = append(accounts, ProviderAccount{
+			ID:             p.Provider + ":" + p.Name,
+			Provider:       p.Provider,
+			Profile:        p.Name,
+			DisplayName:    p.Provider + " (" + p.Name + ")",
+			Health:         "unknown",
+			Available:      view.IsAvailable(),
+			AvailReasons:   &view.AvailReasons,
+			QuotaView:      &view,
+			RateLimited:    strings.EqualFold(view.Status, "RATE_LIMITED"),
+			NetworkError:   strings.EqualFold(view.Status, "ERROR"),
+			LastChecked:    view.FetchedAt,
+		})
+	}
+	return accounts, nil
+}
+
 
 func buildHUDProviders(accounts []ProviderAccount, capacity CapacityStatus) []HUDProvider {
 	byKey := make(map[string]*HUDProvider)
@@ -657,6 +692,10 @@ func chooseHUDPrimary(state HUDState) HUDPrimary {
 
 func availabilityFromAccount(account ProviderAccount, unknownQuota bool) string {
 	if unknownQuota {
+		return "UNKNOWN"
+	}
+	health := strings.ToLower(strings.TrimSpace(account.Health))
+	if health == "" || health == "unknown" {
 		return "UNKNOWN"
 	}
 	if account.Available {
