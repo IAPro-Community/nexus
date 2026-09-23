@@ -334,7 +334,6 @@ func BuildHUDProjection(input HUDProjectionInput) HUDState {
 	return state
 }
 
-
 func loadHUDRecommendation(st *store.Store, capacity CapacityStatus) *HUDRecommendation {
 	if st == nil {
 		return nil
