@@ -103,52 +103,30 @@ func TestInstallerArchiveNamingMatchesGoReleaser(t *testing.T) {
 	}
 	installSh := string(installShBytes)
 
-	installPs1Bytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
-	if err != nil {
-		t.Fatalf("failed to read install.ps1: %v", err)
-	}
-	installPs1 := string(installPs1Bytes)
-
-	// Verify archive template and formats
-	expectedPatterns := []struct {
-		platform string
-		archive  string
-	}{
-		{"Linux x86_64", "nexus_Linux_x86_64.tar.gz"},
-		{"Linux arm64", "nexus_Linux_arm64.tar.gz"},
-		{"Darwin x86_64", "nexus_Darwin_x86_64.tar.gz"},
-		{"Darwin arm64", "nexus_Darwin_arm64.tar.gz"},
-		{"Windows x86_64", "nexus_Windows_x86_64.zip"},
-		{"Windows arm64", "nexus_Windows_arm64.zip"},
-	}
-
-	for _, p := range expectedPatterns {
-		// Verify install.sh constructs nexus_${OS_NAME}_${ARCH_NAME}.tar.gz
-		if !strings.Contains(installSh, `ARCHIVE_NAME="nexus_${OS_NAME}_${ARCH_NAME}.tar.gz"`) {
-			t.Errorf("install.sh missing archive format pattern for %s", p.platform)
-		}
-		// Verify install.ps1 constructs nexus_${OsName}_${Arch}.${ArchiveExt}
-		if !strings.Contains(installPs1, `nexus_${OsName}_${Arch}.${ArchiveExt}`) {
-			t.Errorf("install.ps1 missing archive format pattern for %s", p.platform)
-		}
+	if !strings.Contains(installSh, `ARCHIVE_NAME="nexus_${OS_NAME}_${ARCH_NAME}.tar.gz"`) {
+		t.Error("install.sh must construct the Nexus archive name")
 	}
 
 	for _, required := range []string{
 		"- linux",
+		"- amd64",
+		"formats: [tar.gz]",
+		"nfpms:",
+	} {
+		if !strings.Contains(goreleaserContent, required) {
+			t.Errorf(".goreleaser.yaml missing Nexus v1 Linux release contract %q", required)
+		}
+	}
+	for _, deferred := range []string{
 		"- darwin",
 		"- windows",
-		"format_overrides:",
+		"- arm64",
 		"goos: windows",
 		"formats: [zip]",
 	} {
-		if !strings.Contains(goreleaserContent, required) {
-			t.Errorf(".goreleaser.yaml missing cross-platform release contract %q", required)
+		if strings.Contains(goreleaserContent, deferred) {
+			t.Errorf(".goreleaser.yaml must not publish deferred Nexus v1 target %q", deferred)
 		}
-	}
-
-	// Verify nfpms package section exists in goreleaser
-	if !strings.Contains(goreleaserContent, "nfpms:") {
-		t.Errorf(".goreleaser.yaml should define nfpms package section for Linux packages")
 	}
 }
 
