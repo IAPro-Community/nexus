@@ -179,8 +179,8 @@ func TestLoadHUDRecommendationDropsRecoveredEvent(t *testing.T) {
 	t.Cleanup(func() { _ = st.Close() })
 
 	payload, err := json.Marshal(map[string]any{
-		"recommended_provider": "claude",
-		"recommended_profile":  "backup",
+		"recommended_provider":  "claude",
+		"recommended_profile":   "backup",
 		"recommendation_reason": "fallback",
 	})
 	if err != nil {
