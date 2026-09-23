@@ -36,23 +36,23 @@ func (s *CapacityApplicationService) requireStore() (*store.Store, error) {
 
 // CapacityResourceStatus is one monitored resource with triage attached.
 type CapacityResourceStatus struct {
-	Key              string     `json:"key"`
-	Provider         string     `json:"provider"`
-	Profile          string     `json:"profile"`
-	QuotaGroup       string     `json:"quota_group"`
-	WindowKind       string     `json:"window_kind"`
-	State            string     `json:"state"`
-	Fingerprint      string     `json:"fingerprint,omitempty"`
-	Reason           string     `json:"reason,omitempty"`
-	TransitionedAt   time.Time  `json:"transitioned_at"`
-	LastObservedAt   time.Time  `json:"last_observed_at"`
-	RemainingPercent *float64   `json:"remaining_percent,omitempty"`
-	ResetDescription string     `json:"reset_description,omitempty"`
-	Source           string     `json:"source,omitempty"`
-	ObservationStatus string    `json:"observation_status,omitempty"`
-	ExpiresAt        *time.Time `json:"expires_at,omitempty"`
-	Acked            bool       `json:"acked"`
-	SnoozedUntil     *time.Time `json:"snoozed_until,omitempty"`
+	Key               string     `json:"key"`
+	Provider          string     `json:"provider"`
+	Profile           string     `json:"profile"`
+	QuotaGroup        string     `json:"quota_group"`
+	WindowKind        string     `json:"window_kind"`
+	State             string     `json:"state"`
+	Fingerprint       string     `json:"fingerprint,omitempty"`
+	Reason            string     `json:"reason,omitempty"`
+	TransitionedAt    time.Time  `json:"transitioned_at"`
+	LastObservedAt    time.Time  `json:"last_observed_at"`
+	RemainingPercent  *float64   `json:"remaining_percent,omitempty"`
+	ResetDescription  string     `json:"reset_description,omitempty"`
+	Source            string     `json:"source,omitempty"`
+	ObservationStatus string     `json:"observation_status,omitempty"`
+	ExpiresAt         *time.Time `json:"expires_at,omitempty"`
+	Acked             bool       `json:"acked"`
+	SnoozedUntil      *time.Time `json:"snoozed_until,omitempty"`
 }
 
 // CapacityStatus is the GET /api/v1/capacity/status projection.
