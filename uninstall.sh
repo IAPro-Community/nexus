@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IAPro Nexus uninstaller (Linux / macOS).
+# IAPro Nexus uninstaller — Nexus v1 supported release target: Linux amd64.
 # Removes Nexus-managed executables and desktop launchers while preserving
 # profiles/project data by default.
 set -euo pipefail
