@@ -26,7 +26,6 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     outputs:
       ci-run-id: ${{ steps.verify.outputs.ci-run-id }}
-      native-run-id: ${{ steps.verify.outputs.native-run-id }}
     steps:
       - name: Wait for required Nexus 1.0 checks on this SHA
         id: verify
@@ -96,35 +95,9 @@ jobs:
           done
           echo "ci-run-id=$run_id" >> "$GITHUB_OUTPUT"
 
-          # Windows/macOS are certified on zero-cost self-hosted machines.
-          # Do not trust workflow headSha for a manually selected target: require
-          # the exact-SHA certificate artifact emitted only after both native jobs pass.
-          native_run_id=''
-          native_root="$RUNNER_TEMP/nexus-native-certification-$SHA"
-          rm -rf "$native_root"
-          mkdir -p "$native_root"
-          native_runs="$(gh run list --workflow ci.yml --limit 50 --json databaseId,status,conclusion)"
-          while IFS= read -r candidate_id; do
-            [ -n "$candidate_id" ] || continue
-            candidate_dir="$native_root/$candidate_id"
-            mkdir -p "$candidate_dir"
-            if gh run download "$candidate_id" --name "native-certification-$SHA" --dir "$candidate_dir" >/dev/null 2>&1; then
-              certified_sha="$(tr -d '\r\n[:space:]' < "$candidate_dir/certified-sha.txt")"
-              if [ "$certified_sha" = "$SHA" ]; then
-                native_run_id="$candidate_id"
-                break
-              fi
-            fi
-            rm -rf "$candidate_dir"
-          done < <(jq -r '.[] | select(.status == "completed" and .conclusion == "success") | .databaseId' <<<"$native_runs")
-
-          test -n "$native_run_id" || {
-            echo "No successful Native Certification artifact found for exact SHA $SHA." >&2
-            echo "Run CI manually with native_target_sha=$SHA while nexus-windows and nexus-macos self-hosted runners are online." >&2
-            exit 1
-          }
-          echo "native-run-id=$native_run_id" >> "$GITHUB_OUTPUT"
-          echo "Native certification run: $native_run_id"
+          # Nexus v1 stable distribution is intentionally Linux amd64 only.
+          # Windows/macOS remain source-supported but unverified and unpublished
+          # until their native certification is completed in a later release line.
 
           RELEASE_VERSION="${{ inputs.version || github.ref_name }}"
           case "$RELEASE_VERSION" in
@@ -217,22 +190,15 @@ jobs:
           distribution: goreleaser
           version: v2.18.0
           args: release --clean --skip=publish
-      - name: Promote exact-SHA native desktop artifacts
+      - name: Promote exact-SHA Linux desktop artifact
         env:
           GH_TOKEN: ${{ github.token }}
           CI_RUN_ID: ${{ needs.same-sha-gate.outputs.ci-run-id }}
-          NATIVE_RUN_ID: ${{ needs.same-sha-gate.outputs.native-run-id }}
         run: |
           set -euo pipefail
           mkdir -p native-artifacts
           gh run download "$CI_RUN_ID" --name "desktop-linux-${GITHUB_SHA}" --dir native-artifacts
-          gh run download "$NATIVE_RUN_ID" --name "desktop-windows-${GITHUB_SHA}" --dir native-artifacts
-          gh run download "$NATIVE_RUN_ID" --name "desktop-macos-${GITHUB_SHA}" --dir native-artifacts
-          gh run download "$NATIVE_RUN_ID" --name "native-certification-${GITHUB_SHA}" --dir native-certification
-          test "$(tr -d '\r\n[:space:]' < native-certification/certified-sha.txt)" = "$GITHUB_SHA"
           test -f native-artifacts/nexus-desktop_Linux_x86_64.tar.gz
-          test -f native-artifacts/nexus-desktop_Windows_x86_64.zip
-          test -f native-artifacts/nexus-desktop_Darwin_arm64.zip
       - name: Stage release installers before manifest signing
         run: |
           set -euo pipefail
@@ -263,11 +229,7 @@ jobs:
           manifest = json.load(open('dist/update-manifest.json'))
           required = (
               'linux_amd64',
-              'windows_amd64',
-              'darwin_arm64',
               'desktop_linux_amd64',
-              'desktop_windows_amd64',
-              'desktop_darwin_arm64',
           )
           missing = [key for key in required if key not in manifest.get('artifacts', {})]
           if missing:
