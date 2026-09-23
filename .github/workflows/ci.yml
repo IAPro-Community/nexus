@@ -181,6 +181,16 @@ jobs:
             DEV/validation/composer-execution-spine/
           if-no-files-found: ignore
           retention-days: 2
+      - name: Upload Nexus HUD Web evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hud-web-evidence-${{ github.sha }}
+          path: |
+            .tempmediaStorage/hud/
+            ${{ runner.temp }}/nexus-browser-hud.log
+          if-no-files-found: error
+          retention-days: 14
       - if: always()
         run: |
           test '${{ steps.browser-e2e.outcome }}' = success
@@ -279,6 +289,53 @@ jobs:
           test -f cmd/nexus-desktop/build/bin/nexus-desktop
           make build-hud-wails
           test -f cmd/nexus-hud/build/bin/nexus-hud
+      - name: Native HUD launch smoke and resource sample
+        env:
+          NEXUS_ENABLE_HUD: "1"
+          NEXUS_DATA_DIR: ${{ runner.temp }}/nexus-hud-smoke-data
+        run: |
+          set -euo pipefail
+          command -v xvfb-run >/dev/null
+          command -v dbus-run-session >/dev/null
+          metrics="$RUNNER_TEMP/nexus-hud-linux-metrics.txt"
+          log="$RUNNER_TEMP/nexus-hud-linux-smoke.log"
+          binary="$PWD/cmd/nexus-hud/build/bin/nexus-hud"
+          dbus-run-session -- xvfb-run -a "$binary" >"$log" 2>&1 &
+          launcher=$!
+          cleanup() {
+            hud_pid="$(pgrep -f "$binary" | head -n1 || true)"
+            if [ -n "$hud_pid" ]; then kill -TERM "$hud_pid" 2>/dev/null || true; fi
+            kill -TERM "$launcher" 2>/dev/null || true
+            wait "$launcher" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          hud_pid=""
+          for attempt in $(seq 1 30); do
+            hud_pid="$(pgrep -f "$binary" | head -n1 || true)"
+            if [ -n "$hud_pid" ] && kill -0 "$hud_pid" 2>/dev/null; then break; fi
+            if ! kill -0 "$launcher" 2>/dev/null; then
+              cat "$log"
+              echo "Nexus HUD exited before native smoke became ready" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          test -n "$hud_pid"
+          kill -0 "$hud_pid"
+
+          {
+            echo "sha=${GITHUB_SHA}"
+            echo "pid=$hud_pid"
+            echo "session=${XDG_SESSION_TYPE:-xvfb}"
+            echo "samples:"
+          } > "$metrics"
+          for sample in $(seq 1 5); do
+            ps -p "$hud_pid" -o pid=,rss=,%cpu=,etime= >> "$metrics"
+            sleep 1
+          done
+          echo "status=PASS" >> "$metrics"
+          cat "$metrics"
       - name: Package Linux desktop surfaces
         run: |
           tar -C cmd/nexus-desktop/build/bin -czf "$RUNNER_TEMP/nexus-desktop_Linux_x86_64.tar.gz" nexus-desktop
@@ -289,6 +346,8 @@ jobs:
           path: |
             ${{ runner.temp }}/nexus-desktop_Linux_x86_64.tar.gz
             ${{ runner.temp }}/nexus-hud_Linux_x86_64.tar.gz
+            ${{ runner.temp }}/nexus-hud-linux-metrics.txt
+            ${{ runner.temp }}/nexus-hud-linux-smoke.log
           if-no-files-found: error
           retention-days: 2
 
