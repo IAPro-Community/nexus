@@ -239,7 +239,46 @@ func (h *HUDController) RestoreHUDWindow() {
 	wailsruntime.WindowSetAlwaysOnTop(ctx, state.AlwaysOnTop)
 }
 
+func (h *HUDController) CaptureHUDWindowState() error {
+	h.mu.RLock()
+	ctx := h.ctx
+	caps := h.caps
+	h.mu.RUnlock()
+	if ctx == nil {
+		return nil
+	}
+	state := h.manager.Load()
+	width, height := wailsruntime.WindowGetSize(ctx)
+	state.Width = width
+	state.Height = height
+	if caps.GlobalPositioning {
+		x, y := wailsruntime.WindowGetPosition(ctx)
+		state.X = x
+		state.Y = y
+		state.Placement = HUDPlacementCustom
+	}
+	return h.manager.Save(state)
+}
+
+func (h *HUDController) SetHUDExpanded(expanded bool) error {
+	h.mu.RLock()
+	ctx := h.ctx
+	h.mu.RUnlock()
+	if ctx == nil {
+		return nil
+	}
+	state := h.manager.Load()
+	if expanded {
+		state.Height = 520
+	} else {
+		state.Height = 64
+	}
+	wailsruntime.WindowSetSize(ctx, state.Width, state.Height)
+	return h.manager.Save(state)
+}
+
 func (h *HUDController) HideHUD() {
+	_ = h.CaptureHUDWindowState()
 	h.mu.RLock()
 	ctx := h.ctx
 	h.mu.RUnlock()
