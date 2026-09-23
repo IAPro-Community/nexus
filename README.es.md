@@ -1,8 +1,9 @@
 # IAPro Nexus
 
-> **Estado de release:** el source está en el programa de cierre de Nexus 1.0.
-> La documentación pública registra `v1.0.0-beta.1` como la beta publicada;
-> una versión superior en el source no equivale a una release pública ni a GA.
+> **Estado de release:** Nexus v1 tiene como objetivo estable soportado **Linux amd64**.
+> Windows y macOS permanecen en el source, pero están diferidos hasta completar su
+> certificación nativa. La documentación pública registra `v1.0.0-beta.1` como la
+> beta publicada.
 
 **Una estación de trabajo local para operar coding agents.**
 
@@ -18,9 +19,10 @@ IAPro Nexus es una estación de trabajo local para trabajar con coding agents. O
 
 ## Empieza en minutos
 
-Camino recomendado: instala una release precompilada y firmada. No requiere toolchain Go/Bun/Node; la verificación Ed25519 actualmente usa Python 3 con `cryptography`.
+La matriz estable de Nexus v1 soporta **Linux amd64**. Windows y macOS no se publican
+como targets soportados en esta versión.
 
-**Linux / macOS:**
+Camino recomendado: instala una release precompilada y firmada.
 
 ```bash
 curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
@@ -29,14 +31,8 @@ nexus doctor
 nexus web
 ```
 
-**Windows (PowerShell):**
-
-```powershell
-irm https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.1
-nexus doctor
-nexus web
-```
+El instalador exige manifiesto Ed25519 válido, SHA-256 coincidente y versión interna
+exacta. Mientras la línea pública sea beta, usa la tag beta explícita.
 
 ### Desarrolladores (compilar desde el código)
 
