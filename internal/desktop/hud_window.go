@@ -147,7 +147,10 @@ func currentHUDScreenSize(ctx context.Context) (int, int, bool) {
 	if ctx == nil {
 		return 0, 0, false
 	}
-	screens := wailsruntime.ScreenGetAll(ctx)
+	screens, err := wailsruntime.ScreenGetAll(ctx)
+	if err != nil {
+		return 0, 0, false
+	}
 	for _, screen := range screens {
 		if screen.IsCurrent {
 			return screen.Width, screen.Height, true
