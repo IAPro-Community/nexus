@@ -1,7 +1,7 @@
 # Current release status
 
 STATUS: NEXUS_1_0_CLOSURE_IN_PROGRESS
-SOURCE_VERSION: 1.0.0-beta.4
+SOURCE_VERSION: 1.0.0
 BASELINE_MAIN_SHA: 7605f702cce220b4111d51d06a34b37f7e0a9a8d
 BASELINE_PR3_HEAD: 300ccbeee4f145f80ebce13c9cefafcb01acefc3
 BASELINE_CI_RUN: 35547298239 (#149)
@@ -28,11 +28,11 @@ The verified PR-head gates were:
 9. GoReleaser Linux snapshot — PASS
 10. DEB install smoke — PASS
 
-The source version currently reports `1.0.0-beta.4`. This does NOT mean a public
-`v1.0.0-beta.4` tag or release has been certified or published. Repository tag
-inventory currently exposes `v1.0.0-beta.1` as the published beta tag, so install
-documentation that explicitly pins that tag is an artifact reference rather than a
-claim that beta.1 is the current source version.
+The final candidate source version now reports `1.0.0`. This does NOT mean a public
+`v1.0.0` tag or stable release has already been certified or published. Repository
+tag inventory still exposes `v1.0.0-beta.1` as the published beta tag, so installation
+documentation that pins beta.1 remains an artifact reference until stable certification
+authorizes the final tag.
 
 The post-merge `main` push CI run `35547840452` is also retained as evidence:
 Linux and Security passed, Frontend was cancelled, and dependent jobs were skipped.
