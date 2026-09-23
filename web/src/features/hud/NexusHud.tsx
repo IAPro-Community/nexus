@@ -195,10 +195,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const topAlert = state?.alerts[0];
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
   const mission = state ? activeMission(state.missions) : undefined;
-  const modeShows = (kind: 'CAPACITY' | 'RESOURCE' | 'AGENT' | 'MISSION' | 'ALERT' | 'COST') =>
-    prefs.mode === 'AUTO' ||
-    (prefs.mode === 'MINIMAL' && kind === 'CAPACITY') ||
-    prefs.mode === kind;
+  const autoPriorityOverride =
+    prefs.mode === 'AUTO' && (state?.primary.kind === 'ALERT' || state?.primary.kind === 'MISSION');
+  const modeShows = (kind: 'CAPACITY' | 'RESOURCE' | 'AGENT' | 'MISSION' | 'ALERT' | 'COST') => {
+    if (prefs.mode === 'AUTO') {
+      return autoPriorityOverride ? state?.primary.kind === kind : true;
+    }
+    return (prefs.mode === 'MINIMAL' && kind === 'CAPACITY') || prefs.mode === kind;
+  };
 
   const updatePrefs = (patch: Partial<HudPresentationPreferences>) => {
     const next = { ...prefs, ...patch };
@@ -313,6 +317,23 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           </div>
 
           <div className={styles.metrics}>
+            {topAlert && modeShows('ALERT') ? (
+              <button
+                type="button"
+                className={styles.metric}
+                data-state={topAlert.severity}
+                onClick={() => setExpanded(true)}
+                aria-label={`Alerta ${topAlert.severity}: ${topAlert.provider || 'provider'} ${topAlert.remaining_percent === undefined ? 'capacidade desconhecida' : `${Math.round(topAlert.remaining_percent)}% restante`}`}
+              >
+                <CircleAlert size={12} aria-hidden="true" />
+                <strong>
+                  {topAlert.provider || 'Provider'}{' '}
+                  {topAlert.remaining_percent === undefined
+                    ? 'UNKNOWN'
+                    : `${Math.round(topAlert.remaining_percent)}%`}
+                </strong>
+              </button>
+            ) : null}
             {prefs.showCapacity && modeShows('CAPACITY') &&
               state.providers.slice(0, 4).map((provider) => (
                 <button
