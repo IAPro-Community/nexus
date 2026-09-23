@@ -11,6 +11,36 @@ declare global {
   interface Window {
     go?: {
       desktop?: {
+        HUDController?: {
+          GetHUDCapabilities?: () => Promise<{
+            transparentWindow: boolean;
+            framelessWindow: boolean;
+            alwaysOnTop: boolean;
+            globalPositioning: boolean;
+            multiMonitor: boolean;
+            autoHide: boolean;
+            nativeNotifications: boolean;
+            tray: boolean;
+            platform: string;
+            session?: string;
+          }>;
+          GetHUDWindowState?: () => Promise<{
+            displayId: string;
+            placement: string;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            mode: string;
+            opacity: number;
+            alwaysOnTop: boolean;
+            autoHide: boolean;
+          }>;
+          CaptureHUDWindowState?: () => Promise<void>;
+          SetHUDExpanded?: (expanded: boolean) => Promise<void>;
+          HideHUD?: () => Promise<void>;
+          ShowHUD?: () => Promise<void>;
+        };
         App?: {
           SelectDirectory?: (title?: string) => Promise<string>;
           SelectFile?: (options?: FilePickerOptions) => Promise<string>;
