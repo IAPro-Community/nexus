@@ -81,7 +81,7 @@ as native certification.
 
 To avoid any dependency on paid GitHub-hosted minutes, regular CI is Linux self-hosted.
 Windows amd64 and macOS arm64 are now certified by the manual
-`.github/workflows/native-certification.yml` on self-hosted machines labeled
+manual mode of `.github/workflows/ci.yml` on self-hosted machines labeled
 `nexus-windows` and `nexus-macos`. The workflow seals an exact-SHA certificate only
 after both native suites and Wails builds pass; `release.yml` verifies that certificate
 before promoting the native artifacts.
