@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IAPro Nexus installer (Linux / macOS) — prebuilt signed-release path.
+# IAPro Nexus installer — Nexus v1 supported prebuilt target: Linux amd64.
 # Usage:
 #   ./install.sh --version=vX.Y.Z
 #   ./install.sh --version=latest
