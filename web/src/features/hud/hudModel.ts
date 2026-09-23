@@ -1,11 +1,4 @@
-export type HudMode =
-  | 'AUTO'
-  | 'CAPACITY'
-  | 'RESOURCE'
-  | 'AGENT'
-  | 'MISSION'
-  | 'ALERT'
-  | 'MINIMAL';
+export type HudMode = 'AUTO' | 'CAPACITY' | 'RESOURCE' | 'AGENT' | 'MISSION' | 'ALERT' | 'MINIMAL';
 
 export type HudSurfaceMode = 'docked' | 'floating';
 export type HudDock = 'top' | 'bottom';
@@ -196,7 +189,9 @@ export const loadHudPreferences = (): HudPresentationPreferences => {
   if (typeof window === 'undefined') return defaultHudPreferences;
   try {
     const raw = window.localStorage.getItem(HUD_PREFERENCES_KEY);
-    return normalizeHudPreferences(raw ? (JSON.parse(raw) as Partial<HudPresentationPreferences>) : null);
+    return normalizeHudPreferences(
+      raw ? (JSON.parse(raw) as Partial<HudPresentationPreferences>) : null,
+    );
   } catch {
     return defaultHudPreferences;
   }
@@ -225,7 +220,9 @@ export const formatHudCost = (cost?: HudCostSummary): HudCostDisplay => {
   if (!cost || cost.known_microusd <= 0 || cost.by_kind.length === 0) {
     return { label: '—', semantics: 'unknown' };
   }
-  const kinds = new Set(cost.by_kind.filter((entry) => entry.microusd > 0).map((entry) => entry.kind));
+  const kinds = new Set(
+    cost.by_kind.filter((entry) => entry.microusd > 0).map((entry) => entry.kind),
+  );
   const value = formatUSD(cost.known_microusd);
   if (
     kinds.size === 1 &&
@@ -256,4 +253,7 @@ export const isWorkingAgent = (agent: HudAgent) => agent.status.toUpperCase() ==
 
 export const activeMission = (missions: HudMission[]) =>
   missions.find((mission) => mission.needs_user) ||
-  missions.find((mission) => !['COMPLETED_VERIFIED', 'CANCELED_BY_USER', 'FAILED_BUDGET_EXCEEDED'].includes(mission.state));
+  missions.find(
+    (mission) =>
+      !['COMPLETED_VERIFIED', 'CANCELED_BY_USER', 'FAILED_BUDGET_EXCEEDED'].includes(mission.state),
+  );
