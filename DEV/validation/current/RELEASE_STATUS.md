@@ -80,11 +80,11 @@ fresh native same-SHA execution evidence. Cross-compilation alone must not be de
 as native certification.
 
 To avoid any dependency on paid GitHub-hosted minutes, regular CI is Linux self-hosted.
-Windows amd64 and macOS arm64 are now certified by the manual
-manual mode of `.github/workflows/ci.yml` on self-hosted machines labeled
-`nexus-windows` and `nexus-macos`. The workflow seals an exact-SHA certificate only
-after both native suites and Wails builds pass; `release.yml` verifies that certificate
-before promoting the native artifacts.
+Windows amd64 and macOS arm64 are certified by manually dispatching
+`.github/workflows/ci.yml` with `native_target_sha=<full SHA>` while the self-hosted
+machines labeled `nexus-windows` and `nexus-macos` are online. The native mode seals
+an exact-SHA certificate only after both native suites and Wails builds pass;
+`release.yml` verifies that certificate before promoting the native artifacts.
 
 ## Distribution truth
 
