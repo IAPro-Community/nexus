@@ -92,6 +92,26 @@ async function assertComposerLayout(page, viewportName) {
     const composer = document.querySelector('.nx-composer-surface');
     if (!composer) return { found: false };
     const rect = composer.getBoundingClientRect();
+    const ancestors = [];
+    let current = composer;
+    while (current && ancestors.length < 12) {
+      const currentRect = current.getBoundingClientRect();
+      const style = getComputedStyle(current);
+      ancestors.push({
+        tag: current.tagName,
+        className: typeof current.className === 'string' ? current.className : '',
+        width: currentRect.width,
+        left: currentRect.left,
+        right: currentRect.right,
+        cssWidth: style.width,
+        minWidth: style.minWidth,
+        maxWidth: style.maxWidth,
+        display: style.display,
+        overflowX: style.overflowX,
+        position: style.position,
+      });
+      current = current.parentElement;
+    }
     return {
       found: true,
       width: rect.width,
@@ -100,6 +120,7 @@ async function assertComposerLayout(page, viewportName) {
       viewportWidth: window.innerWidth,
       documentWidth: document.documentElement.scrollWidth,
       bodyWidth: document.body.scrollWidth,
+      ancestors,
     };
   });
   assert.equal(result.found, true, `Composer must exist at ${viewportName}`);
@@ -183,12 +204,12 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 5000 });
   await assertThemeApplied(page, theme);
-  await assertComposerLayout(page, `${theme.preset} mobile`);
-  await assertA11y(page, theme);
   await page.screenshot({
     path: path.join(screenshotDir, `${theme.preset}-mobile.png`),
     fullPage: true,
   });
+  await assertComposerLayout(page, `${theme.preset} mobile`);
+  await assertA11y(page, theme);
 }
 
 async function main() {
