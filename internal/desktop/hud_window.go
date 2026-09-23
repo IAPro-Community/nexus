@@ -115,6 +115,55 @@ func normalizeHUDWindowState(state HUDWindowState) HUDWindowState {
 	return state
 }
 
+func clampHUDWindowStateToScreen(state HUDWindowState, screenWidth, screenHeight int) HUDWindowState {
+	state = normalizeHUDWindowState(state)
+	if screenWidth <= 0 || screenHeight <= 0 {
+		return state
+	}
+	if state.Width > screenWidth {
+		state.Width = screenWidth
+	}
+	if state.Height > screenHeight {
+		state.Height = screenHeight
+	}
+	maxX := screenWidth - state.Width
+	maxY := screenHeight - state.Height
+	if state.X > maxX {
+		state.X = maxX
+	}
+	if state.Y > maxY {
+		state.Y = maxY
+	}
+	if state.X < 0 {
+		state.X = 0
+	}
+	if state.Y < 0 {
+		state.Y = 0
+	}
+	return state
+}
+
+func currentHUDScreenSize(ctx context.Context) (int, int, bool) {
+	if ctx == nil {
+		return 0, 0, false
+	}
+	screens := wailsruntime.ScreenGetAll(ctx)
+	for _, screen := range screens {
+		if screen.IsCurrent {
+			return screen.Width, screen.Height, true
+		}
+	}
+	for _, screen := range screens {
+		if screen.IsPrimary {
+			return screen.Width, screen.Height, true
+		}
+	}
+	if len(screens) > 0 {
+		return screens[0].Width, screens[0].Height, true
+	}
+	return 0, 0, false
+}
+
 func (m *HUDWindowStateManager) Load() HUDWindowState {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -217,6 +266,9 @@ func (h *HUDController) SaveHUDWindowState(state HUDWindowState) error {
 	ctx := h.ctx
 	caps := h.caps
 	h.mu.RUnlock()
+	if width, height, ok := currentHUDScreenSize(ctx); ok {
+		state = clampHUDWindowStateToScreen(state, width, height)
+	}
 	if ctx != nil {
 		wailsruntime.WindowSetSize(ctx, state.Width, state.Height)
 		if caps.GlobalPositioning {
@@ -236,6 +288,13 @@ func (h *HUDController) RestoreHUDWindow() {
 		return
 	}
 	state := h.manager.Load()
+	if width, height, ok := currentHUDScreenSize(ctx); ok {
+		recovered := clampHUDWindowStateToScreen(state, width, height)
+		if recovered != state {
+			state = recovered
+			_ = h.manager.Save(state)
+		}
+	}
 	wailsruntime.WindowSetSize(ctx, state.Width, state.Height)
 	if caps.GlobalPositioning {
 		wailsruntime.WindowSetPosition(ctx, state.X, state.Y)
