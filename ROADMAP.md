@@ -92,3 +92,5 @@ routing/memory reliability, Surface Isolation, Flow recovery e os gates Linux/br
 
 Somente declarar `NEXUS_1_0_CANDIDATE = GO` quando o candidato final tiver todos
 os gates requeridos verdes no mesmo SHA e evidência nativa das plataformas declaradas.
+Para a v1, a plataforma declarada é Linux amd64; Windows/macOS só entram na regra
+quando forem explicitamente promovidos de DEFERRED para suportados.
