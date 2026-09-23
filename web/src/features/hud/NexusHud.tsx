@@ -36,6 +36,7 @@ const FLOATING_KEYBOARD_STEP = 16;
 
 export interface NexusHudProps {
   projectId?: string;
+  native?: boolean;
   onOpenUsage?: () => void;
   onOpenAgents?: () => void;
   onOpenMissions?: () => void;
@@ -105,6 +106,7 @@ const primaryCopy = (state: HudState, requestedMode: HudPresentationPreferences[
 
 export const NexusHud: React.FC<NexusHudProps> = ({
   projectId,
+  native = false,
   onOpenUsage,
   onOpenAgents,
   onOpenMissions,
@@ -210,7 +212,13 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     saveHudPreferences(next);
   };
 
-  const hideHUD = () => updatePrefs({ enabled: false });
+  const hideHUD = () => {
+    if (native && window.go?.desktop?.HUDController?.HideHUD) {
+      void window.go.desktop.HUDController.HideHUD();
+      return;
+    }
+    updatePrefs({ enabled: false });
+  };
 
   const handleAck = async () => {
     if (!topAlert?.fingerprint) return;
@@ -289,7 +297,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     );
   };
 
-  if (!prefs.enabled || !response?.enabled || !state) return null;
+  if ((!prefs.enabled && !native) || !response?.enabled || !state) return null;
 
   const floatingStyle =
     prefs.surfaceMode === 'floating'
@@ -302,8 +310,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   return (
     <aside
       className={styles.root}
-      data-surface={prefs.surfaceMode}
+      data-surface={native ? 'native' : prefs.surfaceMode}
       data-dock={prefs.dock}
+      data-native={native ? 'true' : 'false'}
       style={floatingStyle}
       aria-label="Nexus HUD"
       aria-live="polite"
@@ -407,6 +416,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   : ''}
               </span>
             ) : null}
+            {!native ? (
             <button
               type="button"
               className={styles.dragHandle}
@@ -418,23 +428,34 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             >
               <GripHorizontal size={15} aria-hidden="true" />
             </button>
+            ) : null}
             <button
               type="button"
               className={styles.iconButton}
               aria-expanded={expanded}
               aria-label={expanded ? 'Recolher Nexus HUD' : 'Expandir Nexus HUD'}
-              onClick={() => setExpanded((current) => !current)}
+              onClick={() =>
+                setExpanded((current) => {
+                  const next = !current;
+                  if (native) {
+                    void window.go?.desktop?.HUDController?.SetHUDExpanded?.(next);
+                  }
+                  return next;
+                })
+              }
             >
               {expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
             </button>
-            <button
-              type="button"
-              className={styles.iconButton}
-              aria-label="Configurações do Nexus HUD"
-              onClick={onOpenSettings}
-            >
-              <Settings2 size={15} />
-            </button>
+            {onOpenSettings ? (
+              <button
+                type="button"
+                className={styles.iconButton}
+                aria-label="Configurações do Nexus HUD"
+                onClick={onOpenSettings}
+              >
+                <Settings2 size={15} />
+              </button>
+            ) : null}
             <button
               type="button"
               className={styles.iconButton}
