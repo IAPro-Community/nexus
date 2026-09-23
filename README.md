@@ -21,9 +21,10 @@ execute com isolamento e só conclua quando houver evidência verificável.
 
 ![Visão geral do Nexus v1](docs/assets/diagrams/nexus-v1-overview.svg)
 
-> **Estado da v1:** o source está no programa de fechamento do Nexus 1.0 e reporta
-> `1.0.0-beta.4`. Isso **não** significa que uma release estável v1 esteja
-> certificada ou publicada. A verdade autoritativa está em
+> **Estado da v1:** o source está no fechamento do Nexus 1.0 e reporta
+> `1.0.0-beta.4`. A matriz estável da v1 é **Linux amd64**; Windows/macOS
+> permanecem no source, mas estão deferidos e não são suporte certificado desta
+> release. A verdade autoritativa está em
 > [RELEASE_STATUS](docs/release-status.md).
 
 ## TL;DR
@@ -65,7 +66,7 @@ A documentação de instalação usa a última beta publicada indicada pelo
 estável não estiver certificada, não confunda versão do source com release
 publicada.
 
-**Linux / macOS**
+**Linux amd64 — target suportado da v1**
 
 ```bash
 curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
@@ -74,14 +75,8 @@ nexus doctor
 nexus web
 ```
 
-**Windows PowerShell**
-
-```powershell
-irm https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.1
-nexus doctor
-nexus web
-```
+Windows e macOS estão deferidos para uma campanha posterior de certificação
+nativa e não são anunciados como plataformas suportadas pela v1.
 
 ### Compilar do source
 
@@ -224,7 +219,8 @@ capacidades do Nexus.
 | **Desktop** | shell nativo quando a plataforma possui evidência correspondente |
 | **CLI** | automação, diagnóstico, scripting, execução headless e terminal |
 
-Suporte nativo depende de evidência por sistema operacional. Veja
+A release estável v1 suporta Linux amd64. Outros targets permanecem
+UNVERIFIED/DEFERRED até nova certificação nativa. Veja
 [Suporte de plataformas](docs/operations/platform-support.md).
 
 ## Documentação
