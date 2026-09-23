@@ -519,10 +519,26 @@ func (m *Monitor) persistTransition(ctx context.Context, provider, profile, grou
 		return nil
 	}
 	eventID := fmt.Sprintf("%s@%d", fingerprint, now.UnixNano())
-	payload, _ := json.Marshal(map[string]any{
+	payloadData := map[string]any{
 		"state": string(state), "severity": string(state), "reason": reason,
 		"reset_cycle": resetCycle,
-	})
+	}
+	var recommendation *Recommendation
+	// Compute the canonical advisory recommendation exactly once. Persisting the
+	// same data that is published on the bus lets read-only surfaces such as HUD
+	// consume ResourceScheduler output without running discovery/scoring again.
+	if m.deps.Recommender != nil && (state == StateWarning || state == StateCritical || state == StateExhausted) {
+		if rec, recErr := m.deps.Recommender.RecommendForLowResource(ctx,
+			ResourceKey{Provider: provider, Profile: profile, Group: group, Window: window}, reason); recErr == nil && rec.Available {
+			recommendation = &rec
+			payloadData["recommended_provider"] = rec.Provider
+			payloadData["recommended_profile"] = rec.Profile
+			payloadData["recommended_display_name"] = rec.DisplayName
+			payloadData["recommendation_score"] = rec.Score
+			payloadData["recommendation_reason"] = rec.Reason
+		}
+	}
+	payload, _ := json.Marshal(payloadData)
 	if err := m.deps.Store.PutCapacityEvent(store.CapacityEventRecord{
 		ID: eventID, Fingerprint: fingerprint,
 		EventType: string(eventTypeFor(state)),
@@ -537,7 +553,7 @@ func (m *Monitor) persistTransition(ctx context.Context, provider, profile, grou
 		m.deps.Dispatcher.Forget(dispatchKey)
 		return err
 	}
-	m.publish(ctx, provider, profile, group, window, state, reason, remaining, resetDesc, scope, fingerprint)
+	m.publish(provider, profile, group, window, state, reason, remaining, resetDesc, scope, fingerprint, recommendation)
 	// Best-effort receipt: the canonical event is already durable; a receipt
 	// write failure must not un-publish it.
 	_ = m.deps.Store.PutDeliveryReceipt(store.DeliveryReceipt{
@@ -588,7 +604,7 @@ func (m *Monitor) upsertUnknownAccountState(provider, profile, reason string, sc
 	})
 }
 
-func (m *Monitor) publish(ctx context.Context, provider, profile, group, window string, state State, reason string, remaining *float64, resetDesc string, scope model.AccountScope, fingerprint string) {
+func (m *Monitor) publish(provider, profile, group, window string, state State, reason string, remaining *float64, resetDesc string, scope model.AccountScope, fingerprint string, recommendation *Recommendation) {
 	var typ events.EventType
 	switch state {
 	case StateExhausted:
@@ -621,18 +637,12 @@ func (m *Monitor) publish(ctx context.Context, provider, profile, group, window 
 	if key := scopeKey(scope); key != "" {
 		data["account_scope"] = key
 	}
-	// T4 recommendation bridge: advisory candidate + reason on degraded
-	// states only. Nil recommender (or unavailable/error) publishes without
-	// it — never a phantom candidate, never an automatic migration.
-	if m.deps.Recommender != nil && (state == StateWarning || state == StateCritical || state == StateExhausted) {
-		if rec, err := m.deps.Recommender.RecommendForLowResource(ctx,
-			ResourceKey{Provider: provider, Profile: profile, Group: group, Window: window}, reason); err == nil && rec.Available {
-			data["recommended_provider"] = rec.Provider
-			data["recommended_profile"] = rec.Profile
-			data["recommended_display_name"] = rec.DisplayName
-			data["recommendation_score"] = rec.Score
-			data["recommendation_reason"] = rec.Reason
-		}
+	if recommendation != nil && recommendation.Available {
+		data["recommended_provider"] = recommendation.Provider
+		data["recommended_profile"] = recommendation.Profile
+		data["recommended_display_name"] = recommendation.DisplayName
+		data["recommendation_score"] = recommendation.Score
+		data["recommendation_reason"] = recommendation.Reason
 	}
 	m.deps.Bus.Publish(events.NewEvent("", provider, profile, typ, reason, data).WithAccountScope(scope))
 }
