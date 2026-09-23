@@ -225,7 +225,7 @@ func (s *HUDApplicationService) State(ctx context.Context, projectID string) (HU
 	// provider detection/effective-capability probes. HUD refresh must consume
 	// already-materialized state and never create a second polling loop.
 	system.Resources = "SNAPSHOT_ONLY"
-	recommendation := loadHUDRecommendation(st)
+	recommendation := loadHUDRecommendation(st, capacity)
 	if recommendation != nil {
 		system.Resources = "CANONICAL_EVENT"
 	}
@@ -335,8 +335,21 @@ func BuildHUDProjection(input HUDProjectionInput) HUDState {
 }
 
 
-func loadHUDRecommendation(st *store.Store) *HUDRecommendation {
+func loadHUDRecommendation(st *store.Store, capacity CapacityStatus) *HUDRecommendation {
 	if st == nil {
+		return nil
+	}
+	active := make(map[string]struct{})
+	for _, resource := range capacity.Resources {
+		switch nonEmptyUpper(resource.State) {
+		case "WARNING", "CRITICAL", "EXHAUSTED":
+			if strings.TrimSpace(resource.Fingerprint) != "" && !resource.Acked &&
+				(resource.SnoozedUntil == nil || resource.SnoozedUntil.Before(time.Now().UTC())) {
+				active[resource.Fingerprint] = struct{}{}
+			}
+		}
+	}
+	if len(active) == 0 {
 		return nil
 	}
 	events, err := st.ListCapacityEvents(50)
@@ -344,6 +357,9 @@ func loadHUDRecommendation(st *store.Store) *HUDRecommendation {
 		return nil
 	}
 	for _, event := range events {
+		if _, ok := active[event.Fingerprint]; !ok {
+			continue
+		}
 		if strings.TrimSpace(event.PayloadJSON) == "" {
 			continue
 		}
