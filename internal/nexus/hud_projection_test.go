@@ -140,11 +140,11 @@ func TestLoadHUDRecommendationUsesDurableCapacityEvent(t *testing.T) {
 	t.Cleanup(func() { _ = st.Close() })
 
 	payload, err := json.Marshal(map[string]any{
-		"recommended_provider": "claude",
-		"recommended_profile": "backup",
+		"recommended_provider":     "claude",
+		"recommended_profile":      "backup",
 		"recommended_display_name": "Claude Backup",
-		"recommendation_score": 82.5,
-		"recommendation_reason": "healthy fallback",
+		"recommendation_score":     82.5,
+		"recommendation_reason":    "healthy fallback",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -170,7 +170,6 @@ func TestLoadHUDRecommendationUsesDurableCapacityEvent(t *testing.T) {
 		t.Fatalf("confidence=%q, want UNKNOWN when event has no confidence evidence", rec.Confidence)
 	}
 }
-
 
 func TestLoadHUDRecommendationDropsRecoveredEvent(t *testing.T) {
 	st, err := store.Open(filepath.Join(t.TempDir(), "hud-recovered.db"))
