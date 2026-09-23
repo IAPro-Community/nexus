@@ -341,22 +341,66 @@ jobs:
             echo "$all" | xargs
           }
 
-          # Let WebKit/Core bootstrap settle before measuring idle samples.
-          sleep 2
+          sum_cpu_jiffies() {
+            local total=0
+            local pid
+            for pid in $1; do
+              if [ -r "/proc/$pid/stat" ]; then
+                local ticks
+                ticks="$(awk '{print $14 + $15}' "/proc/$pid/stat")"
+                total=$((total + ticks))
+              fi
+            done
+            echo "$total"
+          }
+
+          sum_pss_kb() {
+            local total=0
+            local pid
+            for pid in $1; do
+              if [ -r "/proc/$pid/smaps_rollup" ]; then
+                local pss
+                pss="$(awk '/^Pss:/ {print $2}' "/proc/$pid/smaps_rollup")"
+                total=$((total + ${pss:-0}))
+              fi
+            done
+            echo "$total"
+          }
+
+          sum_rss_kb() {
+            local pids="$1"
+            local pid_csv
+            pid_csv="$(echo "$pids" | tr ' ' ',')"
+            ps -o rss= -p "$pid_csv" | awk '{sum += $1} END {print sum + 0}'
+          }
+
+          # Wails/WebKit starts helper processes lazily. Wait long enough for the
+          # native surface to settle before treating samples as idle.
+          sleep 10
+          hz="$(getconf CLK_TCK)"
           {
             echo "sha=${GITHUB_SHA}"
             echo "pid=$hud_pid"
             echo "session=${XDG_SESSION_TYPE}"
+            echo "metric=process_tree_pss_rss_and_cpu_delta"
+            echo "warmup_seconds=10"
             echo "samples:"
           } > "$metrics"
           for sample in $(seq 1 5); do
-            pids="$(collect_hud_pids)"
-            test -n "$pids"
-            pid_csv="$(echo "$pids" | tr ' ' ',')"
-            rss_kb="$(ps -o rss= -p "$pid_csv" | awk '{sum += $1} END {print sum + 0}')"
-            cpu_pct="$(ps -o %cpu= -p "$pid_csv" | awk '{sum += $1} END {printf "%.1f", sum + 0}')"
-            echo "sample=$sample rss_kb=$rss_kb cpu_pct=$cpu_pct pids=$pids" >> "$metrics"
+            pids_before="$(collect_hud_pids)"
+            test -n "$pids_before"
+            cpu_before="$(sum_cpu_jiffies "$pids_before")"
             sleep 1
+            pids_after="$(collect_hud_pids)"
+            test -n "$pids_after"
+            cpu_after="$(sum_cpu_jiffies "$pids_after")"
+            delta_ticks=$((cpu_after - cpu_before))
+            if [ "$delta_ticks" -lt 0 ]; then delta_ticks=0; fi
+            cpu_pct="$(awk -v ticks="$delta_ticks" -v hz="$hz" 'BEGIN {printf "%.2f", (ticks / hz) * 100}')"
+            pss_kb="$(sum_pss_kb "$pids_after")"
+            rss_kb="$(sum_rss_kb "$pids_after")"
+            process_count="$(wc -w <<< "$pids_after" | xargs)"
+            echo "sample=$sample pss_kb=$pss_kb rss_kb=$rss_kb cpu_pct=$cpu_pct process_count=$process_count pids=$pids_after" >> "$metrics"
           done
           echo "status=PASS" >> "$metrics"
           cat "$metrics"
