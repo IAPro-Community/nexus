@@ -104,6 +104,7 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/cost/summary", s.authMiddleware(h.handleCostSummary))
 	mux.HandleFunc("/api/v1/cost/observations", s.authMiddleware(h.handleCostObservations))
 	mux.HandleFunc("/api/v1/cost/preferences", s.authMiddleware(h.handleCostPreferences))
+	mux.HandleFunc("/api/v1/hud", s.authMiddleware(h.handleHUDState))
 }
 
 func registerFilesystemRoutes(mux *http.ServeMux, deps routeDependencies) {
