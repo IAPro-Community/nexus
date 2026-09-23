@@ -50,10 +50,15 @@ uma janela limitante confiável, a projeção não inventa uma.
 
 ## Resource recommendation
 
-O scheduler requer `TaskRequirements`. O Usage atual já solicita uma
-recomendação genérica. O M1 preserva esse mesmo caso de uso para o resumo do HUD
-e o identifica como recomendação geral. Contextos de Mission/Agent devem usar
-requisitos persistidos específicos quando disponíveis.
+O HUD não chama `ResourceApplicationService.List` nem executa discovery para
+obter uma recomendação. Em uma transição degradada, o Capacity Monitor chama o
+recommender canônico do ResourceScheduler uma única vez, publica a mesma
+recomendação no event bus e a persiste no `capacity_event` durável.
+
+`HUDApplicationService` apenas lê esse evento e exige que seu `fingerprint`
+continue ativo em `WARNING`, `CRITICAL` ou `EXHAUSTED`. Recovery, ack e
+snooze removem a recomendação da projeção. Ausência de evidência resulta em
+ausência de recomendação, não em fallback calculado pelo HUD.
 
 ## Desktop
 
