@@ -372,3 +372,25 @@
     transition: none;
   }
 }
+
+.root[data-native='true'] {
+  position: absolute;
+  inset: 0;
+  justify-content: stretch;
+  pointer-events: auto;
+}
+
+.root[data-native='true'] .panel {
+  width: 100%;
+  max-width: none;
+  border-radius: 14px;
+}
+
+.root[data-native='true'] .compactBar {
+  --wails-draggable: drag;
+}
+
+.root[data-native='true'] button,
+.root[data-native='true'] a {
+  --wails-draggable: no-drag;
+}
