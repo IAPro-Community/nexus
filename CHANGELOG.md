@@ -1,9 +1,9 @@
 # Changelog
 
-## Unreleased — source v1.0.0-beta.4 — fechamento do Nexus 1.0
+## 1.0.0 — 2026-09-23 — Nexus v1
 
-> Esta seção descreve o **source candidato**. Não afirma publicação nem
-> certificação de uma release estável.
+> Esta seção descreve o **source final candidato**. A tag/release pública só pode
+> ser criada depois da certificação estável do mesmo SHA.
 
 ### Adicionado
 
@@ -28,6 +28,10 @@
 
 ### Alterado
 
+- A matriz estável da v1 foi fechada em **Linux amd64**; Windows/macOS permanecem
+  implementados no source, porém deferidos e não publicados como suporte certificado.
+- O CI/release foi simplificado para não depender de minutos pagos e para produzir,
+  validar e assinar somente os artifacts suportados da v1.
 - `WorkPlan` permanece a fonte de verdade; Flow é explicitamente sua projeção,
   não um segundo planner.
 - AgentMatcher escolhe **quem**; ResourceScheduler escolhe **com qual recurso**.
