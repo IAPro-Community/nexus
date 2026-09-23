@@ -31,8 +31,8 @@ export const HudSettings: React.FC = () => {
           <div>
             <strong>Nexus HUD</strong>
             <small>
-              Projeção operacional compacta. Não altera Capacity Monitor, ResourceScheduler,
-              Agents, Missions ou Cost Intelligence.
+              Projeção operacional compacta. Não altera Capacity Monitor, ResourceScheduler, Agents,
+              Missions ou Cost Intelligence.
             </small>
           </div>
           <Badge tone="warning">Experimental</Badge>
@@ -70,9 +70,7 @@ export const HudSettings: React.FC = () => {
         <Segmented
           ariaLabel="Superfície do Nexus HUD"
           value={prefs.surfaceMode}
-          onChange={(value) =>
-            patch({ surfaceMode: value === 'floating' ? 'floating' : 'docked' })
-          }
+          onChange={(value) => patch({ surfaceMode: value === 'floating' ? 'floating' : 'docked' })}
           options={[
             { value: 'docked', label: 'Dock' },
             { value: 'floating', label: 'Floating' },
