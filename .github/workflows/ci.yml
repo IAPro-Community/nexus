@@ -129,6 +129,12 @@ jobs:
         run: |
           set -o pipefail
           bun run test:e2e:capacity 2>&1 | tee "$RUNNER_TEMP/nexus-browser-capacity.log"
+      - id: hud-e2e
+        if: always()
+        working-directory: web
+        run: |
+          set -o pipefail
+          bun run test:e2e:hud 2>&1 | tee "$RUNNER_TEMP/nexus-browser-hud.log"
       - id: composer-spine-e2e
         if: always()
         working-directory: web
@@ -170,6 +176,7 @@ jobs:
             .tempmediaStorage/e2e-failure.png
             .tempmediaStorage/e2e-surface-failure-diagnostics.json
             .tempmediaStorage/e2e-surface-failure.png
+            .tempmediaStorage/hud/
             .tempmediaStorage/composer-themes/
             DEV/validation/composer-execution-spine/
           if-no-files-found: ignore
@@ -179,6 +186,7 @@ jobs:
           test '${{ steps.browser-e2e.outcome }}' = success
           test '${{ steps.surface-e2e.outcome }}' = success
           test '${{ steps.capacity-e2e.outcome }}' = success
+          test '${{ steps.hud-e2e.outcome }}' = success
           test '${{ steps.composer-spine-e2e.outcome }}' = success
           test '${{ steps.composer-vague-spine-e2e.outcome }}' = success
           test '${{ steps.composer-theme-e2e.outcome }}' = success
