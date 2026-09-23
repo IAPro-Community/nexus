@@ -348,14 +348,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           </div>
 
           <div className={styles.metrics}>
-            {onOpenNexus ? (
-              <div className={styles.actionRow}>
-                <button type="button" className={styles.textButton} onClick={onOpenNexus}>
-                  Abrir Nexus
-                </button>
-              </div>
-            ) : null}
-
             {topAlert && modeShows('ALERT') ? (
               <button
                 type="button"
@@ -382,7 +374,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   data-state={provider.capacity_state}
                   key={`${provider.provider}:${provider.profile}`}
                   onClick={onOpenUsage}
-                  aria-label={`${provider.provider} ${provider.profile}: ${providerCapacityLabel(provider)}, ${provider.capacity_state}`}
+                  aria-label={`${provider.provider}${prefs.privacyMode ? '' : ` ${provider.profile}`}: ${providerCapacityLabel(provider)}, ${provider.capacity_state}`}
                 >
                   <span>{provider.provider}</span>
                   <strong>{providerCapacityLabel(provider)}</strong>
@@ -393,7 +385,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 type="button"
                 className={styles.metric}
                 onClick={onOpenUsage}
-                aria-label={`Recurso recomendado: ${state.recommendation.display_name || state.recommendation.provider}`}
+                aria-label={`Recurso recomendado: ${
+                  prefs.privacyMode
+                    ? state.recommendation.provider
+                    : state.recommendation.display_name || state.recommendation.provider
+                }`}
               >
                 <Zap size={12} aria-hidden="true" />
                 <strong>{state.recommendation.provider}</strong>
@@ -507,6 +503,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   );
                 })()
               : null}
+
+            {onOpenNexus ? (
+              <div className={styles.actionRow}>
+                <button type="button" className={styles.textButton} onClick={onOpenNexus}>
+                  Abrir Nexus
+                </button>
+              </div>
+            ) : null}
 
             {topAlert && modeShows('ALERT') ? (
               <div className={styles.actionRow}>
