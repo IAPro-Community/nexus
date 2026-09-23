@@ -65,13 +65,14 @@ routing/memory reliability, Surface Isolation, Flow recovery e os gates Linux/br
    - Nexus continua funcional sem Maestro;
    - nenhuma duplicação de método/skills no Core.
 
-10. **Commercial + native release certification**
+10. **Commercial + v1 release certification**
     - entitlement capability gates server-side;
-    - Linux/Windows/macOS same-SHA;
+    - Linux amd64 same-SHA;
     - install/upgrade/uninstall/update;
     - signed artifacts;
     - dogfooding e soak;
     - BLOCKER=0 / HIGH=0.
+    - Windows/macOS native certification moves to post-v1 platform expansion.
 
 ## Fora do Nexus 1.0 salvo blocker
 
