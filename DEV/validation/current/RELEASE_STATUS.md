@@ -79,6 +79,13 @@ Windows and macOS source/build support exists, but the Nexus 1.0 candidate still
 fresh native same-SHA execution evidence. Cross-compilation alone must not be described
 as native certification.
 
+To avoid any dependency on paid GitHub-hosted minutes, regular CI is Linux self-hosted.
+Windows amd64 and macOS arm64 are now certified by the manual
+`.github/workflows/native-certification.yml` on self-hosted machines labeled
+`nexus-windows` and `nexus-macos`. The workflow seals an exact-SHA certificate only
+after both native suites and Wails builds pass; `release.yml` verifies that certificate
+before promoting the native artifacts.
+
 ## Distribution truth
 
 The repository is private and the intended beta/customer distribution path is binary
@@ -163,16 +170,17 @@ SHA and retain separate evidence.
 
 ### Evidence still external
 
-These corrections do **not** convert the candidate to GO by themselves. The current PR
-Actions runs are reaching `pending` without creating jobs; previous superseded runs
-were cancelled by workflow concurrency. Therefore there is still no fresh native
-Linux/Windows/macOS, browser, security, release snapshot or Desktop execution evidence
-for the current closure head.
+These corrections do **not** convert the candidate to GO by themselves. The current
+closure head still needs a fresh green regular CI and a separate native certificate for
+the same immutable SHA. Windows/macOS are intentionally no longer scheduled on every PR,
+so powered-off native runners cannot block ordinary development CI.
 
 Stable remains fail-closed until:
 
-1. Actions can actually schedule the required jobs;
-2. exact-SHA non-PR CI passes every required platform/release gate;
+1. regular self-hosted Linux CI passes every continuous/release-preparation gate on the
+   exact non-PR candidate SHA;
+2. **Native Certification** passes Windows amd64 and macOS arm64 on self-hosted runners
+   and seals `native-certification-<sha>` for that exact SHA;
 3. the protected signing environment provides the canonical key/key-id pair;
 4. stable certification completes the signed lifecycle and both four-hour live-soak
    segments on that exact SHA.
