@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ThemeProvider } from '../design-system';
 import { initSession } from '../api';
 import { NexusHud } from '../features/hud/NexusHud';
+import { getPlatformBridge } from '../platform';
 import styles from './DesktopHudApp.module.scss';
 
 export const isDesktopHudApp = () =>
@@ -38,6 +39,16 @@ export const DesktopHudApp: React.FC = () => {
     };
   }, []);
 
+  const openNexus = () => {
+    void (async () => {
+      const bridge = getPlatformBridge();
+      const bootstrap = await bridge.getBootstrapInfo?.();
+      if (bootstrap?.serverUrl) {
+        await bridge.openExternal(bootstrap.serverUrl);
+      }
+    })();
+  };
+
   if (!ready) {
     return <div className={styles.status}>Nexus HUD</div>;
   }
@@ -52,7 +63,7 @@ export const DesktopHudApp: React.FC = () => {
   return (
     <ThemeProvider>
       <main className={styles.root}>
-        <NexusHud native />
+        <NexusHud native onOpenNexus={openNexus} />
       </main>
     </ThemeProvider>
   );
