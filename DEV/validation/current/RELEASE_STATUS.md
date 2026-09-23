@@ -7,7 +7,7 @@ BASELINE_PR3_HEAD: 300ccbeee4f145f80ebce13c9cefafcb01acefc3
 BASELINE_CI_RUN: 35547298239 (#149)
 BASELINE_MAIN_PUSH_CI_RUN: 35547840452 (PARTIAL / NON-GREEN)
 LATEST_PUBLISHED_BETA_TAG: v1.0.0-beta.1
-UPDATED_AT: 2026-09-22
+UPDATED_AT: 2026-09-23
 
 ## Current truth
 
@@ -67,24 +67,25 @@ The program must close, with evidence:
 - Memory 1.0 on the existing IntelligenceMemory;
 - Maestro contract v1 and graceful degradation;
 - server-side entitlement enforcement for future paid capabilities;
-- native Linux/Windows/macOS release certification;
+- native Linux amd64 release certification;
+- Windows/macOS certification tracked as post-v1 platform expansion, not a v1 blocker;
 - signed install/update/upgrade/uninstall evidence;
 - real dogfooding and soak.
 
 ## Platform truth
 
-Linux has fresh same-SHA evidence for the PR #3 baseline described above.
+The stable Nexus v1 support scope is **Linux amd64 only**.
 
-Windows and macOS source/build support exists, but the Nexus 1.0 candidate still requires
-fresh native same-SHA execution evidence. Cross-compilation alone must not be described
-as native certification.
+Linux is the release target that must carry fresh same-SHA evidence for CLI/Core,
+Browser/Web, Desktop Wails, packaging and install/update lifecycle.
 
-To avoid any dependency on paid GitHub-hosted minutes, regular CI is Linux self-hosted.
-Windows amd64 and macOS arm64 are certified by manually dispatching
-`.github/workflows/ci.yml` with `native_target_sha=<full SHA>` while the self-hosted
-machines labeled `nexus-windows` and `nexus-macos` are online. The native mode seals
-an exact-SHA certificate only after both native suites and Wails builds pass;
-`release.yml` verifies that certificate before promoting the native artifacts.
+Windows and macOS source/runtime implementations remain in-tree, and the manual
+`native_target_sha` CI mode remains available for a later platform-certification
+campaign. They are explicitly **DEFERRED / UNVERIFIED** for Nexus v1 and are not
+published as supported v1 artifacts. Their skipped jobs do not count as PASS and do
+not block the Linux-only v1 closure.
+
+Cross-compilation still must not be described as native certification.
 
 ## Distribution truth
 
@@ -95,7 +96,7 @@ release is NOT authorized by this document.
 Before any stable release:
 
 - final candidate CI must be green on the exact release SHA;
-- native platform gates must be complete;
+- Linux amd64 native platform gates must be complete;
 - update manifest/checksum/signature chain must be verified;
 - install/upgrade/uninstall must be executed on supported platforms;
 - release artifacts must be produced from the final clean candidate;
@@ -140,8 +141,8 @@ deferred to certification:
   preserve non-zero CLI semantics;
 - project registration can explicitly request `--isolation worktree`, avoiding an
   autonomous-Mission/default-isolation mismatch;
-- GoReleaser now defines the CLI artifact matrix for Linux, Windows and macOS and
-  packages Windows archives as ZIP;
+- GoReleaser v1 publication scope is Linux amd64 only; Windows/macOS source support
+  remains in-tree but is not published or advertised as certified v1 support;
 - Windows and Unix uninstallers are explicit/idempotent, preserve data by default,
   and the lifecycle includes DEB removal;
 - the updater trust root and key ID have versioned sources of truth
@@ -170,26 +171,20 @@ SHA and retain separate evidence.
 
 ### Evidence still external
 
-These corrections do **not** convert the candidate to GO by themselves. The current
-closure head still needs a fresh green regular CI and a separate native certificate for
-the same immutable SHA. Windows/macOS are intentionally no longer scheduled on every PR,
-so powered-off native runners cannot block ordinary development CI.
+The source-level closure is not equivalent to a published stable release. Before a
+stable `v1.0.0` can be published, the final immutable SHA still needs:
 
-Stable remains fail-closed until:
+1. a green exact-SHA Linux/Web/release-preparation CI run;
+2. the protected signing environment with the canonical key/key-id pair;
+3. successful Stable Certification on that exact SHA, including signed lifecycle,
+   authenticated provider/Mission checkpoints and both live-soak segments.
 
-1. regular self-hosted Linux CI passes every continuous/release-preparation gate on the
-   exact non-PR candidate SHA;
-2. **Native Certification** passes Windows amd64 and macOS arm64 on self-hosted runners
-   and seals `native-certification-<sha>` for that exact SHA;
-3. the protected signing environment provides the canonical key/key-id pair;
-4. stable certification completes the signed lifecycle and both four-hour live-soak
-   segments on that exact SHA.
+Windows/macOS are not part of this v1 release boundary and therefore are not blockers.
 
 ## Current verdict
 
 `NEXUS_1_0_CANDIDATE = NO_GO`
 
-Reason: the 1.0 closure implementation and native release certification are still in
-progress. This is not a regression verdict for the PR #3 baseline: the PR-head
-same-SHA evidence is green, while the later `main` push run is explicitly recorded as
-partial/non-green. The verdict here is for stable 1.0 release readiness.
+Reason: the source closure is converging, but the final Linux-only release SHA has not
+yet completed exact-SHA release evidence and Stable Certification. Windows/macOS are
+explicitly deferred and are no longer part of the v1 GO/NO-GO decision.
