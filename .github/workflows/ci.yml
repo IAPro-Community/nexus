@@ -293,6 +293,7 @@ jobs:
         env:
           NEXUS_ENABLE_HUD: "1"
           NEXUS_DATA_DIR: ${{ runner.temp }}/nexus-hud-smoke-data
+          XDG_SESSION_TYPE: x11
         run: |
           set -euo pipefail
           command -v xvfb-run >/dev/null
@@ -303,7 +304,7 @@ jobs:
           dbus-run-session -- xvfb-run -a "$binary" >"$log" 2>&1 &
           launcher=$!
           cleanup() {
-            hud_pid="$(pgrep -f "$binary" | head -n1 || true)"
+            hud_pid="$(pgrep -x nexus-hud | head -n1 || true)"
             if [ -n "$hud_pid" ]; then kill -TERM "$hud_pid" 2>/dev/null || true; fi
             kill -TERM "$launcher" 2>/dev/null || true
             wait "$launcher" 2>/dev/null || true
@@ -312,7 +313,7 @@ jobs:
 
           hud_pid=""
           for attempt in $(seq 1 30); do
-            hud_pid="$(pgrep -f "$binary" | head -n1 || true)"
+            hud_pid="$(pgrep -x nexus-hud | head -n1 || true)"
             if [ -n "$hud_pid" ] && kill -0 "$hud_pid" 2>/dev/null; then break; fi
             if ! kill -0 "$launcher" 2>/dev/null; then
               cat "$log"
@@ -324,14 +325,37 @@ jobs:
           test -n "$hud_pid"
           kill -0 "$hud_pid"
 
+          collect_hud_pids() {
+            local queue="$hud_pid"
+            local all=""
+            while [ -n "$queue" ]; do
+              local pid="${queue%% *}"
+              queue="${queue#* }"
+              if [ "$queue" = "$pid" ]; then queue=""; fi
+              if ! kill -0 "$pid" 2>/dev/null; then continue; fi
+              all="$all $pid"
+              local children
+              children="$(pgrep -P "$pid" | tr '\n' ' ' || true)"
+              if [ -n "$children" ]; then queue="${queue:+$queue }$children"; fi
+            done
+            echo "$all" | xargs
+          }
+
+          # Let WebKit/Core bootstrap settle before measuring idle samples.
+          sleep 2
           {
             echo "sha=${GITHUB_SHA}"
             echo "pid=$hud_pid"
-            echo "session=${XDG_SESSION_TYPE:-xvfb}"
+            echo "session=${XDG_SESSION_TYPE}"
             echo "samples:"
           } > "$metrics"
           for sample in $(seq 1 5); do
-            ps -p "$hud_pid" -o pid=,rss=,%cpu=,etime= >> "$metrics"
+            pids="$(collect_hud_pids)"
+            test -n "$pids"
+            pid_csv="$(echo "$pids" | tr ' ' ',')"
+            rss_kb="$(ps -o rss= -p "$pid_csv" | awk '{sum += $1} END {print sum + 0}')"
+            cpu_pct="$(ps -o %cpu= -p "$pid_csv" | awk '{sum += $1} END {printf "%.1f", sum + 0}')"
+            echo "sample=$sample rss_kb=$rss_kb cpu_pct=$cpu_pct pids=$pids" >> "$metrics"
             sleep 1
           done
           echo "status=PASS" >> "$metrics"
