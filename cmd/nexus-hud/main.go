@@ -80,19 +80,19 @@ func main() {
 	hudController := desktop.NewHUDController(stateManager)
 
 	err = wails.Run(&options.App{
-		Title:          "Nexus HUD",
+		Title:              "Nexus HUD",
 		SingleInstanceLock: &options.SingleInstanceLock{UniqueId: "com.iapro.nexus.hud"},
-		Width:          windowState.Width,
-		Height:         windowState.Height,
-		MinWidth:       280,
-		MinHeight:      48,
-		MaxWidth:       1200,
-		MaxHeight:      900,
-		Frameless:      true,
-		AlwaysOnTop:    windowState.AlwaysOnTop,
-		DisableResize:  false,
-		BackgroundColour: &options.RGBA{R: 15, G: 17, B: 23, A: 0},
-		AssetServer: &assetserver.Options{Assets: distFS, Handler: backendHandler},
+		Width:              windowState.Width,
+		Height:             windowState.Height,
+		MinWidth:           280,
+		MinHeight:          48,
+		MaxWidth:           1200,
+		MaxHeight:          900,
+		Frameless:          true,
+		AlwaysOnTop:        windowState.AlwaysOnTop,
+		DisableResize:      false,
+		BackgroundColour:   &options.RGBA{R: 15, G: 17, B: 23, A: 0},
+		AssetServer:        &assetserver.Options{Assets: distFS, Handler: backendHandler},
 		OnStartup: func(ctx context.Context) {
 			desktopApp.Startup(ctx)
 			hudController.Startup(ctx)
