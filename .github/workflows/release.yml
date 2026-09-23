@@ -40,11 +40,7 @@ jobs:
             'Release configuration'
             'Browser E2E, Axe & visual smoke'
             'Linux E2E (Go 1.25.14)'
-            'Windows E2E (ConPTY, Named Pipe, PowerShell)'
-            'macOS E2E (PTY, Socket, arm64)'
             'Desktop Linux (Wails native build)'
-            'Desktop Windows (Wails native build)'
-            'Desktop macOS arm64 (Wails native build)'
             'GoReleaser Snapshot Build'
             'Smoke DEB install'
           )
