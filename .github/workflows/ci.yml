@@ -491,18 +491,15 @@ jobs:
           distribution: goreleaser
           version: v2.18.0
           args: release --snapshot --clean
-      - name: Verify cross-platform CLI artifacts
+      - name: Verify Nexus v1 Linux amd64 artifacts
         run: |
           set -euo pipefail
           test -f dist/checksums.txt
           test -f dist/nexus_Linux_x86_64.tar.gz
-          test -f dist/nexus_Linux_arm64.tar.gz
-          test -f dist/nexus_Darwin_x86_64.tar.gz
-          test -f dist/nexus_Darwin_arm64.tar.gz
-          test -f dist/nexus_Windows_x86_64.zip
-          test -f dist/nexus_Windows_arm64.zip
-          test "$(find dist -maxdepth 1 -name '*.deb' | wc -l)" -ge 1
+          test "$(find dist -maxdepth 1 -name 'nexus_Linux_*.tar.gz' | wc -l)" -eq 1
+          test "$(find dist -maxdepth 1 -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' | wc -l)" -ge 1
           test "$(find dist -maxdepth 1 -name '*.rpm' | wc -l)" -eq 0
+          test "$(find dist -maxdepth 1 \( -name '*Darwin*' -o -name '*Windows*' -o -name '*arm64*' \) | wc -l)" -eq 0
       - uses: actions/upload-artifact@v4
         with:
           name: snapshot-dist-${{ github.sha }}
