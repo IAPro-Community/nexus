@@ -4,6 +4,7 @@ import { NexusWorkspaceApp } from './app/NexusWorkspaceApp';
 import { NexusDemoApp } from './app/NexusDemoApp';
 import { ConversationSpikePage } from './app/ConversationSpikePage';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { DesktopHudApp, isDesktopHudApp } from './app/DesktopHudApp';
 import type { WorkspaceSurface } from './workspace/model';
 
 function isWorkspaceSurface(obj: unknown): obj is WorkspaceSurface {
@@ -60,6 +61,10 @@ export const AppRoutes: React.FC = () => {
 };
 
 export const App: React.FC = () => {
+  if (isDesktopHudApp()) {
+    return <DesktopHudApp />;
+  }
+
   if (
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('demo') === '1'
