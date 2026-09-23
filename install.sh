@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IAPro Nexus installer (Linux / macOS) — zero-toolchain release path.
+# IAPro Nexus installer — Nexus v1 supported prebuilt target: Linux amd64.
 # Usage:
 #   ./install.sh --version=vX.Y.Z
 #   ./install.sh --version=latest
@@ -11,6 +11,7 @@ set -euo pipefail
 REPO="${NEXUS_RELEASE_REPO:-IAPro-Community/nexus-releases}"
 GITHUB_URL="https://github.com/${REPO}"
 GITHUB_API="https://api.github.com/repos/${REPO}"
+RELEASE_DOWNLOAD_BASE="${NEXUS_RELEASE_BASE_URL:-${GITHUB_URL}/releases/download}"
 # Source checkouts (--build-from-source) always come from the private source
 # repository, never from the binaries mirror.
 SOURCE_REPO="${NEXUS_SOURCE_REPO:-IAPro-Community/nexus}"
@@ -24,6 +25,7 @@ WITH_MAESTRO=false
 NO_PATH=false
 YES_MODE=false
 MAESTRO_EXIT=0
+INSTALL_DIR="${NEXUS_INSTALL_DIR:-}"
 
 for arg in "$@"; do
     case "$arg" in
@@ -34,21 +36,23 @@ for arg in "$@"; do
         --no-desktop) INSTALL_DESKTOP=false ;;
         --with-maestro) WITH_MAESTRO=true ;;
         --no-path) NO_PATH=true ;;
+        --install-dir=*) INSTALL_DIR="${arg#--install-dir=}" ;;
         --yes|-y) YES_MODE=true ;;
         --help|-h)
             cat <<'EOF'
-IAPro Nexus installer (zero-toolchain release path)
+IAPro Nexus installer (prebuilt signed-release path)
 
   --version=vX.Y.Z|latest   Pin a release, or resolve the newest tag via GitHub API
   --no-desktop              Skip native desktop artifact
   --no-path                 Do not append ~/.local/bin to shell rc files
+  --install-dir=<path>       Install CLI/Desktop binaries into an explicit directory
   --with-maestro            Opt-in Maestro npm install
   --build-from-source       Build with Go+Bun+make (dev path)
   --source-ref=<ref>        Clone ref when building from source without a checkout
   --yes                     Non-interactive toolchain install for source builds
 
 Environment:
-  NEXUS_VERSION, NEXUS_SOURCE_REF, NEXUS_RELEASE_REPO
+  NEXUS_VERSION, NEXUS_SOURCE_REF, NEXUS_RELEASE_REPO, NEXUS_RELEASE_BASE_URL, NEXUS_INSTALL_DIR
 EOF
             exit 0
             ;;
@@ -105,8 +109,9 @@ resolve_latest_version() {
         echo "GitHub API response did not contain a tag_name." >&2
         exit 1
     fi
-    # Integrity only: tag is resolved then assets are checksum-verified. Not strong authenticity.
-    echo "Resolved --version=latest to ${tag} (tag resolve only; install still requires signed update-manifest)." >&2
+    # Tag discovery is mutable metadata. Authenticity is established only after
+    # the selected release's Ed25519 manifest and artifact digest verify.
+    echo "Resolved --version=latest to ${tag} (tag discovery only; install still requires signed update-manifest)." >&2
     printf '%s' "$tag"
 }
 
@@ -119,7 +124,7 @@ if [ -n "$VERSION" ] && ! printf '%s' "$VERSION" | grep -Eq '^v?[0-9]+\.[0-9]+\.
     exit 2
 fi
 
-echo "=== IAPro Nexus Installer (Zero-Toolchain Release) ==="
+echo "=== IAPro Nexus Installer (Signed Prebuilt Release) ==="
 echo "Release repo: ${REPO}"
 
 OS="$(uname -s)"
@@ -143,6 +148,13 @@ case "$ARCH" in
         ;;
 esac
 
+# Native Desktop artifacts are currently published only for the architectures
+# backed by native CI. CLI/Core release artifacts cover a broader matrix.
+DESKTOP_SUPPORTED=false
+case "${OS_NAME}_${ARCH_NAME}" in
+    Linux_x86_64|Darwin_arm64) DESKTOP_SUPPORTED=true ;;
+esac
+
 # Install into the directory that the current shell resolves first. This keeps
 # `type -a nexus` and the binary we just installed in sync when an older copy
 # exists in a higher-priority PATH entry. A fresh installation still defaults
@@ -162,7 +174,11 @@ resolve_nexus_target_dir() {
     printf '%s/.local/bin\n' "$HOME"
 }
 
-TARGET_DIR="$(resolve_nexus_target_dir)"
+if [ -n "$INSTALL_DIR" ]; then
+    TARGET_DIR="$INSTALL_DIR"
+else
+    TARGET_DIR="$(resolve_nexus_target_dir)"
+fi
 mkdir -p "$TARGET_DIR"
 
 INSTALL_SUCCESS=0
@@ -182,20 +198,34 @@ sha256_file() {
 
 install_cli_from_dir() {
     local dir="$1"
+    local expected_version="$2"
+    local source_binary=""
+
     if [ -f "${dir}/nexus" ]; then
-        install -m 0755 "${dir}/nexus" "${TMP_DIR}/nexus.install"
-        mv -f "${TMP_DIR}/nexus.install" "${TARGET_DIR}/nexus"
-        INSTALL_SUCCESS=1
+        source_binary="${dir}/nexus"
     elif [ -f "${dir}/ai" ]; then
-        install -m 0755 "${dir}/ai" "${TMP_DIR}/nexus.install"
-        mv -f "${TMP_DIR}/nexus.install" "${TARGET_DIR}/nexus"
-        INSTALL_SUCCESS=1
+        source_binary="${dir}/ai"
+    else
+        echo "ERROR: verified archive does not contain nexus/ai executable" >&2
+        return 1
     fi
+
+    chmod +x "$source_binary"
+    local actual_version
+    actual_version="$("$source_binary" version --json 2>/dev/null | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
+    if [ -z "$actual_version" ] || [ "$actual_version" != "$expected_version" ]; then
+        echo "ERROR: signed artifact binary version mismatch: expected ${expected_version}, got ${actual_version:-unknown}" >&2
+        return 1
+    fi
+
+    install -m 0755 "$source_binary" "${TMP_DIR}/nexus.install"
+    mv -f "${TMP_DIR}/nexus.install" "${TARGET_DIR}/nexus"
+    INSTALL_SUCCESS=1
 }
 
 # Ed25519 public key for manifest signature verification (matches internal/update ProductionTrustRoot).
 # Only the corresponding private key (release CI secret) can produce valid signatures.
-NEXUS_PUBKEY="8284672c22f6179ec76ea2c7c5007d5742e719a55de0b7dfff96a3560e0cd7b2"
+NEXUS_PUBKEY="ee2e268394ce6a0634a9ea2f414ee831dd536d12f7e2b80107f94566e58aa334"
 
 verify_manifest_signature() {
     local manifest_path="$1"
@@ -261,7 +291,7 @@ print('', end='')
 download_and_verify_archive() {
     local archive_name="$1"
     local version_plain="$2"
-    local release_url="${GITHUB_URL}/releases/download/v${version_plain}"
+    local release_url="${RELEASE_DOWNLOAD_BASE}/v${version_plain}"
     local archive_path="${TMP_DIR}/${archive_name}"
     local manifest_path="${TMP_DIR}/update-manifest.json"
     local sig_path="${TMP_DIR}/update-manifest.sig"
@@ -308,8 +338,28 @@ download_and_verify_archive() {
     fi
     echo "SHA-256 verified"
 
-    tar -xzf "$archive_path" -C "$TMP_DIR"
-    install_cli_from_dir "$TMP_DIR"
+    case "$archive_name" in
+        *.tar.gz|*.tgz)
+            tar -xzf "$archive_path" -C "$TMP_DIR"
+            ;;
+        *.zip)
+            if command -v ditto >/dev/null 2>&1; then
+                ditto -x -k "$archive_path" "$TMP_DIR"
+            elif command -v unzip >/dev/null 2>&1; then
+                unzip -q -o "$archive_path" -d "$TMP_DIR"
+            else
+                echo "Need ditto (macOS) or unzip to extract ${archive_name}." >&2
+                return 1
+            fi
+            ;;
+        *)
+            echo "Unsupported verified archive format: ${archive_name}" >&2
+            return 1
+            ;;
+    esac
+    case "$archive_name" in
+        nexus_*) install_cli_from_dir "$TMP_DIR" "$version_plain" ;;
+    esac
 }
 
 ensure_go() {
@@ -465,7 +515,11 @@ warn_webkitgtk() {
     fi
 }
 
-if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ]; then
+if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ] && [ "$DESKTOP_SUPPORTED" != true ]; then
+    echo "⚠️  Native Desktop is not published/certified for ${OS_NAME}/${ARCH_NAME}; CLI/Core installation remains valid." >&2
+fi
+
+if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ] && [ "$DESKTOP_SUPPORTED" = true ]; then
     if [ "$OS_NAME" = "Darwin" ]; then
         DESKTOP_ARCHIVE_NAME="nexus-desktop_${OS_NAME}_${ARCH_NAME}.zip"
     else
@@ -475,7 +529,17 @@ if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ]; then
     echo "Attempting to install the native IAPro Nexus Desktop shell..."
     if download_and_verify_archive "$DESKTOP_ARCHIVE_NAME" "$VERSION_PLAIN"; then
         if [ "$OS_NAME" = "Darwin" ]; then
-            echo "⚠️  macOS Desktop archive verified; extract/app install is platform-specific and left to the .app bundle workflow." >&2
+            source_app="$(find "$TMP_DIR" -maxdepth 2 -type d -name '*.app' -print -quit)"
+            if [ -z "$source_app" ]; then
+                echo "ERROR: macOS Desktop .app bundle missing from verified archive ${DESKTOP_ARCHIVE_NAME}" >&2
+                exit 1
+            fi
+            applications_dir="${HOME}/Applications"
+            mkdir -p "$applications_dir"
+            app_target="${applications_dir}/$(basename "$source_app")"
+            rm -rf "$app_target"
+            ditto "$source_app" "$app_target"
+            echo "✓ Native Desktop installed to ${app_target}"
         else
             tar -xzf "${TMP_DIR}/${DESKTOP_ARCHIVE_NAME}" -C "$TMP_DIR"
             DESKTOP_BINARY="${TMP_DIR}/nexus-desktop"

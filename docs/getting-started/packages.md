@@ -1,60 +1,68 @@
-# Pacotes nativos (DEB / RPM / NSIS / winget)
+# Pacotes e artefatos nativos
 
-![Pacotes nativos DEB RPM NSIS winget](../assets/help/help-install-packages.png)
+A distribuição estável do Nexus v1 publica somente artefatos **Linux amd64**.
+Windows, macOS e Linux arm64 permanecem fora da matriz suportada até existir
+certificação nativa correspondente.
 
-Distribuição por **pacote de sistema** ou instalador gráfico. Separado da instalação via script ([installation.md](installation.md)) e do Docker ([docker-compat.md](docker-compat.md)).
+## Linux amd64 — DEB
 
-## Linux — DEB e RPM
+O GoReleaser gera DEB via [`.goreleaser.yaml`](../../.goreleaser.yaml).
 
-Gerados pelo GoReleaser (`nfpms` em [`.goreleaser.yaml`](../../.goreleaser.yaml)).
-
-- Artefatos típicos na release: `nexus_*_linux_amd64.deb`, `nexus_*_linux_amd64.rpm` (e arm64 quando aplicável).
-- Binário em `/usr/local/bin/nexus`.
-- O CI faz smoke: `dpkg -i` (Ubuntu) e `rpm -i` (Fedora) → `nexus version`.
+- artefato: `nexus_*_linux_amd64.deb`;
+- binário: `/usr/local/bin/nexus`;
+- CI instala o DEB em Ubuntu, executa `nexus version`, remove o pacote e
+  verifica que o comando desapareceu;
+- Desktop Wails não faz parte do DEB CLI.
 
 ### Debian / Ubuntu
 
 ```bash
-# Baixe o .deb da release correspondente e:
 sudo dpkg -i nexus_*_linux_amd64.deb
 # se faltar dependência:
 sudo apt-get install -f -y
 nexus version
 ```
 
-### Fedora / RHEL
+## Archive de CLI
 
-```bash
-sudo rpm -i nexus_*_linux_amd64.rpm
-nexus version
-```
+A v1 publica:
 
-Desktop Wails **não** entra no pacote CLI; use o artefato `nexus-desktop_*` da mesma release ou o instalador de script com desktop.
+- Linux amd64: `nexus_Linux_x86_64.tar.gz`.
 
-## Windows — NSIS
+O instalador assinado valida manifesto Ed25519, SHA-256 e a versão embutida no
+binário antes da substituição.
 
-Job CI dedicado gera `nexus-setup-Windows_x86_64.exe` ([`packaging/windows/nexus.nsi`](../../packaging/windows/nexus.nsi)).
+→ [Instalação por script](installation.md)
 
-- Instala em `%LOCALAPPDATA%\Programs\IAPro Nexus`
-- Inclui `nexus.exe`; inclui `nexus-desktop.exe` quando o artefato desktop estiver no payload
-- Ajusta PATH do usuário e cria atalho no Desktop quando houver desktop
-- A release **exige** esse artefato no gate de publicação
+## Desktop nativo
 
-```powershell
-# Após baixar da GitHub Release:
-.\nexus-setup-Windows_x86_64.exe
-nexus doctor
-nexus web
-```
+A v1 publica somente:
 
-Fallback sem instalador gráfico: [installation.md — Windows](installation.md#windows-powershell).
+- Linux x86_64: `nexus-desktop_Linux_x86_64.tar.gz`.
 
-## Windows — winget
+Windows e macOS possuem implementação no source, porém seus artefatos não são
+publicados como parte da v1 estável.
 
-Manifesto stub em [`packaging/winget/IAPro.Nexus.yaml`](../../packaging/winget/IAPro.Nexus.yaml).
+→ [Suporte de plataformas](../operations/platform-support.md)
 
-Só publique no repositório winget-pkgs **depois** de existir NSIS estável na release com SHA-256 real. Substitua `VERSION` e `InstallerSha256` no manifesto antes do PR.
+## Targets deferidos
 
-## Relação com a matriz
+Estes targets não fazem parte da promessa da v1:
 
-Status por OS: [platform-support.md](../operations/platform-support.md).
+- Linux arm64;
+- Windows amd64/arm64;
+- macOS amd64/arm64;
+- RPM;
+- NSIS;
+- winget;
+- DMG.
+
+Arquivos preparatórios podem existir no source. Isso não é evidência de
+distribuição.
+
+## Regra de evidência
+
+A presença de `packaging/*`, scripts de instalação ou de uma configuração de
+build não prova suporte. A fonte de verdade é a combinação do workflow da
+revisão, artifact gerado, smoke da mesma revisão e a matriz oficial de
+[suporte de plataformas](../operations/platform-support.md).

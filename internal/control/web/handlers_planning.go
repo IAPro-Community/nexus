@@ -67,6 +67,29 @@ func (h *NexusHandler) handleProjectPlans(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// handleProjectSkillCatalog exposes browser-safe Nexus Skill metadata.
+// GET /api/v1/projects/{projectID}/skills?q=...
+func (h *NexusHandler) handleProjectSkillCatalog(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project id")
+		return
+	}
+	items, err := h.composer.SkillCatalog(r.Context(), projectID, r.URL.Query().Get("q"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if items == nil {
+		items = []nexus.ComposerSkillCatalogItem{}
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
 // handleProjectComposerSessions creates or lists durable prompt elaborations.
 func (h *NexusHandler) handleProjectComposerSessions(w http.ResponseWriter, r *http.Request) {
 	projectID := projectIDFromPath(r.URL.Path)
@@ -244,6 +267,27 @@ func (h *NexusHandler) handleComposerSession(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		writeJSON(w, http.StatusCreated, view)
+		return
+	}
+	if strings.HasSuffix(id, "/skills") {
+		id = strings.TrimSuffix(id, "/skills")
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, "POST required to select a skill")
+			return
+		}
+		var body struct {
+			SkillID string `json:"skill_id"`
+		}
+		if json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body) != nil || strings.TrimSpace(body.SkillID) == "" {
+			writeError(w, http.StatusBadRequest, "skill_id is required")
+			return
+		}
+		view, err := h.composer.SelectSkill(r.Context(), id, body.SkillID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, view)
 		return
 	}
 	if strings.Contains(id, "/skills/") {
@@ -439,6 +483,24 @@ func (h *NexusHandler) handleFlowClone(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, clone)
 }
 
+func (h *NexusHandler) handlePlanExecutionPreview(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	planID := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v1/plans/"), "/execution-preview")
+	if planID == "" {
+		writeError(w, http.StatusBadRequest, "plan id is required")
+		return
+	}
+	preview, err := h.nexus.PreviewPlanExecution(r.Context(), planID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, preview)
+}
+
 func (h *NexusHandler) handleFlowPreflight(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost && r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -494,6 +556,8 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 		PackageTimeoutSeconds int      `json:"package_timeout_seconds"`
 		VerificationCommands  []string `json:"verification_commands"`
 		Autonomous            *bool    `json:"autonomous"`
+		CostConfirmationToken string   `json:"cost_confirmation_token"`
+		ExecutionPreviewToken string   `json:"execution_preview_token"`
 	}
 	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -501,6 +565,10 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.PlanRevision <= 0 {
 		writeError(w, http.StatusBadRequest, "plan_revision is required")
+		return
+	}
+	if strings.TrimSpace(body.ExecutionPreviewToken) == "" {
+		writeError(w, http.StatusBadRequest, "execution_preview_token is required; run Execution Preview and approve the current route before GO")
 		return
 	}
 	contract := runner.DefaultAutonomyContract()
@@ -521,11 +589,13 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 		autonomous = *body.Autonomous
 	}
 	run, err := h.runs.Start(r.Context(), nexus.RunStartRequest{
-		PlanID:     planID,
-		Revision:   body.PlanRevision,
-		AgentID:    body.AgentID,
-		Contract:   contract,
-		Autonomous: autonomous,
+		PlanID:                planID,
+		Revision:              body.PlanRevision,
+		AgentID:               body.AgentID,
+		Contract:              contract,
+		Autonomous:            autonomous,
+		CostConfirmationToken: body.CostConfirmationToken,
+		ExecutionPreviewToken: body.ExecutionPreviewToken,
 	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -576,8 +646,26 @@ func (h *NexusHandler) handleRunDetail(w http.ResponseWriter, r *http.Request) {
 		h.handleRunEvidence(w, r, runID)
 		return
 	}
+	if r.Method == http.MethodGet && action == "coordination" {
+		run, err := h.runs.Get(r.Context(), runID)
+		if err != nil {
+			writeError(w, http.StatusNotFound, "run not found")
+			return
+		}
+		items := run.CoordinationRequests
+		if items == nil {
+			items = []runner.CoordinationRequest{}
+		}
+		writeJSON(w, http.StatusOK, items)
+		return
+	}
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	if strings.HasPrefix(action, "coordination") {
+		h.handleRunCoordination(w, r, runID, action)
 		return
 	}
 
@@ -626,6 +714,93 @@ func (h *NexusHandler) handleRunDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, run)
+}
+
+func (h *NexusHandler) handleRunCoordination(w http.ResponseWriter, r *http.Request, runID, action string) {
+	switch action {
+	case "coordination":
+		var body struct {
+			RequestID            string                       `json:"request_id"`
+			SourcePackageID      string                       `json:"source_package_id"`
+			SourceAgentID        string                       `json:"source_agent_id"`
+			Operation            runner.CoordinationOperation `json:"operation"`
+			Subject              string                       `json:"subject"`
+			Objective            string                       `json:"objective"`
+			PreferredRole        string                       `json:"preferred_role"`
+			PreferredProvider    string                       `json:"preferred_provider"`
+			RequiredCapabilities []string                     `json:"required_capabilities"`
+			ArtifactRefs         []string                     `json:"artifact_refs"`
+			Materialize          bool                         `json:"materialize"`
+		}
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		if strings.TrimSpace(body.RequestID) == "" || strings.TrimSpace(body.SourcePackageID) == "" ||
+			strings.TrimSpace(body.Subject) == "" || body.Operation == "" {
+			writeError(w, http.StatusBadRequest, "request_id, source_package_id, operation and subject are required")
+			return
+		}
+		result, err := h.runs.SubmitCoordination(r.Context(), runID, runner.CoordinationRequest{
+			ID:                   body.RequestID,
+			SourcePackageID:      body.SourcePackageID,
+			SourceAgentID:        body.SourceAgentID,
+			Operation:            body.Operation,
+			Subject:              body.Subject,
+			Objective:            body.Objective,
+			PreferredRole:        body.PreferredRole,
+			PreferredProvider:    body.PreferredProvider,
+			RequiredCapabilities: body.RequiredCapabilities,
+			ArtifactRefs:         body.ArtifactRefs,
+		}, body.Materialize)
+		if err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, result)
+	case "coordination-materialize":
+		var body struct {
+			RequestID string `json:"request_id"`
+		}
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil ||
+			strings.TrimSpace(body.RequestID) == "" {
+			writeError(w, http.StatusBadRequest, "request_id is required")
+			return
+		}
+		result, err := h.runs.MaterializeCoordination(r.Context(), runID, body.RequestID)
+		if err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	case "coordination-resolve":
+		var body struct {
+			RequestID         string                    `json:"request_id"`
+			Status            runner.CoordinationStatus `json:"status"`
+			ResolutionSummary string                    `json:"resolution_summary"`
+			ResultReceiptID   string                    `json:"result_receipt_id"`
+		}
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil ||
+			strings.TrimSpace(body.RequestID) == "" || body.Status == "" {
+			writeError(w, http.StatusBadRequest, "request_id and status are required")
+			return
+		}
+		result, err := h.runs.ResolveCoordination(
+			r.Context(),
+			runID,
+			body.RequestID,
+			body.Status,
+			body.ResolutionSummary,
+			body.ResultReceiptID,
+		)
+		if err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	default:
+		writeError(w, http.StatusNotFound, "unknown coordination action")
+	}
 }
 
 // handleRunEvidence returns only typed, bounded Flow evidence. Raw Agent or
@@ -714,6 +889,23 @@ func (h *NexusHandler) handleRunValidationEvidence(w http.ResponseWriter, r *htt
 		return
 	}
 	writeJSON(w, http.StatusOK, report)
+}
+
+func (h *NexusHandler) handleRunEvidenceBundle(w http.ResponseWriter, r *http.Request, runID string) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if _, err := h.runs.Get(r.Context(), runID); err != nil {
+		writeError(w, http.StatusNotFound, "run not found")
+		return
+	}
+	bundle, err := h.runs.EvidenceBundle(r.Context(), runID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, bundle)
 }
 
 func firstNonEmpty(values ...string) string {

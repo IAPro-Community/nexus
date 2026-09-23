@@ -44,7 +44,7 @@ de automatizar.
 | `nexus attach <runtime-id>` | anexa ao terminal do runtime |
 | `nexus handoff <id> <target>` | transfere contexto entre contas do mesmo provider |
 | `nexus continue <id> --with <provider>` | transfere contexto entre providers |
-| `nexus run "<goal>"` | classifica, roteia e executa um objetivo Nexus |
+| `nexus run "<goal>"` | classifica, roteia e executa um objetivo Nexus em foreground até a Mission concluir, falhar ou exigir intervenção |
 | `nexus <provider> [flags]` | abre provider com seleção inteligente |
 | `nexus <provider> --supervised` | abre provider via SessionHost |
 | `nexus <provider>:<profile> [flags]` | pede um perfil específico |
@@ -77,11 +77,21 @@ de automatizar.
 | `nexus history`, `stats`, `export` | consulta/extrai dados locais |
 | `nexus issue-report` | cria relatório diagnóstico |
 | `nexus config <show\|validate>` | lê ou valida configuração |
-| `nexus update` | atualiza somente o Nexus |
+| `nexus update [check] [--channel beta\|stable]` | verifica/aplica update do Nexus; mudança de canal é explícita |
 | `nexus maestro <status\|doctor\|update>` | administra a integração Maestro opcional |
 | `nexus completion <bash\|zsh\|fish>` | gera completion de shell |
 | `nexus version [--json]` | mostra versão e plataforma |
 | `nexus release` | orienta bump, build, instalação e validação de release |
+
+Para execução autônoma iniciada pela CLI, o processo permanece proprietário do worker canônico até a Mission atingir um estado estável (`COMPLETED_VERIFIED`, falha, pausa ou `BLOCKED_NEEDS_USER`). A CLI não cria um segundo runner nem abandona uma goroutine ao encerrar. No Web, a execução continua assíncrona porque o processo servidor permanece vivo e `RecoverMissionRuns` restaura trabalho durável após restart.
+
+Ao registrar projetos destinados a Missions autônomas, configure isolamento explicitamente:
+
+```bash
+nexus projects add /caminho/do/repo --name "Meu Projeto" --isolation worktree
+```
+
+O nome posicional legado continua aceito; `--isolation` aceita `project`, `worktree` ou `none`.
 
 ## Sintaxe de provider
 

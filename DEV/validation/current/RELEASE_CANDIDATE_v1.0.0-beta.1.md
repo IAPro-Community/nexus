@@ -1,5 +1,10 @@
-# Nexus v1.0.0-beta.1 — Release Candidate
+# Historical — Nexus v1.0.0-beta.1 Release Candidate
 
+> **Historical evidence only.** This document is retained at its original path
+> for link compatibility and audit history. It is not the current release truth.
+> See [`RELEASE_STATUS.md`](./RELEASE_STATUS.md) and
+> [`DEV/SPECS/NEXUS_1_0_CLOSURE.md`](../../SPECS/NEXUS_1_0_CLOSURE.md).
+>
 > **Status**: CLOSURE_READY_PENDING_FREEZE
 > **Prior GO SHA**: `2b9c95675d1727008eec86c58cd6be9e8a44a788`
 > **Tag alvo**: `v1.0.0-beta.1`

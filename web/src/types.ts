@@ -282,6 +282,105 @@ export interface CapacityAlertState {
   updated_at: string;
 }
 
+export type CostEvidenceState = 'EMPTY' | 'ATTRIBUTION_ONLY' | 'PARTIAL' | 'MEASURED';
+
+export interface CostAggregate {
+  observation_count: number;
+  known_cost_observations: number;
+  unknown_cost_observations: number;
+  known_token_observations: number;
+  cost_microusd: number;
+  input_tokens: number;
+  cached_input_tokens: number;
+  output_tokens: number;
+  reasoning_tokens: number;
+  duration_ms: number;
+}
+
+export interface ProviderCostAggregate extends CostAggregate {
+  provider: string;
+  profile: string;
+}
+
+export interface CostPreferences {
+  enabled: boolean;
+  window_days: number;
+  soft_limit_microusd: number;
+  hard_limit_microusd: number;
+  emergency_limit_microusd: number;
+  anomaly_multiplier: number;
+  anomaly_minimum_samples: number;
+  anomaly_min_cost_microusd: number;
+  updated_at: string;
+}
+
+export type CostBudgetLevel = 'DISABLED' | 'UNKNOWN' | 'OK' | 'SOFT' | 'HARD' | 'EMERGENCY';
+
+export interface CostBudgetAssessment {
+  level: CostBudgetLevel;
+  known_cost_microusd: number;
+  evidence: CostEvidenceState;
+  active_limit_microusd?: number;
+  requires_confirmation: boolean;
+  message: string;
+}
+
+export type CostAnomalyStatus = 'UNKNOWN' | 'INSUFFICIENT' | 'NORMAL' | 'ANOMALY';
+
+export interface CostAnomalyAssessment {
+  status: CostAnomalyStatus;
+  triggered: boolean;
+  provider?: string;
+  profile?: string;
+  cost_kind?: CostObservation['cost_kind'];
+  latest_cost_microusd?: number;
+  baseline_median_microusd?: number;
+  threshold_microusd?: number;
+  historical_samples: number;
+  observed_at?: string;
+  message: string;
+}
+
+export interface CostSummary {
+  since: string;
+  generated_at: string;
+  project_id?: string;
+  aggregate: CostAggregate;
+  by_provider: ProviderCostAggregate[];
+  cost_evidence: CostEvidenceState;
+  token_evidence: CostEvidenceState;
+  preferences: CostPreferences;
+  budget: CostBudgetAssessment;
+  anomaly: CostAnomalyAssessment;
+}
+
+export interface CostObservation {
+  id: string;
+  project_id?: string;
+  mission_run_id?: string;
+  package_id?: string;
+  invocation_id?: string;
+  agent_id?: string;
+  runtime_generation_id?: string;
+  runtime_id?: string;
+  provider?: string;
+  profile?: string;
+  model?: string;
+  branch?: string;
+  workspace_kind?: string;
+  input_tokens?: number;
+  cached_input_tokens?: number;
+  output_tokens?: number;
+  reasoning_tokens?: number;
+  duration_ms: number;
+  cost_microusd?: number;
+  cost_kind: 'PROVIDER_REPORTED' | 'API_EQUIVALENT_ESTIMATE' | 'INFERRED' | 'UNKNOWN';
+  source: string;
+  status?: string;
+  account_scope?: string;
+  observed_at: string;
+}
+
 export interface EventRecord {
   id: string;
   correlation_id?: string;
@@ -482,6 +581,16 @@ export interface AgentConfig {
     cooldown_seconds?: number;
   };
   agent_spec?: AgentSpec;
+}
+
+export interface AgentMode {
+  id: string;
+  role: string;
+  default_provider?: string;
+  default_execution_mode: 'Safe' | 'YOLO' | string;
+  recommended_skill_ids?: string[];
+  read_only_by_default?: boolean;
+  agent_spec: AgentSpec;
 }
 
 export interface AgentSpec {
@@ -873,7 +982,53 @@ export interface ComposerSkillProposal {
   reason: string;
   applicability: string;
   risk: string;
+  source?: string;
+  version?: string;
+  available?: boolean;
+  recommendation_score?: number;
   updated_at: string;
+}
+
+export interface ComposerSkillCatalogItem {
+  id: string;
+  name: string;
+  description?: string;
+  source: string;
+  version?: string;
+  risk?: string;
+  availability: string;
+  capabilities?: string[];
+  triggers?: string[];
+}
+
+export type ComposerContextDecision = 'KEEP' | 'REFERENCE_ONLY' | 'DROP';
+
+export interface ComposerContextItem {
+  id: string;
+  kind: string;
+  source: string;
+  locator?: string;
+  summary: string;
+  confidence?: string;
+  decision: ComposerContextDecision;
+  reason: string;
+  estimated_tokens: number;
+}
+
+export interface ComposerContextManifest {
+  version: string;
+  project_id: string;
+  fingerprint: string;
+  generated_at: string;
+  budget: {
+    max_estimated_tokens: number;
+    used_estimated_tokens: number;
+    kept_items: number;
+    referenced_items: number;
+    dropped_items: number;
+  };
+  items: ComposerContextItem[];
+  warnings?: string[];
 }
 export interface PromptArtifact {
   id: string;
@@ -957,6 +1112,7 @@ export interface ComposerSessionView {
   artifacts?: PromptArtifact[];
   flow_suitability?: FlowSuitabilityAssessment;
   prompt_review?: ComposerPromptReview;
+  context_manifest?: ComposerContextManifest;
 }
 
 export interface IntelligenceMemory {
@@ -1109,6 +1265,33 @@ export interface FlowRunEvidence {
   run_id: string;
   capsules: ContextCapsule[];
   receipts: WorkReceipt[];
+}
+
+export interface DeliveryIntegrationEvidence {
+  workspace?: string;
+  base_revision?: string;
+  package_ids?: string[];
+  changed_files?: string[];
+  integrated_at: string;
+}
+
+export interface MissionEvidenceBundle {
+  version: string;
+  run_id: string;
+  plan_id?: string;
+  plan_revision?: number;
+  state: string;
+  generated_at: string;
+  completed_verified: boolean;
+  evidence_complete: boolean;
+  missing_evidence?: string[];
+  integrated_workspace?: string;
+  delivery_integration?: DeliveryIntegrationEvidence;
+  capsules: ContextCapsule[];
+  receipts: WorkReceipt[];
+  routing: RoutingDecisionReport;
+  validation: ValidationEvidenceReport;
+  global_verifications?: VerificationResult[];
 }
 
 export interface ValidationEvidenceStream {
@@ -1316,6 +1499,9 @@ export interface PackageRun {
   remediation_context?: string;
   context_capsule?: ContextCapsule;
   work_receipt?: WorkReceipt;
+  dynamic_work?: boolean;
+  parent_package_id?: string;
+  coordination_request_id?: string;
   started_at: string;
   finished_at?: string;
 }
@@ -1343,6 +1529,37 @@ export interface PhaseRun {
   updated_at: string;
 }
 
+export type CoordinationOperation =
+  'NEED_INFO' | 'DELEGATE' | 'ARTIFACT_REQUEST' | 'REVIEW_REQUEST';
+
+export type CoordinationStatus = 'PENDING' | 'RESOLVED' | 'REJECTED' | 'FAILED' | 'CANCELED';
+
+export interface CoordinationRequest {
+  id: string;
+  run_id: string;
+  source_package_id: string;
+  source_agent_id?: string;
+  operation: CoordinationOperation;
+  subject: string;
+  objective?: string;
+  preferred_role?: string;
+  preferred_provider?: string;
+  required_capabilities?: string[];
+  artifact_refs?: string[];
+  status: CoordinationStatus;
+  child_package_id?: string;
+  materialized_at?: string;
+  created_at: string;
+  resolved_at?: string;
+  result_receipt_id?: string;
+  resolution_summary?: string;
+}
+
+export interface RunCoordinationResult {
+  request: CoordinationRequest;
+  child?: PackageRun;
+}
+
 export interface MissionRun {
   id: string;
   plan_id: string;
@@ -1350,6 +1567,8 @@ export interface MissionRun {
   execution_snapshot_id?: string;
   project_id: string;
   workspace: string;
+  integrated_workspace?: string;
+  delivery_integration?: DeliveryIntegrationEvidence;
   state: string;
   contract: AutonomyContract;
   current_pkg_index: number;
@@ -1364,6 +1583,7 @@ export interface MissionRun {
   global_verifications?: VerificationResult[];
   needs_human?: HumanIntervention;
   resume_request?: MissionResumeRequest;
+  coordination_requests?: CoordinationRequest[];
 }
 
 export interface MissionResumeRequest {
@@ -1412,6 +1632,93 @@ export interface RecommendationResult {
   recommended?: ResourceCandidate;
   candidates: ResourceCandidate[];
   explanation: string;
+}
+
+export interface ExecutionTaskRequirements {
+  task_kind: string;
+  role: string;
+  preferred_roles?: string[];
+  acceptable_roles?: string[];
+  domains?: string[];
+  required_capabilities?: string[];
+  preferred_capabilities?: string[];
+  desired_strengths?: string[];
+  constraints?: string[];
+  estimated_complexity?: string;
+  estimated_tokens?: number;
+  requires_decomposition?: boolean;
+  confidence?: string;
+  source?: string;
+  prefer_provider?: string;
+  project_policy?: string;
+}
+
+export interface PreviewAgentDecision {
+  agent_id?: string;
+  name?: string;
+  role?: string;
+  score?: number;
+  confidence?: string;
+  reason: string;
+  will_create?: boolean;
+  candidate_count?: number;
+}
+
+export interface PreviewResourceDecision {
+  account_id?: string;
+  provider?: string;
+  profile?: string;
+  display_name?: string;
+  policy?: string;
+  score?: number;
+  confidence?: string;
+  reason: string;
+  health?: string;
+  freshness?: string;
+  quota_remaining?: number;
+  candidate_count?: number;
+}
+
+export interface PreviewModelDecision {
+  model?: string;
+  fallback?: boolean;
+  reason: string;
+  evidence: string;
+}
+
+export interface StepExecutionPreview {
+  package_id: string;
+  phase_id?: string;
+  title: string;
+  role?: string;
+  assignment_strategy?: string;
+  resource_policy?: string;
+  task_requirements: ExecutionTaskRequirements;
+  agent: PreviewAgentDecision;
+  resource: PreviewResourceDecision;
+  model: PreviewModelDecision;
+  skills?: string[];
+  acceptance_criteria?: string[];
+  verification_requirements?: string[];
+  required_evidence?: string[];
+  ready: boolean;
+  blockers?: string[];
+}
+
+export interface PlanExecutionPreview {
+  plan_id: string;
+  project_id: string;
+  revision: number;
+  ready: boolean;
+  steps: StepExecutionPreview[];
+  blockers?: string[];
+  warnings?: string[];
+  cost_budget: CostBudgetAssessment;
+  cost_anomaly: CostAnomalyAssessment;
+  cost_confirmation_required: boolean;
+  cost_confirmation_token?: string;
+  approval_token: string;
+  generated_at: string;
 }
 
 export interface FlowPreflightCheck {

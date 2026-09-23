@@ -240,7 +240,7 @@ func (r *MissionRunner) hydrateEvidence(ctx context.Context, run *MissionRun) {
 	}
 	for i := range run.PackageRuns {
 		pkg := &run.PackageRuns[i]
-		if pkg.ContextCapsule == nil {
+		if pkg.ContextCapsule == nil && !pkg.ContextRefreshRequired {
 			if capsule, getErr := evidence.GetContextCapsule(ctx, run.ID, pkg.PackageID); getErr == nil {
 				pkg.ContextCapsule = capsule
 			}
@@ -284,8 +284,11 @@ func (r *MissionRunner) directDependencyReceipts(ctx context.Context, run *Missi
 }
 
 func (r *MissionRunner) ensureContextCapsule(ctx context.Context, run *MissionRun, pkg *PackageRun) error {
-	if pkg.ContextCapsule != nil {
+	if pkg.ContextCapsule != nil && !pkg.ContextRefreshRequired {
 		return nil
+	}
+	if pkg.ContextRefreshRequired {
+		pkg.ContextCapsule = nil
 	}
 	evidence, err := evidenceRepository(r.repo)
 	if err != nil {
@@ -307,6 +310,7 @@ func (r *MissionRunner) ensureContextCapsule(ctx context.Context, run *MissionRu
 		return fmt.Errorf("%w: SCHEMA_UNAVAILABLE", ErrInfrastructureFailure)
 	}
 	pkg.ContextCapsule = capsule
+	pkg.ContextRefreshRequired = false
 	return nil
 }
 
@@ -352,7 +356,13 @@ func (r *MissionRunner) ensureWorkReceipt(ctx context.Context, run *MissionRun, 
 	if status == "FAILED" && strings.TrimSpace(pkg.ErrorMessage) != "" {
 		remaining = []string{strings.TrimSpace(pkg.ErrorMessage)}
 	}
-	receipt := &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: status, Summary: fmt.Sprintf("%s ended in %s", pkg.Title, status), ChangedFiles: changedFiles, Commands: receiptCommands(pkg.Verifications), Tests: append([]VerificationResult(nil), pkg.Verifications...), Decisions: []string{}, Artifacts: []string{}, RemainingIssues: remaining, Verification: append([]VerificationResult(nil), pkg.Verifications...), HandoffJSON: pkg.HandoffJSON, AgentID: pkg.AssignedAgent, BaseRevision: base, ResultRevision: resultRevision, StartedAt: pkg.StartedAt, CompletedAt: completed}
+	summary := strings.TrimSpace(pkg.ResultSummary)
+	if summary == "" {
+		summary = fmt.Sprintf("%s ended in %s", pkg.Title, status)
+	} else {
+		summary = boundedCoordinationSummary(summary)
+	}
+	receipt := &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: status, Summary: summary, ChangedFiles: changedFiles, Commands: receiptCommands(pkg.Verifications), Tests: append([]VerificationResult(nil), pkg.Verifications...), Decisions: []string{}, Artifacts: []string{}, RemainingIssues: remaining, Verification: append([]VerificationResult(nil), pkg.Verifications...), HandoffJSON: pkg.HandoffJSON, AgentID: pkg.AssignedAgent, BaseRevision: base, ResultRevision: resultRevision, StartedAt: pkg.StartedAt, CompletedAt: completed}
 	if err := evidence.SaveWorkReceipt(ctx, receipt); err != nil {
 		return fmt.Errorf("persist work receipt: %w", err)
 	}
@@ -377,6 +387,7 @@ func (r *MissionRunner) saveRun(ctx context.Context, run *MissionRun) error {
 			return err
 		}
 	}
+	reconcileCoordinationRequests(run)
 	return r.repo.SaveRun(ctx, run)
 }
 

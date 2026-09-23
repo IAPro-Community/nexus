@@ -6,6 +6,7 @@ import type {
   Agent,
   ComposerSession,
   ComposerSessionView,
+  ComposerSkillCatalogItem,
   Project,
   PromptArtifact,
 } from '../../types';
@@ -51,9 +52,11 @@ export function useComposerSession(project: Project) {
   const [refineText, setRefineText] = useState('');
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [skillCatalog, setSkillCatalog] = useState<ComposerSkillCatalogItem[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [bootstrapActivity, setBootstrapActivity] = useState<NexusActivityPayload | null>(null);
-  const createAbort = useRef<AbortController | null>(null);
+  const conversationAbort = useRef<AbortController | null>(null);
+  const skillCatalogRequest = useRef(0);
 
   const selectedSkillIds = useMemo(
     () =>
@@ -91,6 +94,13 @@ export function useComposerSession(project: Project) {
     [t],
   );
 
+  useEffect(
+    () => () => {
+      conversationAbort.current?.abort();
+    },
+    [],
+  );
+
   useEffect(() => {
     void (async () => {
       try {
@@ -116,6 +126,18 @@ export function useComposerSession(project: Project) {
         setSelectedAgentId((current) => current || next[0]?.id || '');
       })
       .catch(() => undefined);
+  }, [project.id]);
+
+  useEffect(() => {
+    const request = ++skillCatalogRequest.current;
+    void nexus
+      .listComposerSkillCatalog(project.id)
+      .then((items) => {
+        if (request === skillCatalogRequest.current) setSkillCatalog(items || []);
+      })
+      .catch(() => {
+        if (request === skillCatalogRequest.current) setSkillCatalog([]);
+      });
   }, [project.id]);
 
   const briefItems = useMemo(() => (view ? buildComposerBriefItems(view, t) : []), [t, view]);
@@ -144,9 +166,9 @@ export function useComposerSession(project: Project) {
     runBusy(
       async () => {
         if (!draft.trim()) return;
-        createAbort.current?.abort();
+        conversationAbort.current?.abort();
         const controller = new AbortController();
-        createAbort.current = controller;
+        conversationAbort.current = controller;
         const steps = new Map<string, NexusActivityItem['status']>();
         const refreshActivity = () =>
           setBootstrapActivity(
@@ -192,6 +214,7 @@ export function useComposerSession(project: Project) {
               draft.trim(),
               mode,
               mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : undefined,
+              controller.signal,
             );
             setView(next);
             setArtifact(null);
@@ -201,14 +224,15 @@ export function useComposerSession(project: Project) {
           }
           throw err;
         } finally {
-          if (createAbort.current === controller) createAbort.current = null;
+          if (controller.signal.aborted) setBootstrapActivity(null);
+          if (conversationAbort.current === controller) conversationAbort.current = null;
         }
       },
       { conversation: true },
     );
 
-  const cancelCreate = () => {
-    createAbort.current?.abort();
+  const cancelConversation = () => {
+    conversationAbort.current?.abort();
   };
 
   const sendText = (
@@ -225,16 +249,24 @@ export function useComposerSession(project: Project) {
       async () => {
         if (!view) return;
         if (!text.trim() && !(attachments && attachments.length)) return;
-        setView(
-          await nexus.addComposerTurn(
-            view.session.id,
-            text.trim(),
-            view.session.revision,
-            attachments,
-          ),
-        );
-        setMessage('');
-        await refreshSessions();
+        conversationAbort.current?.abort();
+        const controller = new AbortController();
+        conversationAbort.current = controller;
+        try {
+          setView(
+            await nexus.addComposerTurn(
+              view.session.id,
+              text.trim(),
+              view.session.revision,
+              attachments,
+              controller.signal,
+            ),
+          );
+          setMessage('');
+          await refreshSessions();
+        } finally {
+          if (conversationAbort.current === controller) conversationAbort.current = null;
+        }
       },
       { conversation: true },
     );
@@ -312,6 +344,25 @@ export function useComposerSession(project: Project) {
       setView(await nexus.updateComposerSkillState(view.session.id, skillId, state));
     });
 
+  const searchSkillCatalog = useCallback(
+    async (query: string) => {
+      const request = ++skillCatalogRequest.current;
+      try {
+        const items = await nexus.listComposerSkillCatalog(project.id, query);
+        if (request === skillCatalogRequest.current) setSkillCatalog(items || []);
+      } catch {
+        if (request === skillCatalogRequest.current) setSkillCatalog([]);
+      }
+    },
+    [project.id],
+  );
+
+  const selectCatalogSkill = (skillId: string) =>
+    runBusy(async () => {
+      if (!view) return;
+      setView(await nexus.selectComposerSkill(view.session.id, skillId));
+    });
+
   const attachContext = (path: string) =>
     runBusy(async () => {
       if (!view) return;
@@ -349,6 +400,7 @@ export function useComposerSession(project: Project) {
   };
 
   const resetSession = () => {
+    cancelConversation();
     setView(null);
     setArtifact(null);
     setBootstrapActivity(null);
@@ -366,6 +418,7 @@ export function useComposerSession(project: Project) {
     refineText,
     showRefineInput,
     agents,
+    skillCatalog,
     selectedAgentId,
     briefItems,
     nextUnknown,
@@ -378,7 +431,7 @@ export function useComposerSession(project: Project) {
     setShowRefineInput,
     setSelectedAgentId,
     create,
-    cancelCreate,
+    cancelConversation,
     send,
     sendText,
     finalize,
@@ -386,6 +439,8 @@ export function useComposerSession(project: Project) {
     resolveUnknown,
     rememberUnknown,
     updateSkill,
+    searchSkillCatalog,
+    selectCatalogSkill,
     attachContext,
     detachContext,
     copy,

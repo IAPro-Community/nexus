@@ -332,6 +332,16 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 					_ = r.saveRun(ctx, run)
 					return run, false, err
 				}
+				if run.State == StateBlockedNeedsUser && run.NeedsHuman != nil && !run.NeedsHuman.Resolved {
+					// executeOne already crossed a typed human-intervention boundary.
+					// Do not erase that durable state by routing the same error into
+					// automatic remediation/no-progress handling.
+					run.UpdatedAt = time.Now().UTC()
+					if saveErr := r.saveRun(ctx, run); saveErr != nil {
+						return run, false, saveErr
+					}
+					return run, false, err
+				}
 				retryFrom := StateCompiling
 				if isQuotaOrRateLimitFailure(pkg.FailureKind) {
 					retryFrom = StateAllocating
@@ -555,6 +565,15 @@ func (r *MissionRunner) markRemediation(run *MissionRun, pkg *PackageRun, retryF
 }
 
 func (r *MissionRunner) completeRun(ctx context.Context, run *MissionRun) (*MissionRun, bool, error) {
+	if run == nil {
+		return nil, false, fmt.Errorf("cannot complete a nil mission run")
+	}
+	if !allPackagesVerified(run) {
+		return run, false, fmt.Errorf("cannot complete mission %s: not all packages are verified", run.ID)
+	}
+	if run.State == StateBlockedNeedsUser || (run.NeedsHuman != nil && !run.NeedsHuman.Resolved) {
+		return run, false, fmt.Errorf("cannot complete mission %s: human intervention is still pending", run.ID)
+	}
 	now := time.Now().UTC()
 	run.State = StateCompletedVerified
 	if run.ResumeRequest != nil && run.ResumeRequest.Status != "COMPLETED" {
@@ -604,6 +623,35 @@ func (r *MissionRunner) verifyGlobalDefinition(ctx, operationCtx context.Context
 		}
 	}
 	workspace, err := resolveIntegratedVerificationWorkspace(run)
+	if errors.Is(err, ErrDeliveryIntegrationRequired) {
+		integrator, ok := r.executor.(DeliveryIntegrator)
+		if !ok {
+			run.State = StateFailedVerification
+			run.PausedReason = err.Error()
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, err
+		}
+		integration, integrationErr := integrator.IntegrateDelivery(operationCtx, run)
+		if integrationErr != nil {
+			run.State = StateFailedVerification
+			run.PausedReason = "delivery integration failed: " + integrationErr.Error()
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, fmt.Errorf("integrate Mission delivery: %w", integrationErr)
+		}
+		if strings.TrimSpace(integration.Workspace) == "" {
+			run.State = StateFailedVerification
+			run.PausedReason = "delivery integration returned no verification workspace"
+			run.UpdatedAt = time.Now().UTC()
+			_ = r.saveRun(ctx, run)
+			return run, false, fmt.Errorf("integrate Mission delivery: empty workspace")
+		}
+		run.IntegratedWorkspace = integration.Workspace
+		run.DeliveryIntegration = &integration
+		workspace = integration.Workspace
+		err = nil
+	}
 	if err != nil {
 		run.State = StateFailedVerification
 		run.PausedReason = err.Error()
@@ -704,7 +752,7 @@ func resolveIntegratedVerificationWorkspace(run *MissionRun) (string, error) {
 		// holds mutations, never the untouched baseline alone.
 		return nonCanonical[0], nil
 	}
-	return "", fmt.Errorf("global Definition of Done requires an integrated tree; agent worktrees are not merged into %s", canonical)
+	return "", fmt.Errorf("%w: global Definition of Done requires an integrated tree; agent worktrees are not merged into %s", ErrDeliveryIntegrationRequired, canonical)
 }
 
 func (r *MissionRunner) PauseRun(ctx context.Context, runID, reason string) (*MissionRun, error) {
@@ -801,7 +849,7 @@ func (r *MissionRunner) resolveIntervention(ctx context.Context, runID, interven
 		return nil, false, fmt.Errorf("%w: option %q is outside intervention scope", ErrInvalidInterventionOption, optionID)
 	}
 	pkg := packageForIntervention(run, option)
-	if err := applyInterventionOption(run, pkg, option); err != nil {
+	if err := applyInterventionOption(pkg, option); err != nil {
 		return nil, false, err
 	}
 
@@ -861,7 +909,7 @@ func packageForIntervention(run *MissionRun, option InterventionOption) *Package
 	return nil
 }
 
-func applyInterventionOption(run *MissionRun, pkg *PackageRun, option InterventionOption) error {
+func applyInterventionOption(pkg *PackageRun, option InterventionOption) error {
 	if pkg == nil {
 		return fmt.Errorf("%w: intervention package is missing", ErrInvalidInterventionOption)
 	}
@@ -870,11 +918,16 @@ func applyInterventionOption(run *MissionRun, pkg *PackageRun, option Interventi
 		if pkg.DispatchState != DispatchUnknownExternalOutcome && pkg.DispatchState != DispatchIntent {
 			return fmt.Errorf("%w: external outcome for package %s is not awaiting reconciliation", ErrInvalidInterventionOption, pkg.PackageID)
 		}
-		pkg.DispatchState = DispatchUnknownExternalOutcome
-		pkg.State = StateVerified
-		if pkg.WorkReceipt == nil {
-			pkg.WorkReceipt = &WorkReceipt{ID: "receipt_" + ids.NewRuntimeID(), RunID: run.ID, StepID: pkg.PackageID, Status: "EXTERNAL_OUTCOME_CONFIRMED", Summary: "External outcome explicitly confirmed by a human.", StartedAt: pkg.StartedAt, CompletedAt: time.Now().UTC()}
-		}
+		// Human reconciliation proves only that the external dispatch completed.
+		// It is not package verification evidence. Resume at TESTING so package
+		// verification and any required independent review still run normally.
+		pkg.DispatchState = DispatchCompleted
+		pkg.State = StateTesting
+		pkg.WorkReceipt = nil
+		pkg.FinishedAt = nil
+		pkg.ErrorMessage = ""
+		pkg.FailureKind = model.FailureNone
+		pkg.ResultSummary = "External outcome explicitly confirmed by a human; package verification is still required."
 	case InterventionRetrySafePackage:
 		if pkg.State == StateVerified || (pkg.DispatchState != DispatchNone && pkg.DispatchState != DispatchFailedBeforeDispatch) {
 			return fmt.Errorf("%w: package %s is not proven safe to retry", ErrInterventionPolicyDenied, pkg.PackageID)
@@ -1008,6 +1061,44 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 	finishDispatch(pkg, DispatchCompleted)
 	pkg.ErrorMessage = ""
 	pkg.FailureKind = model.FailureNone
+
+	if reason := strings.TrimSpace(outcome.CoordinationUnsafeReason); reason != "" {
+		r.blockNeedsHuman(run, pkg, "UNSAFE_COORDINATION_AFTER_SIDE_EFFECT", reason,
+			"An Agent requested coordination after mutating its workspace. Review the changes before any replay or continuation.",
+			[]string{"Inspect workspace changes", "Keep or revert partial work", "Resume with an explicit plan"})
+		return fmt.Errorf("unsafe coordination boundary: %s", reason)
+	}
+	if len(outcome.CoordinationRequests) > 0 {
+		if !outcome.CoordinationReplaySafe {
+			r.blockNeedsHuman(run, pkg, "COORDINATION_REPLAY_UNPROVEN",
+				"Agent requested coordination without positive proof that replay is side-effect safe.",
+				"Review the partial execution before allowing the package to run again.",
+				[]string{"Inspect workspace changes", "Confirm no external side effects occurred", "Resume with an explicit plan"})
+			return fmt.Errorf("coordination replay safety was not proven")
+		}
+		sourceID := pkg.PackageID
+		if err := r.acceptExecutionCoordination(run, sourceID, outcome.CoordinationRequests); err != nil {
+			r.blockNeedsHuman(run, pkg, "COORDINATION_REJECTED", err.Error(),
+				"The coordination request could not be materialized safely.",
+				[]string{"Inspect coordination request", "Adjust the plan or request", "Resume after correction"})
+			return err
+		}
+		return nil
+	}
+
+	pkg.ResumeAgentID = ""
+	if pkg.DynamicWork && strings.TrimSpace(pkg.CoordinationRequestID) != "" {
+		pkg.ResultSummary = boundedCoordinationSummary(outcome.Output)
+	}
+	if pkg.DynamicWork && coordinationOperationForPackage(run, pkg) == CoordinationNeedInfo {
+		if pkg.ResultSummary == "" {
+			return fmt.Errorf("NEED_INFO coordination returned an empty answer")
+		}
+		pkg.State = StateVerified
+		now := time.Now().UTC()
+		pkg.FinishedAt = &now
+		return nil
+	}
 	pkg.State = StateTesting
 	return nil
 }
@@ -1105,6 +1196,55 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 		finishDispatch(pkg, DispatchCompleted)
 		pkg.ErrorMessage = ""
 		pkg.FailureKind = model.FailureNone
+
+		if reason := strings.TrimSpace(res.outcome.CoordinationUnsafeReason); reason != "" {
+			r.blockNeedsHuman(run, pkg, "UNSAFE_COORDINATION_AFTER_SIDE_EFFECT", reason,
+				"An Agent requested coordination after mutating its workspace. Review the changes before any replay or continuation.",
+				[]string{"Inspect workspace changes", "Keep or revert partial work", "Resume with an explicit plan"})
+			if firstErr == nil {
+				firstErr = fmt.Errorf("unsafe coordination boundary: %s", reason)
+			}
+			continue
+		}
+		if len(res.outcome.CoordinationRequests) > 0 {
+			if !res.outcome.CoordinationReplaySafe {
+				r.blockNeedsHuman(run, pkg, "COORDINATION_REPLAY_UNPROVEN",
+					"Agent requested coordination without positive proof that replay is side-effect safe.",
+					"Review the partial execution before allowing the package to run again.",
+					[]string{"Inspect workspace changes", "Confirm no external side effects occurred", "Resume with an explicit plan"})
+				if firstErr == nil {
+					firstErr = fmt.Errorf("coordination replay safety was not proven")
+				}
+				continue
+			}
+			sourceID := pkg.PackageID
+			if err := r.acceptExecutionCoordination(run, sourceID, res.outcome.CoordinationRequests); err != nil {
+				r.blockNeedsHuman(run, pkg, "COORDINATION_REJECTED", err.Error(),
+					"The coordination request could not be materialized safely.",
+					[]string{"Inspect coordination request", "Adjust the plan or request", "Resume after correction"})
+				if firstErr == nil {
+					firstErr = err
+				}
+			}
+			continue
+		}
+
+		pkg.ResumeAgentID = ""
+		if pkg.DynamicWork && strings.TrimSpace(pkg.CoordinationRequestID) != "" {
+			pkg.ResultSummary = boundedCoordinationSummary(res.outcome.Output)
+		}
+		if pkg.DynamicWork && coordinationOperationForPackage(run, pkg) == CoordinationNeedInfo {
+			if pkg.ResultSummary == "" {
+				if firstErr == nil {
+					firstErr = fmt.Errorf("NEED_INFO coordination returned an empty answer")
+				}
+				continue
+			}
+			pkg.State = StateVerified
+			now := time.Now().UTC()
+			pkg.FinishedAt = &now
+			continue
+		}
 		pkg.State = StateTesting
 	}
 	return firstErr

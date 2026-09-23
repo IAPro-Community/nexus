@@ -32,6 +32,8 @@
     "--output-format",
     "text"
   ],
+  "autonomous_isolation": "UNVERIFIED",
+  "review_isolation": "UNVERIFIED",
   "quota": "LIVE_HTTP",
   "known_versions": [
     "2.1.250"

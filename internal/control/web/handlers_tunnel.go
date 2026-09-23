@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/originpolicy"
+	"github.com/IAPro-Community/nexus/internal/core/entitlement"
+	nexuscore "github.com/IAPro-Community/nexus/internal/nexus"
 )
 
 // TunnelStatusResponse is the contract returned by tunnel status/start/stop.
@@ -67,6 +69,10 @@ func (s *Server) handleTunnelStatus(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if err := nexuscore.Default().RequireCapability(r.Context(), entitlement.CapRemoteAccess); err != nil {
+		writeError(w, http.StatusForbidden, "remote access entitlement denied: "+err.Error())
 		return
 	}
 

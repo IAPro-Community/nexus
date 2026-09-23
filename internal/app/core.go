@@ -58,6 +58,7 @@ func NewCore(cfg CoreConfig) (*Core, error) {
 // Start launches the Nexus Control API server and signals Ready() when listening.
 func (c *Core) Start(ctx context.Context) error {
 	nexus.Default().StartQuotaMonitor(ctx)
+	nexus.Default().StartCapacityMonitor(ctx)
 	c.mu.Lock()
 	srv, err := web.NewServer(web.ServerOptions{
 		Host:       c.cfg.Host,

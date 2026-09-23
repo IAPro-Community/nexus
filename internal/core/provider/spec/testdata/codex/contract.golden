@@ -30,7 +30,9 @@
     "--ask-for-approval",
     "never",
     "--sandbox",
-    "workspace-write"
+    "workspace-write",
+    "-c",
+    "sandbox_workspace_write.network_access=false"
   ],
   "review_mode": [
     "--sandbox",
@@ -38,6 +40,8 @@
     "--ask-for-approval",
     "never"
   ],
+  "autonomous_isolation": "WORKSPACE_WRITE_NO_NETWORK",
+  "review_isolation": "READ_ONLY_NO_NETWORK",
   "quota": "LIVE_RPC",
   "known_versions": [
     "0.50.0"

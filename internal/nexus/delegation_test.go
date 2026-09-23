@@ -150,3 +150,46 @@ func TestCreateMissionAgentPersistsRichAgentSpecWithoutRuntimeAffinity(t *testin
 		t.Fatal("created specialist must carry verification policy")
 	}
 }
+
+func TestMissionAgentSpecSpecializesOperationalModes(t *testing.T) {
+	tests := []struct {
+		role           string
+		required       string
+		wantCapability string
+		wantConstraint bool
+		requireTests   bool
+	}{
+		{role: "senior-developer", wantCapability: "architecture", requireTests: true},
+		{role: "investigator", required: "root_cause_analysis", wantCapability: "root_cause_analysis", wantConstraint: true},
+		{role: "architect", required: "architecture", wantCapability: "architecture"},
+		{role: "security-reviewer", required: "security", wantCapability: "threat_modeling", wantConstraint: true},
+		{role: "performance-investigator", required: "performance_analysis", wantCapability: "profiling", wantConstraint: true},
+		{role: "reviewer", required: "code_review", wantCapability: "code_review", wantConstraint: true},
+		{role: "qa-engineer", required: "testing", wantCapability: "testing", requireTests: true},
+	}
+	for _, test := range tests {
+		t.Run(test.role, func(t *testing.T) {
+			req := TaskRequirements{
+				Role:                 test.role,
+				RequiredCapabilities: []string{test.required},
+				Domains:              []string{"quality"},
+			}
+			spec := missionAgentSpec(test.role, req)
+			if spec.Role != test.role {
+				t.Fatalf("role=%q, want %q", spec.Role, test.role)
+			}
+			if !containsNormalized(spec.Capabilities, test.wantCapability) {
+				t.Fatalf("capabilities=%v, want %q", spec.Capabilities, test.wantCapability)
+			}
+			if len(spec.Instructions) == 0 || len(spec.Responsibilities) == 0 {
+				t.Fatalf("specialist spec is behaviorally empty: %+v", spec)
+			}
+			if test.wantConstraint && len(spec.Constraints) == 0 {
+				t.Fatalf("role %s must persist conservative constraints", test.role)
+			}
+			if spec.VerificationPolicy.RequireTests != test.requireTests {
+				t.Fatalf("RequireTests=%v, want %v for %s", spec.VerificationPolicy.RequireTests, test.requireTests, test.role)
+			}
+		})
+	}
+}

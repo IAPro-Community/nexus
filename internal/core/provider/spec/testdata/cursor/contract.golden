@@ -30,6 +30,8 @@
     "--output-format",
     "text"
   ],
+  "autonomous_isolation": "UNVERIFIED",
+  "review_isolation": "UNVERIFIED",
   "quota": "UNSUPPORTED",
   "known_versions": null
 }

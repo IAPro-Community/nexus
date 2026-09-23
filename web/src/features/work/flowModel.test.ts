@@ -116,6 +116,16 @@ describe('Flow editor compatibility model', () => {
     expect(roundTrip.phases[0].packages[1].maestro_skills).toEqual(['backend']);
   });
 
+  it('backfills the legacy skill alias when an API payload only has canonical skill_ids', () => {
+    const plan = fixture();
+    delete plan.phases[0].packages[1].maestro_skills;
+    const flow = flowFromWorkPlan(plan);
+    expect(flow.steps.find((step) => step.id === 'B')?.maestroSkills).toEqual(['backend']);
+    const roundTrip = workPlanFromFlow(flow, plan);
+    expect(roundTrip.phases[0].packages[1].skill_ids).toEqual(['backend']);
+    expect(roundTrip.phases[0].packages[1].maestro_skills).toEqual(['backend']);
+  });
+
   it('treats nullable API phase collections as empty', () => {
     const malformed = {
       ...fixture(),

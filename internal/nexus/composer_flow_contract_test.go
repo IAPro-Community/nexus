@@ -2,8 +2,11 @@ package nexus
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -92,6 +95,109 @@ func TestMaterializePromptArtifactDecomposesWhenFlowBeneficial(t *testing.T) {
 	}
 	if plan.StructuredFacts["nexus.source_artifact_id"] != artifact.ID || plan.StructuredFacts["nexus.source_artifact_revision"] != "1" {
 		t.Fatalf("decomposed plan lost Composer lineage: %+v", plan.StructuredFacts)
+	}
+}
+
+func TestComposerArtifactExecutionContextExcludesDroppedAndReferenceOnlySources(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Bounded Flow", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	previousPlan, err := st.CreateWorkPlan(store.WorkPlan{ProjectID: project.ID, Title: "Previous mission"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	if err := st.UpsertMissionRun(store.MissionRunRecord{
+		ID: "run-reference-only", PlanID: previousPlan.ID, ProjectID: project.ID,
+		State: "COMPLETED_VERIFIED", PayloadJSON: `{"secret":"must-not-flow"}`, CreatedAt: now, UpdatedAt: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	view, err := n.CreateComposerSessionWithPrompt(context.Background(), project.ID, "Review authentication safely", "Review authentication safely with tests")
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.GetComposerSession(view.Session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	brief := decodeComposerBrief(session.BriefJSON)
+	for i := 0; i < 20; i++ {
+		brief.Context.ReferencedFiles = append(brief.Context.ReferencedFiles, ContextFileRef{
+			Path:    fmt.Sprintf("context/file-%02d.txt", i),
+			Excerpt: strings.Repeat(fmt.Sprintf("evidence-%02d ", i), 500),
+			Hash:    fmt.Sprintf("hash-%02d", i),
+		})
+	}
+	session.BriefJSON = mustJSON(brief)
+	if err := st.UpdateComposerSession(*session); err != nil {
+		t.Fatal(err)
+	}
+
+	artifact, err := n.FinalizeComposerSession(context.Background(), session.ID, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var envelope composerArtifactContextEnvelope
+	if err := json.Unmarshal([]byte(artifact.ContextJSON), &envelope); err != nil {
+		t.Fatal(err)
+	}
+	var droppedPath string
+	var keptPath string
+	for _, item := range envelope.ContextManifest.Items {
+		switch {
+		case item.Kind == "REFERENCED_FILE" && item.Decision == ComposerContextDrop && droppedPath == "":
+			droppedPath = item.Locator
+		case item.Kind == "REFERENCED_FILE" && item.Decision == ComposerContextKeep && keptPath == "":
+			keptPath = item.Locator
+		}
+	}
+	if droppedPath == "" || keptPath == "" {
+		t.Fatalf("fixture must produce kept and dropped files: %+v", envelope.ContextManifest.Budget)
+	}
+	if strings.Contains(artifact.Content, droppedPath) {
+		t.Fatalf("dropped file %q leaked into executable PromptArtifact", droppedPath)
+	}
+	if !strings.Contains(artifact.Content, keptPath) {
+		t.Fatalf("kept file %q missing from executable PromptArtifact", keptPath)
+	}
+
+	// Mutating the live session after artifact creation must not alter an older
+	// artifact's materialized Flow.
+	latest, err := st.GetComposerSession(session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mutated := decodeComposerBrief(latest.BriefJSON)
+	mutated.Goal = "MUTATED AFTER ARTIFACT"
+	latest.BriefJSON = mustJSON(mutated)
+	if err := st.UpdateComposerSession(*latest); err != nil {
+		t.Fatal(err)
+	}
+
+	plan, err := n.MaterializePromptArtifactAsFlow(context.Background(), artifact.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	executionContext := plan.StructuredFacts["composer.context"]
+	if strings.Contains(executionContext, droppedPath) {
+		t.Fatalf("dropped file %q leaked into Flow execution context", droppedPath)
+	}
+	if strings.Contains(executionContext, "run-reference-only") || strings.Contains(executionContext, "must-not-flow") {
+		t.Fatal("reference-only Mission data leaked into Flow execution context")
+	}
+	if strings.Contains(executionContext, "MUTATED AFTER ARTIFACT") {
+		t.Fatal("Flow used mutable session state instead of immutable PromptArtifact context")
+	}
+	if plan.StructuredFacts["nexus.source_context_manifest_fingerprint"] != envelope.ContextManifest.Fingerprint {
+		t.Fatalf("Flow lost manifest lineage: %+v", plan.StructuredFacts)
 	}
 }
 

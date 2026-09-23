@@ -2,6 +2,7 @@ package store
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -60,6 +61,134 @@ func TestComposerSessionPersistsBriefTurnsSkillsAndPromptArtifacts(t *testing.T)
 	artifacts, err := st.ListPromptArtifacts(session.ID)
 	if err != nil || len(artifacts) != 1 || artifacts[0].ID != artifact.ID {
 		t.Fatalf("unexpected artifacts: %+v, %v", artifacts, err)
+	}
+}
+
+func TestComposerTurnLimitDoesNotAlterAcceptedContentOrPromptArtifact(t *testing.T) {
+	st := openTestStore(t)
+	project, err := st.CreateProject(Project{Name: "Composer turn size", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(ComposerSession{ProjectID: project.ID, BriefJSON: `{"goal":"bounded turn"}`})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content := strings.Repeat("x", 9*1024)
+	turn, err := st.AppendComposerTurn(ComposerTurn{SessionID: session.ID, Role: ComposerUser, Content: content})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if turn.Content != content {
+		t.Fatalf("accepted Composer turn was modified: got %d bytes want %d", len(turn.Content), len(content))
+	}
+
+	artifact, err := st.CreatePromptArtifact(PromptArtifact{SessionID: session.ID, Content: content})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if artifact.Content != content {
+		t.Fatalf("prompt artifact content was modified: got %d bytes want %d", len(artifact.Content), len(content))
+	}
+}
+
+func TestComposerTurnDoesNotSilentlyTruncate(t *testing.T) {
+	st := openTestStore(t)
+	project, err := st.CreateProject(Project{Name: "Composer turn size", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(ComposerSession{ProjectID: project.ID, BriefJSON: `{"goal":"large input"}`})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content := strings.Repeat("input ", 8*1024)
+	turn, err := st.AppendComposerTurn(ComposerTurn{SessionID: session.ID, Role: ComposerUser, Content: content})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if turn.Content != strings.TrimSpace(content) {
+		t.Fatalf("composer turn was silently modified: got %d bytes want %d", len(turn.Content), len(strings.TrimSpace(content)))
+	}
+
+	tooLarge := strings.Repeat("x", maxComposerTurnBytes+1)
+	if _, err := st.AppendComposerTurn(ComposerTurn{SessionID: session.ID, Role: ComposerUser, Content: tooLarge}); err == nil {
+		t.Fatal("expected oversized Composer turn to fail explicitly")
+	}
+}
+
+func TestPromptArtifactDoesNotSilentlyTruncate(t *testing.T) {
+	st := openTestStore(t)
+	project, err := st.CreateProject(Project{Name: "Prompt artifact size", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(ComposerSession{ProjectID: project.ID, BriefJSON: `{"goal":"large prompt"}`})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content := strings.Repeat("x", 32*1024)
+	artifact, err := st.CreatePromptArtifact(PromptArtifact{SessionID: session.ID, Content: content})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if artifact.Content != content {
+		t.Fatalf("prompt artifact was silently modified: got %d bytes want %d", len(artifact.Content), len(content))
+	}
+
+	tooLarge := strings.Repeat("x", maxPromptArtifactBytes+1)
+	if _, err := st.CreatePromptArtifact(PromptArtifact{SessionID: session.ID, Content: tooLarge}); err == nil {
+		t.Fatal("expected oversized prompt artifact to fail explicitly")
+	}
+}
+
+func TestComposerContextManifestAndSkillScoreRoundTrip(t *testing.T) {
+	st := openTestStore(t)
+	project, err := st.CreateProject(Project{Name: "Composer context manifest", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(ComposerSession{
+		ProjectID:           project.ID,
+		BriefJSON:           `{"goal":"inspect context"}`,
+		ContextManifestJSON: `{"version":"1","fingerprint":"ctx-fp"}`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := st.GetComposerSession(session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.ContextManifestJSON != session.ContextManifestJSON {
+		t.Fatalf("context manifest did not round-trip: got %q want %q", loaded.ContextManifestJSON, session.ContextManifestJSON)
+	}
+	if _, err := st.UpsertComposerSkillProposal(ComposerSkillProposal{
+		SessionID: session.ID, SkillID: "security", State: ComposerSkillSuggested,
+		Reason: "security match", RecommendationScore: 42,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	skills, err := st.ListComposerSkillProposals(session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(skills) != 1 || skills[0].RecommendationScore != 42 {
+		t.Fatalf("skill recommendation score did not round-trip: %+v", skills)
+	}
+	session.ContextManifestJSON = `{"version":"1","fingerprint":"ctx-fp-2"}`
+	if err := st.UpdateComposerSession(*session); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err = st.GetComposerSession(session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.ContextManifestJSON != session.ContextManifestJSON {
+		t.Fatalf("updated context manifest did not persist: got %q want %q", loaded.ContextManifestJSON, session.ContextManifestJSON)
 	}
 }
 

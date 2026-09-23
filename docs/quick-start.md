@@ -6,29 +6,31 @@ Em 5–10 minutos você pode instalar o Nexus, abrir a Web local, adicionar um
 projeto e iniciar uma AI Session. O exemplo usa o fluxo **Direct**, que não
 exige Composer, Flow ou Mission.
 
-> Estado: **Disponível** para a CLI e Web locais. A evidência de Desktop e de
-> providers autenticados varia por plataforma e perfil; confirme com
-> `nexus doctor` e `nexus providers status --json`.
+> Estado: **Disponível** para a CLI/Web e Desktop Linux x86_64 no escopo v1.
+> Windows/macOS estão deferidos e não são targets suportados desta release.
+> Confirme providers locais com `nexus doctor` e `nexus providers status --json`.
+>
+> Os comandos abaixo pinam `v1.0.0-beta.1` porque essa é a tag beta publicada
+> disponível. O source candidato final reporta `1.0.0`, mas não deve ser tratado
+> como release publicada até a certificação estável e criação da tag correspondente.
 
 ## 1. Instale
 
-Para usar um release no Linux/macOS:
+O target suportado da v1 é **Linux amd64**:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
+curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
+bash install.sh --version=v1.0.0-beta.1
 nexus doctor
 ```
 
-No Windows PowerShell:
+O installer vem do repositório público de binários e o payload é aceito somente
+após manifesto Ed25519 válido, SHA-256 correspondente e versão interna coerente.
+Enquanto a linha pública for beta, use a tag beta explícita; `latest` representa
+o latest não-prerelease do GitHub.
 
-```powershell
-irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.1
-nexus doctor
-```
+Windows/macOS não fazem parte da matriz suportada da v1.
 
-O instalador busca um release e verifica integridade. Para um release
-reproduzível, troque `latest` por uma tag explícita, por exemplo `vX.Y.Z`.
 Veja os pré-requisitos e opções em [instalação nativa](getting-started/installation.md).
 
 ## 2. Abra a workstation local
@@ -74,6 +76,7 @@ consulte [troubleshooting](operations/troubleshooting.md).
 ## Próximos passos
 
 - [Descobrir funcionalidades](features/index.md)
-- [Entender Direct, Composer, Flow e Mission](product/mental-model.md)
+- [Entender como o Nexus funciona ponta a ponta](product/how-it-works.md)
+- [Consultar o modelo mental](product/mental-model.md)
 - [Configurar providers e quota](product/providers-and-usage.md)
 - [Referência da CLI](cli/README.md)

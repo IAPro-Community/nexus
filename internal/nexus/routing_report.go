@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -23,10 +24,23 @@ type RoutingDecisionReport struct {
 }
 
 type RoutingDecisionReportEntry struct {
-	PackageID string                 `json:"package_id"`
-	Title     string                 `json:"title,omitempty"`
-	State     runner.State           `json:"state,omitempty"`
-	Decision  RuntimeRoutingDecision `json:"decision"`
+	PackageID           string                  `json:"package_id"`
+	Title               string                  `json:"title,omitempty"`
+	State               runner.State            `json:"state,omitempty"`
+	Preview             *RoutingPreviewBaseline `json:"preview,omitempty"`
+	ChangedSincePreview bool                    `json:"changed_since_preview,omitempty"`
+	ChangeReason        string                  `json:"change_reason,omitempty"`
+	Decision            RuntimeRoutingDecision  `json:"decision"`
+}
+
+type RoutingPreviewBaseline struct {
+	Revision        int       `json:"revision"`
+	GeneratedAt     time.Time `json:"generated_at"`
+	AgentID         string    `json:"agent_id,omitempty"`
+	AgentWillCreate bool      `json:"agent_will_create,omitempty"`
+	Provider        string    `json:"provider,omitempty"`
+	Profile         string    `json:"profile,omitempty"`
+	Model           string    `json:"model,omitempty"`
 }
 
 // RoutingExplainability is the transport-facing explainability projection for
@@ -69,12 +83,19 @@ func ExplainRoutingDecision(decision RuntimeRoutingDecision) RoutingExplainabili
 // BuildRoutingDecisionReport reads only durable package decisions. A corrupt
 // decision is an integrity error, not an invitation to synthesize an answer.
 func BuildRoutingDecisionReport(run *runner.MissionRun) (RoutingDecisionReport, error) {
-	return BuildRoutingDecisionReportWithPlan(run, nil)
+	return BuildRoutingDecisionReportWithPlanAndPreview(run, nil, nil)
 }
 
 // BuildRoutingDecisionReportWithPlan adds the persisted intent decision when
 // the WorkPlan is available. It never re-runs routing or intent classification.
 func BuildRoutingDecisionReportWithPlan(run *runner.MissionRun, plan *store.WorkPlan) (RoutingDecisionReport, error) {
+	return BuildRoutingDecisionReportWithPlanAndPreview(run, plan, nil)
+}
+
+// BuildRoutingDecisionReportWithPlanAndPreview compares the durable allocation
+// decision with the approved, revision-bound Execution Preview that was frozen
+// into the Mission execution snapshot. The comparison never re-runs routing.
+func BuildRoutingDecisionReportWithPlanAndPreview(run *runner.MissionRun, plan *store.WorkPlan, preview *PlanExecutionPreview) (RoutingDecisionReport, error) {
 	if run == nil || strings.TrimSpace(run.ID) == "" {
 		return RoutingDecisionReport{}, fmt.Errorf("mission run is required")
 	}
@@ -105,6 +126,12 @@ func BuildRoutingDecisionReportWithPlan(run *runner.MissionRun, plan *store.Work
 			report.MissionTeam = &selection
 		}
 	}
+	previewByPackage := map[string]StepExecutionPreview{}
+	if preview != nil {
+		for _, step := range preview.Steps {
+			previewByPackage[step.PackageID] = step
+		}
+	}
 	for _, pkg := range run.PackageRuns {
 		if strings.TrimSpace(pkg.RoutingDecisionJSON) == "" {
 			continue
@@ -113,9 +140,46 @@ func BuildRoutingDecisionReportWithPlan(run *runner.MissionRun, plan *store.Work
 		if err := json.Unmarshal([]byte(pkg.RoutingDecisionJSON), &decision); err != nil {
 			return RoutingDecisionReport{}, fmt.Errorf("decode routing decision for package %s: %w", pkg.PackageID, err)
 		}
-		report.Decisions = append(report.Decisions, RoutingDecisionReportEntry{
+		entry := RoutingDecisionReportEntry{
 			PackageID: pkg.PackageID, Title: pkg.Title, State: pkg.State, Decision: decision,
-		})
+		}
+		if step, ok := previewByPackage[pkg.PackageID]; ok {
+			baseline := RoutingPreviewBaseline{
+				Revision:        preview.Revision,
+				GeneratedAt:     preview.GeneratedAt,
+				AgentID:         step.Agent.AgentID,
+				AgentWillCreate: step.Agent.WillCreate,
+				Provider:        step.Resource.Provider,
+				Profile:         step.Resource.Profile,
+				Model:           step.Model.Model,
+			}
+			entry.Preview = &baseline
+			entry.ChangedSincePreview = routingChangedSincePreview(baseline, decision)
+			if entry.ChangedSincePreview {
+				entry.ChangeReason = firstNonEmpty(
+					decision.SwitchDetail,
+					decision.Reason,
+					"live routing changed after Execution Preview",
+				)
+			}
+		}
+		report.Decisions = append(report.Decisions, entry)
 	}
 	return report, nil
+}
+
+func routingChangedSincePreview(preview RoutingPreviewBaseline, decision RuntimeRoutingDecision) bool {
+	if preview.AgentID != "" && preview.AgentID != decision.AgentID {
+		return true
+	}
+	if preview.Provider != "" && preview.Provider != decision.SelectedProvider {
+		return true
+	}
+	if preview.Profile != "" && preview.Profile != decision.SelectedProfile {
+		return true
+	}
+	if preview.Model != "" && preview.Model != decision.SelectedModel {
+		return true
+	}
+	return false
 }

@@ -32,11 +32,13 @@ var codexSpec = Spec{
 	Resume: func(sessionID string) []string {
 		return []string{"resume", sessionID}
 	},
-	AutoApproval: []string{"--ask-for-approval", "never", "--sandbox", "workspace-write"},
+	AutoApproval: []string{"--ask-for-approval", "never", "--sandbox", "workspace-write", "-c", "sandbox_workspace_write.network_access=false"},
 	// Codex review turns use the headless exec contract in a read-only
 	// sandbox. The executor places these root options before `exec` so the
 	// installed CLI accepts them and cannot mutate the implementation worktree.
-	ReviewMode:    []string{"--sandbox", "read-only", "--ask-for-approval", "never"},
-	Quota:         QuotaLiveRPC,
-	KnownVersions: []string{"0.50.0"},
+	ReviewMode:          []string{"--sandbox", "read-only", "--ask-for-approval", "never"},
+	AutonomousIsolation: IsolationWorkspaceWriteNoNetwork,
+	ReviewIsolation:     IsolationReadOnlyNoNetwork,
+	Quota:               QuotaLiveRPC,
+	KnownVersions:       []string{"0.50.0"},
 }

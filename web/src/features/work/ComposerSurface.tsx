@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PanelRight } from 'lucide-react';
 import { Button } from '../../design-system';
@@ -50,6 +50,9 @@ export const ComposerSurface: React.FC<{
   const [inspectorOpen, setInspectorOpen] = useState(
     () => typeof window === 'undefined' || window.matchMedia('(min-width: 768px)').matches,
   );
+  const [threadEndFocusRequest, setThreadEndFocusRequest] = useState(0);
+  const [attachmentTransferRunning, setAttachmentTransferRunning] = useState(false);
+  const attachmentAbort = useRef<AbortController | null>(null);
   const {
     sessions,
     view,
@@ -61,6 +64,7 @@ export const ComposerSurface: React.FC<{
     refineText,
     showRefineInput,
     agents,
+    skillCatalog,
     selectedAgentId,
     nextUnknown,
     actionableGaps,
@@ -89,40 +93,59 @@ export const ComposerSurface: React.FC<{
     ];
   }, [bootstrapActivity, conversationEvents, view]);
 
+  const cancelActiveConversation = useCallback(() => {
+    attachmentAbort.current?.abort();
+    composer.cancelConversation();
+  }, [composer]);
+
   const onSend = useCallback(
     async ({ text }: { text: string }) => {
-      const files = attachments.takeFiles();
-      const uploaded: Array<{
-        id: string;
-        name?: string;
-        mimeType?: string;
-        url?: string;
-        size?: number;
-      }> = [];
-      if (view && files.length) {
-        for (const file of files) {
-          const created = await nexus.uploadComposerAttachment(view.session.id, file);
-          uploaded.push({
-            id: created.id,
-            name: created.name,
-            mimeType: created.mime_type,
-            url: `/api/v1/attachments/${created.id}`,
-            size: created.size,
-          });
+      attachmentAbort.current?.abort();
+      const controller = new AbortController();
+      attachmentAbort.current = controller;
+      setAttachmentTransferRunning(true);
+      try {
+        const files = attachments.takeFiles();
+        const uploaded: Array<{
+          id: string;
+          name?: string;
+          mimeType?: string;
+          url?: string;
+          size?: number;
+        }> = [];
+        if (view && files.length) {
+          for (const file of files) {
+            const created = await nexus.uploadComposerAttachment(
+              view.session.id,
+              file,
+              controller.signal,
+            );
+            uploaded.push({
+              id: created.id,
+              name: created.name,
+              mimeType: created.mime_type,
+              url: `/api/v1/attachments/${created.id}`,
+              size: created.size,
+            });
+          }
         }
+        if (controller.signal.aborted) return;
+        await composer.sendText(text, uploaded.length ? uploaded : undefined);
+        if (!controller.signal.aborted) attachments.clear();
+      } finally {
+        if (attachmentAbort.current === controller) attachmentAbort.current = null;
+        setAttachmentTransferRunning(false);
       }
-      await composer.sendText(text, uploaded.length ? uploaded : undefined);
-      attachments.clear();
     },
     [attachments, composer, view],
   );
 
   const runtime = useNexusConversationRuntime({
     events: view ? conversationEvents : eventsWithBootstrap,
-    isRunning: conversationRunning,
+    isRunning: conversationRunning || attachmentTransferRunning,
     isDisabled: view?.session.state === 'FINALIZED',
     onSend,
-    onCancel: composer.cancelCreate,
+    onCancel: cancelActiveConversation,
   });
 
   const canMaterialize = destinationGate?.canMaterialize ?? true;
@@ -144,7 +167,7 @@ export const ComposerSurface: React.FC<{
         {bootstrapActivity ? (
           <div className={styles.bootstrapActivity}>
             <AgentActivity activity={bootstrapActivity} />
-            <Button size="sm" onClick={composer.cancelCreate}>
+            <Button size="sm" onClick={composer.cancelConversation}>
               {t('conversation.stop', 'Stop')}
             </Button>
           </div>
@@ -181,7 +204,10 @@ export const ComposerSurface: React.FC<{
       onRefineTextChange={composer.setRefineText}
       onCancelRefine={() => composer.setShowRefineInput(false)}
       onRefine={() => void composer.refine()}
+      skillCatalog={skillCatalog}
       onUpdateSkill={(skillId, state) => void composer.updateSkill(skillId, state)}
+      onSearchSkillCatalog={composer.searchSkillCatalog}
+      onSelectCatalogSkill={(skillId) => void composer.selectCatalogSkill(skillId)}
       onAttach={(path) => void composer.attachContext(path)}
       onDetach={(path) => void composer.detachContext(path)}
       onCopy={() => void composer.copy()}
@@ -191,6 +217,10 @@ export const ComposerSurface: React.FC<{
       onSendToAgent={composer.sendToAgent}
       onReviewFinalize={() => void composer.finalize()}
       onFinalizeWithGaps={() => void composer.finalize(true)}
+      onFocusThread={() => {
+        setInspectorOpen(false);
+        setThreadEndFocusRequest((value) => value + 1);
+      }}
       contextRefreshing={contextRefreshing}
       onRefreshContext={onRefreshContext}
     />
@@ -238,6 +268,7 @@ export const ComposerSurface: React.FC<{
             </Button>
           </div>
         }
+        threadEndFocusRequest={threadEndFocusRequest}
         threadEnd={
           nextUnknown && !isFinalized ? (
             <ClarificationPrompt

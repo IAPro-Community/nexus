@@ -64,16 +64,56 @@ func ensureAgentWorktree(ctx context.Context, project store.Project, agent store
 	if err != nil {
 		return "", err
 	}
-	root := filepath.Join(dataDir, "worktrees", project.ID)
-	if err := os.MkdirAll(root, 0700); err != nil {
+	if err := validateManagedPathSegment("project id", project.ID); err != nil {
+		return "", err
+	}
+	if err := validateManagedPathSegment("agent id", agent.ID); err != nil {
+		return "", err
+	}
+
+	worktreeRoot := filepath.Join(dataDir, "worktrees")
+	if err := os.MkdirAll(worktreeRoot, 0o700); err != nil {
 		return "", fmt.Errorf("create worktree root: %w", err)
 	}
+	canonicalRoot, err := canonicalExistingManagedDir(worktreeRoot)
+	if err != nil {
+		return "", fmt.Errorf("resolve worktree root: %w", err)
+	}
+
+	root := filepath.Join(worktreeRoot, project.ID)
+	if err := rejectManagedSymlink(root, "project worktree root"); err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		return "", fmt.Errorf("create project worktree root: %w", err)
+	}
+	canonicalProjectRoot, err := canonicalExistingManagedDir(root)
+	if err != nil {
+		return "", fmt.Errorf("resolve project worktree root: %w", err)
+	}
+	if !pathWithinRoot(canonicalProjectRoot, canonicalRoot) {
+		return "", fmt.Errorf("project worktree root escapes Nexus managed worktree root")
+	}
+
 	path := filepath.Join(root, agent.ID)
-	if info, statErr := os.Stat(path); statErr == nil && info.IsDir() {
+	if err := rejectManagedSymlink(path, "agent worktree"); err != nil {
+		return "", err
+	}
+	if info, statErr := os.Lstat(path); statErr == nil {
+		if !info.IsDir() {
+			return "", fmt.Errorf("existing worktree path is not a directory: %s", path)
+		}
 		if out, err := exec.CommandContext(ctx, "git", "-C", path, "rev-parse", "--show-toplevel").CombinedOutput(); err == nil {
 			resolved := strings.TrimSpace(string(out))
 			if resolved != "" {
-				return config.CanonicalWorkspacePath(resolved)
+				canonicalResolved, canonicalErr := config.CanonicalWorkspacePath(resolved)
+				if canonicalErr != nil {
+					return "", canonicalErr
+				}
+				if !pathWithinRoot(canonicalResolved, canonicalProjectRoot) {
+					return "", fmt.Errorf("existing agent worktree escapes Nexus managed project root")
+				}
+				return canonicalResolved, nil
 			}
 		}
 		return "", fmt.Errorf("existing worktree path is not a valid git worktree: %s", path)
@@ -98,5 +138,12 @@ func ensureAgentWorktree(ctx context.Context, project store.Project, agent store
 	if out, err := exec.CommandContext(ctx, "git", args...).CombinedOutput(); err != nil {
 		return "", fmt.Errorf("create agent worktree: %w: %s", err, strings.TrimSpace(string(out)))
 	}
-	return config.CanonicalWorkspacePath(path)
+	resolved, err := config.CanonicalWorkspacePath(path)
+	if err != nil {
+		return "", err
+	}
+	if !pathWithinRoot(resolved, canonicalProjectRoot) {
+		return "", fmt.Errorf("created agent worktree escapes Nexus managed project root")
+	}
+	return resolved, nil
 }

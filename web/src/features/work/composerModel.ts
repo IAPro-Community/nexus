@@ -30,8 +30,24 @@ const REASONS: Record<string, string> = {
 export function composerNeedsGapConfirmation(brief: {
   open_questions?: string[];
   readiness?: { state?: string };
+  unknowns?: Array<{ severity?: string; status?: string }>;
 }): boolean {
-  return brief.readiness?.state === 'BLOCKED' || (brief.open_questions?.length ?? 0) > 0;
+  if (brief.readiness?.state === 'BLOCKED') return true;
+
+  const unknowns = brief.unknowns;
+  if (Array.isArray(unknowns) && unknowns.length > 0) {
+    return unknowns.some(
+      (unknown) =>
+        String(unknown.severity || '').toUpperCase() === 'BLOCKING' &&
+        !['ANSWERED', 'CONFIRMED', 'DISMISSED'].includes(
+          String(unknown.status || '').toUpperCase(),
+        ),
+    );
+  }
+
+  // Compatibility fallback for older payloads that did not expose structured
+  // unknown severity. Current Composer views always include structured unknowns.
+  return (brief.open_questions?.length ?? 0) > 0;
 }
 
 /** Prefer a readable session label over keyboard-spam or raw IDs. */
@@ -76,6 +92,24 @@ export function latestComposerArtifact(view: ComposerSessionView | null): Prompt
 }
 
 /** Referenced files live only on the object form of brief.context. */
+export function composerContextItems(
+  view: ComposerSessionView | null,
+  decision?: 'KEEP' | 'REFERENCE_ONLY' | 'DROP',
+) {
+  const items = asArray<NonNullable<ComposerSessionView['context_manifest']>['items'][number]>(
+    view?.context_manifest?.items,
+  );
+  return decision ? items.filter((item) => item.decision === decision) : items;
+}
+
+export function composerContextBudgetPercent(view: ComposerSessionView | null): number {
+  const budget = view?.context_manifest?.budget;
+  const max = Number(budget?.max_estimated_tokens || 0);
+  const used = Number(budget?.used_estimated_tokens || 0);
+  if (!Number.isFinite(max) || max <= 0 || !Number.isFinite(used) || used <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((used / max) * 100)));
+}
+
 export function composerReferencedFiles(view: ComposerSessionView | null): ContextFileRef[] {
   const ctx = view?.brief.context;
   if (ctx && typeof ctx === 'object' && !Array.isArray(ctx)) {

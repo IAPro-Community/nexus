@@ -106,7 +106,7 @@ func blockedPatterns(tool string, policy Policy) []string {
 			patterns = append(patterns, "push")
 		}
 		if policy.DisallowDestructiveGit {
-			patterns = append(patterns, "reset --hard", "clean -f", "clean -d", "branch -D", "checkout --", "restore ")
+			patterns = append(patterns, "reset --hard", "clean -f", "clean -d", "branch -D", "checkout --", "restore ", "merge", "rebase", "cherry-pick")
 		}
 		return patterns
 	}

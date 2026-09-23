@@ -139,6 +139,20 @@ func TestMissionSchedule_AT_BecomesReady(t *testing.T) {
 	if len(ready) != 1 || ready[0].ID != created.ID {
 		t.Fatalf("schedule not ready: %+v", ready)
 	}
+	if ready[0].AttemptCount != 0 || ready[0].LastAttemptAt != nil || ready[0].LastError != "" {
+		t.Fatalf("new schedule diagnostics must start empty: %+v", ready[0])
+	}
+	claimed, err := st.ClaimMissionSchedule(created.ID)
+	if err != nil || !claimed {
+		t.Fatalf("claim ready schedule: claimed=%v err=%v", claimed, err)
+	}
+	got, err := st.GetMissionSchedule(created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.AttemptCount != 1 || got.LastAttemptAt == nil || got.LastError != "" {
+		t.Fatalf("claim diagnostics not persisted: %+v", got)
+	}
 }
 
 func TestMissionScheduleBindsRunID(t *testing.T) {

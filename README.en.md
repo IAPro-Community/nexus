@@ -16,28 +16,27 @@ IAPro Nexus is a local workstation for working with coding agents. It organizes 
 
 ## Start in minutes
 
-Recommended path (**zero-toolchain**): install a release binary. No Go, Bun, or Node required.
+The stable Nexus v1 support scope is **Linux amd64**. Windows and macOS remain in the
+source tree but are deferred until native certification is completed.
 
-**Linux / macOS:**
+Recommended path: install a signed prebuilt release. No Go, Bun, or Node toolchain is
+required; Ed25519 verification currently requires Python 3 with `cryptography`.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.3
+curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
+bash install.sh --version=v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
 
-**Windows (PowerShell):**
+The pinned installer is downloaded from the public binaries-only distribution repository.
+It refuses unsigned releases, verifies the Ed25519 manifest, checks the artifact SHA-256,
+and confirms the embedded binary version before replacement. `--version=latest` means
+GitHub's latest non-prerelease release; while the project is beta, use the explicit beta
+tag shown above.
 
-```powershell
-irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.3
-nexus doctor
-nexus web
-```
-
-`--version=v1.0.0-beta.3` downloads the pinned GitHub Release and verifies `checksums.txt` (integrity) — this requires the tag and release to exist; if not yet published, build from source below. `--version=latest` resolves the newest tag after the release exists. The repository must be public (or set `GH_TOKEN`) for anonymous download.
-
-Release installer prerequisites: `curl` or `wget`, `tar`, and `sha256sum`/`shasum` (Unix), or PowerShell (Windows). Native desktop may need WebView2 (Windows) or WebKitGTK (Linux).
+Release prerequisites: Linux amd64, `curl` or `wget`, `tar`, SHA-256 tooling,
+Python 3 with `cryptography`, and WebKitGTK only when using the Linux Desktop.
 
 ### Developers (build from source)
 
@@ -52,7 +51,8 @@ make build
 ./nexus web
 ```
 
-Or: `./install.sh --build-from-source [--yes]` / `.\install.ps1 -BuildFromSource`.
+For development from source, platform-specific build paths may still exist, but they are
+not part of the supported v1 release contract.
 
 Then follow **+ New → AI Session → provider → terminal**. You do not need Composer, Flow or Mission for direct work.
 
@@ -70,8 +70,8 @@ See the [platform support matrix](docs/operations/platform-support.md) before tr
 
 - [Documentation map](docs/README.md)
 - [Getting started index](docs/getting-started/README.md)
-- [Native install (zero-toolchain)](docs/getting-started/installation.md)
-- [Native packages (DEB/RPM/NSIS)](docs/getting-started/packages.md)
+- [Signed native install](docs/getting-started/installation.md)
+- [Packages and native artifacts](docs/getting-started/packages.md)
 - [Docker compatibility](docs/getting-started/docker-compat.md)
 - [Visual tour](docs/product/visual-tour.md)
 - [Direct workflow](docs/product/direct.md)

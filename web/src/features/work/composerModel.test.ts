@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   composerActionPhase,
   composerBriefStats,
+  composerContextBudgetPercent,
+  composerContextItems,
   composerExpectedOutcome,
   composerGateForReadiness,
   composerNeedsGapConfirmation,
@@ -40,7 +42,7 @@ describe('formatComposerSessionTitle', () => {
 });
 
 describe('Composer finalization guard', () => {
-  it('detects blocking readiness or open questions before a finalize request', () => {
+  it('requires confirmation for genuinely blocking gaps', () => {
     expect(
       composerNeedsGapConfirmation({
         open_questions: [],
@@ -50,18 +52,39 @@ describe('Composer finalization guard', () => {
     expect(
       composerNeedsGapConfirmation({
         open_questions: ['Which provider?'],
-        readiness: { state: 'READY' },
+        readiness: { state: 'READY_WITH_ASSUMPTIONS' },
+        unknowns: [{ severity: 'BLOCKING', status: 'OPEN' }],
       }),
     ).toBe(true);
   });
 
-  it('allows finalization when readiness is clear and no questions remain', () => {
+  it('does not interrupt a complete prompt for recommended open details', () => {
+    expect(
+      composerNeedsGapConfirmation({
+        open_questions: ['Do you want an additional screenshot?'],
+        readiness: { state: 'READY_WITH_ASSUMPTIONS' },
+        unknowns: [{ severity: 'RECOMMENDED', status: 'OPEN' }],
+      }),
+    ).toBe(false);
+  });
+
+  it('allows finalization when blocking unknowns were resolved', () => {
     expect(
       composerNeedsGapConfirmation({
         open_questions: [],
         readiness: { state: 'READY' },
+        unknowns: [{ severity: 'BLOCKING', status: 'ANSWERED' }],
       }),
     ).toBe(false);
+  });
+
+  it('keeps the legacy open-question fallback when structured unknowns are absent', () => {
+    expect(
+      composerNeedsGapConfirmation({
+        open_questions: ['Legacy question'],
+        readiness: { state: 'READY' },
+      }),
+    ).toBe(true);
   });
 });
 
@@ -148,5 +171,59 @@ describe('composerExpectedOutcome', () => {
         },
       } as unknown as ComposerSessionView),
     ).toBe('Merged to main');
+  });
+});
+
+describe('composer context manifest projection', () => {
+  it('separates kept, referenced and dropped context without inventing entries', () => {
+    const view = {
+      context_manifest: {
+        version: '1',
+        project_id: 'p1',
+        fingerprint: 'fp',
+        generated_at: '2026-09-21T00:00:00Z',
+        budget: {
+          max_estimated_tokens: 100,
+          used_estimated_tokens: 40,
+          kept_items: 1,
+          referenced_items: 1,
+          dropped_items: 1,
+        },
+        items: [
+          {
+            id: 'keep',
+            kind: 'PROJECT_FACT',
+            source: 'project',
+            summary: 'fact',
+            decision: 'KEEP',
+            reason: 'relevant',
+            estimated_tokens: 40,
+          },
+          {
+            id: 'ref',
+            kind: 'MISSION_REFERENCE',
+            source: 'mission',
+            summary: 'mission',
+            decision: 'REFERENCE_ONLY',
+            reason: 'reference',
+            estimated_tokens: 10,
+          },
+          {
+            id: 'drop',
+            kind: 'PROJECT_FACT',
+            source: 'project',
+            summary: 'noise',
+            decision: 'DROP',
+            reason: 'budget',
+            estimated_tokens: 70,
+          },
+        ],
+      },
+    } as unknown as ComposerSessionView;
+
+    expect(composerContextItems(view, 'KEEP').map((item) => item.id)).toEqual(['keep']);
+    expect(composerContextItems(view, 'REFERENCE_ONLY').map((item) => item.id)).toEqual(['ref']);
+    expect(composerContextItems(view, 'DROP').map((item) => item.id)).toEqual(['drop']);
+    expect(composerContextBudgetPercent(view)).toBe(40);
   });
 });

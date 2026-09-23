@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 )
 
@@ -22,13 +23,15 @@ func (h *NexusHandler) handleMissionSchedules(w http.ResponseWriter, r *http.Req
 		writeJSON(w, http.StatusOK, items)
 	case http.MethodPost:
 		var body struct {
-			PlanID       string                  `json:"plan_id"`
-			Mode         string                  `json:"mode"`
-			ScheduledFor string                  `json:"scheduled_for"`
-			AfterRunID   string                  `json:"after_run_id"`
-			AgentID      string                  `json:"agent_id"`
-			CancelID     string                  `json:"cancel_id"`
-			Contract     runner.AutonomyContract `json:"contract"`
+			PlanID                string                  `json:"plan_id"`
+			PlanRevision          int                     `json:"plan_revision"`
+			Mode                  string                  `json:"mode"`
+			ScheduledFor          string                  `json:"scheduled_for"`
+			AfterRunID            string                  `json:"after_run_id"`
+			AgentID               string                  `json:"agent_id"`
+			CancelID              string                  `json:"cancel_id"`
+			CostConfirmationToken string                  `json:"cost_confirmation_token"`
+			Contract              runner.AutonomyContract `json:"contract"`
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid body")
@@ -55,7 +58,17 @@ func (h *NexusHandler) handleMissionSchedules(w http.ResponseWriter, r *http.Req
 			}
 			when = &parsed
 		}
-		item, err := h.nexus.ScheduleMission(r.Context(), body.PlanID, body.Mode, when, body.AfterRunID, body.AgentID, contract)
+		item, err := h.nexus.ScheduleMissionWithOptions(
+			r.Context(),
+			body.PlanID,
+			body.PlanRevision,
+			body.Mode,
+			when,
+			body.AfterRunID,
+			body.AgentID,
+			contract,
+			nexus.MissionAdmissionOptions{CostConfirmationToken: body.CostConfirmationToken},
+		)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return

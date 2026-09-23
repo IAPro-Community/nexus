@@ -26,8 +26,10 @@ traz ideia, inspiração, seam existente, valor, risco e fase recomendada.
    visibilidade de capacity; risco: app segunda superfície — fase: spec própria.
 10. **Novos daemons / battery-activity detector** — seam: lifecycle Nexus —
     valor: cadência adaptativa real; risco: processo fantasma — fase: com T8 real.
-11. **Probes de produção por provider** (contrato `quota.Probe` existe; registro
-    de produção é `emptyProbeRegistry`) — seam: `capacitymonitor.ProbeRegistry`
-    — valor: monitor com dados reais — fase: próxima, um provider por vez.
+11. **Certificação provider-native de quota/capacity** — o registry de produção
+    agora lê observações canônicas de Codex/AGY/Claude/Gemini via `quota.Probe`
+    read-only, enquanto `QuotaMonitorService` mantém a coleta LIVE existente.
+    Próximo trabalho é evidência autenticada/fault-injection por provider (auth, 429,
+    reset, stale, múltiplas contas), não criar outro poller ou duplicar adapters.
 12. **Engine ≠ Backend ≠ Transport refactor** — fase: nenhuma nesta linha; só se
     o executor real exigir.

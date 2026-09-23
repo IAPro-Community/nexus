@@ -366,6 +366,9 @@
 
 .goalBar {
   display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   gap: 10px;
   padding: 14px 16px;
   border: 1px solid color-mix(in srgb, var(--nx-accent) 35%, var(--nx-border));
@@ -387,8 +390,10 @@
 
 .deliberative {
   display: grid;
-  gap: 14px;
+  width: 100%;
+  min-width: 0;
   max-width: 1180px;
+  gap: 14px;
   margin: 0 auto;
   padding: 8px 0 28px;
 }
@@ -600,8 +605,9 @@
 }
 
 .contextChipRemove {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
 }
 
 .contextPicker {
@@ -641,6 +647,23 @@
 @media (max-width: 640px) {
   .goalBar {
     padding: 10px 12px;
+  }
+
+  .goalBarLabel {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .goalBarLabel > .flexRowGap4 {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .goalBarLabel > .flexRowGap4 > :global(.nx-button) {
+    flex: 1 1 9rem;
+    min-width: 0;
   }
 
   .goalBarRow {
@@ -691,6 +714,13 @@
     width: 100%;
     min-height: var(--nx-touch-min, 44px);
     height: auto;
+  }
+
+  .contextChipRemove {
+    width: var(--nx-touch-min, 44px);
+    min-width: var(--nx-touch-min, 44px);
+    height: var(--nx-touch-min, 44px);
+    margin-block: -8px;
   }
 
   .destinationActions,
@@ -752,6 +782,9 @@
 .conversationShell {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   min-height: 0;
   height: 100%;
   flex: 1;

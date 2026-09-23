@@ -61,8 +61,8 @@ func main() {
 		*baseURL = "https://github.com/IAPro-Community/nexus/releases/download/v" + strings.TrimPrefix(*version, "v")
 	}
 	parsedBase, err := url.Parse(*baseURL)
-	if err != nil || parsedBase.Scheme != "https" || parsedBase.Host == "" {
-		panic("base-url must be an absolute https URL")
+	if err != nil || !allowedArtifactBaseURL(parsedBase) {
+		panic("base-url must be absolute https, or http on loopback for local certification")
 	}
 	base := strings.TrimRight(*baseURL, "/")
 	key, err := decodePrivateKey(*privateKey)
@@ -129,6 +129,24 @@ func main() {
 	}
 }
 
+func allowedArtifactBaseURL(u *url.URL) bool {
+	if u == nil || u.Host == "" {
+		return false
+	}
+	if u.Scheme == "https" {
+		return true
+	}
+	if u.Scheme != "http" {
+		return false
+	}
+	switch strings.ToLower(u.Hostname()) {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	default:
+		return false
+	}
+}
+
 func writeSignedManifest(dist string, jsonBytes []byte, key ed25519.PrivateKey) error {
 	// Sign exactly the bytes that are published. The trailing newline is part of
 	// the manifest body and must be covered by Ed25519 verification.
@@ -160,7 +178,10 @@ func decodePublicKey(value string) (ed25519.PublicKey, error) {
 }
 
 func channel(version string) string {
-	if strings.Contains(strings.ToLower(version), "beta") {
+	lower := strings.ToLower(strings.TrimSpace(version))
+	if strings.Contains(lower, "-alpha.") ||
+		strings.Contains(lower, "-beta.") ||
+		strings.Contains(lower, "-rc.") {
 		return "beta"
 	}
 	return "stable"

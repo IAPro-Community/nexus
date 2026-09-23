@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -98,6 +99,14 @@ func (h *NexusHandler) handleCapacityPreferences(w http.ResponseWriter, r *http.
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
+		}
+		// The request context ends when this handler returns, so the hosted
+		// monitor must own its own cancelable lifecycle. Shutdown/disable calls
+		// StopCapacityMonitor explicitly.
+		if saved.Enabled && saved.BackgroundEnabled {
+			h.nexus.StartCapacityMonitor(context.Background())
+		} else {
+			h.nexus.StopCapacityMonitor()
 		}
 		writeJSON(w, http.StatusOK, saved)
 	default:

@@ -112,18 +112,37 @@ func planCmd(args []string) error {
 		if err != nil {
 			return err
 		}
-		out, _ := json.MarshalIndent(map[string]any{
-			"run_id":     run.ID,
-			"state":      run.State,
+		return waitAndPrintMission(context.Background(), n, run, map[string]any{
 			"autonomous": true,
 			"plan_id":    args[1],
-		}, "", "  ")
-		fmt.Println(string(out))
-		return nil
+		})
 
 	default:
 		return fmt.Errorf("subcomando de plano desconhecido: %s", args[0])
 	}
+}
+
+func waitAndPrintMission(ctx context.Context, n *nexus.Nexus, started *runner.MissionRun, fields map[string]any) error {
+	if started == nil {
+		return fmt.Errorf("mission start returned no run")
+	}
+	final, waitErr := n.WaitMissionWorker(ctx, started.ID)
+	if final == nil {
+		final = started
+	}
+	result := map[string]any{
+		"run_id": final.ID,
+		"state":  final.State,
+	}
+	for key, value := range fields {
+		result[key] = value
+	}
+	if final.CompletedAt != nil {
+		result["completed_at"] = final.CompletedAt
+	}
+	out, _ := json.MarshalIndent(result, "", "  ")
+	fmt.Println(string(out))
+	return waitErr
 }
 
 func agentsCmd(args []string) error {
@@ -172,32 +191,77 @@ func projectsCmd(args []string) error {
 		}
 		fmt.Println("=== Projetos Registrados no Nexus ===")
 		for _, p := range projects {
-			fmt.Printf("- [%s] %s (%s, Branch: %s)\n", p.ID, p.Name, p.CanonicalPath, p.DefaultBranch)
+			fmt.Printf("- [%s] %s (%s, Branch: %s, Isolation: %s)\n", p.ID, p.Name, p.CanonicalPath, p.DefaultBranch, p.DefaultIsolation)
 		}
 		return nil
 	}
 
 	if args[0] == "add" {
-		if len(args) < 2 {
-			return fmt.Errorf("informe o caminho do projeto, ex: nexus projects add /caminho/do/projeto")
-		}
-		dir := args[1]
-		name := ""
-		if len(args) > 2 {
-			name = args[2]
+		opts, err := parseProjectAddArgs(args[1:])
+		if err != nil {
+			return err
 		}
 		proj, err := st.CreateProject(store.Project{
-			CanonicalPath: dir,
-			Name:          name,
+			CanonicalPath:    opts.Path,
+			Name:             opts.Name,
+			DefaultIsolation: opts.Isolation,
 		})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Projeto registrado com sucesso: %s [%s]\n", proj.Name, proj.ID)
+		fmt.Printf("Projeto registrado com sucesso: %s [%s] (isolation=%s)\n", proj.Name, proj.ID, proj.DefaultIsolation)
 		return nil
 	}
 
 	return fmt.Errorf("subcomando de projeto desconhecido: %s", args[0])
+}
+
+type projectAddOptions struct {
+	Path      string
+	Name      string
+	Isolation string
+}
+
+func parseProjectAddArgs(args []string) (projectAddOptions, error) {
+	if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+		return projectAddOptions{}, fmt.Errorf("informe o caminho do projeto, ex: nexus projects add /caminho/do/projeto --isolation worktree")
+	}
+	opts := projectAddOptions{Path: args[0]}
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--name":
+			if i+1 >= len(args) || strings.TrimSpace(args[i+1]) == "" {
+				return projectAddOptions{}, fmt.Errorf("--name requer um valor")
+			}
+			if opts.Name != "" {
+				return projectAddOptions{}, fmt.Errorf("nome do projeto informado mais de uma vez")
+			}
+			opts.Name = args[i+1]
+			i++
+		case "--isolation":
+			if i+1 >= len(args) {
+				return projectAddOptions{}, fmt.Errorf("--isolation requer project, worktree ou none")
+			}
+			opts.Isolation = strings.ToLower(strings.TrimSpace(args[i+1]))
+			i++
+			switch opts.Isolation {
+			case "project", "worktree", "none":
+			default:
+				return projectAddOptions{}, fmt.Errorf("--isolation inválido %q; use project, worktree ou none", opts.Isolation)
+			}
+		default:
+			// Preserve the historical positional display name while preventing
+			// ambiguous extra positional arguments.
+			if strings.HasPrefix(args[i], "-") {
+				return projectAddOptions{}, fmt.Errorf("opção desconhecida: %s", args[i])
+			}
+			if opts.Name != "" {
+				return projectAddOptions{}, fmt.Errorf("nome do projeto informado mais de uma vez")
+			}
+			opts.Name = args[i]
+		}
+	}
+	return opts, nil
 }
 
 func conductorCmd(args []string) error {

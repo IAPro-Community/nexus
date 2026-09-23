@@ -49,3 +49,16 @@ func TestGeneratedGoalIDIsULID(t *testing.T) {
 		t.Fatal("consecutive goal IDs collided")
 	}
 }
+
+func TestDispatchTopologySeparatesMissionPromotionFromDelegation(t *testing.T) {
+	nonDelegated := DelegationDecision{Delegate: false}
+	if dispatchTopologyAllowed(DispatchRequest{}, nonDelegated) {
+		t.Fatal("ordinary Conductor dispatch must keep the existing delegation brake")
+	}
+	if !dispatchTopologyAllowed(DispatchRequest{AutoPromoteToMission: true}, nonDelegated) {
+		t.Fatal("an upstream-approved conversation promotion must be allowed to create a single-topology Mission")
+	}
+	if !dispatchTopologyAllowed(DispatchRequest{}, DelegationDecision{Delegate: true}) {
+		t.Fatal("delegated topology must remain dispatchable")
+	}
+}

@@ -97,11 +97,14 @@ func (c Catalog) ResolveCapability(capability string) (Resolution, bool) {
 }
 
 func better(left, right Skill) bool {
-	if compareVersion(left.Version, right.Version) != 0 {
-		return compareVersion(left.Version, right.Version) > 0
-	}
+	// Ownership wins before version: a Project skill is an intentional local
+	// override and must not be shadowed by a newer user/global/optional copy.
+	// Version only orders copies inside the same precedence tier.
 	if sourcePriority(left.Source) != sourcePriority(right.Source) {
 		return sourcePriority(left.Source) > sourcePriority(right.Source)
+	}
+	if compareVersion(left.Version, right.Version) != 0 {
+		return compareVersion(left.Version, right.Version) > 0
 	}
 	return left.Provenance.SourceID < right.Provenance.SourceID
 }

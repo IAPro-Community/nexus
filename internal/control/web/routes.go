@@ -48,6 +48,7 @@ func registerNexusRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/projects", s.authMiddleware(h.handleProjectsList))
 	mux.HandleFunc("/api/v1/projects/summaries", s.authMiddleware(h.handleProjectSummaries))
 	mux.HandleFunc("/api/v1/projects/", s.routeProject(h))
+	mux.HandleFunc("/api/v1/agent-modes", s.authMiddleware(h.handleAgentModes))
 	mux.HandleFunc("/api/v1/agents/", s.routeAgent(h))
 	mux.HandleFunc("/api/v1/resources", s.authMiddleware(h.handleResourcesList))
 	mux.HandleFunc("/api/v1/resources/refresh", s.authMiddleware(h.handleResourcesRefresh))
@@ -70,6 +71,8 @@ func registerPlanningRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/intelligence", s.authMiddleware(h.handleIntelligence))
 	mux.HandleFunc("/api/v1/intelligence/probe", s.authMiddleware(h.handleIntelligenceProbe))
 	mux.HandleFunc("/api/v1/intelligence/memories", s.authMiddleware(h.handleIntelligenceMemories))
+	mux.HandleFunc("/api/v1/intelligence/memories/recall", s.authMiddleware(h.handleIntelligenceMemoryRecall))
+	mux.HandleFunc("/api/v1/intelligence/memories/reflect", s.authMiddleware(h.handleIntelligenceMemoryReflect))
 	mux.HandleFunc("/api/v1/intelligence/memories/", s.authMiddleware(h.handleIntelligenceMemoryDelete))
 	mux.HandleFunc("/api/v1/clarifications/", s.authMiddleware(h.handleClarification))
 	mux.HandleFunc("/api/v1/composer-sessions/", s.authMiddleware(h.handleComposerSession))
@@ -98,6 +101,9 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/capacity/preferences", s.authMiddleware(h.handleCapacityPreferences))
 	mux.HandleFunc("/api/v1/capacity/ack", s.authMiddleware(h.handleCapacityAck))
 	mux.HandleFunc("/api/v1/capacity/snooze", s.authMiddleware(h.handleCapacitySnooze))
+	mux.HandleFunc("/api/v1/cost/summary", s.authMiddleware(h.handleCostSummary))
+	mux.HandleFunc("/api/v1/cost/observations", s.authMiddleware(h.handleCostObservations))
+	mux.HandleFunc("/api/v1/cost/preferences", s.authMiddleware(h.handleCostPreferences))
 }
 
 func registerFilesystemRoutes(mux *http.ServeMux, deps routeDependencies) {

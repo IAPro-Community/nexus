@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/core/entitlement"
 	"github.com/IAPro-Community/nexus/internal/nexus/autonomyguard"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -19,10 +20,12 @@ import (
 // missionExecutionSnapshot is immutable input for one approved MissionRun.
 // The live WorkPlan may continue evolving without changing an active run.
 type missionExecutionSnapshot struct {
-	Plan      store.WorkPlan          `json:"plan"`
-	Contract  runner.AutonomyContract `json:"contract"`
-	Preflight *FlowPreflightReport    `json:"preflight,omitempty"`
-	Goal      *GoalContract           `json:"goal,omitempty"`
+	Plan             store.WorkPlan          `json:"plan"`
+	Contract         runner.AutonomyContract `json:"contract"`
+	Preflight        *FlowPreflightReport    `json:"preflight,omitempty"`
+	ExecutionPreview *PlanExecutionPreview   `json:"execution_preview,omitempty"`
+	SkillContracts   []FrozenSkillContract   `json:"skill_contracts,omitempty"`
+	Goal             *GoalContract           `json:"goal,omitempty"`
 }
 
 type missionWorker struct {
@@ -66,26 +69,35 @@ func planToRunnerSpec(plan *store.WorkPlan, snapshotID string) (runner.PlanSpec,
 	return spec, nil
 }
 
-func freezePlanForExecution(n *Nexus, plan store.WorkPlan) (store.WorkPlan, error) {
+func freezePlanForExecution(n *Nexus, plan store.WorkPlan) (store.WorkPlan, []FrozenSkillContract, error) {
 	if err := validateFlowExecutionContract(plan); err != nil {
-		return store.WorkPlan{}, err
+		return store.WorkPlan{}, nil, err
+	}
+	contracts, err := resolveFrozenSkillContractsForPlan(n, &plan)
+	if err != nil {
+		return store.WorkPlan{}, nil, err
+	}
+	contractIDs := make(map[string]struct{}, len(contracts))
+	for _, contract := range contracts {
+		contractIDs[contract.ID] = struct{}{}
 	}
 	for pi := range plan.Phases {
 		for wi := range plan.Phases[pi].Packages {
 			pkg := &plan.Phases[pi].Packages[wi]
-			requested := packageSkillIDs(*pkg)
-			validated, err := validateGenericSkillIDs(n, plan.ProjectID, requested)
-			if err != nil {
-				return store.WorkPlan{}, fmt.Errorf("freeze skills for package %s (%s): %w", pkg.ID, skillIDsErrorContext(requested), err)
+			requested := canonicalSkillIDs(packageSkillIDs(*pkg))
+			for _, id := range requested {
+				if _, ok := contractIDs[id]; !ok {
+					return store.WorkPlan{}, nil, fmt.Errorf("freeze skills for package %s: skill %q has no immutable contract", pkg.ID, id)
+				}
 			}
-			pkg.SkillIDs = append([]string(nil), validated...)
+			pkg.SkillIDs = append([]string(nil), requested...)
 			// The immutable execution snapshot carries one validated Skill set in
 			// the canonical and legacy Skill fields. Process gates remain separate
 			// metadata and are never reinterpreted as Skills.
-			pkg.MaestroSkills = append([]string(nil), validated...)
+			pkg.MaestroSkills = append([]string(nil), requested...)
 		}
 	}
-	return plan, nil
+	return plan, contracts, nil
 }
 
 func validateFlowExecutionContract(plan store.WorkPlan) error {
@@ -129,6 +141,9 @@ func validateFlowExecutionContract(plan store.WorkPlan) error {
 // StartMissionRun binds an immutable plan revision/snapshot and starts the
 // durable state machine. autonomous=true starts a background worker immediately.
 func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID string, contract runner.AutonomyContract, autonomous bool) (*runner.MissionRun, error) {
+	if err := n.RequireCapability(ctx, entitlement.CapMissionsRun); err != nil {
+		return nil, fmt.Errorf("mission entitlement denied: %w", err)
+	}
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -167,12 +182,12 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 		}
 	}
 
-	frozenPlan, err := freezePlanForExecution(n, *plan)
+	frozenPlan, skillContracts, err := freezePlanForExecution(n, *plan)
 	if err != nil {
 		return nil, err
 	}
 	bindLeadAgent(&frozenPlan, defaultAgentID)
-	envelope, err := json.Marshal(missionExecutionSnapshot{Plan: frozenPlan, Contract: contract, Preflight: preflight})
+	envelope, err := json.Marshal(missionExecutionSnapshot{Plan: frozenPlan, Contract: contract, Preflight: preflight, SkillContracts: skillContracts})
 	if err != nil {
 		return nil, fmt.Errorf("encode mission execution snapshot: %w", err)
 	}
@@ -195,7 +210,27 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 	return run, nil
 }
 
+type MissionAdmissionOptions struct {
+	CostConfirmationToken string
+	ExecutionPreviewToken string
+}
+
 func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, approvedRevision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool) (*runner.MissionRun, error) {
+	return n.StartMissionRunApprovedWithOptions(
+		ctx,
+		planID,
+		approvedRevision,
+		defaultAgentID,
+		contract,
+		autonomous,
+		MissionAdmissionOptions{},
+	)
+}
+
+func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID string, approvedRevision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, options MissionAdmissionOptions) (*runner.MissionRun, error) {
+	if err := n.RequireCapability(ctx, entitlement.CapMissionsRun); err != nil {
+		return nil, fmt.Errorf("mission entitlement denied: %w", err)
+	}
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -210,6 +245,17 @@ func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, appr
 	if plan.CurrentRevision != approvedRevision {
 		return nil, fmt.Errorf("approved plan revision %d is stale; current is %d", approvedRevision, plan.CurrentRevision)
 	}
+	accounts, resourceErr := n.ListResourcesContext(ctx)
+	preview, err := n.previewPlanExecutionWithContract(ctx, st, plan, accounts, resourceErr, contract, autonomous)
+	if err != nil {
+		return nil, fmt.Errorf("refresh execution preview before approved mission: %w", err)
+	}
+	if err := validateApprovedExecutionPreview(preview, planID, approvedRevision); err != nil {
+		return nil, err
+	}
+	if token := strings.TrimSpace(options.ExecutionPreviewToken); token != "" && token != preview.ApprovalToken {
+		return nil, fmt.Errorf("execution preview changed after approval; run Execution Preview again before GO")
+	}
 	preflight, err := n.PreflightFlowStrict(ctx, planID, autonomous)
 	if err != nil {
 		return nil, fmt.Errorf("run preflight before approved mission: %w", err)
@@ -217,10 +263,69 @@ func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, appr
 	if !preflight.Ready {
 		return nil, fmt.Errorf("approved mission blocked by preflight")
 	}
-	return n.startMissionRunAtRevision(ctx, plan, approvedRevision, defaultAgentID, contract, autonomous, preflight)
+	if err := validateCostBudgetAdmission(ctx, st, plan, options.CostConfirmationToken); err != nil {
+		return nil, err
+	}
+	return n.startMissionRunAtRevisionWithAdmission(ctx, plan, approvedRevision, defaultAgentID, contract, autonomous, preflight, preview)
 }
 
-func (n *Nexus) startMissionRunAtRevision(ctx context.Context, plan *store.WorkPlan, revision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, admission ...*FlowPreflightReport) (*runner.MissionRun, error) {
+func validateApprovedExecutionPreview(preview *PlanExecutionPreview, planID string, approvedRevision int) error {
+	if preview == nil {
+		return fmt.Errorf("approved mission requires a fresh execution preview")
+	}
+	if preview.PlanID != planID {
+		return fmt.Errorf("execution preview belongs to plan %s, expected %s", preview.PlanID, planID)
+	}
+	if preview.Revision != approvedRevision {
+		return fmt.Errorf("execution preview revision %d is stale; approved revision is %d", preview.Revision, approvedRevision)
+	}
+	if !preview.Ready {
+		reason := strings.Join(preview.Blockers, "; ")
+		if strings.TrimSpace(reason) == "" {
+			reason = "no eligible execution route"
+		}
+		return fmt.Errorf("approved mission blocked by execution preview: %s", reason)
+	}
+	return nil
+}
+
+func validateCostBudgetAdmission(ctx context.Context, st *store.Store, plan *store.WorkPlan, confirmationToken string) error {
+	if st == nil || plan == nil {
+		return fmt.Errorf("cost budget admission requires store and plan")
+	}
+	prefs, err := st.GetCostPreferences()
+	if err != nil {
+		return fmt.Errorf("read cost budget policy: %w", err)
+	}
+	if !prefs.Enabled || (prefs.HardLimitMicroUSD == 0 && prefs.EmergencyLimitMicroUSD == 0) {
+		return nil
+	}
+	summary, err := NewCostApplicationService(st).Summary(ctx, plan.ProjectID, 0)
+	if err != nil {
+		return fmt.Errorf("cost budget admission unavailable: %w", err)
+	}
+	expected := costBudgetConfirmationToken(plan.ID, plan.CurrentRevision, summary)
+	provided := strings.TrimSpace(confirmationToken)
+	if !summary.Budget.RequiresConfirmation {
+		// A previously-issued token is revision/evidence-bound. If cost evidence
+		// changed after preview (even toward a safer measured state), require the
+		// caller to discard the stale acknowledgement and re-enter with the fresh
+		// admission state. This keeps GO tied to the preview the user actually saw.
+		if provided != "" {
+			return fmt.Errorf("cost budget confirmation is stale; run Execution Preview again for the current cost state")
+		}
+		return nil
+	}
+	if expected == "" || provided != expected {
+		return fmt.Errorf(
+			"cost budget confirmation required: %s run Execution Preview again and explicitly confirm the current cost state",
+			summary.Budget.Message,
+		)
+	}
+	return nil
+}
+
+func (n *Nexus) startMissionRunAtRevisionWithAdmission(ctx context.Context, plan *store.WorkPlan, revision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, preflight *FlowPreflightReport, preview *PlanExecutionPreview) (*runner.MissionRun, error) {
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -229,21 +334,18 @@ func (n *Nexus) startMissionRunAtRevision(ctx context.Context, plan *store.WorkP
 	if err != nil {
 		return nil, err
 	}
-	rev, err := st.GetPlanRevision(plan.ID, revision)
+	frozenRevision, rev, err := loadWorkPlanRevision(st, plan.ID, revision)
 	if err != nil {
 		return nil, err
 	}
-	var frozen store.WorkPlan
-	if err := json.Unmarshal([]byte(rev.SnapshotJSON), &frozen); err != nil {
+	frozenPlan, skillContracts, err := freezePlanForExecution(n, *frozenRevision)
+	if err != nil {
 		return nil, err
 	}
-	bindLeadAgent(&frozen, defaultAgentID)
+	frozen := &frozenPlan
+	bindLeadAgent(frozen, defaultAgentID)
 	contract = normalizeAutonomyContract(contract, project.CanonicalPath)
-	var preflight *FlowPreflightReport
-	if len(admission) > 0 {
-		preflight = admission[0]
-	}
-	env, err := json.Marshal(missionExecutionSnapshot{Plan: frozen, Contract: contract, Preflight: preflight})
+	env, err := json.Marshal(missionExecutionSnapshot{Plan: *frozen, Contract: contract, Preflight: preflight, ExecutionPreview: preview, SkillContracts: skillContracts})
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +353,7 @@ func (n *Nexus) startMissionRunAtRevision(ctx context.Context, plan *store.WorkP
 	if err != nil {
 		return nil, err
 	}
-	spec, err := planToRunnerSpec(&frozen, snapshot.ID)
+	spec, err := planToRunnerSpec(frozen, snapshot.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -401,6 +503,75 @@ func (n *Nexus) loadMissionSnapshot(run *runner.MissionRun) (*missionExecutionSn
 // StartMissionWorker starts at most one autonomous worker per run in this process.
 func (n *Nexus) StartMissionWorker(runID string) {
 	_ = n.startMissionWorker(runID, false)
+}
+
+// WaitMissionWorker keeps short-lived callers (notably the CLI) alive while
+// the canonical autonomous worker owns the Mission. It never runs a second
+// MissionRunner loop. Web/server callers do not need this because their host
+// process remains alive and RecoverMissionRuns restores durable work on restart.
+func (n *Nexus) WaitMissionWorker(ctx context.Context, runID string) (*runner.MissionRun, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	runID = strings.TrimSpace(runID)
+	if runID == "" {
+		return nil, fmt.Errorf("mission run id is required")
+	}
+
+	n.workersMu.Lock()
+	worker := n.workers[runID]
+	n.workersMu.Unlock()
+	if worker == nil {
+		run, err := n.Runner().GetRun(ctx, runID)
+		if err != nil {
+			return nil, err
+		}
+		return run, settledMissionError(run)
+	}
+
+	select {
+	case <-ctx.Done():
+		run, _ := n.Runner().GetRun(context.Background(), runID)
+		return run, ctx.Err()
+	case <-worker.done:
+	}
+
+	run, err := n.Runner().GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if worker.err != nil {
+		return run, worker.err
+	}
+	return run, settledMissionError(run)
+}
+
+func settledMissionError(run *runner.MissionRun) error {
+	if run == nil {
+		return fmt.Errorf("mission worker settled without durable run state")
+	}
+	switch run.State {
+	case runner.StateCompletedVerified:
+		return nil
+	case runner.StateFailed,
+		runner.StateFailedNoProgress,
+		runner.StateFailedBudgetExceeded,
+		runner.StateFailedVerification,
+		runner.StateBlockedNeedsUser,
+		runner.StatePaused,
+		runner.StateCanceledByUser,
+		runner.StateEscalated:
+		reason := strings.TrimSpace(run.PausedReason)
+		if run.NeedsHuman != nil && !run.NeedsHuman.Resolved && strings.TrimSpace(run.NeedsHuman.Summary) != "" {
+			reason = strings.TrimSpace(run.NeedsHuman.Summary)
+		}
+		if reason == "" {
+			return fmt.Errorf("mission stopped in state %s", run.State)
+		}
+		return fmt.Errorf("mission stopped in state %s: %s", run.State, reason)
+	default:
+		return fmt.Errorf("mission %s has no active worker while state=%s", run.ID, run.State)
+	}
 }
 
 // restartMissionWorker performs an ownership handoff for a resolved run. The

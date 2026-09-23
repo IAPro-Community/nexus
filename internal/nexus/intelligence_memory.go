@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -49,6 +50,42 @@ type MergedIntelligenceMemory struct {
 	Value     string `json:"value"`
 	Source    string `json:"source,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
+type MemoryRecallRequest struct {
+	ProjectID string   `json:"project_id,omitempty"`
+	Keys      []string `json:"keys,omitempty"`
+	Query     string   `json:"query,omitempty"`
+	Limit     int      `json:"limit,omitempty"`
+}
+
+type RecalledIntelligenceMemory struct {
+	Memory MergedIntelligenceMemory `json:"memory"`
+	Score  int                      `json:"score"`
+	Reason string                   `json:"reason"`
+}
+
+type MemoryRecallResult struct {
+	ProjectID string                       `json:"project_id,omitempty"`
+	Query     string                       `json:"query,omitempty"`
+	Limit     int                          `json:"limit"`
+	Items     []RecalledIntelligenceMemory `json:"items"`
+}
+
+type MemoryConflict struct {
+	Key          string `json:"key"`
+	InstallValue string `json:"install_value,omitempty"`
+	ProjectValue string `json:"project_value,omitempty"`
+	Effective    string `json:"effective"`
+}
+
+type MemoryReflection struct {
+	Mode        string                       `json:"mode"`
+	ProjectID   string                       `json:"project_id,omitempty"`
+	GeneratedAt time.Time                    `json:"generated_at"`
+	Effective   []RecalledIntelligenceMemory `json:"effective"`
+	Conflicts   []MemoryConflict             `json:"conflicts,omitempty"`
+	Summary     []string                     `json:"summary"`
 }
 
 // ListIntelligenceMemories returns install + project memories for Settings/Composer chips.
@@ -160,6 +197,164 @@ func (n *Nexus) DeleteIntelligenceMemory(ctx context.Context, scope, projectID, 
 	default:
 		return fmt.Errorf("unknown memory scope %q", scope)
 	}
+}
+
+// RecallIntelligenceMemories performs a bounded deterministic recall over the
+// existing INSTALL/PROJECT memory stores. It never invokes a model and never
+// persists new memory. PROJECT rows receive higher precedence than INSTALL.
+func (n *Nexus) RecallIntelligenceMemories(ctx context.Context, req MemoryRecallRequest) (MemoryRecallResult, error) {
+	if err := ctx.Err(); err != nil {
+		return MemoryRecallResult{}, err
+	}
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 8
+	}
+	if limit > 50 {
+		limit = 50
+	}
+	rows, err := n.ListIntelligenceMemories(ctx, strings.TrimSpace(req.ProjectID))
+	if err != nil {
+		return MemoryRecallResult{}, err
+	}
+	wanted := map[string]struct{}{}
+	for _, key := range req.Keys {
+		key = normalizeMemoryKey(key)
+		if key != "" {
+			wanted[key] = struct{}{}
+		}
+	}
+	query := strings.ToLower(strings.TrimSpace(req.Query))
+	tokens := strings.Fields(query)
+	items := make([]RecalledIntelligenceMemory, 0, len(rows))
+	for _, row := range rows {
+		key := normalizeMemoryKey(row.Key)
+		if len(wanted) > 0 {
+			if _, ok := wanted[key]; !ok {
+				continue
+			}
+		}
+		score := 0
+		reasons := []string{}
+		if row.Scope == MemoryScopeProject {
+			score += 20
+			reasons = append(reasons, "PROJECT scope overrides INSTALL")
+		}
+		if _, ok := wanted[key]; ok {
+			score += 100
+			reasons = append(reasons, "explicit key match")
+		}
+		matchedQuery := len(tokens) == 0
+		hayKey := strings.ToLower(row.Key)
+		hayValue := strings.ToLower(row.Value)
+		haySource := strings.ToLower(row.Source)
+		for _, token := range tokens {
+			if strings.Contains(hayKey, token) {
+				score += 15
+				matchedQuery = true
+			} else if strings.Contains(hayValue, token) {
+				score += 5
+				matchedQuery = true
+			} else if strings.Contains(haySource, token) {
+				score += 2
+				matchedQuery = true
+			}
+		}
+		if !matchedQuery {
+			continue
+		}
+		if len(reasons) == 0 {
+			reasons = append(reasons, "bounded deterministic recall")
+		} else if len(tokens) > 0 {
+			reasons = append(reasons, "query match")
+		}
+		items = append(items, RecalledIntelligenceMemory{
+			Memory: row,
+			Score:  score,
+			Reason: strings.Join(reasons, "; "),
+		})
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		if items[i].Score != items[j].Score {
+			return items[i].Score > items[j].Score
+		}
+		if items[i].Memory.Key != items[j].Memory.Key {
+			return items[i].Memory.Key < items[j].Memory.Key
+		}
+		return items[i].Memory.Scope == MemoryScopeProject && items[j].Memory.Scope != MemoryScopeProject
+	})
+	if len(items) > limit {
+		items = items[:limit]
+	}
+	return MemoryRecallResult{
+		ProjectID: strings.TrimSpace(req.ProjectID),
+		Query:     strings.TrimSpace(req.Query),
+		Limit:     limit,
+		Items:     items,
+	}, nil
+}
+
+// ReflectIntelligenceMemories is an explicit, read-only reflection over recalled
+// facts. The 1.0 implementation is deterministic by design: no hidden LLM cost,
+// no automatic writes and no new memory engine. Project scope wins conflicts.
+func (n *Nexus) ReflectIntelligenceMemories(ctx context.Context, req MemoryRecallRequest) (MemoryReflection, error) {
+	recallReq := req
+	if recallReq.Limit <= 0 || recallReq.Limit > 20 {
+		recallReq.Limit = 20
+	}
+	recall, err := n.RecallIntelligenceMemories(ctx, recallReq)
+	if err != nil {
+		return MemoryReflection{}, err
+	}
+	byKey := map[string][]RecalledIntelligenceMemory{}
+	for _, item := range recall.Items {
+		byKey[item.Memory.Key] = append(byKey[item.Memory.Key], item)
+	}
+	keys := make([]string, 0, len(byKey))
+	for key := range byKey {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	reflection := MemoryReflection{
+		Mode:        "DETERMINISTIC",
+		ProjectID:   recall.ProjectID,
+		GeneratedAt: time.Now().UTC(),
+		Effective:   []RecalledIntelligenceMemory{},
+		Summary:     []string{},
+	}
+	for _, key := range keys {
+		items := byKey[key]
+		effective := items[0]
+		for _, item := range items {
+			if item.Memory.Scope == MemoryScopeProject {
+				effective = item
+				break
+			}
+		}
+		reflection.Effective = append(reflection.Effective, effective)
+		reflection.Summary = append(reflection.Summary, fmt.Sprintf(
+			"%s=%s (%s)", effective.Memory.Key, effective.Memory.Value, effective.Memory.Scope,
+		))
+		var installValue, projectValue string
+		for _, item := range items {
+			switch item.Memory.Scope {
+			case MemoryScopeInstall:
+				installValue = item.Memory.Value
+			case MemoryScopeProject:
+				projectValue = item.Memory.Value
+			}
+		}
+		if installValue != "" && projectValue != "" && installValue != projectValue {
+			reflection.Conflicts = append(reflection.Conflicts, MemoryConflict{
+				Key:          key,
+				InstallValue: installValue,
+				ProjectValue: projectValue,
+				Effective:    MemoryScopeProject,
+			})
+		}
+	}
+	return reflection, nil
 }
 
 // MemoryFactsMap flattens install+project memories for Intelligence contextData

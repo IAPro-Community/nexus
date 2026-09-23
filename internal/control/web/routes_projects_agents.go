@@ -42,6 +42,8 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			}
 		case strings.HasSuffix(r.URL.Path, "/plans"):
 			h.handleProjectPlans(w, r)
+		case strings.HasSuffix(r.URL.Path, "/skills"):
+			h.handleProjectSkillCatalog(w, r)
 		case strings.HasSuffix(r.URL.Path, "/composer-sessions"):
 			h.handleProjectComposerSessions(w, r)
 		case strings.HasSuffix(r.URL.Path, "/context/prepare"):

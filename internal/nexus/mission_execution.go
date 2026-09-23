@@ -1,6 +1,7 @@
 package nexus
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -26,6 +27,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	profilepkg "github.com/IAPro-Community/nexus/internal/profile"
 )
 
 type agentPromptExecution struct {
@@ -35,8 +37,10 @@ type agentPromptExecution struct {
 }
 
 type agentPromptPolicy struct {
-	Contract runner.AutonomyContract
-	Review   bool
+	Contract     runner.AutonomyContract
+	Review       bool
+	MissionRunID string
+	PackageID    string
 }
 
 // executeAgentPrompt runs one autonomous, headless provider turn under a real
@@ -72,6 +76,7 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	if err != nil {
 		return nil, err
 	}
+	policy = applyAgentModeExecutionPolicy(cfg, policy)
 	if cfg.Provider == "" || cfg.Profile == "" {
 		return nil, fmt.Errorf("agent %s has no persisted provider/profile", agentID)
 	}
@@ -206,13 +211,43 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	// Record invocation completion for observability.
 	finishedAt := time.Now().UTC()
 	invocation.FinishedAt = &finishedAt
+	status := "COMPLETED"
 	if runErr != nil {
 		invocation.Status = AgentInvocationFailed
 		invocation.Errors = []string{runErr.Error()}
+		status = "FAILED"
 	} else {
 		invocation.Status = AgentInvocationCompleted
 	}
 	_ = RecordAgentInvocation(st, invocation)
+
+	// Cost Intelligence is observational: duration and attribution are known
+	// here, while token/cost fields remain NULL until a trustworthy provider
+	// source reports them. UNKNOWN must never be serialized as zero.
+	accountScope := ""
+	if info := profilepkg.GetAccountInfo(cfg.Provider, cfg.Profile); info.AccountScope.Verifiable() {
+		accountScope = info.AccountScope.Key()
+	}
+	_, _ = st.RecordCostObservation(store.CostObservation{
+		ProjectID:           agent.ProjectID,
+		MissionRunID:        policy.MissionRunID,
+		PackageID:           policy.PackageID,
+		InvocationID:        goalID,
+		AgentID:             agent.ID,
+		RuntimeGenerationID: generation.ID,
+		RuntimeID:           sess.RuntimeID,
+		Provider:            cfg.Provider,
+		Profile:             cfg.Profile,
+		Model:               cfg.Model,
+		Branch:              executionBranch(ctx, workspace),
+		WorkspaceKind:       cfg.Isolation,
+		DurationMS:          max(finishedAt.Sub(startedAt).Milliseconds(), 0),
+		CostKind:            store.CostKindUnknown,
+		Source:              "runtime_observation",
+		Status:              status,
+		AccountScope:        accountScope,
+		ObservedAt:          finishedAt,
+	})
 
 	if runErr != nil {
 		failure := classifier.Classify(runErr, output)
@@ -222,12 +257,82 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	return &agentPromptExecution{RuntimeID: sess.RuntimeID, Output: output}, nil
 }
 
+func applyAgentModeExecutionPolicy(cfg AgentConfig, policy agentPromptPolicy) agentPromptPolicy {
+	if mode, ok := AgentModeForRole(cfg.AgentSpec.Role); ok && mode.ReadOnlyByDefault {
+		policy.Review = true
+	}
+	return policy
+}
+
+func executionBranch(ctx context.Context, workspace string) string {
+	if strings.TrimSpace(workspace) == "" {
+		return ""
+	}
+	branchCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(branchCtx, "git", "-C", workspace, "rev-parse", "--abbrev-ref", "HEAD").Output()
+	if err != nil {
+		return ""
+	}
+	branch := strings.TrimSpace(string(out))
+	if branch == "HEAD" {
+		return ""
+	}
+	return branch
+}
+
+func autonomyRequiresVerifiedIsolation(contract runner.AutonomyContract) bool {
+	return contract.DisallowDestructiveGit ||
+		!contract.AllowGitPush ||
+		!contract.AllowDeploy ||
+		!contract.AllowExternalNetwork ||
+		!contract.AllowSecretAccess ||
+		!contract.AllowPaidServices ||
+		len(contract.AllowedFilePatterns) > 0
+}
+
+func providerSatisfiesAutonomyIsolation(provider string, contract runner.AutonomyContract, review bool) (bool, string) {
+	providerSpec, ok := spec.Get(strings.ToLower(strings.TrimSpace(provider)))
+	if !ok {
+		return false, "provider contract is unknown"
+	}
+	if review {
+		if providerSpec.ReviewIsolationLevel() != spec.IsolationReadOnlyNoNetwork {
+			return false, "read-only/no-network isolation is not verified for this provider"
+		}
+		return true, ""
+	}
+	if !autonomyRequiresVerifiedIsolation(contract) {
+		return true, ""
+	}
+	if providerSpec.AutonomousIsolationLevel() != spec.IsolationWorkspaceWriteNoNetwork {
+		return false, "workspace-write/no-network isolation is not verified for this provider"
+	}
+	return true, ""
+}
+
+func filterAccountsByAutonomyIsolation(accounts []ProviderAccount, contract runner.AutonomyContract, review bool) ([]ProviderAccount, []string) {
+	eligible := make([]ProviderAccount, 0, len(accounts))
+	rejected := make([]string, 0)
+	for _, account := range accounts {
+		if ok, reason := providerSatisfiesAutonomyIsolation(account.Provider, contract, review); ok {
+			eligible = append(eligible, account)
+		} else {
+			rejected = append(rejected, fmt.Sprintf("%s:%s (%s)", account.Provider, account.Profile, reason))
+		}
+	}
+	return eligible, rejected
+}
+
 func missionProviderArgs(provider string, args []string, policy agentPromptPolicy) ([]string, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	out := append([]string(nil), args...)
 	providerSpec, ok := spec.Get(provider)
 	if !ok {
 		return nil, fmt.Errorf("provider %s is not approved for autonomous coding", provider)
+	}
+	if supported, reason := providerSatisfiesAutonomyIsolation(provider, policy.Contract, policy.Review); !supported {
+		return nil, fmt.Errorf("provider %s cannot satisfy the Mission isolation contract: %s", provider, reason)
 	}
 	if policy.Review {
 		if len(providerSpec.ReviewMode) == 0 {
@@ -342,6 +447,16 @@ func workspaceFingerprint(ctx context.Context, workspace string) (string, error)
 	}
 	root := strings.TrimSpace(string(rootOut))
 	h := sha256.New()
+
+	// Include the Git object identity, not only worktree/index deltas. A local
+	// commit can leave status/diff clean while still crossing a replay boundary.
+	headOut, err := exec.CommandContext(ctx, "git", "-C", root, "rev-parse", "HEAD").Output()
+	if err != nil {
+		return "", err
+	}
+	_, _ = h.Write([]byte("HEAD\x00"))
+	_, _ = h.Write(bytes.TrimSpace(headOut))
+	_, _ = h.Write([]byte("\x00"))
 
 	for _, args := range [][]string{
 		{"-C", root, "status", "--porcelain=v2", "-z"},

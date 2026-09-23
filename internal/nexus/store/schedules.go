@@ -17,17 +17,20 @@ const (
 )
 
 type MissionSchedule struct {
-	ID           string     `json:"id"`
-	PlanID       string     `json:"plan_id"`
-	ProjectID    string     `json:"project_id"`
-	Mode         string     `json:"mode"` // AT | AFTER_RUN | WHEN_RESOURCES
-	ScheduledFor *time.Time `json:"scheduled_for,omitempty"`
-	AfterRunID   string     `json:"after_run_id,omitempty"`
-	Status       string     `json:"status"`
-	RunID        string     `json:"run_id,omitempty"`
-	ContractJSON string     `json:"contract_json"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID            string     `json:"id"`
+	PlanID        string     `json:"plan_id"`
+	ProjectID     string     `json:"project_id"`
+	Mode          string     `json:"mode"` // AT | AFTER_RUN | WHEN_RESOURCES
+	ScheduledFor  *time.Time `json:"scheduled_for,omitempty"`
+	AfterRunID    string     `json:"after_run_id,omitempty"`
+	Status        string     `json:"status"`
+	RunID         string     `json:"run_id,omitempty"`
+	ContractJSON  string     `json:"contract_json"`
+	LastError     string     `json:"last_error,omitempty"`
+	AttemptCount  int        `json:"attempt_count"`
+	LastAttemptAt *time.Time `json:"last_attempt_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 func (s *Store) CreateMissionSchedule(item MissionSchedule) (*MissionSchedule, error) {
@@ -42,8 +45,12 @@ func (s *Store) CreateMissionSchedule(item MissionSchedule) (*MissionSchedule, e
 	}
 	now := time.Now().UTC()
 	item.CreatedAt, item.UpdatedAt = now, now
-	_, err := s.db.Exec(`INSERT INTO mission_schedules(id,plan_id,project_id,mode,scheduled_for,after_run_id,status,run_id,contract_json,created_at,updated_at)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?)`, item.ID, item.PlanID, item.ProjectID, item.Mode, nullableTime(item.ScheduledFor), nullableString(item.AfterRunID), item.Status, nullableString(item.RunID), item.ContractJSON, now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
+	_, err := s.db.Exec(`INSERT INTO mission_schedules(id,plan_id,project_id,mode,scheduled_for,after_run_id,status,run_id,contract_json,last_error,attempt_count,last_attempt_at,created_at,updated_at)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		item.ID, item.PlanID, item.ProjectID, item.Mode, nullableTime(item.ScheduledFor),
+		nullableString(item.AfterRunID), item.Status, nullableString(item.RunID), item.ContractJSON,
+		item.LastError, item.AttemptCount, nullableTime(item.LastAttemptAt),
+		now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, err
 	}
@@ -51,12 +58,12 @@ func (s *Store) CreateMissionSchedule(item MissionSchedule) (*MissionSchedule, e
 }
 
 func (s *Store) GetMissionSchedule(id string) (*MissionSchedule, error) {
-	row := s.db.QueryRow(`SELECT id,plan_id,project_id,mode,scheduled_for,after_run_id,status,run_id,contract_json,created_at,updated_at FROM mission_schedules WHERE id=?`, id)
+	row := s.db.QueryRow(`SELECT id,plan_id,project_id,mode,scheduled_for,after_run_id,status,run_id,contract_json,last_error,attempt_count,last_attempt_at,created_at,updated_at FROM mission_schedules WHERE id=?`, id)
 	return scanMissionSchedule(row)
 }
 
 func (s *Store) ListMissionSchedules(projectID string) ([]MissionSchedule, error) {
-	query := `SELECT id,plan_id,project_id,mode,scheduled_for,after_run_id,status,run_id,contract_json,created_at,updated_at FROM mission_schedules`
+	query := `SELECT id,plan_id,project_id,mode,scheduled_for,after_run_id,status,run_id,contract_json,last_error,attempt_count,last_attempt_at,created_at,updated_at FROM mission_schedules`
 	args := []any{}
 	if projectID != "" {
 		query += ` WHERE project_id=?`
@@ -83,7 +90,7 @@ func (s *Store) ListMissionSchedules(projectID string) ([]MissionSchedule, error
 // is satisfied. WHEN_RESOURCES remains pending until the Nexus scheduler also
 // confirms an eligible provider resource.
 func (s *Store) ListReadyMissionSchedules(now time.Time) ([]MissionSchedule, error) {
-	rows, err := s.db.Query(`SELECT s.id,s.plan_id,s.project_id,s.mode,s.scheduled_for,s.after_run_id,s.status,s.run_id,s.contract_json,s.created_at,s.updated_at
+	rows, err := s.db.Query(`SELECT s.id,s.plan_id,s.project_id,s.mode,s.scheduled_for,s.after_run_id,s.status,s.run_id,s.contract_json,s.last_error,s.attempt_count,s.last_attempt_at,s.created_at,s.updated_at
 		FROM mission_schedules s
 		LEFT JOIN mission_runs r ON r.id=s.after_run_id
 		WHERE s.status=? AND (
@@ -121,7 +128,8 @@ func (s *Store) UpdateMissionScheduleStatus(id, status string) error {
 // The conditional update is the concurrency boundary: only one scheduler
 // worker can observe a successful claim for a given schedule.
 func (s *Store) ClaimMissionSchedule(id string) (bool, error) {
-	res, err := s.db.Exec(`UPDATE mission_schedules SET status=?,updated_at=? WHERE id=? AND status=?`, ScheduleRunning, time.Now().UTC().Format(time.RFC3339Nano), id, SchedulePending)
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	res, err := s.db.Exec(`UPDATE mission_schedules SET status=?,attempt_count=attempt_count+1,last_attempt_at=?,last_error='',updated_at=? WHERE id=? AND status=?`, ScheduleRunning, now, now, id, SchedulePending)
 	if err != nil {
 		return false, err
 	}
@@ -129,8 +137,21 @@ func (s *Store) ClaimMissionSchedule(id string) (bool, error) {
 	return n == 1, err
 }
 
+// FailMissionSchedule records the durable reason an admitted schedule could not
+// start or its bound Mission terminated unsuccessfully.
+func (s *Store) FailMissionSchedule(id, reason string) error {
+	res, err := s.db.Exec(`UPDATE mission_schedules SET status=?,last_error=?,updated_at=? WHERE id=?`, ScheduleFailed, reason, time.Now().UTC().Format(time.RFC3339Nano), id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("mission schedule not found")
+	}
+	return nil
+}
+
 func (s *Store) BindMissionScheduleRun(id, runID string) error {
-	res, err := s.db.Exec(`UPDATE mission_schedules SET run_id=?,status=?,updated_at=? WHERE id=? AND status IN (?,?) AND run_id IS NULL`, runID, ScheduleRunning, time.Now().UTC().Format(time.RFC3339Nano), id, SchedulePending, ScheduleRunning)
+	res, err := s.db.Exec(`UPDATE mission_schedules SET run_id=?,status=?,last_error='',updated_at=? WHERE id=? AND status IN (?,?) AND run_id IS NULL`, runID, ScheduleRunning, time.Now().UTC().Format(time.RFC3339Nano), id, SchedulePending, ScheduleRunning)
 	if err != nil {
 		return err
 	}
@@ -144,9 +165,9 @@ type missionScheduleScanner interface{ Scan(...any) error }
 
 func scanMissionSchedule(row missionScheduleScanner) (*MissionSchedule, error) {
 	var item MissionSchedule
-	var scheduled, after, runID sql.NullString
+	var scheduled, after, runID, lastAttempt sql.NullString
 	var created, updated string
-	if err := row.Scan(&item.ID, &item.PlanID, &item.ProjectID, &item.Mode, &scheduled, &after, &item.Status, &runID, &item.ContractJSON, &created, &updated); err != nil {
+	if err := row.Scan(&item.ID, &item.PlanID, &item.ProjectID, &item.Mode, &scheduled, &after, &item.Status, &runID, &item.ContractJSON, &item.LastError, &item.AttemptCount, &lastAttempt, &created, &updated); err != nil {
 		return nil, err
 	}
 	if scheduled.Valid {
@@ -159,6 +180,11 @@ func scanMissionSchedule(row missionScheduleScanner) (*MissionSchedule, error) {
 	}
 	if runID.Valid {
 		item.RunID = runID.String
+	}
+	if lastAttempt.Valid {
+		if t, err := time.Parse(time.RFC3339Nano, lastAttempt.String); err == nil {
+			item.LastAttemptAt = &t
+		}
 	}
 	item.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
 	item.UpdatedAt, _ = time.Parse(time.RFC3339Nano, updated)

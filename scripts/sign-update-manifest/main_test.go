@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/hex"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,6 +66,44 @@ func TestArtifactKeysMapGoReleaserAndDesktopNames(t *testing.T) {
 		}
 		if artifactTarget(name) == "" {
 			t.Fatalf("%s missing target", name)
+		}
+	}
+}
+
+func TestAllowedArtifactBaseURL(t *testing.T) {
+	cases := []struct {
+		raw  string
+		want bool
+	}{
+		{"https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0", true},
+		{"http://127.0.0.1:8080/v1.0.0", true},
+		{"http://localhost:8080/v1.0.0", true},
+		{"http://[::1]:8080/v1.0.0", true},
+		{"http://example.com/v1.0.0", false},
+		{"ftp://127.0.0.1/v1.0.0", false},
+		{"/relative/path", false},
+	}
+	for _, tc := range cases {
+		u, err := url.Parse(tc.raw)
+		if err != nil {
+			t.Fatalf("parse %q: %v", tc.raw, err)
+		}
+		if got := allowedArtifactBaseURL(u); got != tc.want {
+			t.Errorf("allowedArtifactBaseURL(%q)=%v, want %v", tc.raw, got, tc.want)
+		}
+	}
+}
+
+func TestReleaseChannelClassification(t *testing.T) {
+	cases := map[string]string{
+		"v1.0.0-alpha.1": "beta",
+		"v1.0.0-beta.1":  "beta",
+		"v1.0.0-rc.1":    "beta",
+		"v1.0.0":         "stable",
+	}
+	for version, want := range cases {
+		if got := channel(version); got != want {
+			t.Errorf("channel(%q)=%q, want %q", version, got, want)
 		}
 	}
 }

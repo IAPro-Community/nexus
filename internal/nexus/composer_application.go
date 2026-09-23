@@ -50,6 +50,14 @@ func (s *ComposerApplicationService) UpdateSkill(ctx context.Context, sessionID,
 	return s.nexus.UpdateComposerSkillState(ctx, sessionID, skillID, state)
 }
 
+func (s *ComposerApplicationService) SkillCatalog(ctx context.Context, projectID, query string) ([]ComposerSkillCatalogItem, error) {
+	return s.nexus.ListComposerSkillCatalog(ctx, projectID, query)
+}
+
+func (s *ComposerApplicationService) SelectSkill(ctx context.Context, sessionID, skillID string) (*ComposerSessionView, error) {
+	return s.nexus.SelectComposerSkill(ctx, sessionID, skillID)
+}
+
 func (s *ComposerApplicationService) Finalize(ctx context.Context, sessionID string, selectedSkills []string, confirmGaps bool) (*store.PromptArtifact, error) {
 	return s.nexus.FinalizeComposerSession(ctx, sessionID, selectedSkills, confirmGaps)
 }

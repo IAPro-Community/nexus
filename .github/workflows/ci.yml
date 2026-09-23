@@ -11,6 +11,12 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:
+    inputs:
+      native_target_sha:
+        description: Full commit SHA to certify on Windows/macOS (leave empty for regular CI)
+        required: false
+        default: ''
+        type: string
 
 env:
   GOTOOLCHAIN: local
@@ -26,10 +32,27 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
+      - name: Verify documentation
+        run: bun scripts/docs-verify.mjs
       - working-directory: web
         run: bun install --frozen-lockfile
-      - working-directory: web
-        run: bun run format:check
+      - name: Verify frontend formatting
+        working-directory: web
+        run: |
+          set -euo pipefail
+          if bun run format:check; then
+            exit 0
+          fi
+          mapfile -t files < <(bunx prettier --list-different 'src/**/*.{ts,tsx,css,json}')
+          for file in "${files[@]}"; do
+            [ -n "$file" ] || continue
+            formatted="$RUNNER_TEMP/prettier-${file//\//_}"
+            bunx prettier "$file" > "$formatted"
+            echo "::group::prettier diff $file"
+            diff -u "$file" "$formatted" || true
+            echo "::endgroup::"
+          done
+          exit 1
       - working-directory: web
         run: bun run typecheck
       - working-directory: web
@@ -44,6 +67,17 @@ jobs:
         run: bun run build
       - working-directory: web
         run: bun run verify
+
+  release-config:
+    name: Release configuration
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: v2.18.0
+          args: check
 
   security:
     name: Security
@@ -71,6 +105,9 @@ jobs:
           bun-version: 1.3.9
       - working-directory: web
         run: bun install --frozen-lockfile
+      - name: Build exact-SHA frontend for embedded browser runtime
+        working-directory: web
+        run: bun run build
       - name: Install Chromium browser only
         working-directory: web
         run: bunx playwright install chromium
@@ -92,6 +129,24 @@ jobs:
         run: |
           set -o pipefail
           bun run test:e2e:capacity 2>&1 | tee "$RUNNER_TEMP/nexus-browser-capacity.log"
+      - id: composer-spine-e2e
+        if: always()
+        working-directory: web
+        run: |
+          set -o pipefail
+          bun run test:e2e:composer-spine 2>&1 | tee "$RUNNER_TEMP/nexus-browser-composer-spine.log"
+      - id: composer-vague-spine-e2e
+        if: always()
+        working-directory: web
+        run: |
+          set -o pipefail
+          bun run test:e2e:composer-vague-spine 2>&1 | tee "$RUNNER_TEMP/nexus-browser-composer-vague-spine.log"
+      - id: composer-theme-e2e
+        if: always()
+        working-directory: web
+        run: |
+          set -o pipefail
+          bun run test:e2e:composer-themes 2>&1 | tee "$RUNNER_TEMP/nexus-browser-composer-themes.log"
       - id: browser-a11y
         if: always()
         working-directory: web
@@ -115,6 +170,8 @@ jobs:
             .tempmediaStorage/e2e-failure.png
             .tempmediaStorage/e2e-surface-failure-diagnostics.json
             .tempmediaStorage/e2e-surface-failure.png
+            .tempmediaStorage/composer-themes/
+            DEV/validation/composer-execution-spine/
           if-no-files-found: ignore
           retention-days: 2
       - if: always()
@@ -122,6 +179,9 @@ jobs:
           test '${{ steps.browser-e2e.outcome }}' = success
           test '${{ steps.surface-e2e.outcome }}' = success
           test '${{ steps.capacity-e2e.outcome }}' = success
+          test '${{ steps.composer-spine-e2e.outcome }}' = success
+          test '${{ steps.composer-vague-spine-e2e.outcome }}' = success
+          test '${{ steps.composer-theme-e2e.outcome }}' = success
           test '${{ steps.browser-a11y.outcome }}' = success
           test '${{ steps.browser-visual.outcome }}' = success
 
@@ -134,7 +194,21 @@ jobs:
         with:
           go-version: '1.25.14'
           cache: false
-      - run: test -z "$(gofmt -l . | grep -v .worktrees)" || (gofmt -l . | grep -v .worktrees && exit 1)
+      - name: Verify gofmt
+        run: |
+          set -euo pipefail
+          unformatted="$(gofmt -l . | grep -v '^./\.worktrees/' || true)"
+          if [ -n "$unformatted" ]; then
+            echo "gofmt required for:"
+            printf '%s\n' "$unformatted"
+            while IFS= read -r file; do
+              [ -n "$file" ] || continue
+              echo "::group::gofmt diff $file"
+              gofmt -d "$file"
+              echo "::endgroup::"
+            done <<< "$unformatted"
+            exit 1
+          fi
       - run: go vet ./...
       - uses: golangci/golangci-lint-action@v7
         with:
@@ -144,6 +218,28 @@ jobs:
       - run: go test -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/...
       - run: go test -race -v -count=1 ./internal/control/host/... ./internal/control/web/...
       - run: go build -trimpath -v ./cmd/nexus
+      - name: Unix installer/uninstaller lifecycle smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n install.sh
+          bash -n uninstall.sh
+          root="$(mktemp -d)"
+          home="$root/home"
+          prefix="$root/prefix"
+          mkdir -p "$home/.local/share/applications" "$home/Desktop" "$home/.local/share/nexus" "$prefix/bin"
+          touch "$prefix/bin/nexus" "$prefix/bin/nexus-desktop" "$prefix/bin/maestro" "$prefix/bin/orquestrador"
+          touch "$home/.local/share/applications/iapro-nexus.desktop" "$home/Desktop/IAPro Nexus.desktop"
+          printf '# existing\n# IAPro Nexus\nexport PATH="$HOME/.local/bin:$PATH"\n' > "$home/.bashrc"
+          HOME="$home" PREFIX="$prefix" bash ./uninstall.sh
+          HOME="$home" PREFIX="$prefix" bash ./uninstall.sh
+          test ! -e "$prefix/bin/nexus"
+          test ! -e "$prefix/bin/nexus-desktop"
+          test ! -e "$home/.local/share/applications/iapro-nexus.desktop"
+          test ! -e "$home/Desktop/IAPro Nexus.desktop"
+          test -d "$home/.local/share/nexus"
+          ! grep -Fq '# IAPro Nexus' "$home/.bashrc"
+          grep -Fq '# existing' "$home/.bashrc"
 
   desktop-linux:
     name: Desktop Linux (Wails native build)
@@ -181,6 +277,205 @@ jobs:
           if-no-files-found: error
           retention-days: 2
 
+
+  native-windows:
+    name: Windows native certification
+    if: github.event_name == 'workflow_dispatch' && inputs.native_target_sha != ''
+    runs-on: [self-hosted, Windows, X64, nexus-windows]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.native_target_sha }}
+          fetch-depth: 0
+      - name: Verify exact SHA and architecture
+        shell: pwsh
+        env:
+          TARGET_SHA: ${{ inputs.native_target_sha }}
+        run: |
+          $head = (git rev-parse HEAD).Trim()
+          if ($head -ne $env:TARGET_SHA) { throw "Checked out $head, expected $env:TARGET_SHA" }
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
+            throw "Expected native Windows amd64 runner, got $env:PROCESSOR_ARCHITECTURE"
+          }
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.14'
+          cache: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - working-directory: web
+        run: bun install --frozen-lockfile
+      - run: go vet ./...
+      - name: Full Windows suite
+        shell: pwsh
+        run: go test -v ./...
+      - name: ConPTY and Named Pipe E2E
+        shell: pwsh
+        run: go test -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/...
+      - name: Runtime and Web E2E
+        shell: pwsh
+        run: go test -v -count=1 ./internal/control/host/... ./internal/control/web/...
+      - name: Build and smoke CLI
+        shell: pwsh
+        run: |
+          go build -trimpath -o nexus.exe ./cmd/nexus
+          .\nexus.exe version
+          .\nexus.exe doctor --json | Out-File -Encoding utf8 "$env:RUNNER_TEMP\nexus-doctor-windows.json"
+      - name: Parse installer/uninstaller and smoke uninstall
+        shell: pwsh
+        run: |
+          [void][scriptblock]::Create((Get-Content -Raw ./install.ps1))
+          [void][scriptblock]::Create((Get-Content -Raw ./uninstall.ps1))
+          $tmp = Join-Path $env:RUNNER_TEMP "nexus-uninstall-smoke"
+          New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+          Set-Content -Path (Join-Path $tmp "nexus.exe") -Value "fixture"
+          ./uninstall.ps1 -InstallDir $tmp -SkipPathCleanup -SkipDesktopShortcut
+          if (Test-Path $tmp) { throw "uninstall.ps1 did not remove the test install directory" }
+          ./uninstall.ps1 -InstallDir $tmp -SkipPathCleanup -SkipDesktopShortcut
+      - name: Build Windows desktop
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NEXUS_UPDATE_PUBLIC_KEY)) {
+            throw "NEXUS_UPDATE_PUBLIC_KEY is required for native desktop certification"
+          }
+          $version = (Get-Content VERSION -Raw).Trim()
+          $commit = (git rev-parse --short HEAD).Trim()
+          $buildDate = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+          $ldflags = "-s -w -X github.com/IAPro-Community/nexus/internal/buildinfo.Version=$version -X github.com/IAPro-Community/nexus/internal/buildinfo.Commit=$commit -X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate=$buildDate -X github.com/IAPro-Community/nexus/internal/update.ProductionTrustRootHex=$env:NEXUS_UPDATE_PUBLIC_KEY"
+          Push-Location cmd/nexus-desktop
+          go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags "$ldflags"
+          Pop-Location
+          $exe = Get-ChildItem cmd/nexus-desktop/build/bin -Filter *.exe | Select-Object -First 1
+          if (-not $exe) { throw "Wails Windows executable not found" }
+          Compress-Archive -Path $exe.FullName -DestinationPath "$env:RUNNER_TEMP\nexus-desktop_Windows_x86_64.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-${{ inputs.native_target_sha }}
+          path: ${{ runner.temp }}\nexus-desktop_Windows_x86_64.zip
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-native-evidence-${{ inputs.native_target_sha }}
+          path: ${{ runner.temp }}\nexus-doctor-windows.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  native-macos:
+    name: macOS arm64 native certification
+    if: github.event_name == 'workflow_dispatch' && inputs.native_target_sha != ''
+    runs-on: [self-hosted, macOS, ARM64, nexus-macos]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.native_target_sha }}
+          fetch-depth: 0
+      - name: Verify exact SHA and architecture
+        shell: bash
+        env:
+          TARGET_SHA: ${{ inputs.native_target_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          test "$(uname -m)" = "arm64"
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.14'
+          cache: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - working-directory: web
+        run: bun install --frozen-lockfile
+      - run: go vet ./...
+      - name: Full macOS race suite
+        run: go test -v -race ./...
+      - name: PTY, Socket and Runtime E2E
+        run: go test -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/...
+      - name: Web E2E
+        run: go test -race -v -count=1 ./internal/control/web/...
+      - name: Build and smoke CLI
+        run: |
+          set -euo pipefail
+          go build -trimpath -o nexus ./cmd/nexus
+          ./nexus version
+          ./nexus doctor --json > "$RUNNER_TEMP/nexus-doctor-macos.json"
+      - name: Parse Unix installer
+        run: bash -n install.sh
+      - name: Build macOS arm64 desktop app
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$NEXUS_UPDATE_PUBLIC_KEY"
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          COMMIT="$(git rev-parse --short HEAD)"
+          BUILDDATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          LDFLAGS="-s -w -X github.com/IAPro-Community/nexus/internal/buildinfo.Version=$VERSION -X github.com/IAPro-Community/nexus/internal/buildinfo.Commit=$COMMIT -X github.com/IAPro-Community/nexus/internal/buildinfo.BuildDate=$BUILDDATE -X github.com/IAPro-Community/nexus/internal/update.ProductionTrustRootHex=$NEXUS_UPDATE_PUBLIC_KEY"
+          (
+            cd cmd/nexus-desktop
+            go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags "$LDFLAGS"
+          )
+          APP="$(find cmd/nexus-desktop/build/bin -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "$APP"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$RUNNER_TEMP/nexus-desktop_Darwin_arm64.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-${{ inputs.native_target_sha }}
+          path: ${{ runner.temp }}/nexus-desktop_Darwin_arm64.zip
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-native-evidence-${{ inputs.native_target_sha }}
+          path: ${{ runner.temp }}/nexus-doctor-macos.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  native-certification:
+    name: Seal native certification evidence
+    if: github.event_name == 'workflow_dispatch' && inputs.native_target_sha != ''
+    needs: [native-windows, native-macos]
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-windows-${{ inputs.native_target_sha }}
+          path: native/windows
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-macos-${{ inputs.native_target_sha }}
+          path: native/macos
+      - name: Write exact-SHA certificate
+        shell: bash
+        env:
+          TARGET_SHA: ${{ inputs.native_target_sha }}
+        run: |
+          set -euo pipefail
+          test "${#TARGET_SHA}" -eq 40
+          printf '%s\n' "$TARGET_SHA" > certified-sha.txt
+          sha256sum native/windows/nexus-desktop_Windows_x86_64.zip > windows.sha256
+          sha256sum native/macos/nexus-desktop_Darwin_arm64.zip > macos.sha256
+          {
+            printf 'sha=%s\n' "$TARGET_SHA"
+            printf 'windows_runner=self-hosted/windows/x64/nexus-windows\n'
+            printf 'macos_runner=self-hosted/macos/arm64/nexus-macos\n'
+          } > native-certification.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-certification-${{ inputs.native_target_sha }}
+          path: |
+            certified-sha.txt
+            windows.sha256
+            macos.sha256
+            native-certification.txt
+          if-no-files-found: error
+          retention-days: 30
+
   snapshot:
     name: GoReleaser Snapshot Build
     runs-on: [self-hosted, Linux, X64, nexus-ci]
@@ -196,14 +491,15 @@ jobs:
           distribution: goreleaser
           version: v2.18.0
           args: release --snapshot --clean
-      - name: Verify Linux beta artifacts
+      - name: Verify Nexus v1 Linux amd64 artifacts
         run: |
           set -euo pipefail
           test -f dist/checksums.txt
           test -f dist/nexus_Linux_x86_64.tar.gz
-          test -f dist/nexus_Linux_arm64.tar.gz
-          test "$(find dist -maxdepth 1 -name '*.deb' | wc -l)" -ge 1
+          test "$(find dist -maxdepth 1 -name 'nexus_Linux_*.tar.gz' | wc -l)" -eq 1
+          test "$(find dist -maxdepth 1 -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' | wc -l)" -ge 1
           test "$(find dist -maxdepth 1 -name '*.rpm' | wc -l)" -eq 0
+          test "$(find dist -maxdepth 1 \( -name '*Darwin*' -o -name '*Windows*' -o -name '*arm64*' \) | wc -l)" -eq 0
       - uses: actions/upload-artifact@v4
         with:
           name: snapshot-dist-${{ github.sha }}
@@ -231,4 +527,16 @@ jobs:
             apt-get update
             apt-get install -f -y
           fi
+          installed_path="$(command -v nexus)"
+          test -n "$installed_path"
           nexus version
+          dpkg -r nexus
+          hash -r
+          if [ -e "$installed_path" ]; then
+            echo "nexus binary still exists after DEB uninstall: $installed_path" >&2
+            exit 1
+          fi
+          if command -v nexus >/dev/null 2>&1; then
+            echo "another nexus command is still resolvable after DEB uninstall: $(command -v nexus)" >&2
+            exit 1
+          fi

@@ -2438,6 +2438,25 @@ button.nx-workspace-tab__close {
   }
 }
 @media (max-width: 720px) {
+  .nx-os-main,
+  .nx-workspace-host,
+  .nx-workspace,
+  .nx-workspace-split,
+  .nx-workspace-split__pane,
+  .nx-workspace-stack,
+  .nx-workspace-stack__body,
+  .nx-workspace-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100vw;
+  }
+
+  .nx-workspace-stack__tabs {
+    min-width: 0;
+    max-width: 100vw;
+    overflow: hidden;
+  }
+
   .nx-os-main {
     grid-template-rows: var(--nx-topbar) minmax(0, 1fr) var(--nx-taskbar);
   }

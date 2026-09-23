@@ -1,6 +1,7 @@
 package nexus
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -87,5 +88,110 @@ func TestFindOrquestradorDirUsesPortableDataDirProfiles(t *testing.T) {
 	}
 	if got := findOrquestradorDir(); got != expected {
 		t.Fatalf("expected %q, got %q", expected, got)
+	}
+}
+
+func TestMaestroVerifyContractPassesThroughMachineReadableVerdict(t *testing.T) {
+	script := `if [ "$1" = "verify" ] && [ "$2" = "--json" ]; then
+  cat >/dev/null
+  printf '%s\n' '{"version":"1.0.0","lifecycle":"VERIFY","passed":true,"required_actions":[],"explanation":"all required checks passed"}'
+  exit 0
+fi
+exit 2
+`
+	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
+	c := &MaestroClient{
+		status: MaestroStatus{
+			Available: true,
+			Mode:      MaestroAssist,
+			Capabilities: &MaestroCapability{
+				Version: MaestroVersion,
+			},
+		},
+		maestroBin: bin,
+	}
+	resp, err := c.Verify(context.Background(), MaestroVerifyRequest{
+		ProjectID:    "project-1",
+		MissionID:    "run-1",
+		ChangedPaths: []string{"internal/nexus/maestro.go"},
+		Checks:       []string{"go test ./..."},
+		EvidenceRefs: []string{"evidence://run-1/tests"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !resp.Passed || resp.Degraded || resp.Lifecycle != MaestroLifecycleVerify {
+		t.Fatalf("unexpected verify response: %+v", resp)
+	}
+}
+
+func TestMaestroVerifyUnavailableNeverFabricatesPass(t *testing.T) {
+	c := &MaestroClient{status: MaestroStatus{Available: false, Mode: MaestroOff}}
+	resp, err := c.Verify(context.Background(), MaestroVerifyRequest{
+		ProjectID: "project-1",
+		MissionID: "run-1",
+	})
+	if err == nil {
+		t.Fatal("expected degraded verify error")
+	}
+	if resp.Passed || !resp.Degraded {
+		t.Fatalf("unavailable Maestro must fail closed: %+v", resp)
+	}
+}
+
+func TestMaestroVerifyRejectsSecretLikeInputBeforeExecution(t *testing.T) {
+	marker := filepath.Join(t.TempDir(), "called")
+	script := "touch " + marker + "\nexit 0\n"
+	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
+	c := &MaestroClient{
+		status:     MaestroStatus{Available: true, Mode: MaestroAssist},
+		maestroBin: bin,
+	}
+	resp, err := c.Verify(context.Background(), MaestroVerifyRequest{
+		ProjectID:    "project-1",
+		EvidenceRefs: []string{"token=super-secret"},
+	})
+	if err == nil {
+		t.Fatal("secret-like verify input must be rejected")
+	}
+	if resp == nil || resp.Passed || !resp.Degraded {
+		t.Fatalf("secret rejection must fail closed: %+v", resp)
+	}
+	if _, statErr := os.Stat(marker); !os.IsNotExist(statErr) {
+		t.Fatalf("Maestro process was invoked for rejected input: %v", statErr)
+	}
+}
+
+func TestMaestroCapabilitiesUsesExplicitSkillsListContract(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	script := `if [ "$1" = "capabilities" ] && [ "$2" = "--json" ]; then
+  printf '%s\n' '{"version":"1.0.0","modes":["OFF","ASSIST","ORCHESTRATE"],"skills":[],"gates":["review"],"processes":["verification"]}'
+  exit 0
+fi
+if [ "$1" = "skills" ] && [ "$2" = "list" ] && [ "$3" = "--json" ]; then
+  printf '%s\n' '{"skills":[{"id":"security-review","name":"Security Review","description":"Review security","version":"1.2.0","risk":"medium","triggers":["security"]}]}'
+  exit 0
+fi
+if [ "$1" = "version" ] || [ "$1" = "--version" ]; then
+  echo 1.0.0
+  exit 0
+fi
+exit 2
+`
+	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
+	client := &MaestroClient{maestroBin: bin}
+	capabilities, err := client.queryCapabilities()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if capabilities.Version != "1.0.0" || len(capabilities.Gates) != 1 || len(capabilities.Processes) != 1 {
+		t.Fatalf("capabilities contract was not preserved: %+v", capabilities)
+	}
+	if len(capabilities.Skills) != 1 || capabilities.Skills[0].ID != "security-review" {
+		t.Fatalf("skills list contract was not consumed: %+v", capabilities.Skills)
+	}
+	if capabilities.Skills[0].Version != "1.2.0" || capabilities.Skills[0].Triggers[0] != "security" {
+		t.Fatalf("skills metadata was lost: %+v", capabilities.Skills[0])
 	}
 }

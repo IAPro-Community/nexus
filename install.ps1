@@ -1,5 +1,5 @@
 # IAPro Nexus Installer for PowerShell (Windows & PowerShell Core)
-# Zero-toolchain release path. Usage:
+# Prebuilt signed-release path. Usage:
 #   .\install.ps1 -Version v0.5.0-beta.23
 #   .\install.ps1 -Version latest
 #   .\install.ps1 -BuildFromSource
@@ -7,6 +7,7 @@
 param(
     [switch]$WithMaestro = $false,
     [switch]$NoDesktop = $false,
+    [string]$InstallDir = $env:NEXUS_INSTALL_DIR,
     [string]$Version = $env:NEXUS_VERSION,
     [switch]$BuildFromSource = $false,
     [string]$SourceRef = $env:NEXUS_SOURCE_REF,
@@ -20,6 +21,7 @@ $MaestroExit = 0
 $Repo = if ($env:NEXUS_RELEASE_REPO) { $env:NEXUS_RELEASE_REPO } else { "IAPro-Community/nexus-releases" }
 $GithubUrl = "https://github.com/$Repo"
 $GithubApi = "https://api.github.com/repos/$Repo"
+$ReleaseDownloadBase = if ($env:NEXUS_RELEASE_BASE_URL) { $env:NEXUS_RELEASE_BASE_URL.TrimEnd('/') } else { "$GithubUrl/releases/download" }
 # Source checkouts (-SourceRef builds) always come from the private source
 # repository, never from the binaries mirror.
 $SourceRepo = if ($env:NEXUS_SOURCE_REPO) { $env:NEXUS_SOURCE_REPO } else { "IAPro-Community/nexus" }
@@ -86,7 +88,7 @@ function Resolve-LatestVersion {
             if (-not $resp.tag_name) {
                 throw "GitHub API response did not contain tag_name."
             }
-            Write-Host "Resolved -Version latest to $($resp.tag_name) (checksum integrity; not a signed pin)." -ForegroundColor Yellow
+            Write-Host "Resolved -Version latest to $($resp.tag_name); installation still requires the signed update manifest." -ForegroundColor Yellow
             return [string]$resp.tag_name
         } catch {
             if ($attempt -ge 3) { throw }
@@ -114,7 +116,7 @@ function Ensure-WebView2 {
     }
 }
 
-Write-Host "=== IAPro Nexus Installer (Zero-Toolchain Release) ===" -ForegroundColor Cyan
+Write-Host "=== IAPro Nexus Installer (Signed Prebuilt Release) ===" -ForegroundColor Cyan
 Write-Host "Release repo: $Repo" -ForegroundColor Gray
 
 if ([string]::IsNullOrWhiteSpace($Version) -and -not $BuildFromSource) {
@@ -135,7 +137,10 @@ if (-not [string]::IsNullOrWhiteSpace($Version)) {
 $BinaryName = if ($IsWindowsOS) { "nexus.exe" } else { "nexus" }
 $AiAliasName = if ($IsWindowsOS) { "ai.exe" } else { "ai" }
 
-if ($IsWindowsOS) {
+if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
+    $TargetDir = [System.IO.Path]::GetFullPath($InstallDir)
+    $LegacyTargetDir = ""
+} elseif ($IsWindowsOS) {
     $TargetDir = Join-Path $env:LOCALAPPDATA "Programs\IAPro Nexus"
     $LegacyTargetDir = Join-Path $env:LOCALAPPDATA "Programs\ai-cli"
 } else {
@@ -155,7 +160,7 @@ $TargetPath = Join-Path $TargetDir $BinaryName
 $Installed = $false
 
 # Ed25519 public key for manifest signature verification (matches internal/update ProductionTrustRoot).
-$NexusPubKey = "8284672c22f6179ec76ea2c7c5007d5742e719a55de0b7dfff96a3560e0cd7b2"
+$NexusPubKey = "ee2e268394ce6a0634a9ea2f414ee831dd536d12f7e2b80107f94566e58aa334"
 
 function Verify-ManifestSignature {
     param([string]$ManifestPath, [string]$SigPath)
@@ -230,8 +235,7 @@ $Arch = if ([System.Environment]::Is64BitOperatingSystem) {
 $OsName = if ($IsWindowsOS) { "Windows" } elseif ($IsMacOS) { "Darwin" } else { "Linux" }
 $ArchiveExt = if ($IsWindowsOS) { "zip" } else { "tar.gz" }
 $ArchiveName = "nexus_${OsName}_${Arch}.${ArchiveExt}"
-$DownloadUrl = "$GithubUrl/releases/download/v$Version/$ArchiveName"
-$ChecksumsUrl = "$GithubUrl/releases/download/v$Version/checksums.txt"
+$DownloadUrl = "$ReleaseDownloadBase/v$Version/$ArchiveName"
 
 $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
@@ -242,8 +246,8 @@ try {
         # 1) Fetch and verify signed manifest before downloading the artifact.
         $ManifestPath = Join-Path $TempDir "update-manifest.json"
         $SigPath = Join-Path $TempDir "update-manifest.sig"
-        $ManifestUrl = "$GithubUrl/releases/download/v$Version/update-manifest.json"
-        $SigUrl = "$GithubUrl/releases/download/v$Version/update-manifest.sig"
+        $ManifestUrl = "$ReleaseDownloadBase/v$Version/update-manifest.json"
+        $SigUrl = "$ReleaseDownloadBase/v$Version/update-manifest.sig"
         Invoke-WebRequest -Uri $ManifestUrl -OutFile $ManifestPath -UseBasicParsing
         Write-Host "Signed manifest downloaded" -ForegroundColor Green
         Invoke-WebRequest -Uri $SigUrl -OutFile $SigPath -UseBasicParsing
@@ -288,6 +292,15 @@ try {
             $ExtractedBin = Join-Path $TempDir $AiAliasName
         }
         if (Test-Path $ExtractedBin) {
+            $VersionJson = (& $ExtractedBin version --json 2>$null) -join "`n"
+            try {
+                $EmbeddedVersion = ($VersionJson | ConvertFrom-Json).version
+            } catch {
+                throw "Verified artifact could not report valid version metadata."
+            }
+            if ([string]::IsNullOrWhiteSpace($EmbeddedVersion) -or $EmbeddedVersion -ne $Version) {
+                throw "Signed artifact binary version mismatch: expected $Version, got $EmbeddedVersion"
+            }
             $Staging = Join-Path $TempDir "nexus.install"
             Copy-Item -Path $ExtractedBin -Destination $Staging -Force
             Move-Item -Path $Staging -Destination $TargetPath -Force
@@ -377,9 +390,13 @@ if ($MaestroCmd) {
 
 Write-Host "✓ Successfully installed IAPro Nexus to $TargetPath" -ForegroundColor Green
 
-if ($InstallDesktop -and $IsWindowsOS -and -not [string]::IsNullOrWhiteSpace($Version)) {
+if ($InstallDesktop -and $IsWindowsOS -and $Arch -ne "x86_64" -and -not [string]::IsNullOrWhiteSpace($Version)) {
+    Write-Host "⚠️  Native Desktop is not published/certified for Windows/$Arch; CLI/Core installation remains valid." -ForegroundColor Yellow
+}
+
+if ($InstallDesktop -and $IsWindowsOS -and $Arch -eq "x86_64" -and -not [string]::IsNullOrWhiteSpace($Version)) {
     $DesktopArchiveName = "nexus-desktop_Windows_${Arch}.zip"
-    $DesktopDownloadUrl = "$GithubUrl/releases/download/v$Version/$DesktopArchiveName"
+    $DesktopDownloadUrl = "$ReleaseDownloadBase/v$Version/$DesktopArchiveName"
     $DesktopZipPath = Join-Path $TempDir $DesktopArchiveName
     $ManifestPath = Join-Path $TempDir "update-manifest.json"
     $SigPath = Join-Path $TempDir "update-manifest.sig"
@@ -387,8 +404,8 @@ if ($InstallDesktop -and $IsWindowsOS -and -not [string]::IsNullOrWhiteSpace($Ve
     try {
         Write-Host "Attempting to install the native IAPro Nexus Desktop shell..." -ForegroundColor Yellow
         if (-not (Test-Path $ManifestPath) -or -not (Test-Path $SigPath)) {
-            $ManifestUrl = "$GithubUrl/releases/download/v$Version/update-manifest.json"
-            $SigUrl = "$GithubUrl/releases/download/v$Version/update-manifest.sig"
+            $ManifestUrl = "$ReleaseDownloadBase/v$Version/update-manifest.json"
+            $SigUrl = "$ReleaseDownloadBase/v$Version/update-manifest.sig"
             Invoke-WebRequest -Uri $ManifestUrl -OutFile $ManifestPath -UseBasicParsing
             Invoke-WebRequest -Uri $SigUrl -OutFile $SigPath -UseBasicParsing
         }

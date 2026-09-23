@@ -1,6 +1,7 @@
 package release
 
 import (
+	"encoding/hex"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,7 +20,15 @@ func TestInstallerScriptSyntax(t *testing.T) {
 		t.Fatalf("failed to determine repository root: %v", err)
 	}
 
-	scripts := []string{"install.sh", "uninstall.sh", "scripts/package-linux-beta.sh"}
+	scripts := []string{
+		"install.sh",
+		"uninstall.sh",
+		"scripts/package-linux-beta.sh",
+		"scripts/certify-live-mission.sh",
+		"scripts/certify-live-soak.sh",
+		"scripts/certify-release-lifecycle.sh",
+		"scripts/smoke-providers.sh",
+	}
 	for _, s := range scripts {
 		scriptPath := filepath.Join(root, s)
 		if _, err := os.Stat(scriptPath); err != nil {
@@ -31,6 +40,48 @@ func TestInstallerScriptSyntax(t *testing.T) {
 		if err != nil {
 			t.Errorf("bash syntax error in %s: %v\nOutput:\n%s", s, err, string(output))
 		}
+	}
+}
+
+func TestInstallerTrustRootMatchesCanonicalAndCI(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyBytes, err := os.ReadFile(filepath.Join(root, "UPDATE_PUBLIC_KEY"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonical := strings.TrimSpace(string(keyBytes))
+	keyIDBytes, err := os.ReadFile(filepath.Join(root, "UPDATE_KEY_ID"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonicalKeyID := strings.TrimSpace(string(keyIDBytes))
+	if canonicalKeyID != "nexus-signing-key-2026-v1" {
+		t.Fatalf("UPDATE_KEY_ID=%q does not match updater ProductionTrustRootKeyID", canonicalKeyID)
+	}
+	decoded, err := hex.DecodeString(canonical)
+	if err != nil || len(decoded) != 32 {
+		t.Fatalf("UPDATE_PUBLIC_KEY must contain one 32-byte Ed25519 public key in hex")
+	}
+
+	shBytes, err := os.ReadFile(filepath.Join(root, "install.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	psBytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(shBytes), `NEXUS_PUBKEY="`+canonical+`"`) {
+		t.Fatal("install.sh trust root does not match UPDATE_PUBLIC_KEY")
+	}
+	if !strings.Contains(string(psBytes), `$NexusPubKey = "`+canonical+`"`) {
+		t.Fatal("install.ps1 trust root does not match UPDATE_PUBLIC_KEY")
+	}
+	if configured := strings.TrimSpace(os.Getenv("NEXUS_UPDATE_PUBLIC_KEY")); configured != "" && configured != canonical {
+		t.Fatalf("CI/release NEXUS_UPDATE_PUBLIC_KEY=%s does not match checked-in UPDATE_PUBLIC_KEY=%s", configured, canonical)
 	}
 }
 
@@ -52,39 +103,30 @@ func TestInstallerArchiveNamingMatchesGoReleaser(t *testing.T) {
 	}
 	installSh := string(installShBytes)
 
-	installPs1Bytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
-	if err != nil {
-		t.Fatalf("failed to read install.ps1: %v", err)
-	}
-	installPs1 := string(installPs1Bytes)
-
-	// Verify archive template and formats
-	expectedPatterns := []struct {
-		platform string
-		archive  string
-	}{
-		{"Linux x86_64", "nexus_Linux_x86_64.tar.gz"},
-		{"Linux arm64", "nexus_Linux_arm64.tar.gz"},
-		{"Darwin x86_64", "nexus_Darwin_x86_64.tar.gz"},
-		{"Darwin arm64", "nexus_Darwin_arm64.tar.gz"},
-		{"Windows x86_64", "nexus_Windows_x86_64.zip"},
-		{"Windows arm64", "nexus_Windows_arm64.zip"},
+	if !strings.Contains(installSh, `ARCHIVE_NAME="nexus_${OS_NAME}_${ARCH_NAME}.tar.gz"`) {
+		t.Error("install.sh must construct the Nexus archive name")
 	}
 
-	for _, p := range expectedPatterns {
-		// Verify install.sh constructs nexus_${OS_NAME}_${ARCH_NAME}.tar.gz
-		if !strings.Contains(installSh, `ARCHIVE_NAME="nexus_${OS_NAME}_${ARCH_NAME}.tar.gz"`) {
-			t.Errorf("install.sh missing archive format pattern for %s", p.platform)
-		}
-		// Verify install.ps1 constructs nexus_${OsName}_${Arch}.${ArchiveExt}
-		if !strings.Contains(installPs1, `nexus_${OsName}_${Arch}.${ArchiveExt}`) {
-			t.Errorf("install.ps1 missing archive format pattern for %s", p.platform)
+	for _, required := range []string{
+		"- linux",
+		"- amd64",
+		"formats: [tar.gz]",
+		"nfpms:",
+	} {
+		if !strings.Contains(goreleaserContent, required) {
+			t.Errorf(".goreleaser.yaml missing Nexus v1 Linux release contract %q", required)
 		}
 	}
-
-	// Verify nfpms package section exists in goreleaser
-	if !strings.Contains(goreleaserContent, "nfpms:") {
-		t.Errorf(".goreleaser.yaml should define nfpms package section for Linux packages")
+	for _, deferred := range []string{
+		"- darwin",
+		"- windows",
+		"- arm64",
+		"goos: windows",
+		"formats: [zip]",
+	} {
+		if strings.Contains(goreleaserContent, deferred) {
+			t.Errorf(".goreleaser.yaml must not publish deferred Nexus v1 target %q", deferred)
+		}
 	}
 }
 
@@ -193,7 +235,7 @@ func TestInstallerSupportsLatestIntegrityAndPathControls(t *testing.T) {
 	for _, required := range []string{
 		`"$VERSION" = "latest"`,
 		"api.github.com/repos",
-		"checksum integrity",
+		"signed update-manifest",
 		"MAESTRO_EXIT=2",
 		"nexus doctor",
 		"append_path_rc",
@@ -210,7 +252,7 @@ func TestInstallerSupportsLatestIntegrityAndPathControls(t *testing.T) {
 	for _, required := range []string{
 		`Version -eq "latest"`,
 		"api.github.com/repos",
-		"checksum integrity",
+		"signed update manifest",
 		"MaestroExit = 2",
 		"nexus doctor",
 		"Ensure-WebView2",
@@ -220,6 +262,83 @@ func TestInstallerSupportsLatestIntegrityAndPathControls(t *testing.T) {
 	} {
 		if !strings.Contains(psText, required) {
 			t.Errorf("install.ps1 missing contract element %q", required)
+		}
+	}
+}
+
+func TestInstallersSupportExplicitTargetsAndMacOSDesktopZip(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	shBytes, err := os.ReadFile(filepath.Join(root, "install.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	psBytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sh, ps := string(shBytes), string(psBytes)
+
+	for _, required := range []string{
+		"--install-dir=",
+		"NEXUS_INSTALL_DIR",
+		"NEXUS_RELEASE_BASE_URL",
+		"binary version mismatch",
+		`*.zip)`,
+		`ditto -x -k`,
+		`-name '*.app'`,
+		`applications_dir="${HOME}/Applications"`,
+	} {
+		if !strings.Contains(sh, required) {
+			t.Errorf("install.sh missing explicit-target/macOS desktop contract %q", required)
+		}
+	}
+	for _, required := range []string{
+		`[string]$InstallDir = $env:NEXUS_INSTALL_DIR`,
+		`[System.IO.Path]::GetFullPath($InstallDir)`,
+		`NEXUS_RELEASE_BASE_URL`,
+		`binary version mismatch`,
+	} {
+		if !strings.Contains(ps, required) {
+			t.Errorf("install.ps1 missing explicit install target contract %q", required)
+		}
+	}
+}
+
+func TestInstallerDesktopArchitectureMatrixDoesNotBreakCLI(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	shBytes, err := os.ReadFile(filepath.Join(root, "install.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	psBytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sh, ps := string(shBytes), string(psBytes)
+
+	for _, required := range []string{
+		"DESKTOP_SUPPORTED=false",
+		"Linux_x86_64|Darwin_arm64",
+		"Native Desktop is not published/certified",
+		"[ \"$DESKTOP_SUPPORTED\" = true ]",
+	} {
+		if !strings.Contains(sh, required) {
+			t.Errorf("install.sh missing truthful Desktop architecture guard %q", required)
+		}
+	}
+	for _, required := range []string{
+		"$Arch -ne \"x86_64\"",
+		"$Arch -eq \"x86_64\"",
+		"Native Desktop is not published/certified",
+	} {
+		if !strings.Contains(ps, required) {
+			t.Errorf("install.ps1 missing truthful Desktop architecture guard %q", required)
 		}
 	}
 }

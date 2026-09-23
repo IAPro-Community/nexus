@@ -54,38 +54,43 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	strategy := strings.ToUpper(strings.TrimSpace(pkg.AssignmentStrategy))
 	var agent store.Agent
 	var agentEvidence agentSelectionEvidence
-	switch strategy {
-	case "": // legacy WorkPlan behavior
-		if strings.TrimSpace(pkg.AssignedAgent) != "" {
+	if resumeAgentID := strings.TrimSpace(pkg.ResumeAgentID); resumeAgentID != "" {
+		agent, err = st.GetAgent(resumeAgentID, run.ProjectID)
+		agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "resume same Agent identity after Mission coordination"}
+	} else {
+		switch strategy {
+		case "": // legacy WorkPlan behavior
+			if strings.TrimSpace(pkg.AssignedAgent) != "" {
+				agent, err = st.GetAgent(pkg.AssignedAgent, run.ProjectID)
+				agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "existing Agent assignment"}
+			} else {
+				agent, agentEvidence, err = e.selectReusableAgent(st, run, pkg)
+				if err == store.ErrNotFound {
+					agent, err = createMissionAgent(st, run.ProjectID, pkg, "Mission · ")
+					agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from task requirements"}
+				}
+			}
+		case string(FlowAssignmentExisting):
+			if strings.TrimSpace(pkg.AssignedAgent) == "" {
+				return runner.AllocationResult{}, fmt.Errorf("EXISTING Flow Step %s has no AgentID", pkg.PackageID)
+			}
+			if agentReservedInRun(run, pkg.AssignedAgent, pkg.PackageID) {
+				return runner.AllocationResult{}, fmt.Errorf("agent %s is already assigned to another active Flow Step", pkg.AssignedAgent)
+			}
 			agent, err = st.GetAgent(pkg.AssignedAgent, run.ProjectID)
-			agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "existing Agent assignment"}
-		} else {
+			agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "existing Flow Agent assignment"}
+		case string(FlowAssignmentCreate):
+			agent, err = createMissionAgent(st, run.ProjectID, pkg, "Flow · ")
+			agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from Flow task requirements"}
+		case string(FlowAssignmentAuto):
 			agent, agentEvidence, err = e.selectReusableAgent(st, run, pkg)
 			if err == store.ErrNotFound {
-				agent, err = createMissionAgent(st, run.ProjectID, pkg, "Mission · ")
+				agent, err = createMissionAgent(st, run.ProjectID, pkg, "Auto · ")
 				agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from task requirements"}
 			}
+		default:
+			return runner.AllocationResult{}, fmt.Errorf("unsupported Flow assignment strategy %q", pkg.AssignmentStrategy)
 		}
-	case string(FlowAssignmentExisting):
-		if strings.TrimSpace(pkg.AssignedAgent) == "" {
-			return runner.AllocationResult{}, fmt.Errorf("EXISTING Flow Step %s has no AgentID", pkg.PackageID)
-		}
-		if agentReservedInRun(run, pkg.AssignedAgent, pkg.PackageID) {
-			return runner.AllocationResult{}, fmt.Errorf("agent %s is already assigned to another active Flow Step", pkg.AssignedAgent)
-		}
-		agent, err = st.GetAgent(pkg.AssignedAgent, run.ProjectID)
-		agentEvidence = agentSelectionEvidence{Confidence: "PINNED", Reason: "existing Flow Agent assignment"}
-	case string(FlowAssignmentCreate):
-		agent, err = createMissionAgent(st, run.ProjectID, pkg, "Flow · ")
-		agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from Flow task requirements"}
-	case string(FlowAssignmentAuto):
-		agent, agentEvidence, err = e.selectReusableAgent(st, run, pkg)
-		if err == store.ErrNotFound {
-			agent, err = createMissionAgent(st, run.ProjectID, pkg, "Auto · ")
-			agentEvidence = agentSelectionEvidence{Confidence: "CREATED", Reason: "created from task requirements"}
-		}
-	default:
-		return runner.AllocationResult{}, fmt.Errorf("unsupported Flow assignment strategy %q", pkg.AssignmentStrategy)
 	}
 	if err != nil {
 		return runner.AllocationResult{}, fmt.Errorf("allocate persistent Agent: %w", err)
@@ -119,6 +124,10 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	candidateAccounts, candidateErr := selectMissionCandidateAccounts(accounts, pkg, current, preferenceMode, isFailover)
 	if candidateErr != nil {
 		return runner.AllocationResult{}, candidateErr
+	}
+	candidateAccounts, isolationRejected := filterAccountsByAutonomyIsolation(candidateAccounts, run.Contract, false)
+	if len(candidateAccounts) == 0 && len(isolationRejected) > 0 {
+		return runner.AllocationResult{}, fmt.Errorf("%w: no provider satisfies the Mission isolation contract for Flow Step %s: %s", ErrBlockedResource, pkg.PackageID, strings.Join(isolationRejected, "; "))
 	}
 	if len(candidateAccounts) == 0 {
 		if preferenceMode == AffinityPin {
@@ -208,6 +217,11 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	if err != nil {
 		return runner.AllocationResult{}, err
 	}
+	if run.Autonomous && pkg.ContextCapsule == nil {
+		if err := prepareAutonomousPackageWorkspace(ctx, run, pkg, project.CanonicalPath, workspace); err != nil {
+			return runner.AllocationResult{}, fmt.Errorf("prepare autonomous package workspace: %w", err)
+		}
+	}
 	return runner.AllocationResult{AgentID: agent.ID, Workspace: workspace}, nil
 }
 
@@ -280,6 +294,93 @@ func maestroGuidanceReference(guidance *intelligence.ExecutionGuidance) string {
 	return strings.TrimSpace(guidance.Reference)
 }
 
+func missionAgentSpec(role string, requirements TaskRequirements) intelligence.AgentSpec {
+	role = strings.TrimSpace(role)
+	normalizedRole := normalizeAgentTaxonomy(role)
+	spec := intelligence.AgentSpec{
+		Role:               role,
+		Responsibilities:   []string{fmt.Sprintf("Executar o workstream especializado %s dentro dos artefatos atribuídos", role)},
+		Capabilities:       appendUniqueStrings(agentRequiredCapabilities(requirements.RequiredCapabilities), requirements.PreferredCapabilities...),
+		Domains:            append([]string(nil), requirements.Domains...),
+		Strengths:          append([]string(nil), requirements.DesiredStrengths...),
+		Constraints:        append([]string(nil), requirements.Constraints...),
+		VerificationPolicy: intelligence.VerificationPolicy{RequireEvidence: true, RequireTests: true},
+	}
+
+	addInstruction := func(values ...string) {
+		spec.Instructions = appendUniqueStrings(spec.Instructions, values...)
+	}
+	addResponsibility := func(values ...string) {
+		spec.Responsibilities = appendUniqueStrings(spec.Responsibilities, values...)
+	}
+	addCapability := func(values ...string) {
+		spec.Capabilities = appendUniqueStrings(spec.Capabilities, values...)
+	}
+	addConstraint := func(values ...string) {
+		spec.Constraints = appendUniqueStrings(spec.Constraints, values...)
+	}
+	addStrength := func(values ...string) {
+		spec.Strengths = appendUniqueStrings(spec.Strengths, values...)
+	}
+
+	switch normalizedRole {
+	case "senior-developer":
+		addInstruction("Understand system invariants and cross-cutting impact before changing code; prefer incremental, verifiable evolution.")
+		addResponsibility("Executar mudanças complexas, orientar trade-offs e preservar compatibilidade entre áreas.")
+		addCapability("implementation", "code_review", "architecture", "debugging")
+		addStrength("systems-thinking", "refactoring", "risk-management")
+	case "investigator":
+		addInstruction(
+			"Reproduza e isole a falha antes de propor correção.",
+			"Colete evidência suficiente para sustentar a causa raiz e diferencie hipótese de fato.",
+		)
+		addResponsibility("Produzir hipótese, evidência, causa raiz e próximos passos reproduzíveis.")
+		addCapability("debugging", "root_cause_analysis", "log_analysis")
+		addConstraint("Investigue sem editar a implementação enquanto a causa raiz não estiver comprovada e a remediação não tiver sido atribuída.")
+		addStrength("hypothesis-testing", "evidence-gathering")
+		spec.VerificationPolicy.RequireTests = false
+	case "architect":
+		addInstruction("Modele limites, contratos, dependências e trade-offs antes de recomendar mudanças estruturais.")
+		addResponsibility("Definir arquitetura evolutiva, registrar decisões e identificar riscos sistêmicos.")
+		addCapability("architecture", "system_design", "tradeoff_analysis")
+		addStrength("systems-thinking", "decision-records")
+		spec.VerificationPolicy.RequireTests = false
+	case "security-reviewer":
+		addInstruction("Revise ameaças, fronteiras de confiança e regressões de segurança; ausência de evidência não é evidência de segurança.")
+		addResponsibility("Identificar vulnerabilidades, severidade, evidência e mitigação recomendada.")
+		addCapability("security", "code_review", "threat_modeling")
+		addConstraint("Revisão é read-only; qualquer remediação deve ser atribuída a um workstream de implementação.")
+		addStrength("threat-modeling", "risk-classification")
+		spec.VerificationPolicy.RequireTests = false
+	case "performance-investigator":
+		addInstruction("Estabeleça baseline e reproduza o gargalo antes de otimizar; compare resultados depois da mudança.")
+		addResponsibility("Measure bottlenecks, explain root cause, and define reproducible performance experiments.")
+		addCapability("performance_analysis", "profiling", "benchmarking")
+		addConstraint("Investigue sem editar a implementação até que o gargalo esteja medido e a remediação seja atribuída.")
+		addStrength("measurement", "profiling")
+		spec.VerificationPolicy.RequireTests = false
+	case "reviewer":
+		addInstruction("Procure riscos, regressões e claims sem evidência; classifique severidade objetivamente.")
+		addResponsibility("Revisar diffs, compatibilidade, qualidade e evidência de verificação.")
+		addCapability("code_review", "risk_analysis")
+		addConstraint("Revisão é read-only; remediation pertence a um workstream de implementação.")
+		spec.VerificationPolicy.RequireTests = false
+	case "qa":
+		addInstruction("Reproduza falhas, cubra regressões e exija evidência observável antes de concluir.")
+		addResponsibility("Projetar e executar testes unitários, integração, E2E e smoke conforme o escopo.")
+		addCapability("testing", "e2e", "regression_analysis")
+		addStrength("reproduction", "regression-detection")
+	case "devops":
+		addInstruction("Prioritize reproducibility, safe rollback, and operational observability.")
+		addCapability("ci_cd", "release", "operations")
+	case "backend-engineer":
+		addInstruction("Priorize contratos estáveis, validação de entrada e observabilidade no backend.")
+	case "frontend-engineer":
+		addInstruction("Preserve acessibilidade, responsividade, i18n e os tokens visuais existentes.")
+	}
+	return spec
+}
+
 func createMissionAgent(st *store.Store, projectID string, pkg *runner.PackageRun, prefix string) (store.Agent, error) {
 	name := strings.TrimSpace(pkg.Title)
 	if name == "" {
@@ -290,15 +391,7 @@ func createMissionAgent(st *store.Store, projectID string, pkg *runner.PackageRu
 	if len(requirements.PreferredRoles) > 0 {
 		role = requirements.PreferredRoles[0]
 	}
-	spec := intelligence.AgentSpec{
-		Role:               role,
-		Responsibilities:   []string{fmt.Sprintf("Executar o workstream especializado %s dentro dos artefatos atribuídos", role)},
-		Capabilities:       appendUniqueStrings(agentRequiredCapabilities(requirements.RequiredCapabilities), requirements.PreferredCapabilities...),
-		Domains:            append([]string(nil), requirements.Domains...),
-		Strengths:          append([]string(nil), requirements.DesiredStrengths...),
-		Constraints:        append([]string(nil), requirements.Constraints...),
-		VerificationPolicy: intelligence.VerificationPolicy{RequireEvidence: true, RequireTests: true},
-	}
+	spec := missionAgentSpec(role, requirements)
 	agent, err := st.CreateAgent(store.Agent{ProjectID: projectID, Name: prefix + name, Role: role})
 	if err != nil {
 		return store.Agent{}, err
@@ -572,11 +665,20 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 	if pkg.ContextCapsule == nil {
 		return runner.PromptArtifact{}, runner.ErrMissingContextCapsule
 	}
+	if pkg.DynamicWork && strings.TrimSpace(pkg.CoordinationRequestID) != "" {
+		content := buildDynamicCoordinationPrompt(run, pkg)
+		if capsule := strings.TrimSpace(runner.RenderContextCapsule(pkg.ContextCapsule)); capsule != "" {
+			content += "\n\n" + capsule
+		}
+		content += missionCoordinationPromptInstructions()
+		content += autonomyPromptBoundaries(run.Contract)
+		return e.persistMissionPrompt(run, pkg, content)
+	}
 	snapshot, err := e.n.loadMissionSnapshot(run)
 	if err != nil {
 		return runner.PromptArtifact{}, err
 	}
-	compiled, err := compilePackagePromptFromExecutionSnapshot(ctx, &snapshot.Plan, pkg.PhaseID, pkg.PackageID)
+	compiled, err := compilePackagePromptFromExecutionSnapshot(ctx, &snapshot.Plan, pkg.PhaseID, pkg.PackageID, snapshot.SkillContracts)
 	if err != nil {
 		return runner.PromptArtifact{}, err
 	}
@@ -596,7 +698,7 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 		for _, phase := range snapshot.Plan.Phases {
 			for _, target := range phase.Packages {
 				if target.ID == pkg.PackageID {
-					compiledForAgent, compileErr := compileTargetPackagePromptForAgent(ctx, &snapshot.Plan, &target, cfg.AgentSpec, packageSkillIDs(target))
+					compiledForAgent, compileErr := compileTargetPackagePromptForAgent(ctx, &snapshot.Plan, &target, cfg.AgentSpec, packageSkillIDs(target), snapshot.SkillContracts...)
 					if compileErr != nil {
 						return runner.PromptArtifact{}, compileErr
 					}
@@ -628,8 +730,16 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 		content += "\n\n## Remediation evidence from the previous attempt\n" + strings.TrimSpace(pkg.RemediationContext) +
 			"\n\nAddress the evidence above. Do not repeat the same failed approach without a concrete change."
 	}
+	content += missionCoordinationPromptInstructions()
 	content += autonomyPromptBoundaries(run.Contract)
+	return e.persistMissionPrompt(run, pkg, content)
+}
 
+func (e *nexusPackageExecutor) persistMissionPrompt(run *runner.MissionRun, pkg *runner.PackageRun, content string) (runner.PromptArtifact, error) {
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return runner.PromptArtifact{}, fmt.Errorf("compiled prompt is empty")
+	}
 	h := sha256.Sum256([]byte(content))
 	created, err := e.n.st.CreatePromptVersion(store.PromptVersion{
 		PlanID:       run.PlanID,
@@ -642,6 +752,48 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 		return runner.PromptArtifact{}, fmt.Errorf("persist immutable prompt version: %w", err)
 	}
 	return runner.PromptArtifact{VersionID: created.ID, Content: content}, nil
+}
+
+func buildDynamicCoordinationPrompt(run *runner.MissionRun, pkg *runner.PackageRun) string {
+	var req *runner.CoordinationRequest
+	for i := range run.CoordinationRequests {
+		if run.CoordinationRequests[i].ID == pkg.CoordinationRequestID {
+			req = &run.CoordinationRequests[i]
+			break
+		}
+	}
+	if req == nil {
+		return "Resolve the Mission coordination work described by this package. Return a concise factual result with evidence."
+	}
+	return fmt.Sprintf(`You are resolving a durable Mission coordination request.
+
+Operation: %s
+Subject: %s
+Objective: %s
+Source package: %s
+Source Agent: %s
+
+Return the smallest factual result that lets the source Agent continue.
+For NEED_INFO, investigate read-only and return the answer plus concise evidence.
+For ARTIFACT_REQUEST, return the exact durable artifact reference(s), creating work only when necessary.
+For REVIEW_REQUEST, return an independent review result.
+For DELEGATE, complete only the bounded delegated objective.
+Do not broaden the sealed Mission scope.`,
+		req.Operation, req.Subject, req.Objective, req.SourcePackageID, req.SourceAgentID)
+}
+
+func missionCoordinationPromptInstructions() string {
+	return `
+
+## Mission coordination protocol
+If this step cannot continue safely without information, an artifact, bounded delegation, or an independent review, stop before modifying files or causing external side effects and emit one line per request using exactly:
+NEXUS_COORDINATION_REQUEST: {"operation":"NEED_INFO","subject":"concise question or exact memory key","objective":"what is needed","preferred_role":"investigator","preferred_provider":"","required_capabilities":[],"artifact_refs":[]}
+
+Allowed operations are NEED_INFO, DELEGATE, ARTIFACT_REQUEST, REVIEW_REQUEST.
+DELEGATE requires a non-empty objective.
+After emitting a coordination request, stop the turn and do not claim task completion.
+Never emit a coordination request after modifying the workspace or performing an external side effect.
+`
 }
 
 func autonomyPromptBoundaries(contract runner.AutonomyContract) string {
@@ -664,17 +816,157 @@ func autonomyPromptBoundaries(contract runner.AutonomyContract) string {
 	return "\n\n## Autonomy boundaries\n- " + strings.Join(rules, "\n- ")
 }
 
+type coordinationRequestEnvelope struct {
+	Operation            runner.CoordinationOperation `json:"operation"`
+	Subject              string                       `json:"subject"`
+	Objective            string                       `json:"objective,omitempty"`
+	PreferredRole        string                       `json:"preferred_role,omitempty"`
+	PreferredProvider    string                       `json:"preferred_provider,omitempty"`
+	RequiredCapabilities []string                     `json:"required_capabilities,omitempty"`
+	ArtifactRefs         []string                     `json:"artifact_refs,omitempty"`
+}
+
+const coordinationRequestMarker = "NEXUS_COORDINATION_REQUEST:"
+
+func parseExecutionCoordinationRequests(output string, run *runner.MissionRun, pkg *runner.PackageRun) ([]runner.CoordinationRequest, error) {
+	requests := []runner.CoordinationRequest{}
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, coordinationRequestMarker) {
+			continue
+		}
+		raw := strings.TrimSpace(strings.TrimPrefix(line, coordinationRequestMarker))
+		if raw == "" {
+			return nil, fmt.Errorf("empty coordination request marker")
+		}
+		var envelope coordinationRequestEnvelope
+		if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
+			return nil, fmt.Errorf("decode coordination request: %w", err)
+		}
+		req := runner.CoordinationRequest{
+			RunID: run.ID, SourcePackageID: pkg.PackageID, SourceAgentID: pkg.AssignedAgent,
+			Operation: envelope.Operation, Subject: strings.TrimSpace(envelope.Subject), Objective: strings.TrimSpace(envelope.Objective),
+			PreferredRole: strings.TrimSpace(envelope.PreferredRole), PreferredProvider: strings.TrimSpace(envelope.PreferredProvider),
+			RequiredCapabilities: append([]string(nil), envelope.RequiredCapabilities...), ArtifactRefs: append([]string(nil), envelope.ArtifactRefs...),
+			Status: runner.CoordinationPending, CreatedAt: time.Now().UTC(),
+		}
+		if err := runner.ValidateCoordinationRequest(runner.CoordinationRequest{
+			ID: "pending-id", RunID: req.RunID, SourcePackageID: req.SourcePackageID, SourceAgentID: req.SourceAgentID,
+			Operation: req.Operation, Subject: req.Subject, Objective: req.Objective, PreferredRole: req.PreferredRole,
+			PreferredProvider: req.PreferredProvider, RequiredCapabilities: req.RequiredCapabilities, ArtifactRefs: req.ArtifactRefs,
+			Status: req.Status, CreatedAt: req.CreatedAt,
+		}); err != nil {
+			return nil, err
+		}
+		requests = append(requests, req)
+	}
+	return requests, nil
+}
+
+func coordinationRequestForDynamicPackage(run *runner.MissionRun, pkg *runner.PackageRun) *runner.CoordinationRequest {
+	if run == nil || pkg == nil || strings.TrimSpace(pkg.CoordinationRequestID) == "" {
+		return nil
+	}
+	for i := range run.CoordinationRequests {
+		if run.CoordinationRequests[i].ID == pkg.CoordinationRequestID {
+			return &run.CoordinationRequests[i]
+		}
+	}
+	return nil
+}
+
+func (e *nexusPackageExecutor) resolveCoordinationLocally(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun) (runner.ExecutionResult, bool) {
+	req := coordinationRequestForDynamicPackage(run, pkg)
+	if req == nil {
+		return runner.ExecutionResult{}, false
+	}
+	if req.Operation == runner.CoordinationNeedInfo {
+		key := strings.TrimSpace(req.Subject)
+		if key != "" {
+			recall, err := e.n.RecallIntelligenceMemories(ctx, MemoryRecallRequest{ProjectID: run.ProjectID, Keys: []string{key}, Limit: 1})
+			if err == nil {
+				for _, item := range recall.Items {
+					if normalizeMemoryKey(item.Memory.Key) == normalizeMemoryKey(key) && strings.TrimSpace(item.Memory.Value) != "" {
+						return runner.ExecutionResult{RuntimeID: "memory:" + item.Memory.ID, Output: item.Memory.Value}, true
+					}
+				}
+			}
+		}
+	}
+	if req.Operation == runner.CoordinationArtifactRequest && len(req.ArtifactRefs) > 0 {
+		found := make(map[string]string, len(req.ArtifactRefs))
+		for _, packageRun := range run.PackageRuns {
+			if packageRun.WorkReceipt == nil {
+				continue
+			}
+			for _, artifact := range packageRun.WorkReceipt.Artifacts {
+				for _, wanted := range req.ArtifactRefs {
+					if strings.TrimSpace(artifact) == strings.TrimSpace(wanted) {
+						found[wanted] = packageRun.WorkReceipt.ID
+					}
+				}
+			}
+		}
+		if len(found) == len(req.ArtifactRefs) {
+			parts := make([]string, 0, len(req.ArtifactRefs))
+			for _, ref := range req.ArtifactRefs {
+				parts = append(parts, fmt.Sprintf("%s (receipt %s)", ref, found[ref]))
+			}
+			return runner.ExecutionResult{RuntimeID: "receipt:artifact-reuse", Output: "Existing durable artifacts: " + strings.Join(parts, ", ")}, true
+		}
+	}
+	return runner.ExecutionResult{}, false
+}
+
+func coordinationReplaySafety(contract runner.AutonomyContract, before, after string) (bool, string) {
+	if strings.TrimSpace(before) == "" || strings.TrimSpace(after) == "" {
+		return false, "workspace replay fingerprint is unavailable"
+	}
+	if before != after {
+		return false, "workspace changed before the coordination request was returned"
+	}
+	if !contract.DisallowDestructiveGit {
+		return false, "destructive git operations are allowed by the Mission contract"
+	}
+	if contract.AllowGitPush || contract.AllowDeploy || contract.AllowExternalNetwork ||
+		contract.AllowSecretAccess || contract.AllowPaidServices {
+		return false, "Mission contract allows external side-effect capabilities"
+	}
+	return true, ""
+}
+
 func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun, prompt string) (runner.ExecutionResult, error) {
 	if strings.TrimSpace(pkg.AssignedAgent) == "" {
 		return runner.ExecutionResult{}, fmt.Errorf("package has no assigned persistent agent")
 	}
-	result, err := e.n.executeAgentPrompt(ctx, pkg.AssignedAgent, pkg.Workspace, prompt, agentPromptPolicy{Contract: run.Contract})
+	if local, ok := e.resolveCoordinationLocally(ctx, run, pkg); ok {
+		return local, nil
+	}
+
+	before, beforeFingerprintErr := workspaceFingerprint(ctx, pkg.Workspace)
+	result, err := e.n.executeAgentPrompt(ctx, pkg.AssignedAgent, pkg.Workspace, prompt, agentPromptPolicy{Contract: run.Contract, MissionRunID: run.ID, PackageID: pkg.PackageID})
 	if err != nil {
 		if result == nil {
 			return runner.ExecutionResult{}, err
 		}
 		return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output, Failure: result.Failure}, err
 	}
+
+	coordinationRequests, parseErr := parseExecutionCoordinationRequests(result.Output, run, pkg)
+	if parseErr != nil {
+		return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output}, fmt.Errorf("parse Mission coordination output: %w", parseErr)
+	}
+	replaySafe := false
+	unsafeReason := ""
+	if len(coordinationRequests) > 0 {
+		after, afterFingerprintErr := workspaceFingerprint(ctx, pkg.Workspace)
+		if beforeFingerprintErr != nil || afterFingerprintErr != nil {
+			unsafeReason = "workspace replay fingerprint could not be established"
+		} else {
+			replaySafe, unsafeReason = coordinationReplaySafety(run.Contract, before, after)
+		}
+	}
+
 	if len(run.Contract.AllowedFilePatterns) > 0 {
 		changed, guardErr := autonomyguard.GitChangedPaths(ctx, pkg.Workspace)
 		if guardErr != nil {
@@ -702,7 +994,13 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 			},
 		))
 	}
-	return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output}, nil
+	return runner.ExecutionResult{
+		RuntimeID:                result.RuntimeID,
+		Output:                   result.Output,
+		CoordinationRequests:     coordinationRequests,
+		CoordinationReplaySafe:   replaySafe,
+		CoordinationUnsafeReason: unsafeReason,
+	}, nil
 }
 
 func (e *nexusPackageExecutor) Review(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun) (runner.ReviewVerdict, error) {
@@ -745,7 +1043,7 @@ func (e *nexusPackageExecutor) Review(ctx context.Context, run *runner.MissionRu
 
 	reviewPrompt := buildReviewPrompt(pkg)
 	before, _ := workspaceFingerprint(ctx, reviewWorkspace)
-	result, err := e.n.executeAgentPrompt(ctx, reviewer.ID, reviewWorkspace, reviewPrompt, agentPromptPolicy{Contract: run.Contract, Review: true})
+	result, err := e.n.executeAgentPrompt(ctx, reviewer.ID, reviewWorkspace, reviewPrompt, agentPromptPolicy{Contract: run.Contract, Review: true, MissionRunID: run.ID, PackageID: pkg.PackageID})
 	if err != nil {
 		return runner.ReviewVerdict{}, fmt.Errorf("reviewer execution failed: %w", err)
 	}
@@ -793,7 +1091,10 @@ func (e *nexusPackageExecutor) ensureReviewerAgent(ctx context.Context, st *stor
 	}
 	reviewAccounts := make([]ProviderAccount, 0, len(accounts))
 	for _, account := range accounts {
-		if accountSupportsHeadlessReview(account) {
+		if !accountSupportsHeadlessReview(account) {
+			continue
+		}
+		if ok, _ := providerSatisfiesAutonomyIsolation(account.Provider, run.Contract, true); ok {
 			reviewAccounts = append(reviewAccounts, account)
 		}
 	}
@@ -823,10 +1124,17 @@ func (e *nexusPackageExecutor) ensureReviewerAgent(ctx context.Context, st *stor
 	}
 	recommendation := RecommendResources(accounts, req, PolicyBalanced)
 	if recommendation.Recommended == nil {
-		return store.Agent{}, fmt.Errorf("no eligible reviewer provider/profile")
+		return store.Agent{}, fmt.Errorf("no eligible reviewer provider/profile with verified read-only isolation")
 	}
 	selected := recommendation.Recommended.Account
 	current, _ := currentAgentConfig(st, reviewer)
+	current.AgentSpec = missionAgentSpec("reviewer", TaskRequirements{
+		TaskKind:             "review",
+		Role:                 "reviewer",
+		PreferredRoles:       []string{"reviewer"},
+		RequiredCapabilities: []string{"code_review"},
+		Domains:              []string{"quality", "verification"},
+	})
 	current.Provider = selected.Provider
 	current.Profile = selected.Profile
 	// Review is executed against the implementer's concrete worktree and must

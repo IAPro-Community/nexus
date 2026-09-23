@@ -9,8 +9,13 @@ import (
 
 // QuotaSource describes how a provider obtains attributable usage data.
 type QuotaSource string
+type IsolationGuarantee string
 
 const (
+	IsolationUnverified              IsolationGuarantee = "UNVERIFIED"
+	IsolationWorkspaceWriteNoNetwork IsolationGuarantee = "WORKSPACE_WRITE_NO_NETWORK"
+	IsolationReadOnlyNoNetwork       IsolationGuarantee = "READ_ONLY_NO_NETWORK"
+
 	QuotaLiveHTTP    QuotaSource = "LIVE_HTTP"
 	QuotaLiveRPC     QuotaSource = "LIVE_RPC"
 	QuotaLiveCLI     QuotaSource = "LIVE_CLI"
@@ -24,15 +29,17 @@ type FlagTable map[string]CanonicalAlias
 // mission launch contracts. Adapters, drivers and mission execution must derive
 // from Spec instead of maintaining parallel tables.
 type Spec struct {
-	ID               string
-	BinaryCandidates []string
-	EnvKeys          func(profileHome, binDir, profileName string) map[string]string
-	EnvDelete        []string
-	Flags            FlagTable
-	Kickoff          func(prompt string) []string
-	Resume           func(sessionID string) []string
-	AutoApproval     []string
-	ReviewMode       []string
+	ID                  string
+	BinaryCandidates    []string
+	EnvKeys             func(profileHome, binDir, profileName string) map[string]string
+	EnvDelete           []string
+	Flags               FlagTable
+	Kickoff             func(prompt string) []string
+	Resume              func(sessionID string) []string
+	AutoApproval        []string
+	ReviewMode          []string
+	AutonomousIsolation IsolationGuarantee
+	ReviewIsolation     IsolationGuarantee
 	// ClearLine is the provider-native control sequence used before a prompt
 	// promoted from an interactive terminal is replaced by Nexus' banner.
 	ClearLine     string
@@ -50,6 +57,20 @@ var registry = map[string]Spec{
 }
 
 var orderedIDs = []string{"agy", "claude", "codex", "cursor", "gemini", "opencode"}
+
+func (s Spec) AutonomousIsolationLevel() IsolationGuarantee {
+	if s.AutonomousIsolation == "" {
+		return IsolationUnverified
+	}
+	return s.AutonomousIsolation
+}
+
+func (s Spec) ReviewIsolationLevel() IsolationGuarantee {
+	if s.ReviewIsolation == "" {
+		return IsolationUnverified
+	}
+	return s.ReviewIsolation
+}
 
 // Get returns the Spec for a provider id.
 func Get(id string) (Spec, bool) {

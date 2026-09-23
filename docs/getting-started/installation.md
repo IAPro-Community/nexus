@@ -1,60 +1,138 @@
-# Instalação nativa (zero-toolchain)
+# Instalação nativa por release assinada
 
-![Instalação nativa install.sh / install.ps1](../assets/help/help-install-native.png)
-
-Instale o Nexus no **host** via scripts de release. Este documento **não** cobre Docker nem pacotes DEB/RPM/NSIS — veja os guias separados.
+O caminho suportado da release estável Nexus v1 é **Linux amd64**. O source
+contém implementações para outros sistemas, mas Windows/macOS não fazem parte
+da matriz certificada desta v1.
 
 | Quero… | Documento |
 | --- | --- |
-| DEB / RPM / NSIS / winget | [Pacotes nativos](packages.md) |
+| DEB e matriz de artefatos | [Pacotes e artefatos](packages.md) |
 | Rodar no Docker (CLI + Web) | [Docker compatibilidade](docker-compat.md) |
-| Índice getting-started | [README](README.md) |
+| Compilar o source como desenvolvedor | [Build](../../BUILD.md) |
+| Ver a matriz de suporte | [Suporte de plataformas](../operations/platform-support.md) |
 
-## Caminho recomendado
+## Release pública atualmente documentada
 
-Binário de release. **Não** exige Go, Bun nem Node.
+A documentação pública mantém `v1.0.0-beta.1` como última beta publicada
+registrada. A versão do source candidato pode ser superior e não implica que o
+mesmo tag já esteja distribuído.
 
-| Caminho | Pré-requisitos |
-| --- | --- |
-| Release CLI | `curl` ou `wget`, `tar`, `sha256sum`/`shasum` (Unix) ou PowerShell (Windows) |
-| Desktop nativo (opcional) | WebView2 (Windows) ou WebKitGTK (Linux) |
-| Maestro (opt-in) | Node.js + npm (`--with-maestro` / `-WithMaestro`) |
-| Compilar do fonte (interno/dev apenas — não é o caminho do beta) | Go 1.25+, Bun 1.3.9+, make, git |
+Enquanto a linha pública for beta, use uma tag explícita. O valor `latest`
+não deve ser usado como sinônimo de “beta mais nova”.
 
-### Linux / macOS
+## Linux amd64
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.sh | bash -s -- --version=v1.0.0-beta.1
-nexus doctor
-nexus web
-```
-
-Versão pinada:
+Baixe o instalador da própria release e pine a mesma versão:
 
 ```bash
+curl -fsSL \
+  https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh \
+  -o install.sh
+
 bash install.sh --version=v1.0.0-beta.1
-```
-
-Flags: `--no-desktop`, `--no-path`, `--with-maestro`, `--build-from-source`, `--yes`, `NEXUS_RELEASE_REPO=owner/repo`.
-
-### Windows (PowerShell)
-
-```powershell
-irm https://raw.githubusercontent.com/IAPro-Community/nexus/main/install.ps1 -OutFile install.ps1
-.\install.ps1 -Version v1.0.0-beta.1
 nexus doctor
 nexus web
 ```
 
-Flags: `-NoDesktop`, `-WithMaestro`, `-BuildFromSource`, `$env:NEXUS_RELEASE_REPO='owner/repo'`.
+Pré-requisitos:
 
-Instalador gráfico (quando publicado na release): ver [Pacotes nativos — NSIS](packages.md#windows-nsis).
+- Linux amd64;
+- `curl` ou `wget`;
+- `tar`;
+- `sha256sum` ou `shasum`;
+- Python 3 com `cryptography` para Ed25519;
+- WebKitGTK apenas para o Desktop Linux.
 
-## Integridade de `--version=latest`
+Parâmetros principais:
 
-O instalador resolve a tag mais recente pela API do GitHub e valida o SHA-256 em `checksums.txt` (**integridade**). Não trate como cadeia de suprimentos assinada enquanto a chave pública e o manifesto Ed25519 não estiverem no fluxo do instalador.
+```text
+--no-desktop
+--no-path
+--install-dir=<path>
+--with-maestro
+--version=vX.Y.Z
+```
 
-## Compilar do fonte (desenvolvedores)
+`NEXUS_INSTALL_DIR` é o equivalente por ambiente. `NEXUS_RELEASE_REPO` e
+`NEXUS_RELEASE_BASE_URL` existem para distribuição interna/certificação.
+
+## Windows e macOS
+
+**Não são targets suportados/publicados pela release estável v1.**
+
+Os paths de source, scripts PowerShell e código de runtime permanecem no
+repositório para desenvolvimento e para a futura campanha de certificação.
+Não use a existência desses arquivos como sinal de suporte de produção.
+
+## O que o instalador verifica
+
+A instalação é fail-closed:
+
+```text
+update-manifest.json
+  + update-manifest.sig
+          |
+          v
+Ed25519 com trust root embutida
+          |
+          v
+SHA-256 do artifact
+          |
+          v
+extração segura
+          |
+          v
+nexus version --json
+          |
+          v
+versão interna == versão solicitada
+          |
+          v
+substituição do binário
+```
+
+Se assinatura, hash, artifact, extração ou versão interna divergirem, o binário
+não é aceito.
+
+A chave pública e o key ID usados pelo build de release são versionados em
+`UPDATE_PUBLIC_KEY` e `UPDATE_KEY_ID`; o workflow de publicação falha quando
+os secrets protegidos divergem desses contratos.
+
+## Upgrade
+
+```bash
+nexus update check
+nexus update
+```
+
+Instalações gerenciadas por pacote não são sobrescritas silenciosamente pelo
+self-updater.
+
+Para migrar deliberadamente de beta para stable, use a versão stable pinada com
+o instalador assinado ou `nexus update --channel stable` quando o cliente
+suportar troca de canal.
+
+## Desinstalação
+
+```bash
+curl -fsSL \
+  https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/uninstall.sh \
+  -o uninstall.sh
+
+bash uninstall.sh
+```
+
+Por padrão, os dados do usuário são preservados. Para removê-los também:
+
+```bash
+bash uninstall.sh --purge-data
+```
+
+## Desenvolvimento a partir do source
+
+O source é um caminho de engenharia, não o bootstrap recomendado de cliente.
+
+Requisitos: Go 1.25+, Bun 1.3.9+, Git e Make.
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
@@ -65,17 +143,8 @@ make build
 ./nexus doctor
 ```
 
-Alternativa: `./install.sh --build-from-source [--yes]` ou `.\install.ps1 -BuildFromSource`.
-
-O build produz `./nexus` no checkout. `make install-local` copia o binário para o prefixo local.
-
-## Executar a Web
-
-```bash
-nexus web --no-open
-```
-
-Abra a URL `Bootstrap` no terminal. Loopback por padrão. Não compartilhe tokens, cookies ou credenciais em issues ou logs.
+Builds de desenvolvimento em outros sistemas podem funcionar, mas isso não os
+transforma em plataformas suportadas da v1.
 
 ## Diagnóstico
 
@@ -83,7 +152,7 @@ Abra a URL `Bootstrap` no terminal. Loopback por padrão. Não compartilhe token
 nexus doctor --json
 ```
 
-No Docker, probes de Desktop/WebView2/ConPTY aparecem como N/A — detalhes em [docker-compat.md](docker-compat.md).
+No Docker, probes de Desktop e runtimes nativos podem aparecer como N/A.
 
 ## Próximo passo
 

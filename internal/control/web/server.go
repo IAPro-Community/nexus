@@ -345,6 +345,8 @@ func (s *Server) routePlan(h *NexusHandler) http.HandlerFunc {
 			h.handleFlowLeader(w, r)
 		case strings.HasSuffix(r.URL.Path, "/clone"):
 			h.handleFlowClone(w, r)
+		case strings.HasSuffix(r.URL.Path, "/execution-preview"):
+			h.handlePlanExecutionPreview(w, r)
 		case strings.HasSuffix(r.URL.Path, "/preflight"):
 			h.handleFlowPreflight(w, r)
 		default:
@@ -380,6 +382,10 @@ func (s *Server) routeRun(h *NexusHandler) http.HandlerFunc {
 		}
 		if len(parts) == 2 && strings.EqualFold(parts[1], "validation-evidence") {
 			h.handleRunValidationEvidence(w, r, parts[0])
+			return
+		}
+		if len(parts) == 2 && strings.EqualFold(parts[1], "evidence-bundle") {
+			h.handleRunEvidenceBundle(w, r, parts[0])
 			return
 		}
 		h.handleRunDetail(w, r)

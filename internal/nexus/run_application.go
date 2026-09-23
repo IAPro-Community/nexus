@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/events"
 	"github.com/IAPro-Community/nexus/internal/core/security"
@@ -20,11 +21,13 @@ type RunApplicationService struct {
 
 // RunStartRequest contains the approved inputs needed to create a MissionRun.
 type RunStartRequest struct {
-	PlanID     string
-	Revision   int
-	AgentID    string
-	Contract   runner.AutonomyContract
-	Autonomous bool
+	PlanID                string
+	Revision              int
+	AgentID               string
+	Contract              runner.AutonomyContract
+	Autonomous            bool
+	CostConfirmationToken string
+	ExecutionPreviewToken string
 }
 
 // RunStepResult is the stable application result for one diagnostic step.
@@ -55,7 +58,18 @@ func (s *RunApplicationService) Start(ctx context.Context, req RunStartRequest) 
 	if err := s.ready(ctx); err != nil {
 		return nil, err
 	}
-	run, err := s.nexus.StartMissionRunApproved(ctx, req.PlanID, req.Revision, req.AgentID, req.Contract, req.Autonomous)
+	run, err := s.nexus.StartMissionRunApprovedWithOptions(
+		ctx,
+		req.PlanID,
+		req.Revision,
+		req.AgentID,
+		req.Contract,
+		req.Autonomous,
+		MissionAdmissionOptions{
+			CostConfirmationToken: req.CostConfirmationToken,
+			ExecutionPreviewToken: req.ExecutionPreviewToken,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +103,13 @@ func (s *RunApplicationService) Routing(ctx context.Context, runID string) (Rout
 	if err != nil {
 		return RoutingDecisionReport{}, err
 	}
+	if run.ExecutionSnapshotID != "" {
+		snapshot, snapshotErr := s.nexus.loadMissionSnapshot(run)
+		if snapshotErr != nil {
+			return RoutingDecisionReport{}, snapshotErr
+		}
+		return BuildRoutingDecisionReportWithPlanAndPreview(run, &snapshot.Plan, snapshot.ExecutionPreview)
+	}
 	if plan, planErr := s.nexus.GetWorkPlan(ctx, run.PlanID); planErr == nil {
 		return BuildRoutingDecisionReportWithPlan(run, plan)
 	}
@@ -120,6 +141,7 @@ func (s *RunApplicationService) Step(ctx context.Context, runID string) (*RunSte
 	if before != nil && before.ResumeRequest != nil && before.ResumeRequest.Status == "PENDING" {
 		s.publishRunEvent(run, events.EventMissionResumed, "Mission resume started", map[string]any{"idempotency_key": before.ResumeRequest.IdempotencyKey})
 	}
+	s.publishCoordinationTransitions(before, run)
 	if completed {
 		s.publishRunEvent(run, events.EventMissionCompleted, "Mission run completed", map[string]any{"run_id": runID})
 	} else {
@@ -207,6 +229,234 @@ func (s *RunApplicationService) ResolveIntervention(ctx context.Context, runID, 
 		}
 	}
 	return run, err
+}
+
+type RunCoordinationResult struct {
+	Request *runner.CoordinationRequest `json:"request"`
+	Child   *runner.PackageRun          `json:"child,omitempty"`
+}
+
+func (s *RunApplicationService) SubmitCoordination(ctx context.Context, runID string, req runner.CoordinationRequest, materialize bool) (*RunCoordinationResult, error) {
+	if err := s.ready(ctx); err != nil {
+		return nil, err
+	}
+	saved, err := s.nexus.Runner().SubmitCoordinationRequest(ctx, runID, req)
+	if err != nil {
+		return nil, err
+	}
+	run, _ := s.nexus.Runner().GetRun(ctx, runID)
+	s.publishRunEvent(run, events.EventMissionStepCompleted, "Mission coordination requested", map[string]any{
+		"request_id":         saved.ID,
+		"operation":          saved.Operation,
+		"source_package_id":  saved.SourcePackageID,
+		"coordination_phase": "REQUESTED",
+	})
+	result := &RunCoordinationResult{Request: saved}
+	if !materialize {
+		return result, nil
+	}
+	if resolved, source, ok := s.resolveCoordinationFromDurableContext(ctx, run, saved); ok {
+		result.Request = resolved
+		s.publishRunEvent(run, events.EventMissionStepCompleted, "Mission coordination resolved from durable context", map[string]any{
+			"request_id":         saved.ID,
+			"status":             resolved.Status,
+			"resolution_source":  source,
+			"coordination_phase": "RESOLVED",
+		})
+		return result, nil
+	}
+	child, err := s.nexus.Runner().MaterializeCoordinationWork(ctx, runID, saved.ID)
+	if err != nil {
+		return nil, err
+	}
+	result.Child = child
+	refreshed, _ := s.nexus.Runner().GetRun(ctx, runID)
+	if refreshed != nil {
+		for i := range refreshed.CoordinationRequests {
+			if refreshed.CoordinationRequests[i].ID == saved.ID {
+				copy := refreshed.CoordinationRequests[i]
+				result.Request = &copy
+				break
+			}
+		}
+	}
+	s.publishRunEvent(refreshed, events.EventMissionStepCompleted, "Mission coordination materialized as dynamic work", map[string]any{
+		"request_id":         saved.ID,
+		"child_package_id":   child.PackageID,
+		"source_package_id":  saved.SourcePackageID,
+		"coordination_phase": "MATERIALIZED",
+	})
+	return result, nil
+}
+
+func (s *RunApplicationService) MaterializeCoordination(ctx context.Context, runID, requestID string) (*RunCoordinationResult, error) {
+	if err := s.ready(ctx); err != nil {
+		return nil, err
+	}
+	current, err := s.nexus.Runner().GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	var pending *runner.CoordinationRequest
+	for i := range current.CoordinationRequests {
+		if current.CoordinationRequests[i].ID == requestID {
+			copy := current.CoordinationRequests[i]
+			pending = &copy
+			break
+		}
+	}
+	if pending == nil {
+		return nil, fmt.Errorf("coordination request %q not found in mission run %s", requestID, runID)
+	}
+	if resolved, source, ok := s.resolveCoordinationFromDurableContext(ctx, current, pending); ok {
+		s.publishRunEvent(current, events.EventMissionStepCompleted, "Mission coordination resolved from durable context", map[string]any{
+			"request_id":         requestID,
+			"status":             resolved.Status,
+			"resolution_source":  source,
+			"coordination_phase": "RESOLVED",
+		})
+		return &RunCoordinationResult{Request: resolved}, nil
+	}
+	child, err := s.nexus.Runner().MaterializeCoordinationWork(ctx, runID, requestID)
+	if err != nil {
+		return nil, err
+	}
+	run, err := s.nexus.Runner().GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	var request *runner.CoordinationRequest
+	for i := range run.CoordinationRequests {
+		if run.CoordinationRequests[i].ID == requestID {
+			copy := run.CoordinationRequests[i]
+			request = &copy
+			break
+		}
+	}
+	if request == nil {
+		return nil, fmt.Errorf("coordination request %q not found after materialization", requestID)
+	}
+	s.publishRunEvent(run, events.EventMissionStepCompleted, "Mission coordination materialized as dynamic work", map[string]any{
+		"request_id":         requestID,
+		"child_package_id":   child.PackageID,
+		"source_package_id":  request.SourcePackageID,
+		"coordination_phase": "MATERIALIZED",
+	})
+	return &RunCoordinationResult{Request: request, Child: child}, nil
+}
+
+func (s *RunApplicationService) ResolveCoordination(ctx context.Context, runID, requestID string, status runner.CoordinationStatus, summary, receiptID string) (*runner.CoordinationRequest, error) {
+	if err := s.ready(ctx); err != nil {
+		return nil, err
+	}
+	resolved, err := s.nexus.Runner().ResolveCoordinationRequest(ctx, runID, requestID, status, summary, receiptID)
+	if err != nil {
+		return nil, err
+	}
+	run, _ := s.nexus.Runner().GetRun(ctx, runID)
+	s.publishRunEvent(run, events.EventMissionStepCompleted, "Mission coordination resolved", map[string]any{
+		"request_id":         requestID,
+		"status":             status,
+		"receipt_id":         receiptID,
+		"coordination_phase": "RESOLVED",
+	})
+	return resolved, nil
+}
+
+func (s *RunApplicationService) resolveCoordinationFromDurableContext(ctx context.Context, run *runner.MissionRun, req *runner.CoordinationRequest) (*runner.CoordinationRequest, string, bool) {
+	if s == nil || s.nexus == nil || run == nil || req == nil || req.Status != runner.CoordinationPending {
+		return nil, "", false
+	}
+	switch req.Operation {
+	case runner.CoordinationNeedInfo:
+		recall, err := s.nexus.RecallIntelligenceMemories(ctx, MemoryRecallRequest{
+			ProjectID: run.ProjectID,
+			Keys:      []string{req.Subject},
+			Limit:     1,
+		})
+		if err != nil || len(recall.Items) == 0 {
+			return nil, "", false
+		}
+		item := recall.Items[0]
+		summary := fmt.Sprintf("%s=%s", item.Memory.Key, item.Memory.Value)
+		resolved, err := s.nexus.Runner().ResolveCoordinationRequest(
+			ctx,
+			run.ID,
+			req.ID,
+			runner.CoordinationResolved,
+			summary,
+			"",
+		)
+		if err != nil {
+			return nil, "", false
+		}
+		return resolved, "MEMORY", true
+	case runner.CoordinationArtifactRequest:
+		if len(req.ArtifactRefs) == 0 {
+			return nil, "", false
+		}
+		requested := make(map[string]struct{}, len(req.ArtifactRefs))
+		for _, ref := range req.ArtifactRefs {
+			if ref = strings.TrimSpace(ref); ref != "" {
+				requested[ref] = struct{}{}
+			}
+		}
+		if len(requested) == 0 {
+			return nil, "", false
+		}
+		for i := range run.PackageRuns {
+			receipt := run.PackageRuns[i].WorkReceipt
+			if receipt == nil {
+				continue
+			}
+			found := map[string]struct{}{}
+			for _, artifact := range receipt.Artifacts {
+				if _, ok := requested[strings.TrimSpace(artifact)]; ok {
+					found[strings.TrimSpace(artifact)] = struct{}{}
+				}
+			}
+			if len(found) != len(requested) {
+				continue
+			}
+			resolved, err := s.nexus.Runner().ResolveCoordinationRequest(
+				ctx,
+				run.ID,
+				req.ID,
+				runner.CoordinationResolved,
+				receipt.Summary,
+				receipt.ID,
+			)
+			if err != nil {
+				return nil, "", false
+			}
+			return resolved, "WORK_RECEIPT", true
+		}
+	}
+	return nil, "", false
+}
+
+func (s *RunApplicationService) publishCoordinationTransitions(before, after *runner.MissionRun) {
+	if after == nil {
+		return
+	}
+	previous := map[string]runner.CoordinationStatus{}
+	if before != nil {
+		for _, request := range before.CoordinationRequests {
+			previous[request.ID] = request.Status
+		}
+	}
+	for _, request := range after.CoordinationRequests {
+		if request.Status == runner.CoordinationPending || previous[request.ID] == request.Status {
+			continue
+		}
+		s.publishRunEvent(after, events.EventMissionStepCompleted, "Mission coordination state changed", map[string]any{
+			"request_id":         request.ID,
+			"status":             request.Status,
+			"receipt_id":         request.ResultReceiptID,
+			"child_package_id":   request.ChildPackageID,
+			"coordination_phase": "RESOLVED",
+		})
+	}
 }
 
 func (s *RunApplicationService) Attention(ctx context.Context) (*runner.AttentionGroup, error) {

@@ -3,6 +3,7 @@
 import {
   Project,
   Agent,
+  AgentMode,
   AgentDetail,
   RuntimeSession,
   AgentConfig,
@@ -102,17 +103,25 @@ export const nexus = {
     request<import('../types').ComposerSession[]>(
       `/api/v1/projects/${projectId}/composer-sessions`,
     ),
+  listComposerSkillCatalog: (projectId: string, query = '') => {
+    const suffix = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : '';
+    return request<import('../types').ComposerSkillCatalogItem[]>(
+      `/api/v1/projects/${projectId}/skills${suffix}`,
+    );
+  },
   createComposerSessionWithMode: (
     projectId: string,
     goal: string,
     inputMode: 'IDEA' | 'EXISTING_PROMPT',
     sourcePrompt?: string,
+    signal?: AbortSignal,
   ) =>
     request<import('../types').ComposerSessionView>(
       `/api/v1/projects/${projectId}/composer-sessions`,
       {
         method: 'POST',
         body: JSON.stringify({ goal, input_mode: inputMode, source_prompt: sourcePrompt || '' }),
+        signal,
       },
     ),
   getComposerSession: (id: string) =>
@@ -128,6 +137,7 @@ export const nexus = {
       url?: string;
       size?: number;
     }>,
+    signal?: AbortSignal,
   ) =>
     request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}/turns`, {
       method: 'POST',
@@ -136,8 +146,9 @@ export const nexus = {
         expected_revision: expectedRevision,
         attachments: attachments || undefined,
       }),
+      signal,
     }),
-  uploadComposerAttachment: async (sessionId: string, file: File) => {
+  uploadComposerAttachment: async (sessionId: string, file: File, signal?: AbortSignal) => {
     const { getCSRFToken, getDesktopAuthToken, getDesktopBaseUrl, NexusRequestError } =
       await import('../api');
     const headers: Record<string, string> = { Accept: 'application/json' };
@@ -153,6 +164,7 @@ export const nexus = {
       method: 'POST',
       headers,
       body: form,
+      signal,
       credentials: 'include',
     });
     if (!res.ok) {
@@ -173,6 +185,11 @@ export const nexus = {
       `/api/v1/composer-sessions/${id}/skills/${encodeURIComponent(skillId)}`,
       { method: 'PATCH', body: JSON.stringify({ state }) },
     ),
+  selectComposerSkill: (id: string, skillId: string) =>
+    request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}/skills`, {
+      method: 'POST',
+      body: JSON.stringify({ skill_id: skillId }),
+    }),
   finalizeComposerSession: (id: string, skillIds: string[] = [], confirmGaps = false) =>
     request<import('../types').PromptArtifact>(`/api/v1/composer-sessions/${id}/finalize`, {
       method: 'POST',
@@ -225,6 +242,7 @@ export const nexus = {
       },
     ),
 
+  listAgentModes: () => request<AgentMode[]>('/api/v1/agent-modes'),
   listAgents: (projectId: string) => request<Agent[]>(`/api/v1/projects/${projectId}/agents`),
   createAgent: (projectId: string, name: string, role?: string) =>
     request<Agent>(`/api/v1/projects/${projectId}/agents`, {
@@ -541,6 +559,10 @@ export const nexus = {
       plan: import('../types').WorkPlan;
       leader: import('../types').FlowLeaderPolicy;
     }>(`/api/v1/plans/${planId}/leader`, { method: 'PUT', body: JSON.stringify(leader) }),
+  previewPlanExecution: (planId: string) =>
+    request<import('../types').PlanExecutionPreview>(`/api/v1/plans/${planId}/execution-preview`, {
+      method: 'POST',
+    }),
   preflightFlow: (planId: string) =>
     request<import('../types').FlowPreflightReport>(`/api/v1/plans/${planId}/preflight`, {
       method: 'POST',
@@ -550,7 +572,14 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ package_id: packageId, phase_id: phaseId }),
     }),
-  runPlan: (planId: string, planRevision: number, agentId?: string, maxRetries?: number) =>
+  runPlan: (
+    planId: string,
+    planRevision: number,
+    agentId?: string,
+    maxRetries?: number,
+    costConfirmationToken?: string,
+    executionPreviewToken?: string,
+  ) =>
     request<import('../types').MissionRun>(`/api/v1/plans/${planId}/run`, {
       method: 'POST',
       body: JSON.stringify({
@@ -558,12 +587,61 @@ export const nexus = {
         plan_revision: planRevision,
         max_retries: maxRetries,
         autonomous: true,
+        cost_confirmation_token: costConfirmationToken,
+        execution_preview_token: executionPreviewToken,
       }),
     }),
   getRuns: () => request<import('../types').MissionRun[]>('/api/v1/runs'),
   getRun: (runId: string) => request<import('../types').MissionRun>(`/api/v1/runs/${runId}`),
+  getRunCoordination: (runId: string) =>
+    request<import('../types').CoordinationRequest[]>(`/api/v1/runs/${runId}/coordination`),
+  submitRunCoordination: (
+    runId: string,
+    requestBody: {
+      request_id: string;
+      source_package_id: string;
+      source_agent_id?: string;
+      operation: import('../types').CoordinationOperation;
+      subject: string;
+      objective?: string;
+      preferred_role?: string;
+      preferred_provider?: string;
+      required_capabilities?: string[];
+      artifact_refs?: string[];
+      materialize?: boolean;
+    },
+  ) =>
+    request<import('../types').RunCoordinationResult>(`/api/v1/runs/${runId}/coordination`, {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    }),
+  materializeRunCoordination: (runId: string, requestId: string) =>
+    request<import('../types').RunCoordinationResult>(
+      `/api/v1/runs/${runId}/coordination-materialize`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ request_id: requestId }),
+      },
+    ),
+  resolveRunCoordination: (
+    runId: string,
+    requestId: string,
+    status: import('../types').CoordinationStatus,
+    options?: { resolutionSummary?: string; resultReceiptId?: string },
+  ) =>
+    request<import('../types').CoordinationRequest>(`/api/v1/runs/${runId}/coordination-resolve`, {
+      method: 'POST',
+      body: JSON.stringify({
+        request_id: requestId,
+        status,
+        resolution_summary: options?.resolutionSummary,
+        result_receipt_id: options?.resultReceiptId,
+      }),
+    }),
   getRunEvidence: (runId: string) =>
     request<import('../types').FlowRunEvidence>(`/api/v1/runs/${runId}/evidence`),
+  getRunEvidenceBundle: (runId: string) =>
+    request<import('../types').MissionEvidenceBundle>(`/api/v1/runs/${runId}/evidence-bundle`),
   pauseRun: (runId: string, reason?: string) =>
     request<import('../types').MissionRun>(`/api/v1/runs/${runId}/pause`, {
       method: 'POST',
@@ -646,6 +724,42 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ fingerprint, until: until ?? '' }),
     }),
+
+  // Local Cost Intelligence. Unknown token/cost evidence stays absent rather
+  // than being coerced to zero.
+  getCostSummary: (days = 7, projectId?: string) => {
+    const params = new URLSearchParams({ days: String(days) });
+    if (projectId) params.set('project_id', projectId);
+    return request<import('../types').CostSummary>(`/api/v1/cost/summary?${params.toString()}`);
+  },
+  getCostPreferences: () => request<import('../types').CostPreferences>('/api/v1/cost/preferences'),
+  putCostPreferences: (prefs: import('../types').CostPreferences) =>
+    request<import('../types').CostPreferences>('/api/v1/cost/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    }),
+  getCostObservations: (options?: {
+    limit?: number;
+    days?: number;
+    projectId?: string;
+    missionRunId?: string;
+    agentId?: string;
+    provider?: string;
+    profile?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (options?.limit) params.set('limit', String(options.limit));
+    if (options?.days) params.set('days', String(options.days));
+    if (options?.projectId) params.set('project_id', options.projectId);
+    if (options?.missionRunId) params.set('mission_run_id', options.missionRunId);
+    if (options?.agentId) params.set('agent_id', options.agentId);
+    if (options?.provider) params.set('provider', options.provider);
+    if (options?.profile) params.set('profile', options.profile);
+    const qs = params.toString();
+    return request<import('../types').CostObservation[]>(
+      `/api/v1/cost/observations${qs ? `?${qs}` : ''}`,
+    );
+  },
   // Tunnel / Remote Access
   getTunnelStatus: () => request<import('../types').TunnelStatus>('/api/v1/tunnel/status'),
   startTunnel: () =>

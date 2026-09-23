@@ -20,17 +20,39 @@ type UpdateResult = nexus.UpdateResult
 func updateCmd(args []string) error {
 	subcmd := ""
 	asJSON := false
-	for _, a := range args {
-		if a == "--json" {
+	channel := ""
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch {
+		case a == "--json":
 			asJSON = true
-		} else if !strings.HasPrefix(a, "-") && subcmd == "" {
-			subcmd = a
+		case strings.HasPrefix(a, "--channel="):
+			channel = strings.ToLower(strings.TrimSpace(strings.TrimPrefix(a, "--channel=")))
+		case a == "--channel":
+			if i+1 >= len(args) {
+				return fmt.Errorf("--channel requires beta or stable")
+			}
+			channel = strings.ToLower(strings.TrimSpace(args[i+1]))
+			i++
+		case strings.HasPrefix(a, "-"):
+			return fmt.Errorf("unknown update option %q", a)
+		case subcmd == "":
+			subcmd = strings.ToLower(strings.TrimSpace(a))
+		default:
+			return fmt.Errorf("unexpected update argument %q", a)
 		}
+	}
+	if channel != "" && channel != "beta" && channel != "stable" {
+		return fmt.Errorf("invalid update channel %q; use beta or stable", channel)
+	}
+	if subcmd != "" && subcmd != "check" {
+		return fmt.Errorf("unknown update subcommand %q; use check or omit it to apply", subcmd)
 	}
 
 	execP, _ := os.Executable()
 	svc := update.NewService(update.ServiceConfig{
 		CurrentVer: buildinfo.Version,
+		Channel:    channel,
 		ExecPath:   execP,
 	})
 
@@ -39,7 +61,7 @@ func updateCmd(args []string) error {
 
 	if subcmd == "check" {
 		res, err := svc.Check(ctx)
-		if err != nil && res == nil {
+		if err != nil {
 			return fmt.Errorf("update check failed: %w", err)
 		}
 		if asJSON {
@@ -86,8 +108,7 @@ func updateCmd(args []string) error {
 
 	receipt, err := svc.Apply(ctx)
 	if err != nil {
-		fmt.Printf("\n⚠️  Update could not be applied: %v\n", err)
-		return nil
+		return fmt.Errorf("update could not be applied: %w", err)
 	}
 
 	if asJSON {

@@ -1665,18 +1665,14 @@ func runGoalCmd(args []string) error {
 		return fmt.Errorf("iniciar tarefa: %w", err)
 	}
 	requirements := nexus.ClassifyTaskRequirements(goal)
-	out, _ := json.MarshalIndent(map[string]any{
-		"run_id":                 run.ID,
-		"state":                  run.State,
+	return waitAndPrintMission(ctx, n, run, map[string]any{
 		"autonomous":             true,
 		"plan_id":                plan.ID,
 		"project_id":             project.ID,
 		"intent_decision":        intentDecision,
 		"task_requirements":      requirements,
 		"requires_decomposition": requirements.RequiresDecomposition,
-	}, "", "  ")
-	fmt.Println(string(out))
-	return nil
+	})
 }
 
 func resumeCmd(args []string) error {

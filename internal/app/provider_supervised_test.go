@@ -20,25 +20,28 @@ func TestProviderLaunchFlagsAreNexusOwned(t *testing.T) {
 	}
 }
 
-func TestWantInteractiveLeadDefaultFalse(t *testing.T) {
-	if wantInteractiveLead(nil) {
-		t.Fatal("default supervised shortcut must not opt into Lead")
+func TestWantInteractiveLeadDefaultTrue(t *testing.T) {
+	if !wantInteractiveLead(nil) {
+		t.Fatal("default supervised shortcut must bind an Interactive Lead")
 	}
-	if wantInteractiveLead([]string{"--yolo", "--model", "gpt-5"}) {
-		t.Fatal("provider flags alone must not enable Lead")
+	if !wantInteractiveLead([]string{"--yolo", "--model", "gpt-5"}) {
+		t.Fatal("provider flags must not disable the default Interactive Lead")
 	}
 }
 
-func TestWantInteractiveLeadOptIn(t *testing.T) {
+func TestWantInteractiveLeadOptOut(t *testing.T) {
+	if wantInteractiveLead([]string{"--no-lead"}) {
+		t.Fatal("expected --no-lead to opt out of Interactive Lead")
+	}
+	if wantInteractiveLead([]string{"--yolo", "--NO-LEAD", "--model", "x"}) {
+		t.Fatal("expected case-insensitive --no-lead")
+	}
 	if !wantInteractiveLead([]string{"--lead"}) {
-		t.Fatal("expected --lead to opt into Interactive Lead")
-	}
-	if !wantInteractiveLead([]string{"--yolo", "--Lead", "--model", "x"}) {
-		t.Fatal("expected case-insensitive --lead")
+		t.Fatal("explicit --lead remains supported")
 	}
 }
 
-func TestStripControlFlagsRemovesLead(t *testing.T) {
+func TestStripControlFlagsRemovesLeadControls(t *testing.T) {
 	r := NewLaunchModeResolver(LaunchModeInput{
 		Args:       []string{"--lead", "--yolo", "--model", "test"},
 		StdinIsTTY: true,
@@ -48,7 +51,7 @@ func TestStripControlFlagsRemovesLead(t *testing.T) {
 	}
 	got := r.StripControlFlags()
 	for _, arg := range got {
-		if arg == "--lead" || arg == "--direct" || arg == "--supervised" {
+		if arg == "--lead" || arg == "--no-lead" || arg == "--direct" || arg == "--supervised" {
 			t.Fatalf("Nexus-owned flag leaked: %#v", got)
 		}
 	}
@@ -90,5 +93,19 @@ func TestLaunchableProfilesExplicitBusyRemainsLaunchable(t *testing.T) {
 	}
 	if len(got) != 1 || got[0].Name != "busy" {
 		t.Fatalf("got %#v", got)
+	}
+}
+
+func TestStripControlFlagsRemovesNoLead(t *testing.T) {
+	r := NewLaunchModeResolver(LaunchModeInput{
+		Args:       []string{"--no-lead", "--yolo"},
+		StdinIsTTY: true,
+	})
+	if r.WantInteractiveLead() {
+		t.Fatal("--no-lead must disable Interactive Lead before stripping")
+	}
+	got := r.StripControlFlags()
+	if len(got) != 1 || got[0] != "--yolo" {
+		t.Fatalf("StripControlFlags = %#v", got)
 	}
 }

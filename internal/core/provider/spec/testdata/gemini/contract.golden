@@ -23,14 +23,18 @@
   ],
   "auto_approval": [
     "--approval-mode=yolo",
+    "--sandbox",
     "--output-format",
     "text"
   ],
   "review_mode": [
     "--approval-mode=plan",
+    "--sandbox",
     "--output-format",
     "text"
   ],
+  "autonomous_isolation": "UNVERIFIED",
+  "review_isolation": "UNVERIFIED",
   "quota": "LIVE_HTTP",
   "known_versions": [
     "0.28.2"

@@ -43,14 +43,21 @@ func interactiveDelegationMode(session registry.RuntimeSession) nexus.Delegation
 func runInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSession, leadAgentID, prompt string, mode nexus.DelegationMode) {
 	ctx := context.Background()
 	result, err := n.Dispatch(ctx, nexus.DispatchRequest{
-		ProjectID:      session.ProjectID,
-		Goal:           prompt,
-		SourcePrompt:   prompt,
-		LeadAgentID:    leadAgentID,
-		DelegationMode: mode,
+		ProjectID:            session.ProjectID,
+		Goal:                 prompt,
+		SourcePrompt:         prompt,
+		LeadAgentID:          leadAgentID,
+		DelegationMode:       mode,
+		AutoPromoteToMission: true,
+		PromotionSource:      "supervised_cli",
+		SourceRuntimeID:      session.RuntimeID,
 	})
 	if err != nil {
 		interactiveDelegationFailure(n, session, leadAgentID, "dispatch goal", err)
+		return
+	}
+	if result == nil {
+		interactiveDelegationFailure(n, session, leadAgentID, "dispatch goal", fmt.Errorf("empty dispatch result"))
 		return
 	}
 	if result.Status == nexus.DispatchFailed || result.Status == nexus.DispatchRejected {
@@ -58,7 +65,11 @@ func runInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSess
 		interactiveDelegationFailure(n, session, leadAgentID, "dispatch goal", err)
 		return
 	}
-	message := fmt.Sprintf("Solicitação original: %s\nA Mission %s está em %s (dispatch %s). Revise arquivos, testes, receipts e routing report; depois sintetize o resultado integrado para o usuário.", prompt, result.RunID, result.Run.State, result.Status)
+	state := "UNKNOWN"
+	if result.Run != nil {
+		state = string(result.Run.State)
+	}
+	message := fmt.Sprintf("Solicitação original: %s\nA Mission %s está em %s (dispatch %s). Revise arquivos, testes, receipts e routing report; depois sintetize o resultado integrado para o usuário.", prompt, result.RunID, state, result.Status)
 	if err := submitPromptToLead(ctx, n, leadAgentID, session.RuntimeID, message); err != nil {
 		fmt.Fprintf(os.Stderr, "[nexus] delegated Mission %s finished, but Lead synthesis failed: %v\n", result.RunID, err)
 	}
@@ -68,7 +79,7 @@ func interactiveDelegationFailure(n *nexus.Nexus, session registry.RuntimeSessio
 	if err == nil {
 		return
 	}
-	fallback := fmt.Sprintf("Nexus não conseguiu %s para a solicitação; trate-a diretamente e informe a limitação: %v", action, err)
+	fallback := fmt.Sprintf("Nexus não conseguiu %s para a solicitação. Não execute esse trabalho fora de uma Mission; informe a limitação e permita nova tentativa: %v", action, err)
 	fmt.Fprintf(os.Stderr, "[nexus] delegated Mission could not %s: %v; Lead remains available\n", action, err)
 	_ = submitPromptToLead(context.Background(), n, leadAgentID, session.RuntimeID, fallback)
 }

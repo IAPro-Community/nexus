@@ -1,6 +1,6 @@
 {
   "name": "iapro-nexus-web",
-  "version": "1.0.0-beta.4",
+  "version": "1.0.0",
   "packageManager": "bun@1.3.9",
   "type": "module",
   "scripts": {
@@ -27,7 +27,10 @@
     "test:e2e-hardening": "node scripts/e2e-hardening-verify.mjs",
     "docs:capture": "node scripts/docs-capture.mjs",
     "quality": "npm run check:styles && npm run format:check && npm run lint && npm run lint:styles && npm run typecheck && npm run test",
-    "quality:full": "npm run quality && npm run build"
+    "quality:full": "npm run quality && npm run build",
+    "test:e2e:composer-spine": "node scripts/e2e-composer-execution-spine.mjs",
+    "test:e2e:composer-vague-spine": "node scripts/e2e-composer-vague-execution-spine.mjs",
+    "test:e2e:composer-themes": "node scripts/e2e-composer-themes.mjs"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.15.20",

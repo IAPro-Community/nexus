@@ -27,8 +27,10 @@ var geminiSpec = Spec{
 	Resume: func(sessionID string) []string {
 		return []string{"-r", sessionID}
 	},
-	AutoApproval:  []string{"--approval-mode=yolo", "--output-format", "text"},
-	ReviewMode:    []string{"--approval-mode=plan", "--output-format", "text"},
-	Quota:         QuotaLiveHTTP,
-	KnownVersions: []string{"0.28.2"},
+	AutoApproval:        []string{"--approval-mode=yolo", "--sandbox", "--output-format", "text"},
+	ReviewMode:          []string{"--approval-mode=plan", "--sandbox", "--output-format", "text"},
+	AutonomousIsolation: IsolationUnverified,
+	ReviewIsolation:     IsolationUnverified,
+	Quota:               QuotaLiveHTTP,
+	KnownVersions:       []string{"0.28.2"},
 }

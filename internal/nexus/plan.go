@@ -36,9 +36,9 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 	if err != nil {
 		return nil, err
 	}
-	var brief LivingBrief
-	if err := json.Unmarshal([]byte(session.BriefJSON), &brief); err != nil {
-		return nil, fmt.Errorf("decode composer brief: %w", err)
+	brief, manifest, err := composerArtifactExecutionContext(*artifact, *session)
+	if err != nil {
+		return nil, err
 	}
 	title := firstNonEmpty(brief.Intent.Objective, brief.Goal, "Composer Flow")
 	facts := map[string]string{
@@ -46,11 +46,14 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		"nexus.source_artifact_revision": fmt.Sprintf("%d", artifact.Version),
 		"nexus.source_artifact_hash":     artifact.Hash,
 	}
+	if strings.TrimSpace(manifest.Fingerprint) != "" {
+		facts["nexus.source_context_manifest_fingerprint"] = manifest.Fingerprint
+	}
 	if motivation, marshalErr := json.Marshal(brief.Motivation); marshalErr == nil {
 		facts["composer.motivation_map"] = string(motivation)
 	}
 	for key, value := range map[string]string{
-		"composer.context":   artifact.ContextJSON,
+		"composer.context":   composerExecutionContextJSON(session.ProjectID, brief, manifest),
 		"composer.skill_ids": artifact.SkillIDsJSON,
 	} {
 		if strings.TrimSpace(value) != "" {
@@ -121,6 +124,39 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		return nil, err
 	}
 	return plan, nil
+}
+
+type composerArtifactContextEnvelope struct {
+	ProjectID       string                  `json:"project_id"`
+	Brief           LivingBrief             `json:"brief"`
+	ContextManifest ComposerContextManifest `json:"context_manifest"`
+	SkillContracts  []FrozenSkillContract   `json:"skill_contracts,omitempty"`
+}
+
+func composerArtifactExecutionContext(artifact store.PromptArtifact, session store.ComposerSession) (LivingBrief, ComposerContextManifest, error) {
+	var envelope composerArtifactContextEnvelope
+	if strings.TrimSpace(artifact.ContextJSON) != "" {
+		if err := json.Unmarshal([]byte(artifact.ContextJSON), &envelope); err != nil {
+			return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("decode Composer artifact context: %w", err)
+		}
+	}
+	if strings.TrimSpace(envelope.ProjectID) != "" && envelope.ProjectID != session.ProjectID {
+		return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("composer artifact project %s does not match session project %s", envelope.ProjectID, session.ProjectID)
+	}
+	if strings.TrimSpace(envelope.ContextManifest.ProjectID) != "" && envelope.ContextManifest.ProjectID != session.ProjectID {
+		return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("composer context manifest project %s does not match session project %s", envelope.ContextManifest.ProjectID, session.ProjectID)
+	}
+	if strings.TrimSpace(envelope.Brief.Goal) != "" || strings.TrimSpace(envelope.Brief.Intent.Objective) != "" {
+		return envelope.Brief, envelope.ContextManifest, nil
+	}
+
+	// Legacy PromptArtifacts predate the frozen Composer envelope. Preserve
+	// compatibility by falling back to the session brief only for those rows.
+	var legacyBrief LivingBrief
+	if err := json.Unmarshal([]byte(session.BriefJSON), &legacyBrief); err != nil {
+		return LivingBrief{}, ComposerContextManifest{}, fmt.Errorf("decode legacy Composer brief: %w", err)
+	}
+	return legacyBrief, decodeComposerContextManifest(session.ContextManifestJSON), nil
 }
 
 func decodeStringArray(raw string) []string {
@@ -201,14 +237,18 @@ func (n *Nexus) compilePackagePromptFromPlan(ctx context.Context, plan *store.Wo
 	if err != nil {
 		return nil, err
 	}
-	return compileTargetPackagePrompt(ctx, plan, targetPkg, validatedSkills)
+	catalog, err := n.skillCatalogForProject(plan.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	contracts, err := frozenSkillContractsFromCatalog(catalog, validatedSkills)
+	if err != nil {
+		return nil, err
+	}
+	return compileTargetPackagePromptForAgent(ctx, plan, targetPkg, intelligence.AgentSpec{Role: targetPkg.Role}, validatedSkills, contracts...)
 }
 
-func compileTargetPackagePrompt(ctx context.Context, plan *store.WorkPlan, targetPkg *store.WorkPackage, validatedSkills []string) (*intelligence.PromptCompilationResult, error) {
-	return compileTargetPackagePromptForAgent(ctx, plan, targetPkg, intelligence.AgentSpec{Role: targetPkg.Role}, validatedSkills)
-}
-
-func compileTargetPackagePromptForAgent(ctx context.Context, plan *store.WorkPlan, targetPkg *store.WorkPackage, agentSpec intelligence.AgentSpec, validatedSkills []string) (*intelligence.PromptCompilationResult, error) {
+func compileTargetPackagePromptForAgent(ctx context.Context, plan *store.WorkPlan, targetPkg *store.WorkPackage, agentSpec intelligence.AgentSpec, validatedSkills []string, frozenContracts ...FrozenSkillContract) (*intelligence.PromptCompilationResult, error) {
 	guidance := guidanceForWorkPackage(targetPkg)
 	compiled, err := intelligence.NewNexusEngine(nil).CompileExecutionContext(ctx, intelligence.ExecutionContextRequest{
 		Agent:    agentSpec,
@@ -220,7 +260,7 @@ func compileTargetPackagePromptForAgent(ctx context.Context, plan *store.WorkPla
 	if err != nil {
 		return nil, err
 	}
-	return &intelligence.PromptCompilationResult{
+	result := &intelligence.PromptCompilationResult{
 		PackageTitle:    targetPkg.Title,
 		SystemPrompt:    compiled.SystemInstructions,
 		UserPrompt:      compiled.TaskInstructions,
@@ -229,7 +269,28 @@ func compileTargetPackagePromptForAgent(ctx context.Context, plan *store.WorkPla
 		Constraints:     append([]string(nil), compiled.Context...),
 		EstimatedTokens: (len(compiled.SystemInstructions) + len(compiled.TaskInstructions)) / 4,
 		CompiledAt:      time.Now().UTC(),
-	}, nil
+	}
+	if len(validatedSkills) > 0 && len(frozenContracts) > 0 {
+		selected, selectErr := frozenSkillContractsForIDs(frozenContracts, validatedSkills)
+		if selectErr != nil {
+			return nil, selectErr
+		}
+		var skillSections []string
+		for _, contract := range selected {
+			if strings.TrimSpace(contract.Instructions) == "" {
+				continue
+			}
+			skillSections = append(skillSections, fmt.Sprintf(
+				"### %s (source=%s version=%s skill_hash=%s contract_hash=%s)\n%s",
+				contract.ID, contract.Source, contract.Version, contract.SkillHash, contract.ContractHash, contract.Instructions,
+			))
+		}
+		if len(skillSections) > 0 {
+			result.SystemPrompt += "\n\n## Frozen Nexus Skill Contracts\n" + strings.Join(skillSections, "\n\n")
+			result.EstimatedTokens = (len(result.SystemPrompt) + len(result.UserPrompt)) / 4
+		}
+	}
+	return result, nil
 }
 
 func guidanceForWorkPackage(pkg *store.WorkPackage) intelligence.ExecutionGuidance {
@@ -248,7 +309,7 @@ func guidanceForWorkPackage(pkg *store.WorkPackage) intelligence.ExecutionGuidan
 
 // compilePackagePromptFromExecutionSnapshot trusts only Maestro gates already
 // frozen into the approved snapshot. It never consults mutable live planning state.
-func compilePackagePromptFromExecutionSnapshot(ctx context.Context, plan *store.WorkPlan, phaseID, packageID string) (*intelligence.PromptCompilationResult, error) {
+func compilePackagePromptFromExecutionSnapshot(ctx context.Context, plan *store.WorkPlan, phaseID, packageID string, frozenContracts []FrozenSkillContract) (*intelligence.PromptCompilationResult, error) {
 	if plan == nil {
 		return nil, fmt.Errorf("work plan snapshot is required")
 	}
@@ -260,7 +321,7 @@ func compilePackagePromptFromExecutionSnapshot(ctx context.Context, plan *store.
 		for i := range ph.Packages {
 			pkg := &ph.Packages[i]
 			if pkg.ID == packageID {
-				return compileTargetPackagePrompt(ctx, plan, pkg, packageSkillIDs(*pkg))
+				return compileTargetPackagePromptForAgent(ctx, plan, pkg, intelligence.AgentSpec{Role: pkg.Role}, packageSkillIDs(*pkg), frozenContracts...)
 			}
 		}
 	}

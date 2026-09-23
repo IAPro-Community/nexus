@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	nexusskills "github.com/IAPro-Community/nexus/internal/nexus/skills"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -61,6 +62,10 @@ func TestComposerOperationsRejectCanceledContext(t *testing.T) {
 	})
 	assertCanceled("resolve", func() error {
 		_, err := n.ResolveComposerUnknownExpected(ctx, session.Session.ID, "missing", "answer", "ANSWERED", 0)
+		return err
+	})
+	assertCanceled("resolve wrapper", func() error {
+		_, err := n.ResolveComposerUnknown(ctx, session.Session.ID, "missing", "answer", "ANSWERED")
 		return err
 	})
 }
@@ -196,6 +201,50 @@ func TestComposerRevisionConflictIsRejected(t *testing.T) {
 	}
 }
 
+func TestComposerSkillRecommendationsFollowBriefWithoutOverwritingUserDecision(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Skill Reconcile", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(store.ComposerSession{
+		ProjectID: project.ID,
+		Title:     "Skill reconcile",
+		BriefJSON: mustJSON(newComposerBrief("security audit", "")),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalog := nexusskills.Catalog{Library: []nexusskills.Skill{
+		{ID: "security", Name: "Security", Description: "security audit", Source: nexusskills.SourceBuiltin, Availability: nexusskills.AvailabilityAvailable},
+		{ID: "documentation", Name: "Documentation", Description: "documentation readme", Source: nexusskills.SourceBuiltin, Availability: nexusskills.AvailabilityAvailable},
+	}}
+	reconcileComposerSkillProposals(st, session.ID, newComposerBrief("security audit", ""), catalog)
+	if err := st.SetComposerSkillState(session.ID, "security", store.ComposerSkillAccepted); err != nil {
+		t.Fatal(err)
+	}
+	reconcileComposerSkillProposals(st, session.ID, newComposerBrief("documentation readme", ""), catalog)
+
+	proposals, err := st.ListComposerSkillProposals(session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	states := map[string]string{}
+	for _, proposal := range proposals {
+		states[proposal.SkillID] = proposal.State
+	}
+	if states["security"] != store.ComposerSkillAccepted {
+		t.Fatalf("explicit user decision was overwritten: %+v", states)
+	}
+	if states["documentation"] != store.ComposerSkillSuggested {
+		t.Fatalf("new relevant recommendation missing: %+v", states)
+	}
+}
+
 func TestComposerImportedPromptTracksUnknownsAndAppliesSkills(t *testing.T) {
 	n := openTestNexus(t)
 	n.maestroStatus = func() MaestroStatus {
@@ -248,7 +297,14 @@ Need backend and frontend changes.`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Skills[0].State != store.ComposerSkillAccepted {
+	var acceptedSkill *store.ComposerSkillProposal
+	for i := range updated.Skills {
+		if updated.Skills[i].SkillID == "skill-webapp-testing" {
+			acceptedSkill = &updated.Skills[i]
+			break
+		}
+	}
+	if acceptedSkill == nil || acceptedSkill.State != store.ComposerSkillAccepted {
 		t.Fatalf("skill state not persisted: %+v", updated.Skills)
 	}
 	updated, err = n.AddComposerTurn(context.Background(), view.Session.ID, store.ComposerUser, "Use Go in the backend and React in the frontend. Success means users can sign in with Google, we add regression coverage, and verification runs through go test plus npm test.")
@@ -285,8 +341,15 @@ Need backend and frontend changes.`)
 	if len(finalView.Artifacts) != 1 || finalView.Artifacts[0].Version != 1 {
 		t.Fatalf("expected persisted artifact history, got %+v", finalView.Artifacts)
 	}
-	if finalView.Skills[0].State != store.ComposerSkillApplied {
-		t.Fatalf("expected applied skill state, got %+v", finalView.Skills)
+	applied := false
+	for _, skill := range finalView.Skills {
+		if skill.SkillID == "skill-webapp-testing" && skill.State == store.ComposerSkillApplied {
+			applied = true
+			break
+		}
+	}
+	if !applied {
+		t.Fatalf("expected skill-webapp-testing to be applied, got %+v", finalView.Skills)
 	}
 }
 
@@ -426,7 +489,11 @@ func TestCreateComposerSessionReturnsWhenIntelligenceHangs(t *testing.T) {
 	if view == nil || view.Session.ID == "" {
 		t.Fatal("expected a persisted session even when intelligence hangs")
 	}
-	if elapsed > 2*time.Second {
-		t.Fatalf("create took %s; expected bootstrap timeout to release promptly", elapsed)
+	// The 120ms budget applies to provider intelligence, not to the full
+	// deterministic bootstrap (Git/context/memory/store). Under -race those
+	// local steps are materially slower, so retain a bounded anti-hang guard
+	// without turning this test into an end-to-end latency SLA.
+	if elapsed > 5*time.Second {
+		t.Fatalf("create took %s; hung intelligence did not release within the bounded bootstrap guard", elapsed)
 	}
 }

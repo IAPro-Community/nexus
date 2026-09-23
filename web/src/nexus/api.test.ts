@@ -95,6 +95,41 @@ describe('nexus API request errors', () => {
     const [, init] = fetchMock.mock.calls[0];
     expect(init.headers.get('X-CSRF-Token')).toBe('nexus-shared-csrf');
   });
+
+  it('forwards Composer AbortSignal to the active turn request', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ session: { id: 'session-1', revision: 2 } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
+
+    await nexusApi.addComposerTurn('session-1', 'continue', 1, undefined, controller.signal);
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBe(controller.signal);
+  });
+
+  it('forwards Composer AbortSignal to attachment uploads', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          id: 'att-1',
+          name: 'shot.png',
+          mime_type: 'image/png',
+          size: 3,
+        }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
+    const file = new File(['png'], 'shot.png', { type: 'image/png' });
+
+    await nexusApi.uploadComposerAttachment('session-1', file, controller.signal);
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBe(controller.signal);
+  });
 });
 
 describe('system metadata API', () => {
@@ -258,5 +293,93 @@ describe('Flow Run evidence API', () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/runs/run-1/evidence');
     const init = (fetchMock.mock.calls[0][1] || {}) as RequestInit;
     expect(init.method).toBeUndefined();
+  });
+
+  it('loads the canonical evidence bundle as a read-only projection', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          version: '1',
+          run_id: 'run-1',
+          state: 'COMPLETED_VERIFIED',
+          generated_at: new Date().toISOString(),
+          completed_verified: true,
+          evidence_complete: true,
+          capsules: [],
+          receipts: [],
+          routing: { run_id: 'run-1', decisions: [] },
+          validation: { run_id: 'run-1', entries: [], chain_verified: true },
+        }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await nexusApi.getRunEvidenceBundle('run-1');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/runs/run-1/evidence-bundle');
+    const init = (fetchMock.mock.calls[0][1] || {}) as RequestInit;
+    expect(init.method).toBeUndefined();
+  });
+});
+
+describe('Mission coordination API', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('submits typed coordination through the run-scoped endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          request: {
+            id: 'coord-1',
+            run_id: 'run-1',
+            source_package_id: 'pkg-1',
+            operation: 'DELEGATE',
+            subject: 'review auth',
+            status: 'PENDING',
+            created_at: new Date().toISOString(),
+          },
+        }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await nexusApi.submitRunCoordination('run-1', {
+      request_id: 'coord-1',
+      source_package_id: 'pkg-1',
+      operation: 'DELEGATE',
+      subject: 'review auth',
+      objective: 'review authentication independently',
+      materialize: true,
+    });
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/runs/run-1/coordination');
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      request_id: 'coord-1',
+      source_package_id: 'pkg-1',
+      operation: 'DELEGATE',
+      materialize: true,
+    });
+  });
+
+  it('uses explicit materialize and resolve actions without overloading Mission step', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ request: { id: 'coord-1' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await nexusApi.materializeRunCoordination('run-1', 'coord-1');
+    await nexusApi.resolveRunCoordination('run-1', 'coord-1', 'REJECTED', {
+      resolutionSummary: 'not required',
+    });
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain(
+      '/api/v1/runs/run-1/coordination-materialize',
+    );
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/api/v1/runs/run-1/coordination-resolve');
+    expect((fetchMock.mock.calls[0][1] as RequestInit).method).toBe('POST');
+    expect((fetchMock.mock.calls[1][1] as RequestInit).method).toBe('POST');
   });
 });

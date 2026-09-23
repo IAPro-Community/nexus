@@ -73,17 +73,14 @@ overnight-smoke:
 	@go test -count=1 -timeout 20m ./internal/nexus/runner -run 'Test(MissionTeamPlannerBuilderReviewerVerifier|OvernightAcceptanceSandbox|OvernightSoakHarnessBounded|ProgressWatchdog|FaultInjection)'
 
 # Local-only authenticated provider smoke (not part of CI quality).
+# Fail-closed provider execution lives in scripts/smoke-providers.sh so Make
+# does not reinterpret shell variables or mask provider failures.
+SMOKE_REQUIRED_PROVIDERS ?= codex agy claude gemini
+SMOKE_PROVIDER_MARKER ?= NEXUS_PROVIDER_SMOKE_OK
 smoke-providers:
-	@echo "Refreshing live usage (requires authenticated local profiles)…"
-	@nexus usage --refresh --json >/tmp/nexus-usage-smoke.json
-	@python3 -c 'import json,sys; rows=json.load(open("/tmp/nexus-usage-smoke.json")); want={"agy","codex","claude","gemini"}; got={r.get("provider_id") or r.get("ProviderID","") for r in rows if (r.get("status") or r.get("Status",""))=="LIVE"}; missing=sorted(want-got); \
-print("LIVE providers:", ", ".join(sorted(got)) or "(none)"); \
-sys.exit("missing LIVE for: "+", ".join(missing) if missing else 0)'
-	@for p in codex agy claude gemini opencode cursor; do \
-	  echo "direct smoke $$p"; \
-	  nexus $$p --direct --print "ok" >/tmp/nexus-$$p-smoke.txt 2>/tmp/nexus-$$p-smoke.err || true; \
-	done
-	@echo "smoke-providers finished (inspect /tmp/nexus-*-smoke.*)"
+	@SMOKE_REQUIRED_PROVIDERS="$(SMOKE_REQUIRED_PROVIDERS)" \
+	  SMOKE_PROVIDER_MARKER="$(SMOKE_PROVIDER_MARKER)" \
+	  bash ./scripts/smoke-providers.sh
 
 DURATION ?= 30s
 overnight-soak:

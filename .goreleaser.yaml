@@ -10,11 +10,13 @@ builds:
       - CGO_ENABLED=0
     flags:
       - -trimpath
+    # Nexus v1 stable support scope. Windows/macOS source support remains in-tree,
+    # but their binaries are not published as supported artifacts until native
+    # certification is restored for those platforms.
     goos:
       - linux
     goarch:
       - amd64
-      - arm64
     ldflags:
       - >-
         -s -w

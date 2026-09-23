@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -360,7 +361,13 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				}
 				if event.Submit {
 					for _, line := range event.Submissions {
-						decision, decideErr := promotion.NewPromoter(h.nexus).Decide(r.Context(), sess.ProjectID, line, webInteractiveDelegationMode(sess))
+						if promotion.IsImmediateSubmitLine(line) {
+							_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+							continue
+						}
+						decideCtx, cancelDecision := context.WithTimeout(r.Context(), promotion.InteractiveDecisionTimeout)
+						decision, decideErr := promotion.NewPromoter(h.nexus).Decide(decideCtx, sess.ProjectID, line, webInteractiveDelegationMode(sess))
+						cancelDecision()
 						if decideErr != nil || decision.Action == promotion.KeepWithLead {
 							_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
 							continue

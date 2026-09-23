@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -27,6 +28,7 @@ func putJSON(t *testing.T, client *http.Client, csrf, url string, body []byte) *
 func TestCapacityEndpoints(t *testing.T) {
 	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
 	client, srv, csrf := csrfClient(t)
+	t.Cleanup(func() { nexus.Default().StopCapacityMonitor() })
 
 	postJSON := func(url string, body []byte) *http.Response {
 		t.Helper()
@@ -94,21 +96,37 @@ func TestCapacityEndpoints(t *testing.T) {
 		}
 	})
 
-	t.Run("PUT /api/v1/capacity/preferences round-trips valid prefs", func(t *testing.T) {
+	t.Run("PUT /api/v1/capacity/preferences applies lifecycle immediately", func(t *testing.T) {
 		prefs := store.DefaultCapacityPreferences()
 		prefs.BackgroundEnabled = true
 		body, _ := json.Marshal(prefs)
 		resp := putJSON(t, client, csrf, srv.URL()+"/api/v1/capacity/preferences", body)
-		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
 		var saved store.CapacityPreferences
 		if err := json.NewDecoder(resp.Body).Decode(&saved); err != nil {
+			resp.Body.Close()
 			t.Fatalf("decode prefs: %v", err)
 		}
+		resp.Body.Close()
 		if !saved.BackgroundEnabled {
 			t.Error("expected background_enabled persisted true")
+		}
+		if !nexus.Default().CapacityMonitorRunning() {
+			t.Fatal("background opt-in must start capacity monitor without restart")
+		}
+
+		saved.BackgroundEnabled = false
+		body, _ = json.Marshal(saved)
+		resp = putJSON(t, client, csrf, srv.URL()+"/api/v1/capacity/preferences", body)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("disable expected 200, got %d", resp.StatusCode)
+		}
+		if nexus.Default().CapacityMonitorRunning() {
+			t.Fatal("disabling background monitoring must stop the hosted loop immediately")
 		}
 	})
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -83,5 +84,95 @@ func TestResolveExecutionWorkspaceWorktree(t *testing.T) {
 	got2, err := n.resolveExecutionWorkspace(context.Background(), project, agent, AgentConfig{})
 	if err != nil || got2 != got {
 		t.Fatalf("worktree reuse=%q err=%v want %q", got2, err, got)
+	}
+}
+
+func TestEnsureAgentWorktreeRejectsManagedPathTraversal(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git unavailable")
+	}
+	repo := t.TempDir()
+	run := func(args ...string) {
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=Test", "GIT_AUTHOR_EMAIL=test@example.com", "GIT_COMMITTER_NAME=Test", "GIT_COMMITTER_EMAIL=test@example.com")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+	run("init")
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run("add", "README.md")
+	run("commit", "-m", "init")
+
+	dataDir := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+
+	tests := []struct {
+		name    string
+		project store.Project
+		agent   store.Agent
+	}{
+		{
+			name:    "project traversal",
+			project: store.Project{ID: "../escape-project", CanonicalPath: repo, DefaultIsolation: "worktree"},
+			agent:   store.Agent{ID: "agent-1", ProjectID: "../escape-project"},
+		},
+		{
+			name:    "agent traversal",
+			project: store.Project{ID: "project-1", CanonicalPath: repo, DefaultIsolation: "worktree"},
+			agent:   store.Agent{ID: "../escape-agent", ProjectID: "project-1"},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := ensureAgentWorktree(context.Background(), tc.project, tc.agent); err == nil || !strings.Contains(err.Error(), "unsafe managed") {
+				t.Fatalf("managed path traversal must fail closed, got %v", err)
+			}
+		})
+	}
+}
+
+func TestEnsureAgentWorktreeRejectsSymlinkRedirect(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation may require Windows developer/admin privileges")
+	}
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git unavailable")
+	}
+
+	repo := t.TempDir()
+	run := func(args ...string) {
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=Test", "GIT_AUTHOR_EMAIL=test@example.com", "GIT_COMMITTER_NAME=Test", "GIT_COMMITTER_EMAIL=test@example.com")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+	run("init")
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run("add", "README.md")
+	run("commit", "-m", "init")
+
+	dataDir := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	project := store.Project{ID: "project-1", CanonicalPath: repo, DefaultIsolation: "worktree"}
+	agent := store.Agent{ID: "agent-1", ProjectID: project.ID}
+
+	projectRoot := filepath.Join(dataDir, "worktrees", project.ID)
+	if err := os.MkdirAll(projectRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	outside := t.TempDir()
+	redirect := filepath.Join(projectRoot, agent.ID)
+	if err := os.Symlink(outside, redirect); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ensureAgentWorktree(context.Background(), project, agent); err == nil || !strings.Contains(err.Error(), "must not be a symlink") {
+		t.Fatalf("managed worktree symlink redirect must fail closed, got %v", err)
 	}
 }

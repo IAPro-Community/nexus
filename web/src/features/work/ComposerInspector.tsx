@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Pencil } from 'lucide-react';
 import { Button } from '../../design-system';
-import type { Agent, ComposerSessionView, Project, PromptArtifact } from '../../types';
+import type {
+  Agent,
+  ComposerSessionView,
+  ComposerSkillCatalogItem,
+  Project,
+  PromptArtifact,
+} from '../../types';
 import { asArray, asStringArray } from '../../lib/safeArray';
 import type { ComposerBriefUnknown, ComposerGate } from './composerModel';
 import { ComposerBriefOverview } from './ComposerBriefOverview';
@@ -39,7 +45,10 @@ export const ComposerInspector: React.FC<{
   onRefineTextChange: (value: string) => void;
   onCancelRefine: () => void;
   onRefine: () => void;
+  skillCatalog: ComposerSkillCatalogItem[];
   onUpdateSkill: (skillId: string, state: 'ACCEPTED' | 'REJECTED') => void;
+  onSearchSkillCatalog: (query: string) => Promise<void>;
+  onSelectCatalogSkill: (skillId: string) => void;
   onAttach: (path: string) => void;
   onDetach: (path: string) => void;
   onCopy: () => void;
@@ -78,7 +87,10 @@ export const ComposerInspector: React.FC<{
   onRefineTextChange,
   onCancelRefine,
   onRefine,
+  skillCatalog,
   onUpdateSkill,
+  onSearchSkillCatalog,
+  onSelectCatalogSkill,
   onAttach,
   onDetach,
   onCopy,
@@ -157,7 +169,7 @@ export const ComposerInspector: React.FC<{
             <details className={styles.collapse} open={suggestedSkills > 0}>
               <summary>
                 <span>
-                  {t('work.composer.maestroSkills', 'Maestro skills')}
+                  {t('work.composer.skills', 'Skills')}
                   {suggestedSkills > 0
                     ? ` · ${t('work.composer.skillsSuggested', '{{count}} suggested', { count: suggestedSkills })}`
                     : ''}
@@ -166,9 +178,12 @@ export const ComposerInspector: React.FC<{
               </summary>
               <ComposerSkills
                 skills={view.skills || []}
+                catalog={skillCatalog}
                 busy={busy}
                 compact
                 onUpdateSkill={onUpdateSkill}
+                onSearchCatalog={onSearchSkillCatalog}
+                onSelectCatalogSkill={onSelectCatalogSkill}
               />
             </details>
             {motivation.length > 0 ? (

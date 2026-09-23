@@ -147,3 +147,30 @@ func TestMissionTeamRuntimeOverrideRemainsPreferenceAndRoundTrips(t *testing.T) 
 		t.Fatalf("runtime preference was lost across Flow/WorkPlan projection: %+v", plan.Phases)
 	}
 }
+
+func TestMissionTeamOperationalRolesUseCanonicalAgentModes(t *testing.T) {
+	bugFix, err := MissionTeamPresetDefinitionFor(PresetBugFix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bugFix.Phases) == 0 || bugFix.Phases[0].RequiredRole != "investigator" {
+		t.Fatalf("bug-fix diagnosis role=%q, want investigator", bugFix.Phases[0].RequiredRole)
+	}
+
+	release, err := MissionTeamPresetDefinitionFor(PresetReleaseCandidate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundSecurity := false
+	for _, phase := range release.Phases {
+		if phase.Type == PhaseSecurityReview {
+			foundSecurity = true
+			if phase.RequiredRole != "security-reviewer" {
+				t.Fatalf("security review role=%q, want security-reviewer", phase.RequiredRole)
+			}
+		}
+	}
+	if !foundSecurity {
+		t.Fatal("release candidate preset must contain a security review phase")
+	}
+}

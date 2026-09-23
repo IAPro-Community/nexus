@@ -36,6 +36,8 @@
     "60m"
   ],
   "review_mode": null,
+  "autonomous_isolation": "UNVERIFIED",
+  "review_isolation": "UNVERIFIED",
   "quota": "LIVE_CLI",
   "known_versions": [
     "1.0.0"

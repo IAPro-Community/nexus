@@ -30,6 +30,8 @@
     "--permission-mode",
     "plan"
   ],
+  "autonomous_isolation": "UNVERIFIED",
+  "review_isolation": "UNVERIFIED",
   "quota": "LIVE_HTTP",
   "known_versions": [
     "1.18.30"

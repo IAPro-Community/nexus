@@ -49,9 +49,18 @@ func main() {
 	keep := flag.Bool("keep", false, "keep generated project/data artifacts (diagnostics only)")
 	browser := flag.Bool("browser", false, "run the token-safe Chromium smoke after startup")
 	safeApply := flag.Bool("safe-apply", false, "verify a real restart-style Safe Apply and terminal reconnect")
+	mission := flag.Bool("mission", false, "run an authenticated autonomous Mission smoke instead of Direct Work")
 	flag.Parse()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	if *mission && *safeApply {
+		fmt.Fprintln(os.Stderr, "NEXUS_E2E_FAIL: -mission and -safe-apply are mutually exclusive")
+		os.Exit(1)
+	}
+	timeout := 2 * time.Minute
+	if *mission {
+		timeout = 10 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	cleanup := func() {}
 	if *start {
@@ -62,7 +71,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	if err := run(ctx, *safeApply); err != nil {
+	if err := run(ctx, *safeApply, *mission); err != nil {
 		cleanup()
 		if errors.Is(err, errNotAuthenticated) {
 			fmt.Fprintln(os.Stderr, "NEXUS_E2E_NOT_AUTHENTICATED:", err)
@@ -72,6 +81,10 @@ func main() {
 		os.Exit(1)
 	}
 	cleanup()
+	if *mission {
+		fmt.Println("NEXUS_E2E_PASS: autonomous Mission reached COMPLETED_VERIFIED with persisted evidence")
+		return
+	}
 	fmt.Println("NEXUS_E2E_PASS: Direct Work reached a real provider runtime and produced terminal output")
 }
 
@@ -100,7 +113,7 @@ func sanitizeTranscript(transcript string) string {
 	return secretAssignment.ReplaceAllString(clean, "$1=[REDACTED]")
 }
 
-func run(ctx context.Context, safeApply bool) error {
+func run(ctx context.Context, safeApply, mission bool) error {
 	bootstrap := strings.TrimSpace(os.Getenv("NEXUS_BOOTSTRAP_URL"))
 	if bootstrap == "" {
 		return fmt.Errorf("NEXUS_BOOTSTRAP_URL is required; use the one-time URL printed by the running Nexus")
@@ -115,6 +128,9 @@ func run(ctx context.Context, safeApply bool) error {
 	}
 	base := u.Scheme + "://" + u.Host
 	projectPath := strings.TrimSpace(os.Getenv("NEXUS_E2E_PROJECT_PATH"))
+	if mission && projectPath == "" {
+		return fmt.Errorf("NEXUS_E2E_PROJECT_PATH is required in -mission mode; use an explicit disposable clean Git repository")
+	}
 	if projectPath == "" {
 		projectPath, err = os.Getwd()
 		if err != nil {
@@ -127,6 +143,11 @@ func run(ctx context.Context, safeApply bool) error {
 	}
 	if _, err := os.Stat(projectPath); err != nil {
 		return fmt.Errorf("project path: %w", err)
+	}
+	if mission {
+		if err := validateMissionE2EProject(ctx, projectPath); err != nil {
+			return err
+		}
 	}
 
 	jar, _ := cookiejar.New(nil)
@@ -192,6 +213,9 @@ func run(ctx context.Context, safeApply bool) error {
 	}
 	if provider == "" {
 		return fmt.Errorf("%w: no eligible authenticated provider/profile matches provider=%q profile=%q", errNotAuthenticated, wantProvider, wantProfile)
+	}
+	if mission {
+		return runMissionE2E(ctx, api, project.ID, provider, profile, projectPath)
 	}
 
 	var agent struct {
@@ -344,6 +368,246 @@ func run(ctx context.Context, safeApply bool) error {
 		if err := verifySafeApply(ctx, api, u, jar, base, agent.ID, started.Runtime.RuntimeID); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+const missionE2EMarkerFile = "nexus-e2e-mission.txt"
+const missionE2EMarker = "NEXUS_MISSION_E2E_OK"
+
+func validateMissionE2EProject(ctx context.Context, projectPath string) error {
+	for _, args := range [][]string{
+		{"-C", projectPath, "rev-parse", "--is-inside-work-tree"},
+		{"-C", projectPath, "rev-parse", "HEAD"},
+	} {
+		cmd := exec.CommandContext(ctx, "git", args...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("mission E2E requires an initialized Git repository with HEAD: git %v: %w: %s", args, err, strings.TrimSpace(string(out)))
+		}
+	}
+	status, err := exec.CommandContext(ctx, "git", "-C", projectPath, "status", "--porcelain").Output()
+	if err != nil {
+		return fmt.Errorf("inspect Mission E2E project status: %w", err)
+	}
+	if strings.TrimSpace(string(status)) != "" {
+		return fmt.Errorf("mission E2E requires a clean disposable repository; working tree has local changes")
+	}
+	return nil
+}
+
+type missionE2EPreview struct {
+	Revision                 int      `json:"revision"`
+	Ready                    bool     `json:"ready"`
+	Blockers                 []string `json:"blockers"`
+	ApprovalToken            string   `json:"approval_token"`
+	CostConfirmationRequired bool     `json:"cost_confirmation_required"`
+	CostConfirmationToken    string   `json:"cost_confirmation_token"`
+}
+
+type missionE2EPackageRun struct {
+	PackageID       string `json:"package_id"`
+	State           string `json:"state"`
+	AssignedAgent   string `json:"assigned_agent"`
+	AssignedRuntime string `json:"assigned_runtime"`
+	Workspace       string `json:"workspace"`
+}
+
+type missionE2ERun struct {
+	ID          string                 `json:"id"`
+	State       string                 `json:"state"`
+	PackageRuns []missionE2EPackageRun `json:"package_runs"`
+}
+
+type missionE2EReceipt struct {
+	StepID       string   `json:"step_id"`
+	Status       string   `json:"status"`
+	ChangedFiles []string `json:"changed_files"`
+}
+
+type missionE2EEvidence struct {
+	Capsules []json.RawMessage   `json:"capsules"`
+	Receipts []missionE2EReceipt `json:"receipts"`
+}
+
+func runMissionE2E(ctx context.Context, api *apiClient, projectID, provider, profile, projectPath string) error {
+	if api == nil {
+		return fmt.Errorf("mission E2E API client is required")
+	}
+	if err := api.do(ctx, http.MethodPatch, "/api/v1/projects/"+url.PathEscape(projectID), map[string]any{
+		"default_isolation": "worktree",
+	}, nil); err != nil {
+		return fmt.Errorf("configure Mission E2E worktree isolation: %w", err)
+	}
+
+	agentIDs := map[string]struct{}{}
+	defer func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		if os.Getenv("NEXUS_E2E_KEEP") == "1" {
+			return
+		}
+		for agentID := range agentIDs {
+			_ = api.do(cleanupCtx, http.MethodPost, "/api/v1/agents/"+url.PathEscape(agentID)+"/stop", map[string]any{}, nil)
+			_ = api.do(cleanupCtx, http.MethodDelete, "/api/v1/agents/"+url.PathEscape(agentID), nil, nil)
+		}
+		_ = api.do(cleanupCtx, http.MethodDelete, "/api/v1/projects/"+url.PathEscape(projectID), nil, nil)
+	}()
+
+	intentRaw, _ := json.Marshal(map[string]any{
+		"strategy":                "PLAN",
+		"confidence":              "HIGH",
+		"recommended_next_action": "create_work_plan",
+		"task_requirements": map[string]any{
+			"task_kind": "coding",
+			"role":      "implementer",
+		},
+	})
+	goal := "Create a UTF-8 text file named " + missionE2EMarkerFile +
+		" in the repository root containing exactly " + missionE2EMarker +
+		" followed by one newline. Do not modify any other file. Do not commit, push, deploy, access secrets, or use external network."
+
+	var plan struct {
+		ID              string `json:"id"`
+		CurrentRevision int    `json:"current_revision"`
+	}
+	if err := api.do(ctx, http.MethodPost, "/api/v1/projects/"+url.PathEscape(projectID)+"/plans", map[string]any{
+		"title":       "Authenticated Mission E2E",
+		"description": goal,
+		"facts": map[string]string{
+			"nexus.intent_decision":   string(intentRaw),
+			"nexus.intent_strategy":   "PLAN",
+			"nexus.intent_confidence": "HIGH",
+			"nexus.delegation_mode":   "OFF",
+		},
+		"phases": []map[string]any{{
+			"id":    "phase-e2e",
+			"title": "Mission E2E implementation",
+			"order": 1,
+			"type":  "IMPLEMENTATION",
+			"packages": []map[string]any{{
+				"id":                        "mission-e2e",
+				"title":                     "Create Mission E2E marker",
+				"goal":                      goal,
+				"priority":                  "HIGH",
+				"status":                    "READY",
+				"dependencies":              []string{},
+				"role":                      "implementer",
+				"phase_type":                "IMPLEMENTATION",
+				"review_required":           false,
+				"assignment_strategy":       "CREATE",
+				"resource_policy":           "MANUAL",
+				"provider":                  provider,
+				"profile":                   profile,
+				"relevant_paths":            []string{missionE2EMarkerFile},
+				"acceptance_criteria":       []string{"marker file exists with the exact requested content and no unrelated file changed"},
+				"verification_requirements": []string{"git diff --check"},
+				"required_evidence":         []string{"VERIFICATION_PASSED"},
+			}},
+		}},
+	}, &plan); err != nil {
+		return fmt.Errorf("create Mission E2E plan: %w", err)
+	}
+	if plan.ID == "" || plan.CurrentRevision <= 0 {
+		return fmt.Errorf("mission E2E plan returned invalid identity/revision")
+	}
+
+	var preview missionE2EPreview
+	if err := api.do(ctx, http.MethodPost, "/api/v1/plans/"+url.PathEscape(plan.ID)+"/execution-preview", map[string]any{}, &preview); err != nil {
+		return fmt.Errorf("mission E2E execution preview: %w", err)
+	}
+	if !preview.Ready || preview.ApprovalToken == "" || preview.Revision != plan.CurrentRevision {
+		return fmt.Errorf("mission E2E preview not ready: revision=%d ready=%t blockers=%v", preview.Revision, preview.Ready, preview.Blockers)
+	}
+
+	var preflight struct {
+		Ready    bool     `json:"ready"`
+		Blockers []string `json:"blockers"`
+	}
+	if err := api.do(ctx, http.MethodPost, "/api/v1/plans/"+url.PathEscape(plan.ID)+"/preflight", map[string]any{}, &preflight); err != nil {
+		return fmt.Errorf("mission E2E preflight: %w", err)
+	}
+	if !preflight.Ready {
+		return fmt.Errorf("mission E2E preflight blocked: %v", preflight.Blockers)
+	}
+
+	runBody := map[string]any{
+		"plan_revision":           plan.CurrentRevision,
+		"execution_preview_token": preview.ApprovalToken,
+		"autonomous":              true,
+	}
+	if preview.CostConfirmationRequired {
+		if strings.TrimSpace(preview.CostConfirmationToken) == "" {
+			return fmt.Errorf("mission E2E cost confirmation is required but preview returned no token")
+		}
+		runBody["cost_confirmation_token"] = preview.CostConfirmationToken
+	}
+
+	var run missionE2ERun
+	if err := api.do(ctx, http.MethodPost, "/api/v1/plans/"+url.PathEscape(plan.ID)+"/run", runBody, &run); err != nil {
+		return fmt.Errorf("start Mission E2E run: %w", err)
+	}
+	if run.ID == "" {
+		return fmt.Errorf("mission E2E run returned empty id")
+	}
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		if err := api.do(ctx, http.MethodGet, "/api/v1/runs/"+url.PathEscape(run.ID), nil, &run); err != nil {
+			return fmt.Errorf("poll Mission E2E run: %w", err)
+		}
+		switch run.State {
+		case "COMPLETED_VERIFIED":
+			goto completed
+		case "FAILED", "FAILED_NO_PROGRESS", "FAILED_BUDGET_EXCEEDED", "FAILED_VERIFICATION", "CANCELED_BY_USER":
+			return fmt.Errorf("mission E2E terminated in %s", run.State)
+		case "BLOCKED_NEEDS_USER", "PAUSED":
+			return fmt.Errorf("mission E2E requires intervention in state %s", run.State)
+		}
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("mission E2E timed out in state %s: %w", run.State, ctx.Err())
+		case <-ticker.C:
+		}
+	}
+
+completed:
+	if len(run.PackageRuns) != 1 {
+		return fmt.Errorf("mission E2E expected exactly one package run, got %d", len(run.PackageRuns))
+	}
+	pkg := run.PackageRuns[0]
+	if pkg.PackageID != "mission-e2e" || pkg.State != "VERIFIED" ||
+		pkg.AssignedAgent == "" || pkg.AssignedRuntime == "" || strings.TrimSpace(pkg.Workspace) == "" {
+		return fmt.Errorf("mission E2E package lacks verified execution identity: %+v", pkg)
+	}
+	agentIDs[pkg.AssignedAgent] = struct{}{}
+
+	markerPath := filepath.Join(pkg.Workspace, missionE2EMarkerFile)
+	markerBytes, err := os.ReadFile(markerPath)
+	if err != nil {
+		return fmt.Errorf("read Mission E2E marker from isolated worktree: %w", err)
+	}
+	if string(markerBytes) != missionE2EMarker+"\n" {
+		return fmt.Errorf("mission E2E marker content mismatch")
+	}
+	if filepath.Clean(pkg.Workspace) == filepath.Clean(projectPath) {
+		return fmt.Errorf("mission E2E autonomous package executed in the source checkout instead of an isolated worktree")
+	}
+
+	var evidence missionE2EEvidence
+	if err := api.do(ctx, http.MethodGet, "/api/v1/runs/"+url.PathEscape(run.ID)+"/evidence", nil, &evidence); err != nil {
+		return fmt.Errorf("read Mission E2E evidence: %w", err)
+	}
+	if len(evidence.Capsules) == 0 {
+		return fmt.Errorf("mission E2E produced no persisted ContextCapsule")
+	}
+	if len(evidence.Receipts) != 1 {
+		return fmt.Errorf("mission E2E expected one WorkReceipt, got %d", len(evidence.Receipts))
+	}
+	receipt := evidence.Receipts[0]
+	if receipt.StepID != "mission-e2e" || receipt.Status != "VERIFIED" ||
+		len(receipt.ChangedFiles) != 1 || filepath.ToSlash(receipt.ChangedFiles[0]) != missionE2EMarkerFile {
+		return fmt.Errorf("mission E2E WorkReceipt does not prove the expected isolated change: %+v", receipt)
 	}
 	return nil
 }

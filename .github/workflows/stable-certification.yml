@@ -1,0 +1,114 @@
+name: Stable Certification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stable-certification-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  GOTOOLCHAIN: local
+  GOFLAGS: -mod=readonly
+  NEXUS_UPDATE_PUBLIC_KEY: ${{ vars.NEXUS_UPDATE_PUBLIC_KEY }}
+
+jobs:
+  certify:
+    name: Stable 8h live certification
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
+    environment: beta-signing
+    timeout-minutes: 660
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Pin certification to exact SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -n "$NEXUS_UPDATE_PUBLIC_KEY"
+          canonical="$(tr -d '[:space:]' < UPDATE_PUBLIC_KEY)"
+          test "$NEXUS_UPDATE_PUBLIC_KEY" = "$canonical"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.14'
+          cache: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+
+      - name: Build exact-SHA candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun --cwd web install --frozen-lockfile
+          make build
+          ./nexus version
+
+      - name: Run release trust and lifecycle tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          go test -count=1 ./internal/release ./internal/update/...
+
+      - name: Certify signed install upgrade self-update and uninstall
+        shell: bash
+        env:
+          NEXUS_BIN: ${{ github.workspace }}/nexus
+          NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
+          NEXUS_UPDATE_PUBLIC_KEY: ${{ vars.NEXUS_UPDATE_PUBLIC_KEY }}
+          NEXUS_UPDATE_KEY_ID: ${{ secrets.NEXUS_UPDATE_KEY_ID }}
+          NEXUS_RELEASE_LIFECYCLE_WORKDIR: ${{ runner.temp }}/nexus-release-lifecycle-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          bash ./scripts/certify-release-lifecycle.sh
+
+      # GitHub caps an individual step at 360 minutes even on self-hosted
+      # runners. Two 4h segments preserve 8h cumulative process-level soak while
+      # keeping each segment inside the platform limit.
+      - name: Run live provider and Mission soak — segment 1/2 (4h)
+        shell: bash
+        timeout-minutes: 300
+        env:
+          NEXUS_BIN: ${{ github.workspace }}/nexus
+          NEXUS_LIVE_SOAK_DURATION: 4h
+          NEXUS_LIVE_SOAK_PROBE_INTERVAL: 60s
+          NEXUS_LIVE_MISSION_TIMEOUT: 20m
+          NEXUS_LIVE_SOAK_WORKDIR: ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}-part1
+          SMOKE_REQUIRED_PROVIDERS: codex agy claude gemini
+        run: |
+          set -euo pipefail
+          bash ./scripts/certify-live-soak.sh
+
+      - name: Run live provider and Mission soak — segment 2/2 (4h)
+        shell: bash
+        timeout-minutes: 300
+        env:
+          NEXUS_BIN: ${{ github.workspace }}/nexus
+          NEXUS_LIVE_SOAK_DURATION: 4h
+          NEXUS_LIVE_SOAK_PROBE_INTERVAL: 60s
+          NEXUS_LIVE_MISSION_TIMEOUT: 20m
+          NEXUS_LIVE_SOAK_WORKDIR: ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}-part2
+          SMOKE_REQUIRED_PROVIDERS: codex agy claude gemini
+        run: |
+          set -euo pipefail
+          bash ./scripts/certify-live-soak.sh
+
+      - name: Upload certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-certification-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}-part1
+            ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}-part2
+            ${{ runner.temp }}/nexus-release-lifecycle-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 30

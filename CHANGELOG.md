@@ -1,5 +1,57 @@
 # Changelog
 
+## 1.0.0 — 2026-09-23 — Nexus v1
+
+> Esta seção descreve o **source final candidato**. A tag/release pública só pode
+> ser criada depois da certificação estável do mesmo SHA.
+
+### Adicionado
+
+- Fluxo canônico Composer → PromptArtifact → WorkPlan → Flow → Execution Preview
+  → GO explícito → MissionRunner, sem side effects durante preview.
+- Agent Modes persistentes e taxonomia canônica do AgentMatcher para
+  desenvolvimento, investigação, arquitetura, segurança, QA e revisão.
+- Skills v1 com catálogo/provenance e integração opcional com Maestro.
+- Cost Intelligence observacional, budgets e detecção de anomalia sem converter
+  custo desconhecido em zero.
+- Coordenação tipada entre Agents com `NEED_INFO`, `ARTIFACT_REQUEST`,
+  `REVIEW_REQUEST` e `DELEGATE`.
+- Resolução de coordenação por memory/receipts/artifacts antes de materializar
+  child work.
+- Child packages duráveis com lineage, capabilities para o scheduler e
+  WorkReceipt de resposta.
+- Continuação segura da package de origem sob a mesma identidade persistente de
+  Agent, condicionada a prova positiva de replay safety.
+- Limites de fan-out e payload para coordenação gerada por provider.
+- Documentação v1 em PT-BR, incluindo diagramas canônicos versionados em
+  `docs/assets/diagrams/`.
+
+### Alterado
+
+- A matriz estável da v1 foi fechada em **Linux amd64**; Windows/macOS permanecem
+  implementados no source, porém deferidos e não publicados como suporte certificado.
+- O CI/release foi simplificado para não depender de minutos pagos e para produzir,
+  validar e assinar somente os artifacts suportados da v1.
+- `WorkPlan` permanece a fonte de verdade; Flow é explicitamente sua projeção,
+  não um segundo planner.
+- AgentMatcher escolhe **quem**; ResourceScheduler escolhe **com qual recurso**.
+- Preferência de provider em coordenação permanece preferência e não herda
+  autoridade MANUAL/PIN do trabalho de origem.
+- Mission/coordenação passaram a ser documentadas separando
+  **implementação no source candidato** de **certificação de release**.
+- Capacity continua no caminho canônico de quota/observação, sem segundo poller.
+- O gate de frontend voltou a usar verificação Prettier real em todo o
+  repositório.
+
+### Segurança e confiabilidade
+
+- Replay de coordenação falha fechado quando workspace/fingerprint não comprova
+  ausência de mutação ou quando o contrato autoriza side effects externos.
+- Dispatch externo com resultado desconhecido continua sem reexecução cega.
+- UNKNOWN permanece UNKNOWN em quota, custo, suporte e evidência.
+- Push/deploy continuam condicionados a autorização explícita.
+
+
 ## 1.0.0-beta.3 — 2026-09-20 — Surface isolation and Flow recovery
 
 - Mount only the active product surface; inactive ones unmount while

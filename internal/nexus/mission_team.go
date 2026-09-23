@@ -120,7 +120,7 @@ func MissionTeamPresetDefinitionFor(preset MissionTeamPreset) (MissionTeamPreset
 	case PresetBugFix:
 		description = "Diagnóstico, correção, revisão e verificação de um defeito."
 		phases = []MissionPhase{
-			phase("diagnosis", PhaseDiagnosis, "diagnostician"),
+			phase("diagnosis", PhaseDiagnosis, "investigator"),
 			phase("fix", PhaseImplementation, "implementer", "diagnosis"),
 			phase("review", PhaseReview, "reviewer", "fix"),
 			phase("verification", PhaseVerification, "qa-engineer", "review"),

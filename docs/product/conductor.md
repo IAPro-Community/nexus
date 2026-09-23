@@ -1,75 +1,79 @@
 # Conductor
 
-Conductor é a camada de orquestração que conecta seus objetivos a execução autônoma. Quando você descreve o que quer fazer, Conductor decide se precisa apenas de uma sessão direta ou se o trabalho justifica uma Mission completa.
+Conductor é a camada de decisão/decomposição que transforma um objetivo composto
+em trabalho estruturado usando os contratos já existentes do Nexus.
 
-Nesta Community Preview (`v1.0.0-beta.1`) o Conductor é **somente CLI** (`nexus conductor policy`, `nexus conductor dispatch`). Não há HTTP `/api/v1/conductor` nem `/api/v1/missions` nesta versão; planejamento na Web passa por Composer → Turn into Flow.
-
-## Como funciona
+Ele **não** é um segundo runtime ou uma segunda engine de orquestração.
 
 ```text
-Você: "Implementar autenticação JWT"
-         ↓
-    Conductor analisa o objetivo
-         ↓
-    Decomposição → Plano → Mission
-         ↓
-    Agent executa (com revisão)
-         ↓
-    Resultado sintetizado para você
+Objetivo
+  ↓
+classificação / decomposição
+  ↓
+WorkPlan
+  ↓
+Flow / Mission
+  ↓
+MissionRunner
 ```
 
-Conductor preserva seus agentes existentes e usa o mesmo pipeline de execução que o Direct — não cria uma nova camada ou engine duplicada.
+## Responsabilidade
 
-## Quando usar
+Conductor pode decidir entre:
 
-| Situação | Caminho |
-|---|---|
-| Tarefa simples (corrigir typo, ajustar cor) | **Direct** — Conductor direciona direto |
-| Trabalho composto (implementar feature, refatorar módulo) | **Conductor → Mission** — cria plano, executa, valida |
-| Objetivo claro mas complexo | **Conductor** — você descreve, ele orquestra |
+- manter trabalho simples no caminho Direct;
+- decompor um objetivo substancial;
+- selecionar um preset de Mission Team;
+- produzir packages/dependências que seguem o pipeline canônico.
 
-## O que muda para você
+Depois disso, execução pertence ao `MissionRunner`.
 
-- **Menos decisões manuais**: descreva o objetivo e Conductor decide o melhor caminho.
-- **Execução verificada**: cada execução passa por revisão antes de ser considerada concluída.
-- **Visibilidade**: cada etapa da execução é registrada para diagnóstico.
-- **Segurança**: o agente nunca recebe permissão implícita para commit, push ou deploy.
+## O que Conductor não faz
 
-## Configuração
+- não cria provider diretamente;
+- não substitui ResourceScheduler;
+- não substitui AgentMatcher;
+- não mantém uma segunda cópia do plano;
+- não executa uma state machine paralela;
+- não concede push/deploy implicitamente.
 
-Conductor mantém uma política global que você pode ajustar:
+## Tarefas simples
 
-| Opção | Padrão | Descrição |
-|---|---|---|
-| `review_mode` | automático | Modo de revisão read-only |
-| `retention_days` | 90 | Dias de retenção de eventos |
-| `integration_opt_in` | false | Habilitar integração fast-forward |
+Uma correção localizada não deve ser inflada para uma Mission multi-Agent.
+Classificação considera complexidade, dependências, risco e custo de
+coordenação.
 
-Para ver a política atual:
+## Objetivos compostos
 
-```bash
-nexus conductor policy get
+Features, mudanças de arquitetura, release/security work e refactors maiores
+podem ser decompostos em fases como:
+
+```text
+Planning → Implementation → Review → Verification
 ```
 
-Para alterar:
+O preset descreve papéis/requisitos; não fixa providers.
 
-```bash
-nexus conductor policy set '{"retention_days": 30}'
-```
+## Superfícies
 
-## Exemplo
+A disponibilidade concreta dos comandos/superfícies do Conductor pode evoluir
+durante o fechamento da v1. Para evitar documentação contraditória, trate
+`nexus --help`, a [matriz de funcionalidades](../reference/feature-matrix.md)
+e o source da revisão instalada como referência de interface.
 
-```bash
-# Despachar um objetivo
-nexus conductor dispatch "Implementar autenticação JWT para a API"
-
-# Em formato JSON
-nexus conductor dispatch --json "Refatorar o módulo de pagamentos"
-```
+O fluxo de produto na Web para planejamento continua centrado em
+**Composer → WorkPlan/Flow → GO → Mission**.
 
 ## Segurança
 
-- Worker efêmero é descartado automaticamente após a execução.
-- Nenhuma credencial ou prompt sensível aparece em logs ou API.
-- Git merge (integração) é desabilitado por padrão.
-- Provider nunca recebe permissão para operações Git destrutivas.
+Conductor respeita as mesmas boundaries da execução:
+
+- plano aprovado;
+- worktree/policies;
+- AgentMatcher + ResourceScheduler;
+- AutonomyContract;
+- gates/evidence;
+- intervenção humana quando necessário.
+
+Veja [Como funciona](how-it-works.md), [Missions](missions.md) e
+[Guardrails](../architecture/guardrails.md).

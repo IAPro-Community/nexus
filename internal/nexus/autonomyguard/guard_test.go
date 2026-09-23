@@ -38,6 +38,10 @@ func TestForbiddenGitCommandHonorsContract(t *testing.T) {
 		{[]string{"branch", "-D", "old"}, true, false, true},
 		{[]string{"checkout", "--", "file"}, true, false, true},
 		{[]string{"restore", "--source=HEAD", "."}, true, false, true},
+		{[]string{"merge", "feature"}, true, false, true},
+		{[]string{"rebase", "main"}, true, false, true},
+		{[]string{"cherry-pick", "deadbeef"}, true, false, true},
+		{[]string{"merge", "feature"}, false, false, false},
 		{[]string{"reset", "--hard", "HEAD"}, false, false, false},
 	}
 	for _, tc := range cases {
@@ -126,6 +130,11 @@ func TestWriteCommandGuardsBlocksGitPushAndProxiesSafeGit(t *testing.T) {
 	out, err := cmd.CombinedOutput()
 	if err == nil || !strings.Contains(string(out), "NEXUS_AUTONOMY_BLOCKED") {
 		t.Fatalf("git push was not blocked: %v %s", err, out)
+	}
+	cmd = exec.Command(guardGit, "merge", "feature")
+	out, err = cmd.CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "NEXUS_AUTONOMY_BLOCKED") {
+		t.Fatalf("git merge was not blocked: %v %s", err, out)
 	}
 }
 

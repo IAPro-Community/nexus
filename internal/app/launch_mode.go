@@ -120,11 +120,12 @@ func (r *LaunchModeResolver) StripControlFlags() []string {
 	args := removeProviderLaunchFlag(r.input.Args, "--direct")
 	args = removeProviderLaunchFlag(args, "--supervised")
 	args = removeProviderLaunchFlag(args, "--lead")
+	args = removeProviderLaunchFlag(args, "--no-lead")
 	return args
 }
 
-// WantInteractiveLead reports whether the caller opted into Lead Agent
-// binding and Mission promotion on the supervised TTY attach path.
+// WantInteractiveLead reports whether the supervised TTY should bind a Lead
+// Agent and enable Mission promotion. V1 defaults to true; --no-lead opts out.
 func (r *LaunchModeResolver) WantInteractiveLead() bool {
 	return wantInteractiveLead(r.input.Args)
 }

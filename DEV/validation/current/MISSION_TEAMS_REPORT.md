@@ -1,5 +1,7 @@
 # Mission Teams Validation Report
 
+> **EVIDÊNCIA HISTÓRICA — NÃO É CERTIFICAÇÃO DO HEAD ATUAL.** Este relatório preserva evidência da validação de Mission Teams de 14/09/2026. O estado atual do fechamento está em [RELEASE_STATUS.md](./RELEASE_STATUS.md); qualquer PASS abaixo vale apenas para o SHA/ambiente declarados neste documento.
+
 Date: 2026-09-14
 
 ## Identity and environment

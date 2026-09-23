@@ -127,6 +127,48 @@ func (h *NexusHandler) handleIntelligenceMemories(w http.ResponseWriter, r *http
 	}
 }
 
+func (h *NexusHandler) handleIntelligenceMemoryRecall(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var body nexus.MemoryRecallRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		writeError(w, http.StatusBadRequest, "invalid body")
+		return
+	}
+	if body.ProjectID == "" {
+		body.ProjectID = strings.TrimSpace(r.URL.Query().Get("project_id"))
+	}
+	result, err := h.nexus.RecallIntelligenceMemories(r.Context(), body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (h *NexusHandler) handleIntelligenceMemoryReflect(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var body nexus.MemoryRecallRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		writeError(w, http.StatusBadRequest, "invalid body")
+		return
+	}
+	if body.ProjectID == "" {
+		body.ProjectID = strings.TrimSpace(r.URL.Query().Get("project_id"))
+	}
+	result, err := h.nexus.ReflectIntelligenceMemories(r.Context(), body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 // handleIntelligenceMemoryDelete DELETE /api/v1/intelligence/memories/{scope}/{id}?project_id=
 func (h *NexusHandler) handleIntelligenceMemoryDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
