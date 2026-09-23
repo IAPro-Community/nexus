@@ -87,7 +87,6 @@ func TestResolveExecutionWorkspaceWorktree(t *testing.T) {
 	}
 }
 
-
 func TestEnsureAgentWorktreeRejectsManagedPathTraversal(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git unavailable")
