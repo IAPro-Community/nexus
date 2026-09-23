@@ -61,14 +61,19 @@ expandida nos milestones seguintes.
 
 ## Recomendação de recurso
 
-Uma recomendação do ResourceScheduler exige requisitos. O Usage atual possui uma
-recomendação genérica para a superfície de recursos. Enquanto não existir um
-contexto de tarefa/Mission mais específico, o HUD reutiliza esse contrato como
-**recomendação geral** e expõe a explicação do scheduler. Ele não afirma que o
-resultado é o melhor recurso para toda tarefa.
+O HUD não solicita uma recomendação nova durante refresh. Quando o Capacity
+Monitor entra em `WARNING`, `CRITICAL` ou `EXHAUSTED`, ele reutiliza o
+recommender canônico do ResourceScheduler uma única vez na transição e persiste
+a recomendação no mesmo evento durável de Capacity.
 
-Quando uma Mission/Agent fornecer requisitos canônicos, a projeção pode carregar
-a recomendação contextual correspondente, sem alterar a regra de scoring.
+A projeção do HUD somente apresenta essa recomendação se o `fingerprint` do
+evento ainda corresponder a um estado degradado atual e não estiver
+acknowledged/snoozed. Depois de recovery, a recomendação antiga desaparece.
+
+Se não houver recomendação canônica vigente, o HUD não inventa uma alternativa e
+a superfície Resource permanece ausente/UNKNOWN. Contextos futuros de
+Mission/Agent podem projetar recomendações contextuais próprias desde que venham
+do mesmo ResourceScheduler, sem recalcular scoring no HUD.
 
 ## Preferências
 
@@ -179,7 +184,10 @@ milestone de UX avançada, desde que:
 
 ## Limitações conhecidas do M1
 
-- Windows e macOS continuam `UNVERIFIED` até execução nativa.
+- Windows e macOS continuam `UNVERIFIED` até execução nativa same-SHA.
+- Wails v2 informa dimensões/tela atual, mas não ID estável, work area ou scale
+  factor; o M1 faz clamp seguro para recuperar janelas off-screen, sem promover
+  isso a suporte completo de multi-monitor/DPI.
 - always-on-top/posicionamento absoluto no Wayland depende do compositor e deve
   ser capability-detected.
 - tray/menu bar só vira claim quando houver implementação e teste nativos.
