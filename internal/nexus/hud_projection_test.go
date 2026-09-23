@@ -1,6 +1,8 @@
 package nexus
 
 import (
+	"encoding/json"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -127,5 +129,42 @@ func TestHUDPrimaryCriticalAlertWins(t *testing.T) {
 	})
 	if state.Primary.Kind != HUDPrimaryAlert || state.Primary.ID != "cap:cursor:work" {
 		t.Fatalf("primary=%+v, want critical alert", state.Primary)
+	}
+}
+
+
+func TestLoadHUDRecommendationUsesDurableCapacityEvent(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "hud.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+
+	payload, err := json.Marshal(map[string]any{
+		"recommended_provider": "claude",
+		"recommended_profile": "backup",
+		"recommended_display_name": "Claude Backup",
+		"recommendation_score": 82.5,
+		"recommendation_reason": "healthy fallback",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutCapacityEvent(store.CapacityEventRecord{
+		ID: "evt-1", Fingerprint: "fp-1", EventType: "QUOTA_LOW",
+		Provider: "codex", Profile: "work", Severity: "CRITICAL",
+		PayloadJSON: string(payload), EmittedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	rec := loadHUDRecommendation(st)
+	if rec == nil {
+		t.Fatal("expected durable recommendation")
+	}
+	if rec.Provider != "claude" || rec.Profile != "backup" || rec.Context != "CAPACITY_ALERT" {
+		t.Fatalf("recommendation=%+v", rec)
+	}
+	if rec.Confidence != "UNKNOWN" {
+		t.Fatalf("confidence=%q, want UNKNOWN when event has no confidence evidence", rec.Confidence)
 	}
 }
