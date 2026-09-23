@@ -40,7 +40,6 @@ func TestNormalizeHUDWindowStateFailsSafe(t *testing.T) {
 	}
 }
 
-
 func TestClampHUDWindowStateToScreenRecoversOffscreenPosition(t *testing.T) {
 	got := clampHUDWindowStateToScreen(HUDWindowState{
 		DisplayID: "disconnected",
