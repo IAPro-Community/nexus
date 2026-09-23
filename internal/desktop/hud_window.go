@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -57,8 +58,11 @@ type HUDWindowStateManager struct {
 
 func NewHUDWindowStateManager(filePath string) *HUDWindowStateManager {
 	if strings.TrimSpace(filePath) == "" {
-		home, _ := os.UserHomeDir()
-		filePath = filepath.Join(home, ".local", "share", "iapro-nexus", "hud-window-state.json")
+		dataDir, err := config.DataDir()
+		if err != nil || strings.TrimSpace(dataDir) == "" {
+			dataDir = filepath.Join(os.TempDir(), "iapro-nexus")
+		}
+		filePath = filepath.Join(dataDir, "hud-window-state.json")
 	}
 	return &HUDWindowStateManager{filePath: filePath}
 }
