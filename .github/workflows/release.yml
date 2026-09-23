@@ -103,7 +103,7 @@ jobs:
           native_root="$RUNNER_TEMP/nexus-native-certification-$SHA"
           rm -rf "$native_root"
           mkdir -p "$native_root"
-          native_runs="$(gh run list --workflow native-certification.yml --limit 50 --json databaseId,status,conclusion)"
+          native_runs="$(gh run list --workflow ci.yml --limit 50 --json databaseId,status,conclusion)"
           while IFS= read -r candidate_id; do
             [ -n "$candidate_id" ] || continue
             candidate_dir="$native_root/$candidate_id"
@@ -120,7 +120,7 @@ jobs:
 
           test -n "$native_run_id" || {
             echo "No successful Native Certification artifact found for exact SHA $SHA." >&2
-            echo "Run Native Certification with target_sha=$SHA while nexus-windows and nexus-macos self-hosted runners are online." >&2
+            echo "Run CI manually with native_target_sha=$SHA while nexus-windows and nexus-macos self-hosted runners are online." >&2
             exit 1
           }
           echo "native-run-id=$native_run_id" >> "$GITHUB_OUTPUT"
