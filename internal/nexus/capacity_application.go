@@ -48,6 +48,9 @@ type CapacityResourceStatus struct {
 	LastObservedAt   time.Time  `json:"last_observed_at"`
 	RemainingPercent *float64   `json:"remaining_percent,omitempty"`
 	ResetDescription string     `json:"reset_description,omitempty"`
+	Source           string     `json:"source,omitempty"`
+	ObservationStatus string    `json:"observation_status,omitempty"`
+	ExpiresAt        *time.Time `json:"expires_at,omitempty"`
 	Acked            bool       `json:"acked"`
 	SnoozedUntil     *time.Time `json:"snoozed_until,omitempty"`
 }
@@ -99,6 +102,12 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 		if o, ok := byKey[rec.Key]; ok {
 			rs.RemainingPercent = o.RemainingPercent
 			rs.ResetDescription = o.ResetDescription
+			rs.Source = o.Source
+			rs.ObservationStatus = o.Status
+			if !o.ExpiresAt.IsZero() {
+				expires := o.ExpiresAt
+				rs.ExpiresAt = &expires
+			}
 			rs.LastObservedAt = o.FetchedAt
 			fp := capacitymonitor.DeriveFingerprint(o.Provider, o.Profile, o.QuotaGroup, o.WindowKind, rec.State,
 				capacitymonitor.ResetCycleKey(nil, o.ExpiresAt))
