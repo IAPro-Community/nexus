@@ -108,8 +108,6 @@ Nexus 1.0 can be released only when the release candidate has:
 
 ### Platforms
 - Linux native same-SHA.
-- Windows native same-SHA.
-- macOS native same-SHA.
 
 ### Distribution
 - signed artifacts.
@@ -512,17 +510,22 @@ Enforce server-side first; UI mirrors the decision.
 Product analytics remains opt-in and allowlisted. Never transmit prompts, source code,
 paths, tokens, credentials or file contents.
 
-Native release matrix must certify:
-- CLI;
-- terminal;
+Nexus v1 stable release matrix is **Linux amd64 only** and must certify:
+- CLI/Core;
+- PTY/runtime;
 - Direct;
 - Agent start;
 - Composer;
 - Flow;
 - Mission smoke;
-- Desktop launch;
+- Desktop Linux launch;
 - update;
-- install/upgrade/uninstall.
+- install/upgrade/uninstall;
+- DEB lifecycle.
+
+Windows/macOS implementations remain in source but are explicitly post-v1 platform
+expansion until native same-SHA certification is completed and the release matrix is
+amended.
 
 ## 5. Security policy for autonomous work
 
@@ -664,7 +667,8 @@ Unless required by a blocker, defer:
 ## 10. Final release gate
 
 Only declare `NEXUS_1_0_CANDIDATE = GO` when all required 1.0 items above are
-implemented and proven on the final same-SHA candidate.
+implemented and proven on the final same-SHA **Linux amd64** candidate. Windows/macOS
+are not part of the v1 GO/NO-GO boundary.
 
 Otherwise report one of:
 - CONDITIONAL only for external/non-code evidence blockers;
