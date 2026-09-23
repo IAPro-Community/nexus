@@ -1,0 +1,18 @@
+.root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+}
+
+.status {
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--nx-border);
+  border-radius: 14px;
+  background: var(--nx-surface);
+  color: var(--nx-text-muted);
+  font-size: 12px;
+}
