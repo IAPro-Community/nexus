@@ -37,6 +37,7 @@ const FLOATING_KEYBOARD_STEP = 16;
 export interface NexusHudProps {
   projectId?: string;
   native?: boolean;
+  onOpenNexus?: () => void;
   onOpenUsage?: () => void;
   onOpenAgents?: () => void;
   onOpenMissions?: () => void;
@@ -61,7 +62,11 @@ const alertCopy = (alert?: HudAlert) => {
   };
 };
 
-const primaryCopy = (state: HudState, requestedMode: HudPresentationPreferences['mode']) => {
+const primaryCopy = (
+  state: HudState,
+  requestedMode: HudPresentationPreferences['mode'],
+  privacyMode: boolean,
+) => {
   const effectiveKind =
     requestedMode === 'AUTO' || requestedMode === 'MINIMAL' ? state.primary.kind : requestedMode;
   const alert = state.alerts.find((item) => item.severity === 'CRITICAL') || state.alerts[0];
@@ -74,10 +79,13 @@ const primaryCopy = (state: HudState, requestedMode: HudPresentationPreferences[
       kind: 'MISSION',
       icon: Workflow,
       title: mission.needs_user ? 'Mission aguardando você' : 'Mission em andamento',
-      detail:
-        mission.current_task_title ||
-        mission.intervention_reason ||
-        `${mission.completed_packages}/${mission.total_packages} packages`,
+      detail: privacyMode
+        ? mission.needs_user
+          ? 'Intervenção necessária'
+          : `${mission.completed_packages}/${mission.total_packages} packages`
+        : mission.current_task_title ||
+          mission.intervention_reason ||
+          `${mission.completed_packages}/${mission.total_packages} packages`,
     };
   }
   const agent =
@@ -86,7 +94,7 @@ const primaryCopy = (state: HudState, requestedMode: HudPresentationPreferences[
     return {
       kind: 'AGENT',
       icon: Bot,
-      title: agent.name,
+      title: privacyMode ? agent.role || 'Agent' : agent.name,
       detail: [agent.provider, agent.model, agent.status].filter(Boolean).join(' · '),
     };
   }
@@ -94,8 +102,14 @@ const primaryCopy = (state: HudState, requestedMode: HudPresentationPreferences[
     return {
       kind: 'RESOURCE',
       icon: Zap,
-      title: `Recurso recomendado: ${state.recommendation.display_name || state.recommendation.provider}`,
-      detail: state.recommendation.explanation || 'Recomendação geral do ResourceScheduler',
+      title: `Recurso recomendado: ${
+        privacyMode
+          ? state.recommendation.provider
+          : state.recommendation.display_name || state.recommendation.provider
+      }`,
+      detail: privacyMode
+        ? 'Recomendação canônica do ResourceScheduler'
+        : state.recommendation.explanation || 'Recomendação canônica do ResourceScheduler',
     };
   }
   return {
@@ -111,6 +125,7 @@ const primaryCopy = (state: HudState, requestedMode: HudPresentationPreferences[
 export const NexusHud: React.FC<NexusHudProps> = ({
   projectId,
   native = false,
+  onOpenNexus,
   onOpenUsage,
   onOpenAgents,
   onOpenMissions,
@@ -201,8 +216,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const state = response?.state;
   const cost = useMemo(() => formatHudCost(state?.cost), [state?.cost]);
   const primary = useMemo(
-    () => (state ? primaryCopy(state, prefs.mode) : null),
-    [state, prefs.mode],
+    () => (state ? primaryCopy(state, prefs.mode, prefs.privacyMode) : null),
+    [state, prefs.mode, prefs.privacyMode],
   );
   const topAlert = state?.alerts[0];
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
@@ -229,13 +244,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     }
   };
 
-  const hideHUD = () => {
-    if (native && window.go?.desktop?.HUDController?.HideHUD) {
-      void window.go.desktop.HUDController.HideHUD();
-      return;
-    }
-    updatePrefs({ enabled: false });
-  };
+  const hideHUD = () => updatePrefs({ enabled: false });
 
   const handleAck = async () => {
     if (!topAlert?.fingerprint) return;
@@ -339,6 +348,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           </div>
 
           <div className={styles.metrics}>
+            {onOpenNexus ? (
+              <div className={styles.actionRow}>
+                <button type="button" className={styles.textButton} onClick={onOpenNexus}>
+                  Abrir Nexus
+                </button>
+              </div>
+            ) : null}
+
             {topAlert && modeShows('ALERT') ? (
               <button
                 type="button"
@@ -461,14 +478,16 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 <Settings2 size={15} />
               </button>
             ) : null}
-            <button
-              type="button"
-              className={styles.iconButton}
-              aria-label="Ocultar Nexus HUD"
-              onClick={hideHUD}
-            >
-              <X size={15} />
-            </button>
+            {!native ? (
+              <button
+                type="button"
+                className={styles.iconButton}
+                aria-label="Ocultar Nexus HUD"
+                onClick={hideHUD}
+              >
+                <X size={15} />
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -532,7 +551,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                         data-state={provider.capacity_state}
                       >
                         <div className={styles.providerTitle}>
-                          <strong>{provider.display_name || provider.provider}</strong>
+                          <strong>
+                            {prefs.privacyMode
+                              ? provider.provider
+                              : provider.display_name || provider.provider}
+                          </strong>
                           <span className={styles.capacityValue}>
                             {providerCapacityLabel(provider)}
                           </span>
@@ -577,7 +600,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 <div className={styles.listRow}>
                   <div>
                     <strong>
-                      {state.recommendation.display_name || state.recommendation.provider}
+                      {prefs.privacyMode
+                        ? state.recommendation.provider
+                        : state.recommendation.display_name || state.recommendation.provider}
                     </strong>
                     <div className={styles.meta}>
                       <span>recomendação {state.recommendation.context.toLowerCase()}</span>
@@ -635,7 +660,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                     <strong>
                       {mission.needs_user
                         ? 'Aguardando intervenção'
-                        : mission.current_task_title || mission.current_stage}
+                        : prefs.privacyMode
+                          ? 'Mission em andamento'
+                          : mission.current_task_title || mission.current_stage}
                     </strong>
                     <div className={styles.meta}>
                       <span>{mission.state}</span>
