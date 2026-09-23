@@ -5,7 +5,7 @@ Atualizado em **23 de setembro de 2026**.
 | Campo | Estado |
 | --- | --- |
 | Programa | fechamento do Nexus 1.0 |
-| Versão reportada pelo source | `1.0.0-beta.4` |
+| Versão reportada pelo source | `1.0.0` |
 | Última beta publicada registrada | `v1.0.0-beta.1` |
 | Escopo estável da v1 | **Linux amd64** |
 | Windows/macOS | **deferidos; não suportados/certificados na v1** |
