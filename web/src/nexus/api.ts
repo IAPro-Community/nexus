@@ -706,7 +706,9 @@ export const nexus = {
     const params = new URLSearchParams();
     if (projectId) params.set('project_id', projectId);
     const qs = params.toString();
-    return request<import('../features/hud/hudModel').HudResponse>(`/api/v1/hud${qs ? `?${qs}` : ''}`);
+    return request<import('../features/hud/hudModel').HudResponse>(
+      `/api/v1/hud${qs ? `?${qs}` : ''}`,
+    );
   },
 
   // Capacity Monitor (revival T6)
