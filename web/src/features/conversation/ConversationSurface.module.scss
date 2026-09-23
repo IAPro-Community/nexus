@@ -314,7 +314,7 @@
 @media (max-width: 767px) {
   .shell,
   .shell[data-inspector='open'] {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .inspector {
