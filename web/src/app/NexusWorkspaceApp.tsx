@@ -347,9 +347,9 @@ const WorkspaceCoordinator: React.FC<{
   const presentation = useWorkspacePresentation();
   const [railOpen, setRailOpen] = useState(false);
   const [palette, setPalette] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<'appearance' | 'updates' | 'remote' | 'hud'>(
-    'appearance',
-  );
+  const [settingsInitialTab, setSettingsInitialTab] = useState<
+    'appearance' | 'updates' | 'remote' | 'hud'
+  >('appearance');
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [maestroControlOpen, setMaestroControlOpen] = useState(false);
   const [newAgentOpen, setNewAgentOpen] = useState(false);
