@@ -39,3 +39,36 @@ func TestNormalizeHUDWindowStateFailsSafe(t *testing.T) {
 		t.Fatalf("unsafe size/opacity normalization: %+v", got)
 	}
 }
+
+
+func TestClampHUDWindowStateToScreenRecoversOffscreenPosition(t *testing.T) {
+	got := clampHUDWindowStateToScreen(HUDWindowState{
+		DisplayID: "disconnected",
+		Placement: HUDPlacementCustom,
+		X:         3800,
+		Y:         1900,
+		Width:     430,
+		Height:    520,
+		Mode:      "AUTO",
+		Opacity:   0.96,
+	}, 1920, 1080)
+	if got.X != 1490 || got.Y != 560 {
+		t.Fatalf("recovered position=(%d,%d), want (1490,560)", got.X, got.Y)
+	}
+}
+
+func TestClampHUDWindowStateToScreenShrinksOversizedWindow(t *testing.T) {
+	got := clampHUDWindowStateToScreen(HUDWindowState{
+		DisplayID: "current",
+		Placement: HUDPlacementCustom,
+		X:         200,
+		Y:         100,
+		Width:     1200,
+		Height:    900,
+		Mode:      "AUTO",
+		Opacity:   0.96,
+	}, 800, 600)
+	if got.Width != 800 || got.Height != 600 || got.X != 0 || got.Y != 0 {
+		t.Fatalf("recovered state=%+v", got)
+	}
+}
