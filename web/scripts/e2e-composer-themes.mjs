@@ -107,11 +107,11 @@ async function assertComposerLayout(page, viewportName) {
   assert.ok(result.left >= -1, `Composer cannot overflow left at ${viewportName}`);
   assert.ok(
     result.right <= result.viewportWidth + 1,
-    `Composer cannot overflow right at ${viewportName}: right=${result.right} viewport=${result.viewportWidth}`,
+    `Composer cannot overflow right at ${viewportName}: ${JSON.stringify(result)}`,
   );
   assert.ok(
     Math.max(result.documentWidth, result.bodyWidth) <= result.viewportWidth + 1,
-    `document cannot horizontally overflow at ${viewportName}`,
+    `document cannot horizontally overflow at ${viewportName}: ${JSON.stringify(result)}`,
   );
 }
 
