@@ -64,7 +64,6 @@ func (h *NexusHandler) handleAgentProjections(w http.ResponseWriter, r *http.Req
 		}
 		writeJSON(w, http.StatusOK, discovery)
 		return
-	}
 
 	case "activation":
 		if r.Method != http.MethodPost {
@@ -86,6 +85,7 @@ func (h *NexusHandler) handleAgentProjections(w http.ResponseWriter, r *http.Req
 		}
 		writeJSON(w, http.StatusOK, activation)
 		return
+	}
 
 	parts := strings.Split(path, "/")
 	if len(parts) == 2 && parts[0] != "" && parts[1] == "verify" {
@@ -132,7 +132,6 @@ func decodeProjectionRuntimeID(w http.ResponseWriter, r *http.Request) (string, 
 	}
 	return body.RuntimeID, true
 }
-
 
 func decodeProjectionActivationRequest(w http.ResponseWriter, r *http.Request) (string, bool, bool) {
 	var body struct {
