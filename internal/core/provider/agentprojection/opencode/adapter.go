@@ -187,6 +187,12 @@ func (a *Adapter) Plan(ctx context.Context, req projection.Request) (*projection
 			})
 			continue
 		}
+		if err := ensureNoSymlinkComponents(root, filepath.Dir(artifact.Path)); err != nil {
+			plan.Conflicts = append(plan.Conflicts, projection.Conflict{
+				Path: artifact.Path, Kind: projection.ConflictUnsafePath, Detail: err.Error(),
+			})
+			continue
+		}
 		info, statErr := os.Lstat(artifact.Path)
 		if errors.Is(statErr, os.ErrNotExist) {
 			continue
