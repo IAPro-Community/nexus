@@ -152,3 +152,29 @@ pertencendo ao Nexus.
 - [Como o Nexus funciona](how-it-works.md)
 - [Runtime técnico da Mission](../architecture/mission-runtime.md)
 - [Guardrails](../architecture/guardrails.md)
+
+
+## Promoção a partir de uma sessão interativa
+
+Quando uma sessão Direct/Lead promove trabalho para Mission, a admissão acontece
+antes de o Nexus consumir a linha que está no provider.
+
+```text
+prompt no Lead
+   ↓
+decisão de promoção
+   ↓
+StartDispatch / strict admission
+   ├─ ACCEPTED → MissionRun criado + worker iniciado → limpa a linha do Lead
+   └─ BLOCKED
+        ├─ promoção heurística → remove plano temporário e executa no Lead
+        └─ pedido explícito → mantém plano, não executa Direct e mostra blockers
+```
+
+Depois que a Mission foi admitida, não existe fallback automático para Direct:
+ela já pode ter produzido side effects. Falhas posteriores são reportadas ao
+Lead para síntese/intervenção.
+
+Os blockers de admissão informam os checks que realmente falharam (por exemplo
+`worktree_isolation`, `resources`, `plan_readiness` ou `skills`) em vez
+de uma mensagem genérica.
