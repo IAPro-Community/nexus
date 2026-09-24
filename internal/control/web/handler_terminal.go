@@ -29,7 +29,7 @@ type TerminalMessage struct {
 	Data string `json:"data,omitempty"`
 	Rows int    `json:"rows,omitempty"`
 	Cols int    `json:"cols,omitempty"`
-	Role string `json:"role,omitempty"` // "CONTROL" or "VIEW_ONLY"
+	Role string `json:"role,omitempty"` // lease: CONTROL/VIEW_ONLY; promotion: ASK/PROMOTED/FALLBACK/BLOCKED
 }
 
 type TerminalHub struct {
