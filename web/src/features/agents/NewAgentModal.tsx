@@ -152,6 +152,9 @@ export const NewAgentModal: React.FC<{
   const [mode, setMode] = useState<'Safe' | 'YOLO'>('Safe');
   const [targetKind, setTargetKind] = useState('docker');
   const [targetProfileHome, setTargetProfileHome] = useState('');
+  const [targetProbeTemplate, setTargetProbeTemplate] = useState(
+    'docker exec vpn-dev-workspace-terminal-1 {provider} {args}',
+  );
   const [commandTemplate, setCommandTemplate] = useState(
     'docker exec -it -w "{cwd}" vpn-dev-workspace-terminal-1 {provider} {args}',
   );
@@ -263,6 +266,9 @@ export const NewAgentModal: React.FC<{
         configOptions.target_kind = targetKind;
         if (targetProfileHome.trim()) {
           configOptions.target_profile_home = targetProfileHome.trim();
+        }
+        if (targetProbeTemplate.trim()) {
+          configOptions.target_probe_template = targetProbeTemplate.trim();
         }
       } else {
         configOptions.execution_adapter = 'native_alias';
@@ -429,6 +435,22 @@ export const NewAgentModal: React.FC<{
                 {t('agents.targetProfileHomeHint', {
                   defaultValue:
                     'Set this only when Nexus and the custom target see the same provider-home files, such as a bind-mounted VPN workspace. This allows native Agent Projection to use that shared home.',
+                })}
+              </small>
+
+              <label className={styles.fieldSublabel}>
+                {t('agents.targetProbeTemplate', { defaultValue: 'Target version probe (optional)' })}
+              </label>
+              <Input
+                value={targetProbeTemplate}
+                onChange={setTargetProbeTemplate}
+                data-mono="true"
+                placeholder='docker exec vpn-dev-workspace-terminal-1 {provider} {args}'
+              />
+              <small className={styles.hintText}>
+                {t('agents.targetProbeTemplateHint', {
+                  defaultValue:
+                    'Nexus invokes this safely with {args} = --version to detect the provider inside Docker/WSL/SSH before native Agent Projection. Avoid interactive flags such as docker -t.',
                 })}
               </small>
             </div>
