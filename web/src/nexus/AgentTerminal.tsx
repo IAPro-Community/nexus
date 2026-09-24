@@ -605,10 +605,13 @@ export const AgentTerminal: React.FC<{
               publishChrome(undefined, true);
             }
           } else if (payload.type === 'promotion') {
-            if (String(payload.role || '').toUpperCase() === 'ASK') {
+            const promotionRole = String(payload.role || '').toUpperCase();
+            if (promotionRole === 'ASK') {
               setPromotionPrompt(String(payload.data || ''));
-            } else if (String(payload.role || '').toUpperCase() === 'PROMOTED') {
-              setMessage(tRef.current('terminal.promotion.started'));
+            } else if (promotionRole === 'PROMOTED') {
+              setMessage(String(payload.data || tRef.current('terminal.promotion.started')));
+            } else if (promotionRole === 'FALLBACK' || promotionRole === 'BLOCKED') {
+              setMessage(String(payload.data || 'Mission admission did not start.'));
             }
           } else if (payload.type === 'error') {
             const detail = String(payload.data ?? 'Terminal error');
