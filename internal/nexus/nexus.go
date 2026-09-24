@@ -409,10 +409,11 @@ func (n *Nexus) ResolveAgentByRuntimeID(runtimeID string) (string, error) {
 // AskAgentResult confirms that a prompt was submitted to the requested
 // persistent Agent identity. AskAgent never creates another Agent.
 type AskAgentResult struct {
-	AgentID   string `json:"agent_id"`
-	RuntimeID string `json:"runtime_id"`
-	Started   bool   `json:"started"`
-	Accepted  bool   `json:"accepted"`
+	AgentID       string `json:"agent_id"`
+	RuntimeID     string `json:"runtime_id"`
+	ExecutionRole string `json:"execution_role,omitempty"`
+	Started       bool   `json:"started"`
+	Accepted      bool   `json:"accepted"`
 }
 
 func submitPromptToRuntime(runtimeID, prompt string) error {
@@ -427,6 +428,9 @@ func submitPromptToRuntime(runtimeID, prompt string) error {
 // AskAgentOptions controls how AskAgent submits a prompt to a live Agent.
 type AskAgentOptions struct {
 	StartIfNeeded bool
+	// ExecutionRoleID is a transient turn override. When empty, the runtime
+	// binding is used. It never mutates AgentSpec or AgentRevision.
+	ExecutionRoleID string
 	// CompileSpecialization wraps the prompt in the WorkPackage envelope.
 	// It is correct for headless/Mission execution; an interactive runtime
 	// already carries the persona in-session, and re-sending the envelope
@@ -494,9 +498,25 @@ func (n *Nexus) AskAgentWithOptions(ctx context.Context, agentID, prompt string,
 		runtimeLive = true
 	}
 
+	executionRoleID := strings.TrimSpace(opts.ExecutionRoleID)
+	if executionRoleID == "" {
+		if binding, bindErr := st.RuntimeExecutionRoleByRuntimeID(runtimeID); bindErr == nil {
+			executionRoleID = binding.RoleID
+		}
+	}
+	var executionRole *intelligence.ExecutionRoleContext
+	if executionRoleID != "" {
+		role, ok := ExecutionRoleForID(executionRoleID)
+		if !ok {
+			return nil, fmt.Errorf("unknown execution role %q", executionRoleID)
+		}
+		executionRole = role.IntelligenceContext()
+	}
+
 	compile := opts.CompileSpecialization
 	// Interactive Lead sessions already host the persona in the live TUI;
-	// never inject the WorkPackage envelope into that path.
+	// never inject the full WorkPackage envelope into that path. A compact
+	// execution-role overlay is still safe and intentional.
 	if runtimeLive && strings.EqualFold(strings.TrimSpace(agent.Role), interactiveLeadRole) {
 		compile = false
 	}
@@ -505,20 +525,37 @@ func (n *Nexus) AskAgentWithOptions(ctx context.Context, agentID, prompt string,
 	if submit == nil {
 		submit = submitPromptToRuntime
 	}
-	if compile && agentCfg.AgentSpec.HasCustomBehavior() {
+	if compile && (agentCfg.AgentSpec.HasCustomBehavior() || executionRole != nil) {
 		compiled, compileErr := intelligence.NewNexusEngine(nil).CompileExecutionContext(ctx, intelligence.ExecutionContextRequest{
-			Agent: agentCfg.AgentSpec,
-			Task:  intelligence.WorkPackageContext{Title: "Direct Agent request", Goal: prompt, Role: agentCfg.AgentSpec.Role},
+			Agent:         agentCfg.AgentSpec,
+			ExecutionRole: executionRole,
+			Task:          intelligence.WorkPackageContext{Title: "Direct Agent request", Goal: prompt, Role: agentCfg.AgentSpec.Role},
 		})
 		if compileErr != nil {
 			return nil, fmt.Errorf("compile agent specialization: %w", compileErr)
 		}
 		prompt = compiled.SystemInstructions + "\n\n" + compiled.TaskInstructions
+	} else if executionRole != nil {
+		prompt = renderExecutionRoleOverlay(executionRole, prompt)
 	}
 	if err := submit(runtimeID, prompt); err != nil {
 		return nil, fmt.Errorf("submit prompt to existing agent: %w", err)
 	}
-	return &AskAgentResult{AgentID: agentID, RuntimeID: runtimeID, Started: started, Accepted: true}, nil
+	return &AskAgentResult{AgentID: agentID, RuntimeID: runtimeID, ExecutionRole: executionRoleID, Started: started, Accepted: true}, nil
+}
+
+func renderExecutionRoleOverlay(role *intelligence.ExecutionRoleContext, prompt string) string {
+	if role == nil || strings.TrimSpace(role.ID) == "" {
+		return prompt
+	}
+	return fmt.Sprintf("[Nexus execution role]\nID: %s\nRole: %s\nAccess intent: %s\nScope: %s\nRequired capabilities: %s\nBoundary: this role does not expand task/runtime authorization.\n\n%s",
+		role.ID,
+		role.Role,
+		role.AccessIntent,
+		role.Scope,
+		strings.Join(role.RequiredCapabilities, ", "),
+		prompt,
+	)
 }
 
 // StartProjectShell launches an ordinary shell rooted at the Project canonical
