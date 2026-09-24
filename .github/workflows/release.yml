@@ -239,6 +239,7 @@ jobs:
           mkdir -p native-artifacts
           gh run download "$CI_RUN_ID" --name "desktop-linux-${GITHUB_SHA}" --dir native-artifacts
           test -f native-artifacts/nexus-desktop_Linux_x86_64.tar.gz
+          test -f native-artifacts/nexus-hud_Linux_x86_64.tar.gz
       - name: Promote exact-SHA certified native artifacts
         env:
           GH_TOKEN: ${{ github.token }}
@@ -251,11 +252,13 @@ jobs:
           gh run download "$NATIVE_CI_RUN_ID" --name "native-windows-${GITHUB_SHA}" --dir native-staging/windows
           cp native-staging/windows/nexus_Windows_x86_64.zip native-artifacts/
           cp native-staging/windows/nexus-desktop_Windows_x86_64.zip native-artifacts/
+          cp native-staging/windows/nexus-hud_Windows_x86_64.zip native-artifacts/
           cp native-staging/windows/nexus-setup-Windows_x86_64.exe native-artifacts/
           if [ "$NATIVE_POLICY" = all ]; then
             gh run download "$NATIVE_CI_RUN_ID" --name "native-macos-${GITHUB_SHA}" --dir native-staging/macos
             cp native-staging/macos/nexus_Darwin_arm64.tar.gz native-artifacts/
             cp native-staging/macos/nexus-desktop_Darwin_arm64.zip native-artifacts/
+            cp native-staging/macos/nexus-hud_Darwin_arm64.zip native-artifacts/
             cp native-staging/macos/nexus-installer_Darwin_arm64.pkg native-artifacts/
           fi
       - name: Stage cross-platform installers before manifest signing
@@ -290,14 +293,17 @@ jobs:
           required = [
               'linux_amd64',
               'desktop_linux_amd64',
+              'hud_linux_amd64',
               'windows_amd64',
               'desktop_windows_amd64',
+              'hud_windows_amd64',
               'windows_amd64_nsis',
           ]
           if os.environ.get('NATIVE_POLICY') == 'all':
               required.extend([
                   'darwin_arm64',
                   'desktop_darwin_arm64',
+                  'hud_darwin_arm64',
                   'darwin_arm64_pkg',
               ])
           missing = [key for key in required if key not in manifest.get('artifacts', {})]
