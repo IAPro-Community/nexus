@@ -130,6 +130,8 @@ These checks require a real interactive/native session and are intentionally not
 
 - Start `nexus codex`; press Up/Down/Left/Right repeatedly. No literal `[A`, `[B`, `[C`, `[D` may appear.
 - In Direct/Lead mode, submit a simple request. It must remain with the Lead and must not be promoted to Mission unless decomposition/delegation/explicit Mission intent is present.
+- Force a heuristic Mission-worthy request while strict admission is intentionally unavailable. The original prompt must execute once in the Lead; no dead-end and no orphan heuristic WorkPlan should remain.
+- Explicitly request a Mission while strict admission is intentionally unavailable. The prompt must NOT execute as Direct; Nexus must show the exact blocker and retain the rejected plan id for remediation.
 - Open Agents and create/edit an Agent. OpenCode must be offered independently from AGY.
 - Open Usage. If OpenCode is installed but has no profile yet, it must still be shown as an installed provider.
 - Launch Nexus HUD and verify show/hide, autostart toggle and basic projection.
