@@ -84,7 +84,7 @@ Antes de criar/publicar a tag:
 - build CLI;
 - `nexus version --json` e `nexus doctor --json`;
 - OpenCode visível em `providers status`, Usage e seleção de Agent quando instalado;
-- Agent Projection OpenCode: materialização no `NEXUS_PROFILE`, ownership fail-closed, receipts duráveis e smoke de discovery/activation;
+- Agent Projection OpenCode: materialização no `NEXUS_PROFILE`, ownership fail-closed, receipts duráveis, discovery sem LLM e activation probe explícito (`opencode run --agent`) com confirmação de execução externa; activation comprovada muda apenas a estratégia para `NATIVE_ON_LAUNCH` e **não** promove enforcement para `ENFORCED`;
 - custom target smoke: provider selecionável + `{provider}/{profile}/{cwd}/{target_cwd}/{args}` + probe de versão no próprio target; VPN Dev Workspace deve aceitar host path diferente do container path e materializar no shared `target_profile_home` quando explicitamente configurado;
 - build Desktop/HUD da plataforma em homologação;
 - smoke interativo de setas no Codex;
