@@ -73,7 +73,8 @@ nexus-setup-Windows_x86_64.exe
 
 Windows é a primeira expansão pós-v1 e entra em `v1.1.0-beta.1`. A
 certificação exige Authenticode válido, timestamp, build Wails nativo,
-ConPTY/Named Pipe E2E e smoke completo de install/version/doctor/uninstall.
+ConPTY/Named Pipe E2E e smoke completo de install/version/doctor/uninstall. O
+NSIS instala também o `nexus-hud.exe`, certificado e assinado no mesmo SHA.
 `install.ps1` continua disponível para automação, mas o instalador nativo é o
 bootstrap recomendado para usuários Windows.
 
@@ -88,8 +89,9 @@ nexus-installer_Darwin_arm64.pkg
 macOS entra a partir de `v1.1.0-beta.2`. A certificação exige Developer ID,
 notarização Apple, stapling, Gatekeeper, build Wails nativo, PTY/socket E2E e
 smoke completo de install/version/doctor/uninstall. O pacote instala o CLI em
-`/usr/local/bin/nexus`, o app em `/Applications/IAPro Nexus.app` e
-`nexus-uninstall` para remoção preservando dados.
+`/usr/local/bin/nexus`, o app em `/Applications/IAPro Nexus.app`, o HUD em
+`/Applications/IAPro Nexus HUD.app` e `nexus-uninstall` para remoção
+preservando dados.
 
 Consulte [Suporte de plataformas](../operations/platform-support.md) para os
 runners, secrets e gates exact-SHA.
