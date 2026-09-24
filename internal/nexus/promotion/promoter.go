@@ -113,7 +113,7 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = "intent requires clarification before promotion"
 		return result, nil
 	}
-	if intent.Strategy == nexus.IntentDirect {
+	if intent.Strategy == nexus.IntentDirect && !explicitRequest {
 		result.Reason = "direct intent stays with the interactive Lead"
 		return result, nil
 	}
