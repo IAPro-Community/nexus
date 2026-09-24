@@ -28,6 +28,14 @@ jobs:
     name: Frontend (Format, Lint, Styles, Typecheck, Unit & Build)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
+      - name: Recover reusable runner workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
+          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+            rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
+          fi
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
@@ -72,6 +80,14 @@ jobs:
     name: Release configuration
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
+      - name: Recover reusable runner workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
+          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+            rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
+          fi
       - uses: actions/checkout@v5
       - uses: goreleaser/goreleaser-action@v6
         with:
@@ -83,6 +99,14 @@ jobs:
     name: Security
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
+      - name: Recover reusable runner workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
+          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+            rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
+          fi
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
@@ -95,6 +119,14 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: frontend
     steps:
+      - name: Recover reusable runner workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
+          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+            rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
+          fi
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
@@ -207,6 +239,14 @@ jobs:
     name: Linux E2E (Go 1.25.14)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
+      - name: Recover reusable runner workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
+          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+            rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
+          fi
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
@@ -264,6 +304,14 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: frontend
     steps:
+      - name: Recover reusable runner workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
+          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+            rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
+          fi
       - uses: actions/checkout@v5
       - name: Verify Wails system dependencies
         run: |
@@ -812,6 +860,14 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: [test-linux, frontend, desktop-linux]
     steps:
+      - name: Recover reusable runner workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
+          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+            rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
+          fi
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
@@ -847,12 +903,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: snapshot-dist-${{ github.sha }}
-          path: dist
+          path: /tmp/nexus-package-smoke-dist
       - name: Install DEB and run nexus version
         shell: bash
         run: |
           set -euo pipefail
-          deb="$(find dist -maxdepth 1 -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' | head -n1)"
+          deb="$(find /tmp/nexus-package-smoke-dist -maxdepth 1 -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' | head -n1)"
           test -n "$deb"
           if ! dpkg -i "$deb"; then
             apt-get update
