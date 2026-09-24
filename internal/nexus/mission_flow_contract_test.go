@@ -2,6 +2,9 @@ package nexus
 
 import (
 	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -9,6 +12,34 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
+
+func initMissionGitRepo(t *testing.T) string {
+	t.Helper()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git unavailable")
+	}
+	repo := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=Test",
+			"GIT_AUTHOR_EMAIL=test@example.com",
+			"GIT_COMMITTER_NAME=Test",
+			"GIT_COMMITTER_EMAIL=test@example.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+	run("init")
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("mission test"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run("add", "README.md")
+	run("commit", "-m", "init")
+	return repo
+}
 
 func TestPlanToRunnerSpecCarriesFlowStepContracts(t *testing.T) {
 	plan := &store.WorkPlan{ID: "plan", ProjectID: "project", CurrentRevision: 3, Phases: []store.PlanPhase{{ID: "phase", Packages: []store.WorkPackage{{
@@ -134,7 +165,7 @@ func TestStartMissionRunAutonomousRejectsPinnedAgentWithoutWorktreeIsolation(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	project, err := st.CreateProject(store.Project{Name: "Strict admission", CanonicalPath: t.TempDir(), DefaultIsolation: "worktree"})
+	project, err := st.CreateProject(store.Project{Name: "Strict admission", CanonicalPath: initMissionGitRepo(t), DefaultIsolation: "worktree"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +206,7 @@ func TestStrictAdmissionAllowsAutoAllocationWithoutProjectWideWorktreeDefault(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	project, err := st.CreateProject(store.Project{Name: "Per-Agent isolation", CanonicalPath: t.TempDir(), DefaultIsolation: "project"})
+	project, err := st.CreateProject(store.Project{Name: "Per-Agent isolation", CanonicalPath: initMissionGitRepo(t), DefaultIsolation: "project"})
 	if err != nil {
 		t.Fatal(err)
 	}
