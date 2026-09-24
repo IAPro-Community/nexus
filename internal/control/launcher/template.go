@@ -129,10 +129,36 @@ func splitCommandTemplate(input string) ([]string, error) {
 			if r == quote {
 				quote = 0
 			} else {
-				// Inside quotes backslash is literal. This keeps Windows paths
-				// stable; callers can use the other quote style when a literal
-				// quote character is required.
-				current.WriteRune(r)
+				switch r {
+				case '|', ';', '&', '<', '>', '`', '		if r == '\\' {
+			escaped = true
+			continue
+		}
+		switch r {
+		case '\'', '"':
+			quote = r
+		case ' ', '\t', '\n':
+			flush()
+		case '|', ';', '&', '<', '>', '`', '$':
+			return nil, fmt.Errorf("command template cannot contain shell operators")
+		default:
+			current.WriteRune(r)
+		}
+	}
+	if escaped || quote != 0 {
+		return nil, fmt.Errorf("command template has an unfinished escape or quote")
+	}
+	flush()
+	return tokens, nil
+}
+:
+					return nil, fmt.Errorf("command template cannot contain shell operators")
+				default:
+					// Inside quotes backslash is literal. This keeps Windows
+					// paths stable; callers can use the other quote style when
+					// a literal quote character is required.
+					current.WriteRune(r)
+				}
 			}
 			continue
 		}
