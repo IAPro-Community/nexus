@@ -1996,7 +1996,6 @@ export interface AgentProjectionActivation {
   provider_version: string;
   target_kind: string;
   agent_name: string;
-  command?: string[];
   activated: boolean;
   status: string;
   evidence?: string;
