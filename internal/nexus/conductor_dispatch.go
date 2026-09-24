@@ -190,11 +190,10 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 			}, nil
 		}
 		return &DispatchResult{
-			GoalID:       req.GoalID,
-			PlanID:       plan.ID,
-			Status:       DispatchFailed,
-			FallbackSafe: true,
-			Error:        fmt.Sprintf("start mission: %v", err),
+			GoalID: req.GoalID,
+			PlanID: plan.ID,
+			Status: DispatchFailed,
+			Error:  fmt.Sprintf("start mission: %v", err),
 		}, nil
 	}
 
