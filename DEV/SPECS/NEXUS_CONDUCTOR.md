@@ -221,7 +221,7 @@ const (
 3. `ReadDelegationDecisionFacts` → valida delegação
 4. `WithLeadAgent` → vincula Lead
 5. `CreateWorkPlan` → persiste WorkPlan
-6. `StartMissionRun` → executa admission e, somente se aceita, cria `MissionRun` + worker
+6. `StartMissionRunApprovedWithOptions` → revalida Execution Preview, budget/cost e strict admission; somente então cria `MissionRun` + worker
 7. `WaitDispatch` / `waitPromotedMission` → aguarda estado estável
 
 Para terminais interativos, `StartDispatch` é executado enquanto o Enter ainda
