@@ -36,10 +36,10 @@ var agySpec = Spec{
 			"PATH":                             runtime.EnhancedPATH(pathBins...),
 		}
 		if strings.TrimSpace(internalBin) != "" {
-			env["BROWSER"] = filepath.Join(internalBin, "ai-browser")
+			env["BROWSER"] = runtime.BrowserHelperPath(internalBin)
 		} else if strings.TrimSpace(binDir) != "" {
 			// Contract/tests may lack InternalBinDir; never emit a bare relative name.
-			env["BROWSER"] = filepath.Join(binDir, "ai-browser")
+			env["BROWSER"] = runtime.BrowserHelperPath(binDir)
 		}
 		return env
 	},
