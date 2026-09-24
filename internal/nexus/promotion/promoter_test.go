@@ -44,7 +44,7 @@ func TestPromoterDecideASKRequiresConfirmation(t *testing.T) {
 	}
 }
 
-func TestPromoterDecideAUTOPlanPromotesWithoutDelegation(t *testing.T) {
+func TestPromoterDecideAUTOPlanWithoutDelegationStaysWithLead(t *testing.T) {
 	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
 		return nexus.IntentDecision{Strategy: nexus.IntentPlan}, nil
 	}}
@@ -55,8 +55,8 @@ func TestPromoterDecideAUTOPlanPromotesWithoutDelegation(t *testing.T) {
 	if decision.Delegation.Delegate {
 		t.Fatalf("fixture must remain single-topology, got %+v", decision.Delegation)
 	}
-	if decision.Action != Promote {
-		t.Fatalf("PLAN must promote to durable Mission even without fan-out: %+v", decision)
+	if decision.Action != KeepWithLead {
+		t.Fatalf("single-topology PLAN must stay with the interactive Lead: %+v", decision)
 	}
 }
 
@@ -73,7 +73,7 @@ func TestPromoterDecideDirectStaysWithLead(t *testing.T) {
 	}
 }
 
-func TestPromoterDecideASKPlanWithoutDelegationRequiresConfirmation(t *testing.T) {
+func TestPromoterDecideASKPlanWithoutDelegationStaysWithLead(t *testing.T) {
 	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
 		return nexus.IntentDecision{Strategy: nexus.IntentPlan}, nil
 	}}
@@ -84,7 +84,36 @@ func TestPromoterDecideASKPlanWithoutDelegationRequiresConfirmation(t *testing.T
 	if decision.Delegation.Delegate {
 		t.Fatalf("fixture must remain single-topology, got %+v", decision.Delegation)
 	}
-	if decision.Action != Ask {
-		t.Fatalf("ASK must guard Mission promotion independently of delegation: %+v", decision)
+	if decision.Action != KeepWithLead {
+		t.Fatalf("ASK must not interrupt ordinary interactive plans: %+v", decision)
+	}
+}
+
+func TestPromoterDecideAUTORequiresDecompositionPromotes(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentPlan,
+			TaskRequirements: nexus.TaskRequirements{RequiresDecomposition: true},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "implemente uma plataforma completa", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Promote {
+		t.Fatalf("decomposition-worthy PLAN must promote: %+v", decision)
+	}
+}
+
+func TestPromoterDecideAUTOExplicitMissionPromotes(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{Strategy: nexus.IntentPlan}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "crie uma missão para revisar este módulo", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Promote {
+		t.Fatalf("explicit Mission request must promote: %+v", decision)
 	}
 }
