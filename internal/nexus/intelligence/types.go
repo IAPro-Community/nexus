@@ -85,6 +85,16 @@ func (s AgentSpec) HasCustomBehavior() bool {
 	return len(s.Instructions) > 0 || len(s.Responsibilities) > 0 || len(s.Capabilities) > 0 || len(s.Constraints) > 0 || len(s.Domains) > 0 || len(s.Strengths) > 0 || len(s.Tags) > 0 || s.VerificationPolicy.RequireEvidence || s.VerificationPolicy.RequireTests
 }
 
+// ExecutionRoleContext is transient operational behavior layered over a
+// persistent AgentSpec. It does not mutate Agent identity or authorization.
+type ExecutionRoleContext struct {
+	ID                   string   `json:"id"`
+	Role                 string   `json:"role,omitempty"`
+	AccessIntent         string   `json:"access_intent,omitempty"`
+	RequiredCapabilities []string `json:"required_capabilities,omitempty"`
+	Scope                string   `json:"scope,omitempty"`
+}
+
 type ProjectContext struct {
 	ProjectID string            `json:"project_id,omitempty"`
 	Facts     map[string]string `json:"facts,omitempty"`
@@ -119,12 +129,13 @@ type RuntimeConstraints struct {
 }
 
 type ExecutionContextRequest struct {
-	Agent    AgentSpec          `json:"agent"`
-	Project  ProjectContext     `json:"project"`
-	Task     WorkPackageContext `json:"task"`
-	Skills   []string           `json:"skills,omitempty"`
-	Guidance ExecutionGuidance  `json:"guidance,omitempty"`
-	Runtime  RuntimeConstraints `json:"runtime"`
+	Agent         AgentSpec             `json:"agent"`
+	ExecutionRole *ExecutionRoleContext `json:"execution_role,omitempty"`
+	Project       ProjectContext        `json:"project"`
+	Task          WorkPackageContext    `json:"task"`
+	Skills        []string              `json:"skills,omitempty"`
+	Guidance      ExecutionGuidance     `json:"guidance,omitempty"`
+	Runtime       RuntimeConstraints    `json:"runtime"`
 }
 
 type ContextSection struct {
