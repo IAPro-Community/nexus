@@ -151,6 +151,57 @@ func TestCreateMissionAgentPersistsRichAgentSpecWithoutRuntimeAffinity(t *testin
 	}
 }
 
+func TestAutonomousAllocatorSkipsReusableAgentWithoutWorktreeIsolation(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Allocator isolation", CanonicalPath: t.TempDir(), DefaultIsolation: "project"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	unsafeAgent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Unsafe", Role: "implementer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	unsafeRevision, err := st.AddRevision(unsafeAgent.ID, (AgentConfig{Isolation: "project"}).ConfigJSON())
+	if err != nil {
+		t.Fatal(err)
+	}
+	unsafeAgent.CurrentRevisionID = unsafeRevision.ID
+	if err := st.UpdateAgent(unsafeAgent); err != nil {
+		t.Fatal(err)
+	}
+
+	executor := &nexusPackageExecutor{n: n}
+	run := &runner.MissionRun{ProjectID: project.ID, Autonomous: true}
+	pkg := &runner.PackageRun{PackageID: "step"}
+	if _, _, err := executor.selectReusableAgent(st, run, pkg); err != store.ErrNotFound {
+		t.Fatalf("unsafe reusable Agent must be ignored; got %v", err)
+	}
+
+	safeAgent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Safe", Role: "implementer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	safeRevision, err := st.AddRevision(safeAgent.ID, (AgentConfig{Isolation: "worktree"}).ConfigJSON())
+	if err != nil {
+		t.Fatal(err)
+	}
+	safeAgent.CurrentRevisionID = safeRevision.ID
+	if err := st.UpdateAgent(safeAgent); err != nil {
+		t.Fatal(err)
+	}
+	selected, _, err := executor.selectReusableAgent(st, run, pkg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if selected.ID != safeAgent.ID {
+		t.Fatalf("allocator selected %s, want worktree-safe Agent %s", selected.ID, safeAgent.ID)
+	}
+}
+
 func TestMissionAgentSpecSpecializesOperationalModes(t *testing.T) {
 	tests := []struct {
 		role           string
