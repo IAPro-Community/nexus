@@ -4,6 +4,8 @@ import {
   Project,
   Agent,
   AgentMode,
+  ExecutionRole,
+  RuntimeExecutionRoleView,
   AgentDetail,
   RuntimeSession,
   AgentConfig,
@@ -243,6 +245,19 @@ export const nexus = {
     ),
 
   listAgentModes: () => request<AgentMode[]>('/api/v1/agent-modes'),
+  listExecutionRoles: () => request<ExecutionRole[]>('/api/v1/execution-roles'),
+  getRuntimeExecutionRole: (runtimeId: string) =>
+    request<RuntimeExecutionRoleView>(
+      `/api/v1/runtimes/${encodeURIComponent(runtimeId)}/execution-role`,
+    ),
+  setRuntimeExecutionRole: (runtimeId: string, roleId: string) =>
+    request<RuntimeExecutionRoleView>(
+      `/api/v1/runtimes/${encodeURIComponent(runtimeId)}/execution-role`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ role_id: roleId }),
+      },
+    ),
   listAgents: (projectId: string) => request<Agent[]>(`/api/v1/projects/${projectId}/agents`),
   createAgent: (projectId: string, name: string, role?: string) =>
     request<Agent>(`/api/v1/projects/${projectId}/agents`, {

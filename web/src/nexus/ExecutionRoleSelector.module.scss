@@ -1,0 +1,62 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.select {
+  min-height: 28px;
+  max-width: 9.5rem;
+  padding: 0 1.55rem 0 0.5rem;
+  border: 1px solid var(--nx-border, rgba(255, 255, 255, 0.16));
+  border-radius: 0.4rem;
+  background: var(--nx-surface-raised, rgba(255, 255, 255, 0.05));
+  color: inherit;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--nx-focus, currentColor);
+  outline-offset: 2px;
+}
+
+.badge {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.12rem 0.38rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0.78;
+}
+
+.badge[data-tone='positive'] {
+  opacity: 0.92;
+}
+
+.badge[data-tone='warning'] {
+  border-style: dashed;
+}
+
+.badge[data-tone='danger'] {
+  text-decoration: underline;
+}
+
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

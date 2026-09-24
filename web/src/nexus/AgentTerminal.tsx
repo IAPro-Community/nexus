@@ -57,6 +57,7 @@ import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLive
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { canFitTerminal, canRunTerminalFrame } from './terminalFitModel';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
+import { ExecutionRoleSelector } from './ExecutionRoleSelector';
 import styles from './AgentTerminal.module.scss';
 
 interface AgentTerminalHostElement extends HTMLDivElement {
@@ -1119,6 +1120,10 @@ export const AgentTerminal: React.FC<{
                 {profile && profile !== 'default' ? `:${profile}` : ''}
               </span>
             )}
+            <ExecutionRoleSelector
+              runtimeId={boundRuntimeId}
+              disabled={!boundRuntimeId || connection === 'CONNECTING'}
+            />
             <span data-state={connection}>{connection.toLowerCase()}</span>
           </div>
           <div className="nx-agent-terminal__status">
@@ -1132,6 +1137,10 @@ export const AgentTerminal: React.FC<{
           className="nx-agent-terminal__toolbar nx-agent-terminal__toolbar--actions"
           aria-label="Terminal actions"
         >
+          <ExecutionRoleSelector
+            runtimeId={boundRuntimeId}
+            disabled={!boundRuntimeId || connection === 'CONNECTING'}
+          />
           {modeButtons}
           {terminalActions}
         </div>

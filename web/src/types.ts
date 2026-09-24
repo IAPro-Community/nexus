@@ -593,6 +593,43 @@ export interface AgentMode {
   agent_spec: AgentSpec;
 }
 
+export type ExecutionRoleScope = 'TURN' | 'RUNTIME';
+export type AccessIntent = 'WRITE' | 'READ_ONLY' | 'VERIFY_ONLY';
+export type ExecutionRoleEnforcement = 'ENFORCED' | 'BEST_EFFORT' | 'UNVERIFIED' | 'UNSUPPORTED';
+
+export interface ExecutionRole {
+  id: string;
+  label: string;
+  base_agent_mode_id: string;
+  access_intent: AccessIntent;
+  required_capabilities?: string[];
+  recommended_skill_ids?: string[];
+  default_scope: ExecutionRoleScope;
+  verification_policy?: {
+    require_evidence?: boolean;
+    require_tests?: boolean;
+  };
+}
+
+export interface RuntimeExecutionRoleBinding {
+  id?: string;
+  runtime_generation_id: string;
+  agent_id: string;
+  role_id: string;
+  scope: ExecutionRoleScope | string;
+  activation_strategy: string;
+  enforcement: ExecutionRoleEnforcement | string;
+  projection_receipt_id?: string;
+  activated_by?: string;
+  activated_at?: string;
+}
+
+export interface RuntimeExecutionRoleView {
+  binding: RuntimeExecutionRoleBinding;
+  role: ExecutionRole;
+  persisted: boolean;
+}
+
 export interface AgentSpec {
   role?: string;
   instructions?: string[];
