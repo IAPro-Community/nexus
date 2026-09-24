@@ -414,7 +414,8 @@ continua sendo `opencode`, `codex`, `claude` etc.; Docker/VPN/WSL/SSH são
 targets de execução, não novos providers.
 
 O launcher mantém `command_template` como contrato argv-only, com placeholders
-tipados e sem shell. Para projeção nativa em target customizado, uma
+tipados e sem shell. `cwd` (host) e `target_cwd` (target) são distintos para
+suportar mounts com caminhos diferentes, especialmente Windows → Docker. Para projeção nativa em target customizado, uma
 `target_profile_home` compartilhada precisa ser explicitamente configurada e
 validada. A versão do provider deve ser obtida no target por probe bounded quando
 possível.
