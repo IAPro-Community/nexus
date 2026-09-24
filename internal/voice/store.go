@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -357,7 +358,7 @@ func writeJSONAtomic(path string, value any) error {
 	if err := os.WriteFile(tmp, append(data, '\n'), 0600); err != nil {
 		return err
 	}
-	if err := os.Chmod(tmp, 0600); err != nil && os.Getenv("GOOS") != "windows" {
+	if err := os.Chmod(tmp, 0600); err != nil && runtime.GOOS != "windows" {
 		_ = os.Remove(tmp)
 		return err
 	}

@@ -3,6 +3,7 @@ package voice
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -126,7 +127,7 @@ func TestSpeechRouterDoesNotCascadeInvalidAudio(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "all configured") {
 		t.Fatalf("expected transcription failure, got %v", err)
 	}
-	if !AsTranscriptionError(err, &txErr) {
+	if !errors.As(err, &txErr) {
 		t.Fatalf("expected typed transcription error, got %T", err)
 	}
 	if len(txErr.Attempts) != 1 || txErr.Attempts[0].Status != StatusInvalidRequest {
@@ -137,13 +138,3 @@ func TestSpeechRouterDoesNotCascadeInvalidAudio(t *testing.T) {
 	}
 }
 
-func AsTranscriptionError(err error, target **TranscriptionError) bool {
-	if err == nil {
-		return false
-	}
-	value, ok := err.(*TranscriptionError)
-	if ok {
-		*target = value
-	}
-	return ok
-}
