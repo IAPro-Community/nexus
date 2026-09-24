@@ -64,8 +64,12 @@ intencional e não é interpretado como PASS.
 O modo manual do `.github/workflows/ci.yml` foi preservado para a linha futura
 que reativar suporte nativo. Com `native_target_sha=<SHA completo>`, ele exige:
 
-- Windows amd64: `[self-hosted, Windows, X64, nexus-windows]`;
-- macOS arm64: `[self-hosted, macOS, ARM64, nexus-macos]`.
+- Windows amd64: `windows-2025` (GitHub-hosted x64) na frente cross-platform;
+- macOS arm64: `macos-15` (GitHub-hosted Apple Silicon) na frente cross-platform.
+
+Os labels self-hosted anteriores não são necessários para o gate do PR. A
+certificação continua sendo nativa e same-SHA; a origem do runner é registrada
+na evidência.
 
 Esse modo pode produzir `native-certification-<sha>`, mas esse certificado não
 é requisito da release Linux-only da v1. Quando Windows/macOS voltarem à matriz
