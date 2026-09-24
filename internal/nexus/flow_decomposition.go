@@ -401,7 +401,7 @@ func (n *Nexus) PreflightFlowStrict(ctx context.Context, planID string, autonomo
 	return n.strictAdmissionForPlan(ctx, *plan, report, autonomous)
 }
 
-func (n *Nexus) strictAdmissionForPlan(_ context.Context, plan store.WorkPlan, report *FlowPreflightReport, autonomous bool) (*FlowPreflightReport, error) {
+func (n *Nexus) strictAdmissionForPlan(ctx context.Context, plan store.WorkPlan, report *FlowPreflightReport, autonomous bool) (*FlowPreflightReport, error) {
 	if report == nil {
 		return nil, fmt.Errorf("strict admission report is required")
 	}
@@ -427,6 +427,9 @@ func (n *Nexus) strictAdmissionForPlan(_ context.Context, plan store.WorkPlan, r
 	}
 	if autonomous {
 		worktreeProblems := make([]string, 0)
+		if baseErr := validateWorktreeBase(ctx, projectRecord); baseErr != nil {
+			worktreeProblems = append(worktreeProblems, baseErr.Error())
+		}
 		for _, phase := range plan.Phases {
 			for _, pkg := range phase.Packages {
 				strategy := strings.ToUpper(strings.TrimSpace(pkg.AssignmentStrategy))
