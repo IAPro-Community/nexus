@@ -1992,6 +1992,19 @@ export interface AgentProjectionDiscovery {
   error?: string;
 }
 
+export interface AgentProjectionActivation {
+  provider: string;
+  provider_version: string;
+  target_kind: string;
+  agent_name: string;
+  command?: string[];
+  activated: boolean;
+  status: string;
+  evidence?: string;
+  error?: string;
+  external_execution: boolean;
+}
+
 export interface AgentProjectionApplyView {
   plan: AgentProjectionPlanView;
   receipt: AgentProjectionReceipt;
