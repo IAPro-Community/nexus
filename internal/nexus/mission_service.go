@@ -325,28 +325,28 @@ func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID s
 		return nil, missionAdmissionError("delegation", err.Error())
 	}
 	if plan.CurrentRevision != approvedRevision {
-		return nil, fmt.Errorf("approved plan revision %d is stale; current is %d", approvedRevision, plan.CurrentRevision)
+		return nil, missionAdmissionError("revision", fmt.Sprintf("approved plan revision %d is stale; current is %d", approvedRevision, plan.CurrentRevision))
 	}
 	accounts, resourceErr := n.ListResourcesContext(ctx)
 	preview, err := n.previewPlanExecutionWithContract(ctx, st, plan, accounts, resourceErr, contract, autonomous)
 	if err != nil {
-		return nil, fmt.Errorf("refresh execution preview before approved mission: %w", err)
+		return nil, missionPreparationError("execution_preview", fmt.Errorf("refresh execution preview before approved mission: %w", err))
 	}
 	if err := validateApprovedExecutionPreview(preview, planID, approvedRevision); err != nil {
-		return nil, err
+		return nil, missionAdmissionError("execution_preview", err.Error())
 	}
 	if token := strings.TrimSpace(options.ExecutionPreviewToken); token != "" && token != preview.ApprovalToken {
-		return nil, fmt.Errorf("execution preview changed after approval; run Execution Preview again before GO")
+		return nil, missionAdmissionError("execution_preview", "execution preview changed after approval; run Execution Preview again before GO")
 	}
 	preflight, err := n.PreflightFlowStrict(ctx, planID, autonomous)
 	if err != nil {
-		return nil, fmt.Errorf("run preflight before approved mission: %w", err)
+		return nil, missionPreparationError("strict_admission", fmt.Errorf("run preflight before approved mission: %w", err))
 	}
 	if !preflight.Ready {
 		return nil, missionAdmissionError("preflight", fmt.Sprintf("approved mission blocked by preflight: %s", missionAdmissionBlockers(preflight)))
 	}
 	if err := validateCostBudgetAdmission(ctx, st, plan, options.CostConfirmationToken); err != nil {
-		return nil, err
+		return nil, missionAdmissionError("cost_budget", err.Error())
 	}
 	return n.startMissionRunAtRevisionWithAdmission(ctx, plan, approvedRevision, defaultAgentID, contract, autonomous, preflight, preview)
 }
@@ -410,42 +410,44 @@ func validateCostBudgetAdmission(ctx context.Context, st *store.Store, plan *sto
 func (n *Nexus) startMissionRunAtRevisionWithAdmission(ctx context.Context, plan *store.WorkPlan, revision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, preflight *FlowPreflightReport, preview *PlanExecutionPreview) (*runner.MissionRun, error) {
 	st, err := n.OpenProject()
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("store", err)
 	}
 	project, err := st.GetProject(plan.ProjectID)
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("project", err)
 	}
 	frozenRevision, rev, err := loadWorkPlanRevision(st, plan.ID, revision)
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("revision", err)
 	}
 	frozenPlan, skillContracts, err := freezePlanForExecution(n, *frozenRevision)
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("execution_contract", err)
 	}
 	frozen := &frozenPlan
 	bindLeadAgent(frozen, defaultAgentID)
 	contract = normalizeAutonomyContract(contract, project.CanonicalPath)
 	goalContract, err := ReadGoalContractFact(frozen.StructuredFacts)
 	if err != nil {
-		return nil, fmt.Errorf("load frozen goal contract: %w", err)
+		return nil, missionPreparationError("goal_contract", err)
 	}
 	env, err := json.Marshal(missionExecutionSnapshot{Plan: *frozen, Contract: contract, Preflight: preflight, ExecutionPreview: preview, SkillContracts: skillContracts, Goal: goalContract})
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("snapshot", err)
 	}
 	snapshot, err := st.CreateExecutionSnapshot(plan.ID, rev.ID, string(env))
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("snapshot", err)
 	}
 	spec, err := planToRunnerSpec(frozen, snapshot.ID)
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("runner_spec", err)
 	}
 	spec.Autonomous = autonomous
 	run, err := n.Runner().StartMissionRun(ctx, spec, project.CanonicalPath, contract, defaultAgentID)
 	if err != nil {
+		// Runner ownership may already have crossed a durable persistence
+		// boundary. Leave this untyped so callers never replay automatically.
 		return nil, err
 	}
 	if autonomous {
