@@ -170,7 +170,7 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 		return nil, fmt.Errorf("run preflight before mission: %w", err)
 	}
 	if !preflight.Ready {
-		return nil, fmt.Errorf("mission blocked by preflight: invalid flow graph or checks failed")
+		return nil, fmt.Errorf("mission blocked by preflight: %s", missionAdmissionBlockers(preflight))
 	}
 	if autonomous {
 		preflight, err = n.PreflightFlowStrict(ctx, planID, true)
@@ -178,7 +178,7 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 			return nil, fmt.Errorf("run strict admission before mission: %w", err)
 		}
 		if !preflight.Ready {
-			return nil, fmt.Errorf("mission blocked by strict admission: worktree, resources, agent or Maestro requirements are not satisfied")
+			return nil, fmt.Errorf("mission blocked by strict admission: %s", missionAdmissionBlockers(preflight))
 		}
 	}
 
@@ -208,6 +208,32 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 		n.StartMissionWorker(run.ID)
 	}
 	return run, nil
+}
+
+func missionAdmissionBlockers(report *FlowPreflightReport) string {
+	if report == nil {
+		return "admission report unavailable"
+	}
+	blockers := make([]string, 0)
+	for _, check := range report.Checks {
+		if !strings.EqualFold(strings.TrimSpace(check.Status), "FAIL") {
+			continue
+		}
+		key := strings.TrimSpace(check.Key)
+		summary := strings.TrimSpace(check.Summary)
+		switch {
+		case key != "" && summary != "":
+			blockers = append(blockers, key+": "+summary)
+		case summary != "":
+			blockers = append(blockers, summary)
+		case key != "":
+			blockers = append(blockers, key)
+		}
+	}
+	if len(blockers) == 0 {
+		return "admission reported not ready without a specific failed check"
+	}
+	return strings.Join(blockers, "; ")
 }
 
 type MissionAdmissionOptions struct {
@@ -261,7 +287,7 @@ func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID s
 		return nil, fmt.Errorf("run preflight before approved mission: %w", err)
 	}
 	if !preflight.Ready {
-		return nil, fmt.Errorf("approved mission blocked by preflight")
+		return nil, fmt.Errorf("approved mission blocked by preflight: %s", missionAdmissionBlockers(preflight))
 	}
 	if err := validateCostBudgetAdmission(ctx, st, plan, options.CostConfirmationToken); err != nil {
 		return nil, err
