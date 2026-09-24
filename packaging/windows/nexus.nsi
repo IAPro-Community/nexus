@@ -37,6 +37,52 @@ broadcast:
 donePath:
 FunctionEnd
 
+Function RemoveFromUserPath
+  ReadRegStr $0 HKCU "Environment" "Path"
+  StrCmp $0 "" doneRemove
+  Push $0
+  Push "$INSTDIR"
+  Call StrStr
+  Pop $1
+  StrCmp $1 "" doneRemove
+  StrCpy $2 "$INSTDIR;"
+  Push $0
+  Push $2
+  Call StrStr
+  Pop $1
+  StrCmp $1 "" tryTrailing
+  StrLen $3 $2
+  StrLen $4 $0
+  StrLen $5 $1
+  IntOp $6 $4 - $5
+  StrCpy $7 $0 $6
+  StrCpy $8 $1 "" $3
+  StrCpy $0 "$7$8"
+  Goto writePath
+tryTrailing:
+  StrCpy $2 ";$INSTDIR"
+  Push $0
+  Push $2
+  Call StrStr
+  Pop $1
+  StrCmp $1 "" exactPath
+  StrLen $3 $2
+  StrLen $4 $0
+  StrLen $5 $1
+  IntOp $6 $4 - $5
+  StrCpy $7 $0 $6
+  StrCpy $8 $1 "" $3
+  StrCpy $0 "$7$8"
+  Goto writePath
+exactPath:
+  StrCmp $0 "$INSTDIR" 0 doneRemove
+  StrCpy $0 ""
+writePath:
+  WriteRegExpandStr HKCU "Environment" "Path" "$0"
+  SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
+doneRemove:
+FunctionEnd
+
 ; Simple substring search (Haystack on stack, Needle on stack)
 Function StrStr
   Exch $R1 ; needle
@@ -81,6 +127,13 @@ Section "IAPro Nexus" SecMain
   skipDesktop:
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
+
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "DisplayName" "IAPro Nexus"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UninstallString" '"$INSTDIR\Uninstall.exe"'
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "QuietUninstallString" '"$INSTDIR\Uninstall.exe" /S'
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "NoModify" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "NoRepair" 1
 SectionEnd
 
 Section "Uninstall"
@@ -90,5 +143,7 @@ Section "Uninstall"
   Delete "$INSTDIR\nexus-desktop.exe"
   Delete "$INSTDIR\Uninstall.exe"
   Delete "$DESKTOP\IAPro Nexus.lnk"
+  Call RemoveFromUserPath
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus"
   RMDir "$INSTDIR"
 SectionEnd
