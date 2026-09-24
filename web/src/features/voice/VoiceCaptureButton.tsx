@@ -125,9 +125,12 @@ export const VoiceCaptureButton: React.FC<{
       captureRef.current = capture;
       setState('recording');
       setDetail('Ouvindo… clique novamente para enviar.');
-      timerRef.current = window.setTimeout(() => {
-        void finish();
-      }, Math.max(5, settings.max_capture_seconds || 60) * 1000);
+      timerRef.current = window.setTimeout(
+        () => {
+          void finish();
+        },
+        Math.max(5, settings.max_capture_seconds || 60) * 1000,
+      );
     } catch (error) {
       setDetail(error instanceof Error ? error.message : String(error));
       setState('error');

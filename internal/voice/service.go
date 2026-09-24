@@ -60,12 +60,14 @@ func (s *Service) Settings() (SettingsView, error) {
 	for _, p := range cfg.Providers {
 		key, _ := s.store.ResolveAPIKey(p)
 		account := s.store.ResolveAccountID(p)
+		publicConfig := p
+		publicConfig.APIKeyFile = ""
 		configured := strings.TrimSpace(key) != ""
 		if p.Kind == ProviderCloudflare {
 			configured = configured && account != ""
 		}
 		view.Providers = append(view.Providers, ProviderView{
-			ProviderConfig: p,
+			ProviderConfig: publicConfig,
 			HasAPIKey:      strings.TrimSpace(key) != "",
 			Configured:     configured,
 			Usage:          usage[p.ID],

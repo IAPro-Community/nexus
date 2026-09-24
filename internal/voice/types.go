@@ -36,14 +36,14 @@ type ProviderConfig struct {
 }
 
 type Settings struct {
-	Version              int              `json:"version"`
-	Enabled              bool             `json:"enabled"`
-	Language             string           `json:"language"`
-	TerminalEnabled      bool             `json:"terminal_enabled"`
-	NexusControlEnabled  bool             `json:"nexus_control_enabled"`
-	AutomaticFallback    bool             `json:"automatic_fallback"`
-	MaxCaptureSeconds    int              `json:"max_capture_seconds"`
-	Providers            []ProviderConfig `json:"providers"`
+	Version             int              `json:"version"`
+	Enabled             bool             `json:"enabled"`
+	Language            string           `json:"language"`
+	TerminalEnabled     bool             `json:"terminal_enabled"`
+	NexusControlEnabled bool             `json:"nexus_control_enabled"`
+	AutomaticFallback   bool             `json:"automatic_fallback"`
+	MaxCaptureSeconds   int              `json:"max_capture_seconds"`
+	Providers           []ProviderConfig `json:"providers"`
 }
 
 type ProviderUpdate struct {
@@ -74,8 +74,8 @@ type ProviderUsage struct {
 
 type ProviderView struct {
 	ProviderConfig
-	HasAPIKey bool          `json:"has_api_key"`
-	Configured bool         `json:"configured"`
+	HasAPIKey  bool          `json:"has_api_key"`
+	Configured bool          `json:"configured"`
 	Usage      ProviderUsage `json:"usage"`
 }
 

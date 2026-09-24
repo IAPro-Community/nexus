@@ -87,8 +87,12 @@ export const VoiceSettings: React.FC = () => {
         providers: [...draft.providers]
           .sort((a, b) => a.priority - b.priority)
           .map((provider, index) => {
-            const { has_api_key: _hasApiKey, configured: _configured, usage: _usage, ...config } =
-              provider;
+            const {
+              has_api_key: _hasApiKey,
+              configured: _configured,
+              usage: _usage,
+              ...config
+            } = provider;
             return {
               ...config,
               priority: index + 1,
@@ -261,7 +265,9 @@ export const VoiceSettings: React.FC = () => {
                     <span>Modelo</span>
                     <input
                       value={provider.model}
-                      onChange={(event) => patchProvider(provider.id, { model: event.target.value })}
+                      onChange={(event) =>
+                        patchProvider(provider.id, { model: event.target.value })
+                      }
                     />
                   </label>
                   {provider.kind === 'cloudflare' && (

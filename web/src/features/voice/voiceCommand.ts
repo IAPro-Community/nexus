@@ -32,7 +32,12 @@ export const interpretNexusVoiceCommand = (transcript: string): NexusVoiceComman
     return { kind: 'voice-settings' };
   }
   if (
-    includesAny(value, ['abrir comandos', 'paleta de comandos', 'command palette', 'mostrar comandos'])
+    includesAny(value, [
+      'abrir comandos',
+      'paleta de comandos',
+      'command palette',
+      'mostrar comandos',
+    ])
   ) {
     return { kind: 'palette' };
   }

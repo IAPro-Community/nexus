@@ -34,27 +34,27 @@ func DefaultSettings() Settings {
 		MaxCaptureSeconds:   60,
 		Providers: []ProviderConfig{
 			{
-				ID:            "groq-primary",
-				Kind:          ProviderGroq,
-				Label:         "Groq · Whisper Large V3 Turbo",
-				Enabled:       true,
-				Priority:      1,
-				Model:         "whisper-large-v3-turbo",
-				BaseURL:       "https://api.groq.com",
-				APIKeyEnv:     "GROQ_API_KEY",
-				FreeEligible:  true,
+				ID:           "groq-primary",
+				Kind:         ProviderGroq,
+				Label:        "Groq · Whisper Large V3 Turbo",
+				Enabled:      true,
+				Priority:     1,
+				Model:        "whisper-large-v3-turbo",
+				BaseURL:      "https://api.groq.com",
+				APIKeyEnv:    "GROQ_API_KEY",
+				FreeEligible: true,
 			},
 			{
-				ID:            "cloudflare-fallback",
-				Kind:          ProviderCloudflare,
-				Label:         "Cloudflare Workers AI · Whisper Large V3 Turbo",
-				Enabled:       true,
-				Priority:      2,
-				Model:         "@cf/openai/whisper-large-v3-turbo",
-				BaseURL:       "https://api.cloudflare.com/client/v4",
-				APIKeyEnv:     "CLOUDFLARE_API_TOKEN",
-				AccountIDEnv:  "CLOUDFLARE_ACCOUNT_ID",
-				FreeEligible:  true,
+				ID:           "cloudflare-fallback",
+				Kind:         ProviderCloudflare,
+				Label:        "Cloudflare Workers AI · Whisper Large V3 Turbo",
+				Enabled:      true,
+				Priority:     2,
+				Model:        "@cf/openai/whisper-large-v3-turbo",
+				BaseURL:      "https://api.cloudflare.com/client/v4",
+				APIKeyEnv:    "CLOUDFLARE_API_TOKEN",
+				AccountIDEnv: "CLOUDFLARE_ACCOUNT_ID",
+				FreeEligible: true,
 			},
 		},
 	}
@@ -134,12 +134,13 @@ func normalizeSettings(cfg Settings) (Settings, error) {
 			if p.Model == "" {
 				p.Model = "whisper-large-v3-turbo"
 			}
-			if p.BaseURL == "" {
-				p.BaseURL = "https://api.groq.com"
-			}
-			if p.APIKeyEnv == "" {
-				p.APIKeyEnv = "GROQ_API_KEY"
-			}
+			// Built-in providers are pinned to canonical endpoints. Settings are
+			// remotely writable, so accepting arbitrary base URLs or key files here
+			// would turn STT configuration into SSRF/local-file credential exfiltration.
+			p.BaseURL = "https://api.groq.com"
+			p.APIKeyEnv = "GROQ_API_KEY"
+			p.APIKeyFile = ""
+			p.AccountIDEnv = ""
 		case ProviderCloudflare:
 			if p.Label == "" {
 				p.Label = "Cloudflare Workers AI · Whisper Large V3 Turbo"
@@ -147,15 +148,10 @@ func normalizeSettings(cfg Settings) (Settings, error) {
 			if p.Model == "" {
 				p.Model = "@cf/openai/whisper-large-v3-turbo"
 			}
-			if p.BaseURL == "" {
-				p.BaseURL = "https://api.cloudflare.com/client/v4"
-			}
-			if p.APIKeyEnv == "" {
-				p.APIKeyEnv = "CLOUDFLARE_API_TOKEN"
-			}
-			if p.AccountIDEnv == "" {
-				p.AccountIDEnv = "CLOUDFLARE_ACCOUNT_ID"
-			}
+			p.BaseURL = "https://api.cloudflare.com/client/v4"
+			p.APIKeyEnv = "CLOUDFLARE_API_TOKEN"
+			p.APIKeyFile = ""
+			p.AccountIDEnv = "CLOUDFLARE_ACCOUNT_ID"
 		default:
 			return Settings{}, fmt.Errorf("unsupported voice provider kind %q", p.Kind)
 		}

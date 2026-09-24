@@ -62,6 +62,29 @@ func TestStoreKeepsVoiceSecretsOutOfSettingsViewAndSettingsFile(t *testing.T) {
 	}
 }
 
+func TestVoiceSettingsPinBuiltInProviderEndpoints(t *testing.T) {
+	withVoiceConfigDir(t)
+	store := NewStore()
+	update := testUpdate("http://127.0.0.1:9999")
+	update.Providers[0].APIKeyFile = "/etc/passwd"
+	update.Providers[0].APIKeyEnv = "EVIL_ENV"
+	update.Providers[1].APIKeyFile = "/etc/shadow"
+	update.Providers[1].APIKeyEnv = "EVIL_CF_ENV"
+	if _, err := store.SaveUpdate(update); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := store.LoadSettings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Providers[0].BaseURL != "https://api.groq.com" || cfg.Providers[0].APIKeyFile != "" || cfg.Providers[0].APIKeyEnv != "GROQ_API_KEY" {
+		t.Fatalf("Groq provider accepted unsafe endpoint/credential indirection: %+v", cfg.Providers[0])
+	}
+	if cfg.Providers[1].BaseURL != "https://api.cloudflare.com/client/v4" || cfg.Providers[1].APIKeyFile != "" || cfg.Providers[1].APIKeyEnv != "CLOUDFLARE_API_TOKEN" {
+		t.Fatalf("Cloudflare provider accepted unsafe endpoint/credential indirection: %+v", cfg.Providers[1])
+	}
+}
+
 func TestSpeechRouterFallsBackFromGroq429ToCloudflare(t *testing.T) {
 	withVoiceConfigDir(t)
 	var groqCalls atomic.Int32
@@ -137,4 +160,3 @@ func TestSpeechRouterDoesNotCascadeInvalidAudio(t *testing.T) {
 		t.Fatalf("invalid audio cascaded to fallback provider")
 	}
 }
-
