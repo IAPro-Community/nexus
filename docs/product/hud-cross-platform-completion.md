@@ -14,11 +14,13 @@ Uma capacidade nativa só fica `DONE` quando o mesmo contrato foi:
 3. coberto por smoke/evidência de runtime;
 4. refletido na capability matrix sem claims inferidos.
 
-## Escopo desta branch
+## Origem da implementação
 
-Branch: `feat/hud-cross-platform-completion`
+A implementação nasceu na branch histórica `feat/hud-cross-platform-completion`
+e foi integrada à linha `v1.0.0-beta.2`. A branch não é mais uma linha de
+produto separada.
 
-Primeiro lote:
+Primeiro lote integrado:
 
 - autostart opt-in com adapters Linux, Windows e macOS;
 - promoção do artefato `nexus-hud` como tipo próprio no update manifest;
@@ -27,7 +29,7 @@ Primeiro lote:
 - smoke de lançamento do HUD nos dois sistemas;
 - capabilities continuam fail-closed para tray e multi-monitor/DPI.
 
-Lotes seguintes, nesta mesma branch:
+Lotes seguintes, na linha v1 beta:
 
 - tray/menu bar com Show/Hide/Quit e recovery seguro;
 - auto-hide somente depois do recovery via tray;
