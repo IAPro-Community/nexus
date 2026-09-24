@@ -13,6 +13,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 	"github.com/IAPro-Community/nexus/internal/update"
+	"github.com/IAPro-Community/nexus/internal/voice"
 )
 
 // NexusHandler serves the Nexus product API (projects, agents, generations,
@@ -28,6 +29,7 @@ type NexusHandler struct {
 	composer              *nexus.ComposerApplicationService
 	runs                  *nexus.RunApplicationService
 	hud                   *nexus.HUDApplicationService
+	voice                 *voice.Service
 	hostFilesystemEnabled bool
 }
 
@@ -94,6 +96,7 @@ func NewNexusHandler(auth *AuthManager) *NexusHandler {
 		composer:              nexus.NewComposerApplicationService(n),
 		runs:                  nexus.NewRunApplicationService(n),
 		hud:                   nexus.NewHUDApplicationService(n),
+		voice:                 voice.NewService(),
 		hostFilesystemEnabled: true,
 	}
 }

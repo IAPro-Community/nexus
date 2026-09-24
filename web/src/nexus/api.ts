@@ -701,6 +701,21 @@ export const nexus = {
       body: JSON.stringify({ requirements, policy }),
     }),
 
+  // Voice accessibility: provider settings remain server-side and multipart audio
+  // never exposes provider credentials to the browser.
+  getVoiceSettings: () =>
+    request<import('../features/voice/voiceModel').VoiceSettingsView>('/api/v1/voice/settings'),
+  putVoiceSettings: (settings: import('../features/voice/voiceModel').VoiceSettingsUpdate) =>
+    request<import('../features/voice/voiceModel').VoiceSettingsView>('/api/v1/voice/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+  transcribeVoice: (form: FormData) =>
+    request<import('../features/voice/voiceModel').VoiceTranscribeResult>(
+      '/api/v1/voice/transcribe',
+      { method: 'POST', body: form },
+    ),
+
   // Nexus HUD: read-only projection over canonical Capacity/Resource/Agent/Mission/Cost state.
   getHUDState: (projectId?: string) => {
     const params = new URLSearchParams();

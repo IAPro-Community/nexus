@@ -25,6 +25,7 @@ import { InAppNotificationCenter } from '../notifications/InAppNotificationCente
 import { ProjectCreateMenu } from '../features/projects/ProjectCreateMenu';
 import type { Agent, EventRecord, Project, RuntimeSession } from '../types';
 import type { RadarRuntimeItem } from './attentionRadarModel';
+import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
 import styles from './NexusShell.module.scss';
 
 export const NexusShell: React.FC<{
@@ -41,7 +42,8 @@ export const NexusShell: React.FC<{
   onCommand: () => void;
   onOpenWelcome: () => void;
   onOpenProjectManager: () => void;
-  onSettings: (tab?: 'appearance' | 'updates' | 'remote') => void;
+  onSettings: (tab?: 'appearance' | 'accessibility' | 'updates' | 'remote' | 'hud') => void;
+  onVoiceTranscript?: (text: string) => void | Promise<void>;
   onNewAgent?: () => void;
   onNewAISession?: () => void;
   onProjectShell?: () => void;
@@ -63,6 +65,7 @@ export const NexusShell: React.FC<{
   onOpenWelcome,
   onOpenProjectManager,
   onSettings,
+  onVoiceTranscript,
   onNewAgent,
   onNewAISession,
   onProjectShell,
@@ -175,6 +178,13 @@ export const NexusShell: React.FC<{
 
                 <LanguagePicker />
                 <FontScalePicker />
+                {onVoiceTranscript && (
+                  <VoiceCaptureButton
+                    context="nexus"
+                    showLabel
+                    onTranscript={(text) => onVoiceTranscript(text)}
+                  />
+                )}
                 <IconButton
                   label={t('settings.remote.title', 'Acesso remoto')}
                   onClick={() => onSettings('remote')}

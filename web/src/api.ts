@@ -271,7 +271,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   }
 
   if (options.method && options.method !== 'GET' && options.method !== 'HEAD') {
-    headers.set('Content-Type', 'application/json');
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    if (!isFormData) {
+      headers.set('Content-Type', 'application/json');
+    }
     if (csrfToken) {
       headers.set('X-CSRF-Token', csrfToken);
     }

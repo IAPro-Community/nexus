@@ -3,6 +3,7 @@ import {
   FilePickerOptions,
   NotificationOptions,
   DesktopBootstrapInfo,
+  NativeVoiceRecording,
 } from './capabilities';
 
 export interface PlatformBridge {
@@ -20,6 +21,10 @@ export interface PlatformBridge {
   getSystemTheme(): Promise<'light' | 'dark' | 'unknown'>;
 
   getBootstrapInfo?(): Promise<DesktopBootstrapInfo | null>;
+
+  startNativeVoiceCapture?(): Promise<void>;
+  stopNativeVoiceCapture?(): Promise<NativeVoiceRecording>;
+  cancelNativeVoiceCapture?(): Promise<void>;
 
   isMaximized?(): Promise<boolean>;
   minimizeWindow?(): Promise<void>;
