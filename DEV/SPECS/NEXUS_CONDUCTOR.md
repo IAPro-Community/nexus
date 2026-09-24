@@ -234,6 +234,19 @@ tipadas como `MissionPreparationError` e retornam `FallbackSafe=true`.
 Falhas não tipadas não fazem fallback automático, pois o boundary de side
 effects não foi provado.
 
+### Worktree efetivo por Agent
+
+Autonomia não depende mais de um `DefaultIsolation=worktree` global. O
+invariante é o diretório efetivo de execução:
+
+- `EXISTING` exige Agent cuja configuração efetiva resolva para `worktree`;
+- `AUTO` filtra Agents não seguros e cria especialista worktree se necessário;
+- `CREATE` nasce worktree;
+- override explícito `Isolation=project` tem precedência sobre o default do
+  projeto e é bloqueado para execução autônoma;
+- strict admission valida que a raiz do projeto é um repositório Git apto a
+  originar worktrees antes do `MissionRunner`.
+
 ## 6. CLI — `nexus conductor`
 
 ```text
