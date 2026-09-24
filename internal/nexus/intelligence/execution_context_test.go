@@ -36,6 +36,42 @@ func TestCompileExecutionContext_ComposesPersistentAndTaskRolesWithProvenance(t 
 	}
 }
 
+func TestCompileExecutionContext_ComposesTransientExecutionRoleWithoutReplacingPersistentOrTaskRole(t *testing.T) {
+	compiled, err := NewNexusEngine(nil).CompileExecutionContext(context.Background(), ExecutionContextRequest{
+		Agent: AgentSpec{Role: "senior-developer"},
+		ExecutionRole: &ExecutionRoleContext{
+			ID:                   "review",
+			Role:                 "reviewer",
+			AccessIntent:         "READ_ONLY",
+			RequiredCapabilities: []string{"code_review", "read_only_review"},
+			Scope:                "RUNTIME",
+		},
+		Task: WorkPackageContext{
+			Title: "Inspect change",
+			Goal:  "Review the current diff",
+			Role:  "release-reviewer",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsSection(compiled.Sections, "agent", "senior-developer") {
+		t.Fatalf("persistent specialization was lost: %#v", compiled.Sections)
+	}
+	if !containsSection(compiled.Sections, "execution_role", "READ_ONLY") || !containsSection(compiled.Sections, "execution_role", "never expands") {
+		t.Fatalf("execution role provenance/boundary missing: %#v", compiled.Sections)
+	}
+	if !containsSection(compiled.Sections, "task", "release-reviewer") {
+		t.Fatalf("task role was replaced: %#v", compiled.Sections)
+	}
+	if !contains(compiled.SystemInstructions, "Execution role: review (reviewer, access=READ_ONLY, scope=RUNTIME)") {
+		t.Fatalf("execution role missing from rendered system instructions: %q", compiled.SystemInstructions)
+	}
+	if !contains(compiled.SystemInstructions, "Persistent specialization: senior-developer") || !contains(compiled.SystemInstructions, "Task role: release-reviewer") {
+		t.Fatalf("role composition lost provenance: %q", compiled.SystemInstructions)
+	}
+}
+
 func TestCompileExecutionContext_MaestroOffDoesNotAddGuidance(t *testing.T) {
 	compiled, err := NewNexusEngine(nil).CompileExecutionContext(context.Background(), ExecutionContextRequest{
 		Agent: AgentSpec{Role: "qa"},
