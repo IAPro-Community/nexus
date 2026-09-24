@@ -53,7 +53,6 @@ type AgentProjectionActivation struct {
 	ProviderVersion   string   `json:"provider_version"`
 	TargetKind        string   `json:"target_kind"`
 	AgentName         string   `json:"agent_name"`
-	Command           []string `json:"command,omitempty"`
 	Activated         bool     `json:"activated"`
 	Status            string   `json:"status"`
 	Evidence          string   `json:"evidence,omitempty"`
@@ -414,9 +413,7 @@ func (n *Nexus) ProbeRuntimeAgentProjectionActivation(ctx context.Context, runti
 		return result, fmt.Errorf("%s", result.Error)
 	}
 
-	result.Command = append([]string{filepath.Base(bin)}, args...)
 	output, runErr := nexusruntime.RunCommandCapture(probeCtx, bin, args, env, cwd)
-	result.Evidence = truncateProjectionEvidence(output, 4096)
 	if runErr != nil {
 		result.Error = fmt.Sprintf("OpenCode native-agent activation failed: %v", runErr)
 		return result, fmt.Errorf("%s", result.Error)
@@ -436,6 +433,7 @@ func (n *Nexus) ProbeRuntimeAgentProjectionActivation(ctx context.Context, runti
 	}
 	result.Activated = true
 	result.Status = "VERIFIED"
+	result.Evidence = fmt.Sprintf("OpenCode launched projected native agent %q and returned the expected activation marker", agentName)
 	return result, nil
 }
 
