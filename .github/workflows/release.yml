@@ -185,7 +185,7 @@ jobs:
           distribution: goreleaser
           version: v2.18.0
           args: release --clean --skip=publish
-      - name: Promote exact-SHA Linux desktop artifact
+      - name: Promote exact-SHA Linux desktop and HUD artifacts
         env:
           GH_TOKEN: ${{ github.token }}
           CI_RUN_ID: ${{ needs.same-sha-gate.outputs.ci-run-id }}
@@ -194,6 +194,7 @@ jobs:
           mkdir -p native-artifacts
           gh run download "$CI_RUN_ID" --name "desktop-linux-${GITHUB_SHA}" --dir native-artifacts
           test -f native-artifacts/nexus-desktop_Linux_x86_64.tar.gz
+          test -f native-artifacts/nexus-hud_Linux_x86_64.tar.gz
       - name: Stage Nexus v1 Linux installers before manifest signing
         run: |
           set -euo pipefail
@@ -225,6 +226,7 @@ jobs:
           required = (
               'linux_amd64',
               'desktop_linux_amd64',
+              'hud_linux_amd64',
           )
           missing = [key for key in required if key not in manifest.get('artifacts', {})]
           if missing:

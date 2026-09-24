@@ -24,7 +24,21 @@ env:
   NEXUS_UPDATE_PUBLIC_KEY: ${{ vars.NEXUS_UPDATE_PUBLIC_KEY }}
 
 jobs:
+  linux-workspace-hygiene:
+    name: Linux runner workspace hygiene
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
+    container: ubuntu:24.04
+    steps:
+      - name: Remove legacy container-owned checkout artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$GITHUB_WORKSPACE/dist" "$GITHUB_WORKSPACE/.runner-stale-dist-root"
+          mkdir -p "$GITHUB_WORKSPACE"
+          chmod a+rwx "$GITHUB_WORKSPACE"
+
   frontend:
+    needs: linux-workspace-hygiene
     name: Frontend (Format, Lint, Styles, Typecheck, Unit & Build)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
@@ -69,6 +83,7 @@ jobs:
         run: bun run verify
 
   release-config:
+    needs: linux-workspace-hygiene
     name: Release configuration
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
@@ -80,6 +95,7 @@ jobs:
           args: check
 
   security:
+    needs: linux-workspace-hygiene
     name: Security
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
@@ -204,6 +220,7 @@ jobs:
           test '${{ steps.browser-visual.outcome }}' = success
 
   test-linux:
+    needs: linux-workspace-hygiene
     name: Linux E2E (Go 1.25.14)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
@@ -273,6 +290,43 @@ jobs:
         with:
           go-version: '1.25.14'
           cache: false
+      - name: Wails v2 + tray linker compatibility probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          probe="$RUNNER_TEMP/nexus-hud-tray-link-probe"
+          rm -rf "$probe"
+          mkdir -p "$probe"
+          cat > "$probe/go.mod" <<'EOF'
+          module nexus-hud-tray-link-probe
+
+          go 1.25.0
+
+          require (
+            github.com/gogpu/systray v0.2.8
+            github.com/wailsapp/wails/v2 v2.15.0
+          )
+          EOF
+          cat > "$probe/main.go" <<'EOF'
+          package main
+
+          import (
+            "fmt"
+
+            "github.com/gogpu/systray"
+            "github.com/wailsapp/wails/v2"
+          )
+
+          func main() {
+            fmt.Printf("%T %T\n", systray.New, wails.Run)
+          }
+          EOF
+          (
+            cd "$probe"
+            GOFLAGS=-mod=mod go mod download
+            GOFLAGS=-mod=mod go build -trimpath -o tray-link-probe .
+          )
+          test -x "$probe/tray-link-probe"
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
@@ -422,18 +476,18 @@ jobs:
 
   native-windows:
     name: Windows native certification
-    if: github.event_name == 'workflow_dispatch' && inputs.native_target_sha != ''
-    runs-on: [self-hosted, Windows, X64, nexus-windows]
+    if: (github.event_name == 'workflow_dispatch' && inputs.native_target_sha != '') || (github.event_name == 'pull_request' && github.head_ref == 'feat/hud-cross-platform-completion')
+    runs-on: windows-2025
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.native_target_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Verify exact SHA and architecture
         shell: pwsh
         env:
-          TARGET_SHA: ${{ inputs.native_target_sha }}
+          TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
         run: |
           $head = (git rev-parse HEAD).Trim()
           if ($head -ne $env:TARGET_SHA) { throw "Checked out $head, expected $env:TARGET_SHA" }
@@ -444,6 +498,45 @@ jobs:
         with:
           go-version: '1.25.14'
           cache: false
+      - name: Wails v2 + tray linker compatibility probe
+        shell: pwsh
+        run: |
+          $probe = Join-Path $env:RUNNER_TEMP "nexus-hud-tray-link-probe"
+          Remove-Item -Recurse -Force $probe -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $probe -Force | Out-Null
+          @'
+          module nexus-hud-tray-link-probe
+
+          go 1.25.0
+
+          require (
+            github.com/gogpu/systray v0.2.8
+            github.com/wailsapp/wails/v2 v2.15.0
+          )
+          '@ | Set-Content -Encoding utf8 (Join-Path $probe "go.mod")
+          @'
+          package main
+
+          import (
+            "fmt"
+
+            "github.com/gogpu/systray"
+            "github.com/wailsapp/wails/v2"
+          )
+
+          func main() {
+            fmt.Printf("%T %T\n", systray.New, wails.Run)
+          }
+          '@ | Set-Content -Encoding utf8 (Join-Path $probe "main.go")
+          Push-Location $probe
+          try {
+            $env:GOFLAGS = "-mod=mod"
+            go mod download
+            go build -trimpath -o tray-link-probe.exe .
+            if (-not (Test-Path ".\tray-link-probe.exe")) { throw "tray link probe binary missing" }
+          } finally {
+            Pop-Location
+          }
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
@@ -498,36 +591,64 @@ jobs:
           $hudExe = Get-ChildItem cmd/nexus-hud/build/bin -Filter *.exe | Select-Object -First 1
           if (-not $hudExe) { throw "Nexus HUD Windows executable not found" }
           Compress-Archive -Path $hudExe.FullName -DestinationPath "$env:RUNNER_TEMP\nexus-hud_Windows_x86_64.zip" -Force
+      - name: Native Windows HUD launch smoke
+        shell: pwsh
+        env:
+          TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
+          NEXUS_ENABLE_HUD: "1"
+          NEXUS_DATA_DIR: ${{ runner.temp }}\nexus-hud-windows-smoke
+        run: |
+          $hudExe = Get-ChildItem cmd/nexus-hud/build/bin -Filter *.exe | Select-Object -First 1
+          if (-not $hudExe) { throw "Nexus HUD Windows executable not found" }
+          $stdout = Join-Path $env:RUNNER_TEMP "nexus-hud-windows-smoke.stdout.log"
+          $stderr = Join-Path $env:RUNNER_TEMP "nexus-hud-windows-smoke.stderr.log"
+          $evidence = Join-Path $env:RUNNER_TEMP "nexus-hud-windows-smoke.txt"
+          $proc = Start-Process -FilePath $hudExe.FullName -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+          try {
+            Start-Sleep -Seconds 8
+            if ($proc.HasExited) { throw "Nexus HUD exited during Windows native smoke" }
+            @(
+              "sha=$env:TARGET_SHA"
+              "pid=$($proc.Id)"
+              "platform=windows"
+              "status=PASS"
+            ) | Out-File -Encoding utf8 $evidence
+          } finally {
+            if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
       - uses: actions/upload-artifact@v4
         with:
-          name: desktop-windows-${{ inputs.native_target_sha }}
+          name: desktop-windows-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: |
             ${{ runner.temp }}\nexus-desktop_Windows_x86_64.zip
             ${{ runner.temp }}\nexus-hud_Windows_x86_64.zip
+            ${{ runner.temp }}\nexus-hud-windows-smoke.txt
+            ${{ runner.temp }}\nexus-hud-windows-smoke.stdout.log
+            ${{ runner.temp }}\nexus-hud-windows-smoke.stderr.log
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: windows-native-evidence-${{ inputs.native_target_sha }}
+          name: windows-native-evidence-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: ${{ runner.temp }}\nexus-doctor-windows.json
           if-no-files-found: warn
           retention-days: 30
 
   native-macos:
     name: macOS arm64 native certification
-    if: github.event_name == 'workflow_dispatch' && inputs.native_target_sha != ''
-    runs-on: [self-hosted, macOS, ARM64, nexus-macos]
+    if: (github.event_name == 'workflow_dispatch' && inputs.native_target_sha != '') || (github.event_name == 'pull_request' && github.head_ref == 'feat/hud-cross-platform-completion')
+    runs-on: macos-15
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.native_target_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Verify exact SHA and architecture
         shell: bash
         env:
-          TARGET_SHA: ${{ inputs.native_target_sha }}
+          TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$TARGET_SHA"
@@ -536,6 +657,43 @@ jobs:
         with:
           go-version: '1.25.14'
           cache: false
+      - name: Wails v2 + tray linker compatibility probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          probe="$RUNNER_TEMP/nexus-hud-tray-link-probe"
+          rm -rf "$probe"
+          mkdir -p "$probe"
+          cat > "$probe/go.mod" <<'EOF'
+          module nexus-hud-tray-link-probe
+
+          go 1.25.0
+
+          require (
+            github.com/gogpu/systray v0.2.8
+            github.com/wailsapp/wails/v2 v2.15.0
+          )
+          EOF
+          cat > "$probe/main.go" <<'EOF'
+          package main
+
+          import (
+            "fmt"
+
+            "github.com/gogpu/systray"
+            "github.com/wailsapp/wails/v2"
+          )
+
+          func main() {
+            fmt.Printf("%T %T\n", systray.New, wails.Run)
+          }
+          EOF
+          (
+            cd "$probe"
+            GOFLAGS=-mod=mod go mod download
+            GOFLAGS=-mod=mod go build -trimpath -o tray-link-probe .
+          )
+          test -x "$probe/tray-link-probe"
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
@@ -579,40 +737,67 @@ jobs:
           HUD_APP="$(find cmd/nexus-hud/build/bin -maxdepth 1 -type d -name '*.app' -print -quit)"
           test -n "$HUD_APP"
           ditto -c -k --sequesterRsrc --keepParent "$HUD_APP" "$RUNNER_TEMP/nexus-hud_Darwin_arm64.zip"
+      - name: Native macOS HUD launch smoke
+        env:
+          TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
+          NEXUS_ENABLE_HUD: "1"
+          NEXUS_DATA_DIR: ${{ runner.temp }}/nexus-hud-macos-smoke
+        run: |
+          set -euo pipefail
+          HUD_APP="$(find cmd/nexus-hud/build/bin -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "$HUD_APP"
+          HUD_BIN="$(find "$HUD_APP/Contents/MacOS" -maxdepth 1 -type f -perm -111 -print -quit)"
+          test -n "$HUD_BIN"
+          log="$RUNNER_TEMP/nexus-hud-macos-smoke.log"
+          evidence="$RUNNER_TEMP/nexus-hud-macos-smoke.txt"
+          "$HUD_BIN" >"$log" 2>&1 &
+          pid=$!
+          cleanup() { kill -TERM "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; }
+          trap cleanup EXIT
+          sleep 8
+          kill -0 "$pid"
+          {
+            echo "sha=$TARGET_SHA"
+            echo "pid=$pid"
+            echo "platform=darwin"
+            echo "status=PASS"
+          } >"$evidence"
       - uses: actions/upload-artifact@v4
         with:
-          name: desktop-macos-${{ inputs.native_target_sha }}
+          name: desktop-macos-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: |
             ${{ runner.temp }}/nexus-desktop_Darwin_arm64.zip
             ${{ runner.temp }}/nexus-hud_Darwin_arm64.zip
+            ${{ runner.temp }}/nexus-hud-macos-smoke.txt
+            ${{ runner.temp }}/nexus-hud-macos-smoke.log
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: macos-native-evidence-${{ inputs.native_target_sha }}
+          name: macos-native-evidence-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: ${{ runner.temp }}/nexus-doctor-macos.json
           if-no-files-found: warn
           retention-days: 30
 
   native-certification:
     name: Seal native certification evidence
-    if: github.event_name == 'workflow_dispatch' && inputs.native_target_sha != ''
+    if: (github.event_name == 'workflow_dispatch' && inputs.native_target_sha != '') || (github.event_name == 'pull_request' && github.head_ref == 'feat/hud-cross-platform-completion')
     needs: [native-windows, native-macos]
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: desktop-windows-${{ inputs.native_target_sha }}
+          name: desktop-windows-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: native/windows
       - uses: actions/download-artifact@v4
         with:
-          name: desktop-macos-${{ inputs.native_target_sha }}
+          name: desktop-macos-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: native/macos
       - name: Write exact-SHA certificate
         shell: bash
         env:
-          TARGET_SHA: ${{ inputs.native_target_sha }}
+          TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           test "${#TARGET_SHA}" -eq 40
@@ -623,12 +808,12 @@ jobs:
           sha256sum native/macos/nexus-hud_Darwin_arm64.zip > macos-hud.sha256
           {
             printf 'sha=%s\n' "$TARGET_SHA"
-            printf 'windows_runner=self-hosted/windows/x64/nexus-windows\n'
-            printf 'macos_runner=self-hosted/macos/arm64/nexus-macos\n'
+            printf 'windows_runner=github-hosted/windows-2025/x64\n'
+            printf 'macos_runner=github-hosted/macos-15/arm64\n'
           } > native-certification.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: native-certification-${{ inputs.native_target_sha }}
+          name: native-certification-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: |
             certified-sha.txt
             windows.sha256
@@ -679,12 +864,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: snapshot-dist-${{ github.sha }}
-          path: dist
+          path: /tmp/nexus-package-smoke-dist
       - name: Install DEB and run nexus version
         shell: bash
         run: |
           set -euo pipefail
-          deb="$(find dist -maxdepth 1 -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' | head -n1)"
+          deb="$(find /tmp/nexus-package-smoke-dist -maxdepth 1 -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' | head -n1)"
           test -n "$deb"
           if ! dpkg -i "$deb"; then
             apt-get update

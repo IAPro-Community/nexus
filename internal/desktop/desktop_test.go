@@ -99,7 +99,7 @@ func TestAutoStartQuotesExecutablePath(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(data)
-	if !strings.Contains(text, `Exec="/tmp/IAPro Nexus/next\\\"release/nexus" --minimized`) {
+	if !strings.Contains(text, `Exec="/tmp/IAPro Nexus/next\\\"release/nexus" "--minimized"`) {
 		t.Fatalf("autostart executable was not safely quoted: %q", text)
 	}
 }
@@ -121,5 +121,22 @@ func TestOpenExternalRejectsUnsafeSchemes(t *testing.T) {
 		if err := app.OpenExternal(raw); err == nil {
 			t.Fatalf("expected unsafe URL %q to be rejected", raw)
 		}
+	}
+}
+
+func TestAutoStartOptionsHaveIndependentIdentity(t *testing.T) {
+	manager := NewAutoStartManagerWithOptions(AutoStartOptions{
+		AppName:  "Nexus HUD",
+		AppID:    "com.iapro.nexus.hud",
+		ExecPath: "/tmp/nexus-hud",
+	})
+	if manager.AppID != "com.iapro.nexus.hud" {
+		t.Fatalf("AppID=%q", manager.AppID)
+	}
+	if len(manager.Args) != 0 {
+		t.Fatalf("HUD autostart must not inherit desktop args: %v", manager.Args)
+	}
+	if got := sanitizeAutoStartID(" unsafe/id "); got != "unsafe-id" {
+		t.Fatalf("sanitizeAutoStartID=%q", got)
 	}
 }

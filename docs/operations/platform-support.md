@@ -28,14 +28,14 @@ da matriz estável acima. Implementação em source não equivale a suporte púb
 
 | HUD | Linux amd64 | Windows amd64 | macOS arm64 | Web |
 | --- | --- | --- | --- | --- |
-| Projection/Core | implementado; CI pendente | source compartilhado | source compartilhado | implementado; CI pendente |
-| Gadget nativo | implementado; certificação nativa pendente | **UNVERIFIED** | **UNVERIFIED** | N/A |
+| Projection/Core | **PASS no M1** | source compartilhado; gate nativo ativo | source compartilhado; gate nativo ativo | **PASS no M1** |
+| Gadget nativo | **PASS no M1 Linux/X11** | **UNVERIFIED até o gate nativo passar** | **UNVERIFIED até o gate nativo passar** | N/A |
 | Frameless | source Wails v2 | **UNVERIFIED** | **UNVERIFIED** | N/A |
 | Always-on-top | compositor/WM dependent | **UNVERIFIED** | **UNVERIFIED** | N/A |
 | Posicionamento global | X11: alvo; Wayland: limitado | **UNVERIFIED** | **UNVERIFIED** | viewport |
 | Multi-monitor / DPI | **UNVERIFIED** | **UNVERIFIED** | **UNVERIFIED** | browser |
 | Web HUD | N/A | N/A | N/A | implementado |
-| Certificação final | **PENDING** | **UNVERIFIED** | **UNVERIFIED** | **PENDING** |
+| Certificação final | **PASS M1** | **UNVERIFIED** | **UNVERIFIED** | **PASS M1** |
 
 `NEXUS_HUD_CROSS_PLATFORM` permanece **NO_GO** enquanto qualquer target nativo
 obrigatório estiver sem certificação. Em Wayland, posicionamento absoluto e
@@ -64,8 +64,12 @@ intencional e não é interpretado como PASS.
 O modo manual do `.github/workflows/ci.yml` foi preservado para a linha futura
 que reativar suporte nativo. Com `native_target_sha=<SHA completo>`, ele exige:
 
-- Windows amd64: `[self-hosted, Windows, X64, nexus-windows]`;
-- macOS arm64: `[self-hosted, macOS, ARM64, nexus-macos]`.
+- Windows amd64: `windows-2025` (GitHub-hosted x64) na frente cross-platform;
+- macOS arm64: `macos-15` (GitHub-hosted Apple Silicon) na frente cross-platform.
+
+Os labels self-hosted anteriores não são necessários para o gate do PR. A
+certificação continua sendo nativa e same-SHA; a origem do runner é registrada
+na evidência.
 
 Esse modo pode produzir `native-certification-<sha>`, mas esse certificado não
 é requisito da release Linux-only da v1. Quando Windows/macOS voltarem à matriz
