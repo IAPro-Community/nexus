@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/IAPro-Community/nexus/internal/nexus"
 )
@@ -144,10 +145,17 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 // Mission request from a heuristic promotion that may safely fall back to the
 // interactive Lead when admission cannot be satisfied.
 func IsExplicitMissionRequest(line string) bool {
-	lower := strings.ToLower(strings.TrimSpace(line))
-	return strings.Contains(lower, "mission") ||
-		strings.Contains(lower, "missão") ||
-		strings.Contains(lower, "missao") ||
-		strings.Contains(lower, "autônom") ||
-		strings.Contains(lower, "autonom")
+	tokens := strings.FieldsFunc(strings.ToLower(strings.TrimSpace(line)), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+	for _, token := range tokens {
+		switch token {
+		case "mission", "missions", "missão", "missao", "missões", "missoes":
+			return true
+		}
+		if strings.HasPrefix(token, "autônom") || strings.HasPrefix(token, "autonom") {
+			return true
+		}
+	}
+	return false
 }
