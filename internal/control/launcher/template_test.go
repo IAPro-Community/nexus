@@ -72,3 +72,25 @@ func TestResolveCommandTemplateContextRejectsArgsInsideToken(t *testing.T) {
 		t.Fatal("expected embedded {args} to be rejected")
 	}
 }
+
+
+func TestResolveCommandTemplateContextPreservesQuotedWindowsExecutablePath(t *testing.T) {
+	bin, args, err := ResolveCommandTemplateContext(
+		`"C:\Program Files\Nexus Tools\wrapper.exe" --workspace "{cwd}" {provider} {args}`,
+		CommandTemplateContext{
+			Cwd:      `C:\Users\dev\project`,
+			Provider: "opencode",
+			Args:     []string{"run", "inspect"},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bin != `C:\Program Files\Nexus Tools\wrapper.exe` {
+		t.Fatalf("windows executable path corrupted: %q", bin)
+	}
+	want := []string{"--workspace", `C:\Users\dev\project`, "opencode", "run", "inspect"}
+	if !reflect.DeepEqual(args, want) {
+		t.Fatalf("args = %#v, want %#v", args, want)
+	}
+}
