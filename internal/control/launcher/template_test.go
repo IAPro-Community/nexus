@@ -134,3 +134,18 @@ func TestResolveCommandTemplateContextTargetWorkspaceFallsBackToHostCwd(t *testi
 		t.Fatalf("target_cwd fallback missing: %#v", args)
 	}
 }
+
+
+func TestResolveCommandTemplateRejectsQuotedShellOperators(t *testing.T) {
+	for _, template := range []string{
+		`bash -c "echo ok; rm -rf /" {args}`,
+		`ssh host "echo ok && whoami" {args}`,
+		`cmd /c "echo %PATH% > out.txt" {args}`,
+	} {
+		if _, _, err := ResolveCommandTemplateContext(template, CommandTemplateContext{
+			Args: []string{"run"},
+		}); err == nil {
+			t.Fatalf("expected quoted shell operator rejection for %q", template)
+		}
+	}
+}
