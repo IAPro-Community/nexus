@@ -82,7 +82,7 @@ jobs:
           NEXUS_LIVE_SOAK_PROBE_INTERVAL: 60s
           NEXUS_LIVE_MISSION_TIMEOUT: 20m
           NEXUS_LIVE_SOAK_WORKDIR: ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}-part1
-          SMOKE_REQUIRED_PROVIDERS: codex agy claude gemini
+          SMOKE_REQUIRED_PROVIDERS: codex agy claude gemini opencode
         run: |
           set -euo pipefail
           bash ./scripts/certify-live-soak.sh
@@ -96,7 +96,7 @@ jobs:
           NEXUS_LIVE_SOAK_PROBE_INTERVAL: 60s
           NEXUS_LIVE_MISSION_TIMEOUT: 20m
           NEXUS_LIVE_SOAK_WORKDIR: ${{ runner.temp }}/nexus-stable-certification-${{ github.sha }}-part2
-          SMOKE_REQUIRED_PROVIDERS: codex agy claude gemini
+          SMOKE_REQUIRED_PROVIDERS: codex agy claude gemini opencode
         run: |
           set -euo pipefail
           bash ./scripts/certify-live-soak.sh
