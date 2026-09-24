@@ -25,6 +25,7 @@ O candidato `v1.0.0-beta.2` passa a concentrar:
 
 - correções de roteamento Direct/Lead versus Mission;
 - promoção interativa só consome o prompt após admissão; promoção heurística bloqueada volta ao Lead sem perder a solicitação, enquanto pedido explícito mostra blockers exatos;
+- hardening da boundary de promoção: `GoalContract` congelado no snapshot, falhas pre-run tipadas e reconhecimento explícito de Mission sem falsos positivos como `permission`/`submission`;
 - correção de transporte das teclas de navegação no terminal;
 - OpenCode como provider independente em Usage e Agents;
 - ExecutionRole / Agent Interop já integrado;
@@ -83,7 +84,8 @@ Antes de criar/publicar a tag:
 - build Desktop/HUD da plataforma em homologação;
 - smoke interativo de setas no Codex;
 - smoke Direct/Lead sem promoção indevida para Mission;
-- smoke de Mission promotion: heuristic admission failure → Lead fallback; explicit Mission failure → blocker acionável sem execução Direct.
+- smoke de Mission promotion: heuristic admission/preparation failure → Lead fallback; explicit Mission failure → blocker acionável sem execução Direct;
+- smoke de classificação: prompts com `permission`, `submission` ou `transmission` permanecem não explícitos para Mission.
 
 Para publicar artefatos Windows/macOS, continuam obrigatórios os gates nativos
 de assinatura, instalador e lifecycle.
