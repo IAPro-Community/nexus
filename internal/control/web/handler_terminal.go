@@ -253,13 +253,13 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	startPromotion := func(prompt string, fallbackToLead bool) {
 		accepted, startErr := startPromotedMission(h.nexus, sess, prompt)
 		if startErr != nil {
-			if fallbackToLead {
-				if accepted != nil && strings.TrimSpace(accepted.PlanID) != "" {
+			safeAdmissionFallback := fallbackToLead && accepted != nil && accepted.AdmissionBlocked
+			if safeAdmissionFallback {
+				if strings.TrimSpace(accepted.PlanID) != "" {
 					_ = h.nexus.DeleteWorkPlan(context.Background(), accepted.PlanID)
 				}
 				// The held prompt is still in the provider TUI. Submit it
-				// unchanged to the Lead instead of consuming it into a failed
-				// heuristic Mission promotion.
+				// unchanged to the Lead exactly once.
 				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
 				_ = safeWriteJSON(TerminalMessage{
 					Type: "promotion",
@@ -268,12 +268,18 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				})
 				return
 			}
+
 			// Explicit/confirmed Mission requests never silently degrade to
-			// Direct. Preserve the rejected plan for diagnosis/remediation.
+			// Direct. Untyped/internal failures are conservative too: without
+			// proof that no Mission crossed the admission boundary, do not risk
+			// duplicate execution.
 			_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID)})
-			detail := fmt.Sprintf("Mission solicitada, mas a admissão foi bloqueada: %v", startErr)
-			if accepted != nil && strings.TrimSpace(accepted.PlanID) != "" {
-				detail = fmt.Sprintf("Mission solicitada, mas a admissão foi bloqueada (plan %s): %v", accepted.PlanID, startErr)
+			detail := fmt.Sprintf("Promoção para Mission falhou antes da confirmação de admissão: %v. Fallback Direct desativado por segurança.", startErr)
+			if accepted != nil && accepted.AdmissionBlocked {
+				detail = fmt.Sprintf("Mission solicitada, mas a admissão foi bloqueada (etapa %s): %v", accepted.AdmissionStage, startErr)
+				if strings.TrimSpace(accepted.PlanID) != "" {
+					detail = fmt.Sprintf("Mission solicitada, mas a admissão foi bloqueada (plan %s, etapa %s): %v", accepted.PlanID, accepted.AdmissionStage, startErr)
+				}
 			}
 			_ = safeWriteJSON(TerminalMessage{
 				Type: "promotion",
