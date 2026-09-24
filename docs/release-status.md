@@ -31,6 +31,7 @@ O candidato `v1.0.0-beta.2` passa a concentrar:
 - OpenCode como provider independente em Usage e Agents;
 - ExecutionRole / Agent Interop Core já integrado;
 - Agent Projection nativa do OpenCode em implementação como requisito da V1;
+- targets de execução customizados (Docker/VPN Workspace, Docker Compose, WSL, SSH e wrappers) preservam o provider lógico e usam templates argv-only sem shell;
 - acessibilidade por voz e ditado PTY;
 - Nexus HUD;
 - suporte nativo de Windows amd64;
@@ -84,6 +85,7 @@ Antes de criar/publicar a tag:
 - `nexus version --json` e `nexus doctor --json`;
 - OpenCode visível em `providers status`, Usage e seleção de Agent quando instalado;
 - Agent Projection OpenCode: materialização no `NEXUS_PROFILE`, ownership fail-closed, receipts duráveis e smoke de discovery/activation;
+- custom target smoke: provider selecionável + `{provider}/{profile}/{cwd}/{args}` + probe de versão no próprio target; VPN Dev Workspace deve materializar no shared `target_profile_home` quando explicitamente configurado;
 - build Desktop/HUD da plataforma em homologação;
 - smoke interativo de setas no Codex;
 - smoke Direct/Lead sem promoção indevida para Mission;
@@ -108,6 +110,7 @@ Além da beta homologada, o SHA final precisa comprovar:
 - native certification seal;
 - provider smoke autenticado;
 - Agent Interop OpenCode certificado no SHA final: discovery + activation + enforcement read-only sem falsa promoção de `BEST_EFFORT` para `ENFORCED`;
+- custom execution target certificado no SHA final: comando supervisionado sem shell, probe bounded, shared profile home explícita e degradação para overlay/BEST_EFFORT quando a projeção nativa não puder ser comprovada;
 - Mission smoke até `COMPLETED_VERIFIED`;
 - recovery/restart;
 - Stable Certification/soak;
