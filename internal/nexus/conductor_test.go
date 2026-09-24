@@ -105,3 +105,39 @@ func TestPurgeExpiredEvents(t *testing.T) {
 		t.Fatalf("expected 0 purged, got %d", n)
 	}
 }
+
+func TestGoalContractFactRoundTrip(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Second)
+	facts, err := PersistGoalContractFact(map[string]string{"keep": "yes"}, GoalContract{
+		GoalDescription:      "corrigir roteamento",
+		AcceptedAssumptions:  []string{"preservar Direct"},
+		AutoPromoteToMission: true,
+		LeadID:               "lead-1",
+		ProjectID:            "proj-1",
+		GoalID:               "goal-1",
+		CreatedAt:            now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if facts["keep"] != "yes" {
+		t.Fatal("existing facts were not preserved")
+	}
+	got, err := ReadGoalContractFact(facts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil || got.GoalID != "goal-1" || got.ProjectID != "proj-1" || got.GoalDescription != "corrigir roteamento" || !got.AutoPromoteToMission {
+		t.Fatalf("goal contract round-trip mismatch: %+v", got)
+	}
+}
+
+func TestGoalContractFactRejectsIncompleteContract(t *testing.T) {
+	facts, err := PersistGoalContractFact(nil, GoalContract{GoalID: "goal-only"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadGoalContractFact(facts); err == nil {
+		t.Fatal("incomplete goal contract must fail closed")
+	}
+}

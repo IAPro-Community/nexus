@@ -149,3 +149,33 @@ func TestPromoterExplicitMissionOverridesDirectHeuristic(t *testing.T) {
 		t.Fatalf("explicit Mission request must override DIRECT heuristic: %+v", decision)
 	}
 }
+
+func TestExplicitMissionMatcherDoesNotTreatPermissionWordsAsMission(t *testing.T) {
+	for _, input := range []string{
+		"ajuste a permission policy deste provider",
+		"corrija a submission do formulário",
+		"revise a transmission layer",
+		"configure permissions no runtime",
+		"documente o comportamento mission-critical do scheduler",
+		"explique nossa mission statement para o README",
+	} {
+		if IsExplicitMissionRequest(input) {
+			t.Fatalf("ordinary word containing mission substring must not request Mission: %q", input)
+		}
+	}
+}
+
+func TestExplicitMissionMatcherAcceptsStandaloneLocalizedForms(t *testing.T) {
+	for _, input := range []string{
+		"execute como Mission",
+		"crie uma missão para isso",
+		"rode como missao",
+		"execute de forma autônoma",
+		"faça uma execução autonoma",
+		"quero uma missão para revisar o módulo",
+	} {
+		if !IsExplicitMissionRequest(input) {
+			t.Fatalf("expected explicit Mission intent for %q", input)
+		}
+	}
+}

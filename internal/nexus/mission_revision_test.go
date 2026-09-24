@@ -295,3 +295,55 @@ func TestAutonomousResourceReadinessHonorsIsolationContract(t *testing.T) {
 		t.Fatal("explicit unrestricted contract should not require verified containment")
 	}
 }
+
+func TestStartMissionRunFreezesGoalContractInExecutionSnapshot(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Goal snapshot", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	facts, err := PersistGoalContractFact(nil, GoalContract{
+		GoalDescription:      "corrigir roteamento sem perder o prompt",
+		AutoPromoteToMission: true,
+		LeadID:               "lead-1",
+		ProjectID:            project.ID,
+		GoalID:               "goal-snapshot",
+		CreatedAt:            time.Now().UTC(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Goal snapshot", "", []store.PlanPhase{{
+		Title: "Build",
+		Packages: []store.WorkPackage{{
+			Title: "Fix routing", Goal: "Fix routing", Status: "READY", Role: "implementer",
+			AcceptanceCriteria: []string{"routing fixed"}, VerificationRequirements: []string{"true"},
+		}},
+	}}, facts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	run, err := n.StartMissionRun(context.Background(), plan.ID, "lead-1", runner.DefaultAutonomyContract(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := n.loadMissionSnapshot(run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Goal == nil {
+		t.Fatal("execution snapshot lost GoalContract")
+	}
+	if snapshot.Goal.GoalID != "goal-snapshot" ||
+		snapshot.Goal.ProjectID != project.ID ||
+		snapshot.Goal.LeadID != "lead-1" ||
+		snapshot.Goal.GoalDescription != "corrigir roteamento sem perder o prompt" ||
+		!snapshot.Goal.AutoPromoteToMission {
+		t.Fatalf("unexpected frozen GoalContract: %+v", snapshot.Goal)
+	}
+}

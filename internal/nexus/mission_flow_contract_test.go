@@ -2,6 +2,9 @@ package nexus
 
 import (
 	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -9,6 +12,34 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
+
+func initMissionGitRepo(t *testing.T) string {
+	t.Helper()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git unavailable")
+	}
+	repo := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=Test",
+			"GIT_AUTHOR_EMAIL=test@example.com",
+			"GIT_COMMITTER_NAME=Test",
+			"GIT_COMMITTER_EMAIL=test@example.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+	run("init")
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("mission test"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run("add", "README.md")
+	run("commit", "-m", "init")
+	return repo
+}
 
 func TestPlanToRunnerSpecCarriesFlowStepContracts(t *testing.T) {
 	plan := &store.WorkPlan{ID: "plan", ProjectID: "project", CurrentRevision: 3, Phases: []store.PlanPhase{{ID: "phase", Packages: []store.WorkPackage{{
@@ -128,28 +159,79 @@ func TestValidateFlowExecutionContractRejectsContradictoryAssignment(t *testing.
 	}
 }
 
-func TestStartMissionRunAutonomousRejectsMissingWorktreeAdmission(t *testing.T) {
+func TestStartMissionRunAutonomousRejectsPinnedAgentWithoutWorktreeIsolation(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {
 		t.Fatal(err)
 	}
-	project, err := st.CreateProject(store.Project{Name: "Strict admission", CanonicalPath: t.TempDir(), DefaultIsolation: "project"})
+	project, err := st.CreateProject(store.Project{Name: "Strict admission", CanonicalPath: initMissionGitRepo(t), DefaultIsolation: "worktree"})
 	if err != nil {
 		t.Fatal(err)
 	}
+	agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Unsafe pinned", Role: "implementer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	revision, err := st.AddRevision(agent.ID, (AgentConfig{Isolation: "project"}).ConfigJSON())
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent.CurrentRevisionID = revision.ID
+	if err := st.UpdateAgent(agent); err != nil {
+		t.Fatal(err)
+	}
 	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Plan", "", []store.PlanPhase{{
-		Title: "Phase", Packages: []store.WorkPackage{{Title: "Required worktree", Goal: "Run safely", Status: "READY", Role: "implementer", AcceptanceCriteria: []string{"done"}}},
+		Title: "Phase", Packages: []store.WorkPackage{{
+			Title: "Required worktree", Goal: "Run safely", Status: "READY", Role: "implementer",
+			AssignmentStrategy: string(FlowAssignmentExisting), AgentAllocation: agent.ID,
+			AcceptanceCriteria: []string{"done"},
+		}},
 	}}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, err = n.StartMissionRun(context.Background(), plan.ID, "", runner.DefaultAutonomyContract(), true)
 	if err == nil {
-		t.Fatal("expected autonomous mission admission to reject project checkout")
+		t.Fatal("expected autonomous mission admission to reject pinned project checkout")
 	}
 	if !strings.Contains(strings.ToLower(err.Error()), "worktree") {
 		t.Fatalf("expected actionable worktree admission error, got %v", err)
+	}
+}
+
+func TestStrictAdmissionAllowsAutoAllocationWithoutProjectWideWorktreeDefault(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Per-Agent isolation", CanonicalPath: initMissionGitRepo(t), DefaultIsolation: "project"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Auto isolated", "", []store.PlanPhase{{
+		Title: "Phase", Packages: []store.WorkPackage{{
+			Title: "Auto work", Goal: "Run safely", Status: "READY", Role: "implementer",
+			AssignmentStrategy: string(FlowAssignmentAuto), AcceptanceCriteria: []string{"done"},
+		}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	report, err := n.PreflightFlowStrict(context.Background(), plan.ID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var isolation *FlowPreflightCheck
+	for i := range report.Checks {
+		if report.Checks[i].Key == "worktree_isolation" {
+			isolation = &report.Checks[i]
+			break
+		}
+	}
+	if isolation == nil || isolation.Status != "PASS" {
+		t.Fatalf("AUTO allocation should be worktree-safe without project-wide default: %+v", report.Checks)
 	}
 }
 

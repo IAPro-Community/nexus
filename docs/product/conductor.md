@@ -26,7 +26,10 @@ Conductor pode decidir entre:
 - selecionar um preset de Mission Team;
 - produzir packages/dependências que seguem o pipeline canônico.
 
-Depois disso, execução pertence ao `MissionRunner`.
+Antes da transferência de ownership, o Conductor congela o objetivo como
+`GoalContract` no WorkPlan e no `ExecutionSnapshot`. Depois que existe
+`run_id`, execução pertence ao `MissionRunner` e não pode ser repetida
+automaticamente no Lead.
 
 ## O que Conductor não faz
 
@@ -77,3 +80,19 @@ Conductor respeita as mesmas boundaries da execução:
 
 Veja [Como funciona](how-it-works.md), [Missions](missions.md) e
 [Guardrails](../architecture/guardrails.md).
+
+
+## Boundary de promoção interativa
+
+`StartDispatch` separa preparação/admissão de espera do run. A revisão recém
+gerada passa pelo mesmo caminho de Execution Preview, budget/cost gate e strict
+admission usado pelo GO explícito. Enquanto essa etapa não termina, o terminal
+mantém o prompt no provider.
+
+- `fallback_safe=true`: o Core provou que nenhum `MissionRun` iniciou;
+- `admission_blocked=true`: uma política/check conhecido recusou a Mission;
+- `admission_stage`: indica a etapa que falhou;
+- após `ACCEPTED + run_id`, fallback Direct automático é proibido.
+
+Essa distinção é usada por CLI e Web para impedir tanto perda de prompt quanto
+dupla execução.

@@ -401,7 +401,7 @@ func (n *Nexus) PreflightFlowStrict(ctx context.Context, planID string, autonomo
 	return n.strictAdmissionForPlan(ctx, *plan, report, autonomous)
 }
 
-func (n *Nexus) strictAdmissionForPlan(_ context.Context, plan store.WorkPlan, report *FlowPreflightReport, autonomous bool) (*FlowPreflightReport, error) {
+func (n *Nexus) strictAdmissionForPlan(ctx context.Context, plan store.WorkPlan, report *FlowPreflightReport, autonomous bool) (*FlowPreflightReport, error) {
 	if report == nil {
 		return nil, fmt.Errorf("strict admission report is required")
 	}
@@ -417,17 +417,57 @@ func (n *Nexus) strictAdmissionForPlan(_ context.Context, plan store.WorkPlan, r
 		report.Ready = false
 		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "plan_readiness", Label: "Plan readiness", Status: "FAIL", Summary: problem})
 	}
-	project, err := n.OpenProject()
+	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
 	}
-	projectRecord, err := project.GetProject(plan.ProjectID)
+	projectRecord, err := st.GetProject(plan.ProjectID)
 	if err != nil {
 		return nil, err
 	}
-	if autonomous && strings.ToLower(strings.TrimSpace(projectRecord.DefaultIsolation)) != "worktree" {
-		report.Ready = false
-		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "worktree_isolation", Label: "Isolamento de Worktree Git", Status: "FAIL", Summary: "execução autônoma exige DefaultIsolation=worktree no projeto"})
+	if autonomous {
+		worktreeProblems := make([]string, 0)
+		if baseErr := validateWorktreeBase(ctx, projectRecord); baseErr != nil {
+			worktreeProblems = append(worktreeProblems, baseErr.Error())
+		}
+		for _, phase := range plan.Phases {
+			for _, pkg := range phase.Packages {
+				strategy := strings.ToUpper(strings.TrimSpace(pkg.AssignmentStrategy))
+				if strategy == "" && strings.TrimSpace(pkg.AgentAllocation) != "" {
+					strategy = string(FlowAssignmentExisting)
+				}
+				if strategy != string(FlowAssignmentExisting) {
+					continue
+				}
+				agentID := strings.TrimSpace(pkg.AgentAllocation)
+				agent, agentErr := st.GetAgent(agentID, plan.ProjectID)
+				if agentErr != nil {
+					worktreeProblems = append(worktreeProblems, fmt.Sprintf("step %s pins unavailable Agent %s", pkg.ID, agentID))
+					continue
+				}
+				cfg, cfgErr := currentAgentConfig(st, agent)
+				if cfgErr != nil {
+					worktreeProblems = append(worktreeProblems, fmt.Sprintf("step %s cannot resolve Agent %s isolation: %v", pkg.ID, agentID, cfgErr))
+					continue
+				}
+				if !autonomousAgentUsesWorktree(projectRecord, cfg) {
+					worktreeProblems = append(worktreeProblems, fmt.Sprintf("step %s pins Agent %s without effective Isolation=worktree", pkg.ID, agentID))
+				}
+			}
+		}
+		status := "PASS"
+		summary := "AUTO/CREATE steps use worktree-safe Agent allocation; pinned Agents satisfy effective Isolation=worktree"
+		if len(worktreeProblems) > 0 {
+			status = "FAIL"
+			summary = strings.Join(worktreeProblems, "; ")
+			report.Ready = false
+		}
+		setFlowPreflightCheck(report, FlowPreflightCheck{
+			Key:     "worktree_isolation",
+			Label:   "Isolamento de Worktree Git",
+			Status:  status,
+			Summary: summary,
+		})
 	}
 	resources, resourceErr := n.ListResources()
 	if resourceErr != nil || len(resources) == 0 {
@@ -464,6 +504,19 @@ func (n *Nexus) strictAdmissionForPlan(_ context.Context, plan store.WorkPlan, r
 		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "skills", Label: "Nexus Skills", Status: "FAIL", Summary: skillErr.Error()})
 	}
 	return report, nil
+}
+
+func setFlowPreflightCheck(report *FlowPreflightReport, check FlowPreflightCheck) {
+	if report == nil {
+		return
+	}
+	for i := range report.Checks {
+		if report.Checks[i].Key == check.Key {
+			report.Checks[i] = check
+			return
+		}
+	}
+	report.Checks = append(report.Checks, check)
 }
 
 // validatePlanReadiness is deterministic admission for data that an LLM may

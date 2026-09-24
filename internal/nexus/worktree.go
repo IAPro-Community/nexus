@@ -25,9 +25,27 @@ func (n *Nexus) resolveExecutionWorkspace(ctx context.Context, project store.Pro
 	return n.resolveExecutionWorkspaceWithMode(ctx, project, agent, cfg, false)
 }
 
+func autonomousAgentUsesWorktree(project store.Project, cfg AgentConfig) bool {
+	if strings.TrimSpace(cfg.Workspace) != "" {
+		return false
+	}
+	isolation := strings.ToLower(strings.TrimSpace(cfg.Isolation))
+	if isolation == "" {
+		isolation = strings.ToLower(strings.TrimSpace(project.DefaultIsolation))
+	}
+	return isolation == "worktree"
+}
+
 func (n *Nexus) resolveAutonomousExecutionWorkspace(ctx context.Context, project store.Project, agent store.Agent, cfg AgentConfig) (string, error) {
-	if strings.TrimSpace(cfg.Workspace) != "" || strings.ToLower(strings.TrimSpace(cfg.Isolation)) != "worktree" && strings.ToLower(strings.TrimSpace(project.DefaultIsolation)) != "worktree" {
-		return "", fmt.Errorf("autonomous execution requires AgentConfig Isolation=worktree; configure a dedicated worktree before starting the mission")
+	if !autonomousAgentUsesWorktree(project, cfg) {
+		effectiveIsolation := strings.ToLower(strings.TrimSpace(cfg.Isolation))
+		if effectiveIsolation == "" {
+			effectiveIsolation = strings.ToLower(strings.TrimSpace(project.DefaultIsolation))
+		}
+		if effectiveIsolation == "" {
+			effectiveIsolation = "project"
+		}
+		return "", fmt.Errorf("autonomous execution requires effective Isolation=worktree; got %q", effectiveIsolation)
 	}
 	return n.resolveExecutionWorkspaceWithMode(ctx, project, agent, cfg, true)
 }
@@ -53,12 +71,19 @@ func (n *Nexus) resolveExecutionWorkspaceWithMode(ctx context.Context, project s
 	}
 }
 
-func ensureAgentWorktree(ctx context.Context, project store.Project, agent store.Agent) (string, error) {
+func validateWorktreeBase(ctx context.Context, project store.Project) error {
 	if _, err := exec.LookPath("git"); err != nil {
-		return "", fmt.Errorf("worktree isolation requires git: %w", err)
+		return fmt.Errorf("worktree isolation requires git: %w", err)
 	}
 	if out, err := exec.CommandContext(ctx, "git", "-C", project.CanonicalPath, "rev-parse", "--is-inside-work-tree").CombinedOutput(); err != nil || strings.TrimSpace(string(out)) != "true" {
-		return "", fmt.Errorf("worktree isolation requires a git repository at %s", project.CanonicalPath)
+		return fmt.Errorf("worktree isolation requires a git repository at %s", project.CanonicalPath)
+	}
+	return nil
+}
+
+func ensureAgentWorktree(ctx context.Context, project store.Project, agent store.Agent) (string, error) {
+	if err := validateWorktreeBase(ctx, project); err != nil {
+		return "", err
 	}
 	dataDir, err := config.DataDir()
 	if err != nil {

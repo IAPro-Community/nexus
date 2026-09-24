@@ -164,17 +164,54 @@ prompt no Lead
    ↓
 decisão de promoção
    ↓
-StartDispatch / strict admission
+StartDispatch / execution preview / budget / strict admission
    ├─ ACCEPTED → MissionRun criado + worker iniciado → limpa a linha do Lead
    └─ BLOCKED
         ├─ promoção heurística → remove plano temporário e executa no Lead
         └─ pedido explícito → mantém plano, não executa Direct e mostra blockers
 ```
 
+Antes de o `MissionRunner` assumir a execução, o Nexus distingue blockers de
+admissão de falhas de preparação. Ambas carregam uma boundary explícita de
+`fallback_safe` quando é possível provar que nenhum run começou. Isso permite
+fallback apenas para promoções heurísticas e evita o dead-end de perder o
+prompt.
+
 Depois que a Mission foi admitida, não existe fallback automático para Direct:
 ela já pode ter produzido side effects. Falhas posteriores são reportadas ao
 Lead para síntese/intervenção.
 
-Os blockers de admissão informam os checks que realmente falharam (por exemplo
+A promoção automática reutiliza a mesma spine de admission do GO aprovado:
+Execution Preview, budget/cost gate e strict admission são revalidados antes do
+`MissionRunner`. Os blockers de admissão informam os checks que realmente falharam (por exemplo
 `worktree_isolation`, `resources`, `plan_readiness` ou `skills`) em vez
 de uma mensagem genérica.
+
+
+## GoalContract imutável
+
+Quando o Conductor promove uma solicitação, ele persiste o `GoalContract` no
+WorkPlan e o congela no `ExecutionSnapshot` da Mission. O snapshot conserva o
+objetivo original, `goal_id`, projeto, Lead e a decisão de promoção. Isso evita
+que uma execução durável dependa do texto mutável da sessão interativa depois
+que o `MissionRunner` assume o run.
+
+
+## Isolamento de worktree por Agent
+
+Mission autônoma continua **fail-closed** contra escrita no checkout canônico,
+mas o requisito agora é calculado pela isolação efetiva do Agent, não por um
+`default_isolation=worktree` global obrigatório.
+
+- `EXISTING`: o Agent fixado precisa resolver para `Isolation=worktree`;
+- `AUTO`: Agents existentes sem isolamento seguro são ignorados; se nenhum
+  Agent seguro atender, o Nexus cria um especialista com worktree dedicado;
+- `CREATE`: o Agent criado pela Mission nasce com `Isolation=worktree`;
+- um `AgentConfig{Isolation: "project"}` não pode mais herdar/contornar um
+  default `worktree` do projeto;
+- o strict admission verifica também se o projeto é um repositório Git capaz de
+  servir de base para worktrees antes de criar o `MissionRun`.
+
+Configurar `default_isolation=worktree` no projeto continua sendo uma opção
+útil para tornar Agents sem override seguros por padrão, mas não é requisito
+global para uma Mission AUTO/CREATE.

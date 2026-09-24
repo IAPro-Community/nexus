@@ -116,6 +116,10 @@ func (n *Nexus) previewPlanExecutionWithContract(ctx context.Context, st *store.
 	if st == nil || plan == nil {
 		return nil, fmt.Errorf("plan execution preview requires store and plan")
 	}
+	project, err := st.GetProject(plan.ProjectID)
+	if err != nil {
+		return nil, err
+	}
 	agents, err := st.ListAgents(plan.ProjectID)
 	if err != nil {
 		return nil, err
@@ -156,7 +160,7 @@ func (n *Nexus) previewPlanExecutionWithContract(ctx context.Context, st *store.
 	}
 	for _, phase := range plan.Phases {
 		for _, pkg := range phase.Packages {
-			step := n.previewWorkPackageExecution(st, plan.ProjectID, phase.ID, pkg, agents, accounts, resourceErr, contract, autonomous)
+			step := n.previewWorkPackageExecution(st, project, phase.ID, pkg, agents, accounts, resourceErr, contract, autonomous)
 			preview.Steps = append(preview.Steps, step)
 			if !step.Ready {
 				preview.Ready = false
@@ -241,7 +245,7 @@ func executionPreviewApprovalToken(preview *PlanExecutionPreview) string {
 	return "epv_" + hex.EncodeToString(sum[:])
 }
 
-func (n *Nexus) previewWorkPackageExecution(st *store.Store, projectID, phaseID string, pkg store.WorkPackage, agents []store.Agent, accounts []ProviderAccount, resourceErr error, contract runner.AutonomyContract, autonomous bool) StepExecutionPreview {
+func (n *Nexus) previewWorkPackageExecution(st *store.Store, project store.Project, phaseID string, pkg store.WorkPackage, agents []store.Agent, accounts []ProviderAccount, resourceErr error, contract runner.AutonomyContract, autonomous bool) StepExecutionPreview {
 	runPkg := &runner.PackageRun{
 		PackageID:          pkg.ID,
 		PhaseID:            phaseID,
@@ -289,7 +293,7 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, projectID, phaseID 
 		},
 	}
 
-	selectedAgent, agentCfg, agentDecision, agentBlocker := previewAgentForPackage(st, projectID, pkg, req, agents)
+	selectedAgent, agentCfg, agentDecision, agentBlocker := previewAgentForPackage(st, project, pkg, req, agents, autonomous)
 	step.Agent = agentDecision
 	if agentBlocker != "" {
 		step.Ready = false
@@ -405,7 +409,7 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, projectID, phaseID 
 	return step
 }
 
-func previewAgentForPackage(st *store.Store, projectID string, pkg store.WorkPackage, req TaskRequirements, agents []store.Agent) (store.Agent, AgentConfig, PreviewAgentDecision, string) {
+func previewAgentForPackage(st *store.Store, project store.Project, pkg store.WorkPackage, req TaskRequirements, agents []store.Agent, autonomous bool) (store.Agent, AgentConfig, PreviewAgentDecision, string) {
 	strategy := strings.ToUpper(strings.TrimSpace(pkg.AssignmentStrategy))
 	if strategy == "" && strings.TrimSpace(pkg.AgentAllocation) != "" {
 		strategy = string(FlowAssignmentExisting)
@@ -416,13 +420,20 @@ func previewAgentForPackage(st *store.Store, projectID string, pkg store.WorkPac
 		if strings.TrimSpace(pkg.AgentAllocation) == "" {
 			return store.Agent{}, AgentConfig{}, PreviewAgentDecision{Reason: "EXISTING requires an Agent"}, "existing assignment requires an Agent"
 		}
-		agent, err := st.GetAgent(pkg.AgentAllocation, projectID)
+		agent, err := st.GetAgent(pkg.AgentAllocation, project.ID)
 		if err != nil {
 			return store.Agent{}, AgentConfig{}, PreviewAgentDecision{AgentID: pkg.AgentAllocation, Reason: "Pinned Agent is unavailable"}, "pinned Agent is unavailable"
 		}
 		cfg, err := currentAgentConfig(st, agent)
 		if err != nil {
 			return store.Agent{}, AgentConfig{}, PreviewAgentDecision{AgentID: agent.ID, Name: agent.Name, Reason: "Pinned Agent config is unavailable"}, "pinned Agent config is unavailable"
+		}
+		if autonomous && !autonomousAgentUsesWorktree(project, cfg) {
+			return store.Agent{}, AgentConfig{}, PreviewAgentDecision{
+				AgentID: agent.ID,
+				Name:    agent.Name,
+				Reason:  "Pinned Agent is not worktree-isolated for autonomous execution",
+			}, "pinned Agent requires effective Isolation=worktree for autonomous Mission execution"
 		}
 		return agent, cfg, PreviewAgentDecision{
 			AgentID:    agent.ID,
@@ -444,6 +455,9 @@ func previewAgentForPackage(st *store.Store, projectID string, pkg store.WorkPac
 	for _, agent := range agents {
 		cfg, err := currentAgentConfig(st, agent)
 		if err != nil {
+			continue
+		}
+		if autonomous && !autonomousAgentUsesWorktree(project, cfg) {
 			continue
 		}
 		candidates = append(candidates, AgentMatchCandidate{Agent: agent, Spec: cfg.AgentSpec})

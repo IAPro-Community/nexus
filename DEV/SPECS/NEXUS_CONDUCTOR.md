@@ -81,7 +81,10 @@ type ConductorPolicy struct {
 
 ### 4.2 GoalContract
 
-Snapshot imutável do objetivo no momento da promoção. Congelado no `ExecutionSnapshot`.
+Snapshot imutável do objetivo no momento da promoção. O Conductor o persiste
+em `WorkPlan.StructuredFacts[nexus.dispatch.goal_contract]` e
+`StartMissionRun` o copia para o `ExecutionSnapshot`. Planos legados sem
+esse fact continuam compatíveis com `Goal=nil`.
 
 ```go
 type GoalContract struct {
@@ -218,7 +221,7 @@ const (
 3. `ReadDelegationDecisionFacts` → valida delegação
 4. `WithLeadAgent` → vincula Lead
 5. `CreateWorkPlan` → persiste WorkPlan
-6. `StartMissionRun` → executa admission e, somente se aceita, cria `MissionRun` + worker
+6. `StartMissionRunApprovedWithOptions` → revalida Execution Preview, budget/cost e strict admission; somente então cria `MissionRun` + worker
 7. `WaitDispatch` / `waitPromotedMission` → aguarda estado estável
 
 Para terminais interativos, `StartDispatch` é executado enquanto o Enter ainda
@@ -226,8 +229,23 @@ está retido e a linha original permanece no provider. Uma promoção heurístic
 que falha com `FallbackSafe=true` pode voltar ao Lead com segurança porque
 nenhum `MissionRun` foi iniciado. Bloqueios conhecidos de admission também
 carregam `AdmissionBlocked=true` e `AdmissionStage` para UX acionável. Pedido explícito/confirmado de Mission não
-degrada silenciosamente para Direct. Falha não tipada também não faz fallback
-automático, pois o boundary de side effects não foi provado.
+degrada silenciosamente para Direct. Falhas de preparação comprovadamente anteriores ao `MissionRunner` são
+tipadas como `MissionPreparationError` e retornam `FallbackSafe=true`.
+Falhas não tipadas não fazem fallback automático, pois o boundary de side
+effects não foi provado.
+
+### Worktree efetivo por Agent
+
+Autonomia não depende mais de um `DefaultIsolation=worktree` global. O
+invariante é o diretório efetivo de execução:
+
+- `EXISTING` exige Agent cuja configuração efetiva resolva para `worktree`;
+- `AUTO` filtra Agents não seguros e cria especialista worktree se necessário;
+- `CREATE` nasce worktree;
+- override explícito `Isolation=project` tem precedência sobre o default do
+  projeto e é bloqueado para execução autônoma;
+- strict admission valida que a raiz do projeto é um repositório Git apto a
+  originar worktrees antes do `MissionRunner`.
 
 ## 6. CLI — `nexus conductor`
 

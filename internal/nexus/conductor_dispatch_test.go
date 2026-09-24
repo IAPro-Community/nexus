@@ -103,7 +103,7 @@ func TestWaitDispatchFailureIsNeverMarkedFallbackSafeAfterAcceptance(t *testing.
 	}
 }
 
-func TestStartDispatchReturnsPreparedPlanOnAdmissionFailure(t *testing.T) {
+func TestStartDispatchReturnsPreparedPlanOnPreRunAdmissionFailure(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {
@@ -130,15 +130,15 @@ func TestStartDispatchReturnsPreparedPlanOnAdmissionFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	if result == nil || result.Status != DispatchRejected {
-		t.Fatalf("expected rejected strict admission, got %+v", result)
+		t.Fatalf("expected rejected pre-run admission, got %+v", result)
 	}
-	if !result.AdmissionBlocked || result.AdmissionStage != "strict_admission" || !result.FallbackSafe {
-		t.Fatalf("strict admission failure must be typed and safe for interactive fallback: %+v", result)
+	if !result.AdmissionBlocked || strings.TrimSpace(result.AdmissionStage) == "" || !result.FallbackSafe {
+		t.Fatalf("pre-run admission failure must be typed and safe for interactive fallback: %+v", result)
 	}
 	if strings.TrimSpace(result.PlanID) == "" {
 		t.Fatalf("admission failure must expose prepared plan lineage: %+v", result)
 	}
-	if !strings.Contains(strings.ToLower(result.Error), "worktree") {
-		t.Fatalf("expected actionable worktree blocker, got %q", result.Error)
+	if strings.TrimSpace(result.Error) == "" {
+		t.Fatal("admission failure must include an actionable error")
 	}
 }

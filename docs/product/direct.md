@@ -23,3 +23,13 @@ beneficia de Mission. Essa promoção é **Lead-first e fail-open para o Lead**:
   blockers exatos e preserva o plano rejeitado para diagnóstico.
 
 Uma Mission só é anunciada como iniciada depois de existir um `run_id`.
+
+O reconhecimento de pedido explícito usa palavras/tokens de Mission, não
+substrings. Termos comuns de desenvolvimento como `permission`, `submission`
+ou `transmission` não transformam uma solicitação em pedido explícito de
+Mission.
+
+Falhas comprovadamente anteriores ao `MissionRunner` também preservam a
+semântica Lead-first: em promoção heurística o prompt pode voltar ao Lead com
+segurança; em pedido explícito o Nexus mostra a etapa de preparação e não faz
+downgrade silencioso.

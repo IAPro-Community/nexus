@@ -396,9 +396,8 @@ func createMissionAgent(st *store.Store, projectID string, pkg *runner.PackageRu
 	if err != nil {
 		return store.Agent{}, err
 	}
-	// Autonomous package Agents must execute in a dedicated worktree. Without
-	// this explicit isolation, strict admission rejects the package before the
-	// provider is ever dispatched, even when the project itself is worktree-safe.
+	// Mission-created Agents are always worktree-isolated. AUTO allocation may
+	// reuse an existing Agent only when its effective isolation is also worktree.
 	revision, err := st.AddRevision(agent.ID, (AgentConfig{Isolation: "worktree", AgentSpec: spec}).ConfigJSON())
 	if err != nil {
 		_ = st.DeleteAgent(agent.ID, projectID)
@@ -423,6 +422,13 @@ func (e *nexusPackageExecutor) selectReusableAgent(st *store.Store, run *runner.
 	if err != nil {
 		return store.Agent{}, agentSelectionEvidence{}, err
 	}
+	var project store.Project
+	if run.Autonomous {
+		project, err = st.GetProject(run.ProjectID)
+		if err != nil {
+			return store.Agent{}, agentSelectionEvidence{}, err
+		}
+	}
 	reserved := reservedAgentsInRun(run, pkg.PackageID)
 	candidates := make([]AgentMatchCandidate, 0, len(agents))
 	for _, candidate := range agents {
@@ -431,6 +437,9 @@ func (e *nexusPackageExecutor) selectReusableAgent(st *store.Store, run *runner.
 		}
 		cfg, cfgErr := currentAgentConfig(st, candidate)
 		if cfgErr != nil {
+			continue
+		}
+		if run.Autonomous && !autonomousAgentUsesWorktree(project, cfg) {
 			continue
 		}
 		candidates = append(candidates, AgentMatchCandidate{Agent: candidate, Spec: cfg.AgentSpec})
