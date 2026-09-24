@@ -23,15 +23,21 @@ func DefaultCapabilities() Capabilities {
 	filePicker := false
 	folderPicker := false
 	notifications := false
+	autoStart := false
 	switch runtime.GOOS {
+	case "windows":
+		notifications = commandAvailable("powershell") || commandAvailable("pwsh")
+		autoStart = commandAvailable("reg.exe")
 	case "darwin":
 		filePicker = commandAvailable("osascript")
 		folderPicker = filePicker
 		notifications = filePicker
+		autoStart = true
 	case "linux":
 		filePicker = commandAvailable("zenity")
 		folderPicker = filePicker
 		notifications = commandAvailable("notify-send")
+		autoStart = true
 	}
 
 	return Capabilities{
@@ -42,7 +48,7 @@ func DefaultCapabilities() Capabilities {
 		Tray:             false,
 		NativeMenus:      false,
 		DeepLinks:        false,
-		AutoStart:        false,
+		AutoStart:        autoStart,
 		WindowManagement: true,
 	}
 }
