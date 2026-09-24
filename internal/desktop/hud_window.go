@@ -375,7 +375,6 @@ func (h *HUDController) ShowHUD() {
 	}
 }
 
-
 func (h *HUDController) GetHUDAutoStartEnabled() bool {
 	h.mu.RLock()
 	supported := h.caps.AutoStart
