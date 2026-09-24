@@ -119,6 +119,7 @@ Section "IAPro Nexus" SecMain
   FileClose $0
   File /nonfatal "payload\ai.exe"
   File /nonfatal "payload\nexus-desktop.exe"
+  File /nonfatal "payload\nexus-hud.exe"
 
   Call AddToUserPath
 
@@ -141,6 +142,7 @@ Section "Uninstall"
   Delete "$INSTDIR\.nexus-nsis"
   Delete "$INSTDIR\ai.exe"
   Delete "$INSTDIR\nexus-desktop.exe"
+  Delete "$INSTDIR\nexus-hud.exe"
   Delete "$INSTDIR\Uninstall.exe"
   Delete "$DESKTOP\IAPro Nexus.lnk"
   Call RemoveFromUserPath
