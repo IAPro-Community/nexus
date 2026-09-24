@@ -393,10 +393,13 @@ export const en = {
     originCustom: 'Custom (Adapter / Docker Template)',
     providerAndAlias: 'Provider and Nexus Alias',
     commandTemplateLabel:
-      'Command template ({cwd}, {args}, {provider}, {profile}, {profile_home})',
+      'Command template ({cwd}, {target_cwd}, {args}, {provider}, {profile}, {profile_home})',
     commandTemplateHint:
       'Use {args} as a separate argument. Nexus executes argv directly and blocks shell operators. Docker/VPN, WSL, SSH and local wrappers are supported as custom targets.',
     customTargetKind: 'Execution target',
+    targetWorkspace: 'Workspace path inside target (optional)',
+    targetWorkspaceHint:
+      'Use when Docker/WSL/SSH sees the project at another path. {target_cwd} falls back to the Nexus project path when empty.',
     targetProfileHome: 'Shared target profile home (optional)',
     targetProfileHomeHint:
       'Configure only when Nexus and the custom target see the same provider-home files, such as a bind-mounted VPN workspace.',
@@ -2336,10 +2339,13 @@ export const ptBR = {
     originCustom: 'Customizado (Adaptador / Docker Template)',
     providerAndAlias: 'Provedor e Alias Nexus',
     commandTemplateLabel:
-      'Template de comando ({cwd}, {args}, {provider}, {profile}, {profile_home})',
+      'Template de comando ({cwd}, {target_cwd}, {args}, {provider}, {profile}, {profile_home})',
     commandTemplateHint:
       'Use {args} como argumento separado. O Nexus executa argv diretamente e bloqueia operadores de shell. Docker/VPN, WSL, SSH e wrappers locais são suportados como targets customizados.',
     customTargetKind: 'Target de execução',
+    targetWorkspace: 'Caminho do workspace dentro do target (opcional)',
+    targetWorkspaceHint:
+      'Use quando Docker/WSL/SSH enxergar o projeto em outro caminho. {target_cwd} usa o caminho do projeto Nexus quando vazio.',
     targetProfileHome: 'Home compartilhada do profile no target (opcional)',
     targetProfileHomeHint:
       'Configure somente quando Nexus e target enxergarem os mesmos arquivos do profile, como no bind mount do VPN Dev Workspace.',
@@ -4291,10 +4297,13 @@ export const es = {
     originCustom: 'Personalizado (Adaptador / Docker Template)',
     providerAndAlias: 'Proveedor y Alias Nexus',
     commandTemplateLabel:
-      'Plantilla de comando ({cwd}, {args}, {provider}, {profile}, {profile_home})',
+      'Plantilla de comando ({cwd}, {target_cwd}, {args}, {provider}, {profile}, {profile_home})',
     commandTemplateHint:
       'Use {args} como argumento separado. Nexus ejecuta argv directamente y bloquea operadores de shell. Docker/VPN, WSL, SSH y wrappers locales se admiten como targets personalizados.',
     customTargetKind: 'Target de ejecución',
+    targetWorkspace: 'Ruta del workspace dentro del target (opcional)',
+    targetWorkspaceHint:
+      'Use cuando Docker/WSL/SSH vea el proyecto en otra ruta. {target_cwd} usa la ruta del proyecto Nexus cuando está vacío.',
     targetProfileHome: 'Home compartido del perfil en el target (opcional)',
     targetProfileHomeHint:
       'Configure solo cuando Nexus y el target vean los mismos archivos del perfil, como en un bind mount de VPN workspace.',
