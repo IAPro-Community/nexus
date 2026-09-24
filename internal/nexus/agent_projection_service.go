@@ -429,6 +429,14 @@ func (n *Nexus) ProbeRuntimeAgentProjectionActivation(ctx context.Context, runti
 		return result, fmt.Errorf("%s", result.Error)
 	}
 
+	if err := resolved.st.MarkRuntimeExecutionRoleActivation(
+		resolved.generation.ID,
+		record.ID,
+		string(projection.ActivationNativeOnLaunch),
+	); err != nil {
+		result.Error = fmt.Sprintf("persist native activation evidence: %v", err)
+		return result, fmt.Errorf("%s", result.Error)
+	}
 	result.Activated = true
 	result.Status = "VERIFIED"
 	return result, nil
