@@ -205,6 +205,17 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 				Error:            fmt.Sprintf("start mission: %v", err),
 			}, nil
 		}
+		var preparationErr *MissionPreparationError
+		if errors.As(err, &preparationErr) {
+			return &DispatchResult{
+				GoalID:         req.GoalID,
+				PlanID:         plan.ID,
+				Status:         DispatchFailed,
+				AdmissionStage: preparationErr.Stage,
+				FallbackSafe:   true,
+				Error:          fmt.Sprintf("prepare mission: %v", err),
+			}, nil
+		}
 		return &DispatchResult{
 			GoalID: req.GoalID,
 			PlanID: plan.ID,
