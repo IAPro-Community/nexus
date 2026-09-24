@@ -21,6 +21,50 @@ func (h *NexusHandler) handleAgentModes(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, nexus.CanonicalAgentModes())
 }
 
+func (h *NexusHandler) handleExecutionRoles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	writeJSON(w, http.StatusOK, nexus.CanonicalExecutionRoles())
+}
+
+func (h *NexusHandler) handleRuntimeExecutionRole(w http.ResponseWriter, r *http.Request) {
+	path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/v1/runtimes/"), "/")
+	parts := strings.Split(path, "/")
+	if len(parts) != 2 || parts[0] == "" || parts[1] != "execution-role" {
+		writeError(w, http.StatusNotFound, "invalid runtime execution-role path")
+		return
+	}
+	runtimeID := parts[0]
+
+	switch r.Method {
+	case http.MethodGet:
+		view, err := h.nexus.EffectiveRuntimeExecutionRole(runtimeID)
+		if err != nil {
+			writeError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, view)
+	case http.MethodPost:
+		var body struct {
+			RoleID string `json:"role_id"`
+		}
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil || strings.TrimSpace(body.RoleID) == "" {
+			writeError(w, http.StatusBadRequest, "role_id is required")
+			return
+		}
+		view, err := h.nexus.SetRuntimeExecutionRole(r.Context(), runtimeID, body.RoleID, "web")
+		if err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, view)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
 // handleAgentsList GET /api/v1/projects/{projectID}/agents
 func (h *NexusHandler) handleAgentsList(w http.ResponseWriter, r *http.Request) {
 	projectID := projectIDFromPath(r.URL.Path)
@@ -156,6 +200,7 @@ func (h *NexusHandler) handleAgentAsk(w http.ResponseWriter, r *http.Request) {
 		Prompt               string   `json:"prompt"`
 		SkillIDs             []string `json:"skill_ids,omitempty"`
 		Scope                string   `json:"scope,omitempty"`
+		ExecutionRoleID      string   `json:"execution_role,omitempty"`
 		StartIfNeeded        bool     `json:"start_if_needed"`
 		ProjectID            string   `json:"project_id,omitempty"`
 		ContextFingerprintID string   `json:"context_fingerprint_id,omitempty"`
@@ -194,6 +239,7 @@ func (h *NexusHandler) handleAgentAsk(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.nexus.AskAgentWithOptions(r.Context(), id, compiled.CompiledPrompt, nexus.AskAgentOptions{
 		StartIfNeeded:         body.StartIfNeeded,
+		ExecutionRoleID:       body.ExecutionRoleID,
 		CompileSpecialization: false,
 	})
 	if err != nil {
