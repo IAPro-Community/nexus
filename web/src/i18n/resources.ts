@@ -392,9 +392,17 @@ export const en = {
     originNative: 'Native (Supervised Nexus Alias)',
     originCustom: 'Custom (Adapter / Docker Template)',
     providerAndAlias: 'Provider and Nexus Alias',
-    commandTemplateLabel: 'Command template with placeholders ({cwd}, {args})',
+    commandTemplateLabel:
+      'Command template ({cwd}, {args}, {provider}, {profile}, {profile_home})',
     commandTemplateHint:
-      'Use {args} as a separate argument. Nexus does not execute a shell: operators like | and ; are blocked. For OpenCode in Docker, authentication must exist inside the same container (opencode auth login <provider>).',
+      'Use {args} as a separate argument. Nexus executes argv directly and blocks shell operators. Docker/VPN, WSL, SSH and local wrappers are supported as custom targets.',
+    customTargetKind: 'Execution target',
+    targetProfileHome: 'Shared target profile home (optional)',
+    targetProfileHomeHint:
+      'Configure only when Nexus and the custom target see the same provider-home files, such as a bind-mounted VPN workspace.',
+    targetProbeTemplate: 'Target version probe (optional)',
+    targetProbeTemplateHint:
+      'Executed safely with {args}=--version to detect the provider inside the custom target before native Agent Projection.',
     operationalMode: '4. Operational mode',
     modeYolo: '⚡ YOLO (Continuous autonomy)',
     modeSafe: '🛡️ Safe (Interactive default)',
@@ -2327,9 +2335,17 @@ export const ptBR = {
     originNative: 'Nativo (Alias Nexus supervisionado)',
     originCustom: 'Customizado (Adaptador / Docker Template)',
     providerAndAlias: 'Provedor e Alias Nexus',
-    commandTemplateLabel: 'Template de comando com placeholders ({cwd}, {args})',
+    commandTemplateLabel:
+      'Template de comando ({cwd}, {args}, {provider}, {profile}, {profile_home})',
     commandTemplateHint:
-      'Use {args} como argumento separado. O Nexus não executa shell: operadores como | e ; são bloqueados. Para OpenCode no Docker, a autenticação deve existir dentro do mesmo container (opencode auth login <provider>).',
+      'Use {args} como argumento separado. O Nexus executa argv diretamente e bloqueia operadores de shell. Docker/VPN, WSL, SSH e wrappers locais são suportados como targets customizados.',
+    customTargetKind: 'Target de execução',
+    targetProfileHome: 'Home compartilhada do profile no target (opcional)',
+    targetProfileHomeHint:
+      'Configure somente quando Nexus e target enxergarem os mesmos arquivos do profile, como no bind mount do VPN Dev Workspace.',
+    targetProbeTemplate: 'Probe de versão no target (opcional)',
+    targetProbeTemplateHint:
+      'Executado com segurança usando {args}=--version para detectar o provider dentro do target antes do Agent Projection nativo.',
     operationalMode: '4. Modo operacional',
     modeYolo: '⚡ YOLO (Autonomia contínua)',
     modeSafe: '🛡️ Safe (Padrão interativo)',
@@ -4274,9 +4290,17 @@ export const es = {
     originNative: 'Nativo (Alias Nexus supervisado)',
     originCustom: 'Personalizado (Adaptador / Docker Template)',
     providerAndAlias: 'Proveedor y Alias Nexus',
-    commandTemplateLabel: 'Plantilla de comando con marcadores ({cwd}, {args})',
+    commandTemplateLabel:
+      'Plantilla de comando ({cwd}, {args}, {provider}, {profile}, {profile_home})',
     commandTemplateHint:
-      'Use {args} como argumento separado. Nexus no ejecuta shell: operadores como | y ; están bloqueados. Para OpenCode en Docker, la autenticación debe existir dentro del mismo contenedor (opencode auth login <provider>).',
+      'Use {args} como argumento separado. Nexus ejecuta argv directamente y bloquea operadores de shell. Docker/VPN, WSL, SSH y wrappers locales se admiten como targets personalizados.',
+    customTargetKind: 'Target de ejecución',
+    targetProfileHome: 'Home compartido del perfil en el target (opcional)',
+    targetProfileHomeHint:
+      'Configure solo cuando Nexus y el target vean los mismos archivos del perfil, como en un bind mount de VPN workspace.',
+    targetProbeTemplate: 'Probe de versión en el target (opcional)',
+    targetProbeTemplateHint:
+      'Se ejecuta de forma segura con {args}=--version para detectar el provider dentro del target antes de Agent Projection nativo.',
     operationalMode: '4. Modo operacional',
     modeYolo: '⚡ YOLO (Autonomía continua)',
     modeSafe: '🛡️ Safe (Predeterminado interactivo)',
