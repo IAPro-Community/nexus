@@ -240,7 +240,7 @@ func TestNegative_TooLargeArchive(t *testing.T) {
 }
 
 func TestNegative_ManualInstallArtifact(t *testing.T) {
-	artifacts := []ArtifactTarget{TargetNSIS, TargetDEB, TargetRPM}
+	artifacts := []ArtifactTarget{TargetNSIS, TargetPKG, TargetDEB, TargetRPM}
 	for _, target := range artifacts {
 		art := Artifact{
 			URL:    "http://example.com/pkg",
