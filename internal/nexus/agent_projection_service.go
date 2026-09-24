@@ -132,17 +132,21 @@ func (n *Nexus) ApplyRuntimeAgentProjection(ctx context.Context, runtimeID, acti
 		_ = resolved.adapter.Remove(context.Background(), receipt)
 		return nil, fmt.Errorf("persist projection receipt: %w", err)
 	}
+	rollbackPersistedProjection := func() {
+		_ = resolved.adapter.Remove(context.Background(), receipt)
+		_ = resolved.st.MarkAgentProjectionRemoved(receipt.ID, time.Now().UTC())
+	}
 
 	// Ensure an explicit durable runtime role exists before attaching the
 	// projection. This remains NEXUS_OVERLAY/BEST_EFFORT until activation and
 	// permission probes prove stronger semantics.
 	roleView, err := n.SetRuntimeExecutionRole(ctx, runtimeID, resolved.role.ID, strings.TrimSpace(activatedBy))
 	if err != nil {
-		_ = resolved.adapter.Remove(context.Background(), receipt)
+		rollbackPersistedProjection()
 		return nil, fmt.Errorf("persist execution role before projection link: %w", err)
 	}
 	if err := resolved.st.AttachRuntimeExecutionRoleProjection(roleView.Binding.RuntimeGenerationID, receipt.ID); err != nil {
-		_ = resolved.adapter.Remove(context.Background(), receipt)
+		rollbackPersistedProjection()
 		return nil, fmt.Errorf("attach projection receipt to execution role: %w", err)
 	}
 
