@@ -13,6 +13,7 @@ type InstallationMethod string
 const (
 	MethodStandalone InstallationMethod = "STANDALONE"
 	MethodNSIS       InstallationMethod = "NSIS"
+	MethodPKG        InstallationMethod = "PKG"
 	MethodDEB        InstallationMethod = "DEB"
 	MethodRPM        InstallationMethod = "RPM"
 	MethodMSIX       InstallationMethod = "MSIX"
@@ -27,7 +28,7 @@ const (
 // of delegating to the package manager or guiding the user.
 func (m InstallationMethod) IsPackageManaged() bool {
 	switch m {
-	case MethodDEB, MethodRPM, MethodMSIX, MethodWinget, MethodHomebrew, MethodStore, MethodNSIS:
+	case MethodDEB, MethodRPM, MethodMSIX, MethodWinget, MethodHomebrew, MethodStore, MethodNSIS, MethodPKG:
 		return true
 	default:
 		return false
@@ -53,6 +54,8 @@ func (m InstallationMethod) UpgradeInstruction() string {
 		return "winget upgrade Nexus"
 	case MethodNSIS:
 		return "Download and run the latest Nexus Windows Setup installer."
+	case MethodPKG:
+		return "Download and run the latest notarized Nexus macOS PKG installer."
 	case MethodMSIX, MethodStore:
 		return "Updates are managed automatically by the application store."
 	case MethodStandalone:
@@ -75,6 +78,9 @@ func DetectInstallationMethod(execPath string) InstallationMethod {
 	dir := filepath.Dir(cleanPath)
 	if _, err := os.Stat(filepath.Join(dir, ".nexus-nsis")); err == nil {
 		return MethodNSIS
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".nexus-pkg")); err == nil {
+		return MethodPKG
 	}
 	if _, err := os.Stat(filepath.Join(dir, ".nexus-deb")); err == nil {
 		return MethodDEB
