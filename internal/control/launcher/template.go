@@ -145,13 +145,7 @@ func splitCommandTemplate(input string) ([]string, error) {
 			quote = r
 		case ' ', '\t', '\n':
 			flush()
-		case '|', ';', '&', '<', '>', '`', '	if escaped || quote != 0 {
-		return nil, fmt.Errorf("command template has an unfinished escape or quote")
-	}
-	flush()
-	return tokens, nil
-}
-:
+		case '|', ';', '&', '<', '>', '`', '$':
 			return nil, fmt.Errorf("command template cannot contain shell operators")
 		default:
 			current.WriteRune(r)
