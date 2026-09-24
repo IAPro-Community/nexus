@@ -17,7 +17,7 @@ func TestPreviewPlanExecutionUsesExistingMatcherAndResourceSchedulerWithoutMutat
 	if err != nil {
 		t.Fatal(err)
 	}
-	project, err := st.CreateProject(store.Project{Name: "Composer preview", CanonicalPath: t.TempDir()})
+	project, err := st.CreateProject(store.Project{Name: "Composer preview", CanonicalPath: t.TempDir(), DefaultIsolation: "worktree"})
 	if err != nil {
 		t.Fatal(err)
 	}
