@@ -46,7 +46,11 @@ func (s *Store) SetRuntimeExecutionRole(binding RuntimeExecutionRoleBinding) (Ru
 	if binding.AgentID != generationAgentID {
 		return RuntimeExecutionRoleBinding{}, fmt.Errorf("runtime generation belongs to agent %s, not %s", generationAgentID, binding.AgentID)
 	}
-	if binding.ID == "" {
+	if existing, existingErr := s.RuntimeExecutionRole(binding.RuntimeGenerationID); existingErr == nil {
+		binding.ID = existing.ID
+	} else if existingErr != ErrNotFound {
+		return RuntimeExecutionRoleBinding{}, existingErr
+	} else if binding.ID == "" {
 		binding.ID = "xrole_" + ids.NewRuntimeID()
 	}
 	if binding.Scope == "" {
@@ -69,7 +73,6 @@ func (s *Store) SetRuntimeExecutionRole(binding RuntimeExecutionRoleBinding) (Ru
 		(id,runtime_generation_id,agent_id,role_id,scope,activation_strategy,enforcement,projection_receipt_id,activated_by,activated_at)
 		VALUES(?,?,?,?,?,?,?,?,?,?)
 		ON CONFLICT(runtime_generation_id) DO UPDATE SET
-			id=excluded.id,
 			agent_id=excluded.agent_id,
 			role_id=excluded.role_id,
 			scope=excluded.scope,
