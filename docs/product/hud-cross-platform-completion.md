@@ -48,3 +48,15 @@ Lotes seguintes, nesta mesma branch:
 - os artefatos HUD tiverem checksums, proveniência e update-manifest sem
   colisões de chave;
 - documentação e capability flags corresponderem exatamente à evidência.
+
+
+## Runners nativos do gate
+
+Para evitar que a paridade dependa de máquinas self-hosted estarem ligadas, a
+frente cross-platform executa os gates obrigatórios em runners GitHub-hosted:
+
+- Windows x64: `windows-2025`;
+- macOS arm64: `macos-15`.
+
+O certificado registra o runner utilizado. O requisito continua sendo
+execução nativa no SHA exato; cross-compilation não conta como evidência.
