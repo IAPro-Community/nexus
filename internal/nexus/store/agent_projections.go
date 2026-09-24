@@ -82,8 +82,8 @@ func (s *Store) SaveAgentProjectionReceipt(record AgentProjectionReceiptRecord) 
 		record.SourceHash,
 		record.PayloadJSON,
 		record.AppliedAt.UTC().Format(time.RFC3339Nano),
-		nullableTime(record.VerifiedAt),
-		nullableTime(record.RemovedAt),
+		nullableProjectionTime(record.VerifiedAt),
+		nullableProjectionTime(record.RemovedAt),
 	)
 	if err != nil {
 		return fmt.Errorf("save agent projection receipt: %w", err)
@@ -172,7 +172,7 @@ func (s *Store) MarkAgentProjectionRemoved(id string, removedAt time.Time) error
 	return nil
 }
 
-func nullableTime(value *time.Time) any {
+func nullableProjectionTime(value *time.Time) any {
 	if value == nil || value.IsZero() {
 		return nil
 	}
