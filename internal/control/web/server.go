@@ -284,9 +284,15 @@ func (s *Server) withSecurityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) routeRuntime(w http.ResponseWriter, r *http.Request) {
-	// Check for WebSocket terminal route: /api/v1/runtimes/:id/terminal
-	if strings.HasSuffix(r.URL.Path, "/terminal") {
+func (s *Server) routeRuntime(h *NexusHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/execution-role") {
+			s.authMiddleware(h.handleRuntimeExecutionRole)(w, r)
+			return
+		}
+
+		// Check for WebSocket terminal route: /api/v1/runtimes/:id/terminal
+		if strings.HasSuffix(r.URL.Path, "/terminal") {
 		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/runtimes/"), "/")
 		if len(parts) == 2 && parts[1] == "terminal" {
 			if !s.auth.ValidateOrigin(r) {
@@ -307,8 +313,9 @@ func (s *Server) routeRuntime(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Normal REST API runtime action
-	s.authMiddleware(s.api.handleRuntimeDetail)(w, r)
+		// Normal REST API runtime action
+		s.authMiddleware(s.api.handleRuntimeDetail)(w, r)
+	}
 }
 
 // routePlan dispatches plan detail, compile, and run routes.
