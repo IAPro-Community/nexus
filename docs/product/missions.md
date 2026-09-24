@@ -171,6 +171,12 @@ StartDispatch / strict admission
         └─ pedido explícito → mantém plano, não executa Direct e mostra blockers
 ```
 
+Antes de o `MissionRunner` assumir a execução, o Nexus distingue blockers de
+admissão de falhas de preparação. Ambas carregam uma boundary explícita de
+`fallback_safe` quando é possível provar que nenhum run começou. Isso permite
+fallback apenas para promoções heurísticas e evita o dead-end de perder o
+prompt.
+
 Depois que a Mission foi admitida, não existe fallback automático para Direct:
 ela já pode ter produzido side effects. Falhas posteriores são reportadas ao
 Lead para síntese/intervenção.
@@ -178,3 +184,12 @@ Lead para síntese/intervenção.
 Os blockers de admissão informam os checks que realmente falharam (por exemplo
 `worktree_isolation`, `resources`, `plan_readiness` ou `skills`) em vez
 de uma mensagem genérica.
+
+
+## GoalContract imutável
+
+Quando o Conductor promove uma solicitação, ele persiste o `GoalContract` no
+WorkPlan e o congela no `ExecutionSnapshot` da Mission. O snapshot conserva o
+objetivo original, `goal_id`, projeto, Lead e a decisão de promoção. Isso evita
+que uma execução durável dependa do texto mutável da sessão interativa depois
+que o `MissionRunner` assume o run.
