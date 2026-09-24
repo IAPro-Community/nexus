@@ -45,11 +45,13 @@ func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) Eff
 	det, _ := d.Detect(ctx)
 	version := det.Version
 
-	// OpenCode enforces read-only through per-agent permission config. The
-	// current terminal/headless adapter does not materialize such an agent yet,
-	// so direct read-only review is intentionally not advertised.
+	// OpenCode enforces read-only through per-agent permission config. Nexus V1
+	// can materialize and discover permission-scoped agents, but the current
+	// terminal session is not automatically rebound to that native agent yet.
+	// Therefore direct runtime read-only remains unsupported until activation
+	// and permission enforcement are proven E2E.
 	readOnlyReviewStatus := CapabilityUnsupported
-	readOnlyReviewReason := "read-only review requires a permission-scoped OpenCode agent; Agent Projection is not implemented yet"
+	readOnlyReviewReason := "permission-scoped Agent Projection exists, but native activation/enforcement for the current runtime is not yet E2E-verified"
 
 	return EffectiveCapabilities{
 		Process: CapabilityEvidence{
@@ -132,7 +134,7 @@ func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) Eff
 		ReadOnlyReview: CapabilityEvidence{
 			Status:          readOnlyReviewStatus,
 			ProviderVersion: version,
-			Mechanism:       "OpenCode per-agent permission.edit=deny (not projected by Nexus yet)",
+			Mechanism:       "OpenCode per-agent permissions via Nexus Agent Projection (activation not yet verified)",
 			Reason:          readOnlyReviewReason,
 			Tested:          false,
 		},
