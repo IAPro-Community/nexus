@@ -2,6 +2,7 @@ package nexus
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -35,12 +36,14 @@ type DispatchRequest struct {
 
 // DispatchResult is the output of Conductor.Dispatch.
 type DispatchResult struct {
-	GoalID string             `json:"goal_id"`
-	PlanID string             `json:"plan_id,omitempty"`
-	RunID  string             `json:"run_id"`
-	Status DispatchStatus     `json:"status"`
-	Run    *runner.MissionRun `json:"run,omitempty"`
-	Error  string             `json:"error,omitempty"`
+	GoalID           string             `json:"goal_id"`
+	PlanID           string             `json:"plan_id,omitempty"`
+	RunID            string             `json:"run_id"`
+	Status           DispatchStatus     `json:"status"`
+	Run              *runner.MissionRun `json:"run,omitempty"`
+	AdmissionBlocked bool               `json:"admission_blocked,omitempty"`
+	AdmissionStage   string             `json:"admission_stage,omitempty"`
+	Error            string             `json:"error,omitempty"`
 }
 
 // DispatchStatus enumerates possible dispatch outcomes.
@@ -163,9 +166,22 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 		}, nil
 	}
 
-	// Step 5: Start mission run.
+	// Step 5: Start mission run. Admission failures are typed so interactive
+	// callers can safely distinguish "Mission never started" from an internal
+	// failure whose side-effect boundary is unknown.
 	run, err := n.StartMissionRun(ctx, plan.ID, req.LeadAgentID, runner.DefaultAutonomyContract(), true)
 	if err != nil {
+		var admissionErr *MissionAdmissionError
+		if errors.As(err, &admissionErr) {
+			return &DispatchResult{
+				GoalID:           req.GoalID,
+				PlanID:           plan.ID,
+				Status:           DispatchRejected,
+				AdmissionBlocked: true,
+				AdmissionStage:   admissionErr.Stage,
+				Error:            fmt.Sprintf("start mission: %v", err),
+			}, nil
+		}
 		return &DispatchResult{
 			GoalID: req.GoalID,
 			PlanID: plan.ID,
