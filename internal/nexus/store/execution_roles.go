@@ -122,3 +122,26 @@ func (s *Store) RuntimeExecutionRoleByRuntimeID(runtimeID string) (RuntimeExecut
 	}
 	return s.RuntimeExecutionRole(generationID)
 }
+
+
+// AttachRuntimeExecutionRoleProjection links a materialized native-agent
+// projection to the runtime role without changing the role or claiming native
+// activation. ActivationStrategy/enforcement remain owned by the execution-role
+// service and provider evidence.
+func (s *Store) AttachRuntimeExecutionRoleProjection(runtimeGenerationID, receiptID string) error {
+	runtimeGenerationID = strings.TrimSpace(runtimeGenerationID)
+	receiptID = strings.TrimSpace(receiptID)
+	if runtimeGenerationID == "" || receiptID == "" {
+		return errors.New("runtime_generation_id and projection receipt id are required")
+	}
+	res, err := s.db.Exec(`UPDATE runtime_execution_roles
+		SET projection_receipt_id=?
+		WHERE runtime_generation_id=?`, receiptID, runtimeGenerationID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
