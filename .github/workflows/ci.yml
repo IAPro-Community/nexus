@@ -422,18 +422,18 @@ jobs:
 
   native-windows:
     name: Windows native certification
-    if: github.event_name == 'workflow_dispatch' && inputs.native_target_sha != ''
+    if: (github.event_name == 'workflow_dispatch' && inputs.native_target_sha != '') || (github.event_name == 'pull_request' && github.head_ref == 'feat/hud-cross-platform-completion')
     runs-on: [self-hosted, Windows, X64, nexus-windows]
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.native_target_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Verify exact SHA and architecture
         shell: pwsh
         env:
-          TARGET_SHA: ${{ inputs.native_target_sha }}
+          TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
         run: |
           $head = (git rev-parse HEAD).Trim()
           if ($head -ne $env:TARGET_SHA) { throw "Checked out $head, expected $env:TARGET_SHA" }
@@ -498,36 +498,61 @@ jobs:
           $hudExe = Get-ChildItem cmd/nexus-hud/build/bin -Filter *.exe | Select-Object -First 1
           if (-not $hudExe) { throw "Nexus HUD Windows executable not found" }
           Compress-Archive -Path $hudExe.FullName -DestinationPath "$env:RUNNER_TEMP\nexus-hud_Windows_x86_64.zip" -Force
+      - name: Native Windows HUD launch smoke
+        shell: pwsh
+        env:
+          NEXUS_ENABLE_HUD: "1"
+          NEXUS_DATA_DIR: ${{ runner.temp }}\nexus-hud-windows-smoke
+        run: |
+          $hudExe = Get-ChildItem cmd/nexus-hud/build/bin -Filter *.exe | Select-Object -First 1
+          if (-not $hudExe) { throw "Nexus HUD Windows executable not found" }
+          $log = Join-Path $env:RUNNER_TEMP "nexus-hud-windows-smoke.log"
+          $evidence = Join-Path $env:RUNNER_TEMP "nexus-hud-windows-smoke.txt"
+          $proc = Start-Process -FilePath $hudExe.FullName -RedirectStandardOutput $log -RedirectStandardError $log -PassThru
+          try {
+            Start-Sleep -Seconds 8
+            if ($proc.HasExited) { throw "Nexus HUD exited during Windows native smoke" }
+            @(
+              "sha=$env:GITHUB_SHA"
+              "pid=$($proc.Id)"
+              "platform=windows"
+              "status=PASS"
+            ) | Out-File -Encoding utf8 $evidence
+          } finally {
+            if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
       - uses: actions/upload-artifact@v4
         with:
-          name: desktop-windows-${{ inputs.native_target_sha }}
+          name: desktop-windows-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: |
             ${{ runner.temp }}\nexus-desktop_Windows_x86_64.zip
             ${{ runner.temp }}\nexus-hud_Windows_x86_64.zip
+            ${{ runner.temp }}\nexus-hud-windows-smoke.txt
+            ${{ runner.temp }}\nexus-hud-windows-smoke.log
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: windows-native-evidence-${{ inputs.native_target_sha }}
+          name: windows-native-evidence-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: ${{ runner.temp }}\nexus-doctor-windows.json
           if-no-files-found: warn
           retention-days: 30
 
   native-macos:
     name: macOS arm64 native certification
-    if: github.event_name == 'workflow_dispatch' && inputs.native_target_sha != ''
+    if: (github.event_name == 'workflow_dispatch' && inputs.native_target_sha != '') || (github.event_name == 'pull_request' && github.head_ref == 'feat/hud-cross-platform-completion')
     runs-on: [self-hosted, macOS, ARM64, nexus-macos]
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.native_target_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Verify exact SHA and architecture
         shell: bash
         env:
-          TARGET_SHA: ${{ inputs.native_target_sha }}
+          TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$TARGET_SHA"
@@ -579,40 +604,66 @@ jobs:
           HUD_APP="$(find cmd/nexus-hud/build/bin -maxdepth 1 -type d -name '*.app' -print -quit)"
           test -n "$HUD_APP"
           ditto -c -k --sequesterRsrc --keepParent "$HUD_APP" "$RUNNER_TEMP/nexus-hud_Darwin_arm64.zip"
+      - name: Native macOS HUD launch smoke
+        env:
+          NEXUS_ENABLE_HUD: "1"
+          NEXUS_DATA_DIR: ${{ runner.temp }}/nexus-hud-macos-smoke
+        run: |
+          set -euo pipefail
+          HUD_APP="$(find cmd/nexus-hud/build/bin -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "$HUD_APP"
+          HUD_BIN="$(find "$HUD_APP/Contents/MacOS" -maxdepth 1 -type f -perm -111 -print -quit)"
+          test -n "$HUD_BIN"
+          log="$RUNNER_TEMP/nexus-hud-macos-smoke.log"
+          evidence="$RUNNER_TEMP/nexus-hud-macos-smoke.txt"
+          "$HUD_BIN" >"$log" 2>&1 &
+          pid=$!
+          cleanup() { kill -TERM "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; }
+          trap cleanup EXIT
+          sleep 8
+          kill -0 "$pid"
+          {
+            echo "sha=$GITHUB_SHA"
+            echo "pid=$pid"
+            echo "platform=darwin"
+            echo "status=PASS"
+          } >"$evidence"
       - uses: actions/upload-artifact@v4
         with:
-          name: desktop-macos-${{ inputs.native_target_sha }}
+          name: desktop-macos-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: |
             ${{ runner.temp }}/nexus-desktop_Darwin_arm64.zip
             ${{ runner.temp }}/nexus-hud_Darwin_arm64.zip
+            ${{ runner.temp }}/nexus-hud-macos-smoke.txt
+            ${{ runner.temp }}/nexus-hud-macos-smoke.log
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: macos-native-evidence-${{ inputs.native_target_sha }}
+          name: macos-native-evidence-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: ${{ runner.temp }}/nexus-doctor-macos.json
           if-no-files-found: warn
           retention-days: 30
 
   native-certification:
     name: Seal native certification evidence
-    if: github.event_name == 'workflow_dispatch' && inputs.native_target_sha != ''
+    if: (github.event_name == 'workflow_dispatch' && inputs.native_target_sha != '') || (github.event_name == 'pull_request' && github.head_ref == 'feat/hud-cross-platform-completion')
     needs: [native-windows, native-macos]
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: desktop-windows-${{ inputs.native_target_sha }}
+          name: desktop-windows-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: native/windows
       - uses: actions/download-artifact@v4
         with:
-          name: desktop-macos-${{ inputs.native_target_sha }}
+          name: desktop-macos-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: native/macos
       - name: Write exact-SHA certificate
         shell: bash
         env:
-          TARGET_SHA: ${{ inputs.native_target_sha }}
+          TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           test "${#TARGET_SHA}" -eq 40
@@ -628,7 +679,7 @@ jobs:
           } > native-certification.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: native-certification-${{ inputs.native_target_sha }}
+          name: native-certification-${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           path: |
             certified-sha.txt
             windows.sha256

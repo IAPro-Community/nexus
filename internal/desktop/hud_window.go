@@ -3,6 +3,7 @@ package desktop
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -34,6 +35,7 @@ type HUDPlatformCapabilities struct {
 	AutoHide            bool   `json:"autoHide"`
 	NativeNotifications bool   `json:"nativeNotifications"`
 	Tray                bool   `json:"tray"`
+	AutoStart           bool   `json:"autoStart"`
 	Platform            string `json:"platform"`
 	Session             string `json:"session,omitempty"`
 }
@@ -207,6 +209,7 @@ func DefaultHUDPlatformCapabilities() HUDPlatformCapabilities {
 	case "windows":
 		caps.TransparentWindow = true
 		caps.GlobalPositioning = true
+		caps.AutoStart = true
 		// Wails v2 does not expose stable display identity/work-area/DPI through
 		// the application contract used by Nexus HUD. Keep multi-monitor
 		// fail-closed until native same-SHA certification adds an adapter.
@@ -214,8 +217,10 @@ func DefaultHUDPlatformCapabilities() HUDPlatformCapabilities {
 	case "darwin":
 		caps.TransparentWindow = true
 		caps.GlobalPositioning = true
+		caps.AutoStart = true
 		caps.MultiMonitor = false
 	case "linux":
+		caps.AutoStart = true
 		session := strings.ToLower(strings.TrimSpace(os.Getenv("XDG_SESSION_TYPE")))
 		if session == "" && strings.TrimSpace(os.Getenv("WAYLAND_DISPLAY")) != "" {
 			session = "wayland"
@@ -234,17 +239,25 @@ func DefaultHUDPlatformCapabilities() HUDPlatformCapabilities {
 
 // HUDController exposes presentation-only native window operations.
 type HUDController struct {
-	mu      sync.RWMutex
-	ctx     context.Context
-	manager *HUDWindowStateManager
-	caps    HUDPlatformCapabilities
+	mu        sync.RWMutex
+	ctx       context.Context
+	manager   *HUDWindowStateManager
+	autoStart *AutoStartManager
+	caps      HUDPlatformCapabilities
 }
 
 func NewHUDController(manager *HUDWindowStateManager) *HUDController {
 	if manager == nil {
 		manager = NewHUDWindowStateManager("")
 	}
-	return &HUDController{manager: manager, caps: DefaultHUDPlatformCapabilities()}
+	return &HUDController{
+		manager: manager,
+		autoStart: NewAutoStartManagerWithOptions(AutoStartOptions{
+			AppName: "Nexus HUD",
+			AppID:   "com.iapro.nexus.hud",
+		}),
+		caps: DefaultHUDPlatformCapabilities(),
+	}
 }
 
 func (h *HUDController) Startup(ctx context.Context) {
@@ -360,4 +373,25 @@ func (h *HUDController) ShowHUD() {
 	if ctx != nil {
 		wailsruntime.WindowShow(ctx)
 	}
+}
+
+
+func (h *HUDController) GetHUDAutoStartEnabled() bool {
+	h.mu.RLock()
+	supported := h.caps.AutoStart
+	manager := h.autoStart
+	h.mu.RUnlock()
+	return supported && manager != nil && manager.IsEnabled()
+}
+
+func (h *HUDController) SetHUDAutoStartEnabled(enabled bool) error {
+	h.mu.RLock()
+	supported := h.caps.AutoStart
+	manager := h.autoStart
+	platform := h.caps.Platform
+	h.mu.RUnlock()
+	if !supported || manager == nil {
+		return fmt.Errorf("HUD autostart is unsupported on %s", platform)
+	}
+	return manager.SetEnabled(enabled)
 }

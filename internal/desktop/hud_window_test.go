@@ -2,6 +2,7 @@ package desktop
 
 import (
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -69,5 +70,25 @@ func TestClampHUDWindowStateToScreenShrinksOversizedWindow(t *testing.T) {
 	}, 800, 600)
 	if got.Width != 800 || got.Height != 600 || got.X != 0 || got.Y != 0 {
 		t.Fatalf("recovered state=%+v", got)
+	}
+}
+
+
+func TestHUDPlatformCapabilitiesKeepCrossPlatformClaimsFailClosed(t *testing.T) {
+	caps := DefaultHUDPlatformCapabilities()
+	if caps.Platform != runtime.GOOS {
+		t.Fatalf("platform=%q want %q", caps.Platform, runtime.GOOS)
+	}
+	switch runtime.GOOS {
+	case "linux", "windows", "darwin":
+		if !caps.AutoStart {
+			t.Fatalf("autostart adapter must be available on %s", runtime.GOOS)
+		}
+	}
+	if caps.Tray {
+		t.Fatal("tray must remain false until the native tray adapter is implemented and certified")
+	}
+	if caps.MultiMonitor {
+		t.Fatal("multi-monitor must remain false until stable display identity/work-area/DPI are available")
 	}
 }

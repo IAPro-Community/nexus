@@ -21,6 +21,7 @@ declare global {
             autoHide: boolean;
             nativeNotifications: boolean;
             tray: boolean;
+            autoStart: boolean;
             platform: string;
             session?: string;
           }>;
@@ -40,6 +41,8 @@ declare global {
           SetHUDExpanded?: (expanded: boolean) => Promise<void>;
           HideHUD?: () => Promise<void>;
           ShowHUD?: () => Promise<void>;
+          GetHUDAutoStartEnabled?: () => Promise<boolean>;
+          SetHUDAutoStartEnabled?: (enabled: boolean) => Promise<void>;
         };
         App?: {
           SelectDirectory?: (title?: string) => Promise<string>;

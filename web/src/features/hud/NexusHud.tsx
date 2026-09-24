@@ -42,6 +42,12 @@ export interface NexusHudProps {
   onOpenAgents?: () => void;
   onOpenMissions?: () => void;
   onOpenSettings?: () => void;
+  nativeAutoStart?: {
+    supported: boolean;
+    enabled: boolean;
+    pending?: boolean;
+    onToggle: () => void;
+  };
 }
 
 const clampFloatingPosition = (x: number, y: number) => {
@@ -130,6 +136,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   onOpenAgents,
   onOpenMissions,
   onOpenSettings,
+  nativeAutoStart,
 }) => {
   const { t } = useTranslation();
   const [prefs, setPrefs] = useState<HudPresentationPreferences>(() => loadHudPreferences());
@@ -504,11 +511,24 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 })()
               : null}
 
-            {onOpenNexus ? (
+            {onOpenNexus || (native && nativeAutoStart?.supported) ? (
               <div className={styles.actionRow}>
-                <button type="button" className={styles.textButton} onClick={onOpenNexus}>
-                  Abrir Nexus
-                </button>
+                {onOpenNexus ? (
+                  <button type="button" className={styles.textButton} onClick={onOpenNexus}>
+                    Abrir Nexus
+                  </button>
+                ) : null}
+                {native && nativeAutoStart?.supported ? (
+                  <button
+                    type="button"
+                    className={styles.textButton}
+                    aria-pressed={nativeAutoStart.enabled}
+                    disabled={nativeAutoStart.pending}
+                    onClick={nativeAutoStart.onToggle}
+                  >
+                    Iniciar com o sistema: {nativeAutoStart.enabled ? 'ativado' : 'desativado'}
+                  </button>
+                ) : null}
               </div>
             ) : null}
 

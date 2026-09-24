@@ -28,14 +28,14 @@ da matriz estável acima. Implementação em source não equivale a suporte púb
 
 | HUD | Linux amd64 | Windows amd64 | macOS arm64 | Web |
 | --- | --- | --- | --- | --- |
-| Projection/Core | implementado; CI pendente | source compartilhado | source compartilhado | implementado; CI pendente |
-| Gadget nativo | implementado; certificação nativa pendente | **UNVERIFIED** | **UNVERIFIED** | N/A |
+| Projection/Core | **PASS no M1** | source compartilhado; gate nativo ativo | source compartilhado; gate nativo ativo | **PASS no M1** |
+| Gadget nativo | **PASS no M1 Linux/X11** | **UNVERIFIED até o gate nativo passar** | **UNVERIFIED até o gate nativo passar** | N/A |
 | Frameless | source Wails v2 | **UNVERIFIED** | **UNVERIFIED** | N/A |
 | Always-on-top | compositor/WM dependent | **UNVERIFIED** | **UNVERIFIED** | N/A |
 | Posicionamento global | X11: alvo; Wayland: limitado | **UNVERIFIED** | **UNVERIFIED** | viewport |
 | Multi-monitor / DPI | **UNVERIFIED** | **UNVERIFIED** | **UNVERIFIED** | browser |
 | Web HUD | N/A | N/A | N/A | implementado |
-| Certificação final | **PENDING** | **UNVERIFIED** | **UNVERIFIED** | **PENDING** |
+| Certificação final | **PASS M1** | **UNVERIFIED** | **UNVERIFIED** | **PASS M1** |
 
 `NEXUS_HUD_CROSS_PLATFORM` permanece **NO_GO** enquanto qualquer target nativo
 obrigatório estiver sem certificação. Em Wayland, posicionamento absoluto e
