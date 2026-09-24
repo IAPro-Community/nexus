@@ -88,6 +88,21 @@ func TestWaitDispatchRejectsNilAcceptedResult(t *testing.T) {
 	}
 }
 
+func TestWaitDispatchFailureIsNeverMarkedFallbackSafeAfterAcceptance(t *testing.T) {
+	n := openTestNexus(t)
+	got, err := n.WaitDispatch(context.Background(), &DispatchResult{
+		GoalID: "goal_test",
+		PlanID: "plan_test",
+		Status: DispatchAccepted,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.FallbackSafe {
+		t.Fatalf("post-acceptance failure must never be eligible for Direct fallback: %+v", got)
+	}
+}
+
 func TestStartDispatchReturnsPreparedPlanOnAdmissionFailure(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
@@ -117,8 +132,8 @@ func TestStartDispatchReturnsPreparedPlanOnAdmissionFailure(t *testing.T) {
 	if result == nil || result.Status != DispatchRejected {
 		t.Fatalf("expected rejected strict admission, got %+v", result)
 	}
-	if !result.AdmissionBlocked || result.AdmissionStage != "strict_admission" {
-		t.Fatalf("strict admission failure must be typed for safe interactive fallback: %+v", result)
+	if !result.AdmissionBlocked || result.AdmissionStage != "strict_admission" || !result.FallbackSafe {
+		t.Fatalf("strict admission failure must be typed and safe for interactive fallback: %+v", result)
 	}
 	if strings.TrimSpace(result.PlanID) == "" {
 		t.Fatalf("admission failure must expose prepared plan lineage: %+v", result)
