@@ -94,3 +94,43 @@ func TestResolveCommandTemplateContextPreservesQuotedWindowsExecutablePath(t *te
 		t.Fatalf("args = %#v, want %#v", args, want)
 	}
 }
+
+
+func TestResolveCommandTemplateContextSeparatesHostAndTargetWorkspace(t *testing.T) {
+	bin, args, err := ResolveCommandTemplateContext(
+		`docker exec -w "{target_cwd}" target {provider} {args}`,
+		CommandTemplateContext{
+			Cwd:       `C:\Users\dev\project`,
+			TargetCwd: "/workspace",
+			Provider:  "opencode",
+			Args:      []string{"run", "inspect"},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bin != "docker" {
+		t.Fatalf("bin = %q", bin)
+	}
+	want := []string{"exec", "-w", "/workspace", "target", "opencode", "run", "inspect"}
+	if !reflect.DeepEqual(args, want) {
+		t.Fatalf("args = %#v, want %#v", args, want)
+	}
+}
+
+func TestResolveCommandTemplateContextTargetWorkspaceFallsBackToHostCwd(t *testing.T) {
+	_, args, err := ResolveCommandTemplateContext(
+		`docker exec -w "{target_cwd}" target {provider} {args}`,
+		CommandTemplateContext{
+			Cwd:      "/srv/project",
+			Provider: "opencode",
+			Args:     []string{"run"},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(args) < 3 || args[2] != "/srv/project" {
+		t.Fatalf("target_cwd fallback missing: %#v", args)
+	}
+}
