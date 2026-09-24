@@ -501,19 +501,21 @@ jobs:
       - name: Native Windows HUD launch smoke
         shell: pwsh
         env:
+          TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           NEXUS_ENABLE_HUD: "1"
           NEXUS_DATA_DIR: ${{ runner.temp }}\nexus-hud-windows-smoke
         run: |
           $hudExe = Get-ChildItem cmd/nexus-hud/build/bin -Filter *.exe | Select-Object -First 1
           if (-not $hudExe) { throw "Nexus HUD Windows executable not found" }
-          $log = Join-Path $env:RUNNER_TEMP "nexus-hud-windows-smoke.log"
+          $stdout = Join-Path $env:RUNNER_TEMP "nexus-hud-windows-smoke.stdout.log"
+          $stderr = Join-Path $env:RUNNER_TEMP "nexus-hud-windows-smoke.stderr.log"
           $evidence = Join-Path $env:RUNNER_TEMP "nexus-hud-windows-smoke.txt"
-          $proc = Start-Process -FilePath $hudExe.FullName -RedirectStandardOutput $log -RedirectStandardError $log -PassThru
+          $proc = Start-Process -FilePath $hudExe.FullName -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
           try {
             Start-Sleep -Seconds 8
             if ($proc.HasExited) { throw "Nexus HUD exited during Windows native smoke" }
             @(
-              "sha=$env:GITHUB_SHA"
+              "sha=$env:TARGET_SHA"
               "pid=$($proc.Id)"
               "platform=windows"
               "status=PASS"
@@ -528,7 +530,8 @@ jobs:
             ${{ runner.temp }}\nexus-desktop_Windows_x86_64.zip
             ${{ runner.temp }}\nexus-hud_Windows_x86_64.zip
             ${{ runner.temp }}\nexus-hud-windows-smoke.txt
-            ${{ runner.temp }}\nexus-hud-windows-smoke.log
+            ${{ runner.temp }}\nexus-hud-windows-smoke.stdout.log
+            ${{ runner.temp }}\nexus-hud-windows-smoke.stderr.log
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v4
@@ -606,6 +609,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "$HUD_APP" "$RUNNER_TEMP/nexus-hud_Darwin_arm64.zip"
       - name: Native macOS HUD launch smoke
         env:
+          TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.native_target_sha || github.event.pull_request.head.sha }}
           NEXUS_ENABLE_HUD: "1"
           NEXUS_DATA_DIR: ${{ runner.temp }}/nexus-hud-macos-smoke
         run: |
@@ -623,7 +627,7 @@ jobs:
           sleep 8
           kill -0 "$pid"
           {
-            echo "sha=$GITHUB_SHA"
+            echo "sha=$TARGET_SHA"
             echo "pid=$pid"
             echo "platform=darwin"
             echo "status=PASS"
