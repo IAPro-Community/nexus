@@ -607,6 +607,30 @@ nativos no mesmo filesystem visto pelo OpenCode no target. A versão do provider
 deve preferencialmente ser detectada pelo `target_probe_template` no próprio
 target, e não inferida a partir do host.
 
+### VPN Dev Workspace compatibility
+
+A V1 considera os dois layouts reais do `vpn-dev-workspace`:
+
+- Linux/WSL Linux filesystem: home e workspace são bind-mounted no mesmo caminho.
+  `target_workspace` pode permanecer vazio e `target_profile_home` pode apontar
+  para a home compartilhada do host.
+- Windows + Docker Desktop: o projeto Windows é montado em `/workspace` e a
+  home Linux padrão vive no volume Docker `vpn_windows_home`. Configure
+  `target_workspace=/workspace`. Não inventar uma `target_profile_home`
+  host-visible para esse volume: custom execution continua suportada e a role
+  degrada para Nexus overlay/BEST_EFFORT até existir um transporte de
+  materialização verificável para o volume.
+
+Exemplo Windows:
+
+```text
+provider=opencode
+target_kind=docker
+target_workspace=/workspace
+command_template=docker exec -it -w "{target_cwd}" vpn-dev-workspace-terminal-1 {provider} {args}
+target_probe_template=docker exec vpn-dev-workspace-terminal-1 {provider} {args}
+```
+
 Read-only em custom target nunca é automaticamente ENFORCED. Até existir
 discovery + activation + permission-enforcement evidence do target, a UI e o
 Core devem permanecer em BEST_EFFORT/UNVERIFIED.
