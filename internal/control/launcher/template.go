@@ -111,6 +111,7 @@ func splitCommandTemplate(input string) ([]string, error) {
 			current.Reset()
 		}
 	}
+
 	for _, r := range input {
 		if escaped {
 			switch r {
@@ -125,43 +126,24 @@ func splitCommandTemplate(input string) ([]string, error) {
 			escaped = false
 			continue
 		}
+
 		if quote != 0 {
 			if r == quote {
 				quote = 0
-			} else {
-				switch r {
-				case '|', ';', '&', '<', '>', '`', '		if r == '\\' {
-			escaped = true
-			continue
-		}
-		switch r {
-		case '\'', '"':
-			quote = r
-		case ' ', '\t', '\n':
-			flush()
-		case '|', ';', '&', '<', '>', '`', '$':
-			return nil, fmt.Errorf("command template cannot contain shell operators")
-		default:
-			current.WriteRune(r)
-		}
-	}
-	if escaped || quote != 0 {
-		return nil, fmt.Errorf("command template has an unfinished escape or quote")
-	}
-	flush()
-	return tokens, nil
-}
-:
-					return nil, fmt.Errorf("command template cannot contain shell operators")
-				default:
-					// Inside quotes backslash is literal. This keeps Windows
-					// paths stable; callers can use the other quote style when
-					// a literal quote character is required.
-					current.WriteRune(r)
-				}
+				continue
+			}
+			// Quotes are argv grouping only; they never enable a shell. Reject
+			// shell metacharacters even inside quotes so wrappers cannot smuggle
+			// bash -c/cmd /c payloads through a visually safe template.
+			switch r {
+			case '|', ';', '&', '<', '>', '`', '$':
+				return nil, fmt.Errorf("command template cannot contain shell operators")
+			default:
+				current.WriteRune(r)
 			}
 			continue
 		}
+
 		if r == '\\' {
 			escaped = true
 			continue
