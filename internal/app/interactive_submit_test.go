@@ -88,3 +88,15 @@ func TestShouldFallbackPromotionToLeadOnlyForHeuristicPromotions(t *testing.T) {
 		t.Fatal("non-promotion decision must not be treated as a Mission fallback")
 	}
 }
+
+func TestConfirmedInteractiveDelegationModeClearsAskPendingApproval(t *testing.T) {
+	if got := confirmedInteractiveDelegationMode(nexus.DelegationAsk); got != nexus.DelegationAuto {
+		t.Fatalf("confirmed ASK must dispatch as AUTO, got %s", got)
+	}
+	if got := confirmedInteractiveDelegationMode(nexus.DelegationOff); got != nexus.DelegationOff {
+		t.Fatalf("OFF must remain OFF, got %s", got)
+	}
+	if got := confirmedInteractiveDelegationMode(nexus.DelegationAuto); got != nexus.DelegationAuto {
+		t.Fatalf("AUTO must remain AUTO, got %s", got)
+	}
+}
