@@ -508,6 +508,8 @@ func (n *Nexus) AskAgentWithOptions(ctx context.Context, agentID, prompt string,
 			roleShouldAffectPrompt = true
 		} else if bindErr == store.ErrNotFound {
 			executionRoleEffective = "build"
+		} else {
+			return nil, fmt.Errorf("resolve runtime execution role: %w", bindErr)
 		}
 	}
 	var executionRole *intelligence.ExecutionRoleContext
