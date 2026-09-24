@@ -1985,7 +1985,6 @@ export interface AgentProjectionDiscovery {
   provider_version: string;
   target_kind: string;
   agent_name: string;
-  command?: string[];
   discovered: boolean;
   status: string;
   evidence?: string;
