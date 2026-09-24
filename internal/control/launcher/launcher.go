@@ -206,7 +206,7 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		MachineID:                 registry.LocalMachineID(),
 		Location:                  "local",
 		Transport:                 "ipc",
-		Labels:                    cloneLabels(opts.Labels),
+		Labels:                    sessionLabels,
 	}
 
 	if err := l.reg.Register(sess); err != nil {
