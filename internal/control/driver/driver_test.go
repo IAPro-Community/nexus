@@ -60,6 +60,19 @@ func TestDriverRegistryAndCapabilities(t *testing.T) {
 	}
 }
 
+func TestOpenCodeReadOnlyReviewUnsupportedUntilAgentProjection(t *testing.T) {
+	caps := NewOpenCodeDriver().EffectiveCaps(context.Background(), model.Profile{Name: "default"})
+	if caps.ReadOnlyReview.Status != CapabilityUnsupported {
+		t.Fatalf("OpenCode read-only review status = %s, want %s until permission-scoped Agent Projection exists", caps.ReadOnlyReview.Status, CapabilityUnsupported)
+	}
+	if caps.ReadOnlyReview.Tested {
+		t.Fatal("OpenCode read-only review must not be marked tested without a provider-backed enforcement probe")
+	}
+	if NewOpenCodeDriver().Capabilities(context.Background(), model.Profile{Name: "default"}).ReadOnlyReview {
+		t.Fatal("boolean compatibility view must not promote unsupported read-only review")
+	}
+}
+
 func TestHeadlessKickoffArgsMatchProviderCLIContracts(t *testing.T) {
 	ctx := context.Background()
 	profile := model.Profile{Name: "default"}

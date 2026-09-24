@@ -73,24 +73,29 @@ func TestUnifiedUsageUnconfiguredCLIsRendered(t *testing.T) {
 		UnconfiguredCLIs: []InstalledProviderInfo{
 			{ID: "claude", Name: "Claude Code", Version: "2.1.250", Installed: true, Profiles: 0},
 			{ID: "cursor", Name: "Cursor CLI", Version: "2026.08", Installed: true, Profiles: 0},
+			{ID: "opencode", Name: "OpenCode", Version: "1.18.30", Installed: true, Profiles: 0},
 		},
 	}
 	m := newUnifiedUsageModel(opts)
-	if len(m.allAccounts) != 3 {
-		t.Fatalf("expected 3 rows (1 configured + 2 unconfigured), got %d", len(m.allAccounts))
+	if len(m.allAccounts) != 4 {
+		t.Fatalf("expected 4 rows (1 configured + 3 unconfigured), got %d", len(m.allAccounts))
 	}
 
-	foundClaude := false
+	found := map[string]bool{}
 	for _, r := range m.allAccounts {
-		if r.Provider == "claude" {
-			foundClaude = true
+		switch r.Provider {
+		case "claude", "opencode":
+			found[r.Provider] = true
 			if !r.IsUnconfigured || r.Status != "OFF" {
-				t.Fatalf("expected Claude to be unconfigured OFF, got %#v", r)
+				t.Fatalf("expected %s to be unconfigured OFF, got %#v", r.Provider, r)
 			}
 		}
 	}
-	if !foundClaude {
+	if !found["claude"] {
 		t.Fatal("expected unconfigured Claude row in table")
+	}
+	if !found["opencode"] {
+		t.Fatal("expected installed OpenCode row in nexus usage before profile registration")
 	}
 }
 

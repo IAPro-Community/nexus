@@ -104,7 +104,8 @@ export const AGENT_MODE_PRESENTATION: Record<string, ModePresentation> = {
 export const NATIVE_PROVIDERS = [
   { id: 'claude', label: 'Claude (nexus claude)', alias: 'nexus claude' },
   { id: 'codex', label: 'Codex (nexus codex)', alias: 'nexus codex' },
-  { id: 'agy', label: 'AGY / OpenCode (nexus agy)', alias: 'nexus agy' },
+  { id: 'agy', label: 'AGY (nexus agy)', alias: 'nexus agy' },
+  { id: 'opencode', label: 'OpenCode (nexus opencode)', alias: 'nexus opencode' },
   { id: 'gemini', label: 'Gemini (nexus gemini)', alias: 'nexus gemini' },
   { id: 'cursor', label: 'Cursor (nexus cursor)', alias: 'nexus cursor' },
 ];
