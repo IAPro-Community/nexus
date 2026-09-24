@@ -146,15 +146,50 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 // interactive Lead when admission cannot be satisfied.
 func IsExplicitMissionRequest(line string) bool {
 	tokens := strings.FieldsFunc(strings.ToLower(strings.TrimSpace(line)), func(r rune) bool {
-		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+		// Keep hyphenated product/domain terms together so "mission-critical"
+		// is not reinterpreted as an explicit Mission request.
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-'
 	})
-	for _, token := range tokens {
+	if len(tokens) == 0 {
+		return false
+	}
+	isRequestVerb := func(token string) bool {
+		switch token {
+		case "execute", "executar", "rode", "rodar", "run", "start", "inicie", "iniciar",
+			"crie", "criar", "create", "promova", "promover", "promote",
+			"transforme", "transformar", "use", "usar", "faça", "faca", "quero", "want":
+			return true
+		default:
+			return false
+		}
+	}
+	isMissionToken := func(token string) bool {
 		switch token {
 		case "mission", "missions", "missão", "missao", "missões", "missoes":
 			return true
+		default:
+			return false
 		}
-		if strings.HasPrefix(token, "autônom") || strings.HasPrefix(token, "autonom") {
+	}
+	for i, token := range tokens {
+		explicitTarget := isMissionToken(token) ||
+			strings.HasPrefix(token, "autônom") ||
+			strings.HasPrefix(token, "autonom")
+		if !explicitTarget {
+			continue
+		}
+		// "Mission" / "como Mission" are concise explicit commands.
+		if len(tokens) <= 2 {
 			return true
+		}
+		start := i - 5
+		if start < 0 {
+			start = 0
+		}
+		for j := start; j < i; j++ {
+			if isRequestVerb(tokens[j]) {
+				return true
+			}
 		}
 	}
 	return false
