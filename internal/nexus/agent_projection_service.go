@@ -42,7 +42,6 @@ type AgentProjectionDiscovery struct {
 	ProviderVersion string  `json:"provider_version"`
 	TargetKind     string   `json:"target_kind"`
 	AgentName      string   `json:"agent_name"`
-	Command        []string `json:"command,omitempty"`
 	Discovered     bool     `json:"discovered"`
 	Status         string   `json:"status"`
 	Evidence       string   `json:"evidence,omitempty"`
@@ -284,21 +283,19 @@ func (n *Nexus) probeAgentProjectionDiscovery(ctx context.Context, resolved *age
 		return result
 	}
 
-	result.Command = append([]string{filepath.Base(bin)}, args...)
 	output, runErr := nexusruntime.RunCommandCapture(probeCtx, bin, args, env, cwd)
 	if runErr != nil {
-		result.Error = fmt.Sprintf("OpenCode native-agent discovery failed: %v (%s)", runErr, strings.TrimSpace(output))
+		result.Error = fmt.Sprintf("OpenCode native-agent discovery failed: %v", runErr)
 		return result
 	}
 	if !containsAgentName(output, agentName) {
 		result.Error = fmt.Sprintf("OpenCode did not list projected agent %q", agentName)
-		result.Evidence = truncateProjectionEvidence(output, 2048)
 		return result
 	}
 
 	result.Discovered = true
 	result.Status = "VERIFIED"
-	result.Evidence = truncateProjectionEvidence(output, 2048)
+	result.Evidence = fmt.Sprintf("OpenCode listed native agent %q", agentName)
 	return result
 }
 
@@ -448,14 +445,6 @@ func containsAgentName(output, name string) bool {
 	}
 	pattern := `(^|[^A-Za-z0-9_-])` + regexp.QuoteMeta(name) + `([^A-Za-z0-9_-]|$)`
 	return regexp.MustCompile(pattern).FindStringIndex(output) != nil
-}
-
-func truncateProjectionEvidence(value string, limit int) string {
-	value = strings.TrimSpace(value)
-	if limit <= 0 || len(value) <= limit {
-		return value
-	}
-	return value[:limit] + "…"
 }
 
 func (n *Nexus) VerifyAgentProjection(ctx context.Context, receiptID string) (*projection.Verification, error) {
@@ -680,7 +669,7 @@ func (n *Nexus) projectionProviderVersion(ctx context.Context, cfg AgentConfig, 
 		env := launchenv.Merge(os.Environ(), cfg.Environment, nil)
 		out, err := nexusruntime.RunCommandCapture(probeCtx, bin, args, env, project.CanonicalPath)
 		if err != nil {
-			return "", "", fmt.Errorf("custom target provider version probe failed: %w (%s)", err, strings.TrimSpace(out))
+			return "", "", fmt.Errorf("custom target provider version probe failed: %w", err)
 		}
 		version := firstNonEmptyLine(out)
 		if version == "" {
