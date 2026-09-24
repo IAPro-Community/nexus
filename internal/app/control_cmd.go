@@ -634,7 +634,7 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 		startMission := func(prompt string, fallbackToLead bool) {
 			accepted, startErr := startInteractiveDelegatedMission(n, session, agentID, prompt, mode)
 			if startErr != nil {
-				safeAdmissionFallback := fallbackToLead && accepted != nil && accepted.AdmissionBlocked
+				safeAdmissionFallback := fallbackToLead && accepted != nil && accepted.FallbackSafe
 				if safeAdmissionFallback {
 					// A heuristic promotion is disposable only when the Core
 					// proved that Mission admission failed before a run existed.
