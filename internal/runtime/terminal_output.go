@@ -3,6 +3,7 @@ package runtime
 import (
 	"io"
 	"sync"
+	"time"
 )
 
 // TerminalOutputScrubber removes keyboard-protocol negotiation emitted by an
@@ -10,14 +11,16 @@ import (
 // provider's PTY output is otherwise byte-transparent: screen drawing,
 // cursor movement, colors and application data are preserved.
 type TerminalOutputScrubber struct {
-	mu      sync.Mutex
-	out     io.Writer
-	pending []byte
-	drop    func([]byte) bool
-	// Input must not hold a standalone Escape key. It may still hold the
-	// ESC[ prefix so a CSI sequence split across writes can be classified.
-	forwardIncompleteEscape bool
+	mu                   sync.Mutex
+	out                  io.Writer
+	pending              []byte
+	drop                 func([]byte) bool
+	flushIncompleteAfter time.Duration
+	flushTimer           *time.Timer
+	asyncErr             error
 }
+
+const terminalInputEscapeCoalesceWindow = 25 * time.Millisecond
 
 func NewTerminalOutputScrubber(out io.Writer) *TerminalOutputScrubber {
 	return &TerminalOutputScrubber{out: out, drop: isKeyboardNegotiation}
@@ -28,9 +31,9 @@ func NewTerminalOutputScrubber(out io.Writer) *TerminalOutputScrubber {
 // untouched.
 func NewTerminalInputScrubber(out io.Writer) *TerminalOutputScrubber {
 	return &TerminalOutputScrubber{
-		out:                     out,
-		drop:                    isTerminalInputMetadata,
-		forwardIncompleteEscape: true,
+		out:                  out,
+		drop:                 isTerminalInputMetadata,
+		flushIncompleteAfter: terminalInputEscapeCoalesceWindow,
 	}
 }
 
@@ -38,15 +41,55 @@ func (s *TerminalOutputScrubber) Write(p []byte) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.asyncErr != nil {
+		err := s.asyncErr
+		s.asyncErr = nil
+		return 0, err
+	}
+	s.stopFlushTimerLocked()
 	s.pending = append(s.pending, p...)
-	return len(p), s.flushLocked(false)
+	if err := s.flushLocked(false); err != nil {
+		return len(p), err
+	}
+	s.scheduleIncompleteFlushLocked()
+	return len(p), nil
 }
 
 func (s *TerminalOutputScrubber) Flush() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return s.flushLocked(true)
+	s.stopFlushTimerLocked()
+	asyncErr := s.asyncErr
+	s.asyncErr = nil
+	flushErr := s.flushLocked(true)
+	if asyncErr != nil {
+		return asyncErr
+	}
+	return flushErr
+}
+
+func (s *TerminalOutputScrubber) stopFlushTimerLocked() {
+	if s.flushTimer == nil {
+		return
+	}
+	s.flushTimer.Stop()
+	s.flushTimer = nil
+}
+
+func (s *TerminalOutputScrubber) scheduleIncompleteFlushLocked() {
+	if s.flushIncompleteAfter <= 0 || len(s.pending) == 0 {
+		return
+	}
+	delay := s.flushIncompleteAfter
+	s.flushTimer = time.AfterFunc(delay, func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		s.flushTimer = nil
+		if err := s.flushLocked(true); err != nil && s.asyncErr == nil {
+			s.asyncErr = err
+		}
+	})
 }
 
 func (s *TerminalOutputScrubber) flushLocked(final bool) error {
@@ -63,7 +106,7 @@ func (s *TerminalOutputScrubber) flushLocked(final bool) error {
 			continue
 		}
 		if pos+1 >= len(s.pending) {
-			if final || s.forwardIncompleteEscape {
+			if final {
 				clean = append(clean, s.pending[pos:]...)
 				pos = len(s.pending)
 			}
