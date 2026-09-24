@@ -607,15 +607,19 @@ func TestNativeReleaseChainIsFailClosed(t *testing.T) {
 		"Seal native certification evidence",
 		"nexus_Windows_x86_64.zip",
 		"nexus-desktop_Windows_x86_64.zip",
+		"nexus-hud_Windows_x86_64.zip",
 		"nexus-setup-Windows_x86_64.exe",
 		"nexus_Darwin_arm64.tar.gz",
 		"nexus-desktop_Darwin_arm64.zip",
+		"nexus-hud_Darwin_arm64.zip",
 		"nexus-installer_Darwin_arm64.pkg",
 		"'windows_amd64'",
 		"'desktop_windows_amd64'",
+		"'hud_windows_amd64'",
 		"'windows_amd64_nsis'",
 		"'darwin_arm64'",
 		"'desktop_darwin_arm64'",
+		"'hud_darwin_arm64'",
 		"'darwin_arm64_pkg'",
 	} {
 		if !strings.Contains(release, required) {
@@ -627,6 +631,8 @@ func TestNativeReleaseChainIsFailClosed(t *testing.T) {
 		"Function RemoveFromUserPath",
 		"Call RemoveFromUserPath",
 		"QuietUninstallString",
+		`File /nonfatal "payload\\nexus-hud.exe"`,
+		`Delete "$INSTDIR\\nexus-hud.exe"`,
 		"DeleteRegKey HKCU \"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\IAPro Nexus\"",
 	} {
 		if !strings.Contains(nsis, required) {
@@ -636,6 +642,7 @@ func TestNativeReleaseChainIsFailClosed(t *testing.T) {
 	for _, required := range []string{
 		"rm -f /usr/local/bin/nexus",
 		"rm -rf \"/Applications/IAPro Nexus.app\"",
+		"rm -rf \"/Applications/IAPro Nexus HUD.app\"",
 		"pkgutil --forget com.iapro.nexus",
 		"User profiles and project data were preserved",
 	} {
