@@ -320,3 +320,39 @@ func TestCapabilitiesRemainHonestBeforeLiveProbe(t *testing.T) {
 		t.Fatalf("unknown version must downgrade capability truth: %#v", unknown.Definitions)
 	}
 }
+
+
+func TestDiscoveryArgsFollowOpenCodeMajorVersion(t *testing.T) {
+	v1, err := DiscoveryArgs("1.18.30")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(v1, " ") != "agent list" {
+		t.Fatalf("V1 discovery args = %#v", v1)
+	}
+
+	v2, err := DiscoveryArgs("2.0.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(v2, " ") != "debug agents" {
+		t.Fatalf("V2 discovery args = %#v", v2)
+	}
+
+	if _, err := DiscoveryArgs("unknown"); err == nil {
+		t.Fatal("unknown OpenCode version must not guess discovery command")
+	}
+}
+
+func TestAgentNameIsStableAndValidated(t *testing.T) {
+	name, err := AgentName("review")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if name != "nexus-review" {
+		t.Fatalf("agent name = %q", name)
+	}
+	if _, err := AgentName("../escape"); err == nil {
+		t.Fatal("unsafe role id must be rejected")
+	}
+}
