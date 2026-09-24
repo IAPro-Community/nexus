@@ -16,7 +16,6 @@ import (
 	projection "github.com/IAPro-Community/nexus/internal/core/provider/agentprojection"
 	opencodeprojection "github.com/IAPro-Community/nexus/internal/core/provider/agentprojection/opencode"
 	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
-	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -441,7 +440,3 @@ func firstNonEmptyLine(value string) string {
 	return ""
 }
 
-// Keep intelligence imported in this file's compile surface through the
-// persistent AgentSpec contract; projection deliberately does not create a
-// second specialization model.
-var _ intelligence.AgentSpec
