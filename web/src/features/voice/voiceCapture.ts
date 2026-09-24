@@ -101,7 +101,7 @@ export async function startVoiceCapture(): Promise<VoiceCaptureSession> {
     cleanup();
   };
   return { stop, cancel };
-};
+}
 
 export async function startVoiceCapture(): Promise<VoiceCaptureSession> {
   let webError: unknown;
