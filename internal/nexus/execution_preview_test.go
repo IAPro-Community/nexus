@@ -97,6 +97,48 @@ func TestPreviewPlanExecutionUsesExistingMatcherAndResourceSchedulerWithoutMutat
 	}
 }
 
+func TestPreviewAgentIsolationMatchesAutonomousRuntimePolicy(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Isolation preview", CanonicalPath: t.TempDir(), DefaultIsolation: "worktree"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Unsafe existing", Role: "implementer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	revision, err := st.AddRevision(agent.ID, (AgentConfig{Isolation: "project"}).ConfigJSON())
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent.CurrentRevisionID = revision.ID
+	if err := st.UpdateAgent(agent); err != nil {
+		t.Fatal(err)
+	}
+
+	pinned := store.WorkPackage{
+		ID: "pinned", Title: "Pinned", Goal: "Pinned", Role: "implementer",
+		AssignmentStrategy: string(FlowAssignmentExisting), AgentAllocation: agent.ID,
+	}
+	_, _, decision, blocker := previewAgentForPackage(st, project, pinned, TaskRequirements{}, []store.Agent{agent}, true)
+	if blocker == "" || decision.AgentID != agent.ID {
+		t.Fatalf("pinned unsafe Agent must be an actionable blocker: decision=%+v blocker=%q", decision, blocker)
+	}
+
+	auto := pinned
+	auto.ID = "auto"
+	auto.AssignmentStrategy = string(FlowAssignmentAuto)
+	auto.AgentAllocation = ""
+	selected, _, decision, blocker := previewAgentForPackage(st, project, auto, TaskRequirements{}, []store.Agent{agent}, true)
+	if blocker != "" || selected.ID != "" || !decision.WillCreate {
+		t.Fatalf("AUTO should skip unsafe Agent and plan a worktree specialist: selected=%+v decision=%+v blocker=%q", selected, decision, blocker)
+	}
+}
+
 func TestPreviewPlanExecutionExplainsSpecialistCreationWithoutStartingAgent(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
