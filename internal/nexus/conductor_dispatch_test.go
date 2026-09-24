@@ -114,8 +114,11 @@ func TestStartDispatchReturnsPreparedPlanOnAdmissionFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result == nil || result.Status != DispatchFailed {
-		t.Fatalf("expected failed strict admission, got %+v", result)
+	if result == nil || result.Status != DispatchRejected {
+		t.Fatalf("expected rejected strict admission, got %+v", result)
+	}
+	if !result.AdmissionBlocked || result.AdmissionStage != "strict_admission" {
+		t.Fatalf("strict admission failure must be typed for safe interactive fallback: %+v", result)
 	}
 	if strings.TrimSpace(result.PlanID) == "" {
 		t.Fatalf("admission failure must expose prepared plan lineage: %+v", result)
