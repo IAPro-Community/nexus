@@ -57,6 +57,7 @@ func missionAdmissionError(stage, detail string) error {
 type MissionPreparationError struct {
 	Stage  string
 	Detail string
+	cause  error
 }
 
 func (e *MissionPreparationError) Error() string {
@@ -72,12 +73,19 @@ func (e *MissionPreparationError) Error() string {
 	return "mission preparation failed"
 }
 
+func (e *MissionPreparationError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.cause
+}
+
 func missionPreparationError(stage string, err error) error {
 	detail := ""
 	if err != nil {
 		detail = err.Error()
 	}
-	return &MissionPreparationError{Stage: strings.TrimSpace(stage), Detail: strings.TrimSpace(detail)}
+	return &MissionPreparationError{Stage: strings.TrimSpace(stage), Detail: strings.TrimSpace(detail), cause: err}
 }
 
 type missionWorker struct {
@@ -315,11 +323,11 @@ func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID s
 	}
 	st, err := n.OpenProject()
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("store", err)
 	}
 	plan, err := st.GetWorkPlan(planID)
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("plan", err)
 	}
 	if err := ensureDelegationApproved(plan); err != nil {
 		return nil, missionAdmissionError("delegation", err.Error())
