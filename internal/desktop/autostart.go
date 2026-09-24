@@ -22,7 +22,7 @@ type AutoStartManager struct {
 	Args     []string
 }
 
-// NewAutoStartManager preserves the legacy Nexus Desktop behaviour.
+// NewAutoStartManager preserves the legacy Nexus Desktop behavior.
 func NewAutoStartManager(appName, execPath string) *AutoStartManager {
 	return NewAutoStartManagerWithOptions(AutoStartOptions{
 		AppName:  appName,
