@@ -321,7 +321,6 @@ func TestCapabilitiesRemainHonestBeforeLiveProbe(t *testing.T) {
 	}
 }
 
-
 func TestDiscoveryArgsFollowOpenCodeMajorVersion(t *testing.T) {
 	v1, err := DiscoveryArgs("1.18.30")
 	if err != nil {
@@ -354,5 +353,37 @@ func TestAgentNameIsStableAndValidated(t *testing.T) {
 	}
 	if _, err := AgentName("../escape"); err == nil {
 		t.Fatal("unsafe role id must be rejected")
+	}
+}
+
+func TestActivationProbeArgsSelectProjectedAgentExplicitly(t *testing.T) {
+	args, err := ActivationProbeArgs("2.0.3", "nexus-review", "NEXUS_ACTIVATION_OK_123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(args, " ")
+	for _, want := range []string{
+		"run",
+		"--agent nexus-review",
+		"NEXUS_ACTIVATION_OK_123",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("activation args %q missing %q", joined, want)
+		}
+	}
+	if strings.Contains(joined, "--auto") {
+		t.Fatalf("activation probe must not auto-approve permissions: %q", joined)
+	}
+}
+
+func TestActivationProbeArgsFailClosed(t *testing.T) {
+	if _, err := ActivationProbeArgs("unknown", "nexus-review", "marker"); err == nil {
+		t.Fatal("unknown OpenCode version must not guess activation command")
+	}
+	if _, err := ActivationProbeArgs("2.0.3", "review", "marker"); err == nil {
+		t.Fatal("non-projected agent name must be rejected")
+	}
+	if _, err := ActivationProbeArgs("2.0.3", "nexus-review", ""); err == nil {
+		t.Fatal("empty activation marker must be rejected")
 	}
 }
