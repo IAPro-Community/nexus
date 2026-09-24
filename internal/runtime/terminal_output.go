@@ -17,6 +17,7 @@ type TerminalOutputScrubber struct {
 	drop                 func([]byte) bool
 	flushIncompleteAfter time.Duration
 	flushTimer           *time.Timer
+	flushGeneration      uint64
 	asyncErr             error
 }
 
@@ -70,6 +71,7 @@ func (s *TerminalOutputScrubber) Flush() error {
 }
 
 func (s *TerminalOutputScrubber) stopFlushTimerLocked() {
+	s.flushGeneration++
 	if s.flushTimer == nil {
 		return
 	}
@@ -82,10 +84,16 @@ func (s *TerminalOutputScrubber) scheduleIncompleteFlushLocked() {
 		return
 	}
 	delay := s.flushIncompleteAfter
+	s.flushGeneration++
+	generation := s.flushGeneration
 	s.flushTimer = time.AfterFunc(delay, func() {
 		s.mu.Lock()
 		defer s.mu.Unlock()
+		if generation != s.flushGeneration {
+			return
+		}
 		s.flushTimer = nil
+		s.flushGeneration++
 		if err := s.flushLocked(true); err != nil && s.asyncErr == nil {
 			s.asyncErr = err
 		}
