@@ -55,7 +55,11 @@ func (h *NexusHandler) handleAgentProjections(w http.ResponseWriter, r *http.Req
 		}
 		discovery, err := h.nexus.ProbeRuntimeAgentProjectionDiscovery(r.Context(), runtimeID)
 		if err != nil {
-			writeJSON(w, http.StatusConflict, discovery)
+			if discovery == nil {
+				writeError(w, http.StatusConflict, err.Error())
+			} else {
+				writeJSON(w, http.StatusConflict, discovery)
+			}
 			return
 		}
 		writeJSON(w, http.StatusOK, discovery)
