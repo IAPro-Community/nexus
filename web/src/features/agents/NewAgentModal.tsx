@@ -428,7 +428,7 @@ export const NewAgentModal: React.FC<{
               <small className={styles.hintText}>
                 {t('agents.targetWorkspaceHint', {
                   defaultValue:
-                    'Use when the target sees the project at a different path. {target_cwd} falls back to the Nexus project path when empty.',
+                    'Use when the target sees the project at a different path. For VPN Dev Workspace on Windows use /workspace. {target_cwd} falls back to the Nexus project path when empty.',
                 })}
               </small>
 
@@ -442,7 +442,7 @@ export const NewAgentModal: React.FC<{
               <small className={styles.hintText}>
                 {t('agents.commandTemplateHint', {
                   defaultValue:
-                    'Placeholders: {cwd}, {args}, {provider}, {profile}, {profile_home}. Nexus executes argv directly; shell operators remain blocked.',
+                    'Placeholders: {cwd}, {target_cwd}, {args}, {provider}, {profile}, {profile_home}. Nexus executes argv directly; shell operators remain blocked.',
                 })}
               </small>
 
