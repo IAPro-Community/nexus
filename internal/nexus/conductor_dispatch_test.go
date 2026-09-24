@@ -1,6 +1,7 @@
 package nexus
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -60,5 +61,28 @@ func TestDispatchTopologySeparatesMissionPromotionFromDelegation(t *testing.T) {
 	}
 	if !dispatchTopologyAllowed(DispatchRequest{}, DelegationDecision{Delegate: true}) {
 		t.Fatal("delegated topology must remain dispatchable")
+	}
+}
+
+func TestWaitDispatchDoesNotCreateOrWaitForRejectedAdmission(t *testing.T) {
+	n := openTestNexus(t)
+	rejected := &DispatchResult{
+		GoalID: "goal_test",
+		Status: DispatchRejected,
+		Error:  "strict admission blocked",
+	}
+	got, err := n.WaitDispatch(context.Background(), rejected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != rejected {
+		t.Fatalf("non-accepted dispatch must be returned unchanged: got=%+v want=%+v", got, rejected)
+	}
+}
+
+func TestWaitDispatchRejectsNilAcceptedResult(t *testing.T) {
+	n := openTestNexus(t)
+	if _, err := n.WaitDispatch(context.Background(), nil); err == nil {
+		t.Fatal("nil accepted result must be rejected")
 	}
 }
