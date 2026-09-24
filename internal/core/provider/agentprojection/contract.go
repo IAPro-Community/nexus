@@ -62,6 +62,7 @@ type Capabilities struct {
 type Request struct {
 	Provider         string   `json:"provider"`
 	Profile          string   `json:"profile"`
+	ProviderVersion  string   `json:"provider_version,omitempty"`
 	ProviderHome     string   `json:"provider_home"`
 	Workspace        string   `json:"workspace,omitempty"`
 	Scope            Scope    `json:"scope"`
@@ -98,9 +99,14 @@ type Conflict struct {
 }
 
 type Plan struct {
-	Provider  string              `json:"provider"`
-	Scope     Scope               `json:"scope"`
-	Strategy  ActivationStrategy  `json:"strategy"`
+	Provider        string              `json:"provider"`
+	Profile         string              `json:"profile"`
+	RoleID          string              `json:"role_id"`
+	Scope           Scope               `json:"scope"`
+	Strategy        ActivationStrategy  `json:"strategy"`
+	ManagedRoot     string              `json:"managed_root"`
+	RendererVersion string              `json:"renderer_version"`
+	SourceHash      string              `json:"source_hash"`
 	Artifacts []GeneratedArtifact `json:"artifacts,omitempty"`
 	Conflicts []Conflict          `json:"conflicts,omitempty"`
 	Warnings  []string            `json:"warnings,omitempty"`
@@ -118,6 +124,7 @@ type Receipt struct {
 	RoleID          string             `json:"role_id"`
 	Scope           Scope              `json:"scope"`
 	Strategy        ActivationStrategy `json:"strategy"`
+	ManagedRoot     string             `json:"managed_root"`
 	RendererVersion string             `json:"renderer_version"`
 	SourceHash      string             `json:"source_hash"`
 	Artifacts       []ArtifactReceipt  `json:"artifacts"`
