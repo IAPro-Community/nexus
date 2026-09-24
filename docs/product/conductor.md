@@ -84,8 +84,10 @@ Veja [Como funciona](how-it-works.md), [Missions](missions.md) e
 
 ## Boundary de promoção interativa
 
-`StartDispatch` separa preparação/admissão de espera do run. Enquanto essa
-etapa não termina, o terminal mantém o prompt no provider.
+`StartDispatch` separa preparação/admissão de espera do run. A revisão recém
+gerada passa pelo mesmo caminho de Execution Preview, budget/cost gate e strict
+admission usado pelo GO explícito. Enquanto essa etapa não termina, o terminal
+mantém o prompt no provider.
 
 - `fallback_safe=true`: o Core provou que nenhum `MissionRun` iniciou;
 - `admission_blocked=true`: uma política/check conhecido recusou a Mission;
