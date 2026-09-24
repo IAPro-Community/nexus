@@ -572,6 +572,7 @@ O contrato de compatibilidade é `command_template`, argv-only e sem shell:
 
 ```text
 {cwd}
+{target_cwd}
 {args}
 {provider}
 {profile}
@@ -586,10 +587,15 @@ Metadados tipados da V1:
 ```text
 execution_adapter=command_template
 target_kind=local|docker|docker-compose|wsl|ssh|custom
+target_workspace=<path visible inside target>       # optional, defaults to {cwd}
 target_profile_home=<host-visible shared home>   # opcional
 target_probe_template=<safe argv template>       # recomendado
 target_provider_version=<declared fallback>      # não preferido
 ```
+
+`{cwd}` é o workspace no host Nexus. `{target_cwd}` é o caminho visto pelo
+target e cai para `{cwd}` quando não configurado. Isso cobre, por exemplo,
+Windows `C:\\...` montado como `/workspace` no container.
 
 Para targets como `vpn-dev-workspace`, execução customizada não depende de
 Agent Projection. Se `target_profile_home` não for compartilhada/visível ao
