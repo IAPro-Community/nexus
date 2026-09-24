@@ -71,12 +71,19 @@ func (n *Nexus) resolveExecutionWorkspaceWithMode(ctx context.Context, project s
 	}
 }
 
-func ensureAgentWorktree(ctx context.Context, project store.Project, agent store.Agent) (string, error) {
+func validateWorktreeBase(ctx context.Context, project store.Project) error {
 	if _, err := exec.LookPath("git"); err != nil {
-		return "", fmt.Errorf("worktree isolation requires git: %w", err)
+		return fmt.Errorf("worktree isolation requires git: %w", err)
 	}
 	if out, err := exec.CommandContext(ctx, "git", "-C", project.CanonicalPath, "rev-parse", "--is-inside-work-tree").CombinedOutput(); err != nil || strings.TrimSpace(string(out)) != "true" {
-		return "", fmt.Errorf("worktree isolation requires a git repository at %s", project.CanonicalPath)
+		return fmt.Errorf("worktree isolation requires a git repository at %s", project.CanonicalPath)
+	}
+	return nil
+}
+
+func ensureAgentWorktree(ctx context.Context, project store.Project, agent store.Agent) (string, error) {
+	if err := validateWorktreeBase(ctx, project); err != nil {
+		return "", err
 	}
 	dataDir, err := config.DataDir()
 	if err != nil {
