@@ -212,13 +212,13 @@ func (a *Adapter) Plan(ctx context.Context, req projection.Request) (*projection
 		Profile:         normalized.Profile,
 		RoleID:          normalized.RoleID,
 		Scope:           projection.ScopeNexusProfile,
-		Strategy:        projection.ActivationNativeOnLaunch,
+		Strategy:        projection.ActivationNexusOverlay,
 		ManagedRoot:     root,
 		RendererVersion: renderer,
 		SourceHash:      normalized.SourceHash,
 		Artifacts:       artifacts,
 		Warnings: []string{
-			"filesystem materialization can be verified, but OpenCode discovery/activation remains NOT_TESTED until a live provider probe succeeds",
+			"native agent materialization is available, but runtime activation remains NEXUS_OVERLAY until activation/enforcement is E2E-proven",
 		},
 	}
 
