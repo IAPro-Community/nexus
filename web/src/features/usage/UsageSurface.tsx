@@ -22,6 +22,7 @@ import { UsageSummaryStrip } from './UsageSummaryStrip';
 import {
   filterAccounts,
   groupAccountsByProvider,
+  installedProvidersWithoutAccounts,
   summarizeAccounts,
   type FleetFilterStatus,
 } from './usageModel';
@@ -231,11 +232,10 @@ export const UsageSurface: React.FC = () => {
       `${recommend.recommended.account.provider}:${recommend.recommended.account.profile}`
     : null;
 
-  const unconfiguredClis = useMemo(() => {
-    return installedProviders.filter(
-      (p) => p.installed && p.registration_state === 'INSTALLED_UNREGISTERED',
-    );
-  }, [installedProviders]);
+  const unconfiguredClis = useMemo(
+    () => installedProvidersWithoutAccounts(installedProviders, accounts),
+    [accounts, installedProviders],
+  );
 
   const handleSelectBest = () => {
     if (recommend?.recommended) {
@@ -283,7 +283,37 @@ export const UsageSurface: React.FC = () => {
       {error ? <div className="nx-inline-error">{error}</div> : null}
       {loading ? <Spinner label={t('resources.loading')} /> : null}
 
-      {!loading && accounts.length === 0 ? (
+      {!loading && unconfiguredClis.length > 0 ? (
+        <div className={styles.detectedBanner}>
+          <div className={styles.detectedCopy}>
+            <strong>
+              <Cpu size={15} color="var(--nx-accent)" />
+              {t('usage.installedCliTitle', 'Provedores CLI detectados no sistema')}
+            </strong>
+            <span>{t('usage.installedCliSubtitle')}</span>
+            <div className={styles.detectedChips}>
+              {unconfiguredClis.map((provider) => (
+                <span key={provider.id} className={styles.detectedChip}>
+                  {provider.id} ({provider.version || 'instalado'})
+                </span>
+              ))}
+            </div>
+          </div>
+          <Button
+            size="sm"
+            tone="brand"
+            onClick={() => {
+              setAddAccountTargetProvider(unconfiguredClis.length === 1 ? unconfiguredClis[0].id : '');
+              setShowAddAccount(true);
+            }}
+          >
+            <Plus size={13} />
+            {t('usage.addAccount', 'Registrar')}
+          </Button>
+        </div>
+      ) : null}
+
+      {!loading && accounts.length === 0 && unconfiguredClis.length === 0 ? (
         <EmptyState
           icon={<Gauge size={20} />}
           title={t('resources.empty')}
@@ -353,40 +383,6 @@ export const UsageSurface: React.FC = () => {
               {railCollapsed ? 'Scheduler' : null}
             </Button>
           </div>
-
-          {unconfiguredClis.length > 0 ? (
-            <div className={styles.detectedBanner}>
-              <div className={styles.detectedCopy}>
-                <strong>
-                  <Cpu size={15} color="var(--nx-accent)" />
-                  {t('usage.installedCliTitle', 'Provedores CLI detectados no sistema')}
-                </strong>
-                <span>{t('usage.installedCliSubtitle')}</span>
-                <div className={styles.detectedChips}>
-                  {unconfiguredClis.map((c) => (
-                    <span key={c.id} className={styles.detectedChip}>
-                      {c.id} ({c.version || 'instalado'})
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <Button
-                size="sm"
-                tone="brand"
-                onClick={() => {
-                  if (unconfiguredClis.length === 1) {
-                    setAddAccountTargetProvider(unconfiguredClis[0].id);
-                  } else {
-                    setAddAccountTargetProvider('');
-                  }
-                  setShowAddAccount(true);
-                }}
-              >
-                <Plus size={13} />
-                {t('usage.addAccount', 'Registrar')}
-              </Button>
-            </div>
-          ) : null}
 
           <div className={styles.layout} data-rail-collapsed={railCollapsed}>
             <div className={styles.main}>
