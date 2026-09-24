@@ -228,6 +228,24 @@ Quando o host não fornece seleção nativa verificável, o Nexus mantém a
 experiência de papel através do compilador de contexto existente
 (`NEXUS_OVERLAY`).
 
+### Estado implementado no candidato beta.2
+
+Para OpenCode, a implementação atual separa explicitamente quatro níveis:
+
+```text
+materialization   -> arquivo/manifest gerenciado pelo Nexus
+filesystem verify -> hash + ownership
+discovery         -> OpenCode enumera nexus-<role> sem LLM
+activation        -> opt-in externo executa opencode run --agent nexus-<role>
+```
+
+O activation probe pode consumir quota/custo e por isso exige confirmação
+explícita; nunca é disparado por Plan/Apply/Verify. Quando o marker de ativação
+é observado, o binding registra `NATIVE_ON_LAUNCH` vinculado ao receipt
+corrente. Isso **não** altera `Enforcement`: READ_ONLY/VERIFY_ONLY continuam
+`BEST_EFFORT`/`UNVERIFIED` até existir prova E2E separada de bloqueio de
+escrita. Receipts antigos não podem remover nem promover uma projeção mais nova.
+
 ### 7. Enforcement é distinto de instrução
 
 Um prompt com “não altere arquivos” não é sandbox.
