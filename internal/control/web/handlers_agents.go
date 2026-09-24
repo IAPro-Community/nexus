@@ -200,6 +200,7 @@ func (h *NexusHandler) handleAgentAsk(w http.ResponseWriter, r *http.Request) {
 		Prompt               string   `json:"prompt"`
 		SkillIDs             []string `json:"skill_ids,omitempty"`
 		Scope                string   `json:"scope,omitempty"`
+		ExecutionRoleID      string   `json:"execution_role,omitempty"`
 		StartIfNeeded        bool     `json:"start_if_needed"`
 		ProjectID            string   `json:"project_id,omitempty"`
 		ContextFingerprintID string   `json:"context_fingerprint_id,omitempty"`
@@ -238,6 +239,7 @@ func (h *NexusHandler) handleAgentAsk(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.nexus.AskAgentWithOptions(r.Context(), id, compiled.CompiledPrompt, nexus.AskAgentOptions{
 		StartIfNeeded:         body.StartIfNeeded,
+		ExecutionRoleID:       body.ExecutionRoleID,
 		CompileSpecialization: false,
 	})
 	if err != nil {
