@@ -15,13 +15,13 @@ func TestMissionAdmissionBlockersReportsExactFailures(t *testing.T) {
 		Ready: false,
 		Checks: []FlowPreflightCheck{
 			{Key: "dag_validity", Status: "PASS", Summary: "ok"},
-			{Key: "worktree_isolation", Status: "FAIL", Summary: "execução autônoma exige DefaultIsolation=worktree no projeto"},
+			{Key: "worktree_isolation", Status: "FAIL", Summary: "step build pins Agent unsafe without effective Isolation=worktree"},
 			{Key: "resources", Status: "FAIL", Summary: "nenhum recurso de provedor disponível para admissão strict"},
 		},
 	}
 	got := missionAdmissionBlockers(report)
 	for _, want := range []string{
-		"worktree_isolation: execução autônoma exige DefaultIsolation=worktree no projeto",
+		"worktree_isolation: step build pins Agent unsafe without effective Isolation=worktree",
 		"resources: nenhum recurso de provedor disponível para admissão strict",
 	} {
 		if !strings.Contains(got, want) {
