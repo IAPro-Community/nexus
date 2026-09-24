@@ -7,6 +7,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/control/ids"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // PAUSED and BLOCKED_NEEDS_USER are non-terminal: reporting them as
@@ -84,5 +85,42 @@ func TestWaitDispatchRejectsNilAcceptedResult(t *testing.T) {
 	n := openTestNexus(t)
 	if _, err := n.WaitDispatch(context.Background(), nil); err == nil {
 		t.Fatal("nil accepted result must be rejected")
+	}
+}
+
+func TestStartDispatchReturnsPreparedPlanOnAdmissionFailure(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{
+		Name:             "Blocked promotion",
+		CanonicalPath:    t.TempDir(),
+		DefaultIsolation: "project",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := n.StartDispatch(context.Background(), DispatchRequest{
+		ProjectID:            project.ID,
+		Goal:                 "implemente backend e frontend com testes",
+		SourcePrompt:         "implemente backend e frontend com testes",
+		DelegationMode:       DelegationAuto,
+		AutoPromoteToMission: true,
+		PromotionSource:      "test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result == nil || result.Status != DispatchFailed {
+		t.Fatalf("expected failed strict admission, got %+v", result)
+	}
+	if strings.TrimSpace(result.PlanID) == "" {
+		t.Fatalf("admission failure must expose prepared plan lineage: %+v", result)
+	}
+	if !strings.Contains(strings.ToLower(result.Error), "worktree") {
+		t.Fatalf("expected actionable worktree blocker, got %q", result.Error)
 	}
 }
