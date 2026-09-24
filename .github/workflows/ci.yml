@@ -28,15 +28,23 @@ jobs:
     name: Frontend (Format, Lint, Styles, Typecheck, Unit & Build)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
-      - name: Recover reusable runner workspace
+      - name: Quarantine legacy root-owned dist
         shell: bash
         run: |
           set -euo pipefail
-          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
-          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+          stale="$GITHUB_WORKSPACE/.runner-stale-dist-root"
+          if [ -d "$GITHUB_WORKSPACE/dist" ] && [ ! -e "$stale" ]; then
             rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
           fi
       - uses: actions/checkout@v5
+        with:
+          clean: false
+      - name: Restore deterministic checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard HEAD
+          git clean -ffdx -e '.runner-stale-dist-root/'
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
@@ -80,15 +88,23 @@ jobs:
     name: Release configuration
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
-      - name: Recover reusable runner workspace
+      - name: Quarantine legacy root-owned dist
         shell: bash
         run: |
           set -euo pipefail
-          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
-          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+          stale="$GITHUB_WORKSPACE/.runner-stale-dist-root"
+          if [ -d "$GITHUB_WORKSPACE/dist" ] && [ ! -e "$stale" ]; then
             rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
           fi
       - uses: actions/checkout@v5
+        with:
+          clean: false
+      - name: Restore deterministic checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard HEAD
+          git clean -ffdx -e '.runner-stale-dist-root/'
       - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
@@ -99,15 +115,23 @@ jobs:
     name: Security
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
-      - name: Recover reusable runner workspace
+      - name: Quarantine legacy root-owned dist
         shell: bash
         run: |
           set -euo pipefail
-          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
-          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+          stale="$GITHUB_WORKSPACE/.runner-stale-dist-root"
+          if [ -d "$GITHUB_WORKSPACE/dist" ] && [ ! -e "$stale" ]; then
             rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
           fi
       - uses: actions/checkout@v5
+        with:
+          clean: false
+      - name: Restore deterministic checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard HEAD
+          git clean -ffdx -e '.runner-stale-dist-root/'
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25.14'
@@ -119,15 +143,23 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: frontend
     steps:
-      - name: Recover reusable runner workspace
+      - name: Quarantine legacy root-owned dist
         shell: bash
         run: |
           set -euo pipefail
-          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
-          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+          stale="$GITHUB_WORKSPACE/.runner-stale-dist-root"
+          if [ -d "$GITHUB_WORKSPACE/dist" ] && [ ! -e "$stale" ]; then
             rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
           fi
       - uses: actions/checkout@v5
+        with:
+          clean: false
+      - name: Restore deterministic checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard HEAD
+          git clean -ffdx -e '.runner-stale-dist-root/'
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25.14'
@@ -239,15 +271,23 @@ jobs:
     name: Linux E2E (Go 1.25.14)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
-      - name: Recover reusable runner workspace
+      - name: Quarantine legacy root-owned dist
         shell: bash
         run: |
           set -euo pipefail
-          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
-          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+          stale="$GITHUB_WORKSPACE/.runner-stale-dist-root"
+          if [ -d "$GITHUB_WORKSPACE/dist" ] && [ ! -e "$stale" ]; then
             rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
           fi
       - uses: actions/checkout@v5
+        with:
+          clean: false
+      - name: Restore deterministic checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard HEAD
+          git clean -ffdx -e '.runner-stale-dist-root/'
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25.14'
@@ -304,15 +344,23 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: frontend
     steps:
-      - name: Recover reusable runner workspace
+      - name: Quarantine legacy root-owned dist
         shell: bash
         run: |
           set -euo pipefail
-          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
-          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+          stale="$GITHUB_WORKSPACE/.runner-stale-dist-root"
+          if [ -d "$GITHUB_WORKSPACE/dist" ] && [ ! -e "$stale" ]; then
             rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
           fi
       - uses: actions/checkout@v5
+        with:
+          clean: false
+      - name: Restore deterministic checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard HEAD
+          git clean -ffdx -e '.runner-stale-dist-root/'
       - name: Verify Wails system dependencies
         run: |
           pkg-config --exists gtk+-3.0
@@ -860,15 +908,23 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: [test-linux, frontend, desktop-linux]
     steps:
-      - name: Recover reusable runner workspace
+      - name: Quarantine legacy root-owned dist
         shell: bash
         run: |
           set -euo pipefail
-          stale="$GITHUB_WORKSPACE/../dist-root-stale-${GITHUB_RUN_ID}-${GITHUB_JOB}"
-          if [ -d "$GITHUB_WORKSPACE/dist" ]; then
+          stale="$GITHUB_WORKSPACE/.runner-stale-dist-root"
+          if [ -d "$GITHUB_WORKSPACE/dist" ] && [ ! -e "$stale" ]; then
             rm -rf "$GITHUB_WORKSPACE/dist" 2>/dev/null || mv "$GITHUB_WORKSPACE/dist" "$stale"
           fi
       - uses: actions/checkout@v5
+        with:
+          clean: false
+      - name: Restore deterministic checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard HEAD
+          git clean -ffdx -e '.runner-stale-dist-root/'
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25.14'
