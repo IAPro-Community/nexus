@@ -277,7 +277,7 @@ func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, appr
 
 func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID string, approvedRevision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, options MissionAdmissionOptions) (*runner.MissionRun, error) {
 	if err := n.RequireCapability(ctx, entitlement.CapMissionsRun); err != nil {
-		return nil, fmt.Errorf("mission entitlement denied: %w", err)
+		return nil, missionAdmissionError("entitlement", fmt.Sprintf("mission entitlement denied: %v", err))
 	}
 	st, err := n.OpenProject()
 	if err != nil {
@@ -288,7 +288,7 @@ func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID s
 		return nil, err
 	}
 	if err := ensureDelegationApproved(plan); err != nil {
-		return nil, err
+		return nil, missionAdmissionError("delegation", err.Error())
 	}
 	if plan.CurrentRevision != approvedRevision {
 		return nil, fmt.Errorf("approved plan revision %d is stale; current is %d", approvedRevision, plan.CurrentRevision)
