@@ -24,3 +24,128 @@ func TestResolveCommandTemplateRejectsShellOperators(t *testing.T) {
 		t.Fatal("expected shell operator rejection")
 	}
 }
+
+
+func TestResolveCommandTemplateContextExpandsProviderTargetMetadata(t *testing.T) {
+	bin, args, err := ResolveCommandTemplateContext(
+		`docker exec -it -w "{cwd}" vpn-dev-workspace-terminal-1 {provider} --profile {profile} --home "{profile_home}" {args}`,
+		CommandTemplateContext{
+			Cwd:         "/work/project",
+			Args:        []string{"run", "describe the task"},
+			Provider:    "opencode",
+			Profile:     "default",
+			ProfileHome: "/home/developer",
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bin != "docker" {
+		t.Fatalf("binary = %q, want docker", bin)
+	}
+	want := []string{
+		"exec", "-it", "-w", "/work/project", "vpn-dev-workspace-terminal-1",
+		"opencode", "--profile", "default", "--home", "/home/developer",
+		"run", "describe the task",
+	}
+	if !reflect.DeepEqual(args, want) {
+		t.Fatalf("args = %#v, want %#v", args, want)
+	}
+}
+
+func TestResolveCommandTemplateContextRequiresConfiguredProfileHome(t *testing.T) {
+	_, _, err := ResolveCommandTemplateContext(
+		`docker exec target {provider} --home "{profile_home}" {args}`,
+		CommandTemplateContext{Provider: "opencode", Args: []string{"run"}},
+	)
+	if err == nil {
+		t.Fatal("expected missing profile_home error")
+	}
+}
+
+func TestResolveCommandTemplateContextRejectsArgsInsideToken(t *testing.T) {
+	_, _, err := ResolveCommandTemplateContext(
+		`docker exec target opencode --args={args}`,
+		CommandTemplateContext{Args: []string{"run"}},
+	)
+	if err == nil {
+		t.Fatal("expected embedded {args} to be rejected")
+	}
+}
+
+
+func TestResolveCommandTemplateContextPreservesQuotedWindowsExecutablePath(t *testing.T) {
+	bin, args, err := ResolveCommandTemplateContext(
+		`"C:\Program Files\Nexus Tools\wrapper.exe" --workspace "{cwd}" {provider} {args}`,
+		CommandTemplateContext{
+			Cwd:      `C:\Users\dev\project`,
+			Provider: "opencode",
+			Args:     []string{"run", "inspect"},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bin != `C:\Program Files\Nexus Tools\wrapper.exe` {
+		t.Fatalf("windows executable path corrupted: %q", bin)
+	}
+	want := []string{"--workspace", `C:\Users\dev\project`, "opencode", "run", "inspect"}
+	if !reflect.DeepEqual(args, want) {
+		t.Fatalf("args = %#v, want %#v", args, want)
+	}
+}
+
+
+func TestResolveCommandTemplateContextSeparatesHostAndTargetWorkspace(t *testing.T) {
+	bin, args, err := ResolveCommandTemplateContext(
+		`docker exec -w "{target_cwd}" target {provider} {args}`,
+		CommandTemplateContext{
+			Cwd:       `C:\Users\dev\project`,
+			TargetCwd: "/workspace",
+			Provider:  "opencode",
+			Args:      []string{"run", "inspect"},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bin != "docker" {
+		t.Fatalf("bin = %q", bin)
+	}
+	want := []string{"exec", "-w", "/workspace", "target", "opencode", "run", "inspect"}
+	if !reflect.DeepEqual(args, want) {
+		t.Fatalf("args = %#v, want %#v", args, want)
+	}
+}
+
+func TestResolveCommandTemplateContextTargetWorkspaceFallsBackToHostCwd(t *testing.T) {
+	_, args, err := ResolveCommandTemplateContext(
+		`docker exec -w "{target_cwd}" target {provider} {args}`,
+		CommandTemplateContext{
+			Cwd:      "/srv/project",
+			Provider: "opencode",
+			Args:     []string{"run"},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(args) < 3 || args[2] != "/srv/project" {
+		t.Fatalf("target_cwd fallback missing: %#v", args)
+	}
+}
+
+
+func TestResolveCommandTemplateRejectsQuotedShellOperators(t *testing.T) {
+	for _, template := range []string{
+		`bash -c "echo ok; rm -rf /" {args}`,
+		`ssh host "echo ok && whoami" {args}`,
+		`cmd /c "echo %PATH% > out.txt" {args}`,
+	} {
+		if _, _, err := ResolveCommandTemplateContext(template, CommandTemplateContext{
+			Args: []string{"run"},
+		}); err == nil {
+			t.Fatalf("expected quoted shell operator rejection for %q", template)
+		}
+	}
+}

@@ -202,7 +202,7 @@ Configuração documentada mas não exercitada em teste deve permanecer
 
 Um host possuir arquivo de agent não prova que o Nexus consegue ativá-lo.
 
-A v1.1 tratará separadamente:
+A V1 trata separadamente:
 
 ```text
 DISCOVERY       host encontra a definição
@@ -227,6 +227,24 @@ const (
 Quando o host não fornece seleção nativa verificável, o Nexus mantém a
 experiência de papel através do compilador de contexto existente
 (`NEXUS_OVERLAY`).
+
+### Estado implementado no candidato beta.2
+
+Para OpenCode, a implementação atual separa explicitamente quatro níveis:
+
+```text
+materialization   -> arquivo/manifest gerenciado pelo Nexus
+filesystem verify -> hash + ownership
+discovery         -> OpenCode enumera nexus-<role> sem LLM
+activation        -> opt-in externo executa opencode run --agent nexus-<role>
+```
+
+O activation probe pode consumir quota/custo e por isso exige confirmação
+explícita; nunca é disparado por Plan/Apply/Verify. Quando o marker de ativação
+é observado, o binding registra `NATIVE_ON_LAUNCH` vinculado ao receipt
+corrente. Isso **não** altera `Enforcement`: READ_ONLY/VERIFY_ONLY continuam
+`BEST_EFFORT`/`UNVERIFIED` até existir prova E2E separada de bloqueio de
+escrita. Receipts antigos não podem remover nem promover uma projeção mais nova.
 
 ### 7. Enforcement é distinto de instrução
 
@@ -304,7 +322,7 @@ continua sendo o caminho canônico.
 
 Host-native subagents podem ser usados como capacidade auxiliar somente quando
 o contrato de execução preservar lineage, limits e evidence. Na primeira
-entrega da v1.1, native subagents são prioritariamente recurso de
+entrega da V1, native subagents são prioritariamente recurso de
 Direct/Interactive e não uma nova state machine de Mission.
 
 ### 10. UX pertence ao Nexus
@@ -354,7 +372,7 @@ filesystem/configuração que não são parte do processo supervisionado.
 
 ## Matriz inicial de estratégia
 
-Esta tabela é hipótese de implementação, não certificação. A v1.1 só promove
+Esta tabela é hipótese de implementação, não certificação. A V1 só promove
 uma célula após probe/version/evidência no ambiente suportado.
 
 | Provider | Definições nativas | Primary | Subagent | Estratégia inicial |
@@ -395,7 +413,7 @@ mantém outra cópia da role.
 
 `AgentMode.DefaultProvider` não deve se tornar autoridade.
 
-Na v1.1 será deprecado semanticamente em favor de preferência/requisitos:
+Na V1 será deprecado semanticamente em favor de preferência/requisitos:
 
 ```text
 ExecutionRole
@@ -406,6 +424,23 @@ ExecutionRole
 
 Uma preferência pode ser `PREFER`; somente policy explícita do usuário pode
 produzir `PIN`.
+
+### Custom execution targets
+
+Agent Projection é independente de como o provider é iniciado. O provider
+continua sendo `opencode`, `codex`, `claude` etc.; Docker/VPN/WSL/SSH são
+targets de execução, não novos providers.
+
+O launcher mantém `command_template` como contrato argv-only, com placeholders
+tipados e sem shell. `cwd` (host) e `target_cwd` (target) são distintos para
+suportar mounts com caminhos diferentes, especialmente Windows → Docker. Para projeção nativa em target customizado, uma
+`target_profile_home` compartilhada precisa ser explicitamente configurada e
+validada. A versão do provider deve ser obtida no target por probe bounded quando
+possível.
+
+Ausência de filesystem compartilhado não impede a execução customizada: ela
+degrada apenas a Agent Projection nativa, preservando Nexus overlay e reportando
+a qualidade real do enforcement.
 
 ## Consequências
 
@@ -464,11 +499,11 @@ Rejeitado como default por risco de sobrescrita, segurança e falta de rollback.
 10. HUD/UX polish;
 11. cross-platform certification.
 
-## Critério de promoção para ACCEPTED
+## Critério de conclusão para a V1 estável
 
-Este ADR só deve passar de `PROPOSED` para `ACCEPTED` quando:
+O Agent Interop só pode ser considerado concluído para `v1.0.0` quando:
 
-- a v1.0.0 estiver preservada como baseline estável/tag imutável;
+- o baseline beta candidato estiver preservado por SHA/tag;
 - os contratos Go e migration tiverem testes;
 - pelo menos dois providers tiverem projection E2E real;
 - read-only não for anunciado como enforced sem prova;

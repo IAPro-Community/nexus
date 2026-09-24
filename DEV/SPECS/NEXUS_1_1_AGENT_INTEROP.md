@@ -562,6 +562,79 @@ https://developers.openai.com/pt-BR/blog/codex-as-a-platform
 - não compartilhar adapter com OpenCode apenas por semelhança histórica;
 - manter provider ID e contrato independentes.
 
+## 11.7 Custom execution targets
+
+A V1 deve suportar provider lógico separado do mecanismo usado para iniciar o
+processo. Um Agent OpenCode pode, por exemplo, executar pelo binário local, por
+Docker/VPN Workspace, Docker Compose, WSL, SSH ou outro wrapper supervisionado.
+
+O contrato de compatibilidade é `command_template`, argv-only e sem shell:
+
+```text
+{cwd}
+{target_cwd}
+{args}
+{provider}
+{profile}
+{profile_home}
+```
+
+`{args}` deve ocupar um token inteiro. Operadores de shell, redirecionamento e
+command substitution continuam proibidos.
+
+Metadados tipados da V1:
+
+```text
+execution_adapter=command_template
+target_kind=local|docker|docker-compose|wsl|ssh|custom
+target_workspace=<path visible inside target>       # optional, defaults to {cwd}
+target_profile_home=<host-visible shared home>   # opcional
+target_probe_template=<safe argv template>       # recomendado
+target_provider_version=<declared fallback>      # não preferido
+```
+
+`{cwd}` é o workspace no host Nexus. `{target_cwd}` é o caminho visto pelo
+target e cai para `{cwd}` quando não configurado. Isso cobre, por exemplo,
+Windows `C:\\...` montado como `/workspace` no container.
+
+Para targets como `vpn-dev-workspace`, execução customizada não depende de
+Agent Projection. Se `target_profile_home` não for compartilhada/visível ao
+Nexus, o runtime continua funcionando por command template + Nexus overlay, mas
+a projeção nativa permanece indisponível/UNVERIFIED.
+
+Quando uma home compartilhada existe, o Nexus pode materializar os agents
+nativos no mesmo filesystem visto pelo OpenCode no target. A versão do provider
+deve preferencialmente ser detectada pelo `target_probe_template` no próprio
+target, e não inferida a partir do host.
+
+### VPN Dev Workspace compatibility
+
+A V1 considera os dois layouts reais do `vpn-dev-workspace`:
+
+- Linux/WSL Linux filesystem: home e workspace são bind-mounted no mesmo caminho.
+  `target_workspace` pode permanecer vazio e `target_profile_home` pode apontar
+  para a home compartilhada do host.
+- Windows + Docker Desktop: o projeto Windows é montado em `/workspace` e a
+  home Linux padrão vive no volume Docker `vpn_windows_home`. Configure
+  `target_workspace=/workspace`. Não inventar uma `target_profile_home`
+  host-visible para esse volume: custom execution continua suportada e a role
+  degrada para Nexus overlay/BEST_EFFORT até existir um transporte de
+  materialização verificável para o volume.
+
+Exemplo Windows:
+
+```text
+provider=opencode
+target_kind=docker
+target_workspace=/workspace
+command_template=docker exec -it -w "{target_cwd}" vpn-dev-workspace-terminal-1 {provider} {args}
+target_probe_template=docker exec vpn-dev-workspace-terminal-1 {provider} {args}
+```
+
+Read-only em custom target nunca é automaticamente ENFORCED. Até existir
+discovery + activation + permission-enforcement evidence do target, a UI e o
+Core devem permanecer em BEST_EFFORT/UNVERIFIED.
+
 ## 12. Correções prévias obrigatórias
 
 ### P0 — capability truth
@@ -1198,20 +1271,19 @@ Não bloquear M1–M7 em M8.
 
 ## 30. Branch strategy
 
-Enquanto v1.0.0 não estiver publicada/certificada, esta branch permanece
-planning-only:
+A especificação deixou de ser planning-only: o escopo foi absorvido pela V1 beta. A implementação deve permanecer em branches funcionais da linha V1:
 
 ```text
-feat/nexus-1.1-agent-interop-spec
+feat/v1-agent-interop
 ```
 
 Implementação funcional deve iniciar de uma `main` que contenha o baseline
 v1.0.0 preservado e os merges pós-v1 intencionais.
 
-Branch funcional sugerida:
+Branches funcionais devem explicitar o escopo V1, por exemplo:
 
 ```text
-feat/nexus-agent-interop
+feat/v1-opencode-agent-projection
 ```
 
 Evitar desenvolver Agent Interop dentro de:
@@ -1322,7 +1394,7 @@ Sem conteúdo de prompt:
 
 ## 34. Critérios para V1.1 RC
 
-Para declarar `NEXUS_1_1_AGENT_INTEROP_CANDIDATE = GO`:
+Para declarar `NEXUS_V1_AGENT_INTEROP = GO`:
 
 - P0 truth fixes concluídos;
 - M1–M3 completos;

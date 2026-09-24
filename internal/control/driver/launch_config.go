@@ -55,6 +55,37 @@ func ApplyLaunchConfiguration(provider, model string, options map[string]any, ba
 			}
 			// Resolved by launcher after provider arguments are normalized.
 			continue
+		case "target_kind":
+			kind, ok := value.(string)
+			if !ok {
+				return nil, fmt.Errorf("provider option target_kind must be a string")
+			}
+			switch strings.ToLower(strings.TrimSpace(kind)) {
+			case "", "local", "docker", "docker-compose", "wsl", "ssh", "custom":
+			default:
+				return nil, fmt.Errorf("provider option target_kind %q is not supported", kind)
+			}
+			continue
+		case "target_workspace":
+			if _, ok := value.(string); !ok {
+				return nil, fmt.Errorf("provider option target_workspace must be a string")
+			}
+			continue
+		case "target_profile_home":
+			if _, ok := value.(string); !ok {
+				return nil, fmt.Errorf("provider option target_profile_home must be a string")
+			}
+			continue
+		case "target_probe_template":
+			if _, ok := value.(string); !ok {
+				return nil, fmt.Errorf("provider option target_probe_template must be a string")
+			}
+			continue
+		case "target_provider_version":
+			if _, ok := value.(string); !ok {
+				return nil, fmt.Errorf("provider option target_provider_version must be a string")
+			}
+			continue
 		case "execution_adapter", "origin", "role_type":
 			// Agent metadata retained in its immutable config revision.
 			continue

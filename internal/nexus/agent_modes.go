@@ -275,9 +275,10 @@ func validateAgentModeConfiguration(cfg AgentConfig) error {
 	if strings.EqualFold(agentModeStringOption(cfg.Options, "mode"), "YOLO") {
 		return fmt.Errorf("agent mode %s is read-only by default and cannot use YOLO mode", mode.ID)
 	}
-	if strings.EqualFold(agentModeStringOption(cfg.Options, "execution_adapter"), "command_template") {
-		return fmt.Errorf("agent mode %s is read-only by default; custom command templates have no verified read-only contract", mode.ID)
-	}
+	// Custom command targets are allowed in Safe mode. They do not inherit a
+	// read-only guarantee from the AgentMode: ExecutionRole/projection capability
+	// evidence must report BEST_EFFORT/UNVERIFIED until the target proves native
+	// enforcement. YOLO and known dangerous bypass arguments remain rejected.
 	for _, arg := range agentModeStringSliceOption(cfg.Options, "extra_args") {
 		normalized := strings.ToLower(strings.TrimSpace(arg))
 		if normalized == "--yolo" || normalized == "--dangerously-skip-permissions" || normalized == "--full-auto" {

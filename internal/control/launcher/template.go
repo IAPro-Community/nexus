@@ -5,11 +5,40 @@ import (
 	"strings"
 )
 
-// ResolveCommandTemplate expands a safe command template. Templates are tokenized
-// directly (never through a shell), so a configured Agent cannot accidentally turn
-// its workspace or prompt arguments into shell code. Supported placeholders are
-// {cwd} and {args}; {args} must occupy a whole token and expands to all runtime args.
+// CommandTemplateContext contains the provider-neutral values that a custom
+// execution target may interpolate. Templates are still argv-only and never
+// evaluated by a shell.
+type CommandTemplateContext struct {
+	Cwd         string
+	TargetCwd   string
+	Args        []string
+	Provider    string
+	Profile     string
+	ProfileHome string
+}
+
+// ResolveCommandTemplate preserves the v1 compatibility API for existing
+// {cwd}/{args} templates.
 func ResolveCommandTemplate(template, cwd string, runtimeArgs []string) (string, []string, error) {
+	return ResolveCommandTemplateContext(template, CommandTemplateContext{
+		Cwd:  cwd,
+		Args: runtimeArgs,
+	})
+}
+
+// ResolveCommandTemplateContext expands a safe custom command template.
+//
+// Supported placeholders:
+//   {cwd}          host-side Nexus project workspace
+//   {target_cwd}   workspace path as seen by the custom target; falls back to {cwd}
+//   {args}         runtime/provider arguments; must occupy a whole token
+//   {provider}     logical Nexus provider id
+//   {profile}      logical Nexus profile id
+//   {profile_home} optional shared provider/profile home exposed by the target
+//
+// The grammar is intentionally not a shell. Pipes, redirects, command
+// substitution and environment interpolation remain rejected.
+func ResolveCommandTemplateContext(template string, ctx CommandTemplateContext) (string, []string, error) {
 	tokens, err := splitCommandTemplate(template)
 	if err != nil {
 		return "", nil, err
@@ -17,17 +46,49 @@ func ResolveCommandTemplate(template, cwd string, runtimeArgs []string) (string,
 	if len(tokens) == 0 {
 		return "", nil, fmt.Errorf("command template is empty")
 	}
+
+	targetCwd := strings.TrimSpace(ctx.TargetCwd)
+	if targetCwd == "" {
+		targetCwd = ctx.Cwd
+	}
+	values := map[string]string{
+		"{cwd}":        ctx.Cwd,
+		"{target_cwd}": targetCwd,
+		"{provider}":   strings.TrimSpace(ctx.Provider),
+		"{profile}":    strings.TrimSpace(ctx.Profile),
+	}
+	if strings.TrimSpace(ctx.ProfileHome) != "" {
+		values["{profile_home}"] = ctx.ProfileHome
+	}
+
 	var out []string
 	seenArgs := false
 	for _, token := range tokens {
-		switch token {
-		case "{args}":
-			out = append(out, runtimeArgs...)
+		if token == "{args}" {
+			out = append(out, ctx.Args...)
 			seenArgs = true
-		default:
-			out = append(out, strings.ReplaceAll(token, "{cwd}", cwd))
+			continue
 		}
+		if strings.Contains(token, "{args}") {
+			return "", nil, fmt.Errorf("{args} must occupy a whole command-template token")
+		}
+
+		expanded := token
+		for placeholder, value := range values {
+			expanded = strings.ReplaceAll(expanded, placeholder, value)
+		}
+		if strings.Contains(expanded, "{profile_home}") {
+			return "", nil, fmt.Errorf("command template requires {profile_home}, but no shared profile home was configured")
+		}
+		if strings.Contains(expanded, "{provider}") {
+			return "", nil, fmt.Errorf("command template requires {provider}, but no provider was configured")
+		}
+		if strings.Contains(expanded, "{profile}") {
+			return "", nil, fmt.Errorf("command template requires {profile}, but no profile was configured")
+		}
+		out = append(out, expanded)
 	}
+
 	if !seenArgs {
 		return "", nil, fmt.Errorf("command template must include {args} as its own argument")
 	}
@@ -50,22 +111,41 @@ func splitCommandTemplate(input string) ([]string, error) {
 			current.Reset()
 		}
 	}
+
 	for _, r := range input {
 		if escaped {
-			current.WriteRune(r)
+			switch r {
+			case ' ', '\t', '\n', '\\', '\'', '"':
+				current.WriteRune(r)
+			default:
+				// Preserve a Windows/path backslash when it was not escaping a
+				// grammar metacharacter (for example C:\\Tools\\opencode.exe).
+				current.WriteRune('\\')
+				current.WriteRune(r)
+			}
 			escaped = false
 			continue
 		}
-		if r == '\\' {
-			escaped = true
-			continue
-		}
+
 		if quote != 0 {
 			if r == quote {
 				quote = 0
-			} else {
+				continue
+			}
+			// Quotes are argv grouping only; they never enable a shell. Reject
+			// shell metacharacters even inside quotes so wrappers cannot smuggle
+			// bash -c/cmd /c payloads through a visually safe template.
+			switch r {
+			case '|', ';', '&', '<', '>', '`', '$':
+				return nil, fmt.Errorf("command template cannot contain shell operators")
+			default:
 				current.WriteRune(r)
 			}
+			continue
+		}
+
+		if r == '\\' {
+			escaped = true
 			continue
 		}
 		switch r {

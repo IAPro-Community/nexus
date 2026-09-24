@@ -122,3 +122,71 @@ func (s *Store) RuntimeExecutionRoleByRuntimeID(runtimeID string) (RuntimeExecut
 	}
 	return s.RuntimeExecutionRole(generationID)
 }
+
+
+// AttachRuntimeExecutionRoleProjection links a materialized native-agent
+// projection to the runtime role without changing the role or claiming native
+// activation. ActivationStrategy/enforcement remain owned by the execution-role
+// service and provider evidence.
+func (s *Store) AttachRuntimeExecutionRoleProjection(runtimeGenerationID, receiptID string) error {
+	runtimeGenerationID = strings.TrimSpace(runtimeGenerationID)
+	receiptID = strings.TrimSpace(receiptID)
+	if runtimeGenerationID == "" || receiptID == "" {
+		return errors.New("runtime_generation_id and projection receipt id are required")
+	}
+	res, err := s.db.Exec(`UPDATE runtime_execution_roles
+		SET projection_receipt_id=?
+		WHERE runtime_generation_id=?`, receiptID, runtimeGenerationID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// DetachRuntimeExecutionRoleProjection clears the projection link only when the
+// caller still owns the current receipt. This prevents an old/superseded
+// receipt from detaching a newer native projection.
+func (s *Store) DetachRuntimeExecutionRoleProjection(runtimeGenerationID, receiptID string) error {
+	runtimeGenerationID = strings.TrimSpace(runtimeGenerationID)
+	receiptID = strings.TrimSpace(receiptID)
+	if runtimeGenerationID == "" || receiptID == "" {
+		return errors.New("runtime_generation_id and projection receipt id are required")
+	}
+	res, err := s.db.Exec(`UPDATE runtime_execution_roles
+		SET projection_receipt_id='', activation_strategy='NEXUS_OVERLAY'
+		WHERE runtime_generation_id=? AND projection_receipt_id=?`, runtimeGenerationID, receiptID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+
+// MarkRuntimeExecutionRoleActivation records native activation evidence without
+// changing enforcement. The receipt predicate prevents stale evidence from
+// promoting a newer projection accidentally.
+func (s *Store) MarkRuntimeExecutionRoleActivation(runtimeGenerationID, receiptID, strategy string) error {
+	runtimeGenerationID = strings.TrimSpace(runtimeGenerationID)
+	receiptID = strings.TrimSpace(receiptID)
+	strategy = strings.TrimSpace(strategy)
+	if runtimeGenerationID == "" || receiptID == "" || strategy == "" {
+		return errors.New("runtime_generation_id, projection receipt id and activation strategy are required")
+	}
+	res, err := s.db.Exec(`UPDATE runtime_execution_roles
+		SET activation_strategy=?
+		WHERE runtime_generation_id=? AND projection_receipt_id=?`,
+		strategy, runtimeGenerationID, receiptID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

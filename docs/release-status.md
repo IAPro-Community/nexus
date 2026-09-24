@@ -29,7 +29,9 @@ O candidato `v1.0.0-beta.2` passa a concentrar:
 - isolamento autônomo corrigido para ser efetivo por Agent: `AUTO` ignora Agents inseguros, `CREATE` usa worktree, `EXISTING` inseguro bloqueia, e override `project` não contorna default `worktree`;
 - correção de transporte das teclas de navegação no terminal;
 - OpenCode como provider independente em Usage e Agents;
-- ExecutionRole / Agent Interop já integrado;
+- ExecutionRole / Agent Interop Core já integrado;
+- Agent Projection nativa do OpenCode em implementação como requisito da V1;
+- targets de execução customizados (Docker/VPN Workspace, Docker Compose, WSL, SSH e wrappers) preservam o provider lógico e usam templates argv-only sem shell;
 - acessibilidade por voz e ditado PTY;
 - Nexus HUD;
 - suporte nativo de Windows amd64;
@@ -82,6 +84,8 @@ Antes de criar/publicar a tag:
 - build CLI;
 - `nexus version --json` e `nexus doctor --json`;
 - OpenCode visível em `providers status`, Usage e seleção de Agent quando instalado;
+- Agent Projection OpenCode: materialização no `NEXUS_PROFILE`, ownership fail-closed, receipts duráveis, discovery sem LLM e activation probe explícito (`opencode run --agent`) com confirmação de execução externa; activation comprovada muda apenas a estratégia para `NATIVE_ON_LAUNCH` e **não** promove enforcement para `ENFORCED`;
+- custom target smoke: provider selecionável + `{provider}/{profile}/{cwd}/{target_cwd}/{args}` + probe de versão no próprio target; VPN Dev Workspace deve aceitar host path diferente do container path e materializar no shared `target_profile_home` quando explicitamente configurado;
 - build Desktop/HUD da plataforma em homologação;
 - smoke interativo de setas no Codex;
 - smoke Direct/Lead sem promoção indevida para Mission;
@@ -105,6 +109,8 @@ Além da beta homologada, o SHA final precisa comprovar:
 - update manifest Ed25519;
 - native certification seal;
 - provider smoke autenticado;
+- Agent Interop OpenCode certificado no SHA final: discovery + activation + enforcement read-only sem falsa promoção de `BEST_EFFORT` para `ENFORCED`;
+- custom execution target certificado no SHA final: comando supervisionado sem shell, provider ausente no host permitido, probe bounded, host→target workspace mapping (incluindo Windows `/workspace`), shared profile home explícita e degradação para overlay/BEST_EFFORT quando a projeção nativa não puder ser comprovada;
 - Mission smoke até `COMPLETED_VERIFIED`;
 - recovery/restart;
 - Stable Certification/soak;

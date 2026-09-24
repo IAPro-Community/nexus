@@ -6,6 +6,11 @@ import {
   AgentMode,
   ExecutionRole,
   RuntimeExecutionRoleView,
+  AgentProjectionPlanView,
+  AgentProjectionApplyView,
+  AgentProjectionDiscovery,
+  AgentProjectionActivation,
+  AgentProjectionVerification,
   AgentDetail,
   RuntimeSession,
   AgentConfig,
@@ -257,6 +262,39 @@ export const nexus = {
         method: 'POST',
         body: JSON.stringify({ role_id: roleId }),
       },
+    ),
+  planAgentProjection: (runtimeId: string) =>
+    request<AgentProjectionPlanView>('/api/v1/agent-projections/plan', {
+      method: 'POST',
+      body: JSON.stringify({ runtime_id: runtimeId }),
+    }),
+  applyAgentProjection: (runtimeId: string) =>
+    request<AgentProjectionApplyView>('/api/v1/agent-projections/apply', {
+      method: 'POST',
+      body: JSON.stringify({ runtime_id: runtimeId }),
+    }),
+  probeAgentProjectionDiscovery: (runtimeId: string) =>
+    request<AgentProjectionDiscovery>('/api/v1/agent-projections/discovery', {
+      method: 'POST',
+      body: JSON.stringify({ runtime_id: runtimeId }),
+    }),
+  probeAgentProjectionActivation: (runtimeId: string, confirmExternalExecution = false) =>
+    request<AgentProjectionActivation>('/api/v1/agent-projections/activation', {
+      method: 'POST',
+      body: JSON.stringify({
+        runtime_id: runtimeId,
+        confirm_external_execution: confirmExternalExecution,
+      }),
+    }),
+  verifyAgentProjection: (receiptId: string) =>
+    request<AgentProjectionVerification>(
+      `/api/v1/agent-projections/${encodeURIComponent(receiptId)}/verify`,
+      { method: 'POST', body: '{}' },
+    ),
+  removeAgentProjection: (receiptId: string) =>
+    request<{ status: string }>(
+      `/api/v1/agent-projections/${encodeURIComponent(receiptId)}`,
+      { method: 'DELETE' },
     ),
   listAgents: (projectId: string) => request<Agent[]>(`/api/v1/projects/${projectId}/agents`),
   createAgent: (projectId: string, name: string, role?: string) =>
