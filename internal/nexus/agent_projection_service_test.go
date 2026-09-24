@@ -16,6 +16,11 @@ func TestAgentProjectionTargetProbeHelper(t *testing.T) {
 	if os.Getenv("GO_WANT_AGENT_PROJECTION_PROBE") != "1" {
 		return
 	}
+	joined := strings.Join(os.Args, " ")
+	if strings.Contains(joined, "agent list") || strings.Contains(joined, "debug agents") {
+		fmt.Fprintln(os.Stdout, "nexus-review")
+		os.Exit(0)
+	}
 	fmt.Fprintln(os.Stdout, "1.18.30")
 	os.Exit(0)
 }
@@ -116,6 +121,12 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 	if applied.Receipt == nil || applied.Receipt.ID == "" {
 		t.Fatalf("missing durable projection receipt: %#v", applied)
 	}
+	if applied.Discovery == nil || !applied.Discovery.Discovered || applied.Discovery.Status != "VERIFIED" {
+		t.Fatalf("custom VPN target did not discover projected OpenCode agent: %#v", applied.Discovery)
+	}
+	if applied.Discovery.AgentName != "nexus-review" {
+		t.Fatalf("unexpected discovered agent name: %#v", applied.Discovery)
+	}
 	target := filepath.Join(sharedHome, ".config", "opencode", "agents", "nexus-review.md")
 	raw, err := os.ReadFile(target)
 	if err != nil {
@@ -144,6 +155,14 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 	}
 	if !verification.Verified || len(verification.Warnings) == 0 {
 		t.Fatalf("expected filesystem verification with live-activation warning: %#v", verification)
+	}
+
+	discovery, err := n.ProbeRuntimeAgentProjectionDiscovery(context.Background(), generation.RuntimeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !discovery.Discovered || discovery.Status != "VERIFIED" {
+		t.Fatalf("explicit discovery probe did not verify native agent: %#v", discovery)
 	}
 
 	if err := n.RemoveAgentProjection(context.Background(), applied.Receipt.ID); err != nil {
