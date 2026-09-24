@@ -188,10 +188,18 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 		}, nil
 	}
 
-	// Step 5: Start mission run. Admission failures are typed so interactive
-	// callers can safely distinguish "Mission never started" from an internal
-	// failure whose side-effect boundary is unknown.
-	run, err := n.StartMissionRun(ctx, plan.ID, req.LeadAgentID, runner.DefaultAutonomyContract(), true)
+	// Step 5: Start the freshly-created revision through the same execution
+	// preview, budget and strict-admission spine used by explicit GO. The
+	// upstream promotion policy is the approval boundary for this new revision.
+	run, err := n.StartMissionRunApprovedWithOptions(
+		ctx,
+		plan.ID,
+		plan.CurrentRevision,
+		req.LeadAgentID,
+		runner.DefaultAutonomyContract(),
+		true,
+		MissionAdmissionOptions{},
+	)
 	if err != nil {
 		var admissionErr *MissionAdmissionError
 		if errors.As(err, &admissionErr) {
