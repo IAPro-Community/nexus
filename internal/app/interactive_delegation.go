@@ -40,6 +40,17 @@ func interactiveDelegationMode(session registry.RuntimeSession) nexus.Delegation
 	return nexus.NormalizeDelegationMode(mode)
 }
 
+// confirmedInteractiveDelegationMode converts ASK to AUTO only after the
+// interactive caller has received an explicit "yes". Otherwise a newly built
+// WorkPlan would still carry PendingApproval=true and immediately block at
+// Mission admission even though the user just approved it.
+func confirmedInteractiveDelegationMode(mode nexus.DelegationMode) nexus.DelegationMode {
+	if nexus.NormalizeDelegationMode(mode) == nexus.DelegationAsk {
+		return nexus.DelegationAuto
+	}
+	return nexus.NormalizeDelegationMode(mode)
+}
+
 // startInteractiveDelegatedMission runs only the synchronous admission prefix.
 // The caller keeps the original provider line untouched until this returns
 // ACCEPTED. This prevents an unsuccessful heuristic promotion from consuming
@@ -53,7 +64,7 @@ func startInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSe
 		Goal:                 prompt,
 		SourcePrompt:         prompt,
 		LeadAgentID:          leadAgentID,
-		DelegationMode:       mode,
+		DelegationMode:       confirmedInteractiveDelegationMode(mode),
 		AutoPromoteToMission: true,
 		PromotionSource:      "supervised_cli",
 		SourceRuntimeID:      session.RuntimeID,
