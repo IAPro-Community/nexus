@@ -254,6 +254,9 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		accepted, startErr := startPromotedMission(h.nexus, sess, prompt)
 		if startErr != nil {
 			if fallbackToLead {
+				if accepted != nil && strings.TrimSpace(accepted.PlanID) != "" {
+					_ = h.nexus.DeleteWorkPlan(context.Background(), accepted.PlanID)
+				}
 				// The held prompt is still in the provider TUI. Submit it
 				// unchanged to the Lead instead of consuming it into a failed
 				// heuristic Mission promotion.
@@ -266,12 +269,16 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				return
 			}
 			// Explicit/confirmed Mission requests never silently degrade to
-			// Direct. Clear the held input and show the exact admission blocker.
+			// Direct. Preserve the rejected plan for diagnosis/remediation.
 			_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID)})
+			detail := fmt.Sprintf("Mission solicitada, mas a admissão foi bloqueada: %v", startErr)
+			if accepted != nil && strings.TrimSpace(accepted.PlanID) != "" {
+				detail = fmt.Sprintf("Mission solicitada, mas a admissão foi bloqueada (plan %s): %v", accepted.PlanID, startErr)
+			}
 			_ = safeWriteJSON(TerminalMessage{
 				Type: "promotion",
 				Role: "BLOCKED",
-				Data: fmt.Sprintf("Mission solicitada, mas a admissão foi bloqueada: %v", startErr),
+				Data: detail,
 			})
 			return
 		}
