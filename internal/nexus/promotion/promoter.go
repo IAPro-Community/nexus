@@ -37,12 +37,13 @@ const (
 
 // Decision contains the explainable inputs used to make the action decision.
 type Decision struct {
-	Action      Action                     `json:"action"`
-	Mode        Mode                       `json:"mode"`
-	Reason      string                     `json:"reason"`
-	Intent      nexus.IntentDecision       `json:"intent"`
-	Delegation  nexus.DelegationDecision   `json:"delegation"`
-	MissionTeam nexus.MissionTeamSelection `json:"mission_team"`
+	Action                 Action                     `json:"action"`
+	Mode                   Mode                       `json:"mode"`
+	Reason                 string                     `json:"reason"`
+	Intent                 nexus.IntentDecision       `json:"intent"`
+	Delegation             nexus.DelegationDecision   `json:"delegation"`
+	MissionTeam            nexus.MissionTeamSelection `json:"mission_team"`
+	ExplicitMissionRequest bool                       `json:"explicit_mission_request,omitempty"`
 }
 
 type IntentDecider func(context.Context, string, string) (nexus.IntentDecision, error)
@@ -99,17 +100,25 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 	}
 	delegation := nexus.DecideDelegation(line, mode)
 	selection := nexus.SelectMissionTeam(line, intent)
-	result := Decision{Action: KeepWithLead, Mode: mode, Intent: intent, Delegation: delegation, MissionTeam: selection}
+	explicitRequest := IsExplicitMissionRequest(line)
+	result := Decision{
+		Action:                 KeepWithLead,
+		Mode:                   mode,
+		Intent:                 intent,
+		Delegation:             delegation,
+		MissionTeam:            selection,
+		ExplicitMissionRequest: explicitRequest,
+	}
 	if intent.Strategy == nexus.IntentClarify {
 		result.Reason = "intent requires clarification before promotion"
 		return result, nil
 	}
-	if intent.Strategy == nexus.IntentDirect {
+	if intent.Strategy == nexus.IntentDirect && !explicitRequest {
 		result.Reason = "direct intent stays with the interactive Lead"
 		return result, nil
 	}
 
-	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitMissionRequest(line)
+	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest
 	if !missionWorthy {
 		result.Reason = "interactive plan stays with the Lead; no delegation or decomposition is required"
 		return result, nil
@@ -130,7 +139,11 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 	return result, nil
 }
 
-func explicitMissionRequest(line string) bool {
+// IsExplicitMissionRequest reports whether the user explicitly asked for
+// Mission/autonomous execution. Callers use this to distinguish a user-owned
+// Mission request from a heuristic promotion that may safely fall back to the
+// interactive Lead when admission cannot be satisfied.
+func IsExplicitMissionRequest(line string) bool {
 	lower := strings.ToLower(strings.TrimSpace(line))
 	return strings.Contains(lower, "mission") ||
 		strings.Contains(lower, "missão") ||

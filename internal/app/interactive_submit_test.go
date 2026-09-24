@@ -71,3 +71,32 @@ func TestDecideInteractiveSubmitKeepsOnIntentError(t *testing.T) {
 		t.Fatalf("action=%s", action)
 	}
 }
+
+func TestShouldFallbackPromotionToLeadOnlyForHeuristicPromotions(t *testing.T) {
+	heuristic := promotion.Decision{Action: promotion.Promote}
+	if !shouldFallbackPromotionToLead(heuristic) {
+		t.Fatal("heuristic promotion must fall back to Lead when Mission admission fails")
+	}
+
+	explicit := promotion.Decision{Action: promotion.Promote, ExplicitMissionRequest: true}
+	if shouldFallbackPromotionToLead(explicit) {
+		t.Fatal("explicit Mission request must remain blocked instead of silently executing as Direct")
+	}
+
+	keep := promotion.Decision{Action: promotion.KeepWithLead}
+	if shouldFallbackPromotionToLead(keep) {
+		t.Fatal("non-promotion decision must not be treated as a Mission fallback")
+	}
+}
+
+func TestConfirmedInteractiveDelegationModeClearsAskPendingApproval(t *testing.T) {
+	if got := confirmedInteractiveDelegationMode(nexus.DelegationAsk); got != nexus.DelegationAuto {
+		t.Fatalf("confirmed ASK must dispatch as AUTO, got %s", got)
+	}
+	if got := confirmedInteractiveDelegationMode(nexus.DelegationOff); got != nexus.DelegationOff {
+		t.Fatalf("OFF must remain OFF, got %s", got)
+	}
+	if got := confirmedInteractiveDelegationMode(nexus.DelegationAuto); got != nexus.DelegationAuto {
+		t.Fatalf("AUTO must remain AUTO, got %s", got)
+	}
+}

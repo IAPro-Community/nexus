@@ -631,6 +631,45 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 		promoter := promotion.NewPromoter(n)
 		buf := make([]byte, 1024)
 		pendingASK := ""
+		startMission := func(prompt string, fallbackToLead bool) {
+			accepted, startErr := startInteractiveDelegatedMission(n, session, agentID, prompt, mode)
+			if startErr != nil {
+				safeAdmissionFallback := fallbackToLead && accepted != nil && accepted.FallbackSafe
+				if safeAdmissionFallback {
+					// A heuristic promotion is disposable only when the Core
+					// proved that Mission admission failed before a run existed.
+					// Remove its temporary WorkPlan before returning ownership
+					// to the interactive Lead.
+					if strings.TrimSpace(accepted.PlanID) != "" {
+						_ = n.DeleteWorkPlan(context.Background(), accepted.PlanID)
+					}
+					// The prompt is still present in the provider TUI because
+					// Enter was held. Submit it unchanged to the Lead exactly once.
+					_, _ = conn.Write([]byte("\r"))
+					_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission não admitida (%v); continuando com o Lead.\r\n", startErr)
+					return
+				}
+
+				// Explicit Mission requests never silently degrade to Direct.
+				// The same conservative rule applies to untyped/internal start
+				// failures: without a proven admission boundary, do not risk
+				// duplicate side effects by submitting the prompt to the Lead.
+				_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
+				if accepted != nil && accepted.AdmissionBlocked {
+					if strings.TrimSpace(accepted.PlanID) != "" {
+						_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a admissão foi bloqueada (plan %s, etapa %s): %v\r\n", accepted.PlanID, accepted.AdmissionStage, startErr)
+					} else {
+						_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a admissão foi bloqueada (etapa %s): %v\r\n", accepted.AdmissionStage, startErr)
+					}
+				} else {
+					_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Promoção para Mission falhou antes da confirmação de admissão: %v. Fallback Direct desativado por segurança.\r\n", startErr)
+				}
+				return
+			}
+			_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
+			_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission %s iniciada; o Lead receberá a síntese quando ela estabilizar.\r\n", accepted.RunID)
+			go waitInteractiveDelegatedMission(n, session, agentID, prompt, accepted)
+		}
 		for {
 			nread, err := os.Stdin.Read(buf)
 			if nread > 0 {
@@ -640,9 +679,9 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 					input = input[1:]
 					switch answer {
 					case 'y', 'Y':
-						_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
-						_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Solicitação promovida para Mission; o Lead receberá a síntese ao concluir.\r\n")
-						go runInteractiveDelegatedMission(n, session, agentID, pendingASK, mode)
+						// Confirmation makes this a user-owned Mission request:
+						// admission failure must be shown, not executed as Direct.
+						startMission(pendingASK, false)
 					case 'n', 'N':
 						_, _ = conn.Write([]byte("\r"))
 					default:
@@ -662,22 +701,20 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 				}
 				if event.Submit {
 					for _, line := range event.Submissions {
-						// Hold Enter only long enough to decide KEEP/PROMOTE/ASK.
-						// Provider slash commands (/status, /model, …) submit
-						// immediately so supervised CLIs stay byte-responsive.
-						action := decideInteractiveSubmit(context.Background(), promoter, session.ProjectID, line, mode)
-						if action == promotion.KeepWithLead {
+						// Hold Enter through both routing and Mission admission.
+						// The provider receives the original line only when the
+						// Lead owns it or a heuristic Mission cannot be admitted.
+						decision := decideInteractiveSubmitDecision(context.Background(), promoter, session.ProjectID, line, mode)
+						if decision.Action == promotion.KeepWithLead {
 							_, _ = conn.Write([]byte("\r"))
 							continue
 						}
-						if action == promotion.Ask {
+						if decision.Action == promotion.Ask {
 							_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Promover esta solicitação para uma Mission? [y/n] ")
 							pendingASK = line
 							continue
 						}
-						_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
-						_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Solicitação promovida para Mission; o Lead receberá a síntese ao concluir.\r\n")
-						go runInteractiveDelegatedMission(n, session, agentID, line, mode)
+						startMission(line, shouldFallbackPromotionToLead(decision))
 					}
 				}
 			}

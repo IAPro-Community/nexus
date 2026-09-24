@@ -191,11 +191,15 @@ type DispatchRequest struct {
 }
 
 type DispatchResult struct {
-    GoalID string             `json:"goal_id"`
-    RunID  string             `json:"run_id"`
-    Status DispatchStatus     `json:"status"`
-    Run    *runner.MissionRun `json:"run,omitempty"`
-    Error  string             `json:"error,omitempty"`
+    GoalID           string             `json:"goal_id"`
+    PlanID           string             `json:"plan_id,omitempty"`
+    RunID            string             `json:"run_id"`
+    Status           DispatchStatus     `json:"status"`
+    Run              *runner.MissionRun `json:"run,omitempty"`
+    AdmissionBlocked bool               `json:"admission_blocked,omitempty"`
+    AdmissionStage   string             `json:"admission_stage,omitempty"`
+    FallbackSafe     bool               `json:"fallback_safe,omitempty"`
+    Error            string             `json:"error,omitempty"`
 }
 
 type DispatchStatus string
@@ -214,8 +218,16 @@ const (
 3. `ReadDelegationDecisionFacts` → valida delegação
 4. `WithLeadAgent` → vincula Lead
 5. `CreateWorkPlan` → persiste WorkPlan
-6. `StartMissionRun` → inicia Mission (autonomous)
-7. `waitPromotedMission` → aguarda terminal state
+6. `StartMissionRun` → executa admission e, somente se aceita, cria `MissionRun` + worker
+7. `WaitDispatch` / `waitPromotedMission` → aguarda estado estável
+
+Para terminais interativos, `StartDispatch` é executado enquanto o Enter ainda
+está retido e a linha original permanece no provider. Uma promoção heurística
+que falha com `FallbackSafe=true` pode voltar ao Lead com segurança porque
+nenhum `MissionRun` foi iniciado. Bloqueios conhecidos de admission também
+carregam `AdmissionBlocked=true` e `AdmissionStage` para UX acionável. Pedido explícito/confirmado de Mission não
+degrada silenciosamente para Direct. Falha não tipada também não faz fallback
+automático, pois o boundary de side effects não foi provado.
 
 ## 6. CLI — `nexus conductor`
 
@@ -247,7 +259,7 @@ nexus conductor dispatch --json <goal>  # saída JSON
 
 - Capability `ReadOnlyReview` adicionada a `EffectiveCapabilities` e `ControlCapabilities`.
 - derivada de: `len(spec.ReviewMode) > 0 && headless == SUPPORTED && submit_prompt == SUPPORTED`.
-- OpenCode: `ReviewMode: []string{"--permission-mode", "plan"}`.
+- OpenCode: `ReadOnlyReview=UNSUPPORTED` até existir Agent Projection/permission enforcement comprovado; não usa `--permission-mode plan`.
 - Codex: `ReviewMode: []string{"--sandbox", "read-only", "--ask-for-approval", "never"}`.
 - Claude: `ReviewMode: []string{"--permission-mode", "plan", "--output-format", "text"}`.
 
@@ -305,8 +317,8 @@ nexus conductor dispatch --json <goal>  # saída JSON
 | `internal/control/driver/opencode_driver.go` | Popula `ReadOnlyReview` |
 | `internal/core/provider/spec/opencode.go` | `ReviewMode` setado |
 | `internal/control/web/routes.go` | Rotas conductor |
-| `internal/app/interactive_delegation.go` | Refatorado para usar `Dispatch` |
-| `internal/control/web/promotion.go` | Refatorado para usar `Dispatch` |
+| `internal/app/interactive_delegation.go` | Usa `StartDispatch` antes de consumir o prompt e `WaitDispatch` após admissão |
+| `internal/control/web/promotion.go` | Mesma fronteira de admission/fallback no terminal Web |
 | `internal/app/nexus_cli_cmds.go` | `conductorCmd` |
 | `internal/app/app.go` | Registrado `conductor` |
 
