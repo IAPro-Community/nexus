@@ -249,6 +249,39 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	if strings.EqualFold(string(webInteractiveDelegationMode(sess)), string(nexus.DelegationOff)) {
 		shadow.SetEnabled(false)
 	}
+	startPromotion := func(prompt string, fallbackToLead bool) {
+		accepted, startErr := startPromotedMission(h.nexus, sess, prompt)
+		if startErr != nil {
+			if fallbackToLead {
+				// The held prompt is still in the provider TUI. Submit it
+				// unchanged to the Lead instead of consuming it into a failed
+				// heuristic Mission promotion.
+				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+				_ = safeWriteJSON(TerminalMessage{
+					Type: "promotion",
+					Role: "FALLBACK",
+					Data: fmt.Sprintf("Mission não admitida (%v); continuando com o Lead.", startErr),
+				})
+				return
+			}
+			// Explicit/confirmed Mission requests never silently degrade to
+			// Direct. Clear the held input and show the exact admission blocker.
+			_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID)})
+			_ = safeWriteJSON(TerminalMessage{
+				Type: "promotion",
+				Role: "BLOCKED",
+				Data: fmt.Sprintf("Mission solicitada, mas a admissão foi bloqueada: %v", startErr),
+			})
+			return
+		}
+		_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID)})
+		_ = safeWriteJSON(TerminalMessage{
+			Type: "promotion",
+			Role: "PROMOTED",
+			Data: fmt.Sprintf("Mission %s iniciada.", accepted.RunID),
+		})
+		go waitPromotedMission(h.nexus, sess, prompt, accepted)
+	}
 
 	// 1. Pump stdout from child process to browser.
 	// Buffer across reads so protocol frames (request or response) that
@@ -323,8 +356,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		case "promotion_answer":
 			if broker.IsWriter(agentID, ws) && pendingPromotion != "" {
 				if strings.EqualFold(strings.TrimSpace(msg.Data), "y") || strings.EqualFold(strings.TrimSpace(msg.Data), "yes") {
-					_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID) + "\r\n"})
-					go launchPromotedMission(h.nexus, sess, pendingPromotion)
+					startPromotion(pendingPromotion, false)
 				} else {
 					_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
 				}
@@ -343,8 +375,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 					// original line is retained only until this explicit choice.
 					answer := strings.TrimSpace(msg.Data)
 					if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
-						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID) + "\r\n"})
-						go launchPromotedMission(h.nexus, sess, pendingPromotion)
+						startPromotion(pendingPromotion, false)
 					} else {
 						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
 					}
@@ -377,9 +408,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 							_ = safeWriteJSON(TerminalMessage{Type: "promotion", Data: line, Role: "ASK"})
 							continue
 						}
-						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID) + "\r\n"})
-						_ = safeWriteJSON(TerminalMessage{Type: "promotion", Data: line, Role: "PROMOTED"})
-						go launchPromotedMission(h.nexus, sess, line)
+						startPromotion(line, !decision.ExplicitMissionRequest)
 					}
 				}
 			}
