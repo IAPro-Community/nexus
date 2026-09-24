@@ -161,6 +161,19 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	hostBinaryFingerprint, _ := registry.BinaryFingerprint(hostBinaryPath)
 	providerBinaryFingerprint, _ := registry.BinaryFingerprint(bin)
 
+	sessionLabels := cloneLabels(opts.Labels)
+	if customCommand {
+		if sessionLabels == nil {
+			sessionLabels = map[string]string{}
+		}
+		sessionLabels["nexus.execution_adapter"] = "command_template"
+		if targetKind, ok := opts.Options["target_kind"].(string); ok && strings.TrimSpace(targetKind) != "" {
+			sessionLabels["nexus.target_kind"] = strings.ToLower(strings.TrimSpace(targetKind))
+		} else {
+			sessionLabels["nexus.target_kind"] = "custom"
+		}
+	}
+
 	// Detached hosts consume arguments through a one-time private envelope;
 	// standalone hosts can keep them in memory without registry persistence.
 	registryArgs := append([]string(nil), extraArgs...)
