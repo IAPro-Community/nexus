@@ -66,6 +66,27 @@ func (h *NexusHandler) handleAgentProjections(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	case "activation":
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+		runtimeID, confirm, ok := decodeProjectionActivationRequest(w, r)
+		if !ok {
+			return
+		}
+		activation, err := h.nexus.ProbeRuntimeAgentProjectionActivation(r.Context(), runtimeID, confirm)
+		if err != nil {
+			if activation == nil {
+				writeError(w, http.StatusConflict, err.Error())
+			} else {
+				writeJSON(w, http.StatusConflict, activation)
+			}
+			return
+		}
+		writeJSON(w, http.StatusOK, activation)
+		return
+
 	parts := strings.Split(path, "/")
 	if len(parts) == 2 && parts[0] != "" && parts[1] == "verify" {
 		if r.Method != http.MethodPost {
@@ -110,4 +131,22 @@ func decodeProjectionRuntimeID(w http.ResponseWriter, r *http.Request) (string, 
 		return "", false
 	}
 	return body.RuntimeID, true
+}
+
+
+func decodeProjectionActivationRequest(w http.ResponseWriter, r *http.Request) (string, bool, bool) {
+	var body struct {
+		RuntimeID                string `json:"runtime_id"`
+		ConfirmExternalExecution bool   `json:"confirm_external_execution"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "valid JSON body is required")
+		return "", false, false
+	}
+	body.RuntimeID = strings.TrimSpace(body.RuntimeID)
+	if body.RuntimeID == "" {
+		writeError(w, http.StatusBadRequest, "runtime_id is required")
+		return "", false, false
+	}
+	return body.RuntimeID, body.ConfirmExternalExecution, true
 }
