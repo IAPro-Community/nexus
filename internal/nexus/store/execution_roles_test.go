@@ -143,6 +143,9 @@ func TestDetachRuntimeExecutionRoleProjectionDoesNotClearNewerReceipt(t *testing
 	if got.ProjectionReceiptID != "" {
 		t.Fatalf("current projection link was not detached: %#v", got)
 	}
+	if got.ActivationStrategy != "NEXUS_OVERLAY" {
+		t.Fatalf("detach must revert native activation strategy: %#v", got)
+	}
 }
 
 func TestMarkRuntimeExecutionRoleActivationRequiresCurrentReceipt(t *testing.T) {
