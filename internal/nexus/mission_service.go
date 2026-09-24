@@ -50,6 +50,36 @@ func missionAdmissionError(stage, detail string) error {
 	return &MissionAdmissionError{Stage: strings.TrimSpace(stage), Detail: strings.TrimSpace(detail)}
 }
 
+// MissionPreparationError marks failures that happen before MissionRunner owns
+// a run. They are safe for heuristic interactive fallback because no provider
+// execution has crossed the Mission boundary yet, but they are not policy
+// admission denials and therefore remain FAILED rather than REJECTED.
+type MissionPreparationError struct {
+	Stage  string
+	Detail string
+}
+
+func (e *MissionPreparationError) Error() string {
+	if e == nil {
+		return "mission preparation failed"
+	}
+	if strings.TrimSpace(e.Detail) != "" {
+		return e.Detail
+	}
+	if strings.TrimSpace(e.Stage) != "" {
+		return "mission preparation failed at " + e.Stage
+	}
+	return "mission preparation failed"
+}
+
+func missionPreparationError(stage string, err error) error {
+	detail := ""
+	if err != nil {
+		detail = err.Error()
+	}
+	return &MissionPreparationError{Stage: strings.TrimSpace(stage), Detail: strings.TrimSpace(detail)}
+}
+
 type missionWorker struct {
 	id     string
 	cancel context.CancelFunc
@@ -168,28 +198,28 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 	}
 	st, err := n.OpenProject()
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("store", err)
 	}
 	plan, err := st.GetWorkPlan(planID)
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("plan", err)
 	}
 	if err := ensureDelegationApproved(plan); err != nil {
 		return nil, missionAdmissionError("delegation", err.Error())
 	}
 	project, err := st.GetProject(plan.ProjectID)
 	if err != nil {
-		return nil, fmt.Errorf("resolve mission project: %w", err)
+		return nil, missionPreparationError("project", fmt.Errorf("resolve mission project: %w", err))
 	}
 	contract = normalizeAutonomyContract(contract, project.CanonicalPath)
 	revision, err := st.GetPlanRevision(plan.ID, plan.CurrentRevision)
 	if err != nil {
-		return nil, fmt.Errorf("resolve immutable plan revision %d: %w", plan.CurrentRevision, err)
+		return nil, missionPreparationError("revision", fmt.Errorf("resolve immutable plan revision %d: %w", plan.CurrentRevision, err))
 	}
 
 	preflight, err := n.PreflightFlow(ctx, planID)
 	if err != nil {
-		return nil, fmt.Errorf("run preflight before mission: %w", err)
+		return nil, missionPreparationError("preflight", fmt.Errorf("run preflight before mission: %w", err))
 	}
 	if !preflight.Ready {
 		return nil, missionAdmissionError("preflight", fmt.Sprintf("mission blocked by preflight: %s", missionAdmissionBlockers(preflight)))
@@ -197,7 +227,7 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 	if autonomous {
 		preflight, err = n.PreflightFlowStrict(ctx, planID, true)
 		if err != nil {
-			return nil, fmt.Errorf("run strict admission before mission: %w", err)
+			return nil, missionPreparationError("strict_admission", fmt.Errorf("run strict admission before mission: %w", err))
 		}
 		if !preflight.Ready {
 			return nil, missionAdmissionError("strict_admission", fmt.Sprintf("mission blocked by strict admission: %s", missionAdmissionBlockers(preflight)))
@@ -206,20 +236,24 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 
 	frozenPlan, skillContracts, err := freezePlanForExecution(n, *plan)
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("execution_contract", err)
 	}
 	bindLeadAgent(&frozenPlan, defaultAgentID)
-	envelope, err := json.Marshal(missionExecutionSnapshot{Plan: frozenPlan, Contract: contract, Preflight: preflight, SkillContracts: skillContracts})
+	goalContract, err := ReadGoalContractFact(frozenPlan.StructuredFacts)
 	if err != nil {
-		return nil, fmt.Errorf("encode mission execution snapshot: %w", err)
+		return nil, missionPreparationError("goal_contract", err)
+	}
+	envelope, err := json.Marshal(missionExecutionSnapshot{Plan: frozenPlan, Contract: contract, Preflight: preflight, SkillContracts: skillContracts, Goal: goalContract})
+	if err != nil {
+		return nil, missionPreparationError("snapshot", fmt.Errorf("encode mission execution snapshot: %w", err))
 	}
 	snapshot, err := st.CreateExecutionSnapshot(plan.ID, revision.ID, string(envelope))
 	if err != nil {
-		return nil, fmt.Errorf("create immutable execution snapshot: %w", err)
+		return nil, missionPreparationError("snapshot", fmt.Errorf("create immutable execution snapshot: %w", err))
 	}
 	spec, err := planToRunnerSpec(&frozenPlan, snapshot.ID)
 	if err != nil {
-		return nil, err
+		return nil, missionPreparationError("runner_spec", err)
 	}
 	spec.Autonomous = autonomous
 	run, err := n.Runner().StartMissionRun(ctx, spec, project.CanonicalPath, contract, defaultAgentID)
