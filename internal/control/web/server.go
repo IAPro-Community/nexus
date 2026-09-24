@@ -293,25 +293,25 @@ func (s *Server) routeRuntime(h *NexusHandler) http.HandlerFunc {
 
 		// Check for WebSocket terminal route: /api/v1/runtimes/:id/terminal
 		if strings.HasSuffix(r.URL.Path, "/terminal") {
-		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/runtimes/"), "/")
-		if len(parts) == 2 && parts[1] == "terminal" {
-			if !s.auth.ValidateOrigin(r) {
-				writeError(w, http.StatusForbidden, "invalid origin")
+			parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/runtimes/"), "/")
+			if len(parts) == 2 && parts[1] == "terminal" {
+				if !s.auth.ValidateOrigin(r) {
+					writeError(w, http.StatusForbidden, "invalid origin")
+					return
+				}
+				if s.auth.AuthenticateRequest(r) == nil {
+					writeError(w, http.StatusUnauthorized, "authentication required")
+					return
+				}
+				runtimeID := parts[0]
+				agentID, err := nexus.Default().ResolveAgentByRuntimeID(runtimeID)
+				if err != nil || agentID == "" {
+					agentID = runtimeID
+				}
+				s.terminal.HandleWebSocket(w, r, agentID, runtimeID)
 				return
 			}
-			if s.auth.AuthenticateRequest(r) == nil {
-				writeError(w, http.StatusUnauthorized, "authentication required")
-				return
-			}
-			runtimeID := parts[0]
-			agentID, err := nexus.Default().ResolveAgentByRuntimeID(runtimeID)
-			if err != nil || agentID == "" {
-				agentID = runtimeID
-			}
-			s.terminal.HandleWebSocket(w, r, agentID, runtimeID)
-			return
 		}
-	}
 
 		// Normal REST API runtime action
 		s.authMiddleware(s.api.handleRuntimeDetail)(w, r)
