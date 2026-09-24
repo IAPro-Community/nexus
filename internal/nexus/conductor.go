@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -89,6 +90,8 @@ func applyDefaults(p *ConductorPolicy) {
 
 // GoalContract captures the immutable goal definition at promotion time.
 // It is frozen into the ExecutionSnapshot.
+const GoalContractFactKey = "nexus.dispatch.goal_contract"
+
 type GoalContract struct {
 	GoalDescription string `json:"goal_description"`
 	// AcceptedAssumptions captures reviewer-approved assumptions.
@@ -104,6 +107,34 @@ type GoalContract struct {
 	GoalID string `json:"goal_id"`
 	// CreatedAt is the time the goal was created.
 	CreatedAt time.Time `json:"created_at"`
+}
+
+func PersistGoalContractFact(existing map[string]string, goal GoalContract) (map[string]string, error) {
+	raw, err := json.Marshal(goal)
+	if err != nil {
+		return nil, fmt.Errorf("encode goal contract: %w", err)
+	}
+	facts := make(map[string]string, len(existing)+1)
+	for key, value := range existing {
+		facts[key] = value
+	}
+	facts[GoalContractFactKey] = string(raw)
+	return facts, nil
+}
+
+func ReadGoalContractFact(facts map[string]string) (*GoalContract, error) {
+	raw := strings.TrimSpace(facts[GoalContractFactKey])
+	if raw == "" {
+		return nil, nil
+	}
+	var goal GoalContract
+	if err := json.Unmarshal([]byte(raw), &goal); err != nil {
+		return nil, fmt.Errorf("decode goal contract: %w", err)
+	}
+	if strings.TrimSpace(goal.GoalID) == "" || strings.TrimSpace(goal.ProjectID) == "" || strings.TrimSpace(goal.GoalDescription) == "" {
+		return nil, fmt.Errorf("goal contract is missing goal_id, project_id, or goal_description")
+	}
+	return &goal, nil
 }
 
 // ─────────────────────────────────────────────────────────────────────
