@@ -60,6 +60,9 @@ func TestRuntimeExecutionRoleBindingDoesNotCreateAgentRevision(t *testing.T) {
 	if second.RoleID != "build" {
 		t.Fatalf("role switch not persisted: %#v", second)
 	}
+	if second.ID != first.ID {
+		t.Fatalf("role switch changed binding identity: first=%s second=%s", first.ID, second.ID)
+	}
 
 	got, err := s.RuntimeExecutionRoleByRuntimeID("rt_interop")
 	if err != nil {
