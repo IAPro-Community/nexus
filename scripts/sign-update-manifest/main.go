@@ -224,6 +224,8 @@ func artifactKeys(name string) []string {
 		keys = append(keys, osArch)
 	case "desktop":
 		keys = append(keys, "desktop_"+osArch)
+	case "hud":
+		keys = append(keys, "hud_"+osArch)
 	case "nsis":
 		keys = append(keys, osArch+"_nsis", "windows_amd64_nsis")
 	case "pkg":
@@ -253,6 +255,8 @@ func classifyArtifact(lowerName string) (osArch string, kind string) {
 		return osArch, "rpm"
 	case strings.Contains(lowerName, "nexus-desktop"):
 		return osArch, "desktop"
+	case strings.Contains(lowerName, "nexus-hud"):
+		return osArch, "hud"
 	default:
 		return osArch, "cli"
 	}
