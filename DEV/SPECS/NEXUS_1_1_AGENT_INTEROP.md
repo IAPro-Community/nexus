@@ -1198,20 +1198,19 @@ Não bloquear M1–M7 em M8.
 
 ## 30. Branch strategy
 
-Enquanto v1.0.0 não estiver publicada/certificada, esta branch permanece
-planning-only:
+A especificação deixou de ser planning-only: o escopo foi absorvido pela V1 beta. A implementação deve permanecer em branches funcionais da linha V1:
 
 ```text
-feat/nexus-1.1-agent-interop-spec
+feat/v1-agent-interop
 ```
 
 Implementação funcional deve iniciar de uma `main` que contenha o baseline
 v1.0.0 preservado e os merges pós-v1 intencionais.
 
-Branch funcional sugerida:
+Branches funcionais devem explicitar o escopo V1, por exemplo:
 
 ```text
-feat/nexus-agent-interop
+feat/v1-opencode-agent-projection
 ```
 
 Evitar desenvolver Agent Interop dentro de:
@@ -1322,7 +1321,7 @@ Sem conteúdo de prompt:
 
 ## 34. Critérios para V1.1 RC
 
-Para declarar `NEXUS_1_1_AGENT_INTEROP_CANDIDATE = GO`:
+Para declarar `NEXUS_V1_AGENT_INTEROP = GO`:
 
 - P0 truth fixes concluídos;
 - M1–M3 completos;
