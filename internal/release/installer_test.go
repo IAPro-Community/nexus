@@ -684,6 +684,9 @@ func TestStagedNativeReleasePolicy(t *testing.T) {
 		"v1.1.0-beta.*|v1.1.0-rc.*|v1.1.0)",
 		"native_policy=all",
 		"NATIVE_POLICY:",
+		"'hud_linux_amd64'",
+		"'hud_windows_amd64'",
+		"'hud_darwin_arm64'",
 		`if [ "$NATIVE_POLICY" = all ]; then`,
 	} {
 		if !strings.Contains(release, required) {
