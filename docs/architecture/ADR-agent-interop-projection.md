@@ -407,6 +407,22 @@ ExecutionRole
 Uma preferência pode ser `PREFER`; somente policy explícita do usuário pode
 produzir `PIN`.
 
+### Custom execution targets
+
+Agent Projection é independente de como o provider é iniciado. O provider
+continua sendo `opencode`, `codex`, `claude` etc.; Docker/VPN/WSL/SSH são
+targets de execução, não novos providers.
+
+O launcher mantém `command_template` como contrato argv-only, com placeholders
+tipados e sem shell. Para projeção nativa em target customizado, uma
+`target_profile_home` compartilhada precisa ser explicitamente configurada e
+validada. A versão do provider deve ser obtida no target por probe bounded quando
+possível.
+
+Ausência de filesystem compartilhado não impede a execução customizada: ela
+degrada apenas a Agent Projection nativa, preservando Nexus overlay e reportando
+a qualidade real do enforcement.
+
 ## Consequências
 
 ### Positivas
