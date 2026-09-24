@@ -64,8 +64,9 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 			"mode":                  "Safe",
 			"origin":                "custom",
 			"execution_adapter":     "command_template",
-			"command_template":      `docker exec -it -w "{cwd}" vpn-dev-workspace-terminal-1 {provider} {args}`,
+			"command_template":      `docker exec -it -w "{target_cwd}" vpn-dev-workspace-terminal-1 {provider} {args}`,
 			"target_kind":           "docker",
+			"target_workspace":      "/workspace",
 			"target_profile_home":   sharedHome,
 			"target_probe_template": probeTemplate,
 		},
@@ -100,6 +101,9 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 	}
 	if !plan.CustomCommand || plan.TargetKind != "docker" {
 		t.Fatalf("custom target identity lost: %#v", plan)
+	}
+	if plan.TargetWorkspace != "/workspace" {
+		t.Fatalf("target workspace mapping lost: %#v", plan)
 	}
 	if plan.ProviderVersion != "1.18.30" || plan.VersionSource != "TARGET_PROBE" {
 		t.Fatalf("target version was not probed from custom execution environment: %#v", plan)
