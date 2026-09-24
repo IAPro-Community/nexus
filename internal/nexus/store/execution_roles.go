@@ -156,7 +156,7 @@ func (s *Store) DetachRuntimeExecutionRoleProjection(runtimeGenerationID, receip
 		return errors.New("runtime_generation_id and projection receipt id are required")
 	}
 	res, err := s.db.Exec(`UPDATE runtime_execution_roles
-		SET projection_receipt_id=''
+		SET projection_receipt_id='', activation_strategy='NEXUS_OVERLAY'
 		WHERE runtime_generation_id=? AND projection_receipt_id=?`, runtimeGenerationID, receiptID)
 	if err != nil {
 		return err
