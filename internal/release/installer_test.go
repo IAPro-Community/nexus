@@ -562,3 +562,147 @@ func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 		t.Error("ci.yml Linux Wails build must use the trimpath-enabled Make target")
 	}
 }
+
+func TestNativeReleaseChainIsFailClosed(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	read := func(path string) string {
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatalf("read %s: %v", path, err)
+		}
+		return string(data)
+	}
+	ci := read(".github/workflows/ci.yml")
+	release := read(".github/workflows/release.yml")
+	nsis := read("packaging/windows/nexus.nsi")
+	macUninstall := read("packaging/macos/uninstall.sh")
+
+	for _, required := range []string{
+		"environment: native-signing",
+		"WINDOWS_SIGNING_PFX_BASE64",
+		"signtool.exe",
+		"makensis.exe",
+		"Authenticode-sign",
+		"APPLE_APP_CERT_P12_BASE64",
+		"APPLE_INSTALLER_CERT_P12_BASE64",
+		"xcrun notarytool submit",
+		"xcrun stapler staple",
+		"spctl --assess",
+		"pkgbuild --root",
+		"Smoke signed NSIS install and uninstall",
+		"Smoke notarized PKG install and uninstall",
+	} {
+		if !strings.Contains(ci, required) {
+			t.Errorf("native certification missing fail-closed contract %q", required)
+		}
+	}
+
+	for _, required := range []string{
+		"native-ci-run-id",
+		"Windows native certification",
+		"macOS arm64 native certification",
+		"Seal native certification evidence",
+		"nexus_Windows_x86_64.zip",
+		"nexus-desktop_Windows_x86_64.zip",
+		"nexus-setup-Windows_x86_64.exe",
+		"nexus_Darwin_arm64.tar.gz",
+		"nexus-desktop_Darwin_arm64.zip",
+		"nexus-installer_Darwin_arm64.pkg",
+		"'windows_amd64'",
+		"'desktop_windows_amd64'",
+		"'windows_amd64_nsis'",
+		"'darwin_arm64'",
+		"'desktop_darwin_arm64'",
+		"'darwin_arm64_pkg'",
+	} {
+		if !strings.Contains(release, required) {
+			t.Errorf("release workflow missing native exact-SHA contract %q", required)
+		}
+	}
+
+	for _, required := range []string{
+		"Function RemoveFromUserPath",
+		"Call RemoveFromUserPath",
+		"QuietUninstallString",
+		"DeleteRegKey HKCU \"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\IAPro Nexus\"",
+	} {
+		if !strings.Contains(nsis, required) {
+			t.Errorf("NSIS lifecycle missing %q", required)
+		}
+	}
+	for _, required := range []string{
+		"rm -f /usr/local/bin/nexus",
+		"rm -rf \"/Applications/IAPro Nexus.app\"",
+		"pkgutil --forget com.iapro.nexus",
+		"User profiles and project data were preserved",
+	} {
+		if !strings.Contains(macUninstall, required) {
+			t.Errorf("macOS uninstaller missing %q", required)
+		}
+	}
+}
+
+func TestStagedNativeReleasePolicy(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ciBytes, err := os.ReadFile(filepath.Join(root, ".github/workflows/ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	releaseBytes, err := os.ReadFile(filepath.Join(root, ".github/workflows/release.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ci, release := string(ciBytes), string(releaseBytes)
+
+	for _, required := range []string{
+		"native_platform:",
+		"inputs.native_platform == 'windows'",
+		"inputs.native_platform == 'macos'",
+		"inputs.native_platform == 'all'",
+	} {
+		if !strings.Contains(ci, required) {
+			t.Errorf("ci.yml missing staged native certification contract %q", required)
+		}
+	}
+
+	for _, required := range []string{
+		"v1.1.0-beta.1)",
+		"native_policy=windows",
+		"v1.1.0-beta.*|v1.1.0-rc.*|v1.1.0)",
+		"native_policy=all",
+		"NATIVE_POLICY:",
+		`if [ "$NATIVE_POLICY" = all ]; then`,
+	} {
+		if !strings.Contains(release, required) {
+			t.Errorf("release.yml missing staged platform policy %q", required)
+		}
+	}
+}
+
+func TestWindowsInstallerAssetNameMatchesNSIS(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ps, err := os.ReadFile(filepath.Join(root, "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	nsi, err := os.ReadFile(filepath.Join(root, "packaging/windows/nexus.nsi"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const asset = "nexus-setup-Windows_x86_64.exe"
+	if !strings.Contains(string(ps), asset) {
+		t.Fatalf("install.ps1 must use canonical NSIS asset %s", asset)
+	}
+	if !strings.Contains(string(nsi), "OutFile \""+asset+"\"") {
+		t.Fatalf("NSIS OutFile must match installer asset %s", asset)
+	}
+}
