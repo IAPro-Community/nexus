@@ -87,7 +87,11 @@ func (s *Store) SetRuntimeExecutionRole(binding RuntimeExecutionRoleBinding) (Ru
 	if err != nil {
 		return RuntimeExecutionRoleBinding{}, fmt.Errorf("set runtime execution role: %w", err)
 	}
-	return binding, nil
+	persisted, err := s.RuntimeExecutionRole(binding.RuntimeGenerationID)
+	if err != nil {
+		return RuntimeExecutionRoleBinding{}, fmt.Errorf("reload runtime execution role: %w", err)
+	}
+	return persisted, nil
 }
 
 func (s *Store) RuntimeExecutionRole(runtimeGenerationID string) (RuntimeExecutionRoleBinding, error) {
