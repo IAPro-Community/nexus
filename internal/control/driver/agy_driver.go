@@ -142,7 +142,10 @@ func (d *AGYDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs
 	// Secret Service is available as an explicit opt-in for profiles that
 	// genuinely require keyring-backed credentials.
 	if os.Getenv("NEXUS_AGY_ENABLE_SECRET_SERVICE") == "1" {
-		wrappedBin, wrappedArgs = runtime.WrapWithIsolatedSecretService(bin, extraArgs)
+		wrappedBin, wrappedArgs, err = runtime.WrapWithIsolatedSecretServiceChecked(bin, extraArgs)
+		if err != nil {
+			return "", nil, nil, err
+		}
 	}
 	return wrappedBin, wrappedArgs, env, nil
 }
