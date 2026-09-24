@@ -151,12 +151,13 @@ export const NewAgentModal: React.FC<{
   const [provider, setProvider] = useState('codex');
   const [mode, setMode] = useState<'Safe' | 'YOLO'>('Safe');
   const [targetKind, setTargetKind] = useState('docker');
+  const [targetWorkspace, setTargetWorkspace] = useState('');
   const [targetProfileHome, setTargetProfileHome] = useState('');
   const [targetProbeTemplate, setTargetProbeTemplate] = useState(
     'docker exec vpn-dev-workspace-terminal-1 {provider} {args}',
   );
   const [commandTemplate, setCommandTemplate] = useState(
-    'docker exec -it -w "{cwd}" vpn-dev-workspace-terminal-1 {provider} {args}',
+    'docker exec -it -w "{target_cwd}" vpn-dev-workspace-terminal-1 {provider} {args}',
   );
   const [busy, setBusy] = useState(false);
   const [loadingModes, setLoadingModes] = useState(false);
@@ -234,6 +235,10 @@ export const NewAgentModal: React.FC<{
       ? `nexus ${provider}${mode === 'YOLO' ? ' --yolo' : ''}`
       : commandTemplate
           .replaceAll('{cwd}', project.canonical_path || '/workspace')
+          .replaceAll(
+            '{target_cwd}',
+            targetWorkspace.trim() || project.canonical_path || '/workspace',
+          )
           .replaceAll('{provider}', provider)
           .replaceAll('{profile}', 'default')
           .replaceAll('{profile_home}', targetProfileHome || '<shared-profile-home>')
@@ -264,6 +269,9 @@ export const NewAgentModal: React.FC<{
         configOptions.command_template = commandTemplate;
         configOptions.execution_adapter = 'command_template';
         configOptions.target_kind = targetKind;
+        if (targetWorkspace.trim()) {
+          configOptions.target_workspace = targetWorkspace.trim();
+        }
         if (targetProfileHome.trim()) {
           configOptions.target_profile_home = targetProfileHome.trim();
         }
@@ -408,12 +416,28 @@ export const NewAgentModal: React.FC<{
                 }))}
               />
 
+              <label className={styles.fieldSublabel}>
+                {t('agents.targetWorkspace', { defaultValue: 'Workspace path inside target (optional)' })}
+              </label>
+              <Input
+                value={targetWorkspace}
+                onChange={setTargetWorkspace}
+                data-mono="true"
+                placeholder="/workspace"
+              />
+              <small className={styles.hintText}>
+                {t('agents.targetWorkspaceHint', {
+                  defaultValue:
+                    'Use when the target sees the project at a different path. {target_cwd} falls back to the Nexus project path when empty.',
+                })}
+              </small>
+
               <label className={styles.fieldSublabel}>{t('agents.commandTemplateLabel')}</label>
               <Input
                 value={commandTemplate}
                 onChange={setCommandTemplate}
                 data-mono="true"
-                placeholder='docker exec -it -w "{cwd}" vpn-dev-workspace-terminal-1 {provider} {args}'
+                placeholder='docker exec -it -w "{target_cwd}" vpn-dev-workspace-terminal-1 {provider} {args}'
               />
               <small className={styles.hintText}>
                 {t('agents.commandTemplateHint', {
