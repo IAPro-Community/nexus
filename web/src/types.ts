@@ -1979,9 +1979,22 @@ export interface AgentProjectionReceipt {
   verified_at?: string;
 }
 
+export interface AgentProjectionDiscovery {
+  provider: string;
+  provider_version: string;
+  target_kind: string;
+  agent_name: string;
+  command?: string[];
+  discovered: boolean;
+  status: string;
+  evidence?: string;
+  error?: string;
+}
+
 export interface AgentProjectionApplyView {
   plan: AgentProjectionPlanView;
   receipt: AgentProjectionReceipt;
+  discovery?: AgentProjectionDiscovery;
 }
 
 export interface AgentProjectionVerification {
