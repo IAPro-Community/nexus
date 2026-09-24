@@ -66,6 +66,11 @@ func ApplyLaunchConfiguration(provider, model string, options map[string]any, ba
 				return nil, fmt.Errorf("provider option target_kind %q is not supported", kind)
 			}
 			continue
+		case "target_workspace":
+			if _, ok := value.(string); !ok {
+				return nil, fmt.Errorf("provider option target_workspace must be a string")
+			}
+			continue
 		case "target_profile_home":
 			if _, ok := value.(string); !ok {
 				return nil, fmt.Errorf("provider option target_profile_home must be a string")
