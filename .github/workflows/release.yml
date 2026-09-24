@@ -26,8 +26,10 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     outputs:
       ci-run-id: ${{ steps.verify.outputs.ci-run-id }}
+      native-ci-run-id: ${{ steps.verify.outputs.native-ci-run-id }}
+      native-policy: ${{ steps.verify.outputs.native-policy }}
     steps:
-      - name: Wait for required Nexus 1.0 checks on this SHA
+      - name: Wait for required Nexus checks on this SHA
         id: verify
         env:
           GH_TOKEN: ${{ github.token }}
@@ -40,6 +42,7 @@ jobs:
             'Release configuration'
             'Browser E2E, Axe & visual smoke'
             'Linux E2E (Go 1.25.14)'
+            'Cross-platform compile guard'
             'Desktop Linux (Wails native build)'
             'GoReleaser Snapshot Build'
             'Smoke DEB install'
@@ -91,11 +94,53 @@ jobs:
           done
           echo "ci-run-id=$run_id" >> "$GITHUB_OUTPUT"
 
-          # Nexus v1 stable distribution is intentionally Linux amd64 only.
-          # Windows/macOS remain source-supported but unverified and unpublished
-          # until their native certification is completed in a later release line.
-
           RELEASE_VERSION="${{ inputs.version || github.ref_name }}"
+          case "$RELEASE_VERSION" in
+            v1.1.0-beta.1)
+              native_policy=windows
+              native_required=('Windows native certification')
+              ;;
+            v1.1.0-beta.*|v1.1.0-rc.*|v1.1.0)
+              native_policy=all
+              native_required=('Windows native certification' 'macOS arm64 native certification' 'Seal native certification evidence')
+              ;;
+            *)
+              # Unknown future lines default to the strictest policy.
+              native_policy=all
+              native_required=('Windows native certification' 'macOS arm64 native certification' 'Seal native certification evidence')
+              ;;
+          esac
+          echo "native-policy=$native_policy" >> "$GITHUB_OUTPUT"
+
+          native_run_id=''
+          while IFS= read -r candidate_id; do
+            [ -n "$candidate_id" ] || continue
+            native_jobs="$(gh run view "$candidate_id" --json jobs)"
+            ok=true
+            for expected in "${native_required[@]}"; do
+              if ! jq -e --arg expected "$expected" \
+                '[.jobs[] | select(.name == $expected and .conclusion == "success")] | length == 1' \
+                <<<"$native_jobs" >/dev/null; then
+                ok=false
+                break
+              fi
+            done
+            if [ "$ok" = true ]; then
+              native_run_id="$candidate_id"
+              break
+            fi
+          done < <(
+            gh run list --workflow ci.yml --commit "$SHA" --event workflow_dispatch --limit 30 \
+              --json databaseId,status,conclusion,headSha \
+              --jq '.[] | select(.headSha == "'"$SHA"'" and .status == "completed" and .conclusion == "success") | .databaseId'
+          )
+          test -n "$native_run_id" || {
+            echo "Release $RELEASE_VERSION requires exact-SHA native certification policy=$native_policy on $SHA" >&2
+            exit 1
+          }
+          echo "native-ci-run-id=$native_run_id" >> "$GITHUB_OUTPUT"
+          echo "Native certification run: $native_run_id (policy=$native_policy)"
+
           case "$RELEASE_VERSION" in
             *-alpha.*|*-beta.*|*-rc.*)
               echo "Prerelease $RELEASE_VERSION: stable 8h certification is not required."
@@ -185,7 +230,7 @@ jobs:
           distribution: goreleaser
           version: v2.18.0
           args: release --clean --skip=publish
-      - name: Promote exact-SHA Linux desktop and HUD artifacts
+      - name: Promote exact-SHA Linux desktop artifact
         env:
           GH_TOKEN: ${{ github.token }}
           CI_RUN_ID: ${{ needs.same-sha-gate.outputs.ci-run-id }}
@@ -195,11 +240,32 @@ jobs:
           gh run download "$CI_RUN_ID" --name "desktop-linux-${GITHUB_SHA}" --dir native-artifacts
           test -f native-artifacts/nexus-desktop_Linux_x86_64.tar.gz
           test -f native-artifacts/nexus-hud_Linux_x86_64.tar.gz
-      - name: Stage Nexus v1 Linux installers before manifest signing
+      - name: Promote exact-SHA certified native artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_CI_RUN_ID: ${{ needs.same-sha-gate.outputs.native-ci-run-id }}
+          NATIVE_POLICY: ${{ needs.same-sha-gate.outputs.native-policy }}
         run: |
           set -euo pipefail
-          cp install.sh uninstall.sh dist/
-      - name: Generate signed Nexus v1 Linux update manifest
+          rm -rf native-staging
+          mkdir -p native-staging/windows native-staging/macos native-artifacts
+          gh run download "$NATIVE_CI_RUN_ID" --name "native-windows-${GITHUB_SHA}" --dir native-staging/windows
+          cp native-staging/windows/nexus_Windows_x86_64.zip native-artifacts/
+          cp native-staging/windows/nexus-desktop_Windows_x86_64.zip native-artifacts/
+          cp native-staging/windows/nexus-hud_Windows_x86_64.zip native-artifacts/
+          cp native-staging/windows/nexus-setup-Windows_x86_64.exe native-artifacts/
+          if [ "$NATIVE_POLICY" = all ]; then
+            gh run download "$NATIVE_CI_RUN_ID" --name "native-macos-${GITHUB_SHA}" --dir native-staging/macos
+            cp native-staging/macos/nexus_Darwin_arm64.tar.gz native-artifacts/
+            cp native-staging/macos/nexus-desktop_Darwin_arm64.zip native-artifacts/
+            cp native-staging/macos/nexus-hud_Darwin_arm64.zip native-artifacts/
+            cp native-staging/macos/nexus-installer_Darwin_arm64.pkg native-artifacts/
+          fi
+      - name: Stage cross-platform installers before manifest signing
+        run: |
+          set -euo pipefail
+          cp install.sh uninstall.sh install.ps1 uninstall.ps1 dist/
+      - name: Generate signed cross-platform update manifest
         env:
           NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
           NEXUS_UPDATE_KEY_ID: ${{ secrets.NEXUS_UPDATE_KEY_ID }}
@@ -220,14 +286,26 @@ jobs:
             --private-key "$NEXUS_UPDATE_PRIVATE_KEY" \
             --public-key "$NEXUS_UPDATE_PUBLIC_KEY" \
             --base-url "https://github.com/${DIST_REPO}/releases/download/${RELEASE_VERSION}"
-          python3 - <<'PY'
+          NATIVE_POLICY="${{ needs.same-sha-gate.outputs.native-policy }}" python3 - <<'PY'
           import json
+          import os
           manifest = json.load(open('dist/update-manifest.json'))
-          required = (
+          required = [
               'linux_amd64',
               'desktop_linux_amd64',
               'hud_linux_amd64',
-          )
+              'windows_amd64',
+              'desktop_windows_amd64',
+              'hud_windows_amd64',
+              'windows_amd64_nsis',
+          ]
+          if os.environ.get('NATIVE_POLICY') == 'all':
+              required.extend([
+                  'darwin_arm64',
+                  'desktop_darwin_arm64',
+                  'hud_darwin_arm64',
+                  'darwin_arm64_pkg',
+              ])
           missing = [key for key in required if key not in manifest.get('artifacts', {})]
           if missing:
               raise SystemExit(f'signed manifest missing keys: {missing}')

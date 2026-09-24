@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/IAPro-Community/nexus/internal/browser"
+	controlnotify "github.com/IAPro-Community/nexus/internal/control/notify"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -275,6 +276,8 @@ end run`
 
 func fallbackNotification(opts NotificationOptions) error {
 	switch runtime.GOOS {
+	case "windows":
+		return controlnotify.Default().Notify(controlnotify.Payload{Title: opts.Title, Body: opts.Body, Tag: opts.Title})
 	case "darwin":
 		const script = `on run argv
 display notification (item 2 of argv) with title (item 1 of argv)

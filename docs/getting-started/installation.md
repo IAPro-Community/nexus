@@ -58,11 +58,43 @@ Parâmetros principais:
 
 ## Windows e macOS
 
-**Não são targets suportados/publicados pela release estável v1.**
+**A v1.0.0 continua Linux-only.** A linha seguinte será cumulativa:
+`v1.1.0-beta.1` publica Linux + Windows; `v1.1.0-beta.2` acrescenta macOS;
+`v1.1.0` mantém as três plataformas. Cada plataforma nova só é publicada
+quando o mesmo SHA concluir sua certificação nativa.
 
-Os paths de source, scripts PowerShell e código de runtime permanecem no
-repositório para desenvolvimento e para a futura campanha de certificação.
-Não use a existência desses arquivos como sinal de suporte de produção.
+### Windows amd64
+
+O caminho de distribuição passa a ser o instalador NSIS assinado:
+
+```text
+nexus-setup-Windows_x86_64.exe
+```
+
+Windows é a primeira expansão pós-v1 e entra em `v1.1.0-beta.1`. A
+certificação exige Authenticode válido, timestamp, build Wails nativo,
+ConPTY/Named Pipe E2E e smoke completo de install/version/doctor/uninstall. O
+NSIS instala também o `nexus-hud.exe`, certificado e assinado no mesmo SHA.
+`install.ps1` continua disponível para automação, mas o instalador nativo é o
+bootstrap recomendado para usuários Windows.
+
+### macOS arm64
+
+O caminho de distribuição passa a ser o pacote notarizado:
+
+```text
+nexus-installer_Darwin_arm64.pkg
+```
+
+macOS entra a partir de `v1.1.0-beta.2`. A certificação exige Developer ID,
+notarização Apple, stapling, Gatekeeper, build Wails nativo, PTY/socket E2E e
+smoke completo de install/version/doctor/uninstall. O pacote instala o CLI em
+`/usr/local/bin/nexus`, o app em `/Applications/IAPro Nexus.app`, o HUD em
+`/Applications/IAPro Nexus HUD.app` e `nexus-uninstall` para remoção
+preservando dados.
+
+Consulte [Suporte de plataformas](../operations/platform-support.md) para os
+runners, secrets e gates exact-SHA.
 
 ## O que o instalador verifica
 

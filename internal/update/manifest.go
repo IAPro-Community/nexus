@@ -21,6 +21,8 @@ const (
 	TargetZip ArtifactTarget = "zip"
 	// TargetNSIS is a Windows NSIS installer (manual download required).
 	TargetNSIS ArtifactTarget = "nsis"
+	// TargetPKG is a signed/notarized macOS installer (manual install required).
+	TargetPKG ArtifactTarget = "pkg"
 	// TargetDEB is a Debian package (manual install required).
 	TargetDEB ArtifactTarget = "deb"
 	// TargetRPM is an RPM package (manual install required).
@@ -41,7 +43,7 @@ func (a Artifact) ExtractAction() string {
 	switch a.Target {
 	case TargetBinary, TargetTarGz, TargetZip:
 		return "replace"
-	case TargetNSIS, TargetDEB, TargetRPM:
+	case TargetNSIS, TargetPKG, TargetDEB, TargetRPM:
 		return "manual"
 	default:
 		return "replace" // backward compatible default
@@ -123,7 +125,7 @@ func (m Manifest) Validate(policy ManifestPolicy) error {
 		if artifact.Size < 0 || len(artifact.SHA256) != 64 {
 			return fmt.Errorf("%w: %s", ErrManifestArtifact, policy.Target)
 		}
-		if artifact.Target != "" && artifact.Target != TargetBinary && artifact.Target != TargetTarGz && artifact.Target != TargetZip && artifact.Target != TargetNSIS && artifact.Target != TargetDEB && artifact.Target != TargetRPM {
+		if artifact.Target != "" && artifact.Target != TargetBinary && artifact.Target != TargetTarGz && artifact.Target != TargetZip && artifact.Target != TargetNSIS && artifact.Target != TargetPKG && artifact.Target != TargetDEB && artifact.Target != TargetRPM {
 			return fmt.Errorf("%w: %s has unsupported artifact target %q", ErrManifestArtifact, policy.Target, artifact.Target)
 		}
 		if _, err := hex.DecodeString(artifact.SHA256); err != nil {

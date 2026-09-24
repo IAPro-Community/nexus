@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	stdruntime "runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -87,6 +89,20 @@ func alreadyIsolatedSecretServiceArgv(args []string) bool {
 // shell interpolation of provider arguments.
 func WrapWithIsolatedSecretService(bin string, args []string) (string, []string) {
 	return DefaultCredentialIsolator().WrapCommand(bin, args)
+}
+
+// WrapWithIsolatedSecretServiceChecked refuses an explicit isolation request
+// when the native platform has no verified credential-isolation mechanism.
+// This prevents Windows/macOS from silently degrading an opt-in security
+// boundary into a passthrough launch.
+func WrapWithIsolatedSecretServiceChecked(bin string, args []string) (string, []string, error) {
+	isolator := DefaultCredentialIsolator()
+	capability := isolator.Capability()
+	if capability.Status != CredentialSupported {
+		return "", nil, fmt.Errorf("credential isolation unavailable on %s (%s): %s", isolator.Platform(), capability.Mechanism, capability.Reason)
+	}
+	wrappedBin, wrappedArgs := isolator.WrapCommand(bin, args)
+	return wrappedBin, wrappedArgs, nil
 }
 
 // LookPath searches for an executable in the system PATH and standard developer directories
@@ -351,7 +367,7 @@ func RunCommandCapture(ctx context.Context, bin string, args []string, env []str
 	return buf.String(), err
 }
 
-// InternalBinDir ensures helper binaries (such as ai-browser / xdg-open shim) exist in a runtime dir.
+// InternalBinDir ensures helper binaries (such as ai-browser) exist in a runtime dir.
 func InternalBinDir() (string, error) {
 	dataDir, err := config.DataDir()
 	if err != nil {
@@ -367,15 +383,44 @@ func InternalBinDir() (string, error) {
 		return binDir, nil
 	}
 
-	// Create ai-browser shim (entry point for $BROWSER calls from agy/gemini).
-	// Do NOT create an xdg-open symlink — it would shadow the real system
-	// xdg-open in PATH and cause infinite recursion when browser.Open()
-	// resolves "xdg-open" back to the nexus binary.
-	dst := filepath.Join(binDir, "ai-browser")
+	dst := BrowserHelperPath(binDir)
 	_ = os.Remove(dst)
-	_ = os.Symlink(selfExe, dst)
+	if stdruntime.GOOS == "windows" {
+		// Windows commonly denies unprivileged symlink creation. A hard link keeps
+		// the helper executable exact without duplicating bytes; copy is a fallback
+		// for filesystems that do not support hard links.
+		if err := os.Link(selfExe, dst); err != nil {
+			in, openErr := os.Open(selfExe)
+			if openErr != nil {
+				return "", openErr
+			}
+			defer in.Close()
+			out, createErr := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0700)
+			if createErr != nil {
+				return "", createErr
+			}
+			if _, copyErr := io.Copy(out, in); copyErr != nil {
+				_ = out.Close()
+				return "", copyErr
+			}
+			if closeErr := out.Close(); closeErr != nil {
+				return "", closeErr
+			}
+		}
+	} else if err := os.Symlink(selfExe, dst); err != nil {
+		return "", err
+	}
 
 	return binDir, nil
+}
+
+// BrowserHelperPath returns the executable path providers should place in BROWSER.
+func BrowserHelperPath(binDir string) string {
+	name := "ai-browser"
+	if stdruntime.GOOS == "windows" {
+		name += ".exe"
+	}
+	return filepath.Join(binDir, name)
 }
 
 // NoBrowserBinDir returns a directory of no-op browser helpers for background
@@ -391,12 +436,33 @@ func NoBrowserBinDir() (string, error) {
 	if err := os.MkdirAll(binDir, 0700); err != nil {
 		return "", err
 	}
+
+	names := []string{"ai-browser", "xdg-open", "x-www-browser", "gnome-www-browser", "www-browser", "open"}
+	if stdruntime.GOOS == "windows" {
+		script := "@echo off\r\nrem Nexus no-browser shim: refuse background browser opens.\r\nexit /b 0\r\n"
+		for _, name := range names {
+			if err := os.WriteFile(filepath.Join(binDir, name+".cmd"), []byte(script), 0600); err != nil {
+				return "", err
+			}
+		}
+		return binDir, nil
+	}
+
 	script := "#!/bin/sh\n# Nexus no-browser shim: refuse to open URLs from background probes.\nexit 0\n"
-	for _, name := range []string{"ai-browser", "xdg-open", "x-www-browser", "gnome-www-browser", "www-browser", "open"} {
+	for _, name := range names {
 		path := filepath.Join(binDir, name)
 		if err := os.WriteFile(path, []byte(script), 0700); err != nil {
 			return "", err
 		}
 	}
 	return binDir, nil
+}
+
+// NoBrowserHelperPath returns the inert helper providers should place in BROWSER.
+func NoBrowserHelperPath(binDir string) string {
+	name := "ai-browser"
+	if stdruntime.GOOS == "windows" {
+		name += ".cmd"
+	}
+	return filepath.Join(binDir, name)
 }

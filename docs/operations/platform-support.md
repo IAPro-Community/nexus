@@ -1,100 +1,170 @@
 # Suporte de plataformas
 
-A release estável do **Nexus v1** tem um escopo deliberadamente menor que o
-source: **Linux amd64 é a única plataforma suportada e certificável nesta linha
-de release**.
+A release estável **v1.0.0** permanece congelada em **Linux amd64**. A expansão
+multiplataforma é implementada na linha seguinte e não altera a evidência da
+v1.0.0.
 
-Windows e macOS continuam com implementação no source e com um modo de
-certificação nativa preparado no CI, mas permanecem **UNVERIFIED / DEFERRED**.
-Eles não são publicados nem contam como requisito para declarar a v1 Linux
-pronta. Cross-compilation nunca deve ser apresentada como certificação nativa.
+A linha pós-v1 é cumulativa e prioriza Windows:
 
-| Capacidade | Linux amd64 — v1 | Windows amd64 | macOS arm64 |
+1. **v1.0.0** — Linux amd64;
+2. **v1.1.0-beta.1** — Linux amd64 + Windows amd64;
+3. **v1.1.0-beta.2** — Linux amd64 + Windows amd64 + macOS arm64;
+4. **v1.1.0** — as três plataformas, após certificação estável.
+
+Windows amd64 e macOS arm64 deixam de depender de cross-build como prova. Uma
+plataforma só pode ser publicada quando houver certificação **nativa, assinada
+e exact-SHA** no mesmo commit promovido pela release.
+
+| Capacidade | Linux amd64 | Windows amd64 | macOS arm64 |
 | --- | --- | --- | --- |
-| CLI/Core | **suportado** | source disponível; release deferida | source disponível; release deferida |
-| Web frontend | **suportado** | não certificado na v1 | não certificado na v1 |
-| PTY/runtime | **PTY + UDS certificado pelo CI** | ConPTY no source; não certificado | PTY + UDS no source; não certificado |
-| Browser E2E/Axe/visual | **gate obrigatório** | não é target de release v1 | não é target de release v1 |
-| Desktop Wails | **artefato Linux x86_64** | não publicado na v1 | não publicado na v1 |
-| Instalação assinada | **`install.sh`** | não publicada na v1 | não publicada na v1 |
-| Pacotes/artefatos | **CLI tar.gz + DEB + Desktop tar.gz** | não publicados na v1 | não publicados na v1 |
-| Updater | **manifesto/checksum/Ed25519** | sem artifact v1 suportado | sem artifact v1 suportado |
-| Evidência nativa | **CI Linux self-hosted** | deferida | deferida |
+| CLI/Core | CI + GoReleaser | build/test nativo | build/test nativo |
+| Terminal/runtime | PTY + UDS | ConPTY + Named Pipe | PTY + UDS |
+| Desktop Wails | build nativo | build nativo | build nativo |
+| Assinatura do SO | manifesto Ed25519 | Authenticode + timestamp | Developer ID |
+| Gatekeeper/notarização | N/A | N/A | notarytool + stapling + spctl |
+| Instalador principal | DEB / install.sh | NSIS assinado | PKG assinado e notarizado |
+| Lifecycle smoke | install/version/doctor/uninstall | NSIS install/version/doctor/uninstall | PKG install/version/doctor/uninstall |
+| Updater | manifesto Ed25519 | manifesto Ed25519 | manifesto Ed25519 |
+| Evidência | exact-SHA | exact-SHA nativa | exact-SHA nativa |
 
-## Nexus HUD — matriz experimental
+## Nexus HUD — matriz de certificação
 
-O HUD é uma feature pós-v1 em desenvolvimento e segue uma certificação separada
-da matriz estável acima. Implementação em source não equivale a suporte público.
+O HUD é uma projeção pós-v1 e acompanha a mesma expansão de plataformas desta
+linha. Implementação em source não equivale a suporte público: cada gadget
+nativo precisa passar pelo gate exact-SHA da plataforma correspondente.
 
 | HUD | Linux amd64 | Windows amd64 | macOS arm64 | Web |
 | --- | --- | --- | --- | --- |
-| Projection/Core | **PASS no M1** | source compartilhado; gate nativo ativo | source compartilhado; gate nativo ativo | **PASS no M1** |
-| Gadget nativo | **PASS no M1 Linux/X11** | **UNVERIFIED até o gate nativo passar** | **UNVERIFIED até o gate nativo passar** | N/A |
+| Projection/Core | implementado; CI pendente | source compartilhado | source compartilhado | implementado; CI pendente |
+| Gadget nativo | implementado; certificação nativa pendente | **UNVERIFIED** | **UNVERIFIED** | N/A |
 | Frameless | source Wails v2 | **UNVERIFIED** | **UNVERIFIED** | N/A |
 | Always-on-top | compositor/WM dependent | **UNVERIFIED** | **UNVERIFIED** | N/A |
 | Posicionamento global | X11: alvo; Wayland: limitado | **UNVERIFIED** | **UNVERIFIED** | viewport |
 | Multi-monitor / DPI | **UNVERIFIED** | **UNVERIFIED** | **UNVERIFIED** | browser |
 | Web HUD | N/A | N/A | N/A | implementado |
-| Certificação final | **PASS M1** | **UNVERIFIED** | **UNVERIFIED** | **PASS M1** |
+| Certificação final | **PENDING** | **UNVERIFIED** | **UNVERIFIED** | **PENDING** |
 
 `NEXUS_HUD_CROSS_PLATFORM` permanece **NO_GO** enquanto qualquer target nativo
 obrigatório estiver sem certificação. Em Wayland, posicionamento absoluto e
 always-on-top podem ser limitados pelo compositor; a capability matrix do HUD
 deve degradar de forma explícita, sem transformar limitação do compositor em
 estado saudável.
-## CI contínuo da v1
 
-O pipeline contínuo (`.github/workflows/ci.yml`) roda em
-`[self-hosted, Linux, X64, nexus-ci]` e cobre os gates de release da v1:
+## Regra de publicação
 
-- frontend format/lint/styles/typecheck/unit/build/verify;
-- documentação;
-- Go fmt/vet/lint/race e E2E;
-- security/govulncheck;
-- Browser E2E, Surface Isolation, Capacity, Composer, Axe e visual smoke;
-- Desktop Linux Wails;
-- GoReleaser snapshot;
-- instalação/remoção do DEB.
+A presença de código ou um cross-build não caracteriza suporte. O workflow
+`CI` aceita `native_platform=windows|macos|all`, sempre vinculado a
+`native_target_sha`.
 
-Windows e macOS aparecem como jobs **skipped** no fluxo normal. Isso é
-intencional e não é interpretado como PASS.
+A política de publicação é fail-closed por versão:
 
-## Certificação futura de Windows/macOS
-
-O modo manual do `.github/workflows/ci.yml` foi preservado para a linha futura
-que reativar suporte nativo. Com `native_target_sha=<SHA completo>`, ele exige:
-
-- Windows amd64: `windows-2025` (GitHub-hosted x64) na frente cross-platform;
-- macOS arm64: `macos-15` (GitHub-hosted Apple Silicon) na frente cross-platform.
-
-Os labels self-hosted anteriores não são necessários para o gate do PR. A
-certificação continua sendo nativa e same-SHA; a origem do runner é registrada
-na evidência.
-
-Esse modo pode produzir `native-certification-<sha>`, mas esse certificado não
-é requisito da release Linux-only da v1. Quando Windows/macOS voltarem à matriz
-oficial, o gate de release deve ser ampliado novamente antes de qualquer anúncio
-de suporte.
-
-## Artefatos da v1
-
-| Artefato | Linux amd64 | Demais alvos |
+| Release | Plataformas publicadas | Evidência nativa obrigatória |
 | --- | --- | --- |
-| CLI/Core archive | **publicado** | **não publicado na v1** |
-| DEB | **publicado** | N/A |
-| Desktop nativo | **`nexus-desktop_Linux_x86_64.tar.gz`** | **não publicado na v1** |
-| Instalador | **`install.sh`** | **não publicado na v1** |
-| Uninstaller | **`uninstall.sh`** | **não publicado na v1** |
+| v1.0.0 | Linux amd64 | baseline Linux já congelada |
+| v1.1.0-beta.1 | Linux + Windows | `Windows native certification` |
+| v1.1.0-beta.2 | Linux + Windows + macOS | Windows + macOS + `Seal native certification evidence` |
+| v1.1.0 | Linux + Windows + macOS | Windows + macOS + seal + `Stable Certification` |
 
-A presença de código, scripts PowerShell ou paths de runtime para outros sistemas
-não altera essa matriz. Uma plataforma só volta a ser suportada depois de build,
-runtime smoke, install/update/uninstall e evidence same-SHA nativos.
+Versões futuras desconhecidas usam a política mais restritiva por padrão. O
+`Signed Release` promove apenas artefatos nativos certificados no SHA exato;
+ele não reconstrói Windows/macOS em Linux e não aceita jobs skipped como PASS
+para uma plataforma requerida.
 
-Para diagnóstico, consulte [troubleshooting](troubleshooting.md) e use
-`nexus doctor --json`.
+## Windows amd64
 
-Guias relacionados:
+O runner deve ter os labels:
 
-- [Instalação nativa](../getting-started/installation.md)
-- [Pacotes](../getting-started/packages.md)
-- [Docker](../getting-started/docker-compat.md)
+```text
+self-hosted, Windows, X64, nexus-windows
+```
+
+Dependências do runner:
+
+- Go 1.25.14;
+- Bun 1.3.9;
+- Windows SDK com `signtool.exe`;
+- NSIS com `makensis.exe`;
+- WebView2 Runtime para smoke do Desktop.
+
+O environment GitHub `native-signing` deve fornecer:
+
+- `WINDOWS_SIGNING_PFX_BASE64`;
+- `WINDOWS_SIGNING_PFX_PASSWORD`.
+
+A certificação gera e valida:
+
+- `nexus_Windows_x86_64.zip`;
+- `nexus-desktop_Windows_x86_64.zip`;
+- `nexus-hud_Windows_x86_64.zip`;
+- `nexus-setup-Windows_x86_64.exe` (inclui Desktop + HUD);
+- evidência Authenticode;
+- `nexus doctor --json` antes e depois da instalação.
+
+O NSIS registra a aplicação no perfil do usuário, adiciona o diretório ao PATH
+e remove ambos durante o uninstall.
+
+## macOS arm64
+
+O runner deve ter os labels:
+
+```text
+self-hosted, macOS, ARM64, nexus-macos
+```
+
+Ele deve ser um runner dedicado de certificação, com Xcode command line tools e
+`sudo -n` habilitado somente para o lifecycle smoke.
+
+O environment `native-signing` deve fornecer:
+
+- `APPLE_APP_CERT_P12_BASE64`;
+- `APPLE_APP_CERT_PASSWORD`;
+- `APPLE_INSTALLER_CERT_P12_BASE64`;
+- `APPLE_INSTALLER_CERT_PASSWORD`;
+- `APPLE_NOTARY_KEY_P8_BASE64`;
+- `APPLE_NOTARY_KEY_ID`;
+- `APPLE_NOTARY_ISSUER_ID`.
+
+A certificação gera:
+
+- `nexus_Darwin_arm64.tar.gz`;
+- `nexus-desktop_Darwin_arm64.zip`;
+- `nexus-hud_Darwin_arm64.zip`;
+- `nexus-installer_Darwin_arm64.pkg` (inclui Desktop + HUD).
+
+O CLI e o app são assinados com Developer ID. O app e o PKG passam por
+notarização, stapling e validação Gatekeeper antes de serem aceitos. O PKG é
+instalado no runner, executa `nexus version` e `nexus doctor --json`, e é
+removido por `nexus-uninstall`, preservando os dados do usuário.
+
+## Manifesto e updater
+
+O manifesto Ed25519 é validado conforme a matriz da release. Em
+`v1.1.0-beta.1`, são obrigatórias as chaves Linux e Windows:
+
+```text
+linux_amd64
+desktop_linux_amd64
+hud_linux_amd64
+windows_amd64
+desktop_windows_amd64
+hud_windows_amd64
+windows_amd64_nsis
+```
+
+A partir de `v1.1.0-beta.2`, também são obrigatórias:
+
+```text
+darwin_arm64
+desktop_darwin_arm64
+hud_darwin_arm64
+darwin_arm64_pkg
+```
+
+A release falha se faltar qualquer chave requerida pela sua política.
+
+## Compatibilidade da v1.0.0
+
+A evidência histórica da v1.0.0 continua válida e Linux-only. Este trabalho não
+retroativamente declara Windows/macOS como certificados naquela versão. A
+promoção dessas plataformas acontece somente em uma release posterior cujo SHA
+tenha passado pela cadeia nativa acima.

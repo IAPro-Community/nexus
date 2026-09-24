@@ -400,7 +400,7 @@ if ($InstallDesktop -and $IsWindowsOS -and $Arch -eq "x86_64" -and -not [string]
     $DesktopZipPath = Join-Path $TempDir $DesktopArchiveName
     $ManifestPath = Join-Path $TempDir "update-manifest.json"
     $SigPath = Join-Path $TempDir "update-manifest.sig"
-    $NsisName = "nexus_${Version}_windows_amd64_setup.exe"
+    $NsisName = "nexus-setup-Windows_x86_64.exe"
     try {
         Write-Host "Attempting to install the native IAPro Nexus Desktop shell..." -ForegroundColor Yellow
         if (-not (Test-Path $ManifestPath) -or -not (Test-Path $SigPath)) {

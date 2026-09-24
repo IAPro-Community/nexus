@@ -110,8 +110,18 @@ func TestCapabilities(t *testing.T) {
 	if !caps.Native || !caps.WindowManagement {
 		t.Fatalf("desktop core capabilities must be available, got %+v", caps)
 	}
-	if caps.Tray || caps.NativeMenus || caps.DeepLinks || caps.AutoStart {
+	if caps.Tray || caps.NativeMenus || caps.DeepLinks {
 		t.Fatalf("unimplemented capabilities must not be advertised, got %+v", caps)
+	}
+	switch runtime.GOOS {
+	case "linux", "darwin":
+		if !caps.AutoStart {
+			t.Fatalf("%s autostart is implemented and must be advertised, got %+v", runtime.GOOS, caps)
+		}
+	case "windows":
+		if caps.AutoStart != commandAvailable("reg.exe") {
+			t.Fatalf("Windows autostart capability must match reg.exe availability, got %+v", caps)
+		}
 	}
 }
 

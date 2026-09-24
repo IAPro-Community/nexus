@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	stdruntime "runtime"
 	"strings"
 )
 
@@ -26,7 +27,7 @@ func SelfIsBrowserHelper() bool {
 	if err != nil {
 		return false
 	}
-	base := filepath.Base(exe)
+	base := strings.TrimSuffix(strings.ToLower(filepath.Base(exe)), ".exe")
 	return base == "xdg-open" || base == "ai-browser" || base == "nexus-browser"
 }
 
@@ -62,6 +63,14 @@ func Open(args []string) error {
 	}
 
 	isHelper := SelfIsBrowserHelper()
+
+	switch stdruntime.GOOS {
+	case "darwin":
+		return exec.Command("open", url).Start()
+	case "windows":
+		// Avoid cmd.exe/start so URL characters are never reparsed as shell syntax.
+		return exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", url).Start()
+	}
 
 	// When running as a browser helper, skip "xdg-open" in the candidate
 	// list to avoid the symlink-recursion loop.  Use absolute paths for

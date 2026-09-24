@@ -20,7 +20,8 @@ func main() {
 	}
 
 	base := filepath.Base(os.Args[0])
-	if base == "nexus-browser" || base == "ai-browser" || base == "xdg-open" {
+	helperBase := strings.TrimSuffix(strings.ToLower(base), ".exe")
+	if helperBase == "nexus-browser" || helperBase == "ai-browser" || helperBase == "xdg-open" {
 		// Set env var so child processes and browser.Open() can detect
 		// recursion without relying solely on binary name heuristics.
 		os.Setenv("NEXUS_BROWSER_HELPER", "1")
