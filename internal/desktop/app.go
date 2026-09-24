@@ -63,6 +63,8 @@ type App struct {
 	capabilities  Capabilities
 	windowManager *WindowStateManager
 	bootstrap     BootstrapInfo
+	voiceMu       sync.Mutex
+	voiceCapture  *nativeVoiceCaptureState
 }
 
 // NewApp creates a new desktop App instance.
@@ -98,6 +100,7 @@ func (a *App) Startup(ctx context.Context) {
 
 // Shutdown is called by Wails when the application terminates.
 func (a *App) Shutdown(ctx context.Context) {
+	a.cancelNativeVoiceCapture()
 	nexus.Default().Shutdown()
 }
 

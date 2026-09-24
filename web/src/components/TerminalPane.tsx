@@ -30,6 +30,7 @@ import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLive
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { getWebSocketEndpoint } from '../api';
 import { shouldForwardTerminalInput, stripEmbeddedTerminalMetadata } from '../nexus/terminalInput';
+import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
 import styles from './TerminalPane.module.scss';
 
 interface TerminalPaneProps {
@@ -508,6 +509,17 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     }
   };
 
+  const handleVoiceTranscript = (text: string) => {
+    const ws = wsRef.current;
+    if (role !== 'CONTROL') {
+      if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'lease_acquire' }));
+      throw new Error('Assuma CONTROL antes de inserir voz neste terminal.');
+    }
+    if (!ws || ws.readyState !== WebSocket.OPEN) throw new Error('Terminal desconectado.');
+    ws.send(JSON.stringify({ type: 'input', data: text }));
+    termRef.current?.focus();
+  };
+
   return (
     <div className={styles.terminalPaneRoot} data-chrome={hideHeader ? 'window' : 'full'}>
       {/* Terminal Toolbar */}
@@ -564,6 +576,12 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
           <div className="flex items-center space-x-2">
             {errorMsg && <span className="text-rose-400 font-sans text-xs">{errorMsg}</span>}
+
+            <VoiceCaptureButton
+              context="terminal"
+              disabled={role !== 'CONTROL' || disconnected}
+              onTranscript={handleVoiceTranscript}
+            />
 
             {/* Terminal Font Size Zoom Controls */}
             <div className={styles.zoomGroup} role="group" aria-label="Terminal font size">
@@ -640,6 +658,16 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {hideHeader && (
+        <div className={styles.voiceFloating}>
+          <VoiceCaptureButton
+            context="terminal"
+            disabled={role !== 'CONTROL' || disconnected}
+            onTranscript={handleVoiceTranscript}
+          />
         </div>
       )}
 

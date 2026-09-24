@@ -35,7 +35,7 @@ func registerControlRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/session/logout", s.authMiddleware(s.handleSessionLogout))
 	mux.HandleFunc("/api/v1/workspaces", s.authMiddleware(api.handleWorkspaces))
 	mux.HandleFunc("/api/v1/runtimes", s.authMiddleware(api.handleRuntimes))
-	mux.HandleFunc("/api/v1/runtimes/", s.routeRuntime)
+	mux.HandleFunc("/api/v1/runtimes/", s.routeRuntime(deps.nexusHandler))
 	mux.HandleFunc("/api/v1/providers", s.authMiddleware(api.handleProviders))
 	mux.HandleFunc("/api/v1/profiles", s.authMiddleware(api.handleProfiles))
 	mux.HandleFunc("/api/v1/profiles/default", s.authMiddleware(api.handleProfileDefault))
@@ -49,6 +49,7 @@ func registerNexusRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/projects/summaries", s.authMiddleware(h.handleProjectSummaries))
 	mux.HandleFunc("/api/v1/projects/", s.routeProject(h))
 	mux.HandleFunc("/api/v1/agent-modes", s.authMiddleware(h.handleAgentModes))
+	mux.HandleFunc("/api/v1/execution-roles", s.authMiddleware(h.handleExecutionRoles))
 	mux.HandleFunc("/api/v1/agents/", s.routeAgent(h))
 	mux.HandleFunc("/api/v1/resources", s.authMiddleware(h.handleResourcesList))
 	mux.HandleFunc("/api/v1/resources/refresh", s.authMiddleware(h.handleResourcesRefresh))
@@ -105,6 +106,8 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/cost/observations", s.authMiddleware(h.handleCostObservations))
 	mux.HandleFunc("/api/v1/cost/preferences", s.authMiddleware(h.handleCostPreferences))
 	mux.HandleFunc("/api/v1/hud", s.authMiddleware(h.handleHUDState))
+	mux.HandleFunc("/api/v1/voice/settings", s.authMiddleware(h.handleVoiceSettings))
+	mux.HandleFunc("/api/v1/voice/transcribe", s.authMiddleware(h.handleVoiceTranscribe))
 }
 
 func registerFilesystemRoutes(mux *http.ServeMux, deps routeDependencies) {

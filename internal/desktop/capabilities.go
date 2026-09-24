@@ -7,15 +7,16 @@ import (
 
 // Capabilities represents the native platform features supported by Nexus Desktop.
 type Capabilities struct {
-	Native           bool `json:"native"`
-	FilePicker       bool `json:"filePicker"`
-	FolderPicker     bool `json:"folderPicker"`
-	Notifications    bool `json:"notifications"`
-	Tray             bool `json:"tray"`
-	NativeMenus      bool `json:"nativeMenus"`
-	DeepLinks        bool `json:"deepLinks"`
-	AutoStart        bool `json:"autoStart"`
-	WindowManagement bool `json:"windowManagement"`
+	Native             bool `json:"native"`
+	FilePicker         bool `json:"filePicker"`
+	FolderPicker       bool `json:"folderPicker"`
+	Notifications      bool `json:"notifications"`
+	Tray               bool `json:"tray"`
+	NativeMenus        bool `json:"nativeMenus"`
+	DeepLinks          bool `json:"deepLinks"`
+	AutoStart          bool `json:"autoStart"`
+	WindowManagement   bool `json:"windowManagement"`
+	NativeVoiceCapture bool `json:"nativeVoiceCapture"`
 }
 
 // DefaultCapabilities returns the standard native desktop capabilities.
@@ -24,6 +25,7 @@ func DefaultCapabilities() Capabilities {
 	folderPicker := false
 	notifications := false
 	autoStart := false
+	nativeVoiceCapture := false
 	switch runtime.GOOS {
 	case "windows":
 		notifications = commandAvailable("powershell") || commandAvailable("pwsh")
@@ -38,18 +40,20 @@ func DefaultCapabilities() Capabilities {
 		folderPicker = filePicker
 		notifications = commandAvailable("notify-send")
 		autoStart = true
+		nativeVoiceCapture = commandAvailable("pw-record") || commandAvailable("arecord")
 	}
 
 	return Capabilities{
-		Native:           true,
-		FilePicker:       filePicker,
-		FolderPicker:     folderPicker,
-		Notifications:    notifications,
-		Tray:             false,
-		NativeMenus:      false,
-		DeepLinks:        false,
-		AutoStart:        autoStart,
-		WindowManagement: true,
+		Native:             true,
+		FilePicker:         filePicker,
+		FolderPicker:       folderPicker,
+		Notifications:      notifications,
+		Tray:               false,
+		NativeMenus:        false,
+		DeepLinks:          false,
+		AutoStart:          autoStart,
+		WindowManagement:   true,
+		NativeVoiceCapture: nativeVoiceCapture,
 	}
 }
 

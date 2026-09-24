@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ProviderAccount } from '../../types';
+import type { ProviderAccount, ProviderInfo } from '../../types';
 import {
   accountQuotaState,
   capabilityLabelKey,
@@ -8,6 +8,7 @@ import {
   formatResetDescription,
   getQuotaProgressTone,
   groupHasCapacity,
+  installedProvidersWithoutAccounts,
   isAccountAuthRequired,
   parseResetDescription,
   relativeAge,
@@ -32,6 +33,39 @@ const base = (partial: Partial<ProviderAccount>): ProviderAccount => ({
 });
 
 describe('usageModel', () => {
+
+  it('lists installed OpenCode even when lifecycle is pending auth and no resource profile exists', () => {
+    const providers: ProviderInfo[] = [
+      {
+        id: 'opencode',
+        installed: true,
+        version: '1.18.30',
+        registration_state: 'PENDING_AUTH',
+        control_level: 'TERMINAL',
+        capabilities: {} as ProviderInfo['capabilities'],
+      },
+      {
+        id: 'codex',
+        installed: true,
+        version: '0.154.0',
+        registration_state: 'REGISTERED_AUTHENTICATED',
+        control_level: 'TERMINAL',
+        capabilities: {} as ProviderInfo['capabilities'],
+      },
+    ];
+    const accounts = [
+      base({
+        id: 'codex:default',
+        provider: 'codex',
+        profile: 'default',
+      }),
+    ];
+
+    expect(installedProvidersWithoutAccounts(providers, accounts).map((provider) => provider.id)).toEqual([
+      'opencode',
+    ]);
+  });
+
   it('does not mark account exhausted when another group still has capacity', () => {
     const account = base({
       available: true,

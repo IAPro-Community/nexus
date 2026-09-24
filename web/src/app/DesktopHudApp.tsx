@@ -11,6 +11,9 @@ export const isDesktopHudApp = () =>
 export const DesktopHudApp: React.FC = () => {
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
+  const [autoStartSupported, setAutoStartSupported] = useState(false);
+  const [autoStartEnabled, setAutoStartEnabled] = useState(false);
+  const [autoStartPending, setAutoStartPending] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -39,6 +42,37 @@ export const DesktopHudApp: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    const controller = window.go?.desktop?.HUDController;
+    if (!controller?.GetHUDCapabilities) return () => undefined;
+    void controller
+      .GetHUDCapabilities()
+      .then(async (caps) => {
+        if (!active) return;
+        setAutoStartSupported(Boolean(caps.autoStart));
+        if (caps.autoStart && controller.GetHUDAutoStartEnabled) {
+          const enabled = await controller.GetHUDAutoStartEnabled();
+          if (active) setAutoStartEnabled(enabled);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const toggleAutoStart = () => {
+    const controller = window.go?.desktop?.HUDController;
+    if (!controller?.SetHUDAutoStartEnabled || autoStartPending) return;
+    const next = !autoStartEnabled;
+    setAutoStartPending(true);
+    void controller
+      .SetHUDAutoStartEnabled(next)
+      .then(() => setAutoStartEnabled(next))
+      .finally(() => setAutoStartPending(false));
+  };
+
   const openNexus = () => {
     void (async () => {
       const bridge = getPlatformBridge();
@@ -63,7 +97,16 @@ export const DesktopHudApp: React.FC = () => {
   return (
     <ThemeProvider>
       <main className={styles.root}>
-        <NexusHud native onOpenNexus={openNexus} />
+        <NexusHud
+          native
+          onOpenNexus={openNexus}
+          nativeAutoStart={{
+            supported: autoStartSupported,
+            enabled: autoStartEnabled,
+            pending: autoStartPending,
+            onToggle: toggleAutoStart,
+          }}
+        />
       </main>
     </ThemeProvider>
   );

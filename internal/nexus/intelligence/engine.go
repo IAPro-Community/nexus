@@ -208,6 +208,22 @@ func (e *NexusEngine) CompileExecutionContext(_ context.Context, req ExecutionCo
 		{Source: "agent", Name: "persistent specialization", Content: formatAgentSpec(req.Agent)},
 		{Source: "task", Name: "work package role", Content: fmt.Sprintf("Role: %s\nTitle: %s\nGoal: %s", req.Task.Role, req.Task.Title, req.Task.Goal)},
 	}
+	executionRoleSummary := "none"
+	if req.ExecutionRole != nil && strings.TrimSpace(req.ExecutionRole.ID) != "" {
+		executionRoleSummary = fmt.Sprintf("%s (%s, access=%s, scope=%s)", req.ExecutionRole.ID, req.ExecutionRole.Role, req.ExecutionRole.AccessIntent, req.ExecutionRole.Scope)
+		sections = append(sections, ContextSection{
+			Source: "execution_role",
+			Name:   "transient execution role",
+			Content: fmt.Sprintf(
+				"ID: %s\nRole: %s\nAccess intent: %s\nScope: %s\nRequired capabilities: %s\nBoundary: execution role never expands task/runtime authorization",
+				req.ExecutionRole.ID,
+				req.ExecutionRole.Role,
+				req.ExecutionRole.AccessIntent,
+				req.ExecutionRole.Scope,
+				strings.Join(req.ExecutionRole.RequiredCapabilities, ", "),
+			),
+		})
+	}
 	if len(facts) > 0 {
 		sections = append(sections, ContextSection{Source: "project", Name: "project facts", Content: strings.Join(facts, "\n")})
 	}
@@ -230,7 +246,7 @@ func (e *NexusEngine) CompileExecutionContext(_ context.Context, req ExecutionCo
 	for _, section := range sections {
 		sectionText = append(sectionText, fmt.Sprintf("[%s]\n%s", section.Source, section.Content))
 	}
-	system := fmt.Sprintf("You are an autonomous AI engineering agent executing a structured WorkPackage.\nPersistent specialization: %s\nTask role: %s\nPackage: %s\nPriority: %s\n\n%s\n\nProduce reproducible verification evidence.", req.Agent.Role, req.Task.Role, req.Task.Title, req.Task.Priority, strings.Join(sectionText, "\n\n"))
+	system := fmt.Sprintf("You are an autonomous AI engineering agent executing a structured WorkPackage.\nPersistent specialization: %s\nExecution role: %s\nTask role: %s\nPackage: %s\nPriority: %s\n\n%s\n\nProduce reproducible verification evidence.", req.Agent.Role, executionRoleSummary, req.Task.Role, req.Task.Title, req.Task.Priority, strings.Join(sectionText, "\n\n"))
 	acceptance := make([]string, 0, len(req.Task.AcceptanceCriteria))
 	for _, item := range req.Task.AcceptanceCriteria {
 		acceptance = append(acceptance, "- [ ] "+item)

@@ -72,10 +72,10 @@ func NormalizeMode(mode Mode) Mode {
 	}
 }
 
-// Decide classifies one complete line. OFF, DIRECT and clarifying work remain
-// with the existing Lead. PLAN intent is Mission-worthy even when no fan-out is
-// beneficial: delegation shapes the Mission topology, it does not decide
-// whether durable Mission/Flow history should exist.
+// Decide classifies one complete line. Interactive use is provider-first:
+// OFF, DIRECT, clarifying work and ordinary single-topology plans remain with
+// the existing Lead. A Mission is promoted only when the request explicitly
+// asks for one, requires decomposition, or benefits from delegated workstreams.
 func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode) (Decision, error) {
 	mode = NormalizeMode(mode)
 	line = strings.TrimSpace(line)
@@ -108,6 +108,12 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = "direct intent stays with the interactive Lead"
 		return result, nil
 	}
+
+	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitMissionRequest(line)
+	if !missionWorthy {
+		result.Reason = "interactive plan stays with the Lead; no delegation or decomposition is required"
+		return result, nil
+	}
 	if mode == ModeAsk {
 		result.Action = Ask
 		result.Reason = "mission-worthy plan requires confirmation before promotion"
@@ -116,8 +122,19 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 	result.Action = Promote
 	if delegation.Delegate {
 		result.Reason = delegation.Reason
+	} else if intent.TaskRequirements.RequiresDecomposition {
+		result.Reason = "task requirements require decomposition"
 	} else {
-		result.Reason = "plan intent is Mission-worthy; delegation remains a topology decision"
+		result.Reason = "user explicitly requested Mission execution"
 	}
 	return result, nil
+}
+
+func explicitMissionRequest(line string) bool {
+	lower := strings.ToLower(strings.TrimSpace(line))
+	return strings.Contains(lower, "mission") ||
+		strings.Contains(lower, "missão") ||
+		strings.Contains(lower, "missao") ||
+		strings.Contains(lower, "autônom") ||
+		strings.Contains(lower, "autonom")
 }

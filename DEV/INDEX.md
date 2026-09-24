@@ -35,6 +35,15 @@ O código canônico utiliza o binário `nexus`, mantendo `ai` como alias transpa
 
 ---
 
+## Propostas pós-v1 (não vigentes)
+
+- [`SPECS/NEXUS_1_1_AGENT_INTEROP.md`](SPECS/NEXUS_1_1_AGENT_INTEROP.md): spec proposta para ExecutionRole, Agent Projection, capability truth e interoperabilidade de agents na v1.1.
+- [`docs/architecture/ADR-agent-interop-projection.md`](../docs/architecture/ADR-agent-interop-projection.md): decisão proposta de projetar o modelo canônico de Agents para hosts externos sem criar um segundo runtime/orquestrador.
+
+Estes documentos são planejamento pós-v1. Eles não substituem `ARCHITECTURE.md`, a matriz vigente nem o status corrente da release 1.0.
+
+---
+
 ## 1. Governança e Estado Ativo
 
 - [`SPECS/NEXUS_CONDUCTOR.md`](SPECS/NEXUS_CONDUCTOR.md): Spec técnica do Nexus Conductor — orquestração nativa de Goals → Missions.

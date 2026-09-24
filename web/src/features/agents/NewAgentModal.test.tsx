@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AGENT_MODE_PRESENTATION } from './NewAgentModal';
+import { AGENT_MODE_PRESENTATION, NATIVE_PROVIDERS } from './NewAgentModal';
 
 describe('Agent Mode presentation', () => {
   it('covers every required Nexus 1.0 specialist with user-facing copy', () => {
@@ -28,5 +28,19 @@ describe('Agent Mode presentation', () => {
       expect(value).not.toHaveProperty('capabilities');
       expect(value).not.toHaveProperty('constraints');
     }
+  });
+
+  it('keeps AGY and OpenCode as distinct native provider identities', () => {
+    const ids = NATIVE_PROVIDERS.map((provider) => provider.id);
+    expect(ids).toContain('agy');
+    expect(ids).toContain('opencode');
+    expect(new Set(ids).size).toBe(ids.length);
+
+    const agy = NATIVE_PROVIDERS.find((provider) => provider.id === 'agy');
+    const opencode = NATIVE_PROVIDERS.find((provider) => provider.id === 'opencode');
+    expect(agy?.alias).toBe('nexus agy');
+    expect(agy?.label).not.toContain('OpenCode');
+    expect(opencode?.alias).toBe('nexus opencode');
+    expect(opencode?.label).toContain('OpenCode');
   });
 });

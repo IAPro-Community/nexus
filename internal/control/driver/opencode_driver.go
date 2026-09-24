@@ -45,9 +45,11 @@ func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) Eff
 	det, _ := d.Detect(ctx)
 	version := det.Version
 
-	// Derive read_only_review from: ReviewMode flags present + headless + submit_prompt.
-	reviewMode := spec.MustGet("opencode").ReviewMode
-	canReview := len(reviewMode) > 0
+	// OpenCode enforces read-only through per-agent permission config. The
+	// current terminal/headless adapter does not materialize such an agent yet,
+	// so direct read-only review is intentionally not advertised.
+	readOnlyReviewStatus := CapabilityUnsupported
+	readOnlyReviewReason := "read-only review requires a permission-scoped OpenCode agent; Agent Projection is not implemented yet"
 
 	return EffectiveCapabilities{
 		Process: CapabilityEvidence{
@@ -128,9 +130,11 @@ func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) Eff
 			Tested:    true,
 		},
 		ReadOnlyReview: CapabilityEvidence{
-			Status:    boolToStatus(canReview),
-			Mechanism: "opencode --permission-mode plan (read-only review)",
-			Tested:    false,
+			Status:          readOnlyReviewStatus,
+			ProviderVersion: version,
+			Mechanism:       "OpenCode per-agent permission.edit=deny (not projected by Nexus yet)",
+			Reason:          readOnlyReviewReason,
+			Tested:          false,
 		},
 		ControlLevel: registry.ControlLevelTerminal,
 	}
@@ -174,9 +178,3 @@ func (d *OpenCodeDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, 
 	return spec.MustGet("opencode").Kickoff(kickoffPrompt), nil
 }
 
-func boolToStatus(b bool) CapabilityStatus {
-	if b {
-		return CapabilitySupported
-	}
-	return CapabilityUnsupported
-}

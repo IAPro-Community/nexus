@@ -56,6 +56,7 @@ import type { RuntimeSession } from '../types';
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { canFitTerminal, canRunTerminalFrame } from './terminalFitModel';
+import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
 import styles from './AgentTerminal.module.scss';
 
 interface AgentTerminalHostElement extends HTMLDivElement {
@@ -818,6 +819,17 @@ export const AgentTerminal: React.FC<{
     );
   };
 
+  const handleVoiceTranscript = (text: string) => {
+    const ws = wsRef.current;
+    if (role !== 'CONTROL') {
+      if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'lease_acquire' }));
+      throw new Error('Assuma CONTROL antes de inserir voz neste terminal.');
+    }
+    if (!ws || ws.readyState !== WebSocket.OPEN) throw new Error('Terminal desconectado.');
+    ws.send(JSON.stringify({ type: 'input', data: text }));
+    termRef.current?.focus();
+  };
+
   const handleInsertSkillToTerminal = (skill: AgentTerminalSkill) => {
     const trigger = skill.triggers?.[0] ? `${skill.triggers[0]} ` : `/${skill.id} `;
     const ws = wsRef.current;
@@ -1054,6 +1066,11 @@ export const AgentTerminal: React.FC<{
           {t('terminal.connectingTransport')}
         </span>
       )}
+      <VoiceCaptureButton
+        context="terminal"
+        disabled={role !== 'CONTROL' || connection !== 'CONNECTED'}
+        onTranscript={handleVoiceTranscript}
+      />
       <Tooltip content={t('terminal.skillsTooltip')}>
         <button
           type="button"
