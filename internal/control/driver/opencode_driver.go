@@ -45,9 +45,15 @@ func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) Eff
 	det, _ := d.Detect(ctx)
 	version := det.Version
 
-	// Derive read_only_review from: ReviewMode flags present + headless + submit_prompt.
+	// A configured ReviewMode is only implementation intent until a real
+	// provider-backed probe proves that the installed CLI enforces read-only.
 	reviewMode := spec.MustGet("opencode").ReviewMode
-	canReview := len(reviewMode) > 0
+	readOnlyReviewStatus := CapabilityUnsupported
+	readOnlyReviewReason := "provider spec does not define a review mode"
+	if len(reviewMode) > 0 {
+		readOnlyReviewStatus = CapabilityNotTested
+		readOnlyReviewReason = "review mode is configured but read-only enforcement has not been runtime-verified"
+	}
 
 	return EffectiveCapabilities{
 		Process: CapabilityEvidence{
@@ -128,9 +134,11 @@ func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) Eff
 			Tested:    true,
 		},
 		ReadOnlyReview: CapabilityEvidence{
-			Status:    boolToStatus(canReview),
-			Mechanism: "opencode --permission-mode plan (read-only review)",
-			Tested:    false,
+			Status:          readOnlyReviewStatus,
+			ProviderVersion: version,
+			Mechanism:       "opencode --permission-mode plan (candidate read-only review mode)",
+			Reason:          readOnlyReviewReason,
+			Tested:          false,
 		},
 		ControlLevel: registry.ControlLevelTerminal,
 	}
@@ -174,9 +182,3 @@ func (d *OpenCodeDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, 
 	return spec.MustGet("opencode").Kickoff(kickoffPrompt), nil
 }
 
-func boolToStatus(b bool) CapabilityStatus {
-	if b {
-		return CapabilitySupported
-	}
-	return CapabilityUnsupported
-}
