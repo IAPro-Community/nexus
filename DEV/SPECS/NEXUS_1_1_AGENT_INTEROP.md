@@ -1,12 +1,14 @@
-# Nexus 1.1 — Agent Interop
+# Nexus Agent Interop — spec histórica “1.1”
 
-Status: **PROPOSED**  
-Release target: **v1.1**  
-Base de planejamento: `main@79493344ac510ad81d741a867dd92bb86bf4215b`  
+Status: **PARTIALLY IMPLEMENTED / INTEGRATED INTO V1 BETA**  
+Release target atual: **v1.0.0-beta.2**  
+Base original de planejamento: `main@79493344ac510ad81d741a867dd92bb86bf4215b`  
 ADR: `docs/architecture/ADR-agent-interop-projection.md`
 
-> Este documento descreve trabalho pós-v1.0.0. Não altera a arquitetura vigente
-> da release 1.0 até implementação, validação e promoção explícita.
+> O nome do arquivo é preservado para rastreabilidade. A linha 1.1 deixou de ser
+> uma linha de release separada em 24/09/2026; o escopo implementado foi
+> incorporado à estabilização da v1 enquanto ela ainda está em beta. Itens não
+> implementados continuam sujeitos à própria capability/evidence matrix.
 
 ## 1. Objetivo
 
