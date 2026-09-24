@@ -198,6 +198,7 @@ type DispatchResult struct {
     Run              *runner.MissionRun `json:"run,omitempty"`
     AdmissionBlocked bool               `json:"admission_blocked,omitempty"`
     AdmissionStage   string             `json:"admission_stage,omitempty"`
+    FallbackSafe     bool               `json:"fallback_safe,omitempty"`
     Error            string             `json:"error,omitempty"`
 }
 
@@ -222,8 +223,9 @@ const (
 
 Para terminais interativos, `StartDispatch` é executado enquanto o Enter ainda
 está retido e a linha original permanece no provider. Uma promoção heurística
-que falha com `AdmissionBlocked=true` pode voltar ao Lead com segurança porque
-nenhum `MissionRun` foi iniciado. Pedido explícito/confirmado de Mission não
+que falha com `FallbackSafe=true` pode voltar ao Lead com segurança porque
+nenhum `MissionRun` foi iniciado. Bloqueios conhecidos de admission também
+carregam `AdmissionBlocked=true` e `AdmissionStage` para UX acionável. Pedido explícito/confirmado de Mission não
 degrada silenciosamente para Direct. Falha não tipada também não faz fallback
 automático, pois o boundary de side effects não foi provado.
 
