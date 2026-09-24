@@ -144,8 +144,8 @@ func TestApplyVerifyUpdateAndRemoveLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if receipt.Strategy != projection.ActivationNativeOnLaunch {
-		t.Fatalf("unexpected strategy %s", receipt.Strategy)
+	if receipt.Strategy != projection.ActivationNexusOverlay {
+		t.Fatalf("projection must remain NEXUS_OVERLAY until native activation is proven, got %s", receipt.Strategy)
 	}
 	if len(receipt.Artifacts) != 1 {
 		t.Fatalf("expected one receipt artifact, got %d", len(receipt.Artifacts))
