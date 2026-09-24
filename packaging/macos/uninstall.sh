@@ -15,6 +15,7 @@ fi
 rm -f /usr/local/bin/nexus
 rm -f /usr/local/bin/.nexus-pkg
 rm -rf "/Applications/IAPro Nexus.app"
+rm -rf "/Applications/IAPro Nexus HUD.app"
 pkgutil --forget com.iapro.nexus >/dev/null 2>&1 || true
 
 SELF="/usr/local/bin/nexus-uninstall"
