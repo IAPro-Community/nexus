@@ -76,6 +76,27 @@ func TestStoreKeepsVoiceSecretsOutOfSettingsViewAndSettingsFile(t *testing.T) {
 	}
 }
 
+func TestStoreCanUpdateVoiceSettingsRepeatedly(t *testing.T) {
+	withVoiceConfigDir(t)
+	store := NewStore()
+	update := testUpdate("https://example.invalid")
+	if _, err := store.SaveUpdate(update); err != nil {
+		t.Fatal(err)
+	}
+	update.Language = "en"
+	update.MaxCaptureSeconds = 90
+	if _, err := store.SaveUpdate(update); err != nil {
+		t.Fatalf("second voice settings save failed: %v", err)
+	}
+	cfg, err := store.LoadSettings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Language != "en" || cfg.MaxCaptureSeconds != 90 {
+		t.Fatalf("voice settings update was not persisted: %+v", cfg)
+	}
+}
+
 func TestVoiceSettingsPinBuiltInProviderEndpoints(t *testing.T) {
 	withVoiceConfigDir(t)
 	store := NewStore()

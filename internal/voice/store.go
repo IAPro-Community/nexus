@@ -358,5 +358,11 @@ func writeJSONAtomic(path string, value any) error {
 		_ = os.Remove(tmp)
 		return err
 	}
+	if runtime.GOOS == "windows" {
+		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			_ = os.Remove(tmp)
+			return err
+		}
+	}
 	return os.Rename(tmp, path)
 }
