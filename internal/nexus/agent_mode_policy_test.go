@@ -8,7 +8,6 @@ func TestReadOnlyAgentModeRejectsUnsafeConfiguration(t *testing.T) {
 		options map[string]any
 	}{
 		{name: "yolo", options: map[string]any{"mode": "YOLO"}},
-		{name: "custom command", options: map[string]any{"execution_adapter": "command_template"}},
 		{name: "dangerous args", options: map[string]any{"extra_args": []any{"--dangerously-skip-permissions"}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -17,6 +16,22 @@ func TestReadOnlyAgentModeRejectsUnsafeConfiguration(t *testing.T) {
 				t.Fatal("read-only mode accepted unsafe execution configuration")
 			}
 		})
+	}
+}
+
+func TestReadOnlyAgentModeAllowsSafeCustomCommandAsBestEffort(t *testing.T) {
+	cfg := AgentConfig{
+		Provider:  "opencode",
+		AgentSpec: mustAgentMode(t, "reviewer").AgentSpec,
+		Options: map[string]any{
+			"mode":              "Safe",
+			"execution_adapter": "command_template",
+			"command_template":  `docker exec -it -w "{cwd}" vpn-dev-workspace-terminal-1 {provider} {args}`,
+			"target_kind":       "docker",
+		},
+	}
+	if err := validateAgentModeConfiguration(cfg); err != nil {
+		t.Fatalf("safe custom read-only config should be allowed as BEST_EFFORT: %v", err)
 	}
 }
 
