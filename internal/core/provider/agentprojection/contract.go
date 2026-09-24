@@ -60,20 +60,20 @@ type Capabilities struct {
 }
 
 type Request struct {
-	Provider       string   `json:"provider"`
-	Profile        string   `json:"profile"`
-	ProviderHome   string   `json:"provider_home"`
-	Workspace      string   `json:"workspace,omitempty"`
-	Scope          Scope    `json:"scope"`
-	RoleID         string   `json:"role_id"`
-	Role           string   `json:"role"`
-	AccessIntent   string   `json:"access_intent"`
-	Instructions   []string `json:"instructions,omitempty"`
+	Provider         string   `json:"provider"`
+	Profile          string   `json:"profile"`
+	ProviderHome     string   `json:"provider_home"`
+	Workspace        string   `json:"workspace,omitempty"`
+	Scope            Scope    `json:"scope"`
+	RoleID           string   `json:"role_id"`
+	Role             string   `json:"role"`
+	AccessIntent     string   `json:"access_intent"`
+	Instructions     []string `json:"instructions,omitempty"`
 	Responsibilities []string `json:"responsibilities,omitempty"`
-	Capabilities   []string `json:"capabilities,omitempty"`
-	Constraints    []string `json:"constraints,omitempty"`
-	Model          string   `json:"model,omitempty"`
-	SourceHash     string   `json:"source_hash"`
+	Capabilities     []string `json:"capabilities,omitempty"`
+	Constraints      []string `json:"constraints,omitempty"`
+	Model            string   `json:"model,omitempty"`
+	SourceHash       string   `json:"source_hash"`
 }
 
 type GeneratedArtifact struct {
@@ -98,12 +98,12 @@ type Conflict struct {
 }
 
 type Plan struct {
-	Provider  string             `json:"provider"`
-	Scope     Scope              `json:"scope"`
-	Strategy  ActivationStrategy `json:"strategy"`
+	Provider  string              `json:"provider"`
+	Scope     Scope               `json:"scope"`
+	Strategy  ActivationStrategy  `json:"strategy"`
 	Artifacts []GeneratedArtifact `json:"artifacts,omitempty"`
-	Conflicts []Conflict         `json:"conflicts,omitempty"`
-	Warnings  []string           `json:"warnings,omitempty"`
+	Conflicts []Conflict          `json:"conflicts,omitempty"`
+	Warnings  []string            `json:"warnings,omitempty"`
 }
 
 type ArtifactReceipt struct {
