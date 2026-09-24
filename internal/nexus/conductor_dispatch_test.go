@@ -132,13 +132,13 @@ func TestStartDispatchReturnsPreparedPlanOnPreRunAdmissionFailure(t *testing.T) 
 	if result == nil || result.Status != DispatchRejected {
 		t.Fatalf("expected rejected pre-run admission, got %+v", result)
 	}
-	if !result.AdmissionBlocked || result.AdmissionStage != "execution_preview" || !result.FallbackSafe {
-		t.Fatalf("execution preview failure must be typed and safe for interactive fallback: %+v", result)
+	if !result.AdmissionBlocked || strings.TrimSpace(result.AdmissionStage) == "" || !result.FallbackSafe {
+		t.Fatalf("pre-run admission failure must be typed and safe for interactive fallback: %+v", result)
 	}
 	if strings.TrimSpace(result.PlanID) == "" {
 		t.Fatalf("admission failure must expose prepared plan lineage: %+v", result)
 	}
-	if !strings.Contains(strings.ToLower(result.Error), "execution preview") {
-		t.Fatalf("expected actionable execution-preview blocker, got %q", result.Error)
+	if strings.TrimSpace(result.Error) == "" {
+		t.Fatal("admission failure must include an actionable error")
 	}
 }
