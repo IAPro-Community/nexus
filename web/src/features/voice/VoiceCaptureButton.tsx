@@ -46,7 +46,7 @@ export const VoiceCaptureButton: React.FC<{
   const [state, setState] = useState<'idle' | 'recording' | 'transcribing' | 'error'>('idle');
   const [detail, setDetail] = useState('');
   const captureRef = useRef<VoiceCaptureSession | null>(null);
-  const timerRef = useRef<number | undefined>();
+  const timerRef = useRef<number | undefined>(undefined);
 
   const refreshSettings = useCallback((force = false) => {
     void loadSettings(force)

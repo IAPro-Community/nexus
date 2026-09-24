@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +18,20 @@ func withVoiceConfigDir(t *testing.T) string {
 	dir := t.TempDir()
 	t.Setenv("NEXUS_CONFIG_DIR", dir)
 	return dir
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
+func mockHTTPResponse(status int, body string) *http.Response {
+	return &http.Response{
+		StatusCode: status,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(body)),
+	}
 }
 
 func testUpdate(base string) SettingsUpdate {
@@ -89,27 +103,26 @@ func TestSpeechRouterFallsBackFromGroq429ToCloudflare(t *testing.T) {
 	withVoiceConfigDir(t)
 	var groqCalls atomic.Int32
 	var cloudflareCalls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/openai/v1/audio/transcriptions") {
+	client := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		switch {
+		case r.URL.Host == "api.groq.com" && strings.Contains(r.URL.Path, "/openai/v1/audio/transcriptions"):
 			groqCalls.Add(1)
-			http.Error(w, "rate limit", http.StatusTooManyRequests)
-			return
-		}
-		if strings.Contains(r.URL.Path, "/accounts/acct/ai/run/") {
+			return mockHTTPResponse(http.StatusTooManyRequests, "rate limit"), nil
+		case r.URL.Host == "api.cloudflare.com" && strings.Contains(r.URL.Path, "/accounts/acct/ai/run/"):
 			cloudflareCalls.Add(1)
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"success":true,"result":{"text":"git status"}}`))
-			return
+			resp := mockHTTPResponse(http.StatusOK, `{"success":true,"result":{"text":"git status"}}`)
+			resp.Header.Set("Content-Type", "application/json")
+			return resp, nil
+		default:
+			return mockHTTPResponse(http.StatusNotFound, "unexpected endpoint"), nil
 		}
-		http.NotFound(w, r)
-	}))
-	defer server.Close()
+	})}
 
 	store := NewStore()
-	if _, err := store.SaveUpdate(testUpdate(server.URL)); err != nil {
+	if _, err := store.SaveUpdate(testUpdate("https://ignored.invalid")); err != nil {
 		t.Fatal(err)
 	}
-	service := NewServiceWith(store, server.Client())
+	service := NewServiceWith(store, client)
 	result, err := service.Transcribe(context.Background(), TranscribeRequest{
 		Audio: []byte("fake-audio"), Filename: "voice.webm", MIMEType: "audio/webm", DurationMS: 1200,
 	})
@@ -130,21 +143,19 @@ func TestSpeechRouterFallsBackFromGroq429ToCloudflare(t *testing.T) {
 func TestSpeechRouterDoesNotCascadeInvalidAudio(t *testing.T) {
 	withVoiceConfigDir(t)
 	var cloudflareCalls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/openai/v1/audio/transcriptions") {
-			http.Error(w, "bad request", http.StatusBadRequest)
-			return
+	client := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Host == "api.groq.com" {
+			return mockHTTPResponse(http.StatusBadRequest, "bad request"), nil
 		}
 		cloudflareCalls.Add(1)
-		http.Error(w, "should not be called", http.StatusInternalServerError)
-	}))
-	defer server.Close()
+		return mockHTTPResponse(http.StatusInternalServerError, "should not be called"), nil
+	})}
 
 	store := NewStore()
-	if _, err := store.SaveUpdate(testUpdate(server.URL)); err != nil {
+	if _, err := store.SaveUpdate(testUpdate("https://ignored.invalid")); err != nil {
 		t.Fatal(err)
 	}
-	service := NewServiceWith(store, server.Client())
+	service := NewServiceWith(store, client)
 	_, err := service.Transcribe(context.Background(), TranscribeRequest{Audio: []byte("bad"), Filename: "voice.webm"})
 	var txErr *TranscriptionError
 	if err == nil || !strings.Contains(err.Error(), "all configured") {
