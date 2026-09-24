@@ -73,3 +73,15 @@ func TestStartMissionRunTypesMalformedGoalContractAsPreparationFailure(t *testin
 		t.Fatalf("preparation stage=%q want goal_contract", preparationErr.Stage)
 	}
 }
+
+func TestMissionPreparationErrorPreservesCause(t *testing.T) {
+	cause := errors.New("disk unavailable")
+	err := missionPreparationError("snapshot", cause)
+	if !errors.Is(err, cause) {
+		t.Fatalf("preparation error must preserve cause: %v", err)
+	}
+	var preparationErr *MissionPreparationError
+	if !errors.As(err, &preparationErr) || preparationErr.Stage != "snapshot" {
+		t.Fatalf("unexpected typed preparation error: %#v", preparationErr)
+	}
+}
