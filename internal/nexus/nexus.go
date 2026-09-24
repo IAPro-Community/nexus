@@ -499,9 +499,15 @@ func (n *Nexus) AskAgentWithOptions(ctx context.Context, agentID, prompt string,
 	}
 
 	executionRoleID := strings.TrimSpace(opts.ExecutionRoleID)
+	executionRoleEffective := executionRoleID
+	roleShouldAffectPrompt := executionRoleID != ""
 	if executionRoleID == "" {
 		if binding, bindErr := st.RuntimeExecutionRoleByRuntimeID(runtimeID); bindErr == nil {
 			executionRoleID = binding.RoleID
+			executionRoleEffective = binding.RoleID
+			roleShouldAffectPrompt = true
+		} else if bindErr == store.ErrNotFound {
+			executionRoleEffective = "build"
 		}
 	}
 	var executionRole *intelligence.ExecutionRoleContext
@@ -510,7 +516,9 @@ func (n *Nexus) AskAgentWithOptions(ctx context.Context, agentID, prompt string,
 		if !ok {
 			return nil, fmt.Errorf("unknown execution role %q", executionRoleID)
 		}
-		executionRole = role.IntelligenceContext()
+		if roleShouldAffectPrompt && role.ID != "build" {
+			executionRole = role.IntelligenceContext()
+		}
 	}
 
 	compile := opts.CompileSpecialization
@@ -541,7 +549,7 @@ func (n *Nexus) AskAgentWithOptions(ctx context.Context, agentID, prompt string,
 	if err := submit(runtimeID, prompt); err != nil {
 		return nil, fmt.Errorf("submit prompt to existing agent: %w", err)
 	}
-	return &AskAgentResult{AgentID: agentID, RuntimeID: runtimeID, ExecutionRole: executionRoleID, Started: started, Accepted: true}, nil
+	return &AskAgentResult{AgentID: agentID, RuntimeID: runtimeID, ExecutionRole: executionRoleEffective, Started: started, Accepted: true}, nil
 }
 
 func renderExecutionRoleOverlay(role *intelligence.ExecutionRoleContext, prompt string) string {
