@@ -34,10 +34,10 @@ func TestRuntimeExecutionRoleBindingDoesNotCreateAgentRevision(t *testing.T) {
 
 	first, err := s.SetRuntimeExecutionRole(RuntimeExecutionRoleBinding{
 		RuntimeGenerationID: generation.ID,
-		RoleID: "review",
-		ActivationStrategy: "NEXUS_OVERLAY",
-		Enforcement: "ENFORCED",
-		ActivatedBy: "test",
+		RoleID:              "review",
+		ActivationStrategy:  "NEXUS_OVERLAY",
+		Enforcement:         "ENFORCED",
+		ActivatedBy:         "test",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -48,11 +48,11 @@ func TestRuntimeExecutionRoleBindingDoesNotCreateAgentRevision(t *testing.T) {
 
 	second, err := s.SetRuntimeExecutionRole(RuntimeExecutionRoleBinding{
 		RuntimeGenerationID: generation.ID,
-		AgentID: agent.ID,
-		RoleID: "build",
-		ActivationStrategy: "NEXUS_OVERLAY",
-		Enforcement: "UNVERIFIED",
-		ActivatedBy: "test",
+		AgentID:             agent.ID,
+		RoleID:              "build",
+		ActivationStrategy:  "NEXUS_OVERLAY",
+		Enforcement:         "UNVERIFIED",
+		ActivatedBy:         "test",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -91,8 +91,8 @@ func TestRuntimeExecutionRoleRejectsForeignAgent(t *testing.T) {
 
 	if _, err := s.SetRuntimeExecutionRole(RuntimeExecutionRoleBinding{
 		RuntimeGenerationID: generation.ID,
-		AgentID: agentB.ID,
-		RoleID: "review",
+		AgentID:             agentB.ID,
+		RoleID:              "review",
 	}); err == nil {
 		t.Fatal("expected foreign-agent binding to be rejected")
 	}
