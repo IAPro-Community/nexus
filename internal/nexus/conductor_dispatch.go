@@ -139,7 +139,7 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 		}, nil
 	}
 
-	// Step 3: Bind lead agent.
+	// Step 3: Bind lead agent and freeze the user's goal contract into facts.
 	decision = WithLeadAgent(decision, req.LeadAgentID)
 	facts, err := PersistDelegationDecisionFacts(flowPlan.StructuredFacts, decision)
 	if err != nil {
@@ -148,6 +148,22 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 			Status:       DispatchFailed,
 			FallbackSafe: true,
 			Error:        fmt.Sprintf("persist delegation decision: %v", err),
+		}, nil
+	}
+	facts, err = PersistGoalContractFact(facts, GoalContract{
+		GoalDescription:      req.Goal,
+		AutoPromoteToMission: req.AutoPromoteToMission,
+		LeadID:               req.LeadAgentID,
+		ProjectID:            req.ProjectID,
+		GoalID:               req.GoalID,
+		CreatedAt:            time.Now().UTC(),
+	})
+	if err != nil {
+		return &DispatchResult{
+			GoalID:       req.GoalID,
+			Status:       DispatchFailed,
+			FallbackSafe: true,
+			Error:        fmt.Sprintf("persist goal contract: %v", err),
 		}, nil
 	}
 	if req.AutoPromoteToMission {
