@@ -661,6 +661,12 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 					} else {
 						_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a admissão foi bloqueada (etapa %s): %v\r\n", accepted.AdmissionStage, startErr)
 					}
+				} else if accepted != nil && strings.TrimSpace(accepted.AdmissionStage) != "" {
+					if strings.TrimSpace(accepted.PlanID) != "" {
+						_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a preparação falhou (plan %s, etapa %s): %v. Fallback Direct desativado por segurança.\r\n", accepted.PlanID, accepted.AdmissionStage, startErr)
+					} else {
+						_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a preparação falhou (etapa %s): %v. Fallback Direct desativado por segurança.\r\n", accepted.AdmissionStage, startErr)
+					}
 				} else {
 					_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Promoção para Mission falhou antes da confirmação de admissão: %v. Fallback Direct desativado por segurança.\r\n", startErr)
 				}
@@ -678,7 +684,7 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 					answer := input[0]
 					input = input[1:]
 					switch answer {
-					case 'y', 'Y':
+					case 'y', 'Y', 's', 'S':
 						// Confirmation makes this a user-owned Mission request:
 						// admission failure must be shown, not executed as Direct.
 						startMission(pendingASK, false)
@@ -710,7 +716,7 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 							continue
 						}
 						if decision.Action == promotion.Ask {
-							_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Promover esta solicitação para uma Mission? [y/n] ")
+							_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Promover esta solicitação para uma Mission? [y/s/n] ")
 							pendingASK = line
 							continue
 						}
