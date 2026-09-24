@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	projection "github.com/IAPro-Community/nexus/internal/core/provider/agentprojection"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -192,6 +193,9 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 	binding, err = st.RuntimeExecutionRole(generation.ID)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if binding.ActivationStrategy != string(projection.ActivationNativeOnLaunch) {
+		t.Fatalf("verified native activation strategy was not persisted: %#v", binding)
 	}
 	if binding.Enforcement == EnforcementEnforced {
 		t.Fatalf("activation alone must not claim read-only enforcement: %#v", binding)
