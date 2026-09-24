@@ -477,7 +477,7 @@ jobs:
   native-windows:
     name: Windows native certification
     if: (github.event_name == 'workflow_dispatch' && inputs.native_target_sha != '') || (github.event_name == 'pull_request' && github.head_ref == 'feat/hud-cross-platform-completion')
-    runs-on: [self-hosted, Windows, X64, nexus-windows]
+    runs-on: windows-2025
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v5
@@ -638,7 +638,7 @@ jobs:
   native-macos:
     name: macOS arm64 native certification
     if: (github.event_name == 'workflow_dispatch' && inputs.native_target_sha != '') || (github.event_name == 'pull_request' && github.head_ref == 'feat/hud-cross-platform-completion')
-    runs-on: [self-hosted, macOS, ARM64, nexus-macos]
+    runs-on: macos-15
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v5
@@ -808,8 +808,8 @@ jobs:
           sha256sum native/macos/nexus-hud_Darwin_arm64.zip > macos-hud.sha256
           {
             printf 'sha=%s\n' "$TARGET_SHA"
-            printf 'windows_runner=self-hosted/windows/x64/nexus-windows\n'
-            printf 'macos_runner=self-hosted/macos/arm64/nexus-macos\n'
+            printf 'windows_runner=github-hosted/windows-2025/x64\n'
+            printf 'macos_runner=github-hosted/macos-15/arm64\n'
           } > native-certification.txt
       - uses: actions/upload-artifact@v4
         with:
