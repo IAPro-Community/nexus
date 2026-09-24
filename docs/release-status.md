@@ -1,70 +1,112 @@
 # Status público da release do Nexus v1
 
-Atualizado em **23 de setembro de 2026**.
+Atualizado em **24 de setembro de 2026**.
 
 | Campo | Estado |
 | --- | --- |
-| Programa | fechamento do Nexus 1.0 |
-| Versão reportada pelo source | `1.0.0` |
+| Programa | estabilização do Nexus 1.0 beta |
+| Versão do source candidato | `1.0.0-beta.2` |
 | Última beta publicada registrada | `v1.0.0-beta.1` |
-| Escopo estável da v1 | **Linux amd64** |
-| Windows/macOS | **deferidos; não suportados/certificados na v1** |
+| Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
 | Release estável v1 | **ainda não publicada** |
-| Veredito atual | **candidato em fechamento final** |
+| CI do SHA integrado | indisponível no momento por bloqueio de créditos da conta |
+| Veredito atual | **candidato integrado; homologação/certificação pendentes** |
 
-## O que esse status significa
+## O que mudou
 
-A v1 foi reduzida a um escopo de release que pode ser comprovado com a
-infraestrutura disponível: Linux amd64. Isso não remove o código Windows/macOS
-do source; apenas impede que a documentação ou o pipeline os anunciem como
-plataformas suportadas sem evidência nativa.
+A linha que estava planejada como **1.1** foi incorporada à estabilização da
+**1.0 enquanto ela ainda está em beta**. Isso elimina duas linhas concorrentes
+antes da primeira release estável.
 
-Uma release estável só pode ser anunciada depois que o mesmo SHA candidato
-passar todos os gates Linux/Web/release e a certificação estável.
+A `v1.0.0-beta.1` publicada continua sendo evidência histórica Linux-only.
+Ela não é alterada retroativamente.
 
-## Plataforma suportada
+O candidato `v1.0.0-beta.2` passa a concentrar:
 
-A promessa pública da v1 é:
+- correções de roteamento Direct/Lead versus Mission;
+- correção de transporte das teclas de navegação no terminal;
+- OpenCode como provider independente em Usage e Agents;
+- ExecutionRole / Agent Interop já integrado;
+- acessibilidade por voz e ditado PTY;
+- Nexus HUD;
+- suporte nativo de Windows amd64;
+- suporte nativo de macOS arm64.
 
-- Linux amd64 CLI/Core;
-- Web local;
-- Desktop Wails Linux x86_64;
-- archive tar.gz;
-- DEB;
-- install/uninstall assinados;
-- update manifest Ed25519.
+## Estado da validação
 
-Windows, macOS e Linux arm64 ficam para uma linha posterior de certificação.
+O push integrado mais recente disparou GitHub Actions, mas o run encerrou sem
+jobs por indisponibilidade de créditos da conta. Isso é **falha de
+infraestrutura**, não PASS e também não evidência funcional de FAIL.
 
-→ [Suporte de plataformas](operations/platform-support.md)
+Enquanto o CI remoto estiver indisponível, a homologação local deve usar:
 
-## Gates para stable
+```bash
+./scripts/homologate-beta.sh
+```
 
-O SHA final precisa comprovar:
+No Windows:
 
-- formatting, lint, typecheck, unit e build do frontend;
-- Go fmt/vet/lint/race e E2E;
+```powershell
+.\scripts\homologate-beta.ps1
+```
+
+Os scripts registram evidência por SHA em
+`DEV/validation/local-beta2/<sha>/<plataforma>/` e executam os gates
+automatizáveis localmente. Os checks interativos de terminal, OpenCode, HUD e
+voz continuam explicitamente listados como manuais.
+
+## Matriz candidata
+
+| Plataforma | Estado no source | Estado de certificação |
+| --- | --- | --- |
+| Linux amd64 | integrado | homologação beta pendente |
+| Windows amd64 | integrado | certificação nativa exact-SHA pendente |
+| macOS arm64 | integrado | certificação nativa exact-SHA pendente |
+| Web | integrado | homologação beta pendente |
+
+Implementação não equivale a suporte certificado. A documentação pública só
+deve promover a matriz acima após evidência correspondente do mesmo SHA.
+
+## Gates para `v1.0.0-beta.2`
+
+Antes de criar/publicar a tag:
+
+- documentação;
+- frontend format/lint/styles/typecheck/unit/build;
+- Go fmt/vet/test/race;
+- regressões específicas de terminal e roteamento Mission;
+- control/runtime E2E;
+- build CLI;
+- `nexus version --json` e `nexus doctor --json`;
+- OpenCode visível em `providers status`, Usage e seleção de Agent quando instalado;
+- build Desktop/HUD da plataforma em homologação;
+- smoke interativo de setas no Codex;
+- smoke Direct/Lead sem promoção indevida para Mission.
+
+Para publicar artefatos Windows/macOS, continuam obrigatórios os gates nativos
+de assinatura, instalador e lifecycle.
+
+## Gates para `v1.0.0` estável
+
+Além da beta homologada, o SHA final precisa comprovar:
+
+- CI exact-SHA completo;
 - security/govulncheck;
-- Browser E2E, Composer, Surface Isolation, Capacity, Axe e visual smoke;
-- Desktop Linux nativo;
-- GoReleaser snapshot Linux amd64;
-- smoke de instalação/remoção DEB;
-- cadeia de assinatura/checksum/update;
+- Browser E2E, Axe e visual smoke;
+- Desktop/HUD;
+- Windows Authenticode + NSIS;
+- macOS Developer ID + notarização + stapling + Gatekeeper;
+- lifecycle install/version/doctor/uninstall;
+- update manifest Ed25519;
+- native certification seal;
 - provider smoke autenticado;
 - Mission smoke até `COMPLETED_VERIFIED`;
 - recovery/restart;
-- stable certification/soak definida no workflow;
+- Stable Certification/soak;
 - zero findings BLOCKER/HIGH relevantes.
-
-## Como ler a documentação
-
-- **Disponível**: implementação existe no source.
-- **Suportado na v1**: faz parte da matriz Linux amd64 acima.
-- **Certificado**: possui evidência do SHA/plataforma correspondente.
-- **UNVERIFIED / DEFERRED**: existe código ou preparação, mas não é promessa de release.
 
 ## Regra
 
-Não anunciar Windows/macOS como suportados pela Nexus v1. A futura inclusão
-dessas plataformas exige nova certificação nativa e ampliação explícita do gate
-de release.
+A `v1.0.0-beta.2` pode existir como prerelease depois da homologação beta.
+A `v1.0.0` estável continua fail-closed: ausência de CI, assinatura,
+notarização ou evidência nativa nunca é convertida em PASS.
