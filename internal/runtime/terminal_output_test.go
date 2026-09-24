@@ -2,9 +2,37 @@ package runtime
 
 import (
 	"bytes"
+	"sync"
 	"testing"
 	"time"
 )
+
+type synchronizedBuffer struct {
+	mu     sync.Mutex
+	buffer bytes.Buffer
+	wrote  chan struct{}
+}
+
+func newSynchronizedBuffer() *synchronizedBuffer {
+	return &synchronizedBuffer{wrote: make(chan struct{}, 1)}
+}
+
+func (b *synchronizedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	n, err := b.buffer.Write(p)
+	b.mu.Unlock()
+	select {
+	case b.wrote <- struct{}{}:
+	default:
+	}
+	return n, err
+}
+
+func (b *synchronizedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buffer.String()
+}
 
 func TestTerminalOutputScrubberDropsKeyboardNegotiation(t *testing.T) {
 	var out bytes.Buffer
@@ -73,17 +101,18 @@ func TestTerminalInputScrubberCoalescesSplitArrowSequence(t *testing.T) {
 }
 
 func TestTerminalInputScrubberForwardsStandaloneEscapeAfterCoalesceWindow(t *testing.T) {
-	var out bytes.Buffer
-	scrubber := NewTerminalInputScrubber(&out)
+	out := newSynchronizedBuffer()
+	scrubber := NewTerminalInputScrubber(out)
 
 	_, _ = scrubber.Write([]byte{0x1b})
 	if got := out.String(); got != "" {
 		t.Fatalf("standalone Escape must be held briefly, got %q", got)
 	}
 
-	deadline := time.Now().Add(10 * terminalInputEscapeCoalesceWindow)
-	for time.Now().Before(deadline) && out.String() == "" {
-		time.Sleep(time.Millisecond)
+	select {
+	case <-out.wrote:
+	case <-time.After(10 * terminalInputEscapeCoalesceWindow):
+		t.Fatal("standalone Escape was not forwarded after coalesce window")
 	}
 	if got := out.String(); got != "\x1b" {
 		t.Fatalf("standalone Escape was not forwarded after coalesce window: %q", got)
