@@ -124,7 +124,6 @@ func TestOpenExternalRejectsUnsafeSchemes(t *testing.T) {
 	}
 }
 
-
 func TestAutoStartOptionsHaveIndependentIdentity(t *testing.T) {
 	manager := NewAutoStartManagerWithOptions(AutoStartOptions{
 		AppName:  "Nexus HUD",
