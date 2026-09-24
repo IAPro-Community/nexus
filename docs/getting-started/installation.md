@@ -1,8 +1,9 @@
 # Instalação nativa por release assinada
 
-O caminho suportado da release estável Nexus v1 é **Linux amd64**. O source
-contém implementações para outros sistemas, mas Windows/macOS não fazem parte
-da matriz certificada desta v1.
+A release estável Nexus v1 ainda não foi publicada. A última beta pública
+registrada é **v1.0.0-beta.1 / Linux amd64**. O candidato seguinte
+**v1.0.0-beta.2** integra Linux amd64, Windows amd64 e macOS arm64; suporte
+público depende da certificação exact-SHA correspondente.
 
 | Quero… | Documento |
 | --- | --- |
@@ -58,10 +59,10 @@ Parâmetros principais:
 
 ## Windows e macOS
 
-**A v1.0.0 continua Linux-only.** A linha seguinte será cumulativa:
-`v1.1.0-beta.1` publica Linux + Windows; `v1.1.0-beta.2` acrescenta macOS;
-`v1.1.0` mantém as três plataformas. Cada plataforma nova só é publicada
-quando o mesmo SHA concluir sua certificação nativa.
+O trabalho anteriormente planejado para a linha 1.1 foi incorporado à própria
+**v1.0 enquanto ela ainda está em beta**. O candidato `v1.0.0-beta.2` inclui
+Linux + Windows + macOS no source. A publicação dos artefatos nativos continua
+bloqueada até o mesmo SHA concluir a certificação correspondente.
 
 ### Windows amd64
 
@@ -71,12 +72,12 @@ O caminho de distribuição passa a ser o instalador NSIS assinado:
 nexus-setup-Windows_x86_64.exe
 ```
 
-Windows é a primeira expansão pós-v1 e entra em `v1.1.0-beta.1`. A
-certificação exige Authenticode válido, timestamp, build Wails nativo,
-ConPTY/Named Pipe E2E e smoke completo de install/version/doctor/uninstall. O
-NSIS instala também o `nexus-hud.exe`, certificado e assinado no mesmo SHA.
-`install.ps1` continua disponível para automação, mas o instalador nativo é o
-bootstrap recomendado para usuários Windows.
+Windows amd64 faz parte do candidato `v1.0.0-beta.2`. A certificação exige
+Authenticode válido, timestamp, build Wails nativo, ConPTY/Named Pipe E2E e
+smoke completo de install/version/doctor/uninstall. O NSIS instala também o
+`nexus-hud.exe`, certificado e assinado no mesmo SHA. `install.ps1`
+continua disponível para automação, mas o instalador nativo é o bootstrap
+recomendado para usuários Windows.
 
 ### macOS arm64
 
@@ -86,9 +87,10 @@ O caminho de distribuição passa a ser o pacote notarizado:
 nexus-installer_Darwin_arm64.pkg
 ```
 
-macOS entra a partir de `v1.1.0-beta.2`. A certificação exige Developer ID,
-notarização Apple, stapling, Gatekeeper, build Wails nativo, PTY/socket E2E e
-smoke completo de install/version/doctor/uninstall. O pacote instala o CLI em
+macOS arm64 faz parte do candidato `v1.0.0-beta.2`. A certificação exige
+Developer ID, notarização Apple, stapling, Gatekeeper, build Wails nativo,
+PTY/socket E2E e smoke completo de install/version/doctor/uninstall. O pacote
+instala o CLI em
 `/usr/local/bin/nexus`, o app em `/Applications/IAPro Nexus.app`, o HUD em
 `/Applications/IAPro Nexus HUD.app` e `nexus-uninstall` para remoção
 preservando dados.
@@ -175,8 +177,8 @@ make build
 ./nexus doctor
 ```
 
-Builds de desenvolvimento em outros sistemas podem funcionar, mas isso não os
-transforma em plataformas suportadas da v1.
+Builds de desenvolvimento e o source integrado não transformam uma plataforma
+em suportada. A matriz pública muda somente depois da evidência exact-SHA.
 
 ## Diagnóstico
 
@@ -189,3 +191,23 @@ No Docker, probes de Desktop e runtimes nativos podem aparecer como N/A.
 ## Próximo passo
 
 [Primeiro projeto](first-project.md)
+
+
+## Homologação do candidato beta.2
+
+Enquanto o GitHub Actions estiver indisponível por créditos, execute a
+homologação automatizável localmente:
+
+```bash
+./scripts/homologate-beta.sh
+```
+
+No Windows:
+
+```powershell
+.\scripts\homologate-beta.ps1
+```
+
+A evidência é gravada por SHA em
+`DEV/validation/local-beta2/<sha>/<plataforma>/`. O script também gera a
+lista de checks manuais que não podem ser simulados com segurança.
