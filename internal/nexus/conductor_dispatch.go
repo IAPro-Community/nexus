@@ -195,8 +195,26 @@ func (n *Nexus) Dispatch(ctx context.Context, req DispatchRequest) (*DispatchRes
 	if err != nil {
 		return nil, err
 	}
+	return n.WaitDispatch(ctx, accepted)
+}
+
+// WaitDispatch waits for an already accepted Mission without creating another
+// WorkPlan or MissionRun. Interactive clients use StartDispatch first so they
+// can keep the provider prompt intact until strict admission succeeds, then
+// wait in the background after the Mission has actually started.
+func (n *Nexus) WaitDispatch(ctx context.Context, accepted *DispatchResult) (*DispatchResult, error) {
+	if accepted == nil {
+		return nil, fmt.Errorf("accepted dispatch result is required")
+	}
 	if accepted.Status != DispatchAccepted {
 		return accepted, nil
+	}
+	if strings.TrimSpace(accepted.RunID) == "" {
+		return &DispatchResult{
+			GoalID: accepted.GoalID,
+			Status: DispatchFailed,
+			Error:  "accepted dispatch did not return a mission run id",
+		}, nil
 	}
 
 	// Step 6: Wait for a settled run state (terminal, blocked or paused).
