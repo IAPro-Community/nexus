@@ -634,28 +634,35 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 		startMission := func(prompt string, fallbackToLead bool) {
 			accepted, startErr := startInteractiveDelegatedMission(n, session, agentID, prompt, mode)
 			if startErr != nil {
-				if fallbackToLead {
-					// A heuristic promotion is disposable until admission. If a
-					// temporary WorkPlan was created, remove it before returning
-					// ownership to the interactive Lead.
-					if accepted != nil && strings.TrimSpace(accepted.PlanID) != "" {
+				safeAdmissionFallback := fallbackToLead && accepted != nil && accepted.AdmissionBlocked
+				if safeAdmissionFallback {
+					// A heuristic promotion is disposable only when the Core
+					// proved that Mission admission failed before a run existed.
+					// Remove its temporary WorkPlan before returning ownership
+					// to the interactive Lead.
+					if strings.TrimSpace(accepted.PlanID) != "" {
 						_ = n.DeleteWorkPlan(context.Background(), accepted.PlanID)
 					}
 					// The prompt is still present in the provider TUI because
-					// Enter was held. Submit it unchanged to the Lead instead of
-					// leaving the user in a dead end.
+					// Enter was held. Submit it unchanged to the Lead exactly once.
 					_, _ = conn.Write([]byte("\r"))
 					_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission não admitida (%v); continuando com o Lead.\r\n", startErr)
 					return
 				}
+
 				// Explicit Mission requests never silently degrade to Direct.
-				// Keep the rejected WorkPlan for diagnosis/remediation and
-				// surface the exact blocker.
+				// The same conservative rule applies to untyped/internal start
+				// failures: without a proven admission boundary, do not risk
+				// duplicate side effects by submitting the prompt to the Lead.
 				_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
-				if accepted != nil && strings.TrimSpace(accepted.PlanID) != "" {
-					_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a admissão foi bloqueada (plan %s): %v\r\n", accepted.PlanID, startErr)
+				if accepted != nil && accepted.AdmissionBlocked {
+					if strings.TrimSpace(accepted.PlanID) != "" {
+						_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a admissão foi bloqueada (plan %s, etapa %s): %v\r\n", accepted.PlanID, accepted.AdmissionStage, startErr)
+					} else {
+						_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a admissão foi bloqueada (etapa %s): %v\r\n", accepted.AdmissionStage, startErr)
+					}
 				} else {
-					_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a admissão foi bloqueada: %v\r\n", startErr)
+					_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Promoção para Mission falhou antes da confirmação de admissão: %v. Fallback Direct desativado por segurança.\r\n", startErr)
 				}
 				return
 			}
