@@ -10,6 +10,7 @@ import (
 // evaluated by a shell.
 type CommandTemplateContext struct {
 	Cwd         string
+	TargetCwd   string
 	Args        []string
 	Provider    string
 	Profile     string
@@ -28,7 +29,8 @@ func ResolveCommandTemplate(template, cwd string, runtimeArgs []string) (string,
 // ResolveCommandTemplateContext expands a safe custom command template.
 //
 // Supported placeholders:
-//   {cwd}          current execution workspace
+//   {cwd}          host-side Nexus project workspace
+//   {target_cwd}   workspace path as seen by the custom target; falls back to {cwd}
 //   {args}         runtime/provider arguments; must occupy a whole token
 //   {provider}     logical Nexus provider id
 //   {profile}      logical Nexus profile id
@@ -45,10 +47,15 @@ func ResolveCommandTemplateContext(template string, ctx CommandTemplateContext) 
 		return "", nil, fmt.Errorf("command template is empty")
 	}
 
+	targetCwd := strings.TrimSpace(ctx.TargetCwd)
+	if targetCwd == "" {
+		targetCwd = ctx.Cwd
+	}
 	values := map[string]string{
-		"{cwd}":      ctx.Cwd,
-		"{provider}": strings.TrimSpace(ctx.Provider),
-		"{profile}":  strings.TrimSpace(ctx.Profile),
+		"{cwd}":        ctx.Cwd,
+		"{target_cwd}": targetCwd,
+		"{provider}":   strings.TrimSpace(ctx.Provider),
+		"{profile}":    strings.TrimSpace(ctx.Profile),
 	}
 	if strings.TrimSpace(ctx.ProfileHome) != "" {
 		values["{profile_home}"] = ctx.ProfileHome
