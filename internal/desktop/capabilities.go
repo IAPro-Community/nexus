@@ -7,15 +7,15 @@ import (
 
 // Capabilities represents the native platform features supported by Nexus Desktop.
 type Capabilities struct {
-	Native              bool `json:"native"`
-	FilePicker          bool `json:"filePicker"`
-	FolderPicker        bool `json:"folderPicker"`
-	Notifications       bool `json:"notifications"`
-	Tray                bool `json:"tray"`
-	NativeMenus         bool `json:"nativeMenus"`
-	DeepLinks           bool `json:"deepLinks"`
-	AutoStart           bool `json:"autoStart"`
-	WindowManagement    bool `json:"windowManagement"`
+	Native             bool `json:"native"`
+	FilePicker         bool `json:"filePicker"`
+	FolderPicker       bool `json:"folderPicker"`
+	Notifications      bool `json:"notifications"`
+	Tray               bool `json:"tray"`
+	NativeMenus        bool `json:"nativeMenus"`
+	DeepLinks          bool `json:"deepLinks"`
+	AutoStart          bool `json:"autoStart"`
+	WindowManagement   bool `json:"windowManagement"`
 	NativeVoiceCapture bool `json:"nativeVoiceCapture"`
 }
 
@@ -38,15 +38,15 @@ func DefaultCapabilities() Capabilities {
 	}
 
 	return Capabilities{
-		Native:              true,
-		FilePicker:          filePicker,
-		FolderPicker:        folderPicker,
-		Notifications:       notifications,
-		Tray:                false,
-		NativeMenus:         false,
-		DeepLinks:           false,
-		AutoStart:           false,
-		WindowManagement:    true,
+		Native:             true,
+		FilePicker:         filePicker,
+		FolderPicker:       folderPicker,
+		Notifications:      notifications,
+		Tray:               false,
+		NativeMenus:        false,
+		DeepLinks:          false,
+		AutoStart:          false,
+		WindowManagement:   true,
 		NativeVoiceCapture: nativeVoiceCapture,
 	}
 }
