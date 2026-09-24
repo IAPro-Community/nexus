@@ -52,17 +52,24 @@ func TestNoBrowserBinDirInstallsInertHelpers(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, name := range []string{"ai-browser", "xdg-open", "open"} {
-		path := filepath.Join(dir, name)
+		fileName := name
+		if runtime.GOOS == "windows" {
+			fileName += ".cmd"
+		}
+		path := filepath.Join(dir, fileName)
 		info, err := os.Stat(path)
 		if err != nil {
-			t.Fatalf("%s: %v", name, err)
+			t.Fatalf("%s: %v", fileName, err)
 		}
 		if runtime.GOOS == "windows" {
 			continue
 		}
 		if info.Mode()&0111 == 0 {
-			t.Fatalf("%s must be executable", name)
+			t.Fatalf("%s must be executable", fileName)
 		}
+	}
+	if got := NoBrowserHelperPath(dir); got != filepath.Join(dir, map[bool]string{true: "ai-browser.cmd", false: "ai-browser"}[runtime.GOOS == "windows"]) {
+		t.Fatalf("unexpected no-browser helper path: %s", got)
 	}
 }
 
@@ -92,5 +99,19 @@ func TestDisableSessionSecretServiceFailsClosedWithoutLeakingHostBus(t *testing.
 	}
 	if got := values["PATH"]; got != "/usr/bin" {
 		t.Fatalf("unrelated environment changed: PATH=%q", got)
+	}
+}
+
+func TestCheckedCredentialIsolationFailsClosedWhenUnsupported(t *testing.T) {
+	capability := DefaultCredentialIsolator().Capability()
+	_, _, err := WrapWithIsolatedSecretServiceChecked("echo", []string{"hi"})
+	if capability.Status == CredentialSupported {
+		if err != nil {
+			t.Fatalf("supported credential isolation unexpectedly failed: %v", err)
+		}
+		return
+	}
+	if err == nil {
+		t.Fatalf("explicit credential isolation must fail closed for capability %+v", capability)
 	}
 }
