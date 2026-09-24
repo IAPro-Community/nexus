@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/launchenv"
 	"github.com/IAPro-Community/nexus/internal/control/launcher"
 	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 	projection "github.com/IAPro-Community/nexus/internal/core/provider/agentprojection"
 	opencodeprojection "github.com/IAPro-Community/nexus/internal/core/provider/agentprojection/opencode"
 	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
@@ -34,9 +36,22 @@ type AgentProjectionPlanView struct {
 	Plan            *projection.Plan        `json:"plan"`
 }
 
+type AgentProjectionDiscovery struct {
+	Provider       string   `json:"provider"`
+	ProviderVersion string  `json:"provider_version"`
+	TargetKind     string   `json:"target_kind"`
+	AgentName      string   `json:"agent_name"`
+	Command        []string `json:"command,omitempty"`
+	Discovered     bool     `json:"discovered"`
+	Status         string   `json:"status"`
+	Evidence       string   `json:"evidence,omitempty"`
+	Error          string   `json:"error,omitempty"`
+}
+
 type AgentProjectionApplyView struct {
-	Plan    AgentProjectionPlanView `json:"plan"`
-	Receipt *projection.Receipt     `json:"receipt"`
+	Plan      AgentProjectionPlanView  `json:"plan"`
+	Receipt   *projection.Receipt      `json:"receipt"`
+	Discovery *AgentProjectionDiscovery `json:"discovery,omitempty"`
 }
 
 type agentProjectionContext struct {
@@ -151,6 +166,7 @@ func (n *Nexus) ApplyRuntimeAgentProjection(ctx context.Context, runtimeID, acti
 	}
 
 	caps := resolved.adapter.Capabilities(ctx, resolved.version)
+	discovery := n.probeAgentProjectionDiscovery(ctx, resolved)
 	return &AgentProjectionApplyView{
 		Plan: AgentProjectionPlanView{
 			RuntimeID:            runtimeID,
@@ -166,8 +182,122 @@ func (n *Nexus) ApplyRuntimeAgentProjection(ctx context.Context, runtimeID, acti
 			Capabilities:         caps,
 			Plan:                 plan,
 		},
-		Receipt: receipt,
+		Receipt:   receipt,
+		Discovery: discovery,
 	}, nil
+}
+
+// ProbeRuntimeAgentProjectionDiscovery asks the provider target to enumerate
+// native agents without invoking an LLM. Discovery is evidence that OpenCode
+// sees the materialized file; it is not evidence that the current session has
+// activated that agent or that its permissions were enforced.
+func (n *Nexus) ProbeRuntimeAgentProjectionDiscovery(ctx context.Context, runtimeID string) (*AgentProjectionDiscovery, error) {
+	resolved, err := n.resolveAgentProjectionContext(ctx, runtimeID)
+	if err != nil {
+		return nil, err
+	}
+	result := n.probeAgentProjectionDiscovery(ctx, resolved)
+	if result.Error != "" {
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	return result, nil
+}
+
+func (n *Nexus) probeAgentProjectionDiscovery(ctx context.Context, resolved *agentProjectionContext) *AgentProjectionDiscovery {
+	result := &AgentProjectionDiscovery{
+		Provider:        resolved.generation.Provider,
+		ProviderVersion: resolved.version,
+		TargetKind:      resolved.targetKind,
+		Status:          "NOT_VERIFIED",
+	}
+	if !strings.EqualFold(resolved.generation.Provider, "opencode") {
+		result.Error = fmt.Sprintf("native discovery probe is not implemented for provider %q", resolved.generation.Provider)
+		return result
+	}
+	agentName, err := opencodeprojection.AgentName(resolved.role.ID)
+	if err != nil {
+		result.Error = err.Error()
+		return result
+	}
+	result.AgentName = agentName
+	discoveryArgs, err := opencodeprojection.DiscoveryArgs(resolved.version)
+	if err != nil {
+		result.Error = err.Error()
+		return result
+	}
+
+	probeCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	defer cancel()
+
+	var bin string
+	var args []string
+	var env []string
+	var cwd string
+
+	if resolved.custom {
+		template := agentModeStringOption(resolved.config.Options, "target_probe_template")
+		if template == "" {
+			result.Error = "custom target has no target_probe_template; discovery cannot be proved"
+			return result
+		}
+		bin, args, err = launcher.ResolveCommandTemplateContext(template, launcher.CommandTemplateContext{
+			Cwd:         resolved.project.CanonicalPath,
+			Args:        discoveryArgs,
+			Provider:    resolved.generation.Provider,
+			Profile:     resolved.generation.Profile,
+			ProfileHome: resolved.providerHome,
+		})
+		env = launchenv.Merge(os.Environ(), resolved.config.Environment, nil)
+		cwd = resolved.project.CanonicalPath
+	} else {
+		driver, driverErr := n.controlDrivers().Get(resolved.generation.Provider)
+		if driverErr != nil {
+			result.Error = driverErr.Error()
+			return result
+		}
+		bin, args, env, err = driver.BuildCommand(probeCtx, model.Profile{
+			Provider: resolved.generation.Provider,
+			Name:     resolved.generation.Profile,
+		}, discoveryArgs)
+		cwd = resolved.project.CanonicalPath
+	}
+	if err != nil {
+		result.Error = fmt.Sprintf("resolve discovery command: %v", err)
+		return result
+	}
+
+	result.Command = append([]string{filepath.Base(bin)}, args...)
+	output, runErr := nexusruntime.RunCommandCapture(probeCtx, bin, args, env, cwd)
+	if runErr != nil {
+		result.Error = fmt.Sprintf("OpenCode native-agent discovery failed: %v (%s)", runErr, strings.TrimSpace(output))
+		return result
+	}
+	if !containsAgentName(output, agentName) {
+		result.Error = fmt.Sprintf("OpenCode did not list projected agent %q", agentName)
+		result.Evidence = truncateProjectionEvidence(output, 2048)
+		return result
+	}
+
+	result.Discovered = true
+	result.Status = "VERIFIED"
+	result.Evidence = truncateProjectionEvidence(output, 2048)
+	return result
+}
+
+func containsAgentName(output, name string) bool {
+	if strings.TrimSpace(name) == "" {
+		return false
+	}
+	pattern := `(^|[^A-Za-z0-9_-])` + regexp.QuoteMeta(name) + `([^A-Za-z0-9_-]|$)`
+	return regexp.MustCompile(pattern).FindStringIndex(output) != nil
+}
+
+func truncateProjectionEvidence(value string, limit int) string {
+	value = strings.TrimSpace(value)
+	if limit <= 0 || len(value) <= limit {
+		return value
+	}
+	return value[:limit] + "…"
 }
 
 func (n *Nexus) VerifyAgentProjection(ctx context.Context, receiptID string) (*projection.Verification, error) {
