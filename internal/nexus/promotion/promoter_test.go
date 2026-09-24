@@ -116,4 +116,23 @@ func TestPromoterDecideAUTOExplicitMissionPromotes(t *testing.T) {
 	if decision.Action != Promote {
 		t.Fatalf("explicit Mission request must promote: %+v", decision)
 	}
+	if !decision.ExplicitMissionRequest {
+		t.Fatalf("explicit Mission request must be marked as user-owned: %+v", decision)
+	}
+}
+
+func TestPromoterHeuristicPromotionIsNotMarkedExplicit(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{Strategy: nexus.IntentPlan}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "implemente backend e frontend com testes", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Promote || !decision.Delegation.Delegate {
+		t.Fatalf("fixture must be heuristically promoted: %+v", decision)
+	}
+	if decision.ExplicitMissionRequest {
+		t.Fatalf("heuristic promotion must remain eligible for Lead fallback: %+v", decision)
+	}
 }
