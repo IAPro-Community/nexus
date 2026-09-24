@@ -136,3 +136,16 @@ func TestPromoterHeuristicPromotionIsNotMarkedExplicit(t *testing.T) {
 		t.Fatalf("heuristic promotion must remain eligible for Lead fallback: %+v", decision)
 	}
 }
+
+func TestPromoterExplicitMissionOverridesDirectHeuristic(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{Strategy: nexus.IntentDirect}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "execute esta correção como Mission", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Promote || !decision.ExplicitMissionRequest {
+		t.Fatalf("explicit Mission request must override DIRECT heuristic: %+v", decision)
+	}
+}
