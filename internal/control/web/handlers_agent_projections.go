@@ -43,6 +43,23 @@ func (h *NexusHandler) handleAgentProjections(w http.ResponseWriter, r *http.Req
 		}
 		writeJSON(w, http.StatusOK, applied)
 		return
+
+	case "discovery":
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+		runtimeID, ok := decodeProjectionRuntimeID(w, r)
+		if !ok {
+			return
+		}
+		discovery, err := h.nexus.ProbeRuntimeAgentProjectionDiscovery(r.Context(), runtimeID)
+		if err != nil {
+			writeJSON(w, http.StatusConflict, discovery)
+			return
+		}
+		writeJSON(w, http.StatusOK, discovery)
+		return
 	}
 
 	parts := strings.Split(path, "/")
@@ -68,7 +85,7 @@ func (h *NexusHandler) handleAgentProjections(w http.ResponseWriter, r *http.Req
 			writeError(w, http.StatusConflict, err.Error())
 			return
 		}
-		w.WriteHeader(http.StatusNoContent)
+		writeJSON(w, http.StatusOK, map[string]string{"status": "removed"})
 		return
 	}
 
