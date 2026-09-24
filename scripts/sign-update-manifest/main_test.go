@@ -46,7 +46,9 @@ func TestArtifactKeysMapGoReleaserAndDesktopNames(t *testing.T) {
 		"nexus_Windows_x86_64.zip":            {"windows_amd64"},
 		"nexus-desktop_Linux_x86_64.tar.gz":   {"desktop_linux_amd64"},
 		"nexus-desktop_Darwin_arm64.zip":      {"desktop_darwin_arm64"},
+		"nexus-desktop_Windows_x86_64.zip":    {"desktop_windows_amd64"},
 		"nexus-setup-Windows_x86_64.exe":      {"windows_amd64_nsis"},
+		"nexus-installer_Darwin_arm64.pkg":    {"darwin_arm64_pkg"},
 		"nexus_0.5.0-beta.23_linux_amd64.deb": {"linux_amd64_deb"},
 		"nexus_0.5.0-beta.23_linux_amd64.rpm": {"linux_amd64_rpm"},
 	}
