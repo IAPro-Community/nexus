@@ -128,28 +128,79 @@ func TestValidateFlowExecutionContractRejectsContradictoryAssignment(t *testing.
 	}
 }
 
-func TestStartMissionRunAutonomousRejectsMissingWorktreeAdmission(t *testing.T) {
+func TestStartMissionRunAutonomousRejectsPinnedAgentWithoutWorktreeIsolation(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {
 		t.Fatal(err)
 	}
-	project, err := st.CreateProject(store.Project{Name: "Strict admission", CanonicalPath: t.TempDir(), DefaultIsolation: "project"})
+	project, err := st.CreateProject(store.Project{Name: "Strict admission", CanonicalPath: t.TempDir(), DefaultIsolation: "worktree"})
 	if err != nil {
 		t.Fatal(err)
 	}
+	agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Unsafe pinned", Role: "implementer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	revision, err := st.AddRevision(agent.ID, (AgentConfig{Isolation: "project"}).ConfigJSON())
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent.CurrentRevisionID = revision.ID
+	if err := st.UpdateAgent(agent); err != nil {
+		t.Fatal(err)
+	}
 	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Plan", "", []store.PlanPhase{{
-		Title: "Phase", Packages: []store.WorkPackage{{Title: "Required worktree", Goal: "Run safely", Status: "READY", Role: "implementer", AcceptanceCriteria: []string{"done"}}},
+		Title: "Phase", Packages: []store.WorkPackage{{
+			Title: "Required worktree", Goal: "Run safely", Status: "READY", Role: "implementer",
+			AssignmentStrategy: string(FlowAssignmentExisting), AgentAllocation: agent.ID,
+			AcceptanceCriteria: []string{"done"},
+		}},
 	}}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, err = n.StartMissionRun(context.Background(), plan.ID, "", runner.DefaultAutonomyContract(), true)
 	if err == nil {
-		t.Fatal("expected autonomous mission admission to reject project checkout")
+		t.Fatal("expected autonomous mission admission to reject pinned project checkout")
 	}
 	if !strings.Contains(strings.ToLower(err.Error()), "worktree") {
 		t.Fatalf("expected actionable worktree admission error, got %v", err)
+	}
+}
+
+func TestStrictAdmissionAllowsAutoAllocationWithoutProjectWideWorktreeDefault(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Per-Agent isolation", CanonicalPath: t.TempDir(), DefaultIsolation: "project"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Auto isolated", "", []store.PlanPhase{{
+		Title: "Phase", Packages: []store.WorkPackage{{
+			Title: "Auto work", Goal: "Run safely", Status: "READY", Role: "implementer",
+			AssignmentStrategy: string(FlowAssignmentAuto), AcceptanceCriteria: []string{"done"},
+		}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	report, err := n.PreflightFlowStrict(context.Background(), plan.ID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var isolation *FlowPreflightCheck
+	for i := range report.Checks {
+		if report.Checks[i].Key == "worktree_isolation" {
+			isolation = &report.Checks[i]
+			break
+		}
+	}
+	if isolation == nil || isolation.Status != "PASS" {
+		t.Fatalf("AUTO allocation should be worktree-safe without project-wide default: %+v", report.Checks)
 	}
 }
 
