@@ -635,6 +635,12 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 			accepted, startErr := startInteractiveDelegatedMission(n, session, agentID, prompt, mode)
 			if startErr != nil {
 				if fallbackToLead {
+					// A heuristic promotion is disposable until admission. If a
+					// temporary WorkPlan was created, remove it before returning
+					// ownership to the interactive Lead.
+					if accepted != nil && strings.TrimSpace(accepted.PlanID) != "" {
+						_ = n.DeleteWorkPlan(context.Background(), accepted.PlanID)
+					}
 					// The prompt is still present in the provider TUI because
 					// Enter was held. Submit it unchanged to the Lead instead of
 					// leaving the user in a dead end.
@@ -643,9 +649,14 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 					return
 				}
 				// Explicit Mission requests never silently degrade to Direct.
-				// Clear the held provider line and surface the exact blocker.
+				// Keep the rejected WorkPlan for diagnosis/remediation and
+				// surface the exact blocker.
 				_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
-				_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a admissão foi bloqueada: %v\r\n", startErr)
+				if accepted != nil && strings.TrimSpace(accepted.PlanID) != "" {
+					_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a admissão foi bloqueada (plan %s): %v\r\n", accepted.PlanID, startErr)
+				} else {
+					_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Mission solicitada, mas a admissão foi bloqueada: %v\r\n", startErr)
+				}
 				return
 			}
 			_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
