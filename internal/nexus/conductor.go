@@ -88,10 +88,11 @@ func applyDefaults(p *ConductorPolicy) {
 // § C.2  GoalContract (frozen copy of promoted goal)
 // ─────────────────────────────────────────────────────────────────────
 
-// GoalContract captures the immutable goal definition at promotion time.
-// It is frozen into the ExecutionSnapshot.
+// GoalContractFactKey stores the immutable promoted goal in WorkPlan facts.
 const GoalContractFactKey = "nexus.dispatch.goal_contract"
 
+// GoalContract captures the immutable goal definition at promotion time.
+// It is frozen into the ExecutionSnapshot.
 type GoalContract struct {
 	GoalDescription string `json:"goal_description"`
 	// AcceptedAssumptions captures reviewer-approved assumptions.
