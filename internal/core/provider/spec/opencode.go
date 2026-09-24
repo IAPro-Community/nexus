@@ -29,8 +29,12 @@ var opencodeSpec = Spec{
 	Resume: func(sessionID string) []string {
 		return []string{"-s", sessionID}
 	},
-	AutoApproval:  []string{"--auto"},
-	ReviewMode:    []string{"--permission-mode", "plan"},
-	Quota:         QuotaLiveHTTP,
+	AutoApproval: []string{"--auto"},
+	// OpenCode read-only behavior is configured through per-agent permissions,
+	// not a provider-wide --permission-mode CLI flag. Native read-only review
+	// remains unsupported until Agent Projection can materialize and verify a
+	// permission-scoped review agent.
+	ReviewMode: nil,
+	Quota:      QuotaLiveHTTP,
 	KnownVersions: []string{"1.18.30"},
 }
