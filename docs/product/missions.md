@@ -164,7 +164,7 @@ prompt no Lead
    ↓
 decisão de promoção
    ↓
-StartDispatch / strict admission
+StartDispatch / execution preview / budget / strict admission
    ├─ ACCEPTED → MissionRun criado + worker iniciado → limpa a linha do Lead
    └─ BLOCKED
         ├─ promoção heurística → remove plano temporário e executa no Lead
@@ -181,7 +181,9 @@ Depois que a Mission foi admitida, não existe fallback automático para Direct:
 ela já pode ter produzido side effects. Falhas posteriores são reportadas ao
 Lead para síntese/intervenção.
 
-Os blockers de admissão informam os checks que realmente falharam (por exemplo
+A promoção automática reutiliza a mesma spine de admission do GO aprovado:
+Execution Preview, budget/cost gate e strict admission são revalidados antes do
+`MissionRunner`. Os blockers de admissão informam os checks que realmente falharam (por exemplo
 `worktree_isolation`, `resources`, `plan_readiness` ou `skills`) em vez
 de uma mensagem genérica.
 
