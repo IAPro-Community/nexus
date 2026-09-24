@@ -43,6 +43,7 @@ type DispatchResult struct {
 	Run              *runner.MissionRun `json:"run,omitempty"`
 	AdmissionBlocked bool               `json:"admission_blocked,omitempty"`
 	AdmissionStage   string             `json:"admission_stage,omitempty"`
+	FallbackSafe     bool               `json:"fallback_safe,omitempty"`
 	Error            string             `json:"error,omitempty"`
 }
 
@@ -111,9 +112,10 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 	})
 	if err != nil {
 		return &DispatchResult{
-			GoalID: req.GoalID,
-			Status: DispatchFailed,
-			Error:  fmt.Sprintf("decompose prompt: %v", err),
+			GoalID:       req.GoalID,
+			Status:       DispatchFailed,
+			FallbackSafe: true,
+			Error:        fmt.Sprintf("decompose prompt: %v", err),
 		}, nil
 	}
 
@@ -122,16 +124,18 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 	decision, err := ReadDelegationDecisionFacts(flowPlan.StructuredFacts)
 	if err != nil {
 		return &DispatchResult{
-			GoalID: req.GoalID,
-			Status: DispatchRejected,
-			Error:  fmt.Sprintf("validate delegation decision: %v", err),
+			GoalID:       req.GoalID,
+			Status:       DispatchRejected,
+			FallbackSafe: true,
+			Error:        fmt.Sprintf("validate delegation decision: %v", err),
 		}, nil
 	}
 	if !dispatchTopologyAllowed(req, decision) {
 		return &DispatchResult{
-			GoalID: req.GoalID,
-			Status: DispatchRejected,
-			Error:  "validate delegation decision: dispatch brake rejected the delegated topology",
+			GoalID:       req.GoalID,
+			Status:       DispatchRejected,
+			FallbackSafe: true,
+			Error:        "validate delegation decision: dispatch brake rejected the delegated topology",
 		}, nil
 	}
 
@@ -140,9 +144,10 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 	facts, err := PersistDelegationDecisionFacts(flowPlan.StructuredFacts, decision)
 	if err != nil {
 		return &DispatchResult{
-			GoalID: req.GoalID,
-			Status: DispatchFailed,
-			Error:  fmt.Sprintf("persist delegation decision: %v", err),
+			GoalID:       req.GoalID,
+			Status:       DispatchFailed,
+			FallbackSafe: true,
+			Error:        fmt.Sprintf("persist delegation decision: %v", err),
 		}, nil
 	}
 	if req.AutoPromoteToMission {
@@ -160,9 +165,10 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 	plan, err := n.CreateWorkPlan(ctx, req.ProjectID, proposal.Title, proposal.Description, flowPlan.Phases, facts)
 	if err != nil {
 		return &DispatchResult{
-			GoalID: req.GoalID,
-			Status: DispatchFailed,
-			Error:  fmt.Sprintf("create work plan: %v", err),
+			GoalID:       req.GoalID,
+			Status:       DispatchFailed,
+			FallbackSafe: true,
+			Error:        fmt.Sprintf("create work plan: %v", err),
 		}, nil
 	}
 
@@ -179,14 +185,16 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 				Status:           DispatchRejected,
 				AdmissionBlocked: true,
 				AdmissionStage:   admissionErr.Stage,
+				FallbackSafe:     true,
 				Error:            fmt.Sprintf("start mission: %v", err),
 			}, nil
 		}
 		return &DispatchResult{
-			GoalID: req.GoalID,
-			PlanID: plan.ID,
-			Status: DispatchFailed,
-			Error:  fmt.Sprintf("start mission: %v", err),
+			GoalID:       req.GoalID,
+			PlanID:       plan.ID,
+			Status:       DispatchFailed,
+			FallbackSafe: true,
+			Error:        fmt.Sprintf("start mission: %v", err),
 		}, nil
 	}
 
