@@ -280,6 +280,11 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				if strings.TrimSpace(accepted.PlanID) != "" {
 					detail = fmt.Sprintf("Mission solicitada, mas a admissão foi bloqueada (plan %s, etapa %s): %v", accepted.PlanID, accepted.AdmissionStage, startErr)
 				}
+			} else if accepted != nil && strings.TrimSpace(accepted.AdmissionStage) != "" {
+				detail = fmt.Sprintf("Mission solicitada, mas a preparação falhou (etapa %s): %v. Fallback Direct desativado por segurança.", accepted.AdmissionStage, startErr)
+				if strings.TrimSpace(accepted.PlanID) != "" {
+					detail = fmt.Sprintf("Mission solicitada, mas a preparação falhou (plan %s, etapa %s): %v. Fallback Direct desativado por segurança.", accepted.PlanID, accepted.AdmissionStage, startErr)
+				}
 			}
 			_ = safeWriteJSON(TerminalMessage{
 				Type: "promotion",
@@ -369,7 +374,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		switch msg.Type {
 		case "promotion_answer":
 			if broker.IsWriter(agentID, ws) && pendingPromotion != "" {
-				if strings.EqualFold(strings.TrimSpace(msg.Data), "y") || strings.EqualFold(strings.TrimSpace(msg.Data), "yes") {
+				if strings.EqualFold(strings.TrimSpace(msg.Data), "y") || strings.EqualFold(strings.TrimSpace(msg.Data), "yes") || strings.EqualFold(strings.TrimSpace(msg.Data), "s") || strings.EqualFold(strings.TrimSpace(msg.Data), "sim") {
 					startPromotion(pendingPromotion, false)
 				} else {
 					_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
@@ -388,7 +393,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 					// ASK consumes the next answer outside the provider PTY. The
 					// original line is retained only until this explicit choice.
 					answer := strings.TrimSpace(msg.Data)
-					if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
+					if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") || strings.EqualFold(answer, "s") || strings.EqualFold(answer, "sim") {
 						startPromotion(pendingPromotion, false)
 					} else {
 						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
