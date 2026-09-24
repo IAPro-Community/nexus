@@ -3,6 +3,7 @@ package runtime
 import (
 	"bytes"
 	"testing"
+	"time"
 )
 
 func TestTerminalOutputScrubberDropsKeyboardNegotiation(t *testing.T) {
@@ -56,13 +57,35 @@ func TestTerminalInputScrubberDropsFocusAndCPR(t *testing.T) {
 	}
 }
 
-func TestTerminalInputScrubberForwardsStandaloneEscape(t *testing.T) {
+func TestTerminalInputScrubberCoalescesSplitArrowSequence(t *testing.T) {
 	var out bytes.Buffer
 	scrubber := NewTerminalInputScrubber(&out)
 
 	_, _ = scrubber.Write([]byte{0x1b})
+	if got := out.String(); got != "" {
+		t.Fatalf("escape prefix leaked before sequence completed: %q", got)
+	}
+	_, _ = scrubber.Write([]byte("[D"))
 
+	if got := out.String(); got != "\x1b[D" {
+		t.Fatalf("split arrow sequence = %q, want %q", got, "\\x1b[D")
+	}
+}
+
+func TestTerminalInputScrubberForwardsStandaloneEscapeAfterCoalesceWindow(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalInputScrubber(&out)
+
+	_, _ = scrubber.Write([]byte{0x1b})
+	if got := out.String(); got != "" {
+		t.Fatalf("standalone Escape must be held briefly, got %q", got)
+	}
+
+	deadline := time.Now().Add(10 * terminalInputEscapeCoalesceWindow)
+	for time.Now().Before(deadline) && out.String() == "" {
+		time.Sleep(time.Millisecond)
+	}
 	if got := out.String(); got != "\x1b" {
-		t.Fatalf("standalone Escape was delayed: %q", got)
+		t.Fatalf("standalone Escape was not forwarded after coalesce window: %q", got)
 	}
 }
