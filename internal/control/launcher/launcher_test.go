@@ -84,6 +84,10 @@ func TestRuntimeLauncherCustomTargetDoesNotRequireProviderBinaryOnHost(t *testin
 	if sess.ProviderID != "fake" || sess.Binary == "" {
 		t.Fatalf("logical provider/session metadata lost: %#v", sess)
 	}
+	if sess.Labels["nexus.execution_adapter"] != "command_template" ||
+		sess.Labels["nexus.target_kind"] != "custom" {
+		t.Fatalf("custom target metadata missing from runtime session: %#v", sess.Labels)
+	}
 	if err := l.Stop(sess.RuntimeID); err != nil {
 		// Standalone stop may report the protocol close as part of teardown;
 		// the important assertion is that launch succeeded without BuildCommand.
