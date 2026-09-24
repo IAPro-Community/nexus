@@ -166,3 +166,27 @@ func (s *Store) DetachRuntimeExecutionRoleProjection(runtimeGenerationID, receip
 	}
 	return nil
 }
+
+
+// MarkRuntimeExecutionRoleActivation records native activation evidence without
+// changing enforcement. The receipt predicate prevents stale evidence from
+// promoting a newer projection accidentally.
+func (s *Store) MarkRuntimeExecutionRoleActivation(runtimeGenerationID, receiptID, strategy string) error {
+	runtimeGenerationID = strings.TrimSpace(runtimeGenerationID)
+	receiptID = strings.TrimSpace(receiptID)
+	strategy = strings.TrimSpace(strategy)
+	if runtimeGenerationID == "" || receiptID == "" || strategy == "" {
+		return errors.New("runtime_generation_id, projection receipt id and activation strategy are required")
+	}
+	res, err := s.db.Exec(`UPDATE runtime_execution_roles
+		SET activation_strategy=?
+		WHERE runtime_generation_id=? AND projection_receipt_id=?`,
+		strategy, runtimeGenerationID, receiptID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
