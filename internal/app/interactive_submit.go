@@ -7,9 +7,13 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
 )
 
-func decideInteractiveSubmit(ctx context.Context, promoter promotion.Promoter, projectID, line string, mode nexus.DelegationMode) promotion.Action {
+func decideInteractiveSubmitDecision(ctx context.Context, promoter promotion.Promoter, projectID, line string, mode nexus.DelegationMode) promotion.Decision {
 	if promotion.IsImmediateSubmitLine(line) {
-		return promotion.KeepWithLead
+		return promotion.Decision{
+			Action: promotion.KeepWithLead,
+			Mode:   mode,
+			Reason: "provider command bypasses Mission promotion",
+		}
 	}
 	if ctx == nil {
 		ctx = context.Background()
@@ -17,8 +21,20 @@ func decideInteractiveSubmit(ctx context.Context, promoter promotion.Promoter, p
 	decideCtx, cancel := context.WithTimeout(ctx, promotion.InteractiveDecisionTimeout)
 	defer cancel()
 	decision, err := promoter.Decide(decideCtx, projectID, line, mode)
-	if err != nil || decision.Action == promotion.KeepWithLead {
-		return promotion.KeepWithLead
+	if err != nil {
+		return promotion.Decision{
+			Action: promotion.KeepWithLead,
+			Mode:   mode,
+			Reason: "promotion decision unavailable; fail open to interactive Lead",
+		}
 	}
-	return decision.Action
+	return decision
+}
+
+func decideInteractiveSubmit(ctx context.Context, promoter promotion.Promoter, projectID, line string, mode nexus.DelegationMode) promotion.Action {
+	return decideInteractiveSubmitDecision(ctx, promoter, projectID, line, mode).Action
+}
+
+func shouldFallbackPromotionToLead(decision promotion.Decision) bool {
+	return decision.Action == promotion.Promote && !decision.ExplicitMissionRequest
 }
