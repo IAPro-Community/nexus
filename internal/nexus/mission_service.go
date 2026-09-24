@@ -28,6 +28,28 @@ type missionExecutionSnapshot struct {
 	Goal             *GoalContract           `json:"goal,omitempty"`
 }
 
+type MissionAdmissionError struct {
+	Stage  string
+	Detail string
+}
+
+func (e *MissionAdmissionError) Error() string {
+	if e == nil {
+		return "mission admission blocked"
+	}
+	if strings.TrimSpace(e.Detail) != "" {
+		return e.Detail
+	}
+	if strings.TrimSpace(e.Stage) != "" {
+		return "mission admission blocked at " + e.Stage
+	}
+	return "mission admission blocked"
+}
+
+func missionAdmissionError(stage, detail string) error {
+	return &MissionAdmissionError{Stage: strings.TrimSpace(stage), Detail: strings.TrimSpace(detail)}
+}
+
 type missionWorker struct {
 	id     string
 	cancel context.CancelFunc
@@ -142,7 +164,7 @@ func validateFlowExecutionContract(plan store.WorkPlan) error {
 // durable state machine. autonomous=true starts a background worker immediately.
 func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID string, contract runner.AutonomyContract, autonomous bool) (*runner.MissionRun, error) {
 	if err := n.RequireCapability(ctx, entitlement.CapMissionsRun); err != nil {
-		return nil, fmt.Errorf("mission entitlement denied: %w", err)
+		return nil, missionAdmissionError("entitlement", fmt.Sprintf("mission entitlement denied: %v", err))
 	}
 	st, err := n.OpenProject()
 	if err != nil {
@@ -153,7 +175,7 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 		return nil, err
 	}
 	if err := ensureDelegationApproved(plan); err != nil {
-		return nil, err
+		return nil, missionAdmissionError("delegation", err.Error())
 	}
 	project, err := st.GetProject(plan.ProjectID)
 	if err != nil {
@@ -170,7 +192,7 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 		return nil, fmt.Errorf("run preflight before mission: %w", err)
 	}
 	if !preflight.Ready {
-		return nil, fmt.Errorf("mission blocked by preflight: %s", missionAdmissionBlockers(preflight))
+		return nil, missionAdmissionError("preflight", fmt.Sprintf("mission blocked by preflight: %s", missionAdmissionBlockers(preflight)))
 	}
 	if autonomous {
 		preflight, err = n.PreflightFlowStrict(ctx, planID, true)
@@ -178,7 +200,7 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 			return nil, fmt.Errorf("run strict admission before mission: %w", err)
 		}
 		if !preflight.Ready {
-			return nil, fmt.Errorf("mission blocked by strict admission: %s", missionAdmissionBlockers(preflight))
+			return nil, missionAdmissionError("strict_admission", fmt.Sprintf("mission blocked by strict admission: %s", missionAdmissionBlockers(preflight)))
 		}
 	}
 
@@ -287,7 +309,7 @@ func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID s
 		return nil, fmt.Errorf("run preflight before approved mission: %w", err)
 	}
 	if !preflight.Ready {
-		return nil, fmt.Errorf("approved mission blocked by preflight: %s", missionAdmissionBlockers(preflight))
+		return nil, missionAdmissionError("preflight", fmt.Sprintf("approved mission blocked by preflight: %s", missionAdmissionBlockers(preflight)))
 	}
 	if err := validateCostBudgetAdmission(ctx, st, plan, options.CostConfirmationToken); err != nil {
 		return nil, err
