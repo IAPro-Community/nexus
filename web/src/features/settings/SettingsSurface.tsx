@@ -47,6 +47,7 @@ import { IntelligenceMemoriesPanel } from './IntelligenceMemoriesPanel';
 import { CapacityMonitorSettings } from './CapacityMonitorSettings';
 import { CostIntelligenceSettings } from './CostIntelligenceSettings';
 import { HudSettings } from '../hud/HudSettings';
+import { VoiceSettings } from '../voice/VoiceSettings';
 import type { SystemDoctorReport } from '../../nexus/api';
 import styles from './SettingsSurface.module.scss';
 
@@ -488,6 +489,8 @@ export const SettingsSurface: React.FC<{
               />
               <Button onClick={onTour}>{t('settings.replayTour')}</Button>
             </Card>
+
+            <VoiceSettings />
           </>
         )}
 

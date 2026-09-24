@@ -84,6 +84,7 @@ import { pushNotifications } from '../notifications/PushNotificationManager';
 import { loadNotificationPrefs, playAttentionSound } from '../notifications/notificationPrefs';
 import { formatAttentionPushBody } from '../notifications/attentionPushCopy';
 import { isPtyAttentionFocused } from '../notifications/attentionDelivery';
+import { interpretNexusVoiceCommand } from '../features/voice/voiceCommand';
 
 const selectedProjectKey = 'iapro:nexus:selected-project:v1';
 const tourKey = 'iapro:nexus:tour-complete:v1';
@@ -348,7 +349,7 @@ const WorkspaceCoordinator: React.FC<{
   const [railOpen, setRailOpen] = useState(false);
   const [palette, setPalette] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
-    'appearance' | 'updates' | 'remote' | 'hud'
+    'appearance' | 'accessibility' | 'updates' | 'remote' | 'hud'
   >('appearance');
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [maestroControlOpen, setMaestroControlOpen] = useState(false);
@@ -761,6 +762,29 @@ const WorkspaceCoordinator: React.FC<{
       config,
       shell,
     ],
+  );
+
+  const handleNexusVoiceTranscript = useCallback(
+    async (transcript: string) => {
+      const intent = interpretNexusVoiceCommand(transcript);
+      if (intent.kind === 'voice-settings') {
+        setSettingsInitialTab('accessibility');
+        openKind('settings');
+        return;
+      }
+      if (intent.kind === 'palette') {
+        setPalette(true);
+        return;
+      }
+      if (intent.kind === 'command') {
+        const command = commands.find((entry) => entry.id === intent.commandId);
+        if (!command) throw new Error(`Comando de voz indisponível: ${intent.commandId}`);
+        await command.run();
+        return;
+      }
+      throw new Error(`Comando de voz não reconhecido: "${transcript}"`);
+    },
+    [commands, openKind],
   );
 
   // Scoped Keyboard Shortcuts via KeyboardShortcutRegistry
@@ -1227,6 +1251,7 @@ const WorkspaceCoordinator: React.FC<{
           setSettingsInitialTab(tab || 'appearance');
           openKind('settings');
         }}
+        onVoiceTranscript={handleNexusVoiceTranscript}
         onNewAgent={() => setNewAgentOpen(true)}
         onNewAISession={openNewAISession}
         onProjectShell={() => {
