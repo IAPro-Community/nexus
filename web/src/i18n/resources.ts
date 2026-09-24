@@ -399,7 +399,7 @@ export const en = {
     customTargetKind: 'Execution target',
     targetWorkspace: 'Workspace path inside target (optional)',
     targetWorkspaceHint:
-      'Use when Docker/WSL/SSH sees the project at another path. {target_cwd} falls back to the Nexus project path when empty.',
+      'Use when Docker/WSL/SSH sees the project at another path. VPN Dev Workspace on Windows uses /workspace. {target_cwd} falls back to the Nexus project path when empty.',
     targetProfileHome: 'Shared target profile home (optional)',
     targetProfileHomeHint:
       'Configure only when Nexus and the custom target see the same provider-home files, such as a bind-mounted VPN workspace.',
@@ -2345,7 +2345,7 @@ export const ptBR = {
     customTargetKind: 'Target de execução',
     targetWorkspace: 'Caminho do workspace dentro do target (opcional)',
     targetWorkspaceHint:
-      'Use quando Docker/WSL/SSH enxergar o projeto em outro caminho. {target_cwd} usa o caminho do projeto Nexus quando vazio.',
+      'Use quando Docker/WSL/SSH enxergar o projeto em outro caminho. VPN Dev Workspace no Windows usa /workspace. {target_cwd} usa o caminho do projeto Nexus quando vazio.',
     targetProfileHome: 'Home compartilhada do profile no target (opcional)',
     targetProfileHomeHint:
       'Configure somente quando Nexus e target enxergarem os mesmos arquivos do profile, como no bind mount do VPN Dev Workspace.',
@@ -4303,7 +4303,7 @@ export const es = {
     customTargetKind: 'Target de ejecución',
     targetWorkspace: 'Ruta del workspace dentro del target (opcional)',
     targetWorkspaceHint:
-      'Use cuando Docker/WSL/SSH vea el proyecto en otra ruta. {target_cwd} usa la ruta del proyecto Nexus cuando está vacío.',
+      'Use cuando Docker/WSL/SSH vea el proyecto en otra ruta. VPN Dev Workspace en Windows usa /workspace. {target_cwd} usa la ruta del proyecto Nexus cuando está vacío.',
     targetProfileHome: 'Home compartido del perfil en el target (opcional)',
     targetProfileHomeHint:
       'Configure solo cuando Nexus y el target vean los mismos archivos del perfil, como en un bind mount de VPN workspace.',
