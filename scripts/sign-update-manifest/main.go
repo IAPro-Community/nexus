@@ -196,6 +196,8 @@ func artifactTarget(name string) string {
 		return "zip"
 	case strings.HasSuffix(lower, ".exe") && strings.Contains(lower, "setup"):
 		return "nsis"
+	case strings.HasSuffix(lower, ".pkg"):
+		return "pkg"
 	case strings.HasSuffix(lower, ".deb"):
 		return "deb"
 	case strings.HasSuffix(lower, ".rpm"):
@@ -224,6 +226,8 @@ func artifactKeys(name string) []string {
 		keys = append(keys, "desktop_"+osArch)
 	case "nsis":
 		keys = append(keys, osArch+"_nsis", "windows_amd64_nsis")
+	case "pkg":
+		keys = append(keys, osArch+"_pkg")
 	case "deb":
 		keys = append(keys, osArch+"_deb")
 	case "rpm":
@@ -241,6 +245,8 @@ func classifyArtifact(lowerName string) (osArch string, kind string) {
 	switch {
 	case strings.Contains(lowerName, "nexus-setup") || (strings.HasSuffix(lowerName, ".exe") && strings.Contains(lowerName, "setup")):
 		return osArch, "nsis"
+	case strings.HasSuffix(lowerName, ".pkg") && strings.Contains(lowerName, "installer"):
+		return osArch, "pkg"
 	case strings.HasSuffix(lowerName, ".deb"):
 		return osArch, "deb"
 	case strings.HasSuffix(lowerName, ".rpm"):
