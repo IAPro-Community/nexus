@@ -2,12 +2,17 @@ package launcher
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/driver"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 func TestMain(m *testing.M) {
@@ -21,6 +26,69 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	registry.ResetDefaultRegistryForTest()
 	os.Exit(code)
+}
+
+
+type failBuildCommandDriver struct {
+	*driver.FakeDriver
+}
+
+func (d *failBuildCommandDriver) ProviderID() string { return "fake" }
+
+func (d *failBuildCommandDriver) BuildCommand(context.Context, model.Profile, []string) (string, []string, []string, error) {
+	return "", nil, nil, fmt.Errorf("logical provider binary is intentionally unavailable on host")
+}
+
+func TestCustomTargetProviderProcessHelper(t *testing.T) {
+	if os.Getenv("GO_WANT_CUSTOM_TARGET_PROVIDER") != "1" {
+		return
+	}
+	_, _ = io.Copy(io.Discard, os.Stdin)
+	os.Exit(0)
+}
+
+func TestRuntimeLauncherCustomTargetDoesNotRequireProviderBinaryOnHost(t *testing.T) {
+	l := NewLauncher()
+	drivers := driver.NewRegistry()
+	drivers.Register(&failBuildCommandDriver{FakeDriver: driver.NewFakeDriver()})
+	l.drivers = drivers
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	template := fmt.Sprintf(`"%s" -test.run=TestCustomTargetProviderProcessHelper {args}`, filepath.ToSlash(exe))
+
+	sess, err := l.Launch(ctx, LaunchOptions{
+		RuntimeID:  "rt-custom-target-no-provider-bin",
+		ProviderID: "fake",
+		ProfileID:  "default",
+		Workspace:  t.TempDir(),
+		Standalone: true,
+		Timeout:    3 * time.Second,
+		Environment: map[string]string{
+			"GO_WANT_CUSTOM_TARGET_PROVIDER": "1",
+		},
+		Options: map[string]any{
+			"execution_adapter": "command_template",
+			"command_template":  template,
+			"target_kind":       "custom",
+		},
+	})
+	if err != nil {
+		t.Fatalf("custom target unexpectedly required provider BuildCommand: %v", err)
+	}
+	if sess.ProviderID != "fake" || sess.Binary == "" {
+		t.Fatalf("logical provider/session metadata lost: %#v", sess)
+	}
+	if err := l.Stop(sess.RuntimeID); err != nil {
+		// Standalone stop may report the protocol close as part of teardown;
+		// the important assertion is that launch succeeded without BuildCommand.
+		t.Logf("custom target stop: %v", err)
+	}
 }
 
 func TestRuntimeLauncher_StandaloneLaunchAndHandshake(t *testing.T) {
