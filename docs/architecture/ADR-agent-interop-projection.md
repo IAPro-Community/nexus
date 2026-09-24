@@ -202,7 +202,7 @@ Configuração documentada mas não exercitada em teste deve permanecer
 
 Um host possuir arquivo de agent não prova que o Nexus consegue ativá-lo.
 
-A v1.1 tratará separadamente:
+A V1 trata separadamente:
 
 ```text
 DISCOVERY       host encontra a definição
@@ -304,7 +304,7 @@ continua sendo o caminho canônico.
 
 Host-native subagents podem ser usados como capacidade auxiliar somente quando
 o contrato de execução preservar lineage, limits e evidence. Na primeira
-entrega da v1.1, native subagents são prioritariamente recurso de
+entrega da V1, native subagents são prioritariamente recurso de
 Direct/Interactive e não uma nova state machine de Mission.
 
 ### 10. UX pertence ao Nexus
@@ -354,7 +354,7 @@ filesystem/configuração que não são parte do processo supervisionado.
 
 ## Matriz inicial de estratégia
 
-Esta tabela é hipótese de implementação, não certificação. A v1.1 só promove
+Esta tabela é hipótese de implementação, não certificação. A V1 só promove
 uma célula após probe/version/evidência no ambiente suportado.
 
 | Provider | Definições nativas | Primary | Subagent | Estratégia inicial |
@@ -395,7 +395,7 @@ mantém outra cópia da role.
 
 `AgentMode.DefaultProvider` não deve se tornar autoridade.
 
-Na v1.1 será deprecado semanticamente em favor de preferência/requisitos:
+Na V1 será deprecado semanticamente em favor de preferência/requisitos:
 
 ```text
 ExecutionRole
@@ -464,11 +464,11 @@ Rejeitado como default por risco de sobrescrita, segurança e falta de rollback.
 10. HUD/UX polish;
 11. cross-platform certification.
 
-## Critério de promoção para ACCEPTED
+## Critério de conclusão para a V1 estável
 
-Este ADR só deve passar de `PROPOSED` para `ACCEPTED` quando:
+O Agent Interop só pode ser considerado concluído para `v1.0.0` quando:
 
-- a v1.0.0 estiver preservada como baseline estável/tag imutável;
+- o baseline beta candidato estiver preservado por SHA/tag;
 - os contratos Go e migration tiverem testes;
 - pelo menos dois providers tiverem projection E2E real;
 - read-only não for anunciado como enforced sem prova;
