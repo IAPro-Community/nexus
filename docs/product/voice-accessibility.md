@@ -1,13 +1,15 @@
-# Nexus Voice Accessibility — 1.1
+# Nexus Voice Accessibility — v1 beta
 
 ## Objetivo
 
 Nexus Voice adiciona entrada por voz sem acoplar terminal, agentes ou navegação a um fornecedor
-de speech-to-text. A primeira entrega da linha 1.1 usa APIs remotas: **Groq /
-`whisper-large-v3-turbo`** como primeira opção e **Cloudflare Workers AI / Whisper** como
-fallback configurável. xAI/Grok não é provider padrão.
+de speech-to-text. A entrega integrada ao candidato `v1.0.0-beta.2` usa APIs
+remotas: **Groq / `whisper-large-v3-turbo`** como primeira opção e
+**Cloudflare Workers AI / Whisper** como fallback configurável. xAI/Grok não é
+provider padrão.
 
-A V1 estável permanece congelada em `release/v1.0.0`; esta feature pertence à linha 1.1.
+A feature faz parte da linha v1 beta; certificação física de microfone continua
+separada por plataforma.
 
 ## Fluxos suportados
 
@@ -77,7 +79,7 @@ PATH. Se nenhuma rota real de captura estiver disponível, a interface desabilit
 indisponibilidade em vez de simular funcionamento.
 
 A compilação cross-platform não substitui homologação nativa de microfone: Windows e macOS
-precisam passar a campanha same-SHA da linha 1.1 em runners nativos antes de serem anunciados
+precisam passar a campanha same-SHA da linha v1 beta em runners nativos antes de serem anunciados
 como certificados. Linux também precisa de um teste de dispositivo real para fechar o gate de
 captura, pois CI headless não fornece um microfone físico confiável.
 
