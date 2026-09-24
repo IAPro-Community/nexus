@@ -36,6 +36,7 @@ type DispatchRequest struct {
 // DispatchResult is the output of Conductor.Dispatch.
 type DispatchResult struct {
 	GoalID string             `json:"goal_id"`
+	PlanID string             `json:"plan_id,omitempty"`
 	RunID  string             `json:"run_id"`
 	Status DispatchStatus     `json:"status"`
 	Run    *runner.MissionRun `json:"run,omitempty"`
@@ -167,6 +168,7 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 	if err != nil {
 		return &DispatchResult{
 			GoalID: req.GoalID,
+			PlanID: plan.ID,
 			Status: DispatchFailed,
 			Error:  fmt.Sprintf("start mission: %v", err),
 		}, nil
@@ -174,6 +176,7 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 
 	return &DispatchResult{
 		GoalID: req.GoalID,
+		PlanID: plan.ID,
 		RunID:  run.ID,
 		Status: DispatchAccepted,
 		Run:    run,
@@ -212,6 +215,7 @@ func (n *Nexus) WaitDispatch(ctx context.Context, accepted *DispatchResult) (*Di
 	if strings.TrimSpace(accepted.RunID) == "" {
 		return &DispatchResult{
 			GoalID: accepted.GoalID,
+			PlanID: accepted.PlanID,
 			Status: DispatchFailed,
 			Error:  "accepted dispatch did not return a mission run id",
 		}, nil
@@ -222,6 +226,7 @@ func (n *Nexus) WaitDispatch(ctx context.Context, accepted *DispatchResult) (*Di
 	if waitErr != nil {
 		return &DispatchResult{
 			GoalID: accepted.GoalID,
+			PlanID: accepted.PlanID,
 			RunID:  accepted.RunID,
 			Status: DispatchFailed,
 			Error:  fmt.Sprintf("wait mission: %v", waitErr),
@@ -230,6 +235,7 @@ func (n *Nexus) WaitDispatch(ctx context.Context, accepted *DispatchResult) (*Di
 
 	return &DispatchResult{
 		GoalID: accepted.GoalID,
+		PlanID: accepted.PlanID,
 		RunID:  final.ID,
 		Status: dispatchStatusForRunState(final.State),
 		Run:    final,
