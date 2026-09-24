@@ -347,6 +347,18 @@ func (n *Nexus) RemoveAgentProjection(ctx context.Context, receiptID string) err
 	if record.RemovedAt != nil {
 		return nil
 	}
+
+	// A stale receipt must never remove files owned by a newer projection. The
+	// runtime role is the durable ownership pointer for the active materialized
+	// projection.
+	binding, bindErr := st.RuntimeExecutionRole(record.RuntimeGenerationID)
+	if bindErr != nil && bindErr != store.ErrNotFound {
+		return bindErr
+	}
+	if bindErr == nil && strings.TrimSpace(binding.ProjectionReceiptID) != "" && binding.ProjectionReceiptID != record.ID {
+		return fmt.Errorf("projection receipt %s is no longer current for runtime generation %s; active receipt is %s", record.ID, record.RuntimeGenerationID, binding.ProjectionReceiptID)
+	}
+
 	receipt, err := projectionReceiptFromRecord(record)
 	if err != nil {
 		return err
@@ -358,7 +370,16 @@ func (n *Nexus) RemoveAgentProjection(ctx context.Context, receiptID string) err
 	if err := adapter.Remove(ctx, receipt); err != nil {
 		return err
 	}
-	return st.MarkAgentProjectionRemoved(receipt.ID, time.Now().UTC())
+	now := time.Now().UTC()
+	if err := st.MarkAgentProjectionRemoved(receipt.ID, now); err != nil {
+		return err
+	}
+	if bindErr == nil && binding.ProjectionReceiptID == receipt.ID {
+		if err := st.DetachRuntimeExecutionRoleProjection(record.RuntimeGenerationID, receipt.ID); err != nil && err != store.ErrNotFound {
+			return fmt.Errorf("detach projection receipt from execution role: %w", err)
+		}
+	}
+	return nil
 }
 
 func (n *Nexus) resolveAgentProjectionContext(ctx context.Context, runtimeID string) (*agentProjectionContext, error) {
