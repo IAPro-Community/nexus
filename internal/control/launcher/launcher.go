@@ -103,28 +103,48 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	if err != nil {
 		return nil, fmt.Errorf("invalid launch configuration for %s:%s: %w", opts.ProviderID, opts.ProfileID, err)
 	}
-	bin, extraArgs, env, err := d.BuildCommand(ctx, prof, configuredArgs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build command for %s:%s: %w", opts.ProviderID, opts.ProfileID, err)
-	}
-	env = launchenv.Merge(env, opts.Environment, opts.PathPrepend)
+	var bin string
+	var extraArgs []string
+	var env []string
 	customCommand := false
+
 	if template, ok := opts.Options["command_template"].(string); ok && strings.TrimSpace(template) != "" {
+		// A custom target owns provider installation/isolation on the far side
+		// (Docker/VPN, WSL, SSH, wrapper, etc.). Do not require the logical
+		// provider binary to exist on the Nexus host before resolving the
+		// wrapper command.
 		profileHome := ""
 		if value, ok := opts.Options["target_profile_home"].(string); ok {
 			profileHome = strings.TrimSpace(value)
 		}
+		targetWorkspace := ""
+		if value, ok := opts.Options["target_workspace"].(string); ok {
+			targetWorkspace = strings.TrimSpace(value)
+		}
 		bin, extraArgs, err = ResolveCommandTemplateContext(template, CommandTemplateContext{
-			Cwd:         opts.Workspace,
-			Args:        configuredArgs,
-			Provider:    opts.ProviderID,
-			Profile:     opts.ProfileID,
-			ProfileHome: profileHome,
+			Cwd:             opts.Workspace,
+			TargetCwd:       targetWorkspace,
+			Args:            configuredArgs,
+			Provider:        opts.ProviderID,
+			Profile:         opts.ProfileID,
+			ProfileHome:     profileHome,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("invalid command template: %w", err)
 		}
+		customBaseEnv := append([]string(nil), os.Environ()...)
+		customBaseEnv = append(customBaseEnv,
+			"AI_PROVIDER="+opts.ProviderID,
+			"AI_PROFILE="+opts.ProfileID,
+		)
+		env = launchenv.Merge(customBaseEnv, opts.Environment, opts.PathPrepend)
 		customCommand = true
+	} else {
+		bin, extraArgs, env, err = d.BuildCommand(ctx, prof, configuredArgs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build command for %s:%s: %w", opts.ProviderID, opts.ProfileID, err)
+		}
+		env = launchenv.Merge(env, opts.Environment, opts.PathPrepend)
 	}
 	resolved, err := runtime.ResolveCommand(bin)
 	if err != nil {
