@@ -110,7 +110,7 @@ Além da beta homologada, o SHA final precisa comprovar:
 - native certification seal;
 - provider smoke autenticado;
 - Agent Interop OpenCode certificado no SHA final: discovery + activation + enforcement read-only sem falsa promoção de `BEST_EFFORT` para `ENFORCED`;
-- custom execution target certificado no SHA final: comando supervisionado sem shell, probe bounded, shared profile home explícita e degradação para overlay/BEST_EFFORT quando a projeção nativa não puder ser comprovada;
+- custom execution target certificado no SHA final: comando supervisionado sem shell, provider ausente no host permitido, probe bounded, host→target workspace mapping (incluindo Windows `/workspace`), shared profile home explícita e degradação para overlay/BEST_EFFORT quando a projeção nativa não puder ser comprovada;
 - Mission smoke até `COMPLETED_VERIFIED`;
 - recovery/restart;
 - Stable Certification/soak;
