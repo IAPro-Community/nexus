@@ -21,6 +21,14 @@ func TestAgentProjectionTargetProbeHelper(t *testing.T) {
 		fmt.Fprintln(os.Stdout, "nexus-review")
 		os.Exit(0)
 	}
+	if idx := strings.Index(joined, "NEXUS_ACTIVATION_OK_"); idx >= 0 {
+		marker := joined[idx:]
+		if end := strings.IndexAny(marker, " \t\r\n"); end >= 0 {
+			marker = marker[:end]
+		}
+		fmt.Fprintln(os.Stdout, marker)
+		os.Exit(0)
+	}
 	fmt.Fprintln(os.Stdout, "1.18.30")
 	os.Exit(0)
 }
@@ -167,6 +175,26 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 	}
 	if !discovery.Discovered || discovery.Status != "VERIFIED" {
 		t.Fatalf("explicit discovery probe did not verify native agent: %#v", discovery)
+	}
+
+	unconfirmed, err := n.ProbeRuntimeAgentProjectionActivation(context.Background(), generation.RuntimeID, false)
+	if err == nil || unconfirmed == nil || !unconfirmed.ExternalExecution || unconfirmed.Activated {
+		t.Fatalf("activation must require explicit external-execution confirmation: result=%#v err=%v", unconfirmed, err)
+	}
+
+	activation, err := n.ProbeRuntimeAgentProjectionActivation(context.Background(), generation.RuntimeID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !activation.Activated || activation.Status != "VERIFIED" || activation.AgentName != "nexus-review" {
+		t.Fatalf("explicit activation probe did not prove projected agent selection: %#v", activation)
+	}
+	binding, err = st.RuntimeExecutionRole(generation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if binding.Enforcement == EnforcementEnforced {
+		t.Fatalf("activation alone must not claim read-only enforcement: %#v", binding)
 	}
 
 	if err := n.RemoveAgentProjection(context.Background(), applied.Receipt.ID); err != nil {
