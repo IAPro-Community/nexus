@@ -73,7 +73,6 @@ func TestClampHUDWindowStateToScreenShrinksOversizedWindow(t *testing.T) {
 	}
 }
 
-
 func TestHUDPlatformCapabilitiesKeepCrossPlatformClaimsFailClosed(t *testing.T) {
 	caps := DefaultHUDPlatformCapabilities()
 	if caps.Platform != runtime.GOOS {
