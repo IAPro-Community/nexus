@@ -49,6 +49,19 @@ type AgentProjectionDiscovery struct {
 	Error          string   `json:"error,omitempty"`
 }
 
+type AgentProjectionActivation struct {
+	Provider          string   `json:"provider"`
+	ProviderVersion   string   `json:"provider_version"`
+	TargetKind        string   `json:"target_kind"`
+	AgentName         string   `json:"agent_name"`
+	Command           []string `json:"command,omitempty"`
+	Activated         bool     `json:"activated"`
+	Status            string   `json:"status"`
+	Evidence          string   `json:"evidence,omitempty"`
+	Error             string   `json:"error,omitempty"`
+	ExternalExecution bool     `json:"external_execution"`
+}
+
 type AgentProjectionApplyView struct {
 	Plan      AgentProjectionPlanView  `json:"plan"`
 	Receipt   *projection.Receipt      `json:"receipt"`
@@ -287,6 +300,138 @@ func (n *Nexus) probeAgentProjectionDiscovery(ctx context.Context, resolved *age
 	result.Status = "VERIFIED"
 	result.Evidence = truncateProjectionEvidence(output, 2048)
 	return result
+}
+
+// ProbeRuntimeAgentProjectionActivation proves that OpenCode can launch the
+// projected agent by selecting it explicitly in a fresh non-interactive run.
+// This invokes the configured model and may consume quota/cost, so it is never
+// called implicitly by Plan, Apply or Verify.
+func (n *Nexus) ProbeRuntimeAgentProjectionActivation(ctx context.Context, runtimeID string, confirmExternalExecution bool) (*AgentProjectionActivation, error) {
+	resolved, err := n.resolveAgentProjectionContext(ctx, runtimeID)
+	if err != nil {
+		return nil, err
+	}
+	result := &AgentProjectionActivation{
+		Provider:          resolved.generation.Provider,
+		ProviderVersion:   resolved.version,
+		TargetKind:        resolved.targetKind,
+		Status:            "NOT_VERIFIED",
+		ExternalExecution: true,
+	}
+	if !confirmExternalExecution {
+		result.Error = "activation probe invokes the configured provider model and may consume quota/cost; explicit confirmation is required"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if !strings.EqualFold(resolved.generation.Provider, "opencode") {
+		result.Error = fmt.Sprintf("native activation probe is not implemented for provider %q", resolved.generation.Provider)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+
+	binding, err := resolved.st.RuntimeExecutionRole(resolved.generation.ID)
+	if err != nil {
+		result.Error = fmt.Sprintf("activation requires a persisted runtime execution role: %v", err)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if strings.TrimSpace(binding.ProjectionReceiptID) == "" {
+		result.Error = "activation requires an applied native projection receipt"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	record, err := resolved.st.AgentProjectionReceipt(binding.ProjectionReceiptID)
+	if err != nil {
+		result.Error = fmt.Sprintf("load active projection receipt: %v", err)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if record.RemovedAt != nil || record.RuntimeGenerationID != resolved.generation.ID || record.RoleID != resolved.role.ID {
+		result.Error = "active projection receipt does not match the runtime generation and execution role"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	verification, err := n.VerifyAgentProjection(ctx, record.ID)
+	if err != nil {
+		result.Error = fmt.Sprintf("verify projection before activation: %v", err)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if !verification.Verified {
+		result.Error = "projection filesystem/ownership verification failed before activation"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	discovery := n.probeAgentProjectionDiscovery(ctx, resolved)
+	if discovery == nil || !discovery.Discovered {
+		detail := "projected agent was not discovered by OpenCode"
+		if discovery != nil && strings.TrimSpace(discovery.Error) != "" {
+			detail = discovery.Error
+		}
+		result.Error = detail
+		return result, fmt.Errorf("%s", result.Error)
+	}
+
+	agentName, err := opencodeprojection.AgentName(resolved.role.ID)
+	if err != nil {
+		result.Error = err.Error()
+		return result, err
+	}
+	result.AgentName = agentName
+	activationMarker := fmt.Sprintf("NEXUS_ACTIVATION_OK_%d", time.Now().UTC().UnixNano())
+	activationArgs, err := opencodeprojection.ActivationProbeArgs(resolved.version, agentName, activationMarker)
+	if err != nil {
+		result.Error = err.Error()
+		return result, err
+	}
+
+	probeCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+
+	var bin string
+	var args []string
+	var env []string
+	var cwd string
+	if resolved.custom {
+		template := agentModeStringOption(resolved.config.Options, "target_probe_template")
+		if template == "" {
+			result.Error = "custom target has no target_probe_template; activation cannot be proved"
+			return result, fmt.Errorf("%s", result.Error)
+		}
+		bin, args, err = launcher.ResolveCommandTemplateContext(template, launcher.CommandTemplateContext{
+			Cwd:         resolved.project.CanonicalPath,
+			TargetCwd:   resolved.targetWorkspace,
+			Args:        activationArgs,
+			Provider:    resolved.generation.Provider,
+			Profile:     resolved.generation.Profile,
+			ProfileHome: resolved.providerHome,
+		})
+		env = launchenv.Merge(os.Environ(), resolved.config.Environment, nil)
+		cwd = resolved.project.CanonicalPath
+	} else {
+		driver, driverErr := n.controlDrivers().Get(resolved.generation.Provider)
+		if driverErr != nil {
+			result.Error = driverErr.Error()
+			return result, driverErr
+		}
+		bin, args, env, err = driver.BuildCommand(probeCtx, model.Profile{
+			Provider: resolved.generation.Provider,
+			Name:     resolved.generation.Profile,
+		}, activationArgs)
+		cwd = resolved.project.CanonicalPath
+	}
+	if err != nil {
+		result.Error = fmt.Sprintf("resolve activation command: %v", err)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+
+	result.Command = append([]string{filepath.Base(bin)}, args...)
+	output, runErr := nexusruntime.RunCommandCapture(probeCtx, bin, args, env, cwd)
+	result.Evidence = truncateProjectionEvidence(output, 4096)
+	if runErr != nil {
+		result.Error = fmt.Sprintf("OpenCode native-agent activation failed: %v", runErr)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if !strings.Contains(output, activationMarker) {
+		result.Error = "OpenCode run completed but did not return the activation marker from the projected agent"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+
+	result.Activated = true
+	result.Status = "VERIFIED"
+	return result, nil
 }
 
 func containsAgentName(output, name string) bool {
