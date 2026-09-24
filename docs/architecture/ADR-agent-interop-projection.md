@@ -1,8 +1,9 @@
 # ADR — Agent Interop como projeção do modelo canônico de Agents
 
-Status: **PROPOSED / V1.1 — não faz parte da arquitetura vigente da v1.0.0**  
+Status: **ACCEPTED / PARTIALLY IMPLEMENTED IN V1 BETA**  
 Data: 2026-09-24  
-Base analisada: `main@79493344ac510ad81d741a867dd92bb86bf4215b`  
+Base original analisada: `main@79493344ac510ad81d741a867dd92bb86bf4215b`  
+Release de integração: `v1.0.0-beta.2` candidate  
 Spec associada: `DEV/SPECS/NEXUS_1_1_AGENT_INTEROP.md`
 
 ## Contexto
@@ -36,7 +37,7 @@ diferentes. Alguns permitem agentes primários selecionáveis, outros apenas
 subagents, alguns permitem permissões por agent e outros dependem de prompt ou
 sandbox externo.
 
-O objetivo da v1.1 é permitir que uma especialização definida no Nexus seja
+O objetivo do Agent Interop é permitir que uma especialização definida no Nexus seja
 utilizada de forma coerente através dos runtimes suportados sem criar uma
 segunda identidade de Agent, uma segunda engine de orquestração ou uma tabela
 paralela de providers.
@@ -70,8 +71,8 @@ configuração do usuário.
 
 ### 1. Não criar um novo Agent Runtime
 
-O Nexus já é runtime/control plane. A v1.1 adicionará **Agent Interop** como
-capacidade do Core atual.
+O Nexus já é runtime/control plane. **Agent Interop** é adicionado como
+capacidade do Core atual; o primeiro slice foi integrado à linha v1 beta.
 
 Não serão criados:
 
