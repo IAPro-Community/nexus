@@ -3,21 +3,19 @@ package web
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
-// launchPromotedMission is shared by AUTO and an explicit ASK confirmation.
-// The browser terminal remains attached to the same Lead while the Mission
-// executes independently and reports its result through the existing Agent
-// message transport.
-func launchPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, prompt string) {
+// startPromotedMission runs only the admission prefix. The browser terminal
+// keeps the original prompt in the provider TUI until this returns ACCEPTED.
+func startPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, prompt string) (*nexus.DispatchResult, error) {
 	if n == nil || session.ProjectID == "" || session.AgentID == "" {
-		return
+		return nil, fmt.Errorf("Mission promotion is unavailable for this runtime")
 	}
-	ctx := context.Background()
-	result, err := n.Dispatch(ctx, nexus.DispatchRequest{
+	result, err := n.StartDispatch(context.Background(), nexus.DispatchRequest{
 		ProjectID:            session.ProjectID,
 		Goal:                 prompt,
 		SourcePrompt:         prompt,
@@ -28,15 +26,44 @@ func launchPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, prom
 		SourceRuntimeID:      session.RuntimeID,
 	})
 	if err != nil {
-		_, _ = n.AskAgent(ctx, session.AgentID, fmt.Sprintf("A promoção para Mission falhou antes do dispatch: %v. Não execute a solicitação fora da Mission; informe o usuário para tentar novamente.", err), false)
+		return nil, fmt.Errorf("prepare Mission: %w", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("prepare Mission: empty dispatch result")
+	}
+	if result.Status != nexus.DispatchAccepted {
+		detail := strings.TrimSpace(result.Error)
+		if detail == "" {
+			detail = "Mission admission was not accepted"
+		}
+		return nil, fmt.Errorf("%s: %s", result.Status, detail)
+	}
+	if strings.TrimSpace(result.RunID) == "" {
+		return nil, fmt.Errorf("Mission admission returned no run id")
+	}
+	return result, nil
+}
+
+// waitPromotedMission waits after admission and reports the settled Mission to
+// the same Lead. Once admission succeeds, automatic Direct fallback is unsafe
+// because the Mission may already have produced side effects.
+func waitPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, prompt string, accepted *nexus.DispatchResult) {
+	ctx := context.Background()
+	result, err := n.WaitDispatch(ctx, accepted)
+	if err != nil {
+		_, _ = n.AskAgent(ctx, session.AgentID, fmt.Sprintf("A Mission %s já foi admitida, mas falhou ao aguardar conclusão: %v. Não repita automaticamente a solicitação no Lead porque podem existir side effects parciais.", accepted.RunID, err), false)
 		return
 	}
 	if result == nil {
-		_, _ = n.AskAgent(ctx, session.AgentID, "A promoção para Mission não retornou resultado. Não execute a solicitação fora da Mission; informe o usuário para tentar novamente.", false)
+		_, _ = n.AskAgent(ctx, session.AgentID, fmt.Sprintf("A Mission %s já foi admitida, mas não retornou resultado final. Não repita automaticamente a solicitação no Lead.", accepted.RunID), false)
 		return
 	}
-	if result.Status == nexus.DispatchFailed || result.Status == nexus.DispatchRejected {
-		_, _ = n.AskAgent(ctx, session.AgentID, fmt.Sprintf("A promoção para Mission foi recusada (%s): %s. Não execute a solicitação fora da Mission; informe o usuário.", result.Status, result.Error), false)
+	if result.Status == nexus.DispatchFailed || result.Status == nexus.DispatchRejected || result.Status == nexus.DispatchCanceled {
+		detail := strings.TrimSpace(result.Error)
+		if detail == "" && result.Run != nil {
+			detail = string(result.Run.State)
+		}
+		_, _ = n.AskAgent(ctx, session.AgentID, fmt.Sprintf("A Mission %s terminou em %s: %s. Não repita automaticamente a solicitação no Lead porque podem existir side effects parciais.", result.RunID, result.Status, detail), false)
 		return
 	}
 	state := "UNKNOWN"
