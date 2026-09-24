@@ -145,3 +145,24 @@ func (s *Store) AttachRuntimeExecutionRoleProjection(runtimeGenerationID, receip
 	}
 	return nil
 }
+
+// DetachRuntimeExecutionRoleProjection clears the projection link only when the
+// caller still owns the current receipt. This prevents an old/superseded
+// receipt from detaching a newer native projection.
+func (s *Store) DetachRuntimeExecutionRoleProjection(runtimeGenerationID, receiptID string) error {
+	runtimeGenerationID = strings.TrimSpace(runtimeGenerationID)
+	receiptID = strings.TrimSpace(receiptID)
+	if runtimeGenerationID == "" || receiptID == "" {
+		return errors.New("runtime_generation_id and projection receipt id are required")
+	}
+	res, err := s.db.Exec(`UPDATE runtime_execution_roles
+		SET projection_receipt_id=''
+		WHERE runtime_generation_id=? AND projection_receipt_id=?`, runtimeGenerationID, receiptID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
