@@ -34,6 +34,20 @@ func TestResolveExecutionWorkspaceAgentProjectOverridesWorktreeDefault(t *testin
 	}
 }
 
+func TestResolveAutonomousExecutionWorkspaceRejectsAgentProjectOverride(t *testing.T) {
+	n := &Nexus{}
+	project := store.Project{ID: "p", CanonicalPath: t.TempDir(), DefaultIsolation: "worktree"}
+	agent := store.Agent{ID: "a", ProjectID: "p"}
+
+	_, err := n.resolveAutonomousExecutionWorkspace(context.Background(), project, agent, AgentConfig{Isolation: "project"})
+	if err == nil {
+		t.Fatal("autonomous execution must reject Agent isolation that overrides a worktree project default")
+	}
+	if !strings.Contains(err.Error(), "worktree") || !strings.Contains(err.Error(), "project") {
+		t.Fatalf("error=%q, want effective isolation guidance", err)
+	}
+}
+
 func TestResolveAutonomousExecutionWorkspaceFailsClosedWithoutWorktree(t *testing.T) {
 	n := &Nexus{}
 	project := store.Project{ID: "p", CanonicalPath: t.TempDir(), DefaultIsolation: "project"}
@@ -84,6 +98,16 @@ func TestResolveExecutionWorkspaceWorktree(t *testing.T) {
 	got2, err := n.resolveExecutionWorkspace(context.Background(), project, agent, AgentConfig{})
 	if err != nil || got2 != got {
 		t.Fatalf("worktree reuse=%q err=%v want %q", got2, err, got)
+	}
+
+	projectDefaultCheckout := store.Project{ID: "p-explicit", CanonicalPath: repo, DefaultIsolation: "project"}
+	explicitAgent := store.Agent{ID: "agent-explicit", ProjectID: projectDefaultCheckout.ID}
+	explicitWorktree, err := n.resolveAutonomousExecutionWorkspace(context.Background(), projectDefaultCheckout, explicitAgent, AgentConfig{Isolation: "worktree"})
+	if err != nil {
+		t.Fatalf("explicit Agent worktree isolation must override project default safely: %v", err)
+	}
+	if explicitWorktree == repo {
+		t.Fatal("autonomous explicit worktree isolation reused canonical project path")
 	}
 }
 
