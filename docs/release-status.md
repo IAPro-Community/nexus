@@ -26,6 +26,7 @@ O candidato `v1.0.0-beta.2` passa a concentrar:
 - correções de roteamento Direct/Lead versus Mission;
 - promoção interativa só consome o prompt após admissão; promoção heurística bloqueada volta ao Lead sem perder a solicitação, enquanto pedido explícito mostra blockers exatos;
 - hardening da boundary de promoção: `GoalContract` congelado no snapshot, falhas pre-run tipadas e reconhecimento explícito de Mission sem falsos positivos como `permission`/`submission`;
+- isolamento autônomo corrigido para ser efetivo por Agent: `AUTO` ignora Agents inseguros, `CREATE` usa worktree, `EXISTING` inseguro bloqueia, e override `project` não contorna default `worktree`;
 - correção de transporte das teclas de navegação no terminal;
 - OpenCode como provider independente em Usage e Agents;
 - ExecutionRole / Agent Interop já integrado;
