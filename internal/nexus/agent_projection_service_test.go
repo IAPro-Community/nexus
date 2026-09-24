@@ -221,6 +221,9 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 	if binding.ProjectionReceiptID != "" {
 		t.Fatalf("projection removal left stale execution-role receipt link: %#v", binding)
 	}
+	if binding.ActivationStrategy != ActivationNexusOverlay {
+		t.Fatalf("projection removal must revert native activation to overlay: %#v", binding)
+	}
 }
 
 func TestCustomTargetProjectionRequiresSharedProfileHome(t *testing.T) {
