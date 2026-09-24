@@ -110,7 +110,17 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	env = launchenv.Merge(env, opts.Environment, opts.PathPrepend)
 	customCommand := false
 	if template, ok := opts.Options["command_template"].(string); ok && strings.TrimSpace(template) != "" {
-		bin, extraArgs, err = ResolveCommandTemplate(template, opts.Workspace, configuredArgs)
+		profileHome := ""
+		if value, ok := opts.Options["target_profile_home"].(string); ok {
+			profileHome = strings.TrimSpace(value)
+		}
+		bin, extraArgs, err = ResolveCommandTemplateContext(template, CommandTemplateContext{
+			Cwd:         opts.Workspace,
+			Args:        configuredArgs,
+			Provider:    opts.ProviderID,
+			Profile:     opts.ProfileID,
+			ProfileHome: profileHome,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("invalid command template: %w", err)
 		}
