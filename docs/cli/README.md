@@ -85,13 +85,21 @@ de automatizar.
 
 Para execução autônoma iniciada pela CLI, o processo permanece proprietário do worker canônico até a Mission atingir um estado estável (`COMPLETED_VERIFIED`, falha, pausa ou `BLOCKED_NEEDS_USER`). A CLI não cria um segundo runner nem abandona uma goroutine ao encerrar. No Web, a execução continua assíncrona porque o processo servidor permanece vivo e `RecoverMissionRuns` restaura trabalho durável após restart.
 
-Ao registrar projetos destinados a Missions autônomas, configure isolamento explicitamente:
+Para projetos usados com Missions autônomas, `--isolation worktree` é o
+default recomendado quando você quer que Agents sem configuração própria
+herdem isolamento seguro:
 
 ```bash
 nexus projects add /caminho/do/repo --name "Meu Projeto" --isolation worktree
 ```
 
-O nome posicional legado continua aceito; `--isolation` aceita `project`, `worktree` ou `none`.
+Ele não é mais um requisito global. Steps `AUTO`/`CREATE` podem executar em
+um projeto cujo default é `project`, porque o runtime reutiliza apenas Agents
+com isolamento efetivo `worktree` ou cria um Agent isolado. Steps `EXISTING`
+continuam bloqueados se o Agent fixado não for worktree-safe.
+
+O nome posicional legado continua aceito; `--isolation` aceita `project`,
+`worktree` ou `none`.
 
 ## Sintaxe de provider
 
