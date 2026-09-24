@@ -139,7 +139,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 		"XDG_DATA_HOME":                    filepath.Join(home, ".local", "share"),
 		"XDG_STATE_HOME":                   filepath.Join(home, ".local", "state"),
 		"PATH":                             runtime.EnhancedPATH(internalBin, filepath.Dir(bin)),
-		"BROWSER":                          filepath.Join(internalBin, "ai-browser"),
+		"BROWSER":                          runtime.BrowserHelperPath(internalBin),
 		"AI_HOST_DBUS_SESSION_BUS_ADDRESS": os.Getenv("DBUS_SESSION_BUS_ADDRESS"),
 		"PYTHON_KEYRING_BACKEND":           "keyring.backends.null.Keyring",
 	}
@@ -148,7 +148,10 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 
 	wrappedBin, wrappedArgs := bin, args
 	if agySecretServiceEnabled() {
-		wrappedBin, wrappedArgs = runtime.WrapWithIsolatedSecretService(bin, args)
+		wrappedBin, wrappedArgs, err = runtime.WrapWithIsolatedSecretServiceChecked(bin, args)
+		if err != nil {
+			return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
+		}
 	} else {
 		// Keep AI_HOST_DBUS for the browser helper; only the session bus that
 		// feeds AGY's keyringAuth must fail closed.
@@ -712,7 +715,7 @@ func (a *Adapter) fetchLiveQuota(ctx context.Context, p model.Profile) (model.Us
 		// probeBin comes first so both $BROWSER and any xdg-open fallback hit
 		// a no-op that never opens the host browser.
 		"PATH":                   runtime.EnhancedPATH(probeBin, filepath.Dir(bin)),
-		"BROWSER":                filepath.Join(probeBin, "ai-browser"),
+		"BROWSER":                runtime.NoBrowserHelperPath(probeBin),
 		"PYTHON_KEYRING_BACKEND": "keyring.backends.null.Keyring",
 	}
 	env := runtime.DisableSessionSecretService(runtime.EnvSet(os.Environ(), envOverrides))
