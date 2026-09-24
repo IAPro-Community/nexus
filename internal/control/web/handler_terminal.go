@@ -253,7 +253,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	startPromotion := func(prompt string, fallbackToLead bool) {
 		accepted, startErr := startPromotedMission(h.nexus, sess, prompt)
 		if startErr != nil {
-			safeAdmissionFallback := fallbackToLead && accepted != nil && accepted.AdmissionBlocked
+			safeAdmissionFallback := fallbackToLead && accepted != nil && accepted.FallbackSafe
 			if safeAdmissionFallback {
 				if strings.TrimSpace(accepted.PlanID) != "" {
 					_ = h.nexus.DeleteWorkPlan(context.Background(), accepted.PlanID)
