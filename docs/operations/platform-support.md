@@ -95,7 +95,8 @@ A certificação gera e valida:
 
 - `nexus_Windows_x86_64.zip`;
 - `nexus-desktop_Windows_x86_64.zip`;
-- `nexus-setup-Windows_x86_64.exe`;
+- `nexus-hud_Windows_x86_64.zip`;
+- `nexus-setup-Windows_x86_64.exe` (inclui Desktop + HUD);
 - evidência Authenticode;
 - `nexus doctor --json` antes e depois da instalação.
 
@@ -127,7 +128,8 @@ A certificação gera:
 
 - `nexus_Darwin_arm64.tar.gz`;
 - `nexus-desktop_Darwin_arm64.zip`;
-- `nexus-installer_Darwin_arm64.pkg`.
+- `nexus-hud_Darwin_arm64.zip`;
+- `nexus-installer_Darwin_arm64.pkg` (inclui Desktop + HUD).
 
 O CLI e o app são assinados com Developer ID. O app e o PKG passam por
 notarização, stapling e validação Gatekeeper antes de serem aceitos. O PKG é
@@ -142,8 +144,10 @@ O manifesto Ed25519 é validado conforme a matriz da release. Em
 ```text
 linux_amd64
 desktop_linux_amd64
+hud_linux_amd64
 windows_amd64
 desktop_windows_amd64
+hud_windows_amd64
 windows_amd64_nsis
 ```
 
@@ -152,6 +156,7 @@ A partir de `v1.1.0-beta.2`, também são obrigatórias:
 ```text
 darwin_arm64
 desktop_darwin_arm64
+hud_darwin_arm64
 darwin_arm64_pkg
 ```
 
