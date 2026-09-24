@@ -178,6 +178,9 @@ func TestAskAgentReusesExistingAgentAndLiveRuntime(t *testing.T) {
 	if result.AgentID != agent.ID || result.RuntimeID != sess.RuntimeID || result.Started {
 		t.Fatalf("Ask must reuse Agent/live runtime: %+v", result)
 	}
+	if result.ExecutionRole != "build" {
+		t.Fatalf("implicit runtime role must report build without changing the prompt: %+v", result)
+	}
 	if gotRuntime != sess.RuntimeID || gotPrompt != "fix the tests" {
 		t.Fatalf("submit=%q %q", gotRuntime, gotPrompt)
 	}
