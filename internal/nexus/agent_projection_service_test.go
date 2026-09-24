@@ -178,6 +178,13 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 	if record.RemovedAt == nil {
 		t.Fatalf("projection removal was not persisted: %#v", record)
 	}
+	binding, err = st.RuntimeExecutionRole(generation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if binding.ProjectionReceiptID != "" {
+		t.Fatalf("projection removal left stale execution-role receipt link: %#v", binding)
+	}
 }
 
 func TestCustomTargetProjectionRequiresSharedProfileHome(t *testing.T) {
