@@ -38,6 +38,29 @@ func New() *Adapter { return &Adapter{} }
 
 func (a *Adapter) ProviderID() string { return providerID }
 
+// AgentName returns the deterministic host-native name materialized for a
+// Nexus ExecutionRole.
+func AgentName(roleID string) (string, error) {
+	roleID = strings.ToLower(strings.TrimSpace(roleID))
+	if !roleIDPattern.MatchString(roleID) {
+		return "", fmt.Errorf("invalid OpenCode projection role id %q", roleID)
+	}
+	return "nexus-" + roleID, nil
+}
+
+// DiscoveryArgs returns a non-LLM command that asks OpenCode to enumerate the
+// agents visible to the current isolated/custom target environment.
+func DiscoveryArgs(providerVersion string) ([]string, error) {
+	major, ok := parseMajor(providerVersion)
+	if !ok {
+		return nil, fmt.Errorf("OpenCode provider version %q is unknown", providerVersion)
+	}
+	if major >= 2 {
+		return []string{"debug", "agents"}, nil
+	}
+	return []string{"agent", "list"}, nil
+}
+
 func (a *Adapter) Capabilities(_ context.Context, providerVersion string) projection.Capabilities {
 	major, ok := parseMajor(providerVersion)
 	if !ok {
@@ -244,8 +267,11 @@ func (a *Adapter) Render(ctx context.Context, req projection.Request) ([]project
 		return nil, err
 	}
 	root, _ := filepath.Abs(normalized.ProviderHome)
-	name := "nexus-" + normalized.RoleID + ".md"
-	target := filepath.Join(root, ".config", "opencode", "agents", name)
+	agentName, err := AgentName(normalized.RoleID)
+	if err != nil {
+		return nil, err
+	}
+	target := filepath.Join(root, ".config", "opencode", "agents", agentName+".md")
 	if _, err := safeRelative(root, target); err != nil {
 		return nil, err
 	}
