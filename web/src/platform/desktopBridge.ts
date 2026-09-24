@@ -4,6 +4,7 @@ import {
   FilePickerOptions,
   NotificationOptions,
   DesktopBootstrapInfo,
+  NativeVoiceRecording,
 } from './capabilities';
 import { safeExternalUrl } from './externalUrl';
 
@@ -55,6 +56,9 @@ declare global {
           QuitApp?: () => Promise<void>;
           GetCapabilities?: () => Promise<PlatformCapabilities>;
           GetBootstrapInfo?: () => Promise<DesktopBootstrapInfo>;
+          StartVoiceCapture?: () => Promise<void>;
+          StopVoiceCapture?: () => Promise<NativeVoiceRecording>;
+          CancelVoiceCapture?: () => Promise<void>;
         };
       };
     };
@@ -159,6 +163,7 @@ export class DesktopBridge implements PlatformBridge {
         deepLinks: false,
         autoStart: false,
         windowManagement: true,
+        nativeVoiceCapture: Boolean(app?.StartVoiceCapture && app?.StopVoiceCapture),
       };
     }
 
@@ -172,6 +177,7 @@ export class DesktopBridge implements PlatformBridge {
       deepLinks: false,
       autoStart: false,
       windowManagement: true,
+      nativeVoiceCapture: Boolean(app?.StartVoiceCapture && app?.StopVoiceCapture),
     };
   }
 
@@ -248,6 +254,23 @@ export class DesktopBridge implements PlatformBridge {
       return 'dark';
     }
     return 'light';
+  }
+
+  async startNativeVoiceCapture(): Promise<void> {
+    const start = this.appBinding?.StartVoiceCapture;
+    if (!start) throw new Error('Captura nativa de voz indisponível.');
+    await start();
+  }
+
+  async stopNativeVoiceCapture(): Promise<NativeVoiceRecording> {
+    const stop = this.appBinding?.StopVoiceCapture;
+    if (!stop) throw new Error('Captura nativa de voz indisponível.');
+    return await stop();
+  }
+
+  async cancelNativeVoiceCapture(): Promise<void> {
+    const cancel = this.appBinding?.CancelVoiceCapture;
+    if (cancel) await cancel();
   }
 
   async isMaximized(): Promise<boolean> {

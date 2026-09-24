@@ -8,6 +8,13 @@ export interface PlatformCapabilities {
   deepLinks: boolean;
   autoStart: boolean;
   windowManagement: boolean;
+  nativeVoiceCapture?: boolean;
+}
+
+export interface NativeVoiceRecording {
+  dataBase64: string;
+  mimeType: string;
+  durationMs: number;
 }
 
 export interface FilePickerOptions {

@@ -1,3 +1,5 @@
+import { getPlatformBridge } from '../../platform/platformBridge';
+
 export const preferredVoiceMimeTypes = [
   'audio/webm;codecs=opus',
   'audio/webm',
@@ -99,6 +101,22 @@ export async function startVoiceCapture(): Promise<VoiceCaptureSession> {
     cleanup();
   };
   return { stop, cancel };
+};
+
+export async function startVoiceCapture(): Promise<VoiceCaptureSession> {
+  let webError: unknown;
+  if (supportsWebVoiceCapture()) {
+    try {
+      return await startWebVoiceCapture();
+    } catch (error) {
+      webError = error;
+    }
+  }
+  if (nativeVoiceBridge()) {
+    return await startNativeVoiceCapture();
+  }
+  if (webError instanceof Error) throw webError;
+  throw new Error('Captura de microfone não é suportada neste navegador/WebView.');
 }
 
 export const extensionForVoiceMime = (mime: string) => {

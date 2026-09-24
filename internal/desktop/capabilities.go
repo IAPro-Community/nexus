@@ -15,7 +15,8 @@ type Capabilities struct {
 	NativeMenus      bool `json:"nativeMenus"`
 	DeepLinks        bool `json:"deepLinks"`
 	AutoStart        bool `json:"autoStart"`
-	WindowManagement bool `json:"windowManagement"`
+	WindowManagement  bool `json:"windowManagement"`
+	NativeVoiceCapture bool `json:"nativeVoiceCapture"`
 }
 
 // DefaultCapabilities returns the standard native desktop capabilities.
@@ -23,6 +24,7 @@ func DefaultCapabilities() Capabilities {
 	filePicker := false
 	folderPicker := false
 	notifications := false
+	nativeVoiceCapture := false
 	switch runtime.GOOS {
 	case "darwin":
 		filePicker = commandAvailable("osascript")
@@ -32,6 +34,7 @@ func DefaultCapabilities() Capabilities {
 		filePicker = commandAvailable("zenity")
 		folderPicker = filePicker
 		notifications = commandAvailable("notify-send")
+		nativeVoiceCapture = commandAvailable("pw-record") || commandAvailable("arecord")
 	}
 
 	return Capabilities{
@@ -43,7 +46,8 @@ func DefaultCapabilities() Capabilities {
 		NativeMenus:      false,
 		DeepLinks:        false,
 		AutoStart:        false,
-		WindowManagement: true,
+		WindowManagement:  true,
+		NativeVoiceCapture: nativeVoiceCapture,
 	}
 }
 

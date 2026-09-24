@@ -67,12 +67,14 @@ dependência de binário Whisper local.
 | Superfície | Estratégia |
 | --- | --- |
 | Browser | APIs Web de captura; permissão do browser |
-| Linux Desktop | Wails/WebKitGTK; captura e codec detectados em runtime |
-| Windows Desktop | Wails/WebView2; mesma camada Web, sujeito à permissão de microfone do Windows |
+| Linux Desktop | Wails/WebKitGTK tenta Web capture; se a permissão do Wails v2 falhar, usa fallback nativo `pw-record` (PipeWire) ou `arecord` (ALSA), gerando WAV mono/16 kHz |
+| Windows Desktop | Wails/WebView2 usa a permissão nativa do WebView2; nenhuma API key fica no WebView |
 | macOS Desktop | Wails/WKWebView + `NSMicrophoneUsageDescription` em `Info.plist` e `Info.dev.plist` |
 
-Se `getUserMedia` ou `MediaRecorder` não estiver disponível, a interface desabilita o botão
-e informa indisponibilidade em vez de simular funcionamento.
+Se `getUserMedia` ou `MediaRecorder` não estiver disponível, o Desktop consulta a capability
+`nativeVoiceCapture`. No Linux ela só é anunciada quando `pw-record` ou `arecord` existe no
+PATH. Se nenhuma rota real de captura estiver disponível, a interface desabilita o botão e informa
+indisponibilidade em vez de simular funcionamento.
 
 A compilação cross-platform não substitui homologação nativa de microfone: Windows e macOS
 precisam passar a campanha same-SHA da linha 1.1 em runners nativos antes de serem anunciados
