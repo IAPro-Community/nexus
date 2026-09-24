@@ -1,8 +1,13 @@
 package nexus
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"testing"
+
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func TestMissionAdmissionBlockersReportsExactFailures(t *testing.T) {
@@ -32,5 +37,39 @@ func TestMissionAdmissionBlockersFailsClosedWithoutSpecificCheck(t *testing.T) {
 	got := missionAdmissionBlockers(&FlowPreflightReport{Ready: false})
 	if !strings.Contains(got, "not ready") {
 		t.Fatalf("unexpected fallback blocker: %q", got)
+	}
+}
+
+func TestStartMissionRunTypesMalformedGoalContractAsPreparationFailure(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Malformed goal", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Malformed goal", "", []store.PlanPhase{{
+		Title: "Build",
+		Packages: []store.WorkPackage{{
+			Title: "Step", Goal: "Step", Status: "READY", Role: "implementer",
+			AcceptanceCriteria: []string{"done"}, VerificationRequirements: []string{"true"},
+		}},
+	}}, map[string]string{GoalContractFactKey: "{"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = n.StartMissionRun(context.Background(), plan.ID, "", runner.DefaultAutonomyContract(), false)
+	if err == nil {
+		t.Fatal("malformed goal contract must fail before MissionRunner ownership")
+	}
+	var preparationErr *MissionPreparationError
+	if !errors.As(err, &preparationErr) {
+		t.Fatalf("expected MissionPreparationError, got %T: %v", err, err)
+	}
+	if preparationErr.Stage != "goal_contract" {
+		t.Fatalf("preparation stage=%q want goal_contract", preparationErr.Stage)
 	}
 }
