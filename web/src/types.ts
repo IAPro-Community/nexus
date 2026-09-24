@@ -1959,6 +1959,7 @@ export interface AgentProjectionPlanView {
   provider_version: string;
   version_source: string;
   target_kind: string;
+  target_workspace: string;
   custom_command: boolean;
   capabilities: AgentProjectionCapabilities;
   plan: AgentProjectionPlan;
