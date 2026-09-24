@@ -562,6 +562,49 @@ https://developers.openai.com/pt-BR/blog/codex-as-a-platform
 - não compartilhar adapter com OpenCode apenas por semelhança histórica;
 - manter provider ID e contrato independentes.
 
+## 11.7 Custom execution targets
+
+A V1 deve suportar provider lógico separado do mecanismo usado para iniciar o
+processo. Um Agent OpenCode pode, por exemplo, executar pelo binário local, por
+Docker/VPN Workspace, Docker Compose, WSL, SSH ou outro wrapper supervisionado.
+
+O contrato de compatibilidade é `command_template`, argv-only e sem shell:
+
+```text
+{cwd}
+{args}
+{provider}
+{profile}
+{profile_home}
+```
+
+`{args}` deve ocupar um token inteiro. Operadores de shell, redirecionamento e
+command substitution continuam proibidos.
+
+Metadados tipados da V1:
+
+```text
+execution_adapter=command_template
+target_kind=local|docker|docker-compose|wsl|ssh|custom
+target_profile_home=<host-visible shared home>   # opcional
+target_probe_template=<safe argv template>       # recomendado
+target_provider_version=<declared fallback>      # não preferido
+```
+
+Para targets como `vpn-dev-workspace`, execução customizada não depende de
+Agent Projection. Se `target_profile_home` não for compartilhada/visível ao
+Nexus, o runtime continua funcionando por command template + Nexus overlay, mas
+a projeção nativa permanece indisponível/UNVERIFIED.
+
+Quando uma home compartilhada existe, o Nexus pode materializar os agents
+nativos no mesmo filesystem visto pelo OpenCode no target. A versão do provider
+deve preferencialmente ser detectada pelo `target_probe_template` no próprio
+target, e não inferida a partir do host.
+
+Read-only em custom target nunca é automaticamente ENFORCED. Até existir
+discovery + activation + permission-enforcement evidence do target, a UI e o
+Core devem permanecer em BEST_EFFORT/UNVERIFIED.
+
 ## 12. Correções prévias obrigatórias
 
 ### P0 — capability truth
