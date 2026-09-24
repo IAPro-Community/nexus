@@ -1893,3 +1893,99 @@ export interface TelemetryHistoryEvent {
     identity_version: string;
   };
 }
+
+
+export type AgentProjectionCapabilityStatus =
+  | 'SUPPORTED'
+  | 'PARTIAL'
+  | 'UNSUPPORTED'
+  | 'UNKNOWN'
+  | 'NOT_TESTED';
+
+export interface AgentProjectionCapabilityEvidence {
+  status: AgentProjectionCapabilityStatus | string;
+  tested: boolean;
+  evidence?: string;
+  provider_version?: string;
+  verified_at?: string;
+}
+
+export interface AgentProjectionCapabilities {
+  definitions: AgentProjectionCapabilityEvidence;
+  primary_agent: AgentProjectionCapabilityEvidence;
+  subagents: AgentProjectionCapabilityEvidence;
+  in_session_switch: AgentProjectionCapabilityEvidence;
+  dynamic_reload: AgentProjectionCapabilityEvidence;
+  tool_permissions: AgentProjectionCapabilityEvidence;
+  model_override: AgentProjectionCapabilityEvidence;
+  project_scope: AgentProjectionCapabilityEvidence;
+  user_scope: AgentProjectionCapabilityEvidence;
+  remote_protocol: AgentProjectionCapabilityEvidence;
+}
+
+export interface AgentProjectionConflict {
+  path: string;
+  kind: 'MANAGED_MODIFIED' | 'UNMANAGED' | 'UNSAFE_PATH' | string;
+  detail?: string;
+}
+
+export interface AgentProjectionArtifact {
+  path: string;
+  mode: number;
+  content_hash: string;
+}
+
+export interface AgentProjectionPlan {
+  provider: string;
+  profile: string;
+  role_id: string;
+  scope: string;
+  strategy: string;
+  managed_root: string;
+  renderer_version: string;
+  source_hash: string;
+  artifacts?: AgentProjectionArtifact[];
+  conflicts?: AgentProjectionConflict[];
+  warnings?: string[];
+}
+
+export interface AgentProjectionPlanView {
+  runtime_id: string;
+  runtime_generation_id: string;
+  agent_id: string;
+  role_id: string;
+  provider: string;
+  profile: string;
+  provider_version: string;
+  version_source: string;
+  target_kind: string;
+  custom_command: boolean;
+  capabilities: AgentProjectionCapabilities;
+  plan: AgentProjectionPlan;
+}
+
+export interface AgentProjectionReceipt {
+  id: string;
+  provider: string;
+  profile: string;
+  role_id: string;
+  scope: string;
+  strategy: string;
+  managed_root: string;
+  renderer_version: string;
+  source_hash: string;
+  artifacts: Array<{ path: string; content_hash: string }>;
+  applied_at: string;
+  verified_at?: string;
+}
+
+export interface AgentProjectionApplyView {
+  plan: AgentProjectionPlanView;
+  receipt: AgentProjectionReceipt;
+}
+
+export interface AgentProjectionVerification {
+  verified: boolean;
+  errors?: string[];
+  warnings?: string[];
+}
