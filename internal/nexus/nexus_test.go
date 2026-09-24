@@ -246,6 +246,63 @@ func TestAskAgentWithOptionsSkipsEnvelopeForInteractiveLead(t *testing.T) {
 	}
 }
 
+func TestAskAgentExecutionRoleOverlayPreservesInteractiveLeadAndRuntimeBinding(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "Role Lead", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := n.PrepareInteractiveLead(context.Background(), project.ID, "fake", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess, err := n.StartAgent(context.Background(), agent.ID, "fake", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.SetRuntimeExecutionRole(context.Background(), sess.RuntimeID, "review", "test"); err != nil {
+		t.Fatal(err)
+	}
+
+	var submitted string
+	n.submitPrompt = func(_ string, prompt string) error { submitted = prompt; return nil }
+	result, err := n.AskAgentWithOptions(context.Background(), agent.ID, "inspect this diff", AskAgentOptions{
+		CompileSpecialization: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.ExecutionRole != "review" {
+		t.Fatalf("expected persisted review role, got %+v", result)
+	}
+	if !strings.Contains(submitted, "[Nexus execution role]") || !strings.Contains(submitted, "ID: review") || !strings.Contains(submitted, "inspect this diff") {
+		t.Fatalf("execution role overlay missing: %q", submitted)
+	}
+	if strings.Contains(submitted, "Direct Agent request") || strings.Contains(submitted, "structured WorkPackage") {
+		t.Fatalf("interactive lead received full WorkPackage envelope: %q", submitted)
+	}
+
+	submitted = ""
+	result, err = n.AskAgentWithOptions(context.Background(), agent.ID, "check threat boundaries", AskAgentOptions{
+		ExecutionRoleID:       "security",
+		CompileSpecialization: false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.ExecutionRole != "security" || !strings.Contains(submitted, "ID: security") {
+		t.Fatalf("turn role override not applied: result=%+v prompt=%q", result, submitted)
+	}
+	effective, err := n.EffectiveRuntimeExecutionRole(sess.RuntimeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if effective.Role.ID != "review" {
+		t.Fatalf("turn override mutated runtime binding: %#v", effective)
+	}
+}
+
 func TestAskAgentWithOptionsDisablesSpecializationWhenRequested(t *testing.T) {
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
