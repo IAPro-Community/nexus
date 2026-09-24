@@ -427,7 +427,11 @@ func (n *Nexus) startMissionRunAtRevisionWithAdmission(ctx context.Context, plan
 	frozen := &frozenPlan
 	bindLeadAgent(frozen, defaultAgentID)
 	contract = normalizeAutonomyContract(contract, project.CanonicalPath)
-	env, err := json.Marshal(missionExecutionSnapshot{Plan: *frozen, Contract: contract, Preflight: preflight, ExecutionPreview: preview, SkillContracts: skillContracts})
+	goalContract, err := ReadGoalContractFact(frozen.StructuredFacts)
+	if err != nil {
+		return nil, fmt.Errorf("load frozen goal contract: %w", err)
+	}
+	env, err := json.Marshal(missionExecutionSnapshot{Plan: *frozen, Contract: contract, Preflight: preflight, ExecutionPreview: preview, SkillContracts: skillContracts, Goal: goalContract})
 	if err != nil {
 		return nil, err
 	}
