@@ -31,6 +31,7 @@ type AgentProjectionPlanView struct {
 	ProviderVersion string                  `json:"provider_version"`
 	VersionSource   string                  `json:"version_source"`
 	TargetKind      string                  `json:"target_kind"`
+	TargetWorkspace string                  `json:"target_workspace"`
 	CustomCommand   bool                    `json:"custom_command"`
 	Capabilities    projection.Capabilities `json:"capabilities"`
 	Plan            *projection.Plan        `json:"plan"`
@@ -66,6 +67,7 @@ type agentProjectionContext struct {
 	version     string
 	versionSource string
 	targetKind  string
+	targetWorkspace string
 	custom      bool
 	adapter     projection.Adapter
 }
@@ -95,6 +97,7 @@ func (n *Nexus) PlanRuntimeAgentProjection(ctx context.Context, runtimeID string
 		ProviderVersion:      resolved.version,
 		VersionSource:        resolved.versionSource,
 		TargetKind:           resolved.targetKind,
+		TargetWorkspace:      resolved.targetWorkspace,
 		CustomCommand:        resolved.custom,
 		Capabilities:         caps,
 		Plan:                 plan,
@@ -178,6 +181,7 @@ func (n *Nexus) ApplyRuntimeAgentProjection(ctx context.Context, runtimeID, acti
 			ProviderVersion:      resolved.version,
 			VersionSource:        resolved.versionSource,
 			TargetKind:           resolved.targetKind,
+			TargetWorkspace:      resolved.targetWorkspace,
 			CustomCommand:        resolved.custom,
 			Capabilities:         caps,
 			Plan:                 plan,
@@ -242,6 +246,7 @@ func (n *Nexus) probeAgentProjectionDiscovery(ctx context.Context, resolved *age
 		}
 		bin, args, err = launcher.ResolveCommandTemplateContext(template, launcher.CommandTemplateContext{
 			Cwd:         resolved.project.CanonicalPath,
+			TargetCwd:   resolved.targetWorkspace,
 			Args:        discoveryArgs,
 			Provider:    resolved.generation.Provider,
 			Profile:     resolved.generation.Profile,
@@ -446,6 +451,10 @@ func (n *Nexus) resolveAgentProjectionContext(ctx context.Context, runtimeID str
 			targetKind = "local"
 		}
 	}
+	targetWorkspace := agentModeStringOption(cfg.Options, "target_workspace")
+	if targetWorkspace == "" {
+		targetWorkspace = project.CanonicalPath
+	}
 
 	providerHome := ""
 	if custom {
@@ -487,6 +496,7 @@ func (n *Nexus) resolveAgentProjectionContext(ctx context.Context, runtimeID str
 		version: version,
 		versionSource: versionSource,
 		targetKind: targetKind,
+		targetWorkspace: targetWorkspace,
 		custom: custom,
 		adapter: adapter,
 	}, nil
@@ -505,6 +515,7 @@ func (n *Nexus) projectionProviderVersion(ctx context.Context, cfg AgentConfig, 
 		defer cancel()
 		bin, args, err := launcher.ResolveCommandTemplateContext(probeTemplate, launcher.CommandTemplateContext{
 			Cwd:         project.CanonicalPath,
+			TargetCwd:   agentModeStringOption(cfg.Options, "target_workspace"),
 			Args:        []string{"--version"},
 			Provider:    generation.Provider,
 			Profile:     generation.Profile,
