@@ -6,6 +6,9 @@ import {
   AgentMode,
   ExecutionRole,
   RuntimeExecutionRoleView,
+  AgentProjectionPlanView,
+  AgentProjectionApplyView,
+  AgentProjectionVerification,
   AgentDetail,
   RuntimeSession,
   AgentConfig,
@@ -258,6 +261,25 @@ export const nexus = {
         body: JSON.stringify({ role_id: roleId }),
       },
     ),
+  planAgentProjection: (runtimeId: string) =>
+    request<AgentProjectionPlanView>('/api/v1/agent-projections/plan', {
+      method: 'POST',
+      body: JSON.stringify({ runtime_id: runtimeId }),
+    }),
+  applyAgentProjection: (runtimeId: string) =>
+    request<AgentProjectionApplyView>('/api/v1/agent-projections/apply', {
+      method: 'POST',
+      body: JSON.stringify({ runtime_id: runtimeId }),
+    }),
+  verifyAgentProjection: (receiptId: string) =>
+    request<AgentProjectionVerification>(
+      `/api/v1/agent-projections/${encodeURIComponent(receiptId)}/verify`,
+      { method: 'POST', body: '{}' },
+    ),
+  removeAgentProjection: (receiptId: string) =>
+    request<void>(`/api/v1/agent-projections/${encodeURIComponent(receiptId)}`, {
+      method: 'DELETE',
+    }),
   listAgents: (projectId: string) => request<Agent[]>(`/api/v1/projects/${projectId}/agents`),
   createAgent: (projectId: string, name: string, role?: string) =>
     request<Agent>(`/api/v1/projects/${projectId}/agents`, {
