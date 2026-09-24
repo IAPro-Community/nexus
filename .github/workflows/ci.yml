@@ -33,7 +33,25 @@ env:
   NEXUS_UPDATE_PUBLIC_KEY: ${{ vars.NEXUS_UPDATE_PUBLIC_KEY }}
 
 jobs:
+  workspace-sanitize:
+    name: Sanitize self-hosted workspace
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
+    steps:
+      - name: Remove stale root-owned build output
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in dist native-artifacts native-staging packaging/windows/payload; do
+            target="$GITHUB_WORKSPACE/$path"
+            [ -e "$target" ] || continue
+            if rm -rf "$target" 2>/dev/null; then
+              continue
+            fi
+            sudo -n rm -rf "$target"
+          done
+
   frontend:
+    needs: workspace-sanitize
     name: Frontend (Format, Lint, Styles, Typecheck, Unit & Build)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
@@ -78,6 +96,7 @@ jobs:
         run: bun run verify
 
   release-config:
+    needs: workspace-sanitize
     name: Release configuration
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
@@ -89,6 +108,7 @@ jobs:
           args: check
 
   security:
+    needs: workspace-sanitize
     name: Security
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
@@ -213,6 +233,7 @@ jobs:
           test '${{ steps.browser-visual.outcome }}' = success
 
   test-linux:
+    needs: workspace-sanitize
     name: Linux E2E (Go 1.25.14)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
@@ -430,6 +451,7 @@ jobs:
 
 
   cross-platform-compile:
+    needs: workspace-sanitize
     name: Cross-platform compile guard
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
@@ -907,12 +929,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: snapshot-dist-${{ github.sha }}
-          path: dist
+          path: ${{ runner.temp }}/nexus-deb-smoke-dist
       - name: Install DEB and run nexus version
         shell: bash
         run: |
           set -euo pipefail
-          deb="$(find dist -maxdepth 1 -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' | head -n1)"
+          deb="$(find "$RUNNER_TEMP/nexus-deb-smoke-dist" -maxdepth 1 \( -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' \) | head -n1)"
           test -n "$deb"
           if ! dpkg -i "$deb"; then
             apt-get update
@@ -931,3 +953,7 @@ jobs:
             echo "another nexus command is still resolvable after DEB uninstall: $(command -v nexus)" >&2
             exit 1
           fi
+      - name: Clean container smoke artifacts
+        if: always()
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/nexus-deb-smoke-dist"
