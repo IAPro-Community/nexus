@@ -1,10 +1,24 @@
-import type { ProviderAccount } from '../../types';
+import type { ProviderAccount, ProviderInfo } from '../../types';
 import {
   bestGroupRemainingFromQuotaView,
   quotaTruthState,
   type QuotaTruthState,
 } from '../work/directSessionModel';
 import { asArray } from '../../lib/safeArray';
+
+
+export function installedProvidersWithoutAccounts(
+  providers: ProviderInfo[],
+  accounts: ProviderAccount[],
+): ProviderInfo[] {
+  const accountProviders = new Set(
+    accounts.map((account) => String(account.provider || '').trim().toLowerCase()).filter(Boolean),
+  );
+  return providers
+    .filter((provider) => provider.installed)
+    .filter((provider) => !accountProviders.has(String(provider.id || '').trim().toLowerCase()))
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
 
 export type UsageSummary = {
   total: number;
