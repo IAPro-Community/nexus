@@ -2,6 +2,7 @@ package capacitymonitor
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -10,11 +11,13 @@ import (
 
 // stubRecommender returns a fixed advisory recommendation.
 type stubRecommender struct {
-	rec Recommendation
-	err error
+	rec   Recommendation
+	err   error
+	calls int
 }
 
 func (s *stubRecommender) RecommendForLowResource(ctx context.Context, atRisk ResourceKey, reason string) (Recommendation, error) {
+	s.calls++
 	if s.err != nil {
 		return Recommendation{}, s.err
 	}
@@ -31,10 +34,11 @@ func TestRecommendationIncludedOnLowResource(t *testing.T) {
 	m, _, counter := testMonitor(t,
 		[]model.Profile{{Provider: "codex", Name: "kiver"}},
 		&stubRegistry{probes: map[string]quota.Probe{"codex": probe}}, nil)
-	m.deps.Recommender = &stubRecommender{rec: Recommendation{
+	recommender := &stubRecommender{rec: Recommendation{
 		Provider: "claude", Profile: "backup", DisplayName: "backup",
 		Score: 82.5, Reason: "healthy fallback with live quota", Available: true,
 	}}
+	m.deps.Recommender = recommender
 
 	if err := m.Tick(context.Background()); err != nil {
 		t.Fatalf("Tick() = %v", err)
@@ -48,6 +52,23 @@ func TestRecommendationIncludedOnLowResource(t *testing.T) {
 	}
 	if r, _ := data["recommendation_reason"].(string); r == "" {
 		t.Fatalf("recommendation reason empty: %v", data)
+	}
+	if recommender.calls != 1 {
+		t.Fatalf("recommender calls = %d, want exactly 1 per transition", recommender.calls)
+	}
+	history, err := m.deps.Store.ListCapacityEvents(10)
+	if err != nil || len(history) != 1 {
+		t.Fatalf("capacity history = %+v, %v; want one durable event", history, err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(history[0].PayloadJSON), &payload); err != nil {
+		t.Fatalf("decode durable payload: %v", err)
+	}
+	if payload["recommended_provider"] != "claude" || payload["recommended_profile"] != "backup" {
+		t.Fatalf("durable recommendation missing: %v", payload)
+	}
+	if payload["recommendation_reason"] != "healthy fallback with live quota" {
+		t.Fatalf("durable recommendation reason = %v", payload["recommendation_reason"])
 	}
 }
 

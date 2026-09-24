@@ -119,7 +119,7 @@ export const WorkspaceSurfaceHost: React.FC<{
   updateSurface?: (surfaceId: string, patch: Partial<WorkspaceSurface>) => void;
   closeSurface: (surfaceId: string) => void;
   onTour: () => void;
-  settingsInitialTab?: 'appearance' | 'updates' | 'remote';
+  settingsInitialTab?: 'appearance' | 'updates' | 'remote' | 'hud';
 }> = ({
   surface,
   project,

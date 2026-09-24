@@ -21,6 +21,27 @@ pronta. Cross-compilation nunca deve ser apresentada como certificação nativa.
 | Updater | **manifesto/checksum/Ed25519** | sem artifact v1 suportado | sem artifact v1 suportado |
 | Evidência nativa | **CI Linux self-hosted** | deferida | deferida |
 
+## Nexus HUD — matriz experimental
+
+O HUD é uma feature pós-v1 em desenvolvimento e segue uma certificação separada
+da matriz estável acima. Implementação em source não equivale a suporte público.
+
+| HUD | Linux amd64 | Windows amd64 | macOS arm64 | Web |
+| --- | --- | --- | --- | --- |
+| Projection/Core | implementado; CI pendente | source compartilhado | source compartilhado | implementado; CI pendente |
+| Gadget nativo | implementado; certificação nativa pendente | **UNVERIFIED** | **UNVERIFIED** | N/A |
+| Frameless | source Wails v2 | **UNVERIFIED** | **UNVERIFIED** | N/A |
+| Always-on-top | compositor/WM dependent | **UNVERIFIED** | **UNVERIFIED** | N/A |
+| Posicionamento global | X11: alvo; Wayland: limitado | **UNVERIFIED** | **UNVERIFIED** | viewport |
+| Multi-monitor / DPI | **UNVERIFIED** | **UNVERIFIED** | **UNVERIFIED** | browser |
+| Web HUD | N/A | N/A | N/A | implementado |
+| Certificação final | **PENDING** | **UNVERIFIED** | **UNVERIFIED** | **PENDING** |
+
+`NEXUS_HUD_CROSS_PLATFORM` permanece **NO_GO** enquanto qualquer target nativo
+obrigatório estiver sem certificação. Em Wayland, posicionamento absoluto e
+always-on-top podem ser limitados pelo compositor; a capability matrix do HUD
+deve degradar de forma explícita, sem transformar limitação do compositor em
+estado saudável.
 ## CI contínuo da v1
 
 O pipeline contínuo (`.github/workflows/ci.yml`) roda em

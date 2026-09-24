@@ -1,7 +1,7 @@
 // Package flags holds kill-switches for the highest-risk surfaces.
 //
 // Only a handful of flags exist on purpose: tunnel, autonomous missions,
-// remote access, and experimental intelligence. Each defaults to its safe
+// remote access, experimental intelligence, and the experimental Nexus HUD. Each defaults to its safe
 // production value and can be forced off via environment for incident
 // response. A future remote-config backend implements Source without
 // changing call sites; until then the local source is authoritative and
@@ -25,6 +25,8 @@ const (
 	RemoteAccess Name = "remote_access"
 	// ExperimentalIntelligence gates experimental intelligence features.
 	ExperimentalIntelligence Name = "experimental_intelligence"
+	// HUD gates the experimental Nexus HUD projection and presentation surfaces.
+	HUD Name = "hud"
 )
 
 // defaults are the safe production values.
@@ -33,11 +35,12 @@ var defaults = map[Name]bool{
 	AutonomousMission:        true,
 	RemoteAccess:             true,
 	ExperimentalIntelligence: false,
+	HUD:                      false,
 }
 
 // All lists every known flag.
 func All() []Name {
-	return []Name{Tunnel, AutonomousMission, RemoteAccess, ExperimentalIntelligence}
+	return []Name{Tunnel, AutonomousMission, RemoteAccess, ExperimentalIntelligence, HUD}
 }
 
 // Source resolves flag values.

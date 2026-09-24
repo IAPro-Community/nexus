@@ -701,6 +701,16 @@ export const nexus = {
       body: JSON.stringify({ requirements, policy }),
     }),
 
+  // Nexus HUD: read-only projection over canonical Capacity/Resource/Agent/Mission/Cost state.
+  getHUDState: (projectId?: string) => {
+    const params = new URLSearchParams();
+    if (projectId) params.set('project_id', projectId);
+    const qs = params.toString();
+    return request<import('../features/hud/hudModel').HudResponse>(
+      `/api/v1/hud${qs ? `?${qs}` : ''}`,
+    );
+  },
+
   // Capacity Monitor (revival T6)
   getCapacityStatus: () => request<import('../types').CapacityStatus>('/api/v1/capacity/status'),
   getCapacityHistory: (limit?: number) =>

@@ -10,6 +10,7 @@ import {
   Globe,
   MonitorCog,
   Palette,
+  PanelsTopLeft,
   RefreshCw,
   RotateCcw,
   Sparkles,
@@ -45,6 +46,7 @@ import { RemoteAccessTab } from './RemoteAccessTab';
 import { IntelligenceMemoriesPanel } from './IntelligenceMemoriesPanel';
 import { CapacityMonitorSettings } from './CapacityMonitorSettings';
 import { CostIntelligenceSettings } from './CostIntelligenceSettings';
+import { HudSettings } from '../hud/HudSettings';
 import type { SystemDoctorReport } from '../../nexus/api';
 import styles from './SettingsSurface.module.scss';
 
@@ -54,6 +56,7 @@ type SettingsTab =
   | 'updates'
   | 'intelligence'
   | 'capacity'
+  | 'hud'
   | 'notifications'
   | 'remote';
 const SETTINGS_TABS: SettingsTab[] = [
@@ -62,6 +65,7 @@ const SETTINGS_TABS: SettingsTab[] = [
   'updates',
   'intelligence',
   'capacity',
+  'hud',
   'notifications',
   'remote',
 ];
@@ -321,6 +325,20 @@ export const SettingsSurface: React.FC<{
         >
           <Gauge size={15} />
           <span>{t('settings.capacity', 'Capacity Monitor')}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="settings-tab-hud"
+          aria-controls="settings-panel"
+          tabIndex={activeTab === 'hud' ? 0 : -1}
+          aria-selected={activeTab === 'hud'}
+          onKeyDown={onSettingsTabKeyDown}
+          className={`nx-settings-tab ${activeTab === 'hud' ? 'nx-settings-tab--active' : ''}`}
+          onClick={() => setActiveTab('hud')}
+        >
+          <PanelsTopLeft size={15} />
+          <span>Nexus HUD</span>
         </button>
         <button
           type="button"
@@ -741,6 +759,7 @@ export const SettingsSurface: React.FC<{
             <CostIntelligenceSettings />
           </>
         )}
+        {activeTab === 'hud' && <HudSettings />}
         {activeTab === 'remote' && <RemoteAccessTab />}
       </div>
     </div>

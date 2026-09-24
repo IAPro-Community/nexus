@@ -23,6 +23,7 @@ import {
 import { serializeWorkspace } from '../workspace/state';
 import { ProjectRail } from '../features/projects/ProjectRail';
 import { ProjectHub } from '../features/projects/ProjectHub';
+import { NexusHud } from '../features/hud/NexusHud';
 import type { NexusCommand } from './commands/registry';
 import type { DirectSessionRequest } from '../features/work/DirectSessionLauncher';
 import { NexusShell } from './NexusShell';
@@ -346,9 +347,9 @@ const WorkspaceCoordinator: React.FC<{
   const presentation = useWorkspacePresentation();
   const [railOpen, setRailOpen] = useState(false);
   const [palette, setPalette] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<'appearance' | 'updates' | 'remote'>(
-    'appearance',
-  );
+  const [settingsInitialTab, setSettingsInitialTab] = useState<
+    'appearance' | 'updates' | 'remote' | 'hud'
+  >('appearance');
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [maestroControlOpen, setMaestroControlOpen] = useState(false);
   const [newAgentOpen, setNewAgentOpen] = useState(false);
@@ -1261,6 +1262,17 @@ const WorkspaceCoordinator: React.FC<{
           )}
         </div>
       </NexusShell>
+
+      <NexusHud
+        projectId={project.id}
+        onOpenUsage={() => openKind('resources')}
+        onOpenAgents={() => openKind('agents')}
+        onOpenMissions={() => openKind('missions')}
+        onOpenSettings={() => {
+          setSettingsInitialTab('hud');
+          openKind('settings');
+        }}
+      />
 
       {palette && (
         <React.Suspense fallback={null}>
