@@ -100,3 +100,47 @@ func TestRuntimeExecutionRoleRejectsForeignAgent(t *testing.T) {
 		t.Fatal("expected foreign-agent binding to be rejected")
 	}
 }
+
+func TestDetachRuntimeExecutionRoleProjectionDoesNotClearNewerReceipt(t *testing.T) {
+	s := openTestStore(t)
+	project, _ := s.CreateProject(Project{Name: "Projection binding", CanonicalPath: t.TempDir()})
+	agent, _ := s.CreateAgent(Agent{ProjectID: project.ID, Name: "A"})
+	revision, _ := s.AddRevision(agent.ID, "{}")
+	generation, _ := s.AddGeneration(RuntimeGeneration{
+		AgentID: agent.ID, RevisionID: revision.ID, RuntimeID: "rt_projection_binding",
+		Provider: "opencode", Profile: "default", StartedAt: time.Now().UTC(),
+	})
+	if _, err := s.SetRuntimeExecutionRole(RuntimeExecutionRoleBinding{
+		RuntimeGenerationID: generation.ID,
+		AgentID:             agent.ID,
+		RoleID:              "review",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.AttachRuntimeExecutionRoleProjection(generation.ID, "aprj_old"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.AttachRuntimeExecutionRoleProjection(generation.ID, "aprj_new"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DetachRuntimeExecutionRoleProjection(generation.ID, "aprj_old"); err != ErrNotFound {
+		t.Fatalf("stale receipt must not detach newer projection, got %v", err)
+	}
+	got, err := s.RuntimeExecutionRole(generation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ProjectionReceiptID != "aprj_new" {
+		t.Fatalf("newer projection link was lost: %#v", got)
+	}
+	if err := s.DetachRuntimeExecutionRoleProjection(generation.ID, "aprj_new"); err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.RuntimeExecutionRole(generation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ProjectionReceiptID != "" {
+		t.Fatalf("current projection link was not detached: %#v", got)
+	}
+}
