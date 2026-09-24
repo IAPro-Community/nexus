@@ -61,6 +61,26 @@ func DiscoveryArgs(providerVersion string) ([]string, error) {
 	return []string{"agent", "list"}, nil
 }
 
+// ActivationProbeArgs returns an explicit non-interactive OpenCode invocation
+// that selects the projected primary-capable agent. It does invoke the
+// configured model, so callers must require an explicit user/certification
+// opt-in before executing it.
+func ActivationProbeArgs(providerVersion, agentName, marker string) ([]string, error) {
+	if _, ok := parseMajor(providerVersion); !ok {
+		return nil, fmt.Errorf("OpenCode provider version %q is unknown", providerVersion)
+	}
+	agentName = strings.TrimSpace(agentName)
+	if !strings.HasPrefix(agentName, "nexus-") || len(agentName) <= len("nexus-") {
+		return nil, fmt.Errorf("invalid projected OpenCode agent name %q", agentName)
+	}
+	marker = strings.TrimSpace(marker)
+	if marker == "" {
+		return nil, errors.New("activation probe marker is required")
+	}
+	prompt := "Reply with exactly " + marker + " and nothing else. Do not call tools."
+	return []string{"run", "--agent", agentName, prompt}, nil
+}
+
 func (a *Adapter) Capabilities(_ context.Context, providerVersion string) projection.Capabilities {
 	major, ok := parseMajor(providerVersion)
 	if !ok {
