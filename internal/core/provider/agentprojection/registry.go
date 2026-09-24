@@ -2,6 +2,7 @@ package agentprojection
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -46,5 +47,6 @@ func (r *Registry) Providers() []string {
 	for id := range r.adapters {
 		out = append(out, id)
 	}
+	sort.Strings(out)
 	return out
 }
