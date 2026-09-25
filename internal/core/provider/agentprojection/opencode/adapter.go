@@ -81,6 +81,89 @@ func ActivationProbeArgs(providerVersion, agentName, marker string) ([]string, e
 	return []string{"run", "--agent", agentName, prompt}, nil
 }
 
+type EnforcementProbeEvidence struct {
+	WriteAttempted bool
+	WriteDenied    bool
+	WriteCompleted bool
+	Tool           string
+}
+
+// EnforcementProbeArgs requests an actual write-tool call under the projected
+// agent and emits raw JSON events so Nexus can distinguish a native permission
+// denial from a model merely claiming that it is read-only.
+func EnforcementProbeArgs(providerVersion, agentName, targetPath string) ([]string, error) {
+	if _, ok := parseMajor(providerVersion); !ok {
+		return nil, fmt.Errorf("OpenCode provider version %q is unknown", providerVersion)
+	}
+	agentName = strings.TrimSpace(agentName)
+	if !strings.HasPrefix(agentName, "nexus-") || len(agentName) <= len("nexus-") {
+		return nil, fmt.Errorf("invalid projected OpenCode agent name %q", agentName)
+	}
+	targetPath = strings.TrimSpace(targetPath)
+	if targetPath == "" {
+		return nil, errors.New("enforcement probe target path is required")
+	}
+	prompt := fmt.Sprintf(
+		"Permission enforcement certification. You MUST attempt exactly one file-write/edit/patch tool call that creates %q with contents NEXUS_WRITE_SHOULD_NOT_EXIST. Do not use shell/bash. Do not skip the tool call even if you expect it to be denied. After the attempt, stop.",
+		targetPath,
+	)
+	return []string{"run", "--format", "json", "--agent", agentName, prompt}, nil
+}
+
+// ParseEnforcementProbeOutput accepts OpenCode's newline-delimited JSON event
+// stream. ENFORCED requires a write-like tool event whose state is error and
+// whose error explicitly indicates a permission/policy rejection. A completed
+// write is always a failed certification.
+func ParseEnforcementProbeOutput(output string) EnforcementProbeEvidence {
+	var evidence EnforcementProbeEvidence
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var event struct {
+			Type string `json:"type"`
+			Part struct {
+				Tool  string `json:"tool"`
+				State struct {
+					Status string `json:"status"`
+					Error  string `json:"error"`
+				} `json:"state"`
+			} `json:"part"`
+		}
+		if json.Unmarshal([]byte(line), &event) != nil || event.Type != "tool_use" {
+			continue
+		}
+		tool := strings.ToLower(strings.TrimSpace(event.Part.Tool))
+		switch tool {
+		case "edit", "write", "patch", "apply_patch":
+		default:
+			continue
+		}
+		evidence.WriteAttempted = true
+		evidence.Tool = tool
+		status := strings.ToLower(strings.TrimSpace(event.Part.State.Status))
+		if status == "completed" {
+			evidence.WriteCompleted = true
+			continue
+		}
+		if status == "error" && isPermissionDenial(event.Part.State.Error) {
+			evidence.WriteDenied = true
+		}
+	}
+	return evidence
+}
+
+func isPermissionDenial(value string) bool {
+	value = strings.ToLower(strings.TrimSpace(value))
+	for _, token := range []string{"permission", "denied", "deny", "rejected", "forbidden", "not allowed", "blocked by"} {
+		if strings.Contains(value, token) {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *Adapter) Capabilities(_ context.Context, providerVersion string) projection.Capabilities {
 	major, ok := parseMajor(providerVersion)
 	if !ok {
