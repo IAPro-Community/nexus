@@ -6,19 +6,17 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const webDir = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(webDir, '..');
-const binPath = path.resolve(repoRoot, 'nexus');
+const binPath = nexusBinaryPath(repoRoot);
 const outDir = path.resolve(repoRoot, 'DEV/validation/composer-workspace');
 
 mkdirSync(outDir, { recursive: true });
 
-if (process.env.SKIP_BUILD !== '1') {
-  const build = spawnSync('make', ['build'], { cwd: repoRoot, stdio: 'inherit' });
-  assert.equal(build.status, 0, 'make build must succeed');
-}
+ensureNexusBinary(repoRoot);
 assert.ok(existsSync(binPath), `nexus binary missing at ${binPath}`);
 
 const isolatedDataDir = path.join(os.tmpdir(), `nexus-composer-e2e-${process.pid}`);
@@ -64,7 +62,12 @@ const waitForUrl = () =>
 
 const stop = () => {
   try {
-    if (server.pid) process.kill(-server.pid, 'SIGTERM');
+    if (!server.pid) return;
+    if (process.platform === 'win32') {
+      spawn('taskkill', ['/pid', String(server.pid), '/T', '/F'], { stdio: 'ignore' });
+    } else {
+      process.kill(-server.pid, 'SIGTERM');
+    }
   } catch {
     /* already gone */
   }

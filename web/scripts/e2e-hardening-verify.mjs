@@ -7,12 +7,13 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
+import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webDir = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(webDir, '..');
-const binPath = path.resolve(repoRoot, 'nexus');
+const binPath = nexusBinaryPath(repoRoot);
 const screenshotDir = path.resolve(repoRoot, '.tempmediaStorage');
 
 if (!existsSync(screenshotDir)) {
@@ -21,8 +22,7 @@ if (!existsSync(screenshotDir)) {
 
 console.log('=== Nexus E2E Hardening & Responsiveness Verification ===');
 console.log('1. Rebuilding nexus binary from the current checkout...');
-const buildRes = spawnSync('make', ['build'], { cwd: repoRoot, stdio: 'inherit' });
-assert.equal(buildRes.status, 0, 'make build must succeed before browser assertions');
+ensureNexusBinary(repoRoot);
 assert.ok(existsSync(binPath), 'current-checkout nexus binary must exist after build');
 
 async function terminateProcess(proc) {

@@ -12,6 +12,7 @@ import {
 import os from 'node:os';
 import path from 'node:path';
 import { chromium } from 'playwright';
+import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
 
 const webDir = path.resolve(import.meta.dirname, '..');
 const root = path.resolve(webDir, '..');
@@ -19,8 +20,8 @@ const outputDir = path.join(root, 'docs/assets/screenshots');
 const demoDir = path.join(root, 'docs/assets/demos');
 mkdirSync(outputDir, { recursive: true });
 mkdirSync(demoDir, { recursive: true });
-const build = spawnSync('make', ['build'], { cwd: root, stdio: 'inherit' });
-if (build.status !== 0) process.exit(build.status ?? 1);
+const binPath = nexusBinaryPath(root);
+ensureNexusBinary(root);
 
 const fixtureRoot = mkdtempSync(path.join(os.tmpdir(), 'nexus-docs-fixture-'));
 const dataDir = path.join(fixtureRoot, 'data');
@@ -32,22 +33,26 @@ writeFileSync(
   '# Nexus Demo Workspace\n\nSynthetic documentation fixture.\n',
 );
 
+const serverEnv = {
+  ...process.env,
+  NEXUS_DATA_DIR: dataDir,
+  AI_CLI_DATA_DIR: dataDir,
+  NEXUS_DOCS_CAPTURE: '1',
+};
+if (process.platform !== 'win32') {
+  serverEnv.SHELL = '/bin/sh';
+  serverEnv.PS1 = 'nexus-demo$ ';
+  serverEnv.PROMPT_COMMAND = '';
+}
+
 const server = spawn(
-  path.join(root, 'nexus'),
+  binPath,
   ['web', '--port', '0', '--listen', '127.0.0.1', '--no-open'],
   {
     cwd: root,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: {
-      ...process.env,
-      NEXUS_DATA_DIR: dataDir,
-      AI_CLI_DATA_DIR: dataDir,
-      NEXUS_DOCS_CAPTURE: '1',
-      SHELL: '/bin/sh',
-      PS1: 'nexus-demo$ ',
-      PROMPT_COMMAND: '',
-    },
+    env: serverEnv,
   },
 );
 let output = '';
@@ -63,7 +68,15 @@ const bootstrap = new Promise((resolve, reject) => {
   server.on('exit', (code) => { clearTimeout(timer); reject(new Error(`server exited ${code}\n${output}`)); });
 });
 const stop = () => {
-  try { process.kill(-server.pid, 'SIGTERM'); } catch {}
+  try {
+    if (server.pid) {
+      if (process.platform === 'win32') {
+        spawn('taskkill', ['/pid', String(server.pid), '/T', '/F'], { stdio: 'ignore' });
+      } else {
+        process.kill(-server.pid, 'SIGTERM');
+      }
+    }
+  } catch {}
   try { rmSync(fixtureRoot, { recursive: true, force: true }); } catch {}
 };
 process.on('exit', stop);
@@ -147,7 +160,7 @@ try {
   const marker = '__NEXUS_DOCS_TERMINAL_OK__';
   const terminalInput = page.locator('.nx-project-shell-surface .xterm-helper-textarea');
   await terminalInput.focus();
-  await terminalInput.pressSequentially(`printf '${marker}\\n'`);
+  await terminalInput.pressSequentially(`echo ${marker}`);
   await terminalInput.press('Enter');
   await page.waitForFunction((expected) => {
     const terminal = document.querySelector('.nx-project-shell-surface .xterm-rows');
