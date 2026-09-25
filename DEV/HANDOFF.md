@@ -20,7 +20,7 @@ Texto final do PR #3 no §9 de
 Aceito unmount (decisão do Maestro; E2E `8156836` já afirmava). Novidades da
 rodada: PTY minimizado não desmonta mais (`hidden`+`inert`, runtime/scrollback
 preservados); `test:e2e:capacity` novo e PASS contra servidor real (auth, CSRF,
-status/history/preferences/ack/snooze); beta.2 rotulada candidate nos READMEs
+status/history/preferences/ack/snooze); beta.3 rotulada candidate nos READMEs
 (sem tag/release confirmada offline); `CAPACITY_MONITOR_REVIVAL_REPORT.md`
 criado. Browser E2E bloqueado (libatk ausente — ENVIRONMENTAL). Push/CI
 remoto seguem bloqueados (sem rede p/ github) → `MERGE_CANDIDATE = CONDITIONAL`.
@@ -75,7 +75,7 @@ PR remotamente sem autorização.
 - O binário instalado é `50b561c` em
   `/home/desenvolvedor/.local/bin/nexus`; o Web está ativo em `127.0.0.1:13000`
   com HTTP 200.
-- A versão instalada agora é `1.0.0-beta.2`, distinta da build anterior
+- A versão instalada agora é `1.0.0-beta.3`, distinta da build anterior
   `1.0.0-beta.1`; `nexus version --json` e o contrato de versão confirmam isso.
 - Smokes reais de Codex e AGY passaram sem a mensagem “changed generation/PID”.
 - O registro anterior foi preservado em
@@ -1151,7 +1151,7 @@ Commit `059bb5c`: fix(web,go): close review findings and migrate inline styles t
 - `bun run typecheck` PASS, `bun run lint` PASS (1 warning preexistente)
 - `bun run lint:styles` PASS, `bun run check:styles` PASS
 - `bun run test` 62/62 arquivos, 313/313 testes PASS
-- `make quality` PASS, `make security` PASS, `make build` PASS (v0.5.0-beta.23)
+- `make quality` PASS, `make security` PASS, `make build` PASS (v0.5.0-beta.33)
 
 ### Próximo passo
 CI same-SHA: fazer push do commit `059bb5c` e aguardar resultados do GitHub Actions.
@@ -1436,7 +1436,7 @@ Revisão técnica registrada em [`DEV/validation/CURRENT_CODE_REVIEW.md`](valida
 O estado é **aprovado para uso local individual em loopback**. O frontend evita
 polling concorrente e polling em background; o handler de terminal encerra
 recursos de forma idempotente e limita resize concorrente. Build final instalado:
-`nexus v0.5.0-beta.23`; Web ativo em `http://127.0.0.1:3000`.
+`nexus v0.5.0-beta.33`; Web ativo em `http://127.0.0.1:3000`.
 
 Riscos que continuam explícitos: `--remote` usa HTTP sem TLS (risco aceito para
 LAN privada), verificações de missão executam shell confiado sem sandbox hostil,
