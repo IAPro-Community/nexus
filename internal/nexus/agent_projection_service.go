@@ -60,6 +60,20 @@ type AgentProjectionActivation struct {
 	ExternalExecution bool     `json:"external_execution"`
 }
 
+type AgentProjectionEnforcement struct {
+	Provider          string `json:"provider"`
+	ProviderVersion   string `json:"provider_version"`
+	TargetKind        string `json:"target_kind"`
+	AgentName         string `json:"agent_name"`
+	Enforced          bool   `json:"enforced"`
+	Status            string `json:"status"`
+	Tool              string `json:"tool,omitempty"`
+	CanaryAbsent      bool   `json:"canary_absent"`
+	Evidence          string `json:"evidence,omitempty"`
+	Error             string `json:"error,omitempty"`
+	ExternalExecution bool   `json:"external_execution"`
+}
+
 type AgentProjectionApplyView struct {
 	Plan      AgentProjectionPlanView  `json:"plan"`
 	Receipt   *projection.Receipt      `json:"receipt"`
@@ -435,6 +449,187 @@ func (n *Nexus) ProbeRuntimeAgentProjectionActivation(ctx context.Context, runti
 	result.Status = "VERIFIED"
 	result.Evidence = fmt.Sprintf("OpenCode launched projected native agent %q and returned the expected activation marker", agentName)
 	return result, nil
+}
+
+// ProbeRuntimeAgentProjectionEnforcement proves native read-only enforcement
+// independently from discovery and activation. It invokes the configured model
+// and therefore always requires explicit confirmation.
+func (n *Nexus) ProbeRuntimeAgentProjectionEnforcement(ctx context.Context, runtimeID string, confirmExternalExecution bool) (*AgentProjectionEnforcement, error) {
+	resolved, err := n.resolveAgentProjectionContext(ctx, runtimeID)
+	if err != nil {
+		return nil, err
+	}
+	result := &AgentProjectionEnforcement{
+		Provider:          resolved.generation.Provider,
+		ProviderVersion:   resolved.version,
+		TargetKind:        resolved.targetKind,
+		Status:            "NOT_VERIFIED",
+		ExternalExecution: true,
+	}
+	if !confirmExternalExecution {
+		result.Error = "enforcement probe invokes the configured provider model and may consume quota/cost; explicit confirmation is required"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if resolved.role.AccessIntent != AccessReadOnly && resolved.role.AccessIntent != AccessVerifyOnly {
+		result.Error = fmt.Sprintf("execution role %s is not a read-only/verify-only role", resolved.role.ID)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if !strings.EqualFold(resolved.generation.Provider, "opencode") {
+		result.Error = fmt.Sprintf("native enforcement probe is not implemented for provider %q", resolved.generation.Provider)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+
+	binding, err := resolved.st.RuntimeExecutionRole(resolved.generation.ID)
+	if err != nil {
+		result.Error = fmt.Sprintf("enforcement requires a persisted runtime execution role: %v", err)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if strings.TrimSpace(binding.ProjectionReceiptID) == "" {
+		result.Error = "enforcement requires an applied native projection receipt"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if binding.ActivationStrategy != string(projection.ActivationNativeOnLaunch) {
+		result.Error = "enforcement requires verified native activation first"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	record, err := resolved.st.AgentProjectionReceipt(binding.ProjectionReceiptID)
+	if err != nil {
+		result.Error = fmt.Sprintf("load active projection receipt: %v", err)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if record.RemovedAt != nil || record.RuntimeGenerationID != resolved.generation.ID || record.RoleID != resolved.role.ID {
+		result.Error = "active projection receipt does not match the runtime generation and execution role"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	verification, err := n.VerifyAgentProjection(ctx, record.ID)
+	if err != nil || !verification.Verified {
+		if err != nil {
+			result.Error = fmt.Sprintf("verify projection before enforcement: %v", err)
+		} else {
+			result.Error = "projection filesystem/ownership verification failed before enforcement"
+		}
+		return result, fmt.Errorf("%s", result.Error)
+	}
+
+	agentName, err := opencodeprojection.AgentName(resolved.role.ID)
+	if err != nil {
+		result.Error = err.Error()
+		return result, err
+	}
+	result.AgentName = agentName
+
+	probeDir, err := os.MkdirTemp(resolved.project.CanonicalPath, ".nexus-enforcement-probe-")
+	if err != nil {
+		result.Error = fmt.Sprintf("create enforcement probe directory: %v", err)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	defer os.RemoveAll(probeDir)
+	hostCanary := filepath.Join(probeDir, "canary.txt")
+	targetRoot := strings.TrimSpace(resolved.targetWorkspace)
+	if targetRoot == "" {
+		targetRoot = resolved.project.CanonicalPath
+	}
+	targetCanary := joinProjectionTargetPath(targetRoot, filepath.Base(probeDir), "canary.txt")
+
+	enforcementArgs, err := opencodeprojection.EnforcementProbeArgs(resolved.version, agentName, targetCanary)
+	if err != nil {
+		result.Error = err.Error()
+		return result, err
+	}
+
+	probeCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+
+	var bin string
+	var args []string
+	var env []string
+	var cwd string
+	if resolved.custom {
+		template := agentModeStringOption(resolved.config.Options, "target_probe_template")
+		if template == "" {
+			result.Error = "custom target has no target_probe_template; enforcement cannot be proved"
+			return result, fmt.Errorf("%s", result.Error)
+		}
+		bin, args, err = launcher.ResolveCommandTemplateContext(template, launcher.CommandTemplateContext{
+			Cwd:         resolved.project.CanonicalPath,
+			TargetCwd:   resolved.targetWorkspace,
+			Args:        enforcementArgs,
+			Provider:    resolved.generation.Provider,
+			Profile:     resolved.generation.Profile,
+			ProfileHome: resolved.providerHome,
+		})
+		env = launchenv.Merge(os.Environ(), resolved.config.Environment, nil)
+		cwd = resolved.project.CanonicalPath
+	} else {
+		driver, driverErr := n.controlDrivers().Get(resolved.generation.Provider)
+		if driverErr != nil {
+			result.Error = driverErr.Error()
+			return result, driverErr
+		}
+		bin, args, env, err = driver.BuildCommand(probeCtx, model.Profile{
+			Provider: resolved.generation.Provider,
+			Name:     resolved.generation.Profile,
+		}, enforcementArgs)
+		cwd = resolved.project.CanonicalPath
+	}
+	if err != nil {
+		result.Error = fmt.Sprintf("resolve enforcement command: %v", err)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+
+	output, runErr := nexusruntime.RunCommandCapture(probeCtx, bin, args, env, cwd)
+	evidence := opencodeprojection.ParseEnforcementProbeOutput(output)
+	result.Tool = evidence.Tool
+	_, statErr := os.Stat(hostCanary)
+	result.CanaryAbsent = errors.Is(statErr, os.ErrNotExist)
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		result.Error = fmt.Sprintf("inspect enforcement canary: %v", statErr)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if evidence.WriteCompleted || !result.CanaryAbsent {
+		result.Error = "projected read-only agent completed a write; enforcement certification failed"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if !evidence.WriteAttempted {
+		if runErr != nil {
+			result.Error = fmt.Sprintf("OpenCode enforcement probe failed before a write-tool event: %v", runErr)
+		} else {
+			result.Error = "OpenCode enforcement probe produced no write-tool event"
+		}
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	if !evidence.WriteDenied {
+		result.Error = "OpenCode write-tool event was not an explicit permission/policy denial"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+
+	now := time.Now().UTC()
+	persistedEvidence := fmt.Sprintf("OpenCode native agent %q rejected %s by permission policy; canary_absent=true", agentName, evidence.Tool)
+	if err := resolved.st.MarkRuntimeExecutionRoleEnforced(
+		resolved.generation.ID,
+		record.ID,
+		persistedEvidence,
+		now,
+	); err != nil {
+		result.Error = fmt.Sprintf("persist native enforcement evidence: %v", err)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	result.Enforced = true
+	result.Status = "VERIFIED"
+	result.Evidence = persistedEvidence
+	return result, nil
+}
+
+func joinProjectionTargetPath(root string, elems ...string) string {
+	root = strings.TrimRight(strings.ReplaceAll(strings.TrimSpace(root), "\\", "/"), "/")
+	parts := []string{root}
+	for _, elem := range elems {
+		elem = strings.Trim(strings.ReplaceAll(elem, "\\", "/"), "/")
+		if elem != "" {
+			parts = append(parts, elem)
+		}
+	}
+	return strings.Join(parts, "/")
 }
 
 func containsAgentName(output, name string) bool {
