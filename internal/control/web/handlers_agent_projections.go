@@ -85,6 +85,27 @@ func (h *NexusHandler) handleAgentProjections(w http.ResponseWriter, r *http.Req
 		}
 		writeJSON(w, http.StatusOK, activation)
 		return
+
+	case "enforcement":
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+		runtimeID, confirm, ok := decodeProjectionActivationRequest(w, r)
+		if !ok {
+			return
+		}
+		enforcement, err := h.nexus.ProbeRuntimeAgentProjectionEnforcement(r.Context(), runtimeID, confirm)
+		if err != nil {
+			if enforcement == nil {
+				writeError(w, http.StatusConflict, err.Error())
+			} else {
+				writeJSON(w, http.StatusConflict, enforcement)
+			}
+			return
+		}
+		writeJSON(w, http.StatusOK, enforcement)
+		return
 	}
 
 	parts := strings.Split(path, "/")
