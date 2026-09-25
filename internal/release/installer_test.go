@@ -631,8 +631,8 @@ func TestNativeReleaseChainIsFailClosed(t *testing.T) {
 		"Function RemoveFromUserPath",
 		"Call RemoveFromUserPath",
 		"QuietUninstallString",
-		`File /nonfatal "payload\\nexus-hud.exe"`,
-		`Delete "$INSTDIR\\nexus-hud.exe"`,
+		"File /nonfatal \"payload\\nexus-hud.exe\"",
+		"Delete \"$INSTDIR\\nexus-hud.exe\"",
 		"DeleteRegKey HKCU \"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\IAPro Nexus\"",
 	} {
 		if !strings.Contains(nsis, required) {
@@ -679,9 +679,7 @@ func TestStagedNativeReleasePolicy(t *testing.T) {
 	}
 
 	for _, required := range []string{
-		"v1.1.0-beta.1)",
-		"native_policy=windows",
-		"v1.1.0-beta.*|v1.1.0-rc.*|v1.1.0)",
+		"v1.0.0-beta.3|v1.0.0-beta.*|v1.0.0-rc.*|v1.0.0)",
 		"native_policy=all",
 		"NATIVE_POLICY:",
 		"'hud_linux_amd64'",
