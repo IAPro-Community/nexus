@@ -322,7 +322,7 @@ if (-not $Installed -and $BuildFromSource) {
     }
     Write-Host "Building from source via make build (Go + Bun)..." -ForegroundColor Yellow
     if ((Test-Path "./go.mod") -and (Test-Path "./cmd/nexus")) {
-        bun --cwd web install --frozen-lockfile
+        bun install --cwd web --frozen-lockfile
         make build
         $Built = if (Test-Path "./nexus.exe") { "./nexus.exe" } elseif (Test-Path "./nexus") { "./nexus" } else { $null }
         if (-not $Built) { throw "make build did not produce nexus binary." }
@@ -338,7 +338,7 @@ if (-not $Installed -and $BuildFromSource) {
         git clone --depth 1 --branch $SourceRef "$SourceUrl.git" $CloneDir
         Push-Location $CloneDir
         try {
-            bun --cwd web install --frozen-lockfile
+            bun install --cwd web --frozen-lockfile
             make build
             $Built = if (Test-Path "./nexus.exe") { "./nexus.exe" } elseif (Test-Path "./nexus") { "./nexus" } else { $null }
             if (-not $Built) { throw "make build did not produce nexus binary." }
