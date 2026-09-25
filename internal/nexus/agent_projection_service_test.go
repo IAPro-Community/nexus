@@ -22,8 +22,12 @@ func TestAgentProjectionTargetProbeHelper(t *testing.T) {
 		fmt.Fprintln(os.Stdout, "nexus-review")
 		os.Exit(0)
 	}
+	if strings.Contains(joined, "debug agent nexus-review") {
+		fmt.Fprintln(os.Stdout, `{"name":"nexus-review","tools":{"edit":false,"write":false,"apply_patch":false}}`)
+		os.Exit(0)
+	}
 	if strings.Contains(joined, "NEXUS_WRITE_SHOULD_NOT_EXIST") {
-		fmt.Fprintln(os.Stdout, `{"type":"tool_use","part":{"tool":"edit","state":{"status":"error","error":"Permission denied by projected agent policy"}}}`)
+		fmt.Fprintln(os.Stdout, "No file mutation tool is available for this agent.")
 		os.Exit(0)
 	}
 	if idx := strings.Index(joined, "NEXUS_ACTIVATION_OK_"); idx >= 0 {
