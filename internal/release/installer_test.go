@@ -688,6 +688,11 @@ func TestStagedNativeReleasePolicy(t *testing.T) {
 		`if [ "$NATIVE_POLICY" = all ]; then`,
 		`--source-sha "$GITHUB_SHA"`,
 		"manifest.get('source_sha')",
+		"prerelease:",
+		"make_latest:",
+		"generate_release_notes: false",
+		"Source SHA:",
+		"PRERELEASE_FLAG+=(--prerelease)",
 	} {
 		if !strings.Contains(release, required) {
 			t.Errorf("release.yml missing staged platform policy %q", required)
