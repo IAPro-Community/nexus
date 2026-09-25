@@ -259,6 +259,16 @@ jobs:
             done <<< "$unformatted"
             exit 1
           fi
+      - name: Verify Go module graph is tidy
+        run: |
+          set -euo pipefail
+          go mod tidy
+          if ! git diff --exit-code -- go.mod go.sum; then
+            echo "::group::go mod tidy diff"
+            git diff -- go.mod go.sum
+            echo "::endgroup::"
+            exit 1
+          fi
       - run: go vet ./...
       - uses: golangci/golangci-lint-action@v7
         with:
