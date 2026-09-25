@@ -443,7 +443,7 @@ elif [ "$BUILD_FROM_SOURCE" = true ]; then
 
     (
         cd "$BUILD_DIR"
-        bun --cwd web install --frozen-lockfile
+        bun install --cwd web --frozen-lockfile
         make build
         install -m 0755 ./nexus "${TARGET_DIR}/nexus"
     )
