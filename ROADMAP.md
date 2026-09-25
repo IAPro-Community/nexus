@@ -79,7 +79,7 @@ routing/memory reliability, Surface Isolation, Flow recovery e os gates Linux/br
 - universal LLM proxy;
 - dezenas de adapters novos;
 - marketplace público de MCP/skills;
-- voice/Jarvis/Whisper;
+- Jarvis/voz contínua always-on e multimodal avançado (Nexus Voice/STT push-to-talk já está na V1);
 - media generation;
 - cloud VM agents;
 - TEAM shared memory;
