@@ -7,7 +7,7 @@ O build a partir do fonte requer Go 1.25+ e Bun 1.3.9+:
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
 cd nexus
-bun --cwd web install --frozen-lockfile
+bun install --cwd web --frozen-lockfile
 make build
 ./nexus doctor
 ```
