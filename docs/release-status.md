@@ -37,6 +37,26 @@ O candidato inclui:
 A `v1.0.0-beta.1` continua sendo evidência histórica da beta pública anterior.
 Nenhuma tag antiga é reinterpretada retroativamente.
 
+## Portabilidade dos ExecutionRoles
+
+Na beta.3, `ExecutionRole` é um contrato do Nexus, não do provider:
+
+- Codex, Claude, Cursor, Gemini e AGY continuam usando o mesmo selector e
+  compiler por **Nexus overlay**;
+- OpenCode é o adapter nativo de referência da beta.3;
+- ausência de native adapter nunca impede role switch/overlay;
+- ausência de prova nativa nunca aparece como primary/subagent/enforcement
+  suportado;
+- adapters nativos adicionais são expansão posterior e não bloqueiam o
+  fechamento funcional da beta.3.
+
+A Web também inclui:
+
+- selector de role no terminal;
+- roles do terminal ativo na Command Palette;
+- `Ctrl/Cmd+Shift+A` para focar o selector;
+- `Shift+Tab` continua pertencendo ao TUI hospedado e não é capturado pelo Nexus.
+
 ## Agent Interop / OpenCode — estado da beta.3
 
 O lifecycle da V1 é:
@@ -185,7 +205,8 @@ Antes de criar/publicar a tag:
 - `nexus version --json` = `1.0.0-beta.3`;
 - `nexus doctor --json`;
 - OpenCode visível em providers/Usage/Agents quando instalado;
-- role switch OpenCode → projection automática ou fallback explícito;
+- role switch provider-neutral por overlay; OpenCode → projection automática ou fallback explícito;
+- Command Palette + `Ctrl/Cmd+Shift+A` operam o mesmo role lifecycle sem recriar PTY nem capturar Shift+Tab;
 - materialização + ownership + receipt + verify;
 - discovery nativo;
 - activation probe com confirmação;
