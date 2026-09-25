@@ -21,7 +21,7 @@ $Version = (Get-Content VERSION -Raw).Trim()
 $Sha = (git rev-parse HEAD).Trim()
 $ShortSha = (git rev-parse --short HEAD).Trim()
 $Arch = $env:PROCESSOR_ARCHITECTURE
-$Out = Join-Path $Root ("DEV/validation/local-beta2/{0}/windows-{1}" -f $Sha, $Arch)
+$Out = Join-Path $Root ("DEV/validation/local-beta3/{0}/windows-{1}" -f $Sha, $Arch)
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 
 if (-not $AllowDirty) {
@@ -139,8 +139,11 @@ These checks require a real interactive/native session and are intentionally not
 - Set project default to `worktree` but explicitly configure the pinned Agent with `Isolation=project`. The Agent override must win and admission must still fail; autonomous execution must never reach the canonical checkout.
 - Open Agents and create/edit an Agent. OpenCode must be offered independently from AGY.
 - Open Usage. If OpenCode is installed but has no profile yet, it must still be shown as an installed provider.
+- Select an OpenCode Review or Investigate execution role. Nexus must materialize/discover the projected agent without invoking the model.
+- Click Certify only after acknowledging quota/cost. Activation must select the projected agent; enforcement must attempt a controlled write/edit/patch, observe a permission/policy deny, keep the canary absent and only then show ENFORCED.
+- Repeat the custom-target smoke with the provider absent on the host when feasible. For VPN Dev Workspace on Windows, use target_workspace=/workspace; no host-visible profile home means overlay/BEST_EFFORT rather than a fabricated ENFORCED state.
 - Launch Nexus HUD and verify show/hide, autostart toggle and basic projection.
-- If voice is configured, verify microphone permission, transcription, provider fallback and terminal insertion without automatic Enter.
+- If voice is configured, verify microphone permission, capture, transcription, provider fallback, terminal insertion without automatic Enter, and one non-destructive global voice command.
 '@ | Set-Content (Join-Path $Out 'MANUAL_CHECKS.md')
 
 "completed_at=$([DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'))" | Add-Content (Join-Path $Out 'environment.txt')
