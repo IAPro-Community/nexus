@@ -54,6 +54,7 @@ type Manifest struct {
 	SchemaVersion     int                 `json:"schema_version"`
 	Channel           string              `json:"channel"`
 	Version           string              `json:"version"`
+	SourceSHA         string              `json:"source_sha,omitempty"`
 	ReleaseDate       string              `json:"release_date"`
 	ExpiresAt         string              `json:"expires_at,omitempty"`
 	MinNexusVersion   string              `json:"min_nexus_version,omitempty"`
