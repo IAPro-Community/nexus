@@ -122,12 +122,12 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 			targetWorkspace = strings.TrimSpace(value)
 		}
 		bin, extraArgs, err = ResolveCommandTemplateContext(template, CommandTemplateContext{
-			Cwd:             opts.Workspace,
-			TargetCwd:       targetWorkspace,
-			Args:            configuredArgs,
-			Provider:        opts.ProviderID,
-			Profile:         opts.ProfileID,
-			ProfileHome:     profileHome,
+			Cwd:         opts.Workspace,
+			TargetCwd:   targetWorkspace,
+			Args:        configuredArgs,
+			Provider:    opts.ProviderID,
+			Profile:     opts.ProfileID,
+			ProfileHome: profileHome,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("invalid command template: %w", err)
@@ -359,7 +359,9 @@ func (l *Launcher) Stop(runtimeID string) error {
 func forceKillSession(runtimeID string, sess registry.RuntimeSession, ok bool) {
 	if ok {
 		KillProcess(sess.PID)
-		KillProcess(sess.HostPID)
+		if sess.HostPID > 0 && sess.HostPID != os.Getpid() {
+			KillProcess(sess.HostPID)
+		}
 	}
 	_ = os.Remove(protocol.EndpointPath(runtimeID))
 }
@@ -371,7 +373,7 @@ func sessionProcessAlive(sess registry.RuntimeSession, ok bool) bool {
 	if sess.PID > 0 && registry.IsProcessAlive(sess.PID) {
 		return true
 	}
-	if sess.HostPID > 0 && registry.IsProcessAlive(sess.HostPID) {
+	if sess.HostPID > 0 && sess.HostPID != os.Getpid() && registry.IsProcessAlive(sess.HostPID) {
 		return true
 	}
 	return false
