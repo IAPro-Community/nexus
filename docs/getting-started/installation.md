@@ -2,7 +2,7 @@
 
 A release estável Nexus v1 ainda não foi publicada. A última beta pública
 registrada é **v1.0.0-beta.1 / Linux amd64**. O candidato seguinte
-**v1.0.0-beta.2** integra Linux amd64, Windows amd64 e macOS arm64; suporte
+**v1.0.0-beta.3** integra Linux amd64, Windows amd64 e macOS arm64; suporte
 público depende da certificação exact-SHA correspondente.
 
 | Quero… | Documento |
@@ -60,7 +60,7 @@ Parâmetros principais:
 ## Windows e macOS
 
 O trabalho anteriormente planejado para a linha 1.1 foi incorporado à própria
-**v1.0 enquanto ela ainda está em beta**. O candidato `v1.0.0-beta.2` inclui
+**v1.0 enquanto ela ainda está em beta**. O candidato `v1.0.0-beta.3` inclui
 Linux + Windows + macOS no source. A publicação dos artefatos nativos continua
 bloqueada até o mesmo SHA concluir a certificação correspondente.
 
@@ -72,7 +72,7 @@ O caminho de distribuição passa a ser o instalador NSIS assinado:
 nexus-setup-Windows_x86_64.exe
 ```
 
-Windows amd64 faz parte do candidato `v1.0.0-beta.2`. A certificação exige
+Windows amd64 faz parte do candidato `v1.0.0-beta.3`. A certificação exige
 Authenticode válido, timestamp, build Wails nativo, ConPTY/Named Pipe E2E e
 smoke completo de install/version/doctor/uninstall. O NSIS instala também o
 `nexus-hud.exe`, certificado e assinado no mesmo SHA. `install.ps1`
@@ -87,7 +87,7 @@ O caminho de distribuição passa a ser o pacote notarizado:
 nexus-installer_Darwin_arm64.pkg
 ```
 
-macOS arm64 faz parte do candidato `v1.0.0-beta.2`. A certificação exige
+macOS arm64 faz parte do candidato `v1.0.0-beta.3`. A certificação exige
 Developer ID, notarização Apple, stapling, Gatekeeper, build Wails nativo,
 PTY/socket E2E e smoke completo de install/version/doctor/uninstall. O pacote
 instala o CLI em
@@ -193,7 +193,7 @@ No Docker, probes de Desktop e runtimes nativos podem aparecer como N/A.
 [Primeiro projeto](first-project.md)
 
 
-## Homologação do candidato beta.2
+## Homologação do candidato beta.3
 
 Enquanto o GitHub Actions estiver indisponível por créditos, execute a
 homologação automatizável localmente:
