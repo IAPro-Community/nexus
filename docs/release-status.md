@@ -68,9 +68,9 @@ Regras:
   - receipt corrente;
   - projection verificada;
   - activation nativa verificada;
-  - evento real de ferramenta de escrita;
-  - rejeição explícita por permission/policy;
-  - canário de escrita ausente;
+  - permission efetiva comprovada pelo próprio OpenCode;
+  - **ou** write/edit/patch explicitamente rejeitado por permission/policy;
+  - canário de escrita ausente em ambos os casos;
 - mudar role, substituir ou remover projection invalida enforcement antigo;
 - ausência de evidência permanece `BEST_EFFORT` / `UNVERIFIED`.
 
@@ -190,9 +190,8 @@ Antes de criar/publicar a tag:
 - discovery nativo;
 - activation probe com confirmação;
 - enforcement probe read-only:
-  - tool write/edit/patch realmente tentado;
-  - permission/policy deny observado;
-  - canário ausente;
+  - effective permission/toolset do OpenCode confirma mutação desabilitada **ou** uma chamada write/edit/patch é explicitamente negada;
+  - o canário permanece ausente;
   - somente então `ENFORCED`;
 - custom target smoke com provider ausente no host;
 - VPN Dev Workspace com host→target cwd mapping;
