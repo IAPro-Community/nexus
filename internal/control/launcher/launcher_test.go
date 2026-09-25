@@ -161,6 +161,26 @@ func TestKillProcessTerminatesChild(t *testing.T) {
 	}
 }
 
+func TestStandaloneStopNeverTreatsCurrentProcessAsKillableRuntime(t *testing.T) {
+	self := os.Getpid()
+	sess := registry.RuntimeSession{
+		RuntimeID: "rt-standalone-self-host",
+		PID:       0,
+		HostPID:   self,
+		State:     registry.StateRunning,
+	}
+	if sessionProcessAlive(sess, true) {
+		t.Fatal("standalone SessionHost PID must not keep runtime stop waiting")
+	}
+
+	// This call must be a no-op for the current process. If the self-PID guard
+	// regresses, the test process itself is terminated and CI reports signal:killed.
+	killRuntimeProcess(self)
+	if !registry.IsProcessAlive(self) {
+		t.Fatal("current process was terminated by runtime cleanup")
+	}
+}
+
 func TestForceKillSessionRemovesAliveHost(t *testing.T) {
 	cmd := exec.Command("sleep", "30")
 	if err := cmd.Start(); err != nil {

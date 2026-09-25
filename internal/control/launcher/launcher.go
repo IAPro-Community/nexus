@@ -358,20 +358,31 @@ func (l *Launcher) Stop(runtimeID string) error {
 
 func forceKillSession(runtimeID string, sess registry.RuntimeSession, ok bool) {
 	if ok {
-		KillProcess(sess.PID)
-		KillProcess(sess.HostPID)
+		killRuntimeProcess(sess.PID)
+		killRuntimeProcess(sess.HostPID)
 	}
 	_ = os.Remove(protocol.EndpointPath(runtimeID))
+}
+
+// killRuntimeProcess must never terminate the process hosting the in-process
+// SessionHost. Standalone runtimes intentionally report HostPID=os.Getpid().
+func killRuntimeProcess(pid int) {
+	if pid <= 0 || pid == os.Getpid() {
+		return
+	}
+	KillProcess(pid)
 }
 
 func sessionProcessAlive(sess registry.RuntimeSession, ok bool) bool {
 	if !ok {
 		return false
 	}
-	if sess.PID > 0 && registry.IsProcessAlive(sess.PID) {
+	if sess.PID > 0 && sess.PID != os.Getpid() && registry.IsProcessAlive(sess.PID) {
 		return true
 	}
-	if sess.HostPID > 0 && registry.IsProcessAlive(sess.HostPID) {
+	// Standalone SessionHosts run inside the current Nexus process. That host
+	// PID is infrastructure, not a child runtime that Stop owns or waits for.
+	if sess.HostPID > 0 && sess.HostPID != os.Getpid() && registry.IsProcessAlive(sess.HostPID) {
 		return true
 	}
 	return false
