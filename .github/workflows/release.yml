@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version (for example v1.0.0-beta.2)
+        description: Release version (for example v1.0.0-beta.3)
         required: true
         type: string
 
@@ -96,7 +96,7 @@ jobs:
 
           RELEASE_VERSION="${{ inputs.version || github.ref_name }}"
           case "$RELEASE_VERSION" in
-            v1.0.0-beta.2|v1.0.0-beta.*|v1.0.0-rc.*|v1.0.0)
+            v1.0.0-beta.3|v1.0.0-beta.*|v1.0.0-rc.*|v1.0.0)
               native_policy=all
               native_required=('Windows native certification' 'macOS arm64 native certification' 'Seal native certification evidence')
               ;;
