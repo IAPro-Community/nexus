@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   NEXUS_TERMINAL_VOICE_EVENT,
   dispatchTerminalVoiceDictation,
@@ -7,6 +7,9 @@ import {
 } from './voiceCommand';
 
 describe('Nexus deterministic voice commands', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
   it('maps Portuguese navigation without an LLM', () => {
     expect(interpretNexusVoiceCommand('Abrir agentes')).toEqual({
       kind: 'command',
@@ -53,6 +56,18 @@ describe('Nexus deterministic voice commands', () => {
   });
 
   it('dispatches terminal dictation to the active terminal bridge', () => {
+    class TestCustomEvent<T> extends Event {
+      detail: T;
+
+      constructor(type: string, init: { detail: T }) {
+        super(type);
+        this.detail = init.detail;
+      }
+    }
+
+    vi.stubGlobal('window', new EventTarget());
+    vi.stubGlobal('CustomEvent', TestCustomEvent);
+
     const listener = vi.fn((event: Event) => {
       const custom = event as CustomEvent<{ handled: boolean }>;
       custom.detail.handled = true;
