@@ -679,18 +679,23 @@ func TestStagedNativeReleasePolicy(t *testing.T) {
 	}
 
 	for _, required := range []string{
-		"v1.1.0-beta.1)",
-		"native_policy=windows",
-		"v1.1.0-beta.*|v1.1.0-rc.*|v1.1.0)",
+		"v1.0.0-beta.2|v1.0.0-beta.*|v1.0.0-rc.*|v1.0.0)",
 		"native_policy=all",
 		"NATIVE_POLICY:",
 		"'hud_linux_amd64'",
 		"'hud_windows_amd64'",
 		"'hud_darwin_arm64'",
 		`if [ "$NATIVE_POLICY" = all ]; then`,
+		`--source-sha "$GITHUB_SHA"`,
+		"manifest.get('source_sha')",
 	} {
 		if !strings.Contains(release, required) {
 			t.Errorf("release.yml missing staged platform policy %q", required)
+		}
+	}
+	for _, superseded := range []string{"v1.1.0-beta.1)", "native_policy=windows", "v1.1.0-beta.*|v1.1.0-rc.*|v1.1.0)"} {
+		if strings.Contains(release, superseded) {
+			t.Errorf("release workflow must not retain the superseded v1.1 policy %q", superseded)
 		}
 	}
 }
