@@ -1,9 +1,9 @@
 # IAPro Nexus
 
-> **Estado de release:** Nexus v1 tiene como objetivo estable soportado **Linux amd64**.
-> Windows y macOS permanecen en el source, pero están diferidos hasta completar su
-> certificación nativa. La documentación pública registra `v1.0.0-beta.1` como la
-> beta publicada.
+> **Estado de release:** el candidato de source es `1.0.0-beta.2` e integra
+> Linux amd64, Windows amd64 y macOS arm64. Todavía **no existe una GitHub
+> Release pública**; la tag histórica `v1.0.0-beta.1` no equivale a una
+> distribución binaria publicada.
 
 **Una estación de trabajo local para operar coding agents.**
 
@@ -19,20 +19,17 @@ IAPro Nexus es una estación de trabajo local para trabajar con coding agents. O
 
 ## Empieza en minutos
 
-La matriz estable de Nexus v1 soporta **Linux amd64**. Windows y macOS no se publican
-como targets soportados en esta versión.
+El candidato actual `1.0.0-beta.2` integra Linux amd64, Windows amd64 y
+macOS arm64 en el source, pero la certificación sigue ligada a evidencia
+exact-SHA por plataforma.
 
-Camino recomendado: instala una release precompilada y firmada.
+Actualmente no hay una GitHub Release pública ni en el repositorio fuente ni en
+`IAPro-Community/nexus-releases`. No construyas URLs de instalación usando la
+tag histórica `v1.0.0-beta.1`.
 
-```bash
-curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
-bash install.sh --version=v1.0.0-beta.1
-nexus doctor
-nexus web
-```
-
-El instalador exige manifiesto Ed25519 válido, SHA-256 coincidente y versión interna
-exacta. Mientras la línea pública sea beta, usa la tag beta explícita.
+Para evaluación de ingeniería, compila el source. La instalación binaria
+firmada será el camino recomendado sólo después de que exista una release
+publicada.
 
 ### Desarrolladores (compilar desde el código)
 
@@ -46,8 +43,6 @@ make build
 ```
 
 Después sigue **+ New → AI Session → proveedor → terminal**. No necesitas abrir Composer, Flow o Mission para trabajar directamente.
-
-El instalador se descarga del repositorio público de binarios. Para el payload exige un manifiesto Ed25519 válido, SHA-256 coincidente y que la versión embebida del binario sea exactamente la solicitada. Mientras la línea pública sea beta, use la tag beta explícita; `latest` representa la latest no-prerelease de GitHub.
 
 ## Web, Desktop y CLI
 

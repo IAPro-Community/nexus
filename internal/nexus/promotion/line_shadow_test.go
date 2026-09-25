@@ -66,3 +66,23 @@ func TestLineShadowBackspaceRemovesUTF8Rune(t *testing.T) {
 		t.Fatalf("backspace should remove complete UTF-8 rune, got %q", got)
 	}
 }
+
+
+func TestLineShadowKeepsSS3NavigationOutOfPrompt(t *testing.T) {
+	shadow := NewLineShadow()
+
+	var forwarded []byte
+	for _, chunk := range [][]byte{{0x1b}, {'O'}, {'A'}, []byte("answer\r")} {
+		event := shadow.Consume(chunk)
+		forwarded = append(forwarded, event.Forward...)
+		if event.Submit {
+			if event.Line != "answer" {
+				t.Fatalf("SS3 navigation leaked into logical prompt: %q", event.Line)
+			}
+		}
+	}
+
+	if got, want := string(forwarded), "\x1bOAanswer"; got != want {
+		t.Fatalf("SS3 bytes changed: got %q want %q", got, want)
+	}
+}

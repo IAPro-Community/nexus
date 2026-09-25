@@ -120,6 +120,22 @@ func (s *TerminalOutputScrubber) flushLocked(final bool) error {
 			}
 			break
 		}
+		if s.pending[pos+1] == 'O' {
+			// SS3 application-cursor sequences (ESC O A/B/C/D/H/F) are used
+			// by interactive selectors when DECCKM is active. Coalesce the
+			// complete sequence so a split WebSocket/IPC write can never turn
+			// the final key byte into literal provider input.
+			if pos+2 >= len(s.pending) {
+				if final {
+					clean = append(clean, s.pending[pos:]...)
+					pos = len(s.pending)
+				}
+				break
+			}
+			clean = append(clean, s.pending[pos:pos+3]...)
+			pos += 3
+			continue
+		}
 		if s.pending[pos+1] != '[' {
 			clean = append(clean, s.pending[pos])
 			pos++

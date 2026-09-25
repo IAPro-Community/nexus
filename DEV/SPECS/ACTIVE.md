@@ -22,9 +22,13 @@ Tudo abaixo deste marcador é preservado como histórico datado. Termos como
 “ativo”, “current”, “candidate” ou versões beta usados nos títulos/textos abaixo
 descrevem o estado observado naquela data e **não** substituem a verdade atual.
 Para estado de release use exclusivamente
-[`DEV/validation/current/RELEASE_STATUS.md`](../validation/current/RELEASE_STATUS.md);
-para escopo de fechamento use
-[`DEV/SPECS/NEXUS_1_0_CLOSURE.md`](./NEXUS_1_0_CLOSURE.md).
+[`docs/release-status.md`](../../docs/release-status.md). O arquivo
+[`DEV/validation/current/RELEASE_STATUS.md`](../validation/current/RELEASE_STATUS.md)
+é ledger de evidências históricas e aponta de volta para essa fonte atual.
+Para arquitetura/escopo histórico do fechamento 1.0 use
+[`DEV/SPECS/NEXUS_1_0_CLOSURE.md`](./NEXUS_1_0_CLOSURE.md); políticas de
+versão/plataforma/publicação nele registradas não substituem os workflows e o
+status de release atuais.
 
 ## Slice ativo — proteção permanente contra falhas de teclado — 2026-09-18
 
