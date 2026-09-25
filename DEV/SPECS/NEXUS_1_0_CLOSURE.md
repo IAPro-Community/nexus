@@ -107,7 +107,7 @@ Nexus 1.0 can be released only when the release candidate has:
 - autonomous-execution threat model.
 
 ### Platforms
-- Linux native same-SHA.
+- Linux/Windows/macOS source integrado; suporte público depende de certificação native same-SHA da plataforma anunciada.
 
 ### Distribution
 - signed artifacts.
@@ -510,7 +510,7 @@ Enforce server-side first; UI mirrors the decision.
 Product analytics remains opt-in and allowlisted. Never transmit prompts, source code,
 paths, tokens, credentials or file contents.
 
-Nexus v1 stable release matrix is **Linux amd64 only** and must certify:
+Nexus v1 candidate source integra Linux amd64, Windows amd64 e macOS arm64. A matriz pública estável inclui somente plataformas com certificação native same-SHA e deve certificar:
 - CLI/Core;
 - PTY/runtime;
 - Direct;
@@ -523,9 +523,7 @@ Nexus v1 stable release matrix is **Linux amd64 only** and must certify:
 - install/upgrade/uninstall;
 - DEB lifecycle.
 
-Windows/macOS implementations remain in source but are explicitly post-v1 platform
-expansion until native same-SHA certification is completed and the release matrix is
-amended.
+Windows/macOS permanecem UNVERIFIED para anúncio público até a certificação native same-SHA; implementação no source não equivale a suporte certificado.
 
 ## 5. Security policy for autonomous work
 
@@ -654,7 +652,7 @@ Unless required by a blocker, defer:
 - dozens of new provider adapters;
 - public MCP marketplace;
 - public skill marketplace;
-- voice/Jarvis/Whisper;
+- Jarvis/voz contínua always-on e multimodal avançado; Nexus Voice Accessibility push-to-talk/STT está incluído na V1 beta.3;
 - media generation;
 - cloud VM agents;
 - TEAM shared memory;
@@ -666,9 +664,7 @@ Unless required by a blocker, defer:
 
 ## 10. Final release gate
 
-Only declare `NEXUS_1_0_CANDIDATE = GO` when all required 1.0 items above are
-implemented and proven on the final same-SHA **Linux amd64** candidate. Windows/macOS
-are not part of the v1 GO/NO-GO boundary.
+Only declare `NEXUS_1_0_CANDIDATE = GO` when all required 1.0 items above are implemented and proven on the final same-SHA candidate for every platform the release actually advertises. Unverified platforms remain source-integrated but not publicly certified.
 
 Otherwise report one of:
 - CONDITIONAL only for external/non-code evidence blockers;
