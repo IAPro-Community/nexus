@@ -52,17 +52,46 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
-## 1.0.0-beta.3 — 2026-09-20 — Surface isolation and Flow recovery
+## 1.0.0-beta.3 — 2026-09-25 — V1 functional closure
 
-- Mount only the active product surface; inactive ones unmount while
-  TerminalsHost stays alive (no PTY recreation, no history loss).
-- Flow drafts persist across surface switches; stale refreshes are dropped
-  by a latest-wins guard.
-- BLOCKED_NEEDS_USER resolves through the run intervention instead of a
-  misleading Resume/Return (Resume remains for PAUSED only).
-- Flow Run UX hierarchy with progressive disclosure, localized in
-  pt-BR/en/es; deep-review findings fixed (duplicate restore ids, focus
-  lifecycle, per-plan draft keys).
+### Agent Interop e execução
+
+- ExecutionRole consolidado para Build, Investigate, Review, Verify, Architect e Security.
+- OpenCode Agent Projection com renderer version-aware, ownership fail-closed e receipts duráveis.
+- Discovery nativo sem LLM e activation probe explícito com confirmação de custo/quota.
+- Enforcement read-only certificado separadamente: Nexus exige tentativa real de write/edit/patch,
+  permission/policy deny do OpenCode e ausência do canário antes de persistir `ENFORCED`.
+- Troca de role no terminal tenta projection OpenCode automaticamente sem chamada ao modelo; fallback
+  permanece Nexus overlay quando native projection não é possível.
+- Controle **Certify** exige confirmação e executa activation + enforcement somente para roles
+  read-only/verify-only.
+- Custom execution targets para Docker/VPN Workspace, Docker Compose, WSL, SSH e wrappers, mantendo
+  provider lógico separado do target.
+- Custom target não exige provider instalado no host e suporta `{cwd}`, `{target_cwd}`,
+  `{provider}`, `{profile}`, `{profile_home}` e `{args}`.
+
+### Voz e acessibilidade
+
+- Nexus Voice Accessibility integrado à V1.
+- Groq / Whisper Large V3 Turbo como STT primário e Cloudflare Workers AI / Whisper como fallback.
+- Entrada de voz global e no terminal; transcrição entra no PTY sem Enter automático.
+- Settings com providers reordenáveis, secrets mantidos no backend e fallback tipado.
+- Browser capture por MediaRecorder; fallback Linux por PipeWire/ALSA quando disponível; integração
+  WebView2 no Windows e WKWebView/macOS preparada para permissão nativa.
+
+### UX e confiabilidade
+
+- Mount only the active product surface; inactive ones unmount while TerminalsHost stays alive
+  (no PTY recreation, no history loss).
+- Flow drafts persist across surface switches; stale refreshes are dropped by a latest-wins guard.
+- BLOCKED_NEEDS_USER resolves through the run intervention instead of a misleading Resume/Return.
+- Flow Run UX hierarchy with progressive disclosure, localized in pt-BR/en/es.
+
+### Estado de release
+
+- `1.0.0-beta.3` é o source candidato da V1.
+- Implementação não substitui homologação exact-SHA. CI remoto segue indisponível enquanto a conta
+  GitHub Actions estiver bloqueada por créditos; homologação local/native continua obrigatória.
 
 ## 1.0.0-beta.2 — 2026-09-19 — Runtime attach reliability
 
