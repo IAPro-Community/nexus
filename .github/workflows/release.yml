@@ -335,10 +335,22 @@ jobs:
           repository: ${{ vars.NEXUS_DIST_REPO || 'IAPro-Community/nexus-releases' }}
           token: ${{ secrets.NEXUS_DIST_TOKEN }}
           tag_name: ${{ inputs.version || github.ref_name }}
+          name: IAPro Nexus ${{ inputs.version || github.ref_name }}
+          prerelease: ${{ contains(inputs.version || github.ref_name, '-alpha.') || contains(inputs.version || github.ref_name, '-beta.') || contains(inputs.version || github.ref_name, '-rc.') }}
+          make_latest: ${{ !contains(inputs.version || github.ref_name, '-alpha.') && !contains(inputs.version || github.ref_name, '-beta.') && !contains(inputs.version || github.ref_name, '-rc.') }}
+          body: |
+            Binaries-only IAPro Nexus release.
+
+            Source SHA: `${{ github.sha }}`
+            Source version: `${{ inputs.version || github.ref_name }}`
+
+            Artifact hashes, platform targets and the exact source SHA are bound
+            by the signed `update-manifest.json`. Build provenance attestations
+            are attached by the source release workflow.
           files: |
             dist/*
             native-artifacts/*
-          generate_release_notes: true
+          generate_release_notes: false
       - name: Publish signed channel pointer
         env:
           GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
@@ -356,10 +368,15 @@ jobs:
               ;;
           esac
           TAG="channel-${CHANNEL}"
-          NOTES="Nexus ${CHANNEL} channel pointer → ${RELEASE_VERSION}. Discovery-only signed update manifest."
+          NOTES="Nexus ${CHANNEL} channel pointer → ${RELEASE_VERSION}. Discovery-only signed update manifest. Source SHA: ${GITHUB_SHA}."
+          PRERELEASE_FLAG=()
+          if [ "$CHANNEL" = beta ]; then
+            PRERELEASE_FLAG+=(--prerelease)
+          fi
           if gh release view "$TAG" --repo "$DIST_REPO" >/dev/null 2>&1; then
             gh release delete "$TAG" --repo "$DIST_REPO" --yes
           fi
           gh release create "$TAG" --repo "$DIST_REPO" \
             dist/update-manifest.json dist/update-manifest.sig \
-            --title "Nexus ${CHANNEL} update channel" --notes "$NOTES" --latest=false
+            --title "Nexus ${CHANNEL} update channel" --notes "$NOTES" \
+            --latest=false "${PRERELEASE_FLAG[@]}"
