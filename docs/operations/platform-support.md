@@ -1,7 +1,7 @@
 # Suporte de plataformas
 
 A linha **Nexus 1.0 ainda está em beta**. O trabalho que estava separado como
-“1.1” foi incorporado ao candidato `v1.0.0-beta.2`.
+“1.1” foi incorporado ao candidato `v1.0.0-beta.3`.
 
 A última beta pública registrada, `v1.0.0-beta.1`, continua Linux amd64.
 O source candidato seguinte integra Linux amd64, Windows amd64 e macOS arm64,
@@ -19,7 +19,7 @@ beta antes da evidência exact-SHA correspondente.
 | Instalador principal | DEB / install.sh | NSIS assinado | PKG assinado e notarizado |
 | Lifecycle smoke | install/version/doctor/uninstall | NSIS install/version/doctor/uninstall | PKG install/version/doctor/uninstall |
 | Updater | manifesto Ed25519 | manifesto Ed25519 | manifesto Ed25519 |
-| Certificação atual do beta.2 | PENDING | PENDING | PENDING |
+| Certificação atual do beta.3 | PENDING | PENDING | PENDING |
 
 ## Política de publicação da v1
 
@@ -29,7 +29,7 @@ publicação continua fail-closed e vinculada ao SHA promovido.
 | Release | Plataformas pretendidas | Evidência obrigatória |
 | --- | --- | --- |
 | `v1.0.0-beta.1` | Linux amd64 | evidência histórica já publicada |
-| `v1.0.0-beta.2+` | Linux + Windows + macOS | CI exact-SHA + Windows + macOS + seal |
+| `v1.0.0-beta.3+` | Linux + Windows + macOS | CI exact-SHA + Windows + macOS + seal |
 | `v1.0.0-rc.*` | Linux + Windows + macOS | CI exact-SHA + Windows + macOS + seal |
 | `v1.0.0` | Linux + Windows + macOS | tudo acima + Stable Certification |
 
@@ -66,7 +66,7 @@ segundo Capacity Monitor.
 | Autostart | adapter Linux | adapter Windows | adapter macOS | N/A |
 | Frameless/always-on-top | compositor/WM dependent | source implementado | source implementado | N/A |
 | Multi-monitor / DPI | UNVERIFIED | UNVERIFIED | UNVERIFIED | viewport |
-| Certificação beta.2 | PENDING | PENDING | PENDING | PENDING |
+| Certificação beta.3 | PENDING | PENDING | PENDING | PENDING |
 
 `NEXUS_HUD_CROSS_PLATFORM` continua **NO_GO** como claim de certificação até
 o mesmo SHA passar a matriz nativa exigida.
@@ -134,7 +134,7 @@ A certificação produz:
 
 ## Manifesto e updater
 
-A partir de `v1.0.0-beta.2`, o manifesto assinado exige a matriz completa:
+A partir de `v1.0.0-beta.3`, o manifesto assinado exige a matriz completa:
 
 ```text
 linux_amd64
