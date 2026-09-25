@@ -7,6 +7,15 @@ cd "$ROOT"
 EXPECTED_VERSION="$(tr -d '\r\n' < VERSION)"
 SHA="$(git rev-parse HEAD)"
 SHORT_SHA="$(git rev-parse --short HEAD)"
+EXPECTED_SHA="${NEXUS_EXPECTED_SHA:-}"
+
+if [ -n "$EXPECTED_SHA" ]; then
+  EXPECTED_SHA="$(git rev-parse "$EXPECTED_SHA" 2>/dev/null || printf '%s' "$EXPECTED_SHA")"
+  if [ "$SHA" != "$EXPECTED_SHA" ]; then
+    echo "homologation SHA mismatch: HEAD=$SHA expected=$EXPECTED_SHA" >&2
+    exit 1
+  fi
+fi
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
 OUT="DEV/validation/local-beta2/${SHA}/${OS}-${ARCH}"
@@ -66,6 +75,9 @@ go test -race -count=1 ./internal/nexus/promotion ./internal/runtime 2>&1 | tee 
 log "control/runtime E2E"
 go test -race -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/... 2>&1 | tee "$OUT/control-e2e.log"
 
+log "Agent Interop / OpenCode Projection regressions"
+go test -race -count=1   ./internal/core/provider/agentprojection/opencode   ./internal/control/launcher   ./internal/control/web   ./internal/nexus   ./internal/nexus/store   2>&1 | tee "$OUT/agent-interop.log"
+
 log "build CLI"
 make build 2>&1 | tee "$OUT/build-cli.log"
 
@@ -110,6 +122,10 @@ These checks require a real interactive/native session and are intentionally not
 - Set project default to `worktree` but explicitly configure the pinned Agent with `Isolation=project`. The Agent override must win and admission must still fail; autonomous execution must never reach the canonical checkout.
 - Open Agents and create/edit an Agent. OpenCode must be offered independently from AGY.
 - Open Usage. If OpenCode is installed but has no profile yet, it must still be shown as an installed provider.
+- With an OpenCode runtime and isolated/shared Nexus profile, apply a REVIEW projection and verify that discovery lists `nexus-review` without invoking an LLM.
+- Run the explicit Agent Projection activation probe only after acknowledging possible quota/cost. It must select `nexus-review`, record `NATIVE_ON_LAUNCH`, and must not promote read-only enforcement to `ENFORCED`.
+- Remove the active projection. The receipt link must clear and activation strategy must return to `NEXUS_OVERLAY`; an older/stale receipt must not remove or promote a newer projection.
+- Exercise one custom target (Docker/VPN/WSL/SSH wrapper): provider may be absent on the host, `target_cwd` must resolve to the target-visible workspace, and no shell metacharacter template may be accepted.
 - Launch Nexus HUD and verify show/hide, autostart toggle and basic projection.
 - If voice is configured, verify microphone permission, transcription, provider fallback and terminal insertion without automatic Enter.
 EOF
