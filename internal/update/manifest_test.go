@@ -359,3 +359,27 @@ func TestCompareVersionsDowngradeRejection(t *testing.T) {
 		t.Fatalf("expected beta->stable upgrade to pass: %v", err)
 	}
 }
+
+
+func TestManifestPreservesSourceSHA(t *testing.T) {
+	const sourceSHA = "0123456789abcdef0123456789abcdef01234567"
+	original := Manifest{
+		SchemaVersion: 1,
+		Channel:       "beta",
+		Version:       "1.0.0-beta.2",
+		SourceSHA:     sourceSHA,
+		ReleaseDate:   time.Now().UTC().Format(time.RFC3339),
+		KeyID:         "test",
+	}
+	raw, err := json.Marshal(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded Manifest
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded.SourceSHA != sourceSHA {
+		t.Fatalf("source_sha=%q want=%q", decoded.SourceSHA, sourceSHA)
+	}
+}
