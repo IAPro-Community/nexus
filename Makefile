@@ -2,9 +2,9 @@ BINARY=nexus
 MODULE=github.com/IAPro-Community/nexus
 LOCAL_BIN ?= $(HOME)/.local/bin
 DESKTOP_TAGS = production
-WAILS_VERSION ?= v2.15.0
+WAILS_VERSION ?= v3.0.0-beta.25
 ifeq ($(shell go env GOOS),linux)
-DESKTOP_TAGS = production,webkit2_41
+DESKTOP_TAGS = production,gtk3
 endif
 
 .PHONY: all build build-desktop build-desktop-wails build-hud build-hud-wails web web-verify docs-verify test race vet install install-local release-local bump clean format format-check lint-frontend lint-styles lint-styles-fix lint-fix lint-go typecheck test-frontend test-go test-e2e security quality quality-full golangci-lint version-check test-updater-negative test-update-integration release-dry-run browser-functional browser-a11y browser-visual browser-all verify-update coverage e2e attention-e2e overnight-smoke overnight-soak release-proof smoke-providers
@@ -167,7 +167,7 @@ build-desktop-wails: web
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
 	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
-	cd cmd/nexus-desktop && GOTOOLCHAIN=auto GOFLAGS=-trimpath go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) build -clean -s -m -tags "$(DESKTOP_TAGS)" -ldflags "$$LDFLAGS"
+	mkdir -p cmd/nexus-desktop/build/bin; GOTOOLCHAIN=auto GOFLAGS="-mod=readonly" go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$LDFLAGS" -o cmd/nexus-desktop/build/bin/nexus-desktop ./cmd/nexus-desktop
 
 
 build-hud: web
@@ -183,7 +183,7 @@ build-hud-wails: web
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
 	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
-	cd cmd/nexus-hud && GOTOOLCHAIN=auto GOFLAGS=-trimpath go run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) build -clean -s -m -tags "$(DESKTOP_TAGS)" -ldflags "$$LDFLAGS"
+	mkdir -p cmd/nexus-hud/build/bin; GOTOOLCHAIN=auto GOFLAGS="-mod=readonly" go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$LDFLAGS" -o cmd/nexus-hud/build/bin/nexus-hud ./cmd/nexus-hud
 
 release-local:
 	go run ./cmd/nexus release

@@ -43,7 +43,9 @@ make web
 # Builds web assets for embedding
 ```
 
-### Desktop Build (Wails)
+### Desktop Build (Wails v3)
+
+Pinned runtime: `v3.0.0-beta.25`. Linux uses Wails v3 with the `gtk3` compatibility tag and WebKitGTK 4.1; Windows uses WebView2; macOS uses WKWebView.
 
 ```bash
 make build-desktop

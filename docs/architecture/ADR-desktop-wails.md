@@ -1,7 +1,7 @@
-# ADR: Nexus Desktop Multiplataforma com Wails v2
+# ADR: Nexus Desktop Multiplataforma com Wails v2 (histórico)
 
 ## Status
-Aceito e Implementado
+**Superseded** pela migração integral para Wails v3 (`ADR-wails-v3-migration.md`).
 
 ## Contexto
 O IAPro Nexus foi concebido como um Autonomous Multi-Agent Workspace OS completo. Inicialmente acessível via navegador web (`nexus web`), o produto necessitava de uma superfície nativa de execução para Windows, macOS e Linux que oferecesse capacidades de integração ao sistema operacional (janelas nativas, system tray, notificações de sistema, seletores nativos de diretório/arquivo, deep links `nexus://` e inicialização no login).
@@ -19,4 +19,4 @@ Adotar o **Wails v2 estável** (`v2.15.0`) exclusivamente como uma casca nativa 
 ## Consequências
 - A paridade entre Web e Desktop é intrínseca e garantida por construção.
 - O mesmo Git SHA, versão e ciclo de release produzem todos os artefatos.
-- O Wails v3 será reavaliado quando atingir maturidade e disponibilidade geral (GA).
+- Esta decisão foi substituída em setembro de 2026 pela migração integral de Desktop e HUD para Wails v3 beta.25.

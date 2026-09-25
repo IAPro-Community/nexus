@@ -47,8 +47,10 @@ export function setWailsV3InvokerForTests(invoker?: WailsV3Invoker): void {
   activeInvoker = invoker ?? runtimeInvoker;
 }
 
+const desktopServicePackage = 'github.com/IAPro-Community/nexus/internal/desktop';
+
 function call<T>(service: 'App' | 'HUDController', method: string, ...args: unknown[]): Promise<T> {
-  return activeInvoker(`desktop.${service}.${method}`, ...args) as Promise<T>;
+  return activeInvoker(`${desktopServicePackage}.${service}.${method}`, ...args) as Promise<T>;
 }
 
 export const appV3 = {
