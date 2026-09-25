@@ -16,7 +16,7 @@ IAPro Nexus is a local workstation for working with coding agents. It organizes 
 
 ## Start in minutes
 
-The current source candidate is `1.0.0-beta.2`, with Linux amd64, Windows
+The current source candidate is `1.0.0-beta.3`, with Linux amd64, Windows
 amd64 and macOS arm64 integrated in source. Native support remains
 evidence-bound and is not published/certified until the exact candidate SHA
 passes the required platform gates.
@@ -36,7 +36,7 @@ Requirements: Go 1.25+ and Bun 1.3.9+.
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
 cd nexus
-bun --cwd web install --frozen-lockfile
+bun install --cwd web --frozen-lockfile
 make build
 ./nexus doctor
 ./nexus web
