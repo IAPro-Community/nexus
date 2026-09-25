@@ -16,27 +16,18 @@ IAPro Nexus is a local workstation for working with coding agents. It organizes 
 
 ## Start in minutes
 
-The stable Nexus v1 support scope is **Linux amd64**. Windows and macOS remain in the
-source tree but are deferred until native certification is completed.
+The current source candidate is `1.0.0-beta.2`, with Linux amd64, Windows
+amd64 and macOS arm64 integrated in source. Native support remains
+evidence-bound and is not published/certified until the exact candidate SHA
+passes the required platform gates.
 
-Recommended path: install a signed prebuilt release. No Go, Bun, or Node toolchain is
-required; Ed25519 verification currently requires Python 3 with `cryptography`.
+There is currently **no public GitHub Release** in either the source repository
+or `IAPro-Community/nexus-releases`. The historical `v1.0.0-beta.1` source
+tag is not a downloadable signed binary release. Do not construct installer
+URLs from that tag.
 
-```bash
-curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
-bash install.sh --version=v1.0.0-beta.1
-nexus doctor
-nexus web
-```
-
-The pinned installer is downloaded from the public binaries-only distribution repository.
-It refuses unsigned releases, verifies the Ed25519 manifest, checks the artifact SHA-256,
-and confirms the embedded binary version before replacement. `--version=latest` means
-GitHub's latest non-prerelease release; while the project is beta, use the explicit beta
-tag shown above.
-
-Release prerequisites: Linux amd64, `curl` or `wget`, `tar`, SHA-256 tooling,
-Python 3 with `cryptography`, and WebKitGTK only when using the Linux Desktop.
+For engineering evaluation, build the source below. The signed binary install
+path becomes valid only after a release is actually published.
 
 ### Developers (build from source)
 
@@ -51,8 +42,8 @@ make build
 ./nexus web
 ```
 
-For development from source, platform-specific build paths may still exist, but they are
-not part of the supported v1 release contract.
+For development from source, platform-specific build paths exist, but source
+integration alone is not a public support or certification claim.
 
 Then follow **+ New → AI Session → provider → terminal**. You do not need Composer, Flow or Mission for direct work.
 
