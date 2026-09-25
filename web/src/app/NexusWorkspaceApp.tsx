@@ -75,7 +75,7 @@ import { attentionFingerprintOf, buildDocumentTitle, isHonestNeedsUser } from '.
 import { planFocusAttention, type RadarRuntimeItem } from './attentionRadarModel';
 import { resolveProjectSelection, resolveStaleProjectRoute } from './projectSelection';
 import { useNexusData } from './useNexusData';
-import type { Agent, MissionRun, Project } from '../types';
+import type { Agent, ExecutionRole, MissionRun, Project } from '../types';
 import { isLiveRuntimeState } from '../nexus/agentTerminalModel';
 import { useTranslation } from 'react-i18next';
 import { shouldMarkUnread, surfaceTitleFromAgent } from '../workspace/surfaceAttention';
@@ -359,8 +359,24 @@ const WorkspaceCoordinator: React.FC<{
   const [shellError, setShellError] = useState('');
   const [flowRuns, setFlowRuns] = useState<MissionRun[]>([]);
   const [allFlowRuns, setAllFlowRuns] = useState<MissionRun[]>([]);
+  const [executionRoles, setExecutionRoles] = useState<ExecutionRole[]>([]);
   const [closeTarget, setCloseTarget] = useState<WorkspaceSurface | null>(null);
   const shellInFlight = useRef(false);
+
+  useEffect(() => {
+    let mounted = true;
+    void nexus
+      .listExecutionRoles()
+      .then((roles) => {
+        if (mounted) setExecutionRoles(Array.isArray(roles) ? roles : []);
+      })
+      .catch(() => {
+        if (mounted) setExecutionRoles([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -518,6 +534,18 @@ const WorkspaceCoordinator: React.FC<{
     }
   }, [project.id, workspace, data]);
 
+  const activeAgentRuntimeId = useMemo(() => {
+    const activeViewId = presentation.state.activePtyViewId;
+    if (!activeViewId) return '';
+    const surface = listSurfaces(workspace.model.root).find(
+      (entry) =>
+        entry.type === 'terminal' &&
+        isPtySurface(entry) &&
+        surfaceViewId(entry) === activeViewId,
+    );
+    return String(surface?.data?.runtimeId || '');
+  }, [presentation.state.activePtyViewId, workspace.model.root]);
+
   // Ensure pinned product tabs exist without stealing Overview focus.
   useEffect(() => {
     workspace.ensure(projectSurface(project.id, 'terminals'));
@@ -600,6 +628,26 @@ const WorkspaceCoordinator: React.FC<{
           run: () => config(agent),
         },
       ]),
+      ...(activeAgentRuntimeId
+        ? executionRoles.map((role) => ({
+            id: `execution-role-${role.id}`,
+            label: t('commands.switchExecutionRole', {
+              defaultValue: 'Switch execution role: {{role}}',
+              role: role.label,
+            }),
+            group: t('nav.agents'),
+            description: t('commands.switchExecutionRoleDescription', {
+              defaultValue: 'Change the operational role of the active AI terminal',
+            }),
+            keywords: ['role', 'agent', 'review', 'investigate', 'verify', role.id],
+            run: () =>
+              window.dispatchEvent(
+                new CustomEvent('nexus:execution-role-switch', {
+                  detail: { runtimeId: activeAgentRuntimeId, roleId: role.id },
+                }),
+              ),
+          }))
+        : []),
       {
         id: 'work',
         label: t('commands.openComposer', { defaultValue: 'Open Composer' }),
@@ -752,6 +800,8 @@ const WorkspaceCoordinator: React.FC<{
     ],
     [
       data.agents,
+      executionRoles,
+      activeAgentRuntimeId,
       flowRuns,
       t,
       presentation,
@@ -859,6 +909,22 @@ const WorkspaceCoordinator: React.FC<{
         void shell();
       },
     });
+    const unregisterExecutionRole = registry.register({
+      id: 'focus-execution-role',
+      key: 'a',
+      ctrlOrMeta: true,
+      shift: true,
+      scope: 'global',
+      description: 'Focus Execution Role Selector',
+      preventDefault: true,
+      action: () => {
+        if (!activeAgentRuntimeId) return;
+        const selector = Array.from(
+          document.querySelectorAll<HTMLSelectElement>('[data-execution-role-selector="true"]'),
+        ).find((element) => element.dataset.runtimeId === activeAgentRuntimeId);
+        selector?.focus();
+      },
+    });
     const unregisterAltTabs = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) =>
       registry.register({
         id: `switch-pty-${num}`,
@@ -886,9 +952,10 @@ const WorkspaceCoordinator: React.FC<{
       unregisterF11();
       unregisterRail();
       unregisterNewTerm();
+      unregisterExecutionRole();
       unregisterAltTabs.forEach((unreg) => unreg());
     };
-  }, [project.id, presentation, workspace.model.root, openKind, shell]);
+  }, [project.id, presentation, workspace.model.root, openKind, shell, activeAgentRuntimeId]);
 
   const handleProjectUpdated = (updated: Project) => {
     data.setProjects((cur) => cur.map((p) => (p.id === updated.id ? updated : p)));

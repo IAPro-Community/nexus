@@ -19,7 +19,7 @@
   encerrado via protocolo, sem alterar o registro principal.
 - PASS — `make lint-go` após corrigir os dois avisos estáticos preexistentes
   (`ST1023` e `QF1001`) sem alteração de comportamento.
-- PASS — versão `1.0.0-beta.2` consistente em `VERSION`, `web/package.json` e
+- PASS — versão `1.0.0-beta.3` consistente em `VERSION`, `web/package.json` e
   `cmd/nexus-desktop/wails.json`; binário instalado reporta a mesma versão.
 - NOT EXECUTED — commit/push, conforme o contrato do Maestro.
 
@@ -245,7 +245,7 @@ Evidência contra o stash `stash@{0}` + gates locais:
 - PASS — smoke `nexus codex --yolo` (PTY): runtime `nexus.interactive_lead=false`; **0** agentes novos; `/status` chega ao Codex (autocomplete de slash) sem hang de promoter.
 - PASS — smoke `nexus codex --yolo --lead`: label `nexus.interactive_lead=true` + bind Lead; caminho LineShadow preservado.
 - PASS — `nexus control list` lista o runtime do atalho; help/completions expõem `--lead`.
-- PASS — `make build` + install `~/.local/bin/nexus` (`0.5.0-beta.23`).
+- PASS — `make build` + install `~/.local/bin/nexus` (`0.5.0-beta.33`).
 
 ## 2026-09-14 — Enter preso em /status (qualquer CLI supervised)
 
@@ -749,7 +749,7 @@ Evidência contra o stash `stash@{0}` + gates locais:
 - `cd web && bun run test -- --run` — PASS (62 files, 313 tests)
 - `make quality` — PASS
 - `make security` — PASS (no vulnerabilities)
-- `make build` — PASS (nexus v0.5.0-beta.23)
+- `make build` — PASS (nexus v0.5.0-beta.33)
 - `git diff --check` — PASS
 - Commit: `059bb5c` (29 files, +1062/-271)
 
@@ -1099,7 +1099,7 @@ O bundle foi validado por allowlist; execução nativa Windows/macOS e reuso na 
 ## 2026-09-04 — Topbar Overlap Refactor, Responsive Hardening & Accordion Theme Quality Gates
 
 - `make web-verify` — PASS (8/8 gates verdes: typecheck, lint, null-arrays, vitest [51 files, 249 tests], i18n, build, embed-sync, ui-markers).
-- `make build` — PASS (binário `nexus v0.5.0-beta.23` gerado e instalado com bundle web embutido).
+- `make build` — PASS (binário `nexus v0.5.0-beta.33` gerado e instalado com bundle web embutido).
 - `npm --prefix web run test:e2e-hardening` — PASS (100% de sucesso nos 6 viewports):
   - `320x568` (mobile-se): botão Terminal desobstruído (`elementFromPoint` verificado sem overlap).
   - `390x844` (mobile-iphone): botão Terminal desobstruído.
@@ -1111,7 +1111,7 @@ O bundle foi validado por allowlist; execução nativa Windows/macOS e reuso na 
 
 
 - `make web-verify` — PASS (typecheck, lint, null-arrays, vitest (244 tests), i18n, build, embed-sync e ui-markers).
-- `make build` — PASS (binário `nexus v0.5.0-beta.23` compilado com assets embutidos atualizados).
+- `make build` — PASS (binário `nexus v0.5.0-beta.33` compilado com assets embutidos atualizados).
 - Auditoria Playwright multi-viewport (1440x900, 1024x768, 768x800, 480x800) em `/usr/bin/google-chrome`:
   - Visualização de screenshots reais renderizados:
     - `verify_1440x900_desktop.png`: layout limpo com rail lateral, topbar sem colisão, janelas em cascata e radar visível.
@@ -1148,14 +1148,14 @@ O bundle foi validado por allowlist; execução nativa Windows/macOS e reuso na 
 
 - `make web-verify` — PASS (typecheck, lint, null-arrays, vitest, i18n, build, embed-sync e ui-markers).
 - `go test ./...` — PASS (todos os pacotes Go testados e passando).
-- `make build` — PASS; binário `nexus v0.5.0-beta.23` gerado e instalado com novos assets embutidos em `internal/control/web/dist`.
+- `make build` — PASS; binário `nexus v0.5.0-beta.33` gerado e instalado com novos assets embutidos em `internal/control/web/dist`.
 - Validação visual: extração do master em alta resolução com desmatting transparente, verificação de contraste em fundo escuro (`#080a0f`) e fundo claro, geração do pacote favicon e renderização no rail e hero.
 
 ## Controles de terminais e resumo de Agentes — 2026-09-03
 
 - `make web-verify` — PASS (typecheck, lint, null-arrays, testes, i18n, build,
   embed-sync e ui-markers).
-- `make build` — PASS; instalou `nexus v0.5.0-beta.23`.
+- `make build` — PASS; instalou `nexus v0.5.0-beta.33`.
 - Cobertura funcional implementada: troca de modo com erro visível e rebinding,
   feedback de lease, fechamento com escolha aba/runtime, confirmação de Project
   Shell e badge operacional clicável com foco/recuperação.
@@ -1165,7 +1165,7 @@ O bundle foi validado por allowlist; execução nativa Windows/macOS e reuso na 
 - `go test ./internal/nexus ./internal/control/web` — PASS.
 - `npm --prefix web run typecheck` — PASS.
 - `npm --prefix web test -- --run` — PASS (42 arquivos, 180 testes).
-- `make build` — PASS; instalou `nexus v0.5.0-beta.23`.
+- `make build` — PASS; instalou `nexus v0.5.0-beta.33`.
 - A criação é explícita, gera `AGENTS.md` base e nunca sobrescreve contexto
   existente.
 
@@ -1173,7 +1173,7 @@ O bundle foi validado por allowlist; execução nativa Windows/macOS e reuso na 
 
 - Web: `npm --prefix web run typecheck` — PASS.
 - Web: `npm --prefix web test -- --run` — PASS (42 arquivos, 175 testes).
-- Build: `make build` — PASS; instalou `nexus v0.5.0-beta.23`.
+- Build: `make build` — PASS; instalou `nexus v0.5.0-beta.33`.
 - Recover/Start agora vincula diretamente a geração retornada; o terminal também
   oferece fechamento explícito da aba.
 
@@ -1181,7 +1181,7 @@ O bundle foi validado por allowlist; execução nativa Windows/macOS e reuso na 
 
 - Web: `npm --prefix web test -- --run` — PASS (40 arquivos, 157 testes).
 - Web: `npm --prefix web run typecheck` — PASS.
-- Build: `make build` — PASS; instalou `nexus v0.5.0-beta.23`.
+- Build: `make build` — PASS; instalou `nexus v0.5.0-beta.33`.
 - O launcher agora é disparado depois que a superfície Composer está montada.
 
 ## TERM=dumb em CLIs interativos — 2026-09-03

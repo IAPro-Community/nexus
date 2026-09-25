@@ -37,11 +37,11 @@ O código canônico utiliza o binário `nexus`, mantendo `ai` como alias transpa
 
 ## Agent Interop incorporado à linha v1 beta
 
-- [`SPECS/NEXUS_1_1_AGENT_INTEROP.md`](SPECS/NEXUS_1_1_AGENT_INTEROP.md): nome histórico da spec que originou ExecutionRole, Agent Projection, capability truth e interoperabilidade de agents.
+- [`SPECS/NEXUS_V1_AGENT_INTEROP.md`](SPECS/NEXUS_V1_AGENT_INTEROP.md): spec canônica da V1 para ExecutionRole, Agent Projection, capability truth e interoperabilidade de agents.
 - [`docs/architecture/ADR-agent-interop-projection.md`](../docs/architecture/ADR-agent-interop-projection.md): decisão de projetar o modelo canônico de Agents para hosts externos sem criar um segundo runtime/orquestrador.
 
 A decisão de release de 24/09/2026 incorporou esse escopo ao candidato
-`v1.0.0-beta.2`. Os nomes de arquivo “1_1” são preservados por rastreabilidade,
+`v1.0.0-beta.3`. Os nomes de arquivo “1_1” são preservados por rastreabilidade,
 não representam mais uma linha de release separada. O status operacional segue
 `docs/release-status.md`.
 

@@ -21,12 +21,11 @@ execute com isolamento e só conclua quando houver evidência verificável.
 
 ![Visão geral do Nexus v1](docs/assets/diagrams/nexus-v1-overview.svg)
 
-> **Estado da v1:** o source candidato reporta `1.0.0-beta.2`. Existe a tag
-> histórica `v1.0.0-beta.1`, mas **ainda não existe GitHub Release pública**
-> nem no repositório-fonte nem em `IAPro-Community/nexus-releases`. O candidato
-> beta.2 consolida Linux amd64, Windows amd64 e macOS arm64; nenhuma plataforma
-> é promovida como release publicada/certificada sem evidência exact-SHA.
-> A verdade autoritativa está em [RELEASE_STATUS](docs/release-status.md).
+> **Estado da v1:** o source candidato reporta `1.0.0-beta.3`. A última beta
+> pública registrada é `v1.0.0-beta.1` (Linux amd64). O candidato beta.3
+> consolida Linux amd64, Windows amd64 e macOS arm64, mas nenhuma ampliação de
+> suporte é anunciada sem certificação exact-SHA. A verdade autoritativa está em
+> [RELEASE_STATUS](docs/release-status.md).
 
 ## TL;DR
 
@@ -60,15 +59,24 @@ O caminho recomendado para primeiro uso é **Direct**:
 Project → + New → AI Session → Provider → Terminal
 ```
 
-### Release binária
+### Release publicada
 
-Ainda não há uma GitHub Release pública do Nexus. A tag histórica
-`v1.0.0-beta.1` no repositório-fonte não possui os artefatos assinados no
-repositório público de distribuição e não deve ser usada como URL de instalação.
+A documentação de instalação usa a última beta publicada indicada pelo
+[status de release](docs/release-status.md). Enquanto a v1
+estável não estiver certificada, não confunda versão do source com release
+publicada.
 
-O primeiro pacote público da linha atual será publicado somente depois da
-homologação/certificação do mesmo SHA candidato. Até lá, para avaliação de
-engenharia, compile o source abaixo.
+**Linux amd64 — target suportado da v1**
+
+```bash
+curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
+bash install.sh --version=v1.0.0-beta.1
+nexus doctor
+nexus web
+```
+
+Windows e macOS já estão integrados no candidato `v1.0.0-beta.3`, mas
+continuam não anunciados como suportados até a certificação nativa exact-SHA.
 
 ### Compilar do source
 
@@ -205,7 +213,7 @@ capacidades do Nexus.
 
 ## Nexus HUD
 
-> **Incluído no candidato `v1.0.0-beta.2`.** O HUD não é anunciado como
+> **Incluído no candidato `v1.0.0-beta.3`.** O HUD não é anunciado como
 > feature multiplataforma certificada até existir evidência nativa same-SHA.
 
 **Seu Nexus, sempre visível.** O Nexus HUD projeta o estado operacional já

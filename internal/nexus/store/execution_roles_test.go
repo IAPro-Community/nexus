@@ -188,3 +188,58 @@ func TestMarkRuntimeExecutionRoleActivationRequiresCurrentReceipt(t *testing.T) 
 		t.Fatalf("activation evidence must change strategy only: %#v", got)
 	}
 }
+
+
+func TestMarkRuntimeExecutionRoleEnforcedRequiresCurrentActivatedReceipt(t *testing.T) {
+	s := openTestStore(t)
+	project, _ := s.CreateProject(Project{Name: "Enforcement evidence", CanonicalPath: t.TempDir()})
+	agent, _ := s.CreateAgent(Agent{ProjectID: project.ID, Name: "Reviewer"})
+	revision, _ := s.AddRevision(agent.ID, "{}")
+	generation, _ := s.AddGeneration(RuntimeGeneration{
+		AgentID: agent.ID, RevisionID: revision.ID, RuntimeID: "rt_enforcement_evidence",
+		Provider: "opencode", Profile: "default", StartedAt: time.Now().UTC(),
+	})
+	if _, err := s.SetRuntimeExecutionRole(RuntimeExecutionRoleBinding{
+		RuntimeGenerationID: generation.ID,
+		AgentID:             agent.ID,
+		RoleID:              "review",
+		Enforcement:         "BEST_EFFORT",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.AttachRuntimeExecutionRoleProjection(generation.ID, "aprj_current"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.MarkRuntimeExecutionRoleEnforced(generation.ID, "aprj_current", "denied edit", time.Now().UTC()); err != ErrNotFound {
+		t.Fatalf("overlay-only projection must not be promoted to ENFORCED, got %v", err)
+	}
+	if err := s.MarkRuntimeExecutionRoleActivation(generation.ID, "aprj_current", "NATIVE_ON_LAUNCH"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.MarkRuntimeExecutionRoleEnforced(generation.ID, "aprj_stale", "denied edit", time.Now().UTC()); err != ErrNotFound {
+		t.Fatalf("stale receipt must not promote enforcement, got %v", err)
+	}
+	verifiedAt := time.Now().UTC()
+	if err := s.MarkRuntimeExecutionRoleEnforced(generation.ID, "aprj_current", "OpenCode rejected edit by native permission", verifiedAt); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.RuntimeExecutionRole(generation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Enforcement != "ENFORCED" || got.EnforcementEvidence == "" || got.EnforcementVerifiedAt == nil {
+		t.Fatalf("enforcement evidence not persisted: %#v", got)
+	}
+
+	if err := s.DetachRuntimeExecutionRoleProjection(generation.ID, "aprj_current"); err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.RuntimeExecutionRole(generation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Enforcement == "ENFORCED" || got.EnforcementEvidence != "" || got.EnforcementVerifiedAt != nil {
+		t.Fatalf("detaching projection left stale enforcement evidence: %#v", got)
+	}
+}

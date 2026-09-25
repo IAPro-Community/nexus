@@ -1,54 +1,9 @@
 # Changelog
 
-## 1.0.0-beta.2 — 2026-09-25 — Current release candidate
+## 1.0.0 — 2026-09-23 — Nexus v1
 
-> Source candidate only. No public GitHub Release has been published yet. The
-> historical `v1.0.0-beta.1` source tag is not a binary distribution release.
-
-### Added / integrated
-
-- Linux amd64, Windows amd64 and macOS arm64 are integrated in the candidate
-  source with native certification kept as a separate exact-SHA gate.
-- Nexus HUD projects existing Capacity, Cost, ResourceScheduler, Agent, Mission
-  and alert state without creating a second monitor/scheduler.
-- Voice accessibility includes server-side routing, terminal dictation and
-  provider fallback without automatic command submission.
-- ExecutionRole / Agent Interop projects temporary operational roles without
-  mutating persistent Agent identity.
-- OpenCode Agent Projection includes version-aware rendering, durable receipts,
-  ownership reconciliation, discovery without LLM invocation and explicit
-  opt-in native activation evidence.
-- Custom execution targets preserve the logical provider while supporting
-  Docker/VPN Workspace, Docker Compose, WSL, SSH and argv-only wrappers.
-
-### Fixed / hardened
-
-- Direct/Lead requests no longer promote to Mission merely because of unrelated
-  words such as `permission`, `submission` or `transmission`.
-- Mission admission retains explicit blockers and safely falls back only for
-  heuristic promotion before a run exists.
-- Terminal navigation escape sequences are preserved without emitting literal
-  `[A`/`[B`/`[C`/`[D` fragments.
-- Custom command templates reject shell metacharacters, including inside quoted
-  argv groups, and support separate host `cwd` / target `target_cwd`.
-- Projection removal cannot let stale receipts remove/promote newer state;
-  removal restores `NEXUS_OVERLAY`.
-- Native activation evidence never promotes read-only policy to `ENFORCED`
-  without separate end-to-end enforcement proof.
-
-### Release status
-
-- `VERSION` is `1.0.0-beta.2`.
-- `release/v1.0.0-beta.2` is the candidate branch.
-- GitHub Actions is currently blocked before job execution by account credits;
-  that condition is infrastructure-unavailable, not PASS.
-- Public binary publication remains blocked until homologation and the required
-  exact-SHA native certification complete.
-
-## Stable-target snapshot — 2026-09-23 (historical; never tagged as v1.0.0)
-
-> Historical stable-target snapshot from the 2026-09-23 closure campaign. It is
-> retained for traceability and is not the current VERSION/release candidate.
+> Esta seção descreve o **source final candidato**. A tag/release pública só pode
+> ser criada depois da certificação estável do mesmo SHA.
 
 ### Adicionado
 
@@ -97,19 +52,51 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
-## Historical internal snapshot — 2026-09-20 — formerly labeled 1.0.0-beta.3
+## 1.0.0-beta.3 — 2026-09-25 — V1 functional closure
 
-- Mount only the active product surface; inactive ones unmount while
-  TerminalsHost stays alive (no PTY recreation, no history loss).
-- Flow drafts persist across surface switches; stale refreshes are dropped
-  by a latest-wins guard.
-- BLOCKED_NEEDS_USER resolves through the run intervention instead of a
-  misleading Resume/Return (Resume remains for PAUSED only).
-- Flow Run UX hierarchy with progressive disclosure, localized in
-  pt-BR/en/es; deep-review findings fixed (duplicate restore ids, focus
-  lifecycle, per-plan draft keys).
+### Agent Interop e execução
 
-## Historical internal snapshot — 2026-09-19 — formerly labeled 1.0.0-beta.2
+- ExecutionRole consolidado para Build, Investigate, Review, Verify, Architect e Security.
+- OpenCode Agent Projection com renderer version-aware, ownership fail-closed e receipts duráveis.
+- Discovery nativo sem LLM e activation probe explícito com confirmação de custo/quota.
+- Enforcement read-only certificado separadamente: Nexus exige prova do toolset/permission efetivo do OpenCode ou rejeição explícita de write/edit/patch, sempre com canário ausente antes de persistir `ENFORCED`.
+- Troca de role no terminal tenta projection OpenCode automaticamente sem chamada ao modelo; fallback
+  permanece Nexus overlay quando native projection não é possível.
+- Controle **Certify** exige confirmação e executa activation + enforcement somente para roles
+  read-only/verify-only.
+- Command Palette expõe as roles do terminal ativo e `Ctrl/Cmd+Shift+A` foca o selector sem
+  capturar `Shift+Tab` do TUI hospedado.
+- Providers sem adapter nativo continuam usando o mesmo ExecutionRole por Nexus overlay; a beta.3
+  só anuncia OpenCode como native projection.
+- Custom execution targets para Docker/VPN Workspace, Docker Compose, WSL, SSH e wrappers, mantendo
+  provider lógico separado do target.
+- Custom target não exige provider instalado no host e suporta `{cwd}`, `{target_cwd}`,
+  `{provider}`, `{profile}`, `{profile_home}` e `{args}`.
+
+### Voz e acessibilidade
+
+- Nexus Voice Accessibility integrado à V1.
+- Groq / Whisper Large V3 Turbo como STT primário e Cloudflare Workers AI / Whisper como fallback.
+- Entrada de voz global e no terminal; transcrição entra no PTY sem Enter automático.
+- Settings com providers reordenáveis, secrets mantidos no backend e fallback tipado.
+- Browser capture por MediaRecorder; fallback Linux por PipeWire/ALSA quando disponível; integração
+  WebView2 no Windows e WKWebView/macOS preparada para permissão nativa.
+
+### UX e confiabilidade
+
+- Mount only the active product surface; inactive ones unmount while TerminalsHost stays alive
+  (no PTY recreation, no history loss).
+- Flow drafts persist across surface switches; stale refreshes are dropped by a latest-wins guard.
+- BLOCKED_NEEDS_USER resolves through the run intervention instead of a misleading Resume/Return.
+- Flow Run UX hierarchy with progressive disclosure, localized in pt-BR/en/es.
+
+### Estado de release
+
+- `1.0.0-beta.3` é o source candidato da V1.
+- Implementação não substitui homologação exact-SHA. CI remoto segue indisponível enquanto a conta
+  GitHub Actions estiver bloqueada por créditos; homologação local/native continua obrigatória.
+
+## 1.0.0-beta.2 — 2026-09-19 — Runtime attach reliability
 
 - Preserve the authoritative supervised-host PID, generation, and binary
   identity during launcher registration so Codex and AGY sessions attach
@@ -119,9 +106,8 @@
 
 ## 1.0.0-beta.1 — 2026-09-15 — Community Preview
 
-Primeiro marco beta tagueado no repositório-fonte do IAPro Nexus. A tag foi
-preservada como referência histórica, mas não existe GitHub Release pública com
-artefatos binários correspondente a esse marco. Isto **não** é um 1.0.0 estável.
+Primeira versão pública candidata do IAPro Nexus: workstation local para
+coding agents (CLI, Web e Desktop). Isto **não** é um 1.0.0 estável.
 
 ### Added
 

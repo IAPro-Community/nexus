@@ -3,7 +3,7 @@
 ## Estado
 
 - Produto: IAPro Nexus Workspace OS.
-- Versão operacional instalada: `1.0.0-beta.2`.
+- Versão operacional instalada: `1.0.0-beta.3`.
 - O launcher persiste a identidade autoritativa do `SessionHost` após o
   handshake (`PID`, `HostPID`, `HostGeneration` e fingerprints); isso evita que
   o registro final apague a geração usada pelo attach.

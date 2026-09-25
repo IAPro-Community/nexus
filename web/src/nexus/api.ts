@@ -10,6 +10,7 @@ import {
   AgentProjectionApplyView,
   AgentProjectionDiscovery,
   AgentProjectionActivation,
+  AgentProjectionEnforcement,
   AgentProjectionVerification,
   AgentDetail,
   RuntimeSession,
@@ -280,6 +281,14 @@ export const nexus = {
     }),
   probeAgentProjectionActivation: (runtimeId: string, confirmExternalExecution = false) =>
     request<AgentProjectionActivation>('/api/v1/agent-projections/activation', {
+      method: 'POST',
+      body: JSON.stringify({
+        runtime_id: runtimeId,
+        confirm_external_execution: confirmExternalExecution,
+      }),
+    }),
+  probeAgentProjectionEnforcement: (runtimeId: string, confirmExternalExecution = false) =>
+    request<AgentProjectionEnforcement>('/api/v1/agent-projections/enforcement', {
       method: 'POST',
       body: JSON.stringify({
         runtime_id: runtimeId,

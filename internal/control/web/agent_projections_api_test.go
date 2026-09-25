@@ -16,6 +16,7 @@ func TestAgentProjectionRoutesRequireCSRFAndAreRegistered(t *testing.T) {
 		"/api/v1/agent-projections/apply",
 		"/api/v1/agent-projections/discovery",
 		"/api/v1/agent-projections/activation",
+		"/api/v1/agent-projections/enforcement",
 	} {
 		req, _ := http.NewRequest(http.MethodPost, base+path, bytes.NewReader(body))
 		req.Header.Set("X-CSRF-Token", csrf)

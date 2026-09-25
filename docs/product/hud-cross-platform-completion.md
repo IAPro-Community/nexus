@@ -17,7 +17,7 @@ Uma capacidade nativa só fica `DONE` quando o mesmo contrato foi:
 ## Origem da implementação
 
 A implementação nasceu na branch histórica `feat/hud-cross-platform-completion`
-e foi integrada à linha `v1.0.0-beta.2`. A branch não é mais uma linha de
+e foi integrada à linha `v1.0.0-beta.3`. A branch não é mais uma linha de
 produto separada.
 
 Primeiro lote integrado:

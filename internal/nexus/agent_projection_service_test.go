@@ -22,6 +22,14 @@ func TestAgentProjectionTargetProbeHelper(t *testing.T) {
 		fmt.Fprintln(os.Stdout, "nexus-review")
 		os.Exit(0)
 	}
+	if strings.Contains(joined, "debug agent nexus-review") {
+		fmt.Fprintln(os.Stdout, `{"name":"nexus-review","tools":{"edit":false,"write":false,"apply_patch":false}}`)
+		os.Exit(0)
+	}
+	if strings.Contains(joined, "NEXUS_WRITE_SHOULD_NOT_EXIST") {
+		fmt.Fprintln(os.Stdout, "No file mutation tool is available for this agent.")
+		os.Exit(0)
+	}
 	if idx := strings.Index(joined, "NEXUS_ACTIVATION_OK_"); idx >= 0 {
 		marker := joined[idx:]
 		if end := strings.IndexAny(marker, " \t\r\n"); end >= 0 {
@@ -199,6 +207,25 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 	}
 	if binding.Enforcement == EnforcementEnforced {
 		t.Fatalf("activation alone must not claim read-only enforcement: %#v", binding)
+	}
+
+	unconfirmedEnforcement, err := n.ProbeRuntimeAgentProjectionEnforcement(context.Background(), generation.RuntimeID, false)
+	if err == nil || unconfirmedEnforcement == nil || !unconfirmedEnforcement.ExternalExecution || unconfirmedEnforcement.Enforced {
+		t.Fatalf("enforcement must require explicit external-execution confirmation: result=%#v err=%v", unconfirmedEnforcement, err)
+	}
+	enforcement, err := n.ProbeRuntimeAgentProjectionEnforcement(context.Background(), generation.RuntimeID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !enforcement.Enforced || enforcement.Status != "VERIFIED" || enforcement.Tool != "edit" || !enforcement.CanaryAbsent {
+		t.Fatalf("provider-backed enforcement probe did not verify read-only boundary: %#v", enforcement)
+	}
+	binding, err = st.RuntimeExecutionRole(generation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if binding.Enforcement != EnforcementEnforced || binding.EnforcementEvidence == "" || binding.EnforcementVerifiedAt == nil {
+		t.Fatalf("verified enforcement evidence was not persisted: %#v", binding)
 	}
 
 	if err := n.RemoveAgentProjection(context.Background(), applied.Receipt.ID); err != nil {
