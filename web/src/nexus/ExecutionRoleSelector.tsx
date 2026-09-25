@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ExecutionRole, RuntimeExecutionRoleView } from '../types';
 import { Button, ConfirmDialog } from '../design-system';
@@ -69,14 +69,17 @@ export const ExecutionRoleSelector: React.FC<{
     view?.binding?.enforcement !== 'ENFORCED' &&
     Boolean(runtimeId);
 
-  const refreshRole = async (id: string) => {
-    const refreshed = await nexus.getRuntimeExecutionRole(id);
-    setView(refreshed);
-    onChanged?.(refreshed);
-    return refreshed;
-  };
+  const refreshRole = useCallback(
+    async (id: string) => {
+      const refreshed = await nexus.getRuntimeExecutionRole(id);
+      setView(refreshed);
+      onChanged?.(refreshed);
+      return refreshed;
+    },
+    [onChanged],
+  );
 
-  const changeRole = async (roleId: string) => {
+  const changeRole = useCallback(async (roleId: string) => {
     const id = String(runtimeId || '').trim();
     if (!id || busy || roleId === currentRoleId) return;
     const previous = view;
@@ -111,7 +114,7 @@ export const ExecutionRoleSelector: React.FC<{
     } finally {
       setBusy(false);
     }
-  };
+  }, [runtimeId, busy, currentRoleId, view, isOpenCode, refreshRole, t, onChanged]);
 
   useEffect(() => {
     const handleExternalRoleSwitch = (event: Event) => {
@@ -122,7 +125,7 @@ export const ExecutionRoleSelector: React.FC<{
     window.addEventListener('nexus:execution-role-switch', handleExternalRoleSwitch);
     return () =>
       window.removeEventListener('nexus:execution-role-switch', handleExternalRoleSwitch);
-  }, [runtimeId, currentRoleId, busy, isOpenCode, view]);
+  }, [runtimeId, changeRole]);
 
   const certifyNativeReadOnly = async () => {
     const id = String(runtimeId || '').trim();
