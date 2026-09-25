@@ -797,9 +797,7 @@ func parseMajor(version string) (int, bool) {
 	version = strings.TrimSpace(strings.ToLower(version))
 	version = strings.TrimPrefix(version, "opencode")
 	version = strings.TrimSpace(version)
-	if strings.HasPrefix(version, "v") {
-		version = strings.TrimPrefix(version, "v")
-	}
+	version = strings.TrimPrefix(version, "v")
 	if version == "" {
 		return 0, false
 	}
