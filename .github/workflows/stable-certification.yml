@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bun --cwd web install --frozen-lockfile
+          bun install --cwd web --frozen-lockfile
           make build
           ./nexus version
 
