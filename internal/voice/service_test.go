@@ -49,7 +49,6 @@ func testUpdate(base string) SettingsUpdate {
 	}
 }
 
-
 func TestDefaultVoiceRoutingContractIsGroqThenCloudflare(t *testing.T) {
 	cfg := DefaultSettings()
 	if !cfg.AutomaticFallback {

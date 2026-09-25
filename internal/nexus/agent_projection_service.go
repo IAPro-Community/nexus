@@ -17,70 +17,70 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	projection "github.com/IAPro-Community/nexus/internal/core/provider/agentprojection"
 	opencodeprojection "github.com/IAPro-Community/nexus/internal/core/provider/agentprojection/opencode"
-	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 type AgentProjectionPlanView struct {
-	RuntimeID       string                  `json:"runtime_id"`
-	RuntimeGenerationID string              `json:"runtime_generation_id"`
-	AgentID         string                  `json:"agent_id"`
-	RoleID          string                  `json:"role_id"`
-	Provider        string                  `json:"provider"`
-	Profile         string                  `json:"profile"`
-	ProviderVersion string                  `json:"provider_version"`
-	VersionSource   string                  `json:"version_source"`
-	TargetKind      string                  `json:"target_kind"`
-	TargetWorkspace string                  `json:"target_workspace"`
-	CustomCommand   bool                    `json:"custom_command"`
-	Capabilities    projection.Capabilities `json:"capabilities"`
-	Plan            *projection.Plan        `json:"plan"`
+	RuntimeID           string                  `json:"runtime_id"`
+	RuntimeGenerationID string                  `json:"runtime_generation_id"`
+	AgentID             string                  `json:"agent_id"`
+	RoleID              string                  `json:"role_id"`
+	Provider            string                  `json:"provider"`
+	Profile             string                  `json:"profile"`
+	ProviderVersion     string                  `json:"provider_version"`
+	VersionSource       string                  `json:"version_source"`
+	TargetKind          string                  `json:"target_kind"`
+	TargetWorkspace     string                  `json:"target_workspace"`
+	CustomCommand       bool                    `json:"custom_command"`
+	Capabilities        projection.Capabilities `json:"capabilities"`
+	Plan                *projection.Plan        `json:"plan"`
 }
 
 type AgentProjectionDiscovery struct {
-	Provider       string   `json:"provider"`
-	ProviderVersion string  `json:"provider_version"`
-	TargetKind     string   `json:"target_kind"`
-	AgentName      string   `json:"agent_name"`
-	Discovered     bool     `json:"discovered"`
-	Status         string   `json:"status"`
-	Evidence       string   `json:"evidence,omitempty"`
-	Error          string   `json:"error,omitempty"`
+	Provider        string `json:"provider"`
+	ProviderVersion string `json:"provider_version"`
+	TargetKind      string `json:"target_kind"`
+	AgentName       string `json:"agent_name"`
+	Discovered      bool   `json:"discovered"`
+	Status          string `json:"status"`
+	Evidence        string `json:"evidence,omitempty"`
+	Error           string `json:"error,omitempty"`
 }
 
 type AgentProjectionActivation struct {
-	Provider          string   `json:"provider"`
-	ProviderVersion   string   `json:"provider_version"`
-	TargetKind        string   `json:"target_kind"`
-	AgentName         string   `json:"agent_name"`
-	Activated         bool     `json:"activated"`
-	Status            string   `json:"status"`
-	Evidence          string   `json:"evidence,omitempty"`
-	Error             string   `json:"error,omitempty"`
-	ExternalExecution bool     `json:"external_execution"`
+	Provider          string `json:"provider"`
+	ProviderVersion   string `json:"provider_version"`
+	TargetKind        string `json:"target_kind"`
+	AgentName         string `json:"agent_name"`
+	Activated         bool   `json:"activated"`
+	Status            string `json:"status"`
+	Evidence          string `json:"evidence,omitempty"`
+	Error             string `json:"error,omitempty"`
+	ExternalExecution bool   `json:"external_execution"`
 }
 
 type AgentProjectionApplyView struct {
-	Plan      AgentProjectionPlanView  `json:"plan"`
-	Receipt   *projection.Receipt      `json:"receipt"`
+	Plan      AgentProjectionPlanView   `json:"plan"`
+	Receipt   *projection.Receipt       `json:"receipt"`
 	Discovery *AgentProjectionDiscovery `json:"discovery,omitempty"`
 }
 
 type agentProjectionContext struct {
-	st          *store.Store
-	generation  store.RuntimeGeneration
-	agent       store.Agent
-	project     store.Project
-	config      AgentConfig
-	role        ExecutionRole
-	mode        AgentMode
-	providerHome string
-	version     string
-	versionSource string
-	targetKind  string
+	st              *store.Store
+	generation      store.RuntimeGeneration
+	agent           store.Agent
+	project         store.Project
+	config          AgentConfig
+	role            ExecutionRole
+	mode            AgentMode
+	providerHome    string
+	version         string
+	versionSource   string
+	targetKind      string
 	targetWorkspace string
-	custom      bool
-	adapter     projection.Adapter
+	custom          bool
+	adapter         projection.Adapter
 }
 
 // PlanRuntimeAgentProjection computes the native-agent projection for the
@@ -99,19 +99,19 @@ func (n *Nexus) PlanRuntimeAgentProjection(ctx context.Context, runtimeID string
 	caps := resolved.adapter.Capabilities(ctx, resolved.version)
 
 	return &AgentProjectionPlanView{
-		RuntimeID:            runtimeID,
+		RuntimeID:           runtimeID,
 		RuntimeGenerationID: resolved.generation.ID,
-		AgentID:              resolved.agent.ID,
-		RoleID:               resolved.role.ID,
-		Provider:             resolved.generation.Provider,
-		Profile:              resolved.generation.Profile,
-		ProviderVersion:      resolved.version,
-		VersionSource:        resolved.versionSource,
-		TargetKind:           resolved.targetKind,
-		TargetWorkspace:      resolved.targetWorkspace,
-		CustomCommand:        resolved.custom,
-		Capabilities:         caps,
-		Plan:                 plan,
+		AgentID:             resolved.agent.ID,
+		RoleID:              resolved.role.ID,
+		Provider:            resolved.generation.Provider,
+		Profile:             resolved.generation.Profile,
+		ProviderVersion:     resolved.version,
+		VersionSource:       resolved.versionSource,
+		TargetKind:          resolved.targetKind,
+		TargetWorkspace:     resolved.targetWorkspace,
+		CustomCommand:       resolved.custom,
+		Capabilities:        caps,
+		Plan:                plan,
 	}, nil
 }
 
@@ -183,19 +183,19 @@ func (n *Nexus) ApplyRuntimeAgentProjection(ctx context.Context, runtimeID, acti
 	discovery := n.probeAgentProjectionDiscovery(ctx, resolved)
 	return &AgentProjectionApplyView{
 		Plan: AgentProjectionPlanView{
-			RuntimeID:            runtimeID,
+			RuntimeID:           runtimeID,
 			RuntimeGenerationID: resolved.generation.ID,
-			AgentID:              resolved.agent.ID,
-			RoleID:               resolved.role.ID,
-			Provider:             resolved.generation.Provider,
-			Profile:              resolved.generation.Profile,
-			ProviderVersion:      resolved.version,
-			VersionSource:        resolved.versionSource,
-			TargetKind:           resolved.targetKind,
-			TargetWorkspace:      resolved.targetWorkspace,
-			CustomCommand:        resolved.custom,
-			Capabilities:         caps,
-			Plan:                 plan,
+			AgentID:             resolved.agent.ID,
+			RoleID:              resolved.role.ID,
+			Provider:            resolved.generation.Provider,
+			Profile:             resolved.generation.Profile,
+			ProviderVersion:     resolved.version,
+			VersionSource:       resolved.versionSource,
+			TargetKind:          resolved.targetKind,
+			TargetWorkspace:     resolved.targetWorkspace,
+			CustomCommand:       resolved.custom,
+			Capabilities:        caps,
+			Plan:                plan,
 		},
 		Receipt:   receipt,
 		Discovery: discovery,
@@ -625,20 +625,20 @@ func (n *Nexus) resolveAgentProjectionContext(ctx context.Context, runtimeID str
 	}
 
 	return &agentProjectionContext{
-		st: st,
-		generation: generation,
-		agent: agent,
-		project: project,
-		config: cfg,
-		role: role,
-		mode: mode,
-		providerHome: providerHome,
-		version: version,
-		versionSource: versionSource,
-		targetKind: targetKind,
+		st:              st,
+		generation:      generation,
+		agent:           agent,
+		project:         project,
+		config:          cfg,
+		role:            role,
+		mode:            mode,
+		providerHome:    providerHome,
+		version:         version,
+		versionSource:   versionSource,
+		targetKind:      targetKind,
 		targetWorkspace: targetWorkspace,
-		custom: custom,
-		adapter: adapter,
+		custom:          custom,
+		adapter:         adapter,
 	}, nil
 }
 
@@ -745,4 +745,3 @@ func firstNonEmptyLine(value string) string {
 	}
 	return ""
 }
-

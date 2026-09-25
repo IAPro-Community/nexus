@@ -123,7 +123,6 @@ func (s *Store) RuntimeExecutionRoleByRuntimeID(runtimeID string) (RuntimeExecut
 	return s.RuntimeExecutionRole(generationID)
 }
 
-
 // AttachRuntimeExecutionRoleProjection links a materialized native-agent
 // projection to the runtime role without changing the role or claiming native
 // activation. ActivationStrategy/enforcement remain owned by the execution-role
@@ -166,7 +165,6 @@ func (s *Store) DetachRuntimeExecutionRoleProjection(runtimeGenerationID, receip
 	}
 	return nil
 }
-
 
 // MarkRuntimeExecutionRoleActivation records native activation evidence without
 // changing enforcement. The receipt predicate prevents stale evidence from

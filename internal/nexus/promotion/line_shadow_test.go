@@ -67,7 +67,6 @@ func TestLineShadowBackspaceRemovesUTF8Rune(t *testing.T) {
 	}
 }
 
-
 func TestLineShadowKeepsSS3NavigationOutOfPrompt(t *testing.T) {
 	shadow := NewLineShadow()
 
