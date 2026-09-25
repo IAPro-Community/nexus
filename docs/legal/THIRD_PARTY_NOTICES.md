@@ -16,7 +16,7 @@ pinned inventories.
 
 ## Go modules
 
-See `docs/legal/GO_MODULES.txt` (156 pinned modules at beta cut).
+See `docs/legal/GO_MODULES.txt`. The exact module inventory is regenerated again at the certified Wails v3 release cut.
 
 Notable copyleft-adjacent review points for the owner (no conclusion
 stated here — confirm with counsel):
@@ -24,8 +24,8 @@ stated here — confirm with counsel):
 - `modernc.org/sqlite` and its `modernc.org/*` tree (BSD-style; pure-Go
   SQLite driver, statically linked into the binary).
 - `github.com/go-git/go-git/v5` (Apache-2.0) and transitive git plumbing.
-- `github.com/wailsapp/wails/v2` (MIT) desktop runtime plus
-  `github.com/wailsapp/go-webview2` (MIT) on Windows.
+- `github.com/wailsapp/wails/v3` v3.0.0-beta.25 (MIT) desktop runtime plus
+  `@wailsio/runtime` 3.0.0-beta.25 and the platform-native WebView stack.
 - `golang.org/x/*` (BSD-3-Clause), `github.com/charmbracelet/*` (MIT),
   `github.com/gorilla/websocket` (BSD-2-Clause).
 

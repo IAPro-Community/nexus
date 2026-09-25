@@ -126,16 +126,14 @@ if (Get-Command opencode -ErrorAction SilentlyContinue) {
 }
 
 if (-not $SkipDesktop) {
-  Write-Host "==> Windows Wails Desktop + HUD build"
+  Write-Host "==> Windows Wails v3 Desktop + HUD build"
   bun --cwd web run build
-  Push-Location cmd/nexus-desktop
-  try {
-    go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags $Ldflags
-  } finally { Pop-Location }
-  Push-Location cmd/nexus-hud
-  try {
-    go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags $Ldflags
-  } finally { Pop-Location }
+  New-Item -ItemType Directory -Path "cmd/nexus-desktop/build/bin" -Force | Out-Null
+  New-Item -ItemType Directory -Path "cmd/nexus-hud/build/bin" -Force | Out-Null
+  go build -trimpath -buildvcs=false -tags production -ldflags $Ldflags -o cmd/nexus-desktop/build/bin/nexus-desktop.exe ./cmd/nexus-desktop
+  if ($LASTEXITCODE -ne 0) { throw "Wails v3 Desktop build failed" }
+  go build -trimpath -buildvcs=false -tags production -ldflags $Ldflags -o cmd/nexus-hud/build/bin/nexus-hud.exe ./cmd/nexus-hud
+  if ($LASTEXITCODE -ne 0) { throw "Wails v3 HUD build failed" }
 }
 
 @'

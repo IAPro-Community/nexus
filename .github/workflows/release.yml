@@ -246,12 +246,14 @@ jobs:
           rm -rf native-staging
           mkdir -p native-staging/windows native-staging/macos native-artifacts
           gh run download "$NATIVE_CI_RUN_ID" --name "native-windows-${GITHUB_SHA}" --dir native-staging/windows
+          grep -Fxq 'wails-v3.0.0-beta.25' native-staging/windows/native-framework.txt
           cp native-staging/windows/nexus_Windows_x86_64.zip native-artifacts/
           cp native-staging/windows/nexus-desktop_Windows_x86_64.zip native-artifacts/
           cp native-staging/windows/nexus-hud_Windows_x86_64.zip native-artifacts/
           cp native-staging/windows/nexus-setup-Windows_x86_64.exe native-artifacts/
           if [ "$NATIVE_POLICY" = all ]; then
             gh run download "$NATIVE_CI_RUN_ID" --name "native-macos-${GITHUB_SHA}" --dir native-staging/macos
+            grep -Fxq 'wails-v3.0.0-beta.25' native-staging/macos/native-framework.txt
             cp native-staging/macos/nexus_Darwin_arm64.tar.gz native-artifacts/
             cp native-staging/macos/nexus-desktop_Darwin_arm64.zip native-artifacts/
             cp native-staging/macos/nexus-hud_Darwin_arm64.zip native-artifacts/

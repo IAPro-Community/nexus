@@ -114,9 +114,9 @@ github.com/tidwall/sjson v1.2.5
 github.com/tkrajina/go-reflector v0.5.8
 github.com/valyala/bytebufferpool v1.0.0
 github.com/valyala/fasttemplate v1.2.2
-github.com/wailsapp/go-webview2 v1.0.22
+github.com/wailsapp/go-webview2 v1.0.23
 github.com/wailsapp/mimetype v1.4.1
-github.com/wailsapp/wails/v2 v2.15.0
+github.com/wailsapp/wails/v3 v3.0.0-beta.25
 github.com/wzshiming/ctc v1.2.3
 github.com/wzshiming/winseq v0.0.0-20200112104235-db357dc107ae
 github.com/xanzy/ssh-agent v0.3.3
