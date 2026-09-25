@@ -20,24 +20,27 @@ func TestProviderLaunchFlagsAreNexusOwned(t *testing.T) {
 	}
 }
 
-func TestWantInteractiveLeadDefaultTrue(t *testing.T) {
-	if !wantInteractiveLead(nil) {
-		t.Fatal("default supervised shortcut must bind an Interactive Lead")
+func TestWantInteractiveLeadDefaultFalse(t *testing.T) {
+	if wantInteractiveLead(nil) {
+		t.Fatal("default supervised shortcut must remain provider-native and byte-transparent")
 	}
-	if !wantInteractiveLead([]string{"--yolo", "--model", "gpt-5"}) {
-		t.Fatal("provider flags must not disable the default Interactive Lead")
+	if wantInteractiveLead([]string{"--yolo", "--model", "gpt-5"}) {
+		t.Fatal("provider flags must not implicitly enable an Interactive Lead")
 	}
 }
 
-func TestWantInteractiveLeadOptOut(t *testing.T) {
-	if wantInteractiveLead([]string{"--no-lead"}) {
-		t.Fatal("expected --no-lead to opt out of Interactive Lead")
-	}
-	if wantInteractiveLead([]string{"--yolo", "--NO-LEAD", "--model", "x"}) {
-		t.Fatal("expected case-insensitive --no-lead")
-	}
+func TestWantInteractiveLeadExplicitOptIn(t *testing.T) {
 	if !wantInteractiveLead([]string{"--lead"}) {
-		t.Fatal("explicit --lead remains supported")
+		t.Fatal("explicit --lead must opt in to Interactive Lead")
+	}
+	if !wantInteractiveLead([]string{"--yolo", "--LEAD", "--model", "x"}) {
+		t.Fatal("expected case-insensitive --lead")
+	}
+	if wantInteractiveLead([]string{"--lead", "--no-lead"}) {
+		t.Fatal("--no-lead must win when both compatibility flags are present")
+	}
+	if wantInteractiveLead([]string{"--no-lead"}) {
+		t.Fatal("expected --no-lead to keep provider-native behavior")
 	}
 }
 

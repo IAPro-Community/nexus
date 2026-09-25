@@ -43,23 +43,28 @@ func removeProviderLaunchFlag(args []string, wanted string) []string {
 	return out
 }
 
-// wantInteractiveLead makes the V1 supervised experience Mission-aware by
-// default. Provider-native commands remain responsive through LineShadow's
-// immediate-submit path; --no-lead is the explicit byte-transparent opt-out.
-// --lead remains accepted for compatibility and explicitness.
+// wantInteractiveLead is an explicit opt-in for binding a persistent Lead
+// Agent and allowing Mission promotion. Provider-native TUIs are byte-transparent
+// by default so Nexus supervises the runtime without changing the provider's
+// keyboard, prompts, selectors or command semantics.
 func wantInteractiveLead(args []string) bool {
-	return !hasProviderLaunchFlag(args, "--no-lead")
+	return hasProviderLaunchFlag(args, "--lead") && !hasProviderLaunchFlag(args, "--no-lead")
 }
 
 // executeProviderSupervised launches the provider through the same persistent
-// SessionHost used by Web/Desktop. Interactive TTY is Mission-aware by default;
-// withLead=false (--no-lead) keeps the legacy byte-transparent attach.
+// SessionHost used by Web/Desktop. Interactive TTY is byte-transparent by
+// default; withLead=true (--lead) enables the Nexus promotion boundary.
 func executeProviderSupervised(provName, explicitProfile string, args []string, withLead bool) error {
 	if strings.TrimSpace(provName) == "" {
 		return fmt.Errorf("provider is required for supervised launch")
 	}
 	args = removeProviderLaunchFlag(args, "--lead")
 	args = removeProviderLaunchFlag(args, "--no-lead")
+
+	delegationMode := nexus.DelegationOff
+	if withLead {
+		delegationMode = nexus.DelegationAuto
+	}
 
 	fmt.Fprintf(os.Stderr, "⚡ [nexus] iniciando %s…\n", provName)
 
@@ -108,7 +113,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 			Standalone: false,
 			Timeout:    15 * time.Second,
 			Labels: map[string]string{
-				"nexus.delegation_mode":  string(nexus.DelegationAuto),
+				"nexus.delegation_mode":  string(delegationMode),
 				"nexus.interactive_lead": fmt.Sprintf("%t", withLead),
 			},
 		},

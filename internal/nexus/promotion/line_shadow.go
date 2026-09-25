@@ -137,9 +137,9 @@ func (s *LineShadow) consumeEscapeByte(b byte) {
 	s.escape = append(s.escape, b)
 	if len(s.escape) == 2 {
 		switch b {
-		case '[':
-			return
-		case ']':
+		case '[', ']', 'O':
+			// CSI, OSC and SS3 (application cursor/function keys) keep their
+			// bytes out of the logical prompt while remaining byte-transparent.
 			return
 		default:
 			s.escape = s.escape[:0]
@@ -147,6 +147,14 @@ func (s *LineShadow) consumeEscapeByte(b byte) {
 		}
 	}
 	if len(s.escape) == 3 && s.escape[1] == '[' && b == '2' {
+		return
+	}
+	if len(s.escape) >= 3 && s.escape[1] == 'O' {
+		// SS3 has a single final byte for the cursor/function-key sequences
+		// emitted by TUIs in application cursor mode.
+		if b >= 0x40 && b <= 0x7e {
+			s.escape = s.escape[:0]
+		}
 		return
 	}
 	if len(s.escape) >= 3 && s.escape[1] == '[' {

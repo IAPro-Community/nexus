@@ -17,6 +17,7 @@ import (
 	providerspec "github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 	"github.com/gorilla/websocket"
 )
 
@@ -247,7 +248,9 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 
 	shadow := promotion.NewLineShadow()
 	pendingPromotion := ""
-	if strings.EqualFold(string(webInteractiveDelegationMode(sess)), string(nexus.DelegationOff)) {
+	interactiveLead := webInteractiveLeadEnabled(sess) &&
+		!strings.EqualFold(string(webInteractiveDelegationMode(sess)), string(nexus.DelegationOff))
+	if !interactiveLead {
 		shadow.SetEnabled(false)
 	}
 	startPromotion := func(prompt string, fallbackToLead bool) {
@@ -301,6 +304,54 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		})
 		go waitPromotedMission(h.nexus, sess, prompt, accepted)
 	}
+
+	// Apply the same stateful terminal-input coalescing used by CLI attach before
+	// bytes reach the provider PTY. This is transport-only: it joins split
+	// CSI/SS3 selector keys and removes terminal metadata without interpreting
+	// provider commands.
+	inputMu := sync.Mutex{}
+	processTerminalInput := func(data string) {
+		if data == "" {
+			return
+		}
+		if h.nexus == nil || sess.ProjectID == "" || sess.AgentID == "" || !shadow.Enabled() {
+			_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: data})
+			return
+		}
+		event := shadow.Consume([]byte(data))
+		if len(event.Forward) > 0 {
+			_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: string(event.Forward)})
+		}
+		if !event.Submit {
+			return
+		}
+		for _, line := range event.Submissions {
+			if promotion.IsImmediateSubmitLine(line) {
+				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+				continue
+			}
+			decideCtx, cancelDecision := context.WithTimeout(r.Context(), promotion.InteractiveDecisionTimeout)
+			decision, decideErr := promotion.NewPromoter(h.nexus).Decide(decideCtx, sess.ProjectID, line, webInteractiveDelegationMode(sess))
+			cancelDecision()
+			if decideErr != nil || decision.Action == promotion.KeepWithLead {
+				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+				continue
+			}
+			if decision.Action == promotion.Ask {
+				pendingPromotion = line
+				_ = safeWriteJSON(TerminalMessage{Type: "promotion", Data: line, Role: "ASK"})
+				continue
+			}
+			startPromotion(line, !decision.ExplicitMissionRequest)
+		}
+	}
+	inputStream := nexusruntime.NewTerminalInputScrubber(terminalInputCommandWriter(func(data []byte) (int, error) {
+		inputMu.Lock()
+		defer inputMu.Unlock()
+		processTerminalInput(string(data))
+		return len(data), nil
+	}))
+	defer func() { _ = inputStream.Flush() }()
 
 	// 1. Pump stdout from child process to browser.
 	// Buffer across reads so protocol frames (request or response) that
@@ -373,25 +424,26 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 
 		switch msg.Type {
 		case "promotion_answer":
-			if broker.IsWriter(agentID, ws) && pendingPromotion != "" {
-				if strings.EqualFold(strings.TrimSpace(msg.Data), "y") || strings.EqualFold(strings.TrimSpace(msg.Data), "yes") || strings.EqualFold(strings.TrimSpace(msg.Data), "s") || strings.EqualFold(strings.TrimSpace(msg.Data), "sim") {
-					startPromotion(pendingPromotion, false)
-				} else {
-					_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+			if broker.IsWriter(agentID, ws) {
+				inputMu.Lock()
+				if pendingPromotion != "" {
+					if strings.EqualFold(strings.TrimSpace(msg.Data), "y") || strings.EqualFold(strings.TrimSpace(msg.Data), "yes") || strings.EqualFold(strings.TrimSpace(msg.Data), "s") || strings.EqualFold(strings.TrimSpace(msg.Data), "sim") {
+						startPromotion(pendingPromotion, false)
+					} else {
+						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+					}
+					pendingPromotion = ""
 				}
-				pendingPromotion = ""
+				inputMu.Unlock()
 			}
 
 		case "input":
-			// Authoritative writer check on Agent level (§45, A6).
-			// SessionHost streamAttachedInput is line-oriented for RPC framing;
-			// raw keystrokes have no trailing \n, so they must be sent as CmdInput
-			// JSON frames (newline-terminated) or they buffer forever and typing
-			// appears dead.
+			// Authoritative writer check on Agent level (§45, A6). Web input
+			// always crosses the stateful coalescer before the provider PTY so
+			// split selector arrows cannot degrade into literal characters.
 			if broker.IsWriter(agentID, ws) && msg.Data != "" {
+				inputMu.Lock()
 				if pendingPromotion != "" {
-					// ASK consumes the next answer outside the provider PTY. The
-					// original line is retained only until this explicit choice.
 					answer := strings.TrimSpace(msg.Data)
 					if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") || strings.EqualFold(answer, "s") || strings.EqualFold(answer, "sim") {
 						startPromotion(pendingPromotion, false)
@@ -399,37 +451,11 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
 					}
 					pendingPromotion = ""
+					inputMu.Unlock()
 					continue
 				}
-				if h.nexus == nil || sess.ProjectID == "" || sess.AgentID == "" || !shadow.Enabled() {
-					_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: msg.Data})
-					break
-				}
-				event := shadow.Consume([]byte(msg.Data))
-				if len(event.Forward) > 0 {
-					_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: string(event.Forward)})
-				}
-				if event.Submit {
-					for _, line := range event.Submissions {
-						if promotion.IsImmediateSubmitLine(line) {
-							_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
-							continue
-						}
-						decideCtx, cancelDecision := context.WithTimeout(r.Context(), promotion.InteractiveDecisionTimeout)
-						decision, decideErr := promotion.NewPromoter(h.nexus).Decide(decideCtx, sess.ProjectID, line, webInteractiveDelegationMode(sess))
-						cancelDecision()
-						if decideErr != nil || decision.Action == promotion.KeepWithLead {
-							_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
-							continue
-						}
-						if decision.Action == promotion.Ask {
-							pendingPromotion = line
-							_ = safeWriteJSON(TerminalMessage{Type: "promotion", Data: line, Role: "ASK"})
-							continue
-						}
-						startPromotion(line, !decision.ExplicitMissionRequest)
-					}
-				}
+				inputMu.Unlock()
+				_, _ = inputStream.Write([]byte(msg.Data))
 			}
 
 		case "resize":
@@ -468,6 +494,16 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			_ = sendAttachedCommand(rawConn, protocol.CmdLeaseRelease, nil)
 		}
 	}
+}
+
+type terminalInputCommandWriter func([]byte) (int, error)
+
+func (w terminalInputCommandWriter) Write(data []byte) (int, error) {
+	return w(data)
+}
+
+func webInteractiveLeadEnabled(sess registry.RuntimeSession) bool {
+	return strings.EqualFold(strings.TrimSpace(sess.Labels["nexus.interactive_lead"]), "true")
 }
 
 func webInteractiveDelegationMode(sess registry.RuntimeSession) nexus.DelegationMode {
