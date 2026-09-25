@@ -1,12 +1,14 @@
 # Status público da release do Nexus v1
 
-Atualizado em **24 de setembro de 2026**.
+Atualizado em **25 de setembro de 2026**.
 
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
 | Versão do source candidato | `1.0.0-beta.2` |
-| Última beta publicada registrada | `v1.0.0-beta.1` |
+| Última tag beta no repositório-fonte | `v1.0.0-beta.1` |
+| Releases GitHub no repositório-fonte | nenhuma |
+| Releases públicas em `IAPro-Community/nexus-releases` | nenhuma |
 | Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
 | Release estável v1 | **ainda não publicada** |
 | CI do SHA integrado | indisponível no momento por bloqueio de créditos da conta |
@@ -18,8 +20,12 @@ A linha que estava planejada como **1.1** foi incorporada à estabilização da
 **1.0 enquanto ela ainda está em beta**. Isso elimina duas linhas concorrentes
 antes da primeira release estável.
 
-A `v1.0.0-beta.1` publicada continua sendo evidência histórica Linux-only.
-Ela não é alterada retroativamente.
+A tag `v1.0.0-beta.1` continua sendo um marco histórico Linux-only no
+repositório-fonte. Ela **não corresponde a uma GitHub Release publicada**: o
+repositório-fonte não possui releases e o repositório público
+`IAPro-Community/nexus-releases` ainda não possui releases. A primeira
+publicação binária pública continua pendente e não deve ser inferida apenas da
+existência da tag.
 
 O candidato `v1.0.0-beta.2` passa a concentrar:
 
@@ -43,16 +49,17 @@ O push integrado mais recente disparou GitHub Actions, mas o run encerrou sem
 jobs por indisponibilidade de créditos da conta. Isso é **falha de
 infraestrutura**, não PASS e também não evidência funcional de FAIL.
 
-Enquanto o CI remoto estiver indisponível, a homologação local deve usar:
+Enquanto o CI remoto estiver indisponível, a homologação local deve usar o
+SHA candidato explicitamente para impedir PASS acidental em outro commit:
 
 ```bash
-./scripts/homologate-beta.sh
+NEXUS_EXPECTED_SHA="$(git rev-parse release/v1.0.0-beta.2)" ./scripts/homologate-beta.sh
 ```
 
 No Windows:
 
 ```powershell
-.\scripts\homologate-beta.ps1
+.\scripts\homologate-beta.ps1 -ExpectedSha (git rev-parse release/v1.0.0-beta.2)
 ```
 
 Os scripts registram evidência por SHA em
@@ -81,6 +88,7 @@ Antes de criar/publicar a tag:
 - Go fmt/vet/test/race;
 - regressões específicas de terminal e roteamento Mission;
 - control/runtime E2E;
+- regressões direcionadas de Agent Interop/OpenCode Projection, receipts, launcher customizado e API;
 - build CLI;
 - `nexus version --json` e `nexus doctor --json`;
 - OpenCode visível em `providers status`, Usage e seleção de Agent quando instalado;
