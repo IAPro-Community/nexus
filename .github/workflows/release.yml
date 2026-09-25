@@ -43,7 +43,7 @@ jobs:
             'Browser E2E, Axe & visual smoke'
             'Linux E2E (Go 1.25.14)'
             'Cross-platform compile guard'
-            'Desktop Linux (Wails native build)'
+            'Desktop Linux (Wails v3 native build)'
             'GoReleaser Snapshot Build'
             'Smoke DEB install'
           )
