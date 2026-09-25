@@ -2,8 +2,8 @@
 
 ## TL;DR
 
-Em 5–10 minutos você pode instalar o Nexus, abrir a Web local, adicionar um
-projeto e iniciar uma AI Session. O exemplo usa o fluxo **Direct**, que não
+Em 5–10 minutos, em um ambiente de desenvolvimento já preparado, você pode
+compilar o candidato, abrir a Web local, adicionar um projeto e iniciar uma AI Session. O exemplo usa o fluxo **Direct**, que não
 exige Composer, Flow ou Mission.
 
 > Estado: o source candidato é **`1.0.0-beta.2`** e integra CLI/Web,
