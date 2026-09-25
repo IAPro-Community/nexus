@@ -1,6 +1,7 @@
 param(
   [switch]$SkipDesktop,
-  [switch]$AllowDirty
+  [switch]$AllowDirty,
+  [string]$ExpectedSha = $env:NEXUS_EXPECTED_SHA
 )
 
 $ErrorActionPreference = 'Stop'
@@ -20,6 +21,16 @@ Require-Command bun
 $Version = (Get-Content VERSION -Raw).Trim()
 $Sha = (git rev-parse HEAD).Trim()
 $ShortSha = (git rev-parse --short HEAD).Trim()
+
+if ($ExpectedSha) {
+  $ResolvedExpectedSha = (git rev-parse $ExpectedSha 2>$null)
+  if ($LASTEXITCODE -eq 0 -and $ResolvedExpectedSha) {
+    $ExpectedSha = $ResolvedExpectedSha.Trim()
+  }
+  if ($Sha -ne $ExpectedSha.Trim()) {
+    throw "homologation SHA mismatch: HEAD=$Sha expected=$ExpectedSha"
+  }
+}
 $Arch = $env:PROCESSOR_ARCHITECTURE
 $Out = Join-Path $Root ("DEV/validation/local-beta2/{0}/windows-{1}" -f $Sha, $Arch)
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
@@ -80,6 +91,10 @@ Write-Host "==> control/runtime E2E"
 go test -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'control-e2e.log')
 if ($LASTEXITCODE -ne 0) { throw "control/runtime E2E failed" }
 
+Write-Host "==> Agent Interop / OpenCode Projection regressions"
+go test -count=1 ./internal/core/provider/agentprojection/opencode ./internal/control/launcher ./internal/control/web ./internal/nexus ./internal/nexus/store 2>&1 | Tee-Object -FilePath (Join-Path $Out 'agent-interop.log')
+if ($LASTEXITCODE -ne 0) { throw "Agent Interop/OpenCode Projection regressions failed" }
+
 Write-Host "==> build CLI"
 $Commit = $ShortSha
 $BuildDate = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
@@ -139,6 +154,10 @@ These checks require a real interactive/native session and are intentionally not
 - Set project default to `worktree` but explicitly configure the pinned Agent with `Isolation=project`. The Agent override must win and admission must still fail; autonomous execution must never reach the canonical checkout.
 - Open Agents and create/edit an Agent. OpenCode must be offered independently from AGY.
 - Open Usage. If OpenCode is installed but has no profile yet, it must still be shown as an installed provider.
+- With an OpenCode runtime and isolated/shared Nexus profile, apply a REVIEW projection and verify that discovery lists `nexus-review` without invoking an LLM.
+- Run the explicit Agent Projection activation probe only after acknowledging possible quota/cost. It must select `nexus-review`, record `NATIVE_ON_LAUNCH`, and must not promote read-only enforcement to `ENFORCED`.
+- Remove the active projection. The receipt link must clear and activation strategy must return to `NEXUS_OVERLAY`; an older/stale receipt must not remove or promote a newer projection.
+- Exercise one custom target (Docker/VPN/WSL/SSH wrapper): provider may be absent on the host, `target_cwd` must resolve to the target-visible workspace, and no shell metacharacter template may be accepted.
 - Launch Nexus HUD and verify show/hide, autostart toggle and basic projection.
 - If voice is configured, verify microphone permission, transcription, provider fallback and terminal insertion without automatic Enter.
 '@ | Set-Content (Join-Path $Out 'MANUAL_CHECKS.md')
