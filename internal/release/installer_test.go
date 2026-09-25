@@ -643,8 +643,8 @@ func TestNativeReleaseChainIsFailClosed(t *testing.T) {
 		"Function RemoveFromUserPath",
 		"Call RemoveFromUserPath",
 		"QuietUninstallString",
-		`File /nonfatal "payload\\nexus-hud.exe"`,
-		`Delete "$INSTDIR\\nexus-hud.exe"`,
+		`File /nonfatal "payload\nexus-hud.exe"`,
+		`Delete "$INSTDIR\nexus-hud.exe"`,
 		"DeleteRegKey HKCU \"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\IAPro Nexus\"",
 	} {
 		if !strings.Contains(nsis, required) {
