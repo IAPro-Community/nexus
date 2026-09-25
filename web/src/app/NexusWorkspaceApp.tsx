@@ -84,7 +84,10 @@ import { pushNotifications } from '../notifications/PushNotificationManager';
 import { loadNotificationPrefs, playAttentionSound } from '../notifications/notificationPrefs';
 import { formatAttentionPushBody } from '../notifications/attentionPushCopy';
 import { isPtyAttentionFocused } from '../notifications/attentionDelivery';
-import { dispatchTerminalVoiceDictation, resolveNexusVoiceCommand } from '../features/voice/voiceCommand';
+import {
+  dispatchTerminalVoiceDictation,
+  resolveNexusVoiceCommand,
+} from '../features/voice/voiceCommand';
 
 const selectedProjectKey = 'iapro:nexus:selected-project:v1';
 const tourKey = 'iapro:nexus:tour-complete:v1';

@@ -77,7 +77,10 @@ export const ExecutionRoleSelector: React.FC<{
 
   return (
     <div className={styles.root} title={error || summary}>
-      <label className={styles.label} htmlFor={runtimeId ? `execution-role-${runtimeId}` : undefined}>
+      <label
+        className={styles.label}
+        htmlFor={runtimeId ? `execution-role-${runtimeId}` : undefined}
+      >
         {t('terminal.executionRole', { defaultValue: 'Role' })}
       </label>
       <select

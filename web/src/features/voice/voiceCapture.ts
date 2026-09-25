@@ -47,8 +47,7 @@ const nativeVoiceBridge = (): PlatformBridge | null => {
   return null;
 };
 
-export const supportsVoiceCapture = () =>
-  supportsWebVoiceCapture() || Boolean(nativeVoiceBridge());
+export const supportsVoiceCapture = () => supportsWebVoiceCapture() || Boolean(nativeVoiceBridge());
 
 const base64ToBlob = (dataBase64: string, mimeType: string) => {
   const binary = atob(dataBase64);

@@ -1894,13 +1894,8 @@ export interface TelemetryHistoryEvent {
   };
 }
 
-
 export type AgentProjectionCapabilityStatus =
-  | 'SUPPORTED'
-  | 'PARTIAL'
-  | 'UNSUPPORTED'
-  | 'UNKNOWN'
-  | 'NOT_TESTED';
+  'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | 'UNKNOWN' | 'NOT_TESTED';
 
 export interface AgentProjectionCapabilityEvidence {
   status: AgentProjectionCapabilityStatus | string;

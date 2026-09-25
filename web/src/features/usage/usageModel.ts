@@ -6,17 +6,29 @@ import {
 } from '../work/directSessionModel';
 import { asArray } from '../../lib/safeArray';
 
-
 export function installedProvidersWithoutAccounts(
   providers: ProviderInfo[],
   accounts: ProviderAccount[],
 ): ProviderInfo[] {
   const accountProviders = new Set(
-    accounts.map((account) => String(account.provider || '').trim().toLowerCase()).filter(Boolean),
+    accounts
+      .map((account) =>
+        String(account.provider || '')
+          .trim()
+          .toLowerCase(),
+      )
+      .filter(Boolean),
   );
   return providers
     .filter((provider) => provider.installed)
-    .filter((provider) => !accountProviders.has(String(provider.id || '').trim().toLowerCase()))
+    .filter(
+      (provider) =>
+        !accountProviders.has(
+          String(provider.id || '')
+            .trim()
+            .toLowerCase(),
+        ),
+    )
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 

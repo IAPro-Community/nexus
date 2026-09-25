@@ -161,7 +161,9 @@ describe('api request layer', () => {
       getSystemTheme: async () => 'unknown',
     };
     setPlatformBridge(desktopBridge);
-    vi.stubGlobal('window', { location: { protocol: 'wails:', hostname: 'wails.localhost', search: '' } });
+    vi.stubGlobal('window', {
+      location: { protocol: 'wails:', hostname: 'wails.localhost', search: '' },
+    });
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ authenticated: true, csrf_token: 'desktop-csrf' }),

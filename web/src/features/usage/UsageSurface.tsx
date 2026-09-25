@@ -303,7 +303,9 @@ export const UsageSurface: React.FC = () => {
             size="sm"
             tone="brand"
             onClick={() => {
-              setAddAccountTargetProvider(unconfiguredClis.length === 1 ? unconfiguredClis[0].id : '');
+              setAddAccountTargetProvider(
+                unconfiguredClis.length === 1 ? unconfiguredClis[0].id : '',
+              );
               setShowAddAccount(true);
             }}
           >

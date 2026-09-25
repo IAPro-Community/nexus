@@ -167,6 +167,8 @@ export const dispatchTerminalVoiceDictation = (text: string): TerminalVoiceDicta
     handled: false,
   };
   if (!detail.text || typeof window === 'undefined') return detail;
-  window.dispatchEvent(new CustomEvent<TerminalVoiceDictationDetail>(NEXUS_TERMINAL_VOICE_EVENT, { detail }));
+  window.dispatchEvent(
+    new CustomEvent<TerminalVoiceDictationDetail>(NEXUS_TERMINAL_VOICE_EVENT, { detail }),
+  );
   return detail;
 };

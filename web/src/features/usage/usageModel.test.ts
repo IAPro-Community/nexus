@@ -33,7 +33,6 @@ const base = (partial: Partial<ProviderAccount>): ProviderAccount => ({
 });
 
 describe('usageModel', () => {
-
   it('lists installed OpenCode even when lifecycle is pending auth and no resource profile exists', () => {
     const providers: ProviderInfo[] = [
       {
@@ -61,9 +60,9 @@ describe('usageModel', () => {
       }),
     ];
 
-    expect(installedProvidersWithoutAccounts(providers, accounts).map((provider) => provider.id)).toEqual([
-      'opencode',
-    ]);
+    expect(
+      installedProvidersWithoutAccounts(providers, accounts).map((provider) => provider.id),
+    ).toEqual(['opencode']);
   });
 
   it('does not mark account exhausted when another group still has capacity', () => {

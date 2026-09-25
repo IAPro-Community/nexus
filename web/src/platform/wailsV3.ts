@@ -78,8 +78,7 @@ export const hudV3 = {
   getCapabilities: () => call<HudPlatformCapabilities>('HUDController', 'GetHUDCapabilities'),
   getWindowState: () => call<HudWindowState>('HUDController', 'GetHUDWindowState'),
   captureWindowState: () => call<void>('HUDController', 'CaptureHUDWindowState'),
-  setExpanded: (expanded: boolean) =>
-    call<void>('HUDController', 'SetHUDExpanded', expanded),
+  setExpanded: (expanded: boolean) => call<void>('HUDController', 'SetHUDExpanded', expanded),
   hide: () => call<void>('HUDController', 'HideHUD'),
   show: () => call<void>('HUDController', 'ShowHUD'),
   getAutoStartEnabled: () => call<boolean>('HUDController', 'GetHUDAutoStartEnabled'),

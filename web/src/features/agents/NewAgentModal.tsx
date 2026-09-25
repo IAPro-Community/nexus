@@ -417,7 +417,9 @@ export const NewAgentModal: React.FC<{
               />
 
               <label className={styles.fieldSublabel}>
-                {t('agents.targetWorkspace', { defaultValue: 'Workspace path inside target (optional)' })}
+                {t('agents.targetWorkspace', {
+                  defaultValue: 'Workspace path inside target (optional)',
+                })}
               </label>
               <Input
                 value={targetWorkspace}
@@ -447,7 +449,9 @@ export const NewAgentModal: React.FC<{
               </small>
 
               <label className={styles.fieldSublabel}>
-                {t('agents.targetProfileHome', { defaultValue: 'Shared target profile home (optional)' })}
+                {t('agents.targetProfileHome', {
+                  defaultValue: 'Shared target profile home (optional)',
+                })}
               </label>
               <Input
                 value={targetProfileHome}
@@ -463,13 +467,15 @@ export const NewAgentModal: React.FC<{
               </small>
 
               <label className={styles.fieldSublabel}>
-                {t('agents.targetProbeTemplate', { defaultValue: 'Target version probe (optional)' })}
+                {t('agents.targetProbeTemplate', {
+                  defaultValue: 'Target version probe (optional)',
+                })}
               </label>
               <Input
                 value={targetProbeTemplate}
                 onChange={setTargetProbeTemplate}
                 data-mono="true"
-                placeholder='docker exec vpn-dev-workspace-terminal-1 {provider} {args}'
+                placeholder="docker exec vpn-dev-workspace-terminal-1 {provider} {args}"
               />
               <small className={styles.hintText}>
                 {t('agents.targetProbeTemplateHint', {

@@ -847,7 +847,8 @@ export const AgentTerminal: React.FC<{
 
       const ws = wsRef.current;
       if (role !== 'CONTROL') {
-        detail.reason = 'O terminal ativo está em modo somente leitura. Assuma CONTROL antes de ditar.';
+        detail.reason =
+          'O terminal ativo está em modo somente leitura. Assuma CONTROL antes de ditar.';
         return;
       }
       if (!ws || ws.readyState !== WebSocket.OPEN) {
