@@ -1,6 +1,6 @@
 # IAPro Nexus
 
-> **Estado de release:** el candidato de source es `1.0.0-beta.2` e integra
+> **Estado de release:** el candidato de source es `1.0.0-beta.3` e integra
 > Linux amd64, Windows amd64 y macOS arm64. Todavía **no existe una GitHub
 > Release pública**; la tag histórica `v1.0.0-beta.1` no equivale a una
 > distribución binaria publicada.
@@ -19,7 +19,7 @@ IAPro Nexus es una estación de trabajo local para trabajar con coding agents. O
 
 ## Empieza en minutos
 
-El candidato actual `1.0.0-beta.2` integra Linux amd64, Windows amd64 y
+El candidato actual `1.0.0-beta.3` integra Linux amd64, Windows amd64 y
 macOS arm64 en el source, pero la certificación sigue ligada a evidencia
 exact-SHA por plataforma.
 
@@ -36,7 +36,7 @@ publicada.
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
 cd nexus
-bun --cwd web install --frozen-lockfile
+bun install --cwd web --frozen-lockfile
 make build
 ./nexus doctor
 ./nexus web
