@@ -15,6 +15,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { nexus } from '../../nexus/api';
+import { hudV3 } from '../../platform';
 import {
   activeMission,
   formatHudCost,
@@ -247,7 +248,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const setExpandedState = (next: boolean) => {
     setExpanded(next);
     if (native) {
-      void window.go?.desktop?.HUDController?.SetHUDExpanded?.(next);
+      void hudV3.setExpanded(next).catch(() => undefined);
     }
   };
 

@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { ThemeProvider } from '../design-system';
 import { initSession } from '../api';
 import { NexusHud } from '../features/hud/NexusHud';
-import { getPlatformBridge } from '../platform';
+import { getPlatformBridge, hudV3, isDesktopApp } from '../platform';
 import styles from './DesktopHudApp.module.scss';
 
-export const isDesktopHudApp = () =>
-  typeof window !== 'undefined' && Boolean(window.go?.desktop?.HUDController);
+export const isDesktopHudApp = () => {
+  if (typeof window === 'undefined' || !isDesktopApp()) return false;
+  return new URLSearchParams(window.location.search).get('nativeHud') === '1';
+};
 
 export const DesktopHudApp: React.FC = () => {
   const [ready, setReady] = useState(false);
@@ -32,7 +34,7 @@ export const DesktopHudApp: React.FC = () => {
 
   useEffect(() => {
     const capture = () => {
-      void window.go?.desktop?.HUDController?.CaptureHUDWindowState?.();
+      void hudV3.captureWindowState().catch(() => undefined);
     };
     window.addEventListener('blur', capture);
     window.addEventListener('beforeunload', capture);
@@ -44,15 +46,13 @@ export const DesktopHudApp: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    const controller = window.go?.desktop?.HUDController;
-    if (!controller?.GetHUDCapabilities) return () => undefined;
-    void controller
-      .GetHUDCapabilities()
+    void hudV3
+      .getCapabilities()
       .then(async (caps) => {
         if (!active) return;
         setAutoStartSupported(Boolean(caps.autoStart));
-        if (caps.autoStart && controller.GetHUDAutoStartEnabled) {
-          const enabled = await controller.GetHUDAutoStartEnabled();
+        if (caps.autoStart) {
+          const enabled = await hudV3.getAutoStartEnabled();
           if (active) setAutoStartEnabled(enabled);
         }
       })
@@ -63,12 +63,11 @@ export const DesktopHudApp: React.FC = () => {
   }, []);
 
   const toggleAutoStart = () => {
-    const controller = window.go?.desktop?.HUDController;
-    if (!controller?.SetHUDAutoStartEnabled || autoStartPending) return;
+    if (autoStartPending) return;
     const next = !autoStartEnabled;
     setAutoStartPending(true);
-    void controller
-      .SetHUDAutoStartEnabled(next)
+    void hudV3
+      .setAutoStartEnabled(next)
       .then(() => setAutoStartEnabled(next))
       .finally(() => setAutoStartPending(false));
   };
@@ -77,15 +76,11 @@ export const DesktopHudApp: React.FC = () => {
     void (async () => {
       const bridge = getPlatformBridge();
       const bootstrap = await bridge.getBootstrapInfo?.();
-      if (bootstrap?.serverUrl) {
-        await bridge.openExternal(bootstrap.serverUrl);
-      }
+      if (bootstrap?.serverUrl) await bridge.openExternal(bootstrap.serverUrl);
     })();
   };
 
-  if (!ready) {
-    return <div className={styles.status}>Nexus HUD</div>;
-  }
+  if (!ready) return <div className={styles.status}>Nexus HUD</div>;
   if (!authenticated) {
     return (
       <div className={styles.status} role="alert">

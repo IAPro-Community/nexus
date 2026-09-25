@@ -7,72 +7,7 @@ import {
   NativeVoiceRecording,
 } from './capabilities';
 import { safeExternalUrl } from './externalUrl';
-
-declare global {
-  interface Window {
-    go?: {
-      desktop?: {
-        HUDController?: {
-          GetHUDCapabilities?: () => Promise<{
-            transparentWindow: boolean;
-            framelessWindow: boolean;
-            alwaysOnTop: boolean;
-            globalPositioning: boolean;
-            multiMonitor: boolean;
-            autoHide: boolean;
-            nativeNotifications: boolean;
-            tray: boolean;
-            autoStart: boolean;
-            platform: string;
-            session?: string;
-          }>;
-          GetHUDWindowState?: () => Promise<{
-            displayId: string;
-            placement: string;
-            x: number;
-            y: number;
-            width: number;
-            height: number;
-            mode: string;
-            opacity: number;
-            alwaysOnTop: boolean;
-            autoHide: boolean;
-          }>;
-          CaptureHUDWindowState?: () => Promise<void>;
-          SetHUDExpanded?: (expanded: boolean) => Promise<void>;
-          HideHUD?: () => Promise<void>;
-          ShowHUD?: () => Promise<void>;
-          GetHUDAutoStartEnabled?: () => Promise<boolean>;
-          SetHUDAutoStartEnabled?: (enabled: boolean) => Promise<void>;
-        };
-        App?: {
-          SelectDirectory?: (title?: string) => Promise<string>;
-          SelectFile?: (options?: FilePickerOptions) => Promise<string>;
-          ShowNotification?: (options: NotificationOptions) => Promise<void>;
-          OpenExternal?: (url: string) => Promise<void>;
-          GetSystemTheme?: () => Promise<'light' | 'dark' | 'unknown'>;
-          IsMaximized?: () => Promise<boolean>;
-          MinimizeWindow?: () => Promise<void>;
-          MaximizeWindow?: () => Promise<void>;
-          UnmaximizeWindow?: () => Promise<void>;
-          CloseWindow?: () => Promise<void>;
-          QuitApp?: () => Promise<void>;
-          GetCapabilities?: () => Promise<PlatformCapabilities>;
-          GetBootstrapInfo?: () => Promise<DesktopBootstrapInfo>;
-          StartVoiceCapture?: () => Promise<void>;
-          StopVoiceCapture?: () => Promise<NativeVoiceRecording>;
-          CancelVoiceCapture?: () => Promise<void>;
-        };
-      };
-    };
-    runtime?: {
-      BrowserOpenURL?: (url: string) => void;
-      Quit?: () => void;
-      WindowMinimise?: () => void;
-      WindowToggleMaximise?: () => void;
-    };
-  }
-}
+import { appV3 } from './wailsV3';
 
 export class DesktopBridge implements PlatformBridge {
   readonly kind = 'desktop' as const;
@@ -82,18 +17,12 @@ export class DesktopBridge implements PlatformBridge {
   private cachedCapabilities: PlatformCapabilities | null = null;
   private capabilitiesRequest: Promise<PlatformCapabilities | null> | null = null;
 
-  private get appBinding() {
-    return window.go?.desktop?.App;
-  }
-
   private async loadCapabilities(): Promise<PlatformCapabilities | null> {
     if (this.cachedCapabilities) return this.cachedCapabilities;
     if (this.capabilitiesRequest) return this.capabilitiesRequest;
 
-    const binding = this.appBinding?.GetCapabilities;
-    if (!binding) return null;
-
-    this.capabilitiesRequest = binding()
+    this.capabilitiesRequest = appV3
+      .getCapabilities()
       .then((capabilities) => {
         this.cachedCapabilities = capabilities;
         return capabilities;
@@ -106,13 +35,8 @@ export class DesktopBridge implements PlatformBridge {
   }
 
   async getBootstrapInfo(): Promise<DesktopBootstrapInfo | null> {
-    if (this.cachedBootstrap) {
-      return this.cachedBootstrap;
-    }
-
-    if (this.bootstrapRequest) {
-      return this.bootstrapRequest;
-    }
+    if (this.cachedBootstrap) return this.cachedBootstrap;
+    if (this.bootstrapRequest) return this.bootstrapRequest;
 
     this.bootstrapRequest = this.loadBootstrapInfo().finally(() => {
       this.bootstrapRequest = null;
@@ -121,42 +45,22 @@ export class DesktopBridge implements PlatformBridge {
   }
 
   private async loadBootstrapInfo(): Promise<DesktopBootstrapInfo | null> {
-    // 1. Check for Wails Go binding (with retry for async binding injection)
-    for (let i = 0; i < 20; i++) {
-      if (window.go?.desktop?.App?.GetBootstrapInfo) {
-        break;
+    try {
+      const info = await appV3.getBootstrapInfo();
+      if (info?.serverUrl) {
+        await this.loadCapabilities();
+        this.cachedBootstrap = info;
+        return info;
       }
-      await new Promise((resolve) => setTimeout(resolve, 50));
+    } catch (err) {
+      console.warn('Wails v3 App.GetBootstrapInfo error:', err);
     }
-
-    if (window.go?.desktop?.App?.GetBootstrapInfo) {
-      try {
-        const info = await window.go.desktop.App.GetBootstrapInfo();
-        if (info && info.serverUrl) {
-          await this.loadCapabilities();
-          this.cachedBootstrap = info;
-          return info;
-        }
-      } catch (err) {
-        console.warn('Wails App.GetBootstrapInfo error:', err);
-      }
-    }
-
-    // The HTTP endpoint intentionally requires an existing desktop bearer and
-    // is not a bootstrap fallback. Only the native Wails binding can safely
-    // deliver the pre-provisioned session to this document.
     return null;
   }
 
   getCapabilities(): PlatformCapabilities {
-    if (this.cachedCapabilities) return this.cachedCapabilities;
-    const app = this.appBinding;
-
-    // Real Wails bindings expose GetCapabilities; until bootstrap resolves it,
-    // report only capabilities that are safe to infer. A test/mock binding
-    // without GetCapabilities may still use method presence as its contract.
-    if (app?.GetCapabilities) {
-      return {
+    return (
+      this.cachedCapabilities ?? {
         native: true,
         filePicker: false,
         folderPicker: false,
@@ -166,56 +70,35 @@ export class DesktopBridge implements PlatformBridge {
         deepLinks: false,
         autoStart: false,
         windowManagement: true,
-        nativeVoiceCapture: Boolean(app?.StartVoiceCapture && app?.StopVoiceCapture),
-      };
-    }
-
-    return {
-      native: true,
-      filePicker: Boolean(app?.SelectFile),
-      folderPicker: Boolean(app?.SelectDirectory),
-      notifications: Boolean(app?.ShowNotification),
-      tray: false,
-      nativeMenus: false,
-      deepLinks: false,
-      autoStart: false,
-      windowManagement: true,
-      nativeVoiceCapture: Boolean(app?.StartVoiceCapture && app?.StopVoiceCapture),
-    };
+        nativeVoiceCapture: false,
+      }
+    );
   }
 
   async selectDirectory(title?: string): Promise<string | null> {
-    if (this.appBinding?.SelectDirectory) {
-      try {
-        const path = await this.appBinding.SelectDirectory(title);
-        return path || null;
-      } catch {
-        return null;
-      }
+    try {
+      const path = await appV3.selectDirectory(title);
+      return path || null;
+    } catch {
+      return null;
     }
-    return null;
   }
 
   async selectFile(options?: FilePickerOptions): Promise<string | null> {
-    if (this.appBinding?.SelectFile) {
-      try {
-        const path = await this.appBinding.SelectFile(options);
-        return path || null;
-      } catch {
-        return null;
-      }
+    try {
+      const path = await appV3.selectFile(options);
+      return path || null;
+    } catch {
+      return null;
     }
-    return null;
   }
 
   async showNotification(options: NotificationOptions): Promise<void> {
-    if (this.appBinding?.ShowNotification) {
-      try {
-        await this.appBinding.ShowNotification(options);
-        return;
-      } catch {
-        // Fallback to web notification if available
-      }
+    try {
+      await appV3.showNotification(options);
+      return;
+    } catch {
+      // Browser notification remains a presentation fallback.
     }
     if (
       typeof window !== 'undefined' &&
@@ -229,93 +112,60 @@ export class DesktopBridge implements PlatformBridge {
   async openExternal(url: string): Promise<void> {
     const safeUrl = safeExternalUrl(url);
     if (!safeUrl) return;
-
-    if (this.appBinding?.OpenExternal) {
-      try {
-        await this.appBinding.OpenExternal(safeUrl);
-        return;
-      } catch {
-        // Fallback
-      }
-    }
-    if (window.runtime?.BrowserOpenURL) {
-      window.runtime.BrowserOpenURL(safeUrl);
+    try {
+      await appV3.openExternal(safeUrl);
       return;
+    } catch {
+      window.open(safeUrl, '_blank', 'noopener,noreferrer');
     }
-    window.open(safeUrl, '_blank', 'noopener,noreferrer');
   }
 
   async getSystemTheme(): Promise<'light' | 'dark' | 'unknown'> {
-    if (this.appBinding?.GetSystemTheme) {
-      try {
-        return await this.appBinding.GetSystemTheme();
-      } catch {
-        // Fallback
-      }
+    try {
+      return await appV3.getSystemTheme();
+    } catch {
+      if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark';
+      return 'light';
     }
-    if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    return 'light';
   }
 
   async startNativeVoiceCapture(): Promise<void> {
-    const start = this.appBinding?.StartVoiceCapture;
-    if (!start) throw new Error('Captura nativa de voz indisponível.');
-    await start();
+    await appV3.startVoiceCapture();
   }
 
   async stopNativeVoiceCapture(): Promise<NativeVoiceRecording> {
-    const stop = this.appBinding?.StopVoiceCapture;
-    if (!stop) throw new Error('Captura nativa de voz indisponível.');
-    return await stop();
+    return await appV3.stopVoiceCapture();
   }
 
   async cancelNativeVoiceCapture(): Promise<void> {
-    const cancel = this.appBinding?.CancelVoiceCapture;
-    if (cancel) await cancel();
+    await appV3.cancelVoiceCapture();
   }
 
   async isMaximized(): Promise<boolean> {
-    if (this.appBinding?.IsMaximized) {
-      return await this.appBinding.IsMaximized();
+    try {
+      return await appV3.isMaximized();
+    } catch {
+      return false;
     }
-    return false;
   }
 
   async minimizeWindow(): Promise<void> {
-    if (this.appBinding?.MinimizeWindow) {
-      await this.appBinding.MinimizeWindow();
-    } else if (window.runtime?.WindowMinimise) {
-      window.runtime.WindowMinimise();
-    }
+    await appV3.minimizeWindow();
   }
 
   async maximizeWindow(): Promise<void> {
-    if (this.appBinding?.MaximizeWindow) {
-      await this.appBinding.MaximizeWindow();
-    } else if (window.runtime?.WindowToggleMaximise) {
-      window.runtime.WindowToggleMaximise();
-    }
+    await appV3.maximizeWindow();
   }
 
   async unmaximizeWindow(): Promise<void> {
-    if (this.appBinding?.UnmaximizeWindow) {
-      await this.appBinding.UnmaximizeWindow();
-    }
+    await appV3.unmaximizeWindow();
   }
 
   async closeWindow(): Promise<void> {
-    if (this.appBinding?.CloseWindow) {
-      await this.appBinding.CloseWindow();
-    }
+    await appV3.closeWindow();
   }
 
   async quitApp(): Promise<void> {
-    if (this.appBinding?.QuitApp) {
-      await this.appBinding.QuitApp();
-    } else if (window.runtime?.Quit) {
-      window.runtime.Quit();
-    }
+    await appV3.quitApp();
   }
 }

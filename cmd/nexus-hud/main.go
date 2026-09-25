@@ -64,7 +64,7 @@ func main() {
 		MinHeight:                  48,
 		MaxWidth:                   1200,
 		MaxHeight:                  900,
-		URL:                        "/",
+		URL:                        "/?nativeHud=1",
 		Frameless:                  true,
 		AlwaysOnTop:                windowState.AlwaysOnTop,
 		InitialPosition:            application.WindowXY,
