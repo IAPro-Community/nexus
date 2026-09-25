@@ -60,7 +60,7 @@ func main() {
 		dirs = stringList{"dist"}
 	}
 	if *baseURL == "" {
-		*baseURL = "https://github.com/IAPro-Community/nexus-releases/releases/download/v" + strings.TrimPrefix(*version, "v")
+		*baseURL = defaultArtifactBaseURL(*version)
 	}
 	parsedBase, err := url.Parse(*baseURL)
 	if err != nil || !allowedArtifactBaseURL(parsedBase) {
@@ -130,6 +130,11 @@ func main() {
 	if err := writeSignedManifest(outDir, bytes, key); err != nil {
 		panic(err)
 	}
+}
+
+func defaultArtifactBaseURL(version string) string {
+	return "https://github.com/IAPro-Community/nexus-releases/releases/download/v" +
+		strings.TrimPrefix(strings.TrimSpace(version), "v")
 }
 
 func normalizeSourceSHA(value string) string {
