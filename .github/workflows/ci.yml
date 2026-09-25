@@ -242,8 +242,6 @@ jobs:
         with:
           go-version: '1.25.14'
           cache: false
-      - name: Wails v2 + tray linker compatibility probe
-        shell: bash
       - name: Verify gofmt
         run: |
           set -euo pipefail
