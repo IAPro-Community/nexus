@@ -3,8 +3,8 @@
 Status: **ACCEPTED / PARTIALLY IMPLEMENTED IN V1 BETA**  
 Data: 2026-09-24  
 Base original analisada: `main@79493344ac510ad81d741a867dd92bb86bf4215b`  
-Release de integração: `v1.0.0-beta.3` candidate  
-Spec associada: `DEV/SPECS/NEXUS_1_1_AGENT_INTEROP.md`
+Release de fechamento funcional: `v1.0.0-beta.3` candidate  
+Spec associada: `DEV/SPECS/NEXUS_V1_AGENT_INTEROP.md`
 
 ## Contexto
 
