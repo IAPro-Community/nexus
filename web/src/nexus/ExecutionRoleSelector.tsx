@@ -113,6 +113,17 @@ export const ExecutionRoleSelector: React.FC<{
     }
   };
 
+  useEffect(() => {
+    const handleExternalRoleSwitch = (event: Event) => {
+      const detail = (event as CustomEvent<{ runtimeId?: string; roleId?: string }>).detail;
+      if (!detail?.runtimeId || detail.runtimeId !== runtimeId || !detail.roleId) return;
+      void changeRole(detail.roleId);
+    };
+    window.addEventListener('nexus:execution-role-switch', handleExternalRoleSwitch);
+    return () =>
+      window.removeEventListener('nexus:execution-role-switch', handleExternalRoleSwitch);
+  }, [runtimeId, currentRoleId, busy, isOpenCode, view]);
+
   const certifyNativeReadOnly = async () => {
     const id = String(runtimeId || '').trim();
     if (!id || certifying) return;
@@ -149,6 +160,8 @@ export const ExecutionRoleSelector: React.FC<{
       <select
         id={runtimeId ? `execution-role-${runtimeId}` : undefined}
         className={styles.select}
+        data-execution-role-selector="true"
+        data-runtime-id={runtimeId || ''}
         value={currentRoleId}
         disabled={disabled || busy || !runtimeId || roles.length === 0}
         aria-label={t('terminal.executionRoleAria', { defaultValue: 'Execution role' })}
