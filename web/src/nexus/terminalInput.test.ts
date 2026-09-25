@@ -13,15 +13,14 @@ describe('shouldForwardTerminalInput', () => {
     '[0[I',
     '\x1b[1;2O',
     '[1;2O',
-    '[A',
     '\x1b[12;34R',
     '[12;34R',
   ])('drops leaked focus/CPR sequence %j', (data) => {
     expect(shouldForwardTerminalInput(data)).toBe(false);
   });
 
-  it('forwards real arrow-key input', () => {
-    for (const data of ['[A', '[B', '[C', '[D']) {
+  it('forwards real arrow-key input and split-escape continuations', () => {
+    for (const data of ['[A', '[B', '[C', '[D', '[A', '[B', '[C', '[D']) {
       expect(shouldForwardTerminalInput(data)).toBe(true);
     }
   });
@@ -58,9 +57,9 @@ describe('stripEmbeddedTerminalMetadata', () => {
     );
   });
 
-  it('strips bursts whose ESC bytes were lost by the terminal bridge', () => {
-    expect(stripEmbeddedTerminalMetadata('> [B[A[A[B[C[D[D[C')).toBe('> ');
-    expect(stripEmbeddedTerminalMetadata('[[A[B')).toBe('');
+  it('does not guess that navigation-looking bytes are metadata', () => {
+    expect(stripEmbeddedTerminalMetadata('> [B[A[A[B[C[D[D[C')).toBe('> [B[A[A[B[C[D[D[C');
+    expect(stripEmbeddedTerminalMetadata('[[A[B')).toBe('[[A[B');
     expect(stripEmbeddedTerminalMetadata('[A')).toBe('[A');
     expect(stripEmbeddedTerminalMetadata('typed [A text')).toBe('typed [A text');
   });

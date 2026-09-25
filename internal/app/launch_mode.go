@@ -125,7 +125,8 @@ func (r *LaunchModeResolver) StripControlFlags() []string {
 }
 
 // WantInteractiveLead reports whether the supervised TTY should bind a Lead
-// Agent and enable Mission promotion. V1 defaults to true; --no-lead opts out.
+// Agent and enable Mission promotion. Provider-native operation is the default;
+// --lead is the explicit opt-in and --no-lead remains a compatibility override.
 func (r *LaunchModeResolver) WantInteractiveLead() bool {
 	return wantInteractiveLead(r.input.Args)
 }
