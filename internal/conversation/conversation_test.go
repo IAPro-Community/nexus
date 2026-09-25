@@ -8,7 +8,9 @@ import (
 
 func TestListRecentConversations(t *testing.T) {
 	hostHome := t.TempDir()
+	t.Setenv("NEXUS_REAL_HOME", hostHome)
 	t.Setenv("AI_REAL_HOME", hostHome)
+	t.Setenv("AI_CLI_DATA_DIR", hostHome)
 
 	// Create simulated AGY history.jsonl
 	agyCliDir := filepath.Join(hostHome, ".gemini", "antigravity-cli")
