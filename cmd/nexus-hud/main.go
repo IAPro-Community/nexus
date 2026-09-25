@@ -38,7 +38,7 @@ func main() {
 			UniqueID: "com.iapro.nexus.hud",
 		},
 		Mac: application.MacOptions{
-			ActivationPolicy:                         application.ActivationPolicyAccessory,
+			ActivationPolicy: application.ActivationPolicyAccessory,
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 		Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: true},

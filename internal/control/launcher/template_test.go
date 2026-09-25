@@ -25,7 +25,6 @@ func TestResolveCommandTemplateRejectsShellOperators(t *testing.T) {
 	}
 }
 
-
 func TestResolveCommandTemplateContextExpandsProviderTargetMetadata(t *testing.T) {
 	bin, args, err := ResolveCommandTemplateContext(
 		`docker exec -it -w "{cwd}" vpn-dev-workspace-terminal-1 {provider} --profile {profile} --home "{profile_home}" {args}`,
@@ -73,7 +72,6 @@ func TestResolveCommandTemplateContextRejectsArgsInsideToken(t *testing.T) {
 	}
 }
 
-
 func TestResolveCommandTemplateContextPreservesQuotedWindowsExecutablePath(t *testing.T) {
 	bin, args, err := ResolveCommandTemplateContext(
 		`"C:\Program Files\Nexus Tools\wrapper.exe" --workspace "{cwd}" {provider} {args}`,
@@ -94,7 +92,6 @@ func TestResolveCommandTemplateContextPreservesQuotedWindowsExecutablePath(t *te
 		t.Fatalf("args = %#v, want %#v", args, want)
 	}
 }
-
 
 func TestResolveCommandTemplateContextSeparatesHostAndTargetWorkspace(t *testing.T) {
 	bin, args, err := ResolveCommandTemplateContext(
@@ -134,7 +131,6 @@ func TestResolveCommandTemplateContextTargetWorkspaceFallsBackToHostCwd(t *testi
 		t.Fatalf("target_cwd fallback missing: %#v", args)
 	}
 }
-
 
 func TestResolveCommandTemplateRejectsQuotedShellOperators(t *testing.T) {
 	for _, template := range []string{

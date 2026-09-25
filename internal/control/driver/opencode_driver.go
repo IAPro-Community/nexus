@@ -179,4 +179,3 @@ func (d *OpenCodeDriver) BuildResumeArgs(ctx context.Context, p model.Profile, p
 func (d *OpenCodeDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, kickoffPrompt string) ([]string, error) {
 	return spec.MustGet("opencode").Kickoff(kickoffPrompt), nil
 }
-

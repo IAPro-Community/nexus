@@ -122,12 +122,12 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 			targetWorkspace = strings.TrimSpace(value)
 		}
 		bin, extraArgs, err = ResolveCommandTemplateContext(template, CommandTemplateContext{
-			Cwd:             opts.Workspace,
-			TargetCwd:       targetWorkspace,
-			Args:            configuredArgs,
-			Provider:        opts.ProviderID,
-			Profile:         opts.ProfileID,
-			ProfileHome:     profileHome,
+			Cwd:         opts.Workspace,
+			TargetCwd:   targetWorkspace,
+			Args:        configuredArgs,
+			Provider:    opts.ProviderID,
+			Profile:     opts.ProfileID,
+			ProfileHome: profileHome,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("invalid command template: %w", err)

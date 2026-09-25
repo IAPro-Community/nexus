@@ -107,9 +107,9 @@ type Plan struct {
 	ManagedRoot     string              `json:"managed_root"`
 	RendererVersion string              `json:"renderer_version"`
 	SourceHash      string              `json:"source_hash"`
-	Artifacts []GeneratedArtifact `json:"artifacts,omitempty"`
-	Conflicts []Conflict          `json:"conflicts,omitempty"`
-	Warnings  []string            `json:"warnings,omitempty"`
+	Artifacts       []GeneratedArtifact `json:"artifacts,omitempty"`
+	Conflicts       []Conflict          `json:"conflicts,omitempty"`
+	Warnings        []string            `json:"warnings,omitempty"`
 }
 
 type ArtifactReceipt struct {

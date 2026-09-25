@@ -28,7 +28,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-
 type failBuildCommandDriver struct {
 	*driver.FakeDriver
 }
