@@ -64,6 +64,10 @@
   permanece Nexus overlay quando native projection não é possível.
 - Controle **Certify** exige confirmação e executa activation + enforcement somente para roles
   read-only/verify-only.
+- Command Palette expõe as roles do terminal ativo e `Ctrl/Cmd+Shift+A` foca o selector sem
+  capturar `Shift+Tab` do TUI hospedado.
+- Providers sem adapter nativo continuam usando o mesmo ExecutionRole por Nexus overlay; a beta.3
+  só anuncia OpenCode como native projection.
 - Custom execution targets para Docker/VPN Workspace, Docker Compose, WSL, SSH e wrappers, mantendo
   provider lógico separado do target.
 - Custom target não exige provider instalado no host e suporta `{cwd}`, `{target_cwd}`,
