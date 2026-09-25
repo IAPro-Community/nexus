@@ -3,10 +3,11 @@
 A linha **Nexus 1.0 ainda está em beta**. O trabalho que estava separado como
 “1.1” foi incorporado ao candidato `v1.0.0-beta.2`.
 
-A última beta pública registrada, `v1.0.0-beta.1`, continua Linux amd64.
-O source candidato seguinte integra Linux amd64, Windows amd64 e macOS arm64,
-mas nenhuma dessas plataformas deve ser anunciada como certificada para a nova
-beta antes da evidência exact-SHA correspondente.
+A tag histórica `v1.0.0-beta.1` existe no repositório-fonte, mas não há
+GitHub Release pública correspondente. O source candidato `v1.0.0-beta.2`
+integra Linux amd64, Windows amd64 e macOS arm64; nenhuma plataforma deve ser
+anunciada como publicada/certificada para essa beta antes da evidência
+exact-SHA correspondente.
 
 | Capacidade | Linux amd64 | Windows amd64 | macOS arm64 |
 | --- | --- | --- | --- |
@@ -28,7 +29,7 @@ publicação continua fail-closed e vinculada ao SHA promovido.
 
 | Release | Plataformas pretendidas | Evidência obrigatória |
 | --- | --- | --- |
-| `v1.0.0-beta.1` | Linux amd64 | evidência histórica já publicada |
+| `v1.0.0-beta.1` | Linux amd64 | tag histórica no source; sem GitHub Release pública |
 | `v1.0.0-beta.2+` | Linux + Windows + macOS | CI exact-SHA + Windows + macOS + seal |
 | `v1.0.0-rc.*` | Linux + Windows + macOS | CI exact-SHA + Windows + macOS + seal |
 | `v1.0.0` | Linux + Windows + macOS | tudo acima + Stable Certification |
@@ -41,13 +42,13 @@ O repositório contém um harness local que executa os gates automatizáveis e
 registra evidência por SHA:
 
 ```bash
-./scripts/homologate-beta.sh
+NEXUS_EXPECTED_SHA="$(git rev-parse release/v1.0.0-beta.2)" ./scripts/homologate-beta.sh
 ```
 
 Windows:
 
 ```powershell
-.\scripts\homologate-beta.ps1
+.\scripts\homologate-beta.ps1 -ExpectedSha (git rev-parse release/v1.0.0-beta.2)
 ```
 
 Isso não substitui assinatura/notarização nem native certification remota.

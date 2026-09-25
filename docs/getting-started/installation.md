@@ -1,9 +1,13 @@
 # Instalação nativa por release assinada
 
-A release estável Nexus v1 ainda não foi publicada. A última beta pública
-registrada é **v1.0.0-beta.1 / Linux amd64**. O candidato seguinte
-**v1.0.0-beta.2** integra Linux amd64, Windows amd64 e macOS arm64; suporte
-público depende da certificação exact-SHA correspondente.
+A release estável Nexus v1 ainda não foi publicada e **nenhuma GitHub Release
+binária pública existe atualmente**. A tag histórica `v1.0.0-beta.1` existe
+somente no repositório-fonte; ela não corresponde a uma release com artefatos
+em `IAPro-Community/nexus-releases`.
+
+O candidato **v1.0.0-beta.2** integra Linux amd64, Windows amd64 e macOS arm64;
+a publicação pública depende da homologação e certificação exact-SHA
+correspondentes.
 
 | Quero… | Documento |
 | --- | --- |
@@ -12,30 +16,29 @@ público depende da certificação exact-SHA correspondente.
 | Compilar o source como desenvolvedor | [Build](../../BUILD.md) |
 | Ver a matriz de suporte | [Suporte de plataformas](../operations/platform-support.md) |
 
-## Release pública atualmente documentada
+## Distribuição pública
 
-A documentação pública mantém `v1.0.0-beta.1` como última beta publicada
-registrada. A versão do source candidato pode ser superior e não implica que o
-mesmo tag já esteja distribuído.
+No estado atual não existe URL de instalação pública válida. Não use a tag
+`v1.0.0-beta.1` para construir URLs em `nexus-releases`: o repositório
+público ainda não possui GitHub Releases.
 
-Enquanto a linha pública for beta, use uma tag explícita. O valor `latest`
-não deve ser usado como sinônimo de “beta mais nova”.
-
-## Linux amd64
-
-Baixe o instalador da própria release e pine a mesma versão:
+Quando uma versão for efetivamente publicada, o contrato de instalação será:
 
 ```bash
 curl -fsSL \
-  https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh \
+  https://github.com/IAPro-Community/nexus-releases/releases/download/vX.Y.Z/install.sh \
   -o install.sh
 
-bash install.sh --version=v1.0.0-beta.1
+bash install.sh --version=vX.Y.Z
 nexus doctor
 nexus web
 ```
 
-Pré-requisitos:
+A versão usada no comando deve corresponder a uma GitHub Release existente e
+assinada. Até a primeira publicação, use o build a partir do source descrito
+mais abaixo.
+
+Pré-requisitos do instalador Linux quando a release existir:
 
 - Linux amd64;
 - `curl` ou `wget`;
@@ -148,13 +151,9 @@ suportar troca de canal.
 
 ## Desinstalação
 
-```bash
-curl -fsSL \
-  https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/uninstall.sh \
-  -o uninstall.sh
-
-bash uninstall.sh
-```
+Quando uma GitHub Release pública existir, o `uninstall.sh` da mesma versão
+poderá ser baixado do repositório de distribuição. Em builds locais, use o
+`uninstall.sh` presente no próprio checkout.
 
 Por padrão, os dados do usuário são preservados. Para removê-los também:
 
@@ -196,16 +195,16 @@ No Docker, probes de Desktop e runtimes nativos podem aparecer como N/A.
 ## Homologação do candidato beta.2
 
 Enquanto o GitHub Actions estiver indisponível por créditos, execute a
-homologação automatizável localmente:
+homologação automatizável localmente fixando o SHA candidato:
 
 ```bash
-./scripts/homologate-beta.sh
+NEXUS_EXPECTED_SHA="$(git rev-parse release/v1.0.0-beta.2)" ./scripts/homologate-beta.sh
 ```
 
 No Windows:
 
 ```powershell
-.\scripts\homologate-beta.ps1
+.\scripts\homologate-beta.ps1 -ExpectedSha (git rev-parse release/v1.0.0-beta.2)
 ```
 
 A evidência é gravada por SHA em

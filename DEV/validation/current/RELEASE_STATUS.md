@@ -1,19 +1,35 @@
 # Current release status
 
-STATUS: NEXUS_1_0_RELEASE_CANDIDATE_NO_GO
-SOURCE_VERSION: 1.0.0
-PR4_HEAD_SHA: 0d6e9c667af39b7534002d060848acfc9eb8e265
-PR4_MERGED_SHA: 5a61d3152b23b002b39e8b4b8988924db39956b2
-PR4_CI_RUN: 35843620775 (#668, pull_request, SUCCESS)
-POST_MERGE_CI_RUN: 35849031522 (#669, push, SUCCESS on 5a61d3152b23b002b39e8b4b8988924db39956b2)
-BASELINE_MAIN_SHA: 7605f702cce220b4111d51d06a34b37f7e0a9a8d
-BASELINE_PR3_HEAD: 300ccbeee4f145f80ebce13c9cefafcb01acefc3
-BASELINE_CI_RUN: 35547298239 (#149)
-BASELINE_MAIN_PUSH_CI_RUN: 35547840452 (PARTIAL / NON-GREEN)
-LATEST_PUBLISHED_BETA_TAG: v1.0.0-beta.1
-UPDATED_AT: 2026-09-23
+STATUS: NEXUS_1_0_BETA2_CANDIDATE_UNVERIFIED
+SOURCE_VERSION: 1.0.0-beta.2
+CANDIDATE_REF: release/v1.0.0-beta.2
+PUBLIC_GITHUB_RELEASE: NONE
+LATEST_SOURCE_BETA_TAG: v1.0.0-beta.1
+CI_STATE: UNAVAILABLE_BEFORE_JOBS_ACCOUNT_CREDITS
+UPDATED_AT: 2026-09-25
 
-## Current truth
+> **Current release truth moved to `docs/release-status.md`.** This DEV file
+> remains an evidence ledger. The 2026-09-23 SHA/run records below are historical
+> and must not override the current `VERSION`, candidate ref, platform policy,
+> tag inventory, release inventory or current CI state.
+
+## Current candidate summary
+
+- source version: `1.0.0-beta.2`;
+- candidate ref: `release/v1.0.0-beta.2`;
+- source matrix integrated: Linux amd64 + Windows amd64 + macOS arm64;
+- public binary release inventory: empty in both the private source repository
+  and `IAPro-Community/nexus-releases`;
+- `v1.0.0-beta.1` is a historical source tag, not a published binary release;
+- current GitHub Actions runs terminate before jobs because account credits are
+  unavailable; this is neither PASS nor functional FAIL;
+- beta publication remains fail-closed until local homologation plus the
+  exact-SHA CI/native certification policy defined by the current workflows.
+
+For actionable release state, gates and commands use
+[`docs/release-status.md`](../../../docs/release-status.md).
+
+## Historical 2026-09-23 closure evidence
 
 PR #4 (`feat/nexus-1.0-closure`) was squash-merged into `main` on 2026-09-23.
 The source-closure head `0d6e9c667af39b7534002d060848acfc9eb8e265` passed CI #668 before merge.

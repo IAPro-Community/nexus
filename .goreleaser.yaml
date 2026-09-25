@@ -10,9 +10,9 @@ builds:
       - CGO_ENABLED=0
     flags:
       - -trimpath
-    # Nexus v1 stable support scope. Windows/macOS source support remains in-tree,
-    # but their binaries are not published as supported artifacts until native
-    # certification is restored for those platforms.
+    # GoReleaser owns the Linux CLI/package slice. Windows/macOS native CLI,
+    # Desktop, HUD and installers are produced/promoted by the exact-SHA native
+    # certification jobs in ci.yml/release.yml rather than by this build entry.
     goos:
       - linux
     goarch:
