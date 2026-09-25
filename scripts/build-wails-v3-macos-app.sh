@@ -12,6 +12,9 @@ EXECUTABLE="$3"
 BUNDLE_ID="$4"
 DISPLAY_NAME="$5"
 VERSION="$6"
+MARKETING_VERSION="${VERSION#v}"
+MARKETING_VERSION="${MARKETING_VERSION%%-*}"
+BUNDLE_BUILD="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
 
 : "${NEXUS_NATIVE_LDFLAGS:?NEXUS_NATIVE_LDFLAGS is required}"
 
@@ -38,8 +41,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>$DISPLAY_NAME</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>$VERSION</string>
-  <key>CFBundleVersion</key><string>$VERSION</string>
+  <key>CFBundleShortVersionString</key><string>$MARKETING_VERSION</string>
+  <key>CFBundleVersion</key><string>$BUNDLE_BUILD</string>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>LSUIElement</key><$LS_UI_ELEMENT/>
   <key>NSHighResolutionCapable</key><true/>
