@@ -387,3 +387,37 @@ func TestActivationProbeArgsFailClosed(t *testing.T) {
 		t.Fatal("empty activation marker must be rejected")
 	}
 }
+
+
+func TestEnforcementProbeArgsUseJSONAndProjectedAgent(t *testing.T) {
+	args, err := EnforcementProbeArgs("1.18.30", "nexus-review", "/workspace/.nexus-probe/canary.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(args, " ")
+	for _, want := range []string{"run", "--format json", "--agent nexus-review", "canary.txt"} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("enforcement args missing %q: %#v", want, args)
+		}
+	}
+}
+
+func TestParseEnforcementProbeOutputRequiresPermissionDenial(t *testing.T) {
+	denied := `{"type":"tool_use","part":{"tool":"edit","state":{"status":"error","error":"Permission denied by agent policy"}}}`
+	evidence := ParseEnforcementProbeOutput(denied)
+	if !evidence.WriteAttempted || !evidence.WriteDenied || evidence.WriteCompleted || evidence.Tool != "edit" {
+		t.Fatalf("unexpected denial evidence: %#v", evidence)
+	}
+
+	completed := `{"type":"tool_use","part":{"tool":"write","state":{"status":"completed"}}}`
+	evidence = ParseEnforcementProbeOutput(completed)
+	if !evidence.WriteAttempted || evidence.WriteDenied || !evidence.WriteCompleted {
+		t.Fatalf("completed write must fail enforcement proof: %#v", evidence)
+	}
+
+	unrelated := `{"type":"tool_use","part":{"tool":"edit","state":{"status":"error","error":"file not found"}}}`
+	evidence = ParseEnforcementProbeOutput(unrelated)
+	if !evidence.WriteAttempted || evidence.WriteDenied {
+		t.Fatalf("non-permission error must not prove enforcement: %#v", evidence)
+	}
+}
