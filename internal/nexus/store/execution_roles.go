@@ -80,6 +80,8 @@ func (s *Store) SetRuntimeExecutionRole(binding RuntimeExecutionRoleBinding) (Ru
 			scope=excluded.scope,
 			activation_strategy=excluded.activation_strategy,
 			enforcement=excluded.enforcement,
+			enforcement_evidence='',
+			enforcement_verified_at=NULL,
 			projection_receipt_id=excluded.projection_receipt_id,
 			activated_by=excluded.activated_by,
 			activated_at=excluded.activated_at`,
@@ -144,7 +146,11 @@ func (s *Store) AttachRuntimeExecutionRoleProjection(runtimeGenerationID, receip
 		return errors.New("runtime_generation_id and projection receipt id are required")
 	}
 	res, err := s.db.Exec(`UPDATE runtime_execution_roles
-		SET projection_receipt_id=?
+		SET projection_receipt_id=?,
+			activation_strategy='NEXUS_OVERLAY',
+			enforcement=CASE WHEN enforcement='ENFORCED' THEN 'BEST_EFFORT' ELSE enforcement END,
+			enforcement_evidence='',
+			enforcement_verified_at=NULL
 		WHERE runtime_generation_id=?`, receiptID, runtimeGenerationID)
 	if err != nil {
 		return err
