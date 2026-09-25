@@ -17,10 +17,12 @@ type RuntimeExecutionRoleBinding struct {
 	RoleID              string    `json:"role_id"`
 	Scope               string    `json:"scope"`
 	ActivationStrategy  string    `json:"activation_strategy"`
-	Enforcement         string    `json:"enforcement"`
-	ProjectionReceiptID string    `json:"projection_receipt_id,omitempty"`
-	ActivatedBy         string    `json:"activated_by,omitempty"`
-	ActivatedAt         time.Time `json:"activated_at"`
+	Enforcement           string     `json:"enforcement"`
+	EnforcementEvidence   string     `json:"enforcement_evidence,omitempty"`
+	EnforcementVerifiedAt *time.Time `json:"enforcement_verified_at,omitempty"`
+	ProjectionReceiptID   string     `json:"projection_receipt_id,omitempty"`
+	ActivatedBy           string     `json:"activated_by,omitempty"`
+	ActivatedAt           time.Time  `json:"activated_at"`
 }
 
 // SetRuntimeExecutionRole persists the operational role of a concrete runtime
@@ -97,10 +99,12 @@ func (s *Store) SetRuntimeExecutionRole(binding RuntimeExecutionRoleBinding) (Ru
 func (s *Store) RuntimeExecutionRole(runtimeGenerationID string) (RuntimeExecutionRoleBinding, error) {
 	var binding RuntimeExecutionRoleBinding
 	var activatedAt string
-	err := s.db.QueryRow(`SELECT id,runtime_generation_id,agent_id,role_id,scope,activation_strategy,enforcement,projection_receipt_id,activated_by,activated_at
+	var enforcementVerifiedAt sql.NullString
+	err := s.db.QueryRow(`SELECT id,runtime_generation_id,agent_id,role_id,scope,activation_strategy,enforcement,enforcement_evidence,enforcement_verified_at,projection_receipt_id,activated_by,activated_at
 		FROM runtime_execution_roles WHERE runtime_generation_id=?`, runtimeGenerationID).
 		Scan(&binding.ID, &binding.RuntimeGenerationID, &binding.AgentID, &binding.RoleID, &binding.Scope,
-			&binding.ActivationStrategy, &binding.Enforcement, &binding.ProjectionReceiptID, &binding.ActivatedBy, &activatedAt)
+			&binding.ActivationStrategy, &binding.Enforcement, &binding.EnforcementEvidence, &enforcementVerifiedAt,
+			&binding.ProjectionReceiptID, &binding.ActivatedBy, &activatedAt)
 	if err == sql.ErrNoRows {
 		return RuntimeExecutionRoleBinding{}, ErrNotFound
 	}
@@ -108,6 +112,11 @@ func (s *Store) RuntimeExecutionRole(runtimeGenerationID string) (RuntimeExecuti
 		return RuntimeExecutionRoleBinding{}, err
 	}
 	binding.ActivatedAt, _ = time.Parse(time.RFC3339Nano, activatedAt)
+	if enforcementVerifiedAt.Valid {
+		if parsed, parseErr := time.Parse(time.RFC3339Nano, enforcementVerifiedAt.String); parseErr == nil {
+			binding.EnforcementVerifiedAt = &parsed
+		}
+	}
 	return binding, nil
 }
 
@@ -156,7 +165,11 @@ func (s *Store) DetachRuntimeExecutionRoleProjection(runtimeGenerationID, receip
 		return errors.New("runtime_generation_id and projection receipt id are required")
 	}
 	res, err := s.db.Exec(`UPDATE runtime_execution_roles
-		SET projection_receipt_id='', activation_strategy='NEXUS_OVERLAY'
+		SET projection_receipt_id='',
+			activation_strategy='NEXUS_OVERLAY',
+			enforcement=CASE WHEN enforcement='ENFORCED' THEN 'BEST_EFFORT' ELSE enforcement END,
+			enforcement_evidence='',
+			enforcement_verified_at=NULL
 		WHERE runtime_generation_id=? AND projection_receipt_id=?`, runtimeGenerationID, receiptID)
 	if err != nil {
 		return err
@@ -182,6 +195,42 @@ func (s *Store) MarkRuntimeExecutionRoleActivation(runtimeGenerationID, receiptI
 		SET activation_strategy=?
 		WHERE runtime_generation_id=? AND projection_receipt_id=?`,
 		strategy, runtimeGenerationID, receiptID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+
+// MarkRuntimeExecutionRoleEnforced promotes a read-only runtime role only after
+// provider-backed evidence proves that the active projection actually rejected
+// a write attempt. The current receipt and native activation are mandatory so
+// stale or overlay-only evidence cannot promote enforcement.
+func (s *Store) MarkRuntimeExecutionRoleEnforced(runtimeGenerationID, receiptID, evidence string, verifiedAt time.Time) error {
+	runtimeGenerationID = strings.TrimSpace(runtimeGenerationID)
+	receiptID = strings.TrimSpace(receiptID)
+	evidence = strings.TrimSpace(evidence)
+	if runtimeGenerationID == "" || receiptID == "" || evidence == "" {
+		return errors.New("runtime_generation_id, projection receipt id and enforcement evidence are required")
+	}
+	if verifiedAt.IsZero() {
+		verifiedAt = time.Now().UTC()
+	}
+	res, err := s.db.Exec(`UPDATE runtime_execution_roles
+		SET enforcement='ENFORCED',
+			enforcement_evidence=?,
+			enforcement_verified_at=?
+		WHERE runtime_generation_id=?
+		  AND projection_receipt_id=?
+		  AND activation_strategy='NATIVE_ON_LAUNCH'`,
+		evidence,
+		verifiedAt.UTC().Format(time.RFC3339Nano),
+		runtimeGenerationID,
+		receiptID,
+	)
 	if err != nil {
 		return err
 	}
