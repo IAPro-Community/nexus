@@ -544,8 +544,20 @@ func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 	if !strings.Contains(string(makefile), "go build -trimpath") {
 		t.Error("Makefile go builds must pass -trimpath")
 	}
-	if !strings.Contains(string(makefile), "GOFLAGS=-trimpath") {
-		t.Error("Makefile wails build must forward -trimpath via GOFLAGS")
+	for _, nativeTarget := range []string{"build-desktop-wails:", "build-hud-wails:"} {
+		targetIdx := strings.Index(string(makefile), nativeTarget)
+		if targetIdx < 0 {
+			t.Errorf("Makefile missing Wails v3 native target %q", nativeTarget)
+			continue
+		}
+		targetEnd := strings.Index(string(makefile)[targetIdx+len(nativeTarget):], "\n\n")
+		block := string(makefile)[targetIdx:]
+		if targetEnd >= 0 {
+			block = string(makefile)[targetIdx : targetIdx+len(nativeTarget)+targetEnd]
+		}
+		if !strings.Contains(block, `GOFLAGS="-mod=readonly" go build -trimpath`) {
+			t.Errorf("%s must build Wails v3 directly with readonly modules and -trimpath", strings.TrimSuffix(nativeTarget, ":"))
+		}
 	}
 	ci, err := os.ReadFile(filepath.Join(root, ".github/workflows/ci.yml"))
 	if err != nil {
@@ -556,10 +568,10 @@ func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 			t.Errorf("ci.yml must build test binaries with %q", cmd)
 		}
 	}
-	// The Linux beta desktop job delegates to the Make target that forwards
-	// -trimpath to the Wails build.
-	if !strings.Contains(string(ci), "make build-desktop-wails") {
-		t.Error("ci.yml Linux Wails build must use the trimpath-enabled Make target")
+	// The Linux beta desktop job delegates to the Wails v3 direct-Go targets
+	// that carry -trimpath and readonly module resolution.
+	if !strings.Contains(string(ci), "make build-desktop-wails") || !strings.Contains(string(ci), "make build-hud-wails") {
+		t.Error("ci.yml Linux Wails v3 build must use both trimpath-enabled Make targets")
 	}
 }
 
@@ -679,9 +691,7 @@ func TestStagedNativeReleasePolicy(t *testing.T) {
 	}
 
 	for _, required := range []string{
-		"v1.1.0-beta.1)",
-		"native_policy=windows",
-		"v1.1.0-beta.*|v1.1.0-rc.*|v1.1.0)",
+		"v1.0.0-beta.3|v1.0.0-beta.*|v1.0.0-rc.*|v1.0.0)",
 		"native_policy=all",
 		"NATIVE_POLICY:",
 		"'hud_linux_amd64'",
