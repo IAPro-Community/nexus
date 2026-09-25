@@ -421,3 +421,49 @@ func TestParseEnforcementProbeOutputRequiresPermissionDenial(t *testing.T) {
 		t.Fatalf("non-permission error must not prove enforcement: %#v", evidence)
 	}
 }
+
+
+func TestProjectedReadOnlyAgentsDenyByDefault(t *testing.T) {
+	for _, version := range []string{"1.18.30", "2.0.3"} {
+		t.Run(version, func(t *testing.T) {
+			req := baseRequest(t, version, "review", "READ_ONLY")
+			artifacts, err := New().Render(context.Background(), req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := string(artifacts[0].Content)
+			if version[0] == '1' {
+				for _, want := range []string{`"*": deny`, "read: allow", "edit: deny", "bash: deny"} {
+					if !strings.Contains(got, want) {
+						t.Fatalf("V1 deny-by-default projection missing %q:\n%s", want, got)
+					}
+				}
+			} else {
+				for _, want := range []string{`action: "*"`, "effect: deny", "action: read", "effect: allow", "action: edit", "action: shell"} {
+					if !strings.Contains(got, want) {
+						t.Fatalf("V2 deny-by-default projection missing %q:\n%s", want, got)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestParseEffectiveReadOnlyPermission(t *testing.T) {
+	v1 := `{"name":"nexus-review","tools":{"read":true,"edit":false,"write":false,"apply_patch":false}}`
+	if !ParseEffectiveReadOnlyPermission("1.18.30", "nexus-review", v1) {
+		t.Fatal("V1 resolved disabled edit tool should prove native read-only permission")
+	}
+	if ParseEffectiveReadOnlyPermission("1.18.30", "nexus-review", `{"tools":{"edit":true}}`) {
+		t.Fatal("V1 enabled edit tool must not prove read-only permission")
+	}
+
+	v2 := `{"name":"nexus-review","permissions":[{"action":"edit","resource":"*","effect":"allow"},{"action":"edit","resource":"*","effect":"deny"}]}`
+	if !ParseEffectiveReadOnlyPermission("2.0.3", "nexus-review", v2) {
+		t.Fatal("V2 last matching edit deny should prove native read-only permission")
+	}
+	v2Unsafe := `{"name":"nexus-review","permissions":[{"action":"edit","resource":"*","effect":"deny"},{"action":"edit","resource":"*","effect":"allow"}]}`
+	if ParseEffectiveReadOnlyPermission("2.0.3", "nexus-review", v2Unsafe) {
+		t.Fatal("V2 later edit allow must invalidate read-only permission proof")
+	}
+}
