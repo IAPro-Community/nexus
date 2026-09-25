@@ -361,6 +361,20 @@ func TestCompareVersionsDowngradeRejection(t *testing.T) {
 }
 
 
+func TestManifestValidationRejectsMalformedSourceSHA(t *testing.T) {
+	manifest := Manifest{
+		SchemaVersion: 1,
+		Channel:       "beta",
+		Version:       "1.0.0-beta.2",
+		SourceSHA:     "not-a-source-sha",
+		ReleaseDate:   time.Now().UTC().Format(time.RFC3339),
+		KeyID:         "test",
+	}
+	if err := manifest.Validate(ManifestPolicy{}); err == nil || !strings.Contains(err.Error(), "source_sha") {
+		t.Fatalf("expected malformed source_sha rejection, got %v", err)
+	}
+}
+
 func TestManifestPreservesSourceSHA(t *testing.T) {
 	const sourceSHA = "0123456789abcdef0123456789abcdef01234567"
 	original := Manifest{
