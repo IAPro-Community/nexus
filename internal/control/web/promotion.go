@@ -13,7 +13,7 @@ import (
 // keeps the original prompt in the provider TUI until this returns ACCEPTED.
 func startPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, prompt string) (*nexus.DispatchResult, error) {
 	if n == nil || session.ProjectID == "" || session.AgentID == "" {
-		return nil, fmt.Errorf("Mission promotion is unavailable for this runtime")
+		return nil, fmt.Errorf("mission promotion is unavailable for this runtime")
 	}
 	result, err := n.StartDispatch(context.Background(), nexus.DispatchRequest{
 		ProjectID:            session.ProjectID,
@@ -39,7 +39,7 @@ func startPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, promp
 		return result, fmt.Errorf("%s: %s", result.Status, detail)
 	}
 	if strings.TrimSpace(result.RunID) == "" {
-		return nil, fmt.Errorf("Mission admission returned no run id")
+		return nil, fmt.Errorf("mission admission returned no run id")
 	}
 	return result, nil
 }
