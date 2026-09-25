@@ -17,7 +17,8 @@ func TestDecideInteractiveSubmitBypassesProviderSlash(t *testing.T) {
 			return nexus.IntentDecision{}, nil
 		},
 	}
-	action := decideInteractiveSubmit(context.Background(), slow, "project", "/status", nexus.DelegationAuto)
+	decision := decideInteractiveSubmitDecision(context.Background(), slow, "project", "/status", nexus.DelegationAuto)
+	action := decision.Action
 	if action != promotion.KeepWithLead {
 		t.Fatalf("action=%s want KeepWithLead", action)
 	}
@@ -35,7 +36,8 @@ func TestDecideInteractiveSubmitTimesOutToKeepWithLead(t *testing.T) {
 		},
 	}
 	start := time.Now()
-	action := decideInteractiveSubmit(context.Background(), slow, "project", "implemente backend e frontend com testes e2e", nexus.DelegationAuto)
+	decision := decideInteractiveSubmitDecision(context.Background(), slow, "project", "implemente backend e frontend com testes e2e", nexus.DelegationAuto)
+	action := decision.Action
 	elapsed := time.Since(start)
 	if action != promotion.KeepWithLead {
 		t.Fatalf("action=%s want KeepWithLead on timeout", action)

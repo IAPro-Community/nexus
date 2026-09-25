@@ -83,7 +83,7 @@ func startInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSe
 		return result, fmt.Errorf("%s: %s", result.Status, detail)
 	}
 	if strings.TrimSpace(result.RunID) == "" {
-		return nil, fmt.Errorf("Mission admission returned no run id")
+		return nil, fmt.Errorf("mission admission returned no run id")
 	}
 	return result, nil
 }

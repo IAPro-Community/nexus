@@ -262,13 +262,13 @@ func (a *App) IsMaximized() bool {
 
 func (a *App) MinimizeWindow() {
 	if window, ok := a.nativeWindow(); ok {
-		window.Minimise()
+		window.Minimise() //nolint:misspell // Wails v3 API uses British spelling.
 	}
 }
 
 func (a *App) MaximizeWindow() {
 	if window, ok := a.nativeWindow(); ok {
-		window.Maximise()
+		window.Maximise() //nolint:misspell // Wails v3 API uses British spelling.
 	}
 }
 

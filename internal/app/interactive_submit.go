@@ -31,10 +31,6 @@ func decideInteractiveSubmitDecision(ctx context.Context, promoter promotion.Pro
 	return decision
 }
 
-func decideInteractiveSubmit(ctx context.Context, promoter promotion.Promoter, projectID, line string, mode nexus.DelegationMode) promotion.Action {
-	return decideInteractiveSubmitDecision(ctx, promoter, projectID, line, mode).Action
-}
-
 func shouldFallbackPromotionToLead(decision promotion.Decision) bool {
 	return decision.Action == promotion.Promote && !decision.ExplicitMissionRequest
 }

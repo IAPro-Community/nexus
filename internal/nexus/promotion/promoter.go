@@ -157,7 +157,7 @@ func IsExplicitMissionRequest(line string) bool {
 		switch token {
 		case "execute", "executar", "rode", "rodar", "run", "start", "inicie", "iniciar",
 			"crie", "criar", "create", "promova", "promover", "promote",
-			"transforme", "transformar", "use", "usar", "faça", "faca", "quero", "want":
+			"transforme", "transformar", "use", "usar", "faça", "faca", "quero", "want": //nolint:misspell // Portuguese command vocabulary.
 			return true
 		default:
 			return false
