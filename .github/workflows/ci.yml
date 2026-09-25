@@ -690,8 +690,6 @@ jobs:
         with:
           go-version: '1.25.14'
           cache: false
-      - name: Wails v2 + tray linker compatibility probe
-        shell: bash
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9

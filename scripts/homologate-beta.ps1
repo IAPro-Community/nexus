@@ -32,7 +32,7 @@ if ($ExpectedSha) {
   }
 }
 $Arch = $env:PROCESSOR_ARCHITECTURE
-$Out = Join-Path $Root ("DEV/validation/local-beta2/{0}/windows-{1}" -f $Sha, $Arch)
+$Out = Join-Path $Root ("DEV/validation/local-beta3/{0}/windows-{1}" -f $Sha, $Arch)
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 
 if (-not $AllowDirty) {
@@ -157,7 +157,7 @@ These checks require a real interactive/native session and are intentionally not
 - Remove the active projection. The receipt link must clear and activation strategy must return to `NEXUS_OVERLAY`; an older/stale receipt must not remove or promote a newer projection.
 - Exercise one custom target (Docker/VPN/WSL/SSH wrapper): provider may be absent on the host, `target_cwd` must resolve to the target-visible workspace, and no shell metacharacter template may be accepted.
 - Launch Nexus HUD and verify show/hide, autostart toggle and basic projection.
-- If voice is configured, verify microphone permission, transcription, provider fallback and terminal insertion without automatic Enter.
+- If voice is configured, verify microphone permission, capture, transcription, Groq -> Cloudflare provider fallback, terminal insertion without automatic Enter, and one non-destructive global voice command.
 '@ | Set-Content (Join-Path $Out 'MANUAL_CHECKS.md')
 
 "completed_at=$([DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'))" | Add-Content (Join-Path $Out 'environment.txt')

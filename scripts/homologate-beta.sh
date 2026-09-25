@@ -18,7 +18,7 @@ if [ -n "$EXPECTED_SHA" ]; then
 fi
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
-OUT="DEV/validation/local-beta2/${SHA}/${OS}-${ARCH}"
+OUT="DEV/validation/local-beta3/${SHA}/${OS}-${ARCH}"
 mkdir -p "$OUT"
 
 log() { printf '\n==> %s\n' "$*"; }
@@ -127,7 +127,7 @@ These checks require a real interactive/native session and are intentionally not
 - Remove the active projection. The receipt link must clear and activation strategy must return to `NEXUS_OVERLAY`; an older/stale receipt must not remove or promote a newer projection.
 - Exercise one custom target (Docker/VPN/WSL/SSH wrapper): provider may be absent on the host, `target_cwd` must resolve to the target-visible workspace, and no shell metacharacter template may be accepted.
 - Launch Nexus HUD and verify show/hide, autostart toggle and basic projection.
-- If voice is configured, verify microphone permission, transcription, provider fallback and terminal insertion without automatic Enter.
+- If voice is configured, verify microphone permission, capture, transcription, Groq -> Cloudflare provider fallback, terminal insertion without automatic Enter, and one non-destructive global voice command.
 EOF
 
 date -u '+completed_at=%Y-%m-%dT%H:%M:%SZ' | tee -a "$OUT/environment.txt"
