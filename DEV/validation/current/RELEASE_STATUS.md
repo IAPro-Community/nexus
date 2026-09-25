@@ -1,8 +1,8 @@
 # Current release status
 
-STATUS: NEXUS_1_0_BETA2_CANDIDATE_UNVERIFIED
-SOURCE_VERSION: 1.0.0-beta.2
-CANDIDATE_REF: release/v1.0.0-beta.2
+STATUS: NEXUS_1_0_BETA3_CANDIDATE_UNVERIFIED
+SOURCE_VERSION: 1.0.0-beta.3
+CANDIDATE_REF: release/v1.0.0-beta.3
 PUBLIC_GITHUB_RELEASE: NONE
 LATEST_SOURCE_BETA_TAG: v1.0.0-beta.1
 CI_STATE: UNAVAILABLE_BEFORE_JOBS_ACCOUNT_CREDITS
@@ -15,8 +15,8 @@ UPDATED_AT: 2026-09-25
 
 ## Current candidate summary
 
-- source version: `1.0.0-beta.2`;
-- candidate ref: `release/v1.0.0-beta.2`;
+- source version: `1.0.0-beta.3`;
+- candidate ref: `release/v1.0.0-beta.3`;
 - source matrix integrated: Linux amd64 + Windows amd64 + macOS arm64;
 - public binary release inventory: empty in both the private source repository
   and `IAPro-Community/nexus-releases`;
@@ -110,16 +110,15 @@ The program must close, with evidence:
 
 ## Platform truth
 
-The stable Nexus v1 support scope is **Linux amd64 only**.
+The beta.3 source integrates **Linux amd64, Windows amd64 and macOS arm64**.
 
-Linux is the release target that must carry fresh same-SHA evidence for CLI/Core,
-Browser/Web, Desktop Wails, packaging and install/update lifecycle.
+Public support remains evidence-bound: each platform advertised by a release must carry
+fresh same-SHA native evidence for its applicable CLI/Core, Browser/Web, Desktop/HUD,
+packaging and install/update lifecycle gates.
 
-Windows and macOS source/runtime implementations remain in-tree, and the manual
-`native_target_sha` CI mode remains available for a later platform-certification
-campaign. They are explicitly **DEFERRED / UNVERIFIED** for Nexus v1 and are not
-published as supported v1 artifacts. Their skipped jobs do not count as PASS and do
-not block the Linux-only v1 closure.
+Windows and macOS are therefore **UNVERIFIED until native same-SHA certification passes**;
+source integration is not itself a support claim. A public beta/stable release must not
+advertise a platform whose required native evidence is missing.
 
 Cross-compilation still must not be described as native certification.
 
@@ -132,7 +131,7 @@ release is NOT authorized by this document.
 Before any stable release:
 
 - final candidate CI must be green on the exact release SHA;
-- Linux amd64 native platform gates must be complete;
+- every platform advertised by the release must complete its native same-SHA gates;
 - update manifest/checksum/signature chain must be verified;
 - install/upgrade/uninstall must be executed on supported platforms;
 - release artifacts must be produced from the final clean candidate;
@@ -219,13 +218,13 @@ CI #669 is exact-SHA evidence for `5a61d3152b23b002b39e8b4b8988924db39956b2` onl
 If this status synchronization or any later change is merged, #669 becomes historical
 post-merge evidence and the new `main` SHA must pass exact-SHA CI again before certification.
 
-Windows/macOS are not part of this v1 release boundary and therefore are not blockers.
+Windows/macOS remain blockers for any release that advertises them until their native same-SHA certification is complete.
 
 ## Current verdict
 
 `NEXUS_1_0_CANDIDATE = NO_GO`
 
-Reason: source closure is merged and CI #669 proved the first post-merge SHA on the
-Linux-only matrix, but the final immutable candidate must still have exact-SHA CI after
-any subsequent repository change and must complete Stable Certification. Windows/macOS
-remain explicitly deferred and are not part of the v1 GO/NO-GO decision.
+Reason: beta.3 source closure is merged, but this newer candidate includes changes after
+the historical CI #669 baseline. The final immutable candidate still needs fresh exact-SHA
+homologation/certification for every platform it advertises, plus Stable Certification.
+Windows/macOS remain UNVERIFIED until their native same-SHA evidence is complete.
