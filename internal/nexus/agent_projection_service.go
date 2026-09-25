@@ -518,6 +518,55 @@ func (n *Nexus) ProbeRuntimeAgentProjectionEnforcement(ctx context.Context, runt
 	}
 	result.AgentName = agentName
 
+	permissionArgs, permissionArgsErr := opencodeprojection.EffectivePermissionProbeArgs(resolved.version, agentName)
+	nativePermissionProved := false
+	permissionProbeDetail := ""
+	if permissionArgsErr == nil {
+		permissionCtx, permissionCancel := context.WithTimeout(ctx, 8*time.Second)
+		var permissionBin string
+		var permissionCommandArgs []string
+		var permissionEnv []string
+		var permissionCwd string
+		if resolved.custom {
+			template := agentModeStringOption(resolved.config.Options, "target_probe_template")
+			if template != "" {
+				permissionBin, permissionCommandArgs, permissionArgsErr = launcher.ResolveCommandTemplateContext(template, launcher.CommandTemplateContext{
+					Cwd:         resolved.project.CanonicalPath,
+					TargetCwd:   resolved.targetWorkspace,
+					Args:        permissionArgs,
+					Provider:    resolved.generation.Provider,
+					Profile:     resolved.generation.Profile,
+					ProfileHome: resolved.providerHome,
+				})
+				permissionEnv = launchenv.Merge(os.Environ(), resolved.config.Environment, nil)
+				permissionCwd = resolved.project.CanonicalPath
+			} else {
+				permissionArgsErr = errors.New("custom target has no target_probe_template")
+			}
+		} else {
+			driver, driverErr := n.controlDrivers().Get(resolved.generation.Provider)
+			if driverErr != nil {
+				permissionArgsErr = driverErr
+			} else {
+				permissionBin, permissionCommandArgs, permissionEnv, permissionArgsErr = driver.BuildCommand(permissionCtx, model.Profile{
+					Provider: resolved.generation.Provider,
+					Name:     resolved.generation.Profile,
+				}, permissionArgs)
+				permissionCwd = resolved.project.CanonicalPath
+			}
+		}
+		if permissionArgsErr == nil {
+			permissionOutput, permissionRunErr := nexusruntime.RunCommandCapture(permissionCtx, permissionBin, permissionCommandArgs, permissionEnv, permissionCwd)
+			if permissionRunErr == nil {
+				nativePermissionProved = opencodeprojection.ParseEffectiveReadOnlyPermission(resolved.version, agentName, permissionOutput)
+				if nativePermissionProved {
+					permissionProbeDetail = "effective OpenCode agent permissions disable native file mutation tools"
+				}
+			}
+		}
+		permissionCancel()
+	}
+
 	probeDir, err := os.MkdirTemp(resolved.project.CanonicalPath, ".nexus-enforcement-probe-")
 	if err != nil {
 		result.Error = fmt.Sprintf("create enforcement probe directory: %v", err)
@@ -590,21 +639,27 @@ func (n *Nexus) ProbeRuntimeAgentProjectionEnforcement(ctx context.Context, runt
 		result.Error = "projected read-only agent completed a write; enforcement certification failed"
 		return result, fmt.Errorf("%s", result.Error)
 	}
-	if !evidence.WriteAttempted {
+	if !evidence.WriteDenied && !nativePermissionProved {
 		if runErr != nil {
-			result.Error = fmt.Sprintf("OpenCode enforcement probe failed before a write-tool event: %v", runErr)
+			result.Error = fmt.Sprintf("OpenCode enforcement probe failed without provider-backed permission evidence: %v", runErr)
+		} else if evidence.WriteAttempted {
+			result.Error = "OpenCode write-tool event was not an explicit permission/policy denial"
 		} else {
-			result.Error = "OpenCode enforcement probe produced no write-tool event"
+			result.Error = "OpenCode exposed no verifiable write denial and effective permission introspection did not prove mutation tools disabled"
 		}
-		return result, fmt.Errorf("%s", result.Error)
-	}
-	if !evidence.WriteDenied {
-		result.Error = "OpenCode write-tool event was not an explicit permission/policy denial"
 		return result, fmt.Errorf("%s", result.Error)
 	}
 
 	now := time.Now().UTC()
-	persistedEvidence := fmt.Sprintf("OpenCode native agent %q rejected %s by permission policy; canary_absent=true", agentName, evidence.Tool)
+	persistedEvidence := ""
+	if evidence.WriteDenied {
+		persistedEvidence = fmt.Sprintf("OpenCode native agent %q rejected %s by permission policy; canary_absent=true", agentName, evidence.Tool)
+	} else {
+		persistedEvidence = fmt.Sprintf("OpenCode native agent %q effective permission probe confirmed mutation tools disabled; canary_absent=true", agentName)
+		if permissionProbeDetail != "" {
+			persistedEvidence = permissionProbeDetail + "; canary_absent=true"
+		}
+	}
 	if err := resolved.st.MarkRuntimeExecutionRoleEnforced(
 		resolved.generation.ID,
 		record.ID,
