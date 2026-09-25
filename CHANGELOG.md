@@ -59,8 +59,7 @@
 - ExecutionRole consolidado para Build, Investigate, Review, Verify, Architect e Security.
 - OpenCode Agent Projection com renderer version-aware, ownership fail-closed e receipts duráveis.
 - Discovery nativo sem LLM e activation probe explícito com confirmação de custo/quota.
-- Enforcement read-only certificado separadamente: Nexus exige tentativa real de write/edit/patch,
-  permission/policy deny do OpenCode e ausência do canário antes de persistir `ENFORCED`.
+- Enforcement read-only certificado separadamente: Nexus exige prova do toolset/permission efetivo do OpenCode ou rejeição explícita de write/edit/patch, sempre com canário ausente antes de persistir `ENFORCED`.
 - Troca de role no terminal tenta projection OpenCode automaticamente sem chamada ao modelo; fallback
   permanece Nexus overlay quando native projection não é possível.
 - Controle **Certify** exige confirmação e executa activation + enforcement somente para roles
