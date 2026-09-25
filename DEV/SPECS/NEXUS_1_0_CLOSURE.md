@@ -1,9 +1,20 @@
 # IAPro Nexus 1.0 — Product Closure Program
 
-Status: ACTIVE  
-Branch: `feat/nexus-1.0-closure`  
-Baseline: `main@7605f702cce220b4111d51d06a34b37f7e0a9a8d`  
+Status: **ARCHITECTURAL CLOSURE CONTRACT / RELEASE POLICY SUPERSEDED**  
+Historical branch: `feat/nexus-1.0-closure`  
+Historical baseline: `main@7605f702cce220b4111d51d06a34b37f7e0a9a8d`  
 Baseline source: PR #3, merged after same-SHA CI #149 was fully green.
+
+> **Release-policy override — 2026-09-25:** the current source candidate is
+> `1.0.0-beta.2`; the active candidate ref is
+> `release/v1.0.0-beta.2`; Linux amd64, Windows amd64 and macOS arm64 are
+> integrated in source; current beta/release workflows require exact-SHA native
+> evidence according to `.github/workflows/ci.yml` and
+> `.github/workflows/release.yml`. There is no public GitHub Release yet.
+> For version, platform, publication and current CI truth, use
+> [`docs/release-status.md`](../../docs/release-status.md). Historical
+> Linux-only and `1.0.0` source claims below are preserved as dated evidence,
+> not current release policy.
 
 ## 1. Product contract
 
