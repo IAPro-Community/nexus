@@ -323,7 +323,7 @@ Use repository-defined commands where available and keep the CI commands identic
 
 ```bash
 bun --version
-bun --cwd web install --frozen-lockfile
+bun install --cwd web --frozen-lockfile
 npm --prefix web run format:check
 npm --prefix web run lint
 npm --prefix web run lint:styles
