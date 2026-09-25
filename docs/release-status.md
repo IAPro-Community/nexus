@@ -83,7 +83,8 @@ deve promover a matriz acima após evidência correspondente do mesmo SHA.
 
 Antes de criar/publicar a tag:
 
-- documentação;
+- documentação e release truth;
+- manifesto assinado contendo `source_sha` igual ao SHA exato promovido;
 - frontend format/lint/styles/typecheck/unit/build;
 - Go fmt/vet/test/race;
 - regressões específicas de terminal e roteamento Mission;
