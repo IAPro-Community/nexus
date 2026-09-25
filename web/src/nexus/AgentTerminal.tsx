@@ -1125,6 +1125,7 @@ export const AgentTerminal: React.FC<{
             )}
             <ExecutionRoleSelector
               runtimeId={boundRuntimeId}
+              provider={provider}
               disabled={!boundRuntimeId || connection === 'CONNECTING'}
             />
             <span data-state={connection}>{connection.toLowerCase()}</span>
@@ -1142,6 +1143,7 @@ export const AgentTerminal: React.FC<{
         >
           <ExecutionRoleSelector
             runtimeId={boundRuntimeId}
+            provider={provider}
             disabled={!boundRuntimeId || connection === 'CONNECTING'}
           />
           {modeButtons}
