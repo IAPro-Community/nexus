@@ -209,5 +209,5 @@ No Windows:
 ```
 
 A evidência é gravada por SHA em
-`DEV/validation/local-beta2/<sha>/<plataforma>/`. O script também gera a
+`DEV/validation/local-beta3/<sha>/<plataforma>/`. O script também gera a
 lista de checks manuais que não podem ser simulados com segurança.
