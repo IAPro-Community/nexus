@@ -9,7 +9,7 @@ SHA="$(git rev-parse HEAD)"
 SHORT_SHA="$(git rev-parse --short HEAD)"
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
-OUT="DEV/validation/local-beta2/${SHA}/${OS}-${ARCH}"
+OUT="DEV/validation/local-beta3/${SHA}/${OS}-${ARCH}"
 mkdir -p "$OUT"
 
 log() { printf '\n==> %s\n' "$*"; }
@@ -111,7 +111,7 @@ These checks require a real interactive/native session and are intentionally not
 - Open Agents and create/edit an Agent. OpenCode must be offered independently from AGY.
 - Open Usage. If OpenCode is installed but has no profile yet, it must still be shown as an installed provider.
 - Launch Nexus HUD and verify show/hide, autostart toggle and basic projection.
-- If voice is configured, verify microphone permission, transcription, provider fallback and terminal insertion without automatic Enter.
+- If voice is configured, verify microphone permission, capture, transcription, provider fallback, terminal insertion without automatic Enter, and one non-destructive global voice command.
 EOF
 
 date -u '+completed_at=%Y-%m-%dT%H:%M:%SZ' | tee -a "$OUT/environment.txt"
