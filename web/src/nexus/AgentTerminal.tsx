@@ -57,6 +57,10 @@ import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLive
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { canFitTerminal, canRunTerminalFrame } from './terminalFitModel';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
+import {
+  NEXUS_TERMINAL_VOICE_EVENT,
+  type TerminalVoiceDictationDetail,
+} from '../features/voice/voiceCommand';
 import { ExecutionRoleSelector } from './ExecutionRoleSelector';
 import styles from './AgentTerminal.module.scss';
 
@@ -833,6 +837,30 @@ export const AgentTerminal: React.FC<{
     ws.send(JSON.stringify({ type: 'input', data: text }));
     termRef.current?.focus();
   };
+
+  useEffect(() => {
+    const onGlobalVoiceDictation = (event: Event) => {
+      const detail = (event as CustomEvent<TerminalVoiceDictationDetail>).detail;
+      if (!detail || detail.handled || !detail.text.trim()) return;
+      const panel = containerRef.current?.closest<HTMLElement>('.nx-workspace-panel');
+      if (panel && panel.dataset.active !== 'true') return;
+
+      const ws = wsRef.current;
+      if (role !== 'CONTROL') {
+        detail.reason = 'O terminal ativo está em modo somente leitura. Assuma CONTROL antes de ditar.';
+        return;
+      }
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        detail.reason = 'O terminal ativo está desconectado.';
+        return;
+      }
+      ws.send(JSON.stringify({ type: 'input', data: detail.text }));
+      detail.handled = true;
+      termRef.current?.focus();
+    };
+    window.addEventListener(NEXUS_TERMINAL_VOICE_EVENT, onGlobalVoiceDictation);
+    return () => window.removeEventListener(NEXUS_TERMINAL_VOICE_EVENT, onGlobalVoiceDictation);
+  }, [role]);
 
   const handleInsertSkillToTerminal = (skill: AgentTerminalSkill) => {
     const trigger = skill.triggers?.[0] ? `${skill.triggers[0]} ` : `/${skill.id} `;

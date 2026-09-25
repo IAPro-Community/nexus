@@ -84,7 +84,7 @@ import { pushNotifications } from '../notifications/PushNotificationManager';
 import { loadNotificationPrefs, playAttentionSound } from '../notifications/notificationPrefs';
 import { formatAttentionPushBody } from '../notifications/attentionPushCopy';
 import { isPtyAttentionFocused } from '../notifications/attentionDelivery';
-import { interpretNexusVoiceCommand } from '../features/voice/voiceCommand';
+import { dispatchTerminalVoiceDictation, resolveNexusVoiceCommand } from '../features/voice/voiceCommand';
 
 const selectedProjectKey = 'iapro:nexus:selected-project:v1';
 const tourKey = 'iapro:nexus:tour-complete:v1';
@@ -584,6 +584,13 @@ const WorkspaceCoordinator: React.FC<{
         keywords: ['fleet', 'workers', 'terminals'],
         run: () => openKind('agents'),
       },
+      {
+        id: 'new-agent',
+        label: t('commands.newAgent', { defaultValue: 'New Agent' }),
+        group: t('commands.project'),
+        keywords: ['agent', 'create', 'novo agente', 'criar agente'],
+        run: () => setNewAgentOpen(true),
+      },
       ...data.agents.flatMap((agent) => [
         {
           id: `terminal-${agent.id}`,
@@ -648,6 +655,13 @@ const WorkspaceCoordinator: React.FC<{
         group: 'Nexus',
         keywords: ['theme', 'accessibility'],
         run: () => openKind('settings'),
+      },
+      {
+        id: 'toggle-zen',
+        label: t('commands.toggleZen', { defaultValue: 'Toggle Zen Mode' }),
+        group: 'Nexus',
+        keywords: ['zen', 'focus', 'modo zen'],
+        run: () => presentation.toggleZenMode(),
       },
       {
         id: 'runtime',
@@ -766,7 +780,7 @@ const WorkspaceCoordinator: React.FC<{
 
   const handleNexusVoiceTranscript = useCallback(
     async (transcript: string) => {
-      const intent = interpretNexusVoiceCommand(transcript);
+      const intent = resolveNexusVoiceCommand(transcript, commands);
       if (intent.kind === 'voice-settings') {
         setSettingsInitialTab('accessibility');
         openKind('settings');
@@ -774,6 +788,13 @@ const WorkspaceCoordinator: React.FC<{
       }
       if (intent.kind === 'palette') {
         setPalette(true);
+        return;
+      }
+      if (intent.kind === 'terminal-dictation') {
+        const delivery = dispatchTerminalVoiceDictation(intent.text);
+        if (!delivery.handled) {
+          throw new Error(delivery.reason || 'Nenhum terminal ativo com controle disponível.');
+        }
         return;
       }
       if (intent.kind === 'command') {

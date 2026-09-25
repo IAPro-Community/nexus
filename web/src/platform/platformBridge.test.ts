@@ -134,6 +134,30 @@ describe('PlatformBridge', () => {
     expect(first).toEqual(second);
   });
 
+  it('routes native voice capture through the Wails v3 App service', async () => {
+    const calls: string[] = [];
+    setWailsV3InvokerForTests(async (method) => {
+      calls.push(method);
+      if (method === 'desktop.App.StopVoiceCapture') {
+        return { dataBase64: 'UklGRg==', mimeType: 'audio/wav', durationMs: 321 };
+      }
+      return undefined;
+    });
+    const bridge = new DesktopBridge();
+    await bridge.startNativeVoiceCapture();
+    await expect(bridge.stopNativeVoiceCapture()).resolves.toEqual({
+      dataBase64: 'UklGRg==',
+      mimeType: 'audio/wav',
+      durationMs: 321,
+    });
+    await bridge.cancelNativeVoiceCapture();
+    expect(calls).toEqual([
+      'desktop.App.StartVoiceCapture',
+      'desktop.App.StopVoiceCapture',
+      'desktop.App.CancelVoiceCapture',
+    ]);
+  });
+
   it('uses backend capability evidence instead of method existence', async () => {
     setWailsV3InvokerForTests(async (method) => {
       if (method === 'desktop.App.GetBootstrapInfo') {

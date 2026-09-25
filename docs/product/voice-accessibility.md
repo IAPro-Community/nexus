@@ -28,10 +28,50 @@ e evita transformar um erro de STT em execução de shell. O terminal exige leas
 
 ### Nexus Voice Control
 
-O microfone global usa uma gramática determinística para navegação não destrutiva (projetos,
-agentes, terminais, Composer/Work, Missions, Resources, Sessions, Settings e Command Palette).
-Fala arbitrária ou comandos destrutivos ficam em `unknown`; esta versão não envia voz global
-para um LLM para decidir ações.
+O microfone global controla o Nexus por uma camada determinística, sem entregar a decisão de
+ação a um LLM. Ele resolve comandos explícitos e também reutiliza o **Command Registry** do
+Nexus para as ações marcadas como voice-safe. Isso cobre navegação e operações reversíveis como
+Projetos, Agentes, terminais, Composer/Work, Missions, Resources, Sessions, Settings, Maestro,
+layouts, modo Zen, abertura de nova sessão de IA, novo agente (abre o fluxo de criação) e Command
+Palette.
+
+Fala arbitrária ou comandos destrutivos continuam em `unknown`. A adição futura de um comando
+destrutivo ao Command Registry não o torna automaticamente executável por voz: IDs aceitos por
+voz usam allowlist/prefixos explícitos.
+
+O microfone global também entende ditado explícito para o terminal ativo:
+
+```text
+"escreva no terminal git status"
+            ↓
+transcrição STT
+            ↓
+terminal ativo com lease CONTROL
+            ↓
+PTY stdin recebe "git status"
+```
+
+O Nexus **não acrescenta Enter**. Dizer "git status" sozinho no microfone global não executa
+shell; é necessário usar a intenção explícita de terminal. Se não houver terminal ativo, conexão
+PTY ou lease CONTROL, nada é enviado.
+
+
+## Invariante P0 da migração Wails v3
+
+A migração do shell nativo não pode alterar o roteamento STT do produto:
+
+```text
+captura Web/native
+  -> Groq / whisper-large-v3-turbo (prioridade 1)
+  -> Cloudflare Workers AI / @cf/openai/whisper-large-v3-turbo (fallback)
+  -> transcript
+  -> Nexus Voice Control OU terminal ativo
+```
+
+`automatic_fallback=true` permanece padrão. Rate limit/quota, autenticação, falha de rede e
+indisponibilidade podem avançar ao próximo provider. Áudio/request inválido (400/413/415) não é
+cascateado. O contrato tem regressão automatizada no backend e o bridge Wails v3 tem teste próprio
+para Start/Stop/Cancel de captura.
 
 ## Providers e failover
 
@@ -69,9 +109,9 @@ dependência de binário Whisper local.
 | Superfície | Estratégia |
 | --- | --- |
 | Browser | APIs Web de captura; permissão do browser |
-| Linux Desktop | Wails/WebKitGTK tenta Web capture; se a permissão do Wails v2 falhar, usa fallback nativo `pw-record` (PipeWire) ou `arecord` (ALSA), gerando WAV mono/16 kHz |
-| Windows Desktop | Wails/WebView2 usa a permissão nativa do WebView2; nenhuma API key fica no WebView |
-| macOS Desktop | Wails/WKWebView + `NSMicrophoneUsageDescription` em `Info.plist` e `Info.dev.plist` |
+| Linux Desktop | Wails v3/WebKitGTK tenta Web capture; se a captura Web não estiver disponível, usa fallback nativo `pw-record` (PipeWire) ou `arecord` (ALSA), gerando WAV mono/16 kHz |
+| Windows Desktop | Wails v3/WebView2 usa a permissão nativa do WebView2; nenhuma API key fica no WebView |
+| macOS Desktop | Wails v3/WKWebView + permissão de microfone no bundle nativo |
 
 Se `getUserMedia` ou `MediaRecorder` não estiver disponível, o Desktop consulta a capability
 `nativeVoiceCapture`. No Linux ela só é anunciada quando `pw-record` ou `arecord` existe no

@@ -49,6 +49,23 @@ func testUpdate(base string) SettingsUpdate {
 	}
 }
 
+
+func TestDefaultVoiceRoutingContractIsGroqThenCloudflare(t *testing.T) {
+	cfg := DefaultSettings()
+	if !cfg.AutomaticFallback {
+		t.Fatal("automatic fallback must be enabled by default")
+	}
+	if len(cfg.Providers) < 2 {
+		t.Fatalf("expected Groq + Cloudflare default providers, got %+v", cfg.Providers)
+	}
+	if cfg.Providers[0].Kind != ProviderGroq || cfg.Providers[0].Priority != 1 || cfg.Providers[0].Model != "whisper-large-v3-turbo" {
+		t.Fatalf("Groq must remain the primary STT provider: %+v", cfg.Providers[0])
+	}
+	if cfg.Providers[1].Kind != ProviderCloudflare || cfg.Providers[1].Priority != 2 || cfg.Providers[1].Model != "@cf/openai/whisper-large-v3-turbo" {
+		t.Fatalf("Cloudflare must remain the default STT fallback: %+v", cfg.Providers[1])
+	}
+}
+
 func TestStoreKeepsVoiceSecretsOutOfSettingsViewAndSettingsFile(t *testing.T) {
 	dir := withVoiceConfigDir(t)
 	store := NewStore()
