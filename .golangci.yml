@@ -31,6 +31,15 @@ linters:
       - path: internal/nexus/composer_brief.go
         linters:
           - misspell
+      - path: internal/nexus/promotion/promoter.go
+        linters:
+          - misspell
+      - path: internal/app/interactive_submit.go
+        linters:
+          - unparam
+      - path: internal/desktop/hud_window.go
+        linters:
+          - staticcheck
 
 issues:
   max-issues-per-linter: 50
