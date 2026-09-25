@@ -116,6 +116,16 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		}
 		customCommand = true
 	}
+
+	if opts.Workspace != "" && !customCommand {
+		info, statErr := os.Stat(opts.Workspace)
+		if statErr != nil {
+			return nil, fmt.Errorf("workspace directory %q does not exist: %w", opts.Workspace, statErr)
+		}
+		if !info.IsDir() {
+			return nil, fmt.Errorf("workspace path %q is not a directory", opts.Workspace)
+		}
+	}
 	resolved, err := runtime.ResolveCommand(bin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve executable for %s:%s: %w", opts.ProviderID, opts.ProfileID, err)

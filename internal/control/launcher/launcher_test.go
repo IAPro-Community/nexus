@@ -4,9 +4,12 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/driver"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
@@ -107,5 +110,29 @@ func TestForceKillSessionRemovesAliveHost(t *testing.T) {
 	}
 	if registry.IsProcessAlive(pid) {
 		t.Fatalf("reaped host PID %d still reports alive", pid)
+	}
+}
+
+func TestLaunchMissingWorkspaceDirectoryFails(t *testing.T) {
+	l := NewLauncher()
+	drivers := driver.NewRegistry()
+	drivers.Register(driver.NewFakeDriver())
+	l.drivers = drivers
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	missingDir := filepath.Join(t.TempDir(), "non-existent-workspace")
+	_, err := l.Launch(ctx, LaunchOptions{
+		RuntimeID:  "rt-missing-ws",
+		ProviderID: "fake",
+		ProfileID:  "default",
+		Workspace:  missingDir,
+	})
+	if err == nil {
+		t.Fatal("expected Launch to fail for non-existent workspace directory, got nil")
+	}
+	if !strings.Contains(err.Error(), "does not exist") {
+		t.Fatalf("expected 'does not exist' error, got: %v", err)
 	}
 }
