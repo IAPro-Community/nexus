@@ -11,7 +11,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/gorilla/websocket v1.5.3
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
-	github.com/wailsapp/wails/v2 v2.15.0
+	github.com/wailsapp/wails/v3 v3.0.0-beta.25
 	golang.org/x/image v0.45.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/term v0.45.0

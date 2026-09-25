@@ -11,7 +11,8 @@ import (
 	"sync"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
-	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 const (
@@ -36,21 +37,23 @@ type HUDPlatformCapabilities struct {
 	NativeNotifications bool   `json:"nativeNotifications"`
 	Tray                bool   `json:"tray"`
 	AutoStart           bool   `json:"autoStart"`
+	DisplayCount        int    `json:"displayCount"`
 	Platform            string `json:"platform"`
 	Session             string `json:"session,omitempty"`
 }
 
 type HUDWindowState struct {
-	DisplayID   string  `json:"displayId"`
-	Placement   string  `json:"placement"`
-	X           int     `json:"x"`
-	Y           int     `json:"y"`
-	Width       int     `json:"width"`
-	Height      int     `json:"height"`
-	Mode        string  `json:"mode"`
-	Opacity     float64 `json:"opacity"`
-	AlwaysOnTop bool    `json:"alwaysOnTop"`
-	AutoHide    bool    `json:"autoHide"`
+	DisplayID    string  `json:"displayId"`
+	DisplayScale float32 `json:"displayScale,omitempty"`
+	Placement    string  `json:"placement"`
+	X            int     `json:"x"`
+	Y            int     `json:"y"`
+	Width        int     `json:"width"`
+	Height       int     `json:"height"`
+	Mode         string  `json:"mode"`
+	Opacity      float64 `json:"opacity"`
+	AlwaysOnTop  bool    `json:"alwaysOnTop"`
+	AutoHide     bool    `json:"autoHide"`
 }
 
 type HUDWindowStateManager struct {
@@ -80,7 +83,6 @@ func defaultHUDWindowState() HUDWindowState {
 		Mode:        "AUTO",
 		Opacity:     0.96,
 		AlwaysOnTop: true,
-		AutoHide:    false,
 	}
 }
 
@@ -102,12 +104,6 @@ func normalizeHUDWindowState(state HUDWindowState) HUDWindowState {
 	if state.Height < 48 || state.Height > 900 {
 		state.Height = defaults.Height
 	}
-	if state.X < 0 {
-		state.X = 0
-	}
-	if state.Y < 0 {
-		state.Y = 0
-	}
 	if state.Opacity <= 0 || state.Opacity > 1 {
 		state.Opacity = defaults.Opacity
 	}
@@ -117,56 +113,37 @@ func normalizeHUDWindowState(state HUDWindowState) HUDWindowState {
 	return state
 }
 
-func clampHUDWindowStateToScreen(state HUDWindowState, screenWidth, screenHeight int) HUDWindowState {
+func clampHUDWindowStateToWorkArea(state HUDWindowState, work application.Rect) HUDWindowState {
 	state = normalizeHUDWindowState(state)
-	if screenWidth <= 0 || screenHeight <= 0 {
+	if work.Width <= 0 || work.Height <= 0 {
 		return state
 	}
-	if state.Width > screenWidth {
-		state.Width = screenWidth
+	if state.Width > work.Width {
+		state.Width = work.Width
 	}
-	if state.Height > screenHeight {
-		state.Height = screenHeight
+	if state.Height > work.Height {
+		state.Height = work.Height
 	}
-	maxX := screenWidth - state.Width
-	maxY := screenHeight - state.Height
+	maxX := work.X + work.Width - state.Width
+	maxY := work.Y + work.Height - state.Height
+	if state.X < work.X {
+		state.X = work.X
+	}
+	if state.Y < work.Y {
+		state.Y = work.Y
+	}
 	if state.X > maxX {
 		state.X = maxX
 	}
 	if state.Y > maxY {
 		state.Y = maxY
 	}
-	if state.X < 0 {
-		state.X = 0
-	}
-	if state.Y < 0 {
-		state.Y = 0
-	}
 	return state
 }
 
-func currentHUDScreenSize(ctx context.Context) (int, int, bool) {
-	if ctx == nil {
-		return 0, 0, false
-	}
-	screens, err := wailsruntime.ScreenGetAll(ctx)
-	if err != nil {
-		return 0, 0, false
-	}
-	for _, screen := range screens {
-		if screen.IsCurrent {
-			return screen.Width, screen.Height, true
-		}
-	}
-	for _, screen := range screens {
-		if screen.IsPrimary {
-			return screen.Width, screen.Height, true
-		}
-	}
-	if len(screens) > 0 {
-		return screens[0].Width, screens[0].Height, true
-	}
-	return 0, 0, false
+// Kept for pure geometry tests and callers that work with an origin-zero screen.
+func clampHUDWindowStateToScreen(state HUDWindowState, screenWidth, screenHeight int) HUDWindowState {
+	return clampHUDWindowStateToWorkArea(state, application.Rect{Width: screenWidth, Height: screenHeight})
 }
 
 func (m *HUDWindowStateManager) Load() HUDWindowState {
@@ -197,6 +174,17 @@ func (m *HUDWindowStateManager) Save(state HUDWindowState) error {
 	return os.WriteFile(m.filePath, data, 0o600)
 }
 
+func hudSession() string {
+	session := strings.ToLower(strings.TrimSpace(os.Getenv("XDG_SESSION_TYPE")))
+	if session == "" && strings.TrimSpace(os.Getenv("WAYLAND_DISPLAY")) != "" {
+		session = "wayland"
+	}
+	if session == "" && strings.TrimSpace(os.Getenv("DISPLAY")) != "" {
+		session = "x11"
+	}
+	return session
+}
+
 func DefaultHUDPlatformCapabilities() HUDPlatformCapabilities {
 	caps := HUDPlatformCapabilities{
 		FramelessWindow:     true,
@@ -204,193 +192,212 @@ func DefaultHUDPlatformCapabilities() HUDPlatformCapabilities {
 		NativeNotifications: DefaultCapabilities().Notifications,
 		Platform:            runtime.GOOS,
 	}
-
 	switch runtime.GOOS {
-	case "windows":
+	case "windows", "darwin":
 		caps.TransparentWindow = true
 		caps.GlobalPositioning = true
-		caps.AutoStart = true
-		// Wails v2 does not expose stable display identity/work-area/DPI through
-		// the application contract used by Nexus HUD. Keep multi-monitor
-		// fail-closed until native same-SHA certification adds an adapter.
-		caps.MultiMonitor = false
-	case "darwin":
-		caps.TransparentWindow = true
-		caps.GlobalPositioning = true
-		caps.AutoStart = true
-		caps.MultiMonitor = false
 	case "linux":
-		caps.AutoStart = true
-		session := strings.ToLower(strings.TrimSpace(os.Getenv("XDG_SESSION_TYPE")))
-		if session == "" && strings.TrimSpace(os.Getenv("WAYLAND_DISPLAY")) != "" {
-			session = "wayland"
-		}
-		if session == "" && strings.TrimSpace(os.Getenv("DISPLAY")) != "" {
-			session = "x11"
-		}
-		caps.Session = session
-		caps.TransparentWindow = false
-		caps.GlobalPositioning = session != "wayland"
-		caps.MultiMonitor = false
-		caps.AutoHide = false
+		caps.Session = hudSession()
+		caps.GlobalPositioning = caps.Session != "wayland"
 	}
 	return caps
 }
 
 // HUDController exposes presentation-only native window operations.
 type HUDController struct {
-	mu        sync.RWMutex
-	ctx       context.Context
-	manager   *HUDWindowStateManager
-	autoStart *AutoStartManager
-	caps      HUDPlatformCapabilities
+	mu      sync.RWMutex
+	manager *HUDWindowStateManager
+	caps    HUDPlatformCapabilities
+	ready   bool
 }
 
 func NewHUDController(manager *HUDWindowStateManager) *HUDController {
 	if manager == nil {
 		manager = NewHUDWindowStateManager("")
 	}
-	return &HUDController{
-		manager: manager,
-		autoStart: NewAutoStartManagerWithOptions(AutoStartOptions{
-			AppName: "Nexus HUD",
-			AppID:   "com.iapro.nexus.hud",
-		}),
-		caps: DefaultHUDPlatformCapabilities(),
-	}
+	return &HUDController{manager: manager, caps: DefaultHUDPlatformCapabilities()}
 }
 
-func (h *HUDController) Startup(ctx context.Context) {
+func (h *HUDController) nativeWindow() (application.Window, bool) {
+	app := application.Get()
+	if app == nil {
+		return nil, false
+	}
+	return app.Window.GetByName(HUDWindowName)
+}
+
+func (h *HUDController) ServiceStartup(_ context.Context, _ application.ServiceOptions) error {
 	h.mu.Lock()
-	h.ctx = ctx
+	h.ready = true
 	h.mu.Unlock()
+	if window, ok := h.nativeWindow(); ok {
+		window.OnWindowEvent(events.Common.WindowLostFocus, func(_ *application.WindowEvent) {
+			if h.manager.Load().AutoHide {
+				_ = h.CaptureHUDWindowState()
+				window.Hide()
+			}
+		})
+	}
+	h.RestoreHUDWindow()
+	return nil
+}
+
+func (h *HUDController) ServiceShutdown() error {
+	_ = h.CaptureHUDWindowState()
+	h.mu.Lock()
+	h.ready = false
+	h.mu.Unlock()
+	return nil
 }
 
 func (h *HUDController) GetHUDCapabilities() HUDPlatformCapabilities {
 	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return h.caps
+	caps := h.caps
+	ready := h.ready
+	h.mu.RUnlock()
+	app := application.Get()
+	if ready && app != nil {
+		screens := app.Screen.GetAll()
+		caps.MultiMonitor = len(screens) > 0
+		caps.DisplayCount = len(screens)
+		caps.Tray = true
+		caps.AutoHide = true
+		caps.AutoStart = runtime.GOOS == "linux" || runtime.GOOS == "windows" || runtime.GOOS == "darwin"
+	}
+	return caps
 }
 
 func (h *HUDController) GetHUDWindowState() HUDWindowState {
 	return h.manager.Load()
 }
 
+func (h *HUDController) screenForState(state HUDWindowState, window application.Window) *application.Screen {
+	app := application.Get()
+	if app == nil {
+		return nil
+	}
+	if state.DisplayID != "" && state.DisplayID != "current" {
+		if screen := app.Screen.GetByID(state.DisplayID); screen != nil {
+			return screen
+		}
+	}
+	if window != nil {
+		x, y := window.Position()
+		w, height := window.Size()
+		if screen := app.Screen.ScreenNearestDipRect(application.Rect{X: x, Y: y, Width: w, Height: height}); screen != nil {
+			return screen
+		}
+	}
+	return app.Screen.GetPrimary()
+}
+
 func (h *HUDController) SaveHUDWindowState(state HUDWindowState) error {
 	state = normalizeHUDWindowState(state)
-	h.mu.RLock()
-	ctx := h.ctx
-	caps := h.caps
-	h.mu.RUnlock()
-	if width, height, ok := currentHUDScreenSize(ctx); ok {
-		state = clampHUDWindowStateToScreen(state, width, height)
-	}
-	if ctx != nil {
-		wailsruntime.WindowSetSize(ctx, state.Width, state.Height)
-		if caps.GlobalPositioning {
-			wailsruntime.WindowSetPosition(ctx, state.X, state.Y)
+	window, ok := h.nativeWindow()
+	if ok {
+		screen := h.screenForState(state, window)
+		if screen != nil {
+			state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
+			state.DisplayID = screen.ID
+			state.DisplayScale = screen.ScaleFactor
 		}
-		wailsruntime.WindowSetAlwaysOnTop(ctx, state.AlwaysOnTop)
+		window.SetSize(state.Width, state.Height)
+		if h.GetHUDCapabilities().GlobalPositioning {
+			window.SetPosition(state.X, state.Y)
+		}
+		window.SetAlwaysOnTop(state.AlwaysOnTop)
 	}
 	return h.manager.Save(state)
 }
 
 func (h *HUDController) RestoreHUDWindow() {
-	h.mu.RLock()
-	ctx := h.ctx
-	caps := h.caps
-	h.mu.RUnlock()
-	if ctx == nil {
+	window, ok := h.nativeWindow()
+	if !ok {
 		return
 	}
 	state := h.manager.Load()
-	if width, height, ok := currentHUDScreenSize(ctx); ok {
-		recovered := clampHUDWindowStateToScreen(state, width, height)
-		if recovered != state {
-			state = recovered
-			_ = h.manager.Save(state)
-		}
+	screen := h.screenForState(state, window)
+	if screen != nil {
+		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
+		state.DisplayID = screen.ID
+		state.DisplayScale = screen.ScaleFactor
+		_ = h.manager.Save(state)
 	}
-	wailsruntime.WindowSetSize(ctx, state.Width, state.Height)
-	if caps.GlobalPositioning {
-		wailsruntime.WindowSetPosition(ctx, state.X, state.Y)
+	window.SetSize(state.Width, state.Height)
+	if h.GetHUDCapabilities().GlobalPositioning {
+		window.SetPosition(state.X, state.Y)
 	}
-	wailsruntime.WindowSetAlwaysOnTop(ctx, state.AlwaysOnTop)
+	window.SetAlwaysOnTop(state.AlwaysOnTop)
 }
 
 func (h *HUDController) CaptureHUDWindowState() error {
-	h.mu.RLock()
-	ctx := h.ctx
-	caps := h.caps
-	h.mu.RUnlock()
-	if ctx == nil {
+	window, ok := h.nativeWindow()
+	if !ok {
 		return nil
 	}
 	state := h.manager.Load()
-	width, height := wailsruntime.WindowGetSize(ctx)
-	state.Width = width
-	state.Height = height
-	if caps.GlobalPositioning {
-		x, y := wailsruntime.WindowGetPosition(ctx)
-		state.X = x
-		state.Y = y
-		state.Placement = HUDPlacementCustom
+	state.Width, state.Height = window.Size()
+	state.X, state.Y = window.Position()
+	state.Placement = HUDPlacementCustom
+	if screen := h.screenForState(state, window); screen != nil {
+		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
+		state.DisplayID = screen.ID
+		state.DisplayScale = screen.ScaleFactor
 	}
 	return h.manager.Save(state)
 }
 
 func (h *HUDController) SetHUDExpanded(expanded bool) error {
-	h.mu.RLock()
-	ctx := h.ctx
-	h.mu.RUnlock()
-	if ctx == nil {
-		return nil
-	}
+	window, ok := h.nativeWindow()
 	state := h.manager.Load()
 	if expanded {
 		state.Height = 520
 	} else {
 		state.Height = 64
 	}
-	wailsruntime.WindowSetSize(ctx, state.Width, state.Height)
+	if ok {
+		window.SetSize(state.Width, state.Height)
+	}
+	return h.manager.Save(state)
+}
+
+func (h *HUDController) SetHUDAutoHide(enabled bool) error {
+	state := h.manager.Load()
+	state.AutoHide = enabled
 	return h.manager.Save(state)
 }
 
 func (h *HUDController) HideHUD() {
 	_ = h.CaptureHUDWindowState()
-	h.mu.RLock()
-	ctx := h.ctx
-	h.mu.RUnlock()
-	if ctx != nil {
-		wailsruntime.WindowHide(ctx)
+	if window, ok := h.nativeWindow(); ok {
+		window.Hide()
 	}
 }
 
 func (h *HUDController) ShowHUD() {
-	h.mu.RLock()
-	ctx := h.ctx
-	h.mu.RUnlock()
-	if ctx != nil {
-		wailsruntime.WindowShow(ctx)
+	if window, ok := h.nativeWindow(); ok {
+		window.Show()
+		window.Restore()
+		window.Focus()
 	}
 }
 
 func (h *HUDController) GetHUDAutoStartEnabled() bool {
-	h.mu.RLock()
-	supported := h.caps.AutoStart
-	manager := h.autoStart
-	h.mu.RUnlock()
-	return supported && manager != nil && manager.IsEnabled()
+	app := application.Get()
+	if app == nil {
+		return false
+	}
+	enabled, err := app.Autostart.IsEnabled()
+	return err == nil && enabled
 }
 
 func (h *HUDController) SetHUDAutoStartEnabled(enabled bool) error {
-	h.mu.RLock()
-	supported := h.caps.AutoStart
-	manager := h.autoStart
-	platform := h.caps.Platform
-	h.mu.RUnlock()
-	if !supported || manager == nil {
-		return fmt.Errorf("HUD autostart is unsupported on %s", platform)
+	app := application.Get()
+	if app == nil {
+		return fmt.Errorf("HUD autostart is unavailable before Wails startup")
 	}
-	return manager.SetEnabled(enabled)
+	if enabled {
+		return app.Autostart.Enable()
+	}
+	return app.Autostart.Disable()
 }
