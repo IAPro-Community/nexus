@@ -56,7 +56,7 @@ func TestDecideInteractiveSubmitPropagatesPromote(t *testing.T) {
 			return nexus.IntentDecision{Strategy: nexus.IntentPlan}, nil
 		},
 	}
-	action := decideInteractiveSubmit(context.Background(), fast, "project", "implemente backend API, frontend React e testes E2E", nexus.DelegationAuto)
+	action := decideInteractiveSubmitDecision(context.Background(), fast, "project", "implemente backend API, frontend React e testes E2E", nexus.DelegationAuto).Action
 	if action != promotion.Promote {
 		t.Fatalf("action=%s want Promote (got err path?)", action)
 	}
@@ -68,7 +68,7 @@ func TestDecideInteractiveSubmitKeepsOnIntentError(t *testing.T) {
 			return nexus.IntentDecision{}, errors.New("boom")
 		},
 	}
-	action := decideInteractiveSubmit(context.Background(), failing, "project", "hello world", nexus.DelegationAuto)
+	action := decideInteractiveSubmitDecision(context.Background(), failing, "project", "hello world", nexus.DelegationAuto).Action
 	if action != promotion.KeepWithLead {
 		t.Fatalf("action=%s", action)
 	}
