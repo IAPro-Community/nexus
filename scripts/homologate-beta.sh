@@ -7,6 +7,13 @@ cd "$ROOT"
 EXPECTED_VERSION="$(tr -d '\r\n' < VERSION)"
 SHA="$(git rev-parse HEAD)"
 SHORT_SHA="$(git rev-parse --short HEAD)"
+if [ -n "${NEXUS_EXPECTED_SHA:-}" ]; then
+  RESOLVED_EXPECTED_SHA="$(git rev-parse "$NEXUS_EXPECTED_SHA" 2>/dev/null || printf '%s' "$NEXUS_EXPECTED_SHA")"
+  if [ "$SHA" != "$RESOLVED_EXPECTED_SHA" ]; then
+    echo "homologation SHA mismatch: HEAD=$SHA expected=$RESOLVED_EXPECTED_SHA" >&2
+    exit 1
+  fi
+fi
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
 OUT="DEV/validation/local-beta3/${SHA}/${OS}-${ARCH}"
@@ -39,16 +46,20 @@ log "documentation"
 bun scripts/docs-verify.mjs 2>&1 | tee "$OUT/docs-verify.log"
 
 log "frontend dependencies"
-bun --cwd web install --frozen-lockfile 2>&1 | tee "$OUT/bun-install.log"
+bun install --cwd web --frozen-lockfile 2>&1 | tee "$OUT/bun-install.log"
 
 log "frontend quality"
 for task in format:check typecheck lint lint:styles check:styles test build verify; do
   echo "--- bun run $task" | tee -a "$OUT/frontend.log"
-  bun --cwd web run "$task" 2>&1 | tee -a "$OUT/frontend.log"
+  bun run --cwd web "$task" 2>&1 | tee -a "$OUT/frontend.log"
 done
 
 log "Go formatting"
-unformatted="$(gofmt -l . | grep -v '^\.\/\.worktrees\/' || true)"
+tracked_go="$(git ls-files -- '*.go')"
+unformatted=""
+if [ -n "$tracked_go" ]; then
+  unformatted="$(printf '%s\n' "$tracked_go" | xargs gofmt -l)"
+fi
 if [ -n "$unformatted" ]; then
   printf '%s\n' "$unformatted" | tee "$OUT/gofmt-fail.txt"
   exit 1
