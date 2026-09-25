@@ -171,7 +171,7 @@ Requisitos: Go 1.25+, Bun 1.3.9+, Git e Make.
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
 cd nexus
-bun --cwd web install --frozen-lockfile
+bun install --cwd web --frozen-lockfile
 make build
 ./nexus version
 ./nexus doctor
