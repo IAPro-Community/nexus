@@ -876,7 +876,6 @@ func renderV1Permissions(b *strings.Builder, accessIntent string) {
 		b.WriteString("  glob: allow\n")
 		b.WriteString("  grep: allow\n")
 		b.WriteString("  list: allow\n")
-		b.WriteString("  lsp: allow\n")
 		b.WriteString("  edit: deny\n")
 		if accessIntent == "VERIFY_ONLY" {
 			b.WriteString("  bash: ask\n")
@@ -891,7 +890,7 @@ func renderV2Permissions(b *strings.Builder, accessIntent string) {
 	case "READ_ONLY", "VERIFY_ONLY":
 		b.WriteString("permissions:\n")
 		b.WriteString("  - action: \"*\"\n    resource: \"*\"\n    effect: deny\n")
-		for _, action := range []string{"read", "glob", "grep", "list", "lsp"} {
+		for _, action := range []string{"read", "glob", "grep", "list"} {
 			b.WriteString("  - action: ")
 			b.WriteString(action)
 			b.WriteString("\n    resource: \"*\"\n    effect: allow\n")
