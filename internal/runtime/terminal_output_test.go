@@ -100,6 +100,25 @@ func TestTerminalInputScrubberCoalescesSplitArrowSequence(t *testing.T) {
 	}
 }
 
+func TestTerminalInputScrubberCoalescesSplitSS3ArrowSequence(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalInputScrubber(&out)
+
+	_, _ = scrubber.Write([]byte{0x1b})
+	if got := out.String(); got != "" {
+		t.Fatalf("escape prefix leaked before SS3 sequence completed: %q", got)
+	}
+	_, _ = scrubber.Write([]byte{'O'})
+	if got := out.String(); got != "" {
+		t.Fatalf("SS3 prefix leaked before final selector key: %q", got)
+	}
+	_, _ = scrubber.Write([]byte{'A'})
+
+	if got := out.String(); got != "\x1bOA" {
+		t.Fatalf("split SS3 arrow sequence = %q, want %q", got, "\\x1bOA")
+	}
+}
+
 func TestTerminalInputScrubberForwardsStandaloneEscapeAfterCoalesceWindow(t *testing.T) {
 	out := newSynchronizedBuffer()
 	scrubber := NewTerminalInputScrubber(out)
