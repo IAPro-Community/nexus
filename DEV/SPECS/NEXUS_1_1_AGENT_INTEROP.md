@@ -1221,43 +1221,27 @@ Gate:
 native discovery + invocation + read-only evidence
 ```
 
-### M5 — Claude adapter
+### M5 — Provider-neutral overlay closure — V1 beta.3
 
-- subagent renderer;
-- discovery;
-- E2E;
-- overlay/native strategy resolution.
+- Codex, Claude, Cursor, Gemini e AGY continuam suportando ExecutionRole pelo
+  Nexus overlay mesmo sem adapter nativo;
+- o selector, compiler, budgets, Cost/Capacity e Mission boundaries permanecem
+  provider-neutral;
+- provider sem native adapter nunca anuncia native primary/subagent/enforcement;
+- OpenCode é o adapter nativo de referência/certificação da beta.3.
 
-### M6 — Cursor adapter
+Gate:
 
-- subagent renderer;
-- discovery/invocation;
-- E2E;
-- no false primary-agent claim.
+```text
+same ExecutionRole UX + Nexus overlay works on providers without native projection
+```
 
-### M7 — Gemini adapter
+### Pós-beta.3 — expansão de adapters nativos
 
-- local subagent renderer;
-- discovery/invocation;
-- E2E;
-- A2A explicitly deferred.
-
-### M8 — Codex control evolution
-
-- evaluate app-server adapter;
-- structured events;
-- approvals;
-- cancel;
-- conversation lifecycle;
-- preserve terminal fallback.
-
-Não bloquear M1–M7 em M8.
-
-### M9 — AGY adapter
-
-- provider-specific capabilities;
-- projection se houver contrato estável;
-- otherwise overlay remains supported.
+Claude, Cursor, Gemini, Codex app-server e AGY podem receber adapters nativos
+quando os contratos de cada host forem estáveis e testados. Eles **não bloqueiam
+o fechamento funcional da V1 beta.3** e não recebem claim de native support sem
+evidência E2E própria.
 
 ### M10 — Release certification
 
@@ -1304,9 +1288,9 @@ A feature só pode ser considerada concluída quando:
 5. `DefaultProvider` não funciona como PIN oculto.
 6. Capability matrix é evidence-bound.
 7. Read-only exibe enforcement real.
-8. OpenCode projection possui E2E real.
-9. Pelo menos um segundo provider possui projection E2E real.
-10. Cursor/Gemini/Claude sem proof de primary não exibem primary como supported.
+8. OpenCode projection possui E2E real para discovery, activation e enforcement read-only.
+9. Providers sem native adapter continuam funcionais via Nexus overlay.
+10. Cursor/Gemini/Claude/Codex/AGY sem proof nativo não exibem primary/subagent/enforcement como supported.
 11. Codex funciona por overlay mesmo sem app-server.
 12. Unmanaged file nunca é sobrescrito.
 13. Modified managed file gera conflict.
@@ -1392,22 +1376,29 @@ Sem conteúdo de prompt:
 - custo por execution role;
 - subagent invocation count quando observável.
 
-## 34. Critérios para V1.1 RC
+## 34. Critérios para V1 beta.3 / fechamento funcional
 
-Para declarar `NEXUS_V1_AGENT_INTEROP = GO`:
+Para declarar o requisito `NEXUS_V1_AGENT_INTEROP` **implementado no source**:
 
 - P0 truth fixes concluídos;
-- M1–M3 completos;
-- OpenCode E2E PASS;
-- pelo menos um entre Claude/Cursor/Gemini E2E PASS;
-- nenhum BLOCKER/HIGH aberto no contrato;
-- provider matrix gerada do mesmo SHA;
-- Linux full CI + browser + desktop regressions PASS;
-- Mission regression PASS;
-- HUD regression PASS;
-- migration forward/backward compatibility documentada;
-- docs de usuário publicadas;
-- claims de native support limitadas ao que possui evidência.
+- M1–M4 completos;
+- provider-neutral overlay funcional nos providers existentes;
+- OpenCode native projection com lifecycle materialize/discover/activate/enforce/verify/remove implementado;
+- Command Palette + seletor + shortcut sem capturar Shift+Tab;
+- nenhum provider sem prova anunciado como native;
+- nenhum `BEST_EFFORT/UNVERIFIED` promovido a `ENFORCED` sem evidência;
+- custom execution targets preservam provider lógico;
+- nenhum BLOCKER/HIGH conhecido no contrato;
+- migrations e rollback preservam Agent identity;
+- docs de usuário alinhadas à beta.3.
+
+Para declarar a **beta.3 homologada**, além da implementação acima, os gates
+same-SHA definidos em `docs/release-status.md` precisam produzir evidência
+real. A indisponibilidade de CI nunca é convertida em PASS.
+
+Adapters nativos adicionais (Claude/Cursor/Gemini/Codex/AGY) são expansão
+posterior e não bloqueiam a beta.3; cada um só pode ser promovido quando possuir
+seu próprio E2E.
 
 ## 35. Referências internas
 
