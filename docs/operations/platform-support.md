@@ -42,7 +42,7 @@ O repositório contém um harness local que executa os gates automatizáveis e
 registra evidência por SHA:
 
 ```bash
-./scripts/homologate-beta.sh
+NEXUS_EXPECTED_SHA="$(git rev-parse release/v1.0.0-beta.2)" ./scripts/homologate-beta.sh
 ```
 
 Windows:
