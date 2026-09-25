@@ -639,6 +639,10 @@ func (n *Nexus) ProbeRuntimeAgentProjectionEnforcement(ctx context.Context, runt
 		result.Error = "projected read-only agent completed a write; enforcement certification failed"
 		return result, fmt.Errorf("%s", result.Error)
 	}
+	if runErr != nil && !evidence.WriteDenied {
+		result.Error = fmt.Sprintf("OpenCode enforcement probe did not complete successfully: %v", runErr)
+		return result, fmt.Errorf("%s", result.Error)
+	}
 	if !evidence.WriteDenied && !nativePermissionProved {
 		if runErr != nil {
 			result.Error = fmt.Sprintf("OpenCode enforcement probe failed without provider-backed permission evidence: %v", runErr)
