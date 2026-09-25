@@ -1,7 +1,7 @@
 # Nexus Agent Interop — spec histórica “1.1”
 
 Status: **PARTIALLY IMPLEMENTED / INTEGRATED INTO V1 BETA**  
-Release target atual: **v1.0.0-beta.2**  
+Release target atual: **v1.0.0-beta.3**  
 Base original de planejamento: `main@79493344ac510ad81d741a867dd92bb86bf4215b`  
 ADR: `docs/architecture/ADR-agent-interop-projection.md`
 
