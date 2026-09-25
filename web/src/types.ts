@@ -619,6 +619,8 @@ export interface RuntimeExecutionRoleBinding {
   scope: ExecutionRoleScope | string;
   activation_strategy: string;
   enforcement: ExecutionRoleEnforcement | string;
+  enforcement_evidence?: string;
+  enforcement_verified_at?: string;
   projection_receipt_id?: string;
   activated_by?: string;
   activated_at?: string;
@@ -1998,6 +2000,20 @@ export interface AgentProjectionActivation {
   agent_name: string;
   activated: boolean;
   status: string;
+  evidence?: string;
+  error?: string;
+  external_execution: boolean;
+}
+
+export interface AgentProjectionEnforcement {
+  provider: string;
+  provider_version: string;
+  target_kind: string;
+  agent_name: string;
+  enforced: boolean;
+  status: string;
+  tool?: string;
+  canary_absent: boolean;
   evidence?: string;
   error?: string;
   external_execution: boolean;
