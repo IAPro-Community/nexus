@@ -33,7 +33,8 @@ O candidato `v1.0.0-beta.2` passa a concentrar:
 - promoção interativa só consome o prompt após admissão; promoção heurística bloqueada volta ao Lead sem perder a solicitação, enquanto pedido explícito mostra blockers exatos;
 - hardening da boundary de promoção: `GoalContract` congelado no snapshot, falhas pre-run tipadas e reconhecimento explícito de Mission sem falsos positivos como `permission`/`submission`;
 - isolamento autônomo corrigido para ser efetivo por Agent: `AUTO` ignora Agents inseguros, `CREATE` usa worktree, `EXISTING` inseguro bloqueia, e override `project` não contorna default `worktree`;
-- correção de transporte das teclas de navegação no terminal;
+- correção de transporte das teclas de navegação no terminal, incluindo CSI e SS3 de seletores interativos;
+- clientes/provider TUIs supervisionados permanecem byte-transparentes por padrão; Mission/Lead exige opt-in explícito (`--lead`) ou binding equivalente;
 - OpenCode como provider independente em Usage e Agents;
 - ExecutionRole / Agent Interop Core já integrado;
 - Agent Projection nativa do OpenCode em implementação como requisito da V1;
@@ -95,7 +96,7 @@ Antes de criar/publicar a tag:
 - Agent Projection OpenCode: materialização no `NEXUS_PROFILE`, ownership fail-closed, receipts duráveis, discovery sem LLM e activation probe explícito (`opencode run --agent`) com confirmação de execução externa; activation comprovada muda apenas a estratégia para `NATIVE_ON_LAUNCH` e **não** promove enforcement para `ENFORCED`;
 - custom target smoke: provider selecionável + `{provider}/{profile}/{cwd}/{target_cwd}/{args}` + probe de versão no próprio target; VPN Dev Workspace deve aceitar host path diferente do container path e materializar no shared `target_profile_home` quando explicitamente configurado;
 - build Desktop/HUD da plataforma em homologação;
-- smoke interativo de setas no Codex;
+- smoke interativo de setas/seletores no Codex e Antigravity, incluindo modo application-cursor (SS3);
 - smoke Direct/Lead sem promoção indevida para Mission;
 - smoke de Mission promotion: heuristic admission/preparation failure → Lead fallback; explicit Mission failure → blocker acionável sem execução Direct;
 - smoke de classificação: prompts com `permission`, `submission` ou `transmission` permanecem não explícitos para Mission.
