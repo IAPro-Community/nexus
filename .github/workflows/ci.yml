@@ -117,7 +117,7 @@ jobs:
         with:
           go-version: '1.25.14'
           cache: false
-      - run: GOTOOLCHAIN=local go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+      - run: GOFLAGS='-tags=gtk3' GOTOOLCHAIN=local go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
 
   browser:
     name: Browser E2E, Axe & visual smoke
@@ -236,6 +236,8 @@ jobs:
     needs: workspace-sanitize
     name: Linux E2E (Go 1.25.14)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
+    env:
+      GOFLAGS: -tags=gtk3
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
