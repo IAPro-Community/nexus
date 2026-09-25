@@ -3,7 +3,7 @@
 Status: **ACCEPTED / PARTIALLY IMPLEMENTED IN V1 BETA**  
 Data: 2026-09-24  
 Base original analisada: `main@79493344ac510ad81d741a867dd92bb86bf4215b`  
-Release de integração: `v1.0.0-beta.2` candidate  
+Release de integração: `v1.0.0-beta.3` candidate  
 Spec associada: `DEV/SPECS/NEXUS_1_1_AGENT_INTEROP.md`
 
 ## Contexto
@@ -228,7 +228,7 @@ Quando o host não fornece seleção nativa verificável, o Nexus mantém a
 experiência de papel através do compilador de contexto existente
 (`NEXUS_OVERLAY`).
 
-### Estado implementado no candidato beta.2
+### Estado implementado no candidato beta.3
 
 Para OpenCode, a implementação atual separa explicitamente quatro níveis:
 
