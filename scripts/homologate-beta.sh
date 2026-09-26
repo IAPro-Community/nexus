@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export GOTOOLCHAIN=local
+export GOFLAGS=-mod=readonly
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
@@ -26,6 +29,37 @@ require git
 require go
 require bun
 
+if [ "$OS" != "linux" ]; then
+  echo "Linux beta homologation requires Linux; got $OS" >&2
+  exit 1
+fi
+case "$ARCH" in
+  x86_64|amd64) ;;
+  *) echo "Linux beta homologation requires amd64; got $ARCH" >&2; exit 1 ;;
+esac
+
+GO_VERSION_TEXT="$(go version)"
+if [[ "$GO_VERSION_TEXT" != *"go1.25.14"* ]]; then
+  echo "Linux beta homologation requires Go 1.25.14 to match CI; got: $GO_VERSION_TEXT" >&2
+  exit 1
+fi
+BUN_VERSION="$(bun --version)"
+if [ "$BUN_VERSION" != "1.3.9" ]; then
+  echo "Linux beta homologation requires Bun 1.3.9 to match CI; got: $BUN_VERSION" >&2
+  exit 1
+fi
+
+CANONICAL_PUBLIC_KEY="$(tr -d '[:space:]' < UPDATE_PUBLIC_KEY | tr '[:upper:]' '[:lower:]')"
+if ! [[ "$CANONICAL_PUBLIC_KEY" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "UPDATE_PUBLIC_KEY must contain the canonical 32-byte Ed25519 public key as 64 hex characters" >&2
+  exit 1
+fi
+if [ -n "${NEXUS_UPDATE_PUBLIC_KEY:-}" ] && [ "$(printf '%s' "$NEXUS_UPDATE_PUBLIC_KEY" | tr '[:upper:]' '[:lower:]')" != "$CANONICAL_PUBLIC_KEY" ]; then
+  echo "NEXUS_UPDATE_PUBLIC_KEY does not match checked-in UPDATE_PUBLIC_KEY" >&2
+  exit 1
+fi
+export NEXUS_UPDATE_PUBLIC_KEY="$CANONICAL_PUBLIC_KEY"
+
 if [ "${NEXUS_ALLOW_DIRTY:-0}" != "1" ] && [ -n "$(git status --porcelain)" ]; then
   echo "working tree is dirty; homologation must run on an exact SHA (set NEXUS_ALLOW_DIRTY=1 only for exploratory runs)" >&2
   exit 1
@@ -39,6 +73,7 @@ fi
   echo "arch=$ARCH"
   echo "go=$(go version)"
   echo "bun=$(bun --version)"
+  echo "update_public_key=$CANONICAL_PUBLIC_KEY"
   date -u '+started_at=%Y-%m-%dT%H:%M:%SZ'
 } | tee "$OUT/environment.txt"
 
@@ -47,6 +82,12 @@ bun scripts/docs-verify.mjs 2>&1 | tee "$OUT/docs-verify.log"
 
 log "frontend dependencies"
 bun install --cwd web --frozen-lockfile 2>&1 | tee "$OUT/bun-install.log"
+
+log "Playwright Chromium"
+(
+  cd web
+  bunx playwright install chromium
+) 2>&1 | tee "$OUT/playwright-chromium.log"
 
 log "frontend quality"
 for task in format:check typecheck lint lint:styles check:styles test build verify; do
@@ -68,20 +109,78 @@ fi
 log "Go vet"
 go vet ./... 2>&1 | tee "$OUT/go-vet.log"
 
-log "Go race suite"
-go test -race ./... 2>&1 | tee "$OUT/go-test-race.log"
+log "Go lint (pinned)"
+go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./... 2>&1 | tee "$OUT/golangci-lint.log"
+
+log "Go security (pinned)"
+go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./... 2>&1 | tee "$OUT/govulncheck.log"
+
+log "Version contract"
+go run ./scripts/verify-version-contract.go . 2>&1 | tee "$OUT/version-contract.log"
+
+TEST_HOME="$OUT/isolated-test-home"
+mkdir -p "$TEST_HOME"
+EXISTING_GOPATH="$(go env GOPATH)"
+EXISTING_GOMODCACHE="$(go env GOMODCACHE)"
+EXISTING_GOCACHE="$(go env GOCACHE)"
+run_isolated_go() {
+  env \
+    HOME="$TEST_HOME" \
+    USERPROFILE="$TEST_HOME" \
+    XDG_CONFIG_HOME="$TEST_HOME/.config" \
+    XDG_DATA_HOME="$TEST_HOME/.local/share" \
+    XDG_CACHE_HOME="$TEST_HOME/.cache" \
+    NEXUS_DATA_DIR="$TEST_HOME/nexus-data" \
+    AI_MANAGER_DATA_DIR="$TEST_HOME/nexus-data" \
+    AI_CLI_DATA_DIR="$TEST_HOME/nexus-data" \
+    GOPATH="$EXISTING_GOPATH" \
+    GOMODCACHE="$EXISTING_GOMODCACHE" \
+    GOCACHE="$EXISTING_GOCACHE" \
+    "$@"
+}
+
+log "Go race suite (isolated profile)"
+run_isolated_go go test -race -count=1 ./... 2>&1 | tee "$OUT/go-test-race.log"
 
 log "regression suites: interactive routing and terminal input"
-go test -race -count=1 ./internal/nexus/promotion ./internal/runtime 2>&1 | tee "$OUT/regression-interactive-terminal.log"
+run_isolated_go go test -race -count=1 ./internal/nexus/promotion ./internal/runtime 2>&1 | tee "$OUT/regression-interactive-terminal.log"
 
 log "control/runtime E2E"
-go test -race -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/... 2>&1 | tee "$OUT/control-e2e.log"
+run_isolated_go go test -race -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/... 2>&1 | tee "$OUT/control-e2e.log"
+
+log "Agent Interop / OpenCode Projection regressions"
+run_isolated_go go test -race -count=1 ./internal/core/provider/agentprojection/opencode ./internal/control/launcher ./internal/control/web ./internal/nexus ./internal/nexus/store 2>&1 | tee "$OUT/agent-interop.log"
 
 log "build CLI"
 make build 2>&1 | tee "$OUT/build-cli.log"
 
 ./nexus version --json | tee "$OUT/version.json"
-grep -Fq "\"version\":\"$EXPECTED_VERSION\"" "$OUT/version.json" ||   grep -Fq "\"version\": \"$EXPECTED_VERSION\"" "$OUT/version.json"
+grep -Fq "\"version\":\"$EXPECTED_VERSION\"" "$OUT/version.json" || \
+  grep -Fq "\"version\": \"$EXPECTED_VERSION\"" "$OUT/version.json"
+
+log "Browser E2E on the current Linux binary"
+SAVED_SKIP_BUILD="${SKIP_BUILD-__NEXUS_UNSET__}"
+export SKIP_BUILD=1
+for task in \
+  test:e2e \
+  test:e2e:composer \
+  test:e2e:surface \
+  test:e2e:capacity \
+  test:e2e:hud \
+  test:e2e:composer-spine \
+  test:e2e:composer-vague-spine \
+  test:e2e:composer-themes \
+  test:a11y \
+  test:visual
+do
+  log_file="$OUT/$(printf '%s' "$task" | tr ':' '-').log"
+  bun run --cwd web "$task" 2>&1 | tee "$log_file"
+done
+if [ "$SAVED_SKIP_BUILD" = "__NEXUS_UNSET__" ]; then
+  unset SKIP_BUILD
+else
+  export SKIP_BUILD="$SAVED_SKIP_BUILD"
+fi
 
 ./nexus doctor --json | tee "$OUT/doctor.json"
 ./nexus providers status --json | tee "$OUT/providers.json"
