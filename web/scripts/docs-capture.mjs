@@ -13,7 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
-import { terminateProcess } from './e2e-fixture.mjs';
+import { terminateProcess, terminateProcessOnExit } from './e2e-fixture.mjs';
 
 const webDir = path.resolve(import.meta.dirname, '..');
 const root = path.resolve(webDir, '..');
@@ -72,12 +72,7 @@ const stop = async () => {
   await terminateProcess(server);
   try { rmSync(fixtureRoot, { recursive: true, force: true }); } catch {}
 };
-process.on('exit', () => {
-  // Best-effort fallback for abnormal exits; normal capture awaits stop() below.
-  if (process.platform === 'win32' && server.pid) {
-    try { spawn('taskkill', ['/pid', String(server.pid), '/T', '/F'], { stdio: 'ignore' }); } catch {}
-  }
-});
+process.on('exit', () => terminateProcessOnExit(server));
 
 const sourceSha = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
 const captures = [];
