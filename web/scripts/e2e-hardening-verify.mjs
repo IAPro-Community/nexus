@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
+import { terminateProcess } from './e2e-fixture.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,31 +26,6 @@ console.log('1. Rebuilding nexus binary from the current checkout...');
 ensureNexusBinary(repoRoot);
 assert.ok(existsSync(binPath), 'current-checkout nexus binary must exist after build');
 
-async function terminateProcess(proc) {
-  if (!proc || !proc.pid) return;
-  return new Promise((resolve) => {
-    try {
-      if (process.platform === 'win32') {
-        spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F']);
-        resolve();
-      } else {
-        process.kill(-proc.pid, 'SIGTERM');
-        const timeout = setTimeout(() => {
-          try {
-            process.kill(-proc.pid, 'SIGKILL');
-          } catch (_) {}
-          resolve();
-        }, 1200);
-        proc.on('exit', () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-      }
-    } catch (_) {
-      resolve();
-    }
-  });
-}
 
 async function main() {
   console.log('2. Starting Nexus Web Server on ephemeral port (--port 0)...');
