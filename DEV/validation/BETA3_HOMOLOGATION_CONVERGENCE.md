@@ -134,9 +134,11 @@ Correção:
 
 - trigger inclui `release/**`.
 
-Foi criado o PR temporário #26 contra `main`, cujo base SHA é idêntico ao da
-release beta.3, para tentar exercitar exatamente o mesmo diff. Nenhum workflow
-run foi criado. A ausência de jobs é classificada como **infraestrutura/Actions
+Foi criado o PR temporário #26 contra `main`, cujo base SHA era idêntico ao da
+release beta.3, para tentar exercitar exatamente o mesmo diff. Após múltiplos
+commits/synchronize events, nenhum workflow run ou commit status foi criado.
+O PR #26 foi então fechado sem merge e preservado apenas como evidência dessa
+tentativa. A ausência de jobs é classificada como **infraestrutura/Actions
 indisponível**, não PASS nem FAIL funcional.
 
 ### 6. Homologador Linux era mais fraco que o CI
@@ -169,11 +171,62 @@ CI, evitando alterar o host de homologação.
 Foi adicionado `scripts/refresh-beta-docs-linux.sh` com a mesma disciplina
 exact-SHA da versão Windows.
 
+
+### 8. Scripts visuais auxiliares ainda eram Unix-only
+
+`maestro-visual-verify.mjs` e `task-preparation-visual-verify.mjs` ainda
+dependiam de GNU Make, binário `nexus` sem extensão e/ou término de process
+group POSIX.
+
+Correção:
+
+- ambos usam o helper cross-platform de build/binário;
+- Windows usa `nexus.exe`;
+- cleanup reutiliza o mesmo término de processo do E2E principal.
+
+### 9. Cleanup Windows podia disputar file locks
+
+Alguns E2E/docs disparavam `taskkill` e retornavam imediatamente. Em Windows
+isso permitia remover diretórios enquanto o processo ainda estava encerrando.
+
+Correção:
+
+- `terminateProcess` aguarda `taskkill`/process exit com timeout limitado;
+- docs capture aguarda o término antes de remover a fixture;
+- Composer/hardening reutilizam a implementação compartilhada.
+
+### 10. FakeDriver interno usava binários Unix
+
+O provider interno `fake`, embora escondido por padrão na UI/CLI, fazia
+`Detect()` com `/bin/sh` e `BuildCommand()` com `cat`.
+
+Correção:
+
+- usa o mesmo `resolveSystemShell()` do ShellDriver;
+- resolve shell nativo no Windows e Unix;
+- continua sendo provider interno/diagnóstico, sem fallback silencioso de
+  produção.
+
+### 11. Version contract não cobria o HUD
+
+O verificador checava VERSION, Web e Desktop, mas não
+`cmd/nexus-hud/wails.json`.
+
+Correção:
+
+- Desktop e HUD são validados contra `VERSION`.
+
+Também foi auditado o source exato do Wails v2.15.0 e do
+`tc-hib/winres v0.3.1` usado por ele. O `productVersion`
+`1.0.0-beta.3` não é rejeitado pelo build Windows: o VERSIONINFO fixo é
+normalizado para os componentes numéricos e a string legível preserva o valor
+completo. Portanto o prerelease em `wails.json` não é blocker de build.
+
 ## Estado das evidências beta.3
 
 | Gate | Source | Execução beta.3 same-SHA | Estado |
 | --- | --- | --- | --- |
-| Version contract | corrigido | não executado no runner final | RETEST REQUIRED |
+| Version contract (Web/Desktop/HUD) | corrigido | não executado no runner final | RETEST REQUIRED |
 | Frontend quality/unit/build | harness pronto | não executado no SHA final | RETEST REQUIRED |
 | Go vet/tests/race | harness pronto | não executado no SHA final | RETEST REQUIRED |
 | golangci-lint | pinado | não executado no SHA final | RETEST REQUIRED |
@@ -193,26 +246,40 @@ exact-SHA da versão Windows.
 
 ## Sequência obrigatória para fechamento
 
-### Linux
+A captura documental deve acontecer **uma única vez antes de congelar o SHA
+final**. Fazer uma captura em cada plataforma e commitar depois de uma
+homologação produziria SHAs diferentes e invalidaria a evidência exact-SHA.
+
+### 1. Congelar documentação e produzir o SHA final
+
+Preferência: executar no Windows AMD64, porque a falha original de portabilidade
+da captura ocorreu nessa plataforma.
 
 1. checkout limpo da branch de convergência;
-2. definir `NEXUS_EXPECTED_SHA=$(git rev-parse HEAD)`;
-3. rodar `./scripts/refresh-beta-docs-linux.sh`;
-4. revisar e commitar somente evidência visual gerada;
-5. atualizar para o novo exact SHA;
-6. rodar `./scripts/homologate-beta.sh`;
-7. executar os checks manuais emitidos em `MANUAL_CHECKS.md`.
+2. definir `NEXUS_EXPECTED_SHA` para o HEAD corrente;
+3. executar `.\scripts\refresh-beta-docs-windows.ps1 -ExpectedSha <HEAD>`;
+4. revisar e commitar **somente** a evidência documental gerada;
+5. publicar esse commit; ele passa a ser o **SHA FINAL candidato**.
 
-### Windows AMD64
+`scripts/refresh-beta-docs-linux.sh` é a alternativa equivalente se a captura
+Windows não puder ser realizada. Não executar uma segunda recaptura depois de
+iniciar as homologações do SHA final.
 
-1. checkout limpo do mesmo SHA final;
-2. definir `NEXUS_EXPECTED_SHA` para esse SHA;
-3. rodar `.\scripts\refresh-beta-docs-windows.ps1`;
-4. revisar e commitar somente evidência visual gerada;
-5. atualizar ambos os ambientes para o novo SHA;
-6. rodar `.\scripts\homologate-beta.ps1 -ExpectedSha <SHA>`;
-7. executar os checks manuais;
-8. executar o job native Windows/signing do CI quando Actions estiver disponível.
+### 2. Linux — no mesmo SHA FINAL
+
+1. checkout limpo do SHA FINAL;
+2. `export NEXUS_EXPECTED_SHA=$(git rev-parse HEAD)`;
+3. executar `./scripts/homologate-beta.sh`;
+4. executar os checks manuais emitidos em `MANUAL_CHECKS.md`;
+5. preservar os summaries/hashes de evidência.
+
+### 3. Windows AMD64 — no mesmo SHA FINAL
+
+1. checkout limpo do mesmo SHA FINAL;
+2. definir `$env:NEXUS_EXPECTED_SHA=(git rev-parse HEAD).Trim()`;
+3. executar `.\scripts\homologate-beta.ps1 -ExpectedSha $env:NEXUS_EXPECTED_SHA`;
+4. executar os checks manuais de Codex/OpenCode/HUD/Voice;
+5. executar o job native Windows/signing do CI quando Actions estiver disponível.
 
 ## Critério de fechamento
 
