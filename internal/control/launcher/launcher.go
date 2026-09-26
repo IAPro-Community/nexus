@@ -358,8 +358,11 @@ func (l *Launcher) Stop(runtimeID string) error {
 
 func forceKillSession(runtimeID string, sess registry.RuntimeSession, ok bool) {
 	if ok {
-		KillProcess(sess.PID)
-		if sess.HostPID > 0 && sess.HostPID != os.Getpid() {
+		currentPID := os.Getpid()
+		if sess.PID > 0 && sess.PID != currentPID {
+			KillProcess(sess.PID)
+		}
+		if sess.HostPID > 0 && sess.HostPID != currentPID {
 			KillProcess(sess.HostPID)
 		}
 	}
@@ -370,10 +373,11 @@ func sessionProcessAlive(sess registry.RuntimeSession, ok bool) bool {
 	if !ok {
 		return false
 	}
-	if sess.PID > 0 && registry.IsProcessAlive(sess.PID) {
+	currentPID := os.Getpid()
+	if sess.PID > 0 && sess.PID != currentPID && registry.IsProcessAlive(sess.PID) {
 		return true
 	}
-	if sess.HostPID > 0 && sess.HostPID != os.Getpid() && registry.IsProcessAlive(sess.HostPID) {
+	if sess.HostPID > 0 && sess.HostPID != currentPID && registry.IsProcessAlive(sess.HostPID) {
 		return true
 	}
 	return false
