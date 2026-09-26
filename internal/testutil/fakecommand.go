@@ -60,16 +60,16 @@ import (
 )
 
 type response struct {
-	Args []string \`json:"args"\`
-	Stdout string \`json:"stdout,omitempty"\`
-	Stderr string \`json:"stderr,omitempty"\`
-	ExitCode int \`json:"exit_code,omitempty"\`
-	ReadStdin bool \`json:"read_stdin,omitempty"\`
+	Args []string
+	Stdout string
+	Stderr string
+	ExitCode int
+	ReadStdin bool
 }
 type config struct {
-	Responses []response \`json:"responses"\`
-	DefaultExitCode int \`json:"default_exit_code"\`
-	MarkerOnInvocation string \`json:"marker_on_invocation,omitempty"\`
+	Responses []response
+	DefaultExitCode int
+	MarkerOnInvocation string
 }
 func equal(a, b []string) bool {
 	if len(a) != len(b) { return false }
