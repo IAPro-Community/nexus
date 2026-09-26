@@ -204,6 +204,28 @@ if [ "${NEXUS_SKIP_DESKTOP:-0}" != "1" ]; then
   make build-hud-wails 2>&1 | tee "$OUT/build-hud.log"
 fi
 
+log "GoReleaser snapshot (Linux amd64)"
+go run github.com/goreleaser/goreleaser/v2@v2.18.0 release --snapshot --clean 2>&1 | tee "$OUT/goreleaser-snapshot.log"
+test -f dist/checksums.txt
+test -f dist/nexus_Linux_x86_64.tar.gz
+test "$(find dist -maxdepth 1 -name 'nexus_Linux_*.tar.gz' | wc -l)" -eq 1
+DEB_PATH="$(find dist -maxdepth 1 \( -name '*_linux_amd64.deb' -o -name '*_linux_x86_64.deb' \) | head -n1)"
+test -n "$DEB_PATH"
+test "$(find dist -maxdepth 1 -name '*.rpm' | wc -l)" -eq 0
+test "$(find dist -maxdepth 1 \( -name '*Darwin*' -o -name '*Windows*' -o -name '*arm64*' \) | wc -l)" -eq 0
+
+log "DEB inspect/extract/execute smoke"
+require dpkg-deb
+dpkg-deb --info "$DEB_PATH" > "$OUT/deb-info.txt"
+DEB_ROOT="$OUT/deb-root"
+rm -rf "$DEB_ROOT"
+mkdir -p "$DEB_ROOT"
+dpkg-deb -x "$DEB_PATH" "$DEB_ROOT"
+DEB_NEXUS="$(find "$DEB_ROOT" -type f -name nexus -perm -111 | head -n1)"
+test -n "$DEB_NEXUS"
+"$DEB_NEXUS" version --json | tee "$OUT/deb-version.json"
+grep -Fq "\"version\":\"$EXPECTED_VERSION\"" "$OUT/deb-version.json" || grep -Fq "\"version\": \"$EXPECTED_VERSION\"" "$OUT/deb-version.json"
+
 cat > "$OUT/MANUAL_CHECKS.md" <<'EOF'
 # Manual beta smoke still required
 
@@ -228,4 +250,4 @@ These checks require a real interactive/native session and are intentionally not
 EOF
 
 date -u '+completed_at=%Y-%m-%dT%H:%M:%SZ' | tee -a "$OUT/environment.txt"
-printf '\nPASS automated local beta homologation: %s @ %s\nEvidence: %s\n' "$EXPECTED_VERSION" "$SHA" "$OUT"
+printf '\nPASS automated Linux beta.3 homologation: %s @ %s\nEvidence: %s\n' "$EXPECTED_VERSION" "$SHA" "$OUT"
