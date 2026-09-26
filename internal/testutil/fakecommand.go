@@ -13,17 +13,17 @@ import (
 
 // FakeCommandResponse describes one exact argv response for WriteFakeCommand.
 type FakeCommandResponse struct {
-	Args      []string `json:"args"`
-	Stdout    string   `json:"stdout,omitempty"`
-	Stderr    string   `json:"stderr,omitempty"`
-	ExitCode  int      `json:"exit_code,omitempty"`
-	ReadStdin bool     `json:"read_stdin,omitempty"`
+	Args      []string
+	Stdout    string
+	Stderr    string
+	ExitCode  int
+	ReadStdin bool
 }
 
 type fakeCommandConfig struct {
-	Responses          []FakeCommandResponse `json:"responses"`
-	DefaultExitCode    int                   `json:"default_exit_code"`
-	MarkerOnInvocation string                `json:"marker_on_invocation,omitempty"`
+	Responses          []FakeCommandResponse
+	DefaultExitCode    int
+	MarkerOnInvocation string
 }
 
 // WriteFakeCommand builds a tiny stdlib-only executable that matches argv
