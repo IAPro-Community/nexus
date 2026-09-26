@@ -9,7 +9,7 @@ on:
     branches: [main, master]
     tags: ['v*']
   pull_request:
-    branches: [main, master]
+    branches: [main, master, 'release/**']
   workflow_dispatch:
     inputs:
       native_target_sha:
