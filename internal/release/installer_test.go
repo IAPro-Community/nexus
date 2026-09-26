@@ -200,7 +200,7 @@ func TestInstallersRequirePinnedArtifactsOrExplicitSourceBuild(t *testing.T) {
 			t.Errorf("install.sh must not weaken trust with %q", forbidden)
 		}
 	}
-	for _, required := range []string{"-Version", "-BuildFromSource", "update-manifest.json", "update-manifest.sig", "Get-FileHash", "Resolve-LatestVersion", "NEXUS_RELEASE_REPO", "make build", "Ensure-Bun", "NexusPubKey", "refusing unsigned"} {
+	for _, required := range []string{"-Version", "-BuildFromSource", "update-manifest.json", "update-manifest.sig", "Get-FileHash", "Resolve-LatestVersion", "NEXUS_RELEASE_REPO", "Build-NexusFromSource", "bun run --cwd web build", "go build", "Ensure-Bun", "NexusPubKey", "refusing unsigned"} {
 		if !strings.Contains(psText, required) {
 			t.Errorf("install.ps1 missing pinned/digest guard %q", required)
 		}
@@ -208,6 +208,11 @@ func TestInstallersRequirePinnedArtifactsOrExplicitSourceBuild(t *testing.T) {
 	for _, forbidden := range []string{"falling back to checksums.txt", "skipping signature verification", "skipping hash verification"} {
 		if strings.Contains(psText, forbidden) {
 			t.Errorf("install.ps1 must not weaken trust with %q", forbidden)
+		}
+	}
+	for _, forbidden := range []string{"make is required for -BuildFromSource", "Building from source via make build"} {
+		if strings.Contains(psText, forbidden) {
+			t.Errorf("install.ps1 Windows source build must not require GNU Make: found %q", forbidden)
 		}
 	}
 	for _, required := range []string{"Ensure-GoCompiler", "winget", "GoLang.Go", "go.dev/dl"} {
@@ -257,7 +262,7 @@ func TestInstallerSupportsLatestIntegrityAndPathControls(t *testing.T) {
 		"nexus doctor",
 		"Ensure-WebView2",
 		"Ensure-Bun",
-		"make build",
+		"Build-NexusFromSource",
 		"NEXUS_RELEASE_REPO",
 	} {
 		if !strings.Contains(psText, required) {
