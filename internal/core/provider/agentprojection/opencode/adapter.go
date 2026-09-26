@@ -164,7 +164,6 @@ func isPermissionDenial(value string) bool {
 	return false
 }
 
-
 func EffectivePermissionProbeArgs(providerVersion, agentName string) ([]string, error) {
 	major, ok := parseMajor(providerVersion)
 	if !ok {
