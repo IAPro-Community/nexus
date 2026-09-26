@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
+import { terminateProcess } from './e2e-fixture.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const webDir = path.resolve(__dirname, '..');
@@ -60,20 +61,11 @@ const waitForUrl = () =>
     });
   });
 
-const stop = () => {
-  try {
-    if (!server.pid) return;
-    if (process.platform === 'win32') {
-      spawn('taskkill', ['/pid', String(server.pid), '/T', '/F'], { stdio: 'ignore' });
-    } else {
-      process.kill(-server.pid, 'SIGTERM');
-    }
-  } catch {
-    /* already gone */
-  }
-};
+const stop = () => terminateProcess(server);
 
-process.on('exit', stop);
+process.on('exit', () => {
+  void stop();
+});
 
 async function main() {
   console.log('starting isolated nexus web…');
@@ -189,8 +181,8 @@ main()
     console.error(error);
     process.exitCode = 1;
   })
-  .finally(() => {
-    stop();
+  .finally(async () => {
+    await stop();
     try {
       rmSync(isolatedDataDir, { recursive: true, force: true });
     } catch {
