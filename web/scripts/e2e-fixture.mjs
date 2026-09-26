@@ -21,8 +21,17 @@ export async function terminateProcess(proc) {
   return new Promise((resolve) => {
     try {
       if (process.platform === 'win32') {
-        spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F']);
-        resolve();
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        const killer = spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F'], { stdio: 'ignore' });
+        killer.once('error', finish);
+        killer.once('exit', finish);
+        proc.once('exit', finish);
+        setTimeout(finish, 2500);
       } else {
         process.kill(-proc.pid, 'SIGTERM');
         const timeout = setTimeout(() => {
