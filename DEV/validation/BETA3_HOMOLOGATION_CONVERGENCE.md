@@ -222,6 +222,46 @@ Também foi auditado o source exato do Wails v2.15.0 e do
 normalizado para os componentes numéricos e a string legível preserva o valor
 completo. Portanto o prerelease em `wails.json` não é blocker de build.
 
+### 12. Instalador Windows ainda dependia de GNU Make
+
+`install.ps1 -BuildFromSource` exigia `make build`, criando uma dependência
+MSYS2/Chocolatey/Scoop desnecessária no caminho Windows.
+
+Correção:
+
+- novo `Build-NexusFromSource` em PowerShell;
+- `bun install --cwd web --frozen-lockfile`;
+- `bun run --cwd web build`;
+- `go build -trimpath -buildvcs=false` com version/commit/build-date/trust-root;
+- validação do `version --json` do binário produzido;
+- testes impedem reintrodução da exigência GNU Make.
+
+### 13. `-SourceRef` não aceitava SHA apesar do contrato
+
+O instalador anunciava suporte a tag/commit, mas usava
+`git clone --branch $SourceRef`, que não seleciona SHA arbitrário.
+
+Correção:
+
+- inicializa checkout temporário;
+- `git fetch --depth 1 origin $SourceRef`;
+- `git checkout --detach FETCH_HEAD`;
+- funciona com branch, tag ou commit alcançável;
+- teste de release proíbe regressão para `git clone --branch`.
+
+### 14. PowerShell não tinha gate sintático explícito
+
+O homologador Windows agora usa
+`System.Management.Automation.Language.Parser` antes dos demais gates para
+validar:
+
+- `install.ps1`;
+- `uninstall.ps1`;
+- `scripts/homologate-beta.ps1`;
+- `scripts/refresh-beta-docs-windows.ps1`.
+
+Erro sintático interrompe a homologação imediatamente.
+
 ## Estado das evidências beta.3
 
 | Gate | Source | Execução beta.3 same-SHA | Estado |
