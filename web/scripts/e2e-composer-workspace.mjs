@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
-import { terminateProcess } from './e2e-fixture.mjs';
+import { terminateProcess, terminateProcessOnExit } from './e2e-fixture.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const webDir = path.resolve(__dirname, '..');
@@ -63,9 +63,7 @@ const waitForUrl = () =>
 
 const stop = () => terminateProcess(server);
 
-process.on('exit', () => {
-  void stop();
-});
+process.on('exit', () => terminateProcessOnExit(server));
 
 async function main() {
   console.log('starting isolated nexus web…');
