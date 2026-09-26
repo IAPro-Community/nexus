@@ -16,6 +16,19 @@ const webDir = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(webDir, '..');
 const binPath = nexusBinaryPath(repoRoot);
 
+export function terminateProcessOnExit(proc) {
+  if (!proc || !proc.pid) return;
+  try {
+    if (process.platform === 'win32') {
+      spawnSync('taskkill', ['/pid', String(proc.pid), '/T', '/F'], { stdio: 'ignore' });
+    } else {
+      process.kill(-proc.pid, 'SIGTERM');
+    }
+  } catch (_) {
+    /* best-effort synchronous exit cleanup */
+  }
+}
+
 export async function terminateProcess(proc) {
   if (!proc || !proc.pid) return;
   return new Promise((resolve) => {
