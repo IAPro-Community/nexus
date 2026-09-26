@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
-import { terminateProcess } from './e2e-fixture.mjs';
+import { terminateProcess, terminateProcessOnExit } from './e2e-fixture.mjs';
 import AxeBuilder from '@axe-core/playwright';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -25,9 +25,7 @@ const server = spawn(binPath, ['web', '--port', '0', '--listen', '127.0.0.1', '-
 const stop = async () => {
   await terminateProcess(server);
 };
-process.on('exit', () => {
-  void stop();
-});
+process.on('exit', () => terminateProcessOnExit(server));
 
 const bootstrap = await new Promise((resolve, reject) => {
   let buffer = '';
