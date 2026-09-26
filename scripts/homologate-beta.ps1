@@ -78,6 +78,29 @@ if (-not $AllowDirty) {
   "started_at=$([DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'))"
 ) | Tee-Object -FilePath (Join-Path $Out 'environment.txt')
 
+Write-Host "==> PowerShell syntax"
+$PowerShellSyntaxLog = Join-Path $Out 'powershell-syntax.log'
+foreach ($ScriptPath in @(
+  'install.ps1',
+  'uninstall.ps1',
+  'scripts/homologate-beta.ps1',
+  'scripts/refresh-beta-docs-windows.ps1'
+)) {
+  $Tokens = $null
+  $ParseErrors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile(
+    (Resolve-Path $ScriptPath).Path,
+    [ref]$Tokens,
+    [ref]$ParseErrors
+  ) | Out-Null
+  if ($ParseErrors.Count -gt 0) {
+    $ParseErrors | ForEach-Object { $ScriptPath + ": " + $_.Message } |
+      Tee-Object -FilePath $PowerShellSyntaxLog -Append
+    throw "PowerShell syntax failed: $ScriptPath"
+  }
+  "PASS $ScriptPath" | Tee-Object -FilePath $PowerShellSyntaxLog -Append
+}
+
 Write-Host "==> documentation"
 bun scripts/docs-verify.mjs 2>&1 | Tee-Object -FilePath (Join-Path $Out 'docs-verify.log')
 if ($LASTEXITCODE -ne 0) { throw "documentation verification failed" }
