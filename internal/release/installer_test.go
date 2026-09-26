@@ -215,6 +215,16 @@ func TestInstallersRequirePinnedArtifactsOrExplicitSourceBuild(t *testing.T) {
 			t.Errorf("install.ps1 Windows source build must not require GNU Make: found %q", forbidden)
 		}
 	}
+	for _, forbidden := range []string{"git clone --depth 1 --branch $SourceRef", "git clone --depth 1 --branch"} {
+		if strings.Contains(psText, forbidden) {
+			t.Errorf("install.ps1 -SourceRef must support commit SHAs, not only branch/tag clone syntax: found %q", forbidden)
+		}
+	}
+	for _, required := range []string{"git -C $CloneDir fetch --depth 1 origin $SourceRef", "git -C $CloneDir checkout --detach FETCH_HEAD"} {
+		if !strings.Contains(psText, required) {
+			t.Errorf("install.ps1 -SourceRef missing exact-ref fetch contract %q", required)
+		}
+	}
 	for _, required := range []string{"Ensure-GoCompiler", "winget", "GoLang.Go", "go.dev/dl"} {
 		if !strings.Contains(psText, required) {
 			t.Errorf("install.ps1 must install or explain the Go source-build dependency: missing %q", required)
