@@ -162,6 +162,65 @@ $Installed = $false
 # Ed25519 public key for manifest signature verification (matches internal/update ProductionTrustRoot).
 $NexusPubKey = "ee2e268394ce6a0634a9ea2f414ee831dd536d12f7e2b80107f94566e58aa334"
 
+
+function Build-NexusFromSource {
+    param([string]$RootPath)
+
+    Push-Location $RootPath
+    try {
+        if (-not (Test-Path "./go.mod") -or -not (Test-Path "./cmd/nexus") -or -not (Test-Path "./web")) {
+            throw "Source checkout is missing go.mod, cmd/nexus, or web."
+        }
+
+        Write-Host "Installing locked frontend dependencies..." -ForegroundColor Yellow
+        & bun install --cwd web --frozen-lockfile
+        if ($LASTEXITCODE -ne 0) { throw "bun install failed during source build." }
+
+        Write-Host "Building frontend bundle..." -ForegroundColor Yellow
+        & bun run --cwd web build
+        if ($LASTEXITCODE -ne 0) { throw "frontend build failed during source build." }
+
+        $SourceVersion = (Get-Content VERSION -Raw).Trim()
+        if ([string]::IsNullOrWhiteSpace($SourceVersion)) {
+            throw "VERSION is empty in source checkout."
+        }
+
+        $Commit = "unknown"
+        if (Get-Command git -ErrorAction SilentlyContinue) {
+            $ResolvedCommit = (& git rev-parse --short HEAD 2>$null)
+            if ($LASTEXITCODE -eq 0 -and $ResolvedCommit) {
+                $Commit = ([string]$ResolvedCommit).Trim()
+            }
+        }
+        $BuildDate = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+        $Module = "github.com/IAPro-Community/nexus"
+        $Ldflags = "-s -w -X $Module/internal/buildinfo.Version=$SourceVersion -X $Module/internal/buildinfo.Commit=$Commit -X $Module/internal/buildinfo.BuildDate=$BuildDate -X $Module/internal/update.ProductionTrustRootHex=$NexusPubKey"
+
+        Write-Host "Building Nexus $SourceVersion (commit: $Commit) with Go..." -ForegroundColor Yellow
+        & go build -trimpath -buildvcs=false -ldflags $Ldflags -o $BinaryName ./cmd/nexus
+        if ($LASTEXITCODE -ne 0) { throw "go build failed during source build." }
+
+        $Built = Join-Path (Get-Location) $BinaryName
+        if (-not (Test-Path $Built)) {
+            throw "source build did not produce $BinaryName."
+        }
+
+        $VersionJson = (& $Built version --json 2>$null) -join "`n"
+        try {
+            $EmbeddedVersion = ($VersionJson | ConvertFrom-Json).version
+        } catch {
+            throw "source-built binary could not report valid version metadata."
+        }
+        if ($EmbeddedVersion -ne $SourceVersion) {
+            throw "source-built binary version mismatch: expected $SourceVersion, got $EmbeddedVersion"
+        }
+
+        Copy-Item -Path $Built -Destination $TargetPath -Force
+    } finally {
+        Pop-Location
+    }
+}
+
 function Verify-ManifestSignature {
     param([string]$ManifestPath, [string]$SigPath)
     if (-not (Test-Path $SigPath)) {
@@ -317,36 +376,153 @@ try {
 if (-not $Installed -and $BuildFromSource) {
     Ensure-GoCompiler
     Ensure-Bun
-    if (-not (Get-Command make -ErrorAction SilentlyContinue)) {
-        throw "make is required for -BuildFromSource. Install make (e.g. chocolatey/scoop/MSYS2) and re-run."
-    }
-    Write-Host "Building from source via make build (Go + Bun)..." -ForegroundColor Yellow
+    Write-Host "Building from source with Bun + Go (GNU Make not required)..." -ForegroundColor Yellow
     if ((Test-Path "./go.mod") -and (Test-Path "./cmd/nexus")) {
-        bun install --cwd web --frozen-lockfile
-        make build
-        $Built = if (Test-Path "./nexus.exe") { "./nexus.exe" } elseif (Test-Path "./nexus") { "./nexus" } else { $null }
-        if (-not $Built) { throw "make build did not produce nexus binary." }
-        Copy-Item -Path $Built -Destination $TargetPath -Force
+        Build-NexusFromSource "."
         $Installed = $true
     } elseif (-not [string]::IsNullOrWhiteSpace($SourceRef)) {
-        if ($SourceRef -notmatch '^[A-Za-z0-9._/-]+$') { throw "Invalid source ref." }
+        if ($SourceRef -notmatch '^[A-Za-z0-9._/-]+
+
+if (-not $Installed) {
+    throw "Installation failed: no verified release artifact was installed."
+}
+
+$AiAliasPath = Join-Path $TargetDir $AiAliasName
+if (Test-Path $TargetPath) {
+    Copy-Item -Path $TargetPath -Destination $AiAliasPath -Force
+}
+
+if ($WithMaestro) {
+    Write-Host "`nChecking Orquestrador Maestro dependency (-WithMaestro requested)..." -ForegroundColor Yellow
+    if (-not (Get-Command orquestrador-maestro -ErrorAction SilentlyContinue) -and -not (Get-Command maestro -ErrorAction SilentlyContinue)) {
+        if (Get-Command npm -ErrorAction SilentlyContinue) {
+            Write-Host "Installing Orquestrador Maestro CLI (@iapro/orquestrador-maestro-cli)..." -ForegroundColor Yellow
+            npm install -g @iapro/orquestrador-maestro-cli
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "⚠️  Maestro npm install failed." -ForegroundColor Yellow
+                $MaestroExit = 2
+            }
+        } else {
+            Write-Host "⚠️  Node.js / npm not detected. Maestro unavailable." -ForegroundColor Yellow
+            $MaestroExit = 2
+        }
+    }
+} else {
+    Write-Host "`nMaestro auto-install skipped (Nexus does not silently install third-party packages)." -ForegroundColor Gray
+    Write-Host "To install Maestro, run with '-WithMaestro' or: npm install -g @iapro/orquestrador-maestro-cli" -ForegroundColor Gray
+}
+
+$MaestroCmd = Get-Command orquestrador-maestro -ErrorAction SilentlyContinue
+if ($MaestroCmd) {
+    $MaestroAliasPath = Join-Path $TargetDir "maestro.cmd"
+    Set-Content -Path $MaestroAliasPath -Value "@echo off`r`norquestrador-maestro %*" -Force
+    Write-Host "✓ Linked Maestro alias ($MaestroAliasPath)" -ForegroundColor Green
+}
+
+Write-Host "✓ Successfully installed IAPro Nexus to $TargetPath" -ForegroundColor Green
+
+if ($InstallDesktop -and $IsWindowsOS -and $Arch -ne "x86_64" -and -not [string]::IsNullOrWhiteSpace($Version)) {
+    Write-Host "⚠️  Native Desktop is not published/certified for Windows/$Arch; CLI/Core installation remains valid." -ForegroundColor Yellow
+}
+
+if ($InstallDesktop -and $IsWindowsOS -and $Arch -eq "x86_64" -and -not [string]::IsNullOrWhiteSpace($Version)) {
+    $DesktopArchiveName = "nexus-desktop_Windows_${Arch}.zip"
+    $DesktopDownloadUrl = "$ReleaseDownloadBase/v$Version/$DesktopArchiveName"
+    $DesktopZipPath = Join-Path $TempDir $DesktopArchiveName
+    $ManifestPath = Join-Path $TempDir "update-manifest.json"
+    $SigPath = Join-Path $TempDir "update-manifest.sig"
+    $NsisName = "nexus-setup-Windows_x86_64.exe"
+    try {
+        Write-Host "Attempting to install the native IAPro Nexus Desktop shell..." -ForegroundColor Yellow
+        if (-not (Test-Path $ManifestPath) -or -not (Test-Path $SigPath)) {
+            $ManifestUrl = "$ReleaseDownloadBase/v$Version/update-manifest.json"
+            $SigUrl = "$ReleaseDownloadBase/v$Version/update-manifest.sig"
+            Invoke-WebRequest -Uri $ManifestUrl -OutFile $ManifestPath -UseBasicParsing
+            Invoke-WebRequest -Uri $SigUrl -OutFile $SigPath -UseBasicParsing
+        }
+        if (-not (Verify-ManifestSignature -ManifestPath $ManifestPath -SigPath $SigPath)) {
+            throw "Release manifest signature verification failed for desktop install."
+        }
+        $ExpectedDesktop = Extract-ShaFromManifest -ManifestPath $ManifestPath -ArtifactName $DesktopArchiveName
+        if ([string]::IsNullOrWhiteSpace($ExpectedDesktop)) {
+            throw "Native Desktop artifact $DesktopArchiveName missing from signed update-manifest (unsigned desktop-checksums.txt is refused)"
+        }
+        Invoke-WebRequest -Uri $DesktopDownloadUrl -OutFile $DesktopZipPath -UseBasicParsing
+        $ActualDesktop = (Get-FileHash -Path $DesktopZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($ExpectedDesktop.ToLowerInvariant() -ne $ActualDesktop) {
+            throw "Native Desktop checksum verification failed for $DesktopArchiveName."
+        }
+        $DesktopExtractDir = Join-Path $TempDir "desktop"
+        Expand-Archive -Path $DesktopZipPath -DestinationPath $DesktopExtractDir -Force
+        $DesktopBinary = Join-Path $DesktopExtractDir "nexus-desktop.exe"
+        if (-not (Test-Path $DesktopBinary)) { throw "Native Desktop executable missing from $DesktopArchiveName." }
+        $DesktopTargetPath = Join-Path $TargetDir "nexus-desktop.exe"
+        Copy-Item -Path $DesktopBinary -Destination $DesktopTargetPath -Force
+
+        Ensure-WebView2
+
+        $DesktopShortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) "IAPro Nexus.lnk"
+        $Shell = New-Object -ComObject WScript.Shell
+        $Shortcut = $Shell.CreateShortcut($DesktopShortcutPath)
+        $Shortcut.TargetPath = $DesktopTargetPath
+        $Shortcut.WorkingDirectory = $TargetDir
+        $Shortcut.Description = "IAPro Nexus Workspace OS"
+        $Shortcut.Save()
+        Write-Host "✓ Native Desktop installed to $DesktopTargetPath" -ForegroundColor Green
+        Write-Host "✓ Shortcut created at $DesktopShortcutPath" -ForegroundColor Green
+
+        # NSIS installer (optional asset): must also be listed in the signed manifest when present.
+        $NsisSha = Extract-ShaFromManifest -ManifestPath $ManifestPath -ArtifactName $NsisName
+        if (-not [string]::IsNullOrWhiteSpace($NsisSha)) {
+            Write-Host "NSIS installer is covered by signed update-manifest ($NsisName)." -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "ERROR: Native Desktop install refused: $_" -ForegroundColor Red
+        throw
+    }
+}
+
+Remove-Item -Path $TempDir -Recurse -Force -ErrorAction SilentlyContinue
+
+if ($IsWindowsOS) {
+    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $PathEntries = $UserPath -split ';' | Where-Object { $_ -ne "" }
+
+    if ($PathEntries -notcontains $TargetDir) {
+        Write-Host "Adding $TargetDir to user PATH environment variable..." -ForegroundColor Yellow
+        $NewPath = if ([string]::IsNullOrEmpty($UserPath)) { $TargetDir } else { "$UserPath;$TargetDir" }
+        [Environment]::SetEnvironmentVariable("Path", $NewPath, "User")
+        $env:PATH = "$TargetDir;$env:PATH"
+        Write-Host "✓ Added $TargetDir to PATH." -ForegroundColor Green
+    }
+}
+
+Write-Host "`nRunning nexus doctor (warnings do not fail install)..." -ForegroundColor Yellow
+try {
+    & $TargetPath doctor
+} catch {
+    Write-Host "nexus doctor reported issues (non-fatal for install)." -ForegroundColor Yellow
+}
+
+Write-Host "`nSetup complete!" -ForegroundColor Green
+Write-Host "Run 'nexus doctor' to verify provider and Maestro dependencies." -ForegroundColor White
+Write-Host "To start the Workspace OS:" -ForegroundColor Cyan
+Write-Host "  nexus web" -ForegroundColor Cyan
+Write-Host "Note: -Version latest resolves a GitHub tag, then still requires a signed update-manifest.json + Ed25519 signature." -ForegroundColor Gray
+
+if ($MaestroExit -ne 0) {
+    exit $MaestroExit
+}
+) { throw "Invalid source ref." }
         if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
             throw "git is required for -SourceRef builds."
         }
         Write-Host "Cloning explicitly requested source ref $SourceRef..." -ForegroundColor Yellow
         $CloneDir = Join-Path $TempDir "repo"
         git clone --depth 1 --branch $SourceRef "$SourceUrl.git" $CloneDir
-        Push-Location $CloneDir
-        try {
-            bun install --cwd web --frozen-lockfile
-            make build
-            $Built = if (Test-Path "./nexus.exe") { "./nexus.exe" } elseif (Test-Path "./nexus") { "./nexus" } else { $null }
-            if (-not $Built) { throw "make build did not produce nexus binary." }
-            Copy-Item -Path $Built -Destination $TargetPath -Force
-            $Installed = $true
-        } finally {
-            Pop-Location
-        }
+        if ($LASTEXITCODE -ne 0) { throw "git clone failed for source ref $SourceRef." }
+        Build-NexusFromSource $CloneDir
+        $Installed = $true
     } else {
         throw "-BuildFromSource requires a Nexus checkout or -SourceRef=<tag-or-commit>."
     }
