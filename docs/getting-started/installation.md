@@ -166,7 +166,7 @@ bash uninstall.sh --purge-data
 
 O source é um caminho de engenharia, não o bootstrap recomendado de cliente.
 
-Requisitos: Go 1.25+, Bun 1.3.9+, Git e Make.
+Requisitos para o fluxo manual abaixo: Go 1.25+, Bun 1.3.9+, Git e Make. No Windows, `install.ps1 -BuildFromSource` compila diretamente com Bun + Go e **não exige GNU Make**.
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
