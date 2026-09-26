@@ -31,7 +31,7 @@ const stop = async () => {
   await terminateProcess(server);
 };
 process.on('exit', () => {
-  void stop();
+  terminateProcessOnExit(server);
   rmSync(fixture, { recursive: true, force: true });
 });
 
