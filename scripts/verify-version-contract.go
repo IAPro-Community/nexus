@@ -55,22 +55,30 @@ func validateContract(root string) []string {
 		errs = append(errs, fmt.Sprintf("web/package.json: %v", err))
 	}
 
-	// wails.json
-	var wailsJSON struct {
-		Info struct {
-			ProductVersion string `json:"productVersion"`
-		} `json:"info"`
-	}
-	if b, err := os.ReadFile(filepath.Join(root, "cmd", "nexus-desktop", "wails.json")); err == nil {
-		if err := json.Unmarshal(b, &wailsJSON); err != nil {
-			errs = append(errs, fmt.Sprintf("wails.json: parse error: %v", err))
-		} else if wailsJSON.Info.ProductVersion != version {
-			errs = append(errs, fmt.Sprintf("wails.json info.productVersion=%s != VERSION=%s", wailsJSON.Info.ProductVersion, version))
-		} else {
-			fmt.Printf("  wails.json info.productVersion = %s ✓\n", wailsJSON.Info.ProductVersion)
+	// Wails Desktop + HUD metadata. Wails v2 accepts the semver string here;
+	// Windows fixed VERSIONINFO is normalized internally while the readable
+	// ProductVersion string keeps the full prerelease value.
+	for _, rel := range []string{
+		filepath.Join("cmd", "nexus-desktop", "wails.json"),
+		filepath.Join("cmd", "nexus-hud", "wails.json"),
+	} {
+		var wailsJSON struct {
+			Info struct {
+				ProductVersion string `json:"productVersion"`
+			} `json:"info"`
 		}
-	} else {
-		errs = append(errs, fmt.Sprintf("wails.json: %v", err))
+		path := filepath.Join(root, rel)
+		if b, err := os.ReadFile(path); err == nil {
+			if err := json.Unmarshal(b, &wailsJSON); err != nil {
+				errs = append(errs, fmt.Sprintf("%s: parse error: %v", rel, err))
+			} else if wailsJSON.Info.ProductVersion != version {
+				errs = append(errs, fmt.Sprintf("%s info.productVersion=%s != VERSION=%s", rel, wailsJSON.Info.ProductVersion, version))
+			} else {
+				fmt.Printf("  %s info.productVersion = %s ✓\n", rel, wailsJSON.Info.ProductVersion)
+			}
+		} else {
+			errs = append(errs, fmt.Sprintf("%s: %v", rel, err))
+		}
 	}
 
 	// git tag (if on a release tag)
