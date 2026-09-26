@@ -189,24 +189,27 @@ func (c *MaestroClient) ApplySyncPreview(ctx context.Context, preview SkillSyncP
 }
 
 
-func syncScriptCommand(ctx context.Context, tool, action string) (*exec.Cmd, error) {
+func syncScriptInvocation(tool, action string, lookPath func(string) (string, error)) (string, []string, error) {
 	tool = filepath.Clean(strings.TrimSpace(tool))
 	action = strings.TrimSpace(action)
 	if tool == "." || action == "" {
-		return nil, fmt.Errorf("sync script and action are required")
+		return "", nil, fmt.Errorf("sync script and action are required")
+	}
+	if lookPath == nil {
+		return "", nil, fmt.Errorf("sync script executable resolver is required")
 	}
 
 	base := strings.ToLower(filepath.Base(tool))
 	switch {
 	case strings.HasSuffix(base, ".sh"):
-		bash, err := exec.LookPath("bash")
+		bash, err := lookPath("bash")
 		if err != nil {
-			return nil, fmt.Errorf("bash is required to execute %s: %w", base, err)
+			return "", nil, fmt.Errorf("bash is required to execute %s: %w", base, err)
 		}
-		return exec.CommandContext(ctx, bash, tool, action), nil
+		return bash, []string{tool, action}, nil
 	case strings.HasSuffix(base, ".ps1"):
 		for _, candidate := range []string{"pwsh", "powershell.exe", "powershell"} {
-			shell, err := exec.LookPath(candidate)
+			shell, err := lookPath(candidate)
 			if err != nil {
 				continue
 			}
@@ -215,12 +218,20 @@ func syncScriptCommand(ctx context.Context, tool, action string) (*exec.Cmd, err
 				args = append(args, "-ExecutionPolicy", "Bypass")
 			}
 			args = append(args, "-File", tool, action)
-			return exec.CommandContext(ctx, shell, args...), nil
+			return shell, args, nil
 		}
-		return nil, fmt.Errorf("PowerShell is required to execute %s", base)
+		return "", nil, fmt.Errorf("PowerShell is required to execute %s", base)
 	default:
-		return nil, fmt.Errorf("unsupported Maestro sync script %q", base)
+		return "", nil, fmt.Errorf("unsupported Maestro sync script %q", base)
 	}
+}
+
+func syncScriptCommand(ctx context.Context, tool, action string) (*exec.Cmd, error) {
+	binary, args, err := syncScriptInvocation(tool, action, exec.LookPath)
+	if err != nil {
+		return nil, err
+	}
+	return exec.CommandContext(ctx, binary, args...), nil
 }
 
 func (c *MaestroClient) SyncPreview() (*SkillSyncPreview, error) {
