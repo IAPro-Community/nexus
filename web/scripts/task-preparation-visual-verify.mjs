@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
-import { terminateProcess } from './e2e-fixture.mjs';
+import { terminateProcess, terminateProcessOnExit } from './e2e-fixture.mjs';
 import AxeBuilder from '@axe-core/playwright';
 
 const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
