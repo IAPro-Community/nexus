@@ -1,7 +1,6 @@
 package launcher
 
 import (
-	"os/exec"
 	"testing"
 	"time"
 
@@ -34,7 +33,7 @@ func TestOrphanHostProcessesKeepsActiveRuntime(t *testing.T) {
 }
 
 func TestReapOrphanHostsFromKillsUnregisteredHost(t *testing.T) {
-	cmd := exec.Command("sleep", "30")
+	cmd := startLongRunningTestProcess(t)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +54,7 @@ func TestReapOrphanHostsFromKillsUnregisteredHost(t *testing.T) {
 }
 
 func TestReapOrphanHostsFromLeavesRunningRegistryHost(t *testing.T) {
-	cmd := exec.Command("sleep", "30")
+	cmd := startLongRunningTestProcess(t)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
