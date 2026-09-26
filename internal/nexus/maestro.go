@@ -188,7 +188,6 @@ func (c *MaestroClient) ApplySyncPreview(ctx context.Context, preview SkillSyncP
 	return &result, nil
 }
 
-
 func syncScriptInvocation(tool, action string, lookPath func(string) (string, error)) (string, []string, error) {
 	tool = filepath.Clean(strings.TrimSpace(tool))
 	action = strings.TrimSpace(action)
