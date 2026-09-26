@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
+import { terminateProcess } from './process-termination.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,40 +30,7 @@ export function terminateProcessOnExit(proc) {
   }
 }
 
-export async function terminateProcess(proc) {
-  if (!proc || !proc.pid) return;
-  return new Promise((resolve) => {
-    try {
-      if (process.platform === 'win32') {
-        let settled = false;
-        const finish = () => {
-          if (settled) return;
-          settled = true;
-          resolve();
-        };
-        const killer = spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F'], { stdio: 'ignore' });
-        killer.once('error', finish);
-        killer.once('exit', finish);
-        proc.once('exit', finish);
-        setTimeout(finish, 2500);
-      } else {
-        process.kill(-proc.pid, 'SIGTERM');
-        const timeout = setTimeout(() => {
-          try {
-            process.kill(-proc.pid, 'SIGKILL');
-          } catch (_) {}
-          resolve();
-        }, 1200);
-        proc.on('exit', () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-      }
-    } catch (_) {
-      resolve();
-    }
-  });
-}
+export { terminateProcess };
 
 export async function startFixtureServer() {
   ensureNexusBinary(repoRoot);
