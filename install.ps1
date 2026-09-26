@@ -517,10 +517,17 @@ if ($MaestroExit -ne 0) {
         if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
             throw "git is required for -SourceRef builds."
         }
-        Write-Host "Cloning explicitly requested source ref $SourceRef..." -ForegroundColor Yellow
+        Write-Host "Fetching explicitly requested source ref $SourceRef..." -ForegroundColor Yellow
         $CloneDir = Join-Path $TempDir "repo"
-        git clone --depth 1 --branch $SourceRef "$SourceUrl.git" $CloneDir
-        if ($LASTEXITCODE -ne 0) { throw "git clone failed for source ref $SourceRef." }
+        New-Item -ItemType Directory -Path $CloneDir -Force | Out-Null
+        & git -C $CloneDir init -q
+        if ($LASTEXITCODE -ne 0) { throw "git init failed for source build." }
+        & git -C $CloneDir remote add origin "$SourceUrl.git"
+        if ($LASTEXITCODE -ne 0) { throw "git remote setup failed for source build." }
+        & git -C $CloneDir fetch --depth 1 origin $SourceRef
+        if ($LASTEXITCODE -ne 0) { throw "git fetch failed for source ref $SourceRef." }
+        & git -C $CloneDir checkout --detach FETCH_HEAD
+        if ($LASTEXITCODE -ne 0) { throw "git checkout failed for source ref $SourceRef." }
         Build-NexusFromSource $CloneDir
         $Installed = $true
     } else {
