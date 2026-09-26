@@ -66,8 +66,9 @@ func TestMaestroUnavailableNeverFabricatesAdvice(t *testing.T) {
 }
 
 func TestMaestroAdviseFailureNeverFallsBackToSyntheticRecommendations(t *testing.T) {
-	script := "if [ \"$1\" = \"version\" ] || [ \"$1\" = \"--version\" ]; then echo 1.2.3; exit 0; fi\nexit 2\n"
-	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
+	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", []testutil.FakeCommandResponse{
+		{Args: []string{"advise", "--json"}, ExitCode: 2},
+	}, 2, "")
 	c := &MaestroClient{status: MaestroStatus{Available: true, Mode: MaestroAssist, Capabilities: &MaestroCapability{Version: "1.2.3"}}, maestroBin: bin}
 	resp, err := c.GetAdvice(AdviceContext{ProjectID: "p1"}, "ship product")
 	if err == nil {
@@ -75,6 +76,41 @@ func TestMaestroAdviseFailureNeverFallsBackToSyntheticRecommendations(t *testing
 	}
 	if !resp.Degraded || len(resp.Required)+len(resp.Recommended)+len(resp.Optional) != 0 {
 		t.Fatalf("expected empty degraded response, got %+v", resp)
+	}
+}
+
+func TestSyncScriptInvocationSupportsShellAndPowerShell(t *testing.T) {
+	lookup := func(name string) (string, error) {
+		switch name {
+		case "bash":
+			return "/tooling/bash", nil
+		case "pwsh":
+			return "/tooling/pwsh", nil
+		default:
+			return "", os.ErrNotExist
+		}
+	}
+
+	sh := filepath.Join(t.TempDir(), "sync-skills.sh")
+	binary, args, err := syncScriptInvocation(sh, "--dry-run", lookup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if binary != "/tooling/bash" || len(args) != 2 || args[0] != sh || args[1] != "--dry-run" {
+		t.Fatalf("unexpected shell invocation: binary=%q args=%v", binary, args)
+	}
+
+	ps := filepath.Join(t.TempDir(), "sync-skills.ps1")
+	binary, args, err = syncScriptInvocation(ps, "--apply", lookup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if binary != "/tooling/pwsh" {
+		t.Fatalf("unexpected PowerShell binary: %q", binary)
+	}
+	want := []string{"-NoProfile", "-NonInteractive", "-File", ps, "--apply"}
+	if strings.Join(args, "\x00") != strings.Join(want, "\x00") {
+		t.Fatalf("unexpected PowerShell args: got=%v want=%v", args, want)
 	}
 }
 
@@ -92,14 +128,13 @@ func TestFindOrquestradorDirUsesPortableDataDirProfiles(t *testing.T) {
 }
 
 func TestMaestroVerifyContractPassesThroughMachineReadableVerdict(t *testing.T) {
-	script := `if [ "$1" = "verify" ] && [ "$2" = "--json" ]; then
-  cat >/dev/null
-  printf '%s\n' '{"version":"1.0.0","lifecycle":"VERIFY","passed":true,"required_actions":[],"explanation":"all required checks passed"}'
-  exit 0
-fi
-exit 2
-`
-	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
+	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", []testutil.FakeCommandResponse{
+		{
+			Args:      []string{"verify", "--json"},
+			Stdout:    "{\"version\":\"1.0.0\",\"lifecycle\":\"VERIFY\",\"passed\":true,\"required_actions\":[],\"explanation\":\"all required checks passed\"}\n",
+			ReadStdin: true,
+		},
+	}, 2, "")
 	c := &MaestroClient{
 		status: MaestroStatus{
 			Available: true,
@@ -141,8 +176,7 @@ func TestMaestroVerifyUnavailableNeverFabricatesPass(t *testing.T) {
 
 func TestMaestroVerifyRejectsSecretLikeInputBeforeExecution(t *testing.T) {
 	marker := filepath.Join(t.TempDir(), "called")
-	script := "touch " + marker + "\nexit 0\n"
-	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
+	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", nil, 0, marker)
 	c := &MaestroClient{
 		status:     MaestroStatus{Available: true, Mode: MaestroAssist},
 		maestroBin: bin,
@@ -165,21 +199,18 @@ func TestMaestroVerifyRejectsSecretLikeInputBeforeExecution(t *testing.T) {
 func TestMaestroCapabilitiesUsesExplicitSkillsListContract(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
-	script := `if [ "$1" = "capabilities" ] && [ "$2" = "--json" ]; then
-  printf '%s\n' '{"version":"1.0.0","modes":["OFF","ASSIST","ORCHESTRATE"],"skills":[],"gates":["review"],"processes":["verification"]}'
-  exit 0
-fi
-if [ "$1" = "skills" ] && [ "$2" = "list" ] && [ "$3" = "--json" ]; then
-  printf '%s\n' '{"skills":[{"id":"security-review","name":"Security Review","description":"Review security","version":"1.2.0","risk":"medium","triggers":["security"]}]}'
-  exit 0
-fi
-if [ "$1" = "version" ] || [ "$1" = "--version" ]; then
-  echo 1.0.0
-  exit 0
-fi
-exit 2
-`
-	bin := testutil.WriteFakeBinaryWithScript(t, t.TempDir(), "maestro", script)
+	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", []testutil.FakeCommandResponse{
+		{
+			Args:   []string{"capabilities", "--json"},
+			Stdout: "{\"version\":\"1.0.0\",\"modes\":[\"OFF\",\"ASSIST\",\"ORCHESTRATE\"],\"skills\":[],\"gates\":[\"review\"],\"processes\":[\"verification\"]}\n",
+		},
+		{
+			Args:   []string{"skills", "list", "--json"},
+			Stdout: "{\"skills\":[{\"id\":\"security-review\",\"name\":\"Security Review\",\"description\":\"Review security\",\"version\":\"1.2.0\",\"risk\":\"medium\",\"triggers\":[\"security\"]}]}\n",
+		},
+		{Args: []string{"version"}, Stdout: "1.0.0\n"},
+		{Args: []string{"--version"}, Stdout: "1.0.0\n"},
+	}, 2, "")
 	client := &MaestroClient{maestroBin: bin}
 	capabilities, err := client.queryCapabilities()
 	if err != nil {
