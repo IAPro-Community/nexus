@@ -3,11 +3,11 @@ package nexus
 import (
 	"context"
 	"fmt"
-	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // IntegrationService provides protected integration via fast-forward ff-only merges.
@@ -68,7 +68,7 @@ func (s *IntegrationService) Integrate(ctx context.Context, req IntegrationReque
 	}
 
 	// Attempt fast-forward merge.
-	cmd := exec.CommandContext(ctx, "git", "-C", req.Workspace, "merge", "--ff-only", req.HeadBranch)
+	cmd := executil.CommandContext(ctx, "git", "-C", req.Workspace, "merge", "--ff-only", req.HeadBranch)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		errMsg := strings.TrimSpace(string(output))
@@ -124,7 +124,7 @@ func (s *IntegrationService) recordReceipt(req IntegrationRequest, receipt Integ
 }
 
 func gitRevParse(ctx context.Context, workspace, branch string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "-C", workspace, "rev-parse", "--verify", branch)
+	cmd := executil.CommandContext(ctx, "git", "-C", workspace, "rev-parse", "--verify", branch)
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("rev-parse %s: %w", branch, err)
@@ -133,7 +133,7 @@ func gitRevParse(ctx context.Context, workspace, branch string) (string, error) 
 }
 
 func gitRevParseHead(ctx context.Context, workspace string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "-C", workspace, "rev-parse", "HEAD")
+	cmd := executil.CommandContext(ctx, "git", "-C", workspace, "rev-parse", "HEAD")
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("rev-parse HEAD: %w", err)
