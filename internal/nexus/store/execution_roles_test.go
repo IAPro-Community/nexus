@@ -189,7 +189,6 @@ func TestMarkRuntimeExecutionRoleActivationRequiresCurrentReceipt(t *testing.T) 
 	}
 }
 
-
 func TestMarkRuntimeExecutionRoleEnforcedRequiresCurrentActivatedReceipt(t *testing.T) {
 	s := openTestStore(t)
 	project, _ := s.CreateProject(Project{Name: "Enforcement evidence", CanonicalPath: t.TempDir()})
