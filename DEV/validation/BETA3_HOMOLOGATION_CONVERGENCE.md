@@ -19,8 +19,8 @@ Não criar tag/release estável a partir deste estado.
 - branch de convergência: `fix/beta3-homologation-convergence-20260925`;
 - remediação Windows beta.3 incorporada por fast-forward:
   `fix/beta3-windows-autopilot-20260926@ce52b09d958862e7f32e33ad1af4821c4a241d7d`;
-- checkpoint funcional após a unificação Windows + hardening Mission/terminal:
-  `9f52a45aa7c2eede0497b8d7692871a04113816b`;
+- checkpoint funcional antes deste fechamento documental:
+  `510bc15cf38153611a1fb6a5814b1eeba6ebcbc8`;
 - evidência Linux beta.2 informada na campanha local:
   `fix/beta2-linux-autopilot-20260925@e4574e4cfd4676032e2284f8a1b2a3c5885e287e`;
 - remediação Windows beta.2:
@@ -307,6 +307,34 @@ Correção:
 - Escape isolado continua limitado a uma latência curta;
 - teste fixa orçamento entre 75 e 150 ms para impedir regressão silenciosa.
 
+### 17. Runtime interativo sem modo podia herdar AUTO global
+
+`NormalizeDelegationMode` mantém `AUTO` como default do núcleo de
+orquestração. Esse contrato é válido para Flow/Mission explícitos, mas era
+perigoso no terminal: um runtime legado, vazio ou malformado podia herdar
+`AUTO` e reativar promoção implícita.
+
+Correção:
+
+- criado `NormalizeInteractiveDelegationMode`, específico do boundary
+  interativo;
+- vazio/desconhecido falha fechado em `OFF`;
+- somente `OFF`, `ASK` e `AUTO` explícitos são aceitos;
+- CLI e Web usam o novo normalizador;
+- o default global de Flow/Mission não foi alterado;
+- testes cobrem CLI, Web e normalizador central.
+
+### 18. Homologadores alinhados ao contrato novo
+
+Os scripts Linux e Windows agora executam o preflight focado
+`./internal/app ./internal/nexus/promotion ./internal/runtime` antes da suíte
+ampla, permitindo distinguir regressão de Mission/terminal de falhas ambientais
+posteriores.
+
+O `MANUAL_CHECKS.md` gerado também foi atualizado: `nexus codex` e
+`nexus agy` normais, e `--lead` sem override, não podem criar/exigir Mission.
+`ASK/AUTO` só são exercitados como opt-in deliberado.
+
 ## Estado das evidências beta.3
 
 | Gate | Source | Execução beta.3 same-SHA | Estado |
@@ -318,7 +346,7 @@ Correção:
 | govulncheck | pinado | não executado no SHA final | RETEST REQUIRED |
 | Browser/Axe/visual | portado | não executado no SHA final | RETEST REQUIRED |
 | Codex terminal arrows/native TUI | CSI/SS3 stateful + janela ConPTY 100 ms | não executado nativamente no novo SHA | MANUAL RETEST |
-| Mission/Direct behavior | delegation OFF + bypass total do promoter | não executado nativamente no novo SHA | MANUAL RETEST |
+| Mission/Direct behavior | delegation OFF + bypass promoter + fail-closed para runtime legado | preflight preparado; sem execução nativa no novo SHA | MANUAL RETEST |
 | OpenCode projection/enforcement | beta.3 preservada | sem provider live same-SHA | MANUAL RETEST |
 | Maestro Windows parity | corrigida | sem Windows full suite | RETEST REQUIRED |
 | Voice | source integrado | sem mic/STT/fallback live same-SHA | MANUAL RETEST |
