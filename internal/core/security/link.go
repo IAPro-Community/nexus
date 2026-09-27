@@ -3,9 +3,9 @@ package security
 import (
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // SafeLinkOrCopy links or copies a source file/directory to destination across Linux, macOS, and Windows.
@@ -53,7 +53,7 @@ func SafeLinkOrCopy(src, dst string) error {
 
 	// For directories on Windows, try directory junction (mklink /J dst src)
 	if runtime.GOOS == "windows" {
-		cmd := exec.Command("cmd", "/c", "mklink", "/J", dst, src)
+		cmd := executil.Command("cmd", "/c", "mklink", "/J", dst, src)
 		if err := cmd.Run(); err == nil {
 			return nil
 		}
