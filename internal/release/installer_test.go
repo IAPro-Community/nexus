@@ -559,8 +559,20 @@ func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 	if !strings.Contains(string(makefile), "go build -trimpath") {
 		t.Error("Makefile go builds must pass -trimpath")
 	}
-	if !strings.Contains(string(makefile), "GOFLAGS=-trimpath") {
-		t.Error("Makefile wails build must forward -trimpath via GOFLAGS")
+	makefileText := string(makefile)
+	for _, target := range []string{"build-desktop-wails: web", "build-hud-wails: web"} {
+		start := strings.Index(makefileText, target)
+		if start < 0 {
+			t.Errorf("Makefile missing %s target", strings.TrimSuffix(target, ": web"))
+			continue
+		}
+		section := makefileText[start:]
+		if end := strings.Index(section, "\n\n"); end >= 0 {
+			section = section[:end]
+		}
+		if !strings.Contains(section, "go build -trimpath") {
+			t.Errorf("%s must invoke go build with -trimpath", strings.TrimSuffix(target, ": web"))
+		}
 	}
 	ci, err := os.ReadFile(filepath.Join(root, ".github/workflows/ci.yml"))
 	if err != nil {
