@@ -2,7 +2,7 @@
 
 STATUS: NEXUS_1_0_BETA4_CANDIDATE_UNVERIFIED
 SOURCE_VERSION: 1.0.0-beta.4
-CANDIDATE_REF: release/v1.0.0-beta
+CANDIDATE_REF: release/v1.0.0
 PUBLIC_GITHUB_RELEASE: NONE
 LATEST_SOURCE_BETA_TAG: v1.0.0-beta.1
 CI_STATE: UNAVAILABLE_BEFORE_JOBS_ACCOUNT_CREDITS
@@ -17,14 +17,14 @@ UPDATED_AT: 2026-09-27
 
 ## Canonical beta integration status — 2026-09-27
 
-`release/v1.0.0-beta` is the only integration line for beta retesting. Beta 4 is the current internal candidate. The Wails v3 layer from PR #24 is being selectively ported onto this line so newer Agent Projection, ExecutionRole, Direct/Mission, OpenCode and homologation contracts are preserved.
+`release/v1.0.0` is the only integration line for Nexus 1.0 retesting. Beta 4 is the current internal candidate. Wails v3 has already been selectively ported onto this line while preserving newer Agent Projection, ExecutionRole, Direct/Mission, OpenCode and homologation contracts. Future beta increments change the internal version/manifest, not the release branch.
 
 The authoritative open-gap checklist is GitHub issue #27. Source integration remains **UNVERIFIED** until native same-SHA evidence closes the required platform gates.
 
 ## Current candidate summary
 
 - source version: `1.0.0-beta.4`;
-- candidate ref: `release/v1.0.0-beta`;
+- candidate ref: `release/v1.0.0`;
 - source matrix integrated: Linux amd64 + Windows amd64 + macOS arm64;
 - public binary release inventory: empty in both the private source repository
   and `IAPro-Community/nexus-releases`;
