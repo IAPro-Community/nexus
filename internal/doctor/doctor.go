@@ -15,6 +15,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 type Status string
@@ -162,7 +163,7 @@ func probeWindowsWebView2() Check {
 	if _, err := exec.LookPath("reg.exe"); err != nil {
 		return Check{ID: "platform.webview2", Status: Warn, Summary: "WebView2 registry probe is unavailable", Remediation: "install the Microsoft WebView2 Runtime or run doctor on Windows"}
 	}
-	out, err := exec.Command("reg.exe", "query", `HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients`, "/s", "/f", "pv").CombinedOutput()
+	out, err := executil.Command("reg.exe", "query", `HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients`, "/s", "/f", "pv").CombinedOutput()
 	if err == nil && strings.Contains(strings.ToLower(string(out)), "webview") {
 		return Check{ID: "platform.webview2", Status: Pass, Summary: "Microsoft WebView2 Runtime registration detected"}
 	}
@@ -174,7 +175,7 @@ func probeLinuxWebKitGTK() Check {
 		return Check{ID: "platform.webkitgtk", Status: Warn, Summary: "pkg-config is unavailable; WebKitGTK cannot be probed", Remediation: "install GTK/WebKitGTK development/runtime packages or run doctor on the target desktop host"}
 	}
 	for _, pkg := range []string{"webkit2gtk-4.1", "webkit2gtk-4.0"} {
-		if out, err := exec.Command("pkg-config", "--modversion", pkg).Output(); err == nil {
+		if out, err := executil.Command("pkg-config", "--modversion", pkg).Output(); err == nil {
 			version := strings.TrimSpace(string(out))
 			return Check{ID: "platform.webkitgtk", Status: Pass, Summary: "WebKitGTK detected: " + pkg + " " + version}
 		}
