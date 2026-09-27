@@ -116,6 +116,21 @@ export async function startFixtureServer() {
   };
 }
 
+export function isIgnorableFixtureRequestFailure(entry) {
+  const value = String(entry || '');
+  if (/favicon\.ico|data:/i.test(value)) return true;
+
+  // Wails v3 probes this browser-development hook with HEAD. In a normal web
+  // session there is no native Wails host, and Chromium reports the cancelled
+  // probe as net::ERR_ABORTED. It is runtime capability discovery, not an app
+  // resource/API failure.
+  return /\bHEAD\s+https?:\/\/[^\s]+\/wails\/custom\.js\s+→\s+net::ERR_ABORTED\b/i.test(value);
+}
+
+export function meaningfulFixtureRequestFailures(entries) {
+  return (entries || []).filter((entry) => !isIgnorableFixtureRequestFailure(entry));
+}
+
 export async function launchFixtureBrowser(bootstrapUrl) {
   const browser = await chromium.launch({
     headless: true,
