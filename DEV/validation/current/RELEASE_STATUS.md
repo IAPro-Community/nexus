@@ -1,13 +1,13 @@
 # Current release status
 
-STATUS: NEXUS_1_0_BETA3_CANDIDATE_UNVERIFIED
-SOURCE_VERSION: 1.0.0-beta.3
-CANDIDATE_REF: release/v1.0.0-beta.3
+STATUS: NEXUS_1_0_BETA4_CANDIDATE_UNVERIFIED
+SOURCE_VERSION: 1.0.0-beta.4
+CANDIDATE_REF: release/v1.0.0-beta
 PUBLIC_GITHUB_RELEASE: NONE
 LATEST_SOURCE_BETA_TAG: v1.0.0-beta.1
 CI_STATE: UNAVAILABLE_BEFORE_JOBS_ACCOUNT_CREDITS
 INTEGRATION_TRACKER: #27
-INTEGRATION_BASE_SHA: 8fa37f4ca8051b2abce1ade3a0c83dd5b5be64d7
+INTEGRATION_BASE_SHA: PENDING_FINAL_BETA4_SHA
 UPDATED_AT: 2026-09-27
 
 > **Current release truth moved to `docs/release-status.md`.** This DEV file
@@ -17,14 +17,14 @@ UPDATED_AT: 2026-09-27
 
 ## Canonical beta integration status — 2026-09-27
 
-`release/v1.0.0-beta.3` is the only integration line for beta.3 retesting. PR #25 is merged. PR #24 (Wails v3) is retargeted to this branch but remains Draft/non-mergeable and must be selectively rebased so it does not regress newer Agent Projection, ExecutionRole, Direct/Mission, OpenCode or homologation contracts.
+`release/v1.0.0-beta` is the only integration line for beta retesting. Beta 4 is the current internal candidate. The Wails v3 layer from PR #24 is being selectively ported onto this line so newer Agent Projection, ExecutionRole, Direct/Mission, OpenCode and homologation contracts are preserved.
 
 The authoritative open-gap checklist is GitHub issue #27. Source integration remains **UNVERIFIED** until native same-SHA evidence closes the required platform gates.
 
 ## Current candidate summary
 
-- source version: `1.0.0-beta.3`;
-- candidate ref: `release/v1.0.0-beta.3`;
+- source version: `1.0.0-beta.4`;
+- candidate ref: `release/v1.0.0-beta`;
 - source matrix integrated: Linux amd64 + Windows amd64 + macOS arm64;
 - public binary release inventory: empty in both the private source repository
   and `IAPro-Community/nexus-releases`;
@@ -118,7 +118,7 @@ The program must close, with evidence:
 
 ## Platform truth
 
-The beta.3 source integrates **Linux amd64, Windows amd64 and macOS arm64**.
+The beta.4 source integrates **Linux amd64, Windows amd64 and macOS arm64**.
 
 Public support remains evidence-bound: each platform advertised by a release must carry
 fresh same-SHA native evidence for its applicable CLI/Core, Browser/Web, Desktop/HUD,
@@ -232,7 +232,7 @@ Windows/macOS remain blockers for any release that advertises them until their n
 
 `NEXUS_1_0_CANDIDATE = NO_GO`
 
-Reason: beta.3 source closure is merged, but this newer candidate includes changes after
+Reason: beta.4 source closure is merged, but this newer candidate includes changes after
 the historical CI #669 baseline. The final immutable candidate still needs fresh exact-SHA
 homologation/certification for every platform it advertises, plus Stable Certification.
 Windows/macOS remain UNVERIFIED until their native same-SHA evidence is complete.
