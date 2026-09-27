@@ -6,15 +6,16 @@ export * from './capabilities';
 export * from './platformBridge';
 export * from './webBridge';
 export * from './desktopBridge';
+export * from './wailsV3';
 
 export function isDesktopApp(): boolean {
   if (typeof window === 'undefined') return false;
+  const protocol = window.location?.protocol ?? '';
+  const hostname = window.location?.hostname ?? '';
   return (
-    !!window.go ||
-    !!window.runtime ||
-    window.location?.protocol === 'wails:' ||
-    window.location?.hostname === 'wails' ||
-    window.location?.hostname === 'wails.localhost' ||
+    protocol === 'wails:' ||
+    hostname === 'wails' ||
+    hostname === 'wails.localhost' ||
     (typeof navigator !== 'undefined' &&
       (navigator.userAgent?.toLowerCase().includes('wails') ?? false))
   );
