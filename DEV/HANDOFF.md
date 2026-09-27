@@ -1,5 +1,31 @@
 # Handoff
 
+## Estado do checkout e instalação local — 2026-09-23
+
+- Repositório de trabalho: `/projetos/nexus`, branch `release/v1.0.0`,
+  origin `IAPro-Community/nexus`; HEAD inicial desta rodada:
+  `f72dae8de92cf27fb3c2540a65dd4db051ddbf4d`.
+- Nexus compilado e instalado em `/home/desenvolvedor/.local/bin/nexus`;
+  versão `1.0.0`, commit curto `f72dae8`. O Web está em `127.0.0.1:13000`,
+  com `NEXUS_REAL_HOME=/home/desenvolvedor` para compartilhar o estado do
+  usuário e responde HTTP 200. Para reabrir: `nexus web open`; se o terminal
+  herdar HOME de perfil, `NEXUS_REAL_HOME=/home/desenvolvedor nexus web open`.
+- Instalação validada por `nexus version --json` e `nexus doctor --json`.
+  O doctor marcou `config_directory` como WARN (ausente no HOME do processo)
+  e `desktop.shell` como SKIPPED (requer lançamento nativo). Seis providers
+  estão instalados e detectados.
+- A avaliação inicial indica produto amplo e integrado (CLI/Web/Desktop,
+  Agents/providers, Composer/Flow/Missions, scheduler, worktrees, guardrails
+  e evidência). A publicação estável continua NO-GO segundo
+  `DEV/validation/current/RELEASE_STATUS.md`; Windows/macOS estão deferidos.
+- Gate de instalação/build passou; suítes completas não foram executadas.
+  Próxima ação recomendada: definir qual fluxo/capacidade vamos desenvolver
+  e, antes de mexer, reler `AGENTS.md` e `DEV/SPECS/ACTIVE.md`.
+- O processo inicialmente iniciado sob o HOME do perfil foi encerrado após
+  reproduzir o desencontro de estado. Um banco isolado de 4 KB foi preservado
+  no perfil; o banco existente do usuário permaneceu intacto e é o selecionado
+  pelo servidor atual.
+
 ## Rodada merge closure — 2026-09-20 (autopilot, CI #143 vermelho)
 
 Fecha os blockers do CI same-SHA sem features novas: overlap topbar

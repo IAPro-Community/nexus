@@ -1,5 +1,32 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-09-23 — Checkout e instalação de `release/v1.0.0`
+
+- PASS — `git status --short --branch`: checkout limpo em
+  `release/v1.0.0`, HEAD `f72dae8de92cf27fb3c2540a65dd4db051ddbf4d` antes
+  deste registro.
+- PASS — `bun install --frozen-lockfile`, `make install-local
+  LOCAL_BIN=/home/desenvolvedor/.local/bin`.
+- PASS — `command -v nexus` resolve para `/home/desenvolvedor/.local/bin/nexus`;
+  `nexus version --json` retorna `1.0.0`, commit `f72dae8`, Linux amd64,
+  Go 1.25.0.
+- PASS — `nexus doctor --json`: data/state, PTY, DBus Secret Service,
+  WebKitGTK e seis providers detectados.
+- PASS — Web reiniciada pelo alvo de instalação; `GET /` em
+  `127.0.0.1:13000` retorna HTTP 200.
+- WARN — `config_directory` ausente no HOME do processo; `desktop.shell`
+  SKIPPED, pois `doctor` não substitui smoke nativo de Desktop.
+- NOT RUN — suítes completas de teste, lint, segurança e certificação de
+  release. Estado documentado da release: NO-GO para publicação estável.
+- PASS — correção do HOME do servidor: processo antigo do perfil Codex
+  encerrado; Nexus reiniciado com `NEXUS_REAL_HOME=/home/desenvolvedor`,
+  registrando listener no estado real do usuário e usando seu data dir
+  existente. `nexus web open` abriu a URL bootstrap, `/api/v1/health` retornou
+  `status: ok` e `/` respondeu HTTP 200.
+- PRESERVED — banco isolado de 4 KB criado no perfil durante a primeira
+  instalação mantido intacto; banco existente do usuário não foi migrado,
+  sobrescrito ou removido.
+
 ## 2026-09-19 — Correção do attach por geração/PID
 
 - PASS — `go test ./...`.

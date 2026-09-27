@@ -1,5 +1,54 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-25 — Fix: Workspace Directory Validation on 1.0.0
+
+- Aplicada correção na branch baseada em `release/v1.0.0` (`fix/workspace-dir-validation-v1.0.0`, commit `6b55225`):
+  - Prevenção do erro críptico POSIX `execve: ENOENT` (`fork/exec /usr/bin/zsh: no such file or directory`) quando o diretório do projeto ou workspace alvo não existe no filesystem.
+  - `internal/control/launcher/launcher.go`: validação explícita de `opts.Workspace` via `os.Stat` antes de instanciar e destacar o SessionHost.
+  - `internal/nexus/nexus.go`: validação de `project.CanonicalPath` em `StartProjectShell` antes de invocar o launcher.
+  - Adicionados testes unitários `TestStartProjectShellMissingDirectoryFails` e `TestLaunchMissingWorkspaceDirectoryFails`.
+  - Recompilado e instalado binário Nexus 1.0.0 em `~/.local/bin/nexus` e reiniciado servidor web.
+
+## 2026-09-25 — Autopilot Homologation & Fixes: Nexus 1.0.0-beta.2
+
+- Homologação completa autônoma a partir de `origin/release/v1.0.0-beta.2` (`f72bdfd4f8476b731b3663f00a672104625833a6`) em worktree isolado `/projetos/nexus-beta2-test`.
+- Correções aplicadas no commit `e4574e4cfd4676032e2284f8a1b2a3c5885e287e` na branch `fix/beta2-linux-autopilot-20260925`:
+  - Store: versão do schema alinhada para 27 (`migration_0021_test.go`).
+  - OpenCode Provider: golden contract sincronizado com `UPDATE_GOLDENS=1`.
+  - Launcher: corrigido comportamento de sessões standalone em `launcher.go` evitando auto-SIGKILL por `HostPID == os.Getpid()`.
+  - Frontend: sintaxe SCSS depreciada `clip` substituída por `clip-path` em `ExecutionRoleSelector.module.scss`.
+  - Go Lint / Staticcheck: strings de erro ajustadas para minúsculas conforme ST1005 e refinadas exclusões de termos em português no `.golangci.yml`.
+- Gates e testes verificados: Vitest 452 testes PASS; Playwright E2E viewports 320px..1440px PASS (0 violações Axe a11y); `make security` (govulncheck) PASS; `go test ./...` e `go test -race ./...` PASS; `golangci-lint` 0 issues; builds Wails `nexus-desktop` e `nexus-hud` PASS; pacote Debian gerado e testado.
+- Branch remota enviada sob aprovação explícita do usuário: `origin/fix/beta2-linux-autopilot-20260925`.
+
+## 2026-09-23 — Checkout e instalação local de `release/v1.0.0`
+
+- Clone limpo em `/projetos/nexus`, branch `release/v1.0.0`, HEAD
+  `f72dae8de92cf27fb3c2540a65dd4db051ddbf4d`.
+- Dependências web instaladas pelo lockfile (`bun install --frozen-lockfile`);
+  build e instalação global local concluídos via `make install-local
+  LOCAL_BIN=/home/desenvolvedor/.local/bin`.
+- Binário ativo: Nexus `1.0.0`, commit `f72dae8`; Web reiniciada em
+  `127.0.0.1:13000` e responde HTTP 200. `nexus doctor --json`: providers,
+  PTY e WebKitGTK PASS; configuração ainda ausente (WARN) e shell Desktop
+  SKIPPED por exigir lançamento nativo.
+- Não executados os gates completos. Próximo: ler o estado atual de release
+  antes de qualquer promoção; `DEV/validation/current/RELEASE_STATUS.md`
+  registra `NEXUS_1_0_CANDIDATE = NO_GO`.
+
+### Correção de HOME do servidor Web
+
+- Causa do `address already in use` seguido de “não está em execução neste
+  usuário”: o processo inicial herdou `HOME`/`USERPROFILE` do perfil Codex,
+  então registrou o listener e criou um banco novo separado de 4 KB.
+- O processo isolado foi encerrado. Web reaberta com
+  `NEXUS_REAL_HOME=/home/desenvolvedor`, selecionando a pasta existente
+  `/home/desenvolvedor/.local/share/ai-manager`; `nexus web open` com o mesmo
+  override passou e `/api/v1/health` retornou `status: ok`.
+- O banco temporário do perfil foi preservado; nenhum dado foi migrado ou
+  apagado. No terminal normal, usar `nexus web open`; se o ambiente mantiver
+  HOME de perfil, usar `NEXUS_REAL_HOME=/home/desenvolvedor nexus web open`.
+
 ## 2026-09-20 — Merge closure: CI blockers (autopilot, sem features)
 
 CI #143 vermelho → corrigido localmente: topbar overlap @1280 (badge
