@@ -59,6 +59,7 @@ type SessionHost struct {
 	activeWriter net.Conn
 	stopChan     chan struct{}
 	doneChan     chan struct{}
+	streamDone   chan struct{}
 	detector     *AttentionDetector
 	stopOnce     sync.Once
 	doneOnce     sync.Once
@@ -94,6 +95,7 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 		clients:     make(map[net.Conn]bool),
 		stopChan:    make(chan struct{}),
 		doneChan:    make(chan struct{}),
+		streamDone:   make(chan struct{}),
 	}
 
 	sh.detector = NewAttentionDetectorWithProject(
@@ -211,8 +213,13 @@ func (sh *SessionHost) Start() error {
 	}
 	setStage(registry.StartupTerminalReady, "")
 
-	// Start reading stdout from terminal backend
-	go sh.streamReader(sh.termBackend)
+	// Drain terminal output independently and let lifecycle finalization wait for
+	// the reader to observe EOF. This prevents Windows cleanup from racing live
+	// ConPTY/pipe handles after the provider process has already exited.
+	go func() {
+		defer close(sh.streamDone)
+		sh.streamReader(sh.termBackend)
+	}()
 
 	// Update session details
 	sh.session.PID = sh.termBackend.PID()
@@ -861,6 +868,7 @@ func (sh *SessionHost) removeClient(conn net.Conn) {
 
 func (sh *SessionHost) waitProcess() {
 	err := sh.termBackend.Wait()
+	<-sh.streamDone
 
 	sh.mu.Lock()
 	defer sh.mu.Unlock()
@@ -882,7 +890,13 @@ func (sh *SessionHost) waitProcess() {
 
 	state := registry.StateStopped
 	if err != nil {
-		state = registry.StateFailed
+		select {
+		case <-sh.stopChan:
+			// A non-zero exit after an explicit stop/terminate is expected and
+			// must not be reported as a provider failure.
+		default:
+			state = registry.StateFailed
+		}
 	}
 	sh.session.State = state
 	_ = sh.registry.UpdateState(sh.session.RuntimeID, state)
@@ -982,15 +996,28 @@ func (sh *SessionHost) Terminate() error {
 	sh.mu.Lock()
 	provider := sh.session.ProviderID
 	profileName := sh.session.ProfileID
-	defer sh.mu.Unlock()
+	listener := sh.listener
+	done := sh.doneChan
+	sh.mu.Unlock()
 
-	_ = sh.termBackend.Kill()
-	if sh.listener != nil {
-		_ = sh.listener.Close()
+	select {
+	case <-done:
+		refreshUsageAfterSession(provider, profileName)
+		return nil
+	default:
 	}
-	sh.fanout.Close()
-	_ = sh.termBackend.Close()
-	sh.releaseCodexTUILockLocked()
+	if listener != nil {
+		_ = listener.Close()
+	}
+	killErr := sh.termBackend.Kill()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		if killErr != nil {
+			return fmt.Errorf("failed to terminate runtime process tree: %w", killErr)
+		}
+		return fmt.Errorf("timed out waiting for runtime process tree to terminate")
+	}
 	refreshUsageAfterSession(provider, profileName)
 	return nil
 }
