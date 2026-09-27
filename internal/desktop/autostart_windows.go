@@ -6,12 +6,14 @@ import (
 	"errors"
 	"os/exec"
 	"strings"
+
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 const windowsRunKey = `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
 
 func autostartIsEnabled(m *AutoStartManager) (bool, error) {
-	err := exec.Command("reg", "query", windowsRunKey, "/v", m.AppID).Run()
+	err := executil.Command("reg", "query", windowsRunKey, "/v", m.AppID).Run()
 	if err == nil {
 		return true, nil
 	}
@@ -24,7 +26,7 @@ func autostartIsEnabled(m *AutoStartManager) (bool, error) {
 
 func autostartSetEnabled(m *AutoStartManager, enabled bool) error {
 	if !enabled {
-		err := exec.Command("reg", "delete", windowsRunKey, "/v", m.AppID, "/f").Run()
+		err := executil.Command("reg", "delete", windowsRunKey, "/v", m.AppID, "/f").Run()
 		if err == nil {
 			return nil
 		}
@@ -35,7 +37,7 @@ func autostartSetEnabled(m *AutoStartManager, enabled bool) error {
 		return err
 	}
 	value := windowsAutostartCommand(m.ExecPath, m.Args)
-	return exec.Command("reg", "add", windowsRunKey, "/v", m.AppID, "/t", "REG_SZ", "/d", value, "/f").Run()
+	return executil.Command("reg", "add", windowsRunKey, "/v", m.AppID, "/t", "REG_SZ", "/d", value, "/f").Run()
 }
 
 func windowsAutostartCommand(execPath string, args []string) string {
