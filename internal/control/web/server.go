@@ -174,12 +174,16 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		fmt.Fprintf(os.Stderr, "nexus web: failed to write listen state: %v\n", err)
 	}
 
-	// Register nexus.dev in /etc/hosts for local name resolution.
-	// Failure is non-fatal: the server remains usable via IP.
-	if err := EnsureNexusHostsEntry(); err != nil {
-		fmt.Fprintf(os.Stderr, "nexus web: could not register nexus.dev in /etc/hosts: %v\n", err)
-	} else {
-		s.hostname = nexusHostname
+	// Register nexus.dev in the hosts file for local name resolution unless
+	// explicitly disabled. CI/test runners and locked-down enterprise hosts may
+	// not have permission to mutate the system hosts file; that optional
+	// convenience must not affect server correctness.
+	if os.Getenv("NEXUS_DISABLE_HOSTS_FILE") != "1" {
+		if err := EnsureNexusHostsEntry(); err != nil {
+			fmt.Fprintf(os.Stderr, "nexus web: could not register nexus.dev in /etc/hosts: %v\n", err)
+		} else {
+			s.hostname = nexusHostname
+		}
 	}
 
 	// Register Cloudflare tunnel host for origin validation and arm tunnel
