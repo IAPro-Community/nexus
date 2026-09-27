@@ -631,9 +631,6 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 	}
 	return attachRuntimeWithInput(runtimeID, func(conn io.Writer) error {
 		shadow := promotion.NewLineShadow()
-		if mode == nexus.DelegationOff {
-			shadow.SetEnabled(false)
-		}
 		promoter := promotion.NewPromoter(n)
 		buf := make([]byte, 1024)
 		pendingASK := ""
