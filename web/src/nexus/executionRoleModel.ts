@@ -19,6 +19,9 @@ export function executionRoleTone(view?: RuntimeExecutionRoleView | null): Execu
 export function executionRoleSummary(view?: RuntimeExecutionRoleView | null): string {
   if (!view?.role) return 'Role unavailable';
   const enforcement = String(view.binding?.enforcement || 'UNVERIFIED').replaceAll('_', ' ');
-  const strategy = String(view.binding?.activation_strategy || 'NEXUS_OVERLAY').replaceAll('_', ' ');
+  const strategy = String(view.binding?.activation_strategy || 'NEXUS_OVERLAY').replaceAll(
+    '_',
+    ' ',
+  );
   return `${view.role.label} · ${enforcement} · ${strategy}`;
 }
