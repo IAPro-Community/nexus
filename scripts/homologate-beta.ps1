@@ -57,7 +57,7 @@ if ($ExpectedSha) {
   }
 }
 $Arch = $env:PROCESSOR_ARCHITECTURE
-$Out = Join-Path $Root ("DEV/validation/local-beta3/{0}/windows-{1}" -f $Sha, $Arch)
+$Out = Join-Path $Root ("DEV/validation/local-beta/{0}/{1}/windows-{2}" -f $Version, $Sha, $Arch)
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 
 if (-not $AllowDirty) {
@@ -354,5 +354,5 @@ These checks require a real interactive/native session and are intentionally not
 '@ | Set-Content (Join-Path $Out 'MANUAL_CHECKS.md')
 
 "completed_at=$([DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'))" | Add-Content (Join-Path $Out 'environment.txt')
-Write-Host "PASS automated Windows beta.3 homologation: $Version @ $Sha"
+Write-Host "PASS automated Windows beta homologation: $Version @ $Sha"
 Write-Host "Evidence: $Out"
