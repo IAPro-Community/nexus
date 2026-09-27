@@ -507,11 +507,14 @@ func webInteractiveLeadEnabled(sess registry.RuntimeSession) bool {
 }
 
 func webInteractiveDelegationMode(sess registry.RuntimeSession) nexus.DelegationMode {
-	mode := nexus.DelegationMode(sess.Labels["nexus.delegation_mode"])
+	mode := nexus.DelegationOff
+	if configured := strings.TrimSpace(sess.Labels["nexus.delegation_mode"]); configured != "" {
+		mode = nexus.DelegationMode(configured)
+	}
 	if override := strings.TrimSpace(os.Getenv("NEXUS_DELEGATION_MODE")); override != "" {
 		mode = nexus.DelegationMode(override)
 	}
-	return nexus.NormalizeDelegationMode(mode)
+	return nexus.NormalizeInteractiveDelegationMode(mode)
 }
 
 func clearLineSequence(providerID string) string {
