@@ -387,3 +387,20 @@ func TestStartProjectShellUsesCanonicalPathAndCreatesNoAgent(t *testing.T) {
 		t.Fatalf("Project Shell created Agent: before=%d after=%d", len(before), len(after))
 	}
 }
+
+func TestStartProjectShellMissingDirectoryFails(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	missingPath := filepath.Join(t.TempDir(), "non-existent-folder")
+	proj, err := st.CreateProject(store.Project{Name: "MissingDirProject", CanonicalPath: missingPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = n.StartProjectShell(context.Background(), proj.ID)
+	if err == nil {
+		t.Fatal("expected StartProjectShell to fail when canonical directory does not exist, got nil")
+	}
+	if !strings.Contains(err.Error(), "does not exist") {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+}
