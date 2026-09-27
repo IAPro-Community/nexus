@@ -10,6 +10,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // ProjectGitBranchesResponse is returned by GET /api/v1/projects/:id/git/branches
@@ -55,6 +56,7 @@ func (h *NexusHandler) handleProjectGitBranches(w http.ResponseWriter, r *http.R
 	var branches []string
 	cmdList := exec.Command("git", "branch", "--list", "--no-color")
 	cmdList.Dir = dir
+	executil.HideConsoleWindow(cmdList)
 	if out, err := cmdList.Output(); err == nil {
 		lines := strings.Split(string(out), "\n")
 		for _, l := range lines {
@@ -72,6 +74,7 @@ func (h *NexusHandler) handleProjectGitBranches(w http.ResponseWriter, r *http.R
 	var remoteBranches []string
 	cmdRemote := exec.Command("git", "branch", "-r", "--no-color")
 	cmdRemote.Dir = dir
+	executil.HideConsoleWindow(cmdRemote)
 	if out, err := cmdRemote.Output(); err == nil {
 		lines := strings.Split(string(out), "\n")
 		for _, l := range lines {
@@ -87,6 +90,7 @@ func (h *NexusHandler) handleProjectGitBranches(w http.ResponseWriter, r *http.R
 	modifiedCount := 0
 	cmdStatus := exec.Command("git", "status", "--porcelain")
 	cmdStatus.Dir = dir
+	executil.HideConsoleWindow(cmdStatus)
 	if out, err := cmdStatus.Output(); err == nil {
 		trimmed := strings.TrimSpace(string(out))
 		if trimmed != "" {
@@ -172,6 +176,7 @@ func (h *NexusHandler) handleProjectGitCheckout(w http.ResponseWriter, r *http.R
 		cmd = exec.Command("git", "checkout", targetBranch)
 	}
 	cmd.Dir = dir
+	executil.HideConsoleWindow(cmd)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		sanitizedOut := strings.ReplaceAll(strings.TrimSpace(string(out)), "\n", " ")
