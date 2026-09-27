@@ -573,7 +573,7 @@ func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 		if !strings.Contains(section, "go build -trimpath") {
 			t.Errorf("%s must invoke go build with -trimpath", strings.TrimSuffix(target, ": web"))
 		}
-		if !strings.Contains(section, `-ldflags="$LDFLAGS"`) {
+		if !strings.Contains(section, `-ldflags="$$LDFLAGS"`) {
 			t.Errorf("%s must preserve shell LDFLAGS expansion with Make escaping", strings.TrimSuffix(target, ": web"))
 		}
 	}
