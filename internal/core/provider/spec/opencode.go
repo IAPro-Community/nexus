@@ -34,7 +34,7 @@ var opencodeSpec = Spec{
 	// not a provider-wide --permission-mode CLI flag. Native read-only review
 	// remains unsupported until Agent Projection can materialize and verify a
 	// permission-scoped review agent.
-	ReviewMode: nil,
-	Quota:      QuotaLiveHTTP,
+	ReviewMode:    nil,
+	Quota:         QuotaLiveHTTP,
 	KnownVersions: []string{"1.18.30"},
 }
