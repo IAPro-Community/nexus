@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/buildinfo"
+	"github.com/IAPro-Community/nexus/internal/executil"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/update"
-	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // handleMaestroStatus GET /api/v1/maestro — returns Maestro integration status.
