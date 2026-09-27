@@ -54,6 +54,7 @@ type Manifest struct {
 	SchemaVersion     int                 `json:"schema_version"`
 	Channel           string              `json:"channel"`
 	Version           string              `json:"version"`
+	SourceSHA         string              `json:"source_sha,omitempty"`
 	ReleaseDate       string              `json:"release_date"`
 	ExpiresAt         string              `json:"expires_at,omitempty"`
 	MinNexusVersion   string              `json:"min_nexus_version,omitempty"`
@@ -91,6 +92,14 @@ func (m Manifest) Validate(policy ManifestPolicy) error {
 	}
 	if strings.TrimSpace(m.Channel) == "" || strings.TrimSpace(m.Version) == "" {
 		return errors.New("manifest channel and version are required")
+	}
+	if sourceSHA := strings.TrimSpace(m.SourceSHA); sourceSHA != "" {
+		if len(sourceSHA) != 40 && len(sourceSHA) != 64 {
+			return errors.New("manifest source_sha must be a full Git object id")
+		}
+		if _, err := hex.DecodeString(sourceSHA); err != nil {
+			return fmt.Errorf("manifest source_sha must be hexadecimal: %w", err)
+		}
 	}
 	if policy.Channel != "" && !strings.EqualFold(policy.Channel, m.Channel) {
 		return fmt.Errorf("%w: expected %s, got %s", ErrManifestChannel, policy.Channel, m.Channel)
