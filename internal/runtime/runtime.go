@@ -21,6 +21,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 const isolatedSecretServiceScript = `TMPDIR=$(mktemp -d /tmp/nexus-kr-XXXXXX) || exit 1
@@ -272,6 +273,7 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 	// terminal type while preserving all other caller-provided environment.
 	cmd.Env = NormalizeInteractiveEnv(env)
 	cmd.Dir = cwd
+	executil.HideWindow(cmd)
 	cmd.Stdin = os.Stdin
 
 	// Direct provider launches own the caller's TTY just as supervised attach
@@ -358,6 +360,7 @@ func RunCommandCapture(ctx context.Context, bin string, args []string, env []str
 	cmd := exec.CommandContext(ctx, resolved.LauncherPath, append(resolved.PrefixArgs, args...)...)
 	cmd.Env = env
 	cmd.Dir = cwd
+	executil.HideConsoleWindow(cmd)
 
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
