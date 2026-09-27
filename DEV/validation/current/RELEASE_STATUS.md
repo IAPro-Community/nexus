@@ -6,12 +6,20 @@ CANDIDATE_REF: release/v1.0.0-beta.3
 PUBLIC_GITHUB_RELEASE: NONE
 LATEST_SOURCE_BETA_TAG: v1.0.0-beta.1
 CI_STATE: UNAVAILABLE_BEFORE_JOBS_ACCOUNT_CREDITS
-UPDATED_AT: 2026-09-25
+INTEGRATION_TRACKER: #27
+INTEGRATION_BASE_SHA: 8fa37f4ca8051b2abce1ade3a0c83dd5b5be64d7
+UPDATED_AT: 2026-09-27
 
 > **Current release truth moved to `docs/release-status.md`.** This DEV file
 > remains an evidence ledger. The 2026-09-23 SHA/run records below are historical
 > and must not override the current `VERSION`, candidate ref, platform policy,
 > tag inventory, release inventory or current CI state.
+
+## Canonical beta integration status — 2026-09-27
+
+`release/v1.0.0-beta.3` is the only integration line for beta.3 retesting. PR #25 is merged. PR #24 (Wails v3) is retargeted to this branch but remains Draft/non-mergeable and must be selectively rebased so it does not regress newer Agent Projection, ExecutionRole, Direct/Mission, OpenCode or homologation contracts.
+
+The authoritative open-gap checklist is GitHub issue #27. Source integration remains **UNVERIFIED** until native same-SHA evidence closes the required platform gates.
 
 ## Current candidate summary
 
