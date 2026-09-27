@@ -130,8 +130,8 @@ soakLoop:
 		exec := &overnightAcceptanceExecutor{globalRepairExecutor: globalRepairExecutor{fakeExecutor: fakeExecutor{reviewOK: true}}}
 		r := NewMissionRunner(NewMemoryRunRepository(), exec)
 		contract := DefaultAutonomyContract()
-		contract.VerificationCommands = []string{"true"}
-		contract.GlobalVerificationCommands = []string{"true"}
+		contract.VerificationCommands = []string{verificationSuccessCommand()}
+		contract.GlobalVerificationCommands = []string{verificationSuccessCommand()}
 		plan := PlanSpec{ID: "soak", ProjectID: "p", Revision: 1, Packages: []PackageSpec{
 			{ID: "a", Title: "a", Goal: "a", ParallelGroup: "g"},
 			{ID: "b", Title: "b", Goal: "b", Dependencies: []string{"a"}},
