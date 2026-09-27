@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"testing"
 )
@@ -44,5 +45,25 @@ func TestNormalizeInteractiveEnvPreservesNormalTerminal(t *testing.T) {
 
 	if len(normalized) != 1 || normalized[0] != env[0] {
 		t.Fatalf("normal terminal environment changed: %+v", normalized)
+	}
+}
+
+
+func TestInternalBrowserHelperCanBeRemovedWhileParentIsRunning(t *testing.T) {
+	data := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", data)
+	t.Setenv("AI_MANAGER_DATA_DIR", data)
+	t.Setenv("AI_CLI_DATA_DIR", data)
+
+	binDir, err := InternalBinDir()
+	if err != nil {
+		t.Fatalf("InternalBinDir: %v", err)
+	}
+	helper := BrowserHelperPath(binDir)
+	if _, err := os.Stat(helper); err != nil {
+		t.Fatalf("browser helper missing: %v", err)
+	}
+	if err := os.Remove(helper); err != nil {
+		t.Fatalf("browser helper must be independently removable while Nexus is running: %v", err)
 	}
 }
