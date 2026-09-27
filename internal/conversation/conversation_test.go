@@ -10,7 +10,16 @@ func TestListRecentConversations(t *testing.T) {
 	hostHome := t.TempDir()
 	t.Setenv("NEXUS_REAL_HOME", hostHome)
 	t.Setenv("AI_REAL_HOME", hostHome)
-	t.Setenv("AI_CLI_DATA_DIR", hostHome)
+	t.Setenv("HOME", hostHome)
+	t.Setenv("USERPROFILE", hostHome)
+	t.Setenv("APPDATA", filepath.Join(hostHome, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(hostHome, "AppData", "Local"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(hostHome, ".config"))
+	t.Setenv("XDG_DATA_HOME", filepath.Join(hostHome, ".local", "share"))
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(hostHome, ".cache"))
+	t.Setenv("AI_CLI_DATA_DIR", filepath.Join(hostHome, "nexus-data"))
+	t.Setenv("AI_MANAGER_DATA_DIR", filepath.Join(hostHome, "nexus-data"))
+	t.Setenv("NEXUS_DATA_DIR", filepath.Join(hostHome, "nexus-data"))
 
 	// Create simulated AGY history.jsonl
 	agyCliDir := filepath.Join(hostHome, ".gemini", "antigravity-cli")
