@@ -28,19 +28,19 @@ func TestAgentProjectionReceiptLifecycle(t *testing.T) {
 	}
 
 	record := AgentProjectionReceiptRecord{
-		ID: "aprj_test",
+		ID:                  "aprj_test",
 		RuntimeGenerationID: generation.ID,
-		AgentID: agent.ID,
-		Provider: "opencode",
-		Profile: "default",
-		RoleID: "review",
-		Scope: "NEXUS_PROFILE",
-		Strategy: "NATIVE_ON_LAUNCH",
-		ManagedRoot: t.TempDir(),
-		RendererVersion: "opencode-v1-agent-md/1",
-		SourceHash: "source",
-		PayloadJSON: `{"id":"aprj_test"}`,
-		AppliedAt: time.Now().UTC(),
+		AgentID:             agent.ID,
+		Provider:            "opencode",
+		Profile:             "default",
+		RoleID:              "review",
+		Scope:               "NEXUS_PROFILE",
+		Strategy:            "NATIVE_ON_LAUNCH",
+		ManagedRoot:         t.TempDir(),
+		RendererVersion:     "opencode-v1-agent-md/1",
+		SourceHash:          "source",
+		PayloadJSON:         `{"id":"aprj_test"}`,
+		AppliedAt:           time.Now().UTC(),
 	}
 	if err := s.SaveAgentProjectionReceipt(record); err != nil {
 		t.Fatal(err)
@@ -90,19 +90,19 @@ func TestAgentProjectionReceiptRejectsForeignAgent(t *testing.T) {
 		Provider: "opencode", Profile: "default", StartedAt: time.Now().UTC(),
 	})
 	err := s.SaveAgentProjectionReceipt(AgentProjectionReceiptRecord{
-		ID: "aprj_foreign",
+		ID:                  "aprj_foreign",
 		RuntimeGenerationID: generation.ID,
-		AgentID: agentB.ID,
-		Provider: "opencode",
-		Profile: "default",
-		RoleID: "review",
-		Scope: "NEXUS_PROFILE",
-		Strategy: "NATIVE_ON_LAUNCH",
-		ManagedRoot: t.TempDir(),
-		RendererVersion: "opencode-v1-agent-md/1",
-		SourceHash: "source",
-		PayloadJSON: "{}",
-		AppliedAt: time.Now().UTC(),
+		AgentID:             agentB.ID,
+		Provider:            "opencode",
+		Profile:             "default",
+		RoleID:              "review",
+		Scope:               "NEXUS_PROFILE",
+		Strategy:            "NATIVE_ON_LAUNCH",
+		ManagedRoot:         t.TempDir(),
+		RendererVersion:     "opencode-v1-agent-md/1",
+		SourceHash:          "source",
+		PayloadJSON:         "{}",
+		AppliedAt:           time.Now().UTC(),
 	})
 	if err == nil {
 		t.Fatal("expected foreign-agent projection receipt to be rejected")
