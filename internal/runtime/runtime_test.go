@@ -48,7 +48,6 @@ func TestNormalizeInteractiveEnvPreservesNormalTerminal(t *testing.T) {
 	}
 }
 
-
 func TestInternalBrowserHelperCanBeRemovedWhileParentIsRunning(t *testing.T) {
 	data := t.TempDir()
 	t.Setenv("NEXUS_DATA_DIR", data)
