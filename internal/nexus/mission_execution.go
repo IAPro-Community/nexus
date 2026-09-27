@@ -28,6 +28,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 	profilepkg "github.com/IAPro-Community/nexus/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 type agentPromptExecution struct {
@@ -441,7 +442,7 @@ func workspaceFingerprint(ctx context.Context, workspace string) (string, error)
 	if _, err := exec.LookPath("git"); err != nil {
 		return "", err
 	}
-	rootOut, err := exec.CommandContext(ctx, "git", "-C", workspace, "rev-parse", "--show-toplevel").Output()
+	rootOut, err := executil.CommandContext(ctx, "git", "-C", workspace, "rev-parse", "--show-toplevel").Output()
 	if err != nil {
 		return "", err
 	}
@@ -450,7 +451,7 @@ func workspaceFingerprint(ctx context.Context, workspace string) (string, error)
 
 	// Include the Git object identity, not only worktree/index deltas. A local
 	// commit can leave status/diff clean while still crossing a replay boundary.
-	headOut, err := exec.CommandContext(ctx, "git", "-C", root, "rev-parse", "HEAD").Output()
+	headOut, err := executil.CommandContext(ctx, "git", "-C", root, "rev-parse", "HEAD").Output()
 	if err != nil {
 		return "", err
 	}
@@ -463,14 +464,14 @@ func workspaceFingerprint(ctx context.Context, workspace string) (string, error)
 		{"-C", root, "diff", "--binary", "--no-ext-diff"},
 		{"-C", root, "diff", "--binary", "--cached", "--no-ext-diff"},
 	} {
-		out, cmdErr := exec.CommandContext(ctx, "git", args...).Output()
+		out, cmdErr := executil.CommandContext(ctx, "git", args...).Output()
 		if cmdErr != nil {
 			return "", cmdErr
 		}
 		_, _ = h.Write(out)
 	}
 
-	untrackedOut, err := exec.CommandContext(ctx, "git", "-C", root, "ls-files", "--others", "--exclude-standard", "-z").Output()
+	untrackedOut, err := executil.CommandContext(ctx, "git", "-C", root, "ls-files", "--others", "--exclude-standard", "-z").Output()
 	if err != nil {
 		return "", err
 	}
