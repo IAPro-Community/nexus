@@ -97,11 +97,11 @@ function testAll() {
 }
 
 function stylelintCheck() {
-  return runLocal('stylelint', ['src/**/*.css']);
+  return runLocal('stylelint', ['src/**/*.{css,scss}']);
 }
 
 function prettierCheck() {
-  return runLocal('prettier', ['--check', 'src/**/*.{ts,tsx,css,json}']);
+  return runLocal('prettier', ['--check', 'src/**/*.{ts,tsx,css,scss,json}']);
 }
 
 function build() {
