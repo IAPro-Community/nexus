@@ -34,8 +34,8 @@ func TestMissionTeamPlannerBuilderReviewerVerifierPipeline(t *testing.T) {
 	runner := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
 	contract.RequireVerification = false
-	contract.VerificationCommands = []string{"true"}
-	contract.GlobalVerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
+	contract.GlobalVerificationCommands = []string{verificationSuccessCommand()}
 	run, err := runner.StartMissionRun(t.Context(), PlanSpec{
 		ID: "mission-team", ProjectID: "project", Revision: 1, LeadAgentID: "lead",
 		Packages: []PackageSpec{
@@ -97,8 +97,8 @@ func TestMissionTeamPlannerBuilderReviewerVerifierWithRemediationCycle(t *testin
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
 	contract.RequireVerification = false
-	contract.VerificationCommands = []string{"true"}
-	contract.GlobalVerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
+	contract.GlobalVerificationCommands = []string{verificationSuccessCommand()}
 	run, err := r.StartMissionRun(t.Context(), PlanSpec{
 		ID: "mission-team-remediation", ProjectID: "project", Revision: 1, LeadAgentID: "lead",
 		Packages: []PackageSpec{
