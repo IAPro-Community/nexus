@@ -52,6 +52,20 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
+## 1.0.0-beta.4 — 2026-09-27 — unified beta hardening
+
+- Release engineering: a single canonical branch, `release/v1.0.0-beta`, now carries future 1.0 beta iterations. Beta 1/2/3 remain historical checkpoints rather than parallel release lines.
+- Distribution: prerelease publishing targets one rolling public entry, **Nexus 1.0 Beta** (`channel-beta`); the exact internal SemVer and source SHA remain in the signed update manifest.
+- Native shell: Desktop and HUD are ported to Wails v3.0.0-beta.25 without importing stale Mission/ExecutionRole/OpenCode code from the old migration branch.
+- Windows lifecycle: the browser helper is copied instead of hard-linked to the running executable, so cleanup can remove `ai-browser.exe` while the test/runtime process remains alive.
+- Windows tests: symlink-sensitive tests detect actual OS capability instead of failing merely because Developer Mode/admin privilege is unavailable.
+- Conversation tests: provider history fixtures isolate HOME/USERPROFILE/APPDATA/LOCALAPPDATA/XDG paths so real Codex history cannot contaminate synthetic test data.
+- Web tests: the process-wide Nexus singleton/SQLite store is closed before temporary data removal; optional hosts-file mutation can be disabled on locked-down runners.
+- OpenCode enforcement: effective-permission introspection is accepted as valid read-only evidence without fabricating a nonexistent `edit` tool event.
+- CI/homologation: Wails v3 native builds, exact framework evidence, release-branch push coverage and version-aware local evidence paths are wired into the beta gates.
+
+**Certification state:** source remediation/integration in progress; native same-SHA Linux/Windows/macOS evidence remains required before publishing Beta 4.
+
 ## 1.0.0-beta.3 — 2026-09-25 — V1 functional closure
 
 ### Agent Interop e execução
