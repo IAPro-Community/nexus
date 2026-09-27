@@ -297,6 +297,7 @@ jobs:
             --dist dist \
             --dist native-artifacts \
             --version "$RELEASE_VERSION" \
+            --source-sha "$GITHUB_SHA" \
             --key-id "$NEXUS_UPDATE_KEY_ID" \
             --private-key "$NEXUS_UPDATE_PRIVATE_KEY" \
             --public-key "$NEXUS_UPDATE_PUBLIC_KEY" \
@@ -305,6 +306,11 @@ jobs:
           import json
           import os
           manifest = json.load(open('dist/update-manifest.json'))
+          if manifest.get('source_sha') != os.environ.get('GITHUB_SHA'):
+              raise SystemExit(
+                  f"signed manifest source_sha={manifest.get('source_sha')!r} "
+                  f"does not match release SHA {os.environ.get('GITHUB_SHA')!r}"
+              )
           required = [
               'linux_amd64',
               'desktop_linux_amd64',
