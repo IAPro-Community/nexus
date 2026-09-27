@@ -41,7 +41,7 @@ func TestMissionRunnerPersistsContextCapsuleBeforeCompileAndHandsOffReceipts(t *
 	exec := &evidenceExecutor{fakeExecutor: fakeExecutor{reviewOK: true}}
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	plan := PlanSpec{ID: "flow", ProjectID: "project", Revision: 9, Packages: []PackageSpec{
 		{ID: "A", PhaseID: "p", Title: "A", Goal: "A goal", RelevantPaths: []string{"internal/a"}, AcceptanceCriteria: []string{"A done"}},
 		{ID: "B", PhaseID: "p", Title: "B", Goal: "B goal", Dependencies: []string{"A"}, RelevantPaths: []string{"internal/b"}, AcceptanceCriteria: []string{"B done"}},
@@ -95,7 +95,7 @@ func TestMissionRunnerCreatesFactualFailedReceiptWithoutInventingEvidence(t *tes
 	contract := DefaultAutonomyContract()
 	contract.MaxRetries = 1
 	contract.MaxNoProgress = 1
-	contract.VerificationCommands = []string{"false"}
+	contract.VerificationCommands = []string{verificationFailureCommand()}
 	plan := PlanSpec{ID: "flow-fail", ProjectID: "project", Revision: 1, Packages: []PackageSpec{{ID: "A", PhaseID: "p", Title: "A", Goal: "fail"}}}
 	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
 	if err != nil {
