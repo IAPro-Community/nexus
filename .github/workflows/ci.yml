@@ -101,6 +101,27 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     steps:
       - uses: actions/checkout@v5
+      - name: Verify canonical V1 release refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            .github/workflows/ci.yml
+            .github/workflows/release.yml
+            .github/workflows/stable-certification.yml
+            scripts/homologate-beta.sh
+            scripts/homologate-beta.ps1
+            README.md
+            README.en.md
+            README.es.md
+            docs/release-status.md
+            DEV/validation/current/RELEASE_STATUS.md
+          )
+          forbidden='release/v1\.0\.0-beta(\.[0-9]+)?|release/v1\.0\.0-cert'
+          if grep -nE "$forbidden" "${files[@]}"; then
+            echo "active V1 surfaces must reference release/v1.0.0, not historical release branches" >&2
+            exit 1
+          fi
       - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
