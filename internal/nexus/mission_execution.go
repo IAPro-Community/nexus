@@ -23,12 +23,12 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/executil"
 	"github.com/IAPro-Community/nexus/internal/nexus/autonomyguard"
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 	profilepkg "github.com/IAPro-Community/nexus/internal/profile"
-	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 type agentPromptExecution struct {
