@@ -539,9 +539,7 @@ const WorkspaceCoordinator: React.FC<{
     if (!activeViewId) return '';
     const surface = listSurfaces(workspace.model.root).find(
       (entry) =>
-        entry.type === 'terminal' &&
-        isPtySurface(entry) &&
-        surfaceViewId(entry) === activeViewId,
+        entry.type === 'terminal' && isPtySurface(entry) && surfaceViewId(entry) === activeViewId,
     );
     return String(surface?.data?.runtimeId || '');
   }, [presentation.state.activePtyViewId, workspace.model.root]);
