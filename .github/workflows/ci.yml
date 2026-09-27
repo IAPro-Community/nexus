@@ -348,7 +348,7 @@ jobs:
       - name: Voice/native bridge migration regression
         run: |
           go test ./internal/voice -run 'Test(DefaultVoiceRoutingContractIsGroqThenCloudflare|SpeechRouterFallsBackFromGroq429ToCloudflare|SpeechRouterDoesNotCascadeInvalidAudio)'
-          bun --cwd web x vitest run src/platform/platformBridge.test.ts
+          bunx --cwd web vitest run src/platform/platformBridge.test.ts
       - name: Build Linux desktop
         run: |
           set -euo pipefail
