@@ -10,19 +10,29 @@ import (
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
 func TestMain(m *testing.M) {
 	testDir, err := os.MkdirTemp("", "ai-control-web-test-*")
 	if err == nil {
-		defer os.RemoveAll(testDir)
 		_ = os.Setenv("NEXUS_DATA_DIR", testDir)
 		_ = os.Setenv("AI_MANAGER_DATA_DIR", testDir)
 		_ = os.Setenv("AI_CLI_DATA_DIR", testDir)
 	}
+	_ = os.Setenv("NEXUS_DISABLE_HOSTS_FILE", "1")
+
+	// The web package uses the process-wide Nexus singleton. Reset it before and
+	// after the suite so SQLite/background workers cannot retain nexus.db handles
+	// past the test data lifetime (especially on Windows).
+	nexus.ResetDefaultForTest()
 	registry.ResetDefaultRegistryForTest()
 	code := m.Run()
+	nexus.ResetDefaultForTest()
 	registry.ResetDefaultRegistryForTest()
+	if testDir != "" {
+		_ = os.RemoveAll(testDir)
+	}
 	os.Exit(code)
 }
 
