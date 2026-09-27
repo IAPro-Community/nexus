@@ -14,15 +14,16 @@ Atualizado em **27 de setembro de 2026**.
 
 ## Linha canônica de integração — 2026-09-27
 
-A branch `release/v1.0.0-beta` é agora a única linha canônica de integração para os retestes da beta.4.
+A branch `release/v1.0.0` é a única linha canônica de integração da Nexus 1.0. As iterações beta continuam identificadas por `VERSION`/manifesto (`1.0.0-beta.N`), sem criar uma branch nova a cada beta.
 
 - PR #25 foi integrado por squash em `8fa37f4ca8051b2abce1ade3a0c83dd5b5be64d7`;
 - essa integração contém a remediação Windows `ce52b09d...`, a convergência Linux/Windows, Direct/Mission OFF-by-default e o hardening Codex/ConPTY;
 - a lista única de gaps e critérios de homologação está na issue #27;
-- o PR #24 (Wails v3) foi retargetado para esta release, porém permanece Draft e não mergeável: deve ser rebaseado/portado seletivamente para não reverter contratos mais novos da beta;
+- a migração Wails v3 do PR #24 foi portada seletivamente para a linha canônica, preservando os contratos mais novos de Agent Projection, ExecutionRole, Direct/Mission, OpenCode e homologação; o PR histórico não deve ser mergeado em bloco;
+- a validação de diretório de workspace e a proveniência assinada `source_sha` foram recuperadas de branches históricas e incorporadas diretamente na linha canônica;
 - integração na branch beta não equivale a PASS, tag ou publicação.
 
-Até o Wails v3 ser reconciliado, a linha canônica continua usando a implementação Wails atualmente integrada. A publicação permanece bloqueada pelos gates same-SHA e pelos blockers registrados na issue #27.
+A linha canônica já usa a migração Wails v3 reconciliada. A publicação permanece bloqueada pelos gates same-SHA e pelos blockers registrados na issue #27.
 
 ## Escopo consolidado da beta.4
 
