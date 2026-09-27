@@ -6,9 +6,28 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
 )
+
+func TestInteractiveDelegationModeFailsClosedAndHonorsExplicitOverride(t *testing.T) {
+	t.Setenv("NEXUS_DELEGATION_MODE", "")
+	if got := interactiveDelegationMode(registry.RuntimeSession{}); got != nexus.DelegationOff {
+		t.Fatalf("missing runtime mode=%q want OFF", got)
+	}
+	if got := interactiveDelegationMode(registry.RuntimeSession{Labels: map[string]string{"nexus.delegation_mode": "invalid"}}); got != nexus.DelegationOff {
+		t.Fatalf("invalid runtime mode=%q want OFF", got)
+	}
+	if got := interactiveDelegationMode(registry.RuntimeSession{Labels: map[string]string{"nexus.delegation_mode": "AUTO"}}); got != nexus.DelegationAuto {
+		t.Fatalf("explicit runtime AUTO=%q", got)
+	}
+
+	t.Setenv("NEXUS_DELEGATION_MODE", "ASK")
+	if got := interactiveDelegationMode(registry.RuntimeSession{}); got != nexus.DelegationAsk {
+		t.Fatalf("explicit env ASK=%q", got)
+	}
+}
 
 func TestDecideInteractiveSubmitBypassesProviderSlash(t *testing.T) {
 	slow := promotion.Promoter{
