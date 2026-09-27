@@ -17,6 +17,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 const missionEvidenceStreamName = "mission-validation"
@@ -206,7 +207,7 @@ func boundedToolVersion(ctx context.Context, name string) string {
 	}
 	versionCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	output, err := exec.CommandContext(versionCtx, path, "--version").Output()
+	output, err := executil.CommandContext(versionCtx, path, "--version").Output()
 	if err != nil {
 		return ""
 	}
