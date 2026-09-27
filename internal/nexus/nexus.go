@@ -583,6 +583,13 @@ func (n *Nexus) StartProjectShell(ctx context.Context, projectID string) (*regis
 	if strings.TrimSpace(project.CanonicalPath) == "" {
 		return nil, fmt.Errorf("project canonical path is empty")
 	}
+	info, err := os.Stat(project.CanonicalPath)
+	if err != nil {
+		return nil, fmt.Errorf("project canonical directory %q does not exist: %w", project.CanonicalPath, err)
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("project canonical path %q is not a directory", project.CanonicalPath)
+	}
 	return n.launcher.Launch(ctx, launcher.LaunchOptions{
 		Title:       "Shell · " + project.Name,
 		ProviderID:  "shell",
