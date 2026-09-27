@@ -127,3 +127,31 @@ func TestReleaseChannelClassification(t *testing.T) {
 		}
 	}
 }
+
+func TestSourceSHAProvenanceValidation(t *testing.T) {
+	const sha = "ABCDEF0123456789ABCDEF0123456789ABCDEF01"
+	if got := normalizeSourceSHA(sha); got != strings.ToLower(sha) {
+		t.Fatalf("normalizeSourceSHA()=%q", got)
+	}
+	if got := normalizeSourceSHA(""); got != "" {
+		t.Fatalf("empty source SHA must remain optional, got %q", got)
+	}
+	for _, invalid := range []string{"short", strings.Repeat("g", 40), strings.Repeat("a", 41)} {
+		t.Run(invalid[:min(len(invalid), 8)], func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Fatalf("invalid source SHA %q must panic", invalid)
+				}
+			}()
+			_ = normalizeSourceSHA(invalid)
+		})
+	}
+}
+
+func TestDefaultArtifactBaseURLUsesPublicDistributionRepo(t *testing.T) {
+	got := defaultArtifactBaseURL("v1.0.0-beta.4")
+	want := "https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.4"
+	if got != want {
+		t.Fatalf("defaultArtifactBaseURL()=%q want=%q", got, want)
+	}
+}
