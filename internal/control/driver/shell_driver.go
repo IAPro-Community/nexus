@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
-	"github.com/IAPro-Community/nexus/internal/executil"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // ShellDriver exposes a normal local project shell through the same supervised
