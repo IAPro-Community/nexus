@@ -21,7 +21,11 @@ type TerminalOutputScrubber struct {
 	asyncErr             error
 }
 
-const terminalInputEscapeCoalesceWindow = 25 * time.Millisecond
+// ConPTY and embedded terminal bridges may deliver ESC separately from the
+// remainder of CSI/SS3 selector keys under load. 25ms proved too short and can
+// turn an arrow into a standalone ESC followed by literal "[A"/"OA" bytes.
+// Keep the window bounded so a real standalone Escape remains responsive.
+const terminalInputEscapeCoalesceWindow = 100 * time.Millisecond
 
 func NewTerminalOutputScrubber(out io.Writer) *TerminalOutputScrubber {
 	return &TerminalOutputScrubber{out: out, drop: isKeyboardNegotiation}
