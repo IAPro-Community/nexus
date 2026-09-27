@@ -78,8 +78,8 @@ func TestArtifactKeysMapGoReleaserAndDesktopNames(t *testing.T) {
 func TestHUDArtifactKeysDoNotCollideWithCLI(t *testing.T) {
 	cases := map[string]string{
 		"nexus-hud_Linux_x86_64.tar.gz": "linux_amd64",
-		"nexus-hud_Darwin_arm64.zip":     "darwin_arm64",
-		"nexus-hud_Windows_x86_64.zip":   "windows_amd64",
+		"nexus-hud_Darwin_arm64.zip":    "darwin_arm64",
+		"nexus-hud_Windows_x86_64.zip":  "windows_amd64",
 	}
 	for name, forbidden := range cases {
 		for _, key := range artifactKeys(name) {
