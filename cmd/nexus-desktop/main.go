@@ -7,12 +7,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/desktop"
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-	"github.com/wailsapp/wails/v2/pkg/options/linux"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
-	"github.com/wailsapp/wails/v2/pkg/options/windows"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func main() {
@@ -22,63 +17,52 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize native desktop bridge and window state manager.
 	windowManager := desktop.NewWindowStateManager("")
 	windowState := windowManager.Load()
-	desktopApp := desktop.NewApp(nil, windowManager, desktop.BootstrapInfo{
+	desktopApp := desktop.NewAppForWindow(nil, windowManager, desktop.DesktopWindowName, desktop.BootstrapInfo{
 		ServerURL:    backend.ServerURL,
 		SessionToken: backend.Session.ID,
 		CSRFToken:    backend.Session.CSRFToken,
 	})
 
-	// 5. Launch Wails native shell
-	err = wails.Run(&options.App{
-		Title: "IAPro Nexus",
-		// A second native shell must never create another visible Desktop
-		// workspace. Web/Core remains the shared source of truth.
-		SingleInstanceLock: &options.SingleInstanceLock{
-			UniqueId: "com.iapro.nexus.desktop",
+	native := application.New(application.Options{
+		Name:        "IAPro Nexus",
+		Description: "Autonomous AI Orchestrator and Workspace OS",
+		Services:    []application.Service{application.NewService(desktopApp)},
+		Assets:      application.AssetOptions{Handler: backend.Handler, DisableLogging: true},
+		SingleInstance: &application.SingleInstanceOptions{
+			UniqueID: "com.iapro.nexus.desktop",
 		},
-		Width:     windowState.Width,
-		Height:    windowState.Height,
-		MinWidth:  800,
-		MinHeight: 600,
-		AssetServer: &assetserver.Options{
-			Assets:  backend.Assets,
-			Handler: backend.Handler,
+		Mac:     application.MacOptions{ApplicationShouldTerminateAfterLastWindowClosed: false},
+		Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: true},
+		Linux: application.LinuxOptions{
+			DisableQuitOnLastWindowClosed: true,
+			ProgramName:                   "nexus-desktop",
+			ApplicationID:                 "com.iapro.nexus.desktop",
 		},
-		BackgroundColour: &options.RGBA{R: 15, G: 17, B: 23, A: 255},
-		OnStartup:        desktopApp.Startup,
-		OnShutdown: func(ctx context.Context) {
-			desktopApp.Shutdown(ctx)
+		OnShutdown: func() {
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
 			_ = backend.Close(shutdownCtx)
 		},
-		Bind: []any{
-			desktopApp,
-		},
-		Windows: &windows.Options{
-			WebviewIsTransparent: false,
-			WindowIsTranslucent:  false,
-			DisableWindowIcon:    false,
-		},
-		Mac: &mac.Options{
-			TitleBar:             mac.TitleBarHiddenInset(),
-			WebviewIsTransparent: true,
-			WindowIsTranslucent:  false,
-			About: &mac.AboutInfo{
-				Title:   "IAPro Nexus",
-				Message: "Autonomous AI Orchestrator and Workspace OS",
-			},
-		},
-		Linux: &linux.Options{
-			ProgramName: "nexus-desktop",
-		},
 	})
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Wails application error: %v\n", err)
+	window := native.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:                       desktop.DesktopWindowName,
+		Title:                      "IAPro Nexus",
+		Width:                      windowState.Width,
+		Height:                     windowState.Height,
+		MinWidth:                   800,
+		MinHeight:                  600,
+		URL:                        "/",
+		BackgroundColour:           application.NewRGBA(15, 17, 23, 255),
+		DefaultContextMenuDisabled: true,
+		ZoomControlEnabled:         true,
+	})
+	desktop.ConfigureNativeTray(native, window, "IAPro Nexus")
+
+	if err := native.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Wails v3 application error: %v\n", err)
 		os.Exit(1)
 	}
 }
