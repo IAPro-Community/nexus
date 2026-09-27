@@ -148,10 +148,15 @@ func TestSourceSHAProvenanceValidation(t *testing.T) {
 	}
 }
 
-func TestDefaultArtifactBaseURLUsesPublicDistributionRepo(t *testing.T) {
-	got := defaultArtifactBaseURL("v1.0.0-beta.4")
-	want := "https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.4"
-	if got != want {
-		t.Fatalf("defaultArtifactBaseURL()=%q want=%q", got, want)
+func TestDefaultArtifactBaseURLUsesCanonicalDistributionIdentity(t *testing.T) {
+	cases := map[string]string{
+		"v1.0.0-beta.4": "https://github.com/IAPro-Community/nexus-releases/releases/download/channel-beta",
+		"1.0.0-rc.1":    "https://github.com/IAPro-Community/nexus-releases/releases/download/channel-beta",
+		"v1.0.0":        "https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0",
+	}
+	for version, want := range cases {
+		if got := defaultArtifactBaseURL(version); got != want {
+			t.Errorf("defaultArtifactBaseURL(%q)=%q want=%q", version, got, want)
+		}
 	}
 }
