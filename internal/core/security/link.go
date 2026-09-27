@@ -1,11 +1,12 @@
 package security
 
 import (
-	"github.com/IAPro-Community/nexus/internal/executil"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // SafeLinkOrCopy links or copies a source file/directory to destination across Linux, macOS, and Windows.
