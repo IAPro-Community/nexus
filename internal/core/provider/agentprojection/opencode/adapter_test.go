@@ -388,7 +388,6 @@ func TestActivationProbeArgsFailClosed(t *testing.T) {
 	}
 }
 
-
 func TestEnforcementProbeArgsUseJSONAndProjectedAgent(t *testing.T) {
 	args, err := EnforcementProbeArgs("1.18.30", "nexus-review", "/workspace/.nexus-probe/canary.txt")
 	if err != nil {
@@ -421,7 +420,6 @@ func TestParseEnforcementProbeOutputRequiresPermissionDenial(t *testing.T) {
 		t.Fatalf("non-permission error must not prove enforcement: %#v", evidence)
 	}
 }
-
 
 func TestProjectedReadOnlyAgentsDenyByDefault(t *testing.T) {
 	for _, version := range []string{"1.18.30", "2.0.3"} {
