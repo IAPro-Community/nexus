@@ -29,12 +29,13 @@ func ResolveCommandTemplate(template, cwd string, runtimeArgs []string) (string,
 // ResolveCommandTemplateContext expands a safe custom command template.
 //
 // Supported placeholders:
-//   {cwd}          host-side Nexus project workspace
-//   {target_cwd}   workspace path as seen by the custom target; falls back to {cwd}
-//   {args}         runtime/provider arguments; must occupy a whole token
-//   {provider}     logical Nexus provider id
-//   {profile}      logical Nexus profile id
-//   {profile_home} optional shared provider/profile home exposed by the target
+//
+//	{cwd}          host-side Nexus project workspace
+//	{target_cwd}   workspace path as seen by the custom target; falls back to {cwd}
+//	{args}         runtime/provider arguments; must occupy a whole token
+//	{provider}     logical Nexus provider id
+//	{profile}      logical Nexus profile id
+//	{profile_home} optional shared provider/profile home exposed by the target
 //
 // The grammar is intentionally not a shell. Pipes, redirects, command
 // substitution and environment interpolation remain rejected.
