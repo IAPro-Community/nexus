@@ -12,6 +12,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/buildinfo"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/update"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // handleMaestroStatus GET /api/v1/maestro — returns Maestro integration status.
@@ -118,6 +119,7 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 	updateAvailable := false
 	if npmPath, err := exec.LookPath("npm"); err == nil {
 		cmd := exec.Command(npmPath, "view", "@iapro/orquestrador-maestro-cli", "version")
+		executil.HideConsoleWindow(cmd)
 		if out, err := cmd.Output(); err == nil {
 			latestMaestroVer = strings.TrimSpace(string(out))
 			if latestMaestroVer != "" && maestroVer != "unknown" && latestMaestroVer != maestroVer {
