@@ -311,19 +311,21 @@ if (Get-Command opencode -ErrorAction SilentlyContinue) {
 }
 
 if (-not $SkipDesktop) {
-  Write-Host "==> Windows Wails Desktop + HUD build"
+  Write-Host "==> Windows Wails v3 Desktop + HUD build"
   bun run --cwd web build
-  if ($LASTEXITCODE -ne 0) { throw "frontend build for Wails failed" }
-  Push-Location cmd/nexus-desktop
-  try {
-    go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags $Ldflags
-    if ($LASTEXITCODE -ne 0) { throw "Nexus Desktop Wails build failed" }
-  } finally { Pop-Location }
-  Push-Location cmd/nexus-hud
-  try {
-    go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -s -m -tags production -ldflags $Ldflags
-    if ($LASTEXITCODE -ne 0) { throw "Nexus HUD Wails build failed" }
-  } finally { Pop-Location }
+  if ($LASTEXITCODE -ne 0) { throw "frontend build for Wails v3 failed" }
+
+  New-Item -ItemType Directory -Path "cmd/nexus-desktop/build/bin" -Force | Out-Null
+  New-Item -ItemType Directory -Path "cmd/nexus-hud/build/bin" -Force | Out-Null
+  $DesktopPath = Join-Path $Root "cmd/nexus-desktop/build/bin/nexus-desktop.exe"
+  $HudPath = Join-Path $Root "cmd/nexus-hud/build/bin/nexus-hud.exe"
+
+  go build -trimpath -buildvcs=false -tags production -ldflags $Ldflags -o $DesktopPath ./cmd/nexus-desktop
+  if ($LASTEXITCODE -ne 0) { throw "Nexus Desktop Wails v3 build failed" }
+  go build -trimpath -buildvcs=false -tags production -ldflags $Ldflags -o $HudPath ./cmd/nexus-hud
+  if ($LASTEXITCODE -ne 0) { throw "Nexus HUD Wails v3 build failed" }
+
+  "wails-v3.0.0-beta.25" | Set-Content (Join-Path $Out 'native-framework.txt')
 }
 
 @'
