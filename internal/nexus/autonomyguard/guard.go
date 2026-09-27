@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/IAPro-Community/nexus/internal/executil"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
-	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 func AllowedPath(name string, patterns []string) bool {
