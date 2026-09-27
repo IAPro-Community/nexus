@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
+	"github.com/IAPro-Community/nexus/internal/executil"
 	"strings"
 	"time"
 )
@@ -55,6 +56,7 @@ func (v *VerificationEngine) RunVerification(ctx context.Context, workspace stri
 		}
 		start := time.Now()
 		cmd := platformShellCommand(ctx, cmdStr)
+		executil.HideConsoleWindow(cmd)
 		cmd.Dir = workspace
 		out, err := cmd.CombinedOutput()
 		dur := time.Since(start).Milliseconds()
