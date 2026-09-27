@@ -28,8 +28,8 @@ func TestMissionRunnerGlobalDefinitionOfDoneReopensAfterFailure(t *testing.T) {
 	exec := &globalRepairExecutor{fakeExecutor: fakeExecutor{reviewOK: true}}
 	r := NewMissionRunner(NewMemoryRunRepository(), exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
-	contract.GlobalVerificationCommands = []string{"test -f global-ready"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
+	contract.GlobalVerificationCommands = []string{verificationFileExistsCommand("global-ready")}
 	contract.MaxNoProgress = 2
 	run, err := r.StartMissionRun(context.Background(), PlanSpec{ID: "global", ProjectID: "p", Revision: 1, Packages: []PackageSpec{{ID: "step", Title: "Step", Goal: "Goal"}}}, workspace, contract, "")
 	if err != nil {
@@ -62,7 +62,7 @@ func TestMissionRunnerGlobalDefinitionOfDoneReopensAfterFailure(t *testing.T) {
 func TestAutonomousMissionCannotCompleteWithoutGlobalDefinitionOfDone(t *testing.T) {
 	r := NewMissionRunner(NewMemoryRunRepository(), &fakeExecutor{reviewOK: true})
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	run, err := r.StartMissionRun(context.Background(), PlanSpec{
 		ID:         "autonomous-no-global-dod",
 		ProjectID:  "p",
@@ -131,8 +131,8 @@ func TestMissionRunnerGlobalDefinitionVerifiesWorktreeNotCanonicalBaseline(t *te
 	}
 	r := NewMissionRunner(NewMemoryRunRepository(), exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
-	contract.GlobalVerificationCommands = []string{"test -f global-ready"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
+	contract.GlobalVerificationCommands = []string{verificationFileExistsCommand("global-ready")}
 	run, err := r.StartMissionRun(context.Background(), PlanSpec{ID: "wt", ProjectID: "p", Revision: 1, Packages: []PackageSpec{{ID: "step", Title: "Step", Goal: "Goal"}}}, canonical, contract, "")
 	if err != nil {
 		t.Fatal(err)
@@ -196,8 +196,8 @@ func TestMissionRunnerUsesDeliveryIntegratorForMultipleWorktrees(t *testing.T) {
 	}
 	r := NewMissionRunner(NewMemoryRunRepository(), exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
-	contract.GlobalVerificationCommands = []string{"test -f global-ready"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
+	contract.GlobalVerificationCommands = []string{verificationFileExistsCommand("global-ready")}
 	run, err := r.StartMissionRun(context.Background(), PlanSpec{
 		ID: "integrated-dod", ProjectID: "p", Revision: 1,
 		Packages: []PackageSpec{
