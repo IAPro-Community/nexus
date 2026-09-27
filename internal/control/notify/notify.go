@@ -1,12 +1,13 @@
 package notify
 
 import (
-	"github.com/IAPro-Community/nexus/internal/executil"
 	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // Payload is a desktop notification request from the Nexus host process.
