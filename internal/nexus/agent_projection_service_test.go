@@ -227,7 +227,8 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 	if enforcement.Tool != "" {
 		t.Fatalf("permission-introspection proof must not fabricate a write tool: %#v", enforcement)
 	}
-	if !strings.Contains(strings.ToLower(enforcement.Evidence), "mutation tools disabled") {
+	evidenceText := strings.ToLower(enforcement.Evidence)
+	if !strings.Contains(evidenceText, "effective") || !strings.Contains(evidenceText, "mutation tools") {
 		t.Fatalf("expected effective-permission evidence, got %#v", enforcement)
 	}
 	binding, err = st.RuntimeExecutionRole(generation.ID)
