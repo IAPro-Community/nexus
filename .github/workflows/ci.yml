@@ -70,7 +70,7 @@ jobs:
           if bun run format:check; then
             exit 0
           fi
-          mapfile -t files < <(bunx prettier --list-different 'src/**/*.{ts,tsx,css,json}')
+          mapfile -t files < <(bunx prettier --list-different 'src/**/*.{ts,tsx,css,scss,json}')
           for file in "${files[@]}"; do
             [ -n "$file" ] || continue
             formatted="$RUNNER_TEMP/prettier-${file//\//_}"
