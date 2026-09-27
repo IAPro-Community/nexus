@@ -17,6 +17,7 @@ import (
 
 	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // MaestroVersion is the contract version for Maestro integration.
@@ -230,7 +231,7 @@ func syncScriptCommand(ctx context.Context, tool, action string) (*exec.Cmd, err
 	if err != nil {
 		return nil, err
 	}
-	return exec.CommandContext(ctx, binary, args...), nil
+	return executil.CommandContext(ctx, binary, args...), nil
 }
 
 func (c *MaestroClient) SyncPreview() (*SkillSyncPreview, error) {
@@ -659,7 +660,7 @@ func (c *MaestroClient) querySkillsList() ([]MaestroSkillDesc, error) {
 	if c == nil || strings.TrimSpace(c.maestroBin) == "" {
 		return nil, fmt.Errorf("no maestro binary")
 	}
-	out, err := exec.Command(c.maestroBin, "skills", "list", "--json").Output()
+	out, err := executil.Command(c.maestroBin, "skills", "list", "--json").Output()
 	if err != nil {
 		return nil, err
 	}
@@ -755,7 +756,7 @@ func (c *MaestroClient) queryCapabilities() (*MaestroCapability, error) {
 	// 1. Prefer the machine-readable Maestro v1 contracts. Capabilities owns
 	// modes/gates/processes; skills list owns the skill inventory. Local
 	// manifests remain a bounded fallback/enrichment source for SKILL.md content.
-	cmd := exec.Command(c.maestroBin, "capabilities", "--json")
+	cmd := executil.Command(c.maestroBin, "capabilities", "--json")
 	if out, err := cmd.Output(); err == nil {
 		var cap MaestroCapability
 		if err := json.Unmarshal(out, &cap); err == nil && cap.Version != "" {
@@ -777,9 +778,9 @@ func (c *MaestroClient) queryCapabilities() (*MaestroCapability, error) {
 	}
 
 	// 2. Query version from CLI
-	verOut, err := exec.Command(c.maestroBin, "version").Output()
+	verOut, err := executil.Command(c.maestroBin, "version").Output()
 	if err != nil {
-		fallbackOut, _ := exec.Command(c.maestroBin, "--version").Output()
+		fallbackOut, _ := executil.Command(c.maestroBin, "--version").Output()
 		verOut = fallbackOut
 	}
 	version := strings.TrimSpace(string(verOut))
@@ -898,7 +899,7 @@ func (c *MaestroClient) GetAdvice(ctx AdviceContext, intent string) (*AdviceResp
 		Version: MaestroVersion, Context: ctx, Intent: intent, Scope: "project", Lifecycle: lifecycle,
 	}
 	reqBytes, _ := json.Marshal(req)
-	cmdAdvise := exec.Command(c.maestroBin, "advise", "--json")
+	cmdAdvise := executil.Command(c.maestroBin, "advise", "--json")
 	cmdAdvise.Stdin = stringToReader(reqBytes)
 	if out, err := cmdAdvise.Output(); err == nil {
 		var resp AdviceResponse
@@ -946,7 +947,7 @@ func (c *MaestroClient) Verify(ctx context.Context, req MaestroVerifyRequest) (*
 	}
 	verifyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(verifyCtx, c.maestroBin, "verify", "--json")
+	cmd := executil.CommandContext(verifyCtx, c.maestroBin, "verify", "--json")
 	cmd.Stdin = stringToReader(raw)
 	out, err := cmd.Output()
 	if err != nil {
