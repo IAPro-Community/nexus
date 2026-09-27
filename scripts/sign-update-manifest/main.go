@@ -27,6 +27,7 @@ type manifest struct {
 	SchemaVersion int                 `json:"schema_version"`
 	Channel       string              `json:"channel"`
 	Version       string              `json:"version"`
+	SourceSHA     string              `json:"source_sha,omitempty"`
 	ReleaseDate   string              `json:"release_date"`
 	ExpiresAt     string              `json:"expires_at"`
 	KeyID         string              `json:"key_id"`
@@ -45,6 +46,7 @@ func main() {
 	var dirs stringList
 	flag.Var(&dirs, "dist", "artifact directory (repeatable; default: dist)")
 	version := flag.String("version", "", "release version")
+	sourceSHA := flag.String("source-sha", strings.TrimSpace(os.Getenv("GITHUB_SHA")), "exact source commit SHA for release provenance")
 	keyID := flag.String("key-id", "", "trusted public-key identifier")
 	privateKey := flag.String("private-key", "", "base64 or hex Ed25519 private key")
 	publicKey := flag.String("public-key", os.Getenv("NEXUS_UPDATE_PUBLIC_KEY"), "hex Ed25519 public key corresponding to the private key")
@@ -58,7 +60,7 @@ func main() {
 		dirs = stringList{"dist"}
 	}
 	if *baseURL == "" {
-		*baseURL = "https://github.com/IAPro-Community/nexus/releases/download/v" + strings.TrimPrefix(*version, "v")
+		*baseURL = defaultArtifactBaseURL(*version)
 	}
 	parsedBase, err := url.Parse(*baseURL)
 	if err != nil || !allowedArtifactBaseURL(parsedBase) {
@@ -80,6 +82,7 @@ func main() {
 		SchemaVersion: 1,
 		Channel:       channel(*version),
 		Version:       strings.TrimPrefix(*version, "v"),
+		SourceSHA:     normalizeSourceSHA(*sourceSHA),
 		ReleaseDate:   time.Now().UTC().Format(time.RFC3339),
 		ExpiresAt:     time.Now().UTC().Add(30 * 24 * time.Hour).Format(time.RFC3339),
 		KeyID:         *keyID,
@@ -127,6 +130,25 @@ func main() {
 	if err := writeSignedManifest(outDir, bytes, key); err != nil {
 		panic(err)
 	}
+}
+
+func defaultArtifactBaseURL(version string) string {
+	return "https://github.com/IAPro-Community/nexus-releases/releases/download/v" +
+		strings.TrimPrefix(strings.TrimSpace(version), "v")
+}
+
+func normalizeSourceSHA(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" {
+		return ""
+	}
+	if len(value) != 40 && len(value) != 64 {
+		panic("source-sha must be a full 40- or 64-character Git object id")
+	}
+	if _, err := hex.DecodeString(value); err != nil {
+		panic("source-sha must be hexadecimal")
+	}
+	return value
 }
 
 func allowedArtifactBaseURL(u *url.URL) bool {
