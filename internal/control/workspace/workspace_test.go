@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 func TestWorkspaceStore_AddListRemove(t *testing.T) {
@@ -101,9 +102,7 @@ func TestWorkspaceStoreRemoveResolvesFilesystemAliases(t *testing.T) {
 	if err := os.Mkdir(realPath, 0755); err != nil {
 		t.Fatalf("create real workspace: %v", err)
 	}
-	if err := os.Symlink(realPath, aliasPath); err != nil {
-		t.Fatalf("create workspace alias: %v", err)
-	}
+	testutil.SymlinkOrSkip(t, realPath, aliasPath)
 
 	store := NewStore(filepath.Join(root, "projects.json"))
 	if _, err := store.Add(realPath, "real"); err != nil {
