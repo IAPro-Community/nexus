@@ -3,12 +3,13 @@ package runner
 import (
 	"context"
 	"errors"
-	"github.com/IAPro-Community/nexus/internal/executil"
 	"os/exec"
 	"regexp"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // VerificationEngine executes concrete gates against the package workspace.
