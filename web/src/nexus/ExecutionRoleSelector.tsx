@@ -64,10 +64,7 @@ export const ExecutionRoleSelector: React.FC<{
   const isReadOnlyRole =
     view?.role?.access_intent === 'READ_ONLY' || view?.role?.access_intent === 'VERIFY_ONLY';
   const canCertify =
-    isOpenCode &&
-    isReadOnlyRole &&
-    view?.binding?.enforcement !== 'ENFORCED' &&
-    Boolean(runtimeId);
+    isOpenCode && isReadOnlyRole && view?.binding?.enforcement !== 'ENFORCED' && Boolean(runtimeId);
 
   const refreshRole = useCallback(
     async (id: string) => {
@@ -79,42 +76,47 @@ export const ExecutionRoleSelector: React.FC<{
     [onChanged],
   );
 
-  const changeRole = useCallback(async (roleId: string) => {
-    const id = String(runtimeId || '').trim();
-    if (!id || busy || roleId === currentRoleId) return;
-    const previous = view;
-    setBusy(true);
-    setError('');
-    try {
-      const next = await nexus.setRuntimeExecutionRole(id, roleId);
-      setView(next);
-      onChanged?.(next);
+  const changeRole = useCallback(
+    async (roleId: string) => {
+      const id = String(runtimeId || '').trim();
+      if (!id || busy || roleId === currentRoleId) return;
+      const previous = view;
+      setBusy(true);
+      setError('');
+      try {
+        const next = await nexus.setRuntimeExecutionRole(id, roleId);
+        setView(next);
+        onChanged?.(next);
 
-      // OpenCode role projection is local/filesystem-only and does not invoke
-      // a model. Failure must not roll back the role: Nexus overlay remains a
-      // truthful fallback (for example, a VPN target without shared profile home).
-      if (isOpenCode) {
-        try {
-          await nexus.applyAgentProjection(id);
-          await refreshRole(id);
-        } catch (projectionError) {
-          setError(
-            t('terminal.executionRoleProjectionFallback', {
-              defaultValue:
-                'Role changed. Native OpenCode projection is unavailable; Nexus overlay remains active. {{error}}',
-              error:
-                projectionError instanceof Error ? projectionError.message : String(projectionError),
-            }),
-          );
+        // OpenCode role projection is local/filesystem-only and does not invoke
+        // a model. Failure must not roll back the role: Nexus overlay remains a
+        // truthful fallback (for example, a VPN target without shared profile home).
+        if (isOpenCode) {
+          try {
+            await nexus.applyAgentProjection(id);
+            await refreshRole(id);
+          } catch (projectionError) {
+            setError(
+              t('terminal.executionRoleProjectionFallback', {
+                defaultValue:
+                  'Role changed. Native OpenCode projection is unavailable; Nexus overlay remains active. {{error}}',
+                error:
+                  projectionError instanceof Error
+                    ? projectionError.message
+                    : String(projectionError),
+              }),
+            );
+          }
         }
+      } catch (err) {
+        setView(previous);
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBusy(false);
       }
-    } catch (err) {
-      setView(previous);
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  }, [runtimeId, busy, currentRoleId, view, isOpenCode, refreshRole, t, onChanged]);
+    },
+    [runtimeId, busy, currentRoleId, view, isOpenCode, refreshRole, t, onChanged],
+  );
 
   useEffect(() => {
     const handleExternalRoleSwitch = (event: Event) => {
@@ -157,7 +159,10 @@ export const ExecutionRoleSelector: React.FC<{
 
   return (
     <div className={styles.root} title={error || summary}>
-      <label className={styles.label} htmlFor={runtimeId ? `execution-role-${runtimeId}` : undefined}>
+      <label
+        className={styles.label}
+        htmlFor={runtimeId ? `execution-role-${runtimeId}` : undefined}
+      >
         {t('terminal.executionRole', { defaultValue: 'Role' })}
       </label>
       <select
