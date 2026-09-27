@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // IsHelpFlag checks whether the argument list contains a request for help.
@@ -31,6 +32,7 @@ func ShowProviderHelp(providerID string) error {
 			defer cancel()
 			cmd := exec.CommandContext(ctx, bin, "--help")
 			cmd.Env = os.Environ()
+			executil.HideConsoleWindow(cmd)
 			out, _ := cmd.CombinedOutput()
 			nativeHelp = string(out)
 		}
