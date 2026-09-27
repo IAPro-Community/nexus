@@ -1,6 +1,6 @@
 # Nexus 1.0.0-beta.3 — convergência e auditoria de homologação Linux + Windows
 
-Atualizado em **2026-09-26**.
+Atualizado em **2026-09-27**.
 
 ## Veredito atual
 
@@ -17,6 +17,10 @@ Não criar tag/release estável a partir deste estado.
 
 - base beta.3: `release/v1.0.0-beta.3@61b87409ba93f307ce2f95f7ca76348a310e3d95`;
 - branch de convergência: `fix/beta3-homologation-convergence-20260925`;
+- remediação Windows beta.3 incorporada por fast-forward:
+  `fix/beta3-windows-autopilot-20260926@ce52b09d958862e7f32e33ad1af4821c4a241d7d`;
+- checkpoint funcional após a unificação Windows + hardening Mission/terminal:
+  `9f52a45aa7c2eede0497b8d7692871a04113816b`;
 - evidência Linux beta.2 informada na campanha local:
   `fix/beta2-linux-autopilot-20260925@e4574e4cfd4676032e2284f8a1b2a3c5885e287e`;
 - remediação Windows beta.2:
@@ -24,6 +28,14 @@ Não criar tag/release estável a partir deste estado.
 
 A beta.2 é usada somente como fonte de achados. Nenhum PASS da beta.2 é
 promovido automaticamente para a beta.3.
+
+A branch Linux beta.2 não foi mergeada/cherry-picked integralmente. Ela diverge
+da convergência beta.3 e contém política/versionamento específicos da beta.2.
+O único commit próprio da branch foi auditado; as correções ainda aplicáveis
+(self-kill, schema, OpenCode, stylelint/visually-hidden e release assertions)
+já estão representadas ou superseded na convergência beta.3. Importá-lo em
+bloco reintroduziria estado antigo. A branch Windows beta.3, por outro lado,
+era fast-forward puro da convergência e foi incorporada sem conflito.
 
 ## Auditoria dos relatórios existentes
 
@@ -262,6 +274,39 @@ validar:
 
 Erro sintático interrompe a homologação imediatamente.
 
+### 15. Interactive Lead ainda implicava Mission automática
+
+Apesar do atalho normal `nexus codex`/`nexus agy` já possuir `--lead`
+opt-in, o runtime criado com Lead persistia
+`nexus.delegation_mode=AUTO`. Isso misturava duas capacidades diferentes:
+identidade/contexto de Lead e autorização para reinterpretar prompts comuns
+como Mission.
+
+Correção:
+
+- runtimes supervisionados sempre nascem com `nexus.delegation_mode=OFF`;
+- `--lead` vincula apenas identidade/contexto do Lead;
+- com `OFF`, o attach não instancia `LineShadow` nem `Promoter`;
+- Enter, slash commands, seletores e prompts comuns permanecem do provider;
+- Mission continua explícita pelas superfícies do Nexus;
+- `NEXUS_DELEGATION_MODE=ASK|AUTO` permanece como opt-in avançado quando um
+  Lead foi deliberadamente habilitado;
+- teste de contrato impede que `--lead` volte a autorizar Mission
+  implicitamente.
+
+### 16. Janela de coalescência de setas era curta para ConPTY
+
+O scrubber stateful já preservava CSI/SS3, porém liberava uma sequência ESC
+incompleta após 25 ms. Sob fragmentação/latência do ConPTY, isso pode entregar
+`ESC` sozinho e depois `[A`/`[B` ou `OA`/`OB` como caracteres literais.
+
+Correção:
+
+- janela de coalescência elevada para 100 ms;
+- setas CSI/SS3 continuam byte-transparentes e atômicas;
+- Escape isolado continua limitado a uma latência curta;
+- teste fixa orçamento entre 75 e 150 ms para impedir regressão silenciosa.
+
 ## Estado das evidências beta.3
 
 | Gate | Source | Execução beta.3 same-SHA | Estado |
@@ -272,8 +317,8 @@ Erro sintático interrompe a homologação imediatamente.
 | golangci-lint | pinado | não executado no SHA final | RETEST REQUIRED |
 | govulncheck | pinado | não executado no SHA final | RETEST REQUIRED |
 | Browser/Axe/visual | portado | não executado no SHA final | RETEST REQUIRED |
-| Codex terminal arrows/native TUI | correções presentes | não executado nativamente | MANUAL RETEST |
-| Mission/Direct behavior | regressões presentes | não executado nativamente | MANUAL RETEST |
+| Codex terminal arrows/native TUI | CSI/SS3 stateful + janela ConPTY 100 ms | não executado nativamente no novo SHA | MANUAL RETEST |
+| Mission/Direct behavior | delegation OFF + bypass total do promoter | não executado nativamente no novo SHA | MANUAL RETEST |
 | OpenCode projection/enforcement | beta.3 preservada | sem provider live same-SHA | MANUAL RETEST |
 | Maestro Windows parity | corrigida | sem Windows full suite | RETEST REQUIRED |
 | Voice | source integrado | sem mic/STT/fallback live same-SHA | MANUAL RETEST |
