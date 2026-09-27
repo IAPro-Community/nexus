@@ -3,10 +3,10 @@ package runner
 import (
 	"context"
 	"errors"
+	"github.com/IAPro-Community/nexus/internal/executil"
 	"os/exec"
 	"regexp"
 	"runtime"
-	"github.com/IAPro-Community/nexus/internal/executil"
 	"strings"
 	"time"
 )
