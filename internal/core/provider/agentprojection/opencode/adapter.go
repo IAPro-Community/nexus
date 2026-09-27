@@ -224,18 +224,18 @@ func (a *Adapter) Capabilities(_ context.Context, providerVersion string) projec
 			ToolPermissions: unknown,
 			ModelOverride:   unknown,
 			ProjectScope: projection.CapabilityEvidence{
-				Status: projection.CapabilityUnsupported,
-				Tested: true,
+				Status:   projection.CapabilityUnsupported,
+				Tested:   true,
 				Evidence: "this milestone intentionally permits NEXUS_PROFILE scope only",
 			},
 			UserScope: projection.CapabilityEvidence{
-				Status: projection.CapabilityUnsupported,
-				Tested: true,
+				Status:   projection.CapabilityUnsupported,
+				Tested:   true,
 				Evidence: "this milestone intentionally permits NEXUS_PROFILE scope only",
 			},
 			RemoteProtocol: projection.CapabilityEvidence{
-				Status: projection.CapabilityUnsupported,
-				Tested: true,
+				Status:   projection.CapabilityUnsupported,
+				Tested:   true,
 				Evidence: "remote/A2A projection is outside the OpenCode adapter milestone",
 			},
 		}
@@ -393,8 +393,8 @@ func (a *Adapter) Plan(ctx context.Context, req projection.Request) (*projection
 				kind = projection.ConflictUnmanaged
 			}
 			plan.Conflicts = append(plan.Conflicts, projection.Conflict{
-				Path: artifact.Path,
-				Kind: kind,
+				Path:   artifact.Path,
+				Kind:   kind,
 				Detail: fmt.Sprintf("ownership state %s; Nexus will not overwrite this file", state),
 			})
 		}
