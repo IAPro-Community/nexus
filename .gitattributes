@@ -1,0 +1,30 @@
+# Keep source formatting deterministic across Windows, macOS and Linux.
+# This prevents core.autocrlf from making Prettier/gofmt report the entire
+# checkout as modified during native Windows homologation.
+*.go text eol=lf
+*.mod text eol=lf
+*.sum text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.webm binary
+*.ico binary
+*.zip binary

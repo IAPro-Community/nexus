@@ -145,7 +145,8 @@ func (c *MaestroClient) ApplySyncPreview(ctx context.Context, preview SkillSyncP
 	if preview.ID == "" || preview.ID != current.ID || filepath.Clean(preview.Tool) != filepath.Clean(current.Tool) {
 		return nil, fmt.Errorf("sync preview is stale or not an official script")
 	}
-	if filepath.Base(current.Tool) != "sync-skills.sh" {
+	base := strings.ToLower(filepath.Base(current.Tool))
+	if base != "sync-skills.sh" && base != "sync-skills.ps1" {
 		return nil, fmt.Errorf("sync tool is not executable on this platform")
 	}
 	// Allowlist: the tool must reside under a known .orquestrador root so that
@@ -164,7 +165,10 @@ func (c *MaestroClient) ApplySyncPreview(ctx context.Context, preview SkillSyncP
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "bash", current.Tool, "--apply")
+	cmd, err := syncScriptCommand(ctx, current.Tool, "--apply")
+	if err != nil {
+		return nil, err
+	}
 	var output boundedOutput
 	output.max = maxSkillSyncOutput
 	cmd.Stdout = &output
@@ -182,6 +186,51 @@ func (c *MaestroClient) ApplySyncPreview(ctx context.Context, preview SkillSyncP
 		return nil, fmt.Errorf("official skill sync failed: %w", err)
 	}
 	return &result, nil
+}
+
+func syncScriptInvocation(tool, action string, lookPath func(string) (string, error)) (string, []string, error) {
+	tool = filepath.Clean(strings.TrimSpace(tool))
+	action = strings.TrimSpace(action)
+	if tool == "." || action == "" {
+		return "", nil, fmt.Errorf("sync script and action are required")
+	}
+	if lookPath == nil {
+		return "", nil, fmt.Errorf("sync script executable resolver is required")
+	}
+
+	base := strings.ToLower(filepath.Base(tool))
+	switch {
+	case strings.HasSuffix(base, ".sh"):
+		bash, err := lookPath("bash")
+		if err != nil {
+			return "", nil, fmt.Errorf("bash is required to execute %s: %w", base, err)
+		}
+		return bash, []string{tool, action}, nil
+	case strings.HasSuffix(base, ".ps1"):
+		for _, candidate := range []string{"pwsh", "powershell.exe", "powershell"} {
+			shell, err := lookPath(candidate)
+			if err != nil {
+				continue
+			}
+			args := []string{"-NoProfile", "-NonInteractive"}
+			if strings.HasPrefix(strings.ToLower(filepath.Base(shell)), "powershell") {
+				args = append(args, "-ExecutionPolicy", "Bypass")
+			}
+			args = append(args, "-File", tool, action)
+			return shell, args, nil
+		}
+		return "", nil, fmt.Errorf("PowerShell is required to execute %s", base)
+	default:
+		return "", nil, fmt.Errorf("unsupported Maestro sync script %q", base)
+	}
+}
+
+func syncScriptCommand(ctx context.Context, tool, action string) (*exec.Cmd, error) {
+	binary, args, err := syncScriptInvocation(tool, action, exec.LookPath)
+	if err != nil {
+		return nil, err
+	}
+	return exec.CommandContext(ctx, binary, args...), nil
 }
 
 func (c *MaestroClient) SyncPreview() (*SkillSyncPreview, error) {
@@ -207,19 +256,22 @@ func (c *MaestroClient) SyncPreview() (*SkillSyncPreview, error) {
 			}
 		}
 		preview := &SkillSyncPreview{ID: fmt.Sprintf("%x", sha256.Sum256([]byte(candidate+fmt.Sprintf("%d", info.ModTime().Unix())+strings.Join(skills, "\n")))), DryRun: true, Tool: candidate, Roots: dirs, Skills: skills, Command: base + " --dry-run"}
-		if base == "sync-skills.sh" {
-			var output boundedOutput
-			output.max = maxSkillSyncOutput
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			cmd := exec.CommandContext(ctx, "bash", candidate, "--dry-run")
-			cmd.Stdout = &output
-			err = cmd.Run()
+		var output boundedOutput
+		output.max = maxSkillSyncOutput
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		cmd, cmdErr := syncScriptCommand(ctx, candidate, "--dry-run")
+		if cmdErr != nil {
 			cancel()
-			if err != nil {
-				return nil, fmt.Errorf("official skill sync dry-run failed: %w", err)
-			}
-			preview.Output = output.buf.String()
+			return nil, cmdErr
 		}
+		cmd.Stdout = &output
+		cmd.Stderr = &output
+		err = cmd.Run()
+		cancel()
+		if err != nil {
+			return nil, fmt.Errorf("official skill sync dry-run failed: %w", err)
+		}
+		preview.Output = output.buf.String()
 		return preview, nil
 	}
 	return nil, fmt.Errorf("official sync-skills script not found")

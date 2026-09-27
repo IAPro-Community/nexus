@@ -200,7 +200,7 @@ func TestInstallersRequirePinnedArtifactsOrExplicitSourceBuild(t *testing.T) {
 			t.Errorf("install.sh must not weaken trust with %q", forbidden)
 		}
 	}
-	for _, required := range []string{"-Version", "-BuildFromSource", "update-manifest.json", "update-manifest.sig", "Get-FileHash", "Resolve-LatestVersion", "NEXUS_RELEASE_REPO", "make build", "Ensure-Bun", "NexusPubKey", "refusing unsigned"} {
+	for _, required := range []string{"-Version", "-BuildFromSource", "update-manifest.json", "update-manifest.sig", "Get-FileHash", "Resolve-LatestVersion", "NEXUS_RELEASE_REPO", "Build-NexusFromSource", "bun run --cwd web build", "go build", "Ensure-Bun", "NexusPubKey", "refusing unsigned"} {
 		if !strings.Contains(psText, required) {
 			t.Errorf("install.ps1 missing pinned/digest guard %q", required)
 		}
@@ -208,6 +208,21 @@ func TestInstallersRequirePinnedArtifactsOrExplicitSourceBuild(t *testing.T) {
 	for _, forbidden := range []string{"falling back to checksums.txt", "skipping signature verification", "skipping hash verification"} {
 		if strings.Contains(psText, forbidden) {
 			t.Errorf("install.ps1 must not weaken trust with %q", forbidden)
+		}
+	}
+	for _, forbidden := range []string{"make is required for -BuildFromSource", "Building from source via make build"} {
+		if strings.Contains(psText, forbidden) {
+			t.Errorf("install.ps1 Windows source build must not require GNU Make: found %q", forbidden)
+		}
+	}
+	for _, forbidden := range []string{"git clone --depth 1 --branch $SourceRef", "git clone --depth 1 --branch"} {
+		if strings.Contains(psText, forbidden) {
+			t.Errorf("install.ps1 -SourceRef must support commit SHAs, not only branch/tag clone syntax: found %q", forbidden)
+		}
+	}
+	for _, required := range []string{"git -C $CloneDir fetch --depth 1 origin $SourceRef", "git -C $CloneDir checkout --detach FETCH_HEAD"} {
+		if !strings.Contains(psText, required) {
+			t.Errorf("install.ps1 -SourceRef missing exact-ref fetch contract %q", required)
 		}
 	}
 	for _, required := range []string{"Ensure-GoCompiler", "winget", "GoLang.Go", "go.dev/dl"} {
@@ -257,7 +272,7 @@ func TestInstallerSupportsLatestIntegrityAndPathControls(t *testing.T) {
 		"nexus doctor",
 		"Ensure-WebView2",
 		"Ensure-Bun",
-		"make build",
+		"Build-NexusFromSource",
 		"NEXUS_RELEASE_REPO",
 	} {
 		if !strings.Contains(psText, required) {
@@ -631,8 +646,8 @@ func TestNativeReleaseChainIsFailClosed(t *testing.T) {
 		"Function RemoveFromUserPath",
 		"Call RemoveFromUserPath",
 		"QuietUninstallString",
-		`File /nonfatal "payload\\nexus-hud.exe"`,
-		`Delete "$INSTDIR\\nexus-hud.exe"`,
+		"File /nonfatal \"payload\\nexus-hud.exe\"",
+		"Delete \"$INSTDIR\\nexus-hud.exe\"",
 		"DeleteRegKey HKCU \"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\IAPro Nexus\"",
 	} {
 		if !strings.Contains(nsis, required) {
@@ -679,9 +694,7 @@ func TestStagedNativeReleasePolicy(t *testing.T) {
 	}
 
 	for _, required := range []string{
-		"v1.1.0-beta.1)",
-		"native_policy=windows",
-		"v1.1.0-beta.*|v1.1.0-rc.*|v1.1.0)",
+		"v1.0.0-beta.3|v1.0.0-beta.*|v1.0.0-rc.*|v1.0.0)",
 		"native_policy=all",
 		"NATIVE_POLICY:",
 		"'hud_linux_amd64'",

@@ -19,9 +19,13 @@ func NewFakeDriver() *FakeDriver { return &FakeDriver{} }
 func (d *FakeDriver) ProviderID() string { return "fake" }
 
 func (d *FakeDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
+	binary, err := resolveSystemShell()
+	if err != nil {
+		return model.DetectionResult{Installed: false, Error: err.Error()}, nil
+	}
 	return model.DetectionResult{
 		Installed:  true,
-		BinaryPath: "/bin/sh",
+		BinaryPath: binary,
 		Version:    "1.0.0-fake",
 	}, nil
 }
@@ -101,13 +105,14 @@ func (d *FakeDriver) Capabilities(ctx context.Context, p model.Profile) ControlC
 }
 
 func (d *FakeDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs []string) (string, []string, []string, error) {
-	// Fake driver runs a simple interactive shell or echo command
-	bin := "cat"
-	args := []string{}
-	if len(extraArgs) > 0 {
-		args = extraArgs
+	binary, err := resolveSystemShell()
+	if err != nil {
+		return "", nil, nil, err
 	}
-	return bin, args, os.Environ(), nil
+	// The fake provider is an internal diagnostic driver. It needs a portable,
+	// long-lived terminal process; provider-style kickoff arguments are not
+	// interpreted by the host shell.
+	return binary, nil, os.Environ(), nil
 }
 
 func (d *FakeDriver) CanResume(ctx context.Context, p model.Profile, providerSessionID string) (bool, string) {

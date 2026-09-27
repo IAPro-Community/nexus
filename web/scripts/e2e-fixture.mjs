@@ -8,41 +8,32 @@ import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
+import { terminateProcess } from './process-termination.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webDir = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(webDir, '..');
-const binPath = path.resolve(repoRoot, 'nexus');
+const binPath = nexusBinaryPath(repoRoot);
 
-export async function terminateProcess(proc) {
+export function terminateProcessOnExit(proc) {
   if (!proc || !proc.pid) return;
-  return new Promise((resolve) => {
-    try {
-      if (process.platform === 'win32') {
-        spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F']);
-        resolve();
-      } else {
-        process.kill(-proc.pid, 'SIGTERM');
-        const timeout = setTimeout(() => {
-          try {
-            process.kill(-proc.pid, 'SIGKILL');
-          } catch (_) {}
-          resolve();
-        }, 1200);
-        proc.on('exit', () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-      }
-    } catch (_) {
-      resolve();
+  try {
+    if (process.platform === 'win32') {
+      spawnSync('taskkill', ['/pid', String(proc.pid), '/T', '/F'], { stdio: 'ignore' });
+    } else {
+      process.kill(-proc.pid, 'SIGTERM');
     }
-  });
+  } catch (_) {
+    /* best-effort synchronous exit cleanup */
+  }
 }
 
+export { terminateProcess };
+
 export async function startFixtureServer() {
-  if (!existsSync(binPath)) throw new Error(`nexus binary missing at ${binPath} (run make build)`);
+  ensureNexusBinary(repoRoot);
   const isolatedDataDir =
     process.env.NEXUS_E2E_DATA_DIR || path.join(tmpdir(), `nexus-surface-e2e-${process.pid}`);
   const isolatedProjectPath =

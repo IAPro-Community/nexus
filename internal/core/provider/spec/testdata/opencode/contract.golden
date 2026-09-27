@@ -26,10 +26,7 @@
   "auto_approval": [
     "--auto"
   ],
-  "review_mode": [
-    "--permission-mode",
-    "plan"
-  ],
+  "review_mode": null,
   "autonomous_isolation": "UNVERIFIED",
   "review_isolation": "UNVERIFIED",
   "quota": "LIVE_HTTP",

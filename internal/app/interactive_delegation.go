@@ -30,14 +30,16 @@ func submitPromptToLead(ctx context.Context, n *nexus.Nexus, agentID, runtimeID,
 }
 
 func interactiveDelegationMode(session registry.RuntimeSession) nexus.DelegationMode {
-	mode := nexus.DelegationMode("")
+	mode := nexus.DelegationOff
 	if session.Labels != nil {
-		mode = nexus.DelegationMode(session.Labels["nexus.delegation_mode"])
+		if configured := strings.TrimSpace(session.Labels["nexus.delegation_mode"]); configured != "" {
+			mode = nexus.DelegationMode(configured)
+		}
 	}
 	if override := strings.TrimSpace(os.Getenv("NEXUS_DELEGATION_MODE")); override != "" {
 		mode = nexus.DelegationMode(override)
 	}
-	return nexus.NormalizeDelegationMode(mode)
+	return nexus.NormalizeInteractiveDelegationMode(mode)
 }
 
 // confirmedInteractiveDelegationMode converts ASK to AUTO only after the
@@ -83,7 +85,7 @@ func startInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSe
 		return result, fmt.Errorf("%s: %s", result.Status, detail)
 	}
 	if strings.TrimSpace(result.RunID) == "" {
-		return nil, fmt.Errorf("Mission admission returned no run id")
+		return nil, fmt.Errorf("mission admission returned no run id")
 	}
 	return result, nil
 }

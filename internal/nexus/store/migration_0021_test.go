@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"io/fs"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -87,8 +88,27 @@ func TestMerged0021FreshCoversBothHalves(t *testing.T) {
 		}
 	}
 	v, err := s.SchemaVersion()
-	if err != nil || v != 26 {
-		t.Fatalf("schema version = %d,%v, want 26 (0021 remains fused; 0022-0025 add cost, schedule diagnostics, and Composer context manifest; 0026 adds runtime execution-role bindings)", v, err)
+	if err != nil {
+		t.Fatalf("schema version: %v", err)
+	}
+	migrationFiles, globErr := fs.Glob(migrationsFS, "migrations/[0-9][0-9][0-9][0-9]_*.sql")
+	if globErr != nil {
+		t.Fatalf("glob migrations: %v", globErr)
+	}
+	latest := 0
+	for _, name := range migrationFiles {
+		base := strings.TrimPrefix(name, "migrations/")
+		versionText := strings.SplitN(base, "_", 2)[0]
+		version, parseErr := strconv.Atoi(versionText)
+		if parseErr != nil {
+			t.Fatalf("parse migration version from %q: %v", name, parseErr)
+		}
+		if version > latest {
+			latest = version
+		}
+	}
+	if v != latest {
+		t.Fatalf("schema version = %d, want latest embedded migration %d", v, latest)
 	}
 }
 

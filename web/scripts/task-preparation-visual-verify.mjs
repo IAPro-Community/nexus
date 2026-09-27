@@ -6,6 +6,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
+import { terminateProcess, terminateProcessOnExit } from './e2e-fixture.mjs';
 import AxeBuilder from '@axe-core/playwright';
 
 const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -16,22 +18,20 @@ mkdirSync(output, { recursive: true });
 mkdirSync(fixture, { recursive: true });
 writeFileSync(path.join(fixture, 'AGENTS.md'), '# Visual test fixture\n\nRead DEV before acting.\n', { mode: 0o600 });
 
-const build = spawnSync('make', ['build'], { cwd: root, stdio: 'inherit' });
-assert.equal(build.status, 0, 'make build must pass before visual verification');
+const binPath = nexusBinaryPath(root);
+ensureNexusBinary(root);
 
-const server = spawn(path.join(root, 'nexus'), ['web', '--port', '0', '--listen', '127.0.0.1', '--no-open'], {
+const server = spawn(binPath, ['web', '--port', '0', '--listen', '127.0.0.1', '--no-open'], {
   cwd: root,
   detached: true,
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 
-const stop = () => {
-  try {
-    process.kill(-server.pid, 'SIGTERM');
-  } catch {}
+const stop = async () => {
+  await terminateProcess(server);
 };
 process.on('exit', () => {
-  stop();
+  terminateProcessOnExit(server);
   rmSync(fixture, { recursive: true, force: true });
 });
 
@@ -48,7 +48,7 @@ const bootstrap = await new Promise((resolve, reject) => {
     }
     const base = buffer.match(/URL:\s*(http:\/\/127\.0\.0\.1:\d+)/i);
     if (base) {
-      const saved = spawnSync(path.join(root, 'nexus'), ['web', 'url'], { cwd: root, encoding: 'utf8' });
+      const saved = spawnSync(binPath, ['web', 'url'], { cwd: root, encoding: 'utf8' });
       const savedUrl = saved.stdout?.trim();
       if (saved.status === 0 && savedUrl?.includes('#nexus_bootstrap=')) {
         clearTimeout(timer);
@@ -124,5 +124,5 @@ try {
 } finally {
   await context.close();
   await browser.close();
-  stop();
+  await stop();
 }

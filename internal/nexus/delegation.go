@@ -76,6 +76,24 @@ func NormalizeDelegationMode(mode DelegationMode) DelegationMode {
 	}
 }
 
+// NormalizeInteractiveDelegationMode is the terminal-facing policy boundary.
+// Interactive provider sessions fail closed to OFF when a legacy/malformed
+// runtime has no valid delegation label. AUTO must be an explicit value here;
+// this intentionally differs from NormalizeDelegationMode's orchestration
+// default.
+func NormalizeInteractiveDelegationMode(mode DelegationMode) DelegationMode {
+	switch DelegationMode(strings.ToUpper(strings.TrimSpace(string(mode)))) {
+	case DelegationAuto:
+		return DelegationAuto
+	case DelegationAsk:
+		return DelegationAsk
+	case DelegationOff:
+		return DelegationOff
+	default:
+		return DelegationOff
+	}
+}
+
 // DecideDelegation applies the dispatch brake before Flow expansion. The
 // heuristics are intentionally explainable and provider-independent.
 func DecideDelegation(goal string, mode DelegationMode) DelegationDecision {

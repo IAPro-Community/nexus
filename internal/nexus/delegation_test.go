@@ -10,6 +10,26 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
+func TestNormalizeInteractiveDelegationModeFailsClosed(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		mode DelegationMode
+		want DelegationMode
+	}{
+		{name: "empty", mode: "", want: DelegationOff},
+		{name: "invalid", mode: "surprise", want: DelegationOff},
+		{name: "off", mode: DelegationOff, want: DelegationOff},
+		{name: "ask", mode: "ask", want: DelegationAsk},
+		{name: "auto", mode: "auto", want: DelegationAuto},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := NormalizeInteractiveDelegationMode(test.mode); got != test.want {
+				t.Fatalf("NormalizeInteractiveDelegationMode(%q)=%q want %q", test.mode, got, test.want)
+			}
+		})
+	}
+}
+
 func TestDecideDelegationKeepsAtomicWorkWithLead(t *testing.T) {
 	decision := DecideDelegation("Troque o texto Login para Entrar.", DelegationAuto)
 	if decision.Delegate || len(decision.Workstreams) != 0 {

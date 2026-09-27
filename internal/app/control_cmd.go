@@ -623,11 +623,14 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 		return attachRuntime(runtimeID)
 	}
 	mode := interactiveDelegationMode(session)
+	if mode == nexus.DelegationOff {
+		// A bound Lead is contextual identity, not permission to reinterpret the
+		// provider terminal. OFF bypasses LineShadow/Promoter entirely so Enter,
+		// selectors and provider-native commands stay owned by the provider.
+		return attachRuntime(runtimeID)
+	}
 	return attachRuntimeWithInput(runtimeID, func(conn io.Writer) error {
 		shadow := promotion.NewLineShadow()
-		if mode == nexus.DelegationOff {
-			shadow.SetEnabled(false)
-		}
 		promoter := promotion.NewPromoter(n)
 		buf := make([]byte, 1024)
 		pendingASK := ""

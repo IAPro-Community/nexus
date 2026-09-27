@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -27,7 +26,6 @@ func TestMain(m *testing.M) {
 	registry.ResetDefaultRegistryForTest()
 	os.Exit(code)
 }
-
 
 type failBuildCommandDriver struct {
 	*driver.FakeDriver
@@ -144,7 +142,7 @@ func TestRuntimeLauncher_StandaloneLaunchAndHandshake(t *testing.T) {
 }
 
 func TestKillProcessTerminatesChild(t *testing.T) {
-	cmd := exec.Command("sleep", "30")
+	cmd := startLongRunningTestProcess(t)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -162,8 +160,22 @@ func TestKillProcessTerminatesChild(t *testing.T) {
 	}
 }
 
+func TestForceKillSessionDoesNotSignalCurrentProcess(t *testing.T) {
+	currentPID := os.Getpid()
+	sess := registry.RuntimeSession{
+		RuntimeID: "rt-self-protection",
+		PID:       currentPID,
+		HostPID:   currentPID,
+		State:     registry.StateRunning,
+	}
+	forceKillSession(sess.RuntimeID, sess, true)
+	if sessionProcessAlive(sess, true) {
+		t.Fatal("current Nexus process identity must not be treated as a killable runtime child")
+	}
+}
+
 func TestForceKillSessionRemovesAliveHost(t *testing.T) {
-	cmd := exec.Command("sleep", "30")
+	cmd := startLongRunningTestProcess(t)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}

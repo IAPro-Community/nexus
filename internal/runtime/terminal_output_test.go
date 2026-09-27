@@ -119,6 +119,15 @@ func TestTerminalInputScrubberCoalescesSplitSS3ArrowSequence(t *testing.T) {
 	}
 }
 
+func TestTerminalInputEscapeCoalesceWindowCoversConPTYFragmentation(t *testing.T) {
+	if terminalInputEscapeCoalesceWindow < 75*time.Millisecond {
+		t.Fatalf("coalesce window %s is too short for delayed ConPTY selector fragments", terminalInputEscapeCoalesceWindow)
+	}
+	if terminalInputEscapeCoalesceWindow > 150*time.Millisecond {
+		t.Fatalf("coalesce window %s adds excessive standalone Escape latency", terminalInputEscapeCoalesceWindow)
+	}
+}
+
 func TestTerminalInputScrubberForwardsStandaloneEscapeAfterCoalesceWindow(t *testing.T) {
 	out := newSynchronizedBuffer()
 	scrubber := NewTerminalInputScrubber(out)

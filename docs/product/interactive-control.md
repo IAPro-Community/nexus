@@ -10,11 +10,16 @@ keyboard protocol, selectors, slash commands, prompts and ordinary Enter
 semantics.
 
 CLI shortcuts (`nexus codex`, `nexus agy`, …) therefore remain
-**byte-transparent by default**. They do not bind an Interactive Lead and do not
-hold Enter for Mission promotion unless the user explicitly launches with
-`--lead`.
+**byte-transparent by default**. They do not bind an Interactive Lead and never
+treat an ordinary provider prompt as Mission authorization.
 
-`--lead` opts in to the Nexus Interactive Lead / Mission-promotion boundary.
+`--lead` opts in only to a persistent Nexus Interactive Lead identity/context.
+It does **not** opt in to automatic Mission promotion: supervised provider
+runtimes persist `nexus.delegation_mode=OFF` initially, even with a Lead bound.
+Mission execution stays explicit through Nexus orchestration surfaces such as
+Composer/Flow/`nexus run`. An advanced operator may deliberately enable
+`NEXUS_DELEGATION_MODE=ASK|AUTO` while using `--lead`.
+
 `--no-lead` remains accepted as a compatibility flag and always wins if both
 flags are present. Both flags are Nexus-owned and stripped before provider
 arguments are launched.
@@ -24,14 +29,15 @@ content. CSI and SS3 navigation sequences must reach the provider atomically;
 focus/CPR metadata may be scrubbed, but Nexus must not translate arrow keys into
 text or reinterpret provider-native selectors.
 
-Web/Desktop sessions use the persisted `nexus.interactive_lead=true` runtime
-label as the explicit boundary. Missing/false labels keep the terminal
-byte-transparent even when the runtime is supervised.
+Web/Desktop promotion requires both an explicitly bound Lead and a delegation
+mode other than `OFF`. The `nexus.interactive_lead=true` label alone is not
+Mission authorization. Missing/false Lead labels or `delegation_mode=OFF`
+keep the terminal byte-transparent even when the runtime is supervised.
 
 Provider-native commands such as `/status`, `/model`, `:...` and interactive
-question/selector flows remain provider-owned. Nexus orchestration should be
-invoked through its own surfaces or through an explicitly enabled Lead/Mission
-boundary, not by silently changing the provider's ordinary terminal behavior.
+question/selector flows remain provider-owned. Nexus orchestration is invoked
+through its own explicit surfaces or by deliberately enabling Lead delegation;
+being launched inside Nexus is never sufficient reason to create a Mission.
 
 `/nexus` and `:nexus` are the canonical control prefixes. `//nexus` and
 `::nexus` escape one delimiter and forward the provider command literally.

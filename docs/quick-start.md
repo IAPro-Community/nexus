@@ -6,7 +6,7 @@ Em 5–10 minutos, em um ambiente de desenvolvimento já preparado, você pode
 compilar o candidato, abrir a Web local, adicionar um projeto e iniciar uma AI Session. O exemplo usa o fluxo **Direct**, que não
 exige Composer, Flow ou Mission.
 
-> Estado: o source candidato é **`1.0.0-beta.2`** e integra CLI/Web,
+> Estado: o source candidato é **`1.0.0-beta.3`** e integra CLI/Web,
 > Desktop/HUD e os targets Linux amd64, Windows amd64 e macOS arm64. Isso não
 > equivale a release publicada/certificada.
 >
@@ -25,7 +25,7 @@ válido para avaliação de engenharia é compilar o source:
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
 cd nexus
-bun --cwd web install --frozen-lockfile
+bun install --cwd web --frozen-lockfile
 make build
 ./nexus doctor
 ```

@@ -1,31 +1,31 @@
 #!/usr/bin/env node
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
+import { terminateProcess, terminateProcessOnExit } from './e2e-fixture.mjs';
 import AxeBuilder from '@axe-core/playwright';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const output = path.join(root, '.tempmediaStorage', 'maestro');
 mkdirSync(output, { recursive: true });
 
-const build = spawnSync('make', ['build'], { cwd: root, stdio: 'inherit' });
-assert.equal(build.status, 0, 'make build must pass before visual verification');
+const binPath = nexusBinaryPath(root);
+ensureNexusBinary(root);
 
-const server = spawn(path.join(root, 'nexus'), ['web', '--port', '0', '--listen', '127.0.0.1', '--no-open'], {
+const server = spawn(binPath, ['web', '--port', '0', '--listen', '127.0.0.1', '--no-open'], {
   cwd: root,
   detached: true,
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 
-const stop = () => {
-  try {
-    process.kill(-server.pid, 'SIGTERM');
-  } catch {}
+const stop = async () => {
+  await terminateProcess(server);
 };
-process.on('exit', stop);
+process.on('exit', () => terminateProcessOnExit(server));
 
 const bootstrap = await new Promise((resolve, reject) => {
   let buffer = '';
@@ -104,5 +104,5 @@ try {
 } finally {
   await context.close();
   await browser.close();
-  stop();
+  await stop();
 }

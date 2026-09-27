@@ -44,27 +44,33 @@ func removeProviderLaunchFlag(args []string, wanted string) []string {
 }
 
 // wantInteractiveLead is an explicit opt-in for binding a persistent Lead
-// Agent and allowing Mission promotion. Provider-native TUIs are byte-transparent
-// by default so Nexus supervises the runtime without changing the provider's
-// keyboard, prompts, selectors or command semantics.
+// Agent. Binding a Lead is intentionally separate from authorizing Mission
+// promotion: provider-native TUIs remain byte-transparent unless delegation is
+// explicitly enabled through the Nexus orchestration boundary.
 func wantInteractiveLead(args []string) bool {
 	return hasProviderLaunchFlag(args, "--lead") && !hasProviderLaunchFlag(args, "--no-lead")
 }
 
+// supervisedRuntimeLabels keeps runtime supervision and Mission authorization
+// as separate capabilities. Even an explicitly bound Lead starts with
+// delegation OFF; an advanced NEXUS_DELEGATION_MODE override may opt in later.
+func supervisedRuntimeLabels(withLead bool) map[string]string {
+	return map[string]string{
+		"nexus.delegation_mode":  string(nexus.DelegationOff),
+		"nexus.interactive_lead": fmt.Sprintf("%t", withLead),
+	}
+}
+
 // executeProviderSupervised launches the provider through the same persistent
 // SessionHost used by Web/Desktop. Interactive TTY is byte-transparent by
-// default; withLead=true (--lead) enables the Nexus promotion boundary.
+// default; withLead=true (--lead) binds a Lead but does not authorize ordinary
+// provider prompts to be promoted into Missions.
 func executeProviderSupervised(provName, explicitProfile string, args []string, withLead bool) error {
 	if strings.TrimSpace(provName) == "" {
 		return fmt.Errorf("provider is required for supervised launch")
 	}
 	args = removeProviderLaunchFlag(args, "--lead")
 	args = removeProviderLaunchFlag(args, "--no-lead")
-
-	delegationMode := nexus.DelegationOff
-	if withLead {
-		delegationMode = nexus.DelegationAuto
-	}
 
 	fmt.Fprintf(os.Stderr, "⚡ [nexus] iniciando %s…\n", provName)
 
@@ -112,10 +118,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 			Args:       args,
 			Standalone: false,
 			Timeout:    15 * time.Second,
-			Labels: map[string]string{
-				"nexus.delegation_mode":  string(delegationMode),
-				"nexus.interactive_lead": fmt.Sprintf("%t", withLead),
-			},
+			Labels:     supervisedRuntimeLabels(withLead),
 		},
 		os.Stderr,
 	)

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/nexus"
 	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
@@ -17,6 +18,19 @@ func TestWebInteractiveLeadRequiresExplicitLabel(t *testing.T) {
 	}
 	if !webInteractiveLeadEnabled(registry.RuntimeSession{Labels: map[string]string{"nexus.interactive_lead": "TRUE"}}) {
 		t.Fatal("explicit true label must enable the Lead promotion boundary")
+	}
+}
+
+func TestWebInteractiveDelegationModeFailsClosed(t *testing.T) {
+	t.Setenv("NEXUS_DELEGATION_MODE", "")
+	if got := webInteractiveDelegationMode(registry.RuntimeSession{}); got != nexus.DelegationOff {
+		t.Fatalf("missing web delegation mode=%q want OFF", got)
+	}
+	if got := webInteractiveDelegationMode(registry.RuntimeSession{Labels: map[string]string{"nexus.delegation_mode": "garbage"}}); got != nexus.DelegationOff {
+		t.Fatalf("invalid web delegation mode=%q want OFF", got)
+	}
+	if got := webInteractiveDelegationMode(registry.RuntimeSession{Labels: map[string]string{"nexus.delegation_mode": "AUTO"}}); got != nexus.DelegationAuto {
+		t.Fatalf("explicit web AUTO=%q", got)
 	}
 }
 
