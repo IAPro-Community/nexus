@@ -13,10 +13,15 @@ import (
 	"github.com/IAPro-Community/nexus/internal/browser"
 	controlnotify "github.com/IAPro-Community/nexus/internal/control/notify"
 	"github.com/IAPro-Community/nexus/internal/nexus"
-	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 var ErrCapabilityUnavailable = errors.New("desktop capability unavailable")
+
+const (
+	DesktopWindowName = "main"
+	HUDWindowName     = "hud"
+)
 
 // FileFilter specifies an extension filter for the file picker.
 type FileFilter struct {
@@ -54,23 +59,33 @@ type BootstrapInfo struct {
 	CSRFToken    string `json:"csrfToken"`
 }
 
-// App is the Wails bridge struct exposed to the frontend.
-// It contains ONLY native OS integration capabilities.
+// App is the Wails v3 service exposed to the frontend. Domain state remains in
+// Nexus Core; this service owns native OS presentation only.
 type App struct {
 	mu            sync.RWMutex
 	ctx           context.Context
 	dialogHandler NativeDialogHandler
 	capabilities  Capabilities
 	windowManager *WindowStateManager
+	windowName    string
 	bootstrap     BootstrapInfo
 	voiceMu       sync.Mutex
 	voiceCapture  *nativeVoiceCaptureState
 }
 
-// NewApp creates a new desktop App instance.
+// NewApp preserves the test/direct-consumer constructor and targets the main
+// desktop window.
 func NewApp(dialogHandler NativeDialogHandler, windowManager *WindowStateManager, bootstrap ...BootstrapInfo) *App {
+	return NewAppForWindow(dialogHandler, windowManager, DesktopWindowName, bootstrap...)
+}
+
+// NewAppForWindow creates a bridge bound to one named Wails v3 window.
+func NewAppForWindow(dialogHandler NativeDialogHandler, windowManager *WindowStateManager, windowName string, bootstrap ...BootstrapInfo) *App {
 	if windowManager == nil {
 		windowManager = NewWindowStateManager("")
+	}
+	if strings.TrimSpace(windowName) == "" {
+		windowName = DesktopWindowName
 	}
 	var b BootstrapInfo
 	if len(bootstrap) > 0 {
@@ -80,8 +95,32 @@ func NewApp(dialogHandler NativeDialogHandler, windowManager *WindowStateManager
 		dialogHandler: dialogHandler,
 		capabilities:  DefaultCapabilities(),
 		windowManager: windowManager,
+		windowName:    windowName,
 		bootstrap:     b,
 	}
+}
+
+func (a *App) nativeWindow() (application.Window, bool) {
+	app := application.Get()
+	if app == nil {
+		return nil, false
+	}
+	return app.Window.GetByName(a.windowName)
+}
+
+// ServiceStartup is Wails v3's lifecycle hook. It is not exposed as a binding.
+func (a *App) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+	a.mu.Lock()
+	a.ctx = ctx
+	a.mu.Unlock()
+	return nil
+}
+
+// ServiceShutdown is Wails v3's lifecycle hook. It is not exposed as a binding.
+func (a *App) ServiceShutdown() error {
+	a.cancelNativeVoiceCapture()
+	nexus.Default().Shutdown()
+	return nil
 }
 
 // GetBootstrapInfo returns loopback connection details and pre-seeded auth tokens.
@@ -91,80 +130,67 @@ func (a *App) GetBootstrapInfo() BootstrapInfo {
 	return a.bootstrap
 }
 
-// Startup is called by Wails when the application starts.
-func (a *App) Startup(ctx context.Context) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	a.ctx = ctx
-}
-
-// Shutdown is called by Wails when the application terminates.
-func (a *App) Shutdown(ctx context.Context) {
-	a.cancelNativeVoiceCapture()
-	nexus.Default().Shutdown()
-}
-
-// GetCapabilities returns the native platform capabilities.
+// GetCapabilities returns capabilities proven by the current native shell.
 func (a *App) GetCapabilities() Capabilities {
 	a.mu.RLock()
-	defer a.mu.RUnlock()
-
 	capabilities := a.capabilities
-	// Wails owns native dialogs once Startup has supplied a frontend context.
-	// This keeps capability discovery honest for unit-test instances created
-	// without a running desktop frontend.
-	if a.ctx != nil {
+	a.mu.RUnlock()
+
+	if application.Get() != nil {
 		capabilities.FilePicker = true
 		capabilities.FolderPicker = true
+		capabilities.Tray = true
+		capabilities.NativeMenus = true
+		capabilities.AutoStart = runtime.GOOS == "linux" || runtime.GOOS == "windows" || runtime.GOOS == "darwin"
 	}
 	return capabilities
 }
 
-// SelectDirectory opens the native OS directory picker.
+// SelectDirectory opens Wails v3's native OS directory picker.
 func (a *App) SelectDirectory(title string) (string, error) {
 	a.mu.RLock()
 	dh := a.dialogHandler
 	ctx := a.ctx
 	a.mu.RUnlock()
-
 	if dh != nil {
 		return dh.SelectDirectory(ctx, title)
 	}
-	if ctx != nil {
-		return wailsruntime.OpenDirectoryDialog(ctx, wailsruntime.OpenDialogOptions{
-			Title: title,
-		})
+	if app := application.Get(); app != nil {
+		dialog := app.Dialog.OpenFile().
+			SetTitle(title).
+			CanChooseFiles(false).
+			CanChooseDirectories(true).
+			CanCreateDirectories(true)
+		if window, ok := a.nativeWindow(); ok {
+			dialog.AttachToWindow(window)
+		}
+		return dialog.PromptForSingleSelection()
 	}
-
-	// Fallback is retained for direct package consumers and tests outside Wails.
 	return fallbackSelectDirectory(title)
 }
 
-// SelectFile opens the native OS file picker.
+// SelectFile opens Wails v3's native OS file picker.
 func (a *App) SelectFile(opts FilePickerOptions) (string, error) {
 	a.mu.RLock()
 	dh := a.dialogHandler
 	ctx := a.ctx
 	a.mu.RUnlock()
-
 	if dh != nil {
 		return dh.SelectFile(ctx, opts)
 	}
-	if ctx != nil {
-		filters := make([]wailsruntime.FileFilter, 0, len(opts.Filters))
-		for _, filter := range opts.Filters {
-			filters = append(filters, wailsruntime.FileFilter{
-				DisplayName: filter.Name,
-				Pattern:     strings.Join(filter.Extensions, ";"),
-			})
+	if app := application.Get(); app != nil {
+		dialog := app.Dialog.OpenFile().SetTitle(opts.Title).CanChooseFiles(true)
+		if opts.DefaultPath != "" {
+			dialog.SetDirectory(opts.DefaultPath)
 		}
-		return wailsruntime.OpenFileDialog(ctx, wailsruntime.OpenDialogOptions{
-			Title:            opts.Title,
-			DefaultDirectory: opts.DefaultPath,
-			Filters:          filters,
-		})
+		for _, filter := range opts.Filters {
+			dialog.AddFilter(filter.Name, strings.Join(filter.Extensions, ";"))
+		}
+		if window, ok := a.nativeWindow(); ok {
+			dialog.AttachToWindow(window)
+		}
+		return dialog.PromptForSingleSelection()
 	}
-
 	return fallbackSelectFile(opts)
 }
 
@@ -173,34 +199,33 @@ func (a *App) ShowNotification(opts NotificationOptions) error {
 	a.mu.RLock()
 	dh := a.dialogHandler
 	a.mu.RUnlock()
-
 	if dh != nil {
 		return dh.ShowNotification(opts)
 	}
-
 	return fallbackNotification(opts)
 }
 
-// OpenExternal opens a URL using the default system browser.
-func (a *App) OpenExternal(url string) error {
-	parsed, err := neturl(url)
+// OpenExternal opens a validated HTTP(S) URL using the Wails v3 browser manager.
+func (a *App) OpenExternal(raw string) error {
+	parsed, err := neturl(raw)
 	if err != nil {
 		return err
 	}
-	url = parsed.String()
+	if app := application.Get(); app != nil {
+		return app.Browser.OpenURL(parsed.String())
+	}
 
 	var cmd string
 	var args []string
-
 	switch runtime.GOOS {
 	case "windows":
 		cmd = "rundll32"
-		args = []string{"url.dll,FileProtocolHandler", url}
+		args = []string{"url.dll,FileProtocolHandler", parsed.String()}
 	case "darwin":
 		cmd = "open"
-		args = []string{url}
+		args = []string{parsed.String()}
 	default:
-		return browser.OpenAppWindow(url)
+		return browser.OpenAppWindow(parsed.String())
 	}
 	return exec.Command(cmd, args...).Start()
 }
@@ -226,6 +251,43 @@ func (a *App) GetSystemTheme() string {
 		}
 	}
 	return "unknown"
+}
+
+func (a *App) IsMaximized() bool {
+	if window, ok := a.nativeWindow(); ok {
+		return window.IsMaximised()
+	}
+	return false
+}
+
+func (a *App) MinimizeWindow() {
+	if window, ok := a.nativeWindow(); ok {
+		window.Minimise() //nolint:misspell // Wails v3 API uses British spelling.
+	}
+}
+
+func (a *App) MaximizeWindow() {
+	if window, ok := a.nativeWindow(); ok {
+		window.Maximise() //nolint:misspell // Wails v3 API uses British spelling.
+	}
+}
+
+func (a *App) UnmaximizeWindow() {
+	if window, ok := a.nativeWindow(); ok {
+		window.UnMaximise()
+	}
+}
+
+func (a *App) CloseWindow() {
+	if window, ok := a.nativeWindow(); ok {
+		window.Close()
+	}
+}
+
+func (a *App) QuitApp() {
+	if app := application.Get(); app != nil {
+		app.Quit()
+	}
 }
 
 func fallbackSelectDirectory(title string) (string, error) {
