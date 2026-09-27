@@ -139,11 +139,11 @@ run_isolated_go() {
     "$@"
 }
 
+log "provider-native Mission/terminal regression preflight"
+run_isolated_go go test -race -count=1 ./internal/app ./internal/nexus/promotion ./internal/runtime 2>&1 | tee "$OUT/regression-interactive-terminal.log"
+
 log "Go race suite (isolated profile)"
 run_isolated_go go test -race -count=1 ./... 2>&1 | tee "$OUT/go-test-race.log"
-
-log "regression suites: interactive routing and terminal input"
-run_isolated_go go test -race -count=1 ./internal/nexus/promotion ./internal/runtime 2>&1 | tee "$OUT/regression-interactive-terminal.log"
 
 log "control/runtime E2E"
 run_isolated_go go test -race -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/... 2>&1 | tee "$OUT/control-e2e.log"
@@ -232,9 +232,10 @@ cat > "$OUT/MANUAL_CHECKS.md" <<'EOF'
 These checks require a real interactive/native session and are intentionally not faked by the script.
 
 - Start `nexus codex`; press Up/Down/Left/Right repeatedly. No literal `[A`, `[B`, `[C`, `[D` may appear.
-- In Direct/Lead mode, submit a simple request. It must remain with the Lead and must not be promoted to Mission unless decomposition/delegation/explicit Mission intent is present.
-- In Direct/Lead mode, submit prompts containing `permission`, `submission` and `transmission`. They must not be treated as explicit Mission requests.
-- Force a heuristic Mission-worthy request while strict admission is intentionally unavailable. The original prompt must execute once in the Lead; no dead-end and no orphan heuristic WorkPlan should remain.
+- Start `nexus codex` and `nexus agy` with no Lead/delegation flags. Submit both a trivial prompt and a complex request such as "corrija a API". Neither may create, require, or ask for a Mission; provider-native Enter/commands must continue normally.
+- Start `nexus codex --lead` with `NEXUS_DELEGATION_MODE` unset. The Lead may provide Nexus context, but ordinary prompts still must not be promoted to Mission because the persisted delegation mode starts OFF.
+- Opt in deliberately with `NEXUS_DELEGATION_MODE=ASK` plus `--lead`. A Mission-worthy prompt may ask for promotion, while a simple prompt stays provider-owned. Repeat with `AUTO` only as an explicit orchestration smoke.
+- In normal provider mode, submit prompts containing `permission`, `submission` and `transmission`. They must never be treated as explicit Mission requests.
 - Explicitly request a Mission while strict admission is intentionally unavailable. The prompt must NOT execute as Direct; Nexus must show the exact blocker and retain the rejected plan id for remediation.
 - With a hard/emergency cost budget requiring confirmation, an automatic heuristic promotion must not bypass the budget gate. It may return to Lead before a run exists; an explicit Mission request must stay blocked until the current cost state is explicitly confirmed.
 - Keep the project default isolation as `project` and run an AUTO/CREATE Mission in a real Git repository. Nexus must use/create a worktree-safe Agent instead of blocking only because the project default is not `worktree`.
