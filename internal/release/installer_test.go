@@ -573,6 +573,9 @@ func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 		if !strings.Contains(section, "go build -trimpath") {
 			t.Errorf("%s must invoke go build with -trimpath", strings.TrimSuffix(target, ": web"))
 		}
+		if !strings.Contains(section, `-ldflags="$LDFLAGS"`) {
+			t.Errorf("%s must preserve shell LDFLAGS expansion with Make escaping", strings.TrimSuffix(target, ": web"))
+		}
 	}
 	ci, err := os.ReadFile(filepath.Join(root, ".github/workflows/ci.yml"))
 	if err != nil {
@@ -583,8 +586,8 @@ func TestReleaseBuildsStripLocalPaths(t *testing.T) {
 			t.Errorf("ci.yml must build test binaries with %q", cmd)
 		}
 	}
-	// The Linux beta desktop job delegates to the Make target that forwards
-	// -trimpath to the Wails build.
+	// The Linux V1 desktop job delegates to the Make target that carries
+	// -trimpath into the Wails v3 direct Go build.
 	if !strings.Contains(string(ci), "make build-desktop-wails") {
 		t.Error("ci.yml Linux Wails build must use the trimpath-enabled Make target")
 	}
