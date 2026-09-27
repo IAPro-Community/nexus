@@ -5,9 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/buildinfo"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // UpdateResult summarizes explicit Maestro maintenance. NexusUpdated remains
@@ -29,7 +31,7 @@ func PerformSystemUpdate() UpdateResult {
 
 	fmt.Println("\n[1/2] Updating Orquestrador Maestro...")
 	if npmPath, err := exec.LookPath("npm"); err == nil {
-		cmd := exec.Command(npmPath, "install", "-g", "@iapro/orquestrador-maestro-cli@latest")
+		cmd := executil.Command(npmPath, "install", "-g", "@iapro/orquestrador-maestro-cli@latest")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
@@ -41,10 +43,10 @@ func PerformSystemUpdate() UpdateResult {
 	}
 
 	if maestroBin, err := exec.LookPath("orquestrador-maestro"); err == nil {
-		cmdSync := exec.Command(maestroBin, "update", "--non-interactive")
+		cmdSync := executil.Command(maestroBin, "update", "--non-interactive")
 		_ = cmdSync.Run()
 
-		cmdVer := exec.Command(maestroBin, "version")
+		cmdVer := executil.Command(maestroBin, "version")
 		if out, err := cmdVer.Output(); err == nil {
 			res.MaestroVersion = strings.TrimSpace(string(out))
 		}
@@ -52,14 +54,20 @@ func PerformSystemUpdate() UpdateResult {
 		res.MaestroVersion = "not installed"
 	}
 
-	targetDir := filepath.Join(os.Getenv("HOME"), ".local", "bin")
-	_ = os.MkdirAll(targetDir, 0755)
-
-	if maestroBin, err := exec.LookPath("orquestrador-maestro"); err == nil {
-		_ = os.Remove(filepath.Join(targetDir, "maestro"))
-		_ = os.Remove(filepath.Join(targetDir, "orquestrador"))
-		_ = os.Symlink(maestroBin, filepath.Join(targetDir, "maestro"))
-		_ = os.Symlink(maestroBin, filepath.Join(targetDir, "orquestrador"))
+	// npm already installs .cmd shims on Windows; creating aliases there may
+	// require Developer Mode/elevation. Keep POSIX aliases Unix-only and use the
+	// native home directory rather than assuming HOME exists on Windows.
+	if runtime.GOOS != "windows" {
+		if home, err := os.UserHomeDir(); err == nil && home != "" {
+			targetDir := filepath.Join(home, ".local", "bin")
+			_ = os.MkdirAll(targetDir, 0755)
+			if maestroBin, err := exec.LookPath("orquestrador-maestro"); err == nil {
+				_ = os.Remove(filepath.Join(targetDir, "maestro"))
+				_ = os.Remove(filepath.Join(targetDir, "orquestrador"))
+				_ = os.Symlink(maestroBin, filepath.Join(targetDir, "maestro"))
+				_ = os.Symlink(maestroBin, filepath.Join(targetDir, "orquestrador"))
+			}
+		}
 	}
 
 	fmt.Println("\n[2/2] Confirming IAPro Nexus binary was not changed...")
