@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os/exec"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 func AllowedPath(name string, patterns []string) bool {
@@ -150,7 +150,7 @@ func GitChangedPaths(ctx context.Context, workspace string) ([]string, error) {
 	}
 	seen := map[string]struct{}{}
 	for _, args := range commands {
-		out, err := exec.CommandContext(ctx, "git", args...).Output()
+		out, err := executil.CommandContext(ctx, "git", args...).Output()
 		if err != nil {
 			return nil, fmt.Errorf("git changed paths: %w", err)
 		}
