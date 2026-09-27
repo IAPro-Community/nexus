@@ -271,12 +271,12 @@ jobs:
           case "$RELEASE_VERSION" in
             *-alpha.*|*-beta.*|*-rc.*)
               echo "PUBLIC_RELEASE_TAG=channel-beta" >> "$GITHUB_ENV"
-              echo "PUBLIC_RELEASE_TITLE=Nexus 1.0 Beta" >> "$GITHUB_ENV"
+              echo "PUBLIC_RELEASE_TITLE=Release V1.0.0" >> "$GITHUB_ENV"
               echo "PUBLIC_RELEASE_PRERELEASE=true" >> "$GITHUB_ENV"
               ;;
             *)
               echo "PUBLIC_RELEASE_TAG=$RELEASE_VERSION" >> "$GITHUB_ENV"
-              echo "PUBLIC_RELEASE_TITLE=Nexus $RELEASE_VERSION" >> "$GITHUB_ENV"
+              echo "PUBLIC_RELEASE_TITLE=Release V${RELEASE_VERSION#v}" >> "$GITHUB_ENV"
               echo "PUBLIC_RELEASE_PRERELEASE=false" >> "$GITHUB_ENV"
               ;;
           esac
@@ -363,7 +363,7 @@ jobs:
           body: |
             Current signed internal version: ${{ inputs.version || github.ref_name }}
             Source SHA: ${{ github.sha }}
-            This is the single rolling Nexus 1.0 Beta distribution entry; exact version and provenance remain in the signed manifest.
+            This is the single rolling Release V1.0.0 distribution entry. The exact prerelease/stable version and source provenance remain in the signed manifest.
       - name: Publish stable channel pointer
         env:
           GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
