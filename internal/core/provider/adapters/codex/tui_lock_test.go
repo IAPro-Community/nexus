@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 func TestTryAcquireTUILockNonBlocking(t *testing.T) {
@@ -116,9 +117,7 @@ func TestGetUsageSkipsMigrationAndAppServerWhileTUILocked(t *testing.T) {
 		t.Fatal(err)
 	}
 	threadPath := filepath.Join(home, "thread_history_1.sqlite")
-	if err := os.Symlink(filepath.Join(hostSessions, "thread_history_1.sqlite"), threadPath); err != nil {
-		t.Fatal(err)
-	}
+	testutil.SymlinkOrSkip(t, filepath.Join(hostSessions, "thread_history_1.sqlite"), threadPath)
 
 	now := time.Now().UTC()
 	writeRollout(t, filepath.Join(home, "sessions", "rollout-busy.jsonl"), 12, 40, now.Add(time.Hour).Unix(), now, "")
