@@ -28,13 +28,13 @@ func TestHUDWindowStateManagerDefaultsAndPersistence(t *testing.T) {
 	}
 }
 
-func TestNormalizeHUDWindowStateFailsSafe(t *testing.T) {
+func TestNormalizeHUDWindowStateDefersPositionClampUntilScreenIsKnown(t *testing.T) {
 	got := normalizeHUDWindowState(HUDWindowState{
 		DisplayID: "", Placement: "NOT_REAL", X: -100, Y: -50,
 		Width: 10, Height: 10, Opacity: 8,
 	})
-	if got.Placement != HUDPlacementTopRight || got.X != 0 || got.Y != 0 {
-		t.Fatalf("unsafe placement normalization: %+v", got)
+	if got.Placement != HUDPlacementTopRight || got.X != -100 || got.Y != -50 {
+		t.Fatalf("normalization must preserve coordinates until work-area clamp: %+v", got)
 	}
 	if got.Width != 430 || got.Height != 64 || got.Opacity != 0.96 {
 		t.Fatalf("unsafe size/opacity normalization: %+v", got)
@@ -73,21 +73,12 @@ func TestClampHUDWindowStateToScreenShrinksOversizedWindow(t *testing.T) {
 	}
 }
 
-func TestHUDPlatformCapabilitiesKeepCrossPlatformClaimsFailClosed(t *testing.T) {
+func TestHUDPlatformCapabilitiesKeepRuntimeBackedClaimsFailClosed(t *testing.T) {
 	caps := DefaultHUDPlatformCapabilities()
 	if caps.Platform != runtime.GOOS {
 		t.Fatalf("platform=%q want %q", caps.Platform, runtime.GOOS)
 	}
-	switch runtime.GOOS {
-	case "linux", "windows", "darwin":
-		if !caps.AutoStart {
-			t.Fatalf("autostart adapter must be available on %s", runtime.GOOS)
-		}
-	}
-	if caps.Tray {
-		t.Fatal("tray must remain false until the native tray adapter is implemented and certified")
-	}
-	if caps.MultiMonitor {
-		t.Fatal("multi-monitor must remain false until stable display identity/work-area/DPI are available")
+	if caps.Tray || caps.MultiMonitor || caps.AutoStart || caps.AutoHide {
+		t.Fatalf("runtime-backed HUD capabilities must remain false before ServiceStartup: %+v", caps)
 	}
 }
