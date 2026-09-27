@@ -6,13 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 type ContextReadinessState string
@@ -48,7 +48,7 @@ type ContextReadiness struct {
 }
 
 func gitContextValue(root string, args ...string) string {
-	out, err := exec.Command("git", append([]string{"-C", root}, args...)...).Output()
+	out, err := executil.Command("git", append([]string{"-C", root}, args...)...).Output()
 	if err != nil {
 		return ""
 	}
