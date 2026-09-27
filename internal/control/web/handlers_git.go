@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/IAPro-Community/nexus/internal/executil"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
-	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // ProjectGitBranchesResponse is returned by GET /api/v1/projects/:id/git/branches
