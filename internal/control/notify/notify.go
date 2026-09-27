@@ -1,9 +1,9 @@
 package notify
 
 import (
+	"github.com/IAPro-Community/nexus/internal/executil"
 	"os/exec"
 	"runtime"
-	"github.com/IAPro-Community/nexus/internal/executil"
 	"strings"
 	"sync"
 	"time"
