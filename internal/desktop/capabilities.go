@@ -19,39 +19,24 @@ type Capabilities struct {
 	NativeVoiceCapture bool `json:"nativeVoiceCapture"`
 }
 
-// DefaultCapabilities returns the standard native desktop capabilities.
+// DefaultCapabilities is deliberately conservative outside a running Wails v3
+// application. GetCapabilities promotes features only when the native app exists.
 func DefaultCapabilities() Capabilities {
-	filePicker := false
-	folderPicker := false
 	notifications := false
-	autoStart := false
 	nativeVoiceCapture := false
 	switch runtime.GOOS {
 	case "windows":
 		notifications = commandAvailable("powershell") || commandAvailable("pwsh")
-		autoStart = commandAvailable("reg.exe")
 	case "darwin":
-		filePicker = commandAvailable("osascript")
-		folderPicker = filePicker
-		notifications = filePicker
-		autoStart = true
+		notifications = commandAvailable("osascript")
 	case "linux":
-		filePicker = commandAvailable("zenity")
-		folderPicker = filePicker
 		notifications = commandAvailable("notify-send")
-		autoStart = true
 		nativeVoiceCapture = commandAvailable("pw-record") || commandAvailable("arecord")
 	}
 
 	return Capabilities{
 		Native:             true,
-		FilePicker:         filePicker,
-		FolderPicker:       folderPicker,
 		Notifications:      notifications,
-		Tray:               false,
-		NativeMenus:        false,
-		DeepLinks:          false,
-		AutoStart:          autoStart,
 		WindowManagement:   true,
 		NativeVoiceCapture: nativeVoiceCapture,
 	}
