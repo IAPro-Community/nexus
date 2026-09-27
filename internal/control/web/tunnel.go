@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 var tunnelURLRegex = regexp.MustCompile(`https://[a-zA-Z0-9-]+\.trycloudflare\.com`)
@@ -450,6 +451,7 @@ func StartTunnel(ctx context.Context, localPort int) (*Tunnel, error) {
 		"--url", fmt.Sprintf("http://localhost:%d", localPort),
 		"--no-autoupdate",
 	)
+	executil.HideConsoleWindow(cmd)
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
@@ -545,7 +547,9 @@ func IsCloudflaredInstalled() bool {
 func CloudflaredVersion(path string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, path, "version").Output()
+	cmd := exec.CommandContext(ctx, path, "version")
+	executil.HideConsoleWindow(cmd)
+	out, err := cmd.Output()
 	if err != nil {
 		return ""
 	}
