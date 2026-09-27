@@ -30,14 +30,16 @@ func submitPromptToLead(ctx context.Context, n *nexus.Nexus, agentID, runtimeID,
 }
 
 func interactiveDelegationMode(session registry.RuntimeSession) nexus.DelegationMode {
-	mode := nexus.DelegationMode("")
+	mode := nexus.DelegationOff
 	if session.Labels != nil {
-		mode = nexus.DelegationMode(session.Labels["nexus.delegation_mode"])
+		if configured := strings.TrimSpace(session.Labels["nexus.delegation_mode"]); configured != "" {
+			mode = nexus.DelegationMode(configured)
+		}
 	}
 	if override := strings.TrimSpace(os.Getenv("NEXUS_DELEGATION_MODE")); override != "" {
 		mode = nexus.DelegationMode(override)
 	}
-	return nexus.NormalizeDelegationMode(mode)
+	return nexus.NormalizeInteractiveDelegationMode(mode)
 }
 
 // confirmedInteractiveDelegationMode converts ASK to AUTO only after the
