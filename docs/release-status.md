@@ -5,16 +5,16 @@ Atualizado em **27 de setembro de 2026**.
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
-| Versão do source candidato | `1.0.0-beta.3` |
+| Versão do source candidato | `1.0.0-beta.4` |
 | Última beta pública registrada | `v1.0.0-beta.1` |
 | Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
 | Release estável v1 | **ainda não publicada** |
 | CI do SHA candidato | indisponível no momento por bloqueio de créditos da conta |
-| Veredito atual | **beta.3 implementada no source; homologação/certificação exact-SHA pendentes** |
+| Veredito atual | **beta.4 implementada no source; homologação/certificação exact-SHA pendentes** |
 
 ## Linha canônica de integração — 2026-09-27
 
-A branch `release/v1.0.0-beta.3` é agora a única linha canônica de integração para os retestes da beta.3.
+A branch `release/v1.0.0-beta` é agora a única linha canônica de integração para os retestes da beta.4.
 
 - PR #25 foi integrado por squash em `8fa37f4ca8051b2abce1ade3a0c83dd5b5be64d7`;
 - essa integração contém a remediação Windows `ce52b09d...`, a convergência Linux/Windows, Direct/Mission OFF-by-default e o hardening Codex/ConPTY;
@@ -24,10 +24,10 @@ A branch `release/v1.0.0-beta.3` é agora a única linha canônica de integraç�
 
 Até o Wails v3 ser reconciliado, a linha canônica continua usando a implementação Wails atualmente integrada. A publicação permanece bloqueada pelos gates same-SHA e pelos blockers registrados na issue #27.
 
-## Escopo consolidado da beta.3
+## Escopo consolidado da beta.4
 
 A linha que antes estava planejada como 1.1 foi absorvida pela V1 enquanto a
-primeira release estável ainda não foi publicada. A beta.3 concentra a conclusão
+primeira release estável ainda não foi publicada. A beta.4 concentra a conclusão
 funcional desse escopo sem criar um segundo runtime, scheduler ou Mission engine.
 
 O candidato inclui:
@@ -51,16 +51,16 @@ Nenhuma tag antiga é reinterpretada retroativamente.
 
 ## Portabilidade dos ExecutionRoles
 
-Na beta.3, `ExecutionRole` é um contrato do Nexus, não do provider:
+Na beta.4, `ExecutionRole` é um contrato do Nexus, não do provider:
 
 - Codex, Claude, Cursor, Gemini e AGY continuam usando o mesmo selector e
   compiler por **Nexus overlay**;
-- OpenCode é o adapter nativo de referência da beta.3;
+- OpenCode é o adapter nativo de referência da beta.4;
 - ausência de native adapter nunca impede role switch/overlay;
 - ausência de prova nativa nunca aparece como primary/subagent/enforcement
   suportado;
 - adapters nativos adicionais são expansão posterior e não bloqueiam o
-  fechamento funcional da beta.3.
+  fechamento funcional da beta.4.
 
 A Web também inclui:
 
@@ -69,7 +69,7 @@ A Web também inclui:
 - `Ctrl/Cmd+Shift+A` para focar o selector;
 - `Shift+Tab` continua pertencendo ao TUI hospedado e não é capturado pelo Nexus.
 
-## Agent Interop / OpenCode — estado da beta.3
+## Agent Interop / OpenCode — estado da beta.4
 
 O lifecycle da V1 é:
 
@@ -144,7 +144,7 @@ No VPN Dev Workspace:
 - sem shared profile home a execução custom continua válida e degrada somente
   a projection nativa/enforcement.
 
-## Voz / fala — estado da beta.3
+## Voz / fala — estado da beta.4
 
 **Implementada no source da V1.**
 
@@ -187,34 +187,34 @@ Windows:
 .\scripts\homologate-beta.ps1
 ```
 
-A evidência da beta.3 deve ser escrita em:
+A evidência da beta.4 deve ser escrita em:
 
 ```text
-DEV/validation/local-beta3/<exact-sha>/<plataforma>/
+DEV/validation/local-beta/1.0.0-beta.4/<exact-sha>/<plataforma>/
 ```
 
 ## Matriz candidata
 
 | Plataforma | Estado no source | Estado de certificação |
 | --- | --- | --- |
-| Linux amd64 | integrado | homologação beta.3 exact-SHA pendente |
+| Linux amd64 | integrado | homologação beta.4 exact-SHA pendente |
 | Windows amd64 | integrado | certificação nativa exact-SHA pendente |
 | macOS arm64 | integrado | certificação nativa exact-SHA pendente |
-| Web | integrado | homologação beta.3 pendente |
+| Web | integrado | homologação beta.4 pendente |
 
 Implementação não equivale a suporte certificado.
 
-## Gates para `v1.0.0-beta.3`
+## Gates para `v1.0.0-beta.4`
 
 Antes de criar/publicar a tag:
 
-- documentação consistente com beta.3;
+- documentação consistente com beta.4;
 - frontend format/lint/styles/typecheck/unit/build;
 - Go fmt/vet/test/race;
 - regressões de terminal e roteamento Mission;
 - control/runtime E2E;
 - build CLI;
-- `nexus version --json` = `1.0.0-beta.3`;
+- `nexus version --json` = `1.0.0-beta.4`;
 - `nexus doctor --json`;
 - OpenCode visível em providers/Usage/Agents quando instalado;
 - role switch provider-neutral por overlay; OpenCode → projection automática ou fallback explícito;
@@ -241,7 +241,7 @@ Antes de criar/publicar a tag:
 
 ## Gates para `v1.0.0` estável
 
-Além da beta.3 homologada, o SHA final precisa comprovar:
+Além da beta.4 homologada, o SHA final precisa comprovar:
 
 - CI exact-SHA completo;
 - security/govulncheck;
@@ -260,7 +260,7 @@ Além da beta.3 homologada, o SHA final precisa comprovar:
 
 ## Regra
 
-A beta.3 é considerada **implementada no source** quando os requisitos acima
+A beta.4 é considerada **implementada no source** quando os requisitos acima
 existem no candidato. Ela só é considerada **homologada** quando os gates
 automatizados e manuais forem registrados contra o mesmo SHA.
 
