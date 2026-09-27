@@ -167,6 +167,10 @@ Write-Host "==> Version contract"
 go run ./scripts/verify-version-contract.go . 2>&1 | Tee-Object -FilePath (Join-Path $Out 'version-contract.log')
 if ($LASTEXITCODE -ne 0) { throw "version contract failed" }
 
+Write-Host "==> provider-native Mission/terminal regression preflight"
+go test -count=1 ./internal/app ./internal/nexus/promotion ./internal/runtime 2>&1 | Tee-Object -FilePath (Join-Path $Out 'regression-interactive-terminal.log')
+if ($LASTEXITCODE -ne 0) { throw "provider-native Mission/terminal regression tests failed" }
+
 Write-Host "==> Go tests"
 # Unit/integration tests must not inherit the developer's real Nexus profile,
 # conversation store or user configuration. Keep the Go module/build caches so
@@ -238,9 +242,7 @@ if ($GoTestExit -ne 0) {
   throw "go test failed; sanitized summary: $SummaryPath"
 }
 
-Write-Host "==> regression suites: interactive routing and terminal input"
-go test -count=1 ./internal/nexus/promotion ./internal/runtime 2>&1 | Tee-Object -FilePath (Join-Path $Out 'regression-interactive-terminal.log')
-if ($LASTEXITCODE -ne 0) { throw "interactive/terminal regression tests failed" }
+
 
 Write-Host "==> control/runtime E2E"
 go test -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'control-e2e.log')
@@ -330,9 +332,10 @@ if (-not $SkipDesktop) {
 These checks require a real interactive/native session and are intentionally not faked by the script.
 
 - Start `nexus codex`; press Up/Down/Left/Right repeatedly. No literal `[A`, `[B`, `[C`, `[D` may appear.
-- In Direct/Lead mode, submit a simple request. It must remain with the Lead and must not be promoted to Mission unless decomposition/delegation/explicit Mission intent is present.
-- In Direct/Lead mode, submit prompts containing `permission`, `submission` and `transmission`. They must not be treated as explicit Mission requests.
-- Force a heuristic Mission-worthy request while strict admission is intentionally unavailable. The original prompt must execute once in the Lead; no dead-end and no orphan heuristic WorkPlan should remain.
+- Start `nexus codex` and `nexus agy` with no Lead/delegation flags. Submit both a trivial prompt and a complex request such as "corrija a API". Neither may create, require, or ask for a Mission; provider-native Enter/commands must continue normally.
+- Start `nexus codex --lead` with `NEXUS_DELEGATION_MODE` unset. The Lead may provide Nexus context, but ordinary prompts still must not be promoted to Mission because the persisted delegation mode starts OFF.
+- Opt in deliberately with `NEXUS_DELEGATION_MODE=ASK` plus `--lead`. A Mission-worthy prompt may ask for promotion, while a simple prompt stays provider-owned. Repeat with `AUTO` only as an explicit orchestration smoke.
+- In normal provider mode, submit prompts containing `permission`, `submission` and `transmission`. They must never be treated as explicit Mission requests.
 - Explicitly request a Mission while strict admission is intentionally unavailable. The prompt must NOT execute as Direct; Nexus must show the exact blocker and retain the rejected plan id for remediation.
 - With a hard/emergency cost budget requiring confirmation, an automatic heuristic promotion must not bypass the budget gate. It may return to Lead before a run exists; an explicit Mission request must stay blocked until the current cost state is explicitly confirmed.
 - Keep the project default isolation as `project` and run an AUTO/CREATE Mission in a real Git repository. Nexus must use/create a worktree-safe Agent instead of blocking only because the project default is not `worktree`.
