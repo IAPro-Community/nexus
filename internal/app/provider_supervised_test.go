@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
 func TestProviderLaunchFlagsAreNexusOwned(t *testing.T) {
@@ -41,6 +42,24 @@ func TestWantInteractiveLeadExplicitOptIn(t *testing.T) {
 	}
 	if wantInteractiveLead([]string{"--no-lead"}) {
 		t.Fatal("expected --no-lead to keep provider-native behavior")
+	}
+}
+
+func TestSupervisedRuntimeLabelsDoNotAuthorizeMissionPromotion(t *testing.T) {
+	withoutLead := supervisedRuntimeLabels(false)
+	if got := withoutLead["nexus.delegation_mode"]; got != string(nexus.DelegationOff) {
+		t.Fatalf("delegation mode without Lead = %q, want %q", got, nexus.DelegationOff)
+	}
+	if got := withoutLead["nexus.interactive_lead"]; got != "false" {
+		t.Fatalf("interactive Lead without opt-in = %q, want false", got)
+	}
+
+	withLead := supervisedRuntimeLabels(true)
+	if got := withLead["nexus.interactive_lead"]; got != "true" {
+		t.Fatalf("interactive Lead opt-in = %q, want true", got)
+	}
+	if got := withLead["nexus.delegation_mode"]; got != string(nexus.DelegationOff) {
+		t.Fatalf("binding a Lead must not imply Mission promotion: got %q, want %q", got, nexus.DelegationOff)
 	}
 }
 
