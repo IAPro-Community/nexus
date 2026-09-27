@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version (for example v1.0.0-beta.3)
+        description: Release internal version (for example v1.0.0-beta.4)
         required: true
         type: string
 
@@ -43,7 +43,7 @@ jobs:
             'Browser E2E, Axe & visual smoke'
             'Linux E2E (Go 1.25.14)'
             'Cross-platform compile guard'
-            'Desktop Linux (Wails native build)'
+            'Desktop Linux (Wails v3 native build)'
             'GoReleaser Snapshot Build'
             'Smoke DEB install'
           )
@@ -246,12 +246,14 @@ jobs:
           rm -rf native-staging
           mkdir -p native-staging/windows native-staging/macos native-artifacts
           gh run download "$NATIVE_CI_RUN_ID" --name "native-windows-${GITHUB_SHA}" --dir native-staging/windows
+          grep -Fxq 'wails-v3.0.0-beta.25' native-staging/windows/native-framework.txt
           cp native-staging/windows/nexus_Windows_x86_64.zip native-artifacts/
           cp native-staging/windows/nexus-desktop_Windows_x86_64.zip native-artifacts/
           cp native-staging/windows/nexus-hud_Windows_x86_64.zip native-artifacts/
           cp native-staging/windows/nexus-setup-Windows_x86_64.exe native-artifacts/
           if [ "$NATIVE_POLICY" = all ]; then
             gh run download "$NATIVE_CI_RUN_ID" --name "native-macos-${GITHUB_SHA}" --dir native-staging/macos
+            grep -Fxq 'wails-v3.0.0-beta.25' native-staging/macos/native-framework.txt
             cp native-staging/macos/nexus_Darwin_arm64.tar.gz native-artifacts/
             cp native-staging/macos/nexus-desktop_Darwin_arm64.zip native-artifacts/
             cp native-staging/macos/nexus-hud_Darwin_arm64.zip native-artifacts/
@@ -261,6 +263,23 @@ jobs:
         run: |
           set -euo pipefail
           cp install.sh uninstall.sh install.ps1 uninstall.ps1 dist/
+      - name: Resolve public distribution identity
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          set -euo pipefail
+          case "$RELEASE_VERSION" in
+            *-alpha.*|*-beta.*|*-rc.*)
+              echo "PUBLIC_RELEASE_TAG=channel-beta" >> "$GITHUB_ENV"
+              echo "PUBLIC_RELEASE_TITLE=Nexus 1.0 Beta" >> "$GITHUB_ENV"
+              echo "PUBLIC_RELEASE_PRERELEASE=true" >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo "PUBLIC_RELEASE_TAG=$RELEASE_VERSION" >> "$GITHUB_ENV"
+              echo "PUBLIC_RELEASE_TITLE=Nexus $RELEASE_VERSION" >> "$GITHUB_ENV"
+              echo "PUBLIC_RELEASE_PRERELEASE=false" >> "$GITHUB_ENV"
+              ;;
+          esac
       - name: Generate signed cross-platform update manifest
         env:
           NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
@@ -281,7 +300,7 @@ jobs:
             --key-id "$NEXUS_UPDATE_KEY_ID" \
             --private-key "$NEXUS_UPDATE_PRIVATE_KEY" \
             --public-key "$NEXUS_UPDATE_PUBLIC_KEY" \
-            --base-url "https://github.com/${DIST_REPO}/releases/download/${RELEASE_VERSION}"
+            --base-url "https://github.com/${DIST_REPO}/releases/download/${PUBLIC_RELEASE_TAG}"
           NATIVE_POLICY="${{ needs.same-sha-gate.outputs.native-policy }}" python3 - <<'PY'
           import json
           import os
@@ -323,37 +342,41 @@ jobs:
             echo "NEXUS_DIST_TOKEN is required to publish the closed-source beta to the public distribution repository" >&2
             exit 1
           }
-      - name: Publish immutable release
+      - name: Publish canonical distribution release
         uses: softprops/action-gh-release@v2
         with:
           repository: ${{ vars.NEXUS_DIST_REPO || 'IAPro-Community/nexus-releases' }}
           token: ${{ secrets.NEXUS_DIST_TOKEN }}
-          tag_name: ${{ inputs.version || github.ref_name }}
+          tag_name: ${{ env.PUBLIC_RELEASE_TAG }}
+          name: ${{ env.PUBLIC_RELEASE_TITLE }}
+          prerelease: ${{ env.PUBLIC_RELEASE_PRERELEASE }}
+          make_latest: false
           files: |
             dist/*
             native-artifacts/*
-          generate_release_notes: true
-      - name: Publish signed channel pointer
+          body: |
+            Current signed internal version: ${{ inputs.version || github.ref_name }}
+            Source SHA: ${{ github.sha }}
+            This is the single rolling Nexus 1.0 Beta distribution entry; exact version and provenance remain in the signed manifest.
+      - name: Publish stable channel pointer
         env:
           GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
           NEXUS_DIST_REPO: ${{ vars.NEXUS_DIST_REPO }}
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           set -euo pipefail
-          DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
           case "$RELEASE_VERSION" in
-            *-beta.*|*-rc.*|*-alpha.*)
-              CHANNEL=beta
-              ;;
-            *)
-              CHANNEL=stable
+            *-alpha.*|*-beta.*|*-rc.*)
+              echo "Prerelease already uses the canonical channel-beta release."
+              exit 0
               ;;
           esac
-          TAG="channel-${CHANNEL}"
-          NOTES="Nexus ${CHANNEL} channel pointer → ${RELEASE_VERSION}. Discovery-only signed update manifest."
+          DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
+          TAG="channel-stable"
+          NOTES="Nexus stable channel pointer → ${RELEASE_VERSION}. Discovery-only signed update manifest."
           if gh release view "$TAG" --repo "$DIST_REPO" >/dev/null 2>&1; then
             gh release delete "$TAG" --repo "$DIST_REPO" --yes
           fi
           gh release create "$TAG" --repo "$DIST_REPO" \
             dist/update-manifest.json dist/update-manifest.sig \
-            --title "Nexus ${CHANNEL} update channel" --notes "$NOTES" --latest=false
+            --title "Nexus stable update channel" --notes "$NOTES" --latest=false
