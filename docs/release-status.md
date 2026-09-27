@@ -1,6 +1,6 @@
 # Status público da release do Nexus v1
 
-Atualizado em **25 de setembro de 2026**.
+Atualizado em **27 de setembro de 2026**.
 
 | Campo | Estado |
 | --- | --- |
@@ -11,6 +11,18 @@ Atualizado em **25 de setembro de 2026**.
 | Release estável v1 | **ainda não publicada** |
 | CI do SHA candidato | indisponível no momento por bloqueio de créditos da conta |
 | Veredito atual | **beta.3 implementada no source; homologação/certificação exact-SHA pendentes** |
+
+## Linha canônica de integração — 2026-09-27
+
+A branch `release/v1.0.0-beta.3` é agora a única linha canônica de integração para os retestes da beta.3.
+
+- PR #25 foi integrado por squash em `8fa37f4ca8051b2abce1ade3a0c83dd5b5be64d7`;
+- essa integração contém a remediação Windows `ce52b09d...`, a convergência Linux/Windows, Direct/Mission OFF-by-default e o hardening Codex/ConPTY;
+- a lista única de gaps e critérios de homologação está na issue #27;
+- o PR #24 (Wails v3) foi retargetado para esta release, porém permanece Draft e não mergeável: deve ser rebaseado/portado seletivamente para não reverter contratos mais novos da beta;
+- integração na branch beta não equivale a PASS, tag ou publicação.
+
+Até o Wails v3 ser reconciliado, a linha canônica continua usando a implementação Wails atualmente integrada. A publicação permanece bloqueada pelos gates same-SHA e pelos blockers registrados na issue #27.
 
 ## Escopo consolidado da beta.3
 
