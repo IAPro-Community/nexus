@@ -19,7 +19,7 @@ if [ -n "${NEXUS_EXPECTED_SHA:-}" ]; then
 fi
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
-OUT="DEV/validation/local-beta3/${SHA}/${OS}-${ARCH}"
+OUT="DEV/validation/local-beta/${EXPECTED_VERSION}/${SHA}/${OS}-${ARCH}"
 mkdir -p "$OUT"
 
 log() { printf '\n==> %s\n' "$*"; }
@@ -251,4 +251,4 @@ These checks require a real interactive/native session and are intentionally not
 EOF
 
 date -u '+completed_at=%Y-%m-%dT%H:%M:%SZ' | tee -a "$OUT/environment.txt"
-printf '\nPASS automated Linux beta.3 homologation: %s @ %s\nEvidence: %s\n' "$EXPECTED_VERSION" "$SHA" "$OUT"
+printf '\nPASS automated Linux beta homologation: %s @ %s\nEvidence: %s\n' "$EXPECTED_VERSION" "$SHA" "$OUT"
