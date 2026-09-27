@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import {
   launchFixtureBrowser,
+  meaningfulFixtureRequestFailures,
   seedFixtureProject,
   startFixtureServer,
   terminateProcess,
@@ -344,10 +345,7 @@ async function main() {
       0,
       `unexpected console errors: ${collectors.consoleErrors.join(' | ')}`,
     );
-    // Favicon and data: fetches are browser chrome noise, never app failures.
-    const meaningfulFailures = collectors.requestFailures.filter(
-      (entry) => !/favicon\.ico|data:/i.test(entry),
-    );
+    const meaningfulFailures = meaningfulFixtureRequestFailures(collectors.requestFailures);
     assert.equal(
       meaningfulFailures.length,
       0,
