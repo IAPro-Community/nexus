@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/executil"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
@@ -54,6 +55,7 @@ func resolveSystemShell() (string, error) {
 func shellRuns(binary string, args ...string) bool {
 	cmd := exec.Command(binary, args...)
 	cmd.Env = os.Environ()
+	executil.HideConsoleWindow(cmd)
 	return cmd.Run() == nil
 }
 
