@@ -63,7 +63,7 @@ func TestMissionRunnerRequiresRealExecutorAndRespectsDependencies(t *testing.T) 
 	exec := &fakeExecutor{reviewOK: true}
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 
 	plan := durablePlan()
 	plan.ExecutionSnapshotID = "snap_immutable"
@@ -108,7 +108,7 @@ func TestMissionRunnerNeverAutoApprovesWithoutReviewerEvidence(t *testing.T) {
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
 	contract.MaxRetries = 1
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 
 	run, err := r.StartMissionRun(context.Background(), durablePlan(), t.TempDir(), contract, "")
 	if err != nil {
@@ -141,7 +141,7 @@ func TestMissionRunnerPersistsAcrossRunnerRecreation(t *testing.T) {
 	exec := &fakeExecutor{reviewOK: true}
 	r1 := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	run, err := r1.StartMissionRun(context.Background(), durablePlan(), t.TempDir(), contract, "")
 	if err != nil {
 		t.Fatal(err)
@@ -169,7 +169,7 @@ func TestMissionRunnerEnforcesTotalIterationBudget(t *testing.T) {
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
 	contract.MaxTotalIterations = 1
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	run, err := r.StartMissionRun(context.Background(), durablePlan(), t.TempDir(), contract, "")
 	if err != nil {
 		t.Fatal(err)
@@ -194,7 +194,7 @@ func TestMissionRunnerPauseResumeAndCancelAreDurable(t *testing.T) {
 	exec := &fakeExecutor{reviewOK: true}
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	run, err := r.StartMissionRun(context.Background(), durablePlan(), t.TempDir(), contract, "")
 	if err != nil {
 		t.Fatal(err)
@@ -234,7 +234,7 @@ func TestMissionRunnerRunToTerminalExecutesAutonomously(t *testing.T) {
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
 	contract.MaxTotalIterations = 50
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	run, err := r.StartMissionRun(context.Background(), durablePlan(), t.TempDir(), contract, "")
 	if err != nil {
 		t.Fatal(err)
@@ -281,7 +281,7 @@ func TestMissionRunnerRenewsLeaseDuringLongProviderOperation(t *testing.T) {
 	r.leaseTTL = 30 * time.Millisecond
 	contract := DefaultAutonomyContract()
 	contract.MaxTotalIterations = 20
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	plan := PlanSpec{ID: "plan-heartbeat", ProjectID: "proj", Revision: 1, Packages: []PackageSpec{{ID: "pkg", Title: "P", Goal: "G"}}}
 	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
 	if err != nil {
@@ -350,7 +350,7 @@ func TestMissionRunnerRetriesFromFailedStage(t *testing.T) {
 	contract := DefaultAutonomyContract()
 	contract.MaxRetries = 3
 	contract.MaxTotalIterations = 20
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	plan := PlanSpec{ID: "plan-retry-stage", ProjectID: "proj", Revision: 1, Packages: []PackageSpec{{ID: "pkg", Title: "P", Goal: "G"}}}
 	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
 	if err != nil {
@@ -386,7 +386,7 @@ func TestMissionRunnerStopsRepeatedIdenticalFailuresAsNoProgress(t *testing.T) {
 	contract.MaxRetries = 10
 	contract.MaxNoProgress = 2
 	contract.MaxTotalIterations = 50
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	plan := PlanSpec{ID: "plan-no-progress", ProjectID: "proj", Revision: 1, Packages: []PackageSpec{{ID: "pkg", Title: "P", Goal: "G"}}}
 	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
 	if err != nil {
@@ -432,7 +432,7 @@ func TestMissionRunnerRecompilesImmutablePromptForRemediationAttempt(t *testing.
 	contract.MaxRetries = 4
 	contract.MaxNoProgress = 3
 	contract.MaxTotalIterations = 30
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	plan := PlanSpec{ID: "plan-remediation-prompt", ProjectID: "proj", Revision: 1, Packages: []PackageSpec{{ID: "pkg", Title: "P", Goal: "G"}}}
 	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
 	if err != nil {
@@ -480,7 +480,7 @@ func TestVerificationFailureReturnsToAllocationForRuntimeEscalation(t *testing.T
 	r := NewMissionRunner(NewMemoryRunRepository(), exec)
 	contract := DefaultAutonomyContract()
 	contract.MaxRetries = 2
-	contract.VerificationCommands = []string{"test -f verified.marker"}
+	contract.VerificationCommands = []string{verificationFileExistsCommand("verified.marker")}
 	run, err := r.StartMissionRun(context.Background(), PlanSpec{ID: "model-escalation", ProjectID: "proj", Revision: 1, Packages: []PackageSpec{{ID: "pkg", Title: "Model escalation"}}}, workspace, contract, "")
 	if err != nil {
 		t.Fatal(err)
@@ -550,7 +550,7 @@ func TestRunToTerminalExecutesParallelGroupProviderTurnsConcurrently(t *testing.
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
 	contract.MaxTotalIterations = 100
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	plan := PlanSpec{ID: "parallel", ProjectID: "proj", Revision: 1, Packages: []PackageSpec{
 		{ID: "web", Title: "Web", ParallelGroup: "build"},
 		{ID: "api", Title: "API", ParallelGroup: "build"},
@@ -600,7 +600,7 @@ func TestMissionRunnerHonorsAutoRemediateDisabled(t *testing.T) {
 	contract := DefaultAutonomyContract()
 	contract.AutoRemediate = false
 	contract.EscalateOnFailure = true
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	plan := PlanSpec{ID: "plan-no-remediation", ProjectID: "proj-1", Revision: 1, Packages: []PackageSpec{{ID: "pkg", Title: "pkg"}}}
 	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
 	if err != nil {
@@ -645,8 +645,8 @@ func TestOvernightAcceptanceSandbox(t *testing.T) {
 	contract := DefaultAutonomyContract()
 	contract.MaxRetries = 3
 	contract.MaxNoProgress = 2
-	contract.VerificationCommands = []string{"true"}
-	contract.GlobalVerificationCommands = []string{"test -f global-ready"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
+	contract.GlobalVerificationCommands = []string{verificationFileExistsCommand("global-ready")}
 	plan := PlanSpec{ID: "overnight-sandbox", ProjectID: "nexus", Revision: 1, Packages: []PackageSpec{
 		{ID: "api", Title: "API contract", Goal: "Produce API contract", ParallelGroup: "foundation"},
 		{ID: "web", Title: "Web integration", Goal: "Consume API contract", Dependencies: []string{"api"}},
@@ -721,7 +721,7 @@ func TestMissionRunnerPersistsDispatchIntentBeforeProviderExecution(t *testing.T
 	exec := &dispatchObservingExecutor{fakeExecutor: fakeExecutor{reviewOK: true}, repo: repo}
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	plan := PlanSpec{ID: "dispatch-intent", ProjectID: "proj", Revision: 1, Packages: []PackageSpec{{ID: "pkg", Title: "P", Goal: "G"}}}
 	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
 	if err != nil {
@@ -747,7 +747,7 @@ func TestMissionRunnerRestartRefusesUnknownInFlightDispatch(t *testing.T) {
 	exec := &fakeExecutor{reviewOK: true}
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	plan := PlanSpec{ID: "dispatch-restart", ProjectID: "proj", Revision: 1, Packages: []PackageSpec{{ID: "pkg", Title: "P", Goal: "G"}}}
 	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
 	if err != nil {
@@ -778,7 +778,7 @@ func TestMissionRunnerParallelGroupPersistsAllDispatchIntentsBeforeLaunch(t *tes
 	exec := &dispatchObservingExecutor{fakeExecutor: fakeExecutor{reviewOK: true}, repo: repo}
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"true"}
+	contract.VerificationCommands = []string{verificationSuccessCommand()}
 	contract.MaxTotalIterations = 40
 	plan := PlanSpec{ID: "dispatch-parallel", ProjectID: "proj", Revision: 1, Packages: []PackageSpec{
 		{ID: "web", Title: "Web", ParallelGroup: "build"},
