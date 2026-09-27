@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/executil"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -75,7 +76,7 @@ func validateWorktreeBase(ctx context.Context, project store.Project) error {
 	if _, err := exec.LookPath("git"); err != nil {
 		return fmt.Errorf("worktree isolation requires git: %w", err)
 	}
-	if out, err := exec.CommandContext(ctx, "git", "-C", project.CanonicalPath, "rev-parse", "--is-inside-work-tree").CombinedOutput(); err != nil || strings.TrimSpace(string(out)) != "true" {
+	if out, err := executil.CommandContext(ctx, "git", "-C", project.CanonicalPath, "rev-parse", "--is-inside-work-tree").CombinedOutput(); err != nil || strings.TrimSpace(string(out)) != "true" {
 		return fmt.Errorf("worktree isolation requires a git repository at %s", project.CanonicalPath)
 	}
 	return nil
@@ -128,7 +129,7 @@ func ensureAgentWorktree(ctx context.Context, project store.Project, agent store
 		if !info.IsDir() {
 			return "", fmt.Errorf("existing worktree path is not a directory: %s", path)
 		}
-		if out, err := exec.CommandContext(ctx, "git", "-C", path, "rev-parse", "--show-toplevel").CombinedOutput(); err == nil {
+		if out, err := executil.CommandContext(ctx, "git", "-C", path, "rev-parse", "--show-toplevel").CombinedOutput(); err == nil {
 			resolved := strings.TrimSpace(string(out))
 			if resolved != "" {
 				canonicalResolved, canonicalErr := config.CanonicalWorkspacePath(resolved)
@@ -153,14 +154,14 @@ func ensureAgentWorktree(ctx context.Context, project store.Project, agent store
 	}
 	branch := "iapro/agent/" + branchSuffix
 
-	branchExists := exec.CommandContext(ctx, "git", "-C", project.CanonicalPath, "show-ref", "--verify", "--quiet", "refs/heads/"+branch).Run() == nil
+	branchExists := executil.CommandContext(ctx, "git", "-C", project.CanonicalPath, "show-ref", "--verify", "--quiet", "refs/heads/"+branch).Run() == nil
 	args := []string{"-C", project.CanonicalPath, "worktree", "add"}
 	if branchExists {
 		args = append(args, path, branch)
 	} else {
 		args = append(args, "-b", branch, path, "HEAD")
 	}
-	if out, err := exec.CommandContext(ctx, "git", args...).CombinedOutput(); err != nil {
+	if out, err := executil.CommandContext(ctx, "git", args...).CombinedOutput(); err != nil {
 		return "", fmt.Errorf("create agent worktree: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	resolved, err := config.CanonicalWorkspacePath(path)
