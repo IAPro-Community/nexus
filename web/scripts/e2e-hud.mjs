@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import {
   launchFixtureBrowser,
+  meaningfulFixtureRequestFailures,
   seedFixtureProject,
   startFixtureServer,
   terminateProcess,
@@ -126,9 +127,7 @@ async function main() {
       fullPage: true,
     });
 
-    const meaningfulFailures = collectors.requestFailures.filter(
-      (entry) => !/favicon\.ico|data:/i.test(entry),
-    );
+    const meaningfulFailures = meaningfulFixtureRequestFailures(collectors.requestFailures);
     assert.equal(
       meaningfulFailures.length,
       0,
