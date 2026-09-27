@@ -17,6 +17,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/runtime"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // appServerTimeout bounds the whole quota probe: spawn, handshake and read.
@@ -254,6 +255,7 @@ var appServerCommand = func(ctx context.Context, codexHome string) (*exec.Cmd, e
 	// stdio transport only. The unix/ws transports are shared daemons whose
 	// CODEX_HOME may belong to another profile.
 	cmd := exec.CommandContext(ctx, bin, "app-server", "--stdio")
+	executil.HideConsoleWindow(cmd)
 	cmd.Env = appServerEnv(bin, codexHome)
 	cmd.Dir = codexHome
 	return cmd, nil
