@@ -16,7 +16,7 @@ IAPro Nexus is a local workstation for working with coding agents. It organizes 
 
 ## Start in minutes
 
-The current source candidate is `1.0.0-beta.3`, with Linux amd64, Windows
+The current source candidate is `1.0.0-beta.4`, with Linux amd64, Windows
 amd64 and macOS arm64 integrated in source. Native support remains
 evidence-bound and is not published/certified until the exact candidate SHA
 passes the required platform gates.
