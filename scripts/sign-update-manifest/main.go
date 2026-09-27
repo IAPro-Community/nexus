@@ -133,8 +133,12 @@ func main() {
 }
 
 func defaultArtifactBaseURL(version string) string {
-	return "https://github.com/IAPro-Community/nexus-releases/releases/download/v" +
-		strings.TrimPrefix(strings.TrimSpace(version), "v")
+	normalized := strings.TrimPrefix(strings.TrimSpace(version), "v")
+	tag := "v" + normalized
+	if channel(normalized) == "beta" {
+		tag = "channel-beta"
+	}
+	return "https://github.com/IAPro-Community/nexus-releases/releases/download/" + tag
 }
 
 func normalizeSourceSHA(value string) string {
