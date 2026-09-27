@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IAPro-Community/nexus/internal/nexus/store"
 	"github.com/IAPro-Community/nexus/internal/executil"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // IntegrationService provides protected integration via fast-forward ff-only merges.
