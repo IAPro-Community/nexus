@@ -199,6 +199,47 @@ func TestSessionHostLifecycle(t *testing.T) {
 	}
 }
 
+func TestSessionHostTerminateWaitsForProcessFinalization(t *testing.T) {
+	runtimeID := "rt-host-terminate-finalize"
+	sess := registry.RuntimeSession{
+		RuntimeID:    runtimeID,
+		ProviderID:   "test",
+		ProfileID:    "default",
+		Workspace:    os.TempDir(),
+		State:        registry.StateStarting,
+		ControlLevel: registry.ControlLevelTerminal,
+	}
+	sh, err := NewSessionHost(Config{
+		Session: sess,
+		Binary:  testTerminalBinary,
+		Args:    testTerminalArgs(),
+		Env:     os.Environ(),
+		Cwd:     os.TempDir(),
+	})
+	if err != nil {
+		t.Fatalf("failed to create SessionHost: %v", err)
+	}
+	if err := sh.Start(); err != nil {
+		t.Fatalf("failed to start SessionHost: %v", err)
+	}
+	pid := sh.termBackend.PID()
+
+	if err := sh.Terminate(); err != nil {
+		t.Fatalf("Terminate returned before completing process cleanup: %v", err)
+	}
+	select {
+	case <-sh.doneChan:
+	default:
+		t.Fatal("Terminate returned before host finalization completed")
+	}
+	if sh.session.State != registry.StateStopped {
+		t.Fatalf("explicit termination state = %s, want %s", sh.session.State, registry.StateStopped)
+	}
+	if pid > 0 && registry.IsProcessAlive(pid) {
+		t.Fatalf("terminated provider process %d is still alive", pid)
+	}
+}
+
 func TestSessionHostUsesConfiguredRegistryOwnership(t *testing.T) {
 	runtimeID := "rt-host-owned-registry"
 	owned := registry.NewRegistry(filepath.Join(t.TempDir(), "runtimes.json"))
