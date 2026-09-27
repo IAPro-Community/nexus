@@ -701,6 +701,8 @@ func TestStagedNativeReleasePolicy(t *testing.T) {
 		"'hud_windows_amd64'",
 		"'hud_darwin_arm64'",
 		`if [ "$NATIVE_POLICY" = all ]; then`,
+		`--source-sha "$GITHUB_SHA"`,
+		"manifest.get('source_sha')",
 	} {
 		if !strings.Contains(release, required) {
 			t.Errorf("release.yml missing staged platform policy %q", required)
