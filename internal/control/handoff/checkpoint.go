@@ -6,13 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 // WorkCheckpoint encapsulates a structured, bounded, and redacted snapshot of active work.
@@ -93,12 +93,12 @@ func CaptureWorkCheckpoint(workspace, sourceRuntimeID, sourceProvider, sourcePro
 	cp.MaestroContext = captureMaestroContext(workspace)
 
 	// 1. Bounded git branch
-	if out, err := exec.Command("git", "-C", workspace, "rev-parse", "--abbrev-ref", "HEAD").Output(); err == nil {
+	if out, err := executil.Command("git", "-C", workspace, "rev-parse", "--abbrev-ref", "HEAD").Output(); err == nil {
 		cp.GitBranch = security.Redact(strings.TrimSpace(string(out)))
 	}
 
 	// 2. Bounded git status (up to 50 files)
-	if out, err := exec.Command("git", "-C", workspace, "status", "--short").Output(); err == nil {
+	if out, err := executil.Command("git", "-C", workspace, "status", "--short").Output(); err == nil {
 		rawStatus := string(out)
 		cp.GitStatus = security.Redact(rawStatus)
 
@@ -115,7 +115,7 @@ func CaptureWorkCheckpoint(workspace, sourceRuntimeID, sourceProvider, sourcePro
 	}
 
 	// 3. Bounded git diff stat (max 20 KB)
-	if out, err := exec.Command("git", "-C", workspace, "diff", "--stat").Output(); err == nil {
+	if out, err := executil.Command("git", "-C", workspace, "diff", "--stat").Output(); err == nil {
 		diffStat := string(out)
 		if len(diffStat) > 20*1024 {
 			diffStat = diffStat[:20*1024] + "\n... (truncated diff stat)"
