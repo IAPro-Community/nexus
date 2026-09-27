@@ -95,7 +95,7 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 		clients:     make(map[net.Conn]bool),
 		stopChan:    make(chan struct{}),
 		doneChan:    make(chan struct{}),
-		streamDone:   make(chan struct{}),
+		streamDone:  make(chan struct{}),
 	}
 
 	sh.detector = NewAttentionDetectorWithProject(
