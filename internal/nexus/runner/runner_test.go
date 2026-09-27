@@ -82,7 +82,7 @@ func TestMissionRunnerBoundedRetries(t *testing.T) {
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
 	contract.MaxRetries = 2
-	contract.VerificationCommands = []string{"false"}
+	contract.VerificationCommands = []string{verificationFailureCommand()}
 	plan := PlanSpec{ID: "plan-fail", ProjectID: "proj-1", Revision: 1, Packages: []PackageSpec{{ID: "pkg-fail", Title: "Always fails", Goal: "Fail"}}}
 
 	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
@@ -140,7 +140,7 @@ func TestMissionRunnerUsesStepVerificationRequirementsBeforeGlobalCommands(t *te
 	exec := &fakeExecutor{reviewOK: true}
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
-	contract.VerificationCommands = []string{"false"}
+	contract.VerificationCommands = []string{verificationFailureCommand()}
 	plan := PlanSpec{ID: "flow", ProjectID: "p", Revision: 1, Packages: []PackageSpec{{ID: "step", Title: "Step", Goal: "Goal", VerificationRequirements: []string{"echo step-ok"}}}}
 	run, err := r.StartMissionRun(context.Background(), plan, t.TempDir(), contract, "")
 	if err != nil {
