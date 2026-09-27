@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 func TestCanonicalWorkspacePath(t *testing.T) {
@@ -14,9 +16,7 @@ func TestCanonicalWorkspacePath(t *testing.T) {
 	}
 
 	symlinkDir := filepath.Join(tempDir, "symlink_sub")
-	if err := os.Symlink(subDir, symlinkDir); err != nil {
-		t.Fatalf("failed to create symlink: %v", err)
-	}
+	testutil.SymlinkOrSkip(t, subDir, symlinkDir)
 
 	// CanonicalWorkspacePath should resolve symlink to real_sub
 	canonicalFromReal, err := CanonicalWorkspacePath(subDir)
