@@ -36,6 +36,7 @@ jobs:
   workspace-sanitize:
     name: Sanitize self-hosted workspace
     runs-on: [self-hosted, Linux, X64, nexus-ci]
+    timeout-minutes: 3
     steps:
       - name: Remove stale root-owned build output
         shell: bash
@@ -44,10 +45,10 @@ jobs:
           for path in dist native-artifacts native-staging packaging/windows/payload; do
             target="$GITHUB_WORKSPACE/$path"
             [ -e "$target" ] || continue
-            if rm -rf "$target" 2>/dev/null; then
+            if timeout 30s rm -rf "$target" 2>/dev/null; then
               continue
             fi
-            sudo -n rm -rf "$target"
+            sudo -n timeout 30s rm -rf "$target"
           done
 
   frontend:
