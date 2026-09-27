@@ -217,8 +217,18 @@ func TestCustomVPNWorkspaceProjectionLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !enforcement.Enforced || enforcement.Status != "VERIFIED" || enforcement.Tool != "edit" || !enforcement.CanaryAbsent {
+	if !enforcement.Enforced || enforcement.Status != "VERIFIED" || !enforcement.CanaryAbsent {
 		t.Fatalf("provider-backed enforcement probe did not verify read-only boundary: %#v", enforcement)
+	}
+	// This fixture proves read-only enforcement through OpenCode's effective
+	// permission introspection before the canary run. No mutation tool is
+	// exposed in that path, so Tool must remain empty rather than fabricating
+	// an "edit" event that never occurred.
+	if enforcement.Tool != "" {
+		t.Fatalf("permission-introspection proof must not fabricate a write tool: %#v", enforcement)
+	}
+	if !strings.Contains(strings.ToLower(enforcement.Evidence), "mutation tools disabled") {
+		t.Fatalf("expected effective-permission evidence, got %#v", enforcement)
 	}
 	binding, err = st.RuntimeExecutionRole(generation.ID)
 	if err != nil {
