@@ -11,12 +11,12 @@ import (
 )
 
 type RuntimeExecutionRoleBinding struct {
-	ID                  string    `json:"id"`
-	RuntimeGenerationID string    `json:"runtime_generation_id"`
-	AgentID             string    `json:"agent_id"`
-	RoleID              string    `json:"role_id"`
-	Scope               string    `json:"scope"`
-	ActivationStrategy  string    `json:"activation_strategy"`
+	ID                    string     `json:"id"`
+	RuntimeGenerationID   string     `json:"runtime_generation_id"`
+	AgentID               string     `json:"agent_id"`
+	RoleID                string     `json:"role_id"`
+	Scope                 string     `json:"scope"`
+	ActivationStrategy    string     `json:"activation_strategy"`
 	Enforcement           string     `json:"enforcement"`
 	EnforcementEvidence   string     `json:"enforcement_evidence,omitempty"`
 	EnforcementVerifiedAt *time.Time `json:"enforcement_verified_at,omitempty"`
@@ -134,7 +134,6 @@ func (s *Store) RuntimeExecutionRoleByRuntimeID(runtimeID string) (RuntimeExecut
 	return s.RuntimeExecutionRole(generationID)
 }
 
-
 // AttachRuntimeExecutionRoleProjection links a materialized native-agent
 // projection to the runtime role without changing the role or claiming native
 // activation. ActivationStrategy/enforcement remain owned by the execution-role
@@ -186,7 +185,6 @@ func (s *Store) DetachRuntimeExecutionRoleProjection(runtimeGenerationID, receip
 	return nil
 }
 
-
 // MarkRuntimeExecutionRoleActivation records native activation evidence without
 // changing enforcement. The receipt predicate prevents stale evidence from
 // promoting a newer projection accidentally.
@@ -209,7 +207,6 @@ func (s *Store) MarkRuntimeExecutionRoleActivation(runtimeGenerationID, receiptI
 	}
 	return nil
 }
-
 
 // MarkRuntimeExecutionRoleEnforced promotes a read-only runtime role only after
 // provider-backed evidence proves that the active projection actually rejected
