@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 type Runner struct {
@@ -31,7 +33,7 @@ func NewRunner(root string) Runner {
 }
 
 func runCommand(ctx context.Context, name string, args ...string) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, name, args...)
+	cmd := executil.CommandContext(ctx, name, args...)
 	if name == "npm" || name == "node" {
 		cmd.Env = withoutNodeOptions(os.Environ())
 	}
