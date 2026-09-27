@@ -41,7 +41,8 @@ func validateContract(root string) []string {
 
 	// web/package.json
 	var pkgJSON struct {
-		Version string `json:"version"`
+		Version      string            `json:"version"`
+		Dependencies map[string]string `json:"dependencies"`
 	}
 	if b, err := os.ReadFile(filepath.Join(root, "web", "package.json")); err == nil {
 		if err := json.Unmarshal(b, &pkgJSON); err != nil {
@@ -55,29 +56,53 @@ func validateContract(root string) []string {
 		errs = append(errs, fmt.Sprintf("web/package.json: %v", err))
 	}
 
-	// Wails Desktop + HUD metadata. Wails v2 accepts the semver string here;
-	// Windows fixed VERSIONINFO is normalized internally while the readable
-	// ProductVersion string keeps the full prerelease value.
+	// Wails v3 no longer uses per-app wails.json metadata. VERSION remains the
+	// single source of truth and is injected into CLI/Desktop/HUD binaries by
+	// build ldflags. Keep the native framework/runtime contract explicit and
+	// reject Wails v2 metadata residue.
+	const wailsVersion = "3.0.0-beta.25"
+	if got := strings.TrimSpace(pkgJSON.Dependencies["@wailsio/runtime"]); got != wailsVersion {
+		errs = append(errs, fmt.Sprintf("web @wailsio/runtime=%s != %s", got, wailsVersion))
+	} else {
+		fmt.Printf("  @wailsio/runtime = %s ✓\n", got)
+	}
+
+	goModPath := filepath.Join(root, "go.mod")
+	if b, err := os.ReadFile(goModPath); err == nil {
+		text := string(b)
+		if !strings.Contains(text, "github.com/wailsapp/wails/v3 v"+wailsVersion) {
+			errs = append(errs, "go.mod does not pin Wails v3 "+wailsVersion)
+		}
+		if strings.Contains(text, "github.com/wailsapp/wails/v2") {
+			errs = append(errs, "go.mod still references Wails v2")
+		}
+	} else {
+		errs = append(errs, fmt.Sprintf("go.mod: %v", err))
+	}
+
 	for _, rel := range []string{
 		filepath.Join("cmd", "nexus-desktop", "wails.json"),
 		filepath.Join("cmd", "nexus-hud", "wails.json"),
 	} {
-		var wailsJSON struct {
-			Info struct {
-				ProductVersion string `json:"productVersion"`
-			} `json:"info"`
-		}
-		path := filepath.Join(root, rel)
-		if b, err := os.ReadFile(path); err == nil {
-			if err := json.Unmarshal(b, &wailsJSON); err != nil {
-				errs = append(errs, fmt.Sprintf("%s: parse error: %v", rel, err))
-			} else if wailsJSON.Info.ProductVersion != version {
-				errs = append(errs, fmt.Sprintf("%s info.productVersion=%s != VERSION=%s", rel, wailsJSON.Info.ProductVersion, version))
-			} else {
-				fmt.Printf("  %s info.productVersion = %s ✓\n", rel, wailsJSON.Info.ProductVersion)
-			}
-		} else {
+		if _, err := os.Stat(filepath.Join(root, rel)); err == nil {
+			errs = append(errs, rel+" is Wails v2 metadata and must not exist in the Wails v3 line")
+		} else if !os.IsNotExist(err) {
 			errs = append(errs, fmt.Sprintf("%s: %v", rel, err))
+		}
+	}
+
+	makefile, err := os.ReadFile(filepath.Join(root, "Makefile"))
+	if err != nil {
+		errs = append(errs, fmt.Sprintf("Makefile: %v", err))
+	} else {
+		text := string(makefile)
+		for _, target := range []string{"build-desktop-wails:", "build-hud-wails:"} {
+			if !strings.Contains(text, target) {
+				errs = append(errs, "Makefile missing "+target)
+			}
+		}
+		if strings.Count(text, "internal/buildinfo.Version=$$VERSION") < 2 {
+			errs = append(errs, "Desktop/HUD build targets must inject VERSION through buildinfo ldflags")
 		}
 	}
 
