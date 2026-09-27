@@ -3,6 +3,7 @@ package notify
 import (
 	"os/exec"
 	"runtime"
+	"github.com/IAPro-Community/nexus/internal/executil"
 	"strings"
 	"sync"
 	"time"
@@ -89,7 +90,7 @@ func (desktopNotifier) Notify(payload Payload) error {
 		if _, err := exec.LookPath("notify-send"); err != nil {
 			return nil
 		}
-		cmd := exec.Command("notify-send", "--app-name=Nexus", title, body)
+		cmd := executil.Command("notify-send", "--app-name=Nexus", title, body)
 		return cmd.Run()
 	case "darwin":
 		return exec.Command(
@@ -103,7 +104,7 @@ end run`,
 			title,
 		).Run()
 	case "windows":
-		return exec.Command("powershell", "-NoProfile", "-Command", windowsToastScript, title, body).Run()
+		return executil.Command("powershell", "-NoProfile", "-Command", windowsToastScript, title, body).Run()
 	default:
 		return nil
 	}
