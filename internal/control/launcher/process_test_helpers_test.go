@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 const launcherSleeperEnv = "NEXUS_TEST_LAUNCHER_SLEEPER"
@@ -26,5 +28,6 @@ func startLongRunningTestProcess(t *testing.T) *exec.Cmd {
 	}
 	cmd := exec.Command(exe, "-test.run=^TestLauncherLongRunningProcessHelper$")
 	cmd.Env = append(os.Environ(), launcherSleeperEnv+"=1")
+	executil.HideConsoleWindow(cmd)
 	return cmd
 }
