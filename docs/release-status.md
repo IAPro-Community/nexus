@@ -266,3 +266,6 @@ automatizados e manuais forem registrados contra o mesmo SHA.
 
 A `v1.0.0` estável continua fail-closed: ausência de CI, assinatura,
 homologação nativa ou evidência real nunca é convertida em PASS.
+
+
+A publicação exige manifesto assinado contendo `source_sha` igual ao SHA exato promovido.
