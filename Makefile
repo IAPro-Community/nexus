@@ -167,7 +167,7 @@ build-desktop-wails: web
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
 	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
-	mkdir -p cmd/nexus-desktop/build/bin; GOTOOLCHAIN=auto GOFLAGS="-mod=readonly" go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$LDFLAGS" -o cmd/nexus-desktop/build/bin/nexus-desktop ./cmd/nexus-desktop
+	mkdir -p cmd/nexus-desktop/build/bin; GOTOOLCHAIN=auto GOFLAGS="-mod=readonly" go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$$LDFLAGS" -o cmd/nexus-desktop/build/bin/nexus-desktop ./cmd/nexus-desktop
 
 
 build-hud: web
@@ -183,7 +183,7 @@ build-hud-wails: web
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
 	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
-	mkdir -p cmd/nexus-hud/build/bin; GOTOOLCHAIN=auto GOFLAGS="-mod=readonly" go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$LDFLAGS" -o cmd/nexus-hud/build/bin/nexus-hud ./cmd/nexus-hud
+	mkdir -p cmd/nexus-hud/build/bin; GOTOOLCHAIN=auto GOFLAGS="-mod=readonly" go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$$LDFLAGS" -o cmd/nexus-hud/build/bin/nexus-hud ./cmd/nexus-hud
 
 release-local:
 	go run ./cmd/nexus release
