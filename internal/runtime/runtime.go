@@ -386,26 +386,25 @@ func InternalBinDir() (string, error) {
 	dst := BrowserHelperPath(binDir)
 	_ = os.Remove(dst)
 	if stdruntime.GOOS == "windows" {
-		// Windows commonly denies unprivileged symlink creation. A hard link keeps
-		// the helper executable exact without duplicating bytes; copy is a fallback
-		// for filesystems that do not support hard links.
-		if err := os.Link(selfExe, dst); err != nil {
-			in, openErr := os.Open(selfExe)
-			if openErr != nil {
-				return "", openErr
-			}
-			defer in.Close()
-			out, createErr := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0700)
-			if createErr != nil {
-				return "", createErr
-			}
-			if _, copyErr := io.Copy(out, in); copyErr != nil {
-				_ = out.Close()
-				return "", copyErr
-			}
-			if closeErr := out.Close(); closeErr != nil {
-				return "", closeErr
-			}
+		// Never hard-link the running Nexus/test executable on Windows. Windows
+		// keeps executing images delete-protected, so a hard link makes the helper
+		// impossible for TempDir/test cleanup to remove while the parent process is
+		// alive. Use an independent copy instead.
+		in, openErr := os.Open(selfExe)
+		if openErr != nil {
+			return "", openErr
+		}
+		defer in.Close()
+		out, createErr := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0700)
+		if createErr != nil {
+			return "", createErr
+		}
+		if _, copyErr := io.Copy(out, in); copyErr != nil {
+			_ = out.Close()
+			return "", copyErr
+		}
+		if closeErr := out.Close(); closeErr != nil {
+			return "", closeErr
 		}
 	} else if err := os.Symlink(selfExe, dst); err != nil {
 		return "", err
