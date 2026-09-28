@@ -196,6 +196,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 		"PATH":                                   runtime.EnhancedPATH(filepath.Dir(bin)),
 	}
 	env := runtime.EnvSet(os.Environ(), envOverrides)
+	args = spec.CodexInteractiveArgs(home, args)
 	return runtime.RunInteractive(bin, args, env, cwd)
 }
 
