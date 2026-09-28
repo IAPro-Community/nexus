@@ -85,6 +85,45 @@ func TestTerminalInputScrubberDropsFocusAndCPR(t *testing.T) {
 	}
 }
 
+func TestTerminalInputScrubberDropsSGRMouseReports(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalInputScrubber(&out)
+
+	_, _ = scrubber.Write([]byte("draft\x1b[<35;173;3M\x1b[<35;171;3M\x1b[<0;44;12mtext"))
+	_ = scrubber.Flush()
+
+	if got := out.String(); got != "drafttext" {
+		t.Fatalf("SGR mouse reports leaked into provider input: %q", got)
+	}
+}
+
+func TestTerminalInputScrubberCoalescesSplitSGRMouseReport(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalInputScrubber(&out)
+
+	_, _ = scrubber.Write([]byte("\x1b[<35;173"))
+	if got := out.String(); got != "" {
+		t.Fatalf("partial SGR mouse report leaked before completion: %q", got)
+	}
+	_, _ = scrubber.Write([]byte(";3M"))
+
+	if got := out.String(); got != "" {
+		t.Fatalf("split SGR mouse report leaked into provider input: %q", got)
+	}
+}
+
+func TestTerminalOutputScrubberDropsMouseTrackingNegotiation(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalOutputScrubber(&out)
+
+	_, _ = scrubber.Write([]byte("before\x1b[?1000h\x1b[?1003h\x1b[?1006hafter"))
+	_ = scrubber.Flush()
+
+	if got := out.String(); got != "beforeafter" {
+		t.Fatalf("mouse tracking negotiation leaked to outer terminal: %q", got)
+	}
+}
+
 func TestTerminalInputScrubberCoalescesSplitArrowSequence(t *testing.T) {
 	var out bytes.Buffer
 	scrubber := NewTerminalInputScrubber(&out)
