@@ -565,17 +565,20 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 	// Disable deadline after Attach RPC
 	_ = client.ClearDeadline()
 
-	// Print initial ring buffer history
-	var history string
-	if json.Unmarshal(resp.Data, &history) == nil && history != "" {
-		os.Stdout.WriteString(history)
-	}
-
 	rawConn := client.RawConn()
 	output := nexusruntime.NewTerminalOutputScrubber(os.Stdout)
 	inputStream := nexusruntime.NewTerminalInputScrubber(rawConn)
 	defer func() { _ = output.Flush() }()
 	defer func() { _ = inputStream.Flush() }()
+
+	// Replay ring-buffer history through the same scrubber used for live PTY
+	// output. A provider may have enabled mouse/keyboard protocols before attach;
+	// replaying those DECSET sequences raw would re-enable them on the outer
+	// terminal and make SGR reports leak into the provider prompt.
+	var history string
+	if json.Unmarshal(resp.Data, &history) == nil && history != "" {
+		_, _ = output.Write([]byte(history))
+	}
 
 	// 4. Stream stdout from runtime host to user terminal
 	errChan := make(chan error, 2)
