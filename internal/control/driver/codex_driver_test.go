@@ -61,7 +61,6 @@ func TestCodexDriverBuildCommandIsolatesHome(t *testing.T) {
 	}
 }
 
-
 func TestCodexDriverBuildCommandDisablesDaemonForDeepUnixProfile(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("SUN_LEN fallback is Unix-only")
