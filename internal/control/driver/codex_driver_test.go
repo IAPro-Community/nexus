@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -57,5 +58,38 @@ func TestCodexDriverBuildCommandIsolatesHome(t *testing.T) {
 	}
 	if got["HOME"] == hostHome || strings.HasPrefix(got["CODEX_HOME"], filepath.Join(hostHome, ".codex")) {
 		t.Fatalf("Codex env leaked host home: HOME=%q CODEX_HOME=%q host=%q", got["HOME"], got["CODEX_HOME"], hostHome)
+	}
+}
+
+
+func TestCodexDriverBuildCommandDisablesDaemonForDeepUnixProfile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("SUN_LEN fallback is Unix-only")
+	}
+	data := filepath.Join(t.TempDir(), strings.Repeat("deep-profile-", 8))
+	t.Setenv("AI_CLI_DATA_DIR", data)
+	t.Setenv("AI_MANAGER_DATA_DIR", data)
+	hostHome := t.TempDir()
+	t.Setenv("AI_REAL_HOME", hostHome)
+	t.Setenv("HOME", hostHome)
+
+	binDir := filepath.Join(t.TempDir(), "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	testutil.WriteFakeBinary(t, binDir, "codex", "")
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	d := &CodexDriver{}
+	_, args, _, err := d.BuildCommand(
+		context.Background(),
+		model.Profile{Name: "kiver.omegasistemas", Provider: "codex"},
+		[]string{"--yolo"},
+	)
+	if err != nil {
+		t.Fatalf("BuildCommand: %v", err)
+	}
+	if len(args) != 2 || args[0] != "--no-daemon" || args[1] != "--yolo" {
+		t.Fatalf("supervised Codex args = %#v, want [--no-daemon --yolo]", args)
 	}
 }
