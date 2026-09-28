@@ -143,6 +143,7 @@ func (d *CodexDriver) BuildCommand(ctx context.Context, p model.Profile, extraAr
 		return "", nil, nil, err
 	}
 	env := s.OverlayEnv(os.Environ(), home, filepath.Dir(bin), p.Name)
+	extraArgs = spec.CodexInteractiveArgs(home, extraArgs)
 
 	return bin, extraArgs, env, nil
 }
