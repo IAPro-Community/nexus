@@ -36,6 +36,7 @@ func TestTerminalKeyboardModeResetLeavesApplicationCursorMode(t *testing.T) {
 	}
 }
 
+
 func TestNormalizeInteractiveEnvReplacesDumbTerminal(t *testing.T) {
 	env := []string{"PATH=/bin", "TERM=dumb", "LANG=pt_BR.UTF-8"}
 	normalized := NormalizeInteractiveEnv(env)

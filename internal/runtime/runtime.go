@@ -39,7 +39,8 @@ exec "$@"`
 // The reset also leaves application cursor/keypad mode. Without DECCKM being
 // cleared, a TTY recovered after Ctrl+C can keep emitting SS3 arrow reports
 // (ESC O A/B), which older or embedded terminal bridges render as literal
-// characters in the provider prompt.
+// characters in the provider prompt. It also resets all mouse tracking modes
+// (?1000, ?1002, ?1003, ?1005, ?1006, ?1007, ?1015) to prevent motion reports from leaking.
 const terminalKeyboardModeReset = "\x1b[<u\x1b[>4;0m\x1b[?1l\x1b>\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1004l\x1b[?1005l\x1b[?1006l\x1b[?1007l\x1b[?1015l\x1b[?2004l"
 
 func writeTerminalKeyboardModeReset(out io.Writer) {

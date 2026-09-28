@@ -202,11 +202,13 @@ func isKeyboardNegotiation(sequence []byte) bool {
 		// parameter beginning with '>'.
 		return len(body) > 0 && body[0] == '>'
 	case 'h', 'l':
-		// Focus, bracketed paste and mouse tracking are input protocols.
-		// Enabling them on the outer terminal makes reports leak back into the
-		// provider prompt when Nexus is proxying a nested PTY.
+		// Private modes that affect the outer terminal's input protocols.
+		// Mouse tracking and focus reporting leak spurious events into the
+		// provider PTY. Bracketed paste (?2004) is intentionally permitted
+		// so multiline paste reaches the provider atomically instead of
+		// submitting line-by-line.
 		switch string(body) {
-		case "?1000", "?1002", "?1003", "?1004", "?1005", "?1006", "?1007", "?1015", "?2004":
+		case "?1000", "?1002", "?1003", "?1004", "?1005", "?1006", "?1007", "?1015":
 			return true
 		default:
 			return false

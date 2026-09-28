@@ -19,11 +19,16 @@ export function shouldForwardTerminalInput(data: string): boolean {
     /^\x1b\[[0-9;]*(?:\[[iIO]|[iIO])$/.test(data) ||
     /^\[[0-9;]*(?:\[[iIO]|[iIO])$/.test(data) ||
     // Navigation bytes are never classified as metadata here. A split xterm
-    // callback may deliver ESC first and "[A"/"[B" next; the server-side
+    // callback may deliver ESC first and "[A"/""[B]" next; the server-side
     // stateful coalescer must receive both pieces intact.
     // eslint-disable-next-line no-control-regex
     /^\x1b\[\d+;\d+R$/.test(data) ||
-    /^\[\d+;\d+R$/.test(data)
+    /^\[\d+;\d+R$/.test(data) ||
+    // SGR mouse tracking reports (with or without leading ESC) are terminal
+    // metadata, never user input. The host terminal emits these when mouse
+    // tracking modes (?1000/?1003 + ?1006) are active.
+    // eslint-disable-next-line no-control-regex
+    /^\x1b?\[<\d+;\d+;\d+[Mm]$/.test(data)
   ) {
     return false;
   }
@@ -39,8 +44,13 @@ export function shouldForwardTerminalInput(data: string): boolean {
 const EMBEDDED_FOCUS_RE = /\x1b\[[0-9;]*(?:\[[iIO]|[iIO])/g;
 // eslint-disable-next-line no-control-regex
 const EMBEDDED_CPR_RE = /\x1b\[\d+;\d+R/g;
-/** Removes embedded ESC-prefixed focus/CPR metadata from a forwarded chunk. */
+// eslint-disable-next-line no-control-regex
+const EMBEDDED_MOUSE_RE = /\x1b\[<\d+;\d+;\d+[Mm]/g;
+/** Removes embedded ESC-prefixed focus/CPR/mouse metadata from a forwarded chunk. */
 export function stripEmbeddedTerminalMetadata(data: string): string {
   if (!data) return data;
-  return data.replace(EMBEDDED_FOCUS_RE, '').replace(EMBEDDED_CPR_RE, '');
+  return data
+    .replace(EMBEDDED_FOCUS_RE, '')
+    .replace(EMBEDDED_CPR_RE, '')
+    .replace(EMBEDDED_MOUSE_RE, '');
 }

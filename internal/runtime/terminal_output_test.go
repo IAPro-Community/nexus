@@ -38,13 +38,27 @@ func TestTerminalOutputScrubberDropsKeyboardNegotiation(t *testing.T) {
 	var out bytes.Buffer
 	scrubber := NewTerminalOutputScrubber(&out)
 
-	_, _ = scrubber.Write([]byte("before\x1b[>1u\x1b[>4;1m\x1b[?1004h\x1b[?2004hafter"))
+	_, _ = scrubber.Write([]byte("before\x1b[>1u\x1b[>4;1m\x1b[?1004h\x1b[?1003hafter"))
 	if err := scrubber.Flush(); err != nil {
 		t.Fatalf("Flush: %v", err)
 	}
 
 	if got := out.String(); got != "beforeafter" {
 		t.Fatalf("scrubbed output = %q, want %q", got, "beforeafter")
+	}
+}
+
+func TestTerminalOutputScrubberPreservesBracketedPaste(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalOutputScrubber(&out)
+
+	_, _ = scrubber.Write([]byte("start\x1b[?2004hpaste-content\x1b[?2004lend"))
+	if err := scrubber.Flush(); err != nil {
+		t.Fatalf("Flush: %v", err)
+	}
+
+	if got := out.String(); got != "start\x1b[?2004hpaste-content\x1b[?2004lend" {
+		t.Fatalf("bracketed paste was altered: %q", got)
 	}
 }
 

@@ -52,6 +52,13 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
+## 1.0.0-beta.5 — 2026-09-28 — terminal paste & mouse isolation
+
+- Terminal paste atomic: preserved bracketed paste mode (`\x1b[?2004h`) in `TerminalOutputScrubber` so multiline text pasted into AGY and other provider TUIs enters atomically as a single block instead of submitting line-by-line with premature execution.
+- Terminal mouse tracking isolation: hardened `KeyboardModeReset` and `terminalKeyboardModeReset` across all TTY control and runtime recovery paths to explicitly disable normal (`?1000`), button-event (`?1002`), any-event (`?1003`), SGR extended (`?1006`), and urxvt (`?1015`) mouse tracking modes upon session exit, interrupt, or error.
+- Web terminal input sanitization: filtered raw and ESC-prefixed SGR mouse reports (`\x1b[<...M` and `[<...M`) in xterm.js forwarder and embedded metadata stripper.
+- LineShadow promotion cleanup: ensured delimiter stripping in `flushPasteBuf` does not leave residual leading spaces from replaced escape bytes.
+
 ## 1.0.0-beta.4 — 2026-09-27 — unified beta hardening
 
 - Release engineering: a single canonical branch, `release/v1.0.0-beta`, now carries future 1.0 beta iterations. Beta 1/2/3 remain historical checkpoints rather than parallel release lines.

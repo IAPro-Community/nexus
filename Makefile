@@ -2,9 +2,11 @@ BINARY=nexus
 MODULE=github.com/IAPro-Community/nexus
 LOCAL_BIN ?= $(HOME)/.local/bin
 DESKTOP_TAGS = production
+GO_TAGS ?=
 WAILS_VERSION ?= v3.0.0-beta.25
 ifeq ($(shell go env GOOS),linux)
 DESKTOP_TAGS = production,gtk3
+GO_TAGS = gtk3
 endif
 
 .PHONY: all build build-desktop build-desktop-wails build-hud build-hud-wails web web-verify docs-verify test race vet install install-local release-local bump clean format format-check lint-frontend lint-styles lint-styles-fix lint-fix lint-go typecheck test-frontend test-go test-e2e security quality quality-full golangci-lint version-check test-updater-negative test-update-integration release-dry-run browser-functional browser-a11y browser-visual browser-all verify-update coverage e2e attention-e2e overnight-smoke overnight-soak release-proof smoke-providers
@@ -51,26 +53,26 @@ test-frontend:
 	@cd web && ./node_modules/.bin/vitest run
 
 test-go:
-	@go test -v ./...
+	@if [ -n "$(GO_TAGS)" ]; then go test -tags="$(GO_TAGS)" -v ./...; else go test -v ./...; fi
 
 test: test-go test-frontend
 
 test-e2e:
-	@go test -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/...
+	@if [ -n "$(GO_TAGS)" ]; then go test -tags="$(GO_TAGS)" -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/...; else go test -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/...; fi
 
 e2e: test-e2e
 
 attention-e2e:
-	@go test -count=1 -timeout 10m ./internal/nexus/runner -run 'Test(MultiMissionIndependentProgression|ResolveInterventionIdempotent|StaleInterventionRejected|ResumeFromDurableCheckpoint|QuotaFailoverNoAttention|NotificationDedupKey|AutonomyContractRespected|CrossProjectAggregation|FaultInjectionStoreReopenPreservesIntervention|FaultInjectionDuplicateInterventionResolvesOnce)'
+	@if [ -n "$(GO_TAGS)" ]; then go test -tags="$(GO_TAGS)" -count=1 -timeout 10m ./internal/nexus/runner -run 'Test(MultiMissionIndependentProgression|ResolveInterventionIdempotent|StaleInterventionRejected|ResumeFromDurableCheckpoint|QuotaFailoverNoAttention|NotificationDedupKey|AutonomyContractRespected|CrossProjectAggregation|FaultInjectionStoreReopenPreservesIntervention|FaultInjectionDuplicateInterventionResolvesOnce)'; else go test -count=1 -timeout 10m ./internal/nexus/runner -run 'Test(MultiMissionIndependentProgression|ResolveInterventionIdempotent|StaleInterventionRejected|ResumeFromDurableCheckpoint|QuotaFailoverNoAttention|NotificationDedupKey|AutonomyContractRespected|CrossProjectAggregation|FaultInjectionStoreReopenPreservesIntervention|FaultInjectionDuplicateInterventionResolvesOnce)'; fi
 
 coverage:
 	@mkdir -p DEV/validation/current
-	@go test ./... -coverprofile=DEV/validation/current/coverage.out -covermode=atomic
+	@if [ -n "$(GO_TAGS)" ]; then go test -tags="$(GO_TAGS)" ./... -coverprofile=DEV/validation/current/coverage.out -covermode=atomic; else go test ./... -coverprofile=DEV/validation/current/coverage.out -covermode=atomic; fi
 	@go tool cover -func=DEV/validation/current/coverage.out | tee DEV/validation/current/coverage-func.txt
 	@echo "Frontend coverage plugin is not installed; vitest statement coverage remains UNVERIFIED."
 
 overnight-smoke:
-	@go test -count=1 -timeout 20m ./internal/nexus/runner -run 'Test(MissionTeamPlannerBuilderReviewerVerifier|OvernightAcceptanceSandbox|OvernightSoakHarnessBounded|ProgressWatchdog|FaultInjection)'
+	@if [ -n "$(GO_TAGS)" ]; then go test -tags="$(GO_TAGS)" -count=1 -timeout 20m ./internal/nexus/runner -run 'Test(MissionTeamPlannerBuilderReviewerVerifier|OvernightAcceptanceSandbox|OvernightSoakHarnessBounded|ProgressWatchdog|FaultInjection)'; else go test -count=1 -timeout 20m ./internal/nexus/runner -run 'Test(MissionTeamPlannerBuilderReviewerVerifier|OvernightAcceptanceSandbox|OvernightSoakHarnessBounded|ProgressWatchdog|FaultInjection)'; fi
 
 # Local-only authenticated provider smoke (not part of CI quality).
 # Fail-closed provider execution lives in scripts/smoke-providers.sh so Make
@@ -85,7 +87,7 @@ smoke-providers:
 DURATION ?= 30s
 overnight-soak:
 	@echo "OVERNIGHT_SOAK_DURATION=$(DURATION) (ordinary CI must not use 8h)"
-	@OVERNIGHT_SOAK_DURATION=$(DURATION) go test -count=1 -timeout 24h ./internal/nexus/runner -run TestOvernightSoakHarnessBounded
+	@if [ -n "$(GO_TAGS)" ]; then OVERNIGHT_SOAK_DURATION=$(DURATION) go test -tags="$(GO_TAGS)" -count=1 -timeout 24h ./internal/nexus/runner -run TestOvernightSoakHarnessBounded; else OVERNIGHT_SOAK_DURATION=$(DURATION) go test -count=1 -timeout 24h ./internal/nexus/runner -run TestOvernightSoakHarnessBounded; fi
 
 release-proof: format-check lint-frontend lint-styles typecheck lint-go test-go test-frontend vet race coverage attention-e2e overnight-smoke security version-check
 	@echo "OVERNIGHT_SOAK_EVIDENCE=MISSING (opt-in: make overnight-soak DURATION=8h)"
@@ -94,7 +96,7 @@ release-proof: format-check lint-frontend lint-styles typecheck lint-go test-go 
 	@echo "release-proof local gates finished"
 
 race:
-	@go test -race ./...
+	@if [ -n "$(GO_TAGS)" ]; then go test -tags="$(GO_TAGS)" -race ./...; else go test -race ./...; fi
 
 # ─── Formatting ─────────────────────────────────────────────────────
 
@@ -109,21 +111,21 @@ format-check:
 # ─── Go linting ─────────────────────────────────────────────────────
 
 lint-go:
-	@PATH="$(HOME)/go/bin:$(PATH)" golangci-lint run ./...
+	@if [ -n "$(GO_TAGS)" ]; then GOFLAGS="-tags=$(GO_TAGS)" PATH="$(HOME)/go/bin:$(PATH)" golangci-lint run ./...; else PATH="$(HOME)/go/bin:$(PATH)" golangci-lint run ./...; fi
 
 golangci-lint:
-	@PATH="$(HOME)/go/bin:$(PATH)" golangci-lint run ./...
+	@if [ -n "$(GO_TAGS)" ]; then GOFLAGS="-tags=$(GO_TAGS)" PATH="$(HOME)/go/bin:$(PATH)" golangci-lint run ./...; else PATH="$(HOME)/go/bin:$(PATH)" golangci-lint run ./...; fi
 
 vet:
-	@go vet ./...
+	@if [ -n "$(GO_TAGS)" ]; then go vet -tags="$(GO_TAGS)" ./...; else go vet ./...; fi
 
 # ─── Security ───────────────────────────────────────────────────────
 
 security:
 	@if command -v govulncheck >/dev/null 2>&1; then \
-		GOTOOLCHAIN=go1.25.14 PATH="$(HOME)/go/bin:$(PATH)" govulncheck ./...; \
+		if [ -n "$(GO_TAGS)" ]; then GOTOOLCHAIN=go1.25.14 PATH="$(HOME)/go/bin:$(PATH)" govulncheck -tags="$(GO_TAGS)" ./...; else GOTOOLCHAIN=go1.25.14 PATH="$(HOME)/go/bin:$(PATH)" govulncheck ./...; fi; \
 	else \
-		GOTOOLCHAIN=auto go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...; \
+		if [ -n "$(GO_TAGS)" ]; then GOFLAGS="-tags=$(GO_TAGS)" GOTOOLCHAIN=auto go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...; else GOTOOLCHAIN=auto go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...; fi; \
 	fi
 
 # ─── Quality gates ──────────────────────────────────────────────────

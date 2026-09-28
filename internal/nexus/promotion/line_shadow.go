@@ -212,6 +212,8 @@ func (s *LineShadow) flushPasteBuf() {
 	}
 	if bytes.HasSuffix(s.pasteBuf, []byte("\x1b[201~")) {
 		s.pasteBuf = s.pasteBuf[:len(s.pasteBuf)-len("\x1b[201~")]
+	} else if bytes.HasSuffix(s.pasteBuf, []byte(" [201~")) {
+		s.pasteBuf = s.pasteBuf[:len(s.pasteBuf)-len(" [201~")]
 	} else if bytes.HasSuffix(s.pasteBuf, []byte("[201~")) {
 		s.pasteBuf = s.pasteBuf[:len(s.pasteBuf)-len("[201~")]
 	}

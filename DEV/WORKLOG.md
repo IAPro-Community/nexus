@@ -1,5 +1,45 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-09-28 — Multiline Paste Restoration, Mouse Tracking Isolation & Release v1.0.0-beta.5 (Local)
+
+- Correção de colagem multilinha no AGY/providers sob supervisão do Nexus:
+  - Removido `?2004` de `isKeyboardNegotiation` em `internal/runtime/terminal_output.go`, permitindo que `\x1b[?2004h` (Bracketed Paste Mode) alcance o terminal host.
+  - Com isso, colagens multilinhas entram como um bloco atômico único envolto em `\x1b[200~...\x1b[201~`, prevenindo a submissão prematura da linha 1 como comando e a corrupção do buffer com caracteres residuais.
+- Unificação do isolamento de mouse tracking:
+  - Adicionados os 5 modos de desativação de mouse (`?1000l`, `?1002l`, `?1003l`, `?1006l`, `?1015l`) ao `terminalKeyboardModeReset` em `internal/runtime/runtime.go`, alinhado com `tty_controller.go`.
+  - Adicionado teste `TestTerminalKeyboardModeResetDisablesMouseTracking` e `TestTerminalOutputScrubberPreservesBracketedPaste` em `internal/runtime/`.
+- Sanitização de relatórios de mouse SGR em `web/src/nexus/terminalInput.ts` e suite Vitest (25/25 PASS).
+- Limpeza de delimitador em `internal/nexus/promotion/line_shadow.go` (`flushPasteBuf`).
+- Bump de versão para `1.0.0-beta.5` em `VERSION`, `web/package.json` e `CHANGELOG.md`.
+- Gates e validações aprovados:
+  - `make version-check`: PASS (`VERSION CONTRACT PASS: all sources consistent`).
+  - `go test ./internal/runtime/... ./internal/nexus/promotion/... ./internal/control/terminal/...`: PASS.
+  - `vitest run web/src/nexus/terminalInput.test.ts`: 25/25 PASS.
+- Build e instalação local:
+  - Frontend web compilado via `make web` (Node 20).
+  - Executável compilado via `make build` com versão `1.0.0-beta.5`.
+  - Instalado em `~/.local/bin/nexus` e link `~/.local/bin/ai` via `make install-local`.
+  - Serviço web reiniciado com sucesso.
+
+## 2026-09-27 — Deep Review, Docs Capture & Build Tag Hardening: release/v1.0.0 (beta.4)
+
+- Checkout sincronizado com `origin/release/v1.0.0` no commit `5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066`.
+- Identificado desacoplamento nos alvos de teste/lint do `Makefile` para ambientes Linux sem GTK4:
+  - Adicionado `GO_TAGS = gtk3` por padrão no Linux no `Makefile` espelhando `DESKTOP_TAGS` e a flag do CI oficial (`GOFLAGS="-tags=gtk3"`).
+  - Atualizados `test-go`, `test-e2e`, `race`, `vet`, `lint-go`, `coverage` e `security` para honrarem `GO_TAGS`.
+- Executados e aprovados os gates canônicos:
+  - `make lint-go` (golangci-lint): 0 issues.
+  - `make vet`: PASS.
+  - `make test-go`: PASS em todos os pacotes.
+  - `make quality`: PASS (format-check, lint-frontend, lint-styles, typecheck, lint-go, test-go, test-frontend, version-check).
+  - `bun run verify` (web): 10/10 PASS.
+- Sincronização de evidências visuais da documentação:
+  - Executado `xvfb-run -a bun run docs:capture` para atualizar `docs/assets/screenshots/manifest.json` com o `source_sha` atual `5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066`.
+  - `node scripts/docs-verify.mjs` passou com 100% de integridade (177 arquivos markdown e 33 assets requeridos).
+- Compilação e instalação local:
+  - Reconstruído frontend web embeddable e binário `nexus` v1.0.0-beta.4.
+  - Instalado em `~/.local/bin/nexus` e reiniciado servidor web no PID 1944602.
+
 ## 2026-09-20 — Merge closure: CI blockers (autopilot, sem features)
 
 CI #143 vermelho → corrigido localmente: topbar overlap @1280 (badge

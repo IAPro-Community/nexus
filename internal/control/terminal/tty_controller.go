@@ -14,15 +14,21 @@ import (
 // modes that provider TUIs commonly leave enabled after an interrupt; it does
 // not rewrite user input and it never travels to the provider PTY.
 //
+// The sequence resets: application cursor (?1), Kitty keyboard (>0u),
+// modifyOtherKeys (>4;0m), focus reporting (?1004), bracketed paste (?2004),
+// and all mouse tracking modes (?1000 normal, ?1002 button-event,
+// ?1003 any-event, ?1006 SGR extended, ?1015 urxvt).
+//
 // The sequence is safe to send repeatedly. That property is important because
 // recovery can be requested by Ctrl+C, a broken attach stream, and a deferred
 // cleanup at the same time.
-const KeyboardModeReset = "\x1b[?1l\x1b[>0u\x1b[>4;0m\x1b[?1004l\x1b[?2004l"
+const KeyboardModeReset = "\x1b[?1l\x1b[>0u\x1b[>4;0m\x1b[?1004l\x1b[?2004l" +
+	"\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?1015l"
 
 // ResetKeyboardModes disables application cursor, Kitty/CSI-u keyboard
-// enhancement, modifyOtherKeys, focus reporting, and bracketed paste on the
-// terminal represented by w. The writer is normally the user's stdout, never
-// the provider's PTY.
+// enhancement, modifyOtherKeys, focus reporting, bracketed paste, and all
+// mouse tracking modes on the terminal represented by w. The writer is
+// normally the user's stdout, never the provider's PTY.
 func ResetKeyboardModes(w io.Writer) error {
 	if w == nil {
 		return errors.New("terminal reset writer is nil")

@@ -25,8 +25,16 @@ describe('shouldForwardTerminalInput', () => {
     }
   });
 
-  it('keeps mouse, keyboard, UTF-8 and explicit Ctrl+C bytes', () => {
-    expect(shouldForwardTerminalInput('\x1b[<0;10;4M')).toBe(true);
+  it.each([
+    '\x1b[<0;10;4M', // SGR click
+    '\x1b[<35;58;48M', // SGR any-event motion
+    '[<35;58;48M', // bare (no ESC) motion
+    '\x1b[<0;10;4m', // SGR release (lowercase m)
+  ])('drops leaked SGR mouse tracking report %j', (data) => {
+    expect(shouldForwardTerminalInput(data)).toBe(false);
+  });
+
+  it('keeps keyboard, UTF-8 and explicit Ctrl+C bytes', () => {
     expect(shouldForwardTerminalInput('\x1b[1;3u')).toBe(true);
     expect(shouldForwardTerminalInput('ação')).toBe(true);
     expect(shouldForwardTerminalInput('\x03')).toBe(true);
@@ -69,12 +77,18 @@ describe('stripEmbeddedTerminalMetadata', () => {
     expect(stripEmbeddedTerminalMetadata('typed\x1b[C\x1b[D')).toBe('typed\x1b[C\x1b[D');
   });
 
-  it('leaves plain text, mouse, Kitty and literals intact', () => {
+  it('leaves plain text, Kitty and literals intact', () => {
     expect(stripEmbeddedTerminalMetadata('ação')).toBe('ação');
-    expect(stripEmbeddedTerminalMetadata('\x1b[<0;10;4M')).toBe('\x1b[<0;10;4M');
     expect(stripEmbeddedTerminalMetadata('\x1b[1;3u')).toBe('\x1b[1;3u');
     expect(stripEmbeddedTerminalMetadata('/e[31m literal')).toBe('/e[31m literal');
     expect(stripEmbeddedTerminalMetadata('[I] array index')).toBe('[I] array index');
     expect(stripEmbeddedTerminalMetadata('typed\x1b[C')).toBe('typed\x1b[C');
+  });
+
+  it('strips embedded SGR mouse tracking reports from mixed chunks', () => {
+    expect(stripEmbeddedTerminalMetadata('hello\x1b[<35;10;20Mworld')).toBe('helloworld');
+    expect(stripEmbeddedTerminalMetadata('\x1b[<0;10;4Mls\r')).toBe('ls\r');
+    expect(stripEmbeddedTerminalMetadata('go\x1b[<35;58;48M\r')).toBe('go\r');
+    expect(stripEmbeddedTerminalMetadata('\x1b[<0;1;1m')).toBe('');
   });
 });
