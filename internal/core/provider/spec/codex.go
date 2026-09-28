@@ -45,7 +45,6 @@ var codexSpec = Spec{
 	KnownVersions:       []string{"0.50.0"},
 }
 
-
 const codexUnixSocketSafePathBytes = 100
 
 var codexNonInteractiveSubcommands = map[string]struct{}{
