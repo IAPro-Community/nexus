@@ -2,6 +2,8 @@ package spec
 
 import (
 	"path/filepath"
+	stdruntime "runtime"
+	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
@@ -41,4 +43,50 @@ var codexSpec = Spec{
 	ReviewIsolation:     IsolationReadOnlyNoNetwork,
 	Quota:               QuotaLiveRPC,
 	KnownVersions:       []string{"0.50.0"},
+}
+
+
+const codexUnixSocketSafePathBytes = 100
+
+var codexNonInteractiveSubcommands = map[string]struct{}{
+	"agents": {}, "app-server": {}, "apply": {}, "archive": {}, "cloud": {},
+	"completion": {}, "debug": {}, "delete": {}, "doctor": {}, "exec": {},
+	"execpolicy": {}, "features": {}, "login": {}, "logout": {}, "mcp": {},
+	"migrate-rollouts": {}, "queue": {}, "remote-control": {}, "review": {},
+	"sandbox": {}, "stdio-to-uds": {}, "tcp-tunnel": {}, "unarchive": {}, "update": {},
+}
+
+// CodexInteractiveArgs disables the managed background app-server only when
+// the profile's derived Unix-domain control socket would be unsafe for
+// SUN_LEN. Isolated Nexus profiles are intentionally deep paths, so recent
+// Codex releases can otherwise fail before the TUI starts. Headless/provider
+// service subcommands keep their native daemon semantics.
+func CodexInteractiveArgs(profileHome string, args []string) []string {
+	out := append([]string(nil), args...)
+	if stdruntime.GOOS == "windows" || strings.TrimSpace(profileHome) == "" {
+		return out
+	}
+	for _, arg := range out {
+		if strings.EqualFold(strings.TrimSpace(arg), "--no-daemon") {
+			return out
+		}
+	}
+	controlSocket := filepath.Join(profileHome, "app-server-control", "app-server-control.sock")
+	if len([]byte(controlSocket)) < codexUnixSocketSafePathBytes || !codexUsesInteractiveTUI(out) {
+		return out
+	}
+	return append([]string{"--no-daemon"}, out...)
+}
+
+func codexUsesInteractiveTUI(args []string) bool {
+	for _, arg := range args {
+		token := strings.ToLower(strings.TrimSpace(arg))
+		if token == "resume" || token == "fork" {
+			return true
+		}
+		if _, nonInteractive := codexNonInteractiveSubcommands[token]; nonInteractive {
+			return false
+		}
+	}
+	return true
 }
