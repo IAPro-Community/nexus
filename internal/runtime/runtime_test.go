@@ -21,6 +21,15 @@ func TestTerminalKeyboardModeResetDisablesBracketedPaste(t *testing.T) {
 	}
 }
 
+func TestTerminalKeyboardModeResetDisablesMouseTracking(t *testing.T) {
+	for _, mode := range []string{"?1000l", "?1002l", "?1003l", "?1005l", "?1006l", "?1007l", "?1015l"} {
+		sequence := "\x1b[" + mode
+		if !strings.Contains(terminalKeyboardModeReset, sequence) {
+			t.Fatalf("keyboard reset does not disable mouse mode %s: %q", mode, terminalKeyboardModeReset)
+		}
+	}
+}
+
 func TestTerminalKeyboardModeResetLeavesApplicationCursorMode(t *testing.T) {
 	if !strings.Contains(terminalKeyboardModeReset, "\x1b[?1l") {
 		t.Fatalf("keyboard reset does not disable application cursor mode: %q", terminalKeyboardModeReset)
