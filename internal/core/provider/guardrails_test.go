@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 )
 
 var (
@@ -110,5 +112,26 @@ func repoRoot(t *testing.T) string {
 			t.Fatal("go.mod not found")
 		}
 		dir = parent
+	}
+}
+
+
+func TestKnownProvidersKeepExplicitQuotaContracts(t *testing.T) {
+	expected := map[string]spec.QuotaSource{
+		"codex":    spec.QuotaLiveRPC,
+		"agy":      spec.QuotaLiveCLI,
+		"claude":   spec.QuotaLiveHTTP,
+		"gemini":   spec.QuotaLiveHTTP,
+		"opencode": spec.QuotaLiveHTTP,
+		"cursor":   spec.QuotaUnsupported,
+	}
+	for providerID, want := range expected {
+		providerSpec, ok := spec.Get(providerID)
+		if !ok {
+			t.Fatalf("known provider %s disappeared from ProviderSpec registry", providerID)
+		}
+		if providerSpec.Quota != want {
+			t.Fatalf("%s quota source=%s want %s", providerID, providerSpec.Quota, want)
+		}
 	}
 }
