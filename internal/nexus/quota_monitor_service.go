@@ -200,6 +200,15 @@ func (s *QuotaMonitorService) check() {
 			continue
 		}
 		s.clearDegraded(p.Provider + ":" + p.Name)
+		if profile.HasAPIUsageBinding(p.Provider, p.Name) {
+			// API usage is an independent, cached channel. Refresh it
+			// asynchronously so Admin API latency can never block subscription
+			// quota monitoring or provider selection.
+			providerName, profileName := p.Provider, p.Name
+			go func() {
+				_, _, _ = profile.RefreshAPIResourceChannelContext(ctx, providerName, profileName)
+			}()
+		}
 		view := quota.BuildQuotaView(snapshot, account.Email, account.Plan)
 		// Match GetAccountInfo: Codex scopes by chatgpt_account_id, others by email.
 		identity := account.Email
