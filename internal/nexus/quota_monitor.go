@@ -401,6 +401,7 @@ func (m *QuotaDropMonitor) dispatch(action *QuotaNotificationAction) {
 }
 
 func findBestAlternative(source ProviderAccount, pool []ProviderAccount) *ResourceCandidate {
+	pool = BalanceCandidateAccounts(pool)
 	candidates := make([]ProviderAccount, 0, len(pool))
 	for _, a := range pool {
 		if strings.EqualFold(a.Provider, source.Provider) && strings.EqualFold(a.Profile, source.Profile) {
