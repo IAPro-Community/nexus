@@ -121,7 +121,7 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	pkg.DesiredProvider, pkg.DesiredProfile = desiredProvider, desiredProfile
 	preferenceMode := missionAffinityMode(policy, desiredProvider, desiredProfile)
 
-	candidateAccounts, candidateErr := selectMissionCandidateAccounts(accounts, pkg, current, preferenceMode, isFailover)
+	candidateAccounts, candidateErr := selectMissionCandidateAccounts(accounts, pkg, current, preferenceMode, isFailover, req, policy)
 	if candidateErr != nil {
 		return runner.AllocationResult{}, candidateErr
 	}
@@ -540,7 +540,7 @@ func missionAffinityMode(policy SchedulerPolicy, desiredProvider, desiredProfile
 
 // selectMissionCandidateAccounts applies AUTO/PREFER/PIN before RecommendResources.
 // PIN never opens the full pool on failover: a pinned runtime that fails stays blocked.
-func selectMissionCandidateAccounts(accounts []ProviderAccount, pkg *runner.PackageRun, current AgentConfig, preferenceMode AffinityMode, isFailover bool) ([]ProviderAccount, error) {
+func selectMissionCandidateAccounts(accounts []ProviderAccount, pkg *runner.PackageRun, current AgentConfig, preferenceMode AffinityMode, isFailover bool, req TaskRequirements, policy SchedulerPolicy) ([]ProviderAccount, error) {
 	pinProvider := strings.TrimSpace(pkg.DesiredProvider)
 	pinProfile := strings.TrimSpace(pkg.DesiredProfile)
 	if pinProvider == "" {
@@ -559,10 +559,19 @@ func selectMissionCandidateAccounts(accounts []ProviderAccount, pkg *runner.Pack
 	case AffinityPrefer:
 		if !isFailover {
 			preferred := filterFlowResourceAccounts(accounts, pinProvider, pinProfile)
-			if len(preferred) > 0 {
-				return preferred, nil
+			eligiblePreferred := make([]ProviderAccount, 0, len(preferred))
+			for _, account := range preferred {
+				if evaluateCandidate(account, req, policy).Eligible {
+					eligiblePreferred = append(eligiblePreferred, account)
+				}
 			}
-			// Preferred identity unavailable on first attempt: open the pool for fallback.
+			if len(eligiblePreferred) > 0 {
+				return eligiblePreferred, nil
+			}
+			// PREFER means "use this registered identity when it is executable",
+			// not "stay on an exhausted/unknown account forever". If every
+			// preferred account is currently ineligible, reopen the complete
+			// registered Usage pool and let ResourceScheduler balance the fallback.
 			return accounts, nil
 		}
 		if current.Provider != "" {
