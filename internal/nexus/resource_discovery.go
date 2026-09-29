@@ -100,14 +100,15 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 			isDefault = cfg.Defaults[p.Provider] == p.Name
 		}
 
-		// Get quota view with availability. UNKNOWN/unsupported data is never
-		// converted into synthetic 100% capacity. Score prefers more usable
-		// model families, then higher total group capacity (same as CLI selector).
+		// Get quota view with availability. quota_remaining has one stable
+		// semantic across providers: the best currently usable pool's literal
+		// remaining quota, normalized to 0..1. Multi-pool breadth belongs to the
+		// scheduler ranking and must never be encoded into this public field.
 		qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
 		quotaRemaining := 0.0
 		if quotaStatusKnown(qv.Status) {
-			if ratio, ok := qv.EffectiveCapacityRatio(); ok {
-				quotaRemaining = ratio
+			if remaining, ok := qv.BestGroupRemaining(); ok {
+				quotaRemaining = remaining / 100.0
 			}
 		}
 
