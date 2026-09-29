@@ -46,8 +46,8 @@ func TestResourceApplicationServiceHonorsCancelledContext(t *testing.T) {
 
 func TestResourceApplicationServiceDelegatesRecommendation(t *testing.T) {
 	service := NewResourceApplicationService(&resourceReaderStub{})
-	measured := measuredAccount("codex:work", "codex", "work", "LIVE", 0.75)
-	unknown := measuredAccount("cursor:default", "cursor", "default", "UNKNOWN", 0)
+	measured := measuredBalanceAccount("codex:work", "codex", "work", "LIVE", 0.75)
+	unknown := measuredBalanceAccount("cursor:default", "cursor", "default", "UNKNOWN", 0)
 	result, err := service.Recommend(context.Background(), []ProviderAccount{unknown, measured}, TaskRequirements{}, PolicyBalanced)
 	if err != nil {
 		t.Fatal(err)
