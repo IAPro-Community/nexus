@@ -170,6 +170,31 @@ func TestCleanupStale(t *testing.T) {
 	}
 }
 
+func TestCleanupStaleUsesHostPIDWhenChildSurvives(t *testing.T) {
+	tmpDir := t.TempDir()
+	reg := NewRegistry(filepath.Join(tmpDir, "runtimes.json"))
+
+	if err := reg.Register(RuntimeSession{
+		RuntimeID: "rt-host-dead-child-alive",
+		PID:       os.Getpid(),
+		HostPID:   99999999,
+		State:     StateRunning,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	cleaned, err := reg.CleanupStale()
+	if err != nil {
+		t.Fatalf("cleanup failed: %v", err)
+	}
+	if cleaned != 1 {
+		t.Fatalf("expected host-dead runtime to be cleaned, got %d", cleaned)
+	}
+	if s, ok := reg.Get("rt-host-dead-child-alive"); !ok || s.State != StateStale {
+		t.Fatalf("expected STALE runtime, got %+v (found=%v)", s, ok)
+	}
+}
+
 func TestPurgeInactive(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "runtimes.json")
