@@ -219,24 +219,26 @@ func EnhancedPATH(extraDirs ...string) string {
 func EnvSet(base []string, overrides map[string]string, unset ...string) []string {
 	unsetMap := make(map[string]bool)
 	for _, k := range unset {
-		unsetMap[k] = true
+		unsetMap[envKeyForGOOS(k, stdruntime.GOOS)] = true
 	}
 
 	overrideKeys := make(map[string]bool)
 	for k := range overrides {
-		overrideKeys[k] = true
+		overrideKeys[envKeyForGOOS(k, stdruntime.GOOS)] = true
 	}
 
 	var out []string
+	seen := make(map[string]bool)
 	for _, entry := range base {
 		parts := strings.SplitN(entry, "=", 2)
-		if len(parts) == 0 {
+		if len(parts) != 2 || parts[0] == "" {
 			continue
 		}
-		k := parts[0]
-		if unsetMap[k] || overrideKeys[k] {
+		key := envKeyForGOOS(parts[0], stdruntime.GOOS)
+		if unsetMap[key] || overrideKeys[key] || seen[key] {
 			continue
 		}
+		seen[key] = true
 		out = append(out, entry)
 	}
 
@@ -244,6 +246,13 @@ func EnvSet(base []string, overrides map[string]string, unset ...string) []strin
 		out = append(out, k+"="+v)
 	}
 	return out
+}
+
+func envKeyForGOOS(key, goos string) string {
+	if goos == "windows" {
+		return strings.ToUpper(key)
+	}
+	return key
 }
 
 // DisableSessionSecretService prevents non-interactive provider probes from
