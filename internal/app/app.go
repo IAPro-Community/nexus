@@ -471,7 +471,7 @@ func usage() {
 
   %s <provider> [flags]           Launch provider with intelligent account selection
   %s <provider> --supervised      Launch through SessionHost; enables /nexus control
-  %s <provider> --lead            Bind Interactive Lead + Mission promotion on submit
+  %s <provider> --lead/--no-lead Force orchestration / provider-native TUI (AGY routes by default)
   %s <provider>:<profile> [flags] Launch specific profile (e.g. %s codex:work)
   %s <provider>:auto [flags]      Explicit auto-selection
   %s resume [id] [provider:name]  Resume previous session using provider-native syntax
