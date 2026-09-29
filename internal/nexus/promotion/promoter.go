@@ -114,14 +114,15 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = "intent requires clarification before promotion"
 		return result, nil
 	}
-	if intent.Strategy == nexus.IntentDirect && !explicitRequest {
+	registeredProviderRequest := strings.TrimSpace(intent.TaskRequirements.PreferProvider) != ""
+	if intent.Strategy == nexus.IntentDirect && !explicitRequest && !registeredProviderRequest {
 		result.Reason = "direct intent stays with the interactive Lead"
 		return result, nil
 	}
 
-	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest
+	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest || registeredProviderRequest
 	if !missionWorthy {
-		result.Reason = "interactive plan stays with the Lead; no delegation or decomposition is required"
+		result.Reason = "interactive plan stays with the Lead; no delegation, decomposition or registered provider handoff is required"
 		return result, nil
 	}
 	if mode == ModeAsk {
@@ -134,6 +135,8 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = delegation.Reason
 	} else if intent.TaskRequirements.RequiresDecomposition {
 		result.Reason = "task requirements require decomposition"
+	} else if registeredProviderRequest {
+		result.Reason = "user requested registered provider " + intent.TaskRequirements.PreferProvider
 	} else {
 		result.Reason = "user explicitly requested Mission execution"
 	}
