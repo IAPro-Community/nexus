@@ -549,7 +549,6 @@ func TestCodexRateLimitsWithoutTokenCountType(t *testing.T) {
 	}
 }
 
-
 func TestCodexZeroUsedMeansHundredPercentRemaining(t *testing.T) {
 	limits := rolloutRateLimits{
 		Primary: &rateLimitWindow{UsedPercent: 0, WindowMinutes: 300, ResetsAt: time.Now().Add(time.Hour).Unix()},
