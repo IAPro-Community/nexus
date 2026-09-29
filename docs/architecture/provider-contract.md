@@ -114,3 +114,15 @@ Not part of CI. Requires authenticated local profiles.
 3. Add/adjust fixtures under adapter `testdata/`.
 4. Run `go test ./internal/core/provider/... ./internal/core/quota/... ./internal/nexus/...`.
 5. Record the decision in `docs/architecture/ADR-provider-contract-freeze.md`.
+
+
+## Resource-channel compatibility
+
+Provider quota collectors continue to use the frozen `ProviderSpec.Quota`
+contract. Usage/Capacity V2 is additive: existing adapters are not required to
+obtain API credentials and do not change their authentication flow.
+
+A provider may expose multiple resource channels, but each channel requires
+independent evidence and credentials. Subscription quota, API metering/cost,
+and throughput rate limits are separate signals. `quota_remaining` remains a
+literal percentage; routing scores use a separate field.
