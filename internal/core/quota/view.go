@@ -165,8 +165,9 @@ func (qv *QuotaView) EffectiveCapacityScore() (score float64, ok bool) {
 	return float64(qv.UsableGroupCount())*100.0 + avg, true
 }
 
-// EffectiveCapacityRatio normalizes EffectiveCapacityScore to 0-1 for APIs
-// that expect quota_remaining in that range.
+// EffectiveCapacityRatio normalizes the internal multi-pool ranking signal
+// to 0-1. It is not literal remaining quota and must not back public
+// quota_remaining fields; use BestGroupRemaining for that contract.
 func (qv *QuotaView) EffectiveCapacityRatio() (ratio float64, ok bool) {
 	score, ok := qv.EffectiveCapacityScore()
 	if !ok {
