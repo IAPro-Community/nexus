@@ -52,6 +52,15 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
+## 1.0.0-beta.5 — 2026-09-29 — Codex Windows convergence
+
+- Windows/Agent resources: new agents may be created without inventing a fake `provider:default` binding; the selected provider is retained only as allocation preference until the Resource Picker persists the real account.
+- Safe Apply: stopped agents can persist specialization/configuration while unassigned; running agents still fail closed if provider identity is missing.
+- Regression guard: the Windows patch was ported selectively onto the canonical beta line instead of merging its stale base, preserving Beta 4 terminal transparency, explicit Mission promotion, daemon supervision, OpenCode and custom Docker/WSL/SSH target fields.
+- UI tests cover preservation of custom target configuration while provider/profile remain unassigned.
+
+**Release state:** source convergence complete on the Beta 5 candidate; exact-SHA runtime validation remains required before claiming platform certification.
+
 ## 1.0.0-beta.4 — 2026-09-27 — unified beta hardening
 
 - Release engineering: a single canonical branch, `release/v1.0.0-beta`, now carries future 1.0 beta iterations. Beta 1/2/3 remain historical checkpoints rather than parallel release lines.
