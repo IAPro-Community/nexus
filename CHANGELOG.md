@@ -52,6 +52,17 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
+## 1.0.0-beta.6 — 2026-09-29 — Usage/Capacity V2 and multi-account routing
+
+- Usage evidence: introduced typed source semantics so `USED_PERCENT` and `REMAINING_PERCENT` cannot be silently inverted; Codex now uses the canonical helper (`0% used = 100% remaining`).
+- Resource channels: added additive `SUBSCRIPTION` / `API` projections without requiring API keys for existing Codex, AGY, Claude, Gemini, OpenCode or Cursor profiles.
+- Capacity contract: `quota_remaining` again represents literal remaining quota; provider-specific multi-pool routing rank is exposed separately as `routing_capacity_score`.
+- Multi-account selector: when every usable profile only has `ESTIMATED` measurements, Nexus ranks those measurements instead of discarding them and falling back to LRU; fresh LIVE/CACHED evidence still has precedence.
+- Account isolation: resource discovery carries the verified `AccountScope`; the V2 subscription channel never fabricates zero quota for UNKNOWN data.
+- Regression coverage: Codex inversion, estimated-vs-fresh selection, quota/routing separation, evidence channel/account isolation and known-provider quota contracts.
+
+**Compatibility:** existing provider collectors and authentication flows remain unchanged; API telemetry is an explicit future channel, not inferred from subscription credentials.
+
 ## 1.0.0-beta.5 — 2026-09-28 — terminal paste & mouse isolation
 
 - Terminal paste atomic: preserved bracketed paste mode (`\x1b[?2004h`) in `TerminalOutputScrubber` so multiline text pasted into AGY and other provider TUIs enters atomically as a single block instead of submitting line-by-line with premature execution.
