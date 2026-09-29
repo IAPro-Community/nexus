@@ -12,7 +12,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { delimiter, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const webDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -29,11 +29,19 @@ const shortStamp = stamp.replace(/[:.]/g, '-');
 /** @typedef {{ ok: boolean, detail: string, durationMs: number }} GateResult */
 
 function bin(name) {
-  const candidates = [
-    resolve(webDir, 'node_modules/.bin', name),
-    resolve(webDir, 'node_modules/.bin', `${name}.js`),
-    resolve(webDir, 'node_modules/.bin', `${name}.cjs`),
-  ];
+  const candidates = process.platform === 'win32'
+    ? [
+        resolve(webDir, 'node_modules/.bin', `${name}.cmd`),
+        resolve(webDir, 'node_modules/.bin', `${name}.exe`),
+        resolve(webDir, 'node_modules/.bin', name),
+        resolve(webDir, 'node_modules/.bin', `${name}.js`),
+        resolve(webDir, 'node_modules/.bin', `${name}.cjs`),
+      ]
+    : [
+        resolve(webDir, 'node_modules/.bin', name),
+        resolve(webDir, 'node_modules/.bin', `${name}.js`),
+        resolve(webDir, 'node_modules/.bin', `${name}.cjs`),
+      ];
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;
   }
@@ -46,13 +54,24 @@ function runNodeScript(scriptRelative, args = []) {
 
 function runLocal(name, args) {
   const executable = bin(name);
+  if (executable.toLowerCase().endsWith('.cmd')) {
+    // npm/bun expose Windows tools through .cmd shims. Prefer their JS
+    // target so verification does not depend on cmd.exe nested-quote parsing.
+    const shim = readFileSync(executable, 'utf8');
+    const matches = [...shim.matchAll(/"%dp0%\\([^"]+)"/gi)];
+    const match = matches.at(-1);
+    if (match) {
+      const target = resolve(webDir, 'node_modules/.bin', match[1]);
+      if (existsSync(target)) return run(process.execPath, [target, ...args], webDir);
+    }
+  }
   // Prefer invoking .bin shims through node when they are JS entrypoints.
   if (executable.endsWith('.js') || executable.endsWith('.cjs') || executable.endsWith('.mjs')) {
     return run(process.execPath, [executable, ...args], webDir);
   }
   // Many npm .bin shims are shell scripts; run via PATH lookup with explicit bin dir.
   return run(executable, args, webDir, {
-    PATH: `${resolve(webDir, 'node_modules/.bin')}:${process.env.PATH || ''}`,
+    PATH: `${resolve(webDir, 'node_modules/.bin')}${delimiter}${process.env.PATH || ''}`,
   });
 }
 
@@ -61,6 +80,7 @@ function run(command, args, cwd, extraEnv = {}) {
   const result = spawnSync(command, args, {
     cwd,
     encoding: 'utf8',
+    shell: process.platform === 'win32' && String(command).toLowerCase().endsWith('.cmd'),
     env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1', ...extraEnv },
     maxBuffer: 8 * 1024 * 1024,
   });
