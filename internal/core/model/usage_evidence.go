@@ -68,9 +68,10 @@ type ConsumptionState struct {
 
 // CostState represents provider-reported or reconciled API spend.
 type CostState struct {
-	Amount   *float64 `json:"amount,omitempty"`
-	Currency string   `json:"currency,omitempty"`
-	Budget   *float64 `json:"budget,omitempty"`
+	Amount          *float64 `json:"amount,omitempty"`
+	Currency        string   `json:"currency,omitempty"`
+	Budget          *float64 `json:"budget,omitempty"`
+	BudgetRemaining *float64 `json:"budget_remaining,omitempty"`
 }
 
 // RateLimitState is throughput evidence. It is deliberately not quota or
@@ -86,9 +87,14 @@ type RateLimitState struct {
 // Capacity V2. Existing UsageSnapshot consumers remain valid while API-backed
 // consumption and billing are added incrementally.
 type ResourceChannelState struct {
-	Channel     ResourceChannel   `json:"channel"`
-	Quota       *UsageSnapshot    `json:"quota,omitempty"`
-	Consumption *ConsumptionState `json:"consumption,omitempty"`
-	Cost        *CostState        `json:"cost,omitempty"`
-	RateLimit   *RateLimitState   `json:"rate_limit,omitempty"`
+	Channel      ResourceChannel   `json:"channel"`
+	AccountScope AccountScope      `json:"account_scope,omitempty"`
+	Status       UsageStatus       `json:"status,omitempty"`
+	Source       UsageSource       `json:"source,omitempty"`
+	Confidence   UsageConfidence   `json:"confidence,omitempty"`
+	ObservedAt   time.Time         `json:"observed_at,omitempty"`
+	Quota        *UsageSnapshot    `json:"quota,omitempty"`
+	Consumption  *ConsumptionState `json:"consumption,omitempty"`
+	Cost         *CostState        `json:"cost,omitempty"`
+	RateLimit    *RateLimitState   `json:"rate_limit,omitempty"`
 }
