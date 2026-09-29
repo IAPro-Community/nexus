@@ -392,7 +392,7 @@ func runAppServerRateLimits(ctx context.Context, codexHome string) (*getAccountR
 // write to is confined to the profile home, including the local thread SQLite
 // it may create or migrate on startup.
 func appServerEnv(bin, codexHome string) []string {
-	return runtime.EnvSet(os.Environ(), map[string]string{
+	return runtime.SanitizeChildEnv(runtime.EnvSet(os.Environ(), map[string]string{
 		"HOME":             codexHome,
 		"CODEX_HOME":       codexHome,
 		"CODEX_CONFIG_DIR": codexHome,
@@ -402,7 +402,7 @@ func appServerEnv(bin, codexHome string) []string {
 		"XDG_STATE_HOME":   filepath.Join(codexHome, ".local", "state"),
 		"PATH":             runtime.EnhancedPATH(filepath.Dir(bin)),
 		"NO_COLOR":         "1",
-	})
+	}))
 }
 
 func appServerClientVersion() string {
