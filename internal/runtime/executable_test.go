@@ -37,6 +37,47 @@ func TestResolveCommandWindowsPrefersPathAndBuildsCmdLauncher(t *testing.T) {
 	}
 }
 
+func TestResolveCommandWindowsBypassesCmdForNPMShellShim(t *testing.T) {
+	dir := t.TempDir()
+	artifact := filepath.Join(dir, "codex.cmd")
+	script := filepath.Join(dir, "node_modules", "@openai", "codex", "bin", "codex.js")
+	if err := os.MkdirAll(filepath.Dir(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(script, []byte("// codex fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	shim := "@echo off\r\n\"%~dp0\\node.exe\" \"%~dp0\\node_modules\\@openai\\codex\\bin\\codex.js\" %*\r\n"
+	if err := os.WriteFile(artifact, []byte(shim), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	env := map[string]string{
+		"PATH":    dir,
+		"PATHEXT": ".CMD",
+		"COMSPEC": `C:\\Windows\\System32\\cmd.exe`,
+	}
+	getenv := func(key string) string { return env[key] }
+	stat := func(path string) (os.FileInfo, error) { return os.Stat(path) }
+	lookPath := func(name string) (string, error) {
+		if name == "node.exe" || name == "node" {
+			return filepath.Join(dir, "node-runtime.exe"), nil
+		}
+		return "", errors.New("not found")
+	}
+
+	resolved, err := resolveCommand("codex", "windows", getenv, stat, lookPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.LauncherPath == env["COMSPEC"] {
+		t.Fatalf("npm provider shim still routes through cmd.exe: %+v", resolved)
+	}
+	if len(resolved.PrefixArgs) != 1 || resolved.PrefixArgs[0] != script {
+		t.Fatalf("unexpected npm shim target: %+v, want %q", resolved, script)
+	}
+}
+
 func TestResolveCommandWindowsSupportsPowerShellShim(t *testing.T) {
 	dir := t.TempDir()
 	artifact := filepath.Join(dir, "claude.ps1")
