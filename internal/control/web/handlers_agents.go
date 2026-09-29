@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -143,6 +144,13 @@ func (h *NexusHandler) handleAgentDetail(w http.ResponseWriter, r *http.Request)
 	case http.MethodDelete:
 		detail, err := h.agents.Detail(r.Context(), id)
 		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				// DELETE is idempotent: stale terminal/surface references may outlive
+				// the durable Agent. Repeating the removal should converge instead of
+				// leaving the UI stuck on a not-found error.
+				writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+				return
+			}
 			writeError(w, http.StatusNotFound, err.Error())
 			return
 		}
