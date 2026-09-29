@@ -106,6 +106,10 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	if err != nil {
 		return runner.AllocationResult{}, err
 	}
+	// Mission AUTO/PREFER routing consumes the same registered identities shown
+	// by usage, but only those with measured quota evidence enter balancing.
+	// Keep the complete discovery result for honest rejection diagnostics.
+	balanceAccounts := BalanceCandidateAccounts(accounts)
 
 	current, _ := currentAgentConfig(st, agent)
 	isFailover := pkg.Attempt > 1 && (pkg.RetryFrom == runner.StateAllocating || isQuotaOrRateLimitFailure(pkg.FailureKind))
@@ -121,7 +125,7 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	pkg.DesiredProvider, pkg.DesiredProfile = desiredProvider, desiredProfile
 	preferenceMode := missionAffinityMode(policy, desiredProvider, desiredProfile)
 
-	candidateAccounts, candidateErr := selectMissionCandidateAccounts(accounts, pkg, current, preferenceMode, isFailover)
+	candidateAccounts, candidateErr := selectMissionCandidateAccounts(balanceAccounts, pkg, current, preferenceMode, isFailover)
 	if candidateErr != nil {
 		return runner.AllocationResult{}, candidateErr
 	}
@@ -1098,6 +1102,7 @@ func (e *nexusPackageExecutor) ensureReviewerAgent(ctx context.Context, st *stor
 	if err != nil {
 		return store.Agent{}, err
 	}
+	accounts = BalanceCandidateAccounts(accounts)
 	reviewAccounts := make([]ProviderAccount, 0, len(accounts))
 	for _, account := range accounts {
 		if !accountSupportsHeadlessReview(account) {
