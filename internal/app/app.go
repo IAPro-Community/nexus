@@ -1541,6 +1541,9 @@ func configCmd(args []string) error {
 		}
 		return nil
 	}
+	if args[0] == "api-usage" {
+		return configAPIUsageCmd(args[1:])
+	}
 	if args[0] == "language" {
 		if len(args) != 2 || !localization.IsSupported(args[1]) {
 			return errors.New(localization.T("error.config_usage"))
@@ -1562,6 +1565,76 @@ func configCmd(args []string) error {
 		return nil
 	}
 	return errors.New(localization.T("error.config_usage"))
+}
+
+func configAPIUsageCmd(args []string) error {
+	if len(args) == 0 {
+		return errors.New("usage: nexus config api-usage <bind|unbind|show> <provider> <profile> [--project ID] [--user ID] [--api-key-id ID] [--key-env ENV]")
+	}
+	action := strings.ToLower(strings.TrimSpace(args[0]))
+	if len(args) < 3 {
+		return errors.New("provider and profile are required")
+	}
+	providerName := strings.TrimSpace(args[1])
+	profileName := strings.TrimSpace(args[2])
+
+	switch action {
+	case "show":
+		binding, ok := config.GetAPIUsageBinding(providerName, profileName)
+		if !ok {
+			return fmt.Errorf("no API usage binding for %s:%s", providerName, profileName)
+		}
+		raw, _ := json.MarshalIndent(binding, "", "  ")
+		fmt.Println(string(raw))
+		return nil
+	case "unbind":
+		if len(args) != 3 {
+			return errors.New("usage: nexus config api-usage unbind <provider> <profile>")
+		}
+		if err := config.RemoveAPIUsageBinding(providerName, profileName); err != nil {
+			return err
+		}
+		fmt.Printf("✓ API usage binding removed for %s:%s\n", providerName, profileName)
+		return nil
+	case "bind":
+		binding := config.APIUsageBinding{Provider: "openai", APIKeyEnv: "OPENAI_ADMIN_KEY"}
+		for i := 3; i < len(args); i++ {
+			arg := strings.TrimSpace(args[i])
+			var value string
+			if strings.Contains(arg, "=") {
+				parts := strings.SplitN(arg, "=", 2)
+				arg, value = parts[0], strings.TrimSpace(parts[1])
+			} else {
+				if i+1 >= len(args) {
+					return fmt.Errorf("%s requires a value", arg)
+				}
+				i++
+				value = strings.TrimSpace(args[i])
+			}
+			if value == "" {
+				return fmt.Errorf("%s requires a non-empty value", arg)
+			}
+			switch arg {
+			case "--project":
+				binding.ProjectIDs = append(binding.ProjectIDs, value)
+			case "--user":
+				binding.UserIDs = append(binding.UserIDs, value)
+			case "--api-key-id":
+				binding.APIKeyIDs = append(binding.APIKeyIDs, value)
+			case "--key-env":
+				binding.APIKeyEnv = value
+			default:
+				return fmt.Errorf("unknown api-usage flag %q", arg)
+			}
+		}
+		if err := config.SetAPIUsageBinding(providerName, profileName, binding); err != nil {
+			return err
+		}
+		fmt.Printf("✓ API usage binding saved for %s:%s (key from %s)\n", providerName, profileName, binding.APIKeyEnv)
+		return nil
+	default:
+		return fmt.Errorf("unknown api-usage action %q", action)
+	}
 }
 
 func inspectCmd(args []string) error {
