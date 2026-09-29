@@ -785,7 +785,6 @@ func parseAgyQuotaOutput(output string) ([]model.UsageWindow, bool) {
 			continue
 		}
 		pct = agyClampPercent(pct)
-		used := 100 - pct
 		reset := ""
 		if len(fields) >= 4 {
 			reset = formatAgyReset(strings.TrimSpace(fields[3]))
@@ -807,8 +806,10 @@ func parseAgyQuotaOutput(output string) ([]model.UsageWindow, bool) {
 		} else {
 			continue
 		}
-		remaining := pct
-		usedCopy := used
+		remaining, usedCopy, ok := quota.NormalizePercentEvidence(pct, model.UsageSemanticsRemainingPercent)
+		if !ok {
+			continue
+		}
 		windows = append(windows, model.UsageWindow{
 			Kind:             kind,
 			Group:            group,
