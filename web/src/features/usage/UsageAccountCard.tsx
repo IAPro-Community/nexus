@@ -449,7 +449,7 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
             <div className={styles.titleRow}>
               <span className={styles.capsLabel}>{t('usage.apiUsageTitle', 'Uso de API')}</span>
               <Badge tone={apiChannel.status === 'LIVE' || apiChannel.status === 'CACHED' ? 'success' : 'warning'}>
-                {translateStatus(apiChannel.status)}
+                {translateStatus(apiChannel.status || 'UNKNOWN')}
               </Badge>
               {apiChannel.source ? <Badge tone="default">{apiChannel.source}</Badge> : null}
             </div>
