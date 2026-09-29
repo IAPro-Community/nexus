@@ -1,16 +1,16 @@
 # Status público da release do Nexus v1
 
-Atualizado em **27 de setembro de 2026**.
+Atualizado em **29 de setembro de 2026**.
 
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
-| Versão do source candidato | `1.0.0-beta.4` |
+| Versão do source candidato | `1.0.0-beta.6` |
 | Última beta pública registrada | `v1.0.0-beta.1` |
 | Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
 | Release estável v1 | **ainda não publicada** |
 | CI do SHA candidato | indisponível no momento por bloqueio de créditos da conta |
-| Veredito atual | **beta.4 implementada no source; homologação/certificação exact-SHA pendentes** |
+| Veredito atual | **beta.6 implementada no source; homologação/certificação exact-SHA pendentes** |
 
 ## Linha canônica de integração — 2026-09-27
 
@@ -24,6 +24,18 @@ A branch `release/v1.0.0` é a única linha canônica de integração da Nexus 1
 - integração na branch beta não equivale a PASS, tag ou publicação.
 
 A linha canônica já usa a migração Wails v3 reconciliada. A publicação permanece bloqueada pelos gates same-SHA e pelos blockers registrados na issue #27.
+
+## Delta atual — beta.6
+
+A beta.6 introduz o contrato aditivo Usage/Capacity V2 sem trocar autenticação
+nem fonte de quota dos providers existentes. `quota_remaining` volta a ser
+percentual literal, o ranking multi-pool fica separado, Codex normaliza
+`used_percent` por semântica tipada e o selector pode usar ESTIMATED para
+ordenar contas apenas quando nenhuma candidata possui evidência LIVE/CACHED.
+
+Os canais `SUBSCRIPTION` e `API` são independentes. A beta.6 não transforma
+credenciais de assinatura em chaves de API e não fabrica consumo/custo de API
+quando não existe binding explícito.
 
 ## Escopo consolidado da beta.4
 
@@ -191,7 +203,7 @@ Windows:
 A evidência da beta.4 deve ser escrita em:
 
 ```text
-DEV/validation/local-beta/1.0.0-beta.4/<exact-sha>/<plataforma>/
+DEV/validation/local-beta/1.0.0-beta.6/<exact-sha>/<plataforma>/
 ```
 
 ## Matriz candidata
@@ -205,7 +217,7 @@ DEV/validation/local-beta/1.0.0-beta.4/<exact-sha>/<plataforma>/
 
 Implementação não equivale a suporte certificado.
 
-## Gates para `v1.0.0-beta.4`
+## Gates para `v1.0.0-beta.6`
 
 Antes de criar/publicar a tag:
 
@@ -215,7 +227,7 @@ Antes de criar/publicar a tag:
 - regressões de terminal e roteamento Mission;
 - control/runtime E2E;
 - build CLI;
-- `nexus version --json` = `1.0.0-beta.4`;
+- `nexus version --json` = `1.0.0-beta.6`;
 - `nexus doctor --json`;
 - OpenCode visível em providers/Usage/Agents quando instalado;
 - role switch provider-neutral por overlay; OpenCode → projection automática ou fallback explícito;
@@ -242,7 +254,7 @@ Antes de criar/publicar a tag:
 
 ## Gates para `v1.0.0` estável
 
-Além da beta.4 homologada, o SHA final precisa comprovar:
+Além da beta.6 homologada, o SHA final precisa comprovar:
 
 - CI exact-SHA completo;
 - security/govulncheck;
