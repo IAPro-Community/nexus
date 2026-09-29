@@ -511,3 +511,22 @@ func TestAvailabilityLabelExhaustedFiveHour(t *testing.T) {
 		t.Fatalf("AvailabilityLabel=%q want QUOTA ESGOTADA", got)
 	}
 }
+
+
+func TestBestGroupRemainingRatioIsLiteralNotCompositeRoutingScore(t *testing.T) {
+	qv := QuotaView{
+		Status: string(model.UsageCached),
+		ModelGroups: []ModelGroup{
+			{Key: "gemini", Windows: []Window{{Kind: "5h", Remaining: 0}, {Kind: "weekly", Remaining: 66}}},
+			{Key: "claude_gpt", Windows: []Window{{Kind: "5h", Remaining: 100}, {Kind: "weekly", Remaining: 100}}},
+		},
+	}
+	ratio, ok := qv.BestGroupRemainingRatio()
+	if !ok || ratio != 1 {
+		t.Fatalf("literal best-pool ratio=%v ok=%v want 1.0", ratio, ok)
+	}
+	composite, ok := qv.EffectiveCapacityRatio()
+	if !ok || composite == ratio {
+		t.Fatalf("routing ratio=%v must remain distinct from literal quota ratio=%v", composite, ratio)
+	}
+}
