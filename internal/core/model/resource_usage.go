@@ -84,6 +84,7 @@ type RateLimitState struct {
 // Legacy quota_remaining remains available while clients migrate.
 type ResourceChannelState struct {
 	Channel        ResourceChannel   `json:"channel"`
+	AccountScope   AccountScope      `json:"account_scope,omitempty"`
 	Status         UsageStatus       `json:"status"`
 	Source         UsageSource       `json:"source,omitempty"`
 	Confidence     UsageConfidence   `json:"confidence,omitempty"`
