@@ -9,6 +9,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/control/driver"
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/profile"
 )
@@ -104,8 +105,10 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		// semantic across providers: the best currently usable pool's literal
 		// remaining quota, normalized to 0..1. Multi-pool breadth belongs to the
 		// scheduler ranking and must never be encoded into this public field.
-		qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
+		usageSnapshot := profile.GetUsageSnapshot(p.Provider, p.Name)
+		qv := quota.BuildQuotaView(usageSnapshot, acc.Email, acc.Plan)
 		quotaRemaining := quotaRemainingRatio(qv)
+		resourceChannels := subscriptionResourceChannels(usageSnapshot)
 
 		accounts = append(accounts, ProviderAccount{
 			ID:             id,
@@ -117,12 +120,14 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 			IsDefault:      isDefault,
 			Available:      qv.IsAvailable(),
 			AvailReasons:   &qv.AvailReasons,
-			QuotaView:      &qv,
-			Capabilities:   capabilities,
-			QuotaRemaining: quotaRemaining,
+			QuotaView:        &qv,
+			Capabilities:     capabilities,
+			ResourceChannels: resourceChannels,
+			QuotaRemaining:   quotaRemaining,
 			QuotaTotal:     1.0,
 			RateLimited:    qv.Status == "RATE_LIMITED",
 			NetworkError:   strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
+			Scope:          acc.AccountScope,
 			LastChecked:    time.Now(),
 		})
 		accIdx := len(accounts) - 1
@@ -267,6 +272,17 @@ func (n *Nexus) ResolveStartParams(agentID, provider, profile string) (string, s
 	}
 
 	return "", "", fmt.Errorf("REQUIRED_RESOURCE_SELECTION: agent %s has no configured provider; select a resource first", agentID)
+}
+
+func subscriptionResourceChannels(snap model.UsageSnapshot) []model.ResourceChannelState {
+	if snap.ProviderID == "" && snap.ProfileID == "" {
+		return nil
+	}
+	copy := snap
+	return []model.ResourceChannelState{{
+		Channel: model.ResourceChannelSubscription,
+		Quota:   &copy,
+	}}
 }
 
 func quotaRemainingRatio(qv quota.QuotaView) float64 {
