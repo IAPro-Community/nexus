@@ -53,6 +53,28 @@ const healthTone = (health: string) =>
 const quotaTone = (state: string) =>
   state === 'confirmed' ? 'success' : state === 'stale' ? 'warning' : 'danger';
 
+const compactNumber = (value?: number) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return new Intl.NumberFormat(undefined, {
+    notation: value >= 10000 ? 'compact' : 'standard',
+    maximumFractionDigits: value >= 1000 ? 1 : 0,
+  }).format(value);
+};
+
+const money = (currency?: string, value?: number) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  const code = (currency || 'USD').toUpperCase();
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(value);
+  } catch {
+    return `${code} ${value.toFixed(2)}`;
+  }
+};
+
 export interface UsageAccountCardProps {
   account: ProviderAccount;
   now?: number;
@@ -102,6 +124,9 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
   const capabilities = Object.entries(account.capabilities || {})
     .filter(([, value]) => value && value !== 'false')
     .slice(0, 5);
+  const apiChannel = asArray<NonNullable<ProviderAccount['resource_channels']>[number]>(
+    account.resource_channels,
+  ).find((channel) => channel.channel === 'API');
 
   const planKey = displayLabelKey(qv?.plan);
   const age = relativeAge(qv?.fetched_at, now);
@@ -418,6 +443,56 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
             <p className={styles.stateLine}>{t('resources.state.unknown')}</p>
           )}
         </div>
+
+        {apiChannel ? (
+          <section className={styles.capsSection} aria-label={t('usage.apiUsageTitle', 'Uso de API')}>
+            <div className={styles.titleRow}>
+              <span className={styles.capsLabel}>{t('usage.apiUsageTitle', 'Uso de API')}</span>
+              <Badge tone={apiChannel.status === 'LIVE' || apiChannel.status === 'CACHED' ? 'success' : 'warning'}>
+                {translateStatus(apiChannel.status)}
+              </Badge>
+              {apiChannel.source ? <Badge tone="default">{apiChannel.source}</Badge> : null}
+            </div>
+            <div className={styles.capsList}>
+              {compactNumber(apiChannel.consumption?.input_tokens) ? (
+                <span className={styles.capChip}>
+                  {t('usage.apiInputTokens', 'Entrada')}: {compactNumber(apiChannel.consumption?.input_tokens)}
+                </span>
+              ) : null}
+              {compactNumber(apiChannel.consumption?.cached_tokens) ? (
+                <span className={styles.capChip}>
+                  {t('usage.apiCachedTokens', 'Cache')}: {compactNumber(apiChannel.consumption?.cached_tokens)}
+                </span>
+              ) : null}
+              {compactNumber(apiChannel.consumption?.output_tokens) ? (
+                <span className={styles.capChip}>
+                  {t('usage.apiOutputTokens', 'Saída')}: {compactNumber(apiChannel.consumption?.output_tokens)}
+                </span>
+              ) : null}
+              {compactNumber(apiChannel.consumption?.requests) ? (
+                <span className={styles.capChip}>
+                  {t('usage.apiRequests', 'Requests')}: {compactNumber(apiChannel.consumption?.requests)}
+                </span>
+              ) : null}
+              {money(apiChannel.cost?.currency, apiChannel.cost?.amount) ? (
+                <span className={styles.capChip}>
+                  {t('usage.apiCost', 'Custo')}: {money(apiChannel.cost?.currency, apiChannel.cost?.amount)}
+                </span>
+              ) : null}
+              {money(apiChannel.cost?.currency, apiChannel.cost?.budget_remaining) ? (
+                <span className={styles.capChip}>
+                  {t('usage.apiBudgetRemaining', 'Orçamento restante')}:{' '}
+                  {money(apiChannel.cost?.currency, apiChannel.cost?.budget_remaining)}
+                </span>
+              ) : null}
+            </div>
+            {apiChannel.observed_at ? (
+              <small className={styles.stateLine}>
+                {t('usage.apiObservedAt', 'Telemetria API')}: {new Date(apiChannel.observed_at).toLocaleString()}
+              </small>
+            ) : null}
+          </section>
+        ) : null}
 
         <footer className={styles.footer}>
           {account.eligibility ? (
