@@ -7,6 +7,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 func TestDecomposePromptIntoFlowProposal_SimpleTask(t *testing.T) {
@@ -103,6 +104,69 @@ func TestDecomposePromptIntoFlowProposal_ComplexFeature(t *testing.T) {
 	// Verify DAG order
 	if err := ValidateFlowDAG(proposal.Flow); err != nil {
 		t.Fatalf("proposal DAG is invalid: %v", err)
+	}
+}
+
+
+
+func TestDecomposePromptAutoRoutesRegisteredProviderAndSkills(t *testing.T) {
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	if _, err := profile.Create("codex", "review"); err != nil {
+		t.Fatal(err)
+	}
+
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus {
+		return MaestroStatus{
+			Available: true,
+			Mode:      MaestroAssist,
+			Capabilities: &MaestroCapability{Version: "1.0.0", Skills: []MaestroSkillDesc{
+				{ID: "code-review", Name: "Code Review", Description: "Run a comprehensive code review."},
+				{ID: "skill-quality-gate", Name: "Quality Gate", Description: "Avalia skills, plugins e MCPs antes da adoção.", Triggers: []string{"quality gate", "skill gate", "avaliar skill"}},
+			}},
+		}
+	}
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "RegisteredRouting", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	proposal, err := n.DecomposePromptIntoFlowProposal(context.Background(), FlowDecompositionRequest{
+		ProjectID: project.ID,
+		Goal:      "estou fazendo review e quero que chame o codex para validar as skills",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(proposal.Flow.Steps) == 0 {
+		t.Fatal("expected executable Flow steps")
+	}
+
+	foundReview, foundQualityGate := false, false
+	for _, step := range proposal.Flow.Steps {
+		if step.DesiredProvider != "codex" {
+			t.Fatalf("step %s desired_provider=%q want codex", step.ID, step.DesiredProvider)
+		}
+		if step.ResourcePolicy != string(PolicyPreferProvider) {
+			t.Fatalf("step %s resource_policy=%q want %q", step.ID, step.ResourcePolicy, PolicyPreferProvider)
+		}
+		for _, skillID := range step.SkillIDs {
+			switch skillID {
+			case "code-review":
+				foundReview = true
+			case "skill-quality-gate":
+				foundQualityGate = true
+			}
+		}
+	}
+	if !foundReview || !foundQualityGate {
+		t.Fatalf("automatic registered skills were not propagated through Flow: review=%t quality_gate=%t flow=%+v", foundReview, foundQualityGate, proposal.Flow.Steps)
 	}
 }
 
