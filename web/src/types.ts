@@ -128,6 +128,37 @@ export interface RegisteredProfile {
   account_scope?: AccountScope;
 }
 
+export type ResourceChannel = 'SUBSCRIPTION' | 'API';
+
+export interface ResourceChannelState {
+  channel: ResourceChannel;
+  status: string;
+  source?: string;
+  confidence?: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN' | string;
+  observed_at?: string;
+  quota_remaining?: number;
+  consumption?: {
+    input_tokens?: number;
+    cached_tokens?: number;
+    output_tokens?: number;
+    reasoning_tokens?: number;
+    requests?: number;
+  };
+  cost?: {
+    currency?: string;
+    amount?: number;
+    budget?: number;
+    budget_remaining?: number;
+  };
+  rate_limits?: Array<{
+    kind?: string;
+    limit?: number;
+    remaining?: number;
+    unit?: string;
+    reset_at?: string;
+  }>;
+}
+
 export interface ProviderAccount {
   id: string;
   provider: string;
@@ -137,8 +168,10 @@ export interface ProviderAccount {
   is_default: boolean;
   available: boolean;
   capabilities?: Record<string, string>;
+  resource_channels?: ResourceChannelState[];
   quota_remaining: number;
   quota_total: number;
+  routing_capacity_score?: number;
   rate_limited: boolean;
   network_error?: boolean;
   health: string;
