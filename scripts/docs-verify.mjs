@@ -111,29 +111,17 @@ if (existsSync(manifestPath)) {
     errors.push('visual manifest has invalid source_sha');
   }
   if (manifest.source_sha) {
-    // Only visual/capture-affecting files invalidate screenshot evidence.
-    // Data/API/types/terminal transport changes under web/src are covered by
-    // their own tests and must not create false visual-staleness failures.
     const visualPaths = ['web/src', 'web/public', 'cmd/nexus-desktop', 'internal/desktop', 'web/scripts'];
-    const visualFile = (file) =>
-      /\.(?:tsx|css|scss|svg|png|jpe?g|webp)$/i.test(file) ||
-      file === 'web/scripts/docs-capture.mjs' ||
-      file.startsWith('web/public/');
-
     const diff = spawnSync('git', ['diff', '--name-only', `${manifest.source_sha}..HEAD`, '--', ...visualPaths], {
       cwd: root,
       encoding: 'utf8',
     });
-    const changedVisualPaths = (diff.stdout || '')
-      .split(/\r?\n/)
-      .map((item) => item.trim())
-      .filter((item) => item && visualFile(item));
-    if (diff.status === 0 && changedVisualPaths.length) {
-      errors.push(`visual manifest is stale after visual changes since ${manifest.source_sha}: ${changedVisualPaths.join(', ')}`);
+    if (diff.status === 0 && (diff.stdout || '').trim()) {
+      errors.push(`visual manifest is stale after visual changes since ${manifest.source_sha}: ${(diff.stdout || '').trim().replace(/\n/g, ', ')}`);
     }
-    // A manifest is evidence for an immutable candidate. Comparing only
+    // A manifest is evidence for an immutable candidate.  Comparing only
     // against HEAD would incorrectly pass while visual files are dirty in
-    // the worktree, so include both staged and unstaged visual changes.
+    // the worktree, so include both staged and unstaged changes as well.
     const dirty = spawnSync('git', ['diff', '--name-only', '--', ...visualPaths], {
       cwd: root,
       encoding: 'utf8',
@@ -146,7 +134,7 @@ if (existsSync(manifestPath)) {
       `${dirty.stdout || ''}\n${staged.stdout || ''}`
         .split(/\r?\n/)
         .map((item) => item.trim())
-        .filter((item) => item && visualFile(item)),
+        .filter(Boolean),
     )];
     if (dirty.status === 0 && staged.status === 0 && dirtyPaths.length) {
       errors.push(`visual manifest cannot certify uncommitted visual changes for ${manifest.source_sha}: ${dirtyPaths.join(', ')}`);
