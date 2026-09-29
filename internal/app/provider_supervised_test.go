@@ -21,26 +21,32 @@ func TestProviderLaunchFlagsAreNexusOwned(t *testing.T) {
 	}
 }
 
-func TestWantInteractiveLeadDefaultTrue(t *testing.T) {
-	if !wantInteractiveLead(nil) {
-		t.Fatal("supervised Nexus sessions must bind the orchestration Lead by default")
+func TestWantInteractiveLeadDefaultsToAGYOnly(t *testing.T) {
+	if !wantInteractiveLead("agy", nil) {
+		t.Fatal("AGY supervised sessions must bind the orchestration Lead by default")
 	}
-	if !wantInteractiveLead([]string{"--yolo", "--model", "gpt-5"}) {
-		t.Fatal("provider flags must preserve the default Interactive Lead")
+	if !wantInteractiveLead("agy", []string{"--yolo", "--model", "gemini"}) {
+		t.Fatal("AGY provider flags must preserve the default Interactive Lead")
+	}
+	if wantInteractiveLead("codex", []string{"--yolo"}) {
+		t.Fatal("Codex must remain byte-transparent by default")
+	}
+	if wantInteractiveLead("opencode", nil) {
+		t.Fatal("unverified provider TUIs must not become interception defaults")
 	}
 }
 
-func TestWantInteractiveLeadNoLeadOptOutWins(t *testing.T) {
-	if !wantInteractiveLead([]string{"--lead"}) {
-		t.Fatal("explicit --lead must keep Interactive Lead enabled")
+func TestWantInteractiveLeadExplicitOptInAndNoLeadWins(t *testing.T) {
+	if !wantInteractiveLead("codex", []string{"--lead"}) {
+		t.Fatal("explicit --lead must opt a provider into Interactive Lead")
 	}
-	if !wantInteractiveLead([]string{"--yolo", "--LEAD", "--model", "x"}) {
+	if !wantInteractiveLead("claude", []string{"--yolo", "--LEAD", "--model", "x"}) {
 		t.Fatal("expected case-insensitive --lead compatibility")
 	}
-	if wantInteractiveLead([]string{"--lead", "--no-lead"}) {
+	if wantInteractiveLead("agy", []string{"--lead", "--no-lead"}) {
 		t.Fatal("--no-lead must win when both compatibility flags are present")
 	}
-	if wantInteractiveLead([]string{"--no-lead"}) {
+	if wantInteractiveLead("agy", []string{"--no-lead"}) {
 		t.Fatal("expected --no-lead to keep provider-native behavior")
 	}
 }
