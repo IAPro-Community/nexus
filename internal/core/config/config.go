@@ -45,6 +45,17 @@ type IntelligenceMemory struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
+// APIUsageBinding binds a managed CLI profile to an independently authenticated
+// API usage source. APIKeyEnv names an environment variable; raw API/admin keys
+// are never persisted in Nexus config.
+type APIUsageBinding struct {
+	Provider   string   `json:"provider"` // currently "openai"
+	APIKeyEnv  string   `json:"api_key_env,omitempty"`
+	ProjectIDs []string `json:"project_ids,omitempty"`
+	UserIDs    []string `json:"user_ids,omitempty"`
+	APIKeyIDs  []string `json:"api_key_ids,omitempty"`
+}
+
 // Config represents persistent application settings and user preferences.
 type Config struct {
 	ConfigVersion        int                            `json:"config_version"`
@@ -61,8 +72,9 @@ type Config struct {
 	MaxConcurrency       int                            `json:"max_concurrency"`
 	Language             string                         `json:"language,omitempty"`
 	Intelligence         IntelligenceConfig             `json:"intelligence,omitempty"`
-	IntelligenceMemories []IntelligenceMemory           `json:"intelligence_memories,omitempty"`
-	FlagAliases          map[string]map[string][]string `json:"flag_aliases,omitempty"` // alias -> provider -> flags
+	IntelligenceMemories []IntelligenceMemory                    `json:"intelligence_memories,omitempty"`
+	APIUsageBindings     map[string]map[string]APIUsageBinding   `json:"api_usage_bindings,omitempty"` // CLI provider -> profile -> API usage binding
+	FlagAliases          map[string]map[string][]string          `json:"flag_aliases,omitempty"` // alias -> provider -> flags
 }
 
 var configMu sync.RWMutex
@@ -84,6 +96,7 @@ func NewDefaultConfig() Config {
 		MaxConcurrency:     4,
 		Language:           "auto",
 		Intelligence:       IntelligenceConfig{Mode: IntelligenceOff},
+		APIUsageBindings:   make(map[string]map[string]APIUsageBinding),
 	}
 }
 
@@ -536,6 +549,20 @@ func (c Config) Validate() []string {
 	}
 	if c.Intelligence.Mode != IntelligenceOff && c.Intelligence.Mode != IntelligenceCLI && c.Intelligence.Mode != IntelligenceOpenAICompatible {
 		issues = append(issues, fmt.Sprintf("unknown intelligence mode %q (allowed: OFF, CLI, OPENAI_COMPATIBLE)", c.Intelligence.Mode))
+	}
+	for cliProvider, profiles := range c.APIUsageBindings {
+		for profileName, binding := range profiles {
+			if strings.TrimSpace(cliProvider) == "" || strings.TrimSpace(profileName) == "" {
+				issues = append(issues, "api_usage_bindings requires non-empty provider/profile keys")
+				continue
+			}
+			if !strings.EqualFold(strings.TrimSpace(binding.Provider), "openai") {
+				issues = append(issues, fmt.Sprintf("api_usage_bindings[%s][%s]: unsupported API usage provider %q", cliProvider, profileName, binding.Provider))
+			}
+			if len(binding.ProjectIDs) == 0 && len(binding.UserIDs) == 0 && len(binding.APIKeyIDs) == 0 {
+				issues = append(issues, fmt.Sprintf("api_usage_bindings[%s][%s]: at least one project_id, user_id or api_key_id is required", cliProvider, profileName))
+			}
+		}
 	}
 	return issues
 }
