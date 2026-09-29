@@ -152,6 +152,13 @@ func (n *Nexus) DecideIntentForProject(ctx context.Context, projectID, goal stri
 		snapshot = &discovered
 	}
 	decision := DecideIntent(goal, snapshot)
+	// Provider names are accepted only from the same registered profile
+	// authority that backs Usage/ListResources. PATH discovery or an arbitrary
+	// model/provider name in the prompt can never mint a routing candidate.
+	if provider, ok, providerErr := n.ResolveRegisteredProviderPreference(goal); providerErr == nil && ok {
+		decision.TaskRequirements.PreferProvider = provider
+		decision.Evidence = append(decision.Evidence, "registered-provider-request:"+provider)
+	}
 	if decision.Strategy == IntentClarify && len(decision.BlockingQuestions) == 0 {
 		return IntentDecision{}, fmt.Errorf("intent clarification has no blocking question")
 	}
