@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
@@ -23,6 +24,7 @@ type BalanceEntity struct {
 	QuotaRemaining float64             `json:"quota_remaining"`
 	Available      bool                `json:"available"`
 	Health         string              `json:"health"`
+	Scope          model.AccountScope  `json:"account_scope,omitempty"`
 	Eligibility    *quota.Eligibility  `json:"eligibility,omitempty"`
 	ModelGroups    []BalanceModelGroup `json:"model_groups,omitempty"`
 }
@@ -68,6 +70,7 @@ func BuildBalanceInventory(accounts []ProviderAccount) []BalanceEntity {
 			QuotaRemaining: account.QuotaRemaining,
 			Available:      account.Available,
 			Health:         account.Health,
+			Scope:          account.Scope,
 			Eligibility:    account.Eligibility,
 			ModelGroups:    make([]BalanceModelGroup, 0, len(view.ModelGroups)),
 		}
