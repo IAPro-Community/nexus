@@ -29,6 +29,17 @@ jobs:
       native-ci-run-id: ${{ steps.verify.outputs.native-ci-run-id }}
       native-policy: ${{ steps.verify.outputs.native-policy }}
     steps:
+      - name: Require canonical release HEAD
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          canonical_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/release/v1.0.0" --jq '.object.sha')"
+          test -n "$canonical_sha"
+          test "$GITHUB_SHA" = "$canonical_sha" || {
+            echo "Refusing release from $GITHUB_SHA; canonical release/v1.0.0 HEAD is $canonical_sha" >&2
+            exit 1
+          }
       - name: Wait for required Nexus checks on this SHA
         id: verify
         env:
