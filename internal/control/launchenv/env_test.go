@@ -45,3 +45,12 @@ func TestMergeProtectsIsolationHomes(t *testing.T) {
 		t.Fatalf("non-isolation override missing: %v", got)
 	}
 }
+
+func TestEnvKeyForGOOSWindowsCaseInsensitive(t *testing.T) {
+	if envKeyForGOOS("Path", "windows") != "PATH" {
+		t.Fatal("Windows environment key was not canonicalized")
+	}
+	if envKeyForGOOS("Path", "linux") != "Path" {
+		t.Fatal("Unix environment key must remain case-sensitive")
+	}
+}
