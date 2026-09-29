@@ -41,7 +41,6 @@ func TestQuotaRemainingRatioUnknownNeverInventsCapacity(t *testing.T) {
 	}
 }
 
-
 func TestSubscriptionResourceChannelsPreserveExistingSnapshot(t *testing.T) {
 	remaining, used := 100.0, 0.0
 	snap := model.UsageSnapshot{
