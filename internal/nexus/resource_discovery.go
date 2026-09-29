@@ -111,24 +111,24 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		resourceChannels := subscriptionResourceChannels(usageSnapshot)
 
 		accounts = append(accounts, ProviderAccount{
-			ID:             id,
-			Provider:       p.Provider,
-			Profile:        p.Name,
-			DisplayName:    displayName,
-			Authenticated:  authenticated,
-			Health:         health,
-			IsDefault:      isDefault,
-			Available:      qv.IsAvailable(),
-			AvailReasons:   &qv.AvailReasons,
+			ID:               id,
+			Provider:         p.Provider,
+			Profile:          p.Name,
+			DisplayName:      displayName,
+			Authenticated:    authenticated,
+			Health:           health,
+			IsDefault:        isDefault,
+			Available:        qv.IsAvailable(),
+			AvailReasons:     &qv.AvailReasons,
 			QuotaView:        &qv,
 			Capabilities:     capabilities,
 			ResourceChannels: resourceChannels,
 			QuotaRemaining:   quotaRemaining,
-			QuotaTotal:     1.0,
-			RateLimited:    qv.Status == "RATE_LIMITED",
-			NetworkError:   strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
-			Scope:          acc.AccountScope,
-			LastChecked:    time.Now(),
+			QuotaTotal:       1.0,
+			RateLimited:      qv.Status == "RATE_LIMITED",
+			NetworkError:     strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
+			Scope:            acc.AccountScope,
+			LastChecked:      time.Now(),
 		})
 		accIdx := len(accounts) - 1
 		elig := quota.EvaluateEligibility(accountEligibilityInput(accounts[accIdx], false))
