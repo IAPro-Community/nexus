@@ -219,6 +219,18 @@ func TestNexusProjectsAndAgentsAPI(t *testing.T) {
 		t.Errorf("delete agent expected 200, got %d", resp.StatusCode)
 	}
 
+	// DELETE is idempotent for stale UI/surface references.
+	dreq, _ = http.NewRequest(http.MethodDelete, base+"/api/v1/agents/"+agent.ID, nil)
+	dreq.Header.Set("X-CSRF-Token", csrf)
+	resp, err = client.Do(dreq)
+	if err != nil {
+		t.Fatalf("repeat delete agent: %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("repeat delete agent expected 200, got %d", resp.StatusCode)
+	}
+
 	// Delete project.
 	pdreq, _ := http.NewRequest(http.MethodDelete, base+"/api/v1/projects/"+proj.ID, nil)
 	pdreq.Header.Set("X-CSRF-Token", csrf)
