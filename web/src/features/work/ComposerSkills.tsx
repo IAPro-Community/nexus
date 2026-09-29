@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card, Input } from '../../design-system';
-import type { ComposerSkillCatalogItem, ComposerSkillProposal } from '../../types';
+import type { BalanceEntity, ComposerSkillCatalogItem, ComposerSkillProposal } from '../../types';
 import { asStringArray } from '../../lib/safeArray';
+import { nexus } from '../../nexus/api';
 import styles from './ComposerSurface.module.scss';
 
 function catalogMatches(item: ComposerSkillCatalogItem, query: string): boolean {
@@ -44,6 +45,28 @@ export const ComposerSkills: React.FC<{
 }) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
+  const [balanceEntities, setBalanceEntities] = useState<BalanceEntity[]>([]);
+  const [balanceLoaded, setBalanceLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void nexus
+      .listResources()
+      .then((payload) => {
+        if (!active) return;
+        setBalanceEntities(payload.balance_entities || []);
+      })
+      .catch(() => {
+        if (!active) return;
+        setBalanceEntities([]);
+      })
+      .finally(() => {
+        if (active) setBalanceLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const normalized = query.trim();
@@ -150,6 +173,35 @@ export const ComposerSkills: React.FC<{
 
   const content = (
     <>
+      <div className={styles.skillStack}>
+        <small className={styles.skillReason}>
+          {t(
+            'work.composer.balanceExecutors',
+            'Registered AI executors with measurable limits',
+          )}{' '}
+          ({balanceEntities.length})
+        </small>
+        {balanceEntities.length > 0 ? (
+          <div className={styles.skillActions}>
+            {balanceEntities.map((entity) => (
+              <Badge
+                key={entity.id}
+                tone={entity.available ? 'success' : 'warning'}
+                title={`${entity.usage_status} · ${entity.health}`}
+              >
+                {entity.provider}:{entity.profile} · {Math.round(entity.quota_remaining * 100)}%
+              </Badge>
+            ))}
+          </div>
+        ) : balanceLoaded ? (
+          <small className={styles.skillReason}>
+            {t(
+              'work.composer.noBalanceExecutors',
+              'No registered AI currently has measurable quota evidence for automatic balancing.',
+            )}
+          </small>
+        ) : null}
+      </div>
       <Input
         value={query}
         onChange={setQuery}
