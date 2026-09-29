@@ -106,7 +106,7 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		// remaining quota, normalized to 0..1. Multi-pool breadth belongs to the
 		// scheduler ranking and must never be encoded into this public field.
 		usageSnapshot := profile.GetUsageSnapshot(p.Provider, p.Name)
-		qv := quota.BuildQuotaView(usageSnapshot, acc.Email, acc.Plan)
+		qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
 		quotaRemaining := quotaRemainingRatio(qv)
 		resourceChannels := subscriptionResourceChannels(usageSnapshot)
 
