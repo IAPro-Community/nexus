@@ -110,14 +110,13 @@ func TestDecomposePromptIntoFlowProposal_ComplexFeature(t *testing.T) {
 
 
 func TestDecomposePromptAutoRoutesRegisteredProviderAndSkills(t *testing.T) {
-	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
 	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
 	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	n := openTestNexus(t)
 	if _, err := profile.Create("codex", "review"); err != nil {
 		t.Fatal(err)
 	}
 
-	n := openTestNexus(t)
 	n.maestroStatus = func() MaestroStatus {
 		return MaestroStatus{
 			Available: true,
