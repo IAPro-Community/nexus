@@ -132,6 +132,7 @@ export type ResourceChannel = 'SUBSCRIPTION' | 'API';
 
 export interface ResourceChannelState {
   channel: ResourceChannel;
+  account_scope?: AccountScope;
   status: string;
   source?: string;
   confidence?: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN' | string;
