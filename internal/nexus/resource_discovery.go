@@ -81,19 +81,24 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		}
 
 		capabilities := map[string]string{}
-		det := detectionFor(p.Provider)
-		if det.ok {
-			authenticated = det.installed && acc.Authenticated
-			if !det.installed {
-				health = "unavailable"
-			} else if !acc.Authenticated {
-				health = "auth_required"
-			}
-			if d, derr := n.controlDrivers().Get(p.Provider); derr == nil {
-				capabilities = effectiveCapabilityMap(d.EffectiveCaps(ctx, p))
-			}
-		} else {
+		if p.Disabled {
+			authenticated = false
 			health = "unavailable"
+		} else {
+			det := detectionFor(p.Provider)
+			if det.ok {
+				authenticated = det.installed && acc.Authenticated
+				if !det.installed {
+					health = "unavailable"
+				} else if !acc.Authenticated {
+					health = "auth_required"
+				}
+				if d, derr := n.controlDrivers().Get(p.Provider); derr == nil {
+					capabilities = effectiveCapabilityMap(d.EffectiveCaps(ctx, p))
+				}
+			} else {
+				health = "unavailable"
+			}
 		}
 
 		isDefault := false
@@ -108,7 +113,11 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		usageSnapshot := profile.GetSanitizedUsageSnapshot(p.Provider, p.Name, acc.Email)
 		qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
 		quotaRemaining := quotaRemainingRatio(qv)
-		resourceChannels := subscriptionResourceChannels(usageSnapshot)
+		scope := acc.AccountScope
+		resourceChannels := subscriptionResourceChannels(usageSnapshot, scope)
+		if apiChannel, ok := profile.GetAPIResourceChannel(p.Provider, p.Name, scope); ok {
+			resourceChannels = append(resourceChannels, apiChannel)
+		}
 
 		accounts = append(accounts, ProviderAccount{
 			ID:               id,
@@ -127,7 +136,7 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 			QuotaTotal:       1.0,
 			RateLimited:      qv.Status == "RATE_LIMITED",
 			NetworkError:     strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
-			Scope:            acc.AccountScope,
+			Scope:            scope,
 			LastChecked:      time.Now(),
 		})
 		accIdx := len(accounts) - 1
@@ -274,14 +283,19 @@ func (n *Nexus) ResolveStartParams(agentID, provider, profile string) (string, s
 	return "", "", fmt.Errorf("REQUIRED_RESOURCE_SELECTION: agent %s has no configured provider; select a resource first", agentID)
 }
 
-func subscriptionResourceChannels(snap model.UsageSnapshot) []model.ResourceChannelState {
+func subscriptionResourceChannels(snap model.UsageSnapshot, scope model.AccountScope) []model.ResourceChannelState {
 	if snap.ProviderID == "" && snap.ProfileID == "" {
 		return nil
 	}
 	copy := snap
 	return []model.ResourceChannelState{{
-		Channel: model.ResourceChannelSubscription,
-		Quota:   &copy,
+		Channel:      model.ResourceChannelSubscription,
+		AccountScope: scope,
+		Status:       snap.Status,
+		Source:       snap.Source,
+		Confidence:   snap.Confidence,
+		ObservedAt:   snap.FetchedAt,
+		Quota:        &copy,
 	}}
 }
 
