@@ -61,7 +61,7 @@ func TestPreviewPlanExecutionUsesExistingMatcherAndResourceSchedulerWithoutMutat
 		{
 			ID: "claude-low", Provider: "claude", Profile: "default", DisplayName: "Claude low",
 			Authenticated: true, Available: true, Health: "healthy",
-			QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.25,
+			QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.25, QuotaTotal: 1,
 			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 		},
 	}
