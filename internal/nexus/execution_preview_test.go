@@ -55,7 +55,7 @@ func TestPreviewPlanExecutionUsesExistingMatcherAndResourceSchedulerWithoutMutat
 		{
 			ID: "codex-main", Provider: "codex", Profile: "main", DisplayName: "Codex main",
 			Authenticated: true, Available: true, Health: "healthy",
-			QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.80,
+			QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.80, QuotaTotal: 1,
 			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 		},
 		{
@@ -171,7 +171,7 @@ func TestPreviewPlanExecutionExplainsSpecialistCreationWithoutStartingAgent(t *t
 	accounts := []ProviderAccount{{
 		ID: "codex-main", Provider: "codex", Profile: "main", DisplayName: "Codex main",
 		Authenticated: true, Available: true, Health: "healthy",
-		QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.70,
+		QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.70, QuotaTotal: 1,
 		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 	}}
 
@@ -258,7 +258,7 @@ func TestPreviewPlanExecutionRequiresCostConfirmationWithoutClaimingHeadroom(t *
 	accounts := []ProviderAccount{{
 		ID: "codex-main", Provider: "codex", Profile: "main", DisplayName: "Codex main",
 		Authenticated: true, Available: true, Health: "healthy",
-		QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.80,
+		QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.80, QuotaTotal: 1,
 		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 	}}
 
@@ -328,7 +328,7 @@ func TestExecutionPreviewAdmissionUsesApprovedAutonomyContract(t *testing.T) {
 	accounts := []ProviderAccount{{
 		ID: "gemini-main", Provider: "gemini", Profile: "default", DisplayName: "Gemini",
 		Authenticated: true, Available: true, Health: "healthy",
-		QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.8,
+		QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.8, QuotaTotal: 1,
 		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 	}}
 
