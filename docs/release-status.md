@@ -5,12 +5,12 @@ Atualizado em **29 de setembro de 2026**.
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
-| Versão do source candidato | `1.0.0-beta.6` |
+| Versão do source candidato | `1.0.0-beta.7` |
 | Última beta pública registrada | `v1.0.0-beta.1` |
 | Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
 | Release estável v1 | **ainda não publicada** |
 | CI do SHA candidato | obrigatório no SHA final; PR CI é evidência de merge, não substitui exact-SHA |
-| Veredito atual | **beta.6 implementada no source; homologação/certificação exact-SHA pendentes** |
+| Veredito atual | **beta.7 em convergência no source; CI do HEAD e homologação/certificação exact-SHA pendentes** |
 
 ## Linha canônica de integração — 2026-09-27
 
@@ -27,6 +27,19 @@ A branch `release/v1.0.0` é a única linha canônica de integração da Nexus 1
 - integração na branch beta não equivale a PASS, tag ou publicação.
 
 A linha canônica já usa a migração Wails v3 reconciliada. A publicação permanece bloqueada pelos gates same-SHA e pelos blockers registrados na issue #27.
+
+## Convergência Beta 7 — 2026-09-29
+
+A Beta 7 fecha a fragmentação remanescente sem promover branches históricas a linhas de release. O destino continua sendo exclusivamente `release/v1.0.0`.
+
+- o hardening Windows/ConPTY/Direct/Mission já incorporado pelo PR #25 continua canônico e não é reimportado de branches antigas;
+- o fluxo de criação de Agent deixa de fabricar `provider:default` e adia o binding concreto para o Resource Picker;
+- o inventário de balanceamento deriva somente de provider/profile registrados com evidência mensurável de quota;
+- telemetria OpenAI API é opt-in e permanece separada de quota de assinatura;
+- chaves administrativas de telemetria não são persistidas nem propagadas a processos filhos;
+- `docs/GLOSSARY.md` é a única variante do glossário para evitar colisão em filesystems case-insensitive.
+
+Integração na branch canônica continua não equivalendo a certificação nativa ou publicação.
 
 ## Escopo consolidado da beta.6
 
