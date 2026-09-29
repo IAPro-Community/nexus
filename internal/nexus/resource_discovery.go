@@ -114,7 +114,10 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		if acc.AccountScope.Verifiable() {
 			scope = acc.AccountScope
 		}
-		channels := []model.ResourceChannelState{subscriptionResourceChannel(qv, quotaRemaining, quotaKnown)}
+		channels := []model.ResourceChannelState{subscriptionResourceChannel(qv, quotaRemaining, quotaKnown, scope)}
+		if apiChannel, ok := profile.GetAPIResourceChannel(p.Provider, p.Name, scope); ok {
+			channels = append(channels, apiChannel)
+		}
 
 		accounts = append(accounts, ProviderAccount{
 			ID:             id,
@@ -288,10 +291,11 @@ func literalQuotaRemainingRatio(qv quota.QuotaView) (float64, bool) {
 	return qv.BestGroupRemainingRatio()
 }
 
-func subscriptionResourceChannel(qv quota.QuotaView, quotaRemaining float64, quotaKnown bool) model.ResourceChannelState {
+func subscriptionResourceChannel(qv quota.QuotaView, quotaRemaining float64, quotaKnown bool, scope model.AccountScope) model.ResourceChannelState {
 	state := model.ResourceChannelState{
-		Channel:    model.ResourceChannelSubscription,
-		Status:     model.UsageStatus(strings.ToUpper(strings.TrimSpace(qv.Status))),
+		Channel:      model.ResourceChannelSubscription,
+		AccountScope: scope,
+		Status:       model.UsageStatus(strings.ToUpper(strings.TrimSpace(qv.Status))),
 		Source:     model.UsageSource(qv.Source),
 		ObservedAt: qv.FetchedAt,
 	}
