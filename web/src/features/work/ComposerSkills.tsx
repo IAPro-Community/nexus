@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card, Input } from '../../design-system';
-import type { BalanceEntity, ComposerSkillCatalogItem, ComposerSkillProposal } from '../../types';
+import type {
+  BalanceEntity,
+  ComposerSkillCatalogItem,
+  ComposerSkillProposal,
+} from '../../types';
 import { asStringArray } from '../../lib/safeArray';
 import { nexus } from '../../nexus/api';
 import styles from './ComposerSurface.module.scss';
