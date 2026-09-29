@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -26,14 +27,15 @@ import (
 // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE attribute. If ConPTY is unavailable
 // (e.g. Windows < 10.0.17763), Start falls back to standard pipes and reports
 // the backend truthfully as "standard pipes" (no resize / no raw mode).
-// Standard pipes are the default until ConPTY is explicitly enabled with
-// AI_CLI_ENABLE_CONPTY=1, because some Windows environments report a usable
-// ConPTY API while returning no bytes from the output channel.
+// ConPTY is the default on supported Windows versions. Standard pipes remain
+// the fallback when the API is unavailable or explicitly disabled with
+// AI_CLI_DISABLE_CONPTY=1.
 
 const (
 	procThreadAttributePseudoConsole = 0x00020016
 	extendedStartupInfoPresent       = 0x00080000
 	createUnicodeEnvironment         = 0x00000400
+	startfUseStdHandles              = 0x00000100
 	stillActive                      = 0x00000103 // 259
 	numAttributesForConPTY           = 1
 )
@@ -49,6 +51,8 @@ var (
 	procInitializeProcThreadAttributeList = modKernel32.NewProc("InitializeProcThreadAttributeList")
 	procUpdateProcThreadAttribute         = modKernel32.NewProc("UpdateProcThreadAttribute")
 	procDeleteProcThreadAttributeList     = modKernel32.NewProc("DeleteProcThreadAttributeList")
+	procLocalAlloc                        = modKernel32.NewProc("LocalAlloc")
+	procLocalFree                         = modKernel32.NewProc("LocalFree")
 	procCloseHandle                       = modKernel32.NewProc("CloseHandle")
 	procWaitForSingleObject               = modKernel32.NewProc("WaitForSingleObject")
 	procGetExitCodeProcess                = modKernel32.NewProc("GetExitCodeProcess")
@@ -115,7 +119,7 @@ func newPlatformBackend() Backend {
 }
 
 // BackendMechanism reports the platform's primary terminal backend.
-func BackendMechanism() string { return "Windows standard pipes (ConPTY opt-in)" }
+func BackendMechanism() string { return "Windows ConPTY (standard-pipe fallback)" }
 
 func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) error {
 	b.mu.Lock()
@@ -155,10 +159,10 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 	var hPC uintptr
 	r, _, e = procCreatePseudoConsole.Call(
 		uintptr(sizeVal), uintptr(hInRead), uintptr(hOutWrite), 0, uintptr(unsafe.Pointer(&hPC)))
-	if r != 0 || os.Getenv("AI_CLI_ENABLE_CONPTY") != "1" {
+	if r != 0 || os.Getenv("AI_CLI_DISABLE_CONPTY") == "1" {
 		// CreatePseudoConsole returns HRESULT S_OK (0) on success. A non-zero
-		// HRESULT means ConPTY is unavailable. Even when ConPTY reports success,
-		// keep standard pipes as the default until AI_CLI_ENABLE_CONPTY=1.
+		// HRESULT means ConPTY is unavailable. AI_CLI_DISABLE_CONPTY=1 is the
+		// explicit compatibility fallback for environments with broken ConPTY.
 		if r == 0 {
 			_ = closePseudoConsole(hPC)
 			hPC = 0
@@ -172,12 +176,16 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		b.pid = 0
 		b.isConPTY = false
 		b.mechanism = "standard pipes (ConPTY unavailable)"
-		if r == 0 && os.Getenv("AI_CLI_ENABLE_CONPTY") != "1" {
-			b.mechanism = "standard pipes (ConPTY opt-in)"
+		if r == 0 && os.Getenv("AI_CLI_DISABLE_CONPTY") == "1" {
+			b.mechanism = "standard pipes (ConPTY explicitly disabled)"
 		}
 		cmd.Stdin = childIn
 		cmd.Stdout = childOut
 		cmd.Stderr = childOut
+		if cmd.SysProcAttr == nil {
+			cmd.SysProcAttr = &syscall.SysProcAttr{}
+		}
+		cmd.SysProcAttr.HideWindow = true
 		if err := cmd.Start(); err != nil {
 			_ = childIn.Close()
 			_ = childOut.Close()
@@ -212,9 +220,16 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		_ = closePseudoConsole(hPC)
 		return errors.New("InitializeProcThreadAttributeList failed to size attribute list")
 	}
-	attrBuf := make([]byte, attrSize)
+	attrMem, _, e := procLocalAlloc.Call(0, attrSize)
+	if attrMem == 0 {
+		_ = closeHandle(hInWrite)
+		_ = closeHandle(hOutRead)
+		_ = closePseudoConsole(hPC)
+		return fmt.Errorf("LocalAlloc failed for process attribute list: %v", e)
+	}
+	defer procLocalFree.Call(attrMem)
 	r, _, e = procInitializeProcThreadAttributeList.Call(
-		uintptr(unsafe.Pointer(&attrBuf[0])), numAttributesForConPTY, 0, uintptr(unsafe.Pointer(&attrSize)))
+		attrMem, numAttributesForConPTY, 0, uintptr(unsafe.Pointer(&attrSize)))
 	if r == 0 {
 		_ = closeHandle(hInRead)
 		_ = closeHandle(hOutWrite)
@@ -223,10 +238,10 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		_ = closePseudoConsole(hPC)
 		return fmt.Errorf("InitializeProcThreadAttributeList failed: %v", e)
 	}
-	defer procDeleteProcThreadAttributeList.Call(uintptr(unsafe.Pointer(&attrBuf[0])))
+	defer procDeleteProcThreadAttributeList.Call(attrMem)
 
 	r, _, e = procUpdateProcThreadAttribute.Call(
-		uintptr(unsafe.Pointer(&attrBuf[0])),
+		attrMem,
 		0,
 		procThreadAttributePseudoConsole,
 		// PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE expects the HPCON handle
@@ -282,7 +297,10 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 
 	siEx := startupInfoEx{}
 	siEx.StartupInfo.Cb = uint32(unsafe.Sizeof(siEx))
-	siEx.LpAttributeList = uintptr(unsafe.Pointer(&attrBuf[0]))
+	// ConPTY owns the terminal transport. Clearing inherited standard handles
+	// prevents the child from falling back to a host console behind Nexus.
+	siEx.StartupInfo.DwFlags = startfUseStdHandles
+	siEx.LpAttributeList = attrMem
 
 	var pi processInformation
 	r, _, e = procCreateProcessW.Call(
@@ -362,13 +380,38 @@ func (b *windowsBackend) Close() error {
 		_ = b.inPipe.Close()
 		b.inPipe = nil
 	}
+	if b.isConPTY && b.hProcess != 0 {
+		_, _, _ = procTerminateProcess.Call(b.hProcess, 1)
+	}
+	if b.rPipe != nil {
+		// ConPTY can emit a final frame while closing. Drain concurrently so
+		// ClosePseudoConsole cannot deadlock behind a full synchronous pipe.
+		rPipe := b.rPipe
+		go func() {
+			buf := make([]byte, 4096)
+			for {
+				if _, err := rPipe.Read(buf); err != nil {
+					return
+				}
+			}
+		}()
+	}
+	if b.hPC != 0 {
+		hPC := b.hPC
+		done := make(chan struct{})
+		go func() {
+			_ = closePseudoConsole(hPC)
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+		}
+		b.hPC = 0
+	}
 	if b.rPipe != nil {
 		_ = b.rPipe.Close()
 		b.rPipe = nil
-	}
-	if b.hPC != 0 {
-		_ = closePseudoConsole(b.hPC)
-		b.hPC = 0
 	}
 	if b.hProcess != 0 {
 		_ = closeHandle(b.hProcess)
@@ -441,14 +484,20 @@ func (b *windowsBackend) Wait() error {
 	if h == 0 {
 		return nil
 	}
-	_, _, _ = procWaitForSingleObject.Call(h, ^uintptr(0)) // INFINITE
+	var code uint32
+	result, _, getErr := procGetExitCodeProcess.Call(h, uintptr(unsafe.Pointer(&code)))
+	if result == 0 {
+		return getErr
+	}
+	if code == stillActive {
+		_, _, _ = procWaitForSingleObject.Call(h, ^uintptr(0)) // INFINITE
+	}
 	b.mu.Lock()
 	if b.rPipe != nil {
 		_ = b.rPipe.Close()
 		b.rPipe = nil
 	}
 	b.mu.Unlock()
-	var code uint32
 	_, _, _ = procGetExitCodeProcess.Call(h, uintptr(unsafe.Pointer(&code)))
 	if code == stillActive {
 		return errors.New("process still active")
@@ -644,9 +693,9 @@ func utf16EnvBlock(env []string) []uint16 {
 	for _, e := range env {
 		block = append(block, syscall.StringToUTF16(e)...)
 	}
-	block = append(block, 0)
 	if len(block) == 0 {
-		block = append(block, 0)
+		return []uint16{0, 0}
 	}
+	block = append(block, 0)
 	return block
 }
