@@ -49,6 +49,13 @@ func TestUTF16EnvBlockSeparatesEntriesAndTerminatesOnce(t *testing.T) {
 	}
 }
 
+func TestUTF16EnvBlockEmptyIsDoubleNullTerminated(t *testing.T) {
+	block := utf16EnvBlock(nil)
+	if len(block) != 2 || block[0] != 0 || block[1] != 0 {
+		t.Fatalf("empty environment block = %#v, want two NULs", block)
+	}
+}
+
 func TestConPTYUsesOnlyPseudoConsoleProcessAttribute(t *testing.T) {
 	if numAttributesForConPTY != 1 {
 		t.Fatalf("ConPTY attribute count = %d, want 1; inherited pipe handles make CreateProcessW reject bInheritHandles=false", numAttributesForConPTY)
