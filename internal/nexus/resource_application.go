@@ -49,5 +49,8 @@ func (s *ResourceApplicationService) Recommend(ctx context.Context, accounts []P
 	if err := ctx.Err(); err != nil {
 		return RecommendationResult{}, err
 	}
-	return RecommendResources(accounts, req, policy), nil
+	// Automatic balancing is intentionally narrower than manual resource
+	// selection: only identities discovered from registered profiles with
+	// measured quota evidence may participate.
+	return RecommendResources(BalanceCandidateAccounts(accounts), req, policy), nil
 }
