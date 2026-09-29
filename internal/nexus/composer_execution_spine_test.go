@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -74,13 +73,13 @@ Do not push, merge, deploy, or weaken existing authentication controls.`
 		{
 			ID: "codex-main", Provider: "codex", Profile: "main", DisplayName: "Codex main",
 			Authenticated: true, Available: true, Health: "healthy",
-			QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.82,
+			QuotaView: measuredBalanceQuotaView("LIVE", 0.82), QuotaRemaining: 0.82, QuotaTotal: 1,
 			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED", "testing": "SUPPORTED"},
 		},
 		{
 			ID: "claude-review", Provider: "claude", Profile: "review", DisplayName: "Claude review",
 			Authenticated: true, Available: true, Health: "healthy",
-			QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.64,
+			QuotaView: measuredBalanceQuotaView("LIVE", 0.64), QuotaRemaining: 0.64, QuotaTotal: 1,
 			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED", "testing": "SUPPORTED"},
 		},
 	}
