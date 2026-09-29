@@ -23,6 +23,7 @@ import {
   SkillSyncPreview,
   NexusSystemInfo,
   ProviderAccount,
+  BalanceEntity,
   ResourceAllocation,
   ProviderInfo,
   RegisteredProfile,
@@ -373,9 +374,16 @@ export const nexus = {
 
   // Resource Scheduler (Gate 5)
   listResources: () =>
-    request<{ accounts: ProviderAccount[]; policy: string }>('/api/v1/resources'),
+    request<{ accounts: ProviderAccount[]; balance_entities?: BalanceEntity[]; policy: string }>(
+      '/api/v1/resources',
+    ),
   refreshResources: (provider?: string, profile?: string) =>
-    request<{ accounts: ProviderAccount[]; policy: string; refreshed?: boolean }>(
+    request<{
+      accounts: ProviderAccount[];
+      balance_entities?: BalanceEntity[];
+      policy: string;
+      refreshed?: boolean;
+    }>(
       '/api/v1/resources/refresh',
       {
         method: 'POST',
