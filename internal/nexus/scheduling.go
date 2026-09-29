@@ -263,6 +263,7 @@ func (n *Nexus) hasAutonomousResource(contract runner.AutonomyContract) bool {
 }
 
 func hasAutonomousResourceForContract(accounts []ProviderAccount, contract runner.AutonomyContract) bool {
+	accounts = BalanceCandidateAccounts(accounts)
 	if len(accounts) == 0 {
 		return false
 	}
