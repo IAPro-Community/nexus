@@ -125,18 +125,24 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 		}, fmt.Errorf("no usable %s profiles available: %s", provider, strings.Join(rejectSummaries, ", "))
 	}
 
-	// When no candidate has a current quota observation, rotate healthy
-	// authenticated profiles by least-recently-selected instead of favoring a
-	// stale default. ESTIMATED windows remain visible to the caller but are not
-	// evidence for automatic account selection.
-	hasQuotaEvidence := false
+	// Fresh LIVE/CACHED evidence always wins over stale estimates. When every
+	// usable profile only has ESTIMATED evidence, however, the measured
+	// percentages are still more informative than blind LRU rotation. LRU is
+	// reserved for candidates with no measured quota evidence at all.
+	hasCurrentQuotaEvidence := false
+	hasEstimatedQuotaEvidence := false
 	for _, ev := range eligible {
-		if len(ev.Usage.Windows) > 0 && (ev.Usage.Status == model.UsageLive || ev.Usage.Status == model.UsageCached) {
-			hasQuotaEvidence = true
-			break
+		if len(ev.Usage.Windows) == 0 {
+			continue
+		}
+		switch ev.Usage.Status {
+		case model.UsageLive, model.UsageCached:
+			hasCurrentQuotaEvidence = true
+		case model.UsageEstimated:
+			hasEstimatedQuotaEvidence = true
 		}
 	}
-	if !hasQuotaEvidence {
+	if !hasCurrentQuotaEvidence && !hasEstimatedQuotaEvidence {
 		lastUsed := selectedAt(provider)
 		sort.SliceStable(eligible, func(i, j int) bool {
 			left, right := lastUsed[eligible[i].Profile.Name], lastUsed[eligible[j].Profile.Name]
@@ -166,6 +172,9 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 	reason := strings.Join(best.ScoreBreakdown, ", ")
 	if reason == "" {
 		reason = "highest available score"
+	}
+	if !hasCurrentQuotaEvidence && best.Usage.Status == model.UsageEstimated {
+		reason = "quota ESTIMATED; " + reason
 	}
 
 	return &SelectionResult{
@@ -306,7 +315,9 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 			breakdown = append(breakdown, "unknown quota (-10.0)")
 		}
 
-		// Capacity / Quota Score via QuotaView bottleneck
+		// Routing capacity rank is intentionally separate from quota percentage.
+		// Multi-pool providers may score above 100 because usable pool count is a
+		// primary routing signal; this value must never be serialized as a percent.
 		effectiveCapacity, bottleneckKind, avgRemaining := quota.BottleneckScore(&qv)
 		hasWindows := false
 		for _, window := range qv.AllWindows() {
@@ -317,14 +328,14 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 		}
 
 		if hasWindows {
-			capScore := effectiveCapacity * 10.0 // Up to +1000 points for 100% capacity
+			capScore := effectiveCapacity * 10.0 // routing rank, not a percentage
 			score += capScore
 
 			minPct, _ := qv.Bottleneck()
 			if len(qv.AllWindows()) == 1 {
-				breakdown = append(breakdown, fmt.Sprintf("%.0f%% capacity (+%.1f)", effectiveCapacity, capScore))
+				breakdown = append(breakdown, fmt.Sprintf("capacity-rank %.0f (+%.1f)", effectiveCapacity, capScore))
 			} else {
-				breakdown = append(breakdown, fmt.Sprintf("%.0f%% eff capacity (min: %.0f%% [%s], avg: %.0f%%) (+%.1f)", effectiveCapacity, minPct, bottleneckKind, avgRemaining, capScore))
+				breakdown = append(breakdown, fmt.Sprintf("capacity-rank %.0f (min: %.0f%% [%s], avg: %.0f%%) (+%.1f)", effectiveCapacity, minPct, bottleneckKind, avgRemaining, capScore))
 			}
 		} else {
 			// Unknown quota remains eligible for resilience, but must never
