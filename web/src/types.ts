@@ -125,6 +125,11 @@ export type ResourceChannel = 'SUBSCRIPTION' | 'API';
 
 export interface ResourceChannelState {
   channel: ResourceChannel;
+  account_scope?: AccountScope;
+  status?: string;
+  source?: string;
+  confidence?: string;
+  observed_at?: string;
   quota?: {
     provider_id: string;
     profile_id: string;
@@ -152,6 +157,7 @@ export interface ResourceChannelState {
     amount?: number;
     currency?: string;
     budget?: number;
+    budget_remaining?: number;
   };
   rate_limit?: {
     requests_remaining?: number;
