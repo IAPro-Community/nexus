@@ -43,12 +43,19 @@ func removeProviderLaunchFlag(args []string, wanted string) []string {
 	return out
 }
 
-// wantInteractiveLead enables the Nexus orchestration boundary for supervised
-// interactive sessions by default. This is the product path entered explicitly
-// through `nexus <provider>`; callers that need a byte-transparent provider TUI
-// can opt out with --no-lead, while --direct still bypasses supervision entirely.
-func wantInteractiveLead(args []string) bool {
-	return !hasProviderLaunchFlag(args, "--no-lead")
+// wantInteractiveLead decides whether a supervised provider TUI may enter the
+// prompt-routing boundary. Explicit --lead works for every provider and
+// --no-lead always wins. AGY is the only default-on interactive orchestration
+// entrypoint in this release: Codex remains byte-transparent by default because
+// its full-screen keyboard/selector protocol has a stricter regression history.
+func wantInteractiveLead(provider string, args []string) bool {
+	if hasProviderLaunchFlag(args, "--no-lead") {
+		return false
+	}
+	if hasProviderLaunchFlag(args, "--lead") {
+		return true
+	}
+	return strings.EqualFold(strings.TrimSpace(provider), "agy")
 }
 
 // supervisedRuntimeLabels keeps runtime supervision and Mission authorization
