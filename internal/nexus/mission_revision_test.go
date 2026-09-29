@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -263,10 +262,10 @@ func TestWhenResourcesDoesNotClaimWithoutEligibleResource(t *testing.T) {
 }
 
 func TestAutonomousResourceReadinessHonorsIsolationContract(t *testing.T) {
-	live := &quota.QuotaView{Status: "LIVE"}
+	live := measuredBalanceQuotaView("LIVE", 0.8)
 	base := ProviderAccount{
 		Profile: "default", Authenticated: true, Available: true, Health: "healthy",
-		QuotaView: live, QuotaRemaining: 0.8,
+		QuotaView: live, QuotaRemaining: 0.8, QuotaTotal: 1,
 		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 	}
 
