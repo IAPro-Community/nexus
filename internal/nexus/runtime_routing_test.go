@@ -279,7 +279,7 @@ func TestMissionAllocatePinFailsClosedAfterRateLimit(t *testing.T) {
 		RetryFrom:       runner.StateAllocating,
 		ErrorMessage:    "provider returned 429 rate limit",
 	}
-	_, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{Provider: "codex", Profile: "main"}, AffinityPin, true)
+	_, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{Provider: "codex", Profile: "main"}, AffinityPin, true, TaskRequirements{}, PolicyManual)
 	if !errors.Is(err, ErrBlockedResource) {
 		t.Fatalf("PIN failover must fail closed, got %v", err)
 	}
@@ -300,12 +300,59 @@ func TestMissionAllocatePreferMayOpenPoolAfterRateLimit(t *testing.T) {
 		RetryFrom:       runner.StateAllocating,
 		ErrorMessage:    "quota exhausted",
 	}
-	candidates, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{Provider: "codex", Profile: "main"}, AffinityPrefer, true)
+	candidates, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{Provider: "codex", Profile: "main"}, AffinityPrefer, true, TaskRequirements{}, PolicyPreferProvider)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(candidates) != 1 || candidates[0].Provider != "agy" {
 		t.Fatalf("PREFER failover should open alternatives, got %+v", candidates)
+	}
+}
+
+
+
+func TestMissionAllocatePreferUsesEligibleRegisteredProviderBeforeFallback(t *testing.T) {
+	accounts := []ProviderAccount{
+		{
+			Provider: "codex", Profile: "work", Authenticated: true, Available: true, QuotaRemaining: 0.35,
+			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
+		},
+		{
+			Provider: "agy", Profile: "starter", Authenticated: true, Available: true, QuotaRemaining: 0.95,
+			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
+		},
+	}
+	pkg := &runner.PackageRun{PackageID: "pkg-prefer-first", DesiredProvider: "codex"}
+	req := TaskRequirements{PreferProvider: "codex", RequiredCapabilities: []string{"headless", "submit_prompt"}}
+	candidates, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{}, AffinityPrefer, false, req, PolicyPreferProvider)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(candidates) != 1 || candidates[0].Provider != "codex" {
+		t.Fatalf("eligible explicit preference must narrow to registered codex accounts, got %+v", candidates)
+	}
+}
+
+func TestMissionAllocatePreferReopensRegisteredPoolWhenPreferredProviderUnavailable(t *testing.T) {
+	accounts := []ProviderAccount{
+		{
+			Provider: "codex", Profile: "work", Authenticated: true, Available: false, RateLimited: true,
+			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
+		},
+		{
+			Provider: "agy", Profile: "starter", Authenticated: true, Available: true, QuotaRemaining: 0.9,
+			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
+		},
+	}
+	pkg := &runner.PackageRun{PackageID: "pkg-prefer-fallback", DesiredProvider: "codex"}
+	req := TaskRequirements{PreferProvider: "codex", RequiredCapabilities: []string{"headless", "submit_prompt"}}
+	candidates, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{}, AffinityPrefer, false, req, PolicyPreferProvider)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recommendation := RecommendResources(candidates, req, PolicyPreferProvider)
+	if recommendation.Recommended == nil || recommendation.Recommended.Account.Provider != "agy" {
+		t.Fatalf("ineligible codex preference must fall back inside registered Usage pool: %+v", recommendation)
 	}
 }
 
