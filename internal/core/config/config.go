@@ -462,6 +462,90 @@ func SetDefaultProfile(provider, name string) error {
 	return SaveConfig(cfg)
 }
 
+// SetAPIUsageBinding persists non-secret attribution metadata for an optional
+// API usage channel. Raw API/admin keys are referenced only by environment
+// variable name.
+func SetAPIUsageBinding(provider, profileName string, binding APIUsageBinding) error {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	profileName = strings.TrimSpace(profileName)
+	if provider == "" {
+		return errors.New("provider is required")
+	}
+	if err := ValidateProfileName(profileName); err != nil {
+		return err
+	}
+	binding.Provider = strings.ToLower(strings.TrimSpace(binding.Provider))
+	if binding.Provider == "" {
+		binding.Provider = "openai"
+	}
+	if binding.Provider != "openai" {
+		return fmt.Errorf("unsupported API usage provider %q", binding.Provider)
+	}
+	if len(binding.ProjectIDs) == 0 && len(binding.UserIDs) == 0 && len(binding.APIKeyIDs) == 0 {
+		return errors.New("API usage binding requires at least one project_id, user_id or api_key_id")
+	}
+	if strings.TrimSpace(binding.APIKeyEnv) == "" {
+		binding.APIKeyEnv = "OPENAI_ADMIN_KEY"
+	}
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		return err
+	}
+	if cfg.APIUsageBindings == nil {
+		cfg.APIUsageBindings = make(map[string]map[string]APIUsageBinding)
+	}
+	if cfg.APIUsageBindings[provider] == nil {
+		cfg.APIUsageBindings[provider] = make(map[string]APIUsageBinding)
+	}
+	cfg.APIUsageBindings[provider][profileName] = binding
+	return SaveConfig(cfg)
+}
+
+// GetAPIUsageBinding reads non-secret attribution metadata for one profile.
+func GetAPIUsageBinding(provider, profileName string) (APIUsageBinding, bool) {
+	cfg, err := LoadConfig()
+	if err != nil {
+		return APIUsageBinding{}, false
+	}
+	provider = strings.TrimSpace(provider)
+	profileName = strings.TrimSpace(profileName)
+	for p, profiles := range cfg.APIUsageBindings {
+		if !strings.EqualFold(strings.TrimSpace(p), provider) {
+			continue
+		}
+		for name, binding := range profiles {
+			if strings.EqualFold(strings.TrimSpace(name), profileName) {
+				return binding, true
+			}
+		}
+	}
+	return APIUsageBinding{}, false
+}
+
+// RemoveAPIUsageBinding removes only the API telemetry binding. It never
+// disconnects or mutates the underlying CLI subscription profile.
+func RemoveAPIUsageBinding(provider, profileName string) error {
+	cfg, err := LoadConfig()
+	if err != nil {
+		return err
+	}
+	for p, profiles := range cfg.APIUsageBindings {
+		if !strings.EqualFold(strings.TrimSpace(p), strings.TrimSpace(provider)) {
+			continue
+		}
+		for name := range profiles {
+			if strings.EqualFold(strings.TrimSpace(name), strings.TrimSpace(profileName)) {
+				delete(profiles, name)
+			}
+		}
+		if len(profiles) == 0 {
+			delete(cfg.APIUsageBindings, p)
+		}
+	}
+	return SaveConfig(cfg)
+}
+
 // BindWorkspace associates a workspace with a provider profile.
 func BindWorkspace(workspace, provider, profileName string) error {
 	cfg, err := LoadConfig()
