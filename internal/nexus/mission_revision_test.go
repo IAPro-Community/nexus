@@ -266,7 +266,7 @@ func TestAutonomousResourceReadinessHonorsIsolationContract(t *testing.T) {
 	live := &quota.QuotaView{Status: "LIVE"}
 	base := ProviderAccount{
 		Profile: "default", Authenticated: true, Available: true, Health: "healthy",
-		QuotaView: live, QuotaRemaining: 0.8,
+		QuotaView: live, QuotaRemaining: 0.8, QuotaTotal: 1,
 		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 	}
 
