@@ -102,6 +102,14 @@ func TestShouldFallbackPromotionToLeadOnlyForHeuristicPromotions(t *testing.T) {
 		t.Fatal("explicit Mission request must remain blocked instead of silently executing as Direct")
 	}
 
+	providerHandoff := promotion.Decision{
+		Action: promotion.Promote,
+		Intent: nexus.IntentDecision{TaskRequirements: nexus.TaskRequirements{PreferProvider: "codex"}},
+	}
+	if shouldFallbackPromotionToLead(providerHandoff) {
+		t.Fatal("explicit registered-provider handoff must not fall back to a different Lead")
+	}
+
 	keep := promotion.Decision{Action: promotion.KeepWithLead}
 	if shouldFallbackPromotionToLead(keep) {
 		t.Fatal("non-promotion decision must not be treated as a Mission fallback")
