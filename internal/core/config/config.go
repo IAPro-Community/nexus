@@ -481,6 +481,9 @@ func SetAPIUsageBinding(provider, profileName string, binding APIUsageBinding) e
 	if binding.Provider != "openai" {
 		return fmt.Errorf("unsupported API usage provider %q", binding.Provider)
 	}
+	binding.ProjectIDs = compactNonEmptyStrings(binding.ProjectIDs)
+	binding.UserIDs = compactNonEmptyStrings(binding.UserIDs)
+	binding.APIKeyIDs = compactNonEmptyStrings(binding.APIKeyIDs)
 	if len(binding.ProjectIDs) == 0 && len(binding.UserIDs) == 0 && len(binding.APIKeyIDs) == 0 {
 		return errors.New("API usage binding requires at least one project_id, user_id or api_key_id")
 	}
@@ -646,10 +649,30 @@ func (c Config) Validate() []string {
 			if !strings.EqualFold(strings.TrimSpace(binding.Provider), "openai") {
 				issues = append(issues, fmt.Sprintf("api_usage_bindings[%s][%s]: unsupported API usage provider %q", cliProvider, profileName, binding.Provider))
 			}
-			if len(binding.ProjectIDs) == 0 && len(binding.UserIDs) == 0 && len(binding.APIKeyIDs) == 0 {
+			if len(compactNonEmptyStrings(binding.ProjectIDs)) == 0 &&
+				len(compactNonEmptyStrings(binding.UserIDs)) == 0 &&
+				len(compactNonEmptyStrings(binding.APIKeyIDs)) == 0 {
 				issues = append(issues, fmt.Sprintf("api_usage_bindings[%s][%s]: at least one project_id, user_id or api_key_id is required", cliProvider, profileName))
 			}
 		}
 	}
 	return issues
+}
+
+
+func compactNonEmptyStrings(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	return out
 }
