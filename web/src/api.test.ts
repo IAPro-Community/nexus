@@ -107,6 +107,33 @@ describe('api request layer', () => {
     expect(init.headers.get('X-CSRF-Token')).toBe('tok-123');
   });
 
+  it('refreshes a stale CSRF token and retries a mutation exactly once', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        json: () => Promise.resolve({ error: 'invalid CSRF token' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ authenticated: true, csrf_token: 'fresh-token' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: 'stopping' }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.stopRuntime('rt-stale');
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/session');
+    const retryInit = fetchMock.mock.calls[2]?.[1] as RequestInit | undefined;
+    expect(new Headers(retryInit?.headers).get('X-CSRF-Token')).toBe('fresh-token');
+  });
+
   it('exchanges the browser fragment bootstrap token and removes it from history', async () => {
     const replaceState = vi.fn();
     vi.stubGlobal('window', {
