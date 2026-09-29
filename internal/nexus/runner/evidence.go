@@ -8,13 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
 var ErrMissingContextCapsule = errors.New("flow step context capsule is missing")
@@ -57,7 +57,7 @@ func gitText(ctx context.Context, workspace string, args ...string) string {
 		return ""
 	}
 	all := append([]string{"-C", workspace}, args...)
-	out, err := exec.CommandContext(ctx, "git", all...).Output()
+	out, err := executil.CommandContext(ctx, "git", all...).Output()
 	if err != nil {
 		return ""
 	}
@@ -72,7 +72,7 @@ func mutationPaths(ctx context.Context, workspace string) []string {
 	}
 	seen := map[string]struct{}{}
 	for _, args := range commands {
-		out, err := exec.CommandContext(ctx, "git", args...).Output()
+		out, err := executil.CommandContext(ctx, "git", args...).Output()
 		if err != nil {
 			continue
 		}
@@ -143,7 +143,7 @@ func revisionChangedPaths(ctx context.Context, workspace, baseRevision, resultRe
 	if strings.TrimSpace(workspace) == "" || strings.TrimSpace(baseRevision) == "" || strings.TrimSpace(resultRevision) == "" || baseRevision == resultRevision {
 		return []string{}
 	}
-	out, err := exec.CommandContext(ctx, "git", "-C", workspace, "diff", "--name-only", "-z", baseRevision, resultRevision, "--").Output()
+	out, err := executil.CommandContext(ctx, "git", "-C", workspace, "diff", "--name-only", "-z", baseRevision, resultRevision, "--").Output()
 	if err != nil {
 		return []string{}
 	}
