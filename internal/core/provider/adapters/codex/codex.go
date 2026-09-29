@@ -629,10 +629,9 @@ func buildWindowsFromRateLimits(limits rolloutRateLimits) []model.UsageWindow {
 			continue
 		}
 		kind := windowKindFromMinutes(s.w.WindowMinutes, s.fall)
-		used := s.w.UsedPercent
-		rem := 100.0 - used
-		if rem < 0 {
-			rem = 0
+		rem, used, ok := quota.NormalizePercentEvidence(s.w.UsedPercent, model.UsageSemanticsUsedPercent)
+		if !ok {
+			continue
 		}
 		var resetTime *time.Time
 		resetDesc := formatCodexResetTime(s.w.ResetsAt)
