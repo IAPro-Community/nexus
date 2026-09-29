@@ -312,6 +312,13 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, project store.Proje
 		step.Resource.Reason = "No provider accounts discovered"
 		return step
 	}
+	balanceAccounts := BalanceCandidateAccounts(accounts)
+	if len(balanceAccounts) == 0 {
+		step.Ready = false
+		step.Blockers = append(step.Blockers, "no registered provider account has measured quota evidence for automatic balancing")
+		step.Resource.Reason = "No usage-backed balance entity"
+		return step
+	}
 
 	if selectedAgent.ID == "" && !agentDecision.WillCreate && agentBlocker != "" {
 		return step
@@ -328,7 +335,7 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, project store.Proje
 	runPkg.DesiredProvider = desiredProvider
 	runPkg.DesiredProfile = desiredProfile
 	preferenceMode := missionAffinityMode(policy, desiredProvider, desiredProfile)
-	candidateAccounts, candidateErr := selectMissionCandidateAccounts(accounts, runPkg, agentCfg, preferenceMode, false)
+	candidateAccounts, candidateErr := selectMissionCandidateAccounts(balanceAccounts, runPkg, agentCfg, preferenceMode, false)
 	if candidateErr != nil {
 		step.Ready = false
 		step.Blockers = append(step.Blockers, candidateErr.Error())
