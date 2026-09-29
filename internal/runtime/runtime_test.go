@@ -36,6 +36,21 @@ func TestTerminalKeyboardModeResetLeavesApplicationCursorMode(t *testing.T) {
 	}
 }
 
+func TestEnvKeyForGOOSWindowsIsCaseInsensitive(t *testing.T) {
+	if got := envKeyForGOOS("Path", "windows"); got != "PATH" {
+		t.Fatalf("windows env key = %q, want PATH", got)
+	}
+	if got := envKeyForGOOS("Path", "linux"); got != "Path" {
+		t.Fatalf("linux env key changed: %q", got)
+	}
+}
+
+func TestEnvSetWindowsKeyCanonicalizationHelper(t *testing.T) {
+	if envKeyForGOOS("CodeX_Home", "windows") != envKeyForGOOS("CODEX_HOME", "windows") {
+		t.Fatal("Windows environment keys must compare case-insensitively")
+	}
+}
+
 func TestNormalizeInteractiveEnvReplacesDumbTerminal(t *testing.T) {
 	env := []string{"PATH=/bin", "TERM=dumb", "LANG=pt_BR.UTF-8"}
 	normalized := NormalizeInteractiveEnv(env)
