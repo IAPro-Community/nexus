@@ -676,3 +676,52 @@ func compactNonEmptyStrings(values []string) []string {
 	}
 	return out
 }
+
+
+// APIUsageSecretEnvNames returns environment variable names reserved for API
+// telemetry credentials. These variables belong to Nexus control-plane HTTP
+// collectors and must never be forwarded to provider CLI subprocesses.
+func APIUsageSecretEnvNames() []string {
+	names := map[string]struct{}{
+		"OPENAI_ADMIN_KEY": {},
+	}
+	cfg, err := LoadConfig()
+	if err == nil {
+		for _, profiles := range cfg.APIUsageBindings {
+			for _, binding := range profiles {
+				if name := strings.TrimSpace(binding.APIKeyEnv); name != "" {
+					names[name] = struct{}{}
+				}
+			}
+		}
+	}
+	out := make([]string, 0, len(names))
+	for name := range names {
+		out = append(out, name)
+	}
+	return out
+}
+
+// StripAPIUsageSecretEnv removes API telemetry credentials from an environment
+// slice before an external provider process is launched.
+func StripAPIUsageSecretEnv(env []string) []string {
+	secretNames := APIUsageSecretEnvNames()
+	out := make([]string, 0, len(env))
+	for _, entry := range env {
+		name := entry
+		if idx := strings.IndexByte(entry, '='); idx >= 0 {
+			name = entry[:idx]
+		}
+		blocked := false
+		for _, secretName := range secretNames {
+			if strings.EqualFold(strings.TrimSpace(name), strings.TrimSpace(secretName)) {
+				blocked = true
+				break
+			}
+		}
+		if !blocked {
+			out = append(out, entry)
+		}
+	}
+	return out
+}
