@@ -10,6 +10,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/executil"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // IsHelpFlag checks whether the argument list contains a request for help.
@@ -31,7 +32,7 @@ func ShowProviderHelp(providerID string) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
 			cmd := exec.CommandContext(ctx, bin, "--help")
-			cmd.Env = os.Environ()
+			cmd.Env = nexusruntime.SanitizeChildEnv(os.Environ())
 			executil.HideConsoleWindow(cmd)
 			out, _ := cmd.CombinedOutput()
 			nativeHelp = string(out)
