@@ -86,9 +86,9 @@ type RateLimitState struct {
 // Capacity V2. Existing UsageSnapshot consumers remain valid while API-backed
 // consumption and billing are added incrementally.
 type ResourceChannelState struct {
-	Channel     ResourceChannel  `json:"channel"`
-	Quota       *UsageSnapshot   `json:"quota,omitempty"`
+	Channel     ResourceChannel   `json:"channel"`
+	Quota       *UsageSnapshot    `json:"quota,omitempty"`
 	Consumption *ConsumptionState `json:"consumption,omitempty"`
-	Cost        *CostState       `json:"cost,omitempty"`
-	RateLimit   *RateLimitState  `json:"rate_limit,omitempty"`
+	Cost        *CostState        `json:"cost,omitempty"`
+	RateLimit   *RateLimitState   `json:"rate_limit,omitempty"`
 }
