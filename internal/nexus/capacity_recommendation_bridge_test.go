@@ -13,10 +13,10 @@ func TestCapacityRecommenderRecommendsAlternative(t *testing.T) {
 	pool := []ProviderAccount{
 		{Provider: "codex", Profile: "kiver", DisplayName: "kiver",
 			Authenticated: true, Available: true, Health: "healthy",
-			QuotaRemaining: 0.05, QuotaTotal: 1},
+			QuotaRemaining: 0.05, QuotaTotal: 1, QuotaView: measuredBalanceQuotaView("LIVE", 0.05)},
 		{Provider: "claude", Profile: "backup", DisplayName: "backup",
 			Authenticated: true, Available: true, Health: "healthy",
-			QuotaRemaining: 0.8, QuotaTotal: 1},
+			QuotaRemaining: 0.8, QuotaTotal: 1, QuotaView: measuredBalanceQuotaView("LIVE", 0.80)},
 	}
 	r := &CapacityRecommender{Accounts: func() []ProviderAccount { return pool }}
 	rec, err := r.RecommendForLowResource(context.Background(),
@@ -40,7 +40,7 @@ func TestCapacityRecommenderNoEligibleStaysUnavailable(t *testing.T) {
 	pool := []ProviderAccount{
 		{Provider: "codex", Profile: "kiver", DisplayName: "kiver",
 			Authenticated: true, Available: true, Health: "healthy",
-			QuotaRemaining: 0.05, QuotaTotal: 1},
+			QuotaRemaining: 0.05, QuotaTotal: 1, QuotaView: measuredBalanceQuotaView("LIVE", 0.05)},
 	}
 	r := &CapacityRecommender{Accounts: func() []ProviderAccount { return pool }}
 	rec, err := r.RecommendForLowResource(context.Background(),
