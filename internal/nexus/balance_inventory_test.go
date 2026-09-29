@@ -3,6 +3,7 @@ package nexus
 import (
 	"testing"
 
+	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
@@ -87,5 +88,19 @@ func TestBalanceInventoryDoesNotInventUnregisteredIdentity(t *testing.T) {
 
 	if got := BuildBalanceInventory([]ProviderAccount{noProvider, noProfile}); len(got) != 0 {
 		t.Fatalf("unregistered identities must not enter balance inventory: %#v", got)
+	}
+}
+
+func TestBuildBalanceInventoryPreservesAccountScope(t *testing.T) {
+	account := measuredBalanceAccount("codex:work", "codex", "work", "LIVE", 0.72)
+	account.Scope = model.AccountScope{
+		ProviderID:      "codex",
+		ProfileID:       "work",
+		AccountID:       "acct-123",
+		IdentityVersion: "v4",
+	}
+	got := BuildBalanceInventory([]ProviderAccount{account})
+	if len(got) != 1 || got[0].Scope != account.Scope {
+		t.Fatalf("balance account scope = %#v, want %#v", got, account.Scope)
 	}
 }
