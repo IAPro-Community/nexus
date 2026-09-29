@@ -11,26 +11,26 @@ import (
 
 // ProviderAccount represents a provider account/profile that can run agents.
 type ProviderAccount struct {
-	ID             string              `json:"id"`
-	Provider       string              `json:"provider"`
-	Profile        string              `json:"profile"`
-	DisplayName    string              `json:"display_name"`
-	Authenticated  bool                `json:"authenticated"`
-	IsDefault      bool                `json:"is_default"`
-	Available      bool                `json:"available"`
-	AvailReasons   *quota.AvailReasons `json:"avail_reasons,omitempty"`
-	QuotaView      *quota.QuotaView    `json:"quota_view,omitempty"`
-	Eligibility    *quota.Eligibility  `json:"eligibility,omitempty"`
+	ID               string                       `json:"id"`
+	Provider         string                       `json:"provider"`
+	Profile          string                       `json:"profile"`
+	DisplayName      string                       `json:"display_name"`
+	Authenticated    bool                         `json:"authenticated"`
+	IsDefault        bool                         `json:"is_default"`
+	Available        bool                         `json:"available"`
+	AvailReasons     *quota.AvailReasons          `json:"avail_reasons,omitempty"`
+	QuotaView        *quota.QuotaView             `json:"quota_view,omitempty"`
+	Eligibility      *quota.Eligibility           `json:"eligibility,omitempty"`
 	Capabilities     map[string]string            `json:"capabilities,omitempty"`
 	ResourceChannels []model.ResourceChannelState `json:"resource_channels,omitempty"`
 	QuotaRemaining   float64                      `json:"quota_remaining"` // 0-1 literal remaining quota of the best usable pool
-	QuotaTotal     float64             `json:"quota_total"`
-	RateLimited    bool                `json:"rate_limited"`
-	NetworkError   bool                `json:"network_error,omitempty"`
-	CooldownUntil  *time.Time          `json:"cooldown_until,omitempty"`
-	Health         string              `json:"health"` // "healthy" | "degraded" | "unhealthy" | "unknown"
-	Scope          model.AccountScope  `json:"account_scope,omitempty"`
-	LastChecked    time.Time           `json:"last_checked"`
+	QuotaTotal       float64                      `json:"quota_total"`
+	RateLimited      bool                         `json:"rate_limited"`
+	NetworkError     bool                         `json:"network_error,omitempty"`
+	CooldownUntil    *time.Time                   `json:"cooldown_until,omitempty"`
+	Health           string                       `json:"health"` // "healthy" | "degraded" | "unhealthy" | "unknown"
+	Scope            model.AccountScope           `json:"account_scope,omitempty"`
+	LastChecked      time.Time                    `json:"last_checked"`
 }
 
 // UsageSnapshot captures the current resource usage state.
