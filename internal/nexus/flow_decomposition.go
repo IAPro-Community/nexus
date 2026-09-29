@@ -104,6 +104,26 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 	}
 
 	planningText := strings.TrimSpace(strings.Join([]string{goal, sourcePrompt}, "\n"))
+
+	// Automatic skills are selected only from the canonical Nexus catalog. This
+	// happens before Flow construction so SkillIDs survive every WorkPlan/Flow/
+	// Mission snapshot and the receiving provider never needs to rediscover them.
+	if len(req.resolvedSkillIDs()) == 0 {
+		if automaticSkills, skillErr := n.ResolveAutomaticSkillIDs(ctx, req.ProjectID, planningText); skillErr == nil {
+			req.SkillIDs = automaticSkills
+		}
+	}
+
+	// Provider intent is registration-owned: a provider name mentioned by the
+	// user is actionable only when it already exists in the same profile registry
+	// that backs Usage. Resource eligibility and quota balancing remain downstream.
+	registeredProvider := ""
+	if provider, ok, providerErr := n.ResolveRegisteredProviderPreference(planningText); providerErr != nil {
+		return nil, fmt.Errorf("resolve registered provider preference: %w", providerErr)
+	} else if ok {
+		registeredProvider = provider
+	}
+
 	archetype := string(classifyPromptArchetype(planningText))
 	delegation := DecideDelegation(planningText, req.DelegationMode)
 
@@ -207,6 +227,10 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 		}
 	}
 	intent := DecideIntent(planningText, nil)
+	if registeredProvider != "" {
+		intent.TaskRequirements.PreferProvider = registeredProvider
+		intent.Evidence = append(intent.Evidence, "registered-provider-request:"+registeredProvider)
+	}
 	if isAtomic {
 		intent.Strategy = IntentDirect
 		intent.Confidence = "HIGH"
@@ -242,6 +266,9 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 	}
 	if err := BuildMissionTeamFlow(&flow, selection, firstNonEmpty(sourcePrompt, goal), verification, req.resolvedSkillIDs(), delegation.Workstreams, req.MissionTeamRuntimeOverrides); err != nil {
 		return nil, err
+	}
+	if registeredProvider != "" {
+		applyRegisteredProviderPreferenceToFlow(&flow, registeredProvider)
 	}
 
 	proposal := &FlowDecompositionProposal{
