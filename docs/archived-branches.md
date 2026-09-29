@@ -1,6 +1,6 @@
 # Archived branch map
 
-Updated: 2026-09-27
+Updated: 2026-09-29
 
 The active branch policy for Nexus 1.0 is:
 
@@ -9,6 +9,8 @@ The active branch policy for Nexus 1.0 is:
 - `archive/2026-09-27/**` — immutable historical aliases created during V1 consolidation.
 
 The GitHub connector available during consolidation cannot delete or rename Git refs, so the legacy names may still appear in the branch list. They are superseded and must not receive new commits. Each legacy ref has an archive alias pointing to the exact same commit SHA.
+
+Release automation additionally fails closed unless `github.sha` equals the exact HEAD of `release/v1.0.0`. Therefore legacy `release/v1.0.0-beta*` / `release/v1.0.0-cert` refs are historical names only and cannot authorize publication.
 
 | Legacy ref | Archived ref | SHA |
 | --- | --- | --- |
