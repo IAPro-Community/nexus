@@ -2,6 +2,9 @@ package runner
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -83,5 +86,44 @@ func TestDefaultAutonomyContractHasBoundedPackageTimeout(t *testing.T) {
 	}
 	if contract.MaxTotalIterations < 50 {
 		t.Fatalf("mission iteration budget too small for multi-package lifecycle: %d", contract.MaxTotalIterations)
+	}
+}
+
+
+func TestPackageDependencySetupUsesLockedInstallWithoutScripts(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.WriteFile(filepath.Join(workspace, "package.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "package-lock.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got := packageDependencySetup(workspace, []string{"npm test"})
+	want := []string{"npm", "ci", "--ignore-scripts"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("packageDependencySetup() = %#v, want %#v", got, want)
+	}
+}
+
+func TestPackageDependencySetupSkipsWhenDependenciesAlreadyExist(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.WriteFile(filepath.Join(workspace, "package.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(workspace, "node_modules", ".bin"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if got := packageDependencySetup(workspace, []string{"npm test"}); got != nil {
+		t.Fatalf("existing dependencies must not be reinstalled: %#v", got)
+	}
+}
+
+func TestPackageDependencySetupIgnoresNonPackageVerification(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.WriteFile(filepath.Join(workspace, "package.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := packageDependencySetup(workspace, []string{"go test ./..."}); got != nil {
+		t.Fatalf("Go-only verification must not install JS dependencies: %#v", got)
 	}
 }
