@@ -50,11 +50,19 @@ func BuildBalanceInventory(accounts []ProviderAccount) []BalanceEntity {
 		}
 
 		view := account.QuotaView
+		id := strings.TrimSpace(account.ID)
+		if id == "" {
+			id = account.Provider + ":" + account.Profile
+		}
+		displayName := strings.TrimSpace(account.DisplayName)
+		if displayName == "" {
+			displayName = account.Provider + " (" + account.Profile + ")"
+		}
 		entity := BalanceEntity{
-			ID:             account.ID,
+			ID:             id,
 			Provider:       account.Provider,
 			Profile:        account.Profile,
-			DisplayName:    account.DisplayName,
+			DisplayName:    displayName,
 			UsageStatus:    strings.ToUpper(strings.TrimSpace(view.Status)),
 			UsageSource:    strings.TrimSpace(view.Source),
 			QuotaRemaining: account.QuotaRemaining,
@@ -70,7 +78,7 @@ func BuildBalanceInventory(accounts []ProviderAccount) []BalanceEntity {
 				Name:      group.Name,
 				Remaining: remaining,
 				Known:     known,
-				Available: known && remaining > 0,
+				Available: account.Available && known && remaining > 0,
 			})
 		}
 		entities = append(entities, entity)
