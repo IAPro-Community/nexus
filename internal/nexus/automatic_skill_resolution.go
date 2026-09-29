@@ -42,6 +42,7 @@ func (n *Nexus) ResolveAutomaticSkillIDs(ctx context.Context, projectID, prompt 
 
 	selected := make([]string, 0, maxAutomaticSkills)
 	seen := map[string]struct{}{}
+	coveredFamilies := map[string]struct{}{}
 	add := func(skill nexusskills.Skill) {
 		if len(selected) >= maxAutomaticSkills || skill.Availability != nexusskills.AvailabilityAvailable {
 			return
@@ -49,8 +50,24 @@ func (n *Nexus) ResolveAutomaticSkillIDs(ctx context.Context, projectID, prompt 
 		if _, duplicate := seen[skill.ID]; duplicate {
 			return
 		}
+		families := automaticSkillFamilies(skill)
+		if len(families) > 0 {
+			hasNewFamily := false
+			for _, family := range families {
+				if _, covered := coveredFamilies[family]; !covered {
+					hasNewFamily = true
+					break
+				}
+			}
+			if !hasNewFamily {
+				return
+			}
+		}
 		seen[skill.ID] = struct{}{}
 		selected = append(selected, skill.ID)
+		for _, family := range families {
+			coveredFamilies[family] = struct{}{}
+		}
 	}
 
 	for _, candidate := range ranked {
@@ -168,6 +185,38 @@ func rankAutomaticSkillCandidates(catalog nexusskills.Catalog, prompt string, ca
 		return out[i].ID < out[j].ID
 	})
 	return out
+}
+
+func automaticSkillFamilies(skill nexusskills.Skill) []string {
+	tokens := automaticSkillTokens(strings.Join([]string{
+		skill.ID,
+		skill.Name,
+		skill.Description,
+		strings.Join(skill.Capabilities, " "),
+		strings.Join(skill.Triggers, " "),
+	}, " "), true)
+	families := make([]string, 0, 4)
+	add := func(value string) {
+		for _, existing := range families {
+			if existing == value {
+				return
+			}
+		}
+		families = append(families, value)
+	}
+	for _, family := range []string{"review", "verify", "test", "security", "architecture", "refactor"} {
+		if _, ok := tokens[family]; ok {
+			add(family)
+		}
+	}
+	if _, hasSkill := tokens["skill"]; hasSkill {
+		if _, hasReview := tokens["review"]; hasReview {
+			add("skill-governance")
+		} else if _, hasVerify := tokens["verify"]; hasVerify {
+			add("skill-governance")
+		}
+	}
+	return families
 }
 
 func automaticSkillSourceBonus(source nexusskills.SourceID) int {
