@@ -127,6 +127,7 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 			QuotaTotal:     1.0,
 			RateLimited:    qv.Status == "RATE_LIMITED",
 			NetworkError:   strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
+			Scope:          acc.AccountScope,
 			LastChecked:    time.Now(),
 		})
 		accIdx := len(accounts) - 1
