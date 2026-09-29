@@ -92,9 +92,9 @@ func automaticSkillCapabilities(prompt string, req TaskRequirements) []string {
 
 	for _, capability := range req.RequiredCapabilities {
 		switch normalizeCapabilityName(capability) {
-		case "code-review":
+		case "code_review":
 			add("review")
-		case "root-cause-analysis":
+		case "root_cause_analysis":
 			add("debugging")
 		case "security":
 			add("security")
@@ -106,7 +106,7 @@ func automaticSkillCapabilities(prompt string, req TaskRequirements) []string {
 	if containsAny(text, "validar", "valide", "validação", "validacao", "verify", "verification", "verificar") {
 		add("verification")
 	}
-	if containsAny(text, "teste", "testes", "testing", "test ", "tests") {
+	if containsAny(text, "teste", "testes", "testing", "tests", "test") {
 		add("testing")
 	}
 	if containsAny(text, "refactor", "refatore", "refatorar", "refatoração", "refatoracao") {
