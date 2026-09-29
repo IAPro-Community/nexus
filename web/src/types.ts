@@ -191,6 +191,28 @@ export interface ProviderAccount {
   };
 }
 
+export interface BalanceModelGroup {
+  key?: string;
+  name: string;
+  remaining: number;
+  known: boolean;
+  available: boolean;
+}
+
+export interface BalanceEntity {
+  id: string;
+  provider: string;
+  profile: string;
+  display_name: string;
+  usage_status: 'LIVE' | 'CACHED' | 'ESTIMATED' | 'RATE_LIMITED' | string;
+  usage_source?: string;
+  quota_remaining: number;
+  available: boolean;
+  health: string;
+  eligibility?: ProviderAccount['eligibility'];
+  model_groups?: BalanceModelGroup[];
+}
+
 export interface SchedulerRejection {
   account: ProviderAccount;
   reason: string;
