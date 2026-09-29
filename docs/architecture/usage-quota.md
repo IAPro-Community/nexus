@@ -34,3 +34,26 @@ future timeline work.
 
 New quota integrations must report evidence, reset/window semantics, and
 degradation explicitly. This cycle does not add new scraping.
+
+
+## Usage/Capacity V2: evidence and resource channels
+
+Nexus distinguishes source evidence from the projections used by routing.
+
+- `UsageObservation` records the provider's original semantics
+  (`USED_PERCENT`, `REMAINING_PERCENT`, absolute values, etc.).
+- `SUBSCRIPTION` and `API` are independent resource channels. A ChatGPT/Codex
+  subscription session never inherits OpenAI API budget merely because the
+  identities belong to the same person.
+- `quota_remaining` is a literal 0..1 projection of the best usable quota pool.
+  Pool-count bonuses and other routing preferences live in
+  `routing_capacity_score` and must never be rendered as percentages.
+- The legacy `UsageSnapshot` remains the compatibility projection for current
+  TUI/Web/scheduler consumers while collectors migrate to typed evidence.
+- API consumption/cost may be attached only through explicit credentials and
+  account/project binding. Nexus must not reuse a product credential as an API
+  credential or infer that one grants access to the other.
+
+For multi-account providers, every observation stays bound to `AccountScope`.
+For multi-pool providers such as AGY, model groups remain independent rather
+than being averaged into one fabricated account percentage.
