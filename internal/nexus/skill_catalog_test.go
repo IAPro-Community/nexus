@@ -113,3 +113,46 @@ func TestAutomaticSkillResolutionIsBoundedAndDeterministic(t *testing.T) {
 		}
 	}
 }
+
+
+func TestAutomaticSkillResolutionPrefersRegisteredSpecialistsWithoutDuplicateBuiltin(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus {
+		return MaestroStatus{
+			Available: true,
+			Mode:      MaestroAssist,
+			Capabilities: &MaestroCapability{Version: "1.0.0", Skills: []MaestroSkillDesc{
+				{
+					ID:          "code-review",
+					Name:        "Code Review",
+					Description: "Run a comprehensive code review.",
+				},
+				{
+					ID:          "skill-quality-gate",
+					Name:        "Quality Gate",
+					Description: "Avalia skills, plugins e MCPs antes da adoção.",
+					Triggers:    []string{"quality gate", "skill gate", "avaliar skill", "auditar plugin"},
+				},
+			}},
+		}
+	}
+
+	got, err := n.ResolveAutomaticSkillIDs(context.Background(), "", "estou fazendo review e quero validar as skills")
+	if err != nil {
+		t.Fatal(err)
+	}
+	has := func(id string) bool {
+		for _, item := range got {
+			if item == id {
+				return true
+			}
+		}
+		return false
+	}
+	if !has("code-review") || !has("skill-quality-gate") || !has("verification") {
+		t.Fatalf("registered specialist resolution incomplete: %v", got)
+	}
+	if has("review") {
+		t.Fatalf("builtin review must not duplicate registered code-review in bounded context: %v", got)
+	}
+}
