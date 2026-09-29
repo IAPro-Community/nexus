@@ -11,6 +11,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/executil"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // ShellDriver exposes a normal local project shell through the same supervised
@@ -54,7 +55,7 @@ func resolveSystemShell() (string, error) {
 // misleading IPC timeout.
 func shellRuns(binary string, args ...string) bool {
 	cmd := exec.Command(binary, args...)
-	cmd.Env = os.Environ()
+	cmd.Env = nexusruntime.SanitizeChildEnv(os.Environ())
 	executil.HideConsoleWindow(cmd)
 	return cmd.Run() == nil
 }
@@ -92,7 +93,7 @@ func (d *ShellDriver) BuildCommand(context.Context, model.Profile, []string) (st
 	if err != nil {
 		return "", nil, nil, err
 	}
-	return binary, nil, os.Environ(), nil
+	return binary, nil, nexusruntime.SanitizeChildEnv(os.Environ()), nil
 }
 func (d *ShellDriver) CanResume(context.Context, model.Profile, string) (bool, string) {
 	return false, "project shells are not provider sessions"
