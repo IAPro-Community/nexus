@@ -28,7 +28,7 @@ func TestQuotaRemainingIsLiteralAndRoutingScoreIsSeparate(t *testing.T) {
 
 func TestSubscriptionResourceChannelDoesNotInventUnknownQuota(t *testing.T) {
 	qv := quota.QuotaView{Status: string(model.UsageUnknown)}
-	state := subscriptionResourceChannel(qv, 0, false)
+	state := subscriptionResourceChannel(qv, 0, false, model.AccountScope{})
 	if state.Channel != model.ResourceChannelSubscription {
 		t.Fatalf("channel=%q", state.Channel)
 	}
