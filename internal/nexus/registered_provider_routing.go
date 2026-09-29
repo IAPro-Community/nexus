@@ -118,18 +118,20 @@ func applyRegisteredProviderPreferenceToFlow(flow *FlowDefinition, provider stri
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	for i := range flow.Steps {
 		step := &flow.Steps[i]
-		if strings.TrimSpace(step.Provider) == "" &&
+		canApply := strings.TrimSpace(step.Provider) == "" &&
 			strings.TrimSpace(step.Profile) == "" &&
 			strings.TrimSpace(step.DesiredProvider) == "" &&
-			strings.TrimSpace(step.DesiredProfile) == "" {
-			step.DesiredProvider = provider
-			switch SchedulerPolicy(strings.ToUpper(strings.TrimSpace(step.ResourcePolicy))) {
-			case PolicyManual:
-				// MANUAL is a stronger explicit contract and must not be
-				// silently weakened into fallback-capable preference.
-			default:
-				step.ResourcePolicy = string(PolicyPreferProvider)
-			}
+			strings.TrimSpace(step.DesiredProfile) == ""
+		if !canApply {
+			continue
+		}
+		step.DesiredProvider = provider
+		switch SchedulerPolicy(strings.ToUpper(strings.TrimSpace(step.ResourcePolicy))) {
+		case PolicyManual:
+			// MANUAL is a stronger explicit contract and must not be
+			// silently weakened into fallback-capable preference.
+		default:
+			step.ResourcePolicy = string(PolicyPreferProvider)
 		}
 		var req TaskRequirements
 		if strings.TrimSpace(step.TaskRequirements) != "" {
