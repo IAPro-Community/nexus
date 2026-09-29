@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { AGENT_MODE_PRESENTATION, NATIVE_PROVIDERS } from './NewAgentModal';
+import { AGENT_MODE_PRESENTATION, NATIVE_PROVIDERS, buildNewAgentConfig } from './NewAgentModal';
+import type { AgentMode } from '../../types';
 
 describe('Agent Mode presentation', () => {
   it('covers every required Nexus 1.0 specialist with user-facing copy', () => {
@@ -43,4 +44,31 @@ describe('Agent Mode presentation', () => {
     expect(opencode?.alias).toBe('nexus opencode');
     expect(opencode?.label).toContain('OpenCode');
   });
+  it('creates agents unassigned while preserving resource preference and custom target options', () => {
+    const mode = {
+      id: 'developer',
+      role: 'developer',
+      default_provider: 'codex',
+      default_execution_mode: 'Safe',
+      agent_spec: { role: 'developer' },
+    } as AgentMode;
+    const config = buildNewAgentConfig(mode, 'codex', 'C:\\work\\project', {
+      execution_adapter: 'command_template',
+      target_kind: 'wsl',
+      target_workspace: '/workspace',
+      target_profile_home: '/home/developer',
+      target_probe_template: 'wsl {provider} {args}',
+      command_template: 'wsl {provider} {args}',
+    });
+
+    expect(config.provider).toBe('');
+    expect(config.profile).toBe('');
+    expect(config.allocation?.prefer_provider).toBe('codex');
+    expect(config.options?.target_kind).toBe('wsl');
+    expect(config.options?.target_workspace).toBe('/workspace');
+    expect(config.options?.target_profile_home).toBe('/home/developer');
+    expect(config.options?.target_probe_template).toBe('wsl {provider} {args}');
+    expect(config.options?.command_template).toBe('wsl {provider} {args}');
+  });
+
 });
