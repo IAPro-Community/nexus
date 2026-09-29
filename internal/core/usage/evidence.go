@@ -90,7 +90,10 @@ func ReconcileQuotaObservations(providerID, profileID string, channel model.Reso
 			continue
 		}
 		if scope.Verifiable() && observation.AccountScope.Verifiable() && observation.AccountScope.Key() != scope.Key() {
-			continue
+			// A single reconciliation batch must belong to exactly one durable
+			// account. Mixed identities are contamination, not a signal to pick
+			// whichever account happened to appear first.
+			return snapshot
 		}
 		if !scope.Verifiable() && observation.AccountScope.Verifiable() {
 			scope = observation.AccountScope
