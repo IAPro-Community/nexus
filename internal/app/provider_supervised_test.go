@@ -21,21 +21,21 @@ func TestProviderLaunchFlagsAreNexusOwned(t *testing.T) {
 	}
 }
 
-func TestWantInteractiveLeadDefaultFalse(t *testing.T) {
-	if wantInteractiveLead(nil) {
-		t.Fatal("default supervised shortcut must remain provider-native and byte-transparent")
+func TestWantInteractiveLeadDefaultTrue(t *testing.T) {
+	if !wantInteractiveLead(nil) {
+		t.Fatal("supervised Nexus sessions must bind the orchestration Lead by default")
 	}
-	if wantInteractiveLead([]string{"--yolo", "--model", "gpt-5"}) {
-		t.Fatal("provider flags must not implicitly enable an Interactive Lead")
+	if !wantInteractiveLead([]string{"--yolo", "--model", "gpt-5"}) {
+		t.Fatal("provider flags must preserve the default Interactive Lead")
 	}
 }
 
-func TestWantInteractiveLeadExplicitOptIn(t *testing.T) {
+func TestWantInteractiveLeadNoLeadOptOutWins(t *testing.T) {
 	if !wantInteractiveLead([]string{"--lead"}) {
-		t.Fatal("explicit --lead must opt in to Interactive Lead")
+		t.Fatal("explicit --lead must keep Interactive Lead enabled")
 	}
 	if !wantInteractiveLead([]string{"--yolo", "--LEAD", "--model", "x"}) {
-		t.Fatal("expected case-insensitive --lead")
+		t.Fatal("expected case-insensitive --lead compatibility")
 	}
 	if wantInteractiveLead([]string{"--lead", "--no-lead"}) {
 		t.Fatal("--no-lead must win when both compatibility flags are present")
@@ -45,7 +45,7 @@ func TestWantInteractiveLeadExplicitOptIn(t *testing.T) {
 	}
 }
 
-func TestSupervisedRuntimeLabelsDoNotAuthorizeMissionPromotion(t *testing.T) {
+func TestSupervisedRuntimeLabelsAuthorizeOnlyBoundLead(t *testing.T) {
 	withoutLead := supervisedRuntimeLabels(false)
 	if got := withoutLead["nexus.delegation_mode"]; got != string(nexus.DelegationOff) {
 		t.Fatalf("delegation mode without Lead = %q, want %q", got, nexus.DelegationOff)
@@ -56,10 +56,10 @@ func TestSupervisedRuntimeLabelsDoNotAuthorizeMissionPromotion(t *testing.T) {
 
 	withLead := supervisedRuntimeLabels(true)
 	if got := withLead["nexus.interactive_lead"]; got != "true" {
-		t.Fatalf("interactive Lead opt-in = %q, want true", got)
+		t.Fatalf("interactive Lead = %q, want true", got)
 	}
-	if got := withLead["nexus.delegation_mode"]; got != string(nexus.DelegationOff) {
-		t.Fatalf("binding a Lead must not imply Mission promotion: got %q, want %q", got, nexus.DelegationOff)
+	if got := withLead["nexus.delegation_mode"]; got != string(nexus.DelegationAuto) {
+		t.Fatalf("bound Lead must enter AUTO delegation: got %q, want %q", got, nexus.DelegationAuto)
 	}
 }
 
