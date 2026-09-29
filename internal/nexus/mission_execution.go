@@ -271,7 +271,7 @@ func executionBranch(ctx context.Context, workspace string) string {
 	}
 	branchCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	out, err := exec.CommandContext(branchCtx, "git", "-C", workspace, "rev-parse", "--abbrev-ref", "HEAD").Output()
+	out, err := executil.CommandContext(branchCtx, "git", "-C", workspace, "rev-parse", "--abbrev-ref", "HEAD").Output()
 	if err != nil {
 		return ""
 	}
