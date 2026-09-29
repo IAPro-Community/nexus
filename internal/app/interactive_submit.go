@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
@@ -36,5 +37,12 @@ func decideInteractiveSubmit(ctx context.Context, promoter promotion.Promoter, p
 }
 
 func shouldFallbackPromotionToLead(decision promotion.Decision) bool {
-	return decision.Action == promotion.Promote && !decision.ExplicitMissionRequest
+	// A heuristic topology promotion may safely fall back to the current Lead
+	// before Mission admission. Explicit user ownership may not: this includes
+	// both an explicit Mission request and a registered provider handoff such as
+	// "chame o codex". Falling back that request to AGY/another Lead would violate
+	// the requested resource and recreate provider discovery outside Nexus.
+	return decision.Action == promotion.Promote &&
+		!decision.ExplicitMissionRequest &&
+		strings.TrimSpace(decision.Intent.TaskRequirements.PreferProvider) == ""
 }
