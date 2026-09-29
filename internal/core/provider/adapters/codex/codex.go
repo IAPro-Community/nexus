@@ -20,6 +20,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/core/security"
+	usageevidence "github.com/IAPro-Community/nexus/internal/core/usage"
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
@@ -629,11 +630,6 @@ func buildWindowsFromRateLimits(limits rolloutRateLimits) []model.UsageWindow {
 			continue
 		}
 		kind := windowKindFromMinutes(s.w.WindowMinutes, s.fall)
-		used := s.w.UsedPercent
-		rem := 100.0 - used
-		if rem < 0 {
-			rem = 0
-		}
 		var resetTime *time.Time
 		resetDesc := formatCodexResetTime(s.w.ResetsAt)
 		if s.w.ResetsAt > 0 {
@@ -643,14 +639,13 @@ func buildWindowsFromRateLimits(limits rolloutRateLimits) []model.UsageWindow {
 				resetDesc = "window rolled over"
 			}
 		}
-		windows = append(windows, model.UsageWindow{
-			Kind:             kind,
-			Group:            "claude_gpt",
-			RemainingPercent: &rem,
-			UsedPercent:      &used,
-			ResetTime:        resetTime,
-			ResetDescription: resetDesc,
-		})
+		windows = append(windows, usageevidence.PercentWindowFromUsed(
+			kind,
+			"claude_gpt",
+			s.w.UsedPercent,
+			resetTime,
+			resetDesc,
+		))
 	}
 	return windows
 }
