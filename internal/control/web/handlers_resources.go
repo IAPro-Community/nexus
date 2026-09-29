@@ -55,6 +55,9 @@ func (h *NexusHandler) handleResourcesRefresh(w http.ResponseWriter, r *http.Req
 
 	if targetProv != "" && targetName != "" {
 		_ = profile.RefreshUsageSnapshot(targetProv, targetName)
+		// API telemetry is opt-in and independently authenticated. A missing
+		// binding/key never turns a successful subscription refresh into an error.
+		_, _, _ = profile.RefreshAPIResourceChannelContext(r.Context(), targetProv, targetName)
 	} else {
 		profiles, err := profile.List()
 		if err != nil {
@@ -63,6 +66,7 @@ func (h *NexusHandler) handleResourcesRefresh(w http.ResponseWriter, r *http.Req
 		}
 		for _, p := range profiles {
 			_ = profile.RefreshUsageSnapshot(p.Provider, p.Name)
+			_, _, _ = profile.RefreshAPIResourceChannelContext(r.Context(), p.Provider, p.Name)
 		}
 	}
 	accounts, err := h.resources.List(r.Context())
