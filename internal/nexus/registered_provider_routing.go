@@ -22,8 +22,8 @@ func registeredProviderIDs() ([]string, error) {
 		if item.Disabled {
 			continue
 		}
-		id := normalizeRegisteredProviderID(item.Provider)
-		if id == "" {
+		id := strings.ToLower(strings.TrimSpace(item.Provider))
+		if normalizeRegisteredProviderID(id) == "" {
 			continue
 		}
 		seen[id] = struct{}{}
@@ -61,7 +61,7 @@ func resolveRegisteredProviderPreference(prompt string, registered []string) (st
 			continue
 		}
 		if _, ok := terms[canonical]; ok {
-			matched[canonical] = struct{}{}
+			matched[strings.ToLower(strings.TrimSpace(provider))] = struct{}{}
 		}
 	}
 	if len(matched) != 1 {
@@ -115,7 +115,7 @@ func applyRegisteredProviderPreferenceToFlow(flow *FlowDefinition, provider stri
 	if flow == nil || strings.TrimSpace(provider) == "" {
 		return
 	}
-	provider = normalizeRegisteredProviderID(provider)
+	provider = strings.ToLower(strings.TrimSpace(provider))
 	for i := range flow.Steps {
 		step := &flow.Steps[i]
 		if strings.TrimSpace(step.Provider) == "" &&
