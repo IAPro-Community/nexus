@@ -190,11 +190,7 @@ export interface ProviderAccount {
   health: string;
   last_checked: string;
   cooldown_until?: string;
-  account_scope?: {
-    provider_id?: string;
-    account_id?: string;
-    identity_version?: string;
-  };
+  account_scope?: AccountScope;
   avail_reasons?: {
     exhausted_windows?: string[];
     rate_limited?: boolean;
@@ -235,6 +231,29 @@ export interface ProviderAccount {
       }>;
     }>;
   };
+}
+
+export interface BalanceModelGroup {
+  key?: string;
+  name: string;
+  remaining: number;
+  known: boolean;
+  available: boolean;
+}
+
+export interface BalanceEntity {
+  id: string;
+  provider: string;
+  profile: string;
+  display_name: string;
+  usage_status: 'LIVE' | 'CACHED' | 'ESTIMATED' | 'RATE_LIMITED' | string;
+  usage_source?: string;
+  quota_remaining: number;
+  available: boolean;
+  health: string;
+  account_scope?: AccountScope;
+  eligibility?: ProviderAccount['eligibility'];
+  model_groups?: BalanceModelGroup[];
 }
 
 export interface SchedulerRejection {
