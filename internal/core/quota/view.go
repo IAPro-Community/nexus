@@ -165,8 +165,27 @@ func (qv *QuotaView) EffectiveCapacityScore() (score float64, ok bool) {
 	return float64(qv.UsableGroupCount())*100.0 + avg, true
 }
 
-// EffectiveCapacityRatio normalizes EffectiveCapacityScore to 0-1 for APIs
-// that expect quota_remaining in that range.
+// BestGroupRemainingRatio returns the literal 0-1 remaining capacity of the
+// best usable model pool. It is safe for fields named quota_remaining because
+// it never mixes pool count or routing bonuses into a percentage.
+func (qv *QuotaView) BestGroupRemainingRatio() (ratio float64, ok bool) {
+	remaining, ok := qv.BestGroupRemaining()
+	if !ok {
+		return 0, false
+	}
+	ratio = remaining / 100.0
+	if ratio < 0 {
+		ratio = 0
+	}
+	if ratio > 1 {
+		ratio = 1
+	}
+	return ratio, true
+}
+
+// EffectiveCapacityRatio normalizes the provider-specific routing rank to 0-1.
+// It is retained for compatibility but MUST NOT be exposed as quota_remaining:
+// the score intentionally rewards the number of usable model pools.
 func (qv *QuotaView) EffectiveCapacityRatio() (ratio float64, ok bool) {
 	score, ok := qv.EffectiveCapacityScore()
 	if !ok {
