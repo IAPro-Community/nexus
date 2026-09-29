@@ -328,7 +328,7 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, project store.Proje
 	runPkg.DesiredProvider = desiredProvider
 	runPkg.DesiredProfile = desiredProfile
 	preferenceMode := missionAffinityMode(policy, desiredProvider, desiredProfile)
-	candidateAccounts, candidateErr := selectMissionCandidateAccounts(accounts, runPkg, agentCfg, preferenceMode, false)
+	candidateAccounts, candidateErr := selectMissionCandidateAccounts(accounts, runPkg, agentCfg, preferenceMode, false, req, policy)
 	if candidateErr != nil {
 		step.Ready = false
 		step.Blockers = append(step.Blockers, candidateErr.Error())
