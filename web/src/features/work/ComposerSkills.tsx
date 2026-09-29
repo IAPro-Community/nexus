@@ -105,7 +105,13 @@ export const ComposerSkills: React.FC<{
       .slice(0, 8);
   }, [catalog, query, skills]);
 
-  if (skills.length === 0 && catalog.length === 0) return null;
+  if (
+    skills.length === 0 &&
+    catalog.length === 0 &&
+    balanceLoaded &&
+    balanceEntities.length === 0
+  )
+    return null;
 
   const proposals = visibleProposals.map((skill) => (
     <div key={skill.skill_id} className={styles.skillRow}>
