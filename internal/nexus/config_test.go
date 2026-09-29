@@ -206,6 +206,41 @@ func TestSafeApplyStoppedAgentPersistsConfigWithoutLaunching(t *testing.T) {
 	}
 }
 
+func TestSafeApplyStoppedAgentMayRemainUnassignedUntilResourceSelection(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	proj, _ := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
+	agent, _ := st.CreateAgent(store.Agent{ProjectID: proj.ID, Name: "Dev"})
+
+	proposed := AgentConfig{
+		Options:   map[string]any{"mode": "Safe", "execution_adapter": "native_alias"},
+		AgentSpec: intelligence.AgentSpec{Role: "developer"},
+	}
+	impact, err := n.SafeApply(context.Background(), agent.ID, proposed)
+	if err != nil {
+		t.Fatalf("unassigned SafeApply: %v", err)
+	}
+	if len(impact.ChangedFields) == 0 {
+		t.Fatal("expected the unassigned specialization config to be persisted")
+	}
+
+	updated, _ := st.GetAgent(agent.ID, "")
+	if updated.CurrentRevisionID == "" {
+		t.Fatal("unassigned agent should have a current config revision")
+	}
+	revision, err := st.GetRevision(updated.CurrentRevisionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := ParseAgentConfig(revision.Config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.Provider != "" || config.Profile != "" {
+		t.Fatalf("unassigned config = %+v, want no provider/profile", config)
+	}
+}
+
 func TestStartAgentReusesPersistedConfigRevision(t *testing.T) {
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
