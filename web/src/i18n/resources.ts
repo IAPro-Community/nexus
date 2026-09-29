@@ -706,6 +706,9 @@ export const en = {
       contextExcluded: 'Excluded from model context',
       contextWarnings: 'Discovery warnings',
       searchSkills: 'Search skills',
+      balanceExecutors: 'Registered AI executors with measurable limits',
+      noBalanceExecutors:
+        'No registered AI has measurable quota data for automatic balancing.',
       noMatchingSkills: 'No matching skills.',
       catalogMatches: 'More skills from the Nexus catalog',
       useSkill: 'Use',
@@ -2668,6 +2671,9 @@ export const ptBR = {
       contextExcluded: 'Excluído do contexto do modelo',
       contextWarnings: 'Avisos da descoberta',
       searchSkills: 'Pesquisar skills',
+      balanceExecutors: 'IAs registradas com limites mensuráveis',
+      noBalanceExecutors:
+        'Nenhuma IA registrada possui dados de quota mensuráveis para balanceamento automático.',
       noMatchingSkills: 'Nenhuma skill correspondente.',
       catalogMatches: 'Mais skills do catálogo Nexus',
       useSkill: 'Usar',
@@ -4640,6 +4646,9 @@ export const es = {
       contextExcluded: 'Excluido del contexto del modelo',
       contextWarnings: 'Avisos del descubrimiento',
       searchSkills: 'Buscar skills',
+      balanceExecutors: 'IAs registradas con límites medibles',
+      noBalanceExecutors:
+        'Ninguna IA registrada tiene datos de cuota medibles para el balanceo automático.',
       noMatchingSkills: 'No hay skills coincidentes.',
       catalogMatches: 'Más skills del catálogo Nexus',
       useSkill: 'Usar',
