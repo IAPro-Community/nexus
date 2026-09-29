@@ -2,6 +2,7 @@ package launchenv
 
 import (
 	"os"
+	stdruntime "runtime"
 	"strings"
 )
 
@@ -25,6 +26,7 @@ var protectedIsolationKeys = map[string]struct{}{
 // whose precedence differs across operating systems/process launchers.
 func Merge(base []string, overrides map[string]string, pathPrepend []string) []string {
 	values := make(map[string]string, len(base)+len(overrides))
+	displayKeys := make(map[string]string, len(base)+len(overrides))
 	order := make([]string, 0, len(base)+len(overrides))
 	seen := map[string]bool{}
 	for _, entry := range base {
@@ -32,25 +34,28 @@ func Merge(base []string, overrides map[string]string, pathPrepend []string) []s
 		if len(parts) != 2 || parts[0] == "" {
 			continue
 		}
-		key := parts[0]
-		if !seen[key] {
-			order = append(order, key)
-			seen[key] = true
+		canonicalKey := envKeyForGOOS(parts[0], stdruntime.GOOS)
+		if !seen[canonicalKey] {
+			order = append(order, canonicalKey)
+			displayKeys[canonicalKey] = parts[0]
+			seen[canonicalKey] = true
 		}
-		values[key] = parts[1]
+		values[canonicalKey] = parts[1]
 	}
 	for key, value := range overrides {
 		if key == "" {
 			continue
 		}
-		if _, protected := protectedIsolationKeys[key]; protected {
+		canonicalKey := envKeyForGOOS(key, stdruntime.GOOS)
+		if _, protected := protectedIsolationKeys[canonicalKey]; protected {
 			continue
 		}
-		if !seen[key] {
-			order = append(order, key)
-			seen[key] = true
+		if !seen[canonicalKey] {
+			order = append(order, canonicalKey)
+			displayKeys[canonicalKey] = key
+			seen[canonicalKey] = true
 		}
-		values[key] = value
+		values[canonicalKey] = value
 	}
 	if len(pathPrepend) > 0 {
 		parts := make([]string, 0, len(pathPrepend)+1)
@@ -59,18 +64,31 @@ func Merge(base []string, overrides map[string]string, pathPrepend []string) []s
 				parts = append(parts, dir)
 			}
 		}
-		if existing := values["PATH"]; existing != "" {
+		pathKey := envKeyForGOOS("PATH", stdruntime.GOOS)
+		if existing := values[pathKey]; existing != "" {
 			parts = append(parts, existing)
 		}
-		values["PATH"] = strings.Join(parts, string(os.PathListSeparator))
-		if !seen["PATH"] {
-			order = append(order, "PATH")
-			seen["PATH"] = true
+		values[pathKey] = strings.Join(parts, string(os.PathListSeparator))
+		if !seen[pathKey] {
+			order = append(order, pathKey)
+			displayKeys[pathKey] = "PATH"
+			seen[pathKey] = true
 		}
 	}
 	out := make([]string, 0, len(order))
-	for _, key := range order {
-		out = append(out, key+"="+values[key])
+	for _, canonicalKey := range order {
+		key := displayKeys[canonicalKey]
+		if key == "" {
+			key = canonicalKey
+		}
+		out = append(out, key+"="+values[canonicalKey])
 	}
 	return out
+}
+
+func envKeyForGOOS(key, goos string) string {
+	if goos == "windows" {
+		return strings.ToUpper(key)
+	}
+	return key
 }
