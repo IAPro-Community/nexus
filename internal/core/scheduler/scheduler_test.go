@@ -412,7 +412,6 @@ func TestCodexExhaustedFiveHourLosesToHealthyAccount(t *testing.T) {
 	}
 }
 
-
 func TestEstimatedQuotaRanksByRemainingWhenNoCurrentEvidence(t *testing.T) {
 	dataDir := t.TempDir()
 	cfgDir := t.TempDir()
