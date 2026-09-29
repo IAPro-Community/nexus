@@ -14,16 +14,16 @@ import (
 // must never invent executors from PATH discovery, static provider tables or a
 // model name remembered by the caller.
 type BalanceEntity struct {
-	ID             string             `json:"id"`
-	Provider       string             `json:"provider"`
-	Profile        string             `json:"profile"`
-	DisplayName    string             `json:"display_name"`
-	UsageStatus    string             `json:"usage_status"`
-	UsageSource    string             `json:"usage_source,omitempty"`
-	QuotaRemaining float64            `json:"quota_remaining"`
-	Available      bool               `json:"available"`
-	Health         string             `json:"health"`
-	Eligibility    *quota.Eligibility `json:"eligibility,omitempty"`
+	ID             string              `json:"id"`
+	Provider       string              `json:"provider"`
+	Profile        string              `json:"profile"`
+	DisplayName    string              `json:"display_name"`
+	UsageStatus    string              `json:"usage_status"`
+	UsageSource    string              `json:"usage_source,omitempty"`
+	QuotaRemaining float64             `json:"quota_remaining"`
+	Available      bool                `json:"available"`
+	Health         string              `json:"health"`
+	Eligibility    *quota.Eligibility  `json:"eligibility,omitempty"`
 	ModelGroups    []BalanceModelGroup `json:"model_groups,omitempty"`
 }
 
