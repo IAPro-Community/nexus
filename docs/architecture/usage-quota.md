@@ -57,3 +57,27 @@ Nexus distinguishes source evidence from the projections used by routing.
 For multi-account providers, every observation stays bound to `AccountScope`.
 For multi-pool providers such as AGY, model groups remain independent rather
 than being averaged into one fabricated account percentage.
+
+
+### Optional OpenAI API telemetry
+
+OpenAI API telemetry is disabled unless a managed profile has an explicit
+binding. The binding stores only attribution metadata and the **name** of the
+environment variable that contains an OpenAI Admin API key:
+
+```bash
+export OPENAI_ADMIN_KEY_WORK='<admin-key>'
+nexus config api-usage bind codex work \
+  --project proj_123 \
+  --key-env OPENAI_ADMIN_KEY_WORK
+```
+
+Nexus then reads month-to-date completion usage from
+`/v1/organization/usage/completions`, attributable project costs from
+`/v1/organization/costs`, and the project spend limit when exactly one
+project is bound. The result is cached under the exact profile/account scope;
+ordinary resource listing is cache-only and performs no network I/O.
+
+A binding must contain at least one project, user, or API-key identifier.
+Organization-wide unfiltered usage is never assigned to one CLI profile. API
+consumption/cost does not populate subscription `quota_remaining`.
