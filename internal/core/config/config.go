@@ -45,6 +45,17 @@ type IntelligenceMemory struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
+// APIUsageBinding binds a managed CLI profile to an independently authenticated
+// API usage source. APIKeyEnv names an environment variable; raw API/admin keys
+// are never persisted in Nexus config.
+type APIUsageBinding struct {
+	Provider   string   `json:"provider"` // currently "openai"
+	APIKeyEnv  string   `json:"api_key_env,omitempty"`
+	ProjectIDs []string `json:"project_ids,omitempty"`
+	UserIDs    []string `json:"user_ids,omitempty"`
+	APIKeyIDs  []string `json:"api_key_ids,omitempty"`
+}
+
 // Config represents persistent application settings and user preferences.
 type Config struct {
 	ConfigVersion        int                            `json:"config_version"`
@@ -61,8 +72,9 @@ type Config struct {
 	MaxConcurrency       int                            `json:"max_concurrency"`
 	Language             string                         `json:"language,omitempty"`
 	Intelligence         IntelligenceConfig             `json:"intelligence,omitempty"`
-	IntelligenceMemories []IntelligenceMemory           `json:"intelligence_memories,omitempty"`
-	FlagAliases          map[string]map[string][]string `json:"flag_aliases,omitempty"` // alias -> provider -> flags
+	IntelligenceMemories []IntelligenceMemory                    `json:"intelligence_memories,omitempty"`
+	APIUsageBindings     map[string]map[string]APIUsageBinding   `json:"api_usage_bindings,omitempty"` // CLI provider -> profile -> API usage binding
+	FlagAliases          map[string]map[string][]string          `json:"flag_aliases,omitempty"` // alias -> provider -> flags
 }
 
 var configMu sync.RWMutex
@@ -84,6 +96,7 @@ func NewDefaultConfig() Config {
 		MaxConcurrency:     4,
 		Language:           "auto",
 		Intelligence:       IntelligenceConfig{Mode: IntelligenceOff},
+		APIUsageBindings:   make(map[string]map[string]APIUsageBinding),
 	}
 }
 
@@ -395,6 +408,9 @@ func LoadConfig() (Config, error) {
 	if cfg.Intelligence.Mode == "" {
 		cfg.Intelligence.Mode = IntelligenceOff
 	}
+	if cfg.APIUsageBindings == nil {
+		cfg.APIUsageBindings = make(map[string]map[string]APIUsageBinding)
+	}
 
 	return cfg, nil
 }
@@ -443,6 +459,96 @@ func SetDefaultProfile(provider, name string) error {
 		return err
 	}
 	cfg.Defaults[provider] = name
+	return SaveConfig(cfg)
+}
+
+// SetAPIUsageBinding persists non-secret attribution metadata for an optional
+// API usage channel. Raw API/admin keys are referenced only by environment
+// variable name.
+func SetAPIUsageBinding(provider, profileName string, binding APIUsageBinding) error {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	profileName = strings.TrimSpace(profileName)
+	if provider == "" {
+		return errors.New("provider is required")
+	}
+	if err := ValidateProfileName(profileName); err != nil {
+		return err
+	}
+	binding.Provider = strings.ToLower(strings.TrimSpace(binding.Provider))
+	if binding.Provider == "" {
+		binding.Provider = "openai"
+	}
+	if binding.Provider != "openai" {
+		return fmt.Errorf("unsupported API usage provider %q", binding.Provider)
+	}
+	binding.ProjectIDs = compactNonEmptyStrings(binding.ProjectIDs)
+	binding.UserIDs = compactNonEmptyStrings(binding.UserIDs)
+	binding.APIKeyIDs = compactNonEmptyStrings(binding.APIKeyIDs)
+	if len(binding.ProjectIDs) == 0 && len(binding.UserIDs) == 0 && len(binding.APIKeyIDs) == 0 {
+		return errors.New("API usage binding requires at least one project_id, user_id or api_key_id")
+	}
+	if strings.TrimSpace(binding.APIKeyEnv) == "" {
+		binding.APIKeyEnv = "OPENAI_ADMIN_KEY"
+	}
+	if !validAPIUsageKeyEnv(binding.APIKeyEnv) {
+		return fmt.Errorf("api usage key env %q must be OPENAI_ADMIN_KEY or OPENAI_ADMIN_KEY_*", binding.APIKeyEnv)
+	}
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		return err
+	}
+	if cfg.APIUsageBindings == nil {
+		cfg.APIUsageBindings = make(map[string]map[string]APIUsageBinding)
+	}
+	if cfg.APIUsageBindings[provider] == nil {
+		cfg.APIUsageBindings[provider] = make(map[string]APIUsageBinding)
+	}
+	cfg.APIUsageBindings[provider][profileName] = binding
+	return SaveConfig(cfg)
+}
+
+// GetAPIUsageBinding reads non-secret attribution metadata for one profile.
+func GetAPIUsageBinding(provider, profileName string) (APIUsageBinding, bool) {
+	cfg, err := LoadConfig()
+	if err != nil {
+		return APIUsageBinding{}, false
+	}
+	provider = strings.TrimSpace(provider)
+	profileName = strings.TrimSpace(profileName)
+	for p, profiles := range cfg.APIUsageBindings {
+		if !strings.EqualFold(strings.TrimSpace(p), provider) {
+			continue
+		}
+		for name, binding := range profiles {
+			if strings.EqualFold(strings.TrimSpace(name), profileName) {
+				return binding, true
+			}
+		}
+	}
+	return APIUsageBinding{}, false
+}
+
+// RemoveAPIUsageBinding removes only the API telemetry binding. It never
+// disconnects or mutates the underlying CLI subscription profile.
+func RemoveAPIUsageBinding(provider, profileName string) error {
+	cfg, err := LoadConfig()
+	if err != nil {
+		return err
+	}
+	for p, profiles := range cfg.APIUsageBindings {
+		if !strings.EqualFold(strings.TrimSpace(p), strings.TrimSpace(provider)) {
+			continue
+		}
+		for name := range profiles {
+			if strings.EqualFold(strings.TrimSpace(name), strings.TrimSpace(profileName)) {
+				delete(profiles, name)
+			}
+		}
+		if len(profiles) == 0 {
+			delete(cfg.APIUsageBindings, p)
+		}
+	}
 	return SaveConfig(cfg)
 }
 
@@ -537,5 +643,96 @@ func (c Config) Validate() []string {
 	if c.Intelligence.Mode != IntelligenceOff && c.Intelligence.Mode != IntelligenceCLI && c.Intelligence.Mode != IntelligenceOpenAICompatible {
 		issues = append(issues, fmt.Sprintf("unknown intelligence mode %q (allowed: OFF, CLI, OPENAI_COMPATIBLE)", c.Intelligence.Mode))
 	}
+	for cliProvider, profiles := range c.APIUsageBindings {
+		for profileName, binding := range profiles {
+			if strings.TrimSpace(cliProvider) == "" || strings.TrimSpace(profileName) == "" {
+				issues = append(issues, "api_usage_bindings requires non-empty provider/profile keys")
+				continue
+			}
+			if !strings.EqualFold(strings.TrimSpace(binding.Provider), "openai") {
+				issues = append(issues, fmt.Sprintf("api_usage_bindings[%s][%s]: unsupported API usage provider %q", cliProvider, profileName, binding.Provider))
+			}
+			if len(compactNonEmptyStrings(binding.ProjectIDs)) == 0 &&
+				len(compactNonEmptyStrings(binding.UserIDs)) == 0 &&
+				len(compactNonEmptyStrings(binding.APIKeyIDs)) == 0 {
+				issues = append(issues, fmt.Sprintf("api_usage_bindings[%s][%s]: at least one project_id, user_id or api_key_id is required", cliProvider, profileName))
+			}
+			if !validAPIUsageKeyEnv(binding.APIKeyEnv) {
+				issues = append(issues, fmt.Sprintf("api_usage_bindings[%s][%s]: api_key_env must be OPENAI_ADMIN_KEY or OPENAI_ADMIN_KEY_*", cliProvider, profileName))
+			}
+		}
+	}
 	return issues
+}
+
+
+func validAPIUsageKeyEnv(name string) bool {
+	name = strings.TrimSpace(name)
+	return name == "OPENAI_ADMIN_KEY" || (strings.HasPrefix(name, "OPENAI_ADMIN_KEY_") && len(name) > len("OPENAI_ADMIN_KEY_"))
+}
+
+func compactNonEmptyStrings(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	return out
+}
+
+
+// APIUsageSecretEnvNames returns environment variable names reserved for API
+// telemetry credentials. These variables belong to Nexus control-plane HTTP
+// collectors and must never be forwarded to provider CLI subprocesses.
+func APIUsageSecretEnvNames() []string {
+	names := map[string]struct{}{
+		"OPENAI_ADMIN_KEY": {},
+	}
+	cfg, err := LoadConfig()
+	if err == nil {
+		for _, profiles := range cfg.APIUsageBindings {
+			for _, binding := range profiles {
+				if name := strings.TrimSpace(binding.APIKeyEnv); name != "" {
+					names[name] = struct{}{}
+				}
+			}
+		}
+	}
+	out := make([]string, 0, len(names))
+	for name := range names {
+		out = append(out, name)
+	}
+	return out
+}
+
+// StripAPIUsageSecretEnv removes API telemetry credentials from an environment
+// slice before an external provider process is launched.
+func StripAPIUsageSecretEnv(env []string) []string {
+	secretNames := APIUsageSecretEnvNames()
+	out := make([]string, 0, len(env))
+	for _, entry := range env {
+		name := entry
+		if idx := strings.IndexByte(entry, '='); idx >= 0 {
+			name = entry[:idx]
+		}
+		blocked := false
+		for _, secretName := range secretNames {
+			if strings.EqualFold(strings.TrimSpace(name), strings.TrimSpace(secretName)) {
+				blocked = true
+				break
+			}
+		}
+		if !blocked {
+			out = append(out, entry)
+		}
+	}
+	return out
 }
