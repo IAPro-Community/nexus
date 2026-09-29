@@ -26,8 +26,9 @@ func (h *NexusHandler) handleResourcesList(w http.ResponseWriter, r *http.Reques
 		accounts = []nexus.ProviderAccount{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"accounts": accounts,
-		"policy":   "BALANCED",
+		"accounts":         accounts,
+		"balance_entities": nexus.BuildBalanceInventory(accounts),
+		"policy":           "BALANCED",
 	})
 }
 
@@ -74,9 +75,10 @@ func (h *NexusHandler) handleResourcesRefresh(w http.ResponseWriter, r *http.Req
 		accounts = []nexus.ProviderAccount{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"accounts":  accounts,
-		"policy":    "BALANCED",
-		"refreshed": true,
+		"accounts":         accounts,
+		"balance_entities": nexus.BuildBalanceInventory(accounts),
+		"policy":           "BALANCED",
+		"refreshed":        true,
 	})
 }
 
