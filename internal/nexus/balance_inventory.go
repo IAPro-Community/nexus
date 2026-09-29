@@ -126,15 +126,20 @@ func hasMeasuredBalanceEvidence(account ProviderAccount) bool {
 		return false
 	}
 
-	// A measured status without any scorable group/window is not enough to
-	// claim that Nexus knows this resource's limit.
+	// RATE_LIMITED is authoritative measured evidence even when the provider
+	// does not return a remaining-percent window in the same response. It stays
+	// visible for explanation but remains ineligible for automatic allocation.
+	if status == "RATE_LIMITED" || account.RateLimited {
+		return true
+	}
+
+	// A measured status without a scorable group/window is not enough to claim
+	// that Nexus knows the limit. ListResources normalizes QuotaTotal to 1 for
+	// API compatibility, so QuotaTotal alone is explicitly not evidence.
 	for _, group := range view.ModelGroups {
 		if _, ok := group.GroupRemaining(); ok {
 			return true
 		}
 	}
-
-	// Some providers expose a measured aggregate without model-group detail.
-	// Preserve that compatibility only when a normalized aggregate is present.
-	return account.QuotaTotal > 0 && account.QuotaRemaining >= 0
+	return false
 }
