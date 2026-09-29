@@ -144,11 +144,7 @@ export interface ProviderAccount {
   health: string;
   last_checked: string;
   cooldown_until?: string;
-  account_scope?: {
-    provider_id?: string;
-    account_id?: string;
-    identity_version?: string;
-  };
+  account_scope?: AccountScope;
   avail_reasons?: {
     exhausted_windows?: string[];
     rate_limited?: boolean;
@@ -209,6 +205,7 @@ export interface BalanceEntity {
   quota_remaining: number;
   available: boolean;
   health: string;
+  account_scope?: AccountScope;
   eligibility?: ProviderAccount['eligibility'];
   model_groups?: BalanceModelGroup[];
 }
