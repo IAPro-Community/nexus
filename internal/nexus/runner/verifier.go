@@ -3,7 +3,9 @@ package runner
 import (
 	"context"
 	"errors"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -42,6 +44,31 @@ func validateCommand(cmd string) error {
 // quoting and package-manager syntax behave consistently on Unix and Windows.
 func (v *VerificationEngine) RunVerification(ctx context.Context, workspace string, commands []string) []VerificationResult {
 	var results []VerificationResult
+	if setup := packageDependencySetup(workspace, commands); len(setup) > 0 {
+		started := time.Now()
+		cmd := platformShellCommand(ctx, strings.Join(setup, " "))
+		executil.HideConsoleWindow(cmd)
+		cmd.Dir = workspace
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			snippet := string(out)
+			if len(snippet) > 8192 {
+				snippet = snippet[len(snippet)-8192:]
+			}
+			exitCode := -1
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				exitCode = exitErr.ExitCode()
+			}
+			return []VerificationResult{{
+				Command: strings.Join(setup, " "),
+				Passed: false,
+				ExitCode: exitCode,
+				OutputSnippet: snippet,
+				DurationMs: time.Since(started).Milliseconds(),
+				VerifiedAt: time.Now().UTC(),
+			}}
+		}
+	}
 	for _, cmdStr := range commands {
 		cmdStr = strings.TrimSpace(cmdStr)
 		if cmdStr == "" {
@@ -81,8 +108,51 @@ func (v *VerificationEngine) RunVerification(ctx context.Context, workspace stri
 	return results
 }
 
+func packageDependencySetup(workspace string, commands []string) []string {
+	workspace = strings.TrimSpace(workspace)
+	if workspace == "" || !verificationFileExists(filepath.Join(workspace, "package.json")) || verificationPathExists(filepath.Join(workspace, "node_modules", ".bin")) {
+		return nil
+	}
+	for _, command := range commands {
+		fields := strings.Fields(strings.TrimSpace(command))
+		if len(fields) == 0 {
+			continue
+		}
+		switch strings.ToLower(fields[0]) {
+		case "npm", "npx":
+			if verificationFileExists(filepath.Join(workspace, "package-lock.json")) || verificationFileExists(filepath.Join(workspace, "npm-shrinkwrap.json")) {
+				return []string{"npm", "ci", "--ignore-scripts"}
+			}
+			return []string{"npm", "install", "--ignore-scripts"}
+		case "yarn":
+			return []string{"yarn", "install", "--ignore-scripts"}
+		case "pnpm":
+			return []string{"pnpm", "install", "--ignore-scripts"}
+		case "bun":
+			return []string{"bun", "install", "--ignore-scripts"}
+		}
+	}
+	return nil
+}
+
+func verificationFileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
+}
+
+func verificationPathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
 func platformShellCommand(ctx context.Context, command string) *exec.Cmd {
 	if runtime.GOOS == "windows" {
+		switch strings.TrimSpace(strings.ToLower(command)) {
+		case "true":
+			command = "exit /b 0"
+		case "false":
+			command = "exit /b 1"
+		}
 		return exec.CommandContext(ctx, "cmd.exe", "/d", "/s", "/c", command)
 	}
 	return exec.CommandContext(ctx, "/bin/sh", "-c", command)
