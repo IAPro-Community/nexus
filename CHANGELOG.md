@@ -52,6 +52,19 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
+## 1.0.0-beta.7 — 2026-09-29 — branch convergence and resource truth
+
+- Canonical release: remaining active/stale beta work is converged only into `release/v1.0.0`; historical Windows/beta branches are source material, never parallel release authorities.
+- Windows agent creation: stopped Agents may persist specialization without a fake `provider:default`; the chosen provider remains an allocation preference until Resource Picker persists the concrete provider/profile. Running Agents still fail closed without a concrete provider.
+- Windows filesystem compatibility: removed the case-colliding `docs/glossary.md` alias and retained `docs/GLOSSARY.md` as the canonical glossary.
+- Balance routing: automatic cross-provider selection is projected from registered provider/profile identities with measured quota evidence; UNKNOWN/UNSUPPORTED resources remain visible for diagnostics/manual choice but do not become synthetic automatic capacity.
+- Composer: exposes the registered, usage-backed AI executors separately from the Skill Catalog so Skills remain capabilities and providers remain execution resources.
+- API telemetry: added opt-in OpenAI Admin API usage/cost collection as a separate `API` resource channel. API consumption/budget never changes subscription quota and attribution requires project/user/API-key IDs.
+- Secret isolation: Admin telemetry keys are referenced by dedicated `OPENAI_ADMIN_KEY*` environment variables only, are never persisted, and are stripped from provider/shell child-process environments.
+- Regression policy: no historical PTY/ConPTY, daemon or Mission implementation was re-imported; the Windows/Direct/Mission hardening already present in the canonical release remains authoritative.
+
+**Certification state:** Beta 7 source convergence candidate. Merge/publication remains gated by current-head CI and exact-SHA/native release gates.
+
 ## 1.0.0-beta.6 — 2026-09-29 — Usage/Capacity V2 and single release line
 
 - Usage semantics: introduced provider-boundary `UsageObservation`, explicit `USED_PERCENT` / `REMAINING_PERCENT` semantics and independent `SUBSCRIPTION` / `API` resource channels without changing existing `UsageSnapshot` consumers.
