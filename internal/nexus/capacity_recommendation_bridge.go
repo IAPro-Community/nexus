@@ -34,6 +34,7 @@ func (r *CapacityRecommender) RecommendForLowResource(ctx context.Context, atRis
 	if r != nil && r.Accounts != nil {
 		pool = r.Accounts()
 	}
+	pool = BalanceCandidateAccounts(pool)
 	candidates := make([]ProviderAccount, 0, len(pool))
 	for _, acc := range pool {
 		if strings.EqualFold(acc.Provider, atRisk.Provider) && strings.EqualFold(acc.Profile, atRisk.Profile) {
