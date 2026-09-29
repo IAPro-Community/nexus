@@ -548,3 +548,19 @@ func TestCodexRateLimitsWithoutTokenCountType(t *testing.T) {
 		t.Fatalf("remaining=%v/%v", *snap.Windows[0].RemainingPercent, *snap.Windows[1].RemainingPercent)
 	}
 }
+
+
+func TestCodexZeroUsedPercentMeansFullRemaining(t *testing.T) {
+	windows := buildWindowsFromRateLimits(rolloutRateLimits{
+		Primary: &rateLimitWindow{UsedPercent: 0, WindowMinutes: 300, ResetsAt: time.Now().Add(time.Hour).Unix()},
+	})
+	if len(windows) != 1 {
+		t.Fatalf("windows=%d want 1", len(windows))
+	}
+	if windows[0].UsedPercent == nil || *windows[0].UsedPercent != 0 {
+		t.Fatalf("used=%v want 0", windows[0].UsedPercent)
+	}
+	if windows[0].RemainingPercent == nil || *windows[0].RemainingPercent != 100 {
+		t.Fatalf("remaining=%v want 100", windows[0].RemainingPercent)
+	}
+}
