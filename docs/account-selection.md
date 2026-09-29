@@ -21,7 +21,7 @@ When you run `ai <provider>` (for example, `ai codex` or `ai claude`) without ex
 ```text
 Score(Profile P) =
     AvailabilityScore (100 if authenticated)
-  + QuotaScore (+0 to +100 based on remaining %)
+  + CapacityRank (provider/model-pool routing signal; not a displayed percentage)
   + ProjectBindingBonus (+35 if bound to active workspace)
   + ConfiguredDefaultBonus (+10 if set as default)
   + PriorityWeight (+/- user configured priority)
@@ -64,3 +64,14 @@ ai bind codex:client-account
 ```
 
 If the bound profile hits a rate limit and automatic fallback is enabled, `ai-cli` will temporarily fail over to your next-best account while notifying you.
+
+
+## Quota percentage vs routing capacity
+
+`quota_remaining` is always literal remaining capacity in the 0..1 range.
+Multi-pool providers may have a routing-capacity rank that rewards multiple
+usable model families; that rank is intentionally separate and must never be
+formatted as a quota percentage. Fresh LIVE/CACHED evidence has precedence.
+When every usable profile has only measured ESTIMATED evidence, the selector
+uses those measurements rather than blind LRU; LRU is reserved for truly
+unknown quota.
