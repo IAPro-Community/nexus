@@ -506,10 +506,10 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 	isTerm := term.IsTerminal(int(os.Stdin.Fd()))
 	defer nexusruntime.GuardInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)()
 	if isTerm {
-		// 2. Register window resize signal listener
+		// 2. Register window resize signal listener.
 		sigChan := make(chan os.Signal, 1)
-		protocol.NotifyWinSizeChange(sigChan)
-		defer signal.Stop(sigChan)
+		stopResizeWatch := protocol.NotifyWinSizeChange(sigChan)
+		defer stopResizeWatch()
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
