@@ -269,9 +269,7 @@ func TestQuotaDropMonitor_FailoverRecommendationAndAffectedRuntime(t *testing.T)
 		QuotaRemaining: 0.85,
 		QuotaTotal:     1.0,
 		Capabilities:   map[string]string{"headless": "supported", "submit_prompt": "supported"},
-		QuotaView: &quota.QuotaView{
-			Status: "OK",
-		},
+		QuotaView: measuredBalanceQuotaView("OK", 0.85),
 	}
 
 	actions := monitor.CheckAccounts([]ProviderAccount{exhaustedAcc, healthyAcc})
