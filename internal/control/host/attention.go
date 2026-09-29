@@ -91,9 +91,9 @@ var (
 	// agent narration quoting "CreateProcessW failed: …" or checklist rows
 	// (FC-01 | … | STILL_PRESENT | CI run …) does not OS-notify.
 	errorPatterns = []*regexp.Regexp{
-		regexp.MustCompile(`(?i)^error:\s+\S+`),
-		regexp.MustCompile(`(?i)^failed:\s+\S+`),
-		regexp.MustCompile(`(?i)^exited with code [1-9]`),
+		regexp.MustCompile(`(?i)^(?:error|fatal error|uncaught exception|panic):\s+\S+`),
+		regexp.MustCompile(`(?i)^(?:failed|failure):\s+\S+`),
+		regexp.MustCompile(`(?i)^(?:process )?exited with code [1-9]`),
 	}
 
 	errorCitationNoise = []*regexp.Regexp{
