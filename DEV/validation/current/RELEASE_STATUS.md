@@ -5,7 +5,7 @@ SOURCE_VERSION: 1.0.0-beta.6
 CANDIDATE_REF: release/v1.0.0
 PUBLIC_GITHUB_RELEASE: NONE
 LATEST_SOURCE_BETA_TAG: v1.0.0-beta.1
-CI_STATE: UNAVAILABLE_BEFORE_JOBS_ACCOUNT_CREDITS
+CI_STATE: PR_VALIDATION_ACTIVE_EXACT_SHA_PENDING
 INTEGRATION_TRACKER: #27
 INTEGRATION_BASE_SHA: PENDING_FINAL_BETA6_SHA
 UPDATED_AT: 2026-09-29
@@ -31,8 +31,8 @@ Beta 6 additionally hardens Usage/Capacity semantics and multi-account routing. 
 - public binary release inventory: empty in both the private source repository
   and `IAPro-Community/nexus-releases`;
 - `v1.0.0-beta.1` is a historical source tag, not a published binary release;
-- current GitHub Actions runs terminate before jobs because account credits are
-  unavailable; this is neither PASS nor functional FAIL;
+- pull-request CI is available; it validates the synthetic merge result only;
+- exact-SHA push/workflow_dispatch CI on the final `release/v1.0.0` commit remains mandatory;
 - beta publication remains fail-closed until local homologation plus the
   exact-SHA CI/native certification policy defined by the current workflows.
 
