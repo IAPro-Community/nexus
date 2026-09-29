@@ -26,8 +26,9 @@ func (h *NexusHandler) handleResourcesList(w http.ResponseWriter, r *http.Reques
 		accounts = []nexus.ProviderAccount{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"accounts": accounts,
-		"policy":   "BALANCED",
+		"accounts":         accounts,
+		"balance_entities": nexus.BuildBalanceInventory(accounts),
+		"policy":           "BALANCED",
 	})
 }
 
@@ -55,6 +56,7 @@ func (h *NexusHandler) handleResourcesRefresh(w http.ResponseWriter, r *http.Req
 
 	if targetProv != "" && targetName != "" {
 		_ = profile.RefreshUsageSnapshot(targetProv, targetName)
+		_, _, _ = profile.RefreshAPIResourceChannelContext(r.Context(), targetProv, targetName)
 	} else {
 		profiles, err := profile.List()
 		if err != nil {
@@ -63,6 +65,7 @@ func (h *NexusHandler) handleResourcesRefresh(w http.ResponseWriter, r *http.Req
 		}
 		for _, p := range profiles {
 			_ = profile.RefreshUsageSnapshot(p.Provider, p.Name)
+			_, _, _ = profile.RefreshAPIResourceChannelContext(r.Context(), p.Provider, p.Name)
 		}
 	}
 	accounts, err := h.resources.List(r.Context())
@@ -74,9 +77,10 @@ func (h *NexusHandler) handleResourcesRefresh(w http.ResponseWriter, r *http.Req
 		accounts = []nexus.ProviderAccount{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"accounts":  accounts,
-		"policy":    "BALANCED",
-		"refreshed": true,
+		"accounts":         accounts,
+		"balance_entities": nexus.BuildBalanceInventory(accounts),
+		"policy":           "BALANCED",
+		"refreshed":        true,
 	})
 }
 
