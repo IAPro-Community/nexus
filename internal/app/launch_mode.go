@@ -124,11 +124,11 @@ func (r *LaunchModeResolver) StripControlFlags() []string {
 	return args
 }
 
-// WantInteractiveLead reports whether the supervised TTY should bind a Lead
-// Agent and enable Mission promotion. Provider-native operation is the default;
-// --lead is the explicit opt-in and --no-lead remains a compatibility override.
+// WantInteractiveLead reports whether this provider may enter the supervised
+// orchestration boundary. The provider-aware policy keeps terminal-sensitive
+// clients such as Codex raw by default while allowing explicit --lead opt-in.
 func (r *LaunchModeResolver) WantInteractiveLead() bool {
-	return wantInteractiveLead(r.input.Args)
+	return wantInteractiveLead(r.input.Provider, r.input.Args)
 }
 
 // IsTerminal reports whether the current process stdin is a terminal.
