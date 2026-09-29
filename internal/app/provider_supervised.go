@@ -43,28 +43,32 @@ func removeProviderLaunchFlag(args []string, wanted string) []string {
 	return out
 }
 
-// wantInteractiveLead is an explicit opt-in for binding a persistent Lead
-// Agent. Binding a Lead is intentionally separate from authorizing Mission
-// promotion: provider-native TUIs remain byte-transparent unless delegation is
-// explicitly enabled through the Nexus orchestration boundary.
+// wantInteractiveLead enables the Nexus orchestration boundary for supervised
+// interactive sessions by default. This is the product path entered explicitly
+// through `nexus <provider>`; callers that need a byte-transparent provider TUI
+// can opt out with --no-lead, while --direct still bypasses supervision entirely.
 func wantInteractiveLead(args []string) bool {
-	return hasProviderLaunchFlag(args, "--lead") && !hasProviderLaunchFlag(args, "--no-lead")
+	return !hasProviderLaunchFlag(args, "--no-lead")
 }
 
 // supervisedRuntimeLabels keeps runtime supervision and Mission authorization
-// as separate capabilities. Even an explicitly bound Lead starts with
-// delegation OFF; an advanced NEXUS_DELEGATION_MODE override may opt in later.
+// explicit. A bound Interactive Lead uses AUTO so natural-language delegation
+// can reach the canonical Intent -> Skill -> ResourceScheduler path. Raw
+// provider sessions remain OFF.
 func supervisedRuntimeLabels(withLead bool) map[string]string {
+	delegationMode := nexus.DelegationOff
+	if withLead {
+		delegationMode = nexus.DelegationAuto
+	}
 	return map[string]string{
-		"nexus.delegation_mode":  string(nexus.DelegationOff),
+		"nexus.delegation_mode":  string(delegationMode),
 		"nexus.interactive_lead": fmt.Sprintf("%t", withLead),
 	}
 }
 
 // executeProviderSupervised launches the provider through the same persistent
-// SessionHost used by Web/Desktop. Interactive TTY is byte-transparent by
-// default; withLead=true (--lead) binds a Lead but does not authorize ordinary
-// provider prompts to be promoted into Missions.
+// SessionHost used by Web/Desktop. Supervised interactive sessions bind a Lead
+// by default; --no-lead restores byte-transparent provider-native behavior.
 func executeProviderSupervised(provName, explicitProfile string, args []string, withLead bool) error {
 	if strings.TrimSpace(provName) == "" {
 		return fmt.Errorf("provider is required for supervised launch")
