@@ -6,12 +6,10 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
-func measuredAccount(id, provider, profile, status string, remaining float64) ProviderAccount {
-	view := quota.QuotaView{
-		Provider: provider,
-		Profile:  profile,
-		Status:   status,
-		Source:   "test",
+func measuredBalanceQuotaView(status string, remaining float64) *quota.QuotaView {
+	return &quota.QuotaView{
+		Status:    status,
+		Source:    "test",
 		Available: remaining > 0,
 		ModelGroups: []quota.ModelGroup{{
 			Key:  "default",
@@ -23,6 +21,12 @@ func measuredAccount(id, provider, profile, status string, remaining float64) Pr
 			}},
 		}},
 	}
+}
+
+func measuredBalanceAccount(id, provider, profile, status string, remaining float64) ProviderAccount {
+	view := measuredBalanceQuotaView(status, remaining)
+	view.Provider = provider
+	view.Profile = profile
 	return ProviderAccount{
 		ID:             id,
 		Provider:       provider,
@@ -30,7 +34,7 @@ func measuredAccount(id, provider, profile, status string, remaining float64) Pr
 		DisplayName:    provider + " (" + profile + ")",
 		Authenticated:  true,
 		Available:      view.Available,
-		QuotaView:      &view,
+		QuotaView:      view,
 		QuotaRemaining: remaining,
 		QuotaTotal:     1,
 		Health:         "healthy",
@@ -38,15 +42,15 @@ func measuredAccount(id, provider, profile, status string, remaining float64) Pr
 }
 
 func TestBuildBalanceInventoryUsesOnlyRegisteredMeasuredResources(t *testing.T) {
-	live := measuredAccount("codex:work", "codex", "work", "LIVE", 0.72)
-	cached := measuredAccount("agy:main", "agy", "main", "CACHED", 0.41)
-	rateLimited := measuredAccount("claude:team", "claude", "team", "RATE_LIMITED", 0.08)
+	live := measuredBalanceAccount("codex:work", "codex", "work", "LIVE", 0.72)
+	cached := measuredBalanceAccount("agy:main", "agy", "main", "CACHED", 0.41)
+	rateLimited := measuredBalanceAccount("claude:team", "claude", "team", "RATE_LIMITED", 0.08)
 	rateLimited.Available = false
 	rateLimited.QuotaView.Available = false
 
-	unknown := measuredAccount("cursor:default", "cursor", "default", "UNKNOWN", 0)
-	unsupported := measuredAccount("opencode:zen", "opencode", "zen", "UNSUPPORTED", 0)
-	unauthenticated := measuredAccount("codex:other", "codex", "other", "LIVE", 0.90)
+	unknown := measuredBalanceAccount("cursor:default", "cursor", "default", "UNKNOWN", 0)
+	unsupported := measuredBalanceAccount("opencode:zen", "opencode", "zen", "UNSUPPORTED", 0)
+	unauthenticated := measuredBalanceAccount("codex:other", "codex", "other", "LIVE", 0.90)
 	unauthenticated.Authenticated = false
 
 	got := BuildBalanceInventory([]ProviderAccount{
@@ -67,9 +71,9 @@ func TestBuildBalanceInventoryUsesOnlyRegisteredMeasuredResources(t *testing.T) 
 }
 
 func TestBalanceCandidateAccountsRejectsUnknownAndUnsupportedQuota(t *testing.T) {
-	live := measuredAccount("codex:work", "codex", "work", "LIVE", 0.60)
-	unknown := measuredAccount("cursor:default", "cursor", "default", "UNKNOWN", 0)
-	unsupported := measuredAccount("opencode:zen", "opencode", "zen", "UNSUPPORTED", 0)
+	live := measuredBalanceAccount("codex:work", "codex", "work", "LIVE", 0.60)
+	unknown := measuredBalanceAccount("cursor:default", "cursor", "default", "UNKNOWN", 0)
+	unsupported := measuredBalanceAccount("opencode:zen", "opencode", "zen", "UNSUPPORTED", 0)
 
 	got := BalanceCandidateAccounts([]ProviderAccount{unknown, live, unsupported})
 	if len(got) != 1 || got[0].ID != live.ID {
@@ -78,8 +82,8 @@ func TestBalanceCandidateAccountsRejectsUnknownAndUnsupportedQuota(t *testing.T)
 }
 
 func TestBalanceInventoryDoesNotInventUnregisteredIdentity(t *testing.T) {
-	noProvider := measuredAccount("ghost", "", "default", "LIVE", 0.50)
-	noProfile := measuredAccount("ghost", "codex", "", "LIVE", 0.50)
+	noProvider := measuredBalanceAccount("ghost", "", "default", "LIVE", 0.50)
+	noProfile := measuredBalanceAccount("ghost", "codex", "", "LIVE", 0.50)
 
 	if got := BuildBalanceInventory([]ProviderAccount{noProvider, noProfile}); len(got) != 0 {
 		t.Fatalf("unregistered identities must not enter balance inventory: %#v", got)
