@@ -130,6 +130,31 @@ func TestAttentionDetectorTaskCompleted(t *testing.T) {
 	}
 }
 
+func TestAttentionDetectorRecognizesAnchoredFatalFailures(t *testing.T) {
+	cases := []string{
+		"fatal error: provider crashed",
+		"uncaught exception: boom",
+		"panic: runtime failure",
+		"failure: verification failed",
+		"process exited with code 2",
+	}
+	for _, line := range cases {
+		t.Run(line, func(t *testing.T) {
+			detector := NewAttentionDetector("rt-fatal", "codex", "default", "/workspace/demo", nil)
+			detector.ProcessChunk([]byte("\r\n" + line + "\r\n"))
+			if detector.lastReason != "ERROR" || detector.lastKind != AttentionError {
+				t.Fatalf("expected live fatal marker to classify as ERROR, got reason=%q kind=%q", detector.lastReason, detector.lastKind)
+			}
+		})
+	}
+
+	detector := NewAttentionDetector("rt-fatal-noise", "codex", "default", "/workspace/demo", nil)
+	detector.ProcessChunk([]byte("\r\nThe log said `panic: runtime failure` yesterday\r\n"))
+	if detector.lastReason == "ERROR" || detector.lastKind == AttentionError {
+		t.Fatal("inline quoted fatal marker must remain narration, not a live error")
+	}
+}
+
 func TestAttentionDetectorOSNotifyOnlyOnEvidence(t *testing.T) {
 	rec := &notify.Recorder{}
 	notify.SetDefault(rec)
