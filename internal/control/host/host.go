@@ -77,7 +77,7 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 
 	cmd := exec.Command(cfg.Binary, cfg.Args...)
 	cmd.Dir = cfg.Cwd
-	cmd.Env = cfg.Env
+	cmd.Env = nexusruntime.SanitizeChildEnv(cfg.Env)
 
 	termBackend := cfg.terminalBackend
 	if termBackend == nil {
