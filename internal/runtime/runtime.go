@@ -281,7 +281,7 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 	// as an unsafe non-TUI terminal and stop for a confirmation prompt whose
 	// input cannot be rendered correctly. Give the interactive child a real
 	// terminal type while preserving all other caller-provided environment.
-	cmd.Env = NormalizeInteractiveEnv(env)
+	cmd.Env = NormalizeInteractiveEnv(SanitizeChildEnv(env))
 	cmd.Dir = cwd
 	executil.HideWindow(cmd)
 	cmd.Stdin = os.Stdin
@@ -361,6 +361,12 @@ func NormalizeInteractiveEnv(env []string) []string {
 	return env
 }
 
+// SanitizeChildEnv removes control-plane API telemetry credentials before
+// any external child receives its environment.
+func SanitizeChildEnv(env []string) []string {
+	return config.StripAPIUsageSecretEnv(env)
+}
+
 // RunCommandCapture executes a command non-interactively and captures its combined stdout and stderr.
 func RunCommandCapture(ctx context.Context, bin string, args []string, env []string, cwd string) (string, error) {
 	resolved, err := ResolveCommand(bin)
@@ -368,7 +374,7 @@ func RunCommandCapture(ctx context.Context, bin string, args []string, env []str
 		return "", err
 	}
 	cmd := exec.CommandContext(ctx, resolved.LauncherPath, append(resolved.PrefixArgs, args...)...)
-	cmd.Env = env
+	cmd.Env = SanitizeChildEnv(env)
 	cmd.Dir = cwd
 	executil.HideConsoleWindow(cmd)
 
