@@ -52,6 +52,16 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
+## 1.0.0-beta.6 — 2026-09-29 — Usage/Capacity V2 and single release line
+
+- Usage semantics: introduced provider-boundary `UsageObservation`, explicit `USED_PERCENT` / `REMAINING_PERCENT` semantics and independent `SUBSCRIPTION` / `API` resource channels without changing existing `UsageSnapshot` consumers.
+- Codex/AGY: percentage inversion/preservation now goes through one normalization function; Codex `0% used` is contract-tested as `100% remaining`, while AGY remaining percentages remain remaining percentages.
+- Multi-account routing: when every usable profile only has `ESTIMATED` quota evidence, Nexus ranks the measured estimates instead of discarding them and falling back to unrelated LRU. `LIVE/CACHED` evidence still outranks any estimate.
+- Capacity API: `quota_remaining` is again literal remaining capacity of the best usable pool (0..1). Multi-pool breadth remains an internal scheduler signal and is no longer encoded into the public quota field.
+- Provider compatibility: scheduler regressions cover Codex, AGY, Claude, OpenCode, Cursor and Gemini generically; AGY independent pool semantics remain covered separately.
+- Release engineering: `release/v1.0.0` is the only active release line. Release publication now fails closed unless the candidate SHA is exactly the canonical branch HEAD; CI no longer treats arbitrary `release/**` branches as active release targets.
+- Distribution remains a single rolling prerelease entry (`channel-beta`); historical beta branches/tags are evidence only and cannot authorize a new publication.
+
 ## 1.0.0-beta.5 — 2026-09-28 — terminal paste & mouse isolation
 
 - Terminal paste atomic: preserved bracketed paste mode (`\x1b[?2004h`) in `TerminalOutputScrubber` so multiline text pasted into AGY and other provider TUIs enters atomically as a single block instead of submitting line-by-line with premature execution.
