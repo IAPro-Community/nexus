@@ -179,3 +179,47 @@ func TestExplicitMissionMatcherAcceptsStandaloneLocalizedForms(t *testing.T) {
 		}
 	}
 }
+
+
+func TestPromoterRegisteredProviderRequestPromotesWithoutDelegation(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentPlan,
+			TaskRequirements: nexus.TaskRequirements{
+				TaskKind:       "review",
+				PreferProvider: "codex",
+			},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "chame o codex para revisar", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Delegation.Delegate {
+		t.Fatalf("fixture should be a provider handoff, not multi-workstream delegation: %+v", decision.Delegation)
+	}
+	if decision.Action != Promote {
+		t.Fatalf("registered provider handoff must promote through Nexus routing: %+v", decision)
+	}
+	if decision.Reason != "user requested registered provider codex" {
+		t.Fatalf("unexpected provider handoff reason: %q", decision.Reason)
+	}
+}
+
+func TestPromoterRegisteredProviderRequestOverridesDirectKeepWithLead(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentDirect,
+			TaskRequirements: nexus.TaskRequirements{
+				PreferProvider: "codex",
+			},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "use codex para corrigir typo", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Promote {
+		t.Fatalf("explicit registered-provider handoff must override local DIRECT ownership: %+v", decision)
+	}
+}
