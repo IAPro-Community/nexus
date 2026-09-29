@@ -344,8 +344,11 @@ func (n *Nexus) PreflightFlow(ctx context.Context, planID string) (*FlowPrefligh
 		})
 	}
 
-	// 2. Resource availability check
+	// 2. Resource availability check. Discovery can contain registered
+	// providers whose quota is UNKNOWN/UNSUPPORTED; those remain visible for
+	// diagnostics but are not valid automatic-balance evidence.
 	resources, resErr := n.ListResources()
+	balanceResources := BalanceCandidateAccounts(resources)
 	if resErr != nil || len(resources) == 0 {
 		report.Checks = append(report.Checks, FlowPreflightCheck{
 			Key:     "resources",
@@ -353,12 +356,19 @@ func (n *Nexus) PreflightFlow(ctx context.Context, planID string) (*FlowPrefligh
 			Status:  "WARN",
 			Summary: "Nenhum recurso de provedor autenticado detectado. Execução dependerá do ambiente padrão.",
 		})
+	} else if len(balanceResources) == 0 {
+		report.Checks = append(report.Checks, FlowPreflightCheck{
+			Key:     "resources",
+			Label:   "Recursos & Provedores",
+			Status:  "WARN",
+			Summary: fmt.Sprintf("%d provedores/perfis registrados, mas nenhum possui quota mensurável para balanceamento automático.", len(resources)),
+		})
 	} else {
 		report.Checks = append(report.Checks, FlowPreflightCheck{
 			Key:     "resources",
 			Label:   "Recursos & Provedores",
 			Status:  "PASS",
-			Summary: fmt.Sprintf("%d provedores/perfis disponíveis no ambiente.", len(resources)),
+			Summary: fmt.Sprintf("%d de %d provedores/perfis possuem quota mensurável para balanceamento.", len(balanceResources), len(resources)),
 		})
 	}
 
@@ -470,18 +480,19 @@ func (n *Nexus) strictAdmissionForPlan(ctx context.Context, plan store.WorkPlan,
 		})
 	}
 	resources, resourceErr := n.ListResources()
-	if resourceErr != nil || len(resources) == 0 {
+	balanceResources := BalanceCandidateAccounts(resources)
+	if resourceErr != nil || len(balanceResources) == 0 {
 		report.Ready = false
-		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "resources", Label: "Recursos & Provedores", Status: "FAIL", Summary: "nenhum recurso de provedor disponível para admissão strict"})
+		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "resources", Label: "Recursos & Provedores", Status: "FAIL", Summary: "nenhum recurso registrado com quota mensurável está disponível para admissão strict"})
 	} else {
 		for _, phase := range plan.Phases {
 			for _, pkg := range phase.Packages {
 				if strings.TrimSpace(pkg.Provider) == "" && strings.TrimSpace(pkg.Profile) == "" {
 					continue
 				}
-				if len(filterFlowResourceAccounts(resources, pkg.Provider, pkg.Profile)) == 0 {
+				if len(filterFlowResourceAccounts(balanceResources, pkg.Provider, pkg.Profile)) == 0 {
 					report.Ready = false
-					report.Checks = append(report.Checks, FlowPreflightCheck{Key: "resources", Label: "Recursos & Provedores", Status: "FAIL", Summary: fmt.Sprintf("nenhum recurso satisfaz as restrições do step %s", pkg.ID)})
+					report.Checks = append(report.Checks, FlowPreflightCheck{Key: "resources", Label: "Recursos & Provedores", Status: "FAIL", Summary: fmt.Sprintf("nenhum recurso usage-backed satisfaz as restrições do step %s", pkg.ID)})
 				}
 			}
 		}
