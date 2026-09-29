@@ -46,12 +46,14 @@ func TestResourceApplicationServiceHonorsCancelledContext(t *testing.T) {
 
 func TestResourceApplicationServiceDelegatesRecommendation(t *testing.T) {
 	service := NewResourceApplicationService(&resourceReaderStub{})
-	result, err := service.Recommend(context.Background(), []ProviderAccount{{Provider: "codex", Profile: "work"}}, TaskRequirements{}, PolicyBalanced)
+	measured := measuredAccount("codex:work", "codex", "work", "LIVE", 0.75)
+	unknown := measuredAccount("cursor:default", "cursor", "default", "UNKNOWN", 0)
+	result, err := service.Recommend(context.Background(), []ProviderAccount{unknown, measured}, TaskRequirements{}, PolicyBalanced)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(result.Candidates) != 1 || result.Candidates[0].Account.Provider != "codex" {
-		t.Fatalf("unexpected recommendation: %#v", result)
+		t.Fatalf("automatic recommendation must use only measured registered accounts: %#v", result)
 	}
 }
 
