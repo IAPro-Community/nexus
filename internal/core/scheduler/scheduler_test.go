@@ -411,3 +411,166 @@ func TestCodexExhaustedFiveHourLosesToHealthyAccount(t *testing.T) {
 		t.Fatalf("yolo/auto-select must prefer healthy capacity over exhausted 5h, got %#v", res.SelectedProfile)
 	}
 }
+
+
+func TestEstimatedQuotaRanksByRemainingWhenNoCurrentEvidence(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	stateDir := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_STATE_DIR", stateDir)
+
+	selector := NewSelector(config.NewDefaultConfig(), quota.NewEngine(5*time.Minute), cooldown.NewTracker())
+	ctx := context.Background()
+
+	low, high := 40.0, 100.0
+	candidates := []model.Profile{
+		{Provider: "codex", Name: "a-low"},
+		{Provider: "codex", Name: "z-high"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"a-low": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "codex",
+				ProfileID:  "a-low",
+				Status:     model.UsageEstimated,
+				Source:     model.SourceObservation,
+				FetchedAt:  time.Now().Add(-10 * time.Minute),
+				Windows:    []model.UsageWindow{{Kind: "5h", Group: "claude_gpt", RemainingPercent: &low}},
+			},
+		},
+		"z-high": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "codex",
+				ProfileID:  "z-high",
+				Status:     model.UsageEstimated,
+				Source:     model.SourceObservation,
+				FetchedAt:  time.Now().Add(-10 * time.Minute),
+				Windows:    []model.UsageWindow{{Kind: "5h", Group: "claude_gpt", RemainingPercent: &high}},
+			},
+		},
+	}
+
+	res, err := selector.SelectBestProfile(ctx, "codex", "/tmp", candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.SelectedProfile == nil || res.SelectedProfile.Name != "z-high" {
+		t.Fatalf("expected 100%% estimated Codex account to win over 40%%, got %+v", res.SelectedProfile)
+	}
+	if !strings.Contains(res.Reason, "estimated quota") {
+		t.Fatalf("selection must disclose estimated evidence, reason=%q", res.Reason)
+	}
+}
+
+func TestCurrentQuotaEvidenceBeatsHigherEstimatedQuota(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	stateDir := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_STATE_DIR", stateDir)
+
+	selector := NewSelector(config.NewDefaultConfig(), quota.NewEngine(5*time.Minute), cooldown.NewTracker())
+	ctx := context.Background()
+
+	liveRemaining, estimatedRemaining := 40.0, 100.0
+	candidates := []model.Profile{
+		{Provider: "codex", Name: "live"},
+		{Provider: "codex", Name: "estimated"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"live": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "codex",
+				ProfileID:  "live",
+				Status:     model.UsageLive,
+				Source:     model.SourceOfficialAPI,
+				FetchedAt:  time.Now(),
+				Windows:    []model.UsageWindow{{Kind: "5h", Group: "claude_gpt", RemainingPercent: &liveRemaining}},
+			},
+		},
+		"estimated": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "codex",
+				ProfileID:  "estimated",
+				Status:     model.UsageEstimated,
+				Source:     model.SourceObservation,
+				FetchedAt:  time.Now().Add(-30 * time.Minute),
+				Windows:    []model.UsageWindow{{Kind: "5h", Group: "claude_gpt", RemainingPercent: &estimatedRemaining}},
+			},
+		},
+	}
+
+	res, err := selector.SelectBestProfile(ctx, "codex", "/tmp", candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.SelectedProfile == nil || res.SelectedProfile.Name != "live" {
+		t.Fatalf("current LIVE evidence must outrank a higher stale estimate, got %+v", res.SelectedProfile)
+	}
+}
+
+func TestSelectorRemainsProviderNeutralForKnownProviders(t *testing.T) {
+	providers := []string{"codex", "agy", "claude", "opencode", "cursor", "gemini"}
+	for _, providerID := range providers {
+		t.Run(providerID, func(t *testing.T) {
+			dataDir := t.TempDir()
+			cfgDir := t.TempDir()
+			stateDir := t.TempDir()
+			t.Setenv("AI_CLI_DATA_DIR", dataDir)
+			t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+			t.Setenv("AI_CLI_STATE_DIR", stateDir)
+
+			selector := NewSelector(config.NewDefaultConfig(), quota.NewEngine(5*time.Minute), cooldown.NewTracker())
+			low, high := 25.0, 75.0
+			candidates := []model.Profile{
+				{Provider: providerID, Name: "low"},
+				{Provider: providerID, Name: "high"},
+			}
+			accounts := map[string]model.AccountInfo{
+				"low": {
+					Authenticated: true,
+					Health:        model.HealthHealthy,
+					Usage: model.UsageSnapshot{
+						ProviderID: providerID,
+						ProfileID:  "low",
+						Status:     model.UsageLive,
+						Source:     model.SourceObservation,
+						FetchedAt:  time.Now(),
+						Windows:    []model.UsageWindow{{Kind: "window", RemainingPercent: &low}},
+					},
+				},
+				"high": {
+					Authenticated: true,
+					Health:        model.HealthHealthy,
+					Usage: model.UsageSnapshot{
+						ProviderID: providerID,
+						ProfileID:  "high",
+						Status:     model.UsageLive,
+						Source:     model.SourceObservation,
+						FetchedAt:  time.Now(),
+						Windows:    []model.UsageWindow{{Kind: "window", RemainingPercent: &high}},
+					},
+				},
+			}
+
+			res, err := selector.SelectBestProfile(context.Background(), providerID, "/tmp", candidates, accounts, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if res.SelectedProfile == nil || res.SelectedProfile.Name != "high" {
+				t.Fatalf("generic selector changed provider %s semantics: got %+v", providerID, res.SelectedProfile)
+			}
+		})
+	}
+}
