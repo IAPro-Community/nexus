@@ -1102,6 +1102,7 @@ func (e *nexusPackageExecutor) ensureReviewerAgent(ctx context.Context, st *stor
 	if err != nil {
 		return store.Agent{}, err
 	}
+	accounts = BalanceCandidateAccounts(accounts)
 	reviewAccounts := make([]ProviderAccount, 0, len(accounts))
 	for _, account := range accounts {
 		if !accountSupportsHeadlessReview(account) {
