@@ -9,6 +9,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/control/driver"
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/profile"
 )
@@ -100,34 +101,34 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 			isDefault = cfg.Defaults[p.Provider] == p.Name
 		}
 
-		// Get quota view with availability. UNKNOWN/unsupported data is never
-		// converted into synthetic 100% capacity. Score prefers more usable
-		// model families, then higher total group capacity (same as CLI selector).
+		// Get quota view with availability. quota_remaining has one stable
+		// semantic across providers: the best currently usable pool's literal
+		// remaining quota, normalized to 0..1. Multi-pool breadth belongs to the
+		// scheduler ranking and must never be encoded into this public field.
+		usageSnapshot := profile.GetSanitizedUsageSnapshot(p.Provider, p.Name, acc.Email)
 		qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
-		quotaRemaining := 0.0
-		if quotaStatusKnown(qv.Status) {
-			if ratio, ok := qv.EffectiveCapacityRatio(); ok {
-				quotaRemaining = ratio
-			}
-		}
+		quotaRemaining := quotaRemainingRatio(qv)
+		resourceChannels := subscriptionResourceChannels(usageSnapshot)
 
 		accounts = append(accounts, ProviderAccount{
-			ID:             id,
-			Provider:       p.Provider,
-			Profile:        p.Name,
-			DisplayName:    displayName,
-			Authenticated:  authenticated,
-			Health:         health,
-			IsDefault:      isDefault,
-			Available:      qv.IsAvailable(),
-			AvailReasons:   &qv.AvailReasons,
-			QuotaView:      &qv,
-			Capabilities:   capabilities,
-			QuotaRemaining: quotaRemaining,
-			QuotaTotal:     1.0,
-			RateLimited:    qv.Status == "RATE_LIMITED",
-			NetworkError:   strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
-			LastChecked:    time.Now(),
+			ID:               id,
+			Provider:         p.Provider,
+			Profile:          p.Name,
+			DisplayName:      displayName,
+			Authenticated:    authenticated,
+			Health:           health,
+			IsDefault:        isDefault,
+			Available:        qv.IsAvailable(),
+			AvailReasons:     &qv.AvailReasons,
+			QuotaView:        &qv,
+			Capabilities:     capabilities,
+			ResourceChannels: resourceChannels,
+			QuotaRemaining:   quotaRemaining,
+			QuotaTotal:       1.0,
+			RateLimited:      qv.Status == "RATE_LIMITED",
+			NetworkError:     strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
+			Scope:            acc.AccountScope,
+			LastChecked:      time.Now(),
 		})
 		accIdx := len(accounts) - 1
 		elig := quota.EvaluateEligibility(accountEligibilityInput(accounts[accIdx], false))
@@ -271,6 +272,35 @@ func (n *Nexus) ResolveStartParams(agentID, provider, profile string) (string, s
 	}
 
 	return "", "", fmt.Errorf("REQUIRED_RESOURCE_SELECTION: agent %s has no configured provider; select a resource first", agentID)
+}
+
+func subscriptionResourceChannels(snap model.UsageSnapshot) []model.ResourceChannelState {
+	if snap.ProviderID == "" && snap.ProfileID == "" {
+		return nil
+	}
+	copy := snap
+	return []model.ResourceChannelState{{
+		Channel: model.ResourceChannelSubscription,
+		Quota:   &copy,
+	}}
+}
+
+func quotaRemainingRatio(qv quota.QuotaView) float64 {
+	if !quotaStatusKnown(qv.Status) {
+		return 0
+	}
+	remaining, ok := qv.BestGroupRemaining()
+	if !ok {
+		return 0
+	}
+	ratio := remaining / 100.0
+	if ratio < 0 {
+		return 0
+	}
+	if ratio > 1 {
+		return 1
+	}
+	return ratio
 }
 
 func quotaStatusKnown(status string) bool {

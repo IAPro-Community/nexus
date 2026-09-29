@@ -125,18 +125,25 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 		}, fmt.Errorf("no usable %s profiles available: %s", provider, strings.Join(rejectSummaries, ", "))
 	}
 
-	// When no candidate has a current quota observation, rotate healthy
-	// authenticated profiles by least-recently-selected instead of favoring a
-	// stale default. ESTIMATED windows remain visible to the caller but are not
-	// evidence for automatic account selection.
-	hasQuotaEvidence := false
+	// Prefer current provider evidence, but do not discard attributable
+	// ESTIMATED observations. When every healthy account only has a last-known
+	// estimate, ranking those estimates is more informative than unrelated LRU.
+	// UNKNOWN still has no capacity meaning and falls back to LRU only when no
+	// measured quota evidence exists at all.
+	hasCurrentQuotaEvidence := false
+	hasEstimatedQuotaEvidence := false
 	for _, ev := range eligible {
-		if len(ev.Usage.Windows) > 0 && (ev.Usage.Status == model.UsageLive || ev.Usage.Status == model.UsageCached) {
-			hasQuotaEvidence = true
-			break
+		if len(ev.Usage.Windows) == 0 {
+			continue
+		}
+		switch quotaEvidenceRank(ev.Usage.Status) {
+		case 2:
+			hasCurrentQuotaEvidence = true
+		case 1:
+			hasEstimatedQuotaEvidence = true
 		}
 	}
-	if !hasQuotaEvidence {
+	if !hasCurrentQuotaEvidence && !hasEstimatedQuotaEvidence {
 		lastUsed := selectedAt(provider)
 		sort.SliceStable(eligible, func(i, j int) bool {
 			left, right := lastUsed[eligible[i].Profile.Name], lastUsed[eligible[j].Profile.Name]
@@ -149,12 +156,13 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 		return &SelectionResult{SelectedProfile: &best.Profile, Reason: "quota UNKNOWN; LRU among healthy authenticated profiles", Evaluations: evals}, nil
 	}
 
-	// Sort eligible candidates by Score descending
+	// Evidence freshness is a hard ordering dimension: LIVE/CACHED always beats
+	// ESTIMATED, then the existing capacity/priority score decides within a tier.
 	sort.Slice(eligible, func(i, j int) bool {
-		iFresh := currentQuotaEvidence(eligible[i].Usage.Status)
-		jFresh := currentQuotaEvidence(eligible[j].Usage.Status)
-		if iFresh != jFresh {
-			return iFresh
+		iRank := quotaEvidenceRank(eligible[i].Usage.Status)
+		jRank := quotaEvidenceRank(eligible[j].Usage.Status)
+		if iRank != jRank {
+			return iRank > jRank
 		}
 		if eligible[i].Score != eligible[j].Score {
 			return eligible[i].Score > eligible[j].Score
@@ -167,6 +175,9 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 	if reason == "" {
 		reason = "highest available score"
 	}
+	if !hasCurrentQuotaEvidence && hasEstimatedQuotaEvidence {
+		reason = "estimated quota; " + reason
+	}
 
 	return &SelectionResult{
 		SelectedProfile: &best.Profile,
@@ -175,8 +186,15 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 	}, nil
 }
 
-func currentQuotaEvidence(status model.UsageStatus) bool {
-	return status == model.UsageLive || status == model.UsageCached
+func quotaEvidenceRank(status model.UsageStatus) int {
+	switch status {
+	case model.UsageLive, model.UsageCached:
+		return 2
+	case model.UsageEstimated:
+		return 1
+	default:
+		return 0
+	}
 }
 
 func selectedAt(provider string) map[string]time.Time {
@@ -306,8 +324,9 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 			breakdown = append(breakdown, "unknown quota (-10.0)")
 		}
 
-		// Capacity / Quota Score via QuotaView bottleneck
-		effectiveCapacity, bottleneckKind, avgRemaining := quota.BottleneckScore(&qv)
+		// Capacity ranking is an internal scheduler signal. It may encode model
+		// family breadth and therefore must never be presented as a percentage.
+		capacityRank, bottleneckKind, avgRemaining := quota.BottleneckScore(&qv)
 		hasWindows := false
 		for _, window := range qv.AllWindows() {
 			if window.Kind != "unknown" {
@@ -317,14 +336,15 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 		}
 
 		if hasWindows {
-			capScore := effectiveCapacity * 10.0 // Up to +1000 points for 100% capacity
+			capScore := capacityRank * 10.0
 			score += capScore
 
+			bestRemaining, _ := qv.BestGroupRemaining()
 			minPct, _ := qv.Bottleneck()
-			if len(qv.AllWindows()) == 1 {
-				breakdown = append(breakdown, fmt.Sprintf("%.0f%% capacity (+%.1f)", effectiveCapacity, capScore))
+			if !qv.HasMultipleGroups() {
+				breakdown = append(breakdown, fmt.Sprintf("%.0f%% quota remaining (+%.1f capacity rank)", bestRemaining, capScore))
 			} else {
-				breakdown = append(breakdown, fmt.Sprintf("%.0f%% eff capacity (min: %.0f%% [%s], avg: %.0f%%) (+%.1f)", effectiveCapacity, minPct, bottleneckKind, avgRemaining, capScore))
+				breakdown = append(breakdown, fmt.Sprintf("capacity rank %.0f (best pool: %.0f%%, min: %.0f%% [%s], avg: %.0f%%) (+%.1f)", capacityRank, bestRemaining, minPct, bottleneckKind, avgRemaining, capScore))
 			}
 		} else {
 			// Unknown quota remains eligible for resilience, but must never

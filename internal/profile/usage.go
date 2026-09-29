@@ -471,17 +471,19 @@ func GetQuotaDetails(providerName, name, plan, email string) QuotaDetails {
 	return q
 }
 
-// GetQuotaView returns the omnibus QuotaView for any consumer (TUI, Web, CLI, Scheduler).
-// This is the preferred entry point for quota display and scoring.
-func GetQuotaView(providerName, name, plan, email string) quota.QuotaView {
+// GetSanitizedUsageSnapshot returns the exact quota evidence allowed to reach
+// public capacity surfaces. It preserves GetUsageSnapshot's non-blocking
+// behavior while applying account-identity and freshness guards before the
+// snapshot is projected into either QuotaView or resource_channels.
+func GetSanitizedUsageSnapshot(providerName, name, email string) model.UsageSnapshot {
 	debug := os.Getenv("NEXUS_AGY_DEBUG") == "1" || os.Getenv("NEXUS_DEBUG") == "1"
 	if debug {
-		slog.Debug("GetQuotaView: starting", "provider", providerName, "profile", name, "email", email)
+		slog.Debug("GetSanitizedUsageSnapshot: starting", "provider", providerName, "profile", name, "email", email)
 	}
 
 	snap := GetUsageSnapshot(providerName, name)
 	if debug {
-		slog.Debug("GetQuotaView: after GetUsageSnapshot", "provider", providerName, "profile", name, "status", snap.Status, "account", snap.Account, "windows", len(snap.Windows))
+		slog.Debug("GetSanitizedUsageSnapshot: after GetUsageSnapshot", "provider", providerName, "profile", name, "status", snap.Status, "account", snap.Account, "windows", len(snap.Windows))
 	}
 
 	// A cached quota can outlive an account switch. Do not show or score data
@@ -499,7 +501,7 @@ func GetQuotaView(providerName, name, plan, email string) quota.QuotaView {
 		}
 		if mismatch {
 			if debug {
-				slog.Debug("GetQuotaView: account mismatch detected", "provider", providerName, "profile", name, "snapshotAccount", snapshotAccount, "profileEmail", email)
+				slog.Debug("GetSanitizedUsageSnapshot: account mismatch detected", "provider", providerName, "profile", name, "snapshotAccount", snapshotAccount, "profileEmail", email)
 			}
 			snap.Status = model.UsageUnknown
 			snap.Source = model.SourceNone
@@ -512,7 +514,7 @@ func GetQuotaView(providerName, name, plan, email string) quota.QuotaView {
 	qEng := quota.NewEngine(quota.DefaultTTL)
 	if len(snap.Windows) > 0 && snap.Status != model.UsageUnknown && !qEng.Trustworthy(snap) {
 		if debug {
-			slog.Debug("GetQuotaView: marking stale as ESTIMATED", "provider", providerName, "profile", name, "fetchedAt", snap.FetchedAt, "age", time.Since(snap.FetchedAt))
+			slog.Debug("GetSanitizedUsageSnapshot: marking stale as ESTIMATED", "provider", providerName, "profile", name, "fetchedAt", snap.FetchedAt, "age", time.Since(snap.FetchedAt))
 		}
 		if snap.Status == model.UsageCached || snap.Status == model.UsageLive {
 			snap.Status = model.UsageEstimated
@@ -524,6 +526,13 @@ func GetQuotaView(providerName, name, plan, email string) quota.QuotaView {
 		snap.ModelName = defaultModelName(providerName)
 	}
 
+	return snap
+}
+
+// GetQuotaView returns the omnibus QuotaView for any consumer (TUI, Web, CLI, Scheduler).
+// This is the preferred entry point for quota display and scoring.
+func GetQuotaView(providerName, name, plan, email string) quota.QuotaView {
+	snap := GetSanitizedUsageSnapshot(providerName, name, email)
 	return quota.BuildQuotaView(snap, email, plan)
 }
 

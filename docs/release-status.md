@@ -1,16 +1,16 @@
 # Status público da release do Nexus v1
 
-Atualizado em **27 de setembro de 2026**.
+Atualizado em **29 de setembro de 2026**.
 
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
-| Versão do source candidato | `1.0.0-beta.4` |
+| Versão do source candidato | `1.0.0-beta.6` |
 | Última beta pública registrada | `v1.0.0-beta.1` |
 | Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
 | Release estável v1 | **ainda não publicada** |
-| CI do SHA candidato | indisponível no momento por bloqueio de créditos da conta |
-| Veredito atual | **beta.4 implementada no source; homologação/certificação exact-SHA pendentes** |
+| CI do SHA candidato | obrigatório no SHA final; PR CI é evidência de merge, não substitui exact-SHA |
+| Veredito atual | **beta.6 implementada no source; homologação/certificação exact-SHA pendentes** |
 
 ## Linha canônica de integração — 2026-09-27
 
@@ -19,16 +19,19 @@ A branch `release/v1.0.0` é a única linha canônica de integração da Nexus 1
 - PR #25 foi integrado por squash em `8fa37f4ca8051b2abce1ade3a0c83dd5b5be64d7`;
 - essa integração contém a remediação Windows `ce52b09d...`, a convergência Linux/Windows, Direct/Mission OFF-by-default e o hardening Codex/ConPTY;
 - a lista única de gaps e critérios de homologação está na issue #27;
+- Usage/Capacity V2 separa quota de assinatura, consumo/custo de API e score interno de roteamento; `quota_remaining` voltou a ter semântica literal 0..1;
+- seleção multi-conta usa `ESTIMATED` apenas quando não existe `LIVE/CACHED`, mantendo a evidência fresca como tier superior;
+- a workflow de release rejeita qualquer SHA que não seja exatamente o HEAD de `release/v1.0.0`, impedindo publicação por refs beta históricas;
 - a migração Wails v3 do PR #24 foi portada seletivamente para a linha canônica, preservando os contratos mais novos de Agent Projection, ExecutionRole, Direct/Mission, OpenCode e homologação; o PR histórico não deve ser mergeado em bloco;
 - a validação de diretório de workspace e a proveniência assinada `source_sha` foram recuperadas de branches históricas e incorporadas diretamente na linha canônica;
 - integração na branch beta não equivale a PASS, tag ou publicação.
 
 A linha canônica já usa a migração Wails v3 reconciliada. A publicação permanece bloqueada pelos gates same-SHA e pelos blockers registrados na issue #27.
 
-## Escopo consolidado da beta.4
+## Escopo consolidado da beta.6
 
 A linha que antes estava planejada como 1.1 foi absorvida pela V1 enquanto a
-primeira release estável ainda não foi publicada. A beta.4 concentra a conclusão
+primeira release estável ainda não foi publicada. A beta.6 concentra a conclusão
 funcional desse escopo sem criar um segundo runtime, scheduler ou Mission engine.
 
 O candidato inclui:
@@ -52,16 +55,16 @@ Nenhuma tag antiga é reinterpretada retroativamente.
 
 ## Portabilidade dos ExecutionRoles
 
-Na beta.4, `ExecutionRole` é um contrato do Nexus, não do provider:
+Na beta.6, `ExecutionRole` é um contrato do Nexus, não do provider:
 
 - Codex, Claude, Cursor, Gemini e AGY continuam usando o mesmo selector e
   compiler por **Nexus overlay**;
-- OpenCode é o adapter nativo de referência da beta.4;
+- OpenCode é o adapter nativo de referência da beta.6;
 - ausência de native adapter nunca impede role switch/overlay;
 - ausência de prova nativa nunca aparece como primary/subagent/enforcement
   suportado;
 - adapters nativos adicionais são expansão posterior e não bloqueiam o
-  fechamento funcional da beta.4.
+  fechamento funcional da beta.6.
 
 A Web também inclui:
 
@@ -70,7 +73,7 @@ A Web também inclui:
 - `Ctrl/Cmd+Shift+A` para focar o selector;
 - `Shift+Tab` continua pertencendo ao TUI hospedado e não é capturado pelo Nexus.
 
-## Agent Interop / OpenCode — estado da beta.4
+## Agent Interop / OpenCode — estado da beta.6
 
 O lifecycle da V1 é:
 
@@ -145,7 +148,7 @@ No VPN Dev Workspace:
 - sem shared profile home a execução custom continua válida e degrada somente
   a projection nativa/enforcement.
 
-## Voz / fala — estado da beta.4
+## Voz / fala — estado da beta.6
 
 **Implementada no source da V1.**
 
@@ -171,10 +174,11 @@ fallback e inserção PTY.
 
 ## Estado da validação
 
-GitHub Actions continua indisponível por bloqueio de créditos da conta. Isso é
-falha de infraestrutura, não PASS e não evidência funcional de FAIL.
+GitHub Actions está disponível para validação do PR. A publicação continua
+fail-closed: PR CI valida o merge sintético, enquanto a release exige um run
+`push`/`workflow_dispatch` verde no SHA exato já integrado em `release/v1.0.0`.
 
-Enquanto o CI remoto estiver indisponível:
+Para complementar a evidência remota ou quando um runner nativo não estiver disponível:
 
 Linux/macOS:
 
@@ -188,34 +192,34 @@ Windows:
 .\scripts\homologate-beta.ps1
 ```
 
-A evidência da beta.4 deve ser escrita em:
+A evidência da beta.6 deve ser escrita em:
 
 ```text
-DEV/validation/local-beta/1.0.0-beta.4/<exact-sha>/<plataforma>/
+DEV/validation/local-beta/1.0.0-beta.6/<exact-sha>/<plataforma>/
 ```
 
 ## Matriz candidata
 
 | Plataforma | Estado no source | Estado de certificação |
 | --- | --- | --- |
-| Linux amd64 | integrado | homologação beta.4 exact-SHA pendente |
+| Linux amd64 | integrado | homologação beta.6 exact-SHA pendente |
 | Windows amd64 | integrado | certificação nativa exact-SHA pendente |
 | macOS arm64 | integrado | certificação nativa exact-SHA pendente |
-| Web | integrado | homologação beta.4 pendente |
+| Web | integrado | homologação beta.6 pendente |
 
 Implementação não equivale a suporte certificado.
 
-## Gates para `v1.0.0-beta.4`
+## Gates para `v1.0.0-beta.6`
 
 Antes de criar/publicar a tag:
 
-- documentação consistente com beta.4;
+- documentação consistente com beta.6;
 - frontend format/lint/styles/typecheck/unit/build;
 - Go fmt/vet/test/race;
 - regressões de terminal e roteamento Mission;
 - control/runtime E2E;
 - build CLI;
-- `nexus version --json` = `1.0.0-beta.4`;
+- `nexus version --json` = `1.0.0-beta.6`;
 - `nexus doctor --json`;
 - OpenCode visível em providers/Usage/Agents quando instalado;
 - role switch provider-neutral por overlay; OpenCode → projection automática ou fallback explícito;
@@ -242,7 +246,7 @@ Antes de criar/publicar a tag:
 
 ## Gates para `v1.0.0` estável
 
-Além da beta.4 homologada, o SHA final precisa comprovar:
+Além da beta.6 homologada, o SHA final precisa comprovar:
 
 - CI exact-SHA completo;
 - security/govulncheck;
@@ -261,7 +265,7 @@ Além da beta.4 homologada, o SHA final precisa comprovar:
 
 ## Regra
 
-A beta.4 é considerada **implementada no source** quando os requisitos acima
+A beta.6 é considerada **implementada no source** quando os requisitos acima
 existem no candidato. Ela só é considerada **homologada** quando os gates
 automatizados e manuais forem registrados contra o mesmo SHA.
 

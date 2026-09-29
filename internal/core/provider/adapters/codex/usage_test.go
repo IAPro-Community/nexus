@@ -548,3 +548,16 @@ func TestCodexRateLimitsWithoutTokenCountType(t *testing.T) {
 		t.Fatalf("remaining=%v/%v", *snap.Windows[0].RemainingPercent, *snap.Windows[1].RemainingPercent)
 	}
 }
+
+func TestCodexZeroUsedMeansHundredPercentRemaining(t *testing.T) {
+	limits := rolloutRateLimits{
+		Primary: &rateLimitWindow{UsedPercent: 0, WindowMinutes: 300, ResetsAt: time.Now().Add(time.Hour).Unix()},
+	}
+	windows := buildWindowsFromRateLimits(limits)
+	if len(windows) != 1 || windows[0].RemainingPercent == nil || windows[0].UsedPercent == nil {
+		t.Fatalf("expected one fully measured Codex window, got %#v", windows)
+	}
+	if *windows[0].RemainingPercent != 100 || *windows[0].UsedPercent != 0 {
+		t.Fatalf("Codex used=0 must normalize to remaining=100 used=0, got remaining=%v used=%v", *windows[0].RemainingPercent, *windows[0].UsedPercent)
+	}
+}
