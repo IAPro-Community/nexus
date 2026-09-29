@@ -408,6 +408,9 @@ func LoadConfig() (Config, error) {
 	if cfg.Intelligence.Mode == "" {
 		cfg.Intelligence.Mode = IntelligenceOff
 	}
+	if cfg.APIUsageBindings == nil {
+		cfg.APIUsageBindings = make(map[string]map[string]APIUsageBinding)
+	}
 
 	return cfg, nil
 }
