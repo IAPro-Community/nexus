@@ -109,6 +109,17 @@ func RefreshAPIResourceChannelContext(ctx context.Context, providerName, profile
 	}
 }
 
+// HasAPIUsageBinding reports whether this profile has explicitly opted into
+// independent API telemetry. It never reads the secret itself.
+func HasAPIUsageBinding(providerName, profileName string) bool {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return false
+	}
+	_, ok := apiUsageBinding(cfg, providerName, profileName)
+	return ok
+}
+
 func apiUsageBinding(cfg config.Config, providerName, profileName string) (config.APIUsageBinding, bool) {
 	for provider, profiles := range cfg.APIUsageBindings {
 		if !strings.EqualFold(strings.TrimSpace(provider), strings.TrimSpace(providerName)) {
