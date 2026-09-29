@@ -12,11 +12,14 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
+const detachedHostCreationFlags = 0x00000200 | 0x08000000 // CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
+
 func SpawnDetachedHost(exe string, runtimeID string) (*os.Process, error) {
 	cmd := exec.Command(exe, "__control-host", "--runtime", runtimeID)
-	// CREATE_NEW_PROCESS_GROUP (0x00000200) + DETACHED_PROCESS (0x00000008)
+	// Control hosts are background workers, not user terminals. Keep a distinct
+	// process group for lifecycle control without allocating/flashing a console.
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: 0x00000200 | 0x00000008,
+		CreationFlags: detachedHostCreationFlags,
 	}
 	cmd.Stdin = nil
 
