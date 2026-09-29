@@ -16,7 +16,7 @@ import {
 import { Button, Card, Dialog, Input, Select } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import { isRequiredResourceSelection } from '../../nexus/agentTerminalModel';
-import type { Agent, AgentMode, Project } from '../../types';
+import type { Agent, AgentConfig, AgentMode, Project } from '../../types';
 import styles from './NewAgentModal.module.scss';
 
 type ModePresentation = {
@@ -135,6 +135,23 @@ function presentationFor(mode: AgentMode): ModePresentation {
 function executionModeFor(mode: AgentMode): 'Safe' | 'YOLO' {
   if (mode.read_only_by_default) return 'Safe';
   return mode.default_execution_mode === 'YOLO' ? 'YOLO' : 'Safe';
+}
+
+export function buildNewAgentConfig(
+  selectedType: AgentMode,
+  preferredProvider: string,
+  workspace: string | undefined,
+  options: Record<string, unknown>,
+): AgentConfig {
+  return {
+    provider: '',
+    profile: '',
+    isolation: 'project',
+    workspace,
+    allocation: preferredProvider ? { prefer_provider: preferredProvider } : undefined,
+    agent_spec: selectedType.agent_spec,
+    options,
+  };
 }
 
 export const NewAgentModal: React.FC<{
@@ -282,14 +299,15 @@ export const NewAgentModal: React.FC<{
         configOptions.execution_adapter = 'native_alias';
       }
 
-      await nexus.applyAgentConfig(created.id, {
-        provider,
-        profile: 'default',
-        isolation: 'project',
-        workspace: project.canonical_path || undefined,
-        agent_spec: selectedType.agent_spec,
-        options: configOptions,
-      });
+      await nexus.applyAgentConfig(
+        created.id,
+        buildNewAgentConfig(
+          selectedType,
+          provider,
+          project.canonical_path || undefined,
+          configOptions,
+        ),
+      );
 
       onCreated(created);
       onClose();
