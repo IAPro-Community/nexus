@@ -53,13 +53,18 @@ func TestReconcileQuotaObservationsSeparatesChannelsAndAccounts(t *testing.T) {
 	}
 
 	snapshot := ReconcileQuotaObservations("codex", "a", model.ResourceChannelSubscription, observations)
-	if len(snapshot.Windows) != 1 {
-		t.Fatalf("subscription reconciliation must exclude API and foreign-account evidence, windows=%d", len(snapshot.Windows))
+	if snapshot.Status != model.UsageUnknown || len(snapshot.Windows) != 0 {
+		t.Fatalf("mixed account evidence must fail closed, got status=%s windows=%d", snapshot.Status, len(snapshot.Windows))
 	}
-	if snapshot.Windows[0].RemainingPercent == nil || *snapshot.Windows[0].RemainingPercent != 100 {
-		t.Fatalf("remaining=%v want 100", snapshot.Windows[0].RemainingPercent)
+
+	clean := ReconcileQuotaObservations("codex", "a", model.ResourceChannelSubscription, observations[:2])
+	if len(clean.Windows) != 1 {
+		t.Fatalf("subscription reconciliation must exclude API evidence, windows=%d", len(clean.Windows))
 	}
-	if snapshot.AccountScope.Key() != scopeA.Key() {
-		t.Fatalf("scope=%+v want %+v", snapshot.AccountScope, scopeA)
+	if clean.Windows[0].RemainingPercent == nil || *clean.Windows[0].RemainingPercent != 100 {
+		t.Fatalf("remaining=%v want 100", clean.Windows[0].RemainingPercent)
+	}
+	if clean.AccountScope.Key() != scopeA.Key() {
+		t.Fatalf("scope=%+v want %+v", clean.AccountScope, scopeA)
 	}
 }
