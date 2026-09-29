@@ -80,19 +80,26 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		}
 
 		capabilities := map[string]string{}
-		det := detectionFor(p.Provider)
-		if det.ok {
-			authenticated = det.installed && acc.Authenticated
-			if !det.installed {
-				health = "unavailable"
-			} else if !acc.Authenticated {
-				health = "auth_required"
-			}
-			if d, derr := n.controlDrivers().Get(p.Provider); derr == nil {
-				capabilities = effectiveCapabilityMap(d.EffectiveCaps(ctx, p))
-			}
-		} else {
+		if p.Disabled {
+			// Disabled profiles remain registered/visible, but they are not
+			// executable resources and therefore cannot enter auto-balance.
+			authenticated = false
 			health = "unavailable"
+		} else {
+			det := detectionFor(p.Provider)
+			if det.ok {
+				authenticated = det.installed && acc.Authenticated
+				if !det.installed {
+					health = "unavailable"
+				} else if !acc.Authenticated {
+					health = "auth_required"
+				}
+				if d, derr := n.controlDrivers().Get(p.Provider); derr == nil {
+					capabilities = effectiveCapabilityMap(d.EffectiveCaps(ctx, p))
+				}
+			} else {
+				health = "unavailable"
+			}
 		}
 
 		isDefault := false
