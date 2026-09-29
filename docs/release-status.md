@@ -9,7 +9,7 @@ Atualizado em **29 de setembro de 2026**.
 | Última beta pública registrada | `v1.0.0-beta.1` |
 | Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
 | Release estável v1 | **ainda não publicada** |
-| CI do SHA candidato | indisponível no momento por bloqueio de créditos da conta |
+| CI do SHA candidato | obrigatório no SHA final; PR CI é evidência de merge, não substitui exact-SHA |
 | Veredito atual | **beta.6 implementada no source; homologação/certificação exact-SHA pendentes** |
 
 ## Linha canônica de integração — 2026-09-27
@@ -174,10 +174,11 @@ fallback e inserção PTY.
 
 ## Estado da validação
 
-GitHub Actions continua indisponível por bloqueio de créditos da conta. Isso é
-falha de infraestrutura, não PASS e não evidência funcional de FAIL.
+GitHub Actions está disponível para validação do PR. A publicação continua
+fail-closed: PR CI valida o merge sintético, enquanto a release exige um run
+`push`/`workflow_dispatch` verde no SHA exato já integrado em `release/v1.0.0`.
 
-Enquanto o CI remoto estiver indisponível:
+Para complementar a evidência remota ou quando um runner nativo não estiver disponível:
 
 Linux/macOS:
 
