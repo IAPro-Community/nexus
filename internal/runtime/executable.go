@@ -99,6 +99,9 @@ func windowsResolved(artifact string, getenv func(string) string, lookPath func(
 	ext := strings.ToLower(filepath.Ext(artifact))
 	switch ext {
 	case ".cmd":
+		if launcher, prefix, ok := resolveWindowsNPMShellShim(artifact, lookPath); ok {
+			return ResolvedCommand{ArtifactPath: artifact, LauncherPath: launcher, PrefixArgs: prefix, Kind: CommandCmd}
+		}
 		launcher := getenv("COMSPEC")
 		if launcher == "" {
 			launcher = "cmd.exe"
@@ -121,6 +124,76 @@ func windowsResolved(artifact string, getenv func(string) string, lookPath func(
 	default:
 		return ResolvedCommand{ArtifactPath: artifact, LauncherPath: artifact, Kind: CommandExecutable}
 	}
+}
+
+// resolveWindowsNPMShellShim extracts the real target from an npm-generated
+// .cmd shim. Provider prompts then stay argv data instead of being reparsed by
+// cmd.exe, which is critical for Codex prompts containing shell metacharacters.
+func resolveWindowsNPMShellShim(path string, lookPath func(string) (string, error)) (string, []string, bool) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return "", nil, false
+	}
+	dir := filepath.Dir(path)
+	var script string
+	var executable string
+	for _, sourceLine := range strings.Split(string(raw), "\n") {
+		line := sourceLine
+		for {
+			start := strings.IndexByte(line, '"')
+			if start < 0 {
+				break
+			}
+			line = line[start+1:]
+			end := strings.IndexByte(line, '"')
+			if end < 0 {
+				break
+			}
+			candidate := strings.TrimSpace(line[:end])
+			line = line[end+1:]
+			candidate = expandWindowsShimDir(candidate, dir)
+			lower := strings.ToLower(candidate)
+			switch {
+			case strings.HasSuffix(lower, ".js"):
+				script = candidate
+			case strings.HasSuffix(lower, ".exe") && !strings.EqualFold(filepath.Base(candidate), "node.exe"):
+				executable = candidate
+			}
+		}
+	}
+	if script != "" {
+		for _, candidate := range []string{filepath.Join(dir, "node.exe"), "node.exe", "node"} {
+			if candidate == filepath.Join(dir, "node.exe") {
+				if info, statErr := os.Stat(candidate); statErr == nil && !info.IsDir() {
+					return candidate, []string{script}, true
+				}
+				continue
+			}
+			if resolved, lookErr := lookPath(candidate); lookErr == nil && strings.TrimSpace(resolved) != "" {
+				return resolved, []string{script}, true
+			}
+		}
+		return "", nil, false
+	}
+	if executable != "" {
+		if info, statErr := os.Stat(executable); statErr == nil && !info.IsDir() {
+			return executable, nil, true
+		}
+	}
+	return "", nil, false
+}
+
+func expandWindowsShimDir(value, dir string) string {
+	for _, token := range []string{"%~dp0", "%~dP0", "%dp0%", "%DP0%"} {
+		value = strings.ReplaceAll(value, token, dir+string(filepath.Separator))
+	}
+	// Tests may simulate a Windows shim on a non-Windows host. Normalize the
+	// shim's backslash separators to the host filesystem only after %~dp0 is
+	// expanded; production Windows keeps native separators unchanged.
+	if runtime.GOOS != "windows" {
+		value = strings.ReplaceAll(value, "\\", string(filepath.Separator))
+	}
+	return filepath.Clean(value)
 }
 
 // windowsListSeparator is the PATH/PATHEXT list separator on Windows.
