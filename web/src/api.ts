@@ -10,6 +10,7 @@ import { shouldAttachWebSocketQueryToken } from './lib/networkHost';
 import { isDesktopApp, getPlatformBridge } from './platform';
 
 let csrfToken = '';
+let csrfRefreshInFlight: Promise<boolean> | null = null;
 let desktopAuthToken = '';
 let desktopBaseUrl = '';
 
@@ -262,7 +263,32 @@ export async function rotateSession(): Promise<BrowserSession> {
   return data;
 }
 
-export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function refreshCSRFToken(): Promise<boolean> {
+  if (!csrfRefreshInFlight) {
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (desktopAuthToken) headers.Authorization = `Bearer ${desktopAuthToken}`;
+    const targetUrl = desktopBaseUrl ? `${desktopBaseUrl}/api/v1/session` : '/api/v1/session';
+    csrfRefreshInFlight = fetch(targetUrl, { headers })
+      .then(async (res) => {
+        if (!res.ok) return false;
+        const data = (await res.json()) as BrowserSession;
+        if (!data.authenticated || !data.csrf_token) return false;
+        csrfToken = data.csrf_token;
+        return true;
+      })
+      .catch(() => false)
+      .finally(() => {
+        csrfRefreshInFlight = null;
+      });
+  }
+  return csrfRefreshInFlight;
+}
+
+export async function request<T>(
+  path: string,
+  options: RequestInit = {},
+  retried = false,
+): Promise<T> {
   const headers = new Headers(options.headers || {});
   headers.set('Accept', 'application/json');
 
@@ -270,7 +296,8 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     headers.set('Authorization', `Bearer ${desktopAuthToken}`);
   }
 
-  if (options.method && options.method !== 'GET' && options.method !== 'HEAD') {
+  const mutating = Boolean(options.method && options.method !== 'GET' && options.method !== 'HEAD');
+  if (mutating) {
     const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
     if (!isFormData) {
       headers.set('Content-Type', 'application/json');
@@ -282,6 +309,9 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
   const targetUrl = desktopBaseUrl && path.startsWith('/') ? `${desktopBaseUrl}${path}` : path;
   const res = await fetch(targetUrl, { ...options, headers });
+  if (res.status === 403 && mutating && !retried && (await refreshCSRFToken())) {
+    return request<T>(path, options, true);
+  }
   if (!res.ok) {
     if (res.status === 401) notifySessionExpired();
     const errBody = (await res.json().catch(() => ({ error: res.statusText }))) as APIErrorPayload;
