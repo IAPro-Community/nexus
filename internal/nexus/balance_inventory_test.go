@@ -104,3 +104,37 @@ func TestBuildBalanceInventoryPreservesAccountScope(t *testing.T) {
 		t.Fatalf("balance account scope = %#v, want %#v", got, account.Scope)
 	}
 }
+
+func TestBalanceInventoryRejectsSyntheticAggregateWithoutKnownWindow(t *testing.T) {
+	account := ProviderAccount{
+		ID:             "codex:empty",
+		Provider:       "codex",
+		Profile:        "empty",
+		Authenticated:  true,
+		Available:      true,
+		Health:         "healthy",
+		QuotaRemaining: 0,
+		QuotaTotal:     1,
+		QuotaView:      &quota.QuotaView{Status: "LIVE"},
+	}
+	if got := BuildBalanceInventory([]ProviderAccount{account}); len(got) != 0 {
+		t.Fatalf("LIVE without a known quota window must not become balance evidence: %#v", got)
+	}
+}
+
+func TestBalanceInventoryRetainsMeasuredRateLimitForExplanation(t *testing.T) {
+	account := ProviderAccount{
+		ID:            "codex:limited",
+		Provider:      "codex",
+		Profile:       "limited",
+		Authenticated: true,
+		Available:     false,
+		RateLimited:   true,
+		Health:        "healthy",
+		QuotaView:     &quota.QuotaView{Status: "RATE_LIMITED"},
+	}
+	got := BuildBalanceInventory([]ProviderAccount{account})
+	if len(got) != 1 || got[0].Available {
+		t.Fatalf("measured rate-limit must remain visible but unavailable: %#v", got)
+	}
+}
