@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestAPIUsageBindingRequiresExplicitAttributionAndKnownProvider(t *testing.T) {
 	cfg := NewDefaultConfig()
@@ -55,5 +58,28 @@ func TestAPIUsageBindingRoundTripDoesNotPersistSecret(t *testing.T) {
 	}
 	if _, ok := GetAPIUsageBinding("codex", "work"); ok {
 		t.Fatal("binding must be removed")
+	}
+}
+
+
+func TestStripAPIUsageSecretEnvProtectsAdminKeysButKeepsNormalProviderKeys(t *testing.T) {
+	t.Setenv("NEXUS_CONFIG_DIR", t.TempDir())
+	if err := SetAPIUsageBinding("codex", "work", APIUsageBinding{
+		Provider: "openai", APIKeyEnv: "OPENAI_ADMIN_KEY_WORK", ProjectIDs: []string{"proj_123"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	got := StripAPIUsageSecretEnv([]string{
+		"PATH=/bin",
+		"OPENAI_ADMIN_KEY=global-admin",
+		"OPENAI_ADMIN_KEY_WORK=work-admin",
+		"OPENAI_API_KEY=provider-key",
+	})
+	joined := strings.Join(got, "\n")
+	if strings.Contains(joined, "global-admin") || strings.Contains(joined, "work-admin") {
+		t.Fatalf("admin API telemetry secret leaked: %q", joined)
+	}
+	if !strings.Contains(joined, "OPENAI_API_KEY=provider-key") {
+		t.Fatalf("ordinary provider API key was unexpectedly stripped: %q", joined)
 	}
 }
