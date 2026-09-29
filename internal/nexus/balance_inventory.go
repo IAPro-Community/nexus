@@ -109,9 +109,11 @@ func hasMeasuredBalanceEvidence(account ProviderAccount) bool {
 	view := account.QuotaView
 	status := strings.ToUpper(strings.TrimSpace(view.Status))
 	switch status {
-	case "LIVE", "CACHED", "ESTIMATED", "RATE_LIMITED":
+	case "LIVE", "CACHED", "ESTIMATED", "RATE_LIMITED", "OK":
 		// RATE_LIMITED is still measured evidence. Eligibility will reject it,
 		// but retaining it in the inventory lets the UI explain why it lost.
+		// OK is the bounded compatibility status used by older measured
+		// aggregate snapshots and is treated as cached evidence elsewhere.
 	default:
 		return false
 	}
