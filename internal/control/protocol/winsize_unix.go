@@ -8,7 +8,9 @@ import (
 	"syscall"
 )
 
-// NotifyWinSizeChange registers a channel for window resize signals.
-func NotifyWinSizeChange(ch chan os.Signal) {
+// NotifyWinSizeChange registers a channel for window resize signals and
+// returns a cleanup function for the registration.
+func NotifyWinSizeChange(ch chan os.Signal) func() {
 	signal.Notify(ch, syscall.SIGWINCH)
+	return func() { signal.Stop(ch) }
 }
