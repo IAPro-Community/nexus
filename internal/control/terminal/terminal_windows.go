@@ -27,9 +27,9 @@ import (
 // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE attribute. If ConPTY is unavailable
 // (e.g. Windows < 10.0.17763), Start falls back to standard pipes and reports
 // the backend truthfully as "standard pipes" (no resize / no raw mode).
-// ConPTY is the default on supported Windows versions. Standard pipes remain
-// the fallback when the API is unavailable or explicitly disabled with
-// AI_CLI_DISABLE_CONPTY=1.
+// Standard pipes are the safe/default backend. ConPTY remains opt-in through
+// AI_CLI_ENABLE_CONPTY=1 because provider TUIs (notably Codex) must not inherit
+// a pseudo-console path unless the user explicitly enables it.
 
 const (
 	procThreadAttributePseudoConsole = 0x00020016
@@ -119,7 +119,7 @@ func newPlatformBackend() Backend {
 }
 
 // BackendMechanism reports the platform's primary terminal backend.
-func BackendMechanism() string { return "Windows ConPTY (standard-pipe fallback)" }
+func BackendMechanism() string { return "Windows standard pipes (ConPTY opt-in)" }
 
 func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) error {
 	b.mu.Lock()
@@ -154,16 +154,20 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		return fmt.Errorf("CreatePipe failed (output): %v", e)
 	}
 
-	// 2. Create the pseudo console. Size is passed by value as a packed COORD.
+	// 2. ConPTY is deliberately opt-in. Pipes remain the default transport
+	// because they are the least intrusive path for provider-native TUIs and
+	// avoid reintroducing Codex keyboard/mouse/CSI regressions.
+	conPTYEnabled := os.Getenv("AI_CLI_ENABLE_CONPTY") == "1" && os.Getenv("AI_CLI_DISABLE_CONPTY") != "1"
 	sizeVal := *(*uint32)(unsafe.Pointer(&coord{X: int16(initialCols), Y: int16(initialRows)}))
 	var hPC uintptr
-	r, _, e = procCreatePseudoConsole.Call(
-		uintptr(sizeVal), uintptr(hInRead), uintptr(hOutWrite), 0, uintptr(unsafe.Pointer(&hPC)))
-	if r != 0 || os.Getenv("AI_CLI_DISABLE_CONPTY") == "1" {
-		// CreatePseudoConsole returns HRESULT S_OK (0) on success. A non-zero
-		// HRESULT means ConPTY is unavailable. AI_CLI_DISABLE_CONPTY=1 is the
-		// explicit compatibility fallback for environments with broken ConPTY.
-		if r == 0 {
+	if conPTYEnabled {
+		r, _, e = procCreatePseudoConsole.Call(
+			uintptr(sizeVal), uintptr(hInRead), uintptr(hOutWrite), 0, uintptr(unsafe.Pointer(&hPC)))
+	}
+	if !conPTYEnabled || r != 0 {
+		// CreatePseudoConsole returns HRESULT S_OK (0) on success. If ConPTY was
+		// requested but is unavailable, fall back to standard pipes truthfully.
+		if conPTYEnabled && r == 0 && hPC != 0 {
 			_ = closePseudoConsole(hPC)
 			hPC = 0
 		}
@@ -175,8 +179,10 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		b.rPipe = outFile
 		b.pid = 0
 		b.isConPTY = false
-		b.mechanism = "standard pipes (ConPTY unavailable)"
-		if r == 0 && os.Getenv("AI_CLI_DISABLE_CONPTY") == "1" {
+		b.mechanism = "standard pipes (ConPTY opt-in disabled)"
+		if conPTYEnabled && r != 0 {
+			b.mechanism = "standard pipes (ConPTY unavailable)"
+		} else if os.Getenv("AI_CLI_DISABLE_CONPTY") == "1" {
 			b.mechanism = "standard pipes (ConPTY explicitly disabled)"
 		}
 		cmd.Stdin = childIn

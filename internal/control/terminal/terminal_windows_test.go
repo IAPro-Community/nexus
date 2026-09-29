@@ -92,7 +92,9 @@ func TestCreateProcessSpecLeavesRealExecutablesDirect(t *testing.T) {
 }
 
 // TestWindowsBackendEcho verifies the Windows backend end-to-end.
-func TestWindowsBackendEcho(t *testing.T) {
+func TestWindowsBackendDefaultsToStandardPipes(t *testing.T) {
+	t.Setenv("AI_CLI_ENABLE_CONPTY", "")
+	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
 	backend := NewBackend()
 	cmd := exec.Command("cmd.exe")
 	if err := backend.Start(cmd, 24, 80); err != nil {
@@ -104,10 +106,9 @@ func TestWindowsBackendEcho(t *testing.T) {
 	}
 
 	if strings.HasPrefix(backend.Mechanism(), "ConPTY") {
-		if !backend.SupportsResize() || !backend.SupportsRawMode() {
-			t.Fatalf("ConPTY backend must support resize and raw mode")
-		}
-	} else if backend.SupportsResize() || backend.SupportsRawMode() {
+		t.Fatalf("ConPTY must remain opt-in, got mechanism %q", backend.Mechanism())
+	}
+	if backend.SupportsResize() || backend.SupportsRawMode() {
 		t.Fatalf("standard-pipe backend must report unsupported resize/raw mode")
 	}
 
@@ -143,7 +144,9 @@ func TestWindowsBackendEcho(t *testing.T) {
 }
 
 // TestWindowsBackendInteractive verifies input is delivered to the child.
-func TestWindowsBackendInteractive(t *testing.T) {
+func TestWindowsBackendInteractiveConPTYOptIn(t *testing.T) {
+	t.Setenv("AI_CLI_ENABLE_CONPTY", "1")
+	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
 	backend := NewBackend()
 	cmd := exec.Command("cmd.exe", "/C", "set /p X=prompt: && echo GOT-%X%")
 	if err := backend.Start(cmd, 24, 80); err != nil {
