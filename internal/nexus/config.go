@@ -241,11 +241,11 @@ func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentCon
 		return &impact, nil // no-op
 	}
 
-	// Validate required fields
-	if proposed.Provider == "" {
-		return nil, fmt.Errorf("provider is required (no implicit fallback)")
-	}
-	if proposed.Profile == "" {
+	// Stopped agents may persist specialization before the concrete resource
+	// account is chosen. A non-empty provider without an explicit profile keeps
+	// the legacy default profile behavior; a completely unassigned agent remains
+	// unassigned until Resource Picker persists the real provider/profile.
+	if proposed.Profile == "" && proposed.Provider != "" {
 		proposed.Profile = "default"
 	}
 
@@ -257,6 +257,9 @@ func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentCon
 	// next explicit StartAgent call.
 	oldGen, gerr := st.CurrentGeneration(agentID)
 	wasAlive := gerr == nil && oldGen.RuntimeID != "" && n.runtimeAlive(oldGen.RuntimeID)
+	if proposed.Provider == "" && wasAlive {
+		return nil, fmt.Errorf("provider is required while the agent is running; select a resource first")
+	}
 	if !wasAlive && agent.Status == store.AgentStopped {
 		rev, err := st.AddRevision(agentID, proposed.ConfigJSON())
 		if err != nil {
