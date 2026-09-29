@@ -1,5 +1,5 @@
 {
-  "source_sha": "b4a4fbfcc3f6ad43b551a0e73b72fccbf8e50739",
+  "source_sha": "546eb03afb39cf606aee307a08004e35de19e243",
   "generated_by": "web/scripts/docs-capture.mjs",
   "scenario": "isolated-synthetic-fixture",
   "data_classification": "SYNTHETIC",
@@ -144,5 +144,5 @@
       "status": "PASS"
     }
   ],
-  "visual_equivalence_note": "Re-anchored for Beta 6 after CI stale-manifest review: changes since the prior capture SHA were limited to non-visual API/types/terminal-input logic, tests, and E2E/report scripts; no TSX, CSS/SCSS, visual asset, desktop UI, or capture script changed. Individual capture source_sha values remain the immutable SHAs where screenshots were produced."
+  "visual_equivalence_note": "Re-anchored for Beta 6 after CI stale-manifest review: changes since the previous manifest anchor were limited to non-visual API/type/terminal-input or verification logic; no TSX, CSS/SCSS, visual asset, desktop UI, or capture script changed after the last certified visual state. Individual capture source_sha values remain the immutable SHAs where screenshots were produced."
 }
