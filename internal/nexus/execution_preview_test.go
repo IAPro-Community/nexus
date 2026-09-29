@@ -61,7 +61,7 @@ func TestPreviewPlanExecutionUsesExistingMatcherAndResourceSchedulerWithoutMutat
 		{
 			ID: "claude-low", Provider: "claude", Profile: "default", DisplayName: "Claude low",
 			Authenticated: true, Available: true, Health: "healthy",
-			QuotaView: measuredBalanceQuotaView("LIVE", 0.80), QuotaRemaining: 0.25, QuotaTotal: 1,
+			QuotaView: measuredBalanceQuotaView("LIVE", 0.25), QuotaRemaining: 0.25, QuotaTotal: 1,
 			Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 		},
 	}
@@ -171,7 +171,7 @@ func TestPreviewPlanExecutionExplainsSpecialistCreationWithoutStartingAgent(t *t
 	accounts := []ProviderAccount{{
 		ID: "codex-main", Provider: "codex", Profile: "main", DisplayName: "Codex main",
 		Authenticated: true, Available: true, Health: "healthy",
-		QuotaView: measuredBalanceQuotaView("LIVE", 0.80), QuotaRemaining: 0.70, QuotaTotal: 1,
+		QuotaView: measuredBalanceQuotaView("LIVE", 0.70), QuotaRemaining: 0.70, QuotaTotal: 1,
 		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 	}}
 
