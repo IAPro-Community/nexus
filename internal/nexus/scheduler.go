@@ -21,9 +21,11 @@ type ProviderAccount struct {
 	AvailReasons   *quota.AvailReasons `json:"avail_reasons,omitempty"`
 	QuotaView      *quota.QuotaView    `json:"quota_view,omitempty"`
 	Eligibility    *quota.Eligibility  `json:"eligibility,omitempty"`
-	Capabilities   map[string]string   `json:"capabilities,omitempty"`
-	QuotaRemaining float64             `json:"quota_remaining"` // 0-1 normalized (bottleneck)
-	QuotaTotal     float64             `json:"quota_total"`
+	Capabilities         map[string]string            `json:"capabilities,omitempty"`
+	ResourceChannels     []model.ResourceChannelState `json:"resource_channels,omitempty"`
+	QuotaRemaining       float64                      `json:"quota_remaining"` // 0-1 literal remaining capacity of the best usable pool
+	QuotaTotal           float64                      `json:"quota_total"`
+	RoutingCapacityScore float64                      `json:"routing_capacity_score,omitempty"`
 	RateLimited    bool                `json:"rate_limited"`
 	NetworkError   bool                `json:"network_error,omitempty"`
 	CooldownUntil  *time.Time          `json:"cooldown_until,omitempty"`
