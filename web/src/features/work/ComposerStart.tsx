@@ -27,9 +27,7 @@ export const ComposerStart: React.FC<{
 }> = ({ sessions, busy, error, onCreate, onResumeSession }) => {
   const { t } = useTranslation();
   const [inputMode, setInputMode] = useState<'IDEA' | 'EXISTING_PROMPT'>('IDEA');
-  const [interviewMode, setInterviewMode] = useState<'QUICK' | 'STANDARD' | 'DEEP'>(
-    'STANDARD',
-  );
+  const [interviewMode, setInterviewMode] = useState<'QUICK' | 'STANDARD' | 'DEEP'>('STANDARD');
   const [draft, setDraft] = useState('');
   const [sourcePrompt, setSourcePrompt] = useState('');
 
@@ -112,9 +110,7 @@ export const ComposerStart: React.FC<{
           </small>
           <Select
             value={interviewMode}
-            onChange={(value) =>
-              setInterviewMode(value as 'QUICK' | 'STANDARD' | 'DEEP')
-            }
+            onChange={(value) => setInterviewMode(value as 'QUICK' | 'STANDARD' | 'DEEP')}
             options={[
               {
                 value: 'QUICK',

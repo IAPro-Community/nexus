@@ -24,7 +24,8 @@ function isTerminalOnly(account: ProviderAccount): boolean {
 }
 
 export function quotaPercent(account: ProviderAccount): number | null {
-  if (account.avail_reasons?.unknown_quota || !isMeasuredQuotaStatus(account.quota_view?.status)) return null;
+  if (account.avail_reasons?.unknown_quota || !isMeasuredQuotaStatus(account.quota_view?.status))
+    return null;
   const fromWindows = bestGroupRemainingFromQuotaView(account.quota_view);
   if (fromWindows != null) return fromWindows;
   const remaining = account.quota_remaining;
@@ -33,7 +34,8 @@ export function quotaPercent(account: ProviderAccount): number | null {
 }
 
 export function quotaLabel(account: ProviderAccount): string | null {
-  if (account.avail_reasons?.unknown_quota || !isMeasuredQuotaStatus(account.quota_view?.status)) return null;
+  if (account.avail_reasons?.unknown_quota || !isMeasuredQuotaStatus(account.quota_view?.status))
+    return null;
   const label = compactQuotaLabel(account.quota_view);
   if (label) return label;
   const pct = quotaPercent(account);

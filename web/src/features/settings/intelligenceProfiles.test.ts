@@ -92,9 +92,7 @@ describe('intelligenceCLIProfiles', () => {
         profile: 'fbolzan',
         quota_view: {
           status,
-          model_groups: [
-            { name: 'default', windows: [{ kind: '5h', remaining: 0, status }] },
-          ],
+          model_groups: [{ name: 'default', windows: [{ kind: '5h', remaining: 0, status }] }],
         },
         quota_remaining: 0,
       });

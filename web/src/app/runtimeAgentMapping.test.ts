@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { agentForRuntime, currentRuntimeForAgent, terminalSurfaceIDForRuntime } from './runtimeAgentMapping';
+import {
+  agentForRuntime,
+  currentRuntimeForAgent,
+  terminalSurfaceIDForRuntime,
+} from './runtimeAgentMapping';
 
 const agents = [
   { id: 'agt-a', project_id: 'p1', name: 'A' },

@@ -10,7 +10,6 @@ export function terminalSurfaceIDForRuntime(runtime: RuntimeSession): string | u
   return runtime.agent_id ? `agent:${runtime.agent_id}:terminal` : undefined;
 }
 
-
 /** Returns the newest live runtime generation for an Agent.
  *
  * Registry/API order is intentionally not trusted: the registry is map-backed

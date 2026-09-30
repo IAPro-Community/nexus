@@ -451,10 +451,7 @@ const WorkspaceCoordinator: React.FC<{
   const openNewAISession = useCallback(() => setDirectSession({ mode: 'direct', prompt: '' }), []);
   const terminal = useCallback(
     (agent: Agent, initialPrompt = '', runtimeId = '') => {
-      const live =
-        runtimeId ||
-        currentRuntimeForAgent(data.runtimes, agent.id)?.runtime_id ||
-        '';
+      const live = runtimeId || currentRuntimeForAgent(data.runtimes, agent.id)?.runtime_id || '';
       const surface = agentTerminalSurface(agent.id, agent.name, initialPrompt, live);
       open(surface);
       if (live || initialPrompt) {
