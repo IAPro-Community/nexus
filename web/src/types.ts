@@ -20,7 +20,9 @@ export interface RuntimeSession {
   provider_session_id?: string;
   workspace: string;
   pid: number;
+  provider_generation?: number;
   host_pid: number;
+  host_generation?: number;
   state:
     | 'STARTING'
     | 'RUNNING'
