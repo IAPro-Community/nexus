@@ -86,7 +86,7 @@ estender o Nexus.
 - [CLI](cli/README.md)
 - [Configuração](reference/configuration.md)
 - [Matriz de funcionalidades](reference/feature-matrix.md)
-- [Glossário](glossary.md)
+- [Glossário](GLOSSARY.md)
 - [FAQ](faq.md)
 - [O que mudou](whats-new.md)
 
