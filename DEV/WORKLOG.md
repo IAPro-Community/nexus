@@ -5046,3 +5046,21 @@ build` PASS e Web reiniciado em HTTP 200.
   UTF-8, colagem e preservação do canal de comandos Nexus.
 - Verificação parcial concluída: focados, race focado, cross-compile e
   `git diff --check` PASS; gates completos e smoke manual seguem no handoff.
+
+# 2026-09-30 — Homologação Linux amd64 beta.7 PASS
+
+- SHA validado `6bf1b9fef578822d2be9d542409a44a2e154ed96`; `scripts/homologate-beta.sh`
+  PASS nos 19 gates em ~6m42s (`21:35:34Z` → `21:42:16Z`), evidência em
+  `DEV/validation/local-beta/1.0.0-beta.7/<sha>/linux-x86_64/` (gitignored).
+- Fixes que destravaram: GTK4 + WebKitGTK 6.0 dev headers (Wails v3 sem tag
+  `gtk3`), GoReleaser standalone v2.18.0 com `NEXUS_VERSION` (o módulo exige
+  Go ≥ 1.27), gofmt/Prettier, a11y `select-name` do seletor de profundidade do
+  Composer (`ede0b7e`) e espera de 30s no cold start do settings (`4ea6e9e`).
+- Cache do Go sob `~/.cache` perdeu arquivos `-d` duas vezes (o trim do Go só
+  remove entradas > 5 dias; causa externa). Mitigado com `GOCACHE` dedicado em
+  `DEV/validation/local-beta/.gocache` pré-aquecido.
+- GitHub Actions: o bloqueio real é o runner self-hosted
+  `nexus-ci-dev-web-kiver` **offline** (jobs ficam `queued`), não créditos.
+- Relatório `DEV/validation/BETA7_LINUX_FINAL_20260930.md` e
+  `docs/release-status.md` atualizados; pendências explícitas em FASE 6/7/8
+  (smokes interativos Codex/AGY/OpenCode/HUD/Voice), Windows, macOS e CI.

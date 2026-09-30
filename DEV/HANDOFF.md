@@ -1,5 +1,40 @@
 # Handoff
 
+## Homologação Linux beta.7 PASS — 2026-09-30
+
+SHA validado: `6bf1b9fef578822d2be9d542409a44a2e154ed96`.
+`./scripts/homologate-beta.sh` rodou os 19 gates em PASS
+(`21:35:34Z` → `21:42:16Z`), com evidência em
+`DEV/validation/local-beta/1.0.0-beta.7/<sha>/linux-x86_64/` (gitignored).
+Relatório: `DEV/validation/BETA7_LINUX_FINAL_20260930.md`;
+`docs/release-status.md` atualizado com o veredito parcial.
+
+Próxima ação do maestro, nesta ordem:
+
+1. **FASE 6/7/8** — smokes manuais interativos (TTY real + credencial de
+   provider): `nexus codex`/`agy`/`opencode` sem promoção a Mission, setas sem
+   artefatos `[A`–`[D`, `--lead` com/sem `NEXUS_DELEGATION_MODE`, HUD e Voice.
+   A matriz imutável está em `MANUAL_CHECKS.md` dentro da evidência do SHA.
+2. **FASE 10** — subir o runner self-hosted `nexus-ci-dev-web-kiver` (hoje
+   `offline`); enquanto isso toda run de CI fica `queued` e as antigas aparecem
+   `cancelled` por `concurrency`. O bloqueio **não** é crédito.
+3. **FASE 11** — feito; atualizar o relatório se FASE 6/7/8 avançarem.
+4. **FASE 12** — comentário na issue #27 com o bloco
+   `WINDOWS MUST VALIDATE SHA = 6bf1b9f…` (**requer aprovação do maestro**;
+   nada foi publicado nesta rodada).
+
+Ambiente reproduzível: PATH com `$HOME/.bun/bin` antes de `node22/bin`
+(Bun 1.3.9 vs 1.4.0 npm), `GOTOOLCHAIN=local` (Go 1.25.14),
+`GOCACHE=/projetos/nexus/DEV/validation/local-beta/.gocache` pré-aquecido, e
+GTK4/WebKitGTK 6.0 dev headers instalados.
+
+Segredo a tratar: `scripts/ad-auth/` está fora do repo em
+`/home/desenvolvedor/scratch/ad-auth-20260930` (bind LDAP em texto plano) —
+rotacionar e não reintroduzir.
+
+HEAD de `release/v1.0.0`: `a80e9f4c7a91bab43a9490f3d666d8e4080508c6`
+(docs/evidência apenas; código idêntico ao SHA validado).
+
 ## Rodada merge closure — 2026-09-20 (autopilot, CI #143 vermelho)
 
 Fecha os blockers do CI same-SHA sem features novas: overlap topbar

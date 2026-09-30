@@ -1,6 +1,6 @@
 # Status público da release do Nexus v1
 
-Atualizado em **29 de setembro de 2026**.
+Atualizado em **30 de setembro de 2026**.
 
 | Campo | Estado |
 | --- | --- |
@@ -10,7 +10,24 @@ Atualizado em **29 de setembro de 2026**.
 | Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
 | Release estável v1 | **ainda não publicada** |
 | CI do SHA candidato | obrigatório no SHA final; PR CI é evidência de merge, não substitui exact-SHA |
-| Veredito atual | **beta.7 implementada no source; homologação/certificação exact-SHA pendentes** |
+| Veredito atual | **beta.7 implementada no source; homologação automatizada Linux amd64 PASS no SHA `6bf1b9f…`; Windows, macOS, CI e checks manuais pendentes** |
+
+## Homologação Linux amd64 — 2026-09-30
+
+A homologação automatizada de exact-SHA em Linux amd64 terminou **PASS** no
+SHA `6bf1b9fef578822d2be9d542409a44a2e154ed96` (`scripts/homologate-beta.sh`,
+19 gates: documentação, frontend, Go fmt/vet/lint/security, contrato de versão,
+race suite, E2E de control/runtime, interop, build CLI, 10 tarefas de E2E de
+browser, projeção OpenCode, desktop/HUD, snapshot GoReleaser e smoke do DEB).
+
+Relatório completo e matriz de checks manuais pendentes:
+`DEV/validation/BETA7_LINUX_FINAL_20260930.md` (documentação interna do
+repositório).
+
+Este PASS **não** certifica Windows, macOS, GitHub Actions nem os smokes
+manuais interativos (Codex/AGY/OpenCode, HUD, Voice). O CI continua indisponível
+porque o runner self-hosted `nexus-ci-dev-web-kiver` está offline — não por
+créditos da conta. Nada foi publicado: não há tag beta.7 nova.
 
 ## Linha canônica de integração — 2026-09-27
 
