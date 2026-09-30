@@ -24,16 +24,28 @@ type SingleTurnDelegateResult struct {
 	Reason    string   `json:"reason"`
 }
 
-// IsSingleTurnDelegateIntent limits conversational delegation to bounded,
-// analysis-oriented work. Write-oriented coding and anything requiring
-// decomposition remains on the existing Mission path so Nexus never introduces
-// a silent second writer into the user's checkout.
-func IsSingleTurnDelegateIntent(req TaskRequirements) bool {
+// IsSingleTurnDelegateRequest limits conversational delegation to bounded,
+// analysis-oriented work. Any write language or decomposition requirement stays
+// on the existing Mission path so Nexus never introduces a silent second writer
+// into the user's checkout.
+func IsSingleTurnDelegateRequest(prompt string, req TaskRequirements) bool {
 	if req.RequiresDecomposition {
 		return false
 	}
+	text := strings.ToLower(strings.TrimSpace(prompt))
+	if containsAny(text,
+		"implemente", "implementar", "implement ", "implement\n",
+		"corrija", "corrigir", "fix ", "fixe ",
+		"altere", "alterar", "modifique", "modificar", "change ",
+		"adicione", "adicionar", "add ", "remova", "remover", "remove ",
+		"crie", "criar", "create ", "atualize", "atualizar", "update ",
+		"edite", "editar", "edit ", "refatore", "refatorar", "refactor ",
+		"escreva", "escrever", "write ", "aplique", "aplicar", "apply ",
+	) {
+		return false
+	}
 	switch strings.ToLower(strings.TrimSpace(req.TaskKind)) {
-	case "review", "security", "investigation", "architecture", "documentation":
+	case "review", "security", "investigation", "architecture":
 		return true
 	default:
 		return false
@@ -63,7 +75,7 @@ func (n *Nexus) ExecuteSingleTurnDelegate(ctx context.Context, projectID, prompt
 	}
 
 	req := ClassifyTaskRequirements(prompt)
-	if !IsSingleTurnDelegateIntent(req) {
+	if !IsSingleTurnDelegateRequest(prompt, req) {
 		return nil, fmt.Errorf("single-turn delegation is read-only; task %q requires Direct or Mission execution", req.TaskKind)
 	}
 	if preferredProvider != "" {
