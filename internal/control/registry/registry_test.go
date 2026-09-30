@@ -460,9 +460,9 @@ func TestRuntimeSessionHostLive(t *testing.T) {
 		t.Fatal("stale PID after reboot/service restart must not look live")
 	}
 
-	self := RuntimeSession{State: StateRunning, PID: os.Getpid()}
-	if !self.HostLive() {
-		t.Fatal("current process must count as live")
+	legacyProviderOnly := RuntimeSession{State: StateRunning, PID: os.Getpid()}
+	if legacyProviderOnly.HostLive() {
+		t.Fatal("provider PID alone must not count as a live SessionHost")
 	}
 }
 
