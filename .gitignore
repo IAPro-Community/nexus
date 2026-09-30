@@ -80,6 +80,8 @@ web/package-lock.json
 .e2e-artifacts/
 coverage/
 DEV/validation/current/coverage*.out
+# Local beta homologation evidence (per-SHA, produced by scripts/homologate-beta.sh)
+DEV/validation/local-beta/
 
 # Local Yarn state; dependencies are managed by web/bun.lock.
 .pnp.*
