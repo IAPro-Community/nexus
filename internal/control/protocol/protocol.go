@@ -164,6 +164,7 @@ type StatusData struct {
 	ProviderSessionID         string    `json:"provider_session_id,omitempty"`
 	Workspace                 string    `json:"workspace"`
 	PID                       int       `json:"pid"`
+	ProviderGeneration        int64     `json:"provider_generation,omitempty"`
 	HostPID                   int       `json:"host_pid,omitempty"`
 	HostGeneration            int64     `json:"host_generation,omitempty"`
 	HostBinaryPath            string    `json:"host_binary_path,omitempty"`
