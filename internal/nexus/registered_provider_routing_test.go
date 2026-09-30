@@ -48,6 +48,21 @@ func TestResolveRegisteredProviderPreferenceSupportsNormalizedSpelling(t *testin
 	}
 }
 
+func TestResolveRegisteredProviderPreferenceRequiresExplicitRoutingIntent(t *testing.T) {
+	if provider, ok := resolveRegisteredProviderPreference("corrija o bug do cursor na tela", []string{"cursor"}); ok || provider != "" {
+		t.Fatalf("incidental provider-name mention must not route: provider=%q ok=%t", provider, ok)
+	}
+	if provider, ok := resolveRegisteredProviderPreference("use cursor para revisar isso", []string{"cursor"}); !ok || provider != "cursor" {
+		t.Fatalf("explicit provider request must route: provider=%q ok=%t", provider, ok)
+	}
+	if provider, ok := resolveRegisteredProviderPreference("revise com codex antes de responder", []string{"codex"}); !ok || provider != "codex" {
+		t.Fatalf("task verb + com provider must route: provider=%q ok=%t", provider, ok)
+	}
+	if provider, ok := resolveRegisteredProviderPreference("codex revise isso", []string{"codex"}); !ok || provider != "codex" {
+		t.Fatalf("provider + task verb must route: provider=%q ok=%t", provider, ok)
+	}
+}
+
 func TestApplyRegisteredProviderPreferenceToFlowUsesPreferNotPin(t *testing.T) {
 	flow := FlowDefinition{Steps: []FlowStep{{
 		ID:                 "step-1",
