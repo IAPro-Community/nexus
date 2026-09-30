@@ -805,8 +805,12 @@ func (n *Nexus) StopAgent(ctx context.Context, agentID string) error {
 	for {
 		select {
 		case <-deadline:
-			// Timeout: force kill by PID and mark as failed.
-			n.forceKillRuntime(gen.RuntimeID)
+			// Launcher.Stop is the sole process-termination authority and already
+			// performs generation-validated force-stop after its grace period.
+			// Never add a second raw-PID kill path here: if shutdown still has
+			// not converged, fail closed and preserve the evidence for recovery.
+			_ = os.Remove(protocol.EndpointPath(gen.RuntimeID))
+			_ = n.runtimeRegistry().UpdateState(gen.RuntimeID, registry.StateFailed)
 			agent.Status = store.AgentFailed
 			agent.ContinuityStatus = "STOP_TIMEOUT"
 			if err := st.UpdateAgent(agent); err != nil {
@@ -834,31 +838,6 @@ func (n *Nexus) StopAgent(ctx context.Context, agentID string) error {
 
 func (n *Nexus) stopRuntime(runtimeID string) {
 	_ = n.launcher.Stop(runtimeID)
-}
-
-func (n *Nexus) forceKillRuntime(runtimeID string) {
-	if runtimeID == "" {
-		return
-	}
-	sess, ok := n.runtimeRegistry().Get(runtimeID)
-	if ok {
-		// Destructive PID fallbacks are allowed only while the persisted
-		// generation still identifies the same OS process. Legacy rows without
-		// generation remain readable, but must never be used as raw kill targets
-		// because the PID may already have been recycled.
-		if runtimeKillIdentityValid(sess.PID, sess.ProviderGeneration) {
-			launcher.KillProcess(sess.PID)
-		}
-		if runtimeKillIdentityValid(sess.HostPID, sess.HostGeneration) {
-			launcher.KillProcess(sess.HostPID)
-		}
-	}
-	_ = os.Remove(protocol.EndpointPath(runtimeID))
-	_ = n.runtimeRegistry().UpdateState(runtimeID, registry.StateFailed)
-}
-
-func runtimeKillIdentityValid(pid int, generation int64) bool {
-	return pid > 0 && generation > 0 && registry.IsProcessAliveWithGeneration(pid, generation)
 }
 
 // runtimeAlive reports whether a runtime is currently usable: the process is
