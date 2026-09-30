@@ -97,7 +97,7 @@ func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*Dispat
 		return nil, fmt.Errorf("project_id and goal are required")
 	}
 	if req.DelegationMode == "" {
-		req.DelegationMode = DelegationAuto
+		req.DelegationMode = DelegationOff
 	}
 	if req.GoalID == "" {
 		req.GoalID = "goal_" + ids.NewULID()
