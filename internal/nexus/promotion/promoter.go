@@ -26,12 +26,14 @@ type Action string
 
 const (
 	KeepWithLead Action = "KEEP_WITH_LEAD"
+	Delegate     Action = "DELEGATE"
 	Promote      Action = "PROMOTE"
 	Ask          Action = "ASK"
 )
 
 const (
 	ActionKeepWithLead = KeepWithLead
+	ActionDelegate     = Delegate
 	ActionPromote      = Promote
 	ActionAsk          = Ask
 )
@@ -99,6 +101,18 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 	if err != nil {
 		return Decision{}, fmt.Errorf("decide prompt intent: %w", err)
 	}
+	registeredProvider := ""
+	if p.Nexus != nil {
+		provider, ok, providerErr := p.Nexus.ResolveRegisteredProviderPreference(line)
+		if providerErr != nil {
+			return Decision{}, fmt.Errorf("resolve registered provider preference: %w", providerErr)
+		}
+		if ok {
+			registeredProvider = provider
+			intent.TaskRequirements.PreferProvider = provider
+			intent.Evidence = append(intent.Evidence, "registered-provider-request:"+provider)
+		}
+	}
 	delegation := nexus.DecideDelegation(line, mode)
 	selection := nexus.SelectMissionTeam(line, intent)
 	explicitRequest := IsExplicitMissionRequest(line)
@@ -112,6 +126,14 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 	}
 	if intent.Strategy == nexus.IntentClarify {
 		result.Reason = "intent requires clarification before promotion"
+		return result, nil
+	}
+	if registeredProvider != "" && !explicitRequest && !intent.TaskRequirements.RequiresDecomposition && !delegation.Delegate {
+		// Explicit provider handoff is already user-owned consent for one bounded
+		// delegated turn. It does not require Mission promotion and does not need
+		// a second ASK confirmation.
+		result.Action = Delegate
+		result.Reason = "user requested registered provider " + registeredProvider + " for one bounded turn"
 		return result, nil
 	}
 	if intent.Strategy == nexus.IntentDirect && !explicitRequest {
