@@ -15,6 +15,14 @@ Quando a Intelligence está disponível, `ExtractBrief` estrutura o texto livre 
 
 Uma pergunta por rodada, com opções quando a inteligência as sugerir. Premissas de baixo impacto aparecem como “Nexus assumiu — editar”, sem bloquear. O checklist por arquétipo cobre feature, bug fix, research, DevOps, architecture e security — incluindo fora de escopo, riscos, ações proibidas, Definition of Done e entregáveis.
 
+## Interview Engine
+
+O Composer mantém um estado de clareza por dimensão (`intent`, `scope`, `context`, `constraints`, `acceptance`, `risk` e `decisions`). Cada pergunta aberta recebe `dimension` e `priority_score`; a próxima pergunta é a de maior ganho esperado de informação, e não apenas o próximo item do checklist.
+
+Fatos inferidos por Project Intelligence ou memória permanecem auditáveis no brief, mas não voltam para a fila de perguntas. Ao iniciar uma elaboração, a UI permite escolher `QUICK`, `STANDARD` ou `DEEP`; `STANDARD` é o padrão adaptativo. Cada perfil define alvo de ambiguidade e orçamento máximo de perguntas, e o contador avança apenas em rodadas reais de resposta/resolução.
+
+Quando o brief já convergiu e existe uma decisão sensível a trade-offs (por exemplo custo, quota, escolha automática ou fallback), o Composer pode abrir uma única **pressure-test question**. Essa passagem desafia a decisão antes da finalização sem criar uma cadeia skill → prompt → skill e sem transformar a resposta em memória durável automaticamente.
+
 ## Contexto anexável (`@file`)
 
 Use **Anexar arquivo** na conversa para incluir trechos do repositório no brief. Cada arquivo entra em `referenced_files` com excerpt limitado (budget por arquivo e total) e aparece no preview do prompt sob **Context — Referenced files**. Symlinks que saem do projeto, binários e sessão `FINALIZED` são recusados.

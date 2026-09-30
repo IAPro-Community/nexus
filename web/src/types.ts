@@ -1186,7 +1186,27 @@ export interface ComposerSessionView {
       source?: string;
       suggested_options?: string[];
       default_choice?: string;
+      dimension?: string;
+      priority_score?: number;
     }>;
+    interview?: {
+      mode?: 'QUICK' | 'STANDARD' | 'DEEP' | string;
+      clarity?: {
+        intent?: number;
+        scope?: number;
+        context?: number;
+        constraints?: number;
+        acceptance?: number;
+        risk?: number;
+        decisions?: number;
+      };
+      ambiguity?: number;
+      target_ambiguity?: number;
+      weakest_dimension?: string;
+      questions_answered?: number;
+      max_questions?: number;
+      challenge_pending?: boolean;
+    };
   };
   turns: ComposerTurn[];
   skills: ComposerSkillProposal[];

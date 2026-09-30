@@ -170,6 +170,8 @@ type PromptUnknown struct {
 	Source           string                `json:"source,omitempty"`
 	SuggestedOptions []string              `json:"suggested_options,omitempty"`
 	DefaultChoice    string                `json:"default_choice,omitempty"`
+	Dimension        string                `json:"dimension,omitempty"`
+	PriorityScore    int                   `json:"priority_score,omitempty"`
 }
 
 type PromptReadinessCheck struct {
@@ -202,10 +204,11 @@ type LivingBrief struct {
 	Assumptions   []PromptAssumption `json:"assumptions,omitempty"`
 	Alternatives  []string           `json:"alternatives,omitempty"`
 	Risks         []string           `json:"risks,omitempty"`
-	Unknowns      []PromptUnknown    `json:"unknowns,omitempty"`
-	OpenQuestions []string           `json:"open_questions,omitempty"`
-	Readiness     PromptReadiness    `json:"readiness"`
-	Motivation    MotivationMap      `json:"motivation,omitempty"`
+	Unknowns      []PromptUnknown        `json:"unknowns,omitempty"`
+	OpenQuestions []string               `json:"open_questions,omitempty"`
+	Readiness     PromptReadiness        `json:"readiness"`
+	Interview     ComposerInterviewState `json:"interview"`
+	Motivation    MotivationMap          `json:"motivation,omitempty"`
 	Facts         []ComposerFact     `json:"facts,omitempty"`
 	Preview       string             `json:"preview,omitempty"`
 }
@@ -219,6 +222,10 @@ type composerUnknownBlueprint struct {
 }
 
 func newComposerBrief(goal, sourcePrompt string) LivingBrief {
+	return newComposerBriefWithInterviewMode(goal, sourcePrompt, ComposerInterviewStandard)
+}
+
+func newComposerBriefWithInterviewMode(goal, sourcePrompt string, interviewMode ComposerInterviewMode) LivingBrief {
 	body := strings.TrimSpace(sourcePrompt)
 	if body == "" {
 		body = strings.TrimSpace(goal)
@@ -235,6 +242,7 @@ func newComposerBrief(goal, sourcePrompt string) LivingBrief {
 			Objective:      objective,
 			DesiredOutcome: objective,
 		},
+		Interview: ComposerInterviewState{Mode: normalizeComposerInterviewMode(interviewMode)},
 	}
 	mergeTextIntoBrief(&brief, body, "USER")
 	brief.Motivation = deriveMotivationMap(brief)
@@ -253,6 +261,7 @@ func refreshComposerBrief(brief *LivingBrief) {
 		brief.Intent.Archetype = classifyPromptArchetype(brief.Goal + "\n" + brief.SourcePrompt)
 	}
 	brief.Unknowns = refreshComposerUnknowns(*brief)
+	refreshComposerInterview(brief)
 	brief.OpenQuestions = nil
 	for _, unknown := range brief.Unknowns {
 		if unknown.Status == PromptUnknownOpen {
@@ -573,7 +582,6 @@ func applyBriefExtraction(brief *LivingBrief, ext *intelligence.BriefExtraction)
 func computePromptReadiness(brief LivingBrief) PromptReadiness {
 	checks := []PromptReadinessCheck{}
 	completed := 0.0
-	blockingOpen := false
 	inferredOnly := false
 	for _, bp := range archetypeUnknowns(brief.Intent.Archetype) {
 		summary, status, _ := evaluateBriefField(brief, bp.Field)
@@ -588,34 +596,61 @@ func computePromptReadiness(brief LivingBrief) PromptReadiness {
 			inferredOnly = true
 		default:
 			check.Status = "MISSING"
-			if bp.Severity == PromptUnknownBlocking {
-				blockingOpen = true
-			}
 		}
 		checks = append(checks, check)
 	}
-	total := float64(len(checks))
-	score := 0
-	if total > 0 {
-		score = int(math.Round((completed / total) * 100))
+
+	legacyScore := 0
+	if total := float64(len(checks)); total > 0 {
+		legacyScore = int(math.Round((completed / total) * 100))
 	}
+
+	blockingOpen := false
+	for _, unknown := range brief.Unknowns {
+		if unknown.Status == PromptUnknownOpen && unknown.Severity == PromptUnknownBlocking {
+			blockingOpen = true
+			break
+		}
+	}
+
+	score := legacyScore
+	target := 0.25
+	ambiguity := 1.0
+	if brief.Interview.Mode != "" {
+		ambiguity = clampComposerUnit(brief.Interview.Ambiguity)
+		target = clampComposerUnit(brief.Interview.TargetAmbiguity)
+		interviewScore := int(math.Round((1 - ambiguity) * 100))
+		if interviewScore > score {
+			score = interviewScore
+		}
+	}
+
 	state := PromptReadinessNeedsInformation
 	switch {
-	case total == 0:
+	case len(checks) == 0:
 		state = PromptReadinessReady
 	case blockingOpen:
 		state = PromptReadinessBlocked
-	case score >= 90 && !inferredOnly:
+	case brief.Interview.Mode != "" && ambiguity <= target && !brief.Interview.ChallengePending && !inferredOnly:
 		state = PromptReadinessReady
-	case score >= 80:
+	case brief.Interview.Mode != "" && ambiguity <= target+0.10:
+		state = PromptReadinessReadyWithAssumption
+	case legacyScore >= 90 && !inferredOnly:
+		state = PromptReadinessReady
+	case legacyScore >= 80:
 		state = PromptReadinessReadyWithAssumption
 	}
+
 	summary := "Composer still needs more requirements."
 	switch state {
 	case PromptReadinessReady:
 		summary = "Prompt is ready to finalize."
 	case PromptReadinessReadyWithAssumption:
-		summary = "Prompt is usable, but some details were inferred."
+		if brief.Interview.ChallengePending {
+			summary = "Prompt is usable; one pressure-test question can still expose a hidden tradeoff."
+		} else {
+			summary = "Prompt is usable, but some details were inferred."
+		}
 	case PromptReadinessBlocked:
 		summary = "Blocking gaps remain before the final prompt is trustworthy."
 	}

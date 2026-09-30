@@ -110,19 +110,27 @@ func (h *NexusHandler) handleProjectComposerSessions(w http.ResponseWriter, r *h
 		writeJSON(w, http.StatusOK, items)
 	case http.MethodPost:
 		var body struct {
-			Goal         string `json:"goal"`
-			InputMode    string `json:"input_mode"`
-			SourcePrompt string `json:"source_prompt"`
+			Goal          string `json:"goal"`
+			InputMode     string `json:"input_mode"`
+			SourcePrompt  string `json:"source_prompt"`
+			InterviewMode string `json:"interview_mode"`
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid body")
 			return
 		}
 		if wantsComposerProgressStream(r) {
-			h.streamComposerCreate(w, r, projectID, body.Goal, body.SourcePrompt, body.InputMode)
+			h.streamComposerCreate(w, r, projectID, body.Goal, body.SourcePrompt, body.InputMode, body.InterviewMode)
 			return
 		}
-		view, err := h.composer.Create(r.Context(), projectID, body.Goal, body.SourcePrompt, body.InputMode)
+		view, err := h.composer.CreateWithInterviewMode(
+			r.Context(),
+			projectID,
+			body.Goal,
+			body.SourcePrompt,
+			body.InputMode,
+			body.InterviewMode,
+		)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return

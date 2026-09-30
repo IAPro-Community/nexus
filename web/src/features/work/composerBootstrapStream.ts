@@ -45,7 +45,12 @@ const STEP_LABELS: Record<string, string> = {
  */
 export async function createComposerSessionWithProgress(
   projectId: string,
-  body: { goal: string; input_mode: string; source_prompt?: string },
+  body: {
+    goal: string;
+    input_mode: string;
+    interview_mode?: 'QUICK' | 'STANDARD' | 'DEEP' | string;
+    source_prompt?: string;
+  },
   options: {
     signal?: AbortSignal;
     onEvent: (event: ComposerBootstrapEvent) => void;

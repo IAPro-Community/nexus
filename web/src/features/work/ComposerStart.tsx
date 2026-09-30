@@ -8,6 +8,7 @@ import styles from './ComposerSurface.module.scss';
 
 export type ComposerStartCreateArgs = {
   mode: 'IDEA' | 'EXISTING_PROMPT';
+  interviewMode: 'QUICK' | 'STANDARD' | 'DEEP';
   draft: string;
   sourcePrompt: string;
 };
@@ -26,6 +27,9 @@ export const ComposerStart: React.FC<{
 }> = ({ sessions, busy, error, onCreate, onResumeSession }) => {
   const { t } = useTranslation();
   const [inputMode, setInputMode] = useState<'IDEA' | 'EXISTING_PROMPT'>('IDEA');
+  const [interviewMode, setInterviewMode] = useState<'QUICK' | 'STANDARD' | 'DEEP'>(
+    'STANDARD',
+  );
   const [draft, setDraft] = useState('');
   const [sourcePrompt, setSourcePrompt] = useState('');
 
@@ -102,12 +106,43 @@ export const ComposerStart: React.FC<{
             disabled={busy}
           />
         )}
+        <div className={styles.flexRowWrapGap8}>
+          <small className={styles.mutedLabel}>
+            {t('work.composer.interviewDepth', 'Interview depth')}
+          </small>
+          <Select
+            value={interviewMode}
+            onChange={(value) =>
+              setInterviewMode(value as 'QUICK' | 'STANDARD' | 'DEEP')
+            }
+            options={[
+              {
+                value: 'QUICK',
+                label: t('work.composer.interviewQuick', 'Quick — fewer questions'),
+              },
+              {
+                value: 'STANDARD',
+                label: t('work.composer.interviewStandard', 'Standard — adaptive'),
+              },
+              {
+                value: 'DEEP',
+                label: t('work.composer.interviewDeep', 'Deep — challenge assumptions'),
+              },
+            ]}
+            disabled={busy}
+          />
+        </div>
         <div className={styles.flexRowEnd}>
           <Button
             tone="brand"
             disabled={disabled}
             onClick={() =>
-              onCreate({ mode: inputMode, draft: draft.trim(), sourcePrompt: sourcePrompt.trim() })
+              onCreate({
+                mode: inputMode,
+                interviewMode,
+                draft: draft.trim(),
+                sourcePrompt: sourcePrompt.trim(),
+              })
             }
           >
             <MessageCircle size={14} />{' '}

@@ -23,7 +23,29 @@ func (s *ComposerApplicationService) Create(ctx context.Context, projectID, goal
 }
 
 func (s *ComposerApplicationService) CreateWithProgress(ctx context.Context, projectID, goal, sourcePrompt, inputMode string, sink ComposerProgressSink) (*ComposerSessionView, error) {
-	view, err := s.nexus.CreateComposerSessionWithPromptProgress(ctx, projectID, goal, sourcePrompt, sink)
+	return s.CreateWithInterviewModeProgress(ctx, projectID, goal, sourcePrompt, inputMode, string(ComposerInterviewStandard), sink)
+}
+
+func (s *ComposerApplicationService) CreateWithInterviewMode(
+	ctx context.Context,
+	projectID, goal, sourcePrompt, inputMode, interviewMode string,
+) (*ComposerSessionView, error) {
+	return s.CreateWithInterviewModeProgress(ctx, projectID, goal, sourcePrompt, inputMode, interviewMode, nil)
+}
+
+func (s *ComposerApplicationService) CreateWithInterviewModeProgress(
+	ctx context.Context,
+	projectID, goal, sourcePrompt, inputMode, interviewMode string,
+	sink ComposerProgressSink,
+) (*ComposerSessionView, error) {
+	view, err := s.nexus.CreateComposerSessionWithPromptInterviewModeProgress(
+		ctx,
+		projectID,
+		goal,
+		sourcePrompt,
+		ComposerInterviewMode(interviewMode),
+		sink,
+	)
 	if err != nil {
 		return nil, err
 	}

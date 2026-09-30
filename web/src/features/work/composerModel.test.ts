@@ -8,6 +8,8 @@ import {
   composerGateForReadiness,
   composerNeedsGapConfirmation,
   composerReadinessDisplay,
+  selectComposerNextUnknown,
+  openComposerUnknowns,
   formatComposerRelativeTime,
   formatComposerSessionTitle,
 } from './composerModel';
@@ -225,5 +227,62 @@ describe('composer context manifest projection', () => {
     expect(composerContextItems(view, 'REFERENCE_ONLY').map((item) => item.id)).toEqual(['ref']);
     expect(composerContextItems(view, 'DROP').map((item) => item.id)).toEqual(['drop']);
     expect(composerContextBudgetPercent(view)).toBe(40);
+  });
+});
+
+describe('Composer Interview Engine question selection', () => {
+  it('does not re-ask inferred repository or memory facts', () => {
+    const view = {
+      brief: {
+        goal: 'Improve routing',
+        unknowns: [
+          {
+            id: 'stack',
+            question: 'Which stack?',
+            severity: 'RECOMMENDED',
+            status: 'INFERRED',
+            source: 'PROJECT_CONTEXT',
+            priority_score: 99,
+          },
+          {
+            id: 'acceptance',
+            question: 'What proves success?',
+            severity: 'RECOMMENDED',
+            status: 'OPEN',
+            source: 'INTERVIEW',
+            priority_score: 70,
+          },
+        ],
+      },
+    } as unknown as ComposerSessionView;
+
+    expect(openComposerUnknowns(view).map((item) => item.id)).toEqual(['acceptance']);
+    expect(selectComposerNextUnknown(view)?.id).toBe('acceptance');
+  });
+
+  it('prefers expected information gain over checklist order', () => {
+    const view = {
+      brief: {
+        goal: 'Improve routing',
+        unknowns: [
+          {
+            id: 'scope',
+            question: 'Scope?',
+            severity: 'RECOMMENDED',
+            status: 'OPEN',
+            priority_score: 45,
+          },
+          {
+            id: 'acceptance',
+            question: 'Success?',
+            severity: 'RECOMMENDED',
+            status: 'OPEN',
+            priority_score: 88,
+          },
+        ],
+      },
+    } as unknown as ComposerSessionView;
+
+    expect(selectComposerNextUnknown(view)?.id).toBe('acceptance');
   });
 });
