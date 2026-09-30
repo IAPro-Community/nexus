@@ -21,32 +21,40 @@ func TestProviderLaunchFlagsAreNexusOwned(t *testing.T) {
 	}
 }
 
-func TestWantInteractiveLeadDefaultFalse(t *testing.T) {
-	if wantInteractiveLead(nil) {
-		t.Fatal("default supervised shortcut must remain provider-native and byte-transparent")
+func TestWantInteractiveLeadDefaultsToStickyForTTY(t *testing.T) {
+	r := NewLaunchModeResolver(LaunchModeInput{StdinIsTTY: true, Provider: "codex"})
+	if !r.WantInteractiveLead() {
+		t.Fatal("interactive supervised TTY must bind STICKY_LEAD by default")
 	}
-	if wantInteractiveLead([]string{"--yolo", "--model", "gpt-5"}) {
-		t.Fatal("provider flags must not implicitly enable an Interactive Lead")
+	if r.RequireInteractiveLead() {
+		t.Fatal("implicit STICKY_LEAD must be best-effort, not required")
 	}
 }
 
-func TestWantInteractiveLeadExplicitOptIn(t *testing.T) {
-	if !wantInteractiveLead([]string{"--lead"}) {
-		t.Fatal("explicit --lead must opt in to Interactive Lead")
+func TestWantInteractiveLeadControls(t *testing.T) {
+	explicit := NewLaunchModeResolver(LaunchModeInput{Args: []string{"--lead"}, StdinIsTTY: true})
+	if !explicit.WantInteractiveLead() || !explicit.RequireInteractiveLead() {
+		t.Fatal("explicit --lead must enable and require persistent Lead identity")
 	}
-	if !wantInteractiveLead([]string{"--yolo", "--LEAD", "--model", "x"}) {
-		t.Fatal("expected case-insensitive --lead")
+
+	disabled := NewLaunchModeResolver(LaunchModeInput{Args: []string{"--no-lead"}, StdinIsTTY: true})
+	if disabled.WantInteractiveLead() || disabled.RequireInteractiveLead() {
+		t.Fatal("--no-lead must disable STICKY_LEAD")
 	}
-	if wantInteractiveLead([]string{"--lead", "--no-lead"}) {
-		t.Fatal("--no-lead must win when both compatibility flags are present")
+
+	both := NewLaunchModeResolver(LaunchModeInput{Args: []string{"--lead", "--no-lead"}, StdinIsTTY: true})
+	if both.WantInteractiveLead() || both.RequireInteractiveLead() {
+		t.Fatal("--no-lead must win over --lead")
 	}
-	if wantInteractiveLead([]string{"--no-lead"}) {
-		t.Fatal("expected --no-lead to keep provider-native behavior")
+
+	headless := NewLaunchModeResolver(LaunchModeInput{StdinIsTTY: false})
+	if headless.WantInteractiveLead() {
+		t.Fatal("non-TTY supervised launches must not gain an implicit Lead")
 	}
 }
 
 func TestSupervisedRuntimeLabelsDoNotAuthorizeMissionPromotion(t *testing.T) {
-	withoutLead := supervisedRuntimeLabels(false)
+	withoutLead := supervisedRuntimeLabels()
 	if got := withoutLead["nexus.delegation_mode"]; got != string(nexus.DelegationOff) {
 		t.Fatalf("delegation mode without Lead = %q, want %q", got, nexus.DelegationOff)
 	}
@@ -54,12 +62,10 @@ func TestSupervisedRuntimeLabelsDoNotAuthorizeMissionPromotion(t *testing.T) {
 		t.Fatalf("interactive Lead without opt-in = %q, want false", got)
 	}
 
-	withLead := supervisedRuntimeLabels(true)
-	if got := withLead["nexus.interactive_lead"]; got != "true" {
-		t.Fatalf("interactive Lead opt-in = %q, want true", got)
-	}
-	if got := withLead["nexus.delegation_mode"]; got != string(nexus.DelegationOff) {
-		t.Fatalf("binding a Lead must not imply Mission promotion: got %q, want %q", got, nexus.DelegationOff)
+	// Lead=true is persisted only by UpdateInteractiveLeadBinding after the
+	// binding succeeds; launch labels intentionally start false.
+	if got := withoutLead["nexus.delegation_mode"]; got != string(nexus.DelegationOff) {
+		t.Fatalf("sticky Lead launch must keep delegation OFF: got %q", got)
 	}
 }
 
@@ -68,8 +74,8 @@ func TestStripControlFlagsRemovesLeadControls(t *testing.T) {
 		Args:       []string{"--lead", "--yolo", "--model", "test"},
 		StdinIsTTY: true,
 	})
-	if !r.WantInteractiveLead() {
-		t.Fatal("WantInteractiveLead must see --lead before strip")
+	if !r.WantInteractiveLead() || !r.RequireInteractiveLead() {
+		t.Fatal("explicit --lead must be required before strip")
 	}
 	got := r.StripControlFlags()
 	for _, arg := range got {
