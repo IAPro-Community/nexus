@@ -182,3 +182,50 @@ func TestSchedulerRejectsUnknownQuota(t *testing.T) {
 		t.Fatalf("unknown quota must not be selected automatically, got %q", decision.Selected.ID)
 	}
 }
+
+
+func TestSchedulerAllowsUnsupportedQuotaAsOpaqueResource(t *testing.T) {
+	accounts := []ProviderAccount{
+		{
+			ID:            "opencode:default",
+			Provider:      "opencode",
+			Profile:       "default",
+			Authenticated: true,
+			Available:     false,
+			Health:        "healthy",
+			QuotaView: &quota.QuotaView{
+				Status:       "UNSUPPORTED",
+				Available:    false,
+				AvailReasons: quota.AvailReasons{UnknownQuota: true},
+			},
+			AvailReasons: &quota.AvailReasons{UnknownQuota: true},
+		},
+	}
+	decision := NewResourceScheduler(accounts, PolicyBalanced).Select("", "", "", nil)
+	if decision.Selected.ID != "opencode:default" {
+		t.Fatalf("opaque quota resource must remain operationally eligible, got %q", decision.Selected.ID)
+	}
+}
+
+func TestSchedulerStillRejectsUnknownQuota(t *testing.T) {
+	accounts := []ProviderAccount{
+		{
+			ID:            "unknown",
+			Provider:      "codex",
+			Profile:       "default",
+			Authenticated: true,
+			Available:     false,
+			Health:        "healthy",
+			QuotaView: &quota.QuotaView{
+				Status:       "UNKNOWN",
+				Available:    false,
+				AvailReasons: quota.AvailReasons{UnknownQuota: true},
+			},
+			AvailReasons: &quota.AvailReasons{UnknownQuota: true},
+		},
+	}
+	decision := NewResourceScheduler(accounts, PolicyBalanced).Select("", "", "", nil)
+	if decision.Selected.ID != "" {
+		t.Fatalf("UNKNOWN quota must remain fail-closed, got %q", decision.Selected.ID)
+	}
+}
