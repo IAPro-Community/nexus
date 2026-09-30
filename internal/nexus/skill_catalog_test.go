@@ -113,7 +113,7 @@ func TestAutomaticSkillResolutionIsBoundedAndDeterministic(t *testing.T) {
 	}
 }
 
-func TestAutomaticSkillResolutionPrefersRegisteredSpecialistsWithoutDuplicateBuiltin(t *testing.T) {
+func TestAutomaticSkillResolutionAddsRegisteredSpecialistWithoutDuplicatingSemanticFamily(t *testing.T) {
 	n := openTestNexus(t)
 	n.maestroStatus = func() MaestroStatus {
 		return MaestroStatus{
@@ -144,13 +144,12 @@ func TestAutomaticSkillResolutionPrefersRegisteredSpecialistsWithoutDuplicateBui
 			if item == id {
 				return true
 			}
-		}
 		return false
 	}
-	if !has("code-review") || !has("skill-quality-gate") || !has("verification") {
-		t.Fatalf("registered specialist resolution incomplete: %v", got)
+	if !has("review") || !has("verification") || !has("skill-quality-gate") {
+		t.Fatalf("automatic specialist resolution incomplete: %v", got)
 	}
-	if has("review") {
-		t.Fatalf("builtin review must not duplicate registered code-review in bounded context: %v", got)
+	if has("code-review") {
+		t.Fatalf("generic and specialized review skills must not duplicate the same semantic family: %v", got)
 	}
 }
