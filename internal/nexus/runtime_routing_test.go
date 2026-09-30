@@ -279,7 +279,7 @@ func TestMissionAllocatePinFailsClosedAfterRateLimit(t *testing.T) {
 		RetryFrom:       runner.StateAllocating,
 		ErrorMessage:    "provider returned 429 rate limit",
 	}
-	_, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{Provider: "codex", Profile: "main"}, AffinityPin, true)
+	_, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{Provider: "codex", Profile: "main"}, AffinityPin, true, TaskRequirements{}, PolicyManual)
 	if !errors.Is(err, ErrBlockedResource) {
 		t.Fatalf("PIN failover must fail closed, got %v", err)
 	}
@@ -300,7 +300,7 @@ func TestMissionAllocatePreferMayOpenPoolAfterRateLimit(t *testing.T) {
 		RetryFrom:       runner.StateAllocating,
 		ErrorMessage:    "quota exhausted",
 	}
-	candidates, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{Provider: "codex", Profile: "main"}, AffinityPrefer, true)
+	candidates, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{Provider: "codex", Profile: "main"}, AffinityPrefer, true, TaskRequirements{}, PolicyPreferProvider)
 	if err != nil {
 		t.Fatal(err)
 	}
