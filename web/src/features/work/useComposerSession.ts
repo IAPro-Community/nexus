@@ -162,7 +162,7 @@ export function useComposerSession(project: Project) {
       setArtifact(latestComposerArtifact(loaded));
     });
 
-  const create = ({ mode, draft, sourcePrompt }: ComposerStartCreateArgs) =>
+  const create = ({ mode, interviewMode, draft, sourcePrompt }: ComposerStartCreateArgs) =>
     runBusy(
       async () => {
         if (!draft.trim()) return;
@@ -181,6 +181,7 @@ export function useComposerSession(project: Project) {
             {
               goal: draft.trim(),
               input_mode: mode,
+              interview_mode: interviewMode,
               source_prompt: mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : '',
             },
             {
@@ -214,6 +215,7 @@ export function useComposerSession(project: Project) {
               draft.trim(),
               mode,
               mode === 'EXISTING_PROMPT' ? sourcePrompt.trim() : undefined,
+              interviewMode,
               controller.signal,
             );
             setView(next);
