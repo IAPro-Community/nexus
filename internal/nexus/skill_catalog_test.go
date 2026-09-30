@@ -78,3 +78,81 @@ func TestMaestroSkillSourceIsOptionalAndGeneric(t *testing.T) {
 		t.Fatalf("Maestro-specific type leaked or contract lost: %+v", items[0])
 	}
 }
+
+
+func TestAutomaticSkillResolutionUsesKnownCatalogOnly(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus { return MaestroStatus{Available: false, Mode: MaestroOff} }
+
+	got, err := n.ResolveAutomaticSkillIDs(context.Background(), "", "estou fazendo review e quero validar as skills")
+	if err != nil {
+		t.Fatalf("automatic skill resolution: %v", err)
+	}
+	if len(got) != 2 || got[0] != "review" || got[1] != "verification" {
+		t.Fatalf("automatic skills=%v, want [review verification]", got)
+	}
+}
+
+func TestAutomaticSkillResolutionIsBoundedAndDeterministic(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus { return MaestroStatus{Available: false, Mode: MaestroOff} }
+
+	got, err := n.ResolveAutomaticSkillIDs(context.Background(), "", "refatore frontend backend com testes, validação, segurança e arquitetura")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) > maxAutomaticSkills {
+		t.Fatalf("automatic skill set must stay bounded, got %v", got)
+	}
+	if len(got) == 0 {
+		t.Fatal("expected at least one known automatic skill")
+	}
+	for _, id := range got {
+		if _, err := validateGenericSkillIDs(n, "", []string{id}); err != nil {
+			t.Fatalf("automatic resolver selected unknown skill %q: %v", id, err)
+		}
+	}
+}
+
+
+func TestAutomaticSkillResolutionPrefersRegisteredSpecialistsWithoutDuplicateBuiltin(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus {
+		return MaestroStatus{
+			Available: true,
+			Mode:      MaestroAssist,
+			Capabilities: &MaestroCapability{Version: "1.0.0", Skills: []MaestroSkillDesc{
+				{
+					ID:          "code-review",
+					Name:        "Code Review",
+					Description: "Run a comprehensive code review.",
+				},
+				{
+					ID:          "skill-quality-gate",
+					Name:        "Quality Gate",
+					Description: "Avalia skills, plugins e MCPs antes da adoção.",
+					Triggers:    []string{"quality gate", "skill gate", "avaliar skill", "auditar plugin"},
+				},
+			}},
+		}
+	}
+
+	got, err := n.ResolveAutomaticSkillIDs(context.Background(), "", "estou fazendo review e quero validar as skills")
+	if err != nil {
+		t.Fatal(err)
+	}
+	has := func(id string) bool {
+		for _, item := range got {
+			if item == id {
+				return true
+			}
+		}
+		return false
+	}
+	if !has("code-review") || !has("skill-quality-gate") || !has("verification") {
+		t.Fatalf("registered specialist resolution incomplete: %v", got)
+	}
+	if has("review") {
+		t.Fatalf("builtin review must not duplicate registered code-review in bounded context: %v", got)
+	}
+}
