@@ -153,7 +153,8 @@ func (s *ResourceScheduler) Select(
 }
 
 // filterEligible returns accounts that pass the shared quota.EvaluateEligibility
-// gate (auth, network, health, cooldown, rate-limit, UNKNOWN, exhausted).
+// gate. Auth/network/health/cooldown/rate-limit/exhaustion and UNKNOWN remain
+// hard failures; UNSUPPORTED quota stays eligible as opaque capacity.
 func (s *ResourceScheduler) filterEligible() []ProviderAccount {
 	var out []ProviderAccount
 	for _, acc := range s.accounts {
