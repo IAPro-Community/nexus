@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileText, Lightbulb, MessageCircle, Sparkles } from 'lucide-react';
 import { Button, Card, Input, Select } from '../../design-system';
@@ -28,6 +28,7 @@ export const ComposerStart: React.FC<{
   const { t } = useTranslation();
   const [inputMode, setInputMode] = useState<'IDEA' | 'EXISTING_PROMPT'>('IDEA');
   const [interviewMode, setInterviewMode] = useState<'QUICK' | 'STANDARD' | 'DEEP'>('STANDARD');
+  const interviewDepthId = useId();
   const [draft, setDraft] = useState('');
   const [sourcePrompt, setSourcePrompt] = useState('');
 
@@ -105,10 +106,11 @@ export const ComposerStart: React.FC<{
           />
         )}
         <div className={styles.flexRowWrapGap8}>
-          <small className={styles.mutedLabel}>
+          <label htmlFor={interviewDepthId} className={styles.mutedLabel}>
             {t('work.composer.interviewDepth', 'Interview depth')}
-          </small>
+          </label>
           <Select
+            id={interviewDepthId}
             value={interviewMode}
             onChange={(value) => setInterviewMode(value as 'QUICK' | 'STANDARD' | 'DEEP')}
             options={[
