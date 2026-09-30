@@ -42,9 +42,9 @@ func IsSingleTurnDelegateIntent(req TaskRequirements) bool {
 
 // ExecuteSingleTurnDelegate performs exactly one headless, read-only delegated
 // turn through the canonical registered-resource scheduler. It creates no
-// WorkPlan and no MissionRun. The specialist executes in a Nexus-managed
-// worktree, and the caller is responsible for returning the textual result to
-// the interactive Lead.
+// WorkPlan and no MissionRun. The specialist executes against the project checkout only after the provider's
+// verified read-only review contract passes; no write-capable delegated path is
+// allowed here. The caller returns the textual result to the interactive Lead.
 func (n *Nexus) ExecuteSingleTurnDelegate(ctx context.Context, projectID, prompt, preferredProvider string) (*SingleTurnDelegateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -74,10 +74,27 @@ func (n *Nexus) ExecuteSingleTurnDelegate(ctx context.Context, projectID, prompt
 	if err != nil {
 		return nil, fmt.Errorf("resolve delegated skills: %w", err)
 	}
+	compiled, err := n.CompileAgentPromptForProject(projectID, prompt, skills)
+	if err != nil {
+		return nil, fmt.Errorf("compile delegated skill contracts: %w", err)
+	}
+	delegatedPrompt := compiled.CompiledPrompt
 
 	accounts, err := n.ListResourcesContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list delegated resources: %w", err)
+	}
+	if preferredProvider != "" {
+		registered := false
+		for _, account := range accounts {
+			if strings.EqualFold(strings.TrimSpace(account.Provider), preferredProvider) {
+				registered = true
+				break
+			}
+		}
+		if !registered {
+			return nil, fmt.Errorf("preferred provider %q is not registered in Nexus resources", preferredProvider)
+		}
 	}
 	contract := runner.DefaultAutonomyContract()
 	resourceReq := req
@@ -135,6 +152,11 @@ func (n *Nexus) ExecuteSingleTurnDelegate(ctx context.Context, projectID, prompt
 	if err != nil {
 		return nil, fmt.Errorf("create delegated specialist: %w", err)
 	}
+	// DELEGATE is intentionally ephemeral. Keep audit/cost evidence from the
+	// invocation, but do not accumulate a persistent Agent for every one-turn
+	// consultation.
+	defer func() { _ = n.DeleteAgent(agent.ID, projectID) }()
+
 	cfg, err := currentAgentConfig(st, agent)
 	if err != nil {
 		return nil, err
@@ -142,12 +164,12 @@ func (n *Nexus) ExecuteSingleTurnDelegate(ctx context.Context, projectID, prompt
 	cfg.Provider = selected.Provider
 	cfg.Profile = selected.Profile
 	cfg.Model = ""
-	cfg.Isolation = "worktree"
+	cfg.Isolation = "project"
 	if _, err := n.SafeApply(ctx, agent.ID, cfg); err != nil {
 		return nil, fmt.Errorf("configure delegated specialist: %w", err)
 	}
 
-	execution, err := n.executeAgentPrompt(ctx, agent.ID, "", prompt, agentPromptPolicy{Contract: contract, Review: true})
+	execution, err := n.executeAgentPrompt(ctx, agent.ID, "", delegatedPrompt, agentPromptPolicy{Contract: contract, Review: true})
 	if err != nil {
 		return nil, fmt.Errorf("execute delegated turn: %w", err)
 	}
