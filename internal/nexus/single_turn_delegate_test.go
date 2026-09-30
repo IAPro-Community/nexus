@@ -16,11 +16,17 @@ func TestIsSingleTurnDelegateIntentAllowsBoundedAnalysisOnly(t *testing.T) {
 	}
 }
 
-func TestIsSingleTurnDelegateIntentRejectsWritesAndDecomposition(t *testing.T) {
-	if IsSingleTurnDelegateIntent(TaskRequirements{TaskKind: "coding"}) {
+func TestIsSingleTurnDelegateRequestRejectsWritesAndDecomposition(t *testing.T) {
+	if IsSingleTurnDelegateRequest("corrija o código", TaskRequirements{TaskKind: "coding"}) {
 		t.Fatal("coding must stay on Direct/Mission path, not silent delegated writer")
 	}
-	if IsSingleTurnDelegateIntent(TaskRequirements{TaskKind: "review", RequiresDecomposition: true}) {
+	if IsSingleTurnDelegateRequest("revise backend e frontend em paralelo", TaskRequirements{TaskKind: "review", RequiresDecomposition: true}) {
 		t.Fatal("decomposed review must use Mission")
+	}
+	if IsSingleTurnDelegateRequest("use codex para refatorar a arquitetura", TaskRequirements{TaskKind: "architecture"}) {
+		t.Fatal("write language must force the controlled Mission path even for an analysis-class task")
+	}
+	if IsSingleTurnDelegateRequest("use codex para atualizar o README", TaskRequirements{TaskKind: "documentation"}) {
+		t.Fatal("documentation changes must not become a read-only delegated turn")
 	}
 }
