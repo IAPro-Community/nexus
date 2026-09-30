@@ -28,6 +28,10 @@ func TestResolveRegisteredProviderPreferenceUsesOnlyProfileRegistry(t *testing.T
 		t.Fatalf("registered codex request = %q, %t; want codex,true", provider, ok)
 	}
 
+	if provider, ok, err = n.ResolveRegisteredProviderPreference("a documentação do Codex diz isso"); err != nil || ok || provider != "" {
+		t.Fatalf("incidental provider mention must not become routing authority: provider=%q ok=%t err=%v", provider, ok, err)
+	}
+
 	if provider, ok, err = n.ResolveRegisteredProviderPreference("chame o grok para validar"); err != nil || ok || provider != "" {
 		t.Fatalf("unregistered provider must not become a routing candidate: provider=%q ok=%t err=%v", provider, ok, err)
 	}
@@ -48,7 +52,7 @@ func TestResolveRegisteredProviderPreferenceSupportsNormalizedSpelling(t *testin
 	}
 }
 
-func TestApplyRegisteredProviderPreferenceToFlowUsesPreferNotPin(t *testing.T) {
+func TestApplyRegisteredProviderPreferenceToFlowPinsExplicitProvider(t *testing.T) {
 	flow := FlowDefinition{Steps: []FlowStep{{
 		ID:                 "step-1",
 		TaskRequirements:   taskRequirementsJSON("revise o código", "reviewer"),
@@ -59,11 +63,11 @@ func TestApplyRegisteredProviderPreferenceToFlowUsesPreferNotPin(t *testing.T) {
 	if step.DesiredProvider != "codex" {
 		t.Fatalf("desired provider=%q want codex", step.DesiredProvider)
 	}
-	if step.ResourcePolicy != string(PolicyPreferProvider) {
-		t.Fatalf("resource policy=%q want %q", step.ResourcePolicy, PolicyPreferProvider)
+	if step.ResourcePolicy != string(PolicyManual) {
+		t.Fatalf("resource policy=%q want %q", step.ResourcePolicy, PolicyManual)
 	}
 	if step.Provider != "" || step.Profile != "" {
-		t.Fatalf("registered provider preference must not hard-pin the execution resource: %+v", step)
+		t.Fatalf("provider PIN should leave profile/account selection to the scheduler: %+v", step)
 	}
 	var req TaskRequirements
 	if err := json.Unmarshal([]byte(step.TaskRequirements), &req); err != nil {
