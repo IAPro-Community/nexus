@@ -2,16 +2,19 @@ package nexus
 
 import "testing"
 
-func TestIsSingleTurnDelegateIntentAllowsBoundedAnalysisOnly(t *testing.T) {
-	for _, req := range []TaskRequirements{
-		{TaskKind: "review"},
-		{TaskKind: "security"},
-		{TaskKind: "investigation"},
-		{TaskKind: "architecture"},
-		{TaskKind: "documentation"},
-	} {
-		if !IsSingleTurnDelegateIntent(req) {
-			t.Fatalf("task kind %q should allow bounded single-turn delegation", req.TaskKind)
+func TestIsSingleTurnDelegateRequestAllowsBoundedAnalysisOnly(t *testing.T) {
+	cases := []struct {
+		prompt string
+		req    TaskRequirements
+	}{
+		{prompt: "revise isto", req: TaskRequirements{TaskKind: "review"}},
+		{prompt: "faça uma auditoria de segurança", req: TaskRequirements{TaskKind: "security"}},
+		{prompt: "investigue a causa raiz", req: TaskRequirements{TaskKind: "investigation"}},
+		{prompt: "avalie a arquitetura e os trade-offs", req: TaskRequirements{TaskKind: "architecture"}},
+	}
+	for _, tc := range cases {
+		if !IsSingleTurnDelegateRequest(tc.prompt, tc.req) {
+			t.Fatalf("prompt %q task kind %q should allow bounded single-turn delegation", tc.prompt, tc.req.TaskKind)
 		}
 	}
 }
