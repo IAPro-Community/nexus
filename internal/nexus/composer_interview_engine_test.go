@@ -68,3 +68,28 @@ func TestComposerInterviewQuestionBudgetKeepsBlockingEscapeHatch(t *testing.T) {
 	next, ok := selectComposerNextUnknownForBrief(brief)
 	if !ok || next.ID != "blocking" { t.Fatalf("question budget must suppress optional interview but keep blocking gap: %+v ok=%v", next, ok) }
 }
+
+func TestComposerInterviewModeIsAppliedBeforeInitialRefresh(t *testing.T) {
+	brief := newComposerBriefWithInterviewMode(
+		"Choose the best provider automatically",
+		"Use automatic fallback with tests and verification.",
+		ComposerInterviewQuick,
+	)
+	if brief.Interview.Mode != ComposerInterviewQuick {
+		t.Fatalf("mode = %s, want QUICK", brief.Interview.Mode)
+	}
+	for _, unknown := range brief.Unknowns {
+		if unknown.Field == "interview.challenge" {
+			t.Fatalf("QUICK mode must not inherit a STANDARD pressure pass: %+v", unknown)
+		}
+	}
+}
+
+func TestComposerInterviewRefreshPreservesRealRoundCount(t *testing.T) {
+	brief := newComposerBrief("Improve provider routing", "")
+	brief.Interview.QuestionsAnswered = 3
+	refreshComposerBrief(&brief)
+	if brief.Interview.QuestionsAnswered != 3 {
+		t.Fatalf("questions answered = %d, want 3", brief.Interview.QuestionsAnswered)
+	}
+}
