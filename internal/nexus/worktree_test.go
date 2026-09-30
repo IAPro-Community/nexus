@@ -200,3 +200,82 @@ func TestEnsureAgentWorktreeRejectsSymlinkRedirect(t *testing.T) {
 		t.Fatalf("managed worktree symlink redirect must fail closed, got %v", err)
 	}
 }
+
+
+func TestRemoveAgentWorktreeCleansManagedWorktreeAndBranch(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git unavailable")
+	}
+	repo := t.TempDir()
+	run := func(args ...string) {
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=Test", "GIT_AUTHOR_EMAIL=test@example.com", "GIT_COMMITTER_NAME=Test", "GIT_COMMITTER_EMAIL=test@example.com")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+	run("init")
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run("add", "README.md")
+	run("commit", "-m", "init")
+
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	project := store.Project{ID: "project-cleanup", CanonicalPath: repo, DefaultIsolation: "worktree"}
+	agent := store.Agent{ID: "delegate-agent", ProjectID: project.ID}
+	workspace, err := ensureAgentWorktree(context.Background(), project, agent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := removeAgentWorktree(context.Background(), project, agent, workspace); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(workspace); !os.IsNotExist(err) {
+		t.Fatalf("ephemeral worktree must be removed, stat err=%v", err)
+	}
+	if err := exec.Command("git", "-C", repo, "show-ref", "--verify", "--quiet", "refs/heads/"+agentWorktreeBranch(agent.ID)).Run(); err == nil {
+		t.Fatalf("ephemeral worktree branch %q must be removed", agentWorktreeBranch(agent.ID))
+	}
+}
+
+func TestRemoveAgentWorktreeRefusesOutsideManagedRoot(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git unavailable")
+	}
+	repo := t.TempDir()
+	run := func(args ...string) {
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=Test", "GIT_AUTHOR_EMAIL=test@example.com", "GIT_COMMITTER_NAME=Test", "GIT_COMMITTER_EMAIL=test@example.com")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+	run("init")
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run("add", "README.md")
+	run("commit", "-m", "init")
+
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	project := store.Project{ID: "project-boundary", CanonicalPath: repo, DefaultIsolation: "worktree"}
+	agent := store.Agent{ID: "delegate-agent", ProjectID: project.ID}
+	managed, err := ensureAgentWorktree(context.Background(), project, agent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = removeAgentWorktree(context.Background(), project, agent, managed) }()
+
+	outside := t.TempDir()
+	sentinel := filepath.Join(outside, "keep.txt")
+	if err := os.WriteFile(sentinel, []byte("keep"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := removeAgentWorktree(context.Background(), project, agent, outside); err == nil || !strings.Contains(err.Error(), "outside Nexus managed project root") {
+		t.Fatalf("outside cleanup must fail closed, got %v", err)
+	}
+	if _, err := os.Stat(sentinel); err != nil {
+		t.Fatalf("outside path was touched: %v", err)
+	}
+}
