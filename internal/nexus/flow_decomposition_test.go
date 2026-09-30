@@ -7,6 +7,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 func TestDecomposePromptIntoFlowProposal_SimpleTask(t *testing.T) {
@@ -183,5 +184,44 @@ func TestPreflightFlow_RejectsCyclicDAG(t *testing.T) {
 	_, err = n.StartMissionRun(context.Background(), plan.ID, "", runner.AutonomyContract{}, false)
 	if err == nil {
 		t.Fatalf("expected StartMissionRun to fail closed on cyclic DAG, but it succeeded")
+	}
+}
+
+
+func TestDecomposePromptPropagatesRegisteredProviderAndAutomaticSkills(t *testing.T) {
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	n := openTestNexus(t)
+	if _, err := profile.Create("codex", "review"); err != nil {
+		t.Fatal(err)
+	}
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "RegisteredRouting", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	proposal, err := n.DecomposePromptIntoFlowProposal(context.Background(), FlowDecompositionRequest{
+		ProjectID: project.ID,
+		Goal:      "chame o codex para revisar e validar as skills",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(proposal.Flow.Steps) == 0 {
+		t.Fatal("expected executable Flow step")
+	}
+	step := proposal.Flow.Steps[0]
+	if step.DesiredProvider != "codex" {
+		t.Fatalf("desired provider=%q want codex", step.DesiredProvider)
+	}
+	if step.ResourcePolicy != string(PolicyPreferProvider) {
+		t.Fatalf("resource policy=%q want %q", step.ResourcePolicy, PolicyPreferProvider)
+	}
+	if len(step.SkillIDs) == 0 {
+		t.Fatal("automatic skills must be propagated into Flow")
 	}
 }
