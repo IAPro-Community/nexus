@@ -15,15 +15,15 @@ import (
 
 // CoreConfig encapsulates runtime options for the reusable Nexus Core.
 type CoreConfig struct {
-	Host       string
-	Port       int
-	NoOpen     bool
-	Remote     bool
+	Host   string
+	Port   int
+	NoOpen bool
+	Remote bool
 	// DisableHostsFile prevents embedded/native surfaces from requiring
 	// administrator privileges just to register the optional nexus.dev alias.
 	DisableHostsFile bool
-	Language   string
-	TunnelHost string // Cloudflare Quick Tunnel public hostname
+	Language         string
+	TunnelHost       string // Cloudflare Quick Tunnel public hostname
 }
 
 // Core encapsulates the entire Nexus backend and control server lifecycle.
@@ -64,9 +64,9 @@ func (c *Core) Start(ctx context.Context) error {
 	nexus.Default().StartCapacityMonitor(ctx)
 	c.mu.Lock()
 	srv, err := web.NewServer(web.ServerOptions{
-		Host:       c.cfg.Host,
-		Port:       c.cfg.Port,
-		NoOpen:     c.cfg.NoOpen,
+		Host:             c.cfg.Host,
+		Port:             c.cfg.Port,
+		NoOpen:           c.cfg.NoOpen,
 		Remote:           c.cfg.Remote,
 		DisableHostsFile: c.cfg.DisableHostsFile,
 		TunnelHost:       c.cfg.TunnelHost,
