@@ -28,8 +28,9 @@ type ServerOptions struct {
 	Host       string
 	Port       int
 	NoOpen     bool
-	Remote     bool
-	TunnelHost string // public hostname of Cloudflare Quick Tunnel (e.g., xxx.trycloudflare.com)
+	Remote           bool
+	DisableHostsFile bool   // embedded native surfaces must not require administrator access
+	TunnelHost       string // public hostname of Cloudflare Quick Tunnel (e.g., xxx.trycloudflare.com)
 }
 
 type Server struct {
@@ -178,7 +179,7 @@ func NewServer(opts ServerOptions) (*Server, error) {
 	// explicitly disabled. CI/test runners and locked-down enterprise hosts may
 	// not have permission to mutate the system hosts file; that optional
 	// convenience must not affect server correctness.
-	if os.Getenv("NEXUS_DISABLE_HOSTS_FILE") != "1" {
+	if !opts.DisableHostsFile && os.Getenv("NEXUS_DISABLE_HOSTS_FILE") != "1" {
 		if err := EnsureNexusHostsEntry(); err != nil {
 			fmt.Fprintf(os.Stderr, "nexus web: could not register nexus.dev in /etc/hosts: %v\n", err)
 		} else {
