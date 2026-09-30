@@ -28,6 +28,10 @@ func TestResolveRegisteredProviderPreferenceUsesOnlyProfileRegistry(t *testing.T
 		t.Fatalf("registered codex request = %q, %t; want codex,true", provider, ok)
 	}
 
+	if provider, ok, err = n.ResolveRegisteredProviderPreference("peça ao Codex para revisar isso"); err != nil || !ok || provider != "codex" {
+		t.Fatalf("localized explicit provider request = %q, %t, err=%v; want codex,true", provider, ok, err)
+	}
+
 	if provider, ok, err = n.ResolveRegisteredProviderPreference("a documentação do Codex diz isso"); err != nil || ok || provider != "" {
 		t.Fatalf("incidental provider mention must not become routing authority: provider=%q ok=%t err=%v", provider, ok, err)
 	}
