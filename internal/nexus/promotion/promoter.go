@@ -129,7 +129,7 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		!explicitRequest &&
 		!delegation.Delegate &&
 		!intent.TaskRequirements.RequiresDecomposition &&
-		nexus.IsSingleTurnDelegateIntent(intent.TaskRequirements) {
+		nexus.IsSingleTurnDelegateRequest(line, intent.TaskRequirements) {
 		result.Action = Delegate
 		result.Reason = "user requested bounded delegated turn on registered provider " + intent.TaskRequirements.PreferProvider
 		return result, nil
