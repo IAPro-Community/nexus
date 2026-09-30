@@ -76,10 +76,10 @@ func TestApplyRegisteredProviderPreferenceToFlowUsesPreferNotPin(t *testing.T) {
 
 func TestApplyRegisteredProviderPreferenceDoesNotOverwriteExplicitResource(t *testing.T) {
 	flow := FlowDefinition{Steps: []FlowStep{{
-		ID:              "step-1",
-		Provider:        "claude",
-		Profile:         "review",
-		ResourcePolicy:  string(PolicyManual),
+		ID:               "step-1",
+		Provider:         "claude",
+		Profile:          "review",
+		ResourcePolicy:   string(PolicyManual),
 		TaskRequirements: taskRequirementsJSON("revise o código", "reviewer"),
 	}}}
 	applyRegisteredProviderPreferenceToFlow(&flow, "codex")

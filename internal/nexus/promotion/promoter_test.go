@@ -181,7 +181,6 @@ func TestExplicitMissionMatcherAcceptsStandaloneLocalizedForms(t *testing.T) {
 	}
 }
 
-
 func TestPromoterRegisteredProviderRequestDelegatesWithoutMission(t *testing.T) {
 	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
 	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
@@ -227,7 +226,6 @@ func TestPromoterDelegationOffStillKeepsProviderBytesWithLead(t *testing.T) {
 		t.Fatalf("delegation OFF action=%s, want KEEP_WITH_LEAD", decision.Action)
 	}
 }
-
 
 func TestPromoterWriteCapableProviderRequestRequiresMission(t *testing.T) {
 	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())

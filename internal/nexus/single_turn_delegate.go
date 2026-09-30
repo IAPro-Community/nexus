@@ -169,8 +169,8 @@ func (n *Nexus) ensureSingleTurnDelegateAgent(st *store.Store, project store.Pro
 		return store.Agent{}, err
 	}
 	cfg := AgentConfig{
-		Isolation: "project",
-		AgentSpec: missionAgentSpec(role, req),
+		Isolation:        "project",
+		AgentSpec:        missionAgentSpec(role, req),
 		ContinuityPolicy: "new_session",
 	}
 	rev, err := st.AddRevision(agent.ID, cfg.ConfigJSON())
@@ -185,4 +185,3 @@ func (n *Nexus) ensureSingleTurnDelegateAgent(st *store.Store, project store.Pro
 	}
 	return agent, nil
 }
-

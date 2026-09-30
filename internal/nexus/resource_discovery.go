@@ -358,6 +358,6 @@ func effectiveCapabilityMap(caps driver.EffectiveCapabilities) map[string]string
 		"native_ui_attach":  string(caps.NativeUIAttach.Status),
 		"headless":          string(caps.Headless.Status),
 		"slash_control":     string(caps.SlashControl.Status),
-		"read_only_review": string(caps.ReadOnlyReview.Status),
+		"read_only_review":  string(caps.ReadOnlyReview.Status),
 	}
 }
