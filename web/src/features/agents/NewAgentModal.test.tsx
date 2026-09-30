@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { AGENT_MODE_PRESENTATION, NATIVE_PROVIDERS, buildNewAgentConfig } from './NewAgentModal';
+import {
+  AGENT_MODE_PRESENTATION,
+  NATIVE_PROVIDERS,
+  buildNewAgentConfig,
+} from './NewAgentModal';
 import type { AgentMode } from '../../types';
 
 describe('Agent Mode presentation', () => {
@@ -64,5 +68,4 @@ describe('Agent Mode presentation', () => {
     expect(config.workspace).toBe('/workspace');
     expect(config.options?.execution_adapter).toBe('native_alias');
   });
-
 });
