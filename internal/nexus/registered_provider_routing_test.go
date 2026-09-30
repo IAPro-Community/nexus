@@ -35,6 +35,9 @@ func TestResolveRegisteredProviderPreferenceUsesOnlyProfileRegistry(t *testing.T
 	if provider, ok, err = n.ResolveRegisteredProviderPreference("compare codex e claude para esse review"); err != nil || ok || provider != "" {
 		t.Fatalf("multiple registered providers must not invent a winner: provider=%q ok=%t err=%v", provider, ok, err)
 	}
+	if provider, ok, err = n.ResolveRegisteredProviderPreference("corrija o adapter do codex e rode os testes"); err != nil || ok || provider != "" {
+		t.Fatalf("a provider mention without routing intent must stay with the Lead: provider=%q ok=%t err=%v", provider, ok, err)
+	}
 }
 
 func TestResolveRegisteredProviderPreferenceSupportsNormalizedSpelling(t *testing.T) {
