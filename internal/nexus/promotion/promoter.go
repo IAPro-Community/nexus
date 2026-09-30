@@ -128,20 +128,24 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = "intent requires clarification before promotion"
 		return result, nil
 	}
-	if registeredProvider != "" && !explicitRequest && !intent.TaskRequirements.RequiresDecomposition && !delegation.Delegate {
-		// Explicit provider handoff is already user-owned consent for one bounded
-		// delegated turn. It does not require Mission promotion and does not need
-		// a second ASK confirmation.
+	readOnlyDelegate := false
+	if modeDef, ok := nexus.AgentModeForRole(intent.TaskRequirements.Role); ok {
+		readOnlyDelegate = modeDef.ReadOnlyByDefault
+	}
+	if registeredProvider != "" && readOnlyDelegate && !explicitRequest && !intent.TaskRequirements.RequiresDecomposition && !delegation.Delegate {
+		// A bounded provider handoff is safe without Mission only for a role whose
+		// canonical AgentMode is read-only by default. executeAgentPrompt enforces
+		// the provider's verified ReviewMode and fails closed when unavailable.
 		result.Action = Delegate
-		result.Reason = "user requested registered provider " + registeredProvider + " for one bounded turn"
+		result.Reason = "user requested registered provider " + registeredProvider + " for one bounded read-only turn"
 		return result, nil
 	}
-	if intent.Strategy == nexus.IntentDirect && !explicitRequest {
+	if intent.Strategy == nexus.IntentDirect && !explicitRequest && registeredProvider == "" {
 		result.Reason = "direct intent stays with the interactive Lead"
 		return result, nil
 	}
 
-	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest
+	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest || registeredProvider != ""
 	if !missionWorthy {
 		result.Reason = "interactive plan stays with the Lead; no delegation or decomposition is required"
 		return result, nil
@@ -156,6 +160,8 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = delegation.Reason
 	} else if intent.TaskRequirements.RequiresDecomposition {
 		result.Reason = "task requirements require decomposition"
+	} else if registeredProvider != "" {
+		result.Reason = "write-capable provider handoff requires Mission isolation: " + registeredProvider
 	} else {
 		result.Reason = "user explicitly requested Mission execution"
 	}
