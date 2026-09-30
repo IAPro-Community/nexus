@@ -26,12 +26,14 @@ type Action string
 
 const (
 	KeepWithLead Action = "KEEP_WITH_LEAD"
+	Delegate     Action = "DELEGATE"
 	Promote      Action = "PROMOTE"
 	Ask          Action = "ASK"
 )
 
 const (
 	ActionKeepWithLead = KeepWithLead
+	ActionDelegate     = Delegate
 	ActionPromote      = Promote
 	ActionAsk          = Ask
 )
@@ -58,7 +60,7 @@ type Promoter struct {
 }
 
 // InteractiveDecisionTimeout is the shared latency budget for deciding
-// whether Enter stays with the Lead or promotes the prompt to a Mission.
+// whether Enter stays with the Lead, delegates one bounded turn, or promotes to a Mission.
 const InteractiveDecisionTimeout = 250 * time.Millisecond
 
 func NewPromoter(n *nexus.Nexus) Promoter { return Promoter{Nexus: n} }
@@ -114,12 +116,26 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = "intent requires clarification before promotion"
 		return result, nil
 	}
-	if intent.Strategy == nexus.IntentDirect && !explicitRequest {
+	registeredProviderRequest := strings.TrimSpace(intent.TaskRequirements.PreferProvider) != ""
+	if intent.Strategy == nexus.IntentDirect && !explicitRequest && !registeredProviderRequest {
 		result.Reason = "direct intent stays with the interactive Lead"
 		return result, nil
 	}
 
-	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest
+	// An explicit registered-provider request can be satisfied by one bounded,
+	// read-only specialist turn without creating a WorkPlan/Mission. Explicit
+	// Mission intent and multi-workstream/decomposition requirements always win.
+	if registeredProviderRequest &&
+		!explicitRequest &&
+		!delegation.Delegate &&
+		!intent.TaskRequirements.RequiresDecomposition &&
+		nexus.IsSingleTurnDelegateIntent(intent.TaskRequirements) {
+		result.Action = Delegate
+		result.Reason = "user requested bounded delegated turn on registered provider " + intent.TaskRequirements.PreferProvider
+		return result, nil
+	}
+
+	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest || registeredProviderRequest
 	if !missionWorthy {
 		result.Reason = "interactive plan stays with the Lead; no delegation or decomposition is required"
 		return result, nil
@@ -134,6 +150,8 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = delegation.Reason
 	} else if intent.TaskRequirements.RequiresDecomposition {
 		result.Reason = "task requirements require decomposition"
+	} else if registeredProviderRequest {
+		result.Reason = "registered provider request requires controlled write-capable Mission execution"
 	} else {
 		result.Reason = "user explicitly requested Mission execution"
 	}
