@@ -25,6 +25,10 @@ authorize Mission promotion. Mission execution remains explicit through Nexus
 orchestration surfaces such as Composer/Flow/`nexus run`, or through a
 deliberate `NEXUS_DELEGATION_MODE=ASK|AUTO` override.
 
+When delegation is deliberately enabled, the interactive router distinguishes four outcomes: `KEEP_WITH_LEAD`, `DELEGATE`, `PROMOTE` and `ASK`. An explicit request for one registered provider (for example, “chame o Codex para revisar”) may use `DELEGATE`: Nexus runs one bounded read-only headless turn through the registered Usage/resource pool, compiles bounded canonical Skills, and returns the result to the existing Lead without creating a WorkPlan or Mission. Requests that require decomposition, autonomous side effects or multiple workstreams continue through `PROMOTE`/Mission. Provider mentions without routing language do not trigger delegation.
+
+`DELEGATE` never weakens the terminal safety boundary: it is unavailable while delegation mode is `OFF`, it does not replace the Lead provider/session, and it requires a provider execution path with verified read-only isolation. An unavailable preferred provider may fall back only through the registered ResourceScheduler pool and the fallback remains explicit in the result.
+
 `--no-lead` disables STICKY_LEAD and always wins if both flags are present.
 `--direct` bypasses supervised transport entirely. All Nexus-owned launch flags
 are stripped before provider arguments are launched.
