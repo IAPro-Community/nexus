@@ -106,7 +106,7 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 		}
 	}
 
-	agent, err := ensureSingleTurnDelegateAgent(st, project, taskReq)
+	agent, err := n.ensureSingleTurnDelegateAgent(st, project, taskReq)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 	}, nil
 }
 
-func ensureSingleTurnDelegateAgent(st *store.Store, project store.Project, req TaskRequirements) (store.Agent, error) {
+func (n *Nexus) ensureSingleTurnDelegateAgent(st *store.Store, project store.Project, req TaskRequirements) (store.Agent, error) {
 	role := defaultRole(req.Role, "implementer")
 	name := "Delegate · " + role
 	agents, err := st.ListAgents(project.ID)
@@ -142,9 +142,13 @@ func ensureSingleTurnDelegateAgent(st *store.Store, project store.Project, req T
 		return store.Agent{}, err
 	}
 	for _, agent := range agents {
-		if agent.Name == name && (agent.Status == store.AgentStopped || agent.Status == store.AgentRecoverable || agent.Status == "") {
-			return agent, nil
+		if agent.Name != name || (agent.Status != store.AgentStopped && agent.Status != "") {
+			continue
 		}
+		if gen, genErr := st.CurrentGeneration(agent.ID); genErr == nil && gen.RuntimeID != "" && n.runtimeAlive(gen.RuntimeID) {
+			continue
+		}
+		return agent, nil
 	}
 	agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: name, Role: role})
 	if err != nil {
