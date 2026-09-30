@@ -424,6 +424,26 @@ func TestRuntimeSessionModelPersistence(t *testing.T) {
 	}
 }
 
+func TestRuntimeSessionProviderLiveUsesProviderGeneration(t *testing.T) {
+	session := RuntimeSession{
+		PID:                os.Getpid(),
+		ProviderGeneration: time.Now().UnixNano(),
+	}
+	if !session.ProviderLive() {
+		t.Fatal("provider generation must be checked against provider PID")
+	}
+}
+
+func TestRuntimeSessionProviderLiveRejectsDeadProvider(t *testing.T) {
+	session := RuntimeSession{
+		PID:                1 << 30,
+		ProviderGeneration: time.Now().UnixNano(),
+	}
+	if session.ProviderLive() {
+		t.Fatal("dead provider PID must not look live")
+	}
+}
+
 func TestRuntimeSessionHostLive(t *testing.T) {
 	live := RuntimeSession{Transport: "mock", PID: 0, State: StateRunning}
 	if !live.HostLive() {
