@@ -179,3 +179,63 @@ func TestExplicitMissionMatcherAcceptsStandaloneLocalizedForms(t *testing.T) {
 		}
 	}
 }
+
+
+func TestPromoterRegisteredProviderReviewUsesSingleTurnDelegate(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentPlan,
+			TaskRequirements: nexus.TaskRequirements{
+				TaskKind:       "review",
+				Role:           "reviewer",
+				PreferProvider: "codex",
+			},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "chame o codex para revisar isso", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Delegate {
+		t.Fatalf("registered read-only provider request must use DELEGATE, got %+v", decision)
+	}
+	if decision.ExplicitMissionRequest {
+		t.Fatal("single-turn provider request must not become explicit Mission intent")
+	}
+}
+
+func TestPromoterRegisteredProviderWriteStillUsesMission(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentDirect,
+			TaskRequirements: nexus.TaskRequirements{
+				TaskKind:       "coding",
+				Role:           "implementer",
+				PreferProvider: "codex",
+			},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "use codex para corrigir o typo", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Promote {
+		t.Fatalf("write-capable provider request must remain on controlled Mission path, got %+v", decision)
+	}
+}
+
+func TestPromoterDelegationOffNeverRoutesSingleTurn(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentPlan,
+			TaskRequirements: nexus.TaskRequirements{TaskKind: "review", PreferProvider: "codex"},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "chame o codex para revisar", ModeOff)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != KeepWithLead {
+		t.Fatalf("OFF must preserve provider-native ownership, got %+v", decision)
+	}
+}
