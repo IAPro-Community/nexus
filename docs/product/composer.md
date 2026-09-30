@@ -19,7 +19,7 @@ Uma pergunta por rodada, com opções quando a inteligência as sugerir. Premiss
 
 O Composer mantém um estado de clareza por dimensão (`intent`, `scope`, `context`, `constraints`, `acceptance`, `risk` e `decisions`). Cada pergunta aberta recebe `dimension` e `priority_score`; a próxima pergunta é a de maior ganho esperado de informação, e não apenas o próximo item do checklist.
 
-Fatos inferidos por Project Intelligence ou memória permanecem auditáveis no brief, mas não voltam para a fila de perguntas. O modo padrão é `STANDARD`, com perfis internos `QUICK`, `STANDARD` e `DEEP` que definem alvo de ambiguidade e orçamento máximo de perguntas.
+Fatos inferidos por Project Intelligence ou memória permanecem auditáveis no brief, mas não voltam para a fila de perguntas. Ao iniciar uma elaboração, a UI permite escolher `QUICK`, `STANDARD` ou `DEEP`; `STANDARD` é o padrão adaptativo. Cada perfil define alvo de ambiguidade e orçamento máximo de perguntas, e o contador avança apenas em rodadas reais de resposta/resolução.
 
 Quando o brief já convergiu e existe uma decisão sensível a trade-offs (por exemplo custo, quota, escolha automática ou fallback), o Composer pode abrir uma única **pressure-test question**. Essa passagem desafia a decisão antes da finalização sem criar uma cadeia skill → prompt → skill e sem transformar a resposta em memória durável automaticamente.
 
