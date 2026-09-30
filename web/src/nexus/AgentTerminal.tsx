@@ -611,6 +611,8 @@ export const AgentTerminal: React.FC<{
               setPromotionPrompt(String(payload.data || ''));
             } else if (promotionRole === 'PROMOTED') {
               setMessage(String(payload.data || tRef.current('terminal.promotion.started')));
+            } else if (promotionRole === 'DELEGATING' || promotionRole === 'DELEGATED') {
+              setMessage(String(payload.data || 'Delegated read-only turn updated.'));
             } else if (promotionRole === 'FALLBACK' || promotionRole === 'BLOCKED') {
               setMessage(String(payload.data || 'Mission admission did not start.'));
             }
