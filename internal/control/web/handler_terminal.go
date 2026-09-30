@@ -305,6 +305,35 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		go waitPromotedMission(h.nexus, sess, prompt, accepted)
 	}
 
+	startDelegate := func(prompt, preferredProvider string) {
+		_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID)})
+		_ = safeWriteJSON(TerminalMessage{
+			Type: "promotion",
+			Role: "DELEGATING",
+			Data: fmt.Sprintf("Executando turno read-only em %s; o terminal atual permanece intacto.", preferredProvider),
+		})
+		go func() {
+			delegateCtx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+			defer cancel()
+			result, delegateErr := h.nexus.ExecuteDelegatedTurn(delegateCtx, nexus.DelegatedTurnRequest{
+				ProjectID: sess.ProjectID, LeadAgentID: sess.AgentID, Prompt: prompt, PreferredProvider: preferredProvider,
+			})
+			if delegateErr != nil {
+				_ = safeWriteJSON(TerminalMessage{Type: "promotion", Role: "BLOCKED", Data: fmt.Sprintf("Turno delegado falhou: %v", delegateErr)})
+				return
+			}
+			leadMessage := fmt.Sprintf("Solicitação original: %s\n\nTurno delegado READ_ONLY executado em %s:%s (fallback=%t). Skills: %s.\nMotivo de roteamento: %s\n\nResultado delegado:\n%s\n\nSintetize este resultado para o usuário. Não atribua mudanças de arquivos ao delegado: este turno não tinha permissão de escrita.", prompt, result.Provider, result.Profile, result.Fallback, strings.Join(result.SkillIDs, ", "), result.Reason, result.Output)
+			if _, askErr := h.nexus.AskAgent(context.Background(), sess.AgentID, leadMessage, false); askErr != nil {
+				_ = safeWriteJSON(TerminalMessage{Type: "promotion", Role: "BLOCKED", Data: fmt.Sprintf("Turno delegado concluiu, mas o Lead não recebeu a síntese: %v\n\n%s", askErr, result.Output)})
+				return
+			}
+			_ = safeWriteJSON(TerminalMessage{
+				Type: "promotion", Role: "DELEGATED",
+				Data: fmt.Sprintf("Turno delegado concluído em %s:%s; resultado devolvido ao Lead.", result.Provider, result.Profile),
+			})
+		}()
+	}
+
 	// Apply the same stateful terminal-input coalescing used by CLI attach before
 	// bytes reach the provider PTY. This is transport-only: it joins split
 	// CSI/SS3 selector keys and removes terminal metadata without interpreting
@@ -335,6 +364,10 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			cancelDecision()
 			if decideErr != nil || decision.Action == promotion.KeepWithLead {
 				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+				continue
+			}
+			if decision.Action == promotion.Delegate {
+				startDelegate(line, decision.Intent.TaskRequirements.PreferProvider)
 				continue
 			}
 			if decision.Action == promotion.Ask {
