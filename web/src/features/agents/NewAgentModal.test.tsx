@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { AGENT_MODE_PRESENTATION, NATIVE_PROVIDERS } from './NewAgentModal';
+import { AGENT_MODE_PRESENTATION, NATIVE_PROVIDERS, buildNewAgentConfig } from './NewAgentModal';
+import type { AgentMode } from '../../types';
 
 describe('Agent Mode presentation', () => {
   it('covers every required Nexus 1.0 specialist with user-facing copy', () => {
@@ -43,4 +44,25 @@ describe('Agent Mode presentation', () => {
     expect(opencode?.alias).toBe('nexus opencode');
     expect(opencode?.label).toContain('OpenCode');
   });
+  it('defers concrete provider binding while preserving provider preference', () => {
+    const mode = {
+      id: 'developer',
+      role: 'developer',
+      default_provider: 'codex',
+      default_execution_mode: 'Safe',
+      agent_spec: { role: 'developer' },
+    } as AgentMode;
+
+    const config = buildNewAgentConfig(mode, 'codex', '/workspace', {
+      mode: 'Safe',
+      execution_adapter: 'native_alias',
+    });
+
+    expect(config.provider).toBe('');
+    expect(config.profile).toBe('');
+    expect(config.allocation?.prefer_provider).toBe('codex');
+    expect(config.workspace).toBe('/workspace');
+    expect(config.options?.execution_adapter).toBe('native_alias');
+  });
+
 });
