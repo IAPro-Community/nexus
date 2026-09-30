@@ -108,8 +108,12 @@ func rankAutomaticSkillCandidates(catalog nexusskills.Catalog, prompt string, ca
 	promptTokens := automaticSkillTokens(prompt, true)
 	lowerPrompt := strings.ToLower(strings.TrimSpace(prompt))
 	capabilitySet := map[string]struct{}{}
+	desiredFamilies := map[string]struct{}{}
 	for _, capability := range capabilities {
 		capabilitySet[normalizeCapabilityName(capability)] = struct{}{}
+		if family := canonicalAutomaticSkillToken(capability); family != "" {
+			desiredFamilies[family] = struct{}{}
+		}
 	}
 
 	out := make([]automaticSkillCandidate, 0)
@@ -159,6 +163,15 @@ func rankAutomaticSkillCandidates(catalog nexusskills.Catalog, prompt string, ca
 			strongSignal = true
 		}
 
+		// A catalog skill can express a semantic family through its metadata even
+		// when the source does not publish an explicit capabilities list. This is
+		// especially useful for project/user/Maestro skills such as quality gates.
+		for _, family := range automaticSkillFamilies(skill) {
+			if _, ok := desiredFamilies[family]; ok {
+				score += 80
+				strongSignal = true
+			}
+		}
 		for _, capability := range skill.Capabilities {
 			if _, ok := capabilitySet[normalizeCapabilityName(capability)]; ok {
 				score += 70
