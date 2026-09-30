@@ -23,13 +23,13 @@ type DelegatedTurnRequest struct {
 // The worker identity is ephemeral; provider/profile and skills are retained as
 // explainability evidence.
 type DelegatedTurnResult struct {
-	Provider string   `json:"provider"`
-	Profile  string   `json:"profile"`
-	RuntimeID string  `json:"runtime_id,omitempty"`
-	Output   string   `json:"output"`
-	SkillIDs []string `json:"skill_ids,omitempty"`
-	Fallback bool     `json:"fallback"`
-	Reason   string   `json:"reason"`
+	Provider  string   `json:"provider"`
+	Profile   string   `json:"profile"`
+	RuntimeID string   `json:"runtime_id,omitempty"`
+	Output    string   `json:"output"`
+	SkillIDs  []string `json:"skill_ids,omitempty"`
+	Fallback  bool     `json:"fallback"`
+	Reason    string   `json:"reason"`
 }
 
 const maxDelegatedTurnOutputBytes = 32 * 1024
