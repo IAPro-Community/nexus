@@ -595,7 +595,8 @@ func (n *Nexus) ResolveComposerUnknownExpected(ctx context.Context, sessionID, u
 	if err != nil {
 		return nil, err
 	}
-	if resolvedField != "" && (status == string(PromptUnknownAnswered) || status == string(PromptUnknownConfirmed)) {
+	if resolvedField != "" && !strings.HasPrefix(resolvedField, "interview.") &&
+		(status == string(PromptUnknownAnswered) || status == string(PromptUnknownConfirmed)) {
 		_ = n.PromoteHabitMemory(ctx, session.ProjectID, resolvedField, strings.TrimSpace(answer), MemorySourceComposer, false)
 	}
 	return view, nil
@@ -691,21 +692,9 @@ func (n *Nexus) persistComposerSessionExpected(ctx context.Context, st *store.St
 }
 
 func composeAssistantReply(brief LivingBrief) string {
-	var open PromptUnknown
-	for _, u := range brief.Unknowns {
-		if u.Status != PromptUnknownOpen {
-			continue
-		}
-		if u.Severity == PromptUnknownBlocking {
-			open = u
-			break
-		}
-		if open.ID == "" {
-			open = u
-		}
-	}
+	open, hasOpen := selectComposerNextUnknownForBrief(brief)
 	understood := firstNonEmpty(brief.Intent.DesiredOutcome, brief.Intent.Objective, brief.Goal)
-	if open.Question != "" {
+	if hasOpen && open.Question != "" {
 		if understood != "" {
 			return "Entendi: " + understood + ". Para aprofundar o prompt: " + open.Question
 		}

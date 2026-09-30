@@ -54,6 +54,7 @@
 
 ## 1.0.0-beta.6 — 2026-09-29 — Usage/Capacity V2 and single release line
 
+- Composer Interview Engine: added per-dimension clarity/ambiguity, information-gain question priority, bounded QUICK/STANDARD/DEEP profiles and a single pressure-test pass for hidden trade-offs. Repository/memory-inferred facts are no longer surfaced by the web workspace as open questions.
 - Usage semantics: introduced provider-boundary `UsageObservation`, explicit `USED_PERCENT` / `REMAINING_PERCENT` semantics and independent `SUBSCRIPTION` / `API` resource channels without changing existing `UsageSnapshot` consumers.
 - Codex/AGY: percentage inversion/preservation now goes through one normalization function; Codex `0% used` is contract-tested as `100% remaining`, while AGY remaining percentages remain remaining percentages.
 - Multi-account routing: when every usable profile only has `ESTIMATED` quota evidence, Nexus ranks the measured estimates instead of discarding them and falling back to unrelated LRU. `LIVE/CACHED` evidence still outranks any estimate.

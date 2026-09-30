@@ -120,26 +120,39 @@ export function composerReferencedFiles(view: ComposerSessionView | null): Conte
   return [];
 }
 
-/** Open (still unresolved) unknowns, in their natural order. */
+/** Questions that are genuinely open. Inferred repository/memory facts stay visible
+ * in the brief but must never be re-asked as if Nexus did not discover them. */
 export function openComposerUnknowns(view: ComposerSessionView | null): ComposerBriefUnknown[] {
   if (!view) return [];
   return asArray<ComposerBriefUnknown>(view.brief.unknowns).filter(
-    (u) => !isComposerUnknownResolved(u.status),
+    (u) => String(u.status || '').toUpperCase() === 'OPEN',
   );
 }
 
-/** The single unknown the conversation should surface next, if any. */
+/** The Interview Engine supplies priority_score from expected information gain.
+ * Older payloads keep the previous severity/source fallback behavior. */
 export function selectComposerNextUnknown(
   view: ComposerSessionView | null,
 ): ComposerBriefUnknown | null {
   const unresolved = openComposerUnknowns(view);
-  const intelligenceBlocking = unresolved.find(
-    (u) => u.severity === 'BLOCKING' && String(u.source || '').toUpperCase() === 'INTELLIGENCE',
-  );
-  if (intelligenceBlocking) return intelligenceBlocking;
-  const blocking = unresolved.find((u) => u.severity === 'BLOCKING');
-  const withOptions = unresolved.find((u) => asArray(u.suggested_options).length > 0);
-  return blocking || withOptions || unresolved[0] || null;
+  if (unresolved.length === 0) return null;
+
+  return [...unresolved].sort((a, b) => {
+    const priorityDelta = Number(b.priority_score || 0) - Number(a.priority_score || 0);
+    if (priorityDelta !== 0) return priorityDelta;
+
+    const severityWeight = (item: ComposerBriefUnknown) =>
+      String(item.severity || '').toUpperCase() === 'BLOCKING' ? 2 : 0;
+    const severityDelta = severityWeight(b) - severityWeight(a);
+    if (severityDelta !== 0) return severityDelta;
+
+    const intelligenceWeight = (item: ComposerBriefUnknown) =>
+      String(item.source || '').toUpperCase() === 'INTELLIGENCE' ? 1 : 0;
+    const sourceDelta = intelligenceWeight(b) - intelligenceWeight(a);
+    if (sourceDelta !== 0) return sourceDelta;
+
+    return asArray(b.suggested_options).length - asArray(a.suggested_options).length;
+  })[0];
 }
 
 /** Live-briefing label/value pairs, translated via the provided function. */
