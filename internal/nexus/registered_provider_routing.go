@@ -113,6 +113,23 @@ func hasExplicitProviderRoutingIntent(tokens []string, provider string) bool {
 		}
 	}
 
+	isNegation := func(token string) bool {
+		switch token {
+		case "não", "nao", "not", "never", "nunca", "sem", "menos", "except", "excepto", "exceto":
+			return true
+		default:
+			return false
+		}
+	}
+	verbNegated := func(index int) bool {
+		for j := index - 2; j < index; j++ {
+			if j >= 0 && isNegation(tokens[j]) {
+				return true
+			}
+		}
+		return false
+	}
+
 	for i := 0; i < len(tokens); i++ {
 		spanEnd := i
 		matched := tokens[i] == provider
@@ -124,30 +141,36 @@ func hasExplicitProviderRoutingIntent(tokens []string, provider string) bool {
 			continue
 		}
 
-		start := i - 5
-		if start < 0 {
-			start = 0
+		// A locally negated/excluded provider is never a positive routing target.
+		for j := i - 2; j < i; j++ {
+			if j >= 0 && isNegation(tokens[j]) {
+				return false
+			}
 		}
-		end := spanEnd + 5
-		if end >= len(tokens) {
-			end = len(tokens) - 1
-		}
-		for j := start; j <= end; j++ {
-			if requestVerb(tokens[j]) {
+
+		// Bind routing verbs locally to the provider mention. The short window
+		// accepts "chame o codex" / "delegue para codex" without letting a verb
+		// elsewhere in the sentence turn an incidental provider name into a route.
+		for j := i - 1; j >= 0 && i-j <= 3; j-- {
+			if requestVerb(tokens[j]) && !verbNegated(j) {
 				return true
 			}
 		}
 
+		start := i - 4
+		if start < 0 {
+			start = 0
+		}
 		// Natural forms such as "revise com codex" and "codex revise isso" are
 		// explicit enough while a phrase such as "bug no cursor" is not.
 		if i > 0 && (tokens[i-1] == "via" || tokens[i-1] == "com") {
-			for j := start; j < i; j++ {
-				if taskVerb(tokens[j]) {
+			for j := start; j < i-1; j++ {
+				if taskVerb(tokens[j]) && !verbNegated(j) {
 					return true
 				}
 			}
 		}
-		if spanEnd+1 < len(tokens) && taskVerb(tokens[spanEnd+1]) {
+		if spanEnd+1 < len(tokens) && taskVerb(tokens[spanEnd+1]) && !verbNegated(spanEnd+1) {
 			return true
 		}
 	}
