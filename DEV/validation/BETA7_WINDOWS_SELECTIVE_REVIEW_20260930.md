@@ -6,7 +6,7 @@ Date: 2026-09-30
 
 - Canonical release branch: `release/v1.0.0`.
 - Functional baseline reviewed: `0aba43fcddde8ab4aeb45df641ff2ca732002409` (`1.0.0-beta.7`).
-- Documentation correction after review: `964edb6f40fc1646a8f6480064fbb89ec0ccdcef`.
+- Review continuation on 2026-09-30 identified and corrected a canonical delegation default that still fell back to `AUTO` outside the interactive adapter. The release now fails closed to `OFF`; intentional orchestration paths (`nexus run`, Composer → Flow, explicit promotion) declare `AUTO`/`ASK` explicitly.
 - Historical Windows source reviewed: `codex/windows-terminal-functional` at `d73d75afe8ad6b0e1f0ba1c1a20991839f64fb5c`.
 - Historical branch preserved as `archive/2026-09-30/codex/windows-terminal-functional`.
 - Pre-hardening release snapshot preserved as `archive/release-v1.0.0-beta7-pre-final-hardening-20260930`.
@@ -68,6 +68,25 @@ Existing focused tests cover the no-daemon rules, delegation labels/defaults, SG
 ## Documentation correction
 
 `docs/reference/configuration.md` incorrectly described `NEXUS_DELEGATION_MODE` as defaulting to `AUTO`. Interactive provider sessions actually default to `OFF`. The public reference was corrected in `964edb6` to match the runtime contract.
+
+## Canonical delegation default hardening
+
+The interactive provider path was already correct, but the shared `NormalizeDelegationMode`
+and `StartDispatch` still defaulted an omitted mode to `AUTO`. That created an
+architectural inconsistency: a caller outside the interactive attach path could omit
+the policy and regain automatic delegation.
+
+The release now enforces:
+
+- empty/unknown delegation mode → `OFF`;
+- explicit `OFF` → direct/provider-owned behavior;
+- explicit `ASK` → approval-gated delegation;
+- explicit `AUTO` → automatic delegation where the caller intentionally selected orchestration;
+- `nexus run` and Composer → Flow pass `AUTO` explicitly instead of depending on a hidden default;
+- ordinary `StartDispatch` without a mode is rejected by the dispatch brake rather than silently creating a Mission.
+
+Regression tests were added/updated for the fail-closed normalizer, implicit dispatch
+rejection, explicit autonomous run/Flow paths and multi-step decomposition.
 
 ## Current visual-manifest blocker
 
