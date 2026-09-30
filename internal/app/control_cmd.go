@@ -547,9 +547,10 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 	status, err := client.Status()
 	if err != nil {
 		_ = registry.DefaultRegistry().UpdateState(runtimeID, registry.StateStale)
-		return fmt.Errorf("runtime %q could not prove its host generation before attach: %v; recreate the session with %s codex --yolo", runtimeID, err, progName())
+		return fmt.Errorf("runtime %q could not prove its process generation before attach: %v; recreate the session with %s codex --yolo", runtimeID, err, progName())
 	}
 	if status.RuntimeID != runtimeID || status.PID != session.PID ||
+		(status.ProviderGeneration > 0 && session.ProviderGeneration > 0 && status.ProviderGeneration != session.ProviderGeneration) ||
 		(status.HostPID > 0 && status.HostPID != session.HostPID) ||
 		(status.HostGeneration > 0 && status.HostGeneration != session.HostGeneration) {
 		_ = registry.DefaultRegistry().UpdateState(runtimeID, registry.StateStale)
