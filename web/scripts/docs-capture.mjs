@@ -195,7 +195,6 @@ try {
   });
   await page.waitForTimeout(2500);
   const candidates = [
-    { id: 'VIS-002', file: 'projects.png', surface: 'web/projects', pattern: /projetos|projects/i },
     { id: 'VIS-004', file: 'provider.png', surface: 'web/provider', pattern: /providers|provedores/i },
     { id: 'VIS-007', file: 'composer.png', surface: 'web/composer', pattern: /composer/i },
     { id: 'VIS-008', file: 'flow.png', surface: 'web/flow', pattern: /flow/i },
@@ -222,6 +221,9 @@ try {
     await openProjectSurface('missions');
     await capture('VIS-009', 'mission.png', 'web/mission');
   }
+  await openProjectSurface('projects');
+  await page.waitForTimeout(500);
+  await capture('VIS-002', 'projects.png', 'web/projects');
   if (pageErrors.length) throw new Error(`page errors during capture: ${pageErrors.join(' | ')}`);
   await context.close();
   await browser.close();
