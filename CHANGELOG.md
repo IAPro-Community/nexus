@@ -52,6 +52,12 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
+## 1.0.0-beta.7 — 2026-09-29 — continuation candidate
+
+- Bumped the canonical `release/v1.0.0` source candidate after the Composer Interview Engine and subsequent beta hardening landed.
+- Beta.7 remains the same single Nexus 1.0 beta line for continued requirements; it does not create a parallel release branch.
+- Public distribution remains on the rolling beta channel and still requires exact-SHA certification before publication.
+
 ## 1.0.0-beta.6 — 2026-09-29 — Usage/Capacity V2 and single release line
 
 - Composer Interview Engine: added per-dimension clarity/ambiguity, information-gain question priority, bounded QUICK/STANDARD/DEEP profiles and a single pressure-test pass for hidden trade-offs. Repository/memory-inferred facts are no longer surfaced by the web workspace as open questions.
