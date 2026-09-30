@@ -6,11 +6,23 @@ import (
 	"os"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/app"
 	"github.com/IAPro-Community/nexus/internal/desktop"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func main() {
+	// Detached SessionHost workers reuse the current executable. Dispatch the
+	// internal host command before Wails startup so the Desktop binary can
+	// supervise providers without opening a second native window.
+	if len(os.Args) > 1 && os.Args[1] == "__control-host" {
+		if err := app.Run(os.Args[1:]); err != nil {
+			fmt.Fprintf(os.Stderr, "nexus desktop control host: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	backend, err := desktop.OpenSharedBackend("Nexus Desktop")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize shared Nexus backend: %v\n", err)
