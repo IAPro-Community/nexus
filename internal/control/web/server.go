@@ -25,9 +25,9 @@ import (
 const DefaultPort = 13000
 
 type ServerOptions struct {
-	Host       string
-	Port       int
-	NoOpen     bool
+	Host             string
+	Port             int
+	NoOpen           bool
 	Remote           bool
 	DisableHostsFile bool   // embedded native surfaces must not require administrator access
 	TunnelHost       string // public hostname of Cloudflare Quick Tunnel (e.g., xxx.trycloudflare.com)
