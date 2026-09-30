@@ -43,29 +43,23 @@ func removeProviderLaunchFlag(args []string, wanted string) []string {
 	return out
 }
 
-// wantInteractiveLead is an explicit opt-in for binding a persistent Lead
-// Agent. Binding a Lead is intentionally separate from authorizing Mission
-// promotion: provider-native TUIs remain byte-transparent unless delegation is
-// explicitly enabled through the Nexus orchestration boundary.
-func wantInteractiveLead(args []string) bool {
-	return hasProviderLaunchFlag(args, "--lead") && !hasProviderLaunchFlag(args, "--no-lead")
-}
-
-// supervisedRuntimeLabels keeps runtime supervision and Mission authorization
-// as separate capabilities. Even an explicitly bound Lead starts with
-// delegation OFF; an advanced NEXUS_DELEGATION_MODE override may opt in later.
-func supervisedRuntimeLabels(withLead bool) map[string]string {
+// supervisedRuntimeLabels keeps runtime supervision, Lead identity and Mission
+// authorization separate. The runtime is registered with Lead=false first;
+// UpdateInteractiveLeadBinding flips the label only after the persistent Lead
+// metadata has been committed successfully. Delegation always starts OFF.
+func supervisedRuntimeLabels() map[string]string {
 	return map[string]string{
 		"nexus.delegation_mode":  string(nexus.DelegationOff),
-		"nexus.interactive_lead": fmt.Sprintf("%t", withLead),
+		"nexus.interactive_lead": "false",
 	}
 }
 
 // executeProviderSupervised launches the provider through the same persistent
-// SessionHost used by Web/Desktop. Interactive TTY is byte-transparent by
-// default; withLead=true (--lead) binds a Lead but does not authorize ordinary
-// provider prompts to be promoted into Missions.
-func executeProviderSupervised(provName, explicitProfile string, args []string, withLead bool) error {
+// SessionHost used by Web/Desktop. STICKY_LEAD binds identity/continuity while
+// delegation remains OFF, so the provider TTY stays byte-transparent. When the
+// binding is implicit it is best-effort; explicit --lead makes binding failure
+// visible to the caller.
+func executeProviderSupervised(provName, explicitProfile string, args []string, withLead, requireLead bool) error {
 	if strings.TrimSpace(provName) == "" {
 		return fmt.Errorf("provider is required for supervised launch")
 	}
@@ -118,7 +112,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 			Args:       args,
 			Standalone: false,
 			Timeout:    15 * time.Second,
-			Labels:     supervisedRuntimeLabels(withLead),
+			Labels:     supervisedRuntimeLabels(),
 		},
 		os.Stderr,
 	)
@@ -134,25 +128,38 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 	n := nexus.Default()
 	lead, err := prepareInteractiveLead(n, workspace, provName, selected)
 	if err != nil {
-		_ = launcher.Default().Stop(session.RuntimeID)
-		return fmt.Errorf("prepare interactive Lead: %w", err)
+		if requireLead {
+			_ = launcher.Default().Stop(session.RuntimeID)
+			return fmt.Errorf("prepare interactive Lead: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "⚠ [nexus] STICKY_LEAD indisponível (%v); continuando com TTY provider-native.\n", err)
+		return attachRuntime(session.RuntimeID)
 	}
 	if err := n.RuntimeRegistry().UpdateInteractiveLeadBinding(session.RuntimeID, lead.AgentID, lead.ProjectID, lead.ProjectName); err != nil {
-		_ = launcher.Default().Stop(session.RuntimeID)
 		releaseInteractiveLeadReservation(n, lead.AgentID)
-		return fmt.Errorf("persist interactive Lead runtime metadata: %w", err)
+		if requireLead {
+			_ = launcher.Default().Stop(session.RuntimeID)
+			return fmt.Errorf("persist interactive Lead runtime metadata: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "⚠ [nexus] não foi possível persistir STICKY_LEAD (%v); continuando com TTY provider-native.\n", err)
+		return attachRuntime(session.RuntimeID)
 	}
 	session.AgentID = lead.AgentID
 	session.ProjectID = lead.ProjectID
 	session.ProjectName = lead.ProjectName
 	if lead.AgentID != "" {
 		if err := n.BindInteractiveLeadRuntime(context.Background(), lead.AgentID, session); err != nil {
-			_ = launcher.Default().Stop(session.RuntimeID)
+			_ = n.RuntimeRegistry().UpdateInteractiveLeadBinding(session.RuntimeID, "", "", "")
 			releaseInteractiveLeadReservation(n, lead.AgentID)
-			return fmt.Errorf("bind interactive Lead Agent: %w", err)
+			if requireLead {
+				_ = launcher.Default().Stop(session.RuntimeID)
+				return fmt.Errorf("bind interactive Lead Agent: %w", err)
+			}
+			fmt.Fprintf(os.Stderr, "⚠ [nexus] bind STICKY_LEAD falhou (%v); continuando com TTY provider-native.\n", err)
+			return attachRuntime(session.RuntimeID)
 		}
 	}
-	fmt.Fprintf(os.Stderr, "⚡ [nexus] supervised %s:%s runtime=%s\n", provName, selected, session.RuntimeID)
+	fmt.Fprintf(os.Stderr, "⚡ [nexus] supervised %s:%s runtime=%s mode=STICKY_LEAD delegation=OFF\n", provName, selected, session.RuntimeID)
 	if lead.AgentID == "" {
 		return attachRuntime(session.RuntimeID)
 	}
