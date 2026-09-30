@@ -95,11 +95,12 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 	suitability := AssessComposerFlowSuitability(brief)
 	if suitability.Result == FlowBeneficial || suitability.Result == FlowStronglyRecommended {
 		proposal, decomposeErr := n.DecomposePromptIntoFlowProposal(ctx, FlowDecompositionRequest{
-			ProjectID:    session.ProjectID,
-			ArtifactID:   artifact.ID,
-			Goal:         firstNonEmpty(brief.Goal, brief.Intent.Objective),
-			SourcePrompt: artifact.Content,
-			SkillIDs:     decodeStringArray(artifact.SkillIDsJSON),
+			ProjectID:      session.ProjectID,
+			ArtifactID:     artifact.ID,
+			Goal:           firstNonEmpty(brief.Goal, brief.Intent.Objective),
+			SourcePrompt:   artifact.Content,
+			SkillIDs:       decodeStringArray(artifact.SkillIDsJSON),
+			DelegationMode: DelegationAuto,
 		})
 		if decomposeErr != nil {
 			return nil, decomposeErr
