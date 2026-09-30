@@ -96,6 +96,54 @@ jobs:
       - working-directory: web
         run: bun run verify
 
+  docs-capture-evidence:
+    needs: workspace-sanitize
+    name: Documentation visual capture evidence
+    if: github.event_name != 'pull_request'
+    runs-on: [self-hosted, Linux, X64, nexus-ci]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.14'
+          cache: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - working-directory: web
+        run: bun install --frozen-lockfile
+      - name: Build exact-SHA frontend
+        working-directory: web
+        run: bun run build
+      - name: Install Chromium for synthetic capture
+        working-directory: web
+        run: bunx playwright install chromium
+      - name: Build exact-SHA Nexus binary
+        run: go build -trimpath -o nexus ./cmd/nexus
+      - name: Capture isolated synthetic documentation surfaces
+        working-directory: web
+        run: bun run docs:capture
+      - name: Verify capture manifest is anchored to this SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(node -e "process.stdout.write(require('./docs/assets/screenshots/manifest.json').source_sha)")"
+          test "$actual" = "$GITHUB_SHA" || {
+            echo "capture manifest source_sha=$actual, expected $GITHUB_SHA" >&2
+            exit 1
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-visual-capture-${{ github.sha }}
+          path: |
+            docs/assets/screenshots/
+            docs/assets/demos/direct-workflow.webm
+          if-no-files-found: error
+          retention-days: 3
+
   release-config:
     needs: workspace-sanitize
     name: Release configuration
