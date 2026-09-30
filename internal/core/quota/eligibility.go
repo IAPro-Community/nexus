@@ -25,10 +25,11 @@ const (
 // Eligibility is the single routing gate shared by CLI scheduler, Mission
 // RecommendResources, runtime routing and manual validation.
 type Eligibility struct {
-	Eligible   bool              `json:"eligible"`
-	Reason     EligibilityReason `json:"reason"`
-	Confidence string            `json:"confidence"`
-	Message    string            `json:"message,omitempty"`
+	Eligible         bool              `json:"eligible"`
+	Reason           EligibilityReason `json:"reason"`
+	Confidence       string            `json:"confidence"`
+	CapacityEvidence string            `json:"capacity_evidence"` // MEASURED | OPAQUE | UNKNOWN
+	Message          string            `json:"message,omitempty"`
 }
 
 // EligibilityInput carries the facts needed to evaluate a provider account.
@@ -44,7 +45,7 @@ type EligibilityInput struct {
 // EvaluateEligibility applies hard gates in a single canonical order.
 func EvaluateEligibility(in EligibilityInput) Eligibility {
 	confidence := confidenceOf(in.View.Status)
-	out := Eligibility{Confidence: confidence}
+	out := Eligibility{Confidence: confidence, CapacityEvidence: capacityEvidenceOf(in.View.Status)}
 
 	if !in.Authenticated {
 		out.Reason = ReasonNotAuthenticated
@@ -83,6 +84,19 @@ func EvaluateEligibility(in EligibilityInput) Eligibility {
 		return out
 	}
 
+	if status == string(model.UsageUnsupported) {
+		// UNSUPPORTED means the provider does not expose a trustworthy capacity
+		// metric. It is not evidence of exhaustion. Keep the resource eligible
+		// when the operational gates above passed, but preserve OPAQUE confidence
+		// so schedulers never score it as measured capacity.
+		out.Eligible = true
+		out.Reason = ReasonUnsupportedQuota
+		out.Confidence = "UNSUPPORTED"
+		out.CapacityEvidence = "OPAQUE"
+		out.Message = "Quota não exposta pelo provedor; recurso operacionalmente elegível sem score de capacidade"
+		return out
+	}
+
 	// QuotaView.Available is the aggregate authority. ExhaustedWindows may
 	// contain partial diagnostics while another independent model group still
 	// has capacity (for example AGY Gemini exhausted, Claude/GPT available).
@@ -117,16 +131,6 @@ func EvaluateEligibility(in EligibilityInput) Eligibility {
 		}
 		return out
 	}
-	if status == string(model.UsageUnsupported) {
-		out.Reason = ReasonUnsupportedQuota
-		out.Confidence = "UNSUPPORTED"
-		out.Message = "Quota não suportada pelo provedor"
-		if in.ExplicitSelection {
-			out.Eligible = true
-		}
-		return out
-	}
-
 	out.Eligible = true
 	out.Reason = ReasonOK
 	return out
@@ -144,6 +148,17 @@ func confidenceOf(status string) string {
 		return "UNSUPPORTED"
 	case string(model.UsageRateLimited):
 		return "RATE_LIMITED"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+func capacityEvidenceOf(status string) string {
+	switch strings.ToUpper(strings.TrimSpace(status)) {
+	case string(model.UsageLive), string(model.UsageCached), string(model.UsageEstimated), string(model.UsageRateLimited):
+		return "MEASURED"
+	case string(model.UsageUnsupported):
+		return "OPAQUE"
 	default:
 		return "UNKNOWN"
 	}
