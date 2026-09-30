@@ -55,6 +55,22 @@ func TestTunnelHostArmsTunnelAuthMode(t *testing.T) {
 	}
 }
 
+func TestServerCanDisableHostsFileForEmbeddedDesktop(t *testing.T) {
+	srv, err := NewServer(ServerOptions{
+		Host:             "127.0.0.1",
+		Port:             0,
+		NoOpen:           true,
+		DisableHostsFile: true,
+	})
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
+	if srv.hostname != "" {
+		t.Fatalf("embedded desktop server must not register a hosts alias, got %q", srv.hostname)
+	}
+}
+
 func TestServer_BootstrapAndAuth(t *testing.T) {
 	srv, err := NewServer(ServerOptions{
 		Host: "127.0.0.1",
