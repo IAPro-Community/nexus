@@ -248,9 +248,10 @@ func TestNorthStar_PromptToFlowToPreflightCycle(t *testing.T) {
 
 	// 1. Decompose prompt into flow proposal
 	proposal, err := n.DecomposePromptIntoFlowProposal(context.Background(), FlowDecompositionRequest{
-		ProjectID:    project.ID,
-		Goal:         "Implement responsive layout and run automated regression tests",
-		SourcePrompt: "Ensure container queries adapt smoothly and unit tests pass",
+		ProjectID:      project.ID,
+		Goal:           "Implement responsive layout and run automated regression tests",
+		SourcePrompt:   "Ensure container queries adapt smoothly and unit tests pass",
+		DelegationMode: DelegationAuto,
 	})
 	if err != nil {
 		t.Fatal(err)
