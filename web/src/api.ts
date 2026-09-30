@@ -12,7 +12,9 @@ import { isDesktopApp, getPlatformBridge } from './platform';
 let csrfToken = '';
 let csrfRefreshInFlight: Promise<boolean> | null = null;
 let desktopAuthToken = '';
-let desktopBaseUrl = '';
+// Ordinary Wails HTTP requests stay relative to the document origin. Only
+// WebSocket upgrades need the real loopback Core listener.
+let desktopWebSocketBaseUrl = '';
 
 export type BrowserSession = {
   authenticated: boolean;
@@ -43,11 +45,12 @@ export class NexusRequestError<TPayload extends APIErrorPayload = APIErrorPayloa
 
 export function setDesktopAuth(token: string, baseUrl = '') {
   desktopAuthToken = token;
-  desktopBaseUrl = baseUrl.replace(/\/+$/, '');
+  desktopWebSocketBaseUrl = baseUrl.replace(/\/+$/, '');
 }
 
 export function clearDesktopAuth() {
   desktopAuthToken = '';
+  desktopWebSocketBaseUrl = '';
 }
 
 export function setCSRFToken(token: string) {
@@ -62,13 +65,18 @@ export function getDesktopAuthToken(): string {
   return desktopAuthToken;
 }
 
+// Compatibility accessor for HTTP callers. Wails HTTP must remain relative.
 export function getDesktopBaseUrl(): string {
-  return desktopBaseUrl;
+  return '';
+}
+
+export function getDesktopWebSocketBaseUrl(): string {
+  return desktopWebSocketBaseUrl;
 }
 
 export function getWebSocketEndpoint(path: string): string {
   const token = getDesktopAuthToken();
-  const baseUrl = getDesktopBaseUrl();
+  const baseUrl = getDesktopWebSocketBaseUrl();
   let proto =
     typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   let host = typeof window !== 'undefined' ? window.location.host : 'localhost';
@@ -148,7 +156,7 @@ export async function initSession(): Promise<BrowserSession> {
             // Keep API calls relative; using the loopback URL here turns every
             // request into a cross-origin fetch from wails://wails and fails
             // without CORS headers before auth can even be evaluated.
-            setDesktopAuth(bootstrap.sessionToken);
+            setDesktopAuth(bootstrap.sessionToken, bootstrap.serverUrl);
             if (bootstrap.csrfToken) {
               csrfToken = bootstrap.csrfToken;
             }
@@ -191,7 +199,7 @@ export async function initSession(): Promise<BrowserSession> {
     if (desktopAuthToken) {
       headers['Authorization'] = `Bearer ${desktopAuthToken}`;
     }
-    const targetUrl = desktopBaseUrl ? `${desktopBaseUrl}/api/v1/session` : '/api/v1/session';
+    const targetUrl = '/api/v1/session';
     const res = await fetch(targetUrl, { headers });
     if (res.ok) {
       const data = (await res.json()) as BrowserSession;
@@ -203,7 +211,7 @@ export async function initSession(): Promise<BrowserSession> {
           try {
             const b = await getPlatformBridge().getBootstrapInfo?.();
             if (b && b.sessionToken) {
-              setDesktopAuth(b.sessionToken);
+              setDesktopAuth(b.sessionToken, b.serverUrl);
             }
           } catch {
             /* ignore */
@@ -247,9 +255,7 @@ export async function rotateSession(): Promise<BrowserSession> {
   const headers: Record<string, string> = {};
   if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
   if (desktopAuthToken) headers['Authorization'] = `Bearer ${desktopAuthToken}`;
-  const targetUrl = desktopBaseUrl
-    ? `${desktopBaseUrl}/api/v1/session/rotate`
-    : '/api/v1/session/rotate';
+  const targetUrl = '/api/v1/session/rotate';
   const res = await fetch(targetUrl, {
     method: 'POST',
     headers,
@@ -267,7 +273,7 @@ async function refreshCSRFToken(): Promise<boolean> {
   if (!csrfRefreshInFlight) {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (desktopAuthToken) headers.Authorization = `Bearer ${desktopAuthToken}`;
-    const targetUrl = desktopBaseUrl ? `${desktopBaseUrl}/api/v1/session` : '/api/v1/session';
+    const targetUrl = '/api/v1/session';
     csrfRefreshInFlight = fetch(targetUrl, { headers })
       .then(async (res) => {
         if (!res.ok) return false;
@@ -307,8 +313,7 @@ export async function request<T>(
     }
   }
 
-  const targetUrl = desktopBaseUrl && path.startsWith('/') ? `${desktopBaseUrl}${path}` : path;
-  const res = await fetch(targetUrl, { ...options, headers });
+  const res = await fetch(path, { ...options, headers });
   if (res.status === 403 && mutating && !retried && (await refreshCSRFToken())) {
     return request<T>(path, options, true);
   }
