@@ -1,6 +1,10 @@
 import type { ProviderAccount } from '../../types';
 import { asArray } from '../../lib/safeArray';
-import { bestGroupRemainingFromQuotaView, compactQuotaLabel } from '../work/directSessionModel';
+import {
+  bestGroupRemainingFromQuotaView,
+  compactQuotaLabel,
+  isMeasuredQuotaStatus,
+} from '../work/directSessionModel';
 
 function cap(account: ProviderAccount, key: string): string {
   return String(account.capabilities?.[key] || '').toUpperCase();
@@ -20,7 +24,7 @@ function isTerminalOnly(account: ProviderAccount): boolean {
 }
 
 export function quotaPercent(account: ProviderAccount): number | null {
-  if (account.avail_reasons?.unknown_quota || account.quota_view?.status === 'UNKNOWN') return null;
+  if (account.avail_reasons?.unknown_quota || !isMeasuredQuotaStatus(account.quota_view?.status)) return null;
   const fromWindows = bestGroupRemainingFromQuotaView(account.quota_view);
   if (fromWindows != null) return fromWindows;
   const remaining = account.quota_remaining;
@@ -29,7 +33,7 @@ export function quotaPercent(account: ProviderAccount): number | null {
 }
 
 export function quotaLabel(account: ProviderAccount): string | null {
-  if (account.avail_reasons?.unknown_quota || account.quota_view?.status === 'UNKNOWN') return null;
+  if (account.avail_reasons?.unknown_quota || !isMeasuredQuotaStatus(account.quota_view?.status)) return null;
   const label = compactQuotaLabel(account.quota_view);
   if (label) return label;
   const pct = quotaPercent(account);
