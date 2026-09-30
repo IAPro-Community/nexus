@@ -67,14 +67,14 @@ func TestEvaluateEligibilityGates(t *testing.T) {
 			ok:   true,
 		},
 		{
-			name: "unsupported auto",
+			name: "unsupported auto remains operationally eligible",
 			in: EligibilityInput{
-				View:          QuotaView{Status: "UNSUPPORTED", Available: true},
+				View:          QuotaView{Status: "UNSUPPORTED", Available: false, AvailReasons: AvailReasons{UnknownQuota: true}},
 				Authenticated: true,
 				Health:        "healthy",
 			},
 			want: ReasonUnsupportedQuota,
-			ok:   false,
+			ok:   true,
 		},
 		{
 			name: "unavailable",
@@ -105,6 +105,12 @@ func TestEvaluateEligibilityGates(t *testing.T) {
 			got := EvaluateEligibility(tc.in)
 			if got.Reason != tc.want || got.Eligible != tc.ok {
 				t.Fatalf("got eligible=%v reason=%s want eligible=%v reason=%s", got.Eligible, got.Reason, tc.ok, tc.want)
+			}
+			if tc.name == "unsupported auto remains operationally eligible" && got.CapacityEvidence != "OPAQUE" {
+				t.Fatalf("unsupported capacity evidence=%q want OPAQUE", got.CapacityEvidence)
+			}
+			if tc.name == "unknown auto" && got.CapacityEvidence != "UNKNOWN" {
+				t.Fatalf("unknown capacity evidence=%q want UNKNOWN", got.CapacityEvidence)
 			}
 		})
 	}
