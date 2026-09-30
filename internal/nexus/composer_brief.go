@@ -222,6 +222,10 @@ type composerUnknownBlueprint struct {
 }
 
 func newComposerBrief(goal, sourcePrompt string) LivingBrief {
+	return newComposerBriefWithInterviewMode(goal, sourcePrompt, ComposerInterviewStandard)
+}
+
+func newComposerBriefWithInterviewMode(goal, sourcePrompt string, interviewMode ComposerInterviewMode) LivingBrief {
 	body := strings.TrimSpace(sourcePrompt)
 	if body == "" {
 		body = strings.TrimSpace(goal)
@@ -238,6 +242,7 @@ func newComposerBrief(goal, sourcePrompt string) LivingBrief {
 			Objective:      objective,
 			DesiredOutcome: objective,
 		},
+		Interview: ComposerInterviewState{Mode: normalizeComposerInterviewMode(interviewMode)},
 	}
 	mergeTextIntoBrief(&brief, body, "USER")
 	brief.Motivation = deriveMotivationMap(brief)
