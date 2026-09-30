@@ -67,9 +67,9 @@ are not treated as the sandbox boundary.
 
 Semantics:
 
-- `UNKNOWN` → ineligible for automatic Mission allocation; explicit/manual may proceed with a warning.
-- `UNSUPPORTED` → eligible only with explicit selection (PIN/PREFER/MANUAL).
-- Missing percent never becomes synthetic `0%` exhausted.
+- `UNKNOWN` → missing/untrusted evidence; ineligible for automatic allocation. Explicit/manual may proceed with a warning when the caller intentionally overrides the uncertainty.
+- `UNSUPPORTED` → the provider does not expose a trustworthy quota metric. If authentication, health, cooldown and rate-limit gates pass, the resource remains operationally eligible with `capacity_evidence=OPAQUE`; it receives no synthetic capacity percentage and ranks below measured positive capacity.
+- Missing percent never becomes synthetic `0%` or `100%`.
 
 ## Eligibility
 
@@ -79,8 +79,9 @@ All routing layers call `quota.EvaluateEligibility`:
 - `RecommendResources` / `eligibleAccounts` / `validateResourceAccount`
 - Flow preflight
 
-Hard gates (auth, network, health unavailable, cooldown, rate limit, UNKNOWN,
-UNSUPPORTED, exhausted) are not reimplemented per caller.
+Hard gates (auth, network, health unavailable, cooldown, rate limit, UNKNOWN and
+known exhaustion) are not reimplemented per caller. `UNSUPPORTED` quota is an
+opaque-capacity state, not an operational failure.
 
 ## Failures
 
