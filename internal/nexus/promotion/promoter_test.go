@@ -180,7 +180,6 @@ func TestExplicitMissionMatcherAcceptsStandaloneLocalizedForms(t *testing.T) {
 	}
 }
 
-
 func TestPromoterRegisteredProviderReviewUsesSingleTurnDelegate(t *testing.T) {
 	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
 		return nexus.IntentDecision{
