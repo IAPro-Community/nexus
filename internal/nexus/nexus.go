@@ -842,11 +842,23 @@ func (n *Nexus) forceKillRuntime(runtimeID string) {
 	}
 	sess, ok := n.runtimeRegistry().Get(runtimeID)
 	if ok {
-		launcher.KillProcess(sess.PID)
-		launcher.KillProcess(sess.HostPID)
+		// Destructive PID fallbacks are allowed only while the persisted
+		// generation still identifies the same OS process. Legacy rows without
+		// generation remain readable, but must never be used as raw kill targets
+		// because the PID may already have been recycled.
+		if runtimeKillIdentityValid(sess.PID, sess.ProviderGeneration) {
+			launcher.KillProcess(sess.PID)
+		}
+		if runtimeKillIdentityValid(sess.HostPID, sess.HostGeneration) {
+			launcher.KillProcess(sess.HostPID)
+		}
 	}
 	_ = os.Remove(protocol.EndpointPath(runtimeID))
 	_ = n.runtimeRegistry().UpdateState(runtimeID, registry.StateFailed)
+}
+
+func runtimeKillIdentityValid(pid int, generation int64) bool {
+	return pid > 0 && generation > 0 && registry.IsProcessAliveWithGeneration(pid, generation)
 }
 
 // runtimeAlive reports whether a runtime is currently usable: the process is
