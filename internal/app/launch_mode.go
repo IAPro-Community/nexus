@@ -124,11 +124,27 @@ func (r *LaunchModeResolver) StripControlFlags() []string {
 	return args
 }
 
-// WantInteractiveLead reports whether the supervised TTY should bind a Lead
-// Agent and enable Mission promotion. Provider-native operation is the default;
-// --lead is the explicit opt-in and --no-lead remains a compatibility override.
+// WantInteractiveLead reports whether a supervised launch should bind a
+// persistent Lead identity. Interactive TTYs use STICKY_LEAD by default, while
+// --no-lead disables the binding. Binding identity never authorizes Mission
+// promotion; delegation remains OFF unless a separate orchestration decision
+// explicitly enables ASK/AUTO.
 func (r *LaunchModeResolver) WantInteractiveLead() bool {
-	return wantInteractiveLead(r.input.Args)
+	if hasProviderLaunchFlag(r.input.Args, "--no-lead") {
+		return false
+	}
+	if hasProviderLaunchFlag(r.input.Args, "--lead") {
+		return true
+	}
+	return r.input.StdinIsTTY
+}
+
+// RequireInteractiveLead is true only for the explicit --lead contract. The
+// implicit STICKY_LEAD default is best-effort so an internal Nexus metadata
+// failure never prevents an otherwise healthy provider TTY from attaching.
+func (r *LaunchModeResolver) RequireInteractiveLead() bool {
+	return hasProviderLaunchFlag(r.input.Args, "--lead") &&
+		!hasProviderLaunchFlag(r.input.Args, "--no-lead")
 }
 
 // IsTerminal reports whether the current process stdin is a terminal.
