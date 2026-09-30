@@ -107,22 +107,9 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		// scheduler ranking and must never be encoded into this public field.
 		usageSnapshot := profile.GetSanitizedUsageSnapshot(p.Provider, p.Name, acc.Email)
 		qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
-		available := qv.IsAvailable() && det.ok && det.installed && authenticated
-		if !det.ok || !det.installed {
-			qv.Available = false
-			qv.AvailReasons.AllOK = false
-		} else if !authenticated {
-			qv.Available = false
-			qv.AvailReasons.AuthRequired = true
-			qv.AvailReasons.AllOK = false
-		}
+		available := reconcileResourceAvailability(&qv, det.ok, det.installed, authenticated)
 		quotaRemaining := quotaRemainingRatio(qv)
-		quotaTotal := 0.0
-		if quotaStatusKnown(qv.Status) {
-			if _, ok := qv.BestGroupRemaining(); ok {
-				quotaTotal = 1.0
-			}
-		}
+		quotaTotal := quotaTotalRatio(qv)
 		resourceChannels := subscriptionResourceChannels(usageSnapshot)
 
 		accounts = append(accounts, ProviderAccount{
@@ -298,6 +285,35 @@ func subscriptionResourceChannels(snap model.UsageSnapshot) []model.ResourceChan
 		Channel: model.ResourceChannelSubscription,
 		Quota:   &copy,
 	}}
+}
+
+func reconcileResourceAvailability(qv *quota.QuotaView, detectionKnown, installed, authenticated bool) bool {
+	if qv == nil {
+		return false
+	}
+	available := qv.IsAvailable() && detectionKnown && installed && authenticated
+	if !detectionKnown || !installed {
+		qv.Available = false
+		qv.AvailReasons.AllOK = false
+		return false
+	}
+	if !authenticated {
+		qv.Available = false
+		qv.AvailReasons.AuthRequired = true
+		qv.AvailReasons.AllOK = false
+		return false
+	}
+	return available
+}
+
+func quotaTotalRatio(qv quota.QuotaView) float64 {
+	if !quotaStatusKnown(qv.Status) {
+		return 0
+	}
+	if _, ok := qv.BestGroupRemaining(); !ok {
+		return 0
+	}
+	return 1
 }
 
 func quotaRemainingRatio(qv quota.QuotaView) float64 {
