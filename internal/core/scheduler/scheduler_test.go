@@ -574,7 +574,6 @@ func TestSelectorRemainsProviderNeutralForKnownProviders(t *testing.T) {
 	}
 }
 
-
 func TestUnsupportedQuotaUsesLRUAmongHealthyAccounts(t *testing.T) {
 	dataDir := t.TempDir()
 	cfgDir := t.TempDir()

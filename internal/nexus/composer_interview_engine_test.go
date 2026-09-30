@@ -97,7 +97,7 @@ func TestComposerInterviewProfilesAreBounded(t *testing.T) {
 			deepTarget,
 		)
 	}
-	if !(quickMax < standardMax && standardMax < deepMax) {
+	if quickMax >= standardMax || standardMax >= deepMax {
 		t.Fatalf(
 			"expected progressively larger question budgets: quick=%d standard=%d deep=%d",
 			quickMax,

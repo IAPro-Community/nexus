@@ -190,27 +190,27 @@ type PromptReadiness struct {
 
 // LivingBrief stores the structured, durable understanding assembled by Composer.
 type LivingBrief struct {
-	Goal          string             `json:"goal"`
-	SourcePrompt  string             `json:"source_prompt,omitempty"`
-	Intent        BriefIntent        `json:"intent"`
-	Context       BriefContext       `json:"context"`
-	Deliverable   BriefDeliverable   `json:"deliverable"`
-	Scope         BriefScope         `json:"scope"`
-	Environment   BriefEnvironment   `json:"environment"`
-	Constraints   BriefConstraints   `json:"constraints"`
-	Execution     BriefExecution     `json:"execution"`
-	Quality       BriefQuality       `json:"quality"`
-	Decisions     []string           `json:"decisions,omitempty"`
-	Assumptions   []PromptAssumption `json:"assumptions,omitempty"`
-	Alternatives  []string           `json:"alternatives,omitempty"`
-	Risks         []string           `json:"risks,omitempty"`
+	Goal          string                 `json:"goal"`
+	SourcePrompt  string                 `json:"source_prompt,omitempty"`
+	Intent        BriefIntent            `json:"intent"`
+	Context       BriefContext           `json:"context"`
+	Deliverable   BriefDeliverable       `json:"deliverable"`
+	Scope         BriefScope             `json:"scope"`
+	Environment   BriefEnvironment       `json:"environment"`
+	Constraints   BriefConstraints       `json:"constraints"`
+	Execution     BriefExecution         `json:"execution"`
+	Quality       BriefQuality           `json:"quality"`
+	Decisions     []string               `json:"decisions,omitempty"`
+	Assumptions   []PromptAssumption     `json:"assumptions,omitempty"`
+	Alternatives  []string               `json:"alternatives,omitempty"`
+	Risks         []string               `json:"risks,omitempty"`
 	Unknowns      []PromptUnknown        `json:"unknowns,omitempty"`
 	OpenQuestions []string               `json:"open_questions,omitempty"`
 	Readiness     PromptReadiness        `json:"readiness"`
 	Interview     ComposerInterviewState `json:"interview"`
 	Motivation    MotivationMap          `json:"motivation,omitempty"`
-	Facts         []ComposerFact     `json:"facts,omitempty"`
-	Preview       string             `json:"preview,omitempty"`
+	Facts         []ComposerFact         `json:"facts,omitempty"`
+	Preview       string                 `json:"preview,omitempty"`
 }
 
 type composerUnknownBlueprint struct {

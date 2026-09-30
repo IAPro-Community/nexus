@@ -364,7 +364,6 @@ func TestAccountSupportsHeadlessReview(t *testing.T) {
 	}
 }
 
-
 func TestResourceRecommendation_UnsupportedQuotaRemainsOpaqueCandidate(t *testing.T) {
 	opaque := ProviderAccount{
 		ID:            "opencode-default",

@@ -183,7 +183,6 @@ func TestSchedulerRejectsUnknownQuota(t *testing.T) {
 	}
 }
 
-
 func TestSchedulerAllowsUnsupportedQuotaAsOpaqueResource(t *testing.T) {
 	accounts := []ProviderAccount{
 		{
