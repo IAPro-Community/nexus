@@ -744,69 +744,16 @@ func clearLineSequence(providerID string) string {
 	return "\x15"
 }
 
-func validatedFallbackHostPID(s registry.RuntimeSession) (int, error) {
-	hostPID := s.HostPID
-	if hostPID <= 0 {
-		// Legacy rows do not carry a generation-bound HostPID. A surviving
-		// provider PID is insufficient proof because it may have been recycled.
-		if s.PID > 0 && registry.IsProcessAlive(s.PID) {
-			return 0, fmt.Errorf("legacy runtime has live provider PID %d but no verifiable SessionHost identity", s.PID)
-		}
-		return 0, nil
-	}
-	if s.HostGeneration <= 0 {
-		if registry.IsProcessAlive(hostPID) {
-			return 0, fmt.Errorf("SessionHost PID %d is live but has no generation token", hostPID)
-		}
-		return 0, nil
-	}
-	if registry.IsProcessAliveWithGeneration(hostPID, s.HostGeneration) {
-		return hostPID, nil
-	}
-	if registry.IsProcessAlive(hostPID) {
-		return 0, fmt.Errorf("SessionHost PID %d is live but does not match the recorded generation", hostPID)
-	}
-	return 0, nil
-}
-
 func controlStopCmd(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("usage: %s stop <runtime-id>", progName())
 	}
 	runtimeID := args[0]
-	reg := registry.DefaultRegistry()
-	client, err := protocol.NewClient(runtimeID)
-	if err == nil {
-		defer client.Close()
-		if stopErr := client.Stop(); stopErr == nil {
-			fmt.Printf("✓ Sent stop signal to runtime %s\n", runtimeID)
-			return nil
-		}
+	if err := launcher.NewLauncher().Stop(runtimeID); err != nil {
+		return err
 	}
-
-	// Fallback if IPC is unreachable. HostGeneration identifies the SessionHost,
-	// never the provider child. Kill only a generation-verified HostPID; the host
-	// owns provider cleanup (Job Object on Windows). If host identity cannot be
-	// proven, fail closed rather than risk killing a recycled provider PID.
-	if s, ok := reg.Get(runtimeID); ok {
-		hostPID, identityErr := validatedFallbackHostPID(s)
-		if identityErr != nil {
-			_ = os.Remove(protocol.EndpointPath(runtimeID))
-			_ = reg.UpdateState(runtimeID, registry.StateStale)
-			return fmt.Errorf("safety abort for runtime %s: %w; marked as STALE without killing", runtimeID, identityErr)
-		}
-		if hostPID > 0 {
-			if p, pErr := os.FindProcess(hostPID); pErr == nil {
-				_ = p.Kill()
-			}
-		}
-		_ = os.Remove(protocol.EndpointPath(runtimeID))
-		_ = reg.Delete(runtimeID)
-		fmt.Printf("✓ Cleaned up dead runtime %s\n", runtimeID)
-		return nil
-	}
-
-	return fmt.Errorf("runtime %q not found or already stopped", runtimeID)
+	fmt.Printf("✓ Stopped runtime %s\n", runtimeID)
+	return nil
 }
 
 func controlHandoffCmd(args []string) error {
