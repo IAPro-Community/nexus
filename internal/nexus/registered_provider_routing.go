@@ -50,23 +50,21 @@ func (n *Nexus) ResolveRegisteredProviderPreference(prompt string) (string, bool
 }
 
 func resolveRegisteredProviderPreference(prompt string, registered []string) (string, bool) {
-	terms := providerPromptTerms(prompt)
-	if len(terms) == 0 || len(registered) == 0 {
+	tokens := providerPromptTokens(prompt)
+	if len(tokens) == 0 || len(registered) == 0 {
 		return "", false
 	}
 	matched := map[string]struct{}{}
 	for _, provider := range registered {
 		canonical := normalizeRegisteredProviderID(provider)
-		if canonical == "" {
+		if canonical == "" || !hasExplicitProviderRoutingIntent(tokens, canonical) {
 			continue
 		}
-		if _, ok := terms[canonical]; ok {
-			matched[strings.ToLower(strings.TrimSpace(provider))] = struct{}{}
-		}
+		matched[strings.ToLower(strings.TrimSpace(provider))] = struct{}{}
 	}
 	if len(matched) != 1 {
-		// More than one named registered provider is an explicit comparison or
-		// ambiguity, not permission for Nexus to invent a winner.
+		// Multiple explicitly requested registered providers are ambiguous: Nexus
+		// must not invent a winner. Incidental provider-name mentions do not count.
 		return "", false
 	}
 	for provider := range matched {
@@ -75,26 +73,85 @@ func resolveRegisteredProviderPreference(prompt string, registered []string) (st
 	return "", false
 }
 
-func providerPromptTerms(prompt string) map[string]struct{} {
+func providerPromptTokens(prompt string) []string {
 	raw := strings.FieldsFunc(strings.ToLower(prompt), func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_'
 	})
-	terms := make(map[string]struct{}, len(raw)*2)
-	normalized := make([]string, 0, len(raw))
+	tokens := make([]string, 0, len(raw))
 	for _, token := range raw {
 		token = normalizeRegisteredProviderID(token)
-		if token == "" {
+		if token != "" {
+			tokens = append(tokens, token)
+		}
+	}
+	return tokens
+}
+
+func hasExplicitProviderRoutingIntent(tokens []string, provider string) bool {
+	provider = normalizeRegisteredProviderID(provider)
+	if provider == "" {
+		return false
+	}
+	requestVerb := func(token string) bool {
+		switch token {
+		case "use", "usar", "usando", "utilize", "utilizar",
+			"chame", "chamar", "chama", "call", "ask", "pergunte", "perguntar",
+			"delegue", "delegar", "delegate", "route", "roteie", "rotear",
+			"rode", "rodar", "execute", "executar":
+			return true
+		default:
+			return false
+		}
+	}
+	taskVerb := func(token string) bool {
+		switch token {
+		case "revise", "revisar", "review", "valide", "validar", "verify",
+			"analise", "analisar", "investigue", "investigar", "audite", "auditar":
+			return true
+		default:
+			return false
+		}
+	}
+
+	for i := 0; i < len(tokens); i++ {
+		spanEnd := i
+		matched := tokens[i] == provider
+		if !matched && i+1 < len(tokens) && tokens[i]+tokens[i+1] == provider {
+			matched = true
+			spanEnd = i + 1
+		}
+		if !matched {
 			continue
 		}
-		normalized = append(normalized, token)
-		terms[token] = struct{}{}
+
+		start := i - 5
+		if start < 0 {
+			start = 0
+		}
+		end := spanEnd + 5
+		if end >= len(tokens) {
+			end = len(tokens) - 1
+		}
+		for j := start; j <= end; j++ {
+			if requestVerb(tokens[j]) {
+				return true
+			}
+		}
+
+		// Natural forms such as "revise com codex" and "codex revise isso" are
+		// explicit enough while a phrase such as "bug no cursor" is not.
+		if i > 0 && (tokens[i-1] == "via" || tokens[i-1] == "com") {
+			for j := start; j < i; j++ {
+				if taskVerb(tokens[j]) {
+					return true
+				}
+			}
+		}
+		if spanEnd+1 < len(tokens) && taskVerb(tokens[spanEnd+1]) {
+			return true
+		}
 	}
-	// Accept common spaced spellings such as "open code" without maintaining
-	// a second alias registry. Candidate existence is still registration-owned.
-	for i := 0; i+1 < len(normalized); i++ {
-		terms[normalized[i]+normalized[i+1]] = struct{}{}
-	}
-	return terms
+	return false
 }
 
 func normalizeRegisteredProviderID(value string) string {
