@@ -72,3 +72,23 @@ func waitPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, prompt
 	}
 	_, _ = n.AskAgent(ctx, session.AgentID, fmt.Sprintf("A Mission %s está em %s (dispatch %s) para a solicitação: %s. Revise a evidência e sintetize o resultado.", result.RunID, state, result.Status, prompt), false)
 }
+
+
+// runSingleTurnDelegate executes one bounded read-only specialist turn without
+// creating a WorkPlan/Mission and feeds the result back into the existing Lead.
+func runSingleTurnDelegate(n *nexus.Nexus, session registry.RuntimeSession, prompt, preferredProvider string) {
+	if n == nil || session.ProjectID == "" || session.AgentID == "" {
+		return
+	}
+	result, err := n.ExecuteSingleTurnDelegate(context.Background(), session.ProjectID, prompt, preferredProvider)
+	if err != nil {
+		_, _ = n.AskAgent(context.Background(), session.AgentID,
+			fmt.Sprintf("A delegação single-turn solicitada para %s falhou antes de criar qualquer Mission: %v. Informe a limitação ao usuário sem inventar resultado.", preferredProvider, err), false)
+		return
+	}
+	message := fmt.Sprintf("Solicitação original: %s\nO Nexus executou um DELEGATE single-turn sem Mission usando %s:%s. Resultado do especialista:\n\n%s\n\nSintetize o resultado para o usuário sem repetir a execução.", prompt, result.Provider, result.Profile, result.Output)
+	if result.Fallback {
+		message += "\n\nO ResourceScheduler precisou usar um provider registrado alternativo porque o preferido não estava elegível."
+	}
+	_, _ = n.AskAgent(context.Background(), session.AgentID, message, false)
+}
