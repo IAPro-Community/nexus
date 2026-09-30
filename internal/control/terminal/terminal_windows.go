@@ -526,12 +526,19 @@ func (b *windowsBackend) WaitContext(ctx context.Context) error {
 func (b *windowsBackend) Signal(sig os.Signal) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
+	// Windows does not provide Unix-style SIGINT delivery through os.Process.Signal
+	// for ordinary child processes. Both the ConPTY and the safe pipe backend keep
+	// a writable provider stdin, so deliver Ctrl+C as the ETX byte the interactive
+	// provider expects. This is the same byte path used by attached user input and
+	// does not involve Nexus prompt interpretation.
+	if sig == os.Interrupt && b.inPipe != nil {
+		_, err := b.inPipe.Write([]byte{0x03})
+		return err
+	}
 	if b.isConPTY {
-		// Interrupt (Ctrl+C) is delivered to the pseudo console via the input pipe.
-		if sig == os.Interrupt && b.inPipe != nil {
-			_, _ = b.inPipe.Write([]byte{0x03})
-			return nil
-		}
+		// Other graceful signals have no direct ConPTY equivalent. SessionHost
+		// escalates to Kill after its bounded graceful-stop timeout.
 		return nil
 	}
 	if b.cmd != nil && b.cmd.Process != nil {
