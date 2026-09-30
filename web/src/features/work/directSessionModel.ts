@@ -11,6 +11,10 @@ export interface DirectResourceLike {
 export type QuotaTruthState =
   'confirmed' | 'exhausted' | 'stale' | 'unknown' | 'blocked' | 'unauthenticated';
 
+export function isMeasuredQuotaStatus(status?: string): boolean {
+  return ['LIVE', 'CACHED', 'ESTIMATED'].includes(String(status || '').toUpperCase());
+}
+
 export function quotaTruthState(resource: {
   available: boolean;
   authenticated?: boolean;
@@ -166,7 +170,8 @@ export function directQuotaDisplay(resource: {
   avail_reasons?: { unknown_quota?: boolean };
   quota_view?: { status?: string; model_groups?: QuotaGroupLike[]; fetched_at?: string };
 }): string | null {
-  const known = !resource.avail_reasons?.unknown_quota && resource.quota_view?.status !== 'UNKNOWN';
+  const known =
+    !resource.avail_reasons?.unknown_quota && isMeasuredQuotaStatus(resource.quota_view?.status);
   if (!known) return null;
   const label = compactQuotaLabel(resource.quota_view);
   if (label) return label;
