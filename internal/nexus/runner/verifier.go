@@ -123,13 +123,18 @@ func packageDependencySetup(workspace string, commands []string) []string {
 			if verificationFileExists(filepath.Join(workspace, "package-lock.json")) || verificationFileExists(filepath.Join(workspace, "npm-shrinkwrap.json")) {
 				return []string{"npm", "ci", "--ignore-scripts"}
 			}
-			return []string{"npm", "install", "--ignore-scripts"}
 		case "yarn":
-			return []string{"yarn", "install", "--ignore-scripts"}
+			if verificationFileExists(filepath.Join(workspace, "yarn.lock")) {
+				return []string{"yarn", "install", "--frozen-lockfile", "--ignore-scripts"}
+			}
 		case "pnpm":
-			return []string{"pnpm", "install", "--ignore-scripts"}
+			if verificationFileExists(filepath.Join(workspace, "pnpm-lock.yaml")) {
+				return []string{"pnpm", "install", "--frozen-lockfile", "--ignore-scripts"}
+			}
 		case "bun":
-			return []string{"bun", "install", "--ignore-scripts"}
+			if verificationFileExists(filepath.Join(workspace, "bun.lock")) || verificationFileExists(filepath.Join(workspace, "bun.lockb")) {
+				return []string{"bun", "install", "--frozen-lockfile", "--ignore-scripts"}
+			}
 		}
 	}
 	return nil
