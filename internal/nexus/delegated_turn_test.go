@@ -75,3 +75,20 @@ func TestBoundedDelegatedTurnOutput(t *testing.T) {
 		t.Fatalf("delegated output was not bounded: len=%d", len(got))
 	}
 }
+
+func TestExcludeDelegatedLeadResourceKeepsOtherProfiles(t *testing.T) {
+	accounts := []ProviderAccount{
+		{Provider: "codex", Profile: "lead"},
+		{Provider: "codex", Profile: "review"},
+		{Provider: "agy", Profile: "main"},
+	}
+	got := excludeDelegatedLeadResource(accounts, AgentConfig{Provider: "codex", Profile: "lead"})
+	if len(got) != 2 {
+		t.Fatalf("delegate resource pool = %+v, want two resources", got)
+	}
+	for _, account := range got {
+		if account.Provider == "codex" && account.Profile == "lead" {
+			t.Fatalf("Lead resource leaked into delegate pool: %+v", got)
+		}
+	}
+}
