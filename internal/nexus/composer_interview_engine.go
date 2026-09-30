@@ -217,16 +217,6 @@ func selectComposerNextUnknownForBrief(brief LivingBrief) (PromptUnknown, bool) 
 	return best, found
 }
 
-func composerInterviewAnsweredCount(unknowns []PromptUnknown) int {
-	count := 0
-	for _, unknown := range unknowns {
-		switch unknown.Status {
-		case PromptUnknownAnswered, PromptUnknownConfirmed, PromptUnknownDismissed: count++
-		}
-	}
-	return count
-}
-
 func shouldAddComposerPressurePass(brief LivingBrief, state ComposerInterviewState) bool {
 	if state.Mode == ComposerInterviewQuick || state.QuestionsAnswered >= state.MaxQuestions { return false }
 	for _, unknown := range brief.Unknowns {
