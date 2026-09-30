@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
@@ -117,6 +118,40 @@ func waitInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSes
 	if err := submitPromptToLead(ctx, n, leadAgentID, session.RuntimeID, message); err != nil {
 		fmt.Fprintf(os.Stderr, "[nexus] delegated Mission %s settled, but Lead synthesis failed: %v\n", result.RunID, err)
 	}
+}
+
+func runInteractiveDelegatedTurn(n *nexus.Nexus, session registry.RuntimeSession, leadAgentID, prompt, preferredProvider string) {
+	if n == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancel()
+
+	result, err := n.ExecuteDelegatedTurn(ctx, nexus.DelegatedTurnRequest{
+		ProjectID:         session.ProjectID,
+		LeadAgentID:       leadAgentID,
+		Prompt:            prompt,
+		PreferredProvider: preferredProvider,
+	})
+	if err != nil {
+		message := fmt.Sprintf("A solicitação pediu um turno delegado para %s, mas a execução read-only falhou. Não repita automaticamente a tarefa em outro modo; informe a limitação ao usuário: %v", firstNonEmptyString(preferredProvider, "um provider registrado"), err)
+		fmt.Fprintf(os.Stderr, "[nexus] delegated turn failed: %v\n", err)
+		_ = submitPromptToLead(context.Background(), n, leadAgentID, session.RuntimeID, message)
+		return
+	}
+	message := fmt.Sprintf("Solicitação original: %s\n\nO Nexus executou um turno delegado READ_ONLY em %s:%s (fallback=%t). Skills: %s.\nMotivo de roteamento: %s\n\nResultado delegado:\n%s\n\nSintetize este resultado para o usuário. Não atribua mudanças de arquivos ao delegado: este turno não tinha permissão de escrita.", prompt, result.Provider, result.Profile, result.Fallback, strings.Join(result.SkillIDs, ", "), result.Reason, result.Output)
+	if err := submitPromptToLead(context.Background(), n, leadAgentID, session.RuntimeID, message); err != nil {
+		fmt.Fprintf(os.Stderr, "[nexus] delegated turn completed, but Lead synthesis failed: %v\n", err)
+	}
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
 }
 
 func interactiveDelegationFailure(n *nexus.Nexus, session registry.RuntimeSession, leadAgentID, runID, action string, err error) {
