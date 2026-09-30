@@ -853,6 +853,12 @@ func (n *Nexus) runtimeAlive(runtimeID string) bool {
 	if !ok {
 		return false
 	}
+	// Registry state is authoritative for lifecycle. A stale/failed/stopped
+	// generation must never be revived merely because an old host PID or pipe
+	// still happens to exist.
+	if !sess.IsActive() {
+		return false
+	}
 	// HostGeneration belongs to the SessionHost, not the provider child.
 	// Reuse the registry's canonical host-identity check so a surviving child
 	// process cannot make a dead/recycled host generation look healthy.
