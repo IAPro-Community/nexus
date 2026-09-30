@@ -128,8 +128,10 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 	// Prefer current provider evidence, but do not discard attributable
 	// ESTIMATED observations. When every healthy account only has a last-known
 	// estimate, ranking those estimates is more informative than unrelated LRU.
-	// UNKNOWN still has no capacity meaning and falls back to LRU only when no
-	// measured quota evidence exists at all.
+	// Opaque UNSUPPORTED quota remains operationally eligible but has no
+	// capacity meaning. When every eligible account lacks measured evidence,
+	// use LRU instead of inventing a percentage. UNKNOWN remains fail-closed
+	// in quota.EvaluateEligibility.
 	hasCurrentQuotaEvidence := false
 	hasEstimatedQuotaEvidence := false
 	for _, ev := range eligible {
@@ -153,7 +155,7 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 			return eligible[i].Profile.Name < eligible[j].Profile.Name
 		})
 		best := eligible[0]
-		return &SelectionResult{SelectedProfile: &best.Profile, Reason: "quota UNKNOWN; LRU among healthy authenticated profiles", Evaluations: evals}, nil
+		return &SelectionResult{SelectedProfile: &best.Profile, Reason: "quota opaque/unmeasured; LRU among healthy authenticated profiles", Evaluations: evals}, nil
 	}
 
 	// Evidence freshness is a hard ordering dimension: LIVE/CACHED always beats
@@ -318,8 +320,12 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 		var breakdown []string
 		breakdown = append(breakdown, "authenticated")
 
-		// UNKNOWN quota is not a hard block, but flag it for scoring penalty.
-		if qv.AvailReasons.UnknownQuota {
+		// Opaque quota is routable but never capacity evidence. UNKNOWN is
+		// rejected by the canonical eligibility gate before scoring.
+		if qv.Status == string(model.UsageUnsupported) {
+			score -= 10.0
+			breakdown = append(breakdown, "opaque quota (-10.0)")
+		} else if qv.AvailReasons.UnknownQuota {
 			score -= 10.0
 			breakdown = append(breakdown, "unknown quota (-10.0)")
 		}
@@ -347,9 +353,9 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 				breakdown = append(breakdown, fmt.Sprintf("capacity rank %.0f (best pool: %.0f%%, min: %.0f%% [%s], avg: %.0f%%) (+%.1f)", capacityRank, bestRemaining, minPct, bottleneckKind, avgRemaining, capScore))
 			}
 		} else {
-			// Unknown quota remains eligible for resilience, but must never
-			// outrank an account with a known positive quota.
-			breakdown = append(breakdown, "unknown capacity (+0.0)")
+			// Opaque/unmeasured capacity never gets a synthetic percentage and
+			// must not outrank a resource backed by measured positive quota.
+			breakdown = append(breakdown, "opaque/unmeasured capacity (+0.0)")
 		}
 
 		// User Configured Priority
