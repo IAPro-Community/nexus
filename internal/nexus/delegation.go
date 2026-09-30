@@ -63,16 +63,20 @@ type DelegationDecision struct {
 	CreatedAt            time.Time             `json:"created_at"`
 }
 
-// NormalizeDelegationMode keeps old callers safe and makes AUTO the product
-// default. Unknown values fail closed to AUTO rather than disabling routing.
+// NormalizeDelegationMode is the canonical delegation policy boundary.
+// Delegation is opt-in: empty or unknown values fail closed to OFF. AUTO and
+// ASK must be explicit so an ordinary provider prompt cannot become a Mission
+// merely because a caller omitted the mode.
 func NormalizeDelegationMode(mode DelegationMode) DelegationMode {
 	switch DelegationMode(strings.ToUpper(strings.TrimSpace(string(mode)))) {
+	case DelegationAuto:
+		return DelegationAuto
 	case DelegationAsk:
 		return DelegationAsk
 	case DelegationOff:
 		return DelegationOff
 	default:
-		return DelegationAuto
+		return DelegationOff
 	}
 }
 
