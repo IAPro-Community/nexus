@@ -862,11 +862,10 @@ func (n *Nexus) runtimeAlive(runtimeID string) bool {
 	if !ok {
 		return false
 	}
-	if sess.HostGeneration > 0 {
-		if !registry.IsProcessAliveWithGeneration(sess.PID, sess.HostGeneration) {
-			return false
-		}
-	} else if !registry.IsProcessAlive(sess.PID) {
+	// HostGeneration belongs to the SessionHost, not the provider child.
+	// Reuse the registry's canonical host-identity check so a surviving child
+	// process cannot make a dead/recycled host generation look healthy.
+	if !sess.HostLive() {
 		return false
 	}
 	if sess.Transport == "mock" {
