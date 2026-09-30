@@ -1,13 +1,13 @@
 # Current release status
 
-STATUS: NEXUS_1_0_BETA6_CANDIDATE_UNVERIFIED
-SOURCE_VERSION: 1.0.0-beta.6
+STATUS: NEXUS_1_0_BETA7_CANDIDATE_UNVERIFIED
+SOURCE_VERSION: 1.0.0-beta.7
 CANDIDATE_REF: release/v1.0.0
 PUBLIC_GITHUB_RELEASE: NONE
 LATEST_SOURCE_BETA_TAG: v1.0.0-beta.1
 CI_STATE: PR_VALIDATION_ACTIVE_EXACT_SHA_PENDING
 INTEGRATION_TRACKER: #27
-INTEGRATION_BASE_SHA: PENDING_FINAL_BETA6_SHA
+INTEGRATION_BASE_SHA: PENDING_FINAL_BETA7_SHA
 UPDATED_AT: 2026-09-29
 
 > **Current release truth moved to `docs/release-status.md`.** This DEV file
@@ -15,17 +15,17 @@ UPDATED_AT: 2026-09-29
 > and must not override the current `VERSION`, candidate ref, platform policy,
 > tag inventory, release inventory or current CI state.
 
-## Canonical beta integration status — 2026-09-29
+## Canonical beta integration status — 2026-09-30
 
-`release/v1.0.0` is the only integration line for Nexus 1.0 retesting. Beta 6 is the current internal candidate. Wails v3 has already been selectively ported onto this line while preserving newer Agent Projection, ExecutionRole, Direct/Mission, OpenCode and homologation contracts. Future beta increments change the internal version/manifest, not the release branch.
+`release/v1.0.0` is the only integration line for Nexus 1.0 retesting. Beta 7 is the current internal candidate. Wails v3 has already been selectively ported onto this line while preserving newer Agent Projection, ExecutionRole, Direct/Mission, OpenCode and homologation contracts. Future beta increments change the internal version/manifest, not the release branch.
 
 The authoritative open-gap checklist is GitHub issue #27. Source integration remains **UNVERIFIED** until native same-SHA evidence closes the required platform gates.
 
-Beta 6 additionally hardens Usage/Capacity semantics and multi-account routing. The public quota field is literal remaining capacity, while multi-pool breadth stays an internal scheduler concern. Release automation now accepts only the exact HEAD of `release/v1.0.0`.
+Beta 7 preserves the Usage/Capacity hardening and adds the Composer Interview Engine plus the latest Codex/delegation fail-closed corrections. The public quota field is literal remaining capacity, while multi-pool breadth stays an internal scheduler concern. Release automation now accepts only the exact HEAD of `release/v1.0.0`.
 
 ## Current candidate summary
 
-- source version: `1.0.0-beta.6`;
+- source version: `1.0.0-beta.7`;
 - candidate ref: `release/v1.0.0`;
 - source matrix integrated: Linux amd64 + Windows amd64 + macOS arm64;
 - public binary release inventory: empty in both the private source repository
@@ -234,7 +234,7 @@ Windows/macOS remain blockers for any release that advertises them until their n
 
 `NEXUS_1_0_CANDIDATE = NO_GO`
 
-Reason: beta.6 source closure is merged, but this newer candidate includes changes after
+Reason: beta.7 source closure is still evolving, and this newer candidate includes changes after
 the historical CI #669 baseline. The final immutable candidate still needs fresh exact-SHA
 homologation/certification for every platform it advertises, plus Stable Certification.
 Windows/macOS remain UNVERIFIED until their native same-SHA evidence is complete.
