@@ -108,7 +108,8 @@ func providerRoutingRequested(prompt string) bool {
 	for _, verb := range []string{
 		"chame", "chamar", "chama", "use", "usar", "usando", "rode", "rodar",
 		"execute", "executar", "delegue", "delegar", "encaminhe", "encaminhar",
-		"prefira", "preferir", "call", "ask", "run", "delegate", "route", "using", "via",
+		"prefira", "preferir", "peça", "peca", "pedir", "mande", "mandar",
+		"call", "ask", "run", "delegate", "route", "using", "via",
 	} {
 		if _, ok := terms[normalizeRegisteredProviderID(verb)]; ok {
 			return true
