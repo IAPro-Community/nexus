@@ -744,6 +744,31 @@ func clearLineSequence(providerID string) string {
 	return "\x15"
 }
 
+func validatedFallbackHostPID(s registry.RuntimeSession) (int, error) {
+	hostPID := s.HostPID
+	if hostPID <= 0 {
+		// Legacy rows do not carry a generation-bound HostPID. A surviving
+		// provider PID is insufficient proof because it may have been recycled.
+		if s.PID > 0 && registry.IsProcessAlive(s.PID) {
+			return 0, fmt.Errorf("legacy runtime has live provider PID %d but no verifiable SessionHost identity", s.PID)
+		}
+		return 0, nil
+	}
+	if s.HostGeneration <= 0 {
+		if registry.IsProcessAlive(hostPID) {
+			return 0, fmt.Errorf("SessionHost PID %d is live but has no generation token", hostPID)
+		}
+		return 0, nil
+	}
+	if registry.IsProcessAliveWithGeneration(hostPID, s.HostGeneration) {
+		return hostPID, nil
+	}
+	if registry.IsProcessAlive(hostPID) {
+		return 0, fmt.Errorf("SessionHost PID %d is live but does not match the recorded generation", hostPID)
+	}
+	return 0, nil
+}
+
 func controlStopCmd(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("usage: %s stop <runtime-id>", progName())
@@ -759,18 +784,20 @@ func controlStopCmd(args []string) error {
 		}
 	}
 
-	// Fallback if socket unreachable: check registry and validate PID identity before kill
+	// Fallback if IPC is unreachable. HostGeneration identifies the SessionHost,
+	// never the provider child. Kill only a generation-verified HostPID; the host
+	// owns provider cleanup (Job Object on Windows). If host identity cannot be
+	// proven, fail closed rather than risk killing a recycled provider PID.
 	if s, ok := reg.Get(runtimeID); ok {
-		if s.PID > 0 {
-			if registry.IsProcessAliveWithGeneration(s.PID, s.HostGeneration) {
-				if p, pErr := os.FindProcess(s.PID); pErr == nil {
-					_ = p.Kill()
-				}
-			} else if registry.IsProcessAlive(s.PID) {
-				// Process is alive but host generation does not match: PID was recycled by the OS!
-				_ = os.Remove(protocol.EndpointPath(runtimeID))
-				_ = reg.UpdateState(runtimeID, registry.StateStale)
-				return fmt.Errorf("safety abort: PID %d is active but does not match runtime %s host generation (PID recycled); marked as STALE without killing", s.PID, runtimeID)
+		hostPID, identityErr := validatedFallbackHostPID(s)
+		if identityErr != nil {
+			_ = os.Remove(protocol.EndpointPath(runtimeID))
+			_ = reg.UpdateState(runtimeID, registry.StateStale)
+			return fmt.Errorf("safety abort for runtime %s: %w; marked as STALE without killing", runtimeID, identityErr)
+		}
+		if hostPID > 0 {
+			if p, pErr := os.FindProcess(hostPID); pErr == nil {
+				_ = p.Kill()
 			}
 		}
 		_ = os.Remove(protocol.EndpointPath(runtimeID))
