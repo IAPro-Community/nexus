@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { api, initSession, request, setCSRFToken } from './api';
+import {
+  api,
+  clearDesktopAuth,
+  getDesktopBaseUrl,
+  getDesktopWebSocketBaseUrl,
+  initSession,
+  request,
+  setCSRFToken,
+  setDesktopAuth,
+} from './api';
 import { setPlatformBridge, type PlatformBridge, WebBridge } from './platform';
 
 describe('api request layer', () => {
@@ -8,6 +17,26 @@ describe('api request layer', () => {
     vi.stubGlobal('fetch', vi.fn());
     setPlatformBridge(new WebBridge());
     setCSRFToken('');
+    clearDesktopAuth();
+  });
+
+  it('keeps Wails HTTP same-origin while using the Core listener for WebSocket', async () => {
+    setDesktopAuth('desktop-token', 'http://127.0.0.1:43123/');
+    expect(getDesktopBaseUrl()).toBe('');
+    expect(getDesktopWebSocketBaseUrl()).toBe('http://127.0.0.1:43123');
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([]),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.getWorkspaces();
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/workspaces');
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get('Authorization')).toBe(
+      'Bearer desktop-token',
+    );
   });
 
   it('exposes the shared request transport and CSRF setter for domain clients', async () => {
