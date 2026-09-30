@@ -58,12 +58,13 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 	}
 
 	preferProvider := strings.ToLower(strings.TrimSpace(req.PreferProvider))
-	if preferProvider == "" {
-		if provider, ok, resolveErr := n.ResolveRegisteredProviderPreference(req.Prompt); resolveErr != nil {
-			return nil, resolveErr
-		} else if ok {
-			preferProvider = provider
-		}
+	explicitProvider := ""
+	if provider, ok, resolveErr := n.ResolveRegisteredProviderPreference(req.Prompt); resolveErr != nil {
+		return nil, resolveErr
+	} else if ok {
+		explicitProvider = strings.ToLower(strings.TrimSpace(provider))
+		// The explicit user request is authoritative over any softer caller hint.
+		preferProvider = explicitProvider
 	}
 
 	skills := append([]string(nil), req.SkillIDs...)
@@ -106,12 +107,15 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 		preferredRecommendation := RecommendResources(preferred, resourceReq, policy)
 		if preferredRecommendation.Recommended != nil {
 			candidateAccounts = preferred
+		} else if explicitProvider != "" {
+			return nil, fmt.Errorf("explicitly requested provider %s has no eligible registered read-only resource: %s", explicitProvider, preferredRecommendation.Explanation)
 		}
 	}
 	recommendation := RecommendResources(candidateAccounts, resourceReq, policy)
-	if recommendation.Recommended == nil && preferProvider != "" && len(candidateAccounts) != len(accounts) {
-		// The preferred provider became unavailable between the first eligibility
-		// pass and allocation. Reopen only the registered pool.
+	if recommendation.Recommended == nil && explicitProvider == "" && preferProvider != "" && len(candidateAccounts) != len(accounts) {
+		// A soft preference may reopen the registered pool. An explicit provider
+		// request never does: it fails closed rather than pretending another
+		// provider satisfied the user's instruction.
 		recommendation = RecommendResources(accounts, resourceReq, policy)
 	}
 	if recommendation.Recommended == nil {
