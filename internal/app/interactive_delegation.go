@@ -139,7 +139,7 @@ func runInteractiveDelegatedTurn(n *nexus.Nexus, session registry.RuntimeSession
 		_ = submitPromptToLead(context.Background(), n, leadAgentID, session.RuntimeID, message)
 		return
 	}
-	message := fmt.Sprintf("Solicitação original: %s\n\nO Nexus executou um turno delegado READ_ONLY em %s:%s (fallback=%t). Skills: %s.\nMotivo de roteamento: %s\n\nResultado delegado:\n%s\n\nSintetize este resultado para o usuário. Não atribua mudanças de arquivos ao delegado: este turno não tinha permissão de escrita.", prompt, result.Provider, result.Profile, result.Fallback, strings.Join(result.SkillIDs, ", "), result.Reason, result.Output)
+	message := fmt.Sprintf("Solicitação original: %s\n\nO Nexus executou um turno delegado READ_ONLY em %s:%s (fallback=%t). Skills: %s.\nMotivo de roteamento: %s\n\nResultado delegado:\n%s\n\nSintetize este resultado para o usuário. Se a solicitação original exigir uma mudança e a recomendação delegada for suficiente, você (Lead) pode aplicá-la agora sob sua autoridade normal. Não atribua mudanças de arquivos ao delegado: este turno não tinha permissão de escrita.", prompt, result.Provider, result.Profile, result.Fallback, strings.Join(result.SkillIDs, ", "), result.Reason, result.Output)
 	if err := submitPromptToLead(context.Background(), n, leadAgentID, session.RuntimeID, message); err != nil {
 		fmt.Fprintf(os.Stderr, "[nexus] delegated turn completed, but Lead synthesis failed: %v\n", err)
 	}
