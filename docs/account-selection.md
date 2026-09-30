@@ -11,7 +11,8 @@ When you run `ai <provider>` (for example, `ai codex` or `ai claude`) without ex
 - **Prioritize Capacity**: Choose the account with the highest available remaining quota.
 - **Respect Rate Limits**: Automatically exclude accounts currently in cooldown.
 - **Respect Workspace Bindings**: Prefer accounts bound to your active project workspace.
-- **LRU for Unknown Capacity**: When exact quota is `UNKNOWN` across healthy accounts, rotate evenly to distribute load.
+- **Fail closed on `UNKNOWN`**: missing or untrusted evidence is not automatic capacity.
+- **LRU for opaque capacity**: when a provider explicitly reports quota as `UNSUPPORTED`, healthy authenticated accounts remain routable and rotate deterministically without a fabricated percentage.
 - **Zero Infinite Loops**: Track attempted profiles in each execution cycle so errors fail fast if all accounts are exhausted.
 
 ---
