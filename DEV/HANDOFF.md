@@ -19,9 +19,10 @@ Próxima ação do maestro, nesta ordem:
    `offline`); enquanto isso toda run de CI fica `queued` e as antigas aparecem
    `cancelled` por `concurrency`. O bloqueio **não** é crédito.
 3. **FASE 11** — feito; atualizar o relatório se FASE 6/7/8 avançarem.
-4. **FASE 12** — comentário na issue #27 com o bloco
-   `WINDOWS MUST VALIDATE SHA = 6bf1b9f…` (**requer aprovação do maestro**;
-   nada foi publicado nesta rodada).
+4. **FASE 12** — concluído: comentário publicado na issue #27
+   (<https://github.com/IAPro-Community/nexus/issues/27#issuecomment-5920570810>)
+   com o PASS, as pendências e o bloco
+   `WINDOWS MUST VALIDATE SHA = 6bf1b9f…`.
 
 Ambiente reproduzível: PATH com `$HOME/.bun/bin` antes de `node22/bin`
 (Bun 1.3.9 vs 1.4.0 npm), `GOTOOLCHAIN=local` (Go 1.25.14),
