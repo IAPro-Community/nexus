@@ -70,9 +70,66 @@ func resolveRegisteredProviderPreference(prompt string, registered []string) (st
 		return "", false
 	}
 	for provider := range matched {
+		if !explicitProviderRoutingRequested(prompt, provider) {
+			// Mentioning a provider while discussing its adapter/configuration is
+			// not the same as asking Nexus to execute that provider.
+			return "", false
+		}
 		return provider, true
 	}
 	return "", false
+}
+
+func explicitProviderRoutingRequested(prompt, provider string) bool {
+	words := strings.FieldsFunc(strings.ToLower(prompt), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+	normalized := make([]string, 0, len(words))
+	for _, word := range words {
+		if token := normalizeRegisteredProviderID(word); token != "" {
+			normalized = append(normalized, token)
+		}
+	}
+	wanted := normalizeRegisteredProviderID(provider)
+	if wanted == "" {
+		return false
+	}
+	isVerb := func(token string) bool {
+		switch token {
+		case "use", "usar", "usa", "chame", "chamar", "call", "ask", "pergunte",
+			"delegate", "delegue", "delegar", "route", "roteie", "rotear",
+			"execute", "executar", "run", "rode", "rodar", "via":
+			return true
+		default:
+			return false
+		}
+	}
+	for i := range normalized {
+		span := 1
+		if normalized[i] != wanted {
+			if i+1 >= len(normalized) || normalized[i]+normalized[i+1] != wanted {
+				continue
+			}
+			span = 2
+		}
+		start := i - 3
+		if start < 0 {
+			start = 0
+		}
+		for j := start; j < i; j++ {
+			if isVerb(normalized[j]) {
+				return true
+			}
+		}
+		if i > 0 && (normalized[i-1] == "com" || normalized[i-1] == "with") {
+			return true
+		}
+		after := i + span
+		if after < len(normalized) && (normalized[after] == "para" || normalized[after] == "to") {
+			return true
+		}
+	}
+	return false
 }
 
 func providerPromptTerms(prompt string) map[string]struct{} {
