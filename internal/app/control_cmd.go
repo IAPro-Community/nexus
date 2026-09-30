@@ -722,6 +722,13 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 							_, _ = conn.Write([]byte("\r"))
 							continue
 						}
+						if decision.Action == promotion.Delegate {
+							_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
+							provider := strings.TrimSpace(decision.Intent.TaskRequirements.PreferProvider)
+							_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Delegando uma análise single-turn para %s; nenhuma Mission será criada.\r\n", provider)
+							go runInteractiveSingleTurnDelegate(n, session, agentID, line, provider)
+							continue
+						}
 						if decision.Action == promotion.Ask {
 							_, _ = fmt.Fprint(os.Stderr, "\r\n[nexus] Promover esta solicitação para uma Mission? [y/s/n] ")
 							pendingASK = line
