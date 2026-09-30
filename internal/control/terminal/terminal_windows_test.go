@@ -208,7 +208,6 @@ func TestWindowsBackendInteractiveConPTYOptIn(t *testing.T) {
 	_ = backend.Kill()
 }
 
-
 func TestWindowsBackendKillUsesSupervisedJobObject(t *testing.T) {
 	t.Setenv("AI_CLI_ENABLE_CONPTY", "")
 	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
