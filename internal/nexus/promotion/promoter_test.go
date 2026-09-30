@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 func TestPromoterDecideOFFKeepsLead(t *testing.T) {
@@ -177,5 +178,52 @@ func TestExplicitMissionMatcherAcceptsStandaloneLocalizedForms(t *testing.T) {
 		if !IsExplicitMissionRequest(input) {
 			t.Fatalf("expected explicit Mission intent for %q", input)
 		}
+	}
+}
+
+
+func TestPromoterRegisteredProviderRequestDelegatesWithoutMission(t *testing.T) {
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	if _, err := profile.Create("codex", "work"); err != nil {
+		t.Fatal(err)
+	}
+	n := &nexus.Nexus{}
+	p := Promoter{
+		Nexus: n,
+		DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+			return nexus.IntentDecision{
+				Strategy: nexus.IntentDirect,
+				TaskRequirements: nexus.TaskRequirements{
+					TaskKind: "review",
+					Role:     "reviewer",
+				},
+			}, nil
+		},
+	}
+	decision, err := p.Decide(context.Background(), "project", "chame o codex para revisar isso", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Delegate {
+		t.Fatalf("registered provider request action=%s, want DELEGATE: %+v", decision.Action, decision)
+	}
+	if decision.ExplicitMissionRequest {
+		t.Fatalf("provider request must not become explicit Mission: %+v", decision)
+	}
+	if decision.Intent.TaskRequirements.PreferProvider != "codex" {
+		t.Fatalf("prefer provider=%q, want codex", decision.Intent.TaskRequirements.PreferProvider)
+	}
+}
+
+func TestPromoterDelegationOffStillKeepsProviderBytesWithLead(t *testing.T) {
+	p := Promoter{}
+	decision, err := p.Decide(context.Background(), "project", "chame o codex para revisar isso", ModeOff)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != KeepWithLead {
+		t.Fatalf("delegation OFF action=%s, want KEEP_WITH_LEAD", decision.Action)
 	}
 }
