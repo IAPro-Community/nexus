@@ -119,7 +119,6 @@ func waitInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSes
 	}
 }
 
-
 func runInteractiveSingleTurnDelegate(n *nexus.Nexus, session registry.RuntimeSession, leadAgentID, prompt, preferredProvider string) {
 	if n == nil {
 		return
