@@ -23,15 +23,25 @@ func TestProtocolSerialization(t *testing.T) {
 	}
 
 	resp, err := NewResponse(StatusData{
-		RuntimeID: "rt-123",
-		State:     "RUNNING",
-		PID:       42,
+		RuntimeID:          "rt-123",
+		State:              "RUNNING",
+		PID:                42,
+		ProviderGeneration: 123456,
+		HostPID:            7,
+		HostGeneration:     654321,
 	})
 	if err != nil {
 		t.Fatalf("failed to create response: %v", err)
 	}
 	if !resp.OK {
 		t.Errorf("expected OK true")
+	}
+	var status StatusData
+	if err := json.Unmarshal(resp.Data, &status); err != nil {
+		t.Fatalf("failed to decode status data: %v", err)
+	}
+	if status.ProviderGeneration != 123456 || status.HostGeneration != 654321 {
+		t.Fatalf("process generations were not serialized: %+v", status)
 	}
 
 	errResp := NewErrorResponse("something went wrong")
