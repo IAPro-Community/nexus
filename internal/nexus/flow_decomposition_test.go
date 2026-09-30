@@ -7,6 +7,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 func TestDecomposePromptIntoFlowProposal_SimpleTask(t *testing.T) {
@@ -188,6 +189,7 @@ func TestPreflightFlow_RejectsCyclicDAG(t *testing.T) {
 
 
 func TestDecomposePromptAutoRoutesRegisteredProviderAndSkills(t *testing.T) {
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
 	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
 	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
 	n := openTestNexus(t)
