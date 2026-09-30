@@ -52,9 +52,10 @@ func OpenSharedBackend(surfaceName string) (*SharedBackend, error) {
 	}
 
 	core, err := app.NewCore(app.CoreConfig{
-		Host:   "127.0.0.1",
-		Port:   0,
-		NoOpen: true,
+		Host:             "127.0.0.1",
+		Port:             0,
+		NoOpen:           true,
+		DisableHostsFile: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("initialize Nexus Core: %w", err)
