@@ -439,8 +439,14 @@ func (b *windowsBackend) Supervise() error {
 	}
 	process := b.hProcess
 	if process == 0 && b.cmd != nil && b.cmd.Process != nil {
-		const processAllAccess = 0x001F0FFF
-		h, _, _ := procOpenProcess.Call(processAllAccess, 0, uintptr(b.cmd.Process.Pid))
+		// AssignProcessToJobObject requires PROCESS_SET_QUOTA and
+		// PROCESS_TERMINATE. Avoid PROCESS_ALL_ACCESS: it is unnecessary and can
+		// be rejected by locked-down Windows environments.
+		const (
+			processTerminate = 0x0001
+			processSetQuota  = 0x0100
+		)
+		h, _, _ := procOpenProcess.Call(processTerminate|processSetQuota, 0, uintptr(b.cmd.Process.Pid))
 		process = h
 		if process != 0 {
 			b.hProcess = process
