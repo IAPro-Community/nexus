@@ -277,7 +277,7 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 
 	switch result.Mode {
 	case LaunchModeSupervised:
-		return executeProviderSupervised(provName, explicitProfile, resolver.StripControlFlags(), resolver.WantInteractiveLead())
+		return executeProviderSupervised(provName, explicitProfile, resolver.StripControlFlags(), resolver.WantInteractiveLead(), resolver.RequireInteractiveLead())
 	case LaunchModeDirect:
 		args = resolver.StripControlFlags()
 	}
@@ -471,7 +471,7 @@ func usage() {
 
   %s <provider> [flags]           Launch provider with intelligent account selection
   %s <provider> --supervised      Launch through SessionHost; enables /nexus control
-  %s <provider> --lead            Bind Interactive Lead + Mission promotion on submit
+  %s <provider> --lead            Require persistent Lead identity (delegation stays OFF)
   %s <provider>:<profile> [flags] Launch specific profile (e.g. %s codex:work)
   %s <provider>:auto [flags]      Explicit auto-selection
   %s resume [id] [provider:name]  Resume previous session using provider-native syntax
