@@ -80,6 +80,10 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 
 	taskReq := ClassifyTaskRequirements(req.Prompt)
 	taskReq.PreferProvider = preferProvider
+	modeDef, ok := AgentModeForRole(taskReq.Role)
+	if !ok || !modeDef.ReadOnlyByDefault {
+		return nil, fmt.Errorf("missionless delegation is restricted to read-only specialist roles; role %q requires Mission isolation", taskReq.Role)
+	}
 	// Agent specialization owns semantic capabilities. Provider allocation only
 	// hard-gates the transport/runtime capabilities needed for one headless turn.
 	resourceReq := taskReq
@@ -130,6 +134,7 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 
 	execution, err := n.executeAgentPrompt(ctx, agent.ID, project.CanonicalPath, compiled.CompiledPrompt, agentPromptPolicy{
 		Contract: runner.DefaultAutonomyContract(),
+		Review:   true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("execute delegated turn with %s:%s: %w", selected.Provider, selected.Profile, err)
