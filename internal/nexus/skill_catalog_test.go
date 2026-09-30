@@ -79,7 +79,6 @@ func TestMaestroSkillSourceIsOptionalAndGeneric(t *testing.T) {
 	}
 }
 
-
 func TestAutomaticSkillResolutionUsesKnownCatalogOnly(t *testing.T) {
 	n := openTestNexus(t)
 	n.maestroStatus = func() MaestroStatus { return MaestroStatus{Available: false, Mode: MaestroOff} }
@@ -113,7 +112,6 @@ func TestAutomaticSkillResolutionIsBoundedAndDeterministic(t *testing.T) {
 		}
 	}
 }
-
 
 func TestAutomaticSkillResolutionPrefersRegisteredSpecialistsWithoutDuplicateBuiltin(t *testing.T) {
 	n := openTestNexus(t)
