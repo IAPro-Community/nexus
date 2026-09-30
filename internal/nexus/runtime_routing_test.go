@@ -309,6 +309,54 @@ func TestMissionAllocatePreferMayOpenPoolAfterRateLimit(t *testing.T) {
 	}
 }
 
+func TestMissionPreferKeepsOpaquePreferredProviderEligible(t *testing.T) {
+	accounts := []ProviderAccount{
+		{
+			Provider: "opencode", Profile: "review", Authenticated: true, Available: true, Health: "healthy",
+			QuotaView: &quota.QuotaView{Status: string(model.UsageUnsupported)},
+		},
+		{
+			Provider: "agy", Profile: "backup", Authenticated: true, Available: true, Health: "healthy",
+			QuotaView: &quota.QuotaView{Status: string(model.UsageLive), Available: true},
+			QuotaRemaining: 0.9,
+		},
+	}
+	pkg := &runner.PackageRun{PackageID: "pkg-opaque-prefer", DesiredProvider: "opencode"}
+	req := TaskRequirements{PreferProvider: "opencode"}
+
+	candidates, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{}, AffinityPrefer, false, req, PolicyPreferProvider)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(candidates) != 1 || candidates[0].Provider != "opencode" {
+		t.Fatalf("OPAQUE preferred provider must remain eligible, got %+v", candidates)
+	}
+}
+
+func TestMissionPreferFallsBackWhenPreferredProviderIsActuallyIneligible(t *testing.T) {
+	accounts := []ProviderAccount{
+		{
+			Provider: "codex", Profile: "limited", Authenticated: true, Available: false, Health: "healthy",
+			RateLimited: true, QuotaView: &quota.QuotaView{Status: string(model.UsageRateLimited), Available: false},
+		},
+		{
+			Provider: "opencode", Profile: "review", Authenticated: true, Available: true, Health: "healthy",
+			QuotaView: &quota.QuotaView{Status: string(model.UsageUnsupported)},
+		},
+	}
+	pkg := &runner.PackageRun{PackageID: "pkg-prefer-fallback", DesiredProvider: "codex"}
+	req := TaskRequirements{PreferProvider: "codex"}
+
+	candidates, err := selectMissionCandidateAccounts(accounts, pkg, AgentConfig{}, AffinityPrefer, false, req, PolicyPreferProvider)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recommendation := RecommendResources(candidates, req, PolicyPreferProvider)
+	if recommendation.Recommended == nil || recommendation.Recommended.Account.Provider != "opencode" {
+		t.Fatalf("ineligible preferred provider must fall back to eligible registered resource, got %+v", recommendation)
+	}
+}
+
 func TestConfiguredModelCandidatesDoesNotInheritAgentModel(t *testing.T) {
 	account := ProviderAccount{Provider: "agy", Profile: "frontend", Health: "healthy", Authenticated: true, Available: true}
 	got := configuredModelCandidates(AgentConfig{Model: "opus-expensive"}, account)
