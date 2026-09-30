@@ -61,6 +61,12 @@ func TestResolveRegisteredProviderPreferenceRequiresExplicitRoutingIntent(t *tes
 	if provider, ok := resolveRegisteredProviderPreference("codex revise isso", []string{"codex"}); !ok || provider != "codex" {
 		t.Fatalf("provider + task verb must route: provider=%q ok=%t", provider, ok)
 	}
+	if provider, ok := resolveRegisteredProviderPreference("não use codex para isso", []string{"codex"}); ok || provider != "" {
+		t.Fatalf("negated provider request must not route: provider=%q ok=%t", provider, ok)
+	}
+	if provider, ok := resolveRegisteredProviderPreference("use codex, não claude", []string{"codex", "claude"}); !ok || provider != "codex" {
+		t.Fatalf("excluded provider must not make the positive request ambiguous: provider=%q ok=%t", provider, ok)
+	}
 }
 
 func TestApplyRegisteredProviderPreferenceToFlowUsesPreferNotPin(t *testing.T) {
