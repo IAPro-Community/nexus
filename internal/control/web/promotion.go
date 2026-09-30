@@ -9,6 +9,24 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
+func runPromotedSingleTurnDelegate(n *nexus.Nexus, session registry.RuntimeSession, prompt, preferProvider string) {
+	if n == nil || session.ProjectID == "" || session.AgentID == "" {
+		return
+	}
+	ctx := context.Background()
+	result, err := n.DelegateSingleTurn(ctx, nexus.SingleTurnDelegateRequest{
+		ProjectID: session.ProjectID, Prompt: prompt, PreferProvider: preferProvider,
+	})
+	if err != nil {
+		_, _ = n.AskAgent(ctx, session.AgentID,
+			fmt.Sprintf("A delegação de turno único falhou antes de criar Mission: %v. Não assuma execução pelo provider solicitado.", err), false)
+		return
+	}
+	_, _ = n.AskAgent(ctx, session.AgentID,
+		fmt.Sprintf("Resultado delegado de %s:%s para a solicitação: %s\n\n%s\n\nSintetize este resultado para o usuário e preserve a autoria do provider delegado.",
+			result.Provider, result.Profile, prompt, result.Output), false)
+}
+
 // startPromotedMission runs only the admission prefix. The browser terminal
 // keeps the original prompt in the provider TUI until this returns ACCEPTED.
 func startPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, prompt string) (*nexus.DispatchResult, error) {

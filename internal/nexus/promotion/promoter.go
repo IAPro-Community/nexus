@@ -26,12 +26,14 @@ type Action string
 
 const (
 	KeepWithLead Action = "KEEP_WITH_LEAD"
+	Delegate     Action = "DELEGATE"
 	Promote      Action = "PROMOTE"
 	Ask          Action = "ASK"
 )
 
 const (
 	ActionKeepWithLead = KeepWithLead
+	ActionDelegate     = Delegate
 	ActionPromote      = Promote
 	ActionAsk          = Ask
 )
@@ -99,6 +101,18 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 	if err != nil {
 		return Decision{}, fmt.Errorf("decide prompt intent: %w", err)
 	}
+	registeredProvider := ""
+	if p.Nexus != nil {
+		provider, ok, providerErr := p.Nexus.ResolveRegisteredProviderPreference(line)
+		if providerErr != nil {
+			return Decision{}, fmt.Errorf("resolve registered provider preference: %w", providerErr)
+		}
+		if ok {
+			registeredProvider = provider
+			intent.TaskRequirements.PreferProvider = provider
+			intent.Evidence = append(intent.Evidence, "registered-provider-request:"+provider)
+		}
+	}
 	delegation := nexus.DecideDelegation(line, mode)
 	selection := nexus.SelectMissionTeam(line, intent)
 	explicitRequest := IsExplicitMissionRequest(line)
@@ -114,12 +128,24 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = "intent requires clarification before promotion"
 		return result, nil
 	}
-	if intent.Strategy == nexus.IntentDirect && !explicitRequest {
+	readOnlyDelegate := false
+	if modeDef, ok := nexus.AgentModeForRole(intent.TaskRequirements.Role); ok {
+		readOnlyDelegate = modeDef.ReadOnlyByDefault
+	}
+	if registeredProvider != "" && readOnlyDelegate && !explicitRequest && !intent.TaskRequirements.RequiresDecomposition && !delegation.Delegate {
+		// A bounded provider handoff is safe without Mission only for a role whose
+		// canonical AgentMode is read-only by default. executeAgentPrompt enforces
+		// the provider's verified ReviewMode and fails closed when unavailable.
+		result.Action = Delegate
+		result.Reason = "user requested registered provider " + registeredProvider + " for one bounded read-only turn"
+		return result, nil
+	}
+	if intent.Strategy == nexus.IntentDirect && !explicitRequest && registeredProvider == "" {
 		result.Reason = "direct intent stays with the interactive Lead"
 		return result, nil
 	}
 
-	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest
+	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest || registeredProvider != ""
 	if !missionWorthy {
 		result.Reason = "interactive plan stays with the Lead; no delegation or decomposition is required"
 		return result, nil
@@ -134,6 +160,8 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = delegation.Reason
 	} else if intent.TaskRequirements.RequiresDecomposition {
 		result.Reason = "task requirements require decomposition"
+	} else if registeredProvider != "" {
+		result.Reason = "write-capable provider handoff requires Mission isolation: " + registeredProvider
 	} else {
 		result.Reason = "user explicitly requested Mission execution"
 	}

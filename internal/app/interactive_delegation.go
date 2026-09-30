@@ -29,6 +29,23 @@ func submitPromptToLead(ctx context.Context, n *nexus.Nexus, agentID, runtimeID,
 	return submitPromptToRuntime(runtimeID, prompt)
 }
 
+func runInteractiveSingleTurnDelegate(n *nexus.Nexus, session registry.RuntimeSession, leadAgentID, prompt, preferProvider string) {
+	if n == nil {
+		return
+	}
+	result, err := n.DelegateSingleTurn(context.Background(), nexus.SingleTurnDelegateRequest{
+		ProjectID: session.ProjectID, Prompt: prompt, PreferProvider: preferProvider,
+	})
+	if err != nil {
+		_ = submitPromptToLead(context.Background(), n, leadAgentID, session.RuntimeID,
+			fmt.Sprintf("A delegação de turno único falhou antes de criar Mission: %v. Não assuma que o provider solicitado executou a tarefa.", err))
+		return
+	}
+	message := fmt.Sprintf("Resultado delegado de %s:%s para a solicitação: %s\n\n%s\n\nSintetize este resultado para o usuário e preserve a autoria do provider delegado.",
+		result.Provider, result.Profile, prompt, result.Output)
+	_ = submitPromptToLead(context.Background(), n, leadAgentID, session.RuntimeID, message)
+}
+
 func interactiveDelegationMode(session registry.RuntimeSession) nexus.DelegationMode {
 	mode := nexus.DelegationOff
 	if session.Labels != nil {
