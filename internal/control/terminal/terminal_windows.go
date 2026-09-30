@@ -57,6 +57,7 @@ var (
 	procWaitForSingleObject               = modKernel32.NewProc("WaitForSingleObject")
 	procGetExitCodeProcess                = modKernel32.NewProc("GetExitCodeProcess")
 	procTerminateProcess                  = modKernel32.NewProc("TerminateProcess")
+	procTerminateJobObject                = modKernel32.NewProc("TerminateJobObject")
 	procCreateJobObjectW                  = modKernel32.NewProc("CreateJobObjectW")
 	procSetInformationJobObject           = modKernel32.NewProc("SetInformationJobObject")
 	procAssignProcessToJobObject          = modKernel32.NewProc("AssignProcessToJobObject")
@@ -549,10 +550,39 @@ func (b *windowsBackend) Signal(sig os.Signal) error {
 
 func (b *windowsBackend) Kill() error {
 	b.mu.Lock()
+	hJob := b.hJob
 	h := b.hProcess
 	cmd := b.cmd
 	isConPTY := b.isConPTY
 	b.mu.Unlock()
+
+	// Once the backend is supervised, the Job Object is the process-tree
+	// authority. Killing only the root process can leave a child holding the
+	// PTY/pipe open; SessionHost waits for terminal drain before Close(), so
+	// that ordering can otherwise deadlock termination. Terminate the whole
+	// job first and keep the handle for the normal Close() cleanup.
+	if hJob != 0 {
+		r, _, e := procTerminateJobObject.Call(hJob, 1)
+		if r != 0 {
+			return nil
+		}
+		jobErr := fmt.Errorf("TerminateJobObject failed: %v", e)
+		if isConPTY {
+			if h != 0 {
+				if result, _, processErr := procTerminateProcess.Call(h, 1); result == 0 {
+					return fmt.Errorf("%v; TerminateProcess failed: %v", jobErr, processErr)
+				}
+			}
+			return jobErr
+		}
+		if cmd != nil && cmd.Process != nil {
+			if processErr := cmd.Process.Kill(); processErr != nil {
+				return fmt.Errorf("%v; process kill failed: %v", jobErr, processErr)
+			}
+		}
+		return jobErr
+	}
+
 	if isConPTY {
 		if h == 0 {
 			return nil
