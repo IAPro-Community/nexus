@@ -21,7 +21,7 @@ import {
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { nexus } from './api';
-import { getDesktopAuthToken, getDesktopBaseUrl } from '../api';
+import { getDesktopAuthToken, getDesktopWebSocketBaseUrl } from '../api';
 import {
   TERMINAL_MAX_RECONNECT_ATTEMPTS,
   agentTerminalWebSocketURL,
@@ -502,7 +502,7 @@ export const AgentTerminal: React.FC<{
 
       let wsProto = window.location.protocol;
       let wsHost = window.location.host;
-      const desktopBase = getDesktopBaseUrl();
+      const desktopBase = getDesktopWebSocketBaseUrl();
       if (desktopBase) {
         try {
           const parsed = new URL(desktopBase);
