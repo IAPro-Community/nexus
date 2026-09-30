@@ -13,7 +13,7 @@ do Nexus.
 | --- | ---: | --- | --- | --- |
 | `NEXUS_WEB_PORT` | não | `13000` no control host; `nexus web` também aceita `--port` | porta de controle/Web quando aplicável | `NEXUS_WEB_PORT=7420` |
 | `NEXUS_LAUNCH_MODE` | não | heurística do Nexus | força `direct` ou `supervised` | `NEXUS_LAUNCH_MODE=supervised` |
-| `NEXUS_DELEGATION_MODE` | não | `AUTO` | política da sessão: `AUTO`, `ASK` ou `OFF` | `NEXUS_DELEGATION_MODE=ASK` |
+| `NEXUS_DELEGATION_MODE` | não | `OFF` em sessões interativas | override explícito da política interativa: `AUTO`/`ASK` habilitam promoção para Mission; `OFF` mantém o terminal nativo e provider-owned | `NEXUS_DELEGATION_MODE=ASK` |
 | `NEXUS_DATA_DIR` / `AI_CLI_DATA_DIR` | não | diretório de dados da plataforma | substitui o local de dados; útil em teste/isolamento | `NEXUS_DATA_DIR=/tmp/nexus-data` |
 | `NEXUS_CONFIG_DIR` / `AI_CLI_CONFIG_DIR` | não | diretório de configuração da plataforma | substitui o local de configuração | `NEXUS_CONFIG_DIR=/tmp/nexus-config` |
 | `AI_CLI_LANG` | não | locale detectado | escolhe idioma da CLI | `AI_CLI_LANG=pt-BR` |
