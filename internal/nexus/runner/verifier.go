@@ -60,12 +60,12 @@ func (v *VerificationEngine) RunVerification(ctx context.Context, workspace stri
 				exitCode = exitErr.ExitCode()
 			}
 			return []VerificationResult{{
-				Command: strings.Join(setup, " "),
-				Passed: false,
-				ExitCode: exitCode,
+				Command:       strings.Join(setup, " "),
+				Passed:        false,
+				ExitCode:      exitCode,
 				OutputSnippet: snippet,
-				DurationMs: time.Since(started).Milliseconds(),
-				VerifiedAt: time.Now().UTC(),
+				DurationMs:    time.Since(started).Milliseconds(),
+				VerifiedAt:    time.Now().UTC(),
 			}}
 		}
 	}
