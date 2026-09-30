@@ -174,9 +174,15 @@ fallback e inserção PTY.
 
 ## Estado da validação
 
-GitHub Actions está disponível para validação do PR. A publicação continua
-fail-closed: PR CI valida o merge sintético, enquanto a release exige um run
-`push`/`workflow_dispatch` verde no SHA exato já integrado em `release/v1.0.0`.
+GitHub Actions está atualmente **BLOCKED_EXTERNAL** por indisponibilidade de
+créditos para executar os gates. O run exact-SHA do candidato permanece
+pendente; ausência de execução não é PASS nem FAIL técnico.
+
+A publicação continua fail-closed: PR CI, quando disponível, valida o merge
+sintético, enquanto a release exige um run `push`/`workflow_dispatch` verde
+no SHA exato já integrado em `release/v1.0.0`. A homologação local/nativa pode
+produzir evidência complementar, mas não autoriza reinterpretar um gate não
+executado como aprovado.
 
 Para complementar a evidência remota ou quando um runner nativo não estiver disponível:
 
