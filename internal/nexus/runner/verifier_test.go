@@ -126,3 +126,28 @@ func TestPackageDependencySetupIgnoresNonPackageVerification(t *testing.T) {
 		t.Fatalf("Go-only verification must not install JS dependencies: %#v", got)
 	}
 }
+
+func TestPackageDependencySetupRefusesUnlockedMutation(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.WriteFile(filepath.Join(workspace, "package.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := packageDependencySetup(workspace, []string{"npm test"}); got != nil {
+		t.Fatalf("unlocked workspace must not be mutated by dependency setup: %#v", got)
+	}
+}
+
+func TestPackageDependencySetupUsesFrozenPnpmInstall(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.WriteFile(filepath.Join(workspace, "package.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "pnpm-lock.yaml"), []byte("lockfileVersion: '9.0'\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got := packageDependencySetup(workspace, []string{"pnpm test"})
+	want := []string{"pnpm", "install", "--frozen-lockfile", "--ignore-scripts"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("packageDependencySetup() = %#v, want %#v", got, want)
+	}
+}
