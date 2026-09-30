@@ -3,6 +3,7 @@
 package terminal
 
 import (
+	"context"
 	"io"
 	"os"
 	"os/exec"
@@ -205,4 +206,39 @@ func TestWindowsBackendInteractiveConPTYOptIn(t *testing.T) {
 
 	_ = backend.Signal(os.Interrupt)
 	_ = backend.Kill()
+}
+
+
+func TestWindowsBackendKillUsesSupervisedJobObject(t *testing.T) {
+	t.Setenv("AI_CLI_ENABLE_CONPTY", "")
+	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
+	backend := NewBackend()
+	cmd := exec.Command("cmd.exe", "/D", "/Q", "/C", "ping -n 30 127.0.0.1 >nul")
+	if err := backend.Start(cmd, 24, 80); err != nil {
+		t.Fatalf("failed to start Windows backend: %v", err)
+	}
+	defer backend.Close()
+	if err := backend.Supervise(); err != nil {
+		t.Fatalf("failed to supervise Windows backend: %v", err)
+	}
+
+	windows, ok := backend.(*windowsBackend)
+	if !ok {
+		t.Fatalf("backend type = %T, want *windowsBackend", backend)
+	}
+	windows.mu.Lock()
+	job := windows.hJob
+	windows.mu.Unlock()
+	if job == 0 {
+		t.Fatal("Supervise must attach the provider to a Job Object")
+	}
+
+	if err := backend.Kill(); err != nil {
+		t.Fatalf("Kill must terminate the supervised Job Object: %v", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := backend.WaitContext(ctx); err != nil {
+		t.Fatalf("provider did not terminate after Job Object kill: %v", err)
+	}
 }
