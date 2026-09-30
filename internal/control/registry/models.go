@@ -71,6 +71,7 @@ type RuntimeSession struct {
 	Model                     string             `json:"model,omitempty"`
 	Workspace                 string             `json:"workspace"`
 	PID                       int                `json:"pid"`
+	ProviderGeneration        int64              `json:"provider_generation,omitempty"`
 	HostPID                   int                `json:"host_pid,omitempty"`
 	HostGeneration            int64              `json:"host_generation,omitempty"`
 	HostBinaryPath            string             `json:"host_binary_path,omitempty"`
@@ -115,6 +116,19 @@ func (s RuntimeSession) IsActive() bool {
 	default:
 		return false
 	}
+}
+
+// ProviderLive reports provider-process liveness using the provider generation
+// token when available. Legacy rows without ProviderGeneration remain readable,
+// but callers must not use their raw PID as a destructive kill target.
+func (s RuntimeSession) ProviderLive() bool {
+	if s.PID <= 0 {
+		return false
+	}
+	if s.ProviderGeneration > 0 {
+		return IsProcessAliveWithGeneration(s.PID, s.ProviderGeneration)
+	}
+	return IsProcessAlive(s.PID)
 }
 
 // HostLive reports whether the SessionHost process behind this registry row is
