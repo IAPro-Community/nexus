@@ -5,12 +5,12 @@ Atualizado em **29 de setembro de 2026**.
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
-| Versão do source candidato | `1.0.0-beta.6` |
+| Versão do source candidato | `1.0.0-beta.7` |
 | Última beta pública registrada | `v1.0.0-beta.1` |
 | Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
 | Release estável v1 | **ainda não publicada** |
 | CI do SHA candidato | obrigatório no SHA final; PR CI é evidência de merge, não substitui exact-SHA |
-| Veredito atual | **beta.6 implementada no source; homologação/certificação exact-SHA pendentes** |
+| Veredito atual | **beta.7 implementada no source; homologação/certificação exact-SHA pendentes** |
 
 ## Linha canônica de integração — 2026-09-27
 
@@ -28,10 +28,10 @@ A branch `release/v1.0.0` é a única linha canônica de integração da Nexus 1
 
 A linha canônica já usa a migração Wails v3 reconciliada. A publicação permanece bloqueada pelos gates same-SHA e pelos blockers registrados na issue #27.
 
-## Escopo consolidado da beta.6
+## Escopo consolidado da beta.7
 
 A linha que antes estava planejada como 1.1 foi absorvida pela V1 enquanto a
-primeira release estável ainda não foi publicada. A beta.6 concentra a conclusão
+primeira release estável ainda não foi publicada. A beta.7 concentra a conclusão
 funcional desse escopo sem criar um segundo runtime, scheduler ou Mission engine.
 
 O candidato inclui:
@@ -55,16 +55,16 @@ Nenhuma tag antiga é reinterpretada retroativamente.
 
 ## Portabilidade dos ExecutionRoles
 
-Na beta.6, `ExecutionRole` é um contrato do Nexus, não do provider:
+Na beta.7, `ExecutionRole` é um contrato do Nexus, não do provider:
 
 - Codex, Claude, Cursor, Gemini e AGY continuam usando o mesmo selector e
   compiler por **Nexus overlay**;
-- OpenCode é o adapter nativo de referência da beta.6;
+- OpenCode é o adapter nativo de referência da beta.7;
 - ausência de native adapter nunca impede role switch/overlay;
 - ausência de prova nativa nunca aparece como primary/subagent/enforcement
   suportado;
 - adapters nativos adicionais são expansão posterior e não bloqueiam o
-  fechamento funcional da beta.6.
+  fechamento funcional da beta.7.
 
 A Web também inclui:
 
@@ -73,7 +73,7 @@ A Web também inclui:
 - `Ctrl/Cmd+Shift+A` para focar o selector;
 - `Shift+Tab` continua pertencendo ao TUI hospedado e não é capturado pelo Nexus.
 
-## Agent Interop / OpenCode — estado da beta.6
+## Agent Interop / OpenCode — estado da beta.7
 
 O lifecycle da V1 é:
 
@@ -148,7 +148,7 @@ No VPN Dev Workspace:
 - sem shared profile home a execução custom continua válida e degrada somente
   a projection nativa/enforcement.
 
-## Voz / fala — estado da beta.6
+## Voz / fala — estado da beta.7
 
 **Implementada no source da V1.**
 
@@ -192,34 +192,34 @@ Windows:
 .\scripts\homologate-beta.ps1
 ```
 
-A evidência da beta.6 deve ser escrita em:
+A evidência da beta.7 deve ser escrita em:
 
 ```text
-DEV/validation/local-beta/1.0.0-beta.6/<exact-sha>/<plataforma>/
+DEV/validation/local-beta/1.0.0-beta.7/<exact-sha>/<plataforma>/
 ```
 
 ## Matriz candidata
 
 | Plataforma | Estado no source | Estado de certificação |
 | --- | --- | --- |
-| Linux amd64 | integrado | homologação beta.6 exact-SHA pendente |
+| Linux amd64 | integrado | homologação beta.7 exact-SHA pendente |
 | Windows amd64 | integrado | certificação nativa exact-SHA pendente |
 | macOS arm64 | integrado | certificação nativa exact-SHA pendente |
-| Web | integrado | homologação beta.6 pendente |
+| Web | integrado | homologação beta.7 pendente |
 
 Implementação não equivale a suporte certificado.
 
-## Gates para `v1.0.0-beta.6`
+## Gates para `v1.0.0-beta.7`
 
 Antes de criar/publicar a tag:
 
-- documentação consistente com beta.6;
+- documentação consistente com beta.7;
 - frontend format/lint/styles/typecheck/unit/build;
 - Go fmt/vet/test/race;
 - regressões de terminal e roteamento Mission;
 - control/runtime E2E;
 - build CLI;
-- `nexus version --json` = `1.0.0-beta.6`;
+- `nexus version --json` = `1.0.0-beta.7`;
 - `nexus doctor --json`;
 - OpenCode visível em providers/Usage/Agents quando instalado;
 - role switch provider-neutral por overlay; OpenCode → projection automática ou fallback explícito;
@@ -246,7 +246,7 @@ Antes de criar/publicar a tag:
 
 ## Gates para `v1.0.0` estável
 
-Além da beta.6 homologada, o SHA final precisa comprovar:
+Além da beta.7 homologada, o SHA final precisa comprovar:
 
 - CI exact-SHA completo;
 - security/govulncheck;
@@ -265,7 +265,7 @@ Além da beta.6 homologada, o SHA final precisa comprovar:
 
 ## Regra
 
-A beta.6 é considerada **implementada no source** quando os requisitos acima
+A beta.7 é considerada **implementada no source** quando os requisitos acima
 existem no candidato. Ela só é considerada **homologada** quando os gates
 automatizados e manuais forem registrados contra o mesmo SHA.
 
