@@ -50,6 +50,12 @@ func (n *Nexus) ResolveRegisteredProviderPreference(prompt string) (string, bool
 }
 
 func resolveRegisteredProviderPreference(prompt string, registered []string) (string, bool) {
+	// A provider name is routing authority only when the user couples it to an
+	// execution/delegation verb. Incidental prose such as "the Codex docs" must
+	// never move the turn away from the current Lead.
+	if !providerRoutingRequested(prompt) {
+		return "", false
+	}
 	terms := providerPromptTerms(prompt)
 	if len(terms) == 0 || len(registered) == 0 {
 		return "", false
@@ -97,6 +103,20 @@ func providerPromptTerms(prompt string) map[string]struct{} {
 	return terms
 }
 
+func providerRoutingRequested(prompt string) bool {
+	terms := providerPromptTerms(prompt)
+	for _, verb := range []string{
+		"chame", "chamar", "chama", "use", "usar", "usando", "rode", "rodar",
+		"execute", "executar", "delegue", "delegar", "encaminhe", "encaminhar",
+		"prefira", "preferir", "call", "ask", "run", "delegate", "route", "using", "via",
+	} {
+		if _, ok := terms[normalizeRegisteredProviderID(verb)]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 func normalizeRegisteredProviderID(value string) string {
 	var b strings.Builder
 	for _, r := range strings.ToLower(strings.TrimSpace(value)) {
@@ -107,10 +127,10 @@ func normalizeRegisteredProviderID(value string) string {
 	return b.String()
 }
 
-// applyRegisteredProviderPreferenceToFlow projects an explicit provider request
-// as PREFER, never PIN. ResourceScheduler may therefore fail over to another
-// registered Usage resource when the requested provider is unavailable or out
-// of quota. Explicit per-step provider/profile decisions remain authoritative.
+// applyRegisteredProviderPreferenceToFlow projects an explicit user-owned
+// provider request as a provider PIN. The scheduler may still balance between
+// eligible profiles/accounts of that provider, but it must not silently switch
+// to another provider. Existing explicit per-step resource decisions win.
 func applyRegisteredProviderPreferenceToFlow(flow *FlowDefinition, provider string) {
 	if flow == nil || strings.TrimSpace(provider) == "" {
 		return
@@ -126,13 +146,9 @@ func applyRegisteredProviderPreferenceToFlow(flow *FlowDefinition, provider stri
 			continue
 		}
 		step.DesiredProvider = provider
-		switch SchedulerPolicy(strings.ToUpper(strings.TrimSpace(step.ResourcePolicy))) {
-		case PolicyManual:
-			// MANUAL is a stronger explicit contract and must not be
-			// silently weakened into fallback-capable preference.
-		default:
-			step.ResourcePolicy = string(PolicyPreferProvider)
-		}
+		// MANUAL + DesiredProvider means provider PIN with profile/account
+		// balancing still available inside that provider.
+		step.ResourcePolicy = string(PolicyManual)
 		var req TaskRequirements
 		if strings.TrimSpace(step.TaskRequirements) != "" {
 			_ = json.Unmarshal([]byte(step.TaskRequirements), &req)
