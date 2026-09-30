@@ -6,11 +6,22 @@ import (
 	"os"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/app"
 	"github.com/IAPro-Community/nexus/internal/desktop"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func main() {
+	// HUD can also be the binary that spawned a detached SessionHost. Handle
+	// the internal worker command before creating the Wails surface.
+	if len(os.Args) > 1 && os.Args[1] == "__control-host" {
+		if err := app.Run(os.Args[1:]); err != nil {
+			fmt.Fprintf(os.Stderr, "nexus HUD control host: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	backend, err := desktop.OpenSharedBackend("Nexus HUD")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize shared Nexus backend: %v\n", err)
