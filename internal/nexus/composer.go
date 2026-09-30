@@ -111,6 +111,24 @@ func (n *Nexus) CreateComposerSessionWithPrompt(ctx context.Context, projectID, 
 }
 
 func (n *Nexus) CreateComposerSessionWithPromptProgress(ctx context.Context, projectID, goal, sourcePrompt string, sink ComposerProgressSink) (*ComposerSessionView, error) {
+	return n.createComposerSessionWithPromptProgress(ctx, projectID, goal, sourcePrompt, ComposerInterviewStandard, sink)
+}
+
+func (n *Nexus) CreateComposerSessionWithPromptInterviewModeProgress(
+	ctx context.Context,
+	projectID, goal, sourcePrompt string,
+	interviewMode ComposerInterviewMode,
+	sink ComposerProgressSink,
+) (*ComposerSessionView, error) {
+	return n.createComposerSessionWithPromptProgress(ctx, projectID, goal, sourcePrompt, interviewMode, sink)
+}
+
+func (n *Nexus) createComposerSessionWithPromptProgress(
+	ctx context.Context,
+	projectID, goal, sourcePrompt string,
+	interviewMode ComposerInterviewMode,
+	sink ComposerProgressSink,
+) (*ComposerSessionView, error) {
 	progress := progressOrNoop(sink)
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -124,7 +142,7 @@ func (n *Nexus) CreateComposerSessionWithPromptProgress(ctx context.Context, pro
 		return nil, err
 	}
 	progress.Step("brief", "started")
-	brief := newComposerBrief(goal, sourcePrompt)
+	brief := newComposerBriefWithInterviewMode(goal, sourcePrompt, interviewMode)
 	brief.Context.Project = project.Name
 	progress.Step("brief", "done")
 
@@ -327,6 +345,9 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 	brief := decodeComposerBrief(session.BriefJSON)
 	intelligenceNotice := ""
 	if role == store.ComposerUser {
+		if _, hasQuestion := selectComposerNextUnknownForBrief(brief); hasQuestion {
+			brief.Interview.QuestionsAnswered++
+		}
 		mergeTextIntoBrief(&brief, content, "USER")
 		if facts, factErr := n.MemoryFactsMap(ctx, session.ProjectID); factErr == nil {
 			ApplyMemoriesToBrief(&brief, facts)
@@ -577,9 +598,13 @@ func (n *Nexus) ResolveComposerUnknownExpected(ctx context.Context, sessionID, u
 	var resolvedField string
 	for i := range brief.Unknowns {
 		if brief.Unknowns[i].ID == unknownID || brief.Unknowns[i].Field == unknownID {
+			wasOpen := brief.Unknowns[i].Status == PromptUnknownOpen
 			brief.Unknowns[i].Answer = strings.TrimSpace(answer)
 			brief.Unknowns[i].Status = PromptUnknownStatus(status)
 			resolvedField = brief.Unknowns[i].Field
+			if wasOpen && (status == string(PromptUnknownAnswered) || status == string(PromptUnknownConfirmed) || status == string(PromptUnknownDismissed)) {
+				brief.Interview.QuestionsAnswered++
+			}
 			if status == string(PromptUnknownAnswered) || status == string(PromptUnknownConfirmed) {
 				applyUnknownAnswerToBrief(&brief, brief.Unknowns[i])
 			}
