@@ -337,6 +337,13 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
 				continue
 			}
+			if decision.Action == promotion.Delegate {
+				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID)})
+				provider := strings.TrimSpace(decision.Intent.TaskRequirements.PreferProvider)
+				_ = safeWriteJSON(TerminalMessage{Type: "promotion", Data: "Delegated single-turn analysis started without Mission.", Role: "DELEGATED"})
+				go runSingleTurnDelegate(h.nexus, sess, line, provider)
+				continue
+			}
 			if decision.Action == promotion.Ask {
 				pendingPromotion = line
 				_ = safeWriteJSON(TerminalMessage{Type: "promotion", Data: line, Role: "ASK"})
