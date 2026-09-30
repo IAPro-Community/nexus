@@ -104,6 +104,24 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 	}
 
 	planningText := strings.TrimSpace(strings.Join([]string{goal, sourcePrompt}, "\n"))
+
+	// Resolve only known catalog skills before Flow construction so receiving
+	// providers never rediscover methodology through their own CLI/tooling.
+	if len(req.resolvedSkillIDs()) == 0 {
+		if automaticSkills, skillErr := n.ResolveAutomaticSkillIDs(ctx, req.ProjectID, planningText); skillErr == nil {
+			req.SkillIDs = automaticSkills
+		}
+	}
+
+	// Explicit provider language is registration-owned. Recognition does not
+	// bypass ResourceScheduler eligibility or create a provider from PATH.
+	registeredProvider := ""
+	if provider, ok, providerErr := n.ResolveRegisteredProviderPreference(planningText); providerErr != nil {
+		return nil, fmt.Errorf("resolve registered provider preference: %w", providerErr)
+	} else if ok {
+		registeredProvider = provider
+	}
+
 	archetype := string(classifyPromptArchetype(planningText))
 	delegation := DecideDelegation(planningText, req.DelegationMode)
 
@@ -207,6 +225,10 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 		}
 	}
 	intent := DecideIntent(planningText, nil)
+	if registeredProvider != "" {
+		intent.TaskRequirements.PreferProvider = registeredProvider
+		intent.Evidence = append(intent.Evidence, "registered-provider-request:"+registeredProvider)
+	}
 	if isAtomic {
 		intent.Strategy = IntentDirect
 		intent.Confidence = "HIGH"
@@ -242,6 +264,9 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 	}
 	if err := BuildMissionTeamFlow(&flow, selection, firstNonEmpty(sourcePrompt, goal), verification, req.resolvedSkillIDs(), delegation.Workstreams, req.MissionTeamRuntimeOverrides); err != nil {
 		return nil, err
+	}
+	if registeredProvider != "" {
+		applyRegisteredProviderPreferenceToFlow(&flow, registeredProvider)
 	}
 
 	proposal := &FlowDecompositionProposal{
