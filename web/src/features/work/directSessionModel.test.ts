@@ -123,4 +123,21 @@ describe('direct session model', () => {
     expect(directQuotaPercent({ quota_remaining: 0.9, quota_view: view })).toBe(0);
     expect(compactQuotaLabel(view)).toBe('5h 0% · weekly 90%');
   });
+
+  it.each(['ERROR', 'UNSUPPORTED'])(
+    'does not render labels for error or unsupported quota evidence: %s',
+    (status) => {
+      const view = {
+        status,
+        model_groups: [
+          {
+            name: 'Codex',
+            windows: [{ kind: '5h', remaining: 0 }],
+          },
+        ],
+      };
+      expect(directQuotaPercent({ quota_remaining: 0, quota_view: view })).toBeNull();
+      expect(directQuotaDisplay({ quota_remaining: 0, quota_view: view })).toBeNull();
+    },
+  );
 });
