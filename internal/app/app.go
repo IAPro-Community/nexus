@@ -1643,10 +1643,11 @@ func runGoalCmd(args []string) error {
 		return fmt.Errorf("BLOCKED_NEEDS_USER: %s", strings.Join(intentDecision.BlockingQuestions, "; "))
 	}
 	proposal, err := n.DecomposePromptIntoFlowProposal(ctx, nexus.FlowDecompositionRequest{
-		ProjectID:    project.ID,
-		Goal:         goal,
-		SourcePrompt: goal,
-		Simple:       intentDecision.Strategy == nexus.IntentDirect,
+		ProjectID:      project.ID,
+		Goal:           goal,
+		SourcePrompt:   goal,
+		Simple:         intentDecision.Strategy == nexus.IntentDirect,
+		DelegationMode: nexus.DelegationAuto,
 	})
 	if err != nil {
 		return fmt.Errorf("classificar e decompor tarefa: %w", err)
