@@ -187,7 +187,6 @@ func TestPreflightFlow_RejectsCyclicDAG(t *testing.T) {
 	}
 }
 
-
 func TestDecomposePromptPropagatesRegisteredProviderAndAutomaticSkills(t *testing.T) {
 	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
 	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
