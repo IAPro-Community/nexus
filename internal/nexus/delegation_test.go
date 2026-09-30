@@ -10,6 +10,26 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
+func TestNormalizeDelegationModeFailsClosed(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		mode DelegationMode
+		want DelegationMode
+	}{
+		{name: "empty", mode: "", want: DelegationOff},
+		{name: "invalid", mode: "surprise", want: DelegationOff},
+		{name: "off", mode: DelegationOff, want: DelegationOff},
+		{name: "ask", mode: "ask", want: DelegationAsk},
+		{name: "auto", mode: "auto", want: DelegationAuto},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := NormalizeDelegationMode(test.mode); got != test.want {
+				t.Fatalf("NormalizeDelegationMode(%q)=%q want %q", test.mode, got, test.want)
+			}
+		})
+	}
+}
+
 func TestNormalizeInteractiveDelegationModeFailsClosed(t *testing.T) {
 	for _, test := range []struct {
 		name string
@@ -110,7 +130,7 @@ func TestInteractiveLeadAutomaticallyDelegatesSpecializedWorkUnits(t *testing.T)
 		t.Fatal(err)
 	}
 	proposal, err := n.DecomposePromptIntoFlowProposal(context.Background(), FlowDecompositionRequest{
-		ProjectID: project.ID, Goal: "Implemente cadastro com backend API, frontend React e testes E2E",
+		ProjectID: project.ID, Goal: "Implemente cadastro com backend API, frontend React e testes E2E", DelegationMode: DelegationAuto,
 	})
 	if err != nil {
 		t.Fatal(err)
