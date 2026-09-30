@@ -179,3 +179,95 @@ func TestExplicitMissionMatcherAcceptsStandaloneLocalizedForms(t *testing.T) {
 		}
 	}
 }
+
+
+func TestPromoterRegisteredProviderRequestDelegatesWithoutMission(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentPlan,
+			TaskRequirements: nexus.TaskRequirements{
+				TaskKind:       "review",
+				PreferProvider: "codex",
+			},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "chame o codex para revisar", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Delegate {
+		t.Fatalf("registered provider request must be a bounded DELEGATE, got %+v", decision)
+	}
+	if decision.Delegation.Delegate {
+		t.Fatalf("single provider turn must not become multi-workstream delegation: %+v", decision.Delegation)
+	}
+}
+
+func TestPromoterRegisteredProviderRequestDelegatesEvenForDirectIntent(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentDirect,
+			TaskRequirements: nexus.TaskRequirements{
+				PreferProvider: "codex",
+			},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "use codex para revisar o typo", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Delegate {
+		t.Fatalf("explicit provider must delegate one turn instead of executing on Lead: %+v", decision)
+	}
+}
+
+func TestPromoterRegisteredProviderRequestDoesNotDowngradeMissionWorthyWork(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentPlan,
+			TaskRequirements: nexus.TaskRequirements{
+				PreferProvider:        "codex",
+				RequiresDecomposition: true,
+			},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "use codex e implemente backend frontend e testes", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Promote {
+		t.Fatalf("mission-worthy work must remain Mission promotion: %+v", decision)
+	}
+}
+
+func TestPromoterOFFNeverDelegatesRegisteredProviderRequest(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentDirect,
+			TaskRequirements: nexus.TaskRequirements{PreferProvider: "codex"},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "use codex para revisar", ModeOff)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != KeepWithLead {
+		t.Fatalf("delegation OFF must preserve provider-native ownership: %+v", decision)
+	}
+}
+
+func TestPromoterASKDoesNotRepromptExplicitProviderDelegate(t *testing.T) {
+	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+		return nexus.IntentDecision{
+			Strategy: nexus.IntentPlan,
+			TaskRequirements: nexus.TaskRequirements{PreferProvider: "codex"},
+		}, nil
+	}}
+	decision, err := p.Decide(context.Background(), "project", "chame o codex para revisar", ModeAsk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Delegate {
+		t.Fatalf("explicit provider request already supplies target consent: %+v", decision)
+	}
+}
