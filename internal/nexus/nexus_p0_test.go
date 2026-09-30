@@ -340,3 +340,26 @@ func TestRecoverAgentDeadRuntimeStartsNewSessionUnlessNative(t *testing.T) {
 		t.Errorf("continuity = %q, want %q", gen.Continuity, store.ContinuityNewSession)
 	}
 }
+
+func TestRecoverAgentStaleRuntimeStartsNewSession(t *testing.T) {
+	n := openTestNexus(t)
+	st, _ := n.OpenProject()
+	proj, _ := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
+	agent, _ := st.CreateAgent(store.Agent{ProjectID: proj.ID, Name: "Dev"})
+
+	started, err := n.StartAgent(context.Background(), agent.ID, "fake", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := registry.DefaultRegistry().UpdateState(started.RuntimeID, registry.StateStale); err != nil {
+		t.Fatal(err)
+	}
+
+	recovered, err := n.RecoverAgent(context.Background(), agent.ID)
+	if err != nil {
+		t.Fatalf("RecoverAgent: %v", err)
+	}
+	if recovered.RuntimeID == started.RuntimeID {
+		t.Fatalf("expected new runtime session after stale runtime recovery, got same %s", started.RuntimeID)
+	}
+}
