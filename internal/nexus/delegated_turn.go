@@ -93,6 +93,16 @@ func (n *Nexus) ExecuteDelegatedTurn(ctx context.Context, req DelegatedTurnReque
 	if err != nil {
 		return nil, fmt.Errorf("list delegated resources: %w", err)
 	}
+	// Never run the delegated headless turn against the exact provider/profile
+	// already owned by the interactive Lead. Provider homes can carry locks and
+	// mutable session state even when the delegated task itself is read-only.
+	if strings.TrimSpace(req.LeadAgentID) != "" {
+		if lead, leadErr := st.GetAgent(req.LeadAgentID, project.ID); leadErr == nil {
+			if leadCfg, cfgErr := currentAgentConfig(st, lead); cfgErr == nil {
+				accounts = excludeDelegatedLeadResource(accounts, leadCfg)
+			}
+		}
+	}
 	selected, fallback, reason, err := selectDelegatedTurnResource(accounts, requirements, req.PreferredProvider)
 	if err != nil {
 		return nil, err
@@ -173,6 +183,22 @@ If the request would normally require writing code, describe the exact recommend
 
 User request:
 ` + strings.TrimSpace(prompt)
+}
+
+func excludeDelegatedLeadResource(accounts []ProviderAccount, lead AgentConfig) []ProviderAccount {
+	provider := strings.ToLower(strings.TrimSpace(lead.Provider))
+	profile := strings.TrimSpace(lead.Profile)
+	if provider == "" || profile == "" {
+		return accounts
+	}
+	out := make([]ProviderAccount, 0, len(accounts))
+	for _, account := range accounts {
+		if strings.EqualFold(strings.TrimSpace(account.Provider), provider) && strings.TrimSpace(account.Profile) == profile {
+			continue
+		}
+		out = append(out, account)
+	}
+	return out
 }
 
 func selectDelegatedTurnResource(accounts []ProviderAccount, req TaskRequirements, preferredProvider string) (ProviderAccount, bool, string, error) {
