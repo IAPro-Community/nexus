@@ -89,7 +89,6 @@ func TestDefaultAutonomyContractHasBoundedPackageTimeout(t *testing.T) {
 	}
 }
 
-
 func TestPackageDependencySetupUsesLockedInstallWithoutScripts(t *testing.T) {
 	workspace := t.TempDir()
 	if err := os.WriteFile(filepath.Join(workspace, "package.json"), []byte("{}"), 0o600); err != nil {
