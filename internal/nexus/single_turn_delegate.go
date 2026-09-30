@@ -90,21 +90,30 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 		return nil, err
 	}
 	policy := PolicyBalanced
+	candidateAccounts := accounts
 	if preferProvider != "" {
 		policy = PolicyPreferProvider
+		preferred := make([]ProviderAccount, 0, len(accounts))
+		for _, account := range accounts {
+			if strings.EqualFold(account.Provider, preferProvider) {
+				preferred = append(preferred, account)
+			}
+		}
+		preferredRecommendation := RecommendResources(preferred, resourceReq, policy)
+		if preferredRecommendation.Recommended != nil {
+			candidateAccounts = preferred
+		}
 	}
-	recommendation := RecommendResources(accounts, resourceReq, policy)
+	recommendation := RecommendResources(candidateAccounts, resourceReq, policy)
+	if recommendation.Recommended == nil && preferProvider != "" && len(candidateAccounts) != len(accounts) {
+		// The preferred provider became unavailable between the first eligibility
+		// pass and allocation. Reopen only the registered pool.
+		recommendation = RecommendResources(accounts, resourceReq, policy)
+	}
 	if recommendation.Recommended == nil {
 		return nil, fmt.Errorf("no eligible registered resource for delegated turn: %s", recommendation.Explanation)
 	}
 	selected := recommendation.Recommended.Account
-	if preferProvider != "" && !strings.EqualFold(selected.Provider, preferProvider) {
-		// PREFER may fall back when the requested provider is unavailable. Keep
-		// that behavior explicit rather than pretending the requested provider ran.
-		if !recommendation.Recommended.Eligible {
-			return nil, fmt.Errorf("preferred provider %s is unavailable and no eligible fallback exists", preferProvider)
-		}
-	}
 
 	agent, err := n.ensureSingleTurnDelegateAgent(st, project, taskReq)
 	if err != nil {
