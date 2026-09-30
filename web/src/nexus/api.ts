@@ -122,13 +122,19 @@ export const nexus = {
     goal: string,
     inputMode: 'IDEA' | 'EXISTING_PROMPT',
     sourcePrompt?: string,
+    interviewMode: 'QUICK' | 'STANDARD' | 'DEEP' = 'STANDARD',
     signal?: AbortSignal,
   ) =>
     request<import('../types').ComposerSessionView>(
       `/api/v1/projects/${projectId}/composer-sessions`,
       {
         method: 'POST',
-        body: JSON.stringify({ goal, input_mode: inputMode, source_prompt: sourcePrompt || '' }),
+        body: JSON.stringify({
+          goal,
+          input_mode: inputMode,
+          interview_mode: interviewMode,
+          source_prompt: sourcePrompt || '',
+        }),
         signal,
       },
     ),
