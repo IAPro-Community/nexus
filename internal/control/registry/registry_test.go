@@ -225,6 +225,56 @@ func TestPurgeInactive(t *testing.T) {
 	}
 }
 
+func TestPurgeInactiveKeepsRecordWhileSessionHostIsAlive(t *testing.T) {
+	tmpDir := t.TempDir()
+	reg := NewRegistry(filepath.Join(tmpDir, "runtimes.json"))
+
+	if err := reg.Register(RuntimeSession{
+		RuntimeID: "rt-inactive-live-host",
+		PID:       99999999,
+		HostPID:   os.Getpid(),
+		State:     StateStopped,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	purged, err := reg.PurgeInactive()
+	if err != nil {
+		t.Fatalf("purge failed: %v", err)
+	}
+	if purged != 0 {
+		t.Fatalf("live SessionHost must protect the record from purge, got %d purged", purged)
+	}
+	if _, ok := reg.Get("rt-inactive-live-host"); !ok {
+		t.Fatal("inactive runtime with a live SessionHost was purged")
+	}
+}
+
+func TestPurgeInactiveUsesHostPIDNotSurvivingProviderPID(t *testing.T) {
+	tmpDir := t.TempDir()
+	reg := NewRegistry(filepath.Join(tmpDir, "runtimes.json"))
+
+	if err := reg.Register(RuntimeSession{
+		RuntimeID: "rt-inactive-dead-host",
+		PID:       os.Getpid(),
+		HostPID:   99999999,
+		State:     StateStopped,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	purged, err := reg.PurgeInactive()
+	if err != nil {
+		t.Fatalf("purge failed: %v", err)
+	}
+	if purged != 1 {
+		t.Fatalf("dead SessionHost must allow purge even when provider PID survives, got %d", purged)
+	}
+	if _, ok := reg.Get("rt-inactive-dead-host"); ok {
+		t.Fatal("inactive runtime with dead SessionHost was not purged")
+	}
+}
+
 func TestRegistry_ConcurrentMultiProcessNoLostUpdates(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "runtimes.json")
