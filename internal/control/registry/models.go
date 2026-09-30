@@ -146,15 +146,15 @@ func (s RuntimeSession) HostLive() bool {
 	if s.Transport == "mock" {
 		return true
 	}
-	hostPID := s.HostPID
-	if hostPID <= 0 {
-		hostPID = s.PID
-	}
-	if hostPID <= 0 {
+	// A provider child is never a substitute for SessionHost identity. Legacy
+	// rows without HostPID can still be reached through an already-responsive
+	// control endpoint by callers that probe IPC first, but raw provider
+	// liveness must not keep an unreachable runtime classified as healthy.
+	if s.HostPID <= 0 {
 		return false
 	}
 	if s.HostGeneration > 0 {
-		return IsProcessAliveWithGeneration(hostPID, s.HostGeneration)
+		return IsProcessAliveWithGeneration(s.HostPID, s.HostGeneration)
 	}
-	return IsProcessAlive(hostPID)
+	return IsProcessAlive(s.HostPID)
 }
