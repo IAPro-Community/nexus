@@ -9,20 +9,25 @@ capacity/cost and explicit control actions. The provider owns its native TUI,
 keyboard protocol, selectors, slash commands, prompts and ordinary Enter
 semantics.
 
-CLI shortcuts (`nexus codex`, `nexus agy`, …) therefore remain
-**byte-transparent by default**. They do not bind an Interactive Lead and never
-treat an ordinary provider prompt as Mission authorization.
+CLI shortcuts (`nexus codex`, `nexus agy`, …) therefore use
+**STICKY_LEAD by default on an interactive supervised TTY**: Nexus binds a
+persistent Lead identity/context for continuity, while keeping
+`nexus.delegation_mode=OFF`. OFF bypasses LineShadow/Promoter entirely, so
+ordinary prompts, Enter, slash commands, selectors and control sequences remain
+byte-transparent and provider-owned.
 
-`--lead` opts in only to a persistent Nexus Interactive Lead identity/context.
-It does **not** opt in to automatic Mission promotion: supervised provider
-runtimes persist `nexus.delegation_mode=OFF` initially, even with a Lead bound.
-Mission execution stays explicit through Nexus orchestration surfaces such as
-Composer/Flow/`nexus run`. An advanced operator may deliberately enable
-`NEXUS_DELEGATION_MODE=ASK|AUTO` while using `--lead`.
+The implicit STICKY_LEAD binding is best-effort. If Nexus cannot prepare or bind
+its metadata after the provider runtime has started, it falls back to the same
+provider-native attach instead of terminating a healthy CLI session.
 
-`--no-lead` remains accepted as a compatibility flag and always wins if both
-flags are present. Both flags are Nexus-owned and stripped before provider
-arguments are launched.
+`--lead` makes persistent Lead binding explicit/required; it still does **not**
+authorize Mission promotion. Mission execution remains explicit through Nexus
+orchestration surfaces such as Composer/Flow/`nexus run`, or through a
+deliberate `NEXUS_DELEGATION_MODE=ASK|AUTO` override.
+
+`--no-lead` disables STICKY_LEAD and always wins if both flags are present.
+`--direct` bypasses supervised transport entirely. All Nexus-owned launch flags
+are stripped before provider arguments are launched.
 
 Even with `--lead`, terminal control sequences are transport data, never prompt
 content. CSI and SS3 navigation sequences must reach the provider atomically;
@@ -44,5 +49,5 @@ being launched inside Nexus is never sufficient reason to create a Mission.
 The old `ai` aliases are not part of the supervised control contract.
 
 The terminal input path is covered by focused tests for CSI/SS3 navigation,
-split escape sequences and explicit Lead opt-in. Real Codex/Antigravity selector
+split escape sequences, STICKY_LEAD defaults and explicit Lead opt-out. Real Codex/Antigravity selector
 smokes remain required release evidence.
