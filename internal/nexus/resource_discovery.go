@@ -107,7 +107,22 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		// scheduler ranking and must never be encoded into this public field.
 		usageSnapshot := profile.GetSanitizedUsageSnapshot(p.Provider, p.Name, acc.Email)
 		qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
+		available := qv.IsAvailable() && det.ok && det.installed && authenticated
+		if !det.ok || !det.installed {
+			qv.Available = false
+			qv.AvailReasons.AllOK = false
+		} else if !authenticated {
+			qv.Available = false
+			qv.AvailReasons.AuthRequired = true
+			qv.AvailReasons.AllOK = false
+		}
 		quotaRemaining := quotaRemainingRatio(qv)
+		quotaTotal := 0.0
+		if quotaStatusKnown(qv.Status) {
+			if _, ok := qv.BestGroupRemaining(); ok {
+				quotaTotal = 1.0
+			}
+		}
 		resourceChannels := subscriptionResourceChannels(usageSnapshot)
 
 		accounts = append(accounts, ProviderAccount{
@@ -118,13 +133,13 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 			Authenticated:    authenticated,
 			Health:           health,
 			IsDefault:        isDefault,
-			Available:        qv.IsAvailable(),
+			Available:        available,
 			AvailReasons:     &qv.AvailReasons,
 			QuotaView:        &qv,
 			Capabilities:     capabilities,
 			ResourceChannels: resourceChannels,
 			QuotaRemaining:   quotaRemaining,
-			QuotaTotal:       1.0,
+			QuotaTotal:       quotaTotal,
 			RateLimited:      qv.Status == "RATE_LIMITED",
 			NetworkError:     strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
 			Scope:            acc.AccountScope,
