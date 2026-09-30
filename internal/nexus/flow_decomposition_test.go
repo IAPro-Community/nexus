@@ -57,8 +57,9 @@ func TestDecomposePromptIntoFlowProposal_UsesCompleteSourcePromptForAtomicity(t 
 	}
 
 	proposal, err := n.DecomposePromptIntoFlowProposal(context.Background(), FlowDecompositionRequest{
-		ProjectID: project.ID,
-		Goal:      "Implement Google OAuth login safely",
+		ProjectID:      project.ID,
+		Goal:           "Implement Google OAuth login safely",
+		DelegationMode: DelegationAuto,
 		SourcePrompt: `Implement Google OAuth login safely.
 Backend: implement the Go callback and session contract.
 Frontend: implement the React sign-in and session handling.
@@ -88,8 +89,9 @@ func TestDecomposePromptIntoFlowProposal_ComplexFeature(t *testing.T) {
 	}
 
 	proposal, err := n.DecomposePromptIntoFlowProposal(context.Background(), FlowDecompositionRequest{
-		ProjectID: project.ID,
-		Goal:      "Build a complete user authentication system with session management and JWT tokens",
+		ProjectID:      project.ID,
+		Goal:           "Build a complete user authentication system with session management and JWT tokens",
+		DelegationMode: DelegationAuto,
 	})
 	if err != nil {
 		t.Fatal(err)
