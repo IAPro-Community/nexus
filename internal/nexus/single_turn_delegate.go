@@ -54,9 +54,9 @@ func IsSingleTurnDelegateRequest(prompt string, req TaskRequirements) bool {
 
 // ExecuteSingleTurnDelegate performs exactly one headless, read-only delegated
 // turn through the canonical registered-resource scheduler. It creates no
-// WorkPlan and no MissionRun. The specialist executes against the project checkout only after the provider's
-// verified read-only review contract passes; no write-capable delegated path is
-// allowed here. The caller returns the textual result to the interactive Lead.
+// WorkPlan and no MissionRun. The specialist executes in an ephemeral
+// Nexus-managed worktree after the provider's verified read-only review
+// contract passes. The caller returns the textual result to the interactive Lead.
 func (n *Nexus) ExecuteSingleTurnDelegate(ctx context.Context, projectID, prompt, preferredProvider string) (*SingleTurnDelegateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -145,7 +145,8 @@ func (n *Nexus) ExecuteSingleTurnDelegate(ctx context.Context, projectID, prompt
 	if err != nil {
 		return nil, err
 	}
-	if _, err := st.GetProject(projectID); err != nil {
+	project, err := st.GetProject(projectID)
+	if err != nil {
 		return nil, err
 	}
 	rawReq, err := json.Marshal(req)
@@ -176,12 +177,17 @@ func (n *Nexus) ExecuteSingleTurnDelegate(ctx context.Context, projectID, prompt
 	cfg.Provider = selected.Provider
 	cfg.Profile = selected.Profile
 	cfg.Model = ""
-	cfg.Isolation = "project"
+	cfg.Isolation = "worktree"
 	if _, err := n.SafeApply(ctx, agent.ID, cfg); err != nil {
 		return nil, fmt.Errorf("configure delegated specialist: %w", err)
 	}
+	workspace, err := n.resolveExecutionWorkspace(ctx, project, agent, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("prepare delegated worktree: %w", err)
+	}
+	defer func() { _ = removeAgentWorktree(context.Background(), project, agent, workspace) }()
 
-	execution, err := n.executeAgentPrompt(ctx, agent.ID, "", delegatedPrompt, agentPromptPolicy{Contract: contract, Review: true})
+	execution, err := n.executeAgentPrompt(ctx, agent.ID, workspace, delegatedPrompt, agentPromptPolicy{Contract: contract, Review: true})
 	if err != nil {
 		return nil, fmt.Errorf("execute delegated turn: %w", err)
 	}
