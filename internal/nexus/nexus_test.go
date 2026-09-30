@@ -17,6 +17,18 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
+func TestRuntimeKillIdentityValidRequiresGeneration(t *testing.T) {
+	if runtimeKillIdentityValid(os.Getpid(), 0) {
+		t.Fatal("legacy runtime without generation must never be a destructive kill target")
+	}
+	if runtimeKillIdentityValid(-1, time.Now().UnixNano()) {
+		t.Fatal("invalid PID must never be a destructive kill target")
+	}
+	if !runtimeKillIdentityValid(os.Getpid(), time.Now().UnixNano()) {
+		t.Fatal("current process with a fresh generation should pass identity validation")
+	}
+}
+
 var mockRuntimeSeq uint64
 
 // mockLauncher satisfies the Launcher interface for unit tests without spawning
