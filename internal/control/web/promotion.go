@@ -73,7 +73,6 @@ func waitPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, prompt
 	_, _ = n.AskAgent(ctx, session.AgentID, fmt.Sprintf("A Mission %s está em %s (dispatch %s) para a solicitação: %s. Revise a evidência e sintetize o resultado.", result.RunID, state, result.Status, prompt), false)
 }
 
-
 // runSingleTurnDelegate executes one bounded read-only specialist turn without
 // creating a WorkPlan/Mission and feeds the result back into the existing Lead.
 func runSingleTurnDelegate(n *nexus.Nexus, session registry.RuntimeSession, prompt, preferredProvider string) {
