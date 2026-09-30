@@ -116,9 +116,7 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 	// Explicit provider language is registration-owned. Recognition does not
 	// bypass ResourceScheduler eligibility or create a provider from PATH.
 	registeredProvider := ""
-	if provider, ok, providerErr := n.ResolveRegisteredProviderPreference(planningText); providerErr != nil {
-		return nil, fmt.Errorf("resolve registered provider preference: %w", providerErr)
-	} else if ok {
+	if provider, ok, providerErr := n.ResolveRegisteredProviderPreference(planningText); providerErr == nil && ok {
 		registeredProvider = provider
 	}
 
