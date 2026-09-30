@@ -354,6 +354,10 @@ func (l *Launcher) Stop(runtimeID string) error {
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		if !sessionProcessAlive(sess, ok) {
+			if protocolErr != nil && ok {
+				_ = os.Remove(protocol.EndpointPath(runtimeID))
+				_ = l.reg.UpdateState(runtimeID, registry.StateStale)
+			}
 			return protocolErr
 		}
 		time.Sleep(50 * time.Millisecond)
