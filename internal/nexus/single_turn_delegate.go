@@ -87,7 +87,7 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 	// Agent specialization owns semantic capabilities. Provider allocation only
 	// hard-gates the transport/runtime capabilities needed for one headless turn.
 	resourceReq := taskReq
-	resourceReq.RequiredCapabilities = []string{"headless", "submit_prompt"}
+	resourceReq.RequiredCapabilities = []string{"headless", "submit_prompt", "read_only_review"}
 
 	accounts, err := n.ListResourcesContext(ctx)
 	if err != nil {
