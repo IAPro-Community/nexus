@@ -92,6 +92,28 @@ func TestCreateProcessSpecLeavesRealExecutablesDirect(t *testing.T) {
 }
 
 // TestWindowsBackendEcho verifies the Windows backend end-to-end.
+func TestWindowsBackendInterruptWritesETXToProviderInput(t *testing.T) {
+	readPipe, writePipe, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readPipe.Close()
+	defer writePipe.Close()
+
+	backend := &windowsBackend{inPipe: writePipe}
+	if err := backend.Signal(os.Interrupt); err != nil {
+		t.Fatalf("Signal(os.Interrupt) failed: %v", err)
+	}
+
+	buf := make([]byte, 1)
+	if _, err := io.ReadFull(readPipe, buf); err != nil {
+		t.Fatalf("reading interrupt byte failed: %v", err)
+	}
+	if buf[0] != 0x03 {
+		t.Fatalf("interrupt byte = %#x, want ETX 0x03", buf[0])
+	}
+}
+
 func TestWindowsBackendDefaultsToStandardPipes(t *testing.T) {
 	t.Setenv("AI_CLI_ENABLE_CONPTY", "")
 	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
