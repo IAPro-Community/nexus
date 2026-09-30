@@ -155,8 +155,10 @@ async function assertA11y(page, theme) {
 
 async function selectThemeThroughSettings(page, apiOrigin, theme) {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`${apiOrigin}/settings`, { waitUntil: 'domcontentloaded', timeout: 15000 });
-  await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 10000 });
+  // Cold start (first navigation in a fresh browser context) pays the bundle
+  // decode and JIT warm-up cost, which can exceed 10s on a loaded machine.
+  await page.goto(`${apiOrigin}/settings`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 30000 });
 
   const radio = await ensureThemeCategoryOpen(page, theme);
   await radio.click();
