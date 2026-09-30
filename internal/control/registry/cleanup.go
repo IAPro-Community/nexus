@@ -30,19 +30,7 @@ func (r *Registry) CleanupStale() (int, error) {
 			continue
 		}
 
-		hostPID := s.HostPID
-		if hostPID <= 0 {
-			hostPID = s.PID // compatibility with pre-HostPID registry rows
-		}
-		hostAlive := false
-		if hostPID > 0 {
-			if s.HostGeneration > 0 {
-				hostAlive = IsProcessAliveWithGeneration(hostPID, s.HostGeneration)
-			} else {
-				hostAlive = IsProcessAlive(hostPID)
-			}
-		}
-		if hostAlive {
+		if s.HostLive() {
 			continue
 		}
 
@@ -66,7 +54,7 @@ func (r *Registry) CleanupStale() (int, error) {
 	return cleaned, nil
 }
 
-// PurgeInactive permanently removes STALE, FAILED, and STOPPED sessions whose PID and socket are dead.
+// PurgeInactive permanently removes STALE, FAILED, and STOPPED sessions once the SessionHost identity is dead. HostGeneration belongs to HostPID, never to the provider child PID.
 func (r *Registry) PurgeInactive() (int, error) {
 	r.mu.Lock()
 	var candidates []RuntimeSession
@@ -79,8 +67,7 @@ func (r *Registry) PurgeInactive() (int, error) {
 
 	purged := 0
 	for _, s := range candidates {
-		alive := IsProcessAliveWithGeneration(s.PID, s.HostGeneration)
-		if !alive {
+		if !s.HostLive() {
 			// Clean up socket file
 			sockPath := protocol.EndpointPath(s.RuntimeID)
 			_ = os.Remove(sockPath)
