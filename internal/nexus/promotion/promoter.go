@@ -26,12 +26,14 @@ type Action string
 
 const (
 	KeepWithLead Action = "KEEP_WITH_LEAD"
+	Delegate     Action = "DELEGATE"
 	Promote      Action = "PROMOTE"
 	Ask          Action = "ASK"
 )
 
 const (
 	ActionKeepWithLead = KeepWithLead
+	ActionDelegate     = Delegate
 	ActionPromote      = Promote
 	ActionAsk          = Ask
 )
@@ -114,29 +116,44 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		result.Reason = "intent requires clarification before promotion"
 		return result, nil
 	}
-	if intent.Strategy == nexus.IntentDirect && !explicitRequest {
+	registeredProviderRequest := strings.TrimSpace(intent.TaskRequirements.PreferProvider) != ""
+	if intent.Strategy == nexus.IntentDirect && !explicitRequest && !registeredProviderRequest {
 		result.Reason = "direct intent stays with the interactive Lead"
 		return result, nil
 	}
 
+	// Mission remains the authority for decomposition, autonomous work and
+	// multi-workstream delegation. A named provider does not downgrade a
+	// mission-worthy request into a single turn.
 	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest
-	if !missionWorthy {
-		result.Reason = "interactive plan stays with the Lead; no delegation or decomposition is required"
+	if missionWorthy {
+		if mode == ModeAsk {
+			result.Action = Ask
+			result.Reason = "mission-worthy plan requires confirmation before promotion"
+			return result, nil
+		}
+		result.Action = Promote
+		if delegation.Delegate {
+			result.Reason = delegation.Reason
+		} else if intent.TaskRequirements.RequiresDecomposition {
+			result.Reason = "task requirements require decomposition"
+		} else {
+			result.Reason = "user explicitly requested Mission execution"
+		}
 		return result, nil
 	}
-	if mode == ModeAsk {
-		result.Action = Ask
-		result.Reason = "mission-worthy plan requires confirmation before promotion"
+
+	// An explicitly named, registered provider is permission for one bounded
+	// read-only specialist turn. It is not permission to create a Mission or to
+	// change the interactive Lead's provider/session. ASK does not add another
+	// confirmation here because the user already named the target provider.
+	if registeredProviderRequest {
+		result.Action = Delegate
+		result.Reason = "user requested registered provider " + strings.TrimSpace(intent.TaskRequirements.PreferProvider) + " for one bounded read-only turn"
 		return result, nil
 	}
-	result.Action = Promote
-	if delegation.Delegate {
-		result.Reason = delegation.Reason
-	} else if intent.TaskRequirements.RequiresDecomposition {
-		result.Reason = "task requirements require decomposition"
-	} else {
-		result.Reason = "user explicitly requested Mission execution"
-	}
+
+	result.Reason = "interactive plan stays with the Lead; no delegation or decomposition is required"
 	return result, nil
 }
 
