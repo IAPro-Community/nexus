@@ -52,6 +52,36 @@ func TestGeneratedGoalIDIsULID(t *testing.T) {
 	}
 }
 
+func TestStartDispatchDefaultsDelegationOff(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{
+		Name:          "Default delegation off",
+		CanonicalPath: t.TempDir(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := n.StartDispatch(context.Background(), DispatchRequest{
+		ProjectID:    project.ID,
+		Goal:         "implemente backend e frontend com testes",
+		SourcePrompt: "implemente backend e frontend com testes",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result == nil || result.Status != DispatchRejected {
+		t.Fatalf("implicit delegation must not create a Mission: %+v", result)
+	}
+	if !result.FallbackSafe || !strings.Contains(result.Error, "dispatch brake") {
+		t.Fatalf("implicit delegation must fail closed before admission: %+v", result)
+	}
+}
+
 func TestDispatchTopologySeparatesMissionPromotionFromDelegation(t *testing.T) {
 	nonDelegated := DelegationDecision{Delegate: false}
 	if dispatchTopologyAllowed(DispatchRequest{}, nonDelegated) {
