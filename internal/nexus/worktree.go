@@ -147,12 +147,7 @@ func ensureAgentWorktree(ctx context.Context, project store.Project, agent store
 		return "", statErr
 	}
 
-	branchSuffix := unsafeBranchChars.ReplaceAllString(agent.ID, "-")
-	branchSuffix = strings.Trim(branchSuffix, "-./")
-	if branchSuffix == "" {
-		branchSuffix = "agent"
-	}
-	branch := "iapro/agent/" + branchSuffix
+	branch := agentWorktreeBranch(agent.ID)
 
 	branchExists := executil.CommandContext(ctx, "git", "-C", project.CanonicalPath, "show-ref", "--verify", "--quiet", "refs/heads/"+branch).Run() == nil
 	args := []string{"-C", project.CanonicalPath, "worktree", "add"}
@@ -172,4 +167,65 @@ func ensureAgentWorktree(ctx context.Context, project store.Project, agent store
 		return "", fmt.Errorf("created agent worktree escapes Nexus managed project root")
 	}
 	return resolved, nil
+}
+
+
+func agentWorktreeBranch(agentID string) string {
+	branchSuffix := unsafeBranchChars.ReplaceAllString(agentID, "-")
+	branchSuffix = strings.Trim(branchSuffix, "-./")
+	if branchSuffix == "" {
+		branchSuffix = "agent"
+	}
+	return "iapro/agent/" + branchSuffix
+}
+
+// removeAgentWorktree removes only a Nexus-managed worktree for the supplied
+// project/Agent identity. It refuses paths outside the managed data root and
+// also deletes the ephemeral Agent branch after pruning the worktree record.
+func removeAgentWorktree(ctx context.Context, project store.Project, agent store.Agent, workspace string) error {
+	workspace = strings.TrimSpace(workspace)
+	if workspace == "" {
+		return nil
+	}
+	if err := validateWorktreeBase(ctx, project); err != nil {
+		return err
+	}
+	if err := validateManagedPathSegment("project id", project.ID); err != nil {
+		return err
+	}
+	if err := validateManagedPathSegment("agent id", agent.ID); err != nil {
+		return err
+	}
+	dataDir, err := config.DataDir()
+	if err != nil {
+		return err
+	}
+	projectRoot := filepath.Join(dataDir, "worktrees", project.ID)
+	canonicalProjectRoot, err := canonicalExistingManagedDir(projectRoot)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("resolve managed project worktree root: %w", err)
+	}
+	canonicalWorkspace, err := config.CanonicalWorkspacePath(workspace)
+	if err != nil {
+		return err
+	}
+	if !pathWithinRoot(canonicalWorkspace, canonicalProjectRoot) {
+		return fmt.Errorf("refusing to remove worktree outside Nexus managed project root")
+	}
+
+	removeErr := executil.CommandContext(ctx, "git", "-C", project.CanonicalPath, "worktree", "remove", "--force", canonicalWorkspace).Run()
+	if removeErr != nil {
+		// The path has already passed the managed-root boundary. A direct
+		// filesystem cleanup is safe if git could not detach the worktree
+		// cleanly (for example after a terminated provider process).
+		if err := os.RemoveAll(canonicalWorkspace); err != nil {
+			return fmt.Errorf("remove managed Agent worktree: git=%v filesystem=%w", removeErr, err)
+		}
+	}
+	_ = executil.CommandContext(ctx, "git", "-C", project.CanonicalPath, "worktree", "prune").Run()
+	_ = executil.CommandContext(ctx, "git", "-C", project.CanonicalPath, "branch", "-D", agentWorktreeBranch(agent.ID)).Run()
+	return nil
 }
