@@ -1,7 +1,7 @@
 # Suporte de plataformas
 
 A linha **Nexus 1.0 ainda está em beta**. O trabalho que estava separado como
-“1.1” foi incorporado ao candidato `v1.0.0-beta.3`.
+“1.1” foi incorporado ao candidato `v1.0.0-beta.7`.
 
 A última beta pública registrada, `v1.0.0-beta.1`, continua Linux amd64.
 O source candidato seguinte integra Linux amd64, Windows amd64 e macOS arm64,
@@ -29,7 +29,7 @@ publicação continua fail-closed e vinculada ao SHA promovido.
 | Release | Plataformas pretendidas | Evidência obrigatória |
 | --- | --- | --- |
 | `v1.0.0-beta.1` | Linux amd64 | evidência histórica já publicada |
-| `v1.0.0-beta.3+` | Linux + Windows + macOS | CI exact-SHA + Windows + macOS + seal |
+| `v1.0.0-beta.7+` | Linux + Windows + macOS | CI exact-SHA + Windows + macOS + seal |
 | `v1.0.0-rc.*` | Linux + Windows + macOS | CI exact-SHA + Windows + macOS + seal |
 | `v1.0.0` | Linux + Windows + macOS | tudo acima + Stable Certification |
 
@@ -134,7 +134,7 @@ A certificação produz:
 
 ## Manifesto e updater
 
-A partir de `v1.0.0-beta.3`, o manifesto assinado exige a matriz completa:
+A partir de `v1.0.0-beta.7`, o manifesto assinado exige a matriz completa:
 
 ```text
 linux_amd64
