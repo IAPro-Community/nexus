@@ -227,3 +227,36 @@ func TestPromoterDelegationOffStillKeepsProviderBytesWithLead(t *testing.T) {
 		t.Fatalf("delegation OFF action=%s, want KEEP_WITH_LEAD", decision.Action)
 	}
 }
+
+
+func TestPromoterWriteCapableProviderRequestRequiresMission(t *testing.T) {
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	if _, err := profile.Create("codex", "work"); err != nil {
+		t.Fatal(err)
+	}
+	n := &nexus.Nexus{}
+	p := Promoter{
+		Nexus: n,
+		DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
+			return nexus.IntentDecision{
+				Strategy: nexus.IntentDirect,
+				TaskRequirements: nexus.TaskRequirements{
+					TaskKind: "coding",
+					Role:     "implementer",
+				},
+			}, nil
+		},
+	}
+	decision, err := p.Decide(context.Background(), "project", "use codex para corrigir esse typo", ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Promote {
+		t.Fatalf("write-capable explicit provider request action=%s, want PROMOTE: %+v", decision.Action, decision)
+	}
+	if decision.Intent.TaskRequirements.PreferProvider != "codex" {
+		t.Fatalf("prefer provider=%q, want codex", decision.Intent.TaskRequirements.PreferProvider)
+	}
+}
