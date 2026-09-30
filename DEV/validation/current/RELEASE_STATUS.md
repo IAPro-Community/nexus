@@ -1,14 +1,14 @@
 # Current release status
 
-STATUS: NEXUS_1_0_BETA7_CANDIDATE_UNVERIFIED
+STATUS: NEXUS_1_0_BETA7_READY_FOR_EXTERNAL_CERTIFICATION
 SOURCE_VERSION: 1.0.0-beta.7
 CANDIDATE_REF: release/v1.0.0
 PUBLIC_GITHUB_RELEASE: NONE
 LATEST_SOURCE_BETA_TAG: v1.0.0-beta.1
-CI_STATE: PR_VALIDATION_ACTIVE_EXACT_SHA_PENDING
+CI_STATE: BLOCKED_EXTERNAL_GITHUB_ACTIONS_CREDITS
 INTEGRATION_TRACKER: #27
 INTEGRATION_BASE_SHA: PENDING_FINAL_BETA7_SHA
-UPDATED_AT: 2026-09-29
+UPDATED_AT: 2026-09-30
 
 > **Current release truth moved to `docs/release-status.md`.** This DEV file
 > remains an evidence ledger. The 2026-09-23 SHA/run records below are historical
@@ -22,6 +22,20 @@ UPDATED_AT: 2026-09-29
 The authoritative open-gap checklist is GitHub issue #27. Source integration remains **UNVERIFIED** until native same-SHA evidence closes the required platform gates.
 
 Beta 7 preserves the Usage/Capacity hardening and adds the Composer Interview Engine plus the latest Codex/delegation fail-closed corrections. The public quota field is literal remaining capacity, while multi-pool breadth stays an internal scheduler concern. Release automation now accepts only the exact HEAD of `release/v1.0.0`.
+
+## Closure sweep — 2026-09-30
+
+The final source/admin sweep was completed against audited source SHA `32b0cc3611850b744ba4c3191d35835d0744ce82`.
+No functional delta was ported from stale PRs #31, #33, #34 or #35; all four were
+closed unmerged after review because their remaining deltas are superseded,
+deferred, or conflict with the current fail-closed routing/visual-evidence
+contracts.
+
+GitHub Actions exact-SHA execution is currently **BLOCKED_EXTERNAL** because the
+available Actions credits cannot start the queued self-hosted gate. This is an
+operational dependency, not a technical PASS or FAIL. The source candidate must
+still complete real visual recapture, native homologation and authenticated
+provider smoke on the final immutable SHA before certification/publication.
 
 ## Current candidate summary
 
