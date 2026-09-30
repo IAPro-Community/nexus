@@ -48,7 +48,11 @@ func (p *ndjsonComposerProgress) write(payload map[string]any) {
 	}
 }
 
-func (h *NexusHandler) streamComposerCreate(w http.ResponseWriter, r *http.Request, projectID, goal, sourcePrompt, inputMode string) {
+func (h *NexusHandler) streamComposerCreate(
+	w http.ResponseWriter,
+	r *http.Request,
+	projectID, goal, sourcePrompt, inputMode, interviewMode string,
+) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		writeError(w, http.StatusInternalServerError, "streaming unsupported")
@@ -80,7 +84,15 @@ func (h *NexusHandler) streamComposerCreate(w http.ResponseWriter, r *http.Reque
 		}
 	}()
 
-	view, err := h.composer.CreateWithProgress(r.Context(), projectID, goal, sourcePrompt, inputMode, sink)
+	view, err := h.composer.CreateWithInterviewModeProgress(
+		r.Context(),
+		projectID,
+		goal,
+		sourcePrompt,
+		inputMode,
+		interviewMode,
+		sink,
+	)
 	close(done)
 	if err != nil {
 		sink.write(map[string]any{"type": "error", "message": err.Error()})
