@@ -1,5 +1,5 @@
 {
-  "source_sha": "64e2d244ae4d3a9f4c5d7d49929a11c2b4d45390",
+  "source_sha": "102213a5436f0f4f53aed5763949ce25460ec2b8",
   "generated_by": "web/scripts/docs-capture.mjs",
   "scenario": "isolated-synthetic-fixture",
   "data_classification": "SYNTHETIC",
@@ -144,5 +144,5 @@
       "status": "PASS"
     }
   ],
-  "visual_equivalence_note": "Re-anchored for the Beta 6 Windows hardening candidate. Since the prior visual anchor, the only file inside the visual-watch paths changed by this integration is web/scripts/verify-report.mjs, which affects verification process portability but not rendered UI. No TSX, CSS/SCSS, visual assets, desktop UI, or capture fixtures changed; individual capture source_sha values remain the immutable SHAs where screenshots were produced."
+  "visual_equivalence_note": "Re-anchored for the Beta 6 Windows/usage hardening candidate. Canonical captures remain visually equivalent: the Resource Picker change only replaces synthetic numeric quota bars for non-measured UNKNOWN/ERROR/UNSUPPORTED states; the documented synthetic capture scenario exercises measured quota states, whose rendering is unchanged. Other watched-path changes are verification portability or quota truth helpers/tests. Individual capture source_sha values remain the immutable SHAs where screenshots were produced; no new capture is claimed."
 }
