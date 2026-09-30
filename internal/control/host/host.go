@@ -223,8 +223,10 @@ func (sh *SessionHost) Start() error {
 
 	// Update session details
 	sh.session.PID = sh.termBackend.PID()
+	generation := time.Now().UnixNano()
+	sh.session.ProviderGeneration = generation
 	sh.session.HostPID = os.Getpid()
-	sh.session.HostGeneration = time.Now().UnixNano()
+	sh.session.HostGeneration = generation
 	if sh.session.HostBinaryPath == "" {
 		sh.session.HostBinaryPath, _ = os.Executable()
 	}
@@ -564,6 +566,7 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 			ProviderSessionID:         sh.session.ProviderSessionID,
 			Workspace:                 sh.session.Workspace,
 			PID:                       sh.session.PID,
+			ProviderGeneration:        sh.session.ProviderGeneration,
 			HostPID:                   sh.session.HostPID,
 			HostGeneration:            sh.session.HostGeneration,
 			HostBinaryPath:            sh.session.HostBinaryPath,
