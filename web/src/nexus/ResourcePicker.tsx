@@ -5,7 +5,7 @@ import { nexus } from './api';
 import { translateStatus } from '../i18n';
 import { useTranslation } from 'react-i18next';
 import styles from './ResourcePicker.module.scss';
-import { quotaTruthState } from '../features/work/directSessionModel';
+import { isMeasuredQuotaStatus, quotaTruthState } from '../features/work/directSessionModel';
 import {
   displayLabelKey,
   formatResetDescription,
@@ -53,14 +53,20 @@ const QuotaBar: React.FC<{ w: DisplayQuotaWindow }> = ({ w }) => {
   return (
     <span className="nx-resource-account__quota-row">
       <span className="nx-resource-account__quota-label">{windowKey ? t(windowKey) : w.label}</span>
-      <Progress value={w.remaining} label={`${Math.round(w.remaining)}%`} />
+      {w.kind !== 'unknown' && isMeasuredQuotaStatus(w.status) ? (
+        <Progress value={w.remaining} label={`${Math.round(w.remaining)}%`} />
+      ) : (
+        <span className="nx-resource-account__quota-unknown">{t('resources.unknown')}</span>
+      )}
       {reset ? <span className="nx-resource-account__quota-reset">{reset}</span> : null}
     </span>
   );
 };
 
 const groupAvailable = (group: DisplayQuotaModelGroup) =>
-  group.windows.some((w) => w.kind !== 'unknown' && w.remaining > 0);
+  group.windows.some(
+    (w) => w.kind !== 'unknown' && isMeasuredQuotaStatus(w.status) && w.remaining > 0,
+  );
 
 function displayQuotaGroups(account: ProviderAccount): DisplayQuotaModelGroup[] {
   return (account.quota_view?.model_groups || []).map((group) => ({
