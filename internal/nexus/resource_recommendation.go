@@ -44,7 +44,7 @@ type ResourceCandidate struct {
 	Account          ProviderAccount    `json:"account"`
 	Rank             int                `json:"rank"`
 	TotalScore       float64            `json:"total_score"`
-	Confidence       string             `json:"confidence"` // "LIVE" | "CACHED" | "ESTIMATED" | "UNKNOWN"
+	Confidence       string             `json:"confidence"` // "LIVE" | "CACHED" | "ESTIMATED" | "UNSUPPORTED" | "UNKNOWN"
 	ScoreBreakdown   map[string]float64 `json:"score_breakdown"`
 	Pros             []string           `json:"pros"`
 	Cons             []string           `json:"cons"`
@@ -181,10 +181,16 @@ func evaluateCandidate(acc ProviderAccount, req TaskRequirements, policy Schedul
 	case "ESTIMATED":
 		quotaScore = acc.QuotaRemaining * 15.0
 		c.Pros = append(c.Pros, fmt.Sprintf("Quota estimada (%.0f%% restante)", acc.QuotaRemaining*100))
+	case "UNSUPPORTED":
+		// Provider is operationally usable but exposes no trustworthy capacity
+		// metric. Keep it below measured resources without inventing a percent.
+		quotaScore = 5.0
+		c.Cons = append(c.Cons, "Quota não exposta pelo provedor; capacidade opaca")
 	case "UNKNOWN":
-		// Unknown quota is NOT treated as best (§Phase B: Unknown quota must not be treated as magically best)
-		quotaScore = 10.0
-		c.Cons = append(c.Cons, "Quota não aferida em tempo real")
+		// UNKNOWN is normally rejected by EvaluateEligibility; keep this branch
+		// defensive for legacy/in-memory callers and never score it as capacity.
+		quotaScore = 0.0
+		c.Cons = append(c.Cons, "Quota sem evidência suficiente")
 	}
 	c.ScoreBreakdown["quota"] = quotaScore
 	score += quotaScore
@@ -302,6 +308,8 @@ func quotaConfidence(acc ProviderAccount) string {
 			return "CACHED"
 		case "ESTIMATED":
 			return "ESTIMATED"
+		case "UNSUPPORTED":
+			return "UNSUPPORTED"
 		case "OK":
 			// Compatibility with pre-UsageStatus providers. These snapshots
 			// carried measured aggregate quota, so preserve them as bounded
