@@ -57,6 +57,7 @@ import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLive
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { canFitTerminal, canRunTerminalFrame } from './terminalFitModel';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
+import { sendVoiceTranscriptToTerminal } from '../features/voice/terminalVoice';
 import { ExecutionRoleSelector } from './ExecutionRoleSelector';
 import styles from './AgentTerminal.module.scss';
 
@@ -824,13 +825,7 @@ export const AgentTerminal: React.FC<{
   };
 
   const handleVoiceTranscript = (text: string) => {
-    const ws = wsRef.current;
-    if (role !== 'CONTROL') {
-      if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'lease_acquire' }));
-      throw new Error('Assuma CONTROL antes de inserir voz neste terminal.');
-    }
-    if (!ws || ws.readyState !== WebSocket.OPEN) throw new Error('Terminal desconectado.');
-    ws.send(JSON.stringify({ type: 'input', data: text }));
+    sendVoiceTranscriptToTerminal(wsRef.current, role, text);
     termRef.current?.focus();
   };
 
