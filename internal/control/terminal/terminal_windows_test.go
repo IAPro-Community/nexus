@@ -4,6 +4,7 @@ package terminal
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -237,7 +238,7 @@ func TestWindowsBackendKillUsesSupervisedJobObject(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := backend.WaitContext(ctx); err != nil {
+	if err := backend.WaitContext(ctx); errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("provider did not terminate after Job Object kill: %v", err)
 	}
 }
