@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -169,6 +168,3 @@ func ensureSingleTurnDelegateAgent(st *store.Store, project store.Project, req T
 	return agent, nil
 }
 
-// keep time imported in the same dependency graph as execution receipts when
-// builds use selective file lists.
-var _ = time.Time{}
