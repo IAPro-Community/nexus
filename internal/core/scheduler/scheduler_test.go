@@ -573,3 +573,111 @@ func TestSelectorRemainsProviderNeutralForKnownProviders(t *testing.T) {
 		})
 	}
 }
+
+
+func TestUnsupportedQuotaUsesLRUAmongHealthyAccounts(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	stateDir := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_STATE_DIR", stateDir)
+
+	selector := NewSelector(config.NewDefaultConfig(), quota.NewEngine(5*time.Minute), cooldown.NewTracker())
+	candidates := []model.Profile{
+		{Provider: "opencode", Name: "a-first"},
+		{Provider: "opencode", Name: "z-second"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"a-first": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "opencode",
+				ProfileID:  "a-first",
+				Status:     model.UsageUnsupported,
+				Source:     model.SourceNone,
+				FetchedAt:  time.Now(),
+			},
+		},
+		"z-second": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "opencode",
+				ProfileID:  "z-second",
+				Status:     model.UsageUnsupported,
+				Source:     model.SourceNone,
+				FetchedAt:  time.Now(),
+			},
+		},
+	}
+
+	res, err := selector.SelectBestProfile(context.Background(), "opencode", "/tmp", candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.SelectedProfile == nil || res.SelectedProfile.Name != "a-first" {
+		t.Fatalf("opaque quota should remain routable via deterministic LRU, got %#v", res.SelectedProfile)
+	}
+	if !strings.Contains(res.Reason, "opaque/unmeasured") {
+		t.Fatalf("selection must disclose opaque capacity, reason=%q", res.Reason)
+	}
+	for _, ev := range res.Evaluations {
+		if !ev.Eligible {
+			t.Fatalf("healthy authenticated UNSUPPORTED profile %s must remain operationally eligible: %#v", ev.Profile.Name, ev)
+		}
+	}
+}
+
+func TestMeasuredQuotaOutranksOpaqueQuota(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	stateDir := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_STATE_DIR", stateDir)
+
+	selector := NewSelector(config.NewDefaultConfig(), quota.NewEngine(5*time.Minute), cooldown.NewTracker())
+	remaining := 5.0
+	candidates := []model.Profile{
+		{Provider: "opencode", Name: "opaque"},
+		{Provider: "opencode", Name: "measured"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"opaque": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "opencode",
+				ProfileID:  "opaque",
+				Status:     model.UsageUnsupported,
+				Source:     model.SourceNone,
+				FetchedAt:  time.Now(),
+			},
+		},
+		"measured": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "opencode",
+				ProfileID:  "measured",
+				Status:     model.UsageLive,
+				Source:     model.SourceObservation,
+				FetchedAt:  time.Now(),
+				Windows: []model.UsageWindow{{
+					Kind:             "window",
+					RemainingPercent: &remaining,
+				}},
+			},
+		},
+	}
+
+	res, err := selector.SelectBestProfile(context.Background(), "opencode", "/tmp", candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.SelectedProfile == nil || res.SelectedProfile.Name != "measured" {
+		t.Fatalf("measured capacity must outrank opaque capacity, got %#v", res.SelectedProfile)
+	}
+}
