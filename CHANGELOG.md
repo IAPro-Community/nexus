@@ -54,6 +54,11 @@
 
 ## 1.0.0-beta.7 — 2026-09-29 — continuation candidate
 
+- Conversational routing now distinguishes a bounded `DELEGATE` turn from Mission promotion: explicit registered-provider requests can execute one read-only headless specialist turn and return the result to the existing Lead, while decomposition/autonomous work remains on MissionRunner.
+- Registered-provider intent is resolved only from Nexus profile/Usage registration and requires explicit routing language; incidental mentions do not mint or select executors.
+- Automatic Skill resolution uses the canonical source-agnostic SkillCatalog, bounded to four selections, and propagates selected Skill IDs through Flow without executing skill scripts during discovery.
+- The beta.7 terminal safety contract is unchanged: interactive delegation remains `OFF` by default, provider-native TUI input stays byte-transparent in OFF, and no AGY/Codex AUTO default from historical PRs was restored.
+
 - Bumped the canonical `release/v1.0.0` source candidate after the Composer Interview Engine and subsequent beta hardening landed.
 - Beta.7 remains the same single Nexus 1.0 beta line for continued requirements; it does not create a parallel release branch.
 - Public distribution remains on the rolling beta channel and still requires exact-SHA certification before publication.
