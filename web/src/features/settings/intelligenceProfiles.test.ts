@@ -4,6 +4,8 @@ import {
   intelligenceCLIProfiles,
   intelligenceModelChoices,
   isIntelligenceCLICapable,
+  quotaLabel,
+  quotaPercent,
 } from './intelligenceProfiles';
 
 function account(
@@ -81,4 +83,23 @@ describe('intelligenceCLIProfiles', () => {
       { id: 'claude_gpt', label: 'claude_gpt', remaining: 12 },
     ]);
   });
+
+  it.each(['UNKNOWN', 'ERROR', 'UNSUPPORTED'])(
+    'keeps non-measured quota states non-numeric: %s',
+    (status) => {
+      const resource = account({
+        provider: 'opencode',
+        profile: 'fbolzan',
+        quota_view: {
+          status,
+          model_groups: [
+            { name: 'default', windows: [{ kind: '5h', remaining: 0, status }] },
+          ],
+        },
+        quota_remaining: 0,
+      });
+      expect(quotaPercent(resource)).toBeNull();
+      expect(quotaLabel(resource)).toBeNull();
+    },
+  );
 });
