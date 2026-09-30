@@ -1,5 +1,5 @@
 {
-  "source_sha": "102213a5436f0f4f53aed5763949ce25460ec2b8",
+  "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
   "generated_by": "web/scripts/docs-capture.mjs",
   "scenario": "isolated-synthetic-fixture",
   "data_classification": "SYNTHETIC",
@@ -20,7 +20,7 @@
     {
       "id": "VIS-001",
       "file": "workspace-overview.png",
-      "source_sha": "5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066",
+      "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
       "surface": "web/workspace",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -32,7 +32,7 @@
     {
       "id": "VIS-003",
       "file": "direct-session.png",
-      "source_sha": "5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066",
+      "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
       "surface": "web/direct-session",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -44,7 +44,7 @@
     {
       "id": "VIS-005",
       "file": "terminal.png",
-      "source_sha": "5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066",
+      "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
       "surface": "web/terminal",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -60,21 +60,9 @@
       }
     },
     {
-      "id": "VIS-002",
-      "file": "projects.png",
-      "source_sha": "5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066",
-      "surface": "web/projects",
-      "scenario": "isolated-synthetic-fixture",
-      "viewport": "1440x900",
-      "automated": true,
-      "capture_command": "bun run docs:capture",
-      "data_classification": "SYNTHETIC",
-      "status": "PASS"
-    },
-    {
       "id": "VIS-007",
       "file": "composer.png",
-      "source_sha": "5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066",
+      "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
       "surface": "web/composer",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -86,7 +74,7 @@
     {
       "id": "VIS-008",
       "file": "flow.png",
-      "source_sha": "5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066",
+      "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
       "surface": "web/flow",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -98,7 +86,7 @@
     {
       "id": "VIS-006",
       "file": "agents.png",
-      "source_sha": "5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066",
+      "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
       "surface": "web/agents",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -110,7 +98,7 @@
     {
       "id": "VIS-010",
       "file": "usage-quota.png",
-      "source_sha": "5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066",
+      "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
       "surface": "web/usage-quota",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -122,7 +110,7 @@
     {
       "id": "VIS-004",
       "file": "provider.png",
-      "source_sha": "5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066",
+      "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
       "surface": "web/provider",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -134,7 +122,7 @@
     {
       "id": "VIS-009",
       "file": "mission.png",
-      "source_sha": "5cf7adff6e8badc3bcaa2bdd7d6709e6de57f066",
+      "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
       "surface": "web/mission",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -142,7 +130,18 @@
       "capture_command": "bun run docs:capture",
       "data_classification": "SYNTHETIC",
       "status": "PASS"
+    },
+    {
+      "id": "VIS-002",
+      "file": "projects.png",
+      "source_sha": "addefc80767a016f6dd1090e235d1d3eeaf0f86a",
+      "surface": "web/projects",
+      "scenario": "isolated-synthetic-fixture",
+      "viewport": "1440x900",
+      "automated": true,
+      "capture_command": "bun run docs:capture",
+      "data_classification": "SYNTHETIC",
+      "status": "PASS"
     }
-  ],
-  "visual_equivalence_note": "Re-anchored for the Beta 6 Windows/usage hardening candidate. Canonical captures remain visually equivalent: the Resource Picker change only replaces synthetic numeric quota bars for non-measured UNKNOWN/ERROR/UNSUPPORTED states; the documented synthetic capture scenario exercises measured quota states, whose rendering is unchanged. Other watched-path changes are verification portability or quota truth helpers/tests. Individual capture source_sha values remain the immutable SHAs where screenshots were produced; no new capture is claimed."
+  ]
 }
