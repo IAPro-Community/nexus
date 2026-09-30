@@ -205,7 +205,26 @@ if [ "${NEXUS_SKIP_DESKTOP:-0}" != "1" ]; then
 fi
 
 log "GoReleaser snapshot (Linux amd64)"
-go run github.com/goreleaser/goreleaser/v2@v2.18.0 release --snapshot --clean 2>&1 | tee "$OUT/goreleaser-snapshot.log"
+# GoReleaser v2.18.0 requires Go >= 1.27.0, so `go run ...@v2.18.0` cannot run
+# under this script's GOTOOLCHAIN=local + Go 1.25.14 contract. Use the pinned
+# standalone binary (same distribution as goreleaser-action@v6 in CI) and keep
+# every product build on Go 1.25.14.
+GORELEASER_VERSION="v2.18.0"
+export PATH="$(go env GOPATH)/bin:$PATH"
+if ! command -v goreleaser >/dev/null 2>&1; then
+  log "bootstrapping GoReleaser $GORELEASER_VERSION (build tool only)"
+  GOTOOLCHAIN=auto GOFLAGS= go install "github.com/goreleaser/goreleaser/v2@${GORELEASER_VERSION}"
+fi
+GORELEASER_GIT_VERSION="$(goreleaser --version 2>/dev/null | sed -n 's/^GitVersion:[[:space:]]*//p' | head -n1)"
+if [ "$GORELEASER_GIT_VERSION" != "$GORELEASER_VERSION" ]; then
+  echo "GoReleaser $GORELEASER_VERSION is required; got: ${GORELEASER_GIT_VERSION:-unknown}" >&2
+  exit 1
+fi
+# Snapshot artifacts must report the release version from VERSION (the beta tag
+# is only created after homologation), otherwise the DEB smoke below is unable
+# to assert the packaged identity.
+export NEXUS_VERSION="$EXPECTED_VERSION"
+goreleaser release --snapshot --clean 2>&1 | tee "$OUT/goreleaser-snapshot.log"
 test -f dist/checksums.txt
 test -f dist/nexus_Linux_x86_64.tar.gz
 test "$(find dist -maxdepth 1 -name 'nexus_Linux_*.tar.gz' | wc -l)" -eq 1
