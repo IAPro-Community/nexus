@@ -126,6 +126,9 @@ func TestRuntimeLauncher_StandaloneLaunchAndHandshake(t *testing.T) {
 	if sess.HostPID <= 0 {
 		t.Errorf("expected host PID from status handshake, got %d", sess.HostPID)
 	}
+	if sess.ProviderGeneration <= 0 {
+		t.Errorf("expected non-zero provider generation from status handshake, got %d", sess.ProviderGeneration)
+	}
 	if sess.HostGeneration <= 0 {
 		t.Errorf("expected non-zero host generation from status handshake, got %d", sess.HostGeneration)
 	}
@@ -136,6 +139,9 @@ func TestRuntimeLauncher_StandaloneLaunchAndHandshake(t *testing.T) {
 	persisted, ok := l.reg.Get(runtimeID)
 	if !ok {
 		t.Fatalf("expected launched runtime %s in registry", runtimeID)
+	}
+	if persisted.PID != sess.PID || persisted.ProviderGeneration != sess.ProviderGeneration {
+		t.Fatalf("registry lost provider identity: persisted pid=%d generation=%d, returned pid=%d generation=%d", persisted.PID, persisted.ProviderGeneration, sess.PID, sess.ProviderGeneration)
 	}
 	if persisted.HostPID != sess.HostPID || persisted.HostGeneration != sess.HostGeneration {
 		t.Fatalf("registry lost host identity: persisted host=%d generation=%d, returned host=%d generation=%d", persisted.HostPID, persisted.HostGeneration, sess.HostPID, sess.HostGeneration)
@@ -169,20 +175,29 @@ func TestForceKillSessionDoesNotSignalCurrentProcess(t *testing.T) {
 		HostPID:   currentPID,
 		State:     registry.StateRunning,
 	}
-	forceKillSession(sess.RuntimeID, sess, true)
+	if err := forceKillSession(sess.RuntimeID, sess, true); err != nil {
+		t.Fatalf("self-protection force kill returned error: %v", err)
+	}
 	if sessionProcessAlive(sess, true) {
 		t.Fatal("current Nexus process identity must not be treated as a killable runtime child")
 	}
 }
 
-func TestForceKillSessionRemovesAliveHost(t *testing.T) {
+func TestForceKillSessionRemovesGenerationVerifiedHost(t *testing.T) {
 	cmd := startLongRunningTestProcess(t)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
 	pid := cmd.Process.Pid
-	sess := registry.RuntimeSession{RuntimeID: "rt-force-kill", HostPID: pid, State: registry.StateStarting}
-	forceKillSession(sess.RuntimeID, sess, true)
+	sess := registry.RuntimeSession{
+		RuntimeID:      "rt-force-kill",
+		HostPID:        pid,
+		HostGeneration: time.Now().UnixNano(),
+		State:          registry.StateStarting,
+	}
+	if err := forceKillSession(sess.RuntimeID, sess, true); err != nil {
+		t.Fatalf("forceKillSession rejected verified host: %v", err)
+	}
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 	select {
@@ -192,6 +207,56 @@ func TestForceKillSessionRemovesAliveHost(t *testing.T) {
 	}
 	if registry.IsProcessAlive(pid) {
 		t.Fatalf("reaped host PID %d still reports alive", pid)
+	}
+}
+
+func TestForceKillSessionRejectsLiveProcessWithoutGeneration(t *testing.T) {
+	cmd := startLongRunningTestProcess(t)
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = cmd.Process.Kill()
+		_, _ = cmd.Process.Wait()
+	}()
+	sess := registry.RuntimeSession{
+		RuntimeID: "rt-force-kill-no-generation",
+		HostPID:   cmd.Process.Pid,
+		State:     registry.StateStarting,
+	}
+	if err := forceKillSession(sess.RuntimeID, sess, true); err == nil {
+		t.Fatal("expected forceKillSession to fail closed without host generation")
+	}
+	if !registry.IsProcessAlive(cmd.Process.Pid) {
+		t.Fatal("unverified host PID was killed")
+	}
+}
+
+func TestForceKillSessionRemovesGenerationVerifiedProvider(t *testing.T) {
+	cmd := startLongRunningTestProcess(t)
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	pid := cmd.Process.Pid
+	sess := registry.RuntimeSession{
+		RuntimeID:          "rt-force-kill-provider",
+		PID:                pid,
+		ProviderGeneration: time.Now().UnixNano(),
+		HostPID:            os.Getpid(),
+		State:              registry.StateStarting,
+	}
+	if err := forceKillSession(sess.RuntimeID, sess, true); err != nil {
+		t.Fatalf("forceKillSession rejected verified provider: %v", err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatalf("provider PID %d still alive after forceKillSession", pid)
+	}
+	if registry.IsProcessAlive(pid) {
+		t.Fatalf("reaped provider PID %d still reports alive", pid)
 	}
 }
 

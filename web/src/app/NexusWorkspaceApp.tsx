@@ -76,7 +76,7 @@ import { planFocusAttention, type RadarRuntimeItem } from './attentionRadarModel
 import { resolveProjectSelection, resolveStaleProjectRoute } from './projectSelection';
 import { useNexusData } from './useNexusData';
 import type { Agent, ExecutionRole, MissionRun, Project } from '../types';
-import { isLiveRuntimeState } from '../nexus/agentTerminalModel';
+import { currentRuntimeForAgent } from './runtimeAgentMapping';
 import { useTranslation } from 'react-i18next';
 import { shouldMarkUnread, surfaceTitleFromAgent } from '../workspace/surfaceAttention';
 import { KeyboardShortcutRegistry } from '../keyboard/KeyboardShortcutRegistry';
@@ -453,8 +453,7 @@ const WorkspaceCoordinator: React.FC<{
     (agent: Agent, initialPrompt = '', runtimeId = '') => {
       const live =
         runtimeId ||
-        data.runtimes.find((r) => r.agent_id === agent.id && isLiveRuntimeState(r.state))
-          ?.runtime_id ||
+        currentRuntimeForAgent(data.runtimes, agent.id)?.runtime_id ||
         '';
       const surface = agentTerminalSurface(agent.id, agent.name, initialPrompt, live);
       open(surface);
@@ -1036,7 +1035,7 @@ const WorkspaceCoordinator: React.FC<{
 
     data.agents.forEach((agent) => {
       const surfaceId = `agent:${agent.id}:terminal`;
-      const runtime = data.runtimes.find((r) => r.agent_id === agent.id);
+      const runtime = currentRuntimeForAgent(data.runtimes, agent.id);
       const surface = allSurfaces.find((s) => isSurfaceMatch(s, surfaceId));
       if (!surface) return;
 
@@ -1328,7 +1327,7 @@ const WorkspaceCoordinator: React.FC<{
           const agent = data.agents.find((a) => a.id === agentId);
           if (agent) terminal(agent);
           else {
-            const rt = data.runtimes.find((r) => r.agent_id === agentId);
+            const rt = currentRuntimeForAgent(data.runtimes, agentId);
             if (rt) handleFocusRuntime(rt.runtime_id);
           }
         }}

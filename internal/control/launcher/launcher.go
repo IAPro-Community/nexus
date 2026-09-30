@@ -318,6 +318,7 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	// registry write; otherwise this launcher-owned snapshot can replace the
 	// host's non-zero generation with the zero value from launch time.
 	sess.PID = status.PID
+	sess.ProviderGeneration = status.ProviderGeneration
 	sess.HostPID = status.HostPID
 	sess.HostGeneration = status.HostGeneration
 	if status.HostBinaryPath != "" {
@@ -338,8 +339,8 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	return &sess, nil
 }
 
-// Stop requests a graceful protocol stop, then force-kills HostPID/PID if the
-// runtime remains alive after a short barrier.
+// Stop requests a graceful protocol stop, then force-kills only process
+// identities that can be proven to belong to this runtime generation.
 func (l *Launcher) Stop(runtimeID string) error {
 	sess, ok := l.reg.Get(runtimeID)
 	var protocolErr error
@@ -353,30 +354,79 @@ func (l *Launcher) Stop(runtimeID string) error {
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		if !sessionProcessAlive(sess, ok) {
+			if protocolErr != nil && ok {
+				_ = os.Remove(protocol.EndpointPath(runtimeID))
+				_ = l.reg.UpdateState(runtimeID, registry.StateStale)
+			}
 			return protocolErr
 		}
 		time.Sleep(50 * time.Millisecond)
 		sess, ok = l.reg.Get(runtimeID)
 	}
-	forceKillSession(runtimeID, sess, ok)
+
+	killErr := forceKillSession(runtimeID, sess, ok)
 	_ = l.reg.UpdateState(runtimeID, registry.StateFailed)
-	if protocolErr != nil {
-		return fmt.Errorf("force-killed runtime %s after stop failure: %w", runtimeID, protocolErr)
+	if killErr != nil {
+		if protocolErr != nil {
+			return fmt.Errorf("runtime %s stop failed (%v) and force-stop was rejected: %w", runtimeID, protocolErr, killErr)
+		}
+		return fmt.Errorf("runtime %s force-stop was rejected: %w", runtimeID, killErr)
 	}
-	return fmt.Errorf("force-killed runtime %s after stop timeout", runtimeID)
+	if protocolErr != nil {
+		return fmt.Errorf("force-stopped runtime %s after stop failure: %w", runtimeID, protocolErr)
+	}
+	return fmt.Errorf("force-stopped runtime %s after stop timeout", runtimeID)
 }
 
-func forceKillSession(runtimeID string, sess registry.RuntimeSession, ok bool) {
-	if ok {
-		currentPID := os.Getpid()
-		if sess.PID > 0 && sess.PID != currentPID {
-			KillProcess(sess.PID)
+func validatedRuntimeProcessPID(pid int, generation int64, label string) (int, error) {
+	currentPID := os.Getpid()
+	if pid <= 0 || pid == currentPID {
+		return 0, nil
+	}
+	if generation <= 0 {
+		if registry.IsProcessAlive(pid) {
+			return 0, fmt.Errorf("%s PID %d is live but has no generation token", label, pid)
 		}
-		if sess.HostPID > 0 && sess.HostPID != currentPID {
-			KillProcess(sess.HostPID)
+		return 0, nil
+	}
+	if registry.IsProcessAliveWithGeneration(pid, generation) {
+		return pid, nil
+	}
+	if registry.IsProcessAlive(pid) {
+		return 0, fmt.Errorf("%s PID %d is live but does not match the recorded generation", label, pid)
+	}
+	return 0, nil
+}
+
+func forceKillSession(runtimeID string, sess registry.RuntimeSession, ok bool) error {
+	if !ok {
+		_ = os.Remove(protocol.EndpointPath(runtimeID))
+		return nil
+	}
+
+	providerPID, providerErr := validatedRuntimeProcessPID(sess.PID, sess.ProviderGeneration, "provider")
+	hostPID, hostErr := validatedRuntimeProcessPID(sess.HostPID, sess.HostGeneration, "SessionHost")
+	if providerErr != nil || hostErr != nil {
+		if providerErr != nil && hostErr != nil {
+			return fmt.Errorf("%v; %v", providerErr, hostErr)
 		}
+		if providerErr != nil {
+			return providerErr
+		}
+		return hostErr
+	}
+
+	// Kill the provider first while both identities are still verified. The
+	// SessionHost is then terminated; on Windows its Job Object is an additional
+	// child-cleanup barrier.
+	if providerPID > 0 {
+		KillProcess(providerPID)
+	}
+	if hostPID > 0 {
+		KillProcess(hostPID)
 	}
 	_ = os.Remove(protocol.EndpointPath(runtimeID))
+	return nil
 }
 
 func sessionProcessAlive(sess registry.RuntimeSession, ok bool) bool {
@@ -384,6 +434,8 @@ func sessionProcessAlive(sess registry.RuntimeSession, ok bool) bool {
 		return false
 	}
 	currentPID := os.Getpid()
+	// Raw liveness is sufficient for the wait barrier only. Destructive actions
+	// are guarded by validatedRuntimeProcessPID before any signal is sent.
 	if sess.PID > 0 && sess.PID != currentPID && registry.IsProcessAlive(sess.PID) {
 		return true
 	}
