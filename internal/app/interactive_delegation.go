@@ -119,6 +119,33 @@ func waitInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSes
 	}
 }
 
+
+func runInteractiveSingleTurnDelegate(n *nexus.Nexus, session registry.RuntimeSession, leadAgentID, prompt, preferredProvider string) {
+	if n == nil {
+		return
+	}
+	result, err := n.ExecuteSingleTurnDelegate(context.Background(), session.ProjectID, prompt, preferredProvider)
+	if err != nil {
+		message := fmt.Sprintf("A delegação single-turn solicitada para %s falhou antes de criar qualquer Mission: %v. Não invente um resultado; informe a limitação ao usuário.", firstNonEmptyString(preferredProvider, "um provider registrado"), err)
+		_ = submitPromptToLead(context.Background(), n, leadAgentID, session.RuntimeID, message)
+		return
+	}
+	message := fmt.Sprintf("Solicitação original: %s\nO Nexus executou um DELEGATE single-turn sem Mission usando %s:%s. Resultado do especialista:\n\n%s\n\nSintetize este resultado para o usuário sem repetir a execução.", prompt, result.Provider, result.Profile, result.Output)
+	if result.Fallback {
+		message += "\n\nObservação: o provider solicitado não estava elegível e o ResourceScheduler usou fallback registrado."
+	}
+	_ = submitPromptToLead(context.Background(), n, leadAgentID, session.RuntimeID, message)
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
+}
+
 func interactiveDelegationFailure(n *nexus.Nexus, session registry.RuntimeSession, leadAgentID, runID, action string, err error) {
 	if err == nil {
 		return
