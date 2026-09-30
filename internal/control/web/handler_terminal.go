@@ -322,7 +322,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				_ = safeWriteJSON(TerminalMessage{Type: "promotion", Role: "BLOCKED", Data: fmt.Sprintf("Turno delegado falhou: %v", delegateErr)})
 				return
 			}
-			leadMessage := fmt.Sprintf("Solicitação original: %s\n\nTurno delegado READ_ONLY executado em %s:%s (fallback=%t). Skills: %s.\nMotivo de roteamento: %s\n\nResultado delegado:\n%s\n\nSintetize este resultado para o usuário. Não atribua mudanças de arquivos ao delegado: este turno não tinha permissão de escrita.", prompt, result.Provider, result.Profile, result.Fallback, strings.Join(result.SkillIDs, ", "), result.Reason, result.Output)
+			leadMessage := fmt.Sprintf("Solicitação original: %s\n\nTurno delegado READ_ONLY executado em %s:%s (fallback=%t). Skills: %s.\nMotivo de roteamento: %s\n\nResultado delegado:\n%s\n\nSintetize este resultado para o usuário. Se a solicitação original exigir uma mudança e a recomendação delegada for suficiente, você (Lead) pode aplicá-la agora sob sua autoridade normal. Não atribua mudanças de arquivos ao delegado: este turno não tinha permissão de escrita.", prompt, result.Provider, result.Profile, result.Fallback, strings.Join(result.SkillIDs, ", "), result.Reason, result.Output)
 			if _, askErr := h.nexus.AskAgent(context.Background(), sess.AgentID, leadMessage, false); askErr != nil {
 				_ = safeWriteJSON(TerminalMessage{Type: "promotion", Role: "BLOCKED", Data: fmt.Sprintf("Turno delegado concluiu, mas o Lead não recebeu a síntese: %v\n\n%s", askErr, result.Output)})
 				return
