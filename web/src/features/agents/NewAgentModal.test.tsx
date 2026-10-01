@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  AGENT_MODE_PRESENTATION,
-  NATIVE_PROVIDERS,
-  buildNewAgentConfig,
-} from './NewAgentModal';
+import { AGENT_MODE_PRESENTATION, NATIVE_PROVIDERS, buildNewAgentConfig } from './NewAgentModal';
 import type { AgentMode } from '../../types';
 
 describe('Agent Mode presentation', () => {

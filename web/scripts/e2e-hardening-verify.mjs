@@ -164,6 +164,11 @@ async function main() {
       if (response.url().includes('/api/'))
         responses.push(`${response.status()} ${response.url()}`);
     });
+    const authenticatedProjects = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/v1/projects' && response.status() === 200,
+      { timeout: 10000 },
+    );
 
     console.log(`Navigating to ${bootstrapUrl}...`);
     const mainResponse = await page.goto(bootstrapUrl, {
@@ -175,6 +180,10 @@ async function main() {
     await page.waitForFunction(
       () => document.readyState === 'interactive' || document.readyState === 'complete',
     );
+    // The fragment bootstrap is exchanged asynchronously by the app after
+    // document readiness. Wait for the authenticated browser request before
+    // making fixture requests through Playwright's shared cookie context.
+    await authenticatedProjects;
     // A clean data directory legitimately opens the global Project Hub. Seed
     // one project through the authenticated API, then exercise the real shell.
     const apiOrigin = new URL(bootstrapUrl).origin;

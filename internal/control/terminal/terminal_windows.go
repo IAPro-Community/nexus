@@ -14,6 +14,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unicode/utf16"
 	"unsafe"
 )
 
@@ -162,14 +163,14 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 	sizeVal := *(*uint32)(unsafe.Pointer(&coord{X: int16(initialCols), Y: int16(initialRows)}))
 	var hPC uintptr
 	if conPTYEnabled {
-		r, _, e = procCreatePseudoConsole.Call(
-			uintptr(sizeVal), uintptr(hInRead), uintptr(hOutWrite), 0, uintptr(unsafe.Pointer(&hPC)))
+		r, _, _ = procCreatePseudoConsole.Call(
+			uintptr(sizeVal), hInRead, hOutWrite, 0, uintptr(unsafe.Pointer(&hPC)))
 	}
 	if !conPTYEnabled || r != 0 {
 		// CreatePseudoConsole returns HRESULT S_OK (0) on success. If ConPTY was
 		// requested but is unavailable, fall back to standard pipes truthfully.
 		if conPTYEnabled && r == 0 && hPC != 0 {
-			_ = closePseudoConsole(hPC)
+			closePseudoConsole(hPC)
 			hPC = 0
 		}
 		childIn := os.NewFile(hInRead, "conpty-fallback-child-in")
@@ -224,14 +225,14 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
-		_ = closePseudoConsole(hPC)
+		closePseudoConsole(hPC)
 		return errors.New("InitializeProcThreadAttributeList failed to size attribute list")
 	}
 	attrMem, _, e := procLocalAlloc.Call(0, attrSize)
 	if attrMem == 0 {
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
-		_ = closePseudoConsole(hPC)
+		closePseudoConsole(hPC)
 		return fmt.Errorf("LocalAlloc failed for process attribute list: %v", e)
 	}
 	defer procLocalFree.Call(attrMem)
@@ -242,7 +243,7 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
-		_ = closePseudoConsole(hPC)
+		closePseudoConsole(hPC)
 		return fmt.Errorf("InitializeProcThreadAttributeList failed: %v", e)
 	}
 	defer procDeleteProcThreadAttributeList.Call(attrMem)
@@ -263,7 +264,7 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
-		_ = closePseudoConsole(hPC)
+		closePseudoConsole(hPC)
 		return fmt.Errorf("UpdateProcThreadAttribute (pseudo console) failed: %v", e)
 	}
 
@@ -276,7 +277,7 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
-		_ = closePseudoConsole(hPC)
+		closePseudoConsole(hPC)
 		return fmt.Errorf("invalid process spec for %q", cmd.Path)
 	}
 	commandLine, err := syscall.UTF16FromString(commandLineText)
@@ -285,7 +286,7 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
-		_ = closePseudoConsole(hPC)
+		closePseudoConsole(hPC)
 		return fmt.Errorf("invalid command line: %w", err)
 	}
 	envBlock := utf16EnvBlock(cmd.Environ())
@@ -297,7 +298,7 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 			_ = closeHandle(hOutWrite)
 			_ = closeHandle(hInWrite)
 			_ = closeHandle(hOutRead)
-			_ = closePseudoConsole(hPC)
+			closePseudoConsole(hPC)
 			return fmt.Errorf("invalid working directory %q: %w", cmd.Dir, err)
 		}
 	}
@@ -324,7 +325,7 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		_ = closeHandle(hOutWrite)
 		_ = closeHandle(hInWrite)
 		_ = closeHandle(hOutRead)
-		_ = closePseudoConsole(hPC)
+		closePseudoConsole(hPC)
 		return fmt.Errorf("CreateProcessW failed for %q: %v", appPath, e)
 	}
 	if pi.Thread != 0 {
@@ -407,7 +408,7 @@ func (b *windowsBackend) Close() error {
 		hPC := b.hPC
 		done := make(chan struct{})
 		go func() {
-			_ = closePseudoConsole(hPC)
+			closePseudoConsole(hPC)
 			close(done)
 		}()
 		select {
@@ -626,11 +627,10 @@ func (b *windowsBackend) Mechanism() string {
 	return b.mechanism
 }
 
-func closePseudoConsole(h uintptr) error {
+func closePseudoConsole(h uintptr) {
 	// ClosePseudoConsole is a void Win32 API. Its return register is undefined;
 	// interpreting it as BOOL can report false failures after a successful close.
 	_, _, _ = procClosePseudoConsole.Call(h)
-	return nil
 }
 
 func closeHandle(h uintptr) error {
@@ -740,7 +740,8 @@ func escapeArg(s string) string {
 func utf16EnvBlock(env []string) []uint16 {
 	var block []uint16
 	for _, e := range env {
-		block = append(block, syscall.StringToUTF16(e)...)
+		block = append(block, utf16.Encode([]rune(e))...)
+		block = append(block, 0)
 	}
 	if len(block) == 0 {
 		return []uint16{0, 0}

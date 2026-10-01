@@ -24,14 +24,6 @@ import (
 	"github.com/IAPro-Community/nexus/internal/executil"
 )
 
-const isolatedSecretServiceScript = `TMPDIR=$(mktemp -d /tmp/nexus-kr-XXXXXX) || exit 1
-trap 'rm -rf "$TMPDIR"' EXIT INT TERM
-export GNOME_KEYRING_CONTROL="$TMPDIR"
-daemon="$1"
-shift
-"$daemon" --daemonize --components=secrets --control-directory="$TMPDIR" >/dev/null 2>&1 || true
-exec "$@"`
-
 // terminalKeyboardModeReset disables optional terminal input protocols that
 // can remain enabled after an interrupted TUI session. Those protocols make
 // normal keys arrive as CSI text in terminal emulators that do not fully
@@ -70,19 +62,6 @@ func ReassertInteractiveTerminalKeyboardModes(stdin, stdout *os.File) {
 	for _, delay := range []time.Duration{75 * time.Millisecond, 300 * time.Millisecond} {
 		time.AfterFunc(delay, func() { writeTerminalKeyboardModeReset(stdout) })
 	}
-}
-
-func alreadyIsolatedSecretServiceArgv(args []string) bool {
-	if len(args) >= 4 && args[0] == "--" && args[1] == "/bin/sh" && args[2] == "-c" {
-		return true
-	}
-	if len(args) >= 2 && args[0] == "--" {
-		base := filepath.Base(args[1])
-		if base != "sh" && base != "dbus-run-session" && args[1] != "--" {
-			return true
-		}
-	}
-	return false
 }
 
 // WrapWithIsolatedSecretService runs a provider inside an isolated credential context

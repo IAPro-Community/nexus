@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 func writeAuth(t *testing.T, path, accountID, email string) {
@@ -294,9 +295,7 @@ func TestCodexSharedSymlinkMigratedAway(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeAuth(t, filepath.Join(home, "auth.json"), "acct-host", "host@example.com")
-	if err := os.Symlink(hostSessions, filepath.Join(home, "sessions")); err != nil {
-		t.Fatal(err)
-	}
+	testutil.SymlinkOrSkip(t, hostSessions, filepath.Join(home, "sessions"))
 
 	if err := New().Prepare(context.Background(), model.Profile{Provider: "codex", Name: "mig"}); err != nil {
 		t.Fatal(err)

@@ -12,9 +12,9 @@ import (
 
 func TestCostEndpointsPreserveUnknownEvidence(t *testing.T) {
 	nexus.ResetDefaultForTest()
-	t.Cleanup(nexus.ResetDefaultForTest)
 	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
 	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	t.Cleanup(nexus.ResetDefaultForTest)
 
 	client, srv, _ := csrfClient(t)
 	st := nexus.Default().Store()
@@ -97,8 +97,8 @@ func TestCostEndpointsPreserveUnknownEvidence(t *testing.T) {
 
 func TestCostSummaryRejectsInvalidDays(t *testing.T) {
 	nexus.ResetDefaultForTest()
-	t.Cleanup(nexus.ResetDefaultForTest)
 	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	t.Cleanup(nexus.ResetDefaultForTest)
 	client, srv, _ := csrfClient(t)
 	resp, err := client.Get(srv.URL() + "/api/v1/cost/summary?days=nope")
 	if err != nil {
@@ -112,9 +112,9 @@ func TestCostSummaryRejectsInvalidDays(t *testing.T) {
 
 func TestCostPreferencesEndpointsRoundTripAndRejectInvalidPolicy(t *testing.T) {
 	nexus.ResetDefaultForTest()
-	t.Cleanup(nexus.ResetDefaultForTest)
 	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
 	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	t.Cleanup(nexus.ResetDefaultForTest)
 
 	client, srv, csrf := csrfClient(t)
 

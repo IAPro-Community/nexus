@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 	"unicode/utf16"
@@ -31,8 +30,8 @@ func TestUTF16EnvBlockIsDoubleNullTerminated(t *testing.T) {
 
 func TestUTF16EnvBlockSeparatesEntriesAndTerminatesOnce(t *testing.T) {
 	block := utf16EnvBlock([]string{"FIRST=one", "SECOND=two"})
-	first := syscall.StringToUTF16("FIRST=one")
-	second := syscall.StringToUTF16("SECOND=two")
+	first := append(utf16.Encode([]rune("FIRST=one")), 0)
+	second := append(utf16.Encode([]rune("SECOND=two")), 0)
 	if len(block) != len(first)+len(second)+1 {
 		t.Fatalf("expected one terminator per entry plus final block terminator, got %d UTF-16 units", len(block))
 	}
@@ -172,7 +171,7 @@ func TestWindowsBackendInteractiveConPTYOptIn(t *testing.T) {
 	t.Setenv("AI_CLI_ENABLE_CONPTY", "1")
 	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
 	backend := NewBackend()
-	cmd := exec.Command("cmd.exe", "/C", "set /p X=prompt: && echo GOT-%X%")
+	cmd := exec.Command("cmd.exe", "/D", "/Q", "/V:ON", "/C", "set /p X=prompt: && echo GOT-!X!")
 	if err := backend.Start(cmd, 24, 80); err != nil {
 		t.Fatalf("failed to start Windows backend: %v", err)
 	}
@@ -184,21 +183,48 @@ func TestWindowsBackendInteractiveConPTYOptIn(t *testing.T) {
 		t.Fatalf("failed to write interactive input: %v", err)
 	}
 
-	deadline := time.Now().Add(10 * time.Second)
-	buf := make([]byte, 4096)
+	type readResult struct {
+		data []byte
+		err  error
+	}
+	reads := make(chan readResult, 1)
+	stopReader := make(chan struct{})
+	defer close(stopReader)
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := backend.Read(buf)
+			if n > 0 {
+				chunk := append([]byte(nil), buf[:n]...)
+				select {
+				case reads <- readResult{data: chunk}:
+				case <-stopReader:
+					return
+				}
+			}
+			if err != nil {
+				select {
+				case reads <- readResult{err: err}:
+				case <-stopReader:
+				}
+				return
+			}
+		}
+	}()
+	timeout := time.NewTimer(10 * time.Second)
+	defer timeout.Stop()
 	var out strings.Builder
-	for time.Now().Before(deadline) {
-		n, err := backend.Read(buf)
-		if n > 0 {
-			out.Write(buf[:n])
+readLoop:
+	for !strings.Contains(out.String(), "GOT-ABC") {
+		select {
+		case result := <-reads:
+			out.Write(result.data)
+			if result.err != nil {
+				break readLoop
+			}
+		case <-timeout.C:
+			break readLoop
 		}
-		if strings.Contains(out.String(), "GOT-ABC") {
-			break
-		}
-		if err == io.EOF {
-			break
-		}
-		time.Sleep(20 * time.Millisecond)
 	}
 
 	if !strings.Contains(out.String(), "GOT-ABC") {
