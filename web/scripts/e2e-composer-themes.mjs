@@ -166,9 +166,10 @@ async function selectThemeThroughSettings(page, apiOrigin, theme) {
   assert.equal(await radio.getAttribute('aria-checked'), 'true');
 
   // Reload proves the user's selected preset is persisted by ThemeProvider,
-  // rather than surviving only in transient React state.
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
-  await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 10000 });
+  // rather than surviving only in transient React state. Same 30s budget as
+  // the cold path: a loaded machine can stall the reload render too.
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 30000 });
   await assertThemeApplied(page, theme);
   const persistedRadio = await ensureThemeCategoryOpen(page, theme);
   assert.equal(
