@@ -248,8 +248,8 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 
 	shadow := promotion.NewLineShadow()
 	pendingPromotion := ""
-	interactiveLead := webInteractiveLeadEnabled(sess) &&
-		!strings.EqualFold(string(webInteractiveDelegationMode(sess)), string(nexus.DelegationOff))
+	mode := webInteractiveDelegationMode(sess)
+	interactiveLead := webInteractiveLeadEnabled(sess)
 	if !interactiveLead {
 		shadow.SetEnabled(false)
 	}
@@ -330,8 +330,22 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				_ = writeAttachedTerminalInput(rawConn, "\r")
 				continue
 			}
+			if mode == nexus.DelegationOff {
+				provider, delegate, delegateErr := h.nexus.ResolveExplicitReadOnlyProviderDelegate(line)
+				if delegateErr != nil || !delegate {
+					_ = writeAttachedTerminalInput(rawConn, "\r")
+					continue
+				}
+				_ = writeAttachedTerminalInput(rawConn, clearLineSequence(sess.ProviderID))
+				_ = safeWriteJSON(TerminalMessage{
+					Type: "promotion", Role: "DELEGATED",
+					Data: fmt.Sprintf("Delegando um turno explícito para %s sem criar Mission.", provider),
+				})
+				go runPromotedSingleTurnDelegate(h.nexus, sess, line, provider)
+				continue
+			}
 			decideCtx, cancelDecision := context.WithTimeout(r.Context(), promotion.InteractiveDecisionTimeout)
-			decision, decideErr := promotion.NewPromoter(h.nexus).Decide(decideCtx, sess.ProjectID, line, webInteractiveDelegationMode(sess))
+			decision, decideErr := promotion.NewPromoter(h.nexus).Decide(decideCtx, sess.ProjectID, line, mode)
 			cancelDecision()
 			if decideErr != nil || decision.Action == promotion.KeepWithLead {
 				_ = writeAttachedTerminalInput(rawConn, "\r")
