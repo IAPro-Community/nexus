@@ -20,6 +20,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/control/terminal"
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/profile"
@@ -905,6 +906,16 @@ func (sh *SessionHost) waitProcess() {
 	_ = sh.registry.UpdateState(sh.session.RuntimeID, state)
 
 	eventData := sh.lifecycleEventData(map[string]any{"state": string(state)})
+	if state == registry.StateFailed && err != nil {
+		failure := classifier.Classify(err, string(sh.ringBuffer.Bytes()))
+		if failure.Kind != "" {
+			eventData["failure_kind"] = string(failure.Kind)
+			eventData["failure_message"] = failure.Message
+			if failure.RetryAfter != nil {
+				eventData["retry_after"] = failure.RetryAfter.String()
+			}
+		}
+	}
 	events.DefaultBus().Publish(events.NewEventWithCorrelation(
 		sh.session.LineageID,
 		sh.session.RuntimeID,
