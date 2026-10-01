@@ -263,7 +263,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				}
 				// The held prompt is still in the provider TUI. Submit it
 				// unchanged to the Lead exactly once.
-				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+				_ = writeAttachedTerminalInput(rawConn, "\r")
 				_ = safeWriteJSON(TerminalMessage{
 					Type: "promotion",
 					Role: "FALLBACK",
@@ -276,7 +276,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			// Direct. Untyped/internal failures are conservative too: without
 			// proof that no Mission crossed the admission boundary, do not risk
 			// duplicate execution.
-			_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID)})
+			_ = writeAttachedTerminalInput(rawConn, clearLineSequence(sess.ProviderID))
 			detail := fmt.Sprintf("Promoção para Mission falhou antes da confirmação de admissão: %v. Fallback Direct desativado por segurança.", startErr)
 			if accepted != nil && accepted.AdmissionBlocked {
 				detail = fmt.Sprintf("Mission solicitada, mas a admissão foi bloqueada (etapa %s): %v", accepted.AdmissionStage, startErr)
@@ -296,7 +296,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			})
 			return
 		}
-		_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID)})
+		_ = writeAttachedTerminalInput(rawConn, clearLineSequence(sess.ProviderID))
 		_ = safeWriteJSON(TerminalMessage{
 			Type: "promotion",
 			Role: "PROMOTED",
@@ -315,30 +315,30 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			return
 		}
 		if h.nexus == nil || sess.ProjectID == "" || sess.AgentID == "" || !shadow.Enabled() {
-			_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: data})
+			_ = writeAttachedTerminalInput(rawConn, data)
 			return
 		}
 		event := shadow.Consume([]byte(data))
 		if len(event.Forward) > 0 {
-			_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: string(event.Forward)})
+			_ = writeAttachedTerminalInput(rawConn, string(event.Forward))
 		}
 		if !event.Submit {
 			return
 		}
 		for _, line := range event.Submissions {
 			if promotion.IsImmediateSubmitLine(line) {
-				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+				_ = writeAttachedTerminalInput(rawConn, "\r")
 				continue
 			}
 			decideCtx, cancelDecision := context.WithTimeout(r.Context(), promotion.InteractiveDecisionTimeout)
 			decision, decideErr := promotion.NewPromoter(h.nexus).Decide(decideCtx, sess.ProjectID, line, webInteractiveDelegationMode(sess))
 			cancelDecision()
 			if decideErr != nil || decision.Action == promotion.KeepWithLead {
-				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+				_ = writeAttachedTerminalInput(rawConn, "\r")
 				continue
 			}
 			if decision.Action == promotion.Delegate {
-				_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: clearLineSequence(sess.ProviderID)})
+				_ = writeAttachedTerminalInput(rawConn, clearLineSequence(sess.ProviderID))
 				_ = safeWriteJSON(TerminalMessage{Type: "promotion", Role: "DELEGATED", Data: fmt.Sprintf("Delegando um turno para %s sem criar Mission.", decision.Intent.TaskRequirements.PreferProvider)})
 				go runPromotedSingleTurnDelegate(h.nexus, sess, line, decision.Intent.TaskRequirements.PreferProvider)
 				continue
@@ -436,7 +436,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 					if strings.EqualFold(strings.TrimSpace(msg.Data), "y") || strings.EqualFold(strings.TrimSpace(msg.Data), "yes") || strings.EqualFold(strings.TrimSpace(msg.Data), "s") || strings.EqualFold(strings.TrimSpace(msg.Data), "sim") {
 						startPromotion(pendingPromotion, false)
 					} else {
-						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+						_ = writeAttachedTerminalInput(rawConn, "\r")
 					}
 					pendingPromotion = ""
 				}
@@ -454,7 +454,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 					if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") || strings.EqualFold(answer, "s") || strings.EqualFold(answer, "sim") {
 						startPromotion(pendingPromotion, false)
 					} else {
-						_ = sendAttachedCommand(rawConn, protocol.CmdInput, protocol.InputPayload{Data: "\r"})
+						_ = writeAttachedTerminalInput(rawConn, "\r")
 					}
 					pendingPromotion = ""
 					inputMu.Unlock()
@@ -528,6 +528,19 @@ func clearLineSequence(providerID string) string {
 		return provider.ClearLine
 	}
 	return "\x15"
+}
+
+func writeAttachedTerminalInput(conn interface{ Write([]byte) (int, error) }, data string) error {
+	if data == "" {
+		return nil
+	}
+	// After CmdAttach the SessionHost connection is a PTY byte stream. Mirror
+	// the proven CLI attach path and write terminal bytes directly instead of
+	// wrapping every key in CmdInput JSON. This avoids response/input framing
+	// contention on Windows named-pipe streams while preserving the attached
+	// connection as the single-writer authority.
+	_, err := conn.Write([]byte(data))
+	return err
 }
 
 func sendAttachedCommand(conn interface{ Write([]byte) (int, error) }, command protocol.CommandType, payload any) error {
