@@ -99,3 +99,39 @@ func TestBuildExecutionTargetsHonorsExplicitCapacityDomainEvidence(t *testing.T)
 		t.Fatalf("explicit capacity-domain evidence lost: %+v", targets)
 	}
 }
+
+func TestSpecialistPreferenceDoesNotOverrideExplicitPin(t *testing.T) {
+	catalog := NewModelCatalog([]ModelCatalogEntry{{
+		Candidate: ModelCandidate{Provider: "opencode", Model: "kimi"},
+		Source: "test",
+	}})
+	affinity := RuntimeAffinityPolicy{
+		Provider: AffinityPreference{Mode: AffinityPin, Value: "codex"},
+		Model:    AffinityPreference{Mode: AffinityAuto},
+	}
+	got := applySpecialistExecutionPreferences(TaskRequirements{Role: "frontend-engineer"}, affinity, catalog)
+	if got.Provider.Mode != AffinityPin || got.Provider.Value != "codex" {
+		t.Fatalf("specialist preference overrode explicit provider PIN: %+v", got.Provider)
+	}
+}
+
+func TestSpecialistPreferenceUsesCatalogBackedModelWhenAutomatic(t *testing.T) {
+	catalog := NewModelCatalog([]ModelCatalogEntry{{
+		Candidate: ModelCandidate{Provider: "opencode", Model: "kimi"},
+		Source: "test",
+	}})
+	got := applySpecialistExecutionPreferences(
+		TaskRequirements{Role: "frontend-engineer"},
+		RuntimeAffinityPolicy{
+			Provider: AffinityPreference{Mode: AffinityAuto},
+			Model:    AffinityPreference{Mode: AffinityAuto},
+		},
+		catalog,
+	)
+	if got.Provider.Mode != AffinityPrefer || got.Provider.Value != "opencode" {
+		t.Fatalf("provider preference=%+v want opencode PREFER", got.Provider)
+	}
+	if got.Model.Mode != AffinityPrefer || got.Model.Value != "kimi" {
+		t.Fatalf("model preference=%+v want kimi PREFER", got.Model)
+	}
+}
