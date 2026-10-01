@@ -21,6 +21,18 @@ describe('workspace surface layering and responsive resource layout', () => {
     expect(styles).not.toMatch(/z-index:\s*20000/);
   });
 
+  it('keeps browser workspaces scrollable without changing native Desktop overflow semantics', () => {
+    expect(styles).toMatch(
+      /:root\[data-nexus-platform="web"\] body\s*\{[\s\S]*?overflow-y:\s*auto;/,
+    );
+    expect(styles).toMatch(
+      /:root\[data-nexus-platform="web"\] \.nx-workspace-host\s*\{[\s\S]*?overflow:\s*auto;/,
+    );
+    expect(styles).toMatch(
+      /:root\[data-nexus-platform="web"\] \.nx-workspace-panel\[data-active="true"\]\s*\{[\s\S]*?overflow:\s*auto;/,
+    );
+  });
+
   it('renders provider resources in two desktop columns and one mobile column', () => {
     expect(styles).toMatch(
       /\.nx-resource-account-list\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/,
