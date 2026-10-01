@@ -172,6 +172,7 @@ func (s *Service) PerformAccountHandoff(ctx context.Context, sourceRuntimeID, ta
 		Args:              resumeArgs,
 		Model:             source.Model,
 		Standalone:        false,
+		Labels:            cloneRuntimeLabels(source.Labels),
 	})
 	if err != nil {
 		tx.State = HandoffRollback
