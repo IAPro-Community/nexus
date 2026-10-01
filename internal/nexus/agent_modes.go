@@ -7,6 +7,22 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 )
 
+type TargetPreference struct {
+	Backend                string `json:"backend,omitempty"`
+	Model                  string `json:"model,omitempty"`
+	Mode                   AffinityMode `json:"mode"`
+	Weight                 int `json:"weight,omitempty"`
+	RequireCatalogEvidence bool `json:"require_catalog_evidence,omitempty"`
+	Legacy                 bool `json:"legacy,omitempty"`
+}
+
+type SpecialistExecutionPreferences struct {
+	Targets             []TargetPreference `json:"targets,omitempty"`
+	DesiredModelTraits  map[string]string `json:"desired_model_traits,omitempty"`
+	CostPreference      string `json:"cost_preference,omitempty"`
+	ReasoningPreference string `json:"reasoning_preference,omitempty"`
+}
+
 // AgentMode is a product preset over the existing persistent Agent/AgentSpec
 // model. It contains no provider runtime state and does not replace
 // AutonomyContract: operational permissions remain enforced by Mission/runtime
@@ -19,6 +35,7 @@ type AgentMode struct {
 	DefaultExecutionMode string                 `json:"default_execution_mode"`
 	RecommendedSkillIDs  []string               `json:"recommended_skill_ids,omitempty"`
 	ReadOnlyByDefault    bool                   `json:"read_only_by_default,omitempty"`
+	ExecutionPreferences SpecialistExecutionPreferences `json:"execution_preferences,omitempty"`
 	AgentSpec            intelligence.AgentSpec `json:"agent_spec"`
 }
 
@@ -257,6 +274,14 @@ func AgentModeForID(id string) (AgentMode, bool) {
 
 func cloneAgentMode(mode AgentMode) AgentMode {
 	mode.RecommendedSkillIDs = append([]string(nil), mode.RecommendedSkillIDs...)
+	mode.ExecutionPreferences.Targets = append([]TargetPreference(nil), mode.ExecutionPreferences.Targets...)
+	if mode.ExecutionPreferences.DesiredModelTraits != nil {
+		traits := make(map[string]string, len(mode.ExecutionPreferences.DesiredModelTraits))
+		for key, value := range mode.ExecutionPreferences.DesiredModelTraits {
+			traits[key] = value
+		}
+		mode.ExecutionPreferences.DesiredModelTraits = traits
+	}
 	mode.AgentSpec.Instructions = append([]string(nil), mode.AgentSpec.Instructions...)
 	mode.AgentSpec.Responsibilities = append([]string(nil), mode.AgentSpec.Responsibilities...)
 	mode.AgentSpec.Capabilities = append([]string(nil), mode.AgentSpec.Capabilities...)
@@ -265,6 +290,59 @@ func cloneAgentMode(mode AgentMode) AgentMode {
 	mode.AgentSpec.Strengths = append([]string(nil), mode.AgentSpec.Strengths...)
 	mode.AgentSpec.Tags = append([]string(nil), mode.AgentSpec.Tags...)
 	return mode
+}
+
+func AgentModeExecutionPreferences(mode AgentMode, catalog *ModelCatalog) SpecialistExecutionPreferences {
+	prefs := mode.ExecutionPreferences
+	prefs.Targets = append([]TargetPreference(nil), prefs.Targets...)
+	if prefs.DesiredModelTraits != nil {
+		traits := make(map[string]string, len(prefs.DesiredModelTraits))
+		for key, value := range prefs.DesiredModelTraits {
+			traits[key] = value
+		}
+		prefs.DesiredModelTraits = traits
+	}
+	if normalizeAgentTaxonomy(mode.Role) == "frontend-engineer" {
+		if prefs.DesiredModelTraits == nil {
+			prefs.DesiredModelTraits = map[string]string{}
+		}
+		prefs.DesiredModelTraits["coding"] = "high"
+		prefs.DesiredModelTraits["frontend"] = "high"
+		prefs.DesiredModelTraits["tool_use"] = "required"
+		prefs.DesiredModelTraits["reasoning"] = "medium+"
+		if prefs.CostPreference == "" {
+			prefs.CostPreference = "balanced"
+		}
+		for _, candidate := range []struct {
+			model  string
+			weight int
+		}{
+			{model: "kimi", weight: 100},
+			{model: "glm-5.3", weight: 90},
+		} {
+			if catalog != nil && catalog.Has("opencode", "", candidate.model) {
+				prefs.Targets = append(prefs.Targets, TargetPreference{
+					Backend: "opencode", Model: candidate.model, Mode: AffinityPrefer,
+					Weight: candidate.weight, RequireCatalogEvidence: true,
+				})
+			}
+		}
+	}
+	if provider := strings.ToLower(strings.TrimSpace(mode.DefaultProvider)); provider != "" {
+		already := false
+		for _, target := range prefs.Targets {
+			if target.Model == "" && strings.EqualFold(target.Backend, provider) {
+				already = true
+				break
+			}
+		}
+		if !already {
+			prefs.Targets = append(prefs.Targets, TargetPreference{
+				Backend: provider, Mode: AffinityPrefer, Weight: 10, Legacy: true,
+			})
+		}
+	}
+	return prefs
 }
 
 func validateAgentModeConfiguration(cfg AgentConfig) error {
