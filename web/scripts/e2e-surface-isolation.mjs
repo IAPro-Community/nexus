@@ -152,6 +152,15 @@ async function assertIsolation(page, label) {
       backdrops: q('.nx-modal-backdrop, .nx-dialog-backdrop, [data-radix-portal] [data-state="open"]'),
       scrollLocked: document.body.hasAttribute('data-scroll-locked'),
       bodyOverflow: document.body.style.overflow,
+      bodyComputedOverflowY: getComputedStyle(document.body).overflowY,
+      workspaceOverflowY: (() => {
+        const host = document.querySelector('.nx-workspace-host');
+        return host ? getComputedStyle(host).overflowY : '';
+      })(),
+      activePanelOverflowY: (() => {
+        const panel = document.querySelector('.nx-workspace-panel[data-active="true"]');
+        return panel ? getComputedStyle(panel).overflowY : '';
+      })(),
       scrollY: window.scrollY,
       docScrollW: document.documentElement.scrollWidth,
       innerW: window.innerWidth,
@@ -176,14 +185,54 @@ async function assertIsolation(page, label) {
   assert.equal(snapshot.visibleDialogs, 0, `[${label}] no visible orphan dialog: ${JSON.stringify(snapshot)}`);
   assert.equal(snapshot.alertDialogs, 0, `[${label}] no orphan alertdialog: ${JSON.stringify(snapshot)}`);
   assert.equal(snapshot.scrollLocked, false, `[${label}] no body scroll lock: ${JSON.stringify(snapshot)}`);
-  assert.equal(snapshot.bodyOverflow, '', `[${label}] no body overflow lock: ${JSON.stringify(snapshot)}`);
-  assert.equal(snapshot.scrollY, 0, `[${label}] no page scroll offset: ${JSON.stringify(snapshot)}`);
+  assert.equal(snapshot.bodyOverflow, '', `[${label}] no inline body overflow lock: ${JSON.stringify(snapshot)}`);
+  assert.ok(
+    ['auto', 'scroll', 'visible'].includes(snapshot.bodyComputedOverflowY),
+    `[${label}] browser body must retain a vertical scroll path: ${JSON.stringify(snapshot)}`,
+  );
+  assert.ok(
+    ['auto', 'scroll'].includes(snapshot.workspaceOverflowY) ||
+      ['auto', 'scroll'].includes(snapshot.activePanelOverflowY),
+    `[${label}] workspace or active panel must be vertically scrollable: ${JSON.stringify(snapshot)}`,
+  );
+  assert.equal(snapshot.scrollY, 0, `[${label}] no page scroll offset before interaction: ${JSON.stringify(snapshot)}`);
   assert.ok(
     snapshot.docScrollW <= snapshot.innerW + 2,
     `[${label}] no unintended horizontal scrollbar: ${JSON.stringify(snapshot)}`,
   );
   assert.equal(snapshot.focusInHidden, false, `[${label}] focus must not sit in a hidden panel`);
   return snapshot;
+}
+
+async function assertVerticalScrollPath(page, label) {
+  const result = await page.evaluate(() => {
+    const panel = document.querySelector('.nx-workspace-panel[data-active="true"]');
+    if (!panel) return { ok: false, reason: 'no active panel' };
+    const marker = document.createElement('div');
+    marker.setAttribute('data-e2e-scroll-marker', 'true');
+    marker.style.height = '200vh';
+    marker.style.width = '1px';
+    marker.style.pointerEvents = 'none';
+    panel.append(marker);
+    const before = panel.scrollTop;
+    panel.scrollTop = 80;
+    const after = panel.scrollTop;
+    marker.remove();
+    panel.scrollTop = before;
+    return {
+      ok: after > before,
+      before,
+      after,
+      overflowY: getComputedStyle(panel).overflowY,
+      scrollHeight: panel.scrollHeight,
+      clientHeight: panel.clientHeight,
+    };
+  });
+  assert.equal(
+    result.ok,
+    true,
+    `[${label}] active browser surface must accept vertical scroll: ${JSON.stringify(result)}`,
+  );
 }
 
 async function main() {
@@ -250,7 +299,8 @@ async function main() {
     for (const kind of sequence) {
       await clickProductTab(page, kind);
       const snap = await assertIsolation(page, kind);
-      console.log(`  ✓ ${kind}: one panel (total mounted incl. terminals host: ${snap.panelCount})`);
+      await assertVerticalScrollPath(page, kind);
+      console.log(`  ✓ ${kind}: one panel + usable vertical scroll (total mounted incl. terminals host: ${snap.panelCount})`);
     }
 
     // Same-node proof: the terminals host survived every switch without remount.
