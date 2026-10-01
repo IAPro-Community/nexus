@@ -37,6 +37,16 @@ type QuotaMonitorService struct {
 	leasePath  string
 	leaseToken string
 	leaseTTL   time.Duration
+	continuity func(context.Context, string, ContinuityReason)
+}
+
+func (s *QuotaMonitorService) SetContinuityHandler(handler func(context.Context, string, ContinuityReason)) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.continuity = handler
+	s.mu.Unlock()
 }
 
 func NewQuotaMonitorService(monitor *QuotaDropMonitor, bus *events.Bus) *QuotaMonitorService {
@@ -217,7 +227,18 @@ func (s *QuotaMonitorService) check() {
 		if remaining, ok := view.BestGroupRemaining(); ok {
 			acc.QuotaRemaining = remaining / 100
 		}
-		s.monitor.CheckAccount(acc)
+		if action := s.monitor.CheckAccount(acc); action != nil && action.AffectedRuntimeID != "" && action.Kind == string(events.EventQuotaExhausted) {
+			reason := ContinuityQuotaExhausted
+			if acc.RateLimited {
+				reason = ContinuityRateLimited
+			}
+			s.mu.Lock()
+			handler := s.continuity
+			s.mu.Unlock()
+			if handler != nil {
+				handler(ctx, action.AffectedRuntimeID, reason)
+			}
+		}
 	}
 }
 
