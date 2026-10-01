@@ -59,3 +59,17 @@ func TestWebTerminalInputWriterCoalescesSplitSelectorKeys(t *testing.T) {
 		t.Fatalf("selector input changed: got %q want %q", got, want)
 	}
 }
+
+func TestWriteAttachedTerminalInputPreservesRawBytes(t *testing.T) {
+	var out bytes.Buffer
+	input := "echo __NEXUS_DOCS_TERMINAL_OK__\r\x1b[A"
+	if err := writeAttachedTerminalInput(&out, input); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != input {
+		t.Fatalf("attached terminal input changed: got %q want %q", got, input)
+	}
+	if bytes.Contains(out.Bytes(), []byte(`"command":"input"`)) {
+		t.Fatalf("browser PTY input must not be wrapped as CmdInput RPC: %q", out.String())
+	}
+}
