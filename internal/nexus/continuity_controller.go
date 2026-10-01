@@ -3,6 +3,8 @@ package nexus
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -70,6 +72,10 @@ func (c *ContinuityController) ContinueRuntime(ctx context.Context, runtimeID st
 	}
 	decision.SourceProvider = source.ProviderID
 	decision.SourceProfile = source.ProfileID
+	hops := continuityHopCount(source)
+	if hops >= 4 {
+		return nil, decision, fmt.Errorf("continuity hop limit reached for runtime %s", source.RuntimeID)
+	}
 
 	accounts, err := c.nexus.ListResourcesContext(ctx)
 	if err != nil {
@@ -140,6 +146,8 @@ func (c *ContinuityController) ContinueRuntime(ctx context.Context, runtimeID st
 	next.Labels["nexus.continuity_pending"] = "false"
 	next.Labels["nexus.continuity_reason"] = string(reason)
 	next.Labels["nexus.continuity_replaces_runtime"] = source.RuntimeID
+	next.Labels["nexus.continuity_hops"] = strconv.Itoa(hops + 1)
+	next.Labels["nexus.continuity_excluded"] = continuityExcludedLabel(source)
 	if decision.Mode == "ACCOUNT_HANDOFF" {
 		next.Labels["continuity"] = "ACCOUNT_HANDOFF"
 	} else {
@@ -189,9 +197,11 @@ func (c *ContinuityController) ContinueRuntime(ctx context.Context, runtimeID st
 }
 
 func selectContinuityTarget(source registry.RuntimeSession, accounts []ProviderAccount) (ProviderAccount, bool) {
+	excluded := continuityExcludedResources(source)
 	candidates := make([]ProviderAccount, 0, len(accounts))
 	for _, account := range accounts {
-		if strings.EqualFold(account.Provider, source.ProviderID) && strings.EqualFold(account.Profile, source.ProfileID) {
+		key := strings.ToLower(strings.TrimSpace(account.Provider)) + ":" + strings.ToLower(strings.TrimSpace(account.Profile))
+		if _, blocked := excluded[key]; blocked {
 			continue
 		}
 		candidates = append(candidates, account)
@@ -218,6 +228,43 @@ func selectContinuityTarget(source registry.RuntimeSession, accounts []ProviderA
 		return target, true
 	}
 	return pick(candidates)
+}
+
+func continuityHopCount(session registry.RuntimeSession) int {
+	if session.Labels == nil {
+		return 0
+	}
+	value, _ := strconv.Atoi(strings.TrimSpace(session.Labels["nexus.continuity_hops"]))
+	if value < 0 {
+		return 0
+	}
+	return value
+}
+
+func continuityExcludedResources(session registry.RuntimeSession) map[string]struct{} {
+	out := map[string]struct{}{}
+	if session.Labels != nil {
+		for _, item := range strings.Split(session.Labels["nexus.continuity_excluded"], ",") {
+			item = strings.ToLower(strings.TrimSpace(item))
+			if item != "" {
+				out[item] = struct{}{}
+			}
+		}
+	}
+	current := strings.ToLower(strings.TrimSpace(session.ProviderID)) + ":" + strings.ToLower(strings.TrimSpace(session.ProfileID))
+	if current != ":" {
+		out[current] = struct{}{}
+	}
+	return out
+}
+
+func continuityExcludedLabel(session registry.RuntimeSession) string {
+	items := make([]string, 0)
+	for item := range continuityExcludedResources(session) {
+		items = append(items, item)
+	}
+	sort.Strings(items)
+	return strings.Join(items, ",")
 }
 
 func (n *Nexus) persistInteractiveContinuityReplacement(ctx context.Context, source registry.RuntimeSession, target *registry.RuntimeSession) error {
