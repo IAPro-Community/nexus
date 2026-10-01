@@ -9,6 +9,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 func TestInteractiveDelegationModeFailsClosedAndHonorsExplicitOverride(t *testing.T) {
@@ -117,5 +118,39 @@ func TestConfirmedInteractiveDelegationModeClearsAskPendingApproval(t *testing.T
 	}
 	if got := confirmedInteractiveDelegationMode(nexus.DelegationAuto); got != nexus.DelegationAuto {
 		t.Fatalf("AUTO must remain AUTO, got %s", got)
+	}
+}
+
+func TestStickyLeadExplicitDelegateProvider(t *testing.T) {
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	if _, err := profile.Create("codex", "review"); err != nil {
+		t.Fatal(err)
+	}
+	n := &nexus.Nexus{}
+
+	provider, delegate, err := stickyLeadExplicitDelegateProvider(n, "peça ao Codex para revisar isso")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !delegate || provider != "codex" {
+		t.Fatalf("provider=%q delegate=%t want codex,true", provider, delegate)
+	}
+
+	provider, delegate, err = stickyLeadExplicitDelegateProvider(n, "a documentação do Codex diz isso")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if delegate || provider != "" {
+		t.Fatalf("incidental provider mention must KEEP with Lead: provider=%q delegate=%t", provider, delegate)
+	}
+
+	provider, delegate, err = stickyLeadExplicitDelegateProvider(n, "use Codex para implementar o frontend")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if delegate || provider != "" {
+		t.Fatalf("write-capable request must not bypass Mission isolation: provider=%q delegate=%t", provider, delegate)
 	}
 }
