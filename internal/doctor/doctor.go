@@ -163,11 +163,39 @@ func probeWindowsWebView2() Check {
 	if _, err := exec.LookPath("reg.exe"); err != nil {
 		return Check{ID: "platform.webview2", Status: Warn, Summary: "WebView2 registry probe is unavailable", Remediation: "install the Microsoft WebView2 Runtime or run doctor on Windows"}
 	}
-	out, err := executil.Command("reg.exe", "query", `HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients`, "/s", "/f", "pv").CombinedOutput()
-	if err == nil && strings.Contains(strings.ToLower(string(out)), "webview") {
+	out, err := executil.Command("reg.exe", "query", `HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients`, "/s").CombinedOutput()
+	if err == nil && hasWebView2Registration(string(out)) {
 		return Check{ID: "platform.webview2", Status: Pass, Summary: "Microsoft WebView2 Runtime registration detected"}
 	}
 	return Check{ID: "platform.webview2", Status: Warn, Summary: "Microsoft WebView2 Runtime was not detected", Remediation: "install the Microsoft WebView2 Runtime before launching Desktop"}
+}
+
+func hasWebView2Registration(output string) bool {
+	const runtimeName = "microsoft edge webview2 runtime"
+	nameFound, versionFound := false, false
+	flush := func() bool { return nameFound && versionFound }
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(strings.ToUpper(line), "HKEY_") {
+			if flush() {
+				return true
+			}
+			nameFound, versionFound = false, false
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 3 || !strings.EqualFold(fields[1], "REG_SZ") {
+			continue
+		}
+		value := strings.TrimSpace(strings.Join(fields[2:], " "))
+		switch strings.ToLower(fields[0]) {
+		case "name":
+			nameFound = strings.EqualFold(value, runtimeName)
+		case "pv":
+			versionFound = value != ""
+		}
+	}
+	return flush()
 }
 
 func probeLinuxWebKitGTK() Check {

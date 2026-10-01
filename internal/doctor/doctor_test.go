@@ -97,6 +97,42 @@ func TestBuildReportContainerSkipsNativeDesktopProbes(t *testing.T) {
 	}
 }
 
+func TestHasWebView2RegistrationRequiresRuntimeNameAndVersion(t *testing.T) {
+	tests := []struct {
+		name string
+		out  string
+		want bool
+	}{
+		{
+			name: "webview2 runtime",
+			out: "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-E4C5}\n" +
+				"    name    REG_SZ    Microsoft Edge WebView2 Runtime\n" +
+				"    pv      REG_SZ    154.0.4258.37\n",
+			want: true,
+		},
+		{
+			name: "edge browser only",
+			out: "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{56EB18F8-B008}\n" +
+				"    name    REG_SZ    Microsoft Edge\n" +
+				"    pv      REG_SZ    154.0.4258.48\n",
+			want: false,
+		},
+		{
+			name: "filtered version output omits runtime name",
+			out: "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-E4C5}\n" +
+				"    pv      REG_SZ    154.0.4258.37\n",
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := hasWebView2Registration(tt.out); got != tt.want {
+				t.Fatalf("hasWebView2Registration() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestWriteBundleAllowlistAndRedactionSurface(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "doctor.zip")
 	report := Report{Schema: "nexus.doctor/v1", Version: "test", Providers: map[string]model.DetectionResult{"codex": {Installed: true, BinaryPath: "/tmp/codex"}}}
