@@ -167,6 +167,7 @@ func (s *Service) PerformAccountHandoff(ctx context.Context, sourceRuntimeID, ta
 		ProjectName:       source.ProjectName,
 		ProviderID:        targetProvider,
 		ProfileID:         targetProfile,
+		AccountScope:      info.AccountScope,
 		ProviderSessionID: source.ProviderSessionID,
 		Workspace:         source.Workspace,
 		Args:              resumeArgs,
