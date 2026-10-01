@@ -38,6 +38,7 @@ type QuotaMonitorService struct {
 	leaseToken string
 	leaseTTL   time.Duration
 	continuity func(context.Context, string, ContinuityReason)
+	eventUnsub func()
 }
 
 func (s *QuotaMonitorService) SetContinuityHandler(handler func(context.Context, string, ContinuityReason)) {
@@ -80,10 +81,13 @@ func (s *QuotaMonitorService) Start(ctx context.Context) {
 		return
 	}
 	s.ctx, s.cancel = context.WithCancel(ctx)
+	eventCh, eventUnsub := s.bus.Subscribe("*")
+	s.eventUnsub = eventUnsub
 	s.started = true
-	s.wg.Add(1)
+	s.wg.Add(2)
 	s.mu.Unlock()
 	go s.loop()
+	go s.watchRuntimeFailures(eventCh)
 }
 
 func (s *QuotaMonitorService) loop() {
@@ -112,8 +116,13 @@ func (s *QuotaMonitorService) Stop() {
 		return
 	}
 	s.cancel()
+	unsub := s.eventUnsub
+	s.eventUnsub = nil
 	s.started = false
 	s.mu.Unlock()
+	if unsub != nil {
+		unsub()
+	}
 	s.wg.Wait()
 	s.releaseLease()
 }
