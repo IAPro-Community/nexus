@@ -96,3 +96,24 @@ func TestApplyRegisteredProviderPreferenceDoesNotOverwriteExplicitResource(t *te
 		t.Fatalf("explicit resource contract was overwritten: %+v", step)
 	}
 }
+
+func TestHasExplicitProviderRoutingRequest(t *testing.T) {
+	for _, prompt := range []string{
+		"peça ao Codex para revisar isso",
+		"use opencode para validar",
+		"delegate to claude",
+	} {
+		if !HasExplicitProviderRoutingRequest(prompt) {
+			t.Fatalf("expected explicit provider routing request: %q", prompt)
+		}
+	}
+	for _, prompt := range []string{
+		"a documentação do Codex diz isso",
+		"compare custos de codex e claude",
+		"corrija esse teste",
+	} {
+		if HasExplicitProviderRoutingRequest(prompt) {
+			t.Fatalf("incidental provider text must stay on Lead fast path: %q", prompt)
+		}
+	}
+}
