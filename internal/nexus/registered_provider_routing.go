@@ -103,6 +103,12 @@ func providerPromptTerms(prompt string) map[string]struct{} {
 	return terms
 }
 
+// HasExplicitProviderRoutingRequest is the cheap lexical fast-path used by
+// STICKY_LEAD. It does not inspect PATH, quota, models, Agents, or Mission state.
+func HasExplicitProviderRoutingRequest(prompt string) bool {
+	return providerRoutingRequested(prompt)
+}
+
 func providerRoutingRequested(prompt string) bool {
 	terms := providerPromptTerms(prompt)
 	for _, verb := range []string{
