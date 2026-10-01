@@ -6,7 +6,10 @@ import './styles/globals.scss';
 import './app/workspace-os.css';
 import { initPlatformBridge } from './platform';
 
-initPlatformBridge();
+const platformBridge = initPlatformBridge();
+if (typeof document !== 'undefined') {
+  document.documentElement.dataset.nexusPlatform = platformBridge.kind;
+}
 
 const container = document.getElementById('root');
 if (container) {
