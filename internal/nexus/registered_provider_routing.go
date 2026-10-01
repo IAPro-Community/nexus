@@ -49,6 +49,25 @@ func (n *Nexus) ResolveRegisteredProviderPreference(prompt string) (string, bool
 	return provider, ok, nil
 }
 
+// ResolveExplicitReadOnlyProviderDelegate recognizes the one missionless
+// delegation allowed in STICKY_LEAD: an explicit user-owned request for a
+// registered provider performing a bounded read-only specialist turn.
+func (n *Nexus) ResolveExplicitReadOnlyProviderDelegate(prompt string) (string, bool, error) {
+	if n == nil || !HasExplicitProviderRoutingRequest(prompt) {
+		return "", false, nil
+	}
+	provider, ok, err := n.ResolveRegisteredProviderPreference(prompt)
+	if err != nil || !ok {
+		return "", false, err
+	}
+	requirements := ClassifyTaskRequirements(prompt)
+	mode, ok := AgentModeForRole(requirements.Role)
+	if !ok || !mode.ReadOnlyByDefault || requirements.RequiresDecomposition {
+		return "", false, nil
+	}
+	return provider, true, nil
+}
+
 func resolveRegisteredProviderPreference(prompt string, registered []string) (string, bool) {
 	// A provider name is routing authority only when the user couples it to an
 	// execution/delegation verb. Incidental prose such as "the Codex docs" must
