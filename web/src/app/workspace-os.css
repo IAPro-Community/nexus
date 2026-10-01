@@ -8340,3 +8340,27 @@ button.nx-workspace-tab__close {
     padding: 0 6px !important;
   }
 }
+
+
+/* Browser surfaces must retain a real scroll path. The native Desktop keeps
+   viewport-locked OS semantics, but Web content may exceed the viewport due to
+   browser chrome, zoom, accessibility font scaling, or compact laptop heights. */
+:root[data-nexus-platform="web"] body {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+:root[data-nexus-platform="web"] .nx-workspace-host {
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+:root[data-nexus-platform="web"] .nx-workspace-stack__body {
+  overflow: auto;
+}
+
+:root[data-nexus-platform="web"] .nx-workspace-panel[data-active="true"] {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
