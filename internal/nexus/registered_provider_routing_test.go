@@ -117,3 +117,28 @@ func TestHasExplicitProviderRoutingRequest(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveExplicitReadOnlyProviderDelegate(t *testing.T) {
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	if _, err := profile.Create("codex", "review"); err != nil {
+		t.Fatal(err)
+	}
+	n := &Nexus{}
+
+	provider, ok, err := n.ResolveExplicitReadOnlyProviderDelegate("peça ao Codex para revisar isso")
+	if err != nil || !ok || provider != "codex" {
+		t.Fatalf("read-only delegate provider=%q ok=%t err=%v", provider, ok, err)
+	}
+
+	provider, ok, err = n.ResolveExplicitReadOnlyProviderDelegate("a documentação do Codex diz isso")
+	if err != nil || ok || provider != "" {
+		t.Fatalf("incidental mention routed: provider=%q ok=%t err=%v", provider, ok, err)
+	}
+
+	provider, ok, err = n.ResolveExplicitReadOnlyProviderDelegate("use Codex para implementar o frontend")
+	if err != nil || ok || provider != "" {
+		t.Fatalf("write-capable request bypassed Mission isolation: provider=%q ok=%t err=%v", provider, ok, err)
+	}
+}
