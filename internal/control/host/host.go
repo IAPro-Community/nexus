@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -61,6 +62,7 @@ type SessionHost struct {
 	doneChan     chan struct{}
 	streamDone   chan struct{}
 	detector     *AttentionDetector
+	shellInput   shellPipeInputNormalizer
 	stopOnce     sync.Once
 	doneOnce     sync.Once
 	codexTUILock interface{ Release() error }
@@ -628,6 +630,7 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 				// CmdInput is a byte transport. It must never pass through command
 				// recognition, ANSI filtering, or escape-sequence normalization.
 				forwardWrite = sh.collectAttachedInputLocked(conn, []byte(p.Data))
+				forwardWrite = sh.normalizeShellPipeInputLocked(forwardWrite)
 			}
 		}
 		resp, _ = protocol.NewResponse("input_received")
@@ -791,11 +794,19 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 func (sh *SessionHost) processAttachedInput(conn net.Conn, data []byte) {
 	sh.mu.Lock()
 	forward := sh.collectAttachedInputLocked(conn, data)
+	forward = sh.normalizeShellPipeInputLocked(forward)
 	sh.mu.Unlock()
 
 	if len(forward) > 0 {
 		_, _ = sh.termBackend.Write(forward)
 	}
+}
+
+func (sh *SessionHost) normalizeShellPipeInputLocked(data []byte) []byte {
+	if runtime.GOOS != "windows" || !strings.EqualFold(sh.session.ProviderID, "shell") || sh.termBackend.SupportsRawMode() {
+		return data
+	}
+	return sh.shellInput.Normalize(data)
 }
 
 func (sh *SessionHost) collectAttachedInputLocked(conn net.Conn, data []byte) []byte {

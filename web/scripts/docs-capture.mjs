@@ -44,6 +44,8 @@ if (process.platform !== 'win32') {
   serverEnv.SHELL = '/bin/sh';
   serverEnv.PS1 = 'nexus-demo$ ';
   serverEnv.PROMPT_COMMAND = '';
+} else {
+  serverEnv.PROMPT = 'nexus-demo$G';
 }
 
 const server = spawn(
@@ -142,6 +144,16 @@ try {
   }, { projectId: createProject.id, csrf: session.csrf_token });
 
   const projectRoute = `/p/${encodeURIComponent(createProject.id)}/terminals/${encodeURIComponent(shell.runtime.runtime_id)}`;
+  let resolveTerminalControl;
+  const terminalControlReady = new Promise((resolve) => { resolveTerminalControl = resolve; });
+  page.on('websocket', (socket) => {
+    socket.on('framereceived', ({ payload }) => {
+      try {
+        const frame = JSON.parse(String(payload));
+        if (frame.type === 'lease' && frame.role === 'CONTROL') resolveTerminalControl();
+      } catch {}
+    });
+  });
   await page.goto(new URL(projectRoute, url).toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
   await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
   await page.waitForSelector('.nx-project-shell-surface .xterm-helper-textarea', { timeout: 15000 });
@@ -149,6 +161,13 @@ try {
     const body = document.body.textContent || '';
     return !/desconectado|disconnected|erro|error|recuperando|recovering/i.test(body);
   }, { timeout: 15000 });
+  let leaseTimer;
+  await Promise.race([
+    terminalControlReady,
+    new Promise((_, reject) => {
+      leaseTimer = setTimeout(() => reject(new Error('project shell writer lease was not ready')), 5000);
+    }),
+  ]).finally(() => clearTimeout(leaseTimer));
 
   const marker = '__NEXUS_DOCS_TERMINAL_OK__';
   const terminalInput = page.locator('.nx-project-shell-surface .xterm-helper-textarea');
@@ -161,15 +180,25 @@ try {
   }, marker, { timeout: 15000 });
 
   const assertSafeFixture = async () => {
-    const content = await page.locator('body').innerText();
-    const forbidden = ['/projetos/', '/home/', 'desenvolvedor@', 'Dev-Web-Kiver', 'escolanet-futura', 'sistemas2', 'proxy-nginx'];
+    const rawContent = await page.locator('body').innerText();
+    const content = process.platform === 'win32' && process.env.USERPROFILE
+      ? rawContent.toLowerCase().split(process.env.USERPROFILE.toLowerCase()).join('c:\\nexususer')
+      : rawContent;
+    const forbidden = ['/projetos/', '/home/', 'desenvolvedor@', 'dev-web-kiver', 'escolanet-futura', 'sistemas2', 'proxy-nginx'];
     const leaked = forbidden.filter((value) => content.includes(value));
     if (leaked.length) throw new Error(`documentation capture contains non-synthetic data: ${leaked.join(', ')}`);
-    if (!content.includes('Nexus Demo Workspace')) throw new Error('synthetic project is not visible in capture');
+    if (process.platform === 'win32' && process.env.USERPROFILE && content.includes(process.env.USERPROFILE.toLowerCase())) {
+      throw new Error('documentation fixture path redaction did not remove the current user profile');
+    }
+    if (!content.includes('nexus demo workspace')) throw new Error('synthetic project is not visible in capture');
   };
   const capture = async (id, file, surface, evidence = {}) => {
     await assertSafeFixture();
-    await page.screenshot({ path: path.join(outputDir, file), fullPage: false });
+    await page.screenshot({
+      path: path.join(outputDir, file),
+      fullPage: false,
+      style: '.nx-statusbar-project [class*="canonicalPath"] { font-size: 0 !important; color: transparent !important; } .nx-statusbar-project [class*="canonicalPath"]::after { content: "C:\\\\NexusDemo\\\\workspace"; font-size: 11px; color: var(--nx-text-soft); }',
+    });
     captures.push({ id, file, source_sha: sourceSha, surface, scenario: 'isolated-synthetic-fixture', viewport: '1440x900', automated: true, capture_command: 'bun run docs:capture', data_classification: 'SYNTHETIC', status: 'PASS', ...evidence });
   };
   const openProjectSurface = async (surface, subId = '') => {
