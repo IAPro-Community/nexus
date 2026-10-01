@@ -202,7 +202,32 @@ func capacityDomainForAccount(account ProviderAccount) CapacityDomain {
 	}
 }
 
+func applySpecialistExecutionPreferences(req TaskRequirements, affinity RuntimeAffinityPolicy, catalog *ModelCatalog) RuntimeAffinityPolicy {
+	mode, ok := AgentModeForRole(req.Role)
+	if !ok {
+		return affinity
+	}
+	prefs := AgentModeExecutionPreferences(mode, catalog)
+	for _, target := range prefs.Targets {
+		if affinity.Provider.Mode == AffinityAuto && strings.TrimSpace(target.Backend) != "" {
+			affinity.Provider = AffinityPreference{Mode: AffinityPrefer, Value: target.Backend}
+		}
+		if affinity.Model.Mode == AffinityAuto && strings.TrimSpace(target.Model) != "" {
+			if target.RequireCatalogEvidence && (catalog == nil || !catalog.Has(target.Backend, "", target.Model)) {
+				continue
+			}
+			affinity.Model = AffinityPreference{Mode: AffinityPrefer, Value: target.Model}
+			if affinity.Provider.Mode == AffinityAuto && strings.TrimSpace(target.Backend) != "" {
+				affinity.Provider = AffinityPreference{Mode: AffinityPrefer, Value: target.Backend}
+			}
+			break
+		}
+	}
+	return affinity
+}
+
 func ResolveExecutionTarget(req TaskRequirements, affinity RuntimeAffinityPolicy, accounts []ProviderAccount, catalog *ModelCatalog) (ExecutionTarget, RuntimeRoutingDecision, error) {
+	affinity = applySpecialistExecutionPreferences(req, affinity, catalog)
 	models := make([]ModelCandidate, 0)
 	if catalog != nil {
 		for _, entry := range catalog.Entries() {
