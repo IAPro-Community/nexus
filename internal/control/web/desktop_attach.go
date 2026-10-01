@@ -114,14 +114,37 @@ func NewLoopbackBackendHandler(baseURL string, assets fs.FS) (http.Handler, erro
 		// and must validate the proxied request against its actual host.
 		req.Header.Set("Origin", target.Scheme+"://"+target.Host)
 	}
+	var assetServer http.Handler
+	if assets != nil {
+		assetServer = http.FileServer(http.FS(assets))
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if !strings.HasPrefix(req.URL.Path, "/api/") && req.Method == http.MethodGet && assets != nil {
+		if strings.HasPrefix(req.URL.Path, "/api/") {
+			proxy.ServeHTTP(w, req)
+			return
+		}
+		if assetServer != nil && (req.Method == http.MethodGet || req.Method == http.MethodHead) {
+			// Serve concrete bundled assets before the SPA fallback. Returning
+			// index.html for bundle.js/bundle.css makes WebView2 parse HTML as JS/CSS
+			// and leaves the native Desktop as a silent black window.
+			assetPath := strings.TrimPrefix(req.URL.Path, "/")
+			if assetPath != "" {
+				if file, openErr := assets.Open(assetPath); openErr == nil {
+					info, statErr := file.Stat()
+					_ = file.Close()
+					if statErr == nil && !info.IsDir() {
+						assetServer.ServeHTTP(w, req)
+						return
+					}
+				}
+			}
 			index, readErr := fs.ReadFile(assets, "index.html")
 			if readErr == nil {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
 				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write(index)
+				if req.Method == http.MethodGet {
+					_, _ = w.Write(index)
+				}
 				return
 			}
 		}
