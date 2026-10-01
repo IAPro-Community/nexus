@@ -282,3 +282,12 @@ func ContinuityReasonForFailure(failure model.Failure) (ContinuityReason, bool) 
 		return "", false
 	}
 }
+
+func (n *Nexus) wireQuotaContinuity(service *QuotaMonitorService) {
+	if n == nil || service == nil {
+		return
+	}
+	service.SetContinuityHandler(func(ctx context.Context, runtimeID string, reason ContinuityReason) {
+		_, _, _ = NewContinuityController(n).ContinueRuntime(ctx, runtimeID, reason)
+	})
+}
