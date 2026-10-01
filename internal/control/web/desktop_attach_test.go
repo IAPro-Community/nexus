@@ -89,3 +89,33 @@ func TestLoopbackBackendHandlerServesLocalSPAForNavigation(t *testing.T) {
 		t.Fatalf("expected local index document, got %q", got)
 	}
 }
+
+func TestLoopbackBackendHandlerServesBundledAssetsBeforeSPAFallback(t *testing.T) {
+	srv := newStartedTestServer(t)
+	handler, err := NewLoopbackBackendHandler(srv.URL(), fstest.MapFS{
+		"index.html": &fstest.MapFile{Data: []byte("<html>desktop-shell</html>")},
+		"bundle.js":  &fstest.MapFile{Data: []byte("globalThis.__NEXUS_DESKTOP_ASSET__ = true;")},
+		"bundle.css": &fstest.MapFile{Data: []byte("body{background:#080a0f}")},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, test := range []struct {
+		path string
+		want string
+	}{
+		{path: "/bundle.js", want: "globalThis.__NEXUS_DESKTOP_ASSET__ = true;"},
+		{path: "/bundle.css", want: "body{background:#080a0f}"},
+	} {
+		req := httptest.NewRequest(http.MethodGet, test.path, nil)
+		resp := httptest.NewRecorder()
+		handler.ServeHTTP(resp, req)
+		if resp.Code != http.StatusOK {
+			t.Fatalf("%s status=%d body=%q", test.path, resp.Code, resp.Body.String())
+		}
+		if got := resp.Body.String(); got != test.want {
+			t.Fatalf("%s served %q want %q; SPA fallback must not replace static assets", test.path, got, test.want)
+		}
+	}
+}
