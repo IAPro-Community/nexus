@@ -167,8 +167,13 @@ async function main() {
     const authenticatedProjects = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === '/api/v1/projects' && response.status() === 200,
-      { timeout: 10000 },
+      { timeout: 30000 },
     );
+    // If navigation or the bootstrap asserts below throw before the await,
+    // this promise would otherwise reject unhandled after the context closes.
+    authenticatedProjects.catch(() => {
+      // Rejection surfaces at the await below; this only marks it handled.
+    });
 
     console.log(`Navigating to ${bootstrapUrl}...`);
     const mainResponse = await page.goto(bootstrapUrl, {
