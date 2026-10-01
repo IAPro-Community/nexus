@@ -627,12 +627,6 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 		return attachRuntime(runtimeID)
 	}
 	mode := interactiveDelegationMode(session)
-	if mode == nexus.DelegationOff {
-		// A bound Lead is contextual identity, not permission to reinterpret the
-		// provider terminal. OFF bypasses LineShadow/Promoter entirely so Enter,
-		// selectors and provider-native commands stay owned by the provider.
-		return attachRuntime(runtimeID)
-	}
 	return attachRuntimeWithInput(runtimeID, func(conn io.Writer) error {
 		shadow := promotion.NewLineShadow()
 		promoter := promotion.NewPromoter(n)
@@ -714,6 +708,22 @@ func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session regi
 				}
 				if event.Submit {
 					for _, line := range event.Submissions {
+						// STICKY_LEAD keeps ordinary prompts provider-native even while
+						// autonomous Mission delegation is OFF. A narrowly-scoped,
+						// explicit read-only request for another registered provider is
+						// still a user-owned DELEGATE turn and never becomes a Mission.
+						if mode == nexus.DelegationOff {
+							provider, delegate, delegateErr := stickyLeadExplicitDelegateProvider(n, line)
+							if delegateErr != nil || !delegate {
+								_, _ = conn.Write([]byte("\r"))
+								continue
+							}
+							_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
+							_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Delegando um turno explícito para %s sem criar Mission…\r\n", provider)
+							go runInteractiveSingleTurnDelegate(n, session, agentID, line, provider)
+							continue
+						}
+
 						// Hold Enter through both routing and Mission admission.
 						// The provider receives the original line only when the
 						// Lead owns it or a heuristic Mission cannot be admitted.
