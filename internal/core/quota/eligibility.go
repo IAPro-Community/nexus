@@ -84,16 +84,30 @@ func EvaluateEligibility(in EligibilityInput) Eligibility {
 		return out
 	}
 
+	if in.View.AvailReasons.AuthRequired {
+		out.Reason = ReasonAuthRequired
+		out.Message = "Autenticação necessária"
+		return out
+	}
+
+	// UNSUPPORTED means the provider explicitly has no trustworthy quota
+	// source. It must never become synthetic capacity for AUTO routing.
+	// A user may still select it explicitly when the hard operational gates
+	// above pass and there is no known exhaustion evidence.
 	if status == string(model.UsageUnsupported) {
-		// UNSUPPORTED means the provider does not expose a trustworthy capacity
-		// metric. It is not evidence of exhaustion. Keep the resource eligible
-		// when the operational gates above passed, but preserve OPAQUE confidence
-		// so schedulers never score it as measured capacity.
-		out.Eligible = true
 		out.Reason = ReasonUnsupportedQuota
 		out.Confidence = "UNSUPPORTED"
 		out.CapacityEvidence = "OPAQUE"
-		out.Message = "Quota não exposta pelo provedor; recurso operacionalmente elegível sem score de capacidade"
+		out.Message = "Provedor não expõe quota; requer seleção explícita"
+		if !in.View.Available && len(in.View.AvailReasons.ExhaustedWindows) > 0 {
+			out.Reason = ReasonExhausted
+			out.Message = "resource unavailable"
+			return out
+		}
+		if in.ExplicitSelection {
+			out.Eligible = true
+			out.Message = "Provedor não expõe quota; seleção explícita permitida"
+		}
 		return out
 	}
 
