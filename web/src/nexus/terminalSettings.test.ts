@@ -78,7 +78,10 @@ describe('terminalSettings', () => {
 
   it('resolves xterm colors from the semantic terminal CSS tokens', () => {
     const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
-    const originalGetComputedStyle = Object.getOwnPropertyDescriptor(globalThis, 'getComputedStyle');
+    const originalGetComputedStyle = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'getComputedStyle',
+    );
     const tokens: Record<string, string> = {
       '--nx-terminal-bg': '#010203',
       '--nx-terminal-text': '#f1f2f3',
