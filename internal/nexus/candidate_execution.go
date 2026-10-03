@@ -118,14 +118,12 @@ func expandCandidatePlanSpec(spec runner.PlanSpec, preview *PlanExecutionPreview
 	if !flags.Enabled(flags.CandidateRuns) {
 		return spec, nil
 	}
-	if !flags.Enabled(flags.ExecutionWorkspacesV2) {
-		return runner.PlanSpec{}, fmt.Errorf("candidate_runs requires execution_workspaces_v2")
-	}
 	if preview == nil || preview.PlanID != spec.ID || preview.Revision != spec.Revision {
 		return runner.PlanSpec{}, fmt.Errorf("candidate execution requires the approved execution preview for plan revision %d", spec.Revision)
 	}
 
 	counts := make(map[string]int, len(preview.Steps))
+	hasFanout := false
 	for _, step := range preview.Steps {
 		count := step.CandidateExecution.CandidateCount
 		if count <= 0 {
@@ -134,7 +132,16 @@ func expandCandidatePlanSpec(spec runner.PlanSpec, preview *PlanExecutionPreview
 		if count > 3 {
 			return runner.PlanSpec{}, fmt.Errorf("candidate count %d for package %s exceeds the supported maximum of 3", count, step.PackageID)
 		}
+		if count > 1 {
+			hasFanout = true
+		}
 		counts[step.PackageID] = count
+	}
+	if !hasFanout {
+		return spec, nil
+	}
+	if !flags.Enabled(flags.ExecutionWorkspacesV2) {
+		return runner.PlanSpec{}, fmt.Errorf("candidate_runs requires execution_workspaces_v2 when approved fan-out is greater than one")
 	}
 
 	known := make(map[string]struct{}, len(spec.Packages)*4)
