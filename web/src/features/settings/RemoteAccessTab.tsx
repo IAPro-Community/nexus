@@ -45,6 +45,7 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
     try {
       setTargetLoading(true);
       setTargetError('');
+      setTargetCatalog(null);
       setTargetCatalog(await nexus.getProjectExecutionTargets(projectId));
     } catch (e) {
       setTargetCatalog(null);
