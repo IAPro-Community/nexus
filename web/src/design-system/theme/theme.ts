@@ -164,7 +164,6 @@ function resolveAccentContrast(accent: string): string {
   return colorContrastRatio(accent, black) >= colorContrastRatio(accent, white) ? black : white;
 }
 
-
 export function resolveScheme(
   scheme: ThemeScheme,
   systemDark: boolean,
