@@ -21,7 +21,19 @@ validation:
     - make quality
 
 execution:
+  # "local" remains the runtime default. Named targets are declarations only
+  # until remote_execution is explicitly enabled and a target is selected.
   defaultTarget: local
+  targets:
+    - id: devbox
+      kind: ssh
+      location: devbox
+      machineId: devbox
+      workspace: /srv/nexus
+      # Reuses the existing argv-only custom-target grammar. Authentication is
+      # owned by the system SSH configuration; never put passwords/keys here.
+      commandTemplate: ssh -tt devbox {provider} {args}
+      probeTemplate: ssh devbox {provider} {args}
 
 routing:
   strategy: quality-first
