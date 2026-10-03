@@ -72,7 +72,7 @@ func OpenSSHBridge(ctx context.Context, targetID, location string) (*SSHBridgeCl
 		return nil, protocol.RemoteBridgeHelloData{}, err
 	}
 
-	cmd := exec.CommandContext(ctx, "ssh", sshBridgeArgs(location, "--stdio")...)
+	cmd := exec.CommandContext(ctx, "ssh", sshBridgeArgs(location, false)...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, protocol.RemoteBridgeHelloData{}, err
@@ -113,11 +113,18 @@ func ValidateSSHLocation(location string) error {
 	return nil
 }
 
-func sshBridgeArgs(location, mode string) []string {
+func sshBridgeArgs(location string, attach bool) []string {
+	mode := "--stdio"
+	if attach {
+		mode = "--attach-stdio"
+	}
 	return []string{
 		"-T",
 		"-o", "BatchMode=yes",
 		"-o", "PermitLocalCommand=no",
+		"-o", "StrictHostKeyChecking=yes",
+		"-o", "ConnectTimeout=10",
+		"-o", "ConnectionAttempts=1",
 		"-o", "LogLevel=ERROR",
 		location,
 		remoteBridgeBinary,
@@ -249,18 +256,7 @@ func (c *SSHBridgeClient) Close() error {
 		return nil
 	}
 	c.closed = true
-	if c.stdin != nil {
-		_ = c.stdin.Close()
-	}
-	if c.cmd == nil || c.cmd.Process == nil {
-		return nil
-	}
-	_ = c.cmd.Process.Kill()
-	err := c.cmd.Wait()
-	if err != nil && !isExpectedProcessExit(err) {
-		return c.transportError(err)
-	}
-	return nil
+	return c.terminateLocked()
 }
 
 func (c *SSHBridgeClient) abortLocked() {
@@ -268,12 +264,24 @@ func (c *SSHBridgeClient) abortLocked() {
 		return
 	}
 	c.closed = true
+	_ = c.terminateLocked()
+}
+
+func (c *SSHBridgeClient) terminateLocked() error {
 	if c.stdin != nil {
 		_ = c.stdin.Close()
+		c.stdin = nil
 	}
-	if c.cmd != nil && c.cmd.Process != nil {
-		_ = c.cmd.Process.Kill()
+	if c.cmd == nil || c.cmd.Process == nil {
+		return nil
 	}
+	_ = c.cmd.Process.Kill()
+	err := c.cmd.Wait()
+	c.cmd = nil
+	if err != nil && !isExpectedProcessExit(err) {
+		return c.transportError(err)
+	}
+	return nil
 }
 
 func (c *SSHBridgeClient) transportError(err error) error {
@@ -300,7 +308,7 @@ func OpenSSHAttach(ctx context.Context, location, runtimeID string) (*SSHAttachS
 		return nil, err
 	}
 
-	cmd := exec.CommandContext(ctx, "ssh", sshBridgeArgs(location, "--attach-stdio")...)
+	cmd := exec.CommandContext(ctx, "ssh", sshBridgeArgs(location, true)...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
