@@ -97,7 +97,6 @@ describe('stripEmbeddedTerminalMetadata', () => {
   });
 });
 
-
 describe('terminalTraceShape', () => {
   it('masks ordinary text while preserving control-sequence structure', () => {
     const traced = terminalTraceShape('secret\x1b[A123\r\x03');
