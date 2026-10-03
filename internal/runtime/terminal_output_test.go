@@ -173,11 +173,58 @@ func TestTerminalInputScrubberCoalescesSplitSS3ArrowSequence(t *testing.T) {
 }
 
 func TestTerminalInputEscapeCoalesceWindowCoversConPTYFragmentation(t *testing.T) {
-	if terminalInputEscapeCoalesceWindow < 75*time.Millisecond {
-		t.Fatalf("coalesce window %s is too short for delayed ConPTY selector fragments", terminalInputEscapeCoalesceWindow)
+	if terminalInputEscapeCoalesceWindow < 200*time.Millisecond {
+		t.Fatalf("coalesce window %s is too short for delayed terminal selector fragments", terminalInputEscapeCoalesceWindow)
 	}
-	if terminalInputEscapeCoalesceWindow > 150*time.Millisecond {
+	if terminalInputEscapeCoalesceWindow > 350*time.Millisecond {
 		t.Fatalf("coalesce window %s adds excessive standalone Escape latency", terminalInputEscapeCoalesceWindow)
+	}
+	if terminalInputSequenceCoalesceWindow <= terminalInputEscapeCoalesceWindow {
+		t.Fatalf("known CSI/SS3 prefixes need a longer hold window: escape=%s sequence=%s", terminalInputEscapeCoalesceWindow, terminalInputSequenceCoalesceWindow)
+	}
+}
+
+func TestTerminalInputScrubberSurvivesDelayLongerThanOldArrowWindow(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalInputScrubber(&out)
+
+	_, _ = scrubber.Write([]byte{0x1b})
+	// The old 100ms timeout released ESC here and the later "[A" became
+	// visible prompt text. Keep this above that historical boundary.
+	time.Sleep(150 * time.Millisecond)
+	_, _ = scrubber.Write([]byte("[A"))
+
+	if got := out.String(); got != "\x1b[A" {
+		t.Fatalf("delayed arrow sequence = %q, want %q", got, "\\x1b[A")
+	}
+}
+
+func TestTerminalInputScrubberHoldsKnownCSIPrefixBeyondEscapeTimeout(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalInputScrubber(&out)
+
+	_, _ = scrubber.Write([]byte{0x1b, '['})
+	time.Sleep(terminalInputEscapeCoalesceWindow + 50*time.Millisecond)
+	if got := out.String(); got != "" {
+		t.Fatalf("known CSI prefix was flushed as raw input: %q", got)
+	}
+	_, _ = scrubber.Write([]byte{'D'})
+
+	if got := out.String(); got != "\x1b[D" {
+		t.Fatalf("delayed CSI completion = %q, want %q", got, "\\x1b[D")
+	}
+}
+
+func TestTerminalOutputScrubberBlocksApplicationCursorNegotiation(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalOutputScrubber(&out)
+
+	_, _ = scrubber.Write([]byte("before\x1b[?1hafter\x1b[?1l"))
+	if err := scrubber.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != "beforeafter" {
+		t.Fatalf("DECCKM negotiation leaked to outer terminal: %q", got)
 	}
 }
 

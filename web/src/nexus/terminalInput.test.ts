@@ -65,9 +65,9 @@ describe('stripEmbeddedTerminalMetadata', () => {
     );
   });
 
-  it('does not guess that navigation-looking bytes are metadata', () => {
-    expect(stripEmbeddedTerminalMetadata('> [B[A[A[B[C[D[D[C')).toBe('> [B[A[A[B[C[D[D[C');
-    expect(stripEmbeddedTerminalMetadata('[[A[B')).toBe('[[A[B');
+  it('strips unambiguous bare navigation bursts but preserves a single literal', () => {
+    expect(stripEmbeddedTerminalMetadata('> [B[A[A[B[C[D[D[C')).toBe('> ');
+    expect(stripEmbeddedTerminalMetadata('[[A[B')).toBe('');
     expect(stripEmbeddedTerminalMetadata('[A')).toBe('[A');
     expect(stripEmbeddedTerminalMetadata('typed [A text')).toBe('typed [A text');
   });

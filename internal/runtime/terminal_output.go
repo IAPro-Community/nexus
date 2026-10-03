@@ -22,10 +22,15 @@ type TerminalOutputScrubber struct {
 }
 
 // ConPTY and embedded terminal bridges may deliver ESC separately from the
-// remainder of CSI/SS3 selector keys under load. 25ms proved too short and can
+// remainder of CSI/SS3 selector keys under load. A short fixed timeout can
 // turn an arrow into a standalone ESC followed by literal "[A"/"OA" bytes.
-// Keep the window bounded so a real standalone Escape remains responsive.
-const terminalInputEscapeCoalesceWindow = 100 * time.Millisecond
+// Keep standalone Escape responsive, but once CSI/SS3 is recognized hold the
+// incomplete sequence much longer: a partial control sequence is never useful
+// provider input by itself.
+const (
+	terminalInputEscapeCoalesceWindow   = 250 * time.Millisecond
+	terminalInputSequenceCoalesceWindow = 2 * time.Second
+)
 
 func NewTerminalOutputScrubber(out io.Writer) *TerminalOutputScrubber {
 	return &TerminalOutputScrubber{out: out, drop: isKeyboardNegotiation}
@@ -88,6 +93,9 @@ func (s *TerminalOutputScrubber) scheduleIncompleteFlushLocked() {
 		return
 	}
 	delay := s.flushIncompleteAfter
+	if isIncompleteTerminalSequence(s.pending) && terminalInputSequenceCoalesceWindow > delay {
+		delay = terminalInputSequenceCoalesceWindow
+	}
 	s.flushGeneration++
 	generation := s.flushGeneration
 	s.flushTimer = time.AfterFunc(delay, func() {
@@ -102,6 +110,22 @@ func (s *TerminalOutputScrubber) scheduleIncompleteFlushLocked() {
 			s.asyncErr = err
 		}
 	})
+}
+
+func isIncompleteTerminalSequence(pending []byte) bool {
+	if len(pending) < 2 || pending[0] != 0x1b {
+		return false
+	}
+	switch pending[1] {
+	case '[':
+		// flushLocked leaves CSI here only when no final byte has arrived yet.
+		return true
+	case 'O':
+		// SS3 selector keys are exactly ESC O <final>; hold ESC O atomically.
+		return len(pending) < 3
+	default:
+		return false
+	}
 }
 
 func (s *TerminalOutputScrubber) flushLocked(final bool) error {
@@ -203,12 +227,13 @@ func isKeyboardNegotiation(sequence []byte) bool {
 		return len(body) > 0 && body[0] == '>'
 	case 'h', 'l':
 		// Private modes that affect the outer terminal's input protocols.
-		// Mouse tracking and focus reporting leak spurious events into the
-		// provider PTY. Bracketed paste (?2004) is intentionally permitted
-		// so multiline paste reaches the provider atomically instead of
-		// submitting line-by-line.
+		// DECCKM changes arrows from CSI to SS3 and mouse/focus modes generate
+		// unsolicited input reports. The provider owns its inner PTY state; it
+		// must not reconfigure the outer Nexus terminal transport. Bracketed
+		// paste (?2004) is intentionally permitted so multiline paste reaches
+		// the provider atomically instead of submitting line-by-line.
 		switch string(body) {
-		case "?1000", "?1002", "?1003", "?1004", "?1005", "?1006", "?1007", "?1015":
+		case "?1", "?1000", "?1002", "?1003", "?1004", "?1005", "?1006", "?1007", "?1015":
 			return true
 		default:
 			return false
