@@ -19,6 +19,7 @@ var terminalTraceMu sync.Mutex
 
 type terminalTraceRecord struct {
 	At        string `json:"at"`
+	PID       int    `json:"pid"`
 	RuntimeID string `json:"runtime_id"`
 	Stage     string `json:"stage"`
 	Size      int    `json:"size"`
@@ -241,6 +242,7 @@ func traceTerminalRecord(runtimeID, stage string, size int, shape string) {
 
 	record := terminalTraceRecord{
 		At:        time.Now().UTC().Format(time.RFC3339Nano),
+		PID:       os.Getpid(),
 		RuntimeID: runtimeID,
 		Stage:     sanitizeTraceToken(stage),
 		Size:      size,
