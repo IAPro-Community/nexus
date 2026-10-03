@@ -73,7 +73,6 @@ export function stripEmbeddedTerminalMetadata(data: string): string {
   return stripBareNavigationBurst(withoutMetadata);
 }
 
-
 /**
  * Privacy-safe terminal byte signature for NEXUS_TERMINAL_TRACE.
  * Ordinary printable content is masked; only control bytes and terminal
