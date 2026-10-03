@@ -73,54 +73,10 @@ type ProjectManifestCommand struct {
 	Keywords    []string `yaml:"keywords,omitempty" json:"keywords,omitempty"`
 }
 
-var projectManifestCommandIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}package nexus
-
-import (
-	"errors"
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-
-	"gopkg.in/yaml.v3"
+var (
+	projectManifestCommandIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
+	projectManifestTargetIDPattern  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
 )
-
-const maxProjectManifestBytes = 1 << 20
-
-type ProjectManifest struct {
-	Version    int                      `yaml:"version" json:"version"`
-	Project    ProjectManifestProject   `yaml:"project" json:"project"`
-	Workspace  ProjectManifestWorkspace `yaml:"workspace" json:"workspace"`
-	Setup      ProjectManifestCommands  `yaml:"setup" json:"setup"`
-	Validation ProjectManifestCommands  `yaml:"validation" json:"validation"`
-	Execution  ProjectManifestExecution `yaml:"execution" json:"execution"`
-	Routing    ProjectManifestRouting   `yaml:"routing" json:"routing"`
-	Commands   []ProjectManifestCommand `yaml:"commands" json:"commands,omitempty"`
-}
-
-type ProjectManifestProject struct {
-	Name string `yaml:"name" json:"name"`
-}
-
-type ProjectManifestWorkspace struct {
-	Strategy          string   `yaml:"strategy" json:"strategy"`
-	BaseRef           string   `yaml:"baseRef" json:"base_ref"`
-	SharedDirectories []string `yaml:"sharedDirectories" json:"shared_directories"`
-	CopiedFiles       []string `yaml:"copiedFiles" json:"copied_files"`
-}
-
-type ProjectManifestCommands struct {
-	Commands []string `yaml:"commands" json:"commands"`
-}
-
-type ProjectManifestExecution struct {
-	DefaultTarget string `yaml:"defaultTarget" json:"default_target"`
-}
-
-)
-
 func LoadProjectManifest(projectPath string) (ProjectManifest, string, error) {
 	for _, name := range []string{"nexus.yaml", "nexus.yml"} {
 		path := filepath.Join(projectPath, name)
