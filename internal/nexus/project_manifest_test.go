@@ -132,8 +132,6 @@ execution:
       location: " devbox "
       machineId: " machine-devbox "
       workspace: " /srv/project "
-      commandTemplate: " ssh -tt devbox {provider} {args} "
-      probeTemplate: " ssh devbox {provider} {args} "
 `
 	if err := os.WriteFile(filepath.Join(dir, "nexus.yaml"), []byte(body), 0o600); err != nil {
 		t.Fatal(err)
@@ -172,29 +170,34 @@ func TestLoadProjectManifestRejectsUnsafeSSHExecutionTarget(t *testing.T) {
 		`version: 1
 execution:
   targets:
-    - id: dockerish
+    - id: wrong-kind
       kind: custom
       location: devbox
       workspace: /srv/project
-      commandTemplate: ssh devbox {provider} {args}
 `,
 		`version: 1
 execution:
   targets:
-    - id: shell
+    - id: option-injection
       kind: ssh
-      location: devbox
+      location: -oProxyCommand=bad
       workspace: /srv/project
-      commandTemplate: "ssh devbox sh -lc 'cd /srv/project && {provider} {args}'"
 `,
 		`version: 1
 execution:
   targets:
-    - id: wrong-bin
+    - id: whitespace-host
+      kind: ssh
+      location: "dev box"
+      workspace: /srv/project
+`,
+		`version: 1
+execution:
+  targets:
+    - id: local
       kind: ssh
       location: devbox
       workspace: /srv/project
-      commandTemplate: docker exec box {provider} {args}
 `,
 	}
 	for index, body := range cases {
