@@ -11,7 +11,7 @@ func TestValidateDesignURL(t *testing.T) {
 			t.Fatalf("valid URL %q rejected: %v", value, err)
 		}
 	}
-	for _, value := range []string{"file:///tmp/index.html", "javascript:alert(1)", "/relative"} {
+	for _, value := range []string{"file:///tmp/index.html", "javascript:alert(1)", "/relative", "https://user:secret@example.com"} {
 		if err := validateDesignURL(value); err == nil {
 			t.Fatalf("unsafe/non-network URL %q accepted", value)
 		}
