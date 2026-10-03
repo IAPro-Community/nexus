@@ -452,6 +452,10 @@ func (n *Nexus) startMissionRunAtRevisionWithAdmission(ctx context.Context, plan
 		return nil, missionPreparationError("runner_spec", err)
 	}
 	spec.Autonomous = autonomous
+	spec, err = expandCandidatePlanSpec(spec, preview)
+	if err != nil {
+		return nil, missionPreparationError("candidate_execution", err)
+	}
 	run, err := n.Runner().StartMissionRun(ctx, spec, project.CanonicalPath, contract, defaultAgentID)
 	if err != nil {
 		// Runner ownership may already have crossed a durable persistence
