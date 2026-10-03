@@ -27,7 +27,9 @@
 
   // Specialized terminal palette stays stable across UI themes unless a future
   // terminal theme explicitly overrides these semantic tokens.
-  --nx-terminal-bg: #090d16;
+  --nx-terminal-frame: #07090d;
+  --nx-terminal-bg: #090b10;
+  --nx-terminal-pane-bg: #090d16;
   --nx-terminal-surface: #0f1218;
   --nx-terminal-border: #202530;
   --nx-terminal-text: #e6e9ef;
