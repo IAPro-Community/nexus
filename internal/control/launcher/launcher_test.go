@@ -283,3 +283,36 @@ func TestLaunchMissingWorkspaceDirectoryFails(t *testing.T) {
 		t.Fatalf("expected 'does not exist' error, got: %v", err)
 	}
 }
+
+
+func TestForceKillSessionNeverSignalsManagedRemoteProviderPID(t *testing.T) {
+	remotePIDCollision := startLongRunningTestProcess(t)
+	if err := remotePIDCollision.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if registry.IsProcessAlive(remotePIDCollision.Process.Pid) {
+			_ = remotePIDCollision.Process.Kill()
+		}
+		_, _ = remotePIDCollision.Process.Wait()
+	}()
+
+	sess := registry.RuntimeSession{
+		RuntimeID:          "rt-remote-pid-collision",
+		PID:                remotePIDCollision.Process.Pid,
+		ProviderGeneration: time.Now().UnixNano(),
+		HostPID:            os.Getpid(),
+		HostGeneration:     time.Now().UnixNano(),
+		Transport:          registry.TransportManagedSSHProxy,
+		State:              registry.StateRunning,
+	}
+	if err := forceKillSession(sess.RuntimeID, sess, true); err != nil {
+		t.Fatalf("remote force-kill cleanup failed: %v", err)
+	}
+	if !registry.IsProcessAlive(remotePIDCollision.Process.Pid) {
+		t.Fatal("managed remote provider PID was interpreted as a local process and killed")
+	}
+	if sessionProcessAlive(sess, true) {
+		t.Fatal("remote provider PID must not keep the local proxy wait barrier alive")
+	}
+}
