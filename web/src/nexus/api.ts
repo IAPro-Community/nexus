@@ -368,6 +368,30 @@ export const nexus = {
     request<import('../types').ComputerUseStatus>(
       `/api/v1/projects/${projectId}/computer/status`,
     ),
+  listProjectComputerApps: (
+    projectId: string,
+    contract: import('../types').AutonomyContract,
+  ) =>
+    request<{ apps: import('../types').ComputerAppInfo[] }>(
+      `/api/v1/projects/${projectId}/computer/apps`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ contract }),
+      },
+    ),
+  listProjectComputerWindows: (
+    projectId: string,
+    contract: import('../types').AutonomyContract,
+    app: string,
+  ) =>
+    request<{ windows: import('../types').ComputerWindowInfo[] }>(
+      `/api/v1/projects/${projectId}/computer/windows`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ contract, app }),
+      },
+    ),
+
   captureProjectComputerSnapshot: (
     projectId: string,
     contract: import('../types').AutonomyContract,
