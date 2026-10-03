@@ -3,17 +3,7 @@ import { THEME_PRESETS, type ThemeDefinition } from './themePresets';
 export type ThemeScheme = 'system' | 'dark' | 'light' | 'high-contrast';
 export type ThemeAccent = 'purple' | 'blue' | 'cyan' | 'neutral';
 export type ThemeDensity = 'compact' | 'comfortable';
-export type ThemePresetKey =
-  | 'nexus-dark'
-  | 'nexus-light'
-  | 'midnight'
-  | 'nord'
-  | 'dracula'
-  | 'monokai'
-  | 'solarized-dark'
-  | 'solarized-light'
-  | 'high-contrast-dark'
-  | 'high-contrast-light';
+export type ThemePresetKey = keyof typeof THEME_PRESETS;
 
 export interface ThemePreferences {
   scheme: ThemeScheme;
