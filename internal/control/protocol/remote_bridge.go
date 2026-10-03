@@ -11,7 +11,8 @@ const (
 	CmdRemoteBridgeSpawn  CommandType = "remote_bridge_spawn"
 	CmdRemoteBridgeStatus CommandType = "remote_bridge_status"
 	CmdRemoteBridgeResize CommandType = "remote_bridge_resize"
-	CmdRemoteBridgeAttach CommandType = "remote_bridge_attach"
+	CmdRemoteBridgeAttach  CommandType = "remote_bridge_attach"
+	CmdRemoteBridgeControl CommandType = "remote_bridge_control"
 )
 
 type RemoteBridgeCapability string
@@ -103,6 +104,14 @@ type RemoteBridgeRuntimeStatusData struct {
 	Transport    string `json:"transport"`
 }
 
+// RemoteBridgeControlPayload relays a deliberately allowlisted SessionHost
+// control RPC without exposing the remote IPC endpoint.
+type RemoteBridgeControlPayload struct {
+	RuntimeID string          `json:"runtime_id"`
+	Command   CommandType     `json:"command"`
+	Payload   json.RawMessage `json:"payload,omitempty"`
+}
+
 // RemoteBridgeAttachData is the final JSON frame before an attach transport
 // switches to byte-transparent terminal streaming.
 type RemoteBridgeAttachData struct {
@@ -165,6 +174,26 @@ func ValidateRemoteBridgeHelloData(data RemoteBridgeHelloData) error {
 		}
 	}
 	return nil
+}
+
+func ValidateRemoteBridgeControl(payload RemoteBridgeControlPayload) error {
+	if err := validateRemoteBridgeIdentifier("runtime_id", payload.RuntimeID); err != nil {
+		return err
+	}
+	switch payload.Command {
+	case CmdPing,
+		CmdSubmitPrompt,
+		CmdStop,
+		CmdTerminate,
+		CmdEvents,
+		CmdUsage,
+		CmdHandoff,
+		CmdContinue,
+		CmdSlash:
+		return nil
+	default:
+		return fmt.Errorf("remote bridge control command %q is not allowed", payload.Command)
+	}
 }
 
 func ValidateRemoteBridgeRuntime(payload RemoteBridgeRuntimePayload) error {
