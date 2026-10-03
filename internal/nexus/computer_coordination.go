@@ -2,13 +2,16 @@ package nexus
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/computer"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/core/security"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 )
 
 const maxComputerCoordinationOutputBytes = 64 << 10
@@ -28,6 +31,206 @@ type computerCoordinationSnapshot struct {
 type computerCoordinationActionResult struct {
 	Snapshot     computerCoordinationSnapshot `json:"snapshot"`
 	Verification computer.ActionVerification  `json:"verification"`
+}
+
+func isComputerCoordinationOperation(operation runner.CoordinationOperation) bool {
+	return operation == runner.CoordinationComputerSnapshot ||
+		operation == runner.CoordinationComputerAction
+}
+
+func validateComputerCoordinationToolRequest(
+	contract runner.AutonomyContract,
+	operation runner.CoordinationOperation,
+	raw json.RawMessage,
+) error {
+	if !isComputerCoordinationOperation(operation) {
+		return nil
+	}
+	if err := validateComputerCoordinationPayloadSecrets(raw); err != nil {
+		return err
+	}
+	policy := computerPolicyFromContract(contract)
+	switch operation {
+	case runner.CoordinationComputerSnapshot:
+		var request computer.SnapshotRequest
+		if err := decodeComputerCoordinationPayload(raw, &request); err != nil {
+			return err
+		}
+		request.App = strings.TrimSpace(request.App)
+		if err := policy.ValidateSnapshot(request); err != nil {
+			return err
+		}
+	case runner.CoordinationComputerAction:
+		var request computer.ActionRequest
+		if err := decodeComputerCoordinationPayload(raw, &request); err != nil {
+			return err
+		}
+		request.App = strings.TrimSpace(request.App)
+		if err := validateComputerActionShape(request); err != nil {
+			return err
+		}
+		if err := policy.ValidateAction(request); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unsupported computer coordination operation %q", operation)
+	}
+	return nil
+}
+
+func computerCoordinationSourcePackage(
+	run *runner.MissionRun,
+	pkg *runner.PackageRun,
+	req *runner.CoordinationRequest,
+) *runner.PackageRun {
+	if run == nil || pkg == nil || req == nil {
+		return nil
+	}
+	sourceID := strings.TrimSpace(req.SourcePackageID)
+	if sourceID == "" {
+		sourceID = strings.TrimSpace(pkg.ParentPackageID)
+	}
+	for i := range run.PackageRuns {
+		if run.PackageRuns[i].PackageID == sourceID {
+			return &run.PackageRuns[i]
+		}
+	}
+	return nil
+}
+
+func (e *nexusPackageExecutor) allocateComputerCoordination(
+	run *runner.MissionRun,
+	pkg *runner.PackageRun,
+) (runner.AllocationResult, bool, error) {
+	req := coordinationRequestForDynamicPackage(run, pkg)
+	if req == nil || !isComputerCoordinationOperation(req.Operation) {
+		return runner.AllocationResult{}, false, nil
+	}
+	if !run.Contract.AllowComputerUse {
+		return runner.AllocationResult{}, true, fmt.Errorf("Mission AutonomyContract does not allow computer use")
+	}
+	source := computerCoordinationSourcePackage(run, pkg, req)
+	if source == nil {
+		return runner.AllocationResult{}, true, fmt.Errorf("computer coordination source package is unavailable")
+	}
+	agentID := strings.TrimSpace(req.SourceAgentID)
+	if agentID == "" {
+		agentID = strings.TrimSpace(source.AssignedAgent)
+	}
+	workspace := strings.TrimSpace(source.Workspace)
+	if agentID == "" || workspace == "" {
+		return runner.AllocationResult{}, true, fmt.Errorf("computer coordination requires source Agent and workspace attribution")
+	}
+	return runner.AllocationResult{
+		AgentID:   agentID,
+		Workspace: workspace,
+		ExecutionTarget: &runner.ExecutionTarget{
+			ID:        "computer-local",
+			Kind:      runner.ExecutionTargetLocal,
+			Adapter:   "nexus-computer",
+			MachineID: registry.LocalMachineID(),
+			Location:  "local",
+			Transport: "computer-use",
+			Workspace: workspace,
+			Source:    "mission_coordination",
+		},
+	}, true, nil
+}
+
+func (e *nexusPackageExecutor) compileComputerCoordination(
+	run *runner.MissionRun,
+	pkg *runner.PackageRun,
+) (runner.PromptArtifact, bool, error) {
+	req := coordinationRequestForDynamicPackage(run, pkg)
+	if req == nil || !isComputerCoordinationOperation(req.Operation) {
+		return runner.PromptArtifact{}, false, nil
+	}
+	if err := validateComputerCoordinationToolRequest(run.Contract, req.Operation, req.ToolPayload); err != nil {
+		return runner.PromptArtifact{}, true, fmt.Errorf("validate computer coordination request: %w", err)
+	}
+	payload := string(canonicalComputerCoordinationPayload(req.ToolPayload))
+	content := fmt.Sprintf(
+		"Nexus local computer tool request\nOperation: %s\nSubject: %s\nSource package: %s\nSource Agent: %s\nTool payload: %s\nBoundary: execute only through the Mission AutonomyContract; no provider dispatch.",
+		req.Operation,
+		strings.TrimSpace(req.Subject),
+		strings.TrimSpace(req.SourcePackageID),
+		strings.TrimSpace(req.SourceAgentID),
+		payload,
+	)
+	artifact, err := e.persistMissionPrompt(run, pkg, content)
+	return artifact, true, err
+}
+
+func (e *nexusPackageExecutor) executeComputerCoordination(
+	ctx context.Context,
+	run *runner.MissionRun,
+	pkg *runner.PackageRun,
+) (runner.ExecutionResult, bool, error) {
+	req := coordinationRequestForDynamicPackage(run, pkg)
+	if req == nil || !isComputerCoordinationOperation(req.Operation) {
+		return runner.ExecutionResult{}, false, nil
+	}
+	if err := validateComputerCoordinationToolRequest(run.Contract, req.Operation, req.ToolPayload); err != nil {
+		return runner.ExecutionResult{}, true, runner.MarkDispatchNotSent(
+			fmt.Errorf("computer coordination request rejected before native dispatch: %w", err),
+		)
+	}
+	runtimeID := "computer:" + req.ID
+	switch req.Operation {
+	case runner.CoordinationComputerSnapshot:
+		var request computer.SnapshotRequest
+		if err := decodeComputerCoordinationPayload(req.ToolPayload, &request); err != nil {
+			return runner.ExecutionResult{}, true, runner.MarkDispatchNotSent(err)
+		}
+		snapshot, err := e.n.ComputerSnapshot(ctx, run.Contract, request)
+		if err != nil {
+			// Snapshot is observational; failure cannot cause an external
+			// mutation, so retry remains safe.
+			return runner.ExecutionResult{}, true, runner.MarkDispatchNotSent(
+				fmt.Errorf("computer snapshot failed: %w", err),
+			)
+		}
+		output, err := computerSnapshotCoordinationOutput(snapshot)
+		if err != nil {
+			return runner.ExecutionResult{RuntimeID: runtimeID}, true, err
+		}
+		return runner.ExecutionResult{RuntimeID: runtimeID, Output: output}, true, nil
+
+	case runner.CoordinationComputerAction:
+		var request computer.ActionRequest
+		if err := decodeComputerCoordinationPayload(req.ToolPayload, &request); err != nil {
+			return runner.ExecutionResult{}, true, runner.MarkDispatchNotSent(err)
+		}
+		result, err := e.n.ComputerAct(ctx, run.Contract, request)
+		if err != nil {
+			// Once ComputerAct enters the native provider, Nexus cannot prove
+			// whether a click/type/drag happened before the error. Return
+			// runtime evidence but leave the error unclassified so MissionRunner
+			// records UNKNOWN_EXTERNAL_OUTCOME and requires reconciliation.
+			return runner.ExecutionResult{RuntimeID: runtimeID}, true,
+				fmt.Errorf("computer action outcome is unknown: %w", err)
+		}
+		output, err := computerActionCoordinationOutput(result)
+		if err != nil {
+			return runner.ExecutionResult{RuntimeID: runtimeID}, true, err
+		}
+		return runner.ExecutionResult{RuntimeID: runtimeID, Output: output}, true, nil
+	default:
+		return runner.ExecutionResult{}, true, runner.MarkDispatchNotSent(
+			fmt.Errorf("unsupported computer coordination operation %q", req.Operation),
+		)
+	}
+}
+
+func canonicalComputerCoordinationPayload(raw json.RawMessage) json.RawMessage {
+	if len(raw) == 0 {
+		return nil
+	}
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, raw); err != nil {
+		return append(json.RawMessage(nil), raw...)
+	}
+	return append(json.RawMessage(nil), compact.Bytes()...)
 }
 
 func decodeComputerCoordinationPayload(raw json.RawMessage, out any) error {
