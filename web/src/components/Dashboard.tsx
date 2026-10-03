@@ -195,7 +195,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               className="px-2.5 py-1 rounded text-[11px] font-medium transition flex items-center space-x-1"
               style={{
                 background: !showAllWorkspaces ? 'var(--nx-accent)' : 'transparent',
-                color: !showAllWorkspaces ? '#fff' : 'var(--nx-text-soft)',
+                color: !showAllWorkspaces ? 'var(--nx-accent-contrast)' : 'var(--nx-text-soft)',
               }}
             >
               <span>{t('legacy.projectOnly', 'Project Only')}</span>
@@ -208,7 +208,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               className="px-2.5 py-1 rounded text-[11px] font-medium transition flex items-center space-x-1"
               style={{
                 background: showAllWorkspaces ? 'var(--nx-accent)' : 'transparent',
-                color: showAllWorkspaces ? '#fff' : 'var(--nx-text-soft)',
+                color: showAllWorkspaces ? 'var(--nx-accent-contrast)' : 'var(--nx-text-soft)',
               }}
             >
               <Layers className="w-3 h-3" />
