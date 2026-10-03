@@ -67,6 +67,7 @@ func TestProjectSubrouteClassification(t *testing.T) {
 		"/api/v1/projects/proj-1/computer/status":   "computer-status",
 		"/api/v1/projects/proj-1/computer/snapshot": "computer-snapshot",
 		"/api/v1/projects/proj-1/computer/action":   "computer-action",
+		"/api/v1/projects/proj-1/computer/screenshot/snapshot-abc.png": "computer-screenshot",
 		"/api/v1/projects/proj-1/execution-targets": "execution-targets",
 		"/api/v1/projects/proj-1/execution-targets/activate": "execution-targets-activate",
 		"/api/v1/projects/proj-1/execution-targets/deactivate": "execution-targets-deactivate",
