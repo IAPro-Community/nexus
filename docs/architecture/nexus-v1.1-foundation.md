@@ -73,7 +73,7 @@ desktop input, and desktop input must not bypass provider/workspace/target polic
 
 ## Delivery milestones inside 1.1
 
-1. execution workspace + project manifest;
+1. execution workspace + strict `nexus.yaml` project manifest;
 2. review center + source-control/terminal ergonomics;
 3. browser context + design mode;
 4. candidate runs and independent evaluation;
@@ -83,3 +83,10 @@ desktop input, and desktop input must not bypass provider/workspace/target polic
 8. cross-feature hardening and release certification.
 
 These are internal milestones and beta checkpoints, not separate product versions.
+
+## Project manifest
+
+`nexus.yaml` is parsed with `gopkg.in/yaml.v3`, which was already present in the module checksum
+set. Unknown fields are rejected, paths must stay relative to the project root, and command lists are
+bounded. The manifest describes project/workspace setup; it does not bypass ResourceScheduler or
+AutonomyContract.

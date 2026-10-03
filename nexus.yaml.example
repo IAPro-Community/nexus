@@ -1,0 +1,27 @@
+version: 1
+
+project:
+  name: nexus
+
+workspace:
+  strategy: worktree
+  baseRef: HEAD
+  sharedDirectories:
+    - web/node_modules
+  copiedFiles:
+    - .env.local
+
+setup:
+  commands:
+    - go mod download
+    - bun install --cwd web --frozen-lockfile
+
+validation:
+  commands:
+    - make quality
+
+execution:
+  defaultTarget: local
+
+routing:
+  strategy: quality-first
