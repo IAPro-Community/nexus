@@ -348,6 +348,7 @@ func TestComputerListAppsFiltersBlockedTargets(t *testing.T) {
 	provider.capabilities.ListApps = true
 	providerApps := []computer.AppInfo{
 		{Name: "code", PID: 10},
+		{Name: "Code", PID: 11},
 		{Name: "1Password", PID: 20},
 		{Name: "notepad", PID: 30},
 	}
@@ -365,7 +366,7 @@ func TestComputerListAppsFiltersBlockedTargets(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(apps) != 2 || apps[0].Name != "code" || apps[1].Name != "notepad" {
-		t.Fatalf("blocked apps were not filtered: %+v", apps)
+		t.Fatalf("blocked/duplicate apps were not filtered: %+v", apps)
 	}
 }
 
