@@ -707,6 +707,15 @@ const WorkspaceCoordinator: React.FC<{
         run: () => openKind('missions'),
       },
       {
+        id: 'design-mode',
+        label: t('commands.open', {
+          name: t('nav.designMode', { defaultValue: 'Design Mode' }),
+        }),
+        group: 'Nexus',
+        keywords: ['browser', 'design', 'ui', 'inspect', 'element', 'css', 'dom'],
+        run: () => openKind('design-mode'),
+      },
+      {
         id: 'resources',
         label: t('commands.open', { name: t('nav.resources') }),
         group: 'Nexus',
