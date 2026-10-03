@@ -72,3 +72,36 @@ export function stripEmbeddedTerminalMetadata(data: string): string {
     .replace(EMBEDDED_MOUSE_RE, '');
   return stripBareNavigationBurst(withoutMetadata);
 }
+
+
+/**
+ * Privacy-safe terminal byte signature for NEXUS_TERMINAL_TRACE.
+ * Ordinary printable content is masked; only control bytes and terminal
+ * syntax remain visible so CSI/SS3 fragmentation can be correlated.
+ */
+export function terminalTraceShape(data: string): { size: number; shape: string } {
+  const bytes = new TextEncoder().encode(data);
+  const limit = Math.min(bytes.length, 256);
+  let shape = '';
+  const visibleSyntax = new Set(
+    Array.from('[];<>?~OABCDHFIRMmuhl').map((value) => value.charCodeAt(0)),
+  );
+  for (let index = 0; index < limit; index += 1) {
+    const value = bytes[index]!;
+    if (value === 0x1b) {
+      shape += '<1b>';
+    } else if (value < 0x20 || value === 0x7f) {
+      shape += `<${value.toString(16).padStart(2, '0')}>`;
+    } else if (value >= 0x30 && value <= 0x39) {
+      shape += '#';
+    } else if (visibleSyntax.has(value)) {
+      shape += String.fromCharCode(value);
+    } else if (value >= 0x20 && value <= 0x7e) {
+      shape += '.';
+    } else {
+      shape += '*';
+    }
+  }
+  if (bytes.length > limit) shape += '…';
+  return { size: bytes.length, shape };
+}
