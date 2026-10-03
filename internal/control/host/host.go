@@ -63,6 +63,7 @@ type SessionHost struct {
 	streamDone   chan struct{}
 	detector     *AttentionDetector
 	shellInput   shellPipeInputNormalizer
+	terminalInput *nexusruntime.TerminalOutputScrubber
 	stopOnce     sync.Once
 	doneOnce     sync.Once
 	codexTUILock interface{ Release() error }
@@ -213,6 +214,14 @@ func (sh *SessionHost) Start() error {
 		sh.completeStartFailureLocked()
 		return fmt.Errorf("failed to supervise provider process: %w", err)
 	}
+	// SessionHost is the final input authority. Raw attach streams are byte
+	// streams, not message transports, so upstream write boundaries cannot be
+	// trusted. Coalesce CSI/SS3 and terminal metadata one last time immediately
+	// before the provider PTY for both CLI and Web paths.
+	sh.terminalInput = nexusruntime.NewTerminalInputScrubber(
+		nexusruntime.NewTerminalTracingWriter(sh.termBackend, sh.session.RuntimeID, "host.scrubber.output"),
+	)
+
 	setStage(registry.StartupTerminalReady, "")
 
 	// Drain terminal output independently and let lifecycle finalization wait for
@@ -627,8 +636,10 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 		if req.Payload != nil {
 			var p protocol.InputPayload
 			if json.Unmarshal(req.Payload, &p) == nil && p.Data != "" {
-				// CmdInput is a byte transport. It must never pass through command
-				// recognition, ANSI filtering, or escape-sequence normalization.
+				nexusruntime.TraceTerminalBytes(sh.session.RuntimeID, "host.cmd_input", []byte(p.Data))
+				// CmdInput remains byte-transparent at the control layer. The final
+				// SessionHost terminal scrubber only preserves sequence atomicity and
+				// drops terminal metadata before the provider PTY.
 				forwardWrite = sh.collectAttachedInputLocked(conn, []byte(p.Data))
 				forwardWrite = sh.normalizeShellPipeInputLocked(forwardWrite)
 			}
@@ -774,10 +785,10 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 		_ = sh.termBackend.Resize(resizeRows, resizeCols)
 	}
 	if len(forwardWrite) > 0 {
-		_, _ = sh.termBackend.Write(forwardWrite)
+		_, _ = sh.writeTerminalInput(forwardWrite)
 	}
 	if len(promptWrite) > 0 {
-		_, _ = sh.termBackend.Write(promptWrite)
+		_, _ = sh.writeTerminalInput(promptWrite)
 	}
 	if controlCmd != "" {
 		sh.mu.Lock()
@@ -792,14 +803,30 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 }
 
 func (sh *SessionHost) processAttachedInput(conn net.Conn, data []byte) {
+	nexusruntime.TraceTerminalBytes(sh.session.RuntimeID, "host.raw_attach.input", data)
 	sh.mu.Lock()
 	forward := sh.collectAttachedInputLocked(conn, data)
 	forward = sh.normalizeShellPipeInputLocked(forward)
 	sh.mu.Unlock()
 
 	if len(forward) > 0 {
-		_, _ = sh.termBackend.Write(forward)
+		_, _ = sh.writeTerminalInput(forward)
 	}
+}
+
+func (sh *SessionHost) writeTerminalInput(data []byte) (int, error) {
+	if len(data) == 0 {
+		return 0, nil
+	}
+	sh.mu.RLock()
+	input := sh.terminalInput
+	backend := sh.termBackend
+	sh.mu.RUnlock()
+	if input != nil {
+		return input.Write(data)
+	}
+	nexusruntime.TraceTerminalBytes(sh.session.RuntimeID, "host.pty.write", data)
+	return backend.Write(data)
 }
 
 func (sh *SessionHost) normalizeShellPipeInputLocked(data []byte) []byte {
