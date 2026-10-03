@@ -60,6 +60,10 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectCommands(w, r)
 		case strings.HasSuffix(r.URL.Path, "/execution-targets/probe"):
 			h.handleProjectExecutionTargetProbe(w, r)
+		case strings.HasSuffix(r.URL.Path, "/execution-targets/activate"):
+			h.handleProjectExecutionTargetActivate(w, r)
+		case strings.HasSuffix(r.URL.Path, "/execution-targets/deactivate"):
+			h.handleProjectExecutionTargetDeactivate(w, r)
 		case strings.HasSuffix(r.URL.Path, "/execution-targets"):
 			h.handleProjectExecutionTargets(w, r)
 		case strings.Contains(r.URL.Path, "/design-mode"):
