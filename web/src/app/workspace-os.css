@@ -4971,7 +4971,6 @@ button.nx-workspace-tab__close {
   white-space: nowrap;
 }
 .nx-arrange-menu__panel {
-  position: fixed;
   z-index: var(--nx-z-contextmenu);
   min-width: 196px;
   max-width: 260px;
@@ -4981,7 +4980,7 @@ button.nx-workspace-tab__close {
   border: 1px solid var(--nx-border);
   border-radius: 8px;
   background: var(--nx-bg-elevated);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
+  box-shadow: var(--nx-shadow-lg);
 }
 .nx-arrange-menu__item {
   width: 100%;
@@ -5000,7 +4999,8 @@ button.nx-workspace-tab__close {
   font-size: 0.893rem;
 }
 .nx-arrange-menu__item:hover,
-.nx-arrange-menu__item:focus-visible {
+.nx-arrange-menu__item:focus-visible,
+.nx-arrange-menu__item[data-highlighted] {
   background: var(--nx-surface-2);
   color: var(--nx-text);
 }
@@ -5021,7 +5021,7 @@ button.nx-workspace-tab__close {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--nx-warning, #f59e0b);
+  color: var(--nx-warning);
 }
 @media (max-width: 720px) {
   .nx-presentation-toggle button span,
