@@ -129,7 +129,10 @@ func (r *MissionRunner) StartMissionRun(ctx context.Context, plan PlanSpec, work
 			DesiredProvider: desiredProvider, DesiredProfile: desiredProfile,
 			SkillIDs: skillIDs, MaestroSkills: append([]string(nil), spec.MaestroSkills...), RelevantPaths: append([]string(nil), spec.RelevantPaths...),
 			AcceptanceCriteria: append([]string(nil), spec.AcceptanceCriteria...), VerificationRequirements: append([]string(nil), spec.VerificationRequirements...), EntryCriteria: append([]string(nil), spec.EntryCriteria...), ExitCriteria: append([]string(nil), spec.ExitCriteria...), RequiredEvidence: append([]string(nil), spec.RequiredEvidence...), HandoffJSON: spec.HandoffJSON, State: state, Attempt: 1,
-			AssignedAgent: assignedAgent, RoutingDecisionJSON: spec.RoutingDecisionJSON, StartedAt: now,
+			AssignedAgent: assignedAgent, RoutingDecisionJSON: spec.RoutingDecisionJSON,
+			CandidateGroupID: spec.CandidateGroupID, CandidateIndex: spec.CandidateIndex,
+			CandidateCoordinator: spec.CandidateCoordinator, CandidateDisposition: spec.CandidateDisposition,
+			StartedAt: now,
 		})
 	}
 	if err := validateDependencyGraph(run.PackageRuns); err != nil {
