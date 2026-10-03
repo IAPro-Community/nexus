@@ -772,7 +772,13 @@ export interface ProjectExecutionTargetPreview {
   declared_default: boolean;
   effective: boolean;
   selectable: boolean;
-  activation_status: 'READY' | 'FEATURE_DISABLED' | 'PREVIEW_ONLY' | string;
+  activation_status:
+    | 'READY'
+    | 'FEATURE_DISABLED'
+    | 'PROBE_REQUIRED'
+    | 'ACTIVE'
+    | 'STALE_BINDING'
+    | string;
   reason?: string;
 }
 
@@ -798,7 +804,14 @@ export interface ProjectExecutionTargetProbe {
   remote_execution_enabled: boolean;
   capabilities: string[];
   ready: boolean;
+  approval_token?: string;
   reason?: string;
+}
+
+export interface ManagedExecutionTargetBindingView {
+  target_id: string;
+  machine_id: string;
+  activated_at: string;
 }
 
 export interface DesignModeStatus {
