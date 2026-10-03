@@ -72,6 +72,9 @@ func (e *nexusPackageExecutor) IntegrateDelivery(ctx context.Context, run *runne
 	changed := map[string]struct{}{}
 	applied := []string{}
 	for _, pkg := range ordered {
+		if !candidatePackageParticipatesInDelivery(pkg) {
+			continue
+		}
 		if pkg.WorkReceipt == nil || !strings.EqualFold(pkg.WorkReceipt.Status, "VERIFIED") {
 			continue
 		}
@@ -162,6 +165,9 @@ func materializeMissionDependencies(ctx context.Context, run *runner.MissionRun,
 		if dep.WorkReceipt == nil || !strings.EqualFold(dep.WorkReceipt.Status, "VERIFIED") {
 			return fmt.Errorf("dependency %s has no verified WorkReceipt", dep.PackageID)
 		}
+		if !candidatePackageParticipatesInDelivery(dep) {
+			continue
+		}
 		paths, err := packageDeliveryDeltaPaths(ctx, dep, base)
 		if err != nil {
 			return fmt.Errorf("dependency %s delivery delta: %w", dep.PackageID, err)
@@ -171,6 +177,19 @@ func materializeMissionDependencies(ctx context.Context, run *runner.MissionRun,
 		}
 	}
 	return nil
+}
+
+func candidatePackageParticipatesInDelivery(pkg *runner.PackageRun) bool {
+	if pkg == nil {
+		return false
+	}
+	if strings.TrimSpace(pkg.CandidateGroupID) == "" {
+		return true
+	}
+	if pkg.CandidateCoordinator {
+		return false
+	}
+	return pkg.CandidateDisposition == runner.CandidateSelected
 }
 
 func packageDeliveryDeltaPaths(ctx context.Context, pkg *runner.PackageRun, canonicalBase string) ([]string, error) {
