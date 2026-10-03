@@ -72,11 +72,18 @@ func (n *Nexus) ComputerListApps(
 		return nil, fmt.Errorf("list computer applications: %w", err)
 	}
 	filtered := make([]computer.AppInfo, 0, len(apps))
+	seen := make(map[string]struct{}, len(apps))
 	for _, app := range apps {
-		if policy.ValidateApp(app.Name) != nil {
+		app.Name = strings.TrimSpace(app.Name)
+		if app.Name == "" || policy.ValidateApp(app.Name) != nil {
 			continue
 		}
-		app.Name = security.Redact(strings.TrimSpace(app.Name))
+		key := strings.ToLower(app.Name)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		app.Name = security.Redact(app.Name)
 		app.BundleID = security.Redact(strings.TrimSpace(app.BundleID))
 		filtered = append(filtered, app)
 	}
