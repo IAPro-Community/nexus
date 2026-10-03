@@ -119,3 +119,90 @@ func TestLoadProjectManifestQuickCommandsAreSingleLineAndUnique(t *testing.T) {
 		t.Fatalf("duplicate quick command ids must fail closed, got %v", err)
 	}
 }
+
+
+func TestLoadProjectManifestExecutionTargetsAreStrictAndNormalized(t *testing.T) {
+	dir := t.TempDir()
+	body := `version: 1
+execution:
+  defaultTarget: " devbox "
+  targets:
+    - id: " devbox "
+      kind: " SSH "
+      location: " devbox "
+      machineId: " machine-devbox "
+      workspace: " /srv/project "
+      commandTemplate: " ssh -tt devbox {provider} {args} "
+      probeTemplate: " ssh devbox {provider} {args} "
+`
+	if err := os.WriteFile(filepath.Join(dir, "nexus.yaml"), []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	manifest, _, err := LoadProjectManifest(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Execution.DefaultTarget != "devbox" {
+		t.Fatalf("default target was not normalized: %q", manifest.Execution.DefaultTarget)
+	}
+	target, ok := manifest.ProjectExecutionTarget("devbox")
+	if !ok {
+		t.Fatal("normalized SSH target not found")
+	}
+	if target.Kind != "ssh" || target.Location != "devbox" || target.Workspace != "/srv/project" {
+		t.Fatalf("unexpected normalized target: %+v", target)
+	}
+}
+
+func TestLoadProjectManifestRejectsUnknownDefaultExecutionTarget(t *testing.T) {
+	dir := t.TempDir()
+	body := "version: 1\nexecution:\n  defaultTarget: missing\n"
+	if err := os.WriteFile(filepath.Join(dir, "nexus.yaml"), []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := LoadProjectManifest(dir)
+	if err == nil || !strings.Contains(err.Error(), "not declared") {
+		t.Fatalf("unknown default target must fail closed, got %v", err)
+	}
+}
+
+func TestLoadProjectManifestRejectsUnsafeSSHExecutionTarget(t *testing.T) {
+	dir := t.TempDir()
+	cases := []string{
+		`version: 1
+execution:
+  targets:
+    - id: dockerish
+      kind: custom
+      location: devbox
+      workspace: /srv/project
+      commandTemplate: ssh devbox {provider} {args}
+`,
+		`version: 1
+execution:
+  targets:
+    - id: shell
+      kind: ssh
+      location: devbox
+      workspace: /srv/project
+      commandTemplate: "ssh devbox sh -lc 'cd /srv/project && {provider} {args}'"
+`,
+		`version: 1
+execution:
+  targets:
+    - id: wrong-bin
+      kind: ssh
+      location: devbox
+      workspace: /srv/project
+      commandTemplate: docker exec box {provider} {args}
+`,
+	}
+	for index, body := range cases {
+		if err := os.WriteFile(filepath.Join(dir, "nexus.yaml"), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := LoadProjectManifest(dir); err == nil {
+			t.Fatalf("unsafe SSH target case %d was accepted", index)
+		}
+	}
+}
