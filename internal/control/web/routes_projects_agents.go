@@ -58,6 +58,12 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectShell(w, r)
 		case strings.HasSuffix(r.URL.Path, "/commands"):
 			h.handleProjectCommands(w, r)
+		case strings.HasSuffix(r.URL.Path, "/computer/status"):
+			h.handleProjectComputerStatus(w, r)
+		case strings.HasSuffix(r.URL.Path, "/computer/snapshot"):
+			h.handleProjectComputerSnapshot(w, r)
+		case strings.HasSuffix(r.URL.Path, "/computer/action"):
+			h.handleProjectComputerAction(w, r)
 		case strings.HasSuffix(r.URL.Path, "/execution-targets/probe"):
 			h.handleProjectExecutionTargetProbe(w, r)
 		case strings.HasSuffix(r.URL.Path, "/execution-targets/activate"):
