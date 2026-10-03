@@ -302,7 +302,16 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, project store.Proje
 	}
 
 	if flags.Enabled(flags.CandidateRuns) {
-		step.CandidateExecution = DecideCandidateExecution(req)
+		step.CandidateExecution = constrainCandidateExecution(
+			DecideCandidateExecution(req),
+			pkg.AssignmentStrategy,
+			pkg.AgentAllocation,
+			autonomous,
+		)
+		if step.CandidateExecution.Enabled && !flags.Enabled(flags.ExecutionWorkspacesV2) {
+			step.Ready = false
+			step.Blockers = append(step.Blockers, "Candidate Runs require task-scoped execution workspaces; enable execution_workspaces_v2 before GO")
+		}
 	}
 
 	selectedAgent, agentCfg, agentDecision, agentBlocker := previewAgentForPackage(st, project, pkg, req, agents, autonomous)
