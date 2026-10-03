@@ -144,9 +144,9 @@ type ProjectExecutionTargetCatalog struct {
 }
 
 // PreviewProjectExecutionTargets projects the safe, non-secret execution-target
-// catalog for one Project. It never returns command/probe templates and never
-// activates a remote target. Until managed target activation has its own
-// explicit approval boundary, LOCAL remains the effective default.
+// catalog for one Project. It never performs SSH or returns credentials. The
+// effective target comes only from an explicit persisted binding; repository
+// defaultTarget remains declarative until the user probes and activates it.
 func (n *Nexus) PreviewProjectExecutionTargets(projectID string) (ProjectExecutionTargetCatalog, error) {
 	st, err := n.OpenProject()
 	if err != nil {
@@ -158,6 +158,11 @@ func (n *Nexus) PreviewProjectExecutionTargets(projectID string) (ProjectExecuti
 	}
 
 	remoteEnabled := flags.Enabled(flags.RemoteExecution)
+	binding, err := managedExecutionTargetBindingFromProject(project)
+	if err != nil {
+		return ProjectExecutionTargetCatalog{}, err
+	}
+
 	catalog := ProjectExecutionTargetCatalog{
 		ProjectID:              project.ID,
 		DeclaredDefaultTarget:  "local",
@@ -172,14 +177,30 @@ func (n *Nexus) PreviewProjectExecutionTargets(projectID string) (ProjectExecuti
 			Transport:        "ipc",
 			Source:           "default",
 			DeclaredDefault:  true,
-			Effective:        true,
+			Effective:        binding == nil,
 			Selectable:       true,
 			ActivationStatus: "READY",
 		}},
 	}
+	if binding != nil {
+		catalog.EffectiveDefaultTarget = binding.TargetID
+	}
 
 	manifest, _, err := LoadProjectManifest(project.CanonicalPath)
 	if errors.Is(err, os.ErrNotExist) {
+		if binding != nil {
+			catalog.Targets = append(catalog.Targets, ProjectExecutionTargetPreview{
+				ID:               binding.TargetID,
+				Kind:             runner.ExecutionTargetSSH,
+				MachineID:        binding.MachineID,
+				Transport:        "ssh",
+				Source:           "project_binding",
+				Effective:        true,
+				Selectable:       false,
+				ActivationStatus: "STALE_BINDING",
+				Reason:           "the active target binding is no longer declared by nexus.yaml; deactivate or restore the target",
+			})
+		}
 		return catalog, nil
 	}
 	if err != nil {
@@ -189,7 +210,12 @@ func (n *Nexus) PreviewProjectExecutionTargets(projectID string) (ProjectExecuti
 	catalog.DeclaredDefaultTarget = manifest.Execution.DefaultTarget
 	catalog.Targets[0].DeclaredDefault = manifest.Execution.DefaultTarget == "local"
 
+	bindingMatched := false
 	for _, declared := range manifest.Execution.Targets {
+		isBound := binding != nil && binding.TargetID == declared.ID
+		if isBound {
+			bindingMatched = true
+		}
 		preview := ProjectExecutionTargetPreview{
 			ID:              declared.ID,
 			Kind:            runner.ExecutionTargetSSH,
@@ -199,19 +225,42 @@ func (n *Nexus) PreviewProjectExecutionTargets(projectID string) (ProjectExecuti
 			Transport:       "ssh",
 			Source:          "project_manifest",
 			DeclaredDefault: declared.ID == manifest.Execution.DefaultTarget,
-			Effective:       false,
-			Selectable:      false,
+			Effective:       isBound,
 		}
-		if !remoteEnabled {
+		switch {
+		case isBound && !remoteEnabled:
+			preview.Selectable = false
+			preview.ActivationStatus = "FEATURE_DISABLED"
+			preview.Reason = "this target is explicitly bound, but remote_execution is disabled; launches fail closed"
+		case isBound:
+			preview.Selectable = true
+			preview.ActivationStatus = "ACTIVE"
+			preview.Reason = "explicitly approved project binding; every launch revalidates the remote fingerprint"
+		case !remoteEnabled:
+			preview.Selectable = false
 			preview.ActivationStatus = "FEATURE_DISABLED"
 			preview.Reason = "managed remote execution is disabled by the remote_execution feature flag"
-		} else {
-			preview.ActivationStatus = "PREVIEW_ONLY"
-			preview.Reason = "managed SSH activation requires an explicit approval contract and is not active in this rollout"
+		default:
+			preview.Selectable = true
+			preview.ActivationStatus = "PROBE_REQUIRED"
+			preview.Reason = "test the SSH bridge and explicitly activate the returned approval fingerprint"
 		}
 		catalog.Targets = append(catalog.Targets, preview)
 	}
 
+	if binding != nil && !bindingMatched {
+		catalog.Targets = append(catalog.Targets, ProjectExecutionTargetPreview{
+			ID:               binding.TargetID,
+			Kind:             runner.ExecutionTargetSSH,
+			MachineID:        binding.MachineID,
+			Transport:        "ssh",
+			Source:           "project_binding",
+			Effective:        true,
+			Selectable:       false,
+			ActivationStatus: "STALE_BINDING",
+			Reason:           "the active target binding is no longer declared by nexus.yaml; deactivate or restore the target",
+		})
+	}
 	return catalog, nil
 }
 
