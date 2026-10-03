@@ -31,6 +31,7 @@ type NexusHandler struct {
 	hud                   *nexus.HUDApplicationService
 	voice                 *voice.Service
 	designMode            *designModeManager
+	computerScreenshots   *computerScreenshotManager
 	hostFilesystemEnabled bool
 }
 
@@ -99,6 +100,7 @@ func NewNexusHandler(auth *AuthManager) *NexusHandler {
 		hud:                   nexus.NewHUDApplicationService(n),
 		voice:                 voice.NewService(),
 		designMode:            newDesignModeManager(),
+		computerScreenshots:   newComputerScreenshotManager(),
 		hostFilesystemEnabled: true,
 	}
 }
