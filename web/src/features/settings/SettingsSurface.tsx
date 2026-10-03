@@ -885,13 +885,13 @@ const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> =
                         onSelect={() => theme.setPreset(presetKey as ThemePresetKey)}
                         className={styles.themePresetItem}
                       >
-                        <div className={styles.themePresetName} data-selected={isSelected}>
+                        <span className={styles.themePresetName} data-selected={isSelected}>
                           <span>{preset.name}</span>
                           {isSelected && <Check size={14} color="var(--nx-accent)" />}
-                        </div>
+                        </span>
 
                         {/* Amostras de Cores (Swatches) */}
-                        <div className={styles.themeSwatches} aria-hidden="true">
+                        <span className={styles.themeSwatches} aria-hidden="true">
                           <span
                             title={`Fundo: ${palette.bg}`}
                             className={styles.themeSwatchBg}
@@ -902,7 +902,7 @@ const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> =
                             className={styles.themeSwatchAccent}
                             style={{ background: palette.accent }}
                           />
-                        </div>
+                        </span>
                       </ChoiceOption>
                     );
                   })}
