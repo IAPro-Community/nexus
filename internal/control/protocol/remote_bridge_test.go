@@ -164,3 +164,32 @@ func TestValidateRemoteBridgeSpawnRejectsMalformedPayload(t *testing.T) {
 		})
 	}
 }
+
+
+func TestValidateRemoteBridgeRuntimeAndResize(t *testing.T) {
+	if err := ValidateRemoteBridgeRuntime(RemoteBridgeRuntimePayload{RuntimeID: "runtime-1"}); err != nil {
+		t.Fatalf("valid runtime reference rejected: %v", err)
+	}
+	for _, runtimeID := range []string{"", "runtime id", "-runtime"} {
+		if err := ValidateRemoteBridgeRuntime(RemoteBridgeRuntimePayload{RuntimeID: runtimeID}); err == nil {
+			t.Fatalf("invalid runtime id %q was accepted", runtimeID)
+		}
+	}
+	if err := ValidateRemoteBridgeResize(RemoteBridgeResizePayload{
+		RuntimeID: "runtime-1",
+		Rows:      40,
+		Cols:      120,
+	}); err != nil {
+		t.Fatalf("valid resize rejected: %v", err)
+	}
+	for _, payload := range []RemoteBridgeResizePayload{
+		{RuntimeID: "runtime-1", Rows: 0, Cols: 120},
+		{RuntimeID: "runtime-1", Rows: 40, Cols: 0},
+		{RuntimeID: "runtime-1", Rows: 1001, Cols: 120},
+		{RuntimeID: "runtime-1", Rows: 40, Cols: 1001},
+	} {
+		if err := ValidateRemoteBridgeResize(payload); err == nil {
+			t.Fatalf("invalid resize was accepted: %+v", payload)
+		}
+	}
+}
