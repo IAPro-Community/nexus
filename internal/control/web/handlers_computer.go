@@ -46,10 +46,11 @@ func (m *computerScreenshotManager) register(projectID, path string) (string, er
 	if projectID == "" || path == "" {
 		return "", fmt.Errorf("computer screenshot project and path are required")
 	}
-	if err := m.validatePath(path); err != nil {
+	canonicalPath, err := m.validatePath(path)
+	if err != nil {
 		return "", err
 	}
-	ref := filepath.Base(path)
+	ref := filepath.Base(canonicalPath)
 	if ref == "" || ref == "." || ref != filepath.Base(ref) {
 		return "", fmt.Errorf("computer screenshot reference is invalid")
 	}
@@ -62,31 +63,31 @@ func (m *computerScreenshotManager) register(projectID, path string) (string, er
 	if _, exists := m.paths[projectID][ref]; !exists {
 		m.order[projectID] = append(m.order[projectID], ref)
 	}
-	m.paths[projectID][ref] = path
+	m.paths[projectID][ref] = canonicalPath
 
 	for len(m.order[projectID]) > computerScreenshotRetentionPerProject {
 		oldest := m.order[projectID][0]
 		m.order[projectID] = m.order[projectID][1:]
 		oldPath := m.paths[projectID][oldest]
 		delete(m.paths[projectID], oldest)
-		if oldPath != "" && oldPath != path {
+		if oldPath != "" && oldPath != canonicalPath {
 			_ = os.Remove(oldPath)
 		}
 	}
 	return ref, nil
 }
 
-func (m *computerScreenshotManager) validatePath(path string) error {
+func (m *computerScreenshotManager) validatePath(path string) (string, error) {
 	if m == nil || strings.TrimSpace(m.root) == "" {
-		return fmt.Errorf("computer screenshot root is unavailable")
+		return "", fmt.Errorf("computer screenshot root is unavailable")
 	}
 	rootAbs, err := filepath.Abs(m.root)
 	if err != nil {
-		return fmt.Errorf("resolve computer screenshot root: %w", err)
+		return "", fmt.Errorf("resolve computer screenshot root: %w", err)
 	}
 	pathAbs, err := filepath.Abs(path)
 	if err != nil {
-		return fmt.Errorf("resolve computer screenshot path: %w", err)
+		return "", fmt.Errorf("resolve computer screenshot path: %w", err)
 	}
 	rootResolved := rootAbs
 	if resolved, resolveErr := filepath.EvalSymlinks(rootAbs); resolveErr == nil {
@@ -94,23 +95,23 @@ func (m *computerScreenshotManager) validatePath(path string) error {
 	}
 	pathResolved, err := filepath.EvalSymlinks(pathAbs)
 	if err != nil {
-		return fmt.Errorf("resolve computer screenshot artifact: %w", err)
+		return "", fmt.Errorf("resolve computer screenshot artifact: %w", err)
 	}
 	rel, err := filepath.Rel(rootResolved, pathResolved)
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return fmt.Errorf("computer screenshot is outside the Nexus artifact directory")
+		return "", fmt.Errorf("computer screenshot is outside the Nexus artifact directory")
 	}
 	info, err := os.Stat(pathResolved)
 	if err != nil {
-		return fmt.Errorf("stat computer screenshot artifact: %w", err)
+		return "", fmt.Errorf("stat computer screenshot artifact: %w", err)
 	}
 	if !info.Mode().IsRegular() || info.Size() <= 0 || info.Size() > 32<<20 {
-		return fmt.Errorf("computer screenshot artifact is not a bounded regular file")
+		return "", fmt.Errorf("computer screenshot artifact is not a bounded regular file")
 	}
 	if !strings.EqualFold(filepath.Ext(pathResolved), ".png") {
-		return fmt.Errorf("computer screenshot artifact must be PNG")
+		return "", fmt.Errorf("computer screenshot artifact must be PNG")
 	}
-	return nil
+	return pathResolved, nil
 }
 
 func (m *computerScreenshotManager) path(projectID, ref string) (string, bool) {
