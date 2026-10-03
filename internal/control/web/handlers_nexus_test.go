@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -746,5 +747,76 @@ func TestDesignModeStatusDefaultsDisabledAndStartFailsClosed(t *testing.T) {
 	defer noCSRFResp.Body.Close()
 	if noCSRFResp.StatusCode != http.StatusForbidden {
 		t.Fatalf("Design Mode mutation without CSRF must return 403, got %d", noCSRFResp.StatusCode)
+	}
+}
+
+
+func TestExecutionTargetPreviewIsReadOnlyAndSanitized(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "")
+	t.Setenv("NEXUS_DISABLE_REMOTE_EXECUTION", "")
+
+	client, srv, csrf := csrfClient(t)
+	projectDir := t.TempDir()
+	manifest := `version: 1
+execution:
+  defaultTarget: devbox
+  targets:
+    - id: devbox
+      kind: ssh
+      location: devbox
+      machineId: machine-devbox
+      workspace: /srv/project
+      profileHome: /home/developer
+      commandTemplate: ssh -tt devbox {provider} {args}
+      probeTemplate: ssh devbox {provider} {args}
+`
+	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte(manifest), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	body, _ := json.Marshal(map[string]string{"name": "Target Preview", "path": projectDir})
+	createReq, _ := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/projects", bytes.NewReader(body))
+	createReq.Header.Set("X-CSRF-Token", csrf)
+	createResp, err := client.Do(createReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer createResp.Body.Close()
+	if createResp.StatusCode != http.StatusCreated {
+		t.Fatalf("create project: got %d", createResp.StatusCode)
+	}
+	var project store.Project
+	if err := json.NewDecoder(createResp.Body).Decode(&project); err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := client.Get(srv.URL() + "/api/v1/projects/" + project.ID + "/execution-targets")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("execution target preview: got %d", resp.StatusCode)
+	}
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(raw)
+	for _, forbidden := range []string{"command_template", "probe_template", "profile_home", "ssh -tt devbox", "/home/developer"} {
+		if strings.Contains(text, forbidden) {
+			t.Fatalf("execution target preview leaked %q: %s", forbidden, text)
+		}
+	}
+
+	var catalog nexus.ProjectExecutionTargetCatalog
+	if err := json.Unmarshal(raw, &catalog); err != nil {
+		t.Fatal(err)
+	}
+	if catalog.DeclaredDefaultTarget != "devbox" || catalog.EffectiveDefaultTarget != "local" {
+		t.Fatalf("preview changed execution implicitly: %+v", catalog)
+	}
+	if len(catalog.Targets) != 2 || catalog.Targets[1].ActivationStatus != "FEATURE_DISABLED" {
+		t.Fatalf("unexpected target preview: %+v", catalog.Targets)
 	}
 }
