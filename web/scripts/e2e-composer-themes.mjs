@@ -30,6 +30,42 @@ const themes = [
     label: /Nexus Light/i,
   },
   {
+    preset: 'graphite-focus',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Graphite Focus/i,
+  },
+  {
+    preset: 'vasco-noir',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Vasco Noir/i,
+  },
+  {
+    preset: 'nord-light',
+    scheme: 'light',
+    category: /Light Clean/i,
+    label: /Nord Light/i,
+  },
+  {
+    preset: 'aurora-ops',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Aurora Ops/i,
+  },
+  {
+    preset: 'monokai',
+    scheme: 'dark',
+    category: /Clássicos do Código/i,
+    label: /Monokai Dark/i,
+  },
+  {
+    preset: 'obsidian',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Obsidian/i,
+  },
+  {
     preset: 'high-contrast-dark',
     scheme: 'high-contrast',
     category: /Acessibilidade Extrema/i,
