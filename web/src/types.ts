@@ -759,6 +759,32 @@ export interface ProjectQuickCommand {
   keywords?: string[];
 }
 
+export type ExecutionTargetKind = 'LOCAL' | 'SSH' | 'NEXUS_NODE' | 'CUSTOM';
+
+export interface ProjectExecutionTargetPreview {
+  id: string;
+  kind: ExecutionTargetKind;
+  location: string;
+  machine_id?: string;
+  workspace: string;
+  transport: string;
+  source: string;
+  declared_default: boolean;
+  effective: boolean;
+  selectable: boolean;
+  activation_status: 'READY' | 'FEATURE_DISABLED' | 'PREVIEW_ONLY' | string;
+  reason?: string;
+}
+
+export interface ProjectExecutionTargetCatalog {
+  project_id: string;
+  manifest_present: boolean;
+  declared_default_target: string;
+  effective_default_target: string;
+  remote_execution_enabled: boolean;
+  targets: ProjectExecutionTargetPreview[];
+}
+
 export interface DesignModeStatus {
   enabled: boolean;
   active: boolean;
