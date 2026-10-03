@@ -89,6 +89,28 @@ type PackageSpec struct {
 	RequiredEvidence         []string `json:"required_evidence,omitempty"`
 	HandoffJSON              string   `json:"handoff,omitempty"`
 	RoutingDecisionJSON      string   `json:"routing_decision,omitempty"`
+	CandidateGroupID         string   `json:"candidate_group_id,omitempty"`
+	CandidateIndex           int      `json:"candidate_index,omitempty"`
+	CandidateCoordinator     bool     `json:"candidate_coordinator,omitempty"`
+	CandidateDisposition     CandidateDisposition `json:"candidate_disposition,omitempty"`
+}
+
+type CandidateDisposition string
+
+const (
+	CandidatePending     CandidateDisposition = "PENDING"
+	CandidateSelected    CandidateDisposition = "SELECTED"
+	CandidateRejected    CandidateDisposition = "REJECTED"
+	CandidateCoordinator CandidateDisposition = "COORDINATOR"
+)
+
+type CandidateEvaluation struct {
+	GroupID             string    `json:"group_id"`
+	Strategy            string    `json:"strategy"`
+	WinnerPackageID     string    `json:"winner_package_id"`
+	CandidatePackageIDs []string  `json:"candidate_package_ids"`
+	Reason              string    `json:"reason"`
+	EvaluatedAt         time.Time `json:"evaluated_at"`
 }
 
 type ReviewFindingStatus string
@@ -259,6 +281,11 @@ type PackageRun struct {
 	ErrorMessage             string               `json:"error_message,omitempty"`
 	FailureKind              model.FailureKind    `json:"failure_kind,omitempty"`
 	RoutingDecisionJSON      string               `json:"routing_decision,omitempty"`
+	CandidateGroupID         string               `json:"candidate_group_id,omitempty"`
+	CandidateIndex           int                  `json:"candidate_index,omitempty"`
+	CandidateCoordinator     bool                 `json:"candidate_coordinator,omitempty"`
+	CandidateDisposition     CandidateDisposition `json:"candidate_disposition,omitempty"`
+	CandidateEvaluation      *CandidateEvaluation `json:"candidate_evaluation,omitempty"`
 	StartedAt                time.Time            `json:"started_at"`
 	FinishedAt               *time.Time           `json:"finished_at,omitempty"`
 }
