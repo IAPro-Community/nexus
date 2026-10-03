@@ -1642,6 +1642,17 @@ export interface DelegationDecision {
   created_at: string;
 }
 
+export type CandidateDisposition = 'PENDING' | 'SELECTED' | 'REJECTED' | 'COORDINATOR';
+
+export interface CandidateEvaluation {
+  group_id: string;
+  strategy: string;
+  winner_package_id: string;
+  candidate_package_ids: string[];
+  reason: string;
+  evaluated_at: string;
+}
+
 export interface PackageRun {
   id: string;
   package_id: string;
@@ -1675,6 +1686,22 @@ export interface PackageRun {
   dynamic_work?: boolean;
   parent_package_id?: string;
   coordination_request_id?: string;
+  candidate_group_id?: string;
+  candidate_index?: number;
+  candidate_coordinator?: boolean;
+  candidate_disposition?: CandidateDisposition;
+  candidate_evaluation?: CandidateEvaluation;
+  execution_workspace_id?: string;
+  execution_target?: {
+    id: string;
+    kind: 'LOCAL' | 'SSH' | 'NEXUS_NODE' | 'CUSTOM' | string;
+    adapter?: string;
+    machine_id?: string;
+    location?: string;
+    transport?: string;
+    workspace?: string;
+    source?: string;
+  };
   started_at: string;
   finished_at?: string;
 }
