@@ -47,26 +47,26 @@ type Config struct {
 
 // SessionHost manages a single supervised process runtime and its IPC listener.
 type SessionHost struct {
-	mu           sync.RWMutex
-	session      registry.RuntimeSession
-	registry     *registry.Registry
-	cfg          Config
-	cmd          *exec.Cmd
-	termBackend  terminal.Backend
-	ringBuffer   *RingBuffer
-	fanout       *BoundedFanout
-	listener     net.Listener
-	clients      map[net.Conn]bool
-	activeWriter net.Conn
-	stopChan     chan struct{}
-	doneChan     chan struct{}
-	streamDone   chan struct{}
-	detector     *AttentionDetector
-	shellInput   shellPipeInputNormalizer
+	mu            sync.RWMutex
+	session       registry.RuntimeSession
+	registry      *registry.Registry
+	cfg           Config
+	cmd           *exec.Cmd
+	termBackend   terminal.Backend
+	ringBuffer    *RingBuffer
+	fanout        *BoundedFanout
+	listener      net.Listener
+	clients       map[net.Conn]bool
+	activeWriter  net.Conn
+	stopChan      chan struct{}
+	doneChan      chan struct{}
+	streamDone    chan struct{}
+	detector      *AttentionDetector
+	shellInput    shellPipeInputNormalizer
 	terminalInput *nexusruntime.TerminalOutputScrubber
-	stopOnce     sync.Once
-	doneOnce     sync.Once
-	codexTUILock interface{ Release() error }
+	stopOnce      sync.Once
+	doneOnce      sync.Once
+	codexTUILock  interface{ Release() error }
 }
 
 // NewSessionHost creates a new SessionHost for a given runtime.
