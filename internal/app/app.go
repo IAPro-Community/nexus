@@ -211,6 +211,8 @@ func Run(args []string) error {
 		return controlHostCmd(args[1:])
 	case "__remote-bridge":
 		return remoteBridgeCmd(args[1:])
+	case "__computer-use-helper":
+		return computerHelperCmd(args[1:])
 	case "codex", "agy", "claude", "opencode", "gemini", "cursor":
 		prov := args[0]
 		if flags.IsHelpFlag(args[1:]) {
