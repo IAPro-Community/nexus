@@ -108,7 +108,7 @@ func (r *MissionRunner) StartMissionRun(ctx context.Context, plan PlanSpec, work
 		// Legacy packages without an explicit Flow assignment retain the old
 		// default-Agent fallback. CREATE/AUTO stay unassigned until allocation so
 		// explicit approval cannot accidentally reuse one Agent/worktree.
-		if assignedAgent == "" && spec.AssignmentStrategy == "" && spec.ParallelGroup == "" {
+		if assignedAgent == "" && spec.AssignmentStrategy == "" && spec.ParallelGroup == "" && !spec.CandidateCoordinator {
 			assignedAgent = defaultAgentID
 		}
 		desiredProvider, desiredProfile := spec.DesiredProvider, spec.DesiredProfile
@@ -269,6 +269,18 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 
 	switch pkg.State {
 	case StateReady:
+		if pkg.CandidateCoordinator {
+			if candidateErr := r.finalizeCandidateCoordinator(ctx, run, pkg); candidateErr != nil {
+				pkg.State = StateFailed
+				pkg.ErrorMessage = candidateErr.Error()
+				run.State = StateFailedVerification
+				run.PausedReason = "candidate evaluation failed: " + candidateErr.Error()
+				run.UpdatedAt = time.Now().UTC()
+				_ = r.saveRun(ctx, run)
+				return run, false, candidateErr
+			}
+			break
+		}
 		pkg.State = StateAllocating
 	case StateAllocating:
 		allocation, allocErr := r.executor.Allocate(opCtx, run, pkg)
@@ -684,8 +696,9 @@ func (r *MissionRunner) verifyGlobalDefinition(ctx, operationCtx context.Context
 	}
 	var target *PackageRun
 	for i := range run.PackageRuns {
-		if run.PackageRuns[i].State == StateVerified {
-			target = &run.PackageRuns[i]
+		candidate := &run.PackageRuns[i]
+		if candidate.State == StateVerified && candidateDeliveryEligible(candidate) {
+			target = candidate
 		}
 	}
 	if target == nil {
@@ -719,7 +732,11 @@ func resolveIntegratedVerificationWorkspace(run *MissionRun) (string, error) {
 	canonical := strings.TrimSpace(run.Workspace)
 	seen := map[string]string{}
 	var order []string
-	for _, pkg := range run.PackageRuns {
+	for i := range run.PackageRuns {
+		pkg := &run.PackageRuns[i]
+		if !candidateDeliveryEligible(pkg) {
+			continue
+		}
 		include := pkg.State == StateVerified ||
 			(pkg.WorkReceipt != nil && strings.EqualFold(pkg.WorkReceipt.Status, "COMPLETED"))
 		if !include {
