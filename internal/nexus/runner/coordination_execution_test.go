@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 type coordinationExecutionExecutor struct {
@@ -214,5 +215,164 @@ func TestMissionRunnerBlocksCoordinationWithoutReplaySafetyProof(t *testing.T) {
 	}
 	if len(run.CoordinationRequests) != 0 {
 		t.Fatalf("unsafe request must not be materialized, got %d requests", len(run.CoordinationRequests))
+	}
+}
+
+
+type computerCoordinationExecutionExecutor struct {
+	executeCalls int
+	reviewCalls  int
+}
+
+func (e *computerCoordinationExecutionExecutor) Allocate(
+	_ context.Context,
+	_ *MissionRun,
+	_ *PackageRun,
+) (AllocationResult, error) {
+	return AllocationResult{
+		AgentID:   "agent-source",
+		Workspace: "/tmp/nexus-computer-coordination",
+		ExecutionTarget: &ExecutionTarget{
+			ID:        "computer-local",
+			Kind:      ExecutionTargetLocal,
+			Adapter:   "nexus-computer",
+			Transport: "computer-use",
+			Workspace: "/tmp/nexus-computer-coordination",
+		},
+	}, nil
+}
+
+func (e *computerCoordinationExecutionExecutor) Compile(
+	_ context.Context,
+	_ *MissionRun,
+	pkg *PackageRun,
+) (PromptArtifact, error) {
+	return PromptArtifact{
+		VersionID: "prompt-" + pkg.PackageID,
+		Content:   "immutable local computer tool audit artifact",
+	}, nil
+}
+
+func (e *computerCoordinationExecutionExecutor) Execute(
+	_ context.Context,
+	_ *MissionRun,
+	_ *PackageRun,
+	_ string,
+) (ExecutionResult, error) {
+	e.executeCalls++
+	return ExecutionResult{
+		RuntimeID: "computer:req-computer",
+		Output:    `{"kind":"CLICK","verification":{"state":"OBSERVED"}}`,
+	}, nil
+}
+
+func (e *computerCoordinationExecutionExecutor) Review(
+	context.Context,
+	*MissionRun,
+	*PackageRun,
+) (ReviewVerdict, error) {
+	e.reviewCalls++
+	return ReviewVerdict{}, fmt.Errorf("computer coordination must not enter review")
+}
+
+func TestMissionRunnerComputerCoordinationVerifiesWithoutCodeTesting(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMemoryRunRepository()
+	executor := &computerCoordinationExecutionExecutor{}
+	r := NewMissionRunner(repo, executor)
+
+	workspace := t.TempDir()
+	now := time.Now().UTC()
+	run := &MissionRun{
+		ID:          "run-computer-tool",
+		PlanID:      "plan-computer-tool",
+		PlanRevision: 1,
+		ProjectID:   "project-computer-tool",
+		Workspace:   workspace,
+		State:       StateExecuting,
+		Contract: AutonomyContract{
+			MaxRetries:          1,
+			MaxTotalIterations:  12,
+			MaxNoProgress:       2,
+			RequireVerification: true,
+			VerificationCommands: []string{
+				"this-command-must-never-run-for-computer-tool",
+			},
+			AllowComputerUse:  true,
+			AllowPointerInput: true,
+		},
+		StartedAt:      now,
+		LastProgressAt: now,
+		UpdatedAt:      now,
+		PackageRuns: []PackageRun{{
+			ID:                    "pkgrun-computer",
+			PackageID:             "coord-computer",
+			PhaseID:               "coord-computer",
+			PhaseType:             "COORDINATION",
+			Title:                 "COMPUTER_ACTION · click submit",
+			Goal:                  "execute one bounded computer action",
+			Priority:              "NORMAL",
+			DynamicWork:           true,
+			ParentPackageID:       "source",
+			CoordinationRequestID: "req-computer",
+			State:                 StateReady,
+			Attempt:               1,
+			StartedAt:             now,
+		}},
+		CoordinationRequests: []CoordinationRequest{{
+			ID:              "req-computer",
+			RunID:           "run-computer-tool",
+			SourcePackageID: "source",
+			SourceAgentID:   "agent-source",
+			Operation:       CoordinationComputerAction,
+			Subject:         "click submit",
+			ToolPayload:     []byte(`{"kind":"CLICK","app":"code","element_id":"submit"}`),
+			Status:          CoordinationPending,
+			ChildPackageID:  "coord-computer",
+			CreatedAt:       now,
+			MaterializedAt:  &now,
+		}},
+	}
+	if err := repo.SaveRun(ctx, run); err != nil {
+		t.Fatal(err)
+	}
+
+	for step := 0; step < 4; step++ {
+		current, done, err := r.ExecuteNextStep(ctx, run.ID)
+		if err != nil {
+			t.Fatalf("step %d failed in run=%s: %v", step, current.State, err)
+		}
+		if done {
+			t.Fatalf("computer child unexpectedly completed whole run at step %d", step)
+		}
+	}
+
+	got, err := r.GetRun(ctx, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := packageByID(got, "coord-computer")
+	if child == nil {
+		t.Fatal("computer coordination child missing")
+	}
+	if child.State != StateVerified {
+		t.Fatalf("computer coordination state=%s want=%s", child.State, StateVerified)
+	}
+	if len(child.Verifications) != 0 {
+		t.Fatalf("computer coordination unexpectedly ran code verification: %+v", child.Verifications)
+	}
+	if child.WorkReceipt == nil || child.WorkReceipt.Status != "VERIFIED" ||
+		!strings.Contains(child.WorkReceipt.Summary, "CLICK") {
+		t.Fatalf("computer coordination receipt missing: %+v", child.WorkReceipt)
+	}
+	if child.AssignedRuntime != "computer:req-computer" {
+		t.Fatalf("computer runtime evidence=%q", child.AssignedRuntime)
+	}
+	if executor.executeCalls != 1 || executor.reviewCalls != 0 {
+		t.Fatalf("unexpected executor calls execute=%d review=%d", executor.executeCalls, executor.reviewCalls)
+	}
+	req := got.CoordinationRequests[0]
+	if req.Status != CoordinationResolved || req.ResultReceiptID == "" {
+		t.Fatalf("computer coordination request was not reconciled from receipt: %+v", req)
 	}
 }
