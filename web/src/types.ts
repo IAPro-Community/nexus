@@ -1489,7 +1489,7 @@ export interface ComputerSnapshot {
   window: ComputerWindowInfo;
   elements?: ComputerElement[];
   tree_text?: string;
-  screenshot_path?: string;
+  screenshot_ref?: string;
   captured_at: string;
 }
 
