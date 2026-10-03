@@ -104,6 +104,7 @@ export interface NexusSystemInfo {
   build: Record<string, string>;
   providers: string[];
   capabilities: Record<string, Record<string, unknown>>;
+  features: Record<string, boolean>;
 }
 
 export interface ProfileInfo {

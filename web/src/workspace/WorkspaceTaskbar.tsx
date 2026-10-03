@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FolderGit2, GitBranch, Wifi, AlertTriangle } from 'lucide-react';
+import { FolderGit2, GitBranch, FileDiff, Wifi, AlertTriangle } from 'lucide-react';
 import { nexus } from '../nexus/api';
 import { BranchSwitcherModal } from '../features/projects/BranchSwitcherModal';
+import { ReviewCenterModal } from '../features/review/ReviewCenterModal';
 import { Tooltip } from '../design-system';
 import type { Agent, Project } from '../types';
 import styles from './WorkspaceTaskbar.module.scss';
@@ -14,6 +15,8 @@ export const WorkspaceTaskbar: React.FC<{
 }> = ({ project, agents = [], onFocusAgent }) => {
   const { t } = useTranslation();
   const [branchModalOpen, setBranchModalOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewCenterEnabled, setReviewCenterEnabled] = useState(false);
   const [currentBranch, setCurrentBranch] = useState<string>('');
   const [sysInfo, setSysInfo] = useState<{
     nexus_version: string;
@@ -31,6 +34,10 @@ export const WorkspaceTaskbar: React.FC<{
       .getSystemUpdates()
       .then(setSysInfo)
       .catch(() => undefined);
+    nexus
+      .getSystemInfo()
+      .then((info) => setReviewCenterEnabled(Boolean(info.features?.review_center)))
+      .catch(() => setReviewCenterEnabled(false));
     nexus
       .getIntelligence(project?.id)
       .then(setIntelligence)
@@ -83,12 +90,33 @@ export const WorkspaceTaskbar: React.FC<{
               </button>
             </Tooltip>
 
+            {reviewCenterEnabled && (
+              <Tooltip content={t('reviewCenter.openTooltip')} side="top">
+                <button
+                  type="button"
+                  className="nx-statusbar-item nx-statusbar-btn"
+                  onClick={() => setReviewModalOpen(true)}
+                  aria-label={t('reviewCenter.open')}
+                >
+                  <FileDiff size={11} />
+                  <span>{t('reviewCenter.shortTitle')}</span>
+                </button>
+              </Tooltip>
+            )}
+
             <BranchSwitcherModal
               open={branchModalOpen}
               onClose={() => setBranchModalOpen(false)}
               project={project}
               onBranchChanged={(b) => setCurrentBranch(b)}
             />
+            {reviewCenterEnabled && (
+              <ReviewCenterModal
+                open={reviewModalOpen}
+                onClose={() => setReviewModalOpen(false)}
+                project={project}
+              />
+            )}
           </>
         )}
       </div>

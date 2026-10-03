@@ -3,6 +3,7 @@ package web
 import (
 	"github.com/IAPro-Community/nexus/internal/buildinfo"
 	"github.com/IAPro-Community/nexus/internal/control/driver"
+	coreflags "github.com/IAPro-Community/nexus/internal/core/flags"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
@@ -21,6 +22,7 @@ type SystemInfoResponse struct {
 	Build         map[string]string                     `json:"build"`
 	Capabilities  map[string]driver.ControlCapabilities `json:"capabilities"`
 	Providers     []string                              `json:"providers"`
+	Features      map[string]bool                       `json:"features"`
 }
 
 // RuntimeDetailResponse keeps runtime identity and capability metadata
@@ -31,11 +33,16 @@ type RuntimeDetailResponse struct {
 }
 
 func newSystemInfoResponse(capabilities map[string]driver.ControlCapabilities, providers []string) SystemInfoResponse {
+	features := make(map[string]bool)
+	for _, name := range coreflags.All() {
+		features[string(name)] = coreflags.Enabled(name)
+	}
 	return SystemInfoResponse{
 		APIVersion:    "v1",
 		ServerVersion: buildinfo.Version,
 		Build:         buildinfo.JSON(),
 		Capabilities:  capabilities,
 		Providers:     providers,
+		Features:      features,
 	}
 }

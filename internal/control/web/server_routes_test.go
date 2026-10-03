@@ -38,6 +38,7 @@ func TestSystemInfoExposesVersionAndCapabilities(t *testing.T) {
 		APIVersion    string                    `json:"apiVersion"`
 		ServerVersion string                    `json:"serverVersion"`
 		Capabilities  map[string]map[string]any `json:"capabilities"`
+		Features      map[string]bool           `json:"features"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
 		t.Fatalf("decode system info: %v", err)
@@ -47,6 +48,12 @@ func TestSystemInfoExposesVersionAndCapabilities(t *testing.T) {
 	}
 	if len(body.Capabilities) == 0 {
 		t.Fatal("metadata did not expose registered provider capabilities")
+	}
+	if body.Features == nil {
+		t.Fatal("metadata did not expose feature flags")
+	}
+	if body.Features["review_center"] {
+		t.Fatal("review center must remain disabled by default")
 	}
 }
 

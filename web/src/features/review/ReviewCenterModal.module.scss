@@ -1,0 +1,167 @@
+@use '../../styles/mixins';
+
+.layout {
+  display: grid;
+  gap: var(--nx-space-3);
+  min-width: min(80vw, 980px);
+  min-height: min(70vh, 680px);
+}
+
+.header,
+.footer,
+.sectionTitle,
+.diffToolbar,
+.modeButtons {
+  display: flex;
+  align-items: center;
+}
+
+.header,
+.footer,
+.diffToolbar {
+  justify-content: space-between;
+  gap: var(--nx-space-3);
+}
+
+.meta,
+.footer {
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-xs);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(210px, 28%) minmax(0, 1fr);
+  min-height: 480px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  overflow: hidden;
+}
+
+.files {
+  border-right: 1px solid var(--nx-border);
+  background: var(--nx-bg-elevated);
+  min-width: 0;
+}
+
+.sectionTitle {
+  gap: var(--nx-space-2);
+  padding: var(--nx-space-3);
+  border-bottom: 1px solid var(--nx-border);
+  font-weight: 600;
+}
+
+.fileList {
+  list-style: none;
+  margin: 0;
+  padding: var(--nx-space-1);
+  max-height: 55vh;
+  overflow: auto;
+}
+
+.file,
+.fileActive {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-2);
+  padding: var(--nx-space-2);
+  border: 0;
+  border-radius: var(--nx-radius-sm);
+  background: transparent;
+  color: var(--nx-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.file:hover,
+.fileActive {
+  background: var(--nx-surface-hover);
+}
+
+.file:focus-visible,
+.fileActive:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 1px;
+}
+
+.filePath,
+.selectedPath {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--nx-font-mono);
+  font-size: var(--nx-font-size-xs);
+}
+
+.diffPane {
+  min-width: 0;
+  background: var(--nx-bg);
+}
+
+.diffToolbar {
+  padding: var(--nx-space-2) var(--nx-space-3);
+  border-bottom: 1px solid var(--nx-border);
+}
+
+.modeButtons {
+  gap: var(--nx-space-1);
+  flex-shrink: 0;
+}
+
+.diff {
+  margin: 0;
+  padding: var(--nx-space-3);
+  max-height: 55vh;
+  overflow: auto;
+  white-space: pre;
+  color: var(--nx-text);
+  background: var(--nx-bg);
+  font-family: var(--nx-font-mono);
+  font-size: var(--nx-font-size-xs);
+  line-height: 1.55;
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: var(--nx-space-4);
+  color: var(--nx-text-soft);
+  text-align: center;
+}
+
+.footer {
+  justify-content: flex-end;
+}
+
+@include mixins.nx-phone {
+  .layout {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .body {
+    grid-template-columns: 1fr;
+    min-height: 60vh;
+  }
+
+  .files {
+    border-right: 0;
+    border-bottom: 1px solid var(--nx-border);
+  }
+
+  .fileList {
+    max-height: 24vh;
+  }
+
+  .diff {
+    max-height: 42vh;
+  }
+
+  .diffToolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
