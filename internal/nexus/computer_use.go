@@ -48,6 +48,72 @@ func (n *Nexus) ComputerUseStatus(ctx context.Context) (ComputerUseStatus, error
 	}, nil
 }
 
+func (n *Nexus) ComputerListApps(
+	ctx context.Context,
+	contract runner.AutonomyContract,
+) ([]computer.AppInfo, error) {
+	if !coreflags.Enabled(coreflags.ComputerUse) {
+		return nil, fmt.Errorf("computer use is disabled by feature flag")
+	}
+	policy := computerPolicyFromContract(contract)
+	if err := policy.ValidateObservation(); err != nil {
+		return nil, err
+	}
+	provider := computerProviderFactory()
+	capabilities, _, err := computerProviderReady(ctx, provider)
+	if err != nil {
+		return nil, err
+	}
+	if !capabilities.ListApps {
+		return nil, fmt.Errorf("computer-use provider does not support application discovery")
+	}
+	apps, err := provider.ListApps(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list computer applications: %w", err)
+	}
+	filtered := make([]computer.AppInfo, 0, len(apps))
+	for _, app := range apps {
+		if policy.ValidateApp(app.Name) != nil {
+			continue
+		}
+		app.Name = security.Redact(strings.TrimSpace(app.Name))
+		app.BundleID = security.Redact(strings.TrimSpace(app.BundleID))
+		filtered = append(filtered, app)
+	}
+	return filtered, nil
+}
+
+func (n *Nexus) ComputerListWindows(
+	ctx context.Context,
+	contract runner.AutonomyContract,
+	app string,
+) ([]computer.WindowInfo, error) {
+	if !coreflags.Enabled(coreflags.ComputerUse) {
+		return nil, fmt.Errorf("computer use is disabled by feature flag")
+	}
+	app = strings.TrimSpace(app)
+	policy := computerPolicyFromContract(contract)
+	if err := policy.ValidateApp(app); err != nil {
+		return nil, err
+	}
+	provider := computerProviderFactory()
+	capabilities, _, err := computerProviderReady(ctx, provider)
+	if err != nil {
+		return nil, err
+	}
+	if !capabilities.ListWindows {
+		return nil, fmt.Errorf("computer-use provider does not support window discovery")
+	}
+	windows, err := provider.ListWindows(ctx, app)
+	if err != nil {
+		return nil, fmt.Errorf("list computer windows: %w", err)
+	}
+	for i := range windows {
+		windows[i].Title = security.Redact(strings.TrimSpace(windows[i].Title))
+	}
+	return windows, nil
+}
+
 func (n *Nexus) ComputerSnapshot(
 	ctx context.Context,
 	contract runner.AutonomyContract,
