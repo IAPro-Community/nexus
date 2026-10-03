@@ -643,6 +643,19 @@ export const FlowRunSurface: React.FC<{
                       })}
                     </small>
                   ) : null}
+                  {pkg.candidate_group_id ? (
+                    <small>
+                      {pkg.candidate_coordinator && pkg.candidate_evaluation
+                        ? t('flowRun.candidateWinner', {
+                            winner: pkg.candidate_evaluation.winner_package_id,
+                            strategy: pkg.candidate_evaluation.strategy,
+                          })
+                        : t('flowRun.candidateStatus', {
+                            index: pkg.candidate_index || '—',
+                            status: pkg.candidate_disposition || 'PENDING',
+                          })}
+                    </small>
+                  ) : null}
                 </div>
                 <Badge tone={toneFor(state)}>{t(`flow.state.${state}`, state)}</Badge>
               </div>
@@ -701,6 +714,12 @@ export const FlowRunSurface: React.FC<{
                     <div>
                       <strong>{t('flowRun.receiptRemaining')}</strong>
                       <span>{remaining.join(' · ')}</span>
+                    </div>
+                  )}
+                  {pkg.candidate_evaluation && (
+                    <div>
+                      <strong>{t('flowRun.candidateDecision')}</strong>
+                      <span>{pkg.candidate_evaluation.reason}</span>
                     </div>
                   )}
                 </details>
