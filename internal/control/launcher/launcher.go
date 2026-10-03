@@ -404,6 +404,20 @@ func forceKillSession(runtimeID string, sess registry.RuntimeSession, ok bool) e
 		return nil
 	}
 
+	// A managed remote runtime stores the provider PID reported by the remote
+	// host for diagnostics only. It is never a local process authority.
+	if registry.IsRemoteRuntimeTransport(sess.Transport) {
+		hostPID, hostErr := validatedRuntimeProcessPID(sess.HostPID, sess.HostGeneration, "remote runtime proxy")
+		if hostErr != nil {
+			return hostErr
+		}
+		if hostPID > 0 {
+			KillProcess(hostPID)
+		}
+		_ = os.Remove(protocol.EndpointPath(runtimeID))
+		return nil
+	}
+
 	providerPID, providerErr := validatedRuntimeProcessPID(sess.PID, sess.ProviderGeneration, "provider")
 	hostPID, hostErr := validatedRuntimeProcessPID(sess.HostPID, sess.HostGeneration, "SessionHost")
 	if providerErr != nil || hostErr != nil {
@@ -434,6 +448,11 @@ func sessionProcessAlive(sess registry.RuntimeSession, ok bool) bool {
 		return false
 	}
 	currentPID := os.Getpid()
+	// Remote provider PIDs belong to another machine. Only the local proxy host
+	// can participate in the local wait barrier.
+	if registry.IsRemoteRuntimeTransport(sess.Transport) {
+		return sess.HostPID > 0 && sess.HostPID != currentPID && registry.IsProcessAlive(sess.HostPID)
+	}
 	// Raw liveness is sufficient for the wait barrier only. Destructive actions
 	// are guarded by validatedRuntimeProcessPID before any signal is sent.
 	if sess.PID > 0 && sess.PID != currentPID && registry.IsProcessAlive(sess.PID) {
