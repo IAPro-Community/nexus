@@ -136,3 +136,19 @@
     align-items: stretch;
   }
 }
+
+.activationHint {
+  display: grid;
+  gap: 6px;
+
+  code {
+    width: fit-content;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    color: var(--nx-text);
+  }
+
+  small {
+    color: var(--nx-muted);
+  }
+}
