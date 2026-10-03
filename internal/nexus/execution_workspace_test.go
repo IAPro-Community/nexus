@@ -90,3 +90,18 @@ func TestResolveTaskExecutionWorkspaceRejectsTraversal(t *testing.T) {
 		t.Fatalf("unsafe workspace id must fail closed, got %v", err)
 	}
 }
+
+func TestTaskExecutionWorkspaceIDIsStableAndFilesystemSafe(t *testing.T) {
+	first := taskExecutionWorkspaceID("run/unsafe", "pkg/unsafe")
+	second := taskExecutionWorkspaceID("run/unsafe", "pkg/unsafe")
+	other := taskExecutionWorkspaceID("run/unsafe", "pkg/other")
+	if first != second {
+		t.Fatalf("workspace id must be stable: %q != %q", first, second)
+	}
+	if first == other {
+		t.Fatal("different package identities must not share a workspace id")
+	}
+	if strings.ContainsAny(first, `/\\`) {
+		t.Fatalf("workspace id must be path-safe: %q", first)
+	}
+}

@@ -2,6 +2,8 @@ package nexus
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"path/filepath"
 	"strings"
@@ -78,4 +80,9 @@ func sanitizedWorkspaceBranchSuffix(id string) string {
 
 func executionWorkspaceManagedRoot(dataDir, projectID string) string {
 	return filepath.Join(dataDir, "execution-workspaces", projectID)
+}
+
+func taskExecutionWorkspaceID(runID, packageID string) string {
+	sum := sha256.Sum256([]byte(strings.TrimSpace(runID) + "\x00" + strings.TrimSpace(packageID)))
+	return "ws_" + hex.EncodeToString(sum[:10])
 }

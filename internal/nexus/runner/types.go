@@ -242,6 +242,7 @@ type PackageRun struct {
 	DispatchStartedAt        *time.Time           `json:"dispatch_started_at,omitempty"`
 	DispatchFinishedAt       *time.Time           `json:"dispatch_finished_at,omitempty"`
 	Workspace                string               `json:"workspace,omitempty"`
+	ExecutionWorkspaceID     string               `json:"execution_workspace_id,omitempty"`
 	PromptVersionID          string               `json:"prompt_version_id,omitempty"`
 	CompiledPrompt           string               `json:"compiled_prompt,omitempty"`
 	RemediationContext       string               `json:"remediation_context,omitempty"`

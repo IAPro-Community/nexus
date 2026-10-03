@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/events"
+	"github.com/IAPro-Community/nexus/internal/core/flags"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/nexus/autonomyguard"
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
@@ -209,7 +210,17 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 		return runner.AllocationResult{}, err
 	}
 	var workspace string
-	if run.Autonomous {
+	if run.Autonomous && flags.Enabled(flags.ExecutionWorkspacesV2) {
+		executionWorkspace, workspaceErr := e.n.ResolveTaskExecutionWorkspace(ctx, project, ExecutionWorkspaceRequest{
+			ID:      taskExecutionWorkspaceID(run.ID, pkg.PackageID),
+			BaseRef: "HEAD",
+		})
+		if workspaceErr != nil {
+			return runner.AllocationResult{}, fmt.Errorf("allocate task execution workspace: %w", workspaceErr)
+		}
+		workspace = executionWorkspace.Path
+		pkg.ExecutionWorkspaceID = executionWorkspace.ID
+	} else if run.Autonomous {
 		workspace, err = e.n.resolveAutonomousExecutionWorkspace(ctx, project, agent, current)
 	} else {
 		workspace, err = e.n.resolveExecutionWorkspace(ctx, project, agent, current)
