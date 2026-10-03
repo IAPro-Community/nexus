@@ -3,7 +3,11 @@ import { Globe, RefreshCw, Server, Smartphone, Wifi, WifiOff } from 'lucide-reac
 import QRCode from 'react-qr-code';
 import { Badge, Button, Card, InlineAlert } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import type { ProjectExecutionTargetCatalog, TunnelStatus } from '../../types';
+import type {
+  ProjectExecutionTargetCatalog,
+  ProjectExecutionTargetProbe,
+  TunnelStatus,
+} from '../../types';
 import { useTranslation } from 'react-i18next';
 import { asArray } from '../../lib/safeArray';
 import styles from './SettingsSurface.module.scss';
@@ -18,6 +22,9 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
   const [targetCatalog, setTargetCatalog] = useState<ProjectExecutionTargetCatalog | null>(null);
   const [targetLoading, setTargetLoading] = useState(false);
   const [targetError, setTargetError] = useState('');
+  const [targetProbes, setTargetProbes] = useState<Record<string, ProjectExecutionTargetProbe>>({});
+  const [targetProbeLoading, setTargetProbeLoading] = useState('');
+  const [targetProbeErrors, setTargetProbeErrors] = useState<Record<string, string>>({});
 
   const refresh = useCallback(async () => {
     try {
@@ -40,12 +47,18 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
     if (!projectId) {
       setTargetCatalog(null);
       setTargetError('');
+      setTargetProbes({});
+      setTargetProbeErrors({});
+      setTargetProbeLoading('');
       return;
     }
     try {
       setTargetLoading(true);
       setTargetError('');
       setTargetCatalog(null);
+      setTargetProbes({});
+      setTargetProbeErrors({});
+      setTargetProbeLoading('');
       setTargetCatalog(await nexus.getProjectExecutionTargets(projectId));
     } catch (e) {
       setTargetCatalog(null);
@@ -64,6 +77,40 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
   useEffect(() => {
     void refreshTargets();
   }, [refreshTargets]);
+
+  const handleTargetProbe = useCallback(
+    async (targetId: string) => {
+      if (!projectId) return;
+      try {
+        setTargetProbeLoading(targetId);
+        setTargetProbeErrors((current) => {
+          const next = { ...current };
+          delete next[targetId];
+          return next;
+        });
+        const probe = await nexus.probeProjectExecutionTarget(projectId, targetId);
+        setTargetProbes((current) => ({ ...current, [targetId]: probe }));
+      } catch (e) {
+        setTargetProbes((current) => {
+          const next = { ...current };
+          delete next[targetId];
+          return next;
+        });
+        setTargetProbeErrors((current) => ({
+          ...current,
+          [targetId]:
+            e instanceof Error
+              ? e.message
+              : t('settings.remote.targets.errors.probe', {
+                  defaultValue: 'Could not probe this execution target.',
+                }),
+        }));
+      } finally {
+        setTargetProbeLoading((current) => (current === targetId ? '' : current));
+      }
+    },
+    [projectId, t],
+  );
 
   const handleStart = useCallback(async () => {
     try {
@@ -261,6 +308,45 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
                       {target.reason}
                     </p>
                   )}
+                  {target.kind === 'SSH' && targetCatalog?.remote_execution_enabled && (
+                    <div className={styles.executionTargetProbeActions}>
+                      <Button
+                        tone="ghost"
+                        onClick={() => handleTargetProbe(target.id)}
+                        disabled={targetProbeLoading === target.id}
+                      >
+                        <RefreshCw size={14} />
+                        {targetProbeLoading === target.id
+                          ? t('settings.remote.targets.probing', { defaultValue: 'Testing…' })
+                          : t('settings.remote.targets.probe', { defaultValue: 'Test connection' })}
+                      </Button>
+                    </div>
+                  )}
+                  {targetProbeErrors[target.id] && (
+                    <InlineAlert tone="danger">{targetProbeErrors[target.id]}</InlineAlert>
+                  )}
+                  {targetProbes[target.id] && (
+                    <div className={styles.executionTargetProbeResult}>
+                      <div className={styles.executionTargetProbeHeader}>
+                        <Badge tone={targetProbes[target.id].ready ? 'success' : 'warning'}>
+                          {targetProbes[target.id].ready
+                            ? t('settings.remote.targets.probeReady', { defaultValue: 'bridge ready' })
+                            : t('settings.remote.targets.probeReached', {
+                                defaultValue: 'reachable, execution disabled',
+                              })}
+                        </Badge>
+                        <span>
+                          {targetProbes[target.id].machine_id} · {targetProbes[target.id].os}/
+                          {targetProbes[target.id].arch} · Nexus {targetProbes[target.id].nexus_version}
+                        </span>
+                      </div>
+                      {targetProbes[target.id].reason && (
+                        <p className={`nx-muted-copy ${styles.executionTargetReason}`}>
+                          {targetProbes[target.id].reason}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -271,7 +357,7 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
               <InlineAlert tone="info">
                 {t('settings.remote.targets.previewOnly', {
                   defaultValue:
-                    'The repository declares a remote default, but Nexus keeps execution local until a managed remote runtime and explicit approval boundary are available.',
+                    'The repository declares a remote default, but Nexus keeps execution local until explicit target activation and approval are implemented.',
                 })}
               </InlineAlert>
             )}
