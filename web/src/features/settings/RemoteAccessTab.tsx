@@ -25,6 +25,7 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
   const [targetProbes, setTargetProbes] = useState<Record<string, ProjectExecutionTargetProbe>>({});
   const [targetProbeLoading, setTargetProbeLoading] = useState('');
   const [targetProbeErrors, setTargetProbeErrors] = useState<Record<string, string>>({});
+  const [targetMutationLoading, setTargetMutationLoading] = useState('');
 
   const refresh = useCallback(async () => {
     try {
@@ -50,6 +51,7 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
       setTargetProbes({});
       setTargetProbeErrors({});
       setTargetProbeLoading('');
+      setTargetMutationLoading('');
       return;
     }
     try {
@@ -59,6 +61,7 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
       setTargetProbes({});
       setTargetProbeErrors({});
       setTargetProbeLoading('');
+      setTargetMutationLoading('');
       setTargetCatalog(await nexus.getProjectExecutionTargets(projectId));
     } catch (e) {
       setTargetCatalog(null);
@@ -111,6 +114,68 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
     },
     [projectId, t],
   );
+
+  const handleTargetActivate = useCallback(
+    async (targetId: string) => {
+      if (!projectId) return;
+      const probe = targetProbes[targetId];
+      if (!probe?.ready || !probe.approval_token) {
+        setTargetProbeErrors((current) => ({
+          ...current,
+          [targetId]: t('settings.remote.targets.errors.activationProbe', {
+            defaultValue: 'Test this target again before activating it.',
+          }),
+        }));
+        return;
+      }
+      try {
+        setTargetMutationLoading(targetId);
+        setTargetProbeErrors((current) => {
+          const next = { ...current };
+          delete next[targetId];
+          return next;
+        });
+        await nexus.activateProjectExecutionTarget(projectId, targetId, probe.approval_token);
+        setTargetProbes({});
+        await refreshTargets();
+      } catch (e) {
+        setTargetProbeErrors((current) => ({
+          ...current,
+          [targetId]:
+            e instanceof Error
+              ? e.message
+              : t('settings.remote.targets.errors.activate', {
+                  defaultValue: 'Could not activate this execution target.',
+                }),
+        }));
+      } finally {
+        setTargetMutationLoading('');
+      }
+    },
+    [projectId, refreshTargets, t, targetProbes],
+  );
+
+  const handleTargetDeactivate = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      setTargetMutationLoading('local');
+      setTargetError('');
+      await nexus.deactivateProjectExecutionTarget(projectId);
+      setTargetProbes({});
+      setTargetProbeErrors({});
+      await refreshTargets();
+    } catch (e) {
+      setTargetError(
+        e instanceof Error
+          ? e.message
+          : t('settings.remote.targets.errors.deactivate', {
+              defaultValue: 'Could not return future starts to the local target.',
+            }),
+      );
+    } finally {
+      setTargetMutationLoading('');
+    }
+  }, [projectId, refreshTargets, t]);
 
   const handleStart = useCallback(async () => {
     try {
@@ -313,13 +378,50 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
                       <Button
                         tone="ghost"
                         onClick={() => handleTargetProbe(target.id)}
-                        disabled={targetProbeLoading === target.id}
+                        disabled={
+                          targetProbeLoading === target.id ||
+                          targetMutationLoading === target.id
+                        }
                       >
                         <RefreshCw size={14} />
                         {targetProbeLoading === target.id
                           ? t('settings.remote.targets.probing', { defaultValue: 'Testing…' })
                           : t('settings.remote.targets.probe', { defaultValue: 'Test connection' })}
                       </Button>
+
+                      {!target.effective &&
+                        targetProbes[target.id]?.ready &&
+                        targetProbes[target.id]?.approval_token && (
+                          <Button
+                            tone="brand"
+                            onClick={() => void handleTargetActivate(target.id)}
+                            disabled={targetMutationLoading === target.id}
+                          >
+                            {targetMutationLoading === target.id
+                              ? t('settings.remote.targets.activating', {
+                                  defaultValue: 'Activating…',
+                                })
+                              : t('settings.remote.targets.activateFuture', {
+                                  defaultValue: 'Activate for future starts',
+                                })}
+                          </Button>
+                        )}
+
+                      {target.effective && (
+                        <Button
+                          tone="ghost"
+                          onClick={() => void handleTargetDeactivate()}
+                          disabled={targetMutationLoading === 'local'}
+                        >
+                          {targetMutationLoading === 'local'
+                            ? t('settings.remote.targets.deactivating', {
+                                defaultValue: 'Returning to local…',
+                              })
+                            : t('settings.remote.targets.useLocalFuture', {
+                                defaultValue: 'Use local for future starts',
+                              })}
+                        </Button>
+                      )}
                     </div>
                   )}
                   {targetProbeErrors[target.id] && (
@@ -352,12 +454,19 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
             </div>
           )}
 
+          <InlineAlert tone="info">
+            {t('settings.remote.targets.futureStartsNotice', {
+              defaultValue:
+                'Changing the effective target affects future Agent starts only. Existing runtimes are not moved or stopped.',
+            })}
+          </InlineAlert>
+
           {targetCatalog &&
             targetCatalog.declared_default_target !== targetCatalog.effective_default_target && (
               <InlineAlert tone="info">
-                {t('settings.remote.targets.previewOnly', {
+                {t('settings.remote.targets.declaredDiffers', {
                   defaultValue:
-                    'The repository declares a remote default, but Nexus keeps execution local until explicit target activation and approval are implemented.',
+                    'The repository default and the explicitly activated target are different. Nexus follows the explicit project binding for future starts.',
                 })}
               </InlineAlert>
             )}
