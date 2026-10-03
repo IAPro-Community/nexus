@@ -219,6 +219,30 @@ func (s remoteBridgeServer) handle(ctx context.Context, request protocol.Request
 		response.RuntimeID = session.RuntimeID
 		return response
 
+	case protocol.CmdRemoteBridgeControl:
+		if !s.remoteEnabled() {
+			return remoteBridgeError(request.ID, "REMOTE_EXECUTION_DISABLED", fmt.Errorf("remote execution is disabled on this host"))
+		}
+		var payload protocol.RemoteBridgeControlPayload
+		if err := decodeStrictRemoteBridgeJSON(request.Payload, &payload); err != nil {
+			return remoteBridgeError(request.ID, "INVALID_REQUEST", err)
+		}
+		if err := protocol.ValidateRemoteBridgeControl(payload); err != nil {
+			return remoteBridgeError(request.ID, "INVALID_REQUEST", err)
+		}
+		_, client, err := s.openVerifiedRuntime(payload.RuntimeID)
+		if err != nil {
+			return remoteBridgeError(request.ID, "RUNTIME_UNAVAILABLE", err)
+		}
+		defer client.Close()
+		response, err := client.Send(payload.Command, json.RawMessage(payload.Payload))
+		if err != nil {
+			return remoteBridgeError(request.ID, "CONTROL_FAILED", err)
+		}
+		response.ID = request.ID
+		response.RuntimeID = payload.RuntimeID
+		return response
+
 	case protocol.CmdRemoteBridgeSpawn:
 		if !s.remoteEnabled() {
 			return remoteBridgeError(request.ID, "REMOTE_EXECUTION_DISABLED", fmt.Errorf("remote execution is disabled on this host"))
