@@ -199,7 +199,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }}
             >
               <span>{t('legacy.projectOnly', 'Project Only')}</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-black/20 text-[10px]">
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] opacity-80">
                 {liveRuntimes.length}
               </span>
             </button>
@@ -213,7 +213,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             >
               <Layers className="w-3 h-3" />
               <span>{t('legacy.allProjects', 'All Projects')}</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-black/20 text-[10px]">
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] opacity-80">
                 {safeRuntimes.length}
               </span>
             </button>
