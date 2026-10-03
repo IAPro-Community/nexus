@@ -1,0 +1,138 @@
+@use '../../styles/tokens';
+@use '../../styles/typography';
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.statusRow,
+.toolbar,
+.windowMeta,
+.snapshotMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.statusRow {
+  margin: 10px 0;
+}
+
+.statusMeta,
+.windowMeta,
+.snapshotMeta,
+.muted {
+  color: var(--nx-muted);
+  font-size: 0.786rem;
+}
+
+.permissionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 18px;
+  margin-top: 12px;
+}
+
+.toolbar {
+  margin-top: 12px;
+}
+
+.targetGrid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(260px, 1.4fr);
+  gap: 10px;
+  align-items: end;
+  margin-top: 12px;
+}
+
+.windowMeta {
+  margin-top: 10px;
+
+  code {
+    overflow-wrap: anywhere;
+    color: var(--nx-text);
+  }
+}
+
+.screenshotFrame {
+  margin-top: 12px;
+  padding: 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-bg-elevated);
+  overflow: auto;
+
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+    border-radius: var(--nx-radius-sm);
+  }
+}
+
+.snapshotMeta {
+  margin-top: 10px;
+}
+
+.elementActionGrid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.2fr) minmax(260px, 1fr);
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.elementColumn,
+.actionColumn {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.elementDetail {
+  display: grid;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-surface-2);
+  min-width: 0;
+
+  > div {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  code {
+    max-height: 96px;
+    overflow: auto;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    color: var(--nx-text);
+  }
+
+  span {
+    color: var(--nx-muted);
+    font-size: 0.786rem;
+  }
+}
+
+.muted {
+  margin: 0;
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .permissionGrid,
+  .elementActionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .targetGrid {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+}
