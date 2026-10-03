@@ -109,18 +109,18 @@ public static class NexusWin32 {
             inputs[index++] = new INPUT {
                 type = 1,
                 U = new INPUTUNION {
-                    ki = new KEYBDINPUT { wVk = 0, wScan = ch, dwFlags = 0x0004 }
+                    ki = new KEYBDINPUT { wVk = 0, wScan = (ushort)ch, dwFlags = 0x0004 }
                 }
             };
             inputs[index++] = new INPUT {
                 type = 1,
                 U = new INPUTUNION {
-                    ki = new KEYBDINPUT { wVk = 0, wScan = ch, dwFlags = 0x0004 | 0x0002 }
+                    ki = new KEYBDINPUT { wVk = 0, wScan = (ushort)ch, dwFlags = 0x0004 | 0x0002 }
                 }
             };
         }
         uint sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
-        if (sent != inputs.Length) {
+        if (sent != (uint)inputs.Length) {
             throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "SendInput did not deliver all unicode keyboard events");
         }
     }
