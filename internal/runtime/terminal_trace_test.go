@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+func TestTerminalTraceShapeDoesNotLeakAnsiLikePlainText(t *testing.T) {
+	got := TerminalTraceShape([]byte("ARM COMMAND MARCH"))
+	if strings.Contains(got, "ARM") || strings.Contains(got, "COMMAND") || strings.Contains(got, "MARCH") {
+		t.Fatalf("trace leaked ANSI-like plain text: %q", got)
+	}
+	if strings.ContainsAny(got, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+		t.Fatalf("trace preserved ordinary uppercase text outside a terminal sequence: %q", got)
+	}
+}
+
 func TestTerminalTraceShapeMasksPromptTextAndKeepsControlStructure(t *testing.T) {
 	got := TerminalTraceShape([]byte("secret\x1b[A123\r\x03"))
 	if strings.Contains(got, "secret") || strings.Contains(got, "123") {
