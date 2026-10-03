@@ -248,6 +248,12 @@ func projectSubroute(path string) string {
 		return "open-os"
 	case strings.HasSuffix(path, "/commands"):
 		return "commands"
+	case strings.HasSuffix(path, "/computer/status"):
+		return "computer-status"
+	case strings.HasSuffix(path, "/computer/snapshot"):
+		return "computer-snapshot"
+	case strings.HasSuffix(path, "/computer/action"):
+		return "computer-action"
 	case strings.HasSuffix(path, "/execution-targets/probe"):
 		return "execution-targets-probe"
 	case strings.HasSuffix(path, "/execution-targets/activate"):
