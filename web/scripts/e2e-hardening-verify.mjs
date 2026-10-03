@@ -474,7 +474,11 @@ async function main() {
     await createMenuTrigger.click();
     const createMenu = page.locator('.nx-create-menu__panel').first();
     await createMenu.waitFor({ state: 'visible', timeout: 5000 });
-    assert.equal(await createMenu.getAttribute('role'), 'menu', 'Create menu must expose menu semantics');
+    assert.equal(
+      await createMenu.getAttribute('role'),
+      'menu',
+      'Create menu must expose menu semantics',
+    );
     assert.equal(
       await createMenuTrigger.getAttribute('aria-expanded'),
       'true',
@@ -506,7 +510,11 @@ async function main() {
     await arrangeTrigger.click();
     const arrangeMenu = page.locator('.nx-arrange-menu__panel').first();
     await arrangeMenu.waitFor({ state: 'visible', timeout: 5000 });
-    assert.equal(await arrangeMenu.getAttribute('role'), 'menu', 'Arrange menu must expose menu semantics');
+    assert.equal(
+      await arrangeMenu.getAttribute('role'),
+      'menu',
+      'Arrange menu must expose menu semantics',
+    );
     assert.ok(
       (await arrangeMenu.getByRole('menuitemradio').count()) >= 1,
       'Arrange menu must expose radio menu items',
