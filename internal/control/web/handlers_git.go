@@ -199,6 +199,7 @@ const maxReviewDiffBytes = 1024 * 1024
 
 type ProjectGitChange struct {
 	Path     string `json:"path"`
+	OldPath  string `json:"old_path,omitempty"`
 	Index    string `json:"index_status"`
 	Worktree string `json:"worktree_status"`
 }
@@ -240,7 +241,7 @@ func (h *NexusHandler) handleProjectGitChanges(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	status, truncated, err := runBoundedGit(proj.CanonicalPath, 256*1024, "status", "--porcelain=v1", "--untracked-files=normal")
+	status, truncated, err := runBoundedGit(proj.CanonicalPath, 256*1024, "status", "--porcelain=v1", "-z", "--untracked-files=normal")
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -321,24 +322,33 @@ func validateReviewPath(raw string) (string, error) {
 }
 
 func parsePorcelainChanges(raw string) []ProjectGitChange {
-	lines := strings.Split(raw, "\n")
-	out := make([]ProjectGitChange, 0, len(lines))
-	for _, line := range lines {
-		if len(line) < 4 {
+	entries := strings.Split(raw, "\x00")
+	out := make([]ProjectGitChange, 0, len(entries))
+	for i := 0; i < len(entries); i++ {
+		entry := entries[i]
+		if len(entry) < 4 {
 			continue
 		}
-		path := strings.TrimSpace(line[3:])
+		indexStatus := entry[0]
+		worktreeStatus := entry[1]
+		path := entry[3:]
 		if path == "" {
 			continue
 		}
-		// Porcelain v1 may render rename/copy as "old -> new". Keep the display
-		// path as returned here; the diff endpoint still requires an explicit
-		// validated path selected by the client.
-		out = append(out, ProjectGitChange{
+		change := ProjectGitChange{
 			Path:     path,
-			Index:    string(line[0]),
-			Worktree: string(line[1]),
-		})
+			Index:    string(indexStatus),
+			Worktree: string(worktreeStatus),
+		}
+		if indexStatus == 'R' || indexStatus == 'C' || worktreeStatus == 'R' || worktreeStatus == 'C' {
+			// With porcelain -z Git emits destination first, followed by origin,
+			// both NUL terminated and without the human-readable " -> " marker.
+			if i+1 < len(entries) {
+				i++
+				change.OldPath = entries[i]
+			}
+		}
+		out = append(out, change)
 	}
 	return out
 }

@@ -23,10 +23,11 @@ func TestValidateReviewPathNormalizesSafeRelativePath(t *testing.T) {
 	}
 }
 
-func TestParsePorcelainChangesPreservesIndexAndWorktreeStatus(t *testing.T) {
-	changes := parsePorcelainChanges(" M web/src/App.tsx\nA  internal/new.go\n?? notes.txt\n")
-	if len(changes) != 3 {
-		t.Fatalf("changes=%d want=3: %+v", len(changes), changes)
+func TestParsePorcelainChangesPreservesIndexWorktreeAndRename(t *testing.T) {
+	raw := " M web/src/App.tsx\x00A  internal/new.go\x00?? notes.txt\x00R  new-name.go\x00old-name.go\x00"
+	changes := parsePorcelainChanges(raw)
+	if len(changes) != 4 {
+		t.Fatalf("changes=%d want=4: %+v", len(changes), changes)
 	}
 	if changes[0].Index != " " || changes[0].Worktree != "M" {
 		t.Fatalf("unexpected first status: %+v", changes[0])
@@ -36,6 +37,9 @@ func TestParsePorcelainChangesPreservesIndexAndWorktreeStatus(t *testing.T) {
 	}
 	if changes[2].Index != "?" || changes[2].Worktree != "?" {
 		t.Fatalf("unexpected untracked status: %+v", changes[2])
+	}
+	if changes[3].Path != "new-name.go" || changes[3].OldPath != "old-name.go" {
+		t.Fatalf("rename was not decoded from porcelain -z: %+v", changes[3])
 	}
 }
 

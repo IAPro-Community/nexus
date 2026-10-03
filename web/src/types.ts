@@ -770,6 +770,7 @@ export interface GitCheckoutResult {
 
 export interface GitChange {
   path: string;
+  old_path?: string;
   index_status: string;
   worktree_status: string;
 }
