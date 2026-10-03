@@ -45,7 +45,14 @@ import { ptyWindowHeading } from './ptyLiveChrome';
 import { liveChromeFor, usePtyLiveChromeOptional } from './PtyLiveChromeContext';
 import { ARRANGE_MENU_PRESETS, type ArrangeMenuPreset } from './arrangePresets';
 
-const WINDOW_ACCENTS = ['#38bdf8', '#22c55e', '#f59e0b', '#f472b6', '#a78bfa', '#fb7185'];
+const WINDOW_ACCENTS = [
+  'var(--nx-info)',
+  'var(--nx-success)',
+  'var(--nx-warning)',
+  'var(--nx-accent)',
+  'var(--nx-accent-text)',
+  'var(--nx-danger)',
+];
 const WINDOW_ICONS = ['⌘', '⚡', '◆', '●', '★', '◎'];
 
 const PRODUCT_TAB_ICONS: Record<
