@@ -72,7 +72,7 @@ func OpenSSHBridge(ctx context.Context, targetID, location string) (*SSHBridgeCl
 		return nil, protocol.RemoteBridgeHelloData{}, err
 	}
 
-	cmd := exec.CommandContext(ctx, "ssh", sshBridgeArgs(location, false)...)
+	cmd := exec.Command("ssh", sshBridgeArgs(location, false)...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, protocol.RemoteBridgeHelloData{}, err
