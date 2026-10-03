@@ -240,6 +240,9 @@ export const ChoiceGroup: React.FC<
 
       const navigationKeys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
       if (!navigationKeys.includes(event.key)) return;
+      if (!(event.target instanceof HTMLElement) || event.target.getAttribute('role') !== 'radio') {
+        return;
+      }
 
       const options = Array.from(
         event.currentTarget.querySelectorAll<HTMLButtonElement>(
@@ -270,7 +273,10 @@ export const ChoiceGroup: React.FC<
 );
 
 export const ChoiceOption: React.FC<
-  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onSelect'> & {
+  Omit<
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    'onSelect' | 'type' | 'role' | 'aria-checked'
+  > & {
     selected: boolean;
     onSelect: () => void;
   }
