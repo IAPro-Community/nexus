@@ -90,3 +90,22 @@ These are internal milestones and beta checkpoints, not separate product version
 set. Unknown fields are rejected, paths must stay relative to the project root, and command lists are
 bounded. The manifest describes project/workspace setup; it does not bypass ResourceScheduler or
 AutonomyContract.
+
+## Execution target
+
+Nexus 1.1 now persists a typed `ExecutionTarget` alongside each allocated Mission package.
+This is a projection over the v1 custom-target contract; it does not replace
+`command_template`, ResourceScheduler or RuntimeSession.
+
+```text
+AgentMatcher      -> who
+ResourceScheduler -> provider/profile/model
+Target Resolver   -> local/SSH/Nexus Node/custom
+Workspace         -> isolated checkout/environment
+MissionRunner     -> lifecycle/evidence
+```
+
+Existing v1 custom targets remain valid. SSH configured through the established argv-only
+`command_template` is recognized as `SSH` rather than being reimplemented. The current
+runtime therefore keeps its tested launcher semantics while v1.1 gains durable target identity
+for remote scheduling, node enrollment and computer-use routing.

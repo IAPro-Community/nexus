@@ -233,7 +233,8 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 			return runner.AllocationResult{}, fmt.Errorf("prepare autonomous package workspace: %w", err)
 		}
 	}
-	return runner.AllocationResult{AgentID: agent.ID, Workspace: workspace}, nil
+	target := ResolveExecutionTarget(project, current)
+	return runner.AllocationResult{AgentID: agent.ID, Workspace: workspace, ExecutionTarget: &target}, nil
 }
 
 // buildMissionRoutingDecision projects the concrete allocation made by the

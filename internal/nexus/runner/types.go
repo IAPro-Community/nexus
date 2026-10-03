@@ -243,6 +243,7 @@ type PackageRun struct {
 	DispatchFinishedAt       *time.Time           `json:"dispatch_finished_at,omitempty"`
 	Workspace                string               `json:"workspace,omitempty"`
 	ExecutionWorkspaceID     string               `json:"execution_workspace_id,omitempty"`
+	ExecutionTarget          *ExecutionTarget     `json:"execution_target,omitempty"`
 	PromptVersionID          string               `json:"prompt_version_id,omitempty"`
 	CompiledPrompt           string               `json:"compiled_prompt,omitempty"`
 	RemediationContext       string               `json:"remediation_context,omitempty"`
@@ -374,9 +375,32 @@ type MissionRun struct {
 	watchFingerprint string `json:"-"`
 }
 
+type ExecutionTargetKind string
+
+const (
+	ExecutionTargetLocal     ExecutionTargetKind = "LOCAL"
+	ExecutionTargetSSH       ExecutionTargetKind = "SSH"
+	ExecutionTargetNexusNode ExecutionTargetKind = "NEXUS_NODE"
+	ExecutionTargetCustom    ExecutionTargetKind = "CUSTOM"
+)
+
+// ExecutionTarget answers WHERE a package executes. It is deliberately
+// independent from Agent identity and provider/profile/model selection.
+type ExecutionTarget struct {
+	ID        string              `json:"id"`
+	Kind      ExecutionTargetKind `json:"kind"`
+	Adapter   string              `json:"adapter,omitempty"`
+	MachineID string              `json:"machine_id,omitempty"`
+	Location  string              `json:"location,omitempty"`
+	Transport string              `json:"transport,omitempty"`
+	Workspace string              `json:"workspace,omitempty"`
+	Source    string              `json:"source,omitempty"`
+}
+
 type AllocationResult struct {
-	AgentID   string `json:"agent_id"`
-	Workspace string `json:"workspace"`
+	AgentID         string           `json:"agent_id"`
+	Workspace       string           `json:"workspace"`
+	ExecutionTarget *ExecutionTarget `json:"execution_target,omitempty"`
 	// Kind indicates the identity kind of the allocated agent (PERSISTENT or EPHEMERAL_WORKER).
 	Kind string `json:"kind,omitempty"`
 }

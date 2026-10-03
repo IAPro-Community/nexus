@@ -279,6 +279,7 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 			return r.packageFailureFrom(ctx, run, pkg, StateAllocating, fmt.Errorf("allocator returned incomplete assignment"))
 		}
 		pkg.AssignedAgent, pkg.Workspace = allocation.AgentID, allocation.Workspace
+		pkg.ExecutionTarget = allocation.ExecutionTarget
 		pkg.State = StateCompiling
 	case StateCompiling:
 		if capsuleErr := r.ensureContextCapsule(opCtx, run, pkg); capsuleErr != nil {
