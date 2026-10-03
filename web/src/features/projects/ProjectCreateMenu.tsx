@@ -59,7 +59,7 @@ export const ProjectCreateMenu: React.FC<ProjectCreateMenuProps> = ({
             collisionPadding={8}
           >
             {onNewAgent && (
-              <DropdownMenu.Item className="nx-create-menu__item" onSelect={onNewAgent}>
+              <DropdownMenu.Item className="nx-create-menu__item" onSelect={() => onNewAgent()}>
                 <div className="nx-create-menu__icon nx-create-menu__icon--agent">
                   <Plus size={13} />
                 </div>
@@ -71,7 +71,7 @@ export const ProjectCreateMenu: React.FC<ProjectCreateMenuProps> = ({
             )}
 
             {onNewAISession && (
-              <DropdownMenu.Item className="nx-create-menu__item" onSelect={onNewAISession}>
+              <DropdownMenu.Item className="nx-create-menu__item" onSelect={() => onNewAISession()}>
                 <div className="nx-create-menu__icon nx-create-menu__icon--session">
                   <Sparkles size={13} />
                 </div>
@@ -83,7 +83,7 @@ export const ProjectCreateMenu: React.FC<ProjectCreateMenuProps> = ({
             )}
 
             {onProjectShell && (
-              <DropdownMenu.Item className="nx-create-menu__item" onSelect={onProjectShell}>
+              <DropdownMenu.Item className="nx-create-menu__item" onSelect={() => onProjectShell()}>
                 <div className="nx-create-menu__icon nx-create-menu__icon--terminal">
                   <TerminalSquare size={13} />
                 </div>
