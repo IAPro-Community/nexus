@@ -86,3 +86,36 @@ func TestLoadProjectManifestRejectsGitMetadata(t *testing.T) {
 		t.Fatalf("Git metadata must not be shareable through project manifest, got %v", err)
 	}
 }
+
+func TestLoadProjectManifestQuickCommandsAreSingleLineAndUnique(t *testing.T) {
+	dir := t.TempDir()
+	body := "version: 1\ncommands:\n  - id: quality\n    label: Quality\n    command: make quality\n"
+	if err := os.WriteFile(filepath.Join(dir, "nexus.yaml"), []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	manifest, _, err := LoadProjectManifest(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(manifest.Commands) != 1 || manifest.Commands[0].ID != "quality" {
+		t.Fatalf("quick command not decoded: %+v", manifest.Commands)
+	}
+
+	bad := "version: 1\ncommands:\n  - id: hidden\n    label: Hidden\n    command: |\n      echo one\n      echo two\n"
+	if err := os.WriteFile(filepath.Join(dir, "nexus.yaml"), []byte(bad), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = LoadProjectManifest(dir)
+	if err == nil || !strings.Contains(err.Error(), "single terminal line") {
+		t.Fatalf("multi-line quick command must fail closed, got %v", err)
+	}
+
+	dup := "version: 1\ncommands:\n  - id: test\n    label: One\n    command: go test ./...\n  - id: test\n    label: Two\n    command: make test\n"
+	if err := os.WriteFile(filepath.Join(dir, "nexus.yaml"), []byte(dup), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = LoadProjectManifest(dir)
+	if err == nil || !strings.Contains(err.Error(), "duplicated") {
+		t.Fatalf("duplicate quick command ids must fail closed, got %v", err)
+	}
+}

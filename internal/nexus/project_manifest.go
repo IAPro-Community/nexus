@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -21,6 +22,7 @@ type ProjectManifest struct {
 	Validation ProjectManifestCommands  `yaml:"validation" json:"validation"`
 	Execution  ProjectManifestExecution `yaml:"execution" json:"execution"`
 	Routing    ProjectManifestRouting   `yaml:"routing" json:"routing"`
+	Commands   []ProjectManifestCommand `yaml:"commands" json:"commands,omitempty"`
 }
 
 type ProjectManifestProject struct {
@@ -45,6 +47,62 @@ type ProjectManifestExecution struct {
 type ProjectManifestRouting struct {
 	Strategy string `yaml:"strategy" json:"strategy"`
 }
+
+type ProjectManifestCommand struct {
+	ID          string   `yaml:"id" json:"id"`
+	Label       string   `yaml:"label" json:"label"`
+	Description string   `yaml:"description,omitempty" json:"description,omitempty"`
+	Command     string   `yaml:"command" json:"command"`
+	Keywords    []string `yaml:"keywords,omitempty" json:"keywords,omitempty"`
+}
+
+var projectManifestCommandIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}package nexus
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+const maxProjectManifestBytes = 1 << 20
+
+type ProjectManifest struct {
+	Version    int                      `yaml:"version" json:"version"`
+	Project    ProjectManifestProject   `yaml:"project" json:"project"`
+	Workspace  ProjectManifestWorkspace `yaml:"workspace" json:"workspace"`
+	Setup      ProjectManifestCommands  `yaml:"setup" json:"setup"`
+	Validation ProjectManifestCommands  `yaml:"validation" json:"validation"`
+	Execution  ProjectManifestExecution `yaml:"execution" json:"execution"`
+	Routing    ProjectManifestRouting   `yaml:"routing" json:"routing"`
+	Commands   []ProjectManifestCommand `yaml:"commands" json:"commands,omitempty"`
+}
+
+type ProjectManifestProject struct {
+	Name string `yaml:"name" json:"name"`
+}
+
+type ProjectManifestWorkspace struct {
+	Strategy          string   `yaml:"strategy" json:"strategy"`
+	BaseRef           string   `yaml:"baseRef" json:"base_ref"`
+	SharedDirectories []string `yaml:"sharedDirectories" json:"shared_directories"`
+	CopiedFiles       []string `yaml:"copiedFiles" json:"copied_files"`
+}
+
+type ProjectManifestCommands struct {
+	Commands []string `yaml:"commands" json:"commands"`
+}
+
+type ProjectManifestExecution struct {
+	DefaultTarget string `yaml:"defaultTarget" json:"default_target"`
+}
+
+)
 
 func LoadProjectManifest(projectPath string) (ProjectManifest, string, error) {
 	for _, name := range []string{"nexus.yaml", "nexus.yml"} {
@@ -93,6 +151,39 @@ func validateProjectManifest(manifest ProjectManifest) error {
 	}
 	if len(manifest.Setup.Commands) > 64 || len(manifest.Validation.Commands) > 64 {
 		return fmt.Errorf("project manifest command list exceeds 64 entries")
+	}
+	if len(manifest.Commands) > 32 {
+		return fmt.Errorf("project manifest quick command list exceeds 32 entries")
+	}
+	seenCommandIDs := make(map[string]struct{}, len(manifest.Commands))
+	for i := range manifest.Commands {
+		command := &manifest.Commands[i]
+		command.ID = strings.TrimSpace(command.ID)
+		command.Label = strings.TrimSpace(command.Label)
+		command.Description = strings.TrimSpace(command.Description)
+		command.Command = strings.TrimSpace(command.Command)
+		if !projectManifestCommandIDPattern.MatchString(command.ID) {
+			return fmt.Errorf("project manifest quick command id %q is invalid", command.ID)
+		}
+		if _, exists := seenCommandIDs[command.ID]; exists {
+			return fmt.Errorf("project manifest quick command id %q is duplicated", command.ID)
+		}
+		seenCommandIDs[command.ID] = struct{}{}
+		if command.Label == "" || len(command.Label) > 120 {
+			return fmt.Errorf("project manifest quick command %q requires a label up to 120 bytes", command.ID)
+		}
+		if command.Command == "" || len(command.Command) > 4096 {
+			return fmt.Errorf("project manifest quick command %q requires a command up to 4096 bytes", command.ID)
+		}
+		if strings.ContainsAny(command.Command, "\r\n\x00") {
+			return fmt.Errorf("project manifest quick command %q must be a single terminal line", command.ID)
+		}
+		if len(command.Description) > 240 {
+			return fmt.Errorf("project manifest quick command %q description exceeds 240 bytes", command.ID)
+		}
+		if len(command.Keywords) > 12 {
+			return fmt.Errorf("project manifest quick command %q has too many keywords", command.ID)
+		}
 	}
 	for _, command := range append(append([]string{}, manifest.Setup.Commands...), manifest.Validation.Commands...) {
 		if strings.TrimSpace(command) == "" {
