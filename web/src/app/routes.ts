@@ -38,6 +38,7 @@ export const validProjectSurfaces = new Set<ProjectSurfaceKind>([
   'sessions',
   'settings',
   'resources',
+  'design-mode',
   'legacy-runtimes',
   'legacy-providers',
   'legacy-events',
