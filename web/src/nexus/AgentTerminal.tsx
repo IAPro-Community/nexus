@@ -40,6 +40,7 @@ import {
   DEFAULT_TERMINAL_SCROLLBACK,
   adjustTerminalFontSize,
   getStoredTerminalFontSize,
+  getTerminalTheme,
   resetTerminalFontSize,
   shouldAutoScrollToBottom,
   storeTerminalFontSize,
@@ -268,7 +269,7 @@ export const AgentTerminal: React.FC<{
       fontSize: initialFontSizeRef.current,
       lineHeight: 1.25,
       fontFamily: 'var(--nx-font-mono)',
-      theme: { background: '#090b10' },
+      theme: getTerminalTheme(),
       scrollback: DEFAULT_TERMINAL_SCROLLBACK,
     });
     termInstance = term;
