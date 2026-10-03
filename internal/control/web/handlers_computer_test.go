@@ -1,6 +1,8 @@
 package web
 
 import (
+	"bytes"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -107,5 +109,53 @@ func TestComputerSnapshotResponseUsesOpaqueReferenceOnly(t *testing.T) {
 	}
 	if response.Snapshot.Screenshot != "" {
 		t.Fatalf("local screenshot path leaked in response: %q", response.Snapshot.Screenshot)
+	}
+}
+
+
+func TestComputerMutationRoutesRequireCSRFBeforeProviderAccess(t *testing.T) {
+	client, srv, csrf := csrfClient(t)
+	base := srv.URL() + "/api/v1/projects/missing-project/computer/"
+	cases := []struct {
+		path string
+		body string
+	}{
+		{path: "apps", body: `{"contract":{"allow_computer_use":true}}`},
+		{path: "windows", body: `{"contract":{"allow_computer_use":true},"app":"code"}`},
+		{path: "snapshot", body: `{"contract":{"allow_computer_use":true},"request":{"app":"code"}}`},
+		{path: "action", body: `{"contract":{"allow_computer_use":true,"allow_pointer_input":true},"request":{"kind":"CLICK","app":"code","x":10,"y":10}}`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.path, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodPost, base+tc.path, bytes.NewBufferString(tc.body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusForbidden {
+				t.Fatalf("without CSRF got %d want %d", resp.StatusCode, http.StatusForbidden)
+			}
+
+			req, err = http.NewRequest(http.MethodPost, base+tc.path, bytes.NewBufferString(tc.body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set(csrfHeaderName, csrf)
+			resp, err = client.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusNotFound {
+				t.Fatalf("registered route with CSRF got %d want %d", resp.StatusCode, http.StatusNotFound)
+			}
+		})
 	}
 }
