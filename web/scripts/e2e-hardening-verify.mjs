@@ -534,7 +534,9 @@ async function main() {
       'Escape must close arrange menu',
     );
     assert.equal(
-      await page.evaluate(() => document.activeElement?.classList.contains('nx-arrange-menu__trigger')),
+      await page.evaluate(() =>
+        document.activeElement?.classList.contains('nx-arrange-menu__trigger'),
+      ),
       true,
       'Arrange menu Escape must restore focus to its trigger',
     );
