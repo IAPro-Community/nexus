@@ -785,6 +785,22 @@ export interface ProjectExecutionTargetCatalog {
   targets: ProjectExecutionTargetPreview[];
 }
 
+export interface ProjectExecutionTargetProbe {
+  project_id: string;
+  target_id: string;
+  kind: ExecutionTargetKind;
+  location: string;
+  workspace: string;
+  machine_id: string;
+  os: string;
+  arch: string;
+  nexus_version: string;
+  remote_execution_enabled: boolean;
+  capabilities: string[];
+  ready: boolean;
+  reason?: string;
+}
+
 export interface DesignModeStatus {
   enabled: boolean;
   active: boolean;
