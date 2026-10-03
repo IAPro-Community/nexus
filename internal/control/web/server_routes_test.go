@@ -65,6 +65,8 @@ func TestProjectSubrouteClassification(t *testing.T) {
 		"/api/v1/projects/proj-1/open-os":      "open-os",
 		"/api/v1/projects/proj-1/commands":     "commands",
 		"/api/v1/projects/proj-1/computer/status":   "computer-status",
+		"/api/v1/projects/proj-1/computer/apps":     "computer-apps",
+		"/api/v1/projects/proj-1/computer/windows":  "computer-windows",
 		"/api/v1/projects/proj-1/computer/snapshot": "computer-snapshot",
 		"/api/v1/projects/proj-1/computer/action":   "computer-action",
 		"/api/v1/projects/proj-1/computer/screenshot/snapshot-abc.png": "computer-screenshot",
