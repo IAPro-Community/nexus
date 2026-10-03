@@ -208,21 +208,19 @@ export const Segmented: React.FC<{
   options: { value: string; label: string }[];
   ariaLabel: string;
 }> = ({ value, onChange, options, ariaLabel }) => (
-  <div className="nx-segmented" role="radiogroup" aria-label={ariaLabel}>
+  <ChoiceGroup className="nx-segmented" ariaLabel={ariaLabel}>
     {options.map((option) => (
-      <button
-        type="button"
-        role="radio"
-        aria-checked={value === option.value}
+      <ChoiceOption
+        selected={value === option.value}
         data-active={value === option.value ? 'true' : 'false'}
         className="nx-segmented__item"
         key={option.value}
-        onClick={() => onChange(option.value)}
+        onSelect={() => onChange(option.value)}
       >
         {option.label}
-      </button>
+      </ChoiceOption>
     ))}
-  </div>
+  </ChoiceGroup>
 );
 
 export const ChoiceGroup: React.FC<
