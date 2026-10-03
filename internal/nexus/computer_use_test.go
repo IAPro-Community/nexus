@@ -351,18 +351,11 @@ func TestComputerListAppsFiltersBlockedTargets(t *testing.T) {
 		{Name: "1Password", PID: 20},
 		{Name: "notepad", PID: 30},
 	}
-	type appProvider struct{ *fakeComputerProvider }
-	wrapped := &appProvider{fakeComputerProvider: provider}
-	withFakeComputerProvider(t, computer.Provider(wrapped))
-
-	originalFactory := computerProviderFactory
-	computerProviderFactory = func() computer.Provider {
-		return &computerListAppsFake{
-			fakeComputerProvider: provider,
-			apps:                 providerApps,
-		}
+	fake := &computerListAppsFake{
+		fakeComputerProvider: provider,
+		apps:                 providerApps,
 	}
-	t.Cleanup(func() { computerProviderFactory = originalFactory })
+	withFakeComputerProvider(t, fake)
 
 	n := &Nexus{}
 	apps, err := n.ComputerListApps(context.Background(), runner.AutonomyContract{
