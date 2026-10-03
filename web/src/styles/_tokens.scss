@@ -24,4 +24,12 @@
   --nx-shadow-md: 0 4px 14px rgb(0 0 0 / 0.35);
   --nx-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.45);
   --nx-overlay-strong: color-mix(in srgb, var(--nx-bg) 88%, transparent);
+
+  // Specialized terminal palette stays stable across UI themes unless a future
+  // terminal theme explicitly overrides these semantic tokens.
+  --nx-terminal-bg: #090d16;
+  --nx-terminal-surface: #0f1218;
+  --nx-terminal-border: #202530;
+  --nx-terminal-text: #e6e9ef;
+  --nx-terminal-muted: #8991a2;
 }
