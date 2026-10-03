@@ -162,8 +162,8 @@ execution:
 		t.Fatalf("feature flag must expose capability without activation: %+v", catalog)
 	}
 	remote := catalog.Targets[1]
-	if remote.Selectable || remote.Effective || remote.ActivationStatus != "PREVIEW_ONLY" {
-		t.Fatalf("SSH must remain preview-only until approval exists: %+v", remote)
+	if !remote.Selectable || remote.Effective || remote.ActivationStatus != "PROBE_REQUIRED" {
+		t.Fatalf("SSH must require an explicit probe/activation before becoming effective: %+v", remote)
 	}
 }
 
@@ -492,5 +492,86 @@ execution:
 	}
 	if openCount < 3 {
 		t.Fatalf("activation must re-probe instead of trusting old response, bridge opens=%d", openCount)
+	}
+}
+
+
+func TestPreviewProjectExecutionTargetsReflectsActiveBindingWithoutNetworkProbe(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "1")
+
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte("version: 1\nexecution:\n  defaultTarget: devbox\n  targets:\n    - id: devbox\n      kind: ssh\n      location: devbox\n      machineId: machine-devbox\n      workspace: /srv/project\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Bound", CanonicalPath: projectDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetProjectSetting(project.ID, managedExecutionTargetSettingKey, ManagedExecutionTargetBinding{
+		TargetID:      "devbox",
+		ApprovalToken: "approved-fingerprint",
+		MachineID:     "machine-devbox",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	catalog, err := n.PreviewProjectExecutionTargets(project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if catalog.EffectiveDefaultTarget != "devbox" || len(catalog.Targets) != 2 {
+		t.Fatalf("unexpected bound catalog: %+v", catalog)
+	}
+	if catalog.Targets[0].Effective {
+		t.Fatal("local target must stop being effective when an explicit remote binding exists")
+	}
+	remote := catalog.Targets[1]
+	if !remote.Effective || !remote.Selectable || remote.ActivationStatus != "ACTIVE" {
+		t.Fatalf("active binding not reflected: %+v", remote)
+	}
+}
+
+func TestPreviewProjectExecutionTargetsReportsStaleBinding(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "1")
+
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte("version: 1\nexecution:\n  defaultTarget: local\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Stale", CanonicalPath: projectDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetProjectSetting(project.ID, managedExecutionTargetSettingKey, ManagedExecutionTargetBinding{
+		TargetID:      "removed-target",
+		ApprovalToken: "old-fingerprint",
+		MachineID:     "old-machine",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	catalog, err := n.PreviewProjectExecutionTargets(project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if catalog.EffectiveDefaultTarget != "removed-target" {
+		t.Fatalf("stale binding identity was hidden: %+v", catalog)
+	}
+	if len(catalog.Targets) != 2 {
+		t.Fatalf("expected local + stale binding row, got %+v", catalog.Targets)
+	}
+	stale := catalog.Targets[1]
+	if !stale.Effective || stale.Selectable || stale.ActivationStatus != "STALE_BINDING" {
+		t.Fatalf("stale binding must be visible and non-selectable: %+v", stale)
 	}
 }
