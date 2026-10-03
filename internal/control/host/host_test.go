@@ -15,6 +15,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/events"
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 func waitForHostEndpoint(t *testing.T, runtimeID string) {
@@ -343,6 +344,47 @@ func TestSessionHost_CmdInputNoDeadlock(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("DEADLOCK DETECTED: CmdInput hung for >2s due to reentrant mutex lock")
+	}
+}
+
+func TestSessionHostFinalInputBoundaryRecoalescesSplitCSI(t *testing.T) {
+	var out bytes.Buffer
+	sh := &SessionHost{
+		terminalInput: nexusruntime.NewTerminalInputScrubber(&out),
+	}
+
+	if _, err := sh.writeTerminalInput([]byte{0x1b}); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != "" {
+		t.Fatalf("partial ESC leaked before completion: %q", got)
+	}
+	if _, err := sh.writeTerminalInput([]byte{'['}); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != "" {
+		t.Fatalf("partial CSI leaked before completion: %q", got)
+	}
+	if _, err := sh.writeTerminalInput([]byte{'A'}); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != "\x1b[A" {
+		t.Fatalf("final PTY boundary failed to recoalesce arrow: %q", got)
+	}
+}
+
+func TestSessionHostFinalInputBoundaryDropsSplitTerminalMetadata(t *testing.T) {
+	var out bytes.Buffer
+	sh := &SessionHost{
+		terminalInput: nexusruntime.NewTerminalInputScrubber(&out),
+	}
+	for _, part := range [][]byte{{0x1b}, {'['}, {'<', '3', '5', ';'}, {'1', '0', ';', '2', '0', 'M'}} {
+		if _, err := sh.writeTerminalInput(part); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := out.String(); got != "" {
+		t.Fatalf("split SGR mouse metadata reached provider PTY: %q", got)
 	}
 }
 

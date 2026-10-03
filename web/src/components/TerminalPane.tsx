@@ -29,7 +29,11 @@ import {
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { getWebSocketEndpoint } from '../api';
-import { shouldForwardTerminalInput, stripEmbeddedTerminalMetadata } from '../nexus/terminalInput';
+import {
+  shouldForwardTerminalInput,
+  stripEmbeddedTerminalMetadata,
+  terminalTraceShape,
+} from '../nexus/terminalInput';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
 import { sendVoiceTranscriptToTerminal } from '../features/voice/terminalVoice';
 import styles from './TerminalPane.module.scss';
@@ -181,6 +185,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     term.open(containerRef.current);
 
     let disposed = false;
+    let terminalTraceEnabled = false;
     let sessionReady = false;
     // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
     const protocolScrubber = new ProtocolScrubber();
@@ -321,7 +326,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       if (disposed) return;
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === 'output' && msg.data) {
+        if (msg.type === 'trace_config') {
+          terminalTraceEnabled = msg.data === 'enabled';
+        } else if (msg.type === 'output' && msg.data) {
           const cleaned = protocolScrubber.scrub(String(msg.data));
           if (cleaned) {
             ingestOutput(cleaned);
@@ -375,10 +382,32 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       if (disposed) return;
       term.scrollToBottom();
       setIsScrolledUp(false);
+      if (ws.readyState === WebSocket.OPEN && terminalTraceEnabled) {
+        const trace = terminalTraceShape(data);
+        ws.send(
+          JSON.stringify({
+            type: 'trace',
+            stage: 'xterm.ondata',
+            size: trace.size,
+            data: trace.shape,
+          }),
+        );
+      }
       if (!shouldForwardTerminalInput(data)) return;
       const clean = stripEmbeddedTerminalMetadata(data);
       if (!clean) return;
       if (ws.readyState === WebSocket.OPEN) {
+        if (terminalTraceEnabled) {
+          const trace = terminalTraceShape(clean);
+          ws.send(
+            JSON.stringify({
+              type: 'trace',
+              stage: 'xterm.filtered',
+              size: trace.size,
+              data: trace.shape,
+            }),
+          );
+        }
         ws.send(JSON.stringify({ type: 'input', data: clean }));
       }
     });

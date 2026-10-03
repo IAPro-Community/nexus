@@ -20,6 +20,7 @@ do Nexus.
 | `NEXUS_ORQUESTRADOR_DIR` | não | descoberta padrão | local da integração Maestro opcional | `/opt/orquestrador` |
 | `NEXUS_CODEX_APP_SERVER` | não | comportamento normal do adapter | controla a consulta app-server do Codex; use apenas para diagnóstico | `NEXUS_CODEX_APP_SERVER=0` |
 | `NEXUS_DEBUG` / `NEXUS_AGY_DEBUG` | não | desativado | ativa logs de depuração | `NEXUS_DEBUG=1` |
+| `NEXUS_TERMINAL_TRACE` | não | desativado | grava diagnóstico JSONL sanitizado do caminho de bytes do terminal (xterm/WebSocket/scrubber/SessionHost/PTTY), sem texto bruto de prompt | `NEXUS_TERMINAL_TRACE=1` |
 | `NEXUS_UPDATE_REGISTRY_URL` | não | `https://github.com/IAPro-Community/nexus/releases/download/channel-stable/update-manifest.json` (ou `channel-beta`) | URL completa do manifesto assinado; sobrescreve o default GitHub | `https://updates.example.invalid/manifest.json` |
 | `NEXUS_RELEASE_REPO` | não | `IAPro-Community/nexus` | owner/name do GitHub usado por installers e pelos ponteiros `channel-*` de update | `NEXUS_RELEASE_REPO=acme/fork` |
 

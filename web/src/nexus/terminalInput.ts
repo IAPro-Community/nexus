@@ -72,3 +72,120 @@ export function stripEmbeddedTerminalMetadata(data: string): string {
     .replace(EMBEDDED_MOUSE_RE, '');
   return stripBareNavigationBurst(withoutMetadata);
 }
+
+/**
+ * Privacy-safe terminal byte signature for NEXUS_TERMINAL_TRACE.
+ * Ordinary printable content is masked; only control bytes and terminal
+ * syntax remain visible so CSI/SS3 fragmentation can be correlated.
+ */
+export function terminalTraceShape(data: string): { size: number; shape: string } {
+  const bytes = new TextEncoder().encode(data);
+  const limit = Math.min(bytes.length, 256);
+  let shape = '';
+  type TraceState = 'normal' | 'after-esc' | 'csi' | 'ss3' | 'osc' | 'osc-esc';
+  let state: TraceState = 'normal';
+
+  const appendMasked = (value: number) => {
+    if (value < 0x20 || value === 0x7f) {
+      shape += `<${value.toString(16).padStart(2, '0')}>`;
+    } else if (value >= 0x20 && value <= 0x7e) {
+      shape += '.';
+    } else {
+      shape += '*';
+    }
+  };
+
+  const looksLikeBareSequence = (index: number) => {
+    if (index + 1 >= limit || bytes[index] !== 0x5b) return false;
+    const next = bytes[index + 1]!;
+    if ((next >= 0x30 && next <= 0x39) || next === 0x3f || next === 0x3c || next === 0x5b) {
+      return true;
+    }
+    return [0x41, 0x42, 0x43, 0x44, 0x48, 0x46, 0x49, 0x4f, 0x52, 0x4d, 0x6d].includes(
+      next,
+    );
+  };
+
+  for (let index = 0; index < limit; index += 1) {
+    const value = bytes[index]!;
+
+    if (state === 'after-esc') {
+      if (value === 0x5b) {
+        shape += '[';
+        state = 'csi';
+      } else if (value === 0x4f) {
+        shape += 'O';
+        state = 'ss3';
+      } else if (value === 0x5d) {
+        shape += ']';
+        state = 'osc';
+      } else {
+        appendMasked(value);
+        state = 'normal';
+      }
+      continue;
+    }
+
+    if (state === 'csi') {
+      if (value >= 0x30 && value <= 0x39) {
+        shape += '#';
+      } else if (value >= 0x40 && value <= 0x7e) {
+        shape += String.fromCharCode(value);
+        state = 'normal';
+      } else if (value >= 0x20 && value <= 0x3f) {
+        shape += String.fromCharCode(value);
+      } else {
+        appendMasked(value);
+      }
+      continue;
+    }
+
+    if (state === 'ss3') {
+      if (value >= 0x20 && value <= 0x7e) {
+        shape += String.fromCharCode(value);
+      } else {
+        appendMasked(value);
+      }
+      state = 'normal';
+      continue;
+    }
+
+    if (state === 'osc') {
+      if (value === 0x07) {
+        shape += '<07>';
+        state = 'normal';
+      } else if (value === 0x1b) {
+        shape += '<1b>';
+        state = 'osc-esc';
+      } else {
+        appendMasked(value);
+      }
+      continue;
+    }
+
+    if (state === 'osc-esc') {
+      if (value === 0x5c) {
+        shape += '\\';
+        state = 'normal';
+      } else {
+        appendMasked(value);
+        state = 'osc';
+      }
+      continue;
+    }
+
+    if (value === 0x1b) {
+      shape += '<1b>';
+      state = 'after-esc';
+    } else if (value === 0x5b && looksLikeBareSequence(index)) {
+      shape += '[';
+      state = 'csi';
+    } else {
+      appendMasked(value);
+    }
+  }
+
+  if (bytes.length > limit) shape += '…';
+  return { size: bytes.length, shape };
+}
+

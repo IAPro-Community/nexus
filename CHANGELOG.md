@@ -57,6 +57,8 @@
 - Bumped the canonical `release/v1.0.0` source candidate after the Composer Interview Engine and subsequent beta hardening landed.
 - Beta.7 remains the same single Nexus 1.0 beta line for continued requirements; it does not create a parallel release branch.
 - Public distribution remains on the rolling beta channel and still requires exact-SHA certification before publication.
+- Terminal P0: SessionHost is now the final stateful input boundary, so raw IPC byte fragmentation cannot split CSI/SS3 again immediately before the provider PTY.
+- Diagnostics: `NEXUS_TERMINAL_TRACE=1` writes privacy-safe per-runtime JSONL stages for Web, CLI and SessionHost without persisting raw prompt text.
 
 ## 1.0.0-beta.6 — 2026-09-29 — Usage/Capacity V2 and single release line
 

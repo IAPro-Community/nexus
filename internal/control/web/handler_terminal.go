@@ -26,11 +26,13 @@ var upgrader = websocket.Upgrader{
 }
 
 type TerminalMessage struct {
-	Type string `json:"type"` // "output", "input", "resize", "lease", "promotion", "error"
-	Data string `json:"data,omitempty"`
-	Rows int    `json:"rows,omitempty"`
-	Cols int    `json:"cols,omitempty"`
-	Role string `json:"role,omitempty"` // lease: CONTROL/VIEW_ONLY; promotion: ASK/PROMOTED/FALLBACK/BLOCKED
+	Type  string `json:"type"` // "output", "input", "resize", "lease", "promotion", "trace", "error"
+	Data  string `json:"data,omitempty"`
+	Rows  int    `json:"rows,omitempty"`
+	Cols  int    `json:"cols,omitempty"`
+	Role  string `json:"role,omitempty"` // lease: CONTROL/VIEW_ONLY; promotion: ASK/PROMOTED/FALLBACK/BLOCKED
+	Stage string `json:"stage,omitempty"`
+	Size  int    `json:"size,omitempty"`
 }
 
 type TerminalHub struct {
@@ -162,6 +164,9 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		Type: "lease",
 		Role: effectiveRole,
 	})
+	if nexusruntime.TerminalTraceEnabled() {
+		_ = safeWriteJSON(TerminalMessage{Type: "trace_config", Data: "enabled"})
+	}
 
 	if ch := DefaultBroker().WatchRuntimeChanged(agentID); ch != nil {
 		go func() {
@@ -352,6 +357,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		}
 	}
 	inputStream := nexusruntime.NewTerminalInputScrubber(terminalInputCommandWriter(func(data []byte) (int, error) {
+		nexusruntime.TraceTerminalBytes(runtimeID, "web.scrubber.output", data)
 		inputMu.Lock()
 		defer inputMu.Unlock()
 		processTerminalInput(string(data))
@@ -448,6 +454,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			// always crosses the stateful coalescer before the provider PTY so
 			// split selector arrows cannot degrade into literal characters.
 			if broker.IsWriter(agentID, ws) && msg.Data != "" {
+				nexusruntime.TraceTerminalBytes(runtimeID, "web.websocket.input", []byte(msg.Data))
 				inputMu.Lock()
 				if pendingPromotion != "" {
 					answer := strings.TrimSpace(msg.Data)
@@ -462,6 +469,14 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				}
 				inputMu.Unlock()
 				_, _ = inputStream.Write([]byte(msg.Data))
+			}
+
+		case "trace":
+			if broker.IsWriter(agentID, ws) && nexusruntime.TerminalTraceEnabled() {
+				switch msg.Stage {
+				case "xterm.ondata", "xterm.filtered":
+					nexusruntime.TraceTerminalShape(runtimeID, "web."+msg.Stage, msg.Data, msg.Size)
+				}
 			}
 
 		case "resize":

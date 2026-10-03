@@ -568,7 +568,9 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 
 	rawConn := client.RawConn()
 	output := nexusruntime.NewTerminalOutputScrubber(os.Stdout)
-	inputStream := nexusruntime.NewTerminalInputScrubber(rawConn)
+	inputStream := nexusruntime.NewTerminalInputScrubber(
+		nexusruntime.NewTerminalTracingWriter(rawConn, runtimeID, "cli.scrubber.output"),
+	)
 	defer func() { _ = output.Flush() }()
 	defer func() { _ = inputStream.Flush() }()
 
@@ -604,7 +606,8 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 			errChan <- input(inputStream)
 			return
 		}
-		_, copyErr := io.Copy(inputStream, os.Stdin)
+		stdin := io.TeeReader(os.Stdin, nexusruntime.NewTerminalTracingWriter(nil, runtimeID, "cli.stdin"))
+		_, copyErr := io.Copy(inputStream, stdin)
 		errChan <- copyErr
 	}()
 
