@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -160,6 +161,102 @@ func (s *Store) UpdateProject(p Project) error {
 		p.MaestroMode, p.ResourcePolicy, p.DefaultIsolation, p.Settings,
 		p.UpdatedAt.Format(time.RFC3339Nano), p.DisplayPath, p.IdentityKind, p.IdentityKey, p.ID)
 	return err
+}
+
+// SetProjectSetting atomically updates one key in the Project settings JSON
+// without replacing unrelated settings written by another feature.
+func (s *Store) SetProjectSetting(projectID, key string, value any) error {
+	projectID = strings.TrimSpace(projectID)
+	key = strings.TrimSpace(key)
+	if projectID == "" || key == "" {
+		return errors.New("project id and setting key are required")
+	}
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("encode project setting %q: %w", key, err)
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var raw string
+	if err := tx.QueryRow(`SELECT settings FROM projects WHERE id=?`, projectID).Scan(&raw); err != nil {
+		if err == sql.ErrNoRows {
+			return ErrNotFound
+		}
+		return err
+	}
+	settings := map[string]json.RawMessage{}
+	if strings.TrimSpace(raw) != "" && strings.TrimSpace(raw) != "{}" {
+		if err := json.Unmarshal([]byte(raw), &settings); err != nil {
+			return fmt.Errorf("decode project settings: %w", err)
+		}
+	}
+	settings[key] = append(json.RawMessage(nil), encoded...)
+	next, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("encode project settings: %w", err)
+	}
+	result, err := tx.Exec(
+		`UPDATE projects SET settings=?, updated_at=? WHERE id=?`,
+		string(next),
+		time.Now().UTC().Format(time.RFC3339Nano),
+		projectID,
+	)
+	if err != nil {
+		return err
+	}
+	if affected, _ := result.RowsAffected(); affected != 1 {
+		return ErrNotFound
+	}
+	return tx.Commit()
+}
+
+// DeleteProjectSetting atomically removes one key while preserving unrelated settings.
+func (s *Store) DeleteProjectSetting(projectID, key string) error {
+	projectID = strings.TrimSpace(projectID)
+	key = strings.TrimSpace(key)
+	if projectID == "" || key == "" {
+		return errors.New("project id and setting key are required")
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var raw string
+	if err := tx.QueryRow(`SELECT settings FROM projects WHERE id=?`, projectID).Scan(&raw); err != nil {
+		if err == sql.ErrNoRows {
+			return ErrNotFound
+		}
+		return err
+	}
+	settings := map[string]json.RawMessage{}
+	if strings.TrimSpace(raw) != "" && strings.TrimSpace(raw) != "{}" {
+		if err := json.Unmarshal([]byte(raw), &settings); err != nil {
+			return fmt.Errorf("decode project settings: %w", err)
+		}
+	}
+	delete(settings, key)
+	next, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("encode project settings: %w", err)
+	}
+	_, err = tx.Exec(
+		`UPDATE projects SET settings=?, updated_at=? WHERE id=?`,
+		string(next),
+		time.Now().UTC().Format(time.RFC3339Nano),
+		projectID,
+	)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // TouchProject updates last_opened_at (used for MRU ordering).
