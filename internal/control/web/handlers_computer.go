@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/IAPro-Community/nexus/internal/control/computer"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -21,26 +23,35 @@ const computerScreenshotRetentionPerProject = 20
 
 type computerScreenshotManager struct {
 	mu        sync.Mutex
+	root      string
 	paths     map[string]map[string]string
 	order     map[string][]string
 }
 
 func newComputerScreenshotManager() *computerScreenshotManager {
+	root := ""
+	if dataDir, err := config.DataDir(); err == nil {
+		root = filepath.Join(dataDir, "computer-use")
+	}
 	return &computerScreenshotManager{
+		root:  root,
 		paths: make(map[string]map[string]string),
 		order: make(map[string][]string),
 	}
 }
 
-func (m *computerScreenshotManager) register(projectID, path string) string {
+func (m *computerScreenshotManager) register(projectID, path string) (string, error) {
 	projectID = strings.TrimSpace(projectID)
 	path = strings.TrimSpace(path)
 	if projectID == "" || path == "" {
-		return ""
+		return "", fmt.Errorf("computer screenshot project and path are required")
+	}
+	if err := m.validatePath(path); err != nil {
+		return "", err
 	}
 	ref := filepath.Base(path)
 	if ref == "" || ref == "." || ref != filepath.Base(ref) {
-		return ""
+		return "", fmt.Errorf("computer screenshot reference is invalid")
 	}
 
 	m.mu.Lock()
@@ -62,7 +73,44 @@ func (m *computerScreenshotManager) register(projectID, path string) string {
 			_ = os.Remove(oldPath)
 		}
 	}
-	return ref
+	return ref, nil
+}
+
+func (m *computerScreenshotManager) validatePath(path string) error {
+	if m == nil || strings.TrimSpace(m.root) == "" {
+		return fmt.Errorf("computer screenshot root is unavailable")
+	}
+	rootAbs, err := filepath.Abs(m.root)
+	if err != nil {
+		return fmt.Errorf("resolve computer screenshot root: %w", err)
+	}
+	pathAbs, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("resolve computer screenshot path: %w", err)
+	}
+	rootResolved := rootAbs
+	if resolved, resolveErr := filepath.EvalSymlinks(rootAbs); resolveErr == nil {
+		rootResolved = resolved
+	}
+	pathResolved, err := filepath.EvalSymlinks(pathAbs)
+	if err != nil {
+		return fmt.Errorf("resolve computer screenshot artifact: %w", err)
+	}
+	rel, err := filepath.Rel(rootResolved, pathResolved)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("computer screenshot is outside the Nexus artifact directory")
+	}
+	info, err := os.Stat(pathResolved)
+	if err != nil {
+		return fmt.Errorf("stat computer screenshot artifact: %w", err)
+	}
+	if !info.Mode().IsRegular() || info.Size() <= 0 || info.Size() > 32<<20 {
+		return fmt.Errorf("computer screenshot artifact is not a bounded regular file")
+	}
+	if !strings.EqualFold(filepath.Ext(pathResolved), ".png") {
+		return fmt.Errorf("computer screenshot artifact must be PNG")
+	}
+	return nil
 }
 
 func (m *computerScreenshotManager) path(projectID, ref string) (string, bool) {
@@ -99,13 +147,20 @@ type computerActionResponse struct {
 	Verification computer.ActionVerification   `json:"verification"`
 }
 
-func (h *NexusHandler) computerSnapshotResponse(projectID string, snapshot computer.Snapshot) computerSnapshotResponse {
+func (h *NexusHandler) computerSnapshotResponse(projectID string, snapshot computer.Snapshot) (computerSnapshotResponse, error) {
 	ref := ""
-	if h.computerScreenshots != nil && strings.TrimSpace(snapshot.Screenshot) != "" {
-		ref = h.computerScreenshots.register(projectID, snapshot.Screenshot)
+	if strings.TrimSpace(snapshot.Screenshot) != "" {
+		if h.computerScreenshots == nil {
+			return computerSnapshotResponse{}, fmt.Errorf("computer screenshot manager is unavailable")
+		}
+		var err error
+		ref, err = h.computerScreenshots.register(projectID, snapshot.Screenshot)
+		if err != nil {
+			return computerSnapshotResponse{}, err
+		}
 	}
 	snapshot.Screenshot = ""
-	return computerSnapshotResponse{Snapshot: snapshot, ScreenshotRef: ref}
+	return computerSnapshotResponse{Snapshot: snapshot, ScreenshotRef: ref}, nil
 }
 
 func (h *NexusHandler) handleProjectComputerStatus(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +288,12 @@ func (h *NexusHandler) handleProjectComputerSnapshot(w http.ResponseWriter, r *h
 		writeError(w, http.StatusConflict, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, h.computerSnapshotResponse(projectID, *snapshot))
+	response, err := h.computerSnapshotResponse(projectID, *snapshot)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 func (h *NexusHandler) handleProjectComputerAction(w http.ResponseWriter, r *http.Request) {
@@ -267,8 +327,13 @@ func (h *NexusHandler) handleProjectComputerAction(w http.ResponseWriter, r *htt
 		writeError(w, http.StatusConflict, err.Error())
 		return
 	}
+	responseSnapshot, err := h.computerSnapshotResponse(projectID, result.Snapshot)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	writeJSON(w, http.StatusOK, computerActionResponse{
-		Snapshot:     h.computerSnapshotResponse(projectID, result.Snapshot),
+		Snapshot:     responseSnapshot,
 		Verification: result.Verification,
 	})
 }
