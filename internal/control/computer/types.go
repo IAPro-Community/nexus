@@ -106,6 +106,8 @@ type ActionRequest struct {
 	Y           *int       `json:"y,omitempty"`
 	ToX         *int       `json:"to_x,omitempty"`
 	ToY         *int       `json:"to_y,omitempty"`
+	Width       *int       `json:"width,omitempty"`
+	Height      *int       `json:"height,omitempty"`
 	Text        string     `json:"text,omitempty"`
 	Key         string     `json:"key,omitempty"`
 	Direction   string     `json:"direction,omitempty"`
