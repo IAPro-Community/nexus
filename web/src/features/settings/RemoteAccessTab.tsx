@@ -1,20 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Globe, RefreshCw, Smartphone, Wifi, WifiOff } from 'lucide-react';
+import { Globe, RefreshCw, Server, Smartphone, Wifi, WifiOff } from 'lucide-react';
 import QRCode from 'react-qr-code';
-import { Button, Card, InlineAlert } from '../../design-system';
+import { Badge, Button, Card, InlineAlert } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import type { TunnelStatus } from '../../types';
+import type { ProjectExecutionTargetCatalog, TunnelStatus } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { asArray } from '../../lib/safeArray';
 import styles from './SettingsSurface.module.scss';
 
-export const RemoteAccessTab: React.FC = () => {
+export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId }) => {
   const { t } = useTranslation();
   const [status, setStatus] = useState<TunnelStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<{ url: string; bootstrap_url: string } | null>(null);
+  const [targetCatalog, setTargetCatalog] = useState<ProjectExecutionTargetCatalog | null>(null);
+  const [targetLoading, setTargetLoading] = useState(false);
+  const [targetError, setTargetError] = useState('');
 
   const refresh = useCallback(async () => {
     try {
@@ -32,6 +35,34 @@ export const RemoteAccessTab: React.FC = () => {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  const refreshTargets = useCallback(async () => {
+    if (!projectId) {
+      setTargetCatalog(null);
+      setTargetError('');
+      return;
+    }
+    try {
+      setTargetLoading(true);
+      setTargetError('');
+      setTargetCatalog(await nexus.getProjectExecutionTargets(projectId));
+    } catch (e) {
+      setTargetCatalog(null);
+      setTargetError(
+        e instanceof Error
+          ? e.message
+          : t('settings.remote.targets.errors.load', {
+              defaultValue: 'Could not load project execution targets.',
+            }),
+      );
+    } finally {
+      setTargetLoading(false);
+    }
+  }, [projectId, t]);
+
+  useEffect(() => {
+    void refreshTargets();
+  }, [refreshTargets]);
 
   const handleStart = useCallback(async () => {
     try {
@@ -143,6 +174,108 @@ export const RemoteAccessTab: React.FC = () => {
           </p>
         )}
       </Card>
+
+      {projectId && (
+        <Card className={`nx-settings-card ${styles.gridFullWidth}`}>
+          <div className="nx-settings-card__title">
+            <Server size={17} />
+            <div>
+              <strong>
+                {t('settings.remote.targets.title', { defaultValue: 'Execution targets' })}
+              </strong>
+              <small>
+                {t('settings.remote.targets.description', {
+                  defaultValue: 'Read-only preview for the active Project.',
+                })}
+              </small>
+            </div>
+          </div>
+
+          {targetError && <InlineAlert tone="danger">{targetError}</InlineAlert>}
+
+          <div className={styles.executionTargetSummary}>
+            <div>
+              <span>{t('settings.remote.targets.declared', { defaultValue: 'Declared default' })}</span>
+              <strong>{targetCatalog?.declared_default_target || 'local'}</strong>
+            </div>
+            <div>
+              <span>{t('settings.remote.targets.effective', { defaultValue: 'Effective target' })}</span>
+              <strong>{targetCatalog?.effective_default_target || 'local'}</strong>
+            </div>
+            <Badge tone={targetCatalog?.remote_execution_enabled ? 'info' : 'default'}>
+              {targetCatalog?.remote_execution_enabled
+                ? t('settings.remote.targets.flagEnabled', { defaultValue: 'remote_execution enabled' })
+                : t('settings.remote.targets.flagDisabled', { defaultValue: 'remote_execution disabled' })}
+            </Badge>
+            <Button tone="ghost" onClick={refreshTargets} disabled={targetLoading}>
+              <RefreshCw size={14} />
+              {t('common.refresh')}
+            </Button>
+          </div>
+
+          {targetLoading && !targetCatalog ? (
+            <p className={`nx-muted-copy ${styles.mutedTextSmall}`}>
+              {t('common.loading')}
+            </p>
+          ) : (
+            <div className={styles.executionTargetList}>
+              {(targetCatalog?.targets || []).map((target) => (
+                <div key={target.id} className={styles.executionTargetRow}>
+                  <div className={styles.executionTargetHeader}>
+                    <div>
+                      <strong>{target.id}</strong>
+                      <span>{target.kind} · {target.location}</span>
+                    </div>
+                    <div className={styles.executionTargetBadges}>
+                      {target.declared_default && (
+                        <Badge tone="brand">
+                          {t('settings.remote.targets.default', { defaultValue: 'declared default' })}
+                        </Badge>
+                      )}
+                      {target.effective && (
+                        <Badge tone="success">
+                          {t('settings.remote.targets.active', { defaultValue: 'effective' })}
+                        </Badge>
+                      )}
+                      <Badge
+                        tone={
+                          target.activation_status === 'READY'
+                            ? 'success'
+                            : target.activation_status === 'FEATURE_DISABLED'
+                              ? 'default'
+                              : 'info'
+                        }
+                      >
+                        {target.activation_status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className={styles.executionTargetMeta}>
+                    <code>{target.workspace}</code>
+                    <span>{target.transport}</span>
+                    {target.machine_id && <span>{target.machine_id}</span>}
+                  </div>
+                  {target.reason && (
+                    <p className={`nx-muted-copy ${styles.executionTargetReason}`}>
+                      {target.reason}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {targetCatalog &&
+            targetCatalog.declared_default_target !== targetCatalog.effective_default_target && (
+              <InlineAlert tone="info">
+                {t('settings.remote.targets.previewOnly', {
+                  defaultValue:
+                    'The repository declares a remote default, but Nexus keeps execution local until a managed remote runtime and explicit approval boundary are available.',
+                })}
+              </InlineAlert>
+            )}
+        </Card>
+      )}
 
       {/* QR Code Card */}
       {showQR && qrData && (
