@@ -393,6 +393,9 @@ export const nexus = {
       },
     ),
 
+  projectComputerScreenshotURL: (projectId: string, ref: string) =>
+    `/api/v1/projects/${encodeURIComponent(projectId)}/computer/screenshot/${encodeURIComponent(ref)}`,
+
   getProjectExecutionTargets: (projectId: string) =>
     request<import('../types').ProjectExecutionTargetCatalog>(
       `/api/v1/projects/${projectId}/execution-targets`,
