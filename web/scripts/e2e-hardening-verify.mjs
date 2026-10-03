@@ -519,14 +519,28 @@ async function main() {
       'aria-expanded must be boolean string',
     );
 
-    // Validação dos Radios com Swatches
-    const themeRadio = page.locator('div[role="radio"]').first();
+    // Validação dos Radios com Swatches e navegação compartilhada do ChoiceGroup
+    const themeRadio = page.locator('button[role="radio"]').first();
     await themeRadio.waitFor({ state: 'visible', timeout: 5000 });
     assert.equal(await themeRadio.isVisible(), true, 'Theme radio must be visible');
     const hasSwatches = await themeRadio
       .locator('.nx-theme-palette, span[title^="Fundo:"]')
       .count();
     assert.ok(hasSwatches > 0, 'Theme radio must display color palette swatches');
+
+    await themeRadio.focus();
+    await page.keyboard.press('ArrowRight');
+    assert.equal(
+      await page.evaluate(() => document.activeElement?.getAttribute('role')),
+      'radio',
+      'arrow navigation must keep focus inside the theme choice group',
+    );
+    assert.equal(
+      await page.evaluate(() => document.activeElement?.getAttribute('aria-checked')),
+      'true',
+      'arrow navigation must select the focused theme option',
+    );
+    await page.keyboard.press('ArrowLeft');
 
     // Validação Quantitativa de Densidade (Compact vs Comfortable)
     const card = page.locator('.nx-settings-card').first();
