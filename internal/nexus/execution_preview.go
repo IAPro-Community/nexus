@@ -164,6 +164,13 @@ func (n *Nexus) previewPlanExecutionWithContract(ctx context.Context, st *store.
 		for _, pkg := range phase.Packages {
 			step := n.previewWorkPackageExecution(st, project, phase.ID, pkg, agents, accounts, resourceErr, contract, autonomous)
 			preview.Steps = append(preview.Steps, step)
+			if step.CandidateExecution.CandidateCount > 1 {
+				preview.Warnings = append(preview.Warnings, fmt.Sprintf(
+					"%s: Candidate Run will dispatch %d independent implementation turns before APPLY selection; current Cost Intelligence is historical and does not predict this incremental spend",
+					firstNonEmpty(pkg.Title, pkg.ID),
+					step.CandidateExecution.CandidateCount,
+				))
+			}
 			if !step.Ready {
 				preview.Ready = false
 				for _, blocker := range step.Blockers {
