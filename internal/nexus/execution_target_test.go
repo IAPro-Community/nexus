@@ -55,7 +55,7 @@ func TestResolveExecutionTargetIDIsStable(t *testing.T) {
 
 
 func TestPreviewProjectExecutionTargetsDefaultsToLocal(t *testing.T) {
-	n := newIsolatedNexus(t)
+	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {
 		t.Fatal(err)
@@ -82,7 +82,7 @@ func TestPreviewProjectExecutionTargetsKeepsSSHNonEffective(t *testing.T) {
 	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "")
 	t.Setenv("NEXUS_DISABLE_REMOTE_EXECUTION", "")
 
-	n := newIsolatedNexus(t)
+	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {
 		t.Fatal(err)
@@ -129,7 +129,7 @@ execution:
 func TestPreviewProjectExecutionTargetsFeatureFlagStillDoesNotActivateSSH(t *testing.T) {
 	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "1")
 
-	n := newIsolatedNexus(t)
+	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {
 		t.Fatal(err)
