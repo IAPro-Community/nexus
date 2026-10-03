@@ -7,6 +7,7 @@ import {
   resolveThemeStyleVariables,
   themeStorageKey,
   type ThemePreferences,
+  type ThemePresetKey,
 } from './theme';
 import { THEME_PRESETS } from './themePresets';
 
@@ -211,6 +212,47 @@ describe('WCAG AA contrast automation for every registered preset', () => {
         accentOnSurface,
         `Preset ${id} accent/surface contrast must be >= 3.0:1`,
       ).toBeGreaterThanOrEqual(3.0);
+    }
+  });
+
+  it('derives readable text for accent-filled controls in every preset', () => {
+    for (const [id, def] of Object.entries(THEME_PRESETS)) {
+      const vars = resolveThemeStyleVariables(
+        {
+          ...defaultThemePreferences,
+          preset: id as ThemePresetKey,
+          scheme: def.scheme,
+          isCustomized: false,
+        },
+        def.scheme,
+      );
+
+      expect(
+        contrastRatio(vars['--nx-accent'], vars['--nx-accent-contrast']),
+        `Preset ${id} accent/control text contrast must be >= 4.5:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('keeps custom accent overrides readable in dark and light schemes', () => {
+    for (const scheme of ['dark', 'light'] as const) {
+      for (const accent of ['purple', 'blue', 'cyan', 'neutral'] as const) {
+        const vars = resolveThemeStyleVariables(
+          {
+            ...defaultThemePreferences,
+            preset: 'nexus-dark',
+            scheme,
+            accent,
+            isCustomized: true,
+          },
+          scheme,
+        );
+
+        expect(
+          contrastRatio(vars['--nx-accent'], vars['--nx-accent-contrast']),
+          `${scheme}/${accent} accent/control text contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
     }
   });
 });
