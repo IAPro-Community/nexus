@@ -10,10 +10,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"unicode/utf16"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/executil"
 )
@@ -109,6 +111,9 @@ func runNativeHelper(in io.Reader, out io.Writer) error {
 		encoded,
 	)
 	executil.HideConsoleWindow(cmd)
+	if dataDir, dataErr := config.DataDir(); dataErr == nil && strings.TrimSpace(dataDir) != "" {
+		cmd.Env = append(os.Environ(), "AI_CLI_DATA_DIR="+dataDir)
+	}
 	cmd.Stdin = bytes.NewReader(raw)
 	stdout := &boundedCapture{remaining: maxNativeHelperResponseBytes}
 	stderr := &boundedCapture{remaining: maxNativeHelperStderrBytes}
