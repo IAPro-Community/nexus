@@ -36,6 +36,10 @@ type Launcher interface {
 	Stop(runtimeID string) error
 }
 
+type runtimeProxy interface {
+	Close() error
+}
+
 // prodLauncher wraps the real launcher.Launcher to satisfy the Launcher interface.
 type prodLauncher struct {
 	l *launcher.Launcher
@@ -72,6 +76,8 @@ type Nexus struct {
 	attentionCenter            *runner.AttentionCenter
 	projectIntelligenceMu      sync.Mutex
 	projectIntelligenceRunning map[string]bool
+	remoteProxiesMu            sync.Mutex
+	remoteProxies              map[string]runtimeProxy
 	entitlementService         entitlement.Service
 	entitlementSubjectID       string
 
@@ -182,6 +188,7 @@ func Default() *Nexus {
 			st: st, launcher: &prodLauncher{l: launcher.Default()}, drivers: driver.DefaultRegistry(),
 			runtimeReg: registry.DefaultRegistry(), workers: map[string]*missionWorker{},
 			projectIntelligenceRunning: map[string]bool{},
+			remoteProxies:              map[string]runtimeProxy{},
 			entitlementService:         entitlement.StaticService{Grants: entitlement.BetaGrants()},
 		}
 		defaultNexus.quotaMonitor = NewQuotaMonitorService(DefaultQuotaDropMonitor(), events.DefaultBus())
@@ -264,6 +271,35 @@ func (n *Nexus) RequireCapability(ctx context.Context, capability entitlement.Ca
 		return fmt.Errorf("capability %s is not granted", capability)
 	}
 	return nil
+}
+
+func (n *Nexus) registerRemoteProxy(runtimeID string, proxy runtimeProxy) error {
+	runtimeID = strings.TrimSpace(runtimeID)
+	if runtimeID == "" || proxy == nil {
+		return fmt.Errorf("remote runtime proxy requires runtime id and proxy")
+	}
+	n.remoteProxiesMu.Lock()
+	defer n.remoteProxiesMu.Unlock()
+	if n.remoteProxies == nil {
+		n.remoteProxies = map[string]runtimeProxy{}
+	}
+	if existing := n.remoteProxies[runtimeID]; existing != nil && existing != proxy {
+		return fmt.Errorf("remote runtime proxy %q is already registered", runtimeID)
+	}
+	n.remoteProxies[runtimeID] = proxy
+	return nil
+}
+
+func (n *Nexus) closeRemoteProxy(runtimeID string) error {
+	runtimeID = strings.TrimSpace(runtimeID)
+	n.remoteProxiesMu.Lock()
+	proxy := n.remoteProxies[runtimeID]
+	delete(n.remoteProxies, runtimeID)
+	n.remoteProxiesMu.Unlock()
+	if proxy == nil {
+		return nil
+	}
+	return proxy.Close()
 }
 
 func (n *Nexus) runtimeRegistry() *registry.Registry {
@@ -359,6 +395,20 @@ func (n *Nexus) Shutdown() {
 	n.workersMu.Unlock()
 	for _, w := range workers {
 		w.cancel()
+	}
+
+	// Close managed remote-runtime proxies before the store. Each proxy owns
+	// persistent SSH control transport plus the local IPC endpoint advertised
+	// in the runtime registry.
+	n.remoteProxiesMu.Lock()
+	proxies := make([]runtimeProxy, 0, len(n.remoteProxies))
+	for _, proxy := range n.remoteProxies {
+		proxies = append(proxies, proxy)
+	}
+	n.remoteProxies = map[string]runtimeProxy{}
+	n.remoteProxiesMu.Unlock()
+	for _, proxy := range proxies {
+		_ = proxy.Close()
 	}
 
 	// Close the SQLite store last, after all goroutines that reference it
