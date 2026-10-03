@@ -98,6 +98,11 @@ describe('stripEmbeddedTerminalMetadata', () => {
 });
 
 describe('terminalTraceShape', () => {
+  it('does not leak uppercase words that resemble ANSI finals', () => {
+    const traced = terminalTraceShape('ARM COMMAND MARCH');
+    expect(traced.shape).not.toMatch(/[A-Z]/);
+  });
+
   it('masks ordinary text while preserving control-sequence structure', () => {
     const traced = terminalTraceShape('secret\x1b[A123\r\x03');
     expect(traced.size).toBe(new TextEncoder().encode('secret\x1b[A123\r\x03').length);
