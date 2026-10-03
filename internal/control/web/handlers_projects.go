@@ -266,8 +266,8 @@ func (h *NexusHandler) handleProjectLayout(w http.ResponseWriter, r *http.Reques
 
 
 // handleProjectExecutionTargets GET /api/v1/projects/{id}/execution-targets
-// exposes a sanitized read-only preview. It never returns command templates,
-// credentials, or an activation capability.
+// exposes a sanitized read-only preview. It never returns command templates or
+// credentials. Activation is a separate explicit POST bound to a fresh probe.
 func (h *NexusHandler) handleProjectExecutionTargets(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -360,7 +360,11 @@ func (h *NexusHandler) handleProjectExecutionTargetActivate(w http.ResponseWrite
 	)
 	switch {
 	case err == nil:
-		writeJSON(w, http.StatusOK, binding)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"target_id":    binding.TargetID,
+			"machine_id":   binding.MachineID,
+			"activated_at": binding.ActivatedAt,
+		})
 	case errors.Is(err, store.ErrNotFound):
 		writeError(w, http.StatusNotFound, "project execution target not found")
 	case errors.Is(err, nexus.ErrManagedRemoteExecutionDisabled),
