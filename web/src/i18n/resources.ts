@@ -1236,6 +1236,9 @@ export const en = {
     dynamicCoordination_one: '{{count}} dynamic coordination request',
     dynamicCoordination_other: '{{count}} dynamic coordination requests',
     dynamicWorkFrom: 'Dynamic work requested from {{parent}}',
+    candidateStatus: 'Candidate {{index}} · {{status}}',
+    candidateWinner: 'Candidate {{strategy}} · winner {{winner}}',
+    candidateDecision: 'Candidate decision',
     coordinationLineage: '{{source}} → {{child}}',
     coordinationPendingMaterialization: 'Requested by {{source}} · waiting for materialization',
     coordinationStatus: {
@@ -3255,6 +3258,9 @@ export const ptBR = {
     dynamicCoordination_one: '{{count}} coordenação dinâmica',
     dynamicCoordination_other: '{{count}} coordenações dinâmicas',
     dynamicWorkFrom: 'Trabalho dinâmico solicitado a partir de {{parent}}',
+    candidateStatus: 'Candidato {{index}} · {{status}}',
+    candidateWinner: 'Candidatos {{strategy}} · vencedor {{winner}}',
+    candidateDecision: 'Decisão dos candidatos',
     coordinationLineage: '{{source}} → {{child}}',
     coordinationPendingMaterialization: 'Solicitado por {{source}} · aguardando materialização',
     coordinationStatus: {
@@ -5282,6 +5288,9 @@ export const es = {
     dynamicCoordination_one: '{{count}} coordinación dinámica',
     dynamicCoordination_other: '{{count}} coordinaciones dinámicas',
     dynamicWorkFrom: 'Trabajo dinámico solicitado desde {{parent}}',
+    candidateStatus: 'Candidato {{index}} · {{status}}',
+    candidateWinner: 'Candidatos {{strategy}} · ganador {{winner}}',
+    candidateDecision: 'Decisión de candidatos',
     coordinationLineage: '{{source}} → {{child}}',
     coordinationPendingMaterialization: 'Solicitado por {{source}} · esperando materialización',
     coordinationStatus: {
