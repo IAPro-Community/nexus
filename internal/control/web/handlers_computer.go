@@ -139,6 +139,69 @@ func (h *NexusHandler) handleProjectComputerStatus(w http.ResponseWriter, r *htt
 	writeJSON(w, http.StatusOK, status)
 }
 
+func (h *NexusHandler) handleProjectComputerApps(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project id")
+		return
+	}
+	if err := h.requireComputerProject(projectID); err != nil {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+	var body struct {
+		Contract runner.AutonomyContract `json:"contract"`
+	}
+	decoder := json.NewDecoder(io.LimitReader(r.Body, computerUseRequestBodyLimit))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid computer apps body")
+		return
+	}
+	apps, err := h.nexus.ComputerListApps(r.Context(), body.Contract)
+	if err != nil {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"apps": apps})
+}
+
+func (h *NexusHandler) handleProjectComputerWindows(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project id")
+		return
+	}
+	if err := h.requireComputerProject(projectID); err != nil {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+	var body struct {
+		Contract runner.AutonomyContract `json:"contract"`
+		App      string                  `json:"app"`
+	}
+	decoder := json.NewDecoder(io.LimitReader(r.Body, computerUseRequestBodyLimit))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&body); err != nil || strings.TrimSpace(body.App) == "" {
+		writeError(w, http.StatusBadRequest, "app is required")
+		return
+	}
+	windows, err := h.nexus.ComputerListWindows(r.Context(), body.Contract, body.App)
+	if err != nil {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"windows": windows})
+}
+
 func (h *NexusHandler) handleProjectComputerSnapshot(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
