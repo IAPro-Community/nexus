@@ -77,7 +77,7 @@ func StartDesignBrowser(ctx context.Context, rawURL string) (*DesignBrowser, err
 	}
 	_ = os.Chmod(profileDir, 0o700)
 
-	cmd := exec.CommandContext(ctx, binary,
+	cmd := exec.Command(binary,
 		"--remote-debugging-address=127.0.0.1",
 		"--remote-debugging-port=0",
 		"--no-first-run",
@@ -166,6 +166,7 @@ func validateDesignURL(raw string) error {
 
 func (b *DesignBrowser) attachPage(ctx context.Context, wantedURL string) error {
 	deadline := time.Now().Add(10 * time.Second)
+	wanted, _ := url.Parse(wantedURL)
 	for {
 		var targets struct {
 			TargetInfos []struct {
@@ -177,18 +178,30 @@ func (b *DesignBrowser) attachPage(ctx context.Context, wantedURL string) error 
 		if err := b.client.call(ctx, "", "Target.getTargets", map[string]any{}, &targets); err != nil {
 			return err
 		}
+		selected := ""
+		fallback := ""
 		for _, target := range targets.TargetInfos {
-			if target.Type != "page" {
+			if target.Type != "page" || strings.HasPrefix(target.URL, "chrome://") {
 				continue
 			}
-			if target.URL != wantedURL && len(targets.TargetInfos) > 1 {
-				continue
+			if fallback == "" {
+				fallback = target.TargetID
 			}
+			parsed, _ := url.Parse(target.URL)
+			if wanted != nil && parsed != nil && strings.EqualFold(parsed.Host, wanted.Host) {
+				selected = target.TargetID
+				break
+			}
+		}
+		if selected == "" {
+			selected = fallback
+		}
+		if selected != "" {
 			var attached struct {
 				SessionID string `json:"sessionId"`
 			}
 			if err := b.client.call(ctx, "", "Target.attachToTarget", map[string]any{
-				"targetId": target.TargetID,
+				"targetId": selected,
 				"flatten":  true,
 			}, &attached); err != nil {
 				return err
@@ -228,6 +241,137 @@ func (b *DesignBrowser) waitDocumentReady(ctx context.Context) error {
 		case <-time.After(100 * time.Millisecond):
 		}
 	}
+}
+
+
+type DesignPickerStatus struct {
+	Active    bool   `json:"active"`
+	Selector  string `json:"selector,omitempty"`
+	Cancelled bool   `json:"cancelled,omitempty"`
+}
+
+func (b *DesignBrowser) BeginElementPicker(ctx context.Context) (*DesignPickerStatus, error) {
+	expression := `(() => {
+  const previous = window.__nexusDesignPicker;
+  if (previous && typeof previous.cleanup === 'function') previous.cleanup(true);
+  const state = { selector: '', cancelled: false, active: true };
+  const overlay = document.createElement('div');
+  overlay.setAttribute('data-nexus-design-picker', 'true');
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    pointerEvents: 'none',
+    zIndex: '2147483647',
+    border: '2px solid #38bdf8',
+    background: 'rgba(56,189,248,0.12)',
+    display: 'none',
+    boxSizing: 'border-box'
+  });
+  (document.documentElement || document.body).appendChild(overlay);
+
+  const selectorFor = (node) => {
+    if (!(node instanceof Element)) return '';
+    if (node.id) return '#' + CSS.escape(node.id);
+    const parts = [];
+    let current = node;
+    while (current && current.nodeType === 1 && parts.length < 7) {
+      let part = current.tagName.toLowerCase();
+      const testid = current.getAttribute('data-testid');
+      if (testid) {
+        parts.unshift('[data-testid="' + CSS.escape(testid) + '"]');
+        break;
+      }
+      const parent = current.parentElement;
+      if (parent) {
+        const peers = Array.from(parent.children).filter((child) => child.tagName === current.tagName);
+        if (peers.length > 1) part += ':nth-of-type(' + (peers.indexOf(current) + 1) + ')';
+      }
+      parts.unshift(part);
+      current = parent;
+    }
+    return parts.join(' > ');
+  };
+
+  const onMove = (event) => {
+    const target = event.target;
+    if (!(target instanceof Element) || target === overlay) return;
+    const rect = target.getBoundingClientRect();
+    Object.assign(overlay.style, {
+      display: 'block',
+      left: rect.left + 'px',
+      top: rect.top + 'px',
+      width: rect.width + 'px',
+      height: rect.height + 'px'
+    });
+  };
+  const cleanup = (removeState) => {
+    document.removeEventListener('mousemove', onMove, true);
+    document.removeEventListener('click', onClick, true);
+    document.removeEventListener('keydown', onKey, true);
+    overlay.remove();
+    state.active = false;
+    if (removeState) delete window.__nexusDesignPicker;
+  };
+  const onClick = (event) => {
+    if (!(event.target instanceof Element) || event.target === overlay) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    state.selector = selectorFor(event.target);
+    cleanup(false);
+  };
+  const onKey = (event) => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    state.cancelled = true;
+    cleanup(false);
+  };
+  state.cleanup = cleanup;
+  window.__nexusDesignPicker = state;
+  document.addEventListener('mousemove', onMove, true);
+  document.addEventListener('click', onClick, true);
+  document.addEventListener('keydown', onKey, true);
+  return JSON.stringify({active:true});
+})()`
+	var serialized string
+	if err := b.evaluateString(ctx, expression, &serialized); err != nil {
+		return nil, err
+	}
+	var status DesignPickerStatus
+	if err := json.Unmarshal([]byte(serialized), &status); err != nil {
+		return nil, fmt.Errorf("decode Design Mode picker start: %w", err)
+	}
+	return &status, nil
+}
+
+func (b *DesignBrowser) PickerStatus(ctx context.Context) (*DesignPickerStatus, error) {
+	expression := `(() => {
+  const state = window.__nexusDesignPicker;
+  if (!state) return JSON.stringify({active:false});
+  return JSON.stringify({
+    active: Boolean(state.active),
+    selector: String(state.selector || ''),
+    cancelled: Boolean(state.cancelled)
+  });
+})()`
+	var serialized string
+	if err := b.evaluateString(ctx, expression, &serialized); err != nil {
+		return nil, err
+	}
+	var status DesignPickerStatus
+	if err := json.Unmarshal([]byte(serialized), &status); err != nil {
+		return nil, fmt.Errorf("decode Design Mode picker status: %w", err)
+	}
+	return &status, nil
+}
+
+func (b *DesignBrowser) ClearPicker(ctx context.Context) error {
+	var ignored string
+	return b.evaluateString(ctx, `(() => {
+  const state = window.__nexusDesignPicker;
+  if (state && typeof state.cleanup === 'function') state.cleanup(true);
+  delete window.__nexusDesignPicker;
+  return 'ok';
+})()`, &ignored)
 }
 
 type designElementSnapshot struct {
@@ -351,6 +495,7 @@ func (b *DesignBrowser) captureElementScreenshot(ctx context.Context, selector s
 	if err := b.client.call(ctx, b.sessionID, "Page.captureScreenshot", map[string]any{
 		"format":      "png",
 		"fromSurface": true,
+		"captureBeyondViewport": true,
 		"clip": map[string]any{
 			"x": bounds.X, "y": bounds.Y, "width": width, "height": height, "scale": 1,
 		},
