@@ -161,6 +161,9 @@ func validateDesignURL(raw string) error {
 	if parsed.Host == "" {
 		return fmt.Errorf("Design Mode URL requires a host")
 	}
+	if parsed.User != nil {
+		return fmt.Errorf("Design Mode URL must not contain embedded credentials")
+	}
 	return nil
 }
 
