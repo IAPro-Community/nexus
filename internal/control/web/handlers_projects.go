@@ -263,6 +263,31 @@ func (h *NexusHandler) handleProjectLayout(w http.ResponseWriter, r *http.Reques
 }
 
 
+// handleProjectExecutionTargets GET /api/v1/projects/{id}/execution-targets
+// exposes a sanitized read-only preview. It never returns command templates,
+// credentials, or an activation capability.
+func (h *NexusHandler) handleProjectExecutionTargets(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project id")
+		return
+	}
+	catalog, err := h.nexus.PreviewProjectExecutionTargets(projectID)
+	if errors.Is(err, store.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, catalog)
+}
+
 // handleProjectCommands GET /api/v1/projects/{id}/commands exposes only the
 // validated command catalog from nexus.yaml. It never executes shell text.
 func (h *NexusHandler) handleProjectCommands(w http.ResponseWriter, r *http.Request) {
