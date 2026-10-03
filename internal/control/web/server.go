@@ -250,6 +250,10 @@ func projectSubroute(path string) string {
 		return "commands"
 	case strings.HasSuffix(path, "/computer/status"):
 		return "computer-status"
+	case strings.HasSuffix(path, "/computer/apps"):
+		return "computer-apps"
+	case strings.HasSuffix(path, "/computer/windows"):
+		return "computer-windows"
 	case strings.HasSuffix(path, "/computer/snapshot"):
 		return "computer-snapshot"
 	case strings.Contains(path, "/computer/screenshot/"):
