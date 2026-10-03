@@ -238,3 +238,105 @@ func TestComputerActPropagatesProviderFailureWithoutMutationEvidence(t *testing.
 }
 
 func intPtr(value int) *int { return &value }
+
+
+func TestComputerActTypeTextRequiresSafeTargetAndBoundedText(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_COMPUTER_USE", "1")
+	provider := availableComputerProvider()
+	provider.capabilities.TypeText = true
+	provider.snapshot = computer.Snapshot{
+		ID: "before",
+		Elements: []computer.Element{
+			{ID: "editor-box", Index: 1, Role: "Edit", Name: "Editor"},
+		},
+		CapturedAt: time.Now().UTC(),
+	}
+	provider.action = computer.ActionResult{
+		Snapshot: computer.Snapshot{ID: "after", CapturedAt: time.Now().UTC()},
+		Verification: computer.ActionVerification{State: "OBSERVED"},
+	}
+	withFakeComputerProvider(t, provider)
+
+	n := &Nexus{}
+	_, err := n.ComputerAct(context.Background(), runner.AutonomyContract{
+		AllowComputerUse:   true,
+		AllowKeyboardInput: true,
+	}, computer.ActionRequest{
+		Kind:      computer.ActionTypeText,
+		App:       "editor",
+		ElementID: "editor-box",
+		Text:      "hello",
+	})
+	if err != nil {
+		t.Fatalf("safe TYPE_TEXT rejected: %v", err)
+	}
+	if provider.snapshotCalls != 1 || provider.actionCalls != 1 {
+		t.Fatalf("TYPE_TEXT preflight/action calls = %d/%d", provider.snapshotCalls, provider.actionCalls)
+	}
+
+	_, err = n.ComputerAct(context.Background(), runner.AutonomyContract{
+		AllowComputerUse:   true,
+		AllowKeyboardInput: true,
+	}, computer.ActionRequest{
+		Kind:      computer.ActionTypeText,
+		App:       "editor",
+		ElementID: "editor-box",
+		Text:      strings.Repeat("x", 8193),
+	})
+	if err == nil || !strings.Contains(err.Error(), "8192") {
+		t.Fatalf("oversized TYPE_TEXT must fail before provider call, got %v", err)
+	}
+	if provider.actionCalls != 1 {
+		t.Fatal("oversized TYPE_TEXT reached native provider")
+	}
+}
+
+func TestComputerActScrollAndDragRequireStructuredPointerInput(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_COMPUTER_USE", "1")
+	provider := availableComputerProvider()
+	provider.capabilities.Scroll = true
+	provider.capabilities.Drag = true
+	provider.action = computer.ActionResult{
+		Snapshot: computer.Snapshot{ID: "after", CapturedAt: time.Now().UTC()},
+		Verification: computer.ActionVerification{State: "OBSERVED"},
+	}
+	withFakeComputerProvider(t, provider)
+	n := &Nexus{}
+	contract := runner.AutonomyContract{
+		AllowComputerUse:  true,
+		AllowPointerInput: true,
+	}
+
+	if _, err := n.ComputerAct(context.Background(), contract, computer.ActionRequest{
+		Kind:      computer.ActionScroll,
+		App:       "editor",
+		Direction: "diagonal",
+	}); err == nil || !strings.Contains(err.Error(), "UP, DOWN, LEFT or RIGHT") {
+		t.Fatalf("invalid scroll direction must fail closed, got %v", err)
+	}
+	if provider.actionCalls != 0 {
+		t.Fatal("invalid scroll reached native provider")
+	}
+
+	if _, err := n.ComputerAct(context.Background(), contract, computer.ActionRequest{
+		Kind:      computer.ActionScroll,
+		App:       "editor",
+		Direction: "down",
+	}); err != nil {
+		t.Fatalf("valid scroll rejected: %v", err)
+	}
+
+	if _, err := n.ComputerAct(context.Background(), contract, computer.ActionRequest{
+		Kind: computer.ActionDrag,
+		App:  "editor",
+		X:    intPtr(10),
+		Y:    intPtr(20),
+		ToX:  intPtr(30),
+		ToY:  intPtr(40),
+	}); err != nil {
+		t.Fatalf("valid drag rejected: %v", err)
+	}
+	if provider.actionCalls != 2 {
+		t.Fatalf("expected scroll + drag provider calls, got %d", provider.actionCalls)
+	}
+}
