@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import {
   Badge,
   Button,
+  ChoiceGroup,
+  ChoiceOption,
   Dialog,
   EmptyState,
   Input,
@@ -160,10 +162,9 @@ export const DirectSessionLauncher: React.FC<{
             hint={t('directSession.emptyHint')}
           />
         ) : (
-          <div
+          <ChoiceGroup
             className="nx-direct-resource-list"
-            role="radiogroup"
-            aria-label={t('directSession.chooseAccount')}
+            ariaLabel={t('directSession.chooseAccount')}
           >
             {Object.entries(
               resources.reduce<Record<string, DirectResource[]>>((groups, resource) => {
@@ -183,15 +184,12 @@ export const DirectSessionLauncher: React.FC<{
                   const quota = directQuotaDisplay(resource);
                   const quotaState = quotaTruthState(resource);
                   return (
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={checked}
+                    <ChoiceOption
+                      selected={checked}
+                      onSelect={() => choose(resource)}
                       data-quota-state={quotaState}
                       className={`${resourceStyles.account} nx-direct-resource`}
-                      data-selected={checked ? 'true' : 'false'}
                       key={resource.id}
-                      onClick={() => choose(resource)}
                     >
                       <span className="nx-direct-resource__icon">
                         {resource.rate_limited ? (
@@ -232,12 +230,12 @@ export const DirectSessionLauncher: React.FC<{
                             : t('directSession.remainingLabel', { value: quota })}
                         </small>
                       </span>
-                    </button>
+                    </ChoiceOption>
                   );
                 })}
               </section>
             ))}
-          </div>
+          </ChoiceGroup>
         )}
 
         {request?.prompt && (
