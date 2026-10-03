@@ -368,6 +368,15 @@ export const nexus = {
     request<import('../types').ProjectExecutionTargetCatalog>(
       `/api/v1/projects/${projectId}/execution-targets`,
     ),
+  probeProjectExecutionTarget: (projectId: string, targetId: string) =>
+    request<import('../types').ProjectExecutionTargetProbe>(
+      `/api/v1/projects/${projectId}/execution-targets/probe`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ target_id: targetId }),
+      },
+    ),
+
 
 
   getDesignModeStatus: (projectId: string) =>
