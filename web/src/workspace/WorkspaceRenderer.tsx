@@ -23,6 +23,7 @@ import {
 import {
   IconButton,
   ContextMenu,
+  DropdownMenu,
   contextMenuFromEvent,
   type ContextMenuItem,
   type ContextMenuPoint,
@@ -269,111 +270,62 @@ const ArrangeLayoutMenu: React.FC<{
   onReset?: () => void;
 }> = ({ activePreset, onSelect, onReset }) => {
   const { t } = useTranslation();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
 
-  useEffect(() => {
-    if (!open) {
-      setMenuPos(null);
-      return;
-    }
-    const anchor = rootRef.current?.querySelector('button');
-    if (anchor) {
-      const rect = anchor.getBoundingClientRect();
-      setMenuPos({
-        top: rect.bottom + 6,
-        right: Math.max(8, window.innerWidth - rect.right),
-      });
-    }
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-      if (rootRef.current?.contains(target)) return;
-      if ((target as Element).closest?.('.nx-arrange-menu__panel')) return;
-      setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    const listen = window.setTimeout(() => {
-      window.addEventListener('pointerdown', onPointerDown, true);
-    }, 0);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.clearTimeout(listen);
-      window.removeEventListener('pointerdown', onPointerDown, true);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  const panel =
-    open && menuPos
-      ? createPortal(
-          <div
-            className="nx-arrange-menu__panel"
-            role="menu"
+  return (
+    <div className="nx-arrange-menu">
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
+          <button
+            type="button"
+            className="nx-arrange-menu__trigger"
+            title={t('workspace.arrangeWindows', 'Arranjar janelas')}
             aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
-            style={{ top: menuPos.top, right: menuPos.right }}
-            onPointerDown={(event) => event.stopPropagation()}
           >
-            {ARRANGE_MENU_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                role="menuitemradio"
-                className="nx-arrange-menu__item"
-                aria-checked={activePreset === preset.id}
-                data-active={activePreset === preset.id ? 'true' : undefined}
-                onClick={() => {
-                  onSelect(preset.id);
-                  setOpen(false);
-                }}
-              >
-                <span>{preset.label}</span>
-                <small>{preset.hint}</small>
-              </button>
-            ))}
+            <LayoutGrid size={12} />
+            <span>{t('workspace.arrange', 'Arranjar')}</span>
+          </button>
+        </DropdownMenu.Trigger>
+
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            className="nx-arrange-menu__panel"
+            aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
+            align="end"
+            sideOffset={6}
+            collisionPadding={8}
+          >
+            <DropdownMenu.RadioGroup
+              value={activePreset}
+              onValueChange={(value) => onSelect(value as ArrangeMenuPreset)}
+            >
+              {ARRANGE_MENU_PRESETS.map((preset) => (
+                <DropdownMenu.RadioItem
+                  key={preset.id}
+                  value={preset.id}
+                  className="nx-arrange-menu__item"
+                  data-active={activePreset === preset.id ? 'true' : undefined}
+                >
+                  <span>{preset.label}</span>
+                  <small>{preset.hint}</small>
+                </DropdownMenu.RadioItem>
+              ))}
+            </DropdownMenu.RadioGroup>
+
             {onReset && (
               <>
-                <div className="nx-arrange-menu__separator" role="separator" />
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="nx-arrange-menu__item"
-                  onClick={() => {
-                    setOpen(false);
-                    onReset();
-                  }}
-                >
+                <DropdownMenu.Separator className="nx-arrange-menu__separator" />
+                <DropdownMenu.Item className="nx-arrange-menu__item" onSelect={onReset}>
                   <span className="nx-arrange-menu__reset-label">
                     <RotateCcw size={12} />
                     <span>{t('workspace.resetLayout', 'Redefinir layout')}</span>
                   </span>
                   <small>{t('workspace.restoreDefault', 'Restaurar padrão')}</small>
-                </button>
+                </DropdownMenu.Item>
               </>
             )}
-          </div>,
-          document.body,
-        )
-      : null;
-
-  return (
-    <div className="nx-arrange-menu" ref={rootRef}>
-      <button
-        type="button"
-        className="nx-arrange-menu__trigger"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        title={t('workspace.arrangeWindows', 'Arranjar janelas')}
-        aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
-        onClick={() => setOpen((value) => !value)}
-      >
-        <LayoutGrid size={12} />
-        <span>{t('workspace.arrange', 'Arranjar')}</span>
-      </button>
-      {panel}
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     </div>
   );
 };
