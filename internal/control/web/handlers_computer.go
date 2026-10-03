@@ -54,7 +54,7 @@ func (h *NexusHandler) handleProjectComputerSnapshot(w http.ResponseWriter, r *h
 		writeError(w, http.StatusNotFound, "missing project id")
 		return
 	}
-	if err := h.requireProject(projectID); err != nil {
+	if err := h.requireComputerProject(projectID); err != nil {
 		writeError(w, http.StatusNotFound, "project not found")
 		return
 	}
@@ -88,7 +88,7 @@ func (h *NexusHandler) handleProjectComputerAction(w http.ResponseWriter, r *htt
 		writeError(w, http.StatusNotFound, "missing project id")
 		return
 	}
-	if err := h.requireProject(projectID); err != nil {
+	if err := h.requireComputerProject(projectID); err != nil {
 		writeError(w, http.StatusNotFound, "project not found")
 		return
 	}
@@ -112,7 +112,7 @@ func (h *NexusHandler) handleProjectComputerAction(w http.ResponseWriter, r *htt
 	writeJSON(w, http.StatusOK, result)
 }
 
-func (h *NexusHandler) requireProject(projectID string) error {
+func (h *NexusHandler) requireComputerProject(projectID string) error {
 	st, err := h.nexus.OpenProject()
 	if err != nil {
 		return err
