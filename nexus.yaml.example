@@ -30,10 +30,8 @@ execution:
       location: devbox
       machineId: devbox
       workspace: /srv/nexus
-      # Reuses the existing argv-only custom-target grammar. Authentication is
+      # location is an SSH config alias/host identity only. Authentication is
       # owned by the system SSH configuration; never put passwords/keys here.
-      commandTemplate: ssh -tt devbox {provider} {args}
-      probeTemplate: ssh devbox {provider} {args}
 
 routing:
   strategy: quality-first
