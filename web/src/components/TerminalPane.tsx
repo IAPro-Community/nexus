@@ -400,13 +400,13 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         if (terminalTraceEnabled) {
           const trace = terminalTraceShape(clean);
           ws.send(
-          JSON.stringify({
-            type: 'trace',
-            stage: 'xterm.filtered',
-            size: trace.size,
-            data: trace.shape,
-          }),
-        );
+            JSON.stringify({
+              type: 'trace',
+              stage: 'xterm.filtered',
+              size: trace.size,
+              data: trace.shape,
+            }),
+          );
         }
         ws.send(JSON.stringify({ type: 'input', data: clean }));
       }
