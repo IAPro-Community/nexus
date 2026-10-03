@@ -157,7 +157,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
           <button
             onClick={onOpenStartModal}
-            className="mt-2 w-full flex items-center justify-center space-x-2 py-2 px-3 hover:opacity-95 text-white rounded text-xs font-semibold shadow-md transition"
+            className="mt-2 w-full flex items-center justify-center space-x-2 py-2 px-3 hover:opacity-95 text-[var(--nx-accent-contrast)] rounded text-xs font-semibold shadow-md transition"
             style={{ background: 'var(--nx-accent)' }}
           >
             <Play className="w-3.5 h-3.5 fill-current" />
@@ -380,7 +380,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                     <button
                       onClick={() => onStopRuntime(r.runtime_id)}
-                      className="px-2.5 py-1.5 rounded text-xs font-medium transition hover:bg-rose-950/40 text-rose-400"
+                      className="px-2.5 py-1.5 rounded text-xs font-medium transition hover:bg-[var(--nx-danger-soft)] text-[var(--nx-danger)]"
                       style={{
                         background: 'var(--nx-bg-elevated)',
                         border: '1px solid var(--nx-border)',
@@ -532,7 +532,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {onDeleteRuntime && (
                       <button
                         onClick={() => onDeleteRuntime(r.runtime_id)}
-                        className="p-1 rounded transition hover:bg-[var(--nx-surface-2)] text-rose-400"
+                        className="p-1 rounded transition hover:bg-[var(--nx-surface-2)] text-[var(--nx-danger)]"
                         title={t('legacy.deleteSessionRecord', 'Delete Session Record')}
                         aria-label={t('legacy.deleteSessionRecord', 'Delete Session Record')}
                       >
