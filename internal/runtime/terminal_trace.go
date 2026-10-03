@@ -83,27 +83,127 @@ func TerminalTraceShape(data []byte) string {
 		limit = maxBytes
 		truncated = true
 	}
+
+	const (
+		traceNormal = iota
+		traceAfterESC
+		traceCSI
+		traceSS3
+		traceOSC
+		traceOSCEscape
+	)
+	state := traceNormal
 	var b strings.Builder
-	for _, value := range data[:limit] {
-		switch {
-		case value == 0x1b:
-			b.WriteString("<1b>")
-		case value < 0x20 || value == 0x7f:
-			fmt.Fprintf(&b, "<%02x>", value)
-		case value >= '0' && value <= '9':
-			b.WriteByte('#')
-		case strings.ContainsRune("[];<>?~OABCDHFIRMmuhl", rune(value)):
-			b.WriteByte(value)
-		case value >= 0x20 && value <= 0x7e:
-			b.WriteByte('.')
-		default:
-			b.WriteByte('*')
+	for index := 0; index < limit; index++ {
+		value := data[index]
+
+		switch state {
+		case traceAfterESC:
+			switch value {
+			case '[':
+				b.WriteByte('[')
+				state = traceCSI
+			case 'O':
+				b.WriteByte('O')
+				state = traceSS3
+			case ']':
+				b.WriteByte(']')
+				state = traceOSC
+			default:
+				appendMaskedTraceByte(&b, value)
+				state = traceNormal
+			}
+			continue
+		case traceCSI:
+			if value >= '0' && value <= '9' {
+				b.WriteByte('#')
+				continue
+			}
+			if value >= 0x40 && value <= 0x7e {
+				b.WriteByte(value)
+				state = traceNormal
+				continue
+			}
+			if value >= 0x20 && value <= 0x3f {
+				b.WriteByte(value)
+				continue
+			}
+			appendMaskedTraceByte(&b, value)
+			continue
+		case traceSS3:
+			if value >= 0x20 && value <= 0x7e {
+				b.WriteByte(value)
+			} else {
+				appendMaskedTraceByte(&b, value)
+			}
+			state = traceNormal
+			continue
+		case traceOSC:
+			switch value {
+			case 0x07:
+				b.WriteString("<07>")
+				state = traceNormal
+			case 0x1b:
+				b.WriteString("<1b>")
+				state = traceOSCEscape
+			default:
+				appendMaskedTraceByte(&b, value)
+			}
+			continue
+		case traceOSCEscape:
+			if value == '\\' {
+				b.WriteByte('\\')
+				state = traceNormal
+			} else {
+				appendMaskedTraceByte(&b, value)
+				state = traceOSC
+			}
+			continue
 		}
+
+		if value == 0x1b {
+			b.WriteString("<1b>")
+			state = traceAfterESC
+			continue
+		}
+		if value == '[' && looksLikeBareTerminalSequence(data[index:limit]) {
+			b.WriteByte('[')
+			state = traceCSI
+			continue
+		}
+		appendMaskedTraceByte(&b, value)
 	}
 	if truncated {
 		b.WriteString("…")
 	}
 	return b.String()
+}
+
+func appendMaskedTraceByte(b *strings.Builder, value byte) {
+	switch {
+	case value < 0x20 || value == 0x7f:
+		fmt.Fprintf(b, "<%02x>", value)
+	case value >= 0x20 && value <= 0x7e:
+		b.WriteByte('.')
+	default:
+		b.WriteByte('*')
+	}
+}
+
+func looksLikeBareTerminalSequence(data []byte) bool {
+	if len(data) < 2 || data[0] != '[' {
+		return false
+	}
+	next := data[1]
+	if (next >= '0' && next <= '9') || next == '?' || next == '<' || next == '[' {
+		return true
+	}
+	switch next {
+	case 'A', 'B', 'C', 'D', 'H', 'F', 'I', 'O', 'R', 'M', 'm':
+		return true
+	default:
+		return false
+	}
 }
 
 type terminalTracingWriter struct {
