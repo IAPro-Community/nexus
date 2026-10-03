@@ -364,6 +364,35 @@ export const nexus = {
     request<{ commands: import('../types').ProjectQuickCommand[] }>(
       `/api/v1/projects/${projectId}/commands`,
     ),
+  getProjectComputerStatus: (projectId: string) =>
+    request<import('../types').ComputerUseStatus>(
+      `/api/v1/projects/${projectId}/computer/status`,
+    ),
+  captureProjectComputerSnapshot: (
+    projectId: string,
+    contract: import('../types').AutonomyContract,
+    requestBody: import('../types').ComputerSnapshotRequest,
+  ) =>
+    request<import('../types').ComputerSnapshot>(
+      `/api/v1/projects/${projectId}/computer/snapshot`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ contract, request: requestBody }),
+      },
+    ),
+  performProjectComputerAction: (
+    projectId: string,
+    contract: import('../types').AutonomyContract,
+    requestBody: import('../types').ComputerActionRequest,
+  ) =>
+    request<import('../types').ComputerActionResult>(
+      `/api/v1/projects/${projectId}/computer/action`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ contract, request: requestBody }),
+      },
+    ),
+
   getProjectExecutionTargets: (projectId: string) =>
     request<import('../types').ProjectExecutionTargetCatalog>(
       `/api/v1/projects/${projectId}/execution-targets`,
