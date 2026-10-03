@@ -340,3 +340,79 @@ func TestComputerActScrollAndDragRequireStructuredPointerInput(t *testing.T) {
 		t.Fatalf("expected scroll + drag provider calls, got %d", provider.actionCalls)
 	}
 }
+
+
+func TestComputerListAppsFiltersBlockedTargets(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_COMPUTER_USE", "1")
+	provider := availableComputerProvider()
+	provider.capabilities.ListApps = true
+	providerApps := []computer.AppInfo{
+		{Name: "code", PID: 10},
+		{Name: "1Password", PID: 20},
+		{Name: "notepad", PID: 30},
+	}
+	type appProvider struct{ *fakeComputerProvider }
+	wrapped := &appProvider{fakeComputerProvider: provider}
+	withFakeComputerProvider(t, computer.Provider(wrapped))
+
+	originalFactory := computerProviderFactory
+	computerProviderFactory = func() computer.Provider {
+		return &computerListAppsFake{
+			fakeComputerProvider: provider,
+			apps:                 providerApps,
+		}
+	}
+	t.Cleanup(func() { computerProviderFactory = originalFactory })
+
+	n := &Nexus{}
+	apps, err := n.ComputerListApps(context.Background(), runner.AutonomyContract{
+		AllowComputerUse: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(apps) != 2 || apps[0].Name != "code" || apps[1].Name != "notepad" {
+		t.Fatalf("blocked apps were not filtered: %+v", apps)
+	}
+}
+
+type computerListAppsFake struct {
+	*fakeComputerProvider
+	apps    []computer.AppInfo
+	windows []computer.WindowInfo
+}
+
+func (p *computerListAppsFake) ListApps(context.Context) ([]computer.AppInfo, error) {
+	return append([]computer.AppInfo(nil), p.apps...), nil
+}
+
+func (p *computerListAppsFake) ListWindows(context.Context, string) ([]computer.WindowInfo, error) {
+	return append([]computer.WindowInfo(nil), p.windows...), nil
+}
+
+func TestComputerListWindowsRequiresAllowedApp(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_COMPUTER_USE", "1")
+	provider := availableComputerProvider()
+	provider.capabilities.ListWindows = true
+	fake := &computerListAppsFake{
+		fakeComputerProvider: provider,
+		windows: []computer.WindowInfo{{ID: "1", Title: "Editor", Width: 800, Height: 600}},
+	}
+	withFakeComputerProvider(t, fake)
+
+	n := &Nexus{}
+	if _, err := n.ComputerListWindows(context.Background(), runner.AutonomyContract{
+		AllowComputerUse: true,
+	}, "Bitwarden"); err == nil {
+		t.Fatal("blocked app window discovery must fail closed")
+	}
+	windows, err := n.ComputerListWindows(context.Background(), runner.AutonomyContract{
+		AllowComputerUse: true,
+	}, "code")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(windows) != 1 || windows[0].Title != "Editor" {
+		t.Fatalf("unexpected windows: %+v", windows)
+	}
+}
