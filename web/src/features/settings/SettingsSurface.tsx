@@ -74,7 +74,8 @@ const SETTINGS_TABS: SettingsTab[] = [
 export const SettingsSurface: React.FC<{
   onTour: () => void;
   initialTab?: SettingsTab;
-}> = ({ onTour, initialTab }) => {
+  projectId?: string;
+}> = ({ onTour, initialTab, projectId }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const workspace = useWorkspace();
@@ -763,7 +764,7 @@ export const SettingsSurface: React.FC<{
           </>
         )}
         {activeTab === 'hud' && <HudSettings />}
-        {activeTab === 'remote' && <RemoteAccessTab />}
+        {activeTab === 'remote' && <RemoteAccessTab projectId={projectId} />}
       </div>
     </div>
   );
