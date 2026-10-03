@@ -673,14 +673,14 @@ export const AgentTerminal: React.FC<{
       }
       if (terminalTraceEnabled) {
         const trace = terminalTraceShape(data);
-        ws.send(JSON.stringify({ type: 'trace', stage: 'xterm.ondata', ...trace, data: trace.shape }));
+        ws.send(JSON.stringify({ type: 'trace', stage: 'xterm.ondata', size: trace.size, data: trace.shape }));
       }
       if (!shouldForwardTerminalInput(data)) return;
       const clean = stripEmbeddedTerminalMetadata(data);
       if (!clean) return;
       if (terminalTraceEnabled) {
         const trace = terminalTraceShape(clean);
-        ws.send(JSON.stringify({ type: 'trace', stage: 'xterm.filtered', ...trace, data: trace.shape }));
+        ws.send(JSON.stringify({ type: 'trace', stage: 'xterm.filtered', size: trace.size, data: trace.shape }));
       }
       ws.send(JSON.stringify({ type: 'input', data: clean }));
     });
