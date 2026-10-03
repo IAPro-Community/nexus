@@ -60,6 +60,10 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectCommands(w, r)
 		case strings.HasSuffix(r.URL.Path, "/computer/status"):
 			h.handleProjectComputerStatus(w, r)
+		case strings.HasSuffix(r.URL.Path, "/computer/apps"):
+			h.handleProjectComputerApps(w, r)
+		case strings.HasSuffix(r.URL.Path, "/computer/windows"):
+			h.handleProjectComputerWindows(w, r)
 		case strings.HasSuffix(r.URL.Path, "/computer/snapshot"):
 			h.handleProjectComputerSnapshot(w, r)
 		case strings.Contains(r.URL.Path, "/computer/screenshot/"):
