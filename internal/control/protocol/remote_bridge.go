@@ -7,8 +7,11 @@ import (
 )
 
 const (
-	CmdRemoteBridgeHello CommandType = "remote_bridge_hello"
-	CmdRemoteBridgeSpawn CommandType = "remote_bridge_spawn"
+	CmdRemoteBridgeHello  CommandType = "remote_bridge_hello"
+	CmdRemoteBridgeSpawn  CommandType = "remote_bridge_spawn"
+	CmdRemoteBridgeStatus CommandType = "remote_bridge_status"
+	CmdRemoteBridgeResize CommandType = "remote_bridge_resize"
+	CmdRemoteBridgeAttach CommandType = "remote_bridge_attach"
 )
 
 type RemoteBridgeCapability string
@@ -71,6 +74,42 @@ type RemoteBridgeSpawnPayload struct {
 	Cols      int      `json:"cols,omitempty"`
 }
 
+// RemoteBridgeRuntimePayload addresses an existing supervised runtime on the
+// remote host without exposing its local IPC endpoint.
+type RemoteBridgeRuntimePayload struct {
+	RuntimeID string `json:"runtime_id"`
+}
+
+// RemoteBridgeResizePayload keeps terminal geometry structured across the
+// transport. Rows/Cols follow the same bounds as local SessionHost resize.
+type RemoteBridgeResizePayload struct {
+	RuntimeID string `json:"runtime_id"`
+	Rows      int    `json:"rows"`
+	Cols      int    `json:"cols"`
+}
+
+// RemoteBridgeRuntimeStatusData is intentionally smaller than StatusData.
+// Attention context, executable paths, fingerprints and local IPC paths stay
+// on the remote machine.
+type RemoteBridgeRuntimeStatusData struct {
+	RuntimeID    string `json:"runtime_id"`
+	MachineID    string `json:"machine_id"`
+	Provider     string `json:"provider"`
+	Profile      string `json:"profile"`
+	Model        string `json:"model,omitempty"`
+	Workspace    string `json:"workspace"`
+	State        string `json:"state"`
+	ControlLevel string `json:"control_level"`
+	Transport    string `json:"transport"`
+}
+
+// RemoteBridgeAttachData is the final JSON frame before an attach transport
+// switches to byte-transparent terminal streaming.
+type RemoteBridgeAttachData struct {
+	RuntimeID string `json:"runtime_id"`
+	History   string `json:"history,omitempty"`
+}
+
 // RemoteBridgeSpawnData is the durable acknowledgement from the remote bridge.
 // HostPID belongs to the remote Nexus supervisor, while ProviderPID belongs to
 // the provider child and must not be used as a cross-host kill authority.
@@ -124,6 +163,20 @@ func ValidateRemoteBridgeHelloData(data RemoteBridgeHelloData) error {
 		if !present {
 			return fmt.Errorf("remote bridge is missing required capability %s", capability)
 		}
+	}
+	return nil
+}
+
+func ValidateRemoteBridgeRuntime(payload RemoteBridgeRuntimePayload) error {
+	return validateRemoteBridgeIdentifier("runtime_id", payload.RuntimeID)
+}
+
+func ValidateRemoteBridgeResize(payload RemoteBridgeResizePayload) error {
+	if err := validateRemoteBridgeIdentifier("runtime_id", payload.RuntimeID); err != nil {
+		return err
+	}
+	if payload.Rows <= 0 || payload.Rows > 1000 || payload.Cols <= 0 || payload.Cols > 1000 {
+		return fmt.Errorf("remote bridge terminal dimensions are invalid")
 	}
 	return nil
 }
