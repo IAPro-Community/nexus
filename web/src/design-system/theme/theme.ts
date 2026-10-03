@@ -42,6 +42,7 @@ export const MANAGED_THEME_COLOR_VARS = [
   '--nx-accent-hover',
   '--nx-accent-soft',
   '--nx-accent-text',
+  '--nx-accent-contrast',
   '--nx-window-accent',
   '--nx-success',
   '--nx-success-soft',
@@ -125,6 +126,45 @@ export const ACCENT_OVERRIDE_VARS: Record<ThemeAccent, Record<string, string>> =
   },
 };
 
+function parseHexColor(value: string): [number, number, number] | null {
+  const normalized = value.trim().replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return null;
+  return [
+    Number.parseInt(normalized.slice(0, 2), 16),
+    Number.parseInt(normalized.slice(2, 4), 16),
+    Number.parseInt(normalized.slice(4, 6), 16),
+  ];
+}
+
+function relativeLuminance(value: string): number | null {
+  const rgb = parseHexColor(value);
+  if (!rgb) return null;
+
+  const [r, g, b] = rgb.map((channel) => {
+    const srgb = channel / 255;
+    return srgb <= 0.03928 ? srgb / 12.92 : Math.pow((srgb + 0.055) / 1.055, 2.4);
+  });
+
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function colorContrastRatio(left: string, right: string): number {
+  const leftLuminance = relativeLuminance(left);
+  const rightLuminance = relativeLuminance(right);
+  if (leftLuminance === null || rightLuminance === null) return 0;
+
+  const lighter = Math.max(leftLuminance, rightLuminance);
+  const darker = Math.min(leftLuminance, rightLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function resolveAccentContrast(accent: string): string {
+  const black = '#000000';
+  const white = '#ffffff';
+  return colorContrastRatio(accent, black) >= colorContrastRatio(accent, white) ? black : white;
+}
+
+
 export function resolveScheme(
   scheme: ThemeScheme,
   systemDark: boolean,
@@ -148,6 +188,10 @@ export function resolveThemeStyleVariables(
       Object.assign(finalVars, ACCENT_OVERRIDE_VARS[prefs.accent] || {});
     }
   }
+
+  finalVars['--nx-accent-contrast'] = resolveAccentContrast(
+    finalVars['--nx-accent'] || preset.accent,
+  );
 
   return finalVars;
 }
