@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Cpu, Plus, Radio } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge, Button, Dialog, EmptyState, Input, Spinner } from '../../design-system';
+import { Badge, Button, ChoiceGroup, ChoiceOption, Dialog, EmptyState, Input, Spinner } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { ProviderInfo } from '../../types';
 import styles from './RegisterProviderModal.module.scss';
@@ -115,27 +115,18 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
         ) : null}
 
         {!loading && providers.length > 0 ? (
-          <div
+          <ChoiceGroup
             className={styles.providerList}
-            role="radiogroup"
-            aria-label="Provedores disponíveis"
+            ariaLabel={t('usage.availableProviders', 'Provedores disponíveis')}
           >
             {providers.map((prov) => {
               const isSelected = selectedProvider === prov.id;
               return (
-                <div
+                <ChoiceOption
                   key={prov.id}
                   className={styles.providerItem}
-                  data-selected={isSelected}
-                  onClick={() => setSelectedProvider(prov.id)}
-                  role="radio"
-                  aria-checked={isSelected}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      setSelectedProvider(prov.id);
-                    }
-                  }}
+                  selected={isSelected}
+                  onSelect={() => setSelectedProvider(prov.id)}
                 >
                   <div className={styles.providerInfo}>
                     <div className={styles.providerHeader}>
@@ -152,10 +143,10 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
                   ) : (
                     <Radio size={16} color="var(--nx-muted)" />
                   )}
-                </div>
+                </ChoiceOption>
               );
             })}
-          </div>
+          </ChoiceGroup>
         ) : null}
 
         <div className={styles.formGroup}>
