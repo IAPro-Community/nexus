@@ -231,7 +231,7 @@ export const MaestroSurface: React.FC = () => {
 
           <div className={styles.infoCard}>
             <div className={styles.infoCardTitle}>
-              <Sparkles size={16} className="nx-text-amber-400" />
+              <Sparkles size={16} className="text-[var(--nx-warning)]" />
               <span>{t('maestroSurface.cardDiscoveryTitle', 'Catálogo 100% Dinâmico')}</span>
             </div>
             <p className={styles.infoCardText}>
@@ -244,7 +244,7 @@ export const MaestroSurface: React.FC = () => {
 
           <div className={styles.infoCard}>
             <div className={styles.infoCardTitle}>
-              <Terminal size={16} className="nx-text-emerald-400" />
+              <Terminal size={16} className="text-[var(--nx-success)]" />
               <span>{t('maestroSurface.cardExecutionTitle', 'Execução no Terminal & YOLO')}</span>
             </div>
             <p className={styles.infoCardText}>
@@ -405,7 +405,7 @@ export const MaestroSurface: React.FC = () => {
                         )}
                       >
                         {isCopied ? (
-                          <Check size={12} className="nx-text-emerald-400" />
+                          <Check size={12} className="text-[var(--nx-success)]" />
                         ) : (
                           <Copy size={12} />
                         )}
