@@ -314,7 +314,7 @@ const ArrangeLayoutMenu: React.FC<{
             {onReset && (
               <>
                 <DropdownMenu.Separator className="nx-arrange-menu__separator" />
-                <DropdownMenu.Item className="nx-arrange-menu__item" onSelect={onReset}>
+                <DropdownMenu.Item className="nx-arrange-menu__item" onSelect={() => onReset()}>
                   <span className="nx-arrange-menu__reset-label">
                     <RotateCcw size={12} />
                     <span>{t('workspace.resetLayout', 'Redefinir layout')}</span>
