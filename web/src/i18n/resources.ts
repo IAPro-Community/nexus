@@ -272,7 +272,7 @@ export const en = {
       statusVersion: 'Cloudflare tunnel v{{version}}',
       targets: {
         title: 'Execution targets',
-        description: 'Read-only preview for the active Project.',
+        description: 'Test and explicitly choose where future Agent runtimes start.',
         declared: 'Declared default',
         effective: 'Effective target',
         flagEnabled: 'remote_execution enabled',
@@ -283,11 +283,20 @@ export const en = {
         probing: 'Testing…',
         probeReady: 'bridge ready',
         probeReached: 'reachable, execution disabled',
-        previewOnly:
-          'The repository declares a remote default, but Nexus keeps execution local until explicit target activation and approval are implemented.',
+        activateFuture: 'Activate for future starts',
+        activating: 'Activating…',
+        useLocalFuture: 'Use local for future starts',
+        deactivating: 'Returning to local…',
+        futureStartsNotice:
+          'Changing the effective target affects future Agent starts only. Existing runtimes are not moved or stopped.',
+        declaredDiffers:
+          'The repository default and the explicitly activated target are different. Nexus follows the explicit project binding for future starts.',
         errors: {
           load: 'Could not load project execution targets.',
           probe: 'Could not probe this execution target.',
+          activationProbe: 'Test this target again before activating it.',
+          activate: 'Could not activate this execution target.',
+          deactivate: 'Could not return future starts to the local target.',
         },
       },
       errors: {
@@ -2308,7 +2317,7 @@ export const ptBR = {
       statusVersion: 'Cloudflare tunnel v{{version}}',
       targets: {
         title: 'Targets de execução',
-        description: 'Preview somente leitura do Projeto ativo.',
+        description: 'Teste e escolha explicitamente onde os próximos runtimes de Agentes serão iniciados.',
         declared: 'Padrão declarado',
         effective: 'Target efetivo',
         flagEnabled: 'remote_execution habilitado',
@@ -2319,11 +2328,20 @@ export const ptBR = {
         probing: 'Testando…',
         probeReady: 'bridge pronto',
         probeReached: 'alcançável, execução desabilitada',
-        previewOnly:
-          'O repositório declara um target remoto como padrão, mas o Nexus mantém a execução local até existir ativação explícita do target e aprovação.',
+        activateFuture: 'Ativar para próximos starts',
+        activating: 'Ativando…',
+        useLocalFuture: 'Usar local nos próximos starts',
+        deactivating: 'Voltando para local…',
+        futureStartsNotice:
+          'Alterar o target efetivo afeta apenas novos starts de Agentes. Runtimes existentes não são movidos nem interrompidos.',
+        declaredDiffers:
+          'O padrão declarado no repositório é diferente do target ativado explicitamente. O Nexus usa o binding explícito do Projeto nos próximos starts.',
         errors: {
           load: 'Não foi possível carregar os targets de execução do Projeto.',
           probe: 'Não foi possível testar este target de execução.',
+          activationProbe: 'Teste este target novamente antes de ativá-lo.',
+          activate: 'Não foi possível ativar este target de execução.',
+          deactivate: 'Não foi possível voltar os próximos starts para o target local.',
         },
       },
       errors: {
@@ -4357,7 +4375,7 @@ export const es = {
       statusVersion: 'Túnel de Cloudflare v{{version}}',
       targets: {
         title: 'Targets de ejecución',
-        description: 'Vista previa de solo lectura para el Proyecto activo.',
+        description: 'Pruebe y elija explícitamente dónde se iniciarán los próximos runtimes de Agentes.',
         declared: 'Predeterminado declarado',
         effective: 'Target efectivo',
         flagEnabled: 'remote_execution habilitado',
@@ -4368,11 +4386,20 @@ export const es = {
         probing: 'Probando…',
         probeReady: 'bridge listo',
         probeReached: 'alcanzable, ejecución deshabilitada',
-        previewOnly:
-          'El repositorio declara un target remoto como predeterminado, pero Nexus mantiene la ejecución local hasta que existan activación explícita del target y aprobación.',
+        activateFuture: 'Activar para próximos inicios',
+        activating: 'Activando…',
+        useLocalFuture: 'Usar local en próximos inicios',
+        deactivating: 'Volviendo a local…',
+        futureStartsNotice:
+          'Cambiar el target efectivo afecta solo a futuros inicios de Agentes. Los runtimes existentes no se mueven ni se detienen.',
+        declaredDiffers:
+          'El predeterminado declarado en el repositorio es distinto del target activado explícitamente. Nexus usa el binding explícito del Proyecto para futuros inicios.',
         errors: {
           load: 'No se pudieron cargar los targets de ejecución del Proyecto.',
           probe: 'No se pudo probar este target de ejecución.',
+          activationProbe: 'Pruebe este target nuevamente antes de activarlo.',
+          activate: 'No se pudo activar este target de ejecución.',
+          deactivate: 'No se pudieron devolver los futuros inicios al target local.',
         },
       },
       errors: {
