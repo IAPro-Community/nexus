@@ -8032,9 +8032,9 @@ button.nx-workspace-tab__close {
   place-items: center;
   background: radial-gradient(
     circle at 50% 38%,
-    rgba(139, 92, 246, 0.12) 0%,
-    rgba(8, 10, 15, 0.96) 65%,
-    #080a0f 100%
+    var(--nx-accent-soft) 0%,
+    color-mix(in srgb, var(--nx-bg) 96%, var(--nx-accent) 4%) 65%,
+    var(--nx-bg) 100%
   );
   color: var(--nx-text);
   user-select: none;
@@ -8045,13 +8045,13 @@ button.nx-workspace-tab__close {
   align-items: center;
   gap: 14px;
   padding: 38px 46px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid color-mix(in srgb, var(--nx-border-strong) 65%, transparent);
   border-radius: 20px;
-  background: rgba(16, 19, 26, 0.65);
+  background: color-mix(in srgb, var(--nx-surface) 72%, transparent);
   backdrop-filter: blur(20px);
   box-shadow:
     0 24px 64px rgba(0, 0, 0, 0.65),
-    0 0 40px rgba(139, 92, 246, 0.14);
+    0 0 40px color-mix(in srgb, var(--nx-accent) 14%, transparent);
   text-align: center;
   animation: nx-splash-fade-in 0.35s ease-out;
 }
@@ -8066,7 +8066,7 @@ button.nx-workspace-tab__close {
   position: absolute;
   inset: -12px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.45) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--nx-accent) 45%, transparent) 0%, transparent 70%);
   filter: blur(12px);
   animation: nx-splash-halo 2.6s ease-in-out infinite alternate;
 }
@@ -8082,7 +8082,7 @@ button.nx-workspace-tab__close {
   font-size: 1.857rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #ffffff 0%, #d8dde8 100%);
+  background: linear-gradient(135deg, var(--nx-text) 0%, var(--nx-text-soft) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -8098,7 +8098,7 @@ button.nx-workspace-tab__close {
   width: 260px;
   height: 3px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--nx-surface-3);
   overflow: hidden;
   margin-top: 8px;
 }
@@ -8109,7 +8109,7 @@ button.nx-workspace-tab__close {
   width: 45%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, transparent, var(--nx-accent, #8b5cf6), #38bdf8, transparent);
+  background: linear-gradient(90deg, transparent, var(--nx-accent), var(--nx-info), transparent);
   animation: nx-shimmer-sweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 .nx-splash-status {
@@ -8139,7 +8139,7 @@ button.nx-workspace-tab__close {
   gap: 8px;
   margin-top: 10px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--nx-border);
   font-size: 0.786rem;
   color: var(--nx-subtle);
   letter-spacing: 0.04em;
