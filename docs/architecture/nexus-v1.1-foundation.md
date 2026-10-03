@@ -131,17 +131,33 @@ The prefill is consumed from the workspace View immediately after insertion. A s
 worst re-insert text after a crash; it cannot execute a command on browser refresh. Automatic
 execution is intentionally deferred until it has an explicit confirmation/audit contract.
 
-## Browser Design Mode runtime
+## Browser Design Mode
 
 The Design Mode runtime reuses the Chromium DevTools Protocol over Nexus' existing
 `gorilla/websocket` dependency. Playwright remains a development/QA dependency and is not required
 by the shipped binary.
 
-`StartDesignBrowser` launches an isolated Chromium profile bound to loopback DevTools only.
+`StartDesignBrowser` launches an isolated Chromium profile with DevTools bound to loopback only.
+The project-scoped manager owns one Design Mode browser per Project and closes the process plus
+temporary screenshots on replacement, stop and Nexus Web shutdown.
+
+The feature-gated `design-mode` Workspace surface is available from the existing Command Palette
+and semantic deep link. It can open the browser, start a visual picker, poll the selected CSS
+selector, inspect it, display the cropped screenshot and send the bounded textual context to an
+existing Agent. The picker intercepts the user's click only to select an element; Nexus does not
+synthesize navigation, keyboard or pointer actions in this milestone.
+
 `InspectSelector` produces a bounded `UIContextArtifact` containing outer HTML, a small parent
 neighborhood, selected computed styles, text, element bounds, optional source/test attributes, and
-a cropped PNG under the Nexus data directory. The browser layer is read-only in this milestone:
-it does not edit DOM/source or synthesize clicks/typing.
+a cropped PNG under the Nexus data directory. Password fields and elements marked
+`data-nexus-sensitive="true"` are refused. Browser-derived URL, HTML, text and source hints pass
+through Nexus secret redaction before they are returned by the API. Agent handoff marks the browser
+payload as untrusted data so DOM text cannot legitimately become instructions.
 
-The public UI/API picker remains feature-gated by `browser_design_mode`; this Core layer is the
-reusable substrate for that picker and for future local/remote browser targets.
+The screenshot is currently a human review artifact in the Design Mode surface; the first Agent
+handoff sends the redacted textual artifact only. Image attachment to ContextCapsule/Agent input is
+a separate follow-up so provider-specific multimodal support does not leak into this browser layer.
+
+All public Design Mode operations except read-only status remain disabled unless
+`browser_design_mode` is enabled (for local development:
+`NEXUS_ENABLE_BROWSER_DESIGN_MODE=1`).
