@@ -8262,7 +8262,6 @@ button.nx-workspace-tab__close {
   transform: rotate(180deg);
 }
 .nx-create-menu__panel {
-  position: fixed;
   z-index: var(--nx-z-contextmenu, 1000);
   min-width: 220px;
   max-width: 280px;
@@ -8272,8 +8271,8 @@ button.nx-workspace-tab__close {
   padding: 6px;
   border: 1px solid var(--nx-border);
   border-radius: 9px;
-  background: var(--nx-bg-elevated, #11141d);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  background: var(--nx-bg-elevated);
+  box-shadow: var(--nx-shadow-lg);
   backdrop-filter: blur(12px);
   animation: nx-splash-fade-in 0.12s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -8292,8 +8291,10 @@ button.nx-workspace-tab__close {
   cursor: pointer;
   transition: background 0.12s ease;
 }
-.nx-create-menu__item:hover {
+.nx-create-menu__item:hover,
+.nx-create-menu__item[data-highlighted] {
   background: var(--nx-surface-2);
+  outline: none;
 }
 .nx-create-menu__icon {
   width: 24px;
@@ -8308,12 +8309,12 @@ button.nx-workspace-tab__close {
   color: var(--nx-accent-text);
 }
 .nx-create-menu__icon--session {
-  background: rgba(245, 158, 11, 0.18);
-  color: #f59e0b;
+  background: var(--nx-warning-soft);
+  color: var(--nx-warning);
 }
 .nx-create-menu__icon--terminal {
-  background: rgba(16, 185, 129, 0.18);
-  color: #10b981;
+  background: var(--nx-success-soft);
+  color: var(--nx-success);
 }
 .nx-create-menu__text {
   display: flex;
