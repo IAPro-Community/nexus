@@ -83,53 +83,78 @@ func validateWorktreeBase(ctx context.Context, project store.Project) error {
 }
 
 func ensureAgentWorktree(ctx context.Context, project store.Project, agent store.Agent) (string, error) {
+	return ensureManagedWorktree(ctx, project, managedWorktreeRequest{
+		RootName:     "worktrees",
+		EntityLabel:  "agent id",
+		EntityID:     agent.ID,
+		BranchPrefix: "iapro/agent/",
+		BaseRef:      "HEAD",
+	})
+}
+
+type managedWorktreeRequest struct {
+	RootName     string
+	EntityLabel  string
+	EntityID     string
+	BranchPrefix string
+	BaseRef      string
+}
+
+// ensureManagedWorktree is the single filesystem/git primitive used by both
+// the v1 Agent-owned worktree adapter and v1.1 task-scoped execution
+// workspaces. Keeping path/symlink validation here prevents the new model from
+// weakening the v1 isolation boundary.
+func ensureManagedWorktree(ctx context.Context, project store.Project, req managedWorktreeRequest) (string, error) {
 	if err := validateWorktreeBase(ctx, project); err != nil {
-		return "", err
-	}
-	dataDir, err := config.DataDir()
-	if err != nil {
 		return "", err
 	}
 	if err := validateManagedPathSegment("project id", project.ID); err != nil {
 		return "", err
 	}
-	if err := validateManagedPathSegment("agent id", agent.ID); err != nil {
+	if err := validateManagedPathSegment(req.EntityLabel, req.EntityID); err != nil {
+		return "", err
+	}
+	if err := validateManagedPathSegment("managed worktree root", req.RootName); err != nil {
 		return "", err
 	}
 
-	worktreeRoot := filepath.Join(dataDir, "worktrees")
+	dataDir, err := config.DataDir()
+	if err != nil {
+		return "", err
+	}
+	worktreeRoot := filepath.Join(dataDir, req.RootName)
 	if err := os.MkdirAll(worktreeRoot, 0o700); err != nil {
-		return "", fmt.Errorf("create worktree root: %w", err)
+		return "", fmt.Errorf("create managed worktree root: %w", err)
 	}
 	canonicalRoot, err := canonicalExistingManagedDir(worktreeRoot)
 	if err != nil {
-		return "", fmt.Errorf("resolve worktree root: %w", err)
+		return "", fmt.Errorf("resolve managed worktree root: %w", err)
 	}
 
 	root := filepath.Join(worktreeRoot, project.ID)
-	if err := rejectManagedSymlink(root, "project worktree root"); err != nil {
+	if err := rejectManagedSymlink(root, "project managed worktree root"); err != nil {
 		return "", err
 	}
 	if err := os.MkdirAll(root, 0o700); err != nil {
-		return "", fmt.Errorf("create project worktree root: %w", err)
+		return "", fmt.Errorf("create project managed worktree root: %w", err)
 	}
 	canonicalProjectRoot, err := canonicalExistingManagedDir(root)
 	if err != nil {
-		return "", fmt.Errorf("resolve project worktree root: %w", err)
+		return "", fmt.Errorf("resolve project managed worktree root: %w", err)
 	}
 	if !pathWithinRoot(canonicalProjectRoot, canonicalRoot) {
 		return "", fmt.Errorf("project worktree root escapes Nexus managed worktree root")
 	}
 
-	path := filepath.Join(root, agent.ID)
-	if err := rejectManagedSymlink(path, "agent worktree"); err != nil {
+	path := filepath.Join(root, req.EntityID)
+	if err := rejectManagedSymlink(path, "managed worktree"); err != nil {
 		return "", err
 	}
 	if info, statErr := os.Lstat(path); statErr == nil {
 		if !info.IsDir() {
 			return "", fmt.Errorf("existing worktree path is not a directory: %s", path)
 		}
-		if out, err := executil.CommandContext(ctx, "git", "-C", path, "rev-parse", "--show-toplevel").CombinedOutput(); err == nil {
+		if out, gitErr := executil.CommandContext(ctx, "git", "-C", path, "rev-parse", "--show-toplevel").CombinedOutput(); gitErr == nil {
 			resolved := strings.TrimSpace(string(out))
 			if resolved != "" {
 				canonicalResolved, canonicalErr := config.CanonicalWorkspacePath(resolved)
@@ -137,7 +162,7 @@ func ensureAgentWorktree(ctx context.Context, project store.Project, agent store
 					return "", canonicalErr
 				}
 				if !pathWithinRoot(canonicalResolved, canonicalProjectRoot) {
-					return "", fmt.Errorf("existing agent worktree escapes Nexus managed project root")
+					return "", fmt.Errorf("existing managed worktree escapes Nexus managed project root")
 				}
 				return canonicalResolved, nil
 			}
@@ -147,29 +172,33 @@ func ensureAgentWorktree(ctx context.Context, project store.Project, agent store
 		return "", statErr
 	}
 
-	branchSuffix := unsafeBranchChars.ReplaceAllString(agent.ID, "-")
+	branchSuffix := unsafeBranchChars.ReplaceAllString(req.EntityID, "-")
 	branchSuffix = strings.Trim(branchSuffix, "-./")
 	if branchSuffix == "" {
-		branchSuffix = "agent"
+		branchSuffix = "workspace"
 	}
-	branch := "iapro/agent/" + branchSuffix
+	branch := req.BranchPrefix + branchSuffix
+	baseRef := strings.TrimSpace(req.BaseRef)
+	if baseRef == "" {
+		baseRef = "HEAD"
+	}
 
 	branchExists := executil.CommandContext(ctx, "git", "-C", project.CanonicalPath, "show-ref", "--verify", "--quiet", "refs/heads/"+branch).Run() == nil
 	args := []string{"-C", project.CanonicalPath, "worktree", "add"}
 	if branchExists {
 		args = append(args, path, branch)
 	} else {
-		args = append(args, "-b", branch, path, "HEAD")
+		args = append(args, "-b", branch, path, baseRef)
 	}
-	if out, err := executil.CommandContext(ctx, "git", args...).CombinedOutput(); err != nil {
-		return "", fmt.Errorf("create agent worktree: %w: %s", err, strings.TrimSpace(string(out)))
+	if out, gitErr := executil.CommandContext(ctx, "git", args...).CombinedOutput(); gitErr != nil {
+		return "", fmt.Errorf("create managed worktree: %w: %s", gitErr, strings.TrimSpace(string(out)))
 	}
 	resolved, err := config.CanonicalWorkspacePath(path)
 	if err != nil {
 		return "", err
 	}
 	if !pathWithinRoot(resolved, canonicalProjectRoot) {
-		return "", fmt.Errorf("created agent worktree escapes Nexus managed project root")
+		return "", fmt.Errorf("created managed worktree escapes Nexus managed project root")
 	}
 	return resolved, nil
 }

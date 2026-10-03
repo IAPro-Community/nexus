@@ -92,6 +92,10 @@ func TestResolveExecutionWorkspaceWorktree(t *testing.T) {
 	if got == repo {
 		t.Fatal("worktree isolation reused canonical project path")
 	}
+	wantManagedRoot := filepath.Join(os.Getenv("NEXUS_DATA_DIR"), "worktrees", project.ID)
+	if !pathWithinRoot(got, wantManagedRoot) {
+		t.Fatalf("legacy Agent worktree moved outside v1 managed root: %q", got)
+	}
 	if _, err := os.Stat(filepath.Join(got, "README.md")); err != nil {
 		t.Fatalf("worktree missing checkout: %v", err)
 	}
