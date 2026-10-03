@@ -51,6 +51,11 @@ describe('Semantic Route Parsing and Building', () => {
       projectId: 'proj-123',
       surface: 'resources',
     });
+    expect(parseRouteLocation('/p/proj-123/design-mode')).toEqual({
+      kind: 'project',
+      projectId: 'proj-123',
+      surface: 'design-mode',
+    });
   });
 
   it('parses deep-link routes for flow-run, terminals, and agents', () => {
@@ -158,5 +163,9 @@ describe('Semantic Route Parsing and Building', () => {
     const surf5 = routeToWorkspaceSurface(route5);
     expect(surf5?.type).toBe('project-shell');
     expect(surf5?.data?.runtimeId).toBe('rt-999');
+
+    const route6 = parseRouteLocation('/p/proj-123/design-mode');
+    const surf6 = routeToWorkspaceSurface(route6);
+    expect(surf6).toEqual(projectSurface('proj-123', 'design-mode'));
   });
 });
