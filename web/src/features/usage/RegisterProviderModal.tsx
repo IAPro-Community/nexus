@@ -137,16 +137,16 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
                   selected={isSelected}
                   onSelect={() => setSelectedProvider(prov.id)}
                 >
-                  <div className={styles.providerInfo}>
-                    <div className={styles.providerHeader}>
+                  <span className={styles.providerInfo}>
+                    <span className={styles.providerHeader}>
                       <strong>{prov.id}</strong>
                       {getRegistrationBadge(prov)}
-                    </div>
-                    <div className={styles.providerMeta}>
+                    </span>
+                    <span className={styles.providerMeta}>
                       <span>{prov.version || 'v1.0'}</span>
                       {prov.binary_path ? <code>{prov.binary_path}</code> : null}
-                    </div>
-                  </div>
+                    </span>
+                  </span>
                   {isSelected ? (
                     <CheckCircle2 size={16} color="var(--nx-accent)" />
                   ) : (
