@@ -240,7 +240,7 @@ button {
   padding: 8px 14px;
   border-radius: 7px;
   background: var(--nx-accent);
-  color: #fff;
+  color: var(--nx-accent-contrast);
   font-size: 0.929rem;
   font-weight: 600;
   text-decoration: none;
@@ -1970,7 +1970,7 @@ button.nx-workspace-tab__close {
   height: 100%;
   min-height: 0;
   padding: 6px;
-  background: #07090d;
+  background: var(--nx-terminal-frame);
 }
 .nx-agent-terminal {
   width: 100%;
@@ -1981,8 +1981,8 @@ button.nx-workspace-tab__close {
   overflow: hidden;
   border: 1px solid var(--nx-border);
   border-radius: 8px;
-  background: #090b10;
-  color: #e6e9ef;
+  background: var(--nx-terminal-bg);
+  color: var(--nx-terminal-text);
 }
 .nx-agent-terminal__header {
   min-height: 44px;
@@ -1991,8 +1991,8 @@ button.nx-workspace-tab__close {
   justify-content: space-between;
   gap: 10px;
   padding: 6px 12px;
-  border-bottom: 1px solid #202530;
-  background: #0f1218;
+  border-bottom: 1px solid var(--nx-terminal-border);
+  background: var(--nx-terminal-surface);
   font-size: 0.857rem;
 }
 .nx-agent-terminal__identity,
@@ -2041,26 +2041,26 @@ button.nx-workspace-tab__close {
   max-width: min(46vw, 420px);
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #8991a2;
+  color: var(--nx-terminal-muted);
   font-family: var(--nx-font-mono);
   font-size: 0.857rem;
   white-space: nowrap;
 }
 .nx-agent-terminal__identity > span[data-state="CONNECTED"],
 .nx-agent-terminal__toolbar-group > span[data-state="CONNECTED"] {
-  color: #51cf9a;
+  color: var(--nx-success);
 }
 .nx-agent-terminal__identity > span[data-state="ERROR"],
 .nx-agent-terminal__identity > span[data-state="DISCONNECTED"],
 .nx-agent-terminal__toolbar-group > span[data-state="ERROR"],
 .nx-agent-terminal__toolbar-group > span[data-state="DISCONNECTED"] {
-  color: #ff7b7b;
+  color: var(--nx-danger);
 }
 .nx-agent-terminal__controls > span[data-role="CONTROL"] {
-  color: #51cf9a;
+  color: var(--nx-success);
 }
 .nx-agent-terminal__controls > span[data-role="VIEW_ONLY"] {
-  color: #8991a2;
+  color: var(--nx-terminal-muted);
 }
 .nx-agent-terminal__lease {
   font-size: 0.714rem;
@@ -2084,7 +2084,7 @@ button.nx-workspace-tab__close {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #f3bd67 !important;
+  color: var(--nx-warning) !important;
 }
 .nx-agent-terminal__controls button {
   min-height: 27px;
@@ -2092,7 +2092,7 @@ button.nx-workspace-tab__close {
   border: 1px solid var(--nx-border);
   border-radius: 5px;
   background: var(--nx-surface-2);
-  color: #aeb6c6;
+  color: var(--nx-terminal-text-soft);
   cursor: pointer;
   font-size: 0.786rem;
   white-space: nowrap;
@@ -3011,7 +3011,7 @@ button.nx-workspace-tab__close {
   transition: all 0.15s ease;
 }
 .nx-statusbar-btn:hover {
-  background: var(--nx-surface-3, rgba(255, 255, 255, 0.06));
+  background: var(--nx-surface-3);
   border-color: var(--nx-border);
   color: var(--nx-text-primary);
 }
@@ -3026,21 +3026,21 @@ button.nx-workspace-tab__close {
 }
 .nx-status-dot--working,
 .nx-status-dot[data-status="WORKING"] {
-  background: var(--nx-success, #10b981);
-  box-shadow: 0 0 6px var(--nx-success, #10b981);
+  background: var(--nx-success);
+  box-shadow: 0 0 6px var(--nx-success);
 }
 .nx-status-dot--idle,
 .nx-status-dot[data-status="IDLE"] {
-  background: var(--nx-muted, #64748b);
+  background: var(--nx-muted);
 }
 .nx-status-dot[data-status="RECOVERABLE"],
 .nx-status-dot[data-status="WAITING"] {
-  background: var(--nx-warning, #f59e0b);
-  box-shadow: 0 0 6px var(--nx-warning, #f59e0b);
+  background: var(--nx-warning);
+  box-shadow: 0 0 6px var(--nx-warning);
 }
 .nx-status-dot[data-status="FAILED"],
 .nx-status-dot[data-status="STALE"] {
-  background: var(--nx-danger, #ef4444);
+  background: var(--nx-danger);
 }
 .nx-project-list--compact {
   max-height: none;
@@ -3079,7 +3079,7 @@ button.nx-workspace-tab__close {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: var(--nx-surface-2, rgba(255, 255, 255, 0.03));
+  background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
   border-radius: 8px;
   font-size: 0.893rem;
@@ -3101,7 +3101,7 @@ button.nx-workspace-tab__close {
 }
 .nx-branch-create-box {
   padding: 10px;
-  background: var(--nx-surface-2, rgba(255, 255, 255, 0.02));
+  background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
   border-radius: 8px;
 }
@@ -3115,7 +3115,7 @@ button.nx-workspace-tab__close {
   overflow-y: auto;
   border: 1px solid var(--nx-border);
   border-radius: 8px;
-  background: var(--nx-surface-1, rgba(0, 0, 0, 0.2));
+  background: var(--nx-surface-1);
 }
 .nx-branch-items {
   list-style: none;
@@ -3139,7 +3139,7 @@ button.nx-workspace-tab__close {
   text-align: left;
 }
 .nx-branch-item:hover {
-  background: var(--nx-surface-3, rgba(255, 255, 255, 0.06));
+  background: var(--nx-surface-3);
   color: var(--nx-accent-text);
 }
 .nx-branch-item--active {
@@ -3696,7 +3696,7 @@ button.nx-workspace-tab__close {
   background: linear-gradient(
     135deg,
     var(--nx-accent),
-    color-mix(in srgb, var(--nx-accent) 60%, #3b82f6)
+    color-mix(in srgb, var(--nx-accent) 60%, var(--nx-info))
   );
   color: white;
   font-weight: 850;
@@ -4713,7 +4713,7 @@ button.nx-workspace-tab__close {
   padding: 1px 6px;
   border-radius: 999px;
   background: var(--nx-warning);
-  color: #000;
+  color: var(--nx-warning-contrast);
   font-size: 0.714rem;
   font-weight: 750;
 }
@@ -6574,13 +6574,13 @@ button.nx-workspace-tab__close {
 }
 
 .nx-uui-notification__icon-wrap--amber {
-  background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.25);
+  background: var(--nx-warning-soft);
+  border-color: color-mix(in srgb, var(--nx-warning) 25%, transparent);
 }
 
 .nx-uui-notification__icon-wrap--rose {
-  background: rgba(244, 63, 94, 0.12);
-  border-color: rgba(244, 63, 94, 0.25);
+  background: var(--nx-danger-soft);
+  border-color: color-mix(in srgb, var(--nx-danger) 25%, transparent);
 }
 
 .nx-uui-notification__icon-wrap--brand {
@@ -6629,15 +6629,15 @@ button.nx-workspace-tab__close {
 }
 
 .nx-uui-badge--amber {
-  background: rgba(245, 158, 11, 0.14);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: var(--nx-warning-soft);
+  color: var(--nx-warning);
+  border: 1px solid color-mix(in srgb, var(--nx-warning) 30%, transparent);
 }
 
 .nx-uui-badge--rose {
-  background: rgba(244, 63, 94, 0.14);
-  color: #fb7185;
-  border: 1px solid rgba(244, 63, 94, 0.3);
+  background: var(--nx-danger-soft);
+  color: var(--nx-danger);
+  border: 1px solid color-mix(in srgb, var(--nx-danger) 30%, transparent);
 }
 
 .nx-uui-notification__id {
@@ -6710,7 +6710,7 @@ button.nx-workspace-tab__close {
 
 .nx-uui-btn--primary {
   background: var(--nx-accent);
-  color: #ffffff;
+  color: var(--nx-accent-contrast);
   border-color: var(--nx-accent);
 }
 
@@ -6788,7 +6788,7 @@ button.nx-workspace-tab__close {
   align-items: center;
   justify-content: center;
   background: var(--nx-accent);
-  color: #ffffff;
+  color: var(--nx-accent-contrast);
   border: none;
   border-radius: 7px;
   cursor: pointer;
@@ -7235,16 +7235,16 @@ button.nx-workspace-tab__close {
   color: var(--nx-text);
 }
 .nx-workspace-tab[data-kind="overview"] .nx-workspace-tab__icon {
-  background: color-mix(in srgb, #38bdf8 22%, var(--nx-surface-3));
-  color: #7dd3fc;
+  background: color-mix(in srgb, var(--nx-info) 22%, var(--nx-surface-3));
+  color: var(--nx-info);
 }
 .nx-workspace-tab[data-kind="terminals"] .nx-workspace-tab__icon {
-  background: color-mix(in srgb, #22c55e 22%, var(--nx-surface-3));
-  color: #86efac;
+  background: color-mix(in srgb, var(--nx-success) 22%, var(--nx-surface-3));
+  color: var(--nx-success);
 }
 .nx-workspace-tab[data-kind="work"] .nx-workspace-tab__icon {
-  background: color-mix(in srgb, #a78bfa 24%, var(--nx-surface-3));
-  color: #c4b5fd;
+  background: color-mix(in srgb, var(--nx-accent) 24%, var(--nx-surface-3));
+  color: var(--nx-accent-text);
 }
 .nx-workspace-tab[data-active="true"] {
   background: var(--nx-bg-elevated);
