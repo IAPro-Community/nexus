@@ -62,6 +62,76 @@ public static class NexusWin32 {
 
     [DllImport("user32.dll")]
     public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extraInfo);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct INPUT {
+        public uint type;
+        public INPUTUNION U;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct INPUTUNION {
+        [FieldOffset(0)]
+        public MOUSEINPUT mi;
+        [FieldOffset(0)]
+        public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MOUSEINPUT {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public UIntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KEYBDINPUT {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public UIntPtr dwExtraInfo;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    public static void SendUnicodeText(string text) {
+        if (String.IsNullOrEmpty(text)) {
+            return;
+        }
+        var inputs = new INPUT[text.Length * 2];
+        int index = 0;
+        foreach (char ch in text) {
+            inputs[index++] = new INPUT {
+                type = 1,
+                U = new INPUTUNION {
+                    ki = new KEYBDINPUT { wVk = 0, wScan = ch, dwFlags = 0x0004 }
+                }
+            };
+            inputs[index++] = new INPUT {
+                type = 1,
+                U = new INPUTUNION {
+                    ki = new KEYBDINPUT { wVk = 0, wScan = ch, dwFlags = 0x0004 | 0x0002 }
+                }
+            };
+        }
+        uint sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+        if (sent != inputs.Length) {
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "SendInput did not deliver all unicode keyboard events");
+        }
+    }
+
+    public static void ScrollVertical(int delta) {
+        mouse_event(0x0800, 0, 0, unchecked((uint)delta), UIntPtr.Zero);
+    }
+
+    public static void ScrollHorizontal(int delta) {
+        mouse_event(0x1000, 0, 0, unchecked((uint)delta), UIntPtr.Zero);
+    }
 }
 '@
 } catch {
@@ -446,6 +516,108 @@ function Set-NexusValue {
     $pattern.SetValue($Text)
 }
 
+function Test-NexusPointInRect {
+    param(
+        [int]$X,
+        [int]$Y,
+        [hashtable]$Rect
+    )
+    return (
+        $X -ge $Rect.x -and
+        $Y -ge $Rect.y -and
+        $X -lt ($Rect.x + $Rect.width) -and
+        $Y -lt ($Rect.y + $Rect.height)
+    )
+}
+
+function Invoke-NexusCoordinateClick {
+    param(
+        [int]$X,
+        [int]$Y,
+        [hashtable]$Rect
+    )
+    if (-not (Test-NexusPointInRect $X $Y $Rect)) {
+        throw 'click coordinates are outside the target window'
+    }
+    if (-not [NexusWin32]::SetCursorPos($X, $Y)) {
+        throw 'could not position pointer in target window'
+    }
+    [NexusWin32]::mouse_event(0x0002, 0, 0, 0, [UIntPtr]::Zero)
+    [NexusWin32]::mouse_event(0x0004, 0, 0, 0, [UIntPtr]::Zero)
+}
+
+function Send-NexusText {
+    param(
+        [System.Windows.Automation.AutomationElement]$Element,
+        [string]$Text
+    )
+    if ([bool]$Element.Current.IsPassword) {
+        throw 'sensitive password fields are not writable by computer-use'
+    }
+    if ($Text.Length -gt 8192) {
+        throw 'TYPE_TEXT exceeds the 8192 character limit'
+    }
+    $Element.SetFocus()
+    Start-Sleep -Milliseconds 40
+    [NexusWin32]::SendUnicodeText($Text)
+}
+
+function Invoke-NexusScroll {
+    param(
+        [string]$Direction,
+        $Payload,
+        [hashtable]$Rect
+    )
+    $directionValue = ([string]$Direction).Trim().ToUpperInvariant()
+    $x = [int]($Rect.x + [Math]::Floor($Rect.width / 2))
+    $y = [int]($Rect.y + [Math]::Floor($Rect.height / 2))
+    if ($null -ne $Payload.x) { $x = [int]$Payload.x }
+    if ($null -ne $Payload.y) { $y = [int]$Payload.y }
+    if (-not (Test-NexusPointInRect $x $y $Rect)) {
+        throw 'scroll coordinates are outside the target window'
+    }
+    if (-not [NexusWin32]::SetCursorPos($x, $y)) {
+        throw 'could not position pointer in target window'
+    }
+    switch ($directionValue) {
+        'UP' { [NexusWin32]::ScrollVertical(120) }
+        'DOWN' { [NexusWin32]::ScrollVertical(-120) }
+        'LEFT' { [NexusWin32]::ScrollHorizontal(-120) }
+        'RIGHT' { [NexusWin32]::ScrollHorizontal(120) }
+        default { throw "unsupported scroll direction '$directionValue'" }
+    }
+}
+
+function Invoke-NexusDrag {
+    param(
+        $Payload,
+        [hashtable]$Rect
+    )
+    if ($null -eq $Payload.x -or $null -eq $Payload.y -or $null -eq $Payload.to_x -or $null -eq $Payload.to_y) {
+        throw 'DRAG requires x/y/to_x/to_y'
+    }
+    $x = [int]$Payload.x
+    $y = [int]$Payload.y
+    $toX = [int]$Payload.to_x
+    $toY = [int]$Payload.to_y
+    if (-not (Test-NexusPointInRect $x $y $Rect) -or -not (Test-NexusPointInRect $toX $toY $Rect)) {
+        throw 'drag coordinates must stay inside the target window'
+    }
+    if (-not [NexusWin32]::SetCursorPos($x, $y)) {
+        throw 'could not position pointer at drag origin'
+    }
+    [NexusWin32]::mouse_event(0x0002, 0, 0, 0, [UIntPtr]::Zero)
+    try {
+        Start-Sleep -Milliseconds 40
+        if (-not [NexusWin32]::SetCursorPos($toX, $toY)) {
+            throw 'could not position pointer at drag destination'
+        }
+        Start-Sleep -Milliseconds 40
+    } finally {
+        [NexusWin32]::mouse_event(0x0004, 0, 0, 0, [UIntPtr]::Zero)
+    }
+}
+
 try {
     $operation = ([string]$request.operation).Trim().ToLowerInvariant()
 
@@ -465,12 +637,12 @@ try {
                     screenshot = $available
                     click = $available
                     set_value = $available
-                    type_text = $false
+                    type_text = $available
                     press_key = $false
                     hotkey = $false
                     paste_text = $false
-                    scroll = $false
-                    drag = $false
+                    scroll = $available
+                    drag = $available
                     window_management = $available
                 }
             }
@@ -541,12 +713,31 @@ try {
 
             switch ($kind) {
                 'CLICK' {
-                    $element = Get-NexusElement $handle $request.payload
-                    Invoke-NexusClick $element
+                    if (-not [string]::IsNullOrWhiteSpace(([string]$request.payload.element_id)) -or $null -ne $request.payload.element_index) {
+                        $element = Get-NexusElement $handle $request.payload
+                        Invoke-NexusClick $element
+                    } elseif ($null -ne $request.payload.x -and $null -ne $request.payload.y) {
+                        $rect = Get-NexusWindowRect $handle
+                        Invoke-NexusCoordinateClick ([int]$request.payload.x) ([int]$request.payload.y) $rect
+                    } else {
+                        throw 'CLICK requires an element or x/y coordinates'
+                    }
                 }
                 'SET_VALUE' {
                     $element = Get-NexusElement $handle $request.payload
                     Set-NexusValue $element ([string]$request.payload.text)
+                }
+                'TYPE_TEXT' {
+                    $element = Get-NexusElement $handle $request.payload
+                    Send-NexusText $element ([string]$request.payload.text)
+                }
+                'SCROLL' {
+                    $rect = Get-NexusWindowRect $handle
+                    Invoke-NexusScroll ([string]$request.payload.direction) $request.payload $rect
+                }
+                'DRAG' {
+                    $rect = Get-NexusWindowRect $handle
+                    Invoke-NexusDrag $request.payload $rect
                 }
                 'FOCUS_WINDOW' {
                     if ($request.payload.restore_window) {
