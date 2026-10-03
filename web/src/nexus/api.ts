@@ -376,6 +376,29 @@ export const nexus = {
         body: JSON.stringify({ target_id: targetId }),
       },
     ),
+  activateProjectExecutionTarget: (
+    projectId: string,
+    targetId: string,
+    approvalToken: string,
+  ) =>
+    request<import('../types').ManagedExecutionTargetBindingView>(
+      `/api/v1/projects/${projectId}/execution-targets/activate`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          target_id: targetId,
+          approval_token: approvalToken,
+        }),
+      },
+    ),
+  deactivateProjectExecutionTarget: (projectId: string) =>
+    request<{ project_id: string; effective_default_target: string }>(
+      `/api/v1/projects/${projectId}/execution-targets/deactivate`,
+      {
+        method: 'POST',
+        body: '{}',
+      },
+    ),
 
 
 
