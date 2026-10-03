@@ -1,10 +1,13 @@
 package app
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"net"
 	"strings"
 	"testing"
 
@@ -27,6 +30,46 @@ func (f *fakeRemoteBridgeLauncher) Launch(_ context.Context, options launcher.La
 		return nil, f.err
 	}
 	return f.session, nil
+}
+
+type fakeRemoteBridgeRuntimeClient struct {
+	status      protocol.StatusData
+	statusErr   error
+	resizeRows  int
+	resizeCols  int
+	resizeErr   error
+	attachResp  protocol.Response
+	attachErr   error
+	conn        net.Conn
+	reader      *bufio.Reader
+	closed      bool
+}
+
+func (f *fakeRemoteBridgeRuntimeClient) Status() (protocol.StatusData, error) {
+	return f.status, f.statusErr
+}
+
+func (f *fakeRemoteBridgeRuntimeClient) Resize(rows, cols int) error {
+	f.resizeRows, f.resizeCols = rows, cols
+	return f.resizeErr
+}
+
+func (f *fakeRemoteBridgeRuntimeClient) Send(command protocol.CommandType, _ any) (protocol.Response, error) {
+	if command != protocol.CmdAttach {
+		return protocol.Response{}, errors.New("unexpected fake runtime command")
+	}
+	return f.attachResp, f.attachErr
+}
+
+func (f *fakeRemoteBridgeRuntimeClient) ClearDeadline() error { return nil }
+func (f *fakeRemoteBridgeRuntimeClient) RawConn() net.Conn { return f.conn }
+func (f *fakeRemoteBridgeRuntimeClient) Reader() *bufio.Reader { return f.reader }
+func (f *fakeRemoteBridgeRuntimeClient) Close() error {
+	f.closed = true
+	if f.conn != nil {
+		return f.conn.Close()
+	}
+	return nil
 }
 
 func testRemoteBridgeServer(enabled bool, fake *fakeRemoteBridgeLauncher) remoteBridgeServer {
@@ -321,5 +364,247 @@ func TestRemoteBridgeLaunchErrorsAreRedacted(t *testing.T) {
 	}
 	if strings.Contains(response.Error, secret) || strings.Contains(response.Message, secret) {
 		t.Fatalf("bridge error leaked secret: %+v", response)
+	}
+}
+
+
+func TestRemoteBridgeStatusReturnsSanitizedRuntimeProjection(t *testing.T) {
+	fakeLauncher := &fakeRemoteBridgeLauncher{}
+	server := testRemoteBridgeServer(true, fakeLauncher)
+	session := registry.RuntimeSession{
+		RuntimeID:          "runtime-1",
+		AgentID:            "agent-1",
+		ProjectID:          "project-1",
+		ProviderID:         "codex",
+		ProfileID:          "work",
+		Model:              "gpt-5.6",
+		Workspace:          "/srv/project",
+		PID:                100,
+		ProviderGeneration: 10,
+		HostPID:            101,
+		HostGeneration:     11,
+		MachineID:          "machine-remote",
+		Transport:          "mock",
+		State:              registry.StateRunning,
+	}
+	runtimeClient := &fakeRemoteBridgeRuntimeClient{
+		status: protocol.StatusData{
+			RuntimeID:          session.RuntimeID,
+			ProviderID:         session.ProviderID,
+			ProfileID:          session.ProfileID,
+			Workspace:          session.Workspace,
+			PID:                session.PID,
+			ProviderGeneration: session.ProviderGeneration,
+			HostPID:            session.HostPID,
+			HostGeneration:     session.HostGeneration,
+			State:              string(registry.StateRunning),
+			ControlLevel:       string(registry.ControlLevelTerminal),
+			AttentionContext:   "must-not-cross-bridge",
+			HostBinaryPath:     "/secret/nexus",
+			ProviderBinaryPath: "/secret/codex",
+		},
+	}
+	server.lookup = func(id string) (registry.RuntimeSession, bool) { return session, id == session.RuntimeID }
+	server.dialRuntime = func(string) (remoteBridgeRuntimeClient, error) { return runtimeClient, nil }
+
+	response := bridgeResponse(t, server, bridgeRequest(
+		t,
+		"status-1",
+		protocol.CmdRemoteBridgeStatus,
+		protocol.RemoteBridgeRuntimePayload{RuntimeID: session.RuntimeID},
+	))
+	if !response.OK {
+		t.Fatalf("status failed: %+v", response)
+	}
+	raw := string(response.Data)
+	for _, forbidden := range []string{"must-not-cross-bridge", "/secret/nexus", "/secret/codex", "attention_context", "binary_path"} {
+		if strings.Contains(raw, forbidden) {
+			t.Fatalf("remote status leaked %q: %s", forbidden, raw)
+		}
+	}
+	var data protocol.RemoteBridgeRuntimeStatusData
+	if err := json.Unmarshal(response.Data, &data); err != nil {
+		t.Fatal(err)
+	}
+	if data.RuntimeID != session.RuntimeID || data.MachineID != session.MachineID ||
+		data.Provider != session.ProviderID || data.Profile != session.ProfileID ||
+		data.Model != session.Model || data.Workspace != session.Workspace ||
+		data.State != string(registry.StateRunning) || data.Transport != "nexus-remote-bridge" {
+		t.Fatalf("unexpected remote status projection: %+v", data)
+	}
+}
+
+func TestRemoteBridgeResizeUsesVerifiedRuntimeClient(t *testing.T) {
+	fakeLauncher := &fakeRemoteBridgeLauncher{}
+	server := testRemoteBridgeServer(true, fakeLauncher)
+	session := registry.RuntimeSession{
+		RuntimeID: "runtime-1",
+		ProviderID: "codex",
+		ProfileID: "work",
+		Workspace: "/srv/project",
+		PID: 100,
+		HostPID: 101,
+		Transport: "mock",
+		State: registry.StateRunning,
+	}
+	runtimeClient := &fakeRemoteBridgeRuntimeClient{
+		status: protocol.StatusData{
+			RuntimeID: session.RuntimeID,
+			PID: session.PID,
+			HostPID: session.HostPID,
+			State: string(registry.StateRunning),
+		},
+	}
+	server.lookup = func(id string) (registry.RuntimeSession, bool) { return session, id == session.RuntimeID }
+	server.dialRuntime = func(string) (remoteBridgeRuntimeClient, error) { return runtimeClient, nil }
+
+	response := bridgeResponse(t, server, bridgeRequest(
+		t,
+		"resize-1",
+		protocol.CmdRemoteBridgeResize,
+		protocol.RemoteBridgeResizePayload{RuntimeID: session.RuntimeID, Rows: 50, Cols: 160},
+	))
+	if !response.OK {
+		t.Fatalf("resize failed: %+v", response)
+	}
+	if runtimeClient.resizeRows != 50 || runtimeClient.resizeCols != 160 {
+		t.Fatalf("resize did not reach runtime: rows=%d cols=%d", runtimeClient.resizeRows, runtimeClient.resizeCols)
+	}
+}
+
+func TestRemoteBridgeAttachSwitchesFromJSONToByteTransparentStream(t *testing.T) {
+	fakeLauncher := &fakeRemoteBridgeLauncher{}
+	server := testRemoteBridgeServer(true, fakeLauncher)
+	session := registry.RuntimeSession{
+		RuntimeID: "runtime-1",
+		ProviderID: "codex",
+		ProfileID: "work",
+		Workspace: "/srv/project",
+		PID: 100,
+		HostPID: 101,
+		Transport: "mock",
+		State: registry.StateRunning,
+	}
+	bridgeConn, runtimeConn := net.Pipe()
+	defer runtimeConn.Close()
+	attachResponse, err := protocol.NewResponse("history-line\r\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtimeClient := &fakeRemoteBridgeRuntimeClient{
+		status: protocol.StatusData{
+			RuntimeID: session.RuntimeID,
+			PID: session.PID,
+			HostPID: session.HostPID,
+			State: string(registry.StateRunning),
+		},
+		attachResp: attachResponse,
+		conn: bridgeConn,
+		reader: bufio.NewReader(bridgeConn),
+	}
+	server.lookup = func(id string) (registry.RuntimeSession, bool) { return session, id == session.RuntimeID }
+	server.dialRuntime = func(string) (remoteBridgeRuntimeClient, error) { return runtimeClient, nil }
+
+	request := bridgeRequest(
+		t,
+		"attach-1",
+		protocol.CmdRemoteBridgeAttach,
+		protocol.RemoteBridgeRuntimePayload{RuntimeID: session.RuntimeID},
+	)
+	rawRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := bytes.NewBuffer(append(append(rawRequest, '\n'), []byte("typed-input")...))
+	var output bytes.Buffer
+
+	runtimeDone := make(chan error, 1)
+	go func() {
+		got := make([]byte, len("typed-input"))
+		if _, err := io.ReadFull(runtimeConn, got); err != nil {
+			runtimeDone <- err
+			return
+		}
+		if string(got) != "typed-input" {
+			runtimeDone <- errors.New("attach input was not byte transparent")
+			return
+		}
+		if _, err := runtimeConn.Write([]byte("provider-output")); err != nil {
+			runtimeDone <- err
+			return
+		}
+		_ = runtimeConn.Close()
+		runtimeDone <- nil
+	}()
+
+	if err := server.serveAttach(context.Background(), input, &output); err != nil {
+		t.Fatalf("attach bridge failed: %v", err)
+	}
+	if err := <-runtimeDone; err != nil {
+		t.Fatal(err)
+	}
+
+	wire := output.Bytes()
+	newline := bytes.IndexByte(wire, '\n')
+	if newline < 0 {
+		t.Fatalf("attach did not emit JSON acknowledgement: %q", wire)
+	}
+	var response protocol.Response
+	if err := json.Unmarshal(wire[:newline], &response); err != nil {
+		t.Fatalf("decode attach acknowledgement: %v", err)
+	}
+	if !response.OK || response.RuntimeID != session.RuntimeID {
+		t.Fatalf("unexpected attach acknowledgement: %+v", response)
+	}
+	var data protocol.RemoteBridgeAttachData
+	if err := json.Unmarshal(response.Data, &data); err != nil {
+		t.Fatal(err)
+	}
+	if data.History != "history-line\r\n" {
+		t.Fatalf("history=%q", data.History)
+	}
+	if got := string(wire[newline+1:]); got != "provider-output" {
+		t.Fatalf("live provider stream=%q", got)
+	}
+}
+
+func TestRemoteBridgeAttachRejectsIdentityDriftBeforeStreaming(t *testing.T) {
+	fakeLauncher := &fakeRemoteBridgeLauncher{}
+	server := testRemoteBridgeServer(true, fakeLauncher)
+	session := registry.RuntimeSession{
+		RuntimeID: "runtime-1",
+		ProviderID: "codex",
+		ProfileID: "work",
+		Workspace: "/srv/project",
+		PID: 100,
+		HostPID: 101,
+		Transport: "mock",
+		State: registry.StateRunning,
+	}
+	runtimeClient := &fakeRemoteBridgeRuntimeClient{
+		status: protocol.StatusData{
+			RuntimeID: session.RuntimeID,
+			PID: 999,
+			HostPID: session.HostPID,
+			State: string(registry.StateRunning),
+		},
+	}
+	server.lookup = func(id string) (registry.RuntimeSession, bool) { return session, id == session.RuntimeID }
+	server.dialRuntime = func(string) (remoteBridgeRuntimeClient, error) { return runtimeClient, nil }
+
+	request := bridgeRequest(
+		t,
+		"attach-drift",
+		protocol.CmdRemoteBridgeAttach,
+		protocol.RemoteBridgeRuntimePayload{RuntimeID: session.RuntimeID},
+	)
+	rawRequest, _ := json.Marshal(request)
+	var output bytes.Buffer
+	err := server.serveAttach(context.Background(), bytes.NewReader(append(rawRequest, '\n')), &output)
+	if err == nil {
+		t.Fatal("identity drift must reject attach")
+	}
+	if strings.Contains(output.String(), "provider-output") {
+		t.Fatal("attach streamed bytes after identity rejection")
 	}
 }
