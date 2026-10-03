@@ -71,6 +71,9 @@ const MaestroSurface = React.lazy(() =>
 const ProjectShellSurface = React.lazy(() =>
   import('../features/shell/ProjectShellSurface').then((m) => ({ default: m.ProjectShellSurface })),
 );
+const DesignModeSurface = React.lazy(() =>
+  import('../features/browser/DesignModeSurface').then((m) => ({ default: m.DesignModeSurface })),
+);
 const AgentTerminal = React.lazy(() =>
   import('../nexus/AgentTerminal').then((m) => ({ default: m.AgentTerminal })),
 );
@@ -417,6 +420,10 @@ export const WorkspaceSurfaceHost: React.FC<{
       ) : (
         <EmptyState title={t('surfaces.terminalUnavailable')} />
       );
+    }
+
+    if (surface.type === 'design-mode') {
+      return <DesignModeSurface projectId={project.id} agents={agents} />;
     }
 
     if (surface.type === 'resources') {
