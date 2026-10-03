@@ -11,10 +11,19 @@ import (
 type HelperProvider struct {
 	path     string
 	platform string
+	args     []string
 }
 
 func NewHelperProvider(path, platform string) Provider {
-	return &HelperProvider{path: path, platform: platform}
+	return NewHelperProviderWithArgs(path, platform)
+}
+
+func NewHelperProviderWithArgs(path, platform string, args ...string) Provider {
+	return &HelperProvider{
+		path:     path,
+		platform: platform,
+		args:     append([]string(nil), args...),
+	}
 }
 
 type helperRequest struct {
@@ -39,7 +48,7 @@ func (p *HelperProvider) call(ctx context.Context, operation string, payload int
 	if err != nil {
 		return helperEnvelope{}, err
 	}
-	cmd := exec.CommandContext(ctx, p.path)
+	cmd := exec.CommandContext(ctx, p.path, p.args...)
 	cmd.Stdin = bytes.NewReader(body)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
