@@ -250,6 +250,10 @@ func projectSubroute(path string) string {
 		return "commands"
 	case strings.HasSuffix(path, "/execution-targets/probe"):
 		return "execution-targets-probe"
+	case strings.HasSuffix(path, "/execution-targets/activate"):
+		return "execution-targets-activate"
+	case strings.HasSuffix(path, "/execution-targets/deactivate"):
+		return "execution-targets-deactivate"
 	case strings.HasSuffix(path, "/execution-targets"):
 		return "execution-targets"
 	case strings.Contains(path, "/design-mode"):
