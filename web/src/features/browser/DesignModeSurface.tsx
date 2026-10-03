@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Crosshair, ExternalLink, Send, Square, Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { nexus } from '../../nexus/api';
@@ -8,13 +8,13 @@ import styles from './DesignModeSurface.module.scss';
 function artifactText(artifact: UIContextArtifact): string {
   return [
     'Nexus UI Context Artifact',
-    \`URL: \${artifact.url}\`,
-    \`Selector: \${artifact.selector}\`,
-    artifact.text ? \`Text: \${artifact.text}\` : '',
+    `URL: ${artifact.url}`,
+    `Selector: ${artifact.selector}`,
+    artifact.text ? `Text: ${artifact.text}` : '',
     artifact.source_hints
-      ? \`Source hints: \${JSON.stringify(artifact.source_hints)}\`
+      ? `Source hints: ${JSON.stringify(artifact.source_hints)}`
       : '',
-    \`Computed styles: \${JSON.stringify(artifact.computed_styles || {})}\`,
+    `Computed styles: ${JSON.stringify(artifact.computed_styles || {})}`,
     'HTML:',
     artifact.html,
   ]
@@ -63,22 +63,25 @@ export const DesignModeSurface: React.FC<{
     };
   }, [projectId]);
 
-  const inspect = async (nextSelector: string) => {
-    const clean = nextSelector.trim();
-    if (!clean) return;
-    setBusy(true);
-    setError('');
-    setFeedback('');
-    try {
-      const next = await nexus.inspectDesignModeSelector(projectId, clean);
-      setSelector(next.selector);
-      setArtifact(next);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const inspect = useCallback(
+    async (nextSelector: string) => {
+      const clean = nextSelector.trim();
+      if (!clean) return;
+      setBusy(true);
+      setError('');
+      setFeedback('');
+      try {
+        const next = await nexus.inspectDesignModeSelector(projectId, clean);
+        setSelector(next.selector);
+        setArtifact(next);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [projectId],
+  );
 
   useEffect(() => {
     if (!picking) return;
@@ -114,7 +117,7 @@ export const DesignModeSurface: React.FC<{
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [picking, projectId]);
+  }, [picking, projectId, inspect]);
 
   const start = async () => {
     setBusy(true);
