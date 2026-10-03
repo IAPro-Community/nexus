@@ -220,6 +220,7 @@ func TestMissionRunnerBlocksCoordinationWithoutReplaySafetyProof(t *testing.T) {
 
 
 type computerCoordinationExecutionExecutor struct {
+	workspace    string
 	executeCalls int
 	reviewCalls  int
 }
@@ -231,13 +232,13 @@ func (e *computerCoordinationExecutionExecutor) Allocate(
 ) (AllocationResult, error) {
 	return AllocationResult{
 		AgentID:   "agent-source",
-		Workspace: "/tmp/nexus-computer-coordination",
+		Workspace: e.workspace,
 		ExecutionTarget: &ExecutionTarget{
 			ID:        "computer-local",
 			Kind:      ExecutionTargetLocal,
 			Adapter:   "nexus-computer",
 			Transport: "computer-use",
-			Workspace: "/tmp/nexus-computer-coordination",
+			Workspace: e.workspace,
 		},
 	}, nil
 }
@@ -278,10 +279,9 @@ func (e *computerCoordinationExecutionExecutor) Review(
 func TestMissionRunnerComputerCoordinationVerifiesWithoutCodeTesting(t *testing.T) {
 	ctx := context.Background()
 	repo := NewMemoryRunRepository()
-	executor := &computerCoordinationExecutionExecutor{}
-	r := NewMissionRunner(repo, executor)
-
 	workspace := t.TempDir()
+	executor := &computerCoordinationExecutionExecutor{workspace: workspace}
+	r := NewMissionRunner(repo, executor)
 	now := time.Now().UTC()
 	run := &MissionRun{
 		ID:          "run-computer-tool",
