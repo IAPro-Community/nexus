@@ -448,7 +448,13 @@ export const WorkspaceSurfaceHost: React.FC<{
     if (surface.type === 'sessions') return <SessionsSurface agents={agents} />;
 
     if (surface.type === 'settings')
-      return <SettingsSurface onTour={onTour} initialTab={settingsInitialTab} />;
+      return (
+        <SettingsSurface
+          onTour={onTour}
+          initialTab={settingsInitialTab}
+          projectId={project.id}
+        />
+      );
 
     if (surface.type === 'legacy-providers') {
       return (
