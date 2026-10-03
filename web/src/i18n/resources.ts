@@ -254,6 +254,7 @@ export const en = {
       providerUnavailable: 'native provider unavailable',
       featureDisabledHint:
         'Computer Control is disabled by feature flag. No observation or action will be sent to the native helper.',
+      restartRequired: 'Restart Nexus after setting the environment variable.',
       permissionsTitle: 'Session permissions',
       permissionsDescription:
         'These permissions are sent as the same AutonomyContract used by Nexus Missions.',
@@ -2356,6 +2357,7 @@ export const ptBR = {
       providerUnavailable: 'provider nativo indisponível',
       featureDisabledHint:
         'O Controle do Computador está desabilitado pela feature flag. Nenhuma observação ou ação será enviada ao helper nativo.',
+      restartRequired: 'Reinicie o Nexus depois de definir a variável de ambiente.',
       permissionsTitle: 'Permissões da sessão',
       permissionsDescription:
         'Estas permissões usam o mesmo AutonomyContract das Missions do Nexus.',
@@ -4470,6 +4472,7 @@ export const es = {
       providerUnavailable: 'proveedor nativo no disponible',
       featureDisabledHint:
         'El Control del equipo está deshabilitado por la feature flag. No se enviará ninguna observación ni acción al helper nativo.',
+      restartRequired: 'Reinicia Nexus después de definir la variable de entorno.',
       permissionsTitle: 'Permisos de la sesión',
       permissionsDescription:
         'Estos permisos usan el mismo AutonomyContract de las Missions de Nexus.',
