@@ -171,6 +171,35 @@ func (c *SSHBridgeClient) Status(ctx context.Context, runtimeID string) (protoco
 	return data, nil
 }
 
+func (c *SSHBridgeClient) Control(
+	ctx context.Context,
+	runtimeID string,
+	command protocol.CommandType,
+	payload any,
+) (protocol.Response, error) {
+	var raw json.RawMessage
+	if payload != nil {
+		encoded, err := json.Marshal(payload)
+		if err != nil {
+			return protocol.Response{}, err
+		}
+		raw = encoded
+	}
+	request := protocol.RemoteBridgeControlPayload{
+		RuntimeID: strings.TrimSpace(runtimeID),
+		Command:   command,
+		Payload:   raw,
+	}
+	if err := protocol.ValidateRemoteBridgeControl(request); err != nil {
+		return protocol.Response{}, err
+	}
+	var response protocol.Response
+	if err := c.roundTrip(ctx, protocol.CmdRemoteBridgeControl, request, &response); err != nil {
+		return protocol.Response{}, err
+	}
+	return response, nil
+}
+
 func (c *SSHBridgeClient) Resize(ctx context.Context, runtimeID string, rows, cols int) error {
 	payload := protocol.RemoteBridgeResizePayload{RuntimeID: runtimeID, Rows: rows, Cols: cols}
 	if err := protocol.ValidateRemoteBridgeResize(payload); err != nil {
