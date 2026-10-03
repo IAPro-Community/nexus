@@ -154,7 +154,7 @@
 
   &[data-active='true'] {
     background: var(--nx-accent-subtle);
-    border-color: var(--nx-accent);
+    border-color: var(--nx-success);
     color: var(--nx-accent-text);
     font-weight: 600;
   }
@@ -356,7 +356,7 @@
 .recoverOverlay {
   position: absolute;
   inset: 0;
-  background: rgba(9, 11, 16, 0.88);
+  background: var(--nx-terminal-overlay);
   backdrop-filter: blur(3px);
   display: flex;
   flex-direction: column;
