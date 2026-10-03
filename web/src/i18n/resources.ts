@@ -270,6 +270,21 @@ export const en = {
         'Data and settings remain on this computer.',
       ],
       statusVersion: 'Cloudflare tunnel v{{version}}',
+      targets: {
+        title: 'Execution targets',
+        description: 'Read-only preview for the active Project.',
+        declared: 'Declared default',
+        effective: 'Effective target',
+        flagEnabled: 'remote_execution enabled',
+        flagDisabled: 'remote_execution disabled',
+        default: 'declared default',
+        active: 'effective',
+        previewOnly:
+          'The repository declares a remote default, but Nexus keeps execution local until a managed remote runtime and explicit approval boundary are available.',
+        errors: {
+          load: 'Could not load project execution targets.',
+        },
+      },
       errors: {
         status: 'Failed to check tunnel status',
         start: 'Failed to start tunnel',
@@ -2286,6 +2301,21 @@ export const ptBR = {
         'Dados e configurações permanecem neste computador.',
       ],
       statusVersion: 'Cloudflare tunnel v{{version}}',
+      targets: {
+        title: 'Targets de execução',
+        description: 'Preview somente leitura do Projeto ativo.',
+        declared: 'Padrão declarado',
+        effective: 'Target efetivo',
+        flagEnabled: 'remote_execution habilitado',
+        flagDisabled: 'remote_execution desabilitado',
+        default: 'padrão declarado',
+        active: 'efetivo',
+        previewOnly:
+          'O repositório declara um target remoto como padrão, mas o Nexus mantém a execução local até existir um runtime remoto gerenciado e uma fronteira explícita de aprovação.',
+        errors: {
+          load: 'Não foi possível carregar os targets de execução do Projeto.',
+        },
+      },
       errors: {
         status: 'Falha ao verificar o status do tunnel',
         start: 'Falha ao iniciar o tunnel',
@@ -4315,6 +4345,21 @@ export const es = {
         'Los datos y la configuración permanecen en este equipo.',
       ],
       statusVersion: 'Túnel de Cloudflare v{{version}}',
+      targets: {
+        title: 'Targets de ejecución',
+        description: 'Vista previa de solo lectura para el Proyecto activo.',
+        declared: 'Predeterminado declarado',
+        effective: 'Target efectivo',
+        flagEnabled: 'remote_execution habilitado',
+        flagDisabled: 'remote_execution deshabilitado',
+        default: 'predeterminado declarado',
+        active: 'efectivo',
+        previewOnly:
+          'El repositorio declara un target remoto como predeterminado, pero Nexus mantiene la ejecución local hasta que exista un runtime remoto administrado y un límite explícito de aprobación.',
+        errors: {
+          load: 'No se pudieron cargar los targets de ejecución del Proyecto.',
+        },
+      },
       errors: {
         status: 'No se pudo comprobar el estado del túnel',
         start: 'No se pudo iniciar el túnel',
