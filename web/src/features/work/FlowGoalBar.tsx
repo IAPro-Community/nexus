@@ -224,6 +224,16 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                       {step.agent.reason}
                       {step.resource.reason ? ` · ${step.resource.reason}` : ''}
                     </small>
+                    {step.candidate_execution?.candidate_count > 1 && (
+                      <small className={styles.preflightCheckSub}>
+                        {t('flow.executionPreviewCandidates', {
+                          defaultValue:
+                            'Candidate Run · {{count}} independent implementations · APPLY after independent review',
+                          count: step.candidate_execution.candidate_count,
+                        })}{' '}
+                        · {step.candidate_execution.reason}
+                      </small>
+                    )}
                     {(step.blockers || []).length > 0 && (
                       <small className={styles.preflightCheckSub}>
                         {step.blockers?.join(' · ')}
