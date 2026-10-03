@@ -6,6 +6,28 @@ export const DEFAULT_TERMINAL_SCROLLBACK = 5000;
 const STORAGE_KEY = 'nx_terminal_font_size';
 const EVENT_NAME = 'nexus:terminal-font-size';
 
+export interface TerminalTheme {
+  background?: string;
+  foreground?: string;
+  cursor?: string;
+  selectionBackground?: string;
+}
+
+function terminalToken(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const value = window.getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || undefined;
+}
+
+export function getTerminalTheme(): TerminalTheme {
+  return {
+    background: terminalToken('--nx-terminal-bg'),
+    foreground: terminalToken('--nx-terminal-text'),
+    cursor: terminalToken('--nx-terminal-cursor'),
+    selectionBackground: terminalToken('--nx-terminal-selection'),
+  };
+}
+
 export function clampFontSize(size: number): number {
   if (Number.isNaN(size) || typeof size !== 'number') {
     return DEFAULT_TERMINAL_FONT_SIZE;
