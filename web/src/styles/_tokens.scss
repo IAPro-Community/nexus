@@ -5,8 +5,12 @@
   --nx-surface-1: var(--nx-surface);
   --nx-text-primary: var(--nx-text);
   --nx-text-muted: var(--nx-muted);
+  --nx-text-bright: var(--nx-text);
   --nx-border-subtle: var(--nx-border);
   --nx-accent-subtle: var(--nx-accent-soft);
+  --nx-accent-contrast: var(--nx-bg);
+  --nx-surface-raised: var(--nx-surface-2);
+  --nx-focus: var(--nx-accent);
   --nx-danger-border: var(--nx-danger);
   --nx-danger-subtle: var(--nx-danger-soft);
   --nx-radius-md: var(--nx-radius);
@@ -16,4 +20,8 @@
   --nx-space-3: 0.75rem;
   --nx-space-4: 1rem;
   --nx-focus-ring: 0 0 0 2px var(--nx-bg), 0 0 0 4px var(--nx-accent);
+  --nx-shadow-sm: 0 1px 3px rgb(0 0 0 / 0.16);
+  --nx-shadow-md: 0 4px 14px rgb(0 0 0 / 0.35);
+  --nx-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.45);
+  --nx-overlay-strong: color-mix(in srgb, var(--nx-bg) 88%, transparent);
 }
