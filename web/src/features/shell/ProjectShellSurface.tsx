@@ -9,7 +9,17 @@ export const ProjectShellSurface: React.FC<{
   liveTitleKey?: string;
   onRuntimeChanged?: () => void | Promise<void>;
   onRestart?: () => void | Promise<void>;
-}> = ({ runtimeId, title = 'Project Shell', liveTitleKey, onRuntimeChanged, onRestart }) => {
+  initialInput?: string;
+  onInitialInputConsumed?: () => void;
+}> = ({
+  runtimeId,
+  title = 'Project Shell',
+  liveTitleKey,
+  onRuntimeChanged,
+  onRestart,
+  initialInput,
+  onInitialInputConsumed,
+}) => {
   const presentation = useWorkspacePresentation();
   const hideHeader = presentation.state.mode === 'DESKTOP' || presentation.state.mode === 'MOSAIC';
   return (
@@ -30,6 +40,8 @@ export const ProjectShellSurface: React.FC<{
           await onRuntimeChanged?.();
         }}
         onRestart={onRestart}
+        initialInput={initialInput}
+        onInitialInputConsumed={onInitialInputConsumed}
       />
     </div>
   );

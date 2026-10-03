@@ -269,6 +269,12 @@ export const WorkspaceSurfaceHost: React.FC<{
           runtimeId={surface.data.runtimeId}
           title={surface.title}
           liveTitleKey={surfaceViewId(surface)}
+          initialInput={surface.data?.initialInput}
+          onInitialInputConsumed={() => {
+            const nextData = { ...(surface.data || {}) };
+            delete nextData.initialInput;
+            updateSurface?.(surface.id, { data: nextData });
+          }}
           onRuntimeChanged={async () => {
             await refreshGlobal();
           }}

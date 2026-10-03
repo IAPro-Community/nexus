@@ -25,3 +25,19 @@ execution:
 
 routing:
   strategy: quality-first
+
+commands:
+  - id: quality
+    label: Quality checks
+    description: Prepare the quality command in a supervised Project Shell.
+    command: make quality
+    keywords:
+      - test
+      - lint
+  - id: unit-tests
+    label: Unit tests
+    description: Prepare the Go unit-test command. Review it and press Enter to run.
+    command: go test ./...
+    keywords:
+      - test
+      - go

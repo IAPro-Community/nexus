@@ -46,6 +46,9 @@ interface TerminalPaneProps {
   onUpdateTitle?: (id: string, newTitle: string) => void;
   onClose?: () => void;
   onRestart?: () => void | Promise<void>;
+  /** One-shot text inserted after this terminal acquires CONTROL. Never appends Enter. */
+  initialInput?: string;
+  onInitialInputConsumed?: () => void;
 }
 
 export const TerminalPane: React.FC<TerminalPaneProps> = ({
@@ -58,6 +61,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   onUpdateTitle,
   onClose,
   onRestart,
+  initialInput,
+  onInitialInputConsumed,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
@@ -182,6 +187,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     let disposed = false;
     let sessionReady = false;
+    let initialInputSent = false;
     // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
     const protocolScrubber = new ProtocolScrubber();
     const panel = containerRef.current.closest<HTMLElement>('.nx-workspace-panel');
@@ -298,6 +304,14 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
+    const maybeSendInitialInput = () => {
+      if (disposed || initialInputSent || !initialInput) return;
+      if (ws.readyState !== WebSocket.OPEN) return;
+      initialInputSent = true;
+      ws.send(JSON.stringify({ type: 'input', data: initialInput }));
+      onInitialInputConsumed?.();
+    };
+
     ws.onopen = () => {
       if (disposed) return;
       sessionReady = true;
@@ -328,7 +342,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
             writeTerminalOutput(cleaned);
           }
         } else if (msg.type === 'lease') {
-          setRole(msg.role === 'CONTROL' ? 'CONTROL' : 'VIEW_ONLY');
+          const nextRole = msg.role === 'CONTROL' ? 'CONTROL' : 'VIEW_ONLY';
+          setRole(nextRole);
+          if (nextRole === 'CONTROL') maybeSendInitialInput();
         } else if (msg.type === 'title' && msg.data) {
           const next = String(msg.data).trim();
           publishChrome(extractOscTitle(next) || next);
@@ -459,7 +475,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         // ignore
       }
     };
-  }, [runtimeId, connectNonce]);
+  }, [runtimeId, connectNonce, initialInput, onInitialInputConsumed]);
 
   const handleRestart = async () => {
     if (restarting) return;

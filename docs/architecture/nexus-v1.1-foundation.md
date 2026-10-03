@@ -119,3 +119,14 @@ constraint after quality eligibility; it is not the reason to start with the che
 The fan-out is capped at three and remains one for review/verification/documentation work. Easy,
 high-confidence work also remains one. When candidate execution is enabled, Execution Preview binds
 the planned candidate count into its approval token so GO cannot silently expand cost after approval.
+
+## Quick Commands
+
+Project Quick Commands are declared in `nexus.yaml` and projected into the existing Command Palette.
+Nexus does not add a second shell executor. Selecting a Quick Command starts the existing supervised
+Project Shell and inserts the validated single-line command after the terminal acquires its normal
+writer lease. Nexus does not append Enter in this rollout.
+
+The prefill is consumed from the workspace View immediately after insertion. A stale layout may at
+worst re-insert text after a crash; it cannot execute a command on browser refresh. Automatic
+execution is intentionally deferred until it has an explicit confirmation/audit contract.

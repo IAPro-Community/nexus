@@ -105,6 +105,7 @@ export function projectShellSurface(
   projectId: string,
   runtimeId: string,
   title = 'Project Shell',
+  initialInput = '',
 ): WorkspaceSurface {
   const logicalKey = `shell:${runtimeId}`;
   return {
@@ -114,7 +115,7 @@ export function projectShellSurface(
     type: 'project-shell',
     title,
     subtitle: 'Project shell',
-    data: { projectId, runtimeId },
+    data: { projectId, runtimeId, ...(initialInput ? { initialInput } : {}) },
     closable: true,
   };
 }

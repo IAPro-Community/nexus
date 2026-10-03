@@ -75,7 +75,7 @@ import { attentionFingerprintOf, buildDocumentTitle, isHonestNeedsUser } from '.
 import { planFocusAttention, type RadarRuntimeItem } from './attentionRadarModel';
 import { resolveProjectSelection, resolveStaleProjectRoute } from './projectSelection';
 import { useNexusData } from './useNexusData';
-import type { Agent, ExecutionRole, MissionRun, Project } from '../types';
+import type { Agent, ExecutionRole, MissionRun, Project, ProjectQuickCommand } from '../types';
 import { currentRuntimeForAgent } from './runtimeAgentMapping';
 import { useTranslation } from 'react-i18next';
 import { shouldMarkUnread, surfaceTitleFromAgent } from '../workspace/surfaceAttention';
@@ -360,6 +360,7 @@ const WorkspaceCoordinator: React.FC<{
   const [flowRuns, setFlowRuns] = useState<MissionRun[]>([]);
   const [allFlowRuns, setAllFlowRuns] = useState<MissionRun[]>([]);
   const [executionRoles, setExecutionRoles] = useState<ExecutionRole[]>([]);
+  const [projectCommands, setProjectCommands] = useState<ProjectQuickCommand[]>([]);
   const [closeTarget, setCloseTarget] = useState<WorkspaceSurface | null>(null);
   const shellInFlight = useRef(false);
 
@@ -377,6 +378,21 @@ const WorkspaceCoordinator: React.FC<{
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    void nexus
+      .getProjectCommands(project.id)
+      .then((result) => {
+        if (mounted) setProjectCommands(Array.isArray(result.commands) ? result.commands : []);
+      })
+      .catch(() => {
+        if (mounted) setProjectCommands([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [project.id]);
 
   useEffect(() => {
     let mounted = true;
@@ -530,6 +546,32 @@ const WorkspaceCoordinator: React.FC<{
     }
   }, [project.id, workspace, data]);
 
+  const projectCommand = useCallback(
+    async (command: ProjectQuickCommand) => {
+      if (shellInFlight.current) return;
+      shellInFlight.current = true;
+      setShellError('');
+      try {
+        const result = await nexus.startProjectShell(project.id);
+        workspace.open(
+          projectShellSurface(
+            project.id,
+            result.runtime.runtime_id,
+            `Command · ${command.label}`,
+            command.command,
+          ),
+        );
+        workspace.open(projectSurface(project.id, 'terminals'));
+        await data.refreshGlobal().catch(() => undefined);
+      } catch (error) {
+        setShellError(error instanceof Error ? error.message : String(error));
+      } finally {
+        shellInFlight.current = false;
+      }
+    },
+    [project.id, workspace, data],
+  );
+
   const activeAgentRuntimeId = useMemo(() => {
     const activeViewId = presentation.state.activePtyViewId;
     if (!activeViewId) return '';
@@ -599,6 +641,14 @@ const WorkspaceCoordinator: React.FC<{
         keywords: ['shell', 'terminal', 'bash', 'powershell'],
         run: () => void shell(),
       },
+      ...projectCommands.map((command) => ({
+        id: `project-command-${command.id}`,
+        label: command.label,
+        group: t('commands.projectCommands'),
+        description: command.description || command.command,
+        keywords: ['command', 'quick', 'shell', ...(command.keywords || [])],
+        run: () => void projectCommand(command),
+      })),
       {
         id: 'agents',
         label: t('commands.open', { name: t('nav.agents') }),
@@ -805,6 +855,8 @@ const WorkspaceCoordinator: React.FC<{
       terminal,
       config,
       shell,
+      projectCommand,
+      projectCommands,
     ],
   );
 
