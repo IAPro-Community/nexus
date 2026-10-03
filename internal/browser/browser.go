@@ -100,6 +100,56 @@ func Open(args []string) error {
 	return nil
 }
 
+// ChromiumExecutable returns one installed Chromium-family browser that can
+// expose the DevTools protocol. It is shared by normal app-window launch and
+// Nexus 1.1 Design Mode so browser discovery has one authority.
+func ChromiumExecutable() string {
+	candidates := []string{}
+	switch stdruntime.GOOS {
+	case "windows":
+		candidates = append(candidates,
+			"chrome.exe", "msedge.exe", "chromium.exe", "brave.exe",
+		)
+		for _, root := range []string{os.Getenv("PROGRAMFILES"), os.Getenv("PROGRAMFILES(X86)"), os.Getenv("LOCALAPPDATA")} {
+			if root == "" {
+				continue
+			}
+			candidates = append(candidates,
+				filepath.Join(root, "Google", "Chrome", "Application", "chrome.exe"),
+				filepath.Join(root, "Microsoft", "Edge", "Application", "msedge.exe"),
+				filepath.Join(root, "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+			)
+		}
+	case "darwin":
+		candidates = append(candidates,
+			"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+			"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+			"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+			"google-chrome", "chromium", "brave",
+		)
+	default:
+		candidates = append(candidates,
+			"/usr/bin/google-chrome",
+			"/usr/bin/chromium",
+			"/usr/bin/chromium-browser",
+			"/usr/bin/brave-browser",
+			"google-chrome", "chromium", "chromium-browser", "brave-browser", "brave",
+		)
+	}
+	for _, candidate := range candidates {
+		if filepath.IsAbs(candidate) {
+			if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+				return candidate
+			}
+			continue
+		}
+		if path, err := exec.LookPath(candidate); err == nil {
+			return path
+		}
+	}
+	return ""
+}
+
 func startBrowser(path, url string) error {
 	c := exec.Command(path, url)
 	if hostBus := os.Getenv("AI_HOST_DBUS_SESSION_BUS_ADDRESS"); hostBus != "" {
@@ -130,39 +180,22 @@ func OpenAppWindow(url string) error {
 	_ = os.MkdirAll(userDataDir, 0700)
 	_ = os.Chmod(userDataDir, 0700)
 
-	chromeCandidates := []string{
-		"/usr/bin/google-chrome",
-		"/usr/bin/chromium",
-		"/usr/bin/chromium-browser",
-		"/usr/bin/brave-browser",
-		"google-chrome",
-		"chromium",
-		"brave",
+	path := ChromiumExecutable()
+	if path == "" {
+		return Open([]string{url})
 	}
-
-	for _, cmd := range chromeCandidates {
-		path := cmd
-		if _, err := os.Stat(cmd); err != nil {
-			looked, lookErr := exec.LookPath(cmd)
-			if lookErr != nil {
-				continue
-			}
-			path = looked
-		}
-		args := []string{
-			fmt.Sprintf("--app=%s", url),
-			fmt.Sprintf("--user-data-dir=%s", userDataDir),
-			"--class=iapro-nexus",
-			"--name=iapro-nexus",
-		}
-		c := exec.Command(path, args...)
-		if hostBus := os.Getenv("AI_HOST_DBUS_SESSION_BUS_ADDRESS"); hostBus != "" {
-			c.Env = append(os.Environ(), "DBUS_SESSION_BUS_ADDRESS="+hostBus)
-		}
-		if err := c.Start(); err == nil {
-			return nil
-		}
+	args := []string{
+		fmt.Sprintf("--app=%s", url),
+		fmt.Sprintf("--user-data-dir=%s", userDataDir),
+		"--class=iapro-nexus",
+		"--name=iapro-nexus",
 	}
-
+	c := exec.Command(path, args...)
+	if hostBus := os.Getenv("AI_HOST_DBUS_SESSION_BUS_ADDRESS"); hostBus != "" {
+		c.Env = append(os.Environ(), "DBUS_SESSION_BUS_ADDRESS="+hostBus)
+	}
+	if err := c.Start(); err == nil {
+		return nil
+	}
 	return Open([]string{url})
 }

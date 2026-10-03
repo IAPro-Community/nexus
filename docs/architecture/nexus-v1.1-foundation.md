@@ -130,3 +130,18 @@ writer lease. Nexus does not append Enter in this rollout.
 The prefill is consumed from the workspace View immediately after insertion. A stale layout may at
 worst re-insert text after a crash; it cannot execute a command on browser refresh. Automatic
 execution is intentionally deferred until it has an explicit confirmation/audit contract.
+
+## Browser Design Mode runtime
+
+The Design Mode runtime reuses the Chromium DevTools Protocol over Nexus' existing
+`gorilla/websocket` dependency. Playwright remains a development/QA dependency and is not required
+by the shipped binary.
+
+`StartDesignBrowser` launches an isolated Chromium profile bound to loopback DevTools only.
+`InspectSelector` produces a bounded `UIContextArtifact` containing outer HTML, a small parent
+neighborhood, selected computed styles, text, element bounds, optional source/test attributes, and
+a cropped PNG under the Nexus data directory. The browser layer is read-only in this milestone:
+it does not edit DOM/source or synthesize clicks/typing.
+
+The public UI/API picker remains feature-gated by `browser_design_mode`; this Core layer is the
+reusable substrate for that picker and for future local/remote browser targets.
