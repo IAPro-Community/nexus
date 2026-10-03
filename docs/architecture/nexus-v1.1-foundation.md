@@ -110,6 +110,23 @@ Existing v1 custom targets remain valid. SSH configured through the established 
 runtime therefore keeps its tested launcher semantics while v1.1 gains durable target identity
 for remote scheduling, node enrollment and computer-use routing.
 
+### Project execution target catalog
+
+`nexus.yaml` may declare named SSH targets under `execution.targets`. The catalog is strict:
+target IDs are unique, `local` is reserved, the target workspace/location are bounded, templates
+use the existing non-shell argv grammar, the executable must resolve to `ssh`, and values that
+match Nexus secret-redaction patterns are rejected. SSH authentication remains owned by the host
+SSH configuration/agent; passwords, private keys and tokens do not belong in the manifest.
+
+This catalog is intentionally **declarative in the first rollout**. Loading
+`defaultTarget: devbox` does not silently move an Agent or Mission to another machine. Explicit
+target activation is a separate step behind `remote_execution`, so a repository checkout cannot
+turn into remote code execution merely by adding `nexus.yaml`.
+
+Legacy per-Agent `command_template` targets remain compatible and continue to use the v1 launcher
+path. The managed target resolver will build on the catalog rather than replacing that compatibility
+surface.
+
 ## Candidate execution policy
 
 Candidate Runs use a bounded decision before any extra provider work is created. The decision is
