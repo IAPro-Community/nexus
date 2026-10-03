@@ -21,6 +21,7 @@ import {
   DEFAULT_TERMINAL_SCROLLBACK,
   adjustTerminalFontSize,
   getStoredTerminalFontSize,
+  getTerminalTheme,
   resetTerminalFontSize,
   shouldAutoScrollToBottom,
   storeTerminalFontSize,
@@ -129,12 +130,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     // Initialize xterm
     const term = new Terminal({
-      theme: {
-        background: '#090d16',
-        foreground: '#e2e8f0',
-        cursor: '#38bdf8',
-        selectionBackground: 'rgba(56, 189, 248, 0.3)',
-      },
+      theme: getTerminalTheme(),
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
       fontSize: initialFontSizeRef.current,
       lineHeight: 1.2,
