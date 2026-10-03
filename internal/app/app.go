@@ -209,6 +209,8 @@ func Run(args []string) error {
 		return tunnelCmd(args[1:])
 	case "__control-host":
 		return controlHostCmd(args[1:])
+	case "__remote-bridge":
+		return remoteBridgeCmd(args[1:])
 	case "codex", "agy", "claude", "opencode", "gemini", "cursor":
 		prov := args[0]
 		if flags.IsHelpFlag(args[1:]) {
