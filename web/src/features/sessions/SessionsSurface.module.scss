@@ -181,23 +181,23 @@
   flex-shrink: 0;
 
   &[data-tone='start'] {
-    background: rgba(34, 197, 94, 0.12);
-    color: #22c55e;
+    background: var(--nx-success-soft);
+    color: var(--nx-success);
   }
 
   &[data-tone='rate_limit'] {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
+    background: var(--nx-danger-soft);
+    color: var(--nx-danger);
   }
 
   &[data-tone='fallback'] {
-    background: rgba(245, 158, 11, 0.12);
-    color: #f59e0b;
+    background: var(--nx-warning-soft);
+    color: var(--nx-warning);
   }
 
   &[data-tone='quota'] {
-    background: rgba(59, 130, 246, 0.12);
-    color: #3b82f6;
+    background: var(--nx-info-soft);
+    color: var(--nx-info);
   }
 
   &[data-tone='default'] {
