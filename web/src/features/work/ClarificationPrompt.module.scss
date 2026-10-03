@@ -9,7 +9,7 @@
 }
 
 .root[data-severity='BLOCKING'] {
-  border-color: color-mix(in srgb, var(--nx-danger, #c44) 55%, var(--nx-border));
+  border-color: color-mix(in srgb, var(--nx-danger) 55%, var(--nx-border));
 }
 
 .question {
