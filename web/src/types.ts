@@ -1442,6 +1442,8 @@ export interface ComputerUseStatus {
   feature_enabled: boolean;
   capabilities: ComputerCapabilities;
   permissions: ComputerPermissionStatus;
+  enable_environment?: string;
+  restart_required?: boolean;
 }
 
 export interface ComputerAppInfo {
