@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/nexus"
@@ -286,6 +288,42 @@ func (h *NexusHandler) handleProjectExecutionTargets(w http.ResponseWriter, r *h
 		return
 	}
 	writeJSON(w, http.StatusOK, catalog)
+}
+
+// handleProjectExecutionTargetProbe POST /api/v1/projects/{id}/execution-targets/probe
+// performs an explicit read-only SSH handshake for one manifest-declared target.
+func (h *NexusHandler) handleProjectExecutionTargetProbe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project id")
+		return
+	}
+	var body struct {
+		TargetID string `json:"target_id"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 64<<10)).Decode(&body); err != nil || strings.TrimSpace(body.TargetID) == "" {
+		writeError(w, http.StatusBadRequest, "target_id is required")
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	probe, err := h.nexus.ProbeProjectExecutionTarget(ctx, projectID, body.TargetID)
+	switch {
+	case err == nil:
+		writeJSON(w, http.StatusOK, probe)
+	case errors.Is(err, store.ErrNotFound):
+		writeError(w, http.StatusNotFound, "project execution target not found")
+	case errors.Is(err, nexus.ErrManagedRemoteExecutionDisabled),
+		errors.Is(err, nexus.ErrExecutionTargetIdentityMismatch):
+		writeError(w, http.StatusConflict, err.Error())
+	default:
+		writeError(w, http.StatusBadGateway, err.Error())
+	}
 }
 
 // handleProjectCommands GET /api/v1/projects/{id}/commands exposes only the
