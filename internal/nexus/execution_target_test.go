@@ -101,7 +101,6 @@ execution:
       location: devbox
       machineId: machine-devbox
       workspace: /srv/project
-      commandTemplate: ssh -tt devbox {provider} {args}
 `
 	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte(manifest), 0o600); err != nil {
 		t.Fatal(err)
@@ -147,7 +146,6 @@ execution:
       kind: ssh
       location: devbox
       workspace: /srv/project
-      commandTemplate: ssh devbox {provider} {args}
 `
 	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte(manifest), 0o600); err != nil {
 		t.Fatal(err)
