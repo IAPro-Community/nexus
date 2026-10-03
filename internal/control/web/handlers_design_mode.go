@@ -14,6 +14,7 @@ import (
 
 	nexusbrowser "github.com/IAPro-Community/nexus/internal/browser"
 	"github.com/IAPro-Community/nexus/internal/core/flags"
+	"github.com/IAPro-Community/nexus/internal/core/security"
 )
 
 type projectDesignBrowser struct {
@@ -248,19 +249,23 @@ func (h *NexusHandler) handleProjectDesignMode(w http.ResponseWriter, r *http.Re
 			return
 		}
 		ref := h.designMode.registerScreenshot(projectID, artifact.ScreenshotPath)
+		sourceHints := make(map[string]string, len(artifact.SourceHints))
+		for key, value := range artifact.SourceHints {
+			sourceHints[key] = security.Redact(value)
+		}
 		writeJSON(w, http.StatusOK, designModeArtifactResponse{
-			Version: artifact.Version,
-			URL: artifact.URL,
-			Title: artifact.Title,
-			Selector: artifact.Selector,
-			HTML: artifact.HTML,
-			Neighborhood: artifact.Neighborhood,
-			Text: artifact.Text,
+			Version:        artifact.Version,
+			URL:            security.Redact(artifact.URL),
+			Title:          security.Redact(artifact.Title),
+			Selector:       security.Redact(artifact.Selector),
+			HTML:           security.Redact(artifact.HTML),
+			Neighborhood:   security.Redact(artifact.Neighborhood),
+			Text:           security.Redact(artifact.Text),
 			ComputedStyles: artifact.ComputedStyles,
-			Bounds: artifact.Bounds,
-			SourceHints: artifact.SourceHints,
-			ScreenshotRef: ref,
-			CapturedAt: artifact.CapturedAt,
+			Bounds:         artifact.Bounds,
+			SourceHints:    sourceHints,
+			ScreenshotRef:  ref,
+			CapturedAt:     artifact.CapturedAt,
 		})
 		return
 
