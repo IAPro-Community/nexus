@@ -65,6 +65,7 @@ func TestProjectSubrouteClassification(t *testing.T) {
 		"/api/v1/projects/proj-1/open-os":      "open-os",
 		"/api/v1/projects/proj-1/commands":     "commands",
 		"/api/v1/projects/proj-1/execution-targets": "execution-targets",
+		"/api/v1/projects/proj-1/execution-targets/probe": "execution-targets-probe",
 		"/api/v1/projects/proj-1/design-mode/status": "design-mode",
 		"/api/v1/projects/proj-1/git/branches": "git-branches",
 		"/api/v1/projects/proj-1/git/changes":  "git-changes",
