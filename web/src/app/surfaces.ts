@@ -11,6 +11,7 @@ export type ProjectSurfaceKind =
   | 'sessions'
   | 'settings'
   | 'resources'
+  | 'design-mode'
   | 'legacy-runtimes'
   | 'legacy-providers'
   | 'legacy-events';
@@ -26,6 +27,7 @@ const labels: Record<ProjectSurfaceKind, string> = {
   sessions: 'Sessions',
   settings: 'Settings',
   resources: 'Resources',
+  'design-mode': 'Design Mode',
   'legacy-runtimes': 'Runtime Control',
   'legacy-providers': 'Providers',
   'legacy-events': 'Events',
