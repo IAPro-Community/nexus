@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -19,10 +20,12 @@ import (
 type CoordinationOperation string
 
 const (
-	CoordinationNeedInfo        CoordinationOperation = "NEED_INFO"
-	CoordinationDelegate        CoordinationOperation = "DELEGATE"
-	CoordinationArtifactRequest CoordinationOperation = "ARTIFACT_REQUEST"
-	CoordinationReviewRequest   CoordinationOperation = "REVIEW_REQUEST"
+	CoordinationNeedInfo         CoordinationOperation = "NEED_INFO"
+	CoordinationDelegate         CoordinationOperation = "DELEGATE"
+	CoordinationArtifactRequest  CoordinationOperation = "ARTIFACT_REQUEST"
+	CoordinationReviewRequest    CoordinationOperation = "REVIEW_REQUEST"
+	CoordinationComputerSnapshot CoordinationOperation = "COMPUTER_SNAPSHOT"
+	CoordinationComputerAction   CoordinationOperation = "COMPUTER_ACTION"
 )
 
 // CoordinationStatus is the durable lifecycle of a coordination request.
@@ -45,6 +48,7 @@ const (
 	maxCoordinationPreferenceBytes    = 256
 	maxCoordinationListItems          = 16
 	maxCoordinationListItemBytes      = 1024
+	maxCoordinationToolPayloadBytes   = 16 * 1024
 )
 
 // CoordinationRequest is a Mission-owned request raised by an executing Agent.
@@ -62,6 +66,7 @@ type CoordinationRequest struct {
 	PreferredProvider    string                `json:"preferred_provider,omitempty"`
 	RequiredCapabilities []string              `json:"required_capabilities,omitempty"`
 	ArtifactRefs         []string              `json:"artifact_refs,omitempty"`
+	ToolPayload          json.RawMessage       `json:"tool_payload,omitempty"`
 	Status               CoordinationStatus    `json:"status"`
 	ChildPackageID       string                `json:"child_package_id,omitempty"`
 	MaterializedAt       *time.Time            `json:"materialized_at,omitempty"`
@@ -103,7 +108,8 @@ func ValidateCoordinationRequest(req CoordinationRequest) error {
 		return fmt.Errorf("coordination source_package_id is required")
 	}
 	switch req.Operation {
-	case CoordinationNeedInfo, CoordinationDelegate, CoordinationArtifactRequest, CoordinationReviewRequest:
+	case CoordinationNeedInfo, CoordinationDelegate, CoordinationArtifactRequest, CoordinationReviewRequest,
+		CoordinationComputerSnapshot, CoordinationComputerAction:
 	default:
 		return fmt.Errorf("unsupported coordination operation %q", req.Operation)
 	}
@@ -112,6 +118,23 @@ func ValidateCoordinationRequest(req CoordinationRequest) error {
 	}
 	if req.Operation == CoordinationDelegate && strings.TrimSpace(req.Objective) == "" {
 		return fmt.Errorf("DELEGATE coordination requires objective")
+	}
+	switch req.Operation {
+	case CoordinationComputerSnapshot, CoordinationComputerAction:
+		if len(req.ToolPayload) == 0 {
+			return fmt.Errorf("%s coordination requires tool_payload", req.Operation)
+		}
+		if len(req.ToolPayload) > maxCoordinationToolPayloadBytes {
+			return fmt.Errorf("coordination tool_payload exceeds %d bytes", maxCoordinationToolPayloadBytes)
+		}
+		trimmed := strings.TrimSpace(string(req.ToolPayload))
+		if !json.Valid(req.ToolPayload) || !strings.HasPrefix(trimmed, "{") {
+			return fmt.Errorf("coordination tool_payload must be a JSON object")
+		}
+	default:
+		if len(req.ToolPayload) != 0 {
+			return fmt.Errorf("%s coordination does not accept tool_payload", req.Operation)
+		}
 	}
 	for name, value := range map[string]string{
 		"subject":            req.Subject,
@@ -154,13 +177,30 @@ func coordinationSemanticallyEqual(left, right CoordinationRequest) bool {
 		left.PreferredRole == right.PreferredRole &&
 		left.PreferredProvider == right.PreferredProvider &&
 		slices.Equal(left.RequiredCapabilities, right.RequiredCapabilities) &&
-		slices.Equal(left.ArtifactRefs, right.ArtifactRefs)
+		slices.Equal(left.ArtifactRefs, right.ArtifactRefs) &&
+		coordinationToolPayloadEqual(left.ToolPayload, right.ToolPayload)
+}
+
+func canonicalCoordinationToolPayload(raw json.RawMessage) json.RawMessage {
+	if len(raw) == 0 {
+		return nil
+	}
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, raw); err != nil {
+		return append(json.RawMessage(nil), raw...)
+	}
+	return append(json.RawMessage(nil), compact.Bytes()...)
+}
+
+func coordinationToolPayloadEqual(left, right json.RawMessage) bool {
+	return bytes.Equal(canonicalCoordinationToolPayload(left), canonicalCoordinationToolPayload(right))
 }
 
 func cloneCoordinationRequest(in CoordinationRequest) CoordinationRequest {
 	out := in
 	out.RequiredCapabilities = append([]string(nil), in.RequiredCapabilities...)
 	out.ArtifactRefs = append([]string(nil), in.ArtifactRefs...)
+	out.ToolPayload = append(json.RawMessage(nil), in.ToolPayload...)
 	return out
 }
 
@@ -179,11 +219,13 @@ func coordinationRequestID(req CoordinationRequest) string {
 		PreferredProvider    string                `json:"preferred_provider,omitempty"`
 		RequiredCapabilities []string              `json:"required_capabilities,omitempty"`
 		ArtifactRefs         []string              `json:"artifact_refs,omitempty"`
+		ToolPayload          json.RawMessage       `json:"tool_payload,omitempty"`
 	}{
 		RunID: req.RunID, SourcePackageID: req.SourcePackageID, SourceAgentID: req.SourceAgentID,
 		Operation: req.Operation, Subject: strings.TrimSpace(req.Subject), Objective: strings.TrimSpace(req.Objective),
 		PreferredRole: strings.TrimSpace(req.PreferredRole), PreferredProvider: strings.TrimSpace(req.PreferredProvider),
 		RequiredCapabilities: req.RequiredCapabilities, ArtifactRefs: req.ArtifactRefs,
+		ToolPayload: canonicalCoordinationToolPayload(req.ToolPayload),
 	})
 	sum := sha256.Sum256(payload)
 	return "coordreq_" + hex.EncodeToString(sum[:8])
@@ -347,6 +389,8 @@ func defaultCoordinationRole(operation CoordinationOperation) string {
 		return "investigator"
 	case CoordinationReviewRequest:
 		return "reviewer"
+	case CoordinationComputerSnapshot, CoordinationComputerAction:
+		return "investigator"
 	case CoordinationDelegate:
 		return "implementer"
 	default:
@@ -428,6 +472,7 @@ func materializeCoordinationWorkInRun(run *MissionRun, requestID string) (*Packa
 		"source_agent_id":         req.SourceAgentID,
 		"artifact_refs":           req.ArtifactRefs,
 		"required_capabilities":   req.RequiredCapabilities,
+		"tool_payload":            canonicalCoordinationToolPayload(req.ToolPayload),
 	})
 	now := time.Now().UTC()
 	child := PackageRun{
