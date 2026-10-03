@@ -1775,6 +1775,7 @@ export interface ExecutionTaskRequirements {
   desired_strengths?: string[];
   constraints?: string[];
   estimated_complexity?: string;
+  estimated_risk?: string;
   estimated_tokens?: number;
   requires_decomposition?: boolean;
   confidence?: string;
@@ -1816,6 +1817,15 @@ export interface PreviewModelDecision {
   evidence: string;
 }
 
+export interface CandidateExecutionDecision {
+  enabled: boolean;
+  candidate_count: number;
+  score: number;
+  reason: string;
+  factors?: string[];
+  requires_independent_evaluation?: boolean;
+}
+
 export interface StepExecutionPreview {
   package_id: string;
   phase_id?: string;
@@ -1827,6 +1837,7 @@ export interface StepExecutionPreview {
   agent: PreviewAgentDecision;
   resource: PreviewResourceDecision;
   model: PreviewModelDecision;
+  candidate_execution: CandidateExecutionDecision;
   skills?: string[];
   acceptance_criteria?: string[];
   verification_requirements?: string[];

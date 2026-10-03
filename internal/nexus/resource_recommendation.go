@@ -23,6 +23,7 @@ type TaskRequirements struct {
 	DesiredStrengths      []string                        `json:"desired_strengths,omitempty"`
 	Constraints           []string                        `json:"constraints,omitempty"`
 	EstimatedComplexity   string                          `json:"estimated_complexity,omitempty"`
+	EstimatedRisk         string                          `json:"estimated_risk,omitempty"`
 	EstimatedTokens       int                             `json:"estimated_tokens,omitempty"`
 	RequiresDecomposition bool                            `json:"requires_decomposition,omitempty"`
 	Confidence            string                          `json:"confidence,omitempty"`

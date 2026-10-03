@@ -109,3 +109,13 @@ Existing v1 custom targets remain valid. SSH configured through the established 
 `command_template` is recognized as `SSH` rather than being reimplemented. The current
 runtime therefore keeps its tested launcher semantics while v1.1 gains durable target identity
 for remote scheduling, node enrollment and computer-use routing.
+
+## Candidate execution policy
+
+Candidate Runs use a bounded decision before any extra provider work is created. The decision is
+based on task specialty, estimated complexity, estimated risk and routing confidence. Cost is a
+constraint after quality eligibility; it is not the reason to start with the cheapest model.
+
+The fan-out is capped at three and remains one for review/verification/documentation work. Easy,
+high-confidence work also remains one. When candidate execution is enabled, Execution Preview binds
+the planned candidate count into its approval token so GO cannot silently expand cost after approval.

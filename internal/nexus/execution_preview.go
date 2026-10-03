@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/flags"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -45,6 +46,7 @@ type StepExecutionPreview struct {
 	Agent            PreviewAgentDecision    `json:"agent"`
 	Resource         PreviewResourceDecision `json:"resource"`
 	Model            PreviewModelDecision    `json:"model"`
+	CandidateExecution CandidateExecutionDecision `json:"candidate_execution"`
 	Skills           []string                `json:"skills,omitempty"`
 	AcceptanceGates  []string                `json:"acceptance_criteria,omitempty"`
 	Verification     []string                `json:"verification_requirements,omitempty"`
@@ -187,6 +189,7 @@ type executionPreviewApprovalStep struct {
 	AccountID      string   `json:"account_id,omitempty"`
 	Model          string   `json:"model,omitempty"`
 	ModelFallback  bool     `json:"model_fallback,omitempty"`
+	CandidateCount int      `json:"candidate_count,omitempty"`
 	Skills         []string `json:"skills,omitempty"`
 	Ready          bool     `json:"ready"`
 	Blockers       []string `json:"blockers,omitempty"`
@@ -203,6 +206,7 @@ func executionPreviewApprovalToken(preview *PlanExecutionPreview) string {
 			ResourcePolicy: step.ResourcePolicy, AgentID: step.Agent.AgentID, AgentRole: step.Agent.Role,
 			WillCreate: step.Agent.WillCreate, Provider: step.Resource.Provider, Profile: step.Resource.Profile,
 			AccountID: step.Resource.AccountID, Model: step.Model.Model, ModelFallback: step.Model.Fallback,
+			CandidateCount: step.CandidateExecution.CandidateCount,
 			Skills: append([]string(nil), step.Skills...), Ready: step.Ready,
 			Blockers: append([]string(nil), step.Blockers...),
 		})
@@ -291,6 +295,14 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, project store.Proje
 			Reason:   "Model inventory not evaluated",
 			Evidence: "UNKNOWN",
 		},
+		CandidateExecution: CandidateExecutionDecision{
+			CandidateCount: 1,
+			Reason: "Candidate Runs are disabled",
+		},
+	}
+
+	if flags.Enabled(flags.CandidateRuns) {
+		step.CandidateExecution = DecideCandidateExecution(req)
 	}
 
 	selectedAgent, agentCfg, agentDecision, agentBlocker := previewAgentForPackage(st, project, pkg, req, agents, autonomous)

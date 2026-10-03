@@ -17,6 +17,7 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		AcceptableRoles:      []string{"developer", "fullstack-engineer", "generalist"},
 		RequiredCapabilities: []string{"headless", "submit_prompt"},
 		Confidence:           "MEDIUM",
+		EstimatedRisk:        "unknown",
 		Source:               "natural-language",
 	}
 
@@ -27,6 +28,7 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		req.AcceptableRoles = []string{"generalist", "fullstack-engineer", "architect"}
 		req.Domains = []string{"product", "frontend", "backend", "payments"}
 		req.EstimatedComplexity = "high"
+		req.EstimatedRisk = "high"
 		req.RequiresDecomposition = true
 	case containsAny(text, "auditoria de segurança", "security audit", "segurança", "security", "csrf", "oauth"):
 		req.TaskKind = "security"
@@ -34,6 +36,8 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		req.PreferredRoles = []string{"security-reviewer", "reviewer"}
 		req.AcceptableRoles = []string{"security-reviewer", "reviewer", "qa"}
 		req.Domains = []string{"security", "backend"}
+		req.EstimatedComplexity = "medium"
+		req.EstimatedRisk = "high"
 		req.RequiredCapabilities = append(req.RequiredCapabilities, "security")
 	case containsAny(text, "revise este pr", "review", "regressões", "regressoes", "pull request"):
 		req.TaskKind = "review"
@@ -48,6 +52,8 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		req.PreferredRoles = []string{"performance-investigator", "investigator"}
 		req.AcceptableRoles = []string{"performance-investigator", "investigator", "senior-developer", "generalist"}
 		req.Domains = []string{"performance", "diagnostics"}
+		req.EstimatedComplexity = "medium"
+		req.EstimatedRisk = "medium"
 		req.RequiredCapabilities = append(req.RequiredCapabilities, "performance_analysis")
 	case containsAny(text, "investigue", "investigate", "root cause", "causa raiz", "debug", "diagnostique", "diagnose", "flaky", "intermitente"):
 		req.TaskKind = "investigation"
@@ -55,6 +61,8 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		req.PreferredRoles = []string{"investigator", "senior-developer"}
 		req.AcceptableRoles = []string{"investigator", "senior-developer", "generalist"}
 		req.Domains = []string{"diagnostics", "quality"}
+		req.EstimatedComplexity = "medium"
+		req.EstimatedRisk = "medium"
 		req.RequiredCapabilities = append(req.RequiredCapabilities, "root_cause_analysis")
 	case containsAny(text, "arquitetura", "architecture", "system design", "design de sistema", "adr", "trade-off", "tradeoff"):
 		req.TaskKind = "architecture"
@@ -62,6 +70,9 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		req.PreferredRoles = []string{"architect", "senior-developer"}
 		req.AcceptableRoles = []string{"architect", "senior-developer", "generalist"}
 		req.Domains = []string{"architecture", "software-engineering"}
+		req.EstimatedComplexity = "high"
+		req.EstimatedRisk = "medium"
+		req.RequiresDecomposition = true
 		req.RequiredCapabilities = append(req.RequiredCapabilities, "architecture")
 	case containsAny(text, "documentação", "documentacao", "documentation", "readme", "manual", "handoff"):
 		req.TaskKind = "documentation"
@@ -69,6 +80,8 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		req.PreferredRoles = []string{"documentation-specialist"}
 		req.AcceptableRoles = []string{"documentation-specialist", "developer", "generalist"}
 		req.Domains = []string{"documentation"}
+		req.EstimatedComplexity = "low"
+		req.EstimatedRisk = "low"
 		req.RequiredCapabilities = append(req.RequiredCapabilities, "documentation")
 	case containsAny(text, "kubernetes", "k8s", "deploy", "infraestrutura", "infra"):
 		req.TaskKind = "coding"
@@ -76,6 +89,8 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		req.PreferredRoles = []string{"devops"}
 		req.AcceptableRoles = []string{"devops", "generalist"}
 		req.Domains = []string{"devops", "kubernetes"}
+		req.EstimatedComplexity = "medium"
+		req.EstimatedRisk = "high"
 		req.RequiredCapabilities = append(req.RequiredCapabilities, "kubernetes")
 	case containsAny(text, "api rest em go", "go rest", "api em go", "golang"):
 		req.Role = "backend-engineer"
