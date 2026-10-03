@@ -37,8 +37,10 @@ export function projectSurface(projectId: string, kind: ProjectSurfaceKind): Wor
   const key =
     kind === 'projects'
       ? 'desktopsTitle'
-      : kind === 'legacy-runtimes'
-        ? 'runtimes'
+      : kind === 'design-mode'
+        ? 'designMode'
+        : kind === 'legacy-runtimes'
+          ? 'runtimes'
         : kind === 'legacy-providers'
           ? 'providers'
           : kind === 'legacy-events'
