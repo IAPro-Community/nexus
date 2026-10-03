@@ -279,10 +279,15 @@ export const en = {
         flagDisabled: 'remote_execution disabled',
         default: 'declared default',
         active: 'effective',
+        probe: 'Test connection',
+        probing: 'Testing…',
+        probeReady: 'bridge ready',
+        probeReached: 'reachable, execution disabled',
         previewOnly:
-          'The repository declares a remote default, but Nexus keeps execution local until a managed remote runtime and explicit approval boundary are available.',
+          'The repository declares a remote default, but Nexus keeps execution local until explicit target activation and approval are implemented.',
         errors: {
           load: 'Could not load project execution targets.',
+          probe: 'Could not probe this execution target.',
         },
       },
       errors: {
@@ -2310,10 +2315,15 @@ export const ptBR = {
         flagDisabled: 'remote_execution desabilitado',
         default: 'padrão declarado',
         active: 'efetivo',
+        probe: 'Testar conexão',
+        probing: 'Testando…',
+        probeReady: 'bridge pronto',
+        probeReached: 'alcançável, execução desabilitada',
         previewOnly:
-          'O repositório declara um target remoto como padrão, mas o Nexus mantém a execução local até existir um runtime remoto gerenciado e uma fronteira explícita de aprovação.',
+          'O repositório declara um target remoto como padrão, mas o Nexus mantém a execução local até existir ativação explícita do target e aprovação.',
         errors: {
           load: 'Não foi possível carregar os targets de execução do Projeto.',
+          probe: 'Não foi possível testar este target de execução.',
         },
       },
       errors: {
@@ -4354,10 +4364,15 @@ export const es = {
         flagDisabled: 'remote_execution deshabilitado',
         default: 'predeterminado declarado',
         active: 'efectivo',
+        probe: 'Probar conexión',
+        probing: 'Probando…',
+        probeReady: 'bridge listo',
+        probeReached: 'alcanzable, ejecución deshabilitada',
         previewOnly:
-          'El repositorio declara un target remoto como predeterminado, pero Nexus mantiene la ejecución local hasta que exista un runtime remoto administrado y un límite explícito de aprobación.',
+          'El repositorio declara un target remoto como predeterminado, pero Nexus mantiene la ejecución local hasta que existan activación explícita del target y aprobación.',
         errors: {
           load: 'No se pudieron cargar los targets de ejecución del Proyecto.',
+          probe: 'No se pudo probar este target de ejecución.',
         },
       },
       errors: {
