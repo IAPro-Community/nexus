@@ -164,7 +164,7 @@ func (h *NexusHandler) handleProjectDesignMode(w http.ResponseWriter, r *http.Re
 			"active":  active,
 		}
 		if active {
-			response["url"] = rawURL
+			response["url"] = security.Redact(rawURL)
 			response["started_at"] = startedAt
 		}
 		writeJSON(w, http.StatusOK, response)
@@ -192,7 +192,7 @@ func (h *NexusHandler) handleProjectDesignMode(w http.ResponseWriter, r *http.Re
 			return
 		}
 		h.designMode.replace(projectID, strings.TrimSpace(body.URL), designBrowser)
-		writeJSON(w, http.StatusCreated, map[string]any{"active": true, "url": strings.TrimSpace(body.URL)})
+		writeJSON(w, http.StatusCreated, map[string]any{"active": true, "url": security.Redact(strings.TrimSpace(body.URL))})
 		return
 
 	case tail == "stop" && r.Method == http.MethodPost:
