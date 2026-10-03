@@ -759,6 +759,41 @@ export interface ProjectQuickCommand {
   keywords?: string[];
 }
 
+export interface DesignModeStatus {
+  enabled: boolean;
+  active: boolean;
+  url?: string;
+  started_at?: string;
+}
+
+export interface DesignPickerStatus {
+  active: boolean;
+  selector?: string;
+  cancelled?: boolean;
+}
+
+export interface UIElementBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface UIContextArtifact {
+  version: number;
+  url: string;
+  title?: string;
+  selector: string;
+  html: string;
+  neighborhood?: string;
+  text?: string;
+  computed_styles?: Record<string, string>;
+  bounds: UIElementBounds;
+  source_hints?: Record<string, string>;
+  screenshot_ref?: string;
+  captured_at: string;
+}
+
 export interface GitBranchesResult {
   project_id: string;
   canonical_path: string;
