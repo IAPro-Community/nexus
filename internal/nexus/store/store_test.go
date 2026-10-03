@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -371,5 +372,70 @@ func TestProjectLayoutV4SurvivesProcessRestart(t *testing.T) {
 	}
 	if record.Revision != 1 || record.Layout != want {
 		t.Fatalf("layout did not survive restart: revision=%d layout=%q", record.Revision, record.Layout)
+	}
+}
+
+
+func TestProjectSettingPatchPreservesUnrelatedSettings(t *testing.T) {
+	s := openTestStore(t)
+	project, err := s.CreateProject(Project{
+		Name:          "Settings patch",
+		CanonicalPath: t.TempDir(),
+		Settings:      `{"appearance":{"density":"compact"},"other":true}`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	binding := map[string]any{
+		"target_id":      "devbox",
+		"approval_token": "token-1",
+	}
+	if err := s.SetProjectSetting(project.ID, "managed_execution_target", binding); err != nil {
+		t.Fatal(err)
+	}
+
+	updated, err := s.GetProject(project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var settings map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(updated.Settings), &settings); err != nil {
+		t.Fatal(err)
+	}
+	if string(settings["other"]) != "true" {
+		t.Fatalf("unrelated setting was lost: %s", updated.Settings)
+	}
+	var appearance map[string]string
+	if err := json.Unmarshal(settings["appearance"], &appearance); err != nil {
+		t.Fatal(err)
+	}
+	if appearance["density"] != "compact" {
+		t.Fatalf("appearance setting changed: %+v", appearance)
+	}
+	var gotBinding map[string]string
+	if err := json.Unmarshal(settings["managed_execution_target"], &gotBinding); err != nil {
+		t.Fatal(err)
+	}
+	if gotBinding["target_id"] != "devbox" || gotBinding["approval_token"] != "token-1" {
+		t.Fatalf("binding=%+v", gotBinding)
+	}
+
+	if err := s.DeleteProjectSetting(project.ID, "managed_execution_target"); err != nil {
+		t.Fatal(err)
+	}
+	updated, err = s.GetProject(project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	settings = map[string]json.RawMessage{}
+	if err := json.Unmarshal([]byte(updated.Settings), &settings); err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := settings["managed_execution_target"]; exists {
+		t.Fatalf("managed setting was not removed: %s", updated.Settings)
+	}
+	if _, exists := settings["appearance"]; !exists {
+		t.Fatalf("unrelated setting was removed: %s", updated.Settings)
 	}
 }
