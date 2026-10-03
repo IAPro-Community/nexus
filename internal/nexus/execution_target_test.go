@@ -283,7 +283,7 @@ execution:
 	if !fake.closed {
 		t.Fatal("probe did not close SSH bridge")
 	}
-	if !probe.Ready || probe.TargetID != "devbox" || probe.MachineID != "machine-devbox" ||
+	if !probe.Ready || probe.ApprovalToken == "" || probe.TargetID != "devbox" || probe.MachineID != "machine-devbox" ||
 		probe.Location != "ssh-devbox" || probe.Workspace != "/srv/project" ||
 		probe.OS != "linux" || probe.Arch != "amd64" || probe.NexusVersion != "1.1.0-test" {
 		t.Fatalf("unexpected probe: %+v", probe)
@@ -389,5 +389,108 @@ execution:
 	}
 	if _, err := n.ProbeProjectExecutionTarget(context.Background(), project.ID, "missing"); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("unknown target error=%v, want store.ErrNotFound", err)
+	}
+}
+
+
+func TestActivateManagedExecutionTargetRejectsStaleApprovalAndPersistsFreshProbe(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "1")
+
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectDir := t.TempDir()
+	project, err := st.CreateProject(store.Project{
+		Name:          "Activate target",
+		CanonicalPath: projectDir,
+		Settings:      `{"appearance":{"density":"compact"}}`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte(`version: 1
+execution:
+  defaultTarget: devbox
+  targets:
+    - id: devbox
+      kind: ssh
+      location: ssh-devbox
+      machineId: machine-devbox
+      workspace: /srv/project
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	openCount := 0
+	withProjectSSHBridgeOpener(t, func(_ context.Context, targetID, location string) (projectSSHBridge, protocol.RemoteBridgeHelloData, error) {
+		openCount++
+		if targetID != "devbox" || location != "ssh-devbox" {
+			t.Fatalf("unexpected target resolution: %q %q", targetID, location)
+		}
+		return &fakeProjectSSHBridge{}, protocol.RemoteBridgeHelloData{
+			ProtocolVersion:        protocol.ProtocolVersion,
+			MachineID:              "machine-devbox",
+			OS:                     "linux",
+			Arch:                   "amd64",
+			NexusVersion:           "1.1.0-test",
+			RemoteExecutionEnabled: true,
+			Capabilities: []protocol.RemoteBridgeCapability{
+				protocol.RemoteBridgeCapabilitySpawn,
+				protocol.RemoteBridgeCapabilityCWD,
+				protocol.RemoteBridgeCapabilityPTY,
+				protocol.RemoteBridgeCapabilityResize,
+				protocol.RemoteBridgeCapabilityLiveness,
+			},
+		}, nil
+	})
+
+	probe, err := n.ProbeProjectExecutionTarget(context.Background(), project.ID, "devbox")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if probe.ApprovalToken == "" {
+		t.Fatal("ready probe must produce approval token")
+	}
+
+	if _, err := n.ActivateManagedExecutionTarget(context.Background(), project.ID, "devbox", "stale-token"); !errors.Is(err, ErrExecutionTargetApprovalStale) {
+		t.Fatalf("stale approval error=%v", err)
+	}
+	if binding, err := n.ManagedExecutionTargetBinding(project.ID); err != nil || binding != nil {
+		t.Fatalf("stale approval persisted binding=%+v err=%v", binding, err)
+	}
+
+	binding, err := n.ActivateManagedExecutionTarget(context.Background(), project.ID, "devbox", probe.ApprovalToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if binding.TargetID != "devbox" || binding.MachineID != "machine-devbox" || binding.ApprovalToken != probe.ApprovalToken || binding.ActivatedAt.IsZero() {
+		t.Fatalf("unexpected binding: %+v", binding)
+	}
+	persisted, err := n.ManagedExecutionTargetBinding(project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if persisted == nil || persisted.TargetID != binding.TargetID || persisted.ApprovalToken != binding.ApprovalToken {
+		t.Fatalf("binding was not persisted: %+v", persisted)
+	}
+
+	projectAfter, err := st.GetProject(project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(projectAfter.Settings, "appearance") || !strings.Contains(projectAfter.Settings, "compact") {
+		t.Fatalf("activation replaced unrelated project settings: %s", projectAfter.Settings)
+	}
+
+	if err := n.DeactivateManagedExecutionTarget(project.ID); err != nil {
+		t.Fatal(err)
+	}
+	if persisted, err := n.ManagedExecutionTargetBinding(project.ID); err != nil || persisted != nil {
+		t.Fatalf("deactivation left binding=%+v err=%v", persisted, err)
+	}
+	if openCount < 3 {
+		t.Fatalf("activation must re-probe instead of trusting old response, bridge opens=%d", openCount)
 	}
 }
