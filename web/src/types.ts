@@ -1397,6 +1397,133 @@ export interface PlanRevisionDiff {
   changed_packages: string[];
 }
 
+export type ComputerActionKind =
+  | 'CLICK'
+  | 'SET_VALUE'
+  | 'TYPE_TEXT'
+  | 'PRESS_KEY'
+  | 'HOTKEY'
+  | 'PASTE_TEXT'
+  | 'SCROLL'
+  | 'DRAG'
+  | 'FOCUS_WINDOW'
+  | 'MOVE_WINDOW'
+  | 'RESIZE_WINDOW';
+
+export interface ComputerCapabilities {
+  provider: string;
+  provider_version?: string;
+  protocol_version: number;
+  platform: string;
+  list_apps: boolean;
+  list_windows: boolean;
+  accessibility_tree: boolean;
+  screenshot: boolean;
+  click: boolean;
+  set_value: boolean;
+  type_text: boolean;
+  press_key: boolean;
+  hotkey: boolean;
+  paste_text: boolean;
+  scroll: boolean;
+  drag: boolean;
+  window_management: boolean;
+}
+
+export interface ComputerPermissionStatus {
+  available: boolean;
+  accessibility: string;
+  screen_capture: string;
+  input_monitoring: string;
+  reason?: string;
+}
+
+export interface ComputerUseStatus {
+  feature_enabled: boolean;
+  capabilities: ComputerCapabilities;
+  permissions: ComputerPermissionStatus;
+}
+
+export interface ComputerAppInfo {
+  name: string;
+  bundle_id?: string;
+  pid: number;
+}
+
+export interface ComputerWindowInfo {
+  id?: string;
+  index?: number;
+  title: string;
+  x?: number;
+  y?: number;
+  width: number;
+  height: number;
+  minimized?: boolean;
+}
+
+export interface ComputerElement {
+  id: string;
+  index: number;
+  role?: string;
+  name?: string;
+  value?: string;
+  actions?: string[];
+  sensitive?: boolean;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
+
+export interface ComputerSnapshotRequest {
+  app: string;
+  window_id?: string;
+  window_index?: number;
+  screenshot?: boolean;
+  restore_window?: boolean;
+}
+
+export interface ComputerSnapshot {
+  id: string;
+  app: ComputerAppInfo;
+  window: ComputerWindowInfo;
+  elements?: ComputerElement[];
+  tree_text?: string;
+  screenshot_path?: string;
+  captured_at: string;
+}
+
+export interface ComputerActionRequest {
+  kind: ComputerActionKind;
+  app: string;
+  window_id?: string;
+  window_index?: number;
+  element_id?: string;
+  element_index?: number;
+  x?: number;
+  y?: number;
+  to_x?: number;
+  to_y?: number;
+  width?: number;
+  height?: number;
+  text?: string;
+  key?: string;
+  direction?: string;
+  restore_window?: boolean;
+}
+
+export interface ComputerActionVerification {
+  state: string;
+  reason?: string;
+  before_snapshot_id?: string;
+  after_snapshot_id?: string;
+}
+
+export interface ComputerActionResult {
+  snapshot: ComputerSnapshot;
+  verification: ComputerActionVerification;
+}
+
 export interface AutonomyContract {
   max_retries: number;
   max_total_iterations: number;
