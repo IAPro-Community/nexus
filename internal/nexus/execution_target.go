@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
@@ -113,6 +114,7 @@ type ProjectExecutionTargetProbe struct {
 	RemoteExecutionEnabled bool                              `json:"remote_execution_enabled"`
 	Capabilities           []protocol.RemoteBridgeCapability `json:"capabilities"`
 	Ready                  bool                              `json:"ready"`
+	ApprovalToken          string                            `json:"approval_token,omitempty"`
 	Reason                 string                            `json:"reason,omitempty"`
 }
 
@@ -277,8 +279,41 @@ func (n *Nexus) ProbeProjectExecutionTarget(
 		Capabilities:           append([]protocol.RemoteBridgeCapability(nil), hello.Capabilities...),
 		Ready:                  hello.RemoteExecutionEnabled,
 	}
+	if probe.Ready {
+		probe.ApprovalToken = projectExecutionTargetApprovalToken(project, target, hello)
+	}
 	if !hello.RemoteExecutionEnabled {
 		probe.Reason = "remote bridge is reachable but remote_execution is disabled on the target host"
 	}
 	return probe, nil
+}
+
+
+func projectExecutionTargetApprovalToken(
+	project store.Project,
+	target ProjectManifestTarget,
+	hello protocol.RemoteBridgeHelloData,
+) string {
+	capabilities := make([]string, 0, len(hello.Capabilities))
+	for _, capability := range hello.Capabilities {
+		capabilities = append(capabilities, string(capability))
+	}
+	sort.Strings(capabilities)
+	fingerprint := strings.Join([]string{
+		"nexus-managed-execution-target/v1",
+		strings.TrimSpace(project.ID),
+		strings.TrimSpace(target.ID),
+		strings.ToLower(strings.TrimSpace(target.Kind)),
+		strings.TrimSpace(target.Location),
+		strings.TrimSpace(target.MachineID),
+		strings.TrimSpace(target.Workspace),
+		strings.TrimSpace(hello.MachineID),
+		strings.TrimSpace(hello.OS),
+		strings.TrimSpace(hello.Arch),
+		strings.TrimSpace(hello.NexusVersion),
+		fmt.Sprintf("%t", hello.RemoteExecutionEnabled),
+		strings.Join(capabilities, ","),
+	}, "\x00")
+	sum := sha256.Sum256([]byte(fingerprint))
+	return hex.EncodeToString(sum[:])
 }
