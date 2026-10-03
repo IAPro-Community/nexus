@@ -495,6 +495,13 @@ async function main() {
       'false',
       'Escape must close create menu and restore collapsed state',
     );
+    assert.equal(
+      await page.evaluate(
+        () => document.activeElement?.getAttribute('data-testid') === 'topbar-create-menu-btn',
+      ),
+      true,
+      'Create menu Escape must restore focus to its trigger',
+    );
 
     const terminalsTab = page.locator('.nx-workspace-tab[data-kind="terminals"]').first();
     await terminalsTab.waitFor({ state: 'visible', timeout: 5000 });
@@ -525,6 +532,11 @@ async function main() {
       await arrangeTrigger.getAttribute('aria-expanded'),
       'false',
       'Escape must close arrange menu',
+    );
+    assert.equal(
+      await page.evaluate(() => document.activeElement?.classList.contains('nx-arrange-menu__trigger')),
+      true,
+      'Arrange menu Escape must restore focus to its trigger',
     );
     console.log('  ✓ Shared Radix menus open, expose semantics and close with Escape');
 
