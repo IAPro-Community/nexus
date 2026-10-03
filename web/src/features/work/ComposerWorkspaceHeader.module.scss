@@ -111,11 +111,11 @@
 }
 
 .statusList strong[data-tone='ready'] {
-  color: var(--nx-success, var(--nx-accent));
+  color: var(--nx-success);
 }
 
 .statusList strong[data-tone='warn'] {
-  color: var(--nx-warning, var(--nx-text));
+  color: var(--nx-warning);
 }
 
 @media (max-width: 900px) {
