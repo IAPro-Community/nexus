@@ -781,13 +781,13 @@ const THEME_CATEGORIES: ThemeCategory[] = [
     id: 'dark-modern',
     title: 'Dark Modern',
     description: 'Paletas escuras premium, alto contraste de código e atmosfera imersiva.',
-    presets: ['nexus-dark', 'midnight', 'dracula'],
+    presets: ['nexus-dark', 'midnight', 'dracula', 'graphite-focus', 'vasco-noir', 'aurora-ops', 'obsidian'],
   },
   {
     id: 'light-clean',
     title: 'Light Clean',
     description: 'Interfaces diurnas, excelente legibilidade e visual limpo.',
-    presets: ['nexus-light', 'solarized-light'],
+    presets: ['nexus-light', 'nord-light', 'solarized-light'],
   },
   {
     id: 'classic-code',
