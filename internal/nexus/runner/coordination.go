@@ -544,6 +544,15 @@ func appendUniquePackageID(values []string, value string) []string {
 	return append(values, value)
 }
 
+func coordinationCompletesWithoutPackageVerification(operation CoordinationOperation) bool {
+	switch operation {
+	case CoordinationNeedInfo, CoordinationComputerSnapshot, CoordinationComputerAction:
+		return true
+	default:
+		return false
+	}
+}
+
 func coordinationOperationForPackage(run *MissionRun, pkg *PackageRun) CoordinationOperation {
 	if run == nil || pkg == nil || strings.TrimSpace(pkg.CoordinationRequestID) == "" {
 		return ""
