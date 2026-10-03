@@ -6,7 +6,39 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"strings"
+
+	"github.com/IAPro-Community/nexus/internal/core/security"
 )
+
+const (
+	maxHelperStdoutBytes = 4 << 20
+	maxHelperStderrBytes = 64 << 10
+)
+
+type helperBoundedBuffer struct {
+	buf       bytes.Buffer
+	remaining int
+	truncated bool
+}
+
+func (w *helperBoundedBuffer) Write(p []byte) (int, error) {
+	original := len(p)
+	if w.remaining <= 0 {
+		if original > 0 {
+			w.truncated = true
+		}
+		return original, nil
+	}
+	keep := original
+	if keep > w.remaining {
+		keep = w.remaining
+		w.truncated = true
+	}
+	_, _ = w.buf.Write(p[:keep])
+	w.remaining -= keep
+	return original, nil
+}
 
 type HelperProvider struct {
 	path     string
@@ -50,21 +82,29 @@ func (p *HelperProvider) call(ctx context.Context, operation string, payload int
 	}
 	cmd := exec.CommandContext(ctx, p.path, p.args...)
 	cmd.Stdin = bytes.NewReader(body)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	stdout := &helperBoundedBuffer{remaining: maxHelperStdoutBytes}
+	stderr := &helperBoundedBuffer{remaining: maxHelperStderrBytes}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {
-		return helperEnvelope{}, fmt.Errorf("computer-use helper %s failed: %w: %s", operation, err, stderr.String())
+		message := security.Redact(strings.TrimSpace(stderr.buf.String()))
+		if stderr.truncated {
+			message += " [stderr truncated]"
+		}
+		return helperEnvelope{}, fmt.Errorf("computer-use helper %s failed: %w: %s", operation, err, message)
+	}
+	if stdout.truncated {
+		return helperEnvelope{}, fmt.Errorf("computer-use helper %s response exceeded %d bytes", operation, maxHelperStdoutBytes)
 	}
 	var envelope helperEnvelope
-	if err := json.Unmarshal(stdout.Bytes(), &envelope); err != nil {
+	if err := json.Unmarshal(stdout.buf.Bytes(), &envelope); err != nil {
 		return helperEnvelope{}, fmt.Errorf("decode computer-use helper response: %w", err)
 	}
 	if !envelope.OK {
 		if envelope.Error == "" {
 			envelope.Error = "computer-use helper rejected the operation"
 		}
-		return helperEnvelope{}, fmt.Errorf("%s", envelope.Error)
+		return helperEnvelope{}, fmt.Errorf("%s", security.Redact(envelope.Error))
 	}
 	return envelope, nil
 }
@@ -79,6 +119,12 @@ func (p *HelperProvider) Capabilities(ctx context.Context) (Capabilities, error)
 	}
 	if envelope.Capabilities.ProtocolVersion != helperProtocolVersion {
 		return Capabilities{}, fmt.Errorf("computer-use helper protocol %d is incompatible with Nexus protocol %d", envelope.Capabilities.ProtocolVersion, helperProtocolVersion)
+	}
+	if strings.TrimSpace(envelope.Capabilities.Provider) == "" {
+		return Capabilities{}, fmt.Errorf("computer-use helper omitted provider identity")
+	}
+	if platform := strings.TrimSpace(envelope.Capabilities.Platform); platform == "" || !strings.EqualFold(platform, p.platform) {
+		return Capabilities{}, fmt.Errorf("computer-use helper platform %q does not match %q", platform, p.platform)
 	}
 	return *envelope.Capabilities, nil
 }
