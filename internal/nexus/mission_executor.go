@@ -809,18 +809,35 @@ Do not broaden the sealed Mission scope.`,
 		req.Operation, req.Subject, req.Objective, req.SourcePackageID, req.SourceAgentID)
 }
 
-func missionCoordinationPromptInstructions(run.Contract) string {
-	return `
+func missionCoordinationPromptInstructions(contract runner.AutonomyContract) string {
+	base := `
 
 ## Mission coordination protocol
 If this step cannot continue safely without information, an artifact, bounded delegation, or an independent review, stop before modifying files or causing external side effects and emit one line per request using exactly:
 NEXUS_COORDINATION_REQUEST: {"operation":"NEED_INFO","subject":"concise question or exact memory key","objective":"what is needed","preferred_role":"investigator","preferred_provider":"","required_capabilities":[],"artifact_refs":[]}
 
 Allowed operations are NEED_INFO, DELEGATE, ARTIFACT_REQUEST, REVIEW_REQUEST.
-DELEGATE requires a non-empty objective.
+DELEGATE requires a non-empty objective.`
+
+	if contract.AllowComputerUse {
+		base += `
+
+Computer Control is authorized for this Mission through structured Nexus actions only.
+You may additionally request:
+NEXUS_COORDINATION_REQUEST: {"operation":"COMPUTER_SNAPSHOT","subject":"inspect the selected application","tool_payload":{"app":"process-name","window_id":"window-id","screenshot":false}}
+NEXUS_COORDINATION_REQUEST: {"operation":"COMPUTER_ACTION","subject":"perform one bounded UI action","tool_payload":{"kind":"CLICK","app":"process-name","window_id":"window-id","element_id":"element-id"}}
+
+COMPUTER_SNAPSHOT and COMPUTER_ACTION require a JSON object in tool_payload.
+Use accessibility element IDs or indexes when available. Never place passwords, tokens, API keys, private keys, or other secrets in tool_payload.
+Only request screenshot=true when screen capture is authorized. Keyboard, pointer, and window-management actions are accepted only when their corresponding Mission permissions are enabled.
+Request one bounded action at a time; Nexus validates the app, window, element, native capability and AutonomyContract before execution.`
+	}
+
+	base += `
 After emitting a coordination request, stop the turn and do not claim task completion.
 Never emit a coordination request after modifying the workspace or performing an external side effect.
 `
+	return base
 }
 
 func autonomyPromptBoundaries(contract runner.AutonomyContract) string {
@@ -851,6 +868,7 @@ type coordinationRequestEnvelope struct {
 	PreferredProvider    string                       `json:"preferred_provider,omitempty"`
 	RequiredCapabilities []string                     `json:"required_capabilities,omitempty"`
 	ArtifactRefs         []string                     `json:"artifact_refs,omitempty"`
+	ToolPayload          json.RawMessage              `json:"tool_payload,omitempty"`
 }
 
 const coordinationRequestMarker = "NEXUS_COORDINATION_REQUEST:"
@@ -875,15 +893,19 @@ func parseExecutionCoordinationRequests(output string, run *runner.MissionRun, p
 			Operation: envelope.Operation, Subject: strings.TrimSpace(envelope.Subject), Objective: strings.TrimSpace(envelope.Objective),
 			PreferredRole: strings.TrimSpace(envelope.PreferredRole), PreferredProvider: strings.TrimSpace(envelope.PreferredProvider),
 			RequiredCapabilities: append([]string(nil), envelope.RequiredCapabilities...), ArtifactRefs: append([]string(nil), envelope.ArtifactRefs...),
+			ToolPayload: append(json.RawMessage(nil), envelope.ToolPayload...),
 			Status: runner.CoordinationPending, CreatedAt: time.Now().UTC(),
 		}
 		if err := runner.ValidateCoordinationRequest(runner.CoordinationRequest{
 			ID: "pending-id", RunID: req.RunID, SourcePackageID: req.SourcePackageID, SourceAgentID: req.SourceAgentID,
 			Operation: req.Operation, Subject: req.Subject, Objective: req.Objective, PreferredRole: req.PreferredRole,
 			PreferredProvider: req.PreferredProvider, RequiredCapabilities: req.RequiredCapabilities, ArtifactRefs: req.ArtifactRefs,
-			Status: req.Status, CreatedAt: req.CreatedAt,
+			ToolPayload: req.ToolPayload, Status: req.Status, CreatedAt: req.CreatedAt,
 		}); err != nil {
 			return nil, err
+		}
+		if err := validateComputerCoordinationToolRequest(run.Contract, req.Operation, req.ToolPayload); err != nil {
+			return nil, fmt.Errorf("validate computer coordination request: %w", err)
 		}
 		requests = append(requests, req)
 	}
