@@ -30,6 +30,7 @@ type NexusHandler struct {
 	runs                  *nexus.RunApplicationService
 	hud                   *nexus.HUDApplicationService
 	voice                 *voice.Service
+	designMode            *designModeManager
 	hostFilesystemEnabled bool
 }
 
@@ -97,6 +98,7 @@ func NewNexusHandler(auth *AuthManager) *NexusHandler {
 		runs:                  nexus.NewRunApplicationService(n),
 		hud:                   nexus.NewHUDApplicationService(n),
 		voice:                 voice.NewService(),
+		designMode:            newDesignModeManager(),
 		hostFilesystemEnabled: true,
 	}
 }
