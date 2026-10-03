@@ -248,6 +248,8 @@ func projectSubroute(path string) string {
 		return "open-os"
 	case strings.HasSuffix(path, "/commands"):
 		return "commands"
+	case strings.HasSuffix(path, "/execution-targets"):
+		return "execution-targets"
 	case strings.Contains(path, "/design-mode"):
 		return "design-mode"
 	case strings.HasSuffix(path, "/git/branches"):
