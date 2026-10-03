@@ -176,8 +176,14 @@ func StartManagedRuntimeProxy(
 }
 
 func (p *ManagedRuntimeProxy) serve() {
+	p.mu.Lock()
+	listener := p.listener
+	p.mu.Unlock()
+	if listener == nil {
+		return
+	}
 	for {
-		conn, err := p.listener.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			p.mu.Lock()
 			closed := p.closed
@@ -390,7 +396,6 @@ func (p *ManagedRuntimeProxy) Close() error {
 	listener := p.listener
 	p.listener = nil
 	bridge := p.bridge
-	p.bridge = nil
 	cancel := p.cancel
 	p.mu.Unlock()
 
