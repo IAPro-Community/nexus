@@ -1,10 +1,13 @@
 package nexus
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -161,5 +164,230 @@ execution:
 	remote := catalog.Targets[1]
 	if remote.Selectable || remote.Effective || remote.ActivationStatus != "PREVIEW_ONLY" {
 		t.Fatalf("SSH must remain preview-only until approval exists: %+v", remote)
+	}
+}
+
+
+type fakeProjectSSHBridge struct {
+	closed bool
+}
+
+func (f *fakeProjectSSHBridge) Close() error {
+	f.closed = true
+	return nil
+}
+
+func withProjectSSHBridgeOpener(
+	t *testing.T,
+	opener func(context.Context, string, string) (projectSSHBridge, protocol.RemoteBridgeHelloData, error),
+) {
+	t.Helper()
+	previous := openProjectSSHBridge
+	openProjectSSHBridge = opener
+	t.Cleanup(func() { openProjectSSHBridge = previous })
+}
+
+func TestProbeProjectExecutionTargetRequiresLocalFeatureFlag(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "")
+	t.Setenv("NEXUS_DISABLE_REMOTE_EXECUTION", "")
+
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectDir := t.TempDir()
+	project, err := st.CreateProject(store.Project{Name: "Probe", CanonicalPath: projectDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte(`version: 1
+execution:
+  targets:
+    - id: devbox
+      kind: ssh
+      location: devbox
+      workspace: /srv/project
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	withProjectSSHBridgeOpener(t, func(context.Context, string, string) (projectSSHBridge, protocol.RemoteBridgeHelloData, error) {
+		called = true
+		return nil, protocol.RemoteBridgeHelloData{}, errors.New("must not dial")
+	})
+
+	if _, err := n.ProbeProjectExecutionTarget(context.Background(), project.ID, "devbox"); err == nil {
+		t.Fatal("probe must fail when local remote_execution is disabled")
+	}
+	if called {
+		t.Fatal("disabled probe attempted SSH")
+	}
+}
+
+func TestProbeProjectExecutionTargetUsesOnlyManifestTargetAndChecksMachineIdentity(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "1")
+
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectDir := t.TempDir()
+	project, err := st.CreateProject(store.Project{Name: "Probe", CanonicalPath: projectDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte(`version: 1
+execution:
+  defaultTarget: devbox
+  targets:
+    - id: devbox
+      kind: ssh
+      location: ssh-devbox
+      machineId: machine-devbox
+      workspace: /srv/project
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	fake := &fakeProjectSSHBridge{}
+	var gotTarget, gotLocation string
+	withProjectSSHBridgeOpener(t, func(_ context.Context, targetID, location string) (projectSSHBridge, protocol.RemoteBridgeHelloData, error) {
+		gotTarget, gotLocation = targetID, location
+		return fake, protocol.RemoteBridgeHelloData{
+			ProtocolVersion:        protocol.ProtocolVersion,
+			MachineID:              "machine-devbox",
+			OS:                     "linux",
+			Arch:                   "amd64",
+			NexusVersion:           "1.1.0-test",
+			RemoteExecutionEnabled: true,
+			Capabilities: []protocol.RemoteBridgeCapability{
+				protocol.RemoteBridgeCapabilitySpawn,
+				protocol.RemoteBridgeCapabilityCWD,
+				protocol.RemoteBridgeCapabilityPTY,
+				protocol.RemoteBridgeCapabilityResize,
+				protocol.RemoteBridgeCapabilityLiveness,
+			},
+		}, nil
+	})
+
+	probe, err := n.ProbeProjectExecutionTarget(context.Background(), project.ID, "devbox")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotTarget != "devbox" || gotLocation != "ssh-devbox" {
+		t.Fatalf("probe did not resolve manifest target: target=%q location=%q", gotTarget, gotLocation)
+	}
+	if !fake.closed {
+		t.Fatal("probe did not close SSH bridge")
+	}
+	if !probe.Ready || probe.TargetID != "devbox" || probe.MachineID != "machine-devbox" ||
+		probe.Location != "ssh-devbox" || probe.Workspace != "/srv/project" ||
+		probe.OS != "linux" || probe.Arch != "amd64" || probe.NexusVersion != "1.1.0-test" {
+		t.Fatalf("unexpected probe: %+v", probe)
+	}
+}
+
+func TestProbeProjectExecutionTargetReportsReachableButDisabledRemoteHost(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "1")
+
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectDir := t.TempDir()
+	project, err := st.CreateProject(store.Project{Name: "Probe", CanonicalPath: projectDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte(`version: 1
+execution:
+  targets:
+    - id: devbox
+      kind: ssh
+      location: devbox
+      workspace: /srv/project
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	withProjectSSHBridgeOpener(t, func(context.Context, string, string) (projectSSHBridge, protocol.RemoteBridgeHelloData, error) {
+		return &fakeProjectSSHBridge{}, protocol.RemoteBridgeHelloData{
+			ProtocolVersion:        protocol.ProtocolVersion,
+			MachineID:              "machine-devbox",
+			OS:                     "linux",
+			Arch:                   "amd64",
+			NexusVersion:           "1.1.0-test",
+			RemoteExecutionEnabled: false,
+			Capabilities: []protocol.RemoteBridgeCapability{
+				protocol.RemoteBridgeCapabilitySpawn,
+				protocol.RemoteBridgeCapabilityCWD,
+				protocol.RemoteBridgeCapabilityPTY,
+				protocol.RemoteBridgeCapabilityResize,
+				protocol.RemoteBridgeCapabilityLiveness,
+			},
+		}, nil
+	})
+
+	probe, err := n.ProbeProjectExecutionTarget(context.Background(), project.ID, "devbox")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if probe.Ready || probe.RemoteExecutionEnabled || probe.Reason == "" {
+		t.Fatalf("reachable but disabled host must not be ready: %+v", probe)
+	}
+}
+
+func TestProbeProjectExecutionTargetRejectsMachineDriftAndUnknownTarget(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "1")
+
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectDir := t.TempDir()
+	project, err := st.CreateProject(store.Project{Name: "Probe", CanonicalPath: projectDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte(`version: 1
+execution:
+  targets:
+    - id: devbox
+      kind: ssh
+      location: devbox
+      machineId: expected-machine
+      workspace: /srv/project
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	withProjectSSHBridgeOpener(t, func(context.Context, string, string) (projectSSHBridge, protocol.RemoteBridgeHelloData, error) {
+		return &fakeProjectSSHBridge{}, protocol.RemoteBridgeHelloData{
+			ProtocolVersion:        protocol.ProtocolVersion,
+			MachineID:              "different-machine",
+			OS:                     "linux",
+			Arch:                   "amd64",
+			NexusVersion:           "1.1.0-test",
+			RemoteExecutionEnabled: true,
+			Capabilities: []protocol.RemoteBridgeCapability{
+				protocol.RemoteBridgeCapabilitySpawn,
+				protocol.RemoteBridgeCapabilityCWD,
+				protocol.RemoteBridgeCapabilityPTY,
+				protocol.RemoteBridgeCapabilityResize,
+				protocol.RemoteBridgeCapabilityLiveness,
+			},
+		}, nil
+	})
+
+	if _, err := n.ProbeProjectExecutionTarget(context.Background(), project.ID, "devbox"); err == nil {
+		t.Fatal("machine identity drift must fail closed")
+	}
+	if _, err := n.ProbeProjectExecutionTarget(context.Background(), project.ID, "missing"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("unknown target error=%v, want store.ErrNotFound", err)
 	}
 }
