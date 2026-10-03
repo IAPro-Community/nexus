@@ -225,6 +225,72 @@ export const Segmented: React.FC<{
   </div>
 );
 
+export const ChoiceGroup: React.FC<
+  React.HTMLAttributes<HTMLDivElement> & {
+    ariaLabel: string;
+  }
+> = ({ ariaLabel, className = '', children, onKeyDown, ...props }) => (
+  <div
+    role="radiogroup"
+    aria-label={ariaLabel}
+    className={`nx-choice-group ${className}`.trim()}
+    onKeyDown={(event) => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented) return;
+
+      const navigationKeys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+      if (!navigationKeys.includes(event.key)) return;
+
+      const options = Array.from(
+        event.currentTarget.querySelectorAll<HTMLButtonElement>(
+          'button[role="radio"]:not(:disabled)',
+        ),
+      );
+      if (options.length === 0) return;
+
+      const currentIndex = options.indexOf(document.activeElement as HTMLButtonElement);
+      let nextIndex = currentIndex >= 0 ? currentIndex : 0;
+
+      if (event.key === 'Home') nextIndex = 0;
+      else if (event.key === 'End') nextIndex = options.length - 1;
+      else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+        nextIndex = (nextIndex + 1) % options.length;
+      } else {
+        nextIndex = (nextIndex - 1 + options.length) % options.length;
+      }
+
+      event.preventDefault();
+      options[nextIndex]?.focus();
+      options[nextIndex]?.click();
+    }}
+    {...props}
+  >
+    {children}
+  </div>
+);
+
+export const ChoiceOption: React.FC<
+  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onSelect'> & {
+    selected: boolean;
+    onSelect: () => void;
+  }
+> = ({ selected, onSelect, className = '', onClick, children, ...props }) => (
+  <button
+    type="button"
+    role="radio"
+    aria-checked={selected}
+    data-selected={selected ? 'true' : 'false'}
+    className={`nx-choice-option ${className}`.trim()}
+    onClick={(event) => {
+      onClick?.(event);
+      if (!event.defaultPrevented) onSelect();
+    }}
+    {...props}
+  >
+    {children}
+  </button>
+);
+
 export const Progress: React.FC<{ value: number; label: string }> = ({ value, label }) => (
   <div
     className="nx-progress"
