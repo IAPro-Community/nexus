@@ -149,6 +149,8 @@ func Run(args []string) error {
 		return doctorCmd(args[1:])
 	case "security":
 		return securityCmd(args[1:])
+	case "computer":
+		return computerCmd(args[1:])
 	case "add":
 		return addCmd(args[1:])
 	case "remove", "rm":
