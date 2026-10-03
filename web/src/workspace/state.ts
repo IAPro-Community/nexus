@@ -43,6 +43,7 @@ const PROJECT_SURFACE_KINDS = new Set([
   'sessions',
   'settings',
   'resources',
+  'design-mode',
   'legacy-runtimes',
   'legacy-providers',
   'legacy-events',
