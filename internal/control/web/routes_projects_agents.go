@@ -60,6 +60,10 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectOpenOS(w, r)
 		case strings.HasSuffix(r.URL.Path, "/git/branches"):
 			h.handleProjectGitBranches(w, r)
+		case strings.HasSuffix(r.URL.Path, "/git/changes"):
+			h.handleProjectGitChanges(w, r)
+		case strings.HasSuffix(r.URL.Path, "/git/diff"):
+			h.handleProjectGitDiff(w, r)
 		case strings.HasSuffix(r.URL.Path, "/git/checkout"):
 			h.handleProjectGitCheckout(w, r)
 		default:

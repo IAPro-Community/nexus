@@ -1,14 +1,17 @@
 package web
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/executil"
+	coreflags "github.com/IAPro-Community/nexus/internal/core/flags"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -189,4 +192,198 @@ func (h *NexusHandler) handleProjectGitCheckout(w http.ResponseWriter, r *http.R
 		"current_branch": targetBranch,
 		"output":         strings.TrimSpace(string(out)),
 	})
+}
+
+
+const maxReviewDiffBytes = 1024 * 1024
+
+type ProjectGitChange struct {
+	Path     string `json:"path"`
+	Index    string `json:"index_status"`
+	Worktree string `json:"worktree_status"`
+}
+
+type ProjectGitChangesResponse struct {
+	ProjectID     string             `json:"project_id"`
+	CurrentBranch string             `json:"current_branch"`
+	Head          string             `json:"head"`
+	Changes       []ProjectGitChange `json:"changes"`
+	Truncated     bool               `json:"truncated"`
+}
+
+type ProjectGitDiffResponse struct {
+	ProjectID string `json:"project_id"`
+	Path      string `json:"path"`
+	Staged    bool   `json:"staged"`
+	Diff      string `json:"diff"`
+	Truncated bool   `json:"truncated"`
+}
+
+func (h *NexusHandler) handleProjectGitChanges(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if !coreflags.Enabled(coreflags.ReviewCenter) {
+		writeError(w, http.StatusNotFound, "review center is disabled")
+		return
+	}
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	proj, err := st.GetProject(projectID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+
+	status, truncated, err := runBoundedGit(proj.CanonicalPath, 256*1024, "status", "--porcelain=v1", "--untracked-files=normal")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	changes := parsePorcelainChanges(status)
+	head, _, err := runBoundedGit(proj.CanonicalPath, 4096, "rev-parse", "HEAD")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, ProjectGitChangesResponse{
+		ProjectID:     proj.ID,
+		CurrentBranch: getGitBranch(proj.CanonicalPath),
+		Head:          strings.TrimSpace(head),
+		Changes:       changes,
+		Truncated:     truncated,
+	})
+}
+
+func (h *NexusHandler) handleProjectGitDiff(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if !coreflags.Enabled(coreflags.ReviewCenter) {
+		writeError(w, http.StatusNotFound, "review center is disabled")
+		return
+	}
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	proj, err := st.GetProject(projectID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+	rel, err := validateReviewPath(r.URL.Query().Get("path"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	staged := r.URL.Query().Get("staged") == "1" || strings.EqualFold(r.URL.Query().Get("staged"), "true")
+	args := []string{"diff", "--no-ext-diff", "--no-color", "--unified=3"}
+	if staged {
+		args = append(args, "--cached")
+	}
+	args = append(args, "--", rel)
+	diff, truncated, err := runBoundedGit(proj.CanonicalPath, maxReviewDiffBytes, args...)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, ProjectGitDiffResponse{
+		ProjectID: proj.ID,
+		Path:      rel,
+		Staged:    staged,
+		Diff:      diff,
+		Truncated: truncated,
+	})
+}
+
+func validateReviewPath(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", fmt.Errorf("path is required")
+	}
+	if strings.ContainsRune(raw, '\x00') || filepath.IsAbs(raw) {
+		return "", fmt.Errorf("invalid review path")
+	}
+	clean := filepath.Clean(raw)
+	if clean == "." || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("review path escapes project root")
+	}
+	return filepath.ToSlash(clean), nil
+}
+
+func parsePorcelainChanges(raw string) []ProjectGitChange {
+	lines := strings.Split(raw, "\n")
+	out := make([]ProjectGitChange, 0, len(lines))
+	for _, line := range lines {
+		if len(line) < 4 {
+			continue
+		}
+		path := strings.TrimSpace(line[3:])
+		if path == "" {
+			continue
+		}
+		// Porcelain v1 may render rename/copy as "old -> new". Keep the display
+		// path as returned here; the diff endpoint still requires an explicit
+		// validated path selected by the client.
+		out = append(out, ProjectGitChange{
+			Path:     path,
+			Index:    string(line[0]),
+			Worktree: string(line[1]),
+		})
+	}
+	return out
+}
+
+type boundedWriter struct {
+	buf       bytes.Buffer
+	remaining int
+	truncated bool
+}
+
+func (w *boundedWriter) Write(p []byte) (int, error) {
+	original := len(p)
+	if w.remaining > 0 {
+		keep := len(p)
+		if keep > w.remaining {
+			keep = w.remaining
+		}
+		_, _ = w.buf.Write(p[:keep])
+		w.remaining -= keep
+		if keep < len(p) {
+			w.truncated = true
+		}
+	} else if len(p) > 0 {
+		w.truncated = true
+	}
+	return original, nil
+}
+
+func runBoundedGit(dir string, limit int, args ...string) (string, bool, error) {
+	if limit <= 0 {
+		return "", false, fmt.Errorf("invalid git output limit")
+	}
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	executil.HideConsoleWindow(cmd)
+	stdout := &boundedWriter{remaining: limit}
+	stderr := &boundedWriter{remaining: 16 * 1024}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err := cmd.Run(); err != nil {
+		message := strings.TrimSpace(stderr.buf.String())
+		if message == "" {
+			message = err.Error()
+		}
+		return "", stdout.truncated, fmt.Errorf("git %s failed: %s", strings.Join(args, " "), message)
+	}
+	return stdout.buf.String(), stdout.truncated, nil
 }

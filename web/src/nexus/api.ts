@@ -497,6 +497,15 @@ export const nexus = {
     ),
   getProjectBranches: (projectId: string) =>
     request<import('../types').GitBranchesResult>(`/api/v1/projects/${projectId}/git/branches`),
+  getProjectChanges: (projectId: string) =>
+    request<import('../types').GitChangesResult>(`/api/v1/projects/${projectId}/git/changes`),
+  getProjectDiff: (projectId: string, path: string, staged = false) => {
+    const params = new URLSearchParams({ path });
+    if (staged) params.set('staged', '1');
+    return request<import('../types').GitDiffResult>(
+      `/api/v1/projects/${projectId}/git/diff?${params.toString()}`,
+    );
+  },
   checkoutProjectBranch: (projectId: string, branch: string, create = false) =>
     request<import('../types').GitCheckoutResult>(`/api/v1/projects/${projectId}/git/checkout`, {
       method: 'POST',

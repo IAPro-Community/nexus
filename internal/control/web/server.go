@@ -246,6 +246,10 @@ func projectSubroute(path string) string {
 		return "open-os"
 	case strings.HasSuffix(path, "/git/branches"):
 		return "git-branches"
+	case strings.HasSuffix(path, "/git/changes"):
+		return "git-changes"
+	case strings.HasSuffix(path, "/git/diff"):
+		return "git-diff"
 	case strings.HasSuffix(path, "/git/checkout"):
 		return "git-checkout"
 	default:

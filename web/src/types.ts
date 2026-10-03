@@ -768,6 +768,28 @@ export interface GitCheckoutResult {
   error?: string;
 }
 
+export interface GitChange {
+  path: string;
+  index_status: string;
+  worktree_status: string;
+}
+
+export interface GitChangesResult {
+  project_id: string;
+  current_branch: string;
+  head: string;
+  changes: GitChange[];
+  truncated: boolean;
+}
+
+export interface GitDiffResult {
+  project_id: string;
+  path: string;
+  staged: boolean;
+  diff: string;
+  truncated: boolean;
+}
+
 export type ContextReadinessState = 'MISSING' | 'HYDRATING' | 'READY' | 'STALE' | 'FAILED';
 
 export interface ContextFingerprint {
