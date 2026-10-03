@@ -235,9 +235,13 @@ func (s remoteBridgeServer) handle(ctx context.Context, request protocol.Request
 			return remoteBridgeError(request.ID, "RUNTIME_UNAVAILABLE", err)
 		}
 		defer client.Close()
-		response, err := client.Send(payload.Command, json.RawMessage(payload.Payload))
+		controlResponse, err := client.Send(payload.Command, json.RawMessage(payload.Payload))
 		if err != nil {
 			return remoteBridgeError(request.ID, "CONTROL_FAILED", err)
+		}
+		response, err := protocol.NewResponse(controlResponse)
+		if err != nil {
+			return remoteBridgeError(request.ID, "ENCODE_FAILED", err)
 		}
 		response.ID = request.ID
 		response.RuntimeID = payload.RuntimeID
