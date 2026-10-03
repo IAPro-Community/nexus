@@ -76,19 +76,28 @@ describe('theme model', () => {
     expect(normalized).toEqual(original);
   });
 
-  it('contains comprehensive suite of 10 presets', () => {
+  it('contains the Nexus 1.0 preset suite, including the approved visual themes', () => {
     const keys = Object.keys(THEME_PRESETS);
-    expect(keys).toContain('nexus-dark');
-    expect(keys).toContain('nexus-light');
-    expect(keys).toContain('midnight');
-    expect(keys).toContain('nord');
-    expect(keys).toContain('dracula');
-    expect(keys).toContain('monokai');
-    expect(keys).toContain('solarized-dark');
-    expect(keys).toContain('solarized-light');
-    expect(keys).toContain('high-contrast-dark');
-    expect(keys).toContain('high-contrast-light');
-    expect(keys.length).toBeGreaterThanOrEqual(10);
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        'nexus-dark',
+        'nexus-light',
+        'midnight',
+        'nord',
+        'dracula',
+        'monokai',
+        'solarized-dark',
+        'solarized-light',
+        'graphite-focus',
+        'vasco-noir',
+        'nord-light',
+        'aurora-ops',
+        'obsidian',
+        'high-contrast-dark',
+        'high-contrast-light',
+      ]),
+    );
+    expect(keys.length).toBeGreaterThanOrEqual(15);
   });
 
   it('normalizes out-of-bound fontScale values', () => {
@@ -180,7 +189,7 @@ describe('resolveThemeStyleVariables', () => {
   });
 });
 
-describe('WCAG AA Contrast Automation for all 10 presets', () => {
+describe('WCAG AA contrast automation for every registered preset', () => {
   it('satisfies WCAG AA contrast ratio for normal text (>= 4.5) and UI accent components (>= 3.0)', () => {
     for (const [id, def] of Object.entries(THEME_PRESETS)) {
       const bg = def.vars['--nx-bg'];
