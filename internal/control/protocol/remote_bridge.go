@@ -182,6 +182,7 @@ func ValidateRemoteBridgeControl(payload RemoteBridgeControlPayload) error {
 	}
 	switch payload.Command {
 	case CmdPing,
+		CmdInput,
 		CmdSubmitPrompt,
 		CmdStop,
 		CmdTerminate,
