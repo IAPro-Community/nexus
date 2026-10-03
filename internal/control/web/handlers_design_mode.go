@@ -17,6 +17,7 @@ import (
 )
 
 type projectDesignBrowser struct {
+	mu          sync.Mutex
 	browser     *nexusbrowser.DesignBrowser
 	url         string
 	startedAt   time.Time
@@ -78,6 +79,8 @@ func closeProjectDesignBrowser(session *projectDesignBrowser) {
 	if session == nil {
 		return
 	}
+	session.mu.Lock()
+	defer session.mu.Unlock()
 	if session.browser != nil {
 		_ = session.browser.Close()
 	}
@@ -93,6 +96,8 @@ func (m *designModeManager) withBrowser(projectID string, fn func(*projectDesign
 	if session == nil || session.browser == nil {
 		return errors.New("Design Mode browser is not active for this project")
 	}
+	session.mu.Lock()
+	defer session.mu.Unlock()
 	return fn(session)
 }
 
@@ -122,18 +127,18 @@ func (m *designModeManager) screenshotPath(projectID, ref string) (string, bool)
 }
 
 type designModeArtifactResponse struct {
-	Version        int                         \`json:"version"\`
-	URL            string                      \`json:"url"\`
-	Title          string                      \`json:"title,omitempty"\`
-	Selector       string                      \`json:"selector"\`
-	HTML           string                      \`json:"html"\`
-	Neighborhood   string                      \`json:"neighborhood,omitempty"\`
-	Text           string                      \`json:"text,omitempty"\`
-	ComputedStyles map[string]string           \`json:"computed_styles,omitempty"\`
-	Bounds         nexusbrowser.UIElementBounds \`json:"bounds"\`
-	SourceHints    map[string]string           \`json:"source_hints,omitempty"\`
-	ScreenshotRef  string                      \`json:"screenshot_ref,omitempty"\`
-	CapturedAt     time.Time                   \`json:"captured_at"\`
+	Version        int                         `json:"version"`
+	URL            string                      `json:"url"`
+	Title          string                      `json:"title,omitempty"`
+	Selector       string                      `json:"selector"`
+	HTML           string                      `json:"html"`
+	Neighborhood   string                      `json:"neighborhood,omitempty"`
+	Text           string                      `json:"text,omitempty"`
+	ComputedStyles map[string]string           `json:"computed_styles,omitempty"`
+	Bounds         nexusbrowser.UIElementBounds `json:"bounds"`
+	SourceHints    map[string]string           `json:"source_hints,omitempty"`
+	ScreenshotRef  string                      `json:"screenshot_ref,omitempty"`
+	CapturedAt     time.Time                   `json:"captured_at"`
 }
 
 func (h *NexusHandler) handleProjectDesignMode(w http.ResponseWriter, r *http.Request) {
@@ -153,12 +158,15 @@ func (h *NexusHandler) handleProjectDesignMode(w http.ResponseWriter, r *http.Re
 
 	if tail == "status" && r.Method == http.MethodGet {
 		active, rawURL, startedAt := h.designMode.status(projectID)
-		writeJSON(w, http.StatusOK, map[string]any{
+		response := map[string]any{
 			"enabled": enabled,
-			"active": active,
-			"url": rawURL,
-			"started_at": startedAt,
-		})
+			"active":  active,
+		}
+		if active {
+			response["url"] = rawURL
+			response["started_at"] = startedAt
+		}
+		writeJSON(w, http.StatusOK, response)
 		return
 	}
 	if !enabled {
@@ -169,7 +177,7 @@ func (h *NexusHandler) handleProjectDesignMode(w http.ResponseWriter, r *http.Re
 	switch {
 	case tail == "start" && r.Method == http.MethodPost:
 		var body struct {
-			URL string \`json:"url"\`
+			URL string `json:"url"`
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil || strings.TrimSpace(body.URL) == "" {
 			writeError(w, http.StatusBadRequest, "url is required")
@@ -220,7 +228,7 @@ func (h *NexusHandler) handleProjectDesignMode(w http.ResponseWriter, r *http.Re
 
 	case tail == "inspect" && r.Method == http.MethodPost:
 		var body struct {
-			Selector string \`json:"selector"\`
+			Selector string `json:"selector"`
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil || strings.TrimSpace(body.Selector) == "" {
 			writeError(w, http.StatusBadRequest, "selector is required")
