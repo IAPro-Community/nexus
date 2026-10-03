@@ -26,6 +26,11 @@ func NewLocalProvider() Provider {
 			return NewHelperProvider(path, runtime.GOOS)
 		}
 	}
+	if NativeHelperSupported() {
+		if executable, err := os.Executable(); err == nil && strings.TrimSpace(executable) != "" {
+			return NewHelperProviderWithArgs(executable, runtime.GOOS, "__computer-use-helper")
+		}
+	}
 	return UnavailableProvider{
 		Platform: runtime.GOOS,
 		Reason:   "no version-compatible Nexus computer-use helper was discovered",
