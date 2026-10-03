@@ -30,6 +30,9 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	if e.n == nil {
 		return runner.AllocationResult{}, fmt.Errorf("nexus executor unavailable")
 	}
+	if allocation, handled, err := e.allocateComputerCoordination(run, pkg); handled {
+		return allocation, err
+	}
 	st, err := e.n.OpenProject()
 	if err != nil {
 		return runner.AllocationResult{}, err
@@ -686,12 +689,15 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 	if pkg.ContextCapsule == nil {
 		return runner.PromptArtifact{}, runner.ErrMissingContextCapsule
 	}
+	if artifact, handled, err := e.compileComputerCoordination(run, pkg); handled {
+		return artifact, err
+	}
 	if pkg.DynamicWork && strings.TrimSpace(pkg.CoordinationRequestID) != "" {
 		content := buildDynamicCoordinationPrompt(run, pkg)
 		if capsule := strings.TrimSpace(runner.RenderContextCapsule(pkg.ContextCapsule)); capsule != "" {
 			content += "\n\n" + capsule
 		}
-		content += missionCoordinationPromptInstructions()
+		content += missionCoordinationPromptInstructions(run.Contract)
 		content += autonomyPromptBoundaries(run.Contract)
 		return e.persistMissionPrompt(run, pkg, content)
 	}
@@ -751,7 +757,7 @@ func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionR
 		content += "\n\n## Remediation evidence from the previous attempt\n" + strings.TrimSpace(pkg.RemediationContext) +
 			"\n\nAddress the evidence above. Do not repeat the same failed approach without a concrete change."
 	}
-	content += missionCoordinationPromptInstructions()
+	content += missionCoordinationPromptInstructions(run.Contract)
 	content += autonomyPromptBoundaries(run.Contract)
 	return e.persistMissionPrompt(run, pkg, content)
 }
@@ -803,7 +809,7 @@ Do not broaden the sealed Mission scope.`,
 		req.Operation, req.Subject, req.Objective, req.SourcePackageID, req.SourceAgentID)
 }
 
-func missionCoordinationPromptInstructions() string {
+func missionCoordinationPromptInstructions(run.Contract) string {
 	return `
 
 ## Mission coordination protocol
@@ -957,6 +963,9 @@ func coordinationReplaySafety(contract runner.AutonomyContract, before, after st
 }
 
 func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun, prompt string) (runner.ExecutionResult, error) {
+	if local, handled, err := e.executeComputerCoordination(ctx, run, pkg); handled {
+		return local, err
+	}
 	if strings.TrimSpace(pkg.AssignedAgent) == "" {
 		return runner.ExecutionResult{}, fmt.Errorf("package has no assigned persistent agent")
 	}
