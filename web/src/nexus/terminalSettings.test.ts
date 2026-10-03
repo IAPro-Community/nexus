@@ -5,6 +5,7 @@ import {
   MAX_TERMINAL_FONT_SIZE,
   MIN_TERMINAL_FONT_SIZE,
   getStoredTerminalFontSize,
+  getTerminalTheme,
   storeTerminalFontSize,
   adjustTerminalFontSize,
   resetTerminalFontSize,
@@ -73,5 +74,47 @@ describe('terminalSettings', () => {
   it('defines balanced scrollback bounds to avoid memory exhaustion', () => {
     expect(DEFAULT_TERMINAL_SCROLLBACK).toBeGreaterThanOrEqual(2000);
     expect(DEFAULT_TERMINAL_SCROLLBACK).toBeLessThanOrEqual(10000);
+  });
+
+  it('resolves xterm colors from the semantic terminal CSS tokens', () => {
+    const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+    const originalGetComputedStyle = Object.getOwnPropertyDescriptor(globalThis, 'getComputedStyle');
+    const tokens: Record<string, string> = {
+      '--nx-terminal-bg': '#010203',
+      '--nx-terminal-text': '#f1f2f3',
+      '--nx-terminal-cursor': '#abcdef',
+      '--nx-terminal-selection': 'rgba(1, 2, 3, 0.4)',
+    };
+
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { documentElement: {} },
+    });
+    Object.defineProperty(globalThis, 'getComputedStyle', {
+      configurable: true,
+      value: () => ({
+        getPropertyValue: (name: string) => tokens[name] || '',
+      }),
+    });
+
+    try {
+      expect(getTerminalTheme()).toEqual({
+        background: '#010203',
+        foreground: '#f1f2f3',
+        cursor: '#abcdef',
+        selectionBackground: 'rgba(1, 2, 3, 0.4)',
+      });
+    } finally {
+      if (originalDocument) {
+        Object.defineProperty(globalThis, 'document', originalDocument);
+      } else {
+        Reflect.deleteProperty(globalThis, 'document');
+      }
+      if (originalGetComputedStyle) {
+        Object.defineProperty(globalThis, 'getComputedStyle', originalGetComputedStyle);
+      } else {
+        Reflect.deleteProperty(globalThis, 'getComputedStyle');
+      }
+    }
   });
 });
