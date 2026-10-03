@@ -21,6 +21,11 @@ type AutonomyContract struct {
 	AllowExternalNetwork       bool                    `json:"allow_external_network"`
 	AllowSecretAccess          bool                    `json:"allow_secret_access"`
 	AllowPaidServices          bool                    `json:"allow_paid_services"`
+	AllowComputerUse           bool                    `json:"allow_computer_use"`
+	AllowScreenCapture         bool                    `json:"allow_screen_capture"`
+	AllowKeyboardInput         bool                    `json:"allow_keyboard_input"`
+	AllowPointerInput          bool                    `json:"allow_pointer_input"`
+	AllowWindowManagement      bool                    `json:"allow_window_management"`
 	AllowedHumanOperations     []InterventionOperation `json:"allowed_human_operations,omitempty"`
 }
 
@@ -39,6 +44,11 @@ type AutonomyContractPatch struct {
 	AllowExternalNetwork   *bool `json:"allow_external_network,omitempty"`
 	AllowSecretAccess      *bool `json:"allow_secret_access,omitempty"`
 	AllowPaidServices      *bool `json:"allow_paid_services,omitempty"`
+	AllowComputerUse       *bool `json:"allow_computer_use,omitempty"`
+	AllowScreenCapture     *bool `json:"allow_screen_capture,omitempty"`
+	AllowKeyboardInput     *bool `json:"allow_keyboard_input,omitempty"`
+	AllowPointerInput      *bool `json:"allow_pointer_input,omitempty"`
+	AllowWindowManagement  *bool `json:"allow_window_management,omitempty"`
 }
 
 func ApplyAutonomyContractPatch(p *AutonomyContractPatch) AutonomyContract {
@@ -87,6 +97,21 @@ func ApplyAutonomyContractPatch(p *AutonomyContractPatch) AutonomyContract {
 	}
 	if p.AllowPaidServices != nil {
 		c.AllowPaidServices = *p.AllowPaidServices
+	}
+	if p.AllowComputerUse != nil {
+		c.AllowComputerUse = *p.AllowComputerUse
+	}
+	if p.AllowScreenCapture != nil {
+		c.AllowScreenCapture = *p.AllowScreenCapture
+	}
+	if p.AllowKeyboardInput != nil {
+		c.AllowKeyboardInput = *p.AllowKeyboardInput
+	}
+	if p.AllowPointerInput != nil {
+		c.AllowPointerInput = *p.AllowPointerInput
+	}
+	if p.AllowWindowManagement != nil {
+		c.AllowWindowManagement = *p.AllowWindowManagement
 	}
 	return c
 }

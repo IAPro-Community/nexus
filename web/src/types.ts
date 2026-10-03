@@ -1293,6 +1293,11 @@ export interface AutonomyContract {
   allow_external_network: boolean;
   allow_secret_access: boolean;
   allow_paid_services: boolean;
+  allow_computer_use: boolean;
+  allow_screen_capture: boolean;
+  allow_keyboard_input: boolean;
+  allow_pointer_input: boolean;
+  allow_window_management: boolean;
 }
 
 export interface VerificationResult {

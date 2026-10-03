@@ -1,11 +1,9 @@
 // Package flags holds kill-switches for the highest-risk surfaces.
 //
-// Only a handful of flags exist on purpose: tunnel, autonomous missions,
-// remote access, experimental intelligence, and the experimental Nexus HUD. Each defaults to its safe
-// production value and can be forced off via environment for incident
-// response. A future remote-config backend implements Source without
-// changing call sites; until then the local source is authoritative and
-// the app runs fully offline.
+// Stable v1 surfaces keep their existing defaults. Nexus 1.1 capabilities are
+// introduced behind explicit, independently reversible flags so a beta can
+// disable one subsystem without changing the v1 execution path. Every new v1.1
+// capability defaults off until its own evidence gate is satisfied.
 package flags
 
 import (
@@ -27,6 +25,22 @@ const (
 	ExperimentalIntelligence Name = "experimental_intelligence"
 	// HUD gates the experimental Nexus HUD projection and presentation surfaces.
 	HUD Name = "hud"
+	// ExecutionWorkspacesV2 gates task-scoped worktrees and execution workspaces.
+	ExecutionWorkspacesV2 Name = "execution_workspaces_v2"
+	// ReviewCenter gates the source-control and evidence review surface.
+	ReviewCenter Name = "review_center"
+	// BrowserDesignMode gates browser element inspection and UI context artifacts.
+	BrowserDesignMode Name = "browser_design_mode"
+	// CandidateRuns gates speculative multi-agent candidate execution.
+	CandidateRuns Name = "candidate_runs"
+	// RemoteExecution gates execution on SSH/remote targets.
+	RemoteExecution Name = "remote_execution"
+	// NexusNodes gates enrolled Nexus worker nodes.
+	NexusNodes Name = "nexus_nodes"
+	// ComputerUse gates desktop observation and input capabilities.
+	ComputerUse Name = "computer_use"
+	// MobileCompanion gates remote companion surfaces.
+	MobileCompanion Name = "mobile_companion"
 )
 
 // defaults are the safe production values.
@@ -36,11 +50,33 @@ var defaults = map[Name]bool{
 	RemoteAccess:             true,
 	ExperimentalIntelligence: false,
 	HUD:                      false,
+	ExecutionWorkspacesV2:    false,
+	ReviewCenter:             false,
+	BrowserDesignMode:        false,
+	CandidateRuns:            false,
+	RemoteExecution:          false,
+	NexusNodes:               false,
+	ComputerUse:              false,
+	MobileCompanion:          false,
 }
 
 // All lists every known flag.
 func All() []Name {
-	return []Name{Tunnel, AutonomousMission, RemoteAccess, ExperimentalIntelligence, HUD}
+	return []Name{
+		Tunnel,
+		AutonomousMission,
+		RemoteAccess,
+		ExperimentalIntelligence,
+		HUD,
+		ExecutionWorkspacesV2,
+		ReviewCenter,
+		BrowserDesignMode,
+		CandidateRuns,
+		RemoteExecution,
+		NexusNodes,
+		ComputerUse,
+		MobileCompanion,
+	}
 }
 
 // Source resolves flag values.

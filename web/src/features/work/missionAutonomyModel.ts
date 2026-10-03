@@ -21,6 +21,11 @@ export function defaultMissionAutonomyContract(): AutonomyContract {
     allow_external_network: false,
     allow_secret_access: false,
     allow_paid_services: false,
+    allow_computer_use: false,
+    allow_screen_capture: false,
+    allow_keyboard_input: false,
+    allow_pointer_input: false,
+    allow_window_management: false,
   };
 }
 

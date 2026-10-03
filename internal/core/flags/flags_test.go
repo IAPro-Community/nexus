@@ -12,6 +12,20 @@ func TestKillSwitchDefaultsAndOverrides(t *testing.T) {
 	if Enabled(HUD) {
 		t.Fatal("experimental HUD must default off")
 	}
+	for _, flag := range []Name{
+		ExecutionWorkspacesV2,
+		ReviewCenter,
+		BrowserDesignMode,
+		CandidateRuns,
+		RemoteExecution,
+		NexusNodes,
+		ComputerUse,
+		MobileCompanion,
+	} {
+		if Enabled(flag) {
+			t.Fatalf("Nexus 1.1 feature %q must default off", flag)
+		}
+	}
 	t.Setenv("NEXUS_DISABLE_TUNNEL", "1")
 	if Enabled(Tunnel) {
 		t.Fatal("disable override must win")
@@ -27,7 +41,11 @@ func TestKillSwitchDefaultsAndOverrides(t *testing.T) {
 	if Enabled("unknown_surface") {
 		t.Fatal("unknown flags must default off")
 	}
-	if len(All()) != 5 {
-		t.Fatalf("flag surface must stay small, got %d", len(All()))
+	t.Setenv("NEXUS_ENABLE_COMPUTER_USE", "true")
+	if !Enabled(ComputerUse) {
+		t.Fatal("computer-use enable override must win")
+	}
+	if len(All()) != 13 {
+		t.Fatalf("unexpected flag surface, got %d", len(All()))
 	}
 }

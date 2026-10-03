@@ -12,6 +12,11 @@ describe('mission autonomy defaults', () => {
     expect(contract.allow_external_network).toBe(false);
     expect(contract.allow_secret_access).toBe(false);
     expect(contract.allow_paid_services).toBe(false);
+    expect(contract.allow_computer_use).toBe(false);
+    expect(contract.allow_screen_capture).toBe(false);
+    expect(contract.allow_keyboard_input).toBe(false);
+    expect(contract.allow_pointer_input).toBe(false);
+    expect(contract.allow_window_management).toBe(false);
     expect(contract.max_retries).toBeGreaterThan(0);
     expect(contract.max_total_iterations).toBeGreaterThan(contract.max_retries);
     expect(contract.max_no_progress).toBeGreaterThan(0);
