@@ -17,16 +17,16 @@
   min-height: 28px;
   max-width: 9.5rem;
   padding: 0 1.55rem 0 0.5rem;
-  border: 1px solid var(--nx-border, rgba(255, 255, 255, 0.16));
+  border: 1px solid var(--nx-border);
   border-radius: 0.4rem;
-  background: var(--nx-surface-raised, rgba(255, 255, 255, 0.05));
+  background: var(--nx-surface-raised);
   color: inherit;
   font: inherit;
   font-size: 0.75rem;
 }
 
 .select:focus-visible {
-  outline: 2px solid var(--nx-focus, currentColor);
+  outline: 2px solid var(--nx-focus);
   outline-offset: 2px;
 }
 
