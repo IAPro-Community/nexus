@@ -544,9 +544,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     <div className={styles.terminalPaneRoot} data-chrome={hideHeader ? 'window' : 'full'}>
       {/* Terminal Toolbar */}
       {!hideHeader && (
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-800 text-xs font-mono select-none">
+        <div className="flex items-center justify-between px-3 py-2 bg-[var(--nx-terminal-surface)] border-b border-[var(--nx-terminal-border)] text-xs font-mono select-none">
           <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--nx-success)] animate-pulse"></span>
             {isEditingTitle ? (
               <div className="flex items-center space-x-1">
                 <input
@@ -554,13 +554,13 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
                   value={customTitle}
                   onChange={(e) => setCustomTitle(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
-                  className="bg-slate-950 border border-sky-500 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none"
+                  className="bg-[var(--nx-terminal-bg)] border border-[var(--nx-terminal-cursor)] rounded px-1.5 py-0.5 text-xs text-[var(--nx-terminal-text)] focus:outline-none"
                   autoFocus
                 />
                 <button
                   type="button"
                   onClick={handleSaveTitle}
-                  className="p-0.5 text-emerald-400 hover:text-emerald-300"
+                  className="p-0.5 text-[var(--nx-success)] hover:opacity-80"
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
@@ -573,29 +573,29 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
                 title={t('terminal.renameSessionTitle')}
                 aria-label={t('terminal.renameSessionTitle')}
               >
-                <span className="text-slate-100 font-bold font-sans">
+                <span className="text-[var(--nx-terminal-text)] font-bold font-sans">
                   {customTitle || `${provider.toUpperCase()} (${profile})`}
                 </span>
-                <Pencil className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100 transition" />
+                <Pencil className="w-3 h-3 text-[var(--nx-terminal-muted)] opacity-0 group-hover:opacity-100 transition" />
               </button>
             )}
             {ptyTitle && (
               <span
-                className="px-2 py-0.5 rounded-full border border-amber-700/60 bg-amber-950/40 text-amber-200 text-[10px] max-w-[220px] truncate"
+                className="px-2 py-0.5 rounded-full border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-warning)] text-[10px] max-w-[220px] truncate"
                 title={ptyTitle}
               >
                 {ptyTitle}
               </span>
             )}
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-400 uppercase text-[11px]">{provider}</span>
-            <span className="text-slate-500 text-[11px]">({profile})</span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-500 text-[10px]">ID: {runtimeId}</span>
+            <span className="text-[var(--nx-terminal-muted)]">|</span>
+            <span className="text-[var(--nx-terminal-text-soft)] uppercase text-[11px]">{provider}</span>
+            <span className="text-[var(--nx-terminal-muted)] text-[11px]">({profile})</span>
+            <span className="text-[var(--nx-terminal-muted)]">|</span>
+            <span className="text-[var(--nx-terminal-muted)] text-[10px]">ID: {runtimeId}</span>
           </div>
 
           <div className="flex items-center space-x-2">
-            {errorMsg && <span className="text-rose-400 font-sans text-xs">{errorMsg}</span>}
+            {errorMsg && <span className="text-[var(--nx-danger)] font-sans text-xs">{errorMsg}</span>}
 
             <VoiceCaptureButton
               context="terminal"
@@ -636,12 +636,12 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
             {/* Lease Status Badge */}
             {role === 'CONTROL' ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[var(--nx-success-soft)] text-[var(--nx-success)] border border-[var(--nx-success)]">
                 <Shield className="w-3 h-3 mr-1" />
                 CONTROL
               </span>
             ) : (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-950 text-amber-300 border border-amber-800">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[var(--nx-warning-soft)] text-[var(--nx-warning)] border border-[var(--nx-warning)]">
                 <ShieldAlert className="w-3 h-3 mr-1" />
                 VIEW ONLY
               </span>
@@ -652,7 +652,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               <button
                 type="button"
                 onClick={requestControl}
-                className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-sans text-xs transition"
+                className="px-2 py-0.5 rounded bg-[var(--nx-accent)] hover:bg-[var(--nx-accent-hover)] text-[var(--nx-accent-contrast)] font-sans text-xs transition"
               >
                 {t('terminal.takeControl')}
               </button>
@@ -660,7 +660,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               <button
                 type="button"
                 onClick={releaseControl}
-                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-sans text-xs transition"
+                className="px-2 py-0.5 rounded bg-[var(--nx-surface-2)] hover:bg-[var(--nx-surface-3)] text-[var(--nx-text-soft)] font-sans text-xs transition"
               >
                 Release
               </button>
@@ -670,7 +670,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                className="p-1 rounded text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-surface-2)] transition"
                 title={t('terminal.closePane')}
                 aria-label={t('terminal.closePane')}
               >
