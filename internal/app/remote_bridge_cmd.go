@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"runtime"
 	"strings"
@@ -26,6 +28,16 @@ type remoteBridgeLaunchPort interface {
 	Launch(context.Context, launcher.LaunchOptions) (*registry.RuntimeSession, error)
 }
 
+type remoteBridgeRuntimeClient interface {
+	Status() (protocol.StatusData, error)
+	Resize(rows, cols int) error
+	Send(protocol.CommandType, any) (protocol.Response, error)
+	ClearDeadline() error
+	RawConn() net.Conn
+	Reader() *bufio.Reader
+	Close() error
+}
+
 type remoteBridgeServer struct {
 	launcher      remoteBridgeLaunchPort
 	machineID     func() string
@@ -35,6 +47,7 @@ type remoteBridgeServer struct {
 	arch          string
 	resize        func(string, int, int) error
 	lookup        func(string) (registry.RuntimeSession, bool)
+	dialRuntime   func(string) (remoteBridgeRuntimeClient, error)
 }
 
 func newRemoteBridgeServer() remoteBridgeServer {
@@ -47,15 +60,25 @@ func newRemoteBridgeServer() remoteBridgeServer {
 		arch:          runtime.GOARCH,
 		resize:        resizeRemoteBridgeRuntime,
 		lookup:        registry.DefaultRegistry().Get,
+		dialRuntime: func(runtimeID string) (remoteBridgeRuntimeClient, error) {
+			return protocol.NewClient(runtimeID)
+		},
 	}
 }
 
 func remoteBridgeCmd(args []string) error {
-	if len(args) != 1 || args[0] != "--stdio" {
-		return fmt.Errorf("usage: %s __remote-bridge --stdio", progName())
+	if len(args) != 1 {
+		return fmt.Errorf("usage: %s __remote-bridge <--stdio|--attach-stdio>", progName())
 	}
 	server := newRemoteBridgeServer()
-	return server.serve(context.Background(), os.Stdin, os.Stdout)
+	switch args[0] {
+	case "--stdio":
+		return server.serve(context.Background(), os.Stdin, os.Stdout)
+	case "--attach-stdio":
+		return server.serveAttach(context.Background(), os.Stdin, os.Stdout)
+	default:
+		return fmt.Errorf("usage: %s __remote-bridge <--stdio|--attach-stdio>", progName())
+	}
 }
 
 func (s remoteBridgeServer) serve(ctx context.Context, in io.Reader, out io.Writer) error {
@@ -127,6 +150,75 @@ func (s remoteBridgeServer) handle(ctx context.Context, request protocol.Request
 		response.ID = request.ID
 		return response
 
+	case protocol.CmdRemoteBridgeStatus:
+		if !s.remoteEnabled() {
+			return remoteBridgeError(request.ID, "REMOTE_EXECUTION_DISABLED", fmt.Errorf("remote execution is disabled on this host"))
+		}
+		var payload protocol.RemoteBridgeRuntimePayload
+		if err := decodeStrictRemoteBridgeJSON(request.Payload, &payload); err != nil {
+			return remoteBridgeError(request.ID, "INVALID_REQUEST", err)
+		}
+		if err := protocol.ValidateRemoteBridgeRuntime(payload); err != nil {
+			return remoteBridgeError(request.ID, "INVALID_REQUEST", err)
+		}
+		session, client, err := s.openVerifiedRuntime(payload.RuntimeID)
+		if err != nil {
+			return remoteBridgeError(request.ID, "RUNTIME_UNAVAILABLE", err)
+		}
+		defer client.Close()
+		status, err := client.Status()
+		if err != nil {
+			return remoteBridgeError(request.ID, "STATUS_FAILED", err)
+		}
+		response, err := protocol.NewResponse(protocol.RemoteBridgeRuntimeStatusData{
+			RuntimeID:    session.RuntimeID,
+			MachineID:    firstNonEmptyBridgeValue(session.MachineID, s.machineID()),
+			Provider:     session.ProviderID,
+			Profile:      session.ProfileID,
+			Model:        session.Model,
+			Workspace:    session.Workspace,
+			State:        status.State,
+			ControlLevel: status.ControlLevel,
+			Transport:    "nexus-remote-bridge",
+		})
+		if err != nil {
+			return remoteBridgeError(request.ID, "ENCODE_FAILED", err)
+		}
+		response.ID = request.ID
+		response.RuntimeID = session.RuntimeID
+		return response
+
+	case protocol.CmdRemoteBridgeResize:
+		if !s.remoteEnabled() {
+			return remoteBridgeError(request.ID, "REMOTE_EXECUTION_DISABLED", fmt.Errorf("remote execution is disabled on this host"))
+		}
+		var payload protocol.RemoteBridgeResizePayload
+		if err := decodeStrictRemoteBridgeJSON(request.Payload, &payload); err != nil {
+			return remoteBridgeError(request.ID, "INVALID_REQUEST", err)
+		}
+		if err := protocol.ValidateRemoteBridgeResize(payload); err != nil {
+			return remoteBridgeError(request.ID, "INVALID_REQUEST", err)
+		}
+		session, client, err := s.openVerifiedRuntime(payload.RuntimeID)
+		if err != nil {
+			return remoteBridgeError(request.ID, "RUNTIME_UNAVAILABLE", err)
+		}
+		defer client.Close()
+		if err := client.Resize(payload.Rows, payload.Cols); err != nil {
+			return remoteBridgeError(request.ID, "RESIZE_FAILED", err)
+		}
+		response, err := protocol.NewResponse(map[string]any{
+			"runtime_id": session.RuntimeID,
+			"rows":       payload.Rows,
+			"cols":       payload.Cols,
+		})
+		if err != nil {
+			return remoteBridgeError(request.ID, "ENCODE_FAILED", err)
+		}
+		response.ID = request.ID
+		response.RuntimeID = session.RuntimeID
+		return response
+
 	case protocol.CmdRemoteBridgeSpawn:
 		if !s.remoteEnabled() {
 			return remoteBridgeError(request.ID, "REMOTE_EXECUTION_DISABLED", fmt.Errorf("remote execution is disabled on this host"))
@@ -180,6 +272,177 @@ func (s remoteBridgeServer) handle(ctx context.Context, request protocol.Request
 
 	default:
 		return remoteBridgeError(request.ID, "UNSUPPORTED_COMMAND", fmt.Errorf("remote bridge command %q is unsupported", request.Command))
+	}
+}
+
+func (s remoteBridgeServer) openVerifiedRuntime(runtimeID string) (registry.RuntimeSession, remoteBridgeRuntimeClient, error) {
+	if s.lookup == nil || s.dialRuntime == nil {
+		return registry.RuntimeSession{}, nil, fmt.Errorf("remote bridge runtime access is unavailable")
+	}
+	session, ok := s.lookup(runtimeID)
+	if !ok {
+		return registry.RuntimeSession{}, nil, fmt.Errorf("runtime %q is not registered", runtimeID)
+	}
+	if !session.IsActive() || !session.HostLive() {
+		return registry.RuntimeSession{}, nil, fmt.Errorf("runtime %q is not live", runtimeID)
+	}
+	client, err := s.dialRuntime(runtimeID)
+	if err != nil {
+		return registry.RuntimeSession{}, nil, err
+	}
+	status, err := client.Status()
+	if err != nil {
+		_ = client.Close()
+		return registry.RuntimeSession{}, nil, err
+	}
+	if err := verifyRemoteBridgeRuntimeIdentity(session, status); err != nil {
+		_ = client.Close()
+		return registry.RuntimeSession{}, nil, err
+	}
+	return session, client, nil
+}
+
+func verifyRemoteBridgeRuntimeIdentity(session registry.RuntimeSession, status protocol.StatusData) error {
+	if status.RuntimeID != session.RuntimeID {
+		return fmt.Errorf("runtime identity changed")
+	}
+	if session.PID > 0 && status.PID != session.PID {
+		return fmt.Errorf("provider PID changed for runtime %q", session.RuntimeID)
+	}
+	if session.ProviderGeneration > 0 && status.ProviderGeneration > 0 && status.ProviderGeneration != session.ProviderGeneration {
+		return fmt.Errorf("provider generation changed for runtime %q", session.RuntimeID)
+	}
+	if session.HostPID > 0 && status.HostPID != session.HostPID {
+		return fmt.Errorf("SessionHost PID changed for runtime %q", session.RuntimeID)
+	}
+	if session.HostGeneration > 0 && status.HostGeneration > 0 && status.HostGeneration != session.HostGeneration {
+		return fmt.Errorf("SessionHost generation changed for runtime %q", session.RuntimeID)
+	}
+	return nil
+}
+
+func (s remoteBridgeServer) serveAttach(ctx context.Context, in io.Reader, out io.Writer) error {
+	if !s.remoteEnabled() {
+		response := remoteBridgeError("", "REMOTE_EXECUTION_DISABLED", fmt.Errorf("remote execution is disabled on this host"))
+		return json.NewEncoder(out).Encode(response)
+	}
+	reader := bufio.NewReaderSize(in, 64*1024)
+	frame, err := readRemoteBridgeFrame(reader, remoteBridgeMaxFrameBytes)
+	if err != nil {
+		response := remoteBridgeError("", "INVALID_REQUEST", err)
+		_ = json.NewEncoder(out).Encode(response)
+		return err
+	}
+	var request protocol.Request
+	if err := decodeStrictRemoteBridgeJSON(frame, &request); err != nil {
+		response := remoteBridgeError("", "INVALID_REQUEST", err)
+		_ = json.NewEncoder(out).Encode(response)
+		return err
+	}
+	if request.Version != protocol.ProtocolVersion || request.Command != protocol.CmdRemoteBridgeAttach {
+		err := fmt.Errorf("remote bridge attach request is invalid")
+		response := remoteBridgeError(request.ID, "INVALID_REQUEST", err)
+		_ = json.NewEncoder(out).Encode(response)
+		return err
+	}
+	var payload protocol.RemoteBridgeRuntimePayload
+	if err := decodeStrictRemoteBridgeJSON(request.Payload, &payload); err != nil {
+		response := remoteBridgeError(request.ID, "INVALID_REQUEST", err)
+		_ = json.NewEncoder(out).Encode(response)
+		return err
+	}
+	if err := protocol.ValidateRemoteBridgeRuntime(payload); err != nil {
+		response := remoteBridgeError(request.ID, "INVALID_REQUEST", err)
+		_ = json.NewEncoder(out).Encode(response)
+		return err
+	}
+
+	session, client, err := s.openVerifiedRuntime(payload.RuntimeID)
+	if err != nil {
+		response := remoteBridgeError(request.ID, "RUNTIME_UNAVAILABLE", err)
+		_ = json.NewEncoder(out).Encode(response)
+		return err
+	}
+	defer client.Close()
+
+	attachResponse, err := client.Send(protocol.CmdAttach, nil)
+	if err != nil {
+		response := remoteBridgeError(request.ID, "ATTACH_FAILED", err)
+		_ = json.NewEncoder(out).Encode(response)
+		return err
+	}
+	var history string
+	if len(attachResponse.Data) > 0 {
+		if err := json.Unmarshal(attachResponse.Data, &history); err != nil {
+			response := remoteBridgeError(request.ID, "ATTACH_FAILED", fmt.Errorf("invalid terminal history response: %w", err))
+			_ = json.NewEncoder(out).Encode(response)
+			return err
+		}
+	}
+	if err := client.ClearDeadline(); err != nil {
+		response := remoteBridgeError(request.ID, "ATTACH_FAILED", err)
+		_ = json.NewEncoder(out).Encode(response)
+		return err
+	}
+	ack, err := protocol.NewResponse(protocol.RemoteBridgeAttachData{
+		RuntimeID: session.RuntimeID,
+		History:   history,
+	})
+	if err != nil {
+		return err
+	}
+	ack.ID = request.ID
+	ack.RuntimeID = session.RuntimeID
+	if err := json.NewEncoder(out).Encode(ack); err != nil {
+		return err
+	}
+
+	rawConn := client.RawConn()
+	if rawConn == nil || client.Reader() == nil {
+		return fmt.Errorf("runtime %q attach stream is unavailable", session.RuntimeID)
+	}
+	cancelClose := context.AfterFunc(ctx, func() { _ = rawConn.Close() })
+	defer cancelClose()
+
+	errCh := make(chan error, 2)
+	go func() {
+		_, copyErr := io.Copy(out, client.Reader())
+		errCh <- copyErr
+	}()
+	go func() {
+		_, copyErr := io.Copy(rawConn, reader)
+		errCh <- copyErr
+	}()
+
+	firstErr := <-errCh
+	_ = rawConn.Close()
+	secondErr := <-errCh
+	if firstErr != nil && !errors.Is(firstErr, net.ErrClosed) && !errors.Is(firstErr, io.EOF) {
+		return firstErr
+	}
+	if secondErr != nil && !errors.Is(secondErr, net.ErrClosed) && !errors.Is(secondErr, io.EOF) {
+		return secondErr
+	}
+	return nil
+}
+
+func readRemoteBridgeFrame(reader *bufio.Reader, limit int) ([]byte, error) {
+	if reader == nil {
+		return nil, fmt.Errorf("remote bridge input is required")
+	}
+	var frame []byte
+	for {
+		part, isPrefix, err := reader.ReadLine()
+		frame = append(frame, part...)
+		if len(frame) > limit {
+			return nil, fmt.Errorf("remote bridge frame exceeds %d bytes", limit)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if !isPrefix {
+			return frame, nil
+		}
 	}
 }
 
