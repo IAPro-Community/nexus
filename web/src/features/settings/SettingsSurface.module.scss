@@ -339,6 +339,34 @@
   line-height: 1.45;
 }
 
+.executionTargetProbeActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.executionTargetProbeResult {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+}
+
+.executionTargetProbeHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  span {
+    color: var(--nx-muted);
+    font-size: 0.786rem;
+    overflow-wrap: anywhere;
+  }
+}
+
 @media (max-width: 720px) {
   .executionTargetHeader {
     flex-direction: column;
