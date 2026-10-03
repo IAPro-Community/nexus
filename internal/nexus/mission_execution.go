@@ -77,15 +77,25 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	if err != nil {
 		return nil, err
 	}
+	project, err := st.GetProject(agent.ProjectID)
+	if err != nil {
+		return nil, fmt.Errorf("resolve agent project: %w", err)
+	}
+	managedBinding, err := managedExecutionTargetBindingFromProject(project)
+	if err != nil {
+		return nil, fmt.Errorf("resolve managed execution target: %w", err)
+	}
+	if managedBinding != nil {
+		return nil, fmt.Errorf(
+			"managed remote Mission execution is not enabled for target %q: remote worktree isolation, autonomy guards, and workspace evidence are not verified yet",
+			managedBinding.TargetID,
+		)
+	}
 	policy = applyAgentModeExecutionPolicy(cfg, policy)
 	if cfg.Provider == "" || cfg.Profile == "" {
 		return nil, fmt.Errorf("agent %s has no persisted provider/profile", agentID)
 	}
 	if strings.TrimSpace(workspace) == "" {
-		project, err := st.GetProject(agent.ProjectID)
-		if err != nil {
-			return nil, err
-		}
 		workspace, err = n.resolveExecutionWorkspace(ctx, project, agent, cfg)
 		if err != nil {
 			return nil, err
