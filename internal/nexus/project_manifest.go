@@ -9,8 +9,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/IAPro-Community/nexus/internal/control/launcher"
-	"github.com/IAPro-Community/nexus/internal/core/security"
 	"gopkg.in/yaml.v3"
 )
 
@@ -51,14 +49,11 @@ type ProjectManifestExecution struct {
 // v1.1 initially accepts managed SSH descriptors only. Declaring a target does
 // not execute it; activation remains an explicit, feature-gated step.
 type ProjectManifestTarget struct {
-	ID              string `yaml:"id" json:"id"`
-	Kind            string `yaml:"kind" json:"kind"`
-	Location        string `yaml:"location" json:"location"`
-	MachineID       string `yaml:"machineId,omitempty" json:"machine_id,omitempty"`
-	Workspace       string `yaml:"workspace" json:"workspace"`
-	CommandTemplate string `yaml:"commandTemplate" json:"command_template"`
-	ProbeTemplate   string `yaml:"probeTemplate,omitempty" json:"probe_template,omitempty"`
-	ProfileHome     string `yaml:"profileHome,omitempty" json:"profile_home,omitempty"`
+	ID        string `yaml:"id" json:"id"`
+	Kind      string `yaml:"kind" json:"kind"`
+	Location  string `yaml:"location" json:"location"`
+	MachineID string `yaml:"machineId,omitempty" json:"machine_id,omitempty"`
+	Workspace string `yaml:"workspace" json:"workspace"`
 }
 
 type ProjectManifestRouting struct {
@@ -74,8 +69,219 @@ type ProjectManifestCommand struct {
 }
 
 var (
-	projectManifestCommandIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
-	projectManifestTargetIDPattern  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
+	projectManifestCommandIDPattern    = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}package nexus
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+const maxProjectManifestBytes = 1 << 20
+
+type ProjectManifest struct {
+	Version    int                      `yaml:"version" json:"version"`
+	Project    ProjectManifestProject   `yaml:"project" json:"project"`
+	Workspace  ProjectManifestWorkspace `yaml:"workspace" json:"workspace"`
+	Setup      ProjectManifestCommands  `yaml:"setup" json:"setup"`
+	Validation ProjectManifestCommands  `yaml:"validation" json:"validation"`
+	Execution  ProjectManifestExecution `yaml:"execution" json:"execution"`
+	Routing    ProjectManifestRouting   `yaml:"routing" json:"routing"`
+	Commands   []ProjectManifestCommand `yaml:"commands" json:"commands,omitempty"`
+}
+
+type ProjectManifestProject struct {
+	Name string `yaml:"name" json:"name"`
+}
+
+type ProjectManifestWorkspace struct {
+	Strategy          string   `yaml:"strategy" json:"strategy"`
+	BaseRef           string   `yaml:"baseRef" json:"base_ref"`
+	SharedDirectories []string `yaml:"sharedDirectories" json:"shared_directories"`
+	CopiedFiles       []string `yaml:"copiedFiles" json:"copied_files"`
+}
+
+type ProjectManifestCommands struct {
+	Commands []string `yaml:"commands" json:"commands"`
+}
+
+type ProjectManifestExecution struct {
+	DefaultTarget string                  `yaml:"defaultTarget" json:"default_target"`
+	Targets       []ProjectManifestTarget `yaml:"targets,omitempty" json:"targets,omitempty"`
+}
+
+// ProjectManifestTarget is a named execution target declared by the Project.
+// v1.1 initially accepts managed SSH descriptors only. Declaring a target does
+// not execute it; activation remains an explicit, feature-gated step.
+type ProjectManifestTarget struct {
+	ID        string `yaml:"id" json:"id"`
+	Kind      string `yaml:"kind" json:"kind"`
+	Location  string `yaml:"location" json:"location"`
+	MachineID string `yaml:"machineId,omitempty" json:"machine_id,omitempty"`
+	Workspace string `yaml:"workspace" json:"workspace"`
+}
+
+type ProjectManifestRouting struct {
+	Strategy string `yaml:"strategy" json:"strategy"`
+}
+
+type ProjectManifestCommand struct {
+	ID          string   `yaml:"id" json:"id"`
+	Label       string   `yaml:"label" json:"label"`
+	Description string   `yaml:"description,omitempty" json:"description,omitempty"`
+	Command     string   `yaml:"command" json:"command"`
+	Keywords    []string `yaml:"keywords,omitempty" json:"keywords,omitempty"`
+}
+
+)
+	projectManifestTargetIDPattern     = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}package nexus
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+const maxProjectManifestBytes = 1 << 20
+
+type ProjectManifest struct {
+	Version    int                      `yaml:"version" json:"version"`
+	Project    ProjectManifestProject   `yaml:"project" json:"project"`
+	Workspace  ProjectManifestWorkspace `yaml:"workspace" json:"workspace"`
+	Setup      ProjectManifestCommands  `yaml:"setup" json:"setup"`
+	Validation ProjectManifestCommands  `yaml:"validation" json:"validation"`
+	Execution  ProjectManifestExecution `yaml:"execution" json:"execution"`
+	Routing    ProjectManifestRouting   `yaml:"routing" json:"routing"`
+	Commands   []ProjectManifestCommand `yaml:"commands" json:"commands,omitempty"`
+}
+
+type ProjectManifestProject struct {
+	Name string `yaml:"name" json:"name"`
+}
+
+type ProjectManifestWorkspace struct {
+	Strategy          string   `yaml:"strategy" json:"strategy"`
+	BaseRef           string   `yaml:"baseRef" json:"base_ref"`
+	SharedDirectories []string `yaml:"sharedDirectories" json:"shared_directories"`
+	CopiedFiles       []string `yaml:"copiedFiles" json:"copied_files"`
+}
+
+type ProjectManifestCommands struct {
+	Commands []string `yaml:"commands" json:"commands"`
+}
+
+type ProjectManifestExecution struct {
+	DefaultTarget string                  `yaml:"defaultTarget" json:"default_target"`
+	Targets       []ProjectManifestTarget `yaml:"targets,omitempty" json:"targets,omitempty"`
+}
+
+// ProjectManifestTarget is a named execution target declared by the Project.
+// v1.1 initially accepts managed SSH descriptors only. Declaring a target does
+// not execute it; activation remains an explicit, feature-gated step.
+type ProjectManifestTarget struct {
+	ID        string `yaml:"id" json:"id"`
+	Kind      string `yaml:"kind" json:"kind"`
+	Location  string `yaml:"location" json:"location"`
+	MachineID string `yaml:"machineId,omitempty" json:"machine_id,omitempty"`
+	Workspace string `yaml:"workspace" json:"workspace"`
+}
+
+type ProjectManifestRouting struct {
+	Strategy string `yaml:"strategy" json:"strategy"`
+}
+
+type ProjectManifestCommand struct {
+	ID          string   `yaml:"id" json:"id"`
+	Label       string   `yaml:"label" json:"label"`
+	Description string   `yaml:"description,omitempty" json:"description,omitempty"`
+	Command     string   `yaml:"command" json:"command"`
+	Keywords    []string `yaml:"keywords,omitempty" json:"keywords,omitempty"`
+}
+
+)
+	projectManifestTargetLocationPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:@%+\[\]-]{0,239}package nexus
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+const maxProjectManifestBytes = 1 << 20
+
+type ProjectManifest struct {
+	Version    int                      `yaml:"version" json:"version"`
+	Project    ProjectManifestProject   `yaml:"project" json:"project"`
+	Workspace  ProjectManifestWorkspace `yaml:"workspace" json:"workspace"`
+	Setup      ProjectManifestCommands  `yaml:"setup" json:"setup"`
+	Validation ProjectManifestCommands  `yaml:"validation" json:"validation"`
+	Execution  ProjectManifestExecution `yaml:"execution" json:"execution"`
+	Routing    ProjectManifestRouting   `yaml:"routing" json:"routing"`
+	Commands   []ProjectManifestCommand `yaml:"commands" json:"commands,omitempty"`
+}
+
+type ProjectManifestProject struct {
+	Name string `yaml:"name" json:"name"`
+}
+
+type ProjectManifestWorkspace struct {
+	Strategy          string   `yaml:"strategy" json:"strategy"`
+	BaseRef           string   `yaml:"baseRef" json:"base_ref"`
+	SharedDirectories []string `yaml:"sharedDirectories" json:"shared_directories"`
+	CopiedFiles       []string `yaml:"copiedFiles" json:"copied_files"`
+}
+
+type ProjectManifestCommands struct {
+	Commands []string `yaml:"commands" json:"commands"`
+}
+
+type ProjectManifestExecution struct {
+	DefaultTarget string                  `yaml:"defaultTarget" json:"default_target"`
+	Targets       []ProjectManifestTarget `yaml:"targets,omitempty" json:"targets,omitempty"`
+}
+
+// ProjectManifestTarget is a named execution target declared by the Project.
+// v1.1 initially accepts managed SSH descriptors only. Declaring a target does
+// not execute it; activation remains an explicit, feature-gated step.
+type ProjectManifestTarget struct {
+	ID        string `yaml:"id" json:"id"`
+	Kind      string `yaml:"kind" json:"kind"`
+	Location  string `yaml:"location" json:"location"`
+	MachineID string `yaml:"machineId,omitempty" json:"machine_id,omitempty"`
+	Workspace string `yaml:"workspace" json:"workspace"`
+}
+
+type ProjectManifestRouting struct {
+	Strategy string `yaml:"strategy" json:"strategy"`
+}
+
+type ProjectManifestCommand struct {
+	ID          string   `yaml:"id" json:"id"`
+	Label       string   `yaml:"label" json:"label"`
+	Description string   `yaml:"description,omitempty" json:"description,omitempty"`
+	Command     string   `yaml:"command" json:"command"`
+	Keywords    []string `yaml:"keywords,omitempty" json:"keywords,omitempty"`
+}
+
+)
 )
 func LoadProjectManifest(projectPath string) (ProjectManifest, string, error) {
 	for _, name := range []string{"nexus.yaml", "nexus.yml"} {
@@ -146,9 +352,6 @@ func validateProjectManifest(manifest *ProjectManifest) error {
 		target.Location = strings.TrimSpace(target.Location)
 		target.MachineID = strings.TrimSpace(target.MachineID)
 		target.Workspace = strings.TrimSpace(target.Workspace)
-		target.CommandTemplate = strings.TrimSpace(target.CommandTemplate)
-		target.ProbeTemplate = strings.TrimSpace(target.ProbeTemplate)
-		target.ProfileHome = strings.TrimSpace(target.ProfileHome)
 
 		if !projectManifestTargetIDPattern.MatchString(target.ID) || strings.EqualFold(target.ID, "local") {
 			return fmt.Errorf("project manifest execution target id %q is invalid or reserved", target.ID)
@@ -160,25 +363,14 @@ func validateProjectManifest(manifest *ProjectManifest) error {
 		if target.Kind != "ssh" {
 			return fmt.Errorf("project manifest execution target %q kind %q is not supported yet", target.ID, target.Kind)
 		}
-		if target.Location == "" || len(target.Location) > 240 || strings.ContainsAny(target.Location, "\r\n\x00") {
-			return fmt.Errorf("project manifest SSH target %q requires a safe location up to 240 bytes", target.ID)
+		if !projectManifestTargetLocationPattern.MatchString(target.Location) || strings.HasPrefix(target.Location, "-") {
+			return fmt.Errorf("project manifest SSH target %q location %q is invalid", target.ID, target.Location)
 		}
 		if target.Workspace == "" || len(target.Workspace) > 4096 || strings.ContainsAny(target.Workspace, "\r\n\x00") {
 			return fmt.Errorf("project manifest SSH target %q requires a target workspace", target.ID)
 		}
 		if len(target.MachineID) > 240 || strings.ContainsAny(target.MachineID, "\r\n\x00") {
 			return fmt.Errorf("project manifest SSH target %q machineId is invalid", target.ID)
-		}
-		if len(target.ProfileHome) > 4096 || strings.ContainsAny(target.ProfileHome, "\r\n\x00") {
-			return fmt.Errorf("project manifest SSH target %q profileHome is invalid", target.ID)
-		}
-		if err := validateProjectManifestTargetTemplate(target.ID, target.CommandTemplate, target.Workspace, target.ProfileHome, false); err != nil {
-			return err
-		}
-		if target.ProbeTemplate != "" {
-			if err := validateProjectManifestTargetTemplate(target.ID, target.ProbeTemplate, target.Workspace, target.ProfileHome, true); err != nil {
-				return err
-			}
 		}
 	}
 	if manifest.Execution.DefaultTarget != "local" {
@@ -224,35 +416,6 @@ func validateProjectManifest(manifest *ProjectManifest) error {
 		if len(command) > 4096 {
 			return fmt.Errorf("project manifest command exceeds 4096 bytes")
 		}
-	}
-	return nil
-}
-
-func validateProjectManifestTargetTemplate(targetID, template, workspace, profileHome string, probe bool) error {
-	if template == "" || len(template) > 4096 || strings.ContainsAny(template, "\r\n\x00") {
-		return fmt.Errorf("project manifest SSH target %q requires a single-line command template up to 4096 bytes", targetID)
-	}
-	if security.Redact(template) != template {
-		return fmt.Errorf("project manifest SSH target %q command template appears to contain secret material", targetID)
-	}
-	args := []string{"--model", "nexus-probe"}
-	if probe {
-		args = []string{"--version"}
-	}
-	bin, _, err := launcher.ResolveCommandTemplateContext(template, launcher.CommandTemplateContext{
-		Cwd:         "/nexus/host-project",
-		TargetCwd:   workspace,
-		Args:        args,
-		Provider:    "codex",
-		Profile:     "default",
-		ProfileHome: firstNonEmpty(profileHome, "/home/nexus"),
-	})
-	if err != nil {
-		return fmt.Errorf("project manifest SSH target %q has invalid command template: %w", targetID, err)
-	}
-	executable := strings.ToLower(filepath.Base(strings.ReplaceAll(bin, "\\", "/")))
-	if executable != "ssh" && executable != "ssh.exe" {
-		return fmt.Errorf("project manifest SSH target %q must use ssh as the command executable", targetID)
 	}
 	return nil
 }
