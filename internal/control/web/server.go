@@ -252,6 +252,8 @@ func projectSubroute(path string) string {
 		return "computer-status"
 	case strings.HasSuffix(path, "/computer/snapshot"):
 		return "computer-snapshot"
+	case strings.Contains(path, "/computer/screenshot/"):
+		return "computer-screenshot"
 	case strings.HasSuffix(path, "/computer/action"):
 		return "computer-action"
 	case strings.HasSuffix(path, "/execution-targets/probe"):
@@ -688,6 +690,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 	if s.nexusHandler != nil && s.nexusHandler.designMode != nil {
 		s.nexusHandler.designMode.closeAll()
+	}
+	if s.nexusHandler != nil && s.nexusHandler.computerScreenshots != nil {
+		s.nexusHandler.computerScreenshots.closeAll()
 	}
 	if s.auth != nil {
 		s.auth.SetTunnelActive(false)
