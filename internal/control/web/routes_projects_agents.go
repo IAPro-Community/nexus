@@ -58,6 +58,8 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectShell(w, r)
 		case strings.HasSuffix(r.URL.Path, "/commands"):
 			h.handleProjectCommands(w, r)
+		case strings.HasSuffix(r.URL.Path, "/execution-targets"):
+			h.handleProjectExecutionTargets(w, r)
 		case strings.Contains(r.URL.Path, "/design-mode"):
 			h.handleProjectDesignMode(w, r)
 		case strings.HasSuffix(r.URL.Path, "/open-os"):
