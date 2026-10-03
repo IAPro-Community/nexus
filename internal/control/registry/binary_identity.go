@@ -82,7 +82,7 @@ func ValidateBinaryIdentity(path, fingerprint string) error {
 // and Web. It never kills the runtime; callers mark it stale and ask the user
 // to recreate the session when it fails.
 func ValidateAttachCompatibility(session RuntimeSession) error {
-	if session.Transport == "mock" {
+	if session.Transport == TransportMock {
 		return nil
 	}
 	if !session.IsActive() {
@@ -93,9 +93,6 @@ func ValidateAttachCompatibility(session RuntimeSession) error {
 	}
 	if session.HostPID <= 0 {
 		return errors.New("runtime host PID is missing")
-	}
-	if session.PID <= 0 || !IsProcessAlive(session.PID) {
-		return errors.New("runtime provider PID is not alive")
 	}
 	if err := ValidateBinaryIdentity(session.HostBinaryPath, session.HostBinaryFingerprint); err != nil {
 		return fmt.Errorf("runtime host binary is incompatible: %w", err)
@@ -113,6 +110,15 @@ func ValidateAttachCompatibility(session RuntimeSession) error {
 	}
 	if processPath, err := ProcessExecutablePath(session.HostPID); err == nil && processPath != "" && !sameExecutablePath(processPath, session.HostBinaryPath) {
 		return fmt.Errorf("runtime host PID %d belongs to a different binary", session.HostPID)
+	}
+	if IsRemoteRuntimeTransport(session.Transport) {
+		if strings.TrimSpace(session.MachineID) == "" || strings.TrimSpace(session.Location) == "" {
+			return errors.New("remote runtime identity is incomplete")
+		}
+		return nil
+	}
+	if session.PID <= 0 || !IsProcessAlive(session.PID) {
+		return errors.New("runtime provider PID is not alive")
 	}
 	if session.ProviderBinaryPath == "" || session.ProviderBinaryFingerprint == "" {
 		return errors.New("provider binary identity is missing")
