@@ -20,7 +20,7 @@ import (
 
 const managedProxyMaxFrameBytes = 64 * 1024
 
-type managedBridgeControl interface {
+type ManagedBridgeControl interface {
 	Status(context.Context, string) (protocol.RemoteBridgeRuntimeStatusData, error)
 	Resize(context.Context, string, int, int) error
 	Control(context.Context, string, protocol.CommandType, any) (protocol.Response, error)
@@ -57,7 +57,7 @@ type ManagedRuntimeProxyConfig struct {
 	Session      registry.RuntimeSession
 	TargetID     string
 	Location     string
-	Bridge       managedBridgeControl
+	Bridge       ManagedBridgeControl
 	Registry     *registry.Registry
 	AttachOpener managedAttachOpener
 }
@@ -70,7 +70,7 @@ type ManagedRuntimeProxy struct {
 	session  registry.RuntimeSession
 	targetID string
 	location string
-	bridge   managedBridgeControl
+	bridge   ManagedBridgeControl
 	registry *registry.Registry
 	attach   managedAttachOpener
 	listener net.Listener
