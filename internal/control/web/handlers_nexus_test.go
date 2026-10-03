@@ -767,9 +767,6 @@ execution:
       location: devbox
       machineId: machine-devbox
       workspace: /srv/project
-      profileHome: /home/developer
-      commandTemplate: ssh -tt devbox {provider} {args}
-      probeTemplate: ssh devbox {provider} {args}
 `
 	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte(manifest), 0o600); err != nil {
 		t.Fatal(err)
