@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { shouldForwardTerminalInput, stripEmbeddedTerminalMetadata } from './terminalInput';
+import {
+  shouldForwardTerminalInput,
+  stripEmbeddedTerminalMetadata,
+  terminalTraceShape,
+} from './terminalInput';
 
 describe('shouldForwardTerminalInput', () => {
   it.each([
@@ -90,5 +94,24 @@ describe('stripEmbeddedTerminalMetadata', () => {
     expect(stripEmbeddedTerminalMetadata('\x1b[<0;10;4Mls\r')).toBe('ls\r');
     expect(stripEmbeddedTerminalMetadata('go\x1b[<35;58;48M\r')).toBe('go\r');
     expect(stripEmbeddedTerminalMetadata('\x1b[<0;1;1m')).toBe('');
+  });
+});
+
+
+describe('terminalTraceShape', () => {
+  it('masks ordinary text while preserving control-sequence structure', () => {
+    const traced = terminalTraceShape('secret\x1b[A123\r\x03');
+    expect(traced.size).toBe(new TextEncoder().encode('secret\x1b[A123\r\x03').length);
+    expect(traced.shape).not.toContain('secret');
+    expect(traced.shape).not.toContain('123');
+    expect(traced.shape).toContain('<1b>[A');
+    expect(traced.shape).toContain('<0d>');
+    expect(traced.shape).toContain('<03>');
+  });
+
+  it('reports UTF-8 byte size without exposing characters', () => {
+    const traced = terminalTraceShape('ação');
+    expect(traced.size).toBe(new TextEncoder().encode('ação').length);
+    expect(traced.shape).not.toContain('ação');
   });
 });
