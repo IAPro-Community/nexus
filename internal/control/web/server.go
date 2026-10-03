@@ -244,6 +244,8 @@ func projectSubroute(path string) string {
 		return "plans"
 	case strings.HasSuffix(path, "/open-os"):
 		return "open-os"
+	case strings.HasSuffix(path, "/commands"):
+		return "commands"
 	case strings.HasSuffix(path, "/git/branches"):
 		return "git-branches"
 	case strings.HasSuffix(path, "/git/changes"):

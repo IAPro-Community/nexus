@@ -360,6 +360,10 @@ export const nexus = {
       method: 'POST',
       body: '{}',
     }),
+  getProjectCommands: (projectId: string) =>
+    request<{ commands: import('../types').ProjectQuickCommand[] }>(
+      `/api/v1/projects/${projectId}/commands`,
+    ),
 
   // Agent config (Gate 3)
   getAgentConfig: (id: string) =>

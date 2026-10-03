@@ -751,6 +751,14 @@ export interface FSInspectResult {
   tech: string[];
 }
 
+export interface ProjectQuickCommand {
+  id: string;
+  label: string;
+  description?: string;
+  command: string;
+  keywords?: string[];
+}
+
 export interface GitBranchesResult {
   project_id: string;
   canonical_path: string;

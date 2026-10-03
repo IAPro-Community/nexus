@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -259,4 +260,39 @@ func (h *NexusHandler) handleProjectLayout(w http.ResponseWriter, r *http.Reques
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
+}
+
+
+// handleProjectCommands GET /api/v1/projects/{id}/commands exposes only the
+// validated command catalog from nexus.yaml. It never executes shell text.
+func (h *NexusHandler) handleProjectCommands(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project id")
+		return
+	}
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	project, err := st.GetProject(projectID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+	manifest, _, err := nexus.LoadProjectManifest(project.CanonicalPath)
+	if errors.Is(err, os.ErrNotExist) {
+		writeJSON(w, http.StatusOK, map[string]any{"commands": []nexus.ProjectManifestCommand{}})
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"commands": manifest.Commands})
 }

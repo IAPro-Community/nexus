@@ -56,6 +56,8 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectIntelligence(w, r)
 		case strings.HasSuffix(r.URL.Path, "/shell"):
 			h.handleProjectShell(w, r)
+		case strings.HasSuffix(r.URL.Path, "/commands"):
+			h.handleProjectCommands(w, r)
 		case strings.HasSuffix(r.URL.Path, "/open-os"):
 			h.handleProjectOpenOS(w, r)
 		case strings.HasSuffix(r.URL.Path, "/git/branches"):
