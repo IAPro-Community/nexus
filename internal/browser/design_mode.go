@@ -210,8 +210,6 @@ func (b *DesignBrowser) attachPage(ctx context.Context, wantedURL string) error 
 				return fmt.Errorf("Chromium did not return a Design Mode page session")
 			}
 			b.sessionID = attached.SessionID
-			_ = b.client.call(ctx, b.sessionID, "Runtime.enable", map[string]any{}, nil)
-			_ = b.client.call(ctx, b.sessionID, "Page.enable", map[string]any{}, nil)
 			return b.waitDocumentReady(ctx)
 		}
 		if time.Now().After(deadline) {
@@ -375,7 +373,8 @@ func (b *DesignBrowser) ClearPicker(ctx context.Context) error {
 }
 
 type designElementSnapshot struct {
-	Found          bool              `json:"found"`
+	Found          bool
+	Restricted     bool              `json:"found"`
 	URL            string            `json:"url"`
 	Title          string            `json:"title"`
 	HTML           string            `json:"html"`
@@ -396,6 +395,9 @@ func (b *DesignBrowser) InspectSelector(ctx context.Context, selector string) (*
   const selector = %s;
   const el = document.querySelector(selector);
   if (!el) return JSON.stringify({found:false});
+  if (el.matches('input[type="password"], [data-nexus-sensitive="true"]')) {
+    return JSON.stringify({found:false, restricted:true});
+  }
   const cs = getComputedStyle(el);
   const rect = el.getBoundingClientRect();
   const keys = ['display','position','color','backgroundColor','fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','margin','padding','gap','width','height','border','borderRadius','boxShadow','opacity','overflow','alignItems','justifyContent'];
@@ -428,6 +430,9 @@ func (b *DesignBrowser) InspectSelector(ctx context.Context, selector string) (*
 	var snapshot designElementSnapshot
 	if err := json.Unmarshal([]byte(serialized), &snapshot); err != nil {
 		return nil, fmt.Errorf("decode Design Mode element snapshot: %w", err)
+	}
+	if snapshot.Restricted {
+		return nil, fmt.Errorf("Design Mode will not capture sensitive elements")
 	}
 	if !snapshot.Found {
 		return nil, fmt.Errorf("Design Mode selector %q matched no element", selector)
