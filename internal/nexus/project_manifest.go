@@ -117,5 +117,11 @@ func validateManifestRelativePath(value string) error {
 	if clean == "." || clean == ".." || strings.HasPrefix(clean, ".."+string(os.PathSeparator)) {
 		return fmt.Errorf("project manifest path %q escapes the project root", value)
 	}
+	parts := strings.FieldsFunc(filepath.ToSlash(clean), func(r rune) bool { return r == '/' })
+	for _, part := range parts {
+		if part == ".git" {
+			return fmt.Errorf("project manifest path %q must not target Git metadata", value)
+		}
+	}
 	return nil
 }

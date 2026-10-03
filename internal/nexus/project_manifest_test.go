@@ -74,3 +74,15 @@ func TestLoadProjectManifestMissingIsNotAnErrorShape(t *testing.T) {
 		t.Fatalf("missing manifest must preserve os.ErrNotExist, got %v", err)
 	}
 }
+
+func TestLoadProjectManifestRejectsGitMetadata(t *testing.T) {
+	dir := t.TempDir()
+	body := "version: 1\nworkspace:\n  sharedDirectories:\n    - .git/objects\n"
+	if err := os.WriteFile(filepath.Join(dir, "nexus.yaml"), []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := LoadProjectManifest(dir)
+	if err == nil || !strings.Contains(err.Error(), "Git metadata") {
+		t.Fatalf("Git metadata must not be shareable through project manifest, got %v", err)
+	}
+}

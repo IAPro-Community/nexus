@@ -105,3 +105,43 @@ func TestTaskExecutionWorkspaceIDIsStableAndFilesystemSafe(t *testing.T) {
 		t.Fatalf("workspace id must be path-safe: %q", first)
 	}
 }
+
+func TestApplyProjectManifestWorkspaceResourcesCopiesAndShares(t *testing.T) {
+	canonical := t.TempDir()
+	target := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(canonical, "cache"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(canonical, "cache", "entry.txt"), []byte("cache"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(canonical, ".env.local"), []byte("VALUE=1"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	manifest := "version: 1\nworkspace:\n  sharedDirectories:\n    - cache\n  copiedFiles:\n    - .env.local\n"
+	if err := os.WriteFile(filepath.Join(canonical, "nexus.yaml"), []byte(manifest), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := applyProjectManifestWorkspaceResources(canonical, target); err != nil {
+		t.Fatal(err)
+	}
+	copied, err := os.ReadFile(filepath.Join(target, ".env.local"))
+	if err != nil || string(copied) != "VALUE=1" {
+		t.Fatalf("copied file content=%q err=%v", copied, err)
+	}
+	shared, err := os.ReadFile(filepath.Join(target, "cache", "entry.txt"))
+	if err != nil || string(shared) != "cache" {
+		t.Fatalf("shared directory content=%q err=%v", shared, err)
+	}
+}
+
+func TestSecureWorkspaceDestinationRejectsTrackedSymlinkParent(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(root, "config")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	if _, err := secureWorkspaceDestination(root, "config/local.env"); err == nil {
+		t.Fatal("destination through tracked symlink must fail closed")
+	}
+}
