@@ -37,6 +37,6 @@
   --nx-terminal-text-soft: #aeb6c6;
   --nx-terminal-muted: #8991a2;
   --nx-terminal-cursor: #38bdf8;
-  --nx-terminal-selection: rgb(56 189 248 / 0.3);
+  --nx-terminal-selection: rgba(56, 189, 248, 0.3);
   --nx-terminal-overlay: color-mix(in srgb, var(--nx-terminal-frame) 82%, transparent);
 }
