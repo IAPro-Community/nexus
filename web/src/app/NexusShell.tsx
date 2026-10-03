@@ -216,7 +216,7 @@ export const NexusShell: React.FC<{
                   aria-expanded={notificationDrawerOpen}
                 >
                   {pushNotifications.getPermission() === 'granted' ? (
-                    <BellRing size={15} className="nx-text-emerald-400" />
+                    <BellRing size={15} className="text-[var(--nx-success)]" />
                   ) : (
                     <Bell size={15} />
                   )}
