@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/launcher"
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
@@ -280,4 +281,142 @@ func TestStartAgentUsesApprovedManagedTargetAndStopsThroughProxy(t *testing.T) {
 	if proxyCount != 0 {
 		t.Fatalf("remote proxy lifecycle leaked %d entries", proxyCount)
 	}
+}
+
+
+func TestRecoverAgentOnManagedTargetForcesNewSessionAcrossMachineBoundary(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "1")
+
+	n, routeLauncher := openManagedStartTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	projectDir := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(projectDir, "nexus.yaml"),
+		[]byte("version: 1\nexecution:\n  defaultTarget: devbox\n  targets:\n    - id: devbox\n      kind: ssh\n      location: ssh-devbox\n      machineId: machine-devbox\n      workspace: /srv/project\n"),
+		0o600,
+	); err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{
+		Name:          "Managed remote recover",
+		CanonicalPath: projectDir,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, _, err := LoadProjectManifest(projectDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, ok := manifest.ProjectExecutionTarget("devbox")
+	if !ok {
+		t.Fatal("devbox target missing")
+	}
+	hello := protocol.RemoteBridgeHelloData{
+		ProtocolVersion:        protocol.ProtocolVersion,
+		MachineID:              "machine-devbox",
+		OS:                     "linux",
+		Arch:                   "amd64",
+		NexusVersion:           "1.1.0-test",
+		RemoteExecutionEnabled: true,
+		Capabilities: []protocol.RemoteBridgeCapability{
+			protocol.RemoteBridgeCapabilitySpawn,
+			protocol.RemoteBridgeCapabilityCWD,
+			protocol.RemoteBridgeCapabilityPTY,
+			protocol.RemoteBridgeCapabilityResize,
+			protocol.RemoteBridgeCapabilityLiveness,
+		},
+	}
+	if err := st.SetProjectSetting(project.ID, managedExecutionTargetSettingKey, ManagedExecutionTargetBinding{
+		TargetID:      target.ID,
+		ApprovalToken: projectExecutionTargetApprovalToken(project, target, hello),
+		MachineID:     hello.MachineID,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	agent, err := st.CreateAgent(store.Agent{
+		ProjectID: project.ID,
+		Name:      "Recover Remote",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	revision, err := st.AddRevision(agent.ID, AgentConfig{
+		Provider:         "fake",
+		Profile:          "work",
+		ContinuityPolicy: "native",
+	}.ConfigJSON())
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent.CurrentRevisionID = revision.ID
+	agent.Status = store.AgentWorking
+	if err := st.UpdateAgent(agent); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.AddGeneration(store.RuntimeGeneration{
+		AgentID:         agent.ID,
+		RevisionID:      revision.ID,
+		RuntimeID:       "dead-remote-runtime",
+		Provider:        "fake",
+		Profile:         "work",
+		ProviderSession: "provider-session-from-old-machine",
+		Continuity:      store.ContinuityNativeResumeUnverified,
+		StartedAt:       time.Now().UTC(),
+		State:           "RUNNING",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	bridge := &managedStartBridge{}
+	previousOpener := openManagedRemoteBridge
+	openManagedRemoteBridge = func(
+		context.Context,
+		string,
+		string,
+	) (managedRemoteBridge, protocol.RemoteBridgeHelloData, error) {
+		return bridge, hello, nil
+	}
+	t.Cleanup(func() { openManagedRemoteBridge = previousOpener })
+
+	recovered, err := n.RecoverAgent(context.Background(), agent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if recovered.Transport != registry.TransportManagedSSHProxy ||
+		recovered.MachineID != "machine-devbox" ||
+		recovered.Workspace != "/srv/project" {
+		t.Fatalf("managed recover did not stay on approved target: %+v", recovered)
+	}
+
+	routeLauncher.mu.Lock()
+	localLaunchCalls := routeLauncher.launchCalls
+	routeLauncher.mu.Unlock()
+	if localLaunchCalls != 0 {
+		t.Fatalf("managed recovery called local launcher %d times", localLaunchCalls)
+	}
+
+	bridge.mu.Lock()
+	spawn := bridge.spawn
+	bridge.mu.Unlock()
+	if len(spawn.Args) != 0 {
+		t.Fatalf("remote recovery reused native resume args across machine boundary: %#v", spawn.Args)
+	}
+
+	current, err := st.CurrentGeneration(agent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current.RuntimeID != recovered.RuntimeID ||
+		current.Continuity != store.ContinuityNewSession ||
+		current.ProviderSession != "" {
+		t.Fatalf("managed recovery must persist NEW_SESSION continuity: %+v", current)
+	}
+
+	n.stopRuntime(recovered.RuntimeID)
 }
