@@ -326,6 +326,78 @@ func (h *NexusHandler) handleProjectExecutionTargetProbe(w http.ResponseWriter, 
 	}
 }
 
+// handleProjectExecutionTargetActivate POST /api/v1/projects/{id}/execution-targets/activate
+// persists only a freshly re-probed approval fingerprint. The target is used
+// by future Agent starts; this call never starts or migrates a runtime.
+func (h *NexusHandler) handleProjectExecutionTargetActivate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project id")
+		return
+	}
+	var body struct {
+		TargetID      string `json:"target_id"`
+		ApprovalToken string `json:"approval_token"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 64<<10)).Decode(&body); err != nil ||
+		strings.TrimSpace(body.TargetID) == "" ||
+		strings.TrimSpace(body.ApprovalToken) == "" {
+		writeError(w, http.StatusBadRequest, "target_id and approval_token are required")
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	defer cancel()
+
+	binding, err := h.nexus.ActivateManagedExecutionTarget(
+		ctx,
+		projectID,
+		body.TargetID,
+		body.ApprovalToken,
+	)
+	switch {
+	case err == nil:
+		writeJSON(w, http.StatusOK, binding)
+	case errors.Is(err, store.ErrNotFound):
+		writeError(w, http.StatusNotFound, "project execution target not found")
+	case errors.Is(err, nexus.ErrManagedRemoteExecutionDisabled),
+		errors.Is(err, nexus.ErrExecutionTargetIdentityMismatch),
+		errors.Is(err, nexus.ErrExecutionTargetApprovalStale):
+		writeError(w, http.StatusConflict, err.Error())
+	default:
+		writeError(w, http.StatusBadGateway, err.Error())
+	}
+}
+
+// handleProjectExecutionTargetDeactivate POST /api/v1/projects/{id}/execution-targets/deactivate
+// removes only the future-start binding. Existing runtimes are not stopped or migrated.
+func (h *NexusHandler) handleProjectExecutionTargetDeactivate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project id")
+		return
+	}
+	if err := h.nexus.DeactivateManagedExecutionTarget(projectID); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			writeError(w, http.StatusNotFound, "project not found")
+			return
+		}
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"project_id": projectID,
+		"effective_default_target": "local",
+	})
+}
+
 // handleProjectCommands GET /api/v1/projects/{id}/commands exposes only the
 // validated command catalog from nexus.yaml. It never executes shell text.
 func (h *NexusHandler) handleProjectCommands(w http.ResponseWriter, r *http.Request) {
