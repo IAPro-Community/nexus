@@ -1111,9 +1111,9 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 	if pkg.DynamicWork && strings.TrimSpace(pkg.CoordinationRequestID) != "" {
 		pkg.ResultSummary = boundedCoordinationSummary(outcome.Output)
 	}
-	if pkg.DynamicWork && coordinationOperationForPackage(run, pkg) == CoordinationNeedInfo {
+	if pkg.DynamicWork && coordinationCompletesWithoutPackageVerification(coordinationOperationForPackage(run, pkg)) {
 		if pkg.ResultSummary == "" {
-			return fmt.Errorf("NEED_INFO coordination returned an empty answer")
+			return fmt.Errorf("coordination tool returned an empty result")
 		}
 		pkg.State = StateVerified
 		now := time.Now().UTC()
@@ -1254,10 +1254,10 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 		if pkg.DynamicWork && strings.TrimSpace(pkg.CoordinationRequestID) != "" {
 			pkg.ResultSummary = boundedCoordinationSummary(res.outcome.Output)
 		}
-		if pkg.DynamicWork && coordinationOperationForPackage(run, pkg) == CoordinationNeedInfo {
+		if pkg.DynamicWork && coordinationCompletesWithoutPackageVerification(coordinationOperationForPackage(run, pkg)) {
 			if pkg.ResultSummary == "" {
 				if firstErr == nil {
-					firstErr = fmt.Errorf("NEED_INFO coordination returned an empty answer")
+					firstErr = fmt.Errorf("coordination tool returned an empty result")
 				}
 				continue
 			}
