@@ -49,6 +49,18 @@ const (
 	StateStale    RuntimeState = "STALE"
 )
 
+const (
+	TransportIPC             = "ipc"
+	TransportMock            = "mock"
+	TransportManagedSSHProxy = "managed-ssh-proxy"
+)
+
+// IsRemoteRuntimeTransport reports transports whose provider process identity
+// belongs to another machine and must never be interpreted as a local PID.
+func IsRemoteRuntimeTransport(transport string) bool {
+	return transport == TransportManagedSSHProxy
+}
+
 type ControlLevel string
 
 const (
@@ -143,7 +155,7 @@ func (s RuntimeSession) ProviderLive() bool {
 // A live PID alone is still not proof the endpoint exists — HandleWebSocket
 // dials before upgrade.
 func (s RuntimeSession) HostLive() bool {
-	if s.Transport == "mock" {
+	if s.Transport == TransportMock {
 		return true
 	}
 	// A provider child is never a substitute for SessionHost identity. Legacy
