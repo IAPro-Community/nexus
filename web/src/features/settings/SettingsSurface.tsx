@@ -9,6 +9,7 @@ import {
   Gauge,
   Globe,
   MonitorCog,
+  MousePointer2,
   Palette,
   PanelsTopLeft,
   RefreshCw,
@@ -43,6 +44,7 @@ import {
 import { pushNotifications } from '../../notifications/PushNotificationManager';
 import { SystemDiagnosticsCard } from './SystemDiagnosticsCard';
 import { RemoteAccessTab } from './RemoteAccessTab';
+import { ComputerControlSettings } from './ComputerControlSettings';
 import { IntelligenceMemoriesPanel } from './IntelligenceMemoriesPanel';
 import { CapacityMonitorSettings } from './CapacityMonitorSettings';
 import { CostIntelligenceSettings } from './CostIntelligenceSettings';
@@ -59,6 +61,7 @@ type SettingsTab =
   | 'capacity'
   | 'hud'
   | 'notifications'
+  | 'computer'
   | 'remote';
 const SETTINGS_TABS: SettingsTab[] = [
   'appearance',
@@ -68,6 +71,7 @@ const SETTINGS_TABS: SettingsTab[] = [
   'capacity',
   'hud',
   'notifications',
+  'computer',
   'remote',
 ];
 
@@ -355,6 +359,20 @@ export const SettingsSurface: React.FC<{
         >
           <Bell size={15} />
           <span>Notificações</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="settings-tab-computer"
+          aria-controls="settings-panel"
+          tabIndex={activeTab === 'computer' ? 0 : -1}
+          aria-selected={activeTab === 'computer'}
+          onKeyDown={onSettingsTabKeyDown}
+          className={`nx-settings-tab ${activeTab === 'computer' ? 'nx-settings-tab--active' : ''}`}
+          onClick={() => setActiveTab('computer')}
+        >
+          <MousePointer2 size={15} />
+          <span>{t('settings.computer.title', { defaultValue: 'Computer Control' })}</span>
         </button>
         <button
           type="button"
@@ -764,6 +782,7 @@ export const SettingsSurface: React.FC<{
           </>
         )}
         {activeTab === 'hud' && <HudSettings />}
+        {activeTab === 'computer' && <ComputerControlSettings projectId={projectId} />}
         {activeTab === 'remote' && <RemoteAccessTab projectId={projectId} />}
       </div>
     </div>
