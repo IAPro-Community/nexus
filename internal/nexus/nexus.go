@@ -712,28 +712,51 @@ func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile strin
 	if err != nil {
 		return nil, fmt.Errorf("resolve start continuity: %w", err)
 	}
-	executionWorkspace, err := n.resolveExecutionWorkspace(ctx, proj, agent, agentCfg)
+
+	runtimeID := "runtime_" + ids.NewRuntimeID()
+	managedBinding, err := managedExecutionTargetBindingFromProject(proj)
 	if err != nil {
-		return nil, fmt.Errorf("resolve execution workspace: %w", err)
+		return nil, fmt.Errorf("resolve managed execution target: %w", err)
 	}
-	sess, err := n.launcher.Launch(ctx, launcher.LaunchOptions{
-		AgentID:           agentID,
-		RuntimeID:         "runtime_" + ids.NewRuntimeID(),
-		ProjectID:         proj.ID,
-		ProjectName:       proj.Name,
-		ProviderID:        provider,
-		ProfileID:         agentCfg.Profile,
-		AccountScope:      accountScope,
-		ProviderSessionID: continuityLaunch.ProviderSessionID,
-		Args:              continuityLaunch.Args,
-		Workspace:         executionWorkspace,
-		Model:             agentCfg.Model,
-		Environment:       agentCfg.Environment,
-		Isolation:         agentCfg.Isolation,
-		Options:           agentCfg.Options,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("start agent runtime: %w", err)
+
+	var sess *registry.RuntimeSession
+	if managedBinding != nil {
+		sess, err = n.launchAgentOnManagedTarget(
+			ctx,
+			proj,
+			agent,
+			agentCfg,
+			continuityLaunch,
+			runtimeID,
+			*managedBinding,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("start agent runtime on managed target %q: %w", managedBinding.TargetID, err)
+		}
+	} else {
+		executionWorkspace, workspaceErr := n.resolveExecutionWorkspace(ctx, proj, agent, agentCfg)
+		if workspaceErr != nil {
+			return nil, fmt.Errorf("resolve execution workspace: %w", workspaceErr)
+		}
+		sess, err = n.launcher.Launch(ctx, launcher.LaunchOptions{
+			AgentID:           agentID,
+			RuntimeID:         runtimeID,
+			ProjectID:         proj.ID,
+			ProjectName:       proj.Name,
+			ProviderID:        provider,
+			ProfileID:         agentCfg.Profile,
+			AccountScope:      accountScope,
+			ProviderSessionID: continuityLaunch.ProviderSessionID,
+			Args:              continuityLaunch.Args,
+			Workspace:         executionWorkspace,
+			Model:             agentCfg.Model,
+			Environment:       agentCfg.Environment,
+			Isolation:         agentCfg.Isolation,
+			Options:           agentCfg.Options,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("start agent runtime: %w", err)
+		}
 	}
 
 	// Launcher already waits for the endpoint; re-ping so Start never returns a
@@ -888,6 +911,11 @@ func (n *Nexus) StopAgent(ctx context.Context, agentID string) error {
 
 func (n *Nexus) stopRuntime(runtimeID string) {
 	_ = n.launcher.Stop(runtimeID)
+	// Managed SSH runtimes expose a local IPC proxy so the ordinary launcher
+	// stop path can remain transport-agnostic. Remove the Nexus-owned proxy
+	// after the stop attempt as an idempotent lifecycle cleanup; local runtimes
+	// have no registered proxy, so this is a no-op for the v1 path.
+	_ = n.closeRemoteProxy(runtimeID)
 }
 
 // runtimeAlive reports whether a runtime is currently usable: the process is
@@ -941,7 +969,7 @@ func (n *Nexus) stopStaleRuntime(runtimeID string) {
 	if runtimeID == "" {
 		return
 	}
-	_ = n.launcher.Stop(runtimeID)
+	n.stopRuntime(runtimeID)
 	_ = n.runtimeRegistry().Delete(runtimeID)
 }
 
