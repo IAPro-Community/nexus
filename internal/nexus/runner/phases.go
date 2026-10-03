@@ -14,6 +14,9 @@ const (
 )
 
 func reviewRequiredForPackage(spec PackageSpec) bool {
+	if spec.CandidateCoordinator {
+		return false
+	}
 	if spec.ReviewRequired {
 		return true
 	}
