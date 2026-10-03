@@ -364,6 +364,11 @@ export const nexus = {
     request<{ commands: import('../types').ProjectQuickCommand[] }>(
       `/api/v1/projects/${projectId}/commands`,
     ),
+  getProjectExecutionTargets: (projectId: string) =>
+    request<import('../types').ProjectExecutionTargetCatalog>(
+      `/api/v1/projects/${projectId}/execution-targets`,
+    ),
+
 
   getDesignModeStatus: (projectId: string) =>
     request<import('../types').DesignModeStatus>(
