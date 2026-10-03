@@ -16,9 +16,11 @@ var computerProviderFactory = func() computer.Provider {
 }
 
 type ComputerUseStatus struct {
-	FeatureEnabled bool                      `json:"feature_enabled"`
-	Capabilities   computer.Capabilities     `json:"capabilities"`
-	Permissions    computer.PermissionStatus `json:"permissions"`
+	FeatureEnabled   bool                      `json:"feature_enabled"`
+	Capabilities     computer.Capabilities     `json:"capabilities"`
+	Permissions      computer.PermissionStatus `json:"permissions"`
+	EnableEnvironment string                   `json:"enable_environment,omitempty"`
+	RestartRequired  bool                      `json:"restart_required,omitempty"`
 }
 
 func computerPolicyFromContract(contract runner.AutonomyContract) computer.Policy {
@@ -41,11 +43,17 @@ func (n *Nexus) ComputerUseStatus(ctx context.Context) (ComputerUseStatus, error
 	if err != nil {
 		return ComputerUseStatus{}, err
 	}
-	return ComputerUseStatus{
-		FeatureEnabled: coreflags.Enabled(coreflags.ComputerUse),
+	enabled := coreflags.Enabled(coreflags.ComputerUse)
+	status := ComputerUseStatus{
+		FeatureEnabled: enabled,
 		Capabilities:   capabilities,
 		Permissions:    permissions,
-	}, nil
+	}
+	if !enabled {
+		status.EnableEnvironment = "NEXUS_ENABLE_COMPUTER_USE=1"
+		status.RestartRequired = true
+	}
+	return status, nil
 }
 
 func (n *Nexus) ComputerListApps(
