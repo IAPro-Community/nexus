@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/core/security"
 	"gopkg.in/yaml.v3"
 )
 
@@ -41,7 +43,22 @@ type ProjectManifestCommands struct {
 }
 
 type ProjectManifestExecution struct {
-	DefaultTarget string `yaml:"defaultTarget" json:"default_target"`
+	DefaultTarget string                  `yaml:"defaultTarget" json:"default_target"`
+	Targets       []ProjectManifestTarget `yaml:"targets,omitempty" json:"targets,omitempty"`
+}
+
+// ProjectManifestTarget is a named execution target declared by the Project.
+// v1.1 initially accepts managed SSH descriptors only. Declaring a target does
+// not execute it; activation remains an explicit, feature-gated step.
+type ProjectManifestTarget struct {
+	ID              string `yaml:"id" json:"id"`
+	Kind            string `yaml:"kind" json:"kind"`
+	Location        string `yaml:"location" json:"location"`
+	MachineID       string `yaml:"machineId,omitempty" json:"machine_id,omitempty"`
+	Workspace       string `yaml:"workspace" json:"workspace"`
+	CommandTemplate string `yaml:"commandTemplate" json:"command_template"`
+	ProbeTemplate   string `yaml:"probeTemplate,omitempty" json:"probe_template,omitempty"`
+	ProfileHome     string `yaml:"profileHome,omitempty" json:"profile_home,omitempty"`
 }
 
 type ProjectManifestRouting struct {
@@ -137,13 +154,16 @@ func loadProjectManifestFile(path string) (ProjectManifest, error) {
 	if manifest.Version != 1 {
 		return ProjectManifest{}, fmt.Errorf("unsupported Nexus project manifest version %d", manifest.Version)
 	}
-	if err := validateProjectManifest(manifest); err != nil {
+	if err := validateProjectManifest(&manifest); err != nil {
 		return ProjectManifest{}, err
 	}
 	return manifest, nil
 }
 
-func validateProjectManifest(manifest ProjectManifest) error {
+func validateProjectManifest(manifest *ProjectManifest) error {
+	if manifest == nil {
+		return fmt.Errorf("project manifest is required")
+	}
 	for _, item := range append(append([]string{}, manifest.Workspace.SharedDirectories...), manifest.Workspace.CopiedFiles...) {
 		if err := validateManifestRelativePath(item); err != nil {
 			return err
@@ -155,6 +175,62 @@ func validateProjectManifest(manifest ProjectManifest) error {
 	if len(manifest.Commands) > 32 {
 		return fmt.Errorf("project manifest quick command list exceeds 32 entries")
 	}
+	manifest.Execution.DefaultTarget = strings.TrimSpace(manifest.Execution.DefaultTarget)
+	if manifest.Execution.DefaultTarget == "" {
+		manifest.Execution.DefaultTarget = "local"
+	}
+	if len(manifest.Execution.Targets) > 16 {
+		return fmt.Errorf("project manifest execution target list exceeds 16 entries")
+	}
+	seenTargetIDs := make(map[string]struct{}, len(manifest.Execution.Targets))
+	for i := range manifest.Execution.Targets {
+		target := &manifest.Execution.Targets[i]
+		target.ID = strings.TrimSpace(target.ID)
+		target.Kind = strings.ToLower(strings.TrimSpace(target.Kind))
+		target.Location = strings.TrimSpace(target.Location)
+		target.MachineID = strings.TrimSpace(target.MachineID)
+		target.Workspace = strings.TrimSpace(target.Workspace)
+		target.CommandTemplate = strings.TrimSpace(target.CommandTemplate)
+		target.ProbeTemplate = strings.TrimSpace(target.ProbeTemplate)
+		target.ProfileHome = strings.TrimSpace(target.ProfileHome)
+
+		if !projectManifestTargetIDPattern.MatchString(target.ID) || strings.EqualFold(target.ID, "local") {
+			return fmt.Errorf("project manifest execution target id %q is invalid or reserved", target.ID)
+		}
+		if _, exists := seenTargetIDs[target.ID]; exists {
+			return fmt.Errorf("project manifest execution target id %q is duplicated", target.ID)
+		}
+		seenTargetIDs[target.ID] = struct{}{}
+		if target.Kind != "ssh" {
+			return fmt.Errorf("project manifest execution target %q kind %q is not supported yet", target.ID, target.Kind)
+		}
+		if target.Location == "" || len(target.Location) > 240 || strings.ContainsAny(target.Location, "\r\n\x00") {
+			return fmt.Errorf("project manifest SSH target %q requires a safe location up to 240 bytes", target.ID)
+		}
+		if target.Workspace == "" || len(target.Workspace) > 4096 || strings.ContainsAny(target.Workspace, "\r\n\x00") {
+			return fmt.Errorf("project manifest SSH target %q requires a target workspace", target.ID)
+		}
+		if len(target.MachineID) > 240 || strings.ContainsAny(target.MachineID, "\r\n\x00") {
+			return fmt.Errorf("project manifest SSH target %q machineId is invalid", target.ID)
+		}
+		if len(target.ProfileHome) > 4096 || strings.ContainsAny(target.ProfileHome, "\r\n\x00") {
+			return fmt.Errorf("project manifest SSH target %q profileHome is invalid", target.ID)
+		}
+		if err := validateProjectManifestTargetTemplate(target.ID, target.CommandTemplate, target.Workspace, target.ProfileHome, false); err != nil {
+			return err
+		}
+		if target.ProbeTemplate != "" {
+			if err := validateProjectManifestTargetTemplate(target.ID, target.ProbeTemplate, target.Workspace, target.ProfileHome, true); err != nil {
+				return err
+			}
+		}
+	}
+	if manifest.Execution.DefaultTarget != "local" {
+		if _, exists := seenTargetIDs[manifest.Execution.DefaultTarget]; !exists {
+			return fmt.Errorf("project manifest defaultTarget %q is not declared in execution.targets", manifest.Execution.DefaultTarget)
+		}
+	}
+
 	seenCommandIDs := make(map[string]struct{}, len(manifest.Commands))
 	for i := range manifest.Commands {
 		command := &manifest.Commands[i]
@@ -194,6 +270,50 @@ func validateProjectManifest(manifest ProjectManifest) error {
 		}
 	}
 	return nil
+}
+
+func validateProjectManifestTargetTemplate(targetID, template, workspace, profileHome string, probe bool) error {
+	if template == "" || len(template) > 4096 || strings.ContainsAny(template, "\r\n\x00") {
+		return fmt.Errorf("project manifest SSH target %q requires a single-line command template up to 4096 bytes", targetID)
+	}
+	if security.Redact(template) != template {
+		return fmt.Errorf("project manifest SSH target %q command template appears to contain secret material", targetID)
+	}
+	args := []string{"--model", "nexus-probe"}
+	if probe {
+		args = []string{"--version"}
+	}
+	bin, _, err := launcher.ResolveCommandTemplateContext(template, launcher.CommandTemplateContext{
+		Cwd:         "/nexus/host-project",
+		TargetCwd:   workspace,
+		Args:        args,
+		Provider:    "codex",
+		Profile:     "default",
+		ProfileHome: firstNonEmpty(profileHome, "/home/nexus"),
+	})
+	if err != nil {
+		return fmt.Errorf("project manifest SSH target %q has invalid command template: %w", targetID, err)
+	}
+	executable := strings.ToLower(filepath.Base(strings.ReplaceAll(bin, "\\", "/")))
+	if executable != "ssh" && executable != "ssh.exe" {
+		return fmt.Errorf("project manifest SSH target %q must use ssh as the command executable", targetID)
+	}
+	return nil
+}
+
+// ProjectExecutionTarget returns one normalized named target from a loaded
+// manifest. "local" is implicit and intentionally has no descriptor.
+func (manifest ProjectManifest) ProjectExecutionTarget(id string) (ProjectManifestTarget, bool) {
+	id = strings.TrimSpace(id)
+	if id == "" || id == "local" {
+		return ProjectManifestTarget{}, false
+	}
+	for _, target := range manifest.Execution.Targets {
+		if target.ID == id {
+			return target, true
+		}
+	}
+	return ProjectManifestTarget{}, false
 }
 
 func validateManifestRelativePath(value string) error {
