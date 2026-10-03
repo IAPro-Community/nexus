@@ -84,3 +84,20 @@ func TestConstrainCandidateExecutionRespectsPinnedAgent(t *testing.T) {
 		t.Fatalf("explicit Agent assignment must remain single execution: %+v", decision)
 	}
 }
+
+
+func TestExpandCandidatePlanSpecDoesNotRequireWorkspaceV2WithoutFanout(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_CANDIDATE_RUNS", "1")
+	t.Setenv("NEXUS_DISABLE_EXECUTION_WORKSPACES_V2", "1")
+	spec := runner.PlanSpec{ID: "plan", ProjectID: "project", Revision: 1, Packages: []runner.PackageSpec{{ID: "build"}}}
+	preview := &PlanExecutionPreview{PlanID: "plan", Revision: 1, Steps: []StepExecutionPreview{{
+		PackageID: "build", CandidateExecution: CandidateExecutionDecision{CandidateCount: 1},
+	}}}
+	expanded, err := expandCandidatePlanSpec(spec, preview)
+	if err != nil {
+		t.Fatalf("single execution must preserve v1 workspace semantics: %v", err)
+	}
+	if len(expanded.Packages) != 1 || expanded.Packages[0].ID != "build" {
+		t.Fatalf("single execution plan changed unexpectedly: %+v", expanded.Packages)
+	}
+}
