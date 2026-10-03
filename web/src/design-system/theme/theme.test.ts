@@ -234,6 +234,32 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     }
   });
 
+  it('keeps approved Nexus 1.0 secondary text readable', () => {
+    const approvedPresets: ThemePresetKey[] = [
+      'graphite-focus',
+      'vasco-noir',
+      'nord-light',
+      'aurora-ops',
+      'monokai',
+      'obsidian',
+    ];
+
+    for (const id of approvedPresets) {
+      const def = THEME_PRESETS[id];
+      for (const token of ['--nx-muted', '--nx-subtle'] as const) {
+        const color = def.vars[token];
+        expect(
+          contrastRatio(color, def.vars['--nx-bg']),
+          `Preset ${id} ${token}/bg contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(color, def.vars['--nx-surface']),
+          `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it('keeps custom accent overrides readable in dark and light schemes', () => {
     for (const scheme of ['dark', 'light'] as const) {
       for (const accent of ['purple', 'blue', 'cyan', 'neutral'] as const) {
