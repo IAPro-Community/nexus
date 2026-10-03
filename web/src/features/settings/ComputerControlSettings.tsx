@@ -303,10 +303,22 @@ export const ComputerControlSettings: React.FC<{ projectId?: string }> = ({ proj
 
         {!featureEnabled && status && (
           <InlineAlert tone="warning">
-            {t('settings.computer.featureDisabledHint', {
-              defaultValue:
-                'Computer Control is disabled by feature flag. No observation or action will be sent to the native helper.',
-            })}
+            <div className={styles.activationHint}>
+              <span>
+                {t('settings.computer.featureDisabledHint', {
+                  defaultValue:
+                    'Computer Control is disabled by feature flag. No observation or action will be sent to the native helper.',
+                })}
+              </span>
+              {status.enable_environment && <code>{status.enable_environment}</code>}
+              {status.restart_required && (
+                <small>
+                  {t('settings.computer.restartRequired', {
+                    defaultValue: 'Restart Nexus after setting the environment variable.',
+                  })}
+                </small>
+              )}
+            </div>
           </InlineAlert>
         )}
         {status?.permissions.reason && (
