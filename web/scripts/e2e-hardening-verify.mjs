@@ -466,6 +466,60 @@ async function main() {
       );
     }
 
+    console.log('5.1 Testing shared Radix menus...');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForSelector('.nx-os-shell', { state: 'visible', timeout: 5000 });
+
+    const createMenuTrigger = page.locator('[data-testid="topbar-create-menu-btn"]').first();
+    await createMenuTrigger.click();
+    const createMenu = page.locator('.nx-create-menu__panel').first();
+    await createMenu.waitFor({ state: 'visible', timeout: 5000 });
+    assert.equal(await createMenu.getAttribute('role'), 'menu', 'Create menu must expose menu semantics');
+    assert.equal(
+      await createMenuTrigger.getAttribute('aria-expanded'),
+      'true',
+      'Create menu trigger must expose expanded state',
+    );
+    assert.ok(
+      (await createMenu.getByRole('menuitem').count()) >= 1,
+      'Create menu must expose at least one actionable menu item',
+    );
+    await page.keyboard.press('Escape');
+    await createMenu.waitFor({ state: 'hidden', timeout: 5000 });
+    assert.equal(
+      await createMenuTrigger.getAttribute('aria-expanded'),
+      'false',
+      'Escape must close create menu and restore collapsed state',
+    );
+
+    const terminalsTab = page.locator('.nx-workspace-tab[data-kind="terminals"]').first();
+    await terminalsTab.waitFor({ state: 'visible', timeout: 5000 });
+    await terminalsTab.click();
+    const windowsMode = page
+      .getByRole('button', { name: /modo de janelas|windows mode/i })
+      .first();
+    await windowsMode.waitFor({ state: 'visible', timeout: 5000 });
+    await windowsMode.click();
+
+    const arrangeTrigger = page.locator('.nx-arrange-menu__trigger').first();
+    await arrangeTrigger.waitFor({ state: 'visible', timeout: 5000 });
+    await arrangeTrigger.click();
+    const arrangeMenu = page.locator('.nx-arrange-menu__panel').first();
+    await arrangeMenu.waitFor({ state: 'visible', timeout: 5000 });
+    assert.equal(await arrangeMenu.getAttribute('role'), 'menu', 'Arrange menu must expose menu semantics');
+    assert.ok(
+      (await arrangeMenu.getByRole('menuitemradio').count()) >= 1,
+      'Arrange menu must expose radio menu items',
+    );
+    await page.keyboard.press('Escape');
+    await arrangeMenu.waitFor({ state: 'hidden', timeout: 5000 });
+    assert.equal(
+      await arrangeTrigger.getAttribute('aria-expanded'),
+      'false',
+      'Escape must close arrange menu',
+    );
+    console.log('  ✓ Shared Radix menus open, expose semantics and close with Escape');
+
     console.log('6. Testing Settings Surface, Accordion WAI-ARIA and Density Delta...');
     await page.setViewportSize({ width: 1280, height: 800 });
     const settingsBtn = page
