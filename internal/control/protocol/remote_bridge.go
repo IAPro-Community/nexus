@@ -97,12 +97,20 @@ func ValidateRemoteBridgeHelloData(data RemoteBridgeHelloData) error {
 	if err := validateRemoteBridgeIdentifier("machine_id", data.MachineID); err != nil {
 		return err
 	}
-	if strings.TrimSpace(data.OS) == "" || strings.TrimSpace(data.Arch) == "" {
-		return fmt.Errorf("remote bridge OS and architecture are required")
+	if err := validateRemoteBridgeMetadata("os", data.OS, 64); err != nil {
+		return err
+	}
+	if err := validateRemoteBridgeMetadata("arch", data.Arch, 64); err != nil {
+		return err
+	}
+	if err := validateRemoteBridgeMetadata("nexus_version", data.NexusVersion, 128); err != nil {
+		return err
 	}
 	required := map[RemoteBridgeCapability]bool{
 		RemoteBridgeCapabilitySpawn:    false,
 		RemoteBridgeCapabilityCWD:      false,
+		RemoteBridgeCapabilityPTY:      false,
+		RemoteBridgeCapabilityResize:   false,
 		RemoteBridgeCapabilityLiveness: false,
 	}
 	for _, capability := range data.Capabilities {
@@ -154,6 +162,14 @@ func ValidateRemoteBridgeSpawn(payload RemoteBridgeSpawnPayload) error {
 	}
 	if payload.Rows < 0 || payload.Rows > 1000 || payload.Cols < 0 || payload.Cols > 1000 {
 		return fmt.Errorf("remote bridge terminal dimensions are invalid")
+	}
+	return nil
+}
+
+func validateRemoteBridgeMetadata(name, value string, maxBytes int) error {
+	value = strings.TrimSpace(value)
+	if value == "" || len(value) > maxBytes || strings.ContainsAny(value, "\x00\r\n") {
+		return fmt.Errorf("remote bridge %s is invalid", name)
 	}
 	return nil
 }
