@@ -32,9 +32,9 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
 
   if (runtimes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-500 font-mono text-xs">
+      <div className="flex flex-col items-center justify-center h-full text-[var(--nx-muted)] font-mono text-xs">
         <p>No active supervised runtimes.</p>
-        <p className="mt-1 text-[11px] text-slate-600">
+        <p className="mt-1 text-[11px] text-[var(--nx-subtle)]">
           Start an agent runtime from Dashboard to open terminal.
         </p>
       </div>
@@ -67,7 +67,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
   return (
     <div className="flex flex-col h-full space-y-2">
       {/* Tab bar & Layout controls */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-2 px-1">
+      <div className="flex items-center justify-between border-b border-[var(--nx-border)] pb-2 px-1">
         {/* Terminal Tabs */}
         <div className="flex items-center space-x-1.5 overflow-x-auto">
           {runtimes.map((r) => {
@@ -84,43 +84,43 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
                 onClick={() => onSelectRuntime(r.runtime_id)}
                 className={`flex items-center space-x-2 px-3 py-1.5 rounded text-xs font-mono transition border ${
                   isActive
-                    ? 'bg-slate-900 text-white border-slate-700 font-semibold shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-900/60'
+                    ? 'bg-[var(--nx-surface)] text-[var(--nx-text)] border-[var(--nx-border-strong)] font-semibold shadow-sm'
+                    : 'text-[var(--nx-muted)] hover:text-[var(--nx-text-soft)] border-transparent hover:bg-[var(--nx-surface-2)]'
                 }`}
               >
                 {isWaiting ? (
                   <span
-                    className="w-2 h-2 rounded-full bg-amber-400 animate-ping"
+                    className="w-2 h-2 rounded-full bg-[var(--nx-warning)] animate-ping"
                     title="Aguardando resposta"
                   ></span>
                 ) : isApproval ? (
                   <span
-                    className="w-2 h-2 rounded-full bg-rose-400 animate-pulse"
+                    className="w-2 h-2 rounded-full bg-[var(--nx-danger)] animate-pulse"
                     title="Aprovação necessária"
                   ></span>
                 ) : isDone ? (
                   <span
-                    className="w-2 h-2 rounded-full bg-emerald-400"
+                    className="w-2 h-2 rounded-full bg-[var(--nx-success)]"
                     title="Tarefa concluída"
                   ></span>
                 ) : (
-                  <span className="w-2 h-2 rounded-full bg-sky-400" title="Em execução"></span>
+                  <span className="w-2 h-2 rounded-full bg-[var(--nx-info)]" title="Em execução"></span>
                 )}
                 <span className="font-sans font-medium">{title}</span>
-                <span className="text-slate-500 text-[10px]">[{r.runtime_id}]</span>
+                <span className="text-[var(--nx-muted)] text-[10px]">[{r.runtime_id}]</span>
               </button>
             );
           })}
         </div>
 
         {/* Split View Mode Selector */}
-        <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 rounded p-0.5">
+        <div className="flex items-center space-x-1 bg-[var(--nx-surface)] border border-[var(--nx-border)] rounded p-0.5">
           <button
             onClick={() => setSplitMode('single')}
             className={`p-1 rounded transition ${
               splitMode === 'single'
-                ? 'bg-slate-800 text-sky-400'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[var(--nx-surface-3)] text-[var(--nx-accent-text)]'
+                : 'text-[var(--nx-muted)] hover:text-[var(--nx-text)]'
             }`}
             title="Single Terminal"
           >
@@ -130,8 +130,8 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
             onClick={() => setSplitMode('split-h')}
             className={`p-1 rounded transition ${
               splitMode === 'split-h'
-                ? 'bg-slate-800 text-sky-400'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[var(--nx-surface-3)] text-[var(--nx-accent-text)]'
+                : 'text-[var(--nx-muted)] hover:text-[var(--nx-text)]'
             }`}
             title="Split Side-by-Side"
           >
@@ -140,7 +140,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
           <button
             onClick={() => setSplitMode('grid')}
             className={`p-1 rounded transition ${
-              splitMode === 'grid' ? 'bg-slate-800 text-sky-400' : 'text-slate-400 hover:text-white'
+              splitMode === 'grid' ? 'bg-[var(--nx-surface-3)] text-[var(--nx-accent-text)]' : 'text-[var(--nx-muted)] hover:text-[var(--nx-text)]'
             }`}
             title="2x2 Grid View"
           >
