@@ -193,6 +193,12 @@ func requireComputerActionCapability(capabilities computer.Capabilities, kind co
 
 func validateComputerActionShape(req computer.ActionRequest) error {
 	hasElement := strings.TrimSpace(req.ElementID) != "" || req.ElementIndex != nil
+	if len(req.App) > 512 {
+		return fmt.Errorf("computer target app exceeds 512 bytes")
+	}
+	if len(req.Text) > 8192 {
+		return fmt.Errorf("%s text exceeds 8192 bytes", req.Kind)
+	}
 	switch req.Kind {
 	case computer.ActionClick:
 		if !hasElement && (req.X == nil || req.Y == nil) {
@@ -211,8 +217,10 @@ func validateComputerActionShape(req computer.ActionRequest) error {
 			return fmt.Errorf("HOTKEY requires key")
 		}
 	case computer.ActionScroll:
-		if strings.TrimSpace(req.Direction) == "" {
-			return fmt.Errorf("SCROLL requires direction")
+		switch strings.ToUpper(strings.TrimSpace(req.Direction)) {
+		case "UP", "DOWN", "LEFT", "RIGHT":
+		default:
+			return fmt.Errorf("SCROLL direction must be UP, DOWN, LEFT or RIGHT")
 		}
 	case computer.ActionDrag:
 		if req.X == nil || req.Y == nil || req.ToX == nil || req.ToY == nil {
