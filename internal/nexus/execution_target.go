@@ -17,6 +17,11 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
+var (
+	ErrManagedRemoteExecutionDisabled = errors.New("managed remote execution is disabled")
+	ErrExecutionTargetIdentityMismatch = errors.New("execution target machine identity mismatch")
+)
+
 func ResolveExecutionTarget(project store.Project, cfg AgentConfig) runner.ExecutionTarget {
 	options := cfg.Options
 	adapter := strings.ToLower(strings.TrimSpace(agentModeStringOption(options, "execution_adapter")))
@@ -217,7 +222,7 @@ func (n *Nexus) ProbeProjectExecutionTarget(
 	targetID string,
 ) (ProjectExecutionTargetProbe, error) {
 	if !flags.Enabled(flags.RemoteExecution) {
-		return ProjectExecutionTargetProbe{}, fmt.Errorf("managed remote execution is disabled by the remote_execution feature flag")
+		return ProjectExecutionTargetProbe{}, fmt.Errorf("%w: remote_execution feature flag is off", ErrManagedRemoteExecutionDisabled)
 	}
 	if ctx == nil {
 		ctx = context.Background()
@@ -250,7 +255,8 @@ func (n *Nexus) ProbeProjectExecutionTarget(
 
 	if target.MachineID != "" && hello.MachineID != target.MachineID {
 		return ProjectExecutionTargetProbe{}, fmt.Errorf(
-			"execution target %q expected machine %q but remote bridge reported %q",
+			"%w: target %q expected machine %q but remote bridge reported %q",
+			ErrExecutionTargetIdentityMismatch,
 			target.ID,
 			target.MachineID,
 			hello.MachineID,
