@@ -674,3 +674,77 @@ func TestProjectEventsAPI(t *testing.T) {
 		t.Fatalf("expected AGENT_WORKING, got %s", eventsList[0].Kind)
 	}
 }
+
+
+func TestDesignModeStatusDefaultsDisabledAndStartFailsClosed(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_BROWSER_DESIGN_MODE", "")
+	t.Setenv("NEXUS_DISABLE_BROWSER_DESIGN_MODE", "")
+
+	client, srv, csrf := csrfClient(t)
+	projectDir := t.TempDir()
+	body, _ := json.Marshal(map[string]string{"name": "Design Mode", "path": projectDir})
+	req, _ := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/projects", bytes.NewReader(body))
+	req.Header.Set("X-CSRF-Token", csrf)
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("create project: got %d", resp.StatusCode)
+	}
+	var project store.Project
+	if err := json.NewDecoder(resp.Body).Decode(&project); err != nil {
+		t.Fatal(err)
+	}
+
+	statusResp, err := client.Get(srv.URL() + "/api/v1/projects/" + project.ID + "/design-mode/status")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer statusResp.Body.Close()
+	if statusResp.StatusCode != http.StatusOK {
+		t.Fatalf("Design Mode status: got %d", statusResp.StatusCode)
+	}
+	var status struct {
+		Enabled bool   `json:"enabled"`
+		Active  bool   `json:"active"`
+		URL     string `json:"url"`
+	}
+	if err := json.NewDecoder(statusResp.Body).Decode(&status); err != nil {
+		t.Fatal(err)
+	}
+	if status.Enabled || status.Active || status.URL != "" {
+		t.Fatalf("Design Mode must fail closed by default: %+v", status)
+	}
+
+	startBody := bytes.NewBufferString(`{"url":"http://127.0.0.1:3000"}`)
+	startReq, _ := http.NewRequest(
+		http.MethodPost,
+		srv.URL()+"/api/v1/projects/"+project.ID+"/design-mode/start",
+		startBody,
+	)
+	startReq.Header.Set("X-CSRF-Token", csrf)
+	startResp, err := client.Do(startReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer startResp.Body.Close()
+	if startResp.StatusCode != http.StatusNotFound {
+		t.Fatalf("disabled Design Mode start must return 404, got %d", startResp.StatusCode)
+	}
+
+	noCSRFReq, _ := http.NewRequest(
+		http.MethodPost,
+		srv.URL()+"/api/v1/projects/"+project.ID+"/design-mode/start",
+		bytes.NewBufferString(`{"url":"http://127.0.0.1:3000"}`),
+	)
+	noCSRFResp, err := client.Do(noCSRFReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer noCSRFResp.Body.Close()
+	if noCSRFResp.StatusCode != http.StatusForbidden {
+		t.Fatalf("Design Mode mutation without CSRF must return 403, got %d", noCSRFResp.StatusCode)
+	}
+}
