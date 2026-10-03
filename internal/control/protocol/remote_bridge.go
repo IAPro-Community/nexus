@@ -64,6 +64,7 @@ type RemoteBridgeSpawnPayload struct {
 	ProjectID string   `json:"project_id"`
 	Provider  string   `json:"provider"`
 	Profile   string   `json:"profile"`
+	Model     string   `json:"model,omitempty"`
 	Workspace string   `json:"workspace"`
 	Args      []string `json:"args,omitempty"`
 	Rows      int      `json:"rows,omitempty"`
@@ -137,6 +138,11 @@ func ValidateRemoteBridgeSpawn(payload RemoteBridgeSpawnPayload) error {
 	} {
 		if err := validateRemoteBridgeIdentifier(name, value); err != nil {
 			return err
+		}
+	}
+	if payload.Model != "" {
+		if strings.TrimSpace(payload.Model) != payload.Model || len(payload.Model) > maxRemoteBridgeIdentifierBytes || strings.ContainsAny(payload.Model, "\x00\r\n") {
+			return fmt.Errorf("remote bridge model is invalid")
 		}
 	}
 	if strings.TrimSpace(payload.Workspace) == "" || len(payload.Workspace) > maxRemoteBridgeWorkspaceBytes {
