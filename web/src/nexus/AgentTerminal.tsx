@@ -1272,7 +1272,7 @@ export const AgentTerminal: React.FC<{
                         title={t('terminal.copySkillTitle', 'Copiar comando')}
                       >
                         {isCopied ? (
-                          <Check size={11} className="nx-text-emerald-400" />
+                          <Check size={11} className="text-[var(--nx-success)]" />
                         ) : (
                           <Copy size={11} />
                         )}
