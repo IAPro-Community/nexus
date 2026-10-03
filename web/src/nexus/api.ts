@@ -365,6 +365,37 @@ export const nexus = {
       `/api/v1/projects/${projectId}/commands`,
     ),
 
+  getDesignModeStatus: (projectId: string) =>
+    request<import('../types').DesignModeStatus>(
+      `/api/v1/projects/${projectId}/design-mode/status`,
+    ),
+  startDesignMode: (projectId: string, url: string) =>
+    request<{ active: boolean; url: string }>(
+      `/api/v1/projects/${projectId}/design-mode/start`,
+      { method: 'POST', body: JSON.stringify({ url }) },
+    ),
+  stopDesignMode: (projectId: string) =>
+    request<{ stopped: boolean }>(`/api/v1/projects/${projectId}/design-mode/stop`, {
+      method: 'POST',
+      body: '{}',
+    }),
+  beginDesignModePicker: (projectId: string) =>
+    request<import('../types').DesignPickerStatus>(
+      `/api/v1/projects/${projectId}/design-mode/picker/start`,
+      { method: 'POST', body: '{}' },
+    ),
+  getDesignModePicker: (projectId: string) =>
+    request<import('../types').DesignPickerStatus>(
+      `/api/v1/projects/${projectId}/design-mode/picker`,
+    ),
+  inspectDesignModeSelector: (projectId: string, selector: string) =>
+    request<import('../types').UIContextArtifact>(
+      `/api/v1/projects/${projectId}/design-mode/inspect`,
+      { method: 'POST', body: JSON.stringify({ selector }) },
+    ),
+  designModeScreenshotURL: (projectId: string, ref: string) =>
+    `/api/v1/projects/${encodeURIComponent(projectId)}/design-mode/screenshot/${encodeURIComponent(ref)}`,
+
   // Agent config (Gate 3)
   getAgentConfig: (id: string) =>
     request<{ config: AgentConfig; revision: string; revisions: AgentRevision[] }>(
