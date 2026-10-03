@@ -46,8 +46,9 @@ type RemoteBridgeHelloData struct {
 	MachineID       string                   `json:"machine_id"`
 	OS              string                   `json:"os"`
 	Arch            string                   `json:"arch"`
-	NexusVersion    string                   `json:"nexus_version"`
-	Capabilities    []RemoteBridgeCapability `json:"capabilities"`
+	NexusVersion           string                   `json:"nexus_version"`
+	RemoteExecutionEnabled bool                     `json:"remote_execution_enabled"`
+	Capabilities           []RemoteBridgeCapability `json:"capabilities"`
 }
 
 // RemoteBridgeSpawnPayload asks the remote Nexus runtime bridge to start one
