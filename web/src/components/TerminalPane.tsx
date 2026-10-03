@@ -72,6 +72,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const liveTitleKeyRef = useRef(liveTitleKey);
   liveTitleKeyRef.current = liveTitleKey;
   const liveChromeRef = useRef(liveChrome);
+  const initialInputRef = useRef(initialInput);
+  initialInputRef.current = initialInput;
+  const onInitialInputConsumedRef = useRef(onInitialInputConsumed);
+  onInitialInputConsumedRef.current = onInitialInputConsumed;
   const { t } = useTranslation();
   const tRef = useRef(t);
   tRef.current = t;
@@ -305,11 +309,13 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     wsRef.current = ws;
 
     const maybeSendInitialInput = () => {
-      if (disposed || initialInputSent || !initialInput) return;
+      const kickoff = initialInputRef.current;
+      if (disposed || initialInputSent || !kickoff) return;
       if (ws.readyState !== WebSocket.OPEN) return;
       initialInputSent = true;
-      ws.send(JSON.stringify({ type: 'input', data: initialInput }));
-      onInitialInputConsumed?.();
+      initialInputRef.current = '';
+      ws.send(JSON.stringify({ type: 'input', data: kickoff }));
+      onInitialInputConsumedRef.current?.();
     };
 
     ws.onopen = () => {
@@ -475,7 +481,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         // ignore
       }
     };
-  }, [runtimeId, connectNonce, initialInput, onInitialInputConsumed]);
+  }, [runtimeId, connectNonce]);
 
   const handleRestart = async () => {
     if (restarting) return;
