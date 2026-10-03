@@ -12,9 +12,11 @@ import (
 )
 
 type computerStatus struct {
-	FeatureEnabled bool                      `json:"feature_enabled"`
-	Capabilities   computer.Capabilities     `json:"capabilities"`
-	Permissions    computer.PermissionStatus `json:"permissions"`
+	FeatureEnabled   bool                      `json:"feature_enabled"`
+	Capabilities     computer.Capabilities     `json:"capabilities"`
+	Permissions      computer.PermissionStatus `json:"permissions"`
+	EnableEnvironment string                   `json:"enable_environment,omitempty"`
+	RestartRequired  bool                      `json:"restart_required,omitempty"`
 }
 
 func computerCmd(args []string) error {
@@ -43,10 +45,15 @@ func computerCmd(args []string) error {
 		if err != nil {
 			return err
 		}
+		enabled := coreflags.Enabled(coreflags.ComputerUse)
 		status := computerStatus{
-			FeatureEnabled: coreflags.Enabled(coreflags.ComputerUse),
+			FeatureEnabled: enabled,
 			Capabilities:   capabilities,
 			Permissions:    permissions,
+		}
+		if !enabled {
+			status.EnableEnvironment = "NEXUS_ENABLE_COMPUTER_USE=1"
+			status.RestartRequired = true
 		}
 		if jsonOutput {
 			return json.NewEncoder(os.Stdout).Encode(status)
@@ -55,6 +62,9 @@ func computerCmd(args []string) error {
 			status.FeatureEnabled, status.Capabilities.Provider, status.Capabilities.Platform, status.Permissions.Available)
 		if status.Permissions.Reason != "" {
 			fmt.Printf("Reason: %s\n", status.Permissions.Reason)
+		}
+		if !status.FeatureEnabled {
+			fmt.Printf("Beta activation: %s (restart Nexus after setting it)\n", status.EnableEnvironment)
 		}
 		return nil
 	case "capabilities":
