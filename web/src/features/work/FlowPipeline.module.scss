@@ -59,7 +59,7 @@
 }
 
 .card[data-tone='danger'] {
-  border-color: color-mix(in srgb, var(--nx-danger, #c44) 50%, var(--nx-border));
+  border-color: color-mix(in srgb, var(--nx-danger) 50%, var(--nx-border));
 }
 
 .card[data-tone='brand'] {
