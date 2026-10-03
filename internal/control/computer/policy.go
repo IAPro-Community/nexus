@@ -14,6 +14,20 @@ type Policy struct {
 	BlockedApps           []string
 }
 
+func (p Policy) ValidateObservation() error {
+	if !p.AllowComputerUse {
+		return fmt.Errorf("computer use is not authorized")
+	}
+	return nil
+}
+
+func (p Policy) ValidateApp(app string) error {
+	if err := p.ValidateObservation(); err != nil {
+		return err
+	}
+	return p.validateApp(app)
+}
+
 func (p Policy) ValidateSnapshot(req SnapshotRequest) error {
 	if !p.AllowComputerUse {
 		return fmt.Errorf("computer use is not authorized")
