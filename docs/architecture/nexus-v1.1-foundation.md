@@ -112,20 +112,57 @@ for remote scheduling, node enrollment and computer-use routing.
 
 ### Project execution target catalog
 
-`nexus.yaml` may declare named SSH targets under `execution.targets`. The catalog is strict:
-target IDs are unique, `local` is reserved, the target workspace/location are bounded, templates
-use the existing non-shell argv grammar, the executable must resolve to `ssh`, and values that
-match Nexus secret-redaction patterns are rejected. SSH authentication remains owned by the host
-SSH configuration/agent; passwords, private keys and tokens do not belong in the manifest.
+`nexus.yaml` may declare named SSH targets under `execution.targets`. Managed targets are
+**metadata only**: `id`, `kind`, SSH location/alias, optional machine identity and remote
+workspace. The manifest does not accept command, probe, password, key or token fields for managed
+SSH. Target IDs are unique, `local` is reserved, and SSH locations reject whitespace/control
+characters and option-like values so a repository cannot smuggle launcher arguments through the
+target identity.
+
+SSH authentication remains owned by the host SSH configuration/agent. Passwords, private keys and
+tokens do not belong in the manifest.
 
 This catalog is intentionally **declarative in the first rollout**. Loading
-`defaultTarget: devbox` does not silently move an Agent or Mission to another machine. Explicit
-target activation is a separate step behind `remote_execution`, so a repository checkout cannot
-turn into remote code execution merely by adding `nexus.yaml`.
+`defaultTarget: devbox` does not silently move an Agent or Mission to another machine. The
+read-only Execution Target Preview always reports both the declared default and the effective
+default; until managed activation exists, the effective target remains `local`.
 
 Legacy per-Agent `command_template` targets remain compatible and continue to use the v1 launcher
-path. The managed target resolver will build on the catalog rather than replacing that compatibility
-surface.
+path. They are compatibility targets, not the implementation mechanism for managed SSH.
+
+### Managed SSH requires a remote runtime bridge
+
+Managed SSH must not execute providers by constructing a remote shell command such as
+`ssh host "cd ... && provider ..."`. That would turn provider args, workspace paths and
+environment values back into shell text and weaken the argv-only guarantees of the local launcher.
+
+The Orca reference implementation reaches the same boundary with an SSH relay/runtime: SSH is used
+to establish or bootstrap a remote runtime, while cwd, environment, PTY dimensions and process
+requests cross a structured protocol. Nexus adopts that architectural property without importing
+Orca's Electron runtime.
+
+The Nexus target model is therefore:
+
+```text
+SSH config / SSH transport
+        |
+        v
+remote Nexus runtime bridge
+  - authenticated host identity
+  - structured spawn request
+  - explicit cwd
+  - argv array (never shell text)
+  - PTY attach/detach/resize
+  - liveness + version/capability handshake
+        |
+        v
+provider process on remote host
+```
+
+The existing Nexus Node blueprint remains the destination architecture. A first SSH implementation
+may bootstrap that bridge over SSH/stdio, but MissionRunner, ResourceScheduler and RuntimeSession
+remain authoritative. `remote_execution` must fail closed until the bridge and an explicit
+activation/approval contract are present.
 
 ## Candidate execution policy
 
