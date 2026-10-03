@@ -1075,13 +1075,29 @@ func (n *Nexus) RecoverAgent(ctx context.Context, agentID string) (*registry.Run
 		agentCfg, _ = ParseAgentConfig(rev.Config)
 	}
 
+	agentCfg.Provider = provider
+	agentCfg.Profile = profile
+	if agentCfg.Profile == "" {
+		agentCfg.Profile = "default"
+	}
+
+	managedBinding, bindErr := managedExecutionTargetBindingFromProject(proj)
+	if bindErr != nil {
+		agent.Status = store.AgentRecoverable
+		_ = st.UpdateAgent(agent)
+		return nil, fmt.Errorf("resolve managed execution target: %w", bindErr)
+	}
+
 	var args []string
 	continuity := store.ContinuityNewSession
 	providerSessionID := ""
 
-	// When recovering after a process termination / host reboot, start a clean
-	// session unless the agent was explicitly configured with ContinuityPolicy == "native".
-	if strings.EqualFold(agentCfg.ContinuityPolicy, "native") && sessionID != "" {
+	// Native provider resume is currently proven only for the local host path.
+	// A managed remote recovery starts a clean provider session on the approved
+	// target until Nexus can persist and verify provider-session ownership on
+	// the same remote machine. This prevents a local auth/session assumption
+	// from being reused across a machine boundary.
+	if managedBinding == nil && strings.EqualFold(agentCfg.ContinuityPolicy, "native") && sessionID != "" {
 		if d, derr := n.controlDrivers().Get(provider); derr == nil {
 			prof := model.Profile{Name: profile, Provider: provider}
 			if can, _ := d.CanResume(ctx, prof, sessionID); can {
@@ -1094,26 +1110,47 @@ func (n *Nexus) RecoverAgent(ctx context.Context, agentID string) (*registry.Run
 		}
 	}
 
-	executionWorkspace, werr := n.resolveExecutionWorkspace(ctx, proj, agent, agentCfg)
-	if werr != nil {
-		agent.Status = store.AgentRecoverable
-		_ = st.UpdateAgent(agent)
-		return nil, fmt.Errorf("resolve execution workspace: %w", werr)
+	runtimeID := "runtime_" + ids.NewRuntimeID()
+	var sess *registry.RuntimeSession
+	if managedBinding != nil {
+		sess, err = n.launchAgentOnManagedTarget(
+			ctx,
+			proj,
+			agent,
+			agentCfg,
+			continuityLaunch{
+				Args:              nil,
+				ProviderSessionID: "",
+				Status:            store.ContinuityNewSession,
+			},
+			runtimeID,
+			*managedBinding,
+		)
+		continuity = store.ContinuityNewSession
+		providerSessionID = ""
+	} else {
+		executionWorkspace, werr := n.resolveExecutionWorkspace(ctx, proj, agent, agentCfg)
+		if werr != nil {
+			agent.Status = store.AgentRecoverable
+			_ = st.UpdateAgent(agent)
+			return nil, fmt.Errorf("resolve execution workspace: %w", werr)
+		}
+		sess, err = n.launcher.Launch(ctx, launcher.LaunchOptions{
+			AgentID:           agentID,
+			RuntimeID:         runtimeID,
+			ProjectID:         proj.ID,
+			ProjectName:       proj.Name,
+			ProviderID:        provider,
+			ProfileID:         profile,
+			ProviderSessionID: providerSessionID,
+			Args:              args,
+			Workspace:         executionWorkspace,
+			Model:             agentCfg.Model,
+			Environment:       agentCfg.Environment,
+			Isolation:         agentCfg.Isolation,
+			Options:           agentCfg.Options,
+		})
 	}
-	sess, err := n.launcher.Launch(ctx, launcher.LaunchOptions{
-		AgentID:           agentID,
-		ProjectID:         proj.ID,
-		ProjectName:       proj.Name,
-		ProviderID:        provider,
-		ProfileID:         profile,
-		ProviderSessionID: providerSessionID,
-		Args:              args,
-		Workspace:         executionWorkspace,
-		Model:             agentCfg.Model,
-		Environment:       agentCfg.Environment,
-		Isolation:         agentCfg.Isolation,
-		Options:           agentCfg.Options,
-	})
 	if err != nil {
 		agent.Status = store.AgentRecoverable
 		_ = st.UpdateAgent(agent)
