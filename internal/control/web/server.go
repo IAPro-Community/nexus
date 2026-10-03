@@ -38,8 +38,9 @@ type Server struct {
 	listener   net.Listener
 	auth       *AuthManager
 	api        *APIHandler
-	terminal   *TerminalHub
-	bootstrap  string
+	terminal     *TerminalHub
+	nexusHandler *NexusHandler
+	bootstrap    string
 	url        string
 	pid        int
 	hostname   string // registered /etc/hosts entry (empty if none)
@@ -114,8 +115,9 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		listener:  l,
 		auth:      auth,
 		api:       api,
-		terminal:  terminalHub,
-		bootstrap: bootstrapToken,
+		terminal:     terminalHub,
+		nexusHandler: nexusHandler,
+		bootstrap:    bootstrapToken,
 		url:       fmt.Sprintf("http://%s:%d", opts.Host, tcpAddr.Port),
 		pid:       os.Getpid(),
 		loopback:  loopback,
@@ -246,6 +248,8 @@ func projectSubroute(path string) string {
 		return "open-os"
 	case strings.HasSuffix(path, "/commands"):
 		return "commands"
+	case strings.Contains(path, "/design-mode"):
+		return "design-mode"
 	case strings.HasSuffix(path, "/git/branches"):
 		return "git-branches"
 	case strings.HasSuffix(path, "/git/changes"):
@@ -667,6 +671,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 	if s.tunnelHost != "" {
 		originpolicy.UnregisterTunnelHost(s.tunnelHost)
+	}
+	if s.nexusHandler != nil && s.nexusHandler.designMode != nil {
+		s.nexusHandler.designMode.closeAll()
 	}
 	if s.auth != nil {
 		s.auth.SetTunnelActive(false)
