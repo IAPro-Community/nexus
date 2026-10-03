@@ -2,7 +2,16 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Cpu, Plus, Radio } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge, Button, ChoiceGroup, ChoiceOption, Dialog, EmptyState, Input, Spinner } from '../../design-system';
+import {
+  Badge,
+  Button,
+  ChoiceGroup,
+  ChoiceOption,
+  Dialog,
+  EmptyState,
+  Input,
+  Spinner,
+} from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { ProviderInfo } from '../../types';
 import styles from './RegisterProviderModal.module.scss';
