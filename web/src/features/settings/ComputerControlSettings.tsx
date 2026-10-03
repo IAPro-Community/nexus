@@ -22,6 +22,7 @@ import { nexus } from '../../nexus/api';
 import type {
   AutonomyContract,
   ComputerActionKind,
+  ComputerActionRequest,
   ComputerAppInfo,
   ComputerElement,
   ComputerSnapshot,
@@ -207,7 +208,7 @@ export const ComputerControlSettings: React.FC<{ projectId?: string }> = ({ proj
 
   const performAction = async (
     kind: ComputerActionKind,
-    extra: Partial<Parameters<typeof nexus.performProjectComputerAction>[2]> = {},
+    extra: Partial<Omit<ComputerActionRequest, 'kind' | 'app'>> = {},
   ) => {
     if (!projectId || !selectedApp || !selectedWindow) return;
     try {
@@ -430,7 +431,7 @@ export const ComputerControlSettings: React.FC<{ projectId?: string }> = ({ proj
             placeholder={t('settings.computer.chooseApp', { defaultValue: 'Choose an application' })}
             options={apps.map((app) => ({
               value: app.name,
-              label: `${app.name} · PID ${app.pid}`,
+              label: app.name,
             }))}
           />
 
