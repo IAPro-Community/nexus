@@ -819,3 +819,78 @@ execution:
 		t.Fatalf("unexpected target preview: %+v", catalog.Targets)
 	}
 }
+
+
+func TestExecutionTargetProbeRequiresCSRFAndFailsClosedWhenFeatureDisabled(t *testing.T) {
+	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "")
+	t.Setenv("NEXUS_DISABLE_REMOTE_EXECUTION", "")
+
+	client, srv, csrf := csrfClient(t)
+	projectDir := t.TempDir()
+	manifest := `version: 1
+execution:
+  targets:
+    - id: devbox
+      kind: ssh
+      location: devbox
+      workspace: /srv/project
+`
+	if err := os.WriteFile(filepath.Join(projectDir, "nexus.yaml"), []byte(manifest), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	body, _ := json.Marshal(map[string]string{"name": "Probe API", "path": projectDir})
+	createReq, _ := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/projects", bytes.NewReader(body))
+	createReq.Header.Set("X-CSRF-Token", csrf)
+	createResp, err := client.Do(createReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer createResp.Body.Close()
+	if createResp.StatusCode != http.StatusCreated {
+		t.Fatalf("create project: got %d", createResp.StatusCode)
+	}
+	var project store.Project
+	if err := json.NewDecoder(createResp.Body).Decode(&project); err != nil {
+		t.Fatal(err)
+	}
+
+	probePath := srv.URL() + "/api/v1/projects/" + project.ID + "/execution-targets/probe"
+	noCSRFReq, _ := http.NewRequest(
+		http.MethodPost,
+		probePath,
+		bytes.NewBufferString(`{"target_id":"devbox"}`),
+	)
+	noCSRFResp, err := client.Do(noCSRFReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer noCSRFResp.Body.Close()
+	if noCSRFResp.StatusCode != http.StatusForbidden {
+		t.Fatalf("probe without CSRF must return 403, got %d", noCSRFResp.StatusCode)
+	}
+
+	probeReq, _ := http.NewRequest(
+		http.MethodPost,
+		probePath,
+		bytes.NewBufferString(`{"target_id":"devbox"}`),
+	)
+	probeReq.Header.Set("X-CSRF-Token", csrf)
+	probeResp, err := client.Do(probeReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer probeResp.Body.Close()
+	if probeResp.StatusCode != http.StatusConflict {
+		t.Fatalf("disabled probe must return 409, got %d", probeResp.StatusCode)
+	}
+
+	getResp, err := client.Get(probePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer getResp.Body.Close()
+	if getResp.StatusCode != http.StatusMethodNotAllowed {
+		t.Fatalf("probe GET must return 405, got %d", getResp.StatusCode)
+	}
+}
