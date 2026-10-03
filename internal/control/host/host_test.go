@@ -347,6 +347,32 @@ func TestSessionHost_CmdInputNoDeadlock(t *testing.T) {
 	}
 }
 
+func TestSessionHostRawAttachByteStreamRecoalescesCSIAndSS3(t *testing.T) {
+	var out bytes.Buffer
+	sh := &SessionHost{
+		terminalInput: nexusruntime.NewTerminalInputScrubber(&out),
+	}
+	serverConn, clientConn := net.Pipe()
+	defer serverConn.Close()
+	defer clientConn.Close()
+
+	for _, part := range [][]byte{{0x1b}, {'['}, {'A'}} {
+		sh.processAttachedInput(serverConn, part)
+	}
+	if got := out.String(); got != "\x1b[A" {
+		t.Fatalf("raw attach CSI was not re-coalesced: %q", got)
+	}
+
+	out.Reset()
+	sh.activeWriter = nil
+	for _, part := range [][]byte{{0x1b}, {'O'}, {'C'}} {
+		sh.processAttachedInput(serverConn, part)
+	}
+	if got := out.String(); got != "\x1bOC" {
+		t.Fatalf("raw attach SS3 was not re-coalesced: %q", got)
+	}
+}
+
 func TestSessionHostFinalInputBoundaryRecoalescesSplitCSI(t *testing.T) {
 	var out bytes.Buffer
 	sh := &SessionHost{
