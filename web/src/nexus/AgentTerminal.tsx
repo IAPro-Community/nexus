@@ -49,7 +49,11 @@ import { isRequiredResourceError, recoverOrStartAgent } from './agentRecover';
 import { ResourcePicker } from './ResourcePicker';
 import { TerminalActionDialog } from './TerminalActionDialog';
 import { ProtocolScrubber } from './terminalProtocol';
-import { shouldForwardTerminalInput, stripEmbeddedTerminalMetadata } from './terminalInput';
+import {
+  shouldForwardTerminalInput,
+  stripEmbeddedTerminalMetadata,
+  terminalTraceShape,
+} from './terminalInput';
 import { ConfirmDialog, ContextDrawer, Tooltip } from '../design-system';
 import { TaskPreparationDialog } from '../components/TaskPreparationDialog';
 import type { RuntimeSession } from '../types';
@@ -226,6 +230,7 @@ export const AgentTerminal: React.FC<{
     if (!container) return;
 
     let disposed = false;
+    let terminalTraceEnabled = false;
     let reconnectAttempt = 0;
     let reconnectTimer: number | undefined;
     let openedOnce = false;
@@ -551,7 +556,9 @@ export const AgentTerminal: React.FC<{
         if (disposed) return;
         try {
           const payload = JSON.parse(event.data);
-          if (payload.type === 'output' && payload.data) {
+          if (payload.type === 'trace_config') {
+            terminalTraceEnabled = payload.data === 'enabled';
+          } else if (payload.type === 'output' && payload.data) {
             const cleaned = protocolScrubber.scrub(String(payload.data));
             if (cleaned) {
               ingestOutput(cleaned);
@@ -664,9 +671,17 @@ export const AgentTerminal: React.FC<{
         ws.send(JSON.stringify({ type: 'lease_acquire' }));
         return;
       }
+      if (terminalTraceEnabled) {
+        const trace = terminalTraceShape(data);
+        ws.send(JSON.stringify({ type: 'trace', stage: 'xterm.ondata', ...trace, data: trace.shape }));
+      }
       if (!shouldForwardTerminalInput(data)) return;
       const clean = stripEmbeddedTerminalMetadata(data);
       if (!clean) return;
+      if (terminalTraceEnabled) {
+        const trace = terminalTraceShape(clean);
+        ws.send(JSON.stringify({ type: 'trace', stage: 'xterm.filtered', ...trace, data: trace.shape }));
+      }
       ws.send(JSON.stringify({ type: 'input', data: clean }));
     });
 
