@@ -274,7 +274,7 @@ export const THEME_PRESETS = {
       '--nx-muted': '#5f6d82',
       '--nx-subtle': '#64738b',
       '--nx-accent': '#2f75e8',
-      '--nx-accent-hover': '#245fc1',
+      '--nx-accent-hover': '#3f83ec',
       '--nx-accent-soft': 'rgba(47, 117, 232, 0.11)',
       '--nx-accent-text': '#245fc1',
     },
