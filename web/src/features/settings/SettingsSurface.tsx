@@ -827,10 +827,7 @@ const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> =
   };
 
   return (
-    <ChoiceGroup
-      className={`nx-theme-accordion-container ${styles.accordionContainer}`}
-      ariaLabel={t('settings.themePresets', 'Temas visuais')}
-    >
+    <div className={`nx-theme-accordion-container ${styles.accordionContainer}`}>
       {/* Grupos de Categorias em Accordion WAI-ARIA */}
       {THEME_CATEGORIES.map((cat) => {
         const isOpen = Boolean(openCategories[cat.id]);
@@ -871,7 +868,10 @@ const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> =
                 aria-labelledby={headerId}
                 className={styles.themePanel}
               >
-                <div className={styles.presetGrid}>
+                <ChoiceGroup
+                  className={styles.presetGrid}
+                  ariaLabel={`${cat.title}: ${t('settings.themePresets', 'Temas visuais')}`}
+                >
                   {cat.presets.map((presetKey) => {
                     const preset = THEME_PRESETS[presetKey];
                     if (!preset) return null;
@@ -906,12 +906,12 @@ const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> =
                       </ChoiceOption>
                     );
                   })}
-                </div>
+                </ChoiceGroup>
               </div>
             )}
           </div>
         );
       })}
-    </ChoiceGroup>
+    </div>
   );
 };
