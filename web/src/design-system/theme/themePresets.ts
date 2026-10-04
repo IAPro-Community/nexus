@@ -1,9 +1,28 @@
+export interface ThemeColorVars {
+  '--nx-bg': string;
+  '--nx-bg-elevated': string;
+  '--nx-surface': string;
+  '--nx-surface-2': string;
+  '--nx-surface-3': string;
+  '--nx-border': string;
+  '--nx-border-strong': string;
+  '--nx-text': string;
+  '--nx-text-soft': string;
+  '--nx-muted': string;
+  '--nx-subtle': string;
+  '--nx-accent': string;
+  '--nx-accent-hover': string;
+  '--nx-accent-soft': string;
+  '--nx-accent-text': string;
+  [variable: string]: string;
+}
+
 export interface ThemeDefinition {
   id: string;
   name: string;
   scheme: 'dark' | 'light' | 'high-contrast';
   accent: string;
-  vars: Record<string, string>;
+  vars: ThemeColorVars;
 }
 
 export const THEME_PRESETS = {
