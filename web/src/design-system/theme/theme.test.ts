@@ -279,6 +279,11 @@ describe('WCAG AA contrast automation for every registered preset', () => {
           `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
         ).toBeGreaterThanOrEqual(4.5);
       }
+
+      expect(
+        contrastRatio(vars['--nx-warning'], vars['--nx-warning-contrast']),
+        `Preset ${id} warning/control text contrast must be >= 4.5:1`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 
