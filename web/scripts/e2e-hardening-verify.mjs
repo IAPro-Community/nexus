@@ -604,17 +604,23 @@ async function main() {
       .count();
     assert.ok(hasSwatches > 0, 'Theme radio must display color palette swatches');
 
-    const visibleThemeRadios = page.locator(
-      '.nx-theme-accordion-container button[role="radio"]:visible',
+    const themeChoiceGroups = page.locator(
+      '.nx-theme-accordion-container .nx-choice-group:visible',
     );
-    const tabbableThemeRadios = await visibleThemeRadios.evaluateAll((nodes) =>
-      nodes.filter((node) => node.tabIndex === 0).length,
+    const themeRovingState = await themeChoiceGroups.evaluateAll((groups) =>
+      groups.map((group) => {
+        const radios = [...group.querySelectorAll('button[role="radio"]:not(:disabled)')];
+        return {
+          radios: radios.length,
+          tabbable: radios.filter((radio) => radio.tabIndex === 0).length,
+        };
+      }),
     );
-    assert.equal(
-      tabbableThemeRadios,
-      1,
-      'ChoiceGroup must expose exactly one tabbable theme radio',
-    );
+    assert.ok(themeRovingState.length >= 1, 'At least one theme ChoiceGroup must be visible');
+    for (const state of themeRovingState) {
+      assert.ok(state.radios >= 1, 'Visible theme ChoiceGroup must expose radio options');
+      assert.equal(state.tabbable, 1, 'Each ChoiceGroup must expose exactly one tabbable radio');
+    }
 
     await themeRadio.focus();
     await page.keyboard.press('ArrowRight');
