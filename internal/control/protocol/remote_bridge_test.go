@@ -64,8 +64,9 @@ func TestValidateRemoteBridgeSpawnKeepsArgvStructured(t *testing.T) {
 		AgentID:   "agent_123",
 		ProjectID: "project_123",
 		Provider:  "codex",
-		Profile:   "work@example.com",
-		Workspace: "/srv/project with spaces",
+		Profile:           "work@example.com",
+		ProviderSessionID: "provider-session-42",
+		Workspace:         "/srv/project with spaces",
 		Args: []string{
 			"--prompt",
 			"literal ; $(echo this-is-data) && not-a-shell-command",
@@ -90,6 +91,9 @@ func TestValidateRemoteBridgeSpawnKeepsArgvStructured(t *testing.T) {
 	}
 	if len(decoded.Args) != 2 || decoded.Args[1] != payload.Args[1] {
 		t.Fatalf("argv was not preserved as structured data: %#v", decoded.Args)
+	}
+	if decoded.ProviderSessionID != payload.ProviderSessionID {
+		t.Fatalf("provider session id was not preserved: %q", decoded.ProviderSessionID)
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -126,6 +130,12 @@ func TestValidateRemoteBridgeSpawnRejectsMalformedPayload(t *testing.T) {
 			name: "workspace control characters",
 			mutate: func(payload *RemoteBridgeSpawnPayload) {
 				payload.Workspace = "/srv/project\nother"
+			},
+		},
+		{
+			name: "provider session control characters",
+			mutate: func(payload *RemoteBridgeSpawnPayload) {
+				payload.ProviderSessionID = "session\nother"
 			},
 		},
 		{
