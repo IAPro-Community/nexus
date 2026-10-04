@@ -11,6 +11,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	remotecontrol "github.com/IAPro-Community/nexus/internal/control/remote"
 	"github.com/IAPro-Community/nexus/internal/core/flags"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -62,6 +63,7 @@ func (n *Nexus) launchAgentOnManagedTarget(
 	agent store.Agent,
 	cfg AgentConfig,
 	continuity continuityLaunch,
+	accountScope model.AccountScope,
 	runtimeID string,
 	binding ManagedExecutionTargetBinding,
 ) (*registry.RuntimeSession, error) {
@@ -155,9 +157,11 @@ func (n *Nexus) launchAgentOnManagedTarget(
 		ProjectID:     project.ID,
 		ProjectName:   project.Name,
 		Title:         strings.TrimSpace(agent.Name),
-		ProviderID:    cfg.Provider,
-		ProfileID:     cfg.Profile,
-		Model:         cfg.Model,
+		ProviderID:        cfg.Provider,
+		ProfileID:         cfg.Profile,
+		AccountScope:      accountScope,
+		ProviderSessionID: continuity.ProviderSessionID,
+		Model:             cfg.Model,
 		Workspace:     target.Workspace,
 		PID:           spawn.ProviderPID,
 		State:         registry.StateRunning,
