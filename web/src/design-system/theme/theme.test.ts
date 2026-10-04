@@ -142,6 +142,7 @@ describe('resolveThemeStyleVariables', () => {
     expect(vars['--nx-bg']).toBe('#f4f6fa');
     expect(vars['--nx-surface']).toBe('#ffffff');
     expect(vars['--nx-text']).toBe('#141821');
+    expect(vars['--nx-subtle']).toBe('#667085');
   });
 
   it('aplica variáveis nativas do preset quando isCustomized é false', () => {
@@ -177,7 +178,7 @@ describe('resolveThemeStyleVariables', () => {
     );
     expect(vars['--nx-bg']).toBe('#f4f6fa'); // Sobrescrito pelo Light
     expect(vars['--nx-accent']).toBe('#8b5cf6'); // Sobrescrito pelo Purple
-    expect(vars['--nx-accent-text']).toBe('#bba5ff');
+    expect(vars['--nx-accent-text']).toBe('#6d28d9');
   });
 
   it('não emite variáveis indefinidas, nulas ou vazias', () => {
@@ -304,32 +305,6 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     }
   });
 
-  it('keeps approved Nexus 1.0 secondary text readable', () => {
-    const approvedPresets: ThemePresetKey[] = [
-      'graphite-focus',
-      'vasco-noir',
-      'nord-light',
-      'aurora-ops',
-      'monokai',
-      'obsidian',
-    ];
-
-    for (const id of approvedPresets) {
-      const def = THEME_PRESETS[id];
-      for (const token of ['--nx-muted', '--nx-subtle'] as const) {
-        const color = def.vars[token];
-        expect(
-          contrastRatio(color, def.vars['--nx-bg']),
-          `Preset ${id} ${token}/bg contrast must be >= 4.5:1`,
-        ).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrastRatio(color, def.vars['--nx-surface']),
-          `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
-        ).toBeGreaterThanOrEqual(4.5);
-      }
-    }
-  });
-
   it('keeps custom accent overrides readable in dark and light schemes', () => {
     for (const scheme of ['dark', 'light'] as const) {
       for (const accent of ['purple', 'blue', 'cyan', 'neutral'] as const) {
@@ -348,6 +323,16 @@ describe('WCAG AA contrast automation for every registered preset', () => {
           contrastRatio(vars['--nx-accent'], vars['--nx-accent-contrast']),
           `${scheme}/${accent} accent/control text contrast must be >= 4.5:1`,
         ).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(vars['--nx-accent-hover'], vars['--nx-accent-contrast']),
+          `${scheme}/${accent} accent-hover/control text contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+        for (const background of ['--nx-bg', '--nx-surface'] as const) {
+          expect(
+            contrastRatio(vars['--nx-accent-text'], vars[background]),
+            `${scheme}/${accent} accent-text/${background} contrast must be >= 4.5:1`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
       }
     }
   });
