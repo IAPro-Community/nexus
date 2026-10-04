@@ -343,8 +343,8 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     }
   });
 
-  it('keeps custom accent overrides readable in dark and light schemes', () => {
-    for (const scheme of ['dark', 'light'] as const) {
+  it('keeps custom accent overrides readable in every explicit scheme', () => {
+    for (const scheme of ['dark', 'light', 'high-contrast'] as const) {
       for (const accent of ['purple', 'blue', 'cyan', 'neutral'] as const) {
         const vars = resolveThemeStyleVariables(
           {
