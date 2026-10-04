@@ -286,6 +286,10 @@ describe('WCAG AA contrast automation for every registered preset', () => {
         contrastRatio(vars['--nx-accent'], vars['--nx-accent-contrast']),
         `Preset ${id} accent/control text contrast must be >= 4.5:1`,
       ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(vars['--nx-accent-hover'], vars['--nx-accent-contrast']),
+        `Preset ${id} accent-hover/control text contrast must be >= 4.5:1`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 
