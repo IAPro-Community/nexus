@@ -101,6 +101,17 @@ describe('theme model', () => {
     expect(keys.length).toBeGreaterThanOrEqual(15);
   });
 
+  it('keeps registry keys, ids and primary accent tokens consistent', () => {
+    const names = new Set<string>();
+
+    for (const [key, definition] of Object.entries(THEME_PRESETS)) {
+      expect(definition.id).toBe(key);
+      expect(definition.accent).toBe(definition.vars['--nx-accent']);
+      expect(names.has(definition.name), `Duplicate theme name: ${definition.name}`).toBe(false);
+      names.add(definition.name);
+    }
+  });
+
   it('normalizes out-of-bound fontScale values', () => {
     expect(
       normalizeThemePreferences({ fontScale: 0.1 } as unknown as ThemePreferences).fontScale,
