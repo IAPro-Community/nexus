@@ -25,8 +25,8 @@
   --nx-success-soft: rgba(81, 207, 154, 0.12);
   --nx-warning: #f3bd67;
   --nx-warning-soft: rgba(243, 189, 103, 0.12);
-  --nx-danger: #ff7474;
-  --nx-danger-soft: rgba(255, 116, 116, 0.12);
+  --nx-danger: #ff9090;
+  --nx-danger-soft: rgba(255, 144, 144, 0.12);
   --nx-info: #62b4ff;
   --nx-info-soft: rgba(98, 180, 255, 0.12);
   --nx-radius: 10px;
