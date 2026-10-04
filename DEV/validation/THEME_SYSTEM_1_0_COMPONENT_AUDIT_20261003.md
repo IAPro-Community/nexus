@@ -84,8 +84,10 @@ These are not considered blockers:
 - CSS/SCSS files touched by the audit have balanced declaration braces;
 - hardcoded status-color fallbacks in the touched feature modules were removed;
 - E2E hardening coverage was updated for shared radio-card keyboard navigation;
-- theme E2E coverage includes Graphite Focus, Vasco Noir, Nord Light, Aurora Ops,
-  Monokai Dark and Obsidian.
+- theme E2E coverage now exercises all 15 registered presets, including the approved
+  Graphite Focus, Vasco Noir, Nord Light, Aurora Ops, Monokai Dark and Obsidian set; each
+  preset is checked for selection, reload persistence, desktop/tablet/mobile layout and
+  serious/critical Axe violations.
 
 ## External execution gate
 
