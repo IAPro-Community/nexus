@@ -226,6 +226,17 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     }
   });
 
+  it('keeps accent text readable on application and panel surfaces', () => {
+    for (const [id, def] of Object.entries(THEME_PRESETS)) {
+      for (const background of ['--nx-bg', '--nx-surface'] as const) {
+        expect(
+          contrastRatio(def.vars['--nx-accent-text'], def.vars[background]),
+          `Preset ${id} accent-text/${background} contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it('keeps secondary text readable on both application and panel surfaces', () => {
     for (const [id, def] of Object.entries(THEME_PRESETS)) {
       const bg = def.vars['--nx-bg'];
