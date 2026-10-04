@@ -3,17 +3,7 @@ import { THEME_PRESETS, type ThemeDefinition } from './themePresets';
 export type ThemeScheme = 'system' | 'dark' | 'light' | 'high-contrast';
 export type ThemeAccent = 'purple' | 'blue' | 'cyan' | 'neutral';
 export type ThemeDensity = 'compact' | 'comfortable';
-export type ThemePresetKey =
-  | 'nexus-dark'
-  | 'nexus-light'
-  | 'midnight'
-  | 'nord'
-  | 'dracula'
-  | 'monokai'
-  | 'solarized-dark'
-  | 'solarized-light'
-  | 'high-contrast-dark'
-  | 'high-contrast-light';
+export type ThemePresetKey = keyof typeof THEME_PRESETS;
 
 export interface ThemePreferences {
   scheme: ThemeScheme;
@@ -52,6 +42,7 @@ export const MANAGED_THEME_COLOR_VARS = [
   '--nx-accent-hover',
   '--nx-accent-soft',
   '--nx-accent-text',
+  '--nx-accent-contrast',
   '--nx-window-accent',
   '--nx-success',
   '--nx-success-soft',
@@ -79,6 +70,14 @@ export const SCHEME_OVERRIDE_VARS: Record<
     '--nx-text-soft': '#d9dde6',
     '--nx-muted': '#8a93a5',
     '--nx-subtle': '#8b95a8',
+    '--nx-success': '#51cf9a',
+    '--nx-success-soft': 'rgba(81, 207, 154, 0.12)',
+    '--nx-warning': '#f3bd67',
+    '--nx-warning-soft': 'rgba(243, 189, 103, 0.12)',
+    '--nx-danger': '#ff9090',
+    '--nx-danger-soft': 'rgba(255, 144, 144, 0.12)',
+    '--nx-info': '#62b4ff',
+    '--nx-info-soft': 'rgba(98, 180, 255, 0.12)',
   },
   light: {
     '--nx-bg': '#f4f6fa',
@@ -92,6 +91,14 @@ export const SCHEME_OVERRIDE_VARS: Record<
     '--nx-text-soft': '#2d3442',
     '--nx-muted': '#5e687b',
     '--nx-subtle': '#7a869a',
+    '--nx-success': '#166534',
+    '--nx-success-soft': 'rgba(22, 101, 52, 0.1)',
+    '--nx-warning': '#92400e',
+    '--nx-warning-soft': 'rgba(146, 64, 14, 0.1)',
+    '--nx-danger': '#b91c1c',
+    '--nx-danger-soft': 'rgba(185, 28, 28, 0.1)',
+    '--nx-info': '#1d4ed8',
+    '--nx-info-soft': 'rgba(29, 78, 216, 0.1)',
   },
   'high-contrast': {
     '--nx-bg': '#000000',
@@ -105,6 +112,14 @@ export const SCHEME_OVERRIDE_VARS: Record<
     '--nx-text-soft': '#ffffff',
     '--nx-muted': '#e2e2e2',
     '--nx-subtle': '#c7c7c7',
+    '--nx-success': '#5fff93',
+    '--nx-success-soft': 'rgba(95, 255, 147, 0.18)',
+    '--nx-warning': '#ffd75f',
+    '--nx-warning-soft': 'rgba(255, 215, 95, 0.18)',
+    '--nx-danger': '#ff7676',
+    '--nx-danger-soft': 'rgba(255, 118, 118, 0.18)',
+    '--nx-info': '#75d5ff',
+    '--nx-info-soft': 'rgba(117, 213, 255, 0.18)',
   },
 };
 
@@ -135,6 +150,44 @@ export const ACCENT_OVERRIDE_VARS: Record<ThemeAccent, Record<string, string>> =
   },
 };
 
+function parseHexColor(value: string): [number, number, number] | null {
+  const normalized = value.trim().replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return null;
+  return [
+    Number.parseInt(normalized.slice(0, 2), 16),
+    Number.parseInt(normalized.slice(2, 4), 16),
+    Number.parseInt(normalized.slice(4, 6), 16),
+  ];
+}
+
+function relativeLuminance(value: string): number | null {
+  const rgb = parseHexColor(value);
+  if (!rgb) return null;
+
+  const [r, g, b] = rgb.map((channel) => {
+    const srgb = channel / 255;
+    return srgb <= 0.03928 ? srgb / 12.92 : Math.pow((srgb + 0.055) / 1.055, 2.4);
+  });
+
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function colorContrastRatio(left: string, right: string): number {
+  const leftLuminance = relativeLuminance(left);
+  const rightLuminance = relativeLuminance(right);
+  if (leftLuminance === null || rightLuminance === null) return 0;
+
+  const lighter = Math.max(leftLuminance, rightLuminance);
+  const darker = Math.min(leftLuminance, rightLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function resolveAccentContrast(accent: string): string {
+  const black = '#000000';
+  const white = '#ffffff';
+  return colorContrastRatio(accent, black) >= colorContrastRatio(accent, white) ? black : white;
+}
+
 export function resolveScheme(
   scheme: ThemeScheme,
   systemDark: boolean,
@@ -148,7 +201,10 @@ export function resolveThemeStyleVariables(
 ): Record<string, string> {
   const presetKey = prefs.preset || defaultThemePreferences.preset;
   const preset = THEME_PRESETS[presetKey] || THEME_PRESETS['nexus-dark'];
-  const finalVars: Record<string, string> = { ...preset.vars };
+  const finalVars: Record<string, string> = {
+    ...SCHEME_OVERRIDE_VARS[preset.scheme],
+    ...preset.vars,
+  };
 
   if (prefs.isCustomized || prefs.scheme === 'system') {
     if (resolvedScheme !== preset.scheme) {
@@ -158,6 +214,10 @@ export function resolveThemeStyleVariables(
       Object.assign(finalVars, ACCENT_OVERRIDE_VARS[prefs.accent] || {});
     }
   }
+
+  finalVars['--nx-accent-contrast'] = resolveAccentContrast(
+    finalVars['--nx-accent'] || preset.accent,
+  );
 
   return finalVars;
 }

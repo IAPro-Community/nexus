@@ -1,12 +1,31 @@
+export interface ThemeColorVars {
+  '--nx-bg': string;
+  '--nx-bg-elevated': string;
+  '--nx-surface': string;
+  '--nx-surface-2': string;
+  '--nx-surface-3': string;
+  '--nx-border': string;
+  '--nx-border-strong': string;
+  '--nx-text': string;
+  '--nx-text-soft': string;
+  '--nx-muted': string;
+  '--nx-subtle': string;
+  '--nx-accent': string;
+  '--nx-accent-hover': string;
+  '--nx-accent-soft': string;
+  '--nx-accent-text': string;
+  [variable: string]: string;
+}
+
 export interface ThemeDefinition {
   id: string;
   name: string;
   scheme: 'dark' | 'light' | 'high-contrast';
   accent: string;
-  vars: Record<string, string>;
+  vars: ThemeColorVars;
 }
 
-export const THEME_PRESETS: Record<string, ThemeDefinition> = {
+export const THEME_PRESETS = {
   'nexus-dark': {
     id: 'nexus-dark',
     name: 'Nexus Dark',
@@ -46,7 +65,7 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
       '--nx-text': '#141821',
       '--nx-text-soft': '#2d3442',
       '--nx-muted': '#5e687b',
-      '--nx-subtle': '#7a869a',
+      '--nx-subtle': '#667085',
       '--nx-accent': '#7c3aed',
       '--nx-accent-hover': '#6d28d9',
       '--nx-accent-soft': 'rgba(124, 58, 237, 0.12)',
@@ -69,7 +88,7 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
       '--nx-text': '#f8fafc',
       '--nx-text-soft': '#e2e8f0',
       '--nx-muted': '#94a3b8',
-      '--nx-subtle': '#64748b',
+      '--nx-subtle': '#7c8ca4',
       '--nx-accent': '#38bdf8',
       '--nx-accent-hover': '#0ea5e9',
       '--nx-accent-soft': 'rgba(56, 189, 248, 0.14)',
@@ -92,7 +111,7 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
       '--nx-text': '#eceff4',
       '--nx-text-soft': '#e5e9f0',
       '--nx-muted': '#d8dee9',
-      '--nx-subtle': '#9aa5b8',
+      '--nx-subtle': '#a8b2c1',
       '--nx-accent': '#88c0d0',
       '--nx-accent-hover': '#81a1c1',
       '--nx-accent-soft': 'rgba(136, 192, 208, 0.16)',
@@ -115,7 +134,7 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
       '--nx-text': '#f8f8f2',
       '--nx-text-soft': '#e2e2dc',
       '--nx-muted': '#bfbfba',
-      '--nx-subtle': '#6272a4',
+      '--nx-subtle': '#9aa0c4',
       '--nx-accent': '#bd93f9',
       '--nx-accent-hover': '#ff79c6',
       '--nx-accent-soft': 'rgba(189, 147, 249, 0.16)',
@@ -124,25 +143,25 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
   },
   monokai: {
     id: 'monokai',
-    name: 'Monokai',
+    name: 'Monokai Dark',
     scheme: 'dark',
     accent: '#a6e22e',
     vars: {
-      '--nx-bg': '#1e1f1c',
-      '--nx-bg-elevated': '#272822',
-      '--nx-surface': '#383830',
-      '--nx-surface-2': '#49483e',
-      '--nx-surface-3': '#75715e',
-      '--nx-border': '#49483e',
-      '--nx-border-strong': '#75715e',
+      '--nx-bg': '#171814',
+      '--nx-bg-elevated': '#1c1d19',
+      '--nx-surface': '#22231e',
+      '--nx-surface-2': '#2c2d26',
+      '--nx-surface-3': '#38392f',
+      '--nx-border': '#3c3d35',
+      '--nx-border-strong': '#57584c',
       '--nx-text': '#f8f8f2',
-      '--nx-text-soft': '#e6db74',
-      '--nx-muted': '#cfcfc2',
-      '--nx-subtle': '#75715e',
+      '--nx-text-soft': '#e6e1c9',
+      '--nx-muted': '#aaa99d',
+      '--nx-subtle': '#8e8d82',
       '--nx-accent': '#a6e22e',
-      '--nx-accent-hover': '#f92672',
-      '--nx-accent-soft': 'rgba(166, 226, 46, 0.16)',
-      '--nx-accent-text': '#fd971f',
+      '--nx-accent-hover': '#b8f13d',
+      '--nx-accent-soft': 'rgba(166, 226, 46, 0.13)',
+      '--nx-accent-text': '#d7f779',
     },
   },
   'solarized-dark': {
@@ -160,8 +179,8 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
       '--nx-border-strong': '#586e75',
       '--nx-text': '#93a1a1',
       '--nx-text-soft': '#eee8d5',
-      '--nx-muted': '#839496',
-      '--nx-subtle': '#586e75',
+      '--nx-muted': '#90a0a0',
+      '--nx-subtle': '#8c9c9d',
       '--nx-accent': '#268bd2',
       '--nx-accent-hover': '#2aa198',
       '--nx-accent-soft': 'rgba(38, 139, 210, 0.16)',
@@ -183,12 +202,150 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
       '--nx-border-strong': '#93a1a1',
       '--nx-text': '#586e75',
       '--nx-text-soft': '#073642',
-      '--nx-muted': '#657b83',
-      '--nx-subtle': '#839496',
+      '--nx-muted': '#596f76',
+      '--nx-subtle': '#5a7077',
       '--nx-accent': '#268bd2',
       '--nx-accent-hover': '#2aa198',
       '--nx-accent-soft': 'rgba(38, 139, 210, 0.14)',
       '--nx-accent-text': '#268bd2',
+    },
+  },
+  'graphite-focus': {
+    id: 'graphite-focus',
+    name: 'Graphite Focus',
+    scheme: 'dark',
+    accent: '#4d9fff',
+    vars: {
+      '--nx-bg': '#0b0f14',
+      '--nx-bg-elevated': '#0e131b',
+      '--nx-surface': '#121821',
+      '--nx-surface-2': '#18212c',
+      '--nx-surface-3': '#202b38',
+      '--nx-border': '#263241',
+      '--nx-border-strong': '#36465a',
+      '--nx-text': '#f2f6fc',
+      '--nx-text-soft': '#d8e0ea',
+      '--nx-muted': '#95a2b4',
+      '--nx-subtle': '#7f8da1',
+      '--nx-accent': '#4d9fff',
+      '--nx-accent-hover': '#6aaeff',
+      '--nx-accent-soft': 'rgba(77, 159, 255, 0.12)',
+      '--nx-accent-text': '#82bbff',
+    },
+  },
+  'vasco-noir': {
+    id: 'vasco-noir',
+    name: 'Vasco Noir',
+    scheme: 'dark',
+    accent: '#e65353',
+    vars: {
+      '--nx-bg': '#080909',
+      '--nx-bg-elevated': '#0d0e0e',
+      '--nx-surface': '#121414',
+      '--nx-surface-2': '#181b1b',
+      '--nx-surface-3': '#202323',
+      '--nx-border': '#292d2d',
+      '--nx-border-strong': '#3b4141',
+      '--nx-text': '#f5f3f3',
+      '--nx-text-soft': '#dddada',
+      '--nx-muted': '#9c9797',
+      '--nx-subtle': '#898484',
+      '--nx-accent': '#e65353',
+      '--nx-accent-hover': '#f06565',
+      '--nx-accent-soft': 'rgba(230, 83, 83, 0.11)',
+      '--nx-accent-text': '#f37a7a',
+    },
+  },
+  'nord-light': {
+    id: 'nord-light',
+    name: 'Nord Light',
+    scheme: 'light',
+    accent: '#2f75e8',
+    vars: {
+      '--nx-bg': '#f6f8fc',
+      '--nx-bg-elevated': '#ffffff',
+      '--nx-surface': '#ffffff',
+      '--nx-surface-2': '#eef3fa',
+      '--nx-surface-3': '#e4ebf5',
+      '--nx-border': '#d5deeb',
+      '--nx-border-strong': '#b7c4d6',
+      '--nx-text': '#172033',
+      '--nx-text-soft': '#33415c',
+      '--nx-muted': '#5f6d82',
+      '--nx-subtle': '#64738b',
+      '--nx-accent': '#2f75e8',
+      '--nx-accent-hover': '#3f83ec',
+      '--nx-accent-soft': 'rgba(47, 117, 232, 0.11)',
+      '--nx-accent-text': '#245fc1',
+    },
+  },
+  'aurora-ops': {
+    id: 'aurora-ops',
+    name: 'Aurora Ops',
+    scheme: 'dark',
+    accent: '#22d3ee',
+    vars: {
+      '--nx-bg': '#06101f',
+      '--nx-bg-elevated': '#081427',
+      '--nx-surface': '#0b1730',
+      '--nx-surface-2': '#10203d',
+      '--nx-surface-3': '#172b4d',
+      '--nx-border': '#1b3557',
+      '--nx-border-strong': '#28517b',
+      '--nx-text': '#f0f6ff',
+      '--nx-text-soft': '#d6e4f6',
+      '--nx-muted': '#8ea3bf',
+      '--nx-subtle': '#7c91ae',
+      '--nx-accent': '#22d3ee',
+      '--nx-accent-hover': '#4ce2f5',
+      '--nx-accent-soft': 'rgba(34, 211, 238, 0.12)',
+      '--nx-accent-text': '#67e8f9',
+    },
+  },
+  night: {
+    id: 'night',
+    name: 'Night',
+    scheme: 'dark',
+    accent: '#6f95e8',
+    vars: {
+      '--nx-bg': '#090c12',
+      '--nx-bg-elevated': '#0d1119',
+      '--nx-surface': '#111722',
+      '--nx-surface-2': '#17202d',
+      '--nx-surface-3': '#1f2a3a',
+      '--nx-border': '#263348',
+      '--nx-border-strong': '#374962',
+      '--nx-text': '#edf2f9',
+      '--nx-text-soft': '#d2dae7',
+      '--nx-muted': '#929fb2',
+      '--nx-subtle': '#7b899e',
+      '--nx-accent': '#6f95e8',
+      '--nx-accent-hover': '#87a9f2',
+      '--nx-accent-soft': 'rgba(111, 149, 232, 0.12)',
+      '--nx-accent-text': '#a8c1ff',
+    },
+  },
+  obsidian: {
+    id: 'obsidian',
+    name: 'Obsidian',
+    scheme: 'dark',
+    accent: '#8b7cf6',
+    vars: {
+      '--nx-bg': '#0c0e14',
+      '--nx-bg-elevated': '#10131b',
+      '--nx-surface': '#141722',
+      '--nx-surface-2': '#1a1e2b',
+      '--nx-surface-3': '#222738',
+      '--nx-border': '#2b3142',
+      '--nx-border-strong': '#3b4358',
+      '--nx-text': '#f1f2f6',
+      '--nx-text-soft': '#d8dbe6',
+      '--nx-muted': '#9299ab',
+      '--nx-subtle': '#7f879c',
+      '--nx-accent': '#8b7cf6',
+      '--nx-accent-hover': '#a194ff',
+      '--nx-accent-soft': 'rgba(139, 124, 246, 0.12)',
+      '--nx-accent-text': '#b8adff',
     },
   },
   'high-contrast-dark': {
@@ -235,6 +392,14 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
       '--nx-accent-hover': '#0000aa',
       '--nx-accent-soft': 'rgba(0, 0, 238, 0.15)',
       '--nx-accent-text': '#0000ee',
+      '--nx-success': '#006b3c',
+      '--nx-success-soft': 'rgba(0, 107, 60, 0.12)',
+      '--nx-warning': '#8a4b00',
+      '--nx-warning-soft': 'rgba(138, 75, 0, 0.12)',
+      '--nx-danger': '#b42318',
+      '--nx-danger-soft': 'rgba(180, 35, 24, 0.12)',
+      '--nx-info': '#0057b8',
+      '--nx-info-soft': 'rgba(0, 87, 184, 0.12)',
     },
   },
-};
+} satisfies Record<string, ThemeDefinition>;

@@ -7,6 +7,7 @@ import {
   resolveThemeStyleVariables,
   themeStorageKey,
   type ThemePreferences,
+  type ThemePresetKey,
 } from './theme';
 import { THEME_PRESETS } from './themePresets';
 
@@ -76,19 +77,48 @@ describe('theme model', () => {
     expect(normalized).toEqual(original);
   });
 
-  it('contains comprehensive suite of 10 presets', () => {
+  it('contains the Nexus 1.0 preset suite, including the approved visual themes', () => {
     const keys = Object.keys(THEME_PRESETS);
-    expect(keys).toContain('nexus-dark');
-    expect(keys).toContain('nexus-light');
-    expect(keys).toContain('midnight');
-    expect(keys).toContain('nord');
-    expect(keys).toContain('dracula');
-    expect(keys).toContain('monokai');
-    expect(keys).toContain('solarized-dark');
-    expect(keys).toContain('solarized-light');
-    expect(keys).toContain('high-contrast-dark');
-    expect(keys).toContain('high-contrast-light');
-    expect(keys.length).toBeGreaterThanOrEqual(10);
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        'nexus-dark',
+        'nexus-light',
+        'midnight',
+        'nord',
+        'dracula',
+        'monokai',
+        'solarized-dark',
+        'solarized-light',
+        'graphite-focus',
+        'vasco-noir',
+        'nord-light',
+        'aurora-ops',
+        'night',
+        'obsidian',
+        'high-contrast-dark',
+        'high-contrast-light',
+      ]),
+    );
+    expect(keys.length).toBeGreaterThanOrEqual(16);
+  });
+
+  it('keeps Night cool-toned and explicitly non-pink', () => {
+    const night = THEME_PRESETS.night;
+    expect(night.scheme).toBe('dark');
+    expect(night.vars['--nx-bg']).toBe('#090c12');
+    expect(night.vars['--nx-accent']).toBe('#6f95e8');
+    expect(night.vars['--nx-accent']).not.toMatch(/ff79c6|ff69b4|ec4899/i);
+  });
+
+  it('keeps registry keys, ids and primary accent tokens consistent', () => {
+    const names = new Set<string>();
+
+    for (const [key, definition] of Object.entries(THEME_PRESETS)) {
+      expect(definition.id).toBe(key);
+      expect(definition.accent).toBe(definition.vars['--nx-accent']);
+      expect(names.has(definition.name), `Duplicate theme name: ${definition.name}`).toBe(false);
+      names.add(definition.name);
+    }
   });
 
   it('normalizes out-of-bound fontScale values', () => {
@@ -180,7 +210,7 @@ describe('resolveThemeStyleVariables', () => {
   });
 });
 
-describe('WCAG AA Contrast Automation for all 10 presets', () => {
+describe('WCAG AA contrast automation for every registered preset', () => {
   it('satisfies WCAG AA contrast ratio for normal text (>= 4.5) and UI accent components (>= 3.0)', () => {
     for (const [id, def] of Object.entries(THEME_PRESETS)) {
       const bg = def.vars['--nx-bg'];
@@ -202,6 +232,139 @@ describe('WCAG AA Contrast Automation for all 10 presets', () => {
         accentOnSurface,
         `Preset ${id} accent/surface contrast must be >= 3.0:1`,
       ).toBeGreaterThanOrEqual(3.0);
+    }
+  });
+
+  it('keeps secondary text readable on both application and panel surfaces', () => {
+    for (const [id, def] of Object.entries(THEME_PRESETS)) {
+      const bg = def.vars['--nx-bg'];
+      const surface = def.vars['--nx-surface'];
+
+      for (const token of ['--nx-muted', '--nx-subtle'] as const) {
+        expect(
+          contrastRatio(def.vars[token], bg),
+          `Preset ${id} ${token}/bg contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(def.vars[token], surface),
+          `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it('keeps semantic status text readable on every preset surface', () => {
+    for (const [id, def] of Object.entries(THEME_PRESETS)) {
+      const vars = resolveThemeStyleVariables(
+        {
+          ...defaultThemePreferences,
+          preset: id as ThemePresetKey,
+          scheme: def.scheme,
+          isCustomized: false,
+        },
+        def.scheme,
+      );
+
+      for (const token of [
+        '--nx-success',
+        '--nx-warning',
+        '--nx-danger',
+        '--nx-info',
+      ] as const) {
+        expect(
+          contrastRatio(vars[token], vars['--nx-surface']),
+          `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it('derives readable text for accent-filled controls in every preset', () => {
+    for (const [id, def] of Object.entries(THEME_PRESETS)) {
+      const vars = resolveThemeStyleVariables(
+        {
+          ...defaultThemePreferences,
+          preset: id as ThemePresetKey,
+          scheme: def.scheme,
+          isCustomized: false,
+        },
+        def.scheme,
+      );
+
+      expect(
+        contrastRatio(vars['--nx-accent'], vars['--nx-accent-contrast']),
+        `Preset ${id} accent/control text contrast must be >= 4.5:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(vars['--nx-accent-hover'], vars['--nx-accent-contrast']),
+        `Preset ${id} accent-hover/control text contrast must be >= 4.5:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('keeps approved Nexus 1.0 secondary text readable', () => {
+    const approvedPresets: ThemePresetKey[] = [
+      'graphite-focus',
+      'vasco-noir',
+      'nord-light',
+      'aurora-ops',
+      'monokai',
+      'night',
+      'obsidian',
+    ];
+
+    for (const id of approvedPresets) {
+      const def = THEME_PRESETS[id];
+      for (const token of ['--nx-muted', '--nx-subtle'] as const) {
+        const color = def.vars[token];
+        expect(
+          contrastRatio(color, def.vars['--nx-bg']),
+          `Preset ${id} ${token}/bg contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(color, def.vars['--nx-surface']),
+          `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it('keeps custom accent overrides readable in dark and light schemes', () => {
+    for (const scheme of ['dark', 'light'] as const) {
+      for (const accent of ['purple', 'blue', 'cyan', 'neutral'] as const) {
+        const vars = resolveThemeStyleVariables(
+          {
+            ...defaultThemePreferences,
+            preset: 'nexus-dark',
+            scheme,
+            accent,
+            isCustomized: true,
+          },
+          scheme,
+        );
+
+        expect(
+          contrastRatio(vars['--nx-accent'], vars['--nx-accent-contrast']),
+          `${scheme}/${accent} accent/control text contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it('keeps High Contrast Light semantic status text readable on its surface', () => {
+    const definition = THEME_PRESETS['high-contrast-light'];
+    const surface = definition.vars['--nx-surface'];
+
+    for (const token of [
+      '--nx-success',
+      '--nx-warning',
+      '--nx-danger',
+      '--nx-info',
+    ] as const) {
+      expect(
+        contrastRatio(definition.vars[token], surface),
+        `High Contrast Light ${token} must be >= 4.5:1 on surface`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 });
