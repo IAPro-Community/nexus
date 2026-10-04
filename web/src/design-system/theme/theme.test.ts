@@ -77,6 +77,39 @@ describe('theme model', () => {
     expect(normalized).toEqual(original);
   });
 
+  it('repairs persisted preset/scheme mismatches when the theme is not customized', () => {
+    expect(
+      normalizeThemePreferences({
+        ...defaultThemePreferences,
+        preset: 'nord-light',
+        scheme: 'dark',
+        isCustomized: false,
+      }).scheme,
+    ).toBe('light');
+
+    expect(
+      normalizeThemePreferences({
+        ...defaultThemePreferences,
+        preset: 'high-contrast-dark',
+        scheme: 'light',
+        isCustomized: false,
+      }).scheme,
+    ).toBe('high-contrast');
+  });
+
+  it('preserves system-following defaults and explicit customized schemes', () => {
+    expect(normalizeThemePreferences(defaultThemePreferences).scheme).toBe('system');
+
+    expect(
+      normalizeThemePreferences({
+        ...defaultThemePreferences,
+        preset: 'nord',
+        scheme: 'light',
+        isCustomized: true,
+      }).scheme,
+    ).toBe('light');
+  });
+
   it('contains the Nexus 1.0 preset suite, including the approved visual themes', () => {
     const keys = Object.keys(THEME_PRESETS);
     expect(keys).toEqual(
