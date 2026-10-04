@@ -122,14 +122,17 @@ to complete when that runner becomes available:
 
 ```bash
 cd web
-npm run format:check
-npm run lint
-npm run lint:styles
-npm run typecheck
-npm run test
-npm run build
-npm run test:e2e:composer-themes
-npm run test:e2e-hardening
+bun install --frozen-lockfile
+bun run format:check
+bun run typecheck
+bun run lint
+bun run lint:styles
+bun run check:styles
+bun run test
+bun run build
+bun run verify
+bun run test:e2e
+bun run test:e2e:composer-themes
 ```
 
 A failure in these gates should be fixed without widening the scope into a visual redesign.
