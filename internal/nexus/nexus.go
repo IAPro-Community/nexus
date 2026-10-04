@@ -727,6 +727,7 @@ func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile strin
 			agent,
 			agentCfg,
 			continuityLaunch,
+			accountScope,
 			runtimeID,
 			*managedBinding,
 		)
