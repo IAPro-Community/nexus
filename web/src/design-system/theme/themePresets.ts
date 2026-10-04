@@ -184,7 +184,7 @@ export const THEME_PRESETS = {
       '--nx-accent': '#268bd2',
       '--nx-accent-hover': '#2aa198',
       '--nx-accent-soft': 'rgba(38, 139, 210, 0.16)',
-      '--nx-accent-text': '#2aa198',
+      '--nx-accent-text': '#32aaa1',
     },
   },
   'solarized-light': {
@@ -207,7 +207,7 @@ export const THEME_PRESETS = {
       '--nx-accent': '#268bd2',
       '--nx-accent-hover': '#2aa198',
       '--nx-accent-soft': 'rgba(38, 139, 210, 0.14)',
-      '--nx-accent-text': '#268bd2',
+      '--nx-accent-text': '#176fa8',
     },
   },
   'graphite-focus': {
