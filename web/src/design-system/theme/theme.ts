@@ -271,10 +271,22 @@ export function normalizeThemePreferences(
   const densities: ThemeDensity[] = ['compact', 'comfortable'];
   const presetKeys = Object.keys(THEME_PRESETS) as ThemePresetKey[];
 
+  const preset =
+    input?.preset && presetKeys.includes(input.preset as ThemePresetKey)
+      ? (input.preset as ThemePresetKey)
+      : defaultThemePreferences.preset;
+  const isCustomized = Boolean(input?.isCustomized);
+  const requestedScheme = schemes.includes(input?.scheme as ThemeScheme)
+    ? input!.scheme!
+    : defaultThemePreferences.scheme;
+  const scheme =
+    !isCustomized &&
+    !(preset === defaultThemePreferences.preset && requestedScheme === 'system')
+      ? THEME_PRESETS[preset].scheme
+      : requestedScheme;
+
   return {
-    scheme: schemes.includes(input?.scheme as ThemeScheme)
-      ? input!.scheme!
-      : defaultThemePreferences.scheme,
+    scheme,
     accent: accents.includes(input?.accent as ThemeAccent)
       ? input!.accent!
       : defaultThemePreferences.accent,
@@ -282,11 +294,8 @@ export function normalizeThemePreferences(
       ? input!.density!
       : defaultThemePreferences.density,
     reducedMotion: Boolean(input?.reducedMotion),
-    preset:
-      input?.preset && presetKeys.includes(input.preset as ThemePresetKey)
-        ? (input.preset as ThemePresetKey)
-        : defaultThemePreferences.preset,
-    isCustomized: Boolean(input?.isCustomized),
+    preset,
+    isCustomized,
     fontScale:
       typeof input?.fontScale === 'number' &&
       Number.isFinite(input.fontScale) &&
