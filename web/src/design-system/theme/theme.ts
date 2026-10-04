@@ -43,6 +43,7 @@ export const MANAGED_THEME_COLOR_VARS = [
   '--nx-accent-soft',
   '--nx-accent-text',
   '--nx-accent-contrast',
+  '--nx-warning-contrast',
   '--nx-window-accent',
   '--nx-success',
   '--nx-success-soft',
@@ -202,10 +203,12 @@ function colorContrastRatio(left: string, right: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-function resolveAccentContrast(accent: string): string {
+function resolveReadableContrast(background: string): string {
   const black = '#000000';
   const white = '#ffffff';
-  return colorContrastRatio(accent, black) >= colorContrastRatio(accent, white) ? black : white;
+  return colorContrastRatio(background, black) >= colorContrastRatio(background, white)
+    ? black
+    : white;
 }
 
 export function resolveScheme(
@@ -236,9 +239,10 @@ export function resolveThemeStyleVariables(
     }
   }
 
-  finalVars['--nx-accent-contrast'] = resolveAccentContrast(
+  finalVars['--nx-accent-contrast'] = resolveReadableContrast(
     finalVars['--nx-accent'] || preset.accent,
   );
+  finalVars['--nx-warning-contrast'] = resolveReadableContrast(finalVars['--nx-warning']);
 
   return finalVars;
 }
