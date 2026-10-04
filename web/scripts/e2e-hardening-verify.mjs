@@ -596,7 +596,9 @@ async function main() {
     );
 
     // Validação dos Radios com Swatches e navegação compartilhada do ChoiceGroup
-    const themeRadio = page.locator('button[role="radio"]').first();
+    const themeRadio = page
+      .locator('.nx-theme-accordion-container button[role="radio"]')
+      .first();
     await themeRadio.waitFor({ state: 'visible', timeout: 5000 });
     assert.equal(await themeRadio.isVisible(), true, 'Theme radio must be visible');
     const hasSwatches = await themeRadio
