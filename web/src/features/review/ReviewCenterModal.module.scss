@@ -165,3 +165,150 @@
     flex-direction: column;
   }
 }
+
+
+.reviewPanel {
+  display: grid;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-3);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-bg-elevated);
+}
+
+.reviewPanelHeader,
+.sectionTitleInline,
+.findingHeading,
+.findingBadges,
+.requestRow {
+  display: flex;
+  align-items: center;
+}
+
+.reviewPanelHeader,
+.findingHeading,
+.requestRow {
+  justify-content: space-between;
+  gap: var(--nx-space-3);
+}
+
+.sectionTitleInline,
+.findingBadges {
+  gap: var(--nx-space-2);
+}
+
+.findingForm {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.65fr) minmax(160px, 1fr) minmax(160px, 1fr);
+  gap: var(--nx-space-2);
+}
+
+.findingForm label,
+.agentSelect {
+  display: grid;
+  gap: var(--nx-space-1);
+  min-width: 0;
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-xs);
+  font-weight: 600;
+}
+
+.findingForm input,
+.findingForm select,
+.findingForm textarea,
+.agentSelect select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-bg);
+  color: var(--nx-text);
+  padding: var(--nx-space-2);
+  font: inherit;
+  font-weight: 400;
+}
+
+.findingForm textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.findingForm input:focus-visible,
+.findingForm select:focus-visible,
+.findingForm textarea:focus-visible,
+.agentSelect select:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 1px;
+}
+
+.findingWide {
+  grid-column: 1 / -1;
+}
+
+.findingAdd {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.findingList {
+  display: grid;
+  gap: var(--nx-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.findingItem {
+  display: grid;
+  gap: var(--nx-space-2);
+  padding: var(--nx-space-3);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-bg);
+}
+
+.findingItem p {
+  margin: 0;
+  color: var(--nx-text);
+  font-size: var(--nx-font-size-sm);
+  line-height: 1.45;
+}
+
+.findingFile {
+  color: var(--nx-text-soft);
+  font-family: var(--nx-font-mono);
+  font-size: var(--nx-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.requiredAction {
+  padding-top: var(--nx-space-2);
+  border-top: 1px solid var(--nx-border);
+}
+
+.agentSelect {
+  flex: 1 1 300px;
+}
+
+.requestRow {
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+@include mixins.nx-phone {
+  .reviewPanelHeader,
+  .requestRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .findingForm {
+    grid-template-columns: 1fr;
+  }
+
+  .findingWide,
+  .findingAdd {
+    grid-column: auto;
+  }
+}
