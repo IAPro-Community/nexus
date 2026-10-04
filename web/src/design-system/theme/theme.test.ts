@@ -244,6 +244,32 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     }
   });
 
+  it('keeps semantic status text readable on every preset surface', () => {
+    for (const [id, def] of Object.entries(THEME_PRESETS)) {
+      const vars = resolveThemeStyleVariables(
+        {
+          ...defaultThemePreferences,
+          preset: id as ThemePresetKey,
+          scheme: def.scheme,
+          isCustomized: false,
+        },
+        def.scheme,
+      );
+
+      for (const token of [
+        '--nx-success',
+        '--nx-warning',
+        '--nx-danger',
+        '--nx-info',
+      ] as const) {
+        expect(
+          contrastRatio(vars[token], vars['--nx-surface']),
+          `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it('derives readable text for accent-filled controls in every preset', () => {
     for (const [id, def] of Object.entries(THEME_PRESETS)) {
       const vars = resolveThemeStyleVariables(
