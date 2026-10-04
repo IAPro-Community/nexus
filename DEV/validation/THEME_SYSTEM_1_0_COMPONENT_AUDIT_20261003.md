@@ -59,8 +59,33 @@ therefore does not accidentally turn the terminal canvas light.
 black or white based on WCAG contrast. This also covers manual accent overrides instead of
 requiring per-theme exceptions.
 
-Tests now assert >= 4.5:1 for accent-filled control text across every registered preset and
-for custom accents in dark/light schemes.
+Tests assert >= 4.5:1 for accent-filled control text across every registered preset and for
+custom accents in dark/light schemes. Accent hover states are covered by the same gate.
+
+### Secondary, accent and status text contrast
+
+The audit now protects text tokens as text, rather than treating every palette value as a
+decorative accent:
+
+- `--nx-muted` and `--nx-subtle` must stay >= 4.5:1 on app and panel surfaces;
+- `--nx-accent-text` must stay >= 4.5:1 on app and panel surfaces;
+- `success`, `warning`, `danger` and `info` text must stay >= 4.5:1 on the active surface;
+- semantic status colors are resolved by dark/light/high-contrast scheme, with preset overrides
+  still taking precedence when required;
+- legacy Nexus Light, Midnight, Nord, Dracula and Solarized secondary text values were adjusted
+  only where needed to satisfy the gate;
+- High Contrast Light now owns explicit accessible status colors;
+- Nord Light hover and Solarized accent-text states were corrected without changing layout.
+
+### Choice-group keyboard contract
+
+`ChoiceGroup` now uses a roving tabindex contract: one enabled radio per group participates
+in the normal Tab sequence. Arrow keys, Home and End move and select within the active group.
+Theme categories own separate radio groups so accordion headers are no longer descendants of a
+single global `radiogroup`.
+
+The browser hardening suite checks the roving-tabindex invariant and the migrated Radix menus
+check open/close semantics plus Escape focus restoration.
 
 ## Intentionally deferred from 1.0
 
@@ -91,8 +116,9 @@ These are not considered blockers:
 
 ## External execution gate
 
-CI execution is not available in this work session, so the following commands still need to
-run in an environment with the repository dependencies installed:
+The repository self-hosted `nexus-ci` runner is currently leaving the exact-SHA workflow
+queued before `Sanitize self-hosted workspace`, so the following execution gates still need
+to complete when that runner becomes available:
 
 ```bash
 cd web
