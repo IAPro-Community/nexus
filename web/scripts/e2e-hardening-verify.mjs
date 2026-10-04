@@ -604,7 +604,9 @@ async function main() {
       .count();
     assert.ok(hasSwatches > 0, 'Theme radio must display color palette swatches');
 
-    const visibleThemeRadios = page.locator('button[role="radio"]:visible');
+    const visibleThemeRadios = page.locator(
+      '.nx-theme-accordion-container button[role="radio"]:visible',
+    );
     const tabbableThemeRadios = await visibleThemeRadios.evaluateAll((nodes) =>
       nodes.filter((node) => node.tabIndex === 0).length,
     );
