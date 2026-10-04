@@ -30,6 +30,36 @@ const themes = [
     label: /Nexus Light/i,
   },
   {
+    preset: 'midnight',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Midnight/i,
+  },
+  {
+    preset: 'nord',
+    scheme: 'dark',
+    category: /Clássicos do Código/i,
+    label: /^Nord$/i,
+  },
+  {
+    preset: 'dracula',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Dracula/i,
+  },
+  {
+    preset: 'solarized-dark',
+    scheme: 'dark',
+    category: /Clássicos do Código/i,
+    label: /Solarized Dark/i,
+  },
+  {
+    preset: 'solarized-light',
+    scheme: 'light',
+    category: /Light Clean/i,
+    label: /Solarized Light/i,
+  },
+  {
     preset: 'graphite-focus',
     scheme: 'dark',
     category: /Dark Modern/i,
