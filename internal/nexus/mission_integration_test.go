@@ -50,6 +50,52 @@ func TestMissionDeliveryIntegrationCombinesParallelDisjointWorktrees(t *testing.
 	_ = st
 }
 
+func TestMissionDeliveryIntegrationAppliesOnlySelectedCandidate(t *testing.T) {
+	n, _, project, base := integrationTestProject(t)
+	first := integrationTestWorktree(t, project.CanonicalPath, "candidate-first")
+	second := integrationTestWorktree(t, project.CanonicalPath, "candidate-second")
+	writeIntegrationFile(t, first, "shared.txt", "candidate one\n")
+	writeIntegrationFile(t, second, "shared.txt", "candidate two\n")
+
+	selected := integrationVerifiedPackage("build__candidate_1", first, base, nil, nil)
+	selected.CandidateGroupID = "candidate:build"
+	selected.CandidateIndex = 1
+	selected.CandidateDisposition = runner.CandidateSelected
+
+	rejected := integrationVerifiedPackage("build__candidate_2", second, base, nil, nil)
+	rejected.CandidateGroupID = "candidate:build"
+	rejected.CandidateIndex = 2
+	rejected.CandidateDisposition = runner.CandidateRejected
+
+	coordinator := integrationVerifiedPackage("build", "", base, []string{
+		selected.PackageID,
+		rejected.PackageID,
+	}, nil)
+	coordinator.CandidateGroupID = "candidate:build"
+	coordinator.CandidateCoordinator = true
+	coordinator.CandidateDisposition = runner.CandidateCoordinator
+	coordinator.Workspace = ""
+	coordinator.WorkReceipt.ChangedFiles = append([]string(nil), selected.WorkReceipt.ChangedFiles...)
+
+	run := &runner.MissionRun{
+		ID: "run-candidate-integrate", ProjectID: project.ID, Workspace: project.CanonicalPath, Autonomous: true,
+		PackageRuns: []runner.PackageRun{selected, rejected, coordinator},
+	}
+	evidence, err := (&nexusPackageExecutor{n: n}).IntegrateDelivery(context.Background(), run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := readIntegrationFile(t, evidence.Workspace, "shared.txt"); got != "candidate one\n" {
+		t.Fatalf("integrated candidate delivery=%q, want selected candidate", got)
+	}
+	if len(evidence.PackageIDs) != 1 || evidence.PackageIDs[0] != selected.PackageID {
+		t.Fatalf("delivery must materialize selected implementation only, got %v", evidence.PackageIDs)
+	}
+	if got := readIntegrationFile(t, project.CanonicalPath, "shared.txt"); got != "baseline\n" {
+		t.Fatalf("canonical checkout was mutated: %q", got)
+	}
+}
+
 func TestMissionDeliveryIntegrationRejectsTraversalRunID(t *testing.T) {
 	n, _, project, _ := integrationTestProject(t)
 	dataDir, err := config.DataDir()
