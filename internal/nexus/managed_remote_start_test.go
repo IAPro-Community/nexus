@@ -13,6 +13,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	profilepkg "github.com/IAPro-Community/nexus/internal/profile"
 )
 
 type managedStartRouteLauncher struct {
@@ -146,6 +147,14 @@ func TestStartAgentUsesApprovedManagedTargetAndStopsThroughProxy(t *testing.T) {
 	t.Setenv("NEXUS_ENABLE_REMOTE_EXECUTION", "1")
 
 	n, routeLauncher := openManagedStartTestNexus(t)
+	profile, err := profilepkg.Create("codex", "work")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !profile.AccountScope.Verifiable() {
+		t.Fatalf("test profile did not produce a verifiable account scope: %+v", profile.AccountScope)
+	}
+
 	st, err := n.OpenProject()
 	if err != nil {
 		t.Fatal(err)
@@ -212,7 +221,7 @@ func TestStartAgentUsesApprovedManagedTargetAndStopsThroughProxy(t *testing.T) {
 	}
 	t.Cleanup(func() { openManagedRemoteBridge = previousOpener })
 
-	session, err := n.StartAgent(context.Background(), agent.ID, "fake", "work")
+	session, err := n.StartAgent(context.Background(), agent.ID, "codex", "work")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +244,7 @@ func TestStartAgentUsesApprovedManagedTargetAndStopsThroughProxy(t *testing.T) {
 	if spawn.RuntimeID != session.RuntimeID ||
 		spawn.AgentID != agent.ID ||
 		spawn.ProjectID != project.ID ||
-		spawn.Provider != "fake" ||
+		spawn.Provider != "codex" ||
 		spawn.Profile != "work" ||
 		spawn.Workspace != "/srv/project" {
 		t.Fatalf("remote spawn lost routing identity: %+v", spawn)
@@ -245,8 +254,11 @@ func TestStartAgentUsesApprovedManagedTargetAndStopsThroughProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if generation.RuntimeID != session.RuntimeID || generation.Provider != "fake" || generation.Profile != "work" {
+	if generation.RuntimeID != session.RuntimeID || generation.Provider != "codex" || generation.Profile != "work" {
 		t.Fatalf("runtime generation did not bind remote runtime: %+v", generation)
+	}
+	if !session.AccountScope.Verifiable() || session.AccountScope.Key() != profile.AccountScope.Key() {
+		t.Fatalf("managed runtime lost Scheduler account scope: got=%+v want=%+v", session.AccountScope, profile.AccountScope)
 	}
 
 	if err := n.StopAgent(context.Background(), agent.ID); err != nil {
