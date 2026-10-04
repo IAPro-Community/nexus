@@ -238,26 +238,46 @@ func (p *ManagedRuntimeProxy) handleRPC(request protocol.Request) (protocol.Resp
 		return p.localizeControlResponse(request.ID, response, err, "PING_FAILED"), false
 
 	case protocol.CmdStatus:
-		status, err := p.bridge.Status(p.ctx, p.session.RuntimeID)
+		p.mu.Lock()
+		session := p.session
+		p.mu.Unlock()
+
+		status, err := p.bridge.Status(p.ctx, session.RuntimeID)
 		if err != nil {
 			return proxyErrorResponse(request.ID, "STATUS_FAILED", err), false
 		}
+		if err := validateManagedProxyRemoteStatus(session, status); err != nil {
+			return proxyErrorResponse(request.ID, "REMOTE_IDENTITY_CHANGED", err), false
+		}
+		if remoteSessionID := strings.TrimSpace(status.ProviderSessionID); remoteSessionID != "" &&
+			remoteSessionID != session.ProviderSessionID {
+			p.mu.Lock()
+			p.session.ProviderSessionID = remoteSessionID
+			session.ProviderSessionID = remoteSessionID
+			p.mu.Unlock()
+			if p.registry != nil {
+				if err := p.registry.UpdateProviderSessionID(session.RuntimeID, remoteSessionID); err != nil {
+					return proxyErrorResponse(request.ID, "STATUS_SYNC_FAILED", err), false
+				}
+			}
+		}
+
 		response, err := protocol.NewResponse(protocol.StatusData{
-			RuntimeID:             p.session.RuntimeID,
-			ProviderID:            p.session.ProviderID,
-			ProfileID:             p.session.ProfileID,
-			ProviderSessionID:     p.session.ProviderSessionID,
-			Workspace:             p.session.Workspace,
-			PID:                   p.session.PID,
-			ProviderGeneration:    p.session.ProviderGeneration,
-			HostPID:               p.session.HostPID,
-			HostGeneration:        p.session.HostGeneration,
-			HostBinaryPath:        p.session.HostBinaryPath,
-			HostBinaryFingerprint: p.session.HostBinaryFingerprint,
+			RuntimeID:             session.RuntimeID,
+			ProviderID:            session.ProviderID,
+			ProfileID:             session.ProfileID,
+			ProviderSessionID:     session.ProviderSessionID,
+			Workspace:             session.Workspace,
+			PID:                   session.PID,
+			ProviderGeneration:    session.ProviderGeneration,
+			HostPID:               session.HostPID,
+			HostGeneration:        session.HostGeneration,
+			HostBinaryPath:        session.HostBinaryPath,
+			HostBinaryFingerprint: session.HostBinaryFingerprint,
 			State:                 status.State,
 			ControlLevel:          status.ControlLevel,
-			StartedAt:             p.session.StartedAt,
-			Continuity:            p.session.Continuity,
+			StartedAt:             session.StartedAt,
+			Continuity:            session.Continuity,
 		})
 		if err != nil {
 			return proxyErrorResponse(request.ID, "STATUS_ENCODE_FAILED", err), false
@@ -328,6 +348,32 @@ func (p *ManagedRuntimeProxy) handleRPC(request protocol.Request) (protocol.Resp
 			fmt.Errorf("command %q is not supported by the managed runtime proxy", request.Command),
 		), false
 	}
+}
+
+func validateManagedProxyRemoteStatus(
+	session registry.RuntimeSession,
+	status protocol.RemoteBridgeRuntimeStatusData,
+) error {
+	if status.RuntimeID != session.RuntimeID {
+		return fmt.Errorf("remote runtime id changed from %q to %q", session.RuntimeID, status.RuntimeID)
+	}
+	if strings.TrimSpace(status.MachineID) != strings.TrimSpace(session.MachineID) {
+		return fmt.Errorf("remote machine identity changed")
+	}
+	if strings.TrimSpace(status.Provider) != strings.TrimSpace(session.ProviderID) {
+		return fmt.Errorf("remote provider identity changed")
+	}
+	if strings.TrimSpace(status.Profile) != strings.TrimSpace(session.ProfileID) {
+		return fmt.Errorf("remote profile identity changed")
+	}
+	if strings.TrimSpace(status.Workspace) != strings.TrimSpace(session.Workspace) {
+		return fmt.Errorf("remote workspace identity changed")
+	}
+	if strings.TrimSpace(status.Model) != "" &&
+		strings.TrimSpace(status.Model) != strings.TrimSpace(session.Model) {
+		return fmt.Errorf("remote model identity changed")
+	}
+	return nil
 }
 
 func (p *ManagedRuntimeProxy) handleAttach(
