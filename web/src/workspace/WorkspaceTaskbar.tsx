@@ -115,6 +115,7 @@ export const WorkspaceTaskbar: React.FC<{
                 open={reviewModalOpen}
                 onClose={() => setReviewModalOpen(false)}
                 project={project}
+                agents={agents}
               />
             )}
           </>
