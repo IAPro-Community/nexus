@@ -90,7 +90,7 @@ export const SCHEME_OVERRIDE_VARS: Record<
     '--nx-text': '#141821',
     '--nx-text-soft': '#2d3442',
     '--nx-muted': '#5e687b',
-    '--nx-subtle': '#7a869a',
+    '--nx-subtle': '#667085',
     '--nx-success': '#166534',
     '--nx-success-soft': 'rgba(22, 101, 52, 0.1)',
     '--nx-warning': '#92400e',
@@ -128,25 +128,45 @@ export const ACCENT_OVERRIDE_VARS: Record<ThemeAccent, Record<string, string>> =
     '--nx-accent': '#8b5cf6',
     '--nx-accent-hover': '#9f75ff',
     '--nx-accent-soft': 'rgba(139, 92, 246, 0.14)',
-    '--nx-accent-text': '#bba5ff',
   },
   blue: {
     '--nx-accent': '#4285ff',
     '--nx-accent-hover': '#6399ff',
     '--nx-accent-soft': 'rgba(66, 133, 255, 0.14)',
-    '--nx-accent-text': '#8db5ff',
   },
   cyan: {
     '--nx-accent': '#13b8c8',
     '--nx-accent-hover': '#30c9d8',
     '--nx-accent-soft': 'rgba(19, 184, 200, 0.14)',
-    '--nx-accent-text': '#70dbe5',
   },
   neutral: {
     '--nx-accent': '#8993a4',
     '--nx-accent-hover': '#a4adbb',
     '--nx-accent-soft': 'rgba(137, 147, 164, 0.14)',
-    '--nx-accent-text': '#c1c7d1',
+  },
+};
+
+const ACCENT_TEXT_BY_SCHEME: Record<
+  Exclude<ThemeScheme, 'system'>,
+  Record<ThemeAccent, string>
+> = {
+  dark: {
+    purple: '#bba5ff',
+    blue: '#8db5ff',
+    cyan: '#70dbe5',
+    neutral: '#c1c7d1',
+  },
+  light: {
+    purple: '#6d28d9',
+    blue: '#1d4ed8',
+    cyan: '#0e7490',
+    neutral: '#475569',
+  },
+  'high-contrast': {
+    purple: '#bba5ff',
+    blue: '#8db5ff',
+    cyan: '#70dbe5',
+    neutral: '#c1c7d1',
   },
 };
 
@@ -212,6 +232,7 @@ export function resolveThemeStyleVariables(
     }
     if (prefs.isCustomized) {
       Object.assign(finalVars, ACCENT_OVERRIDE_VARS[prefs.accent] || {});
+      finalVars['--nx-accent-text'] = ACCENT_TEXT_BY_SCHEME[resolvedScheme][prefs.accent];
     }
   }
 
