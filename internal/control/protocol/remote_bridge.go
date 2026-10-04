@@ -69,8 +69,9 @@ type RemoteBridgeSpawnPayload struct {
 	ProjectID string   `json:"project_id"`
 	Provider  string   `json:"provider"`
 	Profile   string   `json:"profile"`
-	Model     string   `json:"model,omitempty"`
-	Workspace string   `json:"workspace"`
+	Model             string   `json:"model,omitempty"`
+	ProviderSessionID string   `json:"provider_session_id,omitempty"`
+	Workspace         string   `json:"workspace"`
 	Args      []string `json:"args,omitempty"`
 	Rows      int      `json:"rows,omitempty"`
 	Cols      int      `json:"cols,omitempty"`
@@ -98,8 +99,9 @@ type RemoteBridgeRuntimeStatusData struct {
 	MachineID    string `json:"machine_id"`
 	Provider     string `json:"provider"`
 	Profile      string `json:"profile"`
-	Model        string `json:"model,omitempty"`
-	Workspace    string `json:"workspace"`
+	Model             string `json:"model,omitempty"`
+	ProviderSessionID string `json:"provider_session_id,omitempty"`
+	Workspace         string `json:"workspace"`
 	State        string `json:"state"`
 	ControlLevel string `json:"control_level"`
 	Transport    string `json:"transport"`
@@ -227,6 +229,13 @@ func ValidateRemoteBridgeSpawn(payload RemoteBridgeSpawnPayload) error {
 	if payload.Model != "" {
 		if strings.TrimSpace(payload.Model) != payload.Model || len(payload.Model) > maxRemoteBridgeIdentifierBytes || strings.ContainsAny(payload.Model, "\x00\r\n") {
 			return fmt.Errorf("remote bridge model is invalid")
+		}
+	}
+	if payload.ProviderSessionID != "" {
+		if strings.TrimSpace(payload.ProviderSessionID) != payload.ProviderSessionID ||
+			len(payload.ProviderSessionID) > maxRemoteBridgeWorkspaceBytes ||
+			strings.ContainsAny(payload.ProviderSessionID, "\x00\r\n") {
+			return fmt.Errorf("remote bridge provider session id is invalid")
 		}
 	}
 	if strings.TrimSpace(payload.Workspace) == "" || len(payload.Workspace) > maxRemoteBridgeWorkspaceBytes {
