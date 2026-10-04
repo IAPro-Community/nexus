@@ -30,6 +30,8 @@ type fakeManagedBridge struct {
 }
 
 func (f *fakeManagedBridge) Status(context.Context, string) (protocol.RemoteBridgeRuntimeStatusData, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	return f.status, f.statusErr
 }
 
@@ -114,17 +116,6 @@ func startTestManagedProxy(
 
 func TestManagedRuntimeProxyLooksLikeLocalProtocolRuntime(t *testing.T) {
 	bridge := &fakeManagedBridge{
-		status: protocol.RemoteBridgeRuntimeStatusData{
-			RuntimeID:    "ignored-by-proxy",
-			MachineID:    "machine-remote",
-			Provider:     "codex",
-			Profile:      "work",
-			Model:        "gpt-5.6",
-			Workspace:    "/srv/project",
-			State:        string(registry.StateRunning),
-			ControlLevel: string(registry.ControlLevelTerminal),
-			Transport:    "nexus-remote-bridge",
-		},
 		controlData: map[protocol.CommandType]any{
 			protocol.CmdPing: "pong",
 			protocol.CmdUsage: protocol.UsageData{
@@ -138,6 +129,19 @@ func TestManagedRuntimeProxyLooksLikeLocalProtocolRuntime(t *testing.T) {
 		},
 	}
 	_, session, reg := startTestManagedProxy(t, bridge, nil)
+	bridge.mu.Lock()
+	bridge.status = protocol.RemoteBridgeRuntimeStatusData{
+		RuntimeID:    session.RuntimeID,
+		MachineID:    session.MachineID,
+		Provider:     session.ProviderID,
+		Profile:      session.ProfileID,
+		Model:        session.Model,
+		Workspace:    session.Workspace,
+		State:        string(registry.StateRunning),
+		ControlLevel: string(registry.ControlLevelTerminal),
+		Transport:    "nexus-remote-bridge",
+	}
+	bridge.mu.Unlock()
 
 	persisted, ok := reg.Get(session.RuntimeID)
 	if !ok {
@@ -379,5 +383,71 @@ func TestManagedRuntimeProxyRedactsBridgeErrors(t *testing.T) {
 	}
 	if strings.Contains(err.Error(), secret) {
 		t.Fatalf("proxy leaked secret: %v", err)
+	}
+}
+
+
+func TestManagedRuntimeProxySynchronizesProviderSessionID(t *testing.T) {
+	bridge := &fakeManagedBridge{}
+	_, session, reg := startTestManagedProxy(t, bridge, nil)
+	bridge.mu.Lock()
+	bridge.status = protocol.RemoteBridgeRuntimeStatusData{
+		RuntimeID:          session.RuntimeID,
+		MachineID:          session.MachineID,
+		Provider:           session.ProviderID,
+		Profile:            session.ProfileID,
+		Model:              session.Model,
+		ProviderSessionID:  "provider-session-remote-42",
+		Workspace:          session.Workspace,
+		State:              string(registry.StateRunning),
+		ControlLevel:       string(registry.ControlLevelTerminal),
+		Transport:          "nexus-remote-bridge",
+	}
+	bridge.mu.Unlock()
+
+	client, err := protocol.NewClient(session.RuntimeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	status, err := client.Status()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.ProviderSessionID != "provider-session-remote-42" {
+		t.Fatalf("provider session id was not projected: %+v", status)
+	}
+	persisted, ok := reg.Get(session.RuntimeID)
+	if !ok {
+		t.Fatal("proxy runtime disappeared from registry")
+	}
+	if persisted.ProviderSessionID != "provider-session-remote-42" {
+		t.Fatalf("provider session id was not persisted: %+v", persisted)
+	}
+}
+
+func TestManagedRuntimeProxyRejectsRemoteIdentityDrift(t *testing.T) {
+	bridge := &fakeManagedBridge{}
+	_, session, _ := startTestManagedProxy(t, bridge, nil)
+	bridge.mu.Lock()
+	bridge.status = protocol.RemoteBridgeRuntimeStatusData{
+		RuntimeID:    session.RuntimeID,
+		MachineID:    "different-machine",
+		Provider:     session.ProviderID,
+		Profile:      session.ProfileID,
+		Model:        session.Model,
+		Workspace:    session.Workspace,
+		State:        string(registry.StateRunning),
+		ControlLevel: string(registry.ControlLevelTerminal),
+	}
+	bridge.mu.Unlock()
+
+	client, err := protocol.NewClient(session.RuntimeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	if _, err := client.Status(); err == nil || !strings.Contains(err.Error(), "identity") {
+		t.Fatalf("remote identity drift must fail closed, got %v", err)
 	}
 }
