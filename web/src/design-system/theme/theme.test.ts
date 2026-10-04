@@ -226,6 +226,24 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     }
   });
 
+  it('keeps secondary text readable on both application and panel surfaces', () => {
+    for (const [id, def] of Object.entries(THEME_PRESETS)) {
+      const bg = def.vars['--nx-bg'];
+      const surface = def.vars['--nx-surface'];
+
+      for (const token of ['--nx-muted', '--nx-subtle'] as const) {
+        expect(
+          contrastRatio(def.vars[token], bg),
+          `Preset ${id} ${token}/bg contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(def.vars[token], surface),
+          `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it('derives readable text for accent-filled controls in every preset', () => {
     for (const [id, def] of Object.entries(THEME_PRESETS)) {
       const vars = resolveThemeStyleVariables(
