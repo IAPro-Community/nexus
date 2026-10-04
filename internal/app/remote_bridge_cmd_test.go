@@ -173,8 +173,9 @@ func TestRemoteBridgeSpawnMapsOnlyStructuredLaunchFields(t *testing.T) {
 			AgentID:   "agent-1",
 			ProjectID: "project-1",
 			ProviderID: "codex",
-			ProfileID: "work",
-			Model: "gpt-5.6",
+			ProfileID:         "work",
+			ProviderSessionID: "provider-session-42",
+			Model:             "gpt-5.6",
 			Workspace: "/srv/project",
 			PID: 100,
 			HostPID: 101,
@@ -194,9 +195,10 @@ func TestRemoteBridgeSpawnMapsOnlyStructuredLaunchFields(t *testing.T) {
 		AgentID:   "agent-1",
 		ProjectID: "project-1",
 		Provider:  "codex",
-		Profile:   "work",
-		Model:     "gpt-5.6",
-		Workspace: "/srv/project",
+		Profile:           "work",
+		Model:             "gpt-5.6",
+		ProviderSessionID: "provider-session-42",
+		Workspace:         "/srv/project",
 		Args: []string{
 			"--prompt",
 			"literal ; $(echo data) && still-one-argument",
@@ -217,6 +219,7 @@ func TestRemoteBridgeSpawnMapsOnlyStructuredLaunchFields(t *testing.T) {
 		options.ProjectID != payload.ProjectID ||
 		options.ProviderID != payload.Provider ||
 		options.ProfileID != payload.Profile ||
+		options.ProviderSessionID != payload.ProviderSessionID ||
 		options.Model != payload.Model ||
 		options.Workspace != payload.Workspace {
 		t.Fatalf("launch options lost routing identity: %+v", options)
@@ -378,6 +381,7 @@ func TestRemoteBridgeStatusReturnsSanitizedRuntimeProjection(t *testing.T) {
 		ProviderID:         "codex",
 		ProfileID:          "work",
 		Model:              "gpt-5.6",
+		ProviderSessionID:  "provider-session-old",
 		Workspace:          "/srv/project",
 		PID:                100,
 		ProviderGeneration: 10,
@@ -392,6 +396,7 @@ func TestRemoteBridgeStatusReturnsSanitizedRuntimeProjection(t *testing.T) {
 			RuntimeID:          session.RuntimeID,
 			ProviderID:         session.ProviderID,
 			ProfileID:          session.ProfileID,
+			ProviderSessionID:  "provider-session-new",
 			Workspace:          session.Workspace,
 			PID:                session.PID,
 			ProviderGeneration: session.ProviderGeneration,
@@ -428,7 +433,8 @@ func TestRemoteBridgeStatusReturnsSanitizedRuntimeProjection(t *testing.T) {
 	}
 	if data.RuntimeID != session.RuntimeID || data.MachineID != session.MachineID ||
 		data.Provider != session.ProviderID || data.Profile != session.ProfileID ||
-		data.Model != session.Model || data.Workspace != session.Workspace ||
+		data.Model != session.Model || data.ProviderSessionID != "provider-session-new" ||
+		data.Workspace != session.Workspace ||
 		data.State != string(registry.StateRunning) || data.Transport != "nexus-remote-bridge" {
 		t.Fatalf("unexpected remote status projection: %+v", data)
 	}
