@@ -292,4 +292,21 @@ describe('WCAG AA contrast automation for every registered preset', () => {
       }
     }
   });
+
+  it('keeps High Contrast Light semantic status text readable on its surface', () => {
+    const definition = THEME_PRESETS['high-contrast-light'];
+    const surface = definition.vars['--nx-surface'];
+
+    for (const token of [
+      '--nx-success',
+      '--nx-warning',
+      '--nx-danger',
+      '--nx-info',
+    ] as const) {
+      expect(
+        contrastRatio(definition.vars[token], surface),
+        `High Contrast Light ${token} must be >= 4.5:1 on surface`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
 });
