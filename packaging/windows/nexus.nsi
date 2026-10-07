@@ -37,18 +37,18 @@ broadcast:
 donePath:
 FunctionEnd
 
-Function RemoveFromUserPath
+Function un.RemoveFromUserPath
   ReadRegStr $0 HKCU "Environment" "Path"
   StrCmp $0 "" doneRemove
   Push $0
   Push "$INSTDIR"
-  Call StrStr
+  Call un.StrStr
   Pop $1
   StrCmp $1 "" doneRemove
   StrCpy $2 "$INSTDIR;"
   Push $0
   Push $2
-  Call StrStr
+  Call un.StrStr
   Pop $1
   StrCmp $1 "" tryTrailing
   StrLen $3 $2
@@ -63,7 +63,7 @@ tryTrailing:
   StrCpy $2 ";$INSTDIR"
   Push $0
   Push $2
-  Call StrStr
+  Call un.StrStr
   Pop $1
   StrCmp $1 "" exactPath
   StrLen $3 $2
@@ -85,6 +85,34 @@ FunctionEnd
 
 ; Simple substring search (Haystack on stack, Needle on stack)
 Function StrStr
+  Exch $R1 ; needle
+  Exch
+  Exch $R2 ; haystack
+  Push $R3
+  Push $R4
+  Push $R5
+  StrLen $R3 $R1
+  StrCpy $R4 0
+loop:
+  StrCpy $R5 $R2 $R3 $R4
+  StrCmp $R5 $R1 found
+  StrCmp $R5 "" notfound
+  IntOp $R4 $R4 + 1
+  Goto loop
+found:
+  StrCpy $R1 $R2 "" $R4
+  Goto done
+notfound:
+  StrCpy $R1 ""
+done:
+  Pop $R5
+  Pop $R4
+  Pop $R3
+  Pop $R2
+  Exch $R1
+FunctionEnd
+
+Function un.StrStr
   Exch $R1 ; needle
   Exch
   Exch $R2 ; haystack
@@ -145,7 +173,7 @@ Section "Uninstall"
   Delete "$INSTDIR\nexus-hud.exe"
   Delete "$INSTDIR\Uninstall.exe"
   Delete "$DESKTOP\IAPro Nexus.lnk"
-  Call RemoveFromUserPath
+  Call un.RemoveFromUserPath
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus"
   RMDir "$INSTDIR"
 SectionEnd
