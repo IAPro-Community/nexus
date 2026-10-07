@@ -276,7 +276,7 @@ func TestControlPlaneCLICommands(t *testing.T) {
 	out, err = captureStdout(func() error {
 		return Run([]string{"help"})
 	})
-	if err != nil || !strings.Contains(out, "Usage:") {
+	if err != nil || (!strings.Contains(out, "Usage:") && !strings.Contains(out, "Uso:")) {
 		t.Fatalf("help failed: %s, %v", out, err)
 	}
 

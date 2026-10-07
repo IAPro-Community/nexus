@@ -379,19 +379,19 @@ func TestSessionHostFinalInputBoundaryRecoalescesSplitCSI(t *testing.T) {
 		terminalInput: nexusruntime.NewTerminalInputScrubber(&out),
 	}
 
-	if _, err := sh.writeTerminalInput([]byte{0x1b}); err != nil {
+	if err := sh.writeTerminalInput([]byte{0x1b}); err != nil {
 		t.Fatal(err)
 	}
 	if got := out.String(); got != "" {
 		t.Fatalf("partial ESC leaked before completion: %q", got)
 	}
-	if _, err := sh.writeTerminalInput([]byte{'['}); err != nil {
+	if err := sh.writeTerminalInput([]byte{'['}); err != nil {
 		t.Fatal(err)
 	}
 	if got := out.String(); got != "" {
 		t.Fatalf("partial CSI leaked before completion: %q", got)
 	}
-	if _, err := sh.writeTerminalInput([]byte{'A'}); err != nil {
+	if err := sh.writeTerminalInput([]byte{'A'}); err != nil {
 		t.Fatal(err)
 	}
 	if got := out.String(); got != "\x1b[A" {
@@ -405,7 +405,7 @@ func TestSessionHostFinalInputBoundaryDropsSplitTerminalMetadata(t *testing.T) {
 		terminalInput: nexusruntime.NewTerminalInputScrubber(&out),
 	}
 	for _, part := range [][]byte{{0x1b}, {'['}, {'<', '3', '5', ';'}, {'1', '0', ';', '2', '0', 'M'}} {
-		if _, err := sh.writeTerminalInput(part); err != nil {
+		if err := sh.writeTerminalInput(part); err != nil {
 			t.Fatal(err)
 		}
 	}

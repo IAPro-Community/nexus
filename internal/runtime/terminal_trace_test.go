@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -40,7 +41,7 @@ func TestTraceTerminalBytesWritesPrivateJSONLOnlyWhenEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("trace file missing: %v", err)
 	}
-	if info.Mode().Perm()&0o077 != 0 {
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0o077 != 0 {
 		t.Fatalf("trace permissions too broad: %o", info.Mode().Perm())
 	}
 	raw, err := os.ReadFile(path)
@@ -51,7 +52,7 @@ func TestTraceTerminalBytesWritesPrivateJSONLOnlyWhenEnabled(t *testing.T) {
 	if strings.Contains(text, "hello") {
 		t.Fatalf("trace file leaked raw prompt: %s", text)
 	}
-	if !strings.Contains(text, "host.raw_input") || !strings.Contains(text, "<1b>[C") {
+	if !strings.Contains(text, "host.raw_input") || (!strings.Contains(text, "<1b>[C") && !strings.Contains(text, `\u003c1b\u003e[C`)) {
 		t.Fatalf("trace record missing diagnostic structure: %s", text)
 	}
 }

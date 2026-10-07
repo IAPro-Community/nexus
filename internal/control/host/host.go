@@ -785,10 +785,10 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 		_ = sh.termBackend.Resize(resizeRows, resizeCols)
 	}
 	if len(forwardWrite) > 0 {
-		_, _ = sh.writeTerminalInput(forwardWrite)
+		_ = sh.writeTerminalInput(forwardWrite)
 	}
 	if len(promptWrite) > 0 {
-		_, _ = sh.writeTerminalInput(promptWrite)
+		_ = sh.writeTerminalInput(promptWrite)
 	}
 	if controlCmd != "" {
 		sh.mu.Lock()
@@ -810,23 +810,25 @@ func (sh *SessionHost) processAttachedInput(conn net.Conn, data []byte) {
 	sh.mu.Unlock()
 
 	if len(forward) > 0 {
-		_, _ = sh.writeTerminalInput(forward)
+		_ = sh.writeTerminalInput(forward)
 	}
 }
 
-func (sh *SessionHost) writeTerminalInput(data []byte) (int, error) {
+func (sh *SessionHost) writeTerminalInput(data []byte) error {
 	if len(data) == 0 {
-		return 0, nil
+		return nil
 	}
 	sh.mu.RLock()
 	input := sh.terminalInput
 	backend := sh.termBackend
 	sh.mu.RUnlock()
 	if input != nil {
-		return input.Write(data)
+		_, err := input.Write(data)
+		return err
 	}
 	nexusruntime.TraceTerminalBytes(sh.session.RuntimeID, "host.pty.write", data)
-	return backend.Write(data)
+	_, err := backend.Write(data)
+	return err
 }
 
 func (sh *SessionHost) normalizeShellPipeInputLocked(data []byte) []byte {
