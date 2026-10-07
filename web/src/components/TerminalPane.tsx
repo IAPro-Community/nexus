@@ -588,14 +588,18 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               </span>
             )}
             <span className="text-[var(--nx-terminal-muted)]">|</span>
-            <span className="text-[var(--nx-terminal-text-soft)] uppercase text-[11px]">{provider}</span>
+            <span className="text-[var(--nx-terminal-text-soft)] uppercase text-[11px]">
+              {provider}
+            </span>
             <span className="text-[var(--nx-terminal-muted)] text-[11px]">({profile})</span>
             <span className="text-[var(--nx-terminal-muted)]">|</span>
             <span className="text-[var(--nx-terminal-muted)] text-[10px]">ID: {runtimeId}</span>
           </div>
 
           <div className="flex items-center space-x-2">
-            {errorMsg && <span className="text-[var(--nx-danger)] font-sans text-xs">{errorMsg}</span>}
+            {errorMsg && (
+              <span className="text-[var(--nx-danger)] font-sans text-xs">{errorMsg}</span>
+            )}
 
             <VoiceCaptureButton
               context="terminal"

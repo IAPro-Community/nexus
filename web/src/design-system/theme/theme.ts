@@ -147,10 +147,7 @@ export const ACCENT_OVERRIDE_VARS: Record<ThemeAccent, Record<string, string>> =
   },
 };
 
-const ACCENT_TEXT_BY_SCHEME: Record<
-  Exclude<ThemeScheme, 'system'>,
-  Record<ThemeAccent, string>
-> = {
+const ACCENT_TEXT_BY_SCHEME: Record<Exclude<ThemeScheme, 'system'>, Record<ThemeAccent, string>> = {
   dark: {
     purple: '#bba5ff',
     blue: '#8db5ff',
@@ -280,8 +277,7 @@ export function normalizeThemePreferences(
     ? input!.scheme!
     : defaultThemePreferences.scheme;
   const scheme =
-    !isCustomized &&
-    !(preset === defaultThemePreferences.preset && requestedScheme === 'system')
+    !isCustomized && !(preset === defaultThemePreferences.preset && requestedScheme === 'system')
       ? THEME_PRESETS[preset].scheme
       : requestedScheme;
 

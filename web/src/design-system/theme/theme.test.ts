@@ -301,12 +301,7 @@ describe('WCAG AA contrast automation for every registered preset', () => {
         def.scheme,
       );
 
-      for (const token of [
-        '--nx-success',
-        '--nx-warning',
-        '--nx-danger',
-        '--nx-info',
-      ] as const) {
+      for (const token of ['--nx-success', '--nx-warning', '--nx-danger', '--nx-info'] as const) {
         expect(
           contrastRatio(vars[token], vars['--nx-surface']),
           `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
@@ -379,12 +374,7 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     const definition = THEME_PRESETS['high-contrast-light'];
     const surface = definition.vars['--nx-surface'];
 
-    for (const token of [
-      '--nx-success',
-      '--nx-warning',
-      '--nx-danger',
-      '--nx-info',
-    ] as const) {
+    for (const token of ['--nx-success', '--nx-warning', '--nx-danger', '--nx-info'] as const) {
       expect(
         contrastRatio(definition.vars[token], surface),
         `High Contrast Light ${token} must be >= 4.5:1 on surface`,

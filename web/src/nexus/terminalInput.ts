@@ -101,9 +101,7 @@ export function terminalTraceShape(data: string): { size: number; shape: string 
     if ((next >= 0x30 && next <= 0x39) || next === 0x3f || next === 0x3c || next === 0x5b) {
       return true;
     }
-    return [0x41, 0x42, 0x43, 0x44, 0x48, 0x46, 0x49, 0x4f, 0x52, 0x4d, 0x6d].includes(
-      next,
-    );
+    return [0x41, 0x42, 0x43, 0x44, 0x48, 0x46, 0x49, 0x4f, 0x52, 0x4d, 0x6d].includes(next);
   };
 
   for (let index = 0; index < limit; index += 1) {
@@ -188,4 +186,3 @@ export function terminalTraceShape(data: string): { size: number; shape: string 
   if (bytes.length > limit) shape += '…';
   return { size: bytes.length, shape };
 }
-

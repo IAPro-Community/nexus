@@ -8078,7 +8078,11 @@ button.nx-workspace-tab__close {
   position: absolute;
   inset: -12px;
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--nx-accent) 45%, transparent) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--nx-accent) 45%, transparent) 0%,
+    transparent 70%
+  );
   filter: blur(12px);
   animation: nx-splash-halo 2.6s ease-in-out infinite alternate;
 }

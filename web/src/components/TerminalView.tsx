@@ -104,7 +104,10 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
                     title="Tarefa concluída"
                   ></span>
                 ) : (
-                  <span className="w-2 h-2 rounded-full bg-[var(--nx-info)]" title="Em execução"></span>
+                  <span
+                    className="w-2 h-2 rounded-full bg-[var(--nx-info)]"
+                    title="Em execução"
+                  ></span>
                 )}
                 <span className="font-sans font-medium">{title}</span>
                 <span className="text-[var(--nx-muted)] text-[10px]">[{r.runtime_id}]</span>
@@ -140,7 +143,9 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
           <button
             onClick={() => setSplitMode('grid')}
             className={`p-1 rounded transition ${
-              splitMode === 'grid' ? 'bg-[var(--nx-surface-3)] text-[var(--nx-accent-text)]' : 'text-[var(--nx-muted)] hover:text-[var(--nx-text)]'
+              splitMode === 'grid'
+                ? 'bg-[var(--nx-surface-3)] text-[var(--nx-accent-text)]'
+                : 'text-[var(--nx-muted)] hover:text-[var(--nx-text)]'
             }`}
             title="2x2 Grid View"
           >
