@@ -658,8 +658,8 @@ func TestNativeReleaseChainIsFailClosed(t *testing.T) {
 	}
 
 	for _, required := range []string{
-		"Function RemoveFromUserPath",
-		"Call RemoveFromUserPath",
+		"Function un.RemoveFromUserPath",
+		"Call un.RemoveFromUserPath",
 		"QuietUninstallString",
 		"File /nonfatal \"payload\\nexus-hud.exe\"",
 		"Delete \"$INSTDIR\\nexus-hud.exe\"",
