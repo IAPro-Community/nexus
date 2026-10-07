@@ -1,9 +1,9 @@
 {
-  "project_id": "prj_06GF8G5C1YE9GA96YT8285ZRZ4",
-  "composer_session_id": "cmp_06GF8G6549KW18CSNBH463A0PG",
+  "project_id": "prj_06GHCPJYPPXVEAZW5KGQV1MGW8",
+  "composer_session_id": "cmp_06GHCPMTXSD39EDBNHFDP10VQ0",
   "initial_blocking_questions": 1,
   "resolved_blocking_questions": 1,
-  "plan_id": "plan_06GF8G71QQNTSAB4JZ1VW9X448",
+  "plan_id": "plan_06GHCPPJFJR4AK6CMYB91QRT7G",
   "revision": 1,
   "preview_ready": false,
   "step_count": 5,
@@ -15,20 +15,20 @@
     "Verification: no provider accounts discovered"
   ],
   "context_manifest": {
-    "fingerprint": "462a5840bb0b480c655ef69b0a9b317c82ffafa954c62cf0a0f9a9fa163a17c9",
+    "fingerprint": "dced55629f41e4644175720b3aedd81b497e0340c460f20b1d7f74b52be61114",
     "budget": {
       "max_estimated_tokens": 8000,
       "used_estimated_tokens": 19,
       "kept_items": 2,
-      "referenced_items": 4,
+      "referenced_items": 0,
       "dropped_items": 0
     },
-    "item_count": 6
+    "item_count": 2
   },
-  "skill_catalog_count": 68,
+  "skill_catalog_count": 16,
   "console_errors": [],
   "page_errors": [],
   "request_failures": [
-    "HEAD http://127.0.0.1:32865/wails/custom.js → net::ERR_ABORTED"
+    "HEAD http://127.0.0.1:62541/wails/custom.js → net::ERR_ABORTED"
   ]
 }
