@@ -86,6 +86,9 @@ func TestPrepareSeedsSiblingSessionsForPicker(t *testing.T) {
 	now := time.Now().UTC()
 	writeRollout(t, filepath.Join(omegaSess, "rollout-2026-09-12T11-00-00-"+sessionID+".jsonl"), 5, 15, now.Add(time.Hour).Unix(), now, "")
 
+	previousBudget := crossAccountSeedBudget
+	crossAccountSeedBudget = 5 * time.Second
+	t.Cleanup(func() { crossAccountSeedBudget = previousBudget })
 	if err := New().Prepare(context.Background(), model.Profile{Provider: "codex", Name: "gmail"}); err != nil {
 		t.Fatal(err)
 	}
