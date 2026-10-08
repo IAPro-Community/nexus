@@ -93,6 +93,67 @@ try {
   });
   const page = await context.newPage();
   const video = page.video();
+  const sensitiveFixturePaths = [...new Set([
+    workspaceDir,
+    workspaceDir.replaceAll('\\', '/'),
+    process.platform === 'win32' ? process.env.USERPROFILE : '',
+  ].filter(Boolean))];
+  await page.addInitScript((sensitivePaths) => {
+    const replacement = 'C:\\NexusDemo\\workspace';
+    const redactValue = (value) => {
+      let result = value;
+      for (const sensitivePath of sensitivePaths) {
+        const lowerValue = result.toLowerCase();
+        const lowerSearch = sensitivePath.toLowerCase();
+        let cursor = 0;
+        let index = lowerValue.indexOf(lowerSearch, cursor);
+        let next = '';
+        while (index !== -1) {
+          next += result.slice(cursor, index) + replacement;
+          cursor = index + sensitivePath.length;
+          index = lowerValue.indexOf(lowerSearch, cursor);
+        }
+        if (cursor !== 0) result = next + result.slice(cursor);
+      }
+      return result;
+    };
+    const redactNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const value = redactValue(node.nodeValue || '');
+        if (value !== node.nodeValue) node.nodeValue = value;
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      for (const attribute of [...node.attributes]) {
+        const value = redactValue(attribute.value);
+        if (value !== attribute.value) node.setAttribute(attribute.name, value);
+      }
+      for (const child of node.childNodes) redactNode(child);
+    };
+    const installObserver = () => {
+      const root = document.documentElement;
+      if (!root) {
+        const documentObserver = new MutationObserver(() => {
+          if (!document.documentElement) return;
+          documentObserver.disconnect();
+          installObserver();
+        });
+        documentObserver.observe(document, { childList: true });
+        return;
+      }
+      redactNode(root);
+      new MutationObserver((records) => {
+        for (const record of records) {
+          if (record.type === 'characterData' || record.type === 'attributes') {
+            redactNode(record.target);
+          } else {
+            for (const node of record.addedNodes) redactNode(node);
+          }
+        }
+      }).observe(root, { attributes: true, characterData: true, childList: true, subtree: true });
+    };
+    installObserver();
+  }, sensitiveFixturePaths);
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error?.message || error)));
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
@@ -171,9 +232,9 @@ try {
     }),
   ]).finally(() => clearTimeout(leaseTimer));
 
-  const marker = '__NEXUS_DOCS_TERMINAL_OK__ çã';
+  const marker = '__NEXUS_DOCS_TERMINAL_OK__';
   const terminalInput = page.locator('.nx-project-shell-surface .xterm-helper-textarea');
-  await terminalInput.focus();
+  await page.locator('.nx-project-shell-surface .xterm').click();
   await terminalInput.pressSequentially(`echo ${marker}`);
   await terminalInput.press('Enter');
   await page.waitForFunction((expected) => {
@@ -242,9 +303,12 @@ try {
     if (!content.includes('nexus demo workspace')) throw new Error('synthetic project is not visible in capture');
   };
   const capture = async (id, file, surface, evidence = {}) => {
-    const redactedPathCount = await redactFixturePaths();
-    if (surface === 'web/workspace' && redactedPathCount === 0) {
-      throw new Error('workspace overview did not expose the expected synthetic path for redaction');
+    await redactFixturePaths();
+    if (surface === 'web/workspace') {
+      const bodyText = (await page.locator('body').innerText()).toLowerCase();
+      if (!bodyText.includes('c:\\nexusdemo\\workspace')) {
+        throw new Error('workspace overview does not show the synthetic fixture path');
+      }
     }
     await assertSafeFixture();
     await page.screenshot({
