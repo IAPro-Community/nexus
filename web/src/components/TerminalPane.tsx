@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { handleTerminalZoomKey } from '../nexus/terminalZoomKey';
 import { useTranslation } from 'react-i18next';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -153,42 +154,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       scrollback: DEFAULT_TERMINAL_SCROLLBACK,
     });
 
-    term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey) {
-        if (
-          event.key === '=' ||
-          event.key === '+' ||
-          event.code === 'Equal' ||
-          event.code === 'NumpadAdd'
-        ) {
-          if (event.type === 'keydown') {
-            const next = adjustTerminalFontSize(1);
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-        if (
-          event.key === '-' ||
-          event.key === '_' ||
-          event.code === 'Minus' ||
-          event.code === 'NumpadSubtract'
-        ) {
-          if (event.type === 'keydown') {
-            const next = adjustTerminalFontSize(-1);
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-        if (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0') {
-          if (event.type === 'keydown') {
-            const next = resetTerminalFontSize();
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-      }
-      return true;
-    });
+    term.attachCustomKeyEventHandler(handleTerminalZoomKey);
 
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
