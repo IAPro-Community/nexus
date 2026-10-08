@@ -408,6 +408,24 @@ func Discover(root string, metadata Metadata) (ProjectContextSnapshot, error) {
 	if err != nil {
 		return ProjectContextSnapshot{}, err
 	}
+	return DiscoverWithIdentity(root, metadata, identity)
+}
+
+// DiscoverWithIdentity performs the bounded static scan with an identity that
+// the caller has already inspected for the same project root. Reusing that
+// observation avoids invoking Git a second time during one context request.
+func DiscoverWithIdentity(root string, metadata Metadata, identity CodeIdentity) (ProjectContextSnapshot, error) {
+	root = filepath.Clean(strings.TrimSpace(root))
+	if root == "" || root == "." {
+		return ProjectContextSnapshot{}, fmt.Errorf("project root is required")
+	}
+	info, err := os.Stat(root)
+	if err != nil || !info.IsDir() {
+		return ProjectContextSnapshot{}, fmt.Errorf("project root unavailable")
+	}
+	if strings.TrimSpace(identity.IdentityDigest) == "" {
+		return ProjectContextSnapshot{}, fmt.Errorf("project code identity is required")
+	}
 	now := time.Now().UTC()
 	state := &discoveryState{root: root, observedAt: now, seen: map[string]bool{}}
 	walkErr := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
