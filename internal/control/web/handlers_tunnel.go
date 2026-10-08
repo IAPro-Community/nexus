@@ -35,8 +35,17 @@ type tunnelManager struct {
 
 // trackTunnelExit ensures that an old cloudflared process cannot invalidate
 // a newer tunnel generation's authentication when it exits asynchronously.
+func tunnelIsActive(tunnel *Tunnel) bool {
+	if tunnel == nil {
+		return false
+	}
+	tunnel.mu.Lock()
+	defer tunnel.mu.Unlock()
+	return !tunnel.stopped
+}
+
 func (s *Server) trackTunnelExit(tunnel *Tunnel) {
-	tunnel.OnExit = func() {
+	onExit := func() {
 		tm := s.tunnelManager()
 		tm.mu.Lock()
 		owned := tm.tunnel == tunnel
@@ -52,6 +61,15 @@ func (s *Server) trackTunnelExit(tunnel *Tunnel) {
 			s.auth.SetTunnelActive(false)
 		}
 	}
+	// cloudflared's waiter reads OnExit under tunnel.mu. Register under
+	// the same lock and handle an exit that already happened.
+	tunnel.mu.Lock()
+	tunnel.OnExit = onExit
+	alreadyStopped := tunnel.stopped
+	tunnel.mu.Unlock()
+	if alreadyStopped {
+		onExit()
+	}
 }
 
 // AttachExternalTunnel makes CLI-started tunnels visible in the same status,
@@ -63,12 +81,13 @@ func (s *Server) AttachExternalTunnel(tunnel *Tunnel) error {
 	}
 	tm := s.tunnelManager()
 	tm.mu.Lock()
-	defer tm.mu.Unlock()
-	if tm.tunnel != nil && !tm.tunnel.stopped {
+	if tunnelIsActive(tm.tunnel) {
+		tm.mu.Unlock()
 		return fmt.Errorf("another tunnel is already active")
 	}
 	tm.tunnel = tunnel
 	tm.cancel = tunnel.cancel
+	tm.mu.Unlock()
 	s.trackTunnelExit(tunnel)
 	return nil
 }
@@ -78,7 +97,7 @@ func (s *Server) AttachExternalTunnel(tunnel *Tunnel) error {
 func (s *Server) NewTunnelInviteURL() (string, string, error) {
 	tm := s.tunnelManager()
 	tm.mu.Lock()
-	active := tm.tunnel != nil && !tm.tunnel.stopped
+	active := !tm.starting && tunnelIsActive(tm.tunnel)
 	url := ""
 	if active {
 		url = tm.tunnel.URL
@@ -109,7 +128,7 @@ func (s *Server) handleTunnelStatus(w http.ResponseWriter, r *http.Request) {
 
 	tm := s.tunnelManager()
 	tm.mu.Lock()
-	active := tm.tunnel != nil && !tm.tunnel.stopped
+	active := !tm.starting && tunnelIsActive(tm.tunnel)
 	url := ""
 	if active {
 		url = tm.tunnel.URL
@@ -136,7 +155,7 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 
 	tm := s.tunnelManager()
 	tm.mu.Lock()
-	if tm.tunnel != nil && !tm.tunnel.stopped || tm.starting {
+	if tunnelIsActive(tm.tunnel) || tm.starting {
 		tm.mu.Unlock()
 		writeError(w, http.StatusConflict, "tunnel already active")
 		return
@@ -184,6 +203,10 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	}
 	s.auth.SetTunnelActive(true)
 
+	tm.mu.Lock()
+	tm.tunnel = tunnel
+	tm.cancel = tunnel.cancel
+	tm.mu.Unlock()
 	s.trackTunnelExit(tunnel)
 
 	readyCtx, readyCancel := context.WithTimeout(ctx, 60*time.Second)
@@ -206,10 +229,13 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tm.mu.Lock()
-	tm.tunnel = tunnel
-	tm.cancel = tunnel.cancel
+	running := tm.tunnel == tunnel && tunnelIsActive(tunnel)
 	tm.starting = false
 	tm.mu.Unlock()
+	if !running {
+		writeError(w, http.StatusBadGateway, "tunnel closed during startup")
+		return
+	}
 
 	writeJSON(w, http.StatusOK, TunnelStatusResponse{
 		Active:               true,
@@ -229,7 +255,7 @@ func (s *Server) handleTunnelStop(w http.ResponseWriter, r *http.Request) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
-	if tm.tunnel == nil || tm.tunnel.stopped {
+	if !tunnelIsActive(tm.tunnel) {
 		writeJSON(w, http.StatusOK, TunnelStatusResponse{Active: false})
 		return
 	}
@@ -248,6 +274,10 @@ func (s *Server) handleTunnelStop(w http.ResponseWriter, r *http.Request) {
 		tm.cancel = nil
 	}
 
+	// Also cancel an in-progress readiness probe when stopping the tunnel.
+	if tm.startCancel != nil {
+		tm.startCancel()
+	}
 	// Inform auth manager that tunnel is no longer active.
 	s.auth.SetTunnelActive(false)
 
