@@ -298,8 +298,13 @@ export async function rotateSession(): Promise<BrowserSession> {
         const current = await probeCurrentSession();
         if (current) return current;
       }
-      if (res.status === 401) notifySessionExpired();
-      return { authenticated: false };
+      if (res.status === 401) {
+        notifySessionExpired();
+        return { authenticated: false };
+      }
+      // 403 may mean a stale CSRF token; 5xx may mean the tunnel/backend
+      // is temporarily unavailable. Neither proves the session is revoked.
+      throw new Error(`Session rotation failed: HTTP ${res.status}`);
     }
     const current = (await res.json()) as BrowserSession;
     if (current.csrf_token) csrfToken = current.csrf_token;

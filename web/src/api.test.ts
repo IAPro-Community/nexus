@@ -105,6 +105,17 @@ describe('api request layer', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('does not declare logout when session rotation receives a temporary 503', async () => {
+    const expired = vi.fn();
+    vi.stubGlobal('window', { dispatchEvent: expired });
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: false, status: 503 });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(rotateSession()).rejects.toThrow('HTTP 503');
+    expect(expired).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('restores a valid session when another tab rotated the cookie first', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: false, status: 401 })
