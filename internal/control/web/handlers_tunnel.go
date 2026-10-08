@@ -123,17 +123,22 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	s.auth.SetTunnelActive(true)
 
 	tunnel.OnExit = func() {
-		if host := extractTunnelHost(tunnel.URL); host != "" {
-			originpolicy.UnregisterTunnelHost(host)
-		}
-		s.auth.SetTunnelActive(false)
 		tm := s.tunnelManager()
 		tm.mu.Lock()
-		if tm.tunnel == tunnel {
+		// An old cloudflared process may exit after a newer tunnel has
+		// started. It must not disarm that new tunnel's authentication.
+		ownsActiveTunnel := tm.tunnel == tunnel
+		if ownsActiveTunnel {
 			tm.tunnel = nil
 			tm.cancel = nil
 		}
 		tm.mu.Unlock()
+		if ownsActiveTunnel {
+			if host := extractTunnelHost(tunnel.URL); host != "" {
+				originpolicy.UnregisterTunnelHost(host)
+			}
+			s.auth.SetTunnelActive(false)
+		}
 	}
 
 	readyCtx, readyCancel := context.WithTimeout(ctx, 60*time.Second)
@@ -202,15 +207,6 @@ func (s *Server) handleTunnelStop(w http.ResponseWriter, r *http.Request) {
 	s.auth.SetTunnelActive(false)
 
 	writeJSON(w, http.StatusOK, TunnelStatusResponse{Active: false})
-}
-
-// remoteBootstrapURL rewrites the local bootstrap URL to use the tunnel public URL.
-func (s *Server) remoteBootstrapURL(tunnelURL string) string {
-	if tunnelURL == "" {
-		return ""
-	}
-	localURL := s.url + "/#nexus_bootstrap=" + s.bootstrap
-	return strings.Replace(localURL, s.url, tunnelURL, 1)
 }
 
 // extractTunnelHost extracts the hostname from a tunnel URL.

@@ -129,6 +129,8 @@ function notifySessionExpired() {
 
 export async function initSession(): Promise<BrowserSession> {
   try {
+    // Always strip bearer fragments from the address bar before any early return.
+    const bootstrapToken = consumeBrowserBootstrapToken();
     // Browsers cannot retain Secure auth cookies over plaintext LAN URLs.
     const hostname = window.location.hostname.toLowerCase();
     if (
@@ -138,7 +140,6 @@ export async function initSession(): Promise<BrowserSession> {
     ) {
       return { authenticated: false };
     }
-    const bootstrapToken = consumeBrowserBootstrapToken();
     if (bootstrapToken && !isDesktopApp()) {
       const bootstrapResponse = await fetch('/api/v1/auth/bootstrap', {
         method: 'POST',
