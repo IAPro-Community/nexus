@@ -195,6 +195,7 @@ describe('api request layer', () => {
   });
 
   it('includes CSRF token header after session bootstrap', async () => {
+    vi.stubGlobal('window', { location: { hash: '', hostname: 'localhost', protocol: 'http:' } });
     const sessionFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ authenticated: true, csrf_token: 'tok-123' }),
