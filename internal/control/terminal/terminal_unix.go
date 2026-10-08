@@ -27,8 +27,12 @@ func newPlatformBackend() Backend {
 	return &unixPTYBackend{}
 }
 
+func newPlatformBackendForProvider(string) Backend { return newPlatformBackend() }
+
 // BackendMechanism reports the platform's primary terminal backend.
 func BackendMechanism() string { return "PTY (creack/pty)" }
+
+func platformBackendMechanismForProvider(string) string { return BackendMechanism() }
 
 func (b *unixPTYBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) error {
 	b.mu.Lock()
