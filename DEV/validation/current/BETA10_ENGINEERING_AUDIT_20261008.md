@@ -73,6 +73,10 @@ Outros pontos: scripts `web/scripts/**` ignorados pelo ESLint; muitos jobs self-
 
 `web/src/nexus/terminalProtocol.ts` implementa `ProtocolScrubber` com buffer `tail` sem teto explícito. Candidatos iniciados com `{"version":1` podem ficar retidos até próximo LF/flush. Já existe teto de 64 KiB no processamento equivalente em Go (`MaxProtocolPending`), indicando assimetria de limites. **Risco de buffering/latência, não bug demonstrado em produção.** Testar provider JSON longo/fragmentado, frame malformado e parcial antes de alterar filtro, sob pena de reintroduzir vazamento de envelopes internos.
 
+### P1-06 — `make release-dry-run` anunciava readiness sem verificá-la
+
+O alvo `release-dry-run` em `Makefile` executava somente build e `version-check`, depois emitia `Ready for release. Run 'make release' to publish.` O próprio Makefile **não define** `release:`, somente `release-local:`. O resultado confundia build bem-sucedido com certificação e direcionava para um comando inexistente. A PR corrige a mensagem para explicitar que build/versionamento não bastam e que a publicação exige gates exact-SHA e assinatura. Não amplia silenciosamente o escopo do dry run para executar distribuição.
+
 ## 3. Release e distribuição
 
 A fonte de verdade é `VERSION`, sincronizada com `web/package.json`; a beta.10 já recebeu um ajuste concorrente na release oficial. O complemento desta PR extrai o algoritmo para funções testáveis, adiciona transação de atualização com rollback de ambos os arquivos e CI explícito de versão. A `main` deve receber **um único conjunto de commits auditado** e tests de instalação/update trust root, e não a soma de PRs em rascunho.
@@ -83,6 +87,7 @@ A fonte de verdade é `VERSION`, sincronizada com `web/package.json`; a beta.10 
 2. `scripts/release-version.test.mjs`: valida incrementos, rejeição de versão inválida, consistência, metadados e rollback.
 3. `scripts/release-beta.mjs`: delega ao helper e distingue build de instalação/publicação.
 4. `.github/workflows/ci.yml`: executa regressão do bump e `verify-version-contract.go`.
+5. `Makefile`: evita anúncio falso de release pronta e referência ao alvo inexistente `make release`.
 
 **Fora do escopo desta PR:** reescrita de terminal, grandes refatorações de estado, endurecimento global do ESLint, nova release/tag. Essas mudanças exigem PRs separados, baseline de testes e gates nativos.
 
