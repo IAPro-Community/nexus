@@ -41,6 +41,37 @@ func TestComposerContextManifestIsBoundedAndExplainsDroppedItems(t *testing.T) {
 	}
 }
 
+func TestComposerContextManifestUsesLoadedGrounding(t *testing.T) {
+	n := openTestNexus(t)
+	n.maestroStatus = func() MaestroStatus { return MaestroStatus{Available: false, Mode: MaestroOff} }
+	st, _ := n.OpenProject()
+	project, err := st.CreateProject(store.Project{Name: "Cached Context", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	grounded := map[string]any{
+		"facts": []map[string]any{{
+			"category":   "frameworks",
+			"key":        "test-framework",
+			"value":      "loaded context",
+			"source":     "scanner",
+			"locator":    "go.mod",
+			"confidence": "HIGH",
+		}},
+	}
+
+	manifest, err := n.buildComposerContextManifest(context.Background(), project.ID, newComposerBrief("cached context", ""), grounded, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range manifest.Items {
+		if item.Kind == "PROJECT_FACT" && item.Locator == "go.mod" && strings.Contains(item.Summary, "loaded context") {
+			return
+		}
+	}
+	t.Fatalf("manifest did not preserve loaded project grounding: %+v", manifest.Items)
+}
+
 func TestComposerContextManifestKeepsMissionHistoryReferenceOnly(t *testing.T) {
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
