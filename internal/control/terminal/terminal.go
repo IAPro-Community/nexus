@@ -73,3 +73,15 @@ type Backend interface {
 func NewBackend() Backend {
 	return newPlatformBackend()
 }
+
+// NewBackendForProvider instantiates a terminal backend using provider-specific
+// platform policy where a runtime requires a real pseudo-terminal.
+func NewBackendForProvider(providerID string) Backend {
+	return newPlatformBackendForProvider(providerID)
+}
+
+// BackendMechanismForProvider describes the terminal mechanism selected for a
+// provider on the current platform.
+func BackendMechanismForProvider(providerID string) string {
+	return platformBackendMechanismForProvider(providerID)
+}

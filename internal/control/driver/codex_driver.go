@@ -55,7 +55,7 @@ func (d *CodexDriver) EffectiveCaps(ctx context.Context, p model.Profile) Effect
 		Terminal: CapabilityEvidence{
 			Status:          CapabilitySupported,
 			ProviderVersion: version,
-			Mechanism:       terminal.BackendMechanism(),
+			Mechanism:       terminal.BackendMechanismForProvider(d.ProviderID()),
 			Tested:          true,
 		},
 		Attach: CapabilityEvidence{
