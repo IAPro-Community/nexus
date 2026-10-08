@@ -4,9 +4,11 @@
 
 Código Windows validado: `474dfcecdd82aab0d0a2d6d1f36fd26d0d1b1f8b`; gate exact-SHA e evidência visual: `7d2ef8aab669f88f22d09a86ec6442f761d0f7b5`; `VERSION=1.0.0-beta.8`. Os gates automatizados locais Windows passaram: Go fmt/vet/lint/security/testes, Bun frozen install + quality completa (83 arquivos/499 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD com smokes isolados. Relatório: `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`; logs locais: `DEV/validation/local-beta/1.0.0-beta.8/7d2ef8aab669f88f22d09a86ec6442f761d0f7b5/windows-AMD64/`.
 
-Auditoria remota: `origin/release/v1.0.0@2abbf31a`; `origin/fix/windows-beta8-homologation-20261008@2506c067`. A branch Windows está vinculada por [PR draft #45](https://github.com/IAPro-Community/nexus/pull/45), ainda sem merge. `fix/beta8-manual-opaque-quota` tem mudança exclusiva de quota `UNSUPPORTED`, sem PR e com contrato/testes desalinhados; não está pronta para integração. A branch Beta 7 KIVER não tem trabalho novo a portar.
+Auditoria remota: `origin/release/v1.0.0@2abbf31a`; `origin/fix/windows-beta8-homologation-20261008@41a3ec0e` no momento da auditoria. A branch Windows está vinculada por [PR draft #45](https://github.com/IAPro-Community/nexus/pull/45), ainda sem merge. `fix/beta8-manual-opaque-quota` tem mudança exclusiva de quota `UNSUPPORTED`, sem PR e com contrato/testes desalinhados; não está pronta para integração. A branch Beta 7 KIVER não tem trabalho novo a portar.
 
-Veredito: PASS dos gates automatizados Windows locais e do build/ciclo de smoke NSIS unsigned, **não GO de distribuição**. CI Windows exact-SHA, Authenticode/trust root e smokes manuais de provider/Mission/Voice permanecem pendentes. Nenhuma tag foi criada. Escopo Windows-only; nenhum gate Linux foi executado.
+Reteste TUI: sem `AI_CLI_ENABLE_CONPTY=1`, o Codex cai em `stdin is not a terminal`; com ConPTY opt-in, Nexus attach abre a tela de boas-vindas/login no perfil isolado sem autenticação. O smoke parcial enviou uma seta sem confirmação visual de navegação e encerrou com Ctrl+C. Não houve prompt, login ou reinício de servidor compartilhado.
+
+Veredito: PASS dos gates automatizados Windows locais e do build/ciclo de smoke NSIS unsigned, **não GO de distribuição**. CI Windows exact-SHA, Authenticode/trust root e smokes autenticados de provider/Mission/Voice permanecem pendentes. Nenhuma tag foi criada. Escopo Windows-only; nenhum gate Linux foi executado.
 
 ## Próxima ação
 

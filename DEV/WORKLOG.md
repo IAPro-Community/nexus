@@ -1,5 +1,11 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-08 — Reteste TUI Windows com ConPTY
+
+- O smoke inicial no padrão por standard pipes encerrou Codex com `stdin is not a terminal`. Repetido em perfil isolado sem login com `AI_CLI_ENABLE_CONPTY=1` e `TERM=xterm-256color`, o Nexus attach abriu a tela de boas-vindas do Codex v0.160.1.
+- Tecla de seta encaminhada sem prompt; a saída capturada não confirmou a mudança visual de seleção. Ctrl+C encerrou o runtime limpo em `STOPPED`; nenhum login ou servidor compartilhado foi acionado.
+- ConPTY continua opt-in conforme `cc6400db`, por histórico de regressões de teclado/mouse/CSI. Homologação interativa parcial; provider autenticado, Mission/Voice, runner Windows exact-SHA e assinatura permanecem pendentes. Nenhum código ou gate Linux foi alterado/executado.
+
 ## 2026-10-08 — Homologação Windows beta.8
 
 - PASS — `scripts/homologate-beta.ps1` no Windows AMD64, gate exact-SHA `7d2ef8aab669f88f22d09a86ec6442f761d0f7b5`, código `474dfcec`; Bun 1.3.9: 83 arquivos/499 testes; Go fmt/vet/lint/security/testes, oito suítes browser E2E, Axe/visual, builds e smokes nativos passaram.

@@ -6,7 +6,9 @@
 - PASS — docs-verify, Bun frozen install e quality web completa; 83 arquivos Vitest / 499 testes.
 - PASS — Go fmt/vet/lint/security/testes, oito suítes browser E2E com Axe/visual, builds CLI/Desktop/HUD e smokes isolados.
 - PASS — NSIS 3.13 compilou `packaging/windows/nexus.nsi`; instalador silencioso e desinstalador silencioso retornaram 0; CLI instalado e `doctor --json` passaram; payload/registro/atalho foram removidos e o valor/tipo/existência originais do PATH foram restaurados exatamente.
-- LIMITAÇÃO — os testes que exigem permissões POSIX/symlink foram skipped pelo próprio código no Windows; artefatos NotSigned, CI Windows exact-SHA, assinatura/trust root e smokes manuais provider/Mission/Voice seguem pendentes. Nenhum gate Linux foi executado.
+- PARTIAL — smoke integrado `nexus codex:windows-smoke --no-daemon` no ConPTY com perfil sem login alcançou a tela de boas-vindas. Uma tecla de seta foi enviada pelo attach; o processo permaneceu ativo e Ctrl+C encerrou em `STOPPED`, sem prompt submetido. A saída não confirmou visualmente a mudança de seleção.
+- OBSERVAÇÃO — sem `AI_CLI_ENABLE_CONPTY=1`, o padrão por standard pipes terminou com `stdin is not a terminal`; com ConPTY opt-in, Codex v0.160.1 abriu o TUI. O padrão permanece opt-in por decisão `cc6400db` devido a regressões anteriores de teclado/mouse/CSI.
+- LIMITAÇÃO — os testes que exigem permissões POSIX/symlink foram skipped pelo próprio código no Windows; artefatos NotSigned, CI Windows exact-SHA, assinatura/trust root e smokes autenticados de provider/Mission/Voice seguem pendentes. Nenhum gate Linux foi executado.
 - Relatório: [`DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`](validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md).
 
 ## 2026-10-07 — Continuidade Windows WebView2 e branch audit
