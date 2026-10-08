@@ -53,7 +53,7 @@ interface ContextValue {
   ) => void;
   patchChrome: (
     viewId: string,
-    chrome: { customTitle?: string; accent?: string; icon?: string },
+    chrome: { customTitle?: string; allowAiTitle?: boolean; accent?: string; icon?: string },
   ) => void;
   minimize: (viewId: string) => void;
   restore: (viewId: string) => void;
@@ -95,7 +95,7 @@ type Action =
   | {
       type: 'patchChrome';
       viewId: string;
-      chrome: { customTitle?: string; accent?: string; icon?: string };
+      chrome: { customTitle?: string; allowAiTitle?: boolean; accent?: string; icon?: string };
     }
   | { type: 'minimize'; viewId: string }
   | { type: 'restore'; viewId: string }

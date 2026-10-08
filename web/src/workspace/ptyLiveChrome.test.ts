@@ -36,6 +36,30 @@ describe('ptyLiveChrome', () => {
     });
   });
 
+  it('lets users choose manual title priority without losing later AI updates', () => {
+    const customized = {
+      customTitle: 'Backend',
+      identity: 'Codex',
+      allowAiTitle: false,
+    };
+    expect(ptyWindowHeading({ ...customized, liveTitle: 'codex · analyzing' })).toEqual({
+      heading: 'Backend',
+      identityHint: 'codex · analyzing',
+    });
+    expect(ptyWindowHeading({ ...customized, liveTitle: 'codex · ready' })).toEqual({
+      heading: 'Backend',
+      identityHint: 'codex · ready',
+    });
+    expect(ptyWindowHeading({ ...customized, allowAiTitle: true, liveTitle: 'codex · ready' })).toEqual({
+      heading: 'codex · ready',
+      identityHint: 'Backend',
+    });
+    expect(ptyWindowHeading({ ...customized, customTitle: '', liveTitle: 'codex · ready' })).toEqual({
+      heading: 'codex · ready',
+      identityHint: 'Codex',
+    });
+  });
+
   it('falls back to identity when the PTY has no settitle', () => {
     expect(ptyWindowHeading({ customTitle: 'Ops', identity: 'Shell' })).toEqual({
       heading: 'Ops',

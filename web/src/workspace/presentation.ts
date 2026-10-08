@@ -19,6 +19,10 @@ export interface DesktopWindowState {
   maximized: boolean;
   /** User-chosen identity label; never overwritten by PTY OSC titles. */
   customTitle?: string;
+  /** Whether the provider may update the primary window heading via OSC or runtime title.
+   * Defaults to true, even when a custom identity is present.
+   */
+  allowAiTitle?: boolean;
   /** Accent color token (css color). */
   accent?: string;
   /** Fixed icon key from the mosaic chrome palette. */
@@ -340,6 +344,7 @@ function preserveChrome(
   return {
     ...next,
     customTitle: previous.customTitle,
+    allowAiTitle: previous.allowAiTitle,
     accent: previous.accent,
     icon: previous.icon,
   };
@@ -804,7 +809,7 @@ export function resizeMosaicWindow(
 export function patchDesktopWindowChrome(
   state: WorkspacePresentationState,
   viewId: string,
-  chrome: Pick<DesktopWindowState, 'customTitle' | 'accent' | 'icon'>,
+  chrome: Partial<Pick<DesktopWindowState, 'customTitle' | 'allowAiTitle' | 'accent' | 'icon'>>,
 ): WorkspacePresentationState {
   const current = state.windows[viewId];
   if (!current) {
