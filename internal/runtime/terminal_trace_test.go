@@ -125,3 +125,16 @@ func TestTerminalTraceStopsAtFileSizeLimit(t *testing.T) {
 		t.Fatalf("trace grew beyond limit: %d", info.Size())
 	}
 }
+
+func TestTerminalTraceShapeEncoderAlwaysProducesValidatedShape(t *testing.T) {
+	for _, payload := range []string{
+		"secret", "\x1b[A", "\x1bOC", "\x1b[?2004h", "\x1b[<35;12;9M",
+		"\x1b]0;PRIVATE TITLE\x07", "\x03\r", "[A", "ação", "ARM COMMAND MARCH",
+		strings.Repeat("x", 300),
+	} {
+		shape := TerminalTraceShape([]byte(payload))
+		if !validClientTerminalTraceShape(shape) {
+			t.Fatalf("masked encoder output was incorrectly rejected, input=%q shape=%q", payload, shape)
+		}
+	}
+}
