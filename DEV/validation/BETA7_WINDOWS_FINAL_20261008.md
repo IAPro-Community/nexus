@@ -74,7 +74,7 @@ Uma execução inicial após o primeiro ajuste encontrou `Filename too long` por
 - Os smokes interativos de Codex/AGY/OpenCode, Direct/Lead/Mission e Voice não foram executados neste SHA.
 - O smoke Desktop verificou janela e controlador WebView2 em modo oculto; não houve captura visual do render numa sessão desktop interativa.
 - `nexus doctor --json` gerou diagnóstico com alertas específicos deste host. O Gemini CLI instalado invocou Node 18.12.1 e falhou no parse; não se contabilizou provider smoke como aprovado.
-- `git ls-remote` confirmou, antes da atualização desta documentação, `origin/release/v1.0.0` em `52f35c04181b85379219ab55fc3192c63a5440a8`; a tag `v1.0.0-beta.7` não estava presente. O inventário de GitHub Releases não foi consultado.
+- `git ls-remote` confirmou inicialmente `origin/release/v1.0.0` em `52f35c04181b85379219ab55fc3192c63a5440a8`; em seguida código e relatórios foram enviados por fast-forward. O primeiro HEAD remoto confirmado foi `f1928d0f75cf49a0968f248bd7dc9b8e54655dcb`, que contém o SHA validado como ancestral. A tag `v1.0.0-beta.7` continuou ausente. O inventário de GitHub Releases não foi consultado.
 - Não foi criada branch nova nesta rodada. A branch existente `fix/beta7-windows-KIVER-20261007` em `d14154d2` é ancestral do candidato local; nenhum merge ou cherry-pick foi necessário.
 
-**Conclusão:** os gates automatizados locais Windows passaram no SHA `d840797b`. Não marcar a release como GO para tag ou distribuição até que os bloqueios acima sejam resolvidos. Nenhuma conclusão Linux é feita por este relatório.
+**Conclusão:** os gates automatizados locais Windows passaram no SHA `d840797b`. O Actions API sem autenticação retornou 404 após o push, então não há confirmação de CI. Não marcar a release como GO para tag ou distribuição até que os bloqueios acima sejam resolvidos. Nenhuma conclusão Linux é feita por este relatório.

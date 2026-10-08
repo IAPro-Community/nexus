@@ -27,7 +27,7 @@ PASS local: PowerShell/docs, Bun frozen install e `quality:full` (82 arquivos/48
 
 Os executáveis são `NotSigned`. A chave pública de update está versionada e foi usada no build; este host não tem `signtool.exe`, certificado/secrets Authenticode, NSIS ou os secrets `NEXUS_UPDATE_PRIVATE_KEY`/`NEXUS_UPDATE_KEY_ID` para assinar manifestos. O CI nativo exact-SHA não foi revalidado e o instalador final não foi construído. Smokes interativos de providers/Mission/Voice e captura visual de renderização Desktop ainda não foram feitos neste SHA. O diagnóstico local também sinalizou que o Gemini CLI instalado usa Node 18.12.1 e não iniciou; isso não é contabilizado como provider smoke aprovado.
 
-O remoto confirmou `origin/release/v1.0.0` em `52f35c04181b85379219ab55fc3192c63a5440a8` antes desta continuidade; o candidato local é descendente de `d14154d2`. A tag `v1.0.0-beta.7` não existe no remoto. Não criar tag nem publicar enquanto os gates externos e manuais permanecerem abertos.
+O remoto confirmou `origin/release/v1.0.0` em `52f35c04181b85379219ab55fc3192c63a5440a8` antes desta continuidade; o candidato local é descendente de `d14154d2`. O código e os relatórios foram enviados em fast-forward; o primeiro HEAD remoto confirmado foi `f1928d0f75cf49a0968f248bd7dc9b8e54655dcb`. A tag `v1.0.0-beta.7` continua ausente. Não criar tag nem publicar enquanto os gates externos e manuais permanecerem abertos.
 
 ---
 

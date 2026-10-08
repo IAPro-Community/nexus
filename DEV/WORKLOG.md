@@ -5207,3 +5207,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Auditoria viva: o remoto `release/v1.0.0` estava em `52f35c04` antes da continuidade; KIVER `d14154d2` é ancestral do candidato; nenhuma branch Beta 7 nova surgiu e nenhuma integração é necessária.
 - Publicação continua NO-GO: `gh`, `signtool.exe`, `makensis.exe`, assinatura/secrets, workflow exact-SHA, instalador exato e smokes manuais provider/Mission/Voice não foram validados. Gemini local falhou por executar sob Node 18.12.1; isso não foi contado como provider smoke aprovado.
 - Nenhum gate Linux foi executado nesta continuidade.
+
+## Envio fast-forward da homologação Windows — 2026-10-08
+
+- PASS — `release/v1.0.0` foi atualizado no remoto em fast-forward de `52f35c04` para `f1928d0f75cf49a0968f248bd7dc9b8e54655dcb`, incluindo o código Windows validado em `d840797b` e seus relatórios. `git ls-remote` confirmou o novo HEAD; worktree local limpo.
+- Nenhuma branch nova foi criada. `fix/beta7-windows-KIVER-20261007` continua em `d14154d2`, ancestral do candidato, sem integração pendente.
+- A tag `v1.0.0-beta.7` continua ausente. `gh` não está instalado e o Actions API não autenticado retornou 404; CI pós-push não foi confirmado. Nenhum release público foi publicado.

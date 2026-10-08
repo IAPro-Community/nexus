@@ -4,7 +4,7 @@
 
 Código validado: `release/v1.0.0` em `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, `VERSION=1.0.0-beta.7`. Os gates automatizados locais Windows passaram: Go fmt/vet/lint/security/testes, Bun frozen install + `quality:full`, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Smokes isolados Desktop/WebView2 (9 s) e HUD (8 s) passaram. Relatório: `DEV/validation/BETA7_WINDOWS_FINAL_20261008.md`; evidências/hash: `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/`.
 
-A consulta viva ao remoto confirmou `origin/release/v1.0.0` em `52f35c04181b85379219ab55fc3192c63a5440a8` antes desta continuidade; a branch KIVER `d14154d2` é ancestral do candidato local. Nenhuma branch Beta 7 nova foi criada e não há cherry-pick/merge necessário.
+A consulta viva ao remoto confirmou `origin/release/v1.0.0` em `52f35c04181b85379219ab55fc3192c63a5440a8` antes desta continuidade; o código validado e os relatórios foram enviados por fast-forward, e o primeiro novo HEAD remoto confirmado foi `f1928d0f75cf49a0968f248bd7dc9b8e54655dcb`. A branch KIVER `d14154d2` é ancestral do candidato local. Nenhuma branch Beta 7 nova foi criada e não há cherry-pick/merge necessário.
 
 Veredito é PASS técnico local, **não GO de distribuição**. Não há `gh`, `signtool.exe`, `makensis.exe` ou secrets de assinatura neste host; CI exact-SHA, Authenticode, instalador exato e smokes manuais de provider/Mission/Voice permanecem pendentes. Binários e ZIPs são `NotSigned`. O diagnóstico encontrou Gemini CLI acoplado a Node 18.12.1, sem smoke provider aprovado. Nenhum gate Linux foi executado nesta continuação. Não criar tag/publicar até resolver os gates externos e manuais.
 
