@@ -97,7 +97,13 @@ export function isProtocolControlLine(line: string): boolean {
   try {
     const value = JSON.parse(trimmed) as Record<string, unknown>;
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-    return 'command' in value || 'ok' in value;
+    // Only recognize actual Nexus IPC envelopes, not arbitrary Codex JSON.
+    if (value.version !== 1 || typeof value.timestamp !== 'string' ||
+        !Number.isFinite(Date.parse(value.timestamp))) return false;
+    if (typeof value.command === 'string') {
+      return typeof value.id === 'string' && /^req-[0-9]+$/.test(value.id);
+    }
+    return typeof value.ok === 'boolean';
   } catch {
     return false;
   }
