@@ -14,6 +14,8 @@ REMOTE_TRACKING_SHA_AT_AUDIT: 52f35c04181b85379219ab55fc3192c63a5440a8
 LIVE_REMOTE_SHA_AT_AUDIT: CONFIRMED (origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8 before this continuation)
 REMOTE_RELEASE_PUSH: PASS (fast-forward 52f35c04 -> f1928d0f; code validation SHA d840797b is an ancestor)
 LIVE_REMOTE_SHA_AFTER_PUSH: f1928d0f75cf49a0968f248bd7dc9b8e54655dcb (confirmed by git ls-remote)
+REMOTE_STATUS_SYNC_PUSH: PASS (follow-up documentation-only fast-forward f1928d0f -> 5a08a1807c4489395dca86ed198f268ea676d2e4)
+LIVE_REMOTE_SHA_AT_FINAL_AUDIT: 5a08a1807c4489395dca86ed198f268ea676d2e4 (confirmed before this status-record commit; validated source d840797b remains an ancestor)
 REMOTE_BETA7_TAG: ABSENT (live origin has no refs/tags/v1.0.0-beta.7; local tag absent)
 PUBLIC_GITHUB_RELEASE: NOT_REVALIDATED (not queried)
 WINDOWS_LOCAL_GATES: PASS (PowerShell/docs, Bun frozen + quality:full, Go fmt/vet/lint/security/tests, control/runtime and Agent Interop regressions, 8 browser E2E suites + accessibility/visual, CLI/Desktop/HUD builds and isolated Desktop/HUD native smokes)

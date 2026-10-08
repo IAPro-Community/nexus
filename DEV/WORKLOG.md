@@ -5213,3 +5213,4 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - PASS — `release/v1.0.0` foi atualizado no remoto em fast-forward de `52f35c04` para `f1928d0f75cf49a0968f248bd7dc9b8e54655dcb`, incluindo o código Windows validado em `d840797b` e seus relatórios. `git ls-remote` confirmou o novo HEAD; worktree local limpo.
 - Nenhuma branch nova foi criada. `fix/beta7-windows-KIVER-20261007` continua em `d14154d2`, ancestral do candidato, sem integração pendente.
 - A tag `v1.0.0-beta.7` continua ausente. `gh` não está instalado e o Actions API não autenticado retornou 404; CI pós-push não foi confirmado. Nenhum release público foi publicado.
+- A sincronização documental posterior foi enviada por fast-forward de `f1928d0f` para `5a08a1807c4489395dca86ed198f268ea676d2e4`; `git ls-remote` confirmou esse HEAD antes do registro final de status. O código homologado `d840797b` permanece ancestral, a árvore está limpa e não há gate Linux nesta rodada.
