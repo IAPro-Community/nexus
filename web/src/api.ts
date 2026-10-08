@@ -11,6 +11,8 @@ import { isDesktopApp, getPlatformBridge } from './platform';
 
 let csrfToken = '';
 let csrfRefreshInFlight: Promise<boolean> | null = null;
+let sessionProbeInFlight: Promise<BrowserSession | null> | null = null;
+let sessionRotationInFlight: Promise<BrowserSession> | null = null;
 let desktopAuthToken = '';
 // Ordinary Wails HTTP requests stay relative to the document origin. Only
 // WebSocket upgrades need the real loopback Core listener.
@@ -261,22 +263,54 @@ export async function tryLoopbackReauth(): Promise<BrowserSession | null> {
   }
 }
 
-export async function rotateSession(): Promise<BrowserSession> {
-  const headers: Record<string, string> = {};
-  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
-  if (desktopAuthToken) headers['Authorization'] = `Bearer ${desktopAuthToken}`;
-  const targetUrl = '/api/v1/session/rotate';
-  const res = await fetch(targetUrl, {
-    method: 'POST',
-    headers,
-  });
-  if (!res.ok) {
-    notifySessionExpired();
-    return { authenticated: false };
+// Revalidation is read-only and single-flight: if a cookie was rotated by
+// another tab/request while our old request was in flight, a single 401 must
+// not force the entire app into the unauthenticated state.
+async function probeCurrentSession(): Promise<BrowserSession | null> {
+  if (!sessionProbeInFlight) {
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (desktopAuthToken) headers.Authorization = `Bearer ${desktopAuthToken}`;
+    sessionProbeInFlight = fetch('/api/v1/session', { headers })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const current = (await res.json()) as BrowserSession;
+        if (!current.authenticated) return null;
+        if (current.csrf_token) csrfToken = current.csrf_token;
+        return current;
+      })
+      .catch(() => null)
+      .finally(() => {
+        sessionProbeInFlight = null;
+      });
   }
-  const data = (await res.json()) as BrowserSession;
-  if (data.csrf_token) csrfToken = data.csrf_token;
-  return data;
+  return sessionProbeInFlight;
+}
+
+export async function rotateSession(): Promise<BrowserSession> {
+  if (sessionRotationInFlight) return sessionRotationInFlight;
+  const pending = (async (): Promise<BrowserSession> => {
+    const headers: Record<string, string> = {};
+    if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+    if (desktopAuthToken) headers.Authorization = `Bearer ${desktopAuthToken}`;
+    const res = await fetch('/api/v1/session/rotate', { method: 'POST', headers });
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        const current = await probeCurrentSession();
+        if (current) return current;
+      }
+      if (res.status === 401) notifySessionExpired();
+      return { authenticated: false };
+    }
+    const current = (await res.json()) as BrowserSession;
+    if (current.csrf_token) csrfToken = current.csrf_token;
+    return current;
+  })();
+  sessionRotationInFlight = pending;
+  try {
+    return await pending;
+  } finally {
+    if (sessionRotationInFlight === pending) sessionRotationInFlight = null;
+  }
 }
 
 async function refreshCSRFToken(): Promise<boolean> {
@@ -328,7 +362,18 @@ export async function request<T>(
     return request<T>(path, options, true);
   }
   if (!res.ok) {
-    if (res.status === 401) notifySessionExpired();
+    if (res.status === 401) {
+      if (!retried) {
+        // The old cookie may have become stale during concurrent rotation.
+        if (sessionRotationInFlight) {
+          await sessionRotationInFlight.catch(() => undefined);
+        }
+        if (await probeCurrentSession()) {
+          return request<T>(path, options, true);
+        }
+      }
+      notifySessionExpired();
+    }
     const errBody = (await res.json().catch(() => ({ error: res.statusText }))) as APIErrorPayload;
     throw new NexusRequestError(res.status, errBody, errBody.error || `HTTP ${res.status}`);
   }
