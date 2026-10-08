@@ -101,9 +101,10 @@ const WindowChromeMenu: React.FC<{
   );
 
   useEffect(() => {
-    skipBlurCommit.current = false;
+    // Escape discards the draft; reset the suppression when the menu reopens.
+    if (open) skipBlurCommit.current = false;
     setDraft(customTitle);
-  }, [customTitle]);
+  }, [customTitle, open]);
 
   useEffect(() => {
     if (!open) {

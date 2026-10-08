@@ -675,7 +675,7 @@ export const AgentTerminal: React.FC<{
 
       ws.onerror = () => {
         if (!disposed && !stopReconnect) {
-          lastFailureCode = 'TERMINAL_TRANSPORT_ERROR';
+          if (!lastFailureCode) lastFailureCode = 'TERMINAL_TRANSPORT_ERROR';
           setDiagnosticCode(lastFailureCode);
           setMessage(tRef.current('terminal.transportError'));
         }
@@ -1126,7 +1126,13 @@ export const AgentTerminal: React.FC<{
       )}
       {message && !showRecoverOverlay && (
         <span className="nx-terminal-message">
-          {modeAction === 'Error' ? <ShieldAlert size={12} /> : <Unplug size={12} />}
+          {connection === 'CONNECTING' ? (
+            <RefreshCw size={12} className="nx-spin-slow" />
+          ) : modeAction === 'Error' ? (
+            <ShieldAlert size={12} />
+          ) : (
+            <Unplug size={12} />
+          )}
           {message}
         </span>
       )}

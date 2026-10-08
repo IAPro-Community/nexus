@@ -410,7 +410,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     ws.onerror = () => {
       if (disposed) return;
       setConnecting(false);
-      setDiagnosticCode('TERMINAL_TRANSPORT_ERROR');
+      setDiagnosticCode((current) => current || 'TERMINAL_TRANSPORT_ERROR');
       term.options.disableStdin = true;
       setErrorMsg((current) => current || tRef.current('terminal.hostNotRunning'));
       setDisconnected(true);
