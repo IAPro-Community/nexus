@@ -4,6 +4,8 @@ export type TerminalRole = 'CONTROL' | 'VIEW_ONLY';
 
 /** Hard stop after this many failed reconnects so the UI is not stuck on "connecting". */
 export const TERMINAL_MAX_RECONNECT_ATTEMPTS = 5;
+/** A blocked WebSocket handshake must never leave CONNECTING indefinitely. */
+export const TERMINAL_CONNECT_TIMEOUT_MS = 10000;
 
 export function agentTerminalWebSocketURL(
   protocol: string,

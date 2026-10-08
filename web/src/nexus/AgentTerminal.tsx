@@ -24,6 +24,7 @@ import { nexus } from './api';
 import { getDesktopAuthToken, getDesktopWebSocketBaseUrl } from '../api';
 import {
   TERMINAL_MAX_RECONNECT_ATTEMPTS,
+  TERMINAL_CONNECT_TIMEOUT_MS,
   agentTerminalWebSocketURL,
   isFatalTerminalAttachError,
   normalizeInitialPrompt,
@@ -131,6 +132,7 @@ export const AgentTerminal: React.FC<{
     'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'
   >('CONNECTING');
   const [message, setMessage] = useState('');
+  const [diagnosticCode, setDiagnosticCode] = useState('');
   const [role, setRole] = useState<TerminalRole>('VIEW_ONLY');
   const [ptyTitle, setPtyTitle] = useState('');
   const [recovering, setRecovering] = useState(false);
@@ -220,6 +222,7 @@ export const AgentTerminal: React.FC<{
     }
     setNeedsResourceSelection(false);
     setMessage('');
+    setDiagnosticCode('');
     setConnection('CONNECTING');
     // Always bump nonce — parent may already have synced the same runtime_id,
     // so boundRuntimeId alone would not remount the WebSocket effect.
@@ -234,6 +237,7 @@ export const AgentTerminal: React.FC<{
     let terminalTraceEnabled = false;
     let reconnectAttempt = 0;
     let reconnectTimer: number | undefined;
+    let connectTimeout: number | undefined;
     let openedOnce = false;
     let stopReconnect = false;
     const roleRef: { current: TerminalRole } = { current: 'VIEW_ONLY' };
@@ -241,6 +245,7 @@ export const AgentTerminal: React.FC<{
     // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
     const protocolScrubber = new ProtocolScrubber();
     let lastError = '';
+    let lastFailureCode = '';
     let termInstance: Terminal | null = null;
     const redrawTimers: number[] = [];
     let openFrame: number | undefined;
@@ -447,6 +452,12 @@ export const AgentTerminal: React.FC<{
 
     const failPermanently = (detail?: string) => {
       stopReconnect = true;
+      setDiagnosticCode(lastFailureCode || 'TERMINAL_ATTACH_FAILED');
+      console.warn('[nexus:terminal]', JSON.stringify({
+        event: 'terminal.attach.failed', phase: 'TRANSPORT',
+        code: lastFailureCode || 'TERMINAL_ATTACH_FAILED', agentId,
+        runtimeId: boundRuntimeId, reconnectAttempts: reconnectAttempt,
+      }));
       if (reconnectTimer !== undefined) {
         window.clearTimeout(reconnectTimer);
         reconnectTimer = undefined;
@@ -491,6 +502,8 @@ export const AgentTerminal: React.FC<{
       setConnection('CONNECTING');
       if (!openedOnce) setMessage('');
       lastError = '';
+      lastFailureCode = '';
+      term.options.disableStdin = true;
 
       const previous = wsRef.current;
       if (previous) {
@@ -524,10 +537,29 @@ export const AgentTerminal: React.FC<{
         agentTerminalWebSocketURL(wsProto, wsHost, agentId, boundRuntimeId, token),
       );
       wsRef.current = ws;
+      connectTimeout = window.setTimeout(() => {
+        if (disposed || stopReconnect || ws.readyState !== WebSocket.CONNECTING) return;
+        lastFailureCode = 'TERMINAL_CONNECT_TIMEOUT';
+        lastError = tRef.current('terminal.connectTimeout', {
+          defaultValue: 'Tempo limite excedido ao conectar o terminal.',
+        });
+        setDiagnosticCode(lastFailureCode);
+        console.warn('[nexus:terminal]', JSON.stringify({
+          event: 'terminal.connect.timeout', phase: 'TRANSPORT', code: lastFailureCode,
+          agentId, runtimeId: boundRuntimeId, reconnectAttempt,
+          timeoutMs: TERMINAL_CONNECT_TIMEOUT_MS,
+        }));
+        ws.close();
+      }, TERMINAL_CONNECT_TIMEOUT_MS);
       roleRef.current = 'VIEW_ONLY';
       setRole('VIEW_ONLY');
 
       ws.onopen = () => {
+        if (connectTimeout !== undefined) window.clearTimeout(connectTimeout);
+        connectTimeout = undefined;
+        term.options.disableStdin = false;
+        lastFailureCode = '';
+        setDiagnosticCode('');
         openedOnce = true;
         setRecovering(false);
         setConnection('CONNECTED');
@@ -643,11 +675,16 @@ export const AgentTerminal: React.FC<{
 
       ws.onerror = () => {
         if (!disposed && !stopReconnect) {
+          lastFailureCode = 'TERMINAL_TRANSPORT_ERROR';
+          setDiagnosticCode(lastFailureCode);
           setMessage(tRef.current('terminal.transportError'));
         }
       };
 
       ws.onclose = () => {
+        if (connectTimeout !== undefined) window.clearTimeout(connectTimeout);
+        connectTimeout = undefined;
+        term.options.disableStdin = true;
         if (wsRef.current === ws) wsRef.current = null;
         if (disposed || stopReconnect) return;
         // Release any buffered split-line tail: the stream ended here and a
@@ -727,6 +764,7 @@ export const AgentTerminal: React.FC<{
       disposed = true;
       stopReconnect = true;
       if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
+      if (connectTimeout !== undefined) window.clearTimeout(connectTimeout);
       if (openFrame !== undefined) window.cancelAnimationFrame(openFrame);
       if (flushFrame !== undefined) window.cancelAnimationFrame(flushFrame);
       if (outputFrame !== undefined) window.cancelAnimationFrame(outputFrame);
@@ -1024,7 +1062,10 @@ export const AgentTerminal: React.FC<{
           className="nx-agent-terminal__mode"
           data-active={selectedMode === m ? 'true' : 'false'}
           onClick={() => requestModeChange(m)}
-          disabled={!onRestartWithMode || modeAction === 'Applying' || modeAction === 'Restarting'}
+          disabled={
+            !onRestartWithMode || connection === 'CONNECTING' || recovering ||
+            modeAction === 'Applying' || modeAction === 'Restarting'
+          }
           title={t('terminal.switchMode', { mode: m })}
         >
           {m}
@@ -1072,7 +1113,7 @@ export const AgentTerminal: React.FC<{
             {t('agents.viewOnlyLabel')}
           </span>
           <Tooltip content={t('terminal.takeControlTooltip')}>
-            <button type="button" className="nx-agent-terminal__ask-btn" onClick={takeControl}>
+            <button type="button" className="nx-agent-terminal__ask-btn" disabled={connection !== 'CONNECTED'} onClick={takeControl}>
               {t('terminal.takeControl')}
             </button>
           </Tooltip>
@@ -1438,6 +1479,13 @@ export const AgentTerminal: React.FC<{
               : t('terminal.recoverNoticeStopped')}
           </p>
           {message && connection === 'ERROR' && <p className={styles.errorMessage}>{message}</p>}
+          {diagnosticCode && connection === 'ERROR' && (
+            <details className={styles.errorMessage}>
+              <summary>{t('terminal.diagnosticDetails', { defaultValue: 'Detalhes técnicos' })}</summary>
+              <code>{diagnosticCode}</code>
+              <p>{t('terminal.runtimeId', { defaultValue: 'Runtime' })}: {boundRuntimeId || '—'}</p>
+            </details>
+          )}
           {needsResourceSelection && (
             <div className={styles.resourcePickerWrapper}>
               <ResourcePicker
@@ -1462,7 +1510,9 @@ export const AgentTerminal: React.FC<{
               type="button"
               className={`nx-button ${styles.actionButtonContent}`}
               title={t('terminal.reconnectWsTooltip')}
+              disabled={recovering || connection === 'CONNECTING'}
               onClick={() => {
+                setDiagnosticCode('');
                 setMessage(t('terminal.reconnectingTransport'));
                 setConnection('CONNECTING');
                 if (

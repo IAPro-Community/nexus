@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   TERMINAL_MAX_RECONNECT_ATTEMPTS,
+  TERMINAL_CONNECT_TIMEOUT_MS,
   agentTerminalWebSocketURL,
   isFatalTerminalAttachError,
   isLiveRuntimeState,
@@ -56,6 +57,8 @@ describe('Agent terminal model', () => {
     expect(terminalReconnectDelay(1)).toBe(500);
     expect(terminalReconnectDelay(8)).toBe(3000);
     expect(TERMINAL_MAX_RECONNECT_ATTEMPTS).toBeGreaterThan(0);
+    expect(TERMINAL_CONNECT_TIMEOUT_MS).toBeGreaterThan(0);
+    expect(TERMINAL_CONNECT_TIMEOUT_MS).toBeLessThanOrEqual(15000);
   });
   it('normalizes a direct-session kickoff prompt exactly once-ready for terminal input', () => {
     expect(normalizeInitialPrompt('  fix the failing tests  ')).toBe('fix the failing tests\n');
