@@ -13,11 +13,9 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
-const (
-	terminalTraceEnv = "NEXUS_TERMINAL_TRACE"
-	terminalTraceMaxFileBytes int64 = 8 << 20 // 8 MiB per runtime; opt-in traces must remain bounded.
-	terminalTraceMaxShapeBytes = 2048
-)
+const terminalTraceEnv = "NEXUS_TERMINAL_TRACE"
+const terminalTraceMaxFileBytes int64 = 8 << 20 // 8 MiB per runtime.
+const terminalTraceMaxShapeBytes = 2048
 
 var terminalTraceMu sync.Mutex
 
