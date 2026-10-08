@@ -181,10 +181,14 @@ New-Item -ItemType Directory -Force -Path $TestHome | Out-Null
 
 $SavedEnv = @{}
 foreach ($Name in @(
-  'HOME','USERPROFILE','APPDATA','LOCALAPPDATA','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_CACHE_HOME',
+  'HOME','USERPROFILE','TEMP','TMP','APPDATA','LOCALAPPDATA','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_CACHE_HOME',
   'NEXUS_DATA_DIR','AI_MANAGER_DATA_DIR','AI_CLI_DATA_DIR',
   'NEXUS_CONFIG_DIR','AI_MANAGER_CONFIG_DIR','AI_CLI_CONFIG_DIR',
   'NEXUS_STATE_DIR','AI_MANAGER_STATE_DIR','AI_CLI_STATE_DIR','CODEX_HOME',
+  'GIT_DIR','GIT_WORK_TREE','GIT_COMMON_DIR','GIT_INDEX_FILE','GIT_OBJECT_DIRECTORY',
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES','GIT_CEILING_DIRECTORIES','GIT_PREFIX',
+  'GIT_CONFIG','GIT_CONFIG_GLOBAL','GIT_CONFIG_SYSTEM','GIT_CONFIG_COUNT',
+  'GIT_CONFIG_NOSYSTEM','GIT_PAGER','GIT_TERMINAL_PROMPT','GIT_OPTIONAL_LOCKS',
   'GOPATH','GOMODCACHE','GOCACHE'
 )) {
   $SavedEnv[$Name] = [Environment]::GetEnvironmentVariable($Name, 'Process')
@@ -196,12 +200,16 @@ $ExistingGoCache = (go env GOCACHE).Trim()
 
 $env:HOME = $TestHome
 $env:USERPROFILE = $TestHome
+$env:TEMP = Join-Path $TestHome 'Temp'
+$env:TMP = $env:TEMP
 $env:APPDATA = Join-Path $TestHome 'AppData/Roaming'
 $env:LOCALAPPDATA = Join-Path $TestHome 'AppData/Local'
 $env:XDG_CONFIG_HOME = Join-Path $TestHome '.config'
 $env:XDG_DATA_HOME = Join-Path $TestHome '.local/share'
 $env:XDG_CACHE_HOME = Join-Path $TestHome '.cache'
 $env:CODEX_HOME = Join-Path $TestHome '.codex'
+
+New-Item -ItemType Directory -Force -Path $env:TEMP | Out-Null
 
 # Tests commonly override AI_CLI_* inside each fixture. Higher-precedence
 # Nexus/AI_MANAGER variables must not mask those per-test temporary dirs.
@@ -211,6 +219,17 @@ foreach ($Name in @(
 )) {
   Remove-Item "Env:$Name" -ErrorAction SilentlyContinue
 }
+foreach ($Name in @(
+  'GIT_DIR','GIT_WORK_TREE','GIT_COMMON_DIR','GIT_INDEX_FILE','GIT_OBJECT_DIRECTORY',
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES','GIT_CEILING_DIRECTORIES','GIT_PREFIX',
+  'GIT_CONFIG','GIT_CONFIG_GLOBAL','GIT_CONFIG_SYSTEM','GIT_CONFIG_COUNT'
+)) {
+  Remove-Item "Env:$Name" -ErrorAction SilentlyContinue
+}
+$env:GIT_CONFIG_NOSYSTEM = '1'
+$env:GIT_PAGER = 'cat'
+$env:GIT_TERMINAL_PROMPT = '0'
+$env:GIT_OPTIONAL_LOCKS = '0'
 $env:AI_CLI_DATA_DIR = Join-Path $TestHome 'nexus-data'
 $env:AI_CLI_CONFIG_DIR = Join-Path $TestHome 'nexus-config'
 $env:AI_CLI_STATE_DIR = Join-Path $TestHome 'nexus-state'

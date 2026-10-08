@@ -5188,3 +5188,11 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - `bun scripts/docs-verify.mjs` falhou: o manifesto público está ancorado em 2892f301, há mudanças visuais posteriores em HEAD e mudanças visuais não commitadas.
 - O refresh Windows oficial exige checkout limpo e SHA exato, captura novamente as telas, valida `manifest.source_sha` e orienta commit somente dos artefatos; depois é necessário repetir a homologação.
 - Próximo passo autorizado: congelar código/documentos, executar refresh em SHA limpo, registrar as capturas, repetir todos os gates Windows no candidato final. Distribuição continua NO-GO até docs/CI/assinatura/installer fecharem.
+
+## Continuidade Windows — timeout de identidade Git — 2026-10-08
+
+- O conjunto Go no SHA local `c8d3ac9b` travou em `TestResolveComposerUnknown`, aguardando `git rev-parse --is-inside-work-tree` no snapshot de identidade do contexto.
+- `gitOutput` agora limita cada subprocesso Git a 5 s e retorna identidade incompleta, sem afirmar estado limpo, se o comando exceder o prazo. `commandOutput` usa `WaitDelay` para fechar a espera por pipes.
+- O homologador isola `TEMP`/`TMP` e remove configuração ambiental Git herdada durante `go test`; preserva e restaura as variáveis do processo e reutiliza caches Go.
+- PASS exploratório no Windows AMD64: teste de deadline (`TestCommandOutputHonorsDeadline`), pacote `internal/nexus/contextsnapshot` completo e `go test -count=1 -timeout=5m ./internal/nexus` (90,569 s).
+- A homologação integral no SHA final está pendente; os testes acima foram executados antes do commit e não são evidência de fechamento.

@@ -1,11 +1,14 @@
 package contextsnapshot
 
 import (
+	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func gitTestCommand(t *testing.T, root string, args ...string) {
@@ -13,6 +16,28 @@ func gitTestCommand(t *testing.T, root string, args ...string) {
 	command := exec.Command("git", append([]string{"-C", root}, args...)...)
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("git %v: %v (%s)", args, err, output)
+	}
+}
+
+func TestCommandOutputBlockingHelper(t *testing.T) {
+	if os.Getenv("NEXUS_CONTEXTSNAPSHOT_TEST_BLOCK") == "1" {
+		select {}
+	}
+}
+
+func TestCommandOutputHonorsDeadline(t *testing.T) {
+	t.Setenv("NEXUS_CONTEXTSNAPSHOT_TEST_BLOCK", "1")
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestCommandOutputBlockingHelper$")
+
+	started := time.Now()
+	_, err := commandOutput(ctx, command)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("command error=%v, want context deadline exceeded", err)
+	}
+	if elapsed := time.Since(started); elapsed > 2*time.Second {
+		t.Fatalf("command took %s after its 100ms deadline", elapsed)
 	}
 }
 
