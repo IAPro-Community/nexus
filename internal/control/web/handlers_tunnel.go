@@ -32,6 +32,67 @@ type tunnelManager struct {
 	starting    bool
 }
 
+// trackTunnelExit ensures that an old cloudflared process cannot invalidate
+// a newer tunnel generation's authentication when it exits asynchronously.
+func (s *Server) trackTunnelExit(tunnel *Tunnel) {
+	tunnel.OnExit = func() {
+		tm := s.tunnelManager()
+		tm.mu.Lock()
+		owned := tm.tunnel == tunnel
+		if owned {
+			tm.tunnel = nil
+			tm.cancel = nil
+		}
+		tm.mu.Unlock()
+		if owned {
+			if host := extractTunnelHost(tunnel.URL); host != "" {
+				originpolicy.UnregisterTunnelHost(host)
+			}
+			s.auth.SetTunnelActive(false)
+		}
+	}
+}
+
+// AttachExternalTunnel makes CLI-started tunnels visible in the same status,
+// invite, stop, and cleanup flow as tunnels launched from Settings.
+func (s *Server) AttachExternalTunnel(tunnel *Tunnel) error {
+	if tunnel == nil || extractTunnelHost(tunnel.URL) == "" ||
+		extractTunnelHost(tunnel.URL) != s.tunnelHost || !s.auth.IsTunnelActive() {
+		return fmt.Errorf("external tunnel does not match the active server hostname")
+	}
+	tm := s.tunnelManager()
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+	if tm.tunnel != nil && !tm.tunnel.stopped {
+		return fmt.Errorf("another tunnel is already active")
+	}
+	tm.tunnel = tunnel
+	tm.cancel = tunnel.cancel
+	s.trackTunnelExit(tunnel)
+	return nil
+}
+
+// NewTunnelInviteURL issues a fresh host-bound authorization link after the
+// public tunnel has been registered, independent of server bootstrap age.
+func (s *Server) NewTunnelInviteURL() (string, string, error) {
+	tm := s.tunnelManager()
+	tm.mu.Lock()
+	active := tm.tunnel != nil && !tm.tunnel.stopped
+	url := ""
+	if active {
+		url = tm.tunnel.URL
+	}
+	tm.mu.Unlock()
+	if !active || url == "" {
+		return "", "", fmt.Errorf("no active tunnel")
+	}
+	token, err := s.auth.IssueTunnelInvitation(extractTunnelHost(url))
+	if err != nil {
+		return "", "", err
+	}
+	return url, url + "/#nexus_bootstrap=" + token, nil
+}
+
 func (s *Server) handleTunnelStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -122,24 +183,7 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	}
 	s.auth.SetTunnelActive(true)
 
-	tunnel.OnExit = func() {
-		tm := s.tunnelManager()
-		tm.mu.Lock()
-		// An old cloudflared process may exit after a newer tunnel has
-		// started. It must not disarm that new tunnel's authentication.
-		ownsActiveTunnel := tm.tunnel == tunnel
-		if ownsActiveTunnel {
-			tm.tunnel = nil
-			tm.cancel = nil
-		}
-		tm.mu.Unlock()
-		if ownsActiveTunnel {
-			if host := extractTunnelHost(tunnel.URL); host != "" {
-				originpolicy.UnregisterTunnelHost(host)
-			}
-			s.auth.SetTunnelActive(false)
-		}
-	}
+	s.trackTunnelExit(tunnel)
 
 	readyCtx, readyCancel := context.WithTimeout(ctx, 60*time.Second)
 	defer readyCancel()
@@ -243,19 +287,7 @@ func (s *Server) handleTunnelQR(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tm := s.tunnelManager()
-	tm.mu.Lock()
-	active := tm.tunnel != nil && !tm.tunnel.stopped
-	tunnelURL := ""
-	if active {
-		tunnelURL = tm.tunnel.URL
-	}
-	tm.mu.Unlock()
-	if !active || tunnelURL == "" {
-		writeError(w, http.StatusNotFound, "no active tunnel")
-		return
-	}
-	token, err := s.auth.IssueTunnelInvitation(extractTunnelHost(tunnelURL))
+	tunnelURL, bootstrapURL, err := s.NewTunnelInviteURL()
 	if err != nil {
 		writeError(w, http.StatusConflict, "unable to generate invitation: "+err.Error())
 		return
@@ -263,7 +295,7 @@ func (s *Server) handleTunnelQR(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, map[string]any{
 		"url": tunnelURL,
-		"bootstrap_url": tunnelURL + "/#nexus_bootstrap=" + token,
+		"bootstrap_url": bootstrapURL,
 		"expires_in_seconds": int(remoteBootstrapTTL.Seconds()),
 	})
 }
