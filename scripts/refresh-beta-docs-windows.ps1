@@ -41,7 +41,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "==> Ensure Playwright Chromium"
 Push-Location web
 try {
-  bunx playwright install chromium
+  bun x playwright install chromium
   if ($LASTEXITCODE -ne 0) {
     throw "Playwright Chromium installation failed"
   }
