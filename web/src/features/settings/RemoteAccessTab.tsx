@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Copy, Globe, RefreshCw, Smartphone, Wifi, WifiOff } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Button, Card, InlineAlert } from '../../design-system';
@@ -12,6 +12,9 @@ export const RemoteAccessTab: React.FC = () => {
   const { t } = useTranslation();
   const [status, setStatus] = useState<TunnelStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const startAttempt = useRef(0);
   const [error, setError] = useState('');
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState<{
@@ -38,34 +41,51 @@ export const RemoteAccessTab: React.FC = () => {
   }, [refresh]);
 
   const handleStart = useCallback(async () => {
+    const attempt = ++startAttempt.current;
+    setConnecting(true);
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setError('');
       const s = await nexus.startTunnel();
+      // A pending request may resolve after the user has canceled it.
+      if (startAttempt.current !== attempt) return;
       setStatus(s);
       setShowQR(false);
       setQrData(null);
       if (s.error) setError(s.error);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('settings.remote.errors.start'));
+      if (startAttempt.current === attempt) {
+        setError(e instanceof Error ? e.message : t('settings.remote.errors.start'));
+      }
     } finally {
-      setLoading(false);
+      if (startAttempt.current === attempt) {
+        setConnecting(false);
+        setLoading(false);
+      }
     }
   }, [t]);
 
   const handleStop = useCallback(async () => {
+    // Invalidate an in-flight start response before sending Stop. Otherwise
+    // a late startup completion could mark an already stopped tunnel active.
+    startAttempt.current++;
+    setConnecting(false);
+    setCancelling(true);
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setError('');
       await nexus.stopTunnel();
       setStatus((prev) =>
-        prev ? { ...prev, active: false, url: undefined, bootstrap_url: undefined } : null,
+        prev
+          ? { ...prev, active: false, starting: false, url: undefined, bootstrap_url: undefined }
+          : null,
       );
       setShowQR(false);
       setQrData(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('settings.remote.errors.stop'));
     } finally {
+      setCancelling(false);
       setLoading(false);
     }
   }, [t]);
@@ -95,6 +115,7 @@ export const RemoteAccessTab: React.FC = () => {
   }, [showQR, generateInvite]);
 
   const active = status?.active ?? false;
+  const starting = connecting || (status?.starting ?? false);
   const installed = status?.cloudflared_installed ?? false;
 
   return (
@@ -150,10 +171,19 @@ export const RemoteAccessTab: React.FC = () => {
             </>
           ) : (
             <div className={styles.tunnelActions}>
-              <Button tone="brand" onClick={handleStart} disabled={loading}>
-                <Wifi size={14} />
-                {loading ? t('settings.remote.starting') : t('settings.remote.activate')}
-              </Button>
+              {starting ? (
+                <Button tone="danger" onClick={handleStop} disabled={cancelling}>
+                  <WifiOff size={14} />
+                  {cancelling
+                    ? t('settings.remote.stopping')
+                    : t('settings.remote.cancelStart', { defaultValue: 'Cancelar conexão' })}
+                </Button>
+              ) : (
+                <Button tone="brand" onClick={handleStart} disabled={loading}>
+                  <Wifi size={14} />
+                  {t('settings.remote.activate')}
+                </Button>
+              )}
 
               <Button tone="ghost" onClick={refresh} disabled={loading}>
                 <RefreshCw size={14} />
