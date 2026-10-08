@@ -1,5 +1,33 @@
 # Handoff
 
+## Próxima ação — fechamento Windows beta.7 — 2026-10-07
+
+Checkout: release/v1.0.0, HEAD-base 52f35c04181b85379219ab55fc3192c63a5440a8, VERSION 1.0.0-beta.7. A árvore continua dirty, portanto os gates desta rodada validam o worktree baseado nesse SHA, não um SHA congelado.
+
+No Windows passaram go fmt, vet, govulncheck, golangci-lint e go test completo. O smoke Desktop/HUD passou com IDs isolados de teste e perfis separados em LOCALAPPDATA; o reteste atual manteve Wails/WebView2 por 10s e restringiu cleanup ao perfil do Nexus. O workflow YAML e o script PowerShell foram parseados. Web quality e oito E2E passaram na rodada anterior; o último ajuste foi apenas no script PowerShell.
+
+Auditoria viva das refs remotas: não há branch Beta 7 nova; KIVER (d14154d2) é ancestral de release/v1.0.0 (52f35c04). As branches beta7 protocol-p0, trace-diagnostics e final-boundary têm commits exclusivos no grafo, mas as regressões relevantes já estão cobertas na release; autopilot é evidência documental antiga. Também revisei codex/windows-beta6-convergence (5 commits exclusivos, branch anterior): startup Wails, API same-origin/WebSocket, runtime inativo e resolução .cmd estão na release. O ConPTY padrão dessa branch foi deliberadamente revertido por cc6400db; ConPTY opt-in passou no teste interativo Windows. Nenhuma integração é recomendada. Retestes direcionados Windows passaram: host/runtime Go, 28 testes Vitest de terminalInput e TestWindowsBackendInteractiveConPTYOptIn.
+
+Próxima ação: congelar o candidato em SHA imutável, rodar scripts/refresh-beta-docs-windows.ps1 em checkout limpo, revisar e commit dos artefatos visuais e repetir homologate-beta.ps1 no SHA final. O gate docs-verify falha agora por manifesto visual stale desde 2892f301. Depois, executar CI Windows exact-SHA quando houver runner, provisionar Authenticode/NEXUS_UPDATE_PUBLIC_KEY e fazer smoke do instalador exato em perfil descartável. O NSIS atual já compilou e a variante isolada com payload real passou install/uninstall. Até CI/assinatura e validação do instalador exato fecharem, manter tag e publicação ausentes. Escopo Windows-only.
+
+## Continuidade Windows — correção local do Path do instalador — 2026-10-07
+
+HEAD local/remoto: `52f35c04181b85379219ab55fc3192c63a5440a8`; `VERSION` é `1.0.0-beta.7`. Foi aplicado, sem commit, um patch em `packaging/windows/nexus.nsi` e `internal/release/installer_test.go` para restaurar valor, tipo `REG_SZ`/`REG_EXPAND_SZ` e ausência original de `HKCU\Environment\Path`.
+
+Verificação: `go test -count=1 ./internal/release` PASS no checkout real; smoke NSIS 3.13 isolado 5/5 PASS; full Go test, vet e golangci-lint passaram no worktree isolado com o mesmo patch. A fixture tinha payload fictício; o instalador final com payload real não foi reconstruído nem assinado.
+
+Próxima ação: disponibilizar runner Windows exact-SHA e assinatura Authenticode/trust root; então gerar e validar o instalador final no SHA imutável. Até lá, não há tag beta.7 nem distribuição autorizada pelo estado de release.
+
+## Continuidade de homologação Windows beta.7 — 2026-10-07
+
+Candidate de código: release/v1.0.0 em 52f35c04181b85379219ab55fc3192c63a5440a8; o remoto confirma o mesmo SHA. VERSION é 1.0.0-beta.7. Go fmt/vet/govulncheck/golangci-lint/go test, Bun quality:full, oito suítes E2E, builds CLI/Desktop/HUD e smokes locais passaram no Windows nesse SHA.
+
+A correção NSIS e a expectativa de teste foram enviadas em 9a23e9ef e 52f35c04. O smoke NSIS local passou na fonte revisada; durante a desinstalação o texto de Path foi restaurado, mas o tipo foi normalizado de REG_SZ para REG_EXPAND_SZ. O smoke com o mesmo nexus.nsi não foi repetido depois do commit somente de teste porque makensis.exe não está mais disponível no host.
+
+**Próxima ação Windows:** disponibilizar runner self-hosted Windows AMD64 com labels Windows, X64 e nexus-windows; configurar certificado/secrets no ambiente native-signing e a NEXUS_UPDATE_PUBLIC_KEY exigida pelo build; executar o run nativo 37666126714 e verificar assinatura e instalador assinado. Antes do GO de distribuição, revisar também a normalização do tipo Path. O run está queued e o único runner cadastrado é Linux/offline.
+
+Os executáveis locais e checksums estão na pasta outputs/windows-revalidation-52f35c04; Authenticode é NotSigned e a trust root de atualização não foi configurada. Não criar tag nem publicar até fechar os gates de assinatura e runner. Relatório: DEV/validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md. Esta continuação foi Windows-only; não executou gates Linux.
+
 ## Homologação Linux beta.7 PASS — 2026-09-30
 
 SHA validado: `6bf1b9fef578822d2be9d542409a44a2e154ed96`.
@@ -2192,3 +2220,11 @@ plano privado; merge exige maintainer e checklist manual. A tag remota
 `v1.0.0-beta.1` ainda aponta para `cf2eb41` e só deve ser recriada após CI verde
 na `main`. `make docs-verify` permanece bloqueado por manifesto visual stale
 preexistente, fora do escopo desta correção de estabilização.
+
+## Handoff atual — homologação Windows beta.7 — 2026-10-07
+
+Project Hub validado em 775×483. Gate web completo, oito suítes Playwright e builds/smokes locais CLI/Desktop/HUD passaram no worktree baseado em 52f35c04. Evidências e hashes estão em outputs/windows-e2e-layout-52f35c04-dirty-20261007 e outputs/windows-final-artifacts-52f35c04-dirty-20261007.
+
+Não declarar fechamento: o SHA pedido era d14154d2490dfdd3966c7fddc990a1d9127edd39; release/v1.0.0 e origin estão em 52f35c04181b85379219ab55fc3192c63a5440a8 e o worktree está dirty. Binários NotSigned e sem update trust root. O run Actions 37666126714 não foi revalidado (API anônima 404), e o instalador final não foi recompilado. A tag remota Beta 7 está ausente.
+
+A auditoria ao vivo não encontrou branch Beta 7 nova; a branch KIVER é ancestral da release. Quatro branches de terminal/testes com commits exclusivos permanecem para triagem. Nenhuma integração, commit, push, tag ou publicação foi feita. A certificação oficial precisa ocorrer num SHA imutável após seleção das mudanças e fechamento do runner/signing Windows.

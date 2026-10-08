@@ -11,6 +11,8 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
+var desktopSingleInstanceID = "com.iapro.nexus.desktop"
+
 func main() {
 	// Detached SessionHost workers reuse the current executable. Dispatch the
 	// internal host command before Wails startup so the Desktop binary can
@@ -43,10 +45,13 @@ func main() {
 		Services:    []application.Service{application.NewService(desktopApp)},
 		Assets:      application.AssetOptions{Handler: backend.Handler, DisableLogging: true},
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "com.iapro.nexus.desktop",
+			UniqueID: desktopSingleInstanceID,
 		},
-		Mac:     application.MacOptions{ApplicationShouldTerminateAfterLastWindowClosed: false},
-		Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: true},
+		Mac: application.MacOptions{ApplicationShouldTerminateAfterLastWindowClosed: false},
+		Windows: application.WindowsOptions{
+			DisableQuitOnLastWindowClosed: true,
+			WebviewUserDataPath:           desktop.WindowsWebviewUserDataPath("desktop"),
+		},
 		Linux: application.LinuxOptions{
 			DisableQuitOnLastWindowClosed: true,
 			ProgramName:                   "nexus-desktop",

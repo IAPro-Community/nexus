@@ -658,8 +658,17 @@ func TestNativeReleaseChainIsFailClosed(t *testing.T) {
 	}
 
 	for _, required := range []string{
+		"Function CaptureOriginalUserPath",
+		"Call CaptureOriginalUserPath",
 		"Function un.RemoveFromUserPath",
 		"Call un.RemoveFromUserPath",
+		"UserPathOriginalExists",
+		"UserPathOriginalType",
+		"UserPathMetadataVersion",
+		"RegQueryValueExW",
+		"WriteRegStr HKCU \"Environment\" \"Path\" \"$0\"",
+		"WriteRegExpandStr HKCU \"Environment\" \"Path\" \"$0\"",
+		"DeleteRegValue HKCU \"Environment\" \"Path\"",
 		"QuietUninstallString",
 		"File /nonfatal \"payload\\nexus-hud.exe\"",
 		"Delete \"$INSTDIR\\nexus-hud.exe\"",

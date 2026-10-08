@@ -700,28 +700,49 @@ jobs:
           } finally {
             Remove-Item $pfx -Force -ErrorAction SilentlyContinue
           }
+      - name: Native Windows Desktop and WebView2 launch smoke
+        shell: pwsh
+        env:
+          TARGET_SHA: ${{ inputs.native_target_sha }}
+          APPDATA: ${{ runner.temp }}\nexus-desktop-windows-smoke\appdata
+          LOCALAPPDATA: ${{ runner.temp }}\nexus-desktop-windows-smoke\localappdata
+          NEXUS_DATA_DIR: ${{ runner.temp }}\nexus-desktop-windows-smoke\data
+          AI_MANAGER_DATA_DIR: ${{ runner.temp }}\nexus-desktop-windows-smoke\data
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP "native-windows"
+          $desktopExe = Join-Path $out "nexus-desktop-smoke.exe"
+          go build -buildvcs=false -tags production -ldflags "-X main.desktopSingleInstanceID=com.iapro.nexus.desktop.windows-smoke" -o $desktopExe ./cmd/nexus-desktop
+          if ($LASTEXITCODE -ne 0) { throw "Nexus Desktop smoke build failed" }
+          $evidence = Join-Path $out "nexus-desktop-windows-smoke.txt"
+          & .\scripts\smoke-desktop-windows.ps1 -DesktopExe $desktopExe -TargetSha $env:TARGET_SHA -EvidencePath $evidence
       - name: Native Windows HUD launch smoke
         shell: pwsh
         env:
           TARGET_SHA: ${{ inputs.native_target_sha }}
           NEXUS_ENABLE_HUD: "1"
           NEXUS_DATA_DIR: ${{ runner.temp }}\nexus-hud-windows-smoke
+          LOCALAPPDATA: ${{ runner.temp }}\nexus-hud-windows-smoke\localappdata
         run: |
           $out = Join-Path $env:RUNNER_TEMP "native-windows"
-          $hudExe = Get-ChildItem cmd/nexus-hud/build/bin -Filter *.exe | Select-Object -First 1
-          if (-not $hudExe) { throw "Nexus HUD Windows executable not found" }
+          $hudExe = Join-Path $out "nexus-hud-smoke.exe"
+          go build -buildvcs=false -tags production -ldflags "-X main.hudSingleInstanceID=com.iapro.nexus.hud.windows-smoke" -o $hudExe ./cmd/nexus-hud
+          if ($LASTEXITCODE -ne 0) { throw "Nexus HUD smoke build failed" }
           $stdout = Join-Path $out "nexus-hud-windows-smoke.stdout.log"
           $stderr = Join-Path $out "nexus-hud-windows-smoke.stderr.log"
           $evidence = Join-Path $out "nexus-hud-windows-smoke.txt"
-          $proc = Start-Process -FilePath $hudExe.FullName -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+          $proc = Start-Process -FilePath $hudExe -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
           try {
             Start-Sleep -Seconds 8
             if ($proc.HasExited) { throw "Nexus HUD exited during Windows native smoke" }
+            $webviewUserDataPath = Join-Path $env:LOCALAPPDATA "IAPro\Nexus\hud\WebView2"
+            if (-not (Test-Path -LiteralPath $webviewUserDataPath -PathType Container)) { throw "Nexus HUD WebView2 user data folder was not created" }
             @(
               "sha=$env:TARGET_SHA"
               "pid=$($proc.Id)"
               "platform=windows"
               "status=PASS"
+              "webview2_userdata=$webviewUserDataPath"
             ) | Out-File -Encoding utf8 $evidence
           } finally {
             if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }

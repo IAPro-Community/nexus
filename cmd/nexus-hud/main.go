@@ -11,6 +11,8 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
+var hudSingleInstanceID = "com.iapro.nexus.hud"
+
 func main() {
 	// HUD can also be the binary that spawned a detached SessionHost. Handle
 	// the internal worker command before creating the Wails surface.
@@ -46,13 +48,16 @@ func main() {
 		},
 		Assets: application.AssetOptions{Handler: backend.Handler, DisableLogging: true},
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "com.iapro.nexus.hud",
+			UniqueID: hudSingleInstanceID,
 		},
 		Mac: application.MacOptions{
 			ActivationPolicy: application.ActivationPolicyAccessory,
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
-		Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: true},
+		Windows: application.WindowsOptions{
+			DisableQuitOnLastWindowClosed: true,
+			WebviewUserDataPath:           desktop.WindowsWebviewUserDataPath("hud"),
+		},
 		Linux: application.LinuxOptions{
 			DisableQuitOnLastWindowClosed: true,
 			ProgramName:                   "nexus-hud",

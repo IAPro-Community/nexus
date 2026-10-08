@@ -26,7 +26,6 @@ console.log('1. Rebuilding nexus binary from the current checkout...');
 ensureNexusBinary(repoRoot);
 assert.ok(existsSync(binPath), 'current-checkout nexus binary must exist after build');
 
-
 async function main() {
   console.log('2. Starting Nexus Web Server on ephemeral port (--port 0)...');
   const isolatedDataDir =
@@ -95,7 +94,9 @@ async function main() {
         // Do NOT resolve from stdout alone — it lacks the #nexus_bootstrap
         // hash fragment that initSession() needs. Wait for `nexus web url`
         // to provide the full URL with the bootstrap token.
-        console.log(`  (stdout bootstrap URL detected, waiting for nexus web url for hash token...)`);
+        console.log(
+          `  (stdout bootstrap URL detected, waiting for nexus web url for hash token...)`,
+        );
       }
     });
 
@@ -121,13 +122,29 @@ async function main() {
 
   try {
     await portPromise;
-    console.log(`Server bound successfully! Bootstrap URL: ${bootstrapUrl}`);
+    const redactedBootstrapUrl = bootstrapUrl.replace(
+      /#nexus_bootstrap=[a-f0-9]+/i,
+      '#nexus_bootstrap=[REDACTED]',
+    );
+    console.log(`Server bound successfully! Bootstrap URL: ${redactedBootstrapUrl}`);
 
     console.log('3. Launching headless browser...');
+    const browserExecutable =
+      process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
+      (process.platform === 'win32'
+        ? 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+        : existsSync('/usr/bin/google-chrome')
+          ? '/usr/bin/google-chrome'
+          : undefined);
     browser = await chromium.launch({
-      executablePath: existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined,
+      executablePath:
+        browserExecutable && existsSync(browserExecutable) ? browserExecutable : undefined,
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+      ],
     });
 
     const viewports = [
@@ -175,7 +192,7 @@ async function main() {
       // Rejection surfaces at the await below; this only marks it handled.
     });
 
-    console.log(`Navigating to ${bootstrapUrl}...`);
+    console.log(`Navigating to ${redactedBootstrapUrl}...`);
     const mainResponse = await page.goto(bootstrapUrl, {
       waitUntil: 'domcontentloaded',
       timeout: 15000,
@@ -196,15 +213,153 @@ async function main() {
     assert.equal(projectsResponse.status(), 200, 'project list must be available after bootstrap');
     let projects = await projectsResponse.json();
     if (!Array.isArray(projects) || projects.length === 0) {
-      const sessionResponse = await context.request.get(`${apiOrigin}/api/v1/session`);
-      assert.equal(sessionResponse.status(), 200, 'session must be available after bootstrap');
-      const session = await sessionResponse.json();
-      assert.ok(session.csrf_token, 'browser E2E fixture needs a CSRF token');
-      const createResponse = await context.request.post(`${apiOrigin}/api/v1/projects`, {
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': session.csrf_token },
-        data: { name: 'Browser E2E Fixture', path: isolatedProjectPath },
+      console.log(
+        '3.1. Testing Project Hub error layout at the Windows WebView minimum viewport...',
+      );
+      await page.setViewportSize({ width: 775, height: 483 });
+      const createCard = page.getByTestId('project-hub-create');
+      await createCard.waitFor({ state: 'visible', timeout: 5000 });
+      const projectHubRoot = page.getByTestId('project-hub-root');
+      const initialLayout = await projectHubRoot.evaluate((root) => ({
+        headlineTop: root.querySelector('h1')?.getBoundingClientRect().top ?? -1,
+        createBottom:
+          root.querySelector('[data-testid="project-hub-create"]')?.getBoundingClientRect().bottom ?? -1,
+        scrollHeight: root.scrollHeight,
+        clientHeight: root.clientHeight,
+      }));
+      assert.ok(
+        initialLayout.headlineTop >= 0 && initialLayout.headlineTop < 483,
+        'Project Hub must open with its headline visible at 775x483: ' + JSON.stringify(initialLayout),
+      );
+      assert.ok(
+        initialLayout.createBottom <= 483,
+        'Project Hub create form must fit at 775x483: ' + JSON.stringify(initialLayout),
+      );
+      assert.ok(
+        initialLayout.scrollHeight > initialLayout.clientHeight,
+        'Project Hub must provide internal scrolling at 775x483: ' + JSON.stringify(initialLayout),
+      );
+      const projectCreationRoute = '**/api/v1/projects';
+      await page.route(projectCreationRoute, async (route) => {
+        if (route.request().method() === 'POST') {
+          await route.fulfill({
+            status: 403,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: 'invalid origin' }),
+          });
+          return;
+        }
+        await route.continue();
       });
-      assert.equal(createResponse.status(), 201, 'browser E2E fixture project must be created');
+      const projectInputs = createCard.locator('.nx-input');
+      await projectInputs.nth(0).fill(isolatedProjectPath);
+      await projectInputs.nth(1).fill('Browser E2E Fixture');
+      await createCard.locator('button[data-tone="brand"]').click();
+      const creationError = createCard.getByRole('alert');
+      await creationError.waitFor({ state: 'visible', timeout: 5000 });
+      assert.equal(await creationError.innerText(), 'invalid origin');
+      await projectHubRoot.evaluate((root) => {
+        root.scrollTop = 0;
+      });
+      const projectHubLayout = await createCard.evaluate((card) => {
+        const submit = card.querySelector('button[data-tone="brand"]');
+        const textNode = Array.from(submit?.childNodes || []).find(
+          (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+        );
+        const range = document.createRange();
+        if (textNode) range.selectNodeContents(textNode);
+        const error = card.querySelector('[role="alert"]');
+        const root = card.closest('[data-testid="project-hub-root"]');
+        const headline = root?.querySelector('h1');
+        const templates = root?.querySelector('[data-testid="project-hub-templates"]');
+        const templateCopy = Array.from(
+          templates?.querySelectorAll(':scope > div > div:nth-child(2)') || [],
+        ).map((copy) => ({
+          title: copy.querySelector('strong')?.textContent?.trim() || '',
+          description: copy.querySelector('small')?.textContent?.trim() || '',
+        }));
+        return {
+          cardWidth: card.getBoundingClientRect().width,
+          cardBottom: card.getBoundingClientRect().bottom,
+          buttonTextLines: range.getClientRects().length,
+          errorWidth: error?.getBoundingClientRect().width || 0,
+          rootClientHeight: root?.clientHeight || 0,
+          rootScrollHeight: root?.scrollHeight || 0,
+          rootClientWidth: root?.clientWidth || 0,
+          rootScrollWidth: root?.scrollWidth || 0,
+          headlineTop: headline?.getBoundingClientRect().top ?? -1,
+          templateCopy,
+        };
+      });
+      assert.equal(
+        projectHubLayout.buttonTextLines,
+        1,
+        'Add Project label must remain on one line at 775px',
+      );
+      assert.ok(
+        projectHubLayout.errorWidth >= projectHubLayout.cardWidth - 48,
+        `Project Hub error must use the form width: ${JSON.stringify(projectHubLayout)}`,
+      );
+      assert.ok(
+        projectHubLayout.cardBottom <= 483,
+        'Project Hub form including origin error must fit at 775x483: ' + JSON.stringify(projectHubLayout),
+      );
+      assert.ok(
+        projectHubLayout.headlineTop >= 0 && projectHubLayout.headlineTop < 483,
+        'Project Hub headline must not be clipped at the top: ' + JSON.stringify(projectHubLayout),
+      );
+      assert.ok(
+        projectHubLayout.rootScrollHeight > projectHubLayout.rootClientHeight,
+        'Project Hub must scroll vertically when content exceeds 483px: ' + JSON.stringify(projectHubLayout),
+      );
+      assert.ok(
+        projectHubLayout.rootScrollWidth <= projectHubLayout.rootClientWidth,
+        'Project Hub must not overflow horizontally: ' + JSON.stringify(projectHubLayout),
+      );
+      assert.equal(
+        projectHubLayout.templateCopy.length,
+        3,
+        'All three starter templates must have accessible title and description nodes: ' + JSON.stringify(projectHubLayout.templateCopy),
+      );
+      for (const template of projectHubLayout.templateCopy) {
+        assert.ok(template.title && template.description, 'Each starter template needs title and detail copy');
+        assert.notEqual(template.title, template.description, 'Template title and detail must not duplicate');
+        assert.ok(
+          !template.title.includes(template.description),
+          'Template detail must not repeat its title: ' + JSON.stringify(template),
+        );
+      }
+      const templates = page.getByTestId('project-hub-templates');
+      await templates.scrollIntoViewIfNeeded();
+      const templatesBounds = await templates.boundingBox();
+      assert.ok(
+        templatesBounds && templatesBounds.y >= 0 && templatesBounds.y + templatesBounds.height <= 484,
+        'Starter templates must be reachable in the scrollable Project Hub: ' + JSON.stringify(templatesBounds),
+      );
+      await page.getByTestId('project-hub-root').evaluate((root) => {
+        root.scrollTop = 0;
+      });
+      await page.screenshot({
+        path: path.join(screenshotDir, 'e2e_project_hub_error_775x483.png'),
+      });
+      await page.unroute(projectCreationRoute);
+      await page.setViewportSize({ width: 1280, height: 800 });
+      console.log('  ✓ Error spans the form and Add Project stays on one line');
+
+      const browserCreateResponse = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === '/api/v1/projects' &&
+          response.request().method() === 'POST',
+        { timeout: 10000 },
+      );
+      browserCreateResponse.catch(() => {});
+      await createCard.locator('button[data-tone="brand"]').click();
+      const createResponse = await browserCreateResponse;
+      assert.equal(
+        createResponse.status(),
+        201,
+        `Wails-origin browser create must succeed, received HTTP ${createResponse.status()}`,
+      );
       projects = [await createResponse.json()];
     }
     const project = projects[0];
@@ -392,9 +547,9 @@ async function main() {
             // for a static descendant. Reject only unrelated overlay siblings.
             matches: Boolean(
               button &&
-                layers.every(
-                  (layer) => layer === button || layer.contains(button) || button.contains(layer),
-                ),
+              layers.every(
+                (layer) => layer === button || layer.contains(button) || button.contains(layer),
+              ),
             ),
             button: describe(document.querySelector('[data-testid="topbar-create-menu-btn"]')),
             ancestors: (() => {
@@ -438,15 +593,18 @@ async function main() {
       if ((await updateBtn.count()) > 0 && (await updateBtn.isVisible())) {
         const updateBox = await updateBtn.boundingBox();
         assert.ok(updateBox, `Update indicator must have bounding box at ${vp.width}px`);
-        const updateHit = await page.evaluate(({ x, y }) => {
-          const el = document.elementFromPoint(x, y);
-          if (!el) return null;
-          return {
-            inside: Boolean(el.closest?.('.nx-update-indicator')),
-            tag: el.tagName,
-            className: typeof el.className === 'string' ? el.className : null,
-          };
-        }, { x: updateBox.x + updateBox.width / 2, y: updateBox.y + updateBox.height / 2 });
+        const updateHit = await page.evaluate(
+          ({ x, y }) => {
+            const el = document.elementFromPoint(x, y);
+            if (!el) return null;
+            return {
+              inside: Boolean(el.closest?.('.nx-update-indicator')),
+              tag: el.tagName,
+              className: typeof el.className === 'string' ? el.className : null,
+            };
+          },
+          { x: updateBox.x + updateBox.width / 2, y: updateBox.y + updateBox.height / 2 },
+        );
         assert.ok(
           updateHit?.inside,
           `Update indicator must own its center at ${vp.width}px (hit: ${JSON.stringify(updateHit)}, update: ${JSON.stringify(updateBox)}, create: ${JSON.stringify(box)})`,
@@ -506,9 +664,7 @@ async function main() {
     const terminalsTab = page.locator('.nx-workspace-tab[data-kind="terminals"]').first();
     await terminalsTab.waitFor({ state: 'visible', timeout: 5000 });
     await terminalsTab.click();
-    const windowsMode = page
-      .getByRole('button', { name: /modo de janelas|windows mode/i })
-      .first();
+    const windowsMode = page.getByRole('button', { name: /modo de janelas|windows mode/i }).first();
     await windowsMode.waitFor({ state: 'visible', timeout: 5000 });
     await windowsMode.click();
 
@@ -596,9 +752,7 @@ async function main() {
     );
 
     // Validação dos Radios com Swatches e navegação compartilhada do ChoiceGroup
-    const themeRadio = page
-      .locator('.nx-theme-accordion-container button[role="radio"]')
-      .first();
+    const themeRadio = page.locator('.nx-theme-accordion-container button[role="radio"]').first();
     await themeRadio.waitFor({ state: 'visible', timeout: 5000 });
     assert.equal(await themeRadio.isVisible(), true, 'Theme radio must be visible');
     const hasSwatches = await themeRadio

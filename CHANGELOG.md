@@ -52,14 +52,35 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
-## 1.0.0-beta.7 — 2026-09-29 — continuation candidate
+## 1.0.0-beta.7 — 2026-10-07 — Windows validation continuation
 
-- Bumped the canonical `release/v1.0.0` source candidate after the Composer Interview Engine and subsequent beta hardening landed.
-- Beta.7 remains the same single Nexus 1.0 beta line for continued requirements; it does not create a parallel release branch.
-- Public distribution remains on the rolling beta channel and still requires exact-SHA certification before publication.
-- Terminal P0: SessionHost is now the final stateful input boundary, so raw IPC byte fragmentation cannot split CSI/SS3 again immediately before the provider PTY.
-- Diagnostics: `NEXUS_TERMINAL_TRACE=1` writes privacy-safe per-runtime JSONL stages for Web, CLI and SessionHost without persisting raw prompt text.
+Candidate source SHA: 52f35c04181b85379219ab55fc3192c63a5440a8. Local Windows technical validation is GO; official signing, tag and distribution remain NO-GO.
 
+### Adicionado
+
+- Suporte a ConPTY e transporte terminal desacoplado no Windows.
+- Internacionalização nativa da CLI e seleção dinâmica de localidade, incluindo pt-BR.
+- Evidência aprovada das oito suítes browser E2E em Windows AMD64.
+
+### Corrigido
+
+- Conformidade estática do host ao processar entrada de terminal e compatibilidade do terminal tracing no Windows.
+- Testes de terminal tracing para permissões NTFS e escape de HTML/JSON.
+- Teste de cabeçalho de uso da CLI para saída localizada, incluindo Uso:.
+- Flakiness de testes Go sob carga Windows e escopo correto das funções de uninstall NSIS.
+- Contrato estático de release atualizado para a função un namespaced do uninstaller NSIS.
+
+### Validação Windows
+
+- Go fmt, vet, govulncheck, golangci-lint e suíte completa sem cache: PASS no SHA 52f35c04181b85379219ab55fc3192c63a5440a8.
+- Bun frozen-lockfile e quality:full: PASS, 82 arquivos e 487 testes unitários.
+- Oito suítes Playwright browser E2E: PASS.
+- Builds CLI/Desktop/HUD e smokes locais de versão, doctor JSON e inicialização Desktop/HUD: PASS.
+- Os binários locais são NotSigned e foram compilados sem a update trust root; não são artefatos de distribuição.
+
+### Estado da publicação
+
+O workflow nativo Windows 37666126714 está queued sem runner Windows compatível. Não há certificado Authenticode ou secrets de assinatura disponíveis neste host. O smoke NSIS local passou na fonte revisada, mas observou normalização do tipo de registro Path durante uninstall. A tag e a GitHub Release permanecem ausentes.
 ## 1.0.0-beta.6 — 2026-09-29 — Usage/Capacity V2 and single release line
 
 - Composer Interview Engine: added per-dimension clarity/ambiguity, information-gain question priority, bounded QUICK/STANDARD/DEEP profiles and a single pressure-test pass for hidden trade-offs. Repository/memory-inferred facts are no longer surfaced by the web workspace as open questions.
@@ -180,3 +201,12 @@ coding agents (CLI, Web e Desktop). Isto **não** é um 1.0.0 estável.
 
 O SHA de freeze e a evidência de CI same-SHA ficam em
 [`DEV/validation/current/RELEASE_STATUS.md`](DEV/validation/current/RELEASE_STATUS.md).
+
+## Aditamento Windows — 2026-10-07 — worktree local
+
+- Corrigido invalid origin no WebView Wails: somente o Host exato wails.localhost passa quando uma origem desktop é reconhecida; hosts lookalike continuam bloqueados.
+- Corrigido o layout do Project Hub: erros ocupam toda a largura do formulário e o botão Adicionar Projeto mantém o rótulo em uma linha.
+- Acrescentados testes de segurança de origem e regressão visual E2E no viewport Windows 775x483.
+- Os gates Go e Web locais passaram. As oito suítes E2E passaram no worktree Windows isolado com as mesmas alterações.
+- O Desktop foi recompilado para validação, mas o reteste automatizado encerrou com código 0 antes de oito segundos; o binário de baseline repetiu o resultado. Exigir smoke nativo interativo na próxima certificação exact-SHA.
+- Os novos executáveis e checksums são somente evidência local: NotSigned, sem trust root, sem commit e sem publicação.

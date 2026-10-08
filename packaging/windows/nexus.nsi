@@ -37,9 +37,45 @@ broadcast:
 donePath:
 FunctionEnd
 
-Function un.RemoveFromUserPath
+Function CaptureOriginalUserPath
+  ClearErrors
+  ReadRegDWORD $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UserPathMetadataVersion"
+  IfErrors captureOriginalPath
+  StrCmp $0 1 doneCaptureUserPath
+
+captureOriginalPath:
+  ClearErrors
   ReadRegStr $0 HKCU "Environment" "Path"
-  StrCmp $0 "" doneRemove
+  IfErrors originalPathMissing
+
+  ; REG_EXPAND_SZ is the safe fallback if the native type query fails.
+  StrCpy $3 2
+  System::Call 'advapi32::RegOpenKeyExW(p 0x80000001, w "Environment", i 0, i 0x20019, *p .r1) i .r2'
+  StrCmp $2 0 0 storeOriginalPath
+  StrCpy $4 0
+  System::Call 'advapi32::RegQueryValueExW(p r1, w "Path", p 0, *i .r3, p 0, *i .r4) i .r5'
+  System::Call 'advapi32::RegCloseKey(p r1)'
+  StrCmp $5 0 0 storeOriginalPath
+
+storeOriginalPath:
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UserPathOriginalExists" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UserPathOriginalType" $3
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UserPathMetadataVersion" 1
+  Goto doneCaptureUserPath
+
+originalPathMissing:
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UserPathOriginalExists" 0
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UserPathOriginalType" 0
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UserPathMetadataVersion" 1
+
+doneCaptureUserPath:
+FunctionEnd
+
+Function un.RemoveFromUserPath
+  ClearErrors
+  ReadRegStr $0 HKCU "Environment" "Path"
+  IfErrors doneRemove
+  StrCmp $0 "" emptyCurrentPath
   Push $0
   Push "$INSTDIR"
   Call un.StrStr
@@ -78,8 +114,39 @@ exactPath:
   StrCmp $0 "$INSTDIR" 0 doneRemove
   StrCpy $0 ""
 writePath:
+  ClearErrors
+  ReadRegDWORD $9 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UserPathOriginalExists"
+  IfErrors writePathExpand
+  StrCmp $9 0 deleteEmptyPath
+
+  ClearErrors
+  ReadRegDWORD $9 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UserPathOriginalType"
+  IfErrors writePathExpand
+  StrCmp $9 1 writePathString
+  Goto writePathExpand
+
+emptyCurrentPath:
+  ClearErrors
+  ReadRegDWORD $9 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "UserPathOriginalExists"
+  IfErrors doneRemove
+  StrCmp $9 0 deleteEmptyPath
+  Goto writePath
+
+deleteEmptyPath:
+  StrCmp $0 "" 0 writePathExpand
+  DeleteRegValue HKCU "Environment" "Path"
+  Goto broadcastPathChange
+
+writePathString:
+  WriteRegStr HKCU "Environment" "Path" "$0"
+  Goto broadcastPathChange
+
+writePathExpand:
   WriteRegExpandStr HKCU "Environment" "Path" "$0"
+broadcastPathChange:
   SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
+  Goto doneRemove
+
 doneRemove:
 FunctionEnd
 
@@ -149,6 +216,7 @@ Section "IAPro Nexus" SecMain
   File /nonfatal "payload\nexus-desktop.exe"
   File /nonfatal "payload\nexus-hud.exe"
 
+  Call CaptureOriginalUserPath
   Call AddToUserPath
 
   IfFileExists "$INSTDIR\nexus-desktop.exe" 0 skipDesktop

@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { DirectoryBrowserModal } from './DirectoryBrowserModal';
 import { ProjectScanModal } from './ProjectScanModal';
 import { selectProjectDirectory } from './projectDirectoryPicker';
+import styles from './ProjectHub.module.scss';
 
 export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = ({ onCreated }) => {
   const { t } = useTranslation();
@@ -68,8 +69,8 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
 
   return (
     <>
-      <div className="nx-project-hub">
-        <div className="nx-project-hub__brand">
+      <div className={styles.root} data-testid="project-hub-root">
+        <div className={styles.brand}>
           <span className="nx-brand-mark nx-brand-mark--hero">
             <img src="./nexus-icon.png" alt="Nexus" className="nx-brand-mark__img" />
           </span>
@@ -79,16 +80,16 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
         </div>
 
         {/* Primary Local Repo Input */}
-        <Card className="nx-project-hub__create">
+        <Card className={styles.create} data-testid="project-hub-create">
           <div className="nx-work-card-icon">
             <FolderGit2 size={20} />
           </div>
-          <div className="nx-hub-create-header">
+          <div className={styles.createHeader}>
             <div>
               <strong>{t('projects.addRepo')}</strong>
               <small>{t('projects.addDescription')}</small>
             </div>
-            <div className="nx-hub-os-actions">
+            <div className={styles.osActions}>
               <Button size="sm" tone="ghost" onClick={() => void handleBrowseDirectory()}>
                 <FolderOpen size={13} />
                 <span>{t('projectManager.browseOS')}</span>
@@ -100,7 +101,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
             </div>
           </div>
 
-          <div className="nx-hub-inputs">
+          <div className={styles.inputs}>
             <div className="nx-input-with-action">
               <Input
                 value={path}
@@ -108,7 +109,6 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
                 onEnter={() => create()}
                 placeholder="/home/user/my-repository"
                 mono
-                autoFocus
               />
               <IconButton
                 label={t('projectManager.browseOS')}
@@ -124,62 +124,71 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
               placeholder={t('rail.namePlaceholder')}
             />
           </div>
-          {error && <p className="nx-error-copy">{error}</p>}
-          <Button tone="brand" disabled={!path.trim() || busy} onClick={() => create()}>
+          {error && (
+            <p className={`nx-error-copy ${styles.error}`} role="alert">
+              {error}
+            </p>
+          )}
+          <Button
+            className={styles.submit}
+            tone="brand"
+            disabled={!path.trim() || busy}
+            onClick={() => create()}
+          >
             <Plus size={14} />
             {busy ? t('projects.adding') : t('projects.add')}
           </Button>
         </Card>
 
         {/* Starter Templates */}
-        <div className="nx-hub-templates">
-          <span className="nx-hub-templates-heading">{t('projectManager.templatesTitle')}</span>
-          <div className="nx-hub-templates-grid">
+        <div className={styles.templates}>
+          <span className={styles.templatesHeading}>{t('projectManager.templatesTitle')}</span>
+          <div className={styles.templatesGrid} data-testid="project-hub-templates">
             <div
-              className="nx-hub-template-card"
+              className={styles.templateCard}
               onClick={() => create('/projetos/saas-app', 'Fullstack SaaS App')}
             >
-              <div className="nx-hub-template-icon">
+              <div className={styles.templateIcon}>
                 <Layers size={16} />
               </div>
-              <div>
+              <div className={styles.templateCopy}>
                 <strong>{t('projectManager.templateFullstack')}</strong>
-                <small>React + Go/Node + Maestro</small>
+                <small>{t('projectManager.templateFullstackDescription')}</small>
               </div>
-              <ArrowRight size={13} className="nx-hub-template-arrow" />
+              <ArrowRight size={13} className={styles.templateArrow} />
             </div>
 
             <div
-              className="nx-hub-template-card"
+              className={styles.templateCard}
               onClick={() => create('/projetos/api-service', 'Core API Service')}
             >
-              <div className="nx-hub-template-icon">
+              <div className={styles.templateIcon}>
                 <Zap size={16} />
               </div>
-              <div>
+              <div className={styles.templateCopy}>
                 <strong>{t('projectManager.templateApi')}</strong>
-                <small>REST / gRPC with TDD engine</small>
+                <small>{t('projectManager.templateApiDescription')}</small>
               </div>
-              <ArrowRight size={13} className="nx-hub-template-arrow" />
+              <ArrowRight size={13} className={styles.templateArrow} />
             </div>
 
             <div
-              className="nx-hub-template-card"
+              className={styles.templateCard}
               onClick={() => create('/projetos/cli-tool', 'Developer CLI Tool')}
             >
-              <div className="nx-hub-template-icon">
+              <div className={styles.templateIcon}>
                 <Bot size={16} />
               </div>
-              <div>
+              <div className={styles.templateCopy}>
                 <strong>{t('projectManager.templateCli')}</strong>
-                <small>CLI Tool with tests</small>
+                <small>{t('projectManager.templateCliDescription')}</small>
               </div>
-              <ArrowRight size={13} className="nx-hub-template-arrow" />
+              <ArrowRight size={13} className={styles.templateArrow} />
             </div>
           </div>
         </div>
 
-        <div className="nx-project-hub__tip">
+        <div className={styles.tip}>
           <Sparkles size={15} />
           <span>{t('projects.tip')}</span>
         </div>

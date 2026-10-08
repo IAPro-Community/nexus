@@ -1,16 +1,41 @@
 # Status público da release do Nexus v1
 
-Atualizado em **30 de setembro de 2026**.
+Atualizado em 7 de outubro de 2026.
 
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
-| Versão do source candidato | `1.0.0-beta.7` |
-| Última beta pública registrada | `v1.0.0-beta.1` |
-| Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
-| Release estável v1 | **ainda não publicada** |
-| CI do SHA candidato | obrigatório no SHA final; PR CI é evidência de merge, não substitui exact-SHA |
-| Veredito atual | **beta.7 implementada no source; homologação automatizada Linux amd64 PASS no SHA `6bf1b9f…`; Windows, macOS, CI e checks manuais pendentes** |
+| Versão-fonte candidata | 1.0.0-beta.7 |
+| Branch canônica | release/v1.0.0 |
+| SHA-base Windows validado | 52f35c04181b85379219ab55fc3192c63a5440a8 |
+| SHA solicitado para homologação | d14154d2490dfdd3966c7fddc990a1d9127edd39 |
+| Correções locais Windows | NSIS Path, Wails origin, ProjectHub, perfis WebView2 e IDs de smoke isolados; sem commit |
+| Estado do worktree | dirty; base 52f35c04, exige novo exact-SHA |
+
+| Última beta pública registrada (último estado conhecido) | v1.0.0-beta.1; inventário remoto atual não revalidado |
+| Release estável v1 | ainda não publicada |
+| Gate nativo Windows exact-SHA | última observação: run 37666126714 queued; estado atual não revalidado (gh ausente, DNS indisponível) |
+| Veredito | Gates locais Windows e smokes Desktop/HUD PASS; visual, exact-SHA, assinatura, tag e distribuição continuam NO-GO |
+
+## Continuidade Windows — perfil WebView2 e branches — 2026-10-07
+
+Na branch release/v1.0.0, o HEAD-base local é 52f35c04181b85379219ab55fc3192c63a5440a8 e VERSION contém 1.0.0-beta.7. Os gates Go passaram no Windows após as alterações locais do perfil WebView2 e do isolamento de ID para os binários de smoke. O workflow e o smoke PowerShell passaram na análise de sintaxe.
+
+O smoke Desktop confirmou janela Wails, controlador Chrome_WidgetWin_0 e diretório próprio em LOCALAPPDATA\IAPro\Nexus\desktop\WebView2 por 9 segundos. O HUD permaneceu ativo por 8 segundos e criou seu perfil próprio. O render da janela não foi capturado visualmente nesta sessão. Os IDs de produção não mudaram; os binários usados no smoke tinham IDs temporários, portanto não são pacotes de distribuição.
+
+A branch fix/beta7-windows-KIVER-20261007 em d14154d2 é ancestral da release local em 52f35c04. A comparação local encontrou cinco commits posteriores em release e nenhum commit exclusivo em fix; não há merge de branch pendente. Os refs remotos são apenas o snapshot já presente no clone e não foram atualizados pela rede.
+
+A homologação desta árvore ainda não é exact-SHA: o checkout está sujo e em 52f35c04, não em d14154d2. Assinatura Authenticode, trust root de atualização, rebuild e smoke final do instalador e CI nativo no SHA imutável permanecem pendentes. A release segue NO-GO; nenhum gate Linux foi executado nesta continuação.
+
+## Homologação técnica Windows AMD64 — 2026-10-07
+
+A branch release/v1.0.0 permanece no SHA-base 52f35c04181b85379219ab55fc3192c63a5440a8 e VERSION contém 1.0.0-beta.7. A matriz anterior passou nesse SHA imutável antes das correções locais mais recentes. A árvore atual inclui alterações sem commit para preservar HKCU Environment Path no NSIS, permitir o Host Wails exato e corrigir o ProjectHub; esta revalidação é de worktree sujo baseado no SHA 52f, não certificação exact-SHA do código modificado.
+
+Nesta continuação Windows passaram go fmt, go vet, govulncheck, golangci-lint, go test -count=1, Bun frozen install e quality:full (Bun 1.3.9, Node 24.19.0, 82 arquivos e 487 testes). As oito suítes Playwright passaram no worktree Windows isolado com as mesmas alterações. Os builds CLI/Desktop/HUD foram gerados para validação e têm checksums nos artefatos da sessão. A captura reproduzível mostra o erro ocupando toda a largura e Adicionar Projeto em uma linha no viewport 775x483.
+
+O HUD passou no smoke Windows. O binário Desktop oficial criou a janela Wails IAPro Nexus e o filho WebView2 Chrome_WidgetWin_0, permaneceu ativo por oito segundos com APPDATA e dados Nexus isolados e encerrou sem processos residuais. A janela foi criada em modo oculto; renderização visível permanece sem captura porque este host não fornece input desktop.
+
+O run nativo 37666126714 foi observado como queued sem runner Windows compatível; o estado atual não foi revalidado porque gh não está instalado e github.com não resolve por DNS neste host. Faltam certificado/secrets Authenticode, signtool.exe e NEXUS_UPDATE_PUBLIC_KEY. Os artefatos novos são NotSigned e a árvore continua WORKTREE_FROZEN: NO. Não há tag local v1.0.0-beta.7; tag e GitHub Release remotas não foram revalidadas neste host. Veredito: gates locais de código Windows PASS com limitação no reteste Desktop; assinatura, tag e distribuição NO-GO. Nenhum gate Linux foi executado nesta continuação.
 
 ## Homologação Linux amd64 — 2026-09-30
 
@@ -297,3 +322,11 @@ homologação nativa ou evidência real nunca é convertida em PASS.
 
 
 A publicação exige manifesto assinado contendo `source_sha` igual ao SHA exato promovido.
+
+## Atualização Windows — smoke Desktop/WebView2 — 2026-10-07
+
+O workflow native-windows agora inclui scripts/smoke-desktop-windows.ps1, com APPDATA isolado, verificação da janela Wails e do filho Chrome_WidgetWin_0 por oito segundos, e cleanup dos processos WebView2. O script passou em Windows; ci.yml é YAML válido. Essa mudança ainda está no worktree local sujo e não foi executada no runner exact-SHA.
+
+A falha 0x800700AA ocorreu somente no perfil APPDATA padrão deste host; o binário oficial passou com perfil isolado. Isso valida a criação e estabilidade da janela/controller, não captura visual em desktop interativo. O host não expôs input desktop.
+
+O SHA-base local continua 52f35c04181b85379219ab55fc3192c63a5440a8, e VERSION é 1.0.0-beta.7. O estado vivo do remoto, da fila 37666126714, da tag e do GitHub Release está não revalidado devido à ausência do gh e à falha de DNS. O trabalho segue sem commit; assinatura e trust root continuam ausentes. Escopo Windows-only; nenhum gate Linux foi executado.

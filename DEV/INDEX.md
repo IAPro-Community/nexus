@@ -23,6 +23,8 @@ Guia e índice de navegação estruturada da documentação de engenharia e gove
 
 **Current release status for HEAD:** [`validation/current/RELEASE_STATUS.md`](validation/current/RELEASE_STATUS.md)
 
+Latest Windows beta.7 evidence: [BETA7_WINDOWS_HOMOLOGATION_20261007.md](validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md). NSIS Path-state smoke: [BETA7_NSIS_PATH_STATE_SMOKE_20261007.md](validation/current/BETA7_NSIS_PATH_STATE_SMOKE_20261007.md).
+
 Reports under `validation/FINAL_*.md` are historical unless they live in `validation/current/` and carry matching `GIT_SHA`.
 
 Release evidence uses `GIT_SHA` for the validated code revision and, when a
@@ -113,5 +115,7 @@ não representam mais uma linha de release separada. O status operacional segue
 - [`validation/overnight-production-certification/FINAL_REPORT.md`](validation/overnight-production-certification/FINAL_REPORT.md): aborto `ABORTED_PRECONDITION_FAILED` da certificação overnight.
 - [`validation/production-finalization/FINAL_REPORT.md`](validation/production-finalization/FINAL_REPORT.md): evidência da campanha de fechamento do release candidate.
 - [`DEV/validation/`](validation/): Logs brutos, capturas de tela e artefatos de testes automatizados e manuais.
-Decision record: [`DEV/DECISIONS/NEXUS_TERMINAL_CONTINUITY.md`](DECISIONS/NEXUS_TERMINAL_CONTINUITY.md)
+Decision record:
+- [ADR-20261007-WAILS-LOCALHOST-ORIGIN.md](DECISIONS/ADR-20261007-WAILS-LOCALHOST-ORIGIN.md): allowlist exata do host virtual Wails no Desktop Windows.
+- [Release Notes beta.7 Windows](NEXUS_V1_RELEASE_NOTES.md): destaques e status local de publicação. [`DEV/DECISIONS/NEXUS_TERMINAL_CONTINUITY.md`](DECISIONS/NEXUS_TERMINAL_CONTINUITY.md)
 - [Nexus 1.0 delivery meta](NEXUS_1_DELIVERY_META.md)

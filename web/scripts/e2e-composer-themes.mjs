@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import {
+  playwrightExecutablePath,
   seedFixtureProject,
   startFixtureServer,
   terminateProcess,
@@ -150,7 +151,11 @@ async function assertThemeApplied(page, theme) {
   assert.ok(applied.background, `${theme.preset} must define --nx-bg`);
   assert.ok(applied.text, `${theme.preset} must define --nx-text`);
   assert.ok(applied.accent, `${theme.preset} must define --nx-accent`);
-  assert.notEqual(applied.background, applied.text, `${theme.preset} foreground/background must differ`);
+  assert.notEqual(
+    applied.background,
+    applied.text,
+    `${theme.preset} foreground/background must differ`,
+  );
 }
 
 async function assertComposerLayout(page, viewportName) {
@@ -284,6 +289,7 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
 async function main() {
   fixture = await startFixtureServer();
   browser = await chromium.launch({
+    executablePath: playwrightExecutablePath(),
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
