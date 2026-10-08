@@ -2,6 +2,8 @@ package runtime
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"sync"
 	"testing"
 	"time"
@@ -244,5 +246,30 @@ func TestTerminalInputScrubberForwardsStandaloneEscapeAfterCoalesceWindow(t *tes
 	}
 	if got := out.String(); got != "\x1b" {
 		t.Fatalf("standalone Escape was not forwarded after coalesce window: %q", got)
+	}
+}
+
+func TestTerminalInputScrubberCloseCancelsPendingEscapeTimer(t *testing.T) {
+	out := newSynchronizedBuffer()
+	scrubber := NewTerminalInputScrubber(out)
+	if _, err := scrubber.Write([]byte{0x1b}); err != nil {
+		t.Fatal(err)
+	}
+	if err := scrubber.Close(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-out.wrote:
+		t.Fatal("pending Escape was written after scrubber Close")
+	case <-time.After(terminalInputEscapeCoalesceWindow + 50*time.Millisecond):
+	}
+	if got := out.String(); got != "" {
+		t.Fatalf("closed scrubber wrote stale input: %q", got)
+	}
+	if _, err := scrubber.Write([]byte("text")); !errors.Is(err, io.ErrClosedPipe) {
+		t.Fatalf("write after Close should reject input, got %v", err)
+	}
+	if err := scrubber.Flush(); err != nil {
+		t.Fatalf("Flush after Close should remain idempotent: %v", err)
 	}
 }
