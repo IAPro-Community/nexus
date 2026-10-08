@@ -12,6 +12,7 @@ Estado: gates automatizados locais Windows passaram neste SHA. A release oficial
 - A seleção de backend do terminal e o capability report agora refletem o provider. `AI_CLI_ENABLE_CONPTY=1` segue como override global, e `AI_CLI_DISABLE_CONPTY=1` permite desativá-lo.
 - Oito suítes browser E2E passaram no Windows AMD64, além das verificações de acessibilidade e visual.
 - Go fmt/vet/lint/security/testes, qualidade Web e builds Windows CLI/Desktop/HUD passaram no mesmo SHA.
+- Smokes nativos isolados do Desktop/Wails/WebView2 e HUD passaram no Windows (13 s e 8 s); eles confirmam inicialização e criação do WebView2, sem substituir a revisão visual e os fluxos manuais pendentes.
 
 ## Evidência Windows do terminal Codex
 
@@ -19,7 +20,7 @@ O teste de integração `TestCodexSessionHostDefaultsToConPTYAndForwardsArrowInp
 
 ## Estado da release
 
-A branch `fix/windows-beta8-homologation-20261008` foi enviada e está vinculada por PR draft #45 a `release/v1.0.0`; ainda não foi integrada. CLI, Desktop e HUD foram reconstruídos para `ab397c54`; seus checksums estão em `outputs/windows-beta8-distribution-ab397c54-20261008/` e os binários são `NotSigned`. O NSIS installer e seu smoke de `7d2ef8aa` pertencem ao candidato anterior. CI Windows exact-SHA, Authenticode/trust root e smokes manuais de provider/Mission/Voice continuam pendentes. Nenhuma tag foi criada. Esta continuidade executou somente homologação Windows.
+A branch `fix/windows-beta8-homologation-20261008` foi enviada e está vinculada por PR draft #45 a `release/v1.0.0`; ainda não foi integrada. CLI, Desktop e HUD foram reconstruídos para `ab397c54`; seus checksums estão em `outputs/windows-beta8-distribution-ab397c54-20261008/` e os binários são `NotSigned`. O NSIS installer e seu smoke de `7d2ef8aa` pertencem ao candidato anterior; `makensis.exe` não está disponível neste host para reconstrução atual. CI Windows exact-SHA, Authenticode/trust root e smokes manuais de provider/Mission/Voice continuam pendentes. Nenhuma tag foi criada. Esta continuidade executou somente homologação Windows.
 
 ---
 

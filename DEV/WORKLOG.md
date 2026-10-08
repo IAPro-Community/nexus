@@ -4,10 +4,10 @@
 
 - Corrigido o backend Windows para selecionar ConPTY automaticamente em sessões supervisionadas do provider Codex; os demais providers mantêm standard pipes por padrão e os overrides existentes continuam disponíveis.
 - Testes Windows de terminal e `SessionHost` passaram; o teste de integração confirmou console interativo e encaminhamento `ESC[B` como `DownArrow`. Smoke Codex isolado sem flag de ConPTY chegou à tela de boas-vindas/login e encerrou limpo.
-- `scripts/homologate-beta.ps1 -ExpectedSha ab397c54` passou no SHA exato `ab397c5449cc76dfd07b44e335f45de6762a94f4`: Go, frontend, oito E2E browser, Axe/visual e builds CLI/Desktop/HUD. Nenhum gate Linux foi executado.
+- `scripts/homologate-beta.ps1 -ExpectedSha ab397c54` passou no SHA exato `ab397c5449cc76dfd07b44e335f45de6762a94f4`: Go, frontend, oito E2E browser, Axe/visual e builds CLI/Desktop/HUD. Em seguida, os smokes nativos Desktop/Wails/WebView2 (13 s) e HUD (8 s) passaram com IDs e perfis isolados. Corrigido `scripts/smoke-desktop-windows.ps1` para compilar no PowerShell do host. Nenhum gate Linux foi executado.
 - Código `ab397c54` e documentação atualizada enviados para a branch Windows beta.8, já associada à PR draft #45 para `release/v1.0.0`. CLI/Desktop/HUD foram exportados com checksums para `outputs/windows-beta8-distribution-ab397c54-20261008/`; estão unsigned. O NSIS installer e seu smoke em `7d2ef8aa` são antigos e não representam o candidato atual.
 - Auditoria identificou `fix/beta7-windows-homologation-20261008@4a0bd992`: beta.7, três commits exclusivos, 12 commits atrás da release na base comum. Não integrar diretamente na linha beta.8. A branch KIVER d14154d2 não tem alterações exclusivas.
-- Distribuição segue NO-GO até CI Windows exact-SHA, Authenticode/trust root, rebuild dos artefatos e smokes manuais provider/Mission/Voice.
+- Distribuição segue NO-GO até CI Windows exact-SHA, Authenticode/trust root, build/smoke NSIS no SHA atual (makensis ausente neste host) e smokes manuais provider/Mission/Voice.
 
 ## 2026-10-08 — Reteste TUI Windows com ConPTY
 

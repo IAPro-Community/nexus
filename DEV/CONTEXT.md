@@ -9,7 +9,7 @@
   o registro final apague a geração usada pelo attach.
 - A instalação local reinicia apenas o `nexus web` associado ao binário
   instalado, evitando hosts Web em memória com executável `(deleted)`.
-- Branch de homologação ativa: `fix/windows-beta8-homologation-20261008`, baseada em `release/v1.0.0@2abbf31a` e enviada via PR draft #45. Codex supervisionado usa ConPTY automaticamente no Windows; o teste de `SessionHost` e smoke TUI passaram sem opt-in. CLI/Desktop/HUD e checksums foram gerados para `ab397c54` (unsigned). Veja `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`. A distribuição permanece NO-GO até CI Windows exact-SHA, instalador correspondente ao SHA, Authenticode/trust root e smokes manuais.
+- Branch de homologação ativa: `fix/windows-beta8-homologation-20261008`, baseada em `release/v1.0.0@2abbf31a` e enviada via PR draft #45. Codex supervisionado usa ConPTY automaticamente no Windows; o teste de `SessionHost` e smoke TUI passaram sem opt-in; smokes nativos isolados Desktop/Wails/WebView2 e HUD também passaram no código `ab397c54`. CLI/Desktop/HUD e checksums foram gerados para esse SHA (unsigned). Veja `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`. A distribuição permanece NO-GO até CI Windows exact-SHA, reconstrução e smoke do instalador (makensis não está disponível neste host), Authenticode/trust root e smokes manuais.
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.
 - Motor de Flags Canônicas e Normalização (`internal/control/flags`): mapeamento transparente de `--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan` e suporte a `Merged Help` (`nexus <provider> --help`).
