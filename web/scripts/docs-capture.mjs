@@ -179,20 +179,71 @@ try {
     return terminal?.textContent?.includes(expected) === true;
   }, marker, { timeout: 15000 });
 
+  const redactFixturePaths = async () => {
+    const paths = [...new Set([
+      workspaceDir,
+      workspaceDir.replaceAll('\\', '/'),
+      process.platform === 'win32' ? process.env.USERPROFILE : '',
+    ].filter(Boolean))];
+    return page.evaluate((sensitivePaths) => {
+      const replaceInsensitive = (value, search, replacement) => {
+        const lowerValue = value.toLowerCase();
+        const lowerSearch = search.toLowerCase();
+        let cursor = 0;
+        let index = lowerValue.indexOf(lowerSearch, cursor);
+        let result = '';
+        while (index !== -1) {
+          result += value.slice(cursor, index) + replacement;
+          cursor = index + search.length;
+          index = lowerValue.indexOf(lowerSearch, cursor);
+        }
+        return index === -1 && cursor === 0 ? value : result + value.slice(cursor);
+      };
+      const replacement = 'C:\\NexusDemo\\workspace';
+      let redacted = 0;
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) {
+        const original = node.nodeValue || '';
+        let value = original;
+        for (const sensitivePath of sensitivePaths) {
+          value = replaceInsensitive(value, sensitivePath, replacement);
+        }
+        if (value !== original) {
+          node.nodeValue = value;
+          redacted++;
+        }
+      }
+      for (const element of document.body.querySelectorAll('*')) {
+        for (const attribute of [...element.attributes]) {
+          let value = attribute.value;
+          for (const sensitivePath of sensitivePaths) {
+            value = replaceInsensitive(value, sensitivePath, replacement);
+          }
+          if (value !== attribute.value) element.setAttribute(attribute.name, value);
+        }
+      }
+      return redacted;
+    }, paths);
+  };
   const assertSafeFixture = async () => {
-    const rawContent = await page.locator('body').innerText();
-    const content = process.platform === 'win32' && process.env.USERPROFILE
-      ? rawContent.toLowerCase().split(process.env.USERPROFILE.toLowerCase()).join('c:\\nexususer')
-      : rawContent;
+    const content = (await page.locator('body').innerText()).toLowerCase();
     const forbidden = ['/projetos/', '/home/', 'desenvolvedor@', 'dev-web-kiver', 'escolanet-futura', 'sistemas2', 'proxy-nginx'];
     const leaked = forbidden.filter((value) => content.includes(value));
     if (leaked.length) throw new Error(`documentation capture contains non-synthetic data: ${leaked.join(', ')}`);
     if (process.platform === 'win32' && process.env.USERPROFILE && content.includes(process.env.USERPROFILE.toLowerCase())) {
-      throw new Error('documentation fixture path redaction did not remove the current user profile');
+      throw new Error('documentation capture still contains the current user profile path');
+    }
+    if (content.includes(workspaceDir.toLowerCase())) {
+      throw new Error('documentation capture still contains the temporary workspace path');
     }
     if (!content.includes('nexus demo workspace')) throw new Error('synthetic project is not visible in capture');
   };
   const capture = async (id, file, surface, evidence = {}) => {
+    const redactedPathCount = await redactFixturePaths();
+    if (surface === 'web/workspace' && redactedPathCount === 0) {
+      throw new Error('workspace overview did not expose the expected synthetic path for redaction');
+    }
     await assertSafeFixture();
     await page.screenshot({
       path: path.join(outputDir, file),
