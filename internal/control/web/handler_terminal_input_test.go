@@ -59,3 +59,36 @@ func TestWebTerminalInputWriterCoalescesSplitSelectorKeys(t *testing.T) {
 		t.Fatalf("selector input changed: got %q want %q", got, want)
 	}
 }
+
+func TestWebTerminalDirectInputNeverEntersPromotionFilter(t *testing.T) {
+	var direct bytes.Buffer
+	var intercepted bytes.Buffer
+	// Fragments include an arrow, Ctrl+C and Enter. Direct Web traffic must
+	// reach the SessionHost unchanged; it alone handles PTY coalescing.
+	chunks := []string{"\x1b", "[A", "codex", "\x03", "\r"}
+	for _, chunk := range chunks {
+		dispatchWebTerminalInput(chunk, false, func(raw string) {
+			_, _ = direct.WriteString(raw)
+		}, func(raw string) {
+			_, _ = intercepted.WriteString(raw)
+		})
+	}
+	if got, want := direct.String(), "\x1b[Acodex\x03\r"; got != want {
+		t.Fatalf("raw Web input was changed: got %q want %q", got, want)
+	}
+	if intercepted.Len() != 0 {
+		t.Fatal("direct Codex traffic must not reach the promotion path")
+	}
+}
+
+func TestWebTerminalPromotionInputRequiresExplicitMode(t *testing.T) {
+	var direct, promotion bytes.Buffer
+	dispatchWebTerminalInput("test\r", true, func(raw string) {
+		_, _ = direct.WriteString(raw)
+	}, func(raw string) {
+		_, _ = promotion.WriteString(raw)
+	})
+	if direct.Len() != 0 || promotion.String() != "test\r" {
+		t.Fatalf("interactive promotion dispatch mismatch: direct=%q promoted=%q", direct.String(), promotion.String())
+	}
+}

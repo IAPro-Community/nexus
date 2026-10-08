@@ -470,16 +470,14 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 					continue
 				}
 				inputMu.Unlock()
-				if !shadow.Enabled() {
-					// DIRECT/STICKY_LEAD without delegation must be
-					// byte-transparent. The host scrubber coalesces
-					// fragmented keys once, immediately before the PTY.
-					inputMu.Lock()
-					processTerminalInput(msg.Data)
-					inputMu.Unlock()
-					continue
-				}
-				_, _ = inputStream.Write([]byte(msg.Data))
+				dispatchWebTerminalInput(msg.Data, shadow.Enabled(),
+					func(raw string) {
+						inputMu.Lock()
+						defer inputMu.Unlock()
+						processTerminalInput(raw)
+					},
+					func(raw string) { _, _ = inputStream.Write([]byte(raw)) },
+				)
 			}
 
 		case "trace":
@@ -526,6 +524,20 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			_ = sendAttachedCommand(rawConn, protocol.CmdLeaseRelease, nil)
 		}
 	}
+}
+
+// dispatchWebTerminalInput keeps DIRECT/STICKY_LEAD bytes out of the extra
+// Web-side coalescer. Explicit interactive Lead promotion is the only path
+// allowed to hold/interpret input before the SessionHost scrubber.
+func dispatchWebTerminalInput(data string, interactiveLead bool, direct, promotion func(string)) {
+	if data == "" {
+		return
+	}
+	if interactiveLead {
+		promotion(data)
+		return
+	}
+	direct(data)
 }
 
 type terminalInputCommandWriter func([]byte) (int, error)
