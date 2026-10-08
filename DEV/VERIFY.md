@@ -1,5 +1,13 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-08 — Homologação exact-SHA Windows beta.8
+
+- PASS — `scripts/homologate-beta.ps1` terminou em código 0 no Windows AMD64, SHA `7d2ef8aab669f88f22d09a86ec6442f761d0f7b5`, `VERSION=1.0.0-beta.8`.
+- PASS — docs-verify, Bun frozen install e quality web completa; 83 arquivos Vitest / 499 testes.
+- PASS — Go fmt/vet/lint/security/testes, oito suítes browser E2E com Axe/visual, builds CLI/Desktop/HUD e smokes isolados.
+- LIMITAÇÃO — testes POSIX/symlink foram skipped pelo próprio código no Windows; smokes manuais de provider/Mission/Voice e gates de distribuição seguem pendentes. Nenhum gate Linux executado.
+- Relatório: [`DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`](validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md).
+
 ## 2026-10-07 — Continuidade Windows WebView2 e branch audit
 
 - PASS — go fmt ./..., go vet ./..., govulncheck ./..., golangci-lint run ./... e go test -count=1 ./... no Windows AMD64 após mudanças Go.
@@ -1587,6 +1595,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-08T11:33:39Z
+## Frontend gate — 2026-10-08T18:13:14Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).

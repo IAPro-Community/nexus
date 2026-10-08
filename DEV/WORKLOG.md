@@ -1,5 +1,13 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-08 — Homologação Windows beta.8
+
+- Correções no branch isolado: aplicadas as correções Windows de host/terminal, formatados os três arquivos que falhavam no gate web e sanitizados caminhos locais em texto, atributos, valores de formulário e evidência visual.
+- Validação exact-SHA: `scripts/homologate-beta.ps1` PASS em `7d2ef8aa` (código `474dfcec`), Windows AMD64; Bun 1.3.9: 83 arquivos/499 testes; Go fmt/vet/lint/security/testes, oito E2Es, Axe/visual, builds e smokes nativos passaram.
+- Evidência: `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`; manifesto e mídia capturados no SHA de código, inspecionados e sem caminho do perfil Windows.
+- Veredito: automação local Windows PASS; distribuição NO-GO por CI remoto, smokes manuais, NSIS e assinatura pendentes. Nenhum gate Linux executado.
+- Auditoria de branches: `fix/beta8-manual-opaque-quota` tem mudança exclusiva que requer decisão de contrato/testes; a branch Windows beta.8 precisa PR para `release/v1.0.0`.
+
 ## 2026-10-07 — Smoke Windows WebView2 e auditoria de branches
 
 - Isolados perfis Wails Desktop/HUD em LOCALAPPDATA, com IDs de instância de smoke separados dos IDs de distribuição. Workflow passa a compilar executáveis próprios e exige diretórios WebView2 criados.

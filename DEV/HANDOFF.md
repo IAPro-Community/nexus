@@ -1,12 +1,16 @@
 # Handoff
 
-## Estado atual — homologação Windows beta.7 — 2026-10-08
+## Estado atual — homologação Windows beta.8 — 2026-10-08
 
-Código validado: `release/v1.0.0` em `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, `VERSION=1.0.0-beta.7`. Os gates automatizados locais Windows passaram: Go fmt/vet/lint/security/testes, Bun frozen install + `quality:full`, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Smokes isolados Desktop/WebView2 (9 s) e HUD (8 s) passaram. Relatório: `DEV/validation/BETA7_WINDOWS_FINAL_20261008.md`; evidências/hash: `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/`.
+Código Windows validado: `474dfcecdd82aab0d0a2d6d1f36fd26d0d1b1f8b`; gate exact-SHA e evidência visual: `7d2ef8aab669f88f22d09a86ec6442f761d0f7b5`; `VERSION=1.0.0-beta.8`. Os gates automatizados locais Windows passaram: Go fmt/vet/lint/security/testes, Bun frozen install + quality completa (83 arquivos/499 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD com smokes isolados. Relatório: `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`; logs locais: `DEV/validation/local-beta/1.0.0-beta.8/7d2ef8aab669f88f22d09a86ec6442f761d0f7b5/windows-AMD64/`.
 
-A consulta viva ao remoto confirmou `origin/release/v1.0.0` em `52f35c04181b85379219ab55fc3192c63a5440a8` antes desta continuidade; o código validado e os relatórios foram enviados por fast-forward a f1928d0f, seguidos por uma sincronização documental em `5a08a1807c4489395dca86ed198f268ea676d2e4`. O SHA de código validado `d840797b` é ancestral. A branch KIVER `d14154d2` é ancestral do candidato local. Nenhuma branch Beta 7 nova foi criada e não há cherry-pick/merge necessário.
+O remoto confirmou `origin/release/v1.0.0@2abbf31a`; a branch isolada de homologação precisa ser publicada e vinculada à release por PR/revisão. A branch `fix/beta8-manual-opaque-quota` contém uma mudança exclusiva no contrato de quota `UNSUPPORTED` e requer decisão/alinhamento de teste antes de qualquer integração. A branch Beta 7 KIVER não tem trabalho novo a portar.
 
-Veredito é PASS técnico local, **não GO de distribuição**. Não há `gh`, `signtool.exe`, `makensis.exe` ou secrets de assinatura neste host; CI exact-SHA, Authenticode, instalador exato e smokes manuais de provider/Mission/Voice permanecem pendentes. Binários e ZIPs são `NotSigned`. O diagnóstico encontrou Gemini CLI acoplado a Node 18.12.1, sem smoke provider aprovado. Nenhum gate Linux foi executado nesta continuação. Não criar tag/publicar até resolver os gates externos e manuais.
+Veredito: PASS dos gates automatizados Windows locais, **não GO de distribuição**. CI exact-SHA, Authenticode, NSIS final e smokes manuais de provider/Mission/Voice permanecem pendentes. Nenhuma tag foi criada. Escopo Windows-only; nenhum gate Linux foi executado.
+
+## Próxima ação
+
+Publicar a branch `fix/windows-beta8-homologation-20261008`, abrir PR para `release/v1.0.0` e pedir revisão. Não integrar `fix/beta8-manual-opaque-quota` sem decisão de contrato. Antes de tag/distribuição, fechar os gates externos e manuais acima.
 
 ## Próxima ação — fechamento Windows beta.7 — 2026-10-07
 

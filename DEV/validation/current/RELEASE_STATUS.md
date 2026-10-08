@@ -2,42 +2,33 @@
 
 STATUS: WINDOWS_AUTOMATED_LOCAL_GATES_PASS_RELEASE_NO_GO
 OFFICIAL_RELEASE: NO-GO
-WINDOWS_DESKTOP_RETEST: PASS_RUNTIME (Wails window and WebView2 child persisted 9s on validated source SHA; isolated profile created; visual rendering unverified)
-SOURCE_VERSION: 1.0.0-beta.7
-CANDIDATE_REF: release/v1.0.0
-REQUESTED_WINDOWS_SHA: d14154d2490dfdd3966c7fddc990a1d9127edd39
-VALIDATED_WINDOWS_SOURCE_SHA: d840797bbd975a5c7edc54ebe23f3dfef56ff947
-CURRENT_WORKTREE_BASE_SHA: d840797bbd975a5c7edc54ebe23f3dfef56ff947
-CURRENT_WORKTREE_GATES: PASS (Windows AMD64 exact-SHA local automated gates; worktree was clean at start)
-LAST_FROZEN_WINDOWS_SHA: d840797bbd975a5c7edc54ebe23f3dfef56ff947
-REMOTE_TRACKING_SHA_AT_AUDIT: 52f35c04181b85379219ab55fc3192c63a5440a8
-LIVE_REMOTE_SHA_AT_AUDIT: CONFIRMED (origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8 before this continuation)
-REMOTE_RELEASE_PUSH: PASS (fast-forward 52f35c04 -> f1928d0f; code validation SHA d840797b is an ancestor)
-LIVE_REMOTE_SHA_AFTER_PUSH: f1928d0f75cf49a0968f248bd7dc9b8e54655dcb (confirmed by git ls-remote)
-REMOTE_STATUS_SYNC_PUSH: PASS (follow-up documentation-only fast-forward f1928d0f -> 5a08a1807c4489395dca86ed198f268ea676d2e4)
-LIVE_REMOTE_SHA_AT_FINAL_AUDIT: 5a08a1807c4489395dca86ed198f268ea676d2e4 (confirmed before this status-record commit; validated source d840797b remains an ancestor)
-REMOTE_BETA7_TAG: ABSENT (live origin has no refs/tags/v1.0.0-beta.7; local tag absent)
-PUBLIC_GITHUB_RELEASE: NOT_REVALIDATED (not queried)
-WINDOWS_LOCAL_GATES: PASS (PowerShell/docs, Bun frozen + quality:full, Go fmt/vet/lint/security/tests, control/runtime and Agent Interop regressions, 8 browser E2E suites + accessibility/visual, CLI/Desktop/HUD builds and isolated Desktop/HUD native smokes)
-WINDOWS_NATIVE_CI: NOT_REVALIDATED (gh unavailable; unauthenticated Actions API returned 404 after push; exact-SHA workflow not confirmed)
-WINDOWS_SIGNING: BLOCKED_EXTERNAL
-WINDOWS_SIGNING_ENV: NOT_CONFIGURED
-WINDOWS_SIGNING_TOOLS: signtool.exe, Authenticode certificate/secrets, makensis.exe, NEXUS_UPDATE_PRIVATE_KEY and NEXUS_UPDATE_KEY_ID unavailable on this host; checked-in public UPDATE_PUBLIC_KEY is valid
-LOCAL_ARTIFACTS: CLI/Desktop/HUD binaries and ZIPs are NotSigned; checksums at DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/distribution-artifacts/CHECKSUMS.md
-WINDOWS_INSTALLER_BUILD: NOT_RUN on validated SHA (makensis.exe unavailable; prior NSIS evidence is historical)
+SOURCE_VERSION: 1.0.0-beta.8
+CANDIDATE_REF: fix/windows-beta8-homologation-20261008
+CANDIDATE_BASE_REF: origin/release/v1.0.0 @ 2abbf31a770162e845e708695fbe397d02a5374e
+VALIDATED_WINDOWS_SOURCE_SHA: 474dfcecdd82aab0d0a2d6d1f36fd26d0d1b1f8b
+GATE_EVIDENCE_SHA: 7d2ef8aab669f88f22d09a86ec6442f761d0f7b5 (documentation-only evidence commit)
+CURRENT_WORKTREE_GATES: PASS (Windows AMD64 exact-SHA local automated gates; full gate ran at GATE_EVIDENCE_SHA)
+LAST_FROZEN_WINDOWS_SHA: 7d2ef8aab669f88f22d09a86ec6442f761d0f7b5
+LIVE_REMOTE_RELEASE_SHA_AT_AUDIT: CONFIRMED (origin/release/v1.0.0 = 2abbf31a770162e845e708695fbe397d02a5374e)
+WINDOWS_LOCAL_GATES: PASS (docs, Bun frozen + full web quality, Go fmt/vet/lint/security/tests, eight browser E2E suites, Axe/visual, CLI/Desktop/HUD builds and native smokes)
+WINDOWS_DOCS_VERIFY: PASS (178 Markdown files, 33 required assets/files)
+WINDOWS_NATIVE_CI: NOT_REVALIDATED
+WINDOWS_SIGNING: BLOCKED_EXTERNAL (Authenticode certificate/secrets, signtool.exe, NEXUS_UPDATE_PRIVATE_KEY and NEXUS_UPDATE_KEY_ID unavailable)
+WINDOWS_INSTALLER_BUILD: NOT_RUN (makensis.exe unavailable)
 WINDOWS_EXACT_INSTALLER_SMOKE: NOT_RUN
-WINDOWS_CONPTY_OPT_IN_SMOKE: NOT_RUN on d840797b (historical smoke exists on earlier Windows SHA)
-WINDOWS_MANUAL_PROVIDER_MISSION_VOICE_SMOKES: NOT_RUN on d840797b
-WINDOWS_VISUAL_DESKTOP_RENDER: NOT_VERIFIED (Wails/WebView2 smoke passed in hidden mode; no interactive frame capture)
-WINDOWS_DOCS_VERIFY: PASS (177 Markdown files, 33 required assets/files)
-LOCAL_SOURCE_DELTA: bounded Git identity subprocesses and isolated short TEMP for Windows Go tests; commits d1208720 and d840797b on release/v1.0.0
-
-WORKTREE_FROZEN: YES_FOR_VALIDATED_SOURCE (d840797b was clean at gate start; status/report updates are documentation-only)
-
-LIVE_BETA7_BRANCH_AUDIT: COMPLETE (no new branch created; KIVER d14154d2 is an ancestor of validated release candidate; no merge/cherry-pick required)
+WINDOWS_MANUAL_PROVIDER_MISSION_VOICE_SMOKES: PENDING (see MANUAL_CHECKS.md in the local evidence directory)
+WINDOWS_CREDENTIAL_MANAGER: UNSUPPORTED (native isolation not implemented)
+LOCAL_ARTIFACTS: NotSigned; no distribution package certified
+RELEASE_TAG_OR_PUBLICATION: NOT_CREATED
+BRANCH_AUDIT: fix/beta8-manual-opaque-quota has one exclusive quota-contract change and remains unintegrated pending contract/test alignment; Beta 7 KIVER branch has no new change to port. The current Windows branch must be linked to release through PR/review.
+WORKTREE_FROZEN: YES_FOR_GATE_SHA (gate ran on a clean exact-SHA checkout)
 UPDATED_AT: 2026-10-08
 
-## Windows exact-SHA local validation — 2026-10-08
+## Latest Windows candidate — beta.8 — 2026-10-08
+
+See [BETA8_WINDOWS_HOMOLOGATION_20261008.md](BETA8_WINDOWS_HOMOLOGATION_20261008.md) for the exact gate SHA, platform details, results, limits and branch audit. The remaining entries below are historical Beta 7 evidence and must not be read as the latest candidate state.
+
+## Histórico: Windows exact-SHA local validation beta.7 — 2026-10-08
 
 The complete automated Windows AMD64 homologation passed on source SHA `d840797bbd975a5c7edc54ebe23f3dfef56ff947`. It used Go 1.25.14, Bun 1.3.9 and Node 22.14.0. Go tests reported 65 passing package results and zero failures. The literal `bun install --cwd web --frozen-lockfile` and `bun run --cwd web quality:full` passed with 82 files and 487 tests. Eight browser E2E suites plus accessibility/visual tasks passed. Desktop and HUD builds and isolated native launch smokes passed.
 

@@ -3,13 +3,13 @@
 ## Estado
 
 - Produto: IAPro Nexus Workspace OS.
-- Versão-fonte em homologação: `1.0.0-beta.7` (`VERSION`).
+- Versão-fonte em homologação: `1.0.0-beta.8` (`VERSION`). Código Windows validado em `474dfcec`; gate exact-SHA e evidência visual em `7d2ef8aa`, na branch `fix/windows-beta8-homologation-20261008`.
 - O launcher persiste a identidade autoritativa do `SessionHost` após o
   handshake (`PID`, `HostPID`, `HostGeneration` e fingerprints); isso evita que
   o registro final apague a geração usada pelo attach.
 - A instalação local reinicia apenas o `nexus web` associado ao binário
   instalado, evitando hosts Web em memória com executável `(deleted)`.
-- Branch ativa neste checkout Windows: release/v1.0.0, HEAD-base 52f35c04181b85379219ab55fc3192c63a5440a8; a árvore suja contém ajustes locais de homologação. Não há merge Beta 7 pendente. Gates Windows locais passaram; NSIS exato compilado e variante isolada com payload real passaram; Desktop Wails/WebView2 validado por 10s com cleanup limitado ao perfil Nexus. Exact-SHA, gate docs-verify (manifesto visual stale em 2892f301), renderização visual, CI nativo, Authenticode e update trust root continuam NO-GO; host sem runner Windows, Windows SDK/signtool e certificado.
+- Branch de homologação ativa neste checkout: `fix/windows-beta8-homologation-20261008`, baseada em `release/v1.0.0@2abbf31a`. Os gates automatizados locais Windows passaram no exact-SHA `7d2ef8aa`; veja `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`. O veredito de distribuição permanece NO-GO até CI Windows remoto, smokes manuais, instalador final, Authenticode e chave privada de atualização.
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.
 - Motor de Flags Canônicas e Normalização (`internal/control/flags`): mapeamento transparente de `--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan` e suporte a `Merged Help` (`nexus <provider> --help`).

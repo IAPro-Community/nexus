@@ -1,7 +1,7 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
-## Atualização de homologação Windows beta.7 — 2026-10-07
+## Atualização de homologação Windows beta.8 — 2026-10-08
 
-Base local: branch release/v1.0.0, SHA-base 52f35c04181b85379219ab55fc3192c63a5440a8; VERSION=1.0.0-beta.7. Gates Go/Web/E2E, HUD/Desktop e instalador isolado passaram no Windows. O NSIS exato da árvore compilou com NSIS 3.13; a variante com HKCU/atalho isolados instalou/removeu o payload real. O smoke Desktop Wails/WebView2 passou por 10s após restringir cleanup ao perfil Nexus. A árvore segue dirty; docs-verify falha porque o manifesto visual está preso a 2892f301 e o gate exige recaptura em SHA limpo. Exact-SHA, execução do instalador exato, CI Windows remoto, assinatura e trust root permanecem pendentes. O host não tem runner Windows, Windows SDK/signtool ou certificado Authenticode. Nenhum gate Linux foi executado. A auditoria viva não encontrou branch Beta 7 nova nem merge pendente. Consulte DEV/validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md e DEV/validation/current/RELEASE_STATUS.md.
+Base da release consultada: `origin/release/v1.0.0@2abbf31a`; `VERSION=1.0.0-beta.8`. Gates automatizados locais Windows AMD64 passaram no SHA de evidência `7d2ef8aa` (código em `474dfcec`), incluindo Go, web, oito suítes browser E2E, Axe/visual, builds CLI/Desktop/HUD e smokes isolados. O relatório de evidência é `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`. Distribuição continua NO-GO: CI remoto exact-SHA, smokes manuais de provider/Mission/Voice, build/smoke do NSIS final, Authenticode e chave privada de atualização permanecem pendentes. Nenhum gate Linux foi executado nesta continuação.
 
 ## Programa ativo — Nexus 1.0 Product Closure — 2026-09-20
 
