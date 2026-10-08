@@ -84,6 +84,11 @@ Compare os estágios na mesma janela de tempo. Se `host.raw_attach.input` mostra
 também estiver fragmentado ou faltar `<1b>`, o ponto exato da perda fica
 identificado.
 
+O arquivo tem limite de **8 MiB por runtime**; assinaturas inválidas enviadas pelo
+navegador são descartadas antes da persistência. Ao atingir o limite, novas
+amostras deixam de ser registradas. Remova o JSONL antigo após coletar a
+evidência necessária e reinicie a sessão para uma nova captura.
+
 Desative a variável após a coleta; esse modo é somente diagnóstico.
 
 ## Desktop não inicia

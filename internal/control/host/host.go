@@ -913,6 +913,12 @@ func (sh *SessionHost) waitProcess() {
 	err := sh.termBackend.Wait()
 	<-sh.streamDone
 
+	// A delayed ESC/CSI timer must not outlive the provider it would write to.
+	// Close the stateful input boundary before the terminal backend is torn down.
+	if sh.terminalInput != nil {
+		_ = sh.terminalInput.Close()
+	}
+
 	sh.mu.Lock()
 	defer sh.mu.Unlock()
 

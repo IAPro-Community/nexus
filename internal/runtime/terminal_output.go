@@ -19,6 +19,7 @@ type TerminalOutputScrubber struct {
 	flushTimer           *time.Timer
 	flushGeneration      uint64
 	asyncErr             error
+	closed               bool
 }
 
 // ConPTY and embedded terminal bridges may deliver ESC separately from the
@@ -51,6 +52,9 @@ func (s *TerminalOutputScrubber) Write(p []byte) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.closed {
+		return 0, io.ErrClosedPipe
+	}
 	if s.asyncErr != nil {
 		err := s.asyncErr
 		s.asyncErr = nil
@@ -69,6 +73,9 @@ func (s *TerminalOutputScrubber) Flush() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.closed {
+		return nil
+	}
 	s.stopFlushTimerLocked()
 	asyncErr := s.asyncErr
 	s.asyncErr = nil
@@ -77,6 +84,19 @@ func (s *TerminalOutputScrubber) Flush() error {
 		return asyncErr
 	}
 	return flushErr
+}
+
+// Close cancels delayed input flushing and discards incomplete terminal
+// sequences. A stopped provider must never receive a timer-driven PTY write.
+func (s *TerminalOutputScrubber) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.stopFlushTimerLocked()
+	s.pending = nil
+	s.asyncErr = nil
+	s.closed = true
+	return nil
 }
 
 func (s *TerminalOutputScrubber) stopFlushTimerLocked() {
