@@ -141,6 +141,9 @@ export function scrubProtocolOutput(data: string): string {
  * could complete into a control line (starts with `{`); ordinary trailing
  * text still renders immediately.
  */
+// Match the Go host's 64 KiB budget for incomplete Nexus control envelopes.
+const MAX_PROTOCOL_PENDING_CHARS = 64 * 1024;
+
 export class ProtocolScrubber {
   private tail = '';
 
@@ -156,9 +159,14 @@ export class ProtocolScrubber {
     // JSON-looking Codex chunk until its newline freezes legitimate output.
     const prefix = '{"version":1';
     const candidate = tail.trimStart();
-    if (candidate && (prefix.startsWith(candidate) || candidate.startsWith(prefix))) {
+    if (
+      candidate &&
+      tail.length <= MAX_PROTOCOL_PENDING_CHARS &&
+      (prefix.startsWith(candidate) || candidate.startsWith(prefix))
+    ) {
       this.tail = tail;
     } else {
+      // Never hold unbounded provider output as a hypothetical RPC.
       out += tail;
     }
     return out;
