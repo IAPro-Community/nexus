@@ -91,9 +91,23 @@ const WindowChromeMenu: React.FC<{
   allowAiTitle: boolean;
   accent: string;
   icon: string;
-  onPatch: (chrome: { customTitle?: string; allowAiTitle?: boolean; accent?: string; icon?: string }) => void;
+  onPatch: (chrome: {
+    customTitle?: string;
+    allowAiTitle?: boolean;
+    accent?: string;
+    icon?: string;
+  }) => void;
   position?: ContextMenuPoint | null;
-}> = ({ open, onOpenChange, customTitle, allowAiTitle, accent, icon, onPatch, position }) => {
+}> = ({
+  open,
+  onOpenChange,
+  customTitle,
+  allowAiTitle,
+  accent,
+  icon,
+  onPatch,
+  position,
+}) => {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(customTitle);
@@ -198,9 +212,7 @@ const WindowChromeMenu: React.FC<{
                 checked={allowAiTitle}
                 onChange={(event) => onPatch({ allowAiTitle: event.target.checked })}
               />
-              <span>
-                {t('workspace.allowAiTitle', 'Permitir que a IA atualize o título')}
-              </span>
+              <span>{t('workspace.allowAiTitle', 'Permitir que a IA atualize o título')}</span>
             </label>
             <p className="nx-desktop-window__ai-title-help">
               {t(
@@ -914,7 +926,7 @@ const TerminalsHost: React.FC<{
                   customTitle: win?.customTitle,
                   identity: surfaceIdentity(surface, win?.customTitle),
                   liveTitle: live.title || surface.data?.dynamicTitle,
-                allowAiTitle: win?.allowAiTitle,
+                  allowAiTitle: win?.allowAiTitle,
                 }).heading;
                 const accent = win?.accent || '';
                 const icon = win?.icon || '';
@@ -1300,7 +1312,6 @@ const DesktopWorkspace: React.FC<{
           allowAiTitle: win.allowAiTitle,
         });
         const statusSuffix = surface.data?.statusSuffix || '';
-        const dynamicTitle = ''; // Runtime title is already included in the heading/hint.
         const providerLabel = surface.data?.providerLabel || '';
         const accent = win.accent || '';
         const icon = win.icon || '';
@@ -1360,7 +1371,7 @@ const DesktopWorkspace: React.FC<{
                 title={[
                   heading.heading,
                   heading.identityHint || providerLabel,
-                  dynamicTitle || statusSuffix,
+                  statusSuffix,
                 ]
                   .filter(Boolean)
                   .join(' · ')}
@@ -1396,10 +1407,7 @@ const DesktopWorkspace: React.FC<{
                   {!heading.identityHint && providerLabel && (
                     <small className="nx-desktop-window__provider">{providerLabel}</small>
                   )}
-                  {dynamicTitle && (
-                    <small className="nx-desktop-window__dynamic">{dynamicTitle}</small>
-                  )}
-                  {!dynamicTitle && statusSuffix && (
+                  {statusSuffix && (
                     <small
                       className="nx-desktop-window__status"
                       data-kind={attentionKind || undefined}
@@ -1557,7 +1565,7 @@ const DesktopWorkspace: React.FC<{
               customTitle: win?.customTitle,
               identity: surfaceIdentity(surface, win?.customTitle),
               liveTitle: live.title || surface.data?.dynamicTitle,
-                allowAiTitle: win?.allowAiTitle,
+              allowAiTitle: win?.allowAiTitle,
             }).heading;
             return (
               <button
