@@ -133,13 +133,17 @@ func TestSetTunnelActiveControlsConsumption(t *testing.T) {
 
 func TestTunnelInviteWorksAfterServerBootstrapExpired(t *testing.T) {
 	auth, _, err := NewAuthManager("127.0.0.1", "13000")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	auth.SetTunnelActive(true)
 	now := time.Now()
 	auth.clock = func() time.Time { return now }
 	auth.bootstrapCreatedAt = now.Add(-remoteBootstrapTTL - time.Hour)
 	token, err := auth.IssueTunnelInvitation("example.trycloudflare.com")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if sess, ok := auth.ExchangeBootstrapTokenForHost(token, "example.trycloudflare.com"); !ok || sess == nil {
 		t.Fatal("fresh invitation must work even when process bootstrap is expired")
 	}
@@ -150,12 +154,16 @@ func TestTunnelInviteWorksAfterServerBootstrapExpired(t *testing.T) {
 
 func TestTunnelInviteHostExpiryAndStop(t *testing.T) {
 	auth, _, err := NewAuthManager("127.0.0.1", "13000")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	auth.SetTunnelActive(true)
 	now := time.Now()
 	auth.clock = func() time.Time { return now }
 	token, err := auth.IssueTunnelInvitation("example.trycloudflare.com")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, ok := auth.ExchangeBootstrapTokenForHost(token, "evil.trycloudflare.com"); ok {
 		t.Fatal("wrong hostname should be rejected")
 	}
@@ -164,7 +172,9 @@ func TestTunnelInviteHostExpiryAndStop(t *testing.T) {
 		t.Fatal("expired invitation accepted")
 	}
 	token, err = auth.IssueTunnelInvitation("example.trycloudflare.com")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	auth.SetTunnelActive(false)
 	if _, ok := auth.ExchangeBootstrapTokenForHost(token, "example.trycloudflare.com"); ok {
 		t.Fatal("stopped tunnel must revoke invitation")

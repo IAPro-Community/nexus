@@ -370,12 +370,13 @@ func (a *AuthManager) ExchangeBootstrapTokenForHost(token, host string) (*Sessio
 	}
 	exposure := a.effectiveExposureLocked()
 	reusable := exposure == ExposureLoopback
+	consumeInvitation := false
 	if grant, exists := a.remoteInvitations[token]; exists {
 		if !a.tunnelActive || strings.ToLower(strings.TrimSpace(host)) != grant.Host ||
 			!a.now().Before(grant.ExpiresAt) {
 			return nil, false
 		}
-		delete(a.remoteInvitations, token)
+		consumeInvitation = true
 		reusable = false
 	} else {
 		if token != a.bootstrapToken {
@@ -392,9 +393,6 @@ func (a *AuthManager) ExchangeBootstrapTokenForHost(token, host string) (*Sessio
 		}
 		if a.usedBootstrap && !reusable {
 			return nil, false
-		}
-		if !reusable {
-			a.usedBootstrap = true
 		}
 	}
 
@@ -417,6 +415,11 @@ func (a *AuthManager) ExchangeBootstrapTokenForHost(token, host string) (*Sessio
 		CreatedAt:    now,
 		ExpiresAt:    now.Add(sessionTTL),
 		LastActiveAt: now,
+	}
+	if consumeInvitation {
+		delete(a.remoteInvitations, token)
+	} else if !reusable {
+		a.usedBootstrap = true
 	}
 	a.sessions[sessID] = sess
 	// Never persist sessions minted under PUBLIC_REMOTE / PRIVATE_NETWORK.

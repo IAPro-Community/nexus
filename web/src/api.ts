@@ -132,8 +132,9 @@ export async function initSession(): Promise<BrowserSession> {
     // Browsers cannot retain Secure auth cookies over plaintext LAN URLs.
     const hostname = window.location.hostname.toLowerCase();
     if (
+      !isDesktopApp() &&
       window.location.protocol === 'http:' &&
-      !['localhost', '127.0.0.1', '[::1]', 'nexus.dev'].includes(hostname)
+      !['localhost', '127.0.0.1', '[::1]', 'nexus.dev', 'wails.localhost'].includes(hostname)
     ) {
       return { authenticated: false };
     }

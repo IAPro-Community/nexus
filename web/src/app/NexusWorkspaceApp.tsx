@@ -140,7 +140,7 @@ export const NexusWorkspaceApp: React.FC<{
             <h2 className={unauthorizedStyles.title}>{t('auth.sessionExpired')}</h2>
             <p className={unauthorizedStyles.hint}>
               {window.location.protocol === 'http:' &&
-              !['localhost', '127.0.0.1', '[::1]', 'nexus.dev'].includes(window.location.hostname.toLowerCase())
+              !['localhost', '127.0.0.1', '[::1]', 'nexus.dev', 'wails.localhost'].includes(window.location.hostname.toLowerCase())
                 ? t('auth.networkHttpsRequired', {
                     defaultValue: 'Acesso LAN por HTTP não permite autenticação segura. Configure HTTPS confiável ou utilize o túnel HTTPS.',
                   })
