@@ -191,6 +191,96 @@ describe('api request layer', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('never blocks Wails bootstrap when the embedded window has no hostname', async () => {
+    const bridge: PlatformBridge = {
+      kind: 'desktop',
+      getCapabilities: () => ({
+        native: true,
+        filePicker: true,
+        folderPicker: true,
+        notifications: false,
+        tray: false,
+        nativeMenus: false,
+        deepLinks: false,
+        autoStart: false,
+        windowManagement: true,
+      }),
+      getBootstrapInfo: async () => ({
+        serverUrl: 'http://127.0.0.1:43123',
+        sessionToken: 'desktop-session',
+        csrfToken: 'desktop-csrf',
+      }),
+      selectDirectory: async () => null,
+      selectFile: async () => null,
+      showNotification: async () => undefined,
+      openExternal: async () => undefined,
+      getSystemTheme: async () => 'unknown',
+    };
+    setPlatformBridge(bridge);
+    vi.stubGlobal('window', { go: {}, location: { protocol: 'wails:' } });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ authenticated: true, csrf_token: 'desktop-csrf' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(initSession()).resolves.toMatchObject({ authenticated: true });
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/session', {
+      headers: { Accept: 'application/json', Authorization: 'Bearer desktop-session' },
+    });
+  });
+
+  it('allows HTTPS tunnel bootstrap before checking an existing browser cookie', async () => {
+    const replaceState = vi.fn();
+    vi.stubGlobal('window', {
+      location: {
+        hash: '#nexus_bootstrap=remote-invite',
+        pathname: '/',
+        search: '',
+        protocol: 'https:',
+        hostname: 'example.trycloudflare.com',
+      },
+      history: { replaceState },
+    });
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({
+        authenticated: true,
+        csrf_token: 'remote-csrf',
+        expires_at: '2026-10-09T00:00:00Z',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(initSession()).resolves.toMatchObject({
+      authenticated: true,
+      csrf_token: 'remote-csrf',
+    });
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/auth/bootstrap');
+    expect(replaceState).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses plaintext LAN bootstrap and scrubs invite fragment without sending credentials', async () => {
+    const replaceState = vi.fn();
+    vi.stubGlobal('window', {
+      location: {
+        hash: '#nexus_bootstrap=secret',
+        pathname: '/',
+        search: '',
+        protocol: 'http:',
+        hostname: '192.168.0.33',
+      },
+      history: { replaceState },
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(initSession()).resolves.toMatchObject({ authenticated: false });
+    expect(replaceState).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('keeps desktop bootstrap API calls same-origin inside the Wails webview', async () => {
     const desktopBridge: PlatformBridge = {
       kind: 'desktop',

@@ -132,7 +132,7 @@ export async function initSession(): Promise<BrowserSession> {
     // Always strip bearer fragments from the address bar before any early return.
     const bootstrapToken = consumeBrowserBootstrapToken();
     // Browsers cannot retain Secure auth cookies over plaintext LAN URLs.
-    const hostname = window.location.hostname.toLowerCase();
+    const hostname = (window.location.hostname || '').toLowerCase();
     if (
       !isDesktopApp() &&
       window.location.protocol === 'http:' &&
