@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -266,14 +267,11 @@ func extractTunnelHost(tunnelURL string) string {
 }
 
 func (s *Server) port() int {
-	if s.httpServer != nil && s.httpServer.Addr != "" {
-		parts := strings.Split(s.httpServer.Addr, ":")
-		if len(parts) > 0 {
-			var p int
-			fmt.Sscanf(parts[len(parts)-1], "%d", &p)
-			if p > 0 {
-				return p
-			}
+	// http.Server.Addr is empty when Serve is called with our pre-bound
+	// listener. Cloudflared must use the actual TCP port, not DefaultPort.
+	if s.listener != nil {
+		if addr, ok := s.listener.Addr().(*net.TCPAddr); ok && addr.Port > 0 {
+			return addr.Port
 		}
 	}
 	return DefaultPort
