@@ -145,3 +145,38 @@ func TestLANHTTPBootstrapRequiresTLS(t *testing.T) {
 		t.Fatal("refused LAN login consumed bootstrap token")
 	}
 }
+
+func TestExternalTunnelAdoptionAndStaleExitDoNotRevokeNewTunnel(t *testing.T) {
+	auth, _, err := NewAuthManager("127.0.0.1", "13000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth.SetTunnelActive(true)
+	srv := &Server{auth: auth, tunnelHost: "first.trycloudflare.com"}
+	first := &Tunnel{URL: "https://first.trycloudflare.com"}
+	if err := srv.AttachExternalTunnel(first); err != nil {
+		t.Fatal(err)
+	}
+	host, invite, err := srv.NewTunnelInviteURL()
+	if err != nil || host != first.URL {
+		t.Fatalf("adopted CLI tunnel must issue invites: host=%q err=%v", host, err)
+	}
+	token := strings.TrimPrefix(invite, host+"/#nexus_bootstrap=")
+	if _, ok := auth.ExchangeBootstrapTokenForHost(token, "first.trycloudflare.com"); !ok {
+		t.Fatal("CLI-issued invite must authenticate against active tunnel")
+	}
+	// Simulate a new registered generation before the prior subprocess exit callback.
+	second := &Tunnel{URL: "https://second.trycloudflare.com"}
+	srv.tunnelManager().mu.Lock()
+	srv.tunnel.tunnel = second
+	srv.tunnelManager().mu.Unlock()
+	first.OnExit()
+	if !auth.IsTunnelActive() || srv.tunnel.tunnel != second {
+		t.Fatal("stale exit callback must not disarm newer tunnel")
+	}
+	srv.trackTunnelExit(second)
+	second.OnExit()
+	if auth.IsTunnelActive() {
+		t.Fatal("current tunnel exit must disarm authentication")
+	}
+}
