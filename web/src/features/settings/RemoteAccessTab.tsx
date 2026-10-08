@@ -133,7 +133,8 @@ export const RemoteAccessTab: React.FC = () => {
         <p className={`nx-muted-copy ${styles.mutedTextSmall}`}>{t('settings.remote.intro')}</p>
         <InlineAlert tone="info">
           {t('settings.remote.lanHttpsRequired', {
-            defaultValue: 'Na mesma rede, o acesso autenticado exige HTTPS confiável. Utilize um proxy TLS ou o túnel HTTPS; não é seguro transportar cookies de sessão por HTTP na rede.',
+            defaultValue:
+              'Na mesma rede, o acesso autenticado exige HTTPS confiável. Utilize um proxy TLS ou o túnel HTTPS; não é seguro transportar cookies de sessão por HTTP na rede.',
           })}
         </InlineAlert>
 
@@ -224,7 +225,8 @@ export const RemoteAccessTab: React.FC = () => {
             <div className={styles.qrInfo}>
               <InlineAlert tone="warning">
                 {t('settings.remote.fullControlWarning', {
-                  defaultValue: 'Este convite concede acesso completo ao workspace. Compartilhe somente com alguém de confiança.',
+                  defaultValue:
+                    'Este convite concede acesso completo ao workspace. Compartilhe somente com alguém de confiança.',
                 })}
               </InlineAlert>
               <p className={styles.qrLabel}>{t('settings.remote.accessURL')}</p>
@@ -237,9 +239,11 @@ export const RemoteAccessTab: React.FC = () => {
                 tone="brand"
                 onClick={() => {
                   void navigator.clipboard.writeText(qrData.bootstrap_url).catch(() =>
-                    setError(t('settings.remote.errors.copy', {
-                      defaultValue: 'Não foi possível copiar o convite.',
-                    })),
+                    setError(
+                      t('settings.remote.errors.copy', {
+                        defaultValue: 'Não foi possível copiar o convite.',
+                      }),
+                    ),
                   );
                 }}
               >
