@@ -8,7 +8,7 @@
 - Causa: fallback de snapshot repetia inspeção Git enquanto havia inspeções concorrentes do contexto. O código agora reutiliza a identidade já inspecionada via `DiscoverWithIdentity`.
 - Evidências detalhadas: `DEV/validation/local-beta/1.0.0-beta.10/cd5302f96edf1d1b857e2fe77dd3ca033996995f/windows-AMD64/`.
 - Limites: checks manuais de provider/sessão, CI Windows exact-SHA, Authenticode/trust root e instalador final não fechados; distribuição NO-GO. Nenhum gate Linux executado.
-- Integração: `origin/release/v1.0.0` beta10 está em `2ac2dc69`, diverge desde `95c7121d` e contém quatro commits ausentes desta branch. Não fazer merge direto; repetir a homologação Windows após integrar a correção no alvo correto.
+- Integração: `origin/release/v1.0.0` beta10 está em `2ac2dc69`, diverge desde `95c7121d` e contém quatro commits ausentes desta branch. `fix/windows-beta10-homologation-20261008` foi enviada ao remoto; não foi aberto PR nem feito merge. Repetir a homologação Windows após integrar a correção no alvo correto.
 
 ## 2026-10-07 — Continuidade Windows WebView2 e branch audit
 
