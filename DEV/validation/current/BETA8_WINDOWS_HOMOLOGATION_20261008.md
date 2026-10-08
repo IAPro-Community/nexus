@@ -32,4 +32,6 @@ Evidência bruta local: `DEV/validation/local-beta/1.0.0-beta.8/7d2ef8aab669f88f
 
 ## Auditoria de branches remotas
 
-No momento da consulta, `origin/release/v1.0.0` apontava para `2abbf31a`. A branch `fix/beta8-manual-opaque-quota` (`edcd2ab`) ainda tem uma mudança exclusiva sobre o tratamento de quota `UNSUPPORTED`; ela não deve ser integrada sem decidir o contrato e alinhar seus testes. A branch Beta 7 KIVER (`d14154d2`) não tem trabalho novo a portar. Esta branch Windows beta.8 é nova e deve ser vinculada à release por PR/revisão após o push.
+No momento da consulta, `origin/release/v1.0.0` apontava para `2abbf31a`. A branch `fix/windows-beta8-homologation-20261008` foi publicada e confirmada no remoto em `1352122e`; continua sem integração e precisa de PR/revisão para release. A branch `fix/beta8-manual-opaque-quota` (`edcd2ab`) ainda tem uma mudança exclusiva sobre o tratamento de quota `UNSUPPORTED`; ela não deve ser integrada sem decidir o contrato e alinhar seus testes. A branch Beta 7 KIVER (`d14154d2`) não tem trabalho novo a portar.
+
+Criar PR: [fix/windows-beta8-homologation-20261008 → release/v1.0.0](https://github.com/IAPro-Community/nexus/pull/new/fix/windows-beta8-homologation-20261008).

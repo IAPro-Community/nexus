@@ -7,6 +7,7 @@
 - Evidência: `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`; manifesto e mídia capturados no SHA de código, inspecionados e sem caminho do perfil Windows.
 - Veredito: automação local Windows PASS; distribuição NO-GO por CI remoto, smokes manuais, NSIS e assinatura pendentes. Nenhum gate Linux executado.
 - Auditoria de branches: `fix/beta8-manual-opaque-quota` tem mudança exclusiva que requer decisão de contrato/testes; a branch Windows beta.8 precisa PR para `release/v1.0.0`.
+- Push autorizado concluído: `fix/windows-beta8-homologation-20261008` foi criada e o remoto confirmou o SHA `1352122e`. A release permaneceu em `2abbf31a`; não foi alterada diretamente. Próximo passo é abrir/revisar o PR.
 
 ## 2026-10-07 — Smoke Windows WebView2 e auditoria de branches
 

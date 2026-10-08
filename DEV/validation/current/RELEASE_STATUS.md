@@ -10,6 +10,8 @@ GATE_EVIDENCE_SHA: 7d2ef8aab669f88f22d09a86ec6442f761d0f7b5 (documentation-only 
 CURRENT_WORKTREE_GATES: PASS (Windows AMD64 exact-SHA local automated gates; full gate ran at GATE_EVIDENCE_SHA)
 LAST_FROZEN_WINDOWS_SHA: 7d2ef8aab669f88f22d09a86ec6442f761d0f7b5
 LIVE_REMOTE_RELEASE_SHA_AT_AUDIT: CONFIRMED (origin/release/v1.0.0 = 2abbf31a770162e845e708695fbe397d02a5374e)
+REMOTE_HOMOLOGATION_BRANCH: CONFIRMED (origin/fix/windows-beta8-homologation-20261008 = 1352122e265b95b2a422f4d35038d332df19bbe9)
+PULL_REQUEST: NOT_OPENED (create at https://github.com/IAPro-Community/nexus/pull/new/fix/windows-beta8-homologation-20261008)
 WINDOWS_LOCAL_GATES: PASS (docs, Bun frozen + full web quality, Go fmt/vet/lint/security/tests, eight browser E2E suites, Axe/visual, CLI/Desktop/HUD builds and native smokes)
 WINDOWS_DOCS_VERIFY: PASS (178 Markdown files, 33 required assets/files)
 WINDOWS_NATIVE_CI: NOT_REVALIDATED
@@ -20,7 +22,7 @@ WINDOWS_MANUAL_PROVIDER_MISSION_VOICE_SMOKES: PENDING (see MANUAL_CHECKS.md in t
 WINDOWS_CREDENTIAL_MANAGER: UNSUPPORTED (native isolation not implemented)
 LOCAL_ARTIFACTS: NotSigned; no distribution package certified
 RELEASE_TAG_OR_PUBLICATION: NOT_CREATED
-BRANCH_AUDIT: fix/beta8-manual-opaque-quota has one exclusive quota-contract change and remains unintegrated pending contract/test alignment; Beta 7 KIVER branch has no new change to port. The current Windows branch must be linked to release through PR/review.
+BRANCH_AUDIT: Windows homologation branch pushed and awaits PR/review; fix/beta8-manual-opaque-quota has one exclusive quota-contract change and remains unintegrated pending contract/test alignment; Beta 7 KIVER branch has no new change to port.
 WORKTREE_FROZEN: YES_FOR_GATE_SHA (gate ran on a clean exact-SHA checkout)
 UPDATED_AT: 2026-10-08
 
