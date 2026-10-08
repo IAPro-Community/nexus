@@ -20,13 +20,20 @@ describe('ptyLiveChrome', () => {
     });
   });
 
-  it('preserves the user window name even when the PTY changes its live title', () => {
-    expect(
-      ptyWindowHeading({ customTitle: 'Minha janela', identity: 'Shell', liveTitle: 'codex · thinking' }),
-    ).toEqual({ heading: 'Minha janela', identityHint: 'codex · thinking' });
-    expect(
-      ptyWindowHeading({ customTitle: 'Minha janela', identity: 'Shell', liveTitle: 'codex · ready' }),
-    ).toEqual({ heading: 'Minha janela', identityHint: 'codex · ready' });
+  it('keeps dynamic provider status updating after a manual customization', () => {
+    const customized = { customTitle: 'Minha janela', identity: 'Shell' };
+    expect(ptyWindowHeading({ ...customized, liveTitle: 'codex · thinking' })).toEqual({
+      heading: 'codex · thinking', identityHint: 'Minha janela',
+    });
+    expect(ptyWindowHeading({ ...customized, liveTitle: 'codex · ready' })).toEqual({
+      heading: 'codex · ready', identityHint: 'Minha janela',
+    });
+    expect(ptyWindowHeading({ ...customized, customTitle: 'Nova janela', liveTitle: 'codex · ready' })).toEqual({
+      heading: 'codex · ready', identityHint: 'Nova janela',
+    });
+    expect(ptyWindowHeading({ ...customized, customTitle: '', liveTitle: 'codex · ready' })).toEqual({
+      heading: 'codex · ready', identityHint: 'Shell',
+    });
   });
 
   it('falls back to identity when the PTY has no settitle', () => {

@@ -47,30 +47,19 @@ const EMBEDDED_CPR_RE = /\x1b\[\d+;\d+R/g;
 // eslint-disable-next-line no-control-regex
 const EMBEDDED_MOUSE_RE = /\x1b\[<\d+;\d+;\d+[Mm]/g;
 
-// Some bridges have been observed to lose ESC entirely and coalesce multiple
-// navigation reports into one onData chunk (for example "[B[A[A[B[C").
-// A single bare "[A" is ambiguous user text and must remain untouched; two or
-// more navigation-shaped reports in the same chunk are transport corruption.
-const BARE_NAVIGATION_RE = /\[(?:[0-9;?]*\[)?[A-DHFO]/g;
-
-function stripBareNavigationBurst(data: string): string {
-  const matches = [...data.matchAll(BARE_NAVIGATION_RE)].filter(
-    (match) => match.index === 0 || data[match.index! - 1] !== '\x1b',
-  );
-  if (matches.length < 2) return data;
-  return data.replace(BARE_NAVIGATION_RE, (match, offset: number) =>
-    offset > 0 && data[offset - 1] === '\x1b' ? match : '',
-  );
-}
-
-/** Removes terminal metadata and unambiguous bare navigation corruption. */
+/**
+ * Strip only provably terminal-generated metadata.
+ * A burst of bare [A/[B segments is NOT proof of corruption: xterm may
+ * legitimately deliver user text or fragmented navigation in that shape.
+ * Heuristic deletion irreversibly corrupts the Codex input buffer.
+ * Leave ambiguous chunks byte-transparent; reconstruction belongs at PTY.
+ */
 export function stripEmbeddedTerminalMetadata(data: string): string {
   if (!data) return data;
-  const withoutMetadata = data
+  return data
     .replace(EMBEDDED_FOCUS_RE, '')
     .replace(EMBEDDED_CPR_RE, '')
     .replace(EMBEDDED_MOUSE_RE, '');
-  return stripBareNavigationBurst(withoutMetadata);
 }
 
 /**

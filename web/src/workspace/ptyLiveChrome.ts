@@ -50,15 +50,12 @@ export function ptyWindowHeading(input: {
   const customTitle = (input.customTitle || '').trim();
   const identity = (input.identity || '').trim();
   const live = (input.liveTitle || '').trim();
-  // A manually customized window name must not be overwritten by OSC title updates.
-  if (customTitle) {
-    return { heading: customTitle, identityHint: live && live !== customTitle ? live : '' };
-  }
+  // OSC settitle is the live state of the process, not a one-time rename.
+  // A user's custom name remains an editable identity label; it must never
+  // pin the dynamic title or block subsequent Codex/AGY state transitions.
   if (live) {
-    return {
-      heading: live,
-      identityHint: identity && identity !== live ? identity : '',
-    };
+    const hint = customTitle || identity;
+    return { heading: live, identityHint: hint && hint !== live ? hint : '' };
   }
-  return { heading: identity || 'Terminal', identityHint: '' };
+  return { heading: customTitle || identity || 'Terminal', identityHint: '' };
 }

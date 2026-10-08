@@ -69,11 +69,12 @@ describe('stripEmbeddedTerminalMetadata', () => {
     );
   });
 
-  it('strips unambiguous bare navigation bursts but preserves a single literal', () => {
-    expect(stripEmbeddedTerminalMetadata('> [B[A[A[B[C[D[D[C')).toBe('> ');
-    expect(stripEmbeddedTerminalMetadata('[[A[B')).toBe('');
+  it('preserves all ambiguous bare navigation bytes, including bursts', () => {
+    expect(stripEmbeddedTerminalMetadata('> [B[A[A[B[C[D[D[C')).toBe('> [B[A[A[B[C[D[D[C');
+    expect(stripEmbeddedTerminalMetadata('[[A[B')).toBe('[[A[B');
     expect(stripEmbeddedTerminalMetadata('[A')).toBe('[A');
     expect(stripEmbeddedTerminalMetadata('typed [A text')).toBe('typed [A text');
+    expect(stripEmbeddedTerminalMetadata('[A[B test [D[C')).toBe('[A[B test [D[C');
   });
 
   it('preserves coalesced ESC-prefixed navigation input', () => {
