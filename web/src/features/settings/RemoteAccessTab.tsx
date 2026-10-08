@@ -70,20 +70,29 @@ export const RemoteAccessTab: React.FC = () => {
     }
   }, [t]);
 
-  const handleShowQR = useCallback(async () => {
+  const generateInvite = useCallback(async () => {
+    if (loading) return;
+    setLoading(true);
+    setError('');
     try {
-      if (showQR) {
-        setShowQR(false);
-        setQrData(null);
-        return;
-      }
       const data = await nexus.createTunnelInvite();
       setQrData(data);
       setShowQR(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('settings.remote.errors.qr'));
+    } finally {
+      setLoading(false);
     }
-  }, [t, showQR]);
+  }, [t, loading]);
+
+  const handleShowQR = useCallback(() => {
+    if (showQR) {
+      setShowQR(false);
+      setQrData(null);
+      return;
+    }
+    void generateInvite();
+  }, [showQR, generateInvite]);
 
   const active = status?.active ?? false;
   const installed = status?.cloudflared_installed ?? false;
@@ -183,8 +192,17 @@ export const RemoteAccessTab: React.FC = () => {
             </div>
 
             <div className={styles.qrInfo}>
+              <InlineAlert tone="warning">
+                {t('settings.remote.fullControlWarning', {
+                  defaultValue: 'Este convite concede acesso completo ao workspace. Compartilhe somente com alguém de confiança.',
+                })}
+              </InlineAlert>
               <p className={styles.qrLabel}>{t('settings.remote.accessURL')}</p>
               <code className={styles.qrUrl}>{qrData.url}</code>
+              <Button tone="ghost" onClick={() => void generateInvite()} disabled={loading}>
+                <RefreshCw size={14} />
+                {t('settings.remote.generateInvite', { defaultValue: 'Gerar outro convite' })}
+              </Button>
               <Button
                 tone="brand"
                 onClick={() => {
