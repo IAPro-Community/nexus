@@ -69,7 +69,7 @@ func (a *AuthManager) persistLocked() error {
 	payload := persistedAuth{Sessions: make([]persistedSession, 0, len(a.sessions))}
 	now := time.Now()
 	for _, sess := range a.sessions {
-		if sess == nil || now.After(sess.ExpiresAt) {
+		if sess == nil || sess.NonPersistable || now.After(sess.ExpiresAt) {
 			continue
 		}
 		if now.Sub(sess.LastActiveAt) > sessionIdleTTL {

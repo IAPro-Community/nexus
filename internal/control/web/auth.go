@@ -27,11 +27,14 @@ const (
 )
 
 type Session struct {
-	ID           string
-	CSRFToken    string
-	CreatedAt    time.Time
-	ExpiresAt    time.Time
-	LastActiveAt time.Time
+	ID             string
+	CSRFToken      string
+	CreatedAt      time.Time
+	ExpiresAt      time.Time
+	LastActiveAt   time.Time
+	// A session granted while remotely exposed must never become persistent
+	// just because the tunnel was subsequently switched off.
+	NonPersistable bool
 }
 
 type remoteInvitation struct {
@@ -187,6 +190,7 @@ func (a *AuthManager) CreateSession() (*Session, error) {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	sess.NonPersistable = a.effectiveExposureLocked() != ExposureLoopback
 	a.sessions[sessID] = sess
 	_ = a.persistLocked()
 	return sess, nil
@@ -284,12 +288,18 @@ func (a *AuthManager) RotateSession(oldSessionID string) (*Session, error) {
 	csrfToken := hex.EncodeToString(csrfBytes)
 
 	now := time.Now()
+	previous := a.sessions[oldSessionID]
+	nonPersistable := a.effectiveExposureLocked() != ExposureLoopback
+	if previous != nil && previous.NonPersistable {
+		nonPersistable = true
+	}
 	sess := &Session{
-		ID:           sessID,
-		CSRFToken:    csrfToken,
-		CreatedAt:    now,
-		ExpiresAt:    now.Add(sessionTTL),
-		LastActiveAt: now,
+		ID:             sessID,
+		CSRFToken:      csrfToken,
+		CreatedAt:      now,
+		ExpiresAt:      now.Add(sessionTTL),
+		LastActiveAt:   now,
+		NonPersistable: nonPersistable,
 	}
 	delete(a.sessions, oldSessionID)
 	a.sessions[sessID] = sess
@@ -410,11 +420,12 @@ func (a *AuthManager) ExchangeBootstrapTokenForHost(token, host string) (*Sessio
 
 	now := a.now()
 	sess := &Session{
-		ID:           sessID,
-		CSRFToken:    csrfToken,
-		CreatedAt:    now,
-		ExpiresAt:    now.Add(sessionTTL),
-		LastActiveAt: now,
+		ID:             sessID,
+		CSRFToken:      csrfToken,
+		CreatedAt:      now,
+		ExpiresAt:      now.Add(sessionTTL),
+		LastActiveAt:   now,
+		NonPersistable: exposure != ExposureLoopback,
 	}
 	if consumeInvitation {
 		delete(a.remoteInvitations, token)

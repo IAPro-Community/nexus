@@ -168,3 +168,76 @@ func TestReadListenStateRejectsDeadPID(t *testing.T) {
 		t.Fatal("dead pid must not look like a running nexus web")
 	}
 }
+
+// TestRemoteSessionsRemainEphemeralAfterTunnelStops covers a subtle transition:
+// once tunnelActive becomes false, writing a local session cache must never
+// accidentally serialize an earlier PUBLIC_REMOTE session.
+func TestRemoteSessionsRemainEphemeralAfterTunnelStops(t *testing.T) {
+	dir := t.TempDir()
+	auth, _, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth.SetTunnelActive(true)
+	token, err := auth.IssueTunnelInvitation("example.trycloudflare.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote, ok := auth.ExchangeBootstrapTokenForHost(token, "example.trycloudflare.com")
+	if !ok || remote == nil {
+		t.Fatal("failed to create remote session")
+	}
+	auth.SetTunnelActive(false)
+	local, err := auth.CreateSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, _, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: remote.ID})
+	if restored.AuthenticateRequest(req) != nil {
+		t.Fatal("remote session must not persist after tunnel stops")
+	}
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: local.ID})
+	if restored.AuthenticateRequest(req) == nil {
+		t.Fatal("valid local session should still be persisted")
+	}
+}
+
+func TestRotatedRemoteSessionNeverBecomesPersistent(t *testing.T) {
+	dir := t.TempDir()
+	auth, _, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth.SetTunnelActive(true)
+	token, err := auth.IssueTunnelInvitation("example.trycloudflare.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote, ok := auth.ExchangeBootstrapTokenForHost(token, "example.trycloudflare.com")
+	if !ok || remote == nil {
+		t.Fatal("failed to create remote session")
+	}
+	auth.SetTunnelActive(false)
+	rotated, err := auth.RotateSession(remote.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rotated.NonPersistable {
+		t.Fatal("rotation must preserve remote session provenance")
+	}
+	restored, _, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: rotated.ID})
+	if restored.AuthenticateRequest(req) != nil {
+		t.Fatal("rotated remote session must not survive restart")
+	}
+}
