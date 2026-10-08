@@ -138,7 +138,7 @@ func tunnelCmd(args []string) error {
 	fmt.Fprintf(os.Stderr, "╔═══════════════════════════════════════════════════════════════╗\n")
 	fmt.Fprintf(os.Stderr, "║  URL pública:      %-44s ║\n", tunnel.URL)
 	fmt.Fprintf(os.Stderr, "║  Convite único:     %-44s ║\n", remoteBootstrapURL)
-	fmt.Fprintf(os.Stderr, "║  Validade: 15 minutos, um único acesso.                       ║\n")
+	fmt.Fprintf(os.Stderr, "║  Expira: 15 minutos, um único acesso.                         ║\n")
 	fmt.Fprintf(os.Stderr, "╚═══════════════════════════════════════════════════════════════╝\n")
 	fmt.Fprintf(os.Stderr, "\nPressione Ctrl+C para encerrar.\n")
 
