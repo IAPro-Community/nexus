@@ -64,6 +64,8 @@ jobs:
         run: bun scripts/docs-verify.mjs
       - working-directory: web
         run: bun install --frozen-lockfile
+      - name: Verify beta bump/rollback contract
+        run: node --test scripts/release-version.test.mjs
       - name: Verify frontend formatting
         working-directory: web
         run: |
@@ -314,6 +316,8 @@ jobs:
         with:
           go-version: '1.25.14'
           cache: false
+      - name: Verify source version consistency
+        run: go run ./scripts/verify-version-contract.go .
       - name: Verify gofmt
         run: |
           set -euo pipefail
