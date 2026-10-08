@@ -14,11 +14,13 @@ REMOTE_HOMOLOGATION_BRANCH: CONFIRMED (contains code tested at ab397c5449cc76dfd
 PULL_REQUEST: OPEN_DRAFT #45 (fix/windows-beta8-homologation-20261008 -> release/v1.0.0; awaiting review; not merged) https://github.com/IAPro-Community/nexus/pull/45
 WINDOWS_LOCAL_GATES: PASS (docs, Bun frozen + full web quality, Go fmt/vet/lint/security/tests, eight browser E2E suites, Axe/visual, CLI/Desktop/HUD builds, Codex ConPTY host test and isolated interactive TUI smoke)
 WINDOWS_DESKTOP_HUD_NATIVE_SMOKES: PASS (Desktop Wails/WebView2 13s; HUD WebView2 8s; isolated IDs and short profiles on source ab397c54)
+WINDOWS_WAILS_PROJECT_CREATE_ORIGIN: PASS (HEAD 7cc03499; Wails bootstrap 200 and project create 201 with exact wails.localhost + auth/CSRF; lookalikes/external origins 403)
+WINDOWS_GO_TESTS_AFTER_CONPTY_HARNESS_FIX: PASS (focused ConPTY arrow test 10/10; `go test -count=1 ./...`, exit 0, Windows)
 WINDOWS_DOCS_VERIFY: PASS (178 Markdown files, 33 required assets/files)
 WINDOWS_NATIVE_CI: NOT_CERTIFIED (PR Windows certification check skipped; no online runner with Windows/X64/nexus-windows labels)
 WINDOWS_SIGNING: BLOCKED_EXTERNAL (Authenticode certificate/secrets, signtool.exe, NEXUS_UPDATE_PRIVATE_KEY and NEXUS_UPDATE_KEY_ID unavailable)
 WINDOWS_DISTRIBUTION_BINARIES: PASS_UNSIGNED (CLI/Desktop/HUD built for ab397c54; SHA-256 manifest in outputs/windows-beta8-distribution-ab397c54-20261008)
-WINDOWS_INSTALLER_BUILD: NOT_BUILT_FOR_AB397 (makensis.exe unavailable on current host; installer from 7d2ef8aa is stale)
+WINDOWS_INSTALLER_BUILD: NOT_BUILT_FOR_AB397 (makensis.exe unavailable; official SourceForge download was blocked and returned HTML/403; installer from 7d2ef8aa is stale)
 WINDOWS_EXACT_INSTALLER_SMOKE: NOT_RUN_FOR_AB397 (no installer built for current source SHA)
 WINDOWS_MANUAL_PROVIDER_MISSION_VOICE_SMOKES: PENDING (see MANUAL_CHECKS.md in the local evidence directory)
 WINDOWS_CREDENTIAL_MANAGER: UNSUPPORTED (native isolation not implemented)
@@ -32,7 +34,7 @@ UPDATED_AT: 2026-10-08
 
 O SHA `ab397c5449cc76dfd07b44e335f45de6762a94f4` passou o gate automatizado completo Windows AMD64: Go fmt/vet/lint/vulnerability scan/testes, Bun frozen install e qualidade Web (83 arquivos Vitest/499 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. O teste Windows de `SessionHost` confirmou console interativo e encaminhamento de seta do Codex sem variáveis de opt-in; o smoke isolado abriu a tela de boas-vindas/login sem autenticar. Smokes nativos isolados do Desktop/Wails/WebView2 e HUD também passaram (13 s e 8 s).
 
-O commit foi enviado para `fix/windows-beta8-homologation-20261008`, já vinculada por PR draft #45 a `release/v1.0.0`; a release remota continua em `2abbf31a`. O candidato ainda não foi integrado. CLI, Desktop e HUD foram reconstruídos no SHA atual; são unsigned e seus checksums estão em `outputs/windows-beta8-distribution-ab397c54-20261008/SHA256SUMS.txt`. O NSIS installer e smoke de `7d2ef8aa` permanecem antigos e não certificam o SHA atual; `makensis.exe` não está instalado neste host. CI Windows exact-SHA, Authenticode/trust root e smokes restantes de provider/Mission/Voice continuam pendentes. Nenhum gate Linux foi executado nesta continuidade.
+O commit foi enviado para `fix/windows-beta8-homologation-20261008`, já vinculada por PR draft #45 a `release/v1.0.0`; a release remota continua em `2abbf31a`. O candidato ainda não foi integrado. CLI, Desktop e HUD foram reconstruídos no SHA atual; são unsigned e seus checksums estão em `outputs/windows-beta8-distribution-ab397c54-20261008/SHA256SUMS.txt`. O NSIS installer e smoke de `7d2ef8aa` permanecem antigos e não certificam o SHA atual; `makensis.exe` não está instalado e o download oficial SourceForge retornou HTML/403 neste host. CI Windows exact-SHA, Authenticode/trust root e smokes restantes de provider/Mission/Voice continuam pendentes. Nenhum gate Linux foi executado nesta continuidade.
 
 ## Atualização de distribuição Windows beta.8 — 2026-10-08
 

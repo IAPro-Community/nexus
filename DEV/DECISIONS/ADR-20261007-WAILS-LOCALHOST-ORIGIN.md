@@ -1,6 +1,6 @@
 # ADR-2026-10-07 — Host virtual Wails na política de origem
 
-Status: aceito para correção local; integração num SHA imutável pendente.
+Status: implementado e integrado à `release/v1.0.0` no commit `6bab37ea`; regressão Windows confirmada novamente no candidato beta.8.
 Base: release/v1.0.0, 52f35c04181b85379219ab55fc3192c63a5440a8.
 
 ## Contexto
@@ -23,7 +23,7 @@ O Desktop Wails pode usar seu host virtual reservado ao falar com o Core embutid
 
 ## Evidência
 
-- Teste HTTP Windows cria sessão Desktop, acessa desktop bootstrap e cria projeto com Host/Origin wails.localhost.
-- Casos negativos validam hosts lookalike e origens externas.
-- Os testes focados de originpolicy/web/desktop e go test -count=1 ./... passaram no checkout Windows.
-- A correção ainda está sem commit; certificação exact-SHA e smoke Wails interativo permanecem necessários antes da distribuição.
+- `TestWindowsWailsVirtualHostSupportsAuthenticatedProjectCreation` passou no Windows no HEAD `7cc03499`: bootstrap retorna 200 e criação de projeto retorna 201 com Host/Origin exatos `wails.localhost` e sessão autenticada com CSRF.
+- O mesmo teste confirma que host lookalike e origens externas continuam em 403.
+- `go test -count=1 ./internal/control/originpolicy ./internal/control/web ./internal/desktop ./cmd/nexus-desktop ./cmd/nexus-hud` passou no Windows no HEAD `7cc03499`.
+- Smokes nativos posteriores confirmaram inicialização do Desktop/Wails/WebView2; inspeção visual e interação completa continuam pendentes antes da distribuição.

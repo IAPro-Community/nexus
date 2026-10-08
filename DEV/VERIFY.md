@@ -5,9 +5,12 @@
 - PASS — `scripts/homologate-beta.ps1 -ExpectedSha ab397c54` no Windows AMD64, SHA exato `ab397c5449cc76dfd07b44e335f45de6762a94f4`, `VERSION=1.0.0-beta.8`: Go fmt/vet/lint/security/testes, Bun frozen + `quality:full` (83 arquivos/499 testes), oito suítes Playwright, Axe/visual e builds CLI/Desktop/HUD.
 - PASS — teste Windows `TestCodexSessionHostDefaultsToConPTYAndForwardsArrowInput` e smoke TUI isolado sem `AI_CLI_ENABLE_CONPTY`; tela de boas-vindas/login aberta, Ctrl+C encerrou limpo e não houve autenticação.
 - PASS — smokes nativos em builds de teste Windows no código `ab397c54`: Desktop/Wails com `IAPro Nexus` + `Chrome_WidgetWin_0` por 13 s; HUD vivo por 8 s; IDs e perfis WebView2 isolados. Evidências locais estão sob `DEV/validation/local-beta/1.0.0-beta.8/ab397c5449cc76dfd07b44e335f45de6762a94f4/windows-AMD64/native-smokes/`.
+- PASS — `TestWindowsWailsVirtualHostSupportsAuthenticatedProjectCreation`: bootstrap 200, criação de projeto 201 e origens lookalike/externas em 403 no Windows.
+- PASS — `go test -count=1 ./internal/control/originpolicy ./internal/control/web ./internal/desktop ./cmd/nexus-desktop ./cmd/nexus-hud` no Windows/HEAD `7cc03499`.
+- PASS — após estabilizar o harness ConPTY para observar a tecla antes de fechar o processo PowerShell, o teste focado passou 10/10 e `go test -count=1 ./...` passou no Windows (`GO_TEST_EXIT=0`).
 - PASS — corrigido o harness `scripts/smoke-desktop-windows.ps1` para compatibilidade com o compilador C# do PowerShell nativo; smoke Desktop executado após a correção.
 - PASS — `node scripts/docs-verify.mjs` (178 arquivos Markdown/33 itens requeridos) e `git diff --check` para este conjunto documental. O binário Bun deste host falha antes de iniciar scripts dentro do diretório temporário com `CouldntReadCurrentDirectory`.
-- LIMITAÇÃO — `makensis.exe` não está disponível; o instalador e smoke de `7d2ef8aa` são de candidato anterior. Os binários atuais são unsigned. CI Windows exact-SHA, Authenticode/trust root e smokes manuais provider/Mission/Voice continuam pendentes. Nenhum gate Linux foi executado.
+- LIMITAÇÃO — `makensis.exe` não está disponível; o download oficial SourceForge retornou HTML/403, e o instalador/smoke de `7d2ef8aa` são de candidato anterior. Os binários atuais são unsigned. CI Windows exact-SHA, Authenticode/trust root e smokes manuais provider/Mission/Voice continuam pendentes. Nenhum gate Linux foi executado.
 - Relatório: [`DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`](validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md).
 
 ## Histórico — candidato beta.8 `7d2ef8aa`

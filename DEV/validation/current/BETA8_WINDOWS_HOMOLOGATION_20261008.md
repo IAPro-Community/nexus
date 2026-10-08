@@ -21,6 +21,10 @@ O commit `ab397c5449cc76dfd07b44e335f45de6762a94f4` passou pelo gate completo co
 - PASS — smoke interativo com perfil isolado e sem `AI_CLI_ENABLE_CONPTY`: Codex v0.160.1 abriu a tela de boas-vindas/login via Nexus; a sessão permaneceu ativa e encerrou limpa com Ctrl+C, sem prompt ou login.
 - PASS — smoke nativo Desktop no código `ab397c54`: build Windows com ID Wails de teste, janela `IAPro Nexus` e controller `Chrome_WidgetWin_0` ativos por 13 s; perfil WebView2 isolado e curto.
 - PASS — smoke nativo HUD no código `ab397c54`: build Windows com ID Wails de teste, processo ativo por 8 s e perfil WebView2 isolado criado.
+- PASS — regressão da mensagem `invalid origin` na criação do primeiro projeto: `TestWindowsWailsVirtualHostSupportsAuthenticatedProjectCreation` passou no HEAD `7cc03499`; bootstrap Wails retornou 200 e criação do projeto retornou 201 com autenticação/CSRF, enquanto hosts lookalike e origens externas retornaram 403.
+- PASS — `go test -count=1 ./internal/control/originpolicy ./internal/control/web ./internal/desktop ./cmd/nexus-desktop ./cmd/nexus-hud` no Windows/HEAD `7cc03499`.
+- PASS — teste de integração ConPTY repetido 10 vezes após endurecer o harness para manter o processo PowerShell aberto até o encerramento da sessão e preservar o resultado da tecla em arquivo temporário isolado: 10/10.
+- PASS — `go test -count=1 ./...` no Windows após o ajuste do harness; todos os pacotes passaram (`GO_TEST_EXIT=0`), inclusive `internal/control/host`.
 - O harness `scripts/smoke-desktop-windows.ps1` foi ajustado para compilar no PowerShell nativo do host: substituídas declarações C# inline `out` por variáveis explícitas. O smoke aprovado usou diretório de perfil curto, conforme o runner Windows.
 
 ### Correção homologada
@@ -41,7 +45,7 @@ Os manifestos `MANIFEST.md` e `SHA256SUMS.txt` acompanham os binários. O instal
 
 CI Windows exact-SHA, assinatura Authenticode, trust root de atualização e smokes manuais restantes de provider/Mission/Voice continuam pendentes. O smoke Codex sem login valida TUI/ConPTY e não substitui autenticação nem esses fluxos. A PR draft #45 segue sem merge/revisão.
 
-`doctor.json` também detectou Gemini CLI instalado, mas a inicialização local do comando falha ao usar o Node 18.12.1 encontrado no PATH do host; isso é um aviso de ambiente e não foi contado como provider smoke aprovado. Os smokes Desktop/HUD verificam inicialização e criação do WebView2; não substituem inspeção visual da interface nem os fluxos manuais de show/hide, autostart e projeção.
+`doctor.json` detectou Gemini CLI instalado. A shim local usa Node 18.12.1 e falha nessa versão; o CLI reportou `0.38.2` quando executado com o Node portátil 22.14 em perfil isolado. Codex `0.160.1` e AGY `1.3.0` também responderam a `--version` em perfil isolado. Esses comandos só validam inicialização/versão, não autenticação nem prompts reais, portanto provider/Mission/Voice continuam pendentes. Os smokes Desktop/HUD verificam inicialização e criação do WebView2; não substituem inspeção visual da interface nem os fluxos manuais de show/hide, autostart e projeção.
 
 ### Auditoria de branches — 2026-10-08
 

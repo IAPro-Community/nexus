@@ -26,16 +26,18 @@ func TestCodexSessionHostDefaultsToConPTYAndForwardsArrowInput(t *testing.T) {
 
 	runtimeID := fmt.Sprintf("rt-codex-conpty-%d", time.Now().UnixNano())
 	codexHome := t.TempDir()
+	keyResultPath := filepath.Join(t.TempDir(), "conpty-key.txt")
 	workspace := t.TempDir()
-	env := make([]string, 0, len(os.Environ())+1)
+	env := make([]string, 0, len(os.Environ())+2)
 	for _, entry := range os.Environ() {
 		key, _, _ := strings.Cut(entry, "=")
-		if strings.EqualFold(key, "CODEX_HOME") || strings.EqualFold(key, "AI_CLI_ENABLE_CONPTY") || strings.EqualFold(key, "AI_CLI_DISABLE_CONPTY") {
+		if strings.EqualFold(key, "CODEX_HOME") || strings.EqualFold(key, "AI_CLI_ENABLE_CONPTY") || strings.EqualFold(key, "AI_CLI_DISABLE_CONPTY") || strings.EqualFold(key, "NEXUS_TEST_KEY_FILE") {
 			continue
 		}
 		env = append(env, entry)
 	}
 	env = append(env, "CODEX_HOME="+codexHome)
+	env = append(env, "NEXUS_TEST_KEY_FILE="+keyResultPath)
 
 	registryPath := filepath.Join(t.TempDir(), "runtimes.json")
 	ownedRegistry := registry.NewRegistry(registryPath)
@@ -55,7 +57,7 @@ func TestCodexSessionHostDefaultsToConPTYAndForwardsArrowInput(t *testing.T) {
 			"-NoLogo",
 			"-NoProfile",
 			"-Command",
-			"[Console]::WriteLine('NEXUS_STDIN_REDIRECTED=' + [Console]::IsInputRedirected); $key = [Console]::ReadKey($true); [Console]::WriteLine('NEXUS_KEY=' + $key.Key)",
+			"[Console]::WriteLine('NEXUS_STDIN_REDIRECTED=' + [Console]::IsInputRedirected); $key = [Console]::ReadKey($true); [System.IO.File]::WriteAllText($env:NEXUS_TEST_KEY_FILE, [string]$key.Key); [Console]::WriteLine('NEXUS_KEY=' + $key.Key); $null = [Console]::ReadKey($true)",
 		},
 		Env: env,
 		Cwd: workspace,
@@ -83,9 +85,10 @@ func TestCodexSessionHostDefaultsToConPTYAndForwardsArrowInput(t *testing.T) {
 	if _, err := client.RawConn().Write([]byte("\x1b[B")); err != nil {
 		t.Fatalf("send Down Arrow over Nexus attach: %v", err)
 	}
-	output = waitForWindowsTerminalMarker(t, client, []byte(output), "NEXUS_KEY=DownArrow")
+	output = waitForWindowsTerminalMarker(t, client, []byte(output), "NEXUS_KEY=")
 	if !strings.Contains(output, "NEXUS_KEY=DownArrow") {
-		t.Fatalf("Nexus attach did not deliver Down Arrow to the Codex TUI console: %q", output)
+		key, _ := os.ReadFile(keyResultPath)
+		t.Fatalf("Nexus attach did not deliver Down Arrow to the Codex TUI console: key=%q output=%q", key, output)
 	}
 }
 
