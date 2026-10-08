@@ -32,6 +32,7 @@ type tunnelManager struct {
 	cancel      context.CancelFunc
 	startCancel context.CancelFunc
 	starting    bool
+	startSeq    uint64
 }
 
 // trackTunnelExit ensures that an old cloudflared process cannot invalidate
@@ -168,6 +169,8 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	// Install cancellation atomically with the pending-start flag, so a
 	// concurrent Stop can always cancel DNS/download/process startup.
 	tm.starting = true
+	tm.startSeq++
+	startSeq := tm.startSeq
 	tm.startCancel = cancel
 	tm.mu.Unlock()
 
@@ -179,7 +182,11 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() {
 		tm.mu.Lock()
-		tm.startCancel = nil
+		// An older handler must never erase a newer generation's cancel
+		// function after its own startup has already unwound.
+		if tm.startSeq == startSeq {
+			tm.startCancel = nil
+		}
 		tm.mu.Unlock()
 	}()
 
