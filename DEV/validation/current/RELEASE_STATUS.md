@@ -1,37 +1,45 @@
 # Current release status
 
-STATUS: WINDOWS_LOCAL_GATES_PASS_DESKTOP_RUNTIME_PASS_VISUAL_UNVERIFIED_RELEASE_NO_GO
+STATUS: WINDOWS_AUTOMATED_LOCAL_GATES_PASS_RELEASE_NO_GO
 OFFICIAL_RELEASE: NO-GO
-WINDOWS_DESKTOP_RETEST: PASS_RUNTIME (Wails window and WebView2 child persisted 9s; isolated profile created; visual rendering unverified)
+WINDOWS_DESKTOP_RETEST: PASS_RUNTIME (Wails window and WebView2 child persisted 9s on validated source SHA; isolated profile created; visual rendering unverified)
 SOURCE_VERSION: 1.0.0-beta.7
 CANDIDATE_REF: release/v1.0.0
 REQUESTED_WINDOWS_SHA: d14154d2490dfdd3966c7fddc990a1d9127edd39
-CURRENT_WORKTREE_BASE_SHA: 52f35c04181b85379219ab55fc3192c63a5440a8
-CURRENT_WORKTREE_GATES: PASS_WITH_LIMITATION (dirty worktree; not exact-SHA)
-LAST_FROZEN_WINDOWS_SHA: 52f35c04181b85379219ab55fc3192c63a5440a8
-REMOTE_TRACKING_SHA: 52f35c04181b85379219ab55fc3192c63a5440a8
-LIVE_REMOTE_SHA: CONFIRMED (origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8)
+VALIDATED_WINDOWS_SOURCE_SHA: d840797bbd975a5c7edc54ebe23f3dfef56ff947
+CURRENT_WORKTREE_BASE_SHA: d840797bbd975a5c7edc54ebe23f3dfef56ff947
+CURRENT_WORKTREE_GATES: PASS (Windows AMD64 exact-SHA local automated gates; worktree was clean at start)
+LAST_FROZEN_WINDOWS_SHA: d840797bbd975a5c7edc54ebe23f3dfef56ff947
+REMOTE_TRACKING_SHA_AT_AUDIT: 52f35c04181b85379219ab55fc3192c63a5440a8
+LIVE_REMOTE_SHA_AT_AUDIT: CONFIRMED (origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8 before this continuation)
 REMOTE_BETA7_TAG: ABSENT (live origin has no refs/tags/v1.0.0-beta.7; local tag absent)
 PUBLIC_GITHUB_RELEASE: NOT_REVALIDATED (not queried)
-WINDOWS_LOCAL_GATES: PASS_WITH_LIMITATION (Go/Web/E2E/build/HUD/Desktop runtime pass; exact-source NSIS build and isolated real-payload install/uninstall smoke pass; exact-SHA, visual capture and signing/trust-root gates remain open)
-WINDOWS_NATIVE_CI: NOT_REVALIDATED (unauthenticated Actions API returned 404 for run 37666126714)
+WINDOWS_LOCAL_GATES: PASS (PowerShell/docs, Bun frozen + quality:full, Go fmt/vet/lint/security/tests, control/runtime and Agent Interop regressions, 8 browser E2E suites + accessibility/visual, CLI/Desktop/HUD builds and isolated Desktop/HUD native smokes)
+WINDOWS_NATIVE_CI: NOT_REVALIDATED (gh unavailable on this host; exact-SHA workflow not checked)
 WINDOWS_SIGNING: BLOCKED_EXTERNAL
 WINDOWS_SIGNING_ENV: NOT_CONFIGURED
-WINDOWS_SIGNING_TOOLS: signtool.exe absent from PATH; portable NSIS 3.13 used for validation; signing certificate/private key and update trust root unavailable
-LOCAL_ARTIFACTS: CLI/Desktop/HUD and exact-source NSIS installer are NotSigned; update trust root absent
-NSIS_PATH_STATE_SMOKE: PASS (5/5 isolated states with NSIS 3.13; value, original type and absence preserved)
-WINDOWS_INSTALLER_BUILD: PASS (exact working-tree nexus.nsi, NSIS 3.13; 23,917,346 bytes; SHA-256 7f310bf94d318d339ccd332d4c2de6b924404f87574e3adfccdb914fa55f5cf4; NotSigned)
-WINDOWS_INSTALLER_PAYLOAD_SMOKE: PASS (isolated script variant with real CLI/Desktop/HUD; setup/uninstall exit 0; version/doctor valid; user Path and Desktop unchanged)
-WINDOWS_CONPTY_OPT_IN_SMOKE: PASS (TestWindowsBackendInteractiveConPTYOptIn, Windows AMD64; provider-default ConPTY remains intentionally disabled)
-WINDOWS_DESKTOP_SMOKE_CLEANUP: PASS (10s Wails/WebView2; cleanup targets only the isolated Nexus profile; no matching WebView2 process remained)
-WINDOWS_DOCS_VERIFY: FAIL (visual manifest anchored at 2892f301; code has visual changes since then and is dirty; refresh requires clean immutable SHA)
-WINDOWS_EXACT_INSTALLER_SMOKE: NOT_RUN (the exact installer writes HKCU Environment and the user Desktop; only the isolated registry/shortcut variant was executed)
-LOCAL_SOURCE_DELTA: NSIS Path, Wails origin, ProjectHub layout, per-surface WebView2 profiles, and isolated Windows smoke IDs; uncommitted
+WINDOWS_SIGNING_TOOLS: signtool.exe, Authenticode certificate/secrets, makensis.exe, NEXUS_UPDATE_PRIVATE_KEY and NEXUS_UPDATE_KEY_ID unavailable on this host; checked-in public UPDATE_PUBLIC_KEY is valid
+LOCAL_ARTIFACTS: CLI/Desktop/HUD binaries and ZIPs are NotSigned; checksums at DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/distribution-artifacts/CHECKSUMS.md
+WINDOWS_INSTALLER_BUILD: NOT_RUN on validated SHA (makensis.exe unavailable; prior NSIS evidence is historical)
+WINDOWS_EXACT_INSTALLER_SMOKE: NOT_RUN
+WINDOWS_CONPTY_OPT_IN_SMOKE: NOT_RUN on d840797b (historical smoke exists on earlier Windows SHA)
+WINDOWS_MANUAL_PROVIDER_MISSION_VOICE_SMOKES: NOT_RUN on d840797b
+WINDOWS_VISUAL_DESKTOP_RENDER: NOT_VERIFIED (Wails/WebView2 smoke passed in hidden mode; no interactive frame capture)
+WINDOWS_DOCS_VERIFY: PASS (177 Markdown files, 33 required assets/files)
+LOCAL_SOURCE_DELTA: bounded Git identity subprocesses and isolated short TEMP for Windows Go tests; commits d1208720 and d840797b on release/v1.0.0
 
-WORKTREE_FROZEN: NO (Windows fixes, smoke workflow, evidence/docs changes remain uncommitted)
+WORKTREE_FROZEN: YES_FOR_VALIDATED_SOURCE (d840797b was clean at gate start; status/report updates are documentation-only)
 
-LIVE_BETA7_BRANCH_AUDIT: COMPLETE (no new Beta 7 branch; codex/windows-beta6-convergence reviewed; no change requires merge)
-UPDATED_AT: 2026-10-07
+LIVE_BETA7_BRANCH_AUDIT: COMPLETE (no new branch created; KIVER d14154d2 is an ancestor of validated release candidate; no merge/cherry-pick required)
+UPDATED_AT: 2026-10-08
+
+## Windows exact-SHA local validation — 2026-10-08
+
+The complete automated Windows AMD64 homologation passed on source SHA `d840797bbd975a5c7edc54ebe23f3dfef56ff947`. It used Go 1.25.14, Bun 1.3.9 and Node 22.14.0. Go tests reported 65 passing package results and zero failures. The literal `bun install --cwd web --frozen-lockfile` and `bun run --cwd web quality:full` passed with 82 files and 487 tests. Eight browser E2E suites plus accessibility/visual tasks passed. Desktop and HUD builds and isolated native launch smokes passed.
+
+Evidence directory: `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/`. Distribution candidate executables and ZIPs are unsigned; see `distribution-artifacts/CHECKSUMS.md`.
+
+The live remote check found `origin/release/v1.0.0` at `52f35c04181b85379219ab55fc3192c63a5440a8` before this continuation. No Beta 7 tag was found. The local KIVER branch at d14154d2 is an ancestor; no new branch requires merge. GitHub Actions, GitHub Releases inventory, NSIS installer build, Authenticode, provider/Mission/Voice manual smokes and visible Desktop rendering remain unverified. The release is **NO-GO for tagging/publication** until these gates close. This continuation ran no Linux gates.
 
 ## Continuidade Windows — perfil WebView2 e fechamento de smokes — 2026-10-07
 

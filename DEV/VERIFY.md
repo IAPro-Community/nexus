@@ -1587,16 +1587,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-07T12:26:27Z
+## Frontend gate — 2026-10-08T11:33:39Z
 
-Verdict: **FAIL**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-
-## Windows Beta 7 — revalidação final do Project Hub — 2026-10-07
-
-- PASS — bun install --cwd web --frozen-lockfile.
-- PASS — bun run --cwd web quality:full em Windows com Node 22.14.0 e Bun 1.3.9: CSS allowlist, Prettier, ESLint, Stylelint, TypeScript, 82 arquivos/487 testes e build.
-- PASS — oito suítes Playwright finais; o E2E principal valida 775×483, título, formulário com erro, scroll e ausência de overflow horizontal.
-- PASS — builds Windows AMD64 CLI/Desktop/HUD; CLI version e doctor --json válidos.
-- PASS — smokes Desktop/WebView2 (9s, Wails + Chrome_WidgetWin_0) e HUD (8s), com perfis e IDs isolados.
-- CHECKSUMS — outputs/windows-final-artifacts-52f35c04-dirty-20261007/CHECKSUMS.md.
-- NÃO CERTIFICADO — worktree dirty em 52f35c04, fora do SHA solicitado d14154d2; binários NotSigned e sem update trust root; CI remoto não revalidado e instalador final não recompilado. RELEASE_STATUS permanece NO-GO.
+Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).

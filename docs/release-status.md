@@ -1,21 +1,34 @@
 # Status público da release do Nexus v1
 
-Atualizado em 7 de outubro de 2026.
+Atualizado em 8 de outubro de 2026.
 
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
 | Versão-fonte candidata | 1.0.0-beta.7 |
 | Branch canônica | release/v1.0.0 |
-| SHA-base Windows validado | 52f35c04181b85379219ab55fc3192c63a5440a8 |
-| SHA solicitado para homologação | d14154d2490dfdd3966c7fddc990a1d9127edd39 |
-| Correções locais Windows | NSIS Path, Wails origin, ProjectHub, perfis WebView2 e IDs de smoke isolados; sem commit |
-| Estado do worktree | dirty; base 52f35c04, exige novo exact-SHA |
+| SHA validado nos gates automatizados Windows locais | d840797bbd975a5c7edc54ebe23f3dfef56ff947 |
+| SHA originalmente solicitado para homologação | d14154d2490dfdd3966c7fddc990a1d9127edd39 |
+| Remoto observado antes da continuidade | origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8 |
+| Candidato local | release/v1.0.0 em d840797bbd975a5c7edc54ebe23f3dfef56ff947; descendente do SHA KIVER d14154d2 |
+| Estado do worktree durante os gates | limpo no início da execução exact-SHA; documentação atualizada depois dos gates |
 
 | Última beta pública registrada (último estado conhecido) | v1.0.0-beta.1; inventário remoto atual não revalidado |
 | Release estável v1 | ainda não publicada |
-| Gate nativo Windows exact-SHA | última observação: run 37666126714 queued; estado atual não revalidado (gh ausente, DNS indisponível) |
-| Veredito | Gates locais Windows e smokes Desktop/HUD PASS; visual, exact-SHA, assinatura, tag e distribuição continuam NO-GO |
+| Gate nativo Windows exact-SHA no GitHub Actions | não revalidado; `gh` ausente neste host |
+| Veredito | PASS nos gates automatizados Windows locais de d840797b; publicação oficial segue NO-GO por CI/signing e smokes manuais pendentes |
+
+## Continuidade Windows — gates exact-SHA locais — 2026-10-08
+
+O candidato foi validado em `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, na branch local `release/v1.0.0`, com `VERSION=1.0.0-beta.7`, Windows AMD64, Go 1.25.14, Bun 1.3.9 e Node 22.14.0 para Playwright.
+
+PASS — sintaxe PowerShell; docs-verify (177 Markdown/33 assets); instalação Bun frozen; `bun run --cwd web quality:full` (82 arquivos/487 testes); Go formatting, vet, golangci-lint v2.12.2 (0 issues), govulncheck v1.7.0 (sem vulnerabilidades), contrato de versão e `go test -count=1 -v ./...` (65 pacotes PASS, zero FAIL). PASS — regressões control/runtime e Agent Interop/OpenCode. PASS — oito suítes browser E2E, mais tarefas de acessibilidade e visual. PASS — builds CLI/Desktop/HUD e smokes nativos isolados: janela Wails + WebView2 e perfil Desktop, HUD ativo por oito segundos e perfil próprio criado.
+
+Os binários e ZIPs, com hashes SHA-256, estão em `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/distribution-artifacts/`. Os executáveis estão `NotSigned`. O arquivo público `UPDATE_PUBLIC_KEY` está versionado e é válido; este host não dispõe de `signtool.exe`, certificado/secrets Authenticode, `makensis.exe`, `gh`, `NEXUS_UPDATE_PRIVATE_KEY` nem `NEXUS_UPDATE_KEY_ID`. O instalador final e CI nativo exact-SHA não foram validados. Os smokes interativos de provider/Mission/Voice e captura visual do render Desktop também não foram executados neste SHA. `nexus doctor --json` registrou alertas de host, incluindo Gemini CLI que invoca Node 18.12.1 e não inicia.
+
+Consulta viva `git ls-remote` em 2026-10-08 confirmou a branch remota `release/v1.0.0` ainda em 52f35c04 e ausência da tag `v1.0.0-beta.7`. Não surgiu branch Beta 7 nova. A branch KIVER em d14154d2 é ancestral do candidato local; nenhuma integração/cherry-pick foi necessária. O inventário de GitHub Releases e o estado dos workflows não foram consultados. Nenhum gate Linux foi executado nesta continuidade, conforme escopo Windows.
+
+**Veredito:** gates automatizados locais Windows PASS no SHA registrado; release e publicação continuam **NO-GO** até fechar CI same-SHA, assinatura Authenticode, build/smoke do instalador e gates manuais aplicáveis.
 
 ## Continuidade Windows — perfil WebView2 e branches — 2026-10-07
 

@@ -5196,4 +5196,14 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - O homologador isola `TEMP`/`TMP` numa pasta curta e exclusiva sob o temp nativo do Windows, remove configuração ambiental Git herdada durante `go test`, preserva/restaura as variáveis do processo e reutiliza caches Go.
 - PASS exploratório no Windows AMD64: teste de deadline (`TestCommandOutputHonorsDeadline`), pacote `internal/nexus/contextsnapshot` completo e `go test -count=1 -timeout=5m ./internal/nexus` (90,569 s).
 - A primeira suíte integral em `d1208720` revelou `Filename too long`: o `TEMP` abaixo da pasta profunda de evidências excedeu o limite de caminho ao inicializar fixtures Git. O temp foi movido para uma pasta isolada curta; o gate integral será repetido no SHA atualizado.
-- A homologação integral no SHA final está pendente; os testes direcionados foram executados antes do commit e não são evidência de fechamento.
+- A homologação integral passou no SHA final `d840797bbd975a5c7edc54ebe23f3dfef56ff947`; os testes direcionados anteriores foram apenas diagnóstico, e as evidências finais estão no relatório Windows de 2026-10-08.
+
+## Homologação Windows beta.7 — gates locais no SHA exato — 2026-10-08
+
+- PASS — `release/v1.0.0` no SHA `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, `VERSION=1.0.0-beta.7`, Windows AMD64, Go 1.25.14, Bun 1.3.9 e Node 22.14.0 para Playwright.
+- PASS — PowerShell, docs-verify, Bun frozen install + `quality:full` (82 arquivos/487 testes), `go fmt ./...`, vet, golangci-lint (0 issues), govulncheck, contrato de versão, suíte Go completa (65 pacotes PASS/0 FAIL), preflight, regressões control/runtime e Agent Interop.
+- PASS — oito suítes browser E2E, tarefas Axe/visual, builds CLI/Desktop/HUD e smokes Desktop/WebView2 (9 s) e HUD (8 s) com perfis isolados.
+- Binários e ZIPs não assinados; checksums e cópias em `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/distribution-artifacts/`.
+- Auditoria viva: o remoto `release/v1.0.0` estava em `52f35c04` antes da continuidade; KIVER `d14154d2` é ancestral do candidato; nenhuma branch Beta 7 nova surgiu e nenhuma integração é necessária.
+- Publicação continua NO-GO: `gh`, `signtool.exe`, `makensis.exe`, assinatura/secrets, workflow exact-SHA, instalador exato e smokes manuais provider/Mission/Voice não foram validados. Gemini local falhou por executar sob Node 18.12.1; isso não foi contado como provider smoke aprovado.
+- Nenhum gate Linux foi executado nesta continuidade.

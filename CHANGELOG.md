@@ -52,15 +52,15 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
-## 1.0.0-beta.7 — 2026-10-07 — Windows validation continuation
+## 1.0.0-beta.7 — 2026-10-08 — Windows validation continuation
 
-Candidate source SHA: 52f35c04181b85379219ab55fc3192c63a5440a8. Local Windows technical validation is GO; official signing, tag and distribution remain NO-GO.
+Windows AMD64 automated gates passed locally on source SHA `d840797bbd975a5c7edc54ebe23f3dfef56ff947`. This is a local technical PASS; official publication remains NO-GO until exact-SHA native CI, signing/trust-root and remaining manual release gates close.
 
 ### Adicionado
 
 - Suporte a ConPTY e transporte terminal desacoplado no Windows.
 - Internacionalização nativa da CLI e seleção dinâmica de localidade, incluindo pt-BR.
-- Evidência aprovada das oito suítes browser E2E em Windows AMD64.
+- Oito suítes browser E2E aprovadas em Windows AMD64, mais as tarefas de acessibilidade e visual.
 
 ### Corrigido
 
@@ -75,12 +75,15 @@ Candidate source SHA: 52f35c04181b85379219ab55fc3192c63a5440a8. Local Windows te
 - Go fmt, vet, govulncheck, golangci-lint e suíte completa sem cache: PASS no SHA 52f35c04181b85379219ab55fc3192c63a5440a8.
 - Bun frozen-lockfile e quality:full: PASS, 82 arquivos e 487 testes unitários.
 - Oito suítes Playwright browser E2E: PASS.
-- Builds CLI/Desktop/HUD e smokes locais de versão, doctor JSON e inicialização Desktop/HUD: PASS.
-- Os binários locais são NotSigned e foram compilados sem a update trust root; não são artefatos de distribuição.
+- `bun install --cwd web --frozen-lockfile` e `bun run --cwd web quality:full`: PASS (Bun 1.3.9, Node 22.14.0, 82 arquivos/487 testes).
+- Go formatting, vet, golangci-lint, govulncheck, suíte `go test -count=1 ./...`, regressões control/runtime e Agent Interop: PASS.
+- Builds CLI/Desktop/HUD e smokes nativos isolados Desktop/WebView2 e HUD: PASS; `nexus version --json` reporta 1.0.0-beta.7 e commit d840797b.
+- Binários e ZIPs locais, com checksums: `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/distribution-artifacts/CHECKSUMS.md`.
+- Todos os executáveis são `NotSigned`; o host não tem `signtool.exe`, certificado/secrets Authenticode nem NSIS. A chave pública de update está versionada; os secrets para assinar manifestos não estão configurados localmente.
 
 ### Estado da publicação
 
-O workflow nativo Windows 37666126714 está queued sem runner Windows compatível. Não há certificado Authenticode ou secrets de assinatura disponíveis neste host. O smoke NSIS local passou na fonte revisada, mas observou normalização do tipo de registro Path durante uninstall. A tag e a GitHub Release permanecem ausentes.
+O remoto confirmou `origin/release/v1.0.0` em `52f35c04181b85379219ab55fc3192c63a5440a8` antes desta continuidade; o candidato local `d840797b` é descendente do SHA KIVER `d14154d2`. A tag Beta 7 não existe no remoto. O estado atual de GitHub Actions e do inventário de Releases não foi consultado. O smoke do instalador exato não foi executado porque `makensis.exe` não está disponível. Não criar tag nem publicar enquanto esses gates permanecerem abertos.
 ## 1.0.0-beta.6 — 2026-09-29 — Usage/Capacity V2 and single release line
 
 - Composer Interview Engine: added per-dimension clarity/ambiguity, information-gain question priority, bounded QUICK/STANDARD/DEEP profiles and a single pressure-test pass for hidden trade-offs. Repository/memory-inferred facts are no longer surfaced by the web workspace as open questions.
