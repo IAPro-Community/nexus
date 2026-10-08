@@ -6,7 +6,7 @@ Em **Configurações → Acesso remoto**, ative o Cloudflare Quick Tunnel. Cliqu
 
 Cada convite tem um token aleatório próprio, aceito apenas no hostname do túnel que o emitiu. Ele é válido por **15 minutos contados da emissão**, serve para **um único login** e é invalidado quando o túnel é encerrado. Clique em **Gerar outro convite** para autorizar um segundo dispositivo ou substituir um convite expirado. Gerar um convite não reinicia nem troca a sessão de quem já está autenticado.
 
-O fragmento não é enviado em URLs de requisição; o navegador o remove da barra de endereços antes da troca via POST. O cookie resultante utiliza `HttpOnly`, `Secure` e `SameSite=Strict`. A sessão tem TTL absoluto de 24 horas e TTL por inatividade de 4 horas, e funciona durante novas navegações no mesmo hostname enquanto for válida. Reiniciar o Nexus **não** restaura sessões remotas.
+O fragmento não é enviado em URLs de requisição; o navegador o remove da barra de endereços antes da troca via POST. O cookie resultante utiliza `HttpOnly`, `Secure` e `SameSite=Strict`, com prazo máximo de 24 horas. Ele também pode sobreviver ao fechamento e reabertura do navegador no mesmo hostname, desde que a sessão continue válida no servidor. A sessão tem TTL absoluto de 24 horas e TTL por inatividade de 4 horas; isso não é acesso permanente. Reiniciar o Nexus **não** restaura sessões remotas.
 
 **Aviso de segurança:** nesta beta o convite concede acesso amplo ao workspace, incluindo ferramentas locais e execução de comandos. Ainda não existe controle de papéis para convidados nem compartilhamento somente leitura. Compartilhe apenas com pessoas de confiança. O acesso não é automaticamente autorizado ao abrir somente a URL pública.
 

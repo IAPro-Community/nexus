@@ -108,7 +108,8 @@ func TestTunnelBootstrapSetsSecureCookieAndKeepsSession(t *testing.T) {
 	}
 	cookies := rec.Result().Cookies()
 	if len(cookies) != 1 || !cookies[0].Secure || !cookies[0].HttpOnly ||
-		cookies[0].SameSite != http.SameSiteStrictMode {
+		cookies[0].SameSite != http.SameSiteStrictMode ||
+		cookies[0].MaxAge != int(sessionTTL.Seconds()) || cookies[0].Expires.IsZero() {
 		t.Fatalf("tunnel must set secure HttpOnly SameSite=Strict cookie: %+v", cookies)
 	}
 	next := httptest.NewRequest(http.MethodGet, "https://"+host+"/api/v1/session", nil)

@@ -199,6 +199,22 @@ func NewServer(opts ServerOptions) (*Server, error) {
 	return s, nil
 }
 
+// setAuthenticatedSessionCookie stores a browser session across ordinary
+// browser restarts (up to the session's expiry). Server-side idle/absolute TTL
+// still applies; remote sessions never survive a Nexus server restart.
+func (s *Server) setAuthenticatedSessionCookie(w http.ResponseWriter, sess *Session) {
+	http.SetCookie(w, &http.Cookie{
+		Name: sessionCookieName,
+		Value: sess.ID,
+		Path: "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Secure: s.cookieSecure(),
+		Expires: sess.ExpiresAt,
+		MaxAge: int(sessionTTL.Seconds()),
+	})
+}
+
 func (s *Server) handleSessionRotate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -214,7 +230,7 @@ func (s *Server) handleSessionRotate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to rotate session")
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: next.ID, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode, Secure: s.cookieSecure()})
+	s.setAuthenticatedSessionCookie(w, next)
 	writeJSON(w, http.StatusOK, map[string]any{"authenticated": true, "csrf_token": next.CSRFToken, "expires_at": next.ExpiresAt, "idle_timeout": int(sessionIdleTTL.Seconds())})
 }
 
@@ -507,14 +523,7 @@ func (s *Server) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid or expired bootstrap token")
 		return
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookieName,
-		Value:    sess.ID,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
-		Secure:   s.cookieSecure(),
-	})
+	s.setAuthenticatedSessionCookie(w, sess)
 	s.setLoopbackDeviceCookie(w)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"authenticated": true,
@@ -554,14 +563,7 @@ func (s *Server) handleAuthLoopbackReauth(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusUnauthorized, "unable to mint loopback session")
 		return
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookieName,
-		Value:    sess.ID,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
-		Secure:   s.cookieSecure(),
-	})
+	s.setAuthenticatedSessionCookie(w, sess)
 	s.setLoopbackDeviceCookie(w)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"authenticated": true,
@@ -631,14 +633,7 @@ func (s *Server) handleDesktopBootstrap(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusUnauthorized, "desktop session authentication required")
 		return
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookieName,
-		Value:    sess.ID,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
-		Secure:   s.cookieSecure(),
-	})
+	s.setAuthenticatedSessionCookie(w, sess)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"serverUrl":     s.url,
 		"sessionToken":  sess.ID,
