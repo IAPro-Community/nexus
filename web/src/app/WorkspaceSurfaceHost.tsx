@@ -269,7 +269,8 @@ export const WorkspaceSurfaceHost: React.FC<{
           runtimeId={surface.data.runtimeId}
           title={surface.title}
           liveTitleKey={surfaceViewId(surface)}
-          onRuntimeChanged={async () => {
+          onRuntimeChanged={async (nextTitle) => {
+            updateSurface?.(surface.id, { title: nextTitle });
             await refreshGlobal();
           }}
           onRestart={async () => {
@@ -470,6 +471,7 @@ export const WorkspaceSurfaceHost: React.FC<{
           liveTitleKey={surfaceViewId(surface)}
           onUpdateTitle={async (id, title) => {
             await api.updateRuntimeTitle(id, title);
+            updateSurface?.(surface.id, { title });
             await refreshGlobal();
           }}
         />

@@ -38,10 +38,40 @@ export const WorkspaceTaskbar: React.FC<{
   }, [project?.id]);
 
   useEffect(() => {
-    if (project?.default_branch) {
-      setCurrentBranch(project.default_branch);
-    }
-  }, [project?.default_branch]);
+    setCurrentBranch('');
+    if (!project?.id) return;
+
+    let cancelled = false;
+    let inFlight = false;
+    const refreshBranch = async () => {
+      if (cancelled || inFlight || document.hidden) return;
+      inFlight = true;
+      try {
+        // default_branch is project configuration, NOT the checked-out Git HEAD.
+        const result = await nexus.getProjectBranches(project.id);
+        if (!cancelled) setCurrentBranch(result.current_branch || '');
+      } catch {
+        if (!cancelled) setCurrentBranch('');
+      } finally {
+        inFlight = false;
+      }
+    };
+    void refreshBranch();
+    // git switch can run inside the PTY or an external IDE.
+    const interval = window.setInterval(() => void refreshBranch(), 10000);
+    const onFocus = () => void refreshBranch();
+    const onVisibility = () => {
+      if (!document.hidden) void refreshBranch();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [project?.id]);
 
   const working = agents.filter((a) => a.status === 'WORKING').length;
   // Agent health (FAILED/STALE/…) is not the same as Radar "needs you" waits.
@@ -79,7 +109,7 @@ export const WorkspaceTaskbar: React.FC<{
                 onClick={() => setBranchModalOpen(true)}
               >
                 <GitBranch size={11} />
-                <span>{currentBranch || project.default_branch || 'unknown'}</span>
+                <span>{currentBranch || t('git.branchUnknown', { defaultValue: '—' })}</span>
               </button>
             </Tooltip>
 

@@ -7,7 +7,7 @@ export const ProjectShellSurface: React.FC<{
   runtimeId: string;
   title?: string;
   liveTitleKey?: string;
-  onRuntimeChanged?: () => void | Promise<void>;
+  onRuntimeChanged?: (title: string) => void | Promise<void>;
   onRestart?: () => void | Promise<void>;
 }> = ({ runtimeId, title = 'Project Shell', liveTitleKey, onRuntimeChanged, onRestart }) => {
   const presentation = useWorkspacePresentation();
@@ -27,7 +27,7 @@ export const ProjectShellSurface: React.FC<{
         liveTitleKey={liveTitleKey}
         onUpdateTitle={async (id, nextTitle) => {
           await api.updateRuntimeTitle(id, nextTitle);
-          await onRuntimeChanged?.();
+          await onRuntimeChanged?.(nextTitle);
         }}
         onRestart={onRestart}
       />

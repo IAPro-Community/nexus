@@ -48,7 +48,7 @@ interface TerminalPaneProps {
   hideHeader?: boolean;
   /** Workspace view id so Janelas/Mosaico can mirror OSC settitle. */
   liveTitleKey?: string;
-  onUpdateTitle?: (id: string, newTitle: string) => void;
+  onUpdateTitle?: (id: string, newTitle: string) => void | Promise<void>;
   onClose?: () => void;
   onRestart?: () => void | Promise<void>;
 }
@@ -118,10 +118,16 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     };
   }, [liveTitleKey]);
 
-  const handleSaveTitle = () => {
-    setIsEditingTitle(false);
-    if (customTitle.trim() && onUpdateTitle) {
-      onUpdateTitle(runtimeId, customTitle.trim());
+  const handleSaveTitle = async () => {
+    const next = customTitle.trim();
+    if (!next) return;
+    try {
+      await onUpdateTitle?.(runtimeId, next);
+      setCustomTitle(next);
+      setIsEditingTitle(false);
+      setErrorMsg('');
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -553,13 +559,19 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
                   type="text"
                   value={customTitle}
                   onChange={(e) => setCustomTitle(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleSaveTitle();
+                    if (e.key === 'Escape') {
+                      setCustomTitle(title || '');
+                      setIsEditingTitle(false);
+                    }
+                  }}
                   className="bg-[var(--nx-terminal-bg)] border border-[var(--nx-terminal-cursor)] rounded px-1.5 py-0.5 text-xs text-[var(--nx-terminal-text)] focus:outline-none"
                   autoFocus
                 />
                 <button
                   type="button"
-                  onClick={handleSaveTitle}
+                  onClick={() => void handleSaveTitle()}
                   className="p-0.5 text-[var(--nx-success)] hover:opacity-80"
                 >
                   <Check className="w-3.5 h-3.5" />

@@ -47,8 +47,13 @@ export function ptyWindowHeading(input: {
   identity: string;
   liveTitle?: string;
 }): { heading: string; identityHint: string } {
-  const identity = (input.customTitle || input.identity || '').trim();
+  const customTitle = (input.customTitle || '').trim();
+  const identity = (input.identity || '').trim();
   const live = (input.liveTitle || '').trim();
+  // A manually customized window name must not be overwritten by OSC title updates.
+  if (customTitle) {
+    return { heading: customTitle, identityHint: live && live !== customTitle ? live : '' };
+  }
   if (live) {
     return {
       heading: live,

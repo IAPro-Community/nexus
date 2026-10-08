@@ -20,6 +20,15 @@ describe('ptyLiveChrome', () => {
     });
   });
 
+  it('preserves the user window name even when the PTY changes its live title', () => {
+    expect(
+      ptyWindowHeading({ customTitle: 'Minha janela', identity: 'Shell', liveTitle: 'codex · thinking' }),
+    ).toEqual({ heading: 'Minha janela', identityHint: 'codex · thinking' });
+    expect(
+      ptyWindowHeading({ customTitle: 'Minha janela', identity: 'Shell', liveTitle: 'codex · ready' }),
+    ).toEqual({ heading: 'Minha janela', identityHint: 'codex · ready' });
+  });
+
   it('falls back to identity when the PTY has no settitle', () => {
     expect(ptyWindowHeading({ customTitle: 'Ops', identity: 'Shell' })).toEqual({
       heading: 'Ops',
