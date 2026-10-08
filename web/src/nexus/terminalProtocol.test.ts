@@ -115,6 +115,15 @@ describe('terminal protocol', () => {
     expect(scrubber.flush()).toBe('');
   });
 
+  it('bounds incomplete control candidates without losing provider output', () => {
+    const scrubber = new ProtocolScrubber();
+    expect(scrubber.scrub('{"version":1')).toBe('');
+    const more = 'x'.repeat(65 * 1024);
+    expect(scrubber.scrub(more)).toBe('{"version":1' + more);
+    expect(scrubber.flush()).toBe('');
+    expect(scrubber.scrub('provider still alive')).toBe('provider still alive');
+  });
+
   it('holds only partial Nexus envelopes until their final bytes arrive', () => {
     const scrubber = new ProtocolScrubber();
     expect(scrubber.scrub('{"ver')).toBe('');
