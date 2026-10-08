@@ -20,6 +20,12 @@ Os commits mais recentes corrigiram corrupção CSI/SS3, timers após detach e t
 
 **Critério de fechamento:** fixtures byte-a-byte em Linux/Windows de CSI, SS3, OSC, UTF-8, JSON comum do provider, fragmentação arbitrária, detach/reconnect e shutdown. Manter `SessionHost` como autoridade final de coalescência; não reinstalar filtros de estado em cada camada.
 
+### P0-03 — Branches críticas sem proteção ativa
+
+A leitura do GitHub confirmou `protected: false` tanto em `main` (`61b87409`) quanto em `release/v1.0.0` (`95c7121d`); o array de checks obrigatórios está vazio. Um acesso autenticado a `/rulesets` retornou HTTP 403 com a mensagem `Upgrade to GitHub Pro or make this repository public to enable this feature`. Isso **não comprova** todos os detalhes de governança fora do GitHub, mas significa que, no estado inspecionado, não há proteção de branch exigindo os gates.
+
+**Critério de fechamento:** habilitar proteção/regras compatíveis com o plano da organização, requerer PR, aprovação independente, CI exato e desabilitar bypass de push; se a assinatura não permitir regras nativas, adotar política de escrita restrita e gate externo de merge até ajustar o plano. Não divulgar estado de release como aprovado apenas pela existência de um workflow.
+
 ## 2. Dívida de manutenibilidade (P1)
 
 ### P1-01 — Componentes e módulos excessivamente extensos
