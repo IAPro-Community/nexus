@@ -27,18 +27,18 @@ const (
 )
 
 type Session struct {
-	ID             string
-	CSRFToken      string
-	CreatedAt      time.Time
-	ExpiresAt      time.Time
-	LastActiveAt   time.Time
+	ID           string
+	CSRFToken    string
+	CreatedAt    time.Time
+	ExpiresAt    time.Time
+	LastActiveAt time.Time
 	// A session granted while remotely exposed must never become persistent
 	// just because the tunnel was subsequently switched off.
 	NonPersistable bool
 }
 
 type remoteInvitation struct {
-	Host string
+	Host      string
 	ExpiresAt time.Time
 }
 
