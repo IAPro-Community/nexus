@@ -88,11 +88,12 @@ const WindowChromeMenu: React.FC<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customTitle: string;
+  allowAiTitle: boolean;
   accent: string;
   icon: string;
-  onPatch: (chrome: { customTitle?: string; accent?: string; icon?: string }) => void;
+  onPatch: (chrome: { customTitle?: string; allowAiTitle?: boolean; accent?: string; icon?: string }) => void;
   position?: ContextMenuPoint | null;
-}> = ({ open, onOpenChange, customTitle, accent, icon, onPatch, position }) => {
+}> = ({ open, onOpenChange, customTitle, allowAiTitle, accent, icon, onPatch, position }) => {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(customTitle);
@@ -171,7 +172,7 @@ const WindowChromeMenu: React.FC<{
             onPointerDown={(event) => event.stopPropagation()}
           >
             <label>
-              {t('common.name', 'Nome')}
+              {t('workspace.customTitle', 'Nome personalizado')}
               <input
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -191,6 +192,22 @@ const WindowChromeMenu: React.FC<{
                 autoFocus
               />
             </label>
+            <label className="nx-desktop-window__ai-title-toggle">
+              <input
+                type="checkbox"
+                checked={allowAiTitle}
+                onChange={(event) => onPatch({ allowAiTitle: event.target.checked })}
+              />
+              <span>
+                {t('workspace.allowAiTitle', 'Permitir que a IA atualize o título')}
+              </span>
+            </label>
+            <p className="nx-desktop-window__ai-title-help">
+              {t(
+                'workspace.allowAiTitleHelp',
+                'O nome personalizado permanece salvo. A IA pode atualizar o título principal quando esta opção estiver ativa.',
+              )}
+            </p>
             <div
               className="nx-desktop-window__chrome-row"
               aria-label={t('workspace.titleColor', 'Cor do título')}
@@ -733,7 +750,8 @@ const TerminalsHost: React.FC<{
               const label = ptyWindowHeading({
                 customTitle: win?.customTitle,
                 identity: surfaceIdentity(surface, win?.customTitle),
-                liveTitle: live.title,
+                liveTitle: live.title || surface.data?.dynamicTitle,
+                allowAiTitle: win?.allowAiTitle,
               }).heading;
               return (
                 <button
@@ -895,7 +913,8 @@ const TerminalsHost: React.FC<{
                 const tabLabel = ptyWindowHeading({
                   customTitle: win?.customTitle,
                   identity: surfaceIdentity(surface, win?.customTitle),
-                  liveTitle: live.title,
+                  liveTitle: live.title || surface.data?.dynamicTitle,
+                allowAiTitle: win?.allowAiTitle,
                 }).heading;
                 const accent = win?.accent || '';
                 const icon = win?.icon || '';
@@ -964,6 +983,7 @@ const TerminalsHost: React.FC<{
                         setChromeMenuViewId(next ? viewId : null);
                       }}
                       customTitle={win?.customTitle || ''}
+                      allowAiTitle={win?.allowAiTitle !== false}
                       accent={accent}
                       icon={icon}
                       onPatch={(chrome) => presentation.patchChrome(viewId, chrome)}
@@ -1276,10 +1296,11 @@ const DesktopWorkspace: React.FC<{
         const heading = ptyWindowHeading({
           customTitle: win.customTitle,
           identity: agentName,
-          liveTitle: live.title,
+          liveTitle: live.title || surface.data?.dynamicTitle,
+          allowAiTitle: win.allowAiTitle,
         });
         const statusSuffix = surface.data?.statusSuffix || '';
-        const dynamicTitle = live.title ? '' : surface.data?.dynamicTitle || '';
+        const dynamicTitle = ''; // Runtime title is already included in the heading/hint.
         const providerLabel = surface.data?.providerLabel || '';
         const accent = win.accent || '';
         const icon = win.icon || '';
@@ -1401,6 +1422,7 @@ const DesktopWorkspace: React.FC<{
                     setChromeMenuViewId(next ? viewId : null);
                   }}
                   customTitle={win.customTitle || ''}
+                  allowAiTitle={win.allowAiTitle !== false}
                   accent={win.accent || ''}
                   icon={win.icon || ''}
                   onPatch={(chrome) => presentation.patchChrome(viewId, chrome)}
@@ -1534,7 +1556,8 @@ const DesktopWorkspace: React.FC<{
             const label = ptyWindowHeading({
               customTitle: win?.customTitle,
               identity: surfaceIdentity(surface, win?.customTitle),
-              liveTitle: live.title,
+              liveTitle: live.title || surface.data?.dynamicTitle,
+                allowAiTitle: win?.allowAiTitle,
             }).heading;
             return (
               <button
