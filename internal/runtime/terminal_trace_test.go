@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -65,5 +66,62 @@ func TestTraceTerminalBytesIsDisabledByDefault(t *testing.T) {
 	TraceTerminalBytes("rt-disabled", "stage", []byte("\x1b[A"))
 	if _, err := os.Stat(TerminalTracePath("rt-disabled")); !os.IsNotExist(err) {
 		t.Fatalf("trace file should not exist when disabled, err=%v", err)
+	}
+}
+
+func TestClientTerminalTraceShapeRejectsUnsanitizedFrames(t *testing.T) {
+	for _, shape := range []string{
+		"password", "ARM COMMAND MARCH", "<1b>[A password", "A", "<1b>[A\nprivate",
+	} {
+		if validClientTerminalTraceShape(shape) {
+			t.Fatalf("accepted unsanitized client shape %q", shape)
+		}
+	}
+	for _, shape := range []string{
+		"<1b>[A", "[<##;##;##M", "<1b>", "<03>", "....", "<1b>O", "<1b>].....<07>",
+	} {
+		if !validClientTerminalTraceShape(shape) {
+			t.Fatalf("rejected legitimate client trace shape %q", shape)
+		}
+	}
+}
+
+func TestClientTerminalTraceShapeIsValidatedBeforePersistence(t *testing.T) {
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	t.Setenv("NEXUS_TERMINAL_TRACE", "1")
+	TraceTerminalShape("rt-untrusted", "web.xterm.ondata", "API_KEY_IS_SECRET", 17)
+	if _, err := os.Stat(TerminalTracePath("rt-untrusted")); !os.IsNotExist(err) {
+		t.Fatalf("untrusted raw text must never be stored, err=%v", err)
+	}
+	TraceTerminalShape("rt-untrusted", "web.xterm.ondata", "<1b>[A", 3)
+	data, err := os.ReadFile(TerminalTracePath("rt-untrusted"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "API_KEY_IS_SECRET") || (!strings.Contains(string(data), "<1b>[A") && !strings.Contains(string(data), `\u003c1b\u003e[A`)) {
+		t.Fatalf("sanitization or valid shape persistence failed: %s", data)
+	}
+}
+
+func TestTerminalTraceStopsAtFileSizeLimit(t *testing.T) {
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	t.Setenv("NEXUS_TERMINAL_TRACE", "1")
+	path := TerminalTracePath("rt-limit")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Truncate(path, terminalTraceMaxFileBytes); err != nil {
+		t.Fatal(err)
+	}
+	TraceTerminalBytes("rt-limit", "host.pty.write", []byte("\x1b[A"))
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Size() != terminalTraceMaxFileBytes {
+		t.Fatalf("trace grew beyond limit: %d", info.Size())
 	}
 }
