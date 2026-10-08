@@ -3,13 +3,13 @@
 ## Estado
 
 - Produto: IAPro Nexus Workspace OS.
-- Versão-fonte em homologação: `1.0.0-beta.8` (`VERSION`). Código Windows validado em `474dfcec`; gate exact-SHA e evidência visual em `7d2ef8aa`, na branch `fix/windows-beta8-homologation-20261008`.
+- Versão-fonte em homologação: `1.0.0-beta.8` (`VERSION`). Gates automatizados Windows passaram no SHA exato `ab397c5449cc76dfd07b44e335f45de6762a94f4`, na branch `fix/windows-beta8-homologation-20261008`.
 - O launcher persiste a identidade autoritativa do `SessionHost` após o
   handshake (`PID`, `HostPID`, `HostGeneration` e fingerprints); isso evita que
   o registro final apague a geração usada pelo attach.
 - A instalação local reinicia apenas o `nexus web` associado ao binário
   instalado, evitando hosts Web em memória com executável `(deleted)`.
-- Branch de homologação ativa neste checkout: `fix/windows-beta8-homologation-20261008`, baseada em `release/v1.0.0@2abbf31a`. Os gates automatizados locais Windows passaram no exact-SHA `7d2ef8aa`; veja `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`. O veredito de distribuição permanece NO-GO até CI Windows remoto, smokes manuais, instalador final, Authenticode e chave privada de atualização.
+- Branch de homologação ativa: `fix/windows-beta8-homologation-20261008`, baseada em `release/v1.0.0@2abbf31a` e enviada via PR draft #45. Codex supervisionado usa ConPTY automaticamente no Windows; o teste de `SessionHost` e smoke TUI passaram sem opt-in. CLI/Desktop/HUD e checksums foram gerados para `ab397c54` (unsigned). Veja `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`. A distribuição permanece NO-GO até CI Windows exact-SHA, instalador correspondente ao SHA, Authenticode/trust root e smokes manuais.
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.
 - Motor de Flags Canônicas e Normalização (`internal/control/flags`): mapeamento transparente de `--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan` e suporte a `Merged Help` (`nexus <provider> --help`).

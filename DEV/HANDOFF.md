@@ -2,17 +2,17 @@
 
 ## Estado atual — homologação Windows beta.8 — 2026-10-08
 
-Código Windows validado: `474dfcecdd82aab0d0a2d6d1f36fd26d0d1b1f8b`; gate exact-SHA e evidência visual: `7d2ef8aab669f88f22d09a86ec6442f761d0f7b5`; `VERSION=1.0.0-beta.8`. Os gates automatizados locais Windows passaram: Go fmt/vet/lint/security/testes, Bun frozen install + quality completa (83 arquivos/499 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD com smokes isolados. Relatório: `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`; logs locais: `DEV/validation/local-beta/1.0.0-beta.8/7d2ef8aab669f88f22d09a86ec6442f761d0f7b5/windows-AMD64/`.
+Código e gate automatizado Windows AMD64 passaram no SHA exato `ab397c5449cc76dfd07b44e335f45de6762a94f4`; `VERSION=1.0.0-beta.8`. Go fmt/vet/lint/security/testes, Bun frozen + quality Web (83 arquivos/499 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD passaram. Relatório: `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`; evidências locais: `DEV/validation/local-beta/1.0.0-beta.8/ab397c5449cc76dfd07b44e335f45de6762a94f4/windows-AMD64/`.
 
-Auditoria remota: `origin/release/v1.0.0@2abbf31a`; `origin/fix/windows-beta8-homologation-20261008@41a3ec0e` no momento da auditoria. A branch Windows está vinculada por [PR draft #45](https://github.com/IAPro-Community/nexus/pull/45), ainda sem merge. `fix/beta8-manual-opaque-quota` tem mudança exclusiva de quota `UNSUPPORTED`, sem PR e com contrato/testes desalinhados; não está pronta para integração. A branch Beta 7 KIVER não tem trabalho novo a portar.
+O Codex supervisionado agora seleciona ConPTY automaticamente no Windows. O teste de `SessionHost` provou console interativo e encaminhamento de seta; o smoke isolado abriu a tela de boas-vindas/login sem `AI_CLI_ENABLE_CONPTY`, sem autenticar, e encerrou limpo. O commit `ab397c54` foi enviado para `fix/windows-beta8-homologation-20261008`, já vinculada por [PR draft #45](https://github.com/IAPro-Community/nexus/pull/45) a `release/v1.0.0`.
 
-Reteste TUI: sem `AI_CLI_ENABLE_CONPTY=1`, o Codex cai em `stdin is not a terminal`; com ConPTY opt-in, Nexus attach abre a tela de boas-vindas/login no perfil isolado sem autenticação. O smoke parcial enviou uma seta sem confirmação visual de navegação e encerrou com Ctrl+C. Não houve prompt, login ou reinício de servidor compartilhado.
+Auditoria de branches: a release remota segue em `2abbf31a`. A nova `fix/beta7-windows-homologation-20261008` termina em `4a0bd992`, tem `VERSION=1.0.0-beta.7`, três commits exclusivos e base 12 commits atrás; não vincular diretamente ao candidato beta.8. A branch Beta 7 KIVER em d14154d2 não tem commits exclusivos. `fix/beta8-manual-opaque-quota` continua fora até alinhar contrato e testes.
 
-Veredito: PASS dos gates automatizados Windows locais e do build/ciclo de smoke NSIS unsigned, **não GO de distribuição**. CI Windows exact-SHA, Authenticode/trust root e smokes autenticados de provider/Mission/Voice permanecem pendentes. Nenhuma tag foi criada. Escopo Windows-only; nenhum gate Linux foi executado.
+Veredito: **PASS de homologação automatizada local Windows; NO-GO de distribuição**. CLI/Desktop/HUD e seus checksums foram reconstruídos para `ab397c54`, mas estão unsigned. O instalador NSIS/smoke de `7d2ef8aa` é antigo e precisa ser reconstruído. Permanecem CI Windows exact-SHA, Authenticode/trust root, revisão/merge do PR e smokes manuais de provider/Mission/Voice. Nenhuma tag foi criada. Nenhum gate Linux foi executado nesta continuidade.
 
 ## Próxima ação
 
-Acompanhar revisão/merge da [PR #45 para `release/v1.0.0`](https://github.com/IAPro-Community/nexus/pull/45). Não integrar `fix/beta8-manual-opaque-quota` sem decisão de contrato e alinhamento dos testes. Antes de tag/distribuição, fechar runner Windows exact-SHA, assinatura/trust root e smokes manuais.
+Acompanhar revisão/merge da [PR #45 para `release/v1.0.0`](https://github.com/IAPro-Community/nexus/pull/45). Antes de tag/distribuição, fechar runner Windows exact-SHA, assinatura/trust root, reconstruir os artefatos no SHA atual e concluir smokes manuais. Não integrar `fix/beta8-manual-opaque-quota` sem alinhar contrato e testes.
 
 ## Próxima ação — fechamento Windows beta.7 — 2026-10-07
 

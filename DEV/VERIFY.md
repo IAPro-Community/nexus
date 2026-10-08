@@ -1598,6 +1598,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-08T18:13:14Z
+## Frontend gate — 2026-10-08T19:17:11Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).

@@ -1,22 +1,30 @@
-# Status público da release do Nexus v1
+# Status da release do Nexus v1
 
 Atualizado em 8 de outubro de 2026.
 
 | Campo | Estado |
 | --- | --- |
-| Programa | estabilização do Nexus 1.0 beta |
-| Versão-fonte candidata | 1.0.0-beta.7 |
+| Programa | estabilização do Nexus 1.0 beta.8 |
+| Versão-fonte candidata | 1.0.0-beta.8 |
 | Branch canônica | release/v1.0.0 |
-| SHA validado nos gates automatizados Windows locais | d840797bbd975a5c7edc54ebe23f3dfef56ff947 |
-| SHA originalmente solicitado para homologação | d14154d2490dfdd3966c7fddc990a1d9127edd39 |
-| Remoto observado antes da continuidade | origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8 |
-| Candidato local | release/v1.0.0 em d840797bbd975a5c7edc54ebe23f3dfef56ff947; descendente do SHA KIVER d14154d2 |
-| Estado do worktree durante os gates | limpo no início da execução exact-SHA; documentação atualizada depois dos gates |
+| SHA validado nos gates automatizados Windows locais | ab397c5449cc76dfd07b44e335f45de6762a94f4 |
+| SHA atual da branch remota candidata | fix/windows-beta8-homologation-20261008 = ab397c5449cc76dfd07b44e335f45de6762a94f4 |
+| SHA atual da branch canônica remota | origin/release/v1.0.0 = 2abbf31a770162e845e708695fbe397d02a5374e |
+| Candidato local | branch Windows beta.8 em ab397c5449cc76dfd07b44e335f45de6762a94f4; PR draft #45 para release/v1.0.0 |
+| Estado do worktree durante os gates | checkout limpo no início do gate exact-SHA; documentação atualizada após o gate |
 
 | Última beta pública registrada (último estado conhecido) | v1.0.0-beta.1; inventário remoto atual não revalidado |
 | Release estável v1 | ainda não publicada |
-| Gate nativo Windows exact-SHA no GitHub Actions | não revalidado; `gh` ausente neste host |
-| Veredito | PASS nos gates automatizados Windows locais de d840797b; publicação oficial segue NO-GO por CI/signing e smokes manuais pendentes |
+| Gate nativo Windows exact-SHA no GitHub Actions | não certificado; falta runner Windows compatível |
+| Veredito | PASS nos gates automatizados Windows locais de ab397c54; publicação oficial segue NO-GO por CI, assinatura e smokes manuais pendentes |
+
+## Homologação Windows beta.8 — 2026-10-08
+
+O candidato `1.0.0-beta.8` passou os gates automatizados locais Windows AMD64 no SHA exato `ab397c5449cc76dfd07b44e335f45de6762a94f4`: Go fmt/vet/lint/security/testes, Bun frozen install e quality completa (83 arquivos Vitest/499 testes), oito suítes Playwright browser, acessibilidade/visual e builds CLI/Desktop/HUD. O teste de `SessionHost` demonstrou ConPTY automático para Codex no Windows e encaminhamento de seta; o smoke isolado abriu a tela de boas-vindas do Codex sem autenticação.
+
+A branch candidata já está enviada e vinculada à release pelo [PR draft #45](https://github.com/IAPro-Community/nexus/pull/45), ainda sem merge. `release/v1.0.0` permanece em `2abbf31a`. CLI, Desktop e HUD foram reconstruídos no SHA atual; seus checksums estão na pasta de entrega `outputs/windows-beta8-distribution-ab397c54-20261008/`, e os três executáveis estão `NotSigned`. O instalador NSIS e o smoke de `7d2ef8aa` são do candidato anterior e não certificam o SHA atual. CI Windows exact-SHA, Authenticode/trust root e smokes manuais de provider/Mission/Voice continuam pendentes. Nenhum gate Linux foi executado nesta continuidade.
+
+Auditoria de branches: `fix/beta7-windows-homologation-20261008` terminou em `4a0bd992` com `VERSION=1.0.0-beta.7`, três commits exclusivos e base 12 commits atrás da release; não deve ser vinculada diretamente ao candidato beta.8. `fix/beta7-windows-KIVER-20261007` não tem commit exclusivo. `fix/beta8-manual-opaque-quota` permanece sem integração até corrigir o desalinhamento de contrato e testes.
 
 ## Continuidade Windows — gates exact-SHA locais — 2026-10-08
 

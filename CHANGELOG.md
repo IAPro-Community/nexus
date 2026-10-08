@@ -52,6 +52,20 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
+## 1.0.0-beta.8 — 2026-10-08 — Continuidade do terminal no Windows
+
+### Alterado
+
+- Sessões supervisionadas do Codex usam ConPTY automaticamente no Windows, permitindo que o provider receba um console interativo sem configuração manual. Os demais providers preservam standard pipes por padrão; `AI_CLI_ENABLE_CONPTY=1` continua como override global e `AI_CLI_DISABLE_CONPTY=1` desativa o backend ConPTY.
+- A seleção e o capability report do backend de terminal passam a considerar o provider.
+
+### Validação Windows
+
+- Gates automatizados locais passaram no SHA `ab397c5449cc76dfd07b44e335f45de6762a94f4`, incluindo Go, qualidade Web, oito suítes browser E2E, acessibilidade/visual e builds CLI/Desktop/HUD.
+- O teste Windows do `SessionHost` confirmou o encaminhamento de seta pelo ConPTY; um smoke interativo isolado abriu a tela de boas-vindas/login do Codex sem autenticação.
+- CLI, Desktop e HUD foram reconstruídos no SHA atual e seus checksums estão em `outputs/windows-beta8-distribution-ab397c54-20261008/`; os executáveis são `NotSigned`. O instalador/checksum NSIS de `7d2ef8aa` não corresponde ao novo SHA.
+- A branch candidata está no PR draft #45. A release permanece NO-GO até fechar CI Windows exact-SHA, assinatura/trust root, instalador correspondente ao SHA e smokes manuais restantes.
+
 ## 1.0.0-beta.7 — 2026-10-08 — Windows validation continuation
 
 Windows AMD64 automated gates passed locally on source SHA `d840797bbd975a5c7edc54ebe23f3dfef56ff947`. This is a local technical PASS; official publication remains NO-GO until exact-SHA native CI, signing/trust-root and remaining manual release gates close.

@@ -1,17 +1,54 @@
 # Homologação Windows — Nexus 1.0.0-beta.8 — 2026-10-08
 
-STATUS: PASS (gates automatizados locais Windows AMD64 + build/ciclo de smoke NSIS unsigned)
+STATUS: PASS (gates automatizados locais Windows AMD64 no commit de código ab397c54)
 RELEASE_STATUS: NO-GO para tag/distribuição até fechar os gates externos e manuais
 BRANCH: `fix/windows-beta8-homologation-20261008`
-CODE_SHA: `474dfcecdd82aab0d0a2d6d1f36fd26d0d1b1f8b`
-GATE_SHA: `7d2ef8aab669f88f22d09a86ec6442f761d0f7b5`
+CODE_SHA: `ab397c5449cc76dfd07b44e335f45de6762a94f4`
+GATE_SHA: `ab397c5449cc76dfd07b44e335f45de6762a94f4`
 VERSION: `1.0.0-beta.8`
 BASE_RELEASE: `origin/release/v1.0.0` em `2abbf31a770162e845e708695fbe397d02a5374e`
-ENVIRONMENT: Windows AMD64, Go 1.25.14, Bun 1.3.9, Node 22.14.0
-GATE_STARTED_AT: `2026-10-08T18:12:39Z`
-GATE_COMPLETED_AT: `2026-10-08T18:23:20Z`
+ENVIRONMENT: Windows AMD64, Go 1.25.14, Bun 1.3.9, Node 24.19.0
 
-## Resultado
+## Revalidação Windows no commit ab397c54 — 2026-10-08
+
+O commit `ab397c5449cc76dfd07b44e335f45de6762a94f4` passou pelo gate completo com `scripts/homologate-beta.ps1 -ExpectedSha ab397c54` em uma árvore limpa e no mesmo SHA. `VERSION` contém exatamente `1.0.0-beta.8`. Nenhum gate Linux foi executado.
+
+- PASS — parser PowerShell e `docs-verify` (178 arquivos Markdown e 33 arquivos/ativos requeridos).
+- PASS — `bun install --cwd web --frozen-lockfile` e `bun run --cwd web quality:full`; 83 arquivos Vitest e 499 testes passaram.
+- PASS — `go fmt`, `go vet ./...`, `golangci-lint run ./...` (0 issues), `govulncheck ./...` (nenhuma vulnerabilidade) e `go test -count=1 ./...`.
+- PASS — oito suítes Playwright browser, tarefas Axe/acessibilidade e visual; builds Windows AMD64 de CLI, Desktop e HUD.
+- PASS — teste de integração Windows `TestCodexSessionHostDefaultsToConPTYAndForwardsArrowInput`: Codex recebe console interativo sem redirecionamento e a seta chega ao shell como `DownArrow`.
+- PASS — smoke interativo com perfil isolado e sem `AI_CLI_ENABLE_CONPTY`: Codex v0.160.1 abriu a tela de boas-vindas/login via Nexus; a sessão permaneceu ativa e encerrou limpa com Ctrl+C, sem prompt ou login.
+
+### Correção homologada
+
+No Windows, sessões supervisionadas do provider Codex selecionam ConPTY automaticamente. Os demais providers mantêm standard pipes por padrão; `AI_CLI_ENABLE_CONPTY=1` continua como override global e `AI_CLI_DISABLE_CONPTY=1` desativa o ConPTY. O capability report agora descreve o mecanismo escolhido por provider.
+
+### Evidência e limites
+
+Logs e `MANUAL_CHECKS.md` locais: `DEV/validation/local-beta/1.0.0-beta.8/ab397c5449cc76dfd07b44e335f45de6762a94f4/windows-AMD64/` (ignorados pelo Git). Os builds CLI/Desktop/HUD foram copiados para `outputs/windows-beta8-distribution-ab397c54-20261008/`; a CLI empacotada informa beta.8 e commit `ab397c54`. SHA-256:
+
+| Artefato | SHA-256 | Authenticode |
+| --- | --- | --- |
+| `nexus-cli_1.0.0-beta.8_windows_amd64.exe` | `4af475402c3bc99dbb59f06316e849f4974a0c056b24230e01d5ffa12330e678` | NotSigned |
+| `nexus-desktop_1.0.0-beta.8_windows_amd64.exe` | `2b49e2fae848698b4ffc1c4e56e281d31c071e38d7706286d931254587147a65` | NotSigned |
+| `nexus-hud_1.0.0-beta.8_windows_amd64.exe` | `fec6b2fcc7d43dc423a1a116732cecc6ea9815150b316b904e8b2105748d5997` | NotSigned |
+
+Os manifestos `MANIFEST.md` e `SHA256SUMS.txt` acompanham os binários. O instalador NSIS e seu smoke registrados em `outputs/windows-beta8-distribution-7d2ef8aa-20261008/` pertencem ao candidato anterior; não foi produzido nem testado um instalador no SHA atual.
+
+CI Windows exact-SHA, assinatura Authenticode, trust root de atualização e smokes manuais restantes de provider/Mission/Voice continuam pendentes. O smoke Codex sem login valida TUI/ConPTY e não substitui autenticação nem esses fluxos. A PR draft #45 segue sem merge/revisão.
+
+`doctor.json` também detectou Gemini CLI instalado, mas a inicialização local do comando falha ao usar o Node 18.12.1 encontrado no PATH do host; isso é um aviso de ambiente e não foi contado como provider smoke aprovado.
+
+### Auditoria de branches — 2026-10-08
+
+`origin/release/v1.0.0` permanece em `2abbf31a770162e845e708695fbe397d02a5374e`; `origin/fix/windows-beta8-homologation-20261008` foi atualizado para `ab397c54` e continua ligado à release pela PR draft #45. A branch recém-criada `fix/beta7-windows-homologation-20261008` termina em `4a0bd992`, está baseada no ancestral `705d5b0c`, contém três commits exclusivos e ainda define `VERSION=1.0.0-beta.7`; a release avançou 12 commits desde essa base. Não é seguro vinculá-la diretamente à release beta.8. A branch Beta 7 KIVER em `d14154d2` não tem commits exclusivos. `fix/beta8-manual-opaque-quota` segue sem integração até alinhar contrato e testes.
+
+## Histórico — gate anterior em 7d2ef8aa
+
+O bloco abaixo registra a validação anterior e não substitui o estado atual em `ab397c54`.
+
+### Resultado
 
 `scripts/homologate-beta.ps1 -ExpectedSha 7d2ef8aa` terminou com código 0 no SHA exato `7d2ef8aa`. O código validado é `474dfcec`; o commit posterior `7d2ef8aa` contém somente evidência visual gerada no código validado. Não foram executados gates Linux.
 
@@ -24,7 +61,7 @@ GATE_COMPLETED_AT: `2026-10-08T18:23:20Z`
 
 Os testes Go que exigem permissões POSIX ou criação de symlink sem privilégios foram marcados como skip pelo próprio teste no Windows NTFS. Não houve falha de teste.
 
-## Pendências de distribuição
+### Pendências de distribuição do candidato anterior
 
 O PASS certifica os gates automatizados locais Windows e o ciclo de instalação/desinstalação NSIS sem assinatura; não é GO de publicação. `MANUAL_CHECKS.md` continua listando smokes interativos de provider/Mission/Voice pendentes. CI Windows exact-SHA, Authenticode, trust root de atualização, revisão/merge da PR e validação manual ainda impedem a distribuição. Nenhuma tag foi criada.
 
@@ -41,13 +78,13 @@ O checkout está em `fix/windows-beta8-homologation-20261008`. O código em `474
 - LIMITAÇÃO — os quatro artefatos estão `NotSigned`; a chave trust root de atualização não está configurada. CI Windows exact-SHA não foi certificado: a PR #45 mostra o check Windows como skipped e o repositório não tem runner Windows online com os labels requeridos. O smoke interativo Codex alcançou a tela de boas-vindas com ConPTY opt-in, mas não autenticou provider nem executou Mission/Voice; esses smokes continuam pendentes.
 - RELEASE NO-GO — não criar tag nem distribuir até fechar assinatura/trust root, certificação Windows nativa, smokes manuais e revisão/merge da PR #45.
 
-## Auditoria de branches remotas
+### Auditoria de branches do candidato anterior
 
 Auditoria remota em 2026-10-08: `origin/release/v1.0.0`=`2abbf31a770162e845e708695fbe397d02a5374e`; `origin/fix/windows-beta8-homologation-20261008`=`41a3ec0e42c36e3effda6139b98ad56f62fed925`. A branch Windows está vinculada à release pela PR draft #45, aberta e ainda sem merge/revisão: [PR #45](https://github.com/IAPro-Community/nexus/pull/45). `fix/beta8-manual-opaque-quota` (`edcd2ab`) não tem PR aberta e mantém alteração exclusiva de contrato de quota `UNSUPPORTED` com cobertura desalinhada; não está pronta para integrar. A branch Beta 7 KIVER (`d14154d2`) não tem trabalho novo a portar. O único runner Actions do repositório estava offline; nenhum runner online tem os labels Windows/X64/nexus-windows. Na PR, o check de certificação Windows está skipped.
 
 Vínculo de revisão: [PR #45 — fix/windows-beta8-homologation-20261008 → release/v1.0.0](https://github.com/IAPro-Community/nexus/pull/45) (draft; sem merge).
 
-## Reteste interativo Windows — ConPTY via Nexus — 2026-10-08
+### Reteste interativo Windows anterior — ConPTY opt-in — 2026-10-08
 
 Smoke isolado com o binário `nexus.exe` beta.8, commit embutido `7d2ef8aa`, perfil Codex `windows-smoke` sem login e diretórios de dados temporários. `AI_REAL_HOME`, `USERPROFILE` e `HOME` apontaram para uma pasta vazia de teste, sem links para o perfil real do host.
 
