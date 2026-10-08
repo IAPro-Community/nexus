@@ -52,14 +52,14 @@ func (s *Server) trackTunnelExit(tunnel *Tunnel) {
 		if owned {
 			tm.tunnel = nil
 			tm.cancel = nil
-		}
-		tm.mu.Unlock()
-		if owned {
 			if host := extractTunnelHost(tunnel.URL); host != "" {
 				originpolicy.UnregisterTunnelHost(host)
 			}
+			// Keep revocation within the generation lock: a stale exit
+			// must never disarm auth after a replacement tunnel starts.
 			s.auth.SetTunnelActive(false)
 		}
+		tm.mu.Unlock()
 	}
 	// cloudflared's waiter reads OnExit under tunnel.mu. Register under
 	// the same lock and handle an exit that already happened.
@@ -153,6 +153,8 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
+	defer cancel()
 	tm := s.tunnelManager()
 	tm.mu.Lock()
 	if tunnelIsActive(tm.tunnel) || tm.starting {
@@ -160,7 +162,10 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "tunnel already active")
 		return
 	}
+	// Install cancellation atomically with the pending-start flag, so a
+	// concurrent Stop can always cancel DNS/download/process startup.
 	tm.starting = true
+	tm.startCancel = cancel
 	tm.mu.Unlock()
 
 	installed := IsCloudflaredInstalled()
@@ -169,12 +174,6 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 		p, _ := cloudflaredPath()
 		version = CloudflaredVersion(p)
 	}
-
-	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
-	defer cancel()
-	tm.mu.Lock()
-	tm.startCancel = cancel
-	tm.mu.Unlock()
 	defer func() {
 		tm.mu.Lock()
 		tm.startCancel = nil
@@ -194,16 +193,23 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Arm tunnel auth fail-closed as soon as the public URL exists — before
-	// WaitForTunnel — so bootstrap/query-token cannot stay reusable while the
-	// hostname is already world-reachable.
+	// Stop may have cancelled a startup while StartTunnel was fetching or
+	// launching cloudflared. Never publish a process after that cancellation.
+	tm.mu.Lock()
+	if err := ctx.Err(); err != nil {
+		tm.starting = false
+		tm.mu.Unlock()
+		_ = tunnel.Stop()
+		writeError(w, http.StatusConflict, "tunnel startup cancelled")
+		return
+	}
+	// Arm auth fail-closed before readiness. Register the tunnel under the
+	// same manager lock so concurrent Stop sees and terminates it.
 	if tunnelHost := extractTunnelHost(tunnel.URL); tunnelHost != "" {
 		originpolicy.RegisterTunnelHost(tunnelHost)
 		s.tunnelHost = tunnelHost
 	}
 	s.auth.SetTunnelActive(true)
-
-	tm.mu.Lock()
 	tm.tunnel = tunnel
 	tm.cancel = tunnel.cancel
 	tm.mu.Unlock()
@@ -212,14 +218,18 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	readyCtx, readyCancel := context.WithTimeout(ctx, 60*time.Second)
 	defer readyCancel()
 	if err := tunnel.WaitForTunnel(readyCtx); err != nil {
-		if tunnelHost := extractTunnelHost(tunnel.URL); tunnelHost != "" {
-			originpolicy.UnregisterTunnelHost(tunnelHost)
-		}
-		s.auth.SetTunnelActive(false)
-		_ = tunnel.Stop()
 		tm.mu.Lock()
+		if tm.tunnel == tunnel {
+			tm.tunnel = nil
+			tm.cancel = nil
+			if tunnelHost := extractTunnelHost(tunnel.URL); tunnelHost != "" {
+				originpolicy.UnregisterTunnelHost(tunnelHost)
+			}
+			s.auth.SetTunnelActive(false)
+		}
 		tm.starting = false
 		tm.mu.Unlock()
+		_ = tunnel.Stop()
 		writeJSON(w, http.StatusBadGateway, TunnelStatusResponse{
 			CloudflaredInstalled: installed,
 			CloudflaredVersion:   version,
@@ -229,10 +239,19 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tm.mu.Lock()
-	running := tm.tunnel == tunnel && tunnelIsActive(tunnel)
+	running := tm.tunnel == tunnel && tunnelIsActive(tunnel) && ctx.Err() == nil
 	tm.starting = false
+	if !running && tm.tunnel == tunnel {
+		tm.tunnel = nil
+		tm.cancel = nil
+		if tunnelHost := extractTunnelHost(tunnel.URL); tunnelHost != "" {
+			originpolicy.UnregisterTunnelHost(tunnelHost)
+		}
+		s.auth.SetTunnelActive(false)
+	}
 	tm.mu.Unlock()
 	if !running {
+		_ = tunnel.Stop()
 		writeError(w, http.StatusBadGateway, "tunnel closed during startup")
 		return
 	}
@@ -255,6 +274,11 @@ func (s *Server) handleTunnelStop(w http.ResponseWriter, r *http.Request) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
+	// Also cancel the pre-publication phase, when tm.tunnel is still nil.
+	// Keep starting=true until the canceled Start handler has unwound.
+	if tm.starting && tm.startCancel != nil {
+		tm.startCancel()
+	}
 	if !tunnelIsActive(tm.tunnel) {
 		writeJSON(w, http.StatusOK, TunnelStatusResponse{Active: false})
 		return
@@ -274,10 +298,6 @@ func (s *Server) handleTunnelStop(w http.ResponseWriter, r *http.Request) {
 		tm.cancel = nil
 	}
 
-	// Also cancel an in-progress readiness probe when stopping the tunnel.
-	if tm.startCancel != nil {
-		tm.startCancel()
-	}
 	// Inform auth manager that tunnel is no longer active.
 	s.auth.SetTunnelActive(false)
 
