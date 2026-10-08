@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -50,17 +49,14 @@ func (s *Server) handleTunnelStatus(w http.ResponseWriter, r *http.Request) {
 	tm.mu.Lock()
 	active := tm.tunnel != nil && !tm.tunnel.stopped
 	url := ""
-	bURL := ""
 	if active {
 		url = tm.tunnel.URL
-		bURL = s.remoteBootstrapURL(url)
 	}
 	tm.mu.Unlock()
 
 	writeJSON(w, http.StatusOK, TunnelStatusResponse{
 		Active:               active,
 		URL:                  url,
-		BootstrapURL:         bURL,
 		CloudflaredInstalled: installed,
 		CloudflaredVersion:   version,
 	})
@@ -165,12 +161,9 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	tm.starting = false
 	tm.mu.Unlock()
 
-	bURL := s.remoteBootstrapURL(tunnel.URL)
-
 	writeJSON(w, http.StatusOK, TunnelStatusResponse{
 		Active:               true,
 		URL:                  tunnel.URL,
-		BootstrapURL:         bURL,
 		CloudflaredInstalled: installed,
 		CloudflaredVersion:   version,
 	})
@@ -246,10 +239,10 @@ func (s *Server) port() int {
 	return DefaultPort
 }
 
-// handleTunnelQR returns a JSON payload with the tunnel bootstrap URL for
-// QR code generation on the frontend.
+// handleTunnelQR mints a fresh invitation on an authenticated POST.
+// GET requests must never create or reveal credentials.
 func (s *Server) handleTunnelQR(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
@@ -257,24 +250,24 @@ func (s *Server) handleTunnelQR(w http.ResponseWriter, r *http.Request) {
 	tm := s.tunnelManager()
 	tm.mu.Lock()
 	active := tm.tunnel != nil && !tm.tunnel.stopped
-	url := ""
-	bURL := ""
+	tunnelURL := ""
 	if active {
-		url = tm.tunnel.URL
-		bURL = s.remoteBootstrapURL(url)
+		tunnelURL = tm.tunnel.URL
 	}
 	tm.mu.Unlock()
-
-	if !active || bURL == "" {
+	if !active || tunnelURL == "" {
 		writeError(w, http.StatusNotFound, "no active tunnel")
 		return
 	}
-
-	// Return the URL as JSON — frontend generates QR code client-side
-	data, _ := json.Marshal(map[string]string{
-		"url":           url,
-		"bootstrap_url": bURL,
+	token, err := s.auth.IssueTunnelInvitation(extractTunnelHost(tunnelURL))
+	if err != nil {
+		writeError(w, http.StatusConflict, "unable to generate invitation: "+err.Error())
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, map[string]any{
+		"url": tunnelURL,
+		"bootstrap_url": tunnelURL + "/#nexus_bootstrap=" + token,
+		"expires_in_seconds": int(remoteBootstrapTTL.Seconds()),
 	})
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
 }

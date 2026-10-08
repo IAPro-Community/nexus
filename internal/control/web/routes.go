@@ -125,4 +125,5 @@ func registerTunnelRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/tunnel/start", s.authMiddleware(s.handleTunnelStart))
 	mux.HandleFunc("/api/v1/tunnel/stop", s.authMiddleware(s.handleTunnelStop))
 	mux.HandleFunc("/api/v1/tunnel/qr", s.authMiddleware(s.handleTunnelQR))
+	mux.HandleFunc("/api/v1/tunnel/invite", s.authMiddleware(s.handleTunnelQR))
 }
