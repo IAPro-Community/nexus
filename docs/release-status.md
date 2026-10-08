@@ -8,7 +8,7 @@ Atualizado em 8 de outubro de 2026.
 | Versão-fonte candidata | 1.0.0-beta.8 |
 | Branch canônica | release/v1.0.0 |
 | SHA validado nos gates automatizados Windows locais | ab397c5449cc76dfd07b44e335f45de6762a94f4 |
-| SHA atual da branch remota candidata | fix/windows-beta8-homologation-20261008 = ab397c5449cc76dfd07b44e335f45de6762a94f4 |
+| Código homologado na branch candidata | ab397c5449cc76dfd07b44e335f45de6762a94f4; atualizações documentais foram enviadas depois do gate |
 | SHA atual da branch canônica remota | origin/release/v1.0.0 = 2abbf31a770162e845e708695fbe397d02a5374e |
 | Candidato local | branch Windows beta.8 em ab397c5449cc76dfd07b44e335f45de6762a94f4; PR draft #45 para release/v1.0.0 |
 | Estado do worktree durante os gates | checkout limpo no início do gate exact-SHA; documentação atualizada após o gate |

@@ -42,7 +42,7 @@ CI Windows exact-SHA, assinatura Authenticode, trust root de atualização e smo
 
 ### Auditoria de branches — 2026-10-08
 
-`origin/release/v1.0.0` permanece em `2abbf31a770162e845e708695fbe397d02a5374e`; `origin/fix/windows-beta8-homologation-20261008` foi atualizado para `ab397c54` e continua ligado à release pela PR draft #45. A branch recém-criada `fix/beta7-windows-homologation-20261008` termina em `4a0bd992`, está baseada no ancestral `705d5b0c`, contém três commits exclusivos e ainda define `VERSION=1.0.0-beta.7`; a release avançou 12 commits desde essa base. Não é seguro vinculá-la diretamente à release beta.8. A branch Beta 7 KIVER em `d14154d2` não tem commits exclusivos. `fix/beta8-manual-opaque-quota` segue sem integração até alinhar contrato e testes.
+`origin/release/v1.0.0` permanece em `2abbf31a770162e845e708695fbe397d02a5374e`; a branch Windows beta.8 contém o código homologado em `ab397c54`, seguido de atualizações somente documentais, e continua ligada à release pela PR draft #45. A branch recém-criada `fix/beta7-windows-homologation-20261008` termina em `4a0bd992`, está baseada no ancestral `705d5b0c`, contém três commits exclusivos e ainda define `VERSION=1.0.0-beta.7`; a release avançou 12 commits desde essa base. Não é seguro vinculá-la diretamente à release beta.8. A branch Beta 7 KIVER em `d14154d2` não tem commits exclusivos. `fix/beta8-manual-opaque-quota` segue sem integração até alinhar contrato e testes.
 
 ## Histórico — gate anterior em 7d2ef8aa
 

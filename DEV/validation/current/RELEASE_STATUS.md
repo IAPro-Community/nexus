@@ -10,7 +10,7 @@ GATE_EVIDENCE_SHA: ab397c5449cc76dfd07b44e335f45de6762a94f4
 CURRENT_WORKTREE_GATES: PASS (full Windows AMD64 automated gate on clean exact-SHA checkout)
 LAST_FROZEN_WINDOWS_SHA: ab397c5449cc76dfd07b44e335f45de6762a94f4
 LIVE_REMOTE_RELEASE_SHA_AT_AUDIT: CONFIRMED (origin/release/v1.0.0 = 2abbf31a770162e845e708695fbe397d02a5374e)
-REMOTE_HOMOLOGATION_BRANCH: CONFIRMED (origin/fix/windows-beta8-homologation-20261008 = ab397c5449cc76dfd07b44e335f45de6762a94f4)
+REMOTE_HOMOLOGATION_BRANCH: CONFIRMED (contains code tested at ab397c5449cc76dfd07b44e335f45de6762a94f4; documentation-only updates follow)
 PULL_REQUEST: OPEN_DRAFT #45 (fix/windows-beta8-homologation-20261008 -> release/v1.0.0; awaiting review; not merged) https://github.com/IAPro-Community/nexus/pull/45
 WINDOWS_LOCAL_GATES: PASS (docs, Bun frozen + full web quality, Go fmt/vet/lint/security/tests, eight browser E2E suites, Axe/visual, CLI/Desktop/HUD builds, Codex ConPTY host test and isolated interactive TUI smoke)
 WINDOWS_DOCS_VERIFY: PASS (178 Markdown files, 33 required assets/files)
