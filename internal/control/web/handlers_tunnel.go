@@ -352,8 +352,8 @@ func (s *Server) handleTunnelQR(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, map[string]any{
-		"url": tunnelURL,
-		"bootstrap_url": bootstrapURL,
+		"url":                tunnelURL,
+		"bootstrap_url":      bootstrapURL,
 		"expires_in_seconds": int(remoteBootstrapTTL.Seconds()),
 	})
 }
