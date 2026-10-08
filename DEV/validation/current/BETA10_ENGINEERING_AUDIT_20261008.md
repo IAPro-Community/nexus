@@ -89,7 +89,7 @@ A fonte de verdade é `VERSION`, sincronizada com `web/package.json`; a beta.10 
 | Confiabilidade | Vitest + Node tests, Go `-race`, testes de controlo PTY e regressões de auth/tunnel |
 | UX | Playwright, Axe, responsividade, contraste e snapshots visuais |
 | Compatibilidade | Linux nativo, Windows ConPTY/WebView2/NSIS, macOS quando declarado |
-| Segurança | govulncheck, nenhum segredo em logs, isolamento de sessão/tenant, assinatura e trust root |
+| Segurança | govulncheck, nenhum segredo em logs, isolamento de sessão e autorização, assinatura e trust root |
 | Distribuição | Artefatos checksumados e assinados no exato SHA; release e manifesto verificáveis |
 | Governança | revisão independente de diffs críticos, CODEOWNERS e nenhum workflow obrigatório cancelado/skipped |
 
