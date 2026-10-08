@@ -453,9 +453,8 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			}
 
 		case "input":
-			// Authoritative writer check on Agent level (§45, A6). Web input
-			// always crosses the stateful coalescer before the provider PTY so
-			// split selector arrows cannot degrade into literal characters.
+			// Only explicit interactive Lead promotion uses Web-side buffering.
+			// Ordinary Codex input is forwarded unmodified to the host PTY.
 			if broker.IsWriter(agentID, ws) && msg.Data != "" {
 				nexusruntime.TraceTerminalBytes(runtimeID, "web.websocket.input", []byte(msg.Data))
 				inputMu.Lock()
@@ -592,21 +591,7 @@ const MaxProtocolPending = 64 * 1024
 // isProtocolControlFrame reports whether data is a Nexus Control RPC request
 // or response that must not be shown in the agent terminal.
 func isProtocolControlFrame(data []byte) bool {
-	trimmed := bytes.TrimSpace(data)
-	if len(trimmed) == 0 || trimmed[0] != '{' {
-		return false
-	}
-	var probe map[string]json.RawMessage
-	if json.Unmarshal(trimmed, &probe) != nil {
-		return false
-	}
-	if _, hasCommand := probe["command"]; hasCommand {
-		return true
-	}
-	if _, hasOK := probe["ok"]; hasOK {
-		return true
-	}
-	return false
+	return protocol.IsWireControlFrame(data)
 }
 
 // scrubProtocolFramesFromOutput removes complete Nexus Control RPC lines from

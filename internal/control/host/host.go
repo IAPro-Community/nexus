@@ -366,21 +366,7 @@ func (sh *SessionHost) streamReader(r io.Reader) {
 // isHostProtocolControlFrame detects Nexus Control RPC lines that must never
 // enter the ring buffer / fanout (e.g. lease_acquire echoed into the PTY).
 func isHostProtocolControlFrame(data []byte) bool {
-	trimmed := bytes.TrimSpace(data)
-	if len(trimmed) == 0 || trimmed[0] != '{' {
-		return false
-	}
-	var probe map[string]json.RawMessage
-	if json.Unmarshal(trimmed, &probe) != nil {
-		return false
-	}
-	if _, hasCommand := probe["command"]; hasCommand {
-		return true
-	}
-	if _, hasOK := probe["ok"]; hasOK {
-		return true
-	}
-	return false
+	return protocol.IsWireControlFrame(data)
 }
 
 func (sh *SessionHost) broadcast(data []byte) {
