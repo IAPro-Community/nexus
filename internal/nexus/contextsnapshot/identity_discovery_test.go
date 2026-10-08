@@ -109,6 +109,30 @@ func TestDiscoverReturnsStructuredFactsWithProvenance(t *testing.T) {
 	}
 }
 
+func TestDiscoverWithIdentityReusesInspectedIdentity(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "package.json"), []byte(`{"name":"fixture"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	want := CodeIdentity{
+		RepositoryKind: "git",
+		State:          CodeIdentityUnborn,
+		IdentityDigest: "identity-inspected-by-caller",
+		Complete:       true,
+	}
+
+	snapshot, err := DiscoverWithIdentity(root, Metadata{ProjectID: "project-1"}, want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Identity.IdentityDigest != want.IdentityDigest || snapshot.Identity.State != want.State {
+		t.Fatalf("identity was not reused: got %+v, want %+v", snapshot.Identity, want)
+	}
+	if snapshot.ProjectID != "project-1" || len(snapshot.Facts) == 0 {
+		t.Fatalf("static discovery did not run with supplied identity: %+v", snapshot)
+	}
+}
+
 func TestDiscoverExtractsOperationalProjectIntelligence(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "packages", "web"), 0700); err != nil {

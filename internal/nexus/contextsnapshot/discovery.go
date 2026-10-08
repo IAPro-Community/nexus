@@ -396,18 +396,41 @@ func noiseDiscoveryPath(source string) bool {
 // Discover performs bounded, static project discovery. It never executes a
 // project command and returns PARTIAL with warnings when budgets are reached.
 func Discover(root string, metadata Metadata) (ProjectContextSnapshot, error) {
-	root = filepath.Clean(strings.TrimSpace(root))
-	if root == "" || root == "." {
-		return ProjectContextSnapshot{}, fmt.Errorf("project root is required")
-	}
-	info, err := os.Stat(root)
-	if err != nil || !info.IsDir() {
-		return ProjectContextSnapshot{}, fmt.Errorf("project root unavailable")
+	root, err := validateDiscoveryRoot(root)
+	if err != nil {
+		return ProjectContextSnapshot{}, err
 	}
 	identity, err := InspectCodeIdentity(root)
 	if err != nil {
 		return ProjectContextSnapshot{}, err
 	}
+	return discoverWithIdentity(root, metadata, identity)
+}
+
+// DiscoverWithIdentity performs the bounded static scan using an identity that
+// was already inspected for this same project. Callers that have just loaded
+// the current ProjectIntelligenceView can avoid repeating the Git subprocesses.
+func DiscoverWithIdentity(root string, metadata Metadata, identity CodeIdentity) (ProjectContextSnapshot, error) {
+	root, err := validateDiscoveryRoot(root)
+	if err != nil {
+		return ProjectContextSnapshot{}, err
+	}
+	return discoverWithIdentity(root, metadata, identity)
+}
+
+func validateDiscoveryRoot(root string) (string, error) {
+	root = filepath.Clean(strings.TrimSpace(root))
+	if root == "" || root == "." {
+		return "", fmt.Errorf("project root is required")
+	}
+	info, err := os.Stat(root)
+	if err != nil || !info.IsDir() {
+		return "", fmt.Errorf("project root unavailable")
+	}
+	return root, nil
+}
+
+func discoverWithIdentity(root string, metadata Metadata, identity CodeIdentity) (ProjectContextSnapshot, error) {
 	now := time.Now().UTC()
 	state := &discoveryState{root: root, observedAt: now, seen: map[string]bool{}}
 	walkErr := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
