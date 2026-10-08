@@ -91,6 +91,11 @@ func validClientTerminalTraceShape(value string) bool {
 		if value[pos] == '<' && pos+3 < len(value) && value[pos+3] == '>' &&
 			isLowerHex(value[pos+1]) && isLowerHex(value[pos+2]) {
 			control := value[pos+1 : pos+3]
+			// The encoder only emits <xx> for control bytes (00..1f, 7f).
+			// Reject printable ASCII encoded as hex to prevent data exfiltration.
+			if control > "1f" && control != "7f" {
+				return false
+			}
 			pos += 4
 			if control == "1b" {
 				if state == osc {
