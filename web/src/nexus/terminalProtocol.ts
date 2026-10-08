@@ -148,7 +148,11 @@ export class ProtocolScrubber {
     const head = lastNewline < 0 ? '' : data.slice(0, lastNewline + 1);
     const tail = lastNewline < 0 ? data : data.slice(lastNewline + 1);
     let out = scrubProtocolOutput(head);
-    if (tail.trimStart().startsWith('{')) {
+    // Only defer output if this could be a Nexus RPC prefix. Holding every
+    // JSON-looking Codex chunk until its newline freezes legitimate output.
+    const prefix = '{"version":1';
+    const candidate = tail.trimStart();
+    if (candidate && (prefix.startsWith(candidate) || candidate.startsWith(prefix))) {
       this.tail = tail;
     } else {
       out += tail;

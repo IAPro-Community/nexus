@@ -388,7 +388,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 						if idx < 0 {
 							// Flush non-protocol partial data that cannot be a
 							// control frame (does not start with '{').
-							if len(pending) > 0 && pending[0] != '{' {
+							if len(pending) > 0 && !protocol.MayBeWireControlPrefix(pending) {
 								_ = safeWriteJSON(TerminalMessage{
 									Type: "output",
 									Data: string(pending),

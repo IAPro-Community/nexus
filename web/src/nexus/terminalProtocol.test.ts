@@ -97,10 +97,17 @@ describe('terminal protocol', () => {
     expect(scrubber.scrub('and":"lease_acquire","id":"req-1","timestamp":"2026-01-01T00:00:00Z"}\nreal line\n')).toBe('real line\n');
   });
 
-  it('renders ordinary trailing text immediately and flushes leftovers', () => {
+  it('renders provider JSON immediately instead of holding it as a hypothetical RPC', () => {
     const scrubber = new ProtocolScrubber();
     expect(scrubber.scrub('prompt$ ')).toBe('prompt$ ');
-    expect(scrubber.scrub('{"note":"keep me"}')).toBe('');
-    expect(scrubber.flush()).toBe('{"note":"keep me"}');
+    expect(scrubber.scrub('{"note":"keep me"}')).toBe('{"note":"keep me"}');
+    expect(scrubber.scrub('{"command":"npm test","ok":true}')).toBe('{"command":"npm test","ok":true}');
+    expect(scrubber.flush()).toBe('');
+  });
+
+  it('holds only partial Nexus envelopes until their final bytes arrive', () => {
+    const scrubber = new ProtocolScrubber();
+    expect(scrubber.scrub('{"ver')).toBe('');
+    expect(scrubber.scrub('sion":1,"ok":true,"timestamp":"2026-01-01T00:00:00Z"}\n')).toBe('');
   });
 });

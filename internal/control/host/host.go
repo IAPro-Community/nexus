@@ -317,7 +317,7 @@ func (sh *SessionHost) streamReader(r io.Reader) {
 				idx := bytes.IndexByte(pending, '\n')
 				if idx < 0 {
 					// Flush non-JSON partials so interactive output stays live.
-					if len(pending) > 0 && pending[0] != '{' {
+					if len(pending) > 0 && !protocol.MayBeWireControlPrefix(pending) {
 						chunk := pending
 						pending = nil
 						sh.ringBuffer.Write(chunk)
