@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Globe, RefreshCw, Smartphone, Wifi, WifiOff } from 'lucide-react';
+import { Copy, Globe, RefreshCw, Smartphone, Wifi, WifiOff } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Button, Card, InlineAlert } from '../../design-system';
 import { nexus } from '../../nexus/api';
@@ -14,7 +14,11 @@ export const RemoteAccessTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showQR, setShowQR] = useState(false);
-  const [qrData, setQrData] = useState<{ url: string; bootstrap_url: string } | null>(null);
+  const [qrData, setQrData] = useState<{
+    url: string;
+    bootstrap_url: string;
+    expires_in_seconds: number;
+  } | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -39,6 +43,8 @@ export const RemoteAccessTab: React.FC = () => {
       setError('');
       const s = await nexus.startTunnel();
       setStatus(s);
+      setShowQR(false);
+      setQrData(null);
       if (s.error) setError(s.error);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('settings.remote.errors.start'));
@@ -66,13 +72,18 @@ export const RemoteAccessTab: React.FC = () => {
 
   const handleShowQR = useCallback(async () => {
     try {
-      const data = await nexus.getTunnelQR();
+      if (showQR) {
+        setShowQR(false);
+        setQrData(null);
+        return;
+      }
+      const data = await nexus.createTunnelInvite();
       setQrData(data);
       setShowQR(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('settings.remote.errors.qr'));
     }
-  }, [t]);
+  }, [t, showQR]);
 
   const active = status?.active ?? false;
   const installed = status?.cloudflared_installed ?? false;
@@ -90,6 +101,11 @@ export const RemoteAccessTab: React.FC = () => {
         </div>
 
         <p className={`nx-muted-copy ${styles.mutedTextSmall}`}>{t('settings.remote.intro')}</p>
+        <InlineAlert tone="info">
+          {t('settings.remote.lanHttpsRequired', {
+            defaultValue: 'Na mesma rede, o acesso autenticado exige HTTPS confiável. Utilize um proxy TLS ou o túnel HTTPS; não é seguro transportar cookies de sessão por HTTP na rede.',
+          })}
+        </InlineAlert>
 
         {!installed && <InlineAlert tone="info">{t('settings.remote.downloadNotice')}</InlineAlert>}
 
@@ -169,6 +185,26 @@ export const RemoteAccessTab: React.FC = () => {
             <div className={styles.qrInfo}>
               <p className={styles.qrLabel}>{t('settings.remote.accessURL')}</p>
               <code className={styles.qrUrl}>{qrData.url}</code>
+              <Button
+                tone="brand"
+                onClick={() => {
+                  void navigator.clipboard.writeText(qrData.bootstrap_url).catch(() =>
+                    setError(t('settings.remote.errors.copy', {
+                      defaultValue: 'Não foi possível copiar o convite.',
+                    })),
+                  );
+                }}
+              >
+                <Copy size={14} />
+                {t('settings.remote.copyInvite', {
+                  defaultValue: 'Copiar convite de acesso',
+                })}
+              </Button>
+              <p className={styles.mutedTextSmall}>
+                {t('settings.remote.inviteExpiry', {
+                  defaultValue: 'Convite individual, de uso único, válido por 15 minutos.',
+                })}
+              </p>
 
               <p className={`nx-muted-copy ${styles.mutedTextSmall}`}>
                 {t('settings.remote.tokenNotice')}

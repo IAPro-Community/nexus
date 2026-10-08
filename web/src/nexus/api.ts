@@ -858,7 +858,11 @@ export const nexus = {
     request<import('../types').TunnelStatus>('/api/v1/tunnel/start', { method: 'POST' }),
   stopTunnel: () =>
     request<import('../types').TunnelStatus>('/api/v1/tunnel/stop', { method: 'POST' }),
-  getTunnelQR: () => request<{ url: string; bootstrap_url: string }>('/api/v1/tunnel/qr'),
+  createTunnelInvite: () =>
+    request<{ url: string; bootstrap_url: string; expires_in_seconds: number }>(
+      '/api/v1/tunnel/invite',
+      { method: 'POST', body: '{}' },
+    ),
 
   // Attention Center
   getAttention: () => request<import('../types').AttentionGroup>('/api/v1/attention'),

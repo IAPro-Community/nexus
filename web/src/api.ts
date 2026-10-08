@@ -129,6 +129,14 @@ function notifySessionExpired() {
 
 export async function initSession(): Promise<BrowserSession> {
   try {
+    // Browsers cannot retain Secure auth cookies over plaintext LAN URLs.
+    const hostname = window.location.hostname.toLowerCase();
+    if (
+      window.location.protocol === 'http:' &&
+      !['localhost', '127.0.0.1', '[::1]', 'nexus.dev'].includes(hostname)
+    ) {
+      return { authenticated: false };
+    }
     const bootstrapToken = consumeBrowserBootstrapToken();
     if (bootstrapToken && !isDesktopApp()) {
       const bootstrapResponse = await fetch('/api/v1/auth/bootstrap', {

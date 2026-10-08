@@ -138,7 +138,16 @@ export const NexusWorkspaceApp: React.FC<{
               <img src="./nexus-icon.png" alt="Nexus" className="nx-brand-mark__img" />
             </span>
             <h2 className={unauthorizedStyles.title}>{t('auth.sessionExpired')}</h2>
-            <p className={unauthorizedStyles.hint}>{t('auth.sessionExpiredDesc')}</p>
+            <p className={unauthorizedStyles.hint}>
+              {window.location.protocol === 'http:' &&
+              !['localhost', '127.0.0.1', '[::1]', 'nexus.dev'].includes(window.location.hostname.toLowerCase())
+                ? t('auth.networkHttpsRequired', {
+                    defaultValue: 'Acesso LAN por HTTP não permite autenticação segura. Configure HTTPS confiável ou utilize o túnel HTTPS.',
+                  })
+                : t('auth.remoteInvitationNotice', {
+                    defaultValue: 'Sessão inválida, expirada ou convite já utilizado. Para um novo dispositivo, gere um convite de acesso no Nexus principal.',
+                  })}
+            </p>
             <button
               type="button"
               className="nx-button"
