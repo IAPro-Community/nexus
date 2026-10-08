@@ -101,6 +101,7 @@ const WindowChromeMenu: React.FC<{
   );
 
   useEffect(() => {
+    skipBlurCommit.current = false;
     setDraft(customTitle);
   }, [customTitle]);
 
@@ -146,7 +147,9 @@ const WindowChromeMenu: React.FC<{
     };
   }, [open, onOpenChange, position]);
 
+  const skipBlurCommit = useRef(false);
   const commitTitle = () => {
+    if (skipBlurCommit.current) return;
     const trimmed = draft.trim();
     if (trimmed !== customTitle) {
       onPatch({ customTitle: trimmed });
@@ -175,6 +178,11 @@ const WindowChromeMenu: React.FC<{
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') {
                     commitTitle();
+                    onOpenChange(false);
+                  } else if (event.key === 'Escape') {
+                    event.stopPropagation();
+                    skipBlurCommit.current = true;
+                    setDraft(customTitle);
                     onOpenChange(false);
                   }
                 }}

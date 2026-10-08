@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { ProtocolScrubber } from '../nexus/terminalProtocol';
 import { canFitTerminal } from '../nexus/terminalFitModel';
+import { TERMINAL_CONNECT_TIMEOUT_MS } from '../nexus/agentTerminalModel';
 import {
   DEFAULT_TERMINAL_SCROLLBACK,
   adjustTerminalFontSize,
@@ -135,6 +136,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
   useEffect(() => {
     if (!containerRef.current) return;
+    setConnecting(true);
+    setDisconnected(false);
+    setDiagnosticCode('');
+    setErrorMsg('');
 
     // Initialize xterm
     const term = new Terminal({
@@ -318,10 +323,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       console.warn('[nexus:terminal]', JSON.stringify({
         event: 'terminal.connect.timeout', phase: 'TRANSPORT',
         code: 'TERMINAL_CONNECT_TIMEOUT', runtimeId,
-        attempt: connectNonce + 1, timeoutMs: 10000,
+        attempt: connectNonce + 1, timeoutMs: TERMINAL_CONNECT_TIMEOUT_MS,
       }));
       ws.close();
-    }, 10000);
+    }, TERMINAL_CONNECT_TIMEOUT_MS);
 
     ws.onopen = () => {
       window.clearTimeout(connectTimeout);
@@ -373,6 +378,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         } else if (msg.type === 'error') {
           setErrorMsg(String(msg.data || 'Terminal error'));
           setDiagnosticCode('TERMINAL_SERVER_ERROR');
+          term.options.disableStdin = true;
           setConnecting(false);
           setDisconnected(true);
         }
@@ -405,6 +411,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       if (disposed) return;
       setConnecting(false);
       setDiagnosticCode('TERMINAL_TRANSPORT_ERROR');
+      term.options.disableStdin = true;
       setErrorMsg((current) => current || tRef.current('terminal.hostNotRunning'));
       setDisconnected(true);
     };
@@ -523,19 +530,22 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     };
   }, [runtimeId, connectNonce]);
 
-  const handleRestart = async () => {
-    if (restarting) return;
-    setRestarting(true);
+  // Retry always reattaches the existing PTY; transport failure is not proof the process died.
+  const handleRestart = () => {
+    if (restarting || connecting) return;
     setDiagnosticCode('');
+    setDisconnected(false);
+    setErrorMsg('');
     setConnecting(true);
+    setConnectNonce((n) => n + 1);
+  };
+
+  // A new process is a separate, explicit action so retry cannot duplicate runtimes.
+  const handleStartNew = async () => {
+    if (!onRestart || restarting || connecting) return;
+    setRestarting(true);
     try {
-      if (onRestart) {
-        await onRestart();
-        return;
-      }
-      setDisconnected(false);
-      setErrorMsg('');
-      setConnectNonce((n) => n + 1);
+      await onRestart();
     } catch (error) {
       setConnecting(false);
       setDisconnected(true);
@@ -803,19 +813,23 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
             type="button"
             className="nx-button"
             data-tone="brand"
-            disabled={restarting}
-            onClick={() => void handleRestart()}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            disabled={restarting || connecting}
+            onClick={handleRestart}
           >
-            {restarting ? <RefreshCw size={13} className="nx-spin-slow" /> : <Play size={13} />}
-            <span>
-              {restarting
-                ? t('terminal.reconnecting')
-                : onRestart
-                  ? t('terminal.startNewTerminal')
-                  : t('terminal.reconnect')}
-            </span>
+            <RefreshCw size={13} />
+            <span>{t('terminal.retry', { defaultValue: 'Tentar novamente' })}</span>
           </button>
+          {onRestart && (
+            <button
+              type="button"
+              className="nx-button"
+              disabled={restarting || connecting}
+              onClick={() => void handleStartNew()}
+            >
+              {restarting ? <RefreshCw size={13} className="nx-spin-slow" /> : <Play size={13} />}
+              <span>{t('terminal.startNewTerminal')}</span>
+            </button>
+          )}
         </div>
       )}
     </div>
