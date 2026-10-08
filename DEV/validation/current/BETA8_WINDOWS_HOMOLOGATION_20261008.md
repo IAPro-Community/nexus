@@ -23,8 +23,8 @@ O commit `ab397c5449cc76dfd07b44e335f45de6762a94f4` passou pelo gate completo co
 - PASS — smoke nativo HUD no código `ab397c54`: build Windows com ID Wails de teste, processo ativo por 8 s e perfil WebView2 isolado criado.
 - PASS — regressão da mensagem `invalid origin` na criação do primeiro projeto: `TestWindowsWailsVirtualHostSupportsAuthenticatedProjectCreation` passou no HEAD `7cc03499`; bootstrap Wails retornou 200 e criação do projeto retornou 201 com autenticação/CSRF, enquanto hosts lookalike e origens externas retornaram 403.
 - PASS — `go test -count=1 ./internal/control/originpolicy ./internal/control/web ./internal/desktop ./cmd/nexus-desktop ./cmd/nexus-hud` no Windows/HEAD `7cc03499`.
-- PASS — teste de integração ConPTY repetido 10 vezes após endurecer o harness para manter o processo PowerShell aberto até o encerramento da sessão e preservar o resultado da tecla em arquivo temporário isolado: 10/10.
-- PASS — `go test -count=1 ./...` no Windows após o ajuste do harness; todos os pacotes passaram (`GO_TEST_EXIT=0`), inclusive `internal/control/host`.
+- PASS — no commit Windows `e7e021879cb3e948290eefaeabc3ec7dc51e04ae`, o teste de integração ConPTY repetido 10 vezes após endurecer o harness para manter o processo PowerShell aberto até o encerramento da sessão e preservar o resultado da tecla em arquivo temporário isolado: 10/10.
+- PASS — `go test -count=1 ./...` no Windows/`e7e021879cb3e948290eefaeabc3ec7dc51e04ae`; todos os pacotes passaram (`GO_TEST_EXIT=0`), inclusive `internal/control/host`. `go vet ./...`, `golangci-lint run ./...` e `govulncheck ./...` também passaram nesse commit.
 - O harness `scripts/smoke-desktop-windows.ps1` foi ajustado para compilar no PowerShell nativo do host: substituídas declarações C# inline `out` por variáveis explícitas. O smoke aprovado usou diretório de perfil curto, conforme o runner Windows.
 
 ### Correção homologada

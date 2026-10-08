@@ -15,7 +15,7 @@ PULL_REQUEST: OPEN_DRAFT #45 (fix/windows-beta8-homologation-20261008 -> release
 WINDOWS_LOCAL_GATES: PASS (docs, Bun frozen + full web quality, Go fmt/vet/lint/security/tests, eight browser E2E suites, Axe/visual, CLI/Desktop/HUD builds, Codex ConPTY host test and isolated interactive TUI smoke)
 WINDOWS_DESKTOP_HUD_NATIVE_SMOKES: PASS (Desktop Wails/WebView2 13s; HUD WebView2 8s; isolated IDs and short profiles on source ab397c54)
 WINDOWS_WAILS_PROJECT_CREATE_ORIGIN: PASS (HEAD 7cc03499; Wails bootstrap 200 and project create 201 with exact wails.localhost + auth/CSRF; lookalikes/external origins 403)
-WINDOWS_GO_TESTS_AFTER_CONPTY_HARNESS_FIX: PASS (focused ConPTY arrow test 10/10; `go test -count=1 ./...`, exit 0, Windows)
+WINDOWS_GO_TESTS_AFTER_CONPTY_HARNESS_FIX: PASS (source e7e021879cb3e948290eefaeabc3ec7dc51e04ae; focused ConPTY arrow test 10/10; `go test -count=1 ./...`, `go vet ./...`, `golangci-lint run ./...`, and `govulncheck ./...` passed on Windows)
 WINDOWS_DOCS_VERIFY: PASS (178 Markdown files, 33 required assets/files)
 WINDOWS_NATIVE_CI: NOT_CERTIFIED (PR Windows certification check skipped; no online runner with Windows/X64/nexus-windows labels)
 WINDOWS_SIGNING: BLOCKED_EXTERNAL (Authenticode certificate/secrets, signtool.exe, NEXUS_UPDATE_PRIVATE_KEY and NEXUS_UPDATE_KEY_ID unavailable)
