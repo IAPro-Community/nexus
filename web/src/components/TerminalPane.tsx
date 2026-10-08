@@ -808,7 +808,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               <code>{diagnosticCode}</code>
               <p>{t('terminal.runtimeId', { defaultValue: 'Runtime' })}: {runtimeId}</p>
             </details>
-          )
+          )}
           <button
             type="button"
             className="nx-button"
