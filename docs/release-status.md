@@ -5,7 +5,7 @@ Atualizado em 8 de outubro de 2026.
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
-| Versão-fonte candidata | 1.0.0-beta.7 |
+| Versão-fonte candidata | 1.0.0-beta.10 (ainda não homologada) |
 | Branch canônica | release/v1.0.0 |
 | SHA validado nos gates automatizados Windows locais | d840797bbd975a5c7edc54ebe23f3dfef56ff947 |
 | SHA originalmente solicitado para homologação | d14154d2490dfdd3966c7fddc990a1d9127edd39 |
@@ -16,7 +16,24 @@ Atualizado em 8 de outubro de 2026.
 | Última beta pública registrada (último estado conhecido) | v1.0.0-beta.1; inventário remoto atual não revalidado |
 | Release estável v1 | ainda não publicada |
 | Gate nativo Windows exact-SHA no GitHub Actions | não revalidado; `gh` ausente neste host |
-| Veredito | PASS nos gates automatizados Windows locais de d840797b; publicação oficial segue NO-GO por CI/signing e smokes manuais pendentes |
+| Veredito | NO-GO para beta.10: os gates Windows PASS se referem somente ao SHA anterior d840797b (beta.7); faltam CI exact-SHA, validação de túnel/Codex e demais smokes aplicáveis |
+
+## Candidato atual — beta.10 (2026-10-08)
+
+A branch canônica `release/v1.0.0` avançou de beta.9 para beta.10. Esta iteração
+preserva as correções recentes de Codex/PTY/JSON e de autenticação/túnel e acrescenta
+cancelamento de inicialização do Cloudflare Tunnel desde Settings, publicação
+atômica do processo, proteção por geração contra canceladores antigos e testes
+de cancelamento antes e durante readiness. O comando `scripts/release-beta.mjs`
+passou a atualizar `VERSION` e `web/package.json` em conjunto, revertendo ambos
+quando a compilação falha.
+
+**Nenhuma evidência anterior certifica automaticamente a beta.10.** O último
+Windows PASS documentado continua ancorado em `d840797b` (beta.7).
+Antes de disponibilizar nova beta ou instalador: congelar o SHA final; obter
+`go test -race` (quando suportado), frontend e browser E2E, smoke real de
+túnel iniciado/cancelado e recuperação de sessão, Codex TUI/entrada e
+certificação Windows/Linux aplicável ao exato SHA; não publicar tag apenas pelo bump.
 
 ## Continuidade Windows — gates exact-SHA locais — 2026-10-08
 
