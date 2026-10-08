@@ -17,6 +17,7 @@ import (
 // TunnelStatusResponse is the contract returned by tunnel status/start/stop.
 type TunnelStatusResponse struct {
 	Active               bool   `json:"active"`
+	Starting             bool   `json:"starting"`
 	URL                  string `json:"url,omitempty"`
 	BootstrapURL         string `json:"bootstrap_url,omitempty"`
 	CloudflaredInstalled bool   `json:"cloudflared_installed"`
@@ -129,6 +130,7 @@ func (s *Server) handleTunnelStatus(w http.ResponseWriter, r *http.Request) {
 	tm := s.tunnelManager()
 	tm.mu.Lock()
 	active := !tm.starting && tunnelIsActive(tm.tunnel)
+	starting := tm.starting
 	url := ""
 	if active {
 		url = tm.tunnel.URL
@@ -137,6 +139,7 @@ func (s *Server) handleTunnelStatus(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, TunnelStatusResponse{
 		Active:               active,
+		Starting:             starting,
 		URL:                  url,
 		CloudflaredInstalled: installed,
 		CloudflaredVersion:   version,
