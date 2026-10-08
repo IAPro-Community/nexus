@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,6 +19,16 @@ func TestTunnelStopCancelsPendingStartBeforePublication(t *testing.T) {
 	defer cancel()
 	tm := &tunnelManager{starting: true, startCancel: cancel}
 	srv := &Server{auth: auth, tunnel: tm}
+
+	statusRec := httptest.NewRecorder()
+	srv.handleTunnelStatus(statusRec, httptest.NewRequest(http.MethodGet, "/api/v1/tunnel/status", nil))
+	var status TunnelStatusResponse
+	if err := json.Unmarshal(statusRec.Body.Bytes(), &status); err != nil {
+		t.Fatal(err)
+	}
+	if !status.Starting || status.Active {
+		t.Fatalf("pending tunnel must be reported as starting, not active: %+v", status)
+	}
 
 	rec := httptest.NewRecorder()
 	srv.handleTunnelStop(rec, httptest.NewRequest(http.MethodPost, "/api/v1/tunnel/stop", nil))
