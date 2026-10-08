@@ -28,9 +28,10 @@ import (
 // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE attribute. If ConPTY is unavailable
 // (e.g. Windows < 10.0.17763), Start falls back to standard pipes and reports
 // the backend truthfully as "standard pipes" (no resize / no raw mode).
-// Standard pipes are the safe/default backend. ConPTY remains opt-in through
-// AI_CLI_ENABLE_CONPTY=1 because provider TUIs (notably Codex) must not inherit
-// a pseudo-console path unless the user explicitly enables it.
+// Standard pipes remain the default for generic and non-Codex runtimes. Codex
+// uses ConPTY automatically because its interactive CLI requires a console;
+// AI_CLI_ENABLE_CONPTY=1 opts other providers in and AI_CLI_DISABLE_CONPTY=1
+// preserves the compatibility fallback.
 
 const (
 	procThreadAttributePseudoConsole = 0x00020016
@@ -104,24 +105,49 @@ type processInformation struct {
 }
 
 type windowsBackend struct {
-	mu        sync.Mutex
-	cmd       *exec.Cmd
-	inPipe    io.WriteCloser
-	rPipe     io.ReadCloser
-	hProcess  uintptr
-	pid       int
-	hPC       uintptr
-	hJob      uintptr
-	isConPTY  bool
-	mechanism string
+	mu         sync.Mutex
+	providerID string
+	cmd        *exec.Cmd
+	inPipe     io.WriteCloser
+	rPipe      io.ReadCloser
+	hProcess   uintptr
+	pid        int
+	hPC        uintptr
+	hJob       uintptr
+	isConPTY   bool
+	mechanism  string
 }
 
 func newPlatformBackend() Backend {
 	return &windowsBackend{}
 }
 
+func newPlatformBackendForProvider(providerID string) Backend {
+	return &windowsBackend{providerID: strings.TrimSpace(providerID)}
+}
+
 // BackendMechanism reports the platform's primary terminal backend.
 func BackendMechanism() string { return "Windows standard pipes (ConPTY opt-in)" }
+
+func platformBackendMechanismForProvider(providerID string) string {
+	if shouldUseConPTY(providerID) {
+		if strings.EqualFold(strings.TrimSpace(providerID), "codex") && os.Getenv("AI_CLI_ENABLE_CONPTY") != "1" {
+			return "Windows ConPTY (automatic for supervised Codex)"
+		}
+		return "Windows ConPTY (explicit opt-in)"
+	}
+	return BackendMechanism()
+}
+
+func shouldUseConPTY(providerID string) bool {
+	if os.Getenv("AI_CLI_DISABLE_CONPTY") == "1" {
+		return false
+	}
+	if os.Getenv("AI_CLI_ENABLE_CONPTY") == "1" {
+		return true
+	}
+	return strings.EqualFold(strings.TrimSpace(providerID), "codex")
+}
 
 func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) error {
 	b.mu.Lock()
@@ -156,10 +182,9 @@ func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) erro
 		return fmt.Errorf("CreatePipe failed (output): %v", e)
 	}
 
-	// 2. ConPTY is deliberately opt-in. Pipes remain the default transport
-	// because they are the least intrusive path for provider-native TUIs and
-	// avoid reintroducing Codex keyboard/mouse/CSI regressions.
-	conPTYEnabled := os.Getenv("AI_CLI_ENABLE_CONPTY") == "1" && os.Getenv("AI_CLI_DISABLE_CONPTY") != "1"
+	// 2. Honor provider-specific defaults while preserving the global opt-in
+	// policy for other runtimes and the explicit compatibility override.
+	conPTYEnabled := shouldUseConPTY(b.providerID)
 	sizeVal := *(*uint32)(unsafe.Pointer(&coord{X: int16(initialCols), Y: int16(initialRows)}))
 	var hPC uintptr
 	if conPTYEnabled {
