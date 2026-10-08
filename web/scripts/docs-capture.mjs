@@ -46,6 +46,8 @@ if (process.platform !== 'win32') {
   serverEnv.PROMPT_COMMAND = '';
 } else {
   serverEnv.PROMPT = 'nexus-demo$G';
+  delete serverEnv.COMSPEC;
+  delete serverEnv.ComSpec;
 }
 
 const server = spawn(
@@ -169,7 +171,7 @@ try {
     }),
   ]).finally(() => clearTimeout(leaseTimer));
 
-  const marker = '__NEXUS_DOCS_TERMINAL_OK__';
+  const marker = '__NEXUS_DOCS_TERMINAL_OK__ çã';
   const terminalInput = page.locator('.nx-project-shell-surface .xterm-helper-textarea');
   await terminalInput.focus();
   await terminalInput.pressSequentially(`echo ${marker}`);
