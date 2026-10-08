@@ -481,6 +481,13 @@ func (s *Server) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusForbidden, "invalid origin")
 			return
 		}
+		// HTTP LAN cannot retain Secure cookies. Require a TLS proxy/tunnel,
+		// rather than transmitting bearer cookies in plaintext.
+		if strings.HasPrefix(strings.ToLower(origin), "http://") &&
+			!isLoopbackHost(strings.Split(r.Host, ":")[0]) {
+			writeError(w, http.StatusUpgradeRequired, "HTTPS required for network access; use a TLS proxy or HTTPS tunnel")
+			return
+		}
 	}
 	var body struct {
 		Token string `json:"token"`
@@ -489,7 +496,7 @@ func (s *Server) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "missing bootstrap token")
 		return
 	}
-	sess, ok := s.auth.ExchangeBootstrapToken(body.Token)
+	sess, ok := s.auth.ExchangeBootstrapTokenForHost(body.Token, r.Host)
 	if !ok || sess == nil {
 		writeError(w, http.StatusUnauthorized, "invalid or expired bootstrap token")
 		return

@@ -34,6 +34,11 @@ type Session struct {
 	LastActiveAt time.Time
 }
 
+type remoteInvitation struct {
+	Host string
+	ExpiresAt time.Time
+}
+
 type AuthManager struct {
 	mu                 sync.RWMutex
 	bootstrapToken     string
@@ -49,6 +54,7 @@ type AuthManager struct {
 	tunnelActive       bool // true when a Cloudflare Quick Tunnel exposes this server to the internet
 	clock              func() time.Time
 	deviceToken        string
+	remoteInvitations  map[string]remoteInvitation
 }
 
 func (a *AuthManager) SetDesktopSession(sess *Session) {
@@ -301,6 +307,9 @@ func (a *AuthManager) RotateSession(oldSessionID string) (*Session, error) {
 func (a *AuthManager) SetTunnelActive(active bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.tunnelActive != active {
+		a.remoteInvitations = nil // revoke links when tunnel stops or changes generation
+	}
 	a.tunnelActive = active
 	if active {
 		// Drop any on-disk session cache so a restart cannot revive remote
@@ -317,26 +326,76 @@ func (a *AuthManager) IsTunnelActive() bool {
 	return a.tunnelActive
 }
 
-func (a *AuthManager) ExchangeBootstrapToken(token string) (*Session, bool) {
+// IssueTunnelInvitation creates a fresh one-time link for the active public
+// tunnel, with TTL starting at invitation creation instead of server startup.
+func (a *AuthManager) IssueTunnelInvitation(host string) (string, error) {
+	host = strings.ToLower(strings.TrimSpace(host))
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if !a.tunnelActive || host == "" {
+		return "", fmt.Errorf("tunnel invitation unavailable")
+	}
+	now := a.now()
+	for token, grant := range a.remoteInvitations {
+		if !now.Before(grant.ExpiresAt) {
+			delete(a.remoteInvitations, token)
+		}
+	}
+	if len(a.remoteInvitations) >= 12 {
+		return "", fmt.Errorf("too many pending tunnel invitations")
+	}
+	secret := make([]byte, 32)
+	if _, err := io.ReadFull(a.entropyReader(), secret); err != nil {
+		return "", err
+	}
+	if a.remoteInvitations == nil {
+		a.remoteInvitations = make(map[string]remoteInvitation)
+	}
+	token := hex.EncodeToString(secret)
+	a.remoteInvitations[token] = remoteInvitation{Host: host, ExpiresAt: now.Add(remoteBootstrapTTL)}
+	return token, nil
+}
 
-	if token == "" || token != a.bootstrapToken {
+func (a *AuthManager) ExchangeBootstrapToken(token string) (*Session, bool) {
+	return a.ExchangeBootstrapTokenForHost(token, "")
+}
+
+// ExchangeBootstrapTokenForHost also exchanges host-bound one-time invitations,
+// while preserving CLI process-bootstrap and loopback behavior.
+func (a *AuthManager) ExchangeBootstrapTokenForHost(token, host string) (*Session, bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if token == "" {
 		return nil, false
 	}
 	exposure := a.effectiveExposureLocked()
 	reusable := exposure == ExposureLoopback
-	if !a.bootstrapCreatedAt.IsZero() {
-		ttl := remoteBootstrapTTL
-		if reusable {
-			ttl = loopbackBootstrapTTL
-		}
-		if a.now().Sub(a.bootstrapCreatedAt) > ttl {
+	if grant, exists := a.remoteInvitations[token]; exists {
+		if !a.tunnelActive || strings.ToLower(strings.TrimSpace(host)) != grant.Host ||
+			!a.now().Before(grant.ExpiresAt) {
 			return nil, false
 		}
-	}
-	if a.usedBootstrap && !reusable {
-		return nil, false
+		delete(a.remoteInvitations, token)
+		reusable = false
+	} else {
+		if token != a.bootstrapToken {
+			return nil, false
+		}
+		if !a.bootstrapCreatedAt.IsZero() {
+			ttl := remoteBootstrapTTL
+			if reusable {
+				ttl = loopbackBootstrapTTL
+			}
+			if a.now().Sub(a.bootstrapCreatedAt) > ttl {
+				return nil, false
+			}
+		}
+		if a.usedBootstrap && !reusable {
+			return nil, false
+		}
+		if !reusable {
+			a.usedBootstrap = true
+		}
 	}
 
 	bytes := make([]byte, 32)
@@ -358,9 +417,6 @@ func (a *AuthManager) ExchangeBootstrapToken(token string) (*Session, bool) {
 		CreatedAt:    now,
 		ExpiresAt:    now.Add(sessionTTL),
 		LastActiveAt: now,
-	}
-	if !reusable {
-		a.usedBootstrap = true
 	}
 	a.sessions[sessID] = sess
 	// Never persist sessions minted under PUBLIC_REMOTE / PRIVATE_NETWORK.
