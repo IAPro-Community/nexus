@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { terminalZoomAction, type TerminalZoomKeyEvent } from './terminalZoomKey';
 
-const key = (
-  changes: Partial<TerminalZoomKeyEvent>,
-): TerminalZoomKeyEvent => ({
+const key = (changes: Partial<TerminalZoomKeyEvent>): TerminalZoomKeyEvent => ({
   ctrlKey: false,
   metaKey: false,
   key: '',
@@ -24,7 +22,9 @@ describe('terminal zoom shortcuts', () => {
 
   it('does not steal unmodified keys, arrows, or other control chords', () => {
     expect(terminalZoomAction(key({ key: '+', code: 'Equal' }))).toBeNull();
-    expect(terminalZoomAction(key({ key: 'ArrowDown', code: 'ArrowDown', ctrlKey: true }))).toBeNull();
+    expect(
+      terminalZoomAction(key({ key: 'ArrowDown', code: 'ArrowDown', ctrlKey: true })),
+    ).toBeNull();
     expect(terminalZoomAction(key({ key: 'c', code: 'KeyC', ctrlKey: true }))).toBeNull();
   });
 });
