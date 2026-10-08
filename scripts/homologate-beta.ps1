@@ -112,7 +112,7 @@ if ($LASTEXITCODE -ne 0) { throw "bun install failed" }
 Write-Host "==> Playwright Chromium"
 Push-Location web
 try {
-  bunx playwright install chromium 2>&1 | Tee-Object -FilePath (Join-Path $Out 'playwright-chromium.log')
+  bun x playwright install chromium 2>&1 | Tee-Object -FilePath (Join-Path $Out 'playwright-chromium.log')
   if ($LASTEXITCODE -ne 0) { throw "Playwright Chromium installation failed" }
 } finally {
   Pop-Location
