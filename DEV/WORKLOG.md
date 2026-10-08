@@ -1,5 +1,13 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-08 — Correção e homologação Windows beta.10
+
+- Corrigida a espera indefinida ao resolver um unknown do Composer: `GetProjectIntelligence` já possuía a identidade Git atual, mas o fallback de snapshot repetia `Discover` e a inspeção de identidade. `DiscoverWithIdentity` reutiliza o resultado e remove a terceira bateria concorrente de comandos Git no Windows.
+- Adicionado `TestDiscoverWithIdentityReusesInspectedIdentity`; o E2E `composer-vague-spine` agora registra diagnóstico de método/URL/status e estados da sessão quando a resolução falha, sem registrar o conteúdo da resposta. Removidas as traces temporárias.
+- PASS Windows AMD64, código `cd5302f96edf1d1b857e2fe77dd3ca033996995f`, `VERSION=1.0.0-beta.10`: gate oficial completo, incluindo Go fmt/vet/lint (0 issues)/govulncheck/testes, Bun frozen install + `quality:full`, oito suítes browser E2E e builds/smokes CLI/Desktop/HUD. Evidência em `DEV/validation/local-beta/1.0.0-beta.10/cd5302f96edf1d1b857e2fe77dd3ca033996995f/windows-AMD64/`.
+- Auditoria das refs direcionadas: `origin/release/v1.0.0` em `2ac2dc69` e integração beta10 em `4a82558b`, ambas beta10. O HEAD homologado e a release divergem desde `95c7121d`; release possui quatro commits ausentes da branch. Sem merge direto: integrar a correção e repetir o gate no SHA resultante. A listagem ampla falhou por DNS.
+- Limites: PASS de automação local não fecha smokes manuais de provider, CI Windows exact-SHA nem assinatura/trust root/instalador final. Distribuição segue NO-GO. Escopo desta rodada: Windows; nenhum gate Linux executado.
+
 ## 2026-10-07 — Smoke Windows WebView2 e auditoria de branches
 
 - Isolados perfis Wails Desktop/HUD em LOCALAPPDATA, com IDs de instância de smoke separados dos IDs de distribuição. Workflow passa a compilar executáveis próprios e exige diretórios WebView2 criados.

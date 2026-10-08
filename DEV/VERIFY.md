@@ -1,5 +1,15 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-08 — Homologação Windows beta.10, fix da resolução Composer
+
+- PASS — gate `scripts/homologate-beta.ps1 -ExpectedSha cd5302f9` no Windows AMD64, código `cd5302f96edf1d1b857e2fe77dd3ca033996995f`, `VERSION=1.0.0-beta.10`.
+- PASS — Go fmt, vet, suíte completa, golangci-lint (0 issues) e govulncheck; Bun frozen install + `quality:full`; oito suítes Playwright; builds e smokes locais CLI/Desktop/HUD.
+- PASS — regressão `TestDiscoverWithIdentityReusesInspectedIdentity` e E2E `composer-vague-spine`; resolução de clarificação e criação do plano concluídas.
+- Causa: fallback de snapshot repetia inspeção Git enquanto havia inspeções concorrentes do contexto. O código agora reutiliza a identidade já inspecionada via `DiscoverWithIdentity`.
+- Evidências detalhadas: `DEV/validation/local-beta/1.0.0-beta.10/cd5302f96edf1d1b857e2fe77dd3ca033996995f/windows-AMD64/`.
+- Limites: checks manuais de provider/sessão, CI Windows exact-SHA, Authenticode/trust root e instalador final não fechados; distribuição NO-GO. Nenhum gate Linux executado.
+- Integração: `origin/release/v1.0.0` beta10 está em `2ac2dc69`, diverge desde `95c7121d` e contém quatro commits ausentes desta branch. Não fazer merge direto; repetir a homologação Windows após integrar a correção no alvo correto.
+
 ## 2026-10-07 — Continuidade Windows WebView2 e branch audit
 
 - PASS — go fmt ./..., go vet ./..., govulncheck ./..., golangci-lint run ./... e go test -count=1 ./... no Windows AMD64 após mudanças Go.
@@ -1587,6 +1597,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-08T11:33:39Z
+## Frontend gate — 2026-10-08T23:40:38Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).

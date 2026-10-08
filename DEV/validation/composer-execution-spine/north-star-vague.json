@@ -1,9 +1,9 @@
 {
-  "project_id": "prj_06GHHGRH1ZWBM7G13YP9Q6H8GC",
-  "composer_session_id": "cmp_06GHHGW2RGJA4WQES5C253DGHW",
+  "project_id": "prj_06GHVTM8QMZA3ZP53VBHTR0714",
+  "composer_session_id": "cmp_06GHVTPX2M4VBG0MDNS7YNNNS0",
   "initial_blocking_questions": 1,
   "resolved_blocking_questions": 1,
-  "plan_id": "plan_06GHHGZ73CH5962YHHEBP3DK50",
+  "plan_id": "plan_06GHVTT2X79G7F102KNFHWYE90",
   "revision": 1,
   "preview_ready": false,
   "step_count": 5,
@@ -15,7 +15,7 @@
     "Verification: no provider accounts discovered"
   ],
   "context_manifest": {
-    "fingerprint": "0d9789b6e25eed0535be7e03e08d546f9e5fde11f93f209b2ea84688b0a40352",
+    "fingerprint": "7528b2cd332e185d03d304b44698513d2417d42e0079c4f9f759031107550243",
     "budget": {
       "max_estimated_tokens": 8000,
       "used_estimated_tokens": 19,
@@ -29,6 +29,6 @@
   "console_errors": [],
   "page_errors": [],
   "request_failures": [
-    "HEAD http://127.0.0.1:51893/wails/custom.js → net::ERR_ABORTED"
+    "HEAD http://127.0.0.1:52585/wails/custom.js → net::ERR_ABORTED"
   ]
 }

@@ -1,5 +1,15 @@
 # Handoff
 
+## Estado atual — homologação Windows beta.10 — 2026-10-08
+
+Branch `fix/windows-beta10-homologation-20261008`; código homologado no Windows AMD64: `cd5302f96edf1d1b857e2fe77dd3ca033996995f`, `VERSION=1.0.0-beta.10`. O gate oficial `scripts/homologate-beta.ps1 -ExpectedSha cd5302f9` passou. Evidências: `DEV/validation/local-beta/1.0.0-beta.10/cd5302f96edf1d1b857e2fe77dd3ca033996995f/windows-AMD64/`.
+
+A correção evita uma terceira inspeção concorrente de identidade Git no caminho de resolução de unknowns do Composer, reutilizando a identidade já inspecionada. O teste `TestDiscoverWithIdentityReusesInspectedIdentity` e `bun run --cwd web test:e2e:composer-vague-spine` passaram; o E2E resolveu a clarificação e criou o plano. O gate integral também passou em Go fmt/vet/testes, golangci-lint (0 issues), govulncheck, Bun frozen install + `quality:full`, oito suítes browser E2E e builds/smokes locais CLI/Desktop/HUD.
+
+O PASS é da homologação automatizada local Windows. Os smokes manuais que exigem providers/sessão interativa continuam pendentes; o Gemini CLI deste host falha no Node 18.12.1 e não conta como provider smoke. CI Windows exact-SHA, assinatura Authenticode/trust root e instalador final também seguem pendentes; manter distribuição/tag em NO-GO até fechá-los.
+
+Auditoria de refs: o fetch direcionado confirmou `origin/release/v1.0.0` em `2ac2dc69d1a47e80fb57eec8542ba41f391703f2` e a branch de integração beta10 em `4a82558bbefeac67d0f7cecb412a6023a7a0673b`; ambas têm `VERSION=1.0.0-beta.10`. A branch local e essas refs compartilham o ancestral `95c7121d`, mas divergem: a release tem quatro commits exclusivos, e a branch homologada tem quatorze. A integração beta10 tem 83 commits exclusivos frente a esta branch. Portanto, enviar a correção em sua branch própria; não fazer merge direto nem alegar homologação do SHA da release. Após integração/cherry-pick no alvo correto, repetir o gate Windows no novo SHA. A listagem ampla de refs falhou por DNS nesta rodada.
+
 ## Estado atual — homologação Windows beta.7 — 2026-10-08
 
 Código validado: `release/v1.0.0` em `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, `VERSION=1.0.0-beta.7`. Os gates automatizados locais Windows passaram: Go fmt/vet/lint/security/testes, Bun frozen install + `quality:full`, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Smokes isolados Desktop/WebView2 (9 s) e HUD (8 s) passaram. Relatório: `DEV/validation/BETA7_WINDOWS_FINAL_20261008.md`; evidências/hash: `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/`.
