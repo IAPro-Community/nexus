@@ -12,6 +12,7 @@
 - Auditoria identificou `fix/beta7-windows-homologation-20261008@4a0bd992`: beta.7, três commits exclusivos, 12 commits atrás da release na base comum. Não integrar diretamente na linha beta.8. A branch KIVER d14154d2 não tem alterações exclusivas.
 - Distribuição segue NO-GO até CI Windows exact-SHA, Authenticode/trust root, build/smoke NSIS no SHA atual (makensis ausente neste host) e smokes manuais provider/Mission/Voice.
 - Tentativa de obter NSIS 3.13 pela página oficial SourceForge foi bloqueada (HTML/403); o conteúdo não foi usado. Nenhum instalador atual foi gerado.
+- Depois do push beta.8, consulta remota confirmou `release/v1.0.0@95c7121d` (`VERSION=1.0.0-beta.10`), 12 commits da release desde a base candidata `2abbf31a`. A release atual contém commits posteriores de ConPTY e correções Windows de lint/terminal tracing/localização. Não integrar a linha beta.8 diretamente sem alinhar versão e refazer gates Windows no SHA escolhido. O estado da PR #45 não pôde ser revalidado: API não autenticada respondeu 404.
 
 ## 2026-10-08 — Reteste TUI Windows com ConPTY
 

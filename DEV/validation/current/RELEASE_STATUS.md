@@ -9,9 +9,9 @@ VALIDATED_WINDOWS_SOURCE_SHA: ab397c5449cc76dfd07b44e335f45de6762a94f4
 GATE_EVIDENCE_SHA: ab397c5449cc76dfd07b44e335f45de6762a94f4
 CURRENT_WORKTREE_GATES: PASS (full Windows AMD64 automated gate on clean exact-SHA checkout)
 LAST_FROZEN_WINDOWS_SHA: ab397c5449cc76dfd07b44e335f45de6762a94f4
-LIVE_REMOTE_RELEASE_SHA_AT_AUDIT: CONFIRMED (origin/release/v1.0.0 = 2abbf31a770162e845e708695fbe397d02a5374e)
-REMOTE_HOMOLOGATION_BRANCH: CONFIRMED (contains code tested at ab397c5449cc76dfd07b44e335f45de6762a94f4; documentation-only updates follow)
-PULL_REQUEST: OPEN_DRAFT #45 (fix/windows-beta8-homologation-20261008 -> release/v1.0.0; awaiting review; not merged) https://github.com/IAPro-Community/nexus/pull/45
+LIVE_REMOTE_RELEASE_SHA_AT_AUDIT: CONFIRMED (origin/release/v1.0.0 = 95c7121d9675002d856fa55fdcfa8d9ce59adf35; VERSION=1.0.0-beta.10)
+REMOTE_HOMOLOGATION_BRANCH: CONFIRMED (push at 6fc85644; Windows Go retests on source e7e021879cb3e948290eefaeabc3ec7dc51e04ae)
+PULL_REQUEST: LAST_KNOWN_OPEN_DRAFT #45 (current state could not be verified: unauthenticated API returned 404)
 WINDOWS_LOCAL_GATES: PASS (docs, Bun frozen + full web quality, Go fmt/vet/lint/security/tests, eight browser E2E suites, Axe/visual, CLI/Desktop/HUD builds, Codex ConPTY host test and isolated interactive TUI smoke)
 WINDOWS_DESKTOP_HUD_NATIVE_SMOKES: PASS (Desktop Wails/WebView2 13s; HUD WebView2 8s; isolated IDs and short profiles on source ab397c54)
 WINDOWS_WAILS_PROJECT_CREATE_ORIGIN: PASS (HEAD 7cc03499; Wails bootstrap 200 and project create 201 with exact wails.localhost + auth/CSRF; lookalikes/external origins 403)
@@ -26,7 +26,7 @@ WINDOWS_MANUAL_PROVIDER_MISSION_VOICE_SMOKES: PENDING (see MANUAL_CHECKS.md in t
 WINDOWS_CREDENTIAL_MANAGER: UNSUPPORTED (native isolation not implemented)
 LOCAL_ARTIFACTS: outputs/windows-beta8-distribution-ab397c54-20261008 (fresh CLI/Desktop/HUD, all NotSigned; no installer; not certified for distribution); prior NSIS artifacts are under outputs/windows-beta8-distribution-7d2ef8aa-20261008 and are stale.
 RELEASE_TAG_OR_PUBLICATION: NOT_CREATED
-BRANCH_AUDIT: beta8 candidate linked by draft PR #45; new fix/beta7-windows-homologation-20261008 is 12 commits behind its common base, has 3 unique commits and VERSION beta.7, so do not link directly; beta7 terminal review/trace/protocol branches have unique overlapping diffs and need selective review/port; fix/beta8-manual-opaque-quota remains unready; Beta 7 KIVER branch has no unique commit.
+BRANCH_AUDIT: beta8 candidate was last recorded under draft PR #45; current PR state is unverified. Its base was release 2abbf31a, while live release is now 95c7121d/beta.10; there are 12 release-only commits since the common base, so the beta8 line is not ready for a direct merge into the current release. Latest release source includes Windows ConPTY and static/localized test fixes; exact-SHA Windows gates on 95c7121d were not run here. fix/beta7-windows-homologation-20261008 remains 3 unique commits and stale beta.7; terminal review/trace/protocol branches need selective review/port; fix/beta8-manual-opaque-quota remains unready; Beta 7 KIVER branch has no unique commit.
 WORKTREE_FROZEN: YES_FOR_GATE_SHA (gate ran on a clean checkout at ab397c54; this status update is documentation-only)
 UPDATED_AT: 2026-10-08
 
@@ -34,7 +34,7 @@ UPDATED_AT: 2026-10-08
 
 O SHA `ab397c5449cc76dfd07b44e335f45de6762a94f4` passou o gate automatizado completo Windows AMD64: Go fmt/vet/lint/vulnerability scan/testes, Bun frozen install e qualidade Web (83 arquivos Vitest/499 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. O teste Windows de `SessionHost` confirmou console interativo e encaminhamento de seta do Codex sem variáveis de opt-in; o smoke isolado abriu a tela de boas-vindas/login sem autenticar. Smokes nativos isolados do Desktop/Wails/WebView2 e HUD também passaram (13 s e 8 s).
 
-O commit foi enviado para `fix/windows-beta8-homologation-20261008`, já vinculada por PR draft #45 a `release/v1.0.0`; a release remota continua em `2abbf31a`. O candidato ainda não foi integrado. CLI, Desktop e HUD foram reconstruídos no SHA atual; são unsigned e seus checksums estão em `outputs/windows-beta8-distribution-ab397c54-20261008/SHA256SUMS.txt`. O NSIS installer e smoke de `7d2ef8aa` permanecem antigos e não certificam o SHA atual; `makensis.exe` não está instalado e o download oficial SourceForge retornou HTML/403 neste host. CI Windows exact-SHA, Authenticode/trust root e smokes restantes de provider/Mission/Voice continuam pendentes. Nenhum gate Linux foi executado nesta continuidade.
+Os commits `e7e02187` e `6fc85644` foram enviados para `fix/windows-beta8-homologation-20261008`. A branch tinha base `release/v1.0.0@2abbf31a`; a ponta remota agora é `95c7121d` com `VERSION=1.0.0-beta.10` e 12 commits de release ausentes na candidata beta.8. A candidata não foi integrada e requer alinhamento da versão-alvo antes de qualquer merge. CLI, Desktop e HUD foram reconstruídos em `ab397c54`; são unsigned e seus checksums estão em `outputs/windows-beta8-distribution-ab397c54-20261008/SHA256SUMS.txt`. O NSIS installer e smoke de `7d2ef8aa` permanecem antigos e não certificam o SHA atual; `makensis.exe` não está instalado e o download oficial SourceForge retornou HTML/403 neste host. CI Windows exact-SHA, Authenticode/trust root e smokes restantes de provider/Mission/Voice continuam pendentes. Nenhum gate Linux foi executado nesta continuidade.
 
 ## Atualização de distribuição Windows beta.8 — 2026-10-08
 
