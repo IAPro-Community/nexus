@@ -136,6 +136,29 @@ func (c *Core) CreateDesktopSession() (*web.Session, error) {
 	return c.server.CreateDesktopSession()
 }
 
+// AttachRemoteTunnel connects a CLI-owned cloudflared process to the shared
+// Web server lifecycle, so Settings can issue fresh invitations for CLI tunnels.
+func (c *Core) AttachRemoteTunnel(tunnel *web.Tunnel) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.server == nil {
+		return fmt.Errorf("nexus core server not initialized")
+	}
+	return c.server.AttachExternalTunnel(tunnel)
+}
+
+// NewRemoteInvitationURL generates a distinct one-time login for the CLI to
+// print, rather than reusing the process-wide bootstrap token.
+func (c *Core) NewRemoteInvitationURL() (string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.server == nil {
+		return "", fmt.Errorf("nexus core server not initialized")
+	}
+	_, inviteURL, err := c.server.NewTunnelInviteURL()
+	return inviteURL, err
+}
+
 // Stop gracefully shuts down the Core server and clears loopback state.
 func (c *Core) Stop(ctx context.Context) error {
 	c.mu.Lock()

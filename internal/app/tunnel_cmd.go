@@ -120,14 +120,25 @@ func tunnelCmd(args []string) error {
 		return fmt.Errorf("tunnel URL not reachable: %w", err)
 	}
 	fmt.Fprintf(os.Stderr, "✓ Túnel conectado e acessível!\n")
+	// CLI and Settings share the same registered tunnel generation.
+	if err := core.AttachRemoteTunnel(tunnel); err != nil {
+		_ = tunnel.Stop()
+		_ = core.Stop(context.Background())
+		return fmt.Errorf("failed to register tunnel for invitations: %w", err)
+	}
 
-	// 5. Print public URL and bootstrap URL for remote access
-	remoteBootstrapURL := strings.Replace(core.BootstrapURL(), "http://127.0.0.1:"+strconv.Itoa(port), tunnel.URL, 1)
+	// 5. Print a fresh one-time invitation, valid for 15 minutes.
+	remoteBootstrapURL, err := core.NewRemoteInvitationURL()
+	if err != nil {
+		_ = tunnel.Stop()
+		_ = core.Stop(context.Background())
+		return fmt.Errorf("failed to issue remote invitation: %w", err)
+	}
 	fmt.Fprintf(os.Stderr, "\n")
 	fmt.Fprintf(os.Stderr, "╔═══════════════════════════════════════════════════════════════╗\n")
 	fmt.Fprintf(os.Stderr, "║  URL pública:      %-44s ║\n", tunnel.URL)
-	fmt.Fprintf(os.Stderr, "║  Bootstrap remoto: %-44s ║\n", remoteBootstrapURL)
-	fmt.Fprintf(os.Stderr, "║  Acesse de qualquer dispositivo!                           ║\n")
+	fmt.Fprintf(os.Stderr, "║  Convite único:     %-44s ║\n", remoteBootstrapURL)
+	fmt.Fprintf(os.Stderr, "║  Validade: 15 minutos, um único acesso.                       ║\n")
 	fmt.Fprintf(os.Stderr, "╚═══════════════════════════════════════════════════════════════╝\n")
 	fmt.Fprintf(os.Stderr, "\nPressione Ctrl+C para encerrar.\n")
 
