@@ -180,3 +180,19 @@ func TestExternalTunnelAdoptionAndStaleExitDoNotRevokeNewTunnel(t *testing.T) {
 		t.Fatal("current tunnel exit must disarm authentication")
 	}
 }
+
+func TestIPv6LoopbackBootstrapRemainsAllowed(t *testing.T) {
+	auth, token, err := NewAuthManager("::1", "13000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := &Server{auth: auth, loopback: true}
+	req := httptest.NewRequest(http.MethodPost,
+		"http://[::1]:13000/api/v1/auth/bootstrap", strings.NewReader(`{"token":"`+token+`"}`))
+	req.Header.Set("Origin", "http://[::1]:13000")
+	rec := httptest.NewRecorder()
+	srv.handleAuthBootstrap(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("IPv6 loopback bootstrap should be allowed, got %d: %s", rec.Code, rec.Body.String())
+	}
+}

@@ -483,8 +483,14 @@ func (s *Server) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 		}
 		// HTTP LAN cannot retain Secure cookies. Require a TLS proxy/tunnel,
 		// rather than transmitting bearer cookies in plaintext.
+		requestHost := r.Host
+		if parsedHost, _, err := net.SplitHostPort(requestHost); err == nil {
+			requestHost = parsedHost
+		} else {
+			requestHost = strings.Trim(requestHost, "[]")
+		}
 		if strings.HasPrefix(strings.ToLower(origin), "http://") &&
-			!isLoopbackHost(strings.Split(r.Host, ":")[0]) {
+			!isLoopbackHost(requestHost) {
 			writeError(w, http.StatusUpgradeRequired, "HTTPS required for network access; use a TLS proxy or HTTPS tunnel")
 			return
 		}
