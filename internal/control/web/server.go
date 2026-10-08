@@ -204,14 +204,14 @@ func NewServer(opts ServerOptions) (*Server, error) {
 // still applies; remote sessions never survive a Nexus server restart.
 func (s *Server) setAuthenticatedSessionCookie(w http.ResponseWriter, sess *Session) {
 	http.SetCookie(w, &http.Cookie{
-		Name: sessionCookieName,
-		Value: sess.ID,
-		Path: "/",
+		Name:     sessionCookieName,
+		Value:    sess.ID,
+		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
-		Secure: s.cookieSecure(),
-		Expires: sess.ExpiresAt,
-		MaxAge: int(sessionTTL.Seconds()),
+		Secure:   s.cookieSecure(),
+		Expires:  sess.ExpiresAt,
+		MaxAge:   int(sessionTTL.Seconds()),
 	})
 }
 

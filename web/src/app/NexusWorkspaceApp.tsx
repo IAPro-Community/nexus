@@ -120,7 +120,9 @@ export const NexusWorkspaceApp: React.FC<{
       if (rotationTimer !== undefined) window.clearTimeout(rotationTimer);
       rotationTimer = window.setTimeout(() => void retryRotation(), delay);
     };
-    const onExpired = () => { if (mounted) setAuthenticated(false); };
+    const onExpired = () => {
+      if (mounted) setAuthenticated(false);
+    };
     window.addEventListener('nexus:session-expired', onExpired);
     initSession()
       .then((session) => {
@@ -151,12 +153,16 @@ export const NexusWorkspaceApp: React.FC<{
             <h2 className={unauthorizedStyles.title}>{t('auth.sessionExpired')}</h2>
             <p className={unauthorizedStyles.hint}>
               {window.location.protocol === 'http:' &&
-              !['localhost', '127.0.0.1', '[::1]', 'nexus.dev', 'wails.localhost'].includes(window.location.hostname.toLowerCase())
+              !['localhost', '127.0.0.1', '[::1]', 'nexus.dev', 'wails.localhost'].includes(
+                window.location.hostname.toLowerCase(),
+              )
                 ? t('auth.networkHttpsRequired', {
-                    defaultValue: 'Acesso LAN por HTTP não permite autenticação segura. Configure HTTPS confiável ou utilize o túnel HTTPS.',
+                    defaultValue:
+                      'Acesso LAN por HTTP não permite autenticação segura. Configure HTTPS confiável ou utilize o túnel HTTPS.',
                   })
                 : t('auth.remoteInvitationNotice', {
-                    defaultValue: 'Sessão inválida, expirada ou convite já utilizado. Para um novo dispositivo, gere um convite de acesso no Nexus principal.',
+                    defaultValue:
+                      'Sessão inválida, expirada ou convite já utilizado. Para um novo dispositivo, gere um convite de acesso no Nexus principal.',
                   })}
             </p>
             <button
