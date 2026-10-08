@@ -4,13 +4,13 @@
 
 Código Windows validado: `474dfcecdd82aab0d0a2d6d1f36fd26d0d1b1f8b`; gate exact-SHA e evidência visual: `7d2ef8aab669f88f22d09a86ec6442f761d0f7b5`; `VERSION=1.0.0-beta.8`. Os gates automatizados locais Windows passaram: Go fmt/vet/lint/security/testes, Bun frozen install + quality completa (83 arquivos/499 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD com smokes isolados. Relatório: `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`; logs locais: `DEV/validation/local-beta/1.0.0-beta.8/7d2ef8aab669f88f22d09a86ec6442f761d0f7b5/windows-AMD64/`.
 
-O remoto confirmou `origin/release/v1.0.0@2abbf31a` e `origin/fix/windows-beta8-homologation-20261008@1352122e`. A branch de homologação foi enviada sem push direto à release; falta abrir PR/revisão. A branch `fix/beta8-manual-opaque-quota` contém uma mudança exclusiva no contrato de quota `UNSUPPORTED` e requer decisão/alinhamento de teste antes de qualquer integração. A branch Beta 7 KIVER não tem trabalho novo a portar.
+Auditoria remota: `origin/release/v1.0.0@2abbf31a`; `origin/fix/windows-beta8-homologation-20261008@2506c067`. A branch Windows está vinculada por [PR draft #45](https://github.com/IAPro-Community/nexus/pull/45), ainda sem merge. `fix/beta8-manual-opaque-quota` tem mudança exclusiva de quota `UNSUPPORTED`, sem PR e com contrato/testes desalinhados; não está pronta para integração. A branch Beta 7 KIVER não tem trabalho novo a portar.
 
-Veredito: PASS dos gates automatizados Windows locais, **não GO de distribuição**. CI exact-SHA, Authenticode, NSIS final e smokes manuais de provider/Mission/Voice permanecem pendentes. Nenhuma tag foi criada. Escopo Windows-only; nenhum gate Linux foi executado.
+Veredito: PASS dos gates automatizados Windows locais e do build/ciclo de smoke NSIS unsigned, **não GO de distribuição**. CI Windows exact-SHA, Authenticode/trust root e smokes manuais de provider/Mission/Voice permanecem pendentes. Nenhuma tag foi criada. Escopo Windows-only; nenhum gate Linux foi executado.
 
 ## Próxima ação
 
-Abrir [PR para `release/v1.0.0`](https://github.com/IAPro-Community/nexus/pull/new/fix/windows-beta8-homologation-20261008) e pedir revisão. Não integrar `fix/beta8-manual-opaque-quota` sem decisão de contrato. Antes de tag/distribuição, fechar os gates externos e manuais acima.
+Acompanhar revisão/merge da [PR #45 para `release/v1.0.0`](https://github.com/IAPro-Community/nexus/pull/45). Não integrar `fix/beta8-manual-opaque-quota` sem decisão de contrato e alinhamento dos testes. Antes de tag/distribuição, fechar runner Windows exact-SHA, assinatura/trust root e smokes manuais.
 
 ## Próxima ação — fechamento Windows beta.7 — 2026-10-07
 

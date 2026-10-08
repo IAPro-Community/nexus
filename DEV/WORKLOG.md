@@ -2,12 +2,12 @@
 
 ## 2026-10-08 — Homologação Windows beta.8
 
-- Correções no branch isolado: aplicadas as correções Windows de host/terminal, formatados os três arquivos que falhavam no gate web e sanitizados caminhos locais em texto, atributos, valores de formulário e evidência visual.
-- Validação exact-SHA: `scripts/homologate-beta.ps1` PASS em `7d2ef8aa` (código `474dfcec`), Windows AMD64; Bun 1.3.9: 83 arquivos/499 testes; Go fmt/vet/lint/security/testes, oito E2Es, Axe/visual, builds e smokes nativos passaram.
-- Evidência: `DEV/validation/current/BETA8_WINDOWS_HOMOLOGATION_20261008.md`; manifesto e mídia capturados no SHA de código, inspecionados e sem caminho do perfil Windows.
-- Veredito: automação local Windows PASS; distribuição NO-GO por CI remoto, smokes manuais, NSIS e assinatura pendentes. Nenhum gate Linux executado.
-- Auditoria de branches: `fix/beta8-manual-opaque-quota` tem mudança exclusiva que requer decisão de contrato/testes; a branch Windows beta.8 precisa PR para `release/v1.0.0`.
-- Push autorizado concluído: `fix/windows-beta8-homologation-20261008` foi criada e o remoto confirmou o SHA `1352122e`. A release permaneceu em `2abbf31a`; não foi alterada diretamente. Próximo passo é abrir/revisar o PR.
+- PASS — `scripts/homologate-beta.ps1` no Windows AMD64, gate exact-SHA `7d2ef8aab669f88f22d09a86ec6442f761d0f7b5`, código `474dfcec`; Bun 1.3.9: 83 arquivos/499 testes; Go fmt/vet/lint/security/testes, oito suítes browser E2E, Axe/visual, builds e smokes nativos passaram.
+- PASS — builds Windows CLI/Desktop/HUD com Go 1.25.14 e compilação NSIS 3.13 do script real `packaging/windows/nexus.nsi`.
+- PASS — smoke install/uninstall silencioso do instalador final unsigned: CLI beta.8/commit 7d2ef8aa, payload completo, `doctor --json`, atalho/registro/PATH criados; payload removido e estado original do PATH (existência, valor e tipo) restaurado exatamente.
+- SHA-256 dos artefatos locais em `outputs/windows-beta8-distribution-7d2ef8aa-20261008/SHA256SUMS.txt`; nenhum deles está assinado, portanto não são pacotes de distribuição.
+- Relatório e status corrente atualizados. PR draft #45 liga a branch Windows à `release/v1.0.0`; ainda sem merge. O check de certificação Windows está skipped e não há runner Windows compatível online.
+- Pendentes: assinatura Authenticode e trust root, CI Windows exact-SHA, smokes manuais provider/Mission/Voice e revisão da PR. `fix/beta8-manual-opaque-quota` permanece fora da PR até alinhar contrato/testes. Sem tag/publicação; nenhum gate Linux executado.
 
 ## 2026-10-07 — Smoke Windows WebView2 e auditoria de branches
 
