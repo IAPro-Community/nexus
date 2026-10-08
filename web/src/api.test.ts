@@ -71,9 +71,12 @@ describe('api request layer', () => {
   it('recovers a stale 401 after a concurrent cookie rotation without logging out', async () => {
     const expired = vi.fn();
     vi.stubGlobal('window', { dispatchEvent: expired });
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({
-        ok: false, status: 401, statusText: 'Unauthorized',
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
         json: () => Promise.resolve({ error: 'authentication required' }),
       })
       .mockResolvedValueOnce({
@@ -93,9 +96,12 @@ describe('api request layer', () => {
   });
 
   it('stops after a failed session probe and never loops on persistent 401', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({
-        ok: false, status: 401, statusText: 'Unauthorized',
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
         json: () => Promise.resolve({ error: 'authentication required' }),
       })
       .mockResolvedValueOnce({ ok: false, status: 401 });
@@ -117,19 +123,23 @@ describe('api request layer', () => {
   });
 
   it('restores a valid session when another tab rotated the cookie first', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({ ok: false, status: 401 })
       .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true, csrf_token: 'other-tab-csrf',
-          expires_at: '2026-10-09T18:00:00Z',
-        }),
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            csrf_token: 'other-tab-csrf',
+            expires_at: '2026-10-09T18:00:00Z',
+          }),
       });
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(rotateSession()).resolves.toMatchObject({
-      authenticated: true, csrf_token: 'other-tab-csrf',
+      authenticated: true,
+      csrf_token: 'other-tab-csrf',
     });
     expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/session/rotate');
     expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/session');
@@ -312,11 +322,12 @@ describe('api request layer', () => {
     });
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({
-        authenticated: true,
-        csrf_token: 'remote-csrf',
-        expires_at: '2026-10-09T00:00:00Z',
-      }),
+      json: () =>
+        Promise.resolve({
+          authenticated: true,
+          csrf_token: 'remote-csrf',
+          expires_at: '2026-10-09T00:00:00Z',
+        }),
     });
     vi.stubGlobal('fetch', fetchMock);
 

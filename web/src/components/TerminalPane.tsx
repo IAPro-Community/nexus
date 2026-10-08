@@ -314,17 +314,25 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     wsRef.current = ws;
     const connectTimeout = window.setTimeout(() => {
       if (disposed || ws.readyState !== WebSocket.CONNECTING) return;
-      setErrorMsg(tRef.current('terminal.connectTimeout', {
-        defaultValue: 'Tempo limite excedido ao conectar o terminal.',
-      }));
+      setErrorMsg(
+        tRef.current('terminal.connectTimeout', {
+          defaultValue: 'Tempo limite excedido ao conectar o terminal.',
+        }),
+      );
       setDiagnosticCode('TERMINAL_CONNECT_TIMEOUT');
       setConnecting(false);
       setDisconnected(true);
-      console.warn('[nexus:terminal]', JSON.stringify({
-        event: 'terminal.connect.timeout', phase: 'TRANSPORT',
-        code: 'TERMINAL_CONNECT_TIMEOUT', runtimeId,
-        attempt: connectNonce + 1, timeoutMs: TERMINAL_CONNECT_TIMEOUT_MS,
-      }));
+      console.warn(
+        '[nexus:terminal]',
+        JSON.stringify({
+          event: 'terminal.connect.timeout',
+          phase: 'TRANSPORT',
+          code: 'TERMINAL_CONNECT_TIMEOUT',
+          runtimeId,
+          attempt: connectNonce + 1,
+          timeoutMs: TERMINAL_CONNECT_TIMEOUT_MS,
+        }),
+      );
       ws.close();
     }, TERMINAL_CONNECT_TIMEOUT_MS);
 
@@ -778,7 +786,12 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       )}
 
       {connecting && !disconnected && (
-        <div className={styles.disconnectedOverlay} data-window-chrome={hideHeader ? 'true' : 'false'} role="status" aria-live="polite">
+        <div
+          className={styles.disconnectedOverlay}
+          data-window-chrome={hideHeader ? 'true' : 'false'}
+          role="status"
+          aria-live="polite"
+        >
           <div className={styles.disconnectedHeader}>
             <RefreshCw size={18} className="nx-spin-slow" />
             <strong className={styles.disconnectedTitle}>
@@ -786,7 +799,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
             </strong>
           </div>
           <p className={styles.disconnectedDesc}>
-            {t('terminal.connectingNotice', { defaultValue: 'Aguardando a conexão segura com o processo. Você pode continuar navegando no workspace.' })}
+            {t('terminal.connectingNotice', {
+              defaultValue:
+                'Aguardando a conexão segura com o processo. Você pode continuar navegando no workspace.',
+            })}
           </p>
         </div>
       )}
@@ -804,9 +820,13 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           {errorMsg && <p className={styles.errorMessage}>{errorMsg}</p>}
           {diagnosticCode && (
             <details className={styles.errorMessage}>
-              <summary>{t('terminal.diagnosticDetails', { defaultValue: 'Detalhes técnicos' })}</summary>
+              <summary>
+                {t('terminal.diagnosticDetails', { defaultValue: 'Detalhes técnicos' })}
+              </summary>
               <code>{diagnosticCode}</code>
-              <p>{t('terminal.runtimeId', { defaultValue: 'Runtime' })}: {runtimeId}</p>
+              <p>
+                {t('terminal.runtimeId', { defaultValue: 'Runtime' })}: {runtimeId}
+              </p>
             </details>
           )}
           <button
