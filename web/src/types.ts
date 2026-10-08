@@ -1861,6 +1861,7 @@ export interface FlowDecompositionProposal {
 
 export interface TunnelStatus {
   active: boolean;
+  starting?: boolean;
   url?: string;
   bootstrap_url?: string;
   cloudflared_installed: boolean;
