@@ -197,10 +197,15 @@ foreach ($Name in @(
 $ExistingGoPath = (go env GOPATH).Trim()
 $ExistingGoModCache = (go env GOMODCACHE).Trim()
 $ExistingGoCache = (go env GOCACHE).Trim()
+$ExistingTemp = $SavedEnv['TEMP']
+if ([string]::IsNullOrWhiteSpace($ExistingTemp)) {
+  $ExistingTemp = [IO.Path]::GetTempPath()
+}
+$TestTemp = Join-Path $ExistingTemp ("nx-{0}-{1}" -f $ShortSha, $PID)
 
 $env:HOME = $TestHome
 $env:USERPROFILE = $TestHome
-$env:TEMP = Join-Path $TestHome 'Temp'
+$env:TEMP = $TestTemp
 $env:TMP = $env:TEMP
 $env:APPDATA = Join-Path $TestHome 'AppData/Roaming'
 $env:LOCALAPPDATA = Join-Path $TestHome 'AppData/Local'
@@ -211,6 +216,8 @@ $env:CODEX_HOME = Join-Path $TestHome '.codex'
 
 New-Item -ItemType Directory -Force -Path $env:TEMP | Out-Null
 
+# Keep TEMP short: tests initialize deeply named Git fixtures, and placing
+# temporary directories below the evidence tree can exceed Windows MAX_PATH.
 # Tests commonly override AI_CLI_* inside each fixture. Higher-precedence
 # Nexus/AI_MANAGER variables must not mask those per-test temporary dirs.
 foreach ($Name in @(
