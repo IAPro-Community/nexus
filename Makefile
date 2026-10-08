@@ -234,8 +234,10 @@ release-dry-run: build
 	@echo "3. Quality gates..."
 	@$(MAKE) version-check
 	@echo ""
-	@echo "=== Dry Run Complete ==="
-	@echo "Ready for release. Run 'make release' to publish."
+	@echo "=== Source Build Dry Run Complete ==="
+	@echo "Build and version contract verified; this is NOT release certification."
+	@echo "Before publication, require make quality-full and exact-SHA native/signing gates."
+	@echo "No publication occurs here; there is no 'make release' target."
 
 # ─── Update Verification ────────────────────────────────────────────
 
