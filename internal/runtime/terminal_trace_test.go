@@ -71,7 +71,7 @@ func TestTraceTerminalBytesIsDisabledByDefault(t *testing.T) {
 
 func TestClientTerminalTraceShapeRejectsUnsanitizedFrames(t *testing.T) {
 	for _, shape := range []string{
-		"password", "ARM COMMAND MARCH", "<1b>[A password", "A", "<1b>[A\nprivate",
+		"password", "ARM COMMAND MARCH", "<1b>[A password", "A", "<1b>[A\nprivate", "<41><50><49>",
 	} {
 		if validClientTerminalTraceShape(shape) {
 			t.Fatalf("accepted unsanitized client shape %q", shape)
