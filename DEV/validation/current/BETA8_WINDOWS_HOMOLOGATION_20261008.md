@@ -44,6 +44,8 @@ CI Windows exact-SHA, assinatura Authenticode, trust root de atualização e smo
 
 `origin/release/v1.0.0` permanece em `2abbf31a770162e845e708695fbe397d02a5374e`; a branch Windows beta.8 contém o código homologado em `ab397c54`, seguido de atualizações somente documentais, e continua ligada à release pela PR draft #45. A branch recém-criada `fix/beta7-windows-homologation-20261008` termina em `4a0bd992`, está baseada no ancestral `705d5b0c`, contém três commits exclusivos e ainda define `VERSION=1.0.0-beta.7`; a release avançou 12 commits desde essa base. Não é seguro vinculá-la diretamente à release beta.8. A branch Beta 7 KIVER em `d14154d2` não tem commits exclusivos. `fix/beta8-manual-opaque-quota` segue sem integração até alinhar contrato e testes.
 
+Também permanecem branches de terminal com mudanças exclusivas frente à release: `fix/beta7-terminal-review-trace-lifecycle` (10 commits, 6 arquivos), `fix/beta7-terminal-trace-diagnostics` (24 commits, 13 arquivos), `fix/beta7-codex-terminal-protocol-p0` (4 commits, 4 arquivos) e `test/beta7-terminal-final-boundary-regression` (3 commits de teste). Elas alteram caminhos de host/runtime/Web que evoluíram na linha beta.8; exigem revisão e port seletivo com nova validação Windows, não merge em bloco. O inventário público de PRs não pôde ser confirmado neste host (`gh` ausente; API sem autenticação respondeu 404); o vínculo confirmado nesta auditoria é a PR #45 da branch beta.8.
+
 ## Histórico — gate anterior em 7d2ef8aa
 
 O bloco abaixo registra a validação anterior e não substitui o estado atual em `ab397c54`.

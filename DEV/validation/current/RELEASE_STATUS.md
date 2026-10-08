@@ -23,7 +23,7 @@ WINDOWS_MANUAL_PROVIDER_MISSION_VOICE_SMOKES: PENDING (see MANUAL_CHECKS.md in t
 WINDOWS_CREDENTIAL_MANAGER: UNSUPPORTED (native isolation not implemented)
 LOCAL_ARTIFACTS: outputs/windows-beta8-distribution-ab397c54-20261008 (fresh CLI/Desktop/HUD, all NotSigned; no installer; not certified for distribution); prior NSIS artifacts are under outputs/windows-beta8-distribution-7d2ef8aa-20261008 and are stale.
 RELEASE_TAG_OR_PUBLICATION: NOT_CREATED
-BRANCH_AUDIT: beta8 candidate linked by draft PR #45; new fix/beta7-windows-homologation-20261008 is 12 commits behind its common base, has 3 unique commits and VERSION beta.7, so do not link directly; fix/beta8-manual-opaque-quota remains unready; Beta 7 KIVER branch has no unique commit.
+BRANCH_AUDIT: beta8 candidate linked by draft PR #45; new fix/beta7-windows-homologation-20261008 is 12 commits behind its common base, has 3 unique commits and VERSION beta.7, so do not link directly; beta7 terminal review/trace/protocol branches have unique overlapping diffs and need selective review/port; fix/beta8-manual-opaque-quota remains unready; Beta 7 KIVER branch has no unique commit.
 WORKTREE_FROZEN: YES_FOR_GATE_SHA (gate ran on a clean checkout at ab397c54; this status update is documentation-only)
 UPDATED_AT: 2026-10-08
 
