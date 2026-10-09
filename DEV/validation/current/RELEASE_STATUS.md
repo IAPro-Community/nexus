@@ -1,6 +1,6 @@
 # Current release status
 
-> **Atualização Windows em 2026-10-09:** gate automatizado passou no SHA exato `767be3b168a6d3ec7d223908e21812807486482f`; smoke Desktop com singleton isolado, instalador NSIS real (instalar/desinstalar) e autostart com AppID GUID isolado passaram. O instalador não tem assinatura verificável. O tray nativo, CI hosted, smokes autenticados e assinatura/update trust root continuam pendentes; distribuição permanece **NO-GO**.
+> **Atualização Windows em 2026-10-09:** gate automatizado passou no SHA exato `767be3b168a6d3ec7d223908e21812807486482f`; smoke Desktop com singleton isolado, instalador NSIS real (instalar/desinstalar) e autostart com AppID GUID isolado passaram. O instalador não tem assinatura verificável. A bandeja foi capturada aberta, mas os ícones Wails não puderam ser distinguidos nem clicados de forma verificável. CI hosted, smokes autenticados e assinatura/update trust root continuam pendentes; distribuição permanece **NO-GO**.
 
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 
@@ -22,9 +22,11 @@ WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN_0782
 WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
 CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/ (latest local ignored gate, Desktop, NSIS installer and autostart smoke); controller-smoke evidence remains under 665103a0 and physical HUD captures under 0782f876
-LIVE_GITHUB_REMOTE_CHECK: PASS_2026-10-09; origin/release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d; origin/fix/windows-beta10-homologation-20261008=2beaf05fdae83ea703fd641408d998e0ad6a5f7e
+LIVE_GITHUB_REMOTE_CHECK: LAST_SUCCESSFUL_2026-10-09; origin/release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d; origin/fix/windows-beta10-homologation-20261008=acb1e450dbb2574b6974fd62a72e35f1b2ae90e7
+LIVE_GITHUB_REMOTE_REFRESH: FAILED_DNS_ON_2026-10-09; remote refs could not be refreshed in this continuation
 WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the PR candidate for release/v1.0.0; unauthenticated PR API returned 404, so PR state is unknown
-WINDOWS_TRAY_UI_SMOKE: INCONCLUSIVE_UI_AUTOMATION_COULD_NOT_FIND_TEST_TOOLTIP; CORE_AND_WEBVIEW2_STARTED; NO_CLICK_OR_MENU_EVIDENCE
+WINDOWS_BRANCH_AUDIT: one separate behavior change remains unlinked: fix/beta8-manual-opaque-quota@edcd2ab4 changes UNSUPPORTED quota to explicit-selection-only; requires functional review before any PR. No direct push to release.
+WINDOWS_TRAY_UI_SMOKE: INCONCLUSIVE_FLYOUT_CAPTURED_BUT_TWO_GENERIC_WAILS_ICONS_AMBIGUOUS; UIA_NO_CONTROLS; SENDINPUT_NO_OPEN; NO_PHYSICAL_CLICK_OR_MENU_EVIDENCE
 PREVIOUS_VALIDATION_RECORDS: HISTORICAL_ONLY
 
 ## Legacy Windows beta.7 baseline (historical)

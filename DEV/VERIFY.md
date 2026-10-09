@@ -1,5 +1,11 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-09 — Reteste do tray e auditoria de branches beta.10
+
+- INCONCLUSIVO — HUD diagnóstico iniciou Core/WebView2 e a captura `hud-tray-flyout-visible-767be3b1.png` confirma o flyout de ícones ocultos aberto. Dois ícones genéricos Wails iguais aparecem; UI Automation não expôs tooltip nem botões. `Shell_NotifyIconGetRect` indicou o chevron quando fechado. Mensagem sintética confirmou callback, mas não representa clique físico; `SendInput` desta sessão não abriu o flyout. Nenhum clique/menu nativo foi verificado. Evidências locais ignoradas pelo Git em `DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/`.
+- AUDITORIA — snapshot local de refs: release `deca290b`, candidata beta.10 `acb1e450` (138 commits exclusivos, release ancestral). Refresh remoto falhou por DNS. `fix/beta8-manual-opaque-quota@edcd2ab4` tem mudança exclusiva para exigir seleção explícita em quota UNSUPPORTED e não está na candidata; requer revisão funcional antes de PR. `fix/windows-beta8-homologation` e `audit/beta9` têm zero patch exclusivo; branch de integração beta10 tem dois commits documentais; `fix/v1.0.0-gap-closure` é amplo/divergente; release/v1.1.0 é outra linha. A candidata beta.10 continua a única branch indicada para PR da homologação Windows contra `release/v1.0.0`; nenhum push direto à release.
+- NO-GO — tray, CI Windows hosted integrado, smokes autenticados, assinatura/trust root e PR continuam pendentes. Nenhum gate Linux executado.
+
 ## 2026-10-09 — Gate Windows e smokes AGY/ConPTY + HUD no SHA 665103a0
 
 - PASS — scripts/homologate-beta.ps1 -ExpectedSha 665103a06d94eda7011bb7d7abd299fc1ce2a330: gate Windows AMD64 completo, Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Go fmt/vet/lint/security/testes, Bun frozen + quality:full (84 arquivos/504 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD.

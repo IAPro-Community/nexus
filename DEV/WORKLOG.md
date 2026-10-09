@@ -1,5 +1,11 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-09 — Continuidade Windows: tray e auditoria de branches
+
+- Reteste do tray no código validado `767be3b1`: Core/WebView2 iniciaram e captura mostra flyout aberto, mas dois ícones Wails genéricos não puderam ser associados ao HUD; UI Automation não expôs tooltip/controles. `SendInput` não reproduziu a abertura. Não há evidência de clique/menu físico; callbacks Wails sintéticos não contam como interação real. Resultado permanece inconclusivo, sem indicar falha do produto.
+- Auditoria das refs locais: release `deca290b`, candidata Windows `acb1e450` com 138 commits exclusivos e release ancestral. Atualização remota posterior falhou por DNS. A branch `fix/beta8-manual-opaque-quota@edcd2ab4` contém uma mudança funcional exclusiva (quota UNSUPPORTED exige seleção explícita) que está ausente da candidata e precisa de decisão/revisão antes de eventual PR. Outras branches vistas são patch-equivalentes, documentais, amplamente divergentes ou da linha 1.1.
+- Relatório/status/handoff/verify atualizados; nenhuma fonte compilável alterada. Distribuição continua NO-GO. Sem gate Linux, merge à release ou criação de PR.
+
 ## 2026-10-09 — Smoke HUD show/hide no código Windows 665103a0
 
 - Compilado binário diagnóstico temporário com Go 1.27.2 e overlay de scratch, sem alterações de fontes rastreadas. HUDController.HideHUD() alternou IsVisible para false; ShowHUD() restaurou true; cleanup deixou oculto e exit code foi 0.
