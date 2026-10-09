@@ -34,6 +34,7 @@ env:
 
 jobs:
   workspace-sanitize:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '' }}
     name: Sanitize self-hosted workspace
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     timeout-minutes: 3
@@ -52,6 +53,7 @@ jobs:
           done
 
   frontend:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '' }}
     needs: workspace-sanitize
     name: Frontend (Format, Lint, Styles, Typecheck, Unit & Build)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
@@ -101,7 +103,7 @@ jobs:
   docs-capture-evidence:
     needs: workspace-sanitize
     name: Documentation visual capture evidence
-    if: github.event_name != 'pull_request'
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '') }}
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     timeout-minutes: 20
     steps:
@@ -147,6 +149,7 @@ jobs:
           retention-days: 3
 
   release-config:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '' }}
     needs: workspace-sanitize
     name: Release configuration
     runs-on: [self-hosted, Linux, X64, nexus-ci]
@@ -180,6 +183,7 @@ jobs:
           args: check
 
   security:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '' }}
     needs: workspace-sanitize
     name: Security
     runs-on: [self-hosted, Linux, X64, nexus-ci]
@@ -192,6 +196,7 @@ jobs:
       - run: GOFLAGS='-mod=readonly -tags=gtk3' GOTOOLCHAIN=local go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
 
   browser:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '' }}
     name: Browser E2E, Axe & visual smoke
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: frontend
@@ -293,6 +298,7 @@ jobs:
           test '${{ steps.composer-theme-e2e.outcome }}' = success
 
   test-linux:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '' }}
     needs: workspace-sanitize
     name: Linux E2E (Go 1.27.2)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
@@ -364,6 +370,7 @@ jobs:
           grep -Fq '# existing' "$home/.bashrc"
 
   desktop-linux:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '' }}
     name: Desktop Linux (Wails v3 native build)
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: frontend
@@ -532,6 +539,7 @@ jobs:
 
 
   cross-platform-compile:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '' }}
     needs: workspace-sanitize
     name: Cross-platform compile guard
     runs-on: [self-hosted, Linux, X64, nexus-ci]
@@ -1045,6 +1053,7 @@ jobs:
           retention-days: 30
 
   snapshot:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '' }}
     name: GoReleaser Snapshot Build
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: [test-linux, frontend, desktop-linux]
@@ -1076,6 +1085,7 @@ jobs:
           retention-days: 2
 
   package-smoke-deb:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.native_target_sha == '' }}
     name: Smoke DEB install
     runs-on: [self-hosted, Linux, X64, nexus-ci]
     needs: snapshot

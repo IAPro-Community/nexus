@@ -1,3 +1,11 @@
+## Atualização — escopo do CI Windows por SHA — 2026-10-09
+
+Branch candidata: `fix/windows-beta10-homologation-20261008`; fonte homologada local: `767be3b168a6d3ec7d223908e21812807486482f`; versão `1.0.0-beta.10`. O workflow `.github/workflows/ci.yml` agora faz com que dispatch com `native_target_sha` não agende os 11 jobs genéricos/Linux, incluindo `workspace-sanitize`; os eventos normais e dispatch sem SHA preservam o fluxo existente. A condição de seleção do job `native-windows` permanece intacta.
+
+- Verificação local: parser YAML Go com detecção de chaves duplicadas e auditoria das condições dos 11 jobs — PASS; `git diff --check` — PASS.
+- `actionlint` não pôde ser obtido neste host porque DNS para `proxy.golang.org` falhou. O parse local passou; a execução hosted ainda precisa confirmar o workflow.
+- Próxima ação: commit e push desta correção somente para a branch candidata; então dispatch exato em `767be3b168a6d3ec7d223908e21812807486482f` com `native_platform=windows` e acompanhar o job Windows até conclusão. Confirmar que os jobs genéricos ficaram ignorados. Nenhum gate Linux; não fazer push direto para `release/v1.0.0`.
+- Distribuição permanece **NO-GO** até os blockers registrados no status corrente serem resolvidos.
 # Handoff
 
 ## Atualização — homologação Windows beta.10 no SHA 767be3b1 — 2026-10-09

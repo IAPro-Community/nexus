@@ -1,3 +1,10 @@
+## 2026-10-09 — Escopo do dispatch de homologação Windows
+
+- PASS — workflow `.github/workflows/ci.yml` analisado por parser YAML Go local com detecção de chaves duplicadas; os 11 jobs genéricos têm guarda para ignorar dispatch com `native_target_sha`, e a seleção do job `native-windows` continua presente.
+- PASS — `git diff --check`.
+- BLOQUEADO LOCALMENTE — `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/ci.yml`: DNS não resolveu `proxy.golang.org`; nenhuma dependência foi baixada.
+- PENDENTE — push da correção e workflow hosted no SHA Windows exato `767be3b168a6d3ec7d223908e21812807486482f`. O resultado hosted ainda não foi observado.
+- Nenhum gate Linux executado nesta continuidade.
 # Verification: Nexus V1 (post-pending-issues)
 
 ## 2026-10-09 — Reteste do tray e auditoria de branches beta.10
