@@ -45,6 +45,56 @@ Regras: nenhuma falha de regressão; `go test -race` sem disputa;
 nenhum reordenamento de bytes CSI/SS3; mouse X10 fragmentado nunca
 deve causar um `ESC` ou sequência residual no provider.
 
+## Gate permanente no CI
+
+O workflow `.github/workflows/ci.yml` possui passos nomeados
+`Codex input safety gate (mouse, selectors and fragmented PTY traffic)`
+no Linux e `Codex terminal input safety gate (Windows ConPTY)` no Windows nativo.
+
+- O Linux executa os testes de terminal e TTY com `-race -count=1` a cada
+  CI regular da release, além da suíte Go completa.
+- O Windows executa o mesmo conjunto relevante com `-count=1` no workflow
+  `workflow_dispatch` de certificação nativa; esse job **não** executa
+  automaticamente em cada push. O gate de publicação exige certificação
+  Windows/Linux aplicável no mesmo SHA, conforme a política da release.
+- As etapas PowerShell agora verificam `$LASTEXITCODE` após cada comando:
+  um teste de Codex com falha não poderá ser encoberto pelo sucesso de
+  um teste de delegação executado depois.
+- Caso o runner esteja `queued`, **não há PASS**. Uma suíte que nunca
+  iniciou não certifica a correção.
+- Para impedir merge direto com checks vermelhos, os administradores devem
+  configurar proteção do galho/regras de repositório com as verificações de
+  CI obrigatórias; esta integração não tem permissão de leitura/edição dessa
+  configuração.
+
+### Checagem local sem administrador — PowerShell
+
+Na raiz do checkout correspondente ao SHA que será distribuído:
+
+```powershell
+git rev-parse HEAD
+go test -count=1 ./internal/runtime -run '^(TestTerminalInputScrubber|TestTerminalOutputScrubber|TestTerminalInputEscape)'
+if ($LASTEXITCODE -ne 0) { throw 'Regressão de entrada Codex' }
+go test -count=1 ./internal/control/terminal -run '^(TestKeyboardModeReset|TestResetKeyboardModes|TestTTYController)'
+if ($LASTEXITCODE -ne 0) { throw 'Falha no reset de modos do terminal' }
+```
+
+Exige Go instalado no perfil do usuário, mas não exige privilégios de
+administrador. Se o Go não estiver instalado, usar binário/resultado
+produzido pelo CI para o mesmo commit; **não** declarar aprovação sem
+essa evidência. Executar testes não substitui o smoke de mouse real.
+
+### Critério reproduzível para o menu do Codex
+
+Em Windows e Linux, com o **binário compilado no SHA validado**, executar
+ao menos 30 ciclos de abertura de menu de escolha em uma sessão descartável.
+Em cada ciclo: movimentar roda de mouse para cima/baixo, setas rápidas,
+alternar foco e confirmar uma opção apenas uma vez. Critério: zero
+cancelamentos não solicitados, zero `[A`/`[B`/`[<` residuais, nenhuma
+confirmação duplicada. Repetir no terminal Web/Desktop quando aplicável.
+Guardar SHA, versão do Codex, backend PTY (ConPTY/Unix PTY), sistema,
+resultado e log mascarado em evidência privada de homologação.
+
 ## Smoke interativo obrigatório (Windows e Linux)
 
 Usar uma sessão de teste com Codex autenticado, sem interromper trabalho real:
