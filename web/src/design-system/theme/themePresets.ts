@@ -22,6 +22,8 @@ export interface ThemeDefinition {
   name: string;
   scheme: 'dark' | 'light' | 'high-contrast';
   accent: string;
+  /** Visual finish; flat themes share one semantic CSS behavior, not per-theme components. */
+  finish?: 'flat';
   vars: ThemeColorVars;
 }
 
@@ -323,6 +325,78 @@ export const THEME_PRESETS = {
       '--nx-accent-hover': '#a194ff',
       '--nx-accent-soft': 'rgba(139, 124, 246, 0.12)',
       '--nx-accent-text': '#b8adff',
+    },
+  },
+  'slate-flat': {
+    id: 'slate-flat',
+    name: 'Slate Flat',
+    scheme: 'dark',
+    accent: '#7bb8ac',
+    finish: 'flat',
+    vars: {
+      '--nx-bg': '#151a1e',
+      '--nx-bg-elevated': '#1b2227',
+      '--nx-surface': '#20282d',
+      '--nx-surface-2': '#273137',
+      '--nx-surface-3': '#303a40',
+      '--nx-border': '#3b474e',
+      '--nx-border-strong': '#56636a',
+      '--nx-text': '#f1f5f4',
+      '--nx-text-soft': '#d7e0dd',
+      '--nx-muted': '#b1c0bc',
+      '--nx-subtle': '#a9b8b4',
+      '--nx-accent': '#7bb8ac',
+      '--nx-accent-hover': '#91c8bd',
+      '--nx-accent-soft': 'rgba(123, 184, 172, 0.09)',
+      '--nx-accent-text': '#a8d9cf',
+    },
+  },
+  'paper-flat': {
+    id: 'paper-flat',
+    name: 'Paper Flat',
+    scheme: 'light',
+    accent: '#296f64',
+    finish: 'flat',
+    vars: {
+      '--nx-bg': '#f4f5f3',
+      '--nx-bg-elevated': '#ffffff',
+      '--nx-surface': '#ffffff',
+      '--nx-surface-2': '#edf0ee',
+      '--nx-surface-3': '#e4e9e6',
+      '--nx-border': '#cdd5d0',
+      '--nx-border-strong': '#b4c0b9',
+      '--nx-text': '#1a2422',
+      '--nx-text-soft': '#34433e',
+      '--nx-muted': '#50605a',
+      '--nx-subtle': '#55645e',
+      '--nx-accent': '#296f64',
+      '--nx-accent-hover': '#215b52',
+      '--nx-accent-soft': 'rgba(41, 111, 100, 0.09)',
+      '--nx-accent-text': '#215b52',
+    },
+  },
+  'clay-flat': {
+    id: 'clay-flat',
+    name: 'Clay Flat',
+    scheme: 'light',
+    accent: '#985239',
+    finish: 'flat',
+    vars: {
+      '--nx-bg': '#f7f4f0',
+      '--nx-bg-elevated': '#fffdfa',
+      '--nx-surface': '#fffdfa',
+      '--nx-surface-2': '#f0ebe4',
+      '--nx-surface-3': '#e8e0d8',
+      '--nx-border': '#d8cec4',
+      '--nx-border-strong': '#c2b4a6',
+      '--nx-text': '#2b2622',
+      '--nx-text-soft': '#493f38',
+      '--nx-muted': '#685a50',
+      '--nx-subtle': '#6b5c52',
+      '--nx-accent': '#985239',
+      '--nx-accent-hover': '#82422e',
+      '--nx-accent-soft': 'rgba(152, 82, 57, 0.09)',
+      '--nx-accent-text': '#82422e',
     },
   },
   'high-contrast-dark': {
