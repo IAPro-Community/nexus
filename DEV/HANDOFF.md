@@ -2,15 +2,17 @@
 
 ## Estado atual — homologação Windows beta.10 — 2026-10-09
 
-Candidato local: branch `fix/windows-beta10-homologation-20261008`, SHA `eedf31659b0245cf7690d556c32ee6e0040ae588`, `VERSION=1.0.0-beta.10`. O gate oficial Windows AMD64 passou no SHA exato: 66 pacotes Go, 84 arquivos/504 testes web, lint/security, E2E/Axe/visual e builds CLI/Desktop/HUD. Go 1.27.2, Bun 1.3.9 e Node 22.23.3. Nenhum gate Linux.
+Candidato de código validado: branch `fix/windows-beta10-homologation-20261008`, SHA `0782f87696ad3f28058d6532cb4e44dd25b08a7f`, `VERSION=1.0.0-beta.10`. O gate oficial Windows AMD64 passou neste SHA exato: Go (66 pacotes), web (84 arquivos/504 testes), lint/segurança, E2E/Axe/visual e builds CLI/Desktop/HUD. Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Evidência completa no relatório Windows beta.10.
 
-No binário Desktop construído no SHA homologado, corrigi o cleanup do smoke para enumerar somente os processos WebView2 descendentes do app, sem depender de CIM. A repetição com Windows PowerShell 5.1 terminou com exit code 0, confirmou `IAPro Nexus`/`Chrome_WidgetWin_0` por quatro segundos e deixou zero processos Nexus Desktop/WebView2 ativos. Como a janela iniciou oculta, isto confirma startup/cleanup, não renderização nem submissão do Project Hub. Evidência: `desktop-native-eedf3165-cleanup-ps51-final.txt` no diretório local do SHA.
+O smoke Desktop repetido neste SHA confirmou a janela Wails/WebView2 e cleanup sem processos restantes. Além disso, o formulário real do Project Hub foi submetido no WebView2 Desktop nativo em `http://wails.localhost/`; o Core respondeu HTTP 201, abriu o projeto no workspace e a captura está em `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/project-hub-native-submit-0782.png`. O diagnóstico usou DevTools em loopback e perfil isolado e não alterou fontes rastreadas. A mensagem `invalid origin` da imagem anterior não foi reproduzida na origem nativa; a origem/contexto da captura original não foi verificada.
 
-O smoke do HUD no binário de homologação confirmou janela Wails/WebView2 e API autenticada HTTP 200 (`enabled=true`, estado presente). Build diagnóstico do mesmo SHA confirmou DOM completo e captura do painel pelo WebView2. GDI `CopyFromScreen`/`CAPTUREBLT` e `PrintWindow` não mostraram o painel; outro PID permaneceu em foreground mesmo com HWND topmost. Como esses mecanismos não validam com segurança a superfície DirectComposition nesta sessão, a composição física continua inconclusiva. Não contar show/hide ou autostart como aprovados. A interação visível do Desktop Hub e submissão de UI também seguem pendentes.
+No HUD, a janela/API e o DOM WebView2 foram observados em diagnóstico anterior, mas GDI/PrintWindow não comprovaram a composição DWM física. Esse ponto continua inconclusivo; show/hide e autostart não estão aprovados. Permanecem também CI Windows hosted no SHA integrado, smokes autenticados/interativos de provider/Mission/Voice, assinatura/update trust root e instalador final.
 
-O código passou os gates locais, mas este candidato é beta.10, não beta.7/d14154d2. A branch de homologação Windows precisa de PR para `release/v1.0.0`; não fazer push direto para a release. Nenhuma branch nova foi criada nesta continuação. Tag e distribuição seguem NO-GO até os gates nativos/operacionais descritos no relatório.
+Este candidato é beta.10, não beta.7/d14154d2. Não criar tag nem publicar; a branch de homologação precisa de PR para `release/v1.0.0`, sem push direto à release. Nenhuma branch nova foi criada nesta continuidade. Não houve gate Linux.
 
-Veja `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md` e a evidência local sob o diretório `eedf3165…/windows-AMD64`.
+Relatório e capturas visuais gerados em `0782f876` foram revisados e registrados nesta branch como documentação/evidência; nenhuma fonte compilável mudou depois do gate. A integração com `release/v1.0.0` deve ocorrer por PR desta branch, sem push direto à release.
+
+Veja `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md` e as evidências locais em `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/`.
 
 ## Registro histórico — homologação Windows beta.7 — 2026-10-08
 

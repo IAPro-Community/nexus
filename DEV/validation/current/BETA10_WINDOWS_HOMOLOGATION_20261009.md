@@ -1,6 +1,21 @@
 # Homologação Windows beta.10 — 2026-10-09
 
-## Revalidação mais recente — Windows AMD64 — SHA `eedf31659b0245cf7690d556c32ee6e0040ae588`
+## Revalidação mais recente — Windows AMD64 — SHA `0782f87696ad3f28058d6532cb4e44dd25b08a7f`
+
+Esta rodada valida o candidato `1.0.0-beta.10` no Windows nativo. Ela não substitui a homologação beta.7 no SHA solicitado `d14154d2490dfdd3966c7fddc990a1d9127edd39`.
+
+- **Gate oficial automatizado: PASS no SHA exato.** `.\scripts\homologate-beta.ps1 -ExpectedSha 0782f87696ad3f28058d6532cb4e44dd25b08a7f`, executado com árvore limpa no início, de `2026-10-09T03:52:13Z` a `2026-10-09T04:02:42Z`. `VERSION=1.0.0-beta.10`; Go 1.27.2, Bun 1.3.9 e Node 22.14.0.
+- **Go e segurança: PASS.** Formatação, `go vet ./...`, golangci-lint sem findings, govulncheck sem vulnerabilidades e `go test -count=1 -v ./...`: 66 pacotes PASS, zero falhas e 18 skips condicionados à plataforma/permissões Windows.
+- **Web e browser E2E: PASS.** Bun frozen install sem alterações no lockfile; `quality:full` com 84 arquivos e 504 testes PASS. O gate aprovou as oito suítes browser E2E, Axe/acessibilidade, validação visual e builds Windows AMD64 de CLI, Desktop e HUD.
+- **Desktop nativo: inicialização e cleanup PASS.** O smoke repetido no SHA validado detectou a janela Wails `IAPro Nexus` e o filho `Chrome_WidgetWin_0` por 10 segundos e encerrou com zero processos WebView2 do app. Evidência: `desktop-native-0782f876.txt`.
+- **Project Hub nativo: criação real PASS.** No WebView2 Desktop em `http://wails.localhost/`, o formulário submeteu o diretório temporário no viewport Windows de 775×483; o Core embutido respondeu HTTP 201, a aplicação abriu o overview do projeto e a captura `project-hub-native-submit-0782.png` mostra o workspace carregado. O processo diagnóstico usou DevTools somente em loopback e perfil isolado; terminou com `WEBVIEW2_LEFT=0`. A mensagem `invalid origin` da captura anterior não se reproduziu nessa origem Wails. Isso valida este fluxo nativo, sem afirmar que a captura original sob outra origem foi corrigida ou que outras origens devem ser aceitas.
+- **Frontend gerado: PASS.** O relatório atualizado foi produzido pelo gate em `2026-10-09T03:52:52Z`: 10 gates PASS, zero falhas, 84 arquivos/504 testes. Os oito arquivos rastreados alterados pelo gate (relatórios, JSON e capturas visuais Composer) foram revisados e permanecem como evidência dessa execução.
+- **Evidências completas:** `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/` (logs locais ignorados pelo Git). O verificador registrou 178 Markdown e 33 assets/arquivos requeridos.
+- **Escopo:** nenhum gate Linux foi executado. Os arquivos de evidência/documentação desta atualização não alteram o código validado no SHA acima.
+
+**Veredito:** PASS dos gates automatizados Windows e do envio real pelo Project Hub Desktop no código `0782f876`. O HUD nativo ainda tem composição DWM física inconclusiva; também pendem CI Windows hosted no SHA integrado, smokes autenticados/interativos restantes, assinatura/update trust root e instalador final. **NO-GO para tag/distribuição.** Beta.10 é diferente da beta.7/d14154d2. A branch Windows deve ser vinculada à `release/v1.0.0` por PR, sem push direto à release.
+
+## Revalidação anterior — Windows AMD64 — SHA `eedf31659b0245cf7690d556c32ee6e0040ae588`
 
 Esta rodada é beta.10 e não substitui a homologação beta.7 no SHA solicitado `d14154d2490dfdd3966c7fddc990a1d9127edd39`.
 

@@ -1,5 +1,13 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-09 — Continuidade Windows beta.10 no SHA `0782f87696ad3f28058d6532cb4e44dd25b08a7f`
+
+- PASS — gate oficial `scripts/homologate-beta.ps1 -ExpectedSha 0782f87696ad3f28058d6532cb4e44dd25b08a7f` no Windows AMD64; Go 1.27.2, Bun 1.3.9, Node 22.14.0; 66 pacotes Go, 84 arquivos/504 testes web, lint/segurança, oito suítes E2E, Axe/visual e builds CLI/Desktop/HUD.
+- PASS — smoke Desktop no SHA exato: Wails `IAPro Nexus`, WebView2 `Chrome_WidgetWin_0` por 10 s e zero processos remanescentes.
+- PASS — submissão real do Project Hub no Desktop via `http://wails.localhost/`: HTTP 201 e navegação ao overview do projeto; captura WebView2 em `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/project-hub-native-submit-0782.png`. O diagnóstico nativo limpou seu processo e não deixou WebView2 ativo. A mensagem `invalid origin` anterior não foi reproduzida neste contexto.
+- NO-GO — candidato beta.10 separado da beta.7/d14154d2. Composição DWM do HUD, CI Windows hosted no SHA integrado, smokes autenticados/interativos restantes, assinatura/trust root e instalador pendem. Sem tag/publicação e sem gate Linux.
+- Relatório: `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`. Os arquivos gerados de relatório e evidência foram revisados; o commit de fechamento contém somente documentação/evidência, sem alteração das fontes compiláveis.
+
 ## 2026-10-09 — Gate Windows beta.10 no SHA `eedf31659b0245cf7690d556c32ee6e0040ae588`
 
 - PASS — `scripts/homologate-beta.ps1 -ExpectedSha eedf3165` no Windows AMD64; Go 1.27.2, Bun 1.3.9, Node 22.23.3; 66 pacotes Go, 84 arquivos/504 testes web, golangci-lint 0 findings, govulncheck sem vulnerabilidades, E2E/Axe/visual e builds CLI/Desktop/HUD.
@@ -1613,6 +1621,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-09T03:19:25Z
+## Frontend gate — 2026-10-09T03:52:52Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).

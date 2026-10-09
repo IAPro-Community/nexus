@@ -5266,3 +5266,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Corrigi `scripts/smoke-desktop-windows.ps1`: o cleanup enumera descendentes `msedgewebview2.exe` do processo isolado via Toolhelp e não chama mais CIM. Em Windows PowerShell 5.1, o smoke terminou com exit code 0; Wails `IAPro Nexus` e WebView2 `Chrome_WidgetWin_0` passaram pelo período de quatro segundos, e a verificação posterior encontrou zero processos `nexus-desktop`/`msedgewebview2`.
 - Evidência: `desktop-native-eedf3165-cleanup-ps51-final.txt` no diretório local ignorado de evidências; registra `webview2_process_cleanup=PASS`, exit code 0 e a verificação pós-smoke com zero processos. A janela foi iniciada oculta: isto confirma inicialização/cleanup, não visualização ou fluxo interativo do Project Hub.
 - O veredito de distribuição não muda: HUD nativo ainda tem composição DWM inconclusiva e permanecem pendentes a interação do Project Hub, CI Windows hosted, assinatura/trust root e instalador final.
+
+## 2026-10-09 — Project Hub Desktop nativo e gate Windows beta.10
+
+- Revalidei o candidato de código `0782f87696ad3f28058d6532cb4e44dd25b08a7f` com o gate oficial Windows AMD64: 66 pacotes Go, 84 arquivos/504 testes web, oito suítes E2E, Axe/visual e builds CLI/Desktop/HUD PASS.
+- O formulário Project Hub foi enviado pelo WebView2 nativo no origin Wails; o Core respondeu 201, o app abriu o overview e não restaram processos WebView2. A mensagem `invalid origin` da captura anterior não se reproduziu nesse fluxo; não foi presumida uma alteração de código nem que origens externas devam ser aceitas.
+- Atualizei relatório, verify, contexto, spec ativa e handoff com os limites corretos. Revisei as saídas rastreadas que o gate regenerou. HUD DWM, CI hosted, assinatura/trust root, instalador e smokes operacionais restantes mantêm NO-GO para distribuição. A branch segue para PR; nenhum push direto à release, tag ou gate Linux.
