@@ -28,8 +28,8 @@ import (
 // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE attribute. If ConPTY is unavailable
 // (e.g. Windows < 10.0.17763), Start falls back to standard pipes and reports
 // the backend truthfully as "standard pipes" (no resize / no raw mode).
-// Standard pipes remain the default for generic and non-Codex runtimes. Codex
-// uses ConPTY automatically because its interactive CLI requires a console;
+// Standard pipes remain the default for generic runtimes. Codex and AGY use
+// ConPTY automatically because their interactive CLIs require a console;
 // AI_CLI_ENABLE_CONPTY=1 opts other providers in and AI_CLI_DISABLE_CONPTY=1
 // preserves the compatibility fallback.
 
@@ -131,8 +131,13 @@ func BackendMechanism() string { return "Windows standard pipes (ConPTY opt-in)"
 
 func platformBackendMechanismForProvider(providerID string) string {
 	if shouldUseConPTY(providerID) {
-		if strings.EqualFold(strings.TrimSpace(providerID), "codex") && os.Getenv("AI_CLI_ENABLE_CONPTY") != "1" {
-			return "Windows ConPTY (automatic for supervised Codex)"
+		if os.Getenv("AI_CLI_ENABLE_CONPTY") != "1" {
+			switch {
+			case strings.EqualFold(strings.TrimSpace(providerID), "codex"):
+				return "Windows ConPTY (automatic for supervised Codex)"
+			case strings.EqualFold(strings.TrimSpace(providerID), "agy"):
+				return "Windows ConPTY (automatic for supervised AGY)"
+			}
 		}
 		return "Windows ConPTY (explicit opt-in)"
 	}
@@ -146,7 +151,8 @@ func shouldUseConPTY(providerID string) bool {
 	if os.Getenv("AI_CLI_ENABLE_CONPTY") == "1" {
 		return true
 	}
-	return strings.EqualFold(strings.TrimSpace(providerID), "codex")
+	providerID = strings.TrimSpace(providerID)
+	return strings.EqualFold(providerID, "codex") || strings.EqualFold(providerID, "agy")
 }
 
 func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) error {
