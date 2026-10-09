@@ -1,0 +1,184 @@
+/* Flat finish: shared semantic appearance treatment, opt-in through ThemeProvider.
+   No theme ID selectors; existing presets and high-contrast mode are untouched. */
+:root[data-finish="flat"] .nx-project-rail,
+:root[data-finish="flat"] .nx-workspace-host,
+:root[data-finish="flat"] .nx-desktop-workspace {
+  background: var(--nx-bg);
+}
+
+:root[data-finish="flat"] .nx-flow-canvas {
+  background: var(--nx-bg-elevated);
+}
+
+:root[data-finish="flat"] .nx-desktop-card--active {
+  background: var(--nx-surface);
+}
+
+:root[data-finish="flat"] .nx-desktop-card:hover {
+  transform: none;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+}
+
+:root[data-finish="flat"] .nx-desktop-avatar {
+  background: var(--nx-accent);
+  color: var(--nx-accent-contrast);
+  box-shadow: none;
+}
+
+:root[data-finish="flat"] .nx-desktop-window[data-active="true"] {
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.16);
+}
+
+:root[data-finish="flat"] .nx-desktop-window__titlebar[data-accented="true"],
+:root[data-finish="flat"]
+  .nx-desktop-window[data-active="true"][data-accented="true"]
+  .nx-desktop-window__titlebar,
+:root[data-finish="flat"]
+  .nx-desktop-window[data-active="true"]
+  .nx-desktop-window__titlebar[data-accented="true"] {
+  background: color-mix(in srgb, var(--nx-window-accent) 9%, var(--nx-surface));
+}
+
+:root[data-finish="flat"] .nx-splash-screen {
+  background: var(--nx-bg);
+}
+
+:root[data-finish="flat"] .nx-splash-card {
+  background: var(--nx-surface);
+  backdrop-filter: none;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+
+:root[data-finish="flat"] .nx-splash-logo-glow {
+  display: none;
+}
+
+:root[data-finish="flat"] .nx-splash-logo,
+:root[data-finish="flat"] .nx-splash-dot {
+  filter: none;
+  box-shadow: none;
+}
+
+:root[data-finish="flat"] .nx-splash-title {
+  background: none;
+  -webkit-text-fill-color: var(--nx-text);
+}
+
+:root[data-finish="flat"] .nx-splash-progress-shimmer {
+  background: var(--nx-accent);
+}
+
+
+/* Nexus-inspired soft dark depth. The gradient is localized to surfaces and chrome,
+   never to xterm cells, focus rings, syntax highlighting or operational badges. */
+:root[data-finish="subtle-gradient"] .nx-project-rail {
+  background: linear-gradient(180deg, var(--nx-surface), var(--nx-bg-elevated));
+}
+
+:root[data-finish="subtle-gradient"] .nx-workspace-host,
+:root[data-finish="subtle-gradient"] .nx-desktop-workspace {
+  background:
+    radial-gradient(
+      ellipse at 82% 4%,
+      color-mix(in srgb, var(--nx-accent) 4%, transparent),
+      transparent 50%
+    ),
+    linear-gradient(
+      160deg,
+      var(--nx-bg-elevated) 0%,
+      var(--nx-bg) 52%,
+      color-mix(in srgb, var(--nx-bg) 86%, black) 100%
+    );
+}
+
+:root[data-finish="subtle-gradient"] .nx-flow-canvas {
+  background: linear-gradient(180deg, var(--nx-bg-elevated), var(--nx-bg));
+}
+
+:root[data-finish="subtle-gradient"] .nx-desktop-card--active {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--nx-accent) 5%, var(--nx-surface)),
+    var(--nx-surface)
+  );
+}
+
+:root[data-finish="subtle-gradient"] .nx-desktop-card:hover {
+  transform: none;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 0.12);
+}
+
+:root[data-finish="subtle-gradient"] .nx-desktop-avatar {
+  background: var(--nx-accent);
+  color: var(--nx-accent-contrast);
+  box-shadow: none;
+}
+
+:root[data-finish="subtle-gradient"] .nx-desktop-window[data-active="true"] {
+  box-shadow: 0 5px 18px rgb(0 0 0 / 0.2);
+}
+
+:root[data-finish="subtle-gradient"] .nx-desktop-window__titlebar[data-accented="true"],
+:root[data-finish="subtle-gradient"]
+  .nx-desktop-window[data-active="true"][data-accented="true"]
+  .nx-desktop-window__titlebar,
+:root[data-finish="subtle-gradient"]
+  .nx-desktop-window[data-active="true"]
+  .nx-desktop-window__titlebar[data-accented="true"] {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--nx-window-accent) 12%, var(--nx-surface)),
+    var(--nx-surface)
+  );
+}
+
+:root[data-finish="subtle-gradient"] .nx-splash-screen {
+  background: linear-gradient(150deg, var(--nx-bg-elevated), var(--nx-bg));
+}
+
+:root[data-finish="subtle-gradient"] .nx-splash-card {
+  background: var(--nx-surface);
+  backdrop-filter: none;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.2);
+}
+
+:root[data-finish="subtle-gradient"] .nx-splash-logo-glow {
+  display: none;
+}
+
+:root[data-finish="subtle-gradient"] .nx-splash-title {
+  background: none;
+  -webkit-text-fill-color: var(--nx-text);
+}
+
+:root[data-finish="subtle-gradient"] .nx-splash-progress-shimmer {
+  background: var(--nx-accent);
+}
+
+:root[data-finish="subtle-gradient"] .nx-splash-dot {
+  box-shadow: none;
+}
+
+
+/* Independent appearance controls: safe system font stacks and Lucide stroke weights.
+   Defaults keep the existing Nexus typography and icon styles unchanged.
+   Terminal canvas/font metrics remain controlled by xterm, not these selectors. */
+:root[data-font-family="system"] {
+  --nx-font:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --nx-font-sans:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+:root[data-font-family="readable"] {
+  --nx-font: Verdana, "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+  --nx-font-sans: Verdana, "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+}
+
+:root[data-icon-style="light"] svg.lucide {
+  stroke-width: 1.5;
+}
+
+:root[data-icon-style="bold"] svg.lucide {
+  stroke-width: 2.5;
+}
