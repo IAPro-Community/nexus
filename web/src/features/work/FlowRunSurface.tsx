@@ -28,7 +28,6 @@ import type {
   Project,
   WorkPlan,
   WorkReceipt,
-  MissionTeamSelection,
 } from '../../types';
 import { asArray, asStringArray } from '../../lib/safeArray';
 import { flowFromWorkPlan } from './flowModel';
