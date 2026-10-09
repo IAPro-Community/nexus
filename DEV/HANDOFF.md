@@ -1,12 +1,11 @@
-## Atualização — dispatch e fila do CI Windows — 2026-10-09
+## Atualização — runner Windows pendente de autorização — 2026-10-09
 
-Branch candidata: `fix/windows-beta10-homologation-20261008`; fonte homologada local: `767be3b168a6d3ec7d223908e21812807486482f`; versão `1.0.0-beta.10`. Commit `add42efdcb65d45ddfd7e5ab1f444346297305fd` enviado à branch remota. Ele limita dispatch com `native_target_sha` aos jobs nativos selecionados; eventos normais e dispatch sem SHA preservam o fluxo atual.
+Branch candidata `fix/windows-beta10-homologation-20261008`, versão `1.0.0-beta.10`; fonte homologada local `767be3b168a6d3ec7d223908e21812807486482f`. A correção de CI está enviada no commit `add42efd`; documentação de status atualizada no commit remoto `2ca5a212`. O run `37898823857` continua `queued`: os 11 jobs genéricos/Linux estão `skipped`, e o job Windows não tem runner compatível.
 
-- Run hosted `37898823857` usa a definição de workflow do commit `add42efd` e tem como alvo o SHA exato `767be3b168a6d3ec7d223908e21812807486482f`, plataforma Windows. Os 11 jobs genéricos/Linux foram concluídos como `skipped`, sem runner; `Windows native certification` está `queued`.
-- A API lista um runner no repositório: `nexus-ci-dev-web-kiver`, com labels `self-hosted, Linux, X64, nexus-ci`, estado `offline`. Não há runner com labels `Windows, X64, nexus-windows`; por isso o gate hosted permanece pendente. O run foi mantido na fila para poder iniciar se o runner Windows for disponibilizado.
-- Verificação local: parse YAML e auditoria de chaves/condições — PASS; `git diff --check` — PASS; `node scripts/docs-verify.mjs` — PASS (178 Markdown, 33 assets/arquivos requeridos). `actionlint` local não pôde ser baixado por falha DNS em `proxy.golang.org`.
-- Próxima ação: disponibilizar runner Windows com os labels exigidos e aguardar o run `37898823857`. Os gates nativos locais Windows no SHA `767be3b1` já passaram. Nenhum gate Linux; nenhum push direto para `release/v1.0.0`.
-- Distribuição continua **NO-GO** por blockers registrados no status corrente.
+- Inventário GitHub: único runner `nexus-ci-dev-web-kiver`, Linux, offline. Nenhum runner `Windows/X64/nexus-windows` registrado.
+- A versão oficial `actions/runner` Windows x64 `v2.338.0` foi baixada em `%TEMP%` e seu SHA-256 conferido contra o digest da release. O registro efêmero de um job foi recusado pela revisão automática, pois executaria código do repositório neste host e poderia expor os secrets do ambiente `native-signing`. Nenhum runner foi registrado e nenhum workflow foi executado localmente como alternativa.
+- **Bloqueio para retomar:** autorização explícita para registrar este host como runner self-hosted efêmero e executar o workflow `37898823857`, ou disponibilização de outro runner Windows administrado pelo usuário. A configuração efêmera desregistra o runner após um job segundo a [documentação oficial do GitHub](https://docs.github.com/en/actions/reference/runners/self-hosted-runners).
+- Os gates nativos locais no SHA `767be3b1` já passaram. Não houve gate Linux nem push direto para `release/v1.0.0`. Distribuição continua **NO-GO**.
 # Handoff
 
 ## Atualização — homologação Windows beta.10 no SHA 767be3b1 — 2026-10-09

@@ -1,8 +1,8 @@
-## 2026-10-09 — Push da correção de CI e fila Windows
+## 2026-10-09 — Runner Windows: bloqueio de autorização
 
-- Commit `add42efdcb65d45ddfd7e5ab1f444346297305fd` (`ci(infra): skip generic jobs for native dispatch`) enviado para `fix/windows-beta10-homologation-20261008`; nenhum push para release.
-- Dispatch `37898823857` no SHA validado `767be3b1`, Windows-only. Os 11 jobs genéricos/Linux foram ignorados sem runner; o job Windows permanece `queued` porque só há runner Linux offline no repositório.
-- Parse YAML, `git diff --check` e docs-verify passaram. `actionlint` local indisponível por DNS. Próximo passo é disponibilizar runner Windows com labels `self-hosted, Windows, X64, nexus-windows` e acompanhar o run pendente.
+- O pacote oficial `actions/runner` x64 `v2.338.0` teve o digest conferido. A tentativa de registrar o runner efêmero foi rejeitada pela revisão automática por conceder execução de workflow ao host e possível acesso a secrets de assinatura; nenhum runner foi registrado.
+- Run `37898823857` segue `queued`; todos os jobs genéricos/Linux estão `skipped`; runner remoto disponível é apenas Linux e offline.
+- Próximo passo depende de autorização explícita para execução de um job efêmero neste host ou de um runner Windows administrado pelo usuário. Não contornar a recusa e não rodar gates Linux.
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
 ## 2026-10-09 — Continuidade Windows: tray e auditoria de branches

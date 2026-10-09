@@ -1,11 +1,10 @@
-## 2026-10-09 — Dispatch CI e fila do runner Windows
+## 2026-10-09 — Revisão do runner Windows efêmero
 
-- PASS — parser YAML Go local com detecção de chaves duplicadas; os 11 jobs genéricos ignoram dispatch com `native_target_sha`, e a seleção do job `native-windows` permanece intacta.
-- PASS — `git diff --check` e `node scripts/docs-verify.mjs` (178 Markdown, 33 assets/arquivos requeridos).
-- PASS — run GitHub Actions `37898823857`: alvo exato Windows `767be3b168a6d3ec7d223908e21812807486482f`; todos os jobs genéricos/Linux estão `skipped` sem runner.
-- PENDENTE — `Windows native certification` está `queued`. Inventário remoto tem apenas `nexus-ci-dev-web-kiver` com labels Linux e estado `offline`; nenhum runner Windows com labels exigidos está registrado.
-- BLOQUEADO LOCALMENTE — `actionlint` não pôde ser obtido porque DNS não resolveu `proxy.golang.org`; o parse YAML local passou.
-- Nenhum gate Linux executado nesta continuidade. O gate hosted só pode concluir quando um runner Windows compatível for disponibilizado.
+- CONFIRMADO — run `37898823857` permanece `queued`; 11 jobs genéricos/Linux estão `skipped`; nenhum runner Windows está registrado. O único runner listado é Linux/offline.
+- PASS — pacote oficial `actions/runner` Windows x64 `v2.338.0` baixado para `%TEMP%` e conferido pelo SHA-256 publicado na release; nenhum runner foi configurado.
+- BLOQUEADO POR REVISÃO AUTOMÁTICA — a configuração de runner self-hosted efêmero foi recusada porque permitiria executar código do workflow neste PC com acesso potencial aos secrets `native-signing`. Nenhum runner foi registrado nem iniciado; não foi tentado caminho alternativo para executar o workflow.
+- PENDENTE — autorização explícita do usuário para este host executar um job efêmero, ou disponibilização de runner Windows administrado pelo usuário.
+- Sem gates Linux nesta continuidade; gates locais Windows no SHA exato `767be3b1` permanecem evidenciados no relatório corrente.
 # Verification: Nexus V1 (post-pending-issues)
 
 ## 2026-10-09 — Reteste do tray e auditoria de branches beta.10

@@ -1,6 +1,6 @@
-## Continuidade Windows beta.10 — fila CI por SHA — 2026-10-09
+## Continuidade Windows beta.10 — runner hosted pendente — 2026-10-09
 
-O candidato é `1.0.0-beta.10` na branch `fix/windows-beta10-homologation-20261008`, com fonte local homologada `767be3b168a6d3ec7d223908e21812807486482f`; não é beta.7 `d14154d2`. O ajuste de CI foi enviado no commit `add42efdcb65d45ddfd7e5ab1f444346297305fd`. O run `37898823857` selecionou somente Windows, mas permanece `queued`: o repositório não tem runner Windows online/registrado. Todos os jobs genéricos/Linux ficaram `skipped`. A homologação hosted aguarda um runner com labels `self-hosted, Windows, X64, nexus-windows`; não executar gates Linux nem publicar/taggear enquanto os blockers do status corrente permanecerem.
+O candidato `1.0.0-beta.10` está em `fix/windows-beta10-homologation-20261008`; fonte local validada `767be3b168a6d3ec7d223908e21812807486482f`, diferente do beta.7 `d14154d2`. O CI foi escopado no commit `add42efd`; o run `37898823857` permanece na fila com os jobs genéricos/Linux ignorados. Não existe runner Windows registrado. A tentativa de registrar um runner efêmero neste host foi recusada por revisão automática por causa da execução de código do workflow e acesso potencial a secrets. A retomada requer autorização explícita para esse limite de execução ou runner Windows disponibilizado pelo usuário. Não executar gates Linux nem publicar/taggear enquanto os blockers do status corrente permanecerem.
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
 ## Atualização de homologação Windows beta.10 — 2026-10-09
