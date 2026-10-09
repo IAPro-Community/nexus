@@ -75,6 +75,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.dataset.theme = resolvedScheme;
     root.dataset.accent = preferences.accent;
     root.dataset.density = preferences.density;
+    // The flat visual treatment is opt-in per preset; legacy themes stay unchanged.
+    // High-contrast overrides are never flattened.
+    root.dataset.finish =
+      resolvedScheme === 'high-contrast'
+        ? 'standard'
+        : THEME_PRESETS[preferences.preset]?.finish || 'standard';
     root.dataset.reducedMotion = preferences.reducedMotion ? 'true' : 'false';
     const scale = preferences.fontScale || 1.0;
     root.dataset.fontScale = String(scale);
