@@ -59,6 +59,8 @@ describe('theme model', () => {
       preset: 'nexus-dark',
       isCustomized: false,
       fontScale: 1.0,
+      fontFamily: 'default',
+      iconStyle: 'default',
     });
   });
 
@@ -71,6 +73,8 @@ describe('theme model', () => {
       reducedMotion: true,
       isCustomized: false,
       fontScale: 1.15,
+      fontFamily: 'readable',
+      iconStyle: 'light',
     };
     const serialized = JSON.stringify(original);
     const parsed = JSON.parse(serialized);
@@ -121,6 +125,7 @@ describe('theme model', () => {
         'paper-flat',
         'clay-flat',
         'nexus-dusk',
+        'ember-studio',
         'midnight',
         'nord',
         'dracula',
@@ -136,7 +141,7 @@ describe('theme model', () => {
         'high-contrast-light',
       ]),
     );
-    expect(keys.length).toBeGreaterThanOrEqual(19);
+    expect(keys.length).toBeGreaterThanOrEqual(20);
   });
 
   it('keeps registry keys, ids and primary accent tokens consistent', () => {
@@ -201,6 +206,41 @@ describe('theme model', () => {
     expect(normalized.scheme).toBe('light');
     expect(normalized.density).toBe('comfortable');
     expect(resolveThemeStyleVariables(normalized, 'light')['--nx-bg']).toBe('#f4f5f3');
+  });
+
+  it('keeps font and icon settings independent from the theme preset and scheme', () => {
+    const prefs = normalizeThemePreferences({
+      ...defaultThemePreferences,
+      preset: 'ember-studio',
+      scheme: 'light',
+      fontFamily: 'readable',
+      iconStyle: 'bold',
+      isCustomized: false,
+    });
+    expect(prefs.preset).toBe('ember-studio');
+    expect(prefs.scheme).toBe('dark');
+    expect(prefs.fontFamily).toBe('readable');
+    expect(prefs.iconStyle).toBe('bold');
+    expect(THEME_PRESETS['ember-studio'].finish).toBe('flat');
+  });
+
+  it('repairs invalid font and icon settings from persisted storage', () => {
+    const prefs = normalizeThemePreferences({
+      fontFamily: 'remote-url',
+      iconStyle: 'image-html',
+    } as unknown as ThemePreferences);
+    expect(prefs.fontFamily).toBe('default');
+    expect(prefs.iconStyle).toBe('default');
+  });
+
+  it('provides defaults for legacy preferences saved before font/icon selectors', () => {
+    const prefs = normalizeThemePreferences({
+      ...defaultThemePreferences,
+      fontFamily: undefined,
+      iconStyle: undefined,
+    });
+    expect(prefs.fontFamily).toBe('default');
+    expect(prefs.iconStyle).toBe('default');
   });
 
   it('normalizes out-of-bound fontScale values', () => {
