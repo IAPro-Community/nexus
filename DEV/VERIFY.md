@@ -1718,3 +1718,19 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — manager Windows de autostart: valor `HKCU\\...\\Run` exclusivo habilitado/desabilitado, comando `REG_SZ` conferido e valor ausente após cleanup no SHA exato. Controle visual não testado.
 - Evidência local: `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/`; logs de ambiente e perfil foram excluídos da cópia.
 - PENDENTE — CI Windows hosted no SHA integrado, fluxos autenticados de provider/Mission/Voice, tray/autostart, assinatura/update trust root e instalador assinado. Distribuição continua NO-GO; a versão é beta.10, não beta.7/d14154d2. Nenhum gate Linux executado.
+
+## 2026-10-09 — builds unsigned Windows do gate beta.10
+
+- PASS — copiados do output oficial do gate `e46d0619d36b63864f3f8a77a5d25652b9581afd` os binários CLI/Desktop/HUD para `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/distribution-unsigned/` (diretório ignorado pelo Git).
+- PASS — SHA-256 dos arquivos copiados: CLI `206164f6…351f329` (25.545.728 bytes); Desktop `5c98107e…09b35da2` (28.128.256 bytes); HUD `36a65555…441e41d0` (28.151.296 bytes). `SHA256SUMS.txt` e `ARTIFACTS.md` registram hashes e escopo.
+- PASS — `nexus.exe version --json`: beta.10, commit `e46d0619`, Windows AMD64, Go 1.27.2.
+- LIMITAÇÃO — builds unsigned, sem instalador; não são artefatos de distribuição. Hosted signing/update trust root aguardam rotação e confirmação das credenciais; distribuição permanece NO-GO. Nenhum gate Linux executado.
+
+## 2026-10-09 — smoke nativo HUD Windows no código homologado e46
+
+- PASS — build diagnóstico temporário no código de produto sem alterações chamou `HUDController.ShowHUD()`, `HideHUD()`, `ShowHUD()` e registrou visibilidade Wails `true`, `false`, `true`, em 280×48.
+- PASS — screenshot físico do painel Wails/WebView2: `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/native-smokes/hud-controller-visible-e46d0619.png`; SHA-256 `584a5b290b19c550366683e136752639630ae9ef3284c713f753518c68b1d566`.
+- PASS — processo diagnóstico exit code 0 e nenhum processo Nexus/WebView2 do smoke remanescente. Estados, overlay e binário diagnóstico estão listados em `SHA256SUMS.native-smoke.txt`.
+- PASS — arquivos nativos e frontend HUD usados no smoke têm diff vazio entre o source e46 e as fontes de evidência anteriores `665103a0`/`0782f876`; o binário diagnóstico foi compilado com overlay temporário.
+- PASS — diretório PE de certificados Authenticode ausente (offset/tamanho zero) nos três builds locais; o cmdlet Windows retornou `UnknownError` para Desktop, então a classificação foi confirmada pela tabela PE, sem assumir assinatura válida.
+- PENDENTE — clique físico do tray e controle visual do autostart; CI hosted/signing seguem aguardando rotação/confirmação das credenciais. Distribuição NO-GO; nenhum gate Linux executado.

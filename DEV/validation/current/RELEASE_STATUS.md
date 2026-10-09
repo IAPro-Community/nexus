@@ -1,6 +1,10 @@
 # Current release status
 
-> **Atualização Windows em 2026-10-09:** o homologador oficial passou integralmente em Windows AMD64 no SHA local exato `e46d0619d36b63864f3f8a77a5d25652b9581afd` (`1.0.0-beta.10`, Go 1.27.2, Bun 1.3.9, Node 22.14.0): Go fmt/vet/vulncheck/lint/test, `quality:full` (84 arquivos/504 testes), oito E2Es browser, Axe/visual e builds CLI/Desktop/HUD. Smokes nativos Desktop/HUD de inicialização/cleanup também passaram no SHA exato, sem inspeção visual ou interação; o toggle do manager Windows de autostart passou com entrada Run de teste removida ao final. O usuário autorizou runner hosted de um job; ainda não houve registro nem dispatch enquanto aguarda rotação/confirmação das credenciais locais. Tray físico, controle visual HUD/autostart, fluxos autenticados, assinatura/trust root e instalador assinado seguem pendentes. A candidata beta.10 não é a beta.7 `d14154d2`; distribuição **NO-GO**.
+> **Atualização Windows em 2026-10-09:** o homologador oficial passou integralmente em Windows AMD64 no SHA local exato `e46d0619d36b63864f3f8a77a5d25652b9581afd` (`1.0.0-beta.10`, Go 1.27.2, Bun 1.3.9, Node 22.14.0): Go fmt/vet/vulncheck/lint/test, `quality:full` (84 arquivos/504 testes), oito E2Es browser, Axe/visual e builds CLI/Desktop/HUD. Smokes nativos Desktop/HUD de inicialização/cleanup passaram no SHA exato com janelas ocultas; um smoke complementar do HUD aprovou show/hide/show e projeção física 280×48. O toggle do manager Windows de autostart passou com a entrada Run de teste removida ao final. O usuário autorizou runner hosted de um job; ainda não houve registro nem dispatch enquanto aguarda rotação/confirmação das credenciais locais. Tray físico, controle visual do autostart, fluxos autenticados, assinatura/trust root e instalador assinado seguem pendentes. A candidata beta.10 não é a beta.7 `d14154d2`; distribuição **NO-GO**.
+
+> **Builds locais Windows sem assinatura:** CLI/Desktop/HUD do gate oficial no SHA `e46d0619d36b63864f3f8a77a5d25652b9581afd` foram copiados para `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/distribution-unsigned/`; manifesto: `SHA256SUMS.txt`. Eles não são publicáveis e não incluem instalador. Assinatura e workflow hosted ainda pendem; distribuição permanece **NO-GO**.
+
+> **Smoke nativo HUD no código e46:** reteste diagnóstico com overlay temporário passou em show/hide/show (`IsVisible=true/false/true`), janela 280×48 visível e cleanup; screenshot e logs em `windows-AMD64/native-smokes/`. Controle visual de autostart e clique físico do tray continuam pendentes. Builds finais locais são unsigned e não incluem instalador; distribuição segue **NO-GO**.
 
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 
@@ -13,7 +17,8 @@ WINDOWS_HOMOLOGATED_SOURCE_SHA: e46d0619d36b63864f3f8a77a5d25652b9581afd (produc
 WINDOWS_AUTOMATED_LOCAL_GATES: PASS_EXACT_SHA_WINDOWS_AMD64_GO1.27.2_FMT_VET_VULN_LINT_TEST_WEB_504_8_E2E
 WINDOWS_WAILS_PROJECT_ORIGIN_REGRESSION: PASS_ON_DOCS_ONLY_HEAD_0729DF48; SOURCE_FILES_IDENTICAL_TO_1E3F9A3B; BOOTSTRAP_200_CREATE_201_EXTERNAL_ORIGINS_403
 WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_WAILS_WEBVIEW2_PROFILE_AND_CLEANUP_ON_E46D0619_WITH_UNIQUE_ID; VISUAL_RENDER_NOT_VERIFIED
-WINDOWS_NATIVE_HUD_SMOKE: PASS_LAUNCH_8S_WEBVIEW2_PROFILE_AND_6_DESCENDANT_CLEANUP_ON_E46D0619; INTERACTIVE_SHOW_HIDE/AUTOSTART_UI/TRAY_UI=NOT_VERIFIED
+WINDOWS_NATIVE_HUD_SMOKE: PASS_LAUNCH_8S_WEBVIEW2_PROFILE_AND_6_DESCENDANT_CLEANUP_ON_E46D0619; CONTROLLER_SHOW_HIDE_SHOW_AND_VISIBLE_280X48_CAPTURE=PASS_WITH_TEMP_DIAGNOSTIC_OVERLAY; AUTOSTART_UI/TRAY_UI=NOT_VERIFIED
+WINDOWS_NATIVE_HUD_CONTROLLER_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/native-smokes/hud-controller-states-e46d0619.txt; screenshot=hud-controller-visible-e46d0619.png; diagnostic_binary_SHA256=74d9a40bba506a11807e8416a93d5cf83c2e4edc676cb13f65563d31afc1f284
 WINDOWS_NATIVE_AUTOSTART_REGISTRY_SMOKE: PASS_ENABLE_DISABLE_REG_SZ_AND_CLEANUP_ON_E46D0619; UNIQUE_HKCU_RUN_VALUE_REMOVED; HUD_UI_TOGGLE_NOT_TESTED
 WINDOWS_NSIS_INSTALLER_SMOKE: PASS_INSTALL_AND_UNINSTALL_ON_767BE3B1; UNSIGNED
 WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: PASS_NO_LITERAL_ARROWS_IN_CODEX_0782_AND_AGY_665; NO_PROMPT_SENT; AUTHENTICATED_SESSION_PENDING
@@ -33,8 +38,11 @@ WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN_0782
 WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
 WINDOWS_LOCAL_UNSIGNED_CHECKSUMS: DEV/validation/local-beta/1.0.0-beta.10/1e3f9a3be446757a3854bcb1948a4325fb271a47/windows-AMD64/SHA256SUMS.local-unsigned.txt
+WINDOWS_UNSIGNED_DISTRIBUTION_BUILDS: BUILT_FROM_OFFICIAL_GATE_E46D0619; VERSION=1.0.0-beta.10; WINDOWS_AMD64; UNSIGNED; NO_INSTALLER
+WINDOWS_UNSIGNED_DISTRIBUTION_MANIFEST: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/distribution-unsigned/SHA256SUMS.txt
+WINDOWS_UNSIGNED_DISTRIBUTION_ARTIFACTS: nexus.exe=206164f65c73387a934c160ca4f4d7d063aac2ce2abcfb521e231b781351f329; nexus-desktop.exe=5c98107e3a38c3f39c6504da11be73df8e39d2be9c35c01500b8936a09b35da2; nexus-hud.exe=36a65555ac92a645fff5f38d14fef3e0c507920db022537debeff2cd441e41d0
 WINDOWS_NATIVE_SMOKE_CHECKSUMS: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/native-smokes/SHA256SUMS.native-smoke.txt (diagnostic unsigned binaries; not distribution artifacts)
-CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/ (latest exact-SHA automated gate, Desktop/HUD startup/cleanup and autostart registry smokes, logs); unsigned distribution checksums remain under 1e3f9a3b; earlier NSIS installer smoke evidence remains under 767be3b1; controller-smoke evidence under 665103a0 and physical HUD captures under 0782f876
+CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/ (latest exact-SHA automated gate, Desktop/HUD startup/cleanup, HUD show/hide/visible capture on source files identical to e46 and autostart registry smokes, logs); unsigned distribution checksums are under e46d0619; earlier NSIS installer smoke evidence remains under 767be3b1; controller continuity evidence also under 665103a0 and physical HUD expansion capture under 0782f876
 LIVE_GITHUB_REMOTE_CHECK: PASS_2026-10-09; candidate=1e3f9a3be446757a3854bcb1948a4325fb271a47; origin/release/v1.0.0=a6795704e0f74971f6b255e66ea1527a3ae83165
 LIVE_GITHUB_REMOTE_REFRESH: release HEAD a6795704 is a parent of tested source commit 1e3f9a3b; no direct push to release
 WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the PR candidate for release/v1.0.0; authenticated query 2026-10-09 found 0 matching PRs

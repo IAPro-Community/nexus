@@ -5378,3 +5378,15 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - A evidência integral do SHA `1e3f9a3b` foi copiada para o caminho local ignorado do repositório: 33 arquivos selecionados tiveram SHA-256 conferido; perfil isolado, cache e arquivos de estado não foram copiados. O teste Windows de origem Wails foi repetido no HEAD documental `0729df48` e passou (bootstrap 200, criação 201, origem externa 403).
 - Recuperada a captura nativa do Project Hub no SHA ancestral `0782f876`; 41 logs/capturas foram copiados para o diretório local ignorado e tiveram SHA-256 conferido. Snapshots de ambiente/providers/uso e perfil isolado ficaram fora da cópia.
 - Sem gate Linux, push direto à release, tag ou publicação. Veredito local Windows PASS; distribuição permanece NO-GO até hosted/signing, integração e smokes operacionais pendentes.
+
+## 2026-10-09 — builds locais unsigned de distribuição Windows beta.10
+
+- Copiados para evidência ignorada pelo Git os binários CLI/Desktop/HUD gerados pelo gate oficial no SHA exato `e46d0619d36b63864f3f8a77a5d25652b9581afd`; caminho `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/distribution-unsigned/`.
+- Hashes/bytes conferidos após cópia e registrados em `SHA256SUMS.txt` e `ARTIFACTS.md`; CLI `206164f6…351f329` / 25.545.728 bytes, Desktop `5c98107e…09b35da2` / 28.128.256 bytes, HUD `36a65555…441e41d0` / 28.151.296 bytes. A execução `nexus.exe version --json` confirmou beta.10, commit `e46d0619`, Windows AMD64 e Go 1.27.2.
+- Atualizados relatório Windows, release status, handoff, spec, contexto, verify e worklog. Os builds não têm assinatura e não incluem instalador; nenhum artefato foi publicado. Runner/signing continuam aguardando rotação/confirmação das credenciais; distribuição NO-GO. Nenhum gate Linux executado.
+
+## 2026-10-09 — smoke nativo HUD Windows no código homologado e46
+
+- Recompilei binário diagnóstico via Go overlay temporário, sem mudança nos fontes rastreados. `HUDController` registrou `ShowHUD → HideHUD → ShowHUD` com `IsVisible=true → false → true`, tamanho 280×48; screenshot confirma o painel Wails/WebView2 visível.
+- Exit code 0; nenhum processo Nexus/WebView2 do perfil isolado permaneceu. Evidências locais ignoradas pelo Git: screenshot, estados, overlay e binário com SHA-256 em `native-smokes/SHA256SUMS.native-smoke.txt`.
+- A primeira captura de diagnóstico mostrou o console porque o HWND principal foi confundido; ela foi descartada. A captura válida enumera a janela Wails. As fontes nativas/frontend são idênticas às dos smokes anteriores; tray físico e toggle visual de autostart continuam pendentes.

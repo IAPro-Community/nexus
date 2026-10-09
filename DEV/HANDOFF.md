@@ -4,7 +4,11 @@
 
 Branch `fix/windows-beta10-homologation-20261008`; HEAD exato testado `e46d0619d36b63864f3f8a77a5d25652b9581afd`; `VERSION=1.0.0-beta.10`. O script oficial `scripts/homologate-beta.ps1 -ExpectedSha e46d0619d36b63864f3f8a77a5d25652b9581afd` terminou PASS (exit code 0) em Windows AMD64, de `17:01:49Z` a `17:37:21Z`, com Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Passaram documentação, instalação congelada Bun, `quality:full` (84 arquivos/504 testes), Go fmt/vet/govulncheck/golangci-lint/teste completo, regressões focadas, oito suítes browser E2E, Axe/visual e builds Windows CLI/Desktop/HUD. Smokes nativos de lançamento/cleanup Desktop e HUD passaram no SHA exato usando IDs e perfis isolados; as janelas foram ocultadas. O teste nativo do manager de autostart habilitou/desabilitou um `HKCU\\...\\Run` exclusivo e confirmou a remoção. Evidências locais ignoradas pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/`.
 
-O diff entre `1e3f9a3b` e `e46d0619` não contém alterações de código de produto. Os smokes de lançamento/cleanup não comprovam renderização visual, interação de tray/show/hide, controle visual de autostart ou fluxos autenticados. CI hosted no SHA integrado, assinatura/trust root e instalador assinado seguem pendentes. O usuário autorizou runner efêmero de um job, mas nenhum runner/workflow foi iniciado enquanto aguarda rotação/confirmação das credenciais locais. Sem tag nem publicação; distribuição **NO-GO**. O candidato é beta.10, não a beta.7 `d14154d2`. Nenhum gate Linux foi executado.
+O diff entre `1e3f9a3b` e `e46d0619` não contém alterações de código de produto. Os smokes de lançamento/cleanup foram ocultos; o smoke complementar abaixo aprova show/hide e projeção visível do HUD. Tray físico, controle visual do autostart e fluxos autenticados continuam pendentes. CI hosted no SHA integrado, assinatura/trust root e instalador assinado seguem pendentes. O usuário autorizou runner efêmero de um job, mas nenhum runner/workflow foi iniciado enquanto aguarda rotação/confirmação das credenciais locais. Sem tag nem publicação; distribuição **NO-GO**. O candidato é beta.10, não a beta.7 `d14154d2`. Nenhum gate Linux foi executado.
+
+Os builds unsigned de distribuição local deste mesmo gate estão em `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/distribution-unsigned/`, com `ARTIFACTS.md` e `SHA256SUMS.txt`. São CLI/Desktop/HUD para Windows AMD64, não assinados, e não incluem instalador. Os hashes estão no relatório de homologação e no manifesto.
+
+Um smoke diagnóstico do HUD no código e46 confirma show/hide/show (`IsVisible=true → false → true`), projeção física visível em 280×48 e cleanup sem processos restantes; screenshot, estados e overlay ficam em `native-smokes/`. As fontes nativas e frontend HUD envolvidas são byte-idênticas às fontes dos smokes anteriores. Clique físico do tray e controle visual do autostart ainda estão pendentes.
 
 ## Estado atual — homologação Windows beta.10 no SHA 1e3f9a3b — 2026-10-09
 
@@ -329,8 +333,6 @@ Resolvida a incompatibilidade arquitetural de autenticação do OpenCode no Nexu
    - Binário compilado e instalado em `/home/desenvolvedor/.local/bin/nexus`.
    - Servidor web em background atualizado e validado na porta 13000.
 
-
-
 ## Fechamento v1.0.0-beta.1 — 2026-09-15
 
 Worktree de freeze isolado: lint Linux, attach Composer, install URLs,
@@ -382,7 +384,6 @@ As três superfícies selecionadas pelo Maestro foram totalmente modernizadas no
    - Servidor local rodando em background na porta 13000 (`http://127.0.0.1:13000`).
    - Sem commits e sem push conforme constituição do Orquestrador.
 
-
 ## Compilação e Instalação Local Concluídas — 2026-09-15
 
 O binário unificado Nexus foi compilado com todos os novos recursos e instalado localmente com sucesso:
@@ -396,8 +397,6 @@ O binário unificado Nexus foi compilado com todos os novos recursos e instalado
    - Servidor local `nexus web` reiniciado em background na porta 13000 (`http://127.0.0.1:13000`).
 3. **Estado do Repositório**:
    - Sem commits e sem push conforme constituição do Orquestrador.
-
-
 
 Implementada a funcionalidade para permitir adicionar perfis/provedores diretamente a partir da tela de uso, tanto no TUI (`nexus usage`) quanto no Web OS:
 1. **TUI Bubbletea (`internal/tui/usage_table.go`)**:
