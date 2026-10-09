@@ -4,7 +4,7 @@
 
 - O gate oficial Windows AMD64 passou no SHA exato `226d7b57a279a5c91421fb7dc790e778220417d4`: Go fmt/vet/lint/security/testes; Bun frozen + `quality:full` (84 arquivos/503 testes); oito E2E browser, acessibilidade/visual; builds CLI/Desktop/HUD.
 - Doctor agora reporta `provider.gemini` como WARN quando `--version` falha; testes do probe compartilhado, doctor e seis adapters passaram. Nenhum prompt de modelo foi enviado.
-- O smoke nativo Desktop suplementar encerrou com código 0 antes dos oito segundos requeridos; Desktop e HUD foram compilados, mas este SHA não tem smoke nativo bem-sucedido. Smokes interativos, CI exact-SHA, assinatura e instalador seguem pendentes; status de distribuição NO-GO.
+- A tentativa Desktop com ID de produção encerrou cedo; a repetição com ID de teste isolado, como no CI, passou (janela Wails/WebView2 e perfil isolado por 11s). O smoke HUD passou por 8s e criou perfil isolado. O TUI Codex abriu com perfil temporário sem login, mas terminou antes de aceitar setas; nenhum prompt foi enviado. Interação visual continua pendente.
 - Fetch remoto: `release/v1.0.0=deca290b`, integração beta10 `9aad7444`. A release contém o merge PR45/46, mas o SHA homologado é uma referência local divergente e não certifica o HEAD remoto. O candidato precisa de PR/reconciliação e novo gate Windows no SHA resultante.
 - Relatório e handoff atualizados em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md` e `DEV/HANDOFF.md`. Nenhum gate Linux foi executado.
 ## 2026-10-09 — Correção do gate govulncheck no Windows

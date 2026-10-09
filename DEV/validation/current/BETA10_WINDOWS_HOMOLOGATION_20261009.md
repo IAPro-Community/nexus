@@ -23,9 +23,9 @@ O diagnóstico de providers agora trata um CLI instalado cujo `--version` falha 
 
 ## Limites e pendências
 
-O smoke nativo Desktop adicional, executado após o gate, não passou: o processo iniciou o Core embutido e encerrou com código 0 antes de permanecer ativo por oito segundos. Portanto, este SHA certifica o build, não a persistência da janela Wails/WebView2 nem a renderização visível. Nenhum smoke nativo do HUD foi executado nesta rodada.
+A primeira tentativa suplementar do Desktop usou o identificador de instância de produção e encerrou com código 0. A repetição no padrão do CI, com executável compilado do mesmo SHA e ID de instância de teste isolado, passou: a janela Wails IAPro Nexus e o filho WebView2 permaneceram ativos por 11 segundos e o perfil isolado foi criado. O smoke nativo do HUD também passou por oito segundos e criou o perfil WebView2 isolado. Os dois executáveis de smoke usam IDs de teste, não são binários de distribuição; os smokes confirmam inicialização e perfil, sem certificar renderização visível nem interação show/hide.
 
-Continuam pendentes os smokes interativos de ConPTY/Codex, providers/Mission/custos/isolamento, projeção OpenCode, HUD e Voice; CI nativo no SHA final; Authenticode, chave de atualização, instalador e smoke do instalador. O veredito é **PASS automatizado local Windows / NO-GO para tag e distribuição**. Nenhum gate Linux foi executado.
+Evidências dos smokes nativos: `DEV/validation/local-beta/1.0.0-beta.10/226d7b57a279a5c91421fb7dc790e778220417d4/windows-AMD64/native-smoke-summary.txt`. A tentativa de navegação por setas abriu o TUI do Codex `0.160.1` com perfil temporário sem autenticação, mas o processo encerrou antes de aceitar teclas interativas; o resultado é inconclusivo e nenhum prompt foi enviado. Evidência: `DEV/validation/local-beta/1.0.0-beta.10/226d7b57a279a5c91421fb7dc790e778220417d4/windows-AMD64/codex-arrow-smoke.txt`. Continuam pendentes a navegação interativa ConPTY/Codex, prompts controlados de provider/Mission/custos/isolamento, projeção OpenCode, interação HUD show/hide/autostart e Voice; CI nativo no SHA final; Authenticode, chave de atualização, instalador e smoke do instalador. O veredito é **PASS automatizado local Windows / NO-GO para tag e distribuição**. Nenhum gate Linux foi executado.
 
 ## Branches e vínculo com a release
 
