@@ -120,8 +120,14 @@ func BuildReport(version string, detections map[string]model.DetectionResult, ca
 		status := Pass
 		if !detection.Installed {
 			status = Warn
+		} else if strings.TrimSpace(detection.Error) != "" || strings.TrimSpace(detection.Version) == "" || strings.EqualFold(strings.TrimSpace(detection.Version), "unknown") {
+			status = Warn
 		}
-		report.Checks = append(report.Checks, Check{ID: "provider." + id, Status: status, Summary: providerSummary(detection)})
+		check := Check{ID: "provider." + id, Status: status, Summary: providerSummary(detection)}
+		if status == Warn && detection.Installed {
+			check.Remediation = "verify the provider CLI runtime and --version command, then rerun nexus doctor"
+		}
+		report.Checks = append(report.Checks, check)
 	}
 	return report
 }
@@ -242,7 +248,14 @@ func providerSummary(detection model.DetectionResult) string {
 	if !detection.Installed {
 		return "not installed: " + detection.Error
 	}
-	return fmt.Sprintf("installed (%s)", detection.Version)
+	if probeError := strings.TrimSpace(detection.Error); probeError != "" {
+		return "installed, version probe failed: " + probeError
+	}
+	version := strings.TrimSpace(detection.Version)
+	if version == "" || strings.EqualFold(version, "unknown") {
+		return "installed; version unavailable"
+	}
+	return fmt.Sprintf("installed (%s)", version)
 }
 
 func (r Report) JSON() ([]byte, error) {

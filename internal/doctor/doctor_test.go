@@ -30,6 +30,47 @@ func TestBuildReportIsReadOnlyAndContainsStableChecks(t *testing.T) {
 	}
 }
 
+func TestBuildReportWarnsWhenInstalledProviderVersionProbeFails(t *testing.T) {
+	report := BuildReport("test", map[string]model.DetectionResult{
+		"gemini": {
+			Installed:  true,
+			Version:    "unknown",
+			BinaryPath: "gemini",
+			Error:      "version probe failed: exit status 1",
+		},
+	}, nexusruntime.CredentialCapability{Status: nexusruntime.CredentialUnsupported, Mechanism: "test"})
+
+	for _, check := range report.Checks {
+		if check.ID != "provider.gemini" {
+			continue
+		}
+		if check.Status != Warn || !strings.Contains(check.Summary, "version probe failed") {
+			t.Fatalf("failed installed provider probe must be WARN, got %+v", check)
+		}
+		if check.Remediation == "" {
+			t.Fatalf("failed provider probe needs remediation: %+v", check)
+		}
+		return
+	}
+	t.Fatal("provider.gemini check missing")
+}
+
+func TestBuildReportWarnsWhenInstalledProviderVersionIsUnknown(t *testing.T) {
+	report := BuildReport("test", map[string]model.DetectionResult{
+		"gemini": {Installed: true, Version: "unknown", BinaryPath: "gemini"},
+	}, nexusruntime.CredentialCapability{Status: nexusruntime.CredentialUnsupported, Mechanism: "test"})
+
+	for _, check := range report.Checks {
+		if check.ID == "provider.gemini" {
+			if check.Status != Warn || !strings.Contains(check.Summary, "version unavailable") {
+				t.Fatalf("unknown installed provider version must be WARN, got %+v", check)
+			}
+			return
+		}
+	}
+	t.Fatal("provider.gemini check missing")
+}
+
 func TestBuildReportDoesNotClaimDesktopShellRuntimeWasVerified(t *testing.T) {
 	report := BuildReport("test", nil, nexusruntime.CredentialCapability{
 		Status:    nexusruntime.CredentialUnsupported,
