@@ -26,7 +26,9 @@ export function handleTerminalZoomKey(event: KeyboardEvent): boolean {
   if (action === null) return true;
   if (event.type !== 'keydown') return false;
   const fontSize =
-    action === 'reset' ? resetTerminalFontSize() : adjustTerminalFontSize(action === 'in' ? 1 : -1);
+    action === 'reset'
+      ? resetTerminalFontSize()
+      : adjustTerminalFontSize(action === 'in' ? 1 : -1);
   storeTerminalFontSize(fontSize);
   return false;
 }

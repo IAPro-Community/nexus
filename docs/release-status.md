@@ -18,6 +18,20 @@ Atualizado em 8 de outubro de 2026.
 | Gate nativo Windows exact-SHA no GitHub Actions | não revalidado; `gh` ausente neste host |
 | Veredito | NO-GO para beta.10: os gates Windows PASS se referem somente ao SHA anterior d840797b (beta.7); faltam CI exact-SHA, validação de túnel/Codex e demais smokes aplicáveis |
 
+## Convergência beta.10 — PRs #45 e #46
+
+As correções de homologação Windows da PR #45 e de engenharia da PR #46
+foram conciliadas na PR #47 para incorporação única na `release/v1.0.0`.
+As mudanças recentes de janela/título IA foram preservadas. O registro
+histórico da homologação beta.8 não foi promovido indevidamente como
+certificação do código beta.10, e as capturas de tela precisam ser
+regeneradas contra o SHA final antes de serem declaradas atuais.
+
+**Estado técnico:** o merge de código não representa aprovação de release.
+A validação do exato SHA (Linux, Windows, Codex/ConPTY, túnel, browser,
+Desktop/NSIS e assinatura) permanece pendente. Não criar tag, nem publicar
+instalador ou manifest de atualização sem esses gates.
+
 ## Candidato atual — beta.10 (2026-10-08)
 
 A branch canônica `release/v1.0.0` avançou de beta.9 para beta.10. Esta iteração
