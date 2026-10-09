@@ -568,11 +568,13 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 
 	rawConn := client.RawConn()
 	output := nexusruntime.NewTerminalOutputScrubber(os.Stdout)
-	inputStream := nexusruntime.NewTerminalInputScrubber(
-		nexusruntime.NewTerminalTracingWriter(rawConn, runtimeID, "cli.scrubber.output"),
-	)
+	// The SessionHost already owns input coalescing and mouse-metadata
+	// filtering immediately before the provider PTY. A second timed input
+	// scrubber here delayed Escape/CSI fragments twice and could turn a
+	// selector arrow into a stray Escape followed by literal "[A"/"[B".
+	// Preserve stdin write boundaries and ordering without a client timer.
+	inputStream := nexusruntime.NewTerminalTracingWriter(rawConn, runtimeID, "cli.input")
 	defer func() { _ = output.Flush() }()
-	defer func() { _ = inputStream.Flush() }()
 
 	// Replay ring-buffer history through the same scrubber used for live PTY
 	// output. A provider may have enabled mouse/keyboard protocols before attach;
