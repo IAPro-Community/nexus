@@ -14,6 +14,24 @@ import (
 	"unicode/utf16"
 )
 
+// unsetenv unsets an environment variable and registers a cleanup to restore
+// its original value after the test. t.Setenv("VAR", "") sets the variable to
+// an empty string, which is semantically different from unsetting it.
+func unsetenv(t *testing.T, key string) {
+	t.Helper()
+	original, hadValue := os.LookupEnv(key)
+	if err := os.Unsetenv(key); err != nil {
+		t.Fatalf("failed to unset %s: %v", key, err)
+	}
+	t.Cleanup(func() {
+		if hadValue {
+			_ = os.Setenv(key, original)
+		} else {
+			_ = os.Unsetenv(key)
+		}
+	})
+}
+
 func TestUTF16EnvBlockIsDoubleNullTerminated(t *testing.T) {
 	block := utf16EnvBlock([]string{"NEXUS_A=one", "NEXUS_B=two"})
 	decoded := string(utf16.Decode(block))
@@ -116,8 +134,8 @@ func TestWindowsBackendInterruptWritesETXToProviderInput(t *testing.T) {
 }
 
 func TestWindowsBackendDefaultsToStandardPipes(t *testing.T) {
-	t.Setenv("AI_CLI_ENABLE_CONPTY", "")
-	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
+	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
+	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
 	backend := NewBackendForProvider("opencode")
 	cmd := exec.Command("cmd.exe")
 	if err := backend.Start(cmd, 24, 80); err != nil {
@@ -167,8 +185,8 @@ func TestWindowsBackendDefaultsToStandardPipes(t *testing.T) {
 }
 
 func TestWindowsBackendUsesConPTYForCodexAndForwardsArrowInputByDefault(t *testing.T) {
-	t.Setenv("AI_CLI_ENABLE_CONPTY", "")
-	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
+	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
+	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
 	backend := NewBackendForProvider("codex")
 	cmd := exec.Command(
 		"powershell.exe",
@@ -248,7 +266,7 @@ readLoop:
 }
 
 func TestWindowsBackendDisableConPTYOverridesCodexDefault(t *testing.T) {
-	t.Setenv("AI_CLI_ENABLE_CONPTY", "")
+	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
 	t.Setenv("AI_CLI_DISABLE_CONPTY", "1")
 	backend := NewBackendForProvider("codex")
 	cmd := exec.Command("cmd.exe", "/D", "/Q", "/C", "echo codex-pipe-override")
@@ -264,7 +282,7 @@ func TestWindowsBackendDisableConPTYOverridesCodexDefault(t *testing.T) {
 // TestWindowsBackendInteractive verifies input is delivered to the child.
 func TestWindowsBackendInteractiveConPTYOptIn(t *testing.T) {
 	t.Setenv("AI_CLI_ENABLE_CONPTY", "1")
-	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
+	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
 	backend := NewBackend()
 	cmd := exec.Command("cmd.exe", "/D", "/Q", "/V:ON", "/C", "set /p X=prompt: && echo GOT-!X!")
 	if err := backend.Start(cmd, 24, 80); err != nil {
@@ -331,8 +349,8 @@ readLoop:
 }
 
 func TestWindowsBackendKillUsesSupervisedJobObject(t *testing.T) {
-	t.Setenv("AI_CLI_ENABLE_CONPTY", "")
-	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
+	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
+	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
 	backend := NewBackend()
 	cmd := exec.Command("cmd.exe", "/D", "/Q", "/C", "ping -n 30 127.0.0.1 >nul")
 	if err := backend.Start(cmd, 24, 80); err != nil {

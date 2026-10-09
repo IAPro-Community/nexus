@@ -32,7 +32,18 @@ export async function stageBetaVersionFiles(versionPath, packagePath) {
     );
   }
   const next = nextBetaVersion(previous);
-  const newPackageText = JSON.stringify({ ...pkg, version: next }, null, 2) + "\n";
+  // Replace only the version field in-place to preserve original formatting
+  // (tabs, spacing, key order). JSON.stringify would reformat the whole file.
+  const versionFieldRegex = /("version"\s*:\s*")[^"]*(")/;
+  if (!versionFieldRegex.test(previousPackageText)) {
+    throw new Error(
+      `web/package.json não contém campo "version" válido`,
+    );
+  }
+  const newPackageText = previousPackageText.replace(
+    versionFieldRegex,
+    `$1${next}$2`,
+  );
   const rollback = async () => {
     const results = await Promise.allSettled([
       writeFile(versionPath, previousVersionText),
