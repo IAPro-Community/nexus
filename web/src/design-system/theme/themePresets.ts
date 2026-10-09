@@ -23,7 +23,7 @@ export interface ThemeDefinition {
   scheme: 'dark' | 'light' | 'high-contrast';
   accent: string;
   /** Visual finish; flat themes share one semantic CSS behavior, not per-theme components. */
-  finish?: 'flat';
+  finish?: 'flat' | 'subtle-gradient';
   vars: ThemeColorVars;
 }
 
@@ -397,6 +397,30 @@ export const THEME_PRESETS = {
       '--nx-accent-hover': '#82422e',
       '--nx-accent-soft': 'rgba(152, 82, 57, 0.09)',
       '--nx-accent-text': '#82422e',
+    },
+  },
+  'orca-dusk': {
+    id: 'orca-dusk',
+    name: 'Orca Dusk',
+    scheme: 'dark',
+    accent: '#91a8d3',
+    finish: 'subtle-gradient',
+    vars: {
+      '--nx-bg': '#0b0c0e',
+      '--nx-bg-elevated': '#121416',
+      '--nx-surface': '#17191c',
+      '--nx-surface-2': '#202328',
+      '--nx-surface-3': '#2a2e33',
+      '--nx-border': '#34383e',
+      '--nx-border-strong': '#454b54',
+      '--nx-text': '#f5f5f5',
+      '--nx-text-soft': '#d8dade',
+      '--nx-muted': '#adb2ba',
+      '--nx-subtle': '#a3aab4',
+      '--nx-accent': '#91a8d3',
+      '--nx-accent-hover': '#b0c2e2',
+      '--nx-accent-soft': 'rgba(145, 168, 211, 0.08)',
+      '--nx-accent-text': '#b4c8ed',
     },
   },
   'high-contrast-dark': {
