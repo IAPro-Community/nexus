@@ -32,16 +32,16 @@ Dívidas que merecem refatoração incremental, em ordem:
 - Não mover esta branch para a release enquanto houver homologação Windows exata em andamento; integrar depois, com autorização de qualidade para o novo SHA.
 - Os requisitos de distribuição/assinatura, Codex/ConPTY e smoke Windows/Linux continuam totalmente independentes da proposta de UI.
 
-## Complemento — Orca Dusk (2026-10-09)
+## Complemento — Nexus Dusk (2026-10-09)
 
 O código de referência [stablyai/orca — main.css](https://github.com/stablyai/orca/blob/main/src/renderer/src/assets/main.css) foi inspecionado: `.dark` usa `#0a0a0a` no background, `#171717` no card/sidebar, `#262626` nos elementos secondary/muted e bordas `rgb(255 255 255 / 0.07)`. A hierarquia vem principalmente de camadas neutras e variação pequena de brilho; **não foi copiado um tema de terceiros**.
 
-- Novo tema **Orca Dusk** (`orca-dusk`): grafite escuro (`#0b0c0e`), painel (`#17191c`), acento azul dessaturado (`#91a8d3`).
+- Novo tema **Nexus Dusk** (`nexus-dusk`): grafite escuro (`#0b0c0e`), painel (`#17191c`), acento azul dessaturado (`#91a8d3`).
 - Ampliado o contrato de `finish` com `subtle-gradient`, usando os mesmos tokens `--nx-*`, provider, persistência e seletor acessível. Os 15 temas originais e os três flat existentes não mudam.
 - `data-finish="subtle-gradient"` aplica fundos com transição discreta em rail/workspace, canvas e chrome de janelas; sem neon e sem mudar o canvas ANSI do terminal ou a lógica de títulos customizáveis.
 - A categoria **Degradê Suave** inclui apenas este tema.
 - Matriz unitária ampliada a **19 presets**; E2E de Composer cobre seletor, reload, quatro tamanhos de tela/estados já configurados e Axe.
-- Checagem estática das cores Orca Dusk (10 pares): contraste mínimo observado **7,34:1** nas comparações de textos e acento auditadas, acima das metas 4,5:1 para texto e 3:1 para elementos acentuados. Não equivale à execução real dos testes.
+- Checagem estática das cores Nexus Dusk (10 pares): contraste mínimo observado **7,34:1** nas comparações de textos e acento auditadas, acima das metas 4,5:1 para texto e 3:1 para elementos acentuados. Não equivale à execução real dos testes.
 - Ainda precisa passar por `bun run quality:full`, E2E real e conferência visual WebView2. Não converter esta PR draft em release antes da homologação e revalidação do SHA final.
 
 ## Próxima refatoração prioritária
