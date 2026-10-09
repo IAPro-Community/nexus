@@ -120,6 +120,7 @@ describe('theme model', () => {
         'slate-flat',
         'paper-flat',
         'clay-flat',
+        'orca-dusk',
         'midnight',
         'nord',
         'dracula',
@@ -135,7 +136,7 @@ describe('theme model', () => {
         'high-contrast-light',
       ]),
     );
-    expect(keys.length).toBeGreaterThanOrEqual(18);
+    expect(keys.length).toBeGreaterThanOrEqual(19);
   });
 
   it('keeps registry keys, ids and primary accent tokens consistent', () => {
@@ -160,6 +161,31 @@ describe('theme model', () => {
     expect(getThemePresetFinish('nexus-dark')).toBe('standard');
     expect(getThemePresetFinish('monokai')).toBe('standard');
     expect(getThemePresetFinish('obsidian')).toBe('standard');
+  });
+
+  it('uses a dedicated restrained gradient finish for Orca Dusk only', () => {
+    const orca = THEME_PRESETS['orca-dusk'];
+    expect(orca.finish).toBe('subtle-gradient');
+    expect(getThemePresetFinish('orca-dusk')).toBe('subtle-gradient');
+    expect(orca.scheme).toBe('dark');
+    expect(orca.vars['--nx-bg']).toBe('#0b0c0e');
+    expect(orca.vars['--nx-surface']).toBe('#17191c');
+    expect(getThemePresetFinish('slate-flat')).toBe('flat');
+    expect(getThemePresetFinish('nexus-dark')).toBe('standard');
+  });
+
+  it('preserves Orca Dusk selection and consistent scheme after a persisted reload', () => {
+    const normalized = normalizeThemePreferences({
+      ...defaultThemePreferences,
+      preset: 'orca-dusk',
+      scheme: 'light',
+      density: 'comfortable',
+      isCustomized: false,
+    });
+    expect(normalized.preset).toBe('orca-dusk');
+    expect(normalized.scheme).toBe('dark');
+    expect(normalized.density).toBe('comfortable');
+    expect(resolveThemeStyleVariables(normalized, 'dark')['--nx-bg']).toBe('#0b0c0e');
   });
 
   it('restores a flat preset after persistence without affecting user density', () => {
