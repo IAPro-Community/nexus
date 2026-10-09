@@ -8409,3 +8409,27 @@ button.nx-workspace-tab__close {
 :root[data-finish="subtle-gradient"] .nx-splash-dot {
   box-shadow: none;
 }
+
+
+/* Independent appearance controls: safe system font stacks and Lucide stroke weights.
+   Defaults keep the existing Nexus typography and icon styles unchanged.
+   Terminal canvas/font metrics remain controlled by xterm, not these selectors. */
+:root[data-font-family="system"] {
+  --nx-font:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --nx-font-sans:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+:root[data-font-family="readable"] {
+  --nx-font: Verdana, "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+  --nx-font-sans: Verdana, "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+}
+
+:root[data-icon-style="light"] svg.lucide {
+  stroke-width: 1.5;
+}
+
+:root[data-icon-style="bold"] svg.lucide {
+  stroke-width: 2.5;
+}
