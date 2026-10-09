@@ -113,6 +113,109 @@ func TestTerminalInputScrubberDropsSGRMouseReports(t *testing.T) {
 	}
 }
 
+func TestTerminalInputScrubberDropsX10WheelPacketsWithoutCancelingSelection(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalInputScrubber(&out)
+	defer scrubber.Close()
+
+	// 96/97 are wheel-up/down button codes encoded as 32+64/65.
+	// X10 uses six bytes; CSI M is not a complete keyboard sequence.
+	input := []byte("draft\x1b[M\x60\x48\x28\x1b[M\x61\x48\x28\x1b[A\x1b[B\r")
+	if _, err := scrubber.Write(input); err != nil {
+		t.Fatal(err)
+	}
+	if err := scrubber.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := out.String(), "draft\x1b[A\x1b[B\r"; got != want {
+		t.Fatalf("X10 wheel contaminated Codex selection: got %q, want %q", got, want)
+	}
+}
+
+func TestTerminalInputScrubberCoalescesFragmentedX10AcrossWrites(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalInputScrubber(&out)
+	defer scrubber.Close()
+
+	parts := [][]byte{
+		[]byte("choice"),
+		{0x1b}, []byte("[M"), {0x60}, {0x48}, {0x28},
+		[]byte("\x1bOB"), // legitimate application-cursor Down
+		[]byte("\x1b[<65;21;3M"), // SGR wheel Down
+		[]byte("\x1b[96;21;3M"),  // URXVT wheel Up
+		[]byte("\x1b[A"),         // legitimate cursor Up
+	}
+	for i, part := range parts {
+		if _, err := scrubber.Write(part); err != nil {
+			t.Fatal(err)
+		}
+		if i >= 2 && i <= 5 && out.String() != "choice" {
+			t.Fatalf("X10 fragment was forwarded before complete: %q", out.String())
+		}
+	}
+	if err := scrubber.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := out.String(), "choice\x1bOB\x1b[A"; got != want {
+		t.Fatalf("mixed mouse/selector input = %q, want %q", got, want)
+	}
+}
+
+func TestTerminalInputScrubberDropsIncompleteX10InsteadOfReleasingEscape(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalInputScrubber(&out)
+	defer scrubber.Close()
+
+	_, _ = scrubber.Write([]byte("\x1b[M\x60"))
+	if got := out.String(); got != "" {
+		t.Fatalf("incomplete X10 was forwarded: %q", got)
+	}
+	if err := scrubber.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != "" {
+		t.Fatalf("incomplete X10 must be discarded on final flush: %q", got)
+	}
+}
+
+func TestTerminalInputScrubberPreservesNonMouseCSIAndOutputDeleteLine(t *testing.T) {
+	var in, out bytes.Buffer
+	input := NewTerminalInputScrubber(&in)
+	output := NewTerminalOutputScrubber(&out)
+	defer input.Close()
+	defer output.Close()
+
+	// ESC [ M is a delete-line command in output, not a mouse packet.
+	_, _ = output.Write([]byte("prompt\x1b[Mnext"))
+	_ = output.Flush()
+	if got := out.String(); got != "prompt\x1b[Mnext" {
+		t.Fatalf("output CSI M changed: %q", got)
+	}
+	// Invalid legacy packet must not cause subsequent valid arrow keys to
+	// disappear. Enter and explicit Ctrl+C remain byte-transparent.
+	_, _ = input.Write([]byte("\x1b[M\x1b[A\x03\r"))
+	_ = input.Flush()
+	if got := in.String(); got != "\x1b[M\x1b[A\x03\r" {
+		t.Fatalf("ordinary control bytes changed: %q", got)
+	}
+}
+
+func TestTerminalInputScrubberMouseReportTimeoutCannotEmitPartialX10(t *testing.T) {
+	out := newSynchronizedBuffer()
+	scrubber := NewTerminalInputScrubber(out)
+	defer scrubber.Close()
+
+	_, _ = scrubber.Write([]byte("\x1b[M\x60"))
+	select {
+	case <-out.wrote:
+		t.Fatalf("partial mouse report leaked on timer: %q", out.String())
+	case <-time.After(terminalInputSequenceCoalesceWindow + 150*time.Millisecond):
+	}
+	if got := out.String(); got != "" {
+		t.Fatalf("timeout leaked X10 prefix into provider: %q", got)
+	}
+}
+
 func TestTerminalInputScrubberCoalescesSplitSGRMouseReport(t *testing.T) {
 	var out bytes.Buffer
 	scrubber := NewTerminalInputScrubber(&out)
