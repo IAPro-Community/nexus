@@ -44,6 +44,21 @@ The 1.0 registry contains the existing presets plus the approved visual set:
 
 Existing presets remain available for compatibility.
 
+### Personalização de fonte e ícones
+
+A seleção da paleta e do acabamento é independente das preferências de aparência:
+
+- **Fonte da interface:** `default` (tipografia Nexus atual), `system` (fonte do sistema operacional) ou `readable` (Verdana/Trebuchet com fallbacks locais). São stacks de fontes locais; nenhuma fonte é descarregada de terceiros nem embutida sem licença. A escolha aplica-se aos rótulos, menus e painéis, mas **não muda as células nem as métricas do xterm**.
+- **Traço dos ícones:** `default`, `light` (1,5) e `bold` (2,5) aplicam espessuras via CSS à biblioteca Lucide já instalada. **Não representam packs diferentes ou variantes preenchidas**; isso demandaria um catálogo e mapeamento de ícones independente.
+- O mesmo `iapro:nexus:theme:v1` guarda preferências validadas: se o usuário instalou uma versão antiga, campos ausentes voltam para `default`. Mudanças de tema não sobrescrevem fonte ou traço. O usuário pode restaurar ambos aos defaults.
+- Os controles usam `Segmented`/ChoiceGroup acessíveis já existentes e permanecem fora da renderização do terminal. A alteração de fonte precisa de verificação visual em resoluções menores.
+
+### Ember Studio — inspiração Sublime Text
+
+- Novo preset `ember-studio` de aparência escura, carvão/grafite e acentos âmbar suaves. É um **tema Nexus original**, não uma cópia, distribuição ou marca oficial do Sublime Text.
+- O Sublime separa temas de UI e esquemas de sintaxe, conforme [documentação oficial](https://www.sublimetext.com/docs/themes.html) e [documentação de esquemas](https://www.sublimetext.com/docs/color_schemes.html). Nosso preset atua somente em tokens de **interface**, e não tenta alterar syntax highlighting de xterm ou código. O tema `monokai` já existente permanece disponível.
+- `Ember Studio` reaproveita o acabamento `flat` com superfícies sólidas, contraste WCAG unitário e a categoria Clássicos do Código.
+
 ### Degradê Suave — Nexus Dusk
 
 - **Nexus Dusk** (`nexus-dusk`) — paleta grafite neutra com quase-preto, uma
