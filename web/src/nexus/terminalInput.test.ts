@@ -34,7 +34,11 @@ describe('shouldForwardTerminalInput', () => {
     '\x1b[<35;58;48M', // SGR any-event motion
     '[<35;58;48M', // bare (no ESC) motion
     '\x1b[<0;10;4m', // SGR release (lowercase m)
-  ])('drops leaked SGR mouse tracking report %j', (data) => {
+    '\x1b[M\x60\x48\x28', // X10 wheel Up (96; 40; 8)
+    '\x1b[M\x61\x48\x28', // X10 wheel Down (97; 40; 8)
+    '\x1b[96;40;8M', // URXVT wheel Up
+    '\x1b[97;40;8M', // URXVT wheel Down
+  ])('drops leaked mouse tracking report %j', (data) => {
     expect(shouldForwardTerminalInput(data)).toBe(false);
   });
 
@@ -88,6 +92,21 @@ describe('stripEmbeddedTerminalMetadata', () => {
     expect(stripEmbeddedTerminalMetadata('/e[31m literal')).toBe('/e[31m literal');
     expect(stripEmbeddedTerminalMetadata('[I] array index')).toBe('[I] array index');
     expect(stripEmbeddedTerminalMetadata('typed\x1b[C')).toBe('typed\x1b[C');
+  });
+
+  it('removes coalesced legacy mouse-wheel reports without dropping real arrow keys', () => {
+    const mouseUp = '\x1b[M\x60\x48\x28';
+    const mouseDown = '\x1b[M\x61\x48\x28';
+    expect(
+      stripEmbeddedTerminalMetadata(
+        `start${mouseUp}\x1b[A${mouseDown}\x1bOB\x1b[96;40;8M\r`,
+      ),
+    ).toBe('start\x1b[A\x1bOB\r');
+    expect(stripEmbeddedTerminalMetadata('choice\x1b[97;40;8M')).toBe('choice');
+    expect(shouldForwardTerminalInput('\x1b[M')).toBe(true);
+    expect(shouldForwardTerminalInput('\x1b[A')).toBe(true);
+    expect(shouldForwardTerminalInput('\x1bOB')).toBe(true);
+    expect(shouldForwardTerminalInput('\x03')).toBe(true);
   });
 
   it('strips embedded SGR mouse tracking reports from mixed chunks', () => {
