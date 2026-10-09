@@ -28,7 +28,13 @@ export function shouldForwardTerminalInput(data: string): boolean {
     // metadata, never user input. The host terminal emits these when mouse
     // tracking modes (?1000/?1003 + ?1006) are active.
     // eslint-disable-next-line no-control-regex
-    /^\x1b?\[<\d+;\d+;\d+[Mm]$/.test(data)
+    /^\x1b?\[<\d+;\d+;\d+[Mm]$/.test(data) ||
+    // Legacy X10 mouse reports: ESC [ M followed by Cb, Cx and Cy.
+    // eslint-disable-next-line no-control-regex
+    /^\x1b\[M[\x20-\xff]{3}$/.test(data) ||
+    // URXVT 1015 mouse reports (especially wheel button 96/97).
+    // eslint-disable-next-line no-control-regex
+    /^\x1b?\[(?:[3-9]\d|\d{3,});\d+;\d+M$/.test(data)
   ) {
     return false;
   }
@@ -46,6 +52,10 @@ const EMBEDDED_FOCUS_RE = /\x1b\[[0-9;]*(?:\[[iIO]|[iIO])/g;
 const EMBEDDED_CPR_RE = /\x1b\[\d+;\d+R/g;
 // eslint-disable-next-line no-control-regex
 const EMBEDDED_MOUSE_RE = /\x1b\[<\d+;\d+;\d+[Mm]/g;
+// eslint-disable-next-line no-control-regex
+const EMBEDDED_X10_MOUSE_RE = /\x1b\[M[\x20-\xff]{3}/g;
+// eslint-disable-next-line no-control-regex
+const EMBEDDED_URXVT_MOUSE_RE = /\x1b\[(?:[3-9]\d|\d{3,});\d+;\d+M/g;
 
 /**
  * Strip only provably terminal-generated metadata.
@@ -59,7 +69,9 @@ export function stripEmbeddedTerminalMetadata(data: string): string {
   return data
     .replace(EMBEDDED_FOCUS_RE, '')
     .replace(EMBEDDED_CPR_RE, '')
-    .replace(EMBEDDED_MOUSE_RE, '');
+    .replace(EMBEDDED_MOUSE_RE, '')
+    .replace(EMBEDDED_X10_MOUSE_RE, '')
+    .replace(EMBEDDED_URXVT_MOUSE_RE, '');
 }
 
 /**
