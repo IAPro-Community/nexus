@@ -1,3 +1,9 @@
+## 2026-10-09 — Push dos registros Windows beta.10
+
+- Após autorização explícita, enviei os seis commits documentais da branch `fix/windows-beta10-homologation-20261008` para `origin`, avançando de `1e3f9a3b` até `2d6ac17a5e794bc85adba73baabedb9f11e7c3f6`. `release/v1.0.0` não foi alterada; nenhum segredo apareceu na saída.
+- Registrei a ponta enviada e o estado real de runner no relatório/status/handoff: a revisão automática bloqueou a execução local do workflow com potencial acesso a `native-signing`, e o usuário adiou a rotação das credenciais.
+- Verificação: o push remoto confirmou fast-forward; `git status` ficou limpo. A análise local do tray foi inconclusiva porque o sistema mostrava dois ícones Wails sem identidade visual distinta. Nenhum gate Linux foi executado.
+
 ## 2026-10-09 — Revalidação oficial Windows beta.10 no SHA `e46d0619`
 
 - O `scripts/homologate-beta.ps1 -ExpectedSha e46d0619d36b63864f3f8a77a5d25652b9581afd` terminou exit code 0 em Windows AMD64, `VERSION=1.0.0-beta.10`, Go 1.27.2, Bun 1.3.9 e Node 22.14.0 (17:01:49Z–17:37:21Z).

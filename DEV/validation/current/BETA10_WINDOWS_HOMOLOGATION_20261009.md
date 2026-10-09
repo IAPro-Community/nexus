@@ -3,6 +3,12 @@
 GIT_SHA: `e46d0619d36b63864f3f8a77a5d25652b9581afd`
 EVIDENCE_COMMIT: `7ab06584b02ee9e8f3bdb95fec25afd1052b1dbd`
 
+## Atualização operacional — branch Windows enviada — 2026-10-09
+
+Os seis commits documentais posteriores à base `1e3f9a3b` foram enviados com sucesso para `origin/fix/windows-beta10-homologation-20261008`, até `2d6ac17a5e794bc85adba73baabedb9f11e7c3f6`. Nenhum commit foi enviado diretamente para `release/v1.0.0`; o source homologado continua sendo `e46d0619`, sem alteração de código de produto depois dele.
+
+O usuário adiou a rotação das credenciais. O runner Windows local não foi registrado nem o workflow hosted foi disparado: a revisão automática bloqueou a execução porque o workflow pode executar comandos neste host com acesso aos secrets `native-signing`. A aprovação do usuário para um runner de um job foi recebida, mas não remove esse bloqueio automático. Não houve gates Linux.
+
 ## Revalidação oficial Windows no SHA `e46d0619d36b63864f3f8a77a5d25652b9581afd` — 2026-10-09
 
 O checkout `fix/windows-beta10-homologation-20261008` estava limpo no início da execução. `VERSION` e `version.json` confirmam `1.0.0-beta.10`, Windows AMD64, Go 1.27.2 e commit `e46d0619`. O homologador oficial terminou com exit code 0 entre `2026-10-09T17:01:49Z` e `2026-10-09T17:37:21Z`. Não houve execução de gates Linux.
@@ -20,7 +26,7 @@ O checkout `fix/windows-beta10-homologation-20261008` estava limpo no início da
 
 Evidências locais ignoradas pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/`, com logs de Go, Bun, frontend, E2E, versão e checklist `MANUAL_CHECKS.md`. Os smokes nativos e hashes dos bins estão em `native-smokes/`; os arquivos do teste overlay do autostart registram a implementação e a limpeza. Nenhum desses bins é artefato assinado de distribuição.
 
-**Veredito:** PASS dos gates automatizados e smokes locais limitados Windows no SHA exato `e46d0619`. O workflow hosted de um job foi autorizado pelo usuário, mas ainda não foi registrado/disparado enquanto aguarda rotação e confirmação das credenciais locais. Interação física do tray, controle visual do autostart, fluxos autenticados de provider/Mission/Voice, assinatura/update trust root e instalador assinado seguem pendentes; tag e distribuição permanecem **NO-GO**. A candidata é beta.10, diferente da beta.7 `d14154d2`.
+**Veredito:** PASS dos gates automatizados e smokes locais limitados Windows no SHA exato `e46d0619`. A branch candidata foi enviada até `2d6ac17a`; o runner hosted continua sem registro por bloqueio da revisão automática, mesmo com a autorização do usuário. Interação física do tray, controle visual do autostart, fluxos autenticados de provider/Mission/Voice, assinatura/update trust root e instalador assinado seguem pendentes; tag e distribuição permanecem **NO-GO**. A candidata é beta.10, diferente da beta.7 `d14154d2`.
 
 ### Artefatos Windows AMD64 do gate — builds locais sem assinatura
 

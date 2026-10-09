@@ -1,3 +1,10 @@
+## 2026-10-09 — Push e estado atual da homologação Windows beta.10
+
+- PASS — `git push origin HEAD:refs/heads/fix/windows-beta10-homologation-20261008` enviou a branch até `2d6ac17a5e794bc85adba73baabedb9f11e7c3f6`; o push confirmou a atualização de `1e3f9a3b` para `2d6ac17a`. Worktree limpo após o push; nenhuma alteração foi enviada diretamente a `release/v1.0.0`.
+- PASS — os commits enviados são documentais. A fonte com gate oficial Windows permanece `e46d0619d36b63864f3f8a77a5d25652b9581afd`; nenhum código de produto mudou depois desse SHA.
+- INCONCLUSIVO — a inspeção do tray mostrou callbacks de clique/menu registrados e duas bandejas Wails visualmente iguais; a evidência de clique físico não distingue o ícone Nexus nem prova falha do produto. Tray e controle visual de autostart seguem pendentes.
+- BLOQUEADO — nenhum runner Windows foi registrado nem workflow hosted disparado: a revisão automática bloqueou a execução local por potencial acesso aos secrets `native-signing`. O usuário adiou a rotação de credenciais. Nenhum gate Linux foi executado.
+
 ## 2026-10-09 — Reteste completo Windows beta.10 e CI hosted
 
 - PASS local no source SHA exato `767be3b168a6d3ec7d223908e21812807486482f`, Windows AMD64: Go 1.27.2 `go vet ./...` e `go test -count=1 -v ./...`; golangci-lint v2.14.0 (zero issues); Bun 1.3.9 `install --frozen-lockfile` e `quality:full` (84 arquivos/504 testes); oito suítes Playwright; gates ConPTY/Named Pipe/runtime-web; builds e smokes Desktop/HUD.
