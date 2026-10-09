@@ -3,7 +3,7 @@
 | Campo | Valor |
 | --- | --- |
 | GIT_SHA | `638cfb3bbb7aa9a647d6802964e7e4ab794cc786` |
-| EVIDENCE_COMMIT | será registrado no commit documental de acompanhamento |
+| EVIDENCE_COMMIT | `4ab1457f5d4554cde2998f32b697f45196349654` |
 | BRANCH | `fix/windows-beta10-homologation-20261008` |
 | VERSION | `1.0.0-beta.10` |
 | PLATFORM | Windows AMD64 |
