@@ -5,6 +5,12 @@ export type ThemeAccent = 'purple' | 'blue' | 'cyan' | 'neutral';
 export type ThemeDensity = 'compact' | 'comfortable';
 export type ThemePresetKey = keyof typeof THEME_PRESETS;
 
+/** Visual effects are an opt-in quality of a preset, not a new theme renderer. */
+export function getThemePresetFinish(preset: ThemePresetKey): 'flat' | 'standard' {
+  const definition: ThemeDefinition = THEME_PRESETS[preset];
+  return definition.finish ?? 'standard';
+}
+
 export interface ThemePreferences {
   scheme: ThemeScheme;
   accent: ThemeAccent;
