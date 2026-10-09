@@ -324,6 +324,35 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
   await assertA11y(page, theme);
 }
 
+async function assertAppearanceControlsPersist(page, apiOrigin) {
+  await page.goto(`${apiOrigin}/settings`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 30000 });
+
+  const fonts = page.getByRole('radiogroup', { name: /Fonte da interface/i });
+  const icons = page.getByRole('radiogroup', { name: /Traço dos ícones/i });
+  await fonts.getByRole('radio', { name: 'Leitura' }).click();
+  await icons.getByRole('radio', { name: 'Marcado' }).click();
+
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.fontFamily === 'readable' &&
+      document.documentElement.dataset.iconStyle === 'bold',
+  );
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 30000 });
+  assert.equal(await fonts.getByRole('radio', { name: 'Leitura' }).getAttribute('aria-checked'), 'true');
+  assert.equal(await icons.getByRole('radio', { name: 'Marcado' }).getAttribute('aria-checked'), 'true');
+
+  // Restore defaults so the existing screenshot matrix remains comparable.
+  await fonts.getByRole('radio', { name: 'Padrão' }).click();
+  await icons.getByRole('radio', { name: 'Padrão' }).click();
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.fontFamily === 'default' &&
+      document.documentElement.dataset.iconStyle === 'default',
+  );
+}
+
 async function main() {
   fixture = await startFixtureServer();
   browser = await chromium.launch({
@@ -344,6 +373,8 @@ async function main() {
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
+
+  await assertAppearanceControlsPersist(page, apiOrigin);
 
   const themeFailures = [];
   for (const theme of themes) {
