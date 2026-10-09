@@ -16,14 +16,16 @@ import (
 //
 // The sequence resets: application cursor (?1), Kitty keyboard (>0u),
 // modifyOtherKeys (>4;0m), focus reporting (?1004), bracketed paste (?2004),
-// and all mouse tracking modes (?1000 normal, ?1002 button-event,
-// ?1003 any-event, ?1006 SGR extended, ?1015 urxvt).
+// and mouse/alternate-scroll modes (?1000 normal, ?1002 button-event,
+// ?1003 any-event, ?1005 UTF-8, ?1006 SGR, ?1007 alternate-scroll,
+// ?1015 urxvt, ?1016 SGR pixels).
 //
 // The sequence is safe to send repeatedly. That property is important because
 // recovery can be requested by Ctrl+C, a broken attach stream, and a deferred
 // cleanup at the same time.
 const KeyboardModeReset = "\x1b[?1l\x1b[>0u\x1b[>4;0m\x1b[?1004l\x1b[?2004l" +
-	"\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?1015l"
+	"\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1005l\x1b[?1006l" +
+	"\x1b[?1007l\x1b[?1015l\x1b[?1016l"
 
 // ResetKeyboardModes disables application cursor, Kitty/CSI-u keyboard
 // enhancement, modifyOtherKeys, focus reporting, bracketed paste, and all
