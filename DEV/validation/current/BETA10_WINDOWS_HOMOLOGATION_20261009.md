@@ -1,5 +1,17 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+## CI Windows hosted — run `37898823857` — 2026-10-09
+
+O run [37898823857](https://github.com/IAPro-Community/nexus/actions/runs/37898823857) executou no runner Windows efêmero e terminou **FAIL** no build web. A validação conferiu o source SHA exato `767be3b168a6d3ec7d223908e21812807486482f` e arquitetura Windows AMD64. O run usou a definição do workflow no commit `add42efdcb65d45ddfd7e5ab1f444346297305fd`.
+
+- **PASS** — checkout no SHA-alvo, arquitetura AMD64, setup Go 1.27.2 e Bun 1.3.9; `bun install --frozen-lockfile` instalou 522 pacotes.
+- **FAIL** — `bun run build` chama `node scripts/build.mjs`, mas o runner resolveu Node.js 18.12.1. O script falhou em `collectedStyles.toSorted is not a function` (`web/scripts/build.mjs:96`). O gate local do mesmo SHA usa Node 22.14.0 e passou; a causa é o runtime Node implícito do runner, não um delta de código entre plataformas.
+- **SKIPPED** — Go vet/testes, regressões ConPTY/Named Pipe, testes Runtime/Web, signing/package, smokes Desktop/HUD, install/uninstall NSIS e upload de artefatos. O job encerrou antes da etapa que injeta os secrets de assinatura.
+- **Correção preparada no workflow** — instalar `actions/setup-node@v7` com Node 22.14.0, desativar cache automático do package manager e validar `node --version` antes do build. O novo run no mesmo source SHA ainda é necessário para confirmar a correção.
+- O runner v2.338.0 foi baixado com o SHA-256 publicado, registrado sem serviço e configurado como efêmero. Após um job, removeu automaticamente suas credenciais e o registro; nenhum gate Linux foi executado.
+
+**Status da homologação hosted Windows: FAIL no pré-requisito de Node; correção aguardando novo run. Distribuição permanece NO-GO.**
+
 ## Continuidade Windows no SHA `767be3b168a6d3ec7d223908e21812807486482f` — 2026-10-09
 
 O candidato permanece `1.0.0-beta.10`, distinto da solicitação beta.7 no SHA `d14154d2490dfdd3966c7fddc990a1d9127edd39`. A branch `fix/windows-beta10-homologation-20261008` passou novamente por `scripts/homologate-beta.ps1 -ExpectedSha 767be3b168a6d3ec7d223908e21812807486482f` em Windows AMD64.

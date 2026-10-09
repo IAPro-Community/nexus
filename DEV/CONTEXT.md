@@ -118,3 +118,7 @@
 ## Registro anterior do estado Windows — SHA `3a09b5f0` — 2026-10-09
 
 O gate automatizado passou no Windows AMD64 em `3a09b5f0035cde09931b8f8eef1c783f49de47e0` (`1.0.0-beta.10`): 66 pacotes Go, 84 arquivos/503 testes web e oito suítes browser E2E. O Desktop carregou o Project Hub; a captura nativa do HUD ficou transparente apesar da API ativa, então a projeção HUD permanece inconclusiva. A branch Windows precisa de PR para `release/v1.0.0` (`deca290b`); depois da integração, repetir CI hosted e fechar os smokes interativos/autenticados, assinatura, trust root e instalador. O candidato é beta.10, distinto do pedido beta.7/d14154d2. Nenhum gate Linux foi executado nesta continuação.
+
+## Estado mais recente — CI Windows hosted beta.10 — 2026-10-09
+
+O run `37898823857` validou o source SHA `767be3b168a6d3ec7d223908e21812807486482f` em Windows AMD64 e passou o Bun frozen install, mas falhou no build web porque o runner usou Node 18.12.1. A correção do workflow seleciona Node 22.14.0 e será confirmada por novo run. Runner v2.338.0 efêmero já se auto-desregistrou. Ver `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md` e `DEV/HANDOFF.md`. Nenhum gate Linux foi executado; distribuição permanece NO-GO.

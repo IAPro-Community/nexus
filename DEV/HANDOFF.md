@@ -2290,3 +2290,9 @@ Project Hub validado em 775×483. Gate web completo, oito suítes Playwright e b
 Não declarar fechamento: o SHA pedido era d14154d2490dfdd3966c7fddc990a1d9127edd39; release/v1.0.0 e origin estão em 52f35c04181b85379219ab55fc3192c63a5440a8 e o worktree está dirty. Binários NotSigned e sem update trust root. O run Actions 37666126714 não foi revalidado (API anônima 404), e o instalador final não foi recompilado. A tag remota Beta 7 está ausente.
 
 A auditoria ao vivo não encontrou branch Beta 7 nova; a branch KIVER é ancestral da release. Quatro branches de terminal/testes com commits exclusivos permanecem para triagem. Nenhuma integração, commit, push, tag ou publicação foi feita. A certificação oficial precisa ocorrer num SHA imutável após seleção das mudanças e fechamento do runner/signing Windows.
+
+## Handoff atual — CI Windows hosted beta.10 — 2026-10-09
+
+O run [37898823857](https://github.com/IAPro-Community/nexus/actions/runs/37898823857) conferiu source SHA exato `767be3b168a6d3ec7d223908e21812807486482f` e Windows AMD64, mas falhou em `bun run build`: o runner escolheu Node 18.12.1 e `web/scripts/build.mjs:96` requer `Array.prototype.toSorted`. Go vet/testes, signing, Desktop/HUD e NSIS ficaram pulados. `bun install --frozen-lockfile` passou.
+
+Ajuste pronto em `.github/workflows/ci.yml`: `actions/setup-node@v7`, Node 22.14.0, cache automático desativado e assert da versão efetiva. Próxima ação: revisar `git diff`, executar `git diff --check`, commitar e enviar somente à branch `fix/windows-beta10-homologation-20261008`; depois disparar novamente o workflow para o mesmo source SHA com `native_platform=windows`. O runner oficial v2.338.0 já executou um job e se desregistrou; arquivos temporários/log permanecem em `%TEMP%` até a conclusão do reteste e devem ser removidos depois. Nenhum gate Linux executado; não enviar diretamente para `release/v1.0.0`.

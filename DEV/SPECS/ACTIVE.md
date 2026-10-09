@@ -1,6 +1,8 @@
-## Continuidade Windows beta.10 — runner hosted pendente — 2026-10-09
+## Continuidade Windows beta.10 — correção do runner hosted — 2026-10-09
 
-O candidato `1.0.0-beta.10` está em `fix/windows-beta10-homologation-20261008`; fonte local validada `767be3b168a6d3ec7d223908e21812807486482f`, diferente do beta.7 `d14154d2`. O CI foi escopado no commit `add42efd`; o run `37898823857` permanece na fila com os jobs genéricos/Linux ignorados. Não existe runner Windows registrado. A tentativa de registrar um runner efêmero neste host foi recusada por revisão automática por causa da execução de código do workflow e acesso potencial a secrets. A auditoria local também confirmou ausência das ferramentas/credenciais de assinatura e que AGY/Codex/Gemini estão `INSTALLED_UNREGISTERED` no evidence snapshot. A retomada requer autorização explícita para esse limite de execução ou runner Windows disponibilizado pelo usuário. Não executar gates Linux nem publicar/taggear enquanto os blockers do status corrente permanecerem.
+O candidato `1.0.0-beta.10` está em `fix/windows-beta10-homologation-20261008`; o source SHA local validado é `767be3b168a6d3ec7d223908e21812807486482f`, distinto do beta.7 `d14154d2`. O run Windows hosted `37898823857` confirmou SHA/AMD64, instalou Go 1.27.2 e Bun 1.3.9 e passou `bun install --frozen-lockfile`, mas falhou em `bun run build`: o PATH do runner forneceu Node 18.12.1, que não implementa `Array.prototype.toSorted`. As etapas Go, signing, Desktop/HUD e NSIS foram puladas.
+
+A correção preparada em `.github/workflows/ci.yml` configura `actions/setup-node@v7` com Node 22.14.0, desativa cache automático do package manager e valida a versão efetiva antes do build. O runner v2.338.0 rodou um job sem serviço e auto-desregistrou. Próximo passo: commit/push na branch candidata e novo dispatch com `native_target_sha=767be3b168a6d3ec7d223908e21812807486482f` e `native_platform=windows`. Não executar gates Linux nem push direto à release.
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
 ## Atualização de homologação Windows beta.10 — 2026-10-09

@@ -1,6 +1,6 @@
 # Current release status
 
-> **Atualização Windows em 2026-10-09:** gate automatizado passou no SHA exato `767be3b168a6d3ec7d223908e21812807486482f`; smoke Desktop com singleton isolado, instalador NSIS real (instalar/desinstalar) e autostart com AppID GUID isolado passaram. O instalador não tem assinatura verificável. A bandeja foi capturada aberta, mas os ícones Wails não puderam ser distinguidos nem clicados de forma verificável. O CI hosted `37898823857` está `queued`: os jobs Linux foram ignorados, mas não há runner Windows registrado; smokes autenticados e assinatura/update trust root também continuam pendentes. Distribuição **NO-GO**.
+> **Atualização Windows em 2026-10-09:** os gates locais e smokes isolados passaram no SHA `767be3b168a6d3ec7d223908e21812807486482f`. O run hosted `37898823857` verificou o mesmo SHA/AMD64, mas falhou em `bun run build`: o runner usou Node 18.12.1, incompatível com `Array.prototype.toSorted`. O workflow agora está sendo ajustado para Node 22.14.0 e requer novo run. O runner Windows v2.338.0 foi efêmero e já se auto-desregistrou após um job; os gates Go e smokes não iniciaram. Tray, smokes autenticados e assinatura/update trust root permanecem pendentes. Distribuição **NO-GO**.
 
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 
@@ -15,10 +15,11 @@ WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_WAILS_WEBVIEW2_AND_CLEANUP_ON_767BE3B1_WITH_U
 WINDOWS_NATIVE_HUD_SMOKE: PASS_VISIBLE_PANEL_AND_EXPANSION_ON_0782; CONTROLLER_SHOW_HIDE=PASS_ON_665; AUTOSTART_REGISTRY_ISOLATED=PASS_ON_767BE3B1; TRAY_UI=NOT_VERIFIED
 WINDOWS_NSIS_INSTALLER_SMOKE: PASS_INSTALL_AND_UNINSTALL_ON_767BE3B1; UNSIGNED
 WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: PASS_NO_LITERAL_ARROWS_IN_CODEX_0782_AND_AGY_665; NO_PROMPT_SENT; AUTHENTICATED_SESSION_PENDING
-WINDOWS_HOSTED_CI_SAME_SHA: QUEUED_NO_MATCHING_WINDOWS_RUNNER (run 37898823857; target SHA 767be3b168a6d3ec7d223908e21812807486482f)
-WINDOWS_HOSTED_RUNNER_INVENTORY: 1 runner; nexus-ci-dev-web-kiver labels self-hosted/Linux/X64/nexus-ci, offline; no Windows/X64/nexus-windows runner
-WINDOWS_EPHEMERAL_RUNNER_SETUP: BLOCKED_BY_AUTO_REVIEW; explicit authorization required for workflow-code execution on this host and potential access to native-signing secrets
-WINDOWS_EPHEMERAL_RUNNER_PACKAGE: v2.338.0 x64; SHA-256 matched official release digest; registration did not occur
+WINDOWS_HOSTED_CI_SAME_SHA: FAIL_BUN_BUILD_NODE_RUNTIME (run 37898823857; target SHA 767be3b168a6d3ec7d223908e21812807486482f; checkout SHA/AMD64 verified; Node 18.12.1 lacks toSorted)
+WINDOWS_HOSTED_CI_REMEDIATION: PREPARED_SETUP_NODE_V7_22_14_0_AND_VERSION_ASSERT; awaiting push and rerun on same source SHA
+WINDOWS_HOSTED_RUNNER_INVENTORY: existing runner nexus-ci-dev-web-kiver labels self-hosted/Linux/X64/nexus-ci, offline; one-shot Windows runner auto-deregistered after run 37898823857
+WINDOWS_EPHEMERAL_RUNNER_SETUP: PASS_ONE_JOB_EPHEMERAL; no service installed; runner removed its registration and credentials after the job
+WINDOWS_EPHEMERAL_RUNNER_PACKAGE: v2.338.0 x64; SHA-256 f48e0750a21812bca5f82de5f7f5aeae71abee647fab5a582f1742d07eba455f matched official release digest; temporary files await cleanup after rerun
 WINDOWS_SIGNED_INSTALLER_AND_UPDATE_TRUST_ROOT: BLOCKED_TOOLS_AND_SECRETS_UNAVAILABLE
 WINDOWS_LOCAL_SIGNING_PREREQUISITES: signtool.exe and makensis.exe not found on PATH; code-signing certificates with private key=0 in CurrentUser/LocalMachine stores
 WINDOWS_LOCAL_SIGNING_ENV: PFX/password/update private key/key ID/public key variables absent from current host process; values were not read
@@ -29,7 +30,7 @@ WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
 CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/ (latest local ignored gate, Desktop, NSIS installer and autostart smoke); controller-smoke evidence remains under 665103a0 and physical HUD captures under 0782f876
 LIVE_GITHUB_REMOTE_CHECK: PASS_AFTER_PUSH_2026-10-09; origin/release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d; origin/fix/windows-beta10-homologation-20261008=2ca5a21237b269aba59ff8aa4f0921032e498776
-LIVE_GITHUB_REMOTE_REFRESH: candidate push 2ca5a212 confirmed; runner-registration attempt blocked by automatic review; no runner added
+LIVE_GITHUB_REMOTE_REFRESH: candidate branch was used for run 37898823857; Windows runner registered ephemerally and auto-deregistered; next candidate push will include Node runtime fix
 WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the PR candidate for release/v1.0.0; unauthenticated PR API returned 404, so PR state is unknown
 WINDOWS_BRANCH_AUDIT: one separate behavior change remains unlinked: fix/beta8-manual-opaque-quota@edcd2ab4 changes UNSUPPORTED quota to explicit-selection-only; requires functional review before any PR. No direct push to release.
 WINDOWS_TRAY_UI_SMOKE: INCONCLUSIVE_FLYOUT_CAPTURED_BUT_TWO_GENERIC_WAILS_ICONS_AMBIGUOUS; UIA_NO_CONTROLS; SENDINPUT_NO_OPEN; NO_PHYSICAL_CLICK_OR_MENU_EVIDENCE

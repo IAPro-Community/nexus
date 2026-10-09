@@ -5334,3 +5334,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Tentativa de smoke tray UI com HUD diagnosticamente oculto: Core/WebView2 iniciaram, mas UI Automation não expôs o tooltip/ícone; clique/menu não foram verificados. O processo foi encerrado pelo PID exato. Evidência local ignorada pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/hud-tray-ui-smoke-767be3b1.json`. Tray continua não verificado.
 - Não fazer push direto à release.
 - Tray físico, CI Windows hosted no SHA integrado, smokes autenticados e assinatura/update trust root ainda pendem. Instalador sem assinatura verificável: distribuição NO-GO. Nenhum gate Linux executado.
+
+## 2026-10-09 — diagnóstico do CI Windows hosted
+
+- Executei o run autorizado `37898823857` em runner oficial Windows v2.338.0 efêmero, sem instalar serviço. O checkout confirmou o source SHA `767be3b168a6d3ec7d223908e21812807486482f` e Windows AMD64; Bun frozen install passou.
+- Causa da falha: `bun run build` chamou `web/scripts/build.mjs` usando Node 18.12.1; `Array.prototype.toSorted` não existe nesse runtime. As etapas posteriores foram puladas; nenhum teste Go nem signing/smoke foi executado.
+- Preparei o workflow para instalar e validar Node 22.14.0 com `actions/setup-node@v7`, com cache automático desativado. O runner auto-desregistrou após um job; correção requer commit/push na branch candidata e novo dispatch no mesmo source SHA. Distribuição permanece NO-GO; nenhum gate Linux executado.

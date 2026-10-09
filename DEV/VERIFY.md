@@ -1675,3 +1675,11 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — autostart via Registro com AppID GUID de teste; comando conferido e valor removido.
 - PENDENTE — interação física do menu/ícone tray, CI Windows hosted no SHA integrado, smokes autenticados e assinatura/update trust root. Distribuição permanece NO-GO.
 - A branch beta.10 é candidata a PR contra `release/v1.0.0`; não fazer push direto para a release. A consulta viva ao GitHub falhou por DNS. O candidato é `1.0.0-beta.10`, diferente do pedido original beta.7/d14154d2.
+
+## 2026-10-09 — CI Windows hosted, run 37898823857
+
+- PASS — checkout no source SHA exato `767be3b168a6d3ec7d223908e21812807486482f`, arquitetura Windows AMD64, Go 1.27.2, Bun 1.3.9 e `bun install --frozen-lockfile` (522 pacotes).
+- FAIL — `bun run build`: `web/scripts/build.mjs:96` chamou `Array.prototype.toSorted`, mas o Node efetivo do runner era 18.12.1. A homologação local do mesmo SHA usou Node 22.14.0.
+- SKIPPED — go vet, suítes Go Windows, signing/package, smokes Desktop/HUD e install/uninstall NSIS, devido à falha anterior no build web.
+- O runner oficial v2.338.0 foi validado pelo digest publicado, registrado sem serviço como efêmero, executou só este job e auto-desregistrou. Nenhum gate Linux foi executado.
+- Correção preparada: `actions/setup-node@v7`, Node 22.14.0, cache automático desativado e assert `node --version`. Ainda requer commit/push e novo run no mesmo source SHA; até lá, hosted Windows permanece FAIL e distribuição NO-GO.
