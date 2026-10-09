@@ -120,7 +120,7 @@ describe('theme model', () => {
         'slate-flat',
         'paper-flat',
         'clay-flat',
-        'orca-dusk',
+        'nexus-dusk',
         'midnight',
         'nord',
         'dracula',
@@ -163,10 +163,10 @@ describe('theme model', () => {
     expect(getThemePresetFinish('obsidian')).toBe('standard');
   });
 
-  it('uses a dedicated restrained gradient finish for Orca Dusk only', () => {
-    const orca = THEME_PRESETS['orca-dusk'];
+  it('uses a dedicated restrained gradient finish for Nexus Dusk only', () => {
+    const orca = THEME_PRESETS['nexus-dusk'];
     expect(orca.finish).toBe('subtle-gradient');
-    expect(getThemePresetFinish('orca-dusk')).toBe('subtle-gradient');
+    expect(getThemePresetFinish('nexus-dusk')).toBe('subtle-gradient');
     expect(orca.scheme).toBe('dark');
     expect(orca.vars['--nx-bg']).toBe('#0b0c0e');
     expect(orca.vars['--nx-surface']).toBe('#17191c');
@@ -174,15 +174,15 @@ describe('theme model', () => {
     expect(getThemePresetFinish('nexus-dark')).toBe('standard');
   });
 
-  it('preserves Orca Dusk selection and consistent scheme after a persisted reload', () => {
+  it('preserves Nexus Dusk selection and consistent scheme after a persisted reload', () => {
     const normalized = normalizeThemePreferences({
       ...defaultThemePreferences,
-      preset: 'orca-dusk',
+      preset: 'nexus-dusk',
       scheme: 'light',
       density: 'comfortable',
       isCustomized: false,
     });
-    expect(normalized.preset).toBe('orca-dusk');
+    expect(normalized.preset).toBe('nexus-dusk');
     expect(normalized.scheme).toBe('dark');
     expect(normalized.density).toBe('comfortable');
     expect(resolveThemeStyleVariables(normalized, 'dark')['--nx-bg']).toBe('#0b0c0e');
