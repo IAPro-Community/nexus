@@ -6,6 +6,8 @@ Branch `fix/windows-beta10-homologation-20261008`; `VERSION=1.0.0-beta.10`; o co
 
 Desktop nativo passou com janela Wails/WebView2, perfil isolado e cleanup. HUD nativo ficou ativo por 8 s e encerrou os sete descendentes do smoke; não restaram processos. Estes smokes não verificam renderização visual Desktop, tray físico, show/hide interativo, autostart ou Voice. Checksums locais são de builds não assinados; não usar como artefatos de distribuição.
 
+A captura de Project Hub foi abordada no mesmo fluxo Windows: a origem nativa `wails.localhost` cria projeto com HTTP 201; o teste específico repetido no HEAD documental `0729df48` passou, e seus arquivos de produto são idênticos ao source homologado `1e3f9a3b`. O E2E Windows em 775×483 verifica erro `invalid origin` sem quebra do botão, overflow horizontal ou corte do título. Nenhuma origem externa foi liberada.
+
 A primeira tentativa isolada de acessibilidade registrou `ERR_NETWORK_IO_SUSPENDED` durante reload. O reteste de `test:a11y`, o `test:visual` e a execução oficial completa em worktree limpo passaram no mesmo SHA. Os logs/diagnósticos da tentativa foram preservados na pasta de evidências.
 
 O source SHA testado inclui a ponta observada da release como pai de merge; uma consulta autenticada encontrou zero PRs contra `release/v1.0.0`. O usuário autorizou runner efêmero e workflow Windows no SHA exato, com acesso potencial a `native-signing`; a execução foi suspensa para rotação de credenciais locais antes de qualquer registro ou dispatch. Não há runner/workflow ativo. Após rotacionar as credenciais, retomar somente o alvo Windows e manter NO-GO de distribuição até fechar os gates restantes. Sem push direto à release, tag ou gate Linux.
