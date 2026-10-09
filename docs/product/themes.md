@@ -44,9 +44,9 @@ The 1.0 registry contains the existing presets plus the approved visual set:
 
 Existing presets remain available for compatibility.
 
-### Degradê Suave — Orca Dusk
+### Degradê Suave — Nexus Dusk
 
-- **Orca Dusk** (`orca-dusk`) — paleta grafite neutra com quase-preto, uma
+- **Nexus Dusk** (`nexus-dusk`) — paleta grafite neutra com quase-preto, uma
   variação sutil de profundidade nos painéis e um acento azul acinzentado.
 - `finish: 'subtle-gradient'` ativa um único conjunto de regras CSS
   (`data-finish="subtle-gradient"`) em barras e áreas do workspace;
@@ -55,7 +55,7 @@ Existing presets remain available for compatibility.
 - Referência analisada: [Orca da stablyai](https://github.com/stablyai/orca/blob/main/src/renderer/src/assets/main.css),
   cuja interface escura utiliza `#0a0a0a` como background, `#171717` em painéis,
   `#262626` em superfícies secundárias e bordas pouco opacas.
-  **Orca Dusk é um tema original do Nexus, inspirado nessa linguagem visual,
+  **Nexus Dusk é um tema original do Nexus, inspirado nessa linguagem visual,
   não um tema oficial importado nem uma reprodução pixel a pixel.**
 
 As variáveis `--nx-*`, o renderer do Nexus e a paleta ANSI do xterm
