@@ -9,7 +9,7 @@
   o registro final apague a geração usada pelo attach.
 - A instalação local reinicia apenas o `nexus web` associado ao binário
   instalado, evitando hosts Web em memória com executável `(deleted)`.
-- Checkout Windows atual: branch `fix/windows-beta10-homologation-20261008`, código validado em `0782f87696ad3f28058d6532cb4e44dd25b08a7f`, `VERSION=1.0.0-beta.10`. O gate automatizado passou no SHA exato (Go, web, E2E e builds); o Project Hub foi submetido no WebView2 Desktop nativo via `http://wails.localhost/`, retornou HTTP 201 e abriu o projeto. A mensagem `invalid origin` da captura anterior não se reproduziu nesse origin. HUD nativo ainda não teve composição DWM física comprovada. A branch requer PR para `release/v1.0.0`, sem push direto. Beta.10 é diferente de beta.7/d14154d2. CI Windows hosted, interação HUD, smokes autenticados, assinatura/update trust root e instalador seguem pendentes. Nenhum gate Linux nesta continuação.
+- Checkout Windows atual: branch `fix/windows-beta10-homologation-20261008`, código validado em `0782f87696ad3f28058d6532cb4e44dd25b08a7f`, `VERSION=1.0.0-beta.10`. O gate automatizado passou no SHA exato (Go, web, E2E e builds); o Project Hub foi submetido no WebView2 Desktop nativo via `http://wails.localhost/`, retornou HTTP 201 e abriu o projeto. A mensagem `invalid origin` da captura anterior não se reproduziu nesse origin. Reteste HUD no mesmo SHA comprovou painel visível e expansão nativa (`280×48` → `280×520`); a captura anterior fora iniciada oculta e não era evidência de invisibilidade. Autostart segue sem validação. A branch requer PR para `release/v1.0.0`, sem push direto. Beta.10 é diferente de beta.7/d14154d2. CI Windows hosted, smokes autenticados, assinatura/update trust root e instalador seguem pendentes. Nenhum gate Linux nesta continuação.
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.
 - Motor de Flags Canônicas e Normalização (`internal/control/flags`): mapeamento transparente de `--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan` e suporte a `Merged Help` (`nexus <provider> --help`).
@@ -114,6 +114,6 @@
   rewrite remains deferred because provider-direct parsing is intentionally
   provider-native.
 
-## Estado Windows atual — Nexus 1.0.0-beta.10 — 2026-10-09
+## Registro anterior do estado Windows — SHA `3a09b5f0` — 2026-10-09
 
 O gate automatizado passou no Windows AMD64 em `3a09b5f0035cde09931b8f8eef1c783f49de47e0` (`1.0.0-beta.10`): 66 pacotes Go, 84 arquivos/503 testes web e oito suítes browser E2E. O Desktop carregou o Project Hub; a captura nativa do HUD ficou transparente apesar da API ativa, então a projeção HUD permanece inconclusiva. A branch Windows precisa de PR para `release/v1.0.0` (`deca290b`); depois da integração, repetir CI hosted e fechar os smokes interativos/autenticados, assinatura, trust root e instalador. O candidato é beta.10, distinto do pedido beta.7/d14154d2. Nenhum gate Linux foi executado nesta continuação.

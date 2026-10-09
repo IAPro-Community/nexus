@@ -1,5 +1,13 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-09 — Reteste físico HUD Windows no SHA `0782f876`
+
+- PASS — HUD transparente iniciado em modo visível no Windows AMD64; captura desktop mostra o painel. HWND: `window_visible=True`, `window_iconic=False`, `window_cloaked=0`, foreground PID igual ao HUD e filho WebView2 presente.
+- PASS — controle nativo expandiu a janela de `280×48` para `280×520`; capturas visível/expandida e telemetria em `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/` (evidência local ignorada pelo Git).
+- Diagnóstico — a captura anterior iniciava o processo com `-WindowStyle Hidden`; por isso não era válida para concluir invisibilidade em uso normal. Reteste usa build diagnóstico dos mesmos fontes do SHA `0782f876`; nenhum código de produto alterado.
+- PENDENTE — autostart do HUD, CI Windows hosted no SHA integrado, smokes autenticados/interativos restantes, assinatura/trust root e instalador final. Distribuição segue NO-GO; nenhum gate Linux executado.
+- PASS — `node scripts/docs-verify.mjs`: 178 arquivos Markdown e 33 assets/arquivos requeridos.
+
 ## 2026-10-09 — Continuidade Windows beta.10 no SHA `0782f87696ad3f28058d6532cb4e44dd25b08a7f`
 
 - PASS — gate oficial `scripts/homologate-beta.ps1 -ExpectedSha 0782f87696ad3f28058d6532cb4e44dd25b08a7f` no Windows AMD64; Go 1.27.2, Bun 1.3.9, Node 22.14.0; 66 pacotes Go, 84 arquivos/504 testes web, lint/segurança, oito suítes E2E, Axe/visual e builds CLI/Desktop/HUD.

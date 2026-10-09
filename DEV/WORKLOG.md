@@ -1,5 +1,11 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-09 — Reteste visual nativo do HUD no SHA `0782f876`
+
+- O primeiro smoke visual iniciou o harness com `-WindowStyle Hidden`; esse estado explicava o HWND invisível e não indicava falha de composição do produto.
+- Repetido no Windows AMD64 com inicialização normal: HUD transparente visível no desktop, WebView2 presente, foreground PID correto e expansão nativa de `280×48` para `280×520`.
+- Capturas e telemetria local registradas na pasta `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/` (gitignored). `node scripts/docs-verify.mjs` passou (178 Markdown, 33 assets/arquivos). Código-fonte inalterado; autostart continua sem validação. NO-GO de distribuição mantido pelas demais pendências; nenhum gate Linux.
+
 ## 2026-10-09 — Gate Windows beta.10 @ eedf3165
 
 - `scripts/homologate-beta.ps1 -ExpectedSha eedf3165` passou no SHA exato `eedf31659b0245cf7690d556c32ee6e0040ae588`: 66 pacotes Go, 84 arquivos/504 testes web, lint sem findings, govulncheck sem vulnerabilidades, E2E/Axe/visual e builds CLI/Desktop/HUD. Nenhum gate Linux.

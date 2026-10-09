@@ -1,5 +1,16 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+## Reteste físico do HUD — continuação no mesmo SHA — 2026-10-09
+
+O reteste usa o mesmo código-fonte homologado `0782f87696ad3f28058d6532cb4e44dd25b08a7f`; somente a compilação diagnóstica adicionou instrumentação local. A captura anterior não provava invisibilidade do produto: o harness iniciou o processo com `-WindowStyle Hidden`, estado que também fazia o HWND reportar `IsWindowVisible=False`. Repeti a captura com inicialização normal e foco explícito da janela.
+
+- **PASS — HUD transparente visível no desktop:** `window_visible=True`, `window_iconic=False`, `window_cloaked=0`, foreground PID igual ao PID do HUD e filho WebView2 presente. O frame capturado mostra o painel sobre a área de trabalho.
+- **PASS — controle de expansão:** o clique no controle do HUD alterou o tamanho nativo de `280×48` para `280×520`; a captura expandida mostra o painel renderizado.
+- **Evidências locais ignoradas pelo Git:** `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/hud-native-visible-0782.png` (SHA-256 `6540df738dbbb20a310342252ebfd1fb95ac50f752f8bec0aa9a0c2ffe9cbc0e`), `hud-native-expanded-0782.png` (SHA-256 `00da95e8d09131eeb483595507778b2c55d6fc33ddd1ac9bb0c0882a5928325e`) e `hud-native-window-0782.txt`.
+- **Limite mantido:** autostart não foi validado. O teste comprova apresentação e expansão do HUD nesta sessão interativa; não fecha CI hosted, smokes autenticados de providers/Mission/Voice, assinatura/trust root nem instalador final.
+
+O reteste substitui a conclusão anterior de composição física inconclusiva para renderização visível do HUD no host; não altera o SHA do código homologado nem o NO-GO atual para distribuição.
+
 ## Revalidação mais recente — Windows AMD64 — SHA `0782f87696ad3f28058d6532cb4e44dd25b08a7f`
 
 Esta rodada valida o candidato `1.0.0-beta.10` no Windows nativo. Ela não substitui a homologação beta.7 no SHA solicitado `d14154d2490dfdd3966c7fddc990a1d9127edd39`.
@@ -13,7 +24,7 @@ Esta rodada valida o candidato `1.0.0-beta.10` no Windows nativo. Ela não subst
 - **Evidências completas:** `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/` (logs locais ignorados pelo Git). O verificador registrou 178 Markdown e 33 assets/arquivos requeridos.
 - **Escopo:** nenhum gate Linux foi executado. Os arquivos de evidência/documentação desta atualização não alteram o código validado no SHA acima.
 
-**Veredito:** PASS dos gates automatizados Windows e do envio real pelo Project Hub Desktop no código `0782f876`. O HUD nativo ainda tem composição DWM física inconclusiva; também pendem CI Windows hosted no SHA integrado, smokes autenticados/interativos restantes, assinatura/update trust root e instalador final. **NO-GO para tag/distribuição.** Beta.10 é diferente da beta.7/d14154d2. A branch Windows deve ser vinculada à `release/v1.0.0` por PR, sem push direto à release.
+**Veredito da execução original:** PASS dos gates automatizados Windows e do envio real pelo Project Hub Desktop no código `0782f876`. Na captura original, a composição física do HUD ficou inconclusiva; o reteste acima comprovou a apresentação visível e a expansão nativa. Permanecem pendentes CI Windows hosted no SHA integrado, autostart do HUD, smokes autenticados/interativos restantes, assinatura/update trust root e instalador final. **NO-GO para tag/distribuição.** Beta.10 é diferente da beta.7/d14154d2. A branch Windows deve ser vinculada à `release/v1.0.0` por PR, sem push direto à release.
 
 ## Revalidação anterior — Windows AMD64 — SHA `eedf31659b0245cf7690d556c32ee6e0040ae588`
 

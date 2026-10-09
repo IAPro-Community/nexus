@@ -1,25 +1,25 @@
 # Current release status
 
-> **Estado beta.10 em 2026-10-09:** o gate automatizado local Windows AMD64 passou no SHA exato `3a09b5f0035cde09931b8f8eef1c783f49de47e0`, branch `fix/windows-beta10-homologation-20261008`. Desktop carregou o Project Hub e o teste autenticado do origin Wails passou. O HUD nativo criou janela/controller e a API respondeu `enabled=true`, mas a captura permaneceu transparente; a projeção nativa não está homologada.
-> **NO-GO para tag, instalador assinado e distribuição** até o PR ser integrado e os gates visuais/interativos, CI Windows, instalador e assinatura/trust root fecharem. O checkout atual é beta.10, não o SHA beta.7 `d14154d2` citado no pedido inicial.
-> Refs remotas confirmadas: `release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d`, branch Windows `3a09b5f0035cde09931b8f8eef1c783f49de47e0`; abrir PR da branch Windows para a release. Nenhum gate Linux executado.
+> **Estado beta.10 em 2026-10-09:** o gate automatizado local Windows AMD64 passou no SHA exato `0782f87696ad3f28058d6532cb4e44dd25b08a7f`, branch `fix/windows-beta10-homologation-20261008`. Desktop e Project Hub passaram no WebView2 nativo. O reteste HUD no mesmo SHA mostrou o painel transparente visível no desktop e o controle expandindo a janela; o resultado inconclusivo anterior vinha de iniciar o harness oculto. Autostart não verificado.
+> **NO-GO para tag, instalador assinado e distribuição** até o PR ser integrado e os gates restantes fecharem: CI Windows hosted, autostart, smokes interativos/autenticados, instalador e assinatura/trust root. O checkout atual é beta.10, não o SHA beta.7 `d14154d2` citado no pedido inicial.
+> A branch Windows deve seguir por PR para `release/v1.0.0`; não fazer push direto à release. Nenhum gate Linux executado.
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
 CURRENT_RELEASE_BRANCH: release/v1.0.0
 CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d
 WINDOWS_HOMOLOGATION_BRANCH: fix/windows-beta10-homologation-20261008
-WINDOWS_HOMOLOGATED_SOURCE_SHA: 3a09b5f0035cde09931b8f8eef1c783f49de47e0
+WINDOWS_HOMOLOGATED_SOURCE_SHA: 0782f87696ad3f28058d6532cb4e44dd25b08a7f
 WINDOWS_AUTOMATED_LOCAL_GATES: PASS_EXACT_SHA_WINDOWS_AMD64
 WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_VISIBLE_PROJECT_HUB_AND_WEBVIEW2
-WINDOWS_NATIVE_HUD_SMOKE: PASS_WINDOW_WEBVIEW2_AND_API_200; VISUAL=INCONCLUSIVE_TRANSPARENT
+WINDOWS_NATIVE_HUD_SMOKE: PASS_VISIBLE_TRANSPARENT_PANEL_AND_EXPANSION; AUTOSTART=NOT_VERIFIED
 WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: INCONCLUSIVE_TUI_EXITED_BEFORE_LIVE_INPUT; NO_PROMPT_SENT; AUTOMATED_REGRESSIONS_PASS
 WINDOWS_HOSTED_CI_SAME_SHA: NOT_VERIFIED
 WINDOWS_SIGNED_INSTALLER_AND_UPDATE_TRUST_ROOT: BLOCKED_TOOLS_AND_SECRETS_UNAVAILABLE
 WINDOWS_PROVIDER_MISSION_VOICE_UI_SMOKES: PENDING_AUTHENTICATED_OR_INTERACTIVE_EVIDENCE
-WINDOWS_NATIVE_PROJECT_CREATE_UI: NOT_COMPLETED_INTERACTIVE_INPUT_UNAVAILABLE
+WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN
 WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
-CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/3a09b5f0035cde09931b8f8eef1c783f49de47e0/windows-AMD64/ (local ignored evidence)
+CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/ (local ignored evidence, includes native HUD captures)
 PREVIOUS_VALIDATION_RECORDS: HISTORICAL_ONLY
 
 ## Legacy Windows beta.7 baseline (historical)
