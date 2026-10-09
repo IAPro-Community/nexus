@@ -19,11 +19,11 @@ mkdirSync(screenshotDir, { recursive: true });
 
 const themes = [
   {
-    preset: 'orca-dusk',
+    preset: 'nexus-dusk',
     scheme: 'dark',
     finish: 'subtle-gradient',
     category: /Degradê Suave/i,
-    label: /Orca Dusk/i,
+    label: /Nexus Dusk/i,
   },
   {
     preset: 'slate-flat',
