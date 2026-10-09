@@ -5303,3 +5303,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - PASS — `scripts/homologate-beta.ps1 -ExpectedSha 45c12be785f3cfa9b503969c61a7fe98f8b220d3`: gates automatizados Windows AMD64, Go 1.27.2, Bun 1.3.9 e Node 22.14.0; 84 arquivos/504 testes web, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD.
 - PENDENTE — o smoke nativo Desktop encerrou com código 0 sem HWND Wails/WebView2 nem perfil WebView2, também no lançamento direto visível com perfil isolado. Ainda sem causa raiz ou correção de produto; evidência anterior de Desktop/Project Hub em 0782f876 não se transfere ao SHA atual.
 - Mantido NO-GO de distribuição. Nenhum gate Linux executado. Relatório: `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
+
+## 2026-10-09 — smoke Desktop beta.10 com ID singleton isolado
+
+- Causa confirmada para o exit code 0 do binário de produção no smoke: a instância `nexus-desktop_1.0.0-beta.7_windows_amd64.exe` PID 2572 mantém o singleton `com.iapro.nexus.desktop`. Não encerrei esse processo; Wails trata a nova execução como segunda instância.
+- PASS — build diagnóstico usando apenas um ID Wails exclusivo manteve janela Wails e WebView2 ativos; o perfil isolado foi criado e não restaram processos. Evidência local ignorada pelo Git em `DEV/validation/local-beta/1.0.0-beta.10/45c12be785f3cfa9b503969c61a7fe98f8b220d3/windows-AMD64/desktop-native-45c12be-unique-id-smoke.txt`.
+- Atualizei o smoke PowerShell para detectar ID já ocupado e falhar com instrução clara; o job Windows passa o ID de smoke correspondente ao linker. O harness também rejeita perfil WebView2 com mais de 240 caracteres: o caminho de 287 caracteres reproduziu erro 0x8000ffff; o perfil de 171 caracteres passou. Fontes do produto não mudaram. CI hosted, tray/autostart, autenticação, assinatura/trust root e instalador mantêm NO-GO para distribuição.

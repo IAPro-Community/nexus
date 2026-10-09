@@ -1,10 +1,10 @@
 # Handoff
 
-## Atualização — reteste Windows beta.10 no HEAD 45c12be — 2026-10-09
+## Atualização — smoke Desktop Windows beta.10 com singleton isolado — 2026-10-09
 
 Branch `fix/windows-beta10-homologation-20261008`, `VERSION=1.0.0-beta.10`. O gate automatizado completo passou no Windows AMD64 no SHA exato `45c12be785f3cfa9b503969c61a7fe98f8b220d3` (Go 1.27.2, Bun 1.3.9, Node 22.14.0; Go, lint/segurança, 84 arquivos/504 testes web, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD).
 
-O reteste nativo Desktop neste SHA falhou no smoke: o executável saiu com código 0 sem HWND Wails, WebView2 ou perfil WebView2, mesmo em janela visível e com perfil isolado. A causa raiz ainda não foi confirmada e não há correção de código. A aprovação anterior do Project Hub/Desktop em `0782f876` não deve ser atribuída a `45c12be`. Registrar a correção e repetir o smoke no SHA candidato antes de fechar a homologação. Distribuição segue NO-GO; nenhum gate Linux nesta rodada.
+O smoke nativo passou com um build diagnóstico do mesmo código-fonte `45c12be`, usando `com.iapro.nexus.desktop.windows-smoke`: janela Wails, filho WebView2, perfil isolado de 171 caracteres e cleanup foram aprovados. Evidência ignorada pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/45c12be785f3cfa9b503969c61a7fe98f8b220d3/windows-AMD64/desktop-native-45c12be-unique-id-smoke.txt`; SHA-256 do executável `1F2F70D2EEBEAEC85ADD2BAD0B3CBFB48B198267CF1CE628461A34CE0E987676`. O ID de produção `com.iapro.nexus.desktop` está ocupado pela instância beta.7 PID 2572; por isso o lançamento do binário de produção encerrou com o código normal de segunda instância. A instância não foi encerrada. O script agora detecta o HWND singleton ocupado, rejeita perfis WebView2 acima de 240 caracteres e retorna instrução clara; o workflow passa explicitamente o ID de teste que aplicou no linker. Fontes de produto não foram alteradas. CI hosted, tray/autostart, smokes autenticados, assinatura/trust root e instalador seguem pendentes; distribuição NO-GO, sem gate Linux.
 
 ## Atualização — homologação Windows beta.10 — 2026-10-09
 

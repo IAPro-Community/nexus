@@ -707,7 +707,7 @@ jobs:
           go build -buildvcs=false -tags production -ldflags "-X main.desktopSingleInstanceID=com.iapro.nexus.desktop.windows-smoke" -o $desktopExe ./cmd/nexus-desktop
           if ($LASTEXITCODE -ne 0) { throw "Nexus Desktop smoke build failed" }
           $evidence = Join-Path $out "nexus-desktop-windows-smoke.txt"
-          & .\scripts\smoke-desktop-windows.ps1 -DesktopExe $desktopExe -TargetSha $env:TARGET_SHA -EvidencePath $evidence
+          & .\scripts\smoke-desktop-windows.ps1 -DesktopExe $desktopExe -TargetSha $env:TARGET_SHA -EvidencePath $evidence -SingleInstanceID "com.iapro.nexus.desktop.windows-smoke"
       - name: Native Windows HUD launch smoke
         shell: pwsh
         env:

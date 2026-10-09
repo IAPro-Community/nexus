@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory)][string]$DesktopExe,
     [Parameter(Mandatory)][string]$TargetSha,
     [Parameter(Mandatory)][string]$EvidencePath,
+    [ValidateNotNullOrEmpty()][string]$SingleInstanceID = 'com.iapro.nexus.desktop',
     [ValidateRange(1, 60)][int]$WaitSeconds = 8
 )
 
@@ -48,6 +49,7 @@ public static class NexusDesktopWindowProbe {
     [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsCallback callback, IntPtr lParam);
     [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr parent, EnumWindowsCallback callback, IntPtr lParam);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindow(string className, string windowName);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hwnd, StringBuilder text, int count);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr hwnd, StringBuilder text, int count);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint processId);
@@ -83,6 +85,16 @@ public static class NexusDesktopWindowProbe {
             return !ready;
         }, IntPtr.Zero);
         return ready;
+    }
+
+    public static int GetSingleInstanceOwner(string uniqueId) {
+        string id = "wails-app-" + uniqueId;
+        IntPtr hwnd = FindWindow(id + "-sic", id + "-siw");
+        if (hwnd == IntPtr.Zero) return 0;
+
+        uint processId = 0;
+        GetWindowThreadProcessId(hwnd, out processId);
+        return (int)processId;
     }
 
     public static int[] GetOwnedWebView2ProcessIds(int rootProcessId) {
@@ -131,10 +143,22 @@ public static class NexusDesktopWindowProbe {
 $stdout = "$EvidencePath.stdout.log"
 $stderr = "$EvidencePath.stderr.log"
 $webviewUserDataPath = Join-Path $env:LOCALAPPDATA 'IAPro\Nexus\desktop\WebView2'
+if ($webviewUserDataPath.Length -gt 240) {
+    throw "WebView2 user-data path is too long for a reliable Windows smoke ($($webviewUserDataPath.Length) characters). Set LOCALAPPDATA to a short isolated directory so the full path stays at or below 240 characters."
+}
 $startedAt = [DateTime]::UtcNow
 $process = $null
 $smokeSucceeded = $false
 $ownedWebView2Ids = @()
+$singleInstanceOwnerId = [NexusDesktopWindowProbe]::GetSingleInstanceOwner($SingleInstanceID)
+if ($singleInstanceOwnerId -gt 0) {
+    $ownerDescription = "PID $singleInstanceOwnerId"
+    $ownerProcess = Get-Process -Id $singleInstanceOwnerId -ErrorAction SilentlyContinue
+    if ($null -ne $ownerProcess) {
+        $ownerDescription = "$($ownerProcess.ProcessName) (PID $singleInstanceOwnerId)"
+    }
+    throw "Wails single-instance ID '$SingleInstanceID' is already held by $ownerDescription. Build the smoke executable with a dedicated ID and pass it through -SingleInstanceID; do not terminate the active application."
+}
 
 try {
     $process = Start-Process -FilePath $DesktopExe -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
@@ -210,6 +234,7 @@ if (-not $smokeSucceeded) {
     "target_sha=$TargetSha"
     "platform=windows"
     "status=PASS"
+    "single_instance_id=$SingleInstanceID"
     "wait_seconds=$([Math]::Ceiling(([DateTime]::UtcNow - $startedAt).TotalSeconds))"
     "wails_window=IAPro Nexus"
     "webview2_child=Chrome_WidgetWin_0"

@@ -1651,3 +1651,10 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
 ## Frontend gate — 2026-10-09T05:54:48Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
+
+## Smoke nativo Windows beta.10 — 2026-10-09
+
+- PASS — gate automatizado Windows AMD64 no SHA `45c12be785f3cfa9b503969c61a7fe98f8b220d3`; Go, web, oito suítes E2E browser, Axe/visual e builds CLI/Desktop/HUD.
+- PASS — Desktop Wails/WebView2 em build diagnóstico com `com.iapro.nexus.desktop.windows-smoke`; limpeza de processos confirmada. O ID de produção está ocupado por uma instância beta.7 ativa e foi preservado.
+- PASS — o harness agora detecta singleton ocupado e rejeita perfil WebView2 acima de 240 caracteres antes de iniciar o smoke.
+- Distribuição segue NO-GO por CI Windows hosted, tray/autostart, smokes autenticados, instalador e assinatura/trust root. Detalhes em [`DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`](validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md).
