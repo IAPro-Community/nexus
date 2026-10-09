@@ -31,14 +31,18 @@ func (n *Nexus) BoundedProjectIntelligenceContext(ctx context.Context, projectID
 	if viewErr == nil && view != nil {
 		snapshot = view.CurrentSnapshot
 	}
+	var inspectedIdentity *contextsnapshot.CodeIdentity
+	if viewErr == nil && view != nil {
+		inspectedIdentity = &view.Identity
+	}
 	if snapshot == nil {
 		var discovered contextsnapshot.ProjectContextSnapshot
 		var discoverErr error
-		if viewErr == nil && view != nil {
+		if inspectedIdentity != nil {
 			discovered, discoverErr = contextsnapshot.DiscoverWithIdentity(
 				project.CanonicalPath,
 				contextsnapshot.Metadata{ProjectID: projectID},
-				view.Identity,
+				*inspectedIdentity,
 			)
 		} else {
 			discovered, discoverErr = contextsnapshot.Discover(

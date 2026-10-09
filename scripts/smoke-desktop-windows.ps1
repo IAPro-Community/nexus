@@ -46,12 +46,14 @@ public static class NexusDesktopWindowProbe {
     public static bool HasWailsWebView(int targetProcessId) {
         bool ready = false;
         EnumWindows((hwnd, _) => {
-            GetWindowThreadProcessId(hwnd, out uint processId);
+            uint processId = 0;
+            GetWindowThreadProcessId(hwnd, out processId);
             if (processId == (uint)targetProcessId
                 && Value(hwnd, true) == "WailsWebviewWindow"
                 && Value(hwnd, false) == "IAPro Nexus") {
                 EnumChildWindows(hwnd, (child, __) => {
-                    GetWindowThreadProcessId(child, out uint childProcessId);
+                    uint childProcessId = 0;
+                    GetWindowThreadProcessId(child, out childProcessId);
                     if (childProcessId == (uint)targetProcessId && Value(child, true) == "Chrome_WidgetWin_0") {
                         ready = true;
                         return false;

@@ -415,6 +415,9 @@ func DiscoverWithIdentity(root string, metadata Metadata, identity CodeIdentity)
 	if err != nil {
 		return ProjectContextSnapshot{}, err
 	}
+	if strings.TrimSpace(identity.IdentityDigest) == "" {
+		return ProjectContextSnapshot{}, fmt.Errorf("project code identity is required")
+	}
 	return discoverWithIdentity(root, metadata, identity)
 }
 

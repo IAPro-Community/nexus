@@ -134,10 +134,12 @@ export async function initSession(): Promise<BrowserSession> {
     // Always strip bearer fragments from the address bar before any early return.
     const bootstrapToken = consumeBrowserBootstrapToken();
     // Browsers cannot retain Secure auth cookies over plaintext LAN URLs.
-    const hostname = (window.location.hostname || '').toLowerCase();
+    // Non-browser callers have no location and must not fail before the session probe.
+    const browserLocation = typeof window === 'undefined' ? undefined : window.location;
+    const hostname = (browserLocation?.hostname || '').toLowerCase();
     if (
       !isDesktopApp() &&
-      window.location.protocol === 'http:' &&
+      browserLocation?.protocol === 'http:' &&
       !['localhost', '127.0.0.1', '[::1]', 'nexus.dev', 'wails.localhost'].includes(hostname)
     ) {
       return { authenticated: false };

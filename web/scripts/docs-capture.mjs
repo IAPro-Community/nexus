@@ -91,6 +91,73 @@ try {
     viewport: { width: 1440, height: 900 },
     recordVideo: { dir: demoDir, size: { width: 1280, height: 800 } },
   });
+  const syntheticWorkspacePath = process.platform === 'win32' ? 'C:\\NexusDemo\\workspace' : '/NexusDemo/workspace';
+  await context.addInitScript(({ paths }) => {
+    const redact = (value) => paths.reduce((result, entry) => {
+      if (!entry.value) return result;
+      const search = entry.value.toLowerCase();
+      let sanitized = result;
+      let index = sanitized.toLowerCase().indexOf(search);
+      while (index >= 0) {
+        sanitized = sanitized.slice(0, index) + entry.replacement + sanitized.slice(index + entry.value.length);
+        index = sanitized.toLowerCase().indexOf(search, index + entry.replacement.length);
+      }
+      return sanitized;
+    }, value);
+    const sanitizeNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const value = redact(node.nodeValue || '');
+        if (value !== node.nodeValue) node.nodeValue = value;
+        return;
+      }
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        for (const attribute of node.attributes) {
+          const value = redact(attribute.value);
+          if (value !== attribute.value) node.setAttribute(attribute.name, value);
+        }
+        if ('value' in node && typeof node.value === 'string') {
+          const value = redact(node.value);
+          if (value !== node.value) node.value = value;
+        }
+      }
+      for (const child of node.childNodes || []) sanitizeNode(child);
+    };
+    for (const prototype of [HTMLInputElement.prototype, HTMLTextAreaElement.prototype, HTMLOptionElement.prototype]) {
+      const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+      if (descriptor?.set) {
+        Object.defineProperty(prototype, 'value', {
+          ...descriptor,
+          set(value) {
+            descriptor.set.call(this, redact(String(value ?? '')));
+          },
+        });
+      }
+    }
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === 'characterData') sanitizeNode(record.target);
+        if (record.type === 'attributes') sanitizeNode(record.target);
+        for (const node of record.addedNodes || []) sanitizeNode(node);
+      }
+    });
+    const install = () => {
+      const root = document.documentElement;
+      if (!root) {
+        document.addEventListener('DOMContentLoaded', install, { once: true });
+        return;
+      }
+      observer.observe(root, { childList: true, subtree: true, characterData: true, attributes: true });
+      sanitizeNode(root);
+    };
+    install();
+  }, {
+    paths: [
+      { value: workspaceDir, replacement: syntheticWorkspacePath },
+      ...(process.platform === 'win32' && process.env.USERPROFILE
+        ? [{ value: process.env.USERPROFILE, replacement: 'C:\\NexusUser' }]
+        : []),
+    ],
+  });
   const page = await context.newPage();
   const video = page.video();
   const sensitiveFixturePaths = [...new Set([
@@ -290,15 +357,21 @@ try {
     }, paths);
   };
   const assertSafeFixture = async () => {
-    const content = (await page.locator('body').innerText()).toLowerCase();
+    const domContent = (await page.evaluate(() => {
+      const elements = [...document.querySelectorAll('input, textarea, select, option')];
+      return [document.documentElement?.outerHTML || '', ...elements.map((element) => element.value || '')].join('\n');
+    })).toLowerCase();
+    const visibleText = (await page.locator('body').innerText()).toLowerCase();
+    const content = `${domContent}\n${visibleText}`;
+    const profilePath = process.platform === 'win32' ? process.env.USERPROFILE || '' : '';
     const forbidden = ['/projetos/', '/home/', 'desenvolvedor@', 'dev-web-kiver', 'escolanet-futura', 'sistemas2', 'proxy-nginx'];
     const leaked = forbidden.filter((value) => content.includes(value));
     if (leaked.length) throw new Error(`documentation capture contains non-synthetic data: ${leaked.join(', ')}`);
-    if (process.platform === 'win32' && process.env.USERPROFILE && content.includes(process.env.USERPROFILE.toLowerCase())) {
-      throw new Error('documentation capture still contains the current user profile path');
+    if (profilePath && content.includes(profilePath.toLowerCase())) {
+      throw new Error('documentation fixture capture still contains the current user profile');
     }
     if (content.includes(workspaceDir.toLowerCase())) {
-      throw new Error('documentation capture still contains the temporary workspace path');
+      throw new Error('documentation fixture capture still contains its temporary workspace path');
     }
     if (!content.includes('nexus demo workspace')) throw new Error('synthetic project is not visible in capture');
   };
