@@ -20,7 +20,10 @@ WINDOWS_HOSTED_RUNNER_INVENTORY: 1 runner; nexus-ci-dev-web-kiver labels self-ho
 WINDOWS_EPHEMERAL_RUNNER_SETUP: BLOCKED_BY_AUTO_REVIEW; explicit authorization required for workflow-code execution on this host and potential access to native-signing secrets
 WINDOWS_EPHEMERAL_RUNNER_PACKAGE: v2.338.0 x64; SHA-256 matched official release digest; registration did not occur
 WINDOWS_SIGNED_INSTALLER_AND_UPDATE_TRUST_ROOT: BLOCKED_TOOLS_AND_SECRETS_UNAVAILABLE
+WINDOWS_LOCAL_SIGNING_PREREQUISITES: signtool.exe and makensis.exe not found on PATH; code-signing certificates with private key=0 in CurrentUser/LocalMachine stores
+WINDOWS_LOCAL_SIGNING_ENV: PFX/password/update private key/key ID/public key variables absent from current host process; values were not read
 WINDOWS_PROVIDER_MISSION_VOICE_UI_SMOKES: PENDING_AUTHENTICATED_OR_INTERACTIVE_EVIDENCE
+WINDOWS_PROVIDER_DISCOVERY_20261009T0636Z: AGY 1.3.2, Codex CLI 0.160.1, Gemini installed; Nexus evidence state INSTALLED_UNREGISTERED
 WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN_0782
 WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO

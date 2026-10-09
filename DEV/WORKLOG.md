@@ -3,6 +3,7 @@
 - O pacote oficial `actions/runner` x64 `v2.338.0` teve o digest conferido. A tentativa de registrar o runner efêmero foi rejeitada pela revisão automática por conceder execução de workflow ao host e possível acesso a secrets de assinatura; nenhum runner foi registrado.
 - Run `37898823857` segue `queued`; todos os jobs genéricos/Linux estão `skipped`; runner remoto disponível é apenas Linux e offline.
 - Próximo passo depende de autorização explícita para execução de um job efêmero neste host ou de um runner Windows administrado pelo usuário. Não contornar a recusa e não rodar gates Linux.
+- Auditoria somente de presença confirmou ausência local de signtool/makensis no PATH, certificados de signing com chave privada e variáveis de signing/update; os providers AGY/Codex/Gemini estão instalados, mas não registrados no snapshot da homologação. Nenhum prompt ou credencial foi exposto.
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
 ## 2026-10-09 — Continuidade Windows: tray e auditoria de branches

@@ -4,6 +4,7 @@ Branch candidata `fix/windows-beta10-homologation-20261008`, versão `1.0.0-beta
 
 - Inventário GitHub: único runner `nexus-ci-dev-web-kiver`, Linux, offline. Nenhum runner `Windows/X64/nexus-windows` registrado.
 - A versão oficial `actions/runner` Windows x64 `v2.338.0` foi baixada em `%TEMP%` e seu SHA-256 conferido contra o digest da release. O registro efêmero de um job foi recusado pela revisão automática, pois executaria código do repositório neste host e poderia expor os secrets do ambiente `native-signing`. Nenhum runner foi registrado e nenhum workflow foi executado localmente como alternativa.
+- Auditoria local somente de presença: `signtool.exe`/`makensis.exe` não estão no `PATH`; não há certificado de code signing com chave privada nas lojas CurrentUser/LocalMachine; as variáveis de signing/update não estão definidas. A evidência de discovery no SHA `767be3b1` lista AGY/Codex/Gemini instalados, porém `INSTALLED_UNREGISTERED`; nenhuma conversa ou prompt foi enviado.
 - **Bloqueio para retomar:** autorização explícita para registrar este host como runner self-hosted efêmero e executar o workflow `37898823857`, ou disponibilização de outro runner Windows administrado pelo usuário. A configuração efêmera desregistra o runner após um job segundo a [documentação oficial do GitHub](https://docs.github.com/en/actions/reference/runners/self-hosted-runners).
 - Os gates nativos locais no SHA `767be3b1` já passaram. Não houve gate Linux nem push direto para `release/v1.0.0`. Distribuição continua **NO-GO**.
 # Handoff

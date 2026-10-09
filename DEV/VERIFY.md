@@ -4,6 +4,8 @@
 - PASS — pacote oficial `actions/runner` Windows x64 `v2.338.0` baixado para `%TEMP%` e conferido pelo SHA-256 publicado na release; nenhum runner foi configurado.
 - BLOQUEADO POR REVISÃO AUTOMÁTICA — a configuração de runner self-hosted efêmero foi recusada porque permitiria executar código do workflow neste PC com acesso potencial aos secrets `native-signing`. Nenhum runner foi registrado nem iniciado; não foi tentado caminho alternativo para executar o workflow.
 - PENDENTE — autorização explícita do usuário para este host executar um job efêmero, ou disponibilização de runner Windows administrado pelo usuário.
+- CONFIRMADO — no host atual, `signtool.exe` e `makensis.exe` não estão no `PATH`, as lojas de certificados CurrentUser/LocalMachine não têm certificados de code signing com chave privada, e as variáveis de signing/update estão ausentes (somente presença consultada; valores não lidos).
+- CONFIRMADO — snapshot de providers do SHA `767be3b1` lista AGY 1.3.2, Codex CLI 0.160.1 e Gemini instalados, mas todos em estado Nexus `INSTALLED_UNREGISTERED`; nenhum prompt foi submetido nesta continuidade.
 - Sem gates Linux nesta continuidade; gates locais Windows no SHA exato `767be3b1` permanecem evidenciados no relatório corrente.
 # Verification: Nexus V1 (post-pending-issues)
 
