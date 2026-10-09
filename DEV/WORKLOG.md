@@ -1,5 +1,11 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-09 — Smoke ConPTY Windows no SHA `0782f876`
+
+- CLI beta.10 compilada do SHA exato com Go 1.27.2; Codex CLI 0.160.1 aberto via `--no-daemon` em pseudo-console nativo com perfil Nexus isolado e sem login.
+- Três ciclos de setas não renderizaram sequências literais `[A`–`[D`; nenhuma mensagem foi enviada. Ctrl+C encerrou com exit code 0 e sem processos remanescentes.
+- Evidência local: `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/conpty-arrow-smoke-0782.txt`. Resultado limitado à tela de autenticação; smokes de conversa/Mission permanecem pendentes. Show/hide e autostart HUD também pendentes.
+
 ## 2026-10-09 — Reteste visual nativo do HUD no SHA `0782f876`
 
 - O primeiro smoke visual iniciou o harness com `-WindowStyle Hidden`; esse estado explicava o HWND invisível e não indicava falha de composição do produto.

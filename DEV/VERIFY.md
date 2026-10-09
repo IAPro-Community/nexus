@@ -1,5 +1,13 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-09 — Smoke ConPTY Windows no SHA `0782f876`
+
+- PASS — CLI Nexus beta.10 compilada da árvore exata `0782f87696ad3f28058d6532cb4e44dd25b08a7f` com Go 1.27.2; SHA-256 `FA114CFD471F21EB0066D597F316D613E20738F764C02A3D28F7DC6F90CC0F99`.
+- PASS delimitado — `nexus codex:windows-smoke --no-daemon` iniciou Codex CLI 0.160.1 em pseudo-console nativo Windows usando perfil temporário `PENDING_AUTH`. Três ciclos Up/Down/Left/Right não produziram texto literal `[A`–`[D`; Ctrl+C retornou exit code 0.
+- LIMITAÇÃO — TUI ficou na tela de autenticação; nenhum prompt foi enviado. Perfil real, conversa, Mission, custos e AGY não validados.
+- CLEANUP — runtime marcado STOPPED e nenhum processo Nexus/Codex/SessionHost remanescente. Evidência textual local ignorada pelo Git em `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/conpty-arrow-smoke-0782.txt`.
+- PENDENTE — show/hide pelo tray e autostart do HUD, CI Windows hosted no SHA integrado, smokes autenticados restantes, assinatura/trust root e instalador final. Distribuição segue NO-GO; nenhum gate Linux executado.
+
 ## 2026-10-09 — Reteste físico HUD Windows no SHA `0782f876`
 
 - PASS — HUD transparente iniciado em modo visível no Windows AMD64; captura desktop mostra o painel. HWND: `window_visible=True`, `window_iconic=False`, `window_cloaked=0`, foreground PID igual ao HUD e filho WebView2 presente.

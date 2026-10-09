@@ -11,6 +11,14 @@ O reteste usa o mesmo código-fonte homologado `0782f87696ad3f28058d6532cb4e44dd
 
 O reteste substitui a conclusão anterior de composição física inconclusiva para renderização visível do HUD no host; não altera o SHA do código homologado nem o NO-GO atual para distribuição.
 
+## Smoke ConPTY de setas — continuação no mesmo SHA — 2026-10-09
+
+CLI recompilada do worktree detached no SHA `0782f87696ad3f28058d6532cb4e44dd25b08a7f` com Go 1.27.2; `nexus --version` confirmou beta.10 e o SHA. SHA-256 do executável de smoke: `FA114CFD471F21EB0066D597F316D613E20738F764C02A3D28F7DC6F90CC0F99`. Nenhum fonte do produto foi alterado.
+
+- **PASS delimitado — transporte de setas:** usei um perfil `codex:windows-smoke` temporário, isolado em `APPDATA`/`LOCALAPPDATA`, registrado com `--no-login` e estado `PENDING_AUTH`. O comando `nexus codex:windows-smoke --no-daemon` abriu o TUI Codex 0.160.1 via pseudo-console nativo. Enviei três ciclos de Up/Down/Left/Right; nenhuma sequência literal `[A`, `[B`, `[C` ou `[D` apareceu. Ctrl+C encerrou com exit code 0 e o runtime ficou `STOPPED`, sem processo Nexus/Codex remanescente.
+- O TUI permaneceu na tela de entrada do Codex. Nenhum prompt foi digitado ou enviado; o resultado valida somente o transporte de teclas. Conversa autenticada, Mission, limites de custo e smokes AGY seguem pendentes até existir perfil autenticado/autorização para consumir quota.
+- Evidência local ignorada pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/conpty-arrow-smoke-0782.txt`.
+
 ## Revalidação mais recente — Windows AMD64 — SHA `0782f87696ad3f28058d6532cb4e44dd25b08a7f`
 
 Esta rodada valida o candidato `1.0.0-beta.10` no Windows nativo. Ela não substitui a homologação beta.7 no SHA solicitado `d14154d2490dfdd3966c7fddc990a1d9127edd39`.

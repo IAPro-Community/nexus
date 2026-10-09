@@ -1,7 +1,7 @@
 # Current release status
 
-> **Estado beta.10 em 2026-10-09:** o gate automatizado local Windows AMD64 passou no SHA exato `0782f87696ad3f28058d6532cb4e44dd25b08a7f`, branch `fix/windows-beta10-homologation-20261008`. Desktop e Project Hub passaram no WebView2 nativo. O reteste HUD no mesmo SHA mostrou o painel transparente visível no desktop e o controle expandindo a janela; o resultado inconclusivo anterior vinha de iniciar o harness oculto. Autostart não verificado.
-> **NO-GO para tag, instalador assinado e distribuição** até o PR ser integrado e os gates restantes fecharem: CI Windows hosted, autostart, smokes interativos/autenticados, instalador e assinatura/trust root. O checkout atual é beta.10, não o SHA beta.7 `d14154d2` citado no pedido inicial.
+> **Estado beta.10 em 2026-10-09:** o gate automatizado local Windows AMD64 passou no SHA exato `0782f87696ad3f28058d6532cb4e44dd25b08a7f`, branch `fix/windows-beta10-homologation-20261008`. Desktop e Project Hub passaram no WebView2 nativo. O reteste HUD no mesmo SHA mostrou o painel transparente visível no desktop e o controle expandindo a janela; o resultado inconclusivo anterior vinha de iniciar o harness oculto. O smoke ConPTY de setas passou no TUI de autenticação Codex sem prompt. Tray show/hide e autostart não verificados.
+> **NO-GO para tag, instalador assinado e distribuição** até o PR ser integrado e os gates restantes fecharem: CI Windows hosted, tray show/hide/autostart, smokes autenticados, instalador e assinatura/trust root. O checkout atual é beta.10, não o SHA beta.7 `d14154d2` citado no pedido inicial.
 > A branch Windows deve seguir por PR para `release/v1.0.0`; não fazer push direto à release. Nenhum gate Linux executado.
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
@@ -11,8 +11,8 @@ WINDOWS_HOMOLOGATION_BRANCH: fix/windows-beta10-homologation-20261008
 WINDOWS_HOMOLOGATED_SOURCE_SHA: 0782f87696ad3f28058d6532cb4e44dd25b08a7f
 WINDOWS_AUTOMATED_LOCAL_GATES: PASS_EXACT_SHA_WINDOWS_AMD64
 WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_VISIBLE_PROJECT_HUB_AND_WEBVIEW2
-WINDOWS_NATIVE_HUD_SMOKE: PASS_VISIBLE_TRANSPARENT_PANEL_AND_EXPANSION; AUTOSTART=NOT_VERIFIED
-WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: INCONCLUSIVE_TUI_EXITED_BEFORE_LIVE_INPUT; NO_PROMPT_SENT; AUTOMATED_REGRESSIONS_PASS
+WINDOWS_NATIVE_HUD_SMOKE: PASS_VISIBLE_TRANSPARENT_PANEL_AND_EXPANSION; SHOW_HIDE=NOT_VERIFIED; AUTOSTART=NOT_VERIFIED
+WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: PASS_NO_LITERAL_ARROWS_IN_UNAUTHENTICATED_CODEX_TUI; NO_PROMPT_SENT; AUTHENTICATED_SESSION_PENDING
 WINDOWS_HOSTED_CI_SAME_SHA: NOT_VERIFIED
 WINDOWS_SIGNED_INSTALLER_AND_UPDATE_TRUST_ROOT: BLOCKED_TOOLS_AND_SECRETS_UNAVAILABLE
 WINDOWS_PROVIDER_MISSION_VOICE_UI_SMOKES: PENDING_AUTHENTICATED_OR_INTERACTIVE_EVIDENCE
