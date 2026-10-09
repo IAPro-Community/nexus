@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import {
   defaultThemePreferences,
+  getThemePresetFinish,
   MANAGED_THEME_COLOR_VARS,
   normalizeThemePreferences,
   resolveScheme,
@@ -80,7 +81,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.dataset.finish =
       resolvedScheme === 'high-contrast'
         ? 'standard'
-        : THEME_PRESETS[preferences.preset]?.finish || 'standard';
+        : getThemePresetFinish(preferences.preset);
     root.dataset.reducedMotion = preferences.reducedMotion ? 'true' : 'false';
     const scale = preferences.fontScale || 1.0;
     root.dataset.fontScale = String(scale);
