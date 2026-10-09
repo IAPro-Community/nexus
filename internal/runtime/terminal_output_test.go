@@ -200,6 +200,23 @@ func TestTerminalInputScrubberPreservesNonMouseCSIAndOutputDeleteLine(t *testing
 	}
 }
 
+func TestTerminalInputScrubberDropsIncompleteSGRMouseOnFlush(t *testing.T) {
+	var out bytes.Buffer
+	scrubber := NewTerminalInputScrubber(&out)
+	defer scrubber.Close()
+
+	_, _ = scrubber.Write([]byte("choice\x1b[<65;120;"))
+	if got := out.String(); got != "choice" {
+		t.Fatalf("partial SGR mouse report escaped before final flush: %q", got)
+	}
+	if err := scrubber.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != "choice" {
+		t.Fatalf("partial SGR mouse report escaped on final flush: %q", got)
+	}
+}
+
 func TestTerminalInputScrubberMouseReportTimeoutCannotEmitPartialX10(t *testing.T) {
 	out := newSynchronizedBuffer()
 	scrubber := NewTerminalInputScrubber(out)
