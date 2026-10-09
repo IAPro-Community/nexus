@@ -9,7 +9,7 @@
   o registro final apague a geração usada pelo attach.
 - A instalação local reinicia apenas o `nexus web` associado ao binário
   instalado, evitando hosts Web em memória com executável `(deleted)`.
-- Checkout Windows atual: branch `fix/windows-beta10-homologation-20261008` em `3a09b5f0035cde09931b8f8eef1c783f49de47e0`; gate automatizado local passou no SHA exato. O remoto `release/v1.0.0` está em `deca290b` e requer PR. Desktop nativo carregou o Hub; teste de origem Wails passou. HUD nativo abriu janela/API, mas a captura permaneceu transparente. HUD visual/interações, smokes autenticados, CI Windows hosted, assinatura/update trust root e instalador final seguem NO-GO. Nenhum gate Linux nesta continuação.
+- Checkout Windows atual: branch `fix/windows-beta10-homologation-20261008` em `eedf31659b0245cf7690d556c32ee6e0040ae588`; gate automatizado local passou no SHA exato (Go, web, E2E e builds). HUD nativo abriu janela/API; DevTools confirmou DOM/painel renderizados no WebView2, mas GDI e `PrintWindow` não verificaram a composição DWM nesta sessão. A branch precisa de PR para `release/v1.0.0`; não enviar direto à release. Beta.10 é diferente de beta.7/d14154d2. CI Windows hosted, composição/interação HUD, smokes autenticados, assinatura/update trust root e instalador seguem pendentes. Nenhum gate Linux nesta continuação.
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.
 - Motor de Flags Canônicas e Normalização (`internal/control/flags`): mapeamento transparente de `--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan` e suporte a `Merged Help` (`nexus <provider> --help`).

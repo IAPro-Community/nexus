@@ -1,5 +1,12 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-09 — Gate Windows beta.10 no SHA `eedf31659b0245cf7690d556c32ee6e0040ae588`
+
+- PASS — `scripts/homologate-beta.ps1 -ExpectedSha eedf3165` no Windows AMD64; Go 1.27.2, Bun 1.3.9, Node 22.23.3; 66 pacotes Go, 84 arquivos/504 testes web, golangci-lint 0 findings, govulncheck sem vulnerabilidades, E2E/Axe/visual e builds CLI/Desktop/HUD.
+- PASS parcial — HUD nativo abriu Wails/WebView2 e API autenticada HTTP 200 (`enabled=true`, estado presente). Build diagnóstico do mesmo SHA confirmou DOM e painel 280×48 renderizados em captura WebView2. GDI `CopyFromScreen`/`CAPTUREBLT` e `PrintWindow` não verificaram a composição DWM; não declarar composição final aprovada.
+- NO-GO — beta.10 é distinto de beta.7/d14154d2. A branch Windows requer PR; composição física HUD, smokes manuais, CI Windows hosted, assinatura/trust root e instalador final pendem. Nenhum gate Linux.
+- Evidências: `DEV/validation/local-beta/1.0.0-beta.10/eedf31659b0245cf7690d556c32ee6e0040ae588/windows-AMD64/`; relatório `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
+
 ## 2026-10-09 — Revalidação Windows beta.10 no SHA final da branch
 
 - PASS — `scripts/homologate-beta.ps1 -ExpectedSha 3a09b5f0` no Windows AMD64; Go 1.27.2, Bun 1.3.9, Node 22.14.0; 66 pacotes Go PASS, 84 arquivos/503 testes web, oito E2E browser e builds CLI/Desktop/HUD.
@@ -1606,6 +1613,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-09T02:25:13Z
+## Frontend gate — 2026-10-09T03:19:25Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).

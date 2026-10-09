@@ -2,11 +2,11 @@
 
 ## Atualização de homologação Windows beta.10 — 2026-10-09
 
-Candidato local no Windows AMD64: branch `fix/windows-beta10-homologation-20261008`, SHA `3a09b5f0035cde09931b8f8eef1c783f49de47e0`, `VERSION=1.0.0-beta.10`. O gate automatizado oficial passou no SHA exato.
+Candidato local no Windows AMD64: branch `fix/windows-beta10-homologation-20261008`, SHA `eedf31659b0245cf7690d556c32ee6e0040ae588`, `VERSION=1.0.0-beta.10`. O gate automatizado oficial passou no SHA exato: 66 pacotes Go, 84 arquivos/504 testes web, E2E/Axe/visual e builds CLI/Desktop/HUD. Nenhum gate Linux.
 
-Desktop abriu e renderizou o Project Hub; o teste de servidor comprovou criação autenticada via host Wails e bloqueio de origins maliciosos. HUD nativo abriu WebView2 e a API retornou `enabled=true`/estado presente, mas sua captura ficou transparente; projeção e controles nativos continuam pendentes. Browser HUD E2E passou. Evidências e limites: [`DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`](../validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md).
+HUD nativo abriu Wails/WebView2; API autenticada retornou HTTP 200, e a captura diagnóstica confirmou DOM/painel renderizados no WebView2. GDI e `PrintWindow` não mostraram o painel; composição DWM física permaneceu inconclusiva nesta sessão. Composição visual, show/hide e autostart ficam pendentes. Evidências e limites: [`DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`](../validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 
-Refs remotas: release `deca290b`, branch Windows `3a09b5f0`, integração `9aad7444`. A branch Windows precisa de PR para `release/v1.0.0`; nenhuma tag ou publicação. CI Windows hosted, smokes autenticados/interativos, assinatura/trust root e instalador continuam pendentes. O candidato atual é beta.10, não beta.7. Nenhum gate Linux foi executado.
+A branch Windows deve ser vinculada à `release/v1.0.0` por PR, sem push direto à release. CI Windows hosted no SHA integrado, smokes interativos/autenticados, composição física do HUD, assinatura/trust root e instalador continuam pendentes. Este candidato é beta.10, não beta.7/d14154d2; sem tag/publicação.
 
 ## Programa ativo — Nexus 1.0 Product Closure — 2026-09-20
 

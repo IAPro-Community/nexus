@@ -1,5 +1,12 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-09 — Gate Windows beta.10 @ eedf3165
+
+- `scripts/homologate-beta.ps1 -ExpectedSha eedf3165` passou no SHA exato `eedf31659b0245cf7690d556c32ee6e0040ae588`: 66 pacotes Go, 84 arquivos/504 testes web, lint sem findings, govulncheck sem vulnerabilidades, E2E/Axe/visual e builds CLI/Desktop/HUD. Nenhum gate Linux.
+- Smoke HUD no binário oficial: janela Wails/WebView2 e API 200 com `enabled=true`/estado presente. Um build diagnóstico acrescentando somente porta DevTools de loopback mostrou DOM completo e painel 280×48 renderizado no WebView2 (`hud-webview2-eedf3165.png`). GDI `CopyFromScreen`/`CAPTUREBLT` e `PrintWindow` não mostraram o painel; a composição DWM física continua inconclusiva nesta sessão, sem declarar visual final aprovada.
+- Relatório atualizado em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`; evidência completa local em `DEV/validation/local-beta/1.0.0-beta.10/eedf31659b0245cf7690d556c32ee6e0040ae588/windows-AMD64/`.
+- A branch `fix/windows-beta10-homologation-20261008` precisa de PR para `release/v1.0.0`. O código beta.10 não é o SHA beta.7/d14154d2. Mantidos NO-GO de tag/distribuição e escopo Windows-only.
+
 ## 2026-10-09 — Continuidade de homologação Windows beta.10 @ 3a09b5f0
 
 - Revalidação exata Windows AMD64: `3a09b5f0035cde09931b8f8eef1c783f49de47e0`, `VERSION=1.0.0-beta.10`. Gate oficial PASS: PowerShell 5.1, docs, Go fmt/vet/lint/security/testes (66 pacotes), Bun `quality:full` (84 arquivos/503 testes), oito browser E2E, Axe/visual, builds CLI/Desktop/HUD. Nenhum gate Linux.

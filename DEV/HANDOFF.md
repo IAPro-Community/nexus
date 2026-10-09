@@ -2,13 +2,13 @@
 
 ## Estado atual — homologação Windows beta.10 — 2026-10-09
 
-Candidato atual: branch `fix/windows-beta10-homologation-20261008`, SHA exato `3a09b5f0035cde09931b8f8eef1c783f49de47e0`, `VERSION=1.0.0-beta.10`. O gate oficial Windows AMD64 passou nesse SHA, com 66 pacotes Go, 84 arquivos/503 testes web, oito E2E browser, Axe/visual e builds CLI/Desktop/HUD. Go 1.27.2, Bun 1.3.9 e Node 22.14.0.
+Candidato local: branch `fix/windows-beta10-homologation-20261008`, SHA `eedf31659b0245cf7690d556c32ee6e0040ae588`, `VERSION=1.0.0-beta.10`. O gate oficial Windows AMD64 passou no SHA exato: 66 pacotes Go, 84 arquivos/504 testes web, lint/security, E2E/Axe/visual e builds CLI/Desktop/HUD. Go 1.27.2, Bun 1.3.9 e Node 22.23.3. Nenhum gate Linux.
 
-O Desktop nativo abriu o Project Hub e o teste autenticado do servidor comprovou criação por `wails.localhost` (HTTP 201) e rejeição de origins maliciosos (403). O submit da UI não foi automatizado. O HUD nativo abriu Wails/WebView2 e sua API retornou 200, `enabled=true` e estado presente; a captura continuou transparente, portanto a projeção e os controles nativos ainda não estão homologados. O E2E browser do HUD passou.
+O smoke do HUD no binário de homologação confirmou janela Wails/WebView2 e API autenticada HTTP 200 (`enabled=true`, estado presente). Build diagnóstico do mesmo SHA confirmou DOM completo e captura do painel pelo WebView2. GDI `CopyFromScreen`/`CAPTUREBLT` e `PrintWindow` não mostraram o painel; outro PID permaneceu em foreground mesmo com HWND topmost. Como esses mecanismos não validam com segurança a superfície DirectComposition nesta sessão, a composição física continua inconclusiva. Não contar show/hide ou autostart como aprovados. O Desktop Hub e submissão de UI não foram revalidados nesta rodada.
 
-Refs remotas confirmadas: `release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d`, branch Windows `3a09b5f0035cde09931b8f8eef1c783f49de47e0`, integração beta.10 `9aad7444afb7581fd1238541ee0c6909211a3e78`. Nenhuma branch nova foi criada nesta continuação; a branch Windows precisa de PR para `release/v1.0.0`. Nenhum push direto para release, tag ou publicação foi feito.
+O código passou os gates locais, mas este candidato é beta.10, não beta.7/d14154d2. A branch de homologação Windows precisa de PR para `release/v1.0.0`; não fazer push direto para a release. Nenhuma branch nova foi criada nesta continuação. Tag e distribuição seguem NO-GO até os gates nativos/operacionais descritos no relatório.
 
-Manter **NO-GO para tag e distribuição** até projetar/verificar o HUD nativo, fechar smokes interativos/autenticados, CI Windows hosted no SHA integrado, assinatura/update trust root e instalador final. `VERSION` é beta.10, distinto da solicitação original beta.7/d14154d2. Nenhum gate Linux executado. Veja `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
+Veja `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md` e a evidência local sob o diretório `eedf3165…/windows-AMD64`.
 
 ## Registro histórico — homologação Windows beta.7 — 2026-10-08
 

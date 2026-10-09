@@ -1,8 +1,23 @@
 # Homologação Windows beta.10 — 2026-10-09
 
-## Revalidação posterior Windows — 2026-10-09 — SHA `3a09b5f0035cde09931b8f8eef1c783f49de47e0`
+## Revalidação mais recente — Windows AMD64 — SHA `eedf31659b0245cf7690d556c32ee6e0040ae588`
 
-Esta é a evidência mais recente desta branch. `VERSION=1.0.0-beta.10`; ela não substitui a homologação beta.7 pedida originalmente.
+Esta rodada é beta.10 e não substitui a homologação beta.7 no SHA solicitado `d14154d2490dfdd3966c7fddc990a1d9127edd39`.
+
+- **Gate oficial automatizado: PASS no SHA exato.** `scripts/homologate-beta.ps1 -ExpectedSha eedf3165`, executado com árvore limpa no início, de `2026-10-09T03:18:53Z` a `03:29:02Z`. `VERSION=1.0.0-beta.10`; Go 1.27.2, Bun 1.3.9 e Node 22.23.3.
+- **Qualidade Go e segurança: PASS.** `gofmt`, `go vet ./...`, `golangci-lint` (0 issues), `govulncheck` (sem vulnerabilidades) e `go test -count=1 -v ./...` (66 pacotes PASS; skips condicionais de plataforma/permissão registrados no log). Preflights de provider/Mission/terminal, control/runtime e Agent Interop/OpenCode também passaram.
+- **Web: PASS.** Instalação Bun congelada; `quality:full` com 84 arquivos e 504 testes PASS; build/embed e relatórios passaram.
+- **Browser E2E: PASS.** O gate concluiu as suítes browser, Axe/acessibilidade e visual, incluindo HUD, Composer, isolamento de superfícies, Capacity e temas.
+- **Distribuíveis Windows: PASS de compilação.** CLI, Desktop Wails v3 e HUD compilados para Windows AMD64. Isto não substitui assinatura, instalador final ou CI Windows hosted.
+- **HUD nativo: PASS parcial delimitado.** O binário de homologação `002afb4a…685761dc` abriu uma janela Wails de 280×48 com filho WebView2; a API autenticada retornou HTTP 200, `enabled=true` e estado presente. Um build diagnóstico do mesmo SHA, com DevTools apenas em loopback, confirmou `http://wails.localhost/?nativeHud=1`, documento completo, tema dark e painel DOM 280×48. Captura renderizada pelo WebView2: `hud-webview2-eedf3165.png`, SHA-256 `b8a6a3ad4bce719ce875a05ebb8246f470266f7eaf414d75fb8d187cba169de9` (evidência local ignorada pelo Git). As tentativas de captura física por GDI `CopyFromScreen` com `CAPTUREBLT` e `PrintWindow` não mostraram o painel; o HWND estava visível/topmost, mas outro PID permaneceu em foreground. Como essas capturas não verificam de forma confiável a superfície DirectComposition/WebView2 neste host, a composição DWM final permanece **inconclusiva**; não declarar show/hide/autostart ou visual físico aprovados.
+- **Evidências completas:** `DEV/validation/local-beta/1.0.0-beta.10/eedf31659b0245cf7690d556c32ee6e0040ae588/windows-AMD64/` (diretório local ignorado pelo Git). O gate registrou 178 Markdown e 33 assets/arquivos de documentação.
+- **Escopo de plataforma:** nenhuma validação Linux foi executada.
+
+**Veredito:** PASS dos gates automatizados locais Windows no SHA exato; renderização do DOM pelo WebView2 confirmada; composição visual física ainda inconclusiva. **NO-GO para tag/distribuição** até fechar a composição visual nativa, os smokes interativos/autenticados, CI Windows hosted no SHA integrado, assinatura/update trust root e instalador final. O candidato é beta.10, distinto da solicitação beta.7/d14154d2.
+
+## Revalidação Windows anterior — SHA `3a09b5f0035cde09931b8f8eef1c783f49de47e0`
+
+Esta evidência antecede o gate acima. `VERSION=1.0.0-beta.10`; não substitui a homologação beta.7 pedida originalmente.
 
 - **Gate local Windows AMD64: PASS no SHA exato.** `scripts/homologate-beta.ps1 -ExpectedSha 3a09b5f0` fechou: PowerShell 5.1, docs-verify, Bun frozen + `quality:full` (84 arquivos/503 testes), Go fmt/vet/lint/security/testes (66 pacotes PASS), preflights, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Go 1.27.2, Bun 1.3.9, Node 22.14.0. Evidências: `DEV/validation/local-beta/1.0.0-beta.10/3a09b5f0035cde09931b8f8eef1c783f49de47e0/windows-AMD64/`.
 - **Origin Wails e criação pelo servidor: PASS.** `TestWindowsWailsVirtualHostSupportsAuthenticatedProjectCreation` retornou HTTP 201 para `Host: wails.localhost` / `Origin: http://wails.localhost` e HTTP 403 para origins maliciosos. A consulta foi repetida fora da sandbox porque ela bloqueava localhost. A janela Desktop nativa carregou o Project Hub; a submissão do formulário pela UI não foi concluída nesta automação.
