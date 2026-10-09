@@ -5,6 +5,7 @@
 - O gate Windows no candidato integrado `11525ab9` parou em `govulncheck`: o toolchain Go 1.25.14 expôs `GO-2026-6617`, falha de concorrência no encoder HPACK/HTTP/2 da biblioteca padrão, alcançada pelo grafo do produto.
 - O relatório oficial marca o problema corrigido a partir de Go 1.26.9; o histórico oficial registra Go 1.27.2 como lançado em 2026-10-08 com correções de segurança em `net/http`. Fontes: [GO-2026-6617](https://pkg.go.dev/vuln/GO-2026-6617) e [histórico oficial de releases Go](https://go.dev/doc/devel/release).
 - O Go 1.27.2 Windows AMD64 foi obtido pelo mecanismo de toolchain verificado do Go. Os pins ativos de CI/release, homologadores Windows/Linux, Makefile e imagem Docker foram alinhados a 1.27.2; relatórios beta antigos permanecem históricos.
+- O linter v2.12.2 então falhou ao decodificar export data do Go 1.27.2. O changelog oficial introduz suporte a Go 1.27 em v2.13.0; CI, homologadores e Makefile agora pinam v2.14.0. Fonte: [changelog oficial golangci-lint](https://github.com/golangci/golangci-lint/blob/main/CHANGELOG.md).
 - Estado desta entrada: correção aplicada, gate completo ainda pendente de nova execução; não declarar homologação final até `govulncheck` e os demais gates passarem no novo SHA.
 
 ## 2026-10-08 — Correção e homologação Windows beta.10

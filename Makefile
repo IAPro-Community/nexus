@@ -111,10 +111,10 @@ format-check:
 # ─── Go linting ─────────────────────────────────────────────────────
 
 lint-go:
-	@if [ -n "$(GO_TAGS)" ]; then GOFLAGS="-tags=$(GO_TAGS)" PATH="$(HOME)/go/bin:$(PATH)" golangci-lint run ./...; else PATH="$(HOME)/go/bin:$(PATH)" golangci-lint run ./...; fi
+	@if [ -n "$(GO_TAGS)" ]; then GOFLAGS="-tags=$(GO_TAGS)" GOTOOLCHAIN=go1.27.2 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0 run --timeout=5m ./...; else GOTOOLCHAIN=go1.27.2 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0 run --timeout=5m ./...; fi
 
 golangci-lint:
-	@if [ -n "$(GO_TAGS)" ]; then GOFLAGS="-tags=$(GO_TAGS)" PATH="$(HOME)/go/bin:$(PATH)" golangci-lint run ./...; else PATH="$(HOME)/go/bin:$(PATH)" golangci-lint run ./...; fi
+	@if [ -n "$(GO_TAGS)" ]; then GOFLAGS="-tags=$(GO_TAGS)" GOTOOLCHAIN=go1.27.2 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0 run --timeout=5m ./...; else GOTOOLCHAIN=go1.27.2 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0 run --timeout=5m ./...; fi
 
 vet:
 	@if [ -n "$(GO_TAGS)" ]; then go vet -tags="$(GO_TAGS)" ./...; else go vet ./...; fi

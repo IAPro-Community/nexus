@@ -146,7 +146,7 @@ go vet ./... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'go-vet.log')
 if ($LASTEXITCODE -ne 0) { throw "go vet failed" }
 
 Write-Host "==> Go lint (pinned)"
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'golangci-lint.log')
+go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0 run --timeout=5m ./... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'golangci-lint.log')
 if ($LASTEXITCODE -ne 0) { throw "golangci-lint failed" }
 
 Write-Host "==> Go security (pinned)"
