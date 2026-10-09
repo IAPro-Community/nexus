@@ -780,6 +780,12 @@ interface ThemeCategory {
 
 const THEME_CATEGORIES: ThemeCategory[] = [
   {
+    id: 'flat-essentials',
+    title: 'Essenciais Flat',
+    description: 'Menos efeitos, fundos sólidos e acentos discretos para uso prolongado.',
+    presets: ['slate-flat', 'paper-flat', 'clay-flat'],
+  },
+  {
     id: 'dark-modern',
     title: 'Dark Modern',
     description: 'Paletas escuras premium, alto contraste de código e atmosfera imersiva.',
