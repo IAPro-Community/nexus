@@ -47,3 +47,11 @@ O código de referência [stablyai/orca — main.css](https://github.com/stablya
 ## Próxima refatoração prioritária
 
 Extrair seletivamente os estilos de janelas e rails de `workspace-os.css` para módulos locais, mantendo tokens globais centralizados; adicionar regressões visuais que comparem todos os temas escolhidos sem variações acidentais em estado de foco e leitura de terminal.
+
+## Personalização de aparência — complementação 2026-10-09
+
+- Tema original **Nexus Dusk** substitui o nome interno de trabalho que fazia referência ao Orca (preset ainda não integrado); nenhuma migração remota publicada foi necessária.
+- Tema original **Ember Studio** com inspiração na UI clássica do Sublime Text e acabamento `flat`, sem trocar cores ANSI/xterm. Mantido `monokai` existente.
+- Novos controles `fontFamily: default|system|readable` e `iconStyle: default|light|bold` são independentes do preset, com normalização de preferências legadas e sem download de fontes ou biblioteca adicional.
+- A matriz de presets passa a **20**. A suíte visual cobre os dois temas novos e um smoke adicional verifica seleção, persistência, recarga e restauração de fontes/ícones.
+- A execução de Bun/Playwright e inspeção visual WebView2 continuam pendentes; esta branch permanece draft. A release avançou independentemente e **não deve receber merge automático enquanto ocorrer homologação Windows**.
