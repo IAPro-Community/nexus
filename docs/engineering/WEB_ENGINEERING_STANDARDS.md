@@ -130,11 +130,11 @@ CSS Custom Properties (`var(--nx-*)`) are the authoritative runtime source for:
 4. **No `!important`**: Overriding CSS specificity with `!important` is forbidden and enforced via Stylelint (`declaration-no-important: true`).
 5. **No Hardcoded Hex/RGB in Components**: Components must consume semantic design tokens rather than arbitrary raw colors (`#ffffff`, `#1a1a1a`).
 6. **Modern SCSS/CSS**: Use `@use` and `@forward` for Sass; never use deprecated Sass `@import`. The ordered `@import` directives in `workspace-os.css` are **native CSS imports**, an explicit migration-only exception needed to preserve the existing global cascade. Limit selector nesting to <= 3 levels.
-7. **Global Styles Allowlist**: Global stylesheets are restricted to `src/index.css`, the import-only `src/app/workspace-os.css` entry, the 16 named migration sections in `src/app/workspace-styles/*.css`, and `src/styles/*.scss`. Other global `.css` files are rejected by `npm run check:styles`. New feature styles MUST use co-located `*.module.scss`; do not append to the legacy sections merely for convenience.
+7. **Global Styles Allowlist**: Global stylesheets are restricted to `src/index.css`, the import-only `src/app/workspace-os.css` entry, the 17 named migration sections in `src/app/workspace-styles/*.css`, and `src/styles/*.scss`. Other global `.css` files are rejected by `npm run check:styles`. New feature styles MUST use co-located `*.module.scss`; do not append to the legacy sections merely for convenience.
 
 ### Legacy workspace CSS migration guard
 
-`workspace-os.css` is a **facade only**. Its 16 numbered imports are intentionally
+`workspace-os.css` is a **facade only**. Its 17 numbered imports are intentionally
 order-sensitive: CSS from later sections may override earlier selectors. Do not
 alphabetize or reorder the imports. The extractor preserved the original
 179 KB global CSS source byte-for-byte; the layout is a transitional
