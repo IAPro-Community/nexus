@@ -16,6 +16,24 @@ function Require-Command([string]$Name) {
   }
 }
 
+function Invoke-BunLogged([string[]]$Arguments, [string]$LogPath, [switch]$Append) {
+  # Windows PowerShell 5.1 promotes native stderr records to terminating errors
+  # under ErrorActionPreference=Stop, even when Bun exits successfully.
+  $SavedErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    if ($Append) {
+      bun @Arguments 2>&1 | Tee-Object -FilePath $LogPath -Append | ForEach-Object { Write-Host $_ }
+    } else {
+      bun @Arguments 2>&1 | Tee-Object -FilePath $LogPath | ForEach-Object { Write-Host $_ }
+    }
+    $NativeExitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $SavedErrorActionPreference
+  }
+  return $NativeExitCode
+}
+
 Require-Command git
 Require-Command go
 Require-Command bun
@@ -102,18 +120,18 @@ foreach ($ScriptPath in @(
 }
 
 Write-Host "==> documentation"
-bun scripts/docs-verify.mjs 2>&1 | Tee-Object -FilePath (Join-Path $Out 'docs-verify.log')
-if ($LASTEXITCODE -ne 0) { throw "documentation verification failed" }
+$BunExitCode = Invoke-BunLogged -Arguments @('scripts/docs-verify.mjs') -LogPath (Join-Path $Out 'docs-verify.log')
+if ($BunExitCode -ne 0) { throw "documentation verification failed" }
 
 Write-Host "==> frontend dependencies"
-bun install --cwd web --frozen-lockfile 2>&1 | Tee-Object -FilePath (Join-Path $Out 'bun-install.log')
-if ($LASTEXITCODE -ne 0) { throw "bun install failed" }
+$BunExitCode = Invoke-BunLogged -Arguments @('install','--cwd','web','--frozen-lockfile') -LogPath (Join-Path $Out 'bun-install.log')
+if ($BunExitCode -ne 0) { throw "bun install failed" }
 
 Write-Host "==> Playwright Chromium"
 Push-Location web
 try {
-  bun x playwright install chromium 2>&1 | Tee-Object -FilePath (Join-Path $Out 'playwright-chromium.log')
-  if ($LASTEXITCODE -ne 0) { throw "Playwright Chromium installation failed" }
+  $BunExitCode = Invoke-BunLogged -Arguments @('x','playwright','install','chromium') -LogPath (Join-Path $Out 'playwright-chromium.log')
+  if ($BunExitCode -ne 0) { throw "Playwright Chromium installation failed" }
 } finally {
   Pop-Location
 }
@@ -122,8 +140,8 @@ Write-Host "==> frontend quality"
 $FrontendLog = Join-Path $Out 'frontend.log'
 foreach ($Task in @('format:check','typecheck','lint','lint:styles','check:styles','test','build','verify')) {
   "--- bun run $Task" | Tee-Object -FilePath $FrontendLog -Append
-  bun run --cwd web $Task 2>&1 | Tee-Object -FilePath $FrontendLog -Append
-  if ($LASTEXITCODE -ne 0) { throw "frontend task failed: $Task" }
+  $BunExitCode = Invoke-BunLogged -Arguments @('run','--cwd','web',$Task) -LogPath $FrontendLog -Append
+  if ($BunExitCode -ne 0) { throw "frontend task failed: $Task" }
 }
 
 Write-Host "==> Go formatting"
@@ -321,8 +339,8 @@ try {
     'test:visual'
   )) {
     $E2ELog = Join-Path $Out ("{0}.log" -f ($Task -replace ':','-'))
-    bun run --cwd web $Task 2>&1 | Tee-Object -FilePath $E2ELog
-    if ($LASTEXITCODE -ne 0) { throw "browser E2E failed: $Task" }
+    $BunExitCode = Invoke-BunLogged -Arguments @('run','--cwd','web',$Task) -LogPath $E2ELog
+    if ($BunExitCode -ne 0) { throw "browser E2E failed: $Task" }
   }
 } finally {
   if ($null -eq $SavedSkipBuild) {
