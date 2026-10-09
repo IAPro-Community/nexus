@@ -114,6 +114,6 @@
   rewrite remains deferred because provider-direct parsing is intentionally
   provider-native.
 
-## Estado Windows atual — Nexus 1.0.0-beta.7 — 2026-10-07
+## Estado Windows atual — Nexus 1.0.0-beta.10 — 2026-10-09
 
-Project Hub corrigido e validado em 775×483; gates web, oito suítes browser, builds CLI/Desktop/HUD e smokes isolados passaram no worktree 52f35c04-dirty. O SHA d14154d2 solicitado é ancestral, mas não é o HEAD. A release segue NO-GO até homologação exact-SHA, assinatura/trust root e fechamento de CI/instalador. Ver DEV/validation/current/RELEASE_STATUS.md e DEV/validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md.
+O SHA `638cfb3bbb7aa9a647d6802964e7e4ab794cc786` passou os gates automatizados Windows AMD64 exact-SHA, com 84 arquivos/503 testes web, oito suítes browser E2E, Axe/visual, 66 pacotes Go PASS e smokes nativos Desktop/HUD com perfis isolados. O remoto canônico `release/v1.0.0` continua em `deca290b` e é ancestral do candidato; falta vincular a branch beta.10 via PR e repetir o workflow hosted no SHA integrado. CI, ConPTY manual, provider/Mission/Voice UI, captura visual Desktop, Authenticode, trust root e instalador final continuam pendentes. O veredito de distribuição permanece NO-GO. Nenhum gate Linux foi executado nesta continuação.

@@ -5237,3 +5237,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Nenhuma branch nova foi criada. `fix/beta7-windows-KIVER-20261007` continua em `d14154d2`, ancestral do candidato, sem integração pendente.
 - A tag `v1.0.0-beta.7` continua ausente. `gh` não está instalado e o Actions API não autenticado retornou 404; CI pós-push não foi confirmado. Nenhum release público foi publicado.
 - A sincronização documental posterior foi enviada por fast-forward de `f1928d0f` para `5a08a1807c4489395dca86ed198f268ea676d2e4`; `git ls-remote` confirmou esse HEAD antes do registro final de status. O código homologado `d840797b` permanece ancestral, a árvore está limpa e não há gate Linux nesta rodada.
+
+## 2026-10-09 — homologação Windows beta.10
+
+- Concluída a reconciliação com o HEAD remoto da release e validados os gates Windows no SHA exato `638cfb3bbb7aa9a647d6802964e7e4ab794cc786`.
+- PASS — gates oficiais Go, frontend, oito E2E browser, Axe/visual, CLI/Desktop/HUD; Desktop e HUD nativos passaram em perfis isolados.
+- Auditoria confirmou que o código relevante da branch beta.7 já está refletido na árvore atual; não foi necessário importar os relatórios beta.7. A branch Windows beta.10 segue para PR contra `release/v1.0.0`.
+- Distribuição segue NO-GO por CI hosted exact-SHA e gates operacionais/assinatura/instalador pendentes. Ver `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.

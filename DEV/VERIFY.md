@@ -1597,6 +1597,14 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-09T01:04:04Z
+## Frontend gate — 2026-10-09T01:40:27Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
+
+## Homologação Windows beta.10 exact-SHA — 2026-10-09
+
+- PASS — `638cfb3bbb7aa9a647d6802964e7e4ab794cc786`, Windows AMD64, Go 1.27.2, Bun 1.3.9, Node 22.14.0; gate oficial completo, 66 pacotes Go PASS/0 falhas/18 skips específicos de Windows e 84 arquivos/503 testes frontend.
+- PASS — oito suítes browser E2E, Axe/visual, builds CLI/Desktop/HUD e smokes Desktop Wails/WebView2 por 11 s e HUD por 8 s com IDs e perfis isolados; hashes registrados no relatório e evidência local.
+- Gemini `--version` falhou no wrapper Node 18 do host e permanece `WARN`; nenhum prompt foi enviado. A tentativa manual Codex/setas continua inconclusiva; regressões automatizadas ConPTY passaram.
+- `origin/release/v1.0.0=deca290b` é ancestral do candidato, mas ainda não aponta para o SHA homologado. A branch beta.10 precisa PR; não houve push direto à release canônica.
+- Distribuição NO-GO: CI hosted same-SHA, smokes interativos autenticados, assinatura, chave de atualização e instalador final continuam pendentes. Nenhum gate Linux executado.

@@ -1,7 +1,10 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
-## Atualização de homologação Windows beta.7 — 2026-10-07
 
-Base local: branch release/v1.0.0, SHA-base 52f35c04181b85379219ab55fc3192c63a5440a8; VERSION=1.0.0-beta.7. Gates Go/Web/E2E, HUD/Desktop e instalador isolado passaram no Windows. O NSIS exato da árvore compilou com NSIS 3.13; a variante com HKCU/atalho isolados instalou/removeu o payload real. O smoke Desktop Wails/WebView2 passou por 10s após restringir cleanup ao perfil Nexus. A árvore segue dirty; docs-verify falha porque o manifesto visual está preso a 2892f301 e o gate exige recaptura em SHA limpo. Exact-SHA, execução do instalador exato, CI Windows remoto, assinatura e trust root permanecem pendentes. O host não tem runner Windows, Windows SDK/signtool ou certificado Authenticode. Nenhum gate Linux foi executado. A auditoria viva não encontrou branch Beta 7 nova nem merge pendente. Consulte DEV/validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md e DEV/validation/current/RELEASE_STATUS.md.
+## Atualização de homologação Windows beta.10 — 2026-10-09
+
+Candidato homologado localmente no Windows AMD64: branch `fix/windows-beta10-homologation-20261008`, SHA `638cfb3bbb7aa9a647d6802964e7e4ab794cc786`, `VERSION=1.0.0-beta.10`. Passaram os gates oficiais Go/Web/E2E e builds CLI/Desktop/HUD no SHA exato; os smokes nativos Desktop/WebView2 (11 s) e HUD (8 s) também passaram com IDs/perfis isolados. Relatório e limites: [`DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`](../validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md).
+
+A ponta remota `release/v1.0.0=deca290b` é ancestral, mas o candidato ainda requer PR e CI Windows hosted no SHA integrado. Smokes manuais autenticados/interativos, CI exact-SHA, assinatura/trust root e instalador final permanecem pendentes. Tag e distribuição: NO-GO. Escopo desta continuidade: Windows; nenhum gate Linux foi executado.
 
 ## Programa ativo — Nexus 1.0 Product Closure — 2026-09-20
 

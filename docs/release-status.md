@@ -1,22 +1,30 @@
 # Status público da release do Nexus v1
 
-Atualizado em 8 de outubro de 2026.
+Atualizado em 9 de outubro de 2026.
 
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
-| Versão-fonte candidata | 1.0.0-beta.10 (ainda não homologada) |
+| Versão-fonte candidata | 1.0.0-beta.10 |
 | Branch canônica | release/v1.0.0 |
-| SHA validado nos gates automatizados Windows locais | d840797bbd975a5c7edc54ebe23f3dfef56ff947 |
-| SHA originalmente solicitado para homologação | d14154d2490dfdd3966c7fddc990a1d9127edd39 |
-| Remoto observado antes da continuidade | origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8 |
-| Candidato local | release/v1.0.0 em d840797bbd975a5c7edc54ebe23f3dfef56ff947; descendente do SHA KIVER d14154d2 |
-| Estado do worktree durante os gates | limpo no início da execução exact-SHA; documentação atualizada depois dos gates |
-
-| Última beta pública registrada (último estado conhecido) | v1.0.0-beta.1; inventário remoto atual não revalidado |
+| SHA da release remota observado | deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d |
+| Branch Windows homologada | fix/windows-beta10-homologation-20261008 |
+| SHA homologado nos gates Windows locais | 638cfb3bbb7aa9a647d6802964e7e4ab794cc786 |
+| Relação do SHA homologado com a release | deca290b é ancestral; candidato ainda aguarda PR/integração |
+| Gates automatizados locais Windows AMD64 | PASS no SHA exato |
+| Gate Windows hosted exact-SHA | pendente/não verificado neste host |
+| Smokes nativos Desktop/HUD | PASS de inicialização com perfis e IDs isolados |
+| Última beta pública registrada | v1.0.0-beta.1; inventário remoto não revalidado |
 | Release estável v1 | ainda não publicada |
-| Gate nativo Windows exact-SHA no GitHub Actions | não revalidado; `gh` ausente neste host |
-| Veredito | NO-GO para beta.10: os gates Windows PASS se referem somente ao SHA anterior d840797b (beta.7); faltam CI exact-SHA, validação de túnel/Codex e demais smokes aplicáveis |
+| Veredito | NO-GO para tag e distribuição até integração, CI Windows, smokes operacionais, assinatura e instalador |
+
+## Estado atual da homologação Windows — beta.10
+
+O gate `scripts/homologate-beta.ps1 -ExpectedSha 638cfb3bbb7aa9a647d6802964e7e4ab794cc786` passou em Windows AMD64. Foram validados Go 1.27.2, Bun 1.3.9, Node 22.14.0 para Playwright, 84 arquivos/503 testes frontend, 66 pacotes Go PASS (18 skips específicos de plataforma, zero falhas), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Os smokes nativos Desktop/WebView2 e HUD passaram com perfis isolados. O relatório interno completo está em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
+
+O candidato ainda não foi integrado em `release/v1.0.0`; o SHA remoto permanece `deca290b`. O workflow Windows hosted no SHA integrado, navegação manual ConPTY/Codex, Mission/provider autenticado, controles HUD/Voice, renderização visual Desktop, Authenticode, trust root de atualização e build/smoke do instalador final permanecem pendentes. Este host não tem `gh`, `signtool.exe`, `makensis.exe` nem credenciais de assinatura/update configuradas. Nenhum gate Linux foi executado nesta continuação.
+
+**Veredito:** homologação automatizada local Windows PASS no SHA informado; release e distribuição **NO-GO** até os gates restantes fecharem.
 
 ## Convergência beta.10 — PRs #45 e #46
 
@@ -24,30 +32,23 @@ As correções de homologação Windows da PR #45 e de engenharia da PR #46
 foram conciliadas na PR #47 para incorporação única na `release/v1.0.0`.
 As mudanças recentes de janela/título IA foram preservadas. O registro
 histórico da homologação beta.8 não foi promovido indevidamente como
-certificação do código beta.10, e as capturas de tela precisam ser
-regeneradas contra o SHA final antes de serem declaradas atuais.
+certificação do código beta.10.
 
 **Estado técnico:** o merge de código não representa aprovação de release.
-A validação do exato SHA (Linux, Windows, Codex/ConPTY, túnel, browser,
-Desktop/NSIS e assinatura) permanece pendente. Não criar tag, nem publicar
-instalador ou manifest de atualização sem esses gates.
+A validação hosted do exato SHA, Codex/ConPTY, túnel, Desktop/NSIS e assinatura
+permanece pendente. Não criar tag, nem publicar instalador ou manifest de
+atualização sem esses gates.
 
-## Candidato atual — beta.10 (2026-10-08)
+## Candidato beta.10 — histórico de 2026-10-08
 
 A branch canônica `release/v1.0.0` avançou de beta.9 para beta.10. Esta iteração
 preserva as correções recentes de Codex/PTY/JSON e de autenticação/túnel e acrescenta
 cancelamento de inicialização do Cloudflare Tunnel desde Settings, publicação
 atômica do processo, proteção por geração contra canceladores antigos e testes
-de cancelamento antes e durante readiness. O comando `scripts/release-beta.mjs`
-passou a atualizar `VERSION` e `web/package.json` em conjunto, revertendo ambos
-quando a compilação falha.
+de cancelamento antes e durante readiness.
 
-**Nenhuma evidência anterior certifica automaticamente a beta.10.** O último
-Windows PASS documentado continua ancorado em `d840797b` (beta.7).
-Antes de disponibilizar nova beta ou instalador: congelar o SHA final; obter
-`go test -race` (quando suportado), frontend e browser E2E, smoke real de
-túnel iniciado/cancelado e recuperação de sessão, Codex TUI/entrada e
-certificação Windows/Linux aplicável ao exato SHA; não publicar tag apenas pelo bump.
+Os registros posteriores deste arquivo são históricos e não substituem o estado
+corrente da tabela acima.
 
 ## Continuidade Windows — gates exact-SHA locais — 2026-10-08
 
