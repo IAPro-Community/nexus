@@ -1316,7 +1316,8 @@ export const en = {
     newAgent: 'New Agent',
     customTitle: 'Custom window name',
     allowAiTitle: 'Allow AI to update the window title',
-    allowAiTitleHelp: 'Your custom name stays saved. When enabled, the AI can update the main title automatically.',
+    allowAiTitleHelp:
+      'Your custom name stays saved. When enabled, the AI can update the main title automatically.',
     windowTitlePlaceholder: 'Window identity',
     titleColor: 'Title color',
     noColor: 'No color',
@@ -3287,7 +3288,8 @@ export const ptBR = {
     newAgent: 'Novo Agente',
     customTitle: 'Nome personalizado',
     allowAiTitle: 'Permitir que a IA atualize o título',
-    allowAiTitleHelp: 'O nome personalizado permanece salvo. Quando ativada, a IA pode atualizar o título principal automaticamente.',
+    allowAiTitleHelp:
+      'O nome personalizado permanece salvo. Quando ativada, a IA pode atualizar o título principal automaticamente.',
     windowTitlePlaceholder: 'Identidade da janela',
     titleColor: 'Cor do título',
     noColor: 'Sem cor',
@@ -5267,7 +5269,8 @@ export const es = {
     newAgent: 'Nuevo Agente',
     customTitle: 'Nombre personalizado',
     allowAiTitle: 'Permitir que la IA actualice el título',
-    allowAiTitleHelp: 'El nombre personalizado permanece guardado. Al activarlo, la IA puede actualizar el título principal automáticamente.',
+    allowAiTitleHelp:
+      'El nombre personalizado permanece guardado. Al activarlo, la IA puede actualizar el título principal automáticamente.',
     windowTitlePlaceholder: 'Identidad de la ventana',
     titleColor: 'Color del título',
     noColor: 'Sin color',

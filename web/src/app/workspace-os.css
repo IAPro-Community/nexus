@@ -7357,7 +7357,7 @@ button.nx-workspace-tab__close {
   color: var(--nx-text);
   cursor: pointer;
 }
-.nx-desktop-window__chrome-menu .nx-desktop-window__ai-title-toggle input[type='checkbox'] {
+.nx-desktop-window__chrome-menu .nx-desktop-window__ai-title-toggle input[type="checkbox"] {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;

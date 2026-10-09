@@ -98,16 +98,7 @@ const WindowChromeMenu: React.FC<{
     icon?: string;
   }) => void;
   position?: ContextMenuPoint | null;
-}> = ({
-  open,
-  onOpenChange,
-  customTitle,
-  allowAiTitle,
-  accent,
-  icon,
-  onPatch,
-  position,
-}) => {
+}> = ({ open, onOpenChange, customTitle, allowAiTitle, accent, icon, onPatch, position }) => {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(customTitle);
@@ -1368,11 +1359,7 @@ const DesktopWorkspace: React.FC<{
             >
               <div
                 className="nx-desktop-window__title"
-                title={[
-                  heading.heading,
-                  heading.identityHint || providerLabel,
-                  statusSuffix,
-                ]
+                title={[heading.heading, heading.identityHint || providerLabel, statusSuffix]
                   .filter(Boolean)
                   .join(' · ')}
               >

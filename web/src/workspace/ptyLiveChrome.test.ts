@@ -58,11 +58,15 @@ describe('ptyLiveChrome', () => {
       heading: 'Backend',
       identityHint: 'codex · ready',
     });
-    expect(ptyWindowHeading({ ...customized, allowAiTitle: true, liveTitle: 'codex · ready' })).toEqual({
+    expect(
+      ptyWindowHeading({ ...customized, allowAiTitle: true, liveTitle: 'codex · ready' }),
+    ).toEqual({
       heading: 'codex · ready',
       identityHint: 'Backend',
     });
-    expect(ptyWindowHeading({ ...customized, customTitle: '', liveTitle: 'codex · ready' })).toEqual({
+    expect(
+      ptyWindowHeading({ ...customized, customTitle: '', liveTitle: 'codex · ready' }),
+    ).toEqual({
       heading: 'codex · ready',
       identityHint: 'Codex',
     });
