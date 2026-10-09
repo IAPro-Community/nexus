@@ -26,6 +26,7 @@ const sections = [
   '14-desktop-windows.css',
   '15-context-and-responsive.css',
   '16-splash-and-settings.css',
+  '17-appearance-presets.css',
 ];
 
 const errors = [];
@@ -59,7 +60,8 @@ const css = sections.map((section) => {
 // DO NOT run as a regular gate: future intentional CSS edits will change the hash.
 if (process.argv.includes('--baseline')) {
   const sourceSha = '877d00b0ec666c4db498682effe4235e298d3166';
-  const bytes = Buffer.from(css, 'utf8');
+  const originalCss = css.slice(0, -readFileSync(path.join(stylesDir, '17-appearance-presets.css'), 'utf8').length);
+  const bytes = Buffer.from(originalCss, 'utf8');
   const actualSha = createHash('sha1')
     .update(`blob ${bytes.length}\0`)
     .update(bytes)
