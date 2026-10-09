@@ -1,6 +1,6 @@
-## Continuidade Windows beta.10 — dispatch CI por SHA — 2026-10-09
+## Continuidade Windows beta.10 — fila CI por SHA — 2026-10-09
 
-O candidato continua sendo `1.0.0-beta.10` na branch `fix/windows-beta10-homologation-20261008`, com fonte local homologada `767be3b168a6d3ec7d223908e21812807486482f`; não é o beta.7 `d14154d2`. O workflow foi ajustado para dispatch com `native_target_sha` executar apenas os jobs nativos selecionados e não iniciar os jobs genéricos/Linux. Verificação YAML local passou; push e execução hosted Windows no SHA exato ainda estão pendentes. Não executar gates Linux nem publicar/taggear enquanto os blockers do status corrente permanecerem.
+O candidato é `1.0.0-beta.10` na branch `fix/windows-beta10-homologation-20261008`, com fonte local homologada `767be3b168a6d3ec7d223908e21812807486482f`; não é beta.7 `d14154d2`. O ajuste de CI foi enviado no commit `add42efdcb65d45ddfd7e5ab1f444346297305fd`. O run `37898823857` selecionou somente Windows, mas permanece `queued`: o repositório não tem runner Windows online/registrado. Todos os jobs genéricos/Linux ficaram `skipped`. A homologação hosted aguarda um runner com labels `self-hosted, Windows, X64, nexus-windows`; não executar gates Linux nem publicar/taggear enquanto os blockers do status corrente permanecerem.
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
 ## Atualização de homologação Windows beta.10 — 2026-10-09

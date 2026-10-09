@@ -1,8 +1,8 @@
-## 2026-10-09 — CI com dispatch nativo Windows isolado
+## 2026-10-09 — Push da correção de CI e fila Windows
 
-- Corrigido `.github/workflows/ci.yml` para um dispatch com SHA nativo não enfileirar os 11 jobs genéricos/Linux, inclusive sanitização destrutiva do workspace compartilhado. Push, PR, dispatch sem SHA e seleção de plataforma nativa mantêm suas condições.
-- Parser YAML local e auditoria de chaves/condições passaram; `git diff --check` passou. `actionlint` local ficou indisponível por falha DNS ao `proxy.golang.org`.
-- Próximo passo: commit/push na branch candidata e executar o workflow hosted apenas para Windows no SHA homologado; confirmar jobs ignorados e registrar resultado sem rodar gates Linux.
+- Commit `add42efdcb65d45ddfd7e5ab1f444346297305fd` (`ci(infra): skip generic jobs for native dispatch`) enviado para `fix/windows-beta10-homologation-20261008`; nenhum push para release.
+- Dispatch `37898823857` no SHA validado `767be3b1`, Windows-only. Os 11 jobs genéricos/Linux foram ignorados sem runner; o job Windows permanece `queued` porque só há runner Linux offline no repositório.
+- Parse YAML, `git diff --check` e docs-verify passaram. `actionlint` local indisponível por DNS. Próximo passo é disponibilizar runner Windows com labels `self-hosted, Windows, X64, nexus-windows` e acompanhar o run pendente.
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
 ## 2026-10-09 — Continuidade Windows: tray e auditoria de branches

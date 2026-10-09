@@ -1,10 +1,11 @@
-## 2026-10-09 — Escopo do dispatch de homologação Windows
+## 2026-10-09 — Dispatch CI e fila do runner Windows
 
-- PASS — workflow `.github/workflows/ci.yml` analisado por parser YAML Go local com detecção de chaves duplicadas; os 11 jobs genéricos têm guarda para ignorar dispatch com `native_target_sha`, e a seleção do job `native-windows` continua presente.
-- PASS — `git diff --check`.
-- BLOQUEADO LOCALMENTE — `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/ci.yml`: DNS não resolveu `proxy.golang.org`; nenhuma dependência foi baixada.
-- PENDENTE — push da correção e workflow hosted no SHA Windows exato `767be3b168a6d3ec7d223908e21812807486482f`. O resultado hosted ainda não foi observado.
-- Nenhum gate Linux executado nesta continuidade.
+- PASS — parser YAML Go local com detecção de chaves duplicadas; os 11 jobs genéricos ignoram dispatch com `native_target_sha`, e a seleção do job `native-windows` permanece intacta.
+- PASS — `git diff --check` e `node scripts/docs-verify.mjs` (178 Markdown, 33 assets/arquivos requeridos).
+- PASS — run GitHub Actions `37898823857`: alvo exato Windows `767be3b168a6d3ec7d223908e21812807486482f`; todos os jobs genéricos/Linux estão `skipped` sem runner.
+- PENDENTE — `Windows native certification` está `queued`. Inventário remoto tem apenas `nexus-ci-dev-web-kiver` com labels Linux e estado `offline`; nenhum runner Windows com labels exigidos está registrado.
+- BLOQUEADO LOCALMENTE — `actionlint` não pôde ser obtido porque DNS não resolveu `proxy.golang.org`; o parse YAML local passou.
+- Nenhum gate Linux executado nesta continuidade. O gate hosted só pode concluir quando um runner Windows compatível for disponibilizado.
 # Verification: Nexus V1 (post-pending-issues)
 
 ## 2026-10-09 — Reteste do tray e auditoria de branches beta.10

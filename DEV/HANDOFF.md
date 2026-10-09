@@ -1,11 +1,12 @@
-## Atualização — escopo do CI Windows por SHA — 2026-10-09
+## Atualização — dispatch e fila do CI Windows — 2026-10-09
 
-Branch candidata: `fix/windows-beta10-homologation-20261008`; fonte homologada local: `767be3b168a6d3ec7d223908e21812807486482f`; versão `1.0.0-beta.10`. O workflow `.github/workflows/ci.yml` agora faz com que dispatch com `native_target_sha` não agende os 11 jobs genéricos/Linux, incluindo `workspace-sanitize`; os eventos normais e dispatch sem SHA preservam o fluxo existente. A condição de seleção do job `native-windows` permanece intacta.
+Branch candidata: `fix/windows-beta10-homologation-20261008`; fonte homologada local: `767be3b168a6d3ec7d223908e21812807486482f`; versão `1.0.0-beta.10`. Commit `add42efdcb65d45ddfd7e5ab1f444346297305fd` enviado à branch remota. Ele limita dispatch com `native_target_sha` aos jobs nativos selecionados; eventos normais e dispatch sem SHA preservam o fluxo atual.
 
-- Verificação local: parser YAML Go com detecção de chaves duplicadas e auditoria das condições dos 11 jobs — PASS; `git diff --check` — PASS.
-- `actionlint` não pôde ser obtido neste host porque DNS para `proxy.golang.org` falhou. O parse local passou; a execução hosted ainda precisa confirmar o workflow.
-- Próxima ação: commit e push desta correção somente para a branch candidata; então dispatch exato em `767be3b168a6d3ec7d223908e21812807486482f` com `native_platform=windows` e acompanhar o job Windows até conclusão. Confirmar que os jobs genéricos ficaram ignorados. Nenhum gate Linux; não fazer push direto para `release/v1.0.0`.
-- Distribuição permanece **NO-GO** até os blockers registrados no status corrente serem resolvidos.
+- Run hosted `37898823857` usa a definição de workflow do commit `add42efd` e tem como alvo o SHA exato `767be3b168a6d3ec7d223908e21812807486482f`, plataforma Windows. Os 11 jobs genéricos/Linux foram concluídos como `skipped`, sem runner; `Windows native certification` está `queued`.
+- A API lista um runner no repositório: `nexus-ci-dev-web-kiver`, com labels `self-hosted, Linux, X64, nexus-ci`, estado `offline`. Não há runner com labels `Windows, X64, nexus-windows`; por isso o gate hosted permanece pendente. O run foi mantido na fila para poder iniciar se o runner Windows for disponibilizado.
+- Verificação local: parse YAML e auditoria de chaves/condições — PASS; `git diff --check` — PASS; `node scripts/docs-verify.mjs` — PASS (178 Markdown, 33 assets/arquivos requeridos). `actionlint` local não pôde ser baixado por falha DNS em `proxy.golang.org`.
+- Próxima ação: disponibilizar runner Windows com os labels exigidos e aguardar o run `37898823857`. Os gates nativos locais Windows no SHA `767be3b1` já passaram. Nenhum gate Linux; nenhum push direto para `release/v1.0.0`.
+- Distribuição continua **NO-GO** por blockers registrados no status corrente.
 # Handoff
 
 ## Atualização — homologação Windows beta.10 no SHA 767be3b1 — 2026-10-09
