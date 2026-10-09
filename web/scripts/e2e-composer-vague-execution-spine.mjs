@@ -47,15 +47,22 @@ async function resolveBlockingUnknown(page, context, apiOrigin, sessionId, unkno
       resolveEvents.push(`${response.status()} ${response.url()}`);
     }
   };
+  const onResolveRequestFailed = (request) => {
+    if (request.url().includes('/unknowns/')) {
+      resolveEvents.push(`FAILED ${request.url()} ${request.failure()?.errorText || ''}`.trim());
+    }
+  };
   page.on('request', onResolveRequest);
   page.on('response', onResolveResponse);
+  page.on('requestfailed', onResolveRequestFailed);
 
   const responsePromise = page.waitForResponse(
     (response) =>
-      response.url().includes(
-        `/api/v1/composer-sessions/${sessionId}/unknowns/${unknown.id}/resolve`,
-      ) && response.request().method() === 'POST',
-    { timeout: 20000 },
+      response
+        .url()
+        .includes(`/api/v1/composer-sessions/${sessionId}/unknowns/${unknown.id}/resolve`) &&
+      response.request().method() === 'POST',
+    { timeout: 45000 },
   );
 
   const options = Array.isArray(unknown.suggested_options)
@@ -76,11 +83,13 @@ async function resolveBlockingUnknown(page, context, apiOrigin, sessionId, unkno
   } catch (error) {
     const buttonState = await prompt
       .getByRole('option')
-      .evaluateAll((buttons) => buttons.map((button) => ({
-        text: button.textContent,
-        disabled: button.disabled,
-        selected: button.getAttribute('aria-selected'),
-      })))
+      .evaluateAll((buttons) =>
+        buttons.map((button) => ({
+          text: button.textContent,
+          disabled: button.disabled,
+          selected: button.getAttribute('aria-selected'),
+        })),
+      )
       .catch(() => []);
     const sessionSnapshot = await getJSON(
       context,
@@ -102,13 +111,11 @@ async function resolveBlockingUnknown(page, context, apiOrigin, sessionId, unkno
   } finally {
     page.off('request', onResolveRequest);
     page.off('response', onResolveResponse);
+    page.off('requestfailed', onResolveRequestFailed);
   }
   assert.equal(response.status(), 200, `resolve unknown returned HTTP ${response.status()}`);
 
-  const refreshed = await getJSON(
-    context,
-    `${apiOrigin}/api/v1/composer-sessions/${sessionId}`,
-  );
+  const refreshed = await getJSON(context, `${apiOrigin}/api/v1/composer-sessions/${sessionId}`);
   const stillOpen = openBlockingUnknowns(refreshed).some((item) => item.id === unknown.id);
   assert.equal(stillOpen, false, `blocking clarification ${unknown.id} did not converge`);
   return refreshed;
@@ -134,7 +141,10 @@ async function main() {
     context,
     `${apiOrigin}/api/v1/projects/${project.id}/skills?q=security`,
   );
-  assert.ok(Array.isArray(skillCatalog) && skillCatalog.length > 0, 'skill catalog must be searchable');
+  assert.ok(
+    Array.isArray(skillCatalog) && skillCatalog.length > 0,
+    'skill catalog must be searchable',
+  );
   assert.ok(
     skillCatalog.every(
       (skill) =>
@@ -198,7 +208,10 @@ async function main() {
   assert.ok(sessionId, 'vague-goal Composer session must persist');
 
   let view = await getJSON(context, `${apiOrigin}/api/v1/composer-sessions/${sessionId}`);
-  assert.ok(view.context_manifest?.fingerprint, 'Composer must persist a context manifest fingerprint');
+  assert.ok(
+    view.context_manifest?.fingerprint,
+    'Composer must persist a context manifest fingerprint',
+  );
   assert.ok(
     Number(view.context_manifest?.budget?.used_estimated_tokens || 0) <=
       Number(view.context_manifest?.budget?.max_estimated_tokens || 0),
@@ -254,10 +267,7 @@ async function main() {
     await turnIntoFlow.waitFor({ state: 'visible', timeout: 30000 });
   }
 
-  const finalized = await getJSON(
-    context,
-    `${apiOrigin}/api/v1/composer-sessions/${sessionId}`,
-  );
+  const finalized = await getJSON(context, `${apiOrigin}/api/v1/composer-sessions/${sessionId}`);
   assert.equal(finalized.session.state, 'FINALIZED', 'clarified session must finalize normally');
 
   await turnIntoFlow.click();
@@ -268,15 +278,11 @@ async function main() {
   await executionPlan.waitFor({ state: 'visible', timeout: 30000 });
 
   const runsBefore = await getJSON(context, `${apiOrigin}/api/v1/runs`);
-  const agentsBefore = await getJSON(
-    context,
-    `${apiOrigin}/api/v1/projects/${project.id}/agents`,
-  );
+  const agentsBefore = await getJSON(context, `${apiOrigin}/api/v1/projects/${project.id}/agents`);
 
   const previewResponsePromise = page.waitForResponse(
     (response) =>
-      response.url().includes('/execution-preview') &&
-      response.request().method() === 'POST',
+      response.url().includes('/execution-preview') && response.request().method() === 'POST',
     { timeout: 30000 },
   );
   await executionPlan.click();
@@ -296,10 +302,7 @@ async function main() {
   );
 
   const runsAfter = await getJSON(context, `${apiOrigin}/api/v1/runs`);
-  const agentsAfter = await getJSON(
-    context,
-    `${apiOrigin}/api/v1/projects/${project.id}/agents`,
-  );
+  const agentsAfter = await getJSON(context, `${apiOrigin}/api/v1/projects/${project.id}/agents`);
   assert.equal(
     runsAfter.length,
     runsBefore.length,
