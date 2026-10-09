@@ -612,6 +612,14 @@ jobs:
         run: bun install --frozen-lockfile
       - working-directory: web
         run: bun run build
+      - name: Use short Windows temp path for Go integration tests
+        shell: pwsh
+        run: |
+          $localAppData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+          $shortTemp = Join-Path $localAppData "Temp"
+          New-Item -ItemType Directory -Path $shortTemp -Force | Out-Null
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "TEMP=$shortTemp" -Encoding utf8
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "TMP=$shortTemp" -Encoding utf8
       - run: go vet ./...
       - name: Full Windows suite
         shell: pwsh

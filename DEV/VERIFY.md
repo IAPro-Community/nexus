@@ -1,3 +1,11 @@
+## 2026-10-09 — Reteste completo Windows beta.10 e CI hosted
+
+- PASS local no source SHA exato `767be3b168a6d3ec7d223908e21812807486482f`, Windows AMD64: Go 1.27.2 `go vet ./...` e `go test -count=1 -v ./...`; golangci-lint v2.14.0 (zero issues); Bun 1.3.9 `install --frozen-lockfile` e `quality:full` (84 arquivos/504 testes); oito suítes Playwright; gates ConPTY/Named Pipe/runtime-web; builds e smokes Desktop/HUD.
+- PASS — a suíte local completa também passou com `TEMP`/`TMP=%LOCALAPPDATA%\Temp`. Com um caminho `TEMP` artificialmente longo, `TestMissionDeliveryIntegrationCombinesParallelDisjointWorktrees` reproduziu `fatal: '$GIT_DIR' too big`.
+- FAIL hosted — run `37922899819`, mesmo SHA/Windows AMD64: Node 22.14.0, Bun frozen install, web build e vet passaram; `Full Windows suite` terminou exit 1. Não havia saída detalhada de teste disponível, então a reprodução local não determina a causa remota.
+- WORKFLOW — `.github/workflows/ci.yml` define `TEMP`/`TMP` curtos a partir de `%LOCALAPPDATA%\Temp` antes dos testes Go; precisa de novo run hosted.
+- Sem gate Linux nesta continuidade. Tray físico, assinatura/update trust root e publicação permanecem pendentes; distribuição NO-GO.
+
 ## 2026-10-09 — Revisão do runner Windows efêmero
 
 - CONFIRMADO — run `37898823857` permanece `queued`; 11 jobs genéricos/Linux estão `skipped`; nenhum runner Windows está registrado. O único runner listado é Linux/offline.

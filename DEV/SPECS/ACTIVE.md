@@ -1,8 +1,8 @@
-## Continuidade Windows beta.10 — correção do runner hosted — 2026-10-09
+## Continuidade Windows beta.10 — reteste hosted e TEMP curto — 2026-10-09
 
-O candidato `1.0.0-beta.10` está em `fix/windows-beta10-homologation-20261008`; o source SHA local validado é `767be3b168a6d3ec7d223908e21812807486482f`, distinto do beta.7 `d14154d2`. O run Windows hosted `37898823857` confirmou SHA/AMD64, instalou Go 1.27.2 e Bun 1.3.9 e passou `bun install --frozen-lockfile`, mas falhou em `bun run build`: o PATH do runner forneceu Node 18.12.1, que não implementa `Array.prototype.toSorted`. As etapas Go, signing, Desktop/HUD e NSIS foram puladas.
+O candidato `1.0.0-beta.10` está em `fix/windows-beta10-homologation-20261008`; source SHA local homologado `767be3b168a6d3ec7d223908e21812807486482f`, distinto da beta.7 `d14154d2`. No Windows AMD64 local, Go 1.27.2 vet/teste integral, golangci-lint v2.14.0 (zero issues), web quality (84 arquivos/504 testes), oito E2E browser, gates ConPTY/Named Pipe/runtime-web e smokes Desktop/HUD passaram.
 
-A correção preparada em `.github/workflows/ci.yml` configura `actions/setup-node@v7` com Node 22.14.0, desativa cache automático do package manager e valida a versão efetiva antes do build. O runner v2.338.0 rodou um job sem serviço e auto-desregistrou. Próximo passo: commit/push na branch candidata e novo dispatch com `native_target_sha=767be3b168a6d3ec7d223908e21812807486482f` e `native_platform=windows`. Não executar gates Linux nem push direto à release.
+O run hosted `37922899819` confirmou o mesmo SHA e passou Node 22.14.0, Bun frozen install, build web e vet, mas terminou FAIL em `Full Windows suite`; o log detalhado do teste não estava acessível. A falha local `'$GIT_DIR' too big` ocorreu com `TEMP` longo e não comprova causa remota; com `%LOCALAPPDATA%\Temp`, a suíte passou. O workflow agora exporta `TEMP`/`TMP` curtos antes dos testes Go. Próximo passo: commit/push somente na branch candidata e novo run Windows hosted no mesmo source SHA. Não executar Linux nem fazer push direto à release. Signing/trust root e tray físico continuam pendentes; distribuição NO-GO.
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
 ## Atualização de homologação Windows beta.10 — 2026-10-09

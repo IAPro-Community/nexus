@@ -1,5 +1,21 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+## Reteste Windows nativo e diagnóstico do run `37922899819` — 2026-10-09
+
+Todos os gates locais executados nesta continuidade usaram Windows AMD64 e o source SHA exato `767be3b168a6d3ec7d223908e21812807486482f`. Nenhum gate Linux foi executado.
+
+- **PASS — Go 1.27.2:** `go vet ./...` e `go test -count=1 -v ./...` concluíram sem falhas. O Go 1.27.2 foi obtido do download oficial e conferido pelo SHA-256 publicado (`1314008898bd40df77af4b014f777f08873dbdfbcd3d92308728ee03304fe04f`).
+- **PASS — lint:** `golangci-lint v2.14.0 run ./... --timeout=5m`, zero issues.
+- **PASS — web:** Node 22.14.0, Bun 1.3.9, `bun install --cwd web --frozen-lockfile` e `bun run --cwd web quality:full`; 84 arquivos Vitest, 504 testes e build final.
+- **PASS — oito E2E browser:** hardening, composer workspace, surface isolation, capacity, HUD, composer spine, composer vague spine e composer themes. O hardening validou o Project Hub em viewports 320–1440 px, botão “Adicionar Projeto” em uma linha e Axe sem violações menores.
+- **PASS — gates nativos adicionais:** contratos de terminal/delegação, ConPTY/Named Pipe, runtime/web; build do CLI; smokes Desktop e HUD com WebView2 e limpeza dos processos confirmados.
+- **Diagnóstico do caminho temporário:** com `TEMP` artificialmente longo dentro da pasta temporária do Codex, `TestMissionDeliveryIntegrationCombinesParallelDisjointWorktrees` falhou com `fatal: '$GIT_DIR' too big`. O mesmo teste e a suíte completa passaram quando `TEMP`/`TMP` usaram `C:\Users\kiver\AppData\Local\Temp`. O run hosted não expôs as linhas do `go test`, portanto essa reprodução não prova a causa do run remoto.
+- **Mitigação no workflow:** adicionado o passo “Use short Windows temp path for Go integration tests”, que exporta o diretório padrão `LocalApplicationData\Temp` para `TEMP` e `TMP` antes dos gates Go. O bloco PowerShell foi validado no contexto Windows não sandboxed.
+- **Run hosted `37922899819`:** confirmou checkout no SHA/Windows AMD64 e passou setup Node 22.14.0, Bun frozen install, web build e `go vet`; terminou **FAIL** no passo `Full Windows suite` (exit code 1). O diagnóstico local do runner não contém a saída do teste. A consulta autenticada aos logs privados não estava disponível nesta sessão; é necessário novo run para fechar o resultado hosted.
+- **Assinatura/instalador:** `signtool.exe`, `makensis.exe`, `WINDOWS_SIGNING_PFX_BASE64`, `WINDOWS_SIGNING_PFX_PASSWORD` e `NEXUS_UPDATE_PUBLIC_KEY` estão ausentes neste processo local. Smokes de distribuição assinada e publicação permanecem pendentes.
+
+**Veredito:** gates Windows locais PASS no source SHA exato; hosted Actions permanece FAIL até novo run; tag/distribuição continuam **NO-GO**. O candidato é beta.10, não beta.7 (`d14154d2`).
+
 ## CI Windows hosted — run `37898823857` — 2026-10-09
 
 O run [37898823857](https://github.com/IAPro-Community/nexus/actions/runs/37898823857) executou no runner Windows efêmero e terminou **FAIL** no build web. A validação conferiu o source SHA exato `767be3b168a6d3ec7d223908e21812807486482f` e arquitetura Windows AMD64. O run usou a definição do workflow no commit `add42efdcb65d45ddfd7e5ab1f444346297305fd`.

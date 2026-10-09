@@ -5340,3 +5340,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Executei o run autorizado `37898823857` em runner oficial Windows v2.338.0 efêmero, sem instalar serviço. O checkout confirmou o source SHA `767be3b168a6d3ec7d223908e21812807486482f` e Windows AMD64; Bun frozen install passou.
 - Causa da falha: `bun run build` chamou `web/scripts/build.mjs` usando Node 18.12.1; `Array.prototype.toSorted` não existe nesse runtime. As etapas posteriores foram puladas; nenhum teste Go nem signing/smoke foi executado.
 - Preparei o workflow para instalar e validar Node 22.14.0 com `actions/setup-node@v7`, com cache automático desativado. O runner auto-desregistrou após um job; correção requer commit/push na branch candidata e novo dispatch no mesmo source SHA. Distribuição permanece NO-GO; nenhum gate Linux executado.
+
+## 2026-10-09 — Reteste Windows beta.10 e mitigação de TEMP
+
+- PASS local no source SHA `767be3b168a6d3ec7d223908e21812807486482f`, Windows AMD64: Go 1.27.2 vet/testes, golangci-lint v2.14.0, Bun quality (84 arquivos/504 testes), oito E2E browser, gates ConPTY/Named Pipe/runtime-web e smokes Desktop/HUD.
+- O run hosted `37922899819` passou Node 22.14.0, Bun install, web build e vet, mas terminou FAIL em `Full Windows suite`; log detalhado indisponível. `'$GIT_DIR' too big` foi reproduzido somente com TEMP longo; com `%LOCALAPPDATA%\Temp`, suíte passou. Workflow agora configura `TEMP`/`TMP` curto, sem tratar a reprodução como causa remota comprovada.
+- Atualizados relatório beta.10, status, handoff, verify, contexto, spec ativa e índice. Próxima ação: novo run Windows hosted com a mitigação; nenhum gate Linux, push direto à release, tag ou publicação.
