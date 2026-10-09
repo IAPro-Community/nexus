@@ -6,7 +6,9 @@ Branch `fix/windows-beta10-homologation-20261008`; `VERSION=1.0.0-beta.10`; cód
 
 Também passaram: Desktop Wails/WebView2 com ID singleton exclusivo; instalador NSIS com payload desse SHA em instalação e desinstalação silenciosas; autostart com AppID GUID isolado, valor Run conferido e removido. PATH/atalho reais do usuário ficaram inalterados. As evidências locais estão em `DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/` (ignoradas pelo Git). O instalador é não assinado; tray físico, CI Windows hosted, providers/Mission/Voice autenticados e trust root seguem pendentes, portanto tag/distribuição continuam NO-GO.
 
-O branch beta.10 deve ser vinculado a `release/v1.0.0` por PR. A comparação pelas refs locais mostra 136 commits exclusivos do candidato e nenhum commit exclusivo da ponta cached da release. GitHub ficou inacessível por falha DNS nesta continuidade; o estado vivo da branch/PR não foi confirmado. Nenhum push direto à release nem gate Linux.
+O branch beta.10 deve ser vinculado a `release/v1.0.0` por PR. A auditoria remota ao vivo confirmou `release/v1.0.0=deca290b` e o branch candidato em `2beaf05f`, com 137 commits exclusivos do candidato e nenhum exclusivo da release no grafo. A API de PR sem autenticação retornou 404, então o estado do PR segue desconhecido. Os branches beta.7 de protocolo CSI/SS3, trace e testes foram avaliados; as correções/testes relevantes já estão na candidata, e não devem ser mesclados em bloco. O branch beta7 KIVER tem zero commits exclusivos. Nenhum push direto à release nem gate Linux.
+
+Tentativa de interação física do tray com HUD diagnóstico oculto: Core e WebView2 iniciaram, mas UI Automation não encontrou o tooltip do ícone; não houve clique/menu verificável. Processo foi encerrado pelo PID exato e o resultado está no JSON local ignorado pelo Git. Tray permanece não verificado, sem evidência de falha do produto.
 
 ## Atualização — smoke Desktop Windows beta.10 com singleton isolado — 2026-10-09
 

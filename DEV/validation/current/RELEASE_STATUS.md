@@ -22,8 +22,9 @@ WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN_0782
 WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
 CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/ (latest local ignored gate, Desktop, NSIS installer and autostart smoke); controller-smoke evidence remains under 665103a0 and physical HUD captures under 0782f876
-LIVE_GITHUB_REMOTE_CHECK: UNAVAILABLE_DNS_FAILURE_2026-10-09; local origin refs last fetched earlier
-WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the PR candidate for release/v1.0.0; no PR was created or confirmed in this continuation
+LIVE_GITHUB_REMOTE_CHECK: PASS_2026-10-09; origin/release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d; origin/fix/windows-beta10-homologation-20261008=2beaf05fdae83ea703fd641408d998e0ad6a5f7e
+WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the PR candidate for release/v1.0.0; unauthenticated PR API returned 404, so PR state is unknown
+WINDOWS_TRAY_UI_SMOKE: INCONCLUSIVE_UI_AUTOMATION_COULD_NOT_FIND_TEST_TOOLTIP; CORE_AND_WEBVIEW2_STARTED; NO_CLICK_OR_MENU_EVIDENCE
 PREVIOUS_VALIDATION_RECORDS: HISTORICAL_ONLY
 
 ## Legacy Windows beta.7 baseline (historical)

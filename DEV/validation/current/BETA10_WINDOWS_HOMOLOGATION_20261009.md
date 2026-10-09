@@ -10,7 +10,21 @@ O candidato permanece `1.0.0-beta.10`, distinto da solicitação beta.7 no SHA `
 - **PASS — autostart do Windows isolado.** `AutoStartManager` criou e removeu um valor com AppID GUID exclusivo em `HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run`; o comando e argumentos escapados foram conferidos, e o valor ficou ausente ao final. Nenhuma entrada real do Nexus foi usada. Evidência local ignorada pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/autostart-registry-smoke-767be3b1.json`.
 - **PENDENTE — bandeja nativa.** Este smoke de autostart não interagiu com o ícone/menu do tray; a interação física do tray segue não verificada.
 
-Refs disponíveis no clone: a ponta local `origin/release/v1.0.0` é ancestral do candidato, que está 136 commits à frente no grafo. A resolução DNS do GitHub falhou nesta consulta, então a ponta remota e o estado de PR não foram atualizados ao vivo. A branch Windows beta.10 é a candidata para PR contra `release/v1.0.0`; não fazer push direto à release. A branch beta.7 KIVER continua sem commits exclusivos conforme a última auditoria disponível e não precisa de PR separado.
+Auditoria remota ao vivo após o push: `release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d`, `fix/windows-beta10-homologation-20261008=2beaf05fdae83ea703fd641408d998e0ad6a5f7e`; a release é ancestral do candidato, com 137 commits exclusivos no grafo. A branch beta.10 é a candidata a PR contra `release/v1.0.0`; [comparar branches](https://github.com/IAPro-Community/nexus/compare/release/v1.0.0...fix/windows-beta10-homologation-20261008?expand=1). Não fazer push direto à release. A consulta não autenticada à API de PR retornou 404, então a existência/estado de PR não foi confirmada.
+
+Branches beta.7 que não constavam no conjunto de refs local anterior foram comparadas com a candidata:
+
+| Branch remota | Commits exclusivos no grafo vs. release | Avaliação para a candidata beta.10 |
+| --- | ---: | --- |
+| `fix/beta7-codex-terminal-protocol-p0` (`8d763ce0`) | 4 | O coalescer de CSI/SS3 e testes de atraso já estão na candidata. A heurística de descartar rajadas ambíguas `[A`/`[B` do patch web não deve ser transplantada sem reprodução, pois pode apagar texto legítimo digitado. Sem PR em bloco. |
+| `fix/beta7-terminal-review-trace-lifecycle` (`d0bec9a4`) | 10 | Cancelamento de timers no fechamento, limite/validação de trace e testes correspondentes já aparecem na candidata. Sem PR em bloco. |
+| `fix/beta7-terminal-trace-diagnostics` (`25e41d21`) | 24 | Diagnóstico mascarado, validação do frame não confiável, limite de arquivo e testes de privacidade já aparecem na candidata. Sem PR em bloco. |
+| `test/beta7-terminal-final-boundary-regression` (`1c12f07a`) | 3 | O teste de raw attach CSI/SS3 e os testes de não vazamento ANSI-like já aparecem na candidata. Sem PR de teste separado. |
+| `fix/beta7-windows-autopilot-20261001` (`ffe3571f`) | 1 | Apenas documentação antiga de beta.7. Sem código a integrar. |
+| `fix/beta7-windows-homologation-20261008` (`4a0bd992`) | 3 | O patch de código `9105853a` já está representado na árvore beta.10; os dois commits restantes são status/capturas beta.7. Não mesclar em bloco. |
+| `fix/beta7-windows-KIVER-20261007` (`d14154d2`) | 0 | Está contida na release remota; não requer PR. |
+
+Foi tentado um smoke de UI do tray com HUD diagnóstico oculto e identidade/perfil exclusivos. Core e WebView2 iniciaram, mas a UI Automation do host não expôs o tooltip/ícone; não foi possível validar clique ou menu. Processo de teste encerrado pelo PID exato. Evidência local ignorada pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/hud-tray-ui-smoke-767be3b1.json`. O tray segue **não verificado**, sem conclusão de falha do produto.
 
 **Veredito: PASS para os gates automatizados locais Windows e smokes isolados descritos; NO-GO para tag/distribuição.** Permanecem pendentes interação nativa do tray, CI Windows hosted no SHA integrado, smokes autenticados de provider/Mission/Voice e assinatura/update trust root. O smoke NSIS foi executado, mas o instalador não tem assinatura verificável. Esta continuidade não executou gates Linux e não altera a solicitação original beta.7/d14154d2.
 
