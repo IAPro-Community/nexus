@@ -129,8 +129,31 @@ CSS Custom Properties (`var(--nx-*)`) are the authoritative runtime source for:
 3. **Inline Style Exception**: Inline `style={{ ... }}` is permitted *only* for dynamic runtime variables (e.g., coordinates, pane dimensions, CSS variable overrides like `style={{ '--panel-width': `${width}px` }}`).
 4. **No `!important`**: Overriding CSS specificity with `!important` is forbidden and enforced via Stylelint (`declaration-no-important: true`).
 5. **No Hardcoded Hex/RGB in Components**: Components must consume semantic design tokens rather than arbitrary raw colors (`#ffffff`, `#1a1a1a`).
-6. **Modern SCSS/CSS**: Use `@use` and `@forward` instead of deprecated `@import`. Limit selector nesting to <= 3 levels.
-7. **Global Styles Allowlist**: Global stylesheets are restricted to `src/index.css`, `src/app/workspace-os.css` (OS core foundation), and `src/styles/*.scss`. Other `.css` files are rejected by `npm run check:styles`.
+6. **Modern SCSS/CSS**: Use `@use` and `@forward` for Sass; never use deprecated Sass `@import`. The ordered `@import` directives in `workspace-os.css` are **native CSS imports**, an explicit migration-only exception needed to preserve the existing global cascade. Limit selector nesting to <= 3 levels.
+7. **Global Styles Allowlist**: Global stylesheets are restricted to `src/index.css`, the import-only `src/app/workspace-os.css` entry, the 16 named migration sections in `src/app/workspace-styles/*.css`, and `src/styles/*.scss`. Other global `.css` files are rejected by `npm run check:styles`. New feature styles MUST use co-located `*.module.scss`; do not append to the legacy sections merely for convenience.
+
+### Legacy workspace CSS migration guard
+
+`workspace-os.css` is a **facade only**. Its 16 numbered imports are intentionally
+order-sensitive: CSS from later sections may override earlier selectors. Do not
+alphabetize or reorder the imports. The extractor preserved the original
+179 KB global CSS source byte-for-byte; the layout is a transitional
+decomposition, not a claim that the rules have become locally scoped.
+
+The structural contract is checked by `web/scripts/check-workspace-styles.mjs`:
+- Exactly the reviewed list of 16 CSS sections exists and is imported in order.
+- There are no declarations outside those sections.
+- Each section stays under 1,000 lines. Split again or migrate to SCSS Modules
+  before it grows past that limit.
+- `node scripts/check-workspace-styles.mjs --baseline` is an **optional one-time
+  refactoring parity audit**: it compares the ordered source against the
+  original Git CSS blob. Do not run that frozen source hash as a permanent
+  gate, because future intentional CSS changes should remain possible.
+
+A component migration must retain its visual/keyboard/browser behavior, remove
+the corresponding legacy globals, and document ownership. Prefer moving
+complete, related selectors to the matching feature's `*.module.scss`, not
+using bigger CSS chunks as the final architecture.
 
 ---
 
