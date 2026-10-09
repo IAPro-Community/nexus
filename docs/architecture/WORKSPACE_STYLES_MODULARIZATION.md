@@ -74,7 +74,7 @@ The `workspace-os.css` entrypoint now owns only ordered native CSS imports. Both
 - `SettingsSurface.tsx`: selection of appearance presets extracted to `ThemeAccordionSelector.tsx` with unchanged WAI-ARIA choices and theme context.
 - `WorkspaceRenderer.tsx`: window customization and arrangement menu UI moved to `WorkspaceChromeMenus.tsx`. Custom user titles, AI title permission, accent and icon controls retain the original event handlers.
 - `FlowRunSurface.tsx`: pure execution state/status/routing display helpers moved to `flowRunPresentation.ts` and regression cases added.
-- `internal/tui/usage_table.go`: account/session filtering, stable availability sorting, quota parsing, provider label and relative time helpers moved unmodified to `usage_table_rows.go`. The terminal input and transport stack are untouched.
+- `internal/tui/usage_table.go`: account/session filtering, stable availability sorting, quota parsing, provider label and relative time helpers moved unmodified to `usage_table_rows.go`. The 513-line View, table and modal rendering block was moved unmodified to `usage_table_view.go` (rendering only). Terminal input, transport, state transition and quota semantics are untouched.
 - Larger stateful and risk-heavy files (`AgentTerminal.tsx`, `mission_executor.go`, `NexusWorkspaceApp.tsx`) remain **unrefactored** until per-boundary tests and native certification exist. File size alone is not authorization to rewrite their execution paths.
 
 ### Required certification on the final release SHA
