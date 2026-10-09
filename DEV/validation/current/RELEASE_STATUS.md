@@ -22,8 +22,8 @@ WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN_0782
 WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
 CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/ (latest local ignored gate, Desktop, NSIS installer and autostart smoke); controller-smoke evidence remains under 665103a0 and physical HUD captures under 0782f876
-LIVE_GITHUB_REMOTE_CHECK: LAST_SUCCESSFUL_2026-10-09; origin/release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d; origin/fix/windows-beta10-homologation-20261008=acb1e450dbb2574b6974fd62a72e35f1b2ae90e7
-LIVE_GITHUB_REMOTE_REFRESH: FAILED_DNS_ON_2026-10-09; remote refs could not be refreshed in this continuation
+LIVE_GITHUB_REMOTE_CHECK: PASS_AFTER_PUSH_2026-10-09; origin/release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d; origin/fix/windows-beta10-homologation-20261008=874a15707b1c951bdfb2c2fcf940b264593d1b03
+LIVE_GITHUB_REMOTE_REFRESH: INITIAL_DNS_FAILURE_RECOVERED_BY_SUCCESSFUL_GIT_LS_REMOTE
 WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the PR candidate for release/v1.0.0; unauthenticated PR API returned 404, so PR state is unknown
 WINDOWS_BRANCH_AUDIT: one separate behavior change remains unlinked: fix/beta8-manual-opaque-quota@edcd2ab4 changes UNSUPPORTED quota to explicit-selection-only; requires functional review before any PR. No direct push to release.
 WINDOWS_TRAY_UI_SMOKE: INCONCLUSIVE_FLYOUT_CAPTURED_BUT_TWO_GENERIC_WAILS_ICONS_AMBIGUOUS; UIA_NO_CONTROLS; SENDINPUT_NO_OPEN; NO_PHYSICAL_CLICK_OR_MENU_EVIDENCE
