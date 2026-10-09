@@ -783,7 +783,7 @@ const THEME_CATEGORIES: ThemeCategory[] = [
     id: 'soft-gradient',
     title: 'Degradê Suave',
     description: 'Grafite quase preto, profundidade discreta e acentos pouco saturados.',
-    presets: ['orca-dusk'],
+    presets: ['nexus-dusk'],
   },
   {
     id: 'flat-essentials',
