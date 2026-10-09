@@ -780,6 +780,12 @@ interface ThemeCategory {
 
 const THEME_CATEGORIES: ThemeCategory[] = [
   {
+    id: 'soft-gradient',
+    title: 'Degradê Suave',
+    description: 'Grafite quase preto, profundidade discreta e acentos pouco saturados.',
+    presets: ['orca-dusk'],
+  },
+  {
     id: 'flat-essentials',
     title: 'Essenciais Flat',
     description: 'Menos efeitos, fundos sólidos e acentos discretos para uso prolongado.',
