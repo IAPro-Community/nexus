@@ -1,12 +1,3 @@
-## Estado atual — homologação Windows beta.10 — 2026-10-09
-
-Branch candidata `fix/windows-beta10-homologation-20261008`; `VERSION=1.0.0-beta.10`; source SHA homologado local `767be3b168a6d3ec7d223908e21812807486482f`. No Windows AMD64, Go 1.27.2 (`go vet ./...`, `go test -count=1 -v ./...`), golangci-lint v2.14.0 (zero issues), web (`quality:full`, 84 arquivos/504 testes), oito suítes Playwright, gates ConPTY/Named Pipe/runtime-web e smokes Desktop/HUD passaram nesse SHA. Evidências e limites constam em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
-
-O run hosted `37922899819` confirmou checkout no mesmo SHA/AMD64 e passou setup Node 22.14.0, Bun frozen install, web build e `go vet`, mas terminou FAIL em `Full Windows suite`; a saída detalhada do teste não estava disponível. Uma falha `'$GIT_DIR' too big` foi reproduzida localmente somente com `TEMP` longo; a suíte passou com `%LOCALAPPDATA%\Temp`. O workflow agora define `TEMP`/`TMP` curtos antes dos testes Go. Isso é mitigação de risco, não causa remota confirmada; é necessário novo run hosted para fechar o gate.
-
-Próxima ação: acionar novo workflow Windows no source SHA `767be3b168a6d3ec7d223908e21812807486482f` com o passo de TEMP curto; o push candidato não substitui esse run. Não fazer push direto a `release/v1.0.0`; não executar gates Linux. Tray físico, assinatura/update trust root e distribuição permanecem pendentes, portanto release/tag continuam **NO-GO**. O candidato atual é beta.10, não beta.7 (`d14154d2`).
-
-## Registro anterior — runner Windows efêmero — 2026-10-09
 # Handoff
 
 ## Estado atual — homologação Windows beta.10 no SHA 1e3f9a3b — 2026-10-09

@@ -5365,4 +5365,5 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - A primeira repetição `test:a11y` foi interrompida por `ERR_NETWORK_IO_SUSPENDED`; diagnóstico preservado. Retestes de acessibilidade e visual e o homologador completo em worktree limpo passaram no mesmo SHA.
 - Auditoria autenticada encontrou zero PRs contra `release/v1.0.0`; candidata contém a ponta da release como pai de merge.
 - O usuário autorizou runner efêmero de um job para o workflow `native-signing`; antes de registrar ou disparar, a execução foi suspensa para rotação das credenciais locais. Nenhum runner novo foi registrado e nenhum hosted workflow foi disparado.
+- Removido do topo de `DEV/HANDOFF.md` o resumo obsoleto que ainda apontava a homologação para `767be3b1`; o handoff atual passa a ser a seção do SHA `1e3f9a3b`.
 - Sem gate Linux, push direto à release, tag ou publicação. Veredito local Windows PASS; distribuição permanece NO-GO até hosted/signing, integração e smokes operacionais pendentes.
