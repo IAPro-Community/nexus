@@ -19,6 +19,41 @@ mkdirSync(screenshotDir, { recursive: true });
 
 const themes = [
   {
+    preset: 'ember-studio',
+    scheme: 'dark',
+    finish: 'flat',
+    category: /Clássicos do Código/i,
+    label: /Ember Studio/i,
+  },
+  {
+    preset: 'nexus-dusk',
+    scheme: 'dark',
+    finish: 'subtle-gradient',
+    category: /Degradê Suave/i,
+    label: /Nexus Dusk/i,
+  },
+  {
+    preset: 'slate-flat',
+    scheme: 'dark',
+    finish: 'flat',
+    category: /Essenciais Flat/i,
+    label: /Slate Flat/i,
+  },
+  {
+    preset: 'paper-flat',
+    scheme: 'light',
+    finish: 'flat',
+    category: /Essenciais Flat/i,
+    label: /Paper Flat/i,
+  },
+  {
+    preset: 'clay-flat',
+    scheme: 'light',
+    finish: 'flat',
+    category: /Essenciais Flat/i,
+    label: /Clay Flat/i,
+  },
+  {
     preset: 'nexus-dark',
     scheme: 'dark',
     category: /Dark Modern/i,
@@ -129,10 +164,11 @@ async function ensureThemeCategoryOpen(page, theme) {
 
 async function assertThemeApplied(page, theme) {
   await page.waitForFunction(
-    ({ preset, scheme }) =>
+    ({ preset, scheme, finish }) =>
       document.documentElement.dataset.preset === preset &&
-      document.documentElement.dataset.theme === scheme,
-    { preset: theme.preset, scheme: theme.scheme },
+      document.documentElement.dataset.theme === scheme &&
+      document.documentElement.dataset.finish === finish,
+    { preset: theme.preset, scheme: theme.scheme, finish: theme.finish || 'standard' },
     { timeout: 10000 },
   );
   const applied = await page.evaluate(() => {
@@ -141,6 +177,7 @@ async function assertThemeApplied(page, theme) {
     return {
       preset: root.dataset.preset || '',
       theme: root.dataset.theme || '',
+      finish: root.dataset.finish || '',
       background: style.getPropertyValue('--nx-bg').trim(),
       text: style.getPropertyValue('--nx-text').trim(),
       accent: style.getPropertyValue('--nx-accent').trim(),
@@ -148,6 +185,7 @@ async function assertThemeApplied(page, theme) {
   });
   assert.equal(applied.preset, theme.preset);
   assert.equal(applied.theme, theme.scheme);
+  assert.equal(applied.finish, theme.finish || 'standard');
   assert.ok(applied.background, `${theme.preset} must define --nx-bg`);
   assert.ok(applied.text, `${theme.preset} must define --nx-text`);
   assert.ok(applied.accent, `${theme.preset} must define --nx-accent`);
@@ -286,6 +324,35 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
   await assertA11y(page, theme);
 }
 
+async function assertAppearanceControlsPersist(page, apiOrigin) {
+  await page.goto(`${apiOrigin}/settings`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 30000 });
+
+  const fonts = page.getByRole('radiogroup', { name: /Fonte da interface/i });
+  const icons = page.getByRole('radiogroup', { name: /Traço dos ícones/i });
+  await fonts.getByRole('radio', { name: 'Leitura' }).click();
+  await icons.getByRole('radio', { name: 'Marcado' }).click();
+
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.fontFamily === 'readable' &&
+      document.documentElement.dataset.iconStyle === 'bold',
+  );
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 30000 });
+  assert.equal(await fonts.getByRole('radio', { name: 'Leitura' }).getAttribute('aria-checked'), 'true');
+  assert.equal(await icons.getByRole('radio', { name: 'Marcado' }).getAttribute('aria-checked'), 'true');
+
+  // Restore defaults so the existing screenshot matrix remains comparable.
+  await fonts.getByRole('radio', { name: 'Padrão' }).click();
+  await icons.getByRole('radio', { name: 'Padrão' }).click();
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.fontFamily === 'default' &&
+      document.documentElement.dataset.iconStyle === 'default',
+  );
+}
+
 async function main() {
   fixture = await startFixtureServer();
   browser = await chromium.launch({
@@ -306,6 +373,8 @@ async function main() {
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
+
+  await assertAppearanceControlsPersist(page, apiOrigin);
 
   const themeFailures = [];
   for (const theme of themes) {

@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import {
   defaultThemePreferences,
+  getThemePresetFinish,
   MANAGED_THEME_COLOR_VARS,
   normalizeThemePreferences,
   resolveScheme,
@@ -15,6 +16,8 @@ import {
   themeStorageKey,
   type ThemeAccent,
   type ThemeDensity,
+  type ThemeFontFamily,
+  type ThemeIconStyle,
   type ThemePreferences,
   type ThemePresetKey,
   type ThemeScheme,
@@ -29,6 +32,8 @@ interface ThemeContextValue extends ThemePreferences {
   setReducedMotion: (value: boolean) => void;
   setPreset: (preset: ThemePresetKey) => void;
   setFontScale: (scale: number) => void;
+  setFontFamily: (fontFamily: ThemeFontFamily) => void;
+  setIconStyle: (iconStyle: ThemeIconStyle) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -75,6 +80,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.dataset.theme = resolvedScheme;
     root.dataset.accent = preferences.accent;
     root.dataset.density = preferences.density;
+    root.dataset.fontFamily = preferences.fontFamily;
+    root.dataset.iconStyle = preferences.iconStyle;
+    // The flat visual treatment is opt-in per preset; legacy themes stay unchanged.
+    // High-contrast overrides are never flattened.
+    root.dataset.finish =
+      resolvedScheme === 'high-contrast'
+        ? 'standard'
+        : getThemePresetFinish(preferences.preset);
     root.dataset.reducedMotion = preferences.reducedMotion ? 'true' : 'false';
     const scale = preferences.fontScale || 1.0;
     root.dataset.fontScale = String(scale);
@@ -118,6 +131,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             isCustomized: false, // Ao trocar de preset, restaura fidelidade total ao preset
           };
         }),
+      setFontFamily: (fontFamily) =>
+        setPreferences((current) => ({ ...current, fontFamily })),
+      setIconStyle: (iconStyle) =>
+        setPreferences((current) => ({ ...current, iconStyle })),
       setFontScale: (scale) => {
         const clamped = Math.min(Math.max(scale, 0.7), 2.0);
         setPreferences((current) => ({ ...current, fontScale: clamped }));

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   defaultThemePreferences,
   getThemePresetPalette,
+  getThemePresetFinish,
   normalizeThemePreferences,
   resolveScheme,
   resolveThemeStyleVariables,
@@ -58,6 +59,8 @@ describe('theme model', () => {
       preset: 'nexus-dark',
       isCustomized: false,
       fontScale: 1.0,
+      fontFamily: 'default',
+      iconStyle: 'default',
     });
   });
 
@@ -70,6 +73,8 @@ describe('theme model', () => {
       reducedMotion: true,
       isCustomized: false,
       fontScale: 1.15,
+      fontFamily: 'readable',
+      iconStyle: 'light',
     };
     const serialized = JSON.stringify(original);
     const parsed = JSON.parse(serialized);
@@ -116,6 +121,11 @@ describe('theme model', () => {
       expect.arrayContaining([
         'nexus-dark',
         'nexus-light',
+        'slate-flat',
+        'paper-flat',
+        'clay-flat',
+        'nexus-dusk',
+        'ember-studio',
         'midnight',
         'nord',
         'dracula',
@@ -131,7 +141,7 @@ describe('theme model', () => {
         'high-contrast-light',
       ]),
     );
-    expect(keys.length).toBeGreaterThanOrEqual(15);
+    expect(keys.length).toBeGreaterThanOrEqual(20);
   });
 
   it('keeps registry keys, ids and primary accent tokens consistent', () => {
@@ -143,6 +153,94 @@ describe('theme model', () => {
       expect(names.has(definition.name), `Duplicate theme name: ${definition.name}`).toBe(false);
       names.add(definition.name);
     }
+  });
+
+  it('preserves the first three flat presets without changing legacy preset finishes', () => {
+    for (const preset of ['slate-flat', 'paper-flat', 'clay-flat'] as const) {
+      expect(THEME_PRESETS[preset].finish).toBe('flat');
+      expect(THEME_PRESETS[preset].vars['--nx-bg']).not.toBe(
+        THEME_PRESETS[preset].vars['--nx-surface'],
+      );
+    }
+
+    expect(getThemePresetFinish('nexus-dark')).toBe('standard');
+    expect(getThemePresetFinish('monokai')).toBe('standard');
+    expect(getThemePresetFinish('obsidian')).toBe('standard');
+  });
+
+  it('uses a dedicated restrained gradient finish for Nexus Dusk only', () => {
+    const orca = THEME_PRESETS['nexus-dusk'];
+    expect(orca.finish).toBe('subtle-gradient');
+    expect(getThemePresetFinish('nexus-dusk')).toBe('subtle-gradient');
+    expect(orca.scheme).toBe('dark');
+    expect(orca.vars['--nx-bg']).toBe('#0b0c0e');
+    expect(orca.vars['--nx-surface']).toBe('#17191c');
+    expect(getThemePresetFinish('slate-flat')).toBe('flat');
+    expect(getThemePresetFinish('nexus-dark')).toBe('standard');
+  });
+
+  it('preserves Nexus Dusk selection and consistent scheme after a persisted reload', () => {
+    const normalized = normalizeThemePreferences({
+      ...defaultThemePreferences,
+      preset: 'nexus-dusk',
+      scheme: 'light',
+      density: 'comfortable',
+      isCustomized: false,
+    });
+    expect(normalized.preset).toBe('nexus-dusk');
+    expect(normalized.scheme).toBe('dark');
+    expect(normalized.density).toBe('comfortable');
+    expect(resolveThemeStyleVariables(normalized, 'dark')['--nx-bg']).toBe('#0b0c0e');
+  });
+
+  it('restores a flat preset after persistence without affecting user density', () => {
+    const normalized = normalizeThemePreferences({
+      ...defaultThemePreferences,
+      preset: 'paper-flat',
+      scheme: 'dark',
+      density: 'comfortable',
+      isCustomized: false,
+    });
+
+    expect(normalized.preset).toBe('paper-flat');
+    expect(normalized.scheme).toBe('light');
+    expect(normalized.density).toBe('comfortable');
+    expect(resolveThemeStyleVariables(normalized, 'light')['--nx-bg']).toBe('#f4f5f3');
+  });
+
+  it('keeps font and icon settings independent from the theme preset and scheme', () => {
+    const prefs = normalizeThemePreferences({
+      ...defaultThemePreferences,
+      preset: 'ember-studio',
+      scheme: 'light',
+      fontFamily: 'readable',
+      iconStyle: 'bold',
+      isCustomized: false,
+    });
+    expect(prefs.preset).toBe('ember-studio');
+    expect(prefs.scheme).toBe('dark');
+    expect(prefs.fontFamily).toBe('readable');
+    expect(prefs.iconStyle).toBe('bold');
+    expect(THEME_PRESETS['ember-studio'].finish).toBe('flat');
+  });
+
+  it('repairs invalid font and icon settings from persisted storage', () => {
+    const prefs = normalizeThemePreferences({
+      fontFamily: 'remote-url',
+      iconStyle: 'image-html',
+    } as unknown as ThemePreferences);
+    expect(prefs.fontFamily).toBe('default');
+    expect(prefs.iconStyle).toBe('default');
+  });
+
+  it('provides defaults for legacy preferences saved before font/icon selectors', () => {
+    const prefs = normalizeThemePreferences({
+      ...defaultThemePreferences,
+      fontFamily: undefined,
+      iconStyle: undefined,
+    });
+    expect(prefs.fontFamily).toBe('default');
+    expect(prefs.iconStyle).toBe('default');
   });
 
   it('normalizes out-of-bound fontScale values', () => {
