@@ -1,6 +1,6 @@
 # Current release status
 
-> **Atualização Windows em 2026-10-09:** o homologador oficial passou de ponta a ponta em Windows AMD64 no SHA exato `1e3f9a3be446757a3854bcb1948a4325fb271a47` (`1.0.0-beta.10`, Go 1.27.2, Bun 1.3.9, Node 22.14.0): Go fmt/vet/vulncheck/lint/test, `quality:full` (84 arquivos/504 testes), oito E2Es browser, Axe/visual e builds CLI/Desktop/HUD. Smokes nativos Desktop/HUD também passaram nesse SHA. A primeira tentativa de acessibilidade registrou `ERR_NETWORK_IO_SUSPENDED`; o reteste isolado e a repetição limpa integral passaram. Os builds locais e checksums ainda são unsigned. O usuário autorizou o runner hosted de um job com assinatura/upload, mas a execução foi suspensa para rotação de credenciais locais antes de qualquer registro ou dispatch. Tray físico, fluxos autenticados, assinatura/trust root e instalador assinado seguem pendentes. A candidata beta.10 não é a beta.7 `d14154d2`; distribuição **NO-GO**.
+> **Atualização Windows em 2026-10-09:** o homologador oficial passou integralmente em Windows AMD64 no SHA local exato `e46d0619d36b63864f3f8a77a5d25652b9581afd` (`1.0.0-beta.10`, Go 1.27.2, Bun 1.3.9, Node 22.14.0): Go fmt/vet/vulncheck/lint/test, `quality:full` (84 arquivos/504 testes), oito E2Es browser, Axe/visual e builds CLI/Desktop/HUD. Smokes nativos Desktop/HUD de inicialização/cleanup também passaram no SHA exato, sem inspeção visual ou interação; o toggle do manager Windows de autostart passou com entrada Run de teste removida ao final. O usuário autorizou runner hosted de um job; ainda não houve registro nem dispatch enquanto aguarda rotação/confirmação das credenciais locais. Tray físico, controle visual HUD/autostart, fluxos autenticados, assinatura/trust root e instalador assinado seguem pendentes. A candidata beta.10 não é a beta.7 `d14154d2`; distribuição **NO-GO**.
 
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 
@@ -8,21 +8,22 @@ CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
 CURRENT_RELEASE_BRANCH: release/v1.0.0
 CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: a6795704e0f74971f6b255e66ea1527a3ae83165
 WINDOWS_HOMOLOGATION_BRANCH: fix/windows-beta10-homologation-20261008
-WINDOWS_EVIDENCE_HEAD: 1e3f9a3be446757a3854bcb1948a4325fb271a47 (exact SHA for latest Windows automated gate)
-WINDOWS_HOMOLOGATED_SOURCE_SHA: 1e3f9a3be446757a3854bcb1948a4325fb271a47
+WINDOWS_EVIDENCE_HEAD: e46d0619d36b63864f3f8a77a5d25652b9581afd (latest exact SHA for Windows automated gate)
+WINDOWS_HOMOLOGATED_SOURCE_SHA: e46d0619d36b63864f3f8a77a5d25652b9581afd (product files unchanged from 1e3f9a3b)
 WINDOWS_AUTOMATED_LOCAL_GATES: PASS_EXACT_SHA_WINDOWS_AMD64_GO1.27.2_FMT_VET_VULN_LINT_TEST_WEB_504_8_E2E
 WINDOWS_WAILS_PROJECT_ORIGIN_REGRESSION: PASS_ON_DOCS_ONLY_HEAD_0729DF48; SOURCE_FILES_IDENTICAL_TO_1E3F9A3B; BOOTSTRAP_200_CREATE_201_EXTERNAL_ORIGINS_403
-WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_WAILS_WEBVIEW2_PROFILE_AND_CLEANUP_ON_1E3F9A3B_WITH_UNIQUE_ID; VISUAL_RENDER_NOT_VERIFIED
-WINDOWS_NATIVE_HUD_SMOKE: PASS_LAUNCH_8S_WEBVIEW2_PROFILE_AND_7_DESCENDANT_CLEANUP_ON_1E3F9A3B; INTERACTIVE_SHOW_HIDE/AUTOSTART/TRAY_UI=NOT_VERIFIED
+WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_WAILS_WEBVIEW2_PROFILE_AND_CLEANUP_ON_E46D0619_WITH_UNIQUE_ID; VISUAL_RENDER_NOT_VERIFIED
+WINDOWS_NATIVE_HUD_SMOKE: PASS_LAUNCH_8S_WEBVIEW2_PROFILE_AND_6_DESCENDANT_CLEANUP_ON_E46D0619; INTERACTIVE_SHOW_HIDE/AUTOSTART_UI/TRAY_UI=NOT_VERIFIED
+WINDOWS_NATIVE_AUTOSTART_REGISTRY_SMOKE: PASS_ENABLE_DISABLE_REG_SZ_AND_CLEANUP_ON_E46D0619; UNIQUE_HKCU_RUN_VALUE_REMOVED; HUD_UI_TOGGLE_NOT_TESTED
 WINDOWS_NSIS_INSTALLER_SMOKE: PASS_INSTALL_AND_UNINSTALL_ON_767BE3B1; UNSIGNED
 WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: PASS_NO_LITERAL_ARROWS_IN_CODEX_0782_AND_AGY_665; NO_PROMPT_SENT; AUTHENTICATED_SESSION_PENDING
-WINDOWS_HOSTED_CI_SAME_SHA: USER_APPROVED_SINGLE_JOB; SUSPENDED_FOR_LOCAL_CREDENTIAL_ROTATION_BEFORE_REGISTRATION_ON_1E3F9A3BE446757A3854BCB1948A4325FB271A47; NO_RUNNER_REGISTERED; NO_WORKFLOW_DISPATCHED
+WINDOWS_HOSTED_CI_SAME_SHA: USER_APPROVED_SINGLE_JOB; SUSPENDED_FOR_LOCAL_CREDENTIAL_ROTATION_BEFORE_REGISTRATION_ON_E46D0619D36B63864F3F8A77A5D25652B9581AFD; NO_RUNNER_REGISTERED; NO_WORKFLOW_DISPATCHED
 WINDOWS_HOSTED_CI_PREVIOUS: FAIL_FULL_WINDOWS_SUITE (run 37922899819; prior target SHA 767be3b168a6d3ec7d223908e21812807486482f; checkout SHA/AMD64, Node 22.14.0, Bun install, web build and go vet passed; test output unavailable)
 WINDOWS_HOSTED_CI_REMEDIATION: SHORT_TEMP_TMP_WORKFLOW_STEP_ADDED; COMPOSER_TEST_NOW_ASSERTS_BOUNDED_PROVIDER_CONTEXT_AND_CANCELLATION; PRIOR_HOSTED_FAILURE_CAUSE_UNPROVEN; hosted rerun required
 WINDOWS_HOSTED_RUNNER_INVENTORY: existing runner nexus-ci-dev-web-kiver labels self-hosted/Linux/X64/nexus-ci, offline; previous one-shot Windows runner auto-deregistered after run 37922899819; retry not registered
 WINDOWS_EPHEMERAL_RUNNER_SETUP: PASS_ONE_JOB_EPHEMERAL; no service installed; runner removed its registration and credentials after the job
 WINDOWS_EPHEMERAL_RUNNER_PACKAGE: v2.338.0 x64; SHA-256 f48e0750a21812bca5f82de5f7f5aeae71abee647fab5a582f1742d07eba455f matched official release digest; runner credentials and registration removed after the job
-WINDOWS_EPHEMERAL_RUNNER_RETRY: USER_APPROVED_SINGLE_JOB; SUSPENDED_FOR_LOCAL_CREDENTIAL_ROTATION_BEFORE_REGISTRATION; NO_RUNNER_REGISTERED; NO_WORKFLOW_DISPATCHED
+WINDOWS_EPHEMERAL_RUNNER_RETRY: USER_APPROVED_SINGLE_JOB; SUSPENDED_PENDING_LOCAL_CREDENTIAL_ROTATION_CONFIRMATION; NO_RUNNER_REGISTERED; NO_WORKFLOW_DISPATCHED
 WINDOWS_SIGNED_INSTALLER_AND_UPDATE_TRUST_ROOT: BLOCKED_TOOLS_AND_SECRETS_UNAVAILABLE
 WINDOWS_LOCAL_SIGNING_PREREQUISITES: signtool.exe and makensis.exe not found on PATH; code-signing certificates with private key=0 in CurrentUser/LocalMachine stores
 WINDOWS_LOCAL_SIGNING_ENV: PFX/password/update private key/key ID/public key variables absent from current host process; values were not read
@@ -32,7 +33,8 @@ WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN_0782
 WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
 WINDOWS_LOCAL_UNSIGNED_CHECKSUMS: DEV/validation/local-beta/1.0.0-beta.10/1e3f9a3be446757a3854bcb1948a4325fb271a47/windows-AMD64/SHA256SUMS.local-unsigned.txt
-CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/1e3f9a3be446757a3854bcb1948a4325fb271a47/windows-AMD64/ (latest exact-SHA gate, Desktop/HUD smokes and local unsigned artifact checksums); earlier NSIS installer and autostart smoke evidence remains under 767be3b1; controller-smoke evidence under 665103a0 and physical HUD captures under 0782f876
+WINDOWS_NATIVE_SMOKE_CHECKSUMS: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/native-smokes/SHA256SUMS.native-smoke.txt (diagnostic unsigned binaries; not distribution artifacts)
+CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/ (latest exact-SHA automated gate, Desktop/HUD startup/cleanup and autostart registry smokes, logs); unsigned distribution checksums remain under 1e3f9a3b; earlier NSIS installer smoke evidence remains under 767be3b1; controller-smoke evidence under 665103a0 and physical HUD captures under 0782f876
 LIVE_GITHUB_REMOTE_CHECK: PASS_2026-10-09; candidate=1e3f9a3be446757a3854bcb1948a4325fb271a47; origin/release/v1.0.0=a6795704e0f74971f6b255e66ea1527a3ae83165
 LIVE_GITHUB_REMOTE_REFRESH: release HEAD a6795704 is a parent of tested source commit 1e3f9a3b; no direct push to release
 WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the PR candidate for release/v1.0.0; authenticated query 2026-10-09 found 0 matching PRs

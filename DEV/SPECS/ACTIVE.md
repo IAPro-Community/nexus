@@ -1,3 +1,9 @@
+## Revalidação Windows beta.10 — SHA `e46d0619` — 2026-10-09
+
+O homologador oficial terminou com exit code 0 em Windows AMD64 no commit exato `e46d0619d36b63864f3f8a77a5d25652b9581afd`, `VERSION=1.0.0-beta.10`, Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Passaram Go fmt/vet/govulncheck/golangci-lint/teste completo, `quality:full` (84 arquivos/504 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Evidência local ignorada pelo Git: `../validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/`.
+
+O trecho entre o source homologado anterior `1e3f9a3b` e `e46d0619` contém apenas documentação, sem alteração de código de produto. Smokes nativos de inicialização/cleanup Desktop e HUD também passaram nesse SHA, com IDs e dados isolados; as janelas foram ocultadas, sem validação visual ou interação. O toggle do manager Windows do autostart passou via chave Run exclusiva; o controle na interface ainda não foi exercitado. `MANUAL_CHECKS.md` mantém pendentes os fluxos autenticados de provider/Mission/Voice, tray e controles visuais do HUD. A aprovação do usuário para um runner efêmero existe; o runner ainda não foi registrado porque a rotação/confirmação de credenciais locais permanece pendente. Sem workflow hosted, assinatura ou instalador assinado, manter distribuição **NO-GO**. Escopo Windows-only; nenhum gate Linux.
+
 ## Continuidade Windows beta.10 — reteste hosted e TEMP curto — 2026-10-09
 
 O candidato `1.0.0-beta.10` está em `fix/windows-beta10-homologation-20261008`; source SHA local homologado `767be3b168a6d3ec7d223908e21812807486482f`, distinto da beta.7 `d14154d2`. No Windows AMD64 local, Go 1.27.2 vet/teste integral, golangci-lint v2.14.0 (zero issues), web quality (84 arquivos/504 testes), oito E2E browser, gates ConPTY/Named Pipe/runtime-web e smokes Desktop/HUD passaram.

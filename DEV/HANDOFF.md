@@ -1,5 +1,11 @@
 # Handoff
 
+## Estado atual — homologação Windows beta.10 no SHA `e46d0619` — 2026-10-09
+
+Branch `fix/windows-beta10-homologation-20261008`; HEAD exato testado `e46d0619d36b63864f3f8a77a5d25652b9581afd`; `VERSION=1.0.0-beta.10`. O script oficial `scripts/homologate-beta.ps1 -ExpectedSha e46d0619d36b63864f3f8a77a5d25652b9581afd` terminou PASS (exit code 0) em Windows AMD64, de `17:01:49Z` a `17:37:21Z`, com Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Passaram documentação, instalação congelada Bun, `quality:full` (84 arquivos/504 testes), Go fmt/vet/govulncheck/golangci-lint/teste completo, regressões focadas, oito suítes browser E2E, Axe/visual e builds Windows CLI/Desktop/HUD. Smokes nativos de lançamento/cleanup Desktop e HUD passaram no SHA exato usando IDs e perfis isolados; as janelas foram ocultadas. O teste nativo do manager de autostart habilitou/desabilitou um `HKCU\\...\\Run` exclusivo e confirmou a remoção. Evidências locais ignoradas pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/`.
+
+O diff entre `1e3f9a3b` e `e46d0619` não contém alterações de código de produto. Os smokes de lançamento/cleanup não comprovam renderização visual, interação de tray/show/hide, controle visual de autostart ou fluxos autenticados. CI hosted no SHA integrado, assinatura/trust root e instalador assinado seguem pendentes. O usuário autorizou runner efêmero de um job, mas nenhum runner/workflow foi iniciado enquanto aguarda rotação/confirmação das credenciais locais. Sem tag nem publicação; distribuição **NO-GO**. O candidato é beta.10, não a beta.7 `d14154d2`. Nenhum gate Linux foi executado.
+
 ## Estado atual — homologação Windows beta.10 no SHA 1e3f9a3b — 2026-10-09
 
 Branch `fix/windows-beta10-homologation-20261008`; `VERSION=1.0.0-beta.10`; o commit `1e3f9a3be446757a3854bcb1948a4325fb271a47` sincroniza a ponta observada de `release/v1.0.0` (`a6795704e0f74971f6b255e66ea1527a3ae83165`). O homologador oficial passou continuamente em Windows AMD64 de `16:15:06Z` a `16:29:20Z`: Go 1.27.2, Bun 1.3.9, Node 22.14.0, Go fmt/vet/govulncheck/lint/test, `quality:full` (84 arquivos/504 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Evidência local ignorada pelo Git em `DEV/validation/local-beta/1.0.0-beta.10/1e3f9a3be446757a3854bcb1948a4325fb271a47/windows-AMD64/`.

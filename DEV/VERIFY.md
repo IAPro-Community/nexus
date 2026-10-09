@@ -1688,7 +1688,7 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-09T06:28:09Z
+## Frontend gate — 2026-10-09T17:06:30Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 
@@ -1708,3 +1708,13 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - SKIPPED — go vet, suítes Go Windows, signing/package, smokes Desktop/HUD e install/uninstall NSIS, devido à falha anterior no build web.
 - O runner oficial v2.338.0 foi validado pelo digest publicado, registrado sem serviço como efêmero, executou só este job e auto-desregistrou. Nenhum gate Linux foi executado.
 - Correção preparada: `actions/setup-node@v7`, Node 22.14.0, cache automático desativado e assert `node --version`. Ainda requer commit/push e novo run no mesmo source SHA; até lá, hosted Windows permanece FAIL e distribuição NO-GO.
+
+## Homologação local Windows beta.10 — SHA `e46d0619` — 2026-10-09
+
+- PASS — `scripts/homologate-beta.ps1 -ExpectedSha e46d0619d36b63864f3f8a77a5d25652b9581afd` em Windows AMD64, worktree limpo no início, exit code 0. `VERSION=1.0.0-beta.10`; Go 1.27.2, Bun 1.3.9, Node 22.14.0.
+- PASS — Go fmt, vet, govulncheck, golangci-lint (0 issues), contrato de versão, suíte Go completa e regressões focadas.
+- PASS — Bun frozen install e `quality:full` (84 arquivos/504 testes); oito suítes browser E2E, Axe (zero violações menores), verificações responsivas/visuais e builds CLI/Desktop/HUD Windows AMD64.
+- PASS — smoke Desktop nativo (Wails/WebView2, perfil isolado e cleanup) e HUD nativo (8 s, perfil isolado, seis descendentes limpos), no SHA exato. Janelas ocultas; sem atestar renderização ou interação.
+- PASS — manager Windows de autostart: valor `HKCU\\...\\Run` exclusivo habilitado/desabilitado, comando `REG_SZ` conferido e valor ausente após cleanup no SHA exato. Controle visual não testado.
+- Evidência local: `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/`; logs de ambiente e perfil foram excluídos da cópia.
+- PENDENTE — CI Windows hosted no SHA integrado, fluxos autenticados de provider/Mission/Voice, tray/autostart, assinatura/update trust root e instalador assinado. Distribuição continua NO-GO; a versão é beta.10, não beta.7/d14154d2. Nenhum gate Linux executado.

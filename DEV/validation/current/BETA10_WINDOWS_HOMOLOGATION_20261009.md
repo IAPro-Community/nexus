@@ -1,5 +1,23 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+## Revalidação oficial Windows no SHA `e46d0619d36b63864f3f8a77a5d25652b9581afd` — 2026-10-09
+
+O checkout `fix/windows-beta10-homologation-20261008` estava limpo no início da execução. `VERSION` e `version.json` confirmam `1.0.0-beta.10`, Windows AMD64, Go 1.27.2 e commit `e46d0619`. O homologador oficial terminou com exit code 0 entre `2026-10-09T17:01:49Z` e `2026-10-09T17:37:21Z`. Não houve execução de gates Linux.
+
+- **PASS — Go e integridade:** formato, `go vet ./...`, `govulncheck ./...`, `golangci-lint run ./...` (0 issues), contrato de versão e `go test -count=1 -v ./...`; passaram também regressões focadas de provider/terminal, control/runtime e Agent Interop/OpenCode.
+- **PASS — Web:** `bun install --cwd web --frozen-lockfile` sem mudanças de dependências e `bun run --cwd web quality:full`; 84 arquivos Vitest e 504 testes passaram, incluindo formatação, TypeScript, ESLint, Stylelint, build/embed e marcadores de UI.
+- **PASS — Browser E2E:** as oito suítes passaram: hardening/responsividade, Composer workspace, isolamento de superfícies, Capacity, HUD, Composer execution spine, Composer vague spine e temas. Axe reportou zero violações menores; verificações visuais e de viewport passaram, inclusive 320 px.
+- **PASS — Build Windows AMD64:** CLI, Desktop Wails v3 e HUD foram compilados. A compilação não inclui assinatura nem atesta o instalador de distribuição.
+- **PASS — Desktop nativo, inicialização/cleanup:** build de smoke com ID `com.iapro.nexus.desktop.windows-smoke-e46d0619`; janela Wails `IAPro Nexus`, filho `Chrome_WidgetWin_0`, perfil WebView2 isolado e limpeza de processos próprios confirmados. Binário diagnóstico SHA-256 `4FC91E4340ABC6EB9E06277D6B9BDC473FA8BFA0261C70537D6CAA488EF24DF9`.
+- **PASS — HUD nativo, inicialização/cleanup:** processo ativo por 8 s, perfil WebView2 isolado criado e seis descendentes próprios encerrados. Binário diagnóstico SHA-256 `92E4A46943ABAC6920AC358ED06B2EF687139B6E14737D3A9E74F9178A1E0B7C`.
+- **PASS — Autostart Windows (manager):** teste isolado com overlay do SHA exato chamou a implementação real de `SetEnabled(true/false)`, confirmou `REG_SZ` e o comando com aspas para executável/argumentos, validou `IsEnabled` nos dois estados e verificou que o valor Run de teste não existia após o cleanup. O primeiro processo sem elevação foi bloqueado pelo sandbox (`Acesso negado`); a repetição elevada passou. Isso não testa o controle visual do HUD.
+- **Limite dos smokes:** ambos foram iniciados com janela oculta e validam apenas processo, Wails/WebView2, perfil e cleanup. Não comprovam renderização visual, interação de tray/show/hide, controle visual do autostart ou fluxos autenticados. O diff entre `1e3f9a3b` e `e46d0619` contém somente documentação e `docs/release-status.md`, sem código de produto.
+- **Avisos de ambiente, fora do gate:** o relatório `doctor` marca Windows Credential Manager como `UNSUPPORTED` e registra providers instalados mas não registrados/alguns probes sem versão. Isso não converte os testes automatizados em falha nem substitui os fluxos manuais com provider autenticado.
+
+Evidências locais ignoradas pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/`, com logs de Go, Bun, frontend, E2E, versão e checklist `MANUAL_CHECKS.md`. Os smokes nativos e hashes dos bins estão em `native-smokes/`; os arquivos do teste overlay do autostart registram a implementação e a limpeza. Nenhum desses bins é artefato assinado de distribuição.
+
+**Veredito:** PASS dos gates automatizados e smokes locais limitados Windows no SHA exato `e46d0619`. O workflow hosted de um job foi autorizado pelo usuário, mas ainda não foi registrado/disparado enquanto aguarda rotação e confirmação das credenciais locais. Interação de tray, controle visual do autostart/HUD, fluxos autenticados de provider/Mission/Voice, assinatura/update trust root e instalador assinado seguem pendentes; tag e distribuição permanecem **NO-GO**. A candidata é beta.10, diferente da beta.7 `d14154d2`.
+
 ## Homologação Windows no merge SHA `1e3f9a3be446757a3854bcb1948a4325fb271a47` — 2026-10-09
 
 A branch `fix/windows-beta10-homologation-20261008` sincronizou `origin/release/v1.0.0` (`a6795704e0f74971f6b255e66ea1527a3ae83165`) pelo commit `1e3f9a3b` e foi enviada para a branch candidata. O worktree limpo confirmou `VERSION=1.0.0-beta.10`. Nenhum commit foi enviado diretamente para `release/v1.0.0`.

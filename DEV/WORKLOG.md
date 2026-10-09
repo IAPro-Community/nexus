@@ -1,9 +1,18 @@
-## 2026-10-09 — Runner Windows: bloqueio de autorização
+## 2026-10-09 — Revalidação oficial Windows beta.10 no SHA `e46d0619`
 
-- O pacote oficial `actions/runner` x64 `v2.338.0` teve o digest conferido. A tentativa de registrar o runner efêmero foi rejeitada pela revisão automática por conceder execução de workflow ao host e possível acesso a secrets de assinatura; nenhum runner foi registrado.
-- Run `37898823857` segue `queued`; todos os jobs genéricos/Linux estão `skipped`; runner remoto disponível é apenas Linux e offline.
-- Próximo passo depende de autorização explícita para execução de um job efêmero neste host ou de um runner Windows administrado pelo usuário. Não contornar a recusa e não rodar gates Linux.
-- Auditoria somente de presença confirmou ausência local de signtool/makensis no PATH, certificados de signing com chave privada e variáveis de signing/update; os providers AGY/Codex/Gemini estão instalados, mas não registrados no snapshot da homologação. Nenhum prompt ou credencial foi exposto.
+- O `scripts/homologate-beta.ps1 -ExpectedSha e46d0619d36b63864f3f8a77a5d25652b9581afd` terminou exit code 0 em Windows AMD64, `VERSION=1.0.0-beta.10`, Go 1.27.2, Bun 1.3.9 e Node 22.14.0 (17:01:49Z–17:37:21Z).
+- PASS — Go fmt/vet/govulncheck/golangci-lint/teste completo; Bun frozen install + `quality:full` (84 arquivos/504 testes); oito browser E2E, Axe/visual e builds Windows CLI/Desktop/HUD.
+- PASS — smokes nativos isolados Desktop Wails/WebView2 e HUD por 8 s; perfil e limpeza dos processos próprios verificados. Ambos ocultos, sem evidência de interação visual.
+- PASS — teste Windows isolado via overlay exercitou o manager de autostart no Registro `HKCU` (enable, query, disable e confirmação de remoção) no SHA exato; primeira execução foi negada pelo sandbox, repetição elevada passou.
+- Evidências sanitizadas e logs copiados para a pasta local ignorada pelo Git `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/`; arquivos de perfil, provider, uso e ambiente foram excluídos.
+- Produto beta.10 é diferente da solicitação beta.7 `d14154d2`. Os commits de `1e3f9a3b` a `e46d0619` não alteram código de produto. Fluxos autenticados, tray/autostart, assinatura/trust root, instalador e CI hosted continuam pendentes; distribuição NO-GO. Nenhum gate Linux foi executado.
+
+## 2026-10-09 — Runner Windows efêmero: autorização recebida, execução pendente
+
+- O pacote oficial `actions/runner` x64 `v2.338.0` teve o digest conferido. A revisão automática bloqueou a primeira tentativa de registro por permitir execução de workflow neste host e possível acesso a secrets de assinatura. Depois, o usuário autorizou um runner efêmero de um job; nenhum runner foi registrado e nenhum workflow foi disparado.
+- Antes de usar autenticação remota, permanece necessária a rotação e confirmação de revogação das credenciais locais afetadas. A autorização para o runner já foi dada; a execução está pendente apenas dessa condição de segurança.
+- A anotação do run `37898823857` (queued/skipped) é histórica e anterior à revalidação `e46d0619`; não foi tratada como resultado do SHA atual. O runner Linux disponível permanece offline. Não rodar gates Linux.
+- Auditoria local anterior encontrou ausência de signtool/makensis no PATH e de certificados locais de signing. Providers encontrados no host não estavam registrados no snapshot; nenhum fluxo autenticado foi executado.
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
 ## 2026-10-09 — Homologação automatizada Windows beta.10 no SHA 16769e25
