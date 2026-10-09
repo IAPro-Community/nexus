@@ -81,7 +81,11 @@ describe('terminal protocol', () => {
       '{"version":1,"ok":true,"data":"\\"lease_acquired\\"","timestamp":"2026-01-01T00:00:00Z"}\n' +
       '{"note":"keep me"}\n';
     expect(scrubProtocolOutput(polluted)).toBe('welcome\nreal line\n{"note":"keep me"}\n');
-    expect(scrubProtocolOutput('{"version":1,"id":"req-2","command":"lease_acquire","timestamp":"2026-01-01T00:00:00Z"}')).toBe('');
+    expect(
+      scrubProtocolOutput(
+        '{"version":1,"id":"req-2","command":"lease_acquire","timestamp":"2026-01-01T00:00:00Z"}',
+      ),
+    ).toBe('');
     expect(isProtocolControlLine('hello')).toBe(false);
     // Provider diagnostics are content even when they use common RPC names.
     expect(isProtocolControlLine('{"command":"npm install","ok":true}')).toBe(false);
@@ -94,15 +98,30 @@ describe('terminal protocol', () => {
   it('drops control RPC split across two output messages', () => {
     const scrubber = new ProtocolScrubber();
     expect(scrubber.scrub('welcome\n{"version":1,"comm')).toBe('welcome\n');
-    expect(scrubber.scrub('and":"lease_acquire","id":"req-1","timestamp":"2026-01-01T00:00:00Z"}\nreal line\n')).toBe('real line\n');
+    expect(
+      scrubber.scrub(
+        'and":"lease_acquire","id":"req-1","timestamp":"2026-01-01T00:00:00Z"}\nreal line\n',
+      ),
+    ).toBe('real line\n');
   });
 
   it('renders provider JSON immediately instead of holding it as a hypothetical RPC', () => {
     const scrubber = new ProtocolScrubber();
     expect(scrubber.scrub('prompt$ ')).toBe('prompt$ ');
     expect(scrubber.scrub('{"note":"keep me"}')).toBe('{"note":"keep me"}');
-    expect(scrubber.scrub('{"command":"npm test","ok":true}')).toBe('{"command":"npm test","ok":true}');
+    expect(scrubber.scrub('{"command":"npm test","ok":true}')).toBe(
+      '{"command":"npm test","ok":true}',
+    );
     expect(scrubber.flush()).toBe('');
+  });
+
+  it('bounds incomplete control candidates without losing provider output', () => {
+    const scrubber = new ProtocolScrubber();
+    expect(scrubber.scrub('{"version":1')).toBe('');
+    const more = 'x'.repeat(65 * 1024);
+    expect(scrubber.scrub(more)).toBe('{"version":1' + more);
+    expect(scrubber.flush()).toBe('');
+    expect(scrubber.scrub('provider still alive')).toBe('provider still alive');
   });
 
   it('holds only partial Nexus envelopes until their final bytes arrive', () => {

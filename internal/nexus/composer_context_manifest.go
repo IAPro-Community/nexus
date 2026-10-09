@@ -73,6 +73,17 @@ type composerRankedSkill struct {
 }
 
 func (n *Nexus) BuildComposerContextManifest(ctx context.Context, projectID string, brief LivingBrief) (ComposerContextManifest, error) {
+	return n.buildComposerContextManifest(ctx, projectID, brief, nil, nil, false)
+}
+
+func (n *Nexus) buildComposerContextManifest(
+	ctx context.Context,
+	projectID string,
+	brief LivingBrief,
+	groundedContext map[string]any,
+	groundedErr error,
+	groundedLoaded bool,
+) (ComposerContextManifest, error) {
 	if err := ctx.Err(); err != nil {
 		return ComposerContextManifest{}, err
 	}
@@ -140,7 +151,7 @@ func (n *Nexus) BuildComposerContextManifest(ctx context.Context, projectID stri
 		manifest.Warnings = append(manifest.Warnings, "memory recall unavailable: "+memoryErr.Error())
 	}
 
-	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
+	addGroundedFacts := func(grounded map[string]any) {
 		for _, fact := range composerManifestFacts(grounded) {
 			confidence := strings.ToUpper(strings.TrimSpace(fmt.Sprint(fact["confidence"])))
 			priority := 68
@@ -162,8 +173,14 @@ func (n *Nexus) BuildComposerContextManifest(ctx context.Context, projectID stri
 			add("PROJECT_FACT", source, locator, key+"="+value, confidence,
 				"Static project intelligence with provenance.", priority, false)
 		}
-	} else {
+	}
+	if !groundedLoaded {
+		groundedContext, groundedErr = n.BoundedProjectIntelligenceContext(ctx, projectID)
+	}
+	if groundedErr != nil {
 		manifest.Warnings = append(manifest.Warnings, "project intelligence unavailable: "+groundedErr.Error())
+	} else {
+		addGroundedFacts(groundedContext)
 	}
 
 	if catalog, catalogErr := n.skillCatalogForProject(projectID); catalogErr == nil {

@@ -252,6 +252,18 @@ async function main() {
         await route.continue();
       });
       const projectInputs = createCard.locator('.nx-input');
+      const projectPathPlaceholder = await projectInputs.nth(0).getAttribute('placeholder');
+      const browserUserAgent = await page.evaluate(() => navigator.userAgent.toLowerCase());
+      const expectedPathPattern = browserUserAgent.includes('windows')
+        ? /^[a-z]:\\/i
+        : browserUserAgent.includes('macintosh') || browserUserAgent.includes('mac os')
+          ? /^\/Users\//
+          : /^\/home\//;
+      assert.match(
+        projectPathPlaceholder || '',
+        expectedPathPattern,
+        'Repository placeholder must use the current OS path convention',
+      );
       await projectInputs.nth(0).fill(isolatedProjectPath);
       await projectInputs.nth(1).fill('Browser E2E Fixture');
       await createCard.locator('button[data-tone="brand"]').click();

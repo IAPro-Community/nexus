@@ -64,6 +64,8 @@ jobs:
         run: bun scripts/docs-verify.mjs
       - working-directory: web
         run: bun install --frozen-lockfile
+      - name: Verify beta bump/rollback contract
+        run: node --test scripts/release-version.test.mjs
       - name: Verify frontend formatting
         working-directory: web
         run: |
@@ -252,18 +254,8 @@ jobs:
         run: |
           set -o pipefail
           bun run test:e2e:composer-themes 2>&1 | tee "$RUNNER_TEMP/nexus-browser-composer-themes.log"
-      - id: browser-a11y
-        if: always()
-        working-directory: web
-        run: |
-          set -o pipefail
-          bun run test:a11y 2>&1 | tee "$RUNNER_TEMP/nexus-browser-a11y.log"
-      - id: browser-visual
-        if: always()
-        working-directory: web
-        run: |
-          set -o pipefail
-          bun run test:visual 2>&1 | tee "$RUNNER_TEMP/nexus-browser-visual.log"
+      # browser-e2e runs Axe and visual assertions in e2e-hardening-verify.mjs.
+      # Do not execute the same expensive browser suite three times.
       - name: Upload browser diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
@@ -299,8 +291,6 @@ jobs:
           test '${{ steps.composer-spine-e2e.outcome }}' = success
           test '${{ steps.composer-vague-spine-e2e.outcome }}' = success
           test '${{ steps.composer-theme-e2e.outcome }}' = success
-          test '${{ steps.browser-a11y.outcome }}' = success
-          test '${{ steps.browser-visual.outcome }}' = success
 
   test-linux:
     needs: workspace-sanitize
@@ -314,6 +304,8 @@ jobs:
         with:
           go-version: '1.25.14'
           cache: false
+      - name: Verify source version consistency
+        run: go run ./scripts/verify-version-contract.go .
       - name: Verify gofmt
         run: |
           set -euo pipefail

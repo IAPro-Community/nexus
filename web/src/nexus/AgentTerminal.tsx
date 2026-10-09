@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { handleTerminalZoomKey } from './terminalZoomKey';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowDown,
@@ -280,42 +281,7 @@ export const AgentTerminal: React.FC<{
     termInstance = term;
     termRef.current = term;
 
-    term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey) {
-        if (
-          event.key === '=' ||
-          event.key === '+' ||
-          event.code === 'Equal' ||
-          event.code === 'NumpadAdd'
-        ) {
-          if (event.type === 'keydown') {
-            const next = adjustTerminalFontSize(1);
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-        if (
-          event.key === '-' ||
-          event.key === '_' ||
-          event.code === 'Minus' ||
-          event.code === 'NumpadSubtract'
-        ) {
-          if (event.type === 'keydown') {
-            const next = adjustTerminalFontSize(-1);
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-        if (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0') {
-          if (event.type === 'keydown') {
-            const next = resetTerminalFontSize();
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-      }
-      return true;
-    });
+    term.attachCustomKeyEventHandler(handleTerminalZoomKey);
 
     const scrollListener = term.onScroll(() => {
       if (disposed) return;
@@ -453,11 +419,17 @@ export const AgentTerminal: React.FC<{
     const failPermanently = (detail?: string) => {
       stopReconnect = true;
       setDiagnosticCode(lastFailureCode || 'TERMINAL_ATTACH_FAILED');
-      console.warn('[nexus:terminal]', JSON.stringify({
-        event: 'terminal.attach.failed', phase: 'TRANSPORT',
-        code: lastFailureCode || 'TERMINAL_ATTACH_FAILED', agentId,
-        runtimeId: boundRuntimeId, reconnectAttempts: reconnectAttempt,
-      }));
+      console.warn(
+        '[nexus:terminal]',
+        JSON.stringify({
+          event: 'terminal.attach.failed',
+          phase: 'TRANSPORT',
+          code: lastFailureCode || 'TERMINAL_ATTACH_FAILED',
+          agentId,
+          runtimeId: boundRuntimeId,
+          reconnectAttempts: reconnectAttempt,
+        }),
+      );
       if (reconnectTimer !== undefined) {
         window.clearTimeout(reconnectTimer);
         reconnectTimer = undefined;
@@ -544,11 +516,18 @@ export const AgentTerminal: React.FC<{
           defaultValue: 'Tempo limite excedido ao conectar o terminal.',
         });
         setDiagnosticCode(lastFailureCode);
-        console.warn('[nexus:terminal]', JSON.stringify({
-          event: 'terminal.connect.timeout', phase: 'TRANSPORT', code: lastFailureCode,
-          agentId, runtimeId: boundRuntimeId, reconnectAttempt,
-          timeoutMs: TERMINAL_CONNECT_TIMEOUT_MS,
-        }));
+        console.warn(
+          '[nexus:terminal]',
+          JSON.stringify({
+            event: 'terminal.connect.timeout',
+            phase: 'TRANSPORT',
+            code: lastFailureCode,
+            agentId,
+            runtimeId: boundRuntimeId,
+            reconnectAttempt,
+            timeoutMs: TERMINAL_CONNECT_TIMEOUT_MS,
+          }),
+        );
         ws.close();
       }, TERMINAL_CONNECT_TIMEOUT_MS);
       roleRef.current = 'VIEW_ONLY';
@@ -1063,8 +1042,11 @@ export const AgentTerminal: React.FC<{
           data-active={selectedMode === m ? 'true' : 'false'}
           onClick={() => requestModeChange(m)}
           disabled={
-            !onRestartWithMode || connection === 'CONNECTING' || recovering ||
-            modeAction === 'Applying' || modeAction === 'Restarting'
+            !onRestartWithMode ||
+            connection === 'CONNECTING' ||
+            recovering ||
+            modeAction === 'Applying' ||
+            modeAction === 'Restarting'
           }
           title={t('terminal.switchMode', { mode: m })}
         >
@@ -1113,7 +1095,12 @@ export const AgentTerminal: React.FC<{
             {t('agents.viewOnlyLabel')}
           </span>
           <Tooltip content={t('terminal.takeControlTooltip')}>
-            <button type="button" className="nx-agent-terminal__ask-btn" disabled={connection !== 'CONNECTED'} onClick={takeControl}>
+            <button
+              type="button"
+              className="nx-agent-terminal__ask-btn"
+              disabled={connection !== 'CONNECTED'}
+              onClick={takeControl}
+            >
               {t('terminal.takeControl')}
             </button>
           </Tooltip>
@@ -1487,9 +1474,13 @@ export const AgentTerminal: React.FC<{
           {message && connection === 'ERROR' && <p className={styles.errorMessage}>{message}</p>}
           {diagnosticCode && connection === 'ERROR' && (
             <details className={styles.errorMessage}>
-              <summary>{t('terminal.diagnosticDetails', { defaultValue: 'Detalhes técnicos' })}</summary>
+              <summary>
+                {t('terminal.diagnosticDetails', { defaultValue: 'Detalhes técnicos' })}
+              </summary>
               <code>{diagnosticCode}</code>
-              <p>{t('terminal.runtimeId', { defaultValue: 'Runtime' })}: {boundRuntimeId || '—'}</p>
+              <p>
+                {t('terminal.runtimeId', { defaultValue: 'Runtime' })}: {boundRuntimeId || '—'}
+              </p>
             </details>
           )}
           {needsResourceSelection && (

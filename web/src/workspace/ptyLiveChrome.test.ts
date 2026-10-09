@@ -23,16 +23,24 @@ describe('ptyLiveChrome', () => {
   it('keeps dynamic provider status updating after a manual customization', () => {
     const customized = { customTitle: 'Minha janela', identity: 'Shell' };
     expect(ptyWindowHeading({ ...customized, liveTitle: 'codex · thinking' })).toEqual({
-      heading: 'codex · thinking', identityHint: 'Minha janela',
+      heading: 'codex · thinking',
+      identityHint: 'Minha janela',
     });
     expect(ptyWindowHeading({ ...customized, liveTitle: 'codex · ready' })).toEqual({
-      heading: 'codex · ready', identityHint: 'Minha janela',
+      heading: 'codex · ready',
+      identityHint: 'Minha janela',
     });
-    expect(ptyWindowHeading({ ...customized, customTitle: 'Nova janela', liveTitle: 'codex · ready' })).toEqual({
-      heading: 'codex · ready', identityHint: 'Nova janela',
+    expect(
+      ptyWindowHeading({ ...customized, customTitle: 'Nova janela', liveTitle: 'codex · ready' }),
+    ).toEqual({
+      heading: 'codex · ready',
+      identityHint: 'Nova janela',
     });
-    expect(ptyWindowHeading({ ...customized, customTitle: '', liveTitle: 'codex · ready' })).toEqual({
-      heading: 'codex · ready', identityHint: 'Shell',
+    expect(
+      ptyWindowHeading({ ...customized, customTitle: '', liveTitle: 'codex · ready' }),
+    ).toEqual({
+      heading: 'codex · ready',
+      identityHint: 'Shell',
     });
   });
 

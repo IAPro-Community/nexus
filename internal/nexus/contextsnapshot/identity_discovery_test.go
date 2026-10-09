@@ -21,7 +21,10 @@ func gitTestCommand(t *testing.T, root string, args ...string) {
 
 func TestCommandOutputBlockingHelper(t *testing.T) {
 	if os.Getenv("NEXUS_CONTEXTSNAPSHOT_TEST_BLOCK") == "1" {
-		select {}
+		// A timer keeps the helper alive without triggering Go's deadlock detector at GOMAXPROCS=1.
+		for {
+			time.Sleep(time.Hour)
+		}
 	}
 }
 
@@ -30,10 +33,16 @@ func TestCommandOutputHonorsDeadline(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestCommandOutputBlockingHelper$")
+	// Keep the child lightweight while go test runs packages concurrently on Windows.
+	command.Env = append(os.Environ(), "GOMAXPROCS=1")
 
 	started := time.Now()
 	_, err := commandOutput(ctx, command)
 	if !errors.Is(err, context.DeadlineExceeded) {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			t.Fatalf("command error=%v, stderr=%q, want context deadline exceeded", err, exitErr.Stderr)
+		}
 		t.Fatalf("command error=%v, want context deadline exceeded", err)
 	}
 	if elapsed := time.Since(started); elapsed > 2*time.Second {
@@ -106,6 +115,30 @@ func TestDiscoverReturnsStructuredFactsWithProvenance(t *testing.T) {
 		if fact.ObservedAt.IsZero() || len(fact.Provenance) == 0 || strings.HasPrefix(fact.Provenance[0].SourcePath, root) {
 			t.Fatalf("fact lacks safe provenance: %+v", fact)
 		}
+	}
+}
+
+func TestDiscoverWithIdentityReusesCallerObservation(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "AGENTS.md"), []byte("Project conventions"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	identity := CodeIdentity{
+		RepositoryKind: "filesystem",
+		State:          CodeIdentityNonGit,
+		Complete:       true,
+		IdentityDigest: "caller-observed-identity",
+	}
+
+	snapshot, err := DiscoverWithIdentity(root, Metadata{ProjectID: "project-cached"}, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Identity.IdentityDigest != identity.IdentityDigest {
+		t.Fatalf("discovery identity=%q, want supplied identity %q", snapshot.Identity.IdentityDigest, identity.IdentityDigest)
+	}
+	if snapshot.ProjectID != "project-cached" || len(snapshot.Facts) == 0 {
+		t.Fatalf("unexpected snapshot metadata or facts: %+v", snapshot)
 	}
 }
 

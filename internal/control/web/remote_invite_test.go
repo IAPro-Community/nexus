@@ -17,7 +17,7 @@ func TestTunnelInviteEndpointRequiresAuthAndCSRF(t *testing.T) {
 	}
 	auth.SetTunnelActive(true)
 	srv := &Server{
-		auth: auth,
+		auth:   auth,
 		tunnel: &tunnelManager{tunnel: &Tunnel{URL: "https://example.trycloudflare.com"}},
 	}
 	handler := srv.authMiddleware(srv.handleTunnelQR)
@@ -58,9 +58,9 @@ func TestTunnelInviteEndpointRequiresAuthAndCSRF(t *testing.T) {
 		t.Fatalf("valid invite POST got %d: %s", ok.Code, ok.Body.String())
 	}
 	var invitation struct {
-		URL        string `json:"url"`
-		Bootstrap  string `json:"bootstrap_url"`
-		ExpiresIn  int    `json:"expires_in_seconds"`
+		URL       string `json:"url"`
+		Bootstrap string `json:"bootstrap_url"`
+		ExpiresIn int    `json:"expires_in_seconds"`
 	}
 	if err := json.Unmarshal(ok.Body.Bytes(), &invitation); err != nil {
 		t.Fatal(err)

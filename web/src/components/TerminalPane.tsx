@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { handleTerminalZoomKey } from '../nexus/terminalZoomKey';
 import { useTranslation } from 'react-i18next';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -153,42 +154,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       scrollback: DEFAULT_TERMINAL_SCROLLBACK,
     });
 
-    term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey) {
-        if (
-          event.key === '=' ||
-          event.key === '+' ||
-          event.code === 'Equal' ||
-          event.code === 'NumpadAdd'
-        ) {
-          if (event.type === 'keydown') {
-            const next = adjustTerminalFontSize(1);
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-        if (
-          event.key === '-' ||
-          event.key === '_' ||
-          event.code === 'Minus' ||
-          event.code === 'NumpadSubtract'
-        ) {
-          if (event.type === 'keydown') {
-            const next = adjustTerminalFontSize(-1);
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-        if (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0') {
-          if (event.type === 'keydown') {
-            const next = resetTerminalFontSize();
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-      }
-      return true;
-    });
+    term.attachCustomKeyEventHandler(handleTerminalZoomKey);
 
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
@@ -314,17 +280,25 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     wsRef.current = ws;
     const connectTimeout = window.setTimeout(() => {
       if (disposed || ws.readyState !== WebSocket.CONNECTING) return;
-      setErrorMsg(tRef.current('terminal.connectTimeout', {
-        defaultValue: 'Tempo limite excedido ao conectar o terminal.',
-      }));
+      setErrorMsg(
+        tRef.current('terminal.connectTimeout', {
+          defaultValue: 'Tempo limite excedido ao conectar o terminal.',
+        }),
+      );
       setDiagnosticCode('TERMINAL_CONNECT_TIMEOUT');
       setConnecting(false);
       setDisconnected(true);
-      console.warn('[nexus:terminal]', JSON.stringify({
-        event: 'terminal.connect.timeout', phase: 'TRANSPORT',
-        code: 'TERMINAL_CONNECT_TIMEOUT', runtimeId,
-        attempt: connectNonce + 1, timeoutMs: TERMINAL_CONNECT_TIMEOUT_MS,
-      }));
+      console.warn(
+        '[nexus:terminal]',
+        JSON.stringify({
+          event: 'terminal.connect.timeout',
+          phase: 'TRANSPORT',
+          code: 'TERMINAL_CONNECT_TIMEOUT',
+          runtimeId,
+          attempt: connectNonce + 1,
+          timeoutMs: TERMINAL_CONNECT_TIMEOUT_MS,
+        }),
+      );
       ws.close();
     }, TERMINAL_CONNECT_TIMEOUT_MS);
 
@@ -778,7 +752,12 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       )}
 
       {connecting && !disconnected && (
-        <div className={styles.disconnectedOverlay} data-window-chrome={hideHeader ? 'true' : 'false'} role="status" aria-live="polite">
+        <div
+          className={styles.disconnectedOverlay}
+          data-window-chrome={hideHeader ? 'true' : 'false'}
+          role="status"
+          aria-live="polite"
+        >
           <div className={styles.disconnectedHeader}>
             <RefreshCw size={18} className="nx-spin-slow" />
             <strong className={styles.disconnectedTitle}>
@@ -786,7 +765,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
             </strong>
           </div>
           <p className={styles.disconnectedDesc}>
-            {t('terminal.connectingNotice', { defaultValue: 'Aguardando a conexão segura com o processo. Você pode continuar navegando no workspace.' })}
+            {t('terminal.connectingNotice', {
+              defaultValue:
+                'Aguardando a conexão segura com o processo. Você pode continuar navegando no workspace.',
+            })}
           </p>
         </div>
       )}
@@ -804,9 +786,13 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           {errorMsg && <p className={styles.errorMessage}>{errorMsg}</p>}
           {diagnosticCode && (
             <details className={styles.errorMessage}>
-              <summary>{t('terminal.diagnosticDetails', { defaultValue: 'Detalhes técnicos' })}</summary>
+              <summary>
+                {t('terminal.diagnosticDetails', { defaultValue: 'Detalhes técnicos' })}
+              </summary>
               <code>{diagnosticCode}</code>
-              <p>{t('terminal.runtimeId', { defaultValue: 'Runtime' })}: {runtimeId}</p>
+              <p>
+                {t('terminal.runtimeId', { defaultValue: 'Runtime' })}: {runtimeId}
+              </p>
             </details>
           )}
           <button

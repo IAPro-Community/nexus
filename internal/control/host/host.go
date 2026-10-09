@@ -84,7 +84,7 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 
 	termBackend := cfg.terminalBackend
 	if termBackend == nil {
-		termBackend = terminal.NewBackend()
+		termBackend = terminal.NewBackendForProvider(cfg.Session.ProviderID)
 	}
 
 	sh := &SessionHost{

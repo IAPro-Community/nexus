@@ -12,7 +12,8 @@ describe('Workspace taskbar version honesty', () => {
   });
 
   it('does not fabricate main as the active branch when branch data is unknown', () => {
-    expect(source).not.toContain("currentBranch || project.default_branch || 'main'");
-    expect(source).toContain("currentBranch || project.default_branch || 'unknown'");
+    expect(source).not.toContain('currentBranch || project.default_branch');
+    expect(source).toContain("currentBranch || t('git.branchUnknown'");
+    expect(source).toContain("result.current_branch || ''");
   });
 });
