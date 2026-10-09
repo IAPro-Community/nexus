@@ -34,9 +34,28 @@ function Invoke-BunLogged([string[]]$Arguments, [string]$LogPath, [switch]$Appen
   return $NativeExitCode
 }
 
+function Invoke-NodeLogged([string[]]$Arguments, [string]$LogPath, [switch]$Append) {
+  # docs-verify.mjs is a Node CLI and uses child_process.spawnSync. Running it
+  # under Bun fails to load the current directory on some native Windows hosts.
+  $SavedErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    if ($Append) {
+      node @Arguments 2>&1 | Tee-Object -FilePath $LogPath -Append | ForEach-Object { Write-Host $_ }
+    } else {
+      node @Arguments 2>&1 | Tee-Object -FilePath $LogPath | ForEach-Object { Write-Host $_ }
+    }
+    $NativeExitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $SavedErrorActionPreference
+  }
+  return $NativeExitCode
+}
+
 Require-Command git
 Require-Command go
 Require-Command bun
+Require-Command node
 
 if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
   throw "Windows beta homologation requires native AMD64; got $env:PROCESSOR_ARCHITECTURE"
@@ -120,8 +139,8 @@ foreach ($ScriptPath in @(
 }
 
 Write-Host "==> documentation"
-$BunExitCode = Invoke-BunLogged -Arguments @('scripts/docs-verify.mjs') -LogPath (Join-Path $Out 'docs-verify.log')
-if ($BunExitCode -ne 0) { throw "documentation verification failed" }
+$NodeExitCode = Invoke-NodeLogged -Arguments @('scripts/docs-verify.mjs') -LogPath (Join-Path $Out 'docs-verify.log')
+if ($NodeExitCode -ne 0) { throw "documentation verification failed" }
 
 Write-Host "==> frontend dependencies"
 $BunExitCode = Invoke-BunLogged -Arguments @('install','--cwd','web','--frozen-lockfile') -LogPath (Join-Path $Out 'bun-install.log')
