@@ -5356,3 +5356,13 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - PASS local no source SHA `767be3b168a6d3ec7d223908e21812807486482f`, Windows AMD64: Go 1.27.2 vet/testes, golangci-lint v2.14.0, Bun quality (84 arquivos/504 testes), oito E2E browser, gates ConPTY/Named Pipe/runtime-web e smokes Desktop/HUD.
 - O run hosted `37922899819` passou Node 22.14.0, Bun install, web build e vet, mas terminou FAIL em `Full Windows suite`; log detalhado indisponível. `'$GIT_DIR' too big` foi reproduzido somente com TEMP longo; com `%LOCALAPPDATA%\Temp`, suíte passou. Workflow agora configura `TEMP`/`TMP` curto, sem tratar a reprodução como causa remota comprovada.
 - Atualizados relatório beta.10, status, handoff, verify, contexto, spec ativa e índice. Próxima ação: novo run Windows hosted com a mitigação; nenhum gate Linux, push direto à release, tag ou publicação.
+
+## 2026-10-09 — Homologação Windows no merge SHA 1e3f9a3b
+
+- Sincronizei a branch candidata com a ponta remota `release/v1.0.0=a6795704` e enviei o merge `1e3f9a3b` somente para `fix/windows-beta10-homologation-20261008`.
+- PASS — `scripts/homologate-beta.ps1 -ExpectedSha 1e3f9a3be446757a3854bcb1948a4325fb271a47` em Windows AMD64: Go, Bun `quality:full`, oito E2Es browser, Axe/visual e builds CLI/Desktop/HUD.
+- PASS — Desktop Wails/WebView2 e HUD nativos com diretórios isolados; checksums SHA-256 dos três builds locais foram calculados. Binários locais não são assinados.
+- A primeira repetição `test:a11y` foi interrompida por `ERR_NETWORK_IO_SUSPENDED`; diagnóstico preservado. Retestes de acessibilidade e visual e o homologador completo em worktree limpo passaram no mesmo SHA.
+- Auditoria autenticada encontrou zero PRs contra `release/v1.0.0`; candidata contém a ponta da release como pai de merge.
+- O usuário autorizou runner efêmero de um job para o workflow `native-signing`; antes de registrar ou disparar, a execução foi suspensa para rotação das credenciais locais. Nenhum runner novo foi registrado e nenhum hosted workflow foi disparado.
+- Sem gate Linux, push direto à release, tag ou publicação. Veredito local Windows PASS; distribuição permanece NO-GO até hosted/signing, integração e smokes operacionais pendentes.

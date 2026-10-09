@@ -1,5 +1,20 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+## Homologação Windows no merge SHA `1e3f9a3be446757a3854bcb1948a4325fb271a47` — 2026-10-09
+
+A branch `fix/windows-beta10-homologation-20261008` sincronizou `origin/release/v1.0.0` (`a6795704e0f74971f6b255e66ea1527a3ae83165`) pelo commit `1e3f9a3b` e foi enviada para a branch candidata. O worktree limpo confirmou `VERSION=1.0.0-beta.10`. Nenhum commit foi enviado diretamente para `release/v1.0.0`.
+
+- **PASS — homologador oficial contínuo:** `scripts/homologate-beta.ps1 -ExpectedSha 1e3f9a3be446757a3854bcb1948a4325fb271a47`, Windows AMD64, de `2026-10-09T16:15:06Z` a `2026-10-09T16:29:20Z`; Go 1.27.2, Bun 1.3.9 e Node 22.14.0. PowerShell e docs-verify (178 Markdown/33 assets), instalação Bun congelada, `quality:full` (84 arquivos/504 testes), Go fmt/vet/govulncheck/golangci-lint v2.14.0 (0 issues)/contrato de versão/testes integrais, preflights, control/runtime E2E e Agent Interop/OpenCode passaram.
+- **PASS — browser:** oito suítes E2E, acessibilidade/Axe e visual. Project Hub passou em viewports Windows compactos; o botão “Adicionar Projeto” ficou em uma linha, e Axe reportou zero violações menores.
+- **PASS — builds:** CLI, Desktop e HUD Windows AMD64. `nexus.exe version --json` confirmou versão beta.10, commit `1e3f9a3b` e Go 1.27.2.
+- **PASS — Desktop nativo:** janela Wails `IAPro Nexus`, filho WebView2 `Chrome_WidgetWin_0`, perfil isolado e cleanup confirmados com ID de instância exclusivo. Renderização visual da janela não foi inspecionada.
+- **PASS — HUD nativo:** permaneceu ativo por 8 s, criou perfil WebView2 isolado; 7 descendentes do smoke foram encerrados e não restaram processos. Isto não verifica show/hide interativo, autostart ou tray.
+- **SHA-256 de builds locais não assinados:** CLI `8c7403b8b834eb13b184f7e68061490805c3672d8b226ec4b23f66474a632f93`; Desktop `91ed53d6fd379d713ba56556057dff7fb09972ae1b1ee46e066d58ab1aa15d78`; HUD `a4f7b0ce8f0d1e325421d8f7a920ec92f683f599140aab977b4606af14862b26`. Tabela e binários estão no diretório local ignorado `DEV/validation/local-beta/1.0.0-beta.10/1e3f9a3be446757a3854bcb1948a4325fb271a47/windows-AMD64/`. Estes checksums não representam artefatos assinados de distribuição.
+- **Falha transitória retestada:** a primeira passagem chegou a `test:a11y`, mas o navegador perdeu I/O (`ERR_NETWORK_IO_SUSPENDED`) durante reload e a página ficou vazia. O log/diagnóstico foram preservados como `test-a11y-first-attempt.*`; `test:a11y`, `test:visual` e o homologador completo em worktree limpo passaram depois no mesmo SHA.
+- **Auditoria de integração:** `origin/release/v1.0.0` está em `a6795704`; a release é ancestral do candidato. A consulta autenticada não encontrou PR da branch para a release. Não fazer merge/tag direto.
+
+**Veredito:** homologação automatizada e smokes nativos locais Windows PASS no SHA exato. O usuário autorizou o workflow hosted assinado, mas a execução foi suspensa antes de registrar o runner ou disparar o workflow para rotação de credenciais locais. Tray físico, fluxos autenticados de provider/Mission/Voice, renderização visual Desktop, assinatura/trust root e instalador assinado continuam pendentes. A beta.10 não corresponde ao SHA beta.7 `d14154d2`; distribuição e tag permanecem **NO-GO**. Nenhum gate Linux foi executado.
+
 ## Homologação automatizada Windows no SHA `16769e257b70e712f4f720ac1930ab00ff959293` — 2026-10-09
 
 O comando `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930ab00ff959293` terminou com `PASS automated Windows beta homologation: 1.0.0-beta.10 @ 16769e257b70e712f4f720ac1930ab00ff959293` em Windows AMD64. A execução ocorreu de `2026-10-09T13:17:44Z` a `2026-10-09T13:50:10Z`, com Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Evidências locais (ignoradas pelo Git): `DEV/validation/local-beta/1.0.0-beta.10/16769e257b70e712f4f720ac1930ab00ff959293/windows-AMD64/`.
@@ -24,11 +39,11 @@ Após o push do código, `origin/fix/windows-beta10-homologation-20261008` confi
 
 A branch remota `test/beta7-terminal-final-boundary-regression` (`1c12f07a`) tem três commits de teste. Os casos de fragmentação raw CSI/SS3 e proteção do trace contra palavras ANSI-like estão presentes nas árvores atuais da candidata e da release; não é necessário abrir integração separada para ela. `fix/beta8-manual-opaque-quota` continua contendo mudança comportamental distinta sobre quota `UNSUPPORTED`, fora do escopo desta homologação Windows e pendente de revisão própria.
 
-## Tentativa de CI Windows hosted — autorização pendente
+## CI Windows hosted — execução autorizada, suspensa antes do runner
 
 A consulta autenticada encontrou o workflow oficial e nenhum PR aberto/fechado para `fix/windows-beta10-homologation-20261008` → `release/v1.0.0`. O workflow exige runner `self-hosted/Windows/X64/nexus-windows`, acessa o environment `native-signing`, assina CLI/Desktop/HUD/instalador e envia os artefatos ao GitHub Actions. O pacote oficial Actions Runner v2.338.0 foi baixado e seu SHA-256 conferido (`f48e0750a21812bca5f82de5f7f5aeae71abee647fab5a582f1742d07eba455f`), mas não foi configurado nem executado.
 
-A revisão automática bloqueou o registro do runner por permitir execução remota do workflow neste PC e possível acesso aos secrets de assinatura. Nenhum runner foi registrado e nenhum workflow foi disparado. Foi solicitada autorização específica para esse passo; até ela chegar, o gate hosted no SHA `16769e25` permanece pendente.
+A revisão automática inicialmente bloqueou o registro do runner por permitir execução remota do workflow neste PC e possível acesso aos secrets de assinatura. O usuário autorizou explicitamente um runner efêmero de um job para o SHA homologado, com assinatura e upload. A execução foi suspensa antes de qualquer registro ou dispatch para rotação de credenciais locais. Nenhum runner foi registrado e nenhum workflow foi disparado; retomar somente após a rotação.
 
 ## Reteste Windows nativo e diagnóstico do run `37922899819` — 2026-10-09
 

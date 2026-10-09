@@ -17,6 +17,14 @@
 - Sem gates Linux nesta continuidade; gates locais Windows no SHA exato `767be3b1` permanecem evidenciados no relatório corrente.
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-09 — Homologação Windows beta.10 no SHA `1e3f9a3b`
+
+- PASS — `scripts/homologate-beta.ps1 -ExpectedSha 1e3f9a3be446757a3854bcb1948a4325fb271a47`, Windows AMD64; Go 1.27.2, Bun 1.3.9, Node 22.14.0. Evidência integral local em `DEV/validation/local-beta/1.0.0-beta.10/1e3f9a3be446757a3854bcb1948a4325fb271a47/windows-AMD64/`.
+- PASS — PowerShell/docs (178 Markdown/33 assets), Go fmt/vet/govulncheck/golangci-lint v2.14.0 (0 issues)/contrato/testes integrais, `quality:full` (84 arquivos/504 testes), oito suítes browser E2E, Axe/visual, regressões Control/Runtime/Agent Interop/OpenCode e builds CLI/Desktop/HUD.
+- PASS — smoke Desktop Wails/WebView2/perfil/cleanup; HUD 8 s, perfil WebView2 e cleanup de 7 descendentes. Checksums locais SHA-256 disponíveis, mas os três binários são não assinados.
+- FLAKE RETESTADO — primeira repetição `test:a11y` teve `ERR_NETWORK_IO_SUSPENDED`; reteste isolado, `test:visual` e homologador integral limpo passaram no mesmo SHA. Log e diagnóstico da primeira tentativa preservados junto às evidências.
+- PENDENTE — usuário autorizou runner hosted de um job no SHA exato; execução suspensa para rotação de credenciais locais antes do registro e dispatch. PR à release ainda não existe; tray físico, smokes autenticados, signing/trust root e instalador assinado também pendentes. Tag/distribuição NO-GO; nenhum gate Linux.
+
 ## 2026-10-09 — Homologação Windows beta.10 no SHA `16769e25`
 
 - PASS — `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930ab00ff959293`, Windows AMD64, Go 1.27.2/Bun 1.3.9/Node 22.14.0. Evidência integral local em `DEV/validation/local-beta/1.0.0-beta.10/16769e257b70e712f4f720ac1930ab00ff959293/windows-AMD64/`.

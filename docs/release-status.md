@@ -7,22 +7,22 @@ Atualizado em 9 de outubro de 2026.
 | Programa | estabilização do Nexus 1.0 beta |
 | Versão-fonte candidata | 1.0.0-beta.10 |
 | Branch canônica | release/v1.0.0 |
-| SHA da release remota observado | 238b1af080098ed4f3f00cd94d47e5371e80ae64 |
+| SHA da release remota observado | a6795704e0f74971f6b255e66ea1527a3ae83165 |
 | Branch Windows homologada | fix/windows-beta10-homologation-20261008 |
-| SHA homologado nos gates Windows locais | 16769e257b70e712f4f720ac1930ab00ff959293 |
-| Relação do SHA homologado com a release | merge-base deca290b; candidato e release avançaram separadamente, candidato aguarda PR/integração |
-| Gates automatizados locais Windows AMD64 | PASS no SHA exato |
-| Gate Windows hosted exact-SHA | pendente para 16769e257b70e712f4f720ac1930ab00ff959293; run anterior falhou em SHA diferente |
-| Smokes nativos Desktop/HUD | PASS de inicialização/perfil/cleanup no SHA 16769e25; renderização, tray e controles HUD pendentes |
+| SHA homologado nos gates Windows locais | 1e3f9a3be446757a3854bcb1948a4325fb271a47 |
+| Relação do SHA homologado com a release | source SHA `1e3f9a3b` inclui release `a6795704` como pai; branch candidata aguarda PR |
+| Gates automatizados locais Windows AMD64 | PASS contínuo no SHA exato; 84 arquivos/504 testes frontend e 8 suítes browser |
+| Gate Windows hosted exact-SHA | usuário autorizou runner efêmero; suspenso para rotação de credenciais locais antes de registro/dispatch |
+| Smokes nativos Desktop/HUD | PASS de Wails/WebView2/perfis isolados/cleanup no SHA `1e3f9a3b`; visual Desktop, tray e controles interativos HUD pendentes |
 | Última beta pública registrada | v1.0.0-beta.1; inventário remoto não revalidado |
 | Release estável v1 | ainda não publicada |
 | Veredito | NO-GO para tag e distribuição até integração, CI Windows, smokes operacionais, assinatura e instalador |
 
 ## Estado atual da homologação Windows — beta.10
 
-O gate `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930ab00ff959293` passou em Windows AMD64. Foram validados Go 1.27.2, Bun 1.3.9, Node 22.14.0 para Playwright, 84 arquivos/504 testes frontend, suíte Go integral, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. O teste Composer agora confirma deadline e cancelamento internos sem impor limite de cinco segundos ao bootstrap completo; sua regressão focada passou 3/3. Os smokes nativos Desktop e HUD também passaram no SHA exato, confirmando janela/WebView2/perfil isolado/cleanup; não cobriram renderização visual Desktop, clique/menu do tray, show/hide interativo, autostart ou Voice. O relatório interno completo está em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
+O gate oficial `scripts/homologate-beta.ps1 -ExpectedSha 1e3f9a3be446757a3854bcb1948a4325fb271a47` passou de ponta a ponta em Windows AMD64. Foram validados Go 1.27.2, Bun 1.3.9, Node 22.14.0, suíte Go integral, `quality:full` (84 arquivos/504 testes frontend), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. A primeira tentativa isolada de `test:a11y` teve `ERR_NETWORK_IO_SUSPENDED`; o reteste e a execução completa limpa passaram. Smokes nativos Desktop e HUD também passaram no SHA exato. Os checksums locais disponíveis correspondem a builds não assinados, não artefatos finais de distribuição. O relatório interno completo está em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
 
-O candidato ainda não foi integrado em `release/v1.0.0`; a release remota está em `238b1af0`, dois commits além do merge-base `deca290b`. A simulação de merge da candidata contra a release atual não encontrou conflitos. O run hosted `37922899819` falhou no SHA anterior `767be3b1`, sem saída detalhada, e não comprova a causa. O novo workflow exige runner self-hosted Windows e o environment `native-signing`; a revisão automática bloqueou registrar um runner efêmero neste PC por permitir execução remota com possível acesso aos secrets. Nenhum runner foi registrado nem workflow disparado; autorização específica foi solicitada. Navegação manual ConPTY/Codex, Mission/provider autenticado, controles HUD/Voice, interação do tray, renderização visual Desktop, Authenticode, trust root de atualização e build/smoke do instalador final também permanecem pendentes. Este host não tem `signtool.exe`, `makensis.exe` nem credenciais de assinatura/update locais. Nenhum gate Linux foi executado nesta continuação.
+O candidato inclui a ponta remota `release/v1.0.0=a6795704` como pai de merge; não há PR correspondente. O run hosted `37922899819` falhou em SHA anterior, sem saída detalhada, e não comprova a causa. O novo workflow exige runner Windows self-hosted e o environment `native-signing`. O usuário autorizou runner efêmero e assinatura/upload; a execução foi suspensa para rotação de credenciais locais antes de qualquer registro ou dispatch. Tray, fluxos autenticados, renderização visual Desktop, Authenticode, trust root e instalador assinado permanecem pendentes. Este host não tem `signtool.exe`, `makensis.exe` nem credenciais locais de assinatura/update. Nenhum gate Linux foi executado nesta continuidade.
 
 A branch `test/beta7-terminal-final-boundary-regression` tem três commits de testes, mas os casos de raw CSI/SS3 e trace ANSI-like já estão nas árvores da candidata e da release; ela não exige uma integração separada. `fix/beta8-manual-opaque-quota` permanece fora deste escopo por conter uma mudança funcional distinta.
 

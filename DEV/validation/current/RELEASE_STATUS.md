@@ -1,27 +1,27 @@
 # Current release status
 
-> **Atualização Windows em 2026-10-09:** `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930ab00ff959293` passou em Windows AMD64 (Go 1.27.2, Bun 1.3.9, Node 22.14.0): Go fmt/vet/vulncheck/lint/test, `quality:full` (84 arquivos/504 testes), oito suítes Playwright, Axe/visual, builds CLI/Desktop/HUD. A alteração de teste Composer remove a asserção frágil de cinco segundos para o bootstrap integral e valida o prazo/cancelamento interno do provider; não há prova de que essa era a causa do run hosted anterior. O run `37922899819` falhou em `Full Windows suite` no SHA anterior `767be3b1`, sem log detalhado; o novo SHA ainda não tem run hosted. Tray físico, smokes autenticados e assinatura/update trust root continuam pendentes. O candidato é beta.10, não beta.7. Distribuição **NO-GO**.
+> **Atualização Windows em 2026-10-09:** o homologador oficial passou de ponta a ponta em Windows AMD64 no SHA exato `1e3f9a3be446757a3854bcb1948a4325fb271a47` (`1.0.0-beta.10`, Go 1.27.2, Bun 1.3.9, Node 22.14.0): Go fmt/vet/vulncheck/lint/test, `quality:full` (84 arquivos/504 testes), oito E2Es browser, Axe/visual e builds CLI/Desktop/HUD. Smokes nativos Desktop/HUD também passaram nesse SHA. A primeira tentativa de acessibilidade registrou `ERR_NETWORK_IO_SUSPENDED`; o reteste isolado e a repetição limpa integral passaram. Os builds locais e checksums ainda são unsigned. O usuário autorizou o runner hosted de um job com assinatura/upload, mas a execução foi suspensa para rotação de credenciais locais antes de qualquer registro ou dispatch. Tray físico, fluxos autenticados, assinatura/trust root e instalador assinado seguem pendentes. A candidata beta.10 não é a beta.7 `d14154d2`; distribuição **NO-GO**.
 
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 
 CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
 CURRENT_RELEASE_BRANCH: release/v1.0.0
-CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: 238b1af080098ed4f3f00cd94d47e5371e80ae64
+CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: a6795704e0f74971f6b255e66ea1527a3ae83165
 WINDOWS_HOMOLOGATION_BRANCH: fix/windows-beta10-homologation-20261008
-WINDOWS_EVIDENCE_HEAD: 16769e257b70e712f4f720ac1930ab00ff959293 (exact SHA for latest Windows automated gate)
-WINDOWS_HOMOLOGATED_SOURCE_SHA: 16769e257b70e712f4f720ac1930ab00ff959293
+WINDOWS_EVIDENCE_HEAD: 1e3f9a3be446757a3854bcb1948a4325fb271a47 (exact SHA for latest Windows automated gate)
+WINDOWS_HOMOLOGATED_SOURCE_SHA: 1e3f9a3be446757a3854bcb1948a4325fb271a47
 WINDOWS_AUTOMATED_LOCAL_GATES: PASS_EXACT_SHA_WINDOWS_AMD64_GO1.27.2_FMT_VET_VULN_LINT_TEST_WEB_504_8_E2E
-WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_WAILS_WEBVIEW2_PROFILE_AND_CLEANUP_ON_16769E25_WITH_UNIQUE_ID; VISUAL_RENDER_NOT_VERIFIED
-WINDOWS_NATIVE_HUD_SMOKE: PASS_LAUNCH_WEBVIEW2_AND_NO_DESCENDANTS_AFTER_CLEANUP_ON_16769E25_WITH_UNIQUE_ID; SHOW_HIDE/AUTOSTART/TRAY_UI=NOT_VERIFIED_ON_THIS_SHA
+WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_WAILS_WEBVIEW2_PROFILE_AND_CLEANUP_ON_1E3F9A3B_WITH_UNIQUE_ID; VISUAL_RENDER_NOT_VERIFIED
+WINDOWS_NATIVE_HUD_SMOKE: PASS_LAUNCH_8S_WEBVIEW2_PROFILE_AND_7_DESCENDANT_CLEANUP_ON_1E3F9A3B; INTERACTIVE_SHOW_HIDE/AUTOSTART/TRAY_UI=NOT_VERIFIED
 WINDOWS_NSIS_INSTALLER_SMOKE: PASS_INSTALL_AND_UNINSTALL_ON_767BE3B1; UNSIGNED
 WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: PASS_NO_LITERAL_ARROWS_IN_CODEX_0782_AND_AGY_665; NO_PROMPT_SENT; AUTHENTICATED_SESSION_PENDING
-WINDOWS_HOSTED_CI_SAME_SHA: PENDING_EXPLICIT_APPROVAL_FOR_EPHEMERAL_SELF_HOSTED_RUNNER_ON_16769E257B70E712F4F720AC1930AB00FF959293
+WINDOWS_HOSTED_CI_SAME_SHA: USER_APPROVED_SINGLE_JOB; SUSPENDED_FOR_LOCAL_CREDENTIAL_ROTATION_BEFORE_REGISTRATION_ON_1E3F9A3BE446757A3854BCB1948A4325FB271A47; NO_RUNNER_REGISTERED; NO_WORKFLOW_DISPATCHED
 WINDOWS_HOSTED_CI_PREVIOUS: FAIL_FULL_WINDOWS_SUITE (run 37922899819; prior target SHA 767be3b168a6d3ec7d223908e21812807486482f; checkout SHA/AMD64, Node 22.14.0, Bun install, web build and go vet passed; test output unavailable)
 WINDOWS_HOSTED_CI_REMEDIATION: SHORT_TEMP_TMP_WORKFLOW_STEP_ADDED; COMPOSER_TEST_NOW_ASSERTS_BOUNDED_PROVIDER_CONTEXT_AND_CANCELLATION; PRIOR_HOSTED_FAILURE_CAUSE_UNPROVEN; hosted rerun required
 WINDOWS_HOSTED_RUNNER_INVENTORY: existing runner nexus-ci-dev-web-kiver labels self-hosted/Linux/X64/nexus-ci, offline; previous one-shot Windows runner auto-deregistered after run 37922899819; retry not registered
 WINDOWS_EPHEMERAL_RUNNER_SETUP: PASS_ONE_JOB_EPHEMERAL; no service installed; runner removed its registration and credentials after the job
 WINDOWS_EPHEMERAL_RUNNER_PACKAGE: v2.338.0 x64; SHA-256 f48e0750a21812bca5f82de5f7f5aeae71abee647fab5a582f1742d07eba455f matched official release digest; runner credentials and registration removed after the job
-WINDOWS_EPHEMERAL_RUNNER_RETRY: BLOCKED_BY_AUTO_REVIEW; generic continuation did not satisfy explicit approval because remote job accesses environment native-signing; verified package downloaded but not configured/executed; user authorization requested
+WINDOWS_EPHEMERAL_RUNNER_RETRY: USER_APPROVED_SINGLE_JOB; SUSPENDED_FOR_LOCAL_CREDENTIAL_ROTATION_BEFORE_REGISTRATION; NO_RUNNER_REGISTERED; NO_WORKFLOW_DISPATCHED
 WINDOWS_SIGNED_INSTALLER_AND_UPDATE_TRUST_ROOT: BLOCKED_TOOLS_AND_SECRETS_UNAVAILABLE
 WINDOWS_LOCAL_SIGNING_PREREQUISITES: signtool.exe and makensis.exe not found on PATH; code-signing certificates with private key=0 in CurrentUser/LocalMachine stores
 WINDOWS_LOCAL_SIGNING_ENV: PFX/password/update private key/key ID/public key variables absent from current host process; values were not read
@@ -30,10 +30,11 @@ WINDOWS_PROVIDER_DISCOVERY_20261009T0636Z: AGY 1.3.2, Codex CLI 0.160.1, Gemini 
 WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN_0782
 WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
-CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/16769e257b70e712f4f720ac1930ab00ff959293/windows-AMD64/ (latest local ignored automated gate plus isolated Desktop/HUD launch smokes); earlier NSIS installer and autostart smoke evidence remains under 767be3b1; controller-smoke evidence under 665103a0 and physical HUD captures under 0782f876
-LIVE_GITHUB_REMOTE_CHECK: PASS_2026-10-09; candidate=16769e257b70e712f4f720ac1930ab00ff959293; origin/release/v1.0.0=238b1af080098ed4f3f00cd94d47e5371e80ae64
-LIVE_GITHUB_REMOTE_REFRESH: release advanced from deca290b by 2284947a (.nvmrc/Node docs) and 238b1af0 (deterministic Codex cross-account budget test); merge-base is deca290b; merge-tree simulation completed without conflicts
-WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 remains the PR candidate for release/v1.0.0; authenticated query 2026-10-09 found no matching PR
+WINDOWS_LOCAL_UNSIGNED_CHECKSUMS: DEV/validation/local-beta/1.0.0-beta.10/1e3f9a3be446757a3854bcb1948a4325fb271a47/windows-AMD64/SHA256SUMS.local-unsigned.txt
+CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/1e3f9a3be446757a3854bcb1948a4325fb271a47/windows-AMD64/ (latest exact-SHA gate, Desktop/HUD smokes and local unsigned artifact checksums); earlier NSIS installer and autostart smoke evidence remains under 767be3b1; controller-smoke evidence under 665103a0 and physical HUD captures under 0782f876
+LIVE_GITHUB_REMOTE_CHECK: PASS_2026-10-09; candidate=1e3f9a3be446757a3854bcb1948a4325fb271a47; origin/release/v1.0.0=a6795704e0f74971f6b255e66ea1527a3ae83165
+LIVE_GITHUB_REMOTE_REFRESH: release HEAD a6795704 is a parent of tested source commit 1e3f9a3b; no direct push to release
+WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the PR candidate for release/v1.0.0; authenticated query 2026-10-09 found 0 matching PRs
 WINDOWS_BRANCH_AUDIT_2026-10-09: test/beta7-terminal-final-boundary-regression@1c12f07a has three test commits; relevant raw CSI/SS3 and ANSI-like trace tests are already present in both current candidate and release trees, so no separate integration is required. fix/beta8-manual-opaque-quota@edcd2ab4 remains a separate behavior change requiring review outside this Windows task.
 WINDOWS_BRANCH_AUDIT: one separate behavior change remains unlinked: fix/beta8-manual-opaque-quota@edcd2ab4 changes UNSUPPORTED quota to explicit-selection-only; requires functional review before any PR. No direct push to release.
 WINDOWS_TRAY_UI_SMOKE: INCONCLUSIVE_FLYOUT_CAPTURED_BUT_TWO_GENERIC_WAILS_ICONS_AMBIGUOUS; UIA_NO_CONTROLS; SENDINPUT_NO_OPEN; NO_PHYSICAL_CLICK_OR_MENU_EVIDENCE
