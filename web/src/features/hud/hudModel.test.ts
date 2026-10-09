@@ -4,6 +4,7 @@ import {
   formatHudCost,
   normalizeHudPreferences,
   providerCapacityLabel,
+  resolveNativeHudStatus,
   type HudCostSummary,
   type HudProvider,
 } from './hudModel';
@@ -19,6 +20,14 @@ const cost = (patch: Partial<HudCostSummary>): HudCostSummary => ({
 });
 
 describe('HUD presentation model', () => {
+  it('distinguishes loading, offline, disabled, and ready native HUD states', () => {
+    expect(resolveNativeHudStatus(undefined, false, false)).toBe('loading');
+    expect(resolveNativeHudStatus(undefined, false, true)).toBe('offline');
+    expect(resolveNativeHudStatus(false, false, false)).toBe('disabled');
+    expect(resolveNativeHudStatus(true, false, false)).toBe('offline');
+    expect(resolveNativeHudStatus(true, true, true)).toBe('ready');
+  });
+
   it('keeps provider-reported cost exact only with complete measured evidence', () => {
     expect(
       formatHudCost(

@@ -29,6 +29,8 @@ export const en = {
     resolving: 'Resolving…',
     errorBoundaryTitle: 'Something went wrong',
     errorBoundaryTryAgain: 'Try again',
+    hudUnavailable: 'Nexus HUD is unavailable. Check the local Nexus session and try again.',
+    hudDisabled: 'Nexus HUD is disabled in the local configuration.',
     decisionRequired: 'Decision required',
   },
   shell: {
@@ -1995,6 +1997,8 @@ export const ptBR = {
     resolving: 'Resolvendo…',
     errorBoundaryTitle: 'Algo deu errado',
     errorBoundaryTryAgain: 'Tentar novamente',
+    hudUnavailable: 'Nexus HUD indisponível. Verifique a sessão local do Nexus e tente novamente.',
+    hudDisabled: 'Nexus HUD está desativado na configuração local.',
     decisionRequired: 'Decisão necessária',
   },
   shell: {
@@ -3972,6 +3976,8 @@ export const es = {
     resolving: 'Resolviendo…',
     errorBoundaryTitle: 'Algo salió mal',
     errorBoundaryTryAgain: 'Intentar de nuevo',
+    hudUnavailable: 'Nexus HUD no está disponible. Comprueba la sesión local de Nexus e inténtalo de nuevo.',
+    hudDisabled: 'Nexus HUD está desactivado en la configuración local.',
     decisionRequired: 'Decisión necesaria',
   },
   shell: {
