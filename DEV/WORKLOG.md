@@ -5262,6 +5262,7 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 
 ## 2026-10-09 — continuidade do smoke Desktop Windows beta.10
 
-- No binário Desktop Windows construído no SHA validado `eedf31659b0245cf7690d556c32ee6e0040ae588`, a janela Wails `IAPro Nexus` e o filho WebView2 `Chrome_WidgetWin_0` permaneceram detectáveis por 11 s em perfil temporário isolado. SHA-256 do binário: `fd1dfb3b0f40cdd95ccc07d820f36cf68376c209c2473d181c342925411e0486`.
-- A evidência local `desktop-native-eedf3165.txt` registra PASS. O runner terminou com código 1 na etapa de cleanup porque `Get-CimInstance` não está disponível para este cliente; uma inspeção posterior não encontrou processos `nexus-desktop` ou `msedgewebview2`. A janela foi iniciada oculta: isto confirma startup, não visualização ou fluxo interativo do Project Hub.
+- O binário Desktop Windows construído no SHA validado `eedf31659b0245cf7690d556c32ee6e0040ae588` tem SHA-256 `fd1dfb3b0f40cdd95ccc07d820f36cf68376c209c2473d181c342925411e0486`.
+- Corrigi `scripts/smoke-desktop-windows.ps1`: o cleanup enumera descendentes `msedgewebview2.exe` do processo isolado via Toolhelp e não chama mais CIM. Em Windows PowerShell 5.1, o smoke terminou com exit code 0; Wails `IAPro Nexus` e WebView2 `Chrome_WidgetWin_0` passaram pelo período de quatro segundos, e a verificação posterior encontrou zero processos `nexus-desktop`/`msedgewebview2`.
+- Evidência: `desktop-native-eedf3165-cleanup-ps51-final.txt` no diretório local ignorado de evidências; registra `webview2_process_cleanup=PASS`, exit code 0 e a verificação pós-smoke com zero processos. A janela foi iniciada oculta: isto confirma inicialização/cleanup, não visualização ou fluxo interativo do Project Hub.
 - O veredito de distribuição não muda: HUD nativo ainda tem composição DWM inconclusiva e permanecem pendentes a interação do Project Hub, CI Windows hosted, assinatura/trust root e instalador final.
