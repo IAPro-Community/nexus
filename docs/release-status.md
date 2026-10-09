@@ -7,22 +7,24 @@ Atualizado em 9 de outubro de 2026.
 | Programa | estabilização do Nexus 1.0 beta |
 | Versão-fonte candidata | 1.0.0-beta.10 |
 | Branch canônica | release/v1.0.0 |
-| SHA da release remota observado | deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d |
+| SHA da release remota observado | 238b1af080098ed4f3f00cd94d47e5371e80ae64 |
 | Branch Windows homologada | fix/windows-beta10-homologation-20261008 |
-| SHA homologado nos gates Windows locais | 638cfb3bbb7aa9a647d6802964e7e4ab794cc786 |
-| Relação do SHA homologado com a release | deca290b é ancestral; candidato ainda aguarda PR/integração |
+| SHA homologado nos gates Windows locais | 16769e257b70e712f4f720ac1930ab00ff959293 |
+| Relação do SHA homologado com a release | merge-base deca290b; candidato e release avançaram separadamente, candidato aguarda PR/integração |
 | Gates automatizados locais Windows AMD64 | PASS no SHA exato |
-| Gate Windows hosted exact-SHA | pendente/não verificado neste host |
-| Smokes nativos Desktop/HUD | PASS de inicialização com perfis e IDs isolados |
+| Gate Windows hosted exact-SHA | pendente para 16769e257b70e712f4f720ac1930ab00ff959293; run anterior falhou em SHA diferente |
+| Smokes nativos Desktop/HUD | PASS em SHAs anteriores; não repetidos no SHA 16769e25 |
 | Última beta pública registrada | v1.0.0-beta.1; inventário remoto não revalidado |
 | Release estável v1 | ainda não publicada |
 | Veredito | NO-GO para tag e distribuição até integração, CI Windows, smokes operacionais, assinatura e instalador |
 
 ## Estado atual da homologação Windows — beta.10
 
-O gate `scripts/homologate-beta.ps1 -ExpectedSha 638cfb3bbb7aa9a647d6802964e7e4ab794cc786` passou em Windows AMD64. Foram validados Go 1.27.2, Bun 1.3.9, Node 22.14.0 para Playwright, 84 arquivos/503 testes frontend, 66 pacotes Go PASS (18 skips específicos de plataforma, zero falhas), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Os smokes nativos Desktop/WebView2 e HUD passaram com perfis isolados. O relatório interno completo está em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
+O gate `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930ab00ff959293` passou em Windows AMD64. Foram validados Go 1.27.2, Bun 1.3.9, Node 22.14.0 para Playwright, 84 arquivos/504 testes frontend, suíte Go integral, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. O teste Composer agora confirma deadline e cancelamento internos sem impor limite de cinco segundos ao bootstrap completo; sua regressão focada passou 3/3. Estes gates são da execução automatizada local, não smokes físicos Desktop/HUD no novo SHA. O relatório interno completo está em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
 
-O candidato ainda não foi integrado em `release/v1.0.0`; o SHA remoto permanece `deca290b`. O workflow Windows hosted no SHA integrado, navegação manual ConPTY/Codex, Mission/provider autenticado, controles HUD/Voice, renderização visual Desktop, Authenticode, trust root de atualização e build/smoke do instalador final permanecem pendentes. Este host não tem `gh`, `signtool.exe`, `makensis.exe` nem credenciais de assinatura/update configuradas. Nenhum gate Linux foi executado nesta continuação.
+O candidato ainda não foi integrado em `release/v1.0.0`; a release remota está em `238b1af0`, dois commits além do merge-base `deca290b`. A simulação de merge da candidata contra a release atual não encontrou conflitos. O run hosted `37922899819` falhou no SHA anterior `767be3b1`, sem saída detalhada, e não comprova a causa. O novo workflow exige runner self-hosted Windows e o environment `native-signing`; a revisão automática bloqueou registrar um runner efêmero neste PC por permitir execução remota com possível acesso aos secrets. Nenhum runner foi registrado nem workflow disparado; autorização específica foi solicitada. Navegação manual ConPTY/Codex, Mission/provider autenticado, controles HUD/Voice, interação do tray, renderização visual Desktop, Authenticode, trust root de atualização e build/smoke do instalador final também permanecem pendentes. Este host não tem `signtool.exe`, `makensis.exe` nem credenciais de assinatura/update locais. Nenhum gate Linux foi executado nesta continuação.
+
+A branch `test/beta7-terminal-final-boundary-regression` tem três commits de testes, mas os casos de raw CSI/SS3 e trace ANSI-like já estão nas árvores da candidata e da release; ela não exige uma integração separada. `fix/beta8-manual-opaque-quota` permanece fora deste escopo por conter uma mudança funcional distinta.
 
 **Veredito:** homologação automatizada local Windows PASS no SHA informado; release e distribuição **NO-GO** até os gates restantes fecharem.
 

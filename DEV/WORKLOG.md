@@ -6,6 +6,15 @@
 - Auditoria somente de presença confirmou ausência local de signtool/makensis no PATH, certificados de signing com chave privada e variáveis de signing/update; os providers AGY/Codex/Gemini estão instalados, mas não registrados no snapshot da homologação. Nenhum prompt ou credencial foi exposto.
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-09 — Homologação automatizada Windows beta.10 no SHA 16769e25
+
+- Corrigido teste frágil de cancelamento Composer: substituída a expectativa de bootstrap total abaixo de 5 s por prova de deadline interno, cancelamento do provider e sessão persistida; teste focado passou 3/3.
+- PASS — script oficial Windows no source SHA exato `16769e257b70e712f4f720ac1930ab00ff959293`: Go fmt/vet/vulncheck/lint/test, docs, Bun frozen + quality:full (84 arquivos/504 testes), oito browser E2E, Axe/visual e builds CLI/Desktop/HUD.
+- Relatório/status/handoff/contexto/spec/verify atualizados para separar o novo PASS local do FAIL hosted anterior no SHA `767be3b1`; não foi inferida a causa remota. Nenhum gate Linux executado.
+- Auditoria remota: release em `238b1af0`, candidata em `16769e25`, merge-base `deca290b`; simulação de merge sem conflitos. Branch de testes beta.7 verificada; os casos relevantes já estão em ambas as árvores e não requerem PR separado.
+- Hosted CI: consulta autenticada encontrou nenhum PR candidato→release. Tentativa de registrar runner Windows efêmero bloqueada pela revisão automática por execução remota com possível acesso a `native-signing`; pacote v2.338.0 foi verificado, não configurado/executado. Autorização específica solicitada; nenhum workflow disparado.
+- Próximo: push apenas à branch Windows candidata, executar/confirmar novo gate hosted no SHA, continuar smokes operacionais seguros e manter distribuição NO-GO até os gates restantes.
+
 ## 2026-10-09 — Continuidade Windows: tray e auditoria de branches
 
 - Reteste do tray no código validado `767be3b1`: Core/WebView2 iniciaram e captura mostra flyout aberto, mas dois ícones Wails genéricos não puderam ser associados ao HUD; UI Automation não expôs tooltip/controles. `SendInput` não reproduziu a abertura. Não há evidência de clique/menu físico; callbacks Wails sintéticos não contam como interação real. Resultado permanece inconclusivo, sem indicar falha do produto.

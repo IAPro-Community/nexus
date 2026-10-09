@@ -17,6 +17,13 @@
 - Sem gates Linux nesta continuidade; gates locais Windows no SHA exato `767be3b1` permanecem evidenciados no relatório corrente.
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-09 — Homologação Windows beta.10 no SHA `16769e25`
+
+- PASS — `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930ab00ff959293`, Windows AMD64, Go 1.27.2/Bun 1.3.9/Node 22.14.0. Evidência integral local em `DEV/validation/local-beta/1.0.0-beta.10/16769e257b70e712f4f720ac1930ab00ff959293/windows-AMD64/`.
+- PASS — PowerShell/docs (178 Markdown, 33 required files/assets), Go fmt/vet/vulncheck/lint/test, frozen Bun install e `quality:full` (84 arquivos/504 testes), oito suítes Playwright, Axe/visual, regressões Control/Runtime/Agent Interop/OpenCode e builds Windows CLI/Desktop/HUD.
+- FIX — o teste Composer não limita mais o bootstrap integral a cinco segundos; verifica deadline e cancelamento do provider e persistência eventual. Regressão focada passou 3/3; a causa do run hosted anterior segue desconhecida.
+- PENDENTE — run hosted Windows no novo SHA, tray físico, smokes autenticados, assinatura Authenticode e trust root. Distribuição NO-GO; nenhuma execução Linux.
+
 ## 2026-10-09 — Reteste do tray e auditoria de branches beta.10
 
 - INCONCLUSIVO — HUD diagnóstico iniciou Core/WebView2 e a captura `hud-tray-flyout-visible-767be3b1.png` confirma o flyout de ícones ocultos aberto. Dois ícones genéricos Wails iguais aparecem; UI Automation não expôs tooltip nem botões. `Shell_NotifyIconGetRect` indicou o chevron quando fechado. Mensagem sintética confirmou callback, mas não representa clique físico; `SendInput` desta sessão não abriu o flyout. Nenhum clique/menu nativo foi verificado. Evidências locais ignoradas pelo Git em `DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/`.

@@ -1,5 +1,29 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+## Homologação automatizada Windows no SHA `16769e257b70e712f4f720ac1930ab00ff959293` — 2026-10-09
+
+O comando `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930ab00ff959293` terminou com `PASS automated Windows beta homologation: 1.0.0-beta.10 @ 16769e257b70e712f4f720ac1930ab00ff959293` em Windows AMD64. A execução ocorreu de `2026-10-09T13:17:44Z` a `2026-10-09T13:50:10Z`, com Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Evidências locais (ignoradas pelo Git): `DEV/validation/local-beta/1.0.0-beta.10/16769e257b70e712f4f720ac1930ab00ff959293/windows-AMD64/`.
+
+- **PASS:** sintaxe PowerShell, verificação de documentação (178 arquivos Markdown e 33 assets/arquivos), `bun install --cwd web --frozen-lockfile`, `bun run --cwd web quality:full` (84 arquivos Vitest/504 testes), build Web, Go fmt, vet, govulncheck, golangci-lint v2.14.0 (zero issues), contrato de versão, regressões App/promotion/runtime, suíte Go integral, E2E control/runtime e regressão Agent Interop/OpenCode.
+- **PASS:** oito suítes Playwright, Axe/acessibilidade, verificações responsivas/visuais e builds Windows AMD64 de CLI, Desktop e HUD. O botão “Adicionar Projeto” continuou em uma linha a 320 px; Axe reportou zero violações menores.
+- **Correção de teste:** `TestCreateComposerSessionReturnsWhenIntelligenceHangs` limitava a cinco segundos a duração do bootstrap inteiro, embora o contrato do teste fosse o cancelamento delimitado da chamada de intelligence. Nesta máquina Windows o bootstrap completo variou de aproximadamente 5,3 a 6,3 segundos. O teste agora mede o prazo interno do provider, confirma seu cancelamento por `context.DeadlineExceeded` e verifica a persistência eventual da sessão. A regressão focada passou 3/3; a suíte Go integral e o gate oficial passaram no SHA acima. Isso corrige um limite temporal frágil do teste; **não prova** a causa do run hosted anterior.
+- **Host/doctor:** WebView2 foi detectado; AGY 1.3.2 e Codex CLI 0.162.0 estão instalados. A verificação registrou Windows Credential Manager como `UNSUPPORTED`, Gemini com falha no probe de versão e providers instalados não registrados. O script não executa os fluxos manuais autenticados.
+- **Pendente:** não houve novo run Windows hosted após esta correção. O run anterior `37922899819` falhou em `Full Windows suite` no SHA anterior `767be3b1`, sem log detalhado recuperável. Continuam pendentes a interação física do tray, fluxos autenticados de providers/Mission/Voice, assinatura Authenticode, trust root de atualização, pacote assinado e integração por PR em `release/v1.0.0`.
+
+**Veredito atualizado:** homologação automatizada local Windows PASS no SHA exato `16769e25`. CI Windows hosted no novo SHA e gates operacionais/distribuição ainda não fechados; tag e distribuição continuam **NO-GO**. Este candidato é `1.0.0-beta.10`, não a beta.7 solicitada originalmente (`d14154d2`). Nenhum gate Linux foi executado.
+
+## Auditoria remota de branches — 2026-10-09
+
+Após o push do código, `origin/fix/windows-beta10-homologation-20261008` confirmou `16769e257b70e712f4f720ac1930ab00ff959293`. A release avançou de `deca290b` para `238b1af080098ed4f3f00cd94d47e5371e80ae64` por dois commits (`2284947a` e `238b1af0`); o merge-base segue em `deca290b`, com 148 commits exclusivos da candidata e dois exclusivos da release. A simulação `git merge-tree` produziu a árvore `13ccb203f5f6092f3f0856124dc71853d1d9cb8d` sem conflitos. Não houve merge nem push à release.
+
+A branch remota `test/beta7-terminal-final-boundary-regression` (`1c12f07a`) tem três commits de teste. Os casos de fragmentação raw CSI/SS3 e proteção do trace contra palavras ANSI-like estão presentes nas árvores atuais da candidata e da release; não é necessário abrir integração separada para ela. `fix/beta8-manual-opaque-quota` continua contendo mudança comportamental distinta sobre quota `UNSUPPORTED`, fora do escopo desta homologação Windows e pendente de revisão própria.
+
+## Tentativa de CI Windows hosted — autorização pendente
+
+A consulta autenticada encontrou o workflow oficial e nenhum PR aberto/fechado para `fix/windows-beta10-homologation-20261008` → `release/v1.0.0`. O workflow exige runner `self-hosted/Windows/X64/nexus-windows`, acessa o environment `native-signing`, assina CLI/Desktop/HUD/instalador e envia os artefatos ao GitHub Actions. O pacote oficial Actions Runner v2.338.0 foi baixado e seu SHA-256 conferido (`f48e0750a21812bca5f82de5f7f5aeae71abee647fab5a582f1742d07eba455f`), mas não foi configurado nem executado.
+
+A revisão automática bloqueou o registro do runner por permitir execução remota do workflow neste PC e possível acesso aos secrets de assinatura. Nenhum runner foi registrado e nenhum workflow foi disparado. Foi solicitada autorização específica para esse passo; até ela chegar, o gate hosted no SHA `16769e25` permanece pendente.
+
 ## Reteste Windows nativo e diagnóstico do run `37922899819` — 2026-10-09
 
 Todos os gates locais executados nesta continuidade usaram Windows AMD64 e o source SHA exato `767be3b168a6d3ec7d223908e21812807486482f`. Nenhum gate Linux foi executado.
