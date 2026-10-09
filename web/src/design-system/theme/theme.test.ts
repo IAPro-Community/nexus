@@ -116,6 +116,9 @@ describe('theme model', () => {
       expect.arrayContaining([
         'nexus-dark',
         'nexus-light',
+        'slate-flat',
+        'paper-flat',
+        'clay-flat',
         'midnight',
         'nord',
         'dracula',
@@ -131,7 +134,7 @@ describe('theme model', () => {
         'high-contrast-light',
       ]),
     );
-    expect(keys.length).toBeGreaterThanOrEqual(15);
+    expect(keys.length).toBeGreaterThanOrEqual(18);
   });
 
   it('keeps registry keys, ids and primary accent tokens consistent', () => {
@@ -143,6 +146,34 @@ describe('theme model', () => {
       expect(names.has(definition.name), `Duplicate theme name: ${definition.name}`).toBe(false);
       names.add(definition.name);
     }
+  });
+
+  it('adds exactly three flat presets without changing legacy preset finishes', () => {
+    for (const preset of ['slate-flat', 'paper-flat', 'clay-flat'] as const) {
+      expect(THEME_PRESETS[preset].finish).toBe('flat');
+      expect(THEME_PRESETS[preset].vars['--nx-bg']).not.toBe(
+        THEME_PRESETS[preset].vars['--nx-surface'],
+      );
+    }
+
+    expect(THEME_PRESETS['nexus-dark'].finish).toBeUndefined();
+    expect(THEME_PRESETS['monokai'].finish).toBeUndefined();
+    expect(THEME_PRESETS['obsidian'].finish).toBeUndefined();
+  });
+
+  it('restores a flat preset after persistence without affecting user density', () => {
+    const normalized = normalizeThemePreferences({
+      ...defaultThemePreferences,
+      preset: 'paper-flat',
+      scheme: 'dark',
+      density: 'comfortable',
+      isCustomized: false,
+    });
+
+    expect(normalized.preset).toBe('paper-flat');
+    expect(normalized.scheme).toBe('light');
+    expect(normalized.density).toBe('comfortable');
+    expect(resolveThemeStyleVariables(normalized, 'light')['--nx-bg']).toBe('#f4f5f3');
   });
 
   it('normalizes out-of-bound fontScale values', () => {
