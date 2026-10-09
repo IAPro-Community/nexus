@@ -1,5 +1,23 @@
 # Current release status
 
+> **Estado canônico para a beta.10 (2026-10-08):** código de PR #45
+> e PR #46 conciliado na PR #47, aguardando incorporação à branch
+> `release/v1.0.0` e execução dos gates no SHA final.
+> **NO-GO para tag, instalador assinado e distribuição.**
+> Histórico Windows beta.7/beta.8 abaixo permanece apenas como evidência
+> de SHAs antigos e **não certifica beta.10**.
+> Matriz detalhada: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md)
+> e [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md).
+
+CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
+CURRENT_CANDIDATE_BRANCH: release/v1.0.0
+CURRENT_CANDIDATE_NATIVE_GATES: PENDING_EXACT_SHA
+CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
+CURRENT_CANDIDATE_CI: QUEUED_ON_SELF_HOSTED_RUNNER_AT_LAST_CHECK
+PREVIOUS_VALIDATION_RECORDS: HISTORICAL_ONLY
+
+## Legacy Windows beta.7 baseline (historical)
+
 STATUS: WINDOWS_AUTOMATED_LOCAL_GATES_PASS_RELEASE_NO_GO
 OFFICIAL_RELEASE: NO-GO
 WINDOWS_DESKTOP_RETEST: PASS_RUNTIME (Wails window and WebView2 child persisted 9s on validated source SHA; isolated profile created; visual rendering unverified)
