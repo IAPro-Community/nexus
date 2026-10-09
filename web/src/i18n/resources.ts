@@ -3976,7 +3976,8 @@ export const es = {
     resolving: 'Resolviendo…',
     errorBoundaryTitle: 'Algo salió mal',
     errorBoundaryTryAgain: 'Intentar de nuevo',
-    hudUnavailable: 'Nexus HUD no está disponible. Comprueba la sesión local de Nexus e inténtalo de nuevo.',
+    hudUnavailable:
+      'Nexus HUD no está disponible. Comprueba la sesión local de Nexus e inténtalo de nuevo.',
     hudDisabled: 'Nexus HUD está desactivado en la configuración local.',
     decisionRequired: 'Decisión necesaria',
   },
