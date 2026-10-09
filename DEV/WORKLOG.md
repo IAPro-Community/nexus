@@ -5390,3 +5390,7 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Recompilei binário diagnóstico via Go overlay temporário, sem mudança nos fontes rastreados. `HUDController` registrou `ShowHUD → HideHUD → ShowHUD` com `IsVisible=true → false → true`, tamanho 280×48; screenshot confirma o painel Wails/WebView2 visível.
 - Exit code 0; nenhum processo Nexus/WebView2 do perfil isolado permaneceu. Evidências locais ignoradas pelo Git: screenshot, estados, overlay e binário com SHA-256 em `native-smokes/SHA256SUMS.native-smoke.txt`.
 - A primeira captura de diagnóstico mostrou o console porque o HWND principal foi confundido; ela foi descartada. A captura válida enumera a janela Wails. As fontes nativas/frontend são idênticas às dos smokes anteriores; tray físico e toggle visual de autostart continuam pendentes.
+
+## 2026-10-09 — rastreabilidade da evidência Windows
+
+- Registrados `GIT_SHA=e46d0619d36b63864f3f8a77a5d25652b9581afd` e `EVIDENCE_COMMIT=7ab06584b02ee9e8f3bdb95fec25afd1052b1dbd` no relatório/status, separando o source homologado do commit documental que acrescentou os artefatos e o smoke HUD.

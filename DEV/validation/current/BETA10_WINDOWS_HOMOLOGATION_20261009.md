@@ -1,5 +1,8 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+GIT_SHA: `e46d0619d36b63864f3f8a77a5d25652b9581afd`
+EVIDENCE_COMMIT: `7ab06584b02ee9e8f3bdb95fec25afd1052b1dbd`
+
 ## Revalidação oficial Windows no SHA `e46d0619d36b63864f3f8a77a5d25652b9581afd` — 2026-10-09
 
 O checkout `fix/windows-beta10-homologation-20261008` estava limpo no início da execução. `VERSION` e `version.json` confirmam `1.0.0-beta.10`, Windows AMD64, Go 1.27.2 e commit `e46d0619`. O homologador oficial terminou com exit code 0 entre `2026-10-09T17:01:49Z` e `2026-10-09T17:37:21Z`. Não houve execução de gates Linux.
