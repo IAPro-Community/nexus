@@ -1,5 +1,26 @@
 # Current release status
 
+> **Estado canônico da beta.10 (2026-10-08/09):** PR45/PR46 foram incorporadas à árvore de `release/v1.0.0` pelo merge `f10fb19b`. O HEAD remoto consultado, `deca290b`, não é o SHA da referência local Windows `226d7b57`; os gates locais desta referência não certificam o HEAD remoto.
+> **NO-GO para tag, instalador assinado e distribuição** até os gates exatos da release e as pendências operacionais fecharem.
+> Histórico beta.7/beta.8 abaixo permanece somente como evidência histórica.
+> Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
+CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
+CURRENT_CANDIDATE_BRANCH: release/v1.0.0
+CURRENT_CANDIDATE_NATIVE_GATES: PENDING_EXACT_SHA
+CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
+CURRENT_CANDIDATE_CI: QUEUED_ON_SELF_HOSTED_RUNNER_AT_LAST_CHECK
+LOCAL_WINDOWS_BETA10_REFERENCE_SHA: 226d7b57a279a5c91421fb7dc790e778220417d4 (separate homologation branch)
+LOCAL_WINDOWS_BETA10_AUTOMATED_GATES: PASS_ON_REFERENCE_SHA_ONLY
+LOCAL_WINDOWS_BETA10_MANUAL_PROVIDER_SMOKES: NOT_RUN
+LOCAL_WINDOWS_BETA10_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/226d7b57a279a5c91421fb7dc790e778220417d4/windows-AMD64/
+CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d
+CURRENT_RELEASE_HEAD_WINDOWS_EXACT_SHA_GATES: NOT_RUN_ON_DECA290B
+LOCAL_WINDOWS_BETA10_DESKTOP_NATIVE_SMOKE: FAILED_EARLY_EXIT_CODE_0_BEFORE_8_SECONDS
+LOCAL_WINDOWS_BETA10_HUD_NATIVE_SMOKE: NOT_RUN
+PREVIOUS_VALIDATION_RECORDS: HISTORICAL_ONLY
+
+## Legacy Windows beta.7 baseline (historical)
+
 STATUS: WINDOWS_AUTOMATED_LOCAL_GATES_PASS_RELEASE_NO_GO
 OFFICIAL_RELEASE: NO-GO
 WINDOWS_DESKTOP_RETEST: PASS_RUNTIME (Wails window and WebView2 child persisted 9s on validated source SHA; isolated profile created; visual rendering unverified)

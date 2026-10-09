@@ -1,5 +1,12 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-09 — Homologação Windows beta.10 @ 226d7b57
+
+- O gate oficial Windows AMD64 passou no SHA exato `226d7b57a279a5c91421fb7dc790e778220417d4`: Go fmt/vet/lint/security/testes; Bun frozen + `quality:full` (84 arquivos/503 testes); oito E2E browser, acessibilidade/visual; builds CLI/Desktop/HUD.
+- Doctor agora reporta `provider.gemini` como WARN quando `--version` falha; testes do probe compartilhado, doctor e seis adapters passaram. Nenhum prompt de modelo foi enviado.
+- O smoke nativo Desktop suplementar encerrou com código 0 antes dos oito segundos requeridos; Desktop e HUD foram compilados, mas este SHA não tem smoke nativo bem-sucedido. Smokes interativos, CI exact-SHA, assinatura e instalador seguem pendentes; status de distribuição NO-GO.
+- Fetch remoto: `release/v1.0.0=deca290b`, integração beta10 `9aad7444`. A release contém o merge PR45/46, mas o SHA homologado é uma referência local divergente e não certifica o HEAD remoto. O candidato precisa de PR/reconciliação e novo gate Windows no SHA resultante.
+- Relatório e handoff atualizados em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md` e `DEV/HANDOFF.md`. Nenhum gate Linux foi executado.
 ## 2026-10-09 — Correção do gate govulncheck no Windows
 
 - O gate Windows no candidato integrado `11525ab9` parou em `govulncheck`: o toolchain Go 1.25.14 expôs `GO-2026-6617`, falha de concorrência no encoder HPACK/HTTP/2 da biblioteca padrão, alcançada pelo grafo do produto.
