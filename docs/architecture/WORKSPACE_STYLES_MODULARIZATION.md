@@ -14,7 +14,7 @@ File size is a maintainability signal, **not evidence of broken behavior**. Prio
 
 ## What changed in this PR — mechanical, no semantic CSS changes
 
-The complete legacy `workspace-os.css` content was separated **byte-for-byte** into 16 ordered files under `web/src/app/workspace-styles/`:
+The complete legacy `workspace-os.css` content was separated **byte-for-byte** into 16 original ordered files under `web/src/app/workspace-styles/`:
 
 1. `01-foundation.css` — global tokens and scheme defaults;
 2. `02-shell-and-rail.css` — application shell, topbar and project rail;
@@ -67,15 +67,23 @@ The `workspace-os.css` entrypoint now owns only ordered native CSS imports. Both
 - `SettingsSurface.tsx`: move appearance/settings category components to colocated modules after PR #49 UI settles.
 - Go/mission/runtime files: review dependency cycles, exported contracts and branch-specific native regression gates before extracting state machines.
 
-## Integration order and relationship with PR #49
+## Release integration and subsequent responsibility extractions
 
-This PR intentionally **does not include** the pending `feat/v1.0.0-flat-quiet-themes-20261009` / PR #49. That branch added appearance rules to the end of `workspace-os.css`; this PR replaces that file with imports.
+- The modularization from PR #51 was integrated directly into `release/v1.0.0` with Git fast-forward.
+- The styling and tokens of superseded PR #49 were reconciled: `17-appearance-presets.css` is the final stylesheet layer, and theme preferences/registry/settings/tests are integrated. The draft PR #49 is **closed without merge** to prevent accidental resurrection of the old monolith.
+- `SettingsSurface.tsx`: selection of appearance presets extracted to `ThemeAccordionSelector.tsx` with unchanged WAI-ARIA choices and theme context.
+- `WorkspaceRenderer.tsx`: window customization and arrangement menu UI moved to `WorkspaceChromeMenus.tsx`. Custom user titles, AI title permission, accent and icon controls retain the original event handlers.
+- `FlowRunSurface.tsx`: pure execution state/status/routing display helpers moved to `flowRunPresentation.ts` and regression cases added.
+- `internal/tui/usage_table.go`: account/session filtering, stable availability sorting, quota parsing, provider label and relative time helpers moved unmodified to `usage_table_rows.go`. The terminal input and transport stack are untouched.
+- Larger stateful and risk-heavy files (`AgentTerminal.tsx`, `mission_executor.go`, `NexusWorkspaceApp.tsx`) remain **unrefactored** until per-boundary tests and native certification exist. File size alone is not authorization to rewrite their execution paths.
 
-**Reconcile explicitly after validation**, instead of naively merging both roots: place PR #49's new flat, Nexus Dusk and Ember Studio treatments in a **new final ordered stylesheet** (or a scoped module when possible), then preserve its font/icon preferences, tests and documentation. Never silently discard CSS from either branch.
+### Required certification on the final release SHA
+
+Run `cd web && npm run quality:full && npm run test:e2e:composer-themes`; run `go test ./internal/tui/...` (with the Go version required by go.mod), then focused Windows WebView2/ConPTY and terminal wheel/arrow/ESC tests. Static byte parity and mechanical extraction are not substitutes for these runtime gates.
 
 ## Status
 
-- Complete: initial mechanical separation, explicit import manifest and tests adapted to the new source location.
-- Static gate: initial exact source parity proven during extraction.
+- Complete: mechanical separation into 16 original sections plus final appearance section, guarded import manifest, adapted tests, theme integration and targeted responsibilities extracted.
+- Static gate: exact legacy CSS source parity proven during extraction; CI/build/runtime validation still pending.
 - Not yet complete: full Bun/Playwright/WebView2 build and visual certification.
-- No changes: Windows Go runtime, Codex PTY/ConPTY behavior, routing, tunnel, signing, mobile, main or release branches.
+- Unchanged execution paths: Windows Go runtime, Codex PTY/ConPTY behavior, routing, tunnel, signing, mobile and main; the release branch was updated directly.
