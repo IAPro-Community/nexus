@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -438,30 +439,47 @@ func TestResolveComposerUnknown(t *testing.T) {
 
 // hangIntelligenceProvider blocks every model call until the context is canceled.
 // Mirrors a stuck headless CLI (agy/codex) that never returns stdout.
-type hangIntelligenceProvider struct{}
+type hangIntelligenceProvider struct {
+	entered    chan time.Time
+	canceled   chan error
+	enterOnce  sync.Once
+	cancelOnce sync.Once
+}
 
-func (hangIntelligenceProvider) Name() string                   { return "hang" }
-func (hangIntelligenceProvider) Available(context.Context) bool { return true }
-func (hangIntelligenceProvider) AnalyzeIntent(ctx context.Context, _ string, _ map[string]any) (*intelligence.IntentAnalysis, error) {
+func (p *hangIntelligenceProvider) Name() string                   { return "hang" }
+func (p *hangIntelligenceProvider) Available(context.Context) bool { return true }
+func (p *hangIntelligenceProvider) wait(ctx context.Context) error {
+	p.enterOnce.Do(func() {
+		deadline, ok := ctx.Deadline()
+		if !ok {
+			deadline = time.Time{}
+		}
+		p.entered <- deadline
+	})
 	<-ctx.Done()
-	return nil, ctx.Err()
+	p.cancelOnce.Do(func() { p.canceled <- ctx.Err() })
+	return ctx.Err()
 }
-func (hangIntelligenceProvider) EvaluateAmbiguities(ctx context.Context, _ *intelligence.IntentAnalysis) ([]intelligence.AmbiguityItem, error) {
-	<-ctx.Done()
-	return nil, ctx.Err()
+func (p *hangIntelligenceProvider) AnalyzeIntent(ctx context.Context, _ string, _ map[string]any) (*intelligence.IntentAnalysis, error) {
+	return nil, p.wait(ctx)
 }
-func (hangIntelligenceProvider) GeneratePlanOutline(ctx context.Context, _ *intelligence.IntentAnalysis, _ map[string]string, _ map[string]any) ([]intelligence.WorkPackageOutline, error) {
-	<-ctx.Done()
-	return nil, ctx.Err()
+func (p *hangIntelligenceProvider) EvaluateAmbiguities(ctx context.Context, _ *intelligence.IntentAnalysis) ([]intelligence.AmbiguityItem, error) {
+	return nil, p.wait(ctx)
 }
-func (hangIntelligenceProvider) ExtractBrief(ctx context.Context, _ string, _ map[string]any) (*intelligence.BriefExtraction, error) {
-	<-ctx.Done()
-	return nil, ctx.Err()
+func (p *hangIntelligenceProvider) GeneratePlanOutline(ctx context.Context, _ *intelligence.IntentAnalysis, _ map[string]string, _ map[string]any) ([]intelligence.WorkPackageOutline, error) {
+	return nil, p.wait(ctx)
+}
+func (p *hangIntelligenceProvider) ExtractBrief(ctx context.Context, _ string, _ map[string]any) (*intelligence.BriefExtraction, error) {
+	return nil, p.wait(ctx)
 }
 
 func TestCreateComposerSessionReturnsWhenIntelligenceHangs(t *testing.T) {
 	n := openTestNexus(t)
-	n.intelligenceProviderForTest = hangIntelligenceProvider{}
+	provider := &hangIntelligenceProvider{
+		entered:  make(chan time.Time, 1),
+		canceled: make(chan error, 1),
+	}
+	n.intelligenceProviderForTest = provider
 	prev := composerBootstrapTimeout
 	composerBootstrapTimeout = 120 * time.Millisecond
 	t.Cleanup(func() { composerBootstrapTimeout = prev })
@@ -475,25 +493,54 @@ func TestCreateComposerSessionReturnsWhenIntelligenceHangs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	started := time.Now()
-	view, err := n.CreateComposerSessionWithPrompt(
-		context.Background(),
-		project.ID,
-		"Documentar API",
-		"Escreva documentação técnica da API REST com exemplos.",
-	)
-	elapsed := time.Since(started)
-	if err != nil {
-		t.Fatalf("CreateComposerSessionWithPrompt: %v", err)
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	parentDeadline, _ := ctx.Deadline()
+	type createResult struct {
+		view *ComposerSessionView
+		err  error
 	}
-	if view == nil || view.Session.ID == "" {
-		t.Fatal("expected a persisted session even when intelligence hangs")
+	created := make(chan createResult, 1)
+	go func() {
+		view, createErr := n.CreateComposerSessionWithPrompt(
+			ctx,
+			project.ID,
+			"Documentar API",
+			"Escreva documentação técnica da API REST com exemplos.",
+		)
+		created <- createResult{view: view, err: createErr}
+	}()
+
+	select {
+	case providerDeadline := <-provider.entered:
+		if providerDeadline.IsZero() {
+			t.Fatal("provider call did not receive a bounded context")
+		}
+		if !providerDeadline.Before(parentDeadline.Add(-time.Second)) {
+			t.Fatalf("provider deadline %s did not shorten the outer deadline %s", providerDeadline, parentDeadline)
+		}
+	case <-ctx.Done():
+		t.Fatal("composer did not reach the intelligence provider before the outer deadline")
 	}
-	// The 120ms budget applies to provider intelligence, not to the full
-	// deterministic bootstrap (Git/context/memory/store). Under -race those
-	// local steps are materially slower, so retain a bounded anti-hang guard
-	// without turning this test into an end-to-end latency SLA.
-	if elapsed > 5*time.Second {
-		t.Fatalf("create took %s; hung intelligence did not release within the bounded bootstrap guard", elapsed)
+
+	select {
+	case err := <-provider.canceled:
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("expected the bounded provider context to expire, got %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatal("hung intelligence was not canceled by the bootstrap deadline")
+	}
+
+	select {
+	case result := <-created:
+		if result.err != nil {
+			t.Fatalf("CreateComposerSessionWithPrompt: %v", result.err)
+		}
+		if result.view == nil || result.view.Session.ID == "" {
+			t.Fatal("expected a persisted session even when intelligence hangs")
+		}
+	case <-ctx.Done():
+		t.Fatal("session creation did not finish after intelligence was canceled")
 	}
 }
