@@ -19,6 +19,14 @@ func TestKeyboardModeResetDisablesEveryProviderEnhancement(t *testing.T) {
 		"\x1b[>4;0m",  // modifyOtherKeys
 		"\x1b[?1004l", // focus reporting
 		"\x1b[?2004l", // bracketed paste
+		"\x1b[?1000l", // normal mouse
+		"\x1b[?1002l", // button-event mouse
+		"\x1b[?1003l", // any-event mouse
+		"\x1b[?1005l", // UTF-8 mouse
+		"\x1b[?1006l", // SGR mouse
+		"\x1b[?1007l", // alternate scroll: wheel must not synthesize arrow input
+		"\x1b[?1015l", // URXVT mouse
+		"\x1b[?1016l", // SGR pixel mouse
 	} {
 		if !strings.Contains(reset, sequence) {
 			t.Fatalf("reset %q does not contain %q", reset, sequence)
