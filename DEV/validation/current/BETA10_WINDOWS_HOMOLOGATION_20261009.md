@@ -15,7 +15,7 @@ Esta rodada valida o candidato `1.0.0-beta.10` no Windows AMD64. É um candidato
 
 ## Auditoria de branches remotas — 2026-10-09
 
-Consulta de refs via Git: `origin/release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d` (`VERSION=1.0.0-beta.10`) e `origin/fix/windows-beta10-homologation-20261008=665103a06d94eda7011bb7d7abd299fc1ce2a330`. O SHA beta.10 parte diretamente da ponta atual da release e é o candidato a vincular por PR, após revisão.
+Consulta de refs via Git: `origin/release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d` (`VERSION=1.0.0-beta.10`) e `origin/fix/windows-beta10-homologation-20261008=3458826d1183951ffa0c75c9acaf80436a6bca0c (HEAD documental; fonte validada=665103a06d94eda7011bb7d7abd299fc1ce2a330)`. O SHA beta.10 parte diretamente da ponta atual da release e é o candidato a vincular por PR, após revisão.
 
 - `fix/beta7-windows-KIVER-20261007=d14154d2490dfdd3966c7fddc990a1d9127edd39`: totalmente contida na release atual; zero commits exclusivos da branch. Não requer PR.
 - `fix/beta7-windows-homologation-20261008=4a0bd992740bf3cc8d3d24d56c3f5f5afc6e6494`: permanece em `VERSION=1.0.0-beta.7`, diverge da release beta.10 e tem três commits exclusivos (`9105853a` de código e dois commits documentais). Não mesclar a branch inteira; qualquer aproveitamento do patch de código deve ser avaliado seletivamente no candidato beta.10.
@@ -23,7 +23,17 @@ Consulta de refs via Git: `origin/release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf
 
 O estado de PR não pôde ser confirmado pela API sem autenticação; nenhum PR foi criado nesta continuação. Não houve push direto para `release/v1.0.0`.
 
-**Limites e veredito:** PASS dos gates automatizados locais e do transporte interativo AGY/ConPTY no Windows para o SHA exato. CI Windows hosted no SHA integrado, smokes autenticados de provider/Mission/Voice, controles/autostart do HUD, assinatura/trust root e instalador final ainda pendem. **NO-GO para tag/distribuição.** Nenhum gate Linux foi executado. A integração com `release/v1.0.0` segue por PR; não fazer push direto para release.
+**Limites e veredito:** PASS dos gates automatizados locais e do transporte interativo AGY/ConPTY no Windows para o SHA exato. CI Windows hosted no SHA integrado, smokes autenticados de provider/Mission/Voice, interação com tray e autostart do HUD, assinatura/trust root e instalador final ainda pendem. **NO-GO para tag/distribuição.** Nenhum gate Linux foi executado. A integração com `release/v1.0.0` segue por PR; não fazer push direto para release.
+
+## Smoke nativo do controlador HUD show/hide — fonte 665103a0 — 2026-10-09
+
+O smoke foi compilado com Go 1.27.2 para Windows AMD64, tags production e linker metadata beta.10. Um Go overlay em scratch acrescentou apenas chamadas temporizadas ao entrypoint diagnóstico; as fontes rastreadas do repositório não foram alteradas. O produto-fonte entre 665103a0 e o HEAD documental 3458826d é idêntico.
+
+- PASS — controlador nativo: a janela iniciou visível; HUDController.HideHUD() resultou em IsVisible=false; HUDController.ShowHUD() resultou em IsVisible=true; o ciclo final de cleanup deixou a janela oculta. O processo diagnóstico terminou com exit code 0.
+- CLEANUP — WebView2: três processos do perfil isolado ainda apareciam na amostra imediatamente após a saída; após dois segundos, não havia processo WebView2 usando o perfil exclusivo nem processo raiz do HUD ativo.
+- ISOLAMENTO: APPDATA, LOCALAPPDATA, NEXUS_DATA_DIR e AI_MANAGER_DATA_DIR apontaram para um perfil temporário exclusivo. Nenhum getter/setter de autostart foi chamado e nenhum getter/setter de autostart foi chamado; o Registro não foi objeto deste teste.
+- LIMITE: este teste invocou os métodos nativos do controlador; não clicou no ícone/menu da bandeja. Interação do tray e inicialização automática continuam não verificadas. O stderr registrou um aviso Chromium de unregister da classe da janela (1412); a aplicação saiu com código 0 e os processos do perfil encerraram.
+- Evidência local ignorada pelo Git: DEV/validation/local-beta/1.0.0-beta.10/665103a06d94eda7011bb7d7abd299fc1ce2a330/windows-AMD64/hud-show-hide-665103a0.txt e logs .stdout.log/.stderr.log. SHA-256 do binário diagnóstico: FE57D52859753C8ADEC61AA5D2F76B08ECE283A46A22D06F82F977EE7725B21C.
 
 ## Reteste físico do HUD — continuação no mesmo SHA — 2026-10-09
 

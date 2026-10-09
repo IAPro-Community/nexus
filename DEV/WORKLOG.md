@@ -1,5 +1,11 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-09 — Smoke HUD show/hide no código Windows 665103a0
+
+- Compilado binário diagnóstico temporário com Go 1.27.2 e overlay de scratch, sem alterações de fontes rastreadas. HUDController.HideHUD() alternou IsVisible para false; ShowHUD() restaurou true; cleanup deixou oculto e exit code foi 0.
+- Perfil de dados isolado. Três WebView2 ainda apareciam na amostra imediata, mas encerraram em até dois segundos; nenhum processo do perfil permaneceu. O smoke não acionou autostart nem avaliou Registro. Tray UI e inicialização automática continuam pendentes.
+- Evidência local: DEV/validation/local-beta/1.0.0-beta.10/665103a06d94eda7011bb7d7abd299fc1ce2a330/windows-AMD64/hud-show-hide-665103a0.txt. Documentação e ledger sincronizados; docs-verify executado após a atualização.
+
 ## 2026-10-09 — Gate Windows beta.10 e smoke AGY/ConPTY @ 665103a0
 
 - Gate oficial Windows AMD64 passou no SHA exato `665103a06d94eda7011bb7d7abd299fc1ce2a330`: Go 1.27.2, Bun 1.3.9, Node 22.14.0; qualidade Go, segurança, 84 arquivos/504 testes web, oito browser E2E, Axe/visual e builds CLI/Desktop/HUD.

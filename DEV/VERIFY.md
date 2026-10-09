@@ -1,12 +1,15 @@
 # Verification: Nexus V1 (post-pending-issues)
 
-## 2026-10-09 — Gate Windows e smoke AGY/ConPTY no SHA `665103a0`
+## 2026-10-09 — Gate Windows e smokes AGY/ConPTY + HUD no SHA 665103a0
 
-- PASS — `scripts/homologate-beta.ps1 -ExpectedSha 665103a06d94eda7011bb7d7abd299fc1ce2a330`: gate Windows AMD64 completo, Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Go fmt/vet/lint/security/testes, Bun frozen + `quality:full` (84 arquivos/504 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD.
-- PASS delimitado — AGY CLI 1.3.2 supervisionado em ConPTY Windows, perfil isolado `PENDING_AUTH`. Três ciclos de setas foram processados sem imprimir `[A`–`[D`; Ctrl+C retornou exit code 0. Nenhum prompt ou Enter foi enviado.
-- CLEANUP — runtime `agy-06GHY6TDP6A5HMYW3A3NDBQ6JR` terminou em `STOPPED`; PIDs 12756/15676 não estavam ativos. Evidência textual local gitignored em `DEV/validation/local-beta/1.0.0-beta.10/665103a06d94eda7011bb7d7abd299fc1ce2a330/windows-AMD64/agy-conpty-arrow-smoke-665103a0.txt`.
-- OBSERVAÇÃO — a tentativa dentro da sandbox expirou ao confirmar IPC; o reteste na PTY nativa fora da sandbox passou com o mesmo binário e configuração isolada.
-- LIMITES — conversa autenticada, Mission/Voice, HUD show/hide/autostart, CI Windows hosted integrado, assinatura/trust root e instalador final seguem pendentes. Distribuição NO-GO. Candidato beta.10, distinto da beta.7/d14154d2; nenhum gate Linux executado.
+- PASS — scripts/homologate-beta.ps1 -ExpectedSha 665103a06d94eda7011bb7d7abd299fc1ce2a330: gate Windows AMD64 completo, Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Go fmt/vet/lint/security/testes, Bun frozen + quality:full (84 arquivos/504 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD.
+- PASS delimitado — AGY CLI 1.3.2 supervisionado em ConPTY Windows, perfil isolado PENDING_AUTH. Três ciclos de setas sem [A]–[D]; Ctrl+C exit 0; nenhum prompt ou Enter enviado. Runtime terminou em STOPPED.
+- PASS delimitado — smoke diagnóstico do controlador HUD no mesmo código-fonte: HideHUD() produziu IsVisible=false, ShowHUD() produziu IsVisible=true, cleanup terminou oculto e processo saiu com exit 0. Build Go 1.27.2 com overlay temporário; fontes rastreadas intactas.
+- CLEANUP — três processos WebView2 apareceram na amostra imediatamente após saída; em dois segundos, zero processo com o perfil isolado e zero processo raiz do HUD. O stderr anotou aviso Chromium 1412 no unregister; não houve falha de processo.
+- ISOLAMENTO — perfil APPDATA/LOCALAPPDATA/NEXUS_DATA_DIR/AI_MANAGER_DATA_DIR exclusivo. Nenhum getter/setter de autostart foi chamado e o smoke não avaliou nem alterou o Registro. Ícone/menu do tray e autostart permanecem sem validação.
+- Evidência AGY: DEV/validation/local-beta/1.0.0-beta.10/665103a06d94eda7011bb7d7abd299fc1ce2a330/windows-AMD64/agy-conpty-arrow-smoke-665103a0.txt; evidência HUD e logs no mesmo diretório (hud-show-hide-665103a0.*).
+- OBSERVAÇÃO — a tentativa AGY dentro da sandbox expirou ao confirmar IPC; o reteste na PTY nativa fora da sandbox passou com o mesmo binário e configuração isolada.
+- LIMITES — conversa autenticada, Mission/Voice, tray/autostart do HUD, CI Windows hosted integrado, assinatura/trust root e instalador final seguem pendentes. Distribuição NO-GO. Candidato beta.10, distinto da beta.7/d14154d2; nenhum gate Linux executado.
 
 ## 2026-10-09 — Smoke ConPTY Windows no SHA `0782f876`
 

@@ -1,25 +1,27 @@
 # Current release status
 
-> **Estado beta.10 em 2026-10-09:** o gate automatizado local Windows AMD64 passou no SHA exato `0782f87696ad3f28058d6532cb4e44dd25b08a7f`, branch `fix/windows-beta10-homologation-20261008`. Desktop e Project Hub passaram no WebView2 nativo. O reteste HUD no mesmo SHA mostrou o painel transparente visível no desktop e o controle expandindo a janela; o resultado inconclusivo anterior vinha de iniciar o harness oculto. O smoke ConPTY de setas passou no TUI de autenticação Codex sem prompt. Tray show/hide e autostart não verificados.
-> **NO-GO para tag, instalador assinado e distribuição** até o PR ser integrado e os gates restantes fecharem: CI Windows hosted, tray show/hide/autostart, smokes autenticados, instalador e assinatura/trust root. O checkout atual é beta.10, não o SHA beta.7 `d14154d2` citado no pedido inicial.
-> A branch Windows deve seguir por PR para `release/v1.0.0`; não fazer push direto à release. Nenhum gate Linux executado.
+> **Estado beta.10 em 2026-10-09:** gate automatizado Windows AMD64 e smokes AGY/ConPTY e controller HUD show/hide passaram no código de produto 665103a06d94eda7011bb7d7abd299fc1ce2a330; a ponta documental da branch está em 3458826d1183951ffa0c75c9acaf80436a6bca0c. Project Hub UI e HUD físico visível/expansão foram verificados antes, no SHA 0782f876, e permanecem identificados separadamente. Interação real do tray e autostart não verificados.
+> **NO-GO para tag, instalador assinado e distribuição** até o PR ser integrado e os gates restantes fecharem: CI Windows hosted, tray/autostart, smokes autenticados, instalador e assinatura/trust root. O candidato atual é beta.10, não beta.7/d14154d2.
+> A branch Windows deve seguir por PR para release/v1.0.0; não fazer push direto à release. Nenhum gate Linux executado.
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
+
 CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
 CURRENT_RELEASE_BRANCH: release/v1.0.0
 CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d
 WINDOWS_HOMOLOGATION_BRANCH: fix/windows-beta10-homologation-20261008
-WINDOWS_HOMOLOGATED_SOURCE_SHA: 0782f87696ad3f28058d6532cb4e44dd25b08a7f
+WINDOWS_EVIDENCE_HEAD: 3458826d1183951ffa0c75c9acaf80436a6bca0c (documentation-only after source SHA)
+WINDOWS_HOMOLOGATED_SOURCE_SHA: 665103a06d94eda7011bb7d7abd299fc1ce2a330
 WINDOWS_AUTOMATED_LOCAL_GATES: PASS_EXACT_SHA_WINDOWS_AMD64
-WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_VISIBLE_PROJECT_HUB_AND_WEBVIEW2
-WINDOWS_NATIVE_HUD_SMOKE: PASS_VISIBLE_TRANSPARENT_PANEL_AND_EXPANSION; SHOW_HIDE=NOT_VERIFIED; AUTOSTART=NOT_VERIFIED
-WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: PASS_NO_LITERAL_ARROWS_IN_UNAUTHENTICATED_CODEX_TUI; NO_PROMPT_SENT; AUTHENTICATED_SESSION_PENDING
+WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_VISIBLE_PROJECT_HUB_AND_WEBVIEW2_ON_0782
+WINDOWS_NATIVE_HUD_SMOKE: PASS_VISIBLE_PANEL_AND_EXPANSION_ON_0782; CONTROLLER_SHOW_HIDE=PASS_ON_665; TRAY_UI=NOT_VERIFIED; AUTOSTART=NOT_VERIFIED
+WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: PASS_NO_LITERAL_ARROWS_IN_CODEX_0782_AND_AGY_665; NO_PROMPT_SENT; AUTHENTICATED_SESSION_PENDING
 WINDOWS_HOSTED_CI_SAME_SHA: NOT_VERIFIED
 WINDOWS_SIGNED_INSTALLER_AND_UPDATE_TRUST_ROOT: BLOCKED_TOOLS_AND_SECRETS_UNAVAILABLE
 WINDOWS_PROVIDER_MISSION_VOICE_UI_SMOKES: PENDING_AUTHENTICATED_OR_INTERACTIVE_EVIDENCE
-WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN
+WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN_0782
 WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
-CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/0782f87696ad3f28058d6532cb4e44dd25b08a7f/windows-AMD64/ (local ignored evidence, includes native HUD captures)
+CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/665103a06d94eda7011bb7d7abd299fc1ce2a330/windows-AMD64/ (local ignored gate and controller-smoke evidence); physical HUD captures remain under 0782f876
 PREVIOUS_VALIDATION_RECORDS: HISTORICAL_ONLY
 
 ## Legacy Windows beta.7 baseline (historical)
