@@ -39,8 +39,8 @@ case "$ARCH" in
 esac
 
 GO_VERSION_TEXT="$(go version)"
-if [[ "$GO_VERSION_TEXT" != *"go1.25.14"* ]]; then
-  echo "Linux beta homologation requires Go 1.25.14 to match CI; got: $GO_VERSION_TEXT" >&2
+if [[ "$GO_VERSION_TEXT" != *"go1.27.2"* ]]; then
+  echo "Linux beta homologation requires Go 1.27.2 to match CI; got: $GO_VERSION_TEXT" >&2
   exit 1
 fi
 BUN_VERSION="$(bun --version)"
@@ -205,10 +205,9 @@ if [ "${NEXUS_SKIP_DESKTOP:-0}" != "1" ]; then
 fi
 
 log "GoReleaser snapshot (Linux amd64)"
-# GoReleaser v2.18.0 requires Go >= 1.27.0, so `go run ...@v2.18.0` cannot run
-# under this script's GOTOOLCHAIN=local + Go 1.25.14 contract. Use the pinned
-# standalone binary (same distribution as goreleaser-action@v6 in CI) and keep
-# every product build on Go 1.25.14.
+# GoReleaser v2.18.0 requires Go >= 1.27.0. Keep using its pinned standalone
+# binary (same distribution as goreleaser-action@v6 in CI) for reproducibility,
+# and build product artifacts with the pinned Go 1.27.2 toolchain.
 GORELEASER_VERSION="v2.18.0"
 export PATH="$(go env GOPATH)/bin:$PATH"
 if ! command -v goreleaser >/dev/null 2>&1; then

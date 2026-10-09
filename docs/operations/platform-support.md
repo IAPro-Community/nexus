@@ -81,7 +81,7 @@ self-hosted, Windows, X64, nexus-windows
 
 Dependências:
 
-- Go 1.25.14;
+- Go 1.27.2;
 - Bun 1.3.9;
 - Windows SDK com `signtool.exe`;
 - NSIS com `makensis.exe`;

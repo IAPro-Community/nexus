@@ -25,8 +25,8 @@ if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
 }
 
 $GoVersionText = (go version).Trim()
-if ($GoVersionText -notmatch '\bgo1\.25\.14\b') {
-  throw "Windows beta homologation requires Go 1.25.14 to match CI; got: $GoVersionText"
+if ($GoVersionText -notmatch '\bgo1\.27\.2\b') {
+  throw "Windows beta homologation requires Go 1.27.2 to match CI; got: $GoVersionText"
 }
 
 $BunVersion = (bun --version).Trim()

@@ -10,7 +10,7 @@ COPY internal/control/web/embedded/.keep ./internal/control/web/embedded/.keep
 WORKDIR /src/web
 RUN bun install --frozen-lockfile && bun run build
 
-FROM golang:1.25.14-bookworm AS build
+FROM golang:1.27.2-bookworm AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
