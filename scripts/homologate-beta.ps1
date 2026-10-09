@@ -281,6 +281,13 @@ $env:GOPATH = $ExistingGoPath
 $env:GOMODCACHE = $ExistingGoModCache
 $env:GOCACHE = $ExistingGoCache
 
+# Go stores telemetry configuration under %APPDATA%. This test profile is
+# isolated, so disable telemetry there rather than touching the developer's
+# global Go settings or starting a telemetry subprocess from a missing path.
+go telemetry off 2>&1 | Tee-Object -FilePath (Join-Path $Out 'go-telemetry.log')
+if ($LASTEXITCODE -ne 0) { throw "failed to disable Go telemetry in the isolated test profile" }
+if ((go env GOTELEMETRY).Trim() -ne 'off') { throw "Go telemetry must be off in the isolated test profile" }
+
 $GoTestExit = 1
 try {
   go test -count=1 -v ./... 2>&1 | Tee-Object -FilePath $GoTestLog
