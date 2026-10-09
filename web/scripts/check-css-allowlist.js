@@ -10,6 +10,7 @@ const srcDir = path.resolve(__dirname, '../src');
 const allowedPatterns = [
   /^src\/index\.css$/,
   /^src\/app\/workspace-os\.css$/,
+  /^src\/app\/workspace-styles\/[0-9]{2}-[a-z0-9-]+\.css$/,
   /^src\/styles\/[a-zA-Z0-9_.-]+\.scss$/,
   /^src\/[a-zA-Z0-9_/-]+\.module\.scss$/,
   /^src\/[a-zA-Z0-9_/-]+\.module\.css$/,
