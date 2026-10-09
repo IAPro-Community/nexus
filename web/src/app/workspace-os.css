@@ -8320,7 +8320,7 @@ button.nx-workspace-tab__close {
 }
 
 
-/* Orca-inspired soft dark depth. The gradient is localized to surfaces and chrome,
+/* Nexus-inspired soft dark depth. The gradient is localized to surfaces and chrome,
    never to xterm cells, focus rings, syntax highlighting or operational badges. */
 :root[data-finish="subtle-gradient"] .nx-project-rail {
   background: linear-gradient(180deg, var(--nx-surface), var(--nx-bg-elevated));
