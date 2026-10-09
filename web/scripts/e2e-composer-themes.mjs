@@ -19,6 +19,13 @@ mkdirSync(screenshotDir, { recursive: true });
 
 const themes = [
   {
+    preset: 'ember-studio',
+    scheme: 'dark',
+    finish: 'flat',
+    category: /Clássicos do Código/i,
+    label: /Ember Studio/i,
+  },
+  {
     preset: 'nexus-dusk',
     scheme: 'dark',
     finish: 'subtle-gradient',
