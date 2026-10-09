@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   defaultThemePreferences,
   getThemePresetPalette,
+  getThemePresetFinish,
   normalizeThemePreferences,
   resolveScheme,
   resolveThemeStyleVariables,
@@ -156,9 +157,9 @@ describe('theme model', () => {
       );
     }
 
-    expect(THEME_PRESETS['nexus-dark'].finish).toBeUndefined();
-    expect(THEME_PRESETS['monokai'].finish).toBeUndefined();
-    expect(THEME_PRESETS['obsidian'].finish).toBeUndefined();
+    expect(getThemePresetFinish('nexus-dark')).toBe('standard');
+    expect(getThemePresetFinish('monokai')).toBe('standard');
+    expect(getThemePresetFinish('obsidian')).toBe('standard');
   });
 
   it('restores a flat preset after persistence without affecting user density', () => {
