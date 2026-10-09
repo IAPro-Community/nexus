@@ -235,7 +235,7 @@ func TestTerminalOutputScrubberDropsMouseTrackingNegotiation(t *testing.T) {
 	var out bytes.Buffer
 	scrubber := NewTerminalOutputScrubber(&out)
 
-	_, _ = scrubber.Write([]byte("before\x1b[?1000h\x1b[?1003h\x1b[?1006hafter"))
+	_, _ = scrubber.Write([]byte("before\x1b[?1000h\x1b[?1003h\x1b[?1006h\x1b[?1007h\x1b[?1015h\x1b[?1016hafter"))
 	_ = scrubber.Flush()
 
 	if got := out.String(); got != "beforeafter" {
