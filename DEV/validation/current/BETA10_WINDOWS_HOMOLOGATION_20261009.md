@@ -1,5 +1,30 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+## Continuidade Windows beta.10 — SHA `665103a06d94eda7011bb7d7abd299fc1ce2a330` — 2026-10-09
+
+Esta rodada valida o candidato `1.0.0-beta.10` no Windows AMD64. É um candidato separado da beta.7/`d14154d2490dfdd3966c7fddc990a1d9127edd39`.
+
+- **PASS — gate automatizado no SHA exato.** `scripts/homologate-beta.ps1 -ExpectedSha 665103a06d94eda7011bb7d7abd299fc1ce2a330` fechou entre `2026-10-09T05:06:48Z` e `2026-10-09T05:16:22Z`. `VERSION=1.0.0-beta.10`; Go 1.27.2, Bun 1.3.9 e Node 22.14.0.
+- **PASS — Go e segurança.** Formatação, `go vet ./...`, golangci-lint sem findings, govulncheck sem vulnerabilidades e `go test -count=1 -v ./...` passaram. Casos condicionados a permissões/plataforma Windows foram registrados como skips esperados.
+- **PASS — Web e E2E.** Bun frozen install sem alterações no lockfile; `quality:full` aprovou 84 arquivos e 504 testes. As oito suítes browser E2E, Axe/acessibilidade e validação visual passaram.
+- **PASS — builds Windows AMD64.** CLI, Desktop Wails v3 e HUD compilaram. A CLI usada no smoke tem SHA-256 `4707F14000438D7EB89148FA3B34106B6618F6CFF10FBD3DD4B3EC5E56DCEB94`; `version --json` confirmou beta.10, commit `665103a0`, Windows/amd64 e Go 1.27.2.
+- **PASS delimitado — AGY via ConPTY no mesmo SHA.** Comando `nexus.exe agy:windows-smoke`, perfil `PENDING_AUTH` isolado em APPDATA/LOCALAPPDATA e PTY nativo. A tela de onboarding do AGY CLI 1.3.2 recebeu três ciclos Up/Down/Left/Right; as teclas foram interpretadas pela TUI, sem sequências literais `[A`–`[D`. Ctrl+C encerrou com exit code 0. Runtime `agy-06GHY6TDP6A5HMYW3A3NDBQ6JR` ficou `STOPPED`; PIDs 12756 e 15676 não estavam ativos após o encerramento.
+- Nenhum prompt foi submetido e nenhum Enter foi enviado. A TUI exibiu conteúdo de onboarding/exemplo; conversa autenticada, consumo de quota e execução de Mission não foram testados. A tentativa inicial dentro da sandbox expirou na confirmação IPC; o reteste nativo fora da sandbox passou com o mesmo binário e configuração isolada.
+- Evidência local ignorada pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/665103a06d94eda7011bb7d7abd299fc1ce2a330/windows-AMD64/agy-conpty-arrow-smoke-665103a0.txt`. Evidências completas do gate: a mesma pasta.
+- Os commits de código `2f7a39ca` (ConPTY automático para AGY supervisionado) e `665103a0` (telemetria Go no perfil isolado de testes) foram enviados para `fix/windows-beta10-homologation-20261008`.
+
+## Auditoria de branches remotas — 2026-10-09
+
+Consulta de refs via Git: `origin/release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d` (`VERSION=1.0.0-beta.10`) e `origin/fix/windows-beta10-homologation-20261008=665103a06d94eda7011bb7d7abd299fc1ce2a330`. O SHA beta.10 parte diretamente da ponta atual da release e é o candidato a vincular por PR, após revisão.
+
+- `fix/beta7-windows-KIVER-20261007=d14154d2490dfdd3966c7fddc990a1d9127edd39`: totalmente contida na release atual; zero commits exclusivos da branch. Não requer PR.
+- `fix/beta7-windows-homologation-20261008=4a0bd992740bf3cc8d3d24d56c3f5f5afc6e6494`: permanece em `VERSION=1.0.0-beta.7`, diverge da release beta.10 e tem três commits exclusivos (`9105853a` de código e dois commits documentais). Não mesclar a branch inteira; qualquer aproveitamento do patch de código deve ser avaliado seletivamente no candidato beta.10.
+- `integration/v1.0.0-beta10-pr45-pr46-20261008=9aad7444afb7581fd1238541ee0c6909211a3e78`: branch de integração anterior, baseada em histórico divergente; a auditoria por patch deixa dois commits documentais exclusivos em relação ao candidato beta.10 atual. Usar a branch de homologação beta.10 como candidata de PR, sem abrir uma segunda integração em bloco.
+
+O estado de PR não pôde ser confirmado pela API sem autenticação; nenhum PR foi criado nesta continuação. Não houve push direto para `release/v1.0.0`.
+
+**Limites e veredito:** PASS dos gates automatizados locais e do transporte interativo AGY/ConPTY no Windows para o SHA exato. CI Windows hosted no SHA integrado, smokes autenticados de provider/Mission/Voice, controles/autostart do HUD, assinatura/trust root e instalador final ainda pendem. **NO-GO para tag/distribuição.** Nenhum gate Linux foi executado. A integração com `release/v1.0.0` segue por PR; não fazer push direto para release.
+
 ## Reteste físico do HUD — continuação no mesmo SHA — 2026-10-09
 
 O reteste usa o mesmo código-fonte homologado `0782f87696ad3f28058d6532cb4e44dd25b08a7f`; somente a compilação diagnóstica adicionou instrumentação local. A captura anterior não provava invisibilidade do produto: o harness iniciou o processo com `-WindowStyle Hidden`, estado que também fazia o HWND reportar `IsWindowVisible=False`. Repeti a captura com inicialização normal e foco explícito da janela.

@@ -2,11 +2,11 @@
 
 ## Atualização de homologação Windows beta.10 — 2026-10-09
 
-Candidato de código no Windows AMD64: branch `fix/windows-beta10-homologation-20261008`, SHA `0782f87696ad3f28058d6532cb4e44dd25b08a7f`, `VERSION=1.0.0-beta.10`. O gate oficial passou no SHA exato: 66 pacotes Go, 84 arquivos/504 testes web, oito suítes E2E, Axe/visual e builds CLI/Desktop/HUD. Nenhum gate Linux.
+Candidato de código no Windows AMD64: branch `fix/windows-beta10-homologation-20261008`, SHA `665103a06d94eda7011bb7d7abd299fc1ce2a330`, `VERSION=1.0.0-beta.10`. O gate oficial passou no SHA exato: testes Go, lint/segurança, 84 arquivos/504 testes web, oito suítes E2E, Axe/visual e builds CLI/Desktop/HUD. O smoke AGY 1.3.2 via ConPTY no mesmo SHA processou três ciclos de setas sem sequências literais; nenhum prompt foi enviado e o runtime terminou em STOPPED. Nenhum gate Linux.
 
-O formulário real do Project Hub no WebView2 Desktop nativo retornou HTTP 201 no origin Wails e abriu o overview do projeto. A mensagem `invalid origin` da captura anterior não se reproduziu nesse contexto. O reteste no mesmo SHA comprovou renderização física do HUD transparente e expansão nativa; a captura anterior iniciou o processo oculto e não demonstrava defeito do produto. O smoke ConPTY de setas passou no TUI Codex de autenticação sem enviar prompt. Show/hide pelo tray e autostart permanecem sem validação. Evidências e limites: [relatório beta.10](../validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md).
+As evidências físicas de Project Hub e HUD estão no SHA anterior `0782f876`; o relatório mantém esse escopo separado. Evidência do gate atual e do smoke AGY: [relatório beta.10](../validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md) e diretório local gitignored `../validation/local-beta/1.0.0-beta.10/665103a06d94eda7011bb7d7abd299fc1ce2a330/windows-AMD64/`.
 
-A branch Windows requer PR para `release/v1.0.0`, sem push direto à release. CI Windows hosted no SHA integrado, show/hide e autostart do HUD, smokes autenticados/interativos restantes, assinatura/trust root e instalador continuam pendentes. Este candidato é beta.10, não beta.7/d14154d2; sem tag/publicação.
+A branch Windows requer PR para `release/v1.0.0`, sem push direto à release. CI Windows hosted no SHA integrado, show/hide e autostart do HUD, smokes autenticados/interativos restantes, assinatura/trust root e instalador continuam pendentes. Este candidato é beta.10, não beta.7/d14154d2; distribuição segue NO-GO.
 
 ## Programa ativo — Nexus 1.0 Product Closure — 2026-09-20
 

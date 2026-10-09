@@ -1,5 +1,13 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-09 — Gate Windows e smoke AGY/ConPTY no SHA `665103a0`
+
+- PASS — `scripts/homologate-beta.ps1 -ExpectedSha 665103a06d94eda7011bb7d7abd299fc1ce2a330`: gate Windows AMD64 completo, Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Go fmt/vet/lint/security/testes, Bun frozen + `quality:full` (84 arquivos/504 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD.
+- PASS delimitado — AGY CLI 1.3.2 supervisionado em ConPTY Windows, perfil isolado `PENDING_AUTH`. Três ciclos de setas foram processados sem imprimir `[A`–`[D`; Ctrl+C retornou exit code 0. Nenhum prompt ou Enter foi enviado.
+- CLEANUP — runtime `agy-06GHY6TDP6A5HMYW3A3NDBQ6JR` terminou em `STOPPED`; PIDs 12756/15676 não estavam ativos. Evidência textual local gitignored em `DEV/validation/local-beta/1.0.0-beta.10/665103a06d94eda7011bb7d7abd299fc1ce2a330/windows-AMD64/agy-conpty-arrow-smoke-665103a0.txt`.
+- OBSERVAÇÃO — a tentativa dentro da sandbox expirou ao confirmar IPC; o reteste na PTY nativa fora da sandbox passou com o mesmo binário e configuração isolada.
+- LIMITES — conversa autenticada, Mission/Voice, HUD show/hide/autostart, CI Windows hosted integrado, assinatura/trust root e instalador final seguem pendentes. Distribuição NO-GO. Candidato beta.10, distinto da beta.7/d14154d2; nenhum gate Linux executado.
+
 ## 2026-10-09 — Smoke ConPTY Windows no SHA `0782f876`
 
 - PASS — CLI Nexus beta.10 compilada da árvore exata `0782f87696ad3f28058d6532cb4e44dd25b08a7f` com Go 1.27.2; SHA-256 `FA114CFD471F21EB0066D597F316D613E20738F764C02A3D28F7DC6F90CC0F99`.
@@ -1637,6 +1645,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-09T03:52:52Z
+## Frontend gate — 2026-10-09T05:07:24Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).

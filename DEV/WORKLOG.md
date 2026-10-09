@@ -1,5 +1,13 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-09 — Gate Windows beta.10 e smoke AGY/ConPTY @ 665103a0
+
+- Gate oficial Windows AMD64 passou no SHA exato `665103a06d94eda7011bb7d7abd299fc1ce2a330`: Go 1.27.2, Bun 1.3.9, Node 22.14.0; qualidade Go, segurança, 84 arquivos/504 testes web, oito browser E2E, Axe/visual e builds CLI/Desktop/HUD.
+- Smoke nativo AGY 1.3.2 via ConPTY: três ciclos Up/Down/Left/Right sem sequências literais, nenhum prompt/Enter enviado; Ctrl+C exit 0, runtime STOPPED e PIDs encerrados. A tentativa confinada expirou no IPC; reteste fora da sandbox passou.
+- Commits de código `2f7a39ca` e `665103a0` enviados à branch Windows de homologação. Evidência do smoke e logs do gate em `DEV/validation/local-beta/1.0.0-beta.10/665103a06d94eda7011bb7d7abd299fc1ce2a330/windows-AMD64/` (gitignored); relatório atualizado.
+- Auditoria remota: release beta.10 em `deca290b`; a branch beta.10 de homologação parte dela e precisa seguir por PR. KIVER/`d14154d2` está contida; beta7-homologation tem três commits exclusivos e não deve ser integrada em bloco. Nenhum PR foi criado.
+- Distribuição segue NO-GO por CI Windows hosted integrado, smokes autenticados restantes, HUD show/hide/autostart, assinatura/trust root e instalador. Beta.10 é separado da beta.7/d14154d2; nenhum gate Linux foi executado.
+
 ## 2026-10-09 — Smoke ConPTY Windows no SHA `0782f876`
 
 - CLI beta.10 compilada do SHA exato com Go 1.27.2; Codex CLI 0.160.1 aberto via `--no-daemon` em pseudo-console nativo com perfil Nexus isolado e sem login.

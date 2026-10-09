@@ -1,6 +1,18 @@
 # Handoff
 
-## Estado atual — homologação Windows beta.10 — 2026-10-09
+## Atualização — homologação Windows beta.10 — 2026-10-09
+
+Branch `fix/windows-beta10-homologation-20261008`; SHA de código validado `665103a06d94eda7011bb7d7abd299fc1ce2a330`; `VERSION=1.0.0-beta.10`. O gate oficial Windows AMD64 passou no SHA exato: Go 1.27.2, Bun 1.3.9, Node 22.14.0; testes Go, lint/segurança, 84 arquivos/504 testes web, oito browser E2E, Axe/visual e builds CLI/Desktop/HUD.
+
+O smoke nativo do AGY 1.3.2 no mesmo SHA passou via ConPTY: três ciclos de setas sem sequências literais, nenhum prompt enviado, Ctrl+C exit 0 e runtime em STOPPED sem os PIDs do host/provider ativos. A primeira tentativa na sandbox expirou na confirmação IPC; a PTY nativa fora da sandbox passou. Evidência: `DEV/validation/local-beta/1.0.0-beta.10/665103a06d94eda7011bb7d7abd299fc1ce2a330/windows-AMD64/agy-conpty-arrow-smoke-665103a0.txt`.
+
+Os commits de código `2f7a39ca` e `665103a0` foram enviados para a branch de homologação. A branch ainda precisa ser integrada por PR a `release/v1.0.0`; nenhum push direto à release. beta.10 é separada da beta.7/d14154d2. Distribuição segue NO-GO até CI Windows hosted no SHA integrado, smokes autenticados restantes, HUD show/hide/autostart, assinatura/trust root e instalador final. Nenhum gate Linux nesta rodada.
+
+Auditoria remota: `origin/release/v1.0.0=deca290b` já contém `VERSION=1.0.0-beta.10`; a branch de homologação beta.10 parte desse SHA e é a candidata a PR. A branch KIVER em `d14154d2` está totalmente contida na release. A branch beta.7 `fix/beta7-windows-homologation-20261008` tem três commits exclusivos e está defasada; não mesclar em bloco. A branch `integration/v1.0.0-beta10-pr45-pr46-20261008` é anterior e não deve ser integrada em paralelo ao candidato atual. A lista de PRs não pôde ser confirmada via API sem autenticação.
+
+As verificações nativas de Project Hub/HUD documentadas abaixo pertencem ao SHA anterior `0782f876`; não as atribuir ao smoke físico exato de `665103a0`. O gate mais recente compilou os três artefatos no SHA atual.
+
+## Registro anterior — homologação Windows beta.10 @ 0782f876 — 2026-10-09
 
 Candidato de código validado: branch `fix/windows-beta10-homologation-20261008`, SHA `0782f87696ad3f28058d6532cb4e44dd25b08a7f`, `VERSION=1.0.0-beta.10`. O gate oficial Windows AMD64 passou neste SHA exato: Go (66 pacotes), web (84 arquivos/504 testes), lint/segurança, E2E/Axe/visual e builds CLI/Desktop/HUD. Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Evidência completa no relatório Windows beta.10.
 
