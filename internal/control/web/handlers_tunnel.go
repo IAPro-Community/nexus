@@ -51,17 +51,21 @@ func (s *Server) trackTunnelExit(tunnel *Tunnel) {
 		tm := s.tunnelManager()
 		tm.mu.Lock()
 		owned := tm.tunnel == tunnel
+		var host string
 		if owned {
 			tm.tunnel = nil
 			tm.cancel = nil
-			if host := extractTunnelHost(tunnel.URL); host != "" {
-				originpolicy.UnregisterTunnelHost(host)
-			}
+			host = extractTunnelHost(tunnel.URL)
 			// Keep revocation within the generation lock: a stale exit
 			// must never disarm auth after a replacement tunnel starts.
 			s.auth.SetTunnelActive(false)
 		}
 		tm.mu.Unlock()
+		// UnregisterTunnelHost is a fast map delete but does not need to
+		// hold tm.mu; doing it outside reduces lock contention.
+		if owned && host != "" {
+			originpolicy.UnregisterTunnelHost(host)
+		}
 	}
 	// cloudflared's waiter reads OnExit under tunnel.mu. Register under
 	// the same lock and handle an exit that already happened.

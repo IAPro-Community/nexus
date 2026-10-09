@@ -130,18 +130,18 @@ func newPlatformBackendForProvider(providerID string) Backend {
 func BackendMechanism() string { return "Windows standard pipes (ConPTY opt-in)" }
 
 func platformBackendMechanismForProvider(providerID string) string {
-	if shouldUseConPTY(providerID) {
-		if os.Getenv("AI_CLI_ENABLE_CONPTY") != "1" {
-			switch {
-			case strings.EqualFold(strings.TrimSpace(providerID), "codex"):
-				return "Windows ConPTY (automatic for supervised Codex)"
-			case strings.EqualFold(strings.TrimSpace(providerID), "agy"):
-				return "Windows ConPTY (automatic for supervised AGY)"
-			}
-		}
-		return "Windows ConPTY (explicit opt-in)"
+	if !shouldUseConPTY(providerID) {
+		return BackendMechanism()
 	}
-	return BackendMechanism()
+	if os.Getenv("AI_CLI_ENABLE_CONPTY") != "1" {
+		switch {
+		case strings.EqualFold(strings.TrimSpace(providerID), "codex"):
+			return "Windows ConPTY (automatic for supervised Codex)"
+		case strings.EqualFold(strings.TrimSpace(providerID), "agy"):
+			return "Windows ConPTY (automatic for supervised AGY)"
+		}
+	}
+	return "Windows ConPTY (explicit opt-in)"
 }
 
 func shouldUseConPTY(providerID string) bool {
