@@ -29,7 +29,13 @@ import {
   THEME_PRESETS,
   getThemePresetPalette,
 } from '../../design-system';
-import { useTheme, type ThemeDensity, type ThemePresetKey } from '../../design-system';
+import {
+  useTheme,
+  type ThemeDensity,
+  type ThemeFontFamily,
+  type ThemeIconStyle,
+  type ThemePresetKey,
+} from '../../design-system';
 import { useWorkspace } from '../../workspace/WorkspaceProvider';
 import { nexus } from '../../nexus/api';
 import type { IntelligenceMode, IntelligenceStatus, ProviderAccount } from '../../types';
@@ -393,6 +399,56 @@ export const SettingsSurface: React.FC<{
               </div>
 
               <ThemeAccordionSelector theme={theme} />
+            </Card>
+
+            <Card className="nx-settings-card">
+              <div className="nx-settings-card__title">
+                <Type size={17} />
+                <div>
+                  <strong>{t('settings.fontFamily', 'Fonte da interface')}</strong>
+                  <small>
+                    {t(
+                      'settings.fontFamilyDescription',
+                      'Independentemente do tema; terminal mantém sua própria tipografia.',
+                    )}
+                  </small>
+                </div>
+              </div>
+              <Segmented
+                ariaLabel={t('settings.fontFamily', 'Fonte da interface')}
+                value={theme.fontFamily}
+                onChange={(value) => theme.setFontFamily(value as ThemeFontFamily)}
+                options={[
+                  { value: 'default', label: t('settings.fontDefault', 'Padrão') },
+                  { value: 'system', label: t('settings.fontSystem', 'Sistema') },
+                  { value: 'readable', label: t('settings.fontReadable', 'Leitura') },
+                ]}
+              />
+            </Card>
+
+            <Card className="nx-settings-card">
+              <div className="nx-settings-card__title">
+                <PanelsTopLeft size={17} />
+                <div>
+                  <strong>{t('settings.iconStyle', 'Traço dos ícones')}</strong>
+                  <small>
+                    {t(
+                      'settings.iconStyleDescription',
+                      'Ajusta a espessura dos ícones Lucide sem trocar os símbolos.',
+                    )}
+                  </small>
+                </div>
+              </div>
+              <Segmented
+                ariaLabel={t('settings.iconStyle', 'Traço dos ícones')}
+                value={theme.iconStyle}
+                onChange={(value) => theme.setIconStyle(value as ThemeIconStyle)}
+                options={[
+                  { value: 'light', label: t('settings.iconLight', 'Fino') },
+                  { value: 'default', label: t('settings.iconDefault', 'Padrão') },
+                  { value: 'bold', label: t('settings.iconBold', 'Marcado') },
+                ]}
+              />
             </Card>
 
             <Card className="nx-settings-card">
