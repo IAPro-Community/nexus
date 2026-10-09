@@ -332,6 +332,12 @@ jobs:
             exit 1
           fi
       - run: go vet ./...
+      - name: Codex input safety gate (mouse, selectors and fragmented PTY traffic)
+        shell: bash
+        run: |
+          set -euo pipefail
+          go test -race -count=1 ./internal/runtime -run '^(TestTerminalInputScrubber|TestTerminalOutputScrubber|TestTerminalInputEscape|TestKeyboardModeReset)'
+          go test -race -count=1 ./internal/control/terminal -run '^(TestKeyboardModeReset|TestResetKeyboardModes|TestTTYController)'
       - uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.2
@@ -596,12 +602,20 @@ jobs:
       - name: Full Windows suite
         shell: pwsh
         run: go test -v ./...
-      - name: Codex terminal and delegation regression contracts
+      - name: Codex terminal input safety gate (Windows ConPTY)
         shell: pwsh
         run: |
-          go test -v -count=1 ./internal/runtime -run 'TestTerminal(InputScrubberDropsSGRMouseReports|InputScrubberCoalescesSplitSGRMouseReport|OutputScrubberDropsMouseTrackingNegotiation|InputScrubberCoalescesSplitArrowSequence|InputScrubberCoalescesSplitSS3ArrowSequence|InputEscapeCoalesceWindowCoversConPTYFragmentation)'
+          go test -v -count=1 ./internal/runtime -run '^(TestTerminalInputScrubber|TestTerminalOutputScrubber|TestTerminalInputEscape)'
+          if ($LASTEXITCODE -ne 0) { throw 'Codex terminal input safety gate failed' }
+          go test -v -count=1 ./internal/control/terminal -run '^(TestKeyboardModeReset|TestResetKeyboardModes|TestTTYController)'
+          if ($LASTEXITCODE -ne 0) { throw 'TTY mouse/alternate-scroll reset gate failed' }
+      - name: Codex delegation regression contracts
+        shell: pwsh
+        run: |
           go test -v -count=1 ./internal/control/driver -run 'TestCodexDriverBuildCommandIsolatesHome'
+          if ($LASTEXITCODE -ne 0) { throw 'Codex driver contract failed' }
           go test -v -count=1 ./internal/app -run 'Test(SupervisedRuntimeLabelsDoNotAuthorizeMissionPromotion|InteractiveDelegationModeFailsClosedAndHonorsExplicitOverride|ProviderLaunchFlagsAreNexusOwned)'
+          if ($LASTEXITCODE -ne 0) { throw 'Codex delegation contract failed' }
       - name: ConPTY and Named Pipe E2E
         shell: pwsh
         run: go test -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/...
