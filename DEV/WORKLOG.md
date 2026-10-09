@@ -5309,3 +5309,13 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Causa confirmada para o exit code 0 do binário de produção no smoke: a instância `nexus-desktop_1.0.0-beta.7_windows_amd64.exe` PID 2572 mantém o singleton `com.iapro.nexus.desktop`. Não encerrei esse processo; Wails trata a nova execução como segunda instância.
 - PASS — build diagnóstico usando apenas um ID Wails exclusivo manteve janela Wails e WebView2 ativos; o perfil isolado foi criado e não restaram processos. Evidência local ignorada pelo Git em `DEV/validation/local-beta/1.0.0-beta.10/45c12be785f3cfa9b503969c61a7fe98f8b220d3/windows-AMD64/desktop-native-45c12be-unique-id-smoke.txt`.
 - Atualizei o smoke PowerShell para detectar ID já ocupado e falhar com instrução clara; o job Windows passa o ID de smoke correspondente ao linker. O harness também rejeita perfil WebView2 com mais de 240 caracteres: o caminho de 287 caracteres reproduziu erro 0x8000ffff; o perfil de 171 caracteres passou. Fontes do produto não mudaram. CI hosted, tray/autostart, autenticação, assinatura/trust root e instalador mantêm NO-GO para distribuição.
+
+## 2026-10-09 — homologação Windows beta.10 e smoke NSIS/autostart — SHA 767be3b1
+
+- PASS — gate oficial `scripts/homologate-beta.ps1 -ExpectedSha 767be3b168a6d3ec7d223908e21812807486482f` em Windows AMD64; Go 1.27.2, Bun 1.3.9, Node 22.14.0, 84 arquivos/504 testes web e oito suítes browser E2E.
+- PASS — Desktop Wails/WebView2 com ID singleton isolado; SHA-256 do executável diagnóstico `C8294C6CA4DAD84F77E16FF909D539065029A34FA6034E5C6DB2776FDF62374D`.
+- PASS — instalador NSIS 3.13 com payload real: install/uninstall silenciosos, `version --json` e `doctor --json`; PATH, Desktop e entradas reais do usuário preservadas. SHA-256 do instalador não assinado `46DF989E44C588682DA221128570160E4BFBA401922731646A981A030F6B1A9F`.
+- PASS — `AutoStartManager` com AppID GUID exclusivo: valor criado, comando/argumentos conferidos e removido. O primeiro ensaio sandboxed foi bloqueado pelo acesso ao Registro; o reteste nativo isolado passou, sem usar a entrada real do Nexus.
+- Evidências locais ignoradas pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/`.
+- O branch candidato beta.10 tem 136 commits exclusivos segundo as refs locais e deve ser vinculado à release por PR. Falha DNS impediu confirmar refs/PR ao vivo. Não fazer push direto à release.
+- Tray físico, CI Windows hosted no SHA integrado, smokes autenticados e assinatura/update trust root ainda pendem. Instalador sem assinatura verificável: distribuição NO-GO. Nenhum gate Linux executado.

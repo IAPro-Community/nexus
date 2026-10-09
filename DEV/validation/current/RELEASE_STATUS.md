@@ -1,6 +1,6 @@
 # Current release status
 
-> **Atualização Windows em 2026-10-09:** gate automatizado e smoke nativo Desktop passaram no código beta.10 do SHA `45c12be785f3cfa9b503969c61a7fe98f8b220d3`; o smoke usou ID Wails exclusivo. O lançamento com o ID de produção encontrou a instância beta.7 já ativa (PID 2572) e seguiu a saída normal de segunda instância; não foi encerrada. Distribuição permanece **NO-GO** pelos gates externos/operacionais abaixo.
+> **Atualização Windows em 2026-10-09:** gate automatizado passou no SHA exato `767be3b168a6d3ec7d223908e21812807486482f`; smoke Desktop com singleton isolado, instalador NSIS real (instalar/desinstalar) e autostart com AppID GUID isolado passaram. O instalador não tem assinatura verificável. O tray nativo, CI hosted, smokes autenticados e assinatura/update trust root continuam pendentes; distribuição permanece **NO-GO**.
 
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 
@@ -8,11 +8,12 @@ CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
 CURRENT_RELEASE_BRANCH: release/v1.0.0
 CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d
 WINDOWS_HOMOLOGATION_BRANCH: fix/windows-beta10-homologation-20261008
-WINDOWS_EVIDENCE_HEAD: 45c12be785f3cfa9b503969c61a7fe98f8b220d3 (exact SHA for latest Windows automated gate)
-WINDOWS_HOMOLOGATED_SOURCE_SHA: 45c12be785f3cfa9b503969c61a7fe98f8b220d3
+WINDOWS_EVIDENCE_HEAD: 767be3b168a6d3ec7d223908e21812807486482f (exact SHA for latest Windows automated gate)
+WINDOWS_HOMOLOGATED_SOURCE_SHA: 767be3b168a6d3ec7d223908e21812807486482f
 WINDOWS_AUTOMATED_LOCAL_GATES: PASS_EXACT_SHA_WINDOWS_AMD64
-WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_WAILS_WEBVIEW2_AND_CLEANUP_ON_45C12BE_WITH_UNIQUE_ID; PRODUCTION_ID_OCCUPIED_BY_BETA7_PID_2572
-WINDOWS_NATIVE_HUD_SMOKE: PASS_VISIBLE_PANEL_AND_EXPANSION_ON_0782; CONTROLLER_SHOW_HIDE=PASS_ON_665; TRAY_UI=NOT_VERIFIED; AUTOSTART=NOT_VERIFIED
+WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_WAILS_WEBVIEW2_AND_CLEANUP_ON_767BE3B1_WITH_UNIQUE_ID; PRODUCTION_ID_OCCUPIED_BY_BETA7_PID_2572
+WINDOWS_NATIVE_HUD_SMOKE: PASS_VISIBLE_PANEL_AND_EXPANSION_ON_0782; CONTROLLER_SHOW_HIDE=PASS_ON_665; AUTOSTART_REGISTRY_ISOLATED=PASS_ON_767BE3B1; TRAY_UI=NOT_VERIFIED
+WINDOWS_NSIS_INSTALLER_SMOKE: PASS_INSTALL_AND_UNINSTALL_ON_767BE3B1; UNSIGNED
 WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: PASS_NO_LITERAL_ARROWS_IN_CODEX_0782_AND_AGY_665; NO_PROMPT_SENT; AUTHENTICATED_SESSION_PENDING
 WINDOWS_HOSTED_CI_SAME_SHA: NOT_VERIFIED
 WINDOWS_SIGNED_INSTALLER_AND_UPDATE_TRUST_ROOT: BLOCKED_TOOLS_AND_SECRETS_UNAVAILABLE
@@ -20,7 +21,9 @@ WINDOWS_PROVIDER_MISSION_VOICE_UI_SMOKES: PENDING_AUTHENTICATED_OR_INTERACTIVE_E
 WINDOWS_NATIVE_PROJECT_CREATE_UI: PASS_HTTP_201_ON_WAILS_ORIGIN_0782
 WINDOWS_BETA7_REQUEST_MATCH: NO_VERSION_IS_BETA10
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
-CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/45c12be785f3cfa9b503969c61a7fe98f8b220d3/windows-AMD64/ (latest local ignored gate and Desktop smoke); controller-smoke evidence remains under 665103a0 and physical HUD captures under 0782f876
+CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/ (latest local ignored gate, Desktop, NSIS installer and autostart smoke); controller-smoke evidence remains under 665103a0 and physical HUD captures under 0782f876
+LIVE_GITHUB_REMOTE_CHECK: UNAVAILABLE_DNS_FAILURE_2026-10-09; local origin refs last fetched earlier
+WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the PR candidate for release/v1.0.0; no PR was created or confirmed in this continuation
 PREVIOUS_VALIDATION_RECORDS: HISTORICAL_ONLY
 
 ## Legacy Windows beta.7 baseline (historical)

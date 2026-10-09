@@ -1648,13 +1648,15 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-09T05:54:48Z
+## Frontend gate — 2026-10-09T06:28:09Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 
-## Smoke nativo Windows beta.10 — 2026-10-09
+## Smokes nativos Windows beta.10 — fonte `767be3b1` — 2026-10-09
 
-- PASS — gate automatizado Windows AMD64 no SHA `45c12be785f3cfa9b503969c61a7fe98f8b220d3`; Go, web, oito suítes E2E browser, Axe/visual e builds CLI/Desktop/HUD.
-- PASS — Desktop Wails/WebView2 em build diagnóstico com `com.iapro.nexus.desktop.windows-smoke`; limpeza de processos confirmada. O ID de produção está ocupado por uma instância beta.7 ativa e foi preservado.
-- PASS — o harness agora detecta singleton ocupado e rejeita perfil WebView2 acima de 240 caracteres antes de iniciar o smoke.
-- Distribuição segue NO-GO por CI Windows hosted, tray/autostart, smokes autenticados, instalador e assinatura/trust root. Detalhes em [`DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`](validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md).
+- PASS — gate oficial Windows AMD64 no SHA exato `767be3b168a6d3ec7d223908e21812807486482f`: Go, lint/segurança, web (84 arquivos/504 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD.
+- PASS — Desktop Wails/WebView2 e cleanup com ID singleton de teste exclusivo.
+- PASS — NSIS com binários do SHA: instalação e desinstalação silenciosas; PATH e atalho reais inalterados. Instalador sem assinatura verificável.
+- PASS — autostart via Registro com AppID GUID de teste; comando conferido e valor removido.
+- PENDENTE — interação física do menu/ícone tray, CI Windows hosted no SHA integrado, smokes autenticados e assinatura/update trust root. Distribuição permanece NO-GO.
+- A branch beta.10 é candidata a PR contra `release/v1.0.0`; não fazer push direto para a release. A consulta viva ao GitHub falhou por DNS. O candidato é `1.0.0-beta.10`, diferente do pedido original beta.7/d14154d2.

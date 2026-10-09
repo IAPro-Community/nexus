@@ -1,5 +1,13 @@
 # Handoff
 
+## Atualização — homologação Windows beta.10 no SHA 767be3b1 — 2026-10-09
+
+Branch `fix/windows-beta10-homologation-20261008`; `VERSION=1.0.0-beta.10`; código validado no SHA exato `767be3b168a6d3ec7d223908e21812807486482f`. O gate oficial Windows AMD64 passou com Go 1.27.2, Bun 1.3.9 e Node 22.14.0: Go fmt/vet/lint/vulncheck/test, 84 arquivos/504 testes web, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD.
+
+Também passaram: Desktop Wails/WebView2 com ID singleton exclusivo; instalador NSIS com payload desse SHA em instalação e desinstalação silenciosas; autostart com AppID GUID isolado, valor Run conferido e removido. PATH/atalho reais do usuário ficaram inalterados. As evidências locais estão em `DEV/validation/local-beta/1.0.0-beta.10/767be3b168a6d3ec7d223908e21812807486482f/windows-AMD64/` (ignoradas pelo Git). O instalador é não assinado; tray físico, CI Windows hosted, providers/Mission/Voice autenticados e trust root seguem pendentes, portanto tag/distribuição continuam NO-GO.
+
+O branch beta.10 deve ser vinculado a `release/v1.0.0` por PR. A comparação pelas refs locais mostra 136 commits exclusivos do candidato e nenhum commit exclusivo da ponta cached da release. GitHub ficou inacessível por falha DNS nesta continuidade; o estado vivo da branch/PR não foi confirmado. Nenhum push direto à release nem gate Linux.
+
 ## Atualização — smoke Desktop Windows beta.10 com singleton isolado — 2026-10-09
 
 Branch `fix/windows-beta10-homologation-20261008`, `VERSION=1.0.0-beta.10`. O gate automatizado completo passou no Windows AMD64 no SHA exato `45c12be785f3cfa9b503969c61a7fe98f8b220d3` (Go 1.27.2, Bun 1.3.9, Node 22.14.0; Go, lint/segurança, 84 arquivos/504 testes web, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD).
