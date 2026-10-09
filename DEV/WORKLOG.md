@@ -5259,3 +5259,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - PASS — gates oficiais Go, frontend, oito E2E browser, Axe/visual, CLI/Desktop/HUD; Desktop e HUD nativos passaram em perfis isolados.
 - Auditoria confirmou que o código relevante da branch beta.7 já está refletido na árvore atual; não foi necessário importar os relatórios beta.7. A branch Windows beta.10 segue para PR contra `release/v1.0.0`.
 - Distribuição segue NO-GO por CI hosted exact-SHA e gates operacionais/assinatura/instalador pendentes. Ver `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
+
+## 2026-10-09 — continuidade do smoke Desktop Windows beta.10
+
+- No binário Desktop Windows construído no SHA validado `eedf31659b0245cf7690d556c32ee6e0040ae588`, a janela Wails `IAPro Nexus` e o filho WebView2 `Chrome_WidgetWin_0` permaneceram detectáveis por 11 s em perfil temporário isolado. SHA-256 do binário: `fd1dfb3b0f40cdd95ccc07d820f36cf68376c209c2473d181c342925411e0486`.
+- A evidência local `desktop-native-eedf3165.txt` registra PASS. O runner terminou com código 1 na etapa de cleanup porque `Get-CimInstance` não está disponível para este cliente; uma inspeção posterior não encontrou processos `nexus-desktop` ou `msedgewebview2`. A janela foi iniciada oculta: isto confirma startup, não visualização ou fluxo interativo do Project Hub.
+- O veredito de distribuição não muda: HUD nativo ainda tem composição DWM inconclusiva e permanecem pendentes a interação do Project Hub, CI Windows hosted, assinatura/trust root e instalador final.
