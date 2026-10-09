@@ -2,9 +2,11 @@
 
 ## Atualização de homologação Windows beta.10 — 2026-10-09
 
-Candidato homologado localmente no Windows AMD64: branch `fix/windows-beta10-homologation-20261008`, SHA `638cfb3bbb7aa9a647d6802964e7e4ab794cc786`, `VERSION=1.0.0-beta.10`. Passaram os gates oficiais Go/Web/E2E e builds CLI/Desktop/HUD no SHA exato; os smokes nativos Desktop/WebView2 (11 s) e HUD (8 s) também passaram com IDs/perfis isolados. Relatório e limites: [`DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`](../validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md).
+Candidato local no Windows AMD64: branch `fix/windows-beta10-homologation-20261008`, SHA `3a09b5f0035cde09931b8f8eef1c783f49de47e0`, `VERSION=1.0.0-beta.10`. O gate automatizado oficial passou no SHA exato.
 
-A ponta remota `release/v1.0.0=deca290b` é ancestral, mas o candidato ainda requer PR e CI Windows hosted no SHA integrado. Smokes manuais autenticados/interativos, CI exact-SHA, assinatura/trust root e instalador final permanecem pendentes. Tag e distribuição: NO-GO. Escopo desta continuidade: Windows; nenhum gate Linux foi executado.
+Desktop abriu e renderizou o Project Hub; o teste de servidor comprovou criação autenticada via host Wails e bloqueio de origins maliciosos. HUD nativo abriu WebView2 e a API retornou `enabled=true`/estado presente, mas sua captura ficou transparente; projeção e controles nativos continuam pendentes. Browser HUD E2E passou. Evidências e limites: [`DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`](../validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md).
+
+Refs remotas: release `deca290b`, branch Windows `3a09b5f0`, integração `9aad7444`. A branch Windows precisa de PR para `release/v1.0.0`; nenhuma tag ou publicação. CI Windows hosted, smokes autenticados/interativos, assinatura/trust root e instalador continuam pendentes. O candidato atual é beta.10, não beta.7. Nenhum gate Linux foi executado.
 
 ## Programa ativo — Nexus 1.0 Product Closure — 2026-09-20
 

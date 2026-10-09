@@ -3,13 +3,13 @@
 ## Estado
 
 - Produto: IAPro Nexus Workspace OS.
-- Versão-fonte em homologação: `1.0.0-beta.7` (`VERSION`).
+- Versão-fonte neste checkout em homologação: `1.0.0-beta.10` (`VERSION`); o pedido beta.7/d14154d2 é um SHA/candidato separado.
 - O launcher persiste a identidade autoritativa do `SessionHost` após o
   handshake (`PID`, `HostPID`, `HostGeneration` e fingerprints); isso evita que
   o registro final apague a geração usada pelo attach.
 - A instalação local reinicia apenas o `nexus web` associado ao binário
   instalado, evitando hosts Web em memória com executável `(deleted)`.
-- Branch ativa neste checkout Windows: release/v1.0.0, HEAD-base 52f35c04181b85379219ab55fc3192c63a5440a8; a árvore suja contém ajustes locais de homologação. Não há merge Beta 7 pendente. Gates Windows locais passaram; NSIS exato compilado e variante isolada com payload real passaram; Desktop Wails/WebView2 validado por 10s com cleanup limitado ao perfil Nexus. Exact-SHA, gate docs-verify (manifesto visual stale em 2892f301), renderização visual, CI nativo, Authenticode e update trust root continuam NO-GO; host sem runner Windows, Windows SDK/signtool e certificado.
+- Checkout Windows atual: branch `fix/windows-beta10-homologation-20261008` em `3a09b5f0035cde09931b8f8eef1c783f49de47e0`; gate automatizado local passou no SHA exato. O remoto `release/v1.0.0` está em `deca290b` e requer PR. Desktop nativo carregou o Hub; teste de origem Wails passou. HUD nativo abriu janela/API, mas a captura permaneceu transparente. HUD visual/interações, smokes autenticados, CI Windows hosted, assinatura/update trust root e instalador final seguem NO-GO. Nenhum gate Linux nesta continuação.
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.
 - Motor de Flags Canônicas e Normalização (`internal/control/flags`): mapeamento transparente de `--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan` e suporte a `Merged Help` (`nexus <provider> --help`).
@@ -116,4 +116,4 @@
 
 ## Estado Windows atual — Nexus 1.0.0-beta.10 — 2026-10-09
 
-O SHA `638cfb3bbb7aa9a647d6802964e7e4ab794cc786` passou os gates automatizados Windows AMD64 exact-SHA, com 84 arquivos/503 testes web, oito suítes browser E2E, Axe/visual, 66 pacotes Go PASS e smokes nativos Desktop/HUD com perfis isolados. O remoto canônico `release/v1.0.0` continua em `deca290b` e é ancestral do candidato; falta vincular a branch beta.10 via PR e repetir o workflow hosted no SHA integrado. CI, ConPTY manual, provider/Mission/Voice UI, captura visual Desktop, Authenticode, trust root e instalador final continuam pendentes. O veredito de distribuição permanece NO-GO. Nenhum gate Linux foi executado nesta continuação.
+O gate automatizado passou no Windows AMD64 em `3a09b5f0035cde09931b8f8eef1c783f49de47e0` (`1.0.0-beta.10`): 66 pacotes Go, 84 arquivos/503 testes web e oito suítes browser E2E. O Desktop carregou o Project Hub; a captura nativa do HUD ficou transparente apesar da API ativa, então a projeção HUD permanece inconclusiva. A branch Windows precisa de PR para `release/v1.0.0` (`deca290b`); depois da integração, repetir CI hosted e fechar os smokes interativos/autenticados, assinatura, trust root e instalador. O candidato é beta.10, distinto do pedido beta.7/d14154d2. Nenhum gate Linux foi executado nesta continuação.

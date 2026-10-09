@@ -1,5 +1,21 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+## Revalidação posterior Windows — 2026-10-09 — SHA `3a09b5f0035cde09931b8f8eef1c783f49de47e0`
+
+Esta é a evidência mais recente desta branch. `VERSION=1.0.0-beta.10`; ela não substitui a homologação beta.7 pedida originalmente.
+
+- **Gate local Windows AMD64: PASS no SHA exato.** `scripts/homologate-beta.ps1 -ExpectedSha 3a09b5f0` fechou: PowerShell 5.1, docs-verify, Bun frozen + `quality:full` (84 arquivos/503 testes), Go fmt/vet/lint/security/testes (66 pacotes PASS), preflights, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Go 1.27.2, Bun 1.3.9, Node 22.14.0. Evidências: `DEV/validation/local-beta/1.0.0-beta.10/3a09b5f0035cde09931b8f8eef1c783f49de47e0/windows-AMD64/`.
+- **Origin Wails e criação pelo servidor: PASS.** `TestWindowsWailsVirtualHostSupportsAuthenticatedProjectCreation` retornou HTTP 201 para `Host: wails.localhost` / `Origin: http://wails.localhost` e HTTP 403 para origins maliciosos. A consulta foi repetida fora da sandbox porque ela bloqueava localhost. A janela Desktop nativa carregou o Project Hub; a submissão do formulário pela UI não foi concluída nesta automação.
+- **Desktop visível: PASS de carregamento.** A janela `IAPro Nexus` e `Chrome_WidgetWin_0` abriram em perfil limpo; a captura `desktop-hub-loaded.png` mostra o Project Hub renderizado. Evidência local ignorada pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/3a09b5f0035cde09931b8f8eef1c783f49de47e0/windows-AMD64/`.
+- **HUD nativo: inicialização/API PASS; projeção visual inconclusiva.** A janela `Nexus HUD` e WebView2 abriram; com `NEXUS_ENABLE_HUD=1`, a API autenticada no host Wails retornou HTTP 200, `enabled=true` e estado presente. A captura após 12 s ainda mostra uma superfície transparente sem o painel. Não contar show/hide, autostart ou projeção nativa como aprovados. O E2E browser do HUD passou.
+- Os dois ajustes de homologação desta branch já foram commitados e enviados: `2a78056c` (BOM para parser Windows PowerShell 5.1) e `3a09b5f0` (preservar stdout/stderr e exit code real de Bun no PowerShell 5.1).
+
+Refs remotas confirmadas em `git ls-remote`: `release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d`, `fix/windows-beta10-homologation-20261008=3a09b5f0035cde09931b8f8eef1c783f49de47e0` e `integration/v1.0.0-beta10-pr45-pr46-20261008=9aad7444afb7581fd1238541ee0c6909211a3e78`. Nenhuma branch nova foi criada nesta continuação. A branch beta.10 de homologação precisa de PR para `release/v1.0.0`; não houve push direto à release. A tag remota `v1.0.0-beta.7` não apareceu na consulta.
+
+**Distribuição: NO-GO.** Pendem confirmação visual/interativa do HUD nativo, submissão do Project Hub pela UI, smokes autenticados/interativos de providers/Mission/Voice, workflow hosted Windows no SHA integrado, assinatura/update trust root e instalador final. `gh` e ferramentas/segredos de assinatura não estão disponíveis. O SHA solicitado originalmente para beta.7 (`d14154d2`) e o checkout atual beta.10 são candidatos distintos. Nenhum gate Linux foi executado.
+
+## Registro inicial — gate Windows no SHA `638cfb3b`
+
 | Campo | Valor |
 | --- | --- |
 | GIT_SHA | `638cfb3bbb7aa9a647d6802964e7e4ab794cc786` |

@@ -1,5 +1,14 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-09 — Revalidação Windows beta.10 no SHA final da branch
+
+- PASS — `scripts/homologate-beta.ps1 -ExpectedSha 3a09b5f0` no Windows AMD64; Go 1.27.2, Bun 1.3.9, Node 22.14.0; 66 pacotes Go PASS, 84 arquivos/503 testes web, oito E2E browser e builds CLI/Desktop/HUD.
+- PASS — PowerShell 5.1, docs-verify, lint/security, regressões control/runtime e Agent Interop/OpenCode.
+- PASS — Project Hub abriu na janela Desktop nativa. `TestWindowsWailsVirtualHostSupportsAuthenticatedProjectCreation` criou projeto pelo origin Wails autenticado (201) e bloqueou origins maliciosos (403).
+- PARCIAL — HUD nativo abriu janela/WebView2 e API autenticada retornou 200 com `enabled=true` e estado presente; a captura após 12 s ficou transparente. HUD browser E2E passou; projeção/interação HUD nativa não está aprovada.
+- NO-GO — branch beta.10 requer PR para `release/v1.0.0`; refs consultadas: release `deca290b`, branch Windows `3a09b5f0`, integração `9aad7444`. Pendem visual HUD, smokes manuais autenticados, CI Windows hosted, assinatura/trust root e instalador. `VERSION=1.0.0-beta.10`; não fecha a solicitação beta.7 no SHA `d14154d2`.
+- Nenhum gate Linux executado. Relatório: `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
+
 ## 2026-10-08 — Homologação Windows beta.10, fix da resolução Composer
 
 - PASS — gate `scripts/homologate-beta.ps1 -ExpectedSha cd5302f9` no Windows AMD64, código `cd5302f96edf1d1b857e2fe77dd3ca033996995f`, `VERSION=1.0.0-beta.10`.
@@ -1597,14 +1606,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-09T01:40:27Z
+## Frontend gate — 2026-10-09T02:25:13Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-
-## Homologação Windows beta.10 exact-SHA — 2026-10-09
-
-- PASS — `638cfb3bbb7aa9a647d6802964e7e4ab794cc786`, Windows AMD64, Go 1.27.2, Bun 1.3.9, Node 22.14.0; gate oficial completo, 66 pacotes Go PASS/0 falhas/18 skips específicos de Windows e 84 arquivos/503 testes frontend.
-- PASS — oito suítes browser E2E, Axe/visual, builds CLI/Desktop/HUD e smokes Desktop Wails/WebView2 por 11 s e HUD por 8 s com IDs e perfis isolados; hashes registrados no relatório e evidência local.
-- Gemini `--version` falhou no wrapper Node 18 do host e permanece `WARN`; nenhum prompt foi enviado. A tentativa manual Codex/setas continua inconclusiva; regressões automatizadas ConPTY passaram.
-- `origin/release/v1.0.0=deca290b` é ancestral do candidato, mas ainda não aponta para o SHA homologado. A branch beta.10 precisa PR; não houve push direto à release canônica.
-- Distribuição NO-GO: CI hosted same-SHA, smokes interativos autenticados, assinatura, chave de atualização e instalador final continuam pendentes. Nenhum gate Linux executado.

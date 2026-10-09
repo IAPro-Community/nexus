@@ -1,7 +1,7 @@
 # Frontend verification report
 
-- Generated: `2026-10-09T01:40:27Z`
-- Branch: `fix/windows-beta10-homologation-20261008` @ `638cfb3b`
+- Generated: `2026-10-09T02:25:13Z`
+- Branch: `fix/windows-beta10-homologation-20261008` @ `3a09b5f0`
 - Verdict: **PASS** (10 pass / 0 fail)
 - Dirty web/dist tree: no
 
@@ -9,15 +9,15 @@
 
 | Gate | Hard | Status | Duration | Detail |
 | --- | --- | --- | --- | --- |
-| Prettier (`prettier --check`) | yes | PASS | 5110ms | Checking formatting...<br>All matched files use Prettier code style! |
-| TypeScript (`tsc --noEmit`) | yes | PASS | 8230ms | ok |
-| ESLint (`eslint src`) | yes | PASS | 5066ms | ok |
-| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 1401ms | ok |
-| Null-safe API array access | yes | PASS | 84ms | sem .length/.map direto em campos nullable conhecidos |
-| Vitest (`vitest run`) | yes | PASS | 8775ms | stderr | src/features/projects/projectDirectoryPicker.test.ts<br><br>⚠️ Browser Environment Detected <br><br>Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.<br>More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development<br><br><br>stderr | src/platform/platformBridge.test.ts<br><br>⚠️ Browser Environment Detected <br><br>Only UI previews are available in the browser. For full functionality, please run th |
-| i18n catalog parity | yes | PASS | 1273ms | RUN  v3.2.7 C:/Users/kiver/AppData/Local/Temp/nexus-windows-release-95c7121d/web<br><br> ✓ src/i18n/i18n.test.ts (7 tests) 10ms<br><br> Test Files  1 passed (1)<br>      Tests  7 passed (7)<br>   Start at  22:40:56<br>   Duration  699ms (transform 198ms, setup 0ms, collect 282ms, tests 10ms, environment 0ms, prepare 158ms) |
-| Build + embed (`node scripts/build.mjs`) | yes | PASS | 1622ms | Nexus web build complete: C:\Users\kiver\AppData\Local\Temp\nexus-windows-release-95c7121d\web\dist<br>≈ tailwindcss v4.3.3<br><br>Done in 218ms<br><br>  dist\bundle.js                                  375.1kb<br>  dist\chunks\chunk-OTEGMETV.js                   348.8kb<br>  dist\chunks\chunk-ZWPOKFBC.js                   280.8kb<br>  dist\chunks\chunk-IBP4DE34.js                   226.1kb<br>  dist\chunks\FlowRunsHistorySurface-X7KPHEGA.js  221.3kb<br>  ...and 58 more output files...<br><br>Don |
-| Embed sync (web/dist ≡ internal/.../embedded) | yes | PASS | 93ms | bundles idênticos (384074 bytes) |
+| Prettier (`prettier --check`) | yes | PASS | 4914ms | Checking formatting...<br>All matched files use Prettier code style! |
+| TypeScript (`tsc --noEmit`) | yes | PASS | 7618ms | ok |
+| ESLint (`eslint src`) | yes | PASS | 4568ms | ok |
+| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 1282ms | ok |
+| Null-safe API array access | yes | PASS | 78ms | sem .length/.map direto em campos nullable conhecidos |
+| Vitest (`vitest run`) | yes | PASS | 6781ms | stderr | src/platform/platformBridge.test.ts<br><br>⚠️ Browser Environment Detected <br><br>Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.<br>More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development<br><br><br>stderr | src/features/projects/projectDirectoryPicker.test.ts<br><br>⚠️ Browser Environment Detected <br><br>Only UI previews are available in the browser. For full functionality, please run th |
+| i18n catalog parity | yes | PASS | 1169ms | RUN  v3.2.7 C:/Users/kiver/AppData/Local/Temp/nexus-windows-release-95c7121d/web<br><br> ✓ src/i18n/i18n.test.ts (7 tests) 13ms<br><br> Test Files  1 passed (1)<br>      Tests  7 passed (7)<br>   Start at  23:25:39<br>   Duration  617ms (transform 176ms, setup 0ms, collect 246ms, tests 13ms, environment 0ms, prepare 134ms) |
+| Build + embed (`node scripts/build.mjs`) | yes | PASS | 1500ms | Nexus web build complete: C:\Users\kiver\AppData\Local\Temp\nexus-windows-release-95c7121d\web\dist<br>≈ tailwindcss v4.3.3<br><br>Done in 202ms<br><br>  dist\bundle.js                                  375.1kb<br>  dist\chunks\chunk-OTEGMETV.js                   348.8kb<br>  dist\chunks\chunk-ZWPOKFBC.js                   280.8kb<br>  dist\chunks\chunk-IBP4DE34.js                   226.1kb<br>  dist\chunks\FlowRunsHistorySurface-X7KPHEGA.js  221.3kb<br>  ...and 58 more output files...<br><br>Don |
+| Embed sync (web/dist ≡ internal/.../embedded) | yes | PASS | 86ms | bundles idênticos (384074 bytes) |
 | Critical UI markers in bundle | yes | PASS | 2ms | marcadores críticos presentes (7) |
 
 ## Residual risks / next operator steps

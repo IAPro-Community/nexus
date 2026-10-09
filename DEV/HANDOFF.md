@@ -2,15 +2,13 @@
 
 ## Estado atual — homologação Windows beta.10 — 2026-10-09
 
-Código validado no Windows AMD64: SHA `638cfb3bbb7aa9a647d6802964e7e4ab794cc786`, branch `fix/windows-beta10-homologation-20261008`, `VERSION=1.0.0-beta.10`. O gate oficial `scripts/homologate-beta.ps1 -ExpectedSha 638cfb3bbb7aa9a647d6802964e7e4ab794cc786` terminou PASS no mesmo SHA. Evidências locais: `DEV/validation/local-beta/1.0.0-beta.10/638cfb3bbb7aa9a647d6802964e7e4ab794cc786/windows-AMD64/`; relatório: `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
+Candidato atual: branch `fix/windows-beta10-homologation-20261008`, SHA exato `3a09b5f0035cde09931b8f8eef1c783f49de47e0`, `VERSION=1.0.0-beta.10`. O gate oficial Windows AMD64 passou nesse SHA, com 66 pacotes Go, 84 arquivos/503 testes web, oito E2E browser, Axe/visual e builds CLI/Desktop/HUD. Go 1.27.2, Bun 1.3.9 e Node 22.14.0.
 
-Passaram Go fmt/vet/lint/security/testes (66 pacotes PASS, 18 skips específicos de plataforma, zero falhas), Bun frozen + `quality:full` (84 arquivos/503 testes), oito suítes browser E2E, Axe/visual, regressões control/runtime e builds CLI/Desktop/HUD. Go 1.27.2, Bun 1.3.9 e Node 22.14.0 foram usados. Gemini permanece `WARN` quando seu wrapper falha em `--version`; nenhum prompt foi enviado.
+O Desktop nativo abriu o Project Hub e o teste autenticado do servidor comprovou criação por `wails.localhost` (HTTP 201) e rejeição de origins maliciosos (403). O submit da UI não foi automatizado. O HUD nativo abriu Wails/WebView2 e sua API retornou 200, `enabled=true` e estado presente; a captura continuou transparente, portanto a projeção e os controles nativos ainda não estão homologados. O E2E browser do HUD passou.
 
-Smokes nativos com IDs e perfis isolados: Desktop Wails/WebView2 PASS por 11 s (SHA-256 `9e6be1b05452111fb1954250c305e6d52c6bba2ffacd9ce0dec05dda8cb6f032`); HUD PASS por 8 s com perfil WebView2 (SHA-256 `41e1f0d0522a685c876b2530548ab907073c9d320d057378cf284e79226c28e1`). São verificações de inicialização/perfil, sem renderização visível ou interação de controles.
+Refs remotas confirmadas: `release/v1.0.0=deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d`, branch Windows `3a09b5f0035cde09931b8f8eef1c783f49de47e0`, integração beta.10 `9aad7444afb7581fd1238541ee0c6909211a3e78`. Nenhuma branch nova foi criada nesta continuação; a branch Windows precisa de PR para `release/v1.0.0`. Nenhum push direto para release, tag ou publicação foi feito.
 
-A ponta remota `release/v1.0.0=deca290b` é ancestral do SHA homologado, mas ainda não recebeu o candidato. A branch de homologação deve ser vinculada por PR; o compare URL está no relatório. A auditoria da branch beta.7 não encontrou código faltante para transplantar: o cherry-pick do commit de código ficou vazio frente à árvore atual; os commits restantes são documentos beta.7. O histórico de integração beta.10 não requer merge em bloco.
-
-Pendências Windows para distribuição: CI hosted no mesmo SHA; navegação manual ConPTY/Codex (a tentativa anterior foi inconclusiva e sem prompt; regressões automatizadas passaram), Mission/provider autenticado e custo/isolamento, OpenCode UI, HUD show/hide/autostart, Voice, captura visual Desktop, Authenticode, trust root de atualização e build/smoke do instalador final. `gh`, `signtool.exe`, `makensis.exe` e credenciais correspondentes não existem neste host. Manter tag e distribuição em NO-GO. Nenhum gate Linux foi executado nesta continuação.
+Manter **NO-GO para tag e distribuição** até projetar/verificar o HUD nativo, fechar smokes interativos/autenticados, CI Windows hosted no SHA integrado, assinatura/update trust root e instalador final. `VERSION` é beta.10, distinto da solicitação original beta.7/d14154d2. Nenhum gate Linux executado. Veja `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
 
 ## Registro histórico — homologação Windows beta.7 — 2026-10-08
 

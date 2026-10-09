@@ -1,5 +1,13 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-09 — Continuidade de homologação Windows beta.10 @ 3a09b5f0
+
+- Revalidação exata Windows AMD64: `3a09b5f0035cde09931b8f8eef1c783f49de47e0`, `VERSION=1.0.0-beta.10`. Gate oficial PASS: PowerShell 5.1, docs, Go fmt/vet/lint/security/testes (66 pacotes), Bun `quality:full` (84 arquivos/503 testes), oito browser E2E, Axe/visual, builds CLI/Desktop/HUD. Nenhum gate Linux.
+- Smoke Desktop visível carregou o Project Hub; teste `TestWindowsWailsVirtualHostSupportsAuthenticatedProjectCreation` passou no host real: origin Wails autenticado criou projeto (201), origins maliciosos foram rejeitados (403).
+- Smoke HUD nativo: Wails/WebView2 e API autenticada 200 (`enabled=true`, estado presente); captura após 12s ficou transparente. Projeção e interações HUD nativas permanecem pendentes, embora o browser HUD E2E passe.
+- Corrigidos e já enviados na branch os bugs do gate Windows: BOM no `install.ps1` para Windows PowerShell 5.1 (`2a78056c`) e captura correta de stderr/exit code em Bun no `homologate-beta.ps1` (`3a09b5f0`).
+- `git ls-remote` confirmou release `deca290b`, branch Windows `3a09b5f0`, integração `9aad7444`; nenhuma branch nova nesta continuação. A branch Windows requer PR para a release. Tag e distribuição permanecem NO-GO; o checkout é beta.10, não o candidato beta.7/d14154d2 solicitado inicialmente.
+
 ## 2026-10-09 — Homologação Windows beta.10 @ 226d7b57
 
 - O gate oficial Windows AMD64 passou no SHA exato `226d7b57a279a5c91421fb7dc790e778220417d4`: Go fmt/vet/lint/security/testes; Bun frozen + `quality:full` (84 arquivos/503 testes); oito E2E browser, acessibilidade/visual; builds CLI/Desktop/HUD.
