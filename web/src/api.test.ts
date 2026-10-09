@@ -6,6 +6,7 @@ import {
   getDesktopWebSocketBaseUrl,
   initSession,
   request,
+  rotateSession,
   setCSRFToken,
   setDesktopAuth,
 } from './api';
@@ -65,6 +66,83 @@ describe('api request layer', () => {
     );
 
     await expect(api.getWorkspaces()).rejects.toThrow('authentication required');
+  });
+
+  it('recovers a stale 401 after a concurrent cookie rotation without logging out', async () => {
+    const expired = vi.fn();
+    vi.stubGlobal('window', { dispatchEvent: expired });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        json: () => Promise.resolve({ error: 'authentication required' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ authenticated: true, csrf_token: 'rotated-csrf' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([{ path: '/demo' }]),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(api.getWorkspaces()).resolves.toEqual([{ path: '/demo' }]);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/session');
+    expect(expired).not.toHaveBeenCalled();
+  });
+
+  it('stops after a failed session probe and never loops on persistent 401', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        json: () => Promise.resolve({ error: 'authentication required' }),
+      })
+      .mockResolvedValueOnce({ ok: false, status: 401 });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(api.getWorkspaces()).rejects.toMatchObject({ status: 401 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not declare logout when session rotation receives a temporary 503', async () => {
+    const expired = vi.fn();
+    vi.stubGlobal('window', { dispatchEvent: expired });
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: false, status: 503 });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(rotateSession()).rejects.toThrow('HTTP 503');
+    expect(expired).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('restores a valid session when another tab rotated the cookie first', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            csrf_token: 'other-tab-csrf',
+            expires_at: '2026-10-09T18:00:00Z',
+          }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(rotateSession()).resolves.toMatchObject({
+      authenticated: true,
+      csrf_token: 'other-tab-csrf',
+    });
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/session/rotate');
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/session');
   });
 
   it('preserves stable API error codes for the shared request layer', async () => {
@@ -189,6 +267,97 @@ describe('api request layer', () => {
     expect(fetchMock.mock.calls[0][1].body).toBe(JSON.stringify({ token: 'bootstrap-token' }));
     expect(replaceState).toHaveBeenCalledWith(null, '', '/');
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('never blocks Wails bootstrap when the embedded window has no hostname', async () => {
+    const bridge: PlatformBridge = {
+      kind: 'desktop',
+      getCapabilities: () => ({
+        native: true,
+        filePicker: true,
+        folderPicker: true,
+        notifications: false,
+        tray: false,
+        nativeMenus: false,
+        deepLinks: false,
+        autoStart: false,
+        windowManagement: true,
+      }),
+      getBootstrapInfo: async () => ({
+        serverUrl: 'http://127.0.0.1:43123',
+        sessionToken: 'desktop-session',
+        csrfToken: 'desktop-csrf',
+      }),
+      selectDirectory: async () => null,
+      selectFile: async () => null,
+      showNotification: async () => undefined,
+      openExternal: async () => undefined,
+      getSystemTheme: async () => 'unknown',
+    };
+    setPlatformBridge(bridge);
+    vi.stubGlobal('window', { go: {}, location: { protocol: 'wails:' } });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ authenticated: true, csrf_token: 'desktop-csrf' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(initSession()).resolves.toMatchObject({ authenticated: true });
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/session', {
+      headers: { Accept: 'application/json', Authorization: 'Bearer desktop-session' },
+    });
+  });
+
+  it('allows HTTPS tunnel bootstrap before checking an existing browser cookie', async () => {
+    const replaceState = vi.fn();
+    vi.stubGlobal('window', {
+      location: {
+        hash: '#nexus_bootstrap=remote-invite',
+        pathname: '/',
+        search: '',
+        protocol: 'https:',
+        hostname: 'example.trycloudflare.com',
+      },
+      history: { replaceState },
+    });
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          authenticated: true,
+          csrf_token: 'remote-csrf',
+          expires_at: '2026-10-09T00:00:00Z',
+        }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(initSession()).resolves.toMatchObject({
+      authenticated: true,
+      csrf_token: 'remote-csrf',
+    });
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/auth/bootstrap');
+    expect(replaceState).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses plaintext LAN bootstrap and scrubs invite fragment without sending credentials', async () => {
+    const replaceState = vi.fn();
+    vi.stubGlobal('window', {
+      location: {
+        hash: '#nexus_bootstrap=secret',
+        pathname: '/',
+        search: '',
+        protocol: 'http:',
+        hostname: '192.168.0.33',
+      },
+      history: { replaceState },
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(initSession()).resolves.toMatchObject({ authenticated: false });
+    expect(replaceState).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('keeps desktop bootstrap API calls same-origin inside the Wails webview', async () => {

@@ -278,7 +278,8 @@ export const WorkspaceSurfaceHost: React.FC<{
             delete nextData.initialInput;
             updateSurface?.(surface.id, { data: nextData });
           }}
-          onRuntimeChanged={async () => {
+          onRuntimeChanged={async (nextTitle) => {
+            updateSurface?.(surface.id, { title: nextTitle });
             await refreshGlobal();
           }}
           onRestart={async () => {
@@ -448,13 +449,7 @@ export const WorkspaceSurfaceHost: React.FC<{
     if (surface.type === 'sessions') return <SessionsSurface agents={agents} />;
 
     if (surface.type === 'settings')
-      return (
-        <SettingsSurface
-          onTour={onTour}
-          initialTab={settingsInitialTab}
-          projectId={project.id}
-        />
-      );
+      return <SettingsSurface onTour={onTour} initialTab={settingsInitialTab} projectId={project.id} />;
 
     if (surface.type === 'legacy-providers') {
       return (
@@ -489,6 +484,7 @@ export const WorkspaceSurfaceHost: React.FC<{
           liveTitleKey={surfaceViewId(surface)}
           onUpdateTitle={async (id, title) => {
             await api.updateRuntimeTitle(id, title);
+            updateSurface?.(surface.id, { title });
             await refreshGlobal();
           }}
         />

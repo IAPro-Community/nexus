@@ -90,9 +90,9 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
           className={`nx-uui-notification__icon-wrap nx-uui-notification__icon-wrap--${isApproval ? 'rose' : 'amber'}`}
         >
           {isApproval ? (
-            <AlertCircle className="nx-uui-notification__icon text-rose-400" size={20} />
+            <AlertCircle className="nx-uui-notification__icon text-[var(--nx-danger)]" size={20} />
           ) : (
-            <HelpCircle className="nx-uui-notification__icon text-amber-400" size={20} />
+            <HelpCircle className="nx-uui-notification__icon text-[var(--nx-warning)]" size={20} />
           )}
         </div>
 

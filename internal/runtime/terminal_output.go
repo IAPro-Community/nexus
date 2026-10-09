@@ -2,6 +2,8 @@ package runtime
 
 import (
 	"io"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -15,17 +17,24 @@ type TerminalOutputScrubber struct {
 	out                  io.Writer
 	pending              []byte
 	drop                 func([]byte) bool
+	inputMetadata        bool
 	flushIncompleteAfter time.Duration
 	flushTimer           *time.Timer
 	flushGeneration      uint64
 	asyncErr             error
+	closed               bool
 }
 
 // ConPTY and embedded terminal bridges may deliver ESC separately from the
-// remainder of CSI/SS3 selector keys under load. 25ms proved too short and can
+// remainder of CSI/SS3 selector keys under load. A short fixed timeout can
 // turn an arrow into a standalone ESC followed by literal "[A"/"OA" bytes.
-// Keep the window bounded so a real standalone Escape remains responsive.
-const terminalInputEscapeCoalesceWindow = 100 * time.Millisecond
+// Keep standalone Escape responsive, but once CSI/SS3 is recognized hold the
+// incomplete sequence much longer: a partial control sequence is never useful
+// provider input by itself.
+const (
+	terminalInputEscapeCoalesceWindow   = 250 * time.Millisecond
+	terminalInputSequenceCoalesceWindow = 2 * time.Second
+)
 
 func NewTerminalOutputScrubber(out io.Writer) *TerminalOutputScrubber {
 	return &TerminalOutputScrubber{out: out, drop: isKeyboardNegotiation}
@@ -38,6 +47,7 @@ func NewTerminalInputScrubber(out io.Writer) *TerminalOutputScrubber {
 	return &TerminalOutputScrubber{
 		out:                  out,
 		drop:                 isTerminalInputMetadata,
+		inputMetadata:        true,
 		flushIncompleteAfter: terminalInputEscapeCoalesceWindow,
 	}
 }
@@ -46,6 +56,9 @@ func (s *TerminalOutputScrubber) Write(p []byte) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.closed {
+		return 0, io.ErrClosedPipe
+	}
 	if s.asyncErr != nil {
 		err := s.asyncErr
 		s.asyncErr = nil
@@ -64,6 +77,9 @@ func (s *TerminalOutputScrubber) Flush() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.closed {
+		return nil
+	}
 	s.stopFlushTimerLocked()
 	asyncErr := s.asyncErr
 	s.asyncErr = nil
@@ -72,6 +88,19 @@ func (s *TerminalOutputScrubber) Flush() error {
 		return asyncErr
 	}
 	return flushErr
+}
+
+// Close cancels delayed input flushing and discards incomplete terminal
+// sequences. A stopped provider must never receive a timer-driven PTY write.
+func (s *TerminalOutputScrubber) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.stopFlushTimerLocked()
+	s.pending = nil
+	s.asyncErr = nil
+	s.closed = true
+	return nil
 }
 
 func (s *TerminalOutputScrubber) stopFlushTimerLocked() {
@@ -88,6 +117,9 @@ func (s *TerminalOutputScrubber) scheduleIncompleteFlushLocked() {
 		return
 	}
 	delay := s.flushIncompleteAfter
+	if isIncompleteTerminalSequence(s.pending) && terminalInputSequenceCoalesceWindow > delay {
+		delay = terminalInputSequenceCoalesceWindow
+	}
 	s.flushGeneration++
 	generation := s.flushGeneration
 	s.flushTimer = time.AfterFunc(delay, func() {
@@ -102,6 +134,22 @@ func (s *TerminalOutputScrubber) scheduleIncompleteFlushLocked() {
 			s.asyncErr = err
 		}
 	})
+}
+
+func isIncompleteTerminalSequence(pending []byte) bool {
+	if len(pending) < 2 || pending[0] != 0x1b {
+		return false
+	}
+	switch pending[1] {
+	case '[':
+		// flushLocked leaves CSI here only when no final byte has arrived yet.
+		return true
+	case 'O':
+		// SS3 selector keys are exactly ESC O <final>; hold ESC O atomically.
+		return len(pending) < 3
+	default:
+		return false
+	}
 }
 
 func (s *TerminalOutputScrubber) flushLocked(final bool) error {
@@ -146,6 +194,30 @@ func (s *TerminalOutputScrubber) flushLocked(final bool) error {
 			continue
 		}
 
+		// X10 mouse reports are ESC [ M Cb Cx Cy. Unlike SGR mouse reports,
+		// the final 'M' is a prefix, not the end of the six-byte sequence.
+		// Parsing CSI first used to forward ESC[M and then the three mouse
+		// bytes as separate keystrokes, disrupting Codex's choice dialogs.
+		// This branch belongs to the input scrubber only: ESC[M is a valid
+		// delete-line output command and must remain untouched on output.
+		if s.inputMetadata && pos+2 < len(s.pending) && s.pending[pos+2] == 'M' {
+			if len(s.pending)-pos < 6 {
+				if final {
+					// An interrupted mouse packet is never valid keyboard input.
+					// Do not release a stale ESC[M prefix into a live selector.
+					pos = len(s.pending)
+				}
+				break
+			}
+			mouse := s.pending[pos : pos+6]
+			if mouse[3] >= 0x20 && mouse[4] >= 0x20 && mouse[5] >= 0x20 {
+				pos += 6
+				continue
+			}
+			// An invalid packet is not a mouse report. Let the ordinary
+			// CSI decoder preserve it rather than swallowing user input.
+		}
+
 		end := -1
 		for i := pos + 2; i < len(s.pending); i++ {
 			// A few embedded bridges leak malformed focus reports such as
@@ -165,6 +237,14 @@ func (s *TerminalOutputScrubber) flushLocked(final bool) error {
 		}
 		if end < 0 {
 			if final {
+				// A CSI '<' prefix is unambiguously an SGR mouse packet,
+				// not a keyboard arrow. Never flush its truncated payload
+				// into a live Codex choice prompt when a source disconnects
+				// or the incomplete-input coalescing timer expires.
+				if s.inputMetadata && pos+2 < len(s.pending) && s.pending[pos+2] == '<' {
+					pos = len(s.pending)
+					break
+				}
 				clean = append(clean, s.pending[pos:]...)
 				pos = len(s.pending)
 			}
@@ -203,12 +283,13 @@ func isKeyboardNegotiation(sequence []byte) bool {
 		return len(body) > 0 && body[0] == '>'
 	case 'h', 'l':
 		// Private modes that affect the outer terminal's input protocols.
-		// Mouse tracking and focus reporting leak spurious events into the
-		// provider PTY. Bracketed paste (?2004) is intentionally permitted
-		// so multiline paste reaches the provider atomically instead of
-		// submitting line-by-line.
+		// DECCKM changes arrows from CSI to SS3 and mouse/focus modes generate
+		// unsolicited input reports. The provider owns its inner PTY state; it
+		// must not reconfigure the outer Nexus terminal transport. Bracketed
+		// paste (?2004) is intentionally permitted so multiline paste reaches
+		// the provider atomically instead of submitting line-by-line.
 		switch string(body) {
-		case "?1000", "?1002", "?1003", "?1004", "?1005", "?1006", "?1007", "?1015":
+		case "?1", "?1000", "?1002", "?1003", "?1004", "?1005", "?1006", "?1007", "?1015", "?1016":
 			return true
 		default:
 			return false
@@ -237,13 +318,43 @@ func isTerminalInputMetadata(sequence []byte) bool {
 		// Cursor-position reports are terminal metadata, never user input.
 		return numericCSIParameters(body)
 	case 'M', 'm':
-		// SGR mouse reports use CSI <button;x;y M/m. They are generated by the
-		// outer terminal when a provider enables mouse tracking and must never
-		// become prompt text such as "[<35;173;3M".
-		return len(body) > 1 && body[0] == '<' && numericCSIParameters(body[1:])
+		// SGR mouse reports use CSI <button;x;y M/m.
+		if len(body) > 1 && body[0] == '<' && numericCSIParameters(body[1:]) {
+			return true
+		}
+		// Older terminals use URXVT 1015 tracking: CSI button;x;y M,
+		// typically button 96/97 for scroll. Requiring three numeric fields
+		// and button >= 32 avoids eating unrelated CSI commands.
+		if final == 'M' {
+			fields := bytesSplitMouseParameters(body)
+			return len(fields) == 3 && fields[0] >= 32
+		}
+		return false
 	default:
 		return false
 	}
+}
+
+// bytesSplitMouseParameters recognizes only complete numeric URXVT packets.
+// General-purpose CSI numeric validation deliberately allows empty fields;
+// mouse tracking must be stricter to avoid dropping ambiguous user input.
+func bytesSplitMouseParameters(body []byte) []int {
+	fields := strings.Split(string(body), ";")
+	if len(fields) != 3 {
+		return nil
+	}
+	values := make([]int, 0, 3)
+	for _, field := range fields {
+		if field == "" {
+			return nil
+		}
+		n, err := strconv.Atoi(field)
+		if err != nil || n < 0 {
+			return nil
+		}
+		values = append(values, n)
+	}
+	return values
 }
 
 func numericCSIParameters(value []byte) bool {

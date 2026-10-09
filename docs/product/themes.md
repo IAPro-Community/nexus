@@ -1,0 +1,73 @@
+# Nexus Theme System 1.0
+
+The Nexus 1.0 theme system is token-driven. Themes change visual semantics without changing
+feature layout or introducing theme-specific component trees.
+
+## Architecture
+
+```text
+Feature components
+  -> Nexus design-system components
+    -> headless/specialized primitives (Radix, xterm, XYFlow, assistant-ui)
+      -> Nexus semantic CSS variables
+        -> Theme preset
+```
+
+Feature code should consume Nexus components and semantic variables. It must not branch on
+the active theme or hardcode a preset's colors.
+
+## Component policy
+
+Prefer an existing Nexus design-system component before creating local interactive markup.
+For behavior-heavy primitives, prefer the libraries already used by Nexus, especially Radix
+UI, while keeping Nexus styling and tokens as the visual source of truth.
+
+A new conceptual Nexus component should normally be introduced only when a pattern is
+reused across multiple product surfaces or encapsulates meaningful product semantics.
+Theme-specific components are not allowed.
+
+Current design-system primitives include Button, IconButton, Badge, Card, Input, Textarea,
+Select, Switch, Segmented, Progress, Spinner, EmptyState, InlineAlert, SearchInput, Dialog,
+ConfirmDialog, Tooltip, DropdownMenu, ContextDrawer and ContextMenu.
+
+## Presets
+
+The 1.0 registry contains the existing presets plus the approved visual set:
+
+- Graphite Focus — neutral, productive dark theme.
+- Vasco Noir — charcoal/black with restrained red accents; no pink/magenta wash.
+- Nord Light — low-noise light theme.
+- Aurora Ops — dark technical theme with controlled cyan accents.
+- Monokai Dark — the existing `monokai` preset refined for calmer UI accents. The stable ID
+  remains `monokai` so persisted preferences do not break.
+- Obsidian — low-glare graphite theme with restrained violet-blue accents.
+
+Existing presets remain available for compatibility.
+
+## Theme contract
+
+Theme presets own visual variables such as:
+
+- application and elevated backgrounds;
+- surfaces;
+- borders;
+- primary, secondary and muted text;
+- primary accent and its hover/soft variants.
+
+Operational semantics remain global. Success, warning, danger and info must retain their
+meaning across themes instead of being reinterpreted to match a palette.
+
+## Persistence
+
+Theme preferences continue to use `iapro:nexus:theme:v1`. The key must remain stable during
+the 1.0 line unless an explicit migration is introduced.
+
+## Validation
+
+Changes to the theme registry must preserve:
+
+1. Type-safe preset IDs derived from the registry.
+2. WCAG AA text contrast and >= 3:1 accent contrast checks.
+3. Runtime selection and persistence after reload.
+4. Composer visual coverage on desktop, tablet and mobile.
+5. Axe checks with no serious or critical violations.

@@ -9,6 +9,7 @@ func TestValidateRequiresExactRequestTarget(t *testing.T) {
 	}{
 		{"127.0.0.1:9090", "http://127.0.0.1:9090", true},
 		{"localhost:9090", "http://localhost:9090", true},
+		{"wails.localhost:9090", "http://wails.localhost:9090", true},
 		{"192.168.1.10:9090", "https://192.168.1.10:9090", true},
 		{"192.168.1.10:9090", "https://192.168.1.11:9090", false},
 		{"127.0.0.1:9090", "http://127.0.0.1:9091", false},
@@ -19,6 +20,9 @@ func TestValidateRequiresExactRequestTarget(t *testing.T) {
 		{"localhost:9090", "wails://wails", true},
 		{"wails", "wails://wails", true},
 		{"127.0.0.1:9090", "http://wails.localhost", true},
+		{"wails.localhost:9090", "http://wails.localhost.evil.com:9090", false},
+		{"wails.localhost.evil.com:9090", "http://wails.localhost:9090", false},
+		{"wails.localhost:9090", "http://example.com:9090", false},
 		{"127.0.0.1:9090", "http://wails.localhost.evil.com", false},
 		{"127.0.0.1:9090", "https://wails.localhost.attacker", false},
 		{"127.0.0.1:9090", "http://notwails.localhost", false},
@@ -42,9 +46,12 @@ func TestIsTrustedDesktopRequest(t *testing.T) {
 	}{
 		{"127.0.0.1:13000", "wails://wails", "", true},
 		{"localhost:13000", "http://wails.localhost", "", true},
+		{"wails.localhost:13000", "http://wails.localhost:13000", "", true},
 		{"127.0.0.1:13000", "", "wails://wails/index.html", true},
 		{"127.0.0.1:13000", "", "http://wails.localhost/app", true},
 		{"wails", "wails://wails", "", true},
+		{"wails.localhost.evil.com:13000", "http://wails.localhost:13000", "", false},
+		{"wails.localhost:13000", "http://evil.com", "", false},
 		{"wails", "", "", false}, // Host: wails alone without desktop origin/referer must be rejected
 		// Conflicting headers: invalid Origin must NOT fall back to valid Referer
 		{"127.0.0.1:13000", "wails://evil.com", "wails://wails", false},

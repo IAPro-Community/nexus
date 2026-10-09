@@ -36,6 +36,20 @@ async function resolveBlockingUnknown(page, context, apiOrigin, sessionId, unkno
   const prompt = page.getByRole('region', { name: unknown.question, exact: true });
   await prompt.waitFor({ state: 'visible', timeout: 15000 });
 
+  const resolveEvents = [];
+  const onResolveRequest = (request) => {
+    if (request.url().includes('/unknowns/')) {
+      resolveEvents.push(`${request.method()} ${request.url()}`);
+    }
+  };
+  const onResolveResponse = (response) => {
+    if (response.url().includes('/unknowns/')) {
+      resolveEvents.push(`${response.status()} ${response.url()}`);
+    }
+  };
+  page.on('request', onResolveRequest);
+  page.on('response', onResolveResponse);
+
   const responsePromise = page.waitForResponse(
     (response) =>
       response.url().includes(
@@ -56,7 +70,39 @@ async function resolveBlockingUnknown(page, context, apiOrigin, sessionId, unkno
     await prompt.getByRole('button', { name: /answer|responder/i }).click();
   }
 
-  const response = await responsePromise;
+  let response;
+  try {
+    response = await responsePromise;
+  } catch (error) {
+    const buttonState = await prompt
+      .getByRole('option')
+      .evaluateAll((buttons) => buttons.map((button) => ({
+        text: button.textContent,
+        disabled: button.disabled,
+        selected: button.getAttribute('aria-selected'),
+      })))
+      .catch(() => []);
+    const sessionSnapshot = await getJSON(
+      context,
+      `${apiOrigin}/api/v1/composer-sessions/${sessionId}`,
+    ).catch((snapshotError) => ({ error: String(snapshotError) }));
+    const unknownSnapshot = (sessionSnapshot?.brief?.unknowns || []).find(
+      (item) => item.id === unknown.id,
+    );
+    console.error(
+      'composer unknown resolve diagnostics',
+      JSON.stringify({
+        expectedPath: `/api/v1/composer-sessions/${sessionId}/unknowns/${unknown.id}/resolve`,
+        events: resolveEvents,
+        buttonState,
+        unknownStatus: unknownSnapshot?.status || sessionSnapshot?.error || 'not found',
+      }),
+    );
+    throw error;
+  } finally {
+    page.off('request', onResolveRequest);
+    page.off('response', onResolveResponse);
+  }
   assert.equal(response.status(), 200, `resolve unknown returned HTTP ${response.status()}`);
 
   const refreshed = await getJSON(

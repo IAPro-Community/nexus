@@ -46,14 +46,21 @@ export function ptyWindowHeading(input: {
   customTitle?: string;
   identity: string;
   liveTitle?: string;
+  allowAiTitle?: boolean;
 }): { heading: string; identityHint: string } {
-  const identity = (input.customTitle || input.identity || '').trim();
+  const customTitle = (input.customTitle || '').trim();
+  const identity = (input.identity || '').trim();
   const live = (input.liveTitle || '').trim();
-  if (live) {
-    return {
-      heading: live,
-      identityHint: identity && identity !== live ? identity : '',
-    };
+  // A custom identity and AI-driven title are independent values. When AI
+  // updates are enabled (default), its live title is primary. When disabled,
+  // a custom name becomes primary while the AI title remains visible as hint.
+  // Without a custom name, the live title is always useful as the heading.
+  if (live && (input.allowAiTitle !== false || !customTitle)) {
+    const hint = customTitle || identity;
+    return { heading: live, identityHint: hint && hint !== live ? hint : '' };
+  }
+  if (customTitle) {
+    return { heading: customTitle, identityHint: live && live !== customTitle ? live : '' };
   }
   return { heading: identity || 'Terminal', identityHint: '' };
 }

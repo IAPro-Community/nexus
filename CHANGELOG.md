@@ -52,12 +52,38 @@
 - Push/deploy continuam condicionados a autorização explícita.
 
 
-## 1.0.0-beta.7 — 2026-09-29 — continuation candidate
+## 1.0.0-beta.7 — 2026-10-08 — Windows validation continuation
 
-- Bumped the canonical `release/v1.0.0` source candidate after the Composer Interview Engine and subsequent beta hardening landed.
-- Beta.7 remains the same single Nexus 1.0 beta line for continued requirements; it does not create a parallel release branch.
-- Public distribution remains on the rolling beta channel and still requires exact-SHA certification before publication.
+Windows AMD64 automated gates passed locally on source SHA `d840797bbd975a5c7edc54ebe23f3dfef56ff947`. This is a local technical PASS; official publication remains NO-GO until exact-SHA native CI, signing/trust-root and remaining manual release gates close.
 
+### Adicionado
+
+- Suporte a ConPTY e transporte terminal desacoplado no Windows.
+- Internacionalização nativa da CLI e seleção dinâmica de localidade, incluindo pt-BR.
+- Oito suítes browser E2E aprovadas em Windows AMD64, mais as tarefas de acessibilidade e visual.
+
+### Corrigido
+
+- Conformidade estática do host ao processar entrada de terminal e compatibilidade do terminal tracing no Windows.
+- Testes de terminal tracing para permissões NTFS e escape de HTML/JSON.
+- Teste de cabeçalho de uso da CLI para saída localizada, incluindo Uso:.
+- Flakiness de testes Go sob carga Windows e escopo correto das funções de uninstall NSIS.
+- Contrato estático de release atualizado para a função un namespaced do uninstaller NSIS.
+
+### Validação Windows
+
+- Go fmt, vet, govulncheck, golangci-lint e suíte completa sem cache: PASS no SHA 52f35c04181b85379219ab55fc3192c63a5440a8.
+- Bun frozen-lockfile e quality:full: PASS, 82 arquivos e 487 testes unitários.
+- Oito suítes Playwright browser E2E: PASS.
+- `bun install --cwd web --frozen-lockfile` e `bun run --cwd web quality:full`: PASS (Bun 1.3.9, Node 22.14.0, 82 arquivos/487 testes).
+- Go formatting, vet, golangci-lint, govulncheck, suíte `go test -count=1 ./...`, regressões control/runtime e Agent Interop: PASS.
+- Builds CLI/Desktop/HUD e smokes nativos isolados Desktop/WebView2 e HUD: PASS; `nexus version --json` reporta 1.0.0-beta.7 e commit d840797b.
+- Binários e ZIPs locais, com checksums: `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/distribution-artifacts/CHECKSUMS.md`.
+- Todos os executáveis são `NotSigned`; o host não tem `signtool.exe`, certificado/secrets Authenticode nem NSIS. A chave pública de update está versionada; os secrets para assinar manifestos não estão configurados localmente.
+
+### Estado da publicação
+
+O remoto confirmou `origin/release/v1.0.0` em `52f35c04181b85379219ab55fc3192c63a5440a8` antes desta continuidade; o candidato local `d840797b` é descendente do SHA KIVER `d14154d2`. A tag Beta 7 não existe no remoto. O estado atual de GitHub Actions e do inventário de Releases não foi consultado. O smoke do instalador exato não foi executado porque `makensis.exe` não está disponível. Não criar tag nem publicar enquanto esses gates permanecerem abertos.
 ## 1.0.0-beta.6 — 2026-09-29 — Usage/Capacity V2 and single release line
 
 - Composer Interview Engine: added per-dimension clarity/ambiguity, information-gain question priority, bounded QUICK/STANDARD/DEEP profiles and a single pressure-test pass for hidden trade-offs. Repository/memory-inferred facts are no longer surfaced by the web workspace as open questions.
@@ -178,3 +204,12 @@ coding agents (CLI, Web e Desktop). Isto **não** é um 1.0.0 estável.
 
 O SHA de freeze e a evidência de CI same-SHA ficam em
 [`DEV/validation/current/RELEASE_STATUS.md`](DEV/validation/current/RELEASE_STATUS.md).
+
+## Aditamento Windows — 2026-10-07 — worktree local
+
+- Corrigido invalid origin no WebView Wails: somente o Host exato wails.localhost passa quando uma origem desktop é reconhecida; hosts lookalike continuam bloqueados.
+- Corrigido o layout do Project Hub: erros ocupam toda a largura do formulário e o botão Adicionar Projeto mantém o rótulo em uma linha.
+- Acrescentados testes de segurança de origem e regressão visual E2E no viewport Windows 775x483.
+- Os gates Go e Web locais passaram. As oito suítes E2E passaram no worktree Windows isolado com as mesmas alterações.
+- O Desktop foi recompilado para validação, mas o reteste automatizado encerrou com código 0 antes de oito segundos; o binário de baseline repetiu o resultado. Exigir smoke nativo interativo na próxima certificação exact-SHA.
+- Os novos executáveis e checksums são somente evidência local: NotSigned, sem trust root, sem commit e sem publicação.

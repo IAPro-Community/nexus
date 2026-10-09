@@ -157,7 +157,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
           <button
             onClick={onOpenStartModal}
-            className="mt-2 w-full flex items-center justify-center space-x-2 py-2 px-3 hover:opacity-95 text-white rounded text-xs font-semibold shadow-md transition"
+            className="mt-2 w-full flex items-center justify-center space-x-2 py-2 px-3 hover:opacity-95 text-[var(--nx-accent-contrast)] rounded text-xs font-semibold shadow-md transition"
             style={{ background: 'var(--nx-accent)' }}
           >
             <Play className="w-3.5 h-3.5 fill-current" />
@@ -195,11 +195,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
               className="px-2.5 py-1 rounded text-[11px] font-medium transition flex items-center space-x-1"
               style={{
                 background: !showAllWorkspaces ? 'var(--nx-accent)' : 'transparent',
-                color: !showAllWorkspaces ? '#fff' : 'var(--nx-text-soft)',
+                color: !showAllWorkspaces ? 'var(--nx-accent-contrast)' : 'var(--nx-text-soft)',
               }}
             >
               <span>{t('legacy.projectOnly', 'Project Only')}</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-black/20 text-[10px]">
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] opacity-80">
                 {liveRuntimes.length}
               </span>
             </button>
@@ -208,12 +208,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
               className="px-2.5 py-1 rounded text-[11px] font-medium transition flex items-center space-x-1"
               style={{
                 background: showAllWorkspaces ? 'var(--nx-accent)' : 'transparent',
-                color: showAllWorkspaces ? '#fff' : 'var(--nx-text-soft)',
+                color: showAllWorkspaces ? 'var(--nx-accent-contrast)' : 'var(--nx-text-soft)',
               }}
             >
               <Layers className="w-3 h-3" />
               <span>{t('legacy.allProjects', 'All Projects')}</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-black/20 text-[10px]">
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] opacity-80">
                 {safeRuntimes.length}
               </span>
             </button>
@@ -380,7 +380,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                     <button
                       onClick={() => onStopRuntime(r.runtime_id)}
-                      className="px-2.5 py-1.5 rounded text-xs font-medium transition hover:bg-rose-950/40 text-rose-400"
+                      className="px-2.5 py-1.5 rounded text-xs font-medium transition hover:bg-[var(--nx-danger-soft)] text-[var(--nx-danger)]"
                       style={{
                         background: 'var(--nx-bg-elevated)',
                         border: '1px solid var(--nx-border)',
@@ -532,7 +532,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {onDeleteRuntime && (
                       <button
                         onClick={() => onDeleteRuntime(r.runtime_id)}
-                        className="p-1 rounded transition hover:bg-[var(--nx-surface-2)] text-rose-400"
+                        className="p-1 rounded transition hover:bg-[var(--nx-surface-2)] text-[var(--nx-danger)]"
                         title={t('legacy.deleteSessionRecord', 'Delete Session Record')}
                         aria-label={t('legacy.deleteSessionRecord', 'Delete Session Record')}
                       >

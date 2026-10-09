@@ -78,7 +78,7 @@ web/src/
 ## 9. Accessibility (WCAG 2.2 AA) Findings
 * **Keyboard Navigation**: Menus, modals, and window management support `Tab`, `Shift+Tab`, `Enter`, `Space`, and `Escape`.
 * **Visible Focus**: Custom focus rings `:focus-visible` are defined via `--nx-accent` and `--nx-accent-soft`.
-* **Contrast**: All 10 theme presets (including Dracula, Nord, Cyberpunk, Solarized, High Contrast) undergo automated relative luminance WCAG AA verification in `theme.test.ts`.
+* **Contrast**: All 15 registered theme presets undergo automated relative-luminance verification in `theme.test.ts`; the Nexus 1.0 approved set also gates secondary-text and accent-control WCAG AA contrast.
 * **Icon-Only Controls**: All icon buttons (`<IconButton>`) provide an accessible `label` or `aria-label`.
 
 ---

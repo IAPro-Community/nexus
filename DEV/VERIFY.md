@@ -1,5 +1,64 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-07 — Continuidade Windows WebView2 e branch audit
+
+- PASS — go fmt ./..., go vet ./..., govulncheck ./..., golangci-lint run ./... e go test -count=1 ./... no Windows AMD64 após mudanças Go.
+- PASS — teste LOCALAPPDATA do perfil WebView2 e testes dos pacotes internal/desktop, cmd/nexus-desktop e cmd/nexus-hud.
+- PASS — build Desktop/HUD com IDs isolados de smoke; Desktop: janela IAPro Nexus + Chrome_WidgetWin_0 por 9s e perfil criado; HUD: processo vivo por 8s e perfil criado.
+- PASS — parser PowerShell do smoke Desktop e parser YAML do workflow CI.
+- PASS anterior — Bun frozen install, quality:full e oito suítes Playwright nesta árvore Windows; não repetidos nesta continuação porque nenhum arquivo frontend foi alterado.
+- PASS — auditoria viva: nenhuma ref Beta 7 nova. KIVER (d14154d2) é ancestral de release (52f35c04). As branches terminal/testes foram comparadas ao código e cobertura atuais; nenhuma integração pendente.
+- PASS — branch antiga codex/windows-beta6-convergence revisada (5 commits exclusivos no grafo): equivalentes atuais de startup Wails, API same-origin/WebSocket, descarte de runtime inativo e resolução .cmd estão na release. A mudança para ConPTY padrão foi posteriormente revertida por cc6400db.
+- PASS — go test -count=1 -run TestWindowsBackendInteractiveConPTYOptIn -v no Windows AMD64; ConPTY opt-in interativo validado. O padrão de release continua opt-in.
+- PASS — parser PowerShell e smoke Desktop após restringir cleanup ao perfil Nexus: Wails/WebView2 ativos 10s, perfil isolado criado, zero processo WebView2 desse perfil após cleanup. Evidência e hash do binário em outputs/windows-desktop-smoke-cleanup-52f35c04-20261007/.
+- PASS — go test -count=1 ./internal/control/host ./internal/runtime no Windows AMD64; ambas as suítes passaram.
+- PASS — bun run --cwd web vitest run src/nexus/terminalInput.test.ts no Windows; 28 testes passaram.
+- LIMITAÇÃO — release local e remoto estão em 52f35c04, cinco commits após d14154d2; o worktree está sujo, portanto não certifica SHA imutável. Refs remotas foram consultadas ao vivo nesta continuação.
+- PASS — NSIS 3.13 compilou o nexus.nsi exato da árvore atual; instalador unsigned de 23.917.346 bytes, SHA-256 7f310bf94d318d339ccd332d4c2de6b924404f87574e3adfccdb914fa55f5cf4.
+- PASS — variante com registry/atalho isolados instalou e desinstalou o payload real: setup/uninstall 0, CLI beta.7, doctor JSON válido; Path e Desktop reais inalterados.
+- NÃO EXECUTADO — install/uninstall do executável NSIS exato no perfil do usuário, Authenticode, trust root, CI exact-SHA e gates Linux.
+- FAIL — bun scripts/docs-verify.mjs: o manifesto visual continua em 2892f301, anterior a mudanças visuais do workspace, e visual source também está dirty. O fluxo scripts/refresh-beta-docs-windows.ps1 exige SHA limpo; recapturar e repetir o gate após congelar o candidato.
+- NO TAG / NO PUBLISH — manter NO-GO até commit revisado, homologação no SHA final e gates externos de assinatura/instalador.
+- Nota Git: git status/diff-check não puderam ser usados neste clone nesta execução (fatal: this operation must be run in a work tree); resultados reportados são os comandos executados e as evidências de smoke listadas em DEV/validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md.
+
+## 2026-10-07 — Correções Windows ProjectHub e origem Wails
+
+- PASS — go fmt ./..., go vet ./..., govulncheck ./..., golangci-lint run ./... e go test -count=1 ./... no checkout Windows atualizado.
+- PASS — bun install --cwd web --frozen-lockfile.
+- PASS — bun run --cwd web quality:full com Bun 1.3.9 e Node 24.19.0; 82 arquivos e 487 testes Vitest, build incluído.
+- NOTA DE AMBIENTE — a primeira execução com Node 18.12.1 falhou ao carregar import JSON do Stylelint. Repetição com Node 24.19.0 passou sem alteração de dependências.
+- PASS — oito suítes Playwright E2E no worktree isolado com as mesmas alterações; captura ProjectHub 775x483 confirma mensagem em toda a largura e CTA em uma linha.
+- PASS — três builds Windows AMD64 e checksums; CLI informou versão 1.0.0-beta.7 e commit 52f35c04-dirty. Authenticode NotSigned; trust root ausente.
+- PASS — smoke de oito segundos do HUD; WebView2 criado.
+- INCONCLUSIVO — Desktop automatizado encerrou com código 0 antes de oito segundos; binário de baseline repetiu o comportamento no mesmo launcher. Repetir em sessão Windows interativa.
+- NO TAG / NO PUBLISH — código local sem commit; CI Windows exact-SHA e assinatura/trust root bloqueados.
+- Escopo Windows-only; nenhum gate Linux executado nesta continuação.
+
+## 2026-10-07 — Correção local do estado de Path no NSIS
+
+- PASS — `go test -count=1 ./internal/release` no checkout Windows real.
+- PASS — `go test -count=1 ./...`, `go vet ./...` e `golangci-lint run ./...` no worktree isolado de `52f35c04` com o mesmo patch local.
+- PASS — smoke NSIS portátil 3.13, em subchave de registro isolada e payload fictício: 5/5 estados, incluindo `REG_SZ`, `REG_EXPAND_SZ`, valores vazios e Path ausente.
+- PASS — `git diff --check` nos dois arquivos de código.
+- NÃO EXECUTADO — build do instalador de distribuição com payload real e assinatura Authenticode após a correção.
+- BLOQUEADO — CI Windows exact-SHA aguardando runner; certificado, secrets e `NEXUS_UPDATE_PUBLIC_KEY` ausentes.
+- NO TAG / NO PUBLISH — a correção é local, não commitada; não existe nova certificação imutável.
+- Escopo Windows-only; nenhum gate Linux executado nesta continuação.
+
+## 2026-10-07 — Homologação técnica Windows beta.7
+
+- PASS — branch local/remota release/v1.0.0, SHA 52f35c04181b85379219ab55fc3192c63a5440a8; VERSION=1.0.0-beta.7.
+- PASS — go fmt ./..., go vet ./..., govulncheck ./..., golangci-lint run ./... e go test -count=1 ./... no Windows.
+- PASS — bun install --cwd web --frozen-lockfile e bun run --cwd web quality:full com Node 22.14.0/Bun 1.3.9; 82 arquivos, 487 testes unitários e build.
+- PASS — oito suítes E2E Playwright: geral, composer, surface, capacity, hud, composer-spine, composer-vague-spine e composer-themes.
+- PASS — builds CLI/Desktop/HUD para Windows AMD64 com commit 52f35c04 embutido; CLI version e doctor --json; Desktop e HUD vivos por oito segundos cada.
+- PASS — NSIS 3.13 compilado e smoke isolado na fonte revisada; código NSIS é idêntico no commit 52f35c04. PATH manteve o texto, mas seu tipo foi normalizado de REG_SZ para REG_EXPAND_SZ.
+- PASS — checksums SHA-256 dos três executáveis registrados nos artefatos outputs/windows-revalidation-52f35c04; Authenticode NotSigned e trust root ausente, portanto não são distribuição.
+- BLOCKED — run nativo Windows exact-SHA 37666126714 está queued; só existe runner Linux/offline, sem runner Windows.
+- BLOCKED — assinatura: certificado privado, PFX secrets, signtool.exe e NEXUS_UPDATE_PUBLIC_KEY ausentes no host.
+- NO TAG / NO PUBLISH — tag v1.0.0-beta.7 ausente e endpoint de release retornou 404. Veredito: GO técnico local Windows, NO-GO para distribuição.
+- Escopo desta continuação: Windows; nenhum gate Linux foi executado. Capturas versionadas geradas incidentalmente pelos E2E foram restauradas ao baseline; logs desta rodada foram guardados fora do repositório.
+
 ## 2026-09-19 — Correção do attach por geração/PID
 
 - PASS — `go test ./...`.
@@ -1528,7 +1587,6 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
   handshake; no runtime remained registered afterward.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-09-30T21:36:06Z
+## Frontend gate — 2026-10-08T11:33:39Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-

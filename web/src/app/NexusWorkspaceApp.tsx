@@ -99,18 +99,30 @@ export const NexusWorkspaceApp: React.FC<{
 
   useEffect(() => {
     let rotationTimer: number | undefined;
+    let mounted = true;
+    const retryRotation = async () => {
+      try {
+        const rotated = await rotateSession();
+        if (!mounted) return;
+        setAuthenticated(rotated.authenticated);
+        if (rotated.authenticated) scheduleRotation(rotated);
+      } catch {
+        // A temporary network/server failure is not a revoked session.
+        // Retry without logging out or creating an unhandled promise.
+        if (mounted) rotationTimer = window.setTimeout(() => void retryRotation(), 60_000);
+      }
+    };
     const scheduleRotation = (session: BrowserSession) => {
       if (!session.expires_at) return;
       const expiresAt = Date.parse(session.expires_at);
       if (!Number.isFinite(expiresAt)) return;
       const delay = Math.max(30_000, expiresAt - Date.now() - 30 * 60 * 1000);
-      rotationTimer = window.setTimeout(async () => {
-        const rotated = await rotateSession();
-        setAuthenticated(rotated.authenticated);
-        if (rotated.authenticated) scheduleRotation(rotated);
-      }, delay);
+      if (rotationTimer !== undefined) window.clearTimeout(rotationTimer);
+      rotationTimer = window.setTimeout(() => void retryRotation(), delay);
     };
-    const onExpired = () => setAuthenticated(false);
+    const onExpired = () => {
+      if (mounted) setAuthenticated(false);
+    };
     window.addEventListener('nexus:session-expired', onExpired);
     initSession()
       .then((session) => {
@@ -120,8 +132,9 @@ export const NexusWorkspaceApp: React.FC<{
       })
       .finally(() => setSessionReady(true));
     return () => {
+      mounted = false;
       window.removeEventListener('nexus:session-expired', onExpired);
-      if (rotationTimer) window.clearTimeout(rotationTimer);
+      if (rotationTimer !== undefined) window.clearTimeout(rotationTimer);
     };
   }, []);
 
@@ -138,7 +151,20 @@ export const NexusWorkspaceApp: React.FC<{
               <img src="./nexus-icon.png" alt="Nexus" className="nx-brand-mark__img" />
             </span>
             <h2 className={unauthorizedStyles.title}>{t('auth.sessionExpired')}</h2>
-            <p className={unauthorizedStyles.hint}>{t('auth.sessionExpiredDesc')}</p>
+            <p className={unauthorizedStyles.hint}>
+              {window.location.protocol === 'http:' &&
+              !['localhost', '127.0.0.1', '[::1]', 'nexus.dev', 'wails.localhost'].includes(
+                window.location.hostname.toLowerCase(),
+              )
+                ? t('auth.networkHttpsRequired', {
+                    defaultValue:
+                      'Acesso LAN por HTTP não permite autenticação segura. Configure HTTPS confiável ou utilize o túnel HTTPS.',
+                  })
+                : t('auth.remoteInvitationNotice', {
+                    defaultValue:
+                      'Sessão inválida, expirada ou convite já utilizado. Para um novo dispositivo, gere um convite de acesso no Nexus principal.',
+                  })}
+            </p>
             <button
               type="button"
               className="nx-button"

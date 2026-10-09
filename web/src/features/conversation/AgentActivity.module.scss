@@ -35,7 +35,7 @@
 
 .error {
   margin: 0;
-  color: var(--nx-danger, #f87171);
+  color: var(--nx-danger);
   font-size: 0.88rem;
 }
 
@@ -67,7 +67,7 @@
 }
 
 .item[data-status='error'] {
-  color: var(--nx-danger, #f87171);
+  color: var(--nx-danger);
 }
 
 .detail {

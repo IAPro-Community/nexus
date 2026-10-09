@@ -14,6 +14,24 @@ import (
 	"unicode/utf16"
 )
 
+// unsetenv unsets an environment variable and registers a cleanup to restore
+// its original value after the test. t.Setenv("VAR", "") sets the variable to
+// an empty string, which is semantically different from unsetting it.
+func unsetenv(t *testing.T, key string) {
+	t.Helper()
+	original, hadValue := os.LookupEnv(key)
+	if err := os.Unsetenv(key); err != nil {
+		t.Fatalf("failed to unset %s: %v", key, err)
+	}
+	t.Cleanup(func() {
+		if hadValue {
+			_ = os.Setenv(key, original)
+		} else {
+			_ = os.Unsetenv(key)
+		}
+	})
+}
+
 func TestUTF16EnvBlockIsDoubleNullTerminated(t *testing.T) {
 	block := utf16EnvBlock([]string{"NEXUS_A=one", "NEXUS_B=two"})
 	decoded := string(utf16.Decode(block))
@@ -116,9 +134,9 @@ func TestWindowsBackendInterruptWritesETXToProviderInput(t *testing.T) {
 }
 
 func TestWindowsBackendDefaultsToStandardPipes(t *testing.T) {
-	t.Setenv("AI_CLI_ENABLE_CONPTY", "")
-	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
-	backend := NewBackend()
+	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
+	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
+	backend := NewBackendForProvider("opencode")
 	cmd := exec.Command("cmd.exe")
 	if err := backend.Start(cmd, 24, 80); err != nil {
 		t.Fatalf("failed to start Windows backend: %v", err)
@@ -166,10 +184,105 @@ func TestWindowsBackendDefaultsToStandardPipes(t *testing.T) {
 	}
 }
 
+func TestWindowsBackendUsesConPTYForCodexAndForwardsArrowInputByDefault(t *testing.T) {
+	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
+	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
+	backend := NewBackendForProvider("codex")
+	cmd := exec.Command(
+		"powershell.exe",
+		"-NoLogo",
+		"-NoProfile",
+		"-Command",
+		"[Console]::WriteLine('NEXUS_STDIN_REDIRECTED=' + [Console]::IsInputRedirected); $key = [Console]::ReadKey($true); [Console]::WriteLine('NEXUS_KEY=' + $key.Key)",
+	)
+	if err := backend.Start(cmd, 24, 80); err != nil {
+		t.Fatalf("failed to start Codex-policy terminal backend: %v", err)
+	}
+	defer backend.Close()
+	if !strings.HasPrefix(backend.Mechanism(), "ConPTY") {
+		t.Fatalf("Codex backend mechanism = %q, want ConPTY by default", backend.Mechanism())
+	}
+	if got := BackendMechanismForProvider("codex"); !strings.Contains(got, "automatic for supervised Codex") {
+		t.Fatalf("Codex capability mechanism = %q, want provider-specific ConPTY policy", got)
+	}
+
+	if _, err := backend.Write([]byte("\x1b[B")); err != nil {
+		t.Fatalf("failed to send Down Arrow through ConPTY: %v", err)
+	}
+
+	type readResult struct {
+		data []byte
+		err  error
+	}
+	reads := make(chan readResult, 8)
+	stopReader := make(chan struct{})
+	defer close(stopReader)
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := backend.Read(buf)
+			if n > 0 {
+				chunk := append([]byte(nil), buf[:n]...)
+				select {
+				case reads <- readResult{data: chunk}:
+				case <-stopReader:
+					return
+				}
+			}
+			if err != nil {
+				select {
+				case reads <- readResult{err: err}:
+				case <-stopReader:
+				}
+				return
+			}
+		}
+	}()
+
+	timeout := time.NewTimer(10 * time.Second)
+	defer timeout.Stop()
+	var out strings.Builder
+readLoop:
+	for !strings.Contains(out.String(), "NEXUS_STDIN_REDIRECTED=False") || !strings.Contains(out.String(), "NEXUS_KEY=DownArrow") {
+		select {
+		case result := <-reads:
+			out.Write(result.data)
+			if result.err != nil {
+				break readLoop
+			}
+		case <-timeout.C:
+			break readLoop
+		}
+	}
+	if !strings.Contains(out.String(), "NEXUS_STDIN_REDIRECTED=False") {
+		t.Fatalf("Codex ConPTY child did not receive a console stdin: %q", out.String())
+	}
+	if !strings.Contains(out.String(), "NEXUS_KEY=DownArrow") {
+		t.Fatalf("ConPTY did not translate Down Arrow input, output=%q", out.String())
+	}
+	if err := backend.Wait(); err != nil {
+		t.Fatalf("interactive PowerShell child failed: %v", err)
+	}
+}
+
+func TestWindowsBackendDisableConPTYOverridesCodexDefault(t *testing.T) {
+	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
+	t.Setenv("AI_CLI_DISABLE_CONPTY", "1")
+	backend := NewBackendForProvider("codex")
+	cmd := exec.Command("cmd.exe", "/D", "/Q", "/C", "echo codex-pipe-override")
+	if err := backend.Start(cmd, 24, 80); err != nil {
+		t.Fatalf("failed to start compatibility pipe backend: %v", err)
+	}
+	defer backend.Close()
+	if got := backend.Mechanism(); got != "standard pipes (ConPTY explicitly disabled)" {
+		t.Fatalf("Codex override mechanism = %q, want explicit standard-pipe fallback", got)
+	}
+}
+
 // TestWindowsBackendInteractive verifies input is delivered to the child.
 func TestWindowsBackendInteractiveConPTYOptIn(t *testing.T) {
 	t.Setenv("AI_CLI_ENABLE_CONPTY", "1")
-	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
+	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
 	backend := NewBackend()
 	cmd := exec.Command("cmd.exe", "/D", "/Q", "/V:ON", "/C", "set /p X=prompt: && echo GOT-!X!")
 	if err := backend.Start(cmd, 24, 80); err != nil {
@@ -236,8 +349,8 @@ readLoop:
 }
 
 func TestWindowsBackendKillUsesSupervisedJobObject(t *testing.T) {
-	t.Setenv("AI_CLI_ENABLE_CONPTY", "")
-	t.Setenv("AI_CLI_DISABLE_CONPTY", "")
+	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
+	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
 	backend := NewBackend()
 	cmd := exec.Command("cmd.exe", "/D", "/Q", "/C", "ping -n 30 127.0.0.1 >nul")
 	if err := backend.Start(cmd, 24, 80); err != nil {

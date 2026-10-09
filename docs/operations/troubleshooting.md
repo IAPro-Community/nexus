@@ -55,6 +55,42 @@ não encerra automaticamente o processo antigo.
 provider sem relatórios de foco/CPR; `nexus doctor terminal --json` deve mostrar
 o runtime como `current-and-compatible` antes do attach.
 
+
+### Se ainda aparecer `[A`, `[C`, `OA`, `[<...M` ou outro lixo no prompt
+
+Ative temporariamente `NEXUS_TERMINAL_TRACE=1`, recrie o runtime e reproduza
+o problema. O Nexus grava um JSONL por runtime em
+`<NEXUS_DATA_DIR>/terminal-trace/<runtime-id>.jsonl`.
+
+O trace não persiste texto bruto: conteúdo imprimível comum é mascarado, dígitos
+viram `#` e apenas a estrutura necessária para diagnosticar protocolos de
+terminal permanece visível, por exemplo `<1b>[A`, `<03>` e `<0d>`.
+
+Estágios úteis incluem:
+
+- `web.xterm.ondata`: bytes produzidos pelo xterm antes do filtro Web;
+- `web.xterm.filtered`: saída do filtro Web;
+- `web.websocket.input`: payload recebido pelo servidor;
+- `web.scrubber.output`: saída do scrubber Web;
+- `cli.stdin` e `cli.scrubber.output`: caminho equivalente do attach CLI;
+- `host.raw_attach.input`: fragmentos recebidos no stream bruto do SessionHost;
+- `host.cmd_input`: frames de input RPC;
+- `host.scrubber.output`: bytes efetivamente liberados pela última barreira
+  antes do PTY do provider.
+
+Compare os estágios na mesma janela de tempo. Se `host.raw_attach.input` mostrar
+`<1b>`, `[`, `A` separados mas `host.scrubber.output` mostrar
+`<1b>[A`, a fragmentação foi recuperada corretamente. Se o último estágio
+também estiver fragmentado ou faltar `<1b>`, o ponto exato da perda fica
+identificado.
+
+O arquivo tem limite de **8 MiB por runtime**; assinaturas inválidas enviadas pelo
+navegador são descartadas antes da persistência. Ao atingir o limite, novas
+amostras deixam de ser registradas. Remova o JSONL antigo após coletar a
+evidência necessária e reinicie a sessão para uma nova captura.
+
+Desative a variável após a coleta; esse modo é somente diagnóstico.
+
 ## Desktop não inicia
 
 **Causa provável:** o build nativo ou a dependência da plataforma não foi

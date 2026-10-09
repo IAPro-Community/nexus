@@ -144,5 +144,8 @@ If `make version-check` fails:
 ### Build Fails
 
 1. Ensure Go 1.21+ is installed
-2. Run `go mod tidy`
-3. Check for dependency issues
+2. Ensure Node.js 20+ is active (`.nvmrc` pins Node 22; the web build uses
+   `Array.prototype.toSorted` which does not exist on Node 18):
+   `nvm use` (or `export PATH="$HOME/.nvm/versions/node/v22.17.0/bin:$PATH"`)
+3. Run `go mod tidy`
+4. Check for dependency issues

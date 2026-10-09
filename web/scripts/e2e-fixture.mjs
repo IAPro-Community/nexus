@@ -131,8 +131,23 @@ export function meaningfulFixtureRequestFailures(entries) {
   return (entries || []).filter((entry) => !isIgnorableFixtureRequestFailure(entry));
 }
 
+export function playwrightExecutablePath() {
+  const configuredPath = process.env.PLAYWRIGHT_EXECUTABLE_PATH;
+  if (configuredPath) return existsSync(configuredPath) ? configuredPath : undefined;
+
+  const candidates =
+    process.platform === 'win32'
+      ? [
+          'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+          'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
+        ]
+      : ['/usr/bin/google-chrome'];
+  return candidates.find((candidate) => existsSync(candidate));
+}
+
 export async function launchFixtureBrowser(bootstrapUrl) {
   const browser = await chromium.launch({
+    executablePath: playwrightExecutablePath(),
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
@@ -178,7 +193,8 @@ export async function seedFixtureProject(context, bootstrapUrl, isolatedProjectP
     if (!exchange.ok()) throw new Error(`bootstrap exchange failed: ${exchange.status()}`);
     projectsResponse = await tryProjects();
   }
-  if (projectsResponse.status() !== 200) throw new Error('project list unavailable after bootstrap');
+  if (projectsResponse.status() !== 200)
+    throw new Error('project list unavailable after bootstrap');
   let projects = await projectsResponse.json();
   if (!Array.isArray(projects) || projects.length === 0) {
     const sessionResponse = await context.request.get(`${apiOrigin}/api/v1/session`);

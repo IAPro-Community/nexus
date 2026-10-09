@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import {
+  playwrightExecutablePath,
   seedFixtureProject,
   startFixtureServer,
   terminateProcess,
@@ -28,6 +29,72 @@ const themes = [
     scheme: 'light',
     category: /Light Clean/i,
     label: /Nexus Light/i,
+  },
+  {
+    preset: 'midnight',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Midnight/i,
+  },
+  {
+    preset: 'nord',
+    scheme: 'dark',
+    category: /Clássicos do Código/i,
+    label: /^Nord$/i,
+  },
+  {
+    preset: 'dracula',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Dracula/i,
+  },
+  {
+    preset: 'solarized-dark',
+    scheme: 'dark',
+    category: /Clássicos do Código/i,
+    label: /Solarized Dark/i,
+  },
+  {
+    preset: 'solarized-light',
+    scheme: 'light',
+    category: /Light Clean/i,
+    label: /Solarized Light/i,
+  },
+  {
+    preset: 'graphite-focus',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Graphite Focus/i,
+  },
+  {
+    preset: 'vasco-noir',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Vasco Noir/i,
+  },
+  {
+    preset: 'nord-light',
+    scheme: 'light',
+    category: /Light Clean/i,
+    label: /Nord Light/i,
+  },
+  {
+    preset: 'aurora-ops',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Aurora Ops/i,
+  },
+  {
+    preset: 'monokai',
+    scheme: 'dark',
+    category: /Clássicos do Código/i,
+    label: /Monokai Dark/i,
+  },
+  {
+    preset: 'obsidian',
+    scheme: 'dark',
+    category: /Dark Modern/i,
+    label: /Obsidian/i,
   },
   {
     preset: 'high-contrast-dark',
@@ -84,7 +151,11 @@ async function assertThemeApplied(page, theme) {
   assert.ok(applied.background, `${theme.preset} must define --nx-bg`);
   assert.ok(applied.text, `${theme.preset} must define --nx-text`);
   assert.ok(applied.accent, `${theme.preset} must define --nx-accent`);
-  assert.notEqual(applied.background, applied.text, `${theme.preset} foreground/background must differ`);
+  assert.notEqual(
+    applied.background,
+    applied.text,
+    `${theme.preset} foreground/background must differ`,
+  );
 }
 
 async function assertComposerLayout(page, viewportName) {
@@ -218,6 +289,7 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
 async function main() {
   fixture = await startFixtureServer();
   browser = await chromium.launch({
+    executablePath: playwrightExecutablePath(),
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });

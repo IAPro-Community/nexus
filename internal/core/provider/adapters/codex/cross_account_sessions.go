@@ -20,11 +20,13 @@ const (
 	// crossAccountHostSeedCap limits how many host rollouts we import so a
 	// multi-hundred host store does not flood the profile picker.
 	crossAccountHostSeedCap = 40
-	// crossAccountSeedBudget bounds how long Prepare may spend walking sibling/
-	// host rollouts. Launch must open the TUI immediately; resume seeding is
-	// best-effort and must never look like a hang.
-	crossAccountSeedBudget = 200 * time.Millisecond
 )
+
+// crossAccountSeedBudget bounds how long Prepare may spend walking sibling/
+// host rollouts. Launch must open the TUI immediately; resume seeding is
+// best-effort and must never look like a hang. It is a variable so tests can
+// avoid making fixture correctness depend on host scheduling latency.
+var crossAccountSeedBudget = 200 * time.Millisecond
 
 type crossAccountSessionRecord struct {
 	SessionID     string    `json:"session_id"`

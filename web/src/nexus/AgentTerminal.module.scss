@@ -85,7 +85,7 @@
   font-weight: 700;
   border-radius: var(--nx-radius-full);
   background: var(--nx-accent);
-  color: var(--nx-accent-contrast, #fff);
+  color: var(--nx-accent-contrast);
   margin-left: 4px;
 }
 
@@ -154,7 +154,7 @@
 
   &[data-active='true'] {
     background: var(--nx-accent-subtle);
-    border-color: var(--nx-accent);
+    border-color: var(--nx-success);
     color: var(--nx-accent-text);
     font-weight: 600;
   }
@@ -197,7 +197,7 @@
 .skillCardName {
   font-size: var(--nx-font-size-xs);
   font-weight: 600;
-  color: var(--nx-text-bright, #fff);
+  color: var(--nx-text-bright);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -308,7 +308,7 @@
 
     &:hover {
       background: var(--nx-accent);
-      color: var(--nx-accent-contrast, #fff);
+      color: var(--nx-accent-contrast);
     }
   }
 }
@@ -356,7 +356,7 @@
 .recoverOverlay {
   position: absolute;
   inset: 0;
-  background: rgba(9, 11, 16, 0.88);
+  background: var(--nx-terminal-overlay);
   backdrop-filter: blur(3px);
   display: flex;
   flex-direction: column;
@@ -501,7 +501,7 @@
   font-weight: 500;
   cursor: pointer;
   z-index: 5;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--nx-shadow-md);
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
@@ -511,7 +511,7 @@
   &:hover {
     background: var(--nx-surface-3);
     border-color: var(--nx-accent);
-    color: var(--nx-text-bright, #fff);
+    color: var(--nx-text-bright);
   }
 
   &:active {

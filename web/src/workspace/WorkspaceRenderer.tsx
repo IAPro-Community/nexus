@@ -23,6 +23,7 @@ import {
 import {
   IconButton,
   ContextMenu,
+  DropdownMenu,
   contextMenuFromEvent,
   type ContextMenuItem,
   type ContextMenuPoint,
@@ -45,7 +46,14 @@ import { ptyWindowHeading } from './ptyLiveChrome';
 import { liveChromeFor, usePtyLiveChromeOptional } from './PtyLiveChromeContext';
 import { ARRANGE_MENU_PRESETS, type ArrangeMenuPreset } from './arrangePresets';
 
-const WINDOW_ACCENTS = ['#38bdf8', '#22c55e', '#f59e0b', '#f472b6', '#a78bfa', '#fb7185'];
+const WINDOW_ACCENTS = [
+  'var(--nx-info)',
+  'var(--nx-success)',
+  'var(--nx-warning)',
+  'var(--nx-accent)',
+  'var(--nx-accent-text)',
+  'var(--nx-danger)',
+];
 const WINDOW_ICONS = ['⌘', '⚡', '◆', '●', '★', '◎'];
 
 const PRODUCT_TAB_ICONS: Record<
@@ -80,11 +88,26 @@ const WindowChromeMenu: React.FC<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customTitle: string;
+  allowAiTitle: boolean;
   accent: string;
   icon: string;
-  onPatch: (chrome: { customTitle?: string; accent?: string; icon?: string }) => void;
+  onPatch: (chrome: {
+    customTitle?: string;
+    allowAiTitle?: boolean;
+    accent?: string;
+    icon?: string;
+  }) => void;
   position?: ContextMenuPoint | null;
-}> = ({ open, onOpenChange, customTitle, accent, icon, onPatch, position }) => {
+}> = ({
+  open,
+  onOpenChange,
+  customTitle,
+  allowAiTitle,
+  accent,
+  icon,
+  onPatch,
+  position,
+}) => {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(customTitle);
@@ -93,8 +116,10 @@ const WindowChromeMenu: React.FC<{
   );
 
   useEffect(() => {
+    // Escape discards the draft; reset the suppression when the menu reopens.
+    if (open) skipBlurCommit.current = false;
     setDraft(customTitle);
-  }, [customTitle]);
+  }, [customTitle, open]);
 
   useEffect(() => {
     if (!open) {
@@ -138,7 +163,9 @@ const WindowChromeMenu: React.FC<{
     };
   }, [open, onOpenChange, position]);
 
+  const skipBlurCommit = useRef(false);
   const commitTitle = () => {
+    if (skipBlurCommit.current) return;
     const trimmed = draft.trim();
     if (trimmed !== customTitle) {
       onPatch({ customTitle: trimmed });
@@ -159,7 +186,7 @@ const WindowChromeMenu: React.FC<{
             onPointerDown={(event) => event.stopPropagation()}
           >
             <label>
-              {t('common.name', 'Nome')}
+              {t('workspace.customTitle', 'Nome personalizado')}
               <input
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -168,12 +195,31 @@ const WindowChromeMenu: React.FC<{
                   if (event.key === 'Enter') {
                     commitTitle();
                     onOpenChange(false);
+                  } else if (event.key === 'Escape') {
+                    event.stopPropagation();
+                    skipBlurCommit.current = true;
+                    setDraft(customTitle);
+                    onOpenChange(false);
                   }
                 }}
                 placeholder={t('workspace.windowTitlePlaceholder', 'Identidade da janela')}
                 autoFocus
               />
             </label>
+            <label className="nx-desktop-window__ai-title-toggle">
+              <input
+                type="checkbox"
+                checked={allowAiTitle}
+                onChange={(event) => onPatch({ allowAiTitle: event.target.checked })}
+              />
+              <span>{t('workspace.allowAiTitle', 'Permitir que a IA atualize o título')}</span>
+            </label>
+            <p className="nx-desktop-window__ai-title-help">
+              {t(
+                'workspace.allowAiTitleHelp',
+                'O nome personalizado permanece salvo. A IA pode atualizar o título principal quando esta opção estiver ativa.',
+              )}
+            </p>
             <div
               className="nx-desktop-window__chrome-row"
               aria-label={t('workspace.titleColor', 'Cor do título')}
@@ -262,111 +308,62 @@ const ArrangeLayoutMenu: React.FC<{
   onReset?: () => void;
 }> = ({ activePreset, onSelect, onReset }) => {
   const { t } = useTranslation();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
 
-  useEffect(() => {
-    if (!open) {
-      setMenuPos(null);
-      return;
-    }
-    const anchor = rootRef.current?.querySelector('button');
-    if (anchor) {
-      const rect = anchor.getBoundingClientRect();
-      setMenuPos({
-        top: rect.bottom + 6,
-        right: Math.max(8, window.innerWidth - rect.right),
-      });
-    }
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-      if (rootRef.current?.contains(target)) return;
-      if ((target as Element).closest?.('.nx-arrange-menu__panel')) return;
-      setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    const listen = window.setTimeout(() => {
-      window.addEventListener('pointerdown', onPointerDown, true);
-    }, 0);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.clearTimeout(listen);
-      window.removeEventListener('pointerdown', onPointerDown, true);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  const panel =
-    open && menuPos
-      ? createPortal(
-          <div
-            className="nx-arrange-menu__panel"
-            role="menu"
+  return (
+    <div className="nx-arrange-menu">
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
+          <button
+            type="button"
+            className="nx-arrange-menu__trigger"
+            title={t('workspace.arrangeWindows', 'Arranjar janelas')}
             aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
-            style={{ top: menuPos.top, right: menuPos.right }}
-            onPointerDown={(event) => event.stopPropagation()}
           >
-            {ARRANGE_MENU_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                role="menuitemradio"
-                className="nx-arrange-menu__item"
-                aria-checked={activePreset === preset.id}
-                data-active={activePreset === preset.id ? 'true' : undefined}
-                onClick={() => {
-                  onSelect(preset.id);
-                  setOpen(false);
-                }}
-              >
-                <span>{preset.label}</span>
-                <small>{preset.hint}</small>
-              </button>
-            ))}
+            <LayoutGrid size={12} />
+            <span>{t('workspace.arrange', 'Arranjar')}</span>
+          </button>
+        </DropdownMenu.Trigger>
+
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            className="nx-arrange-menu__panel"
+            aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
+            align="end"
+            sideOffset={6}
+            collisionPadding={8}
+          >
+            <DropdownMenu.RadioGroup
+              value={activePreset}
+              onValueChange={(value) => onSelect(value as ArrangeMenuPreset)}
+            >
+              {ARRANGE_MENU_PRESETS.map((preset) => (
+                <DropdownMenu.RadioItem
+                  key={preset.id}
+                  value={preset.id}
+                  className="nx-arrange-menu__item"
+                  data-active={activePreset === preset.id ? 'true' : undefined}
+                >
+                  <span>{preset.label}</span>
+                  <small>{preset.hint}</small>
+                </DropdownMenu.RadioItem>
+              ))}
+            </DropdownMenu.RadioGroup>
+
             {onReset && (
               <>
-                <div className="nx-arrange-menu__separator" role="separator" />
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="nx-arrange-menu__item"
-                  onClick={() => {
-                    setOpen(false);
-                    onReset();
-                  }}
-                >
+                <DropdownMenu.Separator className="nx-arrange-menu__separator" />
+                <DropdownMenu.Item className="nx-arrange-menu__item" onSelect={() => onReset()}>
                   <span className="nx-arrange-menu__reset-label">
                     <RotateCcw size={12} />
                     <span>{t('workspace.resetLayout', 'Redefinir layout')}</span>
                   </span>
                   <small>{t('workspace.restoreDefault', 'Restaurar padrão')}</small>
-                </button>
+                </DropdownMenu.Item>
               </>
             )}
-          </div>,
-          document.body,
-        )
-      : null;
-
-  return (
-    <div className="nx-arrange-menu" ref={rootRef}>
-      <button
-        type="button"
-        className="nx-arrange-menu__trigger"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        title={t('workspace.arrangeWindows', 'Arranjar janelas')}
-        aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
-        onClick={() => setOpen((value) => !value)}
-      >
-        <LayoutGrid size={12} />
-        <span>{t('workspace.arrange', 'Arranjar')}</span>
-      </button>
-      {panel}
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     </div>
   );
 };
@@ -765,7 +762,8 @@ const TerminalsHost: React.FC<{
               const label = ptyWindowHeading({
                 customTitle: win?.customTitle,
                 identity: surfaceIdentity(surface, win?.customTitle),
-                liveTitle: live.title,
+                liveTitle: live.title || surface.data?.dynamicTitle,
+                allowAiTitle: win?.allowAiTitle,
               }).heading;
               return (
                 <button
@@ -927,7 +925,8 @@ const TerminalsHost: React.FC<{
                 const tabLabel = ptyWindowHeading({
                   customTitle: win?.customTitle,
                   identity: surfaceIdentity(surface, win?.customTitle),
-                  liveTitle: live.title,
+                  liveTitle: live.title || surface.data?.dynamicTitle,
+                  allowAiTitle: win?.allowAiTitle,
                 }).heading;
                 const accent = win?.accent || '';
                 const icon = win?.icon || '';
@@ -996,6 +995,7 @@ const TerminalsHost: React.FC<{
                         setChromeMenuViewId(next ? viewId : null);
                       }}
                       customTitle={win?.customTitle || ''}
+                      allowAiTitle={win?.allowAiTitle !== false}
                       accent={accent}
                       icon={icon}
                       onPatch={(chrome) => presentation.patchChrome(viewId, chrome)}
@@ -1308,10 +1308,10 @@ const DesktopWorkspace: React.FC<{
         const heading = ptyWindowHeading({
           customTitle: win.customTitle,
           identity: agentName,
-          liveTitle: live.title,
+          liveTitle: live.title || surface.data?.dynamicTitle,
+          allowAiTitle: win.allowAiTitle,
         });
         const statusSuffix = surface.data?.statusSuffix || '';
-        const dynamicTitle = live.title ? '' : surface.data?.dynamicTitle || '';
         const providerLabel = surface.data?.providerLabel || '';
         const accent = win.accent || '';
         const icon = win.icon || '';
@@ -1371,7 +1371,7 @@ const DesktopWorkspace: React.FC<{
                 title={[
                   heading.heading,
                   heading.identityHint || providerLabel,
-                  dynamicTitle || statusSuffix,
+                  statusSuffix,
                 ]
                   .filter(Boolean)
                   .join(' · ')}
@@ -1407,10 +1407,7 @@ const DesktopWorkspace: React.FC<{
                   {!heading.identityHint && providerLabel && (
                     <small className="nx-desktop-window__provider">{providerLabel}</small>
                   )}
-                  {dynamicTitle && (
-                    <small className="nx-desktop-window__dynamic">{dynamicTitle}</small>
-                  )}
-                  {!dynamicTitle && statusSuffix && (
+                  {statusSuffix && (
                     <small
                       className="nx-desktop-window__status"
                       data-kind={attentionKind || undefined}
@@ -1433,6 +1430,7 @@ const DesktopWorkspace: React.FC<{
                     setChromeMenuViewId(next ? viewId : null);
                   }}
                   customTitle={win.customTitle || ''}
+                  allowAiTitle={win.allowAiTitle !== false}
                   accent={win.accent || ''}
                   icon={win.icon || ''}
                   onPatch={(chrome) => presentation.patchChrome(viewId, chrome)}
@@ -1566,7 +1564,8 @@ const DesktopWorkspace: React.FC<{
             const label = ptyWindowHeading({
               customTitle: win?.customTitle,
               identity: surfaceIdentity(surface, win?.customTitle),
-              liveTitle: live.title,
+              liveTitle: live.title || surface.data?.dynamicTitle,
+              allowAiTitle: win?.allowAiTitle,
             }).heading;
             return (
               <button

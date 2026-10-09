@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { shouldForwardTerminalInput, stripEmbeddedTerminalMetadata } from './terminalInput';
+import {
+  shouldForwardTerminalInput,
+  stripEmbeddedTerminalMetadata,
+  terminalTraceShape,
+} from './terminalInput';
 
 describe('shouldForwardTerminalInput', () => {
   it.each([
@@ -30,7 +34,11 @@ describe('shouldForwardTerminalInput', () => {
     '\x1b[<35;58;48M', // SGR any-event motion
     '[<35;58;48M', // bare (no ESC) motion
     '\x1b[<0;10;4m', // SGR release (lowercase m)
-  ])('drops leaked SGR mouse tracking report %j', (data) => {
+    '\x1b[M\x60\x48\x28', // X10 wheel Up (96; 40; 8)
+    '\x1b[M\x61\x48\x28', // X10 wheel Down (97; 40; 8)
+    '\x1b[96;40;8M', // URXVT wheel Up
+    '\x1b[97;40;8M', // URXVT wheel Down
+  ])('drops leaked mouse tracking report %j', (data) => {
     expect(shouldForwardTerminalInput(data)).toBe(false);
   });
 
@@ -65,11 +73,12 @@ describe('stripEmbeddedTerminalMetadata', () => {
     );
   });
 
-  it('does not guess that navigation-looking bytes are metadata', () => {
+  it('preserves all ambiguous bare navigation bytes, including bursts', () => {
     expect(stripEmbeddedTerminalMetadata('> [B[A[A[B[C[D[D[C')).toBe('> [B[A[A[B[C[D[D[C');
     expect(stripEmbeddedTerminalMetadata('[[A[B')).toBe('[[A[B');
     expect(stripEmbeddedTerminalMetadata('[A')).toBe('[A');
     expect(stripEmbeddedTerminalMetadata('typed [A text')).toBe('typed [A text');
+    expect(stripEmbeddedTerminalMetadata('[A[B test [D[C')).toBe('[A[B test [D[C');
   });
 
   it('preserves coalesced ESC-prefixed navigation input', () => {
@@ -85,10 +94,48 @@ describe('stripEmbeddedTerminalMetadata', () => {
     expect(stripEmbeddedTerminalMetadata('typed\x1b[C')).toBe('typed\x1b[C');
   });
 
+  it('removes coalesced legacy mouse-wheel reports without dropping real arrow keys', () => {
+    const mouseUp = '\x1b[M\x60\x48\x28';
+    const mouseDown = '\x1b[M\x61\x48\x28';
+    expect(
+      stripEmbeddedTerminalMetadata(
+        `start${mouseUp}\x1b[A${mouseDown}\x1bOB\x1b[96;40;8M\r`,
+      ),
+    ).toBe('start\x1b[A\x1bOB\r');
+    expect(stripEmbeddedTerminalMetadata('choice\x1b[97;40;8M')).toBe('choice');
+    expect(shouldForwardTerminalInput('\x1b[M')).toBe(true);
+    expect(shouldForwardTerminalInput('\x1b[A')).toBe(true);
+    expect(shouldForwardTerminalInput('\x1bOB')).toBe(true);
+    expect(shouldForwardTerminalInput('\x03')).toBe(true);
+  });
+
   it('strips embedded SGR mouse tracking reports from mixed chunks', () => {
     expect(stripEmbeddedTerminalMetadata('hello\x1b[<35;10;20Mworld')).toBe('helloworld');
     expect(stripEmbeddedTerminalMetadata('\x1b[<0;10;4Mls\r')).toBe('ls\r');
     expect(stripEmbeddedTerminalMetadata('go\x1b[<35;58;48M\r')).toBe('go\r');
     expect(stripEmbeddedTerminalMetadata('\x1b[<0;1;1m')).toBe('');
+  });
+});
+
+describe('terminalTraceShape', () => {
+  it('does not leak uppercase words that resemble ANSI finals', () => {
+    const traced = terminalTraceShape('ARM COMMAND MARCH');
+    expect(traced.shape).not.toMatch(/[A-Z]/);
+  });
+
+  it('masks ordinary text while preserving control-sequence structure', () => {
+    const traced = terminalTraceShape('secret\x1b[A123\r\x03');
+    expect(traced.size).toBe(new TextEncoder().encode('secret\x1b[A123\r\x03').length);
+    expect(traced.shape).not.toContain('secret');
+    expect(traced.shape).not.toContain('123');
+    expect(traced.shape).toContain('<1b>[A');
+    expect(traced.shape).toContain('<0d>');
+    expect(traced.shape).toContain('<03>');
+  });
+
+  it('reports UTF-8 byte size without exposing characters', () => {
+    const traced = terminalTraceShape('ação');
+    expect(traced.size).toBe(new TextEncoder().encode('ação').length);
+    expect(traced.shape).not.toContain('ação');
   });
 });

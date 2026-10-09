@@ -5,10 +5,15 @@
   --nx-surface-1: var(--nx-surface);
   --nx-text-primary: var(--nx-text);
   --nx-text-muted: var(--nx-muted);
+  --nx-text-bright: var(--nx-text);
   --nx-border-subtle: var(--nx-border);
   --nx-accent-subtle: var(--nx-accent-soft);
+  --nx-accent-contrast: #000000;
+  --nx-surface-raised: var(--nx-surface-2);
+  --nx-focus: var(--nx-accent);
   --nx-danger-border: var(--nx-danger);
   --nx-danger-subtle: var(--nx-danger-soft);
+  --nx-warning-contrast: #000000;
   --nx-radius-md: var(--nx-radius);
   --nx-radius-xl: var(--nx-radius-lg);
   --nx-radius-full: 999px;
@@ -16,4 +21,22 @@
   --nx-space-3: 0.75rem;
   --nx-space-4: 1rem;
   --nx-focus-ring: 0 0 0 2px var(--nx-bg), 0 0 0 4px var(--nx-accent);
+  --nx-shadow-sm: 0 1px 3px rgb(0 0 0 / 0.16);
+  --nx-shadow-md: 0 4px 14px rgb(0 0 0 / 0.35);
+  --nx-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.45);
+  --nx-overlay-strong: color-mix(in srgb, var(--nx-bg) 88%, transparent);
+
+  // Specialized terminal palette stays stable across UI themes unless a future
+  // terminal theme explicitly overrides these semantic tokens.
+  --nx-terminal-frame: #07090d;
+  --nx-terminal-bg: #090b10;
+  --nx-terminal-pane-bg: #090d16;
+  --nx-terminal-surface: #0f1218;
+  --nx-terminal-border: #202530;
+  --nx-terminal-text: #e6e9ef;
+  --nx-terminal-text-soft: #aeb6c6;
+  --nx-terminal-muted: #8991a2;
+  --nx-terminal-cursor: #38bdf8;
+  --nx-terminal-selection: rgba(56, 189, 248, 0.3);
+  --nx-terminal-overlay: color-mix(in srgb, var(--nx-terminal-frame) 82%, transparent);
 }

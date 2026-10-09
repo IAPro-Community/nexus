@@ -43,6 +43,7 @@ export const MANAGED_THEME_COLOR_VARS = [
   '--nx-accent-soft',
   '--nx-accent-text',
   '--nx-accent-contrast',
+  '--nx-warning-contrast',
   '--nx-window-accent',
   '--nx-success',
   '--nx-success-soft',
@@ -90,7 +91,7 @@ export const SCHEME_OVERRIDE_VARS: Record<
     '--nx-text': '#141821',
     '--nx-text-soft': '#2d3442',
     '--nx-muted': '#5e687b',
-    '--nx-subtle': '#7a869a',
+    '--nx-subtle': '#667085',
     '--nx-success': '#166534',
     '--nx-success-soft': 'rgba(22, 101, 52, 0.1)',
     '--nx-warning': '#92400e',
@@ -128,25 +129,42 @@ export const ACCENT_OVERRIDE_VARS: Record<ThemeAccent, Record<string, string>> =
     '--nx-accent': '#8b5cf6',
     '--nx-accent-hover': '#9f75ff',
     '--nx-accent-soft': 'rgba(139, 92, 246, 0.14)',
-    '--nx-accent-text': '#bba5ff',
   },
   blue: {
     '--nx-accent': '#4285ff',
     '--nx-accent-hover': '#6399ff',
     '--nx-accent-soft': 'rgba(66, 133, 255, 0.14)',
-    '--nx-accent-text': '#8db5ff',
   },
   cyan: {
     '--nx-accent': '#13b8c8',
     '--nx-accent-hover': '#30c9d8',
     '--nx-accent-soft': 'rgba(19, 184, 200, 0.14)',
-    '--nx-accent-text': '#70dbe5',
   },
   neutral: {
     '--nx-accent': '#8993a4',
     '--nx-accent-hover': '#a4adbb',
     '--nx-accent-soft': 'rgba(137, 147, 164, 0.14)',
-    '--nx-accent-text': '#c1c7d1',
+  },
+};
+
+const ACCENT_TEXT_BY_SCHEME: Record<Exclude<ThemeScheme, 'system'>, Record<ThemeAccent, string>> = {
+  dark: {
+    purple: '#bba5ff',
+    blue: '#8db5ff',
+    cyan: '#70dbe5',
+    neutral: '#c1c7d1',
+  },
+  light: {
+    purple: '#6d28d9',
+    blue: '#1d4ed8',
+    cyan: '#0e7490',
+    neutral: '#475569',
+  },
+  'high-contrast': {
+    purple: '#bba5ff',
+    blue: '#8db5ff',
+    cyan: '#70dbe5',
+    neutral: '#c1c7d1',
   },
 };
 
@@ -182,10 +200,12 @@ function colorContrastRatio(left: string, right: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-function resolveAccentContrast(accent: string): string {
+function resolveReadableContrast(background: string): string {
   const black = '#000000';
   const white = '#ffffff';
-  return colorContrastRatio(accent, black) >= colorContrastRatio(accent, white) ? black : white;
+  return colorContrastRatio(background, black) >= colorContrastRatio(background, white)
+    ? black
+    : white;
 }
 
 export function resolveScheme(
@@ -212,12 +232,14 @@ export function resolveThemeStyleVariables(
     }
     if (prefs.isCustomized) {
       Object.assign(finalVars, ACCENT_OVERRIDE_VARS[prefs.accent] || {});
+      finalVars['--nx-accent-text'] = ACCENT_TEXT_BY_SCHEME[resolvedScheme][prefs.accent];
     }
   }
 
-  finalVars['--nx-accent-contrast'] = resolveAccentContrast(
+  finalVars['--nx-accent-contrast'] = resolveReadableContrast(
     finalVars['--nx-accent'] || preset.accent,
   );
+  finalVars['--nx-warning-contrast'] = resolveReadableContrast(finalVars['--nx-warning']);
 
   return finalVars;
 }
@@ -246,10 +268,21 @@ export function normalizeThemePreferences(
   const densities: ThemeDensity[] = ['compact', 'comfortable'];
   const presetKeys = Object.keys(THEME_PRESETS) as ThemePresetKey[];
 
+  const preset =
+    input?.preset && presetKeys.includes(input.preset as ThemePresetKey)
+      ? (input.preset as ThemePresetKey)
+      : defaultThemePreferences.preset;
+  const isCustomized = Boolean(input?.isCustomized);
+  const requestedScheme = schemes.includes(input?.scheme as ThemeScheme)
+    ? input!.scheme!
+    : defaultThemePreferences.scheme;
+  const scheme =
+    !isCustomized && !(preset === defaultThemePreferences.preset && requestedScheme === 'system')
+      ? THEME_PRESETS[preset].scheme
+      : requestedScheme;
+
   return {
-    scheme: schemes.includes(input?.scheme as ThemeScheme)
-      ? input!.scheme!
-      : defaultThemePreferences.scheme,
+    scheme,
     accent: accents.includes(input?.accent as ThemeAccent)
       ? input!.accent!
       : defaultThemePreferences.accent,
@@ -257,11 +290,8 @@ export function normalizeThemePreferences(
       ? input!.density!
       : defaultThemePreferences.density,
     reducedMotion: Boolean(input?.reducedMotion),
-    preset:
-      input?.preset && presetKeys.includes(input.preset as ThemePresetKey)
-        ? (input.preset as ThemePresetKey)
-        : defaultThemePreferences.preset,
-    isCustomized: Boolean(input?.isCustomized),
+    preset,
+    isCustomized,
     fontScale:
       typeof input?.fontScale === 'number' &&
       Number.isFinite(input.fontScale) &&

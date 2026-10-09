@@ -32,7 +32,7 @@ Antes de qualquer alteração substancial no frontend ou backend, leia e siga ob
 3. **Acessibilidade (WCAG 2.2 AA)**:
    - Toda funcionalidade deve ser navegável por teclado (`Tab`, `Enter`, `Space`, `Escape`, setas).
    - Nunca remova o anel de foco (`outline: none`) sem fornecer `:focus-visible` visível e de alto contraste.
-   - Garanta contraste adequado em todos os 10 presets de temas.
+   - Garanta contraste adequado em todos os presets registrados em `THEME_PRESETS`; nunca fixe a validação a uma contagem estática.
 
 4. **Estilização & Design Tokens**:
    - SCSS Modules (`*.module.scss`) é o padrão oficial de estilização encapsulada para componentes.

@@ -21,6 +21,8 @@ import {
   Badge,
   Button,
   Card,
+  ChoiceGroup,
+  ChoiceOption,
   InlineAlert,
   Input,
   Segmented,
@@ -833,6 +835,7 @@ const THEME_CATEGORIES: ThemeCategory[] = [
 ];
 
 const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> = ({ theme }) => {
+  const { t } = useTranslation();
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(() => {
     // Abre por padrão a categoria onde o preset ativo se encontra
     const active = theme.preset || 'nexus-dark';
@@ -886,7 +889,10 @@ const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> =
                 aria-labelledby={headerId}
                 className={styles.themePanel}
               >
-                <div className={styles.presetGrid}>
+                <ChoiceGroup
+                  className={styles.presetGrid}
+                  ariaLabel={`${cat.title}: ${t('settings.themePresets', 'Temas visuais')}`}
+                >
                   {cat.presets.map((presetKey) => {
                     const preset = THEME_PRESETS[presetKey];
                     if (!preset) return null;
@@ -894,28 +900,19 @@ const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> =
                     const palette = getThemePresetPalette(preset);
 
                     return (
-                      <div
+                      <ChoiceOption
                         key={presetKey}
-                        role="radio"
-                        aria-checked={isSelected}
-                        data-selected={isSelected}
-                        tabIndex={0}
-                        onClick={() => theme.setPreset(presetKey as ThemePresetKey)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            theme.setPreset(presetKey as ThemePresetKey);
-                          }
-                        }}
+                        selected={isSelected}
+                        onSelect={() => theme.setPreset(presetKey as ThemePresetKey)}
                         className={styles.themePresetItem}
                       >
-                        <div className={styles.themePresetName} data-selected={isSelected}>
+                        <span className={styles.themePresetName} data-selected={isSelected}>
                           <span>{preset.name}</span>
                           {isSelected && <Check size={14} color="var(--nx-accent)" />}
-                        </div>
+                        </span>
 
                         {/* Amostras de Cores (Swatches) */}
-                        <div className={styles.themeSwatches} aria-hidden="true">
+                        <span className={styles.themeSwatches} aria-hidden="true">
                           <span
                             title={`Fundo: ${palette.bg}`}
                             className={styles.themeSwatchBg}
@@ -926,11 +923,11 @@ const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> =
                             className={styles.themeSwatchAccent}
                             style={{ background: palette.accent }}
                           />
-                        </div>
-                      </div>
+                        </span>
+                      </ChoiceOption>
                     );
                   })}
-                </div>
+                </ChoiceGroup>
               </div>
             )}
           </div>

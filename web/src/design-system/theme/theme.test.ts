@@ -77,6 +77,39 @@ describe('theme model', () => {
     expect(normalized).toEqual(original);
   });
 
+  it('repairs persisted preset/scheme mismatches when the theme is not customized', () => {
+    expect(
+      normalizeThemePreferences({
+        ...defaultThemePreferences,
+        preset: 'nord-light',
+        scheme: 'dark',
+        isCustomized: false,
+      }).scheme,
+    ).toBe('light');
+
+    expect(
+      normalizeThemePreferences({
+        ...defaultThemePreferences,
+        preset: 'high-contrast-dark',
+        scheme: 'light',
+        isCustomized: false,
+      }).scheme,
+    ).toBe('high-contrast');
+  });
+
+  it('preserves system-following defaults and explicit customized schemes', () => {
+    expect(normalizeThemePreferences(defaultThemePreferences).scheme).toBe('system');
+
+    expect(
+      normalizeThemePreferences({
+        ...defaultThemePreferences,
+        preset: 'nord',
+        scheme: 'light',
+        isCustomized: true,
+      }).scheme,
+    ).toBe('light');
+  });
+
   it('contains the Nexus 1.0 preset suite, including the approved visual themes', () => {
     const keys = Object.keys(THEME_PRESETS);
     expect(keys).toEqual(
@@ -151,6 +184,7 @@ describe('resolveThemeStyleVariables', () => {
     expect(vars['--nx-bg']).toBe('#f4f6fa');
     expect(vars['--nx-surface']).toBe('#ffffff');
     expect(vars['--nx-text']).toBe('#141821');
+    expect(vars['--nx-subtle']).toBe('#667085');
   });
 
   it('aplica variáveis nativas do preset quando isCustomized é false', () => {
@@ -186,7 +220,7 @@ describe('resolveThemeStyleVariables', () => {
     );
     expect(vars['--nx-bg']).toBe('#f4f6fa'); // Sobrescrito pelo Light
     expect(vars['--nx-accent']).toBe('#8b5cf6'); // Sobrescrito pelo Purple
-    expect(vars['--nx-accent-text']).toBe('#bba5ff');
+    expect(vars['--nx-accent-text']).toBe('#6d28d9');
   });
 
   it('não emite variáveis indefinidas, nulas ou vazias', () => {
@@ -235,6 +269,17 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     }
   });
 
+  it('keeps accent text readable on application and panel surfaces', () => {
+    for (const [id, def] of Object.entries(THEME_PRESETS)) {
+      for (const background of ['--nx-bg', '--nx-surface'] as const) {
+        expect(
+          contrastRatio(def.vars['--nx-accent-text'], def.vars[background]),
+          `Preset ${id} accent-text/${background} contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it('keeps secondary text readable on both application and panel surfaces', () => {
     for (const [id, def] of Object.entries(THEME_PRESETS)) {
       const bg = def.vars['--nx-bg'];
@@ -265,17 +310,17 @@ describe('WCAG AA contrast automation for every registered preset', () => {
         def.scheme,
       );
 
-      for (const token of [
-        '--nx-success',
-        '--nx-warning',
-        '--nx-danger',
-        '--nx-info',
-      ] as const) {
+      for (const token of ['--nx-success', '--nx-warning', '--nx-danger', '--nx-info'] as const) {
         expect(
           contrastRatio(vars[token], vars['--nx-surface']),
           `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
         ).toBeGreaterThanOrEqual(4.5);
       }
+
+      expect(
+        contrastRatio(vars['--nx-warning'], vars['--nx-warning-contrast']),
+        `Preset ${id} warning/control text contrast must be >= 4.5:1`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 
@@ -302,35 +347,8 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     }
   });
 
-  it('keeps approved Nexus 1.0 secondary text readable', () => {
-    const approvedPresets: ThemePresetKey[] = [
-      'graphite-focus',
-      'vasco-noir',
-      'nord-light',
-      'aurora-ops',
-      'monokai',
-      'night',
-      'obsidian',
-    ];
-
-    for (const id of approvedPresets) {
-      const def = THEME_PRESETS[id];
-      for (const token of ['--nx-muted', '--nx-subtle'] as const) {
-        const color = def.vars[token];
-        expect(
-          contrastRatio(color, def.vars['--nx-bg']),
-          `Preset ${id} ${token}/bg contrast must be >= 4.5:1`,
-        ).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrastRatio(color, def.vars['--nx-surface']),
-          `Preset ${id} ${token}/surface contrast must be >= 4.5:1`,
-        ).toBeGreaterThanOrEqual(4.5);
-      }
-    }
-  });
-
-  it('keeps custom accent overrides readable in dark and light schemes', () => {
-    for (const scheme of ['dark', 'light'] as const) {
+  it('keeps custom accent overrides readable in every explicit scheme', () => {
+    for (const scheme of ['dark', 'light', 'high-contrast'] as const) {
       for (const accent of ['purple', 'blue', 'cyan', 'neutral'] as const) {
         const vars = resolveThemeStyleVariables(
           {
@@ -347,6 +365,16 @@ describe('WCAG AA contrast automation for every registered preset', () => {
           contrastRatio(vars['--nx-accent'], vars['--nx-accent-contrast']),
           `${scheme}/${accent} accent/control text contrast must be >= 4.5:1`,
         ).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(vars['--nx-accent-hover'], vars['--nx-accent-contrast']),
+          `${scheme}/${accent} accent-hover/control text contrast must be >= 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+        for (const background of ['--nx-bg', '--nx-surface'] as const) {
+          expect(
+            contrastRatio(vars['--nx-accent-text'], vars[background]),
+            `${scheme}/${accent} accent-text/${background} contrast must be >= 4.5:1`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
       }
     }
   });
@@ -355,12 +383,7 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     const definition = THEME_PRESETS['high-contrast-light'];
     const surface = definition.vars['--nx-surface'];
 
-    for (const token of [
-      '--nx-success',
-      '--nx-warning',
-      '--nx-danger',
-      '--nx-info',
-    ] as const) {
+    for (const token of ['--nx-success', '--nx-warning', '--nx-danger', '--nx-info'] as const) {
       expect(
         contrastRatio(definition.vars[token], surface),
         `High Contrast Light ${token} must be >= 4.5:1 on surface`,

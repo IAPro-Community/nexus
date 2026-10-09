@@ -28,7 +28,13 @@ export function shouldForwardTerminalInput(data: string): boolean {
     // metadata, never user input. The host terminal emits these when mouse
     // tracking modes (?1000/?1003 + ?1006) are active.
     // eslint-disable-next-line no-control-regex
-    /^\x1b?\[<\d+;\d+;\d+[Mm]$/.test(data)
+    /^\x1b?\[<\d+;\d+;\d+[Mm]$/.test(data) ||
+    // Legacy X10 mouse reports: ESC [ M followed by Cb, Cx and Cy.
+    // eslint-disable-next-line no-control-regex
+    /^\x1b\[M[\x20-\xff]{3}$/.test(data) ||
+    // URXVT 1015 mouse reports (especially wheel button 96/97).
+    // eslint-disable-next-line no-control-regex
+    /^\x1b?\[(?:[3-9]\d|\d{3,});\d+;\d+M$/.test(data)
   ) {
     return false;
   }
@@ -46,11 +52,138 @@ const EMBEDDED_FOCUS_RE = /\x1b\[[0-9;]*(?:\[[iIO]|[iIO])/g;
 const EMBEDDED_CPR_RE = /\x1b\[\d+;\d+R/g;
 // eslint-disable-next-line no-control-regex
 const EMBEDDED_MOUSE_RE = /\x1b\[<\d+;\d+;\d+[Mm]/g;
-/** Removes embedded ESC-prefixed focus/CPR/mouse metadata from a forwarded chunk. */
+// eslint-disable-next-line no-control-regex
+const EMBEDDED_X10_MOUSE_RE = /\x1b\[M[\x20-\xff]{3}/g;
+// eslint-disable-next-line no-control-regex
+const EMBEDDED_URXVT_MOUSE_RE = /\x1b\[(?:[3-9]\d|\d{3,});\d+;\d+M/g;
+
+/**
+ * Strip only provably terminal-generated metadata.
+ * A burst of bare [A/[B segments is NOT proof of corruption: xterm may
+ * legitimately deliver user text or fragmented navigation in that shape.
+ * Heuristic deletion irreversibly corrupts the Codex input buffer.
+ * Leave ambiguous chunks byte-transparent; reconstruction belongs at PTY.
+ */
 export function stripEmbeddedTerminalMetadata(data: string): string {
   if (!data) return data;
   return data
     .replace(EMBEDDED_FOCUS_RE, '')
     .replace(EMBEDDED_CPR_RE, '')
-    .replace(EMBEDDED_MOUSE_RE, '');
+    .replace(EMBEDDED_MOUSE_RE, '')
+    .replace(EMBEDDED_X10_MOUSE_RE, '')
+    .replace(EMBEDDED_URXVT_MOUSE_RE, '');
+}
+
+/**
+ * Privacy-safe terminal byte signature for NEXUS_TERMINAL_TRACE.
+ * Ordinary printable content is masked; only control bytes and terminal
+ * syntax remain visible so CSI/SS3 fragmentation can be correlated.
+ */
+export function terminalTraceShape(data: string): { size: number; shape: string } {
+  const bytes = new TextEncoder().encode(data);
+  const limit = Math.min(bytes.length, 256);
+  let shape = '';
+  type TraceState = 'normal' | 'after-esc' | 'csi' | 'ss3' | 'osc' | 'osc-esc';
+  let state: TraceState = 'normal';
+
+  const appendMasked = (value: number) => {
+    if (value < 0x20 || value === 0x7f) {
+      shape += `<${value.toString(16).padStart(2, '0')}>`;
+    } else if (value >= 0x20 && value <= 0x7e) {
+      shape += '.';
+    } else {
+      shape += '*';
+    }
+  };
+
+  const looksLikeBareSequence = (index: number) => {
+    if (index + 1 >= limit || bytes[index] !== 0x5b) return false;
+    const next = bytes[index + 1]!;
+    if ((next >= 0x30 && next <= 0x39) || next === 0x3f || next === 0x3c || next === 0x5b) {
+      return true;
+    }
+    return [0x41, 0x42, 0x43, 0x44, 0x48, 0x46, 0x49, 0x4f, 0x52, 0x4d, 0x6d].includes(next);
+  };
+
+  for (let index = 0; index < limit; index += 1) {
+    const value = bytes[index]!;
+
+    if (state === 'after-esc') {
+      if (value === 0x5b) {
+        shape += '[';
+        state = 'csi';
+      } else if (value === 0x4f) {
+        shape += 'O';
+        state = 'ss3';
+      } else if (value === 0x5d) {
+        shape += ']';
+        state = 'osc';
+      } else {
+        appendMasked(value);
+        state = 'normal';
+      }
+      continue;
+    }
+
+    if (state === 'csi') {
+      if (value >= 0x30 && value <= 0x39) {
+        shape += '#';
+      } else if (value >= 0x40 && value <= 0x7e) {
+        shape += String.fromCharCode(value);
+        state = 'normal';
+      } else if (value >= 0x20 && value <= 0x3f) {
+        shape += String.fromCharCode(value);
+      } else {
+        appendMasked(value);
+      }
+      continue;
+    }
+
+    if (state === 'ss3') {
+      if (value >= 0x20 && value <= 0x7e) {
+        shape += String.fromCharCode(value);
+      } else {
+        appendMasked(value);
+      }
+      state = 'normal';
+      continue;
+    }
+
+    if (state === 'osc') {
+      if (value === 0x07) {
+        shape += '<07>';
+        state = 'normal';
+      } else if (value === 0x1b) {
+        shape += '<1b>';
+        state = 'osc-esc';
+      } else {
+        appendMasked(value);
+      }
+      continue;
+    }
+
+    if (state === 'osc-esc') {
+      if (value === 0x5c) {
+        shape += '\\';
+        state = 'normal';
+      } else {
+        appendMasked(value);
+        state = 'osc';
+      }
+      continue;
+    }
+
+    if (value === 0x1b) {
+      shape += '<1b>';
+      state = 'after-esc';
+    } else if (value === 0x5b && looksLikeBareSequence(index)) {
+      shape += '[';
+      state = 'csi';
+    } else {
+      appendMasked(value);
+    }
+  }
+
+  if (bytes.length > limit) shape += '…';
+  return { size: bytes.length, shape };
 }

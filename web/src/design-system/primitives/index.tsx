@@ -208,21 +208,114 @@ export const Segmented: React.FC<{
   options: { value: string; label: string }[];
   ariaLabel: string;
 }> = ({ value, onChange, options, ariaLabel }) => (
-  <div className="nx-segmented" role="radiogroup" aria-label={ariaLabel}>
+  <ChoiceGroup className="nx-segmented" ariaLabel={ariaLabel}>
     {options.map((option) => (
-      <button
-        type="button"
-        role="radio"
-        aria-checked={value === option.value}
+      <ChoiceOption
+        selected={value === option.value}
         data-active={value === option.value ? 'true' : 'false'}
         className="nx-segmented__item"
         key={option.value}
-        onClick={() => onChange(option.value)}
+        onSelect={() => onChange(option.value)}
       >
         {option.label}
-      </button>
+      </ChoiceOption>
     ))}
-  </div>
+  </ChoiceGroup>
+);
+
+export const ChoiceGroup: React.FC<
+  Omit<React.HTMLAttributes<HTMLDivElement>, 'role' | 'aria-label'> & {
+    ariaLabel: string;
+  }
+> = ({ ariaLabel, className = '', children, onKeyDown, ...props }) => {
+  const groupRef = React.useRef<HTMLDivElement>(null);
+
+  React.useLayoutEffect(() => {
+    const options = Array.from(
+      groupRef.current?.querySelectorAll<HTMLButtonElement>(
+        'button[role="radio"]:not(:disabled)',
+      ) || [],
+    );
+    if (options.length === 0) return;
+
+    const selected = options.find((option) => option.getAttribute('aria-checked') === 'true');
+    for (const option of options) {
+      option.tabIndex = option === (selected || options[0]) ? 0 : -1;
+    }
+  }, [children]);
+
+  return (
+    <div
+      ref={groupRef}
+      role="radiogroup"
+      aria-label={ariaLabel}
+      className={`nx-choice-group ${className}`.trim()}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        if (event.defaultPrevented) return;
+
+        const navigationKeys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+        if (!navigationKeys.includes(event.key)) return;
+        if (
+          !(event.target instanceof HTMLElement) ||
+          event.target.getAttribute('role') !== 'radio'
+        ) {
+          return;
+        }
+
+        const options = Array.from(
+          event.currentTarget.querySelectorAll<HTMLButtonElement>(
+            'button[role="radio"]:not(:disabled)',
+          ),
+        );
+        if (options.length === 0) return;
+
+        const currentIndex = options.indexOf(document.activeElement as HTMLButtonElement);
+        let nextIndex = currentIndex >= 0 ? currentIndex : 0;
+
+        if (event.key === 'Home') nextIndex = 0;
+        else if (event.key === 'End') nextIndex = options.length - 1;
+        else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+          nextIndex = (nextIndex + 1) % options.length;
+        } else {
+          nextIndex = (nextIndex - 1 + options.length) % options.length;
+        }
+
+        event.preventDefault();
+        options[nextIndex]?.focus();
+        options[nextIndex]?.click();
+      }}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+};
+
+export const ChoiceOption: React.FC<
+  Omit<
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    'onSelect' | 'type' | 'role' | 'aria-checked' | 'tabIndex'
+  > & {
+    selected: boolean;
+    onSelect: () => void;
+  }
+> = ({ selected, onSelect, className = '', onClick, children, ...props }) => (
+  <button
+    type="button"
+    role="radio"
+    aria-checked={selected}
+    data-selected={selected ? 'true' : 'false'}
+    tabIndex={selected ? 0 : -1}
+    className={`nx-choice-option ${className}`.trim()}
+    onClick={(event) => {
+      onClick?.(event);
+      if (!event.defaultPrevented) onSelect();
+    }}
+    {...props}
+  >
+    {children}
+  </button>
 );
 
 export const Progress: React.FC<{ value: number; label: string }> = ({ value, label }) => (

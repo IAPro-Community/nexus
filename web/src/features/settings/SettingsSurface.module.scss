@@ -174,12 +174,12 @@
 }
 
 .tunnelStatusIcon {
-  color: var(--nx-success, #22c55e);
+  color: var(--nx-success);
 }
 
 .tunnelStatusActive {
   font-weight: 600;
-  color: var(--nx-success, #22c55e);
+  color: var(--nx-success);
 }
 
 .tunnelUrl {
@@ -207,7 +207,7 @@
 }
 
 .qrCode {
-  background: var(--nx-surface, #ffffff);
+  background: var(--nx-surface);
   border: 1px solid var(--nx-border);
   border-radius: 8px;
   padding: 16px;

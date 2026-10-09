@@ -1,6 +1,7 @@
 package contextsnapshot
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -11,7 +12,10 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
+
+const gitIdentityCommandTimeout = 5 * time.Second
 
 // CodeIdentityState describes how confidently a repository can be bound to a
 // validation or project-intelligence observation.
@@ -43,8 +47,34 @@ type CodeIdentity struct {
 }
 
 func gitOutput(root string, args ...string) ([]byte, error) {
-	command := exec.Command("git", append([]string{"-C", root}, args...)...)
-	return command.Output()
+	ctx, cancel := context.WithTimeout(context.Background(), gitIdentityCommandTimeout)
+	defer cancel()
+	command := exec.CommandContext(ctx, "git", append([]string{"-C", root}, args...)...)
+	return commandOutput(ctx, command)
+}
+
+func commandOutput(ctx context.Context, command *exec.Cmd) ([]byte, error) {
+	command.WaitDelay = time.Second
+	output, err := command.Output()
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	return output, err
+}
+
+func incompleteGitIdentity() CodeIdentity {
+	identity := CodeIdentity{
+		RepositoryKind: "git",
+		State:          CodeIdentityIncomplete,
+		Complete:       false,
+		Warnings:       []string{"git identity command timed out"},
+	}
+	identity.IdentityDigest = digestBytes([]byte(strings.Join([]string{
+		identity.RepositoryKind,
+		string(identity.State),
+		identity.Warnings[0],
+	}, "\x00")))
+	return identity
 }
 
 func digestBytes(data []byte) string {
@@ -147,6 +177,9 @@ func InspectCodeIdentity(root string) (CodeIdentity, error) {
 		return CodeIdentity{}, fmt.Errorf("project root unavailable")
 	}
 	inside, err := gitOutput(root, "rev-parse", "--is-inside-work-tree")
+	if errors.Is(err, context.DeadlineExceeded) {
+		return incompleteGitIdentity(), nil
+	}
 	if err != nil || strings.TrimSpace(string(inside)) != "true" {
 		digest, digestErr := treeDigest(root)
 		if digestErr != nil {
@@ -159,14 +192,21 @@ func InspectCodeIdentity(root string) (CodeIdentity, error) {
 	identity := CodeIdentity{RepositoryKind: "git", State: CodeIdentityClean, Complete: true}
 	if head, headErr := gitOutput(root, "rev-parse", "HEAD"); headErr == nil {
 		identity.HeadSHA = strings.TrimSpace(string(head))
+	} else if errors.Is(headErr, context.DeadlineExceeded) {
+		return incompleteGitIdentity(), nil
 	} else {
 		identity.State = CodeIdentityUnborn
 	}
 	if branch, branchErr := gitOutput(root, "branch", "--show-current"); branchErr == nil {
 		identity.Branch = strings.TrimSpace(string(branch))
+	} else if errors.Is(branchErr, context.DeadlineExceeded) {
+		return incompleteGitIdentity(), nil
 	}
 	status, statusErr := gitOutput(root, "status", "--porcelain=v1", "-z", "--untracked-files=all")
 	if statusErr != nil {
+		if errors.Is(statusErr, context.DeadlineExceeded) {
+			return incompleteGitIdentity(), nil
+		}
 		identity.State = CodeIdentityIncomplete
 		identity.Complete = false
 		identity.Warnings = append(identity.Warnings, "git status could not be read")
@@ -198,6 +238,9 @@ func InspectCodeIdentity(root string) (CodeIdentity, error) {
 	if submodules, subErr := gitOutput(root, "submodule", "status", "--recursive"); subErr == nil {
 		identity.SubmodulesDigest = digestBytes(submodules)
 	} else {
+		if errors.Is(subErr, context.DeadlineExceeded) {
+			return incompleteGitIdentity(), nil
+		}
 		identity.Warnings = append(identity.Warnings, "git submodule status could not be read")
 	}
 	identity.IdentityDigest = digestBytes([]byte(strings.Join([]string{

@@ -86,6 +86,9 @@ func TestPrepareSeedsSiblingSessionsForPicker(t *testing.T) {
 	now := time.Now().UTC()
 	writeRollout(t, filepath.Join(omegaSess, "rollout-2026-09-12T11-00-00-"+sessionID+".jsonl"), 5, 15, now.Add(time.Hour).Unix(), now, "")
 
+	previousBudget := crossAccountSeedBudget
+	crossAccountSeedBudget = 5 * time.Second
+	t.Cleanup(func() { crossAccountSeedBudget = previousBudget })
 	if err := New().Prepare(context.Background(), model.Profile{Provider: "codex", Name: "gmail"}); err != nil {
 		t.Fatal(err)
 	}
@@ -173,13 +176,40 @@ func TestPrepareEmptyDestWithManyRolloutsRespectsBudget(t *testing.T) {
 		writeRollout(t, filepath.Join(omegaSess, fmt.Sprintf("rollout-2026-09-12T12-%02d-00-%s.jsonl", i%60, id)), 5, 15, now.Add(time.Hour).Unix(), now, "")
 	}
 
+	// Deterministic budget enforcement: an already-expired budget must stop
+	// the seed walk before importing anything, on any machine speed. A
+	// wall-clock budget (e.g. 200ms) cannot be asserted portably: fast
+	// disks import all 500 fixtures before it expires (false failure),
+	// while loaded CI may stop after a handful (vacuous pass).
+	oldBudget := crossAccountSeedBudget
+	crossAccountSeedBudget = -time.Second
+	t.Cleanup(func() { crossAccountSeedBudget = oldBudget })
+
 	start := time.Now()
 	if err := New().Prepare(context.Background(), model.Profile{Provider: "codex", Name: "gmail"}); err != nil {
 		t.Fatal(err)
 	}
-	if elapsed := time.Since(start); elapsed > 500*time.Millisecond {
-		t.Fatalf("Prepare took %s seeding empty dest from 500 rollouts; budget must keep launch under 500ms", elapsed)
+	elapsed := time.Since(start)
+	imported := 0
+	destRoot := filepath.Join(gmailHome, "sessions")
+	if err := filepath.WalkDir(destRoot, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		if strings.HasPrefix(entry.Name(), "rollout-") && strings.HasSuffix(entry.Name(), ".jsonl") {
+			imported++
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
+	if imported != 0 {
+		t.Fatalf("expired seed budget must import nothing, imported %d (elapsed %s)", imported, elapsed)
+	}
+	t.Logf("expired seed budget stopped the walk: imported %d of 500 sibling rollouts (elapsed %s)", imported, elapsed)
 }
 
 func TestForeignAccountRolloutIgnoredForQuota(t *testing.T) {

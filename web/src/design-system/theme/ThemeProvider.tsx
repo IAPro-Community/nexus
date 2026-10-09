@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   defaultThemePreferences,
   MANAGED_THEME_COLOR_VARS,
@@ -61,6 +68,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     window.localStorage.setItem(themeStorageKey, JSON.stringify(preferences));
+  }, [preferences]);
+
+  useLayoutEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = resolvedScheme;
     root.dataset.accent = preferences.accent;

@@ -1,5 +1,41 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-07 — Smoke Windows WebView2 e auditoria de branches
+
+- Isolados perfis Wails Desktop/HUD em LOCALAPPDATA, com IDs de instância de smoke separados dos IDs de distribuição. Workflow passa a compilar executáveis próprios e exige diretórios WebView2 criados.
+- Validação Windows: go fmt, vet, govulncheck, golangci-lint e go test completo passaram. Desktop Wails e controller WebView2 ativos por 9s; HUD ativo por 8s; ambos criaram perfil separado. Workflow YAML e PowerShell parseados.
+- A suíte Web quality:full e oito Playwright haviam passado na rodada Windows anterior; esta continuação não alterou frontend. Nenhum gate Linux foi executado.
+- Branch audit: fix beta7 em d14154d2 é ancestral de release em 52f35c04; release tem cinco commits posteriores e fix zero commits exclusivos. Nenhum merge pendente.
+- Próximo: revisar/integrar as mudanças locais em SHA imutável; executar certificação Windows exact-SHA, rebuild/assinatura/instalação NSIS; manter tag/publicação bloqueadas até fechar assinatura e trust root.
+
+## 2026-10-07 — Continuidade do gate nativo Windows exact-SHA
+
+- Tentativa adicional com winget: catálogo reconheceu NSIS.NSIS 3.13, mas winget install --scope user retornou Nenhum instalador aplicável encontrado. O usuário atual não é administrador; makensis.exe continua ausente e nenhum instalador foi executado.
+
+- Reconsulta do run 37653251897 confirmou queued, SHA 56fcc3e6e2705e1acf4b2f3f3dd213e0d52e47ef; job Windows sem runner atribuído. Inventário Actions mostra somente nexus-ci-dev-web-kiver (Linux, offline).
+- Checagem local sem ler valores: WINDOWS_SIGNING_PFX_BASE64 e WINDOWS_SIGNING_PFX_PASSWORD não configuradas; signtool.exe e makensis.exe ausentes.
+- A última listagem bem-sucedida do ambiente GitHub native-signing retornou zero secrets; reconsulta nesta rodada respondeu HTTP 500. Nenhum segredo foi lido ou alterado.
+- Bloqueio/ação seguinte: disponibilizar runner Windows AMD64 com labels Windows, X64 e nexus-windows e configurar os secrets de assinatura diretamente no ambiente native-signing; depois retomar o run/certificação e fechar smoke NSIS. Sem esses gates, tag/distribuição continuam NO-GO.
+## 2026-10-07 — Revalidação Windows, integração exact-SHA e fila do runner nativo
+
+- PASS — suíte Go completa `go test -count=1 ./...` fora do sandbox, no SHA `56fcc3e6e2705e1acf4b2f3f3dd213e0d52e47ef`.
+- PASS — grupos específicos do workflow Windows para ConPTY/Named Pipe e host/Web.
+- Diagnóstico: o teste Named Pipe falha com `Access is denied` dentro do sandbox Codex e passa no mesmo host/código fora dele; overlays temporários de ACL/nome confirmaram que não era colisão ou regressão do produto. Nenhuma ACL ou código de runtime foi alterado.
+- NSIS continua indisponível. Chocolatey não pôde instalar o pacote sem shell administrativo e o feed falhou resolução DNS; nenhum lock do diretório global foi removido.
+- Tentativa adicional com o ZIP portátil oficial NSIS 3.13: endpoint e três espelhos retornaram HTML divergente do SHA-256 publicado; dois espelhos não resolveram DNS. Nenhum download foi extraído/executado; smoke NSIS continua não executado.
+- O instalador oficial NSIS 3.13 também retornou HTML (145.173 bytes), com Authenticode UnknownError; não foi executado. Busca local recursiva não encontrou makensis.exe nem signtool.exe.
+- Após autorização do Maestro, push fast-forward dos três commits Windows foi concluído; git ls-remote confirmou origin/release/v1.0.0 em 56fcc3e6e2705e1acf4b2f3f3dd213e0d52e47ef e a tag beta.7 ausente.
+- Run nativo Windows exact-SHA 37653251897 (https://github.com/IAPro-Community/nexus/actions/runs/37653251897) foi despachado e está queued; runner exigido não está registrado. A API lista somente nexus-ci-dev-web-kiver (Linux, offline). Assinatura Authenticode e smoke NSIS install/uninstall permanecem pendentes.
+
+## 2026-10-07 — Homologação local Windows Nexus 1.0.0-beta.7
+
+- Fechados em Windows AMD64 os gates Go (fmt, vet, govulncheck, golangci-lint e teste completo sem cache), `bun install --frozen-lockfile`, `quality:full`, oito suítes Playwright e smokes Desktop/HUD.
+- O SHA validado é 56fcc3e6e2705e1acf4b2f3f3dd213e0d52e47ef; VERSION contém 1.0.0-beta.7. O candidato começou em d14154d2490dfdd3966c7fddc990a1d9127edd39 e, após três correções Windows, foi integrado por fast-forward ao remoto.
+- Os ajustes locais estabilizam formatação Web e testes Windows sensíveis a janela de tempo. O limite de 200 ms do runtime permanece inalterado.
+- Builds Windows CLI/Desktop/HUD foram produzidos e seus checksums registrados. Authenticode retorna `NotSigned`; assinatura PFX, signtool, NSIS e smoke install/uninstall faltam para distribuição.
+- Push da branch concluído; sem tag ou publicação.
+
+
 ## 2026-09-28 — Multiline Paste Restoration, Mouse Tracking Isolation & Release v1.0.0-beta.5 (Local)
 
 - Correção de colagem multilinha no AGY/providers sob supervisão do Nexus:
@@ -5064,3 +5100,117 @@ build` PASS e Web reiniciado em HTTP 200.
 - Relatório `DEV/validation/BETA7_LINUX_FINAL_20260930.md` e
   `docs/release-status.md` atualizados; pendências explícitas em FASE 6/7/8
   (smokes interativos Codex/AGY/OpenCode/HUD/Voice), Windows, macOS e CI.
+
+# 2026-10-07 — Fechamento da homologação Windows beta.7
+
+- Corrigido o escopo das funções de uninstall NSIS e atualizado o contrato estático em internal/release/installer_test.go; commits 9a23e9ef e 52f35c04 enviados por fast-forward.
+- Validação no SHA remoto 52f35c04181b85379219ab55fc3192c63a5440a8: Go fmt/vet/govulncheck/lint/test, Bun frozen install, quality:full, oito Playwright E2E, builds CLI/Desktop/HUD e smokes Windows PASS.
+- A primeira suíte Go no SHA 9a23e9ef encontrou apenas strings esperadas antigas; ajuste aplicado e a suíte completa passou no SHA final 52f35c04.
+- Binários de validação Windows e checksums SHA-256 gerados para 52f35c04; Authenticode NotSigned e trust root ausente.
+- NSIS 3.13 compilou e o smoke local install/uninstall passou na fonte revisada; detectada normalização do tipo de HKCU Environment Path, embora o texto retorne ao baseline.
+- Workflow native exact-SHA 37666126714 foi despachado e está queued; inventário contém somente runner Linux offline. Nenhuma tag/release foi criada.
+- Próximo passo: habilitar runner Windows e provisionar assinatura/trust root; revisar o tipo de Path antes do GO de distribuição. Nenhum gate Linux executado nesta continuação.
+
+
+## 2026-10-07 — Correção Windows de preservação do Path no NSIS
+
+- Corrigido o uninstall para preservar existência, conteúdo e tipo original de `HKCU\Environment\Path`; mudança local em `packaging/windows/nexus.nsi` e `internal/release/installer_test.go`, sem commit.
+- PASS — teste Go focado no checkout real; full Go test, vet e golangci-lint no worktree isolado com o mesmo patch.
+- PASS — smoke NSIS portátil 3.13 isolado: 5/5 estados, com payload fictício, registry namespace temporário e Path real intocado.
+- Artefatos: `DEV/validation/current/BETA7_NSIS_PATH_STATE_SMOKE_20261007.md` e `outputs/NSIS_PATH_STATE_SMOKE_52F35C04.md`.
+- Limite: instalador de distribuição com payload real, assinatura e CI exact-SHA Windows ainda não executados; sem tag ou publicação.
+
+## 2026-10-07 — Correção do ProjectHub e origem Wails no Windows
+
+- Corrigido o 403 invalid origin do host virtual Wails com allowlist de igualdade exata; testes positivos e negativos cobrem bootstrap, criação autenticada e hosts lookalike.
+- Corrigido o layout do ProjectHub: erro em largura integral, role=alert e CTA em uma linha; regressão visual E2E em 775x483.
+- PASS: Go fmt/vet/govulncheck/golangci-lint/test; Bun frozen install e quality:full com Node 24.19 (82 arquivos/487 testes); oito E2E no worktree Windows isolado com o mesmo patch.
+- Builds locais CLI/Desktop/HUD e checksums em outputs/windows-validation-52f35c04-dirty-20261007. HUD smoke 8s PASS; Desktop reteste inconclusivo, mesmo comportamento do binário baseline no launcher.
+- Próximo: integrar num SHA imutável, repetir Desktop em sessão interativa e fechar runner Windows + Authenticode/trust root. Sem tag, publicação, commit ou push.
+
+## 2026-10-07 — Diagnóstico do smoke Desktop Windows
+
+Confirmei pelo Windows API que o processo desta sessão não tem handle de input desktop, embora esteja em WinSta0/Default (SessionId 1). Registrei a limitação em RELEASE_STATUS.md e no relatório de homologação; o smoke nativo fica inconclusivo até repetição em sessão interativa real. O veredito permanece NO-GO.
+## 2026-10-07 — Smoke nativo Desktop/WebView2 Windows
+
+- Adicionado smoke do Desktop ao workflow native-windows com APPDATA e dados Nexus isolados; exige HWND Wails IAPro Nexus e filho Chrome_WidgetWin_0 presentes durante oito segundos.
+- PASS em Windows no binário local: duração registrada de 9s; processos WebView2 limpos; YAML do workflow válido. SHA-256 do binário Desktop 2991a5d92440b2c931cc19b5e9565e0139ecf74c898a108d1030394e57b1a1b3; Authenticode NotSigned.
+- O perfil APPDATA padrão gerou 0x800700AA neste host; o perfil isolado passou. O modo oculto e a falta de input desktop impedem afirmar renderização visível.
+- CI exact-SHA, estado remoto, assinatura e instalador final continuam pendentes. O GitHub não pôde ser consultado: gh ausente e DNS de github.com indisponível. Sem tag, publicação, commit ou push; nenhum gate Linux executado.
+### Auditoria ao vivo de branches beta7 — 2026-10-07
+
+- Confirmados ao vivo os refs: release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8; fix/beta7-windows-KIVER-20261007 = d14154d2490dfdd3966c7fddc990a1d9127edd39 (ancestral, sem merge pendente). A tag Beta 7 ainda não existe em origin.
+- Encontradas branches Beta 7 remotas com commits próprios fora da release: terminal-protocol-p0 (4), terminal-trace-diagnostics (24) e terminal-final-boundary-regression (3). A branch Windows autopilot tem uma atualização documental. Recomendado triagem de escopo e homologação Windows do SHA resultante; nenhuma integração foi feita.
+- Registrado também o escopo amplo de fix/v1.0.0-gap-closure (38 commits) para decisão separada e fix/beta8-manual-opaque-quota fora do escopo Beta 7. O fechamento permanece NO-GO; worktree sujo e artefatos locais não assinados não são distribuição.
+
+## 2026-10-07 — Fechamento da regressão visual Windows 775×483
+
+- Reproduzi a captura: autoFocus rolava o container para baixo e o Project Hub abria sem o título visível; o formulário também ultrapassava a janela.
+- Corrigi o painel baixo com scroll interno, layout compacto até 600px, remoção do autoFocus e textos localizados distintos para os três modelos.
+- O E2E principal verifica título, formulário com erro, rolagem, ausência de overflow horizontal e modelos alcançáveis. A captura está em outputs/windows-e2e-layout-52f35c04-dirty-20261007/e2e_project_hub_error_775x483.png.
+- PASS — bun install frozen; quality:full em Node 22.14.0/Bun 1.3.9, 82 arquivos/487 testes; oito suítes Playwright finais.
+- PASS — builds CLI/Desktop/HUD Windows AMD64 e smokes isolados (Desktop 9s; HUD 8s). Checksums em outputs/windows-final-artifacts-52f35c04-dirty-20261007.
+- Consulta viva: origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8; tag Beta 7 ausente; branch KIVER d14154d2 ancestral e sem merge pendente. Quatro branches Beta 7 de terminal/testes ainda têm commits exclusivos e requerem triagem.
+- NO-GO — HEAD difere de d14154d2, worktree está sujo, binários NotSigned e sem trust root, run CI privado não revalidado (API anônima 404). Sem commit, push, merge, tag ou publicação. Nenhum gate Linux executado.
+## Continuidade Windows — auditoria final das branches beta.7 — 2026-10-07
+
+- Consulta ao vivo de origin confirmou as mesmas refs Beta 7 da auditoria anterior. KIVER (d14154d2) é ancestral de release/v1.0.0 (52f35c04); não há ramo Beta 7 novo.
+- Comparação de conteúdo: as correções de coalescência ConPTY/DECCKM, navegação web e trace, além dos testes raw-attach e privacidade, já estão na release. A branch autopilot contém documentação Windows antiga, superada pelo relatório KIVER. Nenhuma branch precisa ser mesclada ou cherry-picked.
+- PASS Windows: go test -count=1 ./internal/control/host ./internal/runtime; Bun Vitest em terminalInput.test.ts, 28 testes.
+- O sandbox bloqueou a primeira tentativa de IPC/chdir; a reexecução com acesso autorizado passou. Nenhuma alteração de código ou integração foi feita.
+- Próximo contexto: seguir fechamento Windows no worktree dirty baseado em 52f35c04; exact-SHA/CI, instalador e assinatura/trust root ainda impedem GO. Nenhum gate Linux executado.
+
+## Continuidade Windows — compilação NSIS e install/uninstall isolados — 2026-10-07
+
+- NSIS 3.13 portátil compilou o script exato da árvore atual: instalador unsigned de 23.917.346 bytes, SHA-256 7f310bf94d318d339ccd332d4c2de6b924404f87574e3adfccdb914fa55f5cf4. SHA-256 de packaging/windows/nexus.nsi: d581f0f86513b5d64568ce0bc1f54c65e41d4ab68b9b9a527db36562680dc789.
+- PASS — smoke de uma cópia source-equivalent com registry/shortcut redirecionados, payload real CLI/Desktop/HUD, setup/uninstall exit 0, CLI beta.7, doctor JSON válido, Path REG_SZ de teste restaurado e Path/Desktop reais inalterados. TEMP e namespace de teste removidos.
+- O instalador exato compilado não foi executado no perfil do usuário. Authenticode, trust root, CI Windows exact-SHA e candidato imutável continuam pendentes; release segue NO-GO. Sem gates Linux nesta continuação.
+- Artefatos e evidências nas pastas outputs/windows-installer-validation-52f35c04-dirty-20261007 e outputs/windows-installer-smoke-isolated-52f35c04-dirty-20261007.
+
+## Continuidade Windows — revisão final de branches Beta 7 — 2026-10-07
+
+- Consulta remota atualizada: nenhuma branch Beta 7 nova desde a auditoria anterior; `origin/release/v1.0.0` continua em `52f35c04181b85379219ab55fc3192c63a5440a8`, tag beta.7 ausente.
+- Revistas as branches protocol-p0, trace-diagnostics, final-boundary e windows-autopilot. Seus commits exclusivos no grafo não indicam código Beta 7 faltante: a release atual contém os comportamentos e regressões de terminal correspondentes; autopilot é evidência antiga.
+- Revisada também `codex/windows-beta6-convergence`, branch anterior com 5 commits exclusivos. Os comportamentos Windows de startup Wails, API same-origin/WebSocket, recuperação de runtime inativo e resolução `.cmd` estão na release. O padrão provider-ConPTY dessa branch foi revertido intencionalmente em `cc6400db`; a release mantém ConPTY opt-in.
+- PASS — `go test -count=1 -run TestWindowsBackendInteractiveConPTYOptIn -v` no Windows AMD64; execução interativa ConPTY passou. Nenhuma branch foi mesclada, e nenhum commit/push/tag foi criado.
+- O veredito de distribuição permanece NO-GO por checkout dirty/não congelado e gates externos de CI Windows exact-SHA, Authenticode e trust root.
+
+## Continuidade Windows — cleanup isolado do smoke Desktop — 2026-10-07
+
+- Revisão identificou que o cleanup anterior podia encerrar processos WebView2 não relacionados iniciados durante o smoke.
+- Ajuste em `scripts/smoke-desktop-windows.ps1`: agora seleciona apenas `msedgewebview2.exe` com a linha de comando apontando ao perfil isolado do Nexus.
+- PASS — parser PowerShell, build Desktop com ID temporário e smoke Wails/WebView2 de 10s. Perfil isolado criado; nenhum processo WebView2 desse perfil restou depois do cleanup.
+- Evidência em `outputs/windows-desktop-smoke-cleanup-52f35c04-20261007/desktop-smoke.txt`; SHA-256 do executável de smoke `86d93ae2854852d880e43fd3a81dd1e68a6b4eba109599184ad2e8fd0280623b`.
+- Checagem do host: nenhum serviço/processo de GitHub Actions Runner, Windows SDK `signtool.exe`, certificado Authenticode ou update trust root disponível. GO externo continua dependendo desse provisionamento; worktree não foi congelado em commit.
+
+## Continuidade Windows — gate visual documental encontrado — 2026-10-07
+
+- `bun scripts/docs-verify.mjs` falhou: o manifesto público está ancorado em 2892f301, há mudanças visuais posteriores em HEAD e mudanças visuais não commitadas.
+- O refresh Windows oficial exige checkout limpo e SHA exato, captura novamente as telas, valida `manifest.source_sha` e orienta commit somente dos artefatos; depois é necessário repetir a homologação.
+- Próximo passo autorizado: congelar código/documentos, executar refresh em SHA limpo, registrar as capturas, repetir todos os gates Windows no candidato final. Distribuição continua NO-GO até docs/CI/assinatura/installer fecharem.
+
+## Continuidade Windows — timeout de identidade Git — 2026-10-08
+
+- O conjunto Go no SHA local `c8d3ac9b` travou em `TestResolveComposerUnknown`, aguardando `git rev-parse --is-inside-work-tree` no snapshot de identidade do contexto.
+- `gitOutput` agora limita cada subprocesso Git a 5 s e retorna identidade incompleta, sem afirmar estado limpo, se o comando exceder o prazo. `commandOutput` usa `WaitDelay` para fechar a espera por pipes.
+- O homologador isola `TEMP`/`TMP` numa pasta curta e exclusiva sob o temp nativo do Windows, remove configuração ambiental Git herdada durante `go test`, preserva/restaura as variáveis do processo e reutiliza caches Go.
+- PASS exploratório no Windows AMD64: teste de deadline (`TestCommandOutputHonorsDeadline`), pacote `internal/nexus/contextsnapshot` completo e `go test -count=1 -timeout=5m ./internal/nexus` (90,569 s).
+- A primeira suíte integral em `d1208720` revelou `Filename too long`: o `TEMP` abaixo da pasta profunda de evidências excedeu o limite de caminho ao inicializar fixtures Git. O temp foi movido para uma pasta isolada curta; o gate integral será repetido no SHA atualizado.
+- A homologação integral passou no SHA final `d840797bbd975a5c7edc54ebe23f3dfef56ff947`; os testes direcionados anteriores foram apenas diagnóstico, e as evidências finais estão no relatório Windows de 2026-10-08.
+
+## Homologação Windows beta.7 — gates locais no SHA exato — 2026-10-08
+
+- PASS — `release/v1.0.0` no SHA `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, `VERSION=1.0.0-beta.7`, Windows AMD64, Go 1.25.14, Bun 1.3.9 e Node 22.14.0 para Playwright.
+- PASS — PowerShell, docs-verify, Bun frozen install + `quality:full` (82 arquivos/487 testes), `go fmt ./...`, vet, golangci-lint (0 issues), govulncheck, contrato de versão, suíte Go completa (65 pacotes PASS/0 FAIL), preflight, regressões control/runtime e Agent Interop.
+- PASS — oito suítes browser E2E, tarefas Axe/visual, builds CLI/Desktop/HUD e smokes Desktop/WebView2 (9 s) e HUD (8 s) com perfis isolados.
+- Binários e ZIPs não assinados; checksums e cópias em `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/distribution-artifacts/`.
+- Auditoria viva: o remoto `release/v1.0.0` estava em `52f35c04` antes da continuidade; KIVER `d14154d2` é ancestral do candidato; nenhuma branch Beta 7 nova surgiu e nenhuma integração é necessária.
+- Publicação continua NO-GO: `gh`, `signtool.exe`, `makensis.exe`, assinatura/secrets, workflow exact-SHA, instalador exato e smokes manuais provider/Mission/Voice não foram validados. Gemini local falhou por executar sob Node 18.12.1; isso não foi contado como provider smoke aprovado.
+- Nenhum gate Linux foi executado nesta continuidade.
+
+## Envio fast-forward da homologação Windows — 2026-10-08
+
+- PASS — `release/v1.0.0` foi atualizado no remoto em fast-forward de `52f35c04` para `f1928d0f75cf49a0968f248bd7dc9b8e54655dcb`, incluindo o código Windows validado em `d840797b` e seus relatórios. `git ls-remote` confirmou o novo HEAD; worktree local limpo.
+- Nenhuma branch nova foi criada. `fix/beta7-windows-KIVER-20261007` continua em `d14154d2`, ancestral do candidato, sem integração pendente.
+- A tag `v1.0.0-beta.7` continua ausente. `gh` não está instalado e o Actions API não autenticado retornou 404; CI pós-push não foi confirmado. Nenhum release público foi publicado.
+- A sincronização documental posterior foi enviada por fast-forward de `f1928d0f` para `5a08a1807c4489395dca86ed198f268ea676d2e4`; `git ls-remote` confirmou esse HEAD antes do registro final de status. O código homologado `d840797b` permanece ancestral, a árvore está limpa e não há gate Linux nesta rodada.

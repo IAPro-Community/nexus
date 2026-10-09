@@ -1,13 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Globe, RefreshCw, Server, Smartphone, Wifi, WifiOff } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Copy, Globe, RefreshCw, Server, Smartphone, Wifi, WifiOff } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Badge, Button, Card, InlineAlert } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import type {
-  ProjectExecutionTargetCatalog,
-  ProjectExecutionTargetProbe,
-  TunnelStatus,
-} from '../../types';
+import type { ProjectExecutionTargetCatalog, ProjectExecutionTargetProbe, TunnelStatus } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { asArray } from '../../lib/safeArray';
 import styles from './SettingsSurface.module.scss';
@@ -16,9 +12,17 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
   const { t } = useTranslation();
   const [status, setStatus] = useState<TunnelStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const startAttempt = useRef(0);
   const [error, setError] = useState('');
   const [showQR, setShowQR] = useState(false);
-  const [qrData, setQrData] = useState<{ url: string; bootstrap_url: string } | null>(null);
+  const [qrData, setQrData] = useState<{
+    url: string;
+    bootstrap_url: string;
+    expires_in_seconds: number;
+  } | null>(null);
+
   const [targetCatalog, setTargetCatalog] = useState<ProjectExecutionTargetCatalog | null>(null);
   const [targetLoading, setTargetLoading] = useState(false);
   const [targetError, setTargetError] = useState('');
@@ -178,47 +182,81 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
   }, [projectId, refreshTargets, t]);
 
   const handleStart = useCallback(async () => {
+    const attempt = ++startAttempt.current;
+    setConnecting(true);
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setError('');
       const s = await nexus.startTunnel();
+      // A pending request may resolve after the user has canceled it.
+      if (startAttempt.current !== attempt) return;
       setStatus(s);
+      setShowQR(false);
+      setQrData(null);
       if (s.error) setError(s.error);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('settings.remote.errors.start'));
+      if (startAttempt.current === attempt) {
+        setError(e instanceof Error ? e.message : t('settings.remote.errors.start'));
+      }
     } finally {
-      setLoading(false);
+      if (startAttempt.current === attempt) {
+        setConnecting(false);
+        setLoading(false);
+      }
     }
   }, [t]);
 
   const handleStop = useCallback(async () => {
+    // Invalidate an in-flight start response before sending Stop. Otherwise
+    // a late startup completion could mark an already stopped tunnel active.
+    startAttempt.current++;
+    setConnecting(false);
+    setCancelling(true);
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setError('');
       await nexus.stopTunnel();
       setStatus((prev) =>
-        prev ? { ...prev, active: false, url: undefined, bootstrap_url: undefined } : null,
+        prev
+          ? { ...prev, active: false, starting: false, url: undefined, bootstrap_url: undefined }
+          : null,
       );
       setShowQR(false);
       setQrData(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('settings.remote.errors.stop'));
     } finally {
+      setCancelling(false);
       setLoading(false);
     }
   }, [t]);
 
-  const handleShowQR = useCallback(async () => {
+  const generateInvite = useCallback(async () => {
+    if (loading) return;
+    setLoading(true);
+    setError('');
     try {
-      const data = await nexus.getTunnelQR();
+      const data = await nexus.createTunnelInvite();
       setQrData(data);
       setShowQR(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('settings.remote.errors.qr'));
+    } finally {
+      setLoading(false);
     }
-  }, [t]);
+  }, [t, loading]);
+
+  const handleShowQR = useCallback(() => {
+    if (showQR) {
+      setShowQR(false);
+      setQrData(null);
+      return;
+    }
+    void generateInvite();
+  }, [showQR, generateInvite]);
 
   const active = status?.active ?? false;
+  const starting = connecting || (status?.starting ?? false);
   const installed = status?.cloudflared_installed ?? false;
 
   return (
@@ -234,6 +272,12 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
         </div>
 
         <p className={`nx-muted-copy ${styles.mutedTextSmall}`}>{t('settings.remote.intro')}</p>
+        <InlineAlert tone="info">
+          {t('settings.remote.lanHttpsRequired', {
+            defaultValue:
+              'Na mesma rede, o acesso autenticado exige HTTPS confiável. Utilize um proxy TLS ou o túnel HTTPS; não é seguro transportar cookies de sessão por HTTP na rede.',
+          })}
+        </InlineAlert>
 
         {!installed && <InlineAlert tone="info">{t('settings.remote.downloadNotice')}</InlineAlert>}
 
@@ -269,10 +313,19 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
             </>
           ) : (
             <div className={styles.tunnelActions}>
-              <Button tone="brand" onClick={handleStart} disabled={loading}>
-                <Wifi size={14} />
-                {loading ? t('settings.remote.starting') : t('settings.remote.activate')}
-              </Button>
+              {starting ? (
+                <Button tone="danger" onClick={handleStop} disabled={cancelling}>
+                  <WifiOff size={14} />
+                  {cancelling
+                    ? t('settings.remote.stopping')
+                    : t('settings.remote.cancelStart', { defaultValue: 'Cancelar conexão' })}
+                </Button>
+              ) : (
+                <Button tone="brand" onClick={handleStart} disabled={loading}>
+                  <Wifi size={14} />
+                  {t('settings.remote.activate')}
+                </Button>
+              )}
 
               <Button tone="ghost" onClick={refresh} disabled={loading}>
                 <RefreshCw size={14} />
@@ -496,8 +549,40 @@ export const RemoteAccessTab: React.FC<{ projectId?: string }> = ({ projectId })
             </div>
 
             <div className={styles.qrInfo}>
+              <InlineAlert tone="warning">
+                {t('settings.remote.fullControlWarning', {
+                  defaultValue:
+                    'Este convite concede acesso completo ao workspace. Compartilhe somente com alguém de confiança.',
+                })}
+              </InlineAlert>
               <p className={styles.qrLabel}>{t('settings.remote.accessURL')}</p>
               <code className={styles.qrUrl}>{qrData.url}</code>
+              <Button tone="ghost" onClick={() => void generateInvite()} disabled={loading}>
+                <RefreshCw size={14} />
+                {t('settings.remote.generateInvite', { defaultValue: 'Gerar outro convite' })}
+              </Button>
+              <Button
+                tone="brand"
+                onClick={() => {
+                  void navigator.clipboard.writeText(qrData.bootstrap_url).catch(() =>
+                    setError(
+                      t('settings.remote.errors.copy', {
+                        defaultValue: 'Não foi possível copiar o convite.',
+                      }),
+                    ),
+                  );
+                }}
+              >
+                <Copy size={14} />
+                {t('settings.remote.copyInvite', {
+                  defaultValue: 'Copiar convite de acesso',
+                })}
+              </Button>
+              <p className={styles.mutedTextSmall}>
+                {t('settings.remote.inviteExpiry', {
+                  defaultValue: 'Convite individual, de uso único, válido por 15 minutos.',
+                })}
+              </p>
 
               <p className={`nx-muted-copy ${styles.mutedTextSmall}`}>
                 {t('settings.remote.tokenNotice')}

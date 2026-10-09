@@ -119,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => onSelectTab(item.id)}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium transition ${
                 isActive
-                  ? 'bg-gradient-to-r from-purple-950/60 via-indigo-950/40 to-cyan-950/30 text-cyan-300 border border-purple-500/40 shadow-sm iapro-glow-sm'
+                  ? 'bg-[var(--nx-accent-soft)] text-[var(--nx-accent-text)] border border-[var(--nx-accent)] shadow-sm'
                   : 'hover:bg-[var(--nx-surface-2)]'
               }`}
               style={{
@@ -219,7 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-2.5 py-0.5 rounded text-[10px] text-white font-medium transition"
+                className="px-2.5 py-0.5 rounded text-[10px] text-[var(--nx-accent-contrast)] font-medium transition"
                 style={{ background: 'var(--nx-accent)' }}
               >
                 {t('agents.create', 'Add')}
@@ -260,7 +260,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       e.stopPropagation();
                       onRemoveWorkspace(ws.path);
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded transition ml-1 hover:bg-[var(--nx-surface)] text-rose-400"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded transition ml-1 hover:bg-[var(--nx-surface)] text-[var(--nx-danger)]"
                     title={t('projectManager.remove', 'Remove Project')}
                     aria-label={t('projectManager.remove', 'Remove Project')}
                   >

@@ -269,9 +269,9 @@
   margin: 0.35rem auto;
   padding: 0.55rem 0.75rem;
   border-radius: var(--nx-radius-sm, 8px);
-  border: 1px solid color-mix(in srgb, var(--nx-danger, #f87171) 50%, var(--nx-border));
-  color: var(--nx-danger, #f87171);
-  background: color-mix(in srgb, var(--nx-danger, #f87171) 10%, var(--nx-surface));
+  border: 1px solid color-mix(in srgb, var(--nx-danger) 50%, var(--nx-border));
+  color: var(--nx-danger);
+  background: color-mix(in srgb, var(--nx-danger) 10%, var(--nx-surface));
   max-width: 52rem;
   width: calc(100% - 3rem);
 }

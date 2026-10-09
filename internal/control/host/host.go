@@ -47,25 +47,26 @@ type Config struct {
 
 // SessionHost manages a single supervised process runtime and its IPC listener.
 type SessionHost struct {
-	mu           sync.RWMutex
-	session      registry.RuntimeSession
-	registry     *registry.Registry
-	cfg          Config
-	cmd          *exec.Cmd
-	termBackend  terminal.Backend
-	ringBuffer   *RingBuffer
-	fanout       *BoundedFanout
-	listener     net.Listener
-	clients      map[net.Conn]bool
-	activeWriter net.Conn
-	stopChan     chan struct{}
-	doneChan     chan struct{}
-	streamDone   chan struct{}
-	detector     *AttentionDetector
-	shellInput   shellPipeInputNormalizer
-	stopOnce     sync.Once
-	doneOnce     sync.Once
-	codexTUILock interface{ Release() error }
+	mu            sync.RWMutex
+	session       registry.RuntimeSession
+	registry      *registry.Registry
+	cfg           Config
+	cmd           *exec.Cmd
+	termBackend   terminal.Backend
+	ringBuffer    *RingBuffer
+	fanout        *BoundedFanout
+	listener      net.Listener
+	clients       map[net.Conn]bool
+	activeWriter  net.Conn
+	stopChan      chan struct{}
+	doneChan      chan struct{}
+	streamDone    chan struct{}
+	detector      *AttentionDetector
+	shellInput    shellPipeInputNormalizer
+	terminalInput *nexusruntime.TerminalOutputScrubber
+	stopOnce      sync.Once
+	doneOnce      sync.Once
+	codexTUILock  interface{ Release() error }
 }
 
 // NewSessionHost creates a new SessionHost for a given runtime.
@@ -83,7 +84,7 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 
 	termBackend := cfg.terminalBackend
 	if termBackend == nil {
-		termBackend = terminal.NewBackend()
+		termBackend = terminal.NewBackendForProvider(cfg.Session.ProviderID)
 	}
 
 	sh := &SessionHost{
@@ -213,6 +214,14 @@ func (sh *SessionHost) Start() error {
 		sh.completeStartFailureLocked()
 		return fmt.Errorf("failed to supervise provider process: %w", err)
 	}
+	// SessionHost is the final input authority. Raw attach streams are byte
+	// streams, not message transports, so upstream write boundaries cannot be
+	// trusted. Coalesce CSI/SS3 and terminal metadata one last time immediately
+	// before the provider PTY for both CLI and Web paths.
+	sh.terminalInput = nexusruntime.NewTerminalInputScrubber(
+		nexusruntime.NewTerminalTracingWriter(sh.termBackend, sh.session.RuntimeID, "host.scrubber.output"),
+	)
+
 	setStage(registry.StartupTerminalReady, "")
 
 	// Drain terminal output independently and let lifecycle finalization wait for
@@ -308,7 +317,7 @@ func (sh *SessionHost) streamReader(r io.Reader) {
 				idx := bytes.IndexByte(pending, '\n')
 				if idx < 0 {
 					// Flush non-JSON partials so interactive output stays live.
-					if len(pending) > 0 && pending[0] != '{' {
+					if len(pending) > 0 && !protocol.MayBeWireControlPrefix(pending) {
 						chunk := pending
 						pending = nil
 						sh.ringBuffer.Write(chunk)
@@ -357,21 +366,7 @@ func (sh *SessionHost) streamReader(r io.Reader) {
 // isHostProtocolControlFrame detects Nexus Control RPC lines that must never
 // enter the ring buffer / fanout (e.g. lease_acquire echoed into the PTY).
 func isHostProtocolControlFrame(data []byte) bool {
-	trimmed := bytes.TrimSpace(data)
-	if len(trimmed) == 0 || trimmed[0] != '{' {
-		return false
-	}
-	var probe map[string]json.RawMessage
-	if json.Unmarshal(trimmed, &probe) != nil {
-		return false
-	}
-	if _, hasCommand := probe["command"]; hasCommand {
-		return true
-	}
-	if _, hasOK := probe["ok"]; hasOK {
-		return true
-	}
-	return false
+	return protocol.IsWireControlFrame(data)
 }
 
 func (sh *SessionHost) broadcast(data []byte) {
@@ -627,8 +622,10 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 		if req.Payload != nil {
 			var p protocol.InputPayload
 			if json.Unmarshal(req.Payload, &p) == nil && p.Data != "" {
-				// CmdInput is a byte transport. It must never pass through command
-				// recognition, ANSI filtering, or escape-sequence normalization.
+				nexusruntime.TraceTerminalBytes(sh.session.RuntimeID, "host.cmd_input", []byte(p.Data))
+				// CmdInput remains byte-transparent at the control layer. The final
+				// SessionHost terminal scrubber only preserves sequence atomicity and
+				// drops terminal metadata before the provider PTY.
 				forwardWrite = sh.collectAttachedInputLocked(conn, []byte(p.Data))
 				forwardWrite = sh.normalizeShellPipeInputLocked(forwardWrite)
 			}
@@ -774,10 +771,10 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 		_ = sh.termBackend.Resize(resizeRows, resizeCols)
 	}
 	if len(forwardWrite) > 0 {
-		_, _ = sh.termBackend.Write(forwardWrite)
+		_ = sh.writeTerminalInput(forwardWrite)
 	}
 	if len(promptWrite) > 0 {
-		_, _ = sh.termBackend.Write(promptWrite)
+		_ = sh.writeTerminalInput(promptWrite)
 	}
 	if controlCmd != "" {
 		sh.mu.Lock()
@@ -792,14 +789,32 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 }
 
 func (sh *SessionHost) processAttachedInput(conn net.Conn, data []byte) {
+	nexusruntime.TraceTerminalBytes(sh.session.RuntimeID, "host.raw_attach.input", data)
 	sh.mu.Lock()
 	forward := sh.collectAttachedInputLocked(conn, data)
 	forward = sh.normalizeShellPipeInputLocked(forward)
 	sh.mu.Unlock()
 
 	if len(forward) > 0 {
-		_, _ = sh.termBackend.Write(forward)
+		_ = sh.writeTerminalInput(forward)
 	}
+}
+
+func (sh *SessionHost) writeTerminalInput(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+	sh.mu.RLock()
+	input := sh.terminalInput
+	backend := sh.termBackend
+	sh.mu.RUnlock()
+	if input != nil {
+		_, err := input.Write(data)
+		return err
+	}
+	nexusruntime.TraceTerminalBytes(sh.session.RuntimeID, "host.pty.write", data)
+	_, err := backend.Write(data)
+	return err
 }
 
 func (sh *SessionHost) normalizeShellPipeInputLocked(data []byte) []byte {
@@ -883,6 +898,12 @@ func (sh *SessionHost) removeClient(conn net.Conn) {
 func (sh *SessionHost) waitProcess() {
 	err := sh.termBackend.Wait()
 	<-sh.streamDone
+
+	// A delayed ESC/CSI timer must not outlive the provider it would write to.
+	// Close the stateful input boundary before the terminal backend is torn down.
+	if sh.terminalInput != nil {
+		_ = sh.terminalInput.Close()
+	}
 
 	sh.mu.Lock()
 	defer sh.mu.Unlock()

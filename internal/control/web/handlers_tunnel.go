@@ -2,8 +2,8 @@ package web
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -17,6 +17,7 @@ import (
 // TunnelStatusResponse is the contract returned by tunnel status/start/stop.
 type TunnelStatusResponse struct {
 	Active               bool   `json:"active"`
+	Starting             bool   `json:"starting"`
 	URL                  string `json:"url,omitempty"`
 	BootstrapURL         string `json:"bootstrap_url,omitempty"`
 	CloudflaredInstalled bool   `json:"cloudflared_installed"`
@@ -31,6 +32,91 @@ type tunnelManager struct {
 	cancel      context.CancelFunc
 	startCancel context.CancelFunc
 	starting    bool
+	startSeq    uint64
+}
+
+// trackTunnelExit ensures that an old cloudflared process cannot invalidate
+// a newer tunnel generation's authentication when it exits asynchronously.
+func tunnelIsActive(tunnel *Tunnel) bool {
+	if tunnel == nil {
+		return false
+	}
+	tunnel.mu.Lock()
+	defer tunnel.mu.Unlock()
+	return !tunnel.stopped
+}
+
+func (s *Server) trackTunnelExit(tunnel *Tunnel) {
+	onExit := func() {
+		tm := s.tunnelManager()
+		tm.mu.Lock()
+		owned := tm.tunnel == tunnel
+		var host string
+		if owned {
+			tm.tunnel = nil
+			tm.cancel = nil
+			host = extractTunnelHost(tunnel.URL)
+			// Keep revocation within the generation lock: a stale exit
+			// must never disarm auth after a replacement tunnel starts.
+			s.auth.SetTunnelActive(false)
+		}
+		tm.mu.Unlock()
+		// UnregisterTunnelHost is a fast map delete but does not need to
+		// hold tm.mu; doing it outside reduces lock contention.
+		if owned && host != "" {
+			originpolicy.UnregisterTunnelHost(host)
+		}
+	}
+	// cloudflared's waiter reads OnExit under tunnel.mu. Register under
+	// the same lock and handle an exit that already happened.
+	tunnel.mu.Lock()
+	tunnel.OnExit = onExit
+	alreadyStopped := tunnel.stopped
+	tunnel.mu.Unlock()
+	if alreadyStopped {
+		onExit()
+	}
+}
+
+// AttachExternalTunnel makes CLI-started tunnels visible in the same status,
+// invite, stop, and cleanup flow as tunnels launched from Settings.
+func (s *Server) AttachExternalTunnel(tunnel *Tunnel) error {
+	if tunnel == nil || extractTunnelHost(tunnel.URL) == "" ||
+		extractTunnelHost(tunnel.URL) != s.tunnelHost || !s.auth.IsTunnelActive() {
+		return fmt.Errorf("external tunnel does not match the active server hostname")
+	}
+	tm := s.tunnelManager()
+	tm.mu.Lock()
+	if tunnelIsActive(tm.tunnel) {
+		tm.mu.Unlock()
+		return fmt.Errorf("another tunnel is already active")
+	}
+	tm.tunnel = tunnel
+	tm.cancel = tunnel.cancel
+	tm.mu.Unlock()
+	s.trackTunnelExit(tunnel)
+	return nil
+}
+
+// NewTunnelInviteURL issues a fresh host-bound authorization link after the
+// public tunnel has been registered, independent of server bootstrap age.
+func (s *Server) NewTunnelInviteURL() (string, string, error) {
+	tm := s.tunnelManager()
+	tm.mu.Lock()
+	active := !tm.starting && tunnelIsActive(tm.tunnel)
+	url := ""
+	if active {
+		url = tm.tunnel.URL
+	}
+	tm.mu.Unlock()
+	if !active || url == "" {
+		return "", "", fmt.Errorf("no active tunnel")
+	}
+	token, err := s.auth.IssueTunnelInvitation(extractTunnelHost(url))
+	if err != nil {
+		return "", "", err
+	}
+	return url, url + "/#nexus_bootstrap=" + token, nil
 }
 
 func (s *Server) handleTunnelStatus(w http.ResponseWriter, r *http.Request) {
@@ -48,19 +134,18 @@ func (s *Server) handleTunnelStatus(w http.ResponseWriter, r *http.Request) {
 
 	tm := s.tunnelManager()
 	tm.mu.Lock()
-	active := tm.tunnel != nil && !tm.tunnel.stopped
+	active := !tm.starting && tunnelIsActive(tm.tunnel)
+	starting := tm.starting
 	url := ""
-	bURL := ""
 	if active {
 		url = tm.tunnel.URL
-		bURL = s.remoteBootstrapURL(url)
 	}
 	tm.mu.Unlock()
 
 	writeJSON(w, http.StatusOK, TunnelStatusResponse{
 		Active:               active,
+		Starting:             starting,
 		URL:                  url,
-		BootstrapURL:         bURL,
 		CloudflaredInstalled: installed,
 		CloudflaredVersion:   version,
 	})
@@ -76,14 +161,21 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
+	defer cancel()
 	tm := s.tunnelManager()
 	tm.mu.Lock()
-	if tm.tunnel != nil && !tm.tunnel.stopped || tm.starting {
+	if tunnelIsActive(tm.tunnel) || tm.starting {
 		tm.mu.Unlock()
 		writeError(w, http.StatusConflict, "tunnel already active")
 		return
 	}
+	// Install cancellation atomically with the pending-start flag, so a
+	// concurrent Stop can always cancel DNS/download/process startup.
 	tm.starting = true
+	tm.startSeq++
+	startSeq := tm.startSeq
+	tm.startCancel = cancel
 	tm.mu.Unlock()
 
 	installed := IsCloudflaredInstalled()
@@ -92,15 +184,13 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 		p, _ := cloudflaredPath()
 		version = CloudflaredVersion(p)
 	}
-
-	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
-	defer cancel()
-	tm.mu.Lock()
-	tm.startCancel = cancel
-	tm.mu.Unlock()
 	defer func() {
 		tm.mu.Lock()
-		tm.startCancel = nil
+		// An older handler must never erase a newer generation's cancel
+		// function after its own startup has already unwound.
+		if tm.startSeq == startSeq {
+			tm.startCancel = nil
+		}
 		tm.mu.Unlock()
 	}()
 
@@ -117,40 +207,43 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Arm tunnel auth fail-closed as soon as the public URL exists — before
-	// WaitForTunnel — so bootstrap/query-token cannot stay reusable while the
-	// hostname is already world-reachable.
+	// Stop may have cancelled a startup while StartTunnel was fetching or
+	// launching cloudflared. Never publish a process after that cancellation.
+	tm.mu.Lock()
+	if err := ctx.Err(); err != nil {
+		tm.starting = false
+		tm.mu.Unlock()
+		_ = tunnel.Stop()
+		writeError(w, http.StatusConflict, "tunnel startup cancelled")
+		return
+	}
+	// Arm auth fail-closed before readiness. Register the tunnel under the
+	// same manager lock so concurrent Stop sees and terminates it.
 	if tunnelHost := extractTunnelHost(tunnel.URL); tunnelHost != "" {
 		originpolicy.RegisterTunnelHost(tunnelHost)
 		s.tunnelHost = tunnelHost
 	}
 	s.auth.SetTunnelActive(true)
-
-	tunnel.OnExit = func() {
-		if host := extractTunnelHost(tunnel.URL); host != "" {
-			originpolicy.UnregisterTunnelHost(host)
-		}
-		s.auth.SetTunnelActive(false)
-		tm := s.tunnelManager()
-		tm.mu.Lock()
-		if tm.tunnel == tunnel {
-			tm.tunnel = nil
-			tm.cancel = nil
-		}
-		tm.mu.Unlock()
-	}
+	tm.tunnel = tunnel
+	tm.cancel = tunnel.cancel
+	tm.mu.Unlock()
+	s.trackTunnelExit(tunnel)
 
 	readyCtx, readyCancel := context.WithTimeout(ctx, 60*time.Second)
 	defer readyCancel()
 	if err := tunnel.WaitForTunnel(readyCtx); err != nil {
-		if tunnelHost := extractTunnelHost(tunnel.URL); tunnelHost != "" {
-			originpolicy.UnregisterTunnelHost(tunnelHost)
-		}
-		s.auth.SetTunnelActive(false)
-		_ = tunnel.Stop()
 		tm.mu.Lock()
+		if tm.tunnel == tunnel {
+			tm.tunnel = nil
+			tm.cancel = nil
+			if tunnelHost := extractTunnelHost(tunnel.URL); tunnelHost != "" {
+				originpolicy.UnregisterTunnelHost(tunnelHost)
+			}
+			s.auth.SetTunnelActive(false)
+		}
 		tm.starting = false
 		tm.mu.Unlock()
+		_ = tunnel.Stop()
 		writeJSON(w, http.StatusBadGateway, TunnelStatusResponse{
 			CloudflaredInstalled: installed,
 			CloudflaredVersion:   version,
@@ -160,17 +253,26 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tm.mu.Lock()
-	tm.tunnel = tunnel
-	tm.cancel = tunnel.cancel
+	running := tm.tunnel == tunnel && tunnelIsActive(tunnel) && ctx.Err() == nil
 	tm.starting = false
+	if !running && tm.tunnel == tunnel {
+		tm.tunnel = nil
+		tm.cancel = nil
+		if tunnelHost := extractTunnelHost(tunnel.URL); tunnelHost != "" {
+			originpolicy.UnregisterTunnelHost(tunnelHost)
+		}
+		s.auth.SetTunnelActive(false)
+	}
 	tm.mu.Unlock()
-
-	bURL := s.remoteBootstrapURL(tunnel.URL)
+	if !running {
+		_ = tunnel.Stop()
+		writeError(w, http.StatusBadGateway, "tunnel closed during startup")
+		return
+	}
 
 	writeJSON(w, http.StatusOK, TunnelStatusResponse{
 		Active:               true,
 		URL:                  tunnel.URL,
-		BootstrapURL:         bURL,
 		CloudflaredInstalled: installed,
 		CloudflaredVersion:   version,
 	})
@@ -186,7 +288,12 @@ func (s *Server) handleTunnelStop(w http.ResponseWriter, r *http.Request) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
-	if tm.tunnel == nil || tm.tunnel.stopped {
+	// Also cancel the pre-publication phase, when tm.tunnel is still nil.
+	// Keep starting=true until the canceled Start handler has unwound.
+	if tm.starting && tm.startCancel != nil {
+		tm.startCancel()
+	}
+	if !tunnelIsActive(tm.tunnel) {
 		writeJSON(w, http.StatusOK, TunnelStatusResponse{Active: false})
 		return
 	}
@@ -211,15 +318,6 @@ func (s *Server) handleTunnelStop(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, TunnelStatusResponse{Active: false})
 }
 
-// remoteBootstrapURL rewrites the local bootstrap URL to use the tunnel public URL.
-func (s *Server) remoteBootstrapURL(tunnelURL string) string {
-	if tunnelURL == "" {
-		return ""
-	}
-	localURL := s.url + "/#nexus_bootstrap=" + s.bootstrap
-	return strings.Replace(localURL, s.url, tunnelURL, 1)
-}
-
 // extractTunnelHost extracts the hostname from a tunnel URL.
 func extractTunnelHost(tunnelURL string) string {
 	if strings.HasPrefix(tunnelURL, "https://") {
@@ -233,48 +331,33 @@ func extractTunnelHost(tunnelURL string) string {
 }
 
 func (s *Server) port() int {
-	if s.httpServer != nil && s.httpServer.Addr != "" {
-		parts := strings.Split(s.httpServer.Addr, ":")
-		if len(parts) > 0 {
-			var p int
-			fmt.Sscanf(parts[len(parts)-1], "%d", &p)
-			if p > 0 {
-				return p
-			}
+	// http.Server.Addr is empty when Serve is called with our pre-bound
+	// listener. Cloudflared must use the actual TCP port, not DefaultPort.
+	if s.listener != nil {
+		if addr, ok := s.listener.Addr().(*net.TCPAddr); ok && addr.Port > 0 {
+			return addr.Port
 		}
 	}
 	return DefaultPort
 }
 
-// handleTunnelQR returns a JSON payload with the tunnel bootstrap URL for
-// QR code generation on the frontend.
+// handleTunnelQR mints a fresh invitation on an authenticated POST.
+// GET requests must never create or reveal credentials.
 func (s *Server) handleTunnelQR(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
-	tm := s.tunnelManager()
-	tm.mu.Lock()
-	active := tm.tunnel != nil && !tm.tunnel.stopped
-	url := ""
-	bURL := ""
-	if active {
-		url = tm.tunnel.URL
-		bURL = s.remoteBootstrapURL(url)
-	}
-	tm.mu.Unlock()
-
-	if !active || bURL == "" {
-		writeError(w, http.StatusNotFound, "no active tunnel")
+	tunnelURL, bootstrapURL, err := s.NewTunnelInviteURL()
+	if err != nil {
+		writeError(w, http.StatusConflict, "unable to generate invitation: "+err.Error())
 		return
 	}
-
-	// Return the URL as JSON — frontend generates QR code client-side
-	data, _ := json.Marshal(map[string]string{
-		"url":           url,
-		"bootstrap_url": bURL,
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, map[string]any{
+		"url":                tunnelURL,
+		"bootstrap_url":      bootstrapURL,
+		"expires_in_seconds": int(remoteBootstrapTTL.Seconds()),
 	})
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
 }

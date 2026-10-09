@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { handleTerminalZoomKey } from '../nexus/terminalZoomKey';
 import { useTranslation } from 'react-i18next';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -17,10 +18,12 @@ import {
 } from 'lucide-react';
 import { ProtocolScrubber } from '../nexus/terminalProtocol';
 import { canFitTerminal } from '../nexus/terminalFitModel';
+import { TERMINAL_CONNECT_TIMEOUT_MS } from '../nexus/agentTerminalModel';
 import {
   DEFAULT_TERMINAL_SCROLLBACK,
   adjustTerminalFontSize,
   getStoredTerminalFontSize,
+  getTerminalTheme,
   resetTerminalFontSize,
   shouldAutoScrollToBottom,
   storeTerminalFontSize,
@@ -29,7 +32,11 @@ import {
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { getWebSocketEndpoint } from '../api';
-import { shouldForwardTerminalInput, stripEmbeddedTerminalMetadata } from '../nexus/terminalInput';
+import {
+  shouldForwardTerminalInput,
+  stripEmbeddedTerminalMetadata,
+  terminalTraceShape,
+} from '../nexus/terminalInput';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
 import { sendVoiceTranscriptToTerminal } from '../features/voice/terminalVoice';
 import styles from './TerminalPane.module.scss';
@@ -43,7 +50,7 @@ interface TerminalPaneProps {
   hideHeader?: boolean;
   /** Workspace view id so Janelas/Mosaico can mirror OSC settitle. */
   liveTitleKey?: string;
-  onUpdateTitle?: (id: string, newTitle: string) => void;
+  onUpdateTitle?: (id: string, newTitle: string) => void | Promise<void>;
   onClose?: () => void;
   onRestart?: () => void | Promise<void>;
   /** One-shot text inserted after this terminal acquires CONTROL. Never appends Enter. */
@@ -87,6 +94,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const [customTitle, setCustomTitle] = useState(title || '');
   const [ptyTitle, setPtyTitle] = useState('');
   const [disconnected, setDisconnected] = useState(false);
+  const [connecting, setConnecting] = useState(true);
+  const [diagnosticCode, setDiagnosticCode] = useState('');
   const [restarting, setRestarting] = useState(false);
   const [connectNonce, setConnectNonce] = useState(0);
   const [fontSize, setFontSize] = useState<number>(() => getStoredTerminalFontSize());
@@ -122,24 +131,30 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     };
   }, [liveTitleKey]);
 
-  const handleSaveTitle = () => {
-    setIsEditingTitle(false);
-    if (customTitle.trim() && onUpdateTitle) {
-      onUpdateTitle(runtimeId, customTitle.trim());
+  const handleSaveTitle = async () => {
+    const next = customTitle.trim();
+    if (!next) return;
+    try {
+      await onUpdateTitle?.(runtimeId, next);
+      setCustomTitle(next);
+      setIsEditingTitle(false);
+      setErrorMsg('');
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : String(error));
     }
   };
 
   useEffect(() => {
     if (!containerRef.current) return;
+    setConnecting(true);
+    setDisconnected(false);
+    setDiagnosticCode('');
+    setErrorMsg('');
 
     // Initialize xterm
     const term = new Terminal({
-      theme: {
-        background: '#090d16',
-        foreground: '#e2e8f0',
-        cursor: '#38bdf8',
-        selectionBackground: 'rgba(56, 189, 248, 0.3)',
-      },
+      disableStdin: true,
+      theme: getTerminalTheme(),
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
       fontSize: initialFontSizeRef.current,
       lineHeight: 1.2,
@@ -148,48 +163,14 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       scrollback: DEFAULT_TERMINAL_SCROLLBACK,
     });
 
-    term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey) {
-        if (
-          event.key === '=' ||
-          event.key === '+' ||
-          event.code === 'Equal' ||
-          event.code === 'NumpadAdd'
-        ) {
-          if (event.type === 'keydown') {
-            const next = adjustTerminalFontSize(1);
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-        if (
-          event.key === '-' ||
-          event.key === '_' ||
-          event.code === 'Minus' ||
-          event.code === 'NumpadSubtract'
-        ) {
-          if (event.type === 'keydown') {
-            const next = adjustTerminalFontSize(-1);
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-        if (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0') {
-          if (event.type === 'keydown') {
-            const next = resetTerminalFontSize();
-            storeTerminalFontSize(next);
-          }
-          return false;
-        }
-      }
-      return true;
-    });
+    term.attachCustomKeyEventHandler(handleTerminalZoomKey);
 
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     term.open(containerRef.current);
 
     let disposed = false;
+    let terminalTraceEnabled = false;
     let sessionReady = false;
     let initialInputSent = false;
     // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
@@ -307,6 +288,29 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     const wsUrl = getWebSocketEndpoint(`/api/v1/runtimes/${runtimeId}/terminal`);
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
+    const connectTimeout = window.setTimeout(() => {
+      if (disposed || ws.readyState !== WebSocket.CONNECTING) return;
+      setErrorMsg(
+        tRef.current('terminal.connectTimeout', {
+          defaultValue: 'Tempo limite excedido ao conectar o terminal.',
+        }),
+      );
+      setDiagnosticCode('TERMINAL_CONNECT_TIMEOUT');
+      setConnecting(false);
+      setDisconnected(true);
+      console.warn(
+        '[nexus:terminal]',
+        JSON.stringify({
+          event: 'terminal.connect.timeout',
+          phase: 'TRANSPORT',
+          code: 'TERMINAL_CONNECT_TIMEOUT',
+          runtimeId,
+          attempt: connectNonce + 1,
+          timeoutMs: TERMINAL_CONNECT_TIMEOUT_MS,
+        }),
+      );
+      ws.close();
+    }, TERMINAL_CONNECT_TIMEOUT_MS);
 
     const maybeSendInitialInput = () => {
       const kickoff = initialInputRef.current;
@@ -319,6 +323,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     };
 
     ws.onopen = () => {
+      window.clearTimeout(connectTimeout);
+      term.options.disableStdin = false;
+      setConnecting(false);
+      setDiagnosticCode('');
       if (disposed) return;
       sessionReady = true;
       setErrorMsg('');
@@ -341,7 +349,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       if (disposed) return;
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === 'output' && msg.data) {
+        if (msg.type === 'trace_config') {
+          terminalTraceEnabled = msg.data === 'enabled';
+        } else if (msg.type === 'output' && msg.data) {
           const cleaned = protocolScrubber.scrub(String(msg.data));
           if (cleaned) {
             ingestOutput(cleaned);
@@ -362,7 +372,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
             publishChrome(undefined, true);
           }
         } else if (msg.type === 'error') {
-          setErrorMsg(msg.data);
+          setErrorMsg(String(msg.data || 'Terminal error'));
+          setDiagnosticCode('TERMINAL_SERVER_ERROR');
+          term.options.disableStdin = true;
+          setConnecting(false);
           setDisconnected(true);
         }
       } catch {
@@ -375,7 +388,11 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     };
 
     ws.onclose = () => {
+      window.clearTimeout(connectTimeout);
       if (disposed) return;
+      term.options.disableStdin = true;
+      setConnecting(false);
+      setDiagnosticCode((current) => current || 'TERMINAL_CONNECTION_CLOSED');
       // Release any buffered split-line tail: this stream ended.
       const rest = protocolScrubber.flush();
       if (rest) {
@@ -388,6 +405,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     ws.onerror = () => {
       if (disposed) return;
+      setConnecting(false);
+      setDiagnosticCode((current) => current || 'TERMINAL_TRANSPORT_ERROR');
+      term.options.disableStdin = true;
       setErrorMsg((current) => current || tRef.current('terminal.hostNotRunning'));
       setDisconnected(true);
     };
@@ -397,10 +417,32 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       if (disposed) return;
       term.scrollToBottom();
       setIsScrolledUp(false);
+      if (ws.readyState === WebSocket.OPEN && terminalTraceEnabled) {
+        const trace = terminalTraceShape(data);
+        ws.send(
+          JSON.stringify({
+            type: 'trace',
+            stage: 'xterm.ondata',
+            size: trace.size,
+            data: trace.shape,
+          }),
+        );
+      }
       if (!shouldForwardTerminalInput(data)) return;
       const clean = stripEmbeddedTerminalMetadata(data);
       if (!clean) return;
       if (ws.readyState === WebSocket.OPEN) {
+        if (terminalTraceEnabled) {
+          const trace = terminalTraceShape(clean);
+          ws.send(
+            JSON.stringify({
+              type: 'trace',
+              stage: 'xterm.filtered',
+              size: trace.size,
+              data: trace.shape,
+            }),
+          );
+        }
         ws.send(JSON.stringify({ type: 'input', data: clean }));
       }
     });
@@ -436,6 +478,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     return () => {
       disposed = true;
+      window.clearTimeout(connectTimeout);
       redrawTimers.forEach((timer) => window.clearTimeout(timer));
       try {
         scrollListener.dispose();
@@ -483,17 +526,27 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     };
   }, [runtimeId, connectNonce]);
 
-  const handleRestart = async () => {
-    if (restarting) return;
+  // Retry always reattaches the existing PTY; transport failure is not proof the process died.
+  const handleRestart = () => {
+    if (restarting || connecting) return;
+    setDiagnosticCode('');
+    setDisconnected(false);
+    setErrorMsg('');
+    setConnecting(true);
+    setConnectNonce((n) => n + 1);
+  };
+
+  // A new process is a separate, explicit action so retry cannot duplicate runtimes.
+  const handleStartNew = async () => {
+    if (!onRestart || restarting || connecting) return;
     setRestarting(true);
     try {
-      if (onRestart) {
-        await onRestart();
-        return;
-      }
-      setDisconnected(false);
-      setErrorMsg('');
-      setConnectNonce((n) => n + 1);
+      await onRestart();
+    } catch (error) {
+      setConnecting(false);
+      setDisconnected(true);
+      setDiagnosticCode('TERMINAL_RESTART_FAILED');
+      setErrorMsg(error instanceof Error ? error.message : String(error));
     } finally {
       setRestarting(false);
     }
@@ -541,23 +594,29 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     <div className={styles.terminalPaneRoot} data-chrome={hideHeader ? 'window' : 'full'}>
       {/* Terminal Toolbar */}
       {!hideHeader && (
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-800 text-xs font-mono select-none">
+        <div className="flex items-center justify-between px-3 py-2 bg-[var(--nx-terminal-surface)] border-b border-[var(--nx-terminal-border)] text-xs font-mono select-none">
           <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--nx-success)] animate-pulse"></span>
             {isEditingTitle ? (
               <div className="flex items-center space-x-1">
                 <input
                   type="text"
                   value={customTitle}
                   onChange={(e) => setCustomTitle(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
-                  className="bg-slate-950 border border-sky-500 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleSaveTitle();
+                    if (e.key === 'Escape') {
+                      setCustomTitle(title || '');
+                      setIsEditingTitle(false);
+                    }
+                  }}
+                  className="bg-[var(--nx-terminal-bg)] border border-[var(--nx-terminal-cursor)] rounded px-1.5 py-0.5 text-xs text-[var(--nx-terminal-text)] focus:outline-none"
                   autoFocus
                 />
                 <button
                   type="button"
-                  onClick={handleSaveTitle}
-                  className="p-0.5 text-emerald-400 hover:text-emerald-300"
+                  onClick={() => void handleSaveTitle()}
+                  className="p-0.5 text-[var(--nx-success)] hover:opacity-80"
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
@@ -570,33 +629,37 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
                 title={t('terminal.renameSessionTitle')}
                 aria-label={t('terminal.renameSessionTitle')}
               >
-                <span className="text-slate-100 font-bold font-sans">
+                <span className="text-[var(--nx-terminal-text)] font-bold font-sans">
                   {customTitle || `${provider.toUpperCase()} (${profile})`}
                 </span>
-                <Pencil className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100 transition" />
+                <Pencil className="w-3 h-3 text-[var(--nx-terminal-muted)] opacity-0 group-hover:opacity-100 transition" />
               </button>
             )}
             {ptyTitle && (
               <span
-                className="px-2 py-0.5 rounded-full border border-amber-700/60 bg-amber-950/40 text-amber-200 text-[10px] max-w-[220px] truncate"
+                className="px-2 py-0.5 rounded-full border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-warning)] text-[10px] max-w-[220px] truncate"
                 title={ptyTitle}
               >
                 {ptyTitle}
               </span>
             )}
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-400 uppercase text-[11px]">{provider}</span>
-            <span className="text-slate-500 text-[11px]">({profile})</span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-500 text-[10px]">ID: {runtimeId}</span>
+            <span className="text-[var(--nx-terminal-muted)]">|</span>
+            <span className="text-[var(--nx-terminal-text-soft)] uppercase text-[11px]">
+              {provider}
+            </span>
+            <span className="text-[var(--nx-terminal-muted)] text-[11px]">({profile})</span>
+            <span className="text-[var(--nx-terminal-muted)]">|</span>
+            <span className="text-[var(--nx-terminal-muted)] text-[10px]">ID: {runtimeId}</span>
           </div>
 
           <div className="flex items-center space-x-2">
-            {errorMsg && <span className="text-rose-400 font-sans text-xs">{errorMsg}</span>}
+            {errorMsg && (
+              <span className="text-[var(--nx-danger)] font-sans text-xs">{errorMsg}</span>
+            )}
 
             <VoiceCaptureButton
               context="terminal"
-              disabled={role !== 'CONTROL' || disconnected}
+              disabled={role !== 'CONTROL' || disconnected || connecting}
               onTranscript={handleVoiceTranscript}
             />
 
@@ -633,12 +696,12 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
             {/* Lease Status Badge */}
             {role === 'CONTROL' ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[var(--nx-success-soft)] text-[var(--nx-success)] border border-[var(--nx-success)]">
                 <Shield className="w-3 h-3 mr-1" />
                 CONTROL
               </span>
             ) : (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-950 text-amber-300 border border-amber-800">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[var(--nx-warning-soft)] text-[var(--nx-warning)] border border-[var(--nx-warning)]">
                 <ShieldAlert className="w-3 h-3 mr-1" />
                 VIEW ONLY
               </span>
@@ -649,7 +712,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               <button
                 type="button"
                 onClick={requestControl}
-                className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-sans text-xs transition"
+                disabled={connecting || disconnected}
+                className="px-2 py-0.5 rounded bg-[var(--nx-accent)] hover:bg-[var(--nx-accent-hover)] text-[var(--nx-accent-contrast)] font-sans text-xs transition"
               >
                 {t('terminal.takeControl')}
               </button>
@@ -657,7 +721,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               <button
                 type="button"
                 onClick={releaseControl}
-                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-sans text-xs transition"
+                className="px-2 py-0.5 rounded bg-[var(--nx-surface-2)] hover:bg-[var(--nx-surface-3)] text-[var(--nx-text-soft)] font-sans text-xs transition"
               >
                 Release
               </button>
@@ -667,7 +731,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                className="p-1 rounded text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-surface-2)] transition"
                 title={t('terminal.closePane')}
                 aria-label={t('terminal.closePane')}
               >
@@ -682,7 +746,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         <div className={styles.voiceFloating}>
           <VoiceCaptureButton
             context="terminal"
-            disabled={role !== 'CONTROL' || disconnected}
+            disabled={role !== 'CONTROL' || disconnected || connecting}
             onTranscript={handleVoiceTranscript}
           />
         </div>
@@ -709,6 +773,28 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         </button>
       )}
 
+      {connecting && !disconnected && (
+        <div
+          className={styles.disconnectedOverlay}
+          data-window-chrome={hideHeader ? 'true' : 'false'}
+          role="status"
+          aria-live="polite"
+        >
+          <div className={styles.disconnectedHeader}>
+            <RefreshCw size={18} className="nx-spin-slow" />
+            <strong className={styles.disconnectedTitle}>
+              {t('terminal.connectingTransport', { defaultValue: 'Conectando terminal…' })}
+            </strong>
+          </div>
+          <p className={styles.disconnectedDesc}>
+            {t('terminal.connectingNotice', {
+              defaultValue:
+                'Aguardando a conexão segura com o processo. Você pode continuar navegando no workspace.',
+            })}
+          </p>
+        </div>
+      )}
+
       {disconnected && (
         <div
           className={styles.disconnectedOverlay}
@@ -720,23 +806,38 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           </div>
           <p className={styles.disconnectedDesc}>{t('terminal.disconnectedDesc')}</p>
           {errorMsg && <p className={styles.errorMessage}>{errorMsg}</p>}
+          {diagnosticCode && (
+            <details className={styles.errorMessage}>
+              <summary>
+                {t('terminal.diagnosticDetails', { defaultValue: 'Detalhes técnicos' })}
+              </summary>
+              <code>{diagnosticCode}</code>
+              <p>
+                {t('terminal.runtimeId', { defaultValue: 'Runtime' })}: {runtimeId}
+              </p>
+            </details>
+          )}
           <button
             type="button"
             className="nx-button"
             data-tone="brand"
-            disabled={restarting}
-            onClick={() => void handleRestart()}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            disabled={restarting || connecting}
+            onClick={handleRestart}
           >
-            {restarting ? <RefreshCw size={13} className="nx-spin-slow" /> : <Play size={13} />}
-            <span>
-              {restarting
-                ? t('terminal.reconnecting')
-                : onRestart
-                  ? t('terminal.startNewTerminal')
-                  : t('terminal.reconnect')}
-            </span>
+            <RefreshCw size={13} />
+            <span>{t('terminal.retry', { defaultValue: 'Tentar novamente' })}</span>
           </button>
+          {onRestart && (
+            <button
+              type="button"
+              className="nx-button"
+              disabled={restarting || connecting}
+              onClick={() => void handleStartNew()}
+            >
+              {restarting ? <RefreshCw size={13} className="nx-spin-slow" /> : <Play size={13} />}
+              <span>{t('terminal.startNewTerminal')}</span>
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -1,16 +1,85 @@
 # Status público da release do Nexus v1
 
-Atualizado em **30 de setembro de 2026**.
+Atualizado em 8 de outubro de 2026.
 
 | Campo | Estado |
 | --- | --- |
 | Programa | estabilização do Nexus 1.0 beta |
-| Versão do source candidato | `1.0.0-beta.7` |
-| Última beta pública registrada | `v1.0.0-beta.1` |
-| Matriz candidata da v1 | Linux amd64 + Windows amd64 + macOS arm64 |
-| Release estável v1 | **ainda não publicada** |
-| CI do SHA candidato | obrigatório no SHA final; PR CI é evidência de merge, não substitui exact-SHA |
-| Veredito atual | **beta.7 implementada no source; homologação automatizada Linux amd64 PASS no SHA `6bf1b9f…`; Windows, macOS, CI e checks manuais pendentes** |
+| Versão-fonte candidata | 1.0.0-beta.10 (ainda não homologada) |
+| Branch canônica | release/v1.0.0 |
+| SHA validado nos gates automatizados Windows locais | d840797bbd975a5c7edc54ebe23f3dfef56ff947 |
+| SHA originalmente solicitado para homologação | d14154d2490dfdd3966c7fddc990a1d9127edd39 |
+| Remoto observado antes da continuidade | origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8 |
+| Candidato local | release/v1.0.0 em d840797bbd975a5c7edc54ebe23f3dfef56ff947; descendente do SHA KIVER d14154d2 |
+| Estado do worktree durante os gates | limpo no início da execução exact-SHA; documentação atualizada depois dos gates |
+
+| Última beta pública registrada (último estado conhecido) | v1.0.0-beta.1; inventário remoto atual não revalidado |
+| Release estável v1 | ainda não publicada |
+| Gate nativo Windows exact-SHA no GitHub Actions | não revalidado; `gh` ausente neste host |
+| Veredito | NO-GO para beta.10: os gates Windows PASS se referem somente ao SHA anterior d840797b (beta.7); faltam CI exact-SHA, validação de túnel/Codex e demais smokes aplicáveis |
+
+## Convergência beta.10 — PRs #45 e #46
+
+As correções de homologação Windows da PR #45 e de engenharia da PR #46
+foram conciliadas na PR #47 para incorporação única na `release/v1.0.0`.
+As mudanças recentes de janela/título IA foram preservadas. O registro
+histórico da homologação beta.8 não foi promovido indevidamente como
+certificação do código beta.10, e as capturas de tela precisam ser
+regeneradas contra o SHA final antes de serem declaradas atuais.
+
+**Estado técnico:** o merge de código não representa aprovação de release.
+A validação do exato SHA (Linux, Windows, Codex/ConPTY, túnel, browser,
+Desktop/NSIS e assinatura) permanece pendente. Não criar tag, nem publicar
+instalador ou manifest de atualização sem esses gates.
+
+## Candidato atual — beta.10 (2026-10-08)
+
+A branch canônica `release/v1.0.0` avançou de beta.9 para beta.10. Esta iteração
+preserva as correções recentes de Codex/PTY/JSON e de autenticação/túnel e acrescenta
+cancelamento de inicialização do Cloudflare Tunnel desde Settings, publicação
+atômica do processo, proteção por geração contra canceladores antigos e testes
+de cancelamento antes e durante readiness. O comando `scripts/release-beta.mjs`
+passou a atualizar `VERSION` e `web/package.json` em conjunto, revertendo ambos
+quando a compilação falha.
+
+**Nenhuma evidência anterior certifica automaticamente a beta.10.** O último
+Windows PASS documentado continua ancorado em `d840797b` (beta.7).
+Antes de disponibilizar nova beta ou instalador: congelar o SHA final; obter
+`go test -race` (quando suportado), frontend e browser E2E, smoke real de
+túnel iniciado/cancelado e recuperação de sessão, Codex TUI/entrada e
+certificação Windows/Linux aplicável ao exato SHA; não publicar tag apenas pelo bump.
+
+## Continuidade Windows — gates exact-SHA locais — 2026-10-08
+
+O candidato foi validado em `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, na branch local `release/v1.0.0`, com `VERSION=1.0.0-beta.7`, Windows AMD64, Go 1.25.14, Bun 1.3.9 e Node 22.14.0 para Playwright.
+
+PASS — sintaxe PowerShell; docs-verify (177 Markdown/33 assets); instalação Bun frozen; `bun run --cwd web quality:full` (82 arquivos/487 testes); Go formatting, vet, golangci-lint v2.12.2 (0 issues), govulncheck v1.7.0 (sem vulnerabilidades), contrato de versão e `go test -count=1 -v ./...` (65 pacotes PASS, zero FAIL). PASS — regressões control/runtime e Agent Interop/OpenCode. PASS — oito suítes browser E2E, mais tarefas de acessibilidade e visual. PASS — builds CLI/Desktop/HUD e smokes nativos isolados: janela Wails + WebView2 e perfil Desktop, HUD ativo por oito segundos e perfil próprio criado.
+
+Os binários e ZIPs, com hashes SHA-256, estão em `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/distribution-artifacts/`. Os executáveis estão `NotSigned`. O arquivo público `UPDATE_PUBLIC_KEY` está versionado e é válido; este host não dispõe de `signtool.exe`, certificado/secrets Authenticode, `makensis.exe`, `gh`, `NEXUS_UPDATE_PRIVATE_KEY` nem `NEXUS_UPDATE_KEY_ID`. O instalador final e CI nativo exact-SHA não foram validados. Os smokes interativos de provider/Mission/Voice e captura visual do render Desktop também não foram executados neste SHA. `nexus doctor --json` registrou alertas de host, incluindo Gemini CLI que invoca Node 18.12.1 e não inicia.
+
+Consulta viva `git ls-remote` em 2026-10-08 confirmou inicialmente `release/v1.0.0` em 52f35c04; os commits locais foram enviados em fast-forward para f1928d0f e uma sincronização documental posterior avançou o remoto para `5a08a1807c4489395dca86ed198f268ea676d2e4`. O SHA de código validado `d840797b` é ancestral desses commits documentais. A tag `v1.0.0-beta.7` continua ausente. Não surgiu branch Beta 7 nova. A branch KIVER em d14154d2 é ancestral do candidato; nenhuma integração/cherry-pick foi necessária. O Actions API não autenticado retornou 404, `gh` não está instalado e o estado do workflow exact-SHA permanece não confirmado; o inventário de GitHub Releases também não foi consultado. Nenhum gate Linux foi executado nesta continuidade, conforme escopo Windows.
+
+**Veredito:** gates automatizados locais Windows PASS no SHA registrado; release e publicação continuam **NO-GO** até fechar CI same-SHA, assinatura Authenticode, build/smoke do instalador e gates manuais aplicáveis.
+
+## Continuidade Windows — perfil WebView2 e branches — 2026-10-07
+
+Na branch release/v1.0.0, o HEAD-base local é 52f35c04181b85379219ab55fc3192c63a5440a8 e VERSION contém 1.0.0-beta.7. Os gates Go passaram no Windows após as alterações locais do perfil WebView2 e do isolamento de ID para os binários de smoke. O workflow e o smoke PowerShell passaram na análise de sintaxe.
+
+O smoke Desktop confirmou janela Wails, controlador Chrome_WidgetWin_0 e diretório próprio em LOCALAPPDATA\IAPro\Nexus\desktop\WebView2 por 9 segundos. O HUD permaneceu ativo por 8 segundos e criou seu perfil próprio. O render da janela não foi capturado visualmente nesta sessão. Os IDs de produção não mudaram; os binários usados no smoke tinham IDs temporários, portanto não são pacotes de distribuição.
+
+A branch fix/beta7-windows-KIVER-20261007 em d14154d2 é ancestral da release local em 52f35c04. A comparação local encontrou cinco commits posteriores em release e nenhum commit exclusivo em fix; não há merge de branch pendente. Os refs remotos são apenas o snapshot já presente no clone e não foram atualizados pela rede.
+
+A homologação desta árvore ainda não é exact-SHA: o checkout está sujo e em 52f35c04, não em d14154d2. Assinatura Authenticode, trust root de atualização, rebuild e smoke final do instalador e CI nativo no SHA imutável permanecem pendentes. A release segue NO-GO; nenhum gate Linux foi executado nesta continuação.
+
+## Homologação técnica Windows AMD64 — 2026-10-07
+
+A branch release/v1.0.0 permanece no SHA-base 52f35c04181b85379219ab55fc3192c63a5440a8 e VERSION contém 1.0.0-beta.7. A matriz anterior passou nesse SHA imutável antes das correções locais mais recentes. A árvore atual inclui alterações sem commit para preservar HKCU Environment Path no NSIS, permitir o Host Wails exato e corrigir o ProjectHub; esta revalidação é de worktree sujo baseado no SHA 52f, não certificação exact-SHA do código modificado.
+
+Nesta continuação Windows passaram go fmt, go vet, govulncheck, golangci-lint, go test -count=1, Bun frozen install e quality:full (Bun 1.3.9, Node 24.19.0, 82 arquivos e 487 testes). As oito suítes Playwright passaram no worktree Windows isolado com as mesmas alterações. Os builds CLI/Desktop/HUD foram gerados para validação e têm checksums nos artefatos da sessão. A captura reproduzível mostra o erro ocupando toda a largura e Adicionar Projeto em uma linha no viewport 775x483.
+
+O HUD passou no smoke Windows. O binário Desktop oficial criou a janela Wails IAPro Nexus e o filho WebView2 Chrome_WidgetWin_0, permaneceu ativo por oito segundos com APPDATA e dados Nexus isolados e encerrou sem processos residuais. A janela foi criada em modo oculto; renderização visível permanece sem captura porque este host não fornece input desktop.
+
+O run nativo 37666126714 foi observado como queued sem runner Windows compatível; o estado atual não foi revalidado porque gh não está instalado e github.com não resolve por DNS neste host. Faltam certificado/secrets Authenticode, signtool.exe e NEXUS_UPDATE_PUBLIC_KEY. Os artefatos novos são NotSigned e a árvore continua WORKTREE_FROZEN: NO. Não há tag local v1.0.0-beta.7; tag e GitHub Release remotas não foram revalidadas neste host. Veredito: gates locais de código Windows PASS com limitação no reteste Desktop; assinatura, tag e distribuição NO-GO. Nenhum gate Linux foi executado nesta continuação.
 
 ## Homologação Linux amd64 — 2026-09-30
 
@@ -297,3 +366,11 @@ homologação nativa ou evidência real nunca é convertida em PASS.
 
 
 A publicação exige manifesto assinado contendo `source_sha` igual ao SHA exato promovido.
+
+## Atualização Windows — smoke Desktop/WebView2 — 2026-10-07
+
+O workflow native-windows agora inclui scripts/smoke-desktop-windows.ps1, com APPDATA isolado, verificação da janela Wails e do filho Chrome_WidgetWin_0 por oito segundos, e cleanup dos processos WebView2. O script passou em Windows; ci.yml é YAML válido. Essa mudança ainda está no worktree local sujo e não foi executada no runner exact-SHA.
+
+A falha 0x800700AA ocorreu somente no perfil APPDATA padrão deste host; o binário oficial passou com perfil isolado. Isso valida a criação e estabilidade da janela/controller, não captura visual em desktop interativo. O host não expôs input desktop.
+
+O SHA-base local continua 52f35c04181b85379219ab55fc3192c63a5440a8, e VERSION é 1.0.0-beta.7. O estado vivo do remoto, da fila 37666126714, da tag e do GitHub Release está não revalidado devido à ausência do gh e à falha de DNS. O trabalho segue sem commit; assinatura e trust root continuam ausentes. Escopo Windows-only; nenhum gate Linux foi executado.

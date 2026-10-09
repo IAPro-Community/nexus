@@ -3,13 +3,13 @@
 ## Estado
 
 - Produto: IAPro Nexus Workspace OS.
-- Versão operacional instalada: `1.0.0-beta.3`.
+- Versão-fonte em homologação: `1.0.0-beta.7` (`VERSION`).
 - O launcher persiste a identidade autoritativa do `SessionHost` após o
   handshake (`PID`, `HostPID`, `HostGeneration` e fingerprints); isso evita que
   o registro final apague a geração usada pelo attach.
 - A instalação local reinicia apenas o `nexus web` associado ao binário
   instalado, evitando hosts Web em memória com executável `(deleted)`.
-- Branch ativa neste worktree: `feat/capacity-monitor-revival`.
+- Branch ativa neste checkout Windows: release/v1.0.0, HEAD-base 52f35c04181b85379219ab55fc3192c63a5440a8; a árvore suja contém ajustes locais de homologação. Não há merge Beta 7 pendente. Gates Windows locais passaram; NSIS exato compilado e variante isolada com payload real passaram; Desktop Wails/WebView2 validado por 10s com cleanup limitado ao perfil Nexus. Exact-SHA, gate docs-verify (manifesto visual stale em 2892f301), renderização visual, CI nativo, Authenticode e update trust root continuam NO-GO; host sem runner Windows, Windows SDK/signtool e certificado.
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.
 - Motor de Flags Canônicas e Normalização (`internal/control/flags`): mapeamento transparente de `--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan` e suporte a `Merged Help` (`nexus <provider> --help`).
@@ -113,3 +113,7 @@
   dispatcher-relative positional argument. The complete command-registry
   rewrite remains deferred because provider-direct parsing is intentionally
   provider-native.
+
+## Estado Windows atual — Nexus 1.0.0-beta.7 — 2026-10-07
+
+Project Hub corrigido e validado em 775×483; gates web, oito suítes browser, builds CLI/Desktop/HUD e smokes isolados passaram no worktree 52f35c04-dirty. O SHA d14154d2 solicitado é ancestral, mas não é o HEAD. A release segue NO-GO até homologação exact-SHA, assinatura/trust root e fechamento de CI/instalador. Ver DEV/validation/current/RELEASE_STATUS.md e DEV/validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md.

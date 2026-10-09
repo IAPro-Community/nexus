@@ -97,7 +97,17 @@ export function isProtocolControlLine(line: string): boolean {
   try {
     const value = JSON.parse(trimmed) as Record<string, unknown>;
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-    return 'command' in value || 'ok' in value;
+    // Only recognize actual Nexus IPC envelopes, not arbitrary Codex JSON.
+    if (
+      value.version !== 1 ||
+      typeof value.timestamp !== 'string' ||
+      !Number.isFinite(Date.parse(value.timestamp))
+    )
+      return false;
+    if (typeof value.command === 'string') {
+      return typeof value.id === 'string' && /^req-[0-9]+$/.test(value.id);
+    }
+    return typeof value.ok === 'boolean';
   } catch {
     return false;
   }
@@ -131,6 +141,9 @@ export function scrubProtocolOutput(data: string): string {
  * could complete into a control line (starts with `{`); ordinary trailing
  * text still renders immediately.
  */
+// Match the Go host's 64 KiB budget for incomplete Nexus control envelopes.
+const MAX_PROTOCOL_PENDING_CHARS = 64 * 1024;
+
 export class ProtocolScrubber {
   private tail = '';
 
@@ -142,9 +155,18 @@ export class ProtocolScrubber {
     const head = lastNewline < 0 ? '' : data.slice(0, lastNewline + 1);
     const tail = lastNewline < 0 ? data : data.slice(lastNewline + 1);
     let out = scrubProtocolOutput(head);
-    if (tail.trimStart().startsWith('{')) {
+    // Only defer output if this could be a Nexus RPC prefix. Holding every
+    // JSON-looking Codex chunk until its newline freezes legitimate output.
+    const prefix = '{"version":1';
+    const candidate = tail.trimStart();
+    if (
+      candidate &&
+      tail.length <= MAX_PROTOCOL_PENDING_CHARS &&
+      (prefix.startsWith(candidate) || candidate.startsWith(prefix))
+    ) {
       this.tail = tail;
     } else {
+      // Never hold unbounded provider output as a hypothetical RPC.
       out += tail;
     }
     return out;

@@ -5,11 +5,11 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #090d16;
+  background: var(--nx-terminal-pane-bg);
   border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-md);
   overflow: hidden;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--nx-shadow-lg);
 }
 
 .terminalContainer {
@@ -94,7 +94,7 @@
   font-weight: 500;
   cursor: pointer;
   z-index: 5;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--nx-shadow-md);
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
@@ -104,7 +104,7 @@
   &:hover {
     background: var(--nx-surface-3);
     border-color: var(--nx-accent);
-    color: var(--nx-text-bright, #fff);
+    color: var(--nx-text-bright);
   }
 
   &:active {
@@ -115,7 +115,7 @@
 .disconnectedOverlay {
   position: absolute;
   inset: 0;
-  background: rgba(9, 11, 16, 0.88);
+  background: color-mix(in srgb, var(--nx-terminal-pane-bg) 88%, transparent);
   backdrop-filter: blur(3px);
   display: flex;
   flex-direction: column;
@@ -157,7 +157,7 @@
   padding: 8px 10px;
   border-radius: var(--nx-radius-sm);
   border: 1px solid color-mix(in srgb, var(--nx-danger) 40%, var(--nx-border));
-  background: var(--nx-danger-subtle, rgba(239, 68, 68, 0.1));
+  background: var(--nx-danger-subtle);
   color: var(--nx-danger);
   font-size: 0.857rem;
   line-height: 1.45;

@@ -332,6 +332,7 @@ describe('workspace presentation', () => {
           minimized: false,
           maximized: false,
           customTitle: 'Ops',
+          allowAiTitle: false,
           accent: '#38bdf8',
           icon: '⚡',
         },
@@ -341,6 +342,7 @@ describe('workspace presentation', () => {
       tiled: true,
     });
     expect(migrated.windows['view:a'].customTitle).toBe('Ops');
+    expect(migrated.windows['view:a'].allowAiTitle).toBe(false);
     expect(migrated.windows['view:a'].accent).toBe('#38bdf8');
     expect(migrated.windows['view:a'].icon).toBe('⚡');
   });
@@ -393,15 +395,22 @@ describe('workspace presentation', () => {
     let state = syncDesktopWindows(createPresentationState('TABS'), [surface('a')]);
     state = patchDesktopWindowChrome(state, 'view:a', {
       customTitle: 'Ops',
+      allowAiTitle: false,
       accent: '#38bdf8',
       icon: '⚡',
     });
     expect(state.windows['view:a'].customTitle).toBe('Ops');
+    expect(state.windows['view:a'].allowAiTitle).toBe(false);
     state = setPresentationMode(state, 'DESKTOP');
     expect(state.windows['view:a'].customTitle).toBe('Ops');
     expect(state.windows['view:a'].icon).toBe('⚡');
+    expect(state.windows['view:a'].allowAiTitle).toBe(false);
     state = setPresentationMode(state, 'MOSAIC');
     expect(state.windows['view:a'].customTitle).toBe('Ops');
+    expect(state.windows['view:a'].allowAiTitle).toBe(false);
+    state = patchDesktopWindowChrome(state, 'view:a', { allowAiTitle: true });
+    expect(state.windows['view:a'].customTitle).toBe('Ops');
+    expect(state.windows['view:a'].allowAiTitle).toBe(true);
   });
 
   it('supports toggling and persisting zenMode (Focus Mode)', () => {

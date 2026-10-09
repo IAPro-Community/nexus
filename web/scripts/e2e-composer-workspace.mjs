@@ -7,7 +7,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
-import { terminateProcess, terminateProcessOnExit } from './e2e-fixture.mjs';
+import {
+  playwrightExecutablePath,
+  terminateProcess,
+  terminateProcessOnExit,
+} from './e2e-fixture.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const webDir = path.resolve(__dirname, '..');
@@ -71,7 +75,7 @@ async function main() {
   console.log('origin', origin);
 
   const browser = await chromium.launch({
-    executablePath: existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined,
+    executablePath: playwrightExecutablePath(),
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
@@ -138,7 +142,10 @@ async function main() {
     },
     { projectId: created.id, csrfToken: session.csrf_token },
   );
-  assert.ok(createdSession.ok, `composer session HTTP ${createdSession.status}: ${createdSession.text}`);
+  assert.ok(
+    createdSession.ok,
+    `composer session HTTP ${createdSession.status}: ${createdSession.text}`,
+  );
   console.log('composer session created');
 
   await page.goto(`${origin}/p/${encodeURIComponent(created.id)}/work`, {

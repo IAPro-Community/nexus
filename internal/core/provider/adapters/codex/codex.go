@@ -261,18 +261,13 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 	if activeUntil != "" {
 		if until, err := time.Parse(time.RFC3339, activeUntil); err == nil {
 			expiresAt = until
-			if time.Now().After(until) {
-				info.Status = "Subscription expired"
-				info.Health = model.HealthAuthRequired
-				info.Authenticated = false
-				info.Email = email
-				info.ExternalAccountID = accountID
-				info.ExpiresAt = expiresAt
-				if plan != "" {
-					info.Plan = plan
-				}
-				return info
-			}
+			// NOTE: a past activeUntil must NOT force logout. The id_token is
+			// minted once at login and never refreshed by the Codex CLI, while
+			// the refresh token keeps the session alive across billing-period
+			// renewals. Treating this stale subscription claim as "expired
+			// auth" produced false "re-autenticação necessária" badges on
+			// accounts whose CLI kept working. Real billing/quota failures
+			// surface through the quota monitor, not the auth check.
 		}
 	}
 
