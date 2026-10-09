@@ -399,9 +399,9 @@ export const THEME_PRESETS = {
       '--nx-accent-text': '#82422e',
     },
   },
-  'orca-dusk': {
-    id: 'orca-dusk',
-    name: 'Orca Dusk',
+  'nexus-dusk': {
+    id: 'nexus-dusk',
+    name: 'Nexus Dusk',
     scheme: 'dark',
     accent: '#91a8d3',
     finish: 'subtle-gradient',
