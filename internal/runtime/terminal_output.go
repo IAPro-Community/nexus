@@ -237,6 +237,14 @@ func (s *TerminalOutputScrubber) flushLocked(final bool) error {
 		}
 		if end < 0 {
 			if final {
+				// A CSI '<' prefix is unambiguously an SGR mouse packet,
+				// not a keyboard arrow. Never flush its truncated payload
+				// into a live Codex choice prompt when a source disconnects
+				// or the incomplete-input coalescing timer expires.
+				if s.inputMetadata && pos+2 < len(s.pending) && s.pending[pos+2] == '<' {
+					pos = len(s.pending)
+					break
+				}
 				clean = append(clean, s.pending[pos:]...)
 				pos = len(s.pending)
 			}
