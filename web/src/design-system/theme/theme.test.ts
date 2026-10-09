@@ -155,7 +155,7 @@ describe('theme model', () => {
     }
   });
 
-  it('adds exactly three flat presets without changing legacy preset finishes', () => {
+  it('preserves the first three flat presets without changing legacy preset finishes', () => {
     for (const preset of ['slate-flat', 'paper-flat', 'clay-flat'] as const) {
       expect(THEME_PRESETS[preset].finish).toBe('flat');
       expect(THEME_PRESETS[preset].vars['--nx-bg']).not.toBe(
