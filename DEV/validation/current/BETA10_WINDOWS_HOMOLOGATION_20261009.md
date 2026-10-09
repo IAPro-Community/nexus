@@ -12,6 +12,12 @@ O comando `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930
 
 **Veredito atualizado:** homologação automatizada local Windows PASS no SHA exato `16769e25`. CI Windows hosted no novo SHA e gates operacionais/distribuição ainda não fechados; tag e distribuição continuam **NO-GO**. Este candidato é `1.0.0-beta.10`, não a beta.7 solicitada originalmente (`d14154d2`). Nenhum gate Linux foi executado.
 
+## Smokes nativos Desktop e HUD no SHA `16769e25`
+
+- **PASS — Desktop:** build diagnóstico a partir do SHA exato com ID isolado `com.iapro.nexus.desktop.windows-smoke-16769e25`; a janela Wails `IAPro Nexus` e o filho WebView2 `Chrome_WidgetWin_0` foram detectados, o perfil isolado foi criado e o cleanup não deixou processos WebView2 do smoke. A captura visual da janela não foi avaliada. SHA-256 do executável: `BCF29D9446B357470B34A24730D8CF24B5305FD70297F1C9BDF7EDFFFF1F7AA6`.
+- **PASS — HUD:** build diagnóstico com ID `com.iapro.nexus.hud.windows-smoke-16769e25` permaneceu ativo por oito segundos e criou o perfil WebView2 em diretório isolado. Após encerrar o PID do smoke, a enumeração nativa confirmou `hud_descendants=none`. SHA-256 do executável: `A4279344805C14E4DF57DC787AA7EF6E688FBA79091334CFCB806A8048817C66`.
+- Evidências locais ignoradas pelo Git estão em `DEV/validation/local-beta/1.0.0-beta.10/16769e257b70e712f4f720ac1930ab00ff959293/windows-AMD64/` (`desktop-native-16769e25.txt`, `hud-native-16769e25.txt` e logs). Estes smokes não cobrem renderização visual Desktop, clique/menu do tray, show/hide interativo, autostart ou Voice.
+
 ## Auditoria remota de branches — 2026-10-09
 
 Após o push do código, `origin/fix/windows-beta10-homologation-20261008` confirmou `16769e257b70e712f4f720ac1930ab00ff959293`. A release avançou de `deca290b` para `238b1af080098ed4f3f00cd94d47e5371e80ae64` por dois commits (`2284947a` e `238b1af0`); o merge-base segue em `deca290b`, com 148 commits exclusivos da candidata e dois exclusivos da release. A simulação `git merge-tree` produziu a árvore `13ccb203f5f6092f3f0856124dc71853d1d9cb8d` sem conflitos. Não houve merge nem push à release.

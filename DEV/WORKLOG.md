@@ -13,6 +13,7 @@
 - Relatório/status/handoff/contexto/spec/verify atualizados para separar o novo PASS local do FAIL hosted anterior no SHA `767be3b1`; não foi inferida a causa remota. Nenhum gate Linux executado.
 - Auditoria remota: release em `238b1af0`, candidata em `16769e25`, merge-base `deca290b`; simulação de merge sem conflitos. Branch de testes beta.7 verificada; os casos relevantes já estão em ambas as árvores e não requerem PR separado.
 - Hosted CI: consulta autenticada encontrou nenhum PR candidato→release. Tentativa de registrar runner Windows efêmero bloqueada pela revisão automática por execução remota com possível acesso a `native-signing`; pacote v2.338.0 foi verificado, não configurado/executado. Autorização específica solicitada; nenhum workflow disparado.
+- PASS — smokes nativos Desktop/HUD no SHA exato `16769e25`: Desktop Wails/WebView2, perfil e cleanup; HUD ativo por 8 s e perfil WebView2, sem descendentes após cleanup. IDs e diretórios isolados; nenhum dado da instalação existente foi usado.
 - Próximo: push apenas à branch Windows candidata, executar/confirmar novo gate hosted no SHA, continuar smokes operacionais seguros e manter distribuição NO-GO até os gates restantes.
 
 ## 2026-10-09 — Continuidade Windows: tray e auditoria de branches

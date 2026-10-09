@@ -13,14 +13,14 @@ Atualizado em 9 de outubro de 2026.
 | Relação do SHA homologado com a release | merge-base deca290b; candidato e release avançaram separadamente, candidato aguarda PR/integração |
 | Gates automatizados locais Windows AMD64 | PASS no SHA exato |
 | Gate Windows hosted exact-SHA | pendente para 16769e257b70e712f4f720ac1930ab00ff959293; run anterior falhou em SHA diferente |
-| Smokes nativos Desktop/HUD | PASS em SHAs anteriores; não repetidos no SHA 16769e25 |
+| Smokes nativos Desktop/HUD | PASS de inicialização/perfil/cleanup no SHA 16769e25; renderização, tray e controles HUD pendentes |
 | Última beta pública registrada | v1.0.0-beta.1; inventário remoto não revalidado |
 | Release estável v1 | ainda não publicada |
 | Veredito | NO-GO para tag e distribuição até integração, CI Windows, smokes operacionais, assinatura e instalador |
 
 ## Estado atual da homologação Windows — beta.10
 
-O gate `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930ab00ff959293` passou em Windows AMD64. Foram validados Go 1.27.2, Bun 1.3.9, Node 22.14.0 para Playwright, 84 arquivos/504 testes frontend, suíte Go integral, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. O teste Composer agora confirma deadline e cancelamento internos sem impor limite de cinco segundos ao bootstrap completo; sua regressão focada passou 3/3. Estes gates são da execução automatizada local, não smokes físicos Desktop/HUD no novo SHA. O relatório interno completo está em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
+O gate `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930ab00ff959293` passou em Windows AMD64. Foram validados Go 1.27.2, Bun 1.3.9, Node 22.14.0 para Playwright, 84 arquivos/504 testes frontend, suíte Go integral, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. O teste Composer agora confirma deadline e cancelamento internos sem impor limite de cinco segundos ao bootstrap completo; sua regressão focada passou 3/3. Os smokes nativos Desktop e HUD também passaram no SHA exato, confirmando janela/WebView2/perfil isolado/cleanup; não cobriram renderização visual Desktop, clique/menu do tray, show/hide interativo, autostart ou Voice. O relatório interno completo está em `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.
 
 O candidato ainda não foi integrado em `release/v1.0.0`; a release remota está em `238b1af0`, dois commits além do merge-base `deca290b`. A simulação de merge da candidata contra a release atual não encontrou conflitos. O run hosted `37922899819` falhou no SHA anterior `767be3b1`, sem saída detalhada, e não comprova a causa. O novo workflow exige runner self-hosted Windows e o environment `native-signing`; a revisão automática bloqueou registrar um runner efêmero neste PC por permitir execução remota com possível acesso aos secrets. Nenhum runner foi registrado nem workflow disparado; autorização específica foi solicitada. Navegação manual ConPTY/Codex, Mission/provider autenticado, controles HUD/Voice, interação do tray, renderização visual Desktop, Authenticode, trust root de atualização e build/smoke do instalador final também permanecem pendentes. Este host não tem `signtool.exe`, `makensis.exe` nem credenciais de assinatura/update locais. Nenhum gate Linux foi executado nesta continuação.
 

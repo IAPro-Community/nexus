@@ -21,8 +21,9 @@
 
 - PASS — `scripts/homologate-beta.ps1 -ExpectedSha 16769e257b70e712f4f720ac1930ab00ff959293`, Windows AMD64, Go 1.27.2/Bun 1.3.9/Node 22.14.0. Evidência integral local em `DEV/validation/local-beta/1.0.0-beta.10/16769e257b70e712f4f720ac1930ab00ff959293/windows-AMD64/`.
 - PASS — PowerShell/docs (178 Markdown, 33 required files/assets), Go fmt/vet/vulncheck/lint/test, frozen Bun install e `quality:full` (84 arquivos/504 testes), oito suítes Playwright, Axe/visual, regressões Control/Runtime/Agent Interop/OpenCode e builds Windows CLI/Desktop/HUD.
+- PASS — smoke Desktop no SHA exato: janela Wails/WebView2, perfil e cleanup isolados; smoke HUD: processo ativo por 8 s, perfil WebView2 isolado e zero descendentes após encerramento. Evidências/logs locais na pasta de homologação SHA.
 - FIX — o teste Composer não limita mais o bootstrap integral a cinco segundos; verifica deadline e cancelamento do provider e persistência eventual. Regressão focada passou 3/3; a causa do run hosted anterior segue desconhecida.
-- PENDENTE — run hosted Windows no novo SHA, tray físico, smokes autenticados, assinatura Authenticode e trust root. Distribuição NO-GO; nenhuma execução Linux.
+- PENDENTE — run hosted Windows no novo SHA, renderização visual Desktop, clique/menu tray, show/hide/autostart HUD, smokes autenticados, assinatura Authenticode e trust root. Distribuição NO-GO; nenhuma execução Linux.
 
 ## 2026-10-09 — Reteste do tray e auditoria de branches beta.10
 
