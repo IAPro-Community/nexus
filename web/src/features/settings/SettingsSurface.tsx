@@ -815,7 +815,7 @@ const THEME_CATEGORIES: ThemeCategory[] = [
     id: 'classic-code',
     title: 'Clássicos do Código',
     description: 'Esquemas consagrados por gerações de editores de texto.',
-    presets: ['monokai', 'nord', 'solarized-dark'],
+    presets: ['monokai', 'nord', 'solarized-dark', 'ember-studio'],
   },
   {
     id: 'accessibility',
