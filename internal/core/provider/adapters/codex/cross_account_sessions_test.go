@@ -176,15 +176,20 @@ func TestPrepareEmptyDestWithManyRolloutsRespectsBudget(t *testing.T) {
 		writeRollout(t, filepath.Join(omegaSess, fmt.Sprintf("rollout-2026-09-12T12-%02d-00-%s.jsonl", i%60, id)), 5, 15, now.Add(time.Hour).Unix(), now, "")
 	}
 
+	// Deterministic budget enforcement: an already-expired budget must stop
+	// the seed walk before importing anything, on any machine speed. A
+	// wall-clock budget (e.g. 200ms) cannot be asserted portably: fast
+	// disks import all 500 fixtures before it expires (false failure),
+	// while loaded CI may stop after a handful (vacuous pass).
+	oldBudget := crossAccountSeedBudget
+	crossAccountSeedBudget = -time.Second
+	t.Cleanup(func() { crossAccountSeedBudget = oldBudget })
+
 	start := time.Now()
 	if err := New().Prepare(context.Background(), model.Profile{Provider: "codex", Name: "gmail"}); err != nil {
 		t.Fatal(err)
 	}
 	elapsed := time.Since(start)
-
-	// Prepare applies a best-effort 200 ms work budget. Under parallel Windows
-	// package tests, scheduler and filesystem latency can exceed a strict wall
-	// clock assertion, so verify it does not import the whole large sibling set.
 	imported := 0
 	destRoot := filepath.Join(gmailHome, "sessions")
 	if err := filepath.WalkDir(destRoot, func(path string, entry os.DirEntry, err error) error {
@@ -201,10 +206,10 @@ func TestPrepareEmptyDestWithManyRolloutsRespectsBudget(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if imported >= 500 {
-		t.Fatalf("Prepare imported all 500 sibling rollouts instead of stopping at its work budget (elapsed %s)", elapsed)
+	if imported != 0 {
+		t.Fatalf("expired seed budget must import nothing, imported %d (elapsed %s)", imported, elapsed)
 	}
-	t.Logf("Prepare imported %d of 500 sibling rollouts within its best-effort work budget (elapsed %s)", imported, elapsed)
+	t.Logf("expired seed budget stopped the walk: imported %d of 500 sibling rollouts (elapsed %s)", imported, elapsed)
 }
 
 func TestForeignAccountRolloutIgnoredForQuota(t *testing.T) {
