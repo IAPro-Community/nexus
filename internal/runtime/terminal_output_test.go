@@ -3,6 +3,7 @@ package runtime
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"testing"
@@ -230,6 +231,59 @@ func TestTerminalInputScrubberMouseReportTimeoutCannotEmitPartialX10(t *testing.
 	}
 	if got := out.String(); got != "" {
 		t.Fatalf("timeout leaked X10 prefix into provider: %q", got)
+	}
+}
+
+// TestTerminalInputScrubberFragmentationMatrixPreservesCodexChoices is a
+// permanent regression gate: stream transport boundaries must never influence
+// which keys reach the provider, including during Codex choice dialogs.
+func TestTerminalInputScrubberFragmentationMatrixPreservesCodexChoices(t *testing.T) {
+	input := []byte(
+		"plan" +
+			"\x1b[M\x60\x48\x28" + // X10 wheel up
+			"\x1b[<65;33;12M" + // SGR wheel down
+			"\x1b[96;33;12M" + // URXVT wheel up
+			"\x1b[I" + // unsolicited focus report
+			"\x1b[20;40R" + // cursor position report
+			"\x1b[A" + // real keyboard up
+			"\x1bOB" + // real application-cursor down
+			"\x1b[1;5C" + // Ctrl+Right
+			"\r", // exactly one intentional confirmation
+	)
+	want := "plan\x1b[A\x1bOB\x1b[1;5C\r"
+
+	testChunks := func(t *testing.T, chunks [][]byte) {
+		t.Helper()
+		var out bytes.Buffer
+		stream := NewTerminalInputScrubber(&out)
+		defer stream.Close()
+		for _, chunk := range chunks {
+			if _, err := stream.Write(chunk); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := stream.Flush(); err != nil {
+			t.Fatal(err)
+		}
+		if got := out.String(); got != want {
+			t.Fatalf("input corruption: got %q, want %q", got, want)
+		}
+	}
+
+	t.Run("one-frame", func(t *testing.T) {
+		testChunks(t, [][]byte{input})
+	})
+	t.Run("single-byte-frames", func(t *testing.T) {
+		chunks := make([][]byte, 0, len(input))
+		for _, b := range input {
+			chunks = append(chunks, []byte{b})
+		}
+		testChunks(t, chunks)
+	})
+	for split := 1; split < len(input); split++ {
+		t.Run(fmt.Sprintf("boundary-%d", split), func(t *testing.T) {
+			testChunks(t, [][]byte{input[:split], input[split:]})
+		})
 	}
 }
 
