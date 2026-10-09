@@ -8247,3 +8247,74 @@ button.nx-workspace-tab__close {
     padding: 0 6px !important;
   }
 }
+
+
+/* Flat finish: shared semantic appearance treatment, opt-in through ThemeProvider.
+   No theme ID selectors; existing presets and high-contrast mode are untouched. */
+:root[data-finish='flat'] .nx-project-rail,
+:root[data-finish='flat'] .nx-workspace-host,
+:root[data-finish='flat'] .nx-desktop-workspace {
+  background: var(--nx-bg);
+}
+
+:root[data-finish='flat'] .nx-flow-canvas {
+  background: var(--nx-bg-elevated);
+}
+
+:root[data-finish='flat'] .nx-desktop-card--active {
+  background: var(--nx-surface);
+}
+
+:root[data-finish='flat'] .nx-desktop-card:hover {
+  transform: none;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+}
+
+:root[data-finish='flat'] .nx-desktop-avatar {
+  background: var(--nx-accent);
+  color: var(--nx-accent-contrast);
+  box-shadow: none;
+}
+
+:root[data-finish='flat'] .nx-desktop-window[data-active='true'] {
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.16);
+}
+
+:root[data-finish='flat'] .nx-desktop-window__titlebar[data-accented='true'],
+:root[data-finish='flat']
+  .nx-desktop-window[data-active='true'][data-accented='true']
+  .nx-desktop-window__titlebar,
+:root[data-finish='flat']
+  .nx-desktop-window[data-active='true']
+  .nx-desktop-window__titlebar[data-accented='true'] {
+  background: color-mix(in srgb, var(--nx-window-accent) 9%, var(--nx-surface));
+}
+
+:root[data-finish='flat'] .nx-splash-screen {
+  background: var(--nx-bg);
+}
+
+:root[data-finish='flat'] .nx-splash-card {
+  background: var(--nx-surface);
+  backdrop-filter: none;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+
+:root[data-finish='flat'] .nx-splash-logo-glow {
+  display: none;
+}
+
+:root[data-finish='flat'] .nx-splash-logo,
+:root[data-finish='flat'] .nx-splash-dot {
+  filter: none;
+  box-shadow: none;
+}
+
+:root[data-finish='flat'] .nx-splash-title {
+  background: none;
+  -webkit-text-fill-color: var(--nx-text);
+}
+
+:root[data-finish='flat'] .nx-splash-progress-shimmer {
+  background: var(--nx-accent);
+}
