@@ -1,18 +1,17 @@
 # Current release status
 
-> **Estado beta.10 em 2026-10-09:** gate automatizado Windows AMD64 e smokes AGY/ConPTY e controller HUD show/hide passaram no código de produto 665103a06d94eda7011bb7d7abd299fc1ce2a330; a ponta documental da branch está em 3458826d1183951ffa0c75c9acaf80436a6bca0c. Project Hub UI e HUD físico visível/expansão foram verificados antes, no SHA 0782f876, e permanecem identificados separadamente. Interação real do tray e autostart não verificados.
-> **NO-GO para tag, instalador assinado e distribuição** até o PR ser integrado e os gates restantes fecharem: CI Windows hosted, tray/autostart, smokes autenticados, instalador e assinatura/trust root. O candidato atual é beta.10, não beta.7/d14154d2.
-> A branch Windows deve seguir por PR para release/v1.0.0; não fazer push direto à release. Nenhum gate Linux executado.
+> **Atualização Windows em 2026-10-09:** o gate automatizado beta.10 passou no SHA exato `45c12be785f3cfa9b503969c61a7fe98f8b220d3` (Windows AMD64), mas o reteste nativo Desktop nessa ponta encerrou com código 0 sem janela Wails/WebView2. A causa não está confirmada. O resultado anterior de Desktop/Project Hub em `0782f876` não comprova este SHA. Distribuição segue **NO-GO** até fechar esse smoke e os demais gates externos/operacionais abaixo.
+
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 
 CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
 CURRENT_RELEASE_BRANCH: release/v1.0.0
 CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: deca290b8ad2479a1cfdcc7f7b6aebf8fc944b6d
 WINDOWS_HOMOLOGATION_BRANCH: fix/windows-beta10-homologation-20261008
-WINDOWS_EVIDENCE_HEAD: 3458826d1183951ffa0c75c9acaf80436a6bca0c (documentation-only after source SHA)
-WINDOWS_HOMOLOGATED_SOURCE_SHA: 665103a06d94eda7011bb7d7abd299fc1ce2a330
+WINDOWS_EVIDENCE_HEAD: 45c12be785f3cfa9b503969c61a7fe98f8b220d3 (exact SHA for latest Windows automated gate)
+WINDOWS_HOMOLOGATED_SOURCE_SHA: 45c12be785f3cfa9b503969c61a7fe98f8b220d3
 WINDOWS_AUTOMATED_LOCAL_GATES: PASS_EXACT_SHA_WINDOWS_AMD64
-WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_VISIBLE_PROJECT_HUB_AND_WEBVIEW2_ON_0782
+WINDOWS_NATIVE_DESKTOP_SMOKE: UNRESOLVED_EXIT_CODE_0_WITHOUT_WINDOW_OR_WEBVIEW2_ON_45C12BE; PRIOR_PASS_ON_0782_NOT_TRANSFERABLE
 WINDOWS_NATIVE_HUD_SMOKE: PASS_VISIBLE_PANEL_AND_EXPANSION_ON_0782; CONTROLLER_SHOW_HIDE=PASS_ON_665; TRAY_UI=NOT_VERIFIED; AUTOSTART=NOT_VERIFIED
 WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: PASS_NO_LITERAL_ARROWS_IN_CODEX_0782_AND_AGY_665; NO_PROMPT_SENT; AUTHENTICATED_SESSION_PENDING
 WINDOWS_HOSTED_CI_SAME_SHA: NOT_VERIFIED

@@ -1,5 +1,15 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+## Continuidade no HEAD documental `45c12be785f3cfa9b503969c61a7fe98f8b220d3` — 2026-10-09
+
+O candidato continua sendo `1.0.0-beta.10`, separado da solicitação beta.7 (`d14154d2490dfdd3966c7fddc990a1d9127edd39`). A branch `fix/windows-beta10-homologation-20261008` foi revalidada em Windows AMD64 no SHA exato `45c12be785f3cfa9b503969c61a7fe98f8b220d3` com `scripts/homologate-beta.ps1 -ExpectedSha 45c12be785f3cfa9b503969c61a7fe98f8b220d3`.
+
+- **PASS — gates automatizados Windows no SHA exato.** Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Formatação Go, `go vet ./...`, golangci-lint sem findings, govulncheck sem vulnerabilidades e `go test -count=1 ./...` passaram. A instalação Bun congelada e `quality:full` passaram com 84 arquivos e 504 testes. As oito suítes browser E2E, Axe/visual e builds Windows AMD64 de CLI, Desktop e HUD também passaram.
+- **PENDENTE — smoke nativo do Desktop neste SHA.** O script de smoke detectou que o processo Desktop encerrou antes de criar janela Wails/WebView2. O lançamento direto do mesmo executável, em perfil isolado e janela visível, registrou apenas a inicialização do Core embutido e saiu com código 0; não apareceu HWND nem perfil WebView2. Ainda não há causa raiz confirmada nem correção de produto. O smoke visual/Project Hub aprovado no SHA anterior `0782f876` não substitui evidência no candidato atual.
+- O último teste não alterou fontes de produto; as alterações geradas pelo gate são relatórios e capturas rastreados. Os logs integrais do gate permanecem no diretório local ignorado `DEV/validation/local-beta/1.0.0-beta.10/45c12be785f3cfa9b503969c61a7fe98f8b220d3/windows-AMD64/`.
+
+**Veredito atual: NO-GO para tag, instalador e distribuição.** Resolver/reproduzir o encerramento do Desktop e repetir o smoke nativo no SHA candidato; CI Windows hosted, tray/autostart, smokes autenticados, instalador e assinatura/trust root também continuam pendentes. Nenhum gate Linux foi executado nesta continuidade.
+
 ## Continuidade Windows beta.10 — SHA `665103a06d94eda7011bb7d7abd299fc1ce2a330` — 2026-10-09
 
 Esta rodada valida o candidato `1.0.0-beta.10` no Windows AMD64. É um candidato separado da beta.7/`d14154d2490dfdd3966c7fddc990a1d9127edd39`.

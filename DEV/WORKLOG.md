@@ -5298,3 +5298,8 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Revalidei o candidato de código `0782f87696ad3f28058d6532cb4e44dd25b08a7f` com o gate oficial Windows AMD64: 66 pacotes Go, 84 arquivos/504 testes web, oito suítes E2E, Axe/visual e builds CLI/Desktop/HUD PASS.
 - O formulário Project Hub foi enviado pelo WebView2 nativo no origin Wails; o Core respondeu 201, o app abriu o overview e não restaram processos WebView2. A mensagem `invalid origin` da captura anterior não se reproduziu nesse fluxo; não foi presumida uma alteração de código nem que origens externas devam ser aceitas.
 - Atualizei relatório, verify, contexto, spec ativa e handoff com os limites corretos. Revisei as saídas rastreadas que o gate regenerou. HUD DWM, CI hosted, assinatura/trust root, instalador e smokes operacionais restantes mantêm NO-GO para distribuição. A branch segue para PR; nenhum push direto à release, tag ou gate Linux.
+## 2026-10-09 — validação Windows no SHA 45c12be
+
+- PASS — `scripts/homologate-beta.ps1 -ExpectedSha 45c12be785f3cfa9b503969c61a7fe98f8b220d3`: gates automatizados Windows AMD64, Go 1.27.2, Bun 1.3.9 e Node 22.14.0; 84 arquivos/504 testes web, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD.
+- PENDENTE — o smoke nativo Desktop encerrou com código 0 sem HWND Wails/WebView2 nem perfil WebView2, também no lançamento direto visível com perfil isolado. Ainda sem causa raiz ou correção de produto; evidência anterior de Desktop/Project Hub em 0782f876 não se transfere ao SHA atual.
+- Mantido NO-GO de distribuição. Nenhum gate Linux executado. Relatório: `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md`.

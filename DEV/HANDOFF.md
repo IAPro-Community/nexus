@@ -1,5 +1,11 @@
 # Handoff
 
+## Atualização — reteste Windows beta.10 no HEAD 45c12be — 2026-10-09
+
+Branch `fix/windows-beta10-homologation-20261008`, `VERSION=1.0.0-beta.10`. O gate automatizado completo passou no Windows AMD64 no SHA exato `45c12be785f3cfa9b503969c61a7fe98f8b220d3` (Go 1.27.2, Bun 1.3.9, Node 22.14.0; Go, lint/segurança, 84 arquivos/504 testes web, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD).
+
+O reteste nativo Desktop neste SHA falhou no smoke: o executável saiu com código 0 sem HWND Wails, WebView2 ou perfil WebView2, mesmo em janela visível e com perfil isolado. A causa raiz ainda não foi confirmada e não há correção de código. A aprovação anterior do Project Hub/Desktop em `0782f876` não deve ser atribuída a `45c12be`. Registrar a correção e repetir o smoke no SHA candidato antes de fechar a homologação. Distribuição segue NO-GO; nenhum gate Linux nesta rodada.
+
 ## Atualização — homologação Windows beta.10 — 2026-10-09
 
 Branch fix/windows-beta10-homologation-20261008; fonte de produto validada 665103a06d94eda7011bb7d7abd299fc1ce2a330; HEAD documental sincronizado 3458826d1183951ffa0c75c9acaf80436a6bca0c; VERSION=1.0.0-beta.10. O gate oficial Windows AMD64 passou na fonte exata: Go 1.27.2, Bun 1.3.9, Node 22.14.0; testes Go, lint/segurança, 84 arquivos/504 testes web, oito browser E2E, Axe/visual e builds CLI/Desktop/HUD.
