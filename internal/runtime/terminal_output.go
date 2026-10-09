@@ -281,7 +281,7 @@ func isKeyboardNegotiation(sequence []byte) bool {
 		// paste (?2004) is intentionally permitted so multiline paste reaches
 		// the provider atomically instead of submitting line-by-line.
 		switch string(body) {
-		case "?1", "?1000", "?1002", "?1003", "?1004", "?1005", "?1006", "?1007", "?1015":
+		case "?1", "?1000", "?1002", "?1003", "?1004", "?1005", "?1006", "?1007", "?1015", "?1016":
 			return true
 		default:
 			return false
