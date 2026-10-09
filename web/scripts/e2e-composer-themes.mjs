@@ -19,6 +19,27 @@ mkdirSync(screenshotDir, { recursive: true });
 
 const themes = [
   {
+    preset: 'slate-flat',
+    scheme: 'dark',
+    finish: 'flat',
+    category: /Essenciais Flat/i,
+    label: /Slate Flat/i,
+  },
+  {
+    preset: 'paper-flat',
+    scheme: 'light',
+    finish: 'flat',
+    category: /Essenciais Flat/i,
+    label: /Paper Flat/i,
+  },
+  {
+    preset: 'clay-flat',
+    scheme: 'light',
+    finish: 'flat',
+    category: /Essenciais Flat/i,
+    label: /Clay Flat/i,
+  },
+  {
     preset: 'nexus-dark',
     scheme: 'dark',
     category: /Dark Modern/i,
@@ -129,10 +150,11 @@ async function ensureThemeCategoryOpen(page, theme) {
 
 async function assertThemeApplied(page, theme) {
   await page.waitForFunction(
-    ({ preset, scheme }) =>
+    ({ preset, scheme, finish }) =>
       document.documentElement.dataset.preset === preset &&
-      document.documentElement.dataset.theme === scheme,
-    { preset: theme.preset, scheme: theme.scheme },
+      document.documentElement.dataset.theme === scheme &&
+      document.documentElement.dataset.finish === finish,
+    { preset: theme.preset, scheme: theme.scheme, finish: theme.finish || 'standard' },
     { timeout: 10000 },
   );
   const applied = await page.evaluate(() => {
@@ -141,6 +163,7 @@ async function assertThemeApplied(page, theme) {
     return {
       preset: root.dataset.preset || '',
       theme: root.dataset.theme || '',
+      finish: root.dataset.finish || '',
       background: style.getPropertyValue('--nx-bg').trim(),
       text: style.getPropertyValue('--nx-text').trim(),
       accent: style.getPropertyValue('--nx-accent').trim(),
@@ -148,6 +171,7 @@ async function assertThemeApplied(page, theme) {
   });
   assert.equal(applied.preset, theme.preset);
   assert.equal(applied.theme, theme.scheme);
+  assert.equal(applied.finish, theme.finish || 'standard');
   assert.ok(applied.background, `${theme.preset} must define --nx-bg`);
   assert.ok(applied.text, `${theme.preset} must define --nx-text`);
   assert.ok(applied.accent, `${theme.preset} must define --nx-accent`);
