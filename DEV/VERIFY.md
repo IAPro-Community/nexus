@@ -31,6 +31,14 @@
 - Sem gates Linux nesta continuidade; gates locais Windows no SHA exato `767be3b1` permanecem evidenciados no relatório corrente.
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-10 — ativação acessível do tray no Windows beta.10
+
+- PASS — no source SHA `e46d0619d36b63864f3f8a77a5d25652b9581afd`, UI Automation localizou o ícone exclusivo `NEXUS HUD TRAY SMOKE a16df3`; duas chamadas `InvokePattern` acionaram o callback Wails e confirmaram `oculto → visível → oculto`.
+- INCONCLUSIVO — mouse_event/SendInput não acionaram o callback; clique físico não está certificado. Isso não demonstra falha do produto.
+- PASS — processo diagnóstico isolado encerrado; evidências locais ignoradas pelo Git e manifesto SHA-256 ficam em `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/native-smokes/hud-tray-ui-smoke-a16df3/`.
+- O overlay foi compilado com Go 1.25.14 e não alterou fontes do produto; não substitui o gate oficial Go 1.27.2. Distribuição permanece NO-GO por CI/signing e fluxos operacionais pendentes. Nenhum gate Linux executado.
+
+
 ## 2026-10-09 — Homologação Windows beta.10 no SHA `1e3f9a3b`
 
 - PASS — `scripts/homologate-beta.ps1 -ExpectedSha 1e3f9a3be446757a3854bcb1948a4325fb271a47`, Windows AMD64; Go 1.27.2, Bun 1.3.9, Node 22.14.0. Evidência integral local em `DEV/validation/local-beta/1.0.0-beta.10/1e3f9a3be446757a3854bcb1948a4325fb271a47/windows-AMD64/`.

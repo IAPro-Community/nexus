@@ -14,6 +14,17 @@ No código-fonte homologado `e46d0619d36b63864f3f8a77a5d25652b9581afd`, um build
 
 O smoke aprova o toggle da UI nesta sessão Windows e sua escrita/remoção da entrada isolada. Não verifica a interação física com o tray nem o lançamento após reiniciar o Windows; não substitui o gate oficial nem certifica o binário de distribuição. Tray físico, CI Windows hosted integrado, fluxos autenticados de provider/Mission/Voice, assinatura/update trust root e instalador assinado continuam pendentes; distribuição permanece **NO-GO**.
 
+## Atualização — ativação do ícone tray pelo UI Automation — 2026-10-10
+
+No código-fonte homologado `e46d0619d36b63864f3f8a77a5d25652b9581afd`, um build diagnóstico isolado registrou a ativação do tray e a visibilidade do HUD. O app recebeu nome, tooltip, ID singleton, perfil WebView2 e diretórios de dados exclusivos; o binário foi compilado com Go 1.25.14. Nenhuma fonte do produto foi alterada.
+
+- **PASS — ativação acessível do ícone:** depois de abrir o overflow do Windows, UI Automation localizou `SystemTray.NormalButton` pelo tooltip exclusivo `NEXUS HUD TRAY SMOKE a16df3`. `InvokePattern` acionou o callback Wails real duas vezes: `window_visible=false → true → false`. O log de callback confirma o recebimento e o estado após cada chamada.
+- **INCONCLUSIVO — clique físico:** as tentativas de entrada `mouse_event`/`SendInput` não acionaram o callback. O teste não certifica clique físico nem indica falha do produto; o toggle acessível pelo próprio ícone do shell passou.
+- **PASS — cleanup:** o processo isolado encerrou; `ui-result.json` registra `rootProcessExited=true`, e não havia processo `nexus-hud-tray-smoke` ativo ao final.
+- **EVIDÊNCIA LOCAL:** resultado, identidade do tray, estados de janela, eventos do callback, log, harness e binário em `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/native-smokes/hud-tray-ui-smoke-a16df3/`; `SHA256SUMS.tray-ui-smoke.txt` confere todos os oito arquivos listados. A pasta é ignorada pelo Git.
+
+Este smoke complementar não substitui o gate oficial Go 1.27.2 nem certifica os binários de distribuição. Clique físico, CI Windows hosted integrado, fluxos autenticados de provider/Mission/Voice, assinatura/update trust root e instalador assinado continuam pendentes; distribuição permanece **NO-GO**.
+
 ## Atualização operacional — branch Windows enviada — 2026-10-09
 
 Os seis commits documentais posteriores à base `1e3f9a3b` foram enviados com sucesso para `origin/fix/windows-beta10-homologation-20261008`, até `2d6ac17a5e794bc85adba73baabedb9f11e7c3f6`. Nenhum commit foi enviado diretamente para `release/v1.0.0`; o source homologado continua sendo `e46d0619`, sem alteração de código de produto depois dele.

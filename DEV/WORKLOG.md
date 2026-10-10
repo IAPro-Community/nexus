@@ -1,3 +1,9 @@
+## 2026-10-10 — Smoke da ativação acessível do tray HUD no Windows
+
+- PASS — UI Automation localizou o ícone com tooltip exclusivo, invocou o botão real do tray e o callback Wails registrou `window_visible=false → true → false` no source SHA beta.10 `e46d0619d36b63864f3f8a77a5d25652b9581afd`.
+- INCONCLUSIVO — tentativas de clique por mouse_event/SendInput não acionaram o callback; clique físico segue não verificado e nenhum defeito de produto foi inferido.
+- PASS — cleanup encerrou o executável diagnóstico isolado. Resultado, identidade/HWND do tray, estados, callbacks, log, harness, binário e `SHA256SUMS.tray-ui-smoke.txt` foram preservados na pasta local ignorada `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/native-smokes/hud-tray-ui-smoke-a16df3/`; os oito arquivos do manifesto foram revalidados.
+- Build overlay Go 1.25.14; sem alteração em fontes de produto. Atualizados relatório Windows, release status, contexto, handoff e verificação. Release permanece NO-GO; nenhuma tag/publicação ou gate Linux.
 ## 2026-10-10 — Smoke diagnóstico da UI de autostart HUD no Windows
 
 - PASS — no código-fonte beta.10 `e46d0619d36b63864f3f8a77a5d25652b9581afd`, Playwright conectou ao WebView2 do HUD diagnóstico e clicou o botão real; label/ARIA passaram de desativado para ativado e voltaram.
