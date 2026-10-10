@@ -1,11 +1,9 @@
 import { asArray } from '../../lib/safeArray';
+import { canManuallySelectResourceAccount } from '../../nexus/resourceSelectionModel';
+import type { ManualResourceCandidate } from '../../nexus/resourceSelectionModel';
 
-export interface DirectResourceLike {
+export interface DirectResourceLike extends ManualResourceCandidate {
   id: string;
-  provider: string;
-  profile: string;
-  authenticated: boolean;
-  available: boolean;
 }
 
 export type QuotaTruthState =
@@ -185,7 +183,7 @@ export function eligibleDirectResources<T extends DirectResourceLike>(
 ): T[] {
   const preferred = preferProvider.trim().toLowerCase();
   return accounts
-    .filter((account) => account.authenticated && account.available)
+    .filter((account) => canManuallySelectResourceAccount(account))
     .sort((a, b) => {
       const ap = a.provider.toLowerCase() === preferred ? 1 : 0;
       const bp = b.provider.toLowerCase() === preferred ? 1 : 0;
