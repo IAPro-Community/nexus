@@ -1,7 +1,7 @@
 # Homologação Windows beta.10 — 2026-10-09
 
 GIT_SHA: `e46d0619d36b63864f3f8a77a5d25652b9581afd`
-EVIDENCE_COMMIT: `7ab06584b02ee9e8f3bdb95fec25afd1052b1dbd`
+EVIDENCE_COMMIT: `f674c6e8c97ffa2fea73d4533429c9f38f7a6ef6`
 
 ## Atualização — smoke da UI de autostart do HUD — 2026-10-10
 
