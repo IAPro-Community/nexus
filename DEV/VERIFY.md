@@ -1,3 +1,10 @@
+## 2026-10-10 — UI autostart Windows beta.10 no source SHA `e46d0619`
+
+- PASS — build diagnóstico temporário, compilado com Go 1.25.14 sobre fontes inalteradas do source `e46d0619`; UI real do HUD via WebView2 alternou label e `aria-pressed` desativado → ativado → desativado.
+- PASS — a UI criou a entrada `REG_SZ` exclusiva em `HKCU\\...\\Run`, removeu-a ao desativar e o cleanup confirmou processo/porta CDP fechados e valor ausente. Nenhum provider foi chamado nem prompt foi enviado.
+- PASS — captura visual revisada para ambos os estados. Evidências locais e SHA-256 em `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/native-smokes/hud-autostart-ui-smoke/` (gitignored).
+- LIMITES — smoke diagnóstico não substitui o gate oficial Go 1.27.2; não verifica clique físico do tray nem lançamento após reinicialização. Sem mudança em código de produto; distribuição continua NO-GO por hosted CI e signing/operational gates pendentes.
+
 ## 2026-10-09 — Push e estado atual da homologação Windows beta.10
 
 - PASS — `git push origin HEAD:refs/heads/fix/windows-beta10-homologation-20261008` enviou a branch até `2d6ac17a5e794bc85adba73baabedb9f11e7c3f6`; o push confirmou a atualização de `1e3f9a3b` para `2d6ac17a`. Worktree limpo após o push; nenhuma alteração foi enviada diretamente a `release/v1.0.0`.

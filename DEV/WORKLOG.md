@@ -1,3 +1,10 @@
+## 2026-10-10 — Smoke diagnóstico da UI de autostart HUD no Windows
+
+- PASS — no código-fonte beta.10 `e46d0619d36b63864f3f8a77a5d25652b9581afd`, Playwright conectou ao WebView2 do HUD diagnóstico e clicou o botão real; label/ARIA passaram de desativado para ativado e voltaram.
+- PASS — o toggle criou/removou a entrada `REG_SZ` de teste em HKCU Run. Cleanup confirmou que o processo terminou, a porta CDP fechou e o valor exclusivo não permaneceu. Providers não foram invocados e nenhum prompt foi enviado.
+- Build diagnóstico Go 1.25.14, app/ID/perfil/dados/Registro isolados, com `NEXUS_ENABLE_HUD=1`; código do produto não foi alterado. Capturas e SHA-256 ficaram em `native-smokes/hud-autostart-ui-smoke/` no diretório local ignorado pelo Git.
+- Atualizei o status e o relatório para marcar somente o toggle visual do autostart como PASS. Tray físico, hosted CI e fluxos autenticados, assinatura/trust root e instalador permanecem pendentes; distribuição NO-GO. Nenhum gate Linux executado.
+
 ## 2026-10-09 — Push dos registros Windows beta.10
 
 - Após autorização explícita, enviei os seis commits documentais da branch `fix/windows-beta10-homologation-20261008` para `origin`, avançando de `1e3f9a3b` até `2d6ac17a5e794bc85adba73baabedb9f11e7c3f6`. `release/v1.0.0` não foi alterada; nenhum segredo apareceu na saída.

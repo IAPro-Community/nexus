@@ -23,7 +23,7 @@ Guia e índice de navegação estruturada da documentação de engenharia e gove
 
 **Current release status for HEAD:** [`validation/current/RELEASE_STATUS.md`](validation/current/RELEASE_STATUS.md)
 
-Latest Windows beta.10 evidence (automated local gates PASS on exact source SHA `e46d0619`; documentation branch pushed through `2d6ac17a`; hosted rerun and operational gates pending): [BETA10_WINDOWS_HOMOLOGATION_20261009.md](validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md). Historical beta.7 evidence: [BETA7_WINDOWS_HOMOLOGATION_20261007.md](validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md). NSIS Path-state smoke: [BETA7_NSIS_PATH_STATE_SMOKE_20261007.md](validation/current/BETA7_NSIS_PATH_STATE_SMOKE_20261007.md).
+Latest Windows beta.10 evidence: official local gates PASS on source SHA `e46d0619`, with a diagnostic WebView2 autostart UI toggle PASS on 2026-10-10; hosted CI and remaining operational/signing gates are pending. Report: [BETA10_WINDOWS_HOMOLOGATION_20261009.md](validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md). Historical beta.7 evidence: [BETA7_WINDOWS_HOMOLOGATION_20261007.md](validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md). NSIS Path-state smoke: [BETA7_NSIS_PATH_STATE_SMOKE_20261007.md](validation/current/BETA7_NSIS_PATH_STATE_SMOKE_20261007.md).
 
 Reports under `validation/FINAL_*.md` are historical unless they live in `validation/current/` and carry matching `GIT_SHA`.
 

@@ -1,3 +1,7 @@
+## Smoke UI de autostart Windows beta.10 — 2026-10-10
+
+No código-fonte do SHA `e46d0619d36b63864f3f8a77a5d25652b9581afd`, o botão real de autostart no WebView2 passou em smoke diagnóstico isolado: label/ARIA mudaram entre desativado e ativado, a entrada `HKCU\\...\\Run` exclusiva foi criada/removida pela UI e o cleanup confirmou processo, porta CDP e Registro fechados. O build diagnóstico usou Go 1.25.14; fontes de produto não mudaram e o gate oficial Go 1.27.2 não foi substituído. Tray físico, CI hosted integrado, fluxos autenticados e assinatura/trust root continuam pendentes; distribuição NO-GO. Evidências e checksums locais estão no relatório Windows corrente.
+
 ## Revalidação Windows beta.10 — SHA `e46d0619` — 2026-10-09
 
 O homologador oficial terminou com exit code 0 em Windows AMD64 no commit exato `e46d0619d36b63864f3f8a77a5d25652b9581afd`, `VERSION=1.0.0-beta.10`, Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Passaram Go fmt/vet/govulncheck/golangci-lint/teste completo, `quality:full` (84 arquivos/504 testes), oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Evidência local ignorada pelo Git: `../validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/`.
@@ -23,7 +27,7 @@ A primeira tentativa isolada de acessibilidade teve `ERR_NETWORK_IO_SUSPENDED`; 
 
 Tray físico, renderização visual Desktop, fluxos autenticados, assinatura/trust root e integração por PR seguem pendentes. Checksums locais são de builds não assinados; distribuição NO-GO. Evidências: `../validation/current/BETA10_WINDOWS_HOMOLOGATION_20261009.md` e `../validation/local-beta/1.0.0-beta.10/1e3f9a3be446757a3854bcb1948a4325fb271a47/windows-AMD64/`. Sem gate Linux.
 
-A branch de homologação precisa de PR para release/v1.0.0, sem push direto à release. CI Windows hosted no SHA integrado, interação real do tray/autostart, smokes autenticados/interativos restantes, assinatura/trust root e instalador continuam pendentes. Este candidato é beta.10, não beta.7/d14154d2; distribuição segue NO-GO.
+A branch de homologação precisa de PR para release/v1.0.0, sem push direto à release. CI Windows hosted no SHA integrado, interação física do tray, inicialização do HUD após reinicialização, smokes autenticados/interativos restantes, assinatura/trust root e instalador continuam pendentes. Este candidato é beta.10, não beta.7/d14154d2; distribuição segue NO-GO.
 
 ## Programa ativo — Nexus 1.0 Product Closure — 2026-09-20
 
