@@ -66,6 +66,40 @@ describe('manual resource selection', () => {
     ).toBe(false);
   });
 
+  it('does not offer an opaque-quota account while its cooldown is active', () => {
+    const eligibility = {
+      eligible: true,
+      reason: 'UNSUPPORTED_QUOTA',
+      confidence: 'UNSUPPORTED',
+    };
+    expect(
+      canManuallySelectResourceAccount(
+        account({
+          eligibility,
+          cooldown_until: new Date(Date.now() + 60_000).toISOString(),
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      canManuallySelectResourceAccount(
+        account({
+          eligibility,
+          cooldown_until: new Date(Date.now() - 60_000).toISOString(),
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('requires a concrete provider and profile even for opaque quota', () => {
+    const eligibility = {
+      eligible: true,
+      reason: 'UNSUPPORTED_QUOTA',
+      confidence: 'UNSUPPORTED',
+    };
+    expect(canManuallySelectResourceAccount(account({ eligibility, provider: '' }))).toBe(false);
+    expect(canManuallySelectResourceAccount(account({ eligibility, profile: '' }))).toBe(false);
+  });
+
   it('keeps exhausted quota accounts disabled', () => {
     expect(
       canManuallySelectResourceAccount(
