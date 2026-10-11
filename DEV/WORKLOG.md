@@ -1,3 +1,8 @@
+## 2026-10-11 — gate hosted Windows read-only
+
+- Adicionei `.github/workflows/windows-beta10-homologation.yml` para executar o homologador oficial no SHA beta.10 `e46d0619` em `windows-latest`, sem secrets, assinatura, publicação ou permissões de escrita.
+- Validação local: YAML parse PASS, `docs-verify` PASS (178 Markdown/33 assets), `git diff --check` PASS. Commit `8aa200af` enviado à branch candidata; o run privado ainda não foi consultado.
+- Próximo passo: confirmar o resultado hosted através da integração GitHub; se verde, registrar o run ID e artefato de logs. Se falhar, corrigir apenas a causa Windows demonstrada. Distribuição continua NO-GO.
 ## 2026-10-10 — Smoke da ativação acessível do tray HUD no Windows
 
 - PASS — UI Automation localizou o ícone com tooltip exclusivo, invocou o botão real do tray e o callback Wails registrou `window_visible=false → true → false` no source SHA beta.10 `e46d0619d36b63864f3f8a77a5d25652b9581afd`.

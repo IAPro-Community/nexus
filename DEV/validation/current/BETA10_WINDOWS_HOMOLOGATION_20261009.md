@@ -25,6 +25,9 @@ No código-fonte homologado `e46d0619d36b63864f3f8a77a5d25652b9581afd`, um build
 
 Este smoke complementar não substitui o gate oficial Go 1.27.2 nem certifica os binários de distribuição. Clique físico, CI Windows hosted integrado, fluxos autenticados de provider/Mission/Voice, assinatura/update trust root e instalador assinado continuam pendentes; distribuição permanece **NO-GO**.
 
+## Gate hosted Windows sem assinatura — 2026-10-11
+
+Foi acrescentado e enviado em `8aa200af` o workflow `.github/workflows/windows-beta10-homologation.yml`. Ele usa runner GitHub-hosted `windows-latest`, permissões `contents: read`, `persist-credentials: false`, toolchains Go 1.27.2/Bun 1.3.9/Node 22.14.0 e executa `scripts/homologate-beta.ps1` no source exato `e46d0619d36b63864f3f8a77a5d25652b9581afd`. Não acessa environment `native-signing`, secrets, serviços locais nem assina ou publica binários; só prepara upload de logs, com retenção de três dias. A sintaxe YAML foi analisada localmente e o gate documental passou. O estado e resultado do run privado ainda não foram confirmados nesta sessão.
 ## Atualização operacional — branch Windows enviada — 2026-10-09
 
 Os seis commits documentais posteriores à base `1e3f9a3b` foram enviados com sucesso para `origin/fix/windows-beta10-homologation-20261008`, até `2d6ac17a5e794bc85adba73baabedb9f11e7c3f6`. Nenhum commit foi enviado diretamente para `release/v1.0.0`; o source homologado continua sendo `e46d0619`, sem alteração de código de produto depois dele.

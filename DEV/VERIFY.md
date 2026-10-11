@@ -31,6 +31,13 @@
 - Sem gates Linux nesta continuidade; gates locais Windows no SHA exato `767be3b1` permanecem evidenciados no relatório corrente.
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-11 — workflow hosted Windows sem signing
+
+- PASS — YAML do workflow `.github/workflows/windows-beta10-homologation.yml` parseia; runner `windows-latest`, `contents: read`, `persist-credentials: false`, sem secrets ou environment de signing.
+- PASS — commit `8aa200af` enviado à branch Windows; o workflow fixa o checkout no source SHA `e46d0619d36b63864f3f8a77a5d25652b9581afd` e invoca o homologador oficial com Go 1.27.2/Bun 1.3.9/Node 22.14.0.
+- PENDENTE — run privado ainda sem status confirmado nesta sessão. Nenhum resultado hosted é declarado. Nenhum gate Linux executado.
+
+
 ## 2026-10-10 — ativação acessível do tray no Windows beta.10
 
 - PASS — no source SHA `e46d0619d36b63864f3f8a77a5d25652b9581afd`, UI Automation localizou o ícone exclusivo `NEXUS HUD TRAY SMOKE a16df3`; duas chamadas `InvokePattern` acionaram o callback Wails e confirmaram `oculto → visível → oculto`.
