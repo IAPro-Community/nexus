@@ -10,8 +10,9 @@
 
 CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
 CURRENT_RELEASE_BRANCH: release/v1.0.0
-CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: a6795704e0f74971f6b255e66ea1527a3ae83165
+CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: 9c1ddd1d972cab6abb3356f87d48583e95311577 (read-only ls-remote 2026-10-11)
 WINDOWS_HOMOLOGATION_BRANCH: fix/windows-beta10-homologation-20261008
+WINDOWS_HOMOLOGATION_BRANCH_HEAD: 3a00bfb0e6bdec796a1ea0d5d5eaeaaeb8dba0b1
 WINDOWS_EVIDENCE_HEAD: e46d0619d36b63864f3f8a77a5d25652b9581afd (latest exact SHA for Windows automated gate)
 GIT_SHA: e46d0619d36b63864f3f8a77a5d25652b9581afd
 EVIDENCE_COMMIT: 0a350ad6ef42f195378429fab1f8746499232643
@@ -48,9 +49,9 @@ WINDOWS_UNSIGNED_DISTRIBUTION_MANIFEST: DEV/validation/local-beta/1.0.0-beta.10/
 WINDOWS_UNSIGNED_DISTRIBUTION_ARTIFACTS: nexus.exe=206164f65c73387a934c160ca4f4d7d063aac2ce2abcfb521e231b781351f329; nexus-desktop.exe=5c98107e3a38c3f39c6504da11be73df8e39d2be9c35c01500b8936a09b35da2; nexus-hud.exe=36a65555ac92a645fff5f38d14fef3e0c507920db022537debeff2cd441e41d0
 WINDOWS_NATIVE_SMOKE_CHECKSUMS: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/native-smokes/SHA256SUMS.native-smoke.txt (diagnostic unsigned binaries; not distribution artifacts)
 CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/ (latest exact-SHA automated gate, Desktop/HUD startup/cleanup, HUD show/hide/visible capture, autostart registry and UI smokes, logs); unsigned distribution checksums are under e46d0619; earlier NSIS installer smoke evidence remains under 767be3b1; controller continuity evidence also under 665103a0 and physical HUD expansion capture under 0782f876
-LIVE_GITHUB_REMOTE_CHECK: PASS_2026-10-09; candidate=1e3f9a3be446757a3854bcb1948a4325fb271a47; origin/release/v1.0.0=a6795704e0f74971f6b255e66ea1527a3ae83165
-LIVE_GITHUB_REMOTE_REFRESH: release HEAD a6795704 is a parent of tested source commit 1e3f9a3b; no direct push to release
-WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the PR candidate for release/v1.0.0; authenticated query 2026-10-09 found 0 matching PRs
+LIVE_GITHUB_REMOTE_CHECK: PASS_2026-10-11_READ_ONLY_LS_REMOTE; candidate=3a00bfb0e6bdec796a1ea0d5d5eaeaaeb8dba0b1; origin/release/v1.0.0=9c1ddd1d972cab6abb3356f87d48583e95311577
+LIVE_GITHUB_REMOTE_REFRESH: release advanced beyond the candidate; merge base=a6795704e0f74971f6b255e66ea1527a3ae83165; release-only commits=66; candidate-only commits=164. Merge-tree reports conflicts in web/src/app/workspace-os.css and web/src/workspace/WorkspaceRenderer.tsx. Candidate is not integrated with the current release tip; do not claim release readiness until reviewed and Windows gates rerun on the integration SHA.
+WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the candidate branch for release/v1.0.0; last authenticated PR query on 2026-10-09 found 0 matching PRs. Current PR state was not verifiable in this session.
 WINDOWS_BRANCH_AUDIT_2026-10-09: test/beta7-terminal-final-boundary-regression@1c12f07a has three test commits; relevant raw CSI/SS3 and ANSI-like trace tests are already present in both current candidate and release trees, so no separate integration is required. fix/beta8-manual-opaque-quota@edcd2ab4 remains a separate behavior change requiring review outside this Windows task.
 WINDOWS_BRANCH_AUDIT: one separate behavior change remains unlinked: fix/beta8-manual-opaque-quota@edcd2ab4 changes UNSUPPORTED quota to explicit-selection-only; requires functional review before any PR. No direct push to release.
 WINDOWS_TRAY_UI_SMOKE: INCONCLUSIVE_FLYOUT_CAPTURED_BUT_TWO_GENERIC_WAILS_ICONS_AMBIGUOUS; UIA_NO_CONTROLS; SENDINPUT_NO_OPEN; NO_PHYSICAL_CLICK_OR_MENU_EVIDENCE
