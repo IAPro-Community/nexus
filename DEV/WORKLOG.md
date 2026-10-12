@@ -4,6 +4,7 @@
 - `go vet ./...` inicialmente coletou quatro fontes `.go` de diagnósticos ignoradas pelo Git dentro das evidências locais, e o TEMP restrito do sandbox causou arquivos temporários Go ausentes. Na execução válida, as fontes foram temporariamente movidas para `%LOCALAPPDATA%\Temp`, restauradas via `finally`, e `TEMP/TMP` usaram `%LOCALAPPDATA%\Temp`; os comandos oficiais permaneceram intactos.
 - Inspecionei o run hospedado `38142174743`: Go/testes/build CLI passaram; `test:e2e` falhou ao aguardar `.nx-os-shell` por 10 s após criação/navegação do projeto. O teste agora tem espera limitada a 30 s e diagnóstico de DOM/rede/erros. `bun run test:e2e` passou no Windows local após a mudança.
 - O workflow `.github/workflows/windows-beta10-homologation.yml` agora faz checkout e certifica o SHA de disparo (`github.sha`) e grava artefatos no diretório correspondente. YAML parse e formatação Prettier passaram. Hosted rerun ainda pendente; distribuição NO-GO.
+- `bun run docs:capture` gerou novamente 11 capturas visuais sintéticas no source commit `6bb756f7`; `node scripts/docs-verify.mjs` passou (178 Markdown/33 assets). A captura atualiza o manifesto exigido sem alterações de UI do produto.
 
 ## 2026-10-11 — gate hosted Windows read-only
 
