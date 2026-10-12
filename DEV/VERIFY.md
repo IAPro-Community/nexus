@@ -1701,6 +1701,13 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
 - Controle estruturado (aprovações/eventos) segue diferido — ver
   [`DEV/AI_CONTROL_DEFERRED.md`](AI_CONTROL_DEFERRED.md), item 6.
 
+# Verificação Windows — 2026-10-12
+
+- PASS — `scripts/homologate-beta.ps1 -ExpectedSha 2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322`, Windows AMD64, 21:58:49Z–22:17:32Z: Go 1.27.2 fmt/vet/lint (0 issues)/govulncheck/tests, Bun 1.3.9 (84 arquivos/504 testes), oito suítes E2E browser, Axe/visual e builds CLI/Desktop/HUD.
+- PASS — `bun run test:e2e` em Windows depois do ajuste da espera do `.nx-os-shell`; falha hosted reproduzida no run `38142174743` com timeout de 10 s após criação do projeto; correção usa 30 s limitados e diagnósticos.
+- PASS — workflow YAML parseado; checkout e `TARGET_SHA` usam `${{ github.sha }}`. Prettier passou no script E2E alterado.
+- PENDENTE — rerun `windows-latest` da correção; o run hosted `38142174743` permanece FAIL no SHA anterior `e46d0619`. Evidências locais do gate: `DEV/validation/local-beta/1.0.0-beta.10/2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322/windows-AMD64/`. Distribuição permanece NO-GO.
+
 ## 2026-09-12 — automatic delegation interactive Lead closure
 
 - PASS — focused `go test ./internal/app ./internal/control/launcher ./internal/nexus -count=1`.

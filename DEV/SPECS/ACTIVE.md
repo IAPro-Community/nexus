@@ -1,6 +1,6 @@
 ## Smoke UI de autostart Windows beta.10 — 2026-10-10
 
-No código-fonte do SHA `e46d0619d36b63864f3f8a77a5d25652b9581afd`, o botão real de autostart no WebView2 passou em smoke diagnóstico isolado: label/ARIA mudaram entre desativado e ativado, a entrada `HKCU\\...\\Run` exclusiva foi criada/removida pela UI e o cleanup confirmou processo, porta CDP e Registro fechados. O build diagnóstico usou Go 1.25.14; fontes de produto não mudaram e o gate oficial Go 1.27.2 não foi substituído. Ação UI Automation no ícone exclusivo do tray confirmou show/hide; clique físico continua sem comprovação. Workflow `windows-latest` read-only para o SHA e46 foi enviado sem secrets; CI de assinatura, fluxos autenticados e trust root seguem pendentes. Distribuição NO-GO. Evidências e checksums locais estão no relatório Windows corrente.
+Último gate oficial local PASS no SHA `2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322`; evidências e o novo resultado do browser E2E estão no relatório Windows corrente. O hosted run `38142174743` falhou no mount `.nx-os-shell` após 10 s; teste atualizado com limite de 30 s e diagnóstico passou localmente. Workflow agora valida o SHA do evento; hosted rerun, clique físico do tray, fluxos autenticados e assinatura/trust root continuam pendentes. Distribuição NO-GO.
 
 ## Revalidação Windows beta.10 — SHA `e46d0619` — 2026-10-09
 

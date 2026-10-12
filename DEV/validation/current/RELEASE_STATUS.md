@@ -8,16 +8,18 @@
 
 > Matriz: [convergência PR45/46](BETA10_PR45_PR46_CONVERGENCE_20261008.md), [auditoria técnica](BETA10_ENGINEERING_AUDIT_20261008.md) e [homologação Windows](BETA10_WINDOWS_HOMOLOGATION_20261009.md).
 
+> **Rehomologação Windows em 2026-10-12:** o gate oficial local terminou PASS no SHA documental `2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322` (`1.0.0-beta.10`): Go 1.27.2 fmt/vet/lint (0 issues)/govulncheck/testes, Bun 1.3.9 (84 arquivos/504 testes), 8 fluxos E2E browser + Axe/visual e builds CLI/Desktop/HUD. Evidências locais em `DEV/validation/local-beta/1.0.0-beta.10/2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322/windows-AMD64/`. O run hosted `38142174743` falhou em 2026-10-11 no `test:e2e`: após criar projeto e navegar para `/p/<id>/overview`, `.nx-os-shell` não apareceu em 10 s. A asserção agora espera até 30 s e, em timeout, registra estado do DOM/console/rede; o E2E focal passou localmente. O workflow foi alterado para validar o SHA que dispara cada execução. O rerun hosted ainda está pendente. Smokes autenticados, clique físico do tray, integração com a ponta atual da release e assinatura continuam pendentes; distribuição **NO-GO**.
+
 CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
 CURRENT_RELEASE_BRANCH: release/v1.0.0
-CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: 9c1ddd1d972cab6abb3356f87d48583e95311577 (read-only ls-remote 2026-10-11)
+CURRENT_RELEASE_REMOTE_HEAD_AT_AUDIT: 9c1ddd1d972cab6abb3356f87d48583e95311577 (read-only GitHub API/ls-remote 2026-10-12; reconfirmar antes de integrar)
 WINDOWS_HOMOLOGATION_BRANCH: fix/windows-beta10-homologation-20261008
-WINDOWS_HOMOLOGATION_BRANCH_HEAD: 3a00bfb0e6bdec796a1ea0d5d5eaeaaeb8dba0b1
-WINDOWS_EVIDENCE_HEAD: e46d0619d36b63864f3f8a77a5d25652b9581afd (latest exact SHA for Windows automated gate)
-GIT_SHA: e46d0619d36b63864f3f8a77a5d25652b9581afd
+WINDOWS_HOMOLOGATION_BRANCH_HEAD: 2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322 (last pushed; E2E fix/workflow update pending commit)
+WINDOWS_EVIDENCE_HEAD: 2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322 (latest complete exact-SHA local Windows gate)
+GIT_SHA: 2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322
 EVIDENCE_COMMIT: 0a350ad6ef42f195378429fab1f8746499232643
 WINDOWS_HOMOLOGATED_SOURCE_SHA: e46d0619d36b63864f3f8a77a5d25652b9581afd (product files unchanged from 1e3f9a3b)
-WINDOWS_AUTOMATED_LOCAL_GATES: PASS_EXACT_SHA_WINDOWS_AMD64_GO1.27.2_FMT_VET_VULN_LINT_TEST_WEB_504_8_E2E
+WINDOWS_AUTOMATED_LOCAL_GATES: PASS_EXACT_SHA_2C8E9EF4_WINDOWS_AMD64_GO1.27.2_FMT_VET_VULN_LINT_TEST_WEB_504_8_E2E
 WINDOWS_WAILS_PROJECT_ORIGIN_REGRESSION: PASS_ON_DOCS_ONLY_HEAD_0729DF48; SOURCE_FILES_IDENTICAL_TO_1E3F9A3B; BOOTSTRAP_200_CREATE_201_EXTERNAL_ORIGINS_403
 WINDOWS_NATIVE_DESKTOP_SMOKE: PASS_WAILS_WEBVIEW2_PROFILE_AND_CLEANUP_ON_E46D0619_WITH_UNIQUE_ID; VISUAL_RENDER_NOT_VERIFIED
 WINDOWS_NATIVE_HUD_SMOKE: PASS_LAUNCH_8S_WEBVIEW2_PROFILE_AND_6_DESCENDANT_CLEANUP_ON_E46D0619; CONTROLLER_SHOW_HIDE_SHOW_AND_VISIBLE_280X48_CAPTURE=PASS_WITH_TEMP_DIAGNOSTIC_OVERLAY; AUTOSTART_UI=PASS_DIAGNOSTIC_ISOLATED_WEBVIEW2_TOGGLE; TRAY_UIAUTOMATION_INVOKE_SHOW_HIDE=PASS; PHYSICAL_MOUSE_TRAY=INCONCLUSIVE
@@ -28,9 +30,9 @@ WINDOWS_NATIVE_AUTOSTART_UI_CHECKSUMS: DEV/validation/local-beta/1.0.0-beta.10/e
 WINDOWS_NSIS_INSTALLER_SMOKE: PASS_INSTALL_AND_UNINSTALL_ON_767BE3B1; UNSIGNED
 WINDOWS_CONPTY_ARROW_MANUAL_SMOKE: PASS_NO_LITERAL_ARROWS_IN_CODEX_0782_AND_AGY_665; NO_PROMPT_SENT; AUTHENTICATED_SESSION_PENDING
 WINDOWS_HOSTED_CI_SAME_SHA: USER_APPROVED_SINGLE_JOB; NOT_RUN; AUTO_REVIEW_BLOCKED_LOCAL_RUNNER_EXECUTION_WITH_POTENTIAL_NATIVE_SIGNING_SECRET_ACCESS; USER_DEFERRED_CREDENTIAL_ROTATION; NO_RUNNER_REGISTERED; NO_WORKFLOW_DISPATCHED
-WINDOWS_HOSTED_READONLY_CI: WORKFLOW_PUSHED_8AA200AF; WINDOWS_LATEST; TARGET_EXACT_SOURCE_SHA_E46D0619; CONTENTS_READ; NO_SECRETS_OR_SIGNING; PRIVATE_RUN_STATUS_NOT_CONFIRMED
+WINDOWS_HOSTED_READONLY_CI: RUN_38142174743_FAIL_ON_E46D0619; test:e2e_waitForSelector_.nx-os-shell_TIMEOUT_10S_AFTER_PROJECT_CREATE; ARTIFACT_11703478695; FIX_LOCAL_PASS_30S_BOUNDED_WAIT_WITH_FAILURE_DIAGNOSTICS; WORKFLOW_NOW_CHECKS_TRIGGER_SHA; HOSTED_RERUN_PENDING
 WINDOWS_HOSTED_CI_PREVIOUS: FAIL_FULL_WINDOWS_SUITE (run 37922899819; prior target SHA 767be3b168a6d3ec7d223908e21812807486482f; checkout SHA/AMD64, Node 22.14.0, Bun install, web build and go vet passed; test output unavailable)
-WINDOWS_HOSTED_CI_REMEDIATION: SHORT_TEMP_TMP_WORKFLOW_STEP_ADDED; COMPOSER_TEST_NOW_ASSERTS_BOUNDED_PROVIDER_CONTEXT_AND_CANCELLATION; PRIOR_HOSTED_FAILURE_CAUSE_UNPROVEN; hosted rerun required
+WINDOWS_HOSTED_CI_REMEDIATION: SHORT_PERSISTENT_TEMP_CONFIGURED; PRIOR_COMPOSER_TIMEOUT_TEST_FIXED; NEW_HOSTED_FAILURE_ISOLATED_TO_BROWSER_SHELL_MOUNT; BOUNDED_WAIT_AND_DIAGNOSTICS_ADDED; HOSTED_RERUN_REQUIRED
 WINDOWS_HOSTED_RUNNER_INVENTORY: existing runner nexus-ci-dev-web-kiver labels self-hosted/Linux/X64/nexus-ci, offline; previous one-shot Windows runner auto-deregistered after run 37922899819; retry not registered
 WINDOWS_EPHEMERAL_RUNNER_SETUP: PASS_ONE_JOB_EPHEMERAL; no service installed; runner removed its registration and credentials after the job
 WINDOWS_EPHEMERAL_RUNNER_PACKAGE: v2.338.0 x64; SHA-256 f48e0750a21812bca5f82de5f7f5aeae71abee647fab5a582f1742d07eba455f matched official release digest; runner credentials and registration removed after the job
@@ -49,7 +51,7 @@ WINDOWS_UNSIGNED_DISTRIBUTION_MANIFEST: DEV/validation/local-beta/1.0.0-beta.10/
 WINDOWS_UNSIGNED_DISTRIBUTION_ARTIFACTS: nexus.exe=206164f65c73387a934c160ca4f4d7d063aac2ce2abcfb521e231b781351f329; nexus-desktop.exe=5c98107e3a38c3f39c6504da11be73df8e39d2be9c35c01500b8936a09b35da2; nexus-hud.exe=36a65555ac92a645fff5f38d14fef3e0c507920db022537debeff2cd441e41d0
 WINDOWS_NATIVE_SMOKE_CHECKSUMS: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/native-smokes/SHA256SUMS.native-smoke.txt (diagnostic unsigned binaries; not distribution artifacts)
 CANDIDATE_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/ (latest exact-SHA automated gate, Desktop/HUD startup/cleanup, HUD show/hide/visible capture, autostart registry and UI smokes, logs); unsigned distribution checksums are under e46d0619; earlier NSIS installer smoke evidence remains under 767be3b1; controller continuity evidence also under 665103a0 and physical HUD expansion capture under 0782f876
-LIVE_GITHUB_REMOTE_CHECK: PASS_2026-10-11_READ_ONLY_LS_REMOTE; candidate=3a00bfb0e6bdec796a1ea0d5d5eaeaaeb8dba0b1; origin/release/v1.0.0=9c1ddd1d972cab6abb3356f87d48583e95311577
+LIVE_GITHUB_REMOTE_CHECK: PASS_2026-10-12_GITHUB_API; branch candidate last pushed=2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322; origin/release/v1.0.0=9c1ddd1d972cab6abb3356f87d48583e95311577
 LIVE_GITHUB_REMOTE_REFRESH: release advanced beyond the candidate; merge base=a6795704e0f74971f6b255e66ea1527a3ae83165; release-only commits=66; candidate-only commits=164. Merge-tree reports conflicts in web/src/app/workspace-os.css and web/src/workspace/WorkspaceRenderer.tsx. Candidate is not integrated with the current release tip; do not claim release readiness until reviewed and Windows gates rerun on the integration SHA.
 WINDOWS_BRANCH_LINK: fix/windows-beta10-homologation-20261008 is the candidate branch for release/v1.0.0; last authenticated PR query on 2026-10-09 found 0 matching PRs. Current PR state was not verifiable in this session.
 WINDOWS_BRANCH_AUDIT_2026-10-09: test/beta7-terminal-final-boundary-regression@1c12f07a has three test commits; relevant raw CSI/SS3 and ANSI-like trace tests are already present in both current candidate and release trees, so no separate integration is required. fix/beta8-manual-opaque-quota@edcd2ab4 remains a separate behavior change requiring review outside this Windows task.

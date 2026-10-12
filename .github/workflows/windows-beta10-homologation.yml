@@ -24,7 +24,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: windows-beta10-homologation-e46d0619
+  group: windows-beta10-homologation-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -35,12 +35,12 @@ jobs:
     env:
       GOTOOLCHAIN: local
       GOFLAGS: -mod=readonly
-      TARGET_SHA: e46d0619d36b63864f3f8a77a5d25652b9581afd
+      TARGET_SHA: ${{ github.sha }}
     steps:
       - name: Checkout exact product source SHA
         uses: actions/checkout@v5
         with:
-          ref: e46d0619d36b63864f3f8a77a5d25652b9581afd
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -96,7 +96,7 @@ jobs:
         with:
           name: windows-beta10-e46d0619-validation-logs
           path: |
-            DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/*.log
-            DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/environment.txt
+            DEV/validation/local-beta/1.0.0-beta.10/${{ env.TARGET_SHA }}/windows-AMD64/*.log
+            DEV/validation/local-beta/1.0.0-beta.10/${{ env.TARGET_SHA }}/windows-AMD64/environment.txt
           if-no-files-found: warn
           retention-days: 3

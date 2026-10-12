@@ -1,5 +1,13 @@
 # Handoff
 
+## Continuidade Windows — 2026-10-12
+
+O gate local completo passou no SHA `2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322` (Go 1.27.2, Bun 1.3.9, Node 22.14.0; Windows AMD64). Relatório e logs: `DEV/validation/local-beta/1.0.0-beta.10/2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322/windows-AMD64/`.
+
+O run hosted `38142174743` em `e46d0619` falhou no primeiro `test:e2e`: `.nx-os-shell` não apareceu em 10 s depois da navegação para o projeto criado. O teste agora espera até 30 s e, em falha, registra diagnóstico limitado do DOM/console/rede; `bun run test:e2e` passou localmente após a correção. O workflow agora valida o `github.sha` que disparou o job. O próximo push de `.github/workflows/windows-beta10-homologation.yml`/`web/**` dispara o rerun automático, que deve ser conferido pelo SHA e resultado antes de declarar hosted PASS.
+
+Quatro fontes Go de smokes ignoradas localmente foram temporariamente isoladas e restauradas para que `go vet ./...` examinasse o código do produto; TEMP/TMP usaram `%LOCALAPPDATA%\Temp`. O gate completo passou nesse contexto. Ainda pendem rerun hosted, interação física do tray, fluxos autenticados Provider/Mission/Voice, signing e integração com `release/v1.0.0` (release `9c1ddd1d` tinha 66 commits e conflitos em CSS/WorkspaceRenderer na última auditoria). Distribuição segue **NO-GO**.
+
 ## Estado atual — homologação Windows beta.10 no SHA `e46d0619` — 2026-10-10
 
 Branch `fix/windows-beta10-homologation-20261008`; HEAD exato testado `e46d0619d36b63864f3f8a77a5d25652b9581afd`; `VERSION=1.0.0-beta.10`. O script oficial `scripts/homologate-beta.ps1 -ExpectedSha e46d0619d36b63864f3f8a77a5d25652b9581afd` terminou PASS (exit code 0) em Windows AMD64, de `17:01:49Z` a `17:37:21Z`, com Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Passaram documentação, instalação congelada Bun, `quality:full` (84 arquivos/504 testes), Go fmt/vet/govulncheck/golangci-lint/teste completo, regressões focadas, oito suítes browser E2E, Axe/visual e builds Windows CLI/Desktop/HUD. Smokes nativos de lançamento/cleanup Desktop e HUD passaram no SHA exato usando IDs e perfis isolados; as janelas foram ocultadas. O teste nativo do manager de autostart habilitou/desabilitou um `HKCU\\...\\Run` exclusivo e confirmou a remoção. Evidências locais ignoradas pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/e46d0619d36b63864f3f8a77a5d25652b9581afd/windows-AMD64/`.

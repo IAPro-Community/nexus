@@ -1,5 +1,13 @@
 # Homologação Windows beta.10 — 2026-10-09
 
+## Rehomologação automatizada e correção do E2E hosted — 2026-10-12
+
+O gate oficial `scripts/homologate-beta.ps1 -ExpectedSha 2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322` terminou PASS em Windows AMD64, de `2026-10-12T21:58:49Z` a `2026-10-12T22:17:32Z`, com Go 1.27.2, Bun 1.3.9 e Node 22.14.0. Passaram docs (178 Markdown/33 assets), qualidade frontend (84 arquivos/504 testes), Go fmt/vet/golangci-lint v2.14.0 (0 issues)/govulncheck/contrato/testes completos, regressões focadas, oito suítes E2E browser, Axe/visual e builds CLI/Desktop/HUD. Evidências locais ignoradas pelo Git: `DEV/validation/local-beta/1.0.0-beta.10/2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322/windows-AMD64/`. Os logs registram os SKIPs esperados para testes POSIX/symlink sem privilégios no Windows. Quatro fontes Go de smokes diagnósticos locais foram temporariamente movidas para `%LOCALAPPDATA%\Temp` para que `go vet ./...` não as tratasse como pacotes do produto; foram restauradas em `finally`. `TEMP/TMP` apontaram para o diretório persistente curto usado pelo runner hospedado. Nenhum fonte de produto foi alterado por essa execução.
+
+O run GitHub Actions `38142174743` no source `e46d0619` passou pelos gates Go, pela suíte Go integral e pelo build CLI, mas falhou no primeiro `test:e2e`: depois de criar o fixture de projeto, o navegador navegou para `/p/<id>/overview` e não encontrou `.nx-os-shell` em 10 segundos. O E2E agora permite até 30 segundos, mantendo a mesma asserção, e imprime snapshot limitado do DOM, erros de página/console, falhas de requisição e últimas respostas API se o shell não montar. `bun run test:e2e` passou localmente no Windows após a mudança. O workflow hosted agora faz checkout e valida o SHA exato do evento (`github.sha`) em vez de fixar `e46d0619`; o novo run ainda precisa confirmar a correção em `windows-latest`.
+
+**Veredito atual:** gate local Windows PASS no SHA `2c8e9ef4`; hosted CI FAIL no SHA antigo `e46d0619` e rerun da correção pendente. A aprovação local não transforma o hosted em PASS. Integração com a release atual, smokes autenticados, clique físico do tray, assinatura Authenticode/update trust root e instalador assinado permanecem pendentes; distribuição **NO-GO**.
+
 GIT_SHA: `e46d0619d36b63864f3f8a77a5d25652b9581afd`
 EVIDENCE_COMMIT: `0a350ad6ef42f195378429fab1f8746499232643`
 
