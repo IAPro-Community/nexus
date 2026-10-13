@@ -362,10 +362,18 @@ main()
     console.error(error);
     if (fixture) {
       try {
-        writeFileSync(
-          path.join(outDir, 'failure-vague-server.log'),
-          String(fixture.getOutput?.() || ''),
+        const serverOutput = String(fixture.getOutput?.() || '')
+          .replace(/(nexus_bootstrap=)[a-f0-9]+/gi, '$1[REDACTED]')
+          .replace(/("bootstrap_token"\s*:\s*")[^"]+("?)/gi, '$1[REDACTED]$2');
+        console.error(
+          'composer vague fixture server diagnostics',
+          JSON.stringify({
+            exitCode: fixture.server?.exitCode,
+            signalCode: fixture.server?.signalCode,
+            outputTail: serverOutput.slice(-12000),
+          }),
         );
+        writeFileSync(path.join(outDir, 'failure-vague-server.log'), serverOutput);
       } catch (_) {}
     }
     process.exitCode = 1;
