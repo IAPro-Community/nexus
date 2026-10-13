@@ -24,6 +24,8 @@ mkdirSync(outDir, { recursive: true });
 ensureNexusBinary(repoRoot);
 assert.ok(existsSync(binPath), `nexus binary missing at ${binPath}`);
 
+let browser;
+
 const isolatedDataDir = path.join(os.tmpdir(), `nexus-composer-e2e-${process.pid}`);
 rmSync(isolatedDataDir, { recursive: true, force: true });
 const projectPath = path.join(isolatedDataDir, 'project');
@@ -74,13 +76,26 @@ async function main() {
   const origin = await waitForUrl();
   console.log('origin', origin);
 
-  const browser = await chromium.launch({
+  browser = await chromium.launch({
     executablePath: playwrightExecutablePath(),
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
+  const pageErrors = [];
+  const consoleErrors = [];
+  const requestFailures = [];
+  page.on('pageerror', (error) => pageErrors.push(String(error?.message || error)));
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('requestfailed', (request) => {
+    const pathname = new URL(request.url()).pathname;
+    requestFailures.push(
+      `${request.method()} ${pathname}: ${request.failure()?.errorText || 'failed'}`,
+    );
+  });
   page.setDefaultTimeout(12000);
 
   const listenPath = path.join(isolatedDataDir, 'web-auth', 'listen.json');
@@ -148,12 +163,66 @@ async function main() {
   );
   console.log('composer session created');
 
+  const listedSessions = await page.evaluate(async (projectId) => {
+    const deadline = Date.now() + 10000;
+    while (Date.now() < deadline) {
+      const response = await fetch(
+        `/api/v1/projects/${encodeURIComponent(projectId)}/composer-sessions`,
+        {
+          headers: { Accept: 'application/json' },
+        },
+      );
+      if (!response.ok) throw new Error(`composer sessions HTTP ${response.status}`);
+      const sessions = await response.json();
+      if (Array.isArray(sessions) && sessions.length > 0) {
+        return sessions.map(({ id, state }) => ({ id, state }));
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return [];
+  }, created.id);
+  assert.ok(
+    listedSessions.length > 0,
+    'created Composer session was not visible in the project session list',
+  );
+
   await page.goto(`${origin}/p/${encodeURIComponent(created.id)}/work`, {
     waitUntil: 'domcontentloaded',
     timeout: 20000,
   });
   await page.getByRole('heading', { name: 'Composer' }).waitFor({ timeout: 15000 });
-  await page.getByRole('button', { name: /nova elaboração|new elaboration/i }).waitFor();
+  try {
+    await page.getByRole('button', { name: /nova elaboração|new elaboration/i }).waitFor({
+      timeout: 30000,
+    });
+  } catch (error) {
+    const snapshot = await page
+      .evaluate(() => ({
+        url: location.pathname,
+        readyState: document.readyState,
+        title: document.title,
+        bodyText: document.body.innerText.slice(0, 1200),
+        buttons: Array.from(document.querySelectorAll('button'))
+          .slice(0, 24)
+          .map((button) => ({
+            text: button.innerText.trim(),
+            ariaLabel: button.getAttribute('aria-label'),
+            disabled: button.disabled,
+          })),
+      }))
+      .catch(() => ({ unavailable: true }));
+    console.error(
+      'Composer workspace readiness diagnostics:',
+      JSON.stringify({
+        listedSessions,
+        snapshot,
+        pageErrors: pageErrors.slice(-12),
+        consoleErrors: consoleErrors.slice(-12),
+        requestFailures: requestFailures.slice(-12),
+      }),
+    );
+    throw error;
+  }
   await page.getByRole('tab', { name: /briefing/i }).waitFor();
   await page.getByRole('tab', { name: /contexto|context/i }).waitFor();
   await page.getByRole('tab', { name: /prompt/i }).waitFor();
@@ -176,7 +245,6 @@ async function main() {
   }
   await page.screenshot({ path: path.join(outDir, 'e2e-mobile-390.png') });
 
-  await browser.close();
   console.log('composer workspace e2e PASS');
 }
 
@@ -187,6 +255,13 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch {
+        /* ignore cleanup errors */
+      }
+    }
     await stop();
     try {
       rmSync(isolatedDataDir, { recursive: true, force: true });
@@ -194,3 +269,4 @@ main()
       /* ignore */
     }
   });
+
