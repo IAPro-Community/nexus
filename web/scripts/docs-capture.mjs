@@ -344,7 +344,7 @@ try {
       }
     });
   });
-  const terminalLaunch = page.locator('.nx-project-create-actions button').filter({ hasText: /terminal/i }).first();
+  const terminalLaunch = page.getByTestId('overview-terminal-btn');
   await terminalLaunch.waitFor({ state: 'visible', timeout: 30000 });
   const shellResponsePromise = page.waitForResponse(
     (response) => new URL(response.url()).pathname.endsWith('/shell'),
