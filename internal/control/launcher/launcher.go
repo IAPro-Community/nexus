@@ -248,6 +248,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	var supervisedHost *host.SessionHost
 	var detachedProcess *os.Process
 	cleanupFailedLaunch := func() {
+		if captureShell {
+			traceCaptureShellLaunchStage("cleanup-start")
+		}
 		removeLaunchEnvelope(opts.RuntimeID)
 		if supervisedHost != nil {
 			_ = supervisedHost.Terminate()
@@ -262,8 +265,17 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 				_ = client.Close()
 			}
 			cancel()
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-protocol-finished")
+			}
 			_ = detachedProcess.Kill()
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-host-kill-requested")
+			}
 			_, _ = detachedProcess.Wait()
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-host-wait-finished")
+			}
 		}
 		_ = os.Remove(protocol.EndpointPath(opts.RuntimeID))
 		_ = l.reg.Delete(opts.RuntimeID)
@@ -317,12 +329,18 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		traceCaptureShellLaunchStage("handshake-start")
 	}
 	if err := waitForRuntimeHandshake(ctx, opts.RuntimeID, detachedProcess, opts.Timeout); err != nil {
+		if captureShell {
+			traceCaptureShellLaunchStage("handshake-failed")
+		}
 		fault := registry.StartupFaultIPCTimeout
 		if isEarlyHostExit(err) {
 			fault = registry.StartupFaultProcessSupervision
 		}
 		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProviderStarting, fault)
 		cleanupFailedLaunch()
+		if captureShell {
+			traceCaptureShellLaunchStage("handshake-cleanup-finished")
+		}
 		return nil, fmt.Errorf("runtime handshake failed for %s: %w", opts.RuntimeID, err)
 	}
 
