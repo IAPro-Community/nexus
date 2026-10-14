@@ -423,10 +423,7 @@ try {
         '; pageErrors=' + pageErrors.length + '; cause=' + error.message,
     );
   });
-  await page.waitForFunction(() => {
-    const body = document.body.textContent || '';
-    return !/desconectado|disconnected|erro|error|recuperando|recovering/i.test(body);
-  }, { timeout: 15000 });
+  await page.waitForSelector('.nx-project-shell-surface .xterm-rows', { timeout: 15000 });
   const terminalUiState = await page.evaluate(() => {
     const surface = document.querySelector('.nx-project-shell-surface');
     return {
@@ -568,7 +565,7 @@ try {
     await page.waitForTimeout(3000);
     await page.keyboard.press('Escape');
   }
-  await openProjectSurface('terminals', shell.runtime.runtime_id);
+  await openProjectSurface('terminals', shellRuntime.runtime_id);
   await page.waitForSelector('.nx-project-shell-surface .xterm-rows', { timeout: 15000 });
   await capture('VIS-005', 'terminal.png', 'web/terminal', {
     terminal_evidence: { platform: process.platform, transport: 'project-shell', marker, verified: true },
