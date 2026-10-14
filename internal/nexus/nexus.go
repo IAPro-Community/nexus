@@ -568,18 +568,28 @@ func renderExecutionRoleOverlay(role *intelligence.ExecutionRoleContext, prompt 
 	)
 }
 
+func traceProjectShellStage(stage string) {
+	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+		slog.Info("nexus_docs_capture_project_shell_stage=" + stage)
+	}
+}
+
 // StartProjectShell launches an ordinary shell rooted at the Project canonical
 // path. It does not create an Agent, ConfigRevision, lineage or RuntimeGeneration.
 func (n *Nexus) StartProjectShell(ctx context.Context, projectID string) (*registry.RuntimeSession, error) {
+	traceProjectShellStage("start")
 	n.StartQuotaMonitor(ctx)
+	traceProjectShellStage("quota-monitor-started")
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
 	}
+	traceProjectShellStage("project-opened")
 	project, err := st.GetProject(projectID)
 	if err != nil {
 		return nil, err
 	}
+	traceProjectShellStage("project-loaded")
 	if strings.TrimSpace(project.CanonicalPath) == "" {
 		return nil, fmt.Errorf("project canonical path is empty")
 	}
@@ -590,7 +600,8 @@ func (n *Nexus) StartProjectShell(ctx context.Context, projectID string) (*regis
 	if !info.IsDir() {
 		return nil, fmt.Errorf("project canonical path %q is not a directory", project.CanonicalPath)
 	}
-	return n.launcher.Launch(ctx, launcher.LaunchOptions{
+	traceProjectShellStage("workspace-validated")
+	sess, err := n.launcher.Launch(ctx, launcher.LaunchOptions{
 		Title:       "Shell · " + project.Name,
 		ProviderID:  "shell",
 		ProfileID:   "local",
@@ -598,6 +609,11 @@ func (n *Nexus) StartProjectShell(ctx context.Context, projectID string) (*regis
 		ProjectID:   project.ID,
 		ProjectName: project.Name,
 	})
+	if err != nil {
+		return nil, err
+	}
+	traceProjectShellStage("launch-complete")
+	return sess, nil
 }
 
 // StartAgent launches a supervised runtime for an agent, records a config
