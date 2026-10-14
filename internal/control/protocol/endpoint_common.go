@@ -2,12 +2,60 @@ package protocol
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 )
+
+const (
+	defaultDialTimeout = 5 * time.Second
+	dialAttemptTimeout = 500 * time.Millisecond
+	dialRetryInterval  = 50 * time.Millisecond
+)
+
+// Dial connects to a runtime endpoint, retrying while the local endpoint is starting.
+func Dial(runtimeID string) (net.Conn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDialTimeout)
+	defer cancel()
+	return DialContext(ctx, runtimeID)
+}
+
+// DialContext connects to a runtime endpoint until it succeeds or ctx expires.
+func DialContext(ctx context.Context, runtimeID string) (net.Conn, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		attemptCtx, cancel := context.WithTimeout(ctx, dialAttemptTimeout)
+		conn, err := dialEndpoint(attemptCtx, runtimeID)
+		cancel()
+		if err == nil {
+			return conn, nil
+		}
+		if !isRetryableDialError(err) {
+			return nil, err
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		timer := time.NewTimer(dialRetryInterval)
+		select {
+		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+	}
+}
 
 // EndpointPath returns the canonical local socket / pipe path for a runtime.
 func EndpointPath(runtimeID string) string {

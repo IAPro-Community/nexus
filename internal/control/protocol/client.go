@@ -20,7 +20,14 @@ type Client struct {
 
 // NewClient connects to the specified runtime ID.
 func NewClient(runtimeID string) (*Client, error) {
-	conn, err := Dial(runtimeID)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDialTimeout)
+	defer cancel()
+	return NewClientContext(ctx, runtimeID)
+}
+
+// NewClientContext connects to the specified runtime ID until ctx expires.
+func NewClientContext(ctx context.Context, runtimeID string) (*Client, error) {
+	conn, err := DialContext(ctx, runtimeID)
 	if err != nil {
 		return nil, err
 	}
