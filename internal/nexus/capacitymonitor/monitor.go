@@ -406,6 +406,21 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 			failed = true
 			continue
 		}
+		// Sample only fresh, identity-verified LIVE usage. Cached, estimated or
+		// rate-limited data must not manufacture a consumption trend.
+		if normalizeStatus(snap.Status) == string(model.UsageLive) &&
+			scope != "" && w.ResetTime != nil && w.UsedPercent != nil &&
+			!snap.FetchedAt.IsZero() && !snap.FetchedAt.After(now.Add(time.Minute)) &&
+			now.Sub(snap.FetchedAt) <= 10*time.Minute {
+			if err := m.deps.Store.RecordCapacityPaceSample(store.CapacityPaceSample{
+				Provider: prof.Provider, Profile: prof.Name, AccountScope: scope,
+				QuotaGroup: w.Group, WindowKind: w.Kind, ResetAt: *w.ResetTime,
+				ObservedAt: snap.FetchedAt, UsedPercent: *w.UsedPercent,
+				Source: string(snap.Source),
+			}); err != nil {
+				failed = true
+			}
+		}
 		state := StateUnknown
 		reason := "untrusted snapshot status"
 		rec, found, err := m.loadState(key(w.Group, w.Kind))
