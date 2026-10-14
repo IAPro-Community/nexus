@@ -1,19 +1,23 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { LayoutGrid, Paintbrush, RotateCcw } from 'lucide-react';
-import { DropdownMenu, IconButton, type ContextMenuPoint } from '../design-system';
-import { useTranslation } from 'react-i18next';
-import { ARRANGE_MENU_PRESETS, type ArrangeMenuPreset } from './arrangePresets';
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { LayoutGrid, Paintbrush, RotateCcw } from "lucide-react";
+import {
+  DropdownMenu,
+  IconButton,
+  type ContextMenuPoint,
+} from "../design-system";
+import { useTranslation } from "react-i18next";
+import { ARRANGE_MENU_PRESETS, type ArrangeMenuPreset } from "./arrangePresets";
 
 const WINDOW_ACCENTS = [
-  'var(--nx-info)',
-  'var(--nx-success)',
-  'var(--nx-warning)',
-  'var(--nx-accent)',
-  'var(--nx-accent-text)',
-  'var(--nx-danger)',
+  "var(--nx-info)",
+  "var(--nx-success)",
+  "var(--nx-warning)",
+  "var(--nx-accent)",
+  "var(--nx-accent-text)",
+  "var(--nx-danger)",
 ];
-const WINDOW_ICONS = ['⌘', '⚡', '◆', '●', '★', '◎'];
+const WINDOW_ICONS = ["⌘", "⚡", "◆", "●", "★", "◎"];
 
 export const WindowChromeMenu: React.FC<{
   viewId: string;
@@ -43,9 +47,11 @@ export const WindowChromeMenu: React.FC<{
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(customTitle);
-  const [menuPos, setMenuPos] = useState<{ top: number; right?: number; left?: number } | null>(
-    null,
-  );
+  const [menuPos, setMenuPos] = useState<{
+    top: number;
+    right?: number;
+    left?: number;
+  } | null>(null);
 
   useEffect(() => {
     // Escape discards the draft; reset the suppression when the menu reopens.
@@ -63,7 +69,7 @@ export const WindowChromeMenu: React.FC<{
         setMenuPos({ top: position.y, left: position.x });
         return;
       }
-      const anchor = rootRef.current?.querySelector('button');
+      const anchor = rootRef.current?.querySelector("button");
       if (!anchor) return;
       const rect = anchor.getBoundingClientRect();
       setMenuPos({
@@ -76,22 +82,23 @@ export const WindowChromeMenu: React.FC<{
       const target = event.target as Node | null;
       if (!target) return;
       if (rootRef.current?.contains(target)) return;
-      if ((target as Element).closest?.('.nx-desktop-window__chrome-menu')) return;
+      if ((target as Element).closest?.(".nx-desktop-window__chrome-menu"))
+        return;
       onOpenChange(false);
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onOpenChange(false);
+      if (event.key === "Escape") onOpenChange(false);
     };
-    window.addEventListener('pointerdown', onPointerDown, true);
-    window.addEventListener('keydown', onKey);
+    window.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("keydown", onKey);
     const onResize = () => compute();
-    window.addEventListener('resize', onResize);
-    window.addEventListener('scroll', onResize, true);
+    window.addEventListener("resize", onResize);
+    window.addEventListener("scroll", onResize, true);
     return () => {
-      window.removeEventListener('pointerdown', onPointerDown, true);
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('scroll', onResize, true);
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", onResize, true);
     };
   }, [open, onOpenChange, position]);
 
@@ -110,31 +117,36 @@ export const WindowChromeMenu: React.FC<{
           <div
             className="nx-desktop-window__chrome-menu"
             role="dialog"
-            aria-label={t('workspace.customizeWindow', 'Personalizar janela')}
+            aria-label={t("workspace.customizeWindow", "Personalizar janela")}
             style={{
               top: menuPos.top,
-              ...(menuPos.left != null ? { left: menuPos.left } : { right: menuPos.right }),
+              ...(menuPos.left != null
+                ? { left: menuPos.left }
+                : { right: menuPos.right }),
             }}
             onPointerDown={(event) => event.stopPropagation()}
           >
             <label>
-              {t('workspace.customTitle', 'Nome personalizado')}
+              {t("workspace.customTitle", "Nome personalizado")}
               <input
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onBlur={commitTitle}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
+                  if (event.key === "Enter") {
                     commitTitle();
                     onOpenChange(false);
-                  } else if (event.key === 'Escape') {
+                  } else if (event.key === "Escape") {
                     event.stopPropagation();
                     skipBlurCommit.current = true;
                     setDraft(customTitle);
                     onOpenChange(false);
                   }
                 }}
-                placeholder={t('workspace.windowTitlePlaceholder', 'Identidade da janela')}
+                placeholder={t(
+                  "workspace.windowTitlePlaceholder",
+                  "Identidade da janela",
+                )}
                 autoFocus
               />
             </label>
@@ -142,27 +154,34 @@ export const WindowChromeMenu: React.FC<{
               <input
                 type="checkbox"
                 checked={allowAiTitle}
-                onChange={(event) => onPatch({ allowAiTitle: event.target.checked })}
+                onChange={(event) =>
+                  onPatch({ allowAiTitle: event.target.checked })
+                }
               />
-              <span>{t('workspace.allowAiTitle', 'Permitir que a IA atualize o título')}</span>
+              <span>
+                {t(
+                  "workspace.allowAiTitle",
+                  "Permitir que a IA atualize o título",
+                )}
+              </span>
             </label>
             <p className="nx-desktop-window__ai-title-help">
               {t(
-                'workspace.allowAiTitleHelp',
-                'O nome personalizado permanece salvo. A IA pode atualizar o título principal quando esta opção estiver ativa.',
+                "workspace.allowAiTitleHelp",
+                "O nome personalizado permanece salvo. A IA pode atualizar o título principal quando esta opção estiver ativa.",
               )}
             </p>
             <div
               className="nx-desktop-window__chrome-row"
-              aria-label={t('workspace.titleColor', 'Cor do título')}
+              aria-label={t("workspace.titleColor", "Cor do título")}
             >
               <button
                 type="button"
                 className="nx-desktop-window__swatch nx-desktop-window__swatch--clear"
-                data-active={!accent ? 'true' : 'false'}
-                title={t('workspace.noColor', 'Sem cor')}
+                data-active={!accent ? "true" : "false"}
+                title={t("workspace.noColor", "Sem cor")}
                 onClick={() => {
-                  onPatch({ accent: '' });
+                  onPatch({ accent: "" });
                   onOpenChange(false);
                 }}
               />
@@ -171,7 +190,7 @@ export const WindowChromeMenu: React.FC<{
                   key={color}
                   type="button"
                   className="nx-desktop-window__swatch"
-                  data-active={accent === color ? 'true' : 'false'}
+                  data-active={accent === color ? "true" : "false"}
                   style={{ background: color }}
                   title={color}
                   onClick={() => {
@@ -183,15 +202,15 @@ export const WindowChromeMenu: React.FC<{
             </div>
             <div
               className="nx-desktop-window__chrome-row"
-              aria-label={t('workspace.icon', 'Ícone')}
+              aria-label={t("workspace.icon", "Ícone")}
             >
               <button
                 type="button"
                 className="nx-desktop-window__icon-pick"
-                data-active={!icon ? 'true' : 'false'}
-                title={t('workspace.noIcon', 'Sem ícone')}
+                data-active={!icon ? "true" : "false"}
+                title={t("workspace.noIcon", "Sem ícone")}
                 onClick={() => {
-                  onPatch({ icon: '' });
+                  onPatch({ icon: "" });
                   onOpenChange(false);
                 }}
               >
@@ -202,7 +221,7 @@ export const WindowChromeMenu: React.FC<{
                   key={glyph}
                   type="button"
                   className="nx-desktop-window__icon-pick"
-                  data-active={icon === glyph ? 'true' : 'false'}
+                  data-active={icon === glyph ? "true" : "false"}
                   onClick={() => {
                     onPatch({ icon: glyph });
                     onOpenChange(false);
@@ -220,7 +239,7 @@ export const WindowChromeMenu: React.FC<{
   return (
     <div className="nx-desktop-window__chrome" ref={rootRef}>
       <IconButton
-        label={t('workspace.customizeWindow', 'Personalizar janela')}
+        label={t("workspace.customizeWindow", "Personalizar janela")}
         aria-expanded={open}
         onClick={(event) => {
           event.stopPropagation();
@@ -248,18 +267,18 @@ export const ArrangeLayoutMenu: React.FC<{
           <button
             type="button"
             className="nx-arrange-menu__trigger"
-            title={t('workspace.arrangeWindows', 'Arranjar janelas')}
-            aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
+            title={t("workspace.arrangeWindows", "Arranjar janelas")}
+            aria-label={t("workspace.arrangeWindows", "Arranjar janelas")}
           >
             <LayoutGrid size={12} />
-            <span>{t('workspace.arrange', 'Arranjar')}</span>
+            <span>{t("workspace.arrange", "Arranjar")}</span>
           </button>
         </DropdownMenu.Trigger>
 
         <DropdownMenu.Portal>
           <DropdownMenu.Content
             className="nx-arrange-menu__panel"
-            aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
+            aria-label={t("workspace.arrangeWindows", "Arranjar janelas")}
             align="end"
             sideOffset={6}
             collisionPadding={8}
@@ -273,7 +292,7 @@ export const ArrangeLayoutMenu: React.FC<{
                   key={preset.id}
                   value={preset.id}
                   className="nx-arrange-menu__item"
-                  data-active={activePreset === preset.id ? 'true' : undefined}
+                  data-active={activePreset === preset.id ? "true" : undefined}
                 >
                   <span>{preset.label}</span>
                   <small>{preset.hint}</small>
@@ -284,12 +303,19 @@ export const ArrangeLayoutMenu: React.FC<{
             {onReset && (
               <>
                 <DropdownMenu.Separator className="nx-arrange-menu__separator" />
-                <DropdownMenu.Item className="nx-arrange-menu__item" onSelect={() => onReset()}>
+                <DropdownMenu.Item
+                  className="nx-arrange-menu__item"
+                  onSelect={() => onReset()}
+                >
                   <span className="nx-arrange-menu__reset-label">
                     <RotateCcw size={12} />
-                    <span>{t('workspace.resetLayout', 'Redefinir layout')}</span>
+                    <span>
+                      {t("workspace.resetLayout", "Redefinir layout")}
+                    </span>
                   </span>
-                  <small>{t('workspace.restoreDefault', 'Restaurar padrão')}</small>
+                  <small>
+                    {t("workspace.restoreDefault", "Restaurar padrão")}
+                  </small>
                 </DropdownMenu.Item>
               </>
             )}
@@ -299,4 +325,3 @@ export const ArrangeLayoutMenu: React.FC<{
     </div>
   );
 };
-

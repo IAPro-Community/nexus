@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Accessibility,
   ArrowUpCircle,
@@ -12,7 +12,7 @@ import {
   RotateCcw,
   Sparkles,
   Type,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   Badge,
   Button,
@@ -21,55 +21,59 @@ import {
   Input,
   Segmented,
   Switch,
-} from '../../design-system';
+} from "../../design-system";
 import {
   useTheme,
   type ThemeDensity,
   type ThemeFontFamily,
   type ThemeIconStyle,
-} from '../../design-system';
-import { useWorkspace } from '../../workspace/WorkspaceProvider';
-import { nexus } from '../../nexus/api';
-import type { IntelligenceMode, IntelligenceStatus, ProviderAccount } from '../../types';
-import { useTranslation } from 'react-i18next';
-import { asArray } from '../../lib/safeArray';
-import { intelligenceCLIProfiles } from './intelligenceProfiles';
-import { IntelligenceProviderCombo } from './IntelligenceProviderCombo';
+} from "../../design-system";
+import { useWorkspace } from "../../workspace/WorkspaceProvider";
+import { nexus } from "../../nexus/api";
+import type {
+  IntelligenceMode,
+  IntelligenceStatus,
+  ProviderAccount,
+} from "../../types";
+import { useTranslation } from "react-i18next";
+import { asArray } from "../../lib/safeArray";
+import { intelligenceCLIProfiles } from "./intelligenceProfiles";
+import { IntelligenceProviderCombo } from "./IntelligenceProviderCombo";
 import {
   loadNotificationPrefs,
   saveNotificationPrefs,
   type NotificationPrefs,
-} from '../../notifications/notificationPrefs';
-import { pushNotifications } from '../../notifications/PushNotificationManager';
-import { SystemDiagnosticsCard } from './SystemDiagnosticsCard';
-import { RemoteAccessTab } from './RemoteAccessTab';
-import { IntelligenceMemoriesPanel } from './IntelligenceMemoriesPanel';
-import { CapacityMonitorSettings } from './CapacityMonitorSettings';
-import { CostIntelligenceSettings } from './CostIntelligenceSettings';
-import { HudSettings } from '../hud/HudSettings';
-import { VoiceSettings } from '../voice/VoiceSettings';
-import type { SystemDoctorReport } from '../../nexus/api';
-import styles from './SettingsSurface.module.scss';
-import { ThemeAccordionSelector } from './ThemeAccordionSelector';
+} from "../../notifications/notificationPrefs";
+import { pushNotifications } from "../../notifications/PushNotificationManager";
+import { SystemDiagnosticsCard } from "./SystemDiagnosticsCard";
+import { RemoteAccessTab } from "./RemoteAccessTab";
+import { IntelligenceMemoriesPanel } from "./IntelligenceMemoriesPanel";
+import { CapacityMonitorSettings } from "./CapacityMonitorSettings";
+import { CostIntelligenceSettings } from "./CostIntelligenceSettings";
+import { HudSettings } from "../hud/HudSettings";
+import { VoiceSettings } from "../voice/VoiceSettings";
+import type { SystemDoctorReport } from "../../nexus/api";
+import styles from "./SettingsSurface.module.scss";
+import { ThemeAccordionSelector } from "./ThemeAccordionSelector";
 
 type SettingsTab =
-  | 'appearance'
-  | 'accessibility'
-  | 'updates'
-  | 'intelligence'
-  | 'capacity'
-  | 'hud'
-  | 'notifications'
-  | 'remote';
+  | "appearance"
+  | "accessibility"
+  | "updates"
+  | "intelligence"
+  | "capacity"
+  | "hud"
+  | "notifications"
+  | "remote";
 const SETTINGS_TABS: SettingsTab[] = [
-  'appearance',
-  'accessibility',
-  'updates',
-  'intelligence',
-  'capacity',
-  'hud',
-  'notifications',
-  'remote',
+  "appearance",
+  "accessibility",
+  "updates",
+  "intelligence",
+  "capacity",
+  "hud",
+  "notifications",
+  "remote",
 ];
 
 export const SettingsSurface: React.FC<{
@@ -80,17 +84,22 @@ export const SettingsSurface: React.FC<{
   const { t } = useTranslation();
   const workspace = useWorkspace();
   const [activeTab, setActiveTab] = useState<SettingsTab>(
-    initialTab && SETTINGS_TABS.includes(initialTab) ? initialTab : 'appearance',
+    initialTab && SETTINGS_TABS.includes(initialTab)
+      ? initialTab
+      : "appearance",
   );
   useEffect(() => {
-    if (initialTab && SETTINGS_TABS.includes(initialTab)) setActiveTab(initialTab);
+    if (initialTab && SETTINGS_TABS.includes(initialTab))
+      setActiveTab(initialTab);
   }, [initialTab]);
-  const onSettingsTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+  const onSettingsTabKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+  ) => {
     const current = SETTINGS_TABS.indexOf(activeTab);
-    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
     event.preventDefault();
     const next =
-      (current + (event.key === 'ArrowRight' ? 1 : -1) + SETTINGS_TABS.length) %
+      (current + (event.key === "ArrowRight" ? 1 : -1) + SETTINGS_TABS.length) %
       SETTINGS_TABS.length;
     setActiveTab(SETTINGS_TABS[next]);
     document.getElementById(`settings-tab-${SETTINGS_TABS[next]}`)?.focus();
@@ -114,34 +123,43 @@ export const SettingsSurface: React.FC<{
   } | null>(null);
   const [updating, setUpdating] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
-  const [updateError, setUpdateError] = useState('');
+  const [updateError, setUpdateError] = useState("");
   const [updateResult, setUpdateResult] = useState<{
     maestro_updated: boolean;
     maestro_version: string;
     nexus_version: string;
     error?: string;
   } | null>(null);
-  const [doctorReport, setDoctorReport] = useState<SystemDoctorReport | null>(null);
+  const [doctorReport, setDoctorReport] = useState<SystemDoctorReport | null>(
+    null,
+  );
   const [checkingDoctor, setCheckingDoctor] = useState(false);
-  const [doctorError, setDoctorError] = useState('');
-  const [intelligence, setIntelligence] = useState<IntelligenceStatus | null>(null);
-  const [intelligenceDraft, setIntelligenceDraft] = useState<IntelligenceStatus>({
-    mode: 'OFF',
-    available: false,
-  });
-  const [intelligenceResources, setIntelligenceResources] = useState<ProviderAccount[]>([]);
+  const [doctorError, setDoctorError] = useState("");
+  const [intelligence, setIntelligence] = useState<IntelligenceStatus | null>(
+    null,
+  );
+  const [intelligenceDraft, setIntelligenceDraft] =
+    useState<IntelligenceStatus>({
+      mode: "OFF",
+      available: false,
+    });
+  const [intelligenceResources, setIntelligenceResources] = useState<
+    ProviderAccount[]
+  >([]);
   const [intelligenceSaving, setIntelligenceSaving] = useState(false);
-  const [intelligenceError, setIntelligenceError] = useState('');
-  const [notifyPrefs, setNotifyPrefs] = useState<NotificationPrefs>(() => loadNotificationPrefs());
+  const [intelligenceError, setIntelligenceError] = useState("");
+  const [notifyPrefs, setNotifyPrefs] = useState<NotificationPrefs>(() =>
+    loadNotificationPrefs(),
+  );
 
   const updateNotifyPrefs = (patch: Partial<NotificationPrefs>) => {
     setNotifyPrefs((current) => {
       const next = { ...current, ...patch };
       saveNotificationPrefs(next);
-      window.dispatchEvent(new CustomEvent('nexus:notification-prefs'));
+      window.dispatchEvent(new CustomEvent("nexus:notification-prefs"));
       if (patch.notificationsEnabled === true) {
         void pushNotifications.requestPermission().then((perm) => {
-          if (perm === 'granted') pushNotifications.confirmEnabled();
+          if (perm === "granted") pushNotifications.confirmEnabled();
         });
       }
       return next;
@@ -151,7 +169,7 @@ export const SettingsSurface: React.FC<{
   const checkUpdates = async () => {
     try {
       setCheckingUpdates(true);
-      setUpdateError('');
+      setUpdateError("");
       const data = await nexus.getSystemUpdates();
       setUpdateInfo(data);
     } catch (error) {
@@ -165,7 +183,7 @@ export const SettingsSurface: React.FC<{
   const checkDoctor = async () => {
     try {
       setCheckingDoctor(true);
-      setDoctorError('');
+      setDoctorError("");
       setDoctorReport(await nexus.getSystemDoctor());
     } catch (error) {
       setDoctorReport(null);
@@ -177,7 +195,7 @@ export const SettingsSurface: React.FC<{
 
   const loadIntelligence = async () => {
     try {
-      setIntelligenceError('');
+      setIntelligenceError("");
       const [status, resources] = await Promise.all([
         nexus.getIntelligence(),
         nexus.listResources(),
@@ -186,7 +204,9 @@ export const SettingsSurface: React.FC<{
       setIntelligenceDraft(status);
       setIntelligenceResources(asArray(resources.accounts));
     } catch (error) {
-      setIntelligenceError(error instanceof Error ? error.message : String(error));
+      setIntelligenceError(
+        error instanceof Error ? error.message : String(error),
+      );
     }
   };
 
@@ -199,13 +219,13 @@ export const SettingsSurface: React.FC<{
   const handleUpdate = async () => {
     setUpdating(true);
     setUpdateSuccess(false);
-    setUpdateError('');
+    setUpdateError("");
     setUpdateResult(null);
     try {
       const res = await nexus.performSystemUpdate();
       setUpdateResult(res);
       setUpdateSuccess(true);
-      window.dispatchEvent(new CustomEvent('nexus:system-updates'));
+      window.dispatchEvent(new CustomEvent("nexus:system-updates"));
       void checkUpdates();
     } catch (error) {
       setUpdateError(error instanceof Error ? error.message : String(error));
@@ -221,7 +241,7 @@ export const SettingsSurface: React.FC<{
 
   const saveIntelligence = async () => {
     setIntelligenceSaving(true);
-    setIntelligenceError('');
+    setIntelligenceError("");
     try {
       const payload = {
         mode: intelligenceDraft.mode as IntelligenceMode,
@@ -236,7 +256,9 @@ export const SettingsSurface: React.FC<{
       setIntelligence(next);
       setIntelligenceDraft(next);
     } catch (error) {
-      setIntelligenceError(error instanceof Error ? error.message : String(error));
+      setIntelligenceError(
+        error instanceof Error ? error.message : String(error),
+      );
     } finally {
       setIntelligenceSaving(false);
     }
@@ -246,9 +268,9 @@ export const SettingsSurface: React.FC<{
     <div className="nx-surface-scroll">
       <div className="nx-page-header">
         <div>
-          <span className="nx-eyebrow">{t('settings.eyebrow')}</span>
-          <h1>{t('settings.title')}</h1>
-          <p>{t('settings.intro')}</p>
+          <span className="nx-eyebrow">{t("settings.eyebrow")}</span>
+          <h1>{t("settings.title")}</h1>
+          <p>{t("settings.intro")}</p>
         </div>
       </div>
       {/* 5 Modular Navigation Tabs */}
@@ -258,11 +280,11 @@ export const SettingsSurface: React.FC<{
           role="tab"
           id="settings-tab-appearance"
           aria-controls="settings-panel"
-          tabIndex={activeTab === 'appearance' ? 0 : -1}
-          aria-selected={activeTab === 'appearance'}
+          tabIndex={activeTab === "appearance" ? 0 : -1}
+          aria-selected={activeTab === "appearance"}
           onKeyDown={onSettingsTabKeyDown}
-          className={`nx-settings-tab ${activeTab === 'appearance' ? 'nx-settings-tab--active' : ''}`}
-          onClick={() => setActiveTab('appearance')}
+          className={`nx-settings-tab ${activeTab === "appearance" ? "nx-settings-tab--active" : ""}`}
+          onClick={() => setActiveTab("appearance")}
         >
           <Palette size={15} />
           <span>Aparência & Estilo</span>
@@ -272,11 +294,11 @@ export const SettingsSurface: React.FC<{
           role="tab"
           id="settings-tab-accessibility"
           aria-controls="settings-panel"
-          tabIndex={activeTab === 'accessibility' ? 0 : -1}
-          aria-selected={activeTab === 'accessibility'}
+          tabIndex={activeTab === "accessibility" ? 0 : -1}
+          aria-selected={activeTab === "accessibility"}
           onKeyDown={onSettingsTabKeyDown}
-          className={`nx-settings-tab ${activeTab === 'accessibility' ? 'nx-settings-tab--active' : ''}`}
-          onClick={() => setActiveTab('accessibility')}
+          className={`nx-settings-tab ${activeTab === "accessibility" ? "nx-settings-tab--active" : ""}`}
+          onClick={() => setActiveTab("accessibility")}
         >
           <Accessibility size={15} />
           <span>Acessibilidade</span>
@@ -286,16 +308,19 @@ export const SettingsSurface: React.FC<{
           role="tab"
           id="settings-tab-updates"
           aria-controls="settings-panel"
-          tabIndex={activeTab === 'updates' ? 0 : -1}
-          aria-selected={activeTab === 'updates'}
+          tabIndex={activeTab === "updates" ? 0 : -1}
+          aria-selected={activeTab === "updates"}
           onKeyDown={onSettingsTabKeyDown}
-          className={`nx-settings-tab ${activeTab === 'updates' ? 'nx-settings-tab--active' : ''}`}
-          onClick={() => setActiveTab('updates')}
+          className={`nx-settings-tab ${activeTab === "updates" ? "nx-settings-tab--active" : ""}`}
+          onClick={() => setActiveTab("updates")}
         >
           <ArrowUpCircle size={15} />
           <span>Atualizações & Sistema</span>
           {updateInfo?.update_available && (
-            <span className={`nx-badge ${styles.updateBadge}`} data-tone="warning">
+            <span
+              className={`nx-badge ${styles.updateBadge}`}
+              data-tone="warning"
+            >
               Update
             </span>
           )}
@@ -305,11 +330,11 @@ export const SettingsSurface: React.FC<{
           role="tab"
           id="settings-tab-intelligence"
           aria-controls="settings-panel"
-          tabIndex={activeTab === 'intelligence' ? 0 : -1}
-          aria-selected={activeTab === 'intelligence'}
+          tabIndex={activeTab === "intelligence" ? 0 : -1}
+          aria-selected={activeTab === "intelligence"}
           onKeyDown={onSettingsTabKeyDown}
-          className={`nx-settings-tab ${activeTab === 'intelligence' ? 'nx-settings-tab--active' : ''}`}
-          onClick={() => setActiveTab('intelligence')}
+          className={`nx-settings-tab ${activeTab === "intelligence" ? "nx-settings-tab--active" : ""}`}
+          onClick={() => setActiveTab("intelligence")}
         >
           <Sparkles size={15} />
           <span>Nexus Intelligence</span>
@@ -319,25 +344,25 @@ export const SettingsSurface: React.FC<{
           role="tab"
           id="settings-tab-capacity"
           aria-controls="settings-panel"
-          tabIndex={activeTab === 'capacity' ? 0 : -1}
-          aria-selected={activeTab === 'capacity'}
+          tabIndex={activeTab === "capacity" ? 0 : -1}
+          aria-selected={activeTab === "capacity"}
           onKeyDown={onSettingsTabKeyDown}
-          className={`nx-settings-tab ${activeTab === 'capacity' ? 'nx-settings-tab--active' : ''}`}
-          onClick={() => setActiveTab('capacity')}
+          className={`nx-settings-tab ${activeTab === "capacity" ? "nx-settings-tab--active" : ""}`}
+          onClick={() => setActiveTab("capacity")}
         >
           <Gauge size={15} />
-          <span>{t('settings.capacity', 'Capacity Monitor')}</span>
+          <span>{t("settings.capacity", "Capacity Monitor")}</span>
         </button>
         <button
           type="button"
           role="tab"
           id="settings-tab-hud"
           aria-controls="settings-panel"
-          tabIndex={activeTab === 'hud' ? 0 : -1}
-          aria-selected={activeTab === 'hud'}
+          tabIndex={activeTab === "hud" ? 0 : -1}
+          aria-selected={activeTab === "hud"}
           onKeyDown={onSettingsTabKeyDown}
-          className={`nx-settings-tab ${activeTab === 'hud' ? 'nx-settings-tab--active' : ''}`}
-          onClick={() => setActiveTab('hud')}
+          className={`nx-settings-tab ${activeTab === "hud" ? "nx-settings-tab--active" : ""}`}
+          onClick={() => setActiveTab("hud")}
         >
           <PanelsTopLeft size={15} />
           <span>Nexus HUD</span>
@@ -347,11 +372,11 @@ export const SettingsSurface: React.FC<{
           role="tab"
           id="settings-tab-notifications"
           aria-controls="settings-panel"
-          tabIndex={activeTab === 'notifications' ? 0 : -1}
-          aria-selected={activeTab === 'notifications'}
+          tabIndex={activeTab === "notifications" ? 0 : -1}
+          aria-selected={activeTab === "notifications"}
           onKeyDown={onSettingsTabKeyDown}
-          className={`nx-settings-tab ${activeTab === 'notifications' ? 'nx-settings-tab--active' : ''}`}
-          onClick={() => setActiveTab('notifications')}
+          className={`nx-settings-tab ${activeTab === "notifications" ? "nx-settings-tab--active" : ""}`}
+          onClick={() => setActiveTab("notifications")}
         >
           <Bell size={15} />
           <span>Notificações</span>
@@ -361,14 +386,14 @@ export const SettingsSurface: React.FC<{
           role="tab"
           id="settings-tab-remote"
           aria-controls="settings-panel"
-          tabIndex={activeTab === 'remote' ? 0 : -1}
-          aria-selected={activeTab === 'remote'}
+          tabIndex={activeTab === "remote" ? 0 : -1}
+          aria-selected={activeTab === "remote"}
           onKeyDown={onSettingsTabKeyDown}
-          className={`nx-settings-tab ${activeTab === 'remote' ? 'nx-settings-tab--active' : ''}`}
-          onClick={() => setActiveTab('remote')}
+          className={`nx-settings-tab ${activeTab === "remote" ? "nx-settings-tab--active" : ""}`}
+          onClick={() => setActiveTab("remote")}
         >
           <Globe size={15} />
-          <span>{t('settings.remote.title')}</span>
+          <span>{t("settings.remote.title")}</span>
         </button>
       </div>
 
@@ -380,14 +405,14 @@ export const SettingsSurface: React.FC<{
         tabIndex={0}
       >
         {/* Tab 1: Appearance */}
-        {activeTab === 'appearance' && (
+        {activeTab === "appearance" && (
           <>
             <Card className={`nx-settings-card ${styles.gridFullWidth}`}>
               <div className="nx-settings-card__title">
                 <Palette size={17} />
                 <div>
-                  <strong>{t('settings.theme')}</strong>
-                  <small>{t('settings.themeDescription')}</small>
+                  <strong>{t("settings.theme")}</strong>
+                  <small>{t("settings.themeDescription")}</small>
                 </div>
               </div>
 
@@ -398,23 +423,36 @@ export const SettingsSurface: React.FC<{
               <div className="nx-settings-card__title">
                 <Type size={17} />
                 <div>
-                  <strong>{t('settings.fontFamily', 'Fonte da interface')}</strong>
+                  <strong>
+                    {t("settings.fontFamily", "Fonte da interface")}
+                  </strong>
                   <small>
                     {t(
-                      'settings.fontFamilyDescription',
-                      'Independentemente do tema; terminal mantém sua própria tipografia.',
+                      "settings.fontFamilyDescription",
+                      "Independentemente do tema; terminal mantém sua própria tipografia.",
                     )}
                   </small>
                 </div>
               </div>
               <Segmented
-                ariaLabel={t('settings.fontFamily', 'Fonte da interface')}
+                ariaLabel={t("settings.fontFamily", "Fonte da interface")}
                 value={theme.fontFamily}
-                onChange={(value) => theme.setFontFamily(value as ThemeFontFamily)}
+                onChange={(value) =>
+                  theme.setFontFamily(value as ThemeFontFamily)
+                }
                 options={[
-                  { value: 'default', label: t('settings.fontDefault', 'Padrão') },
-                  { value: 'system', label: t('settings.fontSystem', 'Sistema') },
-                  { value: 'readable', label: t('settings.fontReadable', 'Leitura') },
+                  {
+                    value: "default",
+                    label: t("settings.fontDefault", "Padrão"),
+                  },
+                  {
+                    value: "system",
+                    label: t("settings.fontSystem", "Sistema"),
+                  },
+                  {
+                    value: "readable",
+                    label: t("settings.fontReadable", "Leitura"),
+                  },
                 ]}
               />
             </Card>
@@ -423,23 +461,28 @@ export const SettingsSurface: React.FC<{
               <div className="nx-settings-card__title">
                 <PanelsTopLeft size={17} />
                 <div>
-                  <strong>{t('settings.iconStyle', 'Traço dos ícones')}</strong>
+                  <strong>{t("settings.iconStyle", "Traço dos ícones")}</strong>
                   <small>
                     {t(
-                      'settings.iconStyleDescription',
-                      'Ajusta a espessura dos ícones Lucide sem trocar os símbolos.',
+                      "settings.iconStyleDescription",
+                      "Ajusta a espessura dos ícones Lucide sem trocar os símbolos.",
                     )}
                   </small>
                 </div>
               </div>
               <Segmented
-                ariaLabel={t('settings.iconStyle', 'Traço dos ícones')}
+                ariaLabel={t("settings.iconStyle", "Traço dos ícones")}
                 value={theme.iconStyle}
-                onChange={(value) => theme.setIconStyle(value as ThemeIconStyle)}
+                onChange={(value) =>
+                  theme.setIconStyle(value as ThemeIconStyle)
+                }
                 options={[
-                  { value: 'light', label: t('settings.iconLight', 'Fino') },
-                  { value: 'default', label: t('settings.iconDefault', 'Padrão') },
-                  { value: 'bold', label: t('settings.iconBold', 'Marcado') },
+                  { value: "light", label: t("settings.iconLight", "Fino") },
+                  {
+                    value: "default",
+                    label: t("settings.iconDefault", "Padrão"),
+                  },
+                  { value: "bold", label: t("settings.iconBold", "Marcado") },
                 ]}
               />
             </Card>
@@ -448,33 +491,35 @@ export const SettingsSurface: React.FC<{
               <div className="nx-settings-card__title">
                 <MonitorCog size={17} />
                 <div>
-                  <strong>{t('settings.workspace')}</strong>
-                  <small>{t('settings.workspaceDescription')}</small>
+                  <strong>{t("settings.workspace")}</strong>
+                  <small>{t("settings.workspaceDescription")}</small>
                 </div>
               </div>
               <p className={`nx-muted-copy ${styles.mutedTextSmall}`}>
-                Restaura o layout original do projeto ativo, preservando workspaces e chaves
-                seguras.
+                Restaura o layout original do projeto ativo, preservando
+                workspaces e chaves seguras.
               </p>
               <Button tone="warning" onClick={workspace.reset}>
-                <RotateCcw size={14} /> {t('settings.reset')}
+                <RotateCcw size={14} /> {t("settings.reset")}
               </Button>
             </Card>
           </>
         )}
 
         {/* Tab 2: Accessibility */}
-        {activeTab === 'accessibility' && (
+        {activeTab === "accessibility" && (
           <>
             <Card className="nx-settings-card">
               <div className="nx-settings-card__title">
                 <Type size={17} />
                 <div>
-                  <strong>{t('settings.fontScale', 'Escala Tipográfica')}</strong>
+                  <strong>
+                    {t("settings.fontScale", "Escala Tipográfica")}
+                  </strong>
                   <small>
                     {t(
-                      'settings.fontScaleDesc',
-                      'Ajuste proporcional do tamanho do texto sem distorcer o layout',
+                      "settings.fontScaleDesc",
+                      "Ajuste proporcional do tamanho do texto sem distorcer o layout",
                     )}
                   </small>
                 </div>
@@ -499,7 +544,10 @@ export const SettingsSurface: React.FC<{
                 <button
                   type="button"
                   className="nx-font-scale-btn"
-                  data-active={(theme.fontScale || 1) >= 1.05 && (theme.fontScale || 1) < 1.15}
+                  data-active={
+                    (theme.fontScale || 1) >= 1.05 &&
+                    (theme.fontScale || 1) < 1.15
+                  }
                   onClick={() => theme.setFontScale(1.1)}
                 >
                   A+ (110%)
@@ -519,26 +567,26 @@ export const SettingsSurface: React.FC<{
               <div className="nx-settings-card__title">
                 <Accessibility size={17} />
                 <div>
-                  <strong>{t('settings.accessibility')}</strong>
-                  <small>{t('settings.accessibilityDescription')}</small>
+                  <strong>{t("settings.accessibility")}</strong>
+                  <small>{t("settings.accessibilityDescription")}</small>
                 </div>
               </div>
               <Segmented
-                ariaLabel={t('settings.density')}
+                ariaLabel={t("settings.density")}
                 value={theme.density}
                 onChange={(value) => theme.setDensity(value as ThemeDensity)}
                 options={[
-                  { value: 'compact', label: t('settings.compact') },
-                  { value: 'comfortable', label: t('settings.comfortable') },
+                  { value: "compact", label: t("settings.compact") },
+                  { value: "comfortable", label: t("settings.comfortable") },
                 ]}
               />
               <Switch
                 checked={theme.reducedMotion}
                 onChange={theme.setReducedMotion}
-                label={t('settings.reduceMotion')}
-                description={t('settings.reduceMotionDescription')}
+                label={t("settings.reduceMotion")}
+                description={t("settings.reduceMotionDescription")}
               />
-              <Button onClick={onTour}>{t('settings.replayTour')}</Button>
+              <Button onClick={onTour}>{t("settings.replayTour")}</Button>
             </Card>
 
             <VoiceSettings />
@@ -546,14 +594,14 @@ export const SettingsSurface: React.FC<{
         )}
 
         {/* Tab 3: Updates & System */}
-        {activeTab === 'updates' && (
+        {activeTab === "updates" && (
           <>
             <Card className={`nx-settings-card ${styles.gridFullWidth}`}>
               <div className="nx-settings-card__title">
                 <ArrowUpCircle size={17} />
                 <div>
-                  <strong>{t('settings.updates')}</strong>
-                  <small>{t('settings.updatesDescription')}</small>
+                  <strong>{t("settings.updates")}</strong>
+                  <small>{t("settings.updatesDescription")}</small>
                 </div>
               </div>
               {updateInfo && (
@@ -564,8 +612,14 @@ export const SettingsSurface: React.FC<{
                   </div>
                   {updateInfo.nexus_latest_version && (
                     <div className={styles.infoRow}>
-                      <span>{t('settings.nexusLatestVersion')}:</span>
-                      <Badge tone={updateInfo.nexus_update_available ? 'warning' : 'success'}>
+                      <span>{t("settings.nexusLatestVersion")}:</span>
+                      <Badge
+                        tone={
+                          updateInfo.nexus_update_available
+                            ? "warning"
+                            : "success"
+                        }
+                      >
                         v{updateInfo.nexus_latest_version}
                       </Badge>
                     </div>
@@ -579,73 +633,99 @@ export const SettingsSurface: React.FC<{
                   {updateInfo.installation_method && (
                     <div className={styles.infoRow}>
                       <span>Método de Instalação:</span>
-                      <Badge tone="info">{updateInfo.installation_method}</Badge>
+                      <Badge tone="info">
+                        {updateInfo.installation_method}
+                      </Badge>
                     </div>
                   )}
                   <div className={styles.infoRow}>
                     <span>Orquestrador Maestro:</span>
-                    <Badge tone={updateInfo.maestro_available ? 'brand' : 'warning'}>
+                    <Badge
+                      tone={updateInfo.maestro_available ? "brand" : "warning"}
+                    >
                       v{updateInfo.maestro_version}
                     </Badge>
                   </div>
                   {updateInfo.nexus_update_error ? (
-                    <InlineAlert tone="warning" title={t('settings.nexusUpdateUnavailable')}>
+                    <InlineAlert
+                      tone="warning"
+                      title={t("settings.nexusUpdateUnavailable")}
+                    >
                       {updateInfo.nexus_update_error}
                     </InlineAlert>
-                  ) : updateInfo.nexus_update_available || updateInfo.update_available ? (
-                    <InlineAlert tone="warning" title={t('settings.updateAvailable')}>
-                      {t('settings.updateAvailableDescription', {
+                  ) : updateInfo.nexus_update_available ||
+                    updateInfo.update_available ? (
+                    <InlineAlert
+                      tone="warning"
+                      title={t("settings.updateAvailable")}
+                    >
+                      {t("settings.updateAvailableDescription", {
                         version:
                           updateInfo.nexus_latest_version ||
                           updateInfo.maestro_latest_version ||
-                          t('settings.newBuild'),
+                          t("settings.newBuild"),
                       })}
                       {updateInfo.nexus_update_available && (
                         <>
-                          {' '}
-                          {t('settings.nexusUpdateAction', {
+                          {" "}
+                          {t("settings.nexusUpdateAction", {
                             action:
                               updateInfo.nexus_update_instruction ||
-                              (updateInfo.nexus_allows_self_update ? 'nexus update' : ''),
+                              (updateInfo.nexus_allows_self_update
+                                ? "nexus update"
+                                : ""),
                           })}
                         </>
                       )}
                     </InlineAlert>
                   ) : (
-                    <InlineAlert tone="success" title={t('settings.upToDate')}>
-                      {t('settings.upToDateDescription')}
+                    <InlineAlert tone="success" title={t("settings.upToDate")}>
+                      {t("settings.upToDateDescription")}
                     </InlineAlert>
                   )}
                 </div>
               )}
               {updateError && (
-                <InlineAlert tone="danger" title="Status de atualização indisponível">
+                <InlineAlert
+                  tone="danger"
+                  title="Status de atualização indisponível"
+                >
                   {updateError}
                 </InlineAlert>
               )}
               {updateSuccess && updateResult && (
                 <InlineAlert
-                  tone={updateResult.maestro_updated ? 'success' : 'info'}
-                  title={t('maestroControl.updateResult')}
+                  tone={updateResult.maestro_updated ? "success" : "info"}
+                  title={t("maestroControl.updateResult")}
                 >
                   {updateResult.maestro_updated
-                    ? t('maestroControl.updateMaestroDone', {
+                    ? t("maestroControl.updateMaestroDone", {
                         version: updateResult.maestro_version,
                       })
-                    : t('maestroControl.updateMaestroSame', {
+                    : t("maestroControl.updateMaestroSame", {
                         version: updateResult.maestro_version,
-                      })}{' '}
-                  {t('maestroControl.nexusBinaryNote', { version: updateResult.nexus_version })}
+                      })}{" "}
+                  {t("maestroControl.nexusBinaryNote", {
+                    version: updateResult.nexus_version,
+                  })}
                 </InlineAlert>
               )}
               <div className={styles.btnGroup}>
-                <Button onClick={() => void checkUpdates()} disabled={checkingUpdates || updating}>
-                  <RefreshCw size={14} className={checkingUpdates ? 'nx-spin' : ''} />
-                  {checkingUpdates ? 'Verificando…' : 'Verificar Atualizações Agora'}
+                <Button
+                  onClick={() => void checkUpdates()}
+                  disabled={checkingUpdates || updating}
+                >
+                  <RefreshCw
+                    size={14}
+                    className={checkingUpdates ? "nx-spin" : ""}
+                  />
+                  {checkingUpdates
+                    ? "Verificando…"
+                    : "Verificar Atualizações Agora"}
                 </Button>
                 <Button tone="brand" onClick={handleUpdate} disabled={updating}>
-                  <RefreshCw size={14} className={updating ? 'nx-spin' : ''} />
-                  {updating ? t('settings.updating') : t('settings.update')}
+                  <RefreshCw size={14} className={updating ? "nx-spin" : ""} />
+                  {updating ? t("settings.updating") : t("settings.update")}
                 </Button>
               </div>
             </Card>
@@ -659,15 +739,15 @@ export const SettingsSurface: React.FC<{
         )}
 
         {/* Tab 4: Intelligence */}
-        {activeTab === 'intelligence' && (
+        {activeTab === "intelligence" && (
           <Card className={`nx-settings-card ${styles.gridFullWidth}`}>
             <div className="nx-settings-card__title">
               <Sparkles size={17} />
               <div>
                 <strong>Nexus Intelligence</strong>
                 <small>
-                  Planejamento semântico para Composer e Flow. O trabalho direto em terminais
-                  continua sem isso.
+                  Planejamento semântico para Composer e Flow. O trabalho direto
+                  em terminais continua sem isso.
                 </small>
               </div>
             </div>
@@ -675,15 +755,18 @@ export const SettingsSurface: React.FC<{
               ariaLabel="Intelligence mode"
               value={intelligenceDraft.mode}
               onChange={(value) =>
-                setIntelligenceDraft((prev) => ({ ...prev, mode: value as IntelligenceMode }))
+                setIntelligenceDraft((prev) => ({
+                  ...prev,
+                  mode: value as IntelligenceMode,
+                }))
               }
               options={[
-                { value: 'OFF', label: 'Off' },
-                { value: 'CLI', label: 'Coding CLI' },
-                { value: 'OPENAI_COMPATIBLE', label: 'API' },
+                { value: "OFF", label: "Off" },
+                { value: "CLI", label: "Coding CLI" },
+                { value: "OPENAI_COMPATIBLE", label: "API" },
               ]}
             />
-            {intelligenceDraft.mode === 'CLI' && (
+            {intelligenceDraft.mode === "CLI" && (
               <IntelligenceProviderCombo
                 accounts={cliResources}
                 provider={intelligenceDraft.provider}
@@ -699,35 +782,46 @@ export const SettingsSurface: React.FC<{
                 }
               />
             )}
-            {intelligenceDraft.mode === 'OPENAI_COMPATIBLE' && (
+            {intelligenceDraft.mode === "OPENAI_COMPATIBLE" && (
               <>
                 <Input
-                  value={intelligenceDraft.base_url || ''}
+                  value={intelligenceDraft.base_url || ""}
                   onChange={(value) =>
-                    setIntelligenceDraft((prev) => ({ ...prev, base_url: value }))
+                    setIntelligenceDraft((prev) => ({
+                      ...prev,
+                      base_url: value,
+                    }))
                   }
                   placeholder="Base URL (OpenAI-compatible)"
                 />
                 <Input
-                  value={intelligenceDraft.api_key_env || ''}
+                  value={intelligenceDraft.api_key_env || ""}
                   onChange={(value) =>
-                    setIntelligenceDraft((prev) => ({ ...prev, api_key_env: value }))
+                    setIntelligenceDraft((prev) => ({
+                      ...prev,
+                      api_key_env: value,
+                    }))
                   }
                   placeholder="Environment variable containing API key"
                 />
                 <Input
-                  value={intelligenceDraft.api_key_file || ''}
+                  value={intelligenceDraft.api_key_file || ""}
                   onChange={(value) =>
-                    setIntelligenceDraft((prev) => ({ ...prev, api_key_file: value }))
+                    setIntelligenceDraft((prev) => ({
+                      ...prev,
+                      api_key_file: value,
+                    }))
                   }
                   placeholder="Or secret file path"
                 />
               </>
             )}
-            {intelligenceDraft.mode !== 'OFF' && (
+            {intelligenceDraft.mode !== "OFF" && (
               <Input
-                value={intelligenceDraft.model || ''}
-                onChange={(value) => setIntelligenceDraft((prev) => ({ ...prev, model: value }))}
+                value={intelligenceDraft.model || ""}
+                onChange={(value) =>
+                  setIntelligenceDraft((prev) => ({ ...prev, model: value }))
+                }
                 placeholder="Modelo (sobrescrever o padrão)"
               />
             )}
@@ -735,27 +829,30 @@ export const SettingsSurface: React.FC<{
               <InlineAlert
                 tone={
                   intelligence.available
-                    ? 'success'
-                    : intelligence.mode === 'OFF'
-                      ? 'info'
-                      : 'warning'
+                    ? "success"
+                    : intelligence.mode === "OFF"
+                      ? "info"
+                      : "warning"
                 }
                 title={
                   intelligence.available
-                    ? 'Provedor de Intelligence pronto'
-                    : intelligence.mode === 'OFF'
-                      ? 'Intelligence desligada'
-                      : 'Provedor não pronto'
+                    ? "Provedor de Intelligence pronto"
+                    : intelligence.mode === "OFF"
+                      ? "Intelligence desligada"
+                      : "Provedor não pronto"
                 }
               >
                 {intelligence.error ||
-                  (intelligence.mode === 'OFF'
-                    ? 'Sessões diretas e WorkPlans manuais continuam funcionando.'
-                    : `${intelligence.provider || 'Provider'} ${intelligence.profile || ''}`)}
+                  (intelligence.mode === "OFF"
+                    ? "Sessões diretas e WorkPlans manuais continuam funcionando."
+                    : `${intelligence.provider || "Provider"} ${intelligence.profile || ""}`)}
               </InlineAlert>
             )}
             {intelligenceError && (
-              <InlineAlert tone="danger" title="Intelligence configuration error">
+              <InlineAlert
+                tone="danger"
+                title="Intelligence configuration error"
+              >
                 {intelligenceError}
               </InlineAlert>
             )}
@@ -765,7 +862,7 @@ export const SettingsSurface: React.FC<{
                 onClick={() => void saveIntelligence()}
                 disabled={intelligenceSaving}
               >
-                {intelligenceSaving ? 'Saving…' : 'Save Intelligence'}
+                {intelligenceSaving ? "Saving…" : "Save Intelligence"}
               </Button>
             </div>
             <IntelligenceMemoriesPanel />
@@ -773,48 +870,55 @@ export const SettingsSurface: React.FC<{
         )}
 
         {/* Tab 5: Notifications */}
-        {activeTab === 'notifications' && (
+        {activeTab === "notifications" && (
           <Card className={`nx-settings-card ${styles.gridFullWidth}`}>
             <div className="nx-settings-card__title">
               <Bell size={17} />
               <div>
-                <strong>{t('settings.notifications', 'Notificações')}</strong>
+                <strong>{t("settings.notifications", "Notificações")}</strong>
                 <small>
                   {t(
-                    'settings.notificationsDescription',
-                    'Avisos in-app e do navegador quando um agente pergunta ou conclui. Título e marcadores nas janelas continuam ativos.',
+                    "settings.notificationsDescription",
+                    "Avisos in-app e do navegador quando um agente pergunta ou conclui. Título e marcadores nas janelas continuam ativos.",
                   )}
                 </small>
               </div>
             </div>
             <Switch
               checked={notifyPrefs.notificationsEnabled}
-              onChange={(checked) => updateNotifyPrefs({ notificationsEnabled: checked })}
-              label={t('settings.notificationsToggle', 'Notificações no Navegador')}
+              onChange={(checked) =>
+                updateNotifyPrefs({ notificationsEnabled: checked })
+              }
+              label={t(
+                "settings.notificationsToggle",
+                "Notificações no Navegador",
+              )}
               description={t(
-                'settings.notificationsToggleDescription',
-                'Toasts e push do navegador (com a aba em segundo plano).',
+                "settings.notificationsToggleDescription",
+                "Toasts e push do navegador (com a aba em segundo plano).",
               )}
             />
             <Switch
               checked={notifyPrefs.soundEnabled}
-              onChange={(checked) => updateNotifyPrefs({ soundEnabled: checked })}
-              label={t('settings.soundToggle', 'Sons de Alerta')}
+              onChange={(checked) =>
+                updateNotifyPrefs({ soundEnabled: checked })
+              }
+              label={t("settings.soundToggle", "Sons de Alerta")}
               description={t(
-                'settings.soundToggleDescription',
-                'Beep curto ao receber atenção. Independente das notificações visuais.',
+                "settings.soundToggleDescription",
+                "Beep curto ao receber atenção. Independente das notificações visuais.",
               )}
             />
           </Card>
         )}
-        {activeTab === 'capacity' && (
+        {activeTab === "capacity" && (
           <>
             <CapacityMonitorSettings />
             <CostIntelligenceSettings />
           </>
         )}
-        {activeTab === 'hud' && <HudSettings />}
-        {activeTab === 'remote' && <RemoteAccessTab />}
+        {activeTab === "hud" && <HudSettings />}
+        {activeTab === "remote" && <RemoteAccessTab />}
       </div>
     </div>
   );

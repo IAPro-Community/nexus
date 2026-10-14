@@ -1,16 +1,20 @@
-import type { ProviderAccount } from '../types';
+import type { ProviderAccount } from "../types";
 
 const hardIneligibilityReasons = new Set([
-  'EXHAUSTED',
-  'RATE_LIMITED',
-  'AUTH_REQUIRED',
-  'UNAVAILABLE',
-  'NETWORK_ERROR',
-  'COOLDOWN',
-  'NOT_AUTHENTICATED',
+  "EXHAUSTED",
+  "RATE_LIMITED",
+  "AUTH_REQUIRED",
+  "UNAVAILABLE",
+  "NETWORK_ERROR",
+  "COOLDOWN",
+  "NOT_AUTHENTICATED",
 ]);
 
-const unavailableHealthStates = new Set(['auth_required', 'unavailable', 'unhealthy']);
+const unavailableHealthStates = new Set([
+  "auth_required",
+  "unavailable",
+  "unhealthy",
+]);
 
 /**
  * Mirrors the backend's explicit-selection policy for a manually chosen
@@ -20,19 +24,28 @@ const unavailableHealthStates = new Set(['auth_required', 'unavailable', 'unheal
  */
 export type ManualResourceCandidate = Pick<
   ProviderAccount,
-  'provider' | 'profile' | 'authenticated' | 'available'
+  "provider" | "profile" | "authenticated" | "available"
 > &
   Partial<
     Pick<
       ProviderAccount,
-      'health' | 'rate_limited' | 'network_error' | 'avail_reasons' | 'eligibility' | 'cooldown_until'
+      | "health"
+      | "rate_limited"
+      | "network_error"
+      | "avail_reasons"
+      | "eligibility"
+      | "cooldown_until"
     >
   >;
 
-export function canManuallySelectResourceAccount(account: ManualResourceCandidate): boolean {
+export function canManuallySelectResourceAccount(
+  account: ManualResourceCandidate,
+): boolean {
   const reason = account.eligibility?.reason?.toUpperCase();
-  const health = (account.health || '').trim().toLowerCase();
-  const cooldownUntil = account.cooldown_until ? Date.parse(account.cooldown_until) : NaN;
+  const health = (account.health || "").trim().toLowerCase();
+  const cooldownUntil = account.cooldown_until
+    ? Date.parse(account.cooldown_until)
+    : NaN;
 
   if (
     !account.provider.trim() ||
@@ -49,8 +62,8 @@ export function canManuallySelectResourceAccount(account: ManualResourceCandidat
     return false;
   }
 
-  if (reason === 'UNSUPPORTED_QUOTA') return true;
-  if (reason === 'UNKNOWN_QUOTA') return account.available;
+  if (reason === "UNSUPPORTED_QUOTA") return true;
+  if (reason === "UNKNOWN_QUOTA") return account.available;
 
   return account.available && account.eligibility?.eligible !== false;
 }

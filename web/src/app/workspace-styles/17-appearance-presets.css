@@ -68,7 +68,6 @@
   background: var(--nx-accent);
 }
 
-
 /* Nexus-inspired soft dark depth. The gradient is localized to surfaces and chrome,
    never to xterm cells, focus rings, syntax highlighting or operational badges. */
 :root[data-finish="subtle-gradient"] .nx-project-rail {
@@ -118,7 +117,8 @@
   box-shadow: 0 5px 18px rgb(0 0 0 / 0.2);
 }
 
-:root[data-finish="subtle-gradient"] .nx-desktop-window__titlebar[data-accented="true"],
+:root[data-finish="subtle-gradient"]
+  .nx-desktop-window__titlebar[data-accented="true"],
 :root[data-finish="subtle-gradient"]
   .nx-desktop-window[data-active="true"][data-accented="true"]
   .nx-desktop-window__titlebar,
@@ -159,15 +159,16 @@
   box-shadow: none;
 }
 
-
 /* Independent appearance controls: safe system font stacks and Lucide stroke weights.
    Defaults keep the existing Nexus typography and icon styles unchanged.
    Terminal canvas/font metrics remain controlled by xterm, not these selectors. */
 :root[data-font-family="system"] {
   --nx-font:
-    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
+    sans-serif;
   --nx-font-sans:
-    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
+    sans-serif;
 }
 
 :root[data-font-family="readable"] {
