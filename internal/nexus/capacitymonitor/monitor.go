@@ -139,6 +139,8 @@ func (m *Monitor) Tick(ctx context.Context) error {
 	if !held {
 		return nil
 	}
+	// Leader-only bounded retention. Failure here never suppresses canonical quota collection.
+	_, _ = m.deps.Store.PruneCapacityPaceSamples(now.Add(-72 * time.Hour))
 
 	workers := m.deps.MaxConcurrency
 	if workers <= 0 {
