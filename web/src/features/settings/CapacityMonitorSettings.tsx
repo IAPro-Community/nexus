@@ -245,6 +245,13 @@ export const CapacityMonitorSettings: React.FC = () => {
         />
       </section>
       <div className={styles.actions}>
+        <a
+          className={styles.exportLink}
+          href="/api/v1/capacity/pace.csv"
+          download="nexus-capacity-pace.csv"
+        >
+          {t('settings.capacityExportPace', 'Exportar histórico de consumo (CSV)')}
+        </a>
         <Button tone="brand" onClick={() => void save()} disabled={saving}>
           {saving
             ? t('settings.capacitySaving', 'Saving…')
