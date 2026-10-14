@@ -272,6 +272,10 @@ try {
     return response.json();
   }, { projectId: createProject.id, csrf: session.csrf_token });
 
+  // Refresh app state so the newly created synthetic project is present in the workspace route resolver.
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
+  await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
+
   const projectRoute = `/p/${encodeURIComponent(createProject.id)}/terminals/${encodeURIComponent(shell.runtime.runtime_id)}`;
   let resolveTerminalControl;
   const terminalControlReady = new Promise((resolve) => { resolveTerminalControl = resolve; });
@@ -292,6 +296,7 @@ try {
   });
   await page.goto(new URL(projectRoute, url).toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
   await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
+  await page.waitForSelector('.nx-project-shell-surface', { timeout: 15000 });
   await page.waitForFunction(() => {
     const body = document.body.textContent || '';
     return !/desconectado|disconnected|erro|error|recuperando|recovering/i.test(body);
