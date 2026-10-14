@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { nexus } from '../../nexus/api';
 import { hudV3 } from '../../platform';
+import type { CapacityResourceStatus } from '../../types';
 import {
   activeMission,
   formatHudCost,
@@ -145,6 +146,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [offline, setOffline] = useState(false);
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null);
+  const [paceWarning, setPaceWarning] = useState<CapacityResourceStatus | null>(null);
   const [alertActionPending, setAlertActionPending] = useState(false);
   const requestInFlight = useRef<Promise<void> | null>(null);
   const dragState = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
@@ -157,6 +159,16 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         setResponse(next);
         setOffline(false);
         setLastSuccessAt(Date.now());
+        // Capacity monitor remains the only collector. This is a read-only
+        // enrichment; a failed pace query must never mark the HUD offline.
+        void nexus.getCapacityStatus().then((capacity) => {
+          const rising = (capacity.resources || [])
+            .filter((item) => item.pace?.status === 'RISING' && item.pace?.exhausts_at)
+            .sort((a, b) =>
+              Date.parse(a.pace?.exhausts_at || '') - Date.parse(b.pace?.exhausts_at || ''),
+            );
+          setPaceWarning(rising[0] || null);
+        }).catch(() => setPaceWarning(null));
       })
       .catch(() => {
         setOffline(true);
@@ -511,6 +523,26 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   );
                 })()
               : null}
+
+            {prefs.showCapacity && paceWarning?.pace?.exhausts_at ? (
+              <section className={styles.primary} data-kind="CAPACITY">
+                <Gauge size={18} aria-hidden="true" />
+                <div className={styles.primaryText}>
+                  <strong>
+                    {t('hud.paceWarning', 'Possível esgotamento de quota')}
+                  </strong>
+                  <span>
+                    {!prefs.privacyMode ? `${paceWarning.provider} · ${paceWarning.profile} · ` : ''}
+                    {new Intl.DateTimeFormat(undefined, {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    }).format(new Date(paceWarning.pace.exhausts_at))}
+                    {' · '}
+                    {t('hud.paceEstimate', 'estimativa')}
+                  </span>
+                </div>
+              </section>
+            ) : null}
 
             {onOpenNexus || (native && nativeAutoStart?.supported) ? (
               <div className={styles.actionRow}>
