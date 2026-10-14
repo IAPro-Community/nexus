@@ -328,7 +328,17 @@ try {
   });
   const terminalLaunch = page.locator('.nx-project-create-actions button').filter({ hasText: /terminal/i }).first();
   await terminalLaunch.waitFor({ state: 'visible', timeout: 30000 });
+  const shellResponsePromise = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/shell'),
+    { timeout: 30000 },
+  );
   await terminalLaunch.click();
+  const shellResponse = await shellResponsePromise;
+  const shellPayload = await shellResponse.json().catch(() => null);
+  const shellRuntime = shellPayload?.runtime || {};
+  if (!shellResponse.ok() || !shellRuntime.runtime_id) {
+    throw new Error('project shell launch API failed; http=' + shellResponse.status());
+  }
   await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
   await page.waitForFunction(
     () => document.querySelector('.nx-project-shell-surface[data-runtime-id]'),
@@ -386,6 +396,11 @@ try {
           (terminalSocketDiagnostics.join(',') || 'none') +
           '; terminalUi=' + JSON.stringify(terminalUiState) +
           '; http=' + JSON.stringify(terminalHttpDiagnostics) +
+          '; shellLaunch=' + JSON.stringify({
+            http: shellResponse.status(),
+            state: shellRuntime.state || '',
+            hostPidPresent: Boolean(shellRuntime.host_pid || shellRuntime.pid),
+          }) +
           '; pageErrors=' + pageErrors.length,
       )), 12000);
     }),
