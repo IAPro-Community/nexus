@@ -273,8 +273,23 @@ try {
   }, { projectId: createProject.id, csrf: session.csrf_token });
 
   // Refresh app state so the newly created synthetic project is present in the workspace route resolver.
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
-  await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
+  const refreshResponse = await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
+  await page.waitForSelector('.nx-os-shell', { timeout: 15000 }).catch(async (error) => {
+    const state = await page.evaluate(() => ({
+      path: window.location.pathname,
+      title: document.title,
+      readyState: document.readyState,
+      rootShellCount: document.querySelectorAll('.nx-os-shell').length,
+      bodyLength: document.body?.innerText?.length || 0,
+    }));
+    throw new Error(
+      'workspace refresh did not mount the app; http=' +
+        (refreshResponse?.status() || 'none') +
+        '; state=' + JSON.stringify(state) +
+        '; pageErrors=' + pageErrors.length +
+        '; cause=' + error.message,
+    );
+  });
 
   const projectRoute = `/p/${encodeURIComponent(createProject.id)}/terminals/${encodeURIComponent(shell.runtime.runtime_id)}`;
   let resolveTerminalControl;
