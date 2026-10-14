@@ -16,6 +16,20 @@ Logs: [artifact 11861513083](https://github.com/IAPro-Community/nexus/actions/ru
 
 ## Integração à release
 
+### Ajustes Windows ainda ausentes na release
+
+A comparação de conteúdo entre a fonte candidata `bdc72325` e a ponta atual da release mostrou que estes ajustes ainda estão apenas na candidata:
+
+- ConPTY automático para Codex e AGY, com regressão de entrada de setas: `internal/control/terminal/terminal_windows.go` e `terminal_windows_test.go`.
+- Isolamento de identidade da instância e limpeza segura dos processos filhos WebView2 no smoke Desktop: `scripts/smoke-desktop-windows.ps1`.
+- Estados loading/offline/disabled do HUD nativo permanecem visíveis e localizados: `web/src/app/DesktopHudApp.tsx`, `web/src/features/hud/NexusHud.tsx`, `hudModel.ts`, testes e traduções.
+- Correções da leitura do instalador no PowerShell 5.1: BOM UTF-8 em `install.ps1`.
+- Estabilização/diagnóstico dos fluxos browser que falharam no runner Windows: scripts E2E do Composer e `scripts/docs-verify.mjs`.
+- Workflow dedicado que certifica SHA exato no runner Windows sem assinatura: `.github/workflows/windows-beta10-homologation.yml`.
+
+Esses arquivos ainda precisam de integração seletiva, revisão e nova execução Windows sobre o SHA resultante antes que a release herde o veredito PASS.
+
+
 Na consulta de 2026-10-14, `release/v1.0.0` aponta para `b2a74da2b434eb0dbfe925c383e6d7fc39e7dcc9`; a fonte homologada da candidata está em `bdc72325a9409c4b3da3dec94631325f0959ea92`. O GitHub compara os históricos como divergentes: candidata 171 commits à frente e 71 atrás da release. Não há PR aberto entre essa candidata e `release/v1.0.0`. Portanto o PASS Windows pertence ao candidato beta.10 e ainda não certifica código integrado na release; integração seletiva/revisão e repetição dos gates Windows no SHA integrado continuam obrigatórias.
 
 ## Diagnóstico do runner Windows
