@@ -10,7 +10,7 @@
   o registro final apague a geração usada pelo attach.
 - A instalação local reinicia apenas o `nexus web` associado ao binário
   instalado, evitando hosts Web em memória com executável `(deleted)`.
-- Checkout Windows atual: branch `fix/windows-beta10-homologation-20261008`, último HEAD remoto `2c8e9ef4`; gate local completo PASS no mesmo SHA, `VERSION=1.0.0-beta.10`, Go 1.27.2/Bun 1.3.9/Node 22.14.0. Evidências em `DEV/validation/local-beta/1.0.0-beta.10/2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322/windows-AMD64/`. Hosted run `38142174743` falhou no E2E de mount do shell após 10 s; espera ampliada com limite de 30 s e diagnóstico passou localmente, novo workflow usa o SHA do evento e aguarda confirmação hospedada. Release consultada em `9c1ddd1d`, com divergência e conflitos documentados no relatório. Smokes autenticados, clique físico tray, assinatura e integração permanecem pendentes; distribuição NO-GO; candidato beta.10, não beta.7; nenhum gate Linux.
+- Homologação automatizada Windows hosted PASS no SHA exato `bdc72325a9409c4b3da3dec94631325f0959ea92`, workflow run 38486183393 attempt 2; Go 1.27.2/Bun 1.3.9/Node 22.14.0. Candidate beta.10. Physical tray click, authenticated Provider/Mission/Voice, signing/trust root/installer and PR integration to release remain open; distribution/tag NO-GO. Evidence report: `DEV/validation/current/BETA10_WINDOWS_HOMOLOGATION_20261014.md`. No Linux gates were run.
 
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.

@@ -1,3 +1,9 @@
+## Homologação Windows hosted — 2026-10-14 — PASS no SHA `bdc72325a9409c4b3da3dec94631325f0959ea92`
+
+O workflow Windows AMD64 [run 38486183393, tentativa 2](https://github.com/IAPro-Community/nexus/actions/runs/38486183393) concluiu com sucesso no mesmo SHA de código `bdc72325a9409c4b3da3dec94631325f0959ea92` (Go 1.27.2, Bun 1.3.9, Node 22.14.0). Passaram a verificação documental (178 Markdown/33 assets), `quality:full` (84 arquivos/504 testes), go fmt/vet/golangci-lint (0 issues)/govulncheck/contrato de versão/`go test -count=1 ./...`, regressões, suítes E2E browser, Axe/visual e builds Windows CLI/Desktop/HUD. O primeiro attempt falhou por erro transitório de socket do browser; o segundo passou no mesmo SHA. Logs arquivados como [artifact 11861513083](https://github.com/IAPro-Community/nexus/actions/runs/38486183393/artifacts/11861513083). O workflow é unsigned e não executa assinatura.
+
+**Resultado:** homologação automatizada Windows do candidato beta.10: **PASS**. **Distribuição/tag: NO-GO** até concluir os itens manuais e autenticados registrados em `MANUAL_CHECKS.md`, comprovar a integração por PR em `release/v1.0.0` e resolver assinatura/trust root/instalador. Este resultado não valida o candidato histórico beta.7 nem autoriza publicação.
+
 ## Smoke UI de autostart Windows beta.10 — 2026-10-10
 
 Último gate oficial local PASS no SHA `2c8e9ef4a9b9eda8ca87a768ecdec2cd3ccf2322`; evidências e o novo resultado do browser E2E estão no relatório Windows corrente. O hosted run `38142174743` falhou no mount `.nx-os-shell` após 10 s; teste atualizado com limite de 30 s e diagnóstico passou localmente. Workflow agora valida o SHA do evento; hosted rerun, clique físico do tray, fluxos autenticados e assinatura/trust root continuam pendentes. Distribuição NO-GO.
@@ -320,3 +326,5 @@ ownership de projeto/agente quando disponível. O lifecycle/process state ainda
 ## Validação Windows Beta 7 — estado 2026-10-07
 
 Project Hub passou na regressão 775×483, e gates web/E2E e smokes Windows passaram no worktree 52f35c04-dirty. Certificação de release aberta: exact-SHA d14154d2 não é HEAD; worktree sujo; signing/update trust root ausentes; a auditoria viva de branches não encontrou ramo Beta 7 novo nem delta de correção/teste pendente para integrar. Ver DEV/validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md.
+
+Relatório consolidado do resultado hosted: [BETA10_WINDOWS_HOMOLOGATION_20261014.md](../validation/current/BETA10_WINDOWS_HOMOLOGATION_20261014.md).
