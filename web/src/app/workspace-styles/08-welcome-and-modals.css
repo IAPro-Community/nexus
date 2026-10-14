@@ -230,11 +230,7 @@
 }
 .nx-pm-item--active {
   border-color: var(--nx-accent);
-  background: color-mix(
-    in srgb,
-    var(--nx-accent-soft) 60%,
-    var(--nx-bg-elevated)
-  );
+  background: color-mix(in srgb, var(--nx-accent-soft) 60%, var(--nx-bg-elevated));
 }
 .nx-pm-item-header {
   display: flex;

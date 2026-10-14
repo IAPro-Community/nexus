@@ -147,8 +147,7 @@
   }
 }
 /* Laptop compact chrome must not apply to phones — touch needs the opposite. */
-@media (min-width: 821px) and (max-height: 820px),
-  (min-width: 821px) and (max-width: 1366px) {
+@media (min-width: 821px) and (max-height: 820px), (min-width: 821px) and (max-width: 1366px) {
   :root {
     --nx-topbar: 38px;
     --nx-taskbar: 26px;

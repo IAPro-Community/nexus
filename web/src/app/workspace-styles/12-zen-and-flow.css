@@ -645,9 +645,7 @@
   margin-bottom: 10px;
 }
 @media (max-width: 1080px) {
-  .nx-composer-flow-body[data-has-draft="true"]:has(
-      .nx-composer-flow-inspector-pane
-    ) {
+  .nx-composer-flow-body[data-has-draft="true"]:has(.nx-composer-flow-inspector-pane) {
     grid-template-columns: minmax(0, 1fr);
   }
   .nx-flow-canvas {
