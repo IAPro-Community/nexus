@@ -46,8 +46,7 @@ if (process.platform !== 'win32') {
   serverEnv.PROMPT_COMMAND = '';
 } else {
   serverEnv.PROMPT = 'nexus-demo$G';
-  delete serverEnv.COMSPEC;
-  delete serverEnv.ComSpec;
+  serverEnv.ComSpec = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'cmd.exe');
 }
 
 const server = spawn(
