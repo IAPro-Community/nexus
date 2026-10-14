@@ -108,6 +108,7 @@ describe('theme model', () => {
     expect(
       normalizeThemePreferences({
         ...defaultThemePreferences,
+        ...defaultThemePreferences,
         preset: 'nord',
         scheme: 'light',
         isCustomized: true,
@@ -279,6 +280,7 @@ describe('resolveThemeStyleVariables', () => {
   it('aplica variáveis nativas do preset quando isCustomized é false', () => {
     const vars = resolveThemeStyleVariables(
       {
+        ...defaultThemePreferences,
         preset: 'nord',
         scheme: 'dark',
         accent: 'blue',
