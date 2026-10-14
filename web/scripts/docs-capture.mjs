@@ -634,7 +634,34 @@ try {
     await page.keyboard.press('Escape');
   }
   await openProjectSurface('terminals', shellRuntime.runtime_id);
-  await page.waitForSelector('.nx-project-shell-surface .xterm-rows', { timeout: 15000 });
+  await page.waitForSelector('.nx-project-shell-surface .xterm-rows', { timeout: 15000 }).catch(
+    async (error) => {
+      const reconnectState = await page.evaluate(() => ({
+        path: window.location.pathname,
+        appShell: Boolean(document.querySelector('.nx-os-shell')),
+        projectShellSurfaces: [...document.querySelectorAll('.nx-project-shell-surface')].map(
+          (surface) => ({
+            runtimeId: surface.getAttribute('data-runtime-id') || '',
+            terminal: Boolean(surface.querySelector('.xterm')),
+            rows: Boolean(surface.querySelector('.xterm-rows')),
+          }),
+        ),
+        visibleAlerts: [...document.querySelectorAll('[role="alert"]')].map(
+          (alert) => alert.textContent?.trim() || '',
+        ),
+      }));
+      throw new Error(
+        'project shell terminal did not reconnect; browser=' + JSON.stringify(reconnectState) +
+          '; http=' + JSON.stringify(terminalHttpDiagnostics) +
+          '; backendStages=' + JSON.stringify(backendStages()) +
+          '; backendDiagnostics=' + JSON.stringify(backendDiagnostics()) +
+          '; websocket=' + (terminalSocketDiagnostics.join(',') || 'none') +
+          '; websocketHandshake=' + JSON.stringify(websocketHandshakeDiagnostics) +
+          '; pageErrors=' + JSON.stringify(pageErrors) +
+          '; cause=' + error.message,
+      );
+    },
+  );
   await capture('VIS-005', 'terminal.png', 'web/terminal', {
     terminal_evidence: { platform: process.platform, transport: 'project-shell', marker, verified: true },
   });
