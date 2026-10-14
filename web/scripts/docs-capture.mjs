@@ -288,9 +288,21 @@ try {
   const terminalControlReady = new Promise((resolve) => { resolveTerminalControl = resolve; });
   const terminalSocketDiagnostics = [];
   const terminalHttpDiagnostics = [];
+  const shellLaunchDiagnostics = [];
   page.on('response', (response) => {
     const pathname = new URL(response.url()).pathname.toLowerCase();
     if (pathname.includes('terminal')) terminalHttpDiagnostics.push('http:' + response.status());
+    if (pathname.endsWith('/shell')) shellLaunchDiagnostics.push('response:' + response.status());
+  });
+  page.on('request', (request) => {
+    const pathname = new URL(request.url()).pathname.toLowerCase();
+    if (pathname.endsWith('/shell')) shellLaunchDiagnostics.push('request:' + request.method());
+  });
+  page.on('requestfailed', (request) => {
+    const pathname = new URL(request.url()).pathname.toLowerCase();
+    if (pathname.endsWith('/shell')) shellLaunchDiagnostics.push(
+      'request-failed:' + (request.failure()?.errorText || 'unknown'),
+    );
   });
   page.on('requestfailed', (request) => {
     const pathname = new URL(request.url()).pathname.toLowerCase();
@@ -333,7 +345,26 @@ try {
     { timeout: 30000 },
   );
   await terminalLaunch.click();
-  const shellResponse = await shellResponsePromise;
+  let shellResponse;
+  try {
+    shellResponse = await shellResponsePromise;
+  } catch (error) {
+    const launchState = await page.evaluate(() => {
+      const button = document.querySelector('[data-testid="overview-terminal-btn"]');
+      return {
+        path: window.location.pathname,
+        buttonPresent: Boolean(button),
+        buttonDisabled: button instanceof HTMLButtonElement ? button.disabled : null,
+        projectShellSurfaces: document.querySelectorAll('.nx-project-shell-surface').length,
+        dialogs: document.querySelectorAll('[role="dialog"]').length,
+      };
+    });
+    throw new Error(
+      'project shell launch response timed out; diagnostics=' +
+        JSON.stringify({ shellLaunch: shellLaunchDiagnostics, launchState, pageErrorCount: pageErrors.length }) +
+        '; cause=' + error.message,
+    );
+  }
   const shellPayload = await shellResponse.json().catch(() => null);
   const shellRuntime = shellPayload?.runtime || {};
   if (!shellResponse.ok() || !shellRuntime.runtime_id) {
