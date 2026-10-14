@@ -92,7 +92,7 @@ jobs:
 
       - name: Install Playwright Chromium for visual evidence
         shell: pwsh
-        run: bun x playwright install chromium
+        run: bun run --cwd web playwright install chromium
 
       - name: Capture visual evidence for this integrated source SHA
         shell: pwsh
