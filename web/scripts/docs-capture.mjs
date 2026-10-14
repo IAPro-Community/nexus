@@ -305,13 +305,21 @@ try {
     terminalSocketDiagnostics.push(socketPath.includes('terminal') ? 'opened:terminal' : 'opened:other');
     socket.on('close', (code) => terminalSocketDiagnostics.push('closed:' + code));
     socket.on('socketerror', () => terminalSocketDiagnostics.push('socket-error'));
+    socket.on('framesent', ({ payload }) => {
+      try {
+        const frame = JSON.parse(String(payload));
+        terminalSocketDiagnostics.push('sent:' + String(frame.type || 'unknown'));
+      } catch {
+        terminalSocketDiagnostics.push('sent:non-json');
+      }
+    });
     socket.on('framereceived', ({ payload }) => {
       try {
         const frame = JSON.parse(String(payload));
-        terminalSocketDiagnostics.push('frame:' + String(frame.type || 'unknown') + ':' + String(frame.role || ''));
+        terminalSocketDiagnostics.push('received:' + String(frame.type || 'unknown') + ':' + String(frame.role || ''));
         if (frame.type === 'lease' && frame.role === 'CONTROL') resolveTerminalControl();
       } catch {
-        terminalSocketDiagnostics.push('frame:non-json');
+        terminalSocketDiagnostics.push('received:non-json');
       }
     });
   });
@@ -354,7 +362,7 @@ try {
           (terminalSocketDiagnostics.join(',') || 'none') +
           '; terminalUi=' + JSON.stringify(terminalUiState) +
           '; pageErrors=' + pageErrors.length,
-      )), 5000);
+      )), 8000);
     }),
   ]).finally(() => clearTimeout(leaseTimer));
 
