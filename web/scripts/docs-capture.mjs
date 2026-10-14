@@ -310,7 +310,7 @@ try {
       }
     });
   });
-  const terminalLaunch = page.getByRole('button', { name: /abrir terminal|open terminal|anexar terminal|project shell/i }).first();
+  const terminalLaunch = page.getByRole('button', { name: /open terminal|abrir terminal|attach terminal|anexar terminal|project terminal|terminal do projeto|terminal/i }).first();
   if (!(await terminalLaunch.count()) || !(await terminalLaunch.isVisible().catch(() => false))) {
     throw new Error('project overview did not expose a visible terminal launch button');
   }
