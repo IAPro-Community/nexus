@@ -274,24 +274,34 @@ try {
 
   // Refresh app state so the newly created synthetic project is present in the workspace route resolver.
   const refreshResponse = await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
-  await page.waitForSelector('.nx-os-shell', { timeout: 15000 }).catch(async (error) => {
+  await page.waitForFunction(
+    (name) => (document.body.textContent || '').includes(name),
+    'Nexus Demo Workspace',
+    { timeout: 15000 },
+  ).catch(async (error) => {
     const state = await page.evaluate(() => ({
       path: window.location.pathname,
       title: document.title,
       readyState: document.readyState,
-      rootShellCount: document.querySelectorAll('.nx-os-shell').length,
+      projectCount: document.querySelectorAll('[data-project-id]').length,
       bodyLength: document.body?.innerText?.length || 0,
     }));
     throw new Error(
-      'workspace refresh did not mount the app; http=' +
+      'synthetic project did not appear after refresh; http=' +
         (refreshResponse?.status() || 'none') +
         '; state=' + JSON.stringify(state) +
         '; pageErrors=' + pageErrors.length +
         '; cause=' + error.message,
     );
   });
+  await page.goto(
+    new URL('/p/' + encodeURIComponent(createProject.id) + '/overview', url).toString(),
+    { waitUntil: 'domcontentloaded', timeout: 20000 },
+  );
+  await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
+  const projectRoute = '/p/' + encodeURIComponent(createProject.id) +
+    '/terminals/' + encodeURIComponent(shell.runtime.runtime_id);
 
-  const projectRoute = `/p/${encodeURIComponent(createProject.id)}/terminals/${encodeURIComponent(shell.runtime.runtime_id)}`;
   let resolveTerminalControl;
   const terminalControlReady = new Promise((resolve) => { resolveTerminalControl = resolve; });
   const terminalSocketDiagnostics = [];
