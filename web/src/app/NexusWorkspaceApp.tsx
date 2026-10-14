@@ -511,9 +511,21 @@ const WorkspaceCoordinator: React.FC<{
 
       if (parsedRoute.kind === 'project' && parsedRoute.projectId === project.id) {
         const targetSurface = routeToWorkspaceSurface(parsedRoute, { agents: data.agents });
-        if (targetSurface && routeChanged) {
-          lastSyncedRouteRef.current = routeKey;
-          workspace.open(targetSurface);
+        if (targetSurface) {
+          if (routeChanged) lastSyncedRouteRef.current = routeKey;
+          const existing = listSurfaces(workspace.model.root).find((surface) =>
+            isSurfaceMatch(surface, targetSurface.id),
+          );
+          if (!existing) {
+            workspace.open(targetSurface);
+          } else {
+            const targetStack = listStacks(workspace.model.root).find((stack) =>
+              stack.tabs.some((surface) => surface.id === existing.id),
+            );
+            if (targetStack && targetStack.activeId !== existing.id) {
+              workspace.activate(existing.id);
+            }
+          }
         }
       } else if (parsedRoute.kind === 'global') {
         const projectSurfaceKind = globalSurfaceToProjectSurface(parsedRoute.surface);
