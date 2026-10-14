@@ -100,7 +100,7 @@ func (h *NexusHandler) handleCapacityPaceCSV(w http.ResponseWriter, r *http.Requ
 	_ = csvWriter.Write([]string{"provider", "profile", "quota_group", "window", "reset_at", "observed_at", "used_percent", "source"})
 	safe := func(raw string) string {
 		// Defuse CSV formula injection when profiles have user-editable names.
-		head := strings.TrimLeft(raw, " \\t\\r\\n")
+		head := strings.TrimLeft(raw, " \t\r\n")
 		if head != "" && strings.ContainsAny(head[:1], "=+-@") {
 			return "'" + raw
 		}
