@@ -274,32 +274,21 @@ try {
 
   // Refresh app state so the newly created synthetic project is present in the workspace route resolver.
   const refreshResponse = await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
-  await page.waitForFunction(
-    (name) => (document.body.textContent || '').includes(name),
-    'Nexus Demo Workspace',
-    { timeout: 15000 },
-  ).catch(async (error) => {
-    const state = await page.evaluate(async () => {
-      const response = await fetch('/api/v1/projects', { headers: { Accept: 'application/json' } });
-      const payload = await response.json().catch(() => null);
-      const projects = Array.isArray(payload) ? payload : payload?.projects || [];
-      return {
-        path: window.location.pathname,
-        title: document.title,
-        readyState: document.readyState,
-        projectCount: projects.length,
-        hasSyntheticProject: projects.some((project) => project.name === 'Nexus Demo Workspace'),
-        bodyLength: document.body?.innerText?.length || 0,
-      };
-    });
-    throw new Error(
-      'synthetic project did not appear after refresh; http=' +
-        (refreshResponse?.status() || 'none') +
-        '; state=' + JSON.stringify(state) +
-        '; pageErrors=' + pageErrors.length +
-        '; cause=' + error.message,
-    );
+  const refreshedProjects = await page.evaluate(async () => {
+    const response = await fetch('/api/v1/projects', { headers: { Accept: 'application/json' } });
+    const payload = await response.json().catch(() => null);
+    return {
+      status: response.status,
+      projects: Array.isArray(payload) ? payload : payload?.projects || [],
+    };
   });
+  if (refreshedProjects.status !== 200 || !refreshedProjects.projects.some((project) =>
+    project.name === 'Nexus Demo Workspace' && project.id === createProject.id)) {
+    throw new Error(
+      'synthetic project was not persisted after refresh; status=' +
+        refreshedProjects.status + '; count=' + refreshedProjects.projects.length,
+    );
+  }
   await page.goto(
     new URL('/p/' + encodeURIComponent(createProject.id) + '/overview', url).toString(),
     { waitUntil: 'domcontentloaded', timeout: 20000 },
