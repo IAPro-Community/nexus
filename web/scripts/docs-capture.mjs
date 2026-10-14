@@ -286,7 +286,6 @@ try {
   });
   await page.goto(new URL(projectRoute, url).toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
   await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
-  await page.waitForSelector('.nx-project-shell-surface .xterm-helper-textarea', { timeout: 15000 });
   await page.waitForFunction(() => {
     const body = document.body.textContent || '';
     return !/desconectado|disconnected|erro|error|recuperando|recovering/i.test(body);
@@ -300,10 +299,9 @@ try {
   ]).finally(() => clearTimeout(leaseTimer));
 
   const marker = '__NEXUS_DOCS_TERMINAL_OK__';
-  const terminalInput = page.locator('.nx-project-shell-surface .xterm-helper-textarea');
   await page.locator('.nx-project-shell-surface .xterm').click();
-  await terminalInput.pressSequentially(`echo ${marker}`);
-  await terminalInput.press('Enter');
+  await page.keyboard.type(`echo ${marker}`);
+  await page.keyboard.press('Enter');
   await page.waitForFunction((expected) => {
     const terminal = document.querySelector('.nx-project-shell-surface .xterm-rows');
     return terminal?.textContent?.includes(expected) === true;
