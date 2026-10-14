@@ -60,6 +60,12 @@ const server = spawn(
   },
 );
 let output = '';
+const backendStages = () => output.split(/\r?\n/)
+  .map((line) =>
+    line.match(/nexus_docs_capture_(?:terminal|project_shell|launcher_shell)_stage=([a-z-]+)/)?.[1],
+  )
+  .filter(Boolean)
+  .slice(-32);
 const bootstrap = new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error(`bootstrap timeout\n${output}`)), 15000);
   const onData = (chunk) => {
@@ -368,6 +374,7 @@ try {
             process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.ALL_PROXY ||
               process.env.http_proxy || process.env.https_proxy || process.env.all_proxy,
           ),
+          backendStages: backendStages(),
           pageErrorCount: pageErrors.length,
         }) +
         '; cause=' + error.message,
@@ -440,12 +447,6 @@ try {
       rows: Boolean(surface?.querySelector('.xterm-rows')),
     };
   });
-  const backendStages = () => output.split(/\r?\n/)
-    .map((line) =>
-      line.match(/nexus_docs_capture_(?:terminal|project_shell|launcher_shell)_stage=([a-z-]+)/)?.[1],
-    )
-    .filter(Boolean)
-    .slice(-32);
   let leaseTimer;
   await Promise.race([
     terminalControlReady,
