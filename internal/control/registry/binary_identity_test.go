@@ -43,6 +43,13 @@ func TestValidateHostBinaryIdentitySamePathUsesCurrentFingerprint(t *testing.T) 
 	if err := validateHostBinaryIdentity(path, fingerprint, path, "different"); err == nil || !strings.Contains(err.Error(), "changed") {
 		t.Fatalf("expected changed same-path host identity to be rejected, got %v", err)
 	}
+	otherPath := filepath.Join(t.TempDir(), "nexus")
+	if err := os.WriteFile(otherPath, []byte("nexus-binary"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateHostBinaryIdentity(path, fingerprint, otherPath, fingerprint); err == nil || !strings.Contains(err.Error(), "older or different") {
+		t.Fatalf("expected different host path to be rejected, got %v", err)
+	}
 }
 
 func TestValidateAttachCompatibilityRejectsLegacyIdentity(t *testing.T) {

@@ -82,20 +82,17 @@ func ValidateBinaryIdentity(path, fingerprint string) error {
 // Nexus binary. When both paths are the same, currentFingerprint already proves
 // the on-disk identity, so avoid reading a large executable twice per attach.
 func validateHostBinaryIdentity(currentPath, currentFingerprint, hostPath, hostFingerprint string) error {
-	if sameExecutablePath(currentPath, hostPath) {
-		if strings.TrimSpace(hostFingerprint) == "" {
-			return errors.New("binary identity is missing")
+	if !sameExecutablePath(currentPath, hostPath) {
+		if err := ValidateBinaryIdentity(hostPath, hostFingerprint); err != nil {
+			return fmt.Errorf("runtime host binary is incompatible: %w", err)
 		}
-		if !strings.EqualFold(currentFingerprint, strings.TrimSpace(hostFingerprint)) {
-			return fmt.Errorf("binary %q changed since the runtime was created", hostPath)
-		}
-		return nil
+		return errors.New("runtime host uses an older or different Nexus binary")
 	}
-	if err := ValidateBinaryIdentity(hostPath, hostFingerprint); err != nil {
-		return fmt.Errorf("runtime host binary is incompatible: %w", err)
+	if strings.TrimSpace(hostFingerprint) == "" {
+		return errors.New("binary identity is missing")
 	}
 	if !strings.EqualFold(currentFingerprint, strings.TrimSpace(hostFingerprint)) {
-		return errors.New("runtime host uses an older or different Nexus binary")
+		return fmt.Errorf("binary %q changed since the runtime was created", hostPath)
 	}
 	return nil
 }
