@@ -463,7 +463,7 @@ try {
           }) +
           '; backendStages=' + JSON.stringify(backendStages()) +
           '; pageErrors=' + pageErrors.length,
-      )), 12000);
+      )), 35000);
     }),
   ]).finally(() => clearTimeout(leaseTimer));
 
