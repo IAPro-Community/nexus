@@ -530,7 +530,10 @@ try {
     renameSync(videoPath, path.join(demoDir, 'direct-workflow.webm'));
   }
 } finally {
-  await stop();
+  await stop().catch((error) => {
+    console.warn('documentation fixture cleanup failed:', error?.message || error);
+    process.exitCode = process.exitCode || 1;
+  });
 }
 const manifestFile = path.join(outputDir, 'manifest.json');
 let previousCaptures = [];
