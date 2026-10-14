@@ -67,3 +67,40 @@ func PredictPace(samples []store.CapacityPaceSample, now time.Time) *PaceForecas
 	}
 	return forecast
 }
+
+ 
+// ForecastForObservation selects exactly the reset cycle and account that
+// produced the currently displayed LIVE observation. Older identities and
+// older cycles can never appear as a current projection.
+func ForecastForObservation(all []store.CapacityPaceSample, current store.ObservationRecord, now time.Time) *PaceForecast {
+	if current.AccountScope == "" || current.Status != "LIVE" ||
+		current.FetchedAt.IsZero() || current.FetchedAt.After(now.Add(time.Minute)) ||
+		now.Sub(current.FetchedAt) > 10*time.Minute {
+		return nil
+	}
+	var cycle time.Time
+	var latest time.Time
+	for _, v := range all {
+		if v.Provider != current.Provider || v.Profile != current.Profile ||
+			v.AccountScope != current.AccountScope || v.QuotaGroup != current.QuotaGroup ||
+			v.WindowKind != current.WindowKind || !v.ResetAt.After(now) {
+			continue
+		}
+		if v.ObservedAt.After(latest) &&
+			!v.ObservedAt.Before(current.FetchedAt.Add(-10*time.Minute)) &&
+			!v.ObservedAt.After(current.FetchedAt.Add(time.Minute)) {
+			latest = v.ObservedAt
+			cycle = v.ResetAt
+		}
+	}
+	if cycle.IsZero() { return nil }
+	selected := make([]store.CapacityPaceSample, 0, 16)
+	for _, v := range all {
+		if v.Provider == current.Provider && v.Profile == current.Profile &&
+			v.AccountScope == current.AccountScope && v.QuotaGroup == current.QuotaGroup &&
+			v.WindowKind == current.WindowKind && v.ResetAt.Equal(cycle) {
+			selected = append(selected, v)
+		}
+	}
+	return PredictPace(selected, now)
+}
