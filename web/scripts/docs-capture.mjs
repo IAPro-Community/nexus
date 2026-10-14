@@ -656,6 +656,13 @@ try {
             rows: Boolean(surface.querySelector('.xterm-rows')),
           }),
         ),
+        activeTabs: [...document.querySelectorAll('[role="tab"][aria-selected="true"]')].map(
+          (tab) => tab.getAttribute('aria-label') || tab.textContent?.trim() || '',
+        ),
+        workspacePanels: [...document.querySelectorAll('.nx-workspace-panel')].map((panel) => ({
+          active: panel.dataset.active || '',
+          hidden: panel.getAttribute('aria-hidden') || '',
+        })),
         visibleAlerts: [...document.querySelectorAll('[role="alert"]')].map(
           (alert) => alert.textContent?.trim() || '',
         ),
