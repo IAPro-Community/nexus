@@ -312,7 +312,10 @@ try {
     new URL('/p/' + encodeURIComponent(createProject.id) + '/overview', url).toString(),
     { waitUntil: 'domcontentloaded', timeout: 20000 },
   );
-  await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
+  await page.waitForFunction(
+    () => document.querySelector('.nx-os-shell')?.isConnected === true,
+    { timeout: 30000 },
+  );
   let resolveTerminalControl;
   const terminalControlReady = new Promise((resolve) => { resolveTerminalControl = resolve; });
   const terminalSocketDiagnostics = [];
@@ -409,7 +412,10 @@ try {
   if (!shellResponse.ok() || !shellRuntime.runtime_id) {
     throw new Error('project shell launch API failed; http=' + shellResponse.status());
   }
-  await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
+  await page.waitForFunction(
+    () => document.querySelector('.nx-os-shell')?.isConnected === true,
+    { timeout: 30000 },
+  );
   await page.waitForFunction(
     () => document.querySelector('.nx-project-shell-surface[data-runtime-id]'),
     { timeout: 30000 },
@@ -620,7 +626,10 @@ try {
   const openProjectSurface = async (surface, subId = '') => {
     const route = `/p/${encodeURIComponent(createProject.id)}/${surface}${subId ? `/${encodeURIComponent(subId)}` : ''}`;
     await page.goto(new URL(route, url).toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
-    await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
+    await page.waitForFunction(
+    () => document.querySelector('.nx-os-shell')?.isConnected === true,
+    { timeout: 30000 },
+  );
     await page.waitForTimeout(500);
   };
   await openProjectSurface('overview');
@@ -686,7 +695,10 @@ try {
   if (projectMatch) {
     const providersUrl = new URL(`/p/${projectMatch[1]}/legacy-providers`, url);
     await page.goto(providersUrl.toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
-    await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
+    await page.waitForFunction(
+    () => document.querySelector('.nx-os-shell')?.isConnected === true,
+    { timeout: 30000 },
+  );
     await capture('VIS-004', 'provider.png', 'web/provider');
   }
   if (!captures.some((c) => c.id === 'VIS-009')) {
