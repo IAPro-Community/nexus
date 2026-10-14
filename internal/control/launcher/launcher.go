@@ -3,6 +3,7 @@ package launcher
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -60,8 +61,18 @@ func NewLauncher() *Launcher {
 	}
 }
 
+func traceCaptureShellLaunchStage(stage string) {
+	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+		slog.Info("nexus_docs_capture_launcher_shell_stage=" + stage)
+	}
+}
+
 // Launch allocates, starts, and verifies a supervised runtime.
 func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.RuntimeSession, error) {
+	captureShell := strings.EqualFold(opts.ProviderID, "shell")
+	if captureShell {
+		traceCaptureShellLaunchStage("start")
+	}
 	if opts.RuntimeID == "" {
 		opts.RuntimeID = fmt.Sprintf("%s-%s", opts.ProviderID, ids.NewRuntimeID())
 	}
@@ -76,6 +87,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		opts.Timeout = 10 * time.Second
 	}
 	cleanupOrphanLaunchEnvelopes(10 * time.Minute)
+	if captureShell {
+		traceCaptureShellLaunchStage("orphan-cleanup-done")
+	}
 
 	d, err := l.drivers.Get(opts.ProviderID)
 	if err != nil {
@@ -146,6 +160,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		}
 		env = launchenv.Merge(env, opts.Environment, opts.PathPrepend)
 	}
+	if captureShell {
+		traceCaptureShellLaunchStage("command-built")
+	}
 	if opts.Workspace != "" && !customCommand {
 		info, statErr := os.Stat(opts.Workspace)
 		if statErr != nil {
@@ -162,6 +179,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	}
 	bin = resolved.LauncherPath
 	extraArgs = append(append([]string(nil), resolved.PrefixArgs...), extraArgs...)
+	if captureShell {
+		traceCaptureShellLaunchStage("command-resolved")
+	}
 
 	title := opts.Title
 	if strings.TrimSpace(title) == "" {
@@ -221,6 +241,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 
 	if err := l.reg.Register(sess); err != nil {
 		return nil, fmt.Errorf("failed to register runtime session: %w", err)
+	}
+	if captureShell {
+		traceCaptureShellLaunchStage("session-registered")
 	}
 	var supervisedHost *host.SessionHost
 	var detachedProcess *os.Process
@@ -282,11 +305,17 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		}
 		sess.HostPID = detachedProcess.Pid
 		_ = l.reg.Register(sess)
+		if captureShell {
+			traceCaptureShellLaunchStage("host-spawned")
+		}
 	}
 
 	// Handshake: wait for IPC endpoint to be active and responsive.
 	// Detached hosts that fail during Start (e.g. Codex TUI lease busy) exit
 	// immediately; fail fast from the host log instead of waiting the full timeout.
+	if captureShell {
+		traceCaptureShellLaunchStage("handshake-start")
+	}
 	if err := waitForRuntimeHandshake(ctx, opts.RuntimeID, detachedProcess, opts.Timeout); err != nil {
 		fault := registry.StartupFaultIPCTimeout
 		if isEarlyHostExit(err) {
@@ -297,6 +326,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		return nil, fmt.Errorf("runtime handshake failed for %s: %w", opts.RuntimeID, err)
 	}
 
+	if captureShell {
+		traceCaptureShellLaunchStage("handshake-ready")
+	}
 	// Verify handshake with status probe
 	client, err := protocol.NewClient(opts.RuntimeID)
 	if err != nil {
@@ -335,6 +367,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	}
 	sess.State = registry.StateRunning
 	_ = l.reg.Register(sess)
+	if captureShell {
+		traceCaptureShellLaunchStage("status-ready")
+	}
 
 	return &sess, nil
 }
