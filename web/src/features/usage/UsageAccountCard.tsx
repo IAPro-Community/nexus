@@ -365,6 +365,21 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
               ) : null}
             </p>
           ) : null}
+          {monitorState?.pace?.status === 'RISING' && monitorState.pace.exhausts_at ? (
+            <p className={styles.stateLine} data-state="warning">
+              <Clock size={12} aria-hidden="true" />
+              <span>
+                {t('usage.paceForecast', {
+                  defaultValue: 'Projeção de esgotamento: {{time}} · confiança {{confidence}}',
+                  time: new Intl.DateTimeFormat(i18n.language, {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  }).format(new Date(monitorState.pace.exhausts_at)),
+                  confidence: monitorState.pace.confidence,
+                })}
+              </span>
+            </p>
+          ) : null}
           {groups.length > 0 ? (
             groups.map((group, index) => {
               const groupLabelKey = displayLabelKey(group.name, group.key);
