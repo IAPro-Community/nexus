@@ -287,10 +287,21 @@ try {
   let resolveTerminalControl;
   const terminalControlReady = new Promise((resolve) => { resolveTerminalControl = resolve; });
   const terminalSocketDiagnostics = [];
+  const terminalHttpDiagnostics = [];
+  page.on('response', (response) => {
+    const pathname = new URL(response.url()).pathname.toLowerCase();
+    if (pathname.includes('terminal')) terminalHttpDiagnostics.push('http:' + response.status());
+  });
+  page.on('requestfailed', (request) => {
+    const pathname = new URL(request.url()).pathname.toLowerCase();
+    if (pathname.includes('terminal')) {
+      terminalHttpDiagnostics.push('request-failed:' + (request.failure()?.errorText || 'unknown'));
+    }
+  });
   page.on('websocket', (socket) => {
     const socketPath = new URL(socket.url()).pathname.toLowerCase();
     terminalSocketDiagnostics.push(socketPath.includes('terminal') ? 'created:terminal' : 'created:other');
-    socket.on('close', (code) => terminalSocketDiagnostics.push('closed:' + code));
+    socket.on('close', () => terminalSocketDiagnostics.push('closed'));
     socket.on('socketerror', () => terminalSocketDiagnostics.push('socket-error'));
     socket.on('framesent', ({ payload }) => {
       try {
@@ -371,6 +382,7 @@ try {
         'project shell writer lease was not ready; websocket=' +
           (terminalSocketDiagnostics.join(',') || 'none') +
           '; terminalUi=' + JSON.stringify(terminalUiState) +
+          '; http=' + JSON.stringify(terminalHttpDiagnostics) +
           '; pageErrors=' + pageErrors.length,
       )), 12000);
     }),
