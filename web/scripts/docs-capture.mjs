@@ -436,9 +436,11 @@ try {
     };
   });
   const backendStages = () => output.split(/\r?\n/)
-    .map((line) => line.match(/nexus_docs_capture_terminal_stage=([a-z-]+)/)?.[1])
+    .map((line) =>
+      line.match(/nexus_docs_capture_(?:terminal|project_shell|launcher_shell)_stage=([a-z-]+)/)?.[1],
+    )
     .filter(Boolean)
-    .slice(-24);
+    .slice(-32);
   let leaseTimer;
   await Promise.race([
     terminalControlReady,
