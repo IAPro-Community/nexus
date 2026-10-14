@@ -100,6 +100,9 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
 		traceDocsCaptureTerminalStage("pipe-dial-failed")
+		if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+			log.Printf("nexus_docs_capture_diagnostic=pipe_dial_error %s", err.Error())
+		}
 		writeError(w, http.StatusNotFound, "runtime host is not running ("+err.Error()+")")
 		return
 	}

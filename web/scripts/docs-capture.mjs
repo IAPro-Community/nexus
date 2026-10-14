@@ -66,6 +66,10 @@ const backendStages = () => output.split(/\r?\n/)
   )
   .filter(Boolean)
   .slice(-32);
+const backendDiagnostics = () => output.split(/\r?\n/)
+  .filter((line) => line.includes('nexus_docs_capture_diagnostic='))
+  .map((line) => line.slice(line.indexOf('nexus_docs_capture_diagnostic=') + 30).slice(0, 500))
+  .slice(-8);
 const bootstrap = new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error(`bootstrap timeout\n${output}`)), 15000);
   const onData = (chunk) => {
@@ -493,6 +497,7 @@ try {
           '; browser=' + JSON.stringify(browserState) +
           '; http=' + JSON.stringify(terminalHttpDiagnostics) +
           '; backendStages=' + JSON.stringify(backendStages()) +
+          '; backendDiagnostics=' + JSON.stringify(backendDiagnostics()) +
           '; websocket=' + (terminalSocketDiagnostics.join(',') || 'none') +
           '; websocketHandshake=' + JSON.stringify(websocketHandshakeDiagnostics) +
           '; pageErrors=' + JSON.stringify(pageErrors) +
