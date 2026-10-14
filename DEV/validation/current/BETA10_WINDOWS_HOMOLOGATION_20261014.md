@@ -14,6 +14,10 @@ Gates aprovados:
 
 Logs: [artifact 11861513083](https://github.com/IAPro-Community/nexus/actions/runs/38486183393/artifacts/11861513083). A primeira tentativa falhou por erro transitório de socket do browser; a segunda passou no mesmo source SHA.
 
+## Integração à release
+
+Na consulta de 2026-10-14, `release/v1.0.0` aponta para `b2a74da2b434eb0dbfe925c383e6d7fc39e7dcc9`; a fonte homologada da candidata está em `bdc72325a9409c4b3da3dec94631325f0959ea92`. O GitHub compara os históricos como divergentes: candidata 171 commits à frente e 71 atrás da release. Não há PR aberto entre essa candidata e `release/v1.0.0`. Portanto o PASS Windows pertence ao candidato beta.10 e ainda não certifica código integrado na release; integração seletiva/revisão e repetição dos gates Windows no SHA integrado continuam obrigatórias.
+
 ## Diagnóstico do runner Windows
 
 O gate incluiu `nexus doctor`. No runner limpo, ele registrou avisos: diretório de configuração ainda não criado; Windows Credential Manager com capacidade `UNSUPPORTED`; ConPTY detectado sem smoke nativo pelo doctor; shell Desktop marcado como `SKIPPED` por exigir sessão interativa; e alguns providers opcionais ausentes no PATH. São limites declarados pelo diagnóstico, não falhas ocultadas: nenhum fluxo autenticado de provider nem integração nativa do Credential Manager foi certificado por este run.
