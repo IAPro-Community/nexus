@@ -258,6 +258,15 @@ export interface ResourceAllocation {
 export type CapacityMonitorState =
   'UNKNOWN' | 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'EXHAUSTED' | 'RECOVERED';
 
+export interface CapacityPaceForecast {
+  status: 'RISING' | 'RESET_FIRST' | 'STABLE';
+  confidence: 'LOW' | 'MEDIUM' | 'HIGH';
+  samples: number;
+  used_per_hour: number;
+  exhausts_at?: string | null;
+  reset_at: string;
+}
+
 export interface CapacityResourceStatus {
   key: string;
   provider: string;
@@ -271,6 +280,7 @@ export interface CapacityResourceStatus {
   last_observed_at: string;
   remaining_percent?: number | null;
   reset_description?: string;
+  pace?: CapacityPaceForecast;
   acked: boolean;
   snoozed_until?: string | null;
 }
