@@ -100,6 +100,7 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/telemetry/history", s.authMiddleware(h.handleTelemetryHistory))
 	mux.HandleFunc("/api/v1/capacity/status", s.authMiddleware(h.handleCapacityStatus))
 	mux.HandleFunc("/api/v1/capacity/history", s.authMiddleware(h.handleCapacityHistory))
+	mux.HandleFunc("/api/v1/capacity/pace.csv", s.authMiddleware(h.handleCapacityPaceCSV))
 	mux.HandleFunc("/api/v1/capacity/preferences", s.authMiddleware(h.handleCapacityPreferences))
 	mux.HandleFunc("/api/v1/capacity/ack", s.authMiddleware(h.handleCapacityAck))
 	mux.HandleFunc("/api/v1/capacity/snooze", s.authMiddleware(h.handleCapacitySnooze))
