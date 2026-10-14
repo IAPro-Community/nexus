@@ -321,8 +321,9 @@ try {
       }
     });
   });
-  // Use the same application event dispatched by ProjectOverviewSurface's terminal action.
-  await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexus:project-shell')));
+  const terminalLaunch = page.locator('.nx-project-create-actions button').filter({ hasText: /terminal/i }).first();
+  await terminalLaunch.waitFor({ state: 'visible', timeout: 30000 });
+  await terminalLaunch.click();
   await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
   await page.waitForFunction(
     () => document.querySelector('.nx-project-shell-surface[data-runtime-id]'),
