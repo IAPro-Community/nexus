@@ -301,7 +301,8 @@ try {
   const terminalControlReady = new Promise((resolve) => { resolveTerminalControl = resolve; });
   const terminalSocketDiagnostics = [];
   page.on('websocket', (socket) => {
-    terminalSocketDiagnostics.push('opened');
+    const socketPath = new URL(socket.url()).pathname.toLowerCase();
+    terminalSocketDiagnostics.push(socketPath.includes('terminal') ? 'opened:terminal' : 'opened:other');
     socket.on('close', (code) => terminalSocketDiagnostics.push('closed:' + code));
     socket.on('socketerror', () => terminalSocketDiagnostics.push('socket-error'));
     socket.on('framereceived', ({ payload }) => {
