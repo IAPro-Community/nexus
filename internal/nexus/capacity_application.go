@@ -53,6 +53,7 @@ type CapacityResourceStatus struct {
 	ExpiresAt         *time.Time `json:"expires_at,omitempty"`
 	Acked             bool       `json:"acked"`
 	SnoozedUntil      *time.Time `json:"snoozed_until,omitempty"`
+	Pace              *capacitymonitor.PaceForecast `json:"pace,omitempty"`
 }
 
 // CapacityStatus is the GET /api/v1/capacity/status projection.
@@ -92,6 +93,8 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 	if err != nil {
 		return CapacityStatus{}, err
 	}
+	// Advisory pace outages never hide authoritative quota status.
+	paceSamples, _ := st.ListCapacityPaceSamples(time.Now().UTC().Add(-24 * time.Hour))
 	for _, rec := range states {
 		rs := CapacityResourceStatus{
 			Key: rec.Key, Provider: rec.Provider, Profile: rec.Profile,
@@ -109,6 +112,9 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 				rs.ExpiresAt = &expires
 			}
 			rs.LastObservedAt = o.FetchedAt
+			if rec.AccountScope != "" && rec.AccountScope == o.AccountScope {
+				rs.Pace = capacitymonitor.ForecastForObservation(paceSamples, o, time.Now().UTC())
+			}
 			fp := capacitymonitor.DeriveFingerprint(o.Provider, o.Profile, o.QuotaGroup, o.WindowKind, rec.State,
 				capacitymonitor.ResetCycleKey(nil, o.ExpiresAt))
 			rs.Fingerprint = fp
