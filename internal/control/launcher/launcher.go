@@ -183,6 +183,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		traceCaptureShellLaunchStage("command-resolved")
 	}
 
+	if captureShell {
+		traceCaptureShellLaunchStage("runtime-metadata-start")
+	}
 	title := opts.Title
 	if strings.TrimSpace(title) == "" {
 		title = fmt.Sprintf("%s (%s)", strings.ToUpper(opts.ProviderID), opts.ProfileID)
@@ -190,6 +193,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	hostBinaryPath, _ := os.Executable()
 	hostBinaryFingerprint, _ := registry.BinaryFingerprint(hostBinaryPath)
 	providerBinaryFingerprint, _ := registry.BinaryFingerprint(bin)
+	if captureShell {
+		traceCaptureShellLaunchStage("runtime-metadata-finished")
+	}
 
 	sessionLabels := cloneLabels(opts.Labels)
 	if customCommand {
@@ -239,10 +245,14 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		Labels:                    sessionLabels,
 	}
 
+	if captureShell {
+		traceCaptureShellLaunchStage("session-register-start")
+	}
 	if err := l.reg.Register(sess); err != nil {
 		return nil, fmt.Errorf("failed to register runtime session: %w", err)
 	}
 	if captureShell {
+		traceCaptureShellLaunchStage("session-register-finished")
 		traceCaptureShellLaunchStage("session-registered")
 	}
 	var supervisedHost *host.SessionHost
