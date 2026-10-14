@@ -49,7 +49,7 @@ func TestShellProbeChild(t *testing.T) {
 func TestShellRunsTimeoutOnHungCommand(t *testing.T) {
 	t.Setenv("NEXUS_SHELL_PROBE_HELPER", "1")
 	started := time.Now()
-	if shellRuns(os.Args[0], "-test.run=^TestShellProbeChild$") {
+	if shellRuns(context.Background(), os.Args[0], "-test.run=^TestShellProbeChild$") {
 		t.Fatal("hung shell probe unexpectedly succeeded")
 	}
 	if elapsed := time.Since(started); elapsed > 3*time.Second {
