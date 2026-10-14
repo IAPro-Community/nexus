@@ -343,7 +343,24 @@ try {
   await page.waitForFunction(
     () => document.querySelector('.nx-project-shell-surface[data-runtime-id]'),
     { timeout: 30000 },
-  );
+  ).catch(async (error) => {
+    const appState = await page.evaluate(() => ({
+      path: window.location.pathname,
+      appShell: Boolean(document.querySelector('.nx-os-shell')),
+      surfaceTabs: [...document.querySelectorAll('[role="tab"][data-kind]')].map((tab) => ({
+        kind: tab.getAttribute('data-kind') || '',
+        active: tab.getAttribute('aria-selected') === 'true',
+      })),
+      projectShellSurfaces: document.querySelectorAll('.nx-project-shell-surface').length,
+    }));
+    throw new Error(
+      'project shell launch response was not rendered; http=' + shellResponse.status() +
+        '; state=' + (shellRuntime.state || '') +
+        '; runtimeId=' + shellRuntime.runtime_id +
+        '; app=' + JSON.stringify(appState) +
+        '; cause=' + error.message,
+    );
+  });
   const runtimeId = await page.locator('.nx-project-shell-surface').first().getAttribute('data-runtime-id');
   if (!runtimeId) throw new Error('project shell surface did not expose its runtime id');
   await page.waitForFunction(
