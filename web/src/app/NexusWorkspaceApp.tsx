@@ -511,8 +511,8 @@ const WorkspaceCoordinator: React.FC<{
 
       if (parsedRoute.kind === 'project' && parsedRoute.projectId === project.id) {
         const targetSurface = routeToWorkspaceSurface(parsedRoute, { agents: data.agents });
-        if (targetSurface) {
-          if (routeChanged) lastSyncedRouteRef.current = routeKey;
+        if (targetSurface && routeChanged) {
+          lastSyncedRouteRef.current = routeKey;
           const existing = listSurfaces(workspace.model.root).find((surface) =>
             isSurfaceMatch(surface, targetSurface.id),
           );
