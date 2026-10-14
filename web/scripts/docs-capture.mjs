@@ -279,13 +279,19 @@ try {
     'Nexus Demo Workspace',
     { timeout: 15000 },
   ).catch(async (error) => {
-    const state = await page.evaluate(() => ({
-      path: window.location.pathname,
-      title: document.title,
-      readyState: document.readyState,
-      projectCount: document.querySelectorAll('[data-project-id]').length,
-      bodyLength: document.body?.innerText?.length || 0,
-    }));
+    const state = await page.evaluate(async () => {
+      const response = await fetch('/api/v1/projects', { headers: { Accept: 'application/json' } });
+      const payload = await response.json().catch(() => null);
+      const projects = Array.isArray(payload) ? payload : payload?.projects || [];
+      return {
+        path: window.location.pathname,
+        title: document.title,
+        readyState: document.readyState,
+        projectCount: projects.length,
+        hasSyntheticProject: projects.some((project) => project.name === 'Nexus Demo Workspace'),
+        bodyLength: document.body?.innerText?.length || 0,
+      };
+    });
     throw new Error(
       'synthetic project did not appear after refresh; http=' +
         (refreshResponse?.status() || 'none') +
