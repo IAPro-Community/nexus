@@ -93,7 +93,17 @@ func ForecastForObservation(all []store.CapacityPaceSample, current store.Observ
 			cycle = v.ResetAt
 		}
 	}
-	if cycle.IsZero() { return nil }
+	if cycle.IsZero() || current.UsedPercent == nil { return nil }
+	// The newest bucket must agree with the live quota reading; otherwise
+	// an abrupt provider update may make an old slope misleading.
+	for _, v := range all {
+		if v.Provider == current.Provider && v.Profile == current.Profile &&
+			v.AccountScope == current.AccountScope && v.QuotaGroup == current.QuotaGroup &&
+			v.WindowKind == current.WindowKind && v.ResetAt.Equal(cycle) &&
+			v.ObservedAt.Equal(latest) && math.Abs(v.UsedPercent-*current.UsedPercent) > 5 {
+			return nil
+		}
+	}
 	selected := make([]store.CapacityPaceSample, 0, 16)
 	for _, v := range all {
 		if v.Provider == current.Provider && v.Profile == current.Profile &&
