@@ -371,7 +371,27 @@ try {
     });
   });
   const terminalLaunch = page.getByTestId('overview-terminal-btn');
-  await terminalLaunch.waitFor({ state: 'visible', timeout: 30000 });
+  try {
+    await terminalLaunch.waitFor({ state: 'visible', timeout: 30000 });
+  } catch (error) {
+    const overviewState = await page.evaluate(() => ({
+      path: window.location.pathname,
+      title: document.title,
+      bodyText: (document.body.innerText || '').slice(0, 1400),
+      shellCount: document.querySelectorAll('.nx-os-shell').length,
+      overviewButtonCount: document.querySelectorAll('[data-testid="overview-terminal-btn"]').length,
+      workspacePanels: [...document.querySelectorAll('[role="tabpanel"]')].map((node) =>
+        (node.innerText || '').trim().slice(0, 120),
+      ).slice(0, 12),
+      activeTabs: [...document.querySelectorAll('[role="tab"][aria-selected="true"]')].map((node) =>
+        (node.innerText || '').trim().slice(0, 100),
+      ).slice(0, 12),
+    }));
+    throw new Error(
+      'project overview terminal button did not become visible; diagnostics=' +
+        JSON.stringify(overviewState) + '; cause=' + String(error),
+    );
+  }
   const shellResponsePromise = page.waitForResponse(
     (response) => new URL(response.url()).pathname.endsWith('/shell'),
     { timeout: 30000 },
