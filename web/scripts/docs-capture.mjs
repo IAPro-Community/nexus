@@ -404,6 +404,10 @@ try {
       rows: Boolean(surface?.querySelector('.xterm-rows')),
     };
   });
+  const backendStages = () => output.split(/\r?\n/)
+    .map((line) => line.match(/nexus_docs_capture_terminal_stage=([a-z-]+)/)?.[1])
+    .filter(Boolean)
+    .slice(-24);
   let leaseTimer;
   await Promise.race([
     terminalControlReady,
@@ -418,6 +422,7 @@ try {
             state: shellRuntime.state || '',
             hostPidPresent: Boolean(shellRuntime.host_pid || shellRuntime.pid),
           }) +
+          '; backendStages=' + JSON.stringify(backendStages()) +
           '; pageErrors=' + pageErrors.length,
       )), 12000);
     }),

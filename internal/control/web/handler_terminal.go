@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -35,6 +36,12 @@ type TerminalMessage struct {
 	Size  int    `json:"size,omitempty"`
 }
 
+func traceDocsCaptureTerminalStage(stage string) {
+	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+		log.Printf("nexus_docs_capture_terminal_stage=%s", stage)
+	}
+}
+
 type TerminalHub struct {
 	auth     *AuthManager
 	registry *registry.Registry
@@ -55,23 +62,28 @@ func NewTerminalHub(auth *AuthManager, registries ...*registry.Registry) *Termin
 }
 
 func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, agentID string, runtimeID string) {
+	traceDocsCaptureTerminalStage("request")
 	if h.auth != nil && h.auth.AuthenticateRequest(r) == nil {
 		http.Error(w, "authentication required", http.StatusUnauthorized)
 		return
 	}
+	traceDocsCaptureTerminalStage("authenticated")
 
 	reg := h.registry
 	sess, exists := reg.Get(runtimeID)
 	if !exists {
+		traceDocsCaptureTerminalStage("runtime-missing")
 		writeError(w, http.StatusNotFound, "runtime not found")
 		return
 	}
+	traceDocsCaptureTerminalStage("runtime-found")
 	if !sess.HostLive() {
 		// Do not upgrade: a "connected" WebSocket into a dead host leaves the
 		// UI on a black xterm with no recover action (especially window chrome).
 		writeError(w, http.StatusNotFound, "runtime host is not running")
 		return
 	}
+	traceDocsCaptureTerminalStage("host-live")
 	if err := registry.ValidateAttachCompatibility(sess); err != nil {
 		// Preserve the process for explicit user cleanup, but make the runtime
 		// non-attachable and actionable instead of opening a silent black TTY.
@@ -79,15 +91,19 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		writeError(w, http.StatusConflict, "runtime is incompatible with the current Nexus binary; recreate the session with nexus codex --yolo")
 		return
 	}
+	traceDocsCaptureTerminalStage("attach-compatible")
 
 	// Dial the control endpoint before upgrading. A live PID/STARTING row is
 	// not enough on Windows when the named pipe was never created; prefer HTTP
 	// 404 over a WebSocket error overlay ("Runtime do Agente desconectado").
+	traceDocsCaptureTerminalStage("pipe-dial-start")
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
+		traceDocsCaptureTerminalStage("pipe-dial-failed")
 		writeError(w, http.StatusNotFound, "runtime host is not running ("+err.Error()+")")
 		return
 	}
+	traceDocsCaptureTerminalStage("pipe-connected")
 
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -96,6 +112,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	}
 	defer ws.Close()
 	defer client.Close()
+	traceDocsCaptureTerminalStage("websocket-upgraded")
 
 	var wsMu sync.Mutex
 	safeWriteJSON := func(v any) error {
@@ -120,6 +137,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	defer stop()
 
 	// Attach to host
+	traceDocsCaptureTerminalStage("attach-command-start")
 	resp, err := client.Send(protocol.CmdAttach, nil)
 	if err != nil {
 		// Same as NewClient: attach timeout is not proof the child exited.
@@ -130,6 +148,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		return
 	}
 	_ = client.ClearDeadline()
+	traceDocsCaptureTerminalStage("attach-command-complete")
 
 	rawConn := client.RawConn()
 	resizeRequests := make(chan [2]int, 1)
@@ -164,6 +183,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		Type: "lease",
 		Role: effectiveRole,
 	})
+	traceDocsCaptureTerminalStage("lease-sent")
 	if nexusruntime.TerminalTraceEnabled() {
 		_ = safeWriteJSON(TerminalMessage{Type: "trace_config", Data: "enabled"})
 	}
