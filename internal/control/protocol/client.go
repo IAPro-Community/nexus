@@ -169,7 +169,12 @@ func (c *Client) Reader() *bufio.Reader {
 
 // Ping checks if the SessionHost is alive.
 func (c *Client) Ping() error {
-	_, err := c.Send(CmdPing, nil)
+	return c.PingContext(context.Background())
+}
+
+// PingContext checks if the SessionHost is alive with cancellation support.
+func (c *Client) PingContext(ctx context.Context) error {
+	_, err := c.SendContext(ctx, CmdPing, nil)
 	return err
 }
 

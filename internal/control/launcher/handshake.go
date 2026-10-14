@@ -27,18 +27,21 @@ func waitForRuntimeHandshake(ctx context.Context, runtimeID string, hostProc *os
 		close(hostDone)
 	}()
 
-	deadline := time.Now().Add(timeout)
+	waitCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 	ticker := time.NewTicker(30 * time.Millisecond)
 	defer ticker.Stop()
 
 	for {
-		client, err := protocol.NewClient(runtimeID)
+		attemptCtx, cancelAttempt := context.WithTimeout(waitCtx, 500*time.Millisecond)
+		client, err := protocol.NewClientContext(attemptCtx, runtimeID)
 		if err == nil {
-			err = client.Ping()
+			err = client.PingContext(attemptCtx)
 			_ = client.Close()
-			if err == nil {
-				return nil
-			}
+		}
+		cancelAttempt()
+		if err == nil {
+			return nil
 		}
 
 		select {
@@ -46,10 +49,7 @@ func waitForRuntimeHandshake(ctx context.Context, runtimeID string, hostProc *os
 			return classifyDetachedHostFailure(runtimeID, hostProc.Pid)
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-ticker.C:
-		}
-
-		if time.Now().After(deadline) {
+		case <-waitCtx.Done():
 			select {
 			case <-hostDone:
 				return classifyDetachedHostFailure(runtimeID, hostProc.Pid)
@@ -59,6 +59,7 @@ func waitForRuntimeHandshake(ctx context.Context, runtimeID string, hostProc *os
 				return classifyDetachedHostFailure(runtimeID, hostProc.Pid)
 			}
 			return fmt.Errorf("timed out waiting for endpoint %s", runtimeID)
+		case <-ticker.C:
 		}
 	}
 }

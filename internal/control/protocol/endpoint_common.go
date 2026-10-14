@@ -84,27 +84,38 @@ func EndpointPath(runtimeID string) string {
 
 // WaitForEndpoint polls until the control endpoint is ready or timeout expires.
 func WaitForEndpoint(ctx context.Context, runtimeID string, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	waitCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
 	ticker := time.NewTicker(30 * time.Millisecond)
 	defer ticker.Stop()
 	for {
-		client, err := NewClient(runtimeID)
+		attemptCtx, cancelAttempt := context.WithTimeout(waitCtx, dialAttemptTimeout)
+		client, err := NewClientContext(attemptCtx, runtimeID)
 		if err == nil {
-			err = client.Ping()
+			err = client.PingContext(attemptCtx)
 			_ = client.Close()
-			if err == nil {
-				return nil
-			}
+		}
+		cancelAttempt()
+		if err == nil {
+			return nil
+		}
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if waitCtx.Err() != nil {
+			return fmt.Errorf("timed out waiting for endpoint %s", runtimeID)
 		}
 
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-ticker.C:
-		}
-
-		if time.Now().After(deadline) {
+		case <-waitCtx.Done():
 			return fmt.Errorf("timed out waiting for endpoint %s", runtimeID)
+		case <-ticker.C:
 		}
 	}
 }
