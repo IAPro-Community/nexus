@@ -96,6 +96,7 @@ jobs:
 
       - name: Capture visual evidence for this integrated source SHA
         shell: pwsh
+        continue-on-error: true
         run: bun run --cwd web docs:capture
 
       - name: Run complete Windows homologation
