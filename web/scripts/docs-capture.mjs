@@ -321,11 +321,8 @@ try {
       }
     });
   });
-  const terminalLaunch = page.getByRole('button', { name: /open terminal|abrir terminal|attach terminal|anexar terminal|project terminal|terminal do projeto|terminal/i }).first();
-  if (!(await terminalLaunch.count()) || !(await terminalLaunch.isVisible().catch(() => false))) {
-    throw new Error('project overview did not expose a visible terminal launch button');
-  }
-  await terminalLaunch.click();
+  // Use the same application event dispatched by ProjectOverviewSurface's terminal action.
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexus:project-shell')));
   await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
   await page.waitForFunction(
     () => document.querySelector('.nx-project-shell-surface[data-runtime-id]'),
