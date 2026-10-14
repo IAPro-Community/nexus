@@ -164,6 +164,25 @@ try {
     ],
   });
   const page = await context.newPage();
+  const websocketHandshakeDiagnostics = [];
+  const websocketRequestIds = new Set();
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Network.enable');
+  cdp.on('Network.webSocketWillSendHandshakeRequest', (event) => {
+    websocketRequestIds.add(event.requestId);
+    websocketHandshakeDiagnostics.push('request');
+  });
+  cdp.on('Network.webSocketHandshakeResponseReceived', (event) => {
+    websocketHandshakeDiagnostics.push('response:' + event.response.status);
+  });
+  cdp.on('Network.loadingFailed', (event) => {
+    if (websocketRequestIds.has(event.requestId)) {
+      websocketHandshakeDiagnostics.push('failed:' + event.errorText);
+    }
+  });
+  cdp.on('Network.webSocketFrameError', (event) => {
+    websocketHandshakeDiagnostics.push('frame-error:' + event.errorMessage);
+  });
   const video = page.video();
   const sensitiveFixturePaths = [...new Set([
     workspaceDir,
@@ -375,6 +394,7 @@ try {
               process.env.http_proxy || process.env.https_proxy || process.env.all_proxy,
           ),
           backendStages: backendStages(),
+          websocketHandshake: websocketHandshakeDiagnostics,
           pageErrorCount: pageErrors.length,
         }) +
         '; cause=' + error.message,
@@ -462,6 +482,7 @@ try {
             hostPidPresent: Boolean(shellRuntime.host_pid || shellRuntime.pid),
           }) +
           '; backendStages=' + JSON.stringify(backendStages()) +
+          '; websocketHandshake=' + JSON.stringify(websocketHandshakeDiagnostics) +
           '; pageErrors=' + pageErrors.length,
       )), 35000);
     }),
