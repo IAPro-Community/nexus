@@ -180,8 +180,11 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	// left the UI read-only even though no other writer held the lease.
 	effectiveRole := role
 	if role == "CONTROL" {
+		traceDocsCaptureTerminalStage("lease-acquire-pipe-start")
 		_ = sendAttachedCommandWithRetry(rawConn, 3)
+		traceDocsCaptureTerminalStage("lease-acquire-pipe-finished")
 	}
+	traceDocsCaptureTerminalStage("lease-websocket-write-start")
 	if err := safeWriteJSON(TerminalMessage{
 		Type: "lease",
 		Role: effectiveRole,
