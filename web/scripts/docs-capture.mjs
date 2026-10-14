@@ -526,6 +526,7 @@ try {
             hostPidPresent: Boolean(shellRuntime.host_pid || shellRuntime.pid),
           }) +
           '; backendStages=' + JSON.stringify(backendStages()) +
+          '; backendDiagnostics=' + JSON.stringify(backendDiagnostics()) +
           '; websocketHandshake=' + JSON.stringify(websocketHandshakeDiagnostics) +
           '; pageErrors=' + pageErrors.length,
       )), 35000);
