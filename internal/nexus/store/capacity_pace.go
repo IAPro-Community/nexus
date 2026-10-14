@@ -1,7 +1,6 @@
 package store
 
 import (
-	"database/sql"
 	"errors"
 	"math"
 	"strings"
@@ -84,7 +83,3 @@ func (s *Store) PruneCapacityPaceSamples(before time.Time) (int64, error) {
 	if err != nil { return 0, err }
 	return result.RowsAffected()
 }
-
-// Explicit reference keeps database/sql referenced by a Go compile-time check
-// via an interface accepting the standard database/sql row type.
-var _ = sql.ErrNoRows
