@@ -301,8 +301,13 @@ try {
   page.on('websocket', (socket) => {
     const socketPath = new URL(socket.url()).pathname.toLowerCase();
     terminalSocketDiagnostics.push(socketPath.includes('terminal') ? 'created:terminal' : 'created:other');
-    socket.on('close', () => terminalSocketDiagnostics.push('closed'));
-    socket.on('socketerror', () => terminalSocketDiagnostics.push('socket-error'));
+    socket.on('close', (close) => terminalSocketDiagnostics.push(
+      'closed:' + String(close?.code || '') + ':' + String(close?.reason || '').slice(0, 80),
+    ));
+    socket.on('socketerror', (error) => {
+      const detail = String(error?.message || error || '').split('?')[0].slice(0, 160);
+      terminalSocketDiagnostics.push('socket-error:' + detail);
+    });
     socket.on('framesent', ({ payload }) => {
       try {
         const frame = JSON.parse(String(payload));
