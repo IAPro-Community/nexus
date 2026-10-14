@@ -179,11 +179,14 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	if role == "CONTROL" {
 		_ = sendAttachedCommandWithRetry(rawConn, 3)
 	}
-	_ = safeWriteJSON(TerminalMessage{
+	if err := safeWriteJSON(TerminalMessage{
 		Type: "lease",
 		Role: effectiveRole,
-	})
-	traceDocsCaptureTerminalStage("lease-sent")
+	}); err != nil {
+		traceDocsCaptureTerminalStage("lease-write-failed")
+	} else {
+		traceDocsCaptureTerminalStage("lease-sent")
+	}
 	if nexusruntime.TerminalTraceEnabled() {
 		_ = safeWriteJSON(TerminalMessage{Type: "trace_config", Data: "enabled"})
 	}

@@ -84,7 +84,7 @@ try {
   const browser = await chromium.launch({
     executablePath: existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined,
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--no-proxy-server'],
   });
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
@@ -361,7 +361,15 @@ try {
     });
     throw new Error(
       'project shell launch response timed out; diagnostics=' +
-        JSON.stringify({ shellLaunch: shellLaunchDiagnostics, launchState, pageErrorCount: pageErrors.length }) +
+        JSON.stringify({
+          shellLaunch: shellLaunchDiagnostics,
+          launchState,
+          proxyConfigured: Boolean(
+            process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.ALL_PROXY ||
+              process.env.http_proxy || process.env.https_proxy || process.env.all_proxy,
+          ),
+          pageErrorCount: pageErrors.length,
+        }) +
         '; cause=' + error.message,
     );
   }
