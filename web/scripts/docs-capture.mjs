@@ -262,16 +262,6 @@ try {
     return response.json();
   }, { workspace: workspaceDir, csrf: session.csrf_token });
 
-  const shell = await page.evaluate(async ({ projectId, csrf }) => {
-    const response = await fetch(`/api/v1/projects/${encodeURIComponent(projectId)}/shell`, {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
-      body: '{}',
-    });
-    if (!response.ok) throw new Error(`fixture shell failed: HTTP ${response.status}`);
-    return response.json();
-  }, { projectId: createProject.id, csrf: session.csrf_token });
-
   // Refresh app state so the newly created synthetic project is present in the workspace route resolver.
   const refreshResponse = await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
   const refreshedProjects = await page.evaluate(async () => {
@@ -294,9 +284,6 @@ try {
     { waitUntil: 'domcontentloaded', timeout: 20000 },
   );
   await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
-  const projectRoute = '/p/' + encodeURIComponent(createProject.id) +
-    '/terminals/' + encodeURIComponent(shell.runtime.runtime_id);
-
   let resolveTerminalControl;
   const terminalControlReady = new Promise((resolve) => { resolveTerminalControl = resolve; });
   const terminalSocketDiagnostics = [];
@@ -323,13 +310,23 @@ try {
       }
     });
   });
-  await page.goto(new URL(projectRoute, url).toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
+  const terminalLaunch = page.getByRole('button', { name: /abrir terminal|open terminal|anexar terminal|project shell/i }).first();
+  if (!(await terminalLaunch.count()) || !(await terminalLaunch.isVisible().catch(() => false))) {
+    throw new Error('project overview did not expose a visible terminal launch button');
+  }
+  await terminalLaunch.click();
   await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
   await page.waitForFunction(
-    (runtimeId) => [...document.querySelectorAll('.nx-project-shell-surface')].some(
-      (surface) => surface.getAttribute('data-runtime-id') === runtimeId,
+    () => document.querySelector('.nx-project-shell-surface[data-runtime-id]'),
+    { timeout: 30000 },
+  );
+  const runtimeId = await page.locator('.nx-project-shell-surface').first().getAttribute('data-runtime-id');
+  if (!runtimeId) throw new Error('project shell surface did not expose its runtime id');
+  await page.waitForFunction(
+    (expectedRuntimeId) => [...document.querySelectorAll('.nx-project-shell-surface')].some(
+      (surface) => surface.getAttribute('data-runtime-id') === expectedRuntimeId,
     ),
-    shell.runtime.runtime_id,
+    runtimeId,
     { timeout: 30000 },
   ).catch(async (error) => {
     const shellState = await page.evaluate(() => ({
@@ -350,7 +347,7 @@ try {
     }));
     throw new Error(
       'project shell surface did not bind to created runtime; expected=' +
-        shell.runtime.runtime_id + '; state=' + JSON.stringify(shellState) +
+        runtimeId + '; state=' + JSON.stringify(shellState) +
         '; pageErrors=' + pageErrors.length + '; cause=' + error.message,
     );
   });
