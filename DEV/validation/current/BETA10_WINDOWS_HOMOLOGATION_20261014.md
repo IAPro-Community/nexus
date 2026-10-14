@@ -14,9 +14,13 @@ Gates aprovados:
 
 Logs: [artifact 11861513083](https://github.com/IAPro-Community/nexus/actions/runs/38486183393/artifacts/11861513083). A primeira tentativa falhou por erro transitório de socket do browser; a segunda passou no mesmo source SHA.
 
+## Diagnóstico do runner Windows
+
+O gate incluiu `nexus doctor`. No runner limpo, ele registrou avisos: diretório de configuração ainda não criado; Windows Credential Manager com capacidade `UNSUPPORTED`; ConPTY detectado sem smoke nativo pelo doctor; shell Desktop marcado como `SKIPPED` por exigir sessão interativa; e alguns providers opcionais ausentes no PATH. São limites declarados pelo diagnóstico, não falhas ocultadas: nenhum fluxo autenticado de provider nem integração nativa do Credential Manager foi certificado por este run.
+
 ## Escopo ainda aberto
 
-A homologação automatizada Windows está **PASS** neste SHA. A tentativa não executou assinatura e não publicou artefatos. Permanecem pendentes os checks manuais de interação física do tray, os fluxos autenticados Provider/Mission/Voice, a assinatura e trust root, o instalador assinado e a integração da candidata beta.10 por PR em `release/v1.0.0`.
+A homologação automatizada Windows está **PASS** neste SHA. A tentativa não executou assinatura nem publicou binários de distribuição. Permanecem pendentes os checks manuais de interação física do tray, os fluxos autenticados Provider/Mission/Voice, a assinatura e trust root, o instalador assinado e a integração da candidata beta.10 por PR em `release/v1.0.0`.
 
 **Veredito de distribuição/tag: NO-GO.** Não houve alteração da branch `release/v1.0.0` nem criação de tag. Este relatório trata da candidata beta.10 e não substitui a homologação histórica beta.7.
 
