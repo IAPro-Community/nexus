@@ -317,10 +317,21 @@ try {
   await page.goto(new URL(projectRoute, url).toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
   await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
   await page.waitForFunction(
-    (runtimeId) => document.querySelector('.nx-project-shell-surface')?.getAttribute('data-runtime-id') === runtimeId,
+    (runtimeId) => [...document.querySelectorAll('.nx-project-shell-surface')].some(
+      (surface) => surface.getAttribute('data-runtime-id') === runtimeId,
+    ),
     shell.runtime.runtime_id,
     { timeout: 30000 },
-  );
+  ).catch(async (error) => {
+    const actualRuntimeIds = await page.locator('.nx-project-shell-surface').evaluateAll(
+      (surfaces) => surfaces.map((surface) => surface.getAttribute('data-runtime-id') || ''),
+    );
+    throw new Error(
+      'project shell surface did not bind to created runtime; expected=' +
+        shell.runtime.runtime_id + '; actual=' + JSON.stringify(actualRuntimeIds) +
+        '; pageErrors=' + pageErrors.length + '; cause=' + error.message,
+    );
+  });
   await page.waitForFunction(() => {
     const body = document.body.textContent || '';
     return !/desconectado|disconnected|erro|error|recuperando|recovering/i.test(body);
