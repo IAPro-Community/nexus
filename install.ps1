@@ -1,4 +1,4 @@
-# IAPro Nexus Installer for PowerShell (Windows & PowerShell Core)
+﻿# IAPro Nexus Installer for PowerShell (Windows & PowerShell Core)
 # Prebuilt signed-release path. Usage:
 #   .\install.ps1 -Version v0.5.0-beta.23
 #   .\install.ps1 -Version latest

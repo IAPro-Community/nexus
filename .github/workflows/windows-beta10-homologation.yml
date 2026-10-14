@@ -1,0 +1,116 @@
+name: Windows beta.10 release integration homologation (no signing)
+
+on:
+  push:
+    branches:
+      - fix/release-beta10-windows-closure-20261014
+    paths:
+      - .github/workflows/windows-beta10-homologation.yml
+      - cmd/**
+      - internal/**
+      - scripts/**
+      - web/**
+      - go.mod
+      - go.sum
+      - VERSION
+      - version.json
+      - UPDATE_PUBLIC_KEY
+      - install.ps1
+      - uninstall.ps1
+      - packaging/windows/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-beta10-release-closure-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Windows AMD64 local homologation gates
+    runs-on: windows-latest
+    timeout-minutes: 180
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+      TARGET_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout exact product source SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify SHA and Windows architecture
+        shell: pwsh
+        run: |
+          $head = (git rev-parse HEAD).Trim()
+          if ($head -ne $env:TARGET_SHA) {
+            throw "Checked out $head, expected $env:TARGET_SHA"
+          }
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
+            throw "Expected Windows AMD64, got $env:PROCESSOR_ARCHITECTURE"
+          }
+          @(
+            '## Exact-SHA Windows homologation'
+            "Source SHA: $head"
+            "Runner architecture: $env:PROCESSOR_ARCHITECTURE"
+          ) | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.27.2
+          cache: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+
+      - name: Use short Windows temporary path for Go tests
+        shell: pwsh
+        run: |
+          $localAppData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+          $shortTemp = Join-Path $localAppData 'Temp'
+          New-Item -ItemType Directory -Path $shortTemp -Force | Out-Null
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "TEMP=$shortTemp" -Encoding utf8
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "TMP=$shortTemp" -Encoding utf8
+
+      - name: Install dependencies for fresh visual evidence
+        shell: pwsh
+        run: bun install --cwd web --frozen-lockfile
+
+      - name: Install Playwright Chromium for visual evidence
+        shell: pwsh
+        run: bun x playwright install chromium
+
+      - name: Capture visual evidence for this integrated source SHA
+        shell: pwsh
+        run: bun run --cwd web docs:capture
+
+      - name: Run complete Windows homologation
+        shell: pwsh
+        run: .\scripts\homologate-beta.ps1 -ExpectedSha $env:TARGET_SHA
+
+      - name: Upload Windows validation logs only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-beta10-${{ env.TARGET_SHA }}-validation-evidence
+          path: |
+            DEV/validation/local-beta/1.0.0-beta.10/${{ env.TARGET_SHA }}/windows-AMD64/*.log
+            DEV/validation/local-beta/1.0.0-beta.10/${{ env.TARGET_SHA }}/windows-AMD64/environment.txt
+            docs/assets/screenshots/*.png
+            docs/assets/screenshots/manifest.json
+          if-no-files-found: warn
+          retention-days: 3

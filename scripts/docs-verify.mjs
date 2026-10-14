@@ -111,7 +111,15 @@ if (existsSync(manifestPath)) {
     errors.push('visual manifest has invalid source_sha');
   }
   if (manifest.source_sha) {
-    const visualPaths = ['web/src', 'web/public', 'cmd/nexus-desktop', 'internal/desktop', 'web/scripts'];
+    const visualPaths = [
+      'web/src',
+      'web/public',
+      'cmd/nexus-desktop',
+      'internal/desktop',
+      'web/scripts/docs-capture.mjs',
+      'web/scripts/maestro-visual-verify.mjs',
+      'web/scripts/task-preparation-visual-verify.mjs',
+    ];
     const diff = spawnSync('git', ['diff', '--name-only', `${manifest.source_sha}..HEAD`, '--', ...visualPaths], {
       cwd: root,
       encoding: 'utf8',

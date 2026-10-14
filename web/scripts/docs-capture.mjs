@@ -46,6 +46,8 @@ if (process.platform !== 'win32') {
   serverEnv.PROMPT_COMMAND = '';
 } else {
   serverEnv.PROMPT = 'nexus-demo$G';
+  delete serverEnv.COMSPEC;
+  delete serverEnv.ComSpec;
 }
 
 const server = spawn(
@@ -158,6 +160,67 @@ try {
   });
   const page = await context.newPage();
   const video = page.video();
+  const sensitiveFixturePaths = [...new Set([
+    workspaceDir,
+    workspaceDir.replaceAll('\\', '/'),
+    process.platform === 'win32' ? process.env.USERPROFILE : '',
+  ].filter(Boolean))];
+  await page.addInitScript((sensitivePaths) => {
+    const replacement = 'C:\\NexusDemo\\workspace';
+    const redactValue = (value) => {
+      let result = value;
+      for (const sensitivePath of sensitivePaths) {
+        const lowerValue = result.toLowerCase();
+        const lowerSearch = sensitivePath.toLowerCase();
+        let cursor = 0;
+        let index = lowerValue.indexOf(lowerSearch, cursor);
+        let next = '';
+        while (index !== -1) {
+          next += result.slice(cursor, index) + replacement;
+          cursor = index + sensitivePath.length;
+          index = lowerValue.indexOf(lowerSearch, cursor);
+        }
+        if (cursor !== 0) result = next + result.slice(cursor);
+      }
+      return result;
+    };
+    const redactNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const value = redactValue(node.nodeValue || '');
+        if (value !== node.nodeValue) node.nodeValue = value;
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      for (const attribute of [...node.attributes]) {
+        const value = redactValue(attribute.value);
+        if (value !== attribute.value) node.setAttribute(attribute.name, value);
+      }
+      for (const child of node.childNodes) redactNode(child);
+    };
+    const installObserver = () => {
+      const root = document.documentElement;
+      if (!root) {
+        const documentObserver = new MutationObserver(() => {
+          if (!document.documentElement) return;
+          documentObserver.disconnect();
+          installObserver();
+        });
+        documentObserver.observe(document, { childList: true });
+        return;
+      }
+      redactNode(root);
+      new MutationObserver((records) => {
+        for (const record of records) {
+          if (record.type === 'characterData' || record.type === 'attributes') {
+            redactNode(record.target);
+          } else {
+            for (const node of record.addedNodes) redactNode(node);
+          }
+        }
+      }).observe(root, { attributes: true, characterData: true, childList: true, subtree: true });
+    };
+    installObserver();
+  }, sensitiveFixturePaths);
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error?.message || error)));
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
@@ -238,7 +301,7 @@ try {
 
   const marker = '__NEXUS_DOCS_TERMINAL_OK__';
   const terminalInput = page.locator('.nx-project-shell-surface .xterm-helper-textarea');
-  await terminalInput.focus();
+  await page.locator('.nx-project-shell-surface .xterm').click();
   await terminalInput.pressSequentially(`echo ${marker}`);
   await terminalInput.press('Enter');
   await page.waitForFunction((expected) => {
@@ -246,11 +309,60 @@ try {
     return terminal?.textContent?.includes(expected) === true;
   }, marker, { timeout: 15000 });
 
+  const redactFixturePaths = async () => {
+    const paths = [...new Set([
+      workspaceDir,
+      workspaceDir.replaceAll('\\', '/'),
+      process.platform === 'win32' ? process.env.USERPROFILE : '',
+    ].filter(Boolean))];
+    return page.evaluate((sensitivePaths) => {
+      const replaceInsensitive = (value, search, replacement) => {
+        const lowerValue = value.toLowerCase();
+        const lowerSearch = search.toLowerCase();
+        let cursor = 0;
+        let index = lowerValue.indexOf(lowerSearch, cursor);
+        let result = '';
+        while (index !== -1) {
+          result += value.slice(cursor, index) + replacement;
+          cursor = index + search.length;
+          index = lowerValue.indexOf(lowerSearch, cursor);
+        }
+        return index === -1 && cursor === 0 ? value : result + value.slice(cursor);
+      };
+      const replacement = 'C:\\NexusDemo\\workspace';
+      let redacted = 0;
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) {
+        const original = node.nodeValue || '';
+        let value = original;
+        for (const sensitivePath of sensitivePaths) {
+          value = replaceInsensitive(value, sensitivePath, replacement);
+        }
+        if (value !== original) {
+          node.nodeValue = value;
+          redacted++;
+        }
+      }
+      for (const element of document.body.querySelectorAll('*')) {
+        for (const attribute of [...element.attributes]) {
+          let value = attribute.value;
+          for (const sensitivePath of sensitivePaths) {
+            value = replaceInsensitive(value, sensitivePath, replacement);
+          }
+          if (value !== attribute.value) element.setAttribute(attribute.name, value);
+        }
+      }
+      return redacted;
+    }, paths);
+  };
   const assertSafeFixture = async () => {
-    const content = (await page.evaluate(() => {
+    const domContent = (await page.evaluate(() => {
       const elements = [...document.querySelectorAll('input, textarea, select, option')];
       return [document.documentElement?.outerHTML || '', ...elements.map((element) => element.value || '')].join('\n');
     })).toLowerCase();
+    const visibleText = (await page.locator('body').innerText()).toLowerCase();
+    const content = `${domContent}\n${visibleText}`;
     const profilePath = process.platform === 'win32' ? process.env.USERPROFILE || '' : '';
     const forbidden = ['/projetos/', '/home/', 'desenvolvedor@', 'dev-web-kiver', 'escolanet-futura', 'sistemas2', 'proxy-nginx'];
     const leaked = forbidden.filter((value) => content.includes(value));
@@ -264,6 +376,13 @@ try {
     if (!content.includes('nexus demo workspace')) throw new Error('synthetic project is not visible in capture');
   };
   const capture = async (id, file, surface, evidence = {}) => {
+    await redactFixturePaths();
+    if (surface === 'web/workspace') {
+      const bodyText = (await page.locator('body').innerText()).toLowerCase();
+      if (!bodyText.includes('c:\\nexusdemo\\workspace')) {
+        throw new Error('workspace overview does not show the synthetic fixture path');
+      }
+    }
     await assertSafeFixture();
     await page.screenshot({
       path: path.join(outputDir, file),

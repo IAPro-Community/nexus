@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from '../design-system';
 import { initSession } from '../api';
 import { NexusHud } from '../features/hud/NexusHud';
@@ -11,6 +12,7 @@ export const isDesktopHudApp = () => {
 };
 
 export const DesktopHudApp: React.FC = () => {
+  const { t } = useTranslation();
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [autoStartSupported, setAutoStartSupported] = useState(false);
@@ -80,28 +82,29 @@ export const DesktopHudApp: React.FC = () => {
     })();
   };
 
-  if (!ready) return <div className={styles.status}>Nexus HUD</div>;
-  if (!authenticated) {
-    return (
-      <div className={styles.status} role="alert">
-        HUD offline · não foi possível anexar à sessão local do Nexus.
-      </div>
-    );
-  }
-
   return (
     <ThemeProvider>
       <main className={styles.root}>
-        <NexusHud
-          native
-          onOpenNexus={openNexus}
-          nativeAutoStart={{
-            supported: autoStartSupported,
-            enabled: autoStartEnabled,
-            pending: autoStartPending,
-            onToggle: toggleAutoStart,
-          }}
-        />
+        {!ready ? (
+          <div className={styles.status} role="status">
+            {t('common.loading')} Nexus HUD
+          </div>
+        ) : !authenticated ? (
+          <div className={styles.status} role="alert">
+            {t('common.hudUnavailable')}
+          </div>
+        ) : (
+          <NexusHud
+            native
+            onOpenNexus={openNexus}
+            nativeAutoStart={{
+              supported: autoStartSupported,
+              enabled: autoStartEnabled,
+              pending: autoStartPending,
+              onToggle: toggleAutoStart,
+            }}
+          />
+        )}
       </main>
     </ThemeProvider>
   );
