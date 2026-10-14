@@ -94,14 +94,15 @@ jobs:
         shell: pwsh
         run: bun run --cwd web playwright install chromium
 
-      - name: Capture visual evidence for this integrated source SHA
-        shell: pwsh
-        continue-on-error: true
-        run: bun run --cwd web docs:capture
-
       - name: Run complete Windows homologation
         shell: pwsh
         run: .\scripts\homologate-beta.ps1 -ExpectedSha $env:TARGET_SHA
+
+      - name: Capture visual evidence for this integrated source SHA
+        shell: pwsh
+        if: always()
+        continue-on-error: true
+        run: bun run --cwd web docs:capture
 
       - name: Upload Windows validation logs only
         if: always()
