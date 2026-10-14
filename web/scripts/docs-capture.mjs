@@ -296,11 +296,24 @@ try {
     const body = document.body.textContent || '';
     return !/desconectado|disconnected|erro|error|recuperando|recovering/i.test(body);
   }, { timeout: 15000 });
+  const terminalUiState = await page.evaluate(() => {
+    const surface = document.querySelector('.nx-project-shell-surface');
+    return {
+      projectShellSurface: Boolean(surface),
+      terminal: Boolean(surface?.querySelector('.xterm')),
+      rows: Boolean(surface?.querySelector('.xterm-rows')),
+    };
+  });
   let leaseTimer;
   await Promise.race([
     terminalControlReady,
     new Promise((_, reject) => {
-      leaseTimer = setTimeout(() => reject(new Error('project shell writer lease was not ready; websocket=' + (terminalSocketDiagnostics.join(',') || 'none'))), 5000);
+      leaseTimer = setTimeout(() => reject(new Error(
+        'project shell writer lease was not ready; websocket=' +
+          (terminalSocketDiagnostics.join(',') || 'none') +
+          '; terminalUi=' + JSON.stringify(terminalUiState) +
+          '; pageErrors=' + pageErrors.length,
+      )), 5000);
     }),
   ]).finally(() => clearTimeout(leaseTimer));
 
