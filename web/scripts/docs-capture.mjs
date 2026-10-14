@@ -458,15 +458,48 @@ try {
         '; pageErrors=' + pageErrors.length + '; cause=' + error.message,
     );
   });
-  await page.waitForSelector('.nx-project-shell-surface .xterm-rows', { timeout: 15000 });
   const terminalUiState = await page.evaluate(() => {
     const surface = document.querySelector('.nx-project-shell-surface');
     return {
+      path: window.location.pathname,
       projectShellSurface: Boolean(surface),
+      runtimeId: surface?.getAttribute('data-runtime-id') || '',
       terminal: Boolean(surface?.querySelector('.xterm')),
       rows: Boolean(surface?.querySelector('.xterm-rows')),
+      rowCount: surface?.querySelectorAll('.xterm-rows > div').length || 0,
     };
   });
+  await page.waitForSelector('.nx-project-shell-surface .xterm-rows', { timeout: 15000 }).catch(
+    async (error) => {
+      const browserState = await page.evaluate(() => ({
+        path: window.location.pathname,
+        appShell: Boolean(document.querySelector('.nx-os-shell')),
+        projectShellSurfaces: [...document.querySelectorAll('.nx-project-shell-surface')].map(
+          (surface) => ({
+            runtimeId: surface.getAttribute('data-runtime-id') || '',
+            terminal: Boolean(surface.querySelector('.xterm')),
+            rows: Boolean(surface.querySelector('.xterm-rows')),
+          }),
+        ),
+        activeTabs: [...document.querySelectorAll('[role="tab"][aria-selected="true"]')].map(
+          (tab) => tab.getAttribute('aria-label') || tab.textContent?.trim() || '',
+        ),
+        visibleAlerts: [...document.querySelectorAll('[role="alert"]')].map(
+          (alert) => alert.textContent?.trim() || '',
+        ),
+      }));
+      throw new Error(
+        'project shell terminal rows did not render; terminalUi=' + JSON.stringify(terminalUiState) +
+          '; browser=' + JSON.stringify(browserState) +
+          '; http=' + JSON.stringify(terminalHttpDiagnostics) +
+          '; backendStages=' + JSON.stringify(backendStages()) +
+          '; websocket=' + (terminalSocketDiagnostics.join(',') || 'none') +
+          '; websocketHandshake=' + JSON.stringify(websocketHandshakeDiagnostics) +
+          '; pageErrors=' + JSON.stringify(pageErrors) +
+          '; cause=' + error.message,
+      );
+    },
+  );
   let leaseTimer;
   await Promise.race([
     terminalControlReady,
