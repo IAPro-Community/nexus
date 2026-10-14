@@ -27,13 +27,21 @@ func TestPredictPaceTrustAndIsolation(t *testing.T) {
 		got.Confidence != "MEDIUM" || !got.ExhaustsAt.Before(reset) {
 		t.Fatalf("expected qualified rising forecast, got %+v", got)
 	}
+	latestPct := 68.0
 	latest := store.ObservationRecord{
+		UsedPercent: &latestPct,
 		Provider: "codex", Profile: "account-1", AccountScope: "codex/verified-1",
 		QuotaGroup: "default", WindowKind: "5h", Status: "LIVE", FetchedAt: now,
 	}
 	if f := ForecastForObservation(samples, latest, now); f == nil || f.Status != "RISING" {
 		t.Fatalf("matching observation should be projected: %+v", f)
 	}
+	different := 98.0
+	latest.UsedPercent = &different
+	if f := ForecastForObservation(samples, latest, now); f != nil {
+		t.Fatalf("divergent live quota must invalidate forecast: %+v", f)
+	}
+	latest.UsedPercent = &latestPct
 	latest.AccountScope = "codex/verified-2"
 	if f := ForecastForObservation(samples, latest, now); f != nil {
 		t.Fatalf("different account inherited quota history: %+v", f)
