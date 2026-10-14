@@ -332,12 +332,25 @@ try {
     shell.runtime.runtime_id,
     { timeout: 30000 },
   ).catch(async (error) => {
-    const actualRuntimeIds = await page.locator('.nx-project-shell-surface').evaluateAll(
-      (surfaces) => surfaces.map((surface) => surface.getAttribute('data-runtime-id') || ''),
-    );
+    const shellState = await page.evaluate(() => ({
+      path: window.location.pathname,
+      appShell: Boolean(document.querySelector('.nx-os-shell')),
+      surfaceTabs: [...document.querySelectorAll('[role="tab"][data-kind]')].map((tab) => ({
+        kind: tab.getAttribute('data-kind') || '',
+        active: tab.getAttribute('aria-selected') === 'true',
+      })),
+      ptyTabs: [...document.querySelectorAll('[id^="nx-pty-tab-"]')].map((tab) => ({
+        active: tab.getAttribute('aria-selected') === 'true',
+        label: tab.getAttribute('aria-label') || '',
+      })),
+      workspacePanels: document.querySelectorAll('.nx-workspace-panel').length,
+      projectShellRuntimeIds: [...document.querySelectorAll('.nx-project-shell-surface')].map(
+        (surface) => surface.getAttribute('data-runtime-id') || '',
+      ),
+    }));
     throw new Error(
       'project shell surface did not bind to created runtime; expected=' +
-        shell.runtime.runtime_id + '; actual=' + JSON.stringify(actualRuntimeIds) +
+        shell.runtime.runtime_id + '; state=' + JSON.stringify(shellState) +
         '; pageErrors=' + pageErrors.length + '; cause=' + error.message,
     );
   });
