@@ -275,12 +275,19 @@ try {
   const projectRoute = `/p/${encodeURIComponent(createProject.id)}/terminals/${encodeURIComponent(shell.runtime.runtime_id)}`;
   let resolveTerminalControl;
   const terminalControlReady = new Promise((resolve) => { resolveTerminalControl = resolve; });
+  const terminalSocketDiagnostics = [];
   page.on('websocket', (socket) => {
+    terminalSocketDiagnostics.push('opened');
+    socket.on('close', (code) => terminalSocketDiagnostics.push('closed:' + code));
+    socket.on('socketerror', () => terminalSocketDiagnostics.push('socket-error'));
     socket.on('framereceived', ({ payload }) => {
       try {
         const frame = JSON.parse(String(payload));
+        terminalSocketDiagnostics.push('frame:' + String(frame.type || 'unknown') + ':' + String(frame.role || ''));
         if (frame.type === 'lease' && frame.role === 'CONTROL') resolveTerminalControl();
-      } catch {}
+      } catch {
+        terminalSocketDiagnostics.push('frame:non-json');
+      }
     });
   });
   await page.goto(new URL(projectRoute, url).toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
@@ -293,7 +300,7 @@ try {
   await Promise.race([
     terminalControlReady,
     new Promise((_, reject) => {
-      leaseTimer = setTimeout(() => reject(new Error('project shell writer lease was not ready')), 5000);
+      leaseTimer = setTimeout(() => reject(new Error('project shell writer lease was not ready; websocket=' + (terminalSocketDiagnostics.join(',') || 'none'))), 5000);
     }),
   ]).finally(() => clearTimeout(leaseTimer));
 
