@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
@@ -35,5 +36,23 @@ func TestShellDriverFallsBackFromStaleShellPath(t *testing.T) {
 	}
 	if _, err := os.Stat(binary); err != nil {
 		t.Fatalf("fallback shell %q is not executable: %v", binary, err)
+	}
+}
+
+func TestShellProbeChild(t *testing.T) {
+	if os.Getenv("NEXUS_SHELL_PROBE_HELPER") != "1" {
+		return
+	}
+	time.Sleep(5 * time.Second)
+}
+
+func TestShellRunsTimeoutOnHungCommand(t *testing.T) {
+	t.Setenv("NEXUS_SHELL_PROBE_HELPER", "1")
+	started := time.Now()
+	if shellRuns(os.Args[0], "-test.run=^TestShellProbeChild$") {
+		t.Fatal("hung shell probe unexpectedly succeeded")
+	}
+	if elapsed := time.Since(started); elapsed > 3*time.Second {
+		t.Fatalf("shell probe exceeded its timeout: %s", elapsed)
 	}
 }
