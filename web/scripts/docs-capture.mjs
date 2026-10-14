@@ -316,7 +316,11 @@ try {
   });
   await page.goto(new URL(projectRoute, url).toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
   await page.waitForSelector('.nx-os-shell', { timeout: 15000 });
-  await page.waitForSelector('.nx-project-shell-surface', { timeout: 15000 });
+  await page.waitForFunction(
+    (runtimeId) => document.querySelector('.nx-project-shell-surface')?.getAttribute('data-runtime-id') === runtimeId,
+    shell.runtime.runtime_id,
+    { timeout: 30000 },
+  );
   await page.waitForFunction(() => {
     const body = document.body.textContent || '';
     return !/desconectado|disconnected|erro|error|recuperando|recovering/i.test(body);
