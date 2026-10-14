@@ -250,35 +250,78 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	cleanupFailedLaunch := func() {
 		if captureShell {
 			traceCaptureShellLaunchStage("cleanup-start")
+			traceCaptureShellLaunchStage("cleanup-envelope-remove-start")
 		}
 		removeLaunchEnvelope(opts.RuntimeID)
+		if captureShell {
+			traceCaptureShellLaunchStage("cleanup-envelope-remove-finished")
+		}
 		if supervisedHost != nil {
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-supervised-terminate-start")
+			}
 			_ = supervisedHost.Terminate()
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-supervised-terminate-finished")
+			}
 		}
 		if detachedProcess != nil {
 			// Ask the host to terminate its provider first when its endpoint is
 			// already reachable; killing only the detached host can orphan the
 			// provider process on some platforms.
 			cleanupCtx, cancel := context.WithTimeout(context.Background(), time.Second)
-			if client, clientErr := protocol.NewClient(opts.RuntimeID); clientErr == nil {
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-protocol-dial-start")
+			}
+			client, clientErr := protocol.NewClient(opts.RuntimeID)
+			if captureShell {
+				if clientErr == nil {
+					traceCaptureShellLaunchStage("cleanup-protocol-dial-connected")
+				} else {
+					traceCaptureShellLaunchStage("cleanup-protocol-dial-failed")
+				}
+			}
+			if clientErr == nil {
+				if captureShell {
+					traceCaptureShellLaunchStage("cleanup-protocol-terminate-start")
+				}
 				_, _ = client.SendContext(cleanupCtx, protocol.CmdTerminate, nil)
+				if captureShell {
+					traceCaptureShellLaunchStage("cleanup-protocol-terminate-finished")
+					traceCaptureShellLaunchStage("cleanup-protocol-close-start")
+				}
 				_ = client.Close()
+				if captureShell {
+					traceCaptureShellLaunchStage("cleanup-protocol-close-finished")
+				}
 			}
 			cancel()
 			if captureShell {
 				traceCaptureShellLaunchStage("cleanup-protocol-finished")
+				traceCaptureShellLaunchStage("cleanup-host-kill-start")
 			}
 			_ = detachedProcess.Kill()
 			if captureShell {
-				traceCaptureShellLaunchStage("cleanup-host-kill-requested")
+				traceCaptureShellLaunchStage("cleanup-host-kill-finished")
+				traceCaptureShellLaunchStage("cleanup-host-wait-start")
 			}
 			_, _ = detachedProcess.Wait()
 			if captureShell {
 				traceCaptureShellLaunchStage("cleanup-host-wait-finished")
 			}
 		}
+		if captureShell {
+			traceCaptureShellLaunchStage("cleanup-endpoint-remove-start")
+		}
 		_ = os.Remove(protocol.EndpointPath(opts.RuntimeID))
+		if captureShell {
+			traceCaptureShellLaunchStage("cleanup-endpoint-remove-finished")
+			traceCaptureShellLaunchStage("cleanup-registry-delete-start")
+		}
 		_ = l.reg.Delete(opts.RuntimeID)
+		if captureShell {
+			traceCaptureShellLaunchStage("cleanup-registry-delete-finished")
+		}
 	}
 
 	if opts.Standalone {
@@ -348,6 +391,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		traceCaptureShellLaunchStage("handshake-ready")
 	}
 	// Verify handshake with status probe
+	if captureShell {
+		traceCaptureShellLaunchStage("status-probe-start")
+	}
 	client, err := protocol.NewClient(opts.RuntimeID)
 	if err != nil {
 		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProtocolReady, registry.StartupFaultProtocolError)
@@ -358,6 +404,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 
 	status, err := client.Status()
 	if err != nil {
+		if captureShell {
+			traceCaptureShellLaunchStage("status-probe-failed")
+		}
 		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProtocolReady, registry.StartupFaultProtocolError)
 		cleanupFailedLaunch()
 		return nil, fmt.Errorf("status handshake probe failed for runtime %s: %w", opts.RuntimeID, err)
