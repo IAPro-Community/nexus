@@ -302,7 +302,7 @@ try {
   const terminalSocketDiagnostics = [];
   page.on('websocket', (socket) => {
     const socketPath = new URL(socket.url()).pathname.toLowerCase();
-    terminalSocketDiagnostics.push(socketPath.includes('terminal') ? 'opened:terminal' : 'opened:other');
+    terminalSocketDiagnostics.push(socketPath.includes('terminal') ? 'created:terminal' : 'created:other');
     socket.on('close', (code) => terminalSocketDiagnostics.push('closed:' + code));
     socket.on('socketerror', () => terminalSocketDiagnostics.push('socket-error'));
     socket.on('framesent', ({ payload }) => {
@@ -375,7 +375,7 @@ try {
           (terminalSocketDiagnostics.join(',') || 'none') +
           '; terminalUi=' + JSON.stringify(terminalUiState) +
           '; pageErrors=' + pageErrors.length,
-      )), 8000);
+      )), 12000);
     }),
   ]).finally(() => clearTimeout(leaseTimer));
 
