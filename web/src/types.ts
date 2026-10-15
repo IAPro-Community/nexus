@@ -258,6 +258,14 @@ export interface ResourceAllocation {
 export type CapacityMonitorState =
   'UNKNOWN' | 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'EXHAUSTED' | 'RECOVERED';
 
+export interface PublicServiceStatus {
+  provider: string;
+  indicator: 'none' | 'minor' | 'major' | 'critical' | 'UNKNOWN';
+  detail?: string;
+  checked_at?: string;
+  stale: boolean;
+}
+
 export interface CapacityPaceForecast {
   status: 'RISING' | 'RESET_FIRST' | 'STABLE';
   confidence: 'LOW' | 'MEDIUM' | 'HIGH';

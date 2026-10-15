@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card, InlineAlert, Input, Switch } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import type { CapacityPreferences, CapacityStatus } from '../../types';
+import type { CapacityPreferences, CapacityStatus, PublicServiceStatus } from '../../types';
 import { asArray } from '../../lib/safeArray';
 import styles from './CapacityMonitorSettings.module.scss';
 
@@ -15,6 +15,7 @@ export const CapacityMonitorSettings: React.FC = () => {
   const { t } = useTranslation();
   const [prefs, setPrefs] = useState<CapacityPreferences | null>(null);
   const [status, setStatus] = useState<CapacityStatus | null>(null);
+  const [publicStatus, setPublicStatus] = useState<PublicServiceStatus[]>([]);
   const [draft, setDraft] = useState({
     warning: '',
     critical: '',
@@ -34,6 +35,7 @@ export const CapacityMonitorSettings: React.FC = () => {
       const [p, s] = await Promise.all([nexus.getCapacityPreferences(), nexus.getCapacityStatus()]);
       setPrefs(p);
       setStatus(s);
+      void nexus.getPublicServiceStatus().then(setPublicStatus).catch(() => setPublicStatus([]));
       setDraft({
         warning: String(p.warning_threshold),
         critical: String(p.critical_threshold),
@@ -117,6 +119,26 @@ export const CapacityMonitorSettings: React.FC = () => {
 
   return (
     <Card className={styles.root}>
+      {publicStatus.length > 0 ? (
+        <section className={styles.section} aria-label={t('settings.publicStatus', 'Incidentes públicos dos provedores')}>
+          <h3>{t('settings.publicStatus', 'Incidentes públicos dos provedores')}</h3>
+          <div className={styles.statusList}>
+            {publicStatus.map((item) => (
+              <div className={styles.statusItem} key={item.provider}>
+                <strong>{item.provider}</strong>
+                <span data-indicator={item.indicator}>
+                  {item.stale
+                    ? t('settings.publicStatusUnknown', 'Indisponível ou desatualizado')
+                    : item.indicator === 'none'
+                      ? t('settings.publicStatusHealthy', 'Sem incidentes reportados')
+                      : item.detail || item.indicator}
+                </span>
+              </div>
+            ))}
+          </div>
+          <small>{t('settings.publicStatusHint', 'Estado público do serviço; não representa a quota da sua conta.')}</small>
+        </section>
+      ) : null}
       <div className={styles.header}>
         <strong>{t('settings.capacity', 'Capacity Monitor')}</strong>
         <p>{t('settings.capacityDescription', 'Proactive quota alerts with hysteresis.')}</p>

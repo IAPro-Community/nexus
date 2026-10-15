@@ -795,6 +795,8 @@ export const nexus = {
 
   // Capacity Monitor (revival T6)
   getCapacityStatus: () => request<import('../types').CapacityStatus>('/api/v1/capacity/status'),
+  getPublicServiceStatus: () =>
+    request<import('../types').PublicServiceStatus[]>('/api/v1/providers/public-status'),
   getCapacityHistory: (limit?: number) =>
     request<import('../types').CapacityHistoryEvent[]>(
       `/api/v1/capacity/history?limit=${encodeURIComponent(String(limit ?? 50))}`,
