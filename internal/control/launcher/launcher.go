@@ -387,7 +387,8 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	if captureShell {
 		traceCaptureShellLaunchStage("handshake-start")
 	}
-	if err := waitForRuntimeHandshake(ctx, opts.RuntimeID, detachedProcess, opts.Timeout); err != nil {
+	status, err := waitForRuntimeHandshake(ctx, opts.RuntimeID, detachedProcess, opts.Timeout)
+	if err != nil {
 		if captureShell {
 			traceCaptureShellLaunchStage("handshake-failed")
 		}
@@ -405,30 +406,7 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 
 	if captureShell {
 		traceCaptureShellLaunchStage("handshake-ready")
-	}
-	// Verify the process identity with a lightweight probe. Full status includes
-	// quota discovery and does not belong on the runtime startup critical path.
-	if captureShell {
-		traceCaptureShellLaunchStage("status-probe-start")
-	}
-	statusCtx, cancelStatus := context.WithTimeout(ctx, 10*time.Second)
-	defer cancelStatus()
-	client, err := protocol.NewClientContext(statusCtx, opts.RuntimeID)
-	if err != nil {
-		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProtocolReady, registry.StartupFaultProtocolError)
-		cleanupFailedLaunch()
-		return nil, fmt.Errorf("failed to connect to initialized runtime %s: %w", opts.RuntimeID, err)
-	}
-	defer client.Close()
-
-	status, err := client.HandshakeStatusContext(statusCtx)
-	if err != nil {
-		if captureShell {
-			traceCaptureShellLaunchStage("status-probe-failed")
-		}
-		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProtocolReady, registry.StartupFaultProtocolError)
-		cleanupFailedLaunch()
-		return nil, fmt.Errorf("status handshake probe failed for runtime %s: %w", opts.RuntimeID, err)
+		traceCaptureShellLaunchStage("status-ready")
 	}
 
 	// SessionHost assigns the authoritative process identity during Start and
