@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -11,6 +12,12 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 )
+
+func traceCaptureRuntimeHandshake(format string, args ...any) {
+	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+		log.Printf("nexus_docs_capture_diagnostic=runtime_handshake "+format, args...)
+	}
+}
 
 // waitForRuntimeHandshake waits for the control endpoint. When hostProc is set,
 // an early host exit surfaces the host log immediately instead of timing out.
@@ -27,20 +34,30 @@ func waitForRuntimeHandshake(ctx context.Context, runtimeID string, hostProc *os
 		close(hostDone)
 	}()
 
+	waitStarted := time.Now()
 	waitCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	ticker := time.NewTicker(30 * time.Millisecond)
 	defer ticker.Stop()
 
+	attempt := 0
 	for {
+		attempt++
+		attemptStarted := time.Now()
 		attemptCtx, cancelAttempt := context.WithTimeout(waitCtx, 500*time.Millisecond)
 		client, err := protocol.NewClientContext(attemptCtx, runtimeID)
-		if err == nil {
+		if err != nil {
+			traceCaptureRuntimeHandshake("attempt=%d stage=dial-failed elapsed=%s err=%q", attempt, time.Since(attemptStarted), err)
+		} else {
+			traceCaptureRuntimeHandshake("attempt=%d stage=dial-ready elapsed=%s", attempt, time.Since(attemptStarted))
+			pingStarted := time.Now()
 			err = client.PingContext(attemptCtx)
+			traceCaptureRuntimeHandshake("attempt=%d stage=ping-finished elapsed=%s err=%q", attempt, time.Since(pingStarted), err)
 			_ = client.Close()
 		}
 		cancelAttempt()
 		if err == nil {
+			traceCaptureRuntimeHandshake("stage=ready total=%s attempts=%d", time.Since(waitStarted), attempt)
 			return nil
 		}
 
@@ -50,6 +67,7 @@ func waitForRuntimeHandshake(ctx context.Context, runtimeID string, hostProc *os
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-waitCtx.Done():
+			traceCaptureRuntimeHandshake("stage=timeout total=%s attempts=%d ctx_err=%q", time.Since(waitStarted), attempt, waitCtx.Err())
 			select {
 			case <-hostDone:
 				return classifyDetachedHostFailure(runtimeID, hostProc.Pid)
