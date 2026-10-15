@@ -32,7 +32,7 @@ describe('downloadAuthenticatedCsv', () => {
     const createObjectURL = vi.fn(() => 'blob:local-csv');
     const revokeObjectURL = vi.fn();
     const setTimeout = vi.fn();
-    const fetcher = vi.fn(async () => new Response('provider,profile\\n', { status: 200 }));
+    const fetcher = vi.fn(async (_path: string, _options: RequestInit) => new Response('provider,profile\\n', { status: 200 }));
 
     vi.stubGlobal('fetch', fetcher);
     vi.stubGlobal('document', { createElement, body: { appendChild } });
@@ -41,7 +41,7 @@ describe('downloadAuthenticatedCsv', () => {
 
     await downloadAuthenticatedCsv('/api/v1/capacity/pace.csv', 'nexus-capacity.csv');
     expect(fetcher).toHaveBeenCalledTimes(1);
-    const [path, options] = fetcher.mock.calls[0] as [string, RequestInit];
+    const [path, options] = fetcher.mock.calls[0];
     expect(path).toBe('/api/v1/capacity/pace.csv');
     expect(options.method).toBe('GET');
     expect(options.credentials).toBe('same-origin');
@@ -57,7 +57,7 @@ describe('downloadAuthenticatedCsv', () => {
 
   it('does not manufacture a download after an HTTP authorization failure', async () => {
     auth.token = '';
-    const fetcher = vi.fn(async () => new Response('', { status: 401 }));
+    const fetcher = vi.fn(async (_path: string, _options: RequestInit) => new Response('', { status: 401 }));
     const createElement = vi.fn();
     vi.stubGlobal('fetch', fetcher);
     vi.stubGlobal('document', { createElement });
@@ -66,7 +66,7 @@ describe('downloadAuthenticatedCsv', () => {
       downloadAuthenticatedCsv('/api/v1/cost/observations.csv', 'costs.csv'),
     ).rejects.toThrow('HTTP 401');
     expect(createElement).not.toHaveBeenCalled();
-    const options = fetcher.mock.calls[0]?.[1] as RequestInit | undefined;
+    const options = fetcher.mock.calls[0]?.[1];
     expect((options?.headers as Headers).has('Authorization')).toBe(false);
   });
 });
