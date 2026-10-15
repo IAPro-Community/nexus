@@ -317,7 +317,7 @@ try {
   }, sensitiveFixturePaths);
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error?.message || error)));
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
   const listenStatePath = path.join(dataDir, 'web-auth', 'listen.json');
   const stateDeadline = Date.now() + 5000;
   while (!existsSync(listenStatePath) && Date.now() < stateDeadline) {
@@ -335,10 +335,10 @@ try {
     return { ok: response.ok, status: response.status };
   }, listenState.bootstrap_token);
   if (!bootstrapResponse.ok) throw new Error(`isolated auth bootstrap failed: HTTP ${bootstrapResponse.status}`);
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(
     () => document.body.innerText.includes('Projetos') || document.body.innerText.includes('Projects') || document.querySelector('.nx-os-shell'),
-    { timeout: 15000 },
+    { timeout: 60000 },
   );
   const session = await page.evaluate(async () => {
     const response = await fetch('/api/v1/session', { headers: { Accept: 'application/json' } });
@@ -358,7 +358,7 @@ try {
   }, { workspace: workspaceDir, csrf: session.csrf_token });
 
   // Refresh app state so the newly created synthetic project is present in the workspace route resolver.
-  const refreshResponse = await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
+  const refreshResponse = await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
   const refreshedProjects = await page.evaluate(async () => {
     const response = await fetch('/api/v1/projects', { headers: { Accept: 'application/json' } });
     const payload = await response.json().catch(() => null);
@@ -376,11 +376,11 @@ try {
   }
   await page.goto(
     new URL('/p/' + encodeURIComponent(createProject.id) + '/overview', url).toString(),
-    { waitUntil: 'domcontentloaded', timeout: 20000 },
+    { waitUntil: 'domcontentloaded', timeout: 60000 },
   );
   await page.waitForFunction(
     () => document.querySelector('.nx-os-shell')?.isConnected === true,
-    { timeout: 30000 },
+    { timeout: 60000 },
   );
   let resolveTerminalControl;
   const terminalControlReady = new Promise((resolve) => { resolveTerminalControl = resolve; });
@@ -518,7 +518,7 @@ try {
   }
   await page.waitForFunction(
     () => document.querySelector('.nx-os-shell')?.isConnected === true,
-    { timeout: 30000 },
+    { timeout: 60000 },
   );
   await page.waitForFunction(
     () => document.querySelector('.nx-project-shell-surface[data-runtime-id]'),
@@ -734,10 +734,10 @@ try {
   };
   const openProjectSurface = async (surface, subId = '') => {
     const route = `/p/${encodeURIComponent(createProject.id)}/${surface}${subId ? `/${encodeURIComponent(subId)}` : ''}`;
-    await page.goto(new URL(route, url).toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await page.goto(new URL(route, url).toString(), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(
     () => document.querySelector('.nx-os-shell')?.isConnected === true,
-    { timeout: 30000 },
+    { timeout: 60000 },
   );
     await page.waitForTimeout(500);
   };
@@ -946,10 +946,10 @@ try {
   const projectMatch = new URL(page.url()).pathname.match(/\/p\/([^/]+)/);
   if (projectMatch) {
     const providersUrl = new URL(`/p/${projectMatch[1]}/legacy-providers`, url);
-    await page.goto(providersUrl.toString(), { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await page.goto(providersUrl.toString(), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(
     () => document.querySelector('.nx-os-shell')?.isConnected === true,
-    { timeout: 30000 },
+    { timeout: 60000 },
   );
     await capture('VIS-004', 'provider.png', 'web/provider');
   }
