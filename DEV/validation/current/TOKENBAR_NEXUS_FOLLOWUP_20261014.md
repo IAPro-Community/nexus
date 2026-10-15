@@ -44,3 +44,12 @@ queued/cancelled por créditos; não considerar um run cancelado como aprovaçã
   acessibilidade e temas. O teste Capacity isolado é HTTP, não browser.
 - Added CSV auth UI Vitest regressions and shared CSV formula safety tests.
 - Go/browser CI final green ainda **não obtido** no momento desta edição.
+
+## Reavaliação de privacidade e robustez (2026-10-15)
+
+- Leitura de transcripts passou a exigir origem local, não LAN/túnel público.
+- Offset agora identifica geração do arquivo pelo prefixo in-memory; substituição
+  pelo mesmo pathname/tamanho não pula registros da nova geração.
+- Varredura de diretórios limitada a 20.000 entradas.
+- Foram adicionados testes direcionados; gates completos ainda dependem
+  de execução real em Go 1.25 e browser/Windows no mesmo SHA.
