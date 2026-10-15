@@ -60,16 +60,22 @@ without future empirical evaluation.
 - The local environment available for this change is Go 1.23 and lacks
   external repo DNS, so **these runtime gates have NOT been executed here**.
 
-## Further roadmap (not implemented by this slice)
+## Related follow-up now integrated (not part of the original P0 slice)
 
-- **P1 external Claude transcripts**: opt-in, read-only incremental ingestion;
-  require account attribution, stable event dedup and a separate external
-  evidence channel until reconciliation proves an execution was not also
-  included in the Nexus native cost ledger. Never silently add subscription
-  API-equivalent cost to actual billed spend. A new collector MUST pass
-  privacy and performance gates before any background collection.
-- **P2 service status**: public incident feeds with independent TTL/cache and
-  no user credential forwarding; never turn provider outage into fabricated
-  account quota; keep service status separate from quota and auth state.
-- **P2 cost history/export**: the existing Cost Intelligence ledger remains
-  the source of truth; this feature exports only pace measurements.
+- **P1 external Claude transcripts:** manual, explicitly consented scanner with
+  incremental offsets and message dedup is now available via Cost Intelligence.
+  The account scope is unverified, so token observations live in separate SQLite
+  tables and are deliberately **not** reconciled into actual cost or budget.
+  See [external usage and status](EXTERNAL_USAGE_AND_PUBLIC_STATUS.md).
+- **P2 service status:** read-only allowlisted public incident feeds are now
+  visible in Capacity Monitor Settings, with independent cache/timeout.
+- **P2 cost export:** canonical cost observations are now exportable in
+  authenticated CSV, without account scope IDs or fabricated zero prices.
+
+## Future upgrades requiring additional verification
+
+The remaining enhancement is **verified** cross-account/provider session
+attribution before ever merging local transcript tokens into the canonical
+ledger; retain explicit opt-in and permission/privacy gates. Public service
+incidents must never be interpreted as subscription quota.
+
