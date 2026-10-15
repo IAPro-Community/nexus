@@ -84,24 +84,14 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		return
 	}
 	traceDocsCaptureTerminalStage("host-live")
-	compatibilityStarted := time.Now()
-	traceDocsCaptureTerminalStage("attach-validation-start")
-	if err := registry.ValidateAttachCompatibility(sess); err != nil {
-		// Preserve the process for explicit user cleanup, but make the runtime
-		// non-attachable and actionable instead of opening a silent black TTY.
-		_ = reg.UpdateState(runtimeID, registry.StateStale)
-		writeError(w, http.StatusConflict, "runtime is incompatible with the current Nexus binary; recreate the session with nexus codex --yolo")
-		return
-	}
-	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
-		log.Printf("nexus_docs_capture_diagnostic=attach_validation_elapsed=%s", time.Since(compatibilityStarted))
-	}
-	traceDocsCaptureTerminalStage("attach-validation-finished")
-	traceDocsCaptureTerminalStage("attach-compatible")
 
-	// Dial the control endpoint before upgrading. A live PID/STARTING row is
-	// not enough on Windows when the named pipe was never created; prefer HTTP
-	// 404 over a WebSocket error overlay ("Runtime do Agente desconectado").
+	// Dial the control endpoint BEFORE the attach validation. A live
+	// PID/STARTING row is not enough on Windows when the named pipe was never
+	// created or its host is gone; prefer a fast HTTP 404 over a WebSocket
+	// error overlay ("Runtime do Agente desconectado"). Dialing first keeps
+	// the cheap liveness proof ahead of the multi-second binary identity
+	// checks, so a dead host fails fast instead of burning the client's lease
+	// budget on validation.
 	traceDocsCaptureTerminalStage("pipe-dial-start")
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
@@ -113,6 +103,22 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		return
 	}
 	traceDocsCaptureTerminalStage("pipe-connected")
+
+	compatibilityStarted := time.Now()
+	traceDocsCaptureTerminalStage("attach-validation-start")
+	if err := registry.ValidateAttachCompatibility(sess); err != nil {
+		// Preserve the process for explicit user cleanup, but make the runtime
+		// non-attachable and actionable instead of opening a silent black TTY.
+		_ = client.Close()
+		_ = reg.UpdateState(runtimeID, registry.StateStale)
+		writeError(w, http.StatusConflict, "runtime is incompatible with the current Nexus binary; recreate the session with nexus codex --yolo")
+		return
+	}
+	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+		log.Printf("nexus_docs_capture_diagnostic=attach_validation_elapsed=%s", time.Since(compatibilityStarted))
+	}
+	traceDocsCaptureTerminalStage("attach-validation-finished")
+	traceDocsCaptureTerminalStage("attach-compatible")
 
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
