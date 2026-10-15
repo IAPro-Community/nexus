@@ -17,6 +17,7 @@ export const CapacityMonitorSettings: React.FC = () => {
   const [prefs, setPrefs] = useState<CapacityPreferences | null>(null);
   const [status, setStatus] = useState<CapacityStatus | null>(null);
   const [publicStatus, setPublicStatus] = useState<PublicServiceStatus[]>([]);
+  const [publicStatusUnavailable, setPublicStatusUnavailable] = useState(false);
   const [draft, setDraft] = useState({
     warning: '',
     critical: '',
@@ -36,7 +37,9 @@ export const CapacityMonitorSettings: React.FC = () => {
       const [p, s] = await Promise.all([nexus.getCapacityPreferences(), nexus.getCapacityStatus()]);
       setPrefs(p);
       setStatus(s);
-      void nexus.getPublicServiceStatus().then(setPublicStatus).catch(() => setPublicStatus([]));
+      void nexus.getPublicServiceStatus()
+        .then((rows) => { setPublicStatus(rows); setPublicStatusUnavailable(false); })
+        .catch(() => { setPublicStatus([]); setPublicStatusUnavailable(true); });
       setDraft({
         warning: String(p.warning_threshold),
         critical: String(p.critical_threshold),
@@ -120,6 +123,10 @@ export const CapacityMonitorSettings: React.FC = () => {
 
   return (
     <Card className={styles.root}>
+      <div className={styles.header}>
+        <strong>{t('settings.capacity', 'Capacity Monitor')}</strong>
+        <p>{t('settings.capacityDescription', 'Proactive quota alerts with hysteresis.')}</p>
+      </div>
       {publicStatus.length > 0 ? (
         <section className={styles.section} aria-label={t('settings.publicStatus', 'Incidentes públicos dos provedores')}>
           <h3>{t('settings.publicStatus', 'Incidentes públicos dos provedores')}</h3>
@@ -140,10 +147,12 @@ export const CapacityMonitorSettings: React.FC = () => {
           <small>{t('settings.publicStatusHint', 'Estado público do serviço; não representa a quota da sua conta.')}</small>
         </section>
       ) : null}
-      <div className={styles.header}>
-        <strong>{t('settings.capacity', 'Capacity Monitor')}</strong>
-        <p>{t('settings.capacityDescription', 'Proactive quota alerts with hysteresis.')}</p>
-      </div>
+
+      {publicStatusUnavailable ? (
+        <p className={styles.empty}>
+          {t('settings.publicStatusUnknown', 'Estado público indisponível. Isso não indica falha da sua quota.')}
+        </p>
+      ) : null}
       {error ? (
         <InlineAlert tone="danger" title={t('common.error', 'Error')}>
           {error}

@@ -72,3 +72,6 @@ Ações manuais de importação e exclusão não concorrem: uma operação ativa
 retorna HTTP 409 para a outra, impedindo que dados apagados sejam reinseridos
 por uma importação simultânea. O scanner opera no sistema que hospeda o Nexus,
 não no dispositivo do navegador remoto.
+
+O parser descarta timestamps no futuro distante ou anteriores a 2000 e limita
+rótulos de modelo a 128 bytes para evitar persistir metadados arbitrários.

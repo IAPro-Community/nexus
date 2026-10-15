@@ -73,7 +73,9 @@ func parseLine(raw []byte) (store.ExternalClaudeMessage, bool) {
 	if id == "" { id = strings.TrimSpace(item.UUID) }
 	when, err := time.Parse(time.RFC3339Nano, item.Timestamp)
 	u := item.Message.Usage
-	if id == "" || err != nil || u.InputTokens < 0 || u.OutputTokens < 0 ||
+	if id == "" || err != nil || len(item.Message.Model) > 128 ||
+		when.After(time.Now().Add(time.Hour)) || when.Before(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)) ||
+		u.InputTokens < 0 || u.OutputTokens < 0 ||
 		u.CacheReadInputTokens < 0 || u.CacheCreationInputTokens < 0 {
 		return store.ExternalClaudeMessage{}, false
 	}

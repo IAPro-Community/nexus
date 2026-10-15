@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -61,4 +62,15 @@ func TestClaudeScanRejectsSymlinkRoot(t *testing.T) {
 	if _,err:=ScanClaudeProjects(context.Background(),s,link);err==nil {
 		t.Fatal("scanner followed linked source")
 	}
+}
+
+func TestClaudeUsageRejectsFutureTimestampAndHugeModel(t *testing.T) {
+	good := []byte(fixture("message-a", 3))
+	if _, ok := parseLine(good); !ok { t.Fatal("normal usage fixture rejected") }
+	future := fmt.Sprintf("{\"type\":\"assistant\",\"timestamp\":%q,\"message\":{\"id\":\"a\",\"model\":\"claude-test\",\"usage\":{\"input_tokens\":2,\"output_tokens\":4}}}",
+		time.Now().UTC().Add(48*time.Hour).Format(time.RFC3339Nano))
+	if _, ok := parseLine([]byte(future)); ok { t.Fatal("future observation accepted") }
+	oversized := fmt.Sprintf("{\"type\":\"assistant\",\"timestamp\":%q,\"message\":{\"id\":\"a\",\"model\":%q,\"usage\":{\"input_tokens\":2,\"output_tokens\":4}}}",
+		time.Now().UTC().Format(time.RFC3339Nano), strings.Repeat("x", 129))
+	if _, ok := parseLine([]byte(oversized)); ok { t.Fatal("unbounded model metadata accepted") }
 }
