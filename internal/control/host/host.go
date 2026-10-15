@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"os"
 	"os/exec"
@@ -175,8 +176,7 @@ func (sh *SessionHost) Start() error {
 		home := codex.EnvCODEXHome(sh.cfg.Env)
 		if home == "" {
 			setStage(registry.StartupProviderStarting, registry.StartupFaultProcessSupervision)
-			_ = sh.listener.Close()
-			sh.listener = nil
+			sh.closeListenerLocked("startup-codex-home-missing")
 			sh.completeStartFailureLocked()
 			return fmt.Errorf("CODEX_HOME is required to start a supervised Codex session")
 		}
@@ -185,15 +185,13 @@ func (sh *SessionHost) Start() error {
 		lock, ok, err := codex.TryAcquireTUILease(home)
 		if err != nil {
 			setStage(registry.StartupProviderStarting, registry.StartupFaultProcessSupervision)
-			_ = sh.listener.Close()
-			sh.listener = nil
+			sh.closeListenerLocked("startup-codex-tui-lease-error")
 			sh.completeStartFailureLocked()
 			return fmt.Errorf("failed to acquire Codex TUI lease: %w", err)
 		}
 		if !ok {
 			setStage(registry.StartupProviderStarting, registry.StartupFaultProcessSupervision)
-			_ = sh.listener.Close()
-			sh.listener = nil
+			sh.closeListenerLocked("startup-codex-tui-lease-busy")
 			sh.completeStartFailureLocked()
 			return fmt.Errorf("failed to acquire Codex TUI lease: %w", codex.ErrTUIBusy)
 		}
@@ -287,10 +285,7 @@ func (sh *SessionHost) completeStartFailureLocked() {
 	sh.session.State = registry.StateFailed
 	_ = sh.registry.UpdateState(sh.session.RuntimeID, registry.StateFailed)
 	sh.stopOnce.Do(func() { close(sh.stopChan) })
-	if sh.listener != nil {
-		_ = sh.listener.Close()
-		sh.listener = nil
-	}
+	sh.closeListenerLocked("startup-failure")
 	sh.fanout.Close()
 	_ = sh.termBackend.Close()
 	sh.doneOnce.Do(func() { close(sh.doneChan) })
@@ -381,11 +376,44 @@ func (sh *SessionHost) serveIPC(listener net.Listener) {
 			case <-sh.stopChan:
 				return
 			default:
+			}
+			if errors.Is(err, net.ErrClosed) {
 				return
 			}
+			// A transient Accept error must NOT retire the listener: the pipe
+			// keeps existing in the Windows object namespace while the accept
+			// loop is gone, so clients see FILE_NOT_FOUND/BUSY and time out
+			// even though the host process is alive. Retry until the listener
+			// is closed or the runtime stops.
+			slog.Info(
+				"nexus ipc accept retry",
+				"runtime_id", sh.session.RuntimeID,
+				"error", err.Error(),
+			)
+			select {
+			case <-sh.stopChan:
+				return
+			case <-time.After(50 * time.Millisecond):
+			}
+			continue
 		}
 		go sh.handleClient(conn)
 	}
+}
+
+// closeListenerLocked closes the IPC listener under sh.mu and records why. A
+// closed listener is the only state where a live host answers dial timeouts,
+// so every close path must leave an auditable reason in the host log.
+func (sh *SessionHost) closeListenerLocked(reason string) {
+	if sh.listener != nil {
+		_ = sh.listener.Close()
+		sh.listener = nil
+	}
+	slog.Info(
+		"nexus ipc listener closed",
+		"runtime_id", sh.session.RuntimeID,
+		"reason", reason,
+	)
 }
 
 func (sh *SessionHost) handleClient(conn net.Conn) {
@@ -919,6 +947,13 @@ func (sh *SessionHost) waitProcess() {
 	err := sh.termBackend.Wait()
 	<-sh.streamDone
 
+	slog.Info(
+		"nexus ipc runtime wait finished",
+		"runtime_id", sh.session.RuntimeID,
+		"provider_id", sh.session.ProviderID,
+		"wait_error", fmt.Sprintf("%v", err),
+	)
+
 	// A delayed ESC/CSI timer must not outlive the provider it would write to.
 	// Close the stateful input boundary before the terminal backend is torn down.
 	if sh.terminalInput != nil {
@@ -933,9 +968,7 @@ func (sh *SessionHost) waitProcess() {
 
 	// Tear down IPC surfaces so attached clients disconnect cleanly instead of
 	// hanging on a dead runtime.
-	if sh.listener != nil {
-		_ = sh.listener.Close()
-	}
+	sh.closeListenerLocked("runtime-process-exited")
 	sh.fanout.Close()
 	for c := range sh.clients {
 		_ = c.Close()
@@ -1063,6 +1096,11 @@ func (sh *SessionHost) Terminate() error {
 	}
 	if listener != nil {
 		_ = listener.Close()
+		slog.Info(
+			"nexus ipc listener closed",
+			"runtime_id", sh.session.RuntimeID,
+			"reason", "stop-requested",
+		)
 	}
 	killErr := sh.termBackend.Kill()
 	select {
