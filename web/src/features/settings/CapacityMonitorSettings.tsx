@@ -6,6 +6,7 @@ import type { CapacityPreferences, CapacityStatus, PublicServiceStatus } from '.
 import { asArray } from '../../lib/safeArray';
 import styles from './CapacityMonitorSettings.module.scss';
 import { downloadAuthenticatedCsv } from '../../lib/downloadAuthenticatedCsv';
+import { PublicProviderStatus } from './PublicProviderStatus';
 
 const num = (raw: string, fallback: number): number => {
   const parsed = Number.parseFloat(raw);
@@ -39,9 +40,17 @@ export const CapacityMonitorSettings: React.FC = () => {
       .catch(() => { setPublicStatus([]); setPublicStatusUnavailable(true); });
     try {
       setError('');
-      const [p, s] = await Promise.all([nexus.getCapacityPreferences(), nexus.getCapacityStatus()]);
+      // Degraded quota reads cannot prevent editing capacity preferences or
+      // viewing independently sourced public incident diagnostics.
+      const [p, s] = await Promise.all([
+        nexus.getCapacityPreferences(),
+        nexus.getCapacityStatus().catch(() => null),
+      ]);
       setPrefs(p);
       setStatus(s);
+      if (s === null) {
+        setError(t('settings.capacityStatusFailed', 'Quota data temporarily unavailable. Preferences are still editable.'));
+      }
       setDraft({
         warning: String(p.warning_threshold),
         critical: String(p.critical_threshold),
@@ -54,7 +63,7 @@ export const CapacityMonitorSettings: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void refresh();
@@ -108,6 +117,7 @@ export const CapacityMonitorSettings: React.FC = () => {
   if (!prefs) {
     return (
       <Card className={styles.root}>
+        <PublicProviderStatus publicStatus={publicStatus} publicStatusUnavailable={publicStatusUnavailable} />
         {error ? (
           <InlineAlert tone="danger" title={t('common.error', 'Error')}>
             {error}
@@ -129,32 +139,7 @@ export const CapacityMonitorSettings: React.FC = () => {
         <strong>{t('settings.capacity', 'Capacity Monitor')}</strong>
         <p>{t('settings.capacityDescription', 'Proactive quota alerts with hysteresis.')}</p>
       </div>
-      {publicStatus.length > 0 ? (
-        <section className={styles.section} aria-label={t('settings.publicStatus', 'Incidentes públicos dos provedores')}>
-          <h3>{t('settings.publicStatus', 'Incidentes públicos dos provedores')}</h3>
-          <div className={styles.statusList}>
-            {publicStatus.map((item) => (
-              <div className={styles.statusItem} key={item.provider}>
-                <strong>{item.provider}</strong>
-                <span data-indicator={item.indicator}>
-                  {item.stale
-                    ? t('settings.publicStatusUnknown', 'Indisponível ou desatualizado')
-                    : item.indicator === 'none'
-                      ? t('settings.publicStatusHealthy', 'Sem incidentes reportados')
-                      : item.detail || item.indicator}
-                </span>
-              </div>
-            ))}
-          </div>
-          <small>{t('settings.publicStatusHint', 'Estado público do serviço; não representa a quota da sua conta.')}</small>
-        </section>
-      ) : null}
-
-      {publicStatusUnavailable ? (
-        <p className={styles.empty}>
-          {t('settings.publicStatusFetchFailed', 'Estado público indisponível. Isso não indica falha da sua quota.')}
-        </p>
-      ) : null}
+      <PublicProviderStatus publicStatus={publicStatus} publicStatusUnavailable={publicStatusUnavailable} />
       {error ? (
         <InlineAlert tone="danger" title={t('common.error', 'Error')}>
           {error}
