@@ -1,0 +1,64 @@
+package externalusage
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
+)
+
+func fixture(id string, tokens int) string {
+	return fmt.Sprintf("{\"type\":\"assistant\",\"timestamp\":%q,\"message\":{\"id\":%q,\"model\":\"claude-test\",\"usage\":{\"input_tokens\":%d,\"output_tokens\":4,\"cache_read_input_tokens\":3,\"cache_creation_input_tokens\":2}}}\n",
+		time.Now().UTC().Format(time.RFC3339Nano), id, tokens)
+}
+
+func TestManualClaudeScanIncrementalAndNoDuplication(t *testing.T) {
+	root := t.TempDir()
+	s, err := store.Open(filepath.Join(t.TempDir(),"nexus.db"))
+	if err != nil { t.Fatal(err) }
+	defer s.Close()
+	project := filepath.Join(root, "my-project")
+	if err := os.MkdirAll(project, 0700); err != nil { t.Fatal(err) }
+	file := filepath.Join(project, "session.jsonl")
+	if err := os.WriteFile(file, []byte(fixture("same-message",10)+fixture("second",20)+"{\"type\":\"assistant\""),0600); err != nil { t.Fatal(err) }
+	ctx := context.Background()
+	a, err := ScanClaudeProjects(ctx,s,root)
+	if err != nil { t.Fatal(err) }
+	if a.Messages != 2 || !a.HasMore { t.Fatalf("first incremental scan: %+v",a) }
+	agg, err := s.SummarizeExternalClaude(ctx, 7)
+	if err != nil || agg.Messages != 2 || agg.InputTokens != 30 {
+		t.Fatalf("summary: %+v %v",agg,err)
+	}
+	a, err = ScanClaudeProjects(ctx,s,root)
+	if err != nil || a.Messages != 0 { t.Fatalf("no-op rescan: %+v %v",a,err) }
+	// Complete the partial line with a duplicate message ID.
+	duplicate := fixture("same-message",25)
+	f, err := os.OpenFile(file,os.O_APPEND|os.O_WRONLY,0600)
+	if err != nil { t.Fatal(err) }
+	_,err = f.Write([]byte(duplicate[len("{\"type\":\"assistant"):]))
+	_ = f.Close()
+	if err != nil { t.Fatal(err) }
+	a, err = ScanClaudeProjects(ctx,s,root)
+	if err != nil { t.Fatal(err) }
+	if a.Messages != 1 { t.Fatalf("completed line missed: %+v",a) }
+	agg,err=s.SummarizeExternalClaude(ctx,7)
+	if err!=nil || agg.Messages!=2 || agg.InputTokens!=45 {
+		t.Fatalf("duplicate-counted message: %+v %v",agg,err)
+	}
+}
+
+func TestClaudeScanRejectsSymlinkRoot(t *testing.T) {
+	target:=t.TempDir()
+	link:=filepath.Join(t.TempDir(),"escape")
+	if err:=os.Symlink(target,link);err!=nil{t.Skipf("symlink unsupported: %v",err)}
+	s,err:=store.Open(filepath.Join(t.TempDir(),"db.sqlite"))
+	if err!=nil{t.Fatal(err)}
+	defer s.Close()
+	if _,err:=ScanClaudeProjects(context.Background(),s,link);err==nil {
+		t.Fatal("scanner followed linked source")
+	}
+}
