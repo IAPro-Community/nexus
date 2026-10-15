@@ -299,6 +299,7 @@ describe('resolveThemeStyleVariables', () => {
     // Quando isCustomized é true, deve vencer o override manual
     const vars = resolveThemeStyleVariables(
       {
+        ...defaultThemePreferences,
         preset: 'nord',
         scheme: 'light',
         accent: 'purple',
