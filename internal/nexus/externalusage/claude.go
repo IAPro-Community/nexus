@@ -23,6 +23,7 @@ import (
 const (
 	SourceScope       = "LOCAL_DEFAULT_UNVERIFIED"
 	maxFiles          = 800
+	maxWalkEntries    = 20000
 	maxBytesPerFile   = 8 << 20
 	maxBytesPerScan   = 48 << 20
 	maxLineBytes      = 2 << 20
@@ -100,9 +101,14 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 		return report, errors.New("Claude projects source is not a directory")
 	}
 	files := make([]string, 0, 32)
+	visited := 0
 	err = filepath.WalkDir(root, func(path string, item fs.DirEntry, err error) error {
 		if err != nil { return err }
 		if ctx.Err() != nil { return ctx.Err() }
+		visited++
+		if visited > maxWalkEntries {
+			return errors.New("too many Claude project directory entries")
+		}
 		if item.Type()&os.ModeSymlink != 0 { return nil }
 		if item.IsDir() { return nil }
 		if item.Type().IsRegular() && strings.HasSuffix(item.Name(), ".jsonl") {
