@@ -91,9 +91,13 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		traceCaptureShellLaunchStage("orphan-cleanup-done")
 	}
 
-	if captureShell { traceCaptureShellLaunchStage("driver-lookup-start") }
+	if captureShell {
+		traceCaptureShellLaunchStage("driver-lookup-start")
+	}
 	d, err := l.drivers.Get(opts.ProviderID)
-	if captureShell { traceCaptureShellLaunchStage("driver-lookup-finished") }
+	if captureShell {
+		traceCaptureShellLaunchStage("driver-lookup-finished")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("unknown driver for provider %q: %w", opts.ProviderID, err)
 	}
@@ -115,9 +119,13 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		}
 		launchModel = driver.ResolveLaunchModel(opts.ProviderID, launchModel, cachedUsage)
 	}
-	if captureShell { traceCaptureShellLaunchStage("launch-config-start") }
+	if captureShell {
+		traceCaptureShellLaunchStage("launch-config-start")
+	}
 	configuredArgs, err := driver.ApplyLaunchConfiguration(opts.ProviderID, launchModel, opts.Options, opts.Args)
-	if captureShell { traceCaptureShellLaunchStage("launch-config-finished") }
+	if captureShell {
+		traceCaptureShellLaunchStage("launch-config-finished")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("invalid launch configuration for %s:%s: %w", opts.ProviderID, opts.ProfileID, err)
 	}
@@ -158,9 +166,13 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		env = launchenv.Merge(customBaseEnv, opts.Environment, opts.PathPrepend)
 		customCommand = true
 	} else {
-		if captureShell { traceCaptureShellLaunchStage("build-command-start") }
+		if captureShell {
+			traceCaptureShellLaunchStage("build-command-start")
+		}
 		bin, extraArgs, env, err = d.BuildCommand(ctx, prof, configuredArgs)
-		if captureShell { traceCaptureShellLaunchStage("build-command-finished") }
+		if captureShell {
+			traceCaptureShellLaunchStage("build-command-finished")
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to build command for %s:%s: %w", opts.ProviderID, opts.ProfileID, err)
 		}

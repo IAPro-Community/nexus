@@ -29,17 +29,17 @@ func newEOFPipeConn() *eofPipeConn {
 	return &eofPipeConn{closed: make(chan struct{})}
 }
 
-func (c *eofPipeConn) Read([]byte) (int, error)  { return 0, io.EOF }
+func (c *eofPipeConn) Read([]byte) (int, error)    { return 0, io.EOF }
 func (c *eofPipeConn) Write(b []byte) (int, error) { return len(b), nil }
 func (c *eofPipeConn) Close() error {
 	c.closeOnce.Do(func() { close(c.closed) })
 	return nil
 }
-func (c *eofPipeConn) LocalAddr() net.Addr                { return fakePipeAddr{} }
-func (c *eofPipeConn) RemoteAddr() net.Addr               { return fakePipeAddr{} }
-func (c *eofPipeConn) SetDeadline(time.Time) error        { return nil }
-func (c *eofPipeConn) SetReadDeadline(time.Time) error    { return nil }
-func (c *eofPipeConn) SetWriteDeadline(time.Time) error   { return nil }
+func (c *eofPipeConn) LocalAddr() net.Addr              { return fakePipeAddr{} }
+func (c *eofPipeConn) RemoteAddr() net.Addr             { return fakePipeAddr{} }
+func (c *eofPipeConn) SetDeadline(time.Time) error      { return nil }
+func (c *eofPipeConn) SetReadDeadline(time.Time) error  { return nil }
+func (c *eofPipeConn) SetWriteDeadline(time.Time) error { return nil }
 
 // fakeAcceptListener fails a configurable number of Accept calls before
 // serving queued connections, reproducing a transient accept error while the
