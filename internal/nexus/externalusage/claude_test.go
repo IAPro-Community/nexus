@@ -74,3 +74,18 @@ func TestClaudeUsageRejectsFutureTimestampAndHugeModel(t *testing.T) {
 		time.Now().UTC().Format(time.RFC3339Nano), strings.Repeat("x", 129))
 	if _, ok := parseLine([]byte(oversized)); ok { t.Fatal("unbounded model metadata accepted") }
 }
+
+func TestClaudeScanSkipsSymlinkedTranscript(t *testing.T) {
+	root := t.TempDir()
+	outside := filepath.Join(t.TempDir(), "outside.jsonl")
+	if err := os.WriteFile(outside, []byte(fixture("outside-message", 99)), 0600); err != nil { t.Fatal(err) }
+	if err := os.Symlink(outside, filepath.Join(root,"linked.jsonl")); err != nil { t.Skipf("symlink unsupported: %v", err) }
+	s, err := store.Open(filepath.Join(t.TempDir(), "nexus.db"))
+	if err != nil { t.Fatal(err) }
+	defer s.Close()
+	report, err := ScanClaudeProjects(context.Background(), s, root)
+	if err != nil { t.Fatal(err) }
+	if report.Messages != 0 || report.Files != 0 { t.Fatalf("symlinked transcript read: %+v", report) }
+	summary, err := s.SummarizeExternalClaude(context.Background(), 7)
+	if err != nil || summary.Messages != 0 { t.Fatalf("outside transcript stored: %+v %v", summary, err) }
+}

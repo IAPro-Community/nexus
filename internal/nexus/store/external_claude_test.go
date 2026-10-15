@@ -47,3 +47,27 @@ func TestExternalClaudeClearForgetsOffsetsAndMessages(t *testing.T) {
 	offset,err:=s.ExternalClaudeOffset(ctx,"LOCAL_DEFAULT_UNVERIFIED","file-hash")
 	if err!=nil||offset!=0{t.Fatalf("external offsets not cleared: %d, %v",offset,err)}
 }
+
+func TestPruneExternalClaudeRetainsNewerEvidenceOnly(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	now := time.Now().UTC()
+	old := ExternalClaudeMessage{
+		MessageHash: "old-hash", Model: "claude", InputTokens: 10,
+		ObservedAt: now.Add(-120 * 24 * time.Hour),
+	}
+	recent := ExternalClaudeMessage{
+		MessageHash: "new-hash", Model: "claude", InputTokens: 20,
+		ObservedAt: now,
+	}
+	if err := s.SaveExternalClaudeBatch(ctx,"LOCAL_DEFAULT_UNVERIFIED","old-file",50,[]ExternalClaudeMessage{old}); err != nil { t.Fatal(err) }
+	if err := s.SaveExternalClaudeBatch(ctx,"LOCAL_DEFAULT_UNVERIFIED","recent-file",100,[]ExternalClaudeMessage{recent}); err != nil { t.Fatal(err) }
+	if _, err := s.DB().Exec("UPDATE external_claude_offsets SET updated_at=? WHERE file_hash=?",formatStoreTime(now.Add(-120*24*time.Hour)),"old-file"); err != nil { t.Fatal(err) }
+	if err := s.PruneExternalClaude(ctx,now.Add(-90*24*time.Hour)); err != nil { t.Fatal(err) }
+	summary,err := s.SummarizeExternalClaude(ctx,365)
+	if err != nil || summary.Messages != 1 || summary.InputTokens != 20 { t.Fatalf("prune: %+v %v",summary,err) }
+	oldOffset,err := s.ExternalClaudeOffset(ctx,"LOCAL_DEFAULT_UNVERIFIED","old-file")
+	if err != nil || oldOffset != 0 { t.Fatalf("inactive offset persisted: %d %v",oldOffset,err) }
+	newOffset,err := s.ExternalClaudeOffset(ctx,"LOCAL_DEFAULT_UNVERIFIED","recent-file")
+	if err != nil || newOffset != 100 { t.Fatalf("recent offset lost: %d %v",newOffset,err) }
+}

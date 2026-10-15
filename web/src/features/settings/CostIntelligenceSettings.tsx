@@ -343,7 +343,7 @@ export const CostIntelligenceSettings: React.FC = () => {
               .catch((err) => setError(err instanceof Error ? err.message : String(err)))
           }
         >
-          {t('settings.costExport', 'Exportar histórico de custos (CSV)')}
+          {t('settings.costExport', 'Exportar até 1.000 observações (CSV)')}
         </Button>
         <Button tone="brand" onClick={() => void save()} disabled={saving}>
           {saving

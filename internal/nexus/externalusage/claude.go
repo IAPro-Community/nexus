@@ -130,6 +130,13 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 		if allow <= 0 { report.HasMore = true; break }
 		file, err := os.Open(name)
 		if err != nil { return report, err }
+		// Refuse a path swapped for a symlink or another inode after WalkDir.
+		// Claude may append while we read; appends are handled by newline offsets.
+		openedInfo, statErr := file.Stat()
+		if statErr != nil || !openedInfo.Mode().IsRegular() || !os.SameFile(info, openedInfo) {
+			_ = file.Close()
+			return report, errors.New("Claude transcript changed while opening")
+		}
 		if _, err = file.Seek(offset, io.SeekStart); err != nil {
 			_ = file.Close()
 			return report, err
@@ -159,6 +166,11 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 		report.Bytes += cursor - offset
 		scanned += allow
 		if cursor < info.Size() { report.HasMore = true }
+	}
+	// Retain no more than 90 days of external-source metadata. This is a
+	// manual-scan cleanup, never a daemon or background filesystem read.
+	if err := db.PruneExternalClaude(ctx, time.Now().UTC().Add(-90*24*time.Hour)); err != nil {
+		return report, err
 	}
 	return report, nil
 }

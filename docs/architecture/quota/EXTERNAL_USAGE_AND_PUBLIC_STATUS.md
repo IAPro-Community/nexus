@@ -20,6 +20,11 @@ operacional que executa o backend Nexus**, não necessariamente o navegador.
   linha completa, hash do identificador da mensagem, modelo, timestamp e tokens.
   Não armazena prompts, respostas, credenciais, paths ou e-mails.
 - Mensagens duplicadas atualizam o mesmo registro, sem duplicar contadores.
+- A cada varredura manual, o Nexus remove automaticamente observações com
+  mais de 90 dias e offsets não atualizados por 90 dias; uma remoção manual
+  explícita continua disponível nas preferências de custo.
+- A leitura valida o descritor aberto contra o arquivo verificado na listagem,
+  impedindo a troca por symlink entre a descoberta e o `os.Open`.
 - É impossível atribuir com segurança esses transcripts locais a perfis
   autenticados do Nexus. Todos ficam em LOCAL_DEFAULT_UNVERIFIED, numa tabela
   separada; não entram em `cost_observations`, orçamento, custo efetivo ou

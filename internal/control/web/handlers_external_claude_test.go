@@ -19,6 +19,7 @@ func TestExternalClaudeRequiresExplicitConsentAndKeepsCostSeparate(t *testing.T)
 	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // os.UserHomeDir on Windows ignores HOME
 	t.Cleanup(nexus.ResetDefaultForTest)
 	client, srv, csrf := csrfClient(t)
 	dir := filepath.Join(home, ".claude", "projects", "sample")

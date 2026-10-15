@@ -120,3 +120,23 @@ func (s *Store) ClearExternalClaude(ctx context.Context) error {
 	}
 	return tx.Commit()
 }
+
+// PruneExternalClaude removes old usage samples and inactive file offsets.
+// It never touches the canonical cost ledger or provider credentials.
+func (s *Store) PruneExternalClaude(ctx context.Context, before time.Time) error {
+	if s == nil || s.db == nil { return errors.New("external usage store unavailable") }
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil { return err }
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM external_claude_messages WHERE source_scope=? AND observed_at<?",
+		"LOCAL_DEFAULT_UNVERIFIED", formatStoreTime(before)); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM external_claude_offsets WHERE source_scope=? AND updated_at<?",
+		"LOCAL_DEFAULT_UNVERIFIED", formatStoreTime(before)); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
