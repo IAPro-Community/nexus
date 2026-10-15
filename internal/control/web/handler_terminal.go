@@ -61,6 +61,60 @@ func NewTerminalHub(auth *AuthManager, registries ...*registry.Registry) *Termin
 	}
 }
 
+// attachDialBudget bounds how long HandleWebSocket waits for the runtime's
+// control pipe before answering 404. The launch handshake routinely needs
+// multiple attempts over a couple of seconds to reach the pipe on a loaded
+// machine, so a single short budget turned a live-but-slow host into a
+// spurious 404 ("Unexpected response code: 404") that broke the terminal
+// reconnect. The budget stays comfortably inside the frontend's
+// TERMINAL_CONNECT_TIMEOUT_MS (30s) and the capture's lease timer (35s).
+const attachDialBudget = 15 * time.Second
+
+// dialAttachControl dials the runtime control pipe with the same patience the
+// launch handshake uses: short per-attempt deadlines retried inside one bounded
+// budget. Fast-fail stays intact because HostLive re-checks the host process
+// (and its generation) after every attempt — a genuinely dead runtime still
+// 404s within a single ~500ms attempt instead of burning the whole budget.
+func dialAttachControl(sess registry.RuntimeSession, runtimeID string) (*protocol.Client, error) {
+	return dialAttachControlBudget(sess, runtimeID, attachDialBudget)
+}
+
+func dialAttachControlBudget(
+	sess registry.RuntimeSession,
+	runtimeID string,
+	budget time.Duration,
+) (*protocol.Client, error) {
+	started := time.Now()
+	deadline := started.Add(budget)
+	attempt := 0
+	for {
+		attempt++
+		attemptCtx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+		client, err := protocol.NewClientContext(attemptCtx, runtimeID)
+		cancel()
+		if err == nil {
+			if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+				log.Printf(
+					"nexus_docs_capture_diagnostic=pipe_dial_ready attempts=%d elapsed=%s",
+					attempt,
+					time.Since(started),
+				)
+			}
+			return client, nil
+		}
+		if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+			log.Printf("nexus_docs_capture_diagnostic=pipe_dial_attempt attempt=%d err=%q", attempt, err.Error())
+		}
+		if !sess.HostLive() {
+			return nil, err
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("control pipe did not accept within %s (%d attempts): %w", budget, attempt, err)
+		}
+		<-time.After(30 * time.Millisecond)
+	}
+}
+
 func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, agentID string, runtimeID string) {
 	traceDocsCaptureTerminalStage("request")
 	if h.auth != nil && h.auth.AuthenticateRequest(r) == nil {
@@ -93,7 +147,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	// checks, so a dead host fails fast instead of burning the client's lease
 	// budget on validation.
 	traceDocsCaptureTerminalStage("pipe-dial-start")
-	client, err := protocol.NewClient(runtimeID)
+	client, err := dialAttachControl(sess, runtimeID)
 	if err != nil {
 		traceDocsCaptureTerminalStage("pipe-dial-failed")
 		if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
