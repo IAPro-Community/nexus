@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -126,4 +127,32 @@ func TestExternalClaudeDeleteDoesNotRequireRecentSevenDayMessages(t *testing.T) 
 	if long.Messages != 0 { t.Fatalf("old transcript metadata survived deletion: %+v", long) }
 	offset, err := st.ExternalClaudeOffset(ctx, "LOCAL_DEFAULT_UNVERIFIED", "retained-offset")
 	if err != nil || offset != 0 { t.Fatalf("old offset survived deletion: %d, %v", offset, err) }
+}
+
+func TestLocalTranscriptConsentRejectsRemoteSessions(t *testing.T) {
+	cases := []struct{
+		name string
+		addr string
+		host string
+		origin string
+		want bool
+	}{
+		{"local web", "127.0.0.1:5000", "127.0.0.1:3000", "http://127.0.0.1:3000", true},
+		{"local desktop", "[::1]:5000", "wails.localhost", "http://wails.localhost", true},
+		{"remote LAN", "192.168.1.99:5500", "127.0.0.1:3000", "http://127.0.0.1:3000", false},
+		{"remote tunnel host", "127.0.0.1:5000", "my-tunnel.example", "https://my-tunnel.example", false},
+		{"remote tunnel origin", "127.0.0.1:5000", "127.0.0.1:3000", "https://my-tunnel.example", false},
+		{"malformed origin", "127.0.0.1:5000", "localhost:3000", "not://local", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T){
+			req:=httptest.NewRequest(http.MethodPost,"http://localhost:3000/api/v1/cost/external-claude",nil)
+			req.RemoteAddr=tc.addr
+			req.Host=tc.host
+			if tc.origin!=""{req.Header.Set("Origin",tc.origin)}
+			if got:=localTranscriptConsentRequest(req);got!=tc.want{
+				t.Fatalf("localTranscriptConsentRequest()=%t, want %t",got,tc.want)
+			}
+		})
+	}
 }
