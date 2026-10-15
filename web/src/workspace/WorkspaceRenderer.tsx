@@ -566,6 +566,12 @@ const WorkspaceStackView: React.FC<{
                     if (surface.closable === false) return;
                     setTabMenu({ surface, point: contextMenuFromEvent(event) });
                   }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Delete' && surface.closable !== false) {
+                      event.preventDefault();
+                      closeSurface(surface);
+                    }
+                  }}
                 >
                   <span className="nx-workspace-tab__icon" aria-hidden="true">
                     <TabIcon size={16} strokeWidth={2.25} />
@@ -583,17 +589,19 @@ const WorkspaceStackView: React.FC<{
                   <span className="nx-workspace-tab__label">{displayTitle(surface)}</span>
                 </button>
                 {surface.closable !== false && (
-                  <button
-                    type="button"
+                  // Decorative close affordance: role=tablist may own only tabs,
+                  // so the × stays out of the accessibility tree. Keyboard users
+                  // close a tab with Delete or the tab context menu.
+                  <span
                     className="nx-workspace-tab__close"
-                    aria-label={t('workspace.closeNamed', { name: displayTitle(surface) })}
+                    aria-hidden="true"
                     onClick={(event) => {
                       event.stopPropagation();
                       closeSurface(surface);
                     }}
                   >
                     <X size={11} />
-                  </button>
+                  </span>
                 )}
               </div>
             );
@@ -956,6 +964,16 @@ const TerminalsHost: React.FC<{
                         setChromeMenuViewId(null);
                         setTabMenu({ surface, point: contextMenuFromEvent(event) });
                       }}
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === 'Delete' &&
+                          surface.closable !== false &&
+                          onRequestClose
+                        ) {
+                          event.preventDefault();
+                          onRequestClose(surface);
+                        }
+                      }}
                     >
                       {icon ? (
                         <span className="nx-pty-tab__glyph" aria-hidden="true">
@@ -965,17 +983,18 @@ const TerminalsHost: React.FC<{
                       <span className="nx-workspace-tab__label">{tabLabel}</span>
                     </button>
                     {surface.closable !== false && onRequestClose && (
-                      <button
-                        type="button"
+                      // Decorative close affordance, same contract as the main
+                      // strip: aria-hidden ×, Delete key or context menu close.
+                      <span
                         className="nx-workspace-tab__close"
-                        aria-label={t('workspace.closeNamed', { name: tabLabel })}
+                        aria-hidden="true"
                         onClick={(event) => {
                           event.stopPropagation();
                           onRequestClose(surface);
                         }}
                       >
                         <X size={11} />
-                      </button>
+                      </span>
                     )}
                     <WindowChromeMenu
                       viewId={viewId}
