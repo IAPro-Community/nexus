@@ -54,3 +54,16 @@ cd web && npm run quality:full
 Certificar a interface Usage, Cost e HUD, verificar CSRF, isolamento entre
 contas e smoke Windows WebView2/ConPTY. A validação não está concluída apenas
 porque o GitHub aceitou os commits.
+
+## Exportação de custo canônico
+
+O endpoint autenticado `GET /api/v1/cost/observations.csv?days=30`
+exporta no máximo 1.000 observações recentes do ledger canônico (até 365
+dias mediante parâmetro). Não expõe `account_scope`, caminhos, prompts,
+identificadores de execução ou credenciais. Um custo desconhecido aparece
+como célula vazia, jamais como zero. Os textos são protegidos contra fórmulas
+em CSV. Os dados externos do Claude continuam fora desse relatório.
+
+As exportações CSV de custo e capacidade usam o mesmo helper frontend que
+anexa o Bearer token no Desktop/Wails; links HTML diretos não garantem esse
+cabeçalho. Em Web convencional a autenticação da sessão segue pelo cookie.
