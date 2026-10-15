@@ -59,3 +59,59 @@ func TestValidateAttachCompatibilityRejectsLegacyIdentity(t *testing.T) {
 		t.Fatalf("expected legacy runtime identity rejection, got %v", err)
 	}
 }
+
+// TestBinaryFingerprintMemoizesPerOnDiskVersion pins the attach-path
+// optimization: repeated hashing of the same on-disk version (same path, size
+// and mtime) must not re-read the binary, while a genuinely different version
+// re-hashes and a removed binary still fails closed.
+func TestBinaryFingerprintMemoizesPerOnDiskVersion(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "nexus")
+	if err := os.WriteFile(path, []byte("nexus-binary-v1"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	first, err := BinaryFingerprint(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Same on-disk version (identical size and mtime): the memo returns the
+	// hash it already computed instead of reading the file again.
+	if err := os.WriteFile(path, []byte("nexus-binary-vX"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(path, info.ModTime(), info.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+	cached, err := BinaryFingerprint(path)
+	if err != nil {
+		t.Fatalf("memoized fingerprint must resolve, got %v", err)
+	}
+	if cached != first {
+		t.Fatalf("memoized fingerprint changed: %q != %q", cached, first)
+	}
+
+	// A different on-disk version must invalidate the memo.
+	future := time.Now().Add(2 * time.Second)
+	if err := os.Chtimes(path, future, future); err != nil {
+		t.Fatal(err)
+	}
+	second, err := BinaryFingerprint(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second == first {
+		t.Fatal("fingerprint of a different on-disk version must differ")
+	}
+
+	// A removed binary still fails closed.
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := BinaryFingerprint(path); err == nil {
+		t.Fatal("expected missing binary to fail the fingerprint read")
+	}
+}
