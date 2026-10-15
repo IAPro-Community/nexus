@@ -96,14 +96,19 @@ func TestClaudeScanDetectsReplacedSameSizeTranscript(t *testing.T) {
 	if err != nil { t.Fatal(err) }
 	defer s.Close()
 	path := filepath.Join(root, "session.jsonl")
-	original := []byte(fixture("message-A", 15) + fixture("message-B", 25))
+	stamp := time.Now().UTC().Truncate(time.Second).Format(time.RFC3339)
+	record := func(id string, tokens int) string {
+		return fmt.Sprintf("{\"type\":\"assistant\",\"timestamp\":%q,\"message\":{\"id\":%q,\"model\":\"claude-test\",\"usage\":{\"input_tokens\":%d,\"output_tokens\":4}}}\n",
+			stamp, id, tokens)
+	}
+	original := []byte(record("message-A", 15) + record("message-B", 25))
 	if len(original) < 256 { t.Fatal("fixture must cover fixed prefix") }
 	if err := os.WriteFile(path, original, 0600); err != nil { t.Fatal(err) }
 	ctx := context.Background()
 	first, err := ScanClaudeProjects(ctx, s, root)
 	if err != nil || first.Messages != 2 { t.Fatalf("first import: %+v, %v", first, err) }
 
-	replacement := []byte(fixture("message-C", 35) + fixture("message-D", 45))
+	replacement := []byte(record("message-C", 35) + record("message-D", 45))
 	if len(replacement) != len(original) {
 		t.Fatalf("replacement fixture must have exact same size: %d vs %d",len(replacement),len(original))
 	}
