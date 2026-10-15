@@ -34,6 +34,12 @@ func (h *NexusHandler) handleExternalClaudeUsage(w http.ResponseWriter, r *http.
 			return
 		}
 		writeJSON(w, http.StatusOK, summary)
+	case http.MethodDelete:
+		if err := st.ClearExternalClaude(r.Context()); err != nil {
+			writeError(w, http.StatusInternalServerError, "unable to clear external usage")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"cleared": true})
 	case http.MethodPost:
 		var payload struct {
 			Consent bool `json:"consent"`

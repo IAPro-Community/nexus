@@ -101,3 +101,22 @@ func (s *Store) SummarizeExternalClaude(ctx context.Context, days int) (External
 	}
 	return out, err
 }
+
+/* ClearExternalClaude allows consent revocation without touching canonical
+   costs or quota telemetry. Offsets must also be deleted so a future
+   opt-in scan can re-read all available files. */
+func (s *Store) ClearExternalClaude(ctx context.Context) error {
+	if s == nil || s.db == nil { return errors.New("external usage store unavailable") }
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil { return err }
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM external_claude_messages WHERE source_scope=?", "LOCAL_DEFAULT_UNVERIFIED"); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM external_claude_offsets WHERE source_scope=?", "LOCAL_DEFAULT_UNVERIFIED"); err != nil {
+		return err
+	}
+	return tx.Commit()
+}

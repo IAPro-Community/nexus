@@ -130,6 +130,23 @@ export const CostIntelligenceSettings: React.FC = () => {
     }
   };
 
+  const clearLocalClaude = async () => {
+    if (!window.confirm(t('settings.externalClaudeConfirmClear', 'Excluir os metadados de uso externo importados?'))) {
+      return;
+    }
+    setExternalBusy(true);
+    setExternalResult('');
+    try {
+      await nexus.clearExternalClaudeUsage();
+      setExternal(await nexus.getExternalClaudeUsage());
+      setExternalResult(t('settings.externalClaudeCleared', 'Metadados externos excluídos.'));
+    } catch (err) {
+      setExternalResult(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExternalBusy(false);
+    }
+  };
+
   // Consent is scoped to this click only. No background scanning is enabled.
   const scanLocalClaude = async () => {
     setExternalBusy(true);
@@ -303,6 +320,11 @@ export const CostIntelligenceSettings: React.FC = () => {
             ? t('settings.externalClaudeScanning', 'Lendo registros…')
             : t('settings.externalClaudeConsent', 'Autorizar uma leitura local agora')}
         </Button>
+        {external && external.messages > 0 ? (
+          <Button onClick={() => void clearLocalClaude()} disabled={externalBusy}>
+            {t('settings.externalClaudeClear', 'Limpar metadados importados')}
+          </Button>
+        ) : null}
         {external ? (
           <p className={styles.externalSummary}>
             {t('settings.externalClaudeObserved', {

@@ -835,6 +835,8 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ consent: true }),
     }),
+  clearExternalClaudeUsage: () =>
+    request<{ cleared: boolean }>('/api/v1/cost/external-claude', { method: 'DELETE' }),
   getCostPreferences: () => request<import('../types').CostPreferences>('/api/v1/cost/preferences'),
   putCostPreferences: (prefs: import('../types').CostPreferences) =>
     request<import('../types').CostPreferences>('/api/v1/cost/preferences', {
