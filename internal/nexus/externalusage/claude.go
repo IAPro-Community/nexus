@@ -119,24 +119,35 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 		info, err := os.Lstat(name)
 		if err != nil { return report, err }
 		if !info.Mode().IsRegular() { continue }
-		hash := digest(name)
-		offset, err := db.ExternalClaudeOffset(ctx, SourceScope, hash)
-		if err != nil { return report, err }
-		if offset > info.Size() { offset = 0 }
-		if offset == info.Size() { continue }
-		allow := info.Size() - offset
-		if allow > maxBytesPerFile { allow = maxBytesPerFile; report.HasMore = true }
-		if allow > maxBytesPerScan-scanned { allow = maxBytesPerScan-scanned; report.HasMore = true }
-		if allow <= 0 { report.HasMore = true; break }
+		// Open and verify the inode *before* consulting the cursor. A pathname
+		// alone is not a file generation: a replaced JSONL could have the same
+		// size and cause all replacement records to be silently skipped.
 		file, err := os.Open(name)
 		if err != nil { return report, err }
-		// Refuse a path swapped for a symlink or another inode after WalkDir.
-		// Claude may append while we read; appends are handled by newline offsets.
 		openedInfo, statErr := file.Stat()
 		if statErr != nil || !openedInfo.Mode().IsRegular() || !os.SameFile(info, openedInfo) {
 			_ = file.Close()
 			return report, errors.New("Claude transcript changed while opening")
 		}
+		// Fingerprint the stable beginning of the content in memory, never
+		// saving its bytes. Append-only files retain the same prefix, while
+		// a replaced file begins at offset zero under a new hashed key.
+		header := make([]byte, 256)
+		n, readErr := io.ReadFull(file, header)
+		if readErr != nil && !errors.Is(readErr, io.EOF) &&
+			!errors.Is(readErr, io.ErrUnexpectedEOF) {
+			_ = file.Close()
+			return report, readErr
+		}
+		hash := digest(name + ":" + digest(string(header[:n])))
+		offset, err := db.ExternalClaudeOffset(ctx, SourceScope, hash)
+		if err != nil { _ = file.Close(); return report, err }
+		if offset > info.Size() { offset = 0 }
+		if offset == info.Size() { _ = file.Close(); continue }
+		allow := info.Size() - offset
+		if allow > maxBytesPerFile { allow = maxBytesPerFile; report.HasMore = true }
+		if allow > maxBytesPerScan-scanned { allow = maxBytesPerScan-scanned; report.HasMore = true }
+		if allow <= 0 { _ = file.Close(); report.HasMore = true; break }
 		if _, err = file.Seek(offset, io.SeekStart); err != nil {
 			_ = file.Close()
 			return report, err
