@@ -114,3 +114,20 @@ explícita e novo commit antes de retentar o gate no mesmo SHA.
 
 All of these gates are **specified but not recorded as passed** until run
 against the exact final release SHA. GitHub Actions cancellation is not success.
+
+## Endurecimentos adicionais na homologação
+
+- A ação **POST de leitura de transcripts** exige conexão local ao backend e
+  origem local (`localhost`, `127.0.0.1`, `::1` ou `wails.localhost`).
+  Conexões de LAN e túneis públicos não podem iniciar a leitura do diretório
+  privado do usuário do servidor. GET do resumo e exclusão permanecem sob
+  sessão Nexus autenticada e CSRF para mutações.
+- Offsets incrementais são vinculados a um hash do caminho **e do prefixo
+  estável de 256 bytes do arquivo**. O prefixo só é processado em memória:
+  não fica armazenado. Isso impede o caso de uma substituição por outro JSONL
+  de mesmo tamanho herdar o offset antigo e ocultar novas mensagens.
+- A varredura possui teto de 20.000 entradas de diretório, além dos limites
+  anteriores de arquivos, bytes e tempo. Substituições de arquivo e chamadas
+  de origem remota agora têm testes de regressão.
+- O cálculo externo continua não atribuído; a defesa contra file replacement
+  não prova que as mensagens pertencem a um perfil Nexus.
