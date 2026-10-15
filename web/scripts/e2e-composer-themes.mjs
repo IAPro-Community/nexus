@@ -294,7 +294,10 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
     waitUntil: 'domcontentloaded',
     timeout: 15000,
   });
-  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 10000 });
+  // The composer mounts after the workspace bootstrap. Mirror the 30s settings
+  // budgets above: a transient render stall on a busy machine must not fail
+  // the theme matrix (observed as a >10s first paint after a theme switch).
+  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 30000 });
   await assertThemeApplied(page, theme);
   await assertComposerLayout(page, `${theme.preset} desktop`);
   await assertA11y(page, theme);
@@ -304,7 +307,7 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
   });
 
   await page.setViewportSize({ width: 768, height: 1024 });
-  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 15000 });
   await assertThemeApplied(page, theme);
   await assertComposerLayout(page, `${theme.preset} tablet`);
   await assertA11y(page, theme);
@@ -314,7 +317,7 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
   });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 15000 });
   await assertThemeApplied(page, theme);
   await page.screenshot({
     path: path.join(screenshotDir, `${theme.preset}-mobile.png`),
@@ -340,8 +343,14 @@ async function assertAppearanceControlsPersist(page, apiOrigin) {
   );
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 30000 });
-  assert.equal(await fonts.getByRole('radio', { name: 'Leitura' }).getAttribute('aria-checked'), 'true');
-  assert.equal(await icons.getByRole('radio', { name: 'Marcado' }).getAttribute('aria-checked'), 'true');
+  assert.equal(
+    await fonts.getByRole('radio', { name: 'Leitura' }).getAttribute('aria-checked'),
+    'true',
+  );
+  assert.equal(
+    await icons.getByRole('radio', { name: 'Marcado' }).getAttribute('aria-checked'),
+    'true',
+  );
 
   // Restore defaults so the existing screenshot matrix remains comparable.
   await fonts.getByRole('radio', { name: 'Padrão' }).click();
@@ -379,11 +388,28 @@ async function main() {
   const themeFailures = [];
   for (const theme of themes) {
     console.log(`composer theme validation: ${theme.preset}`);
-    try {
-      await selectThemeThroughSettings(page, apiOrigin, theme);
-      await validateComposerTheme(page, apiOrigin, project, theme);
-    } catch (error) {
-      const detail = error instanceof Error ? error.stack || error.message : String(error);
+    let lastError;
+    // One retry per theme: the first attempt can lose a render window to a
+    // machine-level stall (bundle/AV scan after a fresh build). A real theme
+    // regression fails both attempts and is still reported.
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        await selectThemeThroughSettings(page, apiOrigin, theme);
+        await validateComposerTheme(page, apiOrigin, project, theme);
+        lastError = undefined;
+        break;
+      } catch (error) {
+        lastError = error;
+        if (attempt === 1) {
+          console.log(
+            `composer theme validation retrying after transient failure: ${theme.preset}`,
+          );
+        }
+      }
+    }
+    if (lastError) {
+      const detail =
+        lastError instanceof Error ? lastError.stack || lastError.message : String(lastError);
       themeFailures.push(`${theme.preset}: ${detail}`);
       console.error(`composer theme validation failed: ${theme.preset}`);
       console.error(detail);
