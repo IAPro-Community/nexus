@@ -34,3 +34,16 @@ func TestExternalClaudeAtomicDedupAndSeparatedCost(t *testing.T) {
 		t.Fatal("arbitrary scope accepted")
 	}
 }
+
+func TestExternalClaudeClearForgetsOffsetsAndMessages(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	now := time.Now().UTC()
+	msg := ExternalClaudeMessage{MessageHash:"hashed-id", Model:"claude", InputTokens:100,ObservedAt:now}
+	if err:=s.SaveExternalClaudeBatch(ctx,"LOCAL_DEFAULT_UNVERIFIED","file-hash",125,[]ExternalClaudeMessage{msg});err!=nil{t.Fatal(err)}
+	if err:=s.ClearExternalClaude(ctx);err!=nil{t.Fatal(err)}
+	summary,err:=s.SummarizeExternalClaude(ctx,7)
+	if err!=nil||summary.Messages!=0{t.Fatalf("external observations not cleared: %+v, %v",summary,err)}
+	offset,err:=s.ExternalClaudeOffset(ctx,"LOCAL_DEFAULT_UNVERIFIED","file-hash")
+	if err!=nil||offset!=0{t.Fatalf("external offsets not cleared: %d, %v",offset,err)}
+}
