@@ -1,0 +1,24 @@
+# Revisão TokenBar → Nexus — follow-up 2026-10-14
+
+Branch canônica: release/v1.0.0 (implementação direta).
+
+Concluído em código:
+- P0 quota pace no monitor preexistente, amostras SQLite 0029, contrato/API,
+  Usage/HUD e CSV; a previsão é consultiva e não entra no scheduler.
+- P1 leitura externa opt-in do Claude, JSONL incremental com offset de linha
+  completa, deduplicação de mensagens e tabelas isoladas (migração 0030).
+- P2 diagnóstico público OpenAI/Claude/GitHub com cache e falhas isoladas.
+- Interfaces Cost Intelligence e Capacity Monitor expõem recursos novos.
+- Testes de store/scanner/HTTP adicionados, mas não executados localmente.
+
+Invariantes de segurança:
+- Quota desconhecida nunca vira quota cheia ou grátis.
+- Nenhuma conta é inferida de transcripts sem verificação de identidade.
+- Uso externo nunca se soma ao ledger de custos medidos ou estimados.
+- Dados de prompt e credenciais não são salvos.
+- Nenhuma implementação TokenBar GPL foi copiada.
+- Sem alterações PTY/ConPTY, scroll, input Codex, túnel ou autenticação nativa.
+
+Pendente: executar go test e quality:full, E2E no navegador, smoke Windows,
+e validar o mesmo SHA em Linux/Windows/macOS. O Actions do GitHub pode ficar
+queued/cancelled por créditos; não considerar um run cancelado como aprovação.
