@@ -32,14 +32,16 @@ export const CapacityMonitorSettings: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const refresh = useCallback(async () => {
+    // Service incidents are independent of account capacity: a quota API
+    // error must not suppress public incident diagnostics.
+    void nexus.getPublicServiceStatus()
+      .then((rows) => { setPublicStatus(rows); setPublicStatusUnavailable(false); })
+      .catch(() => { setPublicStatus([]); setPublicStatusUnavailable(true); });
     try {
       setError('');
       const [p, s] = await Promise.all([nexus.getCapacityPreferences(), nexus.getCapacityStatus()]);
       setPrefs(p);
       setStatus(s);
-      void nexus.getPublicServiceStatus()
-        .then((rows) => { setPublicStatus(rows); setPublicStatusUnavailable(false); })
-        .catch(() => { setPublicStatus([]); setPublicStatusUnavailable(true); });
       setDraft({
         warning: String(p.warning_threshold),
         critical: String(p.critical_threshold),
