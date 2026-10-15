@@ -15,6 +15,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
 import { terminateProcess, terminateProcessOnExit } from './e2e-fixture.mjs';
+import { dumpWorkspaceStateInPage } from './workspace-state.mjs';
 
 const webDir = path.resolve(import.meta.dirname, '..');
 const root = path.resolve(webDir, '..');
@@ -133,43 +134,7 @@ const firstShellRuntimeId = () => {
     return '';
   }
 };
-const summarizeWorkspaceModel = (model) => {
-  if (!model || model.root?.kind !== 'stack') return null;
-  return {
-    root: model.root.kind,
-    tabs: (model.root.tabs || []).map((tab) => ({
-      id: tab.id,
-      type: tab.type,
-      runtimeId: tab.data?.runtimeId || '',
-    })),
-    activeId: model.root.activeId,
-  };
-};
-const dumpWorkspaceState = (pageRef) => pageRef.evaluate(async () => {
-  const out = { localStorage: {}, serverLayout: null, layoutRevision: null };
-  for (let index = 0; index < localStorage.length; index++) {
-    const key = localStorage.key(index) || '';
-    if (!key.includes('workspace')) continue;
-    let parsed = null;
-    try {
-      parsed = JSON.parse(localStorage.getItem(key) || 'null');
-    } catch { /* keep raw */ }
-    out.localStorage[key] = typeof parsed === 'object' ? summarizeWorkspaceModel(parsed) : parsed;
-  }
-  try {
-    const projects = await (await fetch('/api/v1/projects', { headers: { Accept: 'application/json' } })).json();
-    const projectId = Array.isArray(projects) ? projects[0]?.id : projects?.projects?.[0]?.id;
-    out.projectId = projectId || '';
-    if (projectId) {
-      const detail = await (await fetch(`/api/v1/projects/${projectId}`, { headers: { Accept: 'application/json' } })).json();
-      out.layoutRevision = detail.revision ?? null;
-      out.serverLayout = summarizeWorkspaceModel(JSON.parse(detail.layout || 'null'));
-    }
-  } catch (error) {
-    out.layoutError = String(error?.message || error);
-  }
-  return out;
-});
+const dumpWorkspaceState = (pageRef) => pageRef.evaluate(dumpWorkspaceStateInPage);
 const bootstrap = new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error(`bootstrap timeout\n${output}`)), 15000);
   const onData = (chunk) => {
@@ -422,6 +387,10 @@ try {
   const terminalSocketDiagnostics = [];
   const terminalHttpDiagnostics = [];
   const shellLaunchDiagnostics = [];
+  const reconnectMarker = '__NEXUS_DOCS_TERMINAL_RECONNECTED__';
+  let trackReconnectSocket = false;
+  let reconnectControlLeaseReceived = false;
+  let reconnectMarkerOutputReceived = false;
   page.on('response', (response) => {
     const pathname = new URL(response.url()).pathname.toLowerCase();
     if (pathname.includes('terminal')) terminalHttpDiagnostics.push('http:' + response.status());
@@ -445,6 +414,7 @@ try {
   });
   page.on('websocket', (socket) => {
     const socketPath = new URL(socket.url()).pathname.toLowerCase();
+    const isReconnectSocket = trackReconnectSocket && socketPath.includes('terminal');
     terminalSocketDiagnostics.push(socketPath.includes('terminal') ? 'created:terminal' : 'created:other');
     socket.on('close', (close) => terminalSocketDiagnostics.push(
       'closed:' + String(close?.code || '') + ':' + String(close?.reason || '').slice(0, 80),
@@ -465,7 +435,13 @@ try {
       try {
         const frame = JSON.parse(String(payload));
         terminalSocketDiagnostics.push('received:' + String(frame.type || 'unknown') + ':' + String(frame.role || ''));
-        if (frame.type === 'lease' && frame.role === 'CONTROL') resolveTerminalControl();
+        if (frame.type === 'lease' && frame.role === 'CONTROL') {
+          resolveTerminalControl();
+          if (isReconnectSocket) reconnectControlLeaseReceived = true;
+        }
+        if (isReconnectSocket && frame.type === 'output' && String(frame.data || '').includes(reconnectMarker)) {
+          reconnectMarkerOutputReceived = true;
+        }
       } catch {
         terminalSocketDiagnostics.push('received:non-json');
       }
@@ -766,6 +742,13 @@ try {
     await page.waitForTimeout(500);
   };
   await openProjectSurface('overview');
+  const workspaceState = await dumpWorkspaceState(page);
+  if (workspaceState.layoutError || workspaceState.projectId !== createProject.id) {
+    throw new Error(
+      'workspace state diagnostics did not resolve the synthetic project; ' +
+        JSON.stringify(workspaceState),
+    );
+  }
   // Wait for the overview header to be interactive before capturing: on a
   // slow runner the app shell mounts before the project content hydrates, and
   // a single instant check for the direct-session button would silently skip
@@ -820,10 +803,18 @@ try {
   await capture('VIS-003', 'direct-session.png', 'web/direct-session');
   await page.waitForTimeout(3000);
   await page.keyboard.press('Escape');
+  trackReconnectSocket = true;
+  const reconnectSocketStart = terminalSocketDiagnostics.length;
   await openProjectSurface('terminals', shellRuntime.runtime_id);
   const reconnectTimeline = [];
-  const reconnectDeadline = Date.now() + 15000;
+  // A lost WebSocket handshake only surfaces after the pane's 30s connect
+  // timeout (the server may upgrade a connection the browser never sees), and
+  // the product recovers through its own retry button — transport failure is
+  // not proof the PTY died. The budget therefore covers two full
+  // timeout-plus-retry cycles on a slow runner.
+  const reconnectDeadline = Date.now() + 90000;
   let reconnected = false;
+  let reconnectRetryClicks = 0;
   while (Date.now() < reconnectDeadline) {
     const probe = await page.evaluate(() => ({
       shellSurfaces: document.querySelectorAll('.nx-project-shell-surface').length,
@@ -833,12 +824,35 @@ try {
         (tab) => tab.getAttribute('aria-label') || tab.textContent?.trim() || '',
       ),
     }));
-    reconnectTimeline.push({ at: Date.now(), ...probe });
-    if (probe.xtermRows > 0) { reconnected = true; break; }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const reconnectEvents = terminalSocketDiagnostics.slice(reconnectSocketStart);
+    reconnectTimeline.push({
+      at: Date.now(),
+      ...probe,
+      controlLeaseReceived: reconnectControlLeaseReceived,
+      retryClicks: reconnectRetryClicks,
+      reconnectEvents: reconnectEvents.slice(-8),
+    });
+    if (probe.xtermRows > 0 && reconnectControlLeaseReceived) { reconnected = true; break; }
+    const retryButton = page
+      .locator('.nx-project-shell-surface')
+      .getByRole('button', { name: /tentar novamente|retry/i })
+      .first();
+    if (
+      reconnectRetryClicks < 3 &&
+      (await retryButton.isEnabled().catch(() => false))
+    ) {
+      reconnectRetryClicks += 1;
+      reconnectTimeline.push({
+        at: Date.now(),
+        event: 'retry-clicked',
+        attempt: reconnectRetryClicks,
+      });
+      await retryButton.click().catch(() => {});
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
   }
   if (!reconnected) {
-    const error = new Error('project shell terminal did not reconnect');
+    const error = new Error('project shell terminal did not reconnect with a CONTROL lease');
     const reconnectState = await page.evaluate(() => ({
       path: window.location.pathname,
       appShell: Boolean(document.querySelector('.nx-os-shell')),
@@ -873,8 +887,40 @@ try {
         '; cause=' + error.message,
     );
   }
+  await page.locator('.nx-project-shell-surface .xterm').click();
+  await page.keyboard.type(`echo ${reconnectMarker}`);
+  await page.keyboard.press('Enter');
+  await page.waitForFunction((expected) => {
+    const terminal = document.querySelector('.nx-project-shell-surface .xterm-rows');
+    return terminal?.textContent?.includes(expected) === true;
+  }, reconnectMarker, { timeout: 15000 }).catch(async (error) => {
+    throw new Error(
+      'project shell terminal did not return output after reconnect; marker=' + reconnectMarker +
+        '; terminal=' + JSON.stringify(await page.evaluate(() => ({
+          path: window.location.pathname,
+          runtimeId: document.querySelector('.nx-project-shell-surface')?.getAttribute('data-runtime-id') || '',
+          text: document.querySelector('.nx-project-shell-surface .xterm-rows')?.textContent?.slice(-600) || '',
+        }))) +
+        '; websocket=' + JSON.stringify(terminalSocketDiagnostics.slice(reconnectSocketStart)) +
+        '; backendStages=' + JSON.stringify(backendStages()) +
+        '; backendDiagnostics=' + JSON.stringify(backendDiagnostics()) +
+        '; cause=' + error.message,
+    );
+  });
+  if (!reconnectMarkerOutputReceived) {
+    throw new Error(
+      'project shell terminal displayed no server output for the reconnect marker; marker=' +
+        reconnectMarker + '; websocket=' + JSON.stringify(terminalSocketDiagnostics.slice(reconnectSocketStart)),
+    );
+  }
   await capture('VIS-005', 'terminal.png', 'web/terminal', {
-    terminal_evidence: { platform: process.platform, transport: 'project-shell', marker, verified: true },
+    terminal_evidence: {
+      platform: process.platform,
+      transport: 'project-shell',
+      marker,
+      reconnect_marker: reconnectMarker,
+      verified: true,
+    },
   });
   await page.waitForTimeout(2500);
   const candidates = [
