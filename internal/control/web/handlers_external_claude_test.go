@@ -89,3 +89,41 @@ func TestExternalClaudeConcurrentReadAndDeleteRejectsConflict(t *testing.T) {
 		}
 	}
 }
+
+func TestExternalClaudeDeleteDoesNotRequireRecentSevenDayMessages(t *testing.T) {
+	nexus.ResetDefaultForTest()
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	t.Cleanup(nexus.ResetDefaultForTest)
+	client, srv, csrf := csrfClient(t)
+	st := nexus.Default().Store()
+	ctx := t.Context()
+	older := store.ExternalClaudeMessage{
+		MessageHash: "older-than-seven-days",
+		Model: "claude",
+		InputTokens: 19,
+		ObservedAt: time.Now().UTC().Add(-20 * 24 * time.Hour),
+	}
+	if err := st.SaveExternalClaudeBatch(ctx, "LOCAL_DEFAULT_UNVERIFIED", "retained-offset", 64,
+		[]store.ExternalClaudeMessage{older}); err != nil {
+		t.Fatal(err)
+	}
+	res, err := client.Get(srv.URL() + "/api/v1/cost/external-claude")
+	if err != nil { t.Fatal(err) }
+	var short store.ExternalClaudeSummary
+	if err := json.NewDecoder(res.Body).Decode(&short); err != nil { t.Fatal(err) }
+	res.Body.Close()
+	if short.Messages != 0 { t.Fatalf("recent summary unexpectedly included older row: %+v", short) }
+	req, err := http.NewRequest(http.MethodDelete, srv.URL()+"/api/v1/cost/external-claude", nil)
+	if err != nil { t.Fatal(err) }
+	req.Header.Set("X-CSRF-Token", csrf)
+	resp, err := client.Do(req)
+	if err != nil { t.Fatal(err) }
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK { t.Fatalf("delete historical rows: HTTP %d", resp.StatusCode) }
+	long, err := st.SummarizeExternalClaude(ctx, 30)
+	if err != nil { t.Fatal(err) }
+	if long.Messages != 0 { t.Fatalf("old transcript metadata survived deletion: %+v", long) }
+	offset, err := st.ExternalClaudeOffset(ctx, "LOCAL_DEFAULT_UNVERIFIED", "retained-offset")
+	if err != nil || offset != 0 { t.Fatalf("old offset survived deletion: %d, %v", offset, err) }
+}
