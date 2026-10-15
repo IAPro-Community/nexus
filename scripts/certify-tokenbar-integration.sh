@@ -36,7 +36,10 @@ fi
 go test ./internal/nexus/store ./internal/nexus/capacitymonitor ./internal/nexus/externalusage ./internal/control/web ./internal/nexus
 (cd web && npm run quality:full)
 if [[ "${1:-}" == '--browser' ]]; then
+  # Capacity E2E exercises HTTP only; also run Playwright for actual UI coverage.
   (cd web && npm run test:e2e:capacity)
+  (cd web && npm run test:e2e:surface)
+  (cd web && npm run test:e2e:composer-themes)
 fi
 printf 'PASS: automated gates at %s\n' "$SHA"
 printf 'Windows ConPTY, native desktop, packaging and signing still require independent gates.\n'

@@ -72,7 +72,11 @@ try {
     Assert-Exit 'Frontend quality:full'
     if ($WithBrowser) {
         & npm run test:e2e:capacity
-        Assert-Exit 'Capacity browser E2E'
+        Assert-Exit 'Capacity HTTP E2E'
+        & npm run test:e2e:surface
+        Assert-Exit 'Playwright responsive surface and accessibility E2E'
+        & npm run test:e2e:composer-themes
+        Assert-Exit 'Playwright theme and appearance E2E'
     }
 } finally {
     Pop-Location

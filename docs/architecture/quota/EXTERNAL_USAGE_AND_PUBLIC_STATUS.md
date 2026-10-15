@@ -89,7 +89,10 @@ Na própria branch `release/v1.0.0`, sem alterações locais, execute:
 - Linux/macOS: `./scripts/certify-tokenbar-integration.sh --browser`
 
 Esses scripts exigem Go >=1.25, validam `gofmt`, executam testes Go
-focados e `npm run quality:full`, e opcionalmente o E2E Capacity. Os
+focados e `npm run quality:full`. Com a opção de navegador executam
+`test:e2e:capacity` (somente HTTP), **mais** Playwright real nas suítes
+`test:e2e:surface` (responsividade e acessibilidade) e
+`test:e2e:composer-themes` (temas e componentes de aparência). Os
 smokes nativos Windows ConPTY/WebView2 e assinatura de release continuam
 obrigatórios fora desses scripts. Enquanto o runner estiver na fila, o
 resultado é **NÃO CERTIFICADO**.
