@@ -471,7 +471,9 @@ try {
       }
     });
   });
-  const terminalLaunch = page.getByTestId('overview-terminal-btn');
+  const terminalLaunch = page
+    .locator('[data-testid="overview-terminal-btn"]:visible')
+    .first();
   try {
     await terminalLaunch.waitFor({ state: 'visible', timeout: 30000 });
   } catch (error) {
@@ -767,14 +769,30 @@ try {
   // Wait for the overview header to be interactive before capturing: on a
   // slow runner the app shell mounts before the project content hydrates, and
   // a single instant check for the direct-session button would silently skip
-  // VIS-003 and fail the documentation gate later.
+  // VIS-003 and fail the documentation gate later. The create-actions group
+  // renders in both the workspace chrome and the overview header, so the
+  // locator must target a *visible* instance instead of the first DOM match.
   try {
-    await page.getByTestId('overview-terminal-btn').waitFor({ state: 'visible', timeout: 30000 });
+    await page
+      .locator('[data-testid="overview-terminal-btn"]:visible')
+      .first()
+      .waitFor({ state: 'visible', timeout: 45000 });
   } catch (error) {
     const headerState = await page.evaluate(() => ({
       path: window.location.pathname,
       headerButtons: [...document.querySelectorAll('.nx-project-create-actions button')].map(
         (button) => button.textContent?.trim() || '',
+      ),
+      terminalTestIdCount: document.querySelectorAll('[data-testid="overview-terminal-btn"]')
+        .length,
+      terminalTestIdVisibleCount: [
+        ...document.querySelectorAll('[data-testid="overview-terminal-btn"]'),
+      ].filter((button) => {
+        const rect = button.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      }).length,
+      visibleAlerts: [...document.querySelectorAll('[role="alert"]')].map((alert) =>
+        (alert.textContent?.trim() || '').slice(0, 200),
       ),
     }));
     throw new Error(
@@ -783,14 +801,25 @@ try {
     );
   }
   await capture('VIS-001', 'workspace-overview.png', 'web/workspace');
-  const directButton = page.getByRole('button', { name: /nova sessão ia|new ai session/i }).first();
-  if (await directButton.count() && await directButton.isVisible().catch(() => false)) {
-    await directButton.click();
-    await page.waitForTimeout(300);
-    await capture('VIS-003', 'direct-session.png', 'web/direct-session');
-    await page.waitForTimeout(3000);
-    await page.keyboard.press('Escape');
+  const directButton = page
+    .locator('button:visible', { hasText: /nova sessão ia|new ai session/i })
+    .first();
+  if (!(await directButton.count())) {
+    const headerButtons = await page.evaluate(() =>
+      [...document.querySelectorAll('.nx-project-create-actions button')].map(
+        (button) => button.textContent?.trim() || '',
+      ),
+    );
+    throw new Error(
+      'direct-session button is not visible in the overview header; ' +
+        JSON.stringify({ path: new URL(page.url()).pathname, headerButtons }),
+    );
   }
+  await directButton.click();
+  await page.waitForTimeout(300);
+  await capture('VIS-003', 'direct-session.png', 'web/direct-session');
+  await page.waitForTimeout(3000);
+  await page.keyboard.press('Escape');
   await openProjectSurface('terminals', shellRuntime.runtime_id);
   const reconnectTimeline = [];
   const reconnectDeadline = Date.now() + 15000;
