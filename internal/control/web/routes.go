@@ -107,6 +107,7 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/capacity/snooze", s.authMiddleware(h.handleCapacitySnooze))
 	mux.HandleFunc("/api/v1/cost/summary", s.authMiddleware(h.handleCostSummary))
 	mux.HandleFunc("/api/v1/cost/observations", s.authMiddleware(h.handleCostObservations))
+	mux.HandleFunc("/api/v1/cost/observations.csv", s.authMiddleware(h.handleCostCSV))
 	mux.HandleFunc("/api/v1/cost/external-claude", s.authMiddleware(h.handleExternalClaudeUsage))
 	mux.HandleFunc("/api/v1/cost/preferences", s.authMiddleware(h.handleCostPreferences))
 	mux.HandleFunc("/api/v1/hud", s.authMiddleware(h.handleHUDState))

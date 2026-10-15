@@ -5,6 +5,7 @@ import { nexus } from '../../nexus/api';
 import type { CapacityPreferences, CapacityStatus, PublicServiceStatus } from '../../types';
 import { asArray } from '../../lib/safeArray';
 import styles from './CapacityMonitorSettings.module.scss';
+import { downloadAuthenticatedCsv } from '../../lib/downloadAuthenticatedCsv';
 
 const num = (raw: string, fallback: number): number => {
   const parsed = Number.parseFloat(raw);
@@ -267,13 +268,14 @@ export const CapacityMonitorSettings: React.FC = () => {
         />
       </section>
       <div className={styles.actions}>
-        <a
-          className={styles.exportLink}
-          href="/api/v1/capacity/pace.csv"
-          download="nexus-capacity-pace.csv"
+        <Button
+          onClick={() =>
+            void downloadAuthenticatedCsv('/api/v1/capacity/pace.csv', 'nexus-capacity-pace.csv')
+              .catch((err) => setError(err instanceof Error ? err.message : String(err)))
+          }
         >
           {t('settings.capacityExportPace', 'Exportar histórico de consumo (CSV)')}
-        </a>
+        </Button>
         <Button tone="brand" onClick={() => void save()} disabled={saving}>
           {saving
             ? t('settings.capacitySaving', 'Saving…')

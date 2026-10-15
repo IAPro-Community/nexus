@@ -4,6 +4,7 @@ import { Button, Card, InlineAlert, Input, Switch } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { CostPreferences, ExternalClaudeSummary } from '../../types';
 import styles from './CostIntelligenceSettings.module.scss';
+import { downloadAuthenticatedCsv } from '../../lib/downloadAuthenticatedCsv';
 
 const numberValue = (raw: string, fallback: number): number => {
   const value = Number.parseFloat(raw);
@@ -314,6 +315,14 @@ export const CostIntelligenceSettings: React.FC = () => {
         <p role="status" aria-live="polite">{externalResult}</p>
       </section>
       <div className={styles.actions}>
+        <Button
+          onClick={() =>
+            void downloadAuthenticatedCsv('/api/v1/cost/observations.csv?days=30', 'nexus-cost-observations.csv')
+              .catch((err) => setError(err instanceof Error ? err.message : String(err)))
+          }
+        >
+          {t('settings.costExport', 'Exportar histórico de custos (CSV)')}
+        </Button>
         <Button tone="brand" onClick={() => void save()} disabled={saving}>
           {saving
             ? t('settings.costSaving', 'Saving…')
