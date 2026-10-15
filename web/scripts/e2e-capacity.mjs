@@ -256,7 +256,7 @@ async function main() {
           headers: { Cookie: cookies.join('; '), Origin: originHeader },
         });
         assert.equal(response.status, 200, `authenticated CSV export ${url}`);
-        assert.match(response.headers.get('content-type') || '', /^text\\/csv/);
+        assert.ok((response.headers.get('content-type') || '').startsWith('text/csv'));
         assert.equal(response.headers.get('cache-control'), 'private, no-store');
         const body = await response.text();
         assert.ok(body.startsWith(head), `unexpected CSV heading in ${url}`);
