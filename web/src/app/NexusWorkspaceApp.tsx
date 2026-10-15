@@ -328,6 +328,13 @@ const NexusWorkspaceSession: React.FC<{
 
   const initial = popoutSurface ? serializeWorkspace(createWorkspace(popoutSurface)) : layout;
 
+  // Do not mount the workspace with a fallback layout and then replace it
+  // after the route effect runs. On a deep link, that replacement can discard
+  // the routed surface and leave the URL and active tab out of sync.
+  if (!layoutReady) {
+    return <NexusSplashScreen stage="loading" />;
+  }
+
   return (
     <WorkspaceProvider
       key={`${selected.id}:${popoutSurface?.id || 'main'}`}
