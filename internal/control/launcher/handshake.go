@@ -76,8 +76,10 @@ func waitForRuntimeHandshake(ctx context.Context, runtimeID string, hostProc *os
 				return protocol.StatusData{}, classifyDetachedHostFailure(runtimeID, hostProc.Pid)
 			default:
 			}
-			if tail := readHostLogTail(runtimeID, 8192); strings.Contains(tail, codex.ErrTUIBusy.Error()) {
-				return protocol.StatusData{}, classifyDetachedHostFailure(runtimeID, hostProc.Pid)
+			if hostProc != nil && hostProc.Pid > 0 {
+				if tail := readHostLogTail(runtimeID, 8192); strings.Contains(tail, codex.ErrTUIBusy.Error()) {
+					return protocol.StatusData{}, classifyDetachedHostFailure(runtimeID, hostProc.Pid)
+				}
 			}
 			return protocol.StatusData{}, fmt.Errorf("timed out waiting for endpoint %s", runtimeID)
 		case <-ticker.C:
