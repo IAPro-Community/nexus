@@ -66,7 +66,8 @@ func (s *Store) SaveExternalClaudeBatch(ctx context.Context, scope, fileHash str
 			output_tokens=excluded.output_tokens,
 			cache_read_tokens=excluded.cache_read_tokens,
 			cache_write_tokens=excluded.cache_write_tokens,
-			observed_at=excluded.observed_at`,
+			observed_at=excluded.observed_at
+		WHERE excluded.observed_at >= external_claude_messages.observed_at`,
 			scope, m.MessageHash, m.Model, m.InputTokens, m.OutputTokens,
 			m.CacheReadTokens, m.CacheWriteTokens, formatStoreTime(m.ObservedAt)); err != nil {
 			return err
