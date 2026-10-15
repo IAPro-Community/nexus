@@ -421,6 +421,7 @@ try {
               process.env.http_proxy || process.env.https_proxy || process.env.all_proxy,
           ),
           backendStages: backendStages(),
+          backendDiagnostics: backendDiagnostics(),
           websocketHandshake: websocketHandshakeDiagnostics,
           pageErrorCount: pageErrors.length,
         }) +
