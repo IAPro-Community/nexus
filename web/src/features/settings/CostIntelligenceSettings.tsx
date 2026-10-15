@@ -320,7 +320,7 @@ export const CostIntelligenceSettings: React.FC = () => {
             ? t('settings.externalClaudeScanning', 'Lendo registros…')
             : t('settings.externalClaudeConsent', 'Autorizar uma leitura local agora')}
         </Button>
-        {external && external.messages > 0 ? (
+        {external ? (
           <Button onClick={() => void clearLocalClaude()} disabled={externalBusy}>
             {t('settings.externalClaudeClear', 'Limpar metadados importados')}
           </Button>
