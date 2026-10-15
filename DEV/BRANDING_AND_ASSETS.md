@@ -24,6 +24,8 @@ Todos os assets foram derivados do master oficial (`assets/brand/source-logo.png
 | `nexus-social-card-dark.png` | `assets/brand/` | 1200x630 | Cartão OpenGraph / Social preview em fundo escuro (`#080a0f`) |
 | `nexus-social-card-light.png` | `assets/brand/` | 1200x630 | Cartão social em fundo claro |
 | `manifest.webmanifest` | `web/public/`, `dist/` | JSON | Manifesto PWA para instalação como aplicativo Desktop nativo |
+| `nexus.ico` | `assets/brand/` | 16, 32, 48, 64, 128, 256px | Ícone de aplicativo Windows (recursos PE e atalhos), derivado da suíte `web/public/nexus-icon-*.png` |
+| `rsrc_windows_amd64.syso` | `cmd/nexus`, `cmd/nexus-desktop`, `cmd/nexus-hud` | Recurso PE | Ícone embutido nos executáveis Windows, gerado com `go run github.com/akavel/rsrc@latest -ico assets/brand/nexus.ico -o <cmd>/rsrc_windows_amd64.syso` |
 
 ---
 
@@ -78,6 +80,10 @@ O script realiza:
    - Notificações do sistema operacional agora utilizam o ícone dedicado `/nexus-icon.png`.
 8. **Script de Build e Embed Go (`web/scripts/build.mjs`):**
    - Sincronização de todos os assets públicos para `dist/` e embedding automático no binário Go.
+9. **Bandeja do sistema e janelas nativas (`internal/desktop`, `cmd/nexus-desktop`, `cmd/nexus-hud`):**
+   - O tray (Wails v3 `SystemTray`) usa a marca (`nexus-icon-32.png` embutido no pacote, `go:embed`) em vez do ícone genérico do toolkit; `NexusAppIcon()` (256px) alimenta o ícone de aplicação das janelas nativas.
+10. **Executáveis Windows (`cmd/*/rsrc_windows_amd64.syso`):**
+   - `assets/brand/nexus.ico` é embutido via `rsrc` nos binários `nexus`, `nexus-desktop` e `nexus-hud`, restaurando o ícone da marca no Explorador e nos atalhos (antes exibiam o ícone genérico).
 
 ---
 

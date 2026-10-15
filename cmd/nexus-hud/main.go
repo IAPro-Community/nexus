@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/app"
+	"github.com/IAPro-Community/nexus/internal/control/web"
 	"github.com/IAPro-Community/nexus/internal/desktop"
+	"github.com/IAPro-Community/nexus/internal/hudlink"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -23,6 +25,11 @@ func main() {
 		}
 		return
 	}
+
+	// Linked mode: started as a companion of a Nexus workspace surface. The
+	// HUD follows its core out (see watchLinkedCore) and stays distinguishable
+	// from a standalone or login-autostart launch.
+	linked := hudlink.Linked(os.Args[1:], os.Getenv)
 
 	backend, err := desktop.OpenSharedBackend("Nexus HUD")
 	if err != nil {
@@ -42,6 +49,7 @@ func main() {
 	native := application.New(application.Options{
 		Name:        "Nexus HUD",
 		Description: "Nexus operational HUD",
+		Icon:        desktop.NexusAppIcon(),
 		Services: []application.Service{
 			application.NewService(desktopApp),
 			application.NewService(hudController),
@@ -93,8 +101,40 @@ func main() {
 	})
 	desktop.ConfigureNativeTray(native, window, "Nexus HUD")
 
+	// Only a HUD attached to an external core watches its core: a linked HUD
+	// that embedded its own Core is that Core's process, so there is nothing
+	// to follow.
+	if linked && !backend.OwnsEmbeddedCore() {
+		go watchLinkedCore(native)
+	}
+
 	if err := native.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Nexus HUD Wails v3 error: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+// watchLinkedCore keeps the HUD bound to the Nexus core that launched it:
+// ReadListenState only reports live, healthy loopback cores, so when the
+// companion core stops (or dies hard) the HUD follows within a few probes.
+func watchLinkedCore(app *application.App) {
+	const (
+		startGrace    = 20 * time.Second
+		probeInterval = 3 * time.Second
+		maxFailures   = 4
+	)
+	time.Sleep(startGrace)
+	failures := 0
+	for {
+		time.Sleep(probeInterval)
+		if _, err := web.ReadListenState(); err != nil {
+			failures++
+			if failures >= maxFailures {
+				app.Quit()
+				return
+			}
+			continue
+		}
+		failures = 0
 	}
 }
