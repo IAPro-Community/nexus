@@ -35,3 +35,12 @@ queued/cancelled por créditos; não considerar um run cancelado como aprovaçã
 - Verificado no GitHub: migration 0029 e 0030 presentes, release com
   avanço fast-forward e Actions sem conclusão verde. Qualidade não executada
   no ambiente local; não declarar release certificada.
+
+## Certificação incremental — 2026-10-15
+
+- A exclusão pela UI deixou de depender da contagem de mensagens dos últimos
+  7 dias: registro antigo continua apagável; teste HTTP valida isso.
+- O script `--browser` agora executa E2E HTTP + Playwright para responsividade,
+  acessibilidade e temas. O teste Capacity isolado é HTTP, não browser.
+- Added CSV auth UI Vitest regressions and shared CSV formula safety tests.
+- Go/browser CI final green ainda **não obtido** no momento desta edição.

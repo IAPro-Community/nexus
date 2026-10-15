@@ -26,6 +26,8 @@ internal/control/web/handlers_external_claude.go
 internal/control/web/handlers_external_claude_test.go
 internal/control/web/handlers_cost_csv.go
 internal/control/web/handlers_cost_csv_test.go
+internal/control/web/csv_export_safety.go
+internal/control/web/csv_export_safety_test.go
 internal/control/web/routes.go
 )
 UNFORMATTED="$(gofmt -l "${GO_FILES[@]}")"

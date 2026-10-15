@@ -99,3 +99,18 @@ resultado é **NÃO CERTIFICADO**.
 
 O script não modifica arquivos: um erro de `gofmt` requer formatação
 explícita e novo commit antes de retentar o gate no mesmo SHA.
+
+## Incremental hardening after initial integration
+
+- External Claude metadata can be purged even when the 7-day displayed summary
+  is empty; the backend DELETE removes the full imported history and offsets.
+- Cost and capacity CSV now use a shared spreadsheet-formula neutralizer,
+  including Unicode BOM and zero-width prefixes, with regression tests.
+- Capacity HTTP E2E validates consent, CSRF, exported CSV headers and public
+  provider state independently. The `--browser` certification option runs
+  real Playwright surface and theme suites as well as the HTTP suite.
+- CSV downloads have frontend unit tests for desktop Bearer authorization,
+  restricted URLs and handling of HTTP 401.
+
+All of these gates are **specified but not recorded as passed** until run
+against the exact final release SHA. GitHub Actions cancellation is not success.
