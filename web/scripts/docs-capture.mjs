@@ -764,6 +764,24 @@ try {
     await page.waitForTimeout(500);
   };
   await openProjectSurface('overview');
+  // Wait for the overview header to be interactive before capturing: on a
+  // slow runner the app shell mounts before the project content hydrates, and
+  // a single instant check for the direct-session button would silently skip
+  // VIS-003 and fail the documentation gate later.
+  try {
+    await page.getByTestId('overview-terminal-btn').waitFor({ state: 'visible', timeout: 30000 });
+  } catch (error) {
+    const headerState = await page.evaluate(() => ({
+      path: window.location.pathname,
+      headerButtons: [...document.querySelectorAll('.nx-project-create-actions button')].map(
+        (button) => button.textContent?.trim() || '',
+      ),
+    }));
+    throw new Error(
+      'overview header did not become interactive; ' +
+        JSON.stringify(headerState) + '; cause=' + error.message,
+    );
+  }
   await capture('VIS-001', 'workspace-overview.png', 'web/workspace');
   const directButton = page.getByRole('button', { name: /nova sessão ia|new ai session/i }).first();
   if (await directButton.count() && await directButton.isVisible().catch(() => false)) {
@@ -774,42 +792,58 @@ try {
     await page.keyboard.press('Escape');
   }
   await openProjectSurface('terminals', shellRuntime.runtime_id);
-  await page.waitForSelector('.nx-project-shell-surface .xterm-rows', { timeout: 15000 }).catch(
-    async (error) => {
-      const reconnectState = await page.evaluate(() => ({
-        path: window.location.pathname,
-        appShell: Boolean(document.querySelector('.nx-os-shell')),
-        projectShellSurfaces: [...document.querySelectorAll('.nx-project-shell-surface')].map(
-          (surface) => ({
-            runtimeId: surface.getAttribute('data-runtime-id') || '',
-            terminal: Boolean(surface.querySelector('.xterm')),
-            rows: Boolean(surface.querySelector('.xterm-rows')),
-          }),
-        ),
-        activeTabs: [...document.querySelectorAll('[role="tab"][aria-selected="true"]')].map(
-          (tab) => tab.getAttribute('aria-label') || tab.textContent?.trim() || '',
-        ),
-        workspacePanels: [...document.querySelectorAll('.nx-workspace-panel')].map((panel) => ({
-          active: panel.dataset.active || '',
-          hidden: panel.getAttribute('aria-hidden') || '',
-        })),
-        visibleAlerts: [...document.querySelectorAll('[role="alert"]')].map(
-          (alert) => alert.textContent?.trim() || '',
-        ),
-      }));
-      throw new Error(
-        'project shell terminal did not reconnect; browser=' + JSON.stringify(reconnectState) +
-          '; workspace=' + JSON.stringify(await dumpWorkspaceState(page)) +
-          '; http=' + JSON.stringify(terminalHttpDiagnostics) +
-          '; backendStages=' + JSON.stringify(backendStages()) +
-          '; backendDiagnostics=' + JSON.stringify(backendDiagnostics()) +
-          '; websocket=' + (terminalSocketDiagnostics.join(',') || 'none') +
-          '; websocketHandshake=' + JSON.stringify(websocketHandshakeDiagnostics) +
-          '; pageErrors=' + JSON.stringify(pageErrors) +
-          '; cause=' + error.message,
-      );
-    },
-  );
+  const reconnectTimeline = [];
+  const reconnectDeadline = Date.now() + 15000;
+  let reconnected = false;
+  while (Date.now() < reconnectDeadline) {
+    const probe = await page.evaluate(() => ({
+      shellSurfaces: document.querySelectorAll('.nx-project-shell-surface').length,
+      xtermRows: document.querySelectorAll('.nx-project-shell-surface .xterm-rows').length,
+      ptyTabs: document.querySelectorAll('[id^="nx-pty-tab-"]').length,
+      activeTabs: [...document.querySelectorAll('[role="tab"][aria-selected="true"]')].map(
+        (tab) => tab.getAttribute('aria-label') || tab.textContent?.trim() || '',
+      ),
+    }));
+    reconnectTimeline.push({ at: Date.now(), ...probe });
+    if (probe.xtermRows > 0) { reconnected = true; break; }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  if (!reconnected) {
+    const error = new Error('project shell terminal did not reconnect');
+    const reconnectState = await page.evaluate(() => ({
+      path: window.location.pathname,
+      appShell: Boolean(document.querySelector('.nx-os-shell')),
+      projectShellSurfaces: [...document.querySelectorAll('.nx-project-shell-surface')].map(
+        (surface) => ({
+          runtimeId: surface.getAttribute('data-runtime-id') || '',
+          terminal: Boolean(surface.querySelector('.xterm')),
+          rows: Boolean(surface.querySelector('.xterm-rows')),
+        }),
+      ),
+      activeTabs: [...document.querySelectorAll('[role="tab"][aria-selected="true"]')].map(
+        (tab) => tab.getAttribute('aria-label') || tab.textContent?.trim() || '',
+      ),
+      workspacePanels: [...document.querySelectorAll('.nx-workspace-panel')].map((panel) => ({
+        active: panel.dataset.active || '',
+        hidden: panel.getAttribute('aria-hidden') || '',
+      })),
+      visibleAlerts: [...document.querySelectorAll('[role="alert"]')].map(
+        (alert) => alert.textContent?.trim() || '',
+      ),
+    }));
+    throw new Error(
+      'project shell terminal did not reconnect; browser=' + JSON.stringify(reconnectState) +
+        '; workspace=' + JSON.stringify(await dumpWorkspaceState(page)) +
+        '; timeline=' + JSON.stringify(reconnectTimeline) +
+        '; http=' + JSON.stringify(terminalHttpDiagnostics) +
+        '; backendStages=' + JSON.stringify(backendStages()) +
+        '; backendDiagnostics=' + JSON.stringify(backendDiagnostics()) +
+        '; websocket=' + (terminalSocketDiagnostics.join(',') || 'none') +
+        '; websocketHandshake=' + JSON.stringify(websocketHandshakeDiagnostics) +
+        '; pageErrors=' + JSON.stringify(pageErrors) +
+        '; cause=' + error.message,
+    );
+  }
   await capture('VIS-005', 'terminal.png', 'web/terminal', {
     terminal_evidence: { platform: process.platform, transport: 'project-shell', marker, verified: true },
   });
