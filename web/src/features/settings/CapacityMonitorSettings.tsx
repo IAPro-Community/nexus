@@ -117,7 +117,10 @@ export const CapacityMonitorSettings: React.FC = () => {
   if (!prefs) {
     return (
       <Card className={styles.root}>
-        <PublicProviderStatus publicStatus={publicStatus} publicStatusUnavailable={publicStatusUnavailable} />
+        <PublicProviderStatus
+          publicStatus={publicStatus}
+          publicStatusUnavailable={publicStatusUnavailable}
+        />
         {error ? (
           <InlineAlert tone="danger" title={t('common.error', 'Error')}>
             {error}
@@ -139,7 +142,10 @@ export const CapacityMonitorSettings: React.FC = () => {
         <strong>{t('settings.capacity', 'Capacity Monitor')}</strong>
         <p>{t('settings.capacityDescription', 'Proactive quota alerts with hysteresis.')}</p>
       </div>
-      <PublicProviderStatus publicStatus={publicStatus} publicStatusUnavailable={publicStatusUnavailable} />
+      <PublicProviderStatus
+          publicStatus={publicStatus}
+          publicStatusUnavailable={publicStatusUnavailable}
+        />
       {error ? (
         <InlineAlert tone="danger" title={t('common.error', 'Error')}>
           {error}

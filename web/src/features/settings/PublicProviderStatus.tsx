@@ -17,7 +17,10 @@ export const PublicProviderStatus: React.FC<PublicProviderStatusProps> = ({
   return (
     <>
       {publicStatus.length > 0 ? (
-        <section className={styles.section} aria-label={t('settings.publicStatus', 'Incidentes públicos dos provedores')}>
+        <section
+          className={styles.section}
+          aria-label={t('settings.publicStatus', 'Incidentes públicos dos provedores')}
+        >
           <h3>{t('settings.publicStatus', 'Incidentes públicos dos provedores')}</h3>
           <div className={styles.statusList}>
             {publicStatus.map((item) => (
@@ -33,13 +36,21 @@ export const PublicProviderStatus: React.FC<PublicProviderStatusProps> = ({
               </div>
             ))}
           </div>
-          <small>{t('settings.publicStatusHint', 'Estado público do serviço; não representa a quota da sua conta.')}</small>
+          <small>
+            {t(
+              'settings.publicStatusHint',
+              'Estado público do serviço; não representa a quota da sua conta.',
+            )}
+          </small>
         </section>
       ) : null}
 
       {publicStatusUnavailable ? (
         <p className={styles.empty}>
-          {t('settings.publicStatusFetchFailed', 'Estado público indisponível. Isso não indica falha da sua quota.')}
+          {t(
+            'settings.publicStatusFetchFailed',
+            'Estado público indisponível. Isso não indica falha da sua quota.',
+          )}
         </p>
       ) : null}
     </>
