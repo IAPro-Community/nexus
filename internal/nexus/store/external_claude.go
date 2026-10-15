@@ -27,7 +27,7 @@ type ExternalClaudeSummary struct {
 	OutputTokens     int64     `json:"output_tokens"`
 	CacheReadTokens  int64     `json:"cache_read_tokens"`
 	CacheWriteTokens int64     `json:"cache_write_tokens"`
-	LastObservedAt   time.Time `json:"last_observed_at,omitempty"`
+	LastObservedAt   *time.Time `json:"last_observed_at,omitempty"`
 }
 
 // ExternalClaudeOffset returns only metadata: never raw logs or file paths.
@@ -94,6 +94,10 @@ func (s *Store) SummarizeExternalClaude(ctx context.Context, days int) (External
 		out.Source, formatStoreTime(time.Now().UTC().Add(-time.Duration(days)*24*time.Hour)),
 	).Scan(&out.Messages,&out.InputTokens,&out.OutputTokens,&out.CacheReadTokens,&out.CacheWriteTokens,&last)
 	if err != nil { return out, err }
-	if last.Valid { out.LastObservedAt, err = parseStoreTime(last.String) }
+	if last.Valid {
+		parsed, parseErr := parseStoreTime(last.String)
+		if parseErr != nil { return out, parseErr }
+		out.LastObservedAt = &parsed
+	}
 	return out, err
 }
