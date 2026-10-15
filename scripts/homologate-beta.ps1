@@ -16,6 +16,23 @@ function Require-Command([string]$Name) {
   }
 }
 
+# Windows PowerShell 5.1 turns stderr records of a native command into
+# terminating errors when they cross 2>&1 while ErrorActionPreference is Stop;
+# pwsh 7 streams them as plain text. Run native gates through this helper so
+# the captured log always gets the output and the exit code stays the single
+# source of truth in both shells.
+$script:LastNativeExit = 0
+function Invoke-NativeLogged([string]$LogPath, [scriptblock]$Run) {
+  $Saved = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    & $Run 2>&1 | ForEach-Object { $_.ToString() } | Tee-Object -FilePath $LogPath -Append
+    $script:LastNativeExit = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $Saved
+  }
+}
+
 Require-Command git
 Require-Command go
 Require-Command bun
@@ -102,26 +119,18 @@ foreach ($ScriptPath in @(
 }
 
 Write-Host "==> documentation"
-# Windows PowerShell 5.1 turns stderr records of a native command into
-# terminating errors when they cross 2>&1 under Stop; relax the preference so
-# the verify output always reaches its log and the exit code stays the single
-# source of truth (pwsh 7 behaves identically for this shape).
-$DocumentationPreference = $ErrorActionPreference
-$ErrorActionPreference = 'Continue'
-bun scripts/docs-verify.mjs 2>&1 | Tee-Object -FilePath (Join-Path $Out 'docs-verify.log')
-$DocumentationExit = $LASTEXITCODE
-$ErrorActionPreference = $DocumentationPreference
-if ($DocumentationExit -ne 0) { throw "documentation verification failed (exit=$DocumentationExit)" }
+Invoke-NativeLogged (Join-Path $Out 'docs-verify.log') { bun scripts/docs-verify.mjs }
+if ($script:LastNativeExit -ne 0) { throw "documentation verification failed (exit=$script:LastNativeExit)" }
 
 Write-Host "==> frontend dependencies"
-bun install --cwd web --frozen-lockfile 2>&1 | Tee-Object -FilePath (Join-Path $Out 'bun-install.log')
-if ($LASTEXITCODE -ne 0) { throw "bun install failed" }
+Invoke-NativeLogged (Join-Path $Out 'bun-install.log') { bun install --cwd web --frozen-lockfile }
+if ($script:LastNativeExit -ne 0) { throw "bun install failed" }
 
 Write-Host "==> Playwright Chromium"
 Push-Location web
 try {
-  bun x playwright install chromium 2>&1 | Tee-Object -FilePath (Join-Path $Out 'playwright-chromium.log')
-  if ($LASTEXITCODE -ne 0) { throw "Playwright Chromium installation failed" }
+  Invoke-NativeLogged (Join-Path $Out 'playwright-chromium.log') { bun x playwright install chromium }
+  if ($script:LastNativeExit -ne 0) { throw "Playwright Chromium installation failed" }
 } finally {
   Pop-Location
 }
@@ -130,8 +139,8 @@ Write-Host "==> frontend quality"
 $FrontendLog = Join-Path $Out 'frontend.log'
 foreach ($Task in @('format:check','typecheck','lint','lint:styles','check:styles','test','build','verify')) {
   "--- bun run $Task" | Tee-Object -FilePath $FrontendLog -Append
-  bun run --cwd web $Task 2>&1 | Tee-Object -FilePath $FrontendLog -Append
-  if ($LASTEXITCODE -ne 0) { throw "frontend task failed: $Task" }
+  Invoke-NativeLogged $FrontendLog { bun run --cwd web $Task }
+  if ($script:LastNativeExit -ne 0) { throw "frontend task failed: $Task" }
 }
 
 Write-Host "==> Go formatting"
@@ -150,19 +159,19 @@ if ($Unformatted) {
 }
 
 Write-Host "==> Go vet"
-go vet ./... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'go-vet.log')
-if ($LASTEXITCODE -ne 0) { throw "go vet failed" }
+Invoke-NativeLogged (Join-Path $Out 'go-vet.log') { go vet ./... }
+if ($script:LastNativeExit -ne 0) { throw "go vet failed" }
 
 Write-Host "==> Go lint (pinned)"
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'golangci-lint.log')
-if ($LASTEXITCODE -ne 0) { throw "golangci-lint failed" }
+Invoke-NativeLogged (Join-Path $Out 'golangci-lint.log') { go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./... }
+if ($script:LastNativeExit -ne 0) { throw "golangci-lint failed" }
 
 Write-Host "==> Go security (pinned)"
 $SavedGoToolchain = [Environment]::GetEnvironmentVariable('GOTOOLCHAIN', 'Process')
 $env:GOTOOLCHAIN = 'local'
 try {
-  go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'govulncheck.log')
-  if ($LASTEXITCODE -ne 0) { throw "govulncheck failed" }
+  Invoke-NativeLogged (Join-Path $Out 'govulncheck.log') { go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./... }
+  if ($script:LastNativeExit -ne 0) { throw "govulncheck failed" }
 } finally {
   if ($null -eq $SavedGoToolchain) {
     Remove-Item Env:GOTOOLCHAIN -ErrorAction SilentlyContinue
@@ -172,12 +181,12 @@ try {
 }
 
 Write-Host "==> Version contract"
-go run ./scripts/verify-version-contract.go . 2>&1 | Tee-Object -FilePath (Join-Path $Out 'version-contract.log')
-if ($LASTEXITCODE -ne 0) { throw "version contract failed" }
+Invoke-NativeLogged (Join-Path $Out 'version-contract.log') { go run ./scripts/verify-version-contract.go . }
+if ($script:LastNativeExit -ne 0) { throw "version contract failed" }
 
 Write-Host "==> provider-native Mission/terminal regression preflight"
-go test -count=1 ./internal/app ./internal/nexus/promotion ./internal/runtime 2>&1 | Tee-Object -FilePath (Join-Path $Out 'regression-interactive-terminal.log')
-if ($LASTEXITCODE -ne 0) { throw "provider-native Mission/terminal regression tests failed" }
+Invoke-NativeLogged (Join-Path $Out 'regression-interactive-terminal.log') { go test -count=1 ./internal/app ./internal/nexus/promotion ./internal/runtime }
+if ($script:LastNativeExit -ne 0) { throw "provider-native Mission/terminal regression tests failed" }
 
 Write-Host "==> Go tests"
 # Unit/integration tests must not inherit the developer's real Nexus profile,
@@ -254,8 +263,8 @@ $env:GOCACHE = $ExistingGoCache
 
 $GoTestExit = 1
 try {
-  go test -count=1 -v ./... 2>&1 | Tee-Object -FilePath $GoTestLog
-  $GoTestExit = $LASTEXITCODE
+  Invoke-NativeLogged $GoTestLog { go test -count=1 -v ./... }
+  $GoTestExit = $script:LastNativeExit
 } finally {
   foreach ($Name in $SavedEnv.Keys) {
     $Value = $SavedEnv[$Name]
@@ -293,20 +302,20 @@ if ($GoTestExit -ne 0) {
 
 
 Write-Host "==> control/runtime E2E"
-go test -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'control-e2e.log')
-if ($LASTEXITCODE -ne 0) { throw "control/runtime E2E failed" }
+Invoke-NativeLogged (Join-Path $Out 'control-e2e.log') { go test -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/... }
+if ($script:LastNativeExit -ne 0) { throw "control/runtime E2E failed" }
 
 Write-Host "==> Agent Interop / OpenCode Projection regressions"
-go test -count=1 ./internal/core/provider/agentprojection/opencode ./internal/control/launcher ./internal/control/web ./internal/nexus ./internal/nexus/store 2>&1 | Tee-Object -FilePath (Join-Path $Out 'agent-interop.log')
-if ($LASTEXITCODE -ne 0) { throw "Agent Interop/OpenCode Projection regressions failed" }
+Invoke-NativeLogged (Join-Path $Out 'agent-interop.log') { go test -count=1 ./internal/core/provider/agentprojection/opencode ./internal/control/launcher ./internal/control/web ./internal/nexus ./internal/nexus/store }
+if ($script:LastNativeExit -ne 0) { throw "Agent Interop/OpenCode Projection regressions failed" }
 
 Write-Host "==> build CLI"
 $Commit = $ShortSha
 $BuildDate = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
 $Module = 'github.com/IAPro-Community/nexus'
 $Ldflags = "-s -w -X $Module/internal/buildinfo.Version=$Version -X $Module/internal/buildinfo.Commit=$Commit -X $Module/internal/buildinfo.BuildDate=$BuildDate -X $Module/internal/update.ProductionTrustRootHex=$BuildPublicKey"
-go build -trimpath -buildvcs=false -ldflags $Ldflags -o nexus.exe ./cmd/nexus 2>&1 | Tee-Object -FilePath (Join-Path $Out 'build-cli.log')
-if ($LASTEXITCODE -ne 0) { throw "CLI build failed" }
+Invoke-NativeLogged (Join-Path $Out 'build-cli.log') { go build -trimpath -buildvcs=false -ldflags $Ldflags -o nexus.exe ./cmd/nexus }
+if ($script:LastNativeExit -ne 0) { throw "CLI build failed" }
 
 & .\nexus.exe version --json | Tee-Object -FilePath (Join-Path $Out 'version.json')
 $VersionJson = Get-Content (Join-Path $Out 'version.json') -Raw | ConvertFrom-Json
@@ -329,8 +338,8 @@ try {
     'test:visual'
   )) {
     $E2ELog = Join-Path $Out ("{0}.log" -f ($Task -replace ':','-'))
-    bun run --cwd web $Task 2>&1 | Tee-Object -FilePath $E2ELog
-    if ($LASTEXITCODE -ne 0) { throw "browser E2E failed: $Task" }
+    Invoke-NativeLogged $E2ELog { bun run --cwd web $Task }
+    if ($script:LastNativeExit -ne 0) { throw "browser E2E failed: $Task" }
   }
 } finally {
   if ($null -eq $SavedSkipBuild) {
