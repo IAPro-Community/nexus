@@ -145,7 +145,7 @@ const summarizeWorkspaceModel = (model) => {
     activeId: model.root.activeId,
   };
 };
-const dumpWorkspaceState = () => page.evaluate(async () => {
+const dumpWorkspaceState = (pageRef) => pageRef.evaluate(async () => {
   const out = { localStorage: {}, serverLayout: null, layoutRevision: null };
   for (let index = 0; index < localStorage.length; index++) {
     const key = localStorage.key(index) || '';
@@ -630,7 +630,7 @@ try {
           '; http=' + JSON.stringify(terminalHttpDiagnostics) +
           '; backendStages=' + JSON.stringify(backendStages()) +
           '; backendDiagnostics=' + JSON.stringify(backendDiagnostics()) +
-          '; workspace=' + JSON.stringify(await dumpWorkspaceState()) +
+          '; workspace=' + JSON.stringify(await dumpWorkspaceState(page)) +
           '; websocket=' + (terminalSocketDiagnostics.join(',') || 'none') +
           '; websocketHandshake=' + JSON.stringify(websocketHandshakeDiagnostics) +
           '; pageErrors=' + JSON.stringify(pageErrors) +
@@ -799,7 +799,7 @@ try {
       }));
       throw new Error(
         'project shell terminal did not reconnect; browser=' + JSON.stringify(reconnectState) +
-          '; workspace=' + JSON.stringify(await dumpWorkspaceState()) +
+          '; workspace=' + JSON.stringify(await dumpWorkspaceState(page)) +
           '; http=' + JSON.stringify(terminalHttpDiagnostics) +
           '; backendStages=' + JSON.stringify(backendStages()) +
           '; backendDiagnostics=' + JSON.stringify(backendDiagnostics()) +
