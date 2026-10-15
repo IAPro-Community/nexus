@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -49,22 +48,17 @@ func (h *NexusHandler) handleCostCSV(w http.ResponseWriter, r *http.Request) {
 		"input_tokens","cached_input_tokens","output_tokens","reasoning_tokens",
 		"cost_microusd","cost_kind","source",
 	})
-	safe := func(value string) string {
-		first := strings.TrimLeft(value, " \t\r\n")
-		if len(first) > 0 && strings.ContainsAny(first[:1], "=+-@") { return "'" + value }
-		return value
-	}
 	optional := func(v *int64) string {
 		if v == nil { return "" }
 		return strconv.FormatInt(*v, 10)
 	}
 	for _, row := range rows {
 		_ = writer.Write([]string{
-			row.ObservedAt.UTC().Format(time.RFC3339), safe(row.Provider), safe(row.Profile),
-			safe(row.Model), safe(row.ProjectID), optional(row.InputTokens),
+			row.ObservedAt.UTC().Format(time.RFC3339), sanitizeCSVCell(row.Provider), sanitizeCSVCell(row.Profile),
+			sanitizeCSVCell(row.Model), sanitizeCSVCell(row.ProjectID), optional(row.InputTokens),
 			optional(row.CachedInputTokens), optional(row.OutputTokens),
 			optional(row.ReasoningTokens), optional(row.CostMicroUSD),
-			safe(row.CostKind), safe(row.Source),
+			sanitizeCSVCell(row.CostKind), sanitizeCSVCell(row.Source),
 		})
 	}
 	writer.Flush()

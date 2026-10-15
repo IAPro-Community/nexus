@@ -98,18 +98,10 @@ func (h *NexusHandler) handleCapacityPaceCSV(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Disposition", "attachment; filename=nexus-capacity-pace.csv")
 	csvWriter := csv.NewWriter(w)
 	_ = csvWriter.Write([]string{"provider", "profile", "quota_group", "window", "reset_at", "observed_at", "used_percent", "source"})
-	safe := func(raw string) string {
-		// Defuse CSV formula injection when profiles have user-editable names.
-		head := strings.TrimLeft(raw, " \t\r\n")
-		if head != "" && strings.ContainsAny(head[:1], "=+-@") {
-			return "'" + raw
-		}
-		return raw
-	}
 	for _, s := range samples {
-		_ = csvWriter.Write([]string{safe(s.Provider), safe(s.Profile), safe(s.QuotaGroup),
-			safe(s.WindowKind), s.ResetAt.UTC().Format(time.RFC3339),
-			s.ObservedAt.UTC().Format(time.RFC3339), fmt.Sprintf("%.2f", s.UsedPercent), safe(s.Source)})
+		_ = csvWriter.Write([]string{sanitizeCSVCell(s.Provider), sanitizeCSVCell(s.Profile), sanitizeCSVCell(s.QuotaGroup),
+			sanitizeCSVCell(s.WindowKind), s.ResetAt.UTC().Format(time.RFC3339),
+			s.ObservedAt.UTC().Format(time.RFC3339), fmt.Sprintf("%.2f", s.UsedPercent), sanitizeCSVCell(s.Source)})
 	}
 	csvWriter.Flush()
 }
