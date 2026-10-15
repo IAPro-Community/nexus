@@ -810,9 +810,9 @@ try {
   // A lost WebSocket handshake only surfaces after the pane's 30s connect
   // timeout (the server may upgrade a connection the browser never sees), and
   // the product recovers through its own retry button — transport failure is
-  // not proof the PTY died. The budget therefore covers two full
+  // not proof the PTY died. The budget therefore covers several full
   // timeout-plus-retry cycles on a slow runner.
-  const reconnectDeadline = Date.now() + 90000;
+  const reconnectDeadline = Date.now() + 180000;
   let reconnected = false;
   let reconnectRetryClicks = 0;
   while (Date.now() < reconnectDeadline) {
@@ -833,13 +833,17 @@ try {
       reconnectEvents: reconnectEvents.slice(-8),
     });
     if (probe.xtermRows > 0 && reconnectControlLeaseReceived) { reconnected = true; break; }
+    // count() never waits; isEnabled() without an explicit timeout blocks for
+    // the full 30s default whenever the retry button is absent, which starves
+    // this polling loop exactly when the socket is still CONNECTING.
     const retryButton = page
       .locator('.nx-project-shell-surface')
       .getByRole('button', { name: /tentar novamente|retry/i })
       .first();
     if (
-      reconnectRetryClicks < 3 &&
-      (await retryButton.isEnabled().catch(() => false))
+      reconnectRetryClicks < 5 &&
+      (await retryButton.count()) > 0 &&
+      (await retryButton.isEnabled({ timeout: 1000 }).catch(() => false))
     ) {
       reconnectRetryClicks += 1;
       reconnectTimeline.push({
@@ -847,7 +851,7 @@ try {
         event: 'retry-clicked',
         attempt: reconnectRetryClicks,
       });
-      await retryButton.click().catch(() => {});
+      await retryButton.click({ timeout: 3000 }).catch(() => {});
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
