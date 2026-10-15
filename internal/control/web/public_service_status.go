@@ -16,7 +16,7 @@ type PublicServiceStatus struct {
 	Provider  string    `json:"provider"`
 	Indicator string    `json:"indicator"`
 	Detail    string    `json:"detail,omitempty"`
-	CheckedAt time.Time `json:"checked_at,omitempty"`
+	CheckedAt *time.Time `json:"checked_at,omitempty"`
 	Stale     bool      `json:"stale"`
 }
 
@@ -71,7 +71,7 @@ func (c *publicStatusCache) snapshot(ctx context.Context) []PublicServiceStatus 
 			}
 			if next, err := c.probe(ctx, source); err == nil {
 				result = next
-				result.CheckedAt = now
+				result.CheckedAt = &now
 				result.Stale = false
 			}
 			output[i] = result
