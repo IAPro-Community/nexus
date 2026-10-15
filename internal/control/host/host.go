@@ -550,10 +550,32 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 
 	switch req.Command {
 	case protocol.CmdPing:
-		resp, _ = protocol.NewResponse("pong")
+		status := protocol.StatusData{
+			RuntimeID:                 sh.session.RuntimeID,
+			ProviderID:                sh.session.ProviderID,
+			ProfileID:                 sh.session.ProfileID,
+			Workspace:                 sh.session.Workspace,
+			PID:                       sh.session.PID,
+			ProviderGeneration:        sh.session.ProviderGeneration,
+			HostPID:                   sh.session.HostPID,
+			HostGeneration:            sh.session.HostGeneration,
+			HostBinaryPath:            sh.session.HostBinaryPath,
+			HostBinaryFingerprint:     sh.session.HostBinaryFingerprint,
+			ProviderBinaryPath:        sh.session.ProviderBinaryPath,
+			ProviderBinaryFingerprint: sh.session.ProviderBinaryFingerprint,
+			State:                     string(sh.session.State),
+		}
+		resp, _ = protocol.NewResponse(status)
+		resp.RuntimeID = status.RuntimeID
+		resp.State = status.State
+		resp.Code = "PONG"
+		resp.Action = string(protocol.CmdPing)
+		resp.Message = "runtime ready"
 
-	case protocol.CmdStatus, protocol.CmdHandshakeStatus:
+	case protocol.CmdStatus:
 		fanoutStats := sh.fanout.Stats()
+		quotaView := profile.GetQuotaView(sh.session.ProviderID, sh.session.ProfileID, "", "")
+		quotaPercent, _ := quotaView.Bottleneck()
 		status := protocol.StatusData{
 			RuntimeID:                 sh.session.RuntimeID,
 			ProviderID:                sh.session.ProviderID,
@@ -580,17 +602,14 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 			AttentionKind:             sh.session.AttentionKind,
 			PromptKind:                sh.session.PromptKind,
 			Continuity:                sh.session.Continuity,
-		}
-		if req.Command == protocol.CmdStatus {
-			quotaView := profile.GetQuotaView(sh.session.ProviderID, sh.session.ProfileID, "", "")
-			status.QuotaStatus = quotaView.Status
-			status.QuotaPercent, _ = quotaView.Bottleneck()
+			QuotaStatus:               quotaView.Status,
+			QuotaPercent:              quotaPercent,
 		}
 		resp, _ = protocol.NewResponse(status)
 		resp.RuntimeID = status.RuntimeID
 		resp.State = status.State
 		resp.Code = "STATUS_OK"
-		resp.Action = string(req.Command)
+		resp.Action = string(protocol.CmdStatus)
 		resp.Message = "runtime status"
 
 	case protocol.CmdAttach:

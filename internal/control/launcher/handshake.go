@@ -54,7 +54,7 @@ func waitForRuntimeHandshake(ctx context.Context, runtimeID string, hostProc *os
 		} else {
 			traceCaptureRuntimeHandshake("attempt=%d stage=dial-ready elapsed=%s", attempt, time.Since(attemptStarted))
 			statusStarted := time.Now()
-			status, err = client.HandshakeStatusContext(attemptCtx)
+			status, err = client.PingStatusContext(attemptCtx)
 			traceCaptureRuntimeHandshake("attempt=%d stage=status-finished elapsed=%s err=%q", attempt, time.Since(statusStarted), err)
 			_ = client.Close()
 		}

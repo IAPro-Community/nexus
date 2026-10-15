@@ -191,10 +191,10 @@ func (c *Client) Status() (StatusData, error) {
 	return st, nil
 }
 
-// HandshakeStatusContext fetches only process identity fields needed to finish
-// runtime startup. It avoids quota collection on the critical launch path.
-func (c *Client) HandshakeStatusContext(ctx context.Context) (StatusData, error) {
-	resp, err := c.SendContext(ctx, CmdHandshakeStatus, nil)
+// PingStatusContext checks readiness and returns the minimal process identity
+// carried by the same ping response for startup registration.
+func (c *Client) PingStatusContext(ctx context.Context) (StatusData, error) {
+	resp, err := c.SendContext(ctx, CmdPing, nil)
 	if err != nil {
 		return StatusData{}, err
 	}
