@@ -1,5 +1,17 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-15 — Homologação Windows beta.10 no SHA exato, instalação local e smoke Desktop/HUD
+
+- PASS — cadeia local completa (mesmos scripts do CI) no SHA `c5cf076a96934f83c8dd9fffec6e957db881e637`: frontend (format/typecheck/lint/styles/test/build), Go (vet/golangci/govulncheck/test), control/runtime E2E, agent-interop, browser E2E (hardening/a11y/visual, composer, surface, capacity, hud, spine, vague-spine, composer-themes 20/20), smokes doctor/providers/usage + regressão OpenCode e builds Wails v3 Desktop/HUD; veredito `PASS automated Windows beta homologation: 1.0.0-beta.10 @ c5cf076a`. Evidência em `DEV/validation/local-beta/1.0.0-beta.10/c5cf076a96934f83c8dd9fffec6e957db881e637/windows-AMD64/` e `%TEMP%\opencode\local-gate-c5cf076a.log`.
+- PASS — correção do flake do gate `composer-themes`: o × de fechar aba deixou de ser um `<button>` filho do `role=tablist` (Axe `aria-required-children` critical) e virou span decorativo `aria-hidden` nos dois strips, preservando fechamento por teclado via `Delete` e menu de contexto (mesmo diálogo de confirmação); reprodução determinística RED→GREEN no estado exato da falha.
+- PASS — captura oficial de docs refeita no SHA (`source_sha=c5cf076a`); `docs-verify` 179 Markdown/33 assets; artefatos regenerados commitados em `b462e844`.
+- PASS — instalação local via `install.ps1 -BuildFromSource`: CLI `1.0.0-beta.10` commit `c5cf076a` em `%LOCALAPPDATA%\Programs\IAPro Nexus` (+ alias `ai.exe`), PATH do usuário atualizado e `doctor` executado no install.
+- PASS — Desktop e HUD (builds Wails v3 da própria cadeia; SHA-256 conferidos na cópia: `4a6aea46…`/`c1d26699…`) copiados para o diretório de instalação com atalhos no Desktop e Start Menu.
+- PASS — smoke nativo: `nexus-desktop.exe` vivo após 9s com janela `IAPro Nexus` e 6 processos WebView2; `nexus-hud.exe` vivo após 9s com janela `Nexus HUD` e 6 WebView2; ambos encerrados sem processos residuais.
+- LIMITAÇÃO PRÉ-EXISTENTE — em runs de fixture o PUT de layout nunca é disparado (GET retorna `{}`/rev 0), tornando a persistência de abas timing-dependent nesses runs; fora do escopo desta certificação e documentado no commit `b462e844`.
+- NÃO EXECUTADO — `MANUAL_CHECKS.md` (smokes nativos interativos: teclado Codex, Mission/promoção, quota/certify, HUD autostart) aguardam sessão interativa do usuário.
+- NO TAG / NO PUBLISH — somente commits na branch `fix/release-beta10-windows-closure-20261014`, todos com `[skip ci]`; `release/v1.0.0` intocada.
+
 ## 2026-10-07 — Continuidade Windows WebView2 e branch audit
 
 - PASS — go fmt ./..., go vet ./..., govulncheck ./..., golangci-lint run ./... e go test -count=1 ./... no Windows AMD64 após mudanças Go.
