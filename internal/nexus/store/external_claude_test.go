@@ -71,3 +71,25 @@ func TestPruneExternalClaudeRetainsNewerEvidenceOnly(t *testing.T) {
 	newOffset,err := s.ExternalClaudeOffset(ctx,"LOCAL_DEFAULT_UNVERIFIED","recent-file")
 	if err != nil || newOffset != 100 { t.Fatalf("recent offset lost: %d %v",newOffset,err) }
 }
+
+func TestExternalClaudeOlderDuplicateCannotOverwriteNewerObservation(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Second)
+	newer := ExternalClaudeMessage{
+		MessageHash: "same-message", Model: "claude-new",
+		InputTokens: 99, OutputTokens: 15, ObservedAt: now,
+	}
+	older := ExternalClaudeMessage{
+		MessageHash: "same-message", Model: "claude-old",
+		InputTokens: 5, OutputTokens: 2, ObservedAt: now.Add(-time.Hour),
+	}
+	if err := s.SaveExternalClaudeBatch(ctx,"LOCAL_DEFAULT_UNVERIFIED","file-new",100,
+		[]ExternalClaudeMessage{newer}); err != nil { t.Fatal(err) }
+	if err := s.SaveExternalClaudeBatch(ctx,"LOCAL_DEFAULT_UNVERIFIED","file-old",100,
+		[]ExternalClaudeMessage{older}); err != nil { t.Fatal(err) }
+	out, err := s.SummarizeExternalClaude(ctx,7)
+	if err != nil || out.Messages != 1 || out.InputTokens != 99 || out.OutputTokens != 15 {
+		t.Fatalf("older duplicate replaced newer evidence: %+v, %v",out,err)
+	}
+}
