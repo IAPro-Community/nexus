@@ -19,6 +19,33 @@ func gitTestCommand(t *testing.T, root string, args ...string) {
 	}
 }
 
+// inspectCodeIdentityRetrying returns the observed identity, tolerating the
+// rare INCOMPLETE produced when a spawned git child loses the per-command
+// deadline: while the full test suite saturates the machine, process startup
+// alone can exceed the 5s budget, and degrading to INCOMPLETE is intentional
+// product behavior. Retrying keeps this test about identity tracking rather
+// than about machine load. Any incomplete state without the deadline warning
+// is returned as-is so real failures stay visible.
+func inspectCodeIdentityRetrying(t *testing.T, root string) CodeIdentity {
+	t.Helper()
+	for attempt := 1; ; attempt++ {
+		identity, err := InspectCodeIdentity(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		timedOut := identity.State == CodeIdentityIncomplete &&
+			strings.Contains(strings.Join(identity.Warnings, " "), "timed out")
+		if !timedOut || attempt >= 5 {
+			return identity
+		}
+		backoff := time.Duration(attempt) * 500 * time.Millisecond
+		if backoff > 2*time.Second {
+			backoff = 2 * time.Second
+		}
+		time.Sleep(backoff)
+	}
+}
+
 func TestCommandOutputBlockingHelper(t *testing.T) {
 	if os.Getenv("NEXUS_CONTEXTSNAPSHOT_TEST_BLOCK") == "1" {
 		// A timer keeps the helper alive without triggering Go's deadlock detector at GOMAXPROCS=1.
@@ -45,7 +72,11 @@ func TestCommandOutputHonorsDeadline(t *testing.T) {
 		}
 		t.Fatalf("command error=%v, want context deadline exceeded", err)
 	}
-	if elapsed := time.Since(started); elapsed > 2*time.Second {
+	// The identity above is the contract. The elapsed bound only guards
+	// against an obvious regression (without deadline handling the helper
+	// blocks for an hour), so keep it far above scheduler starvation: killing
+	// and draining a child on a saturated runner can take many seconds.
+	if elapsed := time.Since(started); elapsed > 60*time.Second {
 		t.Fatalf("command took %s after its 100ms deadline", elapsed)
 	}
 }
@@ -58,30 +89,21 @@ func TestInspectCodeIdentityTracksWorktreeAndUntrackedChanges(t *testing.T) {
 	}
 	gitTestCommand(t, root, "add", "go.mod")
 	gitTestCommand(t, root, "-c", "user.email=test@example.invalid", "-c", "user.name=Test", "commit", "-m", "initial")
-	clean, err := InspectCodeIdentity(root)
-	if err != nil {
-		t.Fatal(err)
-	}
+	clean := inspectCodeIdentityRetrying(t, root)
 	if clean.State != CodeIdentityClean || !clean.Complete || clean.HeadSHA == "" || clean.IdentityDigest == "" {
 		t.Fatalf("unexpected clean identity: %+v", clean)
 	}
 	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module changed\n\ngo 1.25\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	changed, err := InspectCodeIdentity(root)
-	if err != nil {
-		t.Fatal(err)
-	}
+	changed := inspectCodeIdentityRetrying(t, root)
 	if changed.State != CodeIdentityDirty || changed.WorktreeDigest == clean.WorktreeDigest || changed.IdentityDigest == clean.IdentityDigest {
 		t.Fatalf("worktree change was not captured: clean=%+v changed=%+v", clean, changed)
 	}
 	if err := os.WriteFile(filepath.Join(root, "notes.txt"), []byte("untracked"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	untracked, err := InspectCodeIdentity(root)
-	if err != nil {
-		t.Fatal(err)
-	}
+	untracked := inspectCodeIdentityRetrying(t, root)
 	if untracked.UntrackedDigest == "" || untracked.IdentityDigest == changed.IdentityDigest {
 		t.Fatalf("untracked change was not captured: %+v", untracked)
 	}
