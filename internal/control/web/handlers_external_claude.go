@@ -6,6 +6,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net"
+	"net/url"
+	"strings"
 	"os"
 	"path/filepath"
 	"sync"
@@ -13,6 +16,38 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/nexus/externalusage"
 )
+
+// localTranscriptConsentRequest refuses initiating a read of the server's
+// private HOME via LAN/tunnel sessions. Authentication/CSRF are still required.
+// This is an additional guard, not a substitute for session authorization.
+func localTranscriptConsentRequest(r *http.Request) bool {
+	if r == nil || !clientIsLoopback(r) {
+		return false
+	}
+	localHost := func(raw string) bool {
+		host := raw
+		if parsed, _, err := net.SplitHostPort(raw); err == nil {
+			host = parsed
+		}
+		host = strings.Trim(host, "[]")
+		if ip := net.ParseIP(host); ip != nil {
+			return ip.IsLoopback()
+		}
+		return strings.EqualFold(host, "localhost") ||
+			strings.EqualFold(host, "wails.localhost")
+	}
+	if !localHost(r.Host) {
+		return false
+	}
+	if origin := strings.TrimSpace(r.Header.Get("Origin")); origin != "" {
+		u, err := url.Parse(origin)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") ||
+			u.User != nil || !localHost(u.Host) {
+			return false
+		}
+	}
+	return true
+}
 
 // Serialize manual imports and explicit deletion so a completed deletion
 // cannot be repopulated by a concurrently running scan.
@@ -51,6 +86,10 @@ func (h *NexusHandler) handleExternalClaudeUsage(w http.ResponseWriter, r *http.
 		}
 		writeJSON(w, http.StatusOK, map[string]bool{"cleared": true})
 	case http.MethodPost:
+		if !localTranscriptConsentRequest(r) {
+			writeError(w, http.StatusForbidden, "external Claude transcript scan is local-device only")
+			return
+		}
 		if !externalClaudeOperationMu.TryLock() {
 			writeError(w, http.StatusConflict, "external usage operation already running")
 			return
