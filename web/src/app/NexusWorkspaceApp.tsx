@@ -505,38 +505,35 @@ const WorkspaceCoordinator: React.FC<{
   const lastSyncedRouteRef = useRef<string>('');
   useEffect(() => {
     if (!layoutReady) return;
-    const timer = window.setTimeout(() => {
-      const routeKey = `${parsedRoute.kind}:${parsedRoute.kind === 'project' ? parsedRoute.surface : ''}:${location.pathname}:${location.search}`;
-      const routeChanged = lastSyncedRouteRef.current !== routeKey;
+    const routeKey = `${parsedRoute.kind}:${parsedRoute.kind === 'project' ? parsedRoute.surface : ''}:${location.pathname}:${location.search}`;
+    const routeChanged = lastSyncedRouteRef.current !== routeKey;
 
-      if (parsedRoute.kind === 'project' && parsedRoute.projectId === project.id) {
-        const targetSurface = routeToWorkspaceSurface(parsedRoute, { agents: data.agents });
-        if (targetSurface && routeChanged) {
-          lastSyncedRouteRef.current = routeKey;
-          const existing = listSurfaces(workspace.model.root).find((surface) =>
-            isSurfaceMatch(surface, targetSurface.id),
+    if (parsedRoute.kind === 'project' && parsedRoute.projectId === project.id) {
+      const targetSurface = routeToWorkspaceSurface(parsedRoute, { agents: data.agents });
+      if (targetSurface && routeChanged) {
+        lastSyncedRouteRef.current = routeKey;
+        const existing = listSurfaces(workspace.model.root).find((surface) =>
+          isSurfaceMatch(surface, targetSurface.id),
+        );
+        if (!existing) {
+          workspace.open(targetSurface);
+        } else {
+          const targetStack = listStacks(workspace.model.root).find((stack) =>
+            stack.tabs.some((surface) => surface.id === existing.id),
           );
-          if (!existing) {
-            workspace.open(targetSurface);
-          } else {
-            const targetStack = listStacks(workspace.model.root).find((stack) =>
-              stack.tabs.some((surface) => surface.id === existing.id),
-            );
-            if (targetStack && targetStack.activeId !== existing.id) {
-              workspace.activate(existing.id);
-            }
+          if (targetStack && targetStack.activeId !== existing.id) {
+            workspace.activate(existing.id);
           }
         }
-      } else if (parsedRoute.kind === 'global') {
-        const projectSurfaceKind = globalSurfaceToProjectSurface(parsedRoute.surface);
-        if (projectSurfaceKind && routeChanged) {
-          lastSyncedRouteRef.current = routeKey;
-          workspace.open(projectSurface(project.id, projectSurfaceKind));
-        }
-        if (parsedRoute.surface === 'welcome') setWelcomeOpen(true);
       }
-    }, 0);
-    return () => window.clearTimeout(timer);
+    } else if (parsedRoute.kind === 'global') {
+      const projectSurfaceKind = globalSurfaceToProjectSurface(parsedRoute.surface);
+      if (projectSurfaceKind && routeChanged) {
+        lastSyncedRouteRef.current = routeKey;
+        workspace.open(projectSurface(project.id, projectSurfaceKind));
+      }
+      if (parsedRoute.surface === 'welcome') setWelcomeOpen(true);
+    }
   }, [
     parsedRoute,
     project.id,
