@@ -150,7 +150,7 @@ export const CapacityMonitorSettings: React.FC = () => {
 
       {publicStatusUnavailable ? (
         <p className={styles.empty}>
-          {t('settings.publicStatusUnknown', 'Estado público indisponível. Isso não indica falha da sua quota.')}
+          {t('settings.publicStatusFetchFailed', 'Estado público indisponível. Isso não indica falha da sua quota.')}
         </p>
       ) : null}
       {error ? (

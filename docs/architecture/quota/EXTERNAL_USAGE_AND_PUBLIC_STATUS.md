@@ -75,3 +75,19 @@ não no dispositivo do navegador remoto.
 
 O parser descarta timestamps no futuro distante ou anteriores a 2000 e limita
 rótulos de modelo a 128 bytes para evitar persistir metadados arbitrários.
+
+### Homologação reproduzível sem CI
+
+Na própria branch `release/v1.0.0`, sem alterações locais, execute:
+
+- Windows PowerShell: `./scripts/certify-tokenbar-integration.ps1 -WithBrowser`
+- Linux/macOS: `./scripts/certify-tokenbar-integration.sh --browser`
+
+Esses scripts exigem Go >=1.25, validam `gofmt`, executam testes Go
+focados e `npm run quality:full`, e opcionalmente o E2E Capacity. Os
+smokes nativos Windows ConPTY/WebView2 e assinatura de release continuam
+obrigatórios fora desses scripts. Enquanto o runner estiver na fila, o
+resultado é **NÃO CERTIFICADO**.
+
+O script não modifica arquivos: um erro de `gofmt` requer formatação
+explícita e novo commit antes de retentar o gate no mesmo SHA.

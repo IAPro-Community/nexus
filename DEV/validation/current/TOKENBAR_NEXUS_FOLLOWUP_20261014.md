@@ -22,3 +22,16 @@ Invariantes de segurança:
 Pendente: executar go test e quality:full, E2E no navegador, smoke Windows,
 e validar o mesmo SHA em Linux/Windows/macOS. O Actions do GitHub pode ficar
 queued/cancelled por créditos; não considerar um run cancelado como aprovação.
+
+## Checkpoint de estabilização (2026-10-15)
+
+- Forecast aceita somente quota LIVE de origem Official API, CLI output ou
+  Response Headers; inferência LOCAL_FILES/OBSERVATION é rejeitada.
+- Importação manual e exclusão de metadados externos são mutuamente exclusivas
+  (HTTP 409 na concorrência); cada operação conserva consentimento/CSRF.
+- Sanitização de tamanho e tempo de metadados do JSONL; correção de posição
+  da seção de status público e de estado indisponível.
+- Scripts PowerShell e Bash de certificação por commit exato adicionados.
+- Verificado no GitHub: migration 0029 e 0030 presentes, release com
+  avanço fast-forward e Actions sem conclusão verde. Qualidade não executada
+  no ambiente local; não declarar release certificada.
