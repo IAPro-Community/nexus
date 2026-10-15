@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process';
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -70,6 +71,68 @@ const backendDiagnostics = () => output.split(/\r?\n/)
   .filter((line) => line.includes('nexus_docs_capture_diagnostic='))
   .map((line) => line.slice(line.indexOf('nexus_docs_capture_diagnostic=') + 30).slice(0, 500))
   .slice(-8);
+
+// Failure forensics for the detached SessionHost. The host writes its own log
+// under the fixture data dir and the registry row records who it believed was
+// alive; both are needed to explain a lease timeout without a re-run. The
+// fixture directory is deleted by stop(), so a copy is preserved for the CI
+// artifact under docs/assets/demos/fixture-forensics/.
+let shellRuntimeId = '';
+const hostLogTailFor = (id) => {
+  if (!id) return 'no-runtime-id';
+  const logPath = path.join(dataDir, 'logs', `${id}.log`);
+  if (!existsSync(logPath)) return `missing:${logPath}`;
+  try {
+    return readFileSync(logPath, 'utf8').split(/\r?\n/).slice(-25).join(' | ').slice(-4000);
+  } catch (error) {
+    return 'unreadable:' + String(error?.message || error);
+  }
+};
+const readRegistryRows = () => {
+  const registryPath = path.join(dataDir, 'runtimes.json');
+  if (!existsSync(registryPath)) return null;
+  try {
+    return JSON.parse(readFileSync(registryPath, 'utf8'));
+  } catch {
+    return null;
+  }
+};
+const hostRegistryRowFor = (id) => {
+  if (!id) return 'no-runtime-id';
+  const rows = readRegistryRows();
+  if (!rows) return 'missing';
+  return JSON.stringify(rows?.[id] ?? null).slice(0, 2000);
+};
+const copyFixtureForensics = () => {
+  const target = path.join(demoDir, 'fixture-forensics');
+  try {
+    cpSync(path.join(dataDir, 'logs'), path.join(target, 'logs'), { recursive: true });
+  } catch { /* logs dir may not exist */ }
+  try {
+    cpSync(path.join(dataDir, 'runtimes.json'), path.join(target, 'runtimes.json'));
+  } catch { /* registry may not exist */ }
+};
+const hostProcessState = () => {
+  if (process.platform !== 'win32') return 'not-windows';
+  const id = shellRuntimeId || firstShellRuntimeId();
+  if (!id) return 'no-runtime-id';
+  const row = readRegistryRows()?.[id];
+  const pid = row?.host_pid || row?.pid;
+  if (!pid) return 'no-host-pid';
+  const result = spawnSync('tasklist', ['/FI', `PID eq ${pid}`, '/NH'], { encoding: 'utf8' });
+  return String(result.stdout || result.stderr || '').trim().slice(0, 400) || 'tasklist-no-output';
+};
+const firstShellRuntimeId = () => {
+  const registryPath = path.join(dataDir, 'runtimes.json');
+  if (!existsSync(registryPath)) return '';
+  try {
+    const rows = JSON.parse(readFileSync(registryPath, 'utf8'));
+    const ids = Object.keys(rows || {}).filter((id) => id.startsWith('shell-'));
+    return ids[ids.length - 1] || '';
+  } catch {
+    return '';
+  }
+};
 const bootstrap = new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error(`bootstrap timeout\n${output}`)), 15000);
   const onData = (chunk) => {
@@ -89,6 +152,7 @@ process.on('exit', () => terminateProcessOnExit(server));
 
 const sourceSha = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
 const captures = [];
+let captureFailed = true;
 try {
   const url = await bootstrap;
   const browser = await chromium.launch({
@@ -422,6 +486,9 @@ try {
           ),
           backendStages: backendStages(),
           backendDiagnostics: backendDiagnostics(),
+          hostLog: hostLogTailFor(shellRuntimeId || firstShellRuntimeId()),
+          registryRow: hostRegistryRowFor(shellRuntimeId || firstShellRuntimeId()),
+          hostProcess: hostProcessState(),
           websocketHandshake: websocketHandshakeDiagnostics,
           pageErrorCount: pageErrors.length,
         }) +
@@ -430,6 +497,7 @@ try {
   }
   const shellPayload = await shellResponse.json().catch(() => null);
   const shellRuntime = shellPayload?.runtime || {};
+  shellRuntimeId = shellRuntime.runtime_id || '';
   if (!shellResponse.ok() || !shellRuntime.runtime_id) {
     throw new Error('project shell launch API failed; http=' + shellResponse.status());
   }
@@ -548,6 +616,9 @@ try {
           }) +
           '; backendStages=' + JSON.stringify(backendStages()) +
           '; backendDiagnostics=' + JSON.stringify(backendDiagnostics()) +
+          '; hostLog=' + hostLogTailFor(runtimeId) +
+          '; registryRow=' + hostRegistryRowFor(runtimeId) +
+          '; hostProcess=' + hostProcessState() +
           '; websocketHandshake=' + JSON.stringify(websocketHandshakeDiagnostics) +
           '; pageErrors=' + pageErrors.length,
       )), 35000);
@@ -744,7 +815,9 @@ try {
     const videoPath = await video.path();
     renameSync(videoPath, path.join(demoDir, 'direct-workflow.webm'));
   }
+  captureFailed = false;
 } finally {
+  if (captureFailed) copyFixtureForensics();
   await stop().catch((error) => {
     console.warn('documentation fixture cleanup failed:', error?.message || error);
     process.exitCode = process.exitCode || 1;
