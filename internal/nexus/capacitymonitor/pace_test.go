@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 func TestPredictPaceTrustAndIsolation(t *testing.T) {
@@ -84,5 +85,14 @@ func TestPredictPaceHonorsResetAndRejectsBadSeries(t *testing.T) {
 	}
 	if got := PredictPace(slow[:2], now); got != nil {
 		t.Fatalf("too few samples: %+v", got)
+	}
+}
+
+func TestPaceSourceTrustBoundary(t *testing.T) {
+	for _,source:=range []model.UsageSource{model.SourceOfficialAPI,model.SourceCLIOutput,model.SourceResponseHeader}{
+		if !trustedPaceSource(source){t.Errorf("%s is direct provider evidence",source)}
+	}
+	for _,source:=range []model.UsageSource{model.SourceNone,model.SourceLocalFiles,model.SourceObservation,""}{
+		if trustedPaceSource(source){t.Errorf("%s must not generate forecast",source)}
 	}
 }

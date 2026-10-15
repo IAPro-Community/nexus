@@ -411,7 +411,7 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 		// Sample only fresh, identity-verified LIVE usage. Cached, estimated or
 		// rate-limited data must not manufacture a consumption trend.
 		if normalizeStatus(snap.Status) == string(model.UsageLive) &&
-			snap.Source != "" && snap.Source != model.SourceNone &&
+			trustedPaceSource(snap.Source) &&
 			scope != "" && w.ResetTime != nil && w.UsedPercent != nil &&
 			!snap.FetchedAt.IsZero() && !snap.FetchedAt.After(now.Add(time.Minute)) &&
 			now.Sub(snap.FetchedAt) <= 10*time.Minute {

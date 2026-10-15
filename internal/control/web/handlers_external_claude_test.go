@@ -64,3 +64,27 @@ func TestExternalClaudeRequiresExplicitConsentAndKeepsCostSeparate(t *testing.T)
 	agg,err:=nexus.Default().Store().SummarizeCostObservations(store.CostObservationFilter{})
 	if err!=nil||agg.ObservationCount!=0{t.Fatalf("ledger contaminated: %+v %v",agg,err)}
 }
+
+func TestExternalClaudeConcurrentReadAndDeleteRejectsConflict(t *testing.T) {
+	nexus.ResetDefaultForTest()
+	t.Setenv("NEXUS_DATA_DIR",t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR",t.TempDir())
+	t.Cleanup(nexus.ResetDefaultForTest)
+	client,srv,csrf:=csrfClient(t)
+	externalClaudeOperationMu.Lock()
+	defer externalClaudeOperationMu.Unlock()
+	for _,method:=range []string{http.MethodPost,http.MethodDelete}{
+		body:=""
+		if method==http.MethodPost{body="{\"consent\":true}"}
+		req,err:=http.NewRequest(method,srv.URL()+"/api/v1/cost/external-claude",bytes.NewBufferString(body))
+		if err!=nil{t.Fatal(err)}
+		req.Header.Set("Content-Type","application/json")
+		req.Header.Set("X-CSRF-Token",csrf)
+		resp,err:=client.Do(req)
+		if err!=nil{t.Fatal(err)}
+		resp.Body.Close()
+		if resp.StatusCode!=http.StatusConflict{
+			t.Fatalf("%s must not race existing scan/clear, got %d",method,resp.StatusCode)
+		}
+	}
+}

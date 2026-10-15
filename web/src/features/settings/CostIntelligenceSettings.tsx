@@ -313,7 +313,7 @@ export const CostIntelligenceSettings: React.FC = () => {
         <h3>{t('settings.externalClaude', 'Uso externo do Claude Code')}</h3>
         <p>
           {t('settings.externalClaudeDescription',
-            'Leitura manual de metadados locais. Não envia prompts, não estima custos da assinatura e não soma os tokens ao ledger do Nexus.')}
+            'Leitura manual dos metadados da máquina que executa o servidor Nexus (não necessariamente este navegador). Não envia prompts, não estima custos da assinatura e não soma os tokens ao ledger.')}
         </p>
         <Button onClick={() => void scanLocalClaude()} disabled={externalBusy}>
           {externalBusy

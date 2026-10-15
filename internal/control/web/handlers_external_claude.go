@@ -8,10 +8,15 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/externalusage"
 )
+
+// Serialize manual imports and explicit deletion so a completed deletion
+// cannot be repopulated by a concurrently running scan.
+var externalClaudeOperationMu sync.Mutex
 
 // handleExternalClaudeUsage is a manual, opt-in operation. No timer, watcher,
 // CLI hook or request from the Usage screen ever starts transcript scanning.
@@ -35,12 +40,22 @@ func (h *NexusHandler) handleExternalClaudeUsage(w http.ResponseWriter, r *http.
 		}
 		writeJSON(w, http.StatusOK, summary)
 	case http.MethodDelete:
+		if !externalClaudeOperationMu.TryLock() {
+			writeError(w, http.StatusConflict, "external usage operation already running")
+			return
+		}
+		defer externalClaudeOperationMu.Unlock()
 		if err := st.ClearExternalClaude(r.Context()); err != nil {
 			writeError(w, http.StatusInternalServerError, "unable to clear external usage")
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]bool{"cleared": true})
 	case http.MethodPost:
+		if !externalClaudeOperationMu.TryLock() {
+			writeError(w, http.StatusConflict, "external usage operation already running")
+			return
+		}
+		defer externalClaudeOperationMu.Unlock()
 		var payload struct {
 			Consent bool `json:"consent"`
 		}

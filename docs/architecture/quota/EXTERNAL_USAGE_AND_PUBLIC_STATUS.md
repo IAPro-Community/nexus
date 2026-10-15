@@ -67,3 +67,8 @@ em CSV. Os dados externos do Claude continuam fora desse relatório.
 As exportações CSV de custo e capacidade usam o mesmo helper frontend que
 anexa o Bearer token no Desktop/Wails; links HTML diretos não garantem esse
 cabeçalho. Em Web convencional a autenticação da sessão segue pelo cookie.
+
+Ações manuais de importação e exclusão não concorrem: uma operação ativa
+retorna HTTP 409 para a outra, impedindo que dados apagados sejam reinseridos
+por uma importação simultânea. O scanner opera no sistema que hospeda o Nexus,
+não no dispositivo do navegador remoto.

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // PaceForecast is an advisory projection of recent used-percent movement.
@@ -113,4 +114,15 @@ func ForecastForObservation(all []store.CapacityPaceSample, current store.Observ
 		}
 	}
 	return PredictPace(selected, now)
+}
+
+// Pace sampling requires a provider-sourced LIVE observation. Local-file,
+// inferred and unattributed observations cannot seed a reliable slope.
+func trustedPaceSource(source model.UsageSource) bool {
+	switch source {
+	case model.SourceOfficialAPI, model.SourceCLIOutput, model.SourceResponseHeader:
+		return true
+	default:
+		return false
+	}
 }
