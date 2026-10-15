@@ -826,6 +826,15 @@ export const nexus = {
     if (projectId) params.set('project_id', projectId);
     return request<import('../types').CostSummary>(`/api/v1/cost/summary?${params.toString()}`);
   },
+  getExternalClaudeUsage: (days = 7) =>
+    request<import('../types').ExternalClaudeSummary>(
+      `/api/v1/cost/external-claude?days=${days === 30 ? 30 : 7}`,
+    ),
+  scanExternalClaudeUsage: () =>
+    request<import('../types').ExternalClaudeScanResult>('/api/v1/cost/external-claude', {
+      method: 'POST',
+      body: JSON.stringify({ consent: true }),
+    }),
   getCostPreferences: () => request<import('../types').CostPreferences>('/api/v1/cost/preferences'),
   putCostPreferences: (prefs: import('../types').CostPreferences) =>
     request<import('../types').CostPreferences>('/api/v1/cost/preferences', {

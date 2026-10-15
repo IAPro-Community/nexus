@@ -362,6 +362,22 @@ export interface ProviderCostAggregate extends CostAggregate {
   profile: string;
 }
 
+export interface ExternalClaudeSummary {
+  source: 'LOCAL_DEFAULT_UNVERIFIED';
+  unattributed: true;
+  messages: number;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  last_observed_at?: string;
+}
+
+export interface ExternalClaudeScanResult {
+  scan: { files: number; messages: number; bytes: number; has_more: boolean; unattributed: true };
+  summary: ExternalClaudeSummary;
+}
+
 export interface CostPreferences {
   enabled: boolean;
   window_days: number;

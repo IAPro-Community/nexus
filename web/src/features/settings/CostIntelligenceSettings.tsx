@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, InlineAlert, Input, Switch } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import type { CostPreferences } from '../../types';
+import type { CostPreferences, ExternalClaudeSummary } from '../../types';
 import styles from './CostIntelligenceSettings.module.scss';
 
 const numberValue = (raw: string, fallback: number): number => {
@@ -34,6 +34,9 @@ export const CostIntelligenceSettings: React.FC = () => {
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [external, setExternal] = useState<ExternalClaudeSummary | null>(null);
+  const [externalBusy, setExternalBusy] = useState(false);
+  const [externalResult, setExternalResult] = useState('');
   const [error, setError] = useState('');
 
   const applyPreferences = useCallback((next: CostPreferences) => {
@@ -60,6 +63,7 @@ export const CostIntelligenceSettings: React.FC = () => {
 
   useEffect(() => {
     void refresh();
+    void nexus.getExternalClaudeUsage().then(setExternal).catch(() => setExternal(null));
   }, [refresh]);
 
   const patch = (next: Partial<CostPreferences>) => {
@@ -122,6 +126,26 @@ export const CostIntelligenceSettings: React.FC = () => {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Consent is scoped to this click only. No background scanning is enabled.
+  const scanLocalClaude = async () => {
+    setExternalBusy(true);
+    setExternalResult('');
+    try {
+      const result = await nexus.scanExternalClaudeUsage();
+      setExternal(result.summary);
+      setExternalResult(
+        t('settings.externalClaudeScanResult', {
+          defaultValue: '{{messages}} registros processados nesta leitura. Histórico separado do custo real.',
+          messages: result.scan.messages,
+        }),
+      );
+    } catch (err) {
+      setExternalResult(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExternalBusy(false);
     }
   };
 
@@ -267,6 +291,28 @@ export const CostIntelligenceSettings: React.FC = () => {
         </div>
       </section>
 
+      <section className={styles.section} aria-label={t('settings.externalClaude', 'Uso externo do Claude Code')}>
+        <h3>{t('settings.externalClaude', 'Uso externo do Claude Code')}</h3>
+        <p>
+          {t('settings.externalClaudeDescription',
+            'Leitura manual de metadados locais. Não envia prompts, não estima custos da assinatura e não soma os tokens ao ledger do Nexus.')}
+        </p>
+        <Button onClick={() => void scanLocalClaude()} disabled={externalBusy}>
+          {externalBusy
+            ? t('settings.externalClaudeScanning', 'Lendo registros…')
+            : t('settings.externalClaudeConsent', 'Autorizar uma leitura local agora')}
+        </Button>
+        {external ? (
+          <p className={styles.externalSummary}>
+            {t('settings.externalClaudeObserved', {
+              defaultValue: '{{messages}} mensagens · {{tokens}} tokens observados (fonte externa, não atribuída)',
+              messages: external.messages,
+              tokens: external.input_tokens + external.output_tokens + external.cache_read_tokens + external.cache_write_tokens,
+            })}
+          </p>
+        ) : null}
+        <p role="status" aria-live="polite">{externalResult}</p>
+      </section>
       <div className={styles.actions}>
         <Button tone="brand" onClick={() => void save()} disabled={saving}>
           {saving
