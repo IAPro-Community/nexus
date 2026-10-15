@@ -39,7 +39,7 @@ func TestManualClaudeScanIncrementalAndNoDuplication(t *testing.T) {
 	duplicate := fixture("same-message",25)
 	f, err := os.OpenFile(file,os.O_APPEND|os.O_WRONLY,0600)
 	if err != nil { t.Fatal(err) }
-	_,err = f.Write([]byte(duplicate[len("{\"type\":\"assistant"):]))
+	_,err = f.Write([]byte(duplicate[len("{\"type\":\"assistant\""):]))
 	_ = f.Close()
 	if err != nil { t.Fatal(err) }
 	a, err = ScanClaudeProjects(ctx,s,root)
