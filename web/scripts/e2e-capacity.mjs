@@ -72,6 +72,17 @@ async function main() {
       assert.equal(res.status, 401, 'capacity snooze without session must be 401');
     }
 
+    // Diagnostics and exports are equally protected before bootstrap.
+    for (const endpoint of [
+      '/api/v1/providers/public-status',
+      '/api/v1/cost/external-claude',
+      '/api/v1/capacity/pace.csv',
+      '/api/v1/cost/observations.csv',
+    ]) {
+      const res = await api(origin, 'GET', endpoint);
+      assert.equal(res.status, 401, `unauthenticated access to ${endpoint} must be denied`);
+    }
+
     // Bootstrap exchange (same as the web client initSession).
     const fragment = new URL(bootstrapUrl).hash.replace(/^#/, '');
     const token = new URLSearchParams(fragment).get('nexus_bootstrap') || '';
