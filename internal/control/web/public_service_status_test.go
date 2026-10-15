@@ -5,14 +5,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
 func TestPublicStatusCacheNoAuthAndIndependentFailure(t *testing.T) {
-	hits := 0
+	var hits atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hits++
+		hits.Add(1)
 		if r.Header.Get("Authorization") != "" || r.Header.Get("Cookie") != "" {
 			t.Error("credential leaked to public service")
 		}
@@ -37,10 +38,10 @@ func TestPublicStatusCacheNoAuthAndIndependentFailure(t *testing.T) {
 		t.Fatalf("unexpected independent service states: %+v", snap)
 	}
 	_ = cache.snapshot(context.Background())
-	if hits != 2 { t.Fatalf("cache should avoid repeat requests, got %d", hits) }
+	if hits.Load() != 2 { t.Fatalf("cache should avoid repeat requests, got %d", hits.Load()) }
 	now = now.Add(6 * time.Minute)
 	snap = cache.snapshot(context.Background())
-	if len(snap) != 2 || hits != 4 { t.Fatalf("cache did not refresh: %+v, %d", snap, hits) }
+	if len(snap) != 2 || hits.Load() != 4 { t.Fatalf("cache did not refresh: %+v, %d", snap, hits) }
 }
 
 func TestPublicStatusRejectsUnknownIndicator(t *testing.T) {
