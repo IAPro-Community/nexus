@@ -13,6 +13,7 @@ type CommandType string
 const (
 	CmdPing            CommandType = "ping"
 	CmdStatus          CommandType = "status"
+	CmdHandshakeStatus CommandType = "handshake_status"
 	CmdMetadata        CommandType = "metadata"
 	CmdAttach          CommandType = "attach"
 	CmdDetach          CommandType = "detach"

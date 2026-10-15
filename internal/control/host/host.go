@@ -552,10 +552,8 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 	case protocol.CmdPing:
 		resp, _ = protocol.NewResponse("pong")
 
-	case protocol.CmdStatus:
+	case protocol.CmdStatus, protocol.CmdHandshakeStatus:
 		fanoutStats := sh.fanout.Stats()
-		quotaView := profile.GetQuotaView(sh.session.ProviderID, sh.session.ProfileID, "", "")
-		quotaPercent, _ := quotaView.Bottleneck()
 		status := protocol.StatusData{
 			RuntimeID:                 sh.session.RuntimeID,
 			ProviderID:                sh.session.ProviderID,
@@ -582,14 +580,17 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 			AttentionKind:             sh.session.AttentionKind,
 			PromptKind:                sh.session.PromptKind,
 			Continuity:                sh.session.Continuity,
-			QuotaStatus:               quotaView.Status,
-			QuotaPercent:              quotaPercent,
+		}
+		if req.Command == protocol.CmdStatus {
+			quotaView := profile.GetQuotaView(sh.session.ProviderID, sh.session.ProfileID, "", "")
+			status.QuotaStatus = quotaView.Status
+			status.QuotaPercent, _ = quotaView.Bottleneck()
 		}
 		resp, _ = protocol.NewResponse(status)
 		resp.RuntimeID = status.RuntimeID
 		resp.State = status.State
 		resp.Code = "STATUS_OK"
-		resp.Action = string(protocol.CmdStatus)
+		resp.Action = string(req.Command)
 		resp.Message = "runtime status"
 
 	case protocol.CmdAttach:

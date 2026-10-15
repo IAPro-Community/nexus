@@ -191,6 +191,20 @@ func (c *Client) Status() (StatusData, error) {
 	return st, nil
 }
 
+// HandshakeStatusContext fetches only process identity fields needed to finish
+// runtime startup. It avoids quota collection on the critical launch path.
+func (c *Client) HandshakeStatusContext(ctx context.Context) (StatusData, error) {
+	resp, err := c.SendContext(ctx, CmdHandshakeStatus, nil)
+	if err != nil {
+		return StatusData{}, err
+	}
+	var status StatusData
+	if err := json.Unmarshal(resp.Data, &status); err != nil {
+		return StatusData{}, err
+	}
+	return status, nil
+}
+
 // Events fetches a bounded, redacted event history without attaching to the
 // interactive terminal or acquiring its writer lease.
 func (c *Client) Events(limit int) ([]EventData, error) {
