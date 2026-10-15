@@ -102,8 +102,16 @@ foreach ($ScriptPath in @(
 }
 
 Write-Host "==> documentation"
+# Windows PowerShell 5.1 turns stderr records of a native command into
+# terminating errors when they cross 2>&1 under Stop; relax the preference so
+# the verify output always reaches its log and the exit code stays the single
+# source of truth (pwsh 7 behaves identically for this shape).
+$DocumentationPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 bun scripts/docs-verify.mjs 2>&1 | Tee-Object -FilePath (Join-Path $Out 'docs-verify.log')
-if ($LASTEXITCODE -ne 0) { throw "documentation verification failed" }
+$DocumentationExit = $LASTEXITCODE
+$ErrorActionPreference = $DocumentationPreference
+if ($DocumentationExit -ne 0) { throw "documentation verification failed (exit=$DocumentationExit)" }
 
 Write-Host "==> frontend dependencies"
 bun install --cwd web --frozen-lockfile 2>&1 | Tee-Object -FilePath (Join-Path $Out 'bun-install.log')
