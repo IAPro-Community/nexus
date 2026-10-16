@@ -1643,10 +1643,25 @@ Ciclo de correção e certificação da instalação local (branch
   permitida, conforme contrato de `defaultBrowsePath`); bookmarks
   `Home → C:\Users\kiver`, `Documents → C:\Users\kiver\Documents`, nenhum
   apontando para raiz do sistema.
-- UNVERIFIED (por design, interativo) — `MANUAL_CHECKS.md` gerado pela
-  cadeia permanece a cargo do operador; inclui fixar o ícone do tray na
-  área de notificação (overflow do Windows 11: Configurações → Barra de
-  tarefas → Outros ícones da bandeja do sistema).
+- Passagem headless somente leitura sobre o `MANUAL_CHECKS.md` executada
+  contra o core vivo (2026-10-16, nenhuma mutação): `GET /api/v1/providers`,
+  `/api/v1/execution-roles`, `/api/v1/hud`, `/api/v1/voice/settings`,
+  `/api/v1/capacity/status`, `/api/v1/cost/summary` e `/api/v1/projects`
+  todos 200. Item 16 confirmado ao vivo (opencode `INSTALLED_UNREGISTERED`
+  visível sem perfil); item 15 com OpenCode listado como provider próprio
+  independente do AGY; roles build/investigate/review presentes (item 17);
+  voz N/A (`enabled=false`, sem chave Groq — item 22). Itens 1 e 10-12
+  cobertos pelos testes da cadeia #7 (CSI/setas byte-level, delegation
+  fail-closed, budget gate, isolamento). Detalhe:
+  `%TEMP%\opencode\MANUAL_CHECKS_HEADLESS_RESULT.md`.
+- UNVERIFIED (por design, interativo) — itens do `MANUAL_CHECKS.md` que
+  exigem sessão nativa real (prompt em provider, admissão de Mission com
+  Agent pinado, Certify/enforcement) permanecem a cargo do operador, bem
+  como fixar o ícone do tray (overflow do Windows 11: Configurações →
+  Barra de tarefas → Outros ícones da bandeja do sistema).
+- UNVERIFIED (1 clique do operador) — toggle "Iniciar com o sistema" do
+  HUD: chave `HKCU:\Software\Microsoft\Windows\CurrentVersion\Run` ainda
+  sem entrada do Nexus (toggle nativo disponível na janela do HUD).
 
 <!-- frontend-verify:latest -->
 ## Frontend gate — 2026-10-16T03:57:01Z
