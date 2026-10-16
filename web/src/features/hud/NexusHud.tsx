@@ -158,6 +158,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     [state, focus?.provider],
   );
   const cost = useMemo(() => formatHudCost(state?.cost), [state?.cost]);
+  const showDetails = (kind: HudPresentationPreferences['mode']) => prefs.mode === 'AUTO' || prefs.mode === kind;
   const alert = state?.alerts.find(
     (item) =>
       item.provider?.toLowerCase() === focus?.provider?.provider.toLowerCase() &&
@@ -313,7 +314,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               <div className={styles.evidence}>{focus?.provider?.source || 'Fonte não informada'} · {focus?.provider?.freshness || 'UNKNOWN'}</div>
             </div>
 
-            {prefs.showCapacity && otherAccounts.length > 0 && (
+            {prefs.showCapacity && showDetails('CAPACITY') && otherAccounts.length > 0 && (
               <div className={styles.accounts}>
                 <div className={styles.sectionCaption}>Outras contas</div>
                 {otherAccounts.slice(0, 3).map((provider) => {
@@ -358,7 +359,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </div>
             )}
 
-            {prefs.showRecommendation && state.recommendation && (
+            {prefs.showRecommendation && showDetails('RESOURCE') && state.recommendation && (
               <div className={styles.recommendation}>
                 <strong>Recomendação do ResourceScheduler</strong>
                 <span>{state.recommendation.display_name || state.recommendation.provider}</span>
@@ -371,15 +372,15 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </div>
             )}
 
-            {prefs.showCapacity && paceWarning?.pace?.exhausts_at && (
+            {prefs.showCapacity && showDetails('CAPACITY') && paceWarning?.pace?.exhausts_at && (
               <p className={styles.evidence}>Tendência de esgotamento estimada: {new Intl.DateTimeFormat(undefined, {dateStyle: 'short', timeStyle: 'short'}).format(new Date(paceWarning.pace.exhausts_at))}</p>
             )}
-            {prefs.showAgents && activeAgents.length > 0 && (
+            {prefs.showAgents && showDetails('AGENT') && activeAgents.length > 0 && (
               <button type="button" className={styles.quickLink} onClick={onOpenAgents} disabled={!onOpenAgents}>
                 {activeAgents.length} agente(s) em execução <ChevronDown size={14} />
               </button>
             )}
-            {prefs.showCost && !prefs.privacyMode && cost.semantics !== 'unknown' && (
+            {prefs.showCost && !prefs.privacyMode && prefs.mode === 'AUTO' && cost.semantics !== 'unknown' && (
               <span className={styles.evidence}>Custo: {cost.label} · {cost.semantics}</span>
             )}
             {alert && (
