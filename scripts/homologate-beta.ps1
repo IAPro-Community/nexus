@@ -369,8 +369,8 @@ if (Get-Command opencode -ErrorAction SilentlyContinue) {
 
 if (-not $SkipDesktop) {
   Write-Host "==> Windows Wails v3 Desktop + HUD build"
-  bun run --cwd web build
-  if ($LASTEXITCODE -ne 0) { throw "frontend build for Wails v3 failed" }
+  Invoke-NativeLogged (Join-Path $Out 'wails-frontend-build.log') { bun run --cwd web build }
+  if ($script:LastNativeExit -ne 0) { throw "frontend build for Wails v3 failed" }
 
   New-Item -ItemType Directory -Path "cmd/nexus-desktop/build/bin" -Force | Out-Null
   New-Item -ItemType Directory -Path "cmd/nexus-hud/build/bin" -Force | Out-Null
