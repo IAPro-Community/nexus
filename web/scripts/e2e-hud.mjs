@@ -85,9 +85,16 @@ async function main() {
       fullPage: true,
     });
 
-    // Expanded state and accessibility.
+    // Compact capsule must remain informative without becoming a dashboard.
     const expand = page.getByRole('button', { name: /expandir nexus hud/i });
+    assert.equal(await expand.getAttribute('aria-expanded'), 'false');
+    await expand.hover();
+    await page.getByRole('tooltip').waitFor({ state: 'visible', timeout: 3000 });
+
+    // The same capsule opens the contextual, accessible provider popover.
     await expand.click();
+    await page.locator('#nexus-hud-popover').waitFor({ state: 'visible' });
+    assert.equal(await page.getByRole('button', { name: /recolher nexus hud/i }).count() > 0, true);
     const expanded = page.locator('section[data-hud-panel][data-expanded="true"]').first();
     await expanded.waitFor({ state: 'visible', timeout: 5000 });
 
