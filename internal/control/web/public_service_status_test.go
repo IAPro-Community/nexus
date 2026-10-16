@@ -88,3 +88,45 @@ func TestPublicStatusCanceledRequestDoesNotPoisonCache(t *testing.T) {
 	}
 	if hits.Load() != 1 { t.Fatalf("expected one actual probe, got %d", hits.Load()) }
 }
+
+func TestPublicStatusMidFlightCancellationAllowsNextProbe(t *testing.T) {
+	started := make(chan struct{})
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			close(started)
+			<-r.Context().Done()
+			return
+		}
+		_, _ = w.Write([]byte(`{"status":{"indicator":"none"}}`))
+	}))
+	defer srv.Close()
+	now := time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC)
+	cache := &publicStatusCache{
+		client: srv.Client(),
+		clock: func() time.Time { return now },
+		sources: []publicStatusSource{{"openai", srv.URL}},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	result := make(chan []PublicServiceStatus, 1)
+	go func() { result <- cache.snapshot(ctx) }()
+	select {
+	case <-started:
+		cancel()
+	case <-time.After(3 * time.Second):
+		t.Fatal("first probe did not start")
+	}
+	select {
+	case aborted := <-result:
+		if len(aborted) != 1 || !aborted[0].Stale {
+			t.Fatalf("aborted probe should be marked stale: %+v", aborted)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("canceled request did not complete")
+	}
+	next := cache.snapshot(context.Background())
+	if len(next) != 1 || next[0].Indicator != "none" || next[0].Stale || calls.Load() != 2 {
+		t.Fatalf("canceled request poisoned following probe: %+v (calls=%d)", next, calls.Load())
+	}
+}
