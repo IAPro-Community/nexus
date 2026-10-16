@@ -53,3 +53,21 @@ queued/cancelled por créditos; não considerar um run cancelado como aprovaçã
 - Varredura de diretórios limitada a 20.000 entradas.
 - Foram adicionados testes direcionados; gates completos ainda dependem
   de execução real em Go 1.25 e browser/Windows no mesmo SHA.
+
+## Revisão adicional — 16/10/2026
+
+- Cache público: abortar a requisição do navegador **antes ou durante** o probe não
+  grava estado UNKNOWN no TTL compartilhado; a consulta seguinte pode refazer
+  a verificação imediatamente. Acrescentados testes de cancelamento inicial
+  e cancelamento em andamento com nova consulta saudável.
+- UX de privacidade: Cost Intelligence apresenta a importação de Claude Code
+  somente para origens locais permitidas; acessos por LAN/túnel continuam
+  permitindo consulta e limpeza de metadados já importados. O servidor continua
+  aplicando validações independentes de peer, Host, Origin, sessão e CSRF.
+- Tests adicionados: `TestPublicStatusCanceledRequestDoesNotPoisonCache`,
+  `TestPublicStatusMidFlightCancellationAllowsNextProbe` e
+  `externalClaudeAvailability.test.ts`.
+- Limite de certificação: sem checkout local do repositório e Go 1.25 neste
+  ambiente; nenhum desses testes foi executado aqui. Actions continua na
+  fila/cancelado. Verificar SHA canônico após a última alteração antes de
+  iniciar a homologação nativa Windows e Linux.
