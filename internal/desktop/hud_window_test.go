@@ -10,7 +10,7 @@ func TestHUDWindowStateManagerDefaultsAndPersistence(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "hud.json")
 	manager := NewHUDWindowStateManager(path)
 	initial := manager.Load()
-	if initial.Placement != HUDPlacementTopRight || initial.Width < 280 || !initial.AlwaysOnTop {
+	if initial.Placement != HUDPlacementBottomRight || initial.Width < 190 || !initial.AlwaysOnTop {
 		t.Fatalf("unexpected defaults: %+v", initial)
 	}
 
@@ -33,10 +33,10 @@ func TestNormalizeHUDWindowStateDefersPositionClampUntilScreenIsKnown(t *testing
 		DisplayID: "", Placement: "NOT_REAL", X: -100, Y: -50,
 		Width: 10, Height: 10, Opacity: 8,
 	})
-	if got.Placement != HUDPlacementTopRight || got.X != -100 || got.Y != -50 {
+	if got.Placement != HUDPlacementBottomRight || got.X != -100 || got.Y != -50 {
 		t.Fatalf("normalization must preserve coordinates until work-area clamp: %+v", got)
 	}
-	if got.Width != 430 || got.Height != 64 || got.Opacity != 0.96 {
+	if got.Width != 220 || got.Height != 60 || got.Opacity != 0.96 {
 		t.Fatalf("unsafe size/opacity normalization: %+v", got)
 	}
 }
