@@ -84,7 +84,7 @@ func main() {
 		Title:                      "Nexus HUD",
 		Width:                      windowState.Width,
 		Height:                     windowState.Height,
-		MinWidth:                   280,
+		MinWidth:                   190,
 		MinHeight:                  48,
 		MaxWidth:                   1200,
 		MaxHeight:                  900,
