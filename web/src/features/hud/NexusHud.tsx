@@ -160,7 +160,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const cost = useMemo(() => formatHudCost(state?.cost), [state?.cost]);
   const alert = state?.alerts.find(
     (item) =>
-      item.provider.toLowerCase() === focus?.provider?.provider.toLowerCase() &&
+      item.provider?.toLowerCase() === focus?.provider?.provider.toLowerCase() &&
       (!item.profile || item.profile.toLowerCase() === focus?.provider?.profile.toLowerCase()),
   ) || state?.alerts[0];
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
@@ -263,6 +263,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       data-native={native ? 'true' : 'false'}
       style={floatingStyle}
       aria-label="Nexus HUD"
+      aria-live="polite"
     >
       <section
         ref={panelRef}
@@ -401,7 +402,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             type="button"
             className={styles.capsule}
             data-tone={tone}
-            aria-label={`Nexus HUD, ${mainLabel}, ${currentPercent} restante. ${expanded ? 'Recolher' : 'Expandir'} detalhes`}
+            aria-label={`${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${currentPercent} restante`}
             aria-expanded={expanded}
             aria-controls={expanded ? 'nexus-hud-popover' : undefined}
             title={`${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`}
