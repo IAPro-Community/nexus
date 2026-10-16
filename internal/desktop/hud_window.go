@@ -75,11 +75,11 @@ func NewHUDWindowStateManager(filePath string) *HUDWindowStateManager {
 func defaultHUDWindowState() HUDWindowState {
 	return HUDWindowState{
 		DisplayID:   "current",
-		Placement:   HUDPlacementTopRight,
+		Placement:   HUDPlacementBottomRight,
 		X:           24,
 		Y:           24,
-		Width:       430,
-		Height:      64,
+		Width:       220,
+		Height:      60,
 		Mode:        "AUTO",
 		Opacity:     0.96,
 		AlwaysOnTop: true,
@@ -98,7 +98,7 @@ func normalizeHUDWindowState(state HUDWindowState) HUDWindowState {
 	if strings.TrimSpace(state.DisplayID) == "" {
 		state.DisplayID = defaults.DisplayID
 	}
-	if state.Width < 280 || state.Width > 1200 {
+	if state.Width < 190 || state.Width > 1200 {
 		state.Width = defaults.Width
 	}
 	if state.Height < 48 || state.Height > 900 {
@@ -318,6 +318,12 @@ func (h *HUDController) RestoreHUDWindow() {
 	state := h.manager.Load()
 	screen := h.screenForState(state, window)
 	if screen != nil {
+		// Named placements are resolved against the usable screen area, not
+		// absolute desktop coordinates. This keeps the capsule above taskbars.
+		if state.Placement == HUDPlacementBottomRight {
+			state.X = screen.WorkArea.X + screen.WorkArea.Width - state.Width - 12
+			state.Y = screen.WorkArea.Y + screen.WorkArea.Height - state.Height - 8
+		}
 		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
 		state.DisplayID = screen.ID
 		state.DisplayScale = screen.ScaleFactor
@@ -350,14 +356,29 @@ func (h *HUDController) CaptureHUDWindowState() error {
 func (h *HUDController) SetHUDExpanded(expanded bool) error {
 	window, ok := h.nativeWindow()
 	state := h.manager.Load()
+	oldWidth, oldHeight := state.Width, state.Height
 	if expanded {
-		state.Height = 520
+		state.Width, state.Height = 334, 496
 	} else {
-		state.Height = 64
+		state.Width, state.Height = 220, 60
 	}
+	// A right/bottom anchored HUD must grow UP and LEFT. Without this the
+	// popover expands under the taskbar or falls outside the work area.
 	if ok {
+		state.X, state.Y = window.Position()
+		state.X += oldWidth - state.Width
+		state.Y += oldHeight - state.Height
+		if screen := h.screenForState(state, window); screen != nil {
+			state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
+			state.DisplayID = screen.ID
+			state.DisplayScale = screen.ScaleFactor
+		}
 		window.SetSize(state.Width, state.Height)
+		if h.GetHUDCapabilities().GlobalPositioning {
+			window.SetPosition(state.X, state.Y)
+		}
 	}
+	state.Placement = HUDPlacementCustom
 	return h.manager.Save(state)
 }
 
