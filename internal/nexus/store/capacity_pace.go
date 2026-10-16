@@ -1,6 +1,7 @@
 package store
 
 import (
+	"database/sql"
 	"errors"
 	"math"
 	"strings"
@@ -58,6 +59,32 @@ func (s *Store) ListCapacityPaceSamples(since time.Time) ([]CapacityPaceSample, 
 		WHERE observed_at >= ? ORDER BY observed_at DESC LIMIT 5000`, formatStoreTime(since))
 	if err != nil { return nil, err }
 	defer rows.Close()
+	return scanCapacityPaceRows(rows)
+}
+
+// ListCapacityPaceSamplesForResource reads only the verified identity and
+// resource window being projected, avoiding starvation under the 5,000-row
+// global history/export limit when many accounts have observations.
+func (s *Store) ListCapacityPaceSamplesForResource(o ObservationRecord, since time.Time) ([]CapacityPaceSample, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("capacity pace: store unavailable")
+	}
+	if strings.TrimSpace(o.AccountScope) == "" || strings.TrimSpace(o.Provider) == "" ||
+		strings.TrimSpace(o.Profile) == "" || strings.TrimSpace(o.WindowKind) == "" {
+		return []CapacityPaceSample{}, nil
+	}
+	rows, err := s.db.Query(`SELECT provider, profile, account_scope, quota_group, window_kind,
+		reset_at, observed_at, used_percent, source FROM capacity_pace_samples
+		WHERE provider = ? AND profile = ? AND account_scope = ? AND quota_group = ?
+		  AND window_kind = ? AND observed_at >= ?
+		ORDER BY observed_at DESC LIMIT 512`,
+		o.Provider, o.Profile, o.AccountScope, o.QuotaGroup, o.WindowKind, formatStoreTime(since))
+	if err != nil { return nil, err }
+	defer rows.Close()
+	return scanCapacityPaceRows(rows)
+}
+
+func scanCapacityPaceRows(rows *sql.Rows) ([]CapacityPaceSample, error) {
 	result := []CapacityPaceSample{}
 	for rows.Next() {
 		var v CapacityPaceSample
@@ -66,10 +93,12 @@ func (s *Store) ListCapacityPaceSamples(since time.Time) ([]CapacityPaceSample, 
 			&v.WindowKind, &reset, &observed, &v.UsedPercent, &v.Source); err != nil {
 			return nil, err
 		}
-		v.ResetAt, err = parseStoreTime(reset)
+		parsedReset, err := parseStoreTime(reset)
 		if err != nil { return nil, err }
-		v.ObservedAt, err = parseStoreTime(observed)
+		parsedObserved, err := parseStoreTime(observed)
 		if err != nil { return nil, err }
+		v.ResetAt = parsedReset
+		v.ObservedAt = parsedObserved
 		result = append(result, v)
 	}
 	return result, rows.Err()
