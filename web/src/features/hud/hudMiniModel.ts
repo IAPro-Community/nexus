@@ -52,7 +52,7 @@ export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
   const stateName = provider?.capacity_state?.toUpperCase();
   const alert = state.alerts.some(
     (item) =>
-      item.provider.toLowerCase() === provider?.provider.toLowerCase() &&
+      item.provider?.toLowerCase() === provider?.provider.toLowerCase() &&
       (!item.profile || item.profile.toLowerCase() === provider?.profile.toLowerCase()) &&
       ['CRITICAL', 'EXHAUSTED'].includes(item.severity.toUpperCase()),
   );
