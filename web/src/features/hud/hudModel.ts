@@ -123,6 +123,19 @@ export interface HudResponse {
   state?: HudState;
 }
 
+export type NativeHudStatus = 'loading' | 'offline' | 'disabled' | 'ready';
+
+export function resolveNativeHudStatus(
+  enabled: boolean | undefined,
+  hasState: boolean,
+  offline: boolean,
+): NativeHudStatus {
+  if (enabled && hasState) return 'ready';
+  if (enabled === false) return 'disabled';
+  if (offline || enabled === true) return 'offline';
+  return 'loading';
+}
+
 export interface HudPresentationPreferences {
   version: 1;
   enabled: boolean;

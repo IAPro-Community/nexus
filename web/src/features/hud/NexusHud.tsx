@@ -6,6 +6,7 @@ import {
   CircleAlert,
   Gauge,
   GripHorizontal,
+  RefreshCw,
   Settings2,
   Users,
   Workflow,
@@ -23,6 +24,7 @@ import {
   isWorkingAgent,
   loadHudPreferences,
   providerCapacityLabel,
+  resolveNativeHudStatus,
   saveHudPreferences,
   type HudAlert,
   type HudPresentationPreferences,
@@ -338,6 +340,48 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     event.preventDefault();
     updateFloatingPosition(prefs.floatingPosition.x + dx, prefs.floatingPosition.y + dy, true);
   };
+
+  const nativeStatus = resolveNativeHudStatus(response?.enabled, Boolean(state), offline);
+  if (native && nativeStatus !== 'ready') {
+    const statusLabel =
+      nativeStatus === 'loading'
+        ? t('common.loading')
+        : nativeStatus === 'disabled'
+          ? t('common.hudDisabled')
+          : t('common.hudUnavailable');
+
+    return (
+      <aside
+        className={styles.root}
+        data-surface="native"
+        data-dock={prefs.dock}
+        data-native="true"
+        aria-label="Nexus HUD"
+        aria-live="polite"
+      >
+        <section className={styles.panel} data-expanded="false" data-hud-panel>
+          <div className={styles.compactBar}>
+            <div className={styles.brand}>
+              <Zap size={15} aria-hidden="true" />
+              <span>Nexus HUD</span>
+            </div>
+            <span className={styles.offline} role="status">
+              {statusLabel}
+            </span>
+            <button
+              type="button"
+              className={styles.iconButton}
+              aria-label={t('common.errorBoundaryTryAgain')}
+              disabled={nativeStatus === 'disabled'}
+              onClick={() => void refresh()}
+            >
+              <RefreshCw size={15} aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+      </aside>
+    );
+  }
 
   if ((!prefs.enabled && !native) || !response?.enabled || !state) return null;
 

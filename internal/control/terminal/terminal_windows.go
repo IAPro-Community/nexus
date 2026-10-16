@@ -28,8 +28,8 @@ import (
 // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE attribute. If ConPTY is unavailable
 // (e.g. Windows < 10.0.17763), Start falls back to standard pipes and reports
 // the backend truthfully as "standard pipes" (no resize / no raw mode).
-// Standard pipes remain the default for generic and non-Codex runtimes. Codex
-// uses ConPTY automatically because its interactive CLI requires a console;
+// Standard pipes remain the default for generic runtimes. Codex and AGY use
+// ConPTY automatically because their interactive CLIs require a console;
 // AI_CLI_ENABLE_CONPTY=1 opts other providers in and AI_CLI_DISABLE_CONPTY=1
 // preserves the compatibility fallback.
 
@@ -133,8 +133,13 @@ func platformBackendMechanismForProvider(providerID string) string {
 	if !shouldUseConPTY(providerID) {
 		return BackendMechanism()
 	}
-	if strings.EqualFold(strings.TrimSpace(providerID), "codex") {
-		return "Windows ConPTY (automatic for supervised Codex)"
+	if os.Getenv("AI_CLI_ENABLE_CONPTY") != "1" {
+		switch {
+		case strings.EqualFold(strings.TrimSpace(providerID), "codex"):
+			return "Windows ConPTY (automatic for supervised Codex)"
+		case strings.EqualFold(strings.TrimSpace(providerID), "agy"):
+			return "Windows ConPTY (automatic for supervised AGY)"
+		}
 	}
 	return "Windows ConPTY (explicit opt-in)"
 }
@@ -146,7 +151,8 @@ func shouldUseConPTY(providerID string) bool {
 	if os.Getenv("AI_CLI_ENABLE_CONPTY") == "1" {
 		return true
 	}
-	return strings.EqualFold(strings.TrimSpace(providerID), "codex")
+	providerID = strings.TrimSpace(providerID)
+	return strings.EqualFold(providerID, "codex") || strings.EqualFold(providerID, "agy")
 }
 
 func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) error {
@@ -531,12 +537,26 @@ func (b *windowsBackend) Wait() error {
 	if code == stillActive {
 		_, _, _ = procWaitForSingleObject.Call(h, ^uintptr(0)) // INFINITE
 	}
+	// Closing the read side unblocks pending readers, but a synchronous Close
+	// waits for any in-flight ReadFile, and conhost can delay the final EOF
+	// after the client exits (observed as multi-minute teardown stalls in CI).
+	// Bound the wait so a stuck conhost cannot pin Wait; the helper goroutine
+	// still completes the close when the EOF arrives.
 	b.mu.Lock()
-	if b.rPipe != nil {
-		_ = b.rPipe.Close()
-		b.rPipe = nil
-	}
+	rPipe := b.rPipe
+	b.rPipe = nil
 	b.mu.Unlock()
+	if rPipe != nil {
+		closed := make(chan struct{})
+		go func() {
+			_ = rPipe.Close()
+			close(closed)
+		}()
+		select {
+		case <-closed:
+		case <-time.After(2 * time.Second):
+		}
+	}
 	_, _, _ = procGetExitCodeProcess.Call(h, uintptr(unsafe.Pointer(&code)))
 	if code == stillActive {
 		return errors.New("process still active")

@@ -69,7 +69,9 @@ const THEME_CATEGORIES: ThemeCategory[] = [
   },
 ];
 
-export const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> = ({ theme }) => {
+export const ThemeAccordionSelector: React.FC<{
+  theme: ReturnType<typeof useTheme>;
+}> = ({ theme }) => {
   const { t } = useTranslation();
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(() => {
     // Abre por padrão a categoria onde o preset ativo se encontra

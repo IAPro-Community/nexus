@@ -128,7 +128,6 @@ export const WorkspaceProvider: React.FC<{
   }, [fallback, initialLayout, layoutService]);
   const revisionRef = useRef<number>(initialRevision || initialPersisted.revision || 1);
   const [presentation, setPresentation] = React.useState(initialPersisted.presentation);
-  const hydratedLayoutRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (typeof initialRevision === 'number' && initialRevision > 0) {
@@ -137,6 +136,14 @@ export const WorkspaceProvider: React.FC<{
   }, [initialRevision]);
 
   const [model, dispatch] = useReducer(reducer, initialPersisted.model);
+
+  // The reducer already initializes from the persisted layout of the first
+  // render. Replacing the model for that same layout would discard surfaces
+  // opened by children during that commit — for example the deep-linked
+  // terminal surface applied by the route sync — and leave the URL and the
+  // active tab out of sync. Replace only for layouts that arrive after
+  // hydration (a later project reload pushing a new saved layout).
+  const hydratedLayoutRef = useRef<string | undefined>(initialLayout);
 
   useEffect(() => {
     if (!initialLayout || hydratedLayoutRef.current === initialLayout) return;

@@ -13,15 +13,7 @@ import {
   Sparkles,
   Type,
 } from 'lucide-react';
-import {
-  Badge,
-  Button,
-  Card,
-  InlineAlert,
-  Input,
-  Segmented,
-  Switch,
-} from '../../design-system';
+import { Badge, Button, Card, InlineAlert, Input, Segmented, Switch } from '../../design-system';
 import {
   useTheme,
   type ThemeDensity,
@@ -412,9 +404,18 @@ export const SettingsSurface: React.FC<{
                 value={theme.fontFamily}
                 onChange={(value) => theme.setFontFamily(value as ThemeFontFamily)}
                 options={[
-                  { value: 'default', label: t('settings.fontDefault', 'Padrão') },
-                  { value: 'system', label: t('settings.fontSystem', 'Sistema') },
-                  { value: 'readable', label: t('settings.fontReadable', 'Leitura') },
+                  {
+                    value: 'default',
+                    label: t('settings.fontDefault', 'Padrão'),
+                  },
+                  {
+                    value: 'system',
+                    label: t('settings.fontSystem', 'Sistema'),
+                  },
+                  {
+                    value: 'readable',
+                    label: t('settings.fontReadable', 'Leitura'),
+                  },
                 ]}
               />
             </Card>
@@ -438,7 +439,10 @@ export const SettingsSurface: React.FC<{
                 onChange={(value) => theme.setIconStyle(value as ThemeIconStyle)}
                 options={[
                   { value: 'light', label: t('settings.iconLight', 'Fino') },
-                  { value: 'default', label: t('settings.iconDefault', 'Padrão') },
+                  {
+                    value: 'default',
+                    label: t('settings.iconDefault', 'Padrão'),
+                  },
                   { value: 'bold', label: t('settings.iconBold', 'Marcado') },
                 ]}
               />
@@ -635,7 +639,9 @@ export const SettingsSurface: React.FC<{
                     : t('maestroControl.updateMaestroSame', {
                         version: updateResult.maestro_version,
                       })}{' '}
-                  {t('maestroControl.nexusBinaryNote', { version: updateResult.nexus_version })}
+                  {t('maestroControl.nexusBinaryNote', {
+                    version: updateResult.nexus_version,
+                  })}
                 </InlineAlert>
               )}
               <div className={styles.btnGroup}>
@@ -675,7 +681,10 @@ export const SettingsSurface: React.FC<{
               ariaLabel="Intelligence mode"
               value={intelligenceDraft.mode}
               onChange={(value) =>
-                setIntelligenceDraft((prev) => ({ ...prev, mode: value as IntelligenceMode }))
+                setIntelligenceDraft((prev) => ({
+                  ...prev,
+                  mode: value as IntelligenceMode,
+                }))
               }
               options={[
                 { value: 'OFF', label: 'Off' },
@@ -704,21 +713,30 @@ export const SettingsSurface: React.FC<{
                 <Input
                   value={intelligenceDraft.base_url || ''}
                   onChange={(value) =>
-                    setIntelligenceDraft((prev) => ({ ...prev, base_url: value }))
+                    setIntelligenceDraft((prev) => ({
+                      ...prev,
+                      base_url: value,
+                    }))
                   }
                   placeholder="Base URL (OpenAI-compatible)"
                 />
                 <Input
                   value={intelligenceDraft.api_key_env || ''}
                   onChange={(value) =>
-                    setIntelligenceDraft((prev) => ({ ...prev, api_key_env: value }))
+                    setIntelligenceDraft((prev) => ({
+                      ...prev,
+                      api_key_env: value,
+                    }))
                   }
                   placeholder="Environment variable containing API key"
                 />
                 <Input
                   value={intelligenceDraft.api_key_file || ''}
                   onChange={(value) =>
-                    setIntelligenceDraft((prev) => ({ ...prev, api_key_file: value }))
+                    setIntelligenceDraft((prev) => ({
+                      ...prev,
+                      api_key_file: value,
+                    }))
                   }
                   placeholder="Or secret file path"
                 />

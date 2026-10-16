@@ -12,7 +12,9 @@ export const terminalMissionStates = new Set([
   'CANCELED_BY_USER',
 ]);
 
-export const toneFor = (state: FlowRunState): 'default' | 'brand' | 'success' | 'warning' | 'danger' => {
+export const toneFor = (
+  state: FlowRunState,
+): 'default' | 'brand' | 'success' | 'warning' | 'danger' => {
   if (state === 'COMPLETED') return 'success';
   if (state === 'FAILED' || state === 'CANCELED') return 'danger';
   if (state === 'VERIFYING' || state === 'BLOCKED') return 'warning';
@@ -77,4 +79,3 @@ export const readExecutionSummary = (pkg: PackageRun | undefined) => {
     reason: routing.reason || '',
   };
 };
-

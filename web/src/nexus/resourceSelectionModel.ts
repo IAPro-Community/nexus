@@ -25,7 +25,12 @@ export type ManualResourceCandidate = Pick<
   Partial<
     Pick<
       ProviderAccount,
-      'health' | 'rate_limited' | 'network_error' | 'avail_reasons' | 'eligibility' | 'cooldown_until'
+      | 'health'
+      | 'rate_limited'
+      | 'network_error'
+      | 'avail_reasons'
+      | 'eligibility'
+      | 'cooldown_until'
     >
   >;
 

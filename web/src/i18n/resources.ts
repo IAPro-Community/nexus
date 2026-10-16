@@ -29,6 +29,8 @@ export const en = {
     resolving: 'Resolving…',
     errorBoundaryTitle: 'Something went wrong',
     errorBoundaryTryAgain: 'Try again',
+    hudUnavailable: 'Nexus HUD is unavailable. Check the local Nexus session and try again.',
+    hudDisabled: 'Nexus HUD is disabled in the local configuration.',
     decisionRequired: 'Decision required',
   },
   shell: {
@@ -1319,7 +1321,8 @@ export const en = {
     newAgent: 'New Agent',
     customTitle: 'Custom window name',
     allowAiTitle: 'Allow AI to update the window title',
-    allowAiTitleHelp: 'Your custom name stays saved. When enabled, the AI can update the main title automatically.',
+    allowAiTitleHelp:
+      'Your custom name stays saved. When enabled, the AI can update the main title automatically.',
     windowTitlePlaceholder: 'Window identity',
     titleColor: 'Title color',
     noColor: 'No color',
@@ -1994,6 +1997,8 @@ export const ptBR = {
     resolving: 'Resolvendo…',
     errorBoundaryTitle: 'Algo deu errado',
     errorBoundaryTryAgain: 'Tentar novamente',
+    hudUnavailable: 'Nexus HUD indisponível. Verifique a sessão local do Nexus e tente novamente.',
+    hudDisabled: 'Nexus HUD está desativado na configuração local.',
     decisionRequired: 'Decisão necessária',
   },
   shell: {
@@ -3293,7 +3298,8 @@ export const ptBR = {
     newAgent: 'Novo Agente',
     customTitle: 'Nome personalizado',
     allowAiTitle: 'Permitir que a IA atualize o título',
-    allowAiTitleHelp: 'O nome personalizado permanece salvo. Quando ativada, a IA pode atualizar o título principal automaticamente.',
+    allowAiTitleHelp:
+      'O nome personalizado permanece salvo. Quando ativada, a IA pode atualizar o título principal automaticamente.',
     windowTitlePlaceholder: 'Identidade da janela',
     titleColor: 'Cor do título',
     noColor: 'Sem cor',
@@ -3970,6 +3976,9 @@ export const es = {
     resolving: 'Resolviendo…',
     errorBoundaryTitle: 'Algo salió mal',
     errorBoundaryTryAgain: 'Intentar de nuevo',
+    hudUnavailable:
+      'Nexus HUD no está disponible. Comprueba la sesión local de Nexus e inténtalo de nuevo.',
+    hudDisabled: 'Nexus HUD está desactivado en la configuración local.',
     decisionRequired: 'Decisión necesaria',
   },
   shell: {
@@ -5276,7 +5285,8 @@ export const es = {
     newAgent: 'Nuevo Agente',
     customTitle: 'Nombre personalizado',
     allowAiTitle: 'Permitir que la IA actualice el título',
-    allowAiTitleHelp: 'El nombre personalizado permanece guardado. Al activarlo, la IA puede actualizar el título principal automáticamente.',
+    allowAiTitleHelp:
+      'El nombre personalizado permanece guardado. Al activarlo, la IA puede actualizar el título principal automáticamente.',
     windowTitlePlaceholder: 'Identidad de la ventana',
     titleColor: 'Color del título',
     noColor: 'Sin color',

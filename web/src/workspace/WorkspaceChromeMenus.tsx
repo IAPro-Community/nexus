@@ -30,22 +30,15 @@ export const WindowChromeMenu: React.FC<{
     icon?: string;
   }) => void;
   position?: ContextMenuPoint | null;
-}> = ({
-  open,
-  onOpenChange,
-  customTitle,
-  allowAiTitle,
-  accent,
-  icon,
-  onPatch,
-  position,
-}) => {
+}> = ({ open, onOpenChange, customTitle, allowAiTitle, accent, icon, onPatch, position }) => {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(customTitle);
-  const [menuPos, setMenuPos] = useState<{ top: number; right?: number; left?: number } | null>(
-    null,
-  );
+  const [menuPos, setMenuPos] = useState<{
+    top: number;
+    right?: number;
+    left?: number;
+  } | null>(null);
 
   useEffect(() => {
     // Escape discards the draft; reset the suppression when the menu reopens.
@@ -299,4 +292,3 @@ export const ArrangeLayoutMenu: React.FC<{
     </div>
   );
 };
-

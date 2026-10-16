@@ -3,6 +3,7 @@ package launcher
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -60,8 +61,18 @@ func NewLauncher() *Launcher {
 	}
 }
 
+func traceCaptureShellLaunchStage(stage string) {
+	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+		slog.Info("nexus_docs_capture_launcher_shell_stage=" + stage)
+	}
+}
+
 // Launch allocates, starts, and verifies a supervised runtime.
 func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.RuntimeSession, error) {
+	captureShell := strings.EqualFold(opts.ProviderID, "shell")
+	if captureShell {
+		traceCaptureShellLaunchStage("start")
+	}
 	if opts.RuntimeID == "" {
 		opts.RuntimeID = fmt.Sprintf("%s-%s", opts.ProviderID, ids.NewRuntimeID())
 	}
@@ -76,8 +87,17 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		opts.Timeout = 10 * time.Second
 	}
 	cleanupOrphanLaunchEnvelopes(10 * time.Minute)
+	if captureShell {
+		traceCaptureShellLaunchStage("orphan-cleanup-done")
+	}
 
+	if captureShell {
+		traceCaptureShellLaunchStage("driver-lookup-start")
+	}
 	d, err := l.drivers.Get(opts.ProviderID)
+	if captureShell {
+		traceCaptureShellLaunchStage("driver-lookup-finished")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("unknown driver for provider %q: %w", opts.ProviderID, err)
 	}
@@ -99,7 +119,13 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		}
 		launchModel = driver.ResolveLaunchModel(opts.ProviderID, launchModel, cachedUsage)
 	}
+	if captureShell {
+		traceCaptureShellLaunchStage("launch-config-start")
+	}
 	configuredArgs, err := driver.ApplyLaunchConfiguration(opts.ProviderID, launchModel, opts.Options, opts.Args)
+	if captureShell {
+		traceCaptureShellLaunchStage("launch-config-finished")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("invalid launch configuration for %s:%s: %w", opts.ProviderID, opts.ProfileID, err)
 	}
@@ -140,11 +166,20 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		env = launchenv.Merge(customBaseEnv, opts.Environment, opts.PathPrepend)
 		customCommand = true
 	} else {
+		if captureShell {
+			traceCaptureShellLaunchStage("build-command-start")
+		}
 		bin, extraArgs, env, err = d.BuildCommand(ctx, prof, configuredArgs)
+		if captureShell {
+			traceCaptureShellLaunchStage("build-command-finished")
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to build command for %s:%s: %w", opts.ProviderID, opts.ProfileID, err)
 		}
 		env = launchenv.Merge(env, opts.Environment, opts.PathPrepend)
+	}
+	if captureShell {
+		traceCaptureShellLaunchStage("command-built")
 	}
 	if opts.Workspace != "" && !customCommand {
 		info, statErr := os.Stat(opts.Workspace)
@@ -162,7 +197,13 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	}
 	bin = resolved.LauncherPath
 	extraArgs = append(append([]string(nil), resolved.PrefixArgs...), extraArgs...)
+	if captureShell {
+		traceCaptureShellLaunchStage("command-resolved")
+	}
 
+	if captureShell {
+		traceCaptureShellLaunchStage("runtime-metadata-start")
+	}
 	title := opts.Title
 	if strings.TrimSpace(title) == "" {
 		title = fmt.Sprintf("%s (%s)", strings.ToUpper(opts.ProviderID), opts.ProfileID)
@@ -170,6 +211,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	hostBinaryPath, _ := os.Executable()
 	hostBinaryFingerprint, _ := registry.BinaryFingerprint(hostBinaryPath)
 	providerBinaryFingerprint, _ := registry.BinaryFingerprint(bin)
+	if captureShell {
+		traceCaptureShellLaunchStage("runtime-metadata-finished")
+	}
 
 	sessionLabels := cloneLabels(opts.Labels)
 	if customCommand {
@@ -219,31 +263,93 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		Labels:                    sessionLabels,
 	}
 
+	if captureShell {
+		traceCaptureShellLaunchStage("session-register-start")
+	}
 	if err := l.reg.Register(sess); err != nil {
 		return nil, fmt.Errorf("failed to register runtime session: %w", err)
+	}
+	if captureShell {
+		traceCaptureShellLaunchStage("session-register-finished")
+		traceCaptureShellLaunchStage("session-registered")
 	}
 	var supervisedHost *host.SessionHost
 	var detachedProcess *os.Process
 	cleanupFailedLaunch := func() {
+		if captureShell {
+			traceCaptureShellLaunchStage("cleanup-start")
+			traceCaptureShellLaunchStage("cleanup-envelope-remove-start")
+		}
 		removeLaunchEnvelope(opts.RuntimeID)
+		if captureShell {
+			traceCaptureShellLaunchStage("cleanup-envelope-remove-finished")
+		}
 		if supervisedHost != nil {
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-supervised-terminate-start")
+			}
 			_ = supervisedHost.Terminate()
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-supervised-terminate-finished")
+			}
 		}
 		if detachedProcess != nil {
 			// Ask the host to terminate its provider first when its endpoint is
 			// already reachable; killing only the detached host can orphan the
 			// provider process on some platforms.
 			cleanupCtx, cancel := context.WithTimeout(context.Background(), time.Second)
-			if client, clientErr := protocol.NewClient(opts.RuntimeID); clientErr == nil {
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-protocol-dial-start")
+			}
+			client, clientErr := protocol.NewClient(opts.RuntimeID)
+			if captureShell {
+				if clientErr == nil {
+					traceCaptureShellLaunchStage("cleanup-protocol-dial-connected")
+				} else {
+					traceCaptureShellLaunchStage("cleanup-protocol-dial-failed")
+				}
+			}
+			if clientErr == nil {
+				if captureShell {
+					traceCaptureShellLaunchStage("cleanup-protocol-terminate-start")
+				}
 				_, _ = client.SendContext(cleanupCtx, protocol.CmdTerminate, nil)
+				if captureShell {
+					traceCaptureShellLaunchStage("cleanup-protocol-terminate-finished")
+					traceCaptureShellLaunchStage("cleanup-protocol-close-start")
+				}
 				_ = client.Close()
+				if captureShell {
+					traceCaptureShellLaunchStage("cleanup-protocol-close-finished")
+				}
 			}
 			cancel()
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-protocol-finished")
+				traceCaptureShellLaunchStage("cleanup-host-kill-start")
+			}
 			_ = detachedProcess.Kill()
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-host-kill-finished")
+				traceCaptureShellLaunchStage("cleanup-host-wait-start")
+			}
 			_, _ = detachedProcess.Wait()
+			if captureShell {
+				traceCaptureShellLaunchStage("cleanup-host-wait-finished")
+			}
+		}
+		if captureShell {
+			traceCaptureShellLaunchStage("cleanup-endpoint-remove-start")
 		}
 		_ = os.Remove(protocol.EndpointPath(opts.RuntimeID))
+		if captureShell {
+			traceCaptureShellLaunchStage("cleanup-endpoint-remove-finished")
+			traceCaptureShellLaunchStage("cleanup-registry-delete-start")
+		}
 		_ = l.reg.Delete(opts.RuntimeID)
+		if captureShell {
+			traceCaptureShellLaunchStage("cleanup-registry-delete-finished")
+		}
 	}
 
 	if opts.Standalone {
@@ -282,35 +388,37 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		}
 		sess.HostPID = detachedProcess.Pid
 		_ = l.reg.Register(sess)
+		if captureShell {
+			traceCaptureShellLaunchStage("host-spawned")
+		}
 	}
 
 	// Handshake: wait for IPC endpoint to be active and responsive.
 	// Detached hosts that fail during Start (e.g. Codex TUI lease busy) exit
 	// immediately; fail fast from the host log instead of waiting the full timeout.
-	if err := waitForRuntimeHandshake(ctx, opts.RuntimeID, detachedProcess, opts.Timeout); err != nil {
+	if captureShell {
+		traceCaptureShellLaunchStage("handshake-start")
+	}
+	status, err := waitForRuntimeHandshake(ctx, opts.RuntimeID, detachedProcess, opts.Timeout)
+	if err != nil {
+		if captureShell {
+			traceCaptureShellLaunchStage("handshake-failed")
+		}
 		fault := registry.StartupFaultIPCTimeout
 		if isEarlyHostExit(err) {
 			fault = registry.StartupFaultProcessSupervision
 		}
 		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProviderStarting, fault)
 		cleanupFailedLaunch()
+		if captureShell {
+			traceCaptureShellLaunchStage("handshake-cleanup-finished")
+		}
 		return nil, fmt.Errorf("runtime handshake failed for %s: %w", opts.RuntimeID, err)
 	}
 
-	// Verify handshake with status probe
-	client, err := protocol.NewClient(opts.RuntimeID)
-	if err != nil {
-		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProtocolReady, registry.StartupFaultProtocolError)
-		cleanupFailedLaunch()
-		return nil, fmt.Errorf("failed to connect to initialized runtime %s: %w", opts.RuntimeID, err)
-	}
-	defer client.Close()
-
-	status, err := client.Status()
-	if err != nil {
-		_ = l.reg.UpdateStartupStage(opts.RuntimeID, registry.StartupProtocolReady, registry.StartupFaultProtocolError)
-		cleanupFailedLaunch()
-		return nil, fmt.Errorf("status handshake probe failed for runtime %s: %w", opts.RuntimeID, err)
+	if captureShell {
+		traceCaptureShellLaunchStage("handshake-ready")
+		traceCaptureShellLaunchStage("status-ready")
 	}
 
 	// SessionHost assigns the authoritative process identity during Start and
@@ -335,6 +443,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	}
 	sess.State = registry.StateRunning
 	_ = l.reg.Register(sess)
+	if captureShell {
+		traceCaptureShellLaunchStage("status-ready")
+	}
 
 	return &sess, nil
 }

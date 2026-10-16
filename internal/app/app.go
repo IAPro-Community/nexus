@@ -972,6 +972,52 @@ func statusCmd(args []string) error {
 	return nil
 }
 
+// usageJSONRow is the machine-readable row of `nexus usage --json`. It keeps
+// the raw snapshot plus the derived quota view and eligibility so web, TUI and
+// CLI surfaces can agree on the same fixture.
+type usageJSONRow struct {
+	model.UsageSnapshot
+	QuotaView     quota.QuotaView      `json:"quota_view"`
+	Eligibility   quota.Eligibility    `json:"eligibility"`
+	Health        model.ProviderHealth `json:"health"`
+	Authenticated bool                 `json:"authenticated"`
+	// Unconfigured marks a provider that is installed but has no profile yet;
+	// it stays visible on purpose so tooling never hides an installed CLI.
+	Unconfigured bool `json:"unconfigured,omitempty"`
+}
+
+// unconfiguredUsageRows renders installed-but-unconfigured providers for
+// `nexus usage --json`, mirroring the TUI rows so every surface shows an
+// installed provider (e.g. OpenCode) before its first profile exists.
+func unconfiguredUsageRows(clis []tui.InstalledProviderInfo) []usageJSONRow {
+	rows := make([]usageJSONRow, 0, len(clis))
+	for _, cli := range clis {
+		snap := model.UsageSnapshot{
+			ProviderID: cli.ID,
+			Status:     model.UsageUnknown,
+			Source:     model.SourceNone,
+			Windows:    []model.UsageWindow{},
+			Account:    cli.Name,
+			Error:      "sem perfil configurado",
+		}
+		qv := quota.BuildQuotaView(snap, "", "")
+		elig := quota.EvaluateEligibility(quota.EligibilityInput{
+			View:          qv,
+			Authenticated: false,
+			Health:        string(model.HealthUnknown),
+		})
+		rows = append(rows, usageJSONRow{
+			UsageSnapshot: snap,
+			QuotaView:     qv,
+			Eligibility:   elig,
+			Health:        model.HealthUnknown,
+			Authenticated: false,
+			Unconfigured:  true,
+		})
+	}
+	return rows
+}
+
 func usageCmd(args []string) error {
 	ps, err := profile.List()
 	if err != nil {
@@ -1004,39 +1050,11 @@ func usageCmd(args []string) error {
 			_ = profile.RefreshUsageSnapshot(p.Provider, p.Name)
 		}
 	}
-	if isJSON {
-		type usageJSONRow struct {
-			model.UsageSnapshot
-			QuotaView     quota.QuotaView      `json:"quota_view"`
-			Eligibility   quota.Eligibility    `json:"eligibility"`
-			Health        model.ProviderHealth `json:"health"`
-			Authenticated bool                 `json:"authenticated"`
-		}
-		list := make([]usageJSONRow, 0, len(ps))
-		for _, p := range ps {
-			snap := profile.GetUsageSnapshot(p.Provider, p.Name)
-			acc := profile.GetAccountInfo(p.Provider, p.Name)
-			qv := quota.BuildQuotaView(snap, acc.Email, acc.Plan)
-			elig := quota.EvaluateEligibility(quota.EligibilityInput{
-				View:          qv,
-				Authenticated: acc.Authenticated,
-				Health:        string(acc.Health),
-			})
-			list = append(list, usageJSONRow{
-				UsageSnapshot: snap,
-				QuotaView:     qv,
-				Eligibility:   elig,
-				Health:        acc.Health,
-				Authenticated: acc.Authenticated,
-			})
-		}
-		b, _ := json.MarshalIndent(list, "", "  ")
-		fmt.Println(string(b))
-		return nil
-	}
 
-	// Detect installed CLIs across the system to show both configured profiles
-	// and installed tools that are awaiting configuration (e.g. Claude Code, Gemini CLI, Cursor CLI).
+	// Detect installed CLIs across the system so both the TUI and the
+	// machine-readable surface can show configured profiles plus installed
+	// tools that are awaiting configuration (e.g. Claude Code, Gemini CLI,
+	// Cursor CLI, OpenCode).
 	reg := initRegistry()
 	ctx := context.Background()
 	detections := reg.DetectAll(ctx)
@@ -1059,6 +1077,31 @@ func usageCmd(args []string) error {
 				Profiles:  0,
 			})
 		}
+	}
+
+	if isJSON {
+		list := make([]usageJSONRow, 0, len(ps))
+		for _, p := range ps {
+			snap := profile.GetUsageSnapshot(p.Provider, p.Name)
+			acc := profile.GetAccountInfo(p.Provider, p.Name)
+			qv := quota.BuildQuotaView(snap, acc.Email, acc.Plan)
+			elig := quota.EvaluateEligibility(quota.EligibilityInput{
+				View:          qv,
+				Authenticated: acc.Authenticated,
+				Health:        string(acc.Health),
+			})
+			list = append(list, usageJSONRow{
+				UsageSnapshot: snap,
+				QuotaView:     qv,
+				Eligibility:   elig,
+				Health:        acc.Health,
+				Authenticated: acc.Authenticated,
+			})
+		}
+		list = append(list, unconfiguredUsageRows(unconfiguredCLIs)...)
+		b, _ := json.MarshalIndent(list, "", "  ")
+		fmt.Println(string(b))
+		return nil
 	}
 
 	cfg, _ := config.LoadConfig()

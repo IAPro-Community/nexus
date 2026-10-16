@@ -297,3 +297,88 @@ func TestFSBrowseRejectsNonexistentOutsideAllowedRoots(t *testing.T) {
 		t.Fatalf("expected 403 for nonexistent outside path, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestFSBrowseWithoutPathFallsBackHomeOutsideAllowedRoots(t *testing.T) {
+	outside := "/etc"
+	if runtime.GOOS == "windows" {
+		outside = filepath.VolumeName(os.TempDir()) + string(filepath.Separator)
+	}
+	if _, err := os.Stat(outside); err != nil {
+		t.Skipf("precondition missing: %q unavailable: %v", outside, err)
+	}
+
+	original, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to read working directory: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(original) })
+	if err := os.Chdir(outside); err != nil {
+		t.Skipf("cannot change working directory to %q: %v", outside, err)
+	}
+
+	auth, _, _ := NewAuthManager("127.0.0.1", "")
+	handler := NewNexusHandler(auth)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/fs/browse", nil)
+	w := httptest.NewRecorder()
+
+	handler.handleFSBrowse(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 when browsing without a path away from allowed roots, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp FSBrowseResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if !isWithinAllowedRoots(resp.CurrentPath) {
+		t.Errorf("default browse path %q is outside allowed roots", resp.CurrentPath)
+	}
+	if home, err := os.UserHomeDir(); err == nil && home != "" && resp.CurrentPath != home {
+		t.Errorf("default browse path = %q, want home directory %q", resp.CurrentPath, home)
+	}
+}
+
+func TestFSBrowseWithoutPathPrefersAllowedWorkingDirectory(t *testing.T) {
+	dir := t.TempDir() // under the OS temp dir, always an allowed root
+
+	original, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to read working directory: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(original) })
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	auth, _, _ := NewAuthManager("127.0.0.1", "")
+	handler := NewNexusHandler(auth)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/fs/browse", nil)
+	w := httptest.NewRecorder()
+
+	handler.handleFSBrowse(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp FSBrowseResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.CurrentPath != dir {
+		t.Errorf("default browse path = %q, want working directory %q", resp.CurrentPath, dir)
+	}
+}
+
+func TestGetOSBookmarksOnlyExposeAllowedRoots(t *testing.T) {
+	bookmarks := getOSBookmarks()
+	if bookmarks == nil {
+		t.Fatal("expected a JSON-safe array, got nil")
+	}
+	for _, bookmark := range bookmarks {
+		if !isWithinAllowedRoots(bookmark.Path) {
+			t.Errorf("bookmark %q points to %q, which is outside allowed roots", bookmark.Label, bookmark.Path)
+		}
+	}
+}

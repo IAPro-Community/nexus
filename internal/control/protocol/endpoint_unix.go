@@ -3,12 +3,13 @@
 package protocol
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"syscall"
-	"time"
 )
 
 // Listen creates the local server listener for a runtime.
@@ -38,10 +39,15 @@ func Listen(runtimeID string) (net.Listener, error) {
 	return l, nil
 }
 
-// Dial connects to a running SessionHost endpoint.
-func Dial(runtimeID string) (net.Conn, error) {
-	path := EndpointPath(runtimeID)
-	return net.DialTimeout("unix", path, 2*time.Second)
+func dialEndpoint(ctx context.Context, runtimeID string) (net.Conn, error) {
+	var dialer net.Dialer
+	return dialer.DialContext(ctx, "unix", EndpointPath(runtimeID))
+}
+
+func isRetryableDialError(err error) bool {
+	return errors.Is(err, context.DeadlineExceeded) ||
+		errors.Is(err, os.ErrNotExist) ||
+		errors.Is(err, syscall.ECONNREFUSED)
 }
 
 func isOwnedBy(st os.FileInfo, uid int) bool {

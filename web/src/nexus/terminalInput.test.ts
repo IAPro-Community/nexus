@@ -98,9 +98,7 @@ describe('stripEmbeddedTerminalMetadata', () => {
     const mouseUp = '\x1b[M\x60\x48\x28';
     const mouseDown = '\x1b[M\x61\x48\x28';
     expect(
-      stripEmbeddedTerminalMetadata(
-        `start${mouseUp}\x1b[A${mouseDown}\x1bOB\x1b[96;40;8M\r`,
-      ),
+      stripEmbeddedTerminalMetadata(`start${mouseUp}\x1b[A${mouseDown}\x1bOB\x1b[96;40;8M\r`),
     ).toBe('start\x1b[A\x1bOB\r');
     expect(stripEmbeddedTerminalMetadata('choice\x1b[97;40;8M')).toBe('choice');
     expect(shouldForwardTerminalInput('\x1b[M')).toBe(true);

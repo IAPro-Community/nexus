@@ -1,4 +1,4 @@
-# IAPro Nexus Installer for PowerShell (Windows & PowerShell Core)
+﻿# IAPro Nexus Installer for PowerShell (Windows & PowerShell Core)
 # Prebuilt signed-release path. Usage:
 #   .\install.ps1 -Version v0.5.0-beta.23
 #   .\install.ps1 -Version latest
@@ -162,6 +162,20 @@ $Installed = $false
 # Ed25519 public key for manifest signature verification (matches internal/update ProductionTrustRoot).
 $NexusPubKey = "ee2e268394ce6a0634a9ea2f414ee831dd536d12f7e2b80107f94566e58aa334"
 
+# PowerShell 5.1 converts a native child's stderr into a terminating
+# NativeCommandError while ErrorActionPreference is Stop — for example the
+# banner `bun run` prints for its scripts. Run build tools through this helper
+# so their output streams as text and $LASTEXITCODE stays the single source of
+# truth for the caller's error checks.
+function Invoke-NativeBuild([scriptblock]$Run) {
+    $Saved = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $Run 2>&1 | ForEach-Object { $_.ToString() }
+    } finally {
+        $ErrorActionPreference = $Saved
+    }
+}
 
 function Build-NexusFromSource {
     param([string]$RootPath)
@@ -178,11 +192,11 @@ function Build-NexusFromSource {
         }
 
         Write-Host "Installing locked frontend dependencies..." -ForegroundColor Yellow
-        & bun install --cwd web --frozen-lockfile
+        Invoke-NativeBuild { & bun install --cwd web --frozen-lockfile }
         if ($LASTEXITCODE -ne 0) { throw "bun install failed during source build." }
 
         Write-Host "Building frontend bundle..." -ForegroundColor Yellow
-        & bun run --cwd web build
+        Invoke-NativeBuild { & bun run --cwd web build }
         if ($LASTEXITCODE -ne 0) { throw "frontend build failed during source build." }
 
         $SourceVersion = (Get-Content VERSION -Raw).Trim()
@@ -202,7 +216,7 @@ function Build-NexusFromSource {
         $Ldflags = "-s -w -X $Module/internal/buildinfo.Version=$SourceVersion -X $Module/internal/buildinfo.Commit=$Commit -X $Module/internal/buildinfo.BuildDate=$BuildDate -X $Module/internal/update.ProductionTrustRootHex=$NexusPubKey"
 
         Write-Host "Building Nexus $SourceVersion (commit: $Commit) with Go..." -ForegroundColor Yellow
-        & go build -trimpath -buildvcs=false -ldflags $Ldflags -o $BinaryName ./cmd/nexus
+        Invoke-NativeBuild { & go build -trimpath -buildvcs=false -ldflags $Ldflags -o $BinaryName ./cmd/nexus }
         if ($LASTEXITCODE -ne 0) { throw "go build failed during source build." }
 
         $Built = Join-Path (Get-Location) $BinaryName
@@ -397,9 +411,9 @@ if (-not $Installed -and $BuildFromSource) {
         if ($LASTEXITCODE -ne 0) { throw "git init failed for source build." }
         & git -C $CloneDir remote add origin "$SourceUrl.git"
         if ($LASTEXITCODE -ne 0) { throw "git remote setup failed for source build." }
-        & git -C $CloneDir fetch --depth 1 origin $SourceRef
+        Invoke-NativeBuild { & git -C $CloneDir fetch --depth 1 origin $SourceRef }
         if ($LASTEXITCODE -ne 0) { throw "git fetch failed for source ref $SourceRef." }
-        & git -C $CloneDir checkout --detach FETCH_HEAD
+        Invoke-NativeBuild { & git -C $CloneDir checkout --detach FETCH_HEAD }
         if ($LASTEXITCODE -ne 0) { throw "git checkout failed for source ref $SourceRef." }
         Build-NexusFromSource $CloneDir
         $Installed = $true

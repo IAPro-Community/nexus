@@ -175,7 +175,7 @@ func redactGitRemote(remote string) string {
 
 // getOSBookmarks returns convenient OS bookmark paths.
 func getOSBookmarks() []FSBookmark {
-	var bookmarks []FSBookmark
+	bookmarks := make([]FSBookmark, 0)
 
 	homeDir, _ := os.UserHomeDir()
 	if homeDir != "" {
@@ -210,7 +210,17 @@ func getOSBookmarks() []FSBookmark {
 	// Root filesystem
 	bookmarks = append(bookmarks, FSBookmark{Label: "Root (/)", Path: "/", Icon: "root"})
 
-	return bookmarks
+	// The picker can only browse allowed roots, so never surface a bookmark
+	// the filesystem policy would reject on click. On Windows "Root (/)" would
+	// resolve to the drive root, which is outside allowed roots.
+	allowed := make([]FSBookmark, 0, len(bookmarks))
+	for _, bookmark := range bookmarks {
+		if isWithinAllowedRoots(bookmark.Path) {
+			allowed = append(allowed, bookmark)
+		}
+	}
+
+	return allowed
 }
 
 // handleFSBrowse GET /api/v1/fs/browse?path=...
@@ -226,14 +236,7 @@ func (h *NexusHandler) handleFSBrowse(w http.ResponseWriter, r *http.Request) {
 
 	targetPath := r.URL.Query().Get("path")
 	if strings.TrimSpace(targetPath) == "" {
-		// Default to current working directory or home directory
-		if wd, err := os.Getwd(); err == nil {
-			targetPath = wd
-		} else if home, err := os.UserHomeDir(); err == nil {
-			targetPath = home
-		} else {
-			targetPath = "/"
-		}
+		targetPath = defaultBrowsePath()
 	}
 
 	// Clean and normalize target path
@@ -541,6 +544,25 @@ func (h *NexusHandler) handleFSScan(w http.ResponseWriter, r *http.Request) {
 	})
 
 	writeJSON(w, http.StatusOK, discovered)
+}
+
+// defaultBrowsePath picks the folder picker's starting directory when the
+// request does not provide one. The process working directory is only used
+// when it already sits inside an allowed root: the web workspace is often
+// started from installation or system directories that the filesystem
+// policy rejects, and defaulting there would otherwise turn the whole
+// picker into a 403. Fall back to the user home directory.
+func defaultBrowsePath() string {
+	if wd, err := os.Getwd(); err == nil && isWithinAllowedRoots(wd) {
+		return wd
+	}
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		return home
+	}
+	if wd, err := os.Getwd(); err == nil {
+		return wd
+	}
+	return "/"
 }
 
 // isWithinAllowedRoots checks whether path falls inside a safe directory.

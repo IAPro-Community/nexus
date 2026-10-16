@@ -23,10 +23,14 @@ describe('flow run presentation projections', () => {
   it('does not invent team selection for invalid or direct-only plans', () => {
     expect(readMissionTeamSelection(null)).toBeNull();
     const plan = (facts: string) =>
-      ({ structured_facts: { 'nexus.mission_team.selection': facts } }) as unknown as WorkPlan;
+      ({
+        structured_facts: { 'nexus.mission_team.selection': facts },
+      }) as unknown as WorkPlan;
     expect(readMissionTeamSelection(plan('not json'))).toBeNull();
     expect(readMissionTeamSelection(plan('{"direct":true}'))).toBeNull();
-    expect(readMissionTeamSelection(plan('{"direct":false}'))).toEqual({ direct: false });
+    expect(readMissionTeamSelection(plan('{"direct":false}'))).toEqual({
+      direct: false,
+    });
   });
 
   it('keeps provider display stable for valid and malformed routing decisions', () => {
@@ -40,7 +44,9 @@ describe('flow run presentation projections', () => {
     expect(readSelectedResource(pkg('invalid'))).toBe('codex / primary');
     expect(
       readSelectedResource(
-        pkg('{"selected_provider":"opencode","selected_profile":"lead","selected_model":"model-x"}'),
+        pkg(
+          '{"selected_provider":"opencode","selected_profile":"lead","selected_model":"model-x"}',
+        ),
       ),
     ).toBe('opencode / lead / model-x');
     expect(readSelectedResource(undefined)).toBe('');

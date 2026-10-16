@@ -527,4 +527,3 @@ func (m usageTableModel) renderAddProfileModal(width int) string {
 	rendered := modalStyle.Render(sb.String())
 	return fitViewToTerminal(rendered, width, m.height)
 }
-

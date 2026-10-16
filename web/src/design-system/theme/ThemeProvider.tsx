@@ -85,9 +85,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // The flat visual treatment is opt-in per preset; legacy themes stay unchanged.
     // High-contrast overrides are never flattened.
     root.dataset.finish =
-      resolvedScheme === 'high-contrast'
-        ? 'standard'
-        : getThemePresetFinish(preferences.preset);
+      resolvedScheme === 'high-contrast' ? 'standard' : getThemePresetFinish(preferences.preset);
     root.dataset.reducedMotion = preferences.reducedMotion ? 'true' : 'false';
     const scale = preferences.fontScale || 1.0;
     root.dataset.fontScale = String(scale);
@@ -115,9 +113,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ...preferences,
       resolvedScheme,
       setScheme: (scheme) =>
-        setPreferences((current) => ({ ...current, scheme, isCustomized: true })),
+        setPreferences((current) => ({
+          ...current,
+          scheme,
+          isCustomized: true,
+        })),
       setAccent: (accent) =>
-        setPreferences((current) => ({ ...current, accent, isCustomized: true })),
+        setPreferences((current) => ({
+          ...current,
+          accent,
+          isCustomized: true,
+        })),
       setDensity: (density) => setPreferences((current) => ({ ...current, density })),
       setReducedMotion: (reducedMotion) =>
         setPreferences((current) => ({ ...current, reducedMotion })),
@@ -131,10 +137,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             isCustomized: false, // Ao trocar de preset, restaura fidelidade total ao preset
           };
         }),
-      setFontFamily: (fontFamily) =>
-        setPreferences((current) => ({ ...current, fontFamily })),
-      setIconStyle: (iconStyle) =>
-        setPreferences((current) => ({ ...current, iconStyle })),
+      setFontFamily: (fontFamily) => setPreferences((current) => ({ ...current, fontFamily })),
+      setIconStyle: (iconStyle) => setPreferences((current) => ({ ...current, iconStyle })),
       setFontScale: (scale) => {
         const clamped = Math.min(Math.max(scale, 0.7), 2.0);
         setPreferences((current) => ({ ...current, fontScale: clamped }));
