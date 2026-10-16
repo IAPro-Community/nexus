@@ -1598,8 +1598,58 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
 - UNVERIFIED — the attempted supervised Codex smoke timed out during IPC
   handshake; no runtime remained registered afterward.
 
+## Fechamento beta.10 Windows — 2026-10-16
+
+Ciclo de correção e certificação da instalação local (branch
+`fix/release-beta10-windows-closure-20261014`), fechado sem alterar
+`release/v1.0.0` e sem merge/tag/publicação.
+
+- Picker de diretório (`6c14b57e`): `GET /api/v1/fs/browse` sem path devolve
+  200 com default seguro (`defaultBrowsePath`: cwd só quando dentro de uma
+  raiz permitida, senão home) e bookmarks expõem apenas raízes permitidas —
+  sem bookmark apontando para `/`. Coberto por e2e RED→GREEN e 15/15 unit.
+- HUD vinculado ao core (`baf91839` + manifesto `37434c6d`): spawn com
+  `--linked` quando o core sobe; opt-out `NEXUS_HUD_SPAWN=0`; hard-kill do
+  core mata o HUD (watchdog). Verificado ao vivo: HUD parent = PID do core.
+- Fechamento de terminal ConPTY com bound de 2s no `Wait()` do rPipe
+  (`aa854590`).
+- PS 5.1 + stderr nativo: banner do `bun run` vira NativeCommandError
+  terminante sob `ErrorActionPreference=Stop`. Corrigido no script da cadeia
+  (`36445f10`, `Invoke-NativeLogged`) e depois no próprio instalador
+  (`996659f4`, `Invoke-NativeBuild`): `bun install`, `bun run build`,
+  `go build` (cache frio imprime `go: downloading` em stderr) e
+  `git fetch/checkout`. `$LASTEXITCODE` permanece a única fonte de verdade
+  dos checks (provado empiricamente em PS 5.1).
+- Flake da cadeia #5 (`36445f10`, fase Go tests):
+  `TestEvidenceBundleRequiresAndProjectsCanonicalProof` degradou identidade
+  sob saturação. Causa-raiz provada por digest: `IdentityDigest:4eab7424…` =
+  `sha256("git\0INCOMPLETE\0git identity command timed out")` =
+  `incompleteGitIdentity()` (deadline de 5s do child git, comportamento
+  conservador intencional do produto). Correção apenas no teste (`30e2e6f3`):
+  retry tolerante exclusivamente ao digest constante de deadline-loss, teto
+  5 tentativas + backoff, qualquer outra incompletude falha imediato.
+  Repro controlada com git falso (`degrade-once` → PASS com retry;
+  `degrade-always` → FAIL estrito com digest idêntico).
+- Cadeia local de homologação #6 (`38968218`) e #7 (`996659f4`): **PASS
+  18/18** — veredito `PASS automated Windows beta homologation:
+  1.0.0-beta.10 @ 996659f4134f2f3f26007c69afd387b2d6905f77` (~18 min cada).
+  Evidência: `DEV/validation/local-beta/1.0.0-beta.10/996659f4134f2f3f26007c69afd387b2d6905f77/windows-AMD64/`.
+- Reinstalação ao vivo pós-cadeia: `install.ps1 -BuildFromSource -Yes` com
+  EAP=Stop completa (exit 0); Desktop e HUD copiados dos builds da cadeia;
+  core relançado (`web --no-open`) spawnou o HUD `--linked` (parent = core).
+- Live check da API contra o core instalado: bootstrap 200 com cookies
+  `ai_control_session`/`ai_control_device`; `GET /api/v1/fs/browse` sem path
+  200; `current_path` = diretório de lançamento (cwd dentro de raiz
+  permitida, conforme contrato de `defaultBrowsePath`); bookmarks
+  `Home → C:\Users\kiver`, `Documents → C:\Users\kiver\Documents`, nenhum
+  apontando para raiz do sistema.
+- UNVERIFIED (por design, interativo) — `MANUAL_CHECKS.md` gerado pela
+  cadeia permanece a cargo do operador; inclui fixar o ícone do tray na
+  área de notificação (overflow do Windows 11: Configurações → Barra de
+  tarefas → Outros ícones da bandeja do sistema).
+
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-16T02:59:41Z
+## Frontend gate — 2026-10-16T03:57:01Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 

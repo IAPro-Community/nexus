@@ -1,6 +1,6 @@
 {
-  "project_id": "prj_06GM3C9HED2GR6JEWQS7YZ9QHW",
-  "plan_id": "plan_06GM3CASPYZY0HARPPP9CMFGGG",
+  "project_id": "prj_06GM5S4K0J8WH7X6W15STTMPNC",
+  "plan_id": "plan_06GM5S6BCR3R2SZGF6V8HTR6GW",
   "revision": 1,
   "preview_ready": false,
   "step_count": 5,
@@ -14,6 +14,6 @@
   "console_errors": [],
   "page_errors": [],
   "request_failures": [
-    "HEAD http://127.0.0.1:62693/wails/custom.js → net::ERR_ABORTED"
+    "HEAD http://127.0.0.1:57345/wails/custom.js → net::ERR_ABORTED"
   ]
 }
