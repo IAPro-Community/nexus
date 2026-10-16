@@ -55,6 +55,19 @@ func (c *publicStatusCache) snapshot(ctx context.Context) []PublicServiceStatus 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	now := c.clock().UTC()
+	// A browser navigating away can cancel its request before any provider
+	// responds. A canceled read must not populate a shared five-minute UNKNOWN
+	// cache or discard a previous successful observation.
+	if ctx.Err() != nil {
+		if len(c.last) > 0 {
+			return append([]PublicServiceStatus(nil), c.last...)
+		}
+		unknown := make([]PublicServiceStatus, len(c.sources))
+		for i, source := range c.sources {
+			unknown[i] = PublicServiceStatus{Provider: source.provider, Indicator: "UNKNOWN", Stale: true}
+		}
+		return unknown
+	}
 	if now.Before(c.next) && len(c.last) > 0 {
 		return append([]PublicServiceStatus(nil), c.last...)
 	}
@@ -78,6 +91,15 @@ func (c *publicStatusCache) snapshot(ctx context.Context) []PublicServiceStatus 
 		}(i, source)
 	}
 	wg.Wait()
+	// Each probe uses the caller context; if the request was canceled
+	// mid-flight, return an advisory snapshot but allow the next request to
+	// retry immediately instead of poisoning the cache until TTL expiry.
+	if ctx.Err() != nil {
+		for i := range output {
+			output[i].Stale = true
+		}
+		return output
+	}
 	c.last = output
 	c.next = now.Add(5 * time.Minute)
 	return append([]PublicServiceStatus(nil), output...)
