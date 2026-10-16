@@ -537,12 +537,26 @@ func (b *windowsBackend) Wait() error {
 	if code == stillActive {
 		_, _, _ = procWaitForSingleObject.Call(h, ^uintptr(0)) // INFINITE
 	}
+	// Closing the read side unblocks pending readers, but a synchronous Close
+	// waits for any in-flight ReadFile, and conhost can delay the final EOF
+	// after the client exits (observed as multi-minute teardown stalls in CI).
+	// Bound the wait so a stuck conhost cannot pin Wait; the helper goroutine
+	// still completes the close when the EOF arrives.
 	b.mu.Lock()
-	if b.rPipe != nil {
-		_ = b.rPipe.Close()
-		b.rPipe = nil
-	}
+	rPipe := b.rPipe
+	b.rPipe = nil
 	b.mu.Unlock()
+	if rPipe != nil {
+		closed := make(chan struct{})
+		go func() {
+			_ = rPipe.Close()
+			close(closed)
+		}()
+		select {
+		case <-closed:
+		case <-time.After(2 * time.Second):
+		}
+	}
 	_, _, _ = procGetExitCodeProcess.Call(h, uintptr(unsafe.Pointer(&code)))
 	if code == stillActive {
 		return errors.New("process still active")
