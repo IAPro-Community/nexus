@@ -495,7 +495,7 @@
   width: 100%;
   min-width: 0;
   max-width: none;
-  --wails-draggable: drag;
+  --wails-draggable: no-drag;
 }
 
 .root[data-native='true'] .capsule * {
