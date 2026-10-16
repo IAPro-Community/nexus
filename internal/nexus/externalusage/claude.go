@@ -4,6 +4,7 @@ package externalusage
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -135,9 +136,11 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 			_ = file.Close()
 			return report, errors.New("Claude transcript changed while opening")
 		}
-		// Fingerprint the stable beginning of the content in memory, never
-		// saving its bytes. Append-only files retain the same prefix, while
-		// a replaced file begins at offset zero under a new hashed key.
+		// Fingerprint a stable prefix: use the first complete JSONL record
+		// when it fits in 256 bytes, otherwise the first fixed 256 bytes.
+		// Hashing all bytes of a short file makes the cursor key change on
+		// *every* append, causing repeated imports and defeating offsets.
+		// No payload bytes or raw paths are persisted.
 		header := make([]byte, 256)
 		n, readErr := io.ReadFull(file, header)
 		if readErr != nil && !errors.Is(readErr, io.EOF) &&
@@ -145,7 +148,17 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 			_ = file.Close()
 			return report, readErr
 		}
-		hash := digest(name + ":" + digest(string(header[:n])))
+		prefix := header[:n]
+		if newline := bytes.IndexByte(prefix, '\n'); newline >= 0 {
+			prefix = prefix[:newline+1]
+		} else if n < len(header) {
+			// There is no complete first record yet. A future append may
+			// replace this partial prefix, so do not persist a cursor.
+			_ = file.Close()
+			report.HasMore = true
+			continue
+		}
+		hash := digest(name + ":" + digest(string(prefix)))
 		offset, err := db.ExternalClaudeOffset(ctx, SourceScope, hash)
 		if err != nil { _ = file.Close(); return report, err }
 		if offset > info.Size() { offset = 0 }
