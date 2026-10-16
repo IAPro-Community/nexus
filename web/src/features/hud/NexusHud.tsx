@@ -241,9 +241,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   };
 
   const nativeStatus = resolveNativeHudStatus(response?.enabled, Boolean(state), offline);
-  if ((!native && !prefs.enabled) || (native && nativeStatus === 'disabled')) {
-    if (!native) return null;
-  }
+  if (!native && !prefs.enabled) return null;
   if (!native && (!response?.enabled || !state)) return null;
 
   const waiting = native && nativeStatus !== 'ready';
@@ -274,7 +272,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         data-tone={tone}
       >
         {expanded && state && !waiting ? (
-          <div className={styles.popover} aria-label="Resumo do Nexus HUD">
+          <div id="nexus-hud-popover" className={styles.popover} aria-label="Resumo do Nexus HUD">
             <div className={styles.popoverHeader}>
               <div className={styles.brand}>
                 <img src="/nexus-icon.svg" alt="" width={25} height={25} />
@@ -405,7 +403,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             data-tone={tone}
             aria-label={`Nexus HUD, ${mainLabel}, ${currentPercent} restante. ${expanded ? 'Recolher' : 'Expandir'} detalhes`}
             aria-expanded={expanded}
-            aria-controls="nexus-hud-popover"
+            aria-controls={expanded ? 'nexus-hud-popover' : undefined}
             title={`${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`}
             onClick={() => waiting ? void refresh() : setExpandedState(!expanded)}
           >
