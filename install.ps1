@@ -313,7 +313,13 @@ $Arch = if ([System.Environment]::Is64BitOperatingSystem) {
 $OsName = if ($IsWindowsOS) { "Windows" } elseif ($IsMacOS) { "Darwin" } else { "Linux" }
 $ArchiveExt = if ($IsWindowsOS) { "zip" } else { "tar.gz" }
 $ArchiveName = "nexus_${OsName}_${Arch}.${ArchiveExt}"
-$DownloadUrl = "$ReleaseDownloadBase/v$Version/$ArchiveName"
+# Beta/RC assets use the rolling channel-beta release; stable assets use
+# immutable version releases. Both paths require the signed manifest.
+$IsPrerelease = $Version -match '-(?:alpha|beta|rc)\.'
+$ReleaseTag = if ($IsPrerelease) { "channel-beta" } else { "v$Version" }
+$ExpectedManifestChannel = if ($IsPrerelease) { "beta" } else { "stable" }
+$ReleaseAssetBase = "$ReleaseDownloadBase/$ReleaseTag"
+$DownloadUrl = "$ReleaseAssetBase/$ArchiveName"
 
 $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
@@ -324,13 +330,20 @@ try {
         # 1) Fetch and verify signed manifest before downloading the artifact.
         $ManifestPath = Join-Path $TempDir "update-manifest.json"
         $SigPath = Join-Path $TempDir "update-manifest.sig"
-        $ManifestUrl = "$ReleaseDownloadBase/v$Version/update-manifest.json"
-        $SigUrl = "$ReleaseDownloadBase/v$Version/update-manifest.sig"
+        $ManifestUrl = "$ReleaseAssetBase/update-manifest.json"
+        $SigUrl = "$ReleaseAssetBase/update-manifest.sig"
         Invoke-WebRequest -Uri $ManifestUrl -OutFile $ManifestPath -UseBasicParsing
         Write-Host "Signed manifest downloaded" -ForegroundColor Green
         Invoke-WebRequest -Uri $SigUrl -OutFile $SigPath -UseBasicParsing
         if (-not (Verify-ManifestSignature -ManifestPath $ManifestPath -SigPath $SigPath)) {
             throw "Release manifest signature verification failed."
+        }
+        # The signed rolling pointer may have moved to a different beta.
+        # A pinned version MUST match exactly, even if its signature is valid.
+        $VerifiedManifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+        if ([string]$VerifiedManifest.version -ne $Version -or
+            [string]$VerifiedManifest.channel -ne $ExpectedManifestChannel) {
+            throw "Signed manifest version/channel mismatch: requested $Version ($ExpectedManifestChannel), received $($VerifiedManifest.version) ($($VerifiedManifest.channel))."
         }
         $Expected = Extract-ShaFromManifest -ManifestPath $ManifestPath -ArtifactName $ArchiveName
         if ([string]::IsNullOrWhiteSpace($Expected)) {
@@ -479,7 +492,7 @@ if ($InstallDesktop -and $IsWindowsOS -and $Arch -ne "x86_64" -and -not [string]
 
 if ($InstallDesktop -and $IsWindowsOS -and $Arch -eq "x86_64" -and -not [string]::IsNullOrWhiteSpace($Version)) {
     $DesktopArchiveName = "nexus-desktop_Windows_${Arch}.zip"
-    $DesktopDownloadUrl = "$ReleaseDownloadBase/v$Version/$DesktopArchiveName"
+    $DesktopDownloadUrl = "$ReleaseAssetBase/$DesktopArchiveName"
     $DesktopZipPath = Join-Path $TempDir $DesktopArchiveName
     $ManifestPath = Join-Path $TempDir "update-manifest.json"
     $SigPath = Join-Path $TempDir "update-manifest.sig"
@@ -487,8 +500,8 @@ if ($InstallDesktop -and $IsWindowsOS -and $Arch -eq "x86_64" -and -not [string]
     try {
         Write-Host "Attempting to install the native IAPro Nexus Desktop shell..." -ForegroundColor Yellow
         if (-not (Test-Path $ManifestPath) -or -not (Test-Path $SigPath)) {
-            $ManifestUrl = "$ReleaseDownloadBase/v$Version/update-manifest.json"
-            $SigUrl = "$ReleaseDownloadBase/v$Version/update-manifest.sig"
+            $ManifestUrl = "$ReleaseAssetBase/update-manifest.json"
+            $SigUrl = "$ReleaseAssetBase/update-manifest.sig"
             Invoke-WebRequest -Uri $ManifestUrl -OutFile $ManifestPath -UseBasicParsing
             Invoke-WebRequest -Uri $SigUrl -OutFile $SigPath -UseBasicParsing
         }
