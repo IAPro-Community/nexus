@@ -1,17 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Bot,
+  Activity,
+  AlertTriangle,
   ChevronDown,
   ChevronUp,
-  CircleAlert,
-  Gauge,
+  CircleHelp,
+  Clock3,
+  ExternalLink,
   GripHorizontal,
   RefreshCw,
   Settings2,
-  Users,
-  Workflow,
+  ShieldAlert,
   X,
-  Zap,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -19,23 +19,23 @@ import { nexus } from '../../nexus/api';
 import { hudV3 } from '../../platform';
 import type { CapacityResourceStatus } from '../../types';
 import {
-  activeMission,
   formatHudCost,
   isWorkingAgent,
   loadHudPreferences,
-  providerCapacityLabel,
   resolveNativeHudStatus,
   saveHudPreferences,
-  type HudAlert,
   type HudPresentationPreferences,
   type HudResponse,
-  type HudState,
 } from './hudModel';
+import {
+  hudOtherAccounts,
+  hudPercentage,
+  hudRemaining,
+  selectHudFocus,
+} from './hudMiniModel';
 import styles from './NexusHud.module.scss';
 
 const MIN_REFRESH_MS = 15_000;
-const FLOATING_MIN_X = 8;
-const FLOATING_MIN_Y = 8;
 const FLOATING_KEYBOARD_STEP = 16;
 
 export interface NexusHudProps {
@@ -54,83 +54,10 @@ export interface NexusHudProps {
   };
 }
 
-const clampFloatingPosition = (x: number, y: number) => {
-  if (typeof window === 'undefined') return { x, y };
-  return {
-    x: Math.max(FLOATING_MIN_X, Math.min(x, Math.max(FLOATING_MIN_X, window.innerWidth - 340))),
-    y: Math.max(FLOATING_MIN_Y, Math.min(y, Math.max(FLOATING_MIN_Y, window.innerHeight - 90))),
-  };
-};
-
-const alertCopy = (alert?: HudAlert) => {
-  if (!alert) return null;
-  const remaining =
-    alert.remaining_percent === undefined ? 'UNKNOWN' : `${Math.round(alert.remaining_percent)}%`;
-  return {
-    title: `${alert.provider || 'Provider'} · ${remaining}`,
-    detail: alert.reason || alert.severity,
-  };
-};
-
-const primaryCopy = (
-  state: HudState,
-  requestedMode: HudPresentationPreferences['mode'],
-  privacyMode: boolean,
-) => {
-  const effectiveKind =
-    requestedMode === 'AUTO' || requestedMode === 'MINIMAL' ? state.primary.kind : requestedMode;
-  const alert = state.alerts.find((item) => item.severity === 'CRITICAL') || state.alerts[0];
-  if (effectiveKind === 'ALERT' && alert) {
-    return { kind: 'ALERT', icon: CircleAlert, ...alertCopy(alert)! };
-  }
-  const mission = activeMission(state.missions);
-  if (effectiveKind === 'MISSION' && mission) {
-    return {
-      kind: 'MISSION',
-      icon: Workflow,
-      title: mission.needs_user ? 'Mission aguardando você' : 'Mission em andamento',
-      detail: privacyMode
-        ? mission.needs_user
-          ? 'Intervenção necessária'
-          : `${mission.completed_packages}/${mission.total_packages} packages`
-        : mission.current_task_title ||
-          mission.intervention_reason ||
-          `${mission.completed_packages}/${mission.total_packages} packages`,
-    };
-  }
-  const agent =
-    state.agents.find((item) => item.id === state.primary.id) || state.agents.find(isWorkingAgent);
-  if (effectiveKind === 'AGENT' && agent) {
-    return {
-      kind: 'AGENT',
-      icon: Bot,
-      title: privacyMode ? agent.role || 'Agent' : agent.name,
-      detail: [agent.provider, agent.model, agent.status].filter(Boolean).join(' · '),
-    };
-  }
-  if (effectiveKind === 'RESOURCE' && state.recommendation) {
-    return {
-      kind: 'RESOURCE',
-      icon: Zap,
-      title: `Recurso recomendado: ${
-        privacyMode
-          ? state.recommendation.provider
-          : state.recommendation.display_name || state.recommendation.provider
-      }`,
-      detail: privacyMode
-        ? 'Recomendação canônica do ResourceScheduler'
-        : state.recommendation.explanation || 'Recomendação canônica do ResourceScheduler',
-    };
-  }
-  return {
-    kind: 'CAPACITY',
-    icon: Gauge,
-    title: 'Capacity',
-    detail: state.providers.length
-      ? `${state.providers.length} recursos monitorados`
-      : 'Sem dados de provider',
-  };
-};
+const clampFloatingPosition = (x: number, y: number) => ({
+  x: Math.max(8, Math.min(x, Math.max(8, window.innerWidth - 240))),
+  y: Math.max(8, Math.min(y, Math.max(8, window.innerHeight - 64))),
+});
 
 export const NexusHud: React.FC<NexusHudProps> = ({
   projectId,
@@ -151,7 +78,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [paceWarning, setPaceWarning] = useState<CapacityResourceStatus | null>(null);
   const [alertActionPending, setAlertActionPending] = useState(false);
   const requestInFlight = useRef<Promise<void> | null>(null);
-  const dragState = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
+  const dragState = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
 
   const refresh = useCallback(() => {
     if (requestInFlight.current) return requestInFlight.current;
@@ -161,97 +89,89 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         setResponse(next);
         setOffline(false);
         setLastSuccessAt(Date.now());
-        // Capacity monitor remains the only collector. This is a read-only
-        // enrichment; a failed pace query must never mark the HUD offline.
-        void nexus.getCapacityStatus().then((capacity) => {
-          const rising = (capacity.resources || [])
-            .filter((item) => item.pace?.status === 'RISING' && item.pace?.exhausts_at)
-            .sort((a, b) =>
-              Date.parse(a.pace?.exhausts_at || '') - Date.parse(b.pace?.exhausts_at || ''),
-            );
-          setPaceWarning(rising[0] || null);
-        }).catch(() => setPaceWarning(null));
+        // Presentation reads existing capacity state; it never probes providers.
+        void nexus.getCapacityStatus()
+          .then((capacity) => {
+            const rising = (capacity.resources || [])
+              .filter((item) => item.pace?.status === 'RISING' && item.pace?.exhausts_at)
+              .sort((a, b) => Date.parse(a.pace?.exhausts_at || '') - Date.parse(b.pace?.exhausts_at || ''));
+            setPaceWarning(rising[0] || null);
+          })
+          .catch(() => setPaceWarning(null));
       })
-      .catch(() => {
-        setOffline(true);
-      })
-      .finally(() => {
-        requestInFlight.current = null;
-      });
+      .catch(() => setOffline(true))
+      .finally(() => { requestInFlight.current = null; });
     requestInFlight.current = task;
     return task;
   }, [projectId]);
 
   useEffect(() => {
     void refresh();
-    const onVisibility = () => {
+    const onVisible = () => {
       if (document.visibilityState === 'visible') void refresh();
     };
     const onFocus = () => void refresh();
-    document.addEventListener('visibilitychange', onVisibility);
+    document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onFocus);
-
-    const ttl = response?.state?.system.cache_ttl_millis || MIN_REFRESH_MS;
-    const timer = window.setInterval(
-      () => {
-        if (document.visibilityState === 'visible') void refresh();
-      },
-      Math.max(MIN_REFRESH_MS, ttl),
-    );
-
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh();
+    }, Math.max(MIN_REFRESH_MS, response?.state?.system.cache_ttl_millis || MIN_REFRESH_MS));
     return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onFocus);
       window.clearInterval(timer);
     };
   }, [refresh, response?.state?.system.cache_ttl_millis]);
 
   useEffect(() => {
-    const onPreferences = () => setPrefs(loadHudPreferences());
-    window.addEventListener('nexus:hud-preferences', onPreferences);
-    return () => window.removeEventListener('nexus:hud-preferences', onPreferences);
+    const sync = () => setPrefs(loadHudPreferences());
+    window.addEventListener('nexus:hud-preferences', sync);
+    return () => window.removeEventListener('nexus:hud-preferences', sync);
   }, []);
 
   useEffect(() => {
-    if (prefs.surfaceMode !== 'floating') return;
-    const onResize = () => {
-      setPrefs((current) => {
-        const nextPosition = clampFloatingPosition(
-          current.floatingPosition.x,
-          current.floatingPosition.y,
-        );
-        if (
-          nextPosition.x === current.floatingPosition.x &&
-          nextPosition.y === current.floatingPosition.y
-        ) {
-          return current;
-        }
-        const next = { ...current, floatingPosition: nextPosition };
-        saveHudPreferences(next);
-        return next;
-      });
+    if (!expanded) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        setExpanded(false);
+        if (native) void hudV3.setExpanded(false).catch(() => undefined);
+      }
     };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [prefs.surfaceMode]);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && panelRef.current?.contains(document.activeElement)) {
+        setExpanded(false);
+        if (native) void hudV3.setExpanded(false).catch(() => undefined);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [expanded, native]);
 
   const state = response?.state;
-  const cost = useMemo(() => formatHudCost(state?.cost), [state?.cost]);
-  const primary = useMemo(
-    () => (state ? primaryCopy(state, prefs.mode, prefs.privacyMode) : null),
-    [state, prefs.mode, prefs.privacyMode],
+  const focus = useMemo(() => state ? selectHudFocus(state, offline) : null, [state, offline]);
+  const otherAccounts = useMemo(
+    () => state ? hudOtherAccounts(state, focus?.provider) : [],
+    [state, focus?.provider],
   );
-  const topAlert = state?.alerts[0];
+  const cost = useMemo(() => formatHudCost(state?.cost), [state?.cost]);
+  const alert = state?.alerts.find(
+    (item) =>
+      item.provider.toLowerCase() === focus?.provider?.provider.toLowerCase() &&
+      (!item.profile || item.profile.toLowerCase() === focus?.provider?.profile.toLowerCase()),
+  ) || state?.alerts[0];
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
-  const mission = state ? activeMission(state.missions) : undefined;
-  const autoPriorityOverride =
-    prefs.mode === 'AUTO' && (state?.primary.kind === 'ALERT' || state?.primary.kind === 'MISSION');
-  const modeShows = (kind: 'CAPACITY' | 'RESOURCE' | 'AGENT' | 'MISSION' | 'ALERT' | 'COST') => {
-    if (prefs.mode === 'AUTO') {
-      return autoPriorityOverride ? state?.primary.kind === kind : true;
-    }
-    return (prefs.mode === 'MINIMAL' && kind === 'CAPACITY') || prefs.mode === kind;
-  };
+  const activeMission = state?.missions.find((mission) => mission.needs_user);
+  const isAttention = Boolean(alert || activeMission);
+  const displayTone = offline ? 'unknown' : isAttention ? 'warning' : focus?.tone || 'unknown';
+  const displayPercent = offline ? '—' : hudPercentage(focus?.remaining ?? null);
+  const focusedName = focus?.provider?.provider || 'Nexus';
+  const displayName = focusedName === 'Nexus'
+    ? focusedName
+    : focusedName.charAt(0).toUpperCase() + focusedName.slice(1);
 
   const updatePrefs = (patch: Partial<HudPresentationPreferences>) => {
     const next = { ...prefs, ...patch };
@@ -259,35 +179,18 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     saveHudPreferences(next);
   };
 
-  const setExpandedState = (next: boolean) => {
-    setExpanded(next);
-    if (native) {
-      void hudV3.setExpanded(next).catch(() => undefined);
-    }
+  const setExpandedState = (value: boolean) => {
+    setExpanded(value);
+    if (native) void hudV3.setExpanded(value).catch(() => undefined);
   };
 
-  const hideHUD = () => updatePrefs({ enabled: false });
-
-  const handleAck = async () => {
-    if (!topAlert?.fingerprint) return;
+  const handleAlert = async (action: 'ack' | 'snooze') => {
+    if (!alert?.fingerprint || alertActionPending) return;
     setAlertActionPending(true);
     try {
-      await nexus.ackCapacityAlert(topAlert.fingerprint);
-      toast.success(t('settings.capacityAcked', 'Alerta reconhecido'));
-      await refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
-    } finally {
-      setAlertActionPending(false);
-    }
-  };
-
-  const handleSnooze = async () => {
-    if (!topAlert?.fingerprint) return;
-    setAlertActionPending(true);
-    try {
-      await nexus.snoozeCapacityAlert(topAlert.fingerprint);
-      toast.success(t('settings.capacitySnoozed', 'Alerta adiado'));
+      if (action === 'ack') await nexus.ackCapacityAlert(alert.fingerprint);
+      else await nexus.snoozeCapacityAlert(alert.fingerprint);
+      toast.success(action === 'ack' ? 'Alerta reconhecido' : 'Alerta adiado');
       await refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
@@ -303,95 +206,56 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     if (persist) saveHudPreferences(next);
   };
 
-  const onDragPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const onDragDown = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (prefs.surfaceMode !== 'floating') return;
-    const panel = event.currentTarget.closest('[data-hud-panel]')?.getBoundingClientRect();
-    if (!panel) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragState.current = {
       pointerId: event.pointerId,
-      offsetX: event.clientX - panel.left,
-      offsetY: event.clientY - panel.top,
+      x: event.clientX - prefs.floatingPosition.x,
+      y: event.clientY - prefs.floatingPosition.y,
     };
   };
-
-  const onDragPointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
-    const drag = dragState.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    updateFloatingPosition(event.clientX - drag.offsetX, event.clientY - drag.offsetY);
+  const onDragMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (dragState.current?.pointerId !== event.pointerId) return;
+    updateFloatingPosition(event.clientX - dragState.current.x, event.clientY - dragState.current.y);
   };
-
-  const onDragPointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const onDragUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (dragState.current?.pointerId !== event.pointerId) return;
     const drag = dragState.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
     dragState.current = null;
-    updateFloatingPosition(event.clientX - drag.offsetX, event.clientY - drag.offsetY, true);
+    updateFloatingPosition(event.clientX - drag.x, event.clientY - drag.y, true);
   };
-
-  const onDragKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+  const onDragKeys = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (prefs.surfaceMode !== 'floating') return;
-    let dx = 0;
-    let dy = 0;
-    if (event.key === 'ArrowLeft') dx = -FLOATING_KEYBOARD_STEP;
-    else if (event.key === 'ArrowRight') dx = FLOATING_KEYBOARD_STEP;
-    else if (event.key === 'ArrowUp') dy = -FLOATING_KEYBOARD_STEP;
-    else if (event.key === 'ArrowDown') dy = FLOATING_KEYBOARD_STEP;
-    else return;
+    const vector: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+    };
+    const delta = vector[event.key];
+    if (!delta) return;
     event.preventDefault();
-    updateFloatingPosition(prefs.floatingPosition.x + dx, prefs.floatingPosition.y + dy, true);
+    updateFloatingPosition(
+      prefs.floatingPosition.x + delta[0] * FLOATING_KEYBOARD_STEP,
+      prefs.floatingPosition.y + delta[1] * FLOATING_KEYBOARD_STEP,
+      true,
+    );
   };
 
   const nativeStatus = resolveNativeHudStatus(response?.enabled, Boolean(state), offline);
-  if (native && nativeStatus !== 'ready') {
-    const statusLabel =
-      nativeStatus === 'loading'
-        ? t('common.loading')
-        : nativeStatus === 'disabled'
-          ? t('common.hudDisabled')
-          : t('common.hudUnavailable');
-
-    return (
-      <aside
-        className={styles.root}
-        data-surface="native"
-        data-dock={prefs.dock}
-        data-native="true"
-        aria-label="Nexus HUD"
-        aria-live="polite"
-      >
-        <section className={styles.panel} data-expanded="false" data-hud-panel>
-          <div className={styles.compactBar}>
-            <div className={styles.brand}>
-              <Zap size={15} aria-hidden="true" />
-              <span>Nexus HUD</span>
-            </div>
-            <span className={styles.offline} role="status">
-              {statusLabel}
-            </span>
-            <button
-              type="button"
-              className={styles.iconButton}
-              aria-label={t('common.errorBoundaryTryAgain')}
-              disabled={nativeStatus === 'disabled'}
-              onClick={() => void refresh()}
-            >
-              <RefreshCw size={15} aria-hidden="true" />
-            </button>
-          </div>
-        </section>
-      </aside>
-    );
+  if ((!native && !prefs.enabled) || (native && nativeStatus === 'disabled')) {
+    if (!native) return null;
   }
+  if (!native && (!response?.enabled || !state)) return null;
 
-  if ((!prefs.enabled && !native) || !response?.enabled || !state) return null;
-
-  const floatingStyle =
-    prefs.surfaceMode === 'floating'
-      ? ({
-          '--hud-floating-x': `${prefs.floatingPosition.x}px`,
-          '--hud-floating-y': `${prefs.floatingPosition.y}px`,
-        } as React.CSSProperties)
-      : undefined;
+  const waiting = native && nativeStatus !== 'ready';
+  const mainLabel = waiting ? t('common.hudUnavailable') : displayName;
+  const currentPercent = waiting ? '—' : displayPercent;
+  const tone = waiting ? 'unknown' : displayTone;
+  const floatingStyle = !native && prefs.surfaceMode === 'floating'
+    ? ({
+        '--hud-floating-x': `${prefs.floatingPosition.x}px`,
+        '--hud-floating-y': `${prefs.floatingPosition.y}px`,
+      } as React.CSSProperties)
+    : undefined;
 
   return (
     <aside
@@ -401,410 +265,177 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       data-native={native ? 'true' : 'false'}
       style={floatingStyle}
       aria-label="Nexus HUD"
-      aria-live="polite"
     >
-      <section className={styles.panel} data-expanded={expanded ? 'true' : 'false'} data-hud-panel>
-        <div className={styles.compactBar}>
-          <div className={styles.brand}>
-            <Zap size={15} aria-hidden="true" />
-            <span>Nexus HUD</span>
-            <span className={styles.rollout}>{response.rollout}</span>
-          </div>
-
-          <div className={styles.metrics}>
-            {topAlert && modeShows('ALERT') ? (
-              <button
-                type="button"
-                className={styles.metric}
-                data-state={topAlert.severity}
-                onClick={() => setExpandedState(true)}
-                aria-label={`Alerta ${topAlert.severity}: ${topAlert.provider || 'provider'} ${topAlert.remaining_percent === undefined ? 'capacidade desconhecida' : `${Math.round(topAlert.remaining_percent)}% restante`}`}
-              >
-                <CircleAlert size={12} aria-hidden="true" />
-                <strong>
-                  {topAlert.provider || 'Provider'}{' '}
-                  {topAlert.remaining_percent === undefined
-                    ? 'UNKNOWN'
-                    : `${Math.round(topAlert.remaining_percent)}%`}
-                </strong>
-              </button>
-            ) : null}
-            {prefs.showCapacity &&
-              modeShows('CAPACITY') &&
-              state.providers.slice(0, 4).map((provider) => (
-                <button
-                  type="button"
-                  className={styles.metric}
-                  data-state={provider.capacity_state}
-                  key={`${provider.provider}:${provider.profile}`}
-                  onClick={onOpenUsage}
-                  aria-label={`${provider.provider}${prefs.privacyMode ? '' : ` ${provider.profile}`}: ${providerCapacityLabel(provider)}, ${provider.capacity_state}`}
-                >
-                  <span>{provider.provider}</span>
-                  <strong>{providerCapacityLabel(provider)}</strong>
+      <section
+        ref={panelRef}
+        className={styles.panel}
+        data-hud-panel
+        data-expanded={expanded ? 'true' : 'false'}
+        data-tone={tone}
+      >
+        {expanded && state && !waiting ? (
+          <div className={styles.popover} aria-label="Resumo do Nexus HUD">
+            <div className={styles.popoverHeader}>
+              <div className={styles.brand}>
+                <img src="/nexus-icon.svg" alt="" width={25} height={25} />
+                <strong>Nexus</strong>
+              </div>
+              <div className={styles.headerActions}>
+                {onOpenSettings && (
+                  <button type="button" className={styles.iconButton} aria-label="Configurações do Nexus HUD" onClick={onOpenSettings}>
+                    <Settings2 size={16} />
+                  </button>
+                )}
+                <button type="button" className={styles.iconButton} aria-label="Recolher Nexus HUD" onClick={() => setExpandedState(false)}>
+                  <X size={16} />
                 </button>
-              ))}
-            {prefs.showRecommendation && modeShows('RESOURCE') && state.recommendation ? (
-              <button
-                type="button"
-                className={styles.metric}
-                onClick={onOpenUsage}
-                aria-label={`Recurso recomendado: ${
-                  prefs.privacyMode
-                    ? state.recommendation.provider
-                    : state.recommendation.display_name || state.recommendation.provider
-                }`}
-              >
-                <Zap size={12} aria-hidden="true" />
-                <strong>{state.recommendation.provider}</strong>
-              </button>
-            ) : null}
-            {prefs.showAgents && modeShows('AGENT') && activeAgents.length > 0 ? (
-              <button
-                type="button"
-                className={styles.metric}
-                onClick={onOpenAgents}
-                aria-label={`${activeAgents.length} agentes trabalhando`}
-              >
-                <Users size={12} aria-hidden="true" />
-                <strong>{activeAgents.length}</strong>
-              </button>
-            ) : null}
-            {prefs.showMissions && modeShows('MISSION') && mission ? (
-              <button
-                type="button"
-                className={styles.metric}
-                data-state={mission.needs_user ? 'WARNING' : mission.state}
-                onClick={onOpenMissions}
-                aria-label={
-                  mission.needs_user ? 'Mission aguardando intervenção' : `Mission ${mission.state}`
-                }
-              >
-                <Workflow size={12} aria-hidden="true" />
-                <strong>
-                  {mission.total_packages > 0
-                    ? `${mission.completed_packages}/${mission.total_packages}`
-                    : mission.needs_user
-                      ? 'ação'
-                      : 'ativa'}
-                </strong>
-              </button>
-            ) : null}
-            {prefs.showCost && modeShows('COST') && !prefs.privacyMode ? (
-              <span className={styles.metric} aria-label={`Custo ${cost.semantics}: ${cost.label}`}>
-                <strong>{cost.label}</strong>
-              </span>
-            ) : null}
-          </div>
+              </div>
+            </div>
 
-          <div className={styles.actions}>
-            {offline ? (
-              <span className={styles.offline}>
-                OFFLINE
-                {lastSuccessAt
-                  ? ` · ${Math.max(1, Math.round((Date.now() - lastSuccessAt) / 60_000))}m`
-                  : ''}
-              </span>
-            ) : null}
-            {!native ? (
-              <button
-                type="button"
-                className={styles.dragHandle}
-                aria-label="Mover Nexus HUD. Use as setas do teclado ou arraste."
-                onPointerDown={onDragPointerDown}
-                onPointerMove={onDragPointerMove}
-                onPointerUp={onDragPointerUp}
-                onKeyDown={onDragKeyDown}
-              >
-                <GripHorizontal size={15} aria-hidden="true" />
+            <div className={styles.sectionCaption}>{focus?.active ? 'Conta em execução' : 'Recurso em destaque'}</div>
+            <div className={styles.accountCard} data-tone={tone}>
+              <div className={styles.accountTop}>
+                <span className={styles.accountTitle}><span className={styles.statusDot} />{displayName}{!prefs.privacyMode && focus?.provider?.profile ? ` · ${focus.provider.profile}` : ''}</span>
+                <strong>{displayPercent}</strong>
+              </div>
+              <div className={styles.track} role="progressbar" aria-label="Capacidade restante da janela limitante" aria-valuenow={focus?.remaining ?? undefined} aria-valuemin={0} aria-valuemax={100}>
+                {focus?.remaining !== null && focus?.remaining !== undefined && (
+                  <div className={styles.fill} style={{ width: `${focus.remaining}%` }} />
+                )}
+              </div>
+              <div className={styles.accountMeta}>
+                <span>Janela {focus?.provider?.limiting_window?.label || focus?.provider?.limiting_window?.kind || 'desconhecida'}</span>
+                <span>{focus?.provider?.limiting_window?.reset_description || 'Renovação não informada'}</span>
+              </div>
+              <div className={styles.evidence}>{focus?.provider?.source || 'Fonte não informada'} · {focus?.provider?.freshness || 'UNKNOWN'}</div>
+            </div>
+
+            {prefs.showCapacity && otherAccounts.length > 0 && (
+              <div className={styles.accounts}>
+                <div className={styles.sectionCaption}>Outras contas</div>
+                {otherAccounts.slice(0, 3).map((provider) => {
+                  const remaining = hudRemaining(provider, offline);
+                  return (
+                    <div className={styles.accountLine} key={`${provider.provider}:${provider.profile}`}>
+                      <span className={styles.accountIdentity}>
+                        <Activity size={14} aria-hidden="true" />
+                        <span>{provider.provider}{prefs.privacyMode ? '' : ` · ${provider.profile}`}</span>
+                      </span>
+                      <span className={styles.smallTrack}>
+                        {remaining !== null && <span style={{ width: `${remaining}%` }} />}
+                      </span>
+                      <strong>{hudPercentage(remaining)}</strong>
+                    </div>
+                  );
+                })}
+                {otherAccounts.length > 3 && <span className={styles.evidence}>+{otherAccounts.length - 3} contas em Usage</span>}
+              </div>
+            )}
+
+            {activeMission?.needs_user ? (
+              <div className={styles.notice} data-tone="warning">
+                <ShieldAlert size={18} aria-hidden="true" />
+                <div><strong>Mission precisa de você</strong><span>{activeMission.intervention_reason || 'Intervenção necessária'}</span></div>
+                {onOpenMissions && <button type="button" className={styles.textLink} onClick={onOpenMissions}>Abrir</button>}
+              </div>
+            ) : alert ? (
+              <div className={styles.notice} data-tone="warning">
+                <AlertTriangle size={18} aria-hidden="true" />
+                <div><strong>Capacidade em atenção</strong><span>{alert.reason || alert.severity}</span></div>
+              </div>
+            ) : tone === 'unknown' ? (
+              <div className={styles.notice}>
+                <CircleHelp size={18} aria-hidden="true" />
+                <div><strong>Quota não confirmada</strong><span>Sem medição confiável; não significa quota esgotada.</span></div>
+              </div>
+            ) : (
+              <div className={styles.notice}>
+                <Activity size={18} aria-hidden="true" />
+                <div><strong>Operação normal</strong><span>Nenhuma intervenção de capacidade pendente.</span></div>
+              </div>
+            )}
+
+            {prefs.showRecommendation && state.recommendation && (
+              <div className={styles.recommendation}>
+                <strong>Recomendação do ResourceScheduler</strong>
+                <span>{state.recommendation.display_name || state.recommendation.provider}</span>
+                <small>{state.recommendation.explanation || 'Recurso alternativo validado.'}</small>
+                {(onOpenUsage || onOpenNexus) && (
+                  <button type="button" className={styles.cta} onClick={onOpenUsage || onOpenNexus}>
+                    Ver recurso <ExternalLink size={14} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {prefs.showCapacity && paceWarning?.pace?.exhausts_at && (
+              <p className={styles.evidence}>Tendência de esgotamento estimada: {new Intl.DateTimeFormat(undefined, {dateStyle: 'short', timeStyle: 'short'}).format(new Date(paceWarning.pace.exhausts_at))}</p>
+            )}
+            {prefs.showAgents && activeAgents.length > 0 && (
+              <button type="button" className={styles.quickLink} onClick={onOpenAgents} disabled={!onOpenAgents}>
+                {activeAgents.length} agente(s) em execução <ChevronDown size={14} />
               </button>
-            ) : null}
+            )}
+            {prefs.showCost && !prefs.privacyMode && cost.semantics !== 'unknown' && (
+              <span className={styles.evidence}>Custo: {cost.label} · {cost.semantics}</span>
+            )}
+            {alert && (
+              <div className={styles.footerActions}>
+                <button type="button" onClick={() => void handleAlert('ack')} disabled={alertActionPending}>Reconhecer</button>
+                <button type="button" onClick={() => void handleAlert('snooze')} disabled={alertActionPending}>Adiar</button>
+              </div>
+            )}
+            <div className={styles.footerActions}>
+              {(onOpenUsage || onOpenNexus) && (
+                <button type="button" onClick={onOpenUsage || onOpenNexus}>Abrir Nexus <ExternalLink size={13} /></button>
+              )}
+              {native && nativeAutoStart?.supported && (
+                <button type="button" disabled={nativeAutoStart.pending} aria-pressed={nativeAutoStart.enabled} onClick={nativeAutoStart.onToggle}>
+                  Iniciar com sistema: {nativeAutoStart.enabled ? 'Sim' : 'Não'}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        <div className={styles.capsuleRow}>
+          <button
+            type="button"
+            className={styles.capsule}
+            data-tone={tone}
+            aria-label={`Nexus HUD, ${mainLabel}, ${currentPercent} restante. ${expanded ? 'Recolher' : 'Expandir'} detalhes`}
+            aria-expanded={expanded}
+            aria-controls="nexus-hud-popover"
+            title={`${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`}
+            onClick={() => waiting ? void refresh() : setExpandedState(!expanded)}
+          >
+            <img className={styles.logo} src="/nexus-icon.svg" alt="" width={24} height={24} />
+            <span className={styles.providerName}>{mainLabel}</span>
+            <span className={styles.percent}>{currentPercent}</span>
+            <span className={styles.capacityRing} aria-hidden="true" />
+            {expanded ? <ChevronDown size={12} className={styles.chevron} aria-hidden="true" /> : <ChevronUp size={12} className={styles.chevron} aria-hidden="true" />}
+          </button>
+          {!native && prefs.surfaceMode === 'floating' && (
             <button
               type="button"
-              className={styles.iconButton}
-              aria-expanded={expanded}
-              aria-label={expanded ? 'Recolher Nexus HUD' : 'Expandir Nexus HUD'}
-              onClick={() => setExpandedState(!expanded)}
+              className={styles.dragHandle}
+              aria-label="Mover Nexus HUD com as setas ou arrastando"
+              onPointerDown={onDragDown}
+              onPointerMove={onDragMove}
+              onPointerUp={onDragUp}
+              onKeyDown={onDragKeys}
             >
-              {expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+              <GripHorizontal size={14} />
             </button>
-            {onOpenSettings ? (
-              <button
-                type="button"
-                className={styles.iconButton}
-                aria-label="Configurações do Nexus HUD"
-                onClick={onOpenSettings}
-              >
-                <Settings2 size={15} />
-              </button>
-            ) : null}
-            {!native ? (
-              <button
-                type="button"
-                className={styles.iconButton}
-                aria-label="Ocultar Nexus HUD"
-                onClick={hideHUD}
-              >
-                <X size={15} />
-              </button>
-            ) : null}
-          </div>
+          )}
         </div>
 
-        {expanded && (
-          <div className={styles.expanded}>
-            {primary
-              ? (() => {
-                  const PrimaryIcon = primary.icon;
-                  return (
-                    <section className={styles.primary} data-kind={primary.kind}>
-                      <PrimaryIcon size={18} aria-hidden="true" />
-                      <div className={styles.primaryText}>
-                        <strong>{primary.title}</strong>
-                        <span>{primary.detail}</span>
-                      </div>
-                    </section>
-                  );
-                })()
-              : null}
-
-            {prefs.showCapacity && paceWarning?.pace?.exhausts_at ? (
-              <section className={styles.primary} data-kind="CAPACITY">
-                <Gauge size={18} aria-hidden="true" />
-                <div className={styles.primaryText}>
-                  <strong>
-                    {t('hud.paceWarning', 'Possível esgotamento de quota')}
-                  </strong>
-                  <span>
-                    {!prefs.privacyMode ? `${paceWarning.provider} · ${paceWarning.profile} · ` : ''}
-                    {new Intl.DateTimeFormat(undefined, {
-                      dateStyle: 'short',
-                      timeStyle: 'short',
-                    }).format(new Date(paceWarning.pace.exhausts_at))}
-                    {' · '}
-                    {t('hud.paceEstimate', 'estimativa')}
-                  </span>
-                </div>
-              </section>
-            ) : null}
-
-            {onOpenNexus || (native && nativeAutoStart?.supported) ? (
-              <div className={styles.actionRow}>
-                {onOpenNexus ? (
-                  <button type="button" className={styles.textButton} onClick={onOpenNexus}>
-                    Abrir Nexus
-                  </button>
-                ) : null}
-                {native && nativeAutoStart?.supported ? (
-                  <button
-                    type="button"
-                    className={styles.textButton}
-                    aria-pressed={nativeAutoStart.enabled}
-                    disabled={nativeAutoStart.pending}
-                    onClick={nativeAutoStart.onToggle}
-                  >
-                    Iniciar com o sistema: {nativeAutoStart.enabled ? 'ativado' : 'desativado'}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-
-            {topAlert && modeShows('ALERT') ? (
-              <div className={styles.actionRow}>
-                <button
-                  type="button"
-                  className={styles.textButton}
-                  disabled={alertActionPending}
-                  onClick={() => void handleAck()}
-                >
-                  Reconhecer alerta
-                </button>
-                <button
-                  type="button"
-                  className={styles.textButton}
-                  disabled={alertActionPending}
-                  onClick={() => void handleSnooze()}
-                >
-                  Adiar
-                </button>
-              </div>
-            ) : null}
-
-            {prefs.showCapacity && modeShows('CAPACITY') ? (
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h3>Capacity</h3>
-                  {onOpenUsage ? (
-                    <button type="button" className={styles.textButton} onClick={onOpenUsage}>
-                      Abrir Usage
-                    </button>
-                  ) : null}
-                </div>
-                <div className={styles.providerGrid}>
-                  {state.providers.map((provider) => {
-                    const pct = provider.limiting_window?.remaining_percent;
-                    const width =
-                      pct === undefined ? 0 : Math.max(0, Math.min(100, Math.round(pct)));
-                    return (
-                      <article
-                        className={styles.providerCard}
-                        key={`${provider.provider}:${provider.profile}`}
-                        data-state={provider.capacity_state}
-                      >
-                        <div className={styles.providerTitle}>
-                          <strong>
-                            {prefs.privacyMode
-                              ? provider.provider
-                              : provider.display_name || provider.provider}
-                          </strong>
-                          <span className={styles.capacityValue}>
-                            {providerCapacityLabel(provider)}
-                          </span>
-                        </div>
-                        <div
-                          className={styles.windowTrack}
-                          role="progressbar"
-                          aria-label={`Capacidade limitante de ${provider.provider}`}
-                          aria-valuenow={pct === undefined ? undefined : width}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                        >
-                          <span
-                            className={styles.windowFill}
-                            style={{ '--hud-capacity-width': `${width}%` } as React.CSSProperties}
-                          />
-                        </div>
-                        <div className={styles.providerMeta}>
-                          <span>
-                            {provider.limiting_window?.label ||
-                              provider.limiting_window?.kind ||
-                              'janela desconhecida'}
-                          </span>
-                          <span>
-                            {provider.limiting_window?.reset_description || 'reset desconhecido'}
-                          </span>
-                          <span>{provider.freshness}</span>
-                          <span>{provider.source || 'fonte desconhecida'}</span>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
-
-            {prefs.showRecommendation && modeShows('RESOURCE') && state.recommendation ? (
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h3>ResourceScheduler</h3>
-                </div>
-                <div className={styles.listRow}>
-                  <div>
-                    <strong>
-                      {prefs.privacyMode
-                        ? state.recommendation.provider
-                        : state.recommendation.display_name || state.recommendation.provider}
-                    </strong>
-                    <div className={styles.meta}>
-                      <span>recomendação {state.recommendation.context.toLowerCase()}</span>
-                      <span>{state.recommendation.confidence}</span>
-                    </div>
-                  </div>
-                  {onOpenUsage ? (
-                    <button type="button" className={styles.textButton} onClick={onOpenUsage}>
-                      Por quê?
-                    </button>
-                  ) : null}
-                </div>
-              </section>
-            ) : null}
-
-            {prefs.showAgents && modeShows('AGENT') && state.agents.length > 0 ? (
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h3>Agents</h3>
-                  {onOpenAgents ? (
-                    <button type="button" className={styles.textButton} onClick={onOpenAgents}>
-                      Abrir Agents
-                    </button>
-                  ) : null}
-                </div>
-                <div className={styles.list}>
-                  {state.agents.slice(0, 5).map((agent) => (
-                    <div className={styles.listRow} key={agent.id}>
-                      <div>
-                        <strong>{prefs.privacyMode ? agent.role || 'Agent' : agent.name}</strong>
-                        <div className={styles.meta}>
-                          <span>{agent.status}</span>
-                          {agent.provider ? <span>{agent.provider}</span> : null}
-                          {agent.model ? <span>{agent.model}</span> : null}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {prefs.showMissions && modeShows('MISSION') && mission ? (
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h3>Mission</h3>
-                  {onOpenMissions ? (
-                    <button type="button" className={styles.textButton} onClick={onOpenMissions}>
-                      Abrir Mission
-                    </button>
-                  ) : null}
-                </div>
-                <div className={styles.listRow}>
-                  <div>
-                    <strong>
-                      {mission.needs_user
-                        ? 'Aguardando intervenção'
-                        : prefs.privacyMode
-                          ? 'Mission em andamento'
-                          : mission.current_task_title || mission.current_stage}
-                    </strong>
-                    <div className={styles.meta}>
-                      <span>{mission.state}</span>
-                      {mission.total_packages > 0 ? (
-                        <span>
-                          {mission.completed_packages}/{mission.total_packages} packages
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            ) : null}
-
-            {prefs.showCost && modeShows('COST') && !prefs.privacyMode && state.cost ? (
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h3>Cost Intelligence</h3>
-                  <strong>{cost.label}</strong>
-                </div>
-                <div className={styles.list}>
-                  {state.cost.by_kind.map((entry) => (
-                    <div className={styles.listRow} key={entry.kind}>
-                      <span>{entry.kind}</span>
-                      <strong>
-                        {new Intl.NumberFormat(undefined, {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(entry.microusd / 1_000_000)}
-                      </strong>
-                    </div>
-                  ))}
-                  {state.cost.unknown_observation_count > 0 ? (
-                    <div className={styles.listRow}>
-                      <span>UNKNOWN</span>
-                      <strong>{state.cost.unknown_observation_count} observações</strong>
-                    </div>
-                  ) : null}
-                </div>
-              </section>
-            ) : null}
+        {!expanded && !native && (
+          <div className={styles.hoverCard} role="tooltip">
+            <div><Clock3 size={14} /><span>{focus?.active ? 'Conta ativa' : 'Recurso em destaque'}</span><strong>{displayName}</strong></div>
+            <div><Activity size={14} /><span>Janela</span><strong>{focus?.provider?.limiting_window?.label || focus?.provider?.limiting_window?.kind || '—'}</strong></div>
+            <div><RefreshCw size={14} /><span>Renovação</span><strong>{focus?.provider?.limiting_window?.reset_description || '—'}</strong></div>
+            <div className={styles.hoverStatus}>{offline ? 'Sem conexão com Nexus' : isAttention ? 'Atenção necessária' : tone === 'unknown' ? 'Quota não confirmada' : 'Operação normal'}</div>
           </div>
         )}
       </section>
