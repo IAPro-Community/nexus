@@ -5,6 +5,7 @@ import { nexus } from '../../nexus/api';
 import type { CostPreferences, ExternalClaudeSummary } from '../../types';
 import styles from './CostIntelligenceSettings.module.scss';
 import { downloadAuthenticatedCsv } from '../../lib/downloadAuthenticatedCsv';
+import { isLocalTranscriptOrigin } from './externalClaudeAvailability';
 
 const numberValue = (raw: string, fallback: number): number => {
   const value = Number.parseFloat(raw);
@@ -38,6 +39,8 @@ export const CostIntelligenceSettings: React.FC = () => {
   const [external, setExternal] = useState<ExternalClaudeSummary | null>(null);
   const [externalBusy, setExternalBusy] = useState(false);
   const [externalResult, setExternalResult] = useState('');
+  const canScanExternal = typeof window !== 'undefined' &&
+    isLocalTranscriptOrigin(window.location.hostname);
   const [error, setError] = useState('');
 
   const applyPreferences = useCallback((next: CostPreferences) => {
@@ -315,11 +318,17 @@ export const CostIntelligenceSettings: React.FC = () => {
           {t('settings.externalClaudeDescription',
             'Leitura manual dos metadados da máquina que executa o servidor Nexus (não necessariamente este navegador). Não envia prompts, não estima custos da assinatura e não soma os tokens ao ledger.')}
         </p>
-        <Button onClick={() => void scanLocalClaude()} disabled={externalBusy}>
+        <Button onClick={() => void scanLocalClaude()} disabled={externalBusy || !canScanExternal}>
           {externalBusy
             ? t('settings.externalClaudeScanning', 'Lendo registros…')
             : t('settings.externalClaudeConsent', 'Autorizar uma leitura local agora')}
         </Button>
+        {!canScanExternal ? (
+          <p className={styles.note}>
+            {t('settings.externalClaudeLocalOnly',
+              'A importação requer acesso local no computador que executa o Nexus. Em túnel ou rede remota, apenas a consulta e a exclusão dos metadados ficam disponíveis.')}
+          </p>
+        ) : null}
         {external ? (
           <Button onClick={() => void clearLocalClaude()} disabled={externalBusy}>
             {t('settings.externalClaudeClear', 'Limpar metadados importados')}
