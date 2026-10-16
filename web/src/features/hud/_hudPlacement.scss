@@ -1,0 +1,74 @@
+.root[data-surface='docked'] .dragHandle {
+  display: none;
+}
+
+.root:not([data-native='true'])[data-dock='top'] .panel {
+  flex-direction: column-reverse;
+}
+
+.root:not([data-native='true'])[data-dock='top'] .hoverCard {
+  top: calc(100% + 10px);
+  bottom: auto;
+}
+
+.root[data-native='true'] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 8px;
+}
+
+.root[data-native='true'] .panel {
+  width: 100%;
+  max-width: 100%;
+}
+
+.root[data-native='true'] .capsuleRow {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.root[data-native='true'] .capsule {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  --wails-draggable: no-drag;
+}
+
+.root[data-native='true'] .capsule * {
+  --wails-draggable: no-drag;
+}
+
+.root[data-native='true'] .popover {
+  width: 100%;
+  max-width: 100%;
+  max-height: calc(100vh - 68px);
+}
+
+.root[data-native='true'] .hoverCard {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .root:not([data-native='true']) {
+    right: 10px;
+    bottom: 10px;
+  }
+  .popover {
+    width: min(316px, calc(100vw - 20px));
+    max-height: 60vh;
+  }
+  .capsule {
+    height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capsule,
+  .track > .fill,
+  .hoverCard {
+    transition: none;
+  }
+}
