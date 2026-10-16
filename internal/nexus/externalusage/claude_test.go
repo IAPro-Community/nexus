@@ -126,3 +126,75 @@ func TestClaudeScanDetectsReplacedSameSizeTranscript(t *testing.T) {
 		t.Fatalf("old/new usage should both be deduplicated independently: %+v, %v",agg,err)
 	}
 }
+
+func TestClaudeShortJSONLAppendPreservesCursorIdentity(t *testing.T) {
+	root := t.TempDir()
+	s, err := store.Open(filepath.Join(t.TempDir(), "nexus.db"))
+	if err != nil { t.Fatal(err) }
+	defer s.Close()
+	path := filepath.Join(root, "growing.jsonl")
+	when := time.Now().UTC().Format(time.RFC3339)
+	line := func(id string, tokens int) string {
+		return fmt.Sprintf("{\"type\":\"assistant\",\"timestamp\":%q,\"message\":{\"id\":%q,\"model\":\"claude\",\"usage\":{\"input_tokens\":%d,\"output_tokens\":1}}}\n",
+			when, id, tokens)
+	}
+	first := line("first-message", 2)
+	if len(first) >= 256 { t.Fatalf("fixture must start below prefix capacity: %d", len(first)) }
+	if err := os.WriteFile(path, []byte(first), 0600); err != nil { t.Fatal(err) }
+	ctx := context.Background()
+	result, err := ScanClaudeProjects(ctx, s, root)
+	if err != nil || result.Messages != 1 { t.Fatalf("initial short file: %+v %v", result, err) }
+	key := digest(path + ":" + digest(first))
+	offset, err := s.ExternalClaudeOffset(ctx, SourceScope, key)
+	if err != nil || offset != int64(len(first)) {
+		t.Fatalf("short-file stable cursor: offset=%d err=%v", offset, err)
+	}
+	appendLine := func(data string) {
+		t.Helper()
+		file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil { t.Fatal(err) }
+		if _, err := file.Write([]byte(data)); err != nil { _ = file.Close(); t.Fatal(err) }
+		if err := file.Close(); err != nil { t.Fatal(err) }
+	}
+	second := line("second-message", 3)
+	appendLine(second)
+	result, err = ScanClaudeProjects(ctx, s, root)
+	if err != nil || result.Messages != 1 {
+		t.Fatalf("short file append must import only new message: %+v %v", result, err)
+	}
+	offset, err = s.ExternalClaudeOffset(ctx, SourceScope, key)
+	if err != nil || offset != int64(len(first)+len(second)) {
+		t.Fatalf("append changed cursor identity: offset=%d err=%v", offset, err)
+	}
+	appendLine(line("third-message", 4))
+	result, err = ScanClaudeProjects(ctx, s, root)
+	if err != nil || result.Messages != 1 {
+		t.Fatalf("growth beyond 256-byte prefix reimported old data: %+v %v", result, err)
+	}
+	summary, err := s.SummarizeExternalClaude(ctx, 7)
+	if err != nil || summary.Messages != 3 || summary.InputTokens != 9 {
+		t.Fatalf("unexpected deduplicated short-file totals: %+v %v", summary, err)
+	}
+}
+
+func TestClaudeInitialPartialJSONLDoesNotPersistUnstableCursor(t *testing.T) {
+	root := t.TempDir()
+	s, err := store.Open(filepath.Join(t.TempDir(), "nexus.db"))
+	if err != nil { t.Fatal(err) }
+	defer s.Close()
+	path := filepath.Join(root, "pending.jsonl")
+	content := fixture("single", 12)
+	if err := os.WriteFile(path, []byte(content[:25]), 0600); err != nil { t.Fatal(err) }
+	partial, err := ScanClaudeProjects(context.Background(), s, root)
+	if err != nil || partial.Messages != 0 || !partial.HasMore {
+		t.Fatalf("partial first record should remain pending: %+v %v", partial, err)
+	}
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil { t.Fatal(err) }
+	if _, err = file.Write([]byte(content[25:])); err != nil { _ = file.Close(); t.Fatal(err) }
+	if err := file.Close(); err != nil { t.Fatal(err) }
+	complete, err := ScanClaudeProjects(context.Background(), s, root)
+	if err != nil || complete.Messages != 1 {
+		t.Fatalf("completed first record not imported: %+v %v", complete, err)
+	}
+}
