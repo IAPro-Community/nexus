@@ -43,7 +43,7 @@ var defaultPublicStatusCache = &publicStatusCache{
 	},
 	clock: time.Now,
 	sources: []publicStatusSource{
-		{"codex", "https://status.openai.com/api/v2/status.json"},
+		{"openai", "https://status.openai.com/api/v2/status.json"},
 		{"claude", "https://status.claude.com/api/v2/status.json"},
 		{"github", "https://www.githubstatus.com/api/v2/status.json"},
 	},
