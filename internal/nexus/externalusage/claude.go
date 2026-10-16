@@ -99,7 +99,7 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 	info, err := os.Lstat(root)
 	if err != nil { return report, err }
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		return report, errors.New("Claude projects source is not a directory")
+		return report, errors.New("claude projects source is not a directory")
 	}
 	files := make([]string, 0, 32)
 	visited := 0
@@ -108,7 +108,7 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 		if ctx.Err() != nil { return ctx.Err() }
 		visited++
 		if visited > maxWalkEntries {
-			return errors.New("too many Claude project directory entries")
+			return errors.New("too many claude project directory entries")
 		}
 		if item.Type()&os.ModeSymlink != 0 { return nil }
 		if item.IsDir() { return nil }
@@ -134,7 +134,7 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 		openedInfo, statErr := file.Stat()
 		if statErr != nil || !openedInfo.Mode().IsRegular() || !os.SameFile(info, openedInfo) {
 			_ = file.Close()
-			return report, errors.New("Claude transcript changed while opening")
+			return report, errors.New("claude transcript changed while opening")
 		}
 		// Fingerprint a stable prefix: use the first complete JSONL record
 		// when it fits in 256 bytes, otherwise the first fixed 256 bytes.

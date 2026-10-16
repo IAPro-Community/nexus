@@ -41,7 +41,7 @@ func TestPublicStatusCacheNoAuthAndIndependentFailure(t *testing.T) {
 	if hits.Load() != 2 { t.Fatalf("cache should avoid repeat requests, got %d", hits.Load()) }
 	now = now.Add(6 * time.Minute)
 	snap = cache.snapshot(context.Background())
-	if len(snap) != 2 || hits.Load() != 4 { t.Fatalf("cache did not refresh: %+v, %d", snap, hits) }
+	if len(snap) != 2 || hits.Load() != 4 { t.Fatalf("cache did not refresh: %+v, %d", snap, hits.Load()) }
 }
 
 func TestPublicStatusRejectsUnknownIndicator(t *testing.T) {

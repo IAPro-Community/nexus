@@ -462,6 +462,15 @@ if ($MaestroCmd) {
     Write-Host "✓ Linked Maestro alias ($MaestroAliasPath)" -ForegroundColor Green
 }
 
+# Uninstall only recognizes directories created by Nexus or the native NSIS
+# installer. Write an ownership marker after the verified CLI has been installed.
+$ManagedInstallMarker = Join-Path $TargetDir ".nexus-managed"
+[System.IO.File]::WriteAllText(
+    $ManagedInstallMarker,
+    "IAPro Nexus managed installation`n",
+    [System.Text.UTF8Encoding]::new($false)
+)
+
 Write-Host "✓ Successfully installed IAPro Nexus to $TargetPath" -ForegroundColor Green
 
 if ($InstallDesktop -and $IsWindowsOS -and $Arch -ne "x86_64" -and -not [string]::IsNullOrWhiteSpace($Version)) {
