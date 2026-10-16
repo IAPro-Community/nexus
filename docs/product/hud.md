@@ -198,3 +198,26 @@ milestone de UX avançada, desde que:
 - tray/menu bar só vira claim quando houver implementação e teste nativos.
 - PWA é melhoria não bloqueante até existir decisão específica baseada no Web
   atual.
+
+
+## Minimal taskbar capsule (October 2026)
+
+The HUD's compact surface is an always-on-top **capsule above the system taskbar**, not an unsupported injection into Windows Taskbar. Its default size is 220 × 60 DIPs on Desktop; the interactive capsule itself is roughly 190 × 43 pixels. It uses the official Nexus icon, one highlighted provider and its limiting-window remaining percentage.
+
+The capsule is intentionally a **projection**, not a control plane:
+- When a running Agent or Mission identifies a provider/profile, this is the account in execution. Otherwise the highlighted measurable account is labeled *Recurso em destaque*, **never** *Conta ativa*.
+- Unknown or offline quota uses an em dash, a neutral ring and an explanation; neither means 0% or unlimited.
+- Displayed warning severity originates in the Capacity Monitor. Provider alternatives are informational and sorted for readability, **not** treated as the ResourceScheduler's recommendation.
+- If there is an active canonical ResourceScheduler recommendation it may be shown with a link to the existing Usage surface. The HUD never performs a silent account switch.
+- Subscription capacity, API costs and per-request tokens are different resource channels; the capsule does not derive one from another.
+
+Behaviors:
+1. **Idle**: branded capsule, one highlighted provider and remaining capacity.
+2. **Hover (Web)**: short non-interactive tooltip with window and renewal evidence.
+3. **Click**: popover with highlighted resource, up to three alternatives, interventions and optional canonical recommendation.
+4. **Warning/critical**: colored ring, capacity events and acknowledge/snooze via existing endpoints.
+5. **Unknown/offline**: neutral ring, unknown remaining quota and last observed connection when available.
+
+Desktop Wails v3 has a transparent independent native window and native tray recovery. The window starts anchored above the taskbar, and resizing to 334 × 496 DIPs keeps its bottom-right edge anchored. **Rich hover content on Native is not yet feature-equivalent with Web**: native currently exposes a standard tooltip, since a separate temporary hover window needs capability-specific implementation and testing. This limitation must not be described as full parity.
+
+Native validation requires exact-SHA Windows/Linux/macOS smoke, taskbar positioning, DPI/multi-monitor, window restoration, tray recovery, and click-through tests for transparent empty regions. Browser E2E should capture compact, hover and expanded states and run accessibility checks. No production release claim follows from merely committing the UI.
