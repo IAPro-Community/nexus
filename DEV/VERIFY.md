@@ -1654,14 +1654,19 @@ Ciclo de correção e certificação da instalação local (branch
   cobertos pelos testes da cadeia #7 (CSI/setas byte-level, delegation
   fail-closed, budget gate, isolamento). Detalhe:
   `%TEMP%\opencode\MANUAL_CHECKS_HEADLESS_RESULT.md`.
+- Ícones do tray fixados na área de notificação (fora do overflow):
+  `IsPromoted=1` em `HKCU:\Control Panel\NotifyIconSettings` para os dois
+  binários de produção (`nexus-desktop.exe` e `nexus-hud.exe`), mecanismo
+  real do Windows; a promoção se concretiza quando o ícone volta a se
+  registrar (relançamento do HUD/Desktop ou novo login).
+- Autostart do HUD ativado no formato exato do toggle do produto
+  (Wails v3 `Autostart.Enable()`): valor `nexus-hud` sob
+  `HKCU:\Software\Microsoft\Windows\CurrentVersion\Run` apontando para
+  `nexus-hud.exe` entre aspas, sem argumentos (igual ao `Enable()`
+  padrão). O toggle nativo do HUD reconhece a entrada e pode desligá-la.
 - UNVERIFIED (por design, interativo) — itens do `MANUAL_CHECKS.md` que
   exigem sessão nativa real (prompt em provider, admissão de Mission com
-  Agent pinado, Certify/enforcement) permanecem a cargo do operador, bem
-  como fixar o ícone do tray (overflow do Windows 11: Configurações →
-  Barra de tarefas → Outros ícones da bandeja do sistema).
-- UNVERIFIED (1 clique do operador) — toggle "Iniciar com o sistema" do
-  HUD: chave `HKCU:\Software\Microsoft\Windows\CurrentVersion\Run` ainda
-  sem entrada do Nexus (toggle nativo disponível na janela do HUD).
+  Agent pinado, Certify/enforcement) permanecem a cargo do operador.
 
 <!-- frontend-verify:latest -->
 ## Frontend gate — 2026-10-16T03:57:01Z
