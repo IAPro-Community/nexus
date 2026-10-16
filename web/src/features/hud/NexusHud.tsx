@@ -166,18 +166,16 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
   const activeMission = state?.missions.find((mission) => mission.needs_user);
   const isAttention = Boolean(alert || activeMission);
-  const displayTone = offline ? 'unknown' : isAttention ? 'warning' : focus?.tone || 'unknown';
+  const displayTone = offline
+    ? 'unknown'
+    : activeMission || alert?.severity.toUpperCase() === 'WARNING'
+      ? 'warning'
+      : focus?.tone || (alert ? 'warning' : 'unknown');
   const displayPercent = offline ? '—' : hudPercentage(focus?.remaining ?? null);
   const focusedName = focus?.provider?.provider || 'Nexus';
   const displayName = focusedName === 'Nexus'
     ? focusedName
     : focusedName.charAt(0).toUpperCase() + focusedName.slice(1);
-
-  const updatePrefs = (patch: Partial<HudPresentationPreferences>) => {
-    const next = { ...prefs, ...patch };
-    setPrefs(next);
-    saveHudPreferences(next);
-  };
 
   const setExpandedState = (value: boolean) => {
     setExpanded(value);
@@ -245,7 +243,13 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   if (!native && (!response?.enabled || !state)) return null;
 
   const waiting = native && nativeStatus !== 'ready';
-  const mainLabel = waiting ? t('common.hudUnavailable') : displayName;
+  const mainLabel = waiting
+    ? nativeStatus === 'loading'
+      ? t('common.loading')
+      : nativeStatus === 'disabled'
+        ? t('common.hudDisabled')
+        : t('common.hudUnavailable')
+    : displayName;
   const currentPercent = waiting ? '—' : displayPercent;
   const tone = waiting ? 'unknown' : displayTone;
   const floatingStyle = !native && prefs.surfaceMode === 'floating'
@@ -434,7 +438,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             <div><Clock3 size={14} /><span>{focus?.active ? 'Conta ativa' : 'Recurso em destaque'}</span><strong>{displayName}</strong></div>
             <div><Activity size={14} /><span>Janela</span><strong>{focus?.provider?.limiting_window?.label || focus?.provider?.limiting_window?.kind || '—'}</strong></div>
             <div><RefreshCw size={14} /><span>Renovação</span><strong>{focus?.provider?.limiting_window?.reset_description || '—'}</strong></div>
-            <div className={styles.hoverStatus}>{offline ? 'Sem conexão com Nexus' : isAttention ? 'Atenção necessária' : tone === 'unknown' ? 'Quota não confirmada' : 'Operação normal'}</div>
+            <div className={styles.hoverStatus}>{offline ? `Sem conexão · última leitura ${lastSuccessAt ? `${Math.max(1, Math.round((Date.now() - lastSuccessAt) / 60_000))} min atrás` : 'indisponível'}` : isAttention ? 'Atenção necessária' : tone === 'unknown' ? 'Quota não confirmada' : 'Operação normal'}</div>
           </div>
         )}
       </section>
