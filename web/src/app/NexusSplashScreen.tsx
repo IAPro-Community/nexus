@@ -39,8 +39,6 @@ export const NexusSplashScreen: React.FC<{
         <span className="nx-splash-submessage">{subtitle}</span>
 
         <div className="nx-splash-footer">
-          <span>v0.5.0-beta</span>
-          <span>•</span>
           <span>{t('app.protectedLocalEnv')}</span>
         </div>
       </div>
