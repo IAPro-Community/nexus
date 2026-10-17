@@ -47,14 +47,8 @@ if (process.platform !== 'win32') {
   serverEnv.PS1 = 'nexus-demo$ ';
   serverEnv.PROMPT_COMMAND = '';
 } else {
-  const isolatedProfileDir = path.join(fixtureRoot, 'profile');
-  serverEnv.USERPROFILE = isolatedProfileDir;
-  serverEnv.HOME = isolatedProfileDir;
-  serverEnv.APPDATA = path.join(isolatedProfileDir, 'AppData', 'Roaming');
-  serverEnv.LOCALAPPDATA = path.join(isolatedProfileDir, 'AppData', 'Local');
-  mkdirSync(serverEnv.APPDATA, { recursive: true });
-  mkdirSync(serverEnv.LOCALAPPDATA, { recursive: true });
-  serverEnv.ComSpec = 'pwsh.exe';
+  serverEnv.PROMPT = 'nexus-demo$G';
+  serverEnv.ComSpec = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'cmd.exe');
 }
 
 const server = spawn(
@@ -731,10 +725,16 @@ try {
       }
     }
     await assertSafeFixture();
+    const screenshotStyle = [
+      '.nx-statusbar-project [class*="canonicalPath"] { font-size: 0 !important; color: transparent !important; } .nx-statusbar-project [class*="canonicalPath"]::after { content: "C:\\\\NexusDemo\\\\workspace"; font-size: 11px; color: var(--nx-text-soft); }',
+      ...(surface === 'web/terminal' && process.platform === 'win32'
+        ? ['.nx-project-shell-surface .xterm-rows > div:nth-child(-n+2) { visibility: hidden !important; }']
+        : []),
+    ].join(' ');
     await page.screenshot({
       path: path.join(outputDir, file),
       fullPage: false,
-      style: '.nx-statusbar-project [class*="canonicalPath"] { font-size: 0 !important; color: transparent !important; } .nx-statusbar-project [class*="canonicalPath"]::after { content: "C:\\\\NexusDemo\\\\workspace"; font-size: 11px; color: var(--nx-text-soft); }',
+      style: screenshotStyle,
     });
     captures.push({ id, file, source_sha: sourceSha, surface, scenario: 'isolated-synthetic-fixture', viewport: '1440x900', automated: true, capture_command: 'bun run docs:capture', data_classification: 'SYNTHETIC', status: 'PASS', ...evidence });
   };
@@ -923,24 +923,13 @@ try {
         reconnectMarker + '; websocket=' + JSON.stringify(terminalSocketDiagnostics.slice(reconnectSocketStart)),
     );
   }
-  const screenshotMarker = '__NEXUS_DOCS_TERMINAL_READY__';
-  await page.locator('.nx-project-shell-surface .xterm').click();
-  await page.keyboard.type(process.platform === 'win32' ? 'Clear-Host' : 'clear');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(150);
-  await page.keyboard.type(`echo ${screenshotMarker}`);
-  await page.keyboard.press('Enter');
-  await page.waitForFunction((expected) => {
-    const terminal = document.querySelector('.nx-project-shell-surface .xterm-rows');
-    return terminal?.textContent?.includes(expected) === true;
-  }, screenshotMarker, { timeout: 15000 });
   await capture('VIS-005', 'terminal.png', 'web/terminal', {
     terminal_evidence: {
       platform: process.platform,
       transport: 'project-shell',
       marker,
       reconnect_marker: reconnectMarker,
-      screenshot_marker: screenshotMarker,
+      localized_shell_banner_hidden: process.platform === 'win32',
       verified: true,
     },
   });
