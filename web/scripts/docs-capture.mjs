@@ -728,7 +728,7 @@ try {
     const screenshotStyle = [
       '.nx-statusbar-project [class*="canonicalPath"] { font-size: 0 !important; color: transparent !important; } .nx-statusbar-project [class*="canonicalPath"]::after { content: "C:\\\\NexusDemo\\\\workspace"; font-size: 11px; color: var(--nx-text-soft); }',
       ...(surface === 'web/terminal' && process.platform === 'win32'
-        ? ['.nx-project-shell-surface .xterm-rows > div:nth-child(-n+2) { visibility: hidden !important; }']
+        ? ['.nx-project-shell-surface .xterm-screen { position: relative !important; } .nx-project-shell-surface .xterm-screen::after { content: ""; position: absolute; z-index: 100; inset: 0 0 auto; height: 2.5em; background: #080a0f; pointer-events: none; }']
         : []),
     ].join(' ');
     await page.screenshot({
