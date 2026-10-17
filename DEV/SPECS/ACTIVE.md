@@ -1,4 +1,27 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
+
+## Estado atualizado — homologação beta.10 — 2026-10-17
+
+HEAD local `984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17` na `release/v1.0.0`; remoto `6552f3d0b834`. Três commits de remediação locais, sem push. Temp curto corrigiu os erros de worktree Git; suíte Go integral passou em 414,8s, exit 0. Golangci-lint pinned v2.12.2 passou em 5 min. Ainda faltam refresh oficial no SHA final, harness clean exact-SHA, NSIS, assinatura, Codex interativo, HUD e demais evidências externas. Veredito continua `NO_GO_WINDOWS`.
+## Contrato ativo — remediação/homologação Windows beta.10 — 2026-10-17
+
+Escopo corrente é o plano `DEV/validation/current/WINDOWS_BETA10_CODEX_LOCAL_REMEDIATION_20261016.md`.
+Checkout de homologação somente em D:, branch `release/v1.0.0`, HEAD-base
+`5d5aea9211b5154e96b036c519a61de9723593b1`; remoto observado em `6552f3d0`.
+Não usar `-SkipDesktop`/`-AllowDirty`, não alterar dados/perfis reais, não
+consumir APIs pagas, não publicar nem criar assinatura/tag.
+
+Estado verificável atual: frontend quality completo passou no worktree posterior
+(89 arquivos/553 testes), testes direcionados terminal/control, interop,
+version contract, fixtures offline release/update/uninstaller passaram. Gate
+principal Go falhou pelo timeout padrão de 10 min da package `internal/nexus`;
+golangci-lint falhou pelo timeout de loader em duas tentativas. Um teste a11y
+falhou no SHA-base e passou três vezes após sincronização limitada de foco,
+mantendo a asserção. NSIS, assinatura, updater real A→B, HUD visual completo,
+Codex interativo, CI do SHA final e Linux nativo seguem sem evidência ou
+bloqueados. Ver relatório e JSON no diretório de evidências desse SHA; decisão
+atual `NO_GO_WINDOWS`.
+
 ## Atualização de homologação Windows beta.7 — 2026-10-07
 
 Base local: branch release/v1.0.0, SHA-base 52f35c04181b85379219ab55fc3192c63a5440a8; VERSION=1.0.0-beta.7. Gates Go/Web/E2E, HUD/Desktop e instalador isolado passaram no Windows. O NSIS exato da árvore compilou com NSIS 3.13; a variante com HKCU/atalho isolados instalou/removeu o payload real. O smoke Desktop Wails/WebView2 passou por 10s após restringir cleanup ao perfil Nexus. A árvore segue dirty; docs-verify falha porque o manifesto visual está preso a 2892f301 e o gate exige recaptura em SHA limpo. Exact-SHA, execução do instalador exato, CI Windows remoto, assinatura e trust root permanecem pendentes. O host não tem runner Windows, Windows SDK/signtool ou certificado Authenticode. Nenhum gate Linux foi executado. A auditoria viva não encontrou branch Beta 7 nova nem merge pendente. Consulte DEV/validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md e DEV/validation/current/RELEASE_STATUS.md.

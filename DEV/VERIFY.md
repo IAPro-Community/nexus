@@ -1,5 +1,26 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-17 — Continuidade de homologação Windows beta.10
+
+- `bun run --cwd web quality:full`: PASS no worktree baseado em
+  `5d5aea9211b5154e96b036c519a61de9723593b1`; 89 arquivos/553 testes e build.
+- `bun run --cwd web test:a11y`: PASS em três execuções após espera limitada
+  de 250 ms por foco; asserção preservada. Esta alteração de teste ainda não
+  está commitada e não certifica o SHA-base.
+- `pwsh -File scripts/test-uninstall-windows.ps1`: PASS com TEMP/TMP em D:;
+  coordenadas beta, mismatch de manifesto, digest, path segments, variável de
+  ambiente, preservação de dados e diretórios desconhecidos.
+- `go test -count=1 ./internal/release ./internal/update/...`: PASS. `go run
+  ./scripts/verify-version-contract.go .`, `node --check` e `git diff --check`:
+  PASS.
+- Falhas obrigatórias mantidas: `go test -count=1 ./...` exit 1 no timeout
+  padrão de 10 min em `internal/nexus`; golangci-lint exit 4 em duas expirações
+  de `go/packages`; browser `test:a11y` falhou uma vez no SHA-base.
+- NSIS lifecycle/signing, HUD visual matrix, Codex interativo, updater A→B,
+  CI exact-SHA e Linux nativo permanecem BLOCKED/UNVERIFIED. Relatório completo
+  e logs: `DEV/validation/local-beta/1.0.0-beta.10/5d5aea9211b5154e96b036c519a61de9723593b1/windows-AMD64/`.
+- Veredito `NO_GO_WINDOWS`; sem commit, push ou publicação nesta atualização.
+
 ## 2026-10-15 — Homologação Windows beta.10 no SHA exato, instalação local e smoke Desktop/HUD
 
 - PASS — cadeia local completa (mesmos scripts do CI) no SHA `c5cf076a96934f83c8dd9fffec6e957db881e637`: frontend (format/typecheck/lint/styles/test/build), Go (vet/golangci/govulncheck/test), control/runtime E2E, agent-interop, browser E2E (hardening/a11y/visual, composer, surface, capacity, hud, spine, vague-spine, composer-themes 20/20), smokes doctor/providers/usage + regressão OpenCode e builds Wails v3 Desktop/HUD; veredito `PASS automated Windows beta homologation: 1.0.0-beta.10 @ c5cf076a`. Evidência em `DEV/validation/local-beta/1.0.0-beta.10/c5cf076a96934f83c8dd9fffec6e957db881e637/windows-AMD64/` e `%TEMP%\opencode\local-gate-c5cf076a.log`.
@@ -1669,7 +1690,15 @@ Ciclo de correção e certificação da instalação local (branch
   Agent pinado, Certify/enforcement) permanecem a cargo do operador.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-16T03:57:01Z
+## Frontend gate — 2026-10-17T14:16:00Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 
+
+## Homologação beta.10 — reexecuções no worktree — 2026-10-17
+
+- PASS: sintaxe de `scripts/homologate-beta.ps1` via `[scriptblock]::Create`; `git diff --check`.
+- PASS: `golangci-lint` canônico pinned v2.12.2, Go 1.26.9, `--timeout=5m`; 0 issues, exit 0 com caches aquecidos.
+- PASS: três testes de integração de worktree Git com TEMP curto; internal/nexus completo, 292,304s; `go test -count=1 -v ./...` sem cache de teste, exit 0 em 414,8s, TEMP/TMP/GOTMPDIR sob D:\.
+- Causa: TEMP longo gerava caminho de fixture Git que terminava em `fatal: '' too big`. O harness agora ancora TEMP na raiz da unidade do checkout (commit `32dc7fa5`).
+- Escopo: estes resultados são do worktree e não certificam o SHA-base 5d5aea9. O harness completo deve rodar em checkout limpo no SHA final, após refresh oficial da documentação.

@@ -5214,3 +5214,20 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Nenhuma branch nova foi criada. `fix/beta7-windows-KIVER-20261007` continua em `d14154d2`, ancestral do candidato, sem integração pendente.
 - A tag `v1.0.0-beta.7` continua ausente. `gh` não está instalado e o Actions API não autenticado retornou 404; CI pós-push não foi confirmado. Nenhum release público foi publicado.
 - A sincronização documental posterior foi enviada por fast-forward de `f1928d0f` para `5a08a1807c4489395dca86ed198f268ea676d2e4`; `git ls-remote` confirmou esse HEAD antes do registro final de status. O código homologado `d840797b` permanece ancestral, a árvore está limpa e não há gate Linux nesta rodada.
+
+## Continuação de homologação Windows beta.10 — 2026-10-17
+
+- Reavaliado o timeout Go: o limite padrão de 10 min da package expirou no começo de `TestAskAgentStoppedUsesStartAndAskWithoutCreatingAgent`, com stack SQLite em `FlushFileBuffers`; o teste corrente tinha 0s, então a stack não prova bloqueio de 10 min nessa chamada. Diagnóstico separado foi encerrado após 65 testes, sem resultado final.
+- Ajustada somente a sincronização do E2E de foco: espera máxima de 250 ms e asserção original intacta. `test:a11y` passou três repetições; `quality:full` passou, 89 arquivos/553 testes.
+- Ampliados fixtures PowerShell de PATH para caixa diferente/barra final/variável; smoke isolado passou. `go test -count=1 ./internal/release ./internal/update/...`, contrato de versão, `node --check` e `git diff --check` passaram.
+- Auditoria de workflow: job nativo Windows atual usa Go 1.26.9; Go 1.25.14 pertence aos jobs Linux/compile guard. Node local 22.23.3 nas repetições, workflow beta10 fixa 22.14.0.
+- Revisão NSIS encontrou risco P1 de propriedade do atalho Desktop; não alterado sem `makensis.exe` para teste runtime. NSIS lifecycle, assinatura, updater A→B, HUD visual, Codex interativo, CI exact-SHA e Linux nativo continuam sem evidência.
+- Evidências e relatório atualizados no SHA-base `5d5aea9211b5154e96b036c519a61de9723593b1`; worktree permanece dirty, commits locais não enviados. Veredito `NO_GO_WINDOWS`.
+
+- 2026-10-17: investiguei aquisição de NSIS portátil pela origem oficial para remover o bloqueio sem instalação administrativa. O diretório oficial listava ZIP, mas sem checksum publicado; o endpoint direto retornou HTML de bloqueio, detectado antes de extração. Arquivo inválido removido e tentativa documentada em `nsis-portable-acquisition.log`; ciclo NSIS permanece BLOCKED.
+
+- 2026-10-17: retestei golangci-lint pelo comando pinned do harness, go run .../v2@v2.12.2, Go 1.26.9. O diagnóstico canônico retornou 0 issues (exit 0); repetição exata do limite oficial de 5 min também passou após cache isolado em D:. Ignorei explicitamente uma tentativa inicial com binário global v1.64.5/Go 1.25.14, que não corresponde ao harness.
+
+- 2026-10-17: diagnostiquei o timeout Go. Três testes de integração de delivery falharam com `fatal: '' too big` por TEMP profundamente aninhado. Os três passaram em D:\nxt; internal/nexus completo passou (292,3s) e go test -count=1 -v ./... passou em 414,8s. Ajustei homologate-beta.ps1 para criar TEMP curto na raiz da unidade do checkout. Tudo em D:, sem mexer em env persistente; correção ainda não commitada e requer harness limpo no novo SHA.
+
+- 2026-10-17: commits locais: `32dc7fa5` corrige temp Windows curto no harness; `976e3b53` sincroniza restauração de foco sem relaxar assert; `984c2b0f` amplia regressões de PATH. HEAD `984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17`; origin permaneceu `6552f3d0b834`. Refresh documental oficial e harness final ainda pendentes.

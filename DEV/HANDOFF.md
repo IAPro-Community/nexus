@@ -1,5 +1,12 @@
 # Handoff
 
+## Estado atual — homologação Windows beta.10 — 2026-10-17 (continuação)
+
+Branch elease/v1.0.0, HEAD 984c2b0f (984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17); remoto origin/release/v1.0.0 em $(6552f3d0b834bf94026e3ce9bd415f826fa57df7.Substring(0,12)). Três commits novos foram criados após o SHA-base 5d5aea9211b5154e96b036c519a61de9723593b1; seis commits locais estão acima do remoto, ainda sem push.
+
+Correção do timeout Go: os fixtures Git falhavam quando TEMP era profundamente aninhado. scripts/homologate-beta.ps1 agora cria TEMP curto na raiz da unidade do checkout (commit 32dc7fa5). Três testes de integração passaram com D:\nxt; go test -count=1 -v ./... passou com Go 1.26.9 e TEMP/TMP/GOTMPDIR curtos, exit 0 em 414,8s. Golangci-lint canônico v2.12.2 passou no limite de 5 min, 0 issues. Os commits adicionais são 976e3b53 (sincronização a11y) e 984c2b0f (regressões PATH).
+
+O harness completo ainda precisa ser executado no SHA final limpo. Antes disso, executar o refresh oficial de documentação após os commits de código e capturas. Veredito atual NO_GO_WINDOWS: NSIS/assinatura e smokes interativos/HUD seguem bloqueados ou não verificados; o SHA congelado anterior teve falhas que só foram corrigidas no worktree posterior. Não publicar nem criar tag.
 ## Estado atual — homologação Windows beta.7 — 2026-10-08
 
 Código validado: `release/v1.0.0` em `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, `VERSION=1.0.0-beta.7`. Os gates automatizados locais Windows passaram: Go fmt/vet/lint/security/testes, Bun frozen install + `quality:full`, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Smokes isolados Desktop/WebView2 (9 s) e HUD (8 s) passaram. Relatório: `DEV/validation/BETA7_WINDOWS_FINAL_20261008.md`; evidências/hash: `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/`.
