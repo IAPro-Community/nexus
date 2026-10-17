@@ -1690,15 +1690,6 @@ Ciclo de correção e certificação da instalação local (branch
   Agent pinado, Certify/enforcement) permanecem a cargo do operador.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-17T14:16:00Z
+## Frontend gate — 2026-10-17T18:34:42Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-
-
-## Homologação beta.10 — reexecuções no worktree — 2026-10-17
-
-- PASS: sintaxe de `scripts/homologate-beta.ps1` via `[scriptblock]::Create`; `git diff --check`.
-- PASS: `golangci-lint` canônico pinned v2.12.2, Go 1.26.9, `--timeout=5m`; 0 issues, exit 0 com caches aquecidos.
-- PASS: três testes de integração de worktree Git com TEMP curto; internal/nexus completo, 292,304s; `go test -count=1 -v ./...` sem cache de teste, exit 0 em 414,8s, TEMP/TMP/GOTMPDIR sob D:\.
-- Causa: TEMP longo gerava caminho de fixture Git que terminava em `fatal: '' too big`. O harness agora ancora TEMP na raiz da unidade do checkout (commit `32dc7fa5`).
-- Escopo: estes resultados são do worktree e não certificam o SHA-base 5d5aea9. O harness completo deve rodar em checkout limpo no SHA final, após refresh oficial da documentação.

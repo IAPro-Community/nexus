@@ -1,6 +1,25 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
-## 2026-10-07 — Smoke Windows WebView2 e auditoria de branches
+## 2026-10-17 — Correção NSIS Desktop Shortcut Ownership e Homologação Windows 1.0.0-beta.10
+
+- Correção do achado estático P1 em `packaging/windows/nexus.nsi`:
+  - `CreateShortcut "$DESKTOP\IAPro Nexus.lnk"` passa a checar existência prévia (`IfFileExists "$DESKTOP\IAPro Nexus.lnk" skipDesktop`), impedindo sobrescrita de atalhos pré-existentes ou customizados pelo usuário.
+  - O instalador registra a propriedade do atalho via `WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "CreatedDesktopShortcut" 1`.
+  - O desinstalador (`Section "Uninstall"`) verifica `CreatedDesktopShortcut` antes de remover, evitando a exclusão arbitrária de atalhos não criados pelo instalador.
+  - Implementado teste de regressão estrito `TestNSISDesktopShortcutOwnershipAndPreservation` em `internal/release/installer_test.go`, cobrindo também a proibição de deleção recursiva arbitrária (`RMDir /r`) no desinstalador.
+  - Commit `85c5b958` integrado com push fast-forward à branch canônica `release/v1.0.0`.
+- Diagnóstico CDP do Nexus Desktop (WebView2):
+  - Executado o binário instrumentado `nexus-desktop-cdp-diagnostic-3a58699d.exe` na porta loopback 9334 com perfil descartável em `D:\nxdesktop-cdp-3a58699d` e `NEXUS_HUD_SPAWN=0`.
+  - A ferramenta Playwright CDP confirmou que a interface carregou `http://wails.localhost/projects`, com `document.readyState` em `complete`, componente Project Hub (`data-testid="project-hub-root"`) montado com texto *"Seu espaço de desenvolvimento com IA começa com um Projeto."*, todas as APIs de backend retornando HTTP 200 e zero erros de console/runtime.
+  - Captura `desktop-cdp-webview.png` comprovou visual e layout íntegros. O sintoma inicial de "tela preta" foi esclarecido: tratava-se de sobreposição do modal de segurança do Windows Firewall para o runtime em conjunto com o background escuro padrão do shell Wails, sem qualquer defeito funcional no produto.
+- Correção de Procedimento do Nexus HUD:
+  - Confirmado que a reprovação inicial de expansão do HUD decorreu de falso negativo do procedimento (perfil descartável sem a flag experimental).
+  - Com `NEXUS_ENABLE_HUD=1` habilitada estritamente no processo descartável em D:, a transição de `data-expanded="false"` para `data-expanded="true"` e a exibição do popover redimensionado para 334×496 foram comprovadas via CDP (`hud-cdp-diagnostic.json`, `hud-cdp-expanded.png`). Status corrigido para PASS em `3a58699d` e `85c5b958`.
+- Homologação Automatizada do SHA Final:
+  - Executado `.\scripts\homologate-beta.ps1 -ExpectedSha 85c5b9589ec19663023fcddb18d0539742367b40` com Go 1.26.9, Bun 1.3.9, Node 24.21.0 em ambiente isolado em D:, sem `-SkipDesktop` e sem `-AllowDirty`.
+  - Todos os gates automatizados aprovaram (PowerShell syntax, Bun frozen-lockfile, Vitest 553 testes, frontend build, gofmt, vet, golangci-lint, govulncheck, full Go uncached suite, control/runtime E2E, interop, acessibilidade, testes visuais e builds CLI/Desktop/HUD).
+  - Veredito final: **NO_GO_WINDOWS** mantido por pendências externas intransponíveis localmente (falta de makensis/signtool de produção, assinatura Authenticode, ciclo de updater assinado A→B e sessão interativa autenticada). Nenhuma publicação pública, tag ou release foi gerada.
+
 
 - Isolados perfis Wails Desktop/HUD em LOCALAPPDATA, com IDs de instância de smoke separados dos IDs de distribuição. Workflow passa a compilar executáveis próprios e exige diretórios WebView2 criados.
 - Validação Windows: go fmt, vet, govulncheck, golangci-lint e go test completo passaram. Desktop Wails e controller WebView2 ativos por 9s; HUD ativo por 8s; ambos criaram perfil separado. Workflow YAML e PowerShell parseados.
