@@ -223,11 +223,14 @@ foreach ($Name in @(
 $ExistingGoPath = (go env GOPATH).Trim()
 $ExistingGoModCache = (go env GOMODCACHE).Trim()
 $ExistingGoCache = (go env GOCACHE).Trim()
-$ExistingTemp = $SavedEnv['TEMP']
-if ([string]::IsNullOrWhiteSpace($ExistingTemp)) {
-  $ExistingTemp = [IO.Path]::GetTempPath()
+# Keep temporary Git fixtures on the checkout drive but close to its root.
+# Nesting below an existing TEMP path (or the evidence directory) can make
+# Windows Git fixture paths too long before the test has a chance to run.
+$TestTempRoot = [IO.Path]::GetPathRoot($PSScriptRoot)
+if ([string]::IsNullOrWhiteSpace($TestTempRoot)) {
+  throw "Could not resolve the checkout drive for isolated Go test temporary files: $PSScriptRoot"
 }
-$TestTemp = Join-Path $ExistingTemp ("nx-{0}-{1}" -f $ShortSha, $PID)
+$TestTemp = Join-Path $TestTempRoot ("nx-{0}-{1}" -f $ShortSha, $PID)
 
 $env:HOME = $TestHome
 $env:USERPROFILE = $TestHome
