@@ -191,7 +191,9 @@ Section "IAPro Nexus" SecMain
   Call AddToUserPath
 
   IfFileExists "$INSTDIR\nexus-desktop.exe" 0 skipDesktop
+    IfFileExists "$DESKTOP\IAPro Nexus.lnk" skipDesktop
     CreateShortcut "$DESKTOP\IAPro Nexus.lnk" "$INSTDIR\nexus-desktop.exe"
+    WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "CreatedDesktopShortcut" 1
   skipDesktop:
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -211,7 +213,12 @@ Section "Uninstall"
   Delete "$INSTDIR\nexus-desktop.exe"
   Delete "$INSTDIR\nexus-hud.exe"
   Delete "$INSTDIR\Uninstall.exe"
+  ClearErrors
+  ReadRegDWORD $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "CreatedDesktopShortcut"
+  IfErrors skipDeleteDesktopShortcut
+  IntCmp $0 1 0 skipDeleteDesktopShortcut skipDeleteDesktopShortcut
   Delete "$DESKTOP\IAPro Nexus.lnk"
+skipDeleteDesktopShortcut:
   Call un.RemoveFromUserPath
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus"
   RMDir "$INSTDIR"

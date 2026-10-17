@@ -858,3 +858,43 @@ func TestInstallersRequireExactSignedArtifactAndVersionMatch(t *testing.T) {
 		}
 	}
 }
+
+func TestNSISDesktopShortcutOwnershipAndPreservation(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	nsiBytes, err := os.ReadFile(filepath.Join(root, "packaging/windows/nexus.nsi"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	nsi := string(nsiBytes)
+
+	for _, required := range []string{
+		`IfFileExists "$DESKTOP\IAPro Nexus.lnk"`,
+		`WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "CreatedDesktopShortcut" 1`,
+		`ReadRegDWORD $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "CreatedDesktopShortcut"`,
+		`skipDeleteDesktopShortcut`,
+	} {
+		if !strings.Contains(nsi, required) {
+			t.Errorf("nexus.nsi missing desktop shortcut ownership/preservation contract %q", required)
+		}
+	}
+
+	lines := strings.Split(nsi, "\n")
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.Contains(trimmed, "RMDir /r") {
+			t.Errorf("Line %d: NSIS uninstaller must not use recursive RMDir /r to preserve user files", i+1)
+		}
+		if trimmed == `Delete "$DESKTOP\IAPro Nexus.lnk"` {
+			prev := ""
+			for j := i - 1; j >= 0 && j >= i-5; j-- {
+				prev += strings.TrimSpace(lines[j]) + " "
+			}
+			if !strings.Contains(prev, "CreatedDesktopShortcut") {
+				t.Errorf("Line %d: Delete \"$DESKTOP\\IAPro Nexus.lnk\" must not be unconditional without CreatedDesktopShortcut verification", i+1)
+			}
+		}
+	}
+}
