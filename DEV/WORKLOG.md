@@ -1,5 +1,19 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-17 — Correção Crítica da Tela Preta no Desktop Nativo (76587c39)
+
+- Causa Raiz Investigada e Descoberta:
+  - Ao abrir o Nexus Desktop em um sistema onde o `nexus web` já estava em execução (ou com `listen.json` presente), o Wails anexa ao Web Core existente através do `desktop.OpenSharedBackend` via `NewLoopbackBackendHandler`.
+  - O `NewLoopbackBackendHandler` em `internal/control/web/desktop_attach.go` interceptava incondicionalmente qualquer requisição HTTP GET que não iniciasse por `/api/` e retornava o conteúdo de `index.html`.
+  - Consequência: requisições estáticas para `/bundle.js`, `/bundle.css`, `/chunks/*.js` e ícones recebiam o documento HTML (`<!DOCTYPE html>...`) em vez do código Javascript e folhas de estilo compiladas. O browser lançava `SyntaxError` ao tentar interpretar o HTML como módulo JS, abortando a montagem do React e deixando a janela do Wails preta (na cor de fundo padrão `#0f1117`).
+- Correção Implementada:
+  - Atualizado `NewLoopbackBackendHandler` para instanciar um `http.FileServer` em `assets`.
+  - A requisição GET verifica primeiro se o arquivo estático existe nos assets embutidos (`assets.Open(cleanPath)`). Em caso positivo, entrega o arquivo real com headers de não-cache e mime-type correto (`bundle.js`, `bundle.css`, etc.).
+  - Apenas rotas inexistentes no bundle estático (rotas de navegação SPA como `/projects`, `/settings`, `/p/:id/*`) realizam fallback para `index.html`.
+  - Criado teste de regressão estrito TDD `TestLoopbackBackendHandlerServesStaticAssetsAndFallbackToSPA` em `internal/control/web/desktop_attach_test.go` comprovando que `/bundle.js` e `/bundle.css` nunca mais retornam `index.html`.
+  - Commit `76587c39` integrado e enviado por fast-forward para a branch `release/v1.0.0`.
+  - Executáveis recompilados e reinstalados no ambiente local do usuário (`%LOCALAPPDATA%\Programs\IAPro Nexus`).
+
 ## 2026-10-17 — Testes E2E Completos (Web + Desktop) e Correção de Contexto no NexusDemoApp (87216d26)
 
 - Correção em `web/src/app/NexusDemoApp.tsx`:

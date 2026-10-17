@@ -1,5 +1,14 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-17 — Correção e Verificação do Backend Compartilhado Desktop (76587c39)
+
+- `internal/control/web/desktop_attach.go`: PASS. Corrigido o `NewLoopbackBackendHandler` para servir arquivos estáticos embutidos (`bundle.js`, `bundle.css`, chunks) em vez de retornar incondicionalmente `index.html`.
+- `internal/control/web/desktop_attach_test.go`: PASS. Novo teste TDD `TestLoopbackBackendHandlerServesStaticAssetsAndFallbackToSPA` valida que assets estáticos nunca realizam fallback indevido para HTML e que rotas SPA continuam caindo no `index.html`.
+- `go test -v -run "TestLoopbackBackendHandler.*" ./internal/control/web`: PASS.
+- `gofmt -w` e `go vet ./...`: PASS (código 0).
+- Binários recompilados e reinstalados em `%LOCALAPPDATA%\Programs\IAPro Nexus`.
+- Desktop validado em execução com PID e controlador WebView2 ativo.
+
 ## 2026-10-17 — Validação E2E Web + Desktop e Correção no NexusDemoApp (87216d26)
 
 - `web/src/app/NexusDemoApp.tsx`: PASS. Resolvido o erro `useWorkspacePresentation must be used inside WorkspacePresentationProvider` ao envolver o `<DemoCoordinator>` no `<WorkspacePresentationProvider>`.
