@@ -57,6 +57,7 @@ func planCmd(args []string) error {
 		}
 		goal := strings.Join(args[1:], " ")
 		//nolint:staticcheck // SA1019: retained solely for legacy `nexus plan create`.
+		//lint:ignore SA1019 Keep the explicitly supported legacy CLI command working.
 		plan, err := n.GeneratePlanFromIntent(context.Background(), projects[0].ID, goal)
 		if err != nil {
 			return err
