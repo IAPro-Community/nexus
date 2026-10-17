@@ -32,8 +32,9 @@ describe('downloadAuthenticatedCsv', () => {
     const createObjectURL = vi.fn(() => 'blob:local-csv');
     const revokeObjectURL = vi.fn();
     const setTimeout = vi.fn();
-    const fetcher = vi.fn(async (_path: string, _options: RequestInit) =>
-      new Response('provider,profile\\n', { status: 200 }),
+    const fetcher = vi.fn(
+      async (_path: string, _options: RequestInit) =>
+        new Response('provider,profile\\n', { status: 200 }),
     );
 
     vi.stubGlobal('fetch', fetcher);
@@ -59,8 +60,8 @@ describe('downloadAuthenticatedCsv', () => {
 
   it('does not manufacture a download after an HTTP authorization failure', async () => {
     auth.token = '';
-    const fetcher = vi.fn(async (_path: string, _options: RequestInit) =>
-      new Response('', { status: 401 }),
+    const fetcher = vi.fn(
+      async (_path: string, _options: RequestInit) => new Response('', { status: 401 }),
     );
     const createElement = vi.fn();
     vi.stubGlobal('fetch', fetcher);

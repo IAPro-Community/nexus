@@ -35,9 +35,16 @@ export const CapacityMonitorSettings: React.FC = () => {
   const refresh = useCallback(async () => {
     // Service incidents are independent of account capacity: a quota API
     // error must not suppress public incident diagnostics.
-    void nexus.getPublicServiceStatus()
-      .then((rows) => { setPublicStatus(rows); setPublicStatusUnavailable(false); })
-      .catch(() => { setPublicStatus([]); setPublicStatusUnavailable(true); });
+    void nexus
+      .getPublicServiceStatus()
+      .then((rows) => {
+        setPublicStatus(rows);
+        setPublicStatusUnavailable(false);
+      })
+      .catch(() => {
+        setPublicStatus([]);
+        setPublicStatusUnavailable(true);
+      });
     try {
       setError('');
       // Degraded quota reads cannot prevent editing capacity preferences or
@@ -49,7 +56,12 @@ export const CapacityMonitorSettings: React.FC = () => {
       setPrefs(p);
       setStatus(s);
       if (s === null) {
-        setError(t('settings.capacityStatusFailed', 'Quota data temporarily unavailable. Preferences are still editable.'));
+        setError(
+          t(
+            'settings.capacityStatusFailed',
+            'Quota data temporarily unavailable. Preferences are still editable.',
+          ),
+        );
       }
       setDraft({
         warning: String(p.warning_threshold),
@@ -143,9 +155,9 @@ export const CapacityMonitorSettings: React.FC = () => {
         <p>{t('settings.capacityDescription', 'Proactive quota alerts with hysteresis.')}</p>
       </div>
       <PublicProviderStatus
-          publicStatus={publicStatus}
-          publicStatusUnavailable={publicStatusUnavailable}
-        />
+        publicStatus={publicStatus}
+        publicStatusUnavailable={publicStatusUnavailable}
+      />
       {error ? (
         <InlineAlert tone="danger" title={t('common.error', 'Error')}>
           {error}
@@ -272,8 +284,10 @@ export const CapacityMonitorSettings: React.FC = () => {
       <div className={styles.actions}>
         <Button
           onClick={() =>
-            void downloadAuthenticatedCsv('/api/v1/capacity/pace.csv', 'nexus-capacity-pace.csv')
-              .catch((err) => setError(err instanceof Error ? err.message : String(err)))
+            void downloadAuthenticatedCsv(
+              '/api/v1/capacity/pace.csv',
+              'nexus-capacity-pace.csv',
+            ).catch((err) => setError(err instanceof Error ? err.message : String(err)))
           }
         >
           {t('settings.capacityExportPace', 'Exportar histórico de consumo (CSV)')}

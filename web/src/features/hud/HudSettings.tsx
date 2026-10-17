@@ -31,8 +31,8 @@ export const HudSettings: React.FC = () => {
           <div>
             <strong>Nexus HUD</strong>
             <small>
-              Cápsula mínima e painel contextual. Não altera Capacity Monitor, ResourceScheduler, Agents,
-              Missions ou Cost Intelligence.
+              Cápsula mínima e painel contextual. Não altera Capacity Monitor, ResourceScheduler,
+              Agents, Missions ou Cost Intelligence.
             </small>
           </div>
           <Badge tone="warning">Experimental</Badge>

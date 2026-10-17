@@ -35,9 +35,15 @@
   pointer-events: auto;
 }
 
-.panel[data-tone='warning'] { --hud-tone: #f0ae4e; }
-.panel[data-tone='critical'] { --hud-tone: #f08054; }
-.panel[data-tone='unknown'] { --hud-tone: #91a4c0; }
+.panel[data-tone='warning'] {
+  --hud-tone: #f0ae4e;
+}
+.panel[data-tone='critical'] {
+  --hud-tone: #f08054;
+}
+.panel[data-tone='unknown'] {
+  --hud-tone: #91a4c0;
+}
 
 .capsuleRow {
   display: flex;
@@ -57,21 +63,28 @@
   border: 1px solid #556681;
   border-radius: 999px;
   background: linear-gradient(150deg, #213049 0%, #101b2c 67%, #0a1422 100%);
-  box-shadow: 0 10px 25px #03091180, inset 0 1px #ffffff21;
+  box-shadow:
+    0 10px 25px #03091180,
+    inset 0 1px #ffffff21;
   color: var(--hud-text);
   cursor: pointer;
   font: inherit;
   font-size: 12px;
   text-align: left;
   backdrop-filter: blur(20px);
-  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
 }
 
 .capsule:hover,
 .capsule:focus-visible {
   border-color: #879fc3;
   outline: none;
-  box-shadow: 0 12px 30px #030911aa, 0 0 0 2px #7198d255;
+  box-shadow:
+    0 12px 30px #030911aa,
+    0 0 0 2px #7198d255;
   transform: translateY(-1px);
 }
 
@@ -110,7 +123,9 @@
   flex-shrink: 0;
   border: 2px solid var(--hud-tone);
   border-radius: 50%;
-  box-shadow: 0 0 0 3px #10263a, 0 0 11px color-mix(in srgb, var(--hud-tone) 34%, transparent);
+  box-shadow:
+    0 0 0 3px #10263a,
+    0 0 11px color-mix(in srgb, var(--hud-tone) 34%, transparent);
 }
 
 .chevron {
@@ -123,7 +138,9 @@
   border: 1px solid #40536e;
   border-radius: 18px;
   background: linear-gradient(155deg, #1b2a3f 0%, #111d2e 62%, #0d1828 100%);
-  box-shadow: 0 20px 46px #020916aa, inset 0 1px #ffffff16;
+  box-shadow:
+    0 20px 46px #020916aa,
+    inset 0 1px #ffffff16;
   color: var(--hud-text);
   backdrop-filter: blur(24px);
 }
@@ -140,7 +157,9 @@
   opacity: 0;
   pointer-events: none;
   transform: translateY(5px);
-  transition: opacity 140ms ease, transform 140ms ease;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
   visibility: hidden;
 }
 
@@ -185,4 +204,3 @@
   scrollbar-color: #4e617d transparent;
   scrollbar-width: thin;
 }
-

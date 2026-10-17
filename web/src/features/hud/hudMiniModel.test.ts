@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  hudOtherAccounts,
-  hudPercentage,
-  hudRemaining,
-  selectHudFocus,
-} from './hudMiniModel';
+import { hudOtherAccounts, hudPercentage, hudRemaining, selectHudFocus } from './hudMiniModel';
 import type { HudProvider, HudState } from './hudModel';
 
 const provider = (patch: Partial<HudProvider> = {}): HudProvider => ({
@@ -53,12 +48,21 @@ describe('Nexus HUD compact state', () => {
 
   it('shows the executing account when an Agent provides runtime identity', () => {
     const a = provider({ profile: 'primary' });
-    const b = provider({ profile: 'secondary', limiting_window: { kind: '5h', status: 'LIVE', remaining_percent: 34 } });
+    const b = provider({
+      profile: 'secondary',
+      limiting_window: { kind: '5h', status: 'LIVE', remaining_percent: 34 },
+    });
     const input = state([a, b]);
-    input.agents = [{
-      id: 'a', project_id: 'p', name: 'Coder', status: 'WORKING',
-      provider: 'codex', profile: 'secondary',
-    }];
+    input.agents = [
+      {
+        id: 'a',
+        project_id: 'p',
+        name: 'Coder',
+        status: 'WORKING',
+        provider: 'codex',
+        profile: 'secondary',
+      },
+    ];
     const focus = selectHudFocus(input);
     expect(focus.provider).toBe(b);
     expect(focus.active).toBe(true);
@@ -77,14 +81,22 @@ describe('Nexus HUD compact state', () => {
     expect(warning.tone).toBe('warning');
     const critical = selectHudFocus(state([provider({ capacity_state: 'EXHAUSTED' })]));
     expect(critical.tone).toBe('critical');
-    const unknown = selectHudFocus(state([provider({ freshness: 'UNKNOWN', capacity_state: 'WARNING' })]));
+    const unknown = selectHudFocus(
+      state([provider({ freshness: 'UNKNOWN', capacity_state: 'WARNING' })]),
+    );
     expect(unknown.tone).toBe('unknown');
   });
 
   it('keeps multiple Codex profiles distinct and orders alternatives by measured remaining quota', () => {
     const a = provider();
-    const b = provider({ profile: 'b', limiting_window: { kind: '5h', status: 'LIVE', remaining_percent: 23 } });
-    const c = provider({ profile: 'c', limiting_window: { kind: '5h', status: 'LIVE', remaining_percent: 91 } });
+    const b = provider({
+      profile: 'b',
+      limiting_window: { kind: '5h', status: 'LIVE', remaining_percent: 23 },
+    });
+    const c = provider({
+      profile: 'c',
+      limiting_window: { kind: '5h', status: 'LIVE', remaining_percent: 91 },
+    });
     const d = provider({ profile: 'd', freshness: 'UNKNOWN' });
     expect(hudOtherAccounts(state([a, b, c, d]), a)).toEqual([c, b, d]);
   });

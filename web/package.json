@@ -10,7 +10,7 @@
     "lint:fix": "eslint src --fix",
     "lint:styles": "stylelint \"src/**/*.{css,scss}\"",
     "lint:styles:fix": "stylelint \"src/**/*.{css,scss}\" --fix",
-    "check:styles": "node scripts/check-css-allowlist.js && node scripts/check-workspace-styles.mjs",
+    "check:styles": "node --test scripts/check-css-allowlist.node-test.mjs && node scripts/check-css-allowlist.js && node scripts/check-workspace-styles.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test scripts/process-termination.node-test.mjs scripts/workspace-state.node-test.mjs && vitest run",
     "test:watch": "vitest",

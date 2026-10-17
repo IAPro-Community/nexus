@@ -1,9 +1,4 @@
-import {
-  activeMission,
-  isWorkingAgent,
-  type HudProvider,
-  type HudState,
-} from './hudModel';
+import { activeMission, isWorkingAgent, type HudProvider, type HudState } from './hudModel';
 
 export type HudTone = 'normal' | 'warning' | 'critical' | 'unknown';
 
@@ -15,7 +10,10 @@ export interface HudFocus {
 }
 
 const usableRemaining = (provider?: HudProvider): number | null => {
-  if (!provider || ['UNKNOWN', 'UNAVAILABLE', 'UNSUPPORTED'].includes(provider.freshness.toUpperCase())) {
+  if (
+    !provider ||
+    ['UNKNOWN', 'UNAVAILABLE', 'UNSUPPORTED'].includes(provider.freshness.toUpperCase())
+  ) {
     return null;
   }
   const value = provider.limiting_window?.remaining_percent;
@@ -40,11 +38,15 @@ export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
   const exact = agents
     .map((agent) => findProvider(state.providers, agent.provider, agent.profile))
     .find((provider) => provider !== undefined);
-  const missionProvider = mission ? findProvider(state.providers, mission.provider, mission.profile) : undefined;
+  const missionProvider = mission
+    ? findProvider(state.providers, mission.provider, mission.profile)
+    : undefined;
   // Without runtime identity the first available measured resource is only a
   // highlighted account, NEVER asserted to be the active routing target.
   const fallback =
-    state.providers.find((provider) => usableRemaining(provider) !== null && provider.availability === 'AVAILABLE') ||
+    state.providers.find(
+      (provider) => usableRemaining(provider) !== null && provider.availability === 'AVAILABLE',
+    ) ||
     state.providers.find((provider) => usableRemaining(provider) !== null) ||
     state.providers[0];
   const provider = exact || missionProvider || fallback;

@@ -39,8 +39,8 @@ export const CostIntelligenceSettings: React.FC = () => {
   const [external, setExternal] = useState<ExternalClaudeSummary | null>(null);
   const [externalBusy, setExternalBusy] = useState(false);
   const [externalResult, setExternalResult] = useState('');
-  const canScanExternal = typeof window !== 'undefined' &&
-    isLocalTranscriptOrigin(window.location.hostname);
+  const canScanExternal =
+    typeof window !== 'undefined' && isLocalTranscriptOrigin(window.location.hostname);
   const [error, setError] = useState('');
 
   const applyPreferences = useCallback((next: CostPreferences) => {
@@ -67,7 +67,10 @@ export const CostIntelligenceSettings: React.FC = () => {
 
   useEffect(() => {
     void refresh();
-    void nexus.getExternalClaudeUsage().then(setExternal).catch(() => setExternal(null));
+    void nexus
+      .getExternalClaudeUsage()
+      .then(setExternal)
+      .catch(() => setExternal(null));
   }, [refresh]);
 
   const patch = (next: Partial<CostPreferences>) => {
@@ -134,7 +137,11 @@ export const CostIntelligenceSettings: React.FC = () => {
   };
 
   const clearLocalClaude = async () => {
-    if (!window.confirm(t('settings.externalClaudeConfirmClear', 'Excluir os metadados de uso externo importados?'))) {
+    if (
+      !window.confirm(
+        t('settings.externalClaudeConfirmClear', 'Excluir os metadados de uso externo importados?'),
+      )
+    ) {
       return;
     }
     setExternalBusy(true);
@@ -159,7 +166,8 @@ export const CostIntelligenceSettings: React.FC = () => {
       setExternal(result.summary);
       setExternalResult(
         t('settings.externalClaudeScanResult', {
-          defaultValue: '{{messages}} registros processados nesta leitura. Histórico separado do custo real.',
+          defaultValue:
+            '{{messages}} registros processados nesta leitura. Histórico separado do custo real.',
           messages: result.scan.messages,
         }),
       );
@@ -312,11 +320,16 @@ export const CostIntelligenceSettings: React.FC = () => {
         </div>
       </section>
 
-      <section className={styles.section} aria-label={t('settings.externalClaude', 'Uso externo do Claude Code')}>
+      <section
+        className={styles.section}
+        aria-label={t('settings.externalClaude', 'Uso externo do Claude Code')}
+      >
         <h3>{t('settings.externalClaude', 'Uso externo do Claude Code')}</h3>
         <p>
-          {t('settings.externalClaudeDescription',
-            'Leitura manual dos metadados da máquina que executa o servidor Nexus (não necessariamente este navegador). Não envia prompts, não estima custos da assinatura e não soma os tokens ao ledger.')}
+          {t(
+            'settings.externalClaudeDescription',
+            'Leitura manual dos metadados da máquina que executa o servidor Nexus (não necessariamente este navegador). Não envia prompts, não estima custos da assinatura e não soma os tokens ao ledger.',
+          )}
         </p>
         <Button onClick={() => void scanLocalClaude()} disabled={externalBusy || !canScanExternal}>
           {externalBusy
@@ -325,8 +338,10 @@ export const CostIntelligenceSettings: React.FC = () => {
         </Button>
         {!canScanExternal ? (
           <p className={styles.note}>
-            {t('settings.externalClaudeLocalOnly',
-              'A importação requer acesso local no computador que executa o Nexus. Em túnel ou rede remota, apenas a consulta e a exclusão dos metadados ficam disponíveis.')}
+            {t(
+              'settings.externalClaudeLocalOnly',
+              'A importação requer acesso local no computador que executa o Nexus. Em túnel ou rede remota, apenas a consulta e a exclusão dos metadados ficam disponíveis.',
+            )}
           </p>
         ) : null}
         {external ? (
@@ -337,19 +352,28 @@ export const CostIntelligenceSettings: React.FC = () => {
         {external ? (
           <p className={styles.externalSummary}>
             {t('settings.externalClaudeObserved', {
-              defaultValue: '{{messages}} mensagens · {{tokens}} tokens observados (fonte externa, não atribuída)',
+              defaultValue:
+                '{{messages}} mensagens · {{tokens}} tokens observados (fonte externa, não atribuída)',
               messages: external.messages,
-              tokens: external.input_tokens + external.output_tokens + external.cache_read_tokens + external.cache_write_tokens,
+              tokens:
+                external.input_tokens +
+                external.output_tokens +
+                external.cache_read_tokens +
+                external.cache_write_tokens,
             })}
           </p>
         ) : null}
-        <p role="status" aria-live="polite">{externalResult}</p>
+        <p role="status" aria-live="polite">
+          {externalResult}
+        </p>
       </section>
       <div className={styles.actions}>
         <Button
           onClick={() =>
-            void downloadAuthenticatedCsv('/api/v1/cost/observations.csv?days=30', 'nexus-cost-observations.csv')
-              .catch((err) => setError(err instanceof Error ? err.message : String(err)))
+            void downloadAuthenticatedCsv(
+              '/api/v1/cost/observations.csv?days=30',
+              'nexus-cost-observations.csv',
+            ).catch((err) => setError(err instanceof Error ? err.message : String(err)))
           }
         >
           {t('settings.costExport', 'Exportar até 1.000 observações (CSV)')}
