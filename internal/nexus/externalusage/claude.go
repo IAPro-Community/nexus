@@ -22,12 +22,12 @@ import (
 )
 
 const (
-	SourceScope       = "LOCAL_DEFAULT_UNVERIFIED"
-	maxFiles          = 800
-	maxWalkEntries    = 20000
-	maxBytesPerFile   = 8 << 20
-	maxBytesPerScan   = 48 << 20
-	maxLineBytes      = 2 << 20
+	SourceScope     = "LOCAL_DEFAULT_UNVERIFIED"
+	maxFiles        = 800
+	maxWalkEntries  = 20000
+	maxBytesPerFile = 8 << 20
+	maxBytesPerScan = 48 << 20
+	maxLineBytes    = 2 << 20
 )
 
 type ScanReport struct {
@@ -72,7 +72,9 @@ func parseLine(raw []byte) (store.ExternalClaudeMessage, bool) {
 		return store.ExternalClaudeMessage{}, false
 	}
 	id := strings.TrimSpace(item.Message.ID)
-	if id == "" { id = strings.TrimSpace(item.UUID) }
+	if id == "" {
+		id = strings.TrimSpace(item.UUID)
+	}
 	when, err := time.Parse(time.RFC3339Nano, item.Timestamp)
 	u := item.Message.Usage
 	if id == "" || err != nil || len(item.Message.Model) > 128 ||
@@ -84,7 +86,7 @@ func parseLine(raw []byte) (store.ExternalClaudeMessage, bool) {
 	return store.ExternalClaudeMessage{
 		MessageHash: digest(id), Model: item.Message.Model,
 		InputTokens: u.InputTokens, OutputTokens: u.OutputTokens,
-		CacheReadTokens: u.CacheReadInputTokens,
+		CacheReadTokens:  u.CacheReadInputTokens,
 		CacheWriteTokens: u.CacheCreationInputTokens, ObservedAt: when.UTC(),
 	}, true
 }
@@ -95,42 +97,66 @@ func parseLine(raw []byte) (store.ExternalClaudeMessage, bool) {
 // to the local user's default Claude Code projects, never a request path.
 func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (ScanReport, error) {
 	report := ScanReport{Unattributed: true}
-	if db == nil { return report, errors.New("external usage store unavailable") }
+	if db == nil {
+		return report, errors.New("external usage store unavailable")
+	}
 	info, err := os.Lstat(root)
-	if err != nil { return report, err }
+	if err != nil {
+		return report, err
+	}
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return report, errors.New("claude projects source is not a directory")
 	}
 	files := make([]string, 0, 32)
 	visited := 0
 	err = filepath.WalkDir(root, func(path string, item fs.DirEntry, err error) error {
-		if err != nil { return err }
-		if ctx.Err() != nil { return ctx.Err() }
+		if err != nil {
+			return err
+		}
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		visited++
 		if visited > maxWalkEntries {
 			return errors.New("too many claude project directory entries")
 		}
-		if item.Type()&os.ModeSymlink != 0 { return nil }
-		if item.IsDir() { return nil }
+		if item.Type()&os.ModeSymlink != 0 {
+			return nil
+		}
+		if item.IsDir() {
+			return nil
+		}
 		if item.Type().IsRegular() && strings.HasSuffix(item.Name(), ".jsonl") {
 			files = append(files, path)
-			if len(files) > maxFiles { return errors.New("too many local transcript files") }
+			if len(files) > maxFiles {
+				return errors.New("too many local transcript files")
+			}
 		}
 		return nil
 	})
-	if err != nil { return report, err }
+	if err != nil {
+		return report, err
+	}
 	sort.Strings(files)
 	var scanned int64
 	for _, name := range files {
-		if ctx.Err() != nil { return report, ctx.Err() }
+		if ctx.Err() != nil {
+			return report, ctx.Err()
+		}
 		info, err := os.Lstat(name)
-		if err != nil { return report, err }
-		if !info.Mode().IsRegular() { continue }
+		if err != nil {
+			return report, err
+		}
+		if !info.Mode().IsRegular() {
+			continue
+		}
 		// Open and verify the inode *before* consulting the cursor. A pathname
 		// alone is not a file generation: a replaced JSONL could have the same
 		// size and cause all replacement records to be silently skipped.
 		file, err := os.Open(name)
-		if err != nil { return report, err }
+		if err != nil {
+			return report, err
+		}
 		openedInfo, statErr := file.Stat()
 		if statErr != nil || !openedInfo.Mode().IsRegular() || !os.SameFile(info, openedInfo) {
 			_ = file.Close()
@@ -160,13 +186,31 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 		}
 		hash := digest(name + ":" + digest(string(prefix)))
 		offset, err := db.ExternalClaudeOffset(ctx, SourceScope, hash)
-		if err != nil { _ = file.Close(); return report, err }
-		if offset > info.Size() { offset = 0 }
-		if offset == info.Size() { _ = file.Close(); continue }
+		if err != nil {
+			_ = file.Close()
+			return report, err
+		}
+		if offset > info.Size() {
+			offset = 0
+		}
+		if offset == info.Size() {
+			_ = file.Close()
+			continue
+		}
 		allow := info.Size() - offset
-		if allow > maxBytesPerFile { allow = maxBytesPerFile; report.HasMore = true }
-		if allow > maxBytesPerScan-scanned { allow = maxBytesPerScan-scanned; report.HasMore = true }
-		if allow <= 0 { _ = file.Close(); report.HasMore = true; break }
+		if allow > maxBytesPerFile {
+			allow = maxBytesPerFile
+			report.HasMore = true
+		}
+		if allow > maxBytesPerScan-scanned {
+			allow = maxBytesPerScan - scanned
+			report.HasMore = true
+		}
+		if allow <= 0 {
+			_ = file.Close()
+			report.HasMore = true
+			break
+		}
 		if _, err = file.Seek(offset, io.SeekStart); err != nil {
 			_ = file.Close()
 			return report, err
@@ -175,14 +219,22 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 		cursor := offset
 		records := make([]store.ExternalClaudeMessage, 0, 64)
 		for {
-			if ctx.Err() != nil { _ = file.Close(); return report, ctx.Err() }
+			if ctx.Err() != nil {
+				_ = file.Close()
+				return report, ctx.Err()
+			}
 			line, err := reader.ReadBytes('\n')
 			if errors.Is(err, io.EOF) {
 				break // incomplete newline: re-read on next explicit scan
 			}
-			if err != nil { _ = file.Close(); return report, err }
+			if err != nil {
+				_ = file.Close()
+				return report, err
+			}
 			cursor += int64(len(line))
-			if len(line) > maxLineBytes { continue }
+			if len(line) > maxLineBytes {
+				continue
+			}
 			if message, ok := parseLine(line); ok {
 				records = append(records, message)
 			}
@@ -195,7 +247,9 @@ func ScanClaudeProjects(ctx context.Context, db *store.Store, root string) (Scan
 		report.Messages += len(records)
 		report.Bytes += cursor - offset
 		scanned += allow
-		if cursor < info.Size() { report.HasMore = true }
+		if cursor < info.Size() {
+			report.HasMore = true
+		}
 	}
 	// Retain no more than 90 days of external-source metadata. This is a
 	// manual-scan cleanup, never a daemon or background filesystem read.

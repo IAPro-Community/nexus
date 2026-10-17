@@ -5,26 +5,28 @@ import (
 	"sort"
 	"time"
 
-	"github.com/IAPro-Community/nexus/internal/nexus/store"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // PaceForecast is an advisory projection of recent used-percent movement.
 // Its estimates must never be fed back as authoritative quota evidence.
 type PaceForecast struct {
-	Status          string     `json:"status"` // RISING, RESET_FIRST or STABLE
-	Confidence      string     `json:"confidence"`
-	Samples         int        `json:"samples"`
-	UsedPerHour     float64    `json:"used_per_hour"`
-	ExhaustsAt      *time.Time `json:"exhausts_at,omitempty"`
-	ResetAt         time.Time  `json:"reset_at"`
+	Status      string     `json:"status"` // RISING, RESET_FIRST or STABLE
+	Confidence  string     `json:"confidence"`
+	Samples     int        `json:"samples"`
+	UsedPerHour float64    `json:"used_per_hour"`
+	ExhaustsAt  *time.Time `json:"exhausts_at,omitempty"`
+	ResetAt     time.Time  `json:"reset_at"`
 }
 
 // PredictPace requires >= 3 fresh samples spanning >= 10 minutes from a
 // single provider/profile/account/group/window/reset cycle. It rejects usage
 // decreases, resets and ambiguous data instead of making invented estimates.
 func PredictPace(samples []store.CapacityPaceSample, now time.Time) *PaceForecast {
-	if len(samples) < 3 { return nil }
+	if len(samples) < 3 {
+		return nil
+	}
 	list := append([]store.CapacityPaceSample(nil), samples...)
 	sort.Slice(list, func(i, j int) bool { return list[i].ObservedAt.Before(list[j].ObservedAt) })
 	first, last := list[0], list[len(list)-1]
@@ -47,19 +49,33 @@ func PredictPace(samples []store.CapacityPaceSample, now time.Time) *PaceForecas
 		}
 	}
 	span := last.ObservedAt.Sub(first.ObservedAt)
-	if span < 10*time.Minute { return nil }
+	if span < 10*time.Minute {
+		return nil
+	}
 	perHour := (last.UsedPercent - first.UsedPercent) / span.Hours()
-	if perHour < 0 || math.IsNaN(perHour) || math.IsInf(perHour, 0) { return nil }
+	if perHour < 0 || math.IsNaN(perHour) || math.IsInf(perHour, 0) {
+		return nil
+	}
 	confidence := "LOW"
-	if len(list) >= 4 && span >= 20*time.Minute { confidence = "MEDIUM" }
-	if len(list) >= 6 && span >= 30*time.Minute { confidence = "HIGH" }
+	if len(list) >= 4 && span >= 20*time.Minute {
+		confidence = "MEDIUM"
+	}
+	if len(list) >= 6 && span >= 30*time.Minute {
+		confidence = "HIGH"
+	}
 	forecast := &PaceForecast{Status: "STABLE", Confidence: confidence, Samples: len(list),
-		UsedPerHour: math.Round(perHour*100)/100, ResetAt: first.ResetAt}
-	if perHour < 0.1 || last.UsedPercent >= 100 { return forecast }
+		UsedPerHour: math.Round(perHour*100) / 100, ResetAt: first.ResetAt}
+	if perHour < 0.1 || last.UsedPercent >= 100 {
+		return forecast
+	}
 	hours := (100 - last.UsedPercent) / perHour
-	if hours <= 0 || hours > 24*365 { return forecast }
-	exhaustsAt := last.ObservedAt.Add(time.Duration(hours*float64(time.Hour)))
-	if !exhaustsAt.After(now) { return forecast }
+	if hours <= 0 || hours > 24*365 {
+		return forecast
+	}
+	exhaustsAt := last.ObservedAt.Add(time.Duration(hours * float64(time.Hour)))
+	if !exhaustsAt.After(now) {
+		return forecast
+	}
 	if exhaustsAt.Before(first.ResetAt) {
 		forecast.Status = "RISING"
 		forecast.ExhaustsAt = &exhaustsAt
@@ -69,7 +85,6 @@ func PredictPace(samples []store.CapacityPaceSample, now time.Time) *PaceForecas
 	return forecast
 }
 
- 
 // ForecastForObservation selects exactly the reset cycle and account that
 // produced the currently displayed LIVE observation. Older identities and
 // older cycles can never appear as a current projection.
@@ -94,7 +109,9 @@ func ForecastForObservation(all []store.CapacityPaceSample, current store.Observ
 			cycle = v.ResetAt
 		}
 	}
-	if cycle.IsZero() || current.UsedPercent == nil { return nil }
+	if cycle.IsZero() || current.UsedPercent == nil {
+		return nil
+	}
 	// The newest bucket must agree with the live quota reading; otherwise
 	// an abrupt provider update may make an old slope misleading.
 	for _, v := range all {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"testing"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -19,81 +19,125 @@ func fixture(id string, tokens int) string {
 
 func TestManualClaudeScanIncrementalAndNoDuplication(t *testing.T) {
 	root := t.TempDir()
-	s, err := store.Open(filepath.Join(t.TempDir(),"nexus.db"))
-	if err != nil { t.Fatal(err) }
+	s, err := store.Open(filepath.Join(t.TempDir(), "nexus.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer s.Close()
 	project := filepath.Join(root, "my-project")
-	if err := os.MkdirAll(project, 0700); err != nil { t.Fatal(err) }
+	if err := os.MkdirAll(project, 0700); err != nil {
+		t.Fatal(err)
+	}
 	file := filepath.Join(project, "session.jsonl")
-	if err := os.WriteFile(file, []byte(fixture("same-message",10)+fixture("second",20)+"{\"type\":\"assistant\""),0600); err != nil { t.Fatal(err) }
+	if err := os.WriteFile(file, []byte(fixture("same-message", 10)+fixture("second", 20)+"{\"type\":\"assistant\""), 0600); err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
-	a, err := ScanClaudeProjects(ctx,s,root)
-	if err != nil { t.Fatal(err) }
-	if a.Messages != 2 || !a.HasMore { t.Fatalf("first incremental scan: %+v",a) }
+	a, err := ScanClaudeProjects(ctx, s, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.Messages != 2 || !a.HasMore {
+		t.Fatalf("first incremental scan: %+v", a)
+	}
 	agg, err := s.SummarizeExternalClaude(ctx, 7)
 	if err != nil || agg.Messages != 2 || agg.InputTokens != 30 {
-		t.Fatalf("summary: %+v %v",agg,err)
+		t.Fatalf("summary: %+v %v", agg, err)
 	}
-	a, err = ScanClaudeProjects(ctx,s,root)
-	if err != nil || a.Messages != 0 { t.Fatalf("no-op rescan: %+v %v",a,err) }
+	a, err = ScanClaudeProjects(ctx, s, root)
+	if err != nil || a.Messages != 0 {
+		t.Fatalf("no-op rescan: %+v %v", a, err)
+	}
 	// Complete the partial line with a duplicate message ID.
-	duplicate := fixture("same-message",25)
-	f, err := os.OpenFile(file,os.O_APPEND|os.O_WRONLY,0600)
-	if err != nil { t.Fatal(err) }
-	_,err = f.Write([]byte(duplicate[len("{\"type\":\"assistant\""):]))
+	duplicate := fixture("same-message", 25)
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = f.Write([]byte(duplicate[len("{\"type\":\"assistant\""):]))
 	_ = f.Close()
-	if err != nil { t.Fatal(err) }
-	a, err = ScanClaudeProjects(ctx,s,root)
-	if err != nil { t.Fatal(err) }
-	if a.Messages != 1 { t.Fatalf("completed line missed: %+v",a) }
-	agg,err=s.SummarizeExternalClaude(ctx,7)
-	if err!=nil || agg.Messages!=2 || agg.InputTokens!=45 {
-		t.Fatalf("duplicate-counted message: %+v %v",agg,err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err = ScanClaudeProjects(ctx, s, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.Messages != 1 {
+		t.Fatalf("completed line missed: %+v", a)
+	}
+	agg, err = s.SummarizeExternalClaude(ctx, 7)
+	if err != nil || agg.Messages != 2 || agg.InputTokens != 45 {
+		t.Fatalf("duplicate-counted message: %+v %v", agg, err)
 	}
 }
 
 func TestClaudeScanRejectsSymlinkRoot(t *testing.T) {
-	target:=t.TempDir()
-	link:=filepath.Join(t.TempDir(),"escape")
-	if err:=os.Symlink(target,link);err!=nil{t.Skipf("symlink unsupported: %v",err)}
-	s,err:=store.Open(filepath.Join(t.TempDir(),"db.sqlite"))
-	if err!=nil{t.Fatal(err)}
+	target := t.TempDir()
+	link := filepath.Join(t.TempDir(), "escape")
+	if err := os.Symlink(target, link); err != nil {
+		t.Skipf("symlink unsupported: %v", err)
+	}
+	s, err := store.Open(filepath.Join(t.TempDir(), "db.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer s.Close()
-	if _,err:=ScanClaudeProjects(context.Background(),s,link);err==nil {
+	if _, err := ScanClaudeProjects(context.Background(), s, link); err == nil {
 		t.Fatal("scanner followed linked source")
 	}
 }
 
 func TestClaudeUsageRejectsFutureTimestampAndHugeModel(t *testing.T) {
 	good := []byte(fixture("message-a", 3))
-	if _, ok := parseLine(good); !ok { t.Fatal("normal usage fixture rejected") }
+	if _, ok := parseLine(good); !ok {
+		t.Fatal("normal usage fixture rejected")
+	}
 	future := fmt.Sprintf("{\"type\":\"assistant\",\"timestamp\":%q,\"message\":{\"id\":\"a\",\"model\":\"claude-test\",\"usage\":{\"input_tokens\":2,\"output_tokens\":4}}}",
 		time.Now().UTC().Add(48*time.Hour).Format(time.RFC3339Nano))
-	if _, ok := parseLine([]byte(future)); ok { t.Fatal("future observation accepted") }
+	if _, ok := parseLine([]byte(future)); ok {
+		t.Fatal("future observation accepted")
+	}
 	oversized := fmt.Sprintf("{\"type\":\"assistant\",\"timestamp\":%q,\"message\":{\"id\":\"a\",\"model\":%q,\"usage\":{\"input_tokens\":2,\"output_tokens\":4}}}",
 		time.Now().UTC().Format(time.RFC3339Nano), strings.Repeat("x", 129))
-	if _, ok := parseLine([]byte(oversized)); ok { t.Fatal("unbounded model metadata accepted") }
+	if _, ok := parseLine([]byte(oversized)); ok {
+		t.Fatal("unbounded model metadata accepted")
+	}
 }
 
 func TestClaudeScanSkipsSymlinkedTranscript(t *testing.T) {
 	root := t.TempDir()
 	outside := filepath.Join(t.TempDir(), "outside.jsonl")
-	if err := os.WriteFile(outside, []byte(fixture("outside-message", 99)), 0600); err != nil { t.Fatal(err) }
-	if err := os.Symlink(outside, filepath.Join(root,"linked.jsonl")); err != nil { t.Skipf("symlink unsupported: %v", err) }
+	if err := os.WriteFile(outside, []byte(fixture("outside-message", 99)), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, "linked.jsonl")); err != nil {
+		t.Skipf("symlink unsupported: %v", err)
+	}
 	s, err := store.Open(filepath.Join(t.TempDir(), "nexus.db"))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer s.Close()
 	report, err := ScanClaudeProjects(context.Background(), s, root)
-	if err != nil { t.Fatal(err) }
-	if report.Messages != 0 || report.Files != 0 { t.Fatalf("symlinked transcript read: %+v", report) }
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Messages != 0 || report.Files != 0 {
+		t.Fatalf("symlinked transcript read: %+v", report)
+	}
 	summary, err := s.SummarizeExternalClaude(context.Background(), 7)
-	if err != nil || summary.Messages != 0 { t.Fatalf("outside transcript stored: %+v %v", summary, err) }
+	if err != nil || summary.Messages != 0 {
+		t.Fatalf("outside transcript stored: %+v %v", summary, err)
+	}
 }
 
 func TestClaudeScanDetectsReplacedSameSizeTranscript(t *testing.T) {
 	root := t.TempDir()
 	s, err := store.Open(filepath.Join(t.TempDir(), "nexus.db"))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer s.Close()
 	path := filepath.Join(root, "session.jsonl")
 	stamp := time.Now().UTC().Truncate(time.Second).Format(time.RFC3339)
@@ -102,20 +146,32 @@ func TestClaudeScanDetectsReplacedSameSizeTranscript(t *testing.T) {
 			stamp, id, tokens)
 	}
 	original := []byte(record("message-A", 15) + record("message-B", 25))
-	if len(original) < 256 { t.Fatal("fixture must cover fixed prefix") }
-	if err := os.WriteFile(path, original, 0600); err != nil { t.Fatal(err) }
+	if len(original) < 256 {
+		t.Fatal("fixture must cover fixed prefix")
+	}
+	if err := os.WriteFile(path, original, 0600); err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 	first, err := ScanClaudeProjects(ctx, s, root)
-	if err != nil || first.Messages != 2 { t.Fatalf("first import: %+v, %v", first, err) }
+	if err != nil || first.Messages != 2 {
+		t.Fatalf("first import: %+v, %v", first, err)
+	}
 
 	replacement := []byte(record("message-C", 35) + record("message-D", 45))
 	if len(replacement) != len(original) {
-		t.Fatalf("replacement fixture must have exact same size: %d vs %d",len(replacement),len(original))
+		t.Fatalf("replacement fixture must have exact same size: %d vs %d", len(replacement), len(original))
 	}
 	temp := filepath.Join(root, "replacement.tmp")
-	if err := os.WriteFile(temp, replacement, 0600); err != nil { t.Fatal(err) }
-	if err := os.Remove(path); err != nil { t.Fatal(err) }
-	if err := os.Rename(temp, path); err != nil { t.Fatal(err) }
+	if err := os.WriteFile(temp, replacement, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(temp, path); err != nil {
+		t.Fatal(err)
+	}
 
 	next, err := ScanClaudeProjects(ctx, s, root)
 	if err != nil || next.Messages != 2 {
@@ -123,14 +179,16 @@ func TestClaudeScanDetectsReplacedSameSizeTranscript(t *testing.T) {
 	}
 	agg, err := s.SummarizeExternalClaude(ctx, 7)
 	if err != nil || agg.Messages != 4 || agg.InputTokens != 120 {
-		t.Fatalf("old/new usage should both be deduplicated independently: %+v, %v",agg,err)
+		t.Fatalf("old/new usage should both be deduplicated independently: %+v, %v", agg, err)
 	}
 }
 
 func TestClaudeShortJSONLAppendPreservesCursorIdentity(t *testing.T) {
 	root := t.TempDir()
 	s, err := store.Open(filepath.Join(t.TempDir(), "nexus.db"))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer s.Close()
 	path := filepath.Join(root, "growing.jsonl")
 	when := time.Now().UTC().Format(time.RFC3339)
@@ -139,11 +197,17 @@ func TestClaudeShortJSONLAppendPreservesCursorIdentity(t *testing.T) {
 			when, id, tokens)
 	}
 	first := line("first-message", 2)
-	if len(first) >= 256 { t.Fatalf("fixture must start below prefix capacity: %d", len(first)) }
-	if err := os.WriteFile(path, []byte(first), 0600); err != nil { t.Fatal(err) }
+	if len(first) >= 256 {
+		t.Fatalf("fixture must start below prefix capacity: %d", len(first))
+	}
+	if err := os.WriteFile(path, []byte(first), 0600); err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 	result, err := ScanClaudeProjects(ctx, s, root)
-	if err != nil || result.Messages != 1 { t.Fatalf("initial short file: %+v %v", result, err) }
+	if err != nil || result.Messages != 1 {
+		t.Fatalf("initial short file: %+v %v", result, err)
+	}
 	key := digest(path + ":" + digest(first))
 	offset, err := s.ExternalClaudeOffset(ctx, SourceScope, key)
 	if err != nil || offset != int64(len(first)) {
@@ -152,9 +216,16 @@ func TestClaudeShortJSONLAppendPreservesCursorIdentity(t *testing.T) {
 	appendLine := func(data string) {
 		t.Helper()
 		file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
-		if err != nil { t.Fatal(err) }
-		if _, err := file.Write([]byte(data)); err != nil { _ = file.Close(); t.Fatal(err) }
-		if err := file.Close(); err != nil { t.Fatal(err) }
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := file.Write([]byte(data)); err != nil {
+			_ = file.Close()
+			t.Fatal(err)
+		}
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
 	}
 	second := line("second-message", 3)
 	appendLine(second)
@@ -180,19 +251,30 @@ func TestClaudeShortJSONLAppendPreservesCursorIdentity(t *testing.T) {
 func TestClaudeInitialPartialJSONLDoesNotPersistUnstableCursor(t *testing.T) {
 	root := t.TempDir()
 	s, err := store.Open(filepath.Join(t.TempDir(), "nexus.db"))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer s.Close()
 	path := filepath.Join(root, "pending.jsonl")
 	content := fixture("single", 12)
-	if err := os.WriteFile(path, []byte(content[:25]), 0600); err != nil { t.Fatal(err) }
+	if err := os.WriteFile(path, []byte(content[:25]), 0600); err != nil {
+		t.Fatal(err)
+	}
 	partial, err := ScanClaudeProjects(context.Background(), s, root)
 	if err != nil || partial.Messages != 0 || !partial.HasMore {
 		t.Fatalf("partial first record should remain pending: %+v %v", partial, err)
 	}
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
-	if err != nil { t.Fatal(err) }
-	if _, err = file.Write([]byte(content[25:])); err != nil { _ = file.Close(); t.Fatal(err) }
-	if err := file.Close(); err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = file.Write([]byte(content[25:])); err != nil {
+		_ = file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
 	complete, err := ScanClaudeProjects(context.Background(), s, root)
 	if err != nil || complete.Messages != 1 {
 		t.Fatalf("completed first record not imported: %+v %v", complete, err)

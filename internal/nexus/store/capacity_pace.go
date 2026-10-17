@@ -11,15 +11,15 @@ import (
 // CapacityPaceSample is read-only quota telemetry, never billing or authoritative
 // capacity. The account scope and absolute reset separate identities/cycles.
 type CapacityPaceSample struct {
-	Provider    string    `json:"provider"`
-	Profile     string    `json:"profile"`
-	AccountScope string   `json:"-"`
-	QuotaGroup  string    `json:"quota_group"`
-	WindowKind  string    `json:"window_kind"`
-	ResetAt     time.Time `json:"reset_at"`
-	ObservedAt  time.Time `json:"observed_at"`
-	UsedPercent float64   `json:"used_percent"`
-	Source      string    `json:"source"`
+	Provider     string    `json:"provider"`
+	Profile      string    `json:"profile"`
+	AccountScope string    `json:"-"`
+	QuotaGroup   string    `json:"quota_group"`
+	WindowKind   string    `json:"window_kind"`
+	ResetAt      time.Time `json:"reset_at"`
+	ObservedAt   time.Time `json:"observed_at"`
+	UsedPercent  float64   `json:"used_percent"`
+	Source       string    `json:"source"`
 }
 
 // RecordCapacityPaceSample is opt-in through the existing monitor, not a new
@@ -57,7 +57,9 @@ func (s *Store) ListCapacityPaceSamples(since time.Time) ([]CapacityPaceSample, 
 	rows, err := s.db.Query(`SELECT provider, profile, account_scope, quota_group, window_kind,
 		reset_at, observed_at, used_percent, source FROM capacity_pace_samples
 		WHERE observed_at >= ? ORDER BY observed_at DESC LIMIT 5000`, formatStoreTime(since))
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 	return scanCapacityPaceRows(rows)
 }
@@ -79,7 +81,9 @@ func (s *Store) ListCapacityPaceSamplesForResource(o ObservationRecord, since ti
 		  AND window_kind = ? AND observed_at >= ?
 		ORDER BY observed_at DESC LIMIT 512`,
 		o.Provider, o.Profile, o.AccountScope, o.QuotaGroup, o.WindowKind, formatStoreTime(since))
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 	return scanCapacityPaceRows(rows)
 }
@@ -94,9 +98,13 @@ func scanCapacityPaceRows(rows *sql.Rows) ([]CapacityPaceSample, error) {
 			return nil, err
 		}
 		parsedReset, err := parseStoreTime(reset)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		parsedObserved, err := parseStoreTime(observed)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		v.ResetAt = parsedReset
 		v.ObservedAt = parsedObserved
 		result = append(result, v)
@@ -106,9 +114,13 @@ func scanCapacityPaceRows(rows *sql.Rows) ([]CapacityPaceSample, error) {
 
 // PruneCapacityPaceSamples bounds disk usage without touching current quota.
 func (s *Store) PruneCapacityPaceSamples(before time.Time) (int64, error) {
-	if s == nil || s.db == nil { return 0, errors.New("capacity pace: store unavailable") }
+	if s == nil || s.db == nil {
+		return 0, errors.New("capacity pace: store unavailable")
+	}
 	result, err := s.db.Exec(`DELETE FROM capacity_pace_samples WHERE observed_at < ?`,
 		formatStoreTime(before))
-	if err != nil { return 0, err }
+	if err != nil {
+		return 0, err
+	}
 	return result.RowsAffected()
 }

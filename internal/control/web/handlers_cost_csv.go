@@ -32,7 +32,7 @@ func (h *NexusHandler) handleCostCSV(w http.ResponseWriter, r *http.Request) {
 		days = parsed
 	}
 	rows, err := svc.Observations(r.Context(), store.CostObservationFilter{
-		Since: time.Now().UTC().Add(-time.Duration(days)*24*time.Hour),
+		Since: time.Now().UTC().Add(-time.Duration(days) * 24 * time.Hour),
 		Limit: 1000, ProjectID: r.URL.Query().Get("project_id"),
 	})
 	if err != nil {
@@ -44,12 +44,14 @@ func (h *NexusHandler) handleCostCSV(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename=nexus-cost-observations.csv")
 	writer := csv.NewWriter(w)
 	_ = writer.Write([]string{
-		"observed_at","provider","profile","model","project_id",
-		"input_tokens","cached_input_tokens","output_tokens","reasoning_tokens",
-		"cost_microusd","cost_kind","source",
+		"observed_at", "provider", "profile", "model", "project_id",
+		"input_tokens", "cached_input_tokens", "output_tokens", "reasoning_tokens",
+		"cost_microusd", "cost_kind", "source",
 	})
 	optional := func(v *int64) string {
-		if v == nil { return "" }
+		if v == nil {
+			return ""
+		}
 		return strconv.FormatInt(*v, 10)
 	}
 	for _, row := range rows {

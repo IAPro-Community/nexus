@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/IAPro-Community/nexus/internal/nexus/store"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func TestPredictPaceTrustAndIsolation(t *testing.T) {
@@ -31,7 +31,7 @@ func TestPredictPaceTrustAndIsolation(t *testing.T) {
 	latestPct := 68.0
 	latest := store.ObservationRecord{
 		UsedPercent: &latestPct,
-		Provider: "codex", Profile: "account-1", AccountScope: "codex/verified-1",
+		Provider:    "codex", Profile: "account-1", AccountScope: "codex/verified-1",
 		QuotaGroup: "default", WindowKind: "5h", Status: "LIVE", FetchedAt: now,
 	}
 	if f := ForecastForObservation(samples, latest, now); f == nil || f.Status != "RISING" {
@@ -65,7 +65,7 @@ func TestPredictPaceHonorsResetAndRejectsBadSeries(t *testing.T) {
 	sample := func(mins int, pct float64) store.CapacityPaceSample {
 		return store.CapacityPaceSample{
 			Provider: "codex", Profile: "account-1", AccountScope: "verified",
-			WindowKind: "5h", ResetAt: reset, ObservedAt: now.Add(time.Duration(mins)*time.Minute),
+			WindowKind: "5h", ResetAt: reset, ObservedAt: now.Add(time.Duration(mins) * time.Minute),
 			UsedPercent: pct,
 		}
 	}
@@ -89,10 +89,14 @@ func TestPredictPaceHonorsResetAndRejectsBadSeries(t *testing.T) {
 }
 
 func TestPaceSourceTrustBoundary(t *testing.T) {
-	for _,source:=range []model.UsageSource{model.SourceOfficialAPI,model.SourceCLIOutput,model.SourceResponseHeader}{
-		if !trustedPaceSource(source){t.Errorf("%s is direct provider evidence",source)}
+	for _, source := range []model.UsageSource{model.SourceOfficialAPI, model.SourceCLIOutput, model.SourceResponseHeader} {
+		if !trustedPaceSource(source) {
+			t.Errorf("%s is direct provider evidence", source)
+		}
 	}
-	for _,source:=range []model.UsageSource{model.SourceNone,model.SourceLocalFiles,model.SourceObservation,""}{
-		if trustedPaceSource(source){t.Errorf("%s must not generate forecast",source)}
+	for _, source := range []model.UsageSource{model.SourceNone, model.SourceLocalFiles, model.SourceObservation, ""} {
+		if trustedPaceSource(source) {
+			t.Errorf("%s must not generate forecast", source)
+		}
 	}
 }

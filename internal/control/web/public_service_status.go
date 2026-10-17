@@ -13,11 +13,11 @@ import (
 // Public service incidents are not capacity, quota, authentication or router
 // eligibility evidence. This module never sees provider credentials.
 type PublicServiceStatus struct {
-	Provider  string    `json:"provider"`
-	Indicator string    `json:"indicator"`
-	Detail    string    `json:"detail,omitempty"`
+	Provider  string     `json:"provider"`
+	Indicator string     `json:"indicator"`
+	Detail    string     `json:"detail,omitempty"`
 	CheckedAt *time.Time `json:"checked_at,omitempty"`
-	Stale     bool      `json:"stale"`
+	Stale     bool       `json:"stale"`
 }
 
 type publicStatusSource struct {
@@ -121,7 +121,7 @@ func (c *publicStatusCache) probe(ctx context.Context, source publicStatusSource
 	}
 	var payload struct {
 		Status struct {
-			Indicator string `json:"indicator"`
+			Indicator   string `json:"indicator"`
 			Description string `json:"description"`
 		} `json:"status"`
 	}

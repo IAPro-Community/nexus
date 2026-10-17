@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"net/http"
 	"net"
+	"net/http"
 	"net/url"
-	"strings"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -67,7 +67,9 @@ func (h *NexusHandler) handleExternalClaudeUsage(w http.ResponseWriter, r *http.
 	switch r.Method {
 	case http.MethodGet:
 		days := 7
-		if r.URL.Query().Get("days") == "30" { days = 30 }
+		if r.URL.Query().Get("days") == "30" {
+			days = 30
+		}
 		summary, err := st.SummarizeExternalClaude(r.Context(), days)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "external usage unavailable")
@@ -126,9 +128,9 @@ func (h *NexusHandler) handleExternalClaudeUsage(w http.ResponseWriter, r *http.
 			return
 		}
 		writeJSON(w, http.StatusOK, struct {
-			Scan externalusage.ScanReport `json:"scan"`
-			Summary any `json:"summary"`
-		}{Scan:result, Summary:summary})
+			Scan    externalusage.ScanReport `json:"scan"`
+			Summary any                      `json:"summary"`
+		}{Scan: result, Summary: summary})
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}

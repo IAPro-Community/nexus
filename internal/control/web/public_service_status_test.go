@@ -38,10 +38,14 @@ func TestPublicStatusCacheNoAuthAndIndependentFailure(t *testing.T) {
 		t.Fatalf("unexpected independent service states: %+v", snap)
 	}
 	_ = cache.snapshot(context.Background())
-	if hits.Load() != 2 { t.Fatalf("cache should avoid repeat requests, got %d", hits.Load()) }
+	if hits.Load() != 2 {
+		t.Fatalf("cache should avoid repeat requests, got %d", hits.Load())
+	}
 	now = now.Add(6 * time.Minute)
 	snap = cache.snapshot(context.Background())
-	if len(snap) != 2 || hits.Load() != 4 { t.Fatalf("cache did not refresh: %+v, %d", snap, hits.Load()) }
+	if len(snap) != 2 || hits.Load() != 4 {
+		t.Fatalf("cache did not refresh: %+v, %d", snap, hits.Load())
+	}
 }
 
 func TestPublicStatusRejectsUnknownIndicator(t *testing.T) {
@@ -68,8 +72,8 @@ func TestPublicStatusCanceledRequestDoesNotPoisonCache(t *testing.T) {
 	defer srv.Close()
 	clock := time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC)
 	cache := &publicStatusCache{
-		client: srv.Client(),
-		clock: func() time.Time { return clock },
+		client:  srv.Client(),
+		clock:   func() time.Time { return clock },
 		sources: []publicStatusSource{{"openai", srv.URL}},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -86,7 +90,9 @@ func TestPublicStatusCanceledRequestDoesNotPoisonCache(t *testing.T) {
 	if len(recovered) != 1 || recovered[0].Indicator != "none" || recovered[0].Stale {
 		t.Fatalf("healthy follow-up poisoned by canceled request: %+v", recovered)
 	}
-	if hits.Load() != 1 { t.Fatalf("expected one actual probe, got %d", hits.Load()) }
+	if hits.Load() != 1 {
+		t.Fatalf("expected one actual probe, got %d", hits.Load())
+	}
 }
 
 func TestPublicStatusMidFlightCancellationAllowsNextProbe(t *testing.T) {
@@ -103,8 +109,8 @@ func TestPublicStatusMidFlightCancellationAllowsNextProbe(t *testing.T) {
 	defer srv.Close()
 	now := time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC)
 	cache := &publicStatusCache{
-		client: srv.Client(),
-		clock: func() time.Time { return now },
+		client:  srv.Client(),
+		clock:   func() time.Time { return now },
 		sources: []publicStatusSource{{"openai", srv.URL}},
 	}
 	ctx, cancel := context.WithCancel(context.Background())

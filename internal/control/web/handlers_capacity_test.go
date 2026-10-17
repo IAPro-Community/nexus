@@ -87,9 +87,13 @@ func TestCapacityEndpoints(t *testing.T) {
 
 	t.Run("GET /api/v1/capacity/pace.csv exports only safe headings", func(t *testing.T) {
 		resp, err := client.Get(srv.URL() + "/api/v1/capacity/pace.csv")
-		if err != nil { t.Fatal(err) }
+		if err != nil {
+			t.Fatal(err)
+		}
 		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK { t.Fatalf("expected 200, got %d", resp.StatusCode) }
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
 		if ct := resp.Header.Get("Content-Type"); ct != "text/csv; charset=utf-8" {
 			t.Fatalf("incorrect CSV content type: %s", ct)
 		}
@@ -97,7 +101,9 @@ func TestCapacityEndpoints(t *testing.T) {
 			t.Fatal("pace export must disable shared/browser caches")
 		}
 		data, err := io.ReadAll(resp.Body)
-		if err != nil { t.Fatal(err) }
+		if err != nil {
+			t.Fatal(err)
+		}
 		if !bytes.HasPrefix(data, []byte("provider,profile,quota_group,window,")) {
 			t.Fatalf("unexpected CSV header: %q", data)
 		}
