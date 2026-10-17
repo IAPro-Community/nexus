@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Badge, Card, ThemeProvider } from '../design-system';
 import type { Agent, Project } from '../types';
 import { WorkspaceProvider, useWorkspace } from '../workspace/WorkspaceProvider';
+import { WorkspacePresentationProvider } from '../workspace/WorkspacePresentationProvider';
 import { WorkspaceRenderer } from '../workspace/WorkspaceRenderer';
 import type { WorkspaceSurface } from '../workspace/model';
 import { ProjectOverviewSurface } from '../features/overview/ProjectOverviewSurface';
@@ -78,7 +79,9 @@ const agents: Agent[] = [
 export const NexusDemoApp: React.FC = () => (
   <ThemeProvider>
     <WorkspaceProvider projectId={project.id}>
-      <DemoCoordinator />
+      <WorkspacePresentationProvider projectId={project.id}>
+        <DemoCoordinator />
+      </WorkspacePresentationProvider>
     </WorkspaceProvider>
   </ThemeProvider>
 );
