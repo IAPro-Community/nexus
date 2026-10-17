@@ -114,17 +114,46 @@ func NewLoopbackBackendHandler(baseURL string, assets fs.FS) (http.Handler, erro
 		// and must validate the proxied request against its actual host.
 		req.Header.Set("Origin", target.Scheme+"://"+target.Host)
 	}
+	var fileServer http.Handler
+	if assets != nil {
+		fileServer = http.FileServer(http.FS(assets))
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if !strings.HasPrefix(req.URL.Path, "/api/") && req.Method == http.MethodGet && assets != nil {
+		if strings.HasPrefix(req.URL.Path, "/api/") {
+			proxy.ServeHTTP(w, req)
+			return
+		}
+
+		if req.Method == http.MethodGet && assets != nil && fileServer != nil {
+			cleanPath := strings.TrimPrefix(req.URL.Path, "/")
+			if cleanPath == "" {
+				cleanPath = "index.html"
+			}
+
+			// If the static asset exists in embedded assets, serve it with proper content-type
+			if f, err := assets.Open(cleanPath); err == nil {
+				_ = f.Close()
+				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+				w.Header().Set("Pragma", "no-cache")
+				w.Header().Set("Expires", "0")
+				fileServer.ServeHTTP(w, req)
+				return
+			}
+
+			// SPA route fallback: serve index.html for client-side navigation
 			index, readErr := fs.ReadFile(assets, "index.html")
 			if readErr == nil {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
 				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+				w.Header().Set("Pragma", "no-cache")
+				w.Header().Set("Expires", "0")
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write(index)
 				return
 			}
 		}
+
 		proxy.ServeHTTP(w, req)
 	}), nil
 }
