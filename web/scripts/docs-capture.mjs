@@ -919,6 +919,12 @@ try {
   }
   const screenshotMarker = '__NEXUS_DOCS_TERMINAL_READY__';
   await page.locator('.nx-project-shell-surface .xterm').click();
+  const clearScrollbackCommand = process.platform === 'win32'
+    ? `powershell.exe -NoProfile -Command "[Console]::Write([char]27 + '[3J')"`
+    : 'clear';
+  await page.keyboard.type(clearScrollbackCommand);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(150);
   await page.keyboard.type(process.platform === 'win32' ? 'cls' : 'clear');
   await page.keyboard.press('Enter');
   await page.waitForTimeout(150);
