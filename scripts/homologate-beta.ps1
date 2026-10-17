@@ -207,7 +207,7 @@ New-Item -ItemType Directory -Force -Path $TestHome | Out-Null
 
 $SavedEnv = @{}
 foreach ($Name in @(
-  'HOME','USERPROFILE','TEMP','TMP','APPDATA','LOCALAPPDATA','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_CACHE_HOME',
+  'HOME','USERPROFILE','TEMP','TMP','GOTMPDIR','APPDATA','LOCALAPPDATA','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_CACHE_HOME',
   'NEXUS_DATA_DIR','AI_MANAGER_DATA_DIR','AI_CLI_DATA_DIR',
   'NEXUS_CONFIG_DIR','AI_MANAGER_CONFIG_DIR','AI_CLI_CONFIG_DIR',
   'NEXUS_STATE_DIR','AI_MANAGER_STATE_DIR','AI_CLI_STATE_DIR','CODEX_HOME',
@@ -233,6 +233,7 @@ $env:HOME = $TestHome
 $env:USERPROFILE = $TestHome
 $env:TEMP = $TestTemp
 $env:TMP = $env:TEMP
+$env:GOTMPDIR = $env:TEMP
 $env:APPDATA = Join-Path $TestHome 'AppData/Roaming'
 $env:LOCALAPPDATA = Join-Path $TestHome 'AppData/Local'
 $env:XDG_CONFIG_HOME = Join-Path $TestHome '.config'
@@ -269,6 +270,9 @@ $env:AI_CLI_STATE_DIR = Join-Path $TestHome 'nexus-state'
 $env:GOPATH = $ExistingGoPath
 $env:GOMODCACHE = $ExistingGoModCache
 $env:GOCACHE = $ExistingGoCache
+if ($env:TEMP -ne $env:TMP -or $env:TEMP -ne $env:GOTMPDIR) {
+  throw "Go tests require TEMP, TMP, and GOTMPDIR to resolve to the same isolated directory; got TEMP=$env:TEMP TMP=$env:TMP GOTMPDIR=$env:GOTMPDIR"
+}
 
 $GoTestExit = 1
 try {
