@@ -1,5 +1,24 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-17 — Validação E2E Web + Desktop e Correção no NexusDemoApp (87216d26)
+
+- `web/src/app/NexusDemoApp.tsx`: PASS. Resolvido o erro `useWorkspacePresentation must be used inside WorkspacePresentationProvider` ao envolver o `<DemoCoordinator>` no `<WorkspacePresentationProvider>`.
+- `bun run --cwd web typecheck` & `bun run --cwd web lint`: PASS (código 0, zero erros de tipagem ou lint).
+- `bun run --cwd web test`: PASS (89 arquivos de teste, 553 testes aprovados sem falhas).
+- Suíte E2E do Navegador (Web / Playwright):
+  - `test:e2e:composer`: PASS.
+  - `test:e2e:surface`: PASS (isolamento de abas e keep-alive de terminais).
+  - `test:e2e:capacity`: PASS.
+  - `test:e2e:hud`: PASS.
+  - `test:e2e:composer-spine` & `test:e2e:composer-vague-spine`: PASS.
+  - `test:e2e:composer-themes`: PASS (20 temas validados).
+  - `test:e2e:hardening`: PASS (WCAG 2.1 AA a11y, 7 breakpoints responsivos, deep links).
+- Suíte E2E do Desktop (Wails v3 + WebView2 via CDP):
+  - Todas as rotas inspecionadas e validadas: `/projects`, `/settings`, `/updates`, `/welcome`, `/demo`.
+  - Todas as APIs de backend retornando 200 no contexto do shell Desktop.
+  - Evidências salvas em `DEV/validation/local-beta/1.0.0-beta.10/85c5b9589ec19663023fcddb18d0539742367b40/windows-AMD64/desktop-native/`.
+- Commit `87216d26` integrado por fast-forward na branch canônica `release/v1.0.0`.
+
 ## 2026-10-17 — Continuidade de homologação Windows beta.10
 
 - `bun run --cwd web quality:full`: PASS no worktree baseado em

@@ -1,5 +1,32 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-17 — Testes E2E Completos (Web + Desktop) e Correção de Contexto no NexusDemoApp (87216d26)
+
+- Correção em `web/src/app/NexusDemoApp.tsx`:
+  - O `<NexusDemoApp>` continha `<WorkspaceProvider>`, mas não envolvia `<DemoCoordinator>` com `<WorkspacePresentationProvider>`, disparando `Error: useWorkspacePresentation must be used inside WorkspacePresentationProvider` no ErrorBoundary da rota `/demo`.
+  - Adicionado `<WorkspacePresentationProvider projectId={project.id}>`, eliminando a quebra de renderização na rota `/demo`.
+  - Validação estática: `bun run --cwd web typecheck` (zero erros), `bun run --cwd web lint` (zero warnings/erros).
+  - Testes unitários do frontend: 89 arquivos de teste e 553 testes aprovados (`vitest run`).
+  - Commit `87216d26` integrado com push fast-forward à branch canônica `release/v1.0.0`.
+- Bateria de Testes E2E no Navegador (Web / Playwright):
+  - 100% dos testes E2E de navegador aprovados:
+    - `test:e2e:composer`: criação, edição, persistência e visualização de workspace.
+    - `test:e2e:surface`: isolamento estrito entre abas/janelas e keep-alive de terminais PTY.
+    - `test:e2e:capacity`: indicadores de cota, limites e alertas de capacidade.
+    - `test:e2e:hud`: conectividade e estado do HUD.
+    - `test:e2e:composer-spine` & `test:e2e:composer-vague-spine`: fluxo de execução e refinamento de intenção.
+    - `test:e2e:composer-themes`: validação dos 20 temas de cores e contrastes.
+    - `test:e2e:hardening`: auditoria de acessibilidade (axe-core WCAG 2.1 AA), 7 breakpoints responsivos (390px mobile a 1440px desktop), deep-links e navegação por teclado.
+- Bateria de Testes E2E no Desktop (Wails v3 + WebView2 via CDP):
+  - Suíte E2E automatizada via Chrome DevTools Protocol (`desktop-e2e-all-features.mjs`) no WebView2 nativo:
+    - `/projects` (Project Hub): montagem com sucesso e renderização da lista de projetos e onboarding.
+    - `/settings` (Settings): painel de configurações, preferências e diagnósticos.
+    - `/updates` (Updates): checagem de integridade de updates e canais de distribuição.
+    - `/welcome` (Welcome Tour): fluxo de boas-vindas e introdução ao Nexus.
+    - `/demo` (Demo Workspace): espaço de demonstração orquestrada totalmente funcional.
+    - Validação de APIs de Backend no contexto Desktop: `/api/v1/session` (200), `/api/v1/projects` (200), `/api/v1/workspaces` (200), `/api/v1/providers` (200), `/api/v1/capacity/status` (200).
+    - Capturas de evidência salvas em `DEV/validation/.../desktop-native/`: `desktop-e2e-project-hub.png`, `desktop-e2e-settings.png`, `desktop-e2e-updates.png`, `desktop-e2e-welcome.png`, `desktop-e2e-demo-workspace.png` e manifesto JSON `desktop-e2e-results.json`.
+
 ## 2026-10-17 — Correção NSIS Desktop Shortcut Ownership e Homologação Windows 1.0.0-beta.10
 
 - Correção do achado estático P1 em `packaging/windows/nexus.nsi`:
