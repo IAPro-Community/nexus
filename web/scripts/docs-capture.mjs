@@ -917,12 +917,24 @@ try {
         reconnectMarker + '; websocket=' + JSON.stringify(terminalSocketDiagnostics.slice(reconnectSocketStart)),
     );
   }
+  const screenshotMarker = '__NEXUS_DOCS_TERMINAL_READY__';
+  await page.locator('.nx-project-shell-surface .xterm').click();
+  await page.keyboard.type(process.platform === 'win32' ? 'cls' : 'clear');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(150);
+  await page.keyboard.type(`echo ${screenshotMarker}`);
+  await page.keyboard.press('Enter');
+  await page.waitForFunction((expected) => {
+    const terminal = document.querySelector('.nx-project-shell-surface .xterm-rows');
+    return terminal?.textContent?.includes(expected) === true;
+  }, screenshotMarker, { timeout: 15000 });
   await capture('VIS-005', 'terminal.png', 'web/terminal', {
     terminal_evidence: {
       platform: process.platform,
       transport: 'project-shell',
       marker,
       reconnect_marker: reconnectMarker,
+      screenshot_marker: screenshotMarker,
       verified: true,
     },
   });
