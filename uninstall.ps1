@@ -17,6 +17,13 @@ if ([string]::IsNullOrWhiteSpace($InstallDir)) {
 }
 
 $InstallDir = [System.IO.Path]::GetFullPath($InstallDir)
+$VolumeRoot = [System.IO.Path]::GetPathRoot($InstallDir)
+if ([string]::Equals(
+    $InstallDir.TrimEnd('\'), $VolumeRoot.TrimEnd('\'),
+    [StringComparison]::OrdinalIgnoreCase
+)) {
+    throw "Refusing to uninstall from a volume root: $InstallDir"
+}
 
 # Never remove an arbitrary tree. The PowerShell installer writes a marker;
 # NSIS installations already carry .nexus-nsis. Pre-marker installs are accepted
@@ -85,21 +92,30 @@ if (-not $SkipDesktopShortcut -and $IsWindowsOS) {
     }
 }
 
+function Get-NexusPathWithoutInstallDir {
+    param(
+        [Parameter(Mandatory)][AllowEmptyString()][string]$UserPath,
+        [Parameter(Mandatory)][string]$InstallDir
+    )
+
+    $InstallPathKey = $InstallDir.TrimEnd('\')
+    $Entries = @(
+        $UserPath.Split([char[]]@(';'), [StringSplitOptions]::None) |
+            Where-Object {
+                -not [string]::Equals(
+                    [Environment]::ExpandEnvironmentVariables($_).TrimEnd('\'),
+                    $InstallPathKey,
+                    [StringComparison]::OrdinalIgnoreCase
+                )
+            }
+    )
+    return ($Entries -join ';')
+}
+
 if (-not $SkipPathCleanup -and $IsWindowsOS -and $InstallRecognized) {
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
     if ($null -ne $UserPath) {
-        $Entries = @(
-            $UserPath -split ';' |
-                Where-Object {
-                    -not [string]::IsNullOrWhiteSpace($_) -and
-                    -not [string]::Equals(
-                        [Environment]::ExpandEnvironmentVariables($_).TrimEnd('\'),
-                        $InstallDir.TrimEnd('\'),
-                        [StringComparison]::OrdinalIgnoreCase
-                    )
-                }
-        )
-        $NewPath = ($Entries -join ';')
+        $NewPath = Get-NexusPathWithoutInstallDir -UserPath $UserPath -InstallDir $InstallDir
         if ($NewPath -ne $UserPath) {
             [Environment]::SetEnvironmentVariable("Path", $NewPath, "User")
             Write-Host "Removed Nexus install directory from user PATH." -ForegroundColor Green

@@ -98,6 +98,40 @@ function Resolve-LatestVersion {
     }
 }
 
+function Get-NexusReleaseCoordinate {
+    param([Parameter(Mandatory)][string]$RequestedVersion)
+
+    if ($RequestedVersion -notmatch '^v?[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$') {
+        throw "Invalid Nexus version: $RequestedVersion"
+    }
+    $Version = $RequestedVersion.TrimStart('v')
+    $IsPrerelease = $Version -match '-(?:alpha|beta|rc)\.'
+    [pscustomobject]@{
+        Version = $Version
+        ReleaseTag = if ($IsPrerelease) { 'channel-beta' } else { "v$Version" }
+        ManifestChannel = if ($IsPrerelease) { 'beta' } else { 'stable' }
+    }
+}
+
+function Assert-NexusManifestMatchesRequestedRelease {
+    param(
+        [Parameter(Mandatory)]$Manifest,
+        [Parameter(Mandatory)][string]$Version,
+        [Parameter(Mandatory)][string]$Channel
+    )
+
+    if ([string]$Manifest.version -ne $Version -or [string]$Manifest.channel -ne $Channel) {
+        throw "Signed manifest version/channel mismatch: requested $Version ($Channel), received $($Manifest.version) ($($Manifest.channel))."
+    }
+}
+
+function Test-NexusArtifactSha256 {
+    param([Parameter(Mandatory)][string]$Expected, [Parameter(Mandatory)][string]$Actual)
+
+    return $Expected -match '^[0-9a-fA-F]{64}$' -and
+        [string]::Equals($Expected, $Actual, [StringComparison]::OrdinalIgnoreCase)
+}
+
 function Ensure-WebView2 {
     if (-not $IsWindowsOS) { return }
     $marker = @(
@@ -128,14 +162,27 @@ if ($Version -eq "latest") {
 }
 
 if (-not [string]::IsNullOrWhiteSpace($Version)) {
-    if ($Version -notmatch '^v?[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$') {
-        throw "Invalid Nexus version: $Version"
-    }
-    $Version = $Version.TrimStart('v')
+    $ReleaseCoordinate = Get-NexusReleaseCoordinate -RequestedVersion $Version
+    $Version = $ReleaseCoordinate.Version
+} else {
+    $ReleaseCoordinate = $null
 }
 
 $BinaryName = if ($IsWindowsOS) { "nexus.exe" } else { "nexus" }
 $AiAliasName = if ($IsWindowsOS) { "ai.exe" } else { "ai" }
+
+function Assert-NexusTargetDirectoryIsNotVolumeRoot {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $FullPath = [System.IO.Path]::GetFullPath($Path)
+    $VolumeRoot = [System.IO.Path]::GetPathRoot($FullPath)
+    if ([string]::Equals(
+        $FullPath.TrimEnd('\'), $VolumeRoot.TrimEnd('\'),
+        [StringComparison]::OrdinalIgnoreCase
+    )) {
+        throw "Refusing to install Nexus to a volume root: $FullPath"
+    }
+}
 
 if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
     $TargetDir = [System.IO.Path]::GetFullPath($InstallDir)
@@ -147,6 +194,8 @@ if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
     $TargetDir = Join-Path $HOME ".local/bin"
     $LegacyTargetDir = ""
 }
+
+Assert-NexusTargetDirectoryIsNotVolumeRoot -Path $TargetDir
 
 if (-not (Test-Path $TargetDir)) {
     New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
@@ -272,31 +321,34 @@ pub.verify(sig, data)
 
 function Extract-ShaFromManifest {
     param([string]$ManifestPath, [string]$ArtifactName)
-    $env:NEXUS_MANIFEST_PATH = $ManifestPath
-    $env:NEXUS_ARTIFACT_NAME = $ArtifactName
-    $result = python3 -c @"
-import json, os, sys
-from urllib.parse import unquote, urlparse
-m = json.load(open(os.environ['NEXUS_MANIFEST_PATH']))
-want = os.environ['NEXUS_ARTIFACT_NAME']
-arts = m.get('artifacts', {})
-for k, v in arts.items():
-    url = unquote(urlparse(v.get('url', '')).path)
-    if url.endswith('/' + want) or url.endswith(want):
-        print(v.get('sha256', ''), end='')
-        sys.exit(0)
-key = want.lower().replace('-', '_')
-if key.endswith('.tar.gz'):
-    key = key[:-7]
-elif '.' in key:
-    key = key.rsplit('.', 1)[0]
-for k, v in arts.items():
-    if k == key or key in k or k in key:
-        print(v.get('sha256', ''), end='')
-        sys.exit(0)
-print('', end='')
-"@ 2>&1
-    return $result.Trim()
+    $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+    if ($null -eq $Manifest.artifacts) { return "" }
+
+    foreach ($Artifact in $Manifest.artifacts.PSObject.Properties) {
+        $Url = [string]$Artifact.Value.url
+        $UrlPath = $Url
+        $ParsedUri = $null
+        if ([Uri]::TryCreate($Url, [UriKind]::Absolute, [ref]$ParsedUri)) {
+            $UrlPath = [Uri]::UnescapeDataString($ParsedUri.AbsolutePath)
+        }
+        if ($UrlPath.EndsWith("/$ArtifactName", [StringComparison]::OrdinalIgnoreCase)) {
+            return [string]$Artifact.Value.sha256
+        }
+    }
+
+    $Key = $ArtifactName.ToLowerInvariant().Replace('-', '_')
+    if ($Key.EndsWith('.tar.gz', [StringComparison]::Ordinal)) {
+        $Key = $Key.Substring(0, $Key.Length - 7)
+    } else {
+        $Extension = [System.IO.Path]::GetExtension($Key)
+        if ($Extension) { $Key = $Key.Substring(0, $Key.Length - $Extension.Length) }
+    }
+    foreach ($Artifact in $Manifest.artifacts.PSObject.Properties) {
+        if ([string]::Equals($Artifact.Name, $Key, [StringComparison]::OrdinalIgnoreCase)) {
+            return [string]$Artifact.Value.sha256
+        }
+    }
+    return ""
 }
 
 
@@ -315,9 +367,8 @@ $ArchiveExt = if ($IsWindowsOS) { "zip" } else { "tar.gz" }
 $ArchiveName = "nexus_${OsName}_${Arch}.${ArchiveExt}"
 # Beta/RC assets use the rolling channel-beta release; stable assets use
 # immutable version releases. Both paths require the signed manifest.
-$IsPrerelease = $Version -match '-(?:alpha|beta|rc)\.'
-$ReleaseTag = if ($IsPrerelease) { "channel-beta" } else { "v$Version" }
-$ExpectedManifestChannel = if ($IsPrerelease) { "beta" } else { "stable" }
+$ReleaseTag = if ($ReleaseCoordinate) { $ReleaseCoordinate.ReleaseTag } else { "" }
+$ExpectedManifestChannel = if ($ReleaseCoordinate) { $ReleaseCoordinate.ManifestChannel } else { "" }
 $ReleaseAssetBase = "$ReleaseDownloadBase/$ReleaseTag"
 $DownloadUrl = "$ReleaseAssetBase/$ArchiveName"
 
@@ -341,10 +392,8 @@ try {
         # The signed rolling pointer may have moved to a different beta.
         # A pinned version MUST match exactly, even if its signature is valid.
         $VerifiedManifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
-        if ([string]$VerifiedManifest.version -ne $Version -or
-            [string]$VerifiedManifest.channel -ne $ExpectedManifestChannel) {
-            throw "Signed manifest version/channel mismatch: requested $Version ($ExpectedManifestChannel), received $($VerifiedManifest.version) ($($VerifiedManifest.channel))."
-        }
+        Assert-NexusManifestMatchesRequestedRelease `
+            -Manifest $VerifiedManifest -Version $Version -Channel $ExpectedManifestChannel
         $Expected = Extract-ShaFromManifest -ManifestPath $ManifestPath -ArtifactName $ArchiveName
         if ([string]::IsNullOrWhiteSpace($Expected)) {
             throw "Artifact $ArchiveName missing from signed manifest"
@@ -368,7 +417,7 @@ try {
 
         # 3) Verify SHA-256 from signed manifest only
         $Actual = (Get-FileHash -Path $ZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($Expected.ToLowerInvariant() -ne $Actual) {
+        if (-not (Test-NexusArtifactSha256 -Expected $Expected -Actual $Actual)) {
             throw "Release checksum verification failed for $ArchiveName."
         }
         Write-Host "SHA-256 verified" -ForegroundColor Green

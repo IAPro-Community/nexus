@@ -100,6 +100,7 @@ $PowerShellSyntaxLog = Join-Path $Out 'powershell-syntax.log'
 foreach ($ScriptPath in @(
   'install.ps1',
   'uninstall.ps1',
+  'scripts/test-uninstall-windows.ps1',
   'scripts/homologate-beta.ps1',
   'scripts/refresh-beta-docs-windows.ps1'
 )) {
@@ -116,6 +117,14 @@ foreach ($ScriptPath in @(
     throw "PowerShell syntax failed: $ScriptPath"
   }
   "PASS $ScriptPath" | Tee-Object -FilePath $PowerShellSyntaxLog -Append
+}
+
+Write-Host "==> Windows uninstaller isolation smoke"
+Invoke-NativeLogged (Join-Path $Out 'uninstall-windows-smoke.log') {
+  pwsh -NoProfile -File scripts/test-uninstall-windows.ps1
+}
+if ($script:LastNativeExit -ne 0) {
+  throw "Windows uninstaller isolation smoke failed (exit=$script:LastNativeExit)"
 }
 
 Write-Host "==> documentation"

@@ -272,7 +272,7 @@ want = sys.argv[2]
 arts = m.get('artifacts', {})
 for k, v in arts.items():
     url = unquote(urlparse(v.get('url', '')).path)
-    if url.endswith('/' + want) or url.endswith(want):
+    if url == want or url.endswith('/' + want):
         print(v.get('sha256', ''))
         sys.exit(0)
 key = want.lower().replace('-', '_')
@@ -281,7 +281,7 @@ if key.endswith('.tar.gz'):
 elif '.' in key:
     key = key.rsplit('.', 1)[0]
 for k, v in arts.items():
-    if k == key or key in k or k in key:
+    if k == key:
         print(v.get('sha256', ''))
         sys.exit(0)
 print('', end='')

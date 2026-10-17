@@ -755,3 +755,106 @@ func TestWindowsInstallerAssetNameMatchesNSIS(t *testing.T) {
 		t.Fatalf("NSIS OutFile must match installer asset %s", asset)
 	}
 }
+
+func TestNSISPathManagementUsesCompleteSegmentsAndPreservesRegistryType(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	nsiBytes, err := os.ReadFile(filepath.Join(root, "packaging/windows/nexus.nsi"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	nsi := string(nsiBytes)
+
+	for _, required := range []string{
+		"Function AddToUserPath",
+		"StrCmp $2 \"$INSTDIR\" donePath",
+		"Function un.RemoveFromUserPath",
+		"StrCmp $2 \"$INSTDIR\" dropPathSegment",
+		"WriteRegStr HKCU \"Environment\" \"Path\" \"$0\"",
+		"WriteRegExpandStr HKCU \"Environment\" \"Path\" \"$0\"",
+		"UserPathOriginalType",
+	} {
+		if !strings.Contains(nsi, required) {
+			t.Errorf("NSIS PATH management must contain complete-segment/type-preserving contract %q", required)
+		}
+	}
+
+	for _, forbidden := range []string{
+		"Call StrStr",
+		"Call un.StrStr",
+	} {
+		if strings.Contains(nsi, forbidden) {
+			t.Errorf("NSIS PATH management must not use substring matching %q", forbidden)
+		}
+	}
+}
+
+func TestInstallersRequireExactSignedArtifactAndVersionMatch(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"install.ps1", "install.sh"} {
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		script := string(data)
+		if path == "install.sh" {
+			if !strings.Contains(script, "if k == key:") {
+				t.Errorf("%s must resolve normalized artifact keys exactly", path)
+			}
+			if !strings.Contains(script, "if url == want or url.endswith('/' + want):") {
+				t.Errorf("%s must match complete artifact filenames in signed URLs", path)
+			}
+		} else {
+			if !strings.Contains(script, "[string]::Equals($Artifact.Name, $Key, [StringComparison]::OrdinalIgnoreCase)") {
+				t.Errorf("%s must resolve normalized artifact keys exactly", path)
+			}
+			if !strings.Contains(script, "$UrlPath.EndsWith(\"/$ArtifactName\", [StringComparison]::OrdinalIgnoreCase)") {
+				t.Errorf("%s must match complete artifact filenames in signed URLs", path)
+			}
+			for _, fuzzyMatch := range []string{"key in k", "k in key"} {
+				if strings.Contains(script, fuzzyMatch) {
+					t.Errorf("%s must not use fuzzy artifact key matching %q", path, fuzzyMatch)
+				}
+			}
+			if strings.Contains(script, "url.endswith(want)") {
+				t.Errorf("%s must not match artifact URL filenames by partial suffix", path)
+			}
+		}
+	}
+
+	psBytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	powershell := string(psBytes)
+	for _, required := range []string{
+		"ReleaseTag = if ($IsPrerelease) { 'channel-beta' } else { \"v$Version\" }",
+		"ManifestChannel = if ($IsPrerelease) { 'beta' } else { 'stable' }",
+		"Assert-NexusManifestMatchesRequestedRelease",
+		"Test-NexusArtifactSha256 -Expected $Expected -Actual $Actual",
+	} {
+		if !strings.Contains(powershell, required) {
+			t.Errorf("install.ps1 missing exact signed beta/version guard %q", required)
+		}
+	}
+
+	shBytes, err := os.ReadFile(filepath.Join(root, "install.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	shell := string(shBytes)
+	for _, required := range []string{
+		"release_tag=\"channel-beta\"",
+		"expected_channel=\"beta\"",
+		"actual_version != expected_version or actual_channel != expected_channel",
+	} {
+		if !strings.Contains(shell, required) {
+			t.Errorf("install.sh missing exact signed beta/version guard %q", required)
+		}
+	}
+}
