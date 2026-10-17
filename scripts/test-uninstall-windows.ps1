@@ -143,6 +143,21 @@ Assert-True $wrongChannelRejected 'signed manifest channel mismatch rejection'
 Assert-True (Test-NexusArtifactSha256 -Expected ('a' * 64) -Actual ('A' * 64)) 'case-insensitive SHA-256 match'
 Assert-True (-not (Test-NexusArtifactSha256 -Expected ('b' * 64) -Actual ('a' * 64))) 'wrong SHA-256 rejection'
 
+$pathInstallDir = 'C:\Fixture\Nexus'
+$pathWithDuplicates = "C:\Tools;$pathInstallDir;C:\Fixture\Nexus2;$pathInstallDir\;C:\Other"
+$pathWithoutInstallDir = Get-NexusPathWithoutInstallDir -UserPath $pathWithDuplicates -InstallDir $pathInstallDir
+Assert-Equal 'C:\Tools;C:\Fixture\Nexus2;C:\Other' $pathWithoutInstallDir `
+    'remove only complete case-insensitive path segments and preserve similar paths'
+$previousPathFixture = [Environment]::GetEnvironmentVariable('NEXUS_UNINSTALL_PATH_FIXTURE', 'Process')
+try {
+    [Environment]::SetEnvironmentVariable('NEXUS_UNINSTALL_PATH_FIXTURE', 'C:\Fixture\Nexus', 'Process')
+    $expandedPath = Get-NexusPathWithoutInstallDir `
+        -UserPath '%NEXUS_UNINSTALL_PATH_FIXTURE%;C:\Keep' -InstallDir $pathInstallDir
+    Assert-Equal 'C:\Keep' $expandedPath 'remove matching expanded environment path segment'
+} finally {
+    [Environment]::SetEnvironmentVariable('NEXUS_UNINSTALL_PATH_FIXTURE', $previousPathFixture, 'Process')
+}
+
 $manifestFixturePath = Join-Path $env:TEMP "nexus-installer-manifest-$PID.json"
 $manifestFixture = [ordered]@{
     version = '1.0.0-beta.10'
