@@ -47,8 +47,14 @@ if (process.platform !== 'win32') {
   serverEnv.PS1 = 'nexus-demo$ ';
   serverEnv.PROMPT_COMMAND = '';
 } else {
-  serverEnv.PROMPT = 'nexus-demo$G';
-  serverEnv.ComSpec = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'cmd.exe');
+  const isolatedProfileDir = path.join(fixtureRoot, 'profile');
+  serverEnv.USERPROFILE = isolatedProfileDir;
+  serverEnv.HOME = isolatedProfileDir;
+  serverEnv.APPDATA = path.join(isolatedProfileDir, 'AppData', 'Roaming');
+  serverEnv.LOCALAPPDATA = path.join(isolatedProfileDir, 'AppData', 'Local');
+  mkdirSync(serverEnv.APPDATA, { recursive: true });
+  mkdirSync(serverEnv.LOCALAPPDATA, { recursive: true });
+  serverEnv.ComSpec = 'pwsh.exe';
 }
 
 const server = spawn(
@@ -919,13 +925,7 @@ try {
   }
   const screenshotMarker = '__NEXUS_DOCS_TERMINAL_READY__';
   await page.locator('.nx-project-shell-surface .xterm').click();
-  const clearScrollbackCommand = process.platform === 'win32'
-    ? `powershell.exe -NoProfile -Command "[Console]::Write([char]27 + '[3J')"`
-    : 'clear';
-  await page.keyboard.type(clearScrollbackCommand);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(150);
-  await page.keyboard.type(process.platform === 'win32' ? 'cls' : 'clear');
+  await page.keyboard.type(process.platform === 'win32' ? 'Clear-Host' : 'clear');
   await page.keyboard.press('Enter');
   await page.waitForTimeout(150);
   await page.keyboard.type(`echo ${screenshotMarker}`);
