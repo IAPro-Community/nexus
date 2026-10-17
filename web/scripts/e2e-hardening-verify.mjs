@@ -702,6 +702,11 @@ async function main() {
       'false',
       'Escape must close create menu and restore collapsed state',
     );
+    await page.waitForFunction(
+      () => document.activeElement?.getAttribute('data-testid') === 'topbar-create-menu-btn',
+      undefined,
+      { timeout: 250 },
+    );
     assert.equal(
       await page.evaluate(
         () => document.activeElement?.getAttribute('data-testid') === 'topbar-create-menu-btn',
