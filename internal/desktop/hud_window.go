@@ -319,7 +319,7 @@ func compactHUDWindowState(state HUDWindowState) HUDWindowState {
 	state.X += state.Width - compactWidth
 	state.Y += state.Height - compactHeight
 	state.Width, state.Height = compactWidth, compactHeight
-  return state
+	return state
 }
 
 func (h *HUDController) RestoreHUDWindow() {
