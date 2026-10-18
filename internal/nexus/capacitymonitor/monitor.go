@@ -196,15 +196,22 @@ tickLoop:
 	// Tick-only callers (via leaseTTL) observe the same interval, so the
 	// lease always covers the next wait even under backoff.
 	m.refreshIntervalLocked()
-	// Extend our just-acquired lease to the NEW interval: the acquire above
-	// covered the previous cadence, and a shallow-backoff→healthy recovery
-	// would otherwise leave a short TTL over a long sleep, inviting a steal.
+	// Capture the renewed TTL while holding the monitor mutex, but never
+	// perform SQLite I/O under that lock: failure reporting also needs m.mu.
+	renewTTL := m.ttlForInterval(m.lastInterval)
+	m.mu.Unlock()
+	// Extend our just-acquired lease to the NEW interval: a recovered interval
+	// must not let another monitor steal ownership during the next sleep.
 	if held {
-		if err := m.deps.Store.RenewCapacityLease(m.deps.OwnerID, now, m.ttlForInterval(m.lastInterval)); err != nil {
-			m.noteFailure()
+		if err := m.deps.Store.RenewCapacityLease(m.deps.OwnerID, now, renewTTL); err != nil {
+			m.mu.Lock()
+			m.isLeader = false
+			m.failures++
+			m.refreshIntervalLocked()
+			m.mu.Unlock()
+			return fmt.Errorf("renew capacity lease: %w", err)
 		}
 	}
-	m.mu.Unlock()
 	// The pass completed: report cancellation only if it actually landed.
 	if err := ctx.Err(); err != nil {
 		return err

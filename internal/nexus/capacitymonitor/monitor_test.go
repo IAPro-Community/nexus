@@ -5,6 +5,7 @@ import (
 	"errors"
 	"path/filepath"
 	"sync"
+	"strings"
 	"testing"
 	"time"
 
@@ -821,5 +822,52 @@ func TestScopePropagatesToStoreAndEvents(t *testing.T) {
 	got, ok := counter.events[0].Data["account_scope"]
 	if !ok || got != "codex/acct-1/v3" {
 		t.Fatalf("event account_scope = %v, want codex/acct-1/v3", counter.events[0].Data)
+	}
+}
+
+type leaseRevokingProbe struct {
+	*stubProbe
+	store *store.Store
+}
+
+func (p *leaseRevokingProbe) Probe(ctx context.Context, prof model.Profile) (model.UsageSnapshot, error) {
+	if err := p.store.ReleaseCapacityLease("test-owner"); err != nil {
+		return model.UsageSnapshot{}, err
+	}
+	return p.stubProbe.Probe(ctx, prof)
+}
+
+// A lease can disappear after Acquire and before Renew (process takeover,
+// operator reset or SQLite write conflict). Tick must report that failure,
+// not deadlock trying to take its already-held monitor mutex.
+func TestTickLeaseRenewalFailureDoesNotDeadlock(t *testing.T) {
+	probe := &leaseRevokingProbe{
+		stubProbe: &stubProbe{
+			desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+			snap: liveSnapshot(55, model.UsageLive),
+		},
+	}
+	registry := &stubRegistry{probes: map[string]quota.Probe{"codex": probe}}
+	m, st, _ := testMonitor(t,
+		[]model.Profile{{Provider: "codex", Name: "lease-lost"}},
+		registry, nil)
+	probe.store = st
+
+	finished := make(chan error, 1)
+	go func() { finished <- m.Tick(context.Background()) }()
+	select {
+	case err := <-finished:
+		if err == nil || !strings.Contains(err.Error(), "renew capacity lease") {
+			t.Fatalf("expected explicit lease renewal failure, got %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("Tick deadlocked after lease renewal failure")
+	}
+	status := m.Status()
+	if status.IsLeader {
+		t.Fatal("monitor still claims leader ownership after losing the lease")
+	}
+	if status.ConsecutiveFailures == 0 {
+		t.Fatal("lease renewal failure was not reflected in diagnostics")
 	}
 }
