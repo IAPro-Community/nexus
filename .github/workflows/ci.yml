@@ -420,17 +420,36 @@ jobs:
           binary="$PWD/cmd/nexus-hud/build/bin/nexus-hud"
           dbus-run-session -- xvfb-run -a "$binary" >"$log" 2>&1 &
           launcher=$!
+          hud_pid=""
           cleanup() {
-            hud_pid="$(pgrep -x nexus-hud | head -n1 || true)"
+            # Never kill another user's or developer's HUD by a global name.
             if [ -n "$hud_pid" ]; then kill -TERM "$hud_pid" 2>/dev/null || true; fi
             kill -TERM "$launcher" 2>/dev/null || true
             wait "$launcher" 2>/dev/null || true
           }
           trap cleanup EXIT
 
-          hud_pid=""
+          # Resolve the HUD strictly within the subprocess tree we launched.
+          # A global pgrep can select and terminate an unrelated user session.
+          find_launched_hud() {
+            local queue="$launcher"
+            while [ -n "$queue" ]; do
+              local pid="${queue%% *}"
+              if [ "$queue" = "$pid" ]; then queue=""; else queue="${queue#* }"; fi
+              if ! kill -0 "$pid" 2>/dev/null; then continue; fi
+              if [ "$(readlink -f "/proc/$pid/exe" 2>/dev/null || true)" = "$binary" ]; then
+                echo "$pid"
+                return 0
+              fi
+              local children
+              children="$(pgrep -P "$pid" | tr '\n' ' ' || true)"
+              if [ -n "$children" ]; then queue="${queue:+$queue }$children"; fi
+            done
+            return 1
+          }
+
           for attempt in $(seq 1 30); do
-            hud_pid="$(pgrep -x nexus-hud | head -n1 || true)"
+            hud_pid="$(find_launched_hud || true)"
             if [ -n "$hud_pid" ] && kill -0 "$hud_pid" 2>/dev/null; then break; fi
             if ! kill -0 "$launcher" 2>/dev/null; then
               cat "$log"
@@ -721,7 +740,7 @@ jobs:
           go build -buildvcs=false -tags production -ldflags "-X main.desktopSingleInstanceID=com.iapro.nexus.desktop.windows-smoke" -o $desktopExe ./cmd/nexus-desktop
           if ($LASTEXITCODE -ne 0) { throw "Nexus Desktop smoke build failed" }
           $evidence = Join-Path $out "nexus-desktop-windows-smoke.txt"
-          & .\scripts\smoke-desktop-windows.ps1 -DesktopExe $desktopExe -TargetSha $env:TARGET_SHA -EvidencePath $evidence
+          & .\scripts\smoke-desktop-windows.ps1 -DesktopExe $desktopExe -TargetSha $env:TARGET_SHA -EvidencePath $evidence -SingleInstanceID 'com.iapro.nexus.desktop.windows-smoke'
       - name: Native Windows HUD launch smoke
         shell: pwsh
         env:
