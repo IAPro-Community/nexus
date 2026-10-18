@@ -43,16 +43,15 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
     try {
       const list = await nexus.listProviderInstallations();
       setProviders(list || []);
-      if (list && list.length > 0) {
-        if (initialProvider && list.some((p) => p.id === initialProvider)) {
-          setSelectedProvider(initialProvider);
-        } else {
-          // Default to first installed or unregistered
-          const preferred =
-            list.find((p) => p.installed && p.registration_state !== 'REGISTERED_AUTHENTICATED') ||
-            list[0];
-          setSelectedProvider(preferred.id);
-        }
+      // An unavailable CLI must never be the default registration target.
+      const installed = (list || []).filter((p) => p.installed);
+      if (initialProvider && installed.some((p) => p.id === initialProvider)) {
+        setSelectedProvider(initialProvider);
+      } else {
+        const preferred =
+          installed.find((p) => p.registration_state !== 'REGISTERED_AUTHENTICATED') ||
+          installed[0];
+        setSelectedProvider(preferred?.id || '');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -75,8 +74,8 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!selectedProvider) {
-      setError(t('usage.selectProviderRequired', 'Selecione um provedor'));
+    if (!selectedProvider || !providers.some((p) => p.id === selectedProvider && p.installed)) {
+      setError(t('usage.selectProviderRequired', 'Selecione um provedor instalado'));
       return;
     }
     const cleanProfile = profileName.trim() || selectedProvider;
@@ -135,7 +134,9 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
                   key={prov.id}
                   className={styles.providerItem}
                   selected={isSelected}
-                  onSelect={() => setSelectedProvider(prov.id)}
+                  onSelect={() => {
+                    if (prov.installed) setSelectedProvider(prov.id);
+                  }}
                 >
                   <span className={styles.providerInfo}>
                     <span className={styles.providerHeader}>
@@ -176,7 +177,11 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
 
         <div className={styles.footerActions}>
           <Button onClick={onClose}>{t('common.cancel', 'Cancelar')}</Button>
-          <Button type="submit" tone="brand" disabled={submitting || !selectedProvider}>
+          <Button
+            type="submit"
+            tone="brand"
+            disabled={submitting || !providers.some((p) => p.id === selectedProvider && p.installed)}
+          >
             <Plus size={14} />
             {submitting ? t('usage.registering') : t('usage.registerProvider', 'Registrar')}
           </Button>
