@@ -113,8 +113,7 @@ A implementação deve reutilizar enums/estados canônicos sempre que existirem.
 
 ## Desktop process model
 
-O projeto usa Wails v2.15.0. Wails v2 oferece uma janela por aplicação; portanto
-um HUD realmente independente não deve ser simulado dentro da janela principal.
+No milestone M1 histórico, o projeto usava Wails v2.15.0, que disponibilizava uma janela por aplicação. O HUD foi isolado em um processo de apresentação independente. A release 1.0 atual já usa Wails v3, mantendo o shell nativo independente.
 
 A estratégia do M1 é um shell Wails leve `nexus-hud`:
 
@@ -125,8 +124,7 @@ A estratégia do M1 é um shell Wails leve `nexus-hud`:
 - usa o lease já existente do Capacity Monitor caso seja necessário iniciar um
   Core local na ausência de outro processo.
 
-Uma migração futura para Wails v3 pode consolidar janelas no mesmo processo sem
-alterar o contrato `HUD Projection`.
+A migração para Wails v3 foi incorporada sem duplicar o contrato `HUD Projection`. Uma eventual consolidação de janelas é uma decisão de produto posterior.
 
 ## Plataformas
 
@@ -190,9 +188,7 @@ milestone de UX avançada, desde que:
 ## Limitações conhecidas do M1
 
 - Windows e macOS continuam `UNVERIFIED` até execução nativa same-SHA.
-- Wails v2 informa dimensões/tela atual, mas não ID estável, work area ou scale
-  factor; o M1 faz clamp seguro para recuperar janelas off-screen, sem promover
-  isso a suporte completo de multi-monitor/DPI.
+- No M1 histórico (Wails v2), work area, ID estável de display e scale factor eram limitados. A release atual em Wails v3 expõe esses dados; suporte completo de multi-monitor/DPI ainda requer smoke nativo no SHA vigente.
 - always-on-top/posicionamento absoluto no Wayland depende do compositor e deve
   ser capability-detected.
 - tray/menu bar só vira claim quando houver implementação e teste nativos.
@@ -221,3 +217,14 @@ Behaviors:
 Desktop Wails v3 has a transparent independent native window and native tray recovery. The window starts anchored above the taskbar, and resizing to 334 × 496 DIPs keeps its bottom-right edge anchored. **Rich hover content on Native is not yet feature-equivalent with Web**: native currently exposes a standard tooltip, since a separate temporary hover window needs capability-specific implementation and testing. This limitation must not be described as full parity.
 
 Native validation requires exact-SHA Windows/Linux/macOS smoke, taskbar positioning, DPI/multi-monitor, window restoration, tray recovery, and click-through tests for transparent empty regions. Browser E2E should capture compact, hover and expanded states and run accessibility checks. No production release claim follows from merely committing the UI.
+
+## Correções de estabilidade do HUD compacto (18/10/2026)
+
+- Restauração força a janela nativa de volta a 220×60 DIPs, preservando a âncora inferior direita do monitor. Isso evita a reabertura invisível de uma janela expandida após reiniciar.
+- Expansão/recolhimento consulta a dimensão **real** da janela nativa, não apenas a última dimensão persistida.
+- O provider só pode ser denominado *Conta em execução* quando provider **e** profile correspondem à identidade de Agent em execução; nomes de provider isolados não identificam contas múltiplas.
+- Missions não terminais voltam a aparecer na visão expandida. Intervenções humanas têm prioridade e histórico terminado não substitui execução corrente.
+- Percentuais `ESTIMATED` são marcados com `~` e indicador tracejado; `CACHED` é identificado como cache; origem não confiável/sem dados usa `—`.
+- Testes unitários cobrem identidade incompleta, evidência de quota, Missions ativas/terminadas e restauração de geometria antiga/expandida.
+
+A validação Windows anteriormente executada permanece como evidência histórica para os SHAs testados. **Estes novos commits não herdam homologação Windows exata**: os gates, o smoke real do HUD, a restauração após reinicialização e as evidências visuais precisam ser executados novamente no HEAD final. Não publicar tag ou release com base apenas no registro anterior.
