@@ -280,9 +280,22 @@ func (m *Monitor) Status() Status {
 			LastObservedAt: s.UpdatedAt,
 		}
 		if o, ok := byKey[s.Key]; ok {
-			rs.RemainingPercent = o.RemainingPercent
-			rs.ResetDescription = o.ResetDescription
-			rs.LastObservedAt = o.FetchedAt
+			// Keep the in-process monitor projection consistent with the API
+			// for legacy state rows that missed their dimension columns.
+			if rs.QuotaGroup == "" {
+				rs.QuotaGroup = o.QuotaGroup
+			}
+			if rs.WindowKind == "" {
+				rs.WindowKind = o.WindowKind
+			}
+			if s.AccountScope == o.AccountScope {
+				rs.RemainingPercent = o.RemainingPercent
+				rs.ResetDescription = o.ResetDescription
+				rs.LastObservedAt = o.FetchedAt
+			} else {
+				// A new login must not inherit the previous account's state.
+				rs.State = StateUnknown
+			}
 		}
 		st.Resources = append(st.Resources, rs)
 	}

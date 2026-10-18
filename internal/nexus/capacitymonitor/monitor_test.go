@@ -874,3 +874,56 @@ func TestTickLeaseRenewalFailureDoesNotDeadlock(t *testing.T) {
 		t.Fatal("lease renewal failure was not reflected in diagnostics")
 	}
 }
+
+func TestMonitorStatusPreservesLegacyDimensionsAndIdentity(t *testing.T) {
+	m, st, _ := testMonitor(t, nil, &stubRegistry{probes: map[string]quota.Probe{}}, nil)
+	now := time.Now().UTC()
+	for _, tc := range []struct {
+		profile    string
+		stateScope string
+		obsScope   string
+	}{
+		{"same-account", "verified-a", "verified-a"},
+		{"reauthed-account", "verified-b", "verified-c"},
+	} {
+		key := stateKey("codex", tc.profile, "default", "5h")
+		remaining := 18.0
+		if err := st.UpsertCapacityState(store.CapacityStateRecord{
+			Key: key, Provider: "codex", Profile: tc.profile,
+			State: "CRITICAL", AccountScope: tc.stateScope,
+			TransitionedAt: now, UpdatedAt: now,
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.UpsertCapacityObservation(store.ObservationRecord{
+			Provider: "codex", Profile: tc.profile,
+			QuotaGroup: "default", WindowKind: "5h",
+			RemainingPercent: &remaining, FetchedAt: now,
+			Status: "LIVE", Source: "OFFICIAL_API",
+			AccountScope: tc.obsScope,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	status := m.Status()
+	if len(status.Resources) != 2 {
+		t.Fatalf("expected two isolated resources, got %+v", status.Resources)
+	}
+	for _, item := range status.Resources {
+		if item.QuotaGroup != "default" || item.WindowKind != "5h" {
+			t.Fatalf("missing legacy dimensions: %+v", item)
+		}
+		switch item.Profile {
+		case "same-account":
+			if item.State != StateCritical || item.RemainingPercent == nil || *item.RemainingPercent != 18 {
+				t.Fatalf("matching identity not projected: %+v", item)
+			}
+		case "reauthed-account":
+			if item.State != StateUnknown || item.RemainingPercent != nil || item.ResetDescription != "" {
+				t.Fatalf("stale identity leaked usage state: %+v", item)
+			}
+		default:
+			t.Fatalf("unexpected profile: %+v", item)
+		}
+	}
+}

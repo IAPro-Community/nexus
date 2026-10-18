@@ -323,6 +323,8 @@ func (s *Store) repairCapacityMonitorSchema() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_capacity_events_fingerprint ON capacity_events(fingerprint)`,
 		`CREATE INDEX IF NOT EXISTS idx_capacity_events_emitted ON capacity_events(emitted_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_capacity_events_resource_recent
+			ON capacity_events(provider, profile, quota_group, window_kind, severity, emitted_at DESC)`,
 		`CREATE TABLE IF NOT EXISTS capacity_delivery_receipts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			alert_id TEXT NOT NULL,
