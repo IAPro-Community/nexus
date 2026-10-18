@@ -204,3 +204,15 @@
   scrollbar-color: #4e617d transparent;
   scrollbar-width: thin;
 }
+
+.capsule[data-evidence='estimated'] .capacityRing {
+  border-style: dashed;
+}
+
+.capsule[data-evidence='cached'] .capacityRing {
+  opacity: 0.75;
+}
+
+.evidenceIndicator {
+  color: #b9c8df;
+}
