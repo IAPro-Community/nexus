@@ -50,6 +50,8 @@ func main() {
 		CSRFToken:    backend.Session.CSRFToken,
 	})
 
+	var window application.Window
+
 	native := application.New(application.Options{
 		Name:        "IAPro Nexus",
 		Description: "Autonomous AI Orchestrator and Workspace OS",
@@ -58,6 +60,13 @@ func main() {
 		Assets:      application.AssetOptions{Handler: backend.Handler, DisableLogging: true},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: desktopSingleInstanceID,
+			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
+				if window != nil {
+					window.Show()
+					window.Restore()
+					window.Focus()
+				}
+			},
 		},
 		Mac: application.MacOptions{ApplicationShouldTerminateAfterLastWindowClosed: false},
 		Windows: application.WindowsOptions{
@@ -79,7 +88,7 @@ func main() {
 		},
 	})
 
-	window := native.Window.NewWithOptions(application.WebviewWindowOptions{
+	window = native.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:                       desktop.DesktopWindowName,
 		Title:                      "IAPro Nexus",
 		Width:                      windowState.Width,

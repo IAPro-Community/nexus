@@ -1,5 +1,21 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-17 — Correção de Segunda Instância (OnSecondInstanceLaunch) e Reparo dos Atalhos no Windows
+
+- Causa Raiz do "Não tá rodando" / "Não subiu":
+  1. **SingleInstance sem Restauração de Janela**:
+     - No Wails v3 (`cmd/nexus-desktop/main.go` e `cmd/nexus-hud/main.go`), `SingleInstanceOptions` possuía apenas `UniqueID`. Quando o aplicativo era minimizado para a bandeja do sistema (System Tray) através do hook de fechamento `window.Hide()`, ou quando uma instância em segundo plano já existia, qualquer nova tentativa de abrir o executável via clique no atalho detectava a instância preexistente e encerrava silenciosamente com exit code 0.
+     - Como não havia o callback `OnSecondInstanceLaunch`, a janela em segundo plano/bandeja não recebia evento para ser exibida (`window.Show()`), restaurada (`window.Restore()`) nem focada (`window.Focus()`). Para o usuário, clicar no atalho parecia não ter efeito nenhum.
+  2. **Caminho da Área de Trabalho com OneDrive Ativo**:
+     - No Windows com sincronização de Desktop habilitada no OneDrive, a Área de Trabalho real do usuário fica em `D:\OneDrive\Desktop` (obtida via `[Environment]::GetFolderPath('Desktop')`), e não no caminho estático legado `C:\Users\kiver\Desktop`.
+     - O atalho no Desktop do usuário estava vazio ou apontando para um caminho inacessível.
+- Solução Aplicada:
+  - Adicionado manipulador `OnSecondInstanceLaunch` em `cmd/nexus-desktop/main.go` e `cmd/nexus-hud/main.go` capturando a referência da janela e executando `window.Show()`, `window.Restore()` e `window.Focus()`.
+  - Recompilados todos os binários de produção (`nexus.exe`, `ai.exe`, `nexus-desktop.exe`, `nexus-hud.exe`) com ldflags canônicos de release.
+  - Reinstalado o ambiente local em `C:\Users\kiver\AppData\Local\Programs\IAPro Nexus`.
+  - Recriados os atalhos tanto na Área de Trabalho real do usuário (`D:\OneDrive\Desktop\IAPro Nexus.lnk`) quanto no Menu Iniciar (`C:\Users\kiver\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\IAPro Nexus.lnk`).
+  - Verificada a inicialização do executável nativo com handle de janela válido e WebView2 inicializado com sucesso.
+
 ## 2026-10-17 — Correção Crítica da Tela Preta no Desktop Nativo (76587c39)
 
 - Causa Raiz Investigada e Descoberta:

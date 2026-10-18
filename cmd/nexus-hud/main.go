@@ -46,6 +46,8 @@ func main() {
 	})
 	hudController := desktop.NewHUDController(stateManager)
 
+	var window application.Window
+
 	native := application.New(application.Options{
 		Name:        "Nexus HUD",
 		Description: "Nexus operational HUD",
@@ -57,6 +59,13 @@ func main() {
 		Assets: application.AssetOptions{Handler: backend.Handler, DisableLogging: true},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: hudSingleInstanceID,
+			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
+				if window != nil {
+					window.Show()
+					window.Restore()
+					window.Focus()
+				}
+			},
 		},
 		Mac: application.MacOptions{
 			ActivationPolicy: application.ActivationPolicyAccessory,
@@ -79,7 +88,7 @@ func main() {
 		},
 	})
 
-	window := native.Window.NewWithOptions(application.WebviewWindowOptions{
+	window = native.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:                       desktop.HUDWindowName,
 		Title:                      "Nexus HUD",
 		Width:                      windowState.Width,
