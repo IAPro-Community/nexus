@@ -143,7 +143,8 @@ func TestCapacityStatusJoinsCanonicalKeyAndProtectsAccountScope(t *testing.T) {
 				t.Fatalf("matching observation/forecast not projected: %+v", resource)
 			}
 		case "account-b":
-			if resource.RemainingPercent != nil || resource.Pace != nil ||
+			if resource.State != "UNKNOWN" || resource.Fingerprint != "" ||
+				resource.RemainingPercent != nil || resource.Pace != nil ||
 				resource.ObservationStatus != "" || resource.Source != "" {
 				t.Fatalf("different identity leaked capacity evidence: %+v", resource)
 			}

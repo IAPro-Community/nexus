@@ -116,6 +116,10 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 			// The quota observation and the state can belong to different
 			// accounts during reauthentication. Never combine their evidence.
 			if rec.AccountScope != o.AccountScope {
+				// The stored state belongs to an earlier identity; keep the
+				// resource visible but fail closed until a fresh evaluation.
+				rs.State = "UNKNOWN"
+				rs.Reason = "account identity changed; awaiting evaluation"
 				out.Resources = append(out.Resources, rs)
 				continue
 			}
