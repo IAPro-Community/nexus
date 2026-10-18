@@ -10,10 +10,9 @@ export interface HudFocus {
 }
 
 const usableRemaining = (provider?: HudProvider): number | null => {
-  if (
-    !provider ||
-    ['UNKNOWN', 'UNAVAILABLE', 'UNSUPPORTED'].includes(provider.freshness.toUpperCase())
-  ) {
+  // Only known evidence classes may display a capacity percentage. A provider
+  // can still report a stale numeric value when the observation is unavailable.
+  if (!provider || !['LIVE', 'CACHED', 'ESTIMATED'].includes(provider.freshness.toUpperCase())) {
     return null;
   }
   const value = provider.limiting_window?.remaining_percent;
@@ -25,12 +24,16 @@ const usableRemaining = (provider?: HudProvider): number | null => {
 export const hudRemaining = (provider?: HudProvider, offline = false): number | null =>
   offline ? null : usableRemaining(provider);
 
-const findProvider = (providers: HudProvider[], provider?: string, profile?: string) =>
-  providers.find(
+const findProvider = (providers: HudProvider[], provider?: string, profile?: string) => {
+  // A provider name without the profile is not a runtime account identity.
+  // Never select the first of several linked Codex/Claude accounts by accident.
+  if (!provider?.trim() || !profile?.trim()) return undefined;
+  return providers.find(
     (candidate) =>
-      candidate.provider.toLowerCase() === provider?.toLowerCase() &&
-      (!profile || candidate.profile.toLowerCase() === profile.toLowerCase()),
+      candidate.provider.toLowerCase() === provider.toLowerCase() &&
+      candidate.profile.toLowerCase() === profile.toLowerCase(),
   );
+};
 
 export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
   const agents = state.agents.filter(isWorkingAgent);
@@ -66,11 +69,31 @@ export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
         : stateName === 'WARNING'
           ? 'warning'
           : 'normal';
-  return { provider, active: Boolean(exact || missionProvider), remaining, tone };
+  // A Mission can highlight its configured resource but is not evidence that
+  // this profile currently owns a running provider session.
+  return { provider, active: Boolean(exact), remaining, tone };
 };
 
 export const hudPercentage = (value: number | null) =>
   value === null ? '—' : `${Math.round(value)}%`;
+
+export type HudQuotaEvidence = 'live' | 'cached' | 'estimated' | 'unknown';
+
+export const hudQuotaEvidence = (provider?: HudProvider, offline = false): HudQuotaEvidence => {
+  if (hudRemaining(provider, offline) === null) return 'unknown';
+  switch (provider?.freshness.toUpperCase()) {
+    case 'LIVE': return 'live';
+    case 'CACHED': return 'cached';
+    case 'ESTIMATED': return 'estimated';
+    default: return 'unknown';
+  }
+};
+
+export const hudPercentageFor = (provider?: HudProvider, offline = false): string => {
+  const remaining = hudRemaining(provider, offline);
+  if (remaining === null) return '—';
+  return `${hudQuotaEvidence(provider, offline) === 'estimated' ? '~' : ''}${Math.round(remaining)}%`;
+};
 
 export const hudOtherAccounts = (state: HudState, focused?: HudProvider) =>
   state.providers
