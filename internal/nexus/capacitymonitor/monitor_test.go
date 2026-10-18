@@ -145,6 +145,9 @@ func TestTickExhaustedEmitsExactlyOnce(t *testing.T) {
 	if err != nil || rec.State != "EXHAUSTED" {
 		t.Fatalf("state = %+v,%v, want EXHAUSTED", rec, err)
 	}
+	if rec.QuotaGroup != "claude_gpt" || rec.WindowKind != "5h" {
+		t.Fatalf("resource dimension columns lost: %+v", rec)
+	}
 	first := rec.TransitionedAt
 
 	// Identical repeat tick: no new event, no state rewrite.

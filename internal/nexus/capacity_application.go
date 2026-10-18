@@ -104,6 +104,21 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 			TransitionedAt: rec.TransitionedAt, LastObservedAt: rec.UpdatedAt,
 		}
 		if o, ok := byKey[rec.Key]; ok {
+			// Historic monitor rows stored empty group/window columns even
+			// though the durable key encoded both. Repair the read projection
+			// without mutating existing state or treating another account as ours.
+			if rs.QuotaGroup == "" {
+				rs.QuotaGroup = o.QuotaGroup
+			}
+			if rs.WindowKind == "" {
+				rs.WindowKind = o.WindowKind
+			}
+			// The quota observation and the state can belong to different
+			// accounts during reauthentication. Never combine their evidence.
+			if rec.AccountScope != o.AccountScope {
+				out.Resources = append(out.Resources, rs)
+				continue
+			}
 			rs.RemainingPercent = o.RemainingPercent
 			rs.ResetDescription = o.ResetDescription
 			rs.Source = o.Source
@@ -140,9 +155,10 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 	return out, nil
 }
 
-// capacityStateKey mirrors capacitymonitor.stateKey (provider/profile/group/window).
+// capacityStateKey must match capacitymonitor.stateKey's durable "|" separator.
+// A different delimiter silently disconnects states from observations and forecasts.
 func capacityStateKey(provider, profile, group, window string) string {
-	return strings.Join([]string{provider, profile, group, window}, "/")
+	return strings.Join([]string{provider, profile, group, window}, "|")
 }
 
 // CapacityHistoryEvent is one durable alert with triage attached.

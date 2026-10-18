@@ -500,7 +500,7 @@ func (m *Monitor) persistTransition(ctx context.Context, provider, profile, grou
 	if err := m.deps.Store.UpsertCapacityState(store.CapacityStateRecord{
 		Key:      stateKey(provider, profile, group, window),
 		Provider: provider, Profile: profile,
-		QuotaGroup: "", WindowKind: "",
+		QuotaGroup: group, WindowKind: window,
 		State: string(state), Reason: reason,
 		TransitionedAt: now, UpdatedAt: now,
 		AccountScope: scopeKey(scope),
@@ -568,7 +568,7 @@ func (m *Monitor) persistTransition(ctx context.Context, provider, profile, grou
 		ID: eventID, Fingerprint: fingerprint,
 		EventType: string(eventTypeFor(state)),
 		Provider:  provider, Profile: profile,
-		QuotaGroup: "", WindowKind: "",
+		QuotaGroup: group, WindowKind: window,
 		Severity: string(state), PayloadJSON: string(payload),
 		EmittedAt: now,
 	}); err != nil {
