@@ -1,6 +1,40 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
-## 2026-10-17 — Correção de Segunda Instância (OnSecondInstanceLaunch) e Reparo dos Atalhos no Windows
+## 2026-10-18 — Correção de Digitação e Delegação de Foco nos Terminais do Nexus
+
+- Investigação e Diagnóstico das Causas Raiz:
+  1. **ConPTY Desabilitado para o Provedor Shell no Windows**:
+     - No Windows, `shouldUseConPTY(providerID)` em `internal/control/terminal/terminal_windows.go` restringia o pseudo-console ConPTY exclusivamente aos provedores `"codex"` e `"agy"`.
+     - Ao abrir o Project Shell (`provider_id: "shell"`), a execução de `cmd.exe` ou `powershell.exe` recaía no fallback de pipes anônimos padrão (`isConPTY = false`, `cmd.Stdin = childIn`).
+     - Em pipes anônimos no Windows, o `cmd.exe` opera em buffer de linha bloqueado e não realiza eco de caracteres conforme o usuário digita. Como o xterm.js não utiliza eco local (aguarda eco de saída VT do PTY), a tela permanecia totalmente estática durante a digitação de cada tecla individual. No `powershell.exe`, o `PSReadLine` falhava pela ausência de console handle (`[Console]::ReadKey` lançava exceção por redirecionamento de stdin).
+  2. **Foco Roubado pelo Contêiner da Janela Mosaico/Desktop**:
+     - No modo mosaico/desktop (`web/src/workspace/WorkspaceRenderer.tsx`), a janela era renderizada como `<section id="nx-window-..." tabIndex={-1}>`.
+     - Ao clicar no corpo da janela, bordas, padding ou cabeçalho, o navegador atribuía o foco à própria `<section>` (`activeElement = SECTION`).
+     - Como a `<section>` retinha o foco, os eventos de teclado não atingiam a `textarea.xterm-helper-textarea` do xterm, impedindo completamente qualquer caractere digitado de ser enviado ao WebSocket.
+     - No `TerminalPane.tsx`, o manipulador de lease não focava o terminal ao receber `role === 'CONTROL'`, e cliques no contêiner raiz do painel não repassavam o foco para a textarea.
+- Soluções Implementadas:
+  1. **Backend ConPTY (`internal/control/terminal/terminal_windows.go`)**:
+     - Habilitado suporte automático a ConPTY para o provedor `"shell"` no Windows 10/11:
+       ```go
+       case strings.EqualFold(strings.TrimSpace(providerID), "shell"):
+           return "Windows ConPTY (automatic for interactive Shell)"
+       ```
+       e `shouldUseConPTY` incluindo `"shell"`.
+     - Atualizado teste de regressão estrito TDD `TestWindowsBackendUsesConPTYForInteractiveProvidersAndForwardsArrowInputByDefault` em `internal/control/terminal/terminal_windows_test.go` para validar ConPTY no `"shell"` com leitura interativa de teclas via `powershell.exe`.
+  2. **Frontend Foco e Eco (`WorkspaceRenderer.tsx`, `TerminalPane.tsx`, `AgentTerminal.tsx`)**:
+     - Em `WorkspaceRenderer.tsx`: adicionado manipulador `onPointerDownCapture` e `onFocus` na `nx-desktop-window` que delega imediatamente o foco para `.xterm-helper-textarea` sempre que a janela é focada ou clicada fora de controles interativos.
+     - Atualizado `restoreDesktopView` para focar diretamente o terminal restaurado.
+     - Em `TerminalPane.tsx` e `AgentTerminal.tsx`: adicionado `onPointerDown` no elemento raiz para delegar o foco para `termRef.current?.focus()`, e adicionado `window.requestAnimationFrame(() => term.focus())` ao receber a mensagem de lease `role === 'CONTROL'`.
+- Verificação e Evidências:
+  - Teste unitário e de integração Go: `TestWindowsBackendUsesConPTYForInteractiveProvidersAndForwardsArrowInputByDefault` aprovado (0.69s).
+  - Teste automatizado Playwright (`test-terminal-focus.mjs`):
+    - Clique na barra de título da janela: foco em `xterm-helper-textarea`, comando `dir` executado com sucesso (`Contains "dir": true`).
+    - Clique na borda/corpo da janela: foco delegado automaticamente para `xterm-helper-textarea`, comando `whoami` executado com sucesso (`Contains "whoami": true`).
+    - Eco caractere por caractere sem Enter: caracteres exibidos instantaneamente na tela (`Does terminal show "test1234" BEFORE Enter pressed? true`).
+  - Suíte completa de testes de frontend: 89 arquivos de teste e 553 testes aprovados (`vitest run`).
+  - Typecheck TypeScript (`tsc --noEmit`), ESLint (`eslint src`), Prettier (`prettier --check`) e `go vet ./...` 100% aprovados.
+  - E2E Surface Isolation + Keep-Alive (`e2e-surface-isolation.mjs`): todos os passos e 6 viewports aprovados.
+
 
 - Causa Raiz do "Não tá rodando" / "Não subiu":
   1. **SingleInstance sem Restauração de Janela**:

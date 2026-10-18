@@ -1144,7 +1144,13 @@ const DesktopWorkspace: React.FC<{
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         window.dispatchEvent(new Event('resize'));
-        document.getElementById(`nx-window-${viewId}`)?.focus();
+        const winEl = document.getElementById(`nx-window-${viewId}`);
+        const xtermTextarea = winEl?.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
+        if (xtermTextarea) {
+          xtermTextarea.focus();
+        } else {
+          winEl?.focus();
+        }
       });
     });
   };
@@ -1358,9 +1364,29 @@ const DesktopWorkspace: React.FC<{
             data-questionnaire={questionnaire ? 'true' : undefined}
             data-icon={icon || undefined}
             style={style}
-            onPointerDownCapture={() => {
+            onPointerDownCapture={(event) => {
               presentation.focus(viewId);
               if (chromeMenuViewId && chromeMenuViewId !== viewId) setChromeMenuViewId(null);
+              const target = event.target as HTMLElement | null;
+              const isInteractive = target?.closest(
+                'button, input, select, textarea, [role="button"], [role="menuitem"], .nx-desktop-window__resize',
+              );
+              if (!isInteractive) {
+                const xtermTextarea =
+                  event.currentTarget.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
+                if (xtermTextarea) {
+                  window.requestAnimationFrame(() => xtermTextarea.focus());
+                }
+              }
+            }}
+            onFocus={(event) => {
+              if (event.target === event.currentTarget) {
+                const xtermTextarea =
+                  event.currentTarget.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
+                if (xtermTextarea) {
+                  xtermTextarea.focus();
+                }
+              }
             }}
           >
             <header

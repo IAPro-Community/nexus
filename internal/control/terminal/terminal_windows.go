@@ -139,6 +139,8 @@ func platformBackendMechanismForProvider(providerID string) string {
 			return "Windows ConPTY (automatic for supervised Codex)"
 		case strings.EqualFold(strings.TrimSpace(providerID), "agy"):
 			return "Windows ConPTY (automatic for supervised AGY)"
+		case strings.EqualFold(strings.TrimSpace(providerID), "shell"):
+			return "Windows ConPTY (automatic for interactive Shell)"
 		}
 	}
 	return "Windows ConPTY (explicit opt-in)"
@@ -152,7 +154,7 @@ func shouldUseConPTY(providerID string) bool {
 		return true
 	}
 	providerID = strings.TrimSpace(providerID)
-	return strings.EqualFold(providerID, "codex") || strings.EqualFold(providerID, "agy")
+	return strings.EqualFold(providerID, "codex") || strings.EqualFold(providerID, "agy") || strings.EqualFold(providerID, "shell")
 }
 
 func (b *windowsBackend) Start(cmd *exec.Cmd, initialRows, initialCols int) error {

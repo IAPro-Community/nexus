@@ -191,6 +191,7 @@ func TestWindowsBackendUsesConPTYForInteractiveProvidersAndForwardsArrowInputByD
 	}{
 		{id: "codex", automaticMechanism: "automatic for supervised Codex"},
 		{id: "agy", automaticMechanism: "automatic for supervised AGY"},
+		{id: "shell", automaticMechanism: "automatic for interactive Shell"},
 	}
 	for _, provider := range providers {
 		t.Run(provider.id, func(t *testing.T) {

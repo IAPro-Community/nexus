@@ -338,7 +338,11 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
             writeTerminalOutput(cleaned);
           }
         } else if (msg.type === 'lease') {
-          setRole(msg.role === 'CONTROL' ? 'CONTROL' : 'VIEW_ONLY');
+          const nextRole = msg.role === 'CONTROL' ? 'CONTROL' : 'VIEW_ONLY';
+          setRole(nextRole);
+          if (nextRole === 'CONTROL' && (!panel || panel.dataset.active === 'true')) {
+            window.requestAnimationFrame(() => term.focus());
+          }
         } else if (msg.type === 'title' && msg.data) {
           const next = String(msg.data).trim();
           publishChrome(extractOscTitle(next) || next);
@@ -569,7 +573,18 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   };
 
   return (
-    <div className={styles.terminalPaneRoot} data-chrome={hideHeader ? 'window' : 'full'}>
+    <div
+      className={styles.terminalPaneRoot}
+      data-chrome={hideHeader ? 'window' : 'full'}
+      onPointerDown={(e) => {
+        const target = e.target as HTMLElement | null;
+        if (
+          !target?.closest('button, input, select, textarea, [role="button"], [role="menuitem"]')
+        ) {
+          termRef.current?.focus();
+        }
+      }}
+    >
       {/* Terminal Toolbar */}
       {!hideHeader && (
         <div className="flex items-center justify-between px-3 py-2 bg-[var(--nx-terminal-surface)] border-b border-[var(--nx-terminal-border)] text-xs font-mono select-none">

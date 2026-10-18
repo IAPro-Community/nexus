@@ -1168,6 +1168,14 @@ export const AgentTerminal: React.FC<{
       className={`nx-agent-terminal ${styles.terminalRoot}`}
       data-chrome={chrome}
       aria-label={t('terminal.terminalForAgent', { agentId })}
+      onPointerDown={(e) => {
+        const target = e.target as HTMLElement | null;
+        if (
+          !target?.closest('button, input, select, textarea, [role="button"], [role="menuitem"]')
+        ) {
+          termRef.current?.focus();
+        }
+      }}
     >
       {!windowChrome && (
         <header className="nx-agent-terminal__header">
