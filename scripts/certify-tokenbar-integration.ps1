@@ -37,6 +37,10 @@ if ($minor -lt 25) {
 }
 
 $changedGo = @(
+    'internal/nexus/store/capacity.go',
+    'internal/nexus/store/store.go',
+    'internal/nexus/store/store_upgrade_test.go',
+    'internal/nexus/store/tokenbar_schema_repair.go',
     'internal/nexus/store/capacity_pace.go',
     'internal/nexus/store/capacity_pace_test.go',
     'internal/nexus/store/external_claude.go',
@@ -44,7 +48,9 @@ $changedGo = @(
     'internal/nexus/capacitymonitor/pace.go',
     'internal/nexus/capacitymonitor/pace_test.go',
     'internal/nexus/capacitymonitor/monitor.go',
+    'internal/nexus/capacitymonitor/monitor_test.go',
     'internal/nexus/capacity_application.go',
+    'internal/nexus/capacity_lifecycle_test.go',
     'internal/nexus/externalusage/claude.go',
     'internal/nexus/externalusage/claude_test.go',
     'internal/control/web/public_service_status.go',
