@@ -1,9 +1,9 @@
 # Suporte de plataformas
 
 A linha **Nexus 1.0 ainda está em beta**. O trabalho que estava separado como
-“1.1” foi incorporado ao candidato `v1.0.0-beta.7`.
+“1.1” foi incorporado à linha de desenvolvimento da v1; o source observado em 18/10/2026 declara `1.0.0-beta.10` (ainda sem certificação exact-SHA).
 
-A última beta pública registrada, `v1.0.0-beta.1`, continua Linux amd64.
+O registro histórico da última beta anterior menciona `v1.0.0-beta.1` (Linux amd64); a disponibilidade pública atual dos artefatos exige verificação independente.
 O source candidato seguinte integra Linux amd64, Windows amd64 e macOS arm64,
 mas nenhuma dessas plataformas deve ser anunciada como certificada para a nova
 beta antes da evidência exact-SHA correspondente.
@@ -19,7 +19,7 @@ beta antes da evidência exact-SHA correspondente.
 | Instalador principal | DEB / install.sh | NSIS assinado | PKG assinado e notarizado |
 | Lifecycle smoke | install/version/doctor/uninstall | NSIS install/version/doctor/uninstall | PKG install/version/doctor/uninstall |
 | Updater | manifesto Ed25519 | manifesto Ed25519 | manifesto Ed25519 |
-| Certificação atual do beta.3 | PENDING | PENDING | PENDING |
+| Certificação do source atual | PENDING | PENDING | PENDING |
 
 ## Política de publicação da v1
 
@@ -66,7 +66,7 @@ segundo Capacity Monitor.
 | Autostart | adapter Linux | adapter Windows | adapter macOS | N/A |
 | Frameless/always-on-top | compositor/WM dependent | source implementado | source implementado | N/A |
 | Multi-monitor / DPI | UNVERIFIED | UNVERIFIED | UNVERIFIED | viewport |
-| Certificação beta.3 | PENDING | PENDING | PENDING | PENDING |
+| Certificação source atual | PENDING | PENDING | PENDING | PENDING |
 
 `NEXUS_HUD_CROSS_PLATFORM` continua **NO_GO** como claim de certificação até
 o mesmo SHA passar a matriz nativa exigida.

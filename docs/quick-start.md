@@ -6,21 +6,15 @@ Em 5–10 minutos, em um ambiente de desenvolvimento já preparado, você pode
 compilar o candidato, abrir a Web local, adicionar um projeto e iniciar uma AI Session. O exemplo usa o fluxo **Direct**, que não
 exige Composer, Flow ou Mission.
 
-> Estado: o source candidato é **`1.0.0-beta.7`** e integra CLI/Web,
-> Desktop/HUD e os targets Linux amd64, Windows amd64 e macOS arm64. Isso não
-> equivale a release publicada/certificada.
->
-> Ainda não existe GitHub Release pública do Nexus. A tag histórica
-> `v1.0.0-beta.1` no repositório-fonte não contém uma distribuição pública
-> assinada em `IAPro-Community/nexus-releases`.
->
-> Confirme providers locais com `nexus doctor` e
-> `nexus providers status --json`.
+> Estado em 18/10/2026: `release/v1.0.0` com source `1.0.0-beta.10`.
+> A versão **não equivale a v1 estável, instalador público ou plataforma homologada**.
+> Enquanto privado, o clone exige acesso ao GitHub. Veja [release status](release-status.md).
+> License: [PolyForm Strict](../LICENSE), uso não comercial sem alterações/redistribuição.
+> Confirme providers com `nexus doctor` e `nexus providers status --json`.
 
 ## 1. Compile o candidato
 
-Enquanto a primeira release binária pública não for certificada, o caminho
-válido para avaliação de engenharia é compilar o source:
+Para avaliação por quem já tem acesso ao repositório, use a compilação do source. Não presuma que exista binário público certificado:
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git

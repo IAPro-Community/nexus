@@ -1,46 +1,23 @@
-# IAPro Nexus — Privacy Notice (beta)
+# IAPro Nexus — Aviso de privacidade (rascunho para validação)
 
-Status: draft for owner review before first external distribution.
+> Esta página descreve princípios pretendidos; **não deve ser tratada como garantia técnica auditada** até a implementação de rede, diagnóstico, coleta e atualização ser verificada no SHA publicado. Revisar com o controlador de dados antes de distribuição pública.
 
-## 1. Data that stays on your device
+## Dados locais e providers
 
-Projects, prompts, code, files, terminal content, provider credentials,
-cookies, and the local telemetry history never leave your machine through
-Nexus itself. Provider CLIs you run may have their own network behavior;
-that is governed by those providers' terms, not this notice.
+O Nexus é projetado para operar localmente projetos, sessões e credenciais. **Providers, CLIs, serviços de túnel e integrações de terceiros podem transmitir dados de acordo com seus próprios termos**. Não prometa que todo conteúdo “nunca sai do dispositivo” sem inspecionar o provider e o recurso efetivamente usado.
 
-## 2. Product analytics (opt-in)
+## Analytics e diagnóstico
 
-- Disabled by default. Nothing is sent unless you opt in.
-- When enabled, only allowlisted aggregate event names are recorded
-  (e.g. `app_started`, `mission_completed`, provider id, OS, install
-  method). No prompts, code, files, tokens, keys, paths, or terminal
-  content are ever eligible fields — the client has no code path that
-  sends them.
-- You can opt out at any time (`NEXUS_ANALYTICS=0`); the app works
-  identically offline.
+O produto prevê analytics opt-in e diagnóstico sob controle do usuário. Antes da publicação, demonstrar via testes e inspeção de tráfego que os defaults, event allowlists, sanitização e comandos de opt-out correspondem ao código da versão publicada. Não compartilhar tokens, caminhos sensíveis, projetos nem logs de terminal inadvertidamente.
 
-## 3. Updates
+## Atualização
 
-The updater fetches a signed channel manifest and signed artifacts over
-HTTPS and verifies the Ed25519 signature plus SHA-256 before installing.
-Update checks transmit only your current version, channel, OS, and
-architecture.
+Artefatos de atualização devem ter assinatura e hash verificáveis. Verificar e documentar dados enviados em checagens de update, download e autenticação de sessão. Ver [Segurança](../../SECURITY.md).
 
-## 4. Installation identity
+## Direitos e contato
 
-A random `installation_id` is minted on first run to correlate your own
-installations (e.g. entitlements). It is not derived from hardware, MAC,
-or serial numbers, and you can reset it at any time.
+Identificar o responsável pelo tratamento, a base legal aplicável e um canal de contato verificável **antes de tornar o repositório ou os binários públicos**.
 
-## 5. Diagnostics bundles
+## Licenciamento
 
-`nexus diagnostics` (or an expanded `doctor`) assembles a support bundle
-only when you ask. Before creating it, Nexus shows exactly which data is
-included. API keys, cookies, provider tokens, and project files are never
-included automatically.
-
-## 6. Contact and rights
-
-For access, correction, or deletion requests regarding any beta data held
-by IAPro, use the official support channel named in the beta invitation.
+A política do source está em [LICENSING.md](LICENSING.md). O uso de qualquer provider depende adicionalmente dos respectivos contratos.

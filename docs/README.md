@@ -13,6 +13,8 @@ estender o Nexus.
 
 | Quero… | Comece em |
 | --- | --- |
+| visão de 30 segundos e comandos | [TL;DR](TLDR.md) |
+| entender restrições da licença | [Licenciamento](legal/LICENSING.md) |
 | testar em 5–10 minutos | [Quick Start](quick-start.md) |
 | entender o produto inteiro | [Como o Nexus funciona](product/how-it-works.md) |
 | abrir uma sessão agora | [Direct](product/direct.md) |
@@ -32,6 +34,7 @@ estender o Nexus.
 
 ### 1. Primeiro uso
 
+- [TL;DR](TLDR.md)
 - [Quick Start](quick-start.md)
 - [Getting Started](getting-started/README.md)
 - [Instalação nativa](getting-started/installation.md)
@@ -159,3 +162,10 @@ Para evitar confusão:
 
 Consulte [STYLE_GUIDE.md](STYLE_GUIDE.md). Regra principal: **fato verificável
 antes de marketing**.
+
+## Publicação e licença
+
+O source está preparado para a [PolyForm Strict 1.0.0](../LICENSE),
+com usos não comerciais permitidos e sem autorização geral para alterações
+ou redistribuição. Consulte [licenciamento](legal/LICENSING.md) e
+[checklist de abertura](PUBLICATION_CHECKLIST.md). **Não anunciar como open source**.

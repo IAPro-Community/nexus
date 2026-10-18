@@ -1,3 +1,5 @@
+> **Nota de atualização documental (18/10/2026):** HEAD observado em `release/v1.0.0`: `30f7e69bcf85446634144c315de76e621c221ea5`; arquivo `VERSION`: `1.0.0-beta.10`. O relatório detalhado abaixo contém snapshots históricos (inclusive de beta.7) e **não certifica este HEAD**. Sem evidência de homologação exact-SHA, o veredito de publicação estável permanece **NO-GO**. Nenhum instalador/URL de download foi validado nesta revisão documental.
+
 # Status público da release do Nexus v1
 
 Atualizado em 8 de outubro de 2026.

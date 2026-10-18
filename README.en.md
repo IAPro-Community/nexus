@@ -16,18 +16,7 @@ IAPro Nexus is a local workstation for working with coding agents. It organizes 
 
 ## Start in minutes
 
-The current source candidate is `1.0.0-beta.7`, with Linux amd64, Windows
-amd64 and macOS arm64 integrated in source. Native support remains
-evidence-bound and is not published/certified until the exact candidate SHA
-passes the required platform gates.
-
-There is currently **no public GitHub Release** in either the source repository
-or `IAPro-Community/nexus-releases`. The historical `v1.0.0-beta.1` source
-tag is not a downloadable signed binary release. Do not construct installer
-URLs from that tag.
-
-For engineering evaluation, build the source below. The signed binary install
-path becomes valid only after a release is actually published.
+The source candidate on `release/v1.0.0` declares **`1.0.0-beta.10`** as of 2026-10-18; this is **not** a certified or published stable 1.0. The repository remains private until publication checks complete. Platform support requires exact-SHA validation. Do not derive binary download URLs from historical tags or source versions.
 
 ### Developers (build from source)
 
@@ -76,4 +65,6 @@ The [Maestro integration](docs/product/maestro.md) is optional for the Direct pa
 
 ## Community
 
-[Security](SECURITY.md) · [Support](SUPPORT.md) · [Governance](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Beta License](LICENSE)
+[TL;DR](docs/TLDR.md) · [Docs](docs/README.md) · [Security](SECURITY.md) · [Support](SUPPORT.md) · [Governance](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [PolyForm Strict License](LICENSE) · [Licensing guide](docs/legal/LICENSING.md)
+
+**License:** source-available, noncommercial uses only, no derivative works or redistribution under PolyForm Strict 1.0.0; not OSI open source. Third-party components retain their own licenses. The stable release remains NO-GO.
