@@ -130,9 +130,11 @@ export function resolveNativeHudStatus(
   hasState: boolean,
   offline: boolean,
 ): NativeHudStatus {
-  if (enabled && hasState) return 'ready';
   if (enabled === false) return 'disabled';
-  if (offline || enabled === true) return 'offline';
+  // A previous HTTP snapshot is not proof that the native HUD is online.
+  if (offline) return 'offline';
+  if (enabled && hasState) return 'ready';
+  if (enabled === true) return 'offline';
   return 'loading';
 }
 
@@ -218,7 +220,7 @@ export const saveHudPreferences = (prefs: HudPresentationPreferences) => {
 
 export type HudCostDisplay = {
   label: string;
-  semantics: 'actual' | 'estimated' | 'known-partial' | 'unknown';
+  semantics: 'reported' | 'estimated' | 'known-partial' | 'unknown';
 };
 
 const formatUSD = (microusd: number) =>
@@ -243,7 +245,9 @@ export const formatHudCost = (cost?: HudCostSummary): HudCostDisplay => {
     cost.unknown_observation_count === 0 &&
     cost.evidence === 'MEASURED'
   ) {
-    return { label: value, semantics: 'actual' };
+    // Provider-reported usage is not proof of an invoiced API charge.
+    // Subscription plans can report equivalent token costs without billing.
+    return { label: value, semantics: 'reported' };
   }
   if (
     cost.unknown_observation_count === 0 &&

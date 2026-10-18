@@ -228,3 +228,11 @@ Native validation requires exact-SHA Windows/Linux/macOS smoke, taskbar position
 - Testes unitários cobrem identidade incompleta, evidência de quota, Missions ativas/terminadas e restauração de geometria antiga/expandida.
 
 A validação Windows anteriormente executada permanece como evidência histórica para os SHAs testados. **Estes novos commits não herdam homologação Windows exata**: os gates, o smoke real do HUD, a restauração após reinicialização e as evidências visuais precisam ser executados novamente no HEAD final. Não publicar tag ou release com base apenas no registro anterior.
+
+
+> **Cost evidence:** `PROVIDER_REPORTED` means a value present in the
+> provider's usage telemetry, **not** an invoice or proof of a charge.
+> The HUD labels this evidence `reported`. `API_EQUIVALENT_ESTIMATE`
+> and `INFERRED` remain estimates; no subscription token valuation is
+> merged into confirmed billing. An offline native HUD is never marked
+> ready solely because a previous snapshot remains in memory.

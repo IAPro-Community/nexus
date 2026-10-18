@@ -25,17 +25,18 @@ describe('HUD presentation model', () => {
     expect(resolveNativeHudStatus(undefined, false, true)).toBe('offline');
     expect(resolveNativeHudStatus(false, false, false)).toBe('disabled');
     expect(resolveNativeHudStatus(true, false, false)).toBe('offline');
-    expect(resolveNativeHudStatus(true, true, true)).toBe('ready');
+    expect(resolveNativeHudStatus(true, true, false)).toBe('ready');
+    expect(resolveNativeHudStatus(true, true, true)).toBe('offline');
   });
 
-  it('keeps provider-reported cost exact only with complete measured evidence', () => {
+  it('labels measured provider-reported usage without claiming actual billing', () => {
     expect(
       formatHudCost(
         cost({
           by_kind: [{ kind: 'PROVIDER_REPORTED', microusd: 4_200_000, count: 1 }],
         }),
       ).semantics,
-    ).toBe('actual');
+    ).toBe('reported');
   });
 
   it('marks inferred/API-equivalent cost as estimated', () => {
@@ -58,6 +59,26 @@ describe('HUD presentation model', () => {
     );
     expect(display.semantics).toBe('known-partial');
     expect(display.label).toContain('known');
+  });
+
+
+
+  it('never treats incomplete provider reports or subscription equivalents as an invoice', () => {
+    const incomplete = formatHudCost(
+      cost({
+        evidence: 'PARTIAL',
+        unknown_observation_count: 1,
+        by_kind: [{ kind: 'PROVIDER_REPORTED', microusd: 4_200_000, count: 1 }],
+      }),
+    );
+    expect(incomplete.semantics).toBe('known-partial');
+
+    const subscriptionEquivalent = formatHudCost(
+      cost({
+        by_kind: [{ kind: 'API_EQUIVALENT_ESTIMATE', microusd: 4_200_000, count: 1 }],
+      }),
+    );
+    expect(subscriptionEquivalent.semantics).toBe('estimated');
   });
 
   it('preserves UNKNOWN capacity instead of coercing it to zero', () => {
