@@ -314,11 +314,11 @@ func (h *HUDController) SaveHUDWindowState(state HUDWindowState) error {
 // survive a process restart as an invisible, oversized click-capturing window.
 // Preserve the bottom-right anchor for custom placements.
 func compactHUDWindowState(state HUDWindowState) HUDWindowState {
-  state = normalizeHUDWindowState(state)
-  constWidth, constHeight := 220, 60
-  state.X += state.Width - constWidth
-  state.Y += state.Height - constHeight
-  state.Width, state.Height = constWidth, constHeight
+	state = normalizeHUDWindowState(state)
+	const compactWidth, compactHeight = 220, 60
+	state.X += state.Width - compactWidth
+	state.Y += state.Height - compactHeight
+	state.Width, state.Height = compactWidth, compactHeight
   return state
 }
 
