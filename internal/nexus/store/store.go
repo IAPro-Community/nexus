@@ -127,6 +127,9 @@ func (s *Store) migrate() error {
 	if err := s.repairCapacityMonitorSchema(); err != nil {
 		return err
 	}
+	if err := s.repairTokenBarUsageSchema(); err != nil {
+		return err
+	}
 	return nil
 }
 
