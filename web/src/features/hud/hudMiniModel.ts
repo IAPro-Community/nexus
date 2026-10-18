@@ -1,4 +1,4 @@
-import { activeMission, isWorkingAgent, type HudMission, type HudProvider, type HudState } from './hudModel';
+import { isWorkingAgent, type HudMission, type HudProvider, type HudState } from './hudModel';
 
 export type HudTone = 'normal' | 'warning' | 'critical' | 'unknown';
 
@@ -37,7 +37,7 @@ const findProvider = (providers: HudProvider[], provider?: string, profile?: str
 
 export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
   const agents = state.agents.filter(isWorkingAgent);
-  const mission = activeMission(state.missions);
+  const mission = hudVisibleMission(state.missions);
   const exact = agents
     .map((agent) => findProvider(state.providers, agent.provider, agent.profile))
     .find((provider) => provider !== undefined);
