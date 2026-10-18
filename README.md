@@ -200,8 +200,8 @@ capacidades do Nexus.
 
 ## Nexus HUD
 
-> **Incluído no candidato `v1.0.0-beta.7`.** O HUD não é anunciado como
-> feature multiplataforma certificada até existir evidência nativa same-SHA.
+> **Introduzido na linha beta.7 e integrado ao source beta.10.** O HUD não é
+> anunciado como feature multiplataforma certificada sem evidência nativa do SHA de publicação.
 
 **Seu Nexus, sempre visível.** O Nexus HUD projeta o estado operacional já
 mantido pelo Core — Capacity Monitor, ResourceScheduler, Cost Intelligence,
