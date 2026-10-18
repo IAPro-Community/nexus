@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { hudOtherAccounts, hudPercentage, hudRemaining, selectHudFocus } from './hudMiniModel';
+import {
+  hudOtherAccounts,
+  hudPercentage,
+  hudPercentageFor,
+  hudQuotaEvidence,
+  hudRemaining,
+  hudVisibleMission,
+  selectHudFocus,
+} from './hudMiniModel';
 import type { HudProvider, HudState } from './hudModel';
 
 const provider = (patch: Partial<HudProvider> = {}): HudProvider => ({
@@ -99,6 +107,45 @@ describe('Nexus HUD compact state', () => {
     });
     const d = provider({ profile: 'd', freshness: 'UNKNOWN' });
     expect(hudOtherAccounts(state([a, b, c, d]), a)).toEqual([c, b, d]);
+  });
+
+  it('does not invent a runtime account for multiple profiles with missing identity', () => {
+    const a = provider({ profile: 'alpha' });
+    const b = provider({ profile: 'beta' });
+    const input = state([a, b]);
+    input.agents = [
+      { id: 'a', project_id: 'p', name: 'Coder', status: 'WORKING', provider: 'codex' },
+    ];
+    expect(selectHudFocus(input).active).toBe(false);
+    // A known provider alone cannot identify the active subscription account.
+    expect(selectHudFocus(input).provider).toBe(a);
+  });
+
+  it('labels a measured estimate and distinguishes cached quota from live', () => {
+    const estimated = provider({ freshness: 'ESTIMATED', limiting_window: {
+      kind: '5h', status: 'ESTIMATED', remaining_percent: 17.7,
+    } });
+    expect(hudQuotaEvidence(estimated)).toBe('estimated');
+    expect(hudPercentageFor(estimated)).toBe('~18%');
+    const cached = provider({ freshness: 'CACHED' });
+    expect(hudQuotaEvidence(cached)).toBe('cached');
+    expect(hudPercentageFor(cached)).toBe('68%');
+    const unavailable = provider({ freshness: 'STALE' });
+    expect(hudQuotaEvidence(unavailable)).toBe('unknown');
+    expect(hudPercentageFor(unavailable)).toBe('—');
+  });
+
+  it('displays active Missions but not terminal history, prioritizing intervention', () => {
+    const mission = (stateName: string, needsUser = false) => ({
+      run_id: stateName, project_id: 'p', state: stateName,
+      current_stage: 'execution', completed_packages: 2, total_packages: 5,
+      needs_user: needsUser, updated_at: new Date(0).toISOString(),
+    });
+    const running = mission('RUNNING');
+    const intervention = mission('BLOCKED_NEEDS_USER', true);
+    expect(hudVisibleMission([mission('COMPLETED_VERIFIED'), running])).toEqual(running);
+    expect(hudVisibleMission([running, intervention])).toEqual(intervention);
+    expect(hudVisibleMission([mission('FAILED_BUDGET_EXCEEDED')])).toBeUndefined();
   });
 
   it('does not promote an offline measurement to a current value', () => {
