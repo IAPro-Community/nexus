@@ -12,7 +12,7 @@ describe('first run detection', () => {
       [{ id: 'codex', installed: true, registration_state: 'PENDING_AUTH' }],
       'loaded',
     );
-    expect(status.status).toBe('needs-account');
+    expect(status.status).toBe('needs-login');
     expect(status.suggestedProvider).toBe('codex');
   });
 
@@ -26,6 +26,17 @@ describe('first run detection', () => {
     );
     expect(status.status).toBe('needs-account');
     expect(status.suggestedProvider).toBe('codex');
+  });
+
+  it('does not offer duplicate registration for an existing pending account', () => {
+    const state = deriveFirstRunReadiness(
+      [
+        { id: 'codex', installed: true, registration_state: 'PENDING_AUTH' },
+        { id: 'claude', installed: true, registration_state: 'INSTALLED_UNREGISTERED' },
+      ],
+      'loaded',
+    );
+    expect(state.status).toBe('needs-login');
   });
 
   it('reports readiness only when backend confirms authentication', () => {

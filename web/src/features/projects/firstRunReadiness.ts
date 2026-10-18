@@ -5,7 +5,7 @@ import type { ProviderInfo } from '../../types';
 export type FirstRunDetectionState = 'checking' | 'loaded' | 'unavailable';
 
 export type FirstRunReadiness = {
-  status: 'checking' | 'ready' | 'needs-account' | 'needs-provider' | 'unavailable';
+  status: 'checking' | 'ready' | 'needs-account' | 'needs-login' | 'needs-provider' | 'unavailable';
   title: string;
   description: string;
   suggestedProvider?: string;
@@ -44,16 +44,25 @@ export const deriveFirstRunReadiness = (
         'Já existe uma conta autenticada. Escolha a pasta do projeto e inicie sua sessão; a disponibilidade de quota será verificada separadamente.',
     };
   }
+  const pending = installed.find(
+    (provider) => provider.registration_state === 'PENDING_AUTH',
+  );
+  if (pending) {
+    return {
+      status: 'needs-login',
+      title: 'Conta aguardando autenticação',
+      description:
+        'Seu perfil já está cadastrado. Depois de adicionar um projeto, abra Uso/Contas para concluir o login — não crie uma conta duplicada.',
+      suggestedProvider: pending.id,
+    };
+  }
   if (installed.length > 0) {
-    const next = installed.find(
-      (provider) => provider.registration_state === 'PENDING_AUTH',
-    ) ?? installed[0];
     return {
       status: 'needs-account',
       title: installed.length === 1 ? 'Provedor instalado' : `${installed.length} provedores instalados`,
       description:
-        'O Nexus detectou a CLI, mas ainda não confirmou uma conta autenticada. Cadastre um perfil e conclua o login na seção Uso/Contas.',
-      suggestedProvider: next.id,
+        'O Nexus encontrou a CLI, mas não uma conta configurada. Adicione um perfil uma única vez; o login será solicitado na seção Uso/Contas.',
+      suggestedProvider: installed[0].id,
     };
   }
   return {

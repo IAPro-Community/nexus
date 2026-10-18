@@ -59,10 +59,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
     void detectEnvironment();
   }, [detectEnvironment]);
 
-  const readiness = deriveFirstRunReadiness(
-    providers,
-    detectionState,
-  );
+  const readiness = deriveFirstRunReadiness(providers, detectionState);
   const desktopPrerequisite = doctor?.checks.find(
     (check) =>
       (check.id === 'platform.webview2' || check.id === 'platform.webkitgtk') &&
@@ -202,11 +199,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
             <p>{readiness.description}</p>
           </div>
           {readiness.status === 'needs-account' && readiness.suggestedProvider && (
-            <Button
-              size="sm"
-              tone="brand"
-              onClick={() => setAccountModalOpen(true)}
-            >
+            <Button size="sm" tone="brand" onClick={() => setAccountModalOpen(true)}>
               <Plus size={14} aria-hidden="true" />
               Adicionar conta {readiness.suggestedProvider}
             </Button>

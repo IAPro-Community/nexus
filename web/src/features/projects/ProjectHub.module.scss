@@ -95,15 +95,6 @@
   white-space: nowrap;
 }
 
-.tip {
-  max-width: 620px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--nx-subtle);
-  font-size: 0.857rem;
-}
-
 .readiness {
   width: min(580px, 94vw);
   display: grid;
@@ -196,7 +187,6 @@
     font-size: 0.8rem;
     line-height: 1.25;
   }
-
 }
 
 @media (max-width: 720px) {
@@ -204,6 +194,7 @@
     align-content: start;
     padding: 24px 16px;
   }
+
   .readinessHeader {
     align-items: flex-start;
   }
