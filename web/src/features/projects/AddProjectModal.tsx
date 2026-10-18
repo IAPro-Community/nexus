@@ -13,7 +13,9 @@ export const AddProjectModal: React.FC<{
   open: boolean;
   onClose: () => void;
   onCreated: (project: Project) => void;
-}> = ({ open, onClose, onCreated }) => {
+  initialPath?: string;
+  initialName?: string;
+}> = ({ open, onClose, onCreated, initialPath = '', initialName = '' }) => {
   const { t } = useTranslation();
   const pathPlaceholder = t(
     getRepositoryPathPlaceholderKey(typeof navigator === 'undefined' ? '' : navigator.userAgent),
@@ -26,13 +28,16 @@ export const AddProjectModal: React.FC<{
   const [dirPickerOpen, setDirPickerOpen] = useState(false);
   const [scanModalOpen, setScanModalOpen] = useState(false);
 
-  // Reset form when modal opens
+  // Rehydrate only on modal open/explicit folder selection. Never use
+  // guessed absolute paths or silently create a project in a fake directory.
   useEffect(() => {
     if (open) {
+      setPath(initialPath);
+      setName(initialName);
       setError('');
       setInspectInfo(null);
     }
-  }, [open]);
+  }, [open, initialPath, initialName]);
 
   // Live inspect when path changes
   useEffect(() => {

@@ -15,7 +15,6 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Sparkles,
   Layers,
   Zap,
   FolderOpen,
@@ -69,7 +68,6 @@ export const ProjectManagerSurface: React.FC<{
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'mru' | 'name'>('mru');
   const [addOpen, setAddOpen] = useState(false);
-  const [templateOpen, setTemplateOpen] = useState(false);
   const [configProject, setConfigProject] = useState<Project | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [dirPickerOpen, setDirPickerOpen] = useState(false);
@@ -253,10 +251,6 @@ export const ProjectManagerSurface: React.FC<{
           <Button tone="ghost" onClick={() => setScanModalOpen(true)}>
             <RefreshCw size={14} />
             <span>{t('projectManager.scanOS')}</span>
-          </Button>
-          <Button onClick={() => setTemplateOpen(true)}>
-            <Sparkles size={14} />
-            <span>{t('projectManager.templatesTitle')}</span>
           </Button>
         </div>
       </div>
@@ -562,84 +556,18 @@ export const ProjectManagerSurface: React.FC<{
       {/* Add Project Modal with OS Explorer & Scanner integration */}
       <AddProjectModal
         open={addOpen}
-        onClose={() => setAddOpen(false)}
+        initialPath={newPath}
+        initialName={newName}
+        onClose={() => {
+          setAddOpen(false);
+          setNewPath('');
+          setNewName('');
+        }}
         onCreated={(proj) => {
           onProjectCreated(proj);
           onSelectProject(proj);
         }}
       />
-
-      {/* Starter Templates Modal */}
-      <Dialog
-        open={templateOpen}
-        onClose={() => setTemplateOpen(false)}
-        title={t('projectManager.templatesTitle')}
-      >
-        <div className="nx-templates-modal">
-          <div
-            className="nx-template-card"
-            onClick={() => {
-              setNewName('Fullstack SaaS App');
-              setNewPath('/projetos/saas-app');
-              setTemplateOpen(false);
-              setAddOpen(true);
-            }}
-          >
-            <div className="nx-template-icon">
-              <Layers size={20} />
-            </div>
-            <div>
-              <strong>{t('projectManager.templateFullstack')}</strong>
-              <p>React + Go/Node microservices with Maestro SaaS architecture guidelines.</p>
-            </div>
-            <Button size="sm" tone="brand">
-              {t('projectManager.useTemplate')}
-            </Button>
-          </div>
-
-          <div
-            className="nx-template-card"
-            onClick={() => {
-              setNewName('Core Microservice API');
-              setNewPath('/projetos/api-service');
-              setTemplateOpen(false);
-              setAddOpen(true);
-            }}
-          >
-            <div className="nx-template-icon">
-              <Zap size={20} />
-            </div>
-            <div>
-              <strong>{t('projectManager.templateApi')}</strong>
-              <p>REST / gRPC microservice scaffolded with TDD loop and schema verification.</p>
-            </div>
-            <Button size="sm" tone="brand">
-              {t('projectManager.useTemplate')}
-            </Button>
-          </div>
-
-          <div
-            className="nx-template-card"
-            onClick={() => {
-              setNewName('Developer CLI Tool');
-              setNewPath('/projetos/cli-tool');
-              setTemplateOpen(false);
-              setAddOpen(true);
-            }}
-          >
-            <div className="nx-template-icon">
-              <Bot size={20} />
-            </div>
-            <div>
-              <strong>{t('projectManager.templateCli')}</strong>
-              <p>Cobra / Commander command-line application with automated integration tests.</p>
-            </div>
-            <Button size="sm" tone="brand">
-              {t('projectManager.useTemplate')}
-            </Button>
-          </div>
-        </div>
-      </Dialog>
 
       {/* Project Configuration Modal */}
       {configProject && (

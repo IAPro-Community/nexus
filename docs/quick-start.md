@@ -97,3 +97,8 @@ Os antigos atalhos de projetos com caminhos absolutos fictícios foram
 removidos: cada projeto deve apontar para uma pasta selecionada no computador
 real. Quota, estimativa de custo, assinatura e fatura são conceitos diferentes;
 a primeira execução não os converte em crédito disponível.
+
+No gerenciador de projetos, a pasta escolhida em **Procurar** agora é
+passada diretamente ao modal de cadastro. Atalhos chamados de templates,
+mas que não geravam estrutura de projeto nem selecionavam diretórios reais,
+foram retirados da interface até existir um mecanismo de scaffolding confiável.
