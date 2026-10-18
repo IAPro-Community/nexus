@@ -12,7 +12,10 @@ export interface HudFocus {
 const usableRemaining = (provider?: HudProvider): number | null => {
   // Only known evidence classes may display a capacity percentage. A provider
   // can still report a stale numeric value when the observation is unavailable.
-  if (!provider || !['LIVE', 'CACHED', 'ESTIMATED'].includes(provider.freshness.toUpperCase())) {
+  if (
+    !provider ||
+    !['LIVE', 'CACHED', 'ESTIMATED'].includes(provider.freshness.toUpperCase())
+  ) {
     return null;
   }
   const value = provider.limiting_window?.remaining_percent;
@@ -96,7 +99,8 @@ export const hudQuotaEvidence = (provider?: HudProvider, offline = false): HudQu
 export const hudPercentageFor = (provider?: HudProvider, offline = false): string => {
   const remaining = hudRemaining(provider, offline);
   if (remaining === null) return '—';
-  return `${hudQuotaEvidence(provider, offline) === 'estimated' ? '~' : ''}${Math.round(remaining)}%`;
+  const prefix = hudQuotaEvidence(provider, offline) === 'estimated' ? '~' : '';
+  return `${prefix}${Math.round(remaining)}%`;
 };
 
 // Do not surface a completed/failed historical Mission as a current execution.
