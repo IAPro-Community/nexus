@@ -82,3 +82,29 @@ func TestHUDPlatformCapabilitiesKeepRuntimeBackedClaimsFailClosed(t *testing.T) 
 		t.Fatalf("runtime-backed HUD capabilities must remain false before ServiceStartup: %+v", caps)
 	}
 }
+
+func TestCompactHUDWindowStatePreservesBottomRightAnchor(t *testing.T) {
+	cases := []struct {
+		name string
+		in   HUDWindowState
+	}{
+		{"expanded", HUDWindowState{Placement: HUDPlacementCustom, X: 100, Y: 200, Width: 334, Height: 496}},
+		{"legacy", HUDWindowState{Placement: HUDPlacementCustom, X: 80, Y: 90, Width: 430, Height: 64}},
+		{"compact", HUDWindowState{Placement: HUDPlacementCustom, X: 600, Y: 800, Width: 220, Height: 60}},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			got := compactHUDWindowState(tt.in)
+			if got.Width != 220 || got.Height != 60 {
+				t.Fatalf("restored HUD must be compact, got %+v", got)
+			}
+			if got.X+got.Width != tt.in.X+tt.in.Width || got.Y+got.Height != tt.in.Y+tt.in.Height {
+				t.Fatalf("taskbar anchor changed: in=%+v got=%+v", tt.in, got)
+			}
+			again := compactHUDWindowState(got)
+			if got != again {
+				t.Fatalf("compact normalization must be idempotent: %+v != %+v", got, again)
+			}
+		})
+	}
+}
