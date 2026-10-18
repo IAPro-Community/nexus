@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { Dialog, Button, Badge } from '../../design-system';
 import { nexus } from '../../nexus/api';
+import { deriveFirstRunReadiness } from '../../features/projects/firstRunReadiness';
+import type { ProviderInfo } from '../../types';
 import styles from './WelcomeModal.module.scss';
 
 export const WelcomeModal: React.FC<{
@@ -25,6 +27,10 @@ export const WelcomeModal: React.FC<{
   const [activeTab, setActiveTab] = useState<'overview' | 'quickstart' | 'shortcuts' | 'system'>(
     'overview',
   );
+  const [providers, setProviders] = useState<ProviderInfo[]>([]);
+  const [detectionState, setDetectionState] = useState<'checking' | 'loaded' | 'unavailable'>(
+    'checking',
+  );
   const [sysInfo, setSysInfo] = useState<{
     nexus_version: string;
     maestro_version: string;
@@ -33,13 +39,27 @@ export const WelcomeModal: React.FC<{
   } | null>(null);
 
   useEffect(() => {
-    if (open) {
-      nexus
-        .getSystemUpdates()
-        .then(setSysInfo)
-        .catch(() => undefined);
-    }
+    if (!open) return;
+    let mounted = true;
+    setDetectionState('checking');
+    void Promise.allSettled([nexus.getSystemUpdates(), nexus.listProviderInstallations()]).then(
+      ([updates, detected]) => {
+        if (!mounted) return;
+        if (updates.status === 'fulfilled') setSysInfo(updates.value);
+        if (detected.status === 'fulfilled') {
+          setProviders(detected.value);
+          setDetectionState('loaded');
+        } else {
+          setDetectionState('unavailable');
+        }
+      },
+    );
+    return () => {
+      mounted = false;
+    };
   }, [open]);
+
+  const readiness = deriveFirstRunReadiness(providers, detectionState);
 
   return (
     <Dialog open={open} onClose={onClose} title={t('welcome.title')}>
@@ -174,6 +194,13 @@ export const WelcomeModal: React.FC<{
           {activeTab === 'system' && (
             <div className="nx-welcome-panel">
               <h4>{t('welcome.systemTitle')}</h4>
+              <div className="nx-system-versions-card" role="status" aria-live="polite">
+                <strong>{readiness.title}</strong>
+                <p>{readiness.description}</p>
+                {readiness.status === 'needs-login' && (
+                  <p>Seu perfil já está cadastrado: conclua o login em Uso/Contas.</p>
+                )}
+              </div>
               <div className="nx-system-versions-card">
                 <div className="nx-version-row">
                   <span>{t('welcome.nexusVer')}</span>
