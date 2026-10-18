@@ -74,3 +74,26 @@ consulte [troubleshooting](operations/troubleshooting.md).
 - [Consultar o modelo mental](product/mental-model.md)
 - [Configurar providers e quota](product/providers-and-usage.md)
 - [Referência da CLI](cli/README.md)
+
+## Primeira execução assistida
+
+Ao abrir a interface, o cadastro do primeiro projeto consulta **somente** os
+endpoints locais já existentes de detecção de provedores e diagnóstico do
+sistema. A verificação não cria contas, modifica arquivos de configuração,
+executa login nem instala ferramentas de terceiros.
+
+- Se houver conta autenticada detectada, escolha uma pasta real em
+  **Procurar** ou **Localizar repositórios** e abra uma AI Session.
+- Se uma CLI estiver instalada, mas ainda não tiver conta pronta, escolha
+  **Adicionar conta**, confirme o perfil e conclua a autenticação através
+  da seção **Uso/Contas**. Esse passo exige intervenção do usuário.
+- Se não houver CLI detectada, instale uma CLI de provedor compatível de
+  uma fonte oficial; o Nexus não baixa executáveis nem solicita tokens
+  automaticamente.
+- Se um diagnóstico não puder ser obtido, o cadastro de projeto continua
+  disponível: falha de detecção não deve impedir trabalhar em um projeto.
+
+Os antigos atalhos de projetos com caminhos absolutos fictícios foram
+removidos: cada projeto deve apontar para uma pasta selecionada no computador
+real. Quota, estimativa de custo, assinatura e fatura são conceitos diferentes;
+a primeira execução não os converte em crédito disponível.
