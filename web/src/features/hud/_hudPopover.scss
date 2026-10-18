@@ -270,3 +270,41 @@
 .dragHandle {
   touch-action: none;
 }
+
+.accountCard[data-evidence='estimated'] .track > .fill {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--hud-tone) 0,
+    var(--hud-tone) 6px,
+    #7b91aa 6px,
+    #7b91aa 9px
+  );
+}
+
+.missionPreview {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #354a63;
+  border-radius: 11px;
+  background: #253850;
+}
+
+.missionPreview > div {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+.missionPreview strong {
+  font-size: 11px;
+}
+
+.missionPreview span,
+.missionPreview small {
+  color: var(--hud-muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
