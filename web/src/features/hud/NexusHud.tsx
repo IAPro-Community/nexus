@@ -374,7 +374,12 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </div>
               <div className={styles.evidence}>
                 {focus?.provider?.source || 'Fonte não informada'} · {evidenceCopy}
-                {focus?.provider?.last_updated ? ` · ${new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(focus.provider.last_updated))}` : ''}
+                {focus?.provider?.last_updated
+                  ? ` · ${new Intl.DateTimeFormat(undefined, {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    }).format(new Date(focus.provider.last_updated))}`
+                  : ''}
               </div>
             </div>
 
@@ -465,20 +470,34 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </div>
             )}
 
-            {prefs.showMissions && showDetails('MISSION') && currentMission && !currentMission.needs_user && (
-              <div className={styles.missionPreview}>
-                <div>
-                  <strong>Mission · {currentMission.state}</strong>
-                  <span>{prefs.privacyMode ? currentMission.current_stage || 'Execução em andamento' : currentMission.current_task_title || currentMission.current_stage || 'Execução em andamento'}</span>
-                  {currentMission.total_packages > 0 && (
-                    <small>{currentMission.completed_packages}/{currentMission.total_packages} packages verificados</small>
+            {prefs.showMissions &&
+              showDetails('MISSION') &&
+              currentMission &&
+              !currentMission.needs_user && (
+                <div className={styles.missionPreview}>
+                  <div>
+                    <strong>Mission · {currentMission.state}</strong>
+                    <span>
+                      {prefs.privacyMode
+                        ? currentMission.current_stage || 'Execução em andamento'
+                        : currentMission.current_task_title ||
+                          currentMission.current_stage ||
+                          'Execução em andamento'}
+                    </span>
+                    {currentMission.total_packages > 0 && (
+                      <small>
+                        {currentMission.completed_packages}/{currentMission.total_packages} packages
+                        verificados
+                      </small>
+                    )}
+                  </div>
+                  {onOpenMissions && (
+                    <button type="button" className={styles.textLink} onClick={onOpenMissions}>
+                      Abrir
+                    </button>
                   )}
                 </div>
-                {onOpenMissions && (
-                  <button type="button" className={styles.textLink} onClick={onOpenMissions}>Abrir</button>
-                )}
-              </div>
-            )}
+              )}
 
             {prefs.showCapacity && showDetails('CAPACITY') && paceWarning?.pace?.exhausts_at && (
               <p className={styles.evidence}>
