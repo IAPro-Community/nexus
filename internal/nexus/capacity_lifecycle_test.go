@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/nexus/capacitymonitor"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -149,5 +150,71 @@ func TestCapacityStatusJoinsCanonicalKeyAndProtectsAccountScope(t *testing.T) {
 		default:
 			t.Fatalf("unexpected account: %+v", resource)
 		}
+	}
+}
+
+func TestCapacityStatusUsesActualEmittedFingerprint(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "capacity-alert-fingerprint.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	now := time.Now().UTC().Truncate(time.Second)
+	windowReset := now.Add(time.Hour)
+	expiry := now.Add(3 * time.Hour)
+	remaining := 12.0
+	key := "codex|work|default|5h"
+	state := store.CapacityStateRecord{
+		Key: key, Provider: "codex", Profile: "work",
+		QuotaGroup: "default", WindowKind: "5h",
+		State: "CRITICAL", AccountScope: "verified/account-a",
+		TransitionedAt: now, UpdatedAt: now,
+	}
+	if err := st.UpsertCapacityState(state); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UpsertCapacityObservation(store.ObservationRecord{
+		Provider: "codex", Profile: "work", QuotaGroup: "default",
+		WindowKind: "5h", Status: "LIVE", Source: "OFFICIAL_API",
+		RemainingPercent: &remaining, FetchedAt: now,
+		ExpiresAt: expiry, AccountScope: "verified/account-a",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	fingerprint := capacitymonitor.DeriveFingerprint(
+		"codex", "work", "default", "5h", "CRITICAL",
+		capacitymonitor.ResetCycleKey(&windowReset, expiry),
+	)
+	if err := st.PutCapacityEvent(store.CapacityEventRecord{
+		ID: "real-event", Fingerprint: fingerprint, Provider: "codex",
+		Profile: "work", QuotaGroup: "default", WindowKind: "5h",
+		Severity: "CRITICAL", EmittedAt: now, PayloadJSON: "{}",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutCapacityAlertState(store.AlertState{
+		Fingerprint: fingerprint, Acked: true, UpdatedAt: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	result, err := NewCapacityApplicationService(st).Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Resources) != 1 || result.Resources[0].Fingerprint != fingerprint ||
+		!result.Resources[0].Acked {
+		t.Fatalf("actual fingerprint/triage missing from capacity status: %+v", result)
+	}
+	// A no-event resource must not expose an invented alert fingerprint.
+	if _, err := st.DB().Exec("DELETE FROM capacity_events"); err != nil {
+		t.Fatal(err)
+	}
+	result, err = NewCapacityApplicationService(st).Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Resources[0].Fingerprint != "" || result.Resources[0].Acked {
+		t.Fatalf("fabricated event fingerprint without durable alert: %+v", result.Resources[0])
 	}
 }

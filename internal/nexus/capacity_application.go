@@ -133,12 +133,19 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 					rs.Pace = capacitymonitor.ForecastForObservation(samples, o, now)
 				}
 			}
-			fp := capacitymonitor.DeriveFingerprint(o.Provider, o.Profile, o.QuotaGroup, o.WindowKind, rec.State,
-				capacitymonitor.ResetCycleKey(nil, o.ExpiresAt))
-			rs.Fingerprint = fp
-			if triage, ok, terr := st.GetCapacityAlertState(fp); terr == nil && ok {
-				rs.Acked = triage.Acked
-				rs.SnoozedUntil = triage.SnoozedUntil
+			// Reuse the durable event fingerprint, not one reconstructed
+			// from snapshot expiry: the monitor prioritizes the real reset
+			// time, which can differ from expiry. Do not fabricate an alert
+			// for a state that has never emitted one.
+			lookup := rec
+			lookup.QuotaGroup = o.QuotaGroup
+			lookup.WindowKind = o.WindowKind
+			if fp, fpErr := st.LatestCapacityEventFingerprint(lookup); fpErr == nil {
+				rs.Fingerprint = fp
+				if triage, ok, terr := st.GetCapacityAlertState(fp); terr == nil && ok {
+					rs.Acked = triage.Acked
+					rs.SnoozedUntil = triage.SnoozedUntil
+				}
 			}
 		}
 		out.Resources = append(out.Resources, rs)
