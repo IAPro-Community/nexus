@@ -310,12 +310,24 @@ func (h *HUDController) SaveHUDWindowState(state HUDWindowState) error {
 	return h.manager.Save(state)
 }
 
+// The React HUD initializes collapsed. Persisted expanded geometry must never
+// survive a process restart as an invisible, oversized click-capturing window.
+// Preserve the bottom-right anchor for custom placements.
+func compactHUDWindowState(state HUDWindowState) HUDWindowState {
+  state = normalizeHUDWindowState(state)
+  constWidth, constHeight := 220, 60
+  state.X += state.Width - constWidth
+  state.Y += state.Height - constHeight
+  state.Width, state.Height = constWidth, constHeight
+  return state
+}
+
 func (h *HUDController) RestoreHUDWindow() {
 	window, ok := h.nativeWindow()
 	if !ok {
 		return
 	}
-	state := h.manager.Load()
+	state := compactHUDWindowState(h.manager.Load())
 	screen := h.screenForState(state, window)
 	if screen != nil {
 		// Named placements are resolved against the usable screen area, not
@@ -356,18 +368,23 @@ func (h *HUDController) CaptureHUDWindowState() error {
 func (h *HUDController) SetHUDExpanded(expanded bool) error {
 	window, ok := h.nativeWindow()
 	state := h.manager.Load()
-	oldWidth, oldHeight := state.Width, state.Height
+	targetWidth, targetHeight := 220, 60
 	if expanded {
-		state.Width, state.Height = 334, 496
-	} else {
-		state.Width, state.Height = 220, 60
+		targetWidth, targetHeight = 334, 496
 	}
-	// A right/bottom anchored HUD must grow UP and LEFT. Without this the
-	// popover expands under the taskbar or falls outside the work area.
+
+	// Native size is authoritative: a blur/capture may have persisted a
+	// different size between two user clicks. Always grow up/left from the
+	// *actual* window bottom-right rather than shifting from a stale snapshot.
+	oldWidth, oldHeight := state.Width, state.Height
 	if ok {
 		state.X, state.Y = window.Position()
-		state.X += oldWidth - state.Width
-		state.Y += oldHeight - state.Height
+		oldWidth, oldHeight = window.Size()
+	}
+	state.X += oldWidth - targetWidth
+	state.Y += oldHeight - targetHeight
+	state.Width, state.Height = targetWidth, targetHeight
+	if ok {
 		if screen := h.screenForState(state, window); screen != nil {
 			state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
 			state.DisplayID = screen.ID
