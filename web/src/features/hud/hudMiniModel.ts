@@ -82,10 +82,14 @@ export type HudQuotaEvidence = 'live' | 'cached' | 'estimated' | 'unknown';
 export const hudQuotaEvidence = (provider?: HudProvider, offline = false): HudQuotaEvidence => {
   if (hudRemaining(provider, offline) === null) return 'unknown';
   switch (provider?.freshness.toUpperCase()) {
-    case 'LIVE': return 'live';
-    case 'CACHED': return 'cached';
-    case 'ESTIMATED': return 'estimated';
-    default: return 'unknown';
+    case 'LIVE':
+      return 'live';
+    case 'CACHED':
+      return 'cached';
+    case 'ESTIMATED':
+      return 'estimated';
+    default:
+      return 'unknown';
   }
 };
 
@@ -95,12 +99,13 @@ export const hudPercentageFor = (provider?: HudProvider, offline = false): strin
   return `${hudQuotaEvidence(provider, offline) === 'estimated' ? '~' : ''}${Math.round(remaining)}%`;
 };
 
-
 // Do not surface a completed/failed historical Mission as a current execution.
 // The projection is ordered by update time; human intervention takes priority.
 export const hudVisibleMission = (missions: HudMission[]): HudMission | undefined =>
   missions.find((mission) => mission.needs_user) ||
-  missions.find((mission) => !/^(COMPLETED|CANCELED|CANCELLED|FAILED|STOPPED)(_|$)/i.test(mission.state));
+  missions.find(
+    (mission) => !/^(COMPLETED|CANCELED|CANCELLED|FAILED|STOPPED)(_|$)/i.test(mission.state),
+  );
 
 export const hudOtherAccounts = (state: HudState, focused?: HudProvider) =>
   state.providers
