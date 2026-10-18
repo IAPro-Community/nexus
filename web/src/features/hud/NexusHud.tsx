@@ -27,7 +27,14 @@ import {
   type HudPresentationPreferences,
   type HudResponse,
 } from './hudModel';
-import { hudOtherAccounts, hudPercentage, hudRemaining, selectHudFocus } from './hudMiniModel';
+import {
+  hudOtherAccounts,
+  hudPercentageFor,
+  hudQuotaEvidence,
+  hudRemaining,
+  hudVisibleMission,
+  selectHudFocus,
+} from './hudMiniModel';
 import styles from './NexusHud.module.scss';
 
 const MIN_REFRESH_MS = 15_000;
@@ -171,14 +178,22 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         (!item.profile || item.profile.toLowerCase() === focus?.provider?.profile.toLowerCase()),
     ) || state?.alerts[0];
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
-  const activeMission = state?.missions.find((mission) => mission.needs_user);
+  const currentMission = state ? hudVisibleMission(state.missions) : undefined;
+  const activeMission = currentMission?.needs_user ? currentMission : undefined;
   const isAttention = Boolean(alert || activeMission);
   const displayTone = offline
     ? 'unknown'
     : activeMission || alert?.severity.toUpperCase() === 'WARNING'
       ? 'warning'
       : focus?.tone || (alert ? 'warning' : 'unknown');
-  const displayPercent = offline ? '—' : hudPercentage(focus?.remaining ?? null);
+  const displayPercent = hudPercentageFor(focus?.provider, offline);
+  const quotaEvidence = hudQuotaEvidence(focus?.provider, offline);
+  const evidenceCopy = {
+    live: 'Ao vivo',
+    cached: 'Em cache',
+    estimated: 'Estimativa',
+    unknown: 'Não confirmado',
+  }[quotaEvidence];
   const focusedName = focus?.provider?.provider || 'Nexus';
   const displayName =
     focusedName === 'Nexus'
@@ -323,7 +338,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             <div className={styles.sectionCaption}>
               {focus?.active ? 'Conta em execução' : 'Recurso em destaque'}
             </div>
-            <div className={styles.accountCard} data-tone={tone}>
+            <div className={styles.accountCard} data-tone={tone} data-evidence={quotaEvidence}>
               <div className={styles.accountTop}>
                 <span className={styles.accountTitle}>
                   <span className={styles.statusDot} />
@@ -358,8 +373,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 </span>
               </div>
               <div className={styles.evidence}>
-                {focus?.provider?.source || 'Fonte não informada'} ·{' '}
-                {focus?.provider?.freshness || 'UNKNOWN'}
+                {focus?.provider?.source || 'Fonte não informada'} · {evidenceCopy}
+                {focus?.provider?.last_updated ? ` · ${new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(focus.provider.last_updated))}` : ''}
               </div>
             </div>
 
@@ -383,7 +398,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                       <span className={styles.smallTrack}>
                         {remaining !== null && <span style={{ width: `${remaining}%` }} />}
                       </span>
-                      <strong>{hudPercentage(remaining)}</strong>
+                      <strong>{hudPercentageFor(provider, offline)}</strong>
                     </div>
                   );
                 })}
@@ -413,7 +428,10 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 <AlertTriangle size={18} aria-hidden="true" />
                 <div>
                   <strong>Capacidade em atenção</strong>
-                  <span>{alert.reason || alert.severity}</span>
+                  <span>
+                    {alert.provider ? `${alert.provider}: ` : ''}
+                    {alert.reason || alert.severity}
+                  </span>
                 </div>
               </div>
             ) : tone === 'unknown' ? (
@@ -443,6 +461,21 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   <button type="button" className={styles.cta} onClick={onOpenUsage || onOpenNexus}>
                     Ver recurso <ExternalLink size={14} />
                   </button>
+                )}
+              </div>
+            )}
+
+            {prefs.showMissions && showDetails('MISSION') && currentMission && !currentMission.needs_user && (
+              <div className={styles.missionPreview}>
+                <div>
+                  <strong>Mission · {currentMission.state}</strong>
+                  <span>{prefs.privacyMode ? currentMission.current_stage || 'Execução em andamento' : currentMission.current_task_title || currentMission.current_stage || 'Execução em andamento'}</span>
+                  {currentMission.total_packages > 0 && (
+                    <small>{currentMission.completed_packages}/{currentMission.total_packages} packages verificados</small>
+                  )}
+                </div>
+                {onOpenMissions && (
+                  <button type="button" className={styles.textLink} onClick={onOpenMissions}>Abrir</button>
                 )}
               </div>
             )}
@@ -517,6 +550,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             type="button"
             className={styles.capsule}
             data-tone={tone}
+            data-evidence={quotaEvidence}
             aria-label={`${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${currentPercent} restante`}
             aria-expanded={expanded}
             aria-controls={expanded ? 'nexus-hud-popover' : undefined}
@@ -570,6 +604,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               <strong>{focus?.provider?.limiting_window?.reset_description || '—'}</strong>
             </div>
             <div className={styles.hoverStatus}>
+              {!offline && <span className={styles.evidenceIndicator}>{evidenceCopy} · </span>}
               {offline
                 ? `Sem conexão · última leitura ${lastSuccessAt ? `${Math.max(1, Math.round((Date.now() - lastSuccessAt) / 60_000))} min atrás` : 'indisponível'}`
                 : isAttention
