@@ -1,4 +1,4 @@
-import { activeMission, isWorkingAgent, type HudProvider, type HudState } from './hudModel';
+import { activeMission, isWorkingAgent, type HudMission, type HudProvider, type HudState } from './hudModel';
 
 export type HudTone = 'normal' | 'warning' | 'critical' | 'unknown';
 
@@ -94,6 +94,13 @@ export const hudPercentageFor = (provider?: HudProvider, offline = false): strin
   if (remaining === null) return '—';
   return `${hudQuotaEvidence(provider, offline) === 'estimated' ? '~' : ''}${Math.round(remaining)}%`;
 };
+
+
+// Do not surface a completed/failed historical Mission as a current execution.
+// The projection is ordered by update time; human intervention takes priority.
+export const hudVisibleMission = (missions: HudMission[]): HudMission | undefined =>
+  missions.find((mission) => mission.needs_user) ||
+  missions.find((mission) => !/^(COMPLETED|CANCELED|CANCELLED|FAILED|STOPPED)(_|$)/i.test(mission.state));
 
 export const hudOtherAccounts = (state: HudState, focused?: HudProvider) =>
   state.providers
