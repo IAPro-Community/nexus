@@ -122,9 +122,14 @@ describe('Nexus HUD compact state', () => {
   });
 
   it('labels a measured estimate and distinguishes cached quota from live', () => {
-    const estimated = provider({ freshness: 'ESTIMATED', limiting_window: {
-      kind: '5h', status: 'ESTIMATED', remaining_percent: 17.7,
-    } });
+    const estimated = provider({
+      freshness: 'ESTIMATED',
+      limiting_window: {
+        kind: '5h',
+        status: 'ESTIMATED',
+        remaining_percent: 17.7,
+      },
+    });
     expect(hudQuotaEvidence(estimated)).toBe('estimated');
     expect(hudPercentageFor(estimated)).toBe('~18%');
     const cached = provider({ freshness: 'CACHED' });
@@ -137,9 +142,14 @@ describe('Nexus HUD compact state', () => {
 
   it('displays active Missions but not terminal history, prioritizing intervention', () => {
     const mission = (stateName: string, needsUser = false) => ({
-      run_id: stateName, project_id: 'p', state: stateName,
-      current_stage: 'execution', completed_packages: 2, total_packages: 5,
-      needs_user: needsUser, updated_at: new Date(0).toISOString(),
+      run_id: stateName,
+      project_id: 'p',
+      state: stateName,
+      current_stage: 'execution',
+      completed_packages: 2,
+      total_packages: 5,
+      needs_user: needsUser,
+      updated_at: new Date(0).toISOString(),
     });
     const running = mission('RUNNING');
     const intervention = mission('BLOCKED_NEEDS_USER', true);
