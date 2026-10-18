@@ -169,6 +169,12 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     [state, focus?.provider],
   );
   const cost = useMemo(() => formatHudCost(state?.cost), [state?.cost]);
+  const costEvidenceLabel = {
+    reported: 'Informado pelo provedor',
+    estimated: 'Estimativa',
+    'known-part': 'Parcial',
+    unknown: 'Desconhecido',
+  } as const;
   const showDetails = (kind: HudPresentationPreferences['mode']) =>
     prefs.mode === 'AUTO' || prefs.mode === kind;
   const alert =
@@ -520,10 +526,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             )}
             {prefs.showCost &&
               !prefs.privacyMode &&
+              !offline &&
               prefs.mode === 'AUTO' &&
               cost.semantics !== 'unknown' && (
                 <span className={styles.evidence}>
-                  Custo: {cost.label} · {cost.semantics}
+                  Custo: {cost.label} · {costEvidenceLabel[cost.semantics]}
                 </span>
               )}
             {alert && (
