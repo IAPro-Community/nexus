@@ -28,7 +28,8 @@ export const deriveFirstRunReadiness = (
     return {
       status: 'unavailable',
       title: 'Não foi possível verificar os provedores',
-      description: 'Você ainda pode adicionar seu projeto. Tente verificar novamente quando o Nexus estiver disponível.',
+      description:
+        'Você ainda pode adicionar seu projeto. Tente verificar novamente quando o Nexus estiver disponível.',
     };
   }
 
@@ -39,14 +40,15 @@ export const deriveFirstRunReadiness = (
   if (authenticated.length > 0) {
     return {
       status: 'ready',
-      title: authenticated.length === 1 ? 'Conta detectada' : `${authenticated.length} provedores com conta detectada`,
+      title:
+        authenticated.length === 1
+          ? 'Conta detectada'
+          : `${authenticated.length} provedores com conta detectada`,
       description:
         'Já existe uma conta autenticada. Escolha a pasta do projeto e inicie sua sessão; a disponibilidade de quota será verificada separadamente.',
     };
   }
-  const pending = installed.find(
-    (provider) => provider.registration_state === 'PENDING_AUTH',
-  );
+  const pending = installed.find((provider) => provider.registration_state === 'PENDING_AUTH');
   if (pending) {
     return {
       status: 'needs-login',
@@ -59,7 +61,8 @@ export const deriveFirstRunReadiness = (
   if (installed.length > 0) {
     return {
       status: 'needs-account',
-      title: installed.length === 1 ? 'Provedor instalado' : `${installed.length} provedores instalados`,
+      title:
+        installed.length === 1 ? 'Provedor instalado' : `${installed.length} provedores instalados`,
       description:
         'O Nexus encontrou a CLI, mas não uma conta configurada. Adicione um perfil uma única vez; o login será solicitado na seção Uso/Contas.',
       suggestedProvider: installed[0].id,

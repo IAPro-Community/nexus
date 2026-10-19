@@ -180,7 +180,9 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
           <Button
             type="submit"
             tone="brand"
-            disabled={submitting || !providers.some((p) => p.id === selectedProvider && p.installed)}
+            disabled={
+              submitting || !providers.some((p) => p.id === selectedProvider && p.installed)
+            }
           >
             <Plus size={14} />
             {submitting ? t('usage.registering') : t('usage.registerProvider', 'Registrar')}

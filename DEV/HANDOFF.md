@@ -1,5 +1,20 @@
 # Handoff
 
+## Estado atual — homologação e correções Windows 1.0.0 — 2026-10-19
+
+- Branch: `release/v1.0.0`, HEAD remoto `560a83b20c62611734e934d980b5725c3ef24cf1`.
+- Homologação Windows concluída com veredito auditado e todos os 10 passos executados em pasta isolada de evidências (`DEV/validation/windows-first-run/560a83b20c62611734e934d980b5725c3ef24cf1/`).
+- Correções aplicadas no código local:
+  1. `web/src/features/hud/NexusHud.tsx`: corrigido `'known-partial'` (TS2551). `bun run --cwd web quality:full` agora passa com 100% de sucesso.
+  2. `install.ps1`: corrigido crash de `Test-Path ""` com `-InstallDir` e garantida compatibilidade com StrictMode no PowerShell 5.1.
+  3. `uninstall.ps1`: compatibilidade StrictMode no PowerShell 5.1 (teste de unidade de desinstalação agora passa no PS 5.1 nativo).
+  4. `internal/nexus/capacity_lifecycle_test.go`: formatado com `gofmt -w` (0 arquivos Go pendentes de formatação).
+  5. Frontend: 5 arquivos formatados com Prettier (`bun run --cwd web format`).
+  6. Documentação: executado `docs:capture` e atualizado `docs/assets/screenshots/manifest.json`.
+- Próxima ação para o Maestro:
+  - Revisar as alterações locais (`git diff`).
+  - Caso aprove, autorizar a criação de commit e publicação da release com os artefatos assinados.
+
 ## Estado atual — homologação Windows beta.10 — 2026-10-17 (continuação)
 
 Branch elease/v1.0.0, HEAD 984c2b0f (984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17); remoto origin/release/v1.0.0 em $(6552f3d0b834bf94026e3ce9bd415f826fa57df7.Substring(0,12)). Três commits novos foram criados após o SHA-base 5d5aea9211b5154e96b036c519a61de9723593b1; seis commits locais estão acima do remoto, ainda sem push.

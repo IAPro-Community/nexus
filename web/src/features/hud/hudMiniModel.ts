@@ -12,10 +12,7 @@ export interface HudFocus {
 const usableRemaining = (provider?: HudProvider): number | null => {
   // Only known evidence classes may display a capacity percentage. A provider
   // can still report a stale numeric value when the observation is unavailable.
-  if (
-    !provider ||
-    !['LIVE', 'CACHED', 'ESTIMATED'].includes(provider.freshness.toUpperCase())
-  ) {
+  if (!provider || !['LIVE', 'CACHED', 'ESTIMATED'].includes(provider.freshness.toUpperCase())) {
     return null;
   }
   const value = provider.limiting_window?.remaining_percent;

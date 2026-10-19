@@ -27,7 +27,7 @@ $ReleaseDownloadBase = if ($env:NEXUS_RELEASE_BASE_URL) { $env:NEXUS_RELEASE_BAS
 $SourceRepo = if ($env:NEXUS_SOURCE_REPO) { $env:NEXUS_SOURCE_REPO } else { "IAPro-Community/nexus" }
 $SourceUrl = "https://github.com/$SourceRepo"
 
-$IsWindowsOS = ($IsWindows -or ($env:OS -like "*Windows*"))
+$IsWindowsOS = if (Test-Path Variable:IsWindows) { [bool]$IsWindows } else { ($env:OS -like "*Windows*") }
 
 function Ensure-GoCompiler {
     if (Get-Command go -ErrorAction SilentlyContinue) {
@@ -201,7 +201,7 @@ if (-not (Test-Path $TargetDir)) {
     New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
 }
 
-if ($IsWindowsOS -and (Test-Path $LegacyTargetDir)) {
+if ($IsWindowsOS -and (-not [string]::IsNullOrWhiteSpace($LegacyTargetDir)) -and (Test-Path $LegacyTargetDir)) {
     Write-Host "Legacy ai-cli installation found at $LegacyTargetDir; leaving it untouched while installing IAPro Nexus to $TargetDir." -ForegroundColor Gray
 }
 

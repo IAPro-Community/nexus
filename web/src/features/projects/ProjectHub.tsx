@@ -206,8 +206,8 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
           )}
           {desktopPrerequisite && (
             <p className={styles.readinessWarning}>
-              Desktop: dependência nativa ainda não confirmada. O terminal e o
-              navegador podem continuar disponíveis; consulte o diagnóstico do sistema.
+              Desktop: dependência nativa ainda não confirmada. O terminal e o navegador podem
+              continuar disponíveis; consulte o diagnóstico do sistema.
             </p>
           )}
         </Card>

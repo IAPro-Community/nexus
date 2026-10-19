@@ -1,4 +1,4 @@
-# IAPro Nexus uninstaller for Windows / PowerShell Core.
+﻿# IAPro Nexus uninstaller for Windows / PowerShell Core.
 # Removes Nexus-managed binaries and shortcut while preserving user data.
 param(
     [string]$InstallDir = "",
@@ -7,7 +7,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$IsWindowsOS = ($IsWindows -or ($env:OS -like "*Windows*"))
+$IsWindowsOS = if (Test-Path Variable:IsWindows) { [bool]$IsWindows } else { ($env:OS -like "*Windows*") }
 
 if ([string]::IsNullOrWhiteSpace($InstallDir)) {
     if (-not $IsWindowsOS) {

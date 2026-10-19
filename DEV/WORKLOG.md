@@ -1,6 +1,31 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
-## 2026-10-18 — Correção de Digitação e Delegação de Foco nos Terminais do Nexus
+## 2026-10-19 — Homologação Windows 1.0.0 e Correções dos Bloqueadores
+
+- **Missão:** Execução da homologação independente e rigorosa do Nexus 1.0.0 no Windows 11 (`release/v1.0.0`, commit base `560a83b20c62611734e934d980b5725c3ef24cf1`).
+- **Investigação e Diagnóstico das Causas Raiz:**
+  1. `web/src/features/hud/NexusHud.tsx:533`: erro TS2551 no typecheck (`Property 'known-partial' does not exist on type...`). O objeto `costEvidenceLabel` declarava a chave `'known-part'` enquanto `HudCostDisplay.semantics` define `'known-partial'`.
+  2. `install.ps1:204`: crash ao receber `-InstallDir` no Windows. Quando `$InstallDir` é passado, `$LegacyTargetDir` era inicializado como string vazia `""`. Na linha 204, `Test-Path $LegacyTargetDir` recebia string vazia, disparando `ParameterArgumentValidationErrorEmptyStringNotAllowed` no PowerShell com `$ErrorActionPreference = 'Stop'`.
+  3. `install.ps1:30` e `uninstall.ps1:10`: no PowerShell 5.1 padrão com `Set-StrictMode -Version Latest`, a leitura de `$IsWindows` causava exceção terminante por variável não definida (`VariableIsUndefined`).
+  4. `install.ps1` e `uninstall.ps1`: codificação de arquivos sem UTF-8 BOM fazia com que caracteres multi-byte (`✓`, `⚠️`) corrompessem o parser AST do PowerShell 5.1.
+  5. `internal/nexus/capacity_lifecycle_test.go:121`: desalinhamento no struct literal apontado por `gofmt -l`.
+  6. Arquivos React/TS do commit `560a83b2`: 5 arquivos sem formatação Prettier (`hudMiniModel.ts`, `hudModel.test.ts`, `firstRunReadiness.ts`, `ProjectHub.tsx`, `RegisterProviderModal.tsx`).
+  7. Documentação: manifesto visual desatualizado em relação às novas telas do Nexus.
+- **Ações e Correções Implementadas:**
+  1. `web/src/features/hud/NexusHud.tsx`: alinhada chave `'known-partial': 'Parcial'` em `costEvidenceLabel`.
+  2. `install.ps1`: adicionada verificação `(-not [string]::IsNullOrWhiteSpace($LegacyTargetDir))` antes de invocar `Test-Path $LegacyTargetDir`.
+  3. `install.ps1` e `uninstall.ps1`: alterada checagem para `Test-Path Variable:IsWindows` para compatibilidade total com StrictMode no PowerShell 5.1 e salvos com UTF-8 BOM.
+  4. `internal/nexus/capacity_lifecycle_test.go`: executado `gofmt -w` (100% dos arquivos Go do repo agora passam em `gofmt -l`).
+  5. Frontend: executado `bun run --cwd web format` formatando os 5 arquivos TS/TSX com Prettier.
+  6. Documentação: executado `bun run --cwd web docs:capture` gerando novos screenshots e atualizando `docs/assets/screenshots/manifest.json`.
+- **Verificação e Evidências:**
+  - `bun run --cwd web quality:full`: PASS (100% aprovado cobrindo `check:styles`, `format:check`, `lint`, `lint:styles`, `typecheck`, 565 testes Vitest e `build`).
+  - Testes Go: `./internal/control/web`, `./internal/nexus/...`, `./internal/doctor/...` 100% PASS (565s).
+  - Testes de terminal e ConPTY: `internal/control/terminal`, `internal/control/host`, `internal/runtime` 100% PASS.
+  - Testes de desktop/HUD: `internal/desktop/...` 100% PASS.
+  - Teste de desinstalação: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-uninstall-windows.ps1` PASS no PowerShell 5.1 nativo.
+  - Teste de instalação com `-InstallDir`: `install.ps1 -BuildFromSource -InstallDir <custom-dir> -Yes` PASS.
+  - Pacote de evidências completo gerado em `DEV/validation/windows-first-run/560a83b20c62611734e934d980b5725c3ef24cf1/` e compactado em `nexus-windows-homologation-560a83b2.zip`.
 
 - Investigação e Diagnóstico das Causas Raiz:
   1. **ConPTY Desabilitado para o Provedor Shell no Windows**:

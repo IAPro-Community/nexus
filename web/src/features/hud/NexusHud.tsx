@@ -172,7 +172,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const costEvidenceLabel = {
     reported: 'Informado pelo provedor',
     estimated: 'Estimativa',
-    'known-part': 'Parcial',
+    'known-partial': 'Parcial',
     unknown: 'Desconhecido',
   } as const;
   const showDetails = (kind: HudPresentationPreferences['mode']) =>

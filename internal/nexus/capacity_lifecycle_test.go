@@ -118,7 +118,7 @@ func TestCapacityStatusJoinsCanonicalKeyAndProtectsAccountScope(t *testing.T) {
 		if err := st.RecordCapacityPaceSample(store.CapacityPaceSample{
 			Provider: "codex", Profile: "account-a", AccountScope: "verified/a",
 			QuotaGroup: "default", WindowKind: "5h", ResetAt: reset,
-			ObservedAt: now.Add(-time.Duration(20-i*10) * time.Minute),
+			ObservedAt:  now.Add(-time.Duration(20-i*10) * time.Minute),
 			UsedPercent: percent, Source: "OFFICIAL_API",
 		}); err != nil {
 			t.Fatal(err)

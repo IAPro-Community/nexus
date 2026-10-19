@@ -61,8 +61,6 @@ describe('HUD presentation model', () => {
     expect(display.label).toContain('known');
   });
 
-
-
   it('never treats incomplete provider reports or subscription equivalents as an invoice', () => {
     const incomplete = formatHudCost(
       cost({
