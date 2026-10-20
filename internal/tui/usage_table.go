@@ -748,7 +748,13 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		if !msg.silent {
-			m.statusMsg = "Quotas atualizadas"
+			// Render cached rows immediately, then probe live sources off the
+			// Bubble Tea event loop. Merely polling local quota.json for another
+			// minute can repeat a 25-day-old Codex observation indefinitely.
+			m.statusMsg = "Lendo quotas atuais em segundo plano…"
+			if len(m.options.ProfilesToLoad) > 0 {
+				return m, refreshAllCmd(m.options.ProfilesToLoad, m.options.Defaults)
+			}
 		}
 		return m, nil
 
