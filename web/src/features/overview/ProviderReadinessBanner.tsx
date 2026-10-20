@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button, Card } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import { deriveFirstRunReadiness, OFFICIAL_PROVIDER_INSTALL_GUIDES } from '../projects/firstRunReadiness';
+import {
+  deriveFirstRunReadiness,
+  OFFICIAL_PROVIDER_INSTALL_GUIDES,
+} from '../projects/firstRunReadiness';
 import type { ProviderInfo } from '../../types';
 import styles from './ProviderReadinessBanner.module.scss';
 
@@ -34,7 +37,9 @@ export const ProviderReadinessBanner: React.FC<{ onOpenAccounts: () => void }> =
   return (
     <Card className={styles.banner} data-testid="provider-readiness-banner">
       <div className={styles.copy} role="status" aria-live="polite">
-        <strong><AlertCircle size={15} aria-hidden="true" /> {readiness.title}</strong>
+        <strong>
+          <AlertCircle size={15} aria-hidden="true" /> {readiness.title}
+        </strong>
         <p>{readiness.description}</p>
       </div>
       <div className={styles.actions}>
