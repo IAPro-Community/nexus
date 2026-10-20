@@ -158,7 +158,7 @@ export const HUD_PREFERENCES_KEY = 'iapro:nexus:hud:presentation:v1';
 
 export const defaultHudPreferences: HudPresentationPreferences = {
   version: 1,
-  enabled: true,
+  enabled: false,
   mode: 'AUTO',
   surfaceMode: 'docked',
   dock: 'bottom',
