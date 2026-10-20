@@ -1,5 +1,28 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-20 — Homologação Independente Integral e Fechamento Multiplataforma (Linux & Windows)
+
+- **Missão:** Homologação integral e independente do Nexus 1.0.0 na branch `release/v1.0.0` com certificação contínua de gates no Linux e GitHub Actions Windows runner.
+- **SHA Inicial da Sessão:** `63548e4f97240022372cad2653769296763972d1`
+- **SHA Candidato Final:** `7b152ea64e1e0757ee71ec02a77ec8127fbaf4e8`
+- **Problemas Demonstrados e Corrigidos Diretamente na Branch:**
+  1. `internal/app/codex_launch_preflight.go:121`: shadowing da struct `type candidate struct` pela variável de loop `candidate := range toProbe`, impedindo compilação (Commit `d82f632f`).
+  2. `scripts/certify-windows-first-run.ps1` e `scripts/certify-tokenbar-integration.*`: falha ao extrair nome de branch em checkout detached HEAD no runner CI do GitHub Actions (Commit `ee17c618`).
+  3. `internal/nexus/resource_discovery_truth_test.go`: falha de expiração de quota do Codex por ausência de `FetchedAt: time.Now()` (Commit `c42d9deb`).
+  4. 7 arquivos Go de commits remotos não formatados e shadowing do pacote `model` em `internal/tui/usage_table_test.go` (Commit `e30381aa`).
+  5. `govulncheck` falhando no Go 1.25.14 por vulnerabilidade recente da biblioteca padrão Go `net/http` (GO-2026-6617 / CVE-2026-6617): fixado Go 1.26.9 para checagens de vulnerabilidades stdlib no `homologate-beta.ps1`, `homologate-beta.sh` e workflow CI Windows (Commit `ee66763a`).
+  6. `scripts/certify-windows-first-run.ps1`: verificação de toolchain rejeitando Go 1.26.9 no Windows: alinhada regex para permitir `\bgo1\.(25\.14|26\.9)\b` (Commit `bef76691`).
+  7. `internal/release/installer_test.go:508`: falha de `TestPublicLicenseMetadataMatchesLicenseFile` decorrente da migração para PolyForm Strict 1.0.0: alinhada expectativa do teste e suporte resiliente a quebras de linha CRLF (Commit `7b152ea6`).
+- **Verificação de Gates:**
+  - `go run ./scripts/verify-version-contract.go .`: PASS (1.0.0-beta.10).
+  - `gofmt -l .`: PASS (0 divergências).
+  - `go vet ./...`: PASS (0 erros).
+  - `govulncheck`: PASS (0 vulnerabilidades).
+  - Frontend quality (`npm run quality:full`): PASS (Vitest 573 testes, typecheck, lint, styles, build).
+  - Browser E2E (`surface`, `capacity`, `composer-themes` em 20 temas e múltiplos viewports): PASS.
+  - Binários locais do host atualizados em `/home/desenvolvedor/.local/bin/` (`nexus`, `nexus-desktop`, `nexus-hud`).
+  - Dossiê e arquivo de evidências compactado: `/projetos/LINUX_HOMOLOGATION_EVIDENCE_7b152ea6.zip`.
+
 ## 2026-10-20 — Homologação Nativa Linux 1.0.0 e Remediação dos Bloqueadores
 
 - **Missão:** Homologação integral do IAPro Nexus 1.0.0 nativo no Linux (Ubuntu 25.10 x86_64, Wayland/XWayland, GTK3, WebKit2GTK 4.1), branch `release/v1.0.0`.

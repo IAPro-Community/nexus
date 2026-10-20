@@ -1,6 +1,23 @@
 # Handoff
 
-## Estado atual — homologação e correções Linux 1.0.0 — 2026-10-20
+## Estado atual — homologação e certificação independente 1.0.0 — 2026-10-20
+
+- **Branch:** `release/v1.0.0`, SHA inicial `88094c2406c4f50ff4506bd9d8f63fce0428d328`, HEAD final homologado `7b152ea64e1e0757ee71ec02a77ec8127fbaf4e8`.
+- **Status da Branch:** Todos os commits de correção foram enviados via fast-forward para `origin/release/v1.0.0`. O worktree está limpo e sincronizado.
+- **Binários Instalados no Host:**
+  - `/home/desenvolvedor/.local/bin/nexus` (v1.0.0-beta.10, commit `7b152ea6`)
+  - `/home/desenvolvedor/.local/bin/nexus-desktop` (v1.0.0-beta.10, commit `7b152ea6`)
+  - `/home/desenvolvedor/.local/bin/nexus-hud` (v1.0.0-beta.10, commit `7b152ea6`)
+  - Dados do usuário, banco de dados SQLite (`~/.local/share/nexus/nexus.db`) e configurações foram preservados integralmente.
+- **Resultados e Dossiê:**
+  - Veredito: **CONDITIONAL GO (GO_LINUX / Multiplataforma para Artefatos Nativos / PENDÊNCIA AMBIENTAL DE CI PARA GORELEASER/DEB)**.
+  - Tarball Linux gerado: `dist/beta/nexus-linux-amd64-v1.0.0-beta.10.tar.gz` (SHA-256: `5f6a384f17a56a1117bda0e3836b48b52b94b0d036ab0da4d1c73459e0afd6f7`).
+  - Dossiê detalhado e capturas nativas arquivados em `/projetos/LINUX_HOMOLOGATION/` e compactados em `/projetos/LINUX_HOMOLOGATION_EVIDENCE_7b152ea6.zip`.
+- **Próximas ações para o Maestro:**
+  - Revisar o dossiê final e commits integrados na `release/v1.0.0`.
+  - Disparar o pipeline com supply chain autenticado para geração oficial de assinaturas Ed25519 e pacotes assinados caso decida publicar a release pública.
+
+## Estado atual — homologação e correções Linux 1.0.0 — 2026-10-20 (candidato intermediário)
 
 - **Branch:** `release/v1.0.0`, SHA inicial `88094c2406c4f50ff4506bd9d8f63fce0428d328`, HEAD final homologado `be36af6f2378ef0c7b7a3a787fc55217de2367b8`.
 - **Status do Repositório:** 5 commits locais adicionados à `release/v1.0.0`, sem push ao remoto, worktree limpo:
