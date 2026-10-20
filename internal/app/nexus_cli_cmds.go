@@ -202,8 +202,12 @@ func projectsCmd(args []string) error {
 		if err != nil {
 			return err
 		}
+		canonical, err := nexus.ValidateProjectDirectory(opts.Path)
+		if err != nil {
+			return err
+		}
 		proj, err := st.CreateProject(store.Project{
-			CanonicalPath:    opts.Path,
+			CanonicalPath:    canonical,
 			Name:             opts.Name,
 			DefaultIsolation: opts.Isolation,
 		})

@@ -50,21 +50,9 @@ func (s *ProjectApplicationService) Create(ctx context.Context, name, path strin
 	if err != nil {
 		return store.Project{}, err
 	}
-	if strings.TrimSpace(path) == "" {
-		return store.Project{}, fmt.Errorf("path is required")
-	}
-	canonical, err := store.CanonicalPath(path)
+	canonical, err := ValidateProjectDirectory(path)
 	if err != nil {
 		return store.Project{}, err
-	}
-	// Project registration must not persist fictional or deleted directories.
-	// A real local directory is required for terminal and agent execution.
-	info, err := os.Stat(canonical)
-	if err != nil {
-		return store.Project{}, fmt.Errorf("project directory unavailable: %w", err)
-	}
-	if !info.IsDir() {
-		return store.Project{}, fmt.Errorf("project path is not a directory: %s", canonical)
 	}
 	return st.CreateProject(store.Project{Name: name, CanonicalPath: canonical})
 }
@@ -143,4 +131,24 @@ func (s *ProjectApplicationService) SaveLayout(ctx context.Context, id, layout s
 		return store.ProjectLayoutRecord{}, err
 	}
 	return st.SaveLayoutWithRevision(id, layout, revision)
+}
+
+// ValidateProjectDirectory is shared by Web, CLI and Desktop project creation.
+// It rejects missing paths and regular files before writing project state.
+func ValidateProjectDirectory(path string) (string, error) {
+	if strings.TrimSpace(path) == "" {
+		return "", fmt.Errorf("path is required")
+	}
+	canonical, err := store.CanonicalPath(path)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Stat(canonical)
+	if err != nil {
+		return "", fmt.Errorf("project directory unavailable: %w", err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("project path is not a directory: %s", canonical)
+	}
+	return canonical, nil
 }
