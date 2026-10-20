@@ -13,8 +13,18 @@ function Assert-Exit([string]$Name) {
     }
 }
 
-$branch = (git branch --show-current).Trim()
-Assert-Exit 'Read Git branch'
+$rawBranch = (& git branch --show-current 2>$null)
+$branch = if ($null -ne $rawBranch) { $rawBranch.ToString().Trim() } else { '' }
+if ([string]::IsNullOrWhiteSpace($branch)) {
+    if ($env:GITHUB_REF_NAME -eq 'release/v1.0.0' -or $env:GITHUB_REF -eq 'refs/heads/release/v1.0.0') {
+        $branch = 'release/v1.0.0'
+    } else {
+        $branches = @(& git branch -a --contains HEAD 2>$null)
+        if ($branches -match 'release/v1\.0\.0') {
+            $branch = 'release/v1.0.0'
+        }
+    }
+}
 if ($branch -ne 'release/v1.0.0') {
     throw "Certification must run on release/v1.0.0; current branch: $branch"
 }

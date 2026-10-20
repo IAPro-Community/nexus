@@ -22,8 +22,19 @@ try {
     if (-not [string]::IsNullOrWhiteSpace($ExpectedSha) -and $sha -ne $ExpectedSha.Trim()) {
         throw "Source SHA mismatch: expected $ExpectedSha, got $sha"
     }
-    $branchName = (& git branch --show-current).Trim()
-    if ($LASTEXITCODE -ne 0 -or $branchName -ne 'release/v1.0.0') {
+    $rawBranch = (& git branch --show-current 2>$null)
+    $branchName = if ($null -ne $rawBranch) { $rawBranch.ToString().Trim() } else { '' }
+    if ([string]::IsNullOrWhiteSpace($branchName)) {
+        if ($env:GITHUB_REF_NAME -eq 'release/v1.0.0' -or $env:GITHUB_REF -eq 'refs/heads/release/v1.0.0') {
+            $branchName = 'release/v1.0.0'
+        } else {
+            $branches = @(& git branch -a --contains HEAD 2>$null)
+            if ($branches -match 'release/v1\.0\.0') {
+                $branchName = 'release/v1.0.0'
+            }
+        }
+    }
+    if ($branchName -ne 'release/v1.0.0') {
         throw "Certification requires release/v1.0.0; got $branchName"
     }
     if (-not $AllowDirty) {

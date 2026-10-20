@@ -2,7 +2,15 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-[[ "$(git branch --show-current)" == release/v1.0.0 ]] || { echo 'Expected release/v1.0.0' >&2; exit 1; }
+CURRENT_BRANCH="$(git branch --show-current 2>/dev/null || true)"
+if [ -z "$CURRENT_BRANCH" ]; then
+    if [ "${GITHUB_REF_NAME:-}" = "release/v1.0.0" ] || [ "${GITHUB_REF:-}" = "refs/heads/release/v1.0.0" ]; then
+        CURRENT_BRANCH="release/v1.0.0"
+    elif git branch -a --contains HEAD 2>/dev/null | grep -Eq 'release/v1\.0\.0'; then
+        CURRENT_BRANCH="release/v1.0.0"
+    fi
+fi
+[[ "$CURRENT_BRANCH" == release/v1.0.0 ]] || { echo "Expected release/v1.0.0; got $CURRENT_BRANCH" >&2; exit 1; }
 [[ -z "$(git status --porcelain)" ]] || { echo 'Worktree must be clean' >&2; exit 1; }
 SHA="$(git rev-parse HEAD)"
 echo "Certifying Nexus release/v1.0.0 at $SHA"
