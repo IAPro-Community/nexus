@@ -102,5 +102,6 @@ describe('HUD presentation model', () => {
     expect(normalized.mode).toBe('AUTO');
     expect(normalized.surfaceMode).toBe('docked');
     expect(normalized.version).toBe(1);
+    expect(defaultHudPreferences.enabled).toBe(false);
   });
 });
