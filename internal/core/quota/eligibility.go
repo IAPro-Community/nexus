@@ -82,7 +82,7 @@ func EvaluateEligibility(in EligibilityInput) Eligibility {
 	// stale RATE_LIMITED signal must likewise not block an account forever.
 	// Existing synthetic/legacy views without FetchedAt remain handled by
 	// their status gates below, without inventing a new timestamp.
-	if !in.View.FetchedAt.IsZero() {
+	if !in.View.FetchedAt.IsZero() && !strings.EqualFold(in.View.Status, string(model.UsageUnsupported)) {
 		age := time.Since(in.View.FetchedAt)
 		if age < -time.Minute || age > DefaultTTL {
 			out.Reason = ReasonUnknownQuota
