@@ -428,7 +428,9 @@ func snapshotBelongsToProfile(snap model.UsageSnapshot, providerName, profileNam
 
 // GetQuotaDetails returns usage and quota metrics without fabricating 100% data.
 func GetQuotaDetails(providerName, name, plan, email string) QuotaDetails {
-	snap := GetUsageSnapshot(providerName, name)
+	// Keep the legacy details panel consistent with the canonical TUI/Web
+	// projection: historical and identity-mismatched Codex limits are UNKNOWN.
+	snap := GetSanitizedUsageSnapshot(providerName, name, email)
 
 	q := QuotaDetails{
 		Provider:    providerName,
