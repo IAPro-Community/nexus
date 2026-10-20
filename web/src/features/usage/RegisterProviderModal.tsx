@@ -128,9 +128,8 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
 
         {!loading && providers.every((provider) => !provider.installed) && (
           <div className={styles.intro}>
-            Nenhuma CLI compatível está disponível para cadastro. Instale uma ferramenta oficial
-            e volte para verificar o ambiente:
-            {' '}
+            Nenhuma CLI compatível está disponível para cadastro. Instale uma ferramenta oficial e
+            volte para verificar o ambiente:{' '}
             {OFFICIAL_PROVIDER_INSTALL_GUIDES.map((guide) => (
               <a
                 key={guide.label}

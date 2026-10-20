@@ -493,7 +493,9 @@ export const UsageSurface: React.FC<{
             );
             if (newlyAdded && !newlyAdded.authenticated) setLoginAccount(newlyAdded);
           } catch {
-            setError('Conta registrada, mas ainda não foi possível consultar o estado do login. Atualize a lista para continuar.');
+            setError(
+              'Conta registrada, mas ainda não foi possível consultar o estado do login. Atualize a lista para continuar.',
+            );
           }
         }}
       />

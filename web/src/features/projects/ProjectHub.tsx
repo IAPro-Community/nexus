@@ -256,7 +256,9 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
             </div>
           )}
           {setupError && (
-            <p role="alert" className={styles.readinessWarning}>{setupError}</p>
+            <p role="alert" className={styles.readinessWarning}>
+              {setupError}
+            </p>
           )}
           {desktopPrerequisite && (
             <p className={styles.readinessWarning}>

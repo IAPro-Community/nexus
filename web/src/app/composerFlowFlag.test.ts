@@ -36,8 +36,13 @@ describe('Composer/Flow release gate', () => {
 
   it('collapses empty experimental splits and keeps the terminal split', () => {
     const base = createWorkspace(surface('overview'));
-    const flowSplit = splitWithSurface(base, 'overview', surface('flow-run'));
-    const terminalSplit = splitWithSurface(flowSplit, 'overview', surface('terminal'));
+    const flowSplit = splitWithSurface(base, 'overview', surface('flow-run'), 'horizontal');
+    const terminalSplit = splitWithSurface(
+      flowSplit,
+      'overview',
+      surface('terminal'),
+      'horizontal',
+    );
     const cleaned = withoutExperimentalComposerFlow(terminalSplit, surface('overview'));
     expect(JSON.stringify(cleaned)).not.toContain('"type":"flow-run"');
     expect(JSON.stringify(cleaned)).toContain('"type":"terminal"');

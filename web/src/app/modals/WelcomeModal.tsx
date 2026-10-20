@@ -150,7 +150,9 @@ export const WelcomeModal: React.FC<{
                     onOpenAccounts();
                   }}
                 >
-                  {readiness.status === 'ready' ? 'Gerenciar contas de IA' : 'Configurar contas de IA'}
+                  {readiness.status === 'ready'
+                    ? 'Gerenciar contas de IA'
+                    : 'Configurar contas de IA'}
                   <ArrowRight size={13} />
                 </Button>
               </div>

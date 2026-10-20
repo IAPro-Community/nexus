@@ -207,7 +207,9 @@
   gap: 8px;
   font-size: 0.83rem;
 
-  span { color: var(--nx-muted); }
+  span {
+    color: var(--nx-muted);
+  }
 
   a {
     color: var(--nx-accent-text);

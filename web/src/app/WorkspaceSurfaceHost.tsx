@@ -428,7 +428,9 @@ export const WorkspaceSurfaceHost: React.FC<{
 
     if (surface.type === 'resources') {
       const openProviderShell = (provider: string, profile: string, login: boolean) => {
-        const command = login ? `nexus login ${provider} ${profile}` : `nexus ${provider}:${profile}`;
+        const command = login
+          ? `nexus login ${provider} ${profile}`
+          : `nexus ${provider}:${profile}`;
         if (!login) {
           void navigator.clipboard?.writeText(command).catch(() => undefined);
         }
@@ -442,7 +444,9 @@ export const WorkspaceSurfaceHost: React.FC<{
                 `${login ? 'Login' : 'Provider'} · ${provider}:${profile}`,
               ),
             );
-            toast.info(`Execute ${command} no terminal. Copie o comando manualmente se necessário.`);
+            toast.info(
+              `Execute ${command} no terminal. Copie o comando manualmente se necessário.`,
+            );
           })
           .catch((err) => {
             toast.error(err instanceof Error ? err.message : String(err));

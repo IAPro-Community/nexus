@@ -20,6 +20,24 @@ export const DesktopHudApp: React.FC = () => {
   const [autoStartPending, setAutoStartPending] = useState(false);
 
   useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const doc = document.documentElement;
+    const body = document.body;
+    const prevDocBg = doc.style.backgroundColor;
+    const prevBodyBg = body.style.backgroundColor;
+    doc.style.backgroundColor = 'transparent';
+    body.style.backgroundColor = 'transparent';
+    doc.dataset.nativeHud = 'true';
+    body.dataset.nativeHud = 'true';
+    return () => {
+      doc.style.backgroundColor = prevDocBg;
+      body.style.backgroundColor = prevBodyBg;
+      delete doc.dataset.nativeHud;
+      delete body.dataset.nativeHud;
+    };
+  }, []);
+
+  useEffect(() => {
     let active = true;
     void initSession()
       .then((session) => {
