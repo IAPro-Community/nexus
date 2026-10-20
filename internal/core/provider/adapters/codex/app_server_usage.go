@@ -126,10 +126,17 @@ func (a *Adapter) fetchUsageFromAppServer(ctx context.Context, p model.Profile) 
 
 	resp, err := runAppServerRateLimits(ctx, home)
 	if err != nil {
-		// Never log auth tokens, app-server stdout or profile contents.
-		// The reason is essential for diagnosing an active TUI lock versus a
-		// protocol/transport failure when /status is newer than nexus usage.
-		slog.Debug("codex app-server quota unavailable", "provider", string(a.ID()), "profile", p.Name, "reason", err.Error())
+		// Only report coarse error categories. RPC errors may contain server
+		// detail that must not be copied into logs, even at debug level.
+		reason := "probe_failure"
+		if errors.Is(err, errTUIBusy) {
+			reason = "interactive_tui_lock"
+		} else if errors.Is(err, context.DeadlineExceeded) {
+			reason = "timeout"
+		} else if errors.Is(err, context.Canceled) {
+			reason = "canceled"
+		}
+		slog.Debug("codex app-server quota unavailable", "provider", string(a.ID()), "profile", p.Name, "reason", reason)
 		return model.UsageSnapshot{}, false
 	}
 
