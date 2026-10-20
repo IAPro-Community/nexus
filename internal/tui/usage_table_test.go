@@ -13,6 +13,48 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+func TestCodexAutoRefreshRejectsWeekOldQuota(t *testing.T) {
+	now := time.Now()
+	cases := []struct {
+		name string
+		snap model.UsageSnapshot
+		want bool
+	}{
+		{name: "no reading", snap: model.UsageSnapshot{Status: model.UsageUnknown}, want: true},
+		{name: "fresh live reading", snap: model.UsageSnapshot{Status: model.UsageLive, FetchedAt: now.Add(-time.Minute)}, want: false},
+		{name: "fresh cached reading", snap: model.UsageSnapshot{Status: model.UsageCached, FetchedAt: now.Add(-time.Minute)}, want: false},
+		{name: "old but deceptively cached", snap: model.UsageSnapshot{Status: model.UsageCached, FetchedAt: now.Add(-25 * 24 * time.Hour)}, want: true},
+		{name: "old estimated observation", snap: model.UsageSnapshot{Status: model.UsageEstimated, FetchedAt: now.Add(-20 * time.Minute)}, want: true},
+		{name: "future clock skew", snap: model.UsageSnapshot{Status: model.UsageLive, FetchedAt: now.Add(3 * time.Minute)}, want: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := codexNeedsAutoRefresh(tc.snap, now); got != tc.want {
+				t.Fatalf("auto refresh = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestCodexAutoRefreshThrottleKeepsAccountIdentity(t *testing.T) {
+	now := time.Now()
+	if claimCodexAutoRefresh("agy", "ignore", now) {
+		t.Fatal("only Codex should use this scheduled probe")
+	}
+	if !claimCodexAutoRefresh("codex", "throttle-account-1", now) {
+		t.Fatal("first Codex probe should be admitted")
+	}
+	if claimCodexAutoRefresh("codex", "throttle-account-1", now.Add(time.Minute)) {
+		t.Fatal("same account should be throttled")
+	}
+	if !claimCodexAutoRefresh("codex", "throttle-account-2", now.Add(time.Minute)) {
+		t.Fatal("different account must have an independent refresh slot")
+	}
+	if !claimCodexAutoRefresh("codex", "throttle-account-1", now.Add(codexAutoRefreshInterval)) {
+		t.Fatal("probe should retry after the cooldown")
+	}
+}
+
 func TestFilterUsageRowsFindsAcrossIdentityAndGroup(t *testing.T) {
 	rows := []UsageTableRow{{Provider: "agy", Profile: "work", Account: "work@example.com", Group: "Gemini Models"}, {Provider: "codex", Profile: "personal", Group: "GPT Models"}}
 	if got := filterUsageRows(rows, "gemini"); len(got) != 1 || got[0].Profile != "work" {
