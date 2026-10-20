@@ -345,7 +345,7 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 		}
 	}
 	if allUnavailable {
-		fmt.Fprintf(os.Stderr, "\n⚠  NENHUMA CONTA DISPONÍVEL para %s:\n\n", strings.ToUpper(provName))
+		fmt.Fprintf(os.Stderr, "\n⚠  NENHUMA QUOTA ATUAL CONFIRMADA para %s:\n\n", strings.ToUpper(provName))
 		for _, p := range candidates {
 			acc := accounts[p.Name]
 			var snap model.UsageSnapshot
@@ -360,7 +360,9 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 			}
 			fmt.Fprintf(os.Stderr, "   ✗ %s: %s%s\n", p.Name, reason, detail)
 		}
-		fmt.Fprintf(os.Stderr, "\n   Aguarde o reset da quota ou use outro provider.\n\n")
+		fmt.Fprintf(os.Stderr, "\n   Verifique a quota em 'nexus usage' (atualização em segundo plano).\n")
+		fmt.Fprintf(os.Stderr, "   Com quota desconhecida, o Nexus pode usar somente um perfil já fixado ou padrão,\n")
+		fmt.Fprintf(os.Stderr, "   sem afirmar que ele possui mais capacidade. Para escolha explícita: nexus %s:<perfil>\n\n", provName)
 	}
 
 	cwd, _ := os.Getwd()
