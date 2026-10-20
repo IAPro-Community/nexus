@@ -417,7 +417,7 @@ func appServerEnv(bin, codexHome string) []string {
 		"XDG_STATE_HOME":   filepath.Join(codexHome, ".local", "state"),
 		"PATH":             runtime.EnhancedPATH(filepath.Dir(bin)),
 		"NO_COLOR":         "1",
-	})
+	}, "OPENAI_API_KEY")
 }
 
 func appServerClientVersion() string {
