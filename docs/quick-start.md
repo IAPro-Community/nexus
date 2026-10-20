@@ -30,7 +30,7 @@ A instalação binária assinada passa a ser recomendada somente quando
 ## 2. Abra a workstation local
 
 ```bash
-nexus web
+./nexus web
 ```
 
 Abra a URL de bootstrap que o comando mostrar. Ela é local e de curta duração;

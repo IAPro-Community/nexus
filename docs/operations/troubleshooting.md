@@ -153,3 +153,19 @@ novo nó de trabalho, por design.
 
 **Como validar:** requests que exigem trabalho devem ter `ChildPackageID`;
 requests concluídas por child devem apontar para o `ResultReceiptID`.
+
+## Quota desconhecida ou conta errada
+
+Verifique `nexus providers status --json`, `nexus profiles --json` e `nexus usage --json`. Compare escopo de conta, fonte, janela e timestamp. `UNKNOWN` não equivale a limite esgotado ou capacidade plena; `UNSUPPORTED` também não significa falha do provider. Veja [providers e quota](../product/providers-and-usage.md).
+
+## HUD mostra custo ou quota antiga
+
+Confira timestamp, `LIVE/CACHED/ESTIMATED`, origem do custo, monitor e conexão com o Core. O HUD não executa novos probes nem inventa custo. Veja [HUD](../product/hud.md).
+
+## Túnel ou convite remoto inválido
+
+Gerar convite novo via **Settings → Acesso remoto**, validar HTTPS e os limites da sessão. Não desabilitar `Secure` dos cookies para contornar HTTP. Veja [acesso remoto](../product/remote-access.md).
+
+## Capturas e documentação
+
+Se `docs-verify` apontar SHA visual antigo, a captura é `STALE`, não PASS; siga [recaptura](visual-evidence.md).

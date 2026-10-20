@@ -226,9 +226,9 @@
         "api"
       ],
       "status": "experimental",
-      "implementation": "web/src/features/settings/PublicProviderStatus.tsx",
+      "implementation": "internal/control/web/public_service_status.go",
       "tests": [
-        "web/src/features/settings/externalClaudeAvailability.test.ts"
+        "internal/control/web/public_service_status_test.go"
       ],
       "documentation": "docs/architecture/quota/EXTERNAL_USAGE_AND_PUBLIC_STATUS.md",
       "requires": "Acesso HTTPS às fontes públicas",

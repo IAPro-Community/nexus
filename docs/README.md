@@ -88,6 +88,7 @@ estender o Nexus.
 - [Operação e suporte](operations/README.md)
 - [Troubleshooting](operations/troubleshooting.md)
 - [Suporte de plataformas](operations/platform-support.md)
+- [Recaptura e evidências visuais](operations/visual-evidence.md)
 - [Release](operations/release.md)
 - [Segurança](security.pt-BR.md)
 
@@ -97,6 +98,7 @@ estender o Nexus.
 - [Configuração](reference/configuration.md)
 - [Matriz de funcionalidades](reference/feature-matrix.md)
 - [Catálogo rastreável](reference/features.json)
+- [Referência do catálogo](reference/README.md)
 - [Glossário](GLOSSARY.md)
 - [FAQ](faq.md)
 - [O que mudou](whats-new.md)
