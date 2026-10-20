@@ -656,7 +656,7 @@ try {
       workspaceDir.replaceAll('\\', '/'),
       process.platform === 'win32' ? process.env.USERPROFILE : '',
     ].filter(Boolean))];
-    return page.evaluate((sensitivePaths) => {
+    return page.evaluate(({ sensitivePaths, replacement }) => {
       const replaceInsensitive = (value, search, replacement) => {
         const lowerValue = value.toLowerCase();
         const lowerSearch = search.toLowerCase();
@@ -670,7 +670,6 @@ try {
         }
         return index === -1 && cursor === 0 ? value : result + value.slice(cursor);
       };
-      const replacement = 'C:\\NexusDemo\\workspace';
       let redacted = 0;
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       let node;
@@ -695,7 +694,7 @@ try {
         }
       }
       return redacted;
-    }, paths);
+    }, { sensitivePaths: paths, replacement: syntheticWorkspacePath });
   };
   const assertSafeFixture = async () => {
     const domContent = (await page.evaluate(() => {
@@ -720,13 +719,14 @@ try {
     await redactFixturePaths();
     if (surface === 'web/workspace') {
       const bodyText = (await page.locator('body').innerText()).toLowerCase();
-      if (!bodyText.includes('c:\\nexusdemo\\workspace')) {
+      if (!bodyText.includes(syntheticWorkspacePath.toLowerCase()) && !bodyText.includes('c:\\nexusdemo\\workspace')) {
         throw new Error('workspace overview does not show the synthetic fixture path');
       }
     }
     await assertSafeFixture();
+    const displayReplacement = process.platform === 'win32' ? 'C:\\\\NexusDemo\\\\workspace' : '/NexusDemo/workspace';
     const screenshotStyle = [
-      '.nx-statusbar-project [class*="canonicalPath"] { font-size: 0 !important; color: transparent !important; } .nx-statusbar-project [class*="canonicalPath"]::after { content: "C:\\\\NexusDemo\\\\workspace"; font-size: 11px; color: var(--nx-text-soft); }',
+      `.nx-statusbar-project [class*="canonicalPath"] { font-size: 0 !important; color: transparent !important; } .nx-statusbar-project [class*="canonicalPath"]::after { content: "${displayReplacement}"; font-size: 11px; color: var(--nx-text-soft); }`,
       ...(surface === 'web/terminal' && process.platform === 'win32'
         ? ['.nx-project-shell-surface .xterm-screen { position: relative !important; } .nx-project-shell-surface .xterm-screen::after { content: ""; position: absolute; z-index: 100; inset: 0 0 auto; height: 2.5em; background: #080a0f; pointer-events: none; }']
         : []),
@@ -959,6 +959,14 @@ try {
     { timeout: 60000 },
   );
     await capture('VIS-004', 'provider.png', 'web/provider');
+  }
+  if (!captures.some((c) => c.id === 'VIS-007')) {
+    await openProjectSurface('work');
+    await capture('VIS-007', 'composer.png', 'web/composer');
+  }
+  if (!captures.some((c) => c.id === 'VIS-008')) {
+    await openProjectSurface('missions');
+    await capture('VIS-008', 'flow.png', 'web/flow');
   }
   if (!captures.some((c) => c.id === 'VIS-009')) {
     await openProjectSurface('missions');
