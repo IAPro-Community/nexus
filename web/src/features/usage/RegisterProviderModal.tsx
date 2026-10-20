@@ -15,7 +15,10 @@ import {
 import { nexus } from '../../nexus/api';
 import type { ProviderInfo } from '../../types';
 import styles from './RegisterProviderModal.module.scss';
-import { preferredRegistrationProvider, requiresExplicitAdditionalProfileName } from './registerProviderModel';
+import {
+  preferredRegistrationProvider,
+  requiresExplicitAdditionalProfileName,
+} from './registerProviderModel';
 
 export interface RegisterProviderModalProps {
   isOpen: boolean;
@@ -75,7 +78,9 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
       return;
     }
     if (requiresName) {
-      setError('Este provedor já possui um perfil. Conclua o login em Uso/Contas ou informe um nome diferente para adicionar outra conta.');
+      setError(
+        'Este provedor já possui um perfil. Conclua o login em Uso/Contas ou informe um nome diferente para adicionar outra conta.',
+      );
       return;
     }
     const cleanProfile = profileName.trim() || selectedProvider;
@@ -161,8 +166,8 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
 
         {requiresName ? (
           <p className={styles.intro}>
-            Já existe um perfil deste provedor. Para adicionar outra conta, informe um nome de perfil
-            diferente; para continuar com a conta atual, conclua o login em Uso/Contas.
+            Já existe um perfil deste provedor. Para adicionar outra conta, informe um nome de
+            perfil diferente; para continuar com a conta atual, conclua o login em Uso/Contas.
           </p>
         ) : null}
 
@@ -188,7 +193,9 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
             type="submit"
             tone="brand"
             disabled={
-              submitting || requiresName || !providers.some((p) => p.id === selectedProvider && p.installed)
+              submitting ||
+              requiresName ||
+              !providers.some((p) => p.id === selectedProvider && p.installed)
             }
           >
             <Plus size={14} />
