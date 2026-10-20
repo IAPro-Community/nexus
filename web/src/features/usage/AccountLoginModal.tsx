@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button, Dialog } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { ProviderAccount } from '../../types';
+import { isProviderLoginVerified } from './providerLoginVerification';
 import styles from './AccountLoginModal.module.scss';
 
 export interface AccountLoginModalProps {
@@ -73,10 +74,7 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
     setVerifying(true);
     try {
       const updated = await nexus.refreshResources(provider, profile);
-      const verified = (updated.accounts || []).find(
-        (item) => item.provider === provider && item.profile === profile,
-      );
-      if (!verified?.authenticated) {
+      if (!isProviderLoginVerified(updated.accounts || [], provider, profile)) {
         toast.error(
           'Login ainda não confirmado para esta conta. Conclua o login oficial e tente novamente.',
         );
