@@ -1,7 +1,7 @@
 // Package flags holds kill-switches for the highest-risk surfaces.
 //
 // Only a handful of flags exist on purpose: tunnel, autonomous missions,
-// remote access, experimental intelligence, and the experimental Nexus HUD. Each defaults to its safe
+// remote access, experimental intelligence, and the read-only Nexus HUD projection. Each defaults to its safe
 // production value and can be forced off via environment for incident
 // response. A future remote-config backend implements Source without
 // changing call sites; until then the local source is authoritative and
@@ -25,7 +25,7 @@ const (
 	RemoteAccess Name = "remote_access"
 	// ExperimentalIntelligence gates experimental intelligence features.
 	ExperimentalIntelligence Name = "experimental_intelligence"
-	// HUD gates the experimental Nexus HUD projection and presentation surfaces.
+	// HUD gates the read-only HUD projection API; Web HUD visibility remains opt-in.
 	HUD Name = "hud"
 )
 
@@ -35,7 +35,7 @@ var defaults = map[Name]bool{
 	AutonomousMission:        true,
 	RemoteAccess:             true,
 	ExperimentalIntelligence: false,
-	HUD:                      false,
+	HUD:                      true,
 }
 
 // All lists every known flag.
