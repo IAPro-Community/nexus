@@ -233,3 +233,43 @@ A validação Windows anteriormente executada permanece como evidência históri
 > and `INFERRED` remain estimates; no subscription token valuation is
 > merged into confirmed billing. An offline native HUD is never marked
 > ready solely because a previous snapshot remains in memory.
+
+## Incidente: cápsula nativa sem popup (2026-10-20)
+
+**Causa reproduzível por inspeção do contrato:** o Core respondia `enabled:false`
+porque `flags.HUD` era desligado por padrão, embora `nexus-hud` fosse instalado
+sem `NEXUS_ENABLE_HUD=1`. A apresentação nativa interpretava `disabled/offline`
+como `waiting` e o clique somente executava refresh; `SetHUDExpanded` nunca
+era chamado. O E2E Web ativava a flag artificialmente, mascarando o problema.
+
+**Política corrigida:**
+- A projeção de leitura (autenticada, sem probes de provider) agora está habilitada
+  por padrão para permitir o HUD nativo pronto para uso.
+- `NEXUS_DISABLE_HUD=1` mantém o kill switch de backend prioritário, sem contorno
+  pela UI; no estado desativado, a cápsula nativa deve abrir um diagnóstico.
+- O widget Web continua **opt-in** por preferência local; API ativa não significa
+  widget Web obrigatório.
+- O clique chama `SetHUDExpanded` e só considera a expansão concluída depois do
+  sucesso da chamada Wails. Falhas registram erro e não fingem popup aberto.
+- Se a projeção estiver desativada/offline, a janela pode ser expandida e mostrar
+  detalhes de indisponibilidade, atualizar e abrir o Nexus, sem falsificar quota.
+
+**Gates obrigatórios antes do GO:** executar o **mesmo SHA** do Core e HUD nativo
+atualizados; a mera atualização do frontend enquanto um Core antigo estiver rodando
+não corrige o retorno `enabled:false`. No Windows e Linux, verificar em sessão
+gráfica interativa, com `NEXUS_ENABLE_HUD` e `NEXUS_DISABLE_HUD` não definidos:
+
+1. A cápsula abre ao clicar, com cerca de **334 × 496 DIPs** para o popover.
+2. Segundo clique ou botão de fechar recolhe para **220 × 60 DIPs**.
+3. Com duas contas no mesmo provider, a conta em execução só é exibida se
+   `provider+profile` estiverem verificados.
+4. Com perda de conexão ao Core, o clique abre um diagnóstico (não ignora o evento).
+5. Com `NEXUS_DISABLE_HUD=1` no Core, o diagnóstico informa a indisponibilidade;
+   o kill switch não é ignorado.
+6. Validar posição junto à barra de tarefas, DPI, dois monitores e reinício.
+7. Arquivar screenshot da cápsula e popup, gravação do clique e evidência de
+   `aria-expanded=true`, API `enabled` e geometria nativa, sempre no mesmo SHA.
+
+**Não há paridade pixel-perfect certificada com o mockup.** O hover no HUD nativo
+continua simples, e o E2E Web não substitui teste do clique real Wails/GTK/WebView2.
+A correção de código não equivale a homologação nativa até os gates acima passarem.
