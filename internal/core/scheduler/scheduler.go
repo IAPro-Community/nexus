@@ -118,8 +118,8 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 			if preferred != nil {
 				return &SelectionResult{
 					SelectedProfile: &preferred.Profile,
-					Reason: "Codex quota unverified; using explicit workspace binding/default without capacity ranking",
-					Evaluations: evals,
+					Reason:          "Codex quota unverified; using explicit workspace binding/default without capacity ranking",
+					Evaluations:     evals,
 				}, nil
 			}
 		}

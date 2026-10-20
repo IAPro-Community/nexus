@@ -28,7 +28,7 @@ func TestCodexHistoricalQuotaDoesNotMisrouteAndHonorsExplicitDefault(t *testing.
 				ProviderID: "codex", ProfileID: "old-high",
 				Source: model.SourceObservation, Status: model.UsageEstimated,
 				FetchedAt: time.Now().Add(-25 * 24 * time.Hour),
-				Windows: []model.UsageWindow{{Kind: "weekly", RemainingPercent: &oldHigh}},
+				Windows:   []model.UsageWindow{{Kind: "weekly", RemainingPercent: &oldHigh}},
 			},
 		},
 		"recent": {
@@ -37,7 +37,7 @@ func TestCodexHistoricalQuotaDoesNotMisrouteAndHonorsExplicitDefault(t *testing.
 				ProviderID: "codex", ProfileID: "recent",
 				Source: model.SourceOfficialAPI, Status: model.UsageLive,
 				FetchedAt: time.Now(),
-				Windows: []model.UsageWindow{{Kind: "weekly", RemainingPercent: &recentLow}},
+				Windows:   []model.UsageWindow{{Kind: "weekly", RemainingPercent: &recentLow}},
 			},
 		},
 	}
@@ -46,7 +46,9 @@ func TestCodexHistoricalQuotaDoesNotMisrouteAndHonorsExplicitDefault(t *testing.
 	selector := NewSelector(cfg, quota.NewEngine(5*time.Minute), cooldown.NewTracker())
 
 	result, err := selector.SelectBestProfile(context.Background(), "codex", t.TempDir(), candidates, accounts, nil)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if result.SelectedProfile == nil || result.SelectedProfile.Name != "recent" {
 		t.Fatalf("fresh verified capacity must beat a stale default; got %+v", result.SelectedProfile)
 	}
@@ -56,7 +58,9 @@ func TestCodexHistoricalQuotaDoesNotMisrouteAndHonorsExplicitDefault(t *testing.
 		Usage: model.UsageSnapshot{ProviderID: "codex", ProfileID: "recent", Status: model.UsageUnknown},
 	}
 	result, err = selector.SelectBestProfile(context.Background(), "codex", t.TempDir(), candidates, accounts, nil)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if result.SelectedProfile == nil || result.SelectedProfile.Name != "old-high" ||
 		!strings.Contains(result.Reason, "unverified") {
 		t.Fatalf("unknown capacity must honor explicit default without pretending it is best: %+v", result)

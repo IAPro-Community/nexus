@@ -294,14 +294,14 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 	}
 
 	// An adapter can return very old rollout evidence from a 30-day scan.
-// Retain it in session history, never treat it as current quota.
+	// Retain it in session history, never treat it as current quota.
 	if !usageHistoryRenderable(snap) && (snap.Status == model.UsageEstimated || snap.Status == model.UsageCached || snap.Status == model.UsageLive) {
 		snap = model.UsageSnapshot{
 			ProviderID: providerName,
 			ProfileID:  name,
 			Status:     model.UsageUnknown,
 			Source:     model.SourceNone,
-			FetchedAt: time.Now(),
+			FetchedAt:  time.Now(),
 		}
 	}
 

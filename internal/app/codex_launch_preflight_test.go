@@ -15,7 +15,7 @@ func TestCodexLaunchPreflightUsesOnlyRecentOfficialQuota(t *testing.T) {
 		ProviderID: "codex", ProfileID: "kivergmail",
 		Source: model.SourceOfficialAPI, Status: model.UsageLive,
 		FetchedAt: now.Add(-time.Minute),
-		Windows: []model.UsageWindow{{Kind: "weekly", RemainingPercent: &remaining, ResetTime: &reset}},
+		Windows:   []model.UsageWindow{{Kind: "weekly", RemainingPercent: &remaining, ResetTime: &reset}},
 	}
 	if codexLaunchProbeNeeded(fresh, now) {
 		t.Fatal("recent official evidence must avoid expensive launch preflight")

@@ -10,9 +10,9 @@ import (
 func TestCodexHistoricalQuotaNeverBecomesOperationalCapacity(t *testing.T) {
 	remaining := 12.0
 	cases := []struct {
-		name string
-		status model.UsageStatus
-		age time.Duration
+		name    string
+		status  model.UsageStatus
+		age     time.Duration
 		expired bool
 	}{
 		{"25-day estimated usage", model.UsageEstimated, 25 * 24 * time.Hour, true},
@@ -26,12 +26,12 @@ func TestCodexHistoricalQuotaNeverBecomesOperationalCapacity(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			snap := model.UsageSnapshot{
 				ProviderID: "codex",
-				ProfileID: "kivergmail",
-				Status: tc.status,
-				Source: model.SourceObservation,
-				FetchedAt: now.Add(-tc.age),
+				ProfileID:  "kivergmail",
+				Status:     tc.status,
+				Source:     model.SourceObservation,
+				FetchedAt:  now.Add(-tc.age),
 				Windows: []model.UsageWindow{{
-					Kind: "weekly",
+					Kind:             "weekly",
 					RemainingPercent: &remaining,
 				}},
 			}
@@ -66,14 +66,14 @@ func TestCodexFreshReadWithExpiredResetWindowIsNotCurrentCapacity(t *testing.T) 
 	remaining := 99.0
 	snap := model.UsageSnapshot{
 		ProviderID: "codex",
-		ProfileID: "test",
-		Status: model.UsageLive,
-		Source: model.SourceOfficialAPI,
-		FetchedAt: now.Add(-2 * time.Minute),
+		ProfileID:  "test",
+		Status:     model.UsageLive,
+		Source:     model.SourceOfficialAPI,
+		FetchedAt:  now.Add(-2 * time.Minute),
 		Windows: []model.UsageWindow{{
-			Kind: "5h",
+			Kind:             "5h",
 			RemainingPercent: &remaining,
-			ResetTime: &reset,
+			ResetTime:        &reset,
 		}},
 	}
 	if !CodexEvidenceExpired(snap, now) {
@@ -89,9 +89,9 @@ func TestOtherProvidersKeepIndependentFreshnessRules(t *testing.T) {
 	pct := 50.0
 	snap := model.UsageSnapshot{
 		ProviderID: "agy",
-		Status: model.UsageEstimated,
-		FetchedAt: time.Now().Add(-time.Hour),
-		Windows: []model.UsageWindow{{Kind: "weekly", RemainingPercent: &pct}},
+		Status:     model.UsageEstimated,
+		FetchedAt:  time.Now().Add(-time.Hour),
+		Windows:    []model.UsageWindow{{Kind: "weekly", RemainingPercent: &pct}},
 	}
 	if CodexEvidenceExpired(snap, time.Now()) {
 		t.Fatal("do not change other provider policies in a Codex hotfix")

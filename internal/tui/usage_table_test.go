@@ -1104,14 +1104,14 @@ func TestRenderAccountCellsFreshNoSuffix(t *testing.T) {
 
 func TestUsageTableTriggersBackgroundRefreshOnInitialCachedLoad(t *testing.T) {
 	options := UnifiedUsageOptions{
-		Rows: []UsageTableRow{{Provider: "codex", Profile: "kivergmail", Status: "SEM DADOS"}},
+		Rows:           []UsageTableRow{{Provider: "codex", Profile: "kivergmail", Status: "SEM DADOS"}},
 		ProfilesToLoad: []model.Profile{{Provider: "codex", Name: "kivergmail"}},
 	}
-	model := newUnifiedUsageModel(options)
-	updated, cmd := model.Update(quotasLoadedMsg{
-		rows: options.Rows,
+	tbl := newUnifiedUsageModel(options)
+	updated, cmd := tbl.Update(quotasLoadedMsg{
+		rows:     options.Rows,
 		accounts: map[string]model.AccountInfo{},
-		silent: false,
+		silent:   false,
 	})
 	next := updated.(usageTableModel)
 	if cmd == nil {
@@ -1122,9 +1122,9 @@ func TestUsageTableTriggersBackgroundRefreshOnInitialCachedLoad(t *testing.T) {
 	}
 
 	updated, cmd = next.Update(quotasLoadedMsg{
-		rows: options.Rows,
+		rows:     options.Rows,
 		accounts: map[string]model.AccountInfo{},
-		silent: true,
+		silent:   true,
 	})
 	if cmd != nil {
 		t.Fatal("silent cache polling must not launch repeated app-servers")
@@ -1133,12 +1133,12 @@ func TestUsageTableTriggersBackgroundRefreshOnInitialCachedLoad(t *testing.T) {
 }
 
 func TestUsageTableReprobesCodexAfterLockCanBeReleased(t *testing.T) {
-	model := newUnifiedUsageModel(UnifiedUsageOptions{
-		Rows: []UsageTableRow{{Provider: "codex", Profile: "personal", Status: "SEM DADOS"}},
+	tbl := newUnifiedUsageModel(UnifiedUsageOptions{
+		Rows:           []UsageTableRow{{Provider: "codex", Profile: "personal", Status: "SEM DADOS"}},
 		ProfilesToLoad: []model.Profile{{Provider: "codex", Name: "personal"}},
 	})
-	loaded, cmd := model.Update(quotasLoadedMsg{
-		rows: []UsageTableRow{{Provider: "codex", Profile: "personal", Status: "SEM DADOS"}},
+	loaded, cmd := tbl.Update(quotasLoadedMsg{
+		rows:   []UsageTableRow{{Provider: "codex", Profile: "personal", Status: "SEM DADOS"}},
 		silent: false,
 	})
 	if cmd == nil {

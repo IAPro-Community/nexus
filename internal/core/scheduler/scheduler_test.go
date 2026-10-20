@@ -479,22 +479,22 @@ func TestStaleCodexQuotaCannotOutrankExplicitDefault(t *testing.T) {
 	accounts := map[string]model.AccountInfo{
 		"default": {
 			Authenticated: true,
-			Health: model.HealthHealthy,
+			Health:        model.HealthHealthy,
 			Usage: model.UsageSnapshot{
 				ProviderID: "codex", ProfileID: "default",
 				Status: model.UsageEstimated, Source: model.SourceObservation,
 				FetchedAt: time.Now().Add(-25 * 24 * time.Hour),
-				Windows: []model.UsageWindow{{Kind: "weekly", RemainingPercent: &low}},
+				Windows:   []model.UsageWindow{{Kind: "weekly", RemainingPercent: &low}},
 			},
 		},
 		"misleading": {
 			Authenticated: true,
-			Health: model.HealthHealthy,
+			Health:        model.HealthHealthy,
 			Usage: model.UsageSnapshot{
 				ProviderID: "codex", ProfileID: "misleading",
 				Status: model.UsageEstimated, Source: model.SourceObservation,
 				FetchedAt: time.Now().Add(-25 * 24 * time.Hour),
-				Windows: []model.UsageWindow{{Kind: "weekly", RemainingPercent: &misleading}},
+				Windows:   []model.UsageWindow{{Kind: "weekly", RemainingPercent: &misleading}},
 			},
 		},
 	}
