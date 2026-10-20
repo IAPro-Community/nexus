@@ -1,0 +1,74 @@
+name: Public source history preflight
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - release/v1.0.0
+    paths:
+      - .github/workflows/public-source-audit.yml
+      - scripts/audit-publication.sh
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-source-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  public-history-audit:
+    name: Public refs and secrets review (fail closed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout full public history without persisted credentials
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch branch and tag refs for a conservative history scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-recurse-submodules origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
+          test "$(git rev-parse --is-shallow-repository)" = false
+
+      - name: Configure pinned Gitleaks scanner
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.14'
+          cache: false
+
+      - name: Install Gitleaks v8.24.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          GOBIN="$RUNNER_TEMP/bin" go install github.com/gitleaks/gitleaks/v8@v8.24.2
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Audit secrets across available refs without publishing findings
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          report="$RUNNER_TEMP/gitleaks-public-history.json"
+          if ! gitleaks git --no-banner --redact --log-opts="--all" --report-format=json --report-path="$report" .; then
+            echo 'NO-GO: the history scanner detected potential secrets or failed. Inspect privately and rotate confirmed credentials.' >&2
+            exit 1
+          fi
+          echo 'PASS: automated secret scan of locally fetched refs completed (not a guarantee of complete privacy).'
+
+      - name: Require manual classification of internal history
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          count="$(git log --all --format= --name-only | grep -Eic '(^|/)(DEV/|TODO/|[^/]*\.(env|pem|p12|pfx|key)$|[^/]*(credential|secret)[^/]*)' || true)"
+          printf 'Paths in history requiring manual classification: %s\n' "$count" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$count" -gt 0 ]; then
+            echo 'NO-GO: public history contains internal/sensitive-looking paths; human classification required.' >&2
+            exit 3
+          fi
+          echo 'PASS: no flagged path names in available refs; legal and privacy review still required.' >> "$GITHUB_STEP_SUMMARY"
