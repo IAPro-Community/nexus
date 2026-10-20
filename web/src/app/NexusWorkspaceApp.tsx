@@ -1343,10 +1343,12 @@ const WorkspaceCoordinator: React.FC<{
         }
         terminal(agent);
       }}
-      onOpenAttention={(targetProject, item) => {
-        if (!COMPOSER_FLOW_ENABLED) return;
-        navigate(buildProjectRoute(targetProject.id, 'missions', item.mission_id));
-      }}
+      onOpenAttention={
+        COMPOSER_FLOW_ENABLED
+          ? (targetProject, item) =>
+              navigate(buildProjectRoute(targetProject.id, 'missions', item.mission_id))
+          : undefined
+      }
       onNewAgent={() => setNewAgentOpen(true)}
       onNewAISession={openNewAISession}
       onProjectShell={() => {

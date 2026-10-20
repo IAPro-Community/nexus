@@ -328,10 +328,14 @@ export const ProjectRail: React.FC<{
                     onToggleExpand={() => handleToggleExpand(project.id)}
                     onSelect={() => selectProject(project)}
                     onOpenAgent={handleOpenAgent}
-                    onOpenAttention={(item) => {
-                      onOpenAttention?.(project, item);
-                      onClose();
-                    }}
+                    onOpenAttention={
+                      onOpenAttention
+                        ? (item) => {
+                            onOpenAttention(project, item);
+                            onClose();
+                          }
+                        : undefined
+                    }
                     onProjectContextMenu={(proj, point) =>
                       setRailMenu({ kind: 'project', project: proj, point })
                     }
