@@ -31,6 +31,7 @@ export const ProjectOverviewSurface: React.FC<{
   onProjectShell: () => void;
   onOpenComposer?: () => void;
   onOpenFlow?: () => void;
+  onOpenResources?: () => void;
   onNewAgent?: () => void;
   onConfigureAgent?: (agent: Agent) => void;
   refreshAgents?: () => Promise<void>;
@@ -47,6 +48,7 @@ export const ProjectOverviewSurface: React.FC<{
   onProjectShell,
   onOpenComposer,
   onOpenFlow,
+  onOpenResources,
   onNewAgent,
   onConfigureAgent,
   refreshAgents,
@@ -189,6 +191,11 @@ export const ProjectOverviewSurface: React.FC<{
             onProjectShell={onProjectShell}
             size="sm"
           />
+          {onOpenResources ? (
+            <Button tone="ghost" onClick={onOpenResources}>
+              Contas de IA
+            </Button>
+          ) : null}
           {onOpenComposer ? (
             <Button tone="ghost" onClick={onOpenComposer}>
               {t('overview.openComposer')}
