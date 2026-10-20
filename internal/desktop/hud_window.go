@@ -367,6 +367,10 @@ func (h *HUDController) CaptureHUDWindowState() error {
 
 func (h *HUDController) SetHUDExpanded(expanded bool) error {
 	window, ok := h.nativeWindow()
+	if !ok {
+		// The React popup must not be marked expanded inside a 220x60 window.
+		return fmt.Errorf("native Nexus HUD window is unavailable")
+	}
 	state := h.manager.Load()
 	targetWidth, targetHeight := 220, 60
 	if expanded {
