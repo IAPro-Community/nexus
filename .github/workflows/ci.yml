@@ -408,7 +408,6 @@ jobs:
           test -f cmd/nexus-hud/build/bin/nexus-hud
       - name: Native HUD launch smoke and resource sample
         env:
-          NEXUS_ENABLE_HUD: "1"
           NEXUS_DATA_DIR: ${{ runner.temp }}/nexus-hud-smoke-data
           XDG_SESSION_TYPE: x11
         run: |
@@ -745,7 +744,6 @@ jobs:
         shell: pwsh
         env:
           TARGET_SHA: ${{ inputs.native_target_sha }}
-          NEXUS_ENABLE_HUD: "1"
           NEXUS_DATA_DIR: ${{ runner.temp }}\nexus-hud-windows-smoke
           LOCALAPPDATA: ${{ runner.temp }}\nexus-hud-windows-smoke\localappdata
         run: |
@@ -972,7 +970,6 @@ jobs:
       - name: Native macOS HUD launch smoke
         env:
           TARGET_SHA: ${{ inputs.native_target_sha }}
-          NEXUS_ENABLE_HUD: "1"
           NEXUS_DATA_DIR: ${{ runner.temp }}/nexus-hud-macos-smoke
         run: |
           set -euo pipefail
