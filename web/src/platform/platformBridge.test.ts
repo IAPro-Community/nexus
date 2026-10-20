@@ -3,7 +3,7 @@ import { WebBridge } from './webBridge';
 import { DesktopBridge } from './desktopBridge';
 import { initPlatformBridge, getPlatformBridge } from './index';
 import { safeExternalUrl } from './externalUrl';
-import { setWailsV3InvokerForTests } from './wailsV3';
+import { hudV3, setWailsV3InvokerForTests } from './wailsV3';
 
 describe('PlatformBridge', () => {
   beforeEach(() => {
@@ -46,6 +46,22 @@ describe('PlatformBridge', () => {
     expect(bridge.kind).toBe('desktop');
     expect(bridge.getCapabilities().native).toBe(true);
     expect(bridge.getCapabilities().filePicker).toBe(false);
+  });
+
+  it('routes native HUD click transitions through the Wails HUDController binding', async () => {
+    const changes: boolean[] = [];
+    setWailsV3InvokerForTests(async (method, ...args) => {
+      expect(method).toBe(
+        'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDExpanded',
+      );
+      expect(args).toHaveLength(1);
+      changes.push(args[0] as boolean);
+      return undefined;
+    });
+
+    await hudV3.setExpanded(true);
+    await hudV3.setExpanded(false);
+    expect(changes).toEqual([true, false]);
   });
 
   it('selectDirectory delegates to the Wails v3 App service', async () => {
