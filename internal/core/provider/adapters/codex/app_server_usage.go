@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -125,6 +126,10 @@ func (a *Adapter) fetchUsageFromAppServer(ctx context.Context, p model.Profile) 
 
 	resp, err := runAppServerRateLimits(ctx, home)
 	if err != nil {
+		// Never log auth tokens, app-server stdout or profile contents.
+		// The reason is essential for diagnosing an active TUI lock versus a
+		// protocol/transport failure when /status is newer than nexus usage.
+		slog.Debug("codex app-server quota unavailable", "provider", string(a.ID()), "profile", p.Name, "reason", err.Error())
 		return model.UsageSnapshot{}, false
 	}
 
@@ -132,10 +137,13 @@ func (a *Adapter) fetchUsageFromAppServer(ctx context.Context, p model.Profile) 
 	// profile's account. A missing or mismatched accountId means attribution
 	// would rely on trust alone and is refused.
 	if resp.AccountID == nil || strings.TrimSpace(*resp.AccountID) == "" {
+		slog.Debug("codex app-server quota rejected: account identity missing", "profile", p.Name)
 		return model.UsageSnapshot{}, false
 	}
 	got := strings.TrimSpace(*resp.AccountID)
 	if !strings.EqualFold(got, expected) {
+		// Never include either account identifier in the log line.
+		slog.Debug("codex app-server quota rejected: foreign account", "profile", p.Name)
 		return model.UsageSnapshot{}, false
 	}
 
