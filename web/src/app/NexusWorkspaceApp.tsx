@@ -1447,6 +1447,7 @@ const WorkspaceCoordinator: React.FC<{
               setWelcomeOpen(false);
               setTour(true);
             }}
+            onOpenAccounts={() => openKind('resources')}
           />
         </React.Suspense>
       )}
