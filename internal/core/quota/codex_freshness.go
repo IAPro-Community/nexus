@@ -22,5 +22,15 @@ func CodexEvidenceExpired(snap model.UsageSnapshot, now time.Time) bool {
 		return true
 	}
 	age := now.Sub(snap.FetchedAt)
-	return age < -time.Minute || age > CodexOperationalMaxAge
+	if age < -time.Minute || age > CodexOperationalMaxAge {
+		return true
+	}
+	// A quota read can be recent but already invalid after a 5h/weekly
+	// rollover. Do not display pre-reset percentages as current limits.
+	for _, window := range snap.Windows {
+		if window.ResetTime != nil && !window.ResetTime.After(now) {
+			return true
+		}
+	}
+	return false
 }
