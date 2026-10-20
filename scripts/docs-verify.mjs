@@ -124,8 +124,13 @@ if (existsSync(manifestPath)) {
       cwd: root,
       encoding: 'utf8',
     });
-    if (diff.status === 0 && (diff.stdout || '').trim()) {
-      errors.push(`visual manifest is stale after visual changes since ${manifest.source_sha}: ${(diff.stdout || '').trim().replace(/\n/g, ', ')}`);
+    if (diff.status !== 0) {
+      errors.push(
+        'visual manifest provenance cannot be verified; fetch full Git history ' +
+        '(checkout fetch-depth: 0) and retry source SHA ' + manifest.source_sha,
+      );
+    } else if ((diff.stdout || '').trim()) {
+      errors.push(`visual manifest is stale after visual changes since ${manifest.source_sha}: ${(diff.stdout || '').trim().replace(/\\n/g, ', ')}`);
     }
     // A manifest is evidence for an immutable candidate.  Comparing only
     // against HEAD would incorrectly pass while visual files are dirty in
