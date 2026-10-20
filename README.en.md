@@ -16,7 +16,7 @@ IAPro Nexus is a local workstation for working with coding agents. It organizes 
 
 ## Start in minutes
 
-The source candidate on `release/v1.0.0` declares **`1.0.0-beta.10`** as of 2026-10-18; this is **not** a certified or published stable 1.0. The repository remains private until publication checks complete. Platform support requires exact-SHA validation. Do not derive binary download URLs from historical tags or source versions.
+The source candidate on `release/v1.0.0` declares **`1.0.0-beta.10`** as of 2026-10-18; this is **not** a certified or published stable 1.0. The source repository is public; history and third-party licensing review remain open release gates. Platform support requires exact-SHA validation. Do not derive binary download URLs from historical tags or source versions.
 
 ### Developers (build from source)
 

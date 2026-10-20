@@ -157,6 +157,8 @@ for (const file of ['README.md', 'README.en.md', 'README.es.md']) {
 }
 const catalogGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-feature-catalog.mjs')], { cwd: root, encoding: 'utf8' });
 if (catalogGate.status !== 0) errors.push('feature catalog gate failed: ' + (catalogGate.stderr || catalogGate.stdout || 'unknown error').trim());
+const releaseDocsGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-release-docs.mjs')], { cwd: root, encoding: 'utf8' });
+if (releaseDocsGate.status !== 0) errors.push('release docs contract gate failed: ' + (releaseDocsGate.stderr || releaseDocsGate.stdout || 'unknown error').trim());
 if (errors.length) {
   console.error(errors.map((error) => `✗ ${error}`).join('\n'));
   process.exitCode = 1;

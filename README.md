@@ -281,5 +281,6 @@ ou comercializar o código**. Não é software open source pela definição da O
 
 Leia o [guia de licenciamento](docs/legal/LICENSING.md), o
 [TL;DR](docs/TLDR.md), os [avisos de terceiros](docs/legal/THIRD_PARTY_NOTICES.md)
-e o [CONTRIBUTING](CONTRIBUTING.md). A abertura do repositório ainda depende do
+e o [CONTRIBUTING](CONTRIBUTING.md). O repositório de source já está público; a auditoria de histórico e a liberação
+de binários/versão estável continuam sujeitas ao
 [checklist de publicação](docs/PUBLICATION_CHECKLIST.md).

@@ -16,7 +16,7 @@ IAPro Nexus es una estación de trabajo local para trabajar con coding agents. O
 
 ## Empieza en minutos
 
-El candidato actual `1.0.0-beta.10` integra plataformas en el código, pero el soporte público depende de pruebas nativas del SHA exacto. El repositorio sigue privado durante la preparación de publicación. No se garantiza un instalador público sin verificar artefactos firmados reales.
+El candidato actual `1.0.0-beta.10` integra plataformas en el código, pero el soporte público depende de pruebas nativas del SHA exacto. El repositorio de source ya es público; la auditoría de historial, licencias y secretos continúa pendiente. No se garantiza un instalador público sin verificar artefactos firmados reales.
 
 ### Desarrolladores (compilar desde el código)
 

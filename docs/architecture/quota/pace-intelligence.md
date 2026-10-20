@@ -57,8 +57,7 @@ without future empirical evaluation.
   account re-login, zero/unknown quota, CSV auth, Firefox/Chromium and Windows
   WebView2; check quota remains visible when pace storage is unavailable.
 - Check Go formatting, TS/SCSS lint and exact-SHA release matrix.
-- The local environment available for this change is Go 1.23 and lacks
-  external repo DNS, so **these runtime gates have NOT been executed here**.
+- A nota histórica do ambiente inicial registrou Go 1.23 e ausência de DNS externo; **nenhuma execução posterior fica comprovada por esta página**. Para certificar o SHA atual, exigir logs dos comandos e dos smokes nativos correspondentes.
 
 ## Related follow-up now integrated (not part of the original P0 slice)
 

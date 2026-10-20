@@ -26,7 +26,7 @@ make build
 ./nexus web
 ```
 
-O clone só funciona para quem tem acesso ao repositório enquanto ele estiver privado. Após abrir a UI: **Projects → + New → AI Session → provider → terminal**. A disponibilidade/autenticação dos providers depende da instalação local.
+O repositório de source está público; usar o source exige respeitar a licença PolyForm Strict. A publicação do código **não** prova que há instalador assinado ou v1 estável. Após abrir a UI: **Projects → + New → AI Session → provider → terminal**. A disponibilidade/autenticação dos providers depende da instalação local.
 
 **Não use links presumidos de installers.** Veja a [instalação](getting-started/installation.md) para saber quais binários foram efetivamente verificados.
 

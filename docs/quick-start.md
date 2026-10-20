@@ -8,13 +8,13 @@ exige Composer, Flow ou Mission.
 
 > Estado em 18/10/2026: `release/v1.0.0` com source `1.0.0-beta.10`.
 > A versão **não equivale a v1 estável, instalador público ou plataforma homologada**.
-> Enquanto privado, o clone exige acesso ao GitHub. Veja [release status](release-status.md).
+> O repositório está público; **isso não significa que existam binários certificados**. Veja [release status](release-status.md).
 > License: [PolyForm Strict](../LICENSE), uso não comercial sem alterações/redistribuição.
 > Confirme providers com `nexus doctor` e `nexus providers status --json`.
 
 ## 1. Compile o candidato
 
-Para avaliação por quem já tem acesso ao repositório, use a compilação do source. Não presuma que exista binário público certificado:
+Para avaliação de desenvolvimento do código público, use a compilação do source. Não presuma que exista binário público certificado:
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git

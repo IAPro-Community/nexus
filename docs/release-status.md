@@ -1,4 +1,8 @@
-> **Nota de atualização documental (18/10/2026):** HEAD observado em `release/v1.0.0`: `30f7e69bcf85446634144c315de76e621c221ea5`; arquivo `VERSION`: `1.0.0-beta.10`. O relatório detalhado abaixo contém snapshots históricos (inclusive de beta.7) e **não certifica este HEAD**. Sem evidência de homologação exact-SHA, o veredito de publicação estável permanece **NO-GO**. Nenhum instalador/URL de download foi validado nesta revisão documental.
+# Aviso atual de homologação da linha v1
+
+> **20/10/2026 — documentação, não certificação:** a branch `release/v1.0.0` declara `1.0.0-beta.10`. A branch continua recebendo alterações, logo evidências de SHAs anteriores não certificam o HEAD atual. O repositório de código está público, mas **não há aqui prova de release v1 estável**. Ver [matriz](reference/feature-matrix.md), [gates](operations/platform-support.md) e [checklist](PUBLICATION_CHECKLIST.md).
+
+## Registros históricos de validação (não aplicar ao HEAD sem nova evidência)
 
 # Status público da release do Nexus v1
 

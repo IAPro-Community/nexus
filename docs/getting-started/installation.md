@@ -1,6 +1,6 @@
 # Instalação nativa por release assinada
 
-A release estável Nexus v1 **ainda não foi homologada nem publicada**. O source `release/v1.0.0` declara `1.0.0-beta.10` em 18/10/2026. Plataformas e instaladores exigem validação e assinatura no SHA exato; o registro anterior de `v1.0.0-beta.1` é histórico, não confirmação de URL ativa.
+A release estável Nexus v1 **ainda não foi homologada nem publicada**. O source `release/v1.0.0` declara `1.0.0-beta.10` na linha beta.10. Plataformas e instaladores exigem validação e assinatura no SHA exato; o registro anterior de `v1.0.0-beta.1` é histórico, não confirmação de URL ativa.
 
 | Quero… | Documento |
 | --- | --- |
@@ -13,7 +13,7 @@ A release estável Nexus v1 **ainda não foi homologada nem publicada**. O sourc
 
 **Nenhum endereço de download de artefato foi validado nesta revisão.** Antes de seguir um link de instalação, confirme a existência da release, a plataforma, o SHA, o checksum e a assinatura no canal oficial. Não execute um `curl | bash` inventado ou baseado em tag histórica.
 
-O caminho para quem já possui acesso ao source está em [Desenvolvimento a partir do source](#desenvolvimento-a-partir-do-source). Uma versão binária documentada será disponibilizada somente após os gates exigidos em [Suporte de plataformas](../operations/platform-support.md).
+O caminho para quem pretende compilar o source público está em [Desenvolvimento a partir do source](#desenvolvimento-a-partir-do-source). Uma versão binária documentada será disponibilizada somente após os gates exigidos em [Suporte de plataformas](../operations/platform-support.md).
 
 ## Windows e macOS
 
@@ -155,5 +155,5 @@ No Windows:
 ```
 
 A evidência é gravada por SHA em
-`DEV/validation/local-beta/1.0.0-beta.7/<sha>/<plataforma>/`. O script também gera a
+`DEV/validation/local-beta/<VERSION>/<SHA>/<plataforma>/`. O script também gera a
 lista de checks manuais que não podem ser simulados com segurança.

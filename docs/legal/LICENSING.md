@@ -2,7 +2,7 @@
 
 **Modelo:** source-available, não comercial — **PolyForm Strict License 1.0.0**.
 
-> Este documento explica a licença; em caso de conflito, prevalece o texto integral de [LICENSE](../../LICENSE). Não é uma licença open source aprovada pela OSI. Antes da publicação, confirmar com o titular dos direitos autorais a autoridade para relicenciar todas as partes de código próprias ou recebidas de terceiros.
+> Este documento explica a licença; em caso de conflito, prevalece o texto integral de [LICENSE](../../LICENSE). Não é uma licença open source aprovada pela OSI. Como o código já está público, confirmar prioritariamente com o titular dos direitos autorais a autoridade para relicenciar todas as partes de código próprias ou recebidas de terceiros.
 
 ## TL;DR jurídico
 
@@ -42,7 +42,7 @@ A licença **não autoriza o público a modificar o Nexus**, inclusive por meio 
 
 A disponibilização do código não licencia a marca, logotipo, nomes comerciais ou identidade visual do Nexus. Para redistribuição, integração comercial, customização ou licenciamento empresarial, obtenha autorização escrita específica do titular. Este repositório não contém, por si só, uma oferta de licença comercial.
 
-## Pendências legais antes de tornar público
+## Pendências legais da exposição pública já realizada
 
 1. Identificar e documentar o titular real dos direitos (a indicação anterior “IAPro” era provisória).
 2. Verificar autoria, contribuições, direitos sobre imagens/fontes/assets e obrigações das dependências.

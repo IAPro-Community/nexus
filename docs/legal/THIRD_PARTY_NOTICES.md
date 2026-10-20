@@ -1,50 +1,66 @@
-# IAPro Nexus — Third-Party Notices (v1.0.0-beta.1)
+# IAPro Nexus — inventário preliminar de dependências (v1 source)
 
-Status: generated inventory for owner review. Per-component license texts
-ship with the release artifact; this file records the method plus the
-pinned inventories.
+> **NÃO AUDITADO COMO NOTICE JURÍDICO FINAL.** Este inventário foi extraído de `go.mod` e `web/package.json` do source candidato. Ele não valida, por si só, licenças SPDX, textos completos, assets ou o SBOM dos binários. É obrigação da release executar a revisão jurídica/supply-chain.
 
-## Method
+## Origem de verdade
 
-- Go: `go list -m all` pinned in `docs/legal/GO_MODULES.txt` (regenerate on
-  every release: `go list -m all > docs/legal/GO_MODULES.txt`).
-- Web: direct runtime dependencies pinned below from `web/package.json`;
-  transitive closure is locked in `web/bun.lock`. Regenerate with
-  `bun install --frozen-lockfile` + `bun pm ls` equivalent at release time.
-- SBOM (CycloneDX) is produced by the release pipeline (see
-  `docs/release/BETA_PLAYBOOK.md`); this file is the human-readable index.
+- `go.mod` e `go.sum`: dependências Go.
+- `web/package.json` e `web/bun.lock`: dependências JavaScript/transitivas.
+- Artefatos de release e seu SBOM: somente eles confirmam a composição **efetivamente distribuída**.
+- `LICENSE` governa o código próprio do Nexus nos termos aplicáveis; dependências de terceiros preservam licenças separadas.
 
-## Go modules
+## Go — dependências diretas declaradas
 
-See `docs/legal/GO_MODULES.txt` (156 pinned modules at beta cut).
+| Módulo | Versão |
+| --- | --- |
+| `github.com/Microsoft/go-winio` | `v0.6.2` |
+| `github.com/Xuanwo/go-locale` | `v1.1.3` |
+| `github.com/charmbracelet/bubbles` | `v0.21.1` |
+| `github.com/charmbracelet/bubbletea` | `v1.3.10` |
+| `github.com/charmbracelet/lipgloss` | `v1.1.1-0.20250404203927-76690c660834` |
+| `github.com/creack/pty` | `v1.1.24` |
+| `github.com/gorilla/websocket` | `v1.5.3` |
+| `github.com/nicksnyder/go-i18n/v2` | `v2.6.1` |
+| `github.com/wailsapp/wails/v3` | `v3.0.0-beta.25` |
+| `golang.org/x/image` | `v0.45.0` |
+| `golang.org/x/sys` | `v0.47.0` |
+| `golang.org/x/term` | `v0.45.0` |
+| `golang.org/x/text` | `v0.41.0` |
+| `modernc.org/sqlite` | `v1.57.0` |
 
-Notable copyleft-adjacent review points for the owner (no conclusion
-stated here — confirm with counsel):
+**Wails atual:** `github.com/wailsapp/wails/v3 v3.0.0-beta.25` (não Wails v2). O conjunto de bibliotecas transitorias, bindings nativos e demais obrigações deve ser revisto a partir do lock/build do SHA final.
 
-- `modernc.org/sqlite` and its `modernc.org/*` tree (BSD-style; pure-Go
-  SQLite driver, statically linked into the binary).
-- `github.com/go-git/go-git/v5` (Apache-2.0) and transitive git plumbing.
-- `github.com/wailsapp/wails/v2` (MIT) desktop runtime plus
-  `github.com/wailsapp/go-webview2` (MIT) on Windows.
-- `golang.org/x/*` (BSD-3-Clause), `github.com/charmbracelet/*` (MIT),
-  `github.com/gorilla/websocket` (BSD-2-Clause).
+## Web — dependências de runtime declaradas
 
-## Web runtime dependencies (direct, from web/package.json)
+| Pacote | Versão declarada |
+| --- | --- |
+| `@assistant-ui/react` | `^0.15.20` |
+| `@radix-ui/react-alert-dialog` | `^1.1.23` |
+| `@radix-ui/react-dialog` | `^1.1.23` |
+| `@radix-ui/react-dropdown-menu` | `^2.1.24` |
+| `@radix-ui/react-tooltip` | `^1.2.16` |
+| `@wailsio/runtime` | `3.0.0-beta.25` |
+| `@xyflow/react` | `^12.11.6` |
+| `i18next` | `^26.4.0` |
+| `i18next-browser-languagedetector` | `^8.2.1` |
+| `lucide-react` | `^0.475.0` |
+| `react` | `^19.0.0` |
+| `react-dom` | `^19.0.0` |
+| `react-i18next` | `^17.0.12` |
+| `react-qr-code` | `^2.2.0` |
+| `react-router-dom` | `^7.18.3` |
+| `sonner` | `^2.0.8` |
+| `xterm` | `^5.3.0` |
+| `xterm-addon-fit` | `^0.8.0` |
 
-- `@assistant-ui/react` — MIT
-- `@radix-ui/react-alert-dialog`, `@radix-ui/react-dialog`,
-  `@radix-ui/react-dropdown-menu`, `@radix-ui/react-tooltip` — MIT
-- `@xyflow/react` — MIT
-- `i18next`, `i18next-browser-languagedetector` — MIT
-- `lucide-react` — ISC
-- `react`, `react-dom` — MIT
-- `react-i18next` — MIT
-- `react-qr-code` — MIT
-- `react-router-dom` — MIT
-- `sonner` — MIT
-- `xterm`, `xterm-addon-fit` — MIT
+Bibliotecas utilizadas apenas em build/desenvolvimento também podem impor avisos nas distribuições, conforme composição dos artefatos. Não assumir que todas as dependências de desenvolvimento ficam excluídas do binário sem inspeção real.
 
-(License labels above are the packages' declared licenses; verify against
-the SBOM at release time. `tailwindcss`/`sass`/`vitest`/`playwright` and
-other devDependencies do not ship in the product bundle but are listed in
-the SBOM build section.)
+## Gate obrigatório antes de publicar uma release
+
+1. Gerar SBOM CycloneDX/SPDX para **cada artefato** do exato SHA.
+2. Resolver a árvore transitiva, incluindo dependências Go, Bun, Wails, WebView/NSIS, assets, fontes, logos e binários baixados de terceiros (ex.: `cloudflared`).
+3. Conferir licenças, avisos, atribuições, redistribuição e eventuais conflitos de copyleft com PolyForm Strict; receber parecer jurídico quando aplicável.
+4. Distribuir os textos de licença e notices exigidos no próprio pacote, além do documento legível.
+5. Anexar logs/checksums e auditoria de dependências à evidência da release; `UNKNOWN` não é aprovado.
+
+Regenerar inventários e executar os verificadores quando `go.mod`, `go.sum`, `web/package.json` ou `web/bun.lock` mudarem. Veja [publicação](../PUBLICATION_CHECKLIST.md) e [certificação](../operations/release.md).
