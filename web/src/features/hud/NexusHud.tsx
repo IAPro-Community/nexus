@@ -229,8 +229,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         setExpanded(value);
       })
       .catch((error: unknown) => {
-        const reason = error instanceof Error ? error.message : String(error);
-        setNativeExpansionError(reason);
+        setNativeExpansionError('Falha ao expandir a janela nativa');
         console.error('Nexus HUD native window resize failed:', error);
         toast.error('Não foi possível abrir o painel do Nexus HUD.');
       })
@@ -667,7 +666,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             aria-label={capsuleAccessibleLabel}
             aria-expanded={expanded}
             aria-controls={expanded ? 'nexus-hud-popover' : undefined}
-            title={native ? (nativeExpansionError ? 'Falha ao abrir HUD: ' + nativeExpansionError : nativeTitle) : undefined}
+            title={native ? (nativeExpansionError || nativeTitle) : undefined}
             onClick={() => setExpandedState(!expanded)}
           >
             <img className={styles.logo} src="/nexus-icon.svg" alt="" width={24} height={24} />
