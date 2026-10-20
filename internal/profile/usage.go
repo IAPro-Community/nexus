@@ -26,6 +26,20 @@ import (
 // always terminate quota fetches.
 const usageRefreshTimeout = 15 * time.Second
 
+// Historical observations are kept in the scoped cache for diagnostics, but
+// percentages older than one day are not meaningful current capacity.
+// In particular a 25-day-old Codex weekly quota must never be rendered as a
+// current estimate or used to select a profile.
+const usageDisplayHistoryTTL = 24 * time.Hour
+
+func usageHistoryRenderable(snap model.UsageSnapshot) bool {
+	if snap.FetchedAt.IsZero() {
+		return false
+	}
+	age := time.Since(snap.FetchedAt)
+	return age >= -time.Minute && age <= usageDisplayHistoryTTL
+}
+
 type LimitWindow struct {
 	PercentLeft float64 `json:"percent_left"`
 	ResetsIn    string  `json:"resets_in"`
@@ -96,7 +110,9 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 			lastKnown, hasLastKnown = fallback, true
 		}
 	}
-	if hasLastKnown && !snapshotBelongsToProfile(lastKnown, providerName, name, expectedAccount) {
+	if hasLastKnown && (!snapshotBelongsToProfile(lastKnown, providerName, name, expectedAccount) || !usageHistoryRenderable(lastKnown)) {
+		// Preserve the historical file; discard only its use as a current
+		// quota observation. A refresh can replace it with validated evidence.
 		lastKnown = model.UsageSnapshot{ProviderID: providerName, ProfileID: name, Status: model.UsageUnknown, Source: model.SourceNone}
 		hasLastKnown = false
 	}
@@ -242,7 +258,7 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 		// An adapter that already labeled its observation ESTIMATED is telling
 		// the truth about freshness. Discarding it would turn real evidence into
 		// SEM DADOS for any observation just past the trust window.
-		if snap.Status == model.UsageEstimated && withinLastKnownWindow(snap.FetchedAt) {
+		if snap.Status == model.UsageEstimated && usageHistoryRenderable(snap) && withinLastKnownWindow(snap.FetchedAt) {
 			if snap.Error == "" {
 				snap.Error = fmt.Sprintf("observação de %s", quota.FormatFreshness(snap.FetchedAt))
 			}
@@ -274,6 +290,18 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 				slog.Debug("loadUsageSnapshot: returning trustworthy adapter snapshot", "provider", providerName, "profile", name, "status", snap.Status)
 			}
 			return snap
+		}
+	}
+
+	// An adapter can return very old rollout evidence from a 30-day scan.
+// Retain it in session history, never treat it as current quota.
+	if !usageHistoryRenderable(snap) && (snap.Status == model.UsageEstimated || snap.Status == model.UsageCached || snap.Status == model.UsageLive) {
+		snap = model.UsageSnapshot{
+			ProviderID: providerName,
+			ProfileID:  name,
+			Status:     model.UsageUnknown,
+			Source:     model.SourceNone,
+			FetchedAt: time.Now(),
 		}
 	}
 
