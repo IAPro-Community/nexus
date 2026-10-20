@@ -82,6 +82,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const requestInFlight = useRef<Promise<void> | null>(null);
   const dragState = useRef<{ pointerId: number; x: number; y: number } | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
+  const nativeExpansionPending = useRef(false);
+  const [nativeExpansionError, setNativeExpansionError] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     if (requestInFlight.current) return requestInFlight.current;
@@ -212,8 +214,29 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       : focusedName.charAt(0).toUpperCase() + focusedName.slice(1);
 
   const setExpandedState = (value: boolean) => {
-    setExpanded(value);
-    if (native) void hudV3.setExpanded(value).catch(() => undefined);
+    if (!native) {
+      setExpanded(value);
+      return;
+    }
+    if (nativeExpansionPending.current) return;
+    nativeExpansionPending.current = true;
+    // First resize the independent Wails window, THEN show the popover inside
+    // its viewport. Never claim an expanded panel when the native bridge fails.
+    void hudV3
+      .setExpanded(value)
+      .then(() => {
+        setNativeExpansionError(null);
+        setExpanded(value);
+      })
+      .catch((error: unknown) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        setNativeExpansionError(reason);
+        console.error('Nexus HUD native window resize failed:', error);
+        toast.error('Não foi possível abrir o painel do Nexus HUD.');
+      })
+      .finally(() => {
+        nativeExpansionPending.current = false;
+      });
   };
 
   const handleAlert = async (action: 'ack' | 'snooze') => {
@@ -323,7 +346,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         data-expanded={expanded ? 'true' : 'false'}
         data-tone={tone}
       >
-        {expanded && state && !waiting ? (
+        {expanded ? state && !waiting ? (
           <div id="nexus-hud-popover" className={styles.popover} aria-label="Resumo do Nexus HUD">
             <div className={styles.popoverHeader}>
               <div className={styles.brand}>
@@ -593,6 +616,46 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               )}
             </div>
           </div>
+        ) : (
+          <div id="nexus-hud-popover" className={styles.popover} aria-label="Diagnóstico do Nexus HUD">
+            <div className={styles.popoverHeader}>
+              <div className={styles.brand}>
+                <img src="/nexus-icon.svg" alt="" width={25} height={25} />
+                <strong>Nexus HUD</strong>
+              </div>
+              <button
+                type="button"
+                className={styles.iconButton}
+                aria-label="Recolher Nexus HUD"
+                onClick={() => setExpandedState(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className={styles.notice} data-tone="warning" role="status">
+              <CircleHelp size={18} aria-hidden="true" />
+              <div>
+                <strong>
+                  {nativeStatus === 'disabled' ? 'Projeção do HUD desativada' : 'Dados do HUD indisponíveis'}
+                </strong>
+                <span>
+                  {nativeStatus === 'disabled'
+                    ? 'O Core desativou a projeção. Verifique a configuração NEXUS_DISABLE_HUD.'
+                    : 'A conexão ou a projeção ainda não está pronta. O HUD continua acessível.'}
+                </span>
+              </div>
+            </div>
+            <div className={styles.footerActions}>
+              <button type="button" onClick={() => void refresh()}>
+                <RefreshCw size={13} /> Atualizar
+              </button>
+              {onOpenNexus && (
+                <button type="button" onClick={onOpenNexus}>
+                  Abrir Nexus <ExternalLink size={13} />
+                </button>
+              )}
+            </div>
+          </div>
         ) : null}
 
         <div className={styles.capsuleRow}>
@@ -604,8 +667,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             aria-label={capsuleAccessibleLabel}
             aria-expanded={expanded}
             aria-controls={expanded ? 'nexus-hud-popover' : undefined}
-            title={native ? nativeTitle : undefined}
-            onClick={() => (waiting ? void refresh() : setExpandedState(!expanded))}
+            title={native ? (nativeExpansionError ? 'Falha ao abrir HUD: ' + nativeExpansionError : nativeTitle) : undefined}
+            onClick={() => setExpandedState(!expanded)}
           >
             <img className={styles.logo} src="/nexus-icon.svg" alt="" width={24} height={24} />
             <span className={styles.providerName}>{mainLabel}</span>
