@@ -28,6 +28,15 @@ describe('first run detection', () => {
     expect(status.suggestedProvider).toBe('codex');
   });
 
+  it('prompts login for an expired profile instead of creating a duplicate', () => {
+    const status = deriveFirstRunReadiness(
+      [{ id: 'codex', installed: true, registration_state: 'REGISTERED_AUTH_EXPIRED' }],
+      'loaded',
+    );
+    expect(status.status).toBe('needs-login');
+    expect(status.suggestedProvider).toBe('codex');
+  });
+
   it('does not offer duplicate registration for an existing pending account', () => {
     const state = deriveFirstRunReadiness(
       [
