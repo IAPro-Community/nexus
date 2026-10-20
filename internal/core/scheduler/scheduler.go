@@ -65,6 +65,60 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 	}
 
 	if len(eligible) == 0 {
+		// When every Codex rate-limit read is unavailable, old 30-day quotas
+		// must not choose the "best" account. Preserve only an explicit
+		// workspace binding or configured default. Never silently choose an
+		// arbitrary account when neither preference exists.
+		if provider == "codex" {
+			var preferred *CandidateEvaluation
+			for i := range evals {
+				ev := &evals[i]
+				if !ev.Bound && !ev.IsDefault {
+					continue
+				}
+				if ev.Profile.Disabled || (s.cfg.Disabled[provider] != nil && s.cfg.Disabled[provider][ev.Profile.Name]) {
+					continue
+				}
+				excluded := false
+				for _, name := range excludeProfiles {
+					if name == ev.Profile.Name {
+						excluded = true
+						break
+					}
+				}
+				if excluded || !ev.Account.Authenticated || ev.Account.Health != model.HealthHealthy {
+					continue
+				}
+				scope := ev.Profile.AccountScope
+				if !scope.Verifiable() {
+					scope = ev.Account.AccountScope
+				}
+				limited := false
+				if scope.Verifiable() {
+					limited, _ = s.cooldown.IsRateLimitedForScope(scope)
+				} else {
+					limited, _ = s.cooldown.IsRateLimited(provider, ev.Profile.Name)
+				}
+				if limited {
+					continue
+				}
+				view := quota.BuildQuotaView(ev.Usage, ev.Account.Email, ev.Account.Plan)
+				if view.Status != string(model.UsageUnknown) {
+					continue
+				}
+				if preferred == nil || (ev.Bound && !preferred.Bound) {
+					preferred = ev
+				}
+			}
+			if preferred != nil {
+				return &SelectionResult{
+					SelectedProfile: &preferred.Profile,
+					Reason: "Codex quota unverified; using explicit workspace binding/default without capacity ranking",
+					Evaluations: evals,
+				}, nil
+			}
+		}
+
 		// Check if non-disabled profiles exist where auth can be attempted on launch.
 		// Excluded profiles from the current fallback cycle must never be
 		// re-offered here, otherwise A↔B ping-pong becomes possible.
