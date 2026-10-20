@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          GOBIN="$RUNNER_TEMP/bin" go install github.com/gitleaks/gitleaks/v8@v8.24.2
+          GOBIN="$RUNNER_TEMP/bin" go install github.com/zricethezav/gitleaks/v8@v8.24.2
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       - name: Audit secrets across available refs without publishing findings
