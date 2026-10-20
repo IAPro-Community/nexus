@@ -94,6 +94,10 @@ jobs:
         shell: pwsh
         run: bun install --cwd web --frozen-lockfile
 
+      - name: Exact-SHA Windows first-run preflight (sanitized summary)
+        shell: pwsh
+        run: .\scripts\certify-windows-first-run.ps1 -ExpectedSha $env:TARGET_SHA -OutputDirectory (Join-Path $env:RUNNER_TEMP 'nexus-first-run')
+
       - name: Install Playwright Chromium for visual evidence
         shell: pwsh
         run: bun run --cwd web playwright install chromium
@@ -121,6 +125,15 @@ jobs:
       - name: Run complete Windows homologation
         shell: pwsh
         run: .\scripts\homologate-beta.ps1 -ExpectedSha $env:TARGET_SHA -AllowDirty
+
+      - name: Upload sanitized Windows first-run results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-first-run-summary-${{ github.sha }}
+          path: ${{ runner.temp }}/nexus-first-run/WINDOWS_FIRST_RUN_SUMMARY.json
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Upload Windows validation logs only
         if: always()
