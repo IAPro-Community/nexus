@@ -1,63 +1,27 @@
-# Security & Isolation Model
+# Security and isolation — IAPro Nexus
 
-**🇬🇧 English** | [🇧🇷 Português](security.pt-BR.md) | [🇪🇸 Español](security.es.md)
+**English** | [Português](security.pt-BR.md) | [Español](security.es.md)
 
-`ai-cli` is a local control plane designed to coordinate multiple identities and accounts across AI coding CLIs while preserving strong credential isolation.
+> Local-first does **not** mean sandboxed or incapable of network access. The source release is not automatically certified for every supported platform. See [Security policy](../SECURITY.md).
 
----
+## Trust boundaries
 
-## 1. What Is Isolated vs What Is Not a Sandbox
+- Nexus operates coding agents and provider CLIs. Those processes typically run with **the host user's permissions**; Git worktrees and isolated profile directories are not OS sandboxes.
+- Each provider/profile has its own credential configuration where supported. A provider can transmit code and prompts under **its own privacy terms**.
+- Session bootstrap tokens and cookies are sensitive. Web uses loopback by default; remote access must use an explicit secure deployment and authentication.
+- UNKNOWN health/quota is not evidence of safety or availability.
+- No default authorization for push, deploy, destructive Git operations or repeating an external action with unknown outcome.
 
-### What IS Isolated:
-- **Authentication Tokens & Keyrings**: Each profile has its own dedicated credentials store (`CODEX_HOME` for Codex, isolated D-Bus Secret Service keyring for AGY, isolated `CLAUDE_CONFIG_DIR` for Claude Code, isolated `XDG_DATA_HOME` for OpenCode, isolated `GEMINI_CLI_HOME` for Gemini CLI).
-- **OAuth Session Files**: Stored exclusively within the profile directory tree.
-- **Provider Settings & Overrides**: Configured per profile without cross-contamination.
-- **Environment Variables**: Overridden on process invocation (`HOME`, `CODEX_HOME`, `XDG_*`, `SSH_AUTH_SOCK`).
+## Runtime and network
 
-### What Is NOT a Sandbox:
-- `ai-cli` runs processes under the **same Linux UID/GID** as the calling user.
-- It is **not a virtual machine or container jail**.
-- If an agent is authorized to edit files in your working directory, it can write to files within the permissions of your Linux user account.
+Use `nexus security --json` and `nexus doctor --json` for diagnosis. Before changing settings that expose an API or terminal beyond loopback, review [remote access](product/remote-access.md) and [guardrails](architecture/guardrails.md). A tunnel invitation can provide **broad host workspace access**, not a read-only spectator role.
 
----
+## Logs, credentials and diagnostics
 
-## 2. Isolation Presets
+Do not post OAuth secrets, API keys, cookies, session bootstrap links, terminal captures, environment files or personal paths in public issues. Inspect diagnostics locally first, and apply redaction. Provider auth remains controlled by the provider's supported flow; Nexus must not copy arbitrary credentials across account scopes.
 
-You can configure the global isolation level in your config:
+## Release security
 
-```json
-{
-  "isolation_preset": "developer"
-}
-```
+Source tests, security declarations, dependency licenses, signed update manifests and native signing are **separate** evidence gates. A CI job skipped or cancelled is not PASS. See [release certification](operations/release.md), [platform support](operations/platform-support.md), and the [publication audit](PUBLICATION_CHECKLIST.md).
 
-### Presets Comparison:
-
-| Preset | Shared Features | Blocked / Isolated | Recommendation |
-|---|---|---|---|
-| `strict` | Git user identity (read-only), `SSH_AUTH_SOCK` | `~/.ssh/*`, `~/.git-credentials`, `~/.gnupg`, `~/.kube`, `~/.docker`, `~/.npmrc` | Hardened environments, untrusted external scripts |
-| `developer` *(default)* | `.gitconfig`, `SSH_AUTH_SOCK`, `.npmrc` (read-only), developer tool configurations | `~/.ssh` private keys, `~/.git-credentials`, `~/.kube`, `~/.docker`, `~/.gnupg` | **Recommended default** for active development |
-| `compat` | Host dotfiles (`.gitconfig`, `.ssh`, `.npmrc`, `.bashrc`) | Isolated profile keyrings & OAuth tokens | Legacy backward compatibility |
-
----
-
-## 3. SSH Key Security
-
-`ai-cli` avoids linking or copying raw private key files from `~/.ssh` into profile directories by default. Instead:
-- It forwards the active `SSH_AUTH_SOCK` (SSH Agent).
-- The AI agent can perform git operations via the agent without ever reading your private key bytes from disk.
-
----
-
-## 4. Secret Redaction
-
-The control plane implements an automatic redaction filter that masks sensitive tokens before logging, diagnostic exports, or issue reports:
-- Bearer tokens & Authorization headers
-- JSON Web Tokens (JWT)
-- OpenAI API keys (`sk-...`)
-- Anthropic API keys (`sk-ant-...`)
-- Google OAuth tokens (`ya29...`)
-- RSA/EC/OpenSSH private key blocks
-- Plain-text passwords and cookies
-
-Run `ai security` to inspect the exact permission boundaries and file links for each configured profile.
+Report exploitable vulnerabilities privately as described in [SECURITY.md](../SECURITY.md).

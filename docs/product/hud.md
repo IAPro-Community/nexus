@@ -1,9 +1,6 @@
 # Nexus HUD
 
-> M1 Web/Linux foi integrado à `main`. A evolução nativa continua na branch
-> `feat/hud-cross-platform-completion` com um gate explícito: nenhuma nova
-> feature funcional do HUD é considerada DONE antes de atingir paridade
-> certificada entre Linux, Windows e macOS.
+> **Estado atual:** implementação do HUD está na linha `release/v1.0.0`. As referências a M1 e branches anteriores abaixo são histórico de design, não o estado de entrega. A certificação do HUD desktop exige execução nativa no mesmo SHA em Linux, Windows e macOS; veja [suporte de plataformas](../operations/platform-support.md).
 >
 > O Nexus HUD é uma superfície de apresentação. Ele não é um segundo Capacity
 > Monitor, scheduler, cost engine, runtime de Agents ou MissionRunner.
@@ -140,7 +137,7 @@ Estado após o merge do M1:
 | Windows Desktop HUD | gate nativo obrigatório na frente cross-platform |
 | macOS Desktop HUD | gate nativo obrigatório na frente cross-platform |
 
-A branch de cross-platform roda Windows e macOS no mesmo ciclo da implementação.
+A implementação cross-platform integra o source candidato; execução certificada depende dos gates por plataforma e SHA.
 Cross-compilation não altera esses estados e nenhum recurso novo de produto deve
 passar à frente da paridade nativa.
 

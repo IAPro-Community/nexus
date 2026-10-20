@@ -17,6 +17,7 @@ estender o Nexus.
 | entender restrições da licença | [Licenciamento](legal/LICENSING.md) |
 | testar em 5–10 minutos | [Quick Start](quick-start.md) |
 | entender o produto inteiro | [Como o Nexus funciona](product/how-it-works.md) |
+| verificar 30 recursos com código/testes | [Matriz de funcionalidades](reference/feature-matrix.md) |
 | abrir uma sessão agora | [Direct](product/direct.md) |
 | transformar uma ideia em plano | [Composer](product/composer.md) |
 | revisar dependências e execução | [Flow](product/flow.md) |
@@ -56,7 +57,13 @@ estender o Nexus.
 - [Conductor](product/conductor.md)
 - [Autonomous delivery](product/autonomous-delivery.md)
 - [Maestro](product/maestro.md)
-- [Providers e usage](product/providers-and-usage.md)
+- [Providers, contas, quota e custo](product/providers-and-usage.md)
+- [Terminais e diagnóstico de teclado](product/terminals.md)
+- [Troca de contas e handoff](product/account-switching.md)
+- [HUD](product/hud.md)
+- [Acesso remoto seguro](product/remote-access.md)
+- [Temas](product/themes.md)
+- [Voz e acessibilidade](product/voice-accessibility.md)
 - [Superfícies](product/surfaces.md)
 - [Tour visual](product/visual-tour.md)
 
@@ -89,6 +96,7 @@ estender o Nexus.
 - [CLI](cli/README.md)
 - [Configuração](reference/configuration.md)
 - [Matriz de funcionalidades](reference/feature-matrix.md)
+- [Catálogo rastreável](reference/features.json)
 - [Glossário](GLOSSARY.md)
 - [FAQ](faq.md)
 - [O que mudou](whats-new.md)
