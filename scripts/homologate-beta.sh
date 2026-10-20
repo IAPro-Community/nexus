@@ -39,8 +39,8 @@ case "$ARCH" in
 esac
 
 GO_VERSION_TEXT="$(go version)"
-if [[ "$GO_VERSION_TEXT" != *"go1.25.14"* ]]; then
-  echo "Linux beta homologation requires Go 1.25.14 to match CI; got: $GO_VERSION_TEXT" >&2
+if [[ "$GO_VERSION_TEXT" != *"go1.25.14"* && "$GO_VERSION_TEXT" != *"go1.26.9"* ]]; then
+  echo "Linux beta homologation requires Go 1.25.14 or Go 1.26.9 to match CI; got: $GO_VERSION_TEXT" >&2
   exit 1
 fi
 BUN_VERSION="$(bun --version)"
@@ -113,7 +113,7 @@ log "Go lint (pinned)"
 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./... 2>&1 | tee "$OUT/golangci-lint.log"
 
 log "Go security (pinned)"
-go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./... 2>&1 | tee "$OUT/govulncheck.log"
+GOTOOLCHAIN=go1.26.9 go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./... 2>&1 | tee "$OUT/govulncheck.log"
 
 log "Version contract"
 go run ./scripts/verify-version-contract.go . 2>&1 | tee "$OUT/version-contract.log"
