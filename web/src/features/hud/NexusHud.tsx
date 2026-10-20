@@ -291,7 +291,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         : t('common.hudUnavailable')
     : displayName;
   const currentPercent = waiting ? '—' : displayPercent;
-  const capsuleAccessibleLabel = `${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${currentPercent === '—' ? 'capacidade não confirmada' : `${currentPercent} restante, ${evidenceCopy}`}`;
+  const capsuleCapacityCopy =
+    currentPercent === '—'
+      ? 'capacidade não confirmada'
+      : `${currentPercent} restante, ${evidenceCopy}`;
+  const capsuleAccessibleLabel = `${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${capsuleCapacityCopy}`;
   const nativeTitle = `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`;
   const tone = waiting ? 'unknown' : displayTone;
   const floatingStyle =
