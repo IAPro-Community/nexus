@@ -60,6 +60,31 @@ func TestCodexHistoricalQuotaNeverBecomesOperationalCapacity(t *testing.T) {
 	}
 }
 
+func TestCodexFreshReadWithExpiredResetWindowIsNotCurrentCapacity(t *testing.T) {
+	now := time.Now()
+	reset := now.Add(-time.Minute)
+	remaining := 99.0
+	snap := model.UsageSnapshot{
+		ProviderID: "codex",
+		ProfileID: "test",
+		Status: model.UsageLive,
+		Source: model.SourceOfficialAPI,
+		FetchedAt: now.Add(-2 * time.Minute),
+		Windows: []model.UsageWindow{{
+			Kind: "5h",
+			RemainingPercent: &remaining,
+			ResetTime: &reset,
+		}},
+	}
+	if !CodexEvidenceExpired(snap, now) {
+		t.Fatal("a recently fetched reading with already-reset window must be revalidated")
+	}
+	view := BuildQuotaView(snap, "account", "Plus")
+	if view.Available || view.Status != string(model.UsageUnknown) {
+		t.Fatalf("post-reset historical percentage cannot influence routing: %+v", view)
+	}
+}
+
 func TestOtherProvidersKeepIndependentFreshnessRules(t *testing.T) {
 	pct := 50.0
 	snap := model.UsageSnapshot{
