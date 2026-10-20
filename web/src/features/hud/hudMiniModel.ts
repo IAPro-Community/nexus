@@ -10,12 +10,23 @@ export interface HudFocus {
 }
 
 const usableRemaining = (provider?: HudProvider): number | null => {
-  // Only known evidence classes may display a capacity percentage. A provider
-  // can still report a stale numeric value when the observation is unavailable.
-  if (!provider || !['LIVE', 'CACHED', 'ESTIMATED'].includes(provider.freshness.toUpperCase())) {
+  // RATE_LIMITED can include measured percentages: never confuse a blocked
+  // account with an unknown measurement, or a percentage with eligibility.
+  if (
+    !provider ||
+    !['LIVE', 'CACHED', 'ESTIMATED', 'RATE_LIMITED'].includes(provider.freshness.toUpperCase())
+  ) {
     return null;
   }
-  const value = provider.limiting_window?.remaining_percent;
+  const window = provider.limiting_window;
+  if (!window || window.status.toUpperCase() === 'UNKNOWN') return null;
+  // Once a quota window has rolled over its last percentage is historical.
+  // The provider must be measured again before the capsule reports capacity.
+  if (window.reset_at) {
+    const resetAt = Date.parse(window.reset_at);
+    if (!Number.isFinite(resetAt) || resetAt <= Date.now()) return null;
+  }
+  const value = window.remaining_percent;
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
     ? value
     : null;
@@ -38,9 +49,15 @@ const findProvider = (providers: HudProvider[], provider?: string, profile?: str
 export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
   const agents = state.agents.filter(isWorkingAgent);
   const mission = hudVisibleMission(state.missions);
-  const exact = agents
+  const executingAccounts = agents
     .map((agent) => findProvider(state.providers, agent.provider, agent.profile))
-    .find((provider) => provider !== undefined);
+    .filter((provider): provider is HudProvider => provider !== undefined);
+  const distinctAccounts = new Set(
+    executingAccounts.map((provider) => `${provider.provider.toLowerCase()}:\0${provider.profile.toLowerCase()}`),
+  );
+  // Multiple running identities cannot truthfully be described as one
+  // "active account". Use the neutral highlighted-account presentation.
+  const exact = distinctAccounts.size === 1 ? executingAccounts[0] : undefined;
   const missionProvider = mission
     ? findProvider(state.providers, mission.provider, mission.profile)
     : undefined;
@@ -61,11 +78,12 @@ export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
       (!item.profile || item.profile.toLowerCase() === provider?.profile.toLowerCase()) &&
       ['CRITICAL', 'EXHAUSTED'].includes(item.severity.toUpperCase()),
   );
+  const blocked = provider?.rate_limited || provider?.freshness.toUpperCase() === 'RATE_LIMITED';
   const tone: HudTone =
-    remaining === null
-      ? 'unknown'
-      : alert || stateName === 'CRITICAL' || stateName === 'EXHAUSTED'
-        ? 'critical'
+    blocked || (remaining !== null && (alert || stateName === 'CRITICAL' || stateName === 'EXHAUSTED'))
+      ? 'critical'
+      : remaining === null
+        ? 'unknown'
         : stateName === 'WARNING'
           ? 'warning'
           : 'normal';
@@ -77,7 +95,7 @@ export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
 export const hudPercentage = (value: number | null) =>
   value === null ? '—' : `${Math.round(value)}%`;
 
-export type HudQuotaEvidence = 'live' | 'cached' | 'estimated' | 'unknown';
+export type HudQuotaEvidence = 'live' | 'cached' | 'estimated' | 'rate-limited' | 'unknown';
 
 export const hudQuotaEvidence = (provider?: HudProvider, offline = false): HudQuotaEvidence => {
   if (hudRemaining(provider, offline) === null) return 'unknown';
@@ -88,6 +106,8 @@ export const hudQuotaEvidence = (provider?: HudProvider, offline = false): HudQu
       return 'cached';
     case 'ESTIMATED':
       return 'estimated';
+    case 'RATE_LIMITED':
+      return 'rate-limited';
     default:
       return 'unknown';
   }
