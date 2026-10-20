@@ -521,6 +521,15 @@ func GetSanitizedUsageSnapshot(providerName, name, email string) model.UsageSnap
 		}
 	}
 
+	// An attributable observation can stay in last-known storage without
+	// remaining actionable for routing, the Web API or the TUI.
+	if quota.CodexEvidenceExpired(snap, time.Now()) {
+		snap.Status = model.UsageUnknown
+		snap.Source = model.SourceNone
+		snap.Windows = nil
+		snap.Error = "historical Codex quota expired; refresh or inspect Codex /status"
+	}
+
 	// Apply default model names when the adapter didn't set one.
 	if snap.ModelName == "" {
 		snap.ModelName = defaultModelName(providerName)
