@@ -157,6 +157,9 @@ type usageTableModel struct {
 	cachedQuotaView map[string]quotaViewCache
 	// refreshing tracks provider:profile keys with an in-flight on-demand refresh.
 	refreshing map[string]bool
+	// Scheduled Codex probes continue after the initial cached-first load,
+	// including when an interactive TUI releases its profile lock later.
+	lastCodexProbe time.Time
 
 	// Accounts table
 	allAccounts      []UsageTableRow
@@ -801,6 +804,7 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// minute can repeat a 25-day-old Codex observation indefinitely.
 			m.statusMsg = "Lendo quotas atuais em segundo plano…"
 			if len(m.options.ProfilesToLoad) > 0 {
+				m.lastCodexProbe = time.Now()
 				return m, refreshAllCmd(m.options.ProfilesToLoad, m.options.Defaults)
 			}
 		}
@@ -811,7 +815,20 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.loadingQuotas || m.modalMode != ModalNone || len(m.options.ProfilesToLoad) == 0 {
 			return m, next
 		}
-		return m, tea.Batch(loadQuotasCmdOpts(m.options.ProfilesToLoad, m.options.Defaults, true), next)
+		cacheUpdate := loadQuotasCmdOpts(m.options.ProfilesToLoad, m.options.Defaults, true)
+		if time.Since(m.lastCodexProbe) >= 5*time.Minute {
+			var codexProfiles []model.Profile
+			for _, p := range m.options.ProfilesToLoad {
+				if p.Provider == "codex" && !p.Disabled {
+					codexProfiles = append(codexProfiles, p)
+				}
+			}
+			if len(codexProfiles) > 0 {
+				m.lastCodexProbe = time.Now()
+				return m, tea.Batch(cacheUpdate, refreshAllCmd(codexProfiles, m.options.Defaults), next)
+			}
+		}
+		return m, tea.Batch(cacheUpdate, next)
 
 	case sessionsLoadedMsg:
 		m.loadingSessions = false
