@@ -199,3 +199,19 @@
     align-items: flex-start;
   }
 }
+
+.installGuides {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.83rem;
+
+  span { color: var(--nx-muted); }
+
+  a {
+    color: var(--nx-accent-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
