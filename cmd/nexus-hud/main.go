@@ -105,6 +105,7 @@ func main() {
 		Y:                          windowState.Y,
 		BackgroundType:             application.BackgroundTypeTransparent,
 		BackgroundColour:           application.NewRGBA(15, 17, 23, 0),
+		Windows:                    hudWindowsOptions(),
 		DefaultContextMenuDisabled: true,
 		HideOnEscape:               windowState.AutoHide,
 	})
@@ -121,6 +122,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Nexus HUD Wails v3 error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func hudWindowsOptions() application.WindowsWindow {
+	return application.WindowsWindow{DisableFramelessWindowDecorations: true}
 }
 
 // watchLinkedCore keeps the HUD bound to the Nexus core that launched it:

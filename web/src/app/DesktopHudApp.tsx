@@ -84,7 +84,7 @@ export const DesktopHudApp: React.FC = () => {
 
   return (
     <ThemeProvider>
-      <main className={styles.root}>
+      <main className={styles.root} data-native-hud-app="true">
         {!ready ? (
           <div className={styles.status} role="status">
             {t('common.loading')} Nexus HUD
