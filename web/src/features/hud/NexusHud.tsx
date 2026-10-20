@@ -345,7 +345,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         data-expanded={expanded ? 'true' : 'false'}
         data-tone={tone}
       >
-        {expanded ? state && !waiting ? (
+        {expanded && state && !waiting && (
           <div id="nexus-hud-popover" className={styles.popover} aria-label="Resumo do Nexus HUD">
             <div className={styles.popoverHeader}>
               <div className={styles.brand}>
@@ -615,7 +615,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               )}
             </div>
           </div>
-        ) : (
+        )}
+        {expanded && (!state || waiting) && (
           <div id="nexus-hud-popover" className={styles.popover} aria-label="Diagnóstico do Nexus HUD">
             <div className={styles.popoverHeader}>
               <div className={styles.brand}>
@@ -655,7 +656,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               )}
             </div>
           </div>
-        ) : null}
+        )}
 
         <div className={styles.capsuleRow}>
           <button
