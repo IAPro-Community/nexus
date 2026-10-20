@@ -14,7 +14,17 @@ Codex accounts using historical quota is unsafe.
   presented as current capacity in TUI, Web and scheduler.
 - `nexus usage` displays cached information immediately and then schedules an
   asynchronous refresh of the configured providers. `r` requests a refresh
-  for the selected account and `R` refreshes all accounts.
+  for the selected account and `R` refreshes all accounts. While the Usage
+  TUI remains open, Codex profiles are re-probed every five minutes (off the
+  UI event loop) after a previously locked profile becomes available.
+- `nexus codex` defaults to supervised TTY mode. Both supervised and direct
+  automatic launches now run the same identity-scoped live quota preflight
+  before ranking Codex accounts. The total probe budget is ten seconds, shared
+  across at most five simultaneous profile reads; explicitly requested
+  profiles skip this work. No quotas or identity are shared across profiles.
+- Subscription quota probes remove any inherited host `OPENAI_API_KEY` so the
+  isolated Codex app-server cannot silently select an unrelated API identity.
+  This applies only to the quota subprocess, not to provider runtimes.
 - Fresh official `account/rateLimits/read` responses must come from the
   same isolated CODEX_HOME and matching chatgpt_account_id; a mismatch is
   discarded. Rate-limited responses and independent provider quota policies
@@ -31,7 +41,7 @@ Codex accounts using historical quota is unsafe.
 ## Linux validation (same branch/SHA)
 
 1. Run `git checkout release/v1.0.0 && git pull --ff-only`.
-2. Run `go test ./internal/core/quota ./internal/profile ./internal/core/scheduler ./internal/tui ./internal/core/provider/adapters/codex ./internal/app ./internal/nexus`.
+2. Run `go test ./internal/core/quota ./internal/profile ./internal/core/scheduler ./internal/tui ./internal/core/provider/adapters/codex ./internal/app ./internal/nexus`. Run `go test -race ./internal/app ./internal/tui ./internal/core/provider/adapters/codex` on Linux where supported.
 3. Build the local Nexus binary using the repository release build procedure.
 4. Close *all* Codex interactive sessions before the first live probe; confirm
    the correct profile's isolated CODEX_HOME matches `nexus profiles --json`.
