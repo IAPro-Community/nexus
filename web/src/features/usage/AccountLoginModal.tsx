@@ -81,7 +81,9 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
         return;
       }
       await onLoginSuccess();
-      toast.success('Autenticação confirmada. A disponibilidade de cota é verificada separadamente.');
+      toast.success(
+        'Autenticação confirmada. A disponibilidade de cota é verificada separadamente.',
+      );
       onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -188,29 +190,29 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
 
         <div className={styles.actionsCard}>
           {onStartTerminalLogin && (
-          <div className={styles.terminalOption}>
-            <div className={styles.optionCopy}>
-              <strong>
+            <div className={styles.terminalOption}>
+              <div className={styles.optionCopy}>
+                <strong>
+                  {isOpencode
+                    ? t('usage.opencodeTerminalAction', 'Gerenciar Provedores no Terminal')
+                    : t('usage.loginTerminalAction')}
+                </strong>
+                <small>
+                  {isOpencode
+                    ? t(
+                        'usage.opencodeTerminalDesc',
+                        'Abre o terminal interativo para configurar ou alternar provedores e chaves.',
+                      )
+                    : t('usage.loginTerminalDesc')}
+                </small>
+              </div>
+              <Button tone="brand" size="sm" onClick={handleTerminalLogin}>
+                <Terminal size={14} />
                 {isOpencode
-                  ? t('usage.opencodeTerminalAction', 'Gerenciar Provedores no Terminal')
+                  ? t('usage.opencodeTerminalButton', 'Abrir Provedores')
                   : t('usage.loginTerminalAction')}
-              </strong>
-              <small>
-                {isOpencode
-                  ? t(
-                      'usage.opencodeTerminalDesc',
-                      'Abre o terminal interativo para configurar ou alternar provedores e chaves.',
-                    )
-                  : t('usage.loginTerminalDesc')}
-              </small>
+              </Button>
             </div>
-            <Button tone="brand" size="sm" onClick={handleTerminalLogin}>
-              <Terminal size={14} />
-              {isOpencode
-                ? t('usage.opencodeTerminalButton', 'Abrir Provedores')
-                : t('usage.loginTerminalAction')}
-            </Button>
-          </div>
           )}
 
           <div className={styles.cliOption}>
