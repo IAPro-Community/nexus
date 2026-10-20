@@ -34,5 +34,6 @@ const linux = read('.github/workflows/ci.yml').match(/go-version:\s*'([\d.]+)'/)
 if (!linux || !platform.includes('`' + linux[1] + '`')) errors.push('Linux CI Go version is not documented');
 if (!hud.includes('release/v1.0.0')) errors.push('HUD doc must reference canonical release branch');
 if (web.version !== read('VERSION').trim()) errors.push('Web/source VERSION mismatch');
+if (read('README.md').includes('O repositório continua privado')) errors.push('README has stale repository visibility claim');
 if (errors.length) { errors.forEach((e) => console.error('release docs: ' + e)); process.exitCode = 1; }
 else console.log('release source/documentation manifest checks passed');

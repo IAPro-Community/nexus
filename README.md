@@ -60,7 +60,7 @@ Project → + New → AI Session → Provider → Terminal
 
 ### Instalação e disponibilidade
 
-O repositório continua privado durante o preparo jurídico e técnico da abertura.
+O código-fonte está público no GitHub, mas sua exposição histórica e os direitos de terceiros ainda exigem auditoria; **o código público não equivale a instalador certificado**.
 Não há neste documento um download de instalador público verificado para a
 versão candidata. A distribuição depende de artefatos reais, assinatura e
 certificação exact-SHA. Veja [instalação](docs/getting-started/installation.md).
@@ -90,6 +90,8 @@ Composer, Flow, Mission e Maestro **não são pré-requisitos** para esse caminh
 → [Quick Start completo](docs/quick-start.md)
 
 ## Veja o produto
+
+> **Captura histórica:** a imagem foi produzida em fixture sintética de SHA anterior às últimas modificações visuais. Para homologação, siga [recaptura de evidências](docs/operations/visual-evidence.md).
 
 ![Workspace real do Nexus em fixture sintética](docs/assets/screenshots/workspace-overview.png)
 

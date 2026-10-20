@@ -91,6 +91,7 @@ estender o Nexus.
 - [Recaptura e evidências visuais](operations/visual-evidence.md)
 - [Release](operations/release.md)
 - [Segurança](security.pt-BR.md)
+- [Registro de manutenibilidade](engineering/MAINTAINABILITY_REGISTER.md)
 
 ### 5. Referência
 
