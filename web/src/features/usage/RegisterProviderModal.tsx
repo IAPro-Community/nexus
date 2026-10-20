@@ -15,6 +15,7 @@ import {
 import { nexus } from '../../nexus/api';
 import type { ProviderInfo } from '../../types';
 import styles from './RegisterProviderModal.module.scss';
+import { preferredRegistrationProvider, requiresExplicitAdditionalProfileName } from './registerProviderModel';
 
 export interface RegisterProviderModalProps {
   isOpen: boolean;
@@ -44,15 +45,7 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
       const list = await nexus.listProviderInstallations();
       setProviders(list || []);
       // An unavailable CLI must never be the default registration target.
-      const installed = (list || []).filter((p) => p.installed);
-      if (initialProvider && installed.some((p) => p.id === initialProvider)) {
-        setSelectedProvider(initialProvider);
-      } else {
-        const preferred =
-          installed.find((p) => p.registration_state !== 'REGISTERED_AUTHENTICATED') ||
-          installed[0];
-        setSelectedProvider(preferred?.id || '');
-      }
+      setSelectedProvider(preferredRegistrationProvider(list || [], initialProvider));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -72,10 +65,17 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
 
   if (!isOpen) return null;
 
+  const selectedRegistration = providers.find((p) => p.id === selectedProvider);
+  const requiresName = requiresExplicitAdditionalProfileName(selectedRegistration, profileName);
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!selectedProvider || !providers.some((p) => p.id === selectedProvider && p.installed)) {
       setError(t('usage.selectProviderRequired', 'Selecione um provedor instalado'));
+      return;
+    }
+    if (requiresName) {
+      setError('Este provedor já possui um perfil. Conclua o login em Uso/Contas ou informe um nome diferente para adicionar outra conta.');
       return;
     }
     const cleanProfile = profileName.trim() || selectedProvider;
@@ -144,7 +144,7 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
                       {getRegistrationBadge(prov)}
                     </span>
                     <span className={styles.providerMeta}>
-                      <span>{prov.version || 'v1.0'}</span>
+                      <span>{prov.version || 'Versão indisponível'}</span>
                       {prov.binary_path ? <code>{prov.binary_path}</code> : null}
                     </span>
                   </span>
@@ -157,6 +157,13 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
               );
             })}
           </ChoiceGroup>
+        ) : null}
+
+        {requiresName ? (
+          <p className={styles.intro}>
+            Já existe um perfil deste provedor. Para adicionar outra conta, informe um nome de perfil
+            diferente; para continuar com a conta atual, conclua o login em Uso/Contas.
+          </p>
         ) : null}
 
         <div className={styles.formGroup}>
@@ -181,7 +188,7 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
             type="submit"
             tone="brand"
             disabled={
-              submitting || !providers.some((p) => p.id === selectedProvider && p.installed)
+              submitting || requiresName || !providers.some((p) => p.id === selectedProvider && p.installed)
             }
           >
             <Plus size={14} />
