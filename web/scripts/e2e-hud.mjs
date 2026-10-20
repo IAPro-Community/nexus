@@ -37,6 +37,15 @@ async function main() {
       isolatedProjectPath,
     );
 
+    // Web HUD remains opt-in even though native HUD needs the projection API
+    // available by default. Opt in before the project shell boots.
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        'iapro:nexus:hud:presentation:v1',
+        JSON.stringify({ version: 1, enabled: true }),
+      );
+    });
+
     const shellUrl = new URL(`/p/${encodeURIComponent(project.id)}/overview`, apiOrigin);
     await page.goto(shellUrl.toString(), { waitUntil: 'domcontentloaded', timeout: 15000 });
     await page.waitForSelector('.nx-os-shell', { timeout: 10000 });
