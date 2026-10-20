@@ -78,7 +78,7 @@ func refreshCodexLaunchQuota(
 	var wg sync.WaitGroup
 	// Keep concurrent probes bounded even for users with many profiles.
 	sem := make(chan struct{}, 5)
-	for _, candidate := range toProbe {
+	for _, c := range toProbe {
 		wg.Add(1)
 		go func(item candidate) {
 			defer wg.Done()
@@ -95,7 +95,7 @@ func refreshCodexLaunchQuota(
 			// Re-read through the canonical account-scope/freshness checks.
 			snap := profile.GetSanitizedUsageSnapshot("codex", item.profile.Name, item.account.Email)
 			results <- result{name: item.profile.Name, snap: snap}
-		}(candidate)
+		}(c)
 	}
 	// All probes share the same deadline, not a deadline per account.
 	// A canceled probe cannot modify the account map after we return.
