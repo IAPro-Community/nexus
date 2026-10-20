@@ -155,6 +155,8 @@ for (const file of ['README.md', 'README.en.md', 'README.es.md']) {
     if (!text.includes(phrase)) errors.push(`${file} missing required phrase: ${phrase}`);
   }
 }
+const catalogGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-feature-catalog.mjs')], { cwd: root, encoding: 'utf8' });
+if (catalogGate.status !== 0) errors.push('feature catalog gate failed: ' + (catalogGate.stderr || catalogGate.stdout || 'unknown error').trim());
 if (errors.length) {
   console.error(errors.map((error) => `✗ ${error}`).join('\n'));
   process.exitCode = 1;

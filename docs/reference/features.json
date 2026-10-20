@@ -1,0 +1,581 @@
+{
+  "schemaVersion": 1,
+  "sourceBranch": "release/v1.0.0",
+  "certificationPolicy": "NO_GO_UNTIL_EXACT_SHA",
+  "features": [
+    {
+      "id": "projects",
+      "name": "Projetos e workspaces",
+      "surfaces": [
+        "core",
+        "web",
+        "cli",
+        "api"
+      ],
+      "status": "implemented",
+      "implementation": "internal/nexus/project_application.go",
+      "tests": [
+        "internal/nexus/project_application_test.go"
+      ],
+      "documentation": "docs/product/overview.md",
+      "requires": "Pastas locais acessíveis",
+      "limits": "Não substitui permissões do filesystem",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "direct",
+      "name": "Direct e AI Session",
+      "surfaces": [
+        "web",
+        "cli",
+        "core"
+      ],
+      "status": "implemented",
+      "implementation": "web/src/features/work/directSessionModel.ts",
+      "tests": [
+        "web/src/features/work/directSessionModel.test.ts"
+      ],
+      "documentation": "docs/product/direct.md",
+      "requires": "CLI/provider instalado e autenticado",
+      "limits": "Sessão direta não exige Composer ou Mission",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "agents",
+      "name": "Agents persistentes",
+      "surfaces": [
+        "core",
+        "web",
+        "cli",
+        "api"
+      ],
+      "status": "implemented",
+      "implementation": "internal/nexus/agent_application.go",
+      "tests": [
+        "internal/nexus/agent_application_test.go"
+      ],
+      "documentation": "docs/product/agents.md",
+      "requires": "Projeto registrado",
+      "limits": "Identidade do Agent não equivale à identidade do provider",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "terminals",
+      "name": "Terminal supervisionado e continuidade",
+      "surfaces": [
+        "core",
+        "web",
+        "cli",
+        "desktop"
+      ],
+      "status": "implemented",
+      "implementation": "internal/control/host/host.go",
+      "tests": [
+        "internal/control/host/terminal_windows_test.go"
+      ],
+      "documentation": "docs/product/terminals.md",
+      "requires": "Transporte PTY/ConPTY da plataforma",
+      "limits": "Sequências de teclado e recuperação dependem de smoke nativo",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "providers",
+      "name": "Providers e perfis",
+      "surfaces": [
+        "core",
+        "web",
+        "cli"
+      ],
+      "status": "implemented",
+      "implementation": "internal/core/provider/adapters/codex/codex.go",
+      "tests": [
+        "internal/core/provider/adapters/codex/cross_account_sessions_test.go"
+      ],
+      "documentation": "docs/product/providers-and-usage.md",
+      "requires": "Instalação/login da CLI oficial",
+      "limits": "Registro do provider não significa quota LIVE",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "account-handoff",
+      "name": "Troca de conta e handoff",
+      "surfaces": [
+        "core",
+        "cli"
+      ],
+      "status": "experimental",
+      "implementation": "internal/core/provider/adapters/codex/codex.go",
+      "tests": [
+        "internal/core/provider/adapters/codex/cross_account_sessions_test.go"
+      ],
+      "documentation": "docs/product/account-switching.md",
+      "requires": "Contas autenticadas e sessão elegível",
+      "limits": "Retomada nativa completa requer E2E por provider",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "quota",
+      "name": "Quota e elegibilidade",
+      "surfaces": [
+        "core",
+        "cli",
+        "web",
+        "api"
+      ],
+      "status": "implemented",
+      "implementation": "internal/core/quota/eligibility.go",
+      "tests": [
+        "internal/core/quota/eligibility_test.go"
+      ],
+      "documentation": "docs/product/providers-and-usage.md",
+      "requires": "Evidência que o provider realmente fornece",
+      "limits": "UNKNOWN e UNSUPPORTED não devem virar percentuais",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "capacity-monitor",
+      "name": "Monitor de capacidade",
+      "surfaces": [
+        "core",
+        "web",
+        "api",
+        "hud"
+      ],
+      "status": "implemented",
+      "implementation": "internal/nexus/capacitymonitor/monitor.go",
+      "tests": [
+        "internal/nexus/capacitymonitor/monitor_test.go"
+      ],
+      "documentation": "docs/product/providers-and-usage.md",
+      "requires": "Monitor habilitado explicitamente",
+      "limits": "Disponibilidade depende de origem e autenticação",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "pace",
+      "name": "Previsão de consumo de quota",
+      "surfaces": [
+        "core",
+        "web",
+        "hud",
+        "api"
+      ],
+      "status": "experimental",
+      "implementation": "internal/nexus/capacitymonitor/pace.go",
+      "tests": [
+        "internal/nexus/capacitymonitor/pace_test.go"
+      ],
+      "documentation": "docs/architecture/quota/pace-intelligence.md",
+      "requires": "Amostras LIVE verificadas do mesmo ciclo",
+      "limits": "Projeção consultiva; não altera quota nem roteamento",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "cost",
+      "name": "Cost Intelligence",
+      "surfaces": [
+        "core",
+        "web",
+        "api",
+        "hud"
+      ],
+      "status": "implemented",
+      "implementation": "internal/nexus/cost_application.go",
+      "tests": [
+        "internal/nexus/cost_application_test.go"
+      ],
+      "documentation": "docs/architecture/quota/EXTERNAL_USAGE_AND_PUBLIC_STATUS.md",
+      "requires": "Observações com proveniência",
+      "limits": "Custo desconhecido não é zero nem cobrança real",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "external-usage",
+      "name": "Importação manual de uso Claude",
+      "surfaces": [
+        "core",
+        "web",
+        "api"
+      ],
+      "status": "experimental",
+      "implementation": "internal/nexus/externalusage/claude.go",
+      "tests": [
+        "internal/nexus/externalusage/claude_test.go"
+      ],
+      "documentation": "docs/architecture/quota/EXTERNAL_USAGE_AND_PUBLIC_STATUS.md",
+      "requires": "Consentimento explícito a cada varredura",
+      "limits": "Dados sem atribuição de conta ficam fora do ledger canônico",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "public-status",
+      "name": "Status público de serviços",
+      "surfaces": [
+        "web",
+        "api"
+      ],
+      "status": "experimental",
+      "implementation": "web/src/features/settings/PublicProviderStatus.tsx",
+      "tests": [
+        "web/src/features/settings/externalClaudeAvailability.test.ts"
+      ],
+      "documentation": "docs/architecture/quota/EXTERNAL_USAGE_AND_PUBLIC_STATUS.md",
+      "requires": "Acesso HTTPS às fontes públicas",
+      "limits": "Status público não representa quota de assinatura",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "hud",
+      "name": "HUD compacto e desktop",
+      "surfaces": [
+        "core",
+        "web",
+        "desktop",
+        "hud",
+        "api"
+      ],
+      "status": "experimental",
+      "implementation": "internal/nexus/hud_projection.go",
+      "tests": [
+        "internal/nexus/hud_projection_test.go"
+      ],
+      "documentation": "docs/product/hud.md",
+      "requires": "Core disponível; opções de apresentação",
+      "limits": "Paridade visual e comportamento nativo ainda sem certificação",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "composer",
+      "name": "Composer",
+      "surfaces": [
+        "core",
+        "web",
+        "api"
+      ],
+      "status": "implemented",
+      "implementation": "internal/nexus/composer.go",
+      "tests": [
+        "internal/nexus/composer_application_test.go"
+      ],
+      "documentation": "docs/product/composer.md",
+      "requires": "Inteligência disponível conforme configuração",
+      "limits": "Preparação do plano não autoriza execução automaticamente",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "flow",
+      "name": "WorkPlan e Flow",
+      "surfaces": [
+        "core",
+        "web",
+        "cli",
+        "api"
+      ],
+      "status": "implemented",
+      "implementation": "internal/nexus/plan.go",
+      "tests": [
+        "internal/nexus/flow_test.go"
+      ],
+      "documentation": "docs/product/flow.md",
+      "requires": "Plano válido e revisão explícita",
+      "limits": "Flow é projeção editável do WorkPlan",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "missions",
+      "name": "MissionRunner durável",
+      "surfaces": [
+        "core",
+        "web",
+        "cli",
+        "api"
+      ],
+      "status": "experimental",
+      "implementation": "internal/nexus/runner/runner.go",
+      "tests": [
+        "internal/nexus/runner/runner_durable_test.go"
+      ],
+      "documentation": "docs/product/missions.md",
+      "requires": "Políticas, recursos e evidência",
+      "limits": "COMPLETED_VERIFIED exige verificação; smokes reais pendentes",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "coordination",
+      "name": "Coordenação de Agents",
+      "surfaces": [
+        "core",
+        "web",
+        "api"
+      ],
+      "status": "experimental",
+      "implementation": "internal/nexus/runner/runner.go",
+      "tests": [
+        "internal/nexus/mission_coordination_execution_test.go"
+      ],
+      "documentation": "docs/product/agent-coordination.md",
+      "requires": "Mission autorizada",
+      "limits": "Delegação e replay exigem segurança comprovada",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "conductor",
+      "name": "Conductor",
+      "surfaces": [
+        "core",
+        "web",
+        "api"
+      ],
+      "status": "experimental",
+      "implementation": "internal/nexus/conductor.go",
+      "tests": [
+        "internal/nexus/conductor_test.go"
+      ],
+      "documentation": "docs/product/conductor.md",
+      "requires": "Políticas e recursos executáveis",
+      "limits": "Não substitui autorização GO nem os gates",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "scheduler",
+      "name": "ResourceScheduler",
+      "surfaces": [
+        "core",
+        "cli",
+        "web"
+      ],
+      "status": "implemented",
+      "implementation": "internal/core/scheduler/scheduler.go",
+      "tests": [
+        "internal/core/scheduler/scheduler_test.go"
+      ],
+      "documentation": "docs/architecture/resource-routing.md",
+      "requires": "Profiles com estado operacional conhecido",
+      "limits": "PIN/PREFER e capacidade opaca têm semânticas distintas",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "maestro",
+      "name": "Integração Maestro",
+      "surfaces": [
+        "core",
+        "web",
+        "cli"
+      ],
+      "status": "optional",
+      "implementation": "internal/nexus/maestro.go",
+      "tests": [
+        "internal/nexus/maestro_test.go"
+      ],
+      "documentation": "docs/product/maestro.md",
+      "requires": "Maestro instalado separadamente",
+      "limits": "O Nexus funciona sem essa integração",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "voice",
+      "name": "Entrada e controle por voz",
+      "surfaces": [
+        "web",
+        "desktop",
+        "core"
+      ],
+      "status": "experimental",
+      "implementation": "internal/voice/service.go",
+      "tests": [
+        "internal/voice/service_test.go"
+      ],
+      "documentation": "docs/product/voice-accessibility.md",
+      "requires": "Microfone e serviço STT configurado",
+      "limits": "Transcrição não envia Enter automaticamente; smoke físico pendente",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "themes",
+      "name": "Temas e aparência",
+      "surfaces": [
+        "web",
+        "desktop"
+      ],
+      "status": "implemented",
+      "implementation": "web/src/design-system/theme/theme.ts",
+      "tests": [
+        "web/src/design-system/theme/theme.test.ts"
+      ],
+      "documentation": "docs/product/themes.md",
+      "requires": "Interface Web/Desktop",
+      "limits": "Presets não podem alterar semântica funcional",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "remote",
+      "name": "Acesso remoto autenticado",
+      "surfaces": [
+        "web",
+        "cli",
+        "api"
+      ],
+      "status": "experimental",
+      "implementation": "internal/control/web/tunnel.go",
+      "tests": [
+        "internal/control/web/tunnel_start_stop_test.go"
+      ],
+      "documentation": "docs/product/remote-access.md",
+      "requires": "Túnel HTTPS e convite válido",
+      "limits": "Convite concede acesso amplo ao workspace; sem papéis granulares",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "auth",
+      "name": "Sessões, autenticação e CSRF",
+      "surfaces": [
+        "core",
+        "web",
+        "api"
+      ],
+      "status": "implemented",
+      "implementation": "internal/control/web/auth.go",
+      "tests": [
+        "internal/control/web/auth_persist_test.go"
+      ],
+      "documentation": "docs/security.pt-BR.md",
+      "requires": "Token de bootstrap e sessão",
+      "limits": "Sessões remotas têm limites mais restritos",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "updates",
+      "name": "Atualização e integridade",
+      "surfaces": [
+        "core",
+        "cli",
+        "api"
+      ],
+      "status": "experimental",
+      "implementation": "internal/update/manifest.go",
+      "tests": [
+        "internal/update/manifest_test.go"
+      ],
+      "documentation": "docs/architecture/updates.md",
+      "requires": "Manifesto e artefatos assinados publicados",
+      "limits": "Código de verificação não comprova canal de update publicado",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "doctor",
+      "name": "Diagnósticos",
+      "surfaces": [
+        "core",
+        "cli"
+      ],
+      "status": "implemented",
+      "implementation": "internal/doctor/doctor.go",
+      "tests": [
+        "internal/doctor/doctor_test.go"
+      ],
+      "documentation": "docs/operations/troubleshooting.md",
+      "requires": "Acesso ao host",
+      "limits": "Bundle deve ser revisto antes de compartilhar",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "desktop",
+      "name": "Desktop nativo",
+      "surfaces": [
+        "desktop",
+        "core"
+      ],
+      "status": "experimental",
+      "implementation": "cmd/nexus-desktop/main.go",
+      "tests": [
+        "internal/desktop/hud_window_test.go"
+      ],
+      "documentation": "docs/desktop/overview.md",
+      "requires": "Dependências nativas e WebView",
+      "limits": "Build não é certificação de runtime Windows/macOS",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "api-local",
+      "name": "API local",
+      "surfaces": [
+        "api",
+        "web",
+        "desktop"
+      ],
+      "status": "internal",
+      "implementation": "internal/control/web/routes.go",
+      "tests": [
+        "internal/control/web/server_routes_test.go"
+      ],
+      "documentation": "docs/api/README.md",
+      "requires": "Sessão autenticada",
+      "limits": "Contrato interno; não prometer API pública estável",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "cli",
+      "name": "CLI e automação",
+      "surfaces": [
+        "cli",
+        "core"
+      ],
+      "status": "implemented",
+      "implementation": "internal/app/app.go",
+      "tests": [
+        "internal/app/usage_json_test.go"
+      ],
+      "documentation": "docs/cli/README.md",
+      "requires": "Binário Nexus instalado",
+      "limits": "Para scripts preferir --json",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "installer",
+      "name": "Instalação e desinstalação",
+      "surfaces": [
+        "cli",
+        "desktop"
+      ],
+      "status": "experimental",
+      "implementation": "install.sh",
+      "tests": [
+        "internal/release/installer_test.go"
+      ],
+      "documentation": "docs/getting-started/installation.md",
+      "requires": "Artefato verificável para cada plataforma",
+      "limits": "Somente distribuir binários após gates exact-SHA",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    }
+  ]
+}
