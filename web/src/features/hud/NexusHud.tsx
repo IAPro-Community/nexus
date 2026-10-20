@@ -198,6 +198,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     live: 'Ao vivo',
     cached: 'Em cache',
     estimated: 'Estimativa',
+    'rate-limited': 'Limite temporário',
     unknown: 'Não confirmado',
   }[quotaEvidence];
   const focusedName = focus?.provider?.provider || 'Nexus';
@@ -360,6 +361,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 role="progressbar"
                 aria-label="Capacidade restante da janela limitante"
                 aria-valuenow={focus?.remaining ?? undefined}
+                aria-valuetext={focus?.remaining === null || focus?.remaining === undefined
+                  ? 'Capacidade não confirmada'
+                  : `${displayPercent} · ${evidenceCopy}`}
                 aria-valuemin={0}
                 aria-valuemax={100}
               >
@@ -451,6 +455,18 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 <div>
                   <strong>Quota não confirmada</strong>
                   <span>Sem medição confiável; não significa quota esgotada.</span>
+                </div>
+              </div>
+            ) : tone === 'critical' || tone === 'warning' ? (
+              <div className={styles.notice} data-tone="warning">
+                <AlertTriangle size={18} aria-hidden="true" />
+                <div>
+                  <strong>Capacidade com restrição</strong>
+                  <span>
+                    {focus?.provider?.rate_limited || quotaEvidence === 'rate-limited'
+                      ? 'Provider com limite temporário; consulte Usage antes de continuar.'
+                      : 'Verifique a janela e o estado de capacidade em Usage.'}
+                  </span>
                 </div>
               </div>
             ) : (
@@ -577,10 +593,12 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             className={styles.capsule}
             data-tone={tone}
             data-evidence={quotaEvidence}
-            aria-label={`${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${currentPercent} restante`}
+            aria-label={`${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${currentPercent === '—' ? 'capacidade não confirmada' : `${currentPercent} restante, ${evidenceCopy}`}`}
             aria-expanded={expanded}
             aria-controls={expanded ? 'nexus-hud-popover' : undefined}
-            title={`${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`}
+            title={native
+              ? `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`
+              : undefined}
             onClick={() => (waiting ? void refresh() : setExpandedState(!expanded))}
           >
             <img className={styles.logo} src="/nexus-icon.svg" alt="" width={24} height={24} />
@@ -637,7 +655,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   ? 'Atenção necessária'
                   : tone === 'unknown'
                     ? 'Quota não confirmada'
-                    : 'Operação normal'}
+                    : tone === 'critical' || tone === 'warning'
+                      ? 'Capacidade com restrição'
+                      : 'Operação normal'}
             </div>
           </div>
         )}
