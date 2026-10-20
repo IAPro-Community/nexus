@@ -322,20 +322,18 @@ export const ProjectRail: React.FC<{
                     selected={selected?.id === project.id}
                     expanded={expanded}
                     summary={outline.summaryMap.get(project.id)}
-                    attention={outline.attentionByProject.get(project.id)}
+                    attention={
+                      COMPOSER_FLOW_ENABLED ? outline.attentionByProject.get(project.id) : undefined
+                    }
                     agents={outline.agentsByProject.get(project.id) ?? []}
                     agentsLoading={outline.loadingAgents.has(project.id)}
                     onToggleExpand={() => handleToggleExpand(project.id)}
                     onSelect={() => selectProject(project)}
                     onOpenAgent={handleOpenAgent}
-                    onOpenAttention={
-                      onOpenAttention
-                        ? (item) => {
-                            onOpenAttention(project, item);
-                            onClose();
-                          }
-                        : undefined
-                    }
+                    onOpenAttention={(item) => {
+                      onOpenAttention?.(project, item);
+                      onClose();
+                    }}
                     onProjectContextMenu={(proj, point) =>
                       setRailMenu({ kind: 'project', project: proj, point })
                     }
