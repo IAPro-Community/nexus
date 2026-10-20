@@ -1131,3 +1131,40 @@ func TestUsageTableTriggersBackgroundRefreshOnInitialCachedLoad(t *testing.T) {
 	}
 	_ = updated
 }
+
+func TestUsageTableReprobesCodexAfterLockCanBeReleased(t *testing.T) {
+	model := newUnifiedUsageModel(UnifiedUsageOptions{
+		Rows: []UsageTableRow{{Provider: "codex", Profile: "personal", Status: "SEM DADOS"}},
+		ProfilesToLoad: []model.Profile{{Provider: "codex", Name: "personal"}},
+	})
+	loaded, cmd := model.Update(quotasLoadedMsg{
+		rows: []UsageTableRow{{Provider: "codex", Profile: "personal", Status: "SEM DADOS"}},
+		silent: false,
+	})
+	if cmd == nil {
+		t.Fatal("initial load should start a nonblocking provider probe")
+	}
+	m := loaded.(usageTableModel)
+	if m.lastCodexProbe.IsZero() {
+		t.Fatal("initial probe timestamp must be captured")
+	}
+	first := m.lastCodexProbe
+	m.loadingQuotas = false
+	next, tickCmd := m.Update(quotaPollTickMsg{})
+	if tickCmd == nil {
+		t.Fatal("quota poll must keep scheduling itself")
+	}
+	m = next.(usageTableModel)
+	if !m.lastCodexProbe.Equal(first) {
+		t.Fatal("polling before the cooldown must not start new Codex app-server probes")
+	}
+	m.lastCodexProbe = time.Now().Add(-6 * time.Minute)
+	next, tickCmd = m.Update(quotaPollTickMsg{})
+	if tickCmd == nil {
+		t.Fatal("stale poll must schedule Codex re-probing")
+	}
+	m = next.(usageTableModel)
+	if time.Since(m.lastCodexProbe) > time.Minute {
+		t.Fatal("refresh scheduling timestamp did not advance")
+	}
+}
