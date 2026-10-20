@@ -163,7 +163,7 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 			if found && snap.Source == model.SourceOfficialAPI && len(snap.Windows) > 0 {
 				snap.Status = model.UsageCached
 				useCache = true
-			} else if hasLastKnown && lastKnown.Source == model.SourceOfficialAPI && len(lastKnown.Windows) > 0 {
+			} else if hasLastKnown && lastKnown.Source == model.SourceOfficialAPI && len(lastKnown.Windows) > 0 && !quota.CodexEvidenceExpired(lastKnown, time.Now()) {
 				lastKnown.Status = model.UsageCached
 				lastKnown.Error = "TUI Codex ativo; usando última cota oficial"
 				return lastKnown
@@ -316,7 +316,7 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 			if lastKnown.Error == "" {
 				lastKnown.Error = fmt.Sprintf("official rate limit still in effect from %s", quota.FormatFreshness(lastKnown.FetchedAt))
 			}
-			if scopeOK {
+			if scopeOK && !quota.CodexEvidenceExpired(lastKnown, time.Now()) {
 				_ = qEng.SaveUsageForScope(scope, lastKnown)
 			}
 			if debug {
@@ -326,7 +326,7 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 		}
 		lastKnown.Status = model.UsageEstimated
 		lastKnown.Error = fmt.Sprintf("live usage refresh failed; showing last known observation from %s", quota.FormatFreshness(lastKnown.FetchedAt))
-		if scopeOK {
+		if scopeOK && !quota.CodexEvidenceExpired(lastKnown, time.Now()) {
 			_ = qEng.SaveUsageForScope(scope, lastKnown)
 		}
 		if debug {
