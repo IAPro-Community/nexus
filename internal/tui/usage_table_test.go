@@ -1101,3 +1101,33 @@ func TestRenderAccountCellsFreshNoSuffix(t *testing.T) {
 		t.Fatalf("fresh STATUS should not have age suffix, got %q", statusCell)
 	}
 }
+
+func TestUsageTableTriggersBackgroundRefreshOnInitialCachedLoad(t *testing.T) {
+	options := UnifiedUsageOptions{
+		Rows: []UsageTableRow{{Provider: "codex", Profile: "kivergmail", Status: "SEM DADOS"}},
+		ProfilesToLoad: []model.Profile{{Provider: "codex", Name: "kivergmail"}},
+	}
+	model := newUnifiedUsageModel(options)
+	updated, cmd := model.Update(quotasLoadedMsg{
+		rows: options.Rows,
+		accounts: map[string]model.AccountInfo{},
+		silent: false,
+	})
+	next := updated.(usageTableModel)
+	if cmd == nil {
+		t.Fatal("initial cached list must schedule an asynchronous live refresh")
+	}
+	if !strings.Contains(next.statusMsg, "segundo plano") {
+		t.Fatalf("missing refresh in-progress label: %q", next.statusMsg)
+	}
+
+	updated, cmd = next.Update(quotasLoadedMsg{
+		rows: options.Rows,
+		accounts: map[string]model.AccountInfo{},
+		silent: true,
+	})
+	if cmd != nil {
+		t.Fatal("silent cache polling must not launch repeated app-servers")
+	}
+	_ = updated
+}
