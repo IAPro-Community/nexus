@@ -103,7 +103,12 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 					continue
 				}
 				view := quota.BuildQuotaView(ev.Usage, ev.Account.Email, ev.Account.Plan)
-				if view.Status != string(model.UsageUnknown) {
+				// An explicit workspace binding or default remains a safe
+				// continuity fallback when the only evidence is outdated.
+				// Never rank or choose an arbitrary account using its old quota.
+				staleEstimate := view.Status == string(model.UsageEstimated) &&
+					!view.FetchedAt.IsZero() && time.Since(view.FetchedAt) > quota.DefaultTTL
+				if view.Status != string(model.UsageUnknown) && !staleEstimate {
 					continue
 				}
 				if preferred == nil || (ev.Bound && !preferred.Bound) {
