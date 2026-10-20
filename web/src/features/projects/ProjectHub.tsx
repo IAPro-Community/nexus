@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, Input, IconButton } from '../../design-system';
 import { nexus, type SystemDoctorReport } from '../../nexus/api';
-import type { Project, ProviderInfo } from '../../types';
+import type { Project, ProviderAccount, ProviderInfo } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { DirectoryBrowserModal } from './DirectoryBrowserModal';
 import { ProjectScanModal } from './ProjectScanModal';
@@ -18,7 +18,8 @@ import { selectProjectDirectory } from './projectDirectoryPicker';
 import { getRepositoryPathPlaceholderKey } from './repositoryPathPlaceholder';
 import styles from './ProjectHub.module.scss';
 import { RegisterProviderModal } from '../usage/RegisterProviderModal';
-import { deriveFirstRunReadiness } from './firstRunReadiness';
+import { AccountLoginModal } from '../usage/AccountLoginModal';
+import { deriveFirstRunReadiness, OFFICIAL_PROVIDER_INSTALL_GUIDES } from './firstRunReadiness';
 
 export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = ({ onCreated }) => {
   const { t } = useTranslation();
@@ -32,6 +33,9 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
   const [dirPickerOpen, setDirPickerOpen] = useState(false);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const [loginAccount, setLoginAccount] = useState<ProviderAccount | null>(null);
+  const [loginBusy, setLoginBusy] = useState(false);
+  const [setupError, setSetupError] = useState('');
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [doctor, setDoctor] = useState<SystemDoctorReport | null>(null);
   const [detectionState, setDetectionState] = useState<'checking' | 'loaded' | 'unavailable'>(
@@ -58,6 +62,33 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
   useEffect(() => {
     void detectEnvironment();
   }, [detectEnvironment]);
+
+  // Do not manufacture account identity from a discovered CLI. Read the backend ledger.
+  const openExistingLogin = async (provider?: string, profile?: string) => {
+    setSetupError('');
+    setLoginBusy(true);
+    try {
+      const data = await nexus.listResources();
+      const matches = (data.accounts || []).filter(
+        (account) => !provider || account.provider === provider,
+      );
+      const account = profile
+        ? matches.find((item) => item.profile === profile)
+        : matches.find((item) => !item.authenticated) || matches[0];
+      if (account) {
+        setLoginAccount(account);
+      } else {
+        setSetupError(
+          'Ainda não foi possível localizar esse perfil em Uso/Contas. ' +
+            'Verifique novamente ou use nexus profiles no terminal para identificar o perfil.',
+        );
+      }
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoginBusy(false);
+    }
+  };
 
   const readiness = deriveFirstRunReadiness(providers, detectionState);
   const desktopPrerequisite = doctor?.checks.find(
@@ -204,6 +235,29 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
               Adicionar conta {readiness.suggestedProvider}
             </Button>
           )}
+          {readiness.status === 'needs-login' && (
+            <Button
+              size="sm"
+              tone="brand"
+              disabled={loginBusy}
+              onClick={() => void openExistingLogin(readiness.suggestedProvider)}
+            >
+              Concluir login da conta existente
+            </Button>
+          )}
+          {readiness.status === 'needs-provider' && (
+            <div className={styles.installGuides}>
+              <span>Instalação oficial:</span>
+              {OFFICIAL_PROVIDER_INSTALL_GUIDES.map((guide) => (
+                <a key={guide.label} href={guide.href} target="_blank" rel="noopener noreferrer">
+                  {guide.label}
+                </a>
+              ))}
+            </div>
+          )}
+          {setupError && (
+            <p role="alert" className={styles.readinessWarning}>{setupError}</p>
+          )}
           {desktopPrerequisite && (
             <p className={styles.readinessWarning}>
               Desktop: dependência nativa ainda não confirmada. O terminal e o navegador podem
@@ -235,9 +289,16 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
         isOpen={accountModalOpen}
         initialProvider={readiness.suggestedProvider}
         onClose={() => setAccountModalOpen(false)}
-        onRegistered={async () => {
+        onRegistered={async (provider, profile) => {
           await detectEnvironment();
+          await openExistingLogin(provider, profile);
         }}
+      />
+      <AccountLoginModal
+        account={loginAccount}
+        isOpen={Boolean(loginAccount)}
+        onClose={() => setLoginAccount(null)}
+        onLoginSuccess={detectEnvironment}
       />
     </>
   );
