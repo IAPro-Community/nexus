@@ -330,6 +330,10 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 		return err
 	}
 
+	// Direct/scripted launches share the same bounded Codex quota freshness
+	// rules as the default supervised TTY route. Explicit profiles skip probe.
+	refreshCodexLaunchQuota(context.Background(), provName, explicitProfile, candidates, accounts)
+
 	// Pre-check: warn if ALL accounts are unavailable before launching.
 	allUnavailable := true
 	for _, p := range candidates {
