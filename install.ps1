@@ -11,7 +11,8 @@ param(
     [string]$Version = $env:NEXUS_VERSION,
     [switch]$BuildFromSource = $false,
     [string]$SourceRef = $env:NEXUS_SOURCE_REF,
-    [switch]$Yes = $false
+    [switch]$Yes = $false,
+    [switch]$InstallPrerequisites = $false
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,6 +39,9 @@ function Ensure-GoCompiler {
         throw "Go >=1.25 is required for source builds. Install Go manually and run the installer again."
     }
 
+    if (-not $InstallPrerequisites) {
+        throw "Go is missing. Install it from https://go.dev/dl/ or explicitly allow optional dependency installation with -InstallPrerequisites. A prebuilt Nexus release does not need Go."
+    }
     $Winget = Get-Command winget -ErrorAction SilentlyContinue
     if (-not $Winget) {
         throw "Go >=1.25 is required for source builds, but winget is unavailable. Install Go from https://go.dev/dl/ and run the installer again."
@@ -62,7 +66,10 @@ function Ensure-Bun {
     if (Get-Command bun -ErrorAction SilentlyContinue) {
         return
     }
-    Write-Host "Bun was not found. Installing via official Bun script..." -ForegroundColor Yellow
+    if (-not $InstallPrerequisites) {
+        throw "Bun is missing. Install it from https://bun.sh or explicitly allow optional dependency installation with -InstallPrerequisites. A prebuilt Nexus release does not need Bun."
+    }
+    Write-Host "Bun was not found. Installing via official Bun script (explicitly authorized)..." -ForegroundColor Yellow
     try {
         Invoke-RestMethod -Uri "https://bun.sh/install.ps1" | Invoke-Expression
     } catch {
@@ -142,9 +149,14 @@ function Ensure-WebView2 {
 
     Write-Host "⚠️  WebView2 runtime not detected. Desktop may fail; CLI remains usable." -ForegroundColor Yellow
     $Winget = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $InstallPrerequisites) {
+        Write-Host "WebView2 was not installed automatically. Install it from https://developer.microsoft.com/microsoft-edge/webview2/ or rerun with -InstallPrerequisites to authorize WinGet." -ForegroundColor Yellow
+        return
+    }
     if ($Winget) {
-        Write-Host "Attempting WebView2 install via WinGet..." -ForegroundColor Yellow
+        Write-Host "Installing WebView2 via WinGet (explicitly authorized)..." -ForegroundColor Yellow
         & $Winget.Source install --id Microsoft.EdgeWebView2Runtime --exact --accept-source-agreements --accept-package-agreements
+        if ($LASTEXITCODE -ne 0) { Write-Host "WebView2 installation did not succeed; use the official installer." -ForegroundColor Yellow }
     } else {
         Write-Host "Install WebView2 from https://developer.microsoft.com/microsoft-edge/webview2/" -ForegroundColor Yellow
     }
