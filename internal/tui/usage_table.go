@@ -220,6 +220,45 @@ const quotaPollInterval = 60 * time.Second
 // considered stale and an age suffix is appended to the STATUS column.
 const staleQuotaAge = 45 * time.Minute
 
+// Recover a current quota off the input loop. Avoid hammering the Codex
+// app-server when a CLI session is active or the provider is unavailable.
+const codexAutoRefreshInterval = 5 * time.Minute
+
+var codexAutoRefreshState = struct {
+	sync.Mutex
+	attempted map[string]time.Time
+}{attempted: make(map[string]time.Time)}
+
+func codexNeedsAutoRefresh(snap model.UsageSnapshot, now time.Time) bool {
+	if snap.FetchedAt.IsZero() {
+		return true
+	}
+	age := now.Sub(snap.FetchedAt)
+	if age < -time.Minute || age > quota.DefaultTTL {
+		return true
+	}
+	switch snap.Status {
+	case model.UsageLive, model.UsageCached, model.UsageRateLimited:
+		return false
+	default:
+		return true
+	}
+}
+
+func claimCodexAutoRefresh(provider, name string, now time.Time) bool {
+	if provider != "codex" {
+		return false
+	}
+	key := provider + ":" + name
+	codexAutoRefreshState.Lock()
+	defer codexAutoRefreshState.Unlock()
+	if last := codexAutoRefreshState.attempted[key]; !last.IsZero() && now.Sub(last) < codexAutoRefreshInterval {
+		return false
+	}
+	codexAutoRefreshState.attempted[key] = now
+	return true
+}
+
 func quotaPollTick() tea.Cmd {
 	return tea.Tick(quotaPollInterval, func(time.Time) tea.Msg {
 		return quotaPollTickMsg{}
@@ -246,6 +285,15 @@ func loadQuotasCmdOpts(profiles []model.Profile, defaults map[string]string, sil
 				defer wg.Done()
 				sem <- struct{}{}
 				defer func() { <-sem }()
+				// This worker is asynchronous. Quota probing never executes on
+				// the Bubble Tea input loop or in the rendering path.
+				if p.Provider == "codex" {
+					snap := profile.GetUsageSnapshot(p.Provider, p.Name)
+					now := time.Now()
+					if codexNeedsAutoRefresh(snap, now) && claimCodexAutoRefresh(p.Provider, p.Name, now) {
+						_ = profile.RefreshUsageSnapshot(p.Provider, p.Name)
+					}
+				}
 				acc := profile.GetAccountInfo(p.Provider, p.Name)
 				qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
 				rows := buildUsageRows(p.Provider, p.Name, qv, acc, defaults)
