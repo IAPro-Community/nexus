@@ -53,7 +53,9 @@ export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
     .map((agent) => findProvider(state.providers, agent.provider, agent.profile))
     .filter((provider): provider is HudProvider => provider !== undefined);
   const distinctAccounts = new Set(
-    executingAccounts.map((provider) => `${provider.provider.toLowerCase()}:\0${provider.profile.toLowerCase()}`),
+    executingAccounts.map((provider) =>
+      JSON.stringify([provider.provider.toLowerCase(), provider.profile.toLowerCase()]),
+    ),
   );
   // Multiple running identities cannot truthfully be described as one
   // "active account". Use the neutral highlighted-account presentation.
