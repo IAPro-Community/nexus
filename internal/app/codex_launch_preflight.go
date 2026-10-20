@@ -120,7 +120,8 @@ func refreshCodexLaunchQuota(
 			completed++
 			if item.snap.Source == model.SourceOfficialAPI &&
 				!quota.CodexEvidenceExpired(item.snap, time.Now()) &&
-				(item.snap.Status == model.UsageLive || item.snap.Status == model.UsageCached) {
+				(item.snap.Status == model.UsageLive || item.snap.Status == model.UsageCached ||
+					item.snap.Status == model.UsageRateLimited) {
 				verified++
 			}
 		case <-probeCtx.Done():
