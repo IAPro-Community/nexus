@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Network } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button, EmptyState } from '../design-system';
 import { recoverOrStartAgent } from '../nexus/agentRecover';
 import { isLiveRuntimeState, runtimeIdFromRecoverResult } from '../nexus/agentTerminalModel';
@@ -426,7 +427,29 @@ export const WorkspaceSurfaceHost: React.FC<{
     }
 
     if (surface.type === 'resources') {
-      return <UsageSurface />;
+      return (
+        <UsageSurface
+          onStartTerminalLogin={(provider, profile) => {
+            void nexus
+              .startProjectShell(project.id)
+              .then((result) => {
+                openSurface(
+                  projectShellSurface(
+                    project.id,
+                    result.runtime.runtime_id,
+                    `Login · ${provider}:${profile}`,
+                  ),
+                );
+                toast.info(
+                  `Execute nexus login ${provider} ${profile} no terminal. O comando foi enviado à área de transferência quando permitido.`,
+                );
+              })
+              .catch((err) => {
+                toast.error(err instanceof Error ? err.message : String(err));
+              });
+          }}
+        />
+      );
     }
 
     if (surface.type === 'maestro') {
