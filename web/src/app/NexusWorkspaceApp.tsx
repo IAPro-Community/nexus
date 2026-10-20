@@ -85,6 +85,7 @@ import { loadNotificationPrefs, playAttentionSound } from '../notifications/noti
 import { formatAttentionPushBody } from '../notifications/attentionPushCopy';
 import { isPtyAttentionFocused } from '../notifications/attentionDelivery';
 import { interpretNexusVoiceCommand } from '../features/voice/voiceCommand';
+import { COMPOSER_FLOW_ENABLED, isExperimentalComposerFlowSurface } from './composerFlowFlag';
 
 const selectedProjectKey = 'iapro:nexus:selected-project:v1';
 const tourKey = 'iapro:nexus:tour-complete:v1';
@@ -214,12 +215,28 @@ const NexusWorkspaceSession: React.FC<{
   );
 
   const popoutSurface = useMemo(() => {
-    if (explicitPopout) return explicitPopout;
+    if (explicitPopout) {
+      return COMPOSER_FLOW_ENABLED || !isExperimentalComposerFlowSurface(explicitPopout.type)
+        ? explicitPopout
+        : undefined;
+    }
     if (parsedRoute.kind === 'popout') {
+      if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(parsedRoute.surface))
+        return undefined;
       return projectSurface(parsedRoute.projectId, parsedRoute.surface as any);
     }
     return undefined;
   }, [explicitPopout, parsedRoute]);
+
+  useEffect(() => {
+    if (
+      !COMPOSER_FLOW_ENABLED &&
+      (parsedRoute.kind === 'project' || parsedRoute.kind === 'popout') &&
+      isExperimentalComposerFlowSurface(parsedRoute.surface)
+    ) {
+      navigate(buildProjectRoute(parsedRoute.projectId, 'overview'), { replace: true });
+    }
+  }, [navigate, parsedRoute]);
 
   const routeProjectId =
     parsedRoute.kind === 'project' || parsedRoute.kind === 'popout'
@@ -434,6 +451,7 @@ const WorkspaceCoordinator: React.FC<{
 
   const open = useCallback(
     (surface: WorkspaceSurface, updateUrl = true) => {
+      if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) return;
       workspace.open(surface);
       if (updateUrl && !popout) {
         if (surface.type === 'flow-run' && surface.data?.runId) {
@@ -474,7 +492,10 @@ const WorkspaceCoordinator: React.FC<{
     })();
   };
   const openKind = useCallback(
-    (kind: string) => open(projectSurface(project.id, kind as any)),
+    (kind: string) => {
+      if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(kind)) return;
+      open(projectSurface(project.id, kind as any));
+    },
     [open, project.id],
   );
   const openTerminals = useCallback(
@@ -585,7 +606,7 @@ const WorkspaceCoordinator: React.FC<{
   // Ensure pinned product tabs exist without stealing Overview focus.
   useEffect(() => {
     workspace.ensure(projectSurface(project.id, 'terminals'));
-    workspace.ensure(projectSurface(project.id, 'work'));
+    if (COMPOSER_FLOW_ENABLED) workspace.ensure(projectSurface(project.id, 'work'));
   }, [project.id, workspace]);
 
   useEffect(() => {
@@ -684,20 +705,24 @@ const WorkspaceCoordinator: React.FC<{
               ),
           }))
         : []),
-      {
-        id: 'work',
-        label: t('commands.openComposer', { defaultValue: 'Open Composer' }),
-        group: t('commands.project'),
-        keywords: ['composer', 'prompt', 'goal', 'plan'],
-        run: () => openKind('work'),
-      },
-      {
-        id: 'plan',
-        label: t('commands.openFlowRuns', { defaultValue: 'Open Flow Runs history' }),
-        group: t('commands.project'),
-        keywords: ['flow', 'mission', 'history', 'runs'],
-        run: () => openKind('missions'),
-      },
+      ...(COMPOSER_FLOW_ENABLED
+        ? [
+            {
+              id: 'work',
+              label: t('commands.openComposer', { defaultValue: 'Open Composer' }),
+              group: t('commands.project'),
+              keywords: ['composer', 'prompt', 'goal', 'plan'],
+              run: () => openKind('work'),
+            },
+            {
+              id: 'plan',
+              label: t('commands.openFlowRuns', { defaultValue: 'Open Flow Runs history' }),
+              group: t('commands.project'),
+              keywords: ['flow', 'mission', 'history', 'runs'],
+              run: () => openKind('missions'),
+            },
+          ]
+        : []),
       {
         id: 'resources',
         label: t('commands.open', { name: t('nav.resources') }),
@@ -747,7 +772,7 @@ const WorkspaceCoordinator: React.FC<{
         keywords: ['provider'],
         run: () => openKind('legacy-providers'),
       },
-      ...flowRuns.map((run) => ({
+      ...(COMPOSER_FLOW_ENABLED ? flowRuns : []).map((run) => ({
         id: `flow-run-${run.id}`,
         label: `Flow Run · ${run.id.slice(-6)}`,
         group: t('commands.project'),
@@ -809,7 +834,9 @@ const WorkspaceCoordinator: React.FC<{
           group: 'Layout Presets',
           preset: 'restore-default' as const,
         },
-      ].map((p) => ({
+      ]
+        .filter((p) => COMPOSER_FLOW_ENABLED || p.preset !== 'terminal-flow')
+        .map((p) => ({
         id: p.id,
         label: p.label,
         group: p.group,
@@ -1317,6 +1344,7 @@ const WorkspaceCoordinator: React.FC<{
         terminal(agent);
       }}
       onOpenAttention={(targetProject, item) => {
+        if (!COMPOSER_FLOW_ENABLED) return;
         navigate(buildProjectRoute(targetProject.id, 'missions', item.mission_id));
       }}
       onNewAgent={() => setNewAgentOpen(true)}
@@ -1395,7 +1423,7 @@ const WorkspaceCoordinator: React.FC<{
         projectId={project.id}
         onOpenUsage={() => openKind('resources')}
         onOpenAgents={() => openKind('agents')}
-        onOpenMissions={() => openKind('missions')}
+        onOpenMissions={COMPOSER_FLOW_ENABLED ? () => openKind('missions') : undefined}
         onOpenSettings={() => {
           setSettingsInitialTab('hud');
           openKind('settings');

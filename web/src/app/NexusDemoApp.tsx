@@ -9,6 +9,7 @@ import { ProjectOverviewSurface } from '../features/overview/ProjectOverviewSurf
 import { WorkSurface } from '../features/work/WorkSurface';
 import { SettingsSurface } from '../features/settings/SettingsSurface';
 import { NexusShell } from './NexusShell';
+import { COMPOSER_FLOW_ENABLED, isExperimentalComposerFlowSurface } from './composerFlowFlag';
 import { CommandPalette } from './commands/CommandPalette';
 import type { NexusCommand } from './commands/registry';
 import { ProductTour } from './tour/ProductTour';
@@ -90,13 +91,16 @@ const DemoCoordinator: React.FC = () => {
   const [palette, setPalette] = useState(false);
   const [tour, setTour] = useState(false);
   const openKind = useCallback(
-    (kind: string) => workspace.open(projectSurface(project.id, kind as any)),
+    (kind: string) => {
+      if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(kind)) return;
+      workspace.open(projectSurface(project.id, kind as any));
+    },
     [workspace],
   );
   const commands = useMemo<NexusCommand[]>(
     () => [
       { id: 'overview', label: 'Open Overview', group: 'Demo', run: () => openKind('overview') },
-      { id: 'work', label: 'Open Work', group: 'Demo', run: () => openKind('work') },
+      ...(COMPOSER_FLOW_ENABLED ? [{ id: 'work', label: 'Open Work', group: 'Demo', run: () => openKind('work') }] : []),
       { id: 'settings', label: 'Open Settings', group: 'Demo', run: () => openKind('settings') },
       { id: 'tour', label: 'Take Product Tour', group: 'Demo', run: () => setTour(true) },
     ],
@@ -109,13 +113,13 @@ const DemoCoordinator: React.FC = () => {
           project={project}
           agents={agents}
           onOpenAgent={() => openKind('agents')}
-          onNewAISession={() => openKind('work')}
-          onProjectShell={() => openKind('work')}
-          onOpenComposer={() => openKind('work')}
-          onOpenFlow={() => openKind('missions')}
+          onNewAISession={() => openKind('agents')}
+          onProjectShell={() => openKind('agents')}
+          onOpenComposer={COMPOSER_FLOW_ENABLED ? () => openKind('work') : undefined}
+          onOpenFlow={COMPOSER_FLOW_ENABLED ? () => openKind('missions') : undefined}
         />
       );
-    if (surface.type === 'work')
+    if (surface.type === 'work' && COMPOSER_FLOW_ENABLED)
       return <WorkSurface project={project} agents={agents} onDirect={() => openKind('agents')} />;
     if (surface.type === 'settings') return <SettingsSurface onTour={() => setTour(true)} />;
     return (

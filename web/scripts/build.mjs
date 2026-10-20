@@ -75,7 +75,12 @@ await build({
   target: ['es2022'],
   jsx: 'automatic',
   plugins: [sassPlugin],
-  define: { 'process.env.NODE_ENV': '"production"' },
+  define: {
+    'process.env.NODE_ENV': '"production"',
+    '__NEXUS_EXPERIMENTAL_COMPOSER_FLOW__': JSON.stringify(
+      process.env.NEXUS_EXPERIMENTAL_COMPOSER_FLOW === '1',
+    ),
+  },
   logLevel: 'info',
 });
 

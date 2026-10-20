@@ -1,3 +1,4 @@
+import { COMPOSER_FLOW_ENABLED, isExperimentalComposerFlowSurface } from '../../app/composerFlowFlag';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Gauge,
@@ -174,7 +175,7 @@ export const ProjectRail: React.FC<{
     { id: 'sessions', label: t('nav.sessions'), icon: History },
     { id: 'projects', label: t('projectManager.desktopsTitle'), icon: LayoutGrid },
     { id: 'settings', label: t('nav.settings'), icon: Settings },
-  ] as const;
+  ].filter((item) => COMPOSER_FLOW_ENABLED || !isExperimentalComposerFlowSurface(item.id));
 
   const selectProject = useCallback(
     (project: Project) => {

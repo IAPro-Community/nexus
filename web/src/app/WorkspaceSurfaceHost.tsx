@@ -28,6 +28,7 @@ import { surfaceViewId } from '../workspace/model';
 import { useWorkspacePresentation } from '../workspace/WorkspacePresentationProvider';
 import { SurfaceLoadingFallback } from './SurfaceLoadingFallback';
 import { mapDurableActivity } from './activityModel';
+import { COMPOSER_FLOW_ENABLED, isExperimentalComposerFlowSurface } from './composerFlowFlag';
 
 // Lazy-loaded Surfaces to isolate heavy dependencies (xterm.js, DAG canvas, settings)
 const ProjectManagerSurface = React.lazy(() =>
@@ -184,6 +185,15 @@ export const WorkspaceSurfaceHost: React.FC<{
   const config = (target: Agent) => openSurface(agentConfigSurface(target.id, target.name));
 
   const renderSurfaceContent = () => {
+    if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) {
+      return (
+        <EmptyState
+          title={t('surfaces.unavailable', 'Feature unavailable')}
+          hint={t('surfaces.experimentalDisabled', 'Composer and Flow are under validation.')}
+          action={<Button onClick={() => open('overview')}>{t('surfaces.openOverview')}</Button>}
+        />
+      );
+    }
     if (surface.type === 'projects') {
       return (
         <ProjectManagerSurface
@@ -204,15 +214,15 @@ export const WorkspaceSurfaceHost: React.FC<{
           project={project}
           agents={agents}
           runtimes={runtimes}
-          flowRuns={flowRuns}
+          flowRuns={COMPOSER_FLOW_ENABLED ? flowRuns : []}
           onOpenAgent={(agent, runtimeId) => terminal(agent, '', runtimeId || '')}
           refreshAgents={refreshAgents}
           onNewAgent={() => window.dispatchEvent(new CustomEvent('nexus:new-agent'))}
           onConfigureAgent={config}
           onNewAISession={() => window.dispatchEvent(new CustomEvent('nexus:new-ai-session'))}
           onProjectShell={() => window.dispatchEvent(new CustomEvent('nexus:project-shell'))}
-          onOpenComposer={() => open('work')}
-          onOpenFlow={() => open('missions')}
+          onOpenComposer={COMPOSER_FLOW_ENABLED ? () => open('work') : undefined}
+          onOpenFlow={COMPOSER_FLOW_ENABLED ? () => open('missions') : undefined}
           onOpenSettings={() => open('settings')}
         />
       );
