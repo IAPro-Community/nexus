@@ -391,6 +391,10 @@ try {
   let trackReconnectSocket = false;
   let reconnectControlLeaseReceived = false;
   let reconnectMarkerOutputReceived = false;
+  // Windows ConPTY may split the server's echoed command into one-character
+  // WebSocket output frames. Verify the marker across successive *server*
+  // output frames from the reconnect socket, never from frames sent by xterm.
+  let reconnectServerOutputTail = '';
   page.on('response', (response) => {
     const pathname = new URL(response.url()).pathname.toLowerCase();
     if (pathname.includes('terminal')) terminalHttpDiagnostics.push('http:' + response.status());
@@ -439,8 +443,11 @@ try {
           resolveTerminalControl();
           if (isReconnectSocket) reconnectControlLeaseReceived = true;
         }
-        if (isReconnectSocket && frame.type === 'output' && String(frame.data || '').includes(reconnectMarker)) {
-          reconnectMarkerOutputReceived = true;
+        if (isReconnectSocket && frame.type === 'output' && typeof frame.data === 'string') {
+          reconnectServerOutputTail = (reconnectServerOutputTail + frame.data).slice(-8192);
+          if (reconnectServerOutputTail.includes(reconnectMarker)) {
+            reconnectMarkerOutputReceived = true;
+          }
         }
       } catch {
         terminalSocketDiagnostics.push('received:non-json');

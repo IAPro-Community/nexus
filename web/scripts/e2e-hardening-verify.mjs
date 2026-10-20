@@ -281,13 +281,14 @@ async function main() {
         const error = card.querySelector('[role="alert"]');
         const root = card.closest('[data-testid="project-hub-root"]');
         const headline = root?.querySelector('h1');
-        const templates = root?.querySelector('[data-testid="project-hub-templates"]');
-        const templateCopy = Array.from(
-          templates?.querySelectorAll(':scope > div > div:nth-child(2)') || [],
-        ).map((copy) => ({
-          title: copy.querySelector('strong')?.textContent?.trim() || '',
-          description: copy.querySelector('small')?.textContent?.trim() || '',
-        }));
+        const readiness = root?.querySelector('[data-testid="project-hub-readiness"]');
+        const readinessCopy = {
+          exists: Boolean(readiness),
+          status: readiness?.querySelector('[role="status"]')?.textContent?.trim() || '',
+          hasRecheck: [...(readiness?.querySelectorAll('button') || [])].some((button) =>
+            /verificar novamente|check again|recheck/i.test(button.textContent || ''),
+          ),
+        };
         return {
           cardWidth: card.getBoundingClientRect().width,
           cardBottom: card.getBoundingClientRect().bottom,
@@ -298,7 +299,7 @@ async function main() {
           rootClientWidth: root?.clientWidth || 0,
           rootScrollWidth: root?.scrollWidth || 0,
           headlineTop: headline?.getBoundingClientRect().top ?? -1,
-          templateCopy,
+          readinessCopy,
         };
       });
       assert.equal(
@@ -328,36 +329,28 @@ async function main() {
         projectHubLayout.rootScrollWidth <= projectHubLayout.rootClientWidth,
         'Project Hub must not overflow horizontally: ' + JSON.stringify(projectHubLayout),
       );
-      assert.equal(
-        projectHubLayout.templateCopy.length,
-        3,
-        'All three starter templates must have accessible title and description nodes: ' +
-          JSON.stringify(projectHubLayout.templateCopy),
-      );
-      for (const template of projectHubLayout.templateCopy) {
-        assert.ok(
-          template.title && template.description,
-          'Each starter template needs title and detail copy',
-        );
-        assert.notEqual(
-          template.title,
-          template.description,
-          'Template title and detail must not duplicate',
-        );
-        assert.ok(
-          !template.title.includes(template.description),
-          'Template detail must not repeat its title: ' + JSON.stringify(template),
-        );
-      }
-      const templates = page.getByTestId('project-hub-templates');
-      await templates.scrollIntoViewIfNeeded();
-      const templatesBounds = await templates.boundingBox();
+      // Starter templates were intentionally removed because they did not
+      // scaffold projects or select real directories. The actual first-run
+      // contract is an actionable, readable environment readiness assessment.
       assert.ok(
-        templatesBounds &&
-          templatesBounds.y >= 0 &&
-          templatesBounds.y + templatesBounds.height <= 484,
-        'Starter templates must be reachable in the scrollable Project Hub: ' +
-          JSON.stringify(templatesBounds),
+        projectHubLayout.readinessCopy.exists &&
+          projectHubLayout.readinessCopy.status.length > 0,
+        'Project Hub must explain real first-run environment readiness: ' +
+          JSON.stringify(projectHubLayout.readinessCopy),
+      );
+      assert.ok(
+        projectHubLayout.readinessCopy.hasRecheck,
+        'Project Hub must allow retrying real provider detection',
+      );
+      const readinessPanel = page.getByTestId('project-hub-readiness');
+      await readinessPanel.scrollIntoViewIfNeeded();
+      const readinessBounds = await readinessPanel.boundingBox();
+      assert.ok(
+        readinessBounds &&
+          readinessBounds.y >= 0 &&
+          readinessBounds.y + readinessBounds.height <= 484,
+        'Environment readiness must be reachable in the scrollable Project Hub: ' +
+          JSON.stringify(readinessBounds),
       );
       await page.getByTestId('project-hub-root').evaluate((root) => {
         root.scrollTop = 0;
