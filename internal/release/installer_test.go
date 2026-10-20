@@ -504,8 +504,9 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(string(license), "# IAPro Nexus — Proprietary Beta License") {
-		t.Fatalf("expected the vigente LICENSE file to be the proprietary beta license, got %q", strings.SplitN(string(license), "\n", 2)[0])
+	licenseStr := strings.TrimSpace(string(license))
+	if !strings.HasPrefix(licenseStr, "# PolyForm Strict License 1.0.0") {
+		t.Fatalf("expected the vigente LICENSE file to be PolyForm Strict License 1.0.0, got %q", strings.SplitN(licenseStr, "\n", 2)[0])
 	}
 
 	for _, name := range []string{"README.md", "README.en.md", "README.es.md"} {
