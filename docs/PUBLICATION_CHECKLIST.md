@@ -1,14 +1,28 @@
 # Checklist de exposição pública e publicação estável — Nexus v1
 
-> **Observado em 20/10/2026:** o repositório `IAPro-Community/nexus` está **PUBLIC** no GitHub. A auditoria integral do histórico não foi executada nesta revisão. Isso configura uma **exposição pública a avaliar**, não prova de credenciais vazadas. Tornar o repositório privado, se decidido, não remove clones já obtidos. A v1 estável e os binários permanecem **NO-GO**.
+> **Observado em 20/10/2026:** o repositório `IAPro-Community/nexus` está **PUBLIC** no GitHub. A varredura automatizada dos refs disponíveis foi executada em 20/10/2026: 82 detecções potenciais no histórico e 17 no HEAD do snapshot auditado (não classificadas; podem incluir duplicações e falsos positivos). **A classificação manual e a remediação permanecem pendentes.** Isso configura uma **exposição pública a avaliar**, não prova de credenciais vazadas. Tornar o repositório privado, se decidido, não remove clones já obtidos. A v1 estável e os binários permanecem **NO-GO**.
 
 ## Resposta imediata à abertura já realizada
 
 - [ ] Confirmar quem aprovou a mudança de visibilidade e o inventário de branches/tags/commits que ficaram acessíveis.
-- [ ] Executar scanner de segredos em todos os refs (`gitleaks git --all` ou ferramenta equivalente, com versão fixada), revisão de dados pessoais e classificação dos  materiais de `DEV/`, `TODO/` e históricos.
+- [x] Executar varredura automatizada nos refs obtidos pelo workflow público, usando Gitleaks v8.24.2, sem publicar resultados brutos.
+- [ ] Classificar privadamente as detecções (82 no histórico / 17 no HEAD auditado), verificar falsos positivos, dados pessoais e os materiais de `DEV/`, `TODO/` e históricos. Não presumir que cada detecção é uma credencial ativa.
 - [ ] Em caso de segredo confirmado, revogar/rotacionar **na origem**, verificar logs de utilização indevida e seguir resposta a incidentes. Remover texto do HEAD não é remediação de histórico.
 - [ ] Definir destino do histórico interno e política pública de branches; não reescrever refs compartilhadas sem coordenação e plano de migração.
 - [ ] Habilitar canal privado de vulnerability reporting e regras de branch/proteções apropriadas, de acordo com as permissões administrativas do repositório.
+
+## Revisão local privativa das detecções
+
+Não publicar relatórios brutos em artifacts do GitHub Actions ou issues públicas. Em um checkout completo e limpo, com Gitleaks v8.24.2 instalado, configure uma pasta privada **fora** do repositório:
+
+```bash
+git fetch --all --tags --prune
+mkdir -p "$HOME/.local/state/nexus-security"
+chmod 700 "$HOME/.local/state/nexus-security"
+NEXUS_PRIVATE_AUDIT_DIR="$HOME/.local/state/nexus-security" bash scripts/audit-publication.sh
+```
+
+O script interrompe a aprovação quando encontra suspeitas e mantém relatório redigido fora do Git. Revisar os registros localmente, sem transmitir `Secret`, `Match`, trechos de código ou caminhos privados a chats/tickets públicos. Classificar por provedor, validade, escopo, ambiente e prioridade; revogar ou rotacionar credenciais reais ainda ativas na origem. Documentar o encerramento sem publicar os valores.
 
 ## Gate P0 — direitos e informações expostas
 
