@@ -50,7 +50,8 @@ const monitorSeverityRank = (state: string): number => {
 
 export const UsageSurface: React.FC<{
   onStartTerminalLogin?: (provider: string, profile: string) => void;
-}> = ({ onStartTerminalLogin }) => {
+  onOpenProviderTerminal?: (provider: string, profile: string) => void;
+}> = ({ onStartTerminalLogin, onOpenProviderTerminal }) => {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState<ProviderAccount[]>([]);
   const [policy, setPolicy] = useState('BALANCED');
@@ -434,6 +435,7 @@ export const UsageSurface: React.FC<{
                           onRefreshNeeded={() => refresh(account.provider, account.profile)}
                           onCapacityChange={() => void load()}
                           onRequestLogin={(acc) => setLoginAccount(acc)}
+                          onOpenTerminal={onOpenProviderTerminal}
                           onRequestExplain={() => setShowExplain(true)}
                           onAddProfile={(prov) => {
                             setAddAccountTargetProvider(prov);
@@ -454,6 +456,7 @@ export const UsageSurface: React.FC<{
                   result={recommend}
                   error={recommendError}
                   onRequestExplain={() => setShowExplain(true)}
+                  onOpenTerminal={onOpenProviderTerminal}
                 />
                 <UsagePolicyPanel policy={policy} />
               </aside>
