@@ -48,13 +48,17 @@ export const deriveFirstRunReadiness = (
         'Já existe uma conta autenticada. Escolha a pasta do projeto e inicie sua sessão; a disponibilidade de quota será verificada separadamente.',
     };
   }
-  const pending = installed.find((provider) => provider.registration_state === 'PENDING_AUTH');
+  const pending = installed.find(
+    (provider) =>
+      provider.registration_state === 'PENDING_AUTH' ||
+      provider.registration_state === 'REGISTERED_AUTH_EXPIRED',
+  );
   if (pending) {
     return {
       status: 'needs-login',
       title: 'Conta aguardando autenticação',
       description:
-        'Seu perfil já está cadastrado. Depois de adicionar um projeto, abra Uso/Contas para concluir o login — não crie uma conta duplicada.',
+        'Já existe um perfil deste provedor. Conclua o login da conta existente; não cadastre outro perfil.',
       suggestedProvider: pending.id,
     };
   }
@@ -72,6 +76,12 @@ export const deriveFirstRunReadiness = (
     status: 'needs-provider',
     title: 'Nenhum provedor de IA detectado',
     description:
-      'Instale Codex, Claude ou outra CLI compatível a partir da fonte oficial. Você já pode cadastrar o projeto enquanto isso.',
+      'Instale uma CLI compatível a partir da fonte oficial e verifique novamente. O projeto e o terminal local continuam disponíveis.',
   };
 };
+
+export const OFFICIAL_PROVIDER_INSTALL_GUIDES = [
+  { label: 'Codex', href: 'https://github.com/openai/codex' },
+  { label: 'Claude Code', href: 'https://code.claude.com/docs/en/setup' },
+  { label: 'OpenCode', href: 'https://opencode.ai/docs/' },
+] as const;
