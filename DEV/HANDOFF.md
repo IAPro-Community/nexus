@@ -1,5 +1,23 @@
 # Handoff
 
+## Estado atual — homologação e correções Linux 1.0.0 — 2026-10-20
+
+- **Branch:** `release/v1.0.0`, SHA inicial `88094c2406c4f50ff4506bd9d8f63fce0428d328`, HEAD final homologado `be36af6f2378ef0c7b7a3a787fc55217de2367b8`.
+- **Status do Repositório:** 5 commits locais adicionados à `release/v1.0.0`, sem push ao remoto, worktree limpo:
+  1. `e9959a49`: `fix(desktop/hud): ensure transparent HUD background, fix composerFlowFlag test types, and apply code formatting`
+  2. `c77cff5e`: `fix(docs): support cross-platform path assertions in docs-capture`
+  3. `2c8b2fdb`: `docs(assets): refresh documentation screenshots and manifest for linux homologation`
+  4. `96cc789c`: `style(web): remove redundant background-color in globals.scss`
+  5. `be36af6f`: `docs(assets): re-sync visual assets and manifest with globals.scss fix`
+- **Resultados da Homologação Linux:**
+  - Veredito: **CONDITIONAL GO (GO_LINUX para Artefatos Nativos / PENDÊNCIA AMBIENTAL DE CI PARA GORELEASER/DEB)**.
+  - Todos os componentes nativos (CLI, Desktop Wails, HUD Wails com cantos transparentes, Primeiro Uso em sandbox, Terminais/PTY, Vitest 573 testes, Typecheck, Go race preflight, Go vet, Go test backend) aprovados com evidências completas.
+  - Dossiê detalhado e capturas nativas arquivados em `/projetos/LINUX_HOMOLOGATION/` e compactados em `/projetos/LINUX_HOMOLOGATION_EVIDENCE_be36af6f.zip` (SHA-256: `85c6d94f51d847e2d72dabe3bece949bdf196736948c2744dcdcf4f7d7489652`).
+- **Próximas ações para o Maestro:**
+  - Revisar o dossiê e commits locais (`git log -n 5`, `git show`).
+  - Quando desejado, autorizar o push para `origin/release/v1.0.0`.
+  - Executar o workflow de CI no GitHub Actions (`.github/workflows/ci.yml`) para geração oficial dos pacotes DEB/RPM via GoReleaser no ambiente com permissões de supply chain.
+
 ## Estado atual — homologação e correções Windows 1.0.0 — 2026-10-19
 
 - Branch: `release/v1.0.0`, HEAD remoto `560a83b20c62611734e934d980b5725c3ef24cf1`.

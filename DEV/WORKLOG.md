@@ -1,6 +1,32 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
-## 2026-10-19 — Homologação Windows 1.0.0 e Correções dos Bloqueadores
+## 2026-10-20 — Homologação Nativa Linux 1.0.0 e Remediação dos Bloqueadores
+
+- **Missão:** Homologação integral do IAPro Nexus 1.0.0 nativo no Linux (Ubuntu 25.10 x86_64, Wayland/XWayland, GTK3, WebKit2GTK 4.1), branch `release/v1.0.0`.
+- **SHA Inicial de Referência:** `88094c2406c4f50ff4506bd9d8f63fce0428d328`
+- **SHA Final Homologado:** `be36af6f2378ef0c7b7a3a787fc55217de2367b8`
+- **Diagnóstico das Causas Raiz e Problemas Identificados no SHA Inicial:**
+  1. `web/src/app/composerFlowFlag.test.ts:39-40`: Erro TS2554 (`Expected 4-5 arguments, but got 3`). `splitWithSurface` exigia o 4º argumento de direção (`WorkspaceDirection`).
+  2. Formatação Prettier desatualizada em 7 arquivos de componentes/estilos da interface (`WelcomeModal.tsx`, `ProjectHub.tsx`, etc.).
+  3. Manifesto visual de documentação desatualizado (`docs/assets/screenshots/manifest.json`) em relação aos componentes modificados, causando falha em `scripts/docs-verify.mjs`.
+  4. HUD Wails com cantos pretos retangulares opacos sobre a área de trabalho devido a `body { background-color: var(--nx-surface-0); }` no CSS global sem suporte a canal alfa na janela Wails do HUD.
+- **Ações e Correções Implementadas:**
+  1. `web/src/app/composerFlowFlag.test.ts`: Fornecido o 4º argumento `'horizontal'` nas chamadas de `splitWithSurface` (Commit `e9959a49`).
+  2. Frontend: Executado `bun run format` cobrindo 100% dos arquivos TypeScript, SCSS e JSON (Commit `e9959a49`).
+  3. `web/src/app/DesktopHudApp.tsx` e `web/src/styles/globals.scss`: Adicionado efeito para definir `documentElement` e `body` com `background: transparent !important` e atributo `data-native-hud="true"` (Commits `e9959a49` e `96cc789c`). HUD nativo re-testado com transparência real dos cantos arredondados confirmada.
+  4. `web/scripts/docs-capture.mjs`: Adaptado para validação multiplataforma de caminhos no Linux (`/NexusDemo/workspace`) e fallback gracioso de superfícies experimentais (Commit `c77cff5e`).
+  5. Capturas e Manifesto: Reexecutado `bun run docs:capture`, gerando todas as 11 imagens VIS-001 a VIS-011 e vídeo WebM, sincronizando o manifesto com o HEAD (Commits `2c8b2fdb` e `be36af6f`).
+- **Verificação e Evidências:**
+  - `bun run typecheck`: PASS (0 erros).
+  - `bun run format:check`: PASS (100% formatado).
+  - `bun run lint` e `bun run lint:styles`: PASS (0 avisos/erros).
+  - Vitest: 93 arquivos, 573 testes PASS (0 falhas).
+  - `node scripts/docs-verify.mjs`: PASS (186 arquivos Markdown, 33 ativos verificados).
+  - `go vet ./...` e `go test -race`: PASS.
+  - Testes de Backend Go (`internal/app`, `internal/nexus/promotion`, `internal/runtime`, `internal/nexus/store`, `internal/control/...`, `internal/core/...`): 100% PASS.
+  - Binários compilados e testados: CLI (`./nexus`), Desktop Wails (`nexus-desktop`), HUD Wails (`nexus-hud`), Tarball Beta (`nexus-linux-amd64-v1.0.0-beta.10.tar.gz`).
+  - Dossiê completo e capturas nativas arquivados em `/projetos/LINUX_HOMOLOGATION/` e `/projetos/LINUX_HOMOLOGATION_EVIDENCE_be36af6f.zip`.
+
 
 - **Missão:** Execução da homologação independente e rigorosa do Nexus 1.0.0 no Windows 11 (`release/v1.0.0`, commit base `560a83b20c62611734e934d980b5725c3ef24cf1`).
 - **Investigação e Diagnóstico das Causas Raiz:**
