@@ -81,8 +81,9 @@ export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
       ['CRITICAL', 'EXHAUSTED'].includes(item.severity.toUpperCase()),
   );
   const blocked = provider?.rate_limited || provider?.freshness.toUpperCase() === 'RATE_LIMITED';
+  const exhausted = alert || stateName === 'CRITICAL' || stateName === 'EXHAUSTED';
   const tone: HudTone =
-    blocked || (remaining !== null && (alert || stateName === 'CRITICAL' || stateName === 'EXHAUSTED'))
+    blocked || (remaining !== null && exhausted)
       ? 'critical'
       : remaining === null
         ? 'unknown'
