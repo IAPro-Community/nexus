@@ -158,6 +158,60 @@ describe('Nexus HUD compact state', () => {
     expect(hudVisibleMission([mission('FAILED_BUDGET_EXCEEDED')])).toBeUndefined();
   });
 
+  it('retains measured quota when a provider reports RATE_LIMITED', () => {
+    const limited = provider({
+      freshness: 'RATE_LIMITED',
+      rate_limited: true,
+      availability: 'UNAVAILABLE',
+      limiting_window: { kind: '5h', status: 'RATE_LIMITED', remaining_percent: 44 },
+    });
+    expect(hudRemaining(limited)).toBe(44);
+    expect(hudQuotaEvidence(limited)).toBe('rate-limited');
+    expect(hudPercentageFor(limited)).toBe('44%');
+    expect(selectHudFocus(state([limited])).tone).toBe('critical');
+  });
+
+  it('expires quota after rollover even if cached percentage is present', () => {
+    const expired = provider({
+      limiting_window: {
+        kind: '5h',
+        status: 'LIVE',
+        remaining_percent: 0,
+        reset_at: '2020-01-01T00:00:00Z',
+      },
+    });
+    expect(hudRemaining(expired)).toBeNull();
+    expect(hudPercentageFor(expired)).toBe('—');
+    expect(selectHudFocus(state([expired])).tone).toBe('unknown');
+  });
+
+  it('avoids falsely declaring one active account when agents use different profiles', () => {
+    const a = provider({ profile: 'alpha' });
+    const b = provider({ profile: 'beta' });
+    const snapshot = state([a, b]);
+    snapshot.agents = [
+      {
+        id: 'a',
+        project_id: 'p',
+        name: 'Architect',
+        status: 'WORKING',
+        provider: 'codex',
+        profile: 'alpha',
+      },
+      {
+        id: 'b',
+        project_id: 'p',
+        name: 'Coder',
+        status: 'WORKING',
+        provider: 'codex',
+        profile: 'beta',
+      },
+    ];
+    expect(selectHudFocus(snapshot).active).toBe(false);
+    snapshot.agents[1].profile = 'alpha';
+    expect(selectHudFocus(snapshot).active).toBe(true);
+  });
+
   it('does not promote an offline measurement to a current value', () => {
     const focus = selectHudFocus(state([provider()]), true);
     expect(focus.remaining).toBeNull();
