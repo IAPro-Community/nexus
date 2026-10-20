@@ -10,6 +10,13 @@ import (
 // BuildQuotaView transforms a UsageSnapshot into a QuotaView.
 // It detects model groups from the window Group field and assigns display labels.
 func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
+	// The 30-day last-known store is historical context, never 30-day capacity.
+	// Both the TUI and all schedulers consume this same canonical projection.
+	if CodexEvidenceExpired(snap, time.Now()) {
+		snap.Status = model.UsageUnknown
+		snap.Source = model.SourceNone
+		snap.Windows = nil
+	}
 	qv := QuotaView{
 		Provider:  snap.ProviderID,
 		Profile:   snap.ProfileID,
