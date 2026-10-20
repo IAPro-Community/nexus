@@ -17,6 +17,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  documentation-preflight:
+    name: Documentation contracts and capture provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+
+      - name: Parse browser test harnesses
+        shell: bash
+        run: |
+          node --check web/scripts/docs-capture.mjs
+          node --check web/scripts/e2e-hardening-verify.mjs
+          node --check scripts/verify-feature-catalog.mjs
+          node --check scripts/verify-release-docs.mjs
+
+      - name: Validate 30 capability contracts and dependency notices
+        shell: bash
+        run: |
+          node scripts/verify-feature-catalog.mjs
+          node scripts/verify-release-docs.mjs
+
+      - name: Enforce current capture provenance and Markdown links
+        shell: bash
+        run: node scripts/docs-verify.mjs
+
   public-history-audit:
     name: Public refs and secrets review (fail closed)
     runs-on: ubuntu-latest
