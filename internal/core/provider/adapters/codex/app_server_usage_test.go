@@ -508,3 +508,23 @@ func rateLimitsPayload(accountID string, used5h, usedWeekly float64, withBucket 
 	}
 	return payload
 }
+
+func TestCodexQuotaAppServerDoesNotInheritUnrelatedHostAPIKey(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "host-key-must-not-leak")
+	t.Setenv("CODEX_HOME", "/different-host-account")
+	home := filepath.Join(t.TempDir(), "isolated-codex-home")
+	env := appServerEnv("/usr/bin/codex", home)
+	var hasCodexHome bool
+	for _, entry := range env {
+		if entry == "OPENAI_API_KEY=host-key-must-not-leak" ||
+			entry == "OPENAI_API_KEY=" {
+			t.Fatalf("host API key must not be present in subscription quota probe environment")
+		}
+		if entry == "CODEX_HOME="+home {
+			hasCodexHome = true
+		}
+	}
+	if !hasCodexHome {
+		t.Fatal("quota probe must remain bound to the isolated profile")
+	}
+}
