@@ -89,6 +89,9 @@ func refreshCodexLaunchQuota(
 				return
 			}
 			_ = profile.RefreshUsageSnapshotContext(probeCtx, "codex", item.profile.Name)
+			if probeCtx.Err() != nil {
+				return
+			}
 			// Re-read through the canonical account-scope/freshness checks.
 			snap := profile.GetSanitizedUsageSnapshot("codex", item.profile.Name, item.account.Email)
 			results <- result{name: item.profile.Name, snap: snap}
@@ -107,7 +110,7 @@ func refreshCodexLaunchQuota(
 		case item, ok := <-results:
 			if !ok {
 				if completed > 0 {
-					fmt.Fprintf(os.Stderr, "⚡ [nexus] Codex: %d/%d perfil(is) com quota atual validada\\n", verified, len(toProbe))
+					fmt.Fprintf(os.Stderr, "⚡ [nexus] Codex: %d/%d perfil(is) com quota atual validada\n", verified, len(toProbe))
 				}
 				return
 			}
@@ -121,7 +124,7 @@ func refreshCodexLaunchQuota(
 				verified++
 			}
 		case <-probeCtx.Done():
-			fmt.Fprintf(os.Stderr, "⚠ [nexus] consulta de quota Codex encerrada após limite global; contas sem verificação permanecem UNKNOWN\\n")
+			fmt.Fprintf(os.Stderr, "⚠ [nexus] consulta de quota Codex encerrada após limite global; contas sem verificação permanecem UNKNOWN\n")
 			return
 		}
 	}
