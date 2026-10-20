@@ -1,5 +1,5 @@
 {
-  "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
+  "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
   "generated_by": "web/scripts/docs-capture.mjs",
   "scenario": "isolated-synthetic-fixture",
   "data_classification": "SYNTHETIC",
@@ -20,7 +20,7 @@
     {
       "id": "VIS-001",
       "file": "workspace-overview.png",
-      "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
+      "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
       "surface": "web/workspace",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -32,7 +32,7 @@
     {
       "id": "VIS-003",
       "file": "direct-session.png",
-      "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
+      "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
       "surface": "web/direct-session",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -44,7 +44,7 @@
     {
       "id": "VIS-005",
       "file": "terminal.png",
-      "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
+      "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
       "surface": "web/terminal",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -53,42 +53,18 @@
       "data_classification": "SYNTHETIC",
       "status": "PASS",
       "terminal_evidence": {
-        "platform": "win32",
+        "platform": "linux",
         "transport": "project-shell",
         "marker": "__NEXUS_DOCS_TERMINAL_OK__",
         "reconnect_marker": "__NEXUS_DOCS_TERMINAL_RECONNECTED__",
-        "localized_shell_banner_hidden": true,
+        "localized_shell_banner_hidden": false,
         "verified": true
       }
     },
     {
-      "id": "VIS-007",
-      "file": "composer.png",
-      "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
-      "surface": "web/composer",
-      "scenario": "isolated-synthetic-fixture",
-      "viewport": "1440x900",
-      "automated": true,
-      "capture_command": "bun run docs:capture",
-      "data_classification": "SYNTHETIC",
-      "status": "PASS"
-    },
-    {
-      "id": "VIS-008",
-      "file": "flow.png",
-      "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
-      "surface": "web/flow",
-      "scenario": "isolated-synthetic-fixture",
-      "viewport": "1440x900",
-      "automated": true,
-      "capture_command": "bun run docs:capture",
-      "data_classification": "SYNTHETIC",
-      "status": "PASS"
-    },
-    {
       "id": "VIS-006",
       "file": "agents.png",
-      "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
+      "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
       "surface": "web/agents",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -100,7 +76,7 @@
     {
       "id": "VIS-010",
       "file": "usage-quota.png",
-      "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
+      "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
       "surface": "web/usage-quota",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -112,8 +88,32 @@
     {
       "id": "VIS-004",
       "file": "provider.png",
-      "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
+      "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
       "surface": "web/provider",
+      "scenario": "isolated-synthetic-fixture",
+      "viewport": "1440x900",
+      "automated": true,
+      "capture_command": "bun run docs:capture",
+      "data_classification": "SYNTHETIC",
+      "status": "PASS"
+    },
+    {
+      "id": "VIS-007",
+      "file": "composer.png",
+      "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
+      "surface": "web/composer",
+      "scenario": "isolated-synthetic-fixture",
+      "viewport": "1440x900",
+      "automated": true,
+      "capture_command": "bun run docs:capture",
+      "data_classification": "SYNTHETIC",
+      "status": "PASS"
+    },
+    {
+      "id": "VIS-008",
+      "file": "flow.png",
+      "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
+      "surface": "web/flow",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
       "automated": true,
@@ -124,7 +124,7 @@
     {
       "id": "VIS-009",
       "file": "mission.png",
-      "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
+      "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
       "surface": "web/mission",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -136,7 +136,7 @@
     {
       "id": "VIS-002",
       "file": "projects.png",
-      "source_sha": "82c192bda6b216b4ab6786429b6613fbfccc2b29",
+      "source_sha": "c77cff5e2093170c6cea2d831191a7b6ac73a715",
       "surface": "web/projects",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
