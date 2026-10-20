@@ -11,6 +11,8 @@ import {
   toggleMaximize,
   updateSurface,
   listSurfaces,
+  listStacks,
+  surfaceViewId,
   type WorkspaceDirection,
   type WorkspaceModel,
   type WorkspaceSurface,
@@ -135,9 +137,12 @@ export const WorkspaceProvider: React.FC<{
       }
     }
     if (COMPOSER_FLOW_ENABLED) return loaded;
+    const model = withoutExperimentalComposerFlow(loaded.model, defaultSurface(projectId));
     return {
       ...loaded,
-      model: withoutExperimentalComposerFlow(loaded.model, defaultSurface(projectId)),
+      model,
+      openSurfaceIds: listSurfaces(model.root).map(surfaceViewId),
+      activeSurfaceId: listStacks(model.root)[0]?.activeId,
     };
   }, [fallback, initialLayout, layoutService, projectId]);
   const revisionRef = useRef<number>(initialRevision || initialPersisted.revision || 1);

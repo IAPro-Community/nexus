@@ -100,7 +100,9 @@ const DemoCoordinator: React.FC = () => {
   const commands = useMemo<NexusCommand[]>(
     () => [
       { id: 'overview', label: 'Open Overview', group: 'Demo', run: () => openKind('overview') },
-      ...(COMPOSER_FLOW_ENABLED ? [{ id: 'work', label: 'Open Work', group: 'Demo', run: () => openKind('work') }] : []),
+      ...(COMPOSER_FLOW_ENABLED
+        ? [{ id: 'work', label: 'Open Work', group: 'Demo', run: () => openKind('work') }]
+        : []),
       { id: 'settings', label: 'Open Settings', group: 'Demo', run: () => openKind('settings') },
       { id: 'tour', label: 'Take Product Tour', group: 'Demo', run: () => setTour(true) },
     ],

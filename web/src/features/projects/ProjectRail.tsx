@@ -164,7 +164,7 @@ export const ProjectRail: React.FC<{
     });
   }, [projects, q, outline.agentsByProject, outline.attentionByProject]);
 
-  const optionalTools = [
+  const optionalTools = ([
     { id: 'overview', label: t('nav.overview'), icon: Home },
     { id: 'terminals', label: t('nav.terminals'), icon: TerminalSquare },
     { id: 'maestro', label: t('nav.maestro'), icon: Sparkles },
@@ -175,7 +175,9 @@ export const ProjectRail: React.FC<{
     { id: 'sessions', label: t('nav.sessions'), icon: History },
     { id: 'projects', label: t('projectManager.desktopsTitle'), icon: LayoutGrid },
     { id: 'settings', label: t('nav.settings'), icon: Settings },
-  ].filter((item) => COMPOSER_FLOW_ENABLED || !isExperimentalComposerFlowSurface(item.id));
+  ] as const).filter(
+    (item) => COMPOSER_FLOW_ENABLED || !isExperimentalComposerFlowSurface(item.id),
+  );
 
   const selectProject = useCallback(
     (project: Project) => {

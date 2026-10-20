@@ -837,15 +837,15 @@ const WorkspaceCoordinator: React.FC<{
       ]
         .filter((p) => COMPOSER_FLOW_ENABLED || p.preset !== 'terminal-flow')
         .map((p) => ({
-        id: p.id,
-        label: p.label,
-        group: p.group,
-        keywords: ['layout', 'preset', 'window', 'arrange', 'grid', 'columns', 'tile'],
-        run: () => {
-          presentation.setMode('MOSAIC');
-          presentation.rearrangePreset(p.preset);
-        },
-      })),
+          id: p.id,
+          label: p.label,
+          group: p.group,
+          keywords: ['layout', 'preset', 'window', 'arrange', 'grid', 'columns', 'tile'],
+          run: () => {
+            presentation.setMode('MOSAIC');
+            presentation.rearrangePreset(p.preset);
+          },
+        })),
       {
         id: 'welcome',
         label: t('welcome.title'),

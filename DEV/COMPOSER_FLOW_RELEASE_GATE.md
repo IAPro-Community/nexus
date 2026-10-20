@@ -49,6 +49,7 @@ Do not publish opt-in build artifacts as the stable 1.0.0 release.
 - Open `/p/<project>/work`, `/p/<project>/missions`, run deep link
   and popout: no experimental UI is rendered
 - Existing layouts with non-closable Composer tabs recover to stable tabs
+  (the saved window arrangement changes; persisted Composer/mission data does not)
 - Build with flag: Composer and Flow navigation, drafts and history reappear
 - Verify terminals, agents, direct sessions, Maestro, resources, settings and
   HUD remain functional
