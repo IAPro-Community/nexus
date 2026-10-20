@@ -119,8 +119,8 @@ try {
     try {
         Run-Gate 'toolchain-consistency' {
             $go = (& go version).Trim()
-            if ($LASTEXITCODE -ne 0 -or $go -notmatch '\bgo1\.25\.14\b') {
-                throw "Canonical Go 1.25.14 required"
+            if ($LASTEXITCODE -ne 0 -or $go -notmatch '\bgo1\.(25\.14|26\.9)\b') {
+                throw "Canonical Go 1.25.14 or 1.26.9 required"
             }
             $bun = (& bun --version).Trim()
             if ($LASTEXITCODE -ne 0 -or $bun -ne '1.3.9') {
