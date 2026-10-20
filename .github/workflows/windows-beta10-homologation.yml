@@ -1,9 +1,9 @@
-name: Windows beta.10 release integration homologation (no signing)
+name: Windows release 1.0.0 exact-SHA homologation (no signing)
 
 on:
   push:
     branches:
-      - fix/release-beta10-windows-closure-20261014
+      - release/v1.0.0
     paths:
       - .github/workflows/windows-beta10-homologation.yml
       - cmd/**
@@ -24,7 +24,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: windows-beta10-release-closure-${{ github.sha }}
+  group: windows-release-v1-certification-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -69,7 +69,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: 1.26.9
+          go-version: 1.25.14
           cache: false
 
       - name: Verify Windows shell probe and IPC dial reliability

@@ -3,6 +3,7 @@ package nexus
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -55,6 +56,15 @@ func (s *ProjectApplicationService) Create(ctx context.Context, name, path strin
 	canonical, err := store.CanonicalPath(path)
 	if err != nil {
 		return store.Project{}, err
+	}
+	// Project registration must not persist fictional or deleted directories.
+	// A real local directory is required for terminal and agent execution.
+	info, err := os.Stat(canonical)
+	if err != nil {
+		return store.Project{}, fmt.Errorf("project directory unavailable: %w", err)
+	}
+	if !info.IsDir() {
+		return store.Project{}, fmt.Errorf("project path is not a directory: %s", canonical)
 	}
 	return st.CreateProject(store.Project{Name: name, CanonicalPath: canonical})
 }
