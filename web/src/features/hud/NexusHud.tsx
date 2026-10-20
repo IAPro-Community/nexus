@@ -201,6 +201,10 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     'rate-limited': 'Limite temporário',
     unknown: 'Não confirmado',
   }[quotaEvidence];
+  const quotaAccessibleText =
+    focus?.remaining === null || focus?.remaining === undefined
+      ? 'Capacidade não confirmada'
+      : `${displayPercent} · ${evidenceCopy}`;
   const focusedName = focus?.provider?.provider || 'Nexus';
   const displayName =
     focusedName === 'Nexus'
@@ -287,6 +291,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         : t('common.hudUnavailable')
     : displayName;
   const currentPercent = waiting ? '—' : displayPercent;
+  const capsuleAccessibleLabel = `${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${currentPercent === '—' ? 'capacidade não confirmada' : `${currentPercent} restante, ${evidenceCopy}`}`;
+  const nativeTitle = `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`;
   const tone = waiting ? 'unknown' : displayTone;
   const floatingStyle =
     !native && prefs.surfaceMode === 'floating'
@@ -361,9 +367,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 role="progressbar"
                 aria-label="Capacidade restante da janela limitante"
                 aria-valuenow={focus?.remaining ?? undefined}
-                aria-valuetext={focus?.remaining === null || focus?.remaining === undefined
-                  ? 'Capacidade não confirmada'
-                  : `${displayPercent} · ${evidenceCopy}`}
+                aria-valuetext={quotaAccessibleText}
                 aria-valuemin={0}
                 aria-valuemax={100}
               >
@@ -593,12 +597,10 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             className={styles.capsule}
             data-tone={tone}
             data-evidence={quotaEvidence}
-            aria-label={`${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${currentPercent === '—' ? 'capacidade não confirmada' : `${currentPercent} restante, ${evidenceCopy}`}`}
+            aria-label={capsuleAccessibleLabel}
             aria-expanded={expanded}
             aria-controls={expanded ? 'nexus-hud-popover' : undefined}
-            title={native
-              ? `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`
-              : undefined}
+            title={native ? nativeTitle : undefined}
             onClick={() => (waiting ? void refresh() : setExpandedState(!expanded))}
           >
             <img className={styles.logo} src="/nexus-icon.svg" alt="" width={24} height={24} />
