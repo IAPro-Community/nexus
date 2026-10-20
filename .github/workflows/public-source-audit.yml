@@ -48,17 +48,43 @@ jobs:
           GOBIN="$RUNNER_TEMP/bin" go install github.com/zricethezav/gitleaks/v8@v8.24.2
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
-      - name: Audit secrets across available refs without publishing findings
+      - name: Scan public history and current HEAD without exposing findings
         shell: bash
         run: |
           set -euo pipefail
           umask 077
-          report="$RUNNER_TEMP/gitleaks-public-history.json"
-          if ! gitleaks git --no-banner --redact --log-opts="--all" --report-format=json --report-path="$report" .; then
-            echo 'NO-GO: the history scanner detected potential secrets or failed. Inspect privately and rotate confirmed credentials.' >&2
+          history_report="$RUNNER_TEMP/gitleaks-public-history.json"
+          head_report="$RUNNER_TEMP/gitleaks-current-head.json"
+          mkdir -p "$RUNNER_TEMP/nexus-head-snapshot"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/nexus-head-snapshot"
+          history_status=0
+          gitleaks git --no-banner --redact --log-opts="--all" --report-format=json --report-path="$history_report" . > "$RUNNER_TEMP/history-scan.log" 2>&1 || history_status=$?
+          head_status=0
+          gitleaks dir --no-banner --redact --report-format=json --report-path="$head_report" "$RUNNER_TEMP/nexus-head-snapshot" > "$RUNNER_TEMP/head-scan.log" 2>&1 || head_status=$?
+          HISTORY_SCAN_STATUS="$history_status" HEAD_SCAN_STATUS="$head_status" python3 - <<'PY'
+          import json, os
+          for name, file_name, env in [
+              ('Available Git refs', 'gitleaks-public-history.json', 'HISTORY_SCAN_STATUS'),
+              ('Current HEAD archive', 'gitleaks-current-head.json', 'HEAD_SCAN_STATUS'),
+          ]:
+              path = os.path.join(os.environ['RUNNER_TEMP'], file_name)
+              try:
+                  with open(path, encoding='utf-8') as handle:
+                      data = json.load(handle)
+                  count = len(data) if isinstance(data, list) else 'unknown'
+              except (OSError, ValueError):
+                  count = 'unknown'
+              state = 'PASS' if os.environ[env] == '0' else 'NO-GO'
+              message = f'{name}: {count} potential detections; scanner state {state}'
+              print(message)
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as out:
+                  out.write(f'- {message}\n')
+          PY
+          if [ "$history_status" -ne 0 ] || [ "$head_status" -ne 0 ]; then
+            echo 'NO-GO: inspect raw scanner reports only in an appropriately private environment. Rotate confirmed active credentials.' >&2
             exit 1
           fi
-          echo 'PASS: automated secret scan of locally fetched refs completed (not a guarantee of complete privacy).'
+          echo 'PASS: automated scans. Human/legal review remains mandatory.'
 
       - name: Require manual classification of internal history
         if: always()
