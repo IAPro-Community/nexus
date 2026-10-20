@@ -13,6 +13,7 @@ import {
   Spinner,
 } from '../../design-system';
 import { nexus } from '../../nexus/api';
+import { OFFICIAL_PROVIDER_INSTALL_GUIDES } from '../projects/firstRunReadiness';
 import type { ProviderInfo } from '../../types';
 import styles from './RegisterProviderModal.module.scss';
 import {
@@ -89,8 +90,15 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
     try {
       await nexus.registerProvider(selectedProvider, cleanProfile);
       toast.success(t('usage.registerSuccess', 'Perfil registrado com sucesso!'));
-      await onRegistered(selectedProvider, cleanProfile);
       onClose();
+      try {
+        await onRegistered(selectedProvider, cleanProfile);
+      } catch (followUpError) {
+        toast.error(
+          'Perfil registrado, mas não foi possível abrir o próximo passo: ' +
+            (followUpError instanceof Error ? followUpError.message : String(followUpError)),
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -117,6 +125,25 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
         <p className={styles.intro}>{t('usage.addAccountDesc')}</p>
 
         {loading ? <Spinner label={t('common.loading', 'Carregando provedores…')} /> : null}
+
+        {!loading && providers.every((provider) => !provider.installed) && (
+          <div className={styles.intro}>
+            Nenhuma CLI compatível está disponível para cadastro. Instale uma ferramenta oficial
+            e volte para verificar o ambiente:
+            {' '}
+            {OFFICIAL_PROVIDER_INSTALL_GUIDES.map((guide) => (
+              <a
+                key={guide.label}
+                href={guide.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ marginRight: 10 }}
+              >
+                {guide.label}
+              </a>
+            ))}
+          </div>
+        )}
 
         {error ? <p className={styles.error}>{error}</p> : null}
 
