@@ -223,6 +223,7 @@ export const WorkspaceSurfaceHost: React.FC<{
           onProjectShell={() => window.dispatchEvent(new CustomEvent('nexus:project-shell'))}
           onOpenComposer={COMPOSER_FLOW_ENABLED ? () => open('work') : undefined}
           onOpenFlow={COMPOSER_FLOW_ENABLED ? () => open('missions') : undefined}
+          onOpenResources={() => open('resources')}
           onOpenSettings={() => open('settings')}
         />
       );
