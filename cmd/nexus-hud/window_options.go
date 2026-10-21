@@ -5,9 +5,9 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// hudWindowOptions keeps the transparent HUD chrome consistent on Windows and
-// macOS. Platform-specific decoration defaults otherwise cast a rectangular
-// shadow around a capsule that is intentionally smaller than its native window.
+// hudWindowOptions keeps the transparent HUD chrome configured on every OS.
+// Windows and macOS have native shadow controls; Linux uses GTK frameless
+// rendering and still requires compositor-specific visual verification.
 func hudWindowOptions(state desktop.HUDWindowState) application.WebviewWindowOptions {
 	return application.WebviewWindowOptions{
 		Name:                       desktop.HUDWindowName,
@@ -29,6 +29,11 @@ func hudWindowOptions(state desktop.HUDWindowState) application.WebviewWindowOpt
 			// contents have transparent corners; CSS draws the capsule.
 			DisableShadow: true,
 			CornerType:    application.MacWindowCornerTypeSquare,
+		},
+		Linux: application.LinuxWindow{
+			// GTK still needs the compositor for alpha blending. This is
+			// not equivalent to disabling theme/compositor shadows.
+			WindowIsTranslucent: true,
 		},
 		AlwaysOnTop:                state.AlwaysOnTop,
 		InitialPosition:            application.WindowXY,
