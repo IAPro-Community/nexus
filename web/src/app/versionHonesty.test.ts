@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 const shell = readFileSync(new URL('./NexusShell.tsx', import.meta.url), 'utf8');
 const welcome = readFileSync(new URL('./modals/WelcomeModal.tsx', import.meta.url), 'utf8');
 const splash = readFileSync(new URL('./NexusSplashScreen.tsx', import.meta.url), 'utf8');
+const settings = readFileSync(new URL('../features/settings/SettingsSurface.tsx', import.meta.url), 'utf8');
 
 describe('Nexus UI version honesty', () => {
   it('does not claim a release version before the backend reports it', () => {
@@ -24,6 +25,15 @@ describe('Nexus UI version honesty', () => {
   it('does not show a hardcoded release version in the pre-backend splash screen', () => {
     expect(splash).not.toMatch(/v\d+\.\d+\.\d+(?:-[\w.]+)?/);
     expect(splash).toContain('NexusSplashScreen');
+  });
+
+  it('never presents Maestro maintenance as an in-place Nexus update', () => {
+    expect(settings).toContain('Baixar instalador oficial do Nexus');
+    expect(settings).toContain('Ver release oficial do Nexus');
+    expect(settings).toContain("'Atualizar Maestro'");
+    expect(settings).toContain('getPlatformBridge().openExternal(url)');
+    expect(settings).toContain('nexus_installer_url || updateInfo.nexus_release_url');
+    expect(settings).not.toContain("'Atualizar Nexus automaticamente'");
   });
 
   it('does not fabricate main as the project branch in the shell', () => {
