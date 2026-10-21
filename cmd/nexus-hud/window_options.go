@@ -56,6 +56,8 @@ func hudDetachedPopupOptions(state desktop.HUDWindowState) application.WebviewWi
 	options.Width, options.Height = state.ExpandedWidth, state.ExpandedHeight
 	options.MinWidth, options.MinHeight = 280, 240
 	options.Hidden = true
+	// This transient popup should not create a second Windows taskbar icon.
+	options.Windows.HiddenOnTaskbar = true
 	options.HideOnEscape = true
 	return options
 }
