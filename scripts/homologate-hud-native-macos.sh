@@ -16,12 +16,12 @@ REASON=''
 DONE=0
 PID=''
 report() {
-  HUD_SHA="$SHA" HUD_RESULT="$RESULT" HUD_REASON="$REASON" HUD_DONE="$DONE" HUD_CYCLES="$CYCLES" \
+  HUD_SHA="$SHA" HUD_RESULT="$RESULT" HUD_REASON="$REASON" HUD_DONE="$DONE" HUD_CYCLES="$CYCLES" HUD_BINARY_SHA="$(shasum -a 256 "$HUD" | awk '{print $1}')" \
   python3 - "$OUT/HUD_NATIVE_RESULTS.json" <<'PY'
 import json,os,sys
 data={"sha":os.getenv("HUD_SHA"),"platform":"darwin","type":"native_interactive_mouse",
 "cycles_requested":int(os.getenv("HUD_CYCLES")),"cycles_completed":int(os.getenv("HUD_DONE")),
-"verdict":os.getenv("HUD_RESULT"),"reason":os.getenv("HUD_REASON"),
+"binary_sha256":os.getenv("HUD_BINARY_SHA"),"verdict":os.getenv("HUD_RESULT"),"reason":os.getenv("HUD_REASON"),
 "visual_shadow_review":"NOT_TESTED","transparent_click_through":"NOT_TESTED",
 "note":"Real CoreGraphics mouse and native geometry. Inspect screenshots for window shadow."}
 with open(sys.argv[1],"w") as f: json.dump(data,f,indent=2)
@@ -36,7 +36,7 @@ cleanup() {
 }
 trap cleanup EXIT
 if [ "$(uname -s)" != "Darwin" ]; then RESULT=BLOCKED; REASON='Requires macOS'; exit 1; fi
-for bin in swiftc swift screencapture python3 git; do
+for bin in swiftc swift screencapture python3 git shasum; do
   if ! command -v "$bin" >/dev/null 2>&1; then
     RESULT=BLOCKED; REASON="Missing $bin"; echo "$REASON" >&2; exit 1
   fi
