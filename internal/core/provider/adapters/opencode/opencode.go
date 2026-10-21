@@ -67,7 +67,6 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 	home := filepath.Join(root, "home")
 	dirs := []string{
 		home,
-		filepath.Join(home, ".config", "opencode"),
 		filepath.Join(home, ".local", "share", "opencode"),
 		filepath.Join(home, ".cache", "opencode"),
 	}
@@ -94,7 +93,10 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 
 	cfgObj, _ := config.LoadConfig()
 	policy := security.GetPolicy(cfgObj.IsolationPreset)
-	return security.ApplyIsolation(home, policy)
+	if err := security.ApplyIsolationPreservingConfigDirs(home, policy, "opencode"); err != nil {
+		return err
+	}
+	return os.MkdirAll(filepath.Join(home, ".config", "opencode"), 0700)
 }
 
 func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (model.Failure, error) {
