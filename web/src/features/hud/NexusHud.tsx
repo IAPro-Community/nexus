@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { nexus } from '../../nexus/api';
 import { hudV3 } from '../../platform';
 import type { HudSizePreset } from '../../platform';
-import type { CapacityResourceStatus } from '../../types';
+import type { AttentionGroup, CapacityResourceStatus } from '../../types';
 import {
   formatHudCost,
   isWorkingAgent,
@@ -91,6 +91,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [offline, setOffline] = useState(false);
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null);
   const [paceWarning, setPaceWarning] = useState<CapacityResourceStatus | null>(null);
+  const [attentionGroup, setAttentionGroup] = useState<AttentionGroup | undefined>();
   const [alertActionPending, setAlertActionPending] = useState(false);
   const requestInFlight = useRef<Promise<void> | null>(null);
   const dragState = useRef<{ pointerId: number; x: number; y: number } | null>(null);
@@ -114,6 +115,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         setOffline(false);
         setLastSuccessAt(Date.now());
         // Presentation reads existing capacity state; it never probes providers.
+        if (prefs.appearance === 'companion') {
+          void nexus.getAttention().then(setAttentionGroup).catch(() => setAttentionGroup(undefined));
+        }
         void nexus
           .getCapacityStatus()
           .then((capacity) => {
@@ -133,7 +137,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       });
     requestInFlight.current = task;
     return task;
-  }, [projectId]);
+  }, [projectId, prefs.appearance]);
 
   useEffect(() => {
     void refresh();
@@ -256,7 +260,10 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
   const currentMission = state ? hudVisibleMission(state.missions) : undefined;
   const activeMission = currentMission?.needs_user ? currentMission : undefined;
-  const companionAttention = useMemo(() => projectCompanionAttention(state), [state]);
+  const companionAttention = useMemo(
+    () => projectCompanionAttention(state, Date.now(), attentionGroup),
+    [state, attentionGroup],
+  );
   const mood = companionMood(state, companionAttention, offline);
   const isAttention = Boolean(alert || activeMission);
   const displayTone = offline
