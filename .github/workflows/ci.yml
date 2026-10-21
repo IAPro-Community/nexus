@@ -833,6 +833,8 @@ jobs:
       - working-directory: web
         run: bun run build
       - run: go vet ./...
+      - name: Verify HUD macOS/Windows borderless window contract
+        run: go test -count=1 ./cmd/nexus-hud
       - name: Full macOS race suite
         run: go test -v -race ./...
       - name: PTY, Socket and Runtime E2E
