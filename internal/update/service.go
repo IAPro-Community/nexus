@@ -27,6 +27,7 @@ type Service struct {
 	registryURL string
 	httpClient  *http.Client
 	currentVer  string
+	currentSHA  string
 	channel     string
 	execPath    string
 	method      InstallationMethod
@@ -43,6 +44,7 @@ type ServiceConfig struct {
 	RegistryURL string
 	KeyRing     *KeyRing
 	CurrentVer  string
+	CurrentSHA  string
 	Channel     string
 	ExecPath    string
 	Method      InstallationMethod
@@ -54,6 +56,7 @@ type ServiceConfig struct {
 type CheckResult struct {
 	CurrentVersion     string             `json:"current_version"`
 	LatestVersion      string             `json:"latest_version"`
+	LatestSHA          string             `json:"latest_sha,omitempty"`
 	Channel            string             `json:"channel"`
 	InstallationMethod InstallationMethod `json:"installation_method"`
 	UpdateAvailable    bool               `json:"update_available"`
@@ -72,6 +75,10 @@ func NewService(cfg ServiceConfig) *Service {
 	ver := cfg.CurrentVer
 	if ver == "" {
 		ver = buildinfo.Version
+	}
+	currentSHA := cfg.CurrentSHA
+	if currentSHA == "" {
+		currentSHA = buildinfo.Commit
 	}
 	ch := cfg.Channel
 	if ch == "" {
@@ -102,6 +109,7 @@ func NewService(cfg ServiceConfig) *Service {
 		registryURL: regURL,
 		httpClient:  client,
 		currentVer:  ver,
+		currentSHA:  currentSHA,
 		channel:     ch,
 		execPath:    execP,
 		method:      meth,
@@ -148,6 +156,7 @@ func (s *Service) Check(ctx context.Context) (*CheckResult, error) {
 	}
 
 	res.LatestVersion = manifest.Version
+	res.LatestSHA = manifest.SourceSHA
 	res.Changelog = manifest.Changelog
 
 	policy := ManifestPolicy{
@@ -165,7 +174,9 @@ func (s *Service) Check(ctx context.Context) (*CheckResult, error) {
 		return res, fmt.Errorf("manifest validation failed: %w", err)
 	}
 
-	if compareVersions(manifest.Version, s.currentVer) > 0 {
+	if compareVersions(manifest.Version, s.currentVer) > 0 ||
+		(s.channel == "beta" && compareVersions(manifest.Version, s.currentVer) == 0 &&
+			isNewerSignedBetaSHA(s.currentSHA, manifest.SourceSHA)) {
 		res.UpdateAvailable = true
 		art := manifest.Artifacts[target]
 		res.TargetArtifact = &art
@@ -193,6 +204,25 @@ func (s *Service) Check(ctx context.Context) (*CheckResult, error) {
 	}
 
 	return res, nil
+}
+
+// isNewerSignedBetaSHA recognizes rolling beta builds with the same semantic
+// version. A known 7+ character build commit and a verified full manifest
+// object ID are required. Local "dev"/"unknown" binaries do not qualify.
+func isNewerSignedBetaSHA(current, signed string) bool {
+	current = strings.ToLower(strings.TrimSpace(current))
+	signed = strings.ToLower(strings.TrimSpace(signed))
+	if len(current) < 7 || (len(signed) != 40 && len(signed) != 64) ||
+		current == "unknown" || current == "dev" {
+		return false
+	}
+	if _, err := hex.DecodeString(current); err != nil {
+		return false
+	}
+	if _, err := hex.DecodeString(signed); err != nil {
+		return false
+	}
+	return !strings.HasPrefix(signed, current) && !strings.HasPrefix(current, signed)
 }
 
 // Apply downloads, verifies, and installs the update when permitted by InstallationMethod.
