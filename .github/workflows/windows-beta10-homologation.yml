@@ -72,6 +72,10 @@ jobs:
           go-version: 1.26.9
           cache: false
 
+      - name: Verify HUD Windows/macOS borderless window contract
+        shell: pwsh
+        run: go test -count=1 ./cmd/nexus-hud
+
       - name: Verify Windows shell probe and IPC dial reliability
         shell: pwsh
         run: go test -count=1 ./internal/control/protocol ./internal/control/driver
