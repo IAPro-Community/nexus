@@ -192,16 +192,16 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
                       className={`nx-branch-item ${isActive ? 'nx-branch-item--active' : ''}`}
                       onClick={() => handleCheckout(branch, false)}
                       disabled={switching || isActive || Boolean(occupied)}
-                      title={occupied ? t('git.branchInWorktreePath', { path: occupied.path }) : undefined}
+                      title={
+                        occupied ? t('git.branchInWorktreePath', { path: occupied.path }) : undefined
+                      }
                     >
                       <div className="nx-branch-item-name">
                         <GitBranch size={13} className="nx-branch-icon" />
                         <span className="nx-branch-text">{branch}</span>
                       </div>
                       {occupied && (
-                        <span className={styles.occupiedBadge}>
-                          {t('git.branchInWorktree')}
-                        </span>
+                        <span className={styles.occupiedBadge}>{t('git.branchInWorktree')}</span>
                       )}
                       {isActive && (
                         <span className="nx-branch-active-badge">
@@ -215,6 +215,10 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
             </ul>
           )}
         </div>
+
+        {data?.worktrees_available === false && (
+          <InlineAlert tone="warning">{t('git.worktreesUnavailable')}</InlineAlert>
+        )}
 
         {linkedWorktrees.length > 0 && (
           <section className={styles.worktreeSection} aria-label={t('git.linkedWorktrees')}>
@@ -232,7 +236,9 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
                     {worktree.locked && <Badge tone="warning">{t('git.worktreeLocked')}</Badge>}
                     {worktree.prunable && <Badge tone="warning">{t('git.worktreePrunable')}</Badge>}
                   </span>
-                  <code className={styles.worktreePath} title={worktree.path}>{worktree.path}</code>
+                  <code className={styles.worktreePath} title={worktree.path}>
+                    {worktree.path}
+                  </code>
                 </li>
               ))}
             </ul>
