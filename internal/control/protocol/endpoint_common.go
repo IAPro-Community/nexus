@@ -56,6 +56,12 @@ func DialContext(ctx context.Context, runtimeID string) (net.Conn, error) {
 	}
 }
 
+// maxUnixSocketPathLen is the longest usable unix socket path. macOS
+// sockaddr_un.sun_path holds 104 bytes including the trailing NUL, and bind
+// fails with EINVAL beyond that. Linux allows 107, so the stricter value is
+// used everywhere.
+const maxUnixSocketPathLen = 103
+
 // EndpointPath returns the canonical local socket / pipe path for a runtime.
 func EndpointPath(runtimeID string) string {
 	if runtime.GOOS == "windows" {
@@ -66,7 +72,9 @@ func EndpointPath(runtimeID string) string {
 	if xdg := os.Getenv("XDG_RUNTIME_DIR"); xdg != "" {
 		dir := filepath.Join(xdg, "nexus")
 		_ = os.MkdirAll(dir, 0700)
-		return filepath.Join(dir, fmt.Sprintf("%s.sock", runtimeID))
+		if path, ok := socketPathIn(dir, runtimeID); ok {
+			return path
+		}
 	}
 
 	// Fallback to /tmp/nexus-control-<uid>
@@ -79,7 +87,38 @@ func EndpointPath(runtimeID string) string {
 		_ = os.MkdirAll(dir, 0700)
 	}
 
-	return filepath.Join(dir, fmt.Sprintf("%s.sock", runtimeID))
+	if path, ok := socketPathIn(dir, runtimeID); ok {
+		return path
+	}
+
+	// The per-user TMPDIR on macOS lives under /var/folders/... and can push
+	// the socket path past the kernel limit once a ULID runtime ID is
+	// appended. Fall back to a short, owner-checked private directory.
+	return filepath.Join(shortSocketDir(uid), fmt.Sprintf("%s.sock", runtimeID))
+}
+
+// socketPathIn joins dir and runtimeID when the result fits the kernel limit.
+func socketPathIn(dir, runtimeID string) (string, bool) {
+	path := filepath.Join(dir, fmt.Sprintf("%s.sock", runtimeID))
+	if len(path) > maxUnixSocketPathLen {
+		return "", false
+	}
+	return path, true
+}
+
+// shortSocketDir returns a stable, user-owned directory with a short path.
+func shortSocketDir(uid int) string {
+	dir := filepath.Join("/tmp", fmt.Sprintf("nexus-%d", uid))
+	if err := os.MkdirAll(dir, 0700); err == nil {
+		if st, statErr := os.Stat(dir); statErr == nil && isOwnedBy(st, uid) {
+			return dir
+		}
+	}
+	// Refuse to reuse a directory we do not own; nest one level deeper under a
+	// per-process suffix instead of trusting the existing entry.
+	dir = filepath.Join("/tmp", fmt.Sprintf("nexus-%d-%d", uid, os.Getpid()))
+	_ = os.MkdirAll(dir, 0700)
+	return dir
 }
 
 // WaitForEndpoint polls until the control endpoint is ready or timeout expires.
