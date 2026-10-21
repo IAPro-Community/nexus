@@ -93,6 +93,7 @@ export const SettingsSurface: React.FC<{
   const [updateInfo, setUpdateInfo] = useState<{
     nexus_version: string;
     nexus_latest_version?: string;
+    nexus_latest_sha?: string;
     nexus_update_available?: boolean;
     nexus_update_error?: string;
     nexus_update_instruction?: string;
@@ -591,6 +592,14 @@ export const SettingsSurface: React.FC<{
                       </Badge>
                     </div>
                   )}
+                  {updateInfo.nexus_update_available &&
+                    updateInfo.nexus_latest_sha &&
+                    updateInfo.nexus_version === updateInfo.nexus_latest_version && (
+                      <div className={styles.infoRow}>
+                        <span>Nova compilação assinada:</span>
+                        <Badge tone="info">{updateInfo.nexus_latest_sha.slice(0, 8)}</Badge>
+                      </div>
+                    )}
                   {updateInfo.channel && (
                     <div className={styles.infoRow}>
                       <span>Canal de Lançamento:</span>
