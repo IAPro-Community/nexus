@@ -105,6 +105,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const announced = useRef(new Set<string>());
   const bubbleInFlight = useRef(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [nativePresentationReady, setNativePresentationReady] = useState(!native);
 
   const refresh = useCallback(() => {
     if (requestInFlight.current) return requestInFlight.current;
@@ -225,13 +226,18 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   // sessions. The bar preset is retained independently from the guardian.
   useEffect(() => {
     if (!native) return;
+    let active = true;
+    setNativePresentationReady(false);
     const preset = prefs.appearance === 'companion' ? 'companion' : prefs.barSizePreset;
     void hudV3.setSizePreset(preset, expanded).then(() => {
+      if (!active) return;
       setSizePreset(preset);
+      setNativePresentationReady(true);
     }).catch((error: unknown) => {
       console.error('Nexus Companion native presentation resize failed:', error);
       toast.error('Não foi possível alterar o modo do HUD nativo.');
     });
+    return () => { active = false; };
   // Only switching presentation or a persisted bar size changes geometry.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [native, prefs.appearance, prefs.barSizePreset]);
@@ -303,6 +309,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   // silence the floating speech: they never acknowledge canonical alerts.
   useEffect(() => {
     if (prefs.appearance !== 'companion' || !prefs.attentionBubbles || expanded || bubble || bubbleInFlight.current) return;
+    if (native && !nativePresentationReady) return;
     if (typeof window === 'undefined') return;
     const pending = companionAttention.filter((item) => !announced.current.has(item.id));
     let snoozes: Record<string, number> = {};
@@ -315,7 +322,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     void hudV3.setBubbleVisible(true).then(() => setBubble(next)).catch((error: unknown) => {
       console.error('Nexus Companion attention bubble unavailable:', error);
     }).finally(() => { bubbleInFlight.current = false; });
-  }, [prefs.appearance, prefs.attentionBubbles, expanded, bubble, companionAttention, native]);
+  }, [prefs.appearance, prefs.attentionBubbles, expanded, bubble, companionAttention, native, nativePresentationReady]);
 
   useEffect(() => {
     if (!bubble) return;
