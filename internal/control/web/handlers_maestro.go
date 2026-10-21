@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"os/exec"
 	"strings"
 	"time"
@@ -138,6 +139,8 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 	nexusChannel := "stable"
 	var nexusUpdateInstruction string
 	var nexusUpdateError string
+	var nexusInstallerURL string
+	var nexusReleaseURL string
 	if nexusCheck != nil {
 		nexusLatestVersion = nexusCheck.LatestVersion
 		nexusUpdateAvailable = nexusCheck.UpdateAvailable
@@ -146,6 +149,17 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		nexusUpdateInstruction = nexusCheck.Instruction
 		if nexusCheck.Channel != "" {
 			nexusChannel = nexusCheck.Channel
+		}
+		if nexusCheck.UpdateAvailable {
+			// Only advertise links after the signed manifest validates. Downloads
+			// outside the public canonical repository are not presented as an
+			// "official installer", even when a custom registry was configured.
+			nexusReleaseURL = "https://github.com/IAPro-Community/nexus/releases/tag/" +
+				update.ChannelPointerTag(nexusChannel)
+			if nexusCheck.InstallerArtifact != nil &&
+				isOfficialNexusInstallerURL(nexusCheck.InstallerArtifact.URL) {
+				nexusInstallerURL = nexusCheck.InstallerArtifact.URL
+			}
 		}
 	}
 	if nexusErr != nil {
@@ -160,6 +174,8 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		"nexus_update_available":    nexusUpdateAvailable,
 		"nexus_update_error":        nexusUpdateError,
 		"nexus_update_instruction":  nexusUpdateInstruction,
+		"nexus_installer_url":       nexusInstallerURL,
+		"nexus_release_url":         nexusReleaseURL,
 		"channel":                   nexusChannel,
 		"installation_method":       nexusInstallationMethod,
 		"allows_self_update":        nexusAllowsSelfUpdate,
@@ -170,6 +186,18 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		"maestro_available":         mStatus.Available,
 		"update_available":          updateAvailable,
 	})
+}
+
+// isOfficialNexusInstallerURL prevents the native app's external-link action
+// from representing a third-party URL as a verified official package.
+func isOfficialNexusInstallerURL(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || !strings.EqualFold(u.Hostname(), "github.com") ||
+		u.Port() != "" || u.User != nil {
+		return false
+	}
+	return strings.HasPrefix(u.EscapedPath(), "/IAPro-Community/nexus/releases/download/") &&
+		!strings.HasSuffix(u.Path, "/")
 }
 
 // performSystemUpdate is the explicit Maestro library updater. Tests stub this
