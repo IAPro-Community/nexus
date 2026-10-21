@@ -292,7 +292,7 @@ gráfica interativa, com `NEXUS_ENABLE_HUD` e `NEXUS_DISABLE_HUD` não definidos
 continua simples, e o E2E Web não substitui teste do clique real Wails/GTK/WebView2.
 A correção de código não equivale a homologação nativa até os gates acima passarem.
 
-## Contrato de moldura nativa — Windows e macOS (21/10/2026)
+## Contrato de moldura nativa — Windows, macOS e Linux (21/10/2026)
 
 A cápsula nativa deve ter transparência visual real **sem a sombra retangular
 projetada pelo sistema operacional**. A sombra arredondada do componente CSS
@@ -303,12 +303,19 @@ continua pertencendo à apresentação da cápsula.
 - macOS (Wails v3 / WKWebView): `Mac.DisableShadow=true` desativa a sombra
   `NSWindow`; `Mac.CornerType=MacWindowCornerTypeSquare` impede que o formato
   dos cantos da janela imponha uma moldura nativa ao conteúdo transparente.
-- Ambos os sistemas mantêm `Frameless=true`,
+- Linux (Wails v3 / GTK): `Frameless=true` e
+  `BackgroundTypeTransparent` já eram usados. O contrato agora declara também
+  `Linux.WindowIsTranslucent=true`, mas a biblioteca Wails beta.25 não fornece
+  um `DisableShadow` equivalente; a sombra externa continua sob controle
+  do tema e do compositor, especialmente em X11 e Wayland.
+- Os três sistemas mantêm `Frameless=true`,
   `BackgroundTypeTransparent`, fundo RGBA com alpha 0, tamanhos persistidos e
-  `AlwaysOnTop` conforme preferência do usuário.
+  `AlwaysOnTop` conforme preferência do usuário, quando o gerenciador de janelas
+  suporta esse comportamento.
 - O código centraliza essas opções em `cmd/nexus-hud/window_options.go`.
   `cmd/nexus-hud/window_options_test.go` protege esse contrato, executado nos
-  gates nativos Windows e macOS.
+  gates nativos Windows e macOS, além do gate de contrato no CI Linux.
+  Esses testes verificam opções de criação de janela, não pixels renderizados.
 
 **Limite de escopo:** remover sombra/moldura visual **não equivale** a permitir
 cliques através de todos os pixels transparentes da WebView. Também não torna a
@@ -326,9 +333,15 @@ não deve ser simulada com CSS nem anunciada como pronta.
    foco, reiniciar e confirmar geometria/posição e ausência de regressões.
 4. Registrar explicitamente áreas transparentes que ainda bloqueiam clique no
    desktop: **falha conhecida de input, não aprovação de click-through**.
-5. Relacionar screenshots, logs, build e resultado ao SHA exato da release.
+5. Linux: repetir os testes de sombra, transparência, alça de arraste e
+   popup no X11 e Wayland quando disponíveis; distinguir GTK3/GTK4, tema
+   GNOME/KDE e capacidade do compositor. O smoke Xvfb/CI verifica inicialização,
+   mas não comprova ausência de sombra ou click-through no desktop real.
+6. Relacionar screenshots, logs, build e resultado ao SHA exato da release.
    Go unit PASS ou smoke de processo vivo não substituem comparação visual.
 
-Sem evidências nativas para as duas plataformas, o estado de **paridade visual
-Windows/macOS** deve permanecer `UNVERIFIED`, mesmo com a configuração correta
-implementada e testada estaticamente.
+Sem evidências nativas para **Windows, macOS e Linux** no mesmo SHA, a
+**paridade visual cross-platform** permanece `UNVERIFIED`. No Linux, a sombra
+gerada pelo compositor ou tema GTK não é controlada pelas flags Windows/macOS;
+se o retângulo persistir, o caminho é um adaptador GTK/compositor específico
+ou redesign da superfície, não alegar correção por flag.
