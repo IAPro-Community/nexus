@@ -784,6 +784,16 @@ export interface FSInspectResult {
   tech: string[];
 }
 
+export interface GitWorktree {
+  path: string;
+  head: string;
+  branch: string;
+  is_primary: boolean;
+  detached: boolean;
+  locked: boolean;
+  prunable: boolean;
+}
+
 export interface GitBranchesResult {
   project_id: string;
   canonical_path: string;
@@ -793,6 +803,8 @@ export interface GitBranchesResult {
   remote_branches: string[];
   is_clean: boolean;
   modified_count: number;
+  worktrees?: GitWorktree[];
+  worktrees_available?: boolean;
 }
 
 export interface GitCheckoutResult {
