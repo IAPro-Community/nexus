@@ -101,7 +101,7 @@ describe('WorkspaceLayoutService', () => {
   it('restores two-pane terminal proportions for the same project', () => {
     const initial = service.load(fallback);
     const presentation = setTerminalSplitRatio(
-      { ...createPresentationState('SPLIT'), splitOrientation: 'horizontal', splitSecondaryViewId: 'view:pty-b' },
+      { ...createPresentationState('SPLIT'), splitOrientation: 'horizontal', splitPrimaryViewId: 'view:pty-a', splitSecondaryViewId: 'view:pty-b' },
       0.65,
     );
     service.save({ ...initial, presentation });
@@ -109,6 +109,7 @@ describe('WorkspaceLayoutService', () => {
     expect(restored.presentation.mode).toBe('SPLIT');
     expect(restored.presentation.splitRatio).toBe(0.65);
     expect(restored.presentation.splitOrientation).toBe('horizontal');
+    expect(restored.presentation.splitPrimaryViewId).toBe('view:pty-a');
     expect(restored.presentation.splitSecondaryViewId).toBe('view:pty-b');
     const other = new WorkspaceLayoutService('another-project').load(fallback);
     expect(other.presentation.mode).not.toBe('SPLIT');

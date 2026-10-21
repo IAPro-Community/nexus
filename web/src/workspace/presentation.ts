@@ -61,6 +61,7 @@ export interface WorkspacePresentationState {
   /** viewId of the PTY the user is viewing (inner tabs or desktop focus). */
   activePtyViewId: string;
   /** Two existing PTYs; layout only, never duplicates or starts a runtime. */
+  splitPrimaryViewId: string;
   splitSecondaryViewId: string;
   splitOrientation: TerminalSplitOrientation;
   splitRatio: number;
@@ -122,6 +123,7 @@ export function createPresentationState(
     canvas,
     tiled: mode === 'MOSAIC',
     activePtyViewId: '',
+    splitPrimaryViewId: '',
     splitSecondaryViewId: '',
     splitOrientation: 'vertical',
     splitRatio: 0.5,
@@ -180,6 +182,7 @@ export function migratePresentationState(raw: unknown): WorkspacePresentationSta
     canvas,
     tiled,
     activePtyViewId,
+    splitPrimaryViewId: typeof parsed.splitPrimaryViewId === 'string' ? parsed.splitPrimaryViewId : '',
     splitSecondaryViewId: typeof parsed.splitSecondaryViewId === 'string' ? parsed.splitSecondaryViewId : '',
     splitOrientation: parsed.splitOrientation === 'horizontal' ? 'horizontal' : 'vertical',
     splitRatio: normalizeTerminalSplitRatio(parsed.splitRatio),
@@ -493,9 +496,11 @@ export function resolveTerminalSplitViews(
   state: WorkspacePresentationState,
   viewIds: readonly string[],
 ): { primary: string; secondary: string } {
-  const primary = viewIds.includes(state.activePtyViewId)
-    ? state.activePtyViewId
-    : viewIds[0] || '';
+  const primary = viewIds.includes(state.splitPrimaryViewId)
+    ? state.splitPrimaryViewId
+    : viewIds.includes(state.activePtyViewId)
+      ? state.activePtyViewId
+      : viewIds[0] || '';
   const secondary = state.splitSecondaryViewId !== primary && viewIds.includes(state.splitSecondaryViewId)
     ? state.splitSecondaryViewId
     : viewIds.find((id) => id !== primary) || '';
@@ -517,6 +522,14 @@ export function setTerminalSplitRatio(
   return next === state.splitRatio ? state : { ...state, splitRatio: next };
 }
 
+export function setTerminalSplitPrimary(
+  state: WorkspacePresentationState,
+  viewId: string,
+): WorkspacePresentationState {
+  if (viewId && !state.windows[viewId]) return state;
+  return state.splitPrimaryViewId === viewId ? state : { ...state, splitPrimaryViewId: viewId };
+}
+
 export function setTerminalSplitSecondary(
   state: WorkspacePresentationState,
   viewId: string,
@@ -531,7 +544,14 @@ export function setPresentationMode(
 ): WorkspacePresentationState {
   if (state.mode === mode) return state;
   const snapped = snapshotLeavingMode(state);
-  const next = { ...snapped, mode, tiled: mode === 'MOSAIC' };
+  const next = {
+    ...snapped,
+    mode,
+    tiled: mode === 'MOSAIC',
+    splitPrimaryViewId: mode === 'SPLIT'
+      ? (snapped.splitPrimaryViewId || snapped.activePtyViewId)
+      : snapped.splitPrimaryViewId,
+  };
   if (mode === 'MOSAIC') return applyMosaicLayout(next);
   if (mode === 'DESKTOP') return applyDesktopLayout(next);
   return { ...next, tiled: false };
@@ -657,6 +677,7 @@ export function syncDesktopWindows(
     nextZ,
     tiled: state.mode === 'MOSAIC',
     activePtyViewId,
+    splitPrimaryViewId: nextIds.includes(state.splitPrimaryViewId) ? state.splitPrimaryViewId : '',
     splitSecondaryViewId: nextIds.includes(state.splitSecondaryViewId) ? state.splitSecondaryViewId : '',
   };
   if (state.mode === 'MOSAIC' && (added.length > 0 || removed.length > 0)) {

@@ -7,6 +7,7 @@ import {
   setTerminalSplitOrientation,
   setTerminalSplitRatio,
   setTerminalSplitSecondary,
+  setTerminalSplitPrimary,
   setActivePtyView,
   migratePresentationState,
   focusDesktopWindow,
@@ -450,11 +451,13 @@ describe('persistent PTY split mode', () => {
     let state = syncDesktopWindows(createPresentationState('SPLIT'), [surface('a'), surface('b')]);
     state = setTerminalSplitOrientation(state, 'horizontal');
     state = setTerminalSplitRatio(state, 0.72);
+    state = setTerminalSplitPrimary(state, 'view:b');
     state = setTerminalSplitSecondary(state, 'view:a');
-    state = setActivePtyView(state, 'view:b');
+    state = setActivePtyView(state, 'view:a');
     const restored = migratePresentationState(JSON.parse(JSON.stringify(state)));
     expect(restored.splitOrientation).toBe('horizontal');
     expect(restored.splitRatio).toBe(0.72);
+    expect(restored.splitPrimaryViewId).toBe('view:b');
     expect(resolveTerminalSplitViews(restored, ['view:a', 'view:b'])).toEqual({
       primary: 'view:b', secondary: 'view:a',
     });
@@ -465,5 +468,8 @@ describe('persistent PTY split mode', () => {
     const state = { ...createPresentationState('SPLIT'), activePtyViewId: 'b', splitSecondaryViewId: 'b' };
     expect(resolveTerminalSplitViews(state, ['a', 'b'])).toEqual({ primary: 'b', secondary: 'a' });
     expect(resolveTerminalSplitViews(state, ['a'])).toEqual({ primary: 'a', secondary: '' });
+    const stable = { ...state, splitPrimaryViewId: 'a', splitSecondaryViewId: 'b' };
+    expect(resolveTerminalSplitViews({ ...stable, activePtyViewId: 'b' }, ['a', 'b']))
+      .toEqual({ primary: 'a', secondary: 'b' });
   });
 });

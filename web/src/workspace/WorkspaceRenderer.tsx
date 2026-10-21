@@ -746,6 +746,9 @@ const TerminalsHost: React.FC<{
 
   const focusPty = (surface: WorkspaceSurface) => {
     const viewId = surfaceViewId(surface);
+    if (splitMode && viewId !== splitViews.primary && viewId !== splitViews.secondary) {
+      presentation.setSplitPrimary(viewId);
+    }
     presentation.setActivePty(viewId);
     if (windowed) {
       presentation.focus(viewId);
@@ -1088,6 +1091,11 @@ const TerminalsHost: React.FC<{
                     className={splitMode ? `nx-workspace-panel ${splitStyles.splitPane}` : 'nx-workspace-panel'}
                     style={splitMode && visible ? { order: isSplitPrimary ? 0 : 2 } : undefined}
                     data-active={visible ? 'true' : 'false'}
+                    onPointerDownCapture={() => {
+                      if (splitMode && visible && presentation.state.activePtyViewId !== surfaceViewId(surface)) {
+                        presentation.setActivePty(surfaceViewId(surface));
+                      }
+                    }}
                   >
                     {renderSurface(surface)}
                   </div>
