@@ -166,6 +166,17 @@
   background: #3b72e1;
   color: #fff;
 }
+.root[data-micro='tilt'] .guardianButton { animation: companion-tilt .75s ease-in-out 1; }
+.root[data-micro='hop'] .guardianButton { animation: companion-hop .75s ease-in-out 1; }
+.root[data-micro='peek'] .bucketButton { animation: bucket-wiggle .75s ease-in-out 1; }
+@keyframes companion-tilt {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(6deg); }
+}
+@keyframes companion-hop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
 @keyframes companion-frames {
   from { background-position-x: 0; }
   to { background-position-x: -576px; }
@@ -176,5 +187,5 @@
   70% { transform: rotate(4deg); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .sprite, .bucketButton { animation: none !important; }
+  .sprite, .bucketButton, .guardianButton { animation: none !important; }
 }
