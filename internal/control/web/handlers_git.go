@@ -23,6 +23,8 @@ type ProjectGitBranchesResponse struct {
 	RemoteBranches []string `json:"remote_branches"`
 	IsClean        bool     `json:"is_clean"`
 	ModifiedCount  int      `json:"modified_count"`
+	Worktrees       []ProjectGitWorktree `json:"worktrees"`
+	WorktreesAvailable bool `json:"worktrees_available"`
 }
 
 // handleProjectGitBranches GET /api/v1/projects/{projectID}/git/branches
@@ -100,6 +102,11 @@ func (h *NexusHandler) handleProjectGitBranches(w http.ResponseWriter, r *http.R
 		}
 	}
 
+	worktrees, worktreesErr := listProjectGitWorktrees(r.Context(), dir)
+	if worktrees == nil {
+		worktrees = []ProjectGitWorktree{}
+	}
+
 	resp := ProjectGitBranchesResponse{
 		ProjectID:      proj.ID,
 		CanonicalPath:  proj.CanonicalPath,
@@ -109,6 +116,8 @@ func (h *NexusHandler) handleProjectGitBranches(w http.ResponseWriter, r *http.R
 		RemoteBranches: remoteBranches,
 		IsClean:        isClean,
 		ModifiedCount:  modifiedCount,
+		Worktrees:      worktrees,
+		WorktreesAvailable: worktreesErr == nil,
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
