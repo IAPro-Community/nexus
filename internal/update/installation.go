@@ -70,10 +70,6 @@ func (m InstallationMethod) UpgradeInstruction() string {
 
 // DetectInstallationMethod attempts to detect how the current binary was installed.
 func DetectInstallationMethod(execPath string) InstallationMethod {
-	if env := os.Getenv("NEXUS_INSTALL_METHOD"); env != "" {
-		return InstallationMethod(strings.ToUpper(strings.TrimSpace(env)))
-	}
-
 	cleanPath := filepath.Clean(execPath)
 	lowerPath := strings.ToLower(cleanPath)
 
@@ -84,6 +80,11 @@ func DetectInstallationMethod(execPath string) InstallationMethod {
 	if baseName == "nexus-desktop" || baseName == "nexus-desktop.exe" ||
 		baseName == "nexus-hud" || baseName == "nexus-hud.exe" {
 		return MethodDesktop
+	}
+	// An installation method override may select a CLI packaging policy,
+	// but must never allow an embedded GUI executable to self-replace.
+	if env := os.Getenv("NEXUS_INSTALL_METHOD"); env != "" {
+		return InstallationMethod(strings.ToUpper(strings.TrimSpace(env)))
 	}
 
 	// Check marker files in the directory containing the binary
