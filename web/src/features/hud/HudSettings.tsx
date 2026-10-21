@@ -28,6 +28,19 @@ export const HudSettings: React.FC = () => {
       <Card className="nx-settings-card">
         <div className="nx-settings-card__title">
           <PanelsTopLeft size={17} />
+          <div><strong>Nexus Companion</strong><small>Escolha entre a cápsula atual e o guardião 2D. A fonte dos dados continua a mesma.</small></div>
+        </div>
+        <Segmented ariaLabel="Aparência do HUD" value={prefs.appearance}
+          onChange={(value) => patch({ appearance: value === 'companion' ? 'companion' : 'bar' })}
+          options={[{ value: 'bar', label: 'Barra' }, { value: 'companion', label: 'Mascote 2D' }]} />
+        <Switch checked={prefs.companionMotion} onChange={(companionMotion) => patch({ companionMotion })}
+          label="Microanimações" description="Desativadas automaticamente quando o sistema prefere menos movimento." />
+        <Switch checked={prefs.attentionBubbles} onChange={(attentionBubbles) => patch({ attentionBubbles })}
+          label="Balões de atenção" description="Apenas mensagens ligadas a intervenções e alertas reais, sem abrir páginas sozinho." />
+      </Card>
+      <Card className="nx-settings-card">
+        <div className="nx-settings-card__title">
+          <PanelsTopLeft size={17} />
           <div>
             <strong>Nexus HUD</strong>
             <small>
