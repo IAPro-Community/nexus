@@ -124,6 +124,7 @@ $result = [ordered]@{
     type = 'native_interactive_mouse'
     cycles_requested = $Cycles
     cycles_completed = 0
+    binary_sha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
     screenshot_compact = $null
     screenshot_expanded = $null
     verdict = 'INCONCLUSIVE'
