@@ -80,7 +80,7 @@ jobs:
           $module = 'github.com/IAPro-Community/nexus'
           $ld = "-s -w -X $module/internal/buildinfo.Version=$version -X $module/internal/buildinfo.Commit=$commit -X $module/internal/buildinfo.BuildDate=$date"
           foreach ($target in @(@('nexus','./cmd/nexus'),@('nexus-desktop','./cmd/nexus-desktop'),@('nexus-hud','./cmd/nexus-hud'))) {
-            go build -trimpath -buildvcs=false -tags production -ldflags $ld -o "($target[0]).exe" $target[1]
+            go build -trimpath -buildvcs=false -tags production -ldflags $ld -o "$($target[0]).exe" $target[1]
             if ($LASTEXITCODE -ne 0) { throw "build failed: $($target[0])" }
           }
           New-Item -ItemType Directory -Force preview-out | Out-Null
