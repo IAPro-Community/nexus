@@ -166,3 +166,23 @@ darwin_arm64_pkg
 
 A release falha se faltar qualquer chave exigida. Jobs skipped, CI ausente ou
 artefatos sem assinatura nunca contam como PASS.
+
+## Publicação no próprio repositório (21/10/2026)
+
+Código, instaladores e binários oficiais são disponibilizados em
+[GitHub Releases do IAPro-Community/nexus](https://github.com/IAPro-Community/nexus/releases).
+Os instaladores e o updater usam os canais assinados `channel-beta` e
+`channel-stable` no próprio repositório. `NEXUS_RELEASE_REPO` permanece
+apenas como override explícito para forks e desenvolvimento.
+
+O pipeline `.github/workflows/release.yml` usa `GITHUB_TOKEN` para
+publicar, sem precisar de `NEXUS_DIST_TOKEN` ou `NEXUS_DIST_REPO`.
+O marcador `channel-beta` é um ponteiro móvel intencional, alinhado ao
+SHA do candidato antes da publicação; tags de versões finais permanecem
+imutáveis. A atualização automática continua exigindo manifesto assinado
+Ed25519 e verificação SHA-256.
+
+A mudança de repositório não dispensa Authenticode no Windows nem
+Developer ID/notarização no macOS para os gates de distribuição
+certificada. Builds unsigned podem ser homologados localmente, mas
+não serão tratados como assinados ou certificados.
