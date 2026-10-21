@@ -187,31 +187,20 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          current="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/release/v1.0.0" --jq '.object.sha')"
-          test "$current" = "$GITHUB_SHA" || { echo 'Release HEAD changed; rerun preview against new SHA' >&2; exit 1; }
+          # Preview builds are immutable snapshots of their triggering SHA.
+          # Parallel fixes may advance the branch; never relabel their content.
           for file in nexus-preview-linux-amd64.tar.gz nexus-preview-windows-amd64.zip nexus-preview-macos-arm64-cli.tar.gz nexus-preview-macos-arm64-desktop.zip nexus-preview-macos-arm64-hud.zip nexus-preview-macos-intel-cli.tar.gz nexus-preview-macos-intel-desktop.zip nexus-preview-macos-intel-hud.zip; do
             test -s "preview-assets/$file" || { echo "Missing $file" >&2; exit 1; }
           done
           (cd preview-assets && sha256sum nexus-preview-* > SHA256SUMS.txt)
-      - name: Move preview-only rolling pointer
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          current="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/channel-preview" --jq '.object.sha' 2>/dev/null || true)"
-          if [ -z "$current" ]; then
-            gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref='refs/tags/channel-preview' -f sha="$GITHUB_SHA" >/dev/null
-          elif [ "$current" != "$GITHUB_SHA" ]; then
-            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/channel-preview" -f sha="$GITHUB_SHA" -F force=true >/dev/null
-          fi
       - name: Publish unsigned preview (not an updater channel)
         uses: softprops/action-gh-release@v2
         with:
           repository: ${{ github.repository }}
           token: ${{ github.token }}
-          tag_name: channel-preview
-          name: Nexus 1.0 - Unsigned Development Preview
+          tag_name: preview-${{ github.sha }}
+          target_commitish: ${{ github.sha }}
+          name: Nexus 1.0 - Unsigned Preview (${{ github.sha }})
           prerelease: true
           make_latest: false
           files: preview-assets/*
@@ -224,5 +213,5 @@ jobs:
             Linux amd64, Windows amd64, macOS arm64 and macOS Intel builds were compiled by GitHub-hosted runners.
             No Microsoft Authenticode certificate, Apple Developer ID, notarization or signed update manifest.
             Windows SmartScreen and macOS Gatekeeper may warn or block launch.
-            Manual installation/testing only. The signed updater does NOT use channel-preview.
+            Immutable snapshot, manual installation/testing only. Signed updater channels never reference preview tags.
             See SHA256SUMS.txt and the workflow logs. Do not advertise this as stable.
