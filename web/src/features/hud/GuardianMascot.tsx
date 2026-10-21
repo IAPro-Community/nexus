@@ -67,7 +67,11 @@ export const GuardianModeSelector: React.FC<GuardianModeSelectorProps> = ({
   pending,
   onSelect,
 }) => (
-  <div className={styles.guardianModeSelector} role="group" aria-label="Apresentação nativa do Guardian">
+  <div
+    className={styles.guardianModeSelector}
+    role="group"
+    aria-label="Apresentação nativa do Guardian"
+  >
     {(['BAR', 'MASCOT', 'TRAY'] as const).map((mode) => (
       <button
         key={mode}
