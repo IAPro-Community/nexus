@@ -51,3 +51,13 @@ func TestDesktopAndHUDBinariesNeverSelfUpdateAsCLI(t *testing.T) {
 		})
 	}
 }
+
+func TestDesktopSelfUpdateCannotBeForcedThroughInstallMethodOverride(t *testing.T) {
+	t.Setenv("NEXUS_INSTALL_METHOD", "STANDALONE")
+	for _, name := range []string{"nexus-desktop", "nexus-hud.exe"} {
+		method := DetectInstallationMethod(filepath.Join(t.TempDir(), name))
+		if method != MethodDesktop || method.AllowsSelfUpdate() {
+			t.Fatalf("%s: override must not enable GUI binary replacement, got %s", name, method)
+		}
+	}
+}
