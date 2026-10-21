@@ -111,9 +111,8 @@ func main() {
 			_ = hudController.SetHUDExpanded(false)
 		})
 		popup.OnWindowEvent(events.Common.WindowHide, func(*application.WindowEvent) {
-			// Sync controller state after ESC/native hide; the capsule polls
-			// this state so aria-expanded never remains stuck at true.
-			_ = hudController.SetHUDExpanded(false)
+			// Never Hide() again from WindowHide: avoid reentrant native events.
+			hudController.NotifyHUDPopupHidden()
 		})
 	}
 	desktop.ConfigureNativeTray(native, window, "Nexus HUD")
