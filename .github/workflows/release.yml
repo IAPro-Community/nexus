@@ -296,14 +296,13 @@ jobs:
           NEXUS_UPDATE_PRIVATE_KEY: ${{ secrets.NEXUS_UPDATE_PRIVATE_KEY }}
           NEXUS_UPDATE_KEY_ID: ${{ secrets.NEXUS_UPDATE_KEY_ID }}
           NEXUS_UPDATE_PUBLIC_KEY: ${{ vars.NEXUS_UPDATE_PUBLIC_KEY }}
-          NEXUS_DIST_REPO: ${{ vars.NEXUS_DIST_REPO }}
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           set -euo pipefail
           test -n "$NEXUS_UPDATE_PRIVATE_KEY"
           test -n "$NEXUS_UPDATE_KEY_ID"
           test -n "$NEXUS_UPDATE_PUBLIC_KEY"
-          DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
+          DIST_REPO="${GITHUB_REPOSITORY}"
           go run ./scripts/sign-update-manifest \
             --dist dist \
             --dist native-artifacts \
@@ -351,19 +350,28 @@ jobs:
           subject-path: |
             dist/*
             native-artifacts/*
-      - name: Require public distribution credential
+      - name: Align rolling beta tag with certified SHA
         env:
-          NEXUS_DIST_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
-          test -n "$NEXUS_DIST_TOKEN" || {
-            echo "NEXUS_DIST_TOKEN is required to publish the closed-source beta to the public distribution repository" >&2
-            exit 1
-          }
+          set -euo pipefail
+          case "$RELEASE_VERSION" in
+            *-alpha.*|*-beta.*|*-rc.*) ;;
+            *) exit 0 ;;
+          esac
+          current="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/channel-beta" --jq '.object.sha' 2>/dev/null || true)"
+          if [ -z "$current" ]; then
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref='refs/tags/channel-beta' -f sha="$GITHUB_SHA" >/dev/null
+          elif [ "$current" != "$GITHUB_SHA" ]; then
+            # Only the rolling channel pointer may move. Version tags remain immutable.
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/channel-beta" -f sha="$GITHUB_SHA" -F force=true >/dev/null
+          fi
       - name: Publish canonical distribution release
         uses: softprops/action-gh-release@v2
         with:
-          repository: ${{ vars.NEXUS_DIST_REPO || 'IAPro-Community/nexus-releases' }}
-          token: ${{ secrets.NEXUS_DIST_TOKEN }}
+          repository: ${{ github.repository }}
+          token: ${{ github.token }}
           tag_name: ${{ env.PUBLIC_RELEASE_TAG }}
           name: ${{ env.PUBLIC_RELEASE_TITLE }}
           prerelease: ${{ env.PUBLIC_RELEASE_PRERELEASE }}
@@ -377,8 +385,7 @@ jobs:
             This is the single rolling Release V1.0.0 distribution entry. The exact prerelease/stable version and source provenance remain in the signed manifest.
       - name: Publish stable channel pointer
         env:
-          GH_TOKEN: ${{ secrets.NEXUS_DIST_TOKEN }}
-          NEXUS_DIST_REPO: ${{ vars.NEXUS_DIST_REPO }}
+          GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           set -euo pipefail
@@ -388,7 +395,7 @@ jobs:
               exit 0
               ;;
           esac
-          DIST_REPO="${NEXUS_DIST_REPO:-IAPro-Community/nexus-releases}"
+          DIST_REPO="${GITHUB_REPOSITORY}"
           TAG="channel-stable"
           NOTES="Nexus stable channel pointer → ${RELEASE_VERSION}. Discovery-only signed update manifest."
           if gh release view "$TAG" --repo "$DIST_REPO" >/dev/null 2>&1; then
