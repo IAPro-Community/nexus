@@ -11,17 +11,30 @@ import {
   Input,
   InlineAlert,
   Spinner,
+  Select,
 } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import type { Agent, Project } from '../../types';
+import type { Agent, Project, RecommendationResult } from '../../types';
 import {
   buildDirectAgentName,
   directAccountTitle,
   directQuotaDisplay,
   eligibleDirectResources,
   quotaTruthState,
+  recommendedDirectAccountId,
 } from './directSessionModel';
 import resourceStyles from '../../nexus/ResourcePicker.module.scss';
+import contextualStyles from './ContextualResourceSelection.module.scss';
+
+type DirectTaskKind = 'coding' | 'planning' | 'review' | 'security';
+const taskRole: Record<DirectTaskKind, string> = {
+  coding: 'implementer',
+  planning: 'architect',
+  review: 'reviewer',
+  security: 'reviewer',
+};
+const availablePolicies = new Set(['BALANCED', 'PRESERVE_QUOTA', 'PREFER_PROVIDER']);
+const modelIdValid = (value: string) => !value || (value.length <= 128 && /^[\w./:+-]+$/.test(value));
 
 interface DirectResource {
   id: string;
@@ -62,6 +75,11 @@ export const DirectSessionLauncher: React.FC<{
   const [resources, setResources] = useState<DirectResource[]>([]);
   const [selectedID, setSelectedID] = useState('');
   const [name, setName] = useState('');
+  const [taskKind, setTaskKind] = useState<DirectTaskKind>('coding');
+  const [modelOverride, setModelOverride] = useState('');
+  const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
+  const [recommendationError, setRecommendationError] = useState(false);
+  const [manualChoice, setManualChoice] = useState(false);
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
@@ -71,21 +89,53 @@ export const DirectSessionLauncher: React.FC<{
     let mounted = true;
     setLoading(true);
     setError('');
-    void nexus
-      .listResources()
-      .then((result) => {
-        if (!mounted) return;
-        const eligible = eligibleDirectResources((result.accounts || []) as DirectResource[]);
+    const policy = availablePolicies.has(project.resource_policy?.toUpperCase())
+      ? project.resource_policy.toUpperCase()
+      : 'BALANCED';
+    void Promise.allSettled([
+      nexus.listResources(),
+      nexus.recommendResources(
+        {
+          task_kind: taskKind,
+          role: taskRole[taskKind],
+          ...(taskKind === 'security' ? { domains: ['security'] } : {}),
+          source: 'direct_session_launcher',
+        },
+        policy,
+      ),
+    ]).then(([resourcesResult, recommendationResult]) => {
+      if (!mounted) return;
+      if (resourcesResult.status !== 'fulfilled') {
+        setError(String(resourcesResult.reason));
+        setResources([]);
+        setSelectedID('');
+      } else {
+        const eligible = eligibleDirectResources(
+          (resourcesResult.value.accounts || []) as DirectResource[],
+        );
         setResources(eligible);
-        setSelectedID(eligible[0]?.id || '');
-        if (eligible[0]) setName(buildDirectAgentName(request?.prompt || '', eligible[0].provider));
-      })
-      .catch((err) => mounted && setError(err instanceof Error ? err.message : String(err)))
-      .finally(() => mounted && setLoading(false));
+        const ranked = recommendationResult.status === 'fulfilled'
+          ? recommendationResult.value
+          : null;
+        const suggested = recommendedDirectAccountId(eligible, ranked);
+        setRecommendation(ranked);
+        setRecommendationError(recommendationResult.status !== 'fulfilled');
+        setSelectedID((previous) =>
+          manualChoice && eligible.some((account) => account.id === previous)
+            ? previous
+            : suggested,
+        );
+        if (suggested && !manualChoice && !name.trim()) {
+          const preferred = eligible.find((account) => account.id === suggested);
+          if (preferred) setName(buildDirectAgentName(request?.prompt || '', preferred.provider));
+        }
+      }
+      setLoading(false);
+    });
     return () => {
       mounted = false;
     };
-  }, [open, request?.prompt]);
+  }, [open, request?.prompt, taskKind, project.resource_policy, manualChoice]);
 
   const selected = useMemo(
     () => resources.find((resource) => resource.id === selectedID) || null,
@@ -98,12 +148,13 @@ export const DirectSessionLauncher: React.FC<{
   }, [selected, request?.prompt, name]);
 
   const choose = (resource: DirectResource) => {
+    setManualChoice(true);
     setSelectedID(resource.id);
     setName(buildDirectAgentName(request?.prompt || '', resource.provider));
   };
 
   const start = async () => {
-    if (!selected || !request) return;
+    if (!selected || !request || !modelIdValid(modelOverride.trim())) return;
     setStarting(true);
     setError('');
     try {
@@ -116,6 +167,7 @@ export const DirectSessionLauncher: React.FC<{
       await nexus.applyAgentConfig(agent.id, {
         provider: selected.provider,
         profile: selected.profile,
+        ...(modelOverride.trim() ? { model: modelOverride.trim() } : {}),
         isolation: 'project',
         workspace: project.canonical_path || undefined,
       });
@@ -153,6 +205,51 @@ export const DirectSessionLauncher: React.FC<{
           aria-label={t('directSession.name')}
         />
 
+        <div className={contextualStyles.controls}>
+          <label className={contextualStyles.field}>
+            <span>{t('directSession.taskKind')}</span>
+            <Select
+              value={taskKind}
+              onChange={(value) => {
+                setManualChoice(false);
+                setSelectedID('');
+                setRecommendation(null);
+                setTaskKind(value as DirectTaskKind);
+              }}
+              options={(['coding', 'planning', 'review', 'security'] as const).map((kind) => ({
+                value: kind,
+                label: t(`directSession.task.${kind}`),
+              }))}
+            />
+          </label>
+          <label className={contextualStyles.field}>
+            <span>{t('directSession.modelOverride')}</span>
+            <Input
+              value={modelOverride}
+              onChange={setModelOverride}
+              placeholder={t('directSession.providerDefaultModel')}
+              aria-label={t('directSession.modelOverride')}
+            />
+          </label>
+        </div>
+        <p className={contextualStyles.hint}>{t('directSession.modelHint')}</p>
+        {recommendationError && (
+          <InlineAlert tone="warning">{t('directSession.recommendationUnavailable')}</InlineAlert>
+        )}
+        {recommendation && (
+          <p className={contextualStyles.explanation}>
+            {recommendation.recommended
+              ? t('directSession.schedulerExplained', {
+                  policy: recommendation.policy,
+                  provider: recommendation.recommended.account.display_name ||
+                    recommendation.recommended.account.provider,
+                })
+              : t('directSession.schedulerNoCandidate')}
+          </p>
+        )}
+        {!modelIdValid(modelOverride.trim()) && (
+          <InlineAlert tone="warning">{t('directSession.invalidModel')}</InlineAlert>
+        )}
         {loading ? (
           <Spinner label={t('directSession.loading')} />
         ) : resources.length === 0 ? (
@@ -183,6 +280,10 @@ export const DirectSessionLauncher: React.FC<{
                   const checked = resource.id === selectedID;
                   const quota = directQuotaDisplay(resource);
                   const quotaState = quotaTruthState(resource);
+                  const candidate = recommendation?.candidates?.find(
+                    (item) => item.account.id === resource.id,
+                  );
+                  const recommended = recommendation?.recommended?.account.id === resource.id;
                   return (
                     <ChoiceOption
                       selected={checked}
@@ -202,6 +303,12 @@ export const DirectSessionLauncher: React.FC<{
                         <span className="nx-direct-resource__title">
                           <strong>{directAccountTitle(resource)}</strong>
                           {healthBadge(resource.health)}
+                          {recommended && (
+                            <Badge tone="success">{t('directSession.recommended')}</Badge>
+                          )}
+                          {candidate && (
+                            <Badge>{t('directSession.schedulerRank', { rank: candidate.rank })}</Badge>
+                          )}
                           <Badge
                             tone={
                               quotaState === 'confirmed'
@@ -253,7 +360,7 @@ export const DirectSessionLauncher: React.FC<{
           <Button onClick={onClose}>{t('directSession.cancel')}</Button>
           <Button
             tone="brand"
-            disabled={!selected || starting || !name.trim()}
+            disabled={!selected || starting || loading || !name.trim() || !modelIdValid(modelOverride.trim())}
             onClick={() => void start()}
           >
             <Play size={14} /> {starting ? t('directSession.starting') : t('directSession.start')}

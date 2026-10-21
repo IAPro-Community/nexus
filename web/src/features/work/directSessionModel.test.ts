@@ -7,6 +7,7 @@ import {
   directQuotaDisplay,
   directQuotaPercent,
   eligibleDirectResources,
+  recommendedDirectAccountId,
   quotaTruthState,
 } from './directSessionModel';
 
@@ -160,4 +161,18 @@ describe('direct session model', () => {
       expect(directQuotaDisplay({ quota_remaining: 0, quota_view: view })).toBeNull();
     },
   );
+});
+
+describe('scheduler-authoritative Direct selection', () => {
+  const accounts = [
+    { id: 'codex-default', provider: 'codex', profile: 'default', authenticated: true, available: true },
+    { id: 'claude-work', provider: 'claude', profile: 'work', authenticated: true, available: true },
+  ];
+  it('uses backend recommendation rather than first/alphabetical account', () => {
+    expect(recommendedDirectAccountId(accounts, { recommended: { account: { id: 'claude-work' } } })).toBe('claude-work');
+  });
+  it('does not invent a selection for missing or ineligible recommendation', () => {
+    expect(recommendedDirectAccountId(accounts, { recommended: { account: { id: 'missing' } } })).toBe('');
+    expect(recommendedDirectAccountId(accounts, null)).toBe('');
+  });
 });

@@ -191,3 +191,13 @@ export function eligibleDirectResources<T extends DirectResourceLike>(
       return `${a.provider}:${a.profile}`.localeCompare(`${b.provider}:${b.profile}`);
     });
 }
+
+/** The backend is the sole ranking authority. No silent fallback to an
+ * arbitrary account when a recommendation is unavailable or ineligible. */
+export function recommendedDirectAccountId<T extends DirectResourceLike>(
+  resources: T[],
+  recommendation: { recommended?: { account?: { id?: string } } } | null,
+): string {
+  const id = recommendation?.recommended?.account?.id || '';
+  return resources.some((resource) => resource.id === id) ? id : '';
+}
