@@ -57,9 +57,9 @@ import CoreGraphics
 func bounds(pid: Int32) -> String? {
     guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
             as? [[String: Any]] else { return nil }
+    // The always-on-top HUD uses a floating CoreGraphics layer, not necessarily zero.
     let candidates = windows.filter {
         ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == pid
-        && (($0[kCGWindowLayer as String] as? NSNumber)?.intValue ?? -1) == 0
     }
     for window in candidates {
         guard let raw = window[kCGWindowBounds as String] as? [String: Any],
