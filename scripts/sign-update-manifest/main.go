@@ -138,7 +138,7 @@ func defaultArtifactBaseURL(version string) string {
 	if channel(normalized) == "beta" {
 		tag = "channel-beta"
 	}
-	return "https://github.com/IAPro-Community/nexus-releases/releases/download/" + tag
+	return "https://github.com/IAPro-Community/nexus/releases/download/" + tag
 }
 
 func normalizeSourceSHA(value string) string {
