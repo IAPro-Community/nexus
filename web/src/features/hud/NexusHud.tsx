@@ -467,6 +467,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             key={isDetachedPopup ? `popup-${popupPresentation}` : 'inline-popover'}
             id="nexus-hud-popover"
             className={styles.popover}
+            role={isDetachedPopup ? 'dialog' : undefined}
             aria-label="Resumo do Nexus HUD"
           >
             <div className={styles.popoverHeader}>
@@ -758,6 +759,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             key={isDetachedPopup ? `diagnostic-${popupPresentation}` : 'inline-diagnostic'}
             id="nexus-hud-popover"
             className={styles.popover}
+            role={isDetachedPopup ? 'dialog' : undefined}
             aria-label="Diagnóstico do Nexus HUD"
           >
             <div className={styles.popoverHeader}>
