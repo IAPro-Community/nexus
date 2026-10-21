@@ -1,42 +1,52 @@
 # Current release status
 
-STATUS: WINDOWS_AUTOMATED_LOCAL_GATES_PASS_RELEASE_NO_GO
+STATUS: WINDOWS_81DEA_RAW_FRONTEND_GATE_FAIL_RELEASE_NO_GO
 OFFICIAL_RELEASE: NO-GO
-WINDOWS_DESKTOP_RETEST: PASS_RUNTIME (Wails window and WebView2 child persisted 9s on validated source SHA; isolated profile created; visual rendering unverified)
 SOURCE_VERSION: 1.0.0-beta.7
 CANDIDATE_REF: release/v1.0.0
+LOCAL_AND_LIVE_BRANCH_HEAD: local release/v1.0.0: e56c091f5038a8c972c339f47a960167077e45d8; ref origin cacheada: 81dea07b3fba6d08fbf80c71c17c09518435aa64; consulta ao vivo indisponível por DNS
 REQUESTED_WINDOWS_SHA: d14154d2490dfdd3966c7fddc990a1d9127edd39
-VALIDATED_WINDOWS_SOURCE_SHA: d840797bbd975a5c7edc54ebe23f3dfef56ff947
-CURRENT_WORKTREE_BASE_SHA: d840797bbd975a5c7edc54ebe23f3dfef56ff947
-CURRENT_WORKTREE_GATES: PASS (Windows AMD64 exact-SHA local automated gates; worktree was clean at start)
-LAST_FROZEN_WINDOWS_SHA: d840797bbd975a5c7edc54ebe23f3dfef56ff947
-REMOTE_TRACKING_SHA_AT_AUDIT: 52f35c04181b85379219ab55fc3192c63a5440a8
-LIVE_REMOTE_SHA_AT_AUDIT: CONFIRMED (origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8 before this continuation)
-REMOTE_RELEASE_PUSH: PASS (fast-forward 52f35c04 -> f1928d0f; code validation SHA d840797b is an ancestor)
-LIVE_REMOTE_SHA_AFTER_PUSH: f1928d0f75cf49a0968f248bd7dc9b8e54655dcb (confirmed by git ls-remote)
-REMOTE_STATUS_SYNC_PUSH: PASS (follow-up documentation-only fast-forward f1928d0f -> 5a08a1807c4489395dca86ed198f268ea676d2e4)
-LIVE_REMOTE_SHA_AT_FINAL_AUDIT: 5a08a1807c4489395dca86ed198f268ea676d2e4 (confirmed before this status-record commit; validated source d840797b remains an ancestor)
-REMOTE_BETA7_TAG: ABSENT (live origin has no refs/tags/v1.0.0-beta.7; local tag absent)
-PUBLIC_GITHUB_RELEASE: NOT_REVALIDATED (not queried)
-WINDOWS_LOCAL_GATES: PASS (PowerShell/docs, Bun frozen + quality:full, Go fmt/vet/lint/security/tests, control/runtime and Agent Interop regressions, 8 browser E2E suites + accessibility/visual, CLI/Desktop/HUD builds and isolated Desktop/HUD native smokes)
-WINDOWS_NATIVE_CI: NOT_REVALIDATED (gh unavailable; unauthenticated Actions API returned 404 after push; exact-SHA workflow not confirmed)
+VALIDATED_WINDOWS_SOURCE_SHA: 81dea07b3fba6d08fbf80c71c17c09518435aa64 (gates Go PASS; bun quality:full bruto FAIL)
+HEAD_TO_VALIDATED_CODE_DELTA: local e56c091f is one commit behind cached origin release 81dea07b; Go gates tested at 81dea; raw frontend gate FAIL
+VERSION_FILE: PASS (exactly 1.0.0-beta.7)
+WORKTREE_AT_START: existing documentation edits; current worktree also has an uncommitted 5-path frontend patch
+WINDOWS_LOCAL_GATES: PASS Go fmt/vet/lint/govulncheck/tests no SHA 81dea07b; Bun frozen PASS; quality:full bruto FAIL
+WINDOWS_PROJECT_HUB_775X483: PASS (focused Playwright retest; error spans form, CTA stays on one line, valid project creation succeeds)
+WINDOWS_CURRENT_FRONTEND_RETEST: PASS on prior local e56c091f worktree (83 files/490 tests/build); does not override raw quality:full FAIL on 81dea07b
+WINDOWS_DESKTOP_SMOKE_CURRENT_TREE: PASS (temporary UniqueID, isolated APPDATA/LOCALAPPDATA/data, Wails + WebView2, cleanup complete; test binary SHA-256 49B629C43A58C5CCAFC5E4C93F3D50939F193382E9EF788E6F9C396F8C0F8D7A)
+WINDOWS_NATIVE_CI: NOT_REVALIDATED (gh/Actions status unavailable; live Git refs were checked separately)
 WINDOWS_SIGNING: BLOCKED_EXTERNAL
 WINDOWS_SIGNING_ENV: NOT_CONFIGURED
-WINDOWS_SIGNING_TOOLS: signtool.exe, Authenticode certificate/secrets, makensis.exe, NEXUS_UPDATE_PRIVATE_KEY and NEXUS_UPDATE_KEY_ID unavailable on this host; checked-in public UPDATE_PUBLIC_KEY is valid
+WINDOWS_SIGNING_TOOLS: signtool.exe, Authenticode signing certificate/private key, makensis.exe, NEXUS_UPDATE_PRIVATE_KEY and NEXUS_UPDATE_KEY_ID unavailable; checked-in public UPDATE_PUBLIC_KEY is valid
 LOCAL_ARTIFACTS: CLI/Desktop/HUD binaries and ZIPs are NotSigned; checksums at DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/distribution-artifacts/CHECKSUMS.md
-WINDOWS_INSTALLER_BUILD: NOT_RUN on validated SHA (makensis.exe unavailable; prior NSIS evidence is historical)
+WINDOWS_INSTALLER_BUILD: NOT_RUN on validated SHA (makensis.exe unavailable)
 WINDOWS_EXACT_INSTALLER_SMOKE: NOT_RUN
-WINDOWS_CONPTY_OPT_IN_SMOKE: NOT_RUN on d840797b (historical smoke exists on earlier Windows SHA)
-WINDOWS_MANUAL_PROVIDER_MISSION_VOICE_SMOKES: NOT_RUN on d840797b
-WINDOWS_VISUAL_DESKTOP_RENDER: NOT_VERIFIED (Wails/WebView2 smoke passed in hidden mode; no interactive frame capture)
-WINDOWS_DOCS_VERIFY: PASS (177 Markdown files, 33 required assets/files)
-LOCAL_SOURCE_DELTA: bounded Git identity subprocesses and isolated short TEMP for Windows Go tests; commits d1208720 and d840797b on release/v1.0.0
-
-WORKTREE_FROZEN: YES_FOR_VALIDATED_SOURCE (d840797b was clean at gate start; status/report updates are documentation-only)
-
-LIVE_BETA7_BRANCH_AUDIT: COMPLETE (no new branch created; KIVER d14154d2 is an ancestor of validated release candidate; no merge/cherry-pick required)
+WINDOWS_CONPTY_OPT_IN_SMOKE: NOT_RUN on d840797b (older SHA evidence only)
+WINDOWS_MANUAL_PROVIDER_MISSION_VOICE_SMOKES: BLOCKED_NO_ENABLED_PROFILES (Codex/AGY unavailable through Nexus; no OpenCode CLI; no prompts sent)
+WINDOWS_VISUAL_DESKTOP_RENDER: PASS (visible native capture confirms dark Project Hub and Windows path placeholder; client minimum was 784x561)
+WINDOWS_GITHUB_REMOTE_RECHECK: BLOCKED (git ls-remote falhou por DNS; ref cacheada 81dea07b)
+REMOTE_TRACKING_SHA_IN_LOCAL_CLONE: 81dea07b3fba6d08fbf80c71c17c09518435aa64
+LAST_KNOWN_LIVE_REMOTE_SHA: 81dea07b3fba6d08fbf80c71c17c09518435aa64 (último snapshot previamente confirmado; não revalidado nesta rodada)
+CURRENT_LIVE_REMOTE_SHA: NOT_REVALIDATED (git ls-remote falhou por DNS; ref cacheada 81dea07b)
+BETA7_TAG_LOCAL: ABSENT
+BETA7_TAG_REMOTE: NOT_REVALIDATED (consulta ao vivo falhou por DNS; ausência em snapshot anterior)
+GITHUB_RELEASE_INVENTORY: NOT_REVALIDATED_THIS_TURN
+BETA7_BRANCH_AUDIT: CACHE ONLY: KIVER d14154d2 está 18 atrás/0 à frente da release 81dea07b; sem integração pendente; DNS impediu refresh ao vivo
+WORKTREE_FROZEN: NO (checkout e56c091f sujo; worktree temporário 81dea07b tem ajustes locais de teste/evidência)
+DOCS_VERIFY: BLOCKED_UNCOMMITTED_VISUAL_CHANGES (manifest source_sha 2168e56885851992e2de1baef8a84da7e5111bd4 rejects dirty ProjectHub, AddProjectModal and i18n sources)
 UPDATED_AT: 2026-10-08
 
+## Continuidade Windows — E2E Project Hub e branch audit — 2026-10-08
+
+O teste direcionado web/scripts/e2e-hardening-verify.mjs foi executado novamente no checkout Windows com Node 24.19.0 e passou integralmente. A captura de 775x483 confirma layout correto para o HTTP 403 de teste: alerta abaixo dos campos, largura do formulário, CTA numa linha e rolagem vertical. A interceptação é removida e a criação legítima do projeto retorna sucesso. Axe reportou zero violações menores. A captura gerada fica em .tempmediaStorage/e2e_project_hub_error_775x483.png e é local ao clone.
+
+A execução inicial via bun run usou Node 18.12.1 no PATH e falhou antes de iniciar a suíte porque Playwright requer Node 20 ou superior. O reteste explícito com Node 24.19.0 passou; nenhuma configuração global foi alterada. O reteste reproduzível não mostra a quebra visual da imagem do usuário. A causa da diferença permanece sem prova até captura em Desktop interativo no binário identificado.
+
+O smoke nexus codex e nexus agy falhou fechado antes de iniciar cada provider por ausência de perfis Nexus habilitados. Nenhum prompt/custo foi disparado. OpenCode não está instalado. Smokes autenticados de provider, Mission e Voice seguem não executados.
+
+A auditoria local das refs cacheadas encontrou: KIVER d14154d2 ancestral da release; correções de terminal presentes na release via PRs #41–#43; fix/beta7-windows-autopilot com apenas um commit documental exclusivo; fix/beta8-manual-opaque-quota e release/v1.1.0 fora do escopo beta.7; fix/v1.0.0-gap-closure-20260930 com 38 commits exclusivos e divergência de 140 caminhos, ampla demais para integração automática. A revalidação das refs vivas ficou bloqueada por DNS.
+
+Fechamento atual: gates automatizados Windows locais PASS; release mantém NO-GO por CI, assinatura, instalador e smokes manuais. Nenhum gate Linux executado.
 ## Windows exact-SHA local validation — 2026-10-08
 
 The complete automated Windows AMD64 homologation passed on source SHA `d840797bbd975a5c7edc54ebe23f3dfef56ff947`. It used Go 1.25.14, Bun 1.3.9 and Node 22.14.0. Go tests reported 65 passing package results and zero failures. The literal `bun install --cwd web --frozen-lockfile` and `bun run --cwd web quality:full` passed with 82 files and 487 tests. Eight browser E2E suites plus accessibility/visual tasks passed. Desktop and HUD builds and isolated native launch smokes passed.
@@ -376,6 +386,20 @@ O checkout local e origin/release/v1.0.0 estão em 52f35c04181b85379219ab55fc319
 A consulta ao vivo via git ls-remote confirmou as mesmas refs Beta 7 da auditoria anterior; nenhum ramo novo foi criado desde então. fix/beta7-windows-KIVER-20261007 (d14154d2490dfdd3966c7fddc990a1d9127edd39) é ancestral de origin/release/v1.0.0 (52f35c04181b85379219ab55fc3192c63a5440a8), com cinco commits posteriores na release e zero pendentes nessa branch. Embora três branches de terminal/testes tenham commits exclusivos no grafo, a árvore atual da release já contém as correções e regressões relevantes: coalescência ConPTY/DECCKM, filtro de rajadas de navegação, trace redigido, teste raw-attach CSI/SS3 e testes de privacidade Go/Web. A branch fix/beta7-windows-autopilot-20261001 é somente documental e sua evidência antiga foi superada pelo relatório KIVER. Não há conteúdo Beta 7 pendente que justifique merge ou cherry-pick. A tag remota v1.0.0-beta.7 continua ausente.
 
 **Veredito oficial: NO-GO para tag e distribuição.** A árvore não está congelada no SHA solicitado, signing/trust root não estão disponíveis e o estado do CI privado não foi revalidado. Nenhuma alteração foi commitada, enviada, mesclada ou publicada. Nenhum gate Linux foi executado.
+
+## Retomada Windows — placeholder, Desktop nativo e refs ao vivo — 2026-10-08
+
+O HEAD local e remoto de `release/v1.0.0` foi confirmado em `e56c091f5038a8c972c339f47a960167077e45d8`; `VERSION` contém exatamente `1.0.0-beta.7`. O SHA Go previamente validado `d840797bbd975a5c7edc54ebe23f3dfef56ff947` é ancestral, com nove arquivos documentais entre os commits. O worktree está novamente dirty: há alterações documentais e uma correção frontend local ainda sem commit, portanto esta evidência não certifica um candidato congelado.
+
+- PASS — `bun run quality:full` no Windows com Node 24.19.0: CSS allowlist, Prettier, ESLint, Stylelint, TypeScript, 83 arquivos/490 testes Vitest e build.
+- PASS — `bun run test:e2e` com Node 24.19.0: cenário 403 `invalid origin` no viewport 775×483, alerta com largura do formulário, CTA em uma linha, rolagem, Axe sem violações menores e criação válida após retirar a interceptação.
+- PASS — smoke Desktop no estado de trabalho atual com ID temporário exclusivo, APPDATA/LOCALAPPDATA/dados isolados, janela Wails e controlador WebView2; cleanup não deixou processos do smoke nem WebView2 no perfil isolado. SHA-256 do executável de smoke: `49B629C43A58C5CCAFC5E4C93F3D50939F193382E9EF788E6F9C396F8C0F8D7A` (não é artefato de distribuição).
+- PASS — captura visual nativa do Project Hub no tema escuro confirma o placeholder Windows `C:\Projetos\meu-repositorio`. O pedido de janela 775×483 foi limitado pelo mínimo nativo a 784×561; o viewport exato 775×483 foi validado pela suíte Playwright.
+- PASS — consulta viva de `git ls-remote --heads origin`: release em `e56c091f`; nenhum novo branch Beta 7 que precise ser vinculado à release. KIVER tem zero commits exclusivos; branches `protocol-p0`, `trace-diagnostics` e `final-boundary` têm 4/24/3 exclusivos no grafo, mas o código/testes correspondentes já estão cobertos pela release. `windows-autopilot` tem 1 commit documental; beta8 e v1.1 são outras linhas; `gap-closure` tem 38 exclusivos e ampla divergência, sem merge em bloco. A ref remota `v1.0.0-beta.7` não foi encontrada.
+- BLOCKED — `node scripts/docs-verify.mjs` recusou o manifesto visual porque a árvore contém alterações não commitadas em `ProjectHub.tsx`, `AddProjectModal.tsx` e `resources.ts`; o gate exige evidência vinculada a SHA imutável.
+- Diagnóstico da tentativa anterior de smoke: a invocação do executável normal encontrou uma instância do usuário com o ID singleton de produção e terminou com exit code 0. O processo do usuário foi identificado e mantido intacto; a repetição com ID de smoke exclusivo passou.
+
+O veredito permanece **NO-GO para tag/distribuição**. CI Windows exact-SHA, assinatura Authenticode e trust root, instalador final e smokes manuais autenticados de provider/Mission/Voice continuam pendentes. Nenhum commit, push, merge, cherry-pick, tag ou publicação foi feito. Nenhum gate Linux foi executado.
 ## Aditamento — auditoria final de branches e reteste terminal Windows — 2026-10-07
 
 A consulta ao vivo de refs confirmou origin/release/v1.0.0 em 52f35c04181b85379219ab55fc3192c63a5440a8 e o mesmo conjunto de branches Beta 7 da auditoria anterior; nenhum ramo Beta 7 novo foi criado. fix/beta7-windows-KIVER-20261007 em d14154d2490dfdd3966c7fddc990a1d9127edd39 é ancestral da release, cinco commits atrás, sem commits exclusivos. O conteúdo terminal/teste relevante das branches protocol-p0, trace-diagnostics e final-boundary já está na árvore da release; a branch windows-autopilot contém apenas evidência documental anterior e superada pelo relatório KIVER. Nenhuma integração de branch é necessária.
@@ -392,3 +416,15 @@ O compilador NSIS 3.13 portátil compilou a cópia exata de packaging/windows/ne
 Uma variante source-equivalent redirecionou as chaves HKCU para namespace GUID de teste e a shortcut para dentro do diretório de instalação. Com os três binários beta.7 reais, setup e uninstall retornaram 0; a CLI informou 1.0.0-beta.7; doctor --json foi válido; REG_SZ do Path de teste foi restaurado exatamente; Path/Desktop reais permaneceram inalterados; diretório temporário e namespace de teste foram limpos. O instalador exato compilado não foi executado no perfil real do usuário.
 
 Evidências locais em outputs/windows-installer-validation-52f35c04-dirty-20261007/ e outputs/windows-installer-smoke-isolated-52f35c04-dirty-20261007/. O worktree continua dirty e os binários estão sem assinatura/trust root. O veredito oficial segue NO-GO para tag e distribuição; CI nativo exact-SHA segue sem revalidação.
+
+## Continuidade Windows no snapshot remoto 81dea07 — 2026-10-08
+
+O ref de rastreamento local `origin/release/v1.0.0` aponta para `81dea07b3fba6d08fbf80c71c17c09518435aa64`; o checkout principal permanece em `e56c091f5038a8c972c339f47a960167077e45d8`, um commit atrás e com alterações locais preexistentes. `VERSION` contém exatamente `1.0.0-beta.7`. A validação foi executada em worktree temporário Windows AMD64 no mesmo SHA remoto, sem mudança em arquivos de produção.
+
+**Gates Windows no SHA `81dea07b`:** `gofmt` (725 arquivos), `go vet ./...`, `golangci-lint run ./...`, `govulncheck ./...` e `go test -count=1 ./...` passaram. `bun install --cwd web --frozen-lockfile` passou. A execução bruta de `bun run quality:full` falhou no Prettier em `src/workspace/ptyLiveChrome.test.ts`; após formatar esse teste no worktree temporário, falhou uma asserção desatualizada em `src/workspace/taskbarHonesty.test.ts`. `quality:full` passou (82 arquivos, 488 testes e build) somente depois de duas alterações locais e não commitadas nesses arquivos de teste. Isso é diagnóstico e não converte o gate bruto do SHA em PASS.
+
+As oito suítes Playwright, builds CLI/Desktop/HUD e smokes nativos Desktop/HUD passaram no worktree temporário; as suítes rodaram com as duas alterações locais de teste e geraram diferenças em evidências versionadas. Os executáveis de smoke usam IDs temporários e não são artefatos de distribuição.
+
+**Auditoria de branches:** nas refs cacheadas, `fix/beta7-windows-KIVER-20261007` em `d14154d2` está 18 commits atrás e 0 à frente de `origin/release/v1.0.0`; não há integração pendente dessa branch. Nenhuma branch Beta 7 nova que exija vínculo apareceu no snapshot disponível. A consulta ao vivo falhou por resolução DNS de `github.com`, então esta conclusão não atesta branches criadas após a última atualização das refs.
+
+**Veredito: NO-GO para tag ou distribuição.** O gate bruto `quality:full` ainda falha no SHA publicado; também permanecem os bloqueios previamente registrados de CI exact-SHA, assinatura/trust root e instalador Windows final. A tag local não existe; a tag remota e o inventário de GitHub Releases não puderam ser reconsultados nesta rodada. Nenhum gate Linux foi executado, conforme o foco Windows.

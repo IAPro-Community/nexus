@@ -1,5 +1,19 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-08 — Continuidade Windows ProjectHub e branch audit
+
+- PASS — nexus version --json do artefato: Windows AMD64, 1.0.0-beta.7, commit d840797b; VERSION exato.
+- PASS — `quality:full` em Node 24.19.0: 83 arquivos/490 testes e build; seletor Windows/macOS/POSIX 3/3.
+- PASS — E2E Project Hub 775×483 e smoke Desktop atual com ID temporário; captura visual nativa confirmou tema escuro e placeholder Windows. Janela Wails mínima 784×561.
+- BLOCKED — `node scripts/docs-verify.mjs`: manifesto visual source SHA 2168e568 não pode certificar os três arquivos de interface ainda dirty.
+- PASS — web/scripts/e2e-hardening-verify.mjs com Node 24.19.0; viewport 775x483, alerta de origem em largura total, CTA em uma linha, rolagem, Axe e criação válida após retirar o HTTP 403 injetado.
+- PASS — todas as asserções da suíte hardening; captura gerada em .tempmediaStorage/e2e_project_hub_error_775x483.png.
+- NOTA DE AMBIENTE — bun run inicial escolheu Node 18.12.1 do PATH e Playwright encerrou antes da suíte; a execução explícita com Node 24 passou. PATH global não foi alterado.
+- BLOQUEADO — nexus codex e nexus agy não encontraram perfis Nexus habilitados; nenhum prompt foi enviado. OpenCode ausente. Smokes provider/Mission/Voice pendentes.
+- PASS — HEAD local/remoto e56c091f; d840797b é ancestral com nove caminhos documentais no histórico commitado. `VERSION` é exatamente 1.0.0-beta.7.
+- PASS COM ESCOPO LOCAL — consulta viva confirmou nenhuma branch Beta 7 nova pendente; KIVER é ancestral, correções de terminal estão cobertas, beta8/v1.1 são separadas e gap-closure não deve ser mesclada em bloco.
+- NO-GO — worktree tem alterações frontend/documentação não commitadas; CI exact-SHA, Authenticode/trust root, instalador final e smokes manuais continuam pendentes. Nenhum gate Linux foi executado.
+
 ## 2026-10-07 — Continuidade Windows WebView2 e branch audit
 
 - PASS — go fmt ./..., go vet ./..., govulncheck ./..., golangci-lint run ./... e go test -count=1 ./... no Windows AMD64 após mudanças Go.
@@ -1590,3 +1604,13 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
 ## Frontend gate — 2026-10-08T11:33:39Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
+
+## 2026-10-08 — continuidade Windows no snapshot 81dea07
+
+- PASS — `VERSION` contém exatamente `1.0.0-beta.7`; validação em worktree temporário Windows AMD64 no SHA `81dea07b3fba6d08fbf80c71c17c09518435aa64`.
+- PASS — `gofmt` em 725 arquivos, `go vet ./...`, `golangci-lint run ./...`, `govulncheck ./...` e `go test -count=1 ./...`.
+- PASS — `bun install --cwd web --frozen-lockfile`.
+- FAIL — `bun run --cwd web quality:full` bruto: Prettier detectou formatação em `ptyLiveChrome.test.ts`; após format local, teste `taskbarHonesty.test.ts` falhou por asserção desatualizada. Só passou depois de duas mudanças locais não commitadas nos testes (82 arquivos, 488 testes e build); não contabilizar como gate do SHA.
+- PASS COM LIMITAÇÃO — oito suítes Playwright, builds CLI/Desktop/HUD e smokes nativos Desktop/HUD no worktree temporário; havia alterações locais nos testes e evidências E2E geradas.
+- PASS NAS REFS CACHEADAS — KIVER `d14154d2` está 18 commits atrás/0 à frente da ref de release `81dea07b`; sem integração pendente conhecida. `git ls-remote` falhou por DNS, portanto refs vivas não foram atualizadas.
+- NO-GO — a release permanece sem tag/publicação; ainda falta `quality:full` bruto em SHA limpo, além de CI exact-SHA, assinatura/trust root e instalador Windows. Nenhum gate Linux executado.

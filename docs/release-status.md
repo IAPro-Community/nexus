@@ -7,17 +7,34 @@ Atualizado em 8 de outubro de 2026.
 | Programa | estabilização do Nexus 1.0 beta |
 | Versão-fonte candidata | 1.0.0-beta.7 |
 | Branch canônica | release/v1.0.0 |
-| SHA validado nos gates automatizados Windows locais | d840797bbd975a5c7edc54ebe23f3dfef56ff947 |
-| SHA originalmente solicitado para homologação | d14154d2490dfdd3966c7fddc990a1d9127edd39 |
-| Remoto observado antes da continuidade | origin/release/v1.0.0 = 52f35c04181b85379219ab55fc3192c63a5440a8 |
-| Candidato local | release/v1.0.0 em d840797bbd975a5c7edc54ebe23f3dfef56ff947; descendente do SHA KIVER d14154d2 |
-| Estado do worktree durante os gates | limpo no início da execução exact-SHA; documentação atualizada depois dos gates |
+| HEAD local/remoto | HEAD local `e56c091f5038a8c972c339f47a960167077e45d8`; ref remota cacheada `81dea07b3fba6d08fbf80c71c17c09518435aa64`; live não revalidado por DNS |
+| SHA validado nos gates automatizados Windows locais | `81dea07b` — gates Go PASS; `quality:full` bruto FAIL |
+| SHA originalmente solicitado para homologação | `d14154d2490dfdd3966c7fddc990a1d9127edd39` |
+| Relação entre os SHAs | `d14154d2` está 18 commits atrás/0 à frente do snapshot de release `81dea07b`; HEAD local `e56c091f` está um commit atrás da ref cacheada |
+| Relação com o código validado | Go validado em `81dea07b`; gate frontend bruto não passou no mesmo SHA |
+| Worktree desta retomada | Checkout local dirty; worktree isolado 81dea07b contém dois ajustes locais de teste e evidências E2E geradas |
 
-| Última beta pública registrada (último estado conhecido) | v1.0.0-beta.1; inventário remoto atual não revalidado |
+| Última beta pública conhecida | v1.0.0-beta.1; inventário remoto não revalidado nesta continuidade |
+| Tag local v1.0.0-beta.7 | ausente |
 | Release estável v1 | ainda não publicada |
-| Gate nativo Windows exact-SHA no GitHub Actions | não revalidado; `gh` ausente neste host |
-| Veredito | PASS nos gates automatizados Windows locais de d840797b; publicação oficial segue NO-GO por CI/signing e smokes manuais pendentes |
+| Veredito Windows | NO-GO: gates Go PASS, mas `quality:full` bruto falha no SHA 81dea07b |
+| Bloqueios | corrigir e repetir quality:full em SHA limpo; CI exact-SHA, assinatura/trust root e instalador Windows final |
 
+## Registro anterior — snapshot e56c091f (substituído pela atualização atual)
+
+O checkout `release/v1.0.0` e a ref viva `origin/release/v1.0.0` estão em `e56c091f5038a8c972c339f47a960167077e45d8`; `VERSION` contém exatamente `1.0.0-beta.7`. O SHA de código validado `d840797bbd975a5c7edc54ebe23f3dfef56ff947` é ancestral, com nove caminhos documentais no intervalo commitado. A árvore local tem agora uma alteração frontend ainda não commitada.
+
+No Windows passaram `bun run quality:full` com Node 24.19.0 (83 arquivos/490 testes/build), o teste do seletor de caminho (3/3) e `bun run test:e2e`: o cenário 403 `invalid origin` no viewport 775×483 manteve o alerta na largura do formulário e o CTA em uma linha; rolagem, Axe e criação válida depois da interceptação também passaram. O placeholder nos formulários agora usa caminho Windows/macOS/POSIX localizado. A captura nativa mostra o tema escuro e `C:\Projetos\meu-repositorio`; o mínimo de janela Wails ficou em 784×561.
+
+O smoke Desktop passou com ID temporário exclusivo e diretórios de dados isolados, sem deixar processos de teste após cleanup. A tentativa inicial com o executável normal encontrou a instância interativa do usuário e saiu com código 0 devido ao ID singleton de produção; a instância foi preservada. O hash do binário de smoke é `49B629C43A58C5CCAFC5E4C93F3D50939F193382E9EF788E6F9C396F8C0F8D7A`; não é artefato de distribuição.
+
+Os smokes autenticados de Codex/AGY/OpenCode, Mission e Voice permanecem pendentes: Nexus não tem perfis habilitados para Codex/AGY e OpenCode CLI não está instalado. O host segue sem `gh`, `signtool.exe`, `makensis.exe`, certificado/chave Authenticode e secrets `NEXUS_UPDATE_PRIVATE_KEY`/`NEXUS_UPDATE_KEY_ID`; os artefatos de distribuição anteriores são `NotSigned`.
+
+A auditoria viva das branches não encontrou branch Beta 7 nova que precise ser vinculada à release. KIVER em d14154d2 é ancestral; protocol-p0, trace-diagnostics e final-boundary têm 4/24/3 commits exclusivos no grafo, mas as alterações relevantes estão cobertas; windows-autopilot tem um commit documental. beta8 e v1.1 são linhas separadas. gap-closure tem 38 commits exclusivos e ampla divergência; não integrar em bloco. A ref remota da tag `v1.0.0-beta.7` não foi encontrada; o inventário de GitHub Releases não foi consultado.
+
+`docs-verify` também está bloqueado pelo manifesto visual, que exige SHA imutável e rejeita as três fontes frontend não commitadas.
+
+Veredito: validações locais Windows PASS nos escopos e revisões registrados; worktree não congelado e **NO-GO** para tag/distribuição até atualizar o manifesto visual em SHA imutável, fechar CI exact-SHA, assinatura/trust root, instalador e smokes manuais. Nenhum gate Linux foi executado nesta continuidade.
 ## Continuidade Windows — gates exact-SHA locais — 2026-10-08
 
 O candidato foi validado em `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, na branch local `release/v1.0.0`, com `VERSION=1.0.0-beta.7`, Windows AMD64, Go 1.25.14, Bun 1.3.9 e Node 22.14.0 para Playwright.
@@ -343,3 +360,13 @@ O workflow native-windows agora inclui scripts/smoke-desktop-windows.ps1, com AP
 A falha 0x800700AA ocorreu somente no perfil APPDATA padrão deste host; o binário oficial passou com perfil isolado. Isso valida a criação e estabilidade da janela/controller, não captura visual em desktop interativo. O host não expôs input desktop.
 
 O SHA-base local continua 52f35c04181b85379219ab55fc3192c63a5440a8, e VERSION é 1.0.0-beta.7. O estado vivo do remoto, da fila 37666126714, da tag e do GitHub Release está não revalidado devido à ausência do gh e à falha de DNS. O trabalho segue sem commit; assinatura e trust root continuam ausentes. Escopo Windows-only; nenhum gate Linux foi executado.
+
+## Atualização de continuidade Windows — snapshot 81dea07 — 2026-10-08
+
+O checkout local está em `e56c091f5038a8c972c339f47a960167077e45d8`; a ref de rastreamento cacheada para `release/v1.0.0` está em `81dea07b3fba6d08fbf80c71c17c09518435aa64`. A tentativa de consulta viva falhou por DNS. `VERSION` contém exatamente `1.0.0-beta.7`.
+
+No Windows AMD64, todos os gates Go e a instalação Bun frozen passaram no snapshot `81dea07b`. O `bun run quality:full` bruto falhou em formatação de `ptyLiveChrome.test.ts` e, após essa formatação local, em uma expectativa desatualizada de `taskbarHonesty.test.ts`. A execução passou com 82 arquivos/488 testes/build apenas após ajustes locais não commitados nos dois testes; por isso o gate do SHA remoto permanece FAIL. Oito suítes browser E2E, builds CLI/Desktop/HUD e smokes nativos Desktop/HUD passaram no worktree temporário com alterações de teste locais.
+
+Nas refs cacheadas, KIVER `d14154d2` tem zero commits exclusivos frente à release `81dea07b`; não há integração pendente conhecida. O refresh remoto falhou por DNS, portanto branches criadas depois do último fetch não foram verificadas. A tag local beta.7 não existe; tag remota e GitHub Releases não foram reconsultados.
+
+**Veredito: NO-GO para tag e distribuição.** Repetir o `quality:full` bruto após integrar os dois ajustes de teste em um SHA limpo e imutável; concluir os bloqueios de CI exact-SHA, assinatura/trust root e instalador Windows. Nenhum gate Linux foi executado nesta continuidade.

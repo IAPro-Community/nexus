@@ -78,3 +78,52 @@ Uma execução inicial após o primeiro ajuste encontrou `Filename too long` por
 - Não foi criada branch nova nesta rodada. A branch existente `fix/beta7-windows-KIVER-20261007` em `d14154d2` é ancestral do candidato local; nenhum merge ou cherry-pick foi necessário.
 
 **Conclusão:** os gates automatizados locais Windows passaram no SHA `d840797b`. O Actions API sem autenticação retornou 404 após o push, então não há confirmação de CI. Não marcar a release como GO para tag ou distribuição até que os bloqueios acima sejam resolvidos. Nenhuma conclusão Linux é feita por este relatório.
+## Retestes Windows e auditoria de branches — 2026-10-08
+
+O checkout estava em release/v1.0.0, HEAD e56c091f5038a8c972c339f47a960167077e45d8, VERSION=1.0.0-beta.7 e worktree limpo antes desta atualização documental. O SHA de código homologado d840797bbd975a5c7edc54ebe23f3dfef56ff947 é ancestral; a comparação do intervalo d840797b..e56c091f mostrou nove caminhos documentais e nenhum arquivo de código.
+
+O teste direcionado web/scripts/e2e-hardening-verify.mjs passou no Windows com Node 24.19.0. No viewport 775x483, o alerta de 403 invalid origin ficou abaixo dos campos e ocupou a largura do formulário; “Adicionar Projeto” ficou numa linha; rolagem vertical e Axe passaram; após remover a interceptação, a criação legítima respondeu com sucesso. Todas as asserções da suíte hardening passaram. Evidência local: .tempmediaStorage/e2e_project_hub_error_775x483.png.
+
+A primeira chamada via Bun parou antes da suíte porque o Node prioritário no PATH é 18.12.1 e Playwright requer Node 20+. A chamada seguinte usou diretamente Node 24.19.0 e passou, sem alterar o PATH global. A imagem enviada pelo usuário continua diferente da captura atual; isso sugere build ou ambiente distinto, mas não identifica a causa. O frame visual da janela Desktop em sessão interativa permanece sem verificação.
+
+Tentativas sem prompt de nexus codex e nexus agy terminaram antes do provider com no enabled profiles configured. Nenhum prompt foi enviado. OpenCode não está instalado. Portanto os smokes autenticados de provider/Mission/Voice permanecem pendentes. O CLI do artefato continua reportando beta.7, Windows AMD64, commit d840797b; Authenticode está NotSigned.
+
+As refs de branches foram comparadas localmente, sem integração. KIVER em d14154d2 é ancestral da release. A release contém a linha de correções de terminal pelos PRs #41–#43. fix/beta7-windows-autopilot tem apenas um commit documental exclusivo; fix/beta8-manual-opaque-quota e release/v1.1.0 são de outras linhas. fix/v1.0.0-gap-closure-20260930 tem 38 commits exclusivos e divergência ampla, sem gate beta.7 Windows que justifique merge em bloco. O refresh das refs remotas falhou porque github.com não resolveu por DNS; portanto esta auditoria cobre apenas as refs cacheadas.
+
+O checkout ficou sem alterações de código. Atualizações documentais desta rodada são locais e não commitadas. CI exact-SHA, assinatura Authenticode, instalador final, smokes interativos e captura visual Desktop continuam bloqueios; manter NO-GO e sem tag. Nenhum gate Linux executado.
+
+## Retomada Windows — correção de placeholder e captura nativa — 2026-10-08
+
+### Estado do checkout
+
+`release/v1.0.0` está em `e56c091f5038a8c972c339f47a960167077e45d8` local e remotamente; `VERSION` é exatamente `1.0.0-beta.7`. O HEAD contém nove caminhos documentais após o SHA de código homologado `d840797bbd975a5c7edc54ebe23f3dfef56ff947`. Esta retomada acrescentou cinco caminhos frontend ainda não commitados, então `WORKTREE_FROZEN: NO` e não se declara validação exact-SHA da árvore modificada.
+
+### Correção de UX Windows
+
+O Desktop nativo exibia `/home/user/my-repository` nos dois formulários de cadastro, inclusive no Windows. Os campos agora selecionam exemplos localizados para Windows, macOS e POSIX usando o user agent, sem alterar componentes visuais ou estilos. No Windows o Project Hub exibe `C:\Projetos\meu-repositorio`.
+
+### Verificação no Windows
+
+- PASS — teste unitário do seletor por user agent: 3/3.
+- PASS — `bun run quality:full` com Node 24.19.0: allowlist, formatação, ESLint, Stylelint, TypeScript, 83 arquivos/490 testes e build.
+- PASS — `bun run test:e2e`: viewport 775×483, 403 `invalid origin`, alerta na largura do formulário, botão em uma linha, rolagem, Axe e POST válido após remover a interceptação.
+- PASS — build e smoke Desktop no estado de trabalho atual com `UniqueID` temporário e diretórios APPDATA/LOCALAPPDATA/dados isolados. Janela Wails e filho `Chrome_WidgetWin_0` foram vistos; o cleanup deixou zero processo do smoke e zero WebView2 ligado ao perfil temporário. SHA-256 do executável de teste: `49B629C43A58C5CCAFC5E4C93F3D50939F193382E9EF788E6F9C396F8C0F8D7A`.
+- PASS — captura visual nativa em tema escuro confirmou o Project Hub e o placeholder Windows. O tamanho cliente mínimo da janela é 784×561; 775×483 segue coberto pelo Playwright.
+- BLOCKED — `node scripts/docs-verify.mjs` não certifica o manifesto visual enquanto `ProjectHub.tsx`, `AddProjectModal.tsx` e `resources.ts` estiverem modificados sem commit; o gate exige SHA imutável.
+- PASS — consulta viva de refs confirmou `origin/release/v1.0.0=e56c091f`; não apareceu branch Beta 7 nova que precise ser integrada. KIVER é ancestral. `protocol-p0`, `trace-diagnostics` e `final-boundary` têm respectivamente 4, 24 e 3 commits exclusivos no grafo, porém as alterações de código e cobertura pertinentes já estão na release. `windows-autopilot` tem um commit documental; beta8/v1.1 são linhas separadas; `gap-closure` tem 38 commits exclusivos e não deve ser mesclada em bloco. A tag beta.7 não foi encontrada no remoto.
+
+A saída antecipada com código 0 observada ao testar o binário normal era colisão com uma instância interativa do usuário que mantém o ID singleton de produção. Ela foi identificada e não foi encerrada. O smoke isolado com ID temporário contornou a colisão e passou.
+
+**Veredito:** validação local Windows passou nos escopos registrados, mas a distribuição continua **NO-GO**. Faltam CI Windows exact-SHA, assinatura Authenticode/trust root, instalador final e smokes manuais autenticados de provider/Mission/Voice. As mudanças desta retomada permanecem locais e sem commit/push. Nenhum gate Linux foi executado.
+
+## Continuidade Windows no snapshot remoto 81dea07 — 2026-10-08
+
+O ref de rastreamento local `origin/release/v1.0.0` aponta para `81dea07b3fba6d08fbf80c71c17c09518435aa64`; o checkout principal permanece em `e56c091f5038a8c972c339f47a960167077e45d8`, um commit atrás e com alterações locais preexistentes. `VERSION` contém exatamente `1.0.0-beta.7`. A validação foi executada em worktree temporário Windows AMD64 no mesmo SHA remoto, sem mudança em arquivos de produção.
+
+**Gates Windows no SHA `81dea07b`:** `gofmt` (725 arquivos), `go vet ./...`, `golangci-lint run ./...`, `govulncheck ./...` e `go test -count=1 ./...` passaram. `bun install --cwd web --frozen-lockfile` passou. A execução bruta de `bun run quality:full` falhou no Prettier em `src/workspace/ptyLiveChrome.test.ts`; após formatar esse teste no worktree temporário, falhou uma asserção desatualizada em `src/workspace/taskbarHonesty.test.ts`. `quality:full` passou (82 arquivos, 488 testes e build) somente depois de duas alterações locais e não commitadas nesses arquivos de teste. Isso é diagnóstico e não converte o gate bruto do SHA em PASS.
+
+As oito suítes Playwright, builds CLI/Desktop/HUD e smokes nativos Desktop/HUD passaram no worktree temporário; as suítes rodaram com as duas alterações locais de teste e geraram diferenças em evidências versionadas. Os executáveis de smoke usam IDs temporários e não são artefatos de distribuição.
+
+**Auditoria de branches:** nas refs cacheadas, `fix/beta7-windows-KIVER-20261007` em `d14154d2` está 18 commits atrás e 0 à frente de `origin/release/v1.0.0`; não há integração pendente dessa branch. Nenhuma branch Beta 7 nova que exija vínculo apareceu no snapshot disponível. A consulta ao vivo falhou por resolução DNS de `github.com`, então esta conclusão não atesta branches criadas após a última atualização das refs.
+
+**Veredito: NO-GO para tag ou distribuição.** O gate bruto `quality:full` ainda falha no SHA publicado; também permanecem os bloqueios previamente registrados de CI exact-SHA, assinatura/trust root e instalador Windows final. A tag local não existe; a tag remota e o inventário de GitHub Releases não puderam ser reconsultados nesta rodada. Nenhum gate Linux foi executado, conforme o foco Windows.
