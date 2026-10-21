@@ -442,6 +442,8 @@ export const nexus = {
       nexus_update_available?: boolean;
       nexus_update_error?: string;
       nexus_update_instruction?: string;
+      nexus_installer_url?: string;
+      nexus_release_url?: string;
       nexus_installation_method?: string;
       nexus_allows_self_update?: boolean;
       channel?: string;
