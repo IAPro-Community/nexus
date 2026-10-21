@@ -800,55 +800,57 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           </div>
         )}
 
-        {!isDetachedPopup && <div className={styles.capsuleRow}>
-          {native && (
-            <button
-              type="button"
-              className={styles.nativeDragHandle}
-              data-hud-drag-handle="true"
-              aria-label={t('hud.dragLabel')}
-              title={t('hud.dragTitle')}
-              onKeyDown={onNativeDragKeys}
-            >
-              <GripHorizontal size={14} aria-hidden="true" />
-            </button>
-          )}
-          <button
-            type="button"
-            className={styles.capsule}
-            data-tone={tone}
-            data-evidence={quotaEvidence}
-            aria-label={capsuleAccessibleLabel}
-            aria-expanded={expanded}
-            aria-controls={expanded && renderDetailHere ? 'nexus-hud-popover' : undefined}
-            aria-haspopup={nativeDetached ? 'dialog' : undefined}
-            title={native ? nativeExpansionError || nativeTitle : undefined}
-            onClick={() => setExpandedState(!expanded)}
-          >
-            <img className={styles.logo} src="/nexus-icon.svg" alt="" width={24} height={24} />
-            <span className={styles.providerName}>{mainLabel}</span>
-            <span className={styles.percent}>{currentPercent}</span>
-            <span className={styles.capacityRing} aria-hidden="true" />
-            {expanded ? (
-              <ChevronDown size={12} className={styles.chevron} aria-hidden="true" />
-            ) : (
-              <ChevronUp size={12} className={styles.chevron} aria-hidden="true" />
+        {!isDetachedPopup && (
+          <div className={styles.capsuleRow}>
+            {native && (
+              <button
+                type="button"
+                className={styles.nativeDragHandle}
+                data-hud-drag-handle="true"
+                aria-label={t('hud.dragLabel')}
+                title={t('hud.dragTitle')}
+                onKeyDown={onNativeDragKeys}
+              >
+                <GripHorizontal size={14} aria-hidden="true" />
+              </button>
             )}
-          </button>
-          {!native && prefs.surfaceMode === 'floating' && (
             <button
               type="button"
-              className={styles.dragHandle}
-              aria-label="Mover Nexus HUD com as setas ou arrastando"
-              onPointerDown={onDragDown}
-              onPointerMove={onDragMove}
-              onPointerUp={onDragUp}
-              onKeyDown={onDragKeys}
+              className={styles.capsule}
+              data-tone={tone}
+              data-evidence={quotaEvidence}
+              aria-label={capsuleAccessibleLabel}
+              aria-expanded={expanded}
+              aria-controls={expanded && renderDetailHere ? 'nexus-hud-popover' : undefined}
+              aria-haspopup={nativeDetached ? 'dialog' : undefined}
+              title={native ? nativeExpansionError || nativeTitle : undefined}
+              onClick={() => setExpandedState(!expanded)}
             >
-              <GripHorizontal size={14} />
+              <img className={styles.logo} src="/nexus-icon.svg" alt="" width={24} height={24} />
+              <span className={styles.providerName}>{mainLabel}</span>
+              <span className={styles.percent}>{currentPercent}</span>
+              <span className={styles.capacityRing} aria-hidden="true" />
+              {expanded ? (
+                <ChevronDown size={12} className={styles.chevron} aria-hidden="true" />
+              ) : (
+                <ChevronUp size={12} className={styles.chevron} aria-hidden="true" />
+              )}
             </button>
-          )}
-        </div>}
+            {!native && prefs.surfaceMode === 'floating' && (
+              <button
+                type="button"
+                className={styles.dragHandle}
+                aria-label="Mover Nexus HUD com as setas ou arrastando"
+                onPointerDown={onDragDown}
+                onPointerMove={onDragMove}
+                onPointerUp={onDragUp}
+                onKeyDown={onDragKeys}
+              >
+                <GripHorizontal size={14} />
+              </button>
+            )}
+          </div>
+        )}
 
         {!expanded && !native && (
           <div className={styles.hoverCard} role="tooltip">
