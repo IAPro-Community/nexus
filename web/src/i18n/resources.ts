@@ -3540,7 +3540,6 @@ export const ptBR = {
     detachedHead: 'HEAD destacado',
     worktreeLocked: 'Bloqueado',
     worktreePrunable: 'Checkout ausente',
-    worktreesUnavailable: 'No se pudieron consultar los worktrees de este proyecto.',
     worktreesUnavailable: 'Não foi possível consultar os worktrees deste projeto.',
   },
   maestroControl: {
@@ -5549,6 +5548,7 @@ export const es = {
     detachedHead: 'HEAD separado',
     worktreeLocked: 'Bloqueado',
     worktreePrunable: 'Checkout ausente',
+    worktreesUnavailable: 'No se pudieron consultar los worktrees de este proyecto.',
   },
   maestroControl: {
     title: 'Orquestrador Maestro',
