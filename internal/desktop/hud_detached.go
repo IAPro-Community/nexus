@@ -35,12 +35,15 @@ func (h *HUDController) positionDetachedHUDPopup(capsule application.Window) err
 	x, y := capsule.Position()
 	width, height := capsule.Size()
 	work := application.Rect{}
-	if screen := h.screenForState(state, capsule); screen != nil {
-		work = screen.WorkArea
+	capsuleRect := application.Rect{X: x, Y: y, Width: width, Height: height}
+	// Anchor to the monitor currently containing the capsule, not a stale
+	// persisted DisplayID from another monitor or an earlier session.
+	if app := application.Get(); app != nil {
+		if screen := app.Screen.ScreenNearestDipRect(capsuleRect); screen != nil {
+			work = screen.WorkArea
+		}
 	}
-	geometry := detachedHUDPopupState(state, application.Rect{
-		X: x, Y: y, Width: width, Height: height,
-	}, work)
+	geometry := detachedHUDPopupState(state, capsuleRect, work)
 	popup.SetSize(geometry.Width, geometry.Height)
 	if h.GetHUDCapabilities().GlobalPositioning {
 		popup.SetPosition(geometry.X, geometry.Y)
