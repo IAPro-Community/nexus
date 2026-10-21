@@ -42,8 +42,8 @@ if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
 }
 
 $GoVersionText = (go version).Trim()
-if ($GoVersionText -notmatch '\bgo1\.(25\.14|26\.9)\b') {
-  throw "Windows beta homologation requires Go 1.25.14 or 1.26.9 to match canonical CI; got: $GoVersionText"
+if ($GoVersionText -notmatch '\bgo1\.26\.10\b') {
+  throw "Windows beta homologation requires Go 1.26.10 to match canonical CI; got: $GoVersionText"
 }
 
 $BunVersion = (bun --version).Trim()
@@ -177,7 +177,7 @@ if ($script:LastNativeExit -ne 0) { throw "golangci-lint failed" }
 
 Write-Host "==> Go security (pinned)"
 $SavedGoToolchain = [Environment]::GetEnvironmentVariable('GOTOOLCHAIN', 'Process')
-$env:GOTOOLCHAIN = 'go1.26.9'
+$env:GOTOOLCHAIN = 'go1.26.10'
 try {
   Invoke-NativeLogged (Join-Path $Out 'govulncheck.log') { go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./... }
   if ($script:LastNativeExit -ne 0) { throw "govulncheck failed" }
