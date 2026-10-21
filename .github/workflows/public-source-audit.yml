@@ -39,21 +39,19 @@ jobs:
           node --check scripts/verify-feature-catalog.mjs
           node --check scripts/verify-release-docs.mjs
 
-      - name: Check frontend formatting and report safe source-only diffs
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+
+      - name: Check frontend formatting and report source-only diffs
         shell: bash
         run: |
           set -euo pipefail
-          corepack --version
-          npm --version
-          if command -v bun >/dev/null 2>&1; then
-            bun install --cwd web --frozen-lockfile
-            if ! (cd web && bun run format:check); then
-              (cd web && ./node_modules/.bin/prettier src/features/hud/NexusHud.tsx) > "$RUNNER_TEMP/NexusHud.formatted.tsx"
-              diff -u web/src/features/hud/NexusHud.tsx "$RUNNER_TEMP/NexusHud.formatted.tsx" || true
-              exit 1
-            fi
-          else
-            echo 'Bun is not installed; run dedicated Windows frontend formatting gate' >&2
+          bun install --cwd web --frozen-lockfile
+          if ! (cd web && bun run format:check); then
+            (cd web && ./node_modules/.bin/prettier src/features/hud/NexusHud.tsx) > "$RUNNER_TEMP/NexusHud.formatted.tsx"
+            diff -u web/src/features/hud/NexusHud.tsx "$RUNNER_TEMP/NexusHud.formatted.tsx" || true
+            exit 1
           fi
 
       - name: Validate 30 capability contracts and dependency notices
