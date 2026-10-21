@@ -45,6 +45,18 @@ var checkNexusUpdate = func(ctx context.Context) (*update.CheckResult, error) {
 	return service.Check(ctx)
 }
 
+// Beta installations also check for a newer signed stable release when the
+// beta channel has no newer version. Stable is never silently installed.
+var checkNexusStableUpdate = func(ctx context.Context) (*update.CheckResult, error) {
+	execPath, _ := os.Executable()
+	service := update.NewService(update.ServiceConfig{
+		CurrentVer: buildinfo.Version,
+		Channel:    "stable",
+		ExecPath:   execPath,
+	})
+	return service.Check(ctx)
+}
+
 // handleSystemDoctor exposes the same read-only diagnostic report used by the
 // CLI. The Web layer does not probe or mutate a second set of state.
 func (h *NexusHandler) handleSystemDoctor(w http.ResponseWriter, r *http.Request) {
