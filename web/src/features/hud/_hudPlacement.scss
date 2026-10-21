@@ -54,6 +54,14 @@
   display: none;
 }
 
+// Detached panel is its own Wails window. The compact capsule is not drawn
+// here, so the popover can use the viewport without reserving 60px below it.
+.root[data-detached-view='popover'] .popover {
+  width: 100%;
+  max-width: 100%;
+  max-height: calc(100vh - 16px);
+}
+
 @media (max-width: 520px) {
   .root:not([data-native='true']) {
     right: 10px;
