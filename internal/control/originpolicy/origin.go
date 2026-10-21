@@ -43,11 +43,19 @@ func IsDesktopOrigin(u *url.URL) bool {
 		return false
 	}
 	scheme := strings.ToLower(u.Scheme)
-	if scheme != "wails" && scheme != "http" && scheme != "https" {
+	hostname := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
+
+	switch scheme {
+	case "wails":
+		// Wails v3 serves the native WebView from wails://localhost, while
+		// older shells use wails://wails. The wails scheme cannot be forged
+		// by a regular browser, so localhost is safe only for this scheme.
+		return hostname == "wails" || hostname == "wails.localhost" || hostname == "localhost"
+	case "http", "https":
+		return hostname == "wails" || hostname == "wails.localhost"
+	default:
 		return false
 	}
-	hostname := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
-	return hostname == "wails" || hostname == "wails.localhost"
 }
 
 func isDesktopOrigin(u *url.URL) bool {
