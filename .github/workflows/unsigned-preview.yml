@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: nexus-unsigned-preview
+  group: nexus-unsigned-preview-${{ github.sha }}
   cancel-in-progress: false
 
 env:
