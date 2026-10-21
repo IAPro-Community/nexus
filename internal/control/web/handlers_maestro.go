@@ -132,6 +132,14 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 	nexusUpdateCtx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	nexusCheck, nexusErr := checkNexusUpdate(nexusUpdateCtx)
+	if nexusCheck != nil && nexusCheck.Channel == "beta" && !nexusCheck.UpdateAvailable {
+		// A beta should discover the signed stable channel once v1.0.0 ships.
+		// Do not replace a newer beta with an older stable release.
+		stableCheck, stableErr := checkNexusStableUpdate(nexusUpdateCtx)
+		if stableErr == nil && stableCheck != nil && stableCheck.UpdateAvailable {
+			nexusCheck, nexusErr = stableCheck, nil
+		}
+	}
 	nexusLatestVersion := buildinfo.Version
 	nexusUpdateAvailable := false
 	nexusInstallationMethod := update.MethodUnknown
@@ -147,6 +155,10 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		nexusInstallationMethod = nexusCheck.InstallationMethod
 		nexusAllowsSelfUpdate = nexusCheck.AllowsSelfUpdate
 		nexusUpdateInstruction = nexusCheck.Instruction
+		if nexusCheck.Channel == "stable" && strings.Contains(buildinfo.Version, "-beta.") &&
+			nexusCheck.InstallationMethod == update.MethodStandalone {
+			nexusUpdateInstruction = "nexus update --channel=stable"
+		}
 		if nexusCheck.Channel != "" {
 			nexusChannel = nexusCheck.Channel
 		}
