@@ -80,6 +80,9 @@ func TestDetachedHUDWindowOptionsStartHiddenWithSeparateRoute(t *testing.T) {
 	if !popup.Hidden || popup.Name != desktop.HUDPopupWindowName || popup.Name == capsule.Name {
 		t.Fatalf("detached popup must be independently named and initially hidden: %+v", popup)
 	}
+	if !popup.Windows.HiddenOnTaskbar {
+		t.Fatal("detached popup must not add a second Windows taskbar entry")
+	}
 	if popup.URL != "/?nativeHud=1&hudView=popover" || popup.Width != 380 || popup.Height != 560 {
 		t.Fatalf("detached popup must load independent React view at expanded size: %+v", popup)
 	}
