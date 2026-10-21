@@ -99,8 +99,10 @@ func main() {
 		// WebView has its own React tree but shares the authenticated Core.
 		popup := native.Window.NewWithOptions(hudDetachedPopupOptions(windowState))
 		popup.OnWindowEvent(events.Common.WindowLostFocus, func(*application.WindowEvent) {
-			// Outside click dismisses only the popup, not the capsule.
-			_ = hudController.SetHUDExpanded(false)
+			// Do not re-enter SetHUDExpanded from a native focus event: Hide()
+			// can itself dispatch further focus and hide notifications.
+			hudController.NotifyHUDPopupHidden()
+			popup.Hide()
 		})
 		popup.OnWindowEvent(events.Common.WindowHide, func(*application.WindowEvent) {
 			// Never Hide() again from WindowHide: avoid reentrant native events.
