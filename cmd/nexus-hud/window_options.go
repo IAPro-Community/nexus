@@ -9,10 +9,9 @@ import (
 // Windows and macOS have native shadow controls; Linux uses GTK frameless
 // rendering and still requires compositor-specific visual verification.
 func hudWindowOptions(state desktop.HUDWindowState) application.WebviewWindowOptions {
-	minWidth := 190
-	if state.Appearance == desktop.HUDAppearanceMascot {
-		minWidth = 80
-	}
+	// This minimum must permit BAR -> MASCOT at runtime. A BAR-only 190 DIP
+	// native minimum would silently prevent the mascot's 108 DIP footprint.
+	const minWidth = 80
 	return application.WebviewWindowOptions{
 		Name:      desktop.HUDWindowName,
 		Title:     "Nexus HUD",
