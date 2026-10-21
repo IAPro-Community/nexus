@@ -86,6 +86,18 @@ func ApplyLaunchConfiguration(provider, model string, options map[string]any, ba
 				return nil, fmt.Errorf("provider option target_provider_version must be a string")
 			}
 			continue
+		case "agent_mode_id":
+			if _, ok := value.(string); !ok {
+				return nil, fmt.Errorf("provider option agent_mode_id must be a string")
+			}
+			// Agent mode identifies persisted Nexus metadata, not a provider CLI flag.
+			continue
+		case "read_only_by_default":
+			if _, ok := value.(bool); !ok {
+				return nil, fmt.Errorf("provider option read_only_by_default must be a boolean")
+			}
+			// This is an Agent policy signal retained in its immutable config revision.
+			continue
 		case "execution_adapter", "origin", "role_type":
 			// Agent metadata retained in its immutable config revision.
 			continue

@@ -88,11 +88,14 @@ func withExtensions(path string, pathext []string) []string {
 	if strings.Contains(filepath.Base(path), ".") {
 		return []string{path}
 	}
-	result := []string{path}
+	// On Windows, extensionless files in npm's global bin directory are often
+	// POSIX shell shims. Prefer PATHEXT candidates such as .cmd/.exe so the
+	// launcher never passes those text scripts directly to CreateProcessW.
+	result := make([]string, 0, len(pathext)+1)
 	for _, ext := range pathext {
 		result = append(result, path+strings.ToLower(ext))
 	}
-	return result
+	return append(result, path)
 }
 
 func windowsResolved(artifact string, getenv func(string) string, lookPath func(string) (string, error), _ []string) ResolvedCommand {

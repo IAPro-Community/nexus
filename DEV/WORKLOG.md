@@ -1,5 +1,42 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-21 — Corrigir a TUI em branco do OpenCode no Windows
+
+- **Causa:** o Nexus iniciava OpenCode pelo backend de pipes comuns. O processo permanecia conectado, porém a TUI não tinha uma console Windows interativa para renderizar.
+- **Correção:** `internal/control/terminal/terminal_windows.go` seleciona ConPTY para OpenCode por padrão; provedores genéricos continuam com pipes. `OpenCodeDriver.EffectiveCaps` agora informa o mecanismo real. Testes cobrem OpenCode no backend ConPTY e preservam o caso genérico de pipes.
+- **Verificação:** testes `./internal/control/terminal` e `./internal/control/driver`, `go vet` nos pacotes terminal/driver/host e build Windows amd64 passaram. `nexus ps --json` confirmou Codex e OpenCode `RUNNING`; o smoke visual na aplicação instalada mostrou a tela inicial interativa do OpenCode. Nenhum prompt enviado nesta verificação.
+- **Instalação local:** `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`, beta.10, commit `f6098b8c-dirty`, SHA-256 `97BBF81F6BD405008AA3D3138B89B929CD47E71D056903E74C5A8AEF3CB70FB5`. Backup anterior: `%TEMP%\nexus-before-opencode-conpty-20261021.exe`. `make` e `golangci-lint` não disponíveis no PowerShell. Sem commit/push.
+
+## 2026-10-21 — Fechamento das correções de inicialização dos agentes Windows
+
+- **Causas tratadas:** campos de metadados Nexus eram repassados como flags de CLI; no Windows o resolver podia escolher shim POSIX sem extensão antes do `.cmd`; o app-server Codex 0.162.1 falhava no socket derivado com erro 10022; o bootstrap OpenCode copiava ~3.676 arquivos/55 MB antes do handshake de 10 s.
+- **Correções:** filtragem tipada dos metadados, prioridade de `PATHEXT`, `--no-daemon` para TUI Codex em caminhos de socket longos, e preservação da configuração `.config/opencode` já provisionada no perfil. A mudança de isolamento é opt-in para OpenCode; a sincronização padrão permanece nos demais diretórios.
+- **Testes:** suíte Go completa PASS (`go test -count=1 -timeout 20m ./...`, ambiente isolado); `go vet ./...` PASS; golangci-lint v2.12.2 com 0 issues; 577 testes web PASS, além de format check, typecheck, lint, estilos, build e verify.
+- **Aplicação local:** executável Windows amd64 beta.10 instalado em `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`, SHA-256 `BE53D2D8EB898C8459909CE8CBC8864309F90E6593DB5569A402C3EFB9D754EC`. Servidor local reiniciado; HTTP 200 na porta 13000. Backup prévio: `%TEMP%\nexus-before-final-fix-20261021.exe` (SHA-256 `4F08E70DFD7539207BB0E5751FA7096EEE18DDC9CA7EB3F63EE44FC246DF8BD9`).
+- **Smoke e estado:** após fechar a aba e reiniciar o servidor instalado, o workspace GreenHub voltou a carregar com `1.0.0-beta.10`. Codex e OpenCode foram recuperados pela UI e ficaram `WORKING`; `nexus ps --json` confirmou ambos `RUNNING` e a interface mostrou dois PTYs. Nenhum prompt foi enviado; Codex retomou uma sessão anterior já concluída. `nexus.dev` não pôde ser adicionado ao hosts sem elevação, mas o endereço local `127.0.0.1:13000` funcionou. Sem commit ou push.
+
+## 2026-10-21 — Contorno para falha do app-server Codex no Windows
+
+- **Evidência:** o Codex CLI 0.162.1 exibe `app server did not become ready` e Winsock 10022 conectando ao socket de controle. O caminho derivado tem 105 bytes. A causa exata não está confirmada; há relatos oficiais de falhas do daemon gerenciado no Windows em que `--no-daemon` funciona: https://github.com/openai/codex/issues/48043.
+- **Alteração local:** `internal/core/provider/spec/codex.go` usa `--no-daemon` no TUI interativo quando o socket derivado atinge o orçamento conservador de 100 bytes. Headless e comandos de serviço permanecem inalterados.
+- **Verificação:** build Windows amd64, `version --json`, `gofmt`, `git diff --check` e `go vet ./internal/core/provider/spec ./internal/control/driver ./internal/core/provider/adapters/codex` passaram; SHA de staging `5DBE72D4E49C0057E7D07D2CDAB410CC8165F45DA220E960F7B8944615DD737A`. `make`/`golangci-lint` indisponíveis; testes não executados.
+- **Aplicação:** staging ainda não instalado porque `nexus ps --json` apontou um runtime OpenCode ativo. O servidor atual continua no PID `45252`.
+- **Próximo contexto:** aguardar o runtime terminar; então salvar o binário atual, instalar o staging, reiniciar o servidor e testar Codex. Sem commit/push.
+
+## 2026-10-21 — Evidência de reteste Codex/OpenCode
+
+- O novo screenshot repete o erro `10022` do Codex; o build com `--no-daemon` segue somente em staging, portanto o servidor ainda não recebeu essa correção.
+- OpenCode 1.19.0 falhou ao iniciar uma geração candidata com timeout no endpoint IPC; Nexus restaurou a geração anterior. `nexus doctor terminal --json` confirma a geração OpenCode anterior ativa, host vivo e conectável. O log da candidata está vazio; ainda não há evidência para mudar o driver OpenCode.
+- Estado atual: servidor antigo PID `45252`; runtime OpenCode anterior mantido ativo para preservar a sessão. Próximo passo continua sendo instalar/reiniciar quando seguro, testar Codex no binário novo e depois capturar diagnóstico da geração candidata OpenCode.
+
+## 2026-10-21 — Corrigir rejeição de metadados ao iniciar agentes
+
+- **Problema:** Codex, OpenCode e outros provedores falhavam no launcher supervisionado porque as opções comuns do formulário incluíam `agent_mode_id` e `read_only_by_default`, campos de metadados/política do Nexus.
+- **Correção local:** `internal/control/driver/launch_config.go` valida os tipos desses campos e os ignora ao montar argumentos dos provedores; opções realmente desconhecidas continuam falhando explicitamente.
+- **Verificação:** compilação Windows amd64 e `version --json` passaram. Testes automatizados não executados nesta etapa.
+- **Aplicação local:** executável corrigido instalado em `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`; servidor reiniciado na porta 13000. Cópia do executável anterior preservada em `%TEMP%\nexus-before-agent-fix-20261021.exe`.
+- **Correção adicional após nova evidência:** o resolvedor Windows escolhia o shim POSIX sem extensão (`%APPDATA%\npm\codex`) antes do `.cmd`, causando `CreateProcessW ... %1 is not a valid Win32 application`. `internal/runtime/executable.go` agora prioriza arquivos de `PATHEXT`. Build atualizado instalado, servidor reiniciado; `GET /` retornou HTTP 200.
+
 ## 2026-10-20 — Homologação Independente Integral e Fechamento Multiplataforma (Linux & Windows)
 
 - **Missão:** Homologação integral e independente do Nexus 1.0.0 na branch `release/v1.0.0` com certificação contínua de gates no Linux e GitHub Actions Windows runner.

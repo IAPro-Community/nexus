@@ -2,7 +2,6 @@ package spec
 
 import (
 	"path/filepath"
-	stdruntime "runtime"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/runtime"
@@ -45,7 +44,7 @@ var codexSpec = Spec{
 	KnownVersions:       []string{"0.50.0"},
 }
 
-const codexUnixSocketSafePathBytes = 100
+const codexAppServerSocketPathBudgetBytes = 100
 
 var codexNonInteractiveSubcommands = map[string]struct{}{
 	"agents": {}, "app-server": {}, "apply": {}, "archive": {}, "cloud": {},
@@ -55,14 +54,14 @@ var codexNonInteractiveSubcommands = map[string]struct{}{
 	"sandbox": {}, "stdio-to-uds": {}, "tcp-tunnel": {}, "unarchive": {}, "update": {},
 }
 
-// CodexInteractiveArgs disables the managed background app-server only when
-// the profile's derived Unix-domain control socket would be unsafe for
-// SUN_LEN. Isolated Nexus profiles are intentionally deep paths, so recent
-// Codex releases can otherwise fail before the TUI starts. Headless/provider
-// service subcommands keep their native daemon semantics.
+// CodexInteractiveArgs disables the managed background app-server when the
+// profile's derived control-socket path approaches the platform's
+// Unix-domain-socket limit. The conservative 100-byte budget leaves room below
+// common platform limits. Headless/provider service subcommands keep their
+// native daemon semantics.
 func CodexInteractiveArgs(profileHome string, args []string) []string {
 	out := append([]string(nil), args...)
-	if stdruntime.GOOS == "windows" || strings.TrimSpace(profileHome) == "" {
+	if strings.TrimSpace(profileHome) == "" {
 		return out
 	}
 	for _, arg := range out {
@@ -71,7 +70,7 @@ func CodexInteractiveArgs(profileHome string, args []string) []string {
 		}
 	}
 	controlSocket := filepath.Join(profileHome, "app-server-control", "app-server-control.sock")
-	if len([]byte(controlSocket)) < codexUnixSocketSafePathBytes || !codexUsesInteractiveTUI(out) {
+	if len([]byte(controlSocket)) < codexAppServerSocketPathBudgetBytes || !codexUsesInteractiveTUI(out) {
 		return out
 	}
 	return append([]string{"--no-daemon"}, out...)

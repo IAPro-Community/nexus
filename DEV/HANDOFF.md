@@ -1,5 +1,18 @@
 # Handoff
 
+## Estado atual — correções locais de inicialização dos agentes no Windows — 2026-10-21
+
+- **Branch:** `release/v1.0.0`, HEAD `f6098b8c`; alterações locais ainda não commitadas.
+- **Correções:** `agent_mode_id`/`read_only_by_default` não viram argumentos do provedor; executáveis `.cmd` encontrados via `PATHEXT` precedem shims POSIX sem extensão; TUI Codex usa `--no-daemon` quando o caminho do socket alcança o limite conservador; OpenCode preserva configuração já provisionada no perfil para evitar recópia lenta antes do handshake; no Windows, OpenCode agora usa ConPTY para renderizar sua TUI.
+- **Correção da tela vazia:** o runtime OpenCode conectava por pipes comuns, sem console interativa. `NewBackendForProvider("opencode")` seleciona ConPTY por padrão, preservando pipes para provedores desconhecidos, e `EffectiveCaps` comunica o mecanismo correto.
+- **Gates desta rodada:** `go test -count=1 -timeout=5m ./internal/control/terminal ./internal/control/driver`, `go vet ./internal/control/terminal ./internal/control/driver ./internal/control/host` e build Windows amd64: PASS. A compilação completa instalável mantém versão beta.10 e identifica a árvore como `f6098b8c-dirty`.
+- **Smoke atual:** o executável em `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe` tem SHA-256 `97BBF81F6BD405008AA3D3138B89B929CD47E71D056903E74C5A8AEF3CB70FB5`. Depois de reiniciar o servidor instalado e recuperar os agentes, `nexus ps --json` confirmou Codex e OpenCode `RUNNING`, com dois PTYs. O terminal OpenCode mostra a tela inicial interativa; o Codex retomou a sessão anterior `Inspect Codex executable path | GreenHub`. Nenhum prompt foi enviado nesta verificação.
+- **Causa OpenCode:** bootstrap copiava ~3.676 arquivos/55 MB de `.config/opencode` a cada inicialização, atrasando o bind do IPC além dos 10 s do handshake. A correção é limitada ao diretório OpenCode. Testes de segurança cobrem preservação do conteúdo/mtime, seed inicial, diretório ausente e sincronização padrão dos outros diretórios.
+- **Verificação automatizada das correções anteriores:** `go test -count=1 -timeout 20m ./...` PASS (perfil isolado); `go vet ./...` PASS; golangci-lint v2.12.2 PASS (0 issues); frontend PASS (577 testes, typecheck, lint, estilos, build e verify). A correção ConPTY teve gates direcionados descritos acima.
+- **Instalação atual:** `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`, SHA-256 `97BBF81F6BD405008AA3D3138B89B929CD47E71D056903E74C5A8AEF3CB70FB5`. `version --json`: `1.0.0-beta.10`, `f6098b8c-dirty`, Windows amd64. O servidor local foi reiniciado e `GET /` retorna HTTP 200.
+- **Smoke anterior à correção ConPTY:** Codex e OpenCode ficaram `WORKING` no servidor com o build anterior, mas o TUI do OpenCode ainda não havia sido validado visualmente. No smoke atual, OpenCode foi recuperado no executável instalado; `nexus ps --json` e `nexus doctor terminal --json` confirmam `RUNNING`, host vivo e `attachable: true`, e o terminal mostra a tela inicial interativa. Codex está `RECOVERABLE` após a última reinicialização. Nenhum prompt foi enviado. O registro opcional de `nexus.dev` em hosts falhou por falta de elevação; o fallback `127.0.0.1:13000` funciona normalmente.
+- **Rollback:** executável imediatamente anterior preservado em `%TEMP%\nexus-before-opencode-conpty-20261021.exe` (SHA-256 `BE53D2D8EB898C8459909CE8CBC8864309F90E6593DB5569A402C3EFB9D754EC`). Backup anterior das correções de agentes segue em `%TEMP%\nexus-before-final-fix-20261021.exe`. Sem commit/push.
+
 ## Estado atual — homologação e certificação independente 1.0.0 — 2026-10-20
 
 - **Branch:** `release/v1.0.0`, SHA inicial `88094c2406c4f50ff4506bd9d8f63fce0428d328`, HEAD final homologado `7b152ea64e1e0757ee71ec02a77ec8127fbaf4e8`.

@@ -1,5 +1,12 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Slice concluído — TUI do OpenCode no Windows — 2026-10-21
+
+- **Sintoma:** OpenCode aparecia `connected`, mas o painel do terminal permanecia vazio.
+- **Contrato:** o backend supervisionado Windows escolhe ConPTY automaticamente para OpenCode; provedores desconhecidos seguem com pipes e os overrides explícitos de ConPTY permanecem válidos. As capacidades do driver refletem o backend selecionado.
+- **Aceite:** testes focados e build passam; após reiniciar o executável instalado e recuperar o agente, OpenCode fica `RUNNING` e renderiza a tela inicial interativa no terminal do Nexus. Smoke feito sem enviar prompt.
+- **Estado:** correção instalada localmente em beta.10 (`f6098b8c-dirty`), sem commit/push. Ver `DEV/VERIFY.md` e `DEV/HANDOFF.md`.
+
 ## Estado atualizado — homologação beta.10 — 2026-10-17
 
 HEAD local `984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17` na `release/v1.0.0`; remoto `6552f3d0b834`. Três commits de remediação locais, sem push. Temp curto corrigiu os erros de worktree Git; suíte Go integral passou em 414,8s, exit 0. Golangci-lint pinned v2.12.2 passou em 5 min. Ainda faltam refresh oficial no SHA final, harness clean exact-SHA, NSIS, assinatura, Codex interativo, HUD e demais evidências externas. Veredito continua `NO_GO_WINDOWS`.

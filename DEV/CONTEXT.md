@@ -1,5 +1,21 @@
 # Contexto atual
 
+## Atualização de estado — TUI do OpenCode no Windows — 2026-10-21
+
+- Causa da tela vazia: no Windows, provedores genéricos usavam pipes comuns; o OpenCode iniciava e conectava, mas sua TUI não tinha uma console real para renderizar. `NewBackendForProvider` agora escolhe ConPTY automaticamente para OpenCode, mantendo pipes para provedores desconhecidos e os overrides existentes por variável de ambiente. A capacidade do driver também informa ConPTY corretamente.
+- Testes direcionados `go test -count=1 -timeout=5m ./internal/control/terminal ./internal/control/driver`, `go vet ./internal/control/terminal ./internal/control/driver ./internal/control/host` e build Windows amd64 passaram. Build instalado: `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`, beta.10, commit local `f6098b8c-dirty`, SHA-256 `97BBF81F6BD405008AA3D3138B89B929CD47E71D056903E74C5A8AEF3CB70FB5`.
+- Após reiniciar o servidor instalado e recuperar os agentes, `nexus ps --json` confirmou Codex e OpenCode em `RUNNING`; a interface exibiu dois PTYs, a tela inicial do OpenCode (1.19.0) e o TUI Codex. Nenhum prompt foi enviado nesta verificação; o Codex retomou a sessão anterior “Inspect Codex executable path | GreenHub”.
+- Cópia anterior preservada em `%TEMP%\nexus-before-opencode-conpty-20261021.exe` (SHA-256 `BE53D2D8EB898C8459909CE8CBC8864309F90E6593DB5569A402C3EFB9D754EC`). O host não permitiu cadastrar `nexus.dev`, então o app segue em `http://127.0.0.1:13000`. Sem commit ou push.
+
+## Registro anterior à correção ConPTY — Windows — 2026-10-21
+
+- Correções locais em `release/v1.0.0`, HEAD `f6098b8c`, sem commit: metadados do launcher, precedência de `PATHEXT`, fallback `--no-daemon` do TUI Codex para caminhos longos e isolamento OpenCode que preserva a configuração já provisionada no perfil.
+- Causa OpenCode confirmada: a inicialização copiava novamente cerca de 3.676 arquivos/55 MB de `%USERPROFILE%\.config\opencode` antes de abrir o endpoint IPC; a cópia com flush por arquivo excedia o timeout de handshake. Agora só a configuração OpenCode é preservada depois de provisionada no perfil; outros diretórios mantêm a sincronização existente.
+- `go test -count=1 -timeout 20m ./...`, `go vet ./...`, `golangci-lint v2.12.2` (0 issues), 577 testes web, typecheck, lint, validações de estilo, build e `verify` passaram. Os testes Go foram executados com perfil de usuário isolado para não ler credenciais reais.
+- Build Windows amd64 instalado naquele smoke em `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`, SHA-256 `BE53D2D8EB898C8459909CE8CBC8864309F90E6593DB5569A402C3EFB9D754EC` (depois preservado como backup da atualização ConPTY). `version --json` confirmou beta.10 / `f6098b8c-dirty`; `GET http://127.0.0.1:13000/` retornou HTTP 200.
+- Smoke real após fechar a aba e reiniciar o servidor instalado: a interface carregou `1.0.0-beta.10`; Codex e OpenCode foram recuperados pelo botão Iniciar/Recuperar e aparecem `WORKING`. `nexus ps --json` confirma os provedores `codex` e `opencode` em `RUNNING`, com dois PTYs na interface. Nenhum prompt foi enviado; o Codex retomou apenas a sessão anterior já concluída. `nexus web` não conseguiu registrar `nexus.dev` no hosts sem elevação, mas serviu normalmente em `127.0.0.1:13000`.
+- O executável anterior foi preservado em `%TEMP%\nexus-before-final-fix-20261021.exe`. Não houve commit nem push.
+
 ## Estado
 
 - Produto: IAPro Nexus Workspace OS.

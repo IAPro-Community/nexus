@@ -1,5 +1,50 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-21 — TUI OpenCode no Windows (correção instalada)
+
+- Causa reproduzida: o backend de pipes comuns iniciava OpenCode, mas não fornecia a console necessária para a TUI. OpenCode foi incluído na seleção automática de ConPTY; provedores desconhecidos continuam com pipes.
+- `go test -count=1 -timeout=5m ./internal/control/terminal ./internal/control/driver`: PASS. `go vet ./internal/control/terminal ./internal/control/driver ./internal/control/host`: PASS. Build Windows amd64: PASS.
+- Smoke no executável instalado: `version --json` confirmou `1.0.0-beta.10`, `f6098b8c-dirty`, Windows amd64. Após reiniciar o servidor e recuperar os agentes, `nexus ps --json` mostrou Codex e OpenCode `RUNNING`, com dois PTYs; o painel OpenCode exibiu a tela inicial `Ask anything…`. Nenhum prompt foi enviado nesta verificação.
+- SHA-256 instalado: `97BBF81F6BD405008AA3D3138B89B929CD47E71D056903E74C5A8AEF3CB70FB5`. Rollback: `%TEMP%\nexus-before-opencode-conpty-20261021.exe`, SHA-256 `BE53D2D8EB898C8459909CE8CBC8864309F90E6593DB5569A402C3EFB9D754EC`.
+- `make` e `golangci-lint` não estão disponíveis neste PowerShell; a suíte completa não foi repetida nesta correção. `nexus.dev` não pôde ser cadastrado no arquivo hosts sem elevação; `127.0.0.1:13000` funciona. Sem commit/push.
+
+## 2026-10-21 — Inicialização Codex/OpenCode no Windows (correção instalada)
+
+- `go test -count=1 -timeout 20m ./...`: PASS em ambiente Windows com `USERPROFILE`, `HOME`, temporários e variáveis do Nexus isolados. Log: `C:\nx-nexus-20261021-final\go-test.log`.
+- `go vet ./...`: PASS. `golangci-lint v2.12.2 run --timeout=5m ./...`: PASS, 0 issues. `gofmt` nos arquivos Go alterados e `git diff --check`: PASS.
+- `bun run --cwd web test`: PASS (93 arquivos, 577 testes). `format:check`, `typecheck`, `lint`, `lint:styles`, `check:styles`, `build` e `verify`: PASS.
+- Build Windows amd64 instalado: `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`; SHA-256 `BE53D2D8EB898C8459909CE8CBC8864309F90E6593DB5569A402C3EFB9D754EC`. `version --json` confirmou `1.0.0-beta.10`, `f6098b8c-dirty`, Windows amd64. `GET http://127.0.0.1:13000/`: HTTP 200.
+- Smoke após fechamento da aba e reinício do servidor: UI `1.0.0-beta.10` carregou no workspace GreenHub. Botão Iniciar/Recuperar colocou Codex e OpenCode em `WORKING`; `nexus ps --json` confirmou ambos `RUNNING`; interface mostrou `2 PTYs` e `2 Em execução`. Sem prompt enviado; Codex retomou sessão já concluída.
+- Log de startup: tentativa opcional de cadastrar `nexus.dev` em hosts foi negada por falta de elevação, mas o fallback local `http://127.0.0.1:13000` serviu a aplicação corretamente.
+- OpenCode: testes automatizados e smoke interativo passaram. O bootstrap não excedeu o handshake; o runtime recuperado chegou a `RUNNING` e o PTY apareceu na interface. A correção preserva a configuração OpenCode no perfil e mantém a sincronização padrão nos outros diretórios.
+- Executável anterior guardado em `%TEMP%\nexus-before-final-fix-20261021.exe`, SHA-256 `4F08E70DFD7539207BB0E5751FA7096EEE18DDC9CA7EB3F63EE44FC246DF8BD9`. Sem commit/push.
+
+## 2026-10-21 — Fallback do app-server Codex no Windows (preparado)
+
+- Evidência do usuário: Codex CLI 0.162.1 falha conectando ao socket de controle do perfil com Winsock `10022`.
+- O caminho calculado tem 105 bytes UTF-8. Isso é próximo do limite de socket local, mas não prova sozinho a causa exata no Windows. A issue oficial #48043 documenta falhas do daemon gerenciado no Windows e confirma que `--no-daemon` funciona como workaround: https://github.com/openai/codex/issues/48043.
+- `internal/core/provider/spec/codex.go`: fallback para `--no-daemon` apenas em TUI interativo Codex cujo caminho derivado atinge o orçamento conservador de 100 bytes; subcomandos headless não mudam.
+- Build Windows amd64 em staging: PASS; SHA-256 `5DBE72D4E49C0057E7D07D2CDAB410CC8165F45DA220E960F7B8944615DD737A`; `version --json` confirmou beta.10 e `f6098b8c-dirty`.
+- `gofmt`, `git diff --check` e `go vet ./internal/core/provider/spec ./internal/control/driver ./internal/core/provider/adapters/codex`: PASS. `make lint:go` não pôde rodar porque `make` não está disponível no PowerShell. `golangci-lint` não está instalado.
+- Testes automatizados não foram executados. O runtime OpenCode está ativo; staging ainda não foi instalado e o servidor não foi reiniciado.
+- Reteste visual: Codex ainda mostra o 10022 porque o servidor segue no binário anterior. OpenCode 1.19.0 iniciou uma geração candidata que expirou no handshake; o rollback preservou a geração anterior. `nexus doctor terminal --json` confirma `host_live: true`, `attachable: true`, `recovery_action: none` para essa geração anterior. Log da candidata está vazio, sem evidência suficiente para atribuir a falha ao CLI OpenCode.
+
+## 2026-10-21 — Resolver Windows para shims de provedores npm
+
+- `internal/runtime/executable.go`: candidatos de `PATHEXT` agora são avaliados antes do arquivo sem extensão. Isso evita selecionar shims POSIX `codex`/`opencode` no Windows quando existe o correspondente `.cmd`.
+- Build Windows amd64: PASS; `version --json` confirmou `1.0.0-beta.10`, commit local `f6098b8c-dirty`.
+- SHA-256 do executável instalado: `4F08E70DFD7539207BB0E5751FA7096EEE18DDC9CA7EB3F63EE44FC246DF8BD9`.
+- Servidor reiniciado no PID `45252`; `GET /` retornou HTTP 200. O shim `codex.cmd`, o script JS e `node.exe` foram encontrados no host.
+- Testes automatizados não executados nesta etapa.
+
+## 2026-10-21 — Correção do launcher supervisionado para agentes
+
+- `internal/control/driver/launch_config.go`: `agent_mode_id` (string) e `read_only_by_default` (boolean) agora são reconhecidos como metadados do Nexus, não argumentos de CLI dos provedores.
+- `go build -trimpath -buildvcs=false ... ./cmd/nexus`: PASS; executável local Windows amd64 criado em staging e `version --json` confirmou `1.0.0-beta.10`, commit `f6098b8c-dirty`.
+- SHA-256 do executável de staging: `C56780C274FFB78CDEC0511AD23F8AA87FF3B708E2B23EB81AF60B6CF6428AD7`.
+- Testes automatizados não executados nesta etapa.
+- O executável corrigido foi instalado após encerrar a instância antiga (sem runtimes ativos); servidor reiniciado no PID `39332` e `GET /` retornou HTTP 200.
+
 ## 2026-10-17 — Correção e Verificação do Backend Compartilhado Desktop (76587c39)
 
 - `internal/control/web/desktop_attach.go`: PASS. Corrigido o `NewLoopbackBackendHandler` para servir arquivos estáticos embutidos (`bundle.js`, `bundle.css`, chunks) em vez de retornar incondicionalmente `index.html`.
@@ -1718,6 +1763,6 @@ Ciclo de correção e certificação da instalação local (branch
   Agent pinado, Certify/enforcement) permanecem a cargo do operador.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-17T18:34:42Z
+## Frontend gate — 2026-10-21T04:09:47Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
