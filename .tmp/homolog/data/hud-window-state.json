@@ -1,0 +1,17 @@
+{
+  "displayId": "65537",
+  "displayScale": 1,
+  "placement": "CUSTOM",
+  "x": 1484,
+  "y": 758,
+  "width": 260,
+  "height": 70,
+  "compactWidth": 260,
+  "compactHeight": 70,
+  "expandedWidth": 380,
+  "expandedHeight": 560,
+  "mode": "AUTO",
+  "opacity": 0.96,
+  "alwaysOnTop": true,
+  "autoHide": false
+}

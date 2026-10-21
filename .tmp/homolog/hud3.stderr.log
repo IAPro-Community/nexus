@@ -1,0 +1,3 @@
+Nexus HUD started an embedded Core at http://127.0.0.1:63212
+2026/10/20 23:14:57 [WebView2] Environment created successfully
+[1020/231551.436:ERROR:ui\gfx\win\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412

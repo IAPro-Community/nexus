@@ -195,7 +195,7 @@ milestone de UX avançada, desde que:
 
 ## Minimal taskbar capsule (October 2026)
 
-The HUD's compact surface is an always-on-top **capsule above the system taskbar**, not an unsupported injection into Windows Taskbar. Its default size is 220 × 60 DIPs on Desktop; the interactive capsule itself is roughly 190 × 43 pixels. It uses the official Nexus icon, one highlighted provider and its limiting-window remaining percentage.
+The HUD's compact surface is an always-on-top **capsule above the system taskbar**, not an unsupported injection into Windows Taskbar. Its default window is 220 × 60 DIPs on Desktop; the interactive capsule uses the remaining width (about 174 × 43 pixels in the default preset) next to a 24 px drag grip. It uses the official Nexus icon, one highlighted provider and its limiting-window remaining percentage.
 
 The capsule is intentionally a **projection**, not a control plane:
 - When a running Agent or Mission identifies a provider/profile, this is the account in execution. Otherwise the highlighted measurable account is labeled *Recurso em destaque*, **never** *Conta ativa*.
@@ -211,9 +211,27 @@ Behaviors:
 4. **Warning/critical**: colored ring, capacity events and acknowledge/snooze via existing endpoints.
 5. **Unknown/offline**: neutral ring, unknown remaining quota and last observed connection when available.
 
-Desktop Wails v3 has a transparent independent native window and native tray recovery. The window starts anchored above the taskbar, and resizing to 334 × 496 DIPs keeps its bottom-right edge anchored. **Rich hover content on Native is not yet feature-equivalent with Web**: native currently exposes a standard tooltip, since a separate temporary hover window needs capability-specific implementation and testing. This limitation must not be described as full parity.
+Desktop Wails v3 has a transparent independent native window and native tray recovery. The window starts anchored above the taskbar, and resizing to the selected expanded preset keeps its bottom-right edge anchored. **Rich hover content on Native is not yet feature-equivalent with Web**: native currently exposes a standard tooltip, since a separate temporary hover window needs capability-specific implementation and testing. This limitation must not be described as full parity.
 
 Native validation requires exact-SHA Windows/Linux/macOS smoke, taskbar positioning, DPI/multi-monitor, window restoration, tray recovery, and click-through tests for transparent empty regions. Browser E2E should capture compact, hover and expanded states and run accessibility checks. No production release claim follows from merely committing the UI.
+
+## Arraste e presets de tamanho do HUD nativo (2026-10-21)
+
+O HUD nativo separa duas intenções: **clique** abre ou fecha o resumo; **arraste** move a janela. Para não transformar um clique com pequena oscilação em arraste, a cápsula continua com `--wails-draggable: no-drag` e recebe uma alça dedicada de 24 px com ícone de grip. O cabeçalho do popover também é uma região arrastável. A alça aceita foco e setas: 16 px por pressionamento, 64 px com `Shift`, sempre limitada à work area do monitor.
+
+Os tamanhos são presets explícitos, não dimensões inventadas pela UI:
+
+| Preset | Janela compacta | Janela expandida |
+| --- | --- | --- |
+| `compact` (Compacto) | 220 × 60 | 334 × 496 |
+| `comfortable` (Confortável) | 260 × 70 | 380 × 560 |
+| `large` (Grande) | 320 × 84 | 440 × 640 |
+
+Ao trocar de preset, a borda inferior direita é preservada, o estado é salvo em `hud-window-state.json` e o primeiro show reaplica a geometria persistida. Isso corrige o primeiro paint em 190 × 48 (mínimo do Wails) que cortava a cápsula. Os rótulos e o texto de tamanho atual são localizados em pt-BR, inglês e espanhol; os controles ficam no popover nativo.
+
+**Evidência local, não certificação de release:** Windows 11 `10.0.26200`, scale 100%, binário de homologação isolado construído no worktree sobre `f6098b8c684a97bf7e8e56804109ca491c78cfa2`. A UI Automation encontrou os botões acessíveis `Compacto`, `Confortável`, `Grande` e `Arrastar HUD. Use as setas para mover.`; a sequência real mediu `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`. O arraste moveu a janela em `-144,-108` px, as setas moveram `+16` px e `Shift`+seta `+64` px, e após reiniciar o HUD abriu em `260×70` na posição persistida.
+
+**Limites:** Linux e macOS permanecem `NOT_TESTED` para este slice; não há tag, assinatura ou alegação de GO. O redimensionamento livre pelas bordas não é um preset certificado; use os três presets para uma geometria suportada. O HUD Web não recebe esses controles nativos.
 
 ## Correções de estabilidade do HUD compacto (18/10/2026)
 

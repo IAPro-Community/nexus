@@ -162,6 +162,10 @@ Verifique `nexus providers status --json`, `nexus profiles --json` e `nexus usag
 
 Confira timestamp, `LIVE/CACHED/ESTIMATED`, origem do custo, monitor e conexão com o Core. O HUD não executa novos probes nem inventa custo. Veja [HUD](../product/hud.md).
 
+## HUD nativo não arrasta ou abre no tamanho errado
+
+Arraste pela alça de grip à esquerda da cápsula, não pelo corpo: o corpo é o botão que abre e fecha o resumo. A alça também aceita setas (16 px; `Shift` + seta = 64 px). Para mudar o tamanho, abra o popover e use **Compacto**, **Confortável** ou **Grande**; o preset é persistido e preserva a âncora inferior direita. Se a janela abrir em 190 × 48, o primeiro show não aplicou a geometria persistida; reinicie o HUD e verifique `hud-window-state.json`. Se o arraste continuar falhando, confirme que o binário é o HUD novo e não uma instância antiga com outro ID de instância.
+
 ## Túnel ou convite remoto inválido
 
 Gerar convite novo via **Settings → Acesso remoto**, validar HTTPS e os limites da sessão. Não desabilitar `Secure` dos cookies para contornar HTTP. Veja [acesso remoto](../product/remote-access.md).

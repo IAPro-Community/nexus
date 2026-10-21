@@ -25,6 +25,20 @@
   letter-spacing: -0.02em;
 }
 
+.brand.nativeBrandDrag {
+  --wails-draggable: drag;
+  cursor: grab;
+}
+
+.brand.nativeBrandDrag:active {
+  cursor: grabbing;
+}
+
+.dragGrip {
+  flex-shrink: 0;
+  color: var(--hud-muted);
+}
+
 .headerActions {
   gap: 4px;
 }

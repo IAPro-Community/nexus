@@ -64,6 +64,44 @@ describe('PlatformBridge', () => {
     expect(changes).toEqual([true, false]);
   });
 
+  it('routes native HUD size presets and keyboard moves through the controller', async () => {
+    const calls: Array<{ method: string; args: unknown[] }> = [];
+    setWailsV3InvokerForTests(async (method, ...args) => {
+      calls.push({ method, args });
+      if (method.endsWith('.GetHUDSizePresets')) {
+        return [
+          {
+            id: 'compact',
+            label: 'Compacto',
+            compactWidth: 220,
+            compactHeight: 60,
+            expandedWidth: 334,
+            expandedHeight: 496,
+          },
+        ];
+      }
+      return undefined;
+    });
+
+    await expect(hudV3.getSizePresets()).resolves.toHaveLength(1);
+    await hudV3.setSizePreset('comfortable', true);
+    await hudV3.move(-16, 16);
+    expect(calls).toEqual([
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.GetHUDSizePresets',
+        args: [],
+      },
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDSizePreset',
+        args: ['comfortable', true],
+      },
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.MoveHUD',
+        args: [-16, 16],
+      },
+    ]);
+  });
+
   it('selectDirectory delegates to the Wails v3 App service', async () => {
     setWailsV3InvokerForTests(async (method, ...args) => {
       expect(method).toBe('github.com/IAPro-Community/nexus/internal/desktop.App.SelectDirectory');

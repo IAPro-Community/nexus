@@ -3,6 +3,10 @@
 ## Estado atualizado — homologação beta.10 — 2026-10-17
 
 HEAD local `984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17` na `release/v1.0.0`; remoto `6552f3d0b834`. Três commits de remediação locais, sem push. Temp curto corrigiu os erros de worktree Git; suíte Go integral passou em 414,8s, exit 0. Golangci-lint pinned v2.12.2 passou em 5 min. Ainda faltam refresh oficial no SHA final, harness clean exact-SHA, NSIS, assinatura, Codex interativo, HUD e demais evidências externas. Veredito continua `NO_GO_WINDOWS`.
+## Slice ativo — HUD nativo arraste/tamanhos — 2026-10-21
+
+Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, sem commit/push. Escopo: alça de arraste nativa, movimento por setas e presets persistentes `compact`/`comfortable`/`large`, com primeiro paint corrigido. Evidência Windows 11 local em `.tmp/native-hud-uia-v4/`; Linux/macOS `NOT_TESTED`. `docs-verify` permanece `BLOCKED` por alterações visuais não commitadas. Este slice **não** altera o veredito `NO_GO_WINDOWS` nem autoriza tag/release.
+
 ## Contrato ativo — remediação/homologação Windows beta.10 — 2026-10-17
 
 Escopo corrente é o plano `DEV/validation/current/WINDOWS_BETA10_CODEX_LOCAL_REMEDIATION_20261016.md`.

@@ -1717,6 +1717,17 @@ Ciclo de correção e certificação da instalação local (branch
   exigem sessão nativa real (prompt em provider, admissão de Mission com
   Agent pinado, Certify/enforcement) permanecem a cargo do operador.
 
+## HUD nativo — arraste e presets de tamanho — 2026-10-21
+
+Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, sem commit/push.
+
+- **PASS** — `tsc --noEmit`, ESLint, Prettier e Stylelint nos arquivos do HUD; Vitest direcionado 37/37; `go test -count=1 ./internal/desktop -run HUD`; build Web e build Go do `nexus-hud`.
+- **PASS** — UI Automation em Windows 11 `10.0.26200`, binário isolado `nexus-hud-diag-v3`: presets medidos `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; nomes acessíveis `Compacto`, `Confortável`, `Grande` e `Arrastar HUD. Use as setas para mover.`; arraste real `-144,-108` px; seta direita `+16` px; `Shift`+seta `+64` px.
+- **PASS** — persistência: após escolher `comfortable` e recolher, o estado ficou `260×70`; após reiniciar o HUD no mesmo diretório de dados, abriu em `260×70` na posição persistida (`1516,866`).
+- **PASS** — primeiro paint: com estado limpo, o HUD abriu em `220×60` no canto inferior direito, sem o antigo mínimo `190×48`.
+- **NOT_TESTED** — Linux e macOS do HUD nativo neste slice.
+- **BLOCKED** — `node scripts/docs-verify.mjs` falha por alterações visuais não commitadas em `web/src`/`internal/desktop`; o gate exige SHA imutável. Nenhum GO, tag ou release.
+
 <!-- frontend-verify:latest -->
 ## Frontend gate — 2026-10-17T18:34:42Z
 

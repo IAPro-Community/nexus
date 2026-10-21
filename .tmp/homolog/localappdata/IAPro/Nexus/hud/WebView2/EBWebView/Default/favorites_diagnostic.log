@@ -1,0 +1,48 @@
+2026-10-21 02:07:38.933: [INFO] CurrentProfilePath: C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default
+2026-10-21 02:07:38.933: [INFO] Profiles total count: 1
+2026-10-21 02:07:38.933: [INFO] Profile: name=Perfil 1 path=C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default lastActive=null
+2026-10-21 02:07:38.933: [INFO] LastUsedProfileDir: C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default
+2026-10-21 02:07:38.933: [INFO] OnDoneLoading sync enabled: 0
+2026-10-21 02:07:38.933: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-10-21 02:07:38.933: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-10-21 02:07:38.933: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-10-21 02:14:54.090: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-10-21 02:14:58.040: [INFO] CurrentProfilePath: C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default
+2026-10-21 02:14:58.040: [INFO] Profiles total count: 1
+2026-10-21 02:14:58.041: [INFO] Profile: name=Perfil 1 path=C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default lastActive=2026-10-21T02:07:39.628Z
+2026-10-21 02:14:58.041: [INFO] LastUsedProfileDir: C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default
+2026-10-21 02:14:58.041: [INFO] MostRecentlyActiveProfile: name=Perfil 1 path=C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default lastActive=2026-10-21T02:07:39.628Z
+2026-10-21 02:14:58.041: [INFO] OnDoneLoading sync enabled: 0
+2026-10-21 02:14:58.041: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-10-21 02:14:58.041: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-10-21 02:14:58.041: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-10-21 02:15:51.476: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-10-21 02:25:24.312: [INFO] CurrentProfilePath: C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default
+2026-10-21 02:25:24.312: [INFO] Profiles total count: 1
+2026-10-21 02:25:24.312: [INFO] Profile: name=Perfil 1 path=C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default lastActive=2026-10-21T02:15:39.582Z
+2026-10-21 02:25:24.312: [INFO] LastUsedProfileDir: C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default
+2026-10-21 02:25:24.312: [INFO] MostRecentlyActiveProfile: name=Perfil 1 path=C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default lastActive=2026-10-21T02:15:39.582Z
+2026-10-21 02:25:24.312: [INFO] OnDoneLoading sync enabled: 0
+2026-10-21 02:25:24.312: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-10-21 02:25:24.312: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-10-21 02:25:24.312: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-10-21 02:51:45.929: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-10-21 02:52:16.185: [INFO] CurrentProfilePath: C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default
+2026-10-21 02:52:16.185: [INFO] Profiles total count: 1
+2026-10-21 02:52:16.185: [INFO] Profile: name=Perfil 1 path=C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default lastActive=2026-10-21T02:44:07.235Z
+2026-10-21 02:52:16.185: [INFO] LastUsedProfileDir: C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default
+2026-10-21 02:52:16.185: [INFO] MostRecentlyActiveProfile: name=Perfil 1 path=C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default lastActive=2026-10-21T02:44:07.235Z
+2026-10-21 02:52:16.185: [INFO] OnDoneLoading sync enabled: 0
+2026-10-21 02:52:16.185: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-10-21 02:52:16.185: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-10-21 02:52:16.185: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-10-21 03:03:28.935: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-10-21 03:03:31.462: [INFO] CurrentProfilePath: C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default
+2026-10-21 03:03:31.462: [INFO] Profiles total count: 1
+2026-10-21 03:03:31.462: [INFO] Profile: name=Perfil 1 path=C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default lastActive=2026-10-21T03:03:23.318Z
+2026-10-21 03:03:31.462: [INFO] LastUsedProfileDir: C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default
+2026-10-21 03:03:31.462: [INFO] MostRecentlyActiveProfile: name=Perfil 1 path=C:\Dev\nexus-hud-validation\.tmp\homolog\localappdata\IAPro\Nexus\hud\WebView2\EBWebView\Default lastActive=2026-10-21T03:03:23.318Z
+2026-10-21 03:03:31.462: [INFO] OnDoneLoading sync enabled: 0
+2026-10-21 03:03:31.462: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-10-21 03:03:31.462: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-10-21 03:03:31.462: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1

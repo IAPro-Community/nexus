@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { nexus } from '../../nexus/api';
 import { hudV3 } from '../../platform';
+import type { HudSizePreset } from '../../platform';
 import type { CapacityResourceStatus } from '../../types';
 import {
   formatHudCost,
@@ -35,6 +36,7 @@ import {
   hudVisibleMission,
   selectHudFocus,
 } from './hudMiniModel';
+import { HudSizeControls } from './HudSizeControls';
 import styles from './NexusHud.module.scss';
 
 const MIN_REFRESH_MS = 15_000;
@@ -84,6 +86,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const panelRef = useRef<HTMLElement | null>(null);
   const nativeExpansionPending = useRef(false);
   const [nativeExpansionError, setNativeExpansionError] = useState<string | null>(null);
+  const [sizePresets, setSizePresets] = useState<HudSizePreset[]>([]);
+  const [sizePreset, setSizePreset] = useState('');
+  const [sizePending, setSizePending] = useState(false);
 
   const refresh = useCallback(() => {
     if (requestInFlight.current) return requestInFlight.current;
@@ -141,6 +146,30 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     window.addEventListener('nexus:hud-preferences', sync);
     return () => window.removeEventListener('nexus:hud-preferences', sync);
   }, []);
+
+  useEffect(() => {
+    if (!native) return;
+    let active = true;
+    void Promise.all([hudV3.getSizePresets(), hudV3.getWindowState()])
+      .then(([presets, windowState]) => {
+        if (!active) return;
+        const availablePresets = Array.isArray(presets) ? presets : [];
+        setSizePresets(availablePresets);
+        const compactWidth = windowState.compactWidth ?? windowState.width;
+        const compactHeight = windowState.compactHeight ?? windowState.height;
+        const match = availablePresets.find(
+          (preset) =>
+            preset.compactWidth === compactWidth && preset.compactHeight === compactHeight,
+        );
+        if (match) setSizePreset(match.id);
+      })
+      .catch((error: unknown) => {
+        console.error('Nexus HUD size presets unavailable:', error);
+      });
+    return () => {
+      active = false;
+    };
+  }, [native]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -236,6 +265,39 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       .finally(() => {
         nativeExpansionPending.current = false;
       });
+  };
+
+  const applySize = (preset: string) => {
+    if (!native || sizePending) return;
+    setSizePending(true);
+    void hudV3
+      .setSizePreset(preset, expanded)
+      .then(() => {
+        setSizePreset(preset);
+        toast.success(t('hud.sizeUpdated'));
+      })
+      .catch((error: unknown) => {
+        console.error('Nexus HUD size preset failed:', error);
+        toast.error(t('hud.sizeUpdateFailed'));
+      })
+      .finally(() => setSizePending(false));
+  };
+
+  const onNativeDragKeys = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!native) return;
+    const step = event.shiftKey ? 64 : 16;
+    let dx = 0;
+    let dy = 0;
+    if (event.key === 'ArrowLeft') dx = -step;
+    else if (event.key === 'ArrowRight') dx = step;
+    else if (event.key === 'ArrowUp') dy = -step;
+    else if (event.key === 'ArrowDown') dy = step;
+    if (!dx && !dy) return;
+    event.preventDefault();
+    void hudV3.move(dx, dy).catch((error: unknown) => {
+      console.error('Nexus HUD keyboard move failed:', error);
+      toast.error(t('hud.moveFailed'));
+    });
   };
 
   const handleAlert = async (action: 'ack' | 'snooze') => {
@@ -344,13 +406,25 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         data-hud-panel
         data-expanded={expanded ? 'true' : 'false'}
         data-tone={tone}
+        data-size={native ? sizePreset || 'custom' : undefined}
       >
         {expanded && state && !waiting && (
-          <div id="nexus-hud-popover" className={styles.popover} aria-label="Resumo do Nexus HUD">
+          <div
+            id="nexus-hud-popover"
+            className={styles.popover}
+            aria-label="Resumo do Nexus HUD"
+          >
             <div className={styles.popoverHeader}>
-              <div className={styles.brand}>
+              <div
+                className={`${styles.brand} ${native ? styles.nativeBrandDrag : ''}`}
+                data-hud-drag-handle={native ? 'true' : undefined}
+                title={native ? t('hud.dragTitle') : undefined}
+              >
                 <img src="/nexus-icon.svg" alt="" width={25} height={25} />
                 <strong>Nexus</strong>
+                {native && (
+                  <GripHorizontal size={14} className={styles.dragGrip} aria-hidden="true" />
+                )}
               </div>
               <div className={styles.headerActions}>
                 {onOpenSettings && (
@@ -597,6 +671,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 </button>
               </div>
             )}
+            {native && (
+              <HudSizeControls
+                presets={sizePresets}
+                active={sizePreset}
+                pending={sizePending}
+                onSelect={applySize}
+              />
+            )}
             <div className={styles.footerActions}>
               {(onOpenUsage || onOpenNexus) && (
                 <button type="button" onClick={onOpenUsage || onOpenNexus}>
@@ -623,9 +705,16 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             aria-label="Diagnóstico do Nexus HUD"
           >
             <div className={styles.popoverHeader}>
-              <div className={styles.brand}>
+              <div
+                className={`${styles.brand} ${native ? styles.nativeBrandDrag : ''}`}
+                data-hud-drag-handle={native ? 'true' : undefined}
+                title={native ? t('hud.dragTitle') : undefined}
+              >
                 <img src="/nexus-icon.svg" alt="" width={25} height={25} />
                 <strong>Nexus HUD</strong>
+                {native && (
+                  <GripHorizontal size={14} className={styles.dragGrip} aria-hidden="true" />
+                )}
               </div>
               <button
                 type="button"
@@ -651,6 +740,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 </span>
               </div>
             </div>
+            {native && (
+              <HudSizeControls
+                presets={sizePresets}
+                active={sizePreset}
+                pending={sizePending}
+                onSelect={applySize}
+              />
+            )}
             <div className={styles.footerActions}>
               <button type="button" onClick={() => void refresh()}>
                 <RefreshCw size={13} /> Atualizar
@@ -665,6 +762,18 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         )}
 
         <div className={styles.capsuleRow}>
+          {native && (
+            <button
+              type="button"
+              className={styles.nativeDragHandle}
+              data-hud-drag-handle="true"
+              aria-label={t('hud.dragLabel')}
+              title={t('hud.dragTitle')}
+              onKeyDown={onNativeDragKeys}
+            >
+              <GripHorizontal size={14} aria-hidden="true" />
+            </button>
+          )}
           <button
             type="button"
             className={styles.capsule}

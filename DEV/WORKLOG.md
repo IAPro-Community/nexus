@@ -5415,3 +5415,15 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - 2026-10-17: diagnostiquei o timeout Go. Três testes de integração de delivery falharam com `fatal: '' too big` por TEMP profundamente aninhado. Os três passaram em D:\nxt; internal/nexus completo passou (292,3s) e go test -count=1 -v ./... passou em 414,8s. Ajustei homologate-beta.ps1 para criar TEMP curto na raiz da unidade do checkout. Tudo em D:, sem mexer em env persistente; correção ainda não commitada e requer harness limpo no novo SHA.
 
 - 2026-10-17: commits locais: `32dc7fa5` corrige temp Windows curto no harness; `976e3b53` sincroniza restauração de foco sem relaxar assert; `984c2b0f` amplia regressões de PATH. HEAD `984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17`; origin permaneceu `6552f3d0b834`. Refresh documental oficial e harness final ainda pendentes.
+
+## HUD nativo: arraste e presets de tamanho — 2026-10-21
+
+- Worktree `C:\Dev\nexus-hud-validation`, branch `release/v1.0.0`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, `VERSION=1.0.0-beta.10`; nenhum commit, push, merge, tag ou release.
+- Causa do bloqueio de arraste: o CSS nativo forçava `--wails-draggable: no-drag` na cápsula e em todos os filhos para preservar o clique de abrir/fechar. A solução separa as intenções: clique no corpo, arraste por alça dedicada de 24 px e pelo cabeçalho do popover.
+- Backend: `HUDWindowState` ganhou dimensões compacta/expandida, `GetHUDSizePresets`, `SetHUDSizePreset` e `MoveHUD`; presets `compact` 220×60/334×496, `comfortable` 260×70/380×560 e `large` 320×84/440×640. A troca preserva a âncora inferior direita e persiste em `hud-window-state.json`.
+- Primeiro paint: `RestoreHUDWindow` agora roda no primeiro `WindowShow` (via `sync.Once`), corrigindo a janela inicial de 190×48 que cortava a cápsula.
+- Frontend: controles de tamanho extraídos para `HudSizeControls.tsx`, rótulos localizados em pt-BR/en/es, alça de arraste com `aria-label` e movimento por setas (16 px; `Shift` = 64 px), toast de erro traduzido.
+- PASS — `tsc --noEmit`, ESLint, Stylelint e Prettier nos arquivos alterados; Vitest direcionado 37/37; `go test -count=1 ./internal/desktop -run HUD`; build Web e build Go do HUD.
+- PASS — UI Automation no Windows 11 `10.0.26200`, binário isolado `nexus-hud-diag-v3`, sequência real `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; arraste `-144,-108` px; seta direita `+16` px; `Shift`+seta `+64` px; reinício abriu em `260×70` na posição persistida.
+- PASS — capturas nativas e JSON de automação em `.tmp/native-hud-uia-v4/`, `.tmp/native-hud-uia-v3/` e `.tmp/homolog/` (artefatos locais, não versionados).
+- BLOCKED — `docs-verify` continua `FAIL` por alterações visuais não commitadas no worktree (política do gate exige SHA imutável); nenhuma alegação de GO. Linux/macOS do HUD nativo permanecem `NOT_TESTED`.

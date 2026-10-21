@@ -1,0 +1,17 @@
+Nexus HUD started an embedded Core at http://127.0.0.1:53809
+panic: runtime error: invalid memory address or nil pointer dereference
+[signal 0xc0000005 code=0x0 addr=0x60 pc=0x7ff696eb1eea]
+
+goroutine 1 [running, locked to thread]:
+github.com/wailsapp/wails/v3/pkg/application.(*App).dispatchOnMainThread(0xc0000b8008, 0xc00009eb70)
+	github.com/wailsapp/wails/v3@v3.0.0-beta.25/pkg/application/application.go:983 +0x2a
+github.com/wailsapp/wails/v3/pkg/application.InvokeSync(0xc0000b2380)
+	github.com/wailsapp/wails/v3@v3.0.0-beta.25/pkg/application/mainthread.go:26 +0x94
+github.com/wailsapp/wails/v3/pkg/application.(*WebviewWindow).SetMaxSize(0xc0003c6508, 0x4b0, 0x384)
+	github.com/wailsapp/wails/v3@v3.0.0-beta.25/pkg/application/webview_window.go:645 +0xeb
+github.com/wailsapp/wails/v3/pkg/application.(*WebviewWindow).SetSize(0xc0003c6508, 0xdc, 0x3c)
+	github.com/wailsapp/wails/v3@v3.0.0-beta.25/pkg/application/webview_window.go:461 +0x93
+github.com/IAPro-Community/nexus/internal/desktop.(*HUDController).RestoreHUDWindow(0xc0003af9e0)
+	github.com/IAPro-Community/nexus/internal/desktop/hud_window.go:387 +0x2e6
+main.main()
+	github.com/IAPro-Community/nexus/cmd/nexus-hud/main.go:116 +0x7f3

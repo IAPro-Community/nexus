@@ -30,10 +30,23 @@ export interface HudWindowState {
   y: number;
   width: number;
   height: number;
+  compactWidth?: number;
+  compactHeight?: number;
+  expandedWidth?: number;
+  expandedHeight?: number;
   mode: string;
   opacity: number;
   alwaysOnTop: boolean;
   autoHide: boolean;
+}
+
+export interface HudSizePreset {
+  id: string;
+  label: string;
+  compactWidth: number;
+  compactHeight: number;
+  expandedWidth: number;
+  expandedHeight: number;
 }
 
 type WailsV3Invoker = (methodName: string, ...args: unknown[]) => Promise<unknown>;
@@ -79,6 +92,10 @@ export const hudV3 = {
   getWindowState: () => call<HudWindowState>('HUDController', 'GetHUDWindowState'),
   captureWindowState: () => call<void>('HUDController', 'CaptureHUDWindowState'),
   setExpanded: (expanded: boolean) => call<void>('HUDController', 'SetHUDExpanded', expanded),
+  getSizePresets: () => call<HudSizePreset[]>('HUDController', 'GetHUDSizePresets'),
+  setSizePreset: (preset: string, expanded: boolean) =>
+    call<void>('HUDController', 'SetHUDSizePreset', preset, expanded),
+  move: (dx: number, dy: number) => call<void>('HUDController', 'MoveHUD', dx, dy),
   hide: () => call<void>('HUDController', 'HideHUD'),
   show: () => call<void>('HUDController', 'ShowHUD'),
   getAutoStartEnabled: () => call<boolean>('HUDController', 'GetHUDAutoStartEnabled'),

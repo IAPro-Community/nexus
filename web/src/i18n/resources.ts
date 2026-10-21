@@ -33,6 +33,20 @@ export const en = {
     hudDisabled: 'Nexus HUD is disabled in the local configuration.',
     decisionRequired: 'Decision required',
   },
+  hud: {
+    sizeTitle: 'HUD size',
+    sizeCompact: 'Compact',
+    sizeComfortable: 'Comfortable',
+    sizeLarge: 'Large',
+    sizeCustom: 'Custom',
+    sizeCurrent:
+      '{{compactWidth}}×{{compactHeight}} compact · {{expandedWidth}}×{{expandedHeight}} open',
+    sizeUpdated: 'HUD size updated.',
+    sizeUpdateFailed: 'Could not change the HUD size.',
+    moveFailed: 'Could not move the HUD.',
+    dragLabel: 'Drag HUD. Use the arrow keys to move.',
+    dragTitle: 'Drag to move the HUD. Use the arrow keys to adjust the position.',
+  },
   shell: {
     skip: 'Skip to workspace',
     openProjects: 'Open Projects',
@@ -2000,6 +2014,20 @@ export const ptBR = {
     hudUnavailable: 'Nexus HUD indisponível. Verifique a sessão local do Nexus e tente novamente.',
     hudDisabled: 'Nexus HUD está desativado na configuração local.',
     decisionRequired: 'Decisão necessária',
+  },
+  hud: {
+    sizeTitle: 'Tamanho do HUD',
+    sizeCompact: 'Compacto',
+    sizeComfortable: 'Confortável',
+    sizeLarge: 'Grande',
+    sizeCustom: 'Personalizado',
+    sizeCurrent:
+      '{{compactWidth}}×{{compactHeight}} compacto · {{expandedWidth}}×{{expandedHeight}} aberto',
+    sizeUpdated: 'Tamanho do HUD atualizado.',
+    sizeUpdateFailed: 'Não foi possível alterar o tamanho do HUD.',
+    moveFailed: 'Não foi possível mover o HUD.',
+    dragLabel: 'Arrastar HUD. Use as setas para mover.',
+    dragTitle: 'Arraste para mover o HUD. Use as setas para ajustar a posição.',
   },
   shell: {
     skip: 'Ir para o espaço de trabalho',
@@ -3980,6 +4008,20 @@ export const es = {
       'Nexus HUD no está disponible. Comprueba la sesión local de Nexus e inténtalo de nuevo.',
     hudDisabled: 'Nexus HUD está desactivado en la configuración local.',
     decisionRequired: 'Decisión necesaria',
+  },
+  hud: {
+    sizeTitle: 'Tamaño del HUD',
+    sizeCompact: 'Compacto',
+    sizeComfortable: 'Cómodo',
+    sizeLarge: 'Grande',
+    sizeCustom: 'Personalizado',
+    sizeCurrent:
+      '{{compactWidth}}×{{compactHeight}} compacto · {{expandedWidth}}×{{expandedHeight}} abierto',
+    sizeUpdated: 'Tamaño del HUD actualizado.',
+    sizeUpdateFailed: 'No se pudo cambiar el tamaño del HUD.',
+    moveFailed: 'No se pudo mover el HUD.',
+    dragLabel: 'Arrastrar HUD. Usa las flechas para moverlo.',
+    dragTitle: 'Arrastra para mover el HUD. Usa las flechas para ajustar la posición.',
   },
   shell: {
     skip: 'Ir al espacio de trabajo',

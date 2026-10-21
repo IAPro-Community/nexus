@@ -2293,3 +2293,13 @@ Project Hub validado em 775×483. Gate web completo, oito suítes Playwright e b
 Não declarar fechamento: o SHA pedido era d14154d2490dfdd3966c7fddc990a1d9127edd39; release/v1.0.0 e origin estão em 52f35c04181b85379219ab55fc3192c63a5440a8 e o worktree está dirty. Binários NotSigned e sem update trust root. O run Actions 37666126714 não foi revalidado (API anônima 404), e o instalador final não foi recompilado. A tag remota Beta 7 está ausente.
 
 A auditoria ao vivo não encontrou branch Beta 7 nova; a branch KIVER é ancestral da release. Quatro branches de terminal/testes com commits exclusivos permanecem para triagem. Nenhuma integração, commit, push, tag ou publicação foi feita. A certificação oficial precisa ocorrer num SHA imutável após seleção das mudanças e fechamento do runner/signing Windows.
+
+## Handoff — HUD nativo arraste/tamanhos — 2026-10-21
+
+Worktree `C:\Dev\nexus-hud-validation`, branch `release/v1.0.0`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, `VERSION=1.0.0-beta.10`, sem commit/push.
+
+O HUD nativo agora permite mover a janela por uma alça de arraste dedicada de 24 px (o corpo da cápsula continua abrindo/fechando o popover) e por setas (16 px; `Shift` = 64 px). O popover ganhou presets `Compacto` 220×60/334×496, `Confortável` 260×70/380×560 e `Grande` 320×84/440×640, persistidos em `hud-window-state.json`, com âncora inferior direita preservada. O primeiro show reaplica a geometria persistida, corrigindo o paint inicial em 190×48.
+
+Evidência local: UI Automation em Windows 11 `10.0.26200`, binário isolado `nexus-hud-diag-v3`; sequência de presets `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; arraste `-144,-108` px; seta `+16` px; `Shift`+seta `+64` px; reinício em `260×70` na posição persistida. Testes direcionados: Go HUD PASS, Vitest 37/37, tsc/ESLint/Stylelint/Prettier PASS, builds Web/HUD PASS.
+
+Pendências: Linux/macOS `NOT_TESTED`; `docs-verify` BLOCKED por alterações visuais não commitadas (gate exige SHA imutável); falta validar o SHA final, assinatura, instalador e matriz nativa completa. Não há tag, release ou GO.
