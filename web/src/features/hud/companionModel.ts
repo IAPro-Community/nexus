@@ -32,7 +32,7 @@ export function projectCompanionAttention(
 
   // The Attention Center owns human-intervention classification. If it is
   // reachable, do not override it with older Mission projection heuristics.
-  if (attentionGroup) for (const input of attentionGroup.needs_you || []) {
+  for (const input of attentionGroup?.needs_you || []) {
     if (input.level !== 'REQUIRE_USER') continue;
     items.push({
       id: `mission:${input.project_id}:${input.mission_id}:${input.intervention?.id || 'state'}:v${input.intervention?.version ?? 0}`,
@@ -82,11 +82,14 @@ export function projectCompanionAttention(
       severity: critical ? 'critical' : 'warning',
       target: 'usage',
       needsUser: false,
-      projectId: state.project_id,
+      projectId: state?.project_id,
     });
   }
   const order = { critical: 0, warning: 1, info: 2 };
-  return items.sort((a, b) => order[a.severity] - order[b.severity] || a.id.localeCompare(b.id));
+  const unique = [...new Map(items.map((item) => [item.id, item])).values()];
+  return unique.sort(
+    (a, b) => order[a.severity] - order[b.severity] || a.id.localeCompare(b.id),
+  );
 }
 
 export function companionMood(
@@ -97,14 +100,21 @@ export function companionMood(
   if (offline || !state) return 'offline';
   if (attention.some((item) => item.severity === 'critical')) return 'critical';
   if (attention.length > 0) return 'attention';
-  if (state.agents.some((agent) => agent.status.toUpperCase() === 'WORKING') ||
-      state.missions.some((mission) => !TERMINAL.test(mission.state))) return 'working';
+  if (
+    state.agents.some((agent) => agent.status.toUpperCase() === 'WORKING') ||
+    state.missions.some((mission) => !TERMINAL.test(mission.state))
+  ) {
+    return 'working';
+  }
   return 'idle';
 }
 
 export const COMPANION_DISMISS_KEY = 'iapro:nexus:companion:snooze:v1';
 const MAX_SNOOZED = 80;
-export function readCompanionSnoozes(storage: Pick<Storage, 'getItem'>, now = Date.now()): Record<string, number> {
+export function readCompanionSnoozes(
+  storage: Pick<Storage, 'getItem'>,
+  now = Date.now(),
+): Record<string, number> {
   try {
     const raw = JSON.parse(storage.getItem(COMPANION_DISMISS_KEY) || '{}') as unknown;
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
@@ -128,9 +138,10 @@ export function snoozeCompanionAttention(
   if (id.length > 200) return;
   const entries = readCompanionSnoozes(storage, now);
   entries[id] = now + durationMs;
-  storage.setItem(COMPANION_DISMISS_KEY, JSON.stringify(
-    Object.fromEntries(Object.entries(entries).slice(-MAX_SNOOZED)),
-  ));
+  storage.setItem(
+    COMPANION_DISMISS_KEY,
+    JSON.stringify(Object.fromEntries(Object.entries(entries).slice(-MAX_SNOOZED))),
+  );
 }
 
 export function nextCompanionBubble(
