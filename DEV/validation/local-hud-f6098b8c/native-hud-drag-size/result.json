@@ -1,0 +1,102 @@
+{
+  "date": "2026-10-21",
+  "source_sha": "f6098b8c684a97bf7e8e56804109ca491c78cfa2",
+  "version": "1.0.0-beta.10",
+  "worktree": "C:\\Dev\\nexus-hud-validation",
+  "committed": false,
+  "environment": {
+    "os": "Windows 11 Home Single Language",
+    "os_build": "10.0.26200",
+    "arch": "x64",
+    "display_scale": 1,
+    "go": "1.25.14",
+    "bun": "1.3.9",
+    "node": "24.21.0",
+    "webview2": "155.0.4283.62"
+  },
+  "binary": ".tmp/homolog/bin/nexus-hud-diag-v3.exe",
+  "single_instance_id": "com.iapro.nexus.hud.homolog.v3",
+  "first_paint": {
+    "left": 1688,
+    "top": 964,
+    "width": 220,
+    "height": 60,
+    "result": "PASS"
+  },
+  "presets": {
+    "sequence": ["220x60", "334x496", "380x560", "440x640", "334x496", "220x60"],
+    "compact": { "compact": "220x60", "expanded": "334x496" },
+    "comfortable": { "compact": "260x70", "expanded": "380x560" },
+    "large": { "compact": "320x84", "expanded": "440x640" },
+    "anchor": "bottom-right preserved",
+    "result": "PASS"
+  },
+  "drag": {
+    "before": { "left": 1516, "top": 866, "width": 260, "height": 70 },
+    "after": { "left": 1372, "top": 758, "width": 260, "height": 70 },
+    "requested": { "x": -160, "y": -120 },
+    "moved": { "x": -144, "y": -108 },
+    "result": "PASS"
+  },
+  "keyboard": {
+    "arrow_right": { "before": 1372, "after": 1388, "delta": 16 },
+    "shift_arrow_right": { "before": 1420, "after": 1484, "delta": 64 },
+    "result": "PASS"
+  },
+  "restart": {
+    "preset": "comfortable",
+    "left": 1516,
+    "top": 866,
+    "width": 260,
+    "height": 70,
+    "result": "PASS"
+  },
+  "automated_tests": {
+    "go_desktop": "PASS",
+    "go_vet": "PASS",
+    "web_quality": "PASS",
+    "web_test_files": 93,
+    "web_tests": 578,
+    "web_build": "PASS",
+    "hud_build": "PASS"
+  },
+  "final_rebuild": {
+    "date": "2026-10-21",
+    "binary": ".tmp/homolog/bin/nexus-hud-diag-v4.exe",
+    "binary_sha256": "ae64668c16eedbacabc9f91eb0b05a8a3cb6f28f37800ed59a961e4aa5d49674",
+    "single_instance_id": "com.iapro.nexus.hud.homolog.v4",
+    "reason": "rebuild after removing dead popover rule and hardening availablePresets; prettier reflow applied to NexusHud.tsx",
+    "initial": { "left": 1484, "top": 758, "width": 260, "height": 70 },
+    "expanded": { "left": 1364, "top": 268, "width": 380, "height": 560 },
+    "presets": {
+      "sequence": ["260x70", "380x560", "334x496", "380x560", "440x640", "334x496", "220x60"],
+      "result": "PASS"
+    },
+    "drag": {
+      "before": { "left": 1524, "top": 768, "width": 220, "height": 60 },
+      "after": { "left": 1392, "top": 680, "width": 220, "height": 60 },
+      "handle": { "left": 1532, "top": 778, "width": 24, "height": 42 },
+      "requested": { "x": -144, "y": -96 },
+      "moved": { "x": -132, "y": -88 },
+      "result": "PASS"
+    },
+    "restart": {
+      "preset": "compact",
+      "left": 1524,
+      "top": 768,
+      "width": 220,
+      "height": 60,
+      "result": "PASS"
+    },
+    "web_quality_after_prettier_fix": "PASS",
+    "go_desktop": "PASS",
+    "go_vet": "PASS",
+    "hud_build": "PASS",
+    "web_build": "PASS"
+  },
+  "not_tested": ["Linux amd64", "macOS arm64", "keyboard movement on the v4 rebuild"],
+  "blocked": {
+    "docs_verify": "uncommitted visual changes in the working tree"
+  },
+  "release_claim": "none"
+}

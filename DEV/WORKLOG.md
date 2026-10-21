@@ -1,5 +1,13 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-21 — PR #54 revisado, aprovado e instalado no host
+
+- PR #54 (`fix/issue-53-windows-agent-startup`, head `3e140c52`, base `f6098b8c`) revisado em worktree isolado `C:\Dev\nexus-pr54`, sem merge, commit ou push.
+- Evidência executada: `go vet` nos seis pacotes afetados PASS; `go test -count=1 -timeout=20m ./...` PASS (exit 0) com `USERPROFILE`/`HOME`/`TEMP` isolados; builds Windows amd64 de `cmd/nexus` e `cmd/nexus-desktop` PASS; `version --json` = `1.0.0-beta.10` / `3e140c52`.
+- Review de aprovação publicado no GitHub (`APPROVED`, `kivervinicius`) com as ressalvas de CI: certificações nativas `skipped` e `Sanitize self-hosted workspace` `queued`; smoke interativo de Codex/OpenCode não repetido para não consumir credenciais reais.
+- Instalação: `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe` + `ai.exe` (SHA-256 `4cb4a311537d61f9e917fdb3058227786ede4509dfc2bca1ad8a363349ae61ed`) e `nexus-desktop.exe`; backup anterior em `%TEMP%\nexus-backup-pr54-20261021\`. Servidor reiniciado (PID novo) com HTTP 200 em `127.0.0.1:13000` e `nexus ps --json` vazio antes da troca.
+- `nexus-hud.exe` instalado **não** foi trocado; o slice de HUD segue como evidência isolada em `.tmp/homolog/bin/nexus-hud-diag-v4.exe`.
+
 ## 2026-10-20 — Homologação Independente Integral e Fechamento Multiplataforma (Linux & Windows)
 
 - **Missão:** Homologação integral e independente do Nexus 1.0.0 na branch `release/v1.0.0` com certificação contínua de gates no Linux e GitHub Actions Windows runner.
@@ -5415,3 +5423,17 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - 2026-10-17: diagnostiquei o timeout Go. Três testes de integração de delivery falharam com `fatal: '' too big` por TEMP profundamente aninhado. Os três passaram em D:\nxt; internal/nexus completo passou (292,3s) e go test -count=1 -v ./... passou em 414,8s. Ajustei homologate-beta.ps1 para criar TEMP curto na raiz da unidade do checkout. Tudo em D:, sem mexer em env persistente; correção ainda não commitada e requer harness limpo no novo SHA.
 
 - 2026-10-17: commits locais: `32dc7fa5` corrige temp Windows curto no harness; `976e3b53` sincroniza restauração de foco sem relaxar assert; `984c2b0f` amplia regressões de PATH. HEAD `984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17`; origin permaneceu `6552f3d0b834`. Refresh documental oficial e harness final ainda pendentes.
+
+## HUD nativo: arraste e presets de tamanho — 2026-10-21
+
+- Worktree `C:\Dev\nexus-hud-validation`, branch `release/v1.0.0`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, `VERSION=1.0.0-beta.10`; nenhum commit, push, merge, tag ou release.
+- Causa do bloqueio de arraste: o CSS nativo forçava `--wails-draggable: no-drag` na cápsula e em todos os filhos para preservar o clique de abrir/fechar. A solução separa as intenções: clique no corpo, arraste por alça dedicada de 24 px e pelo cabeçalho do popover.
+- Backend: `HUDWindowState` ganhou dimensões compacta/expandida, `GetHUDSizePresets`, `SetHUDSizePreset` e `MoveHUD`; presets `compact` 220×60/334×496, `comfortable` 260×70/380×560 e `large` 320×84/440×640. A troca preserva a âncora inferior direita e persiste em `hud-window-state.json`.
+- Primeiro paint: `RestoreHUDWindow` agora roda no primeiro `WindowShow` (via `sync.Once`), corrigindo a janela inicial de 190×48 que cortava a cápsula.
+- Frontend: controles de tamanho extraídos para `HudSizeControls.tsx`, rótulos localizados em pt-BR/en/es, alça de arraste com `aria-label` e movimento por setas (16 px; `Shift` = 64 px), toast de erro traduzido.
+- PASS — `tsc --noEmit`, ESLint, Stylelint e Prettier nos arquivos alterados; Vitest direcionado 37/37; `go test -count=1 ./internal/desktop -run HUD`; build Web e build Go do HUD.
+- PASS — UI Automation no Windows 11 `10.0.26200`, binário isolado `nexus-hud-diag-v3`, sequência real `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; arraste `-144,-108` px; seta direita `+16` px; `Shift`+seta `+64` px; reinício abriu em `260×70` na posição persistida.
+- PASS — rebuild final `nexus-hud-diag-v4.exe` (SHA-256 `ae64668c16eedbacabc9f91eb0b05a8a3cb6f28f37800ed59a961e4aa5d49674`) após remover regra morta de popover e reforçar `availablePresets`: Prettier exigiu reflow de `NexusHud.tsx`, `npm run quality` voltou a passar (93 arquivos/578 testes), `go vet`/`go test ./internal/desktop/...` PASS, builds Web/HUD PASS.
+- PASS — UI Automation no rebuild final: presets `260×70 → 380×560 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; alça `24×42`; arraste `-132,-88` px (pedido `-144,-96`); reinício abriu em `220×60` na posição persistida `1524,768`.
+- PASS — capturas nativas e JSON de automação em `.tmp/native-hud-uia-v4/`, `.tmp/native-hud-uia-v3/` e `.tmp/homolog/` (artefatos locais, não versionados).
+- BLOCKED — `docs-verify` continua `FAIL` por alterações visuais não commitadas no worktree (política do gate exige SHA imutável); nenhuma alegação de GO. Linux/macOS do HUD nativo permanecem `NOT_TESTED`.

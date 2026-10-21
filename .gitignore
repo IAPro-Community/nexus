@@ -52,6 +52,7 @@ profiles/
 .gemini/
 scratch/
 tmp/
+.tmp/
 .worktrees/
 .tempmediaStorage/
 /.omx/

@@ -1717,6 +1717,20 @@ Ciclo de correção e certificação da instalação local (branch
   exigem sessão nativa real (prompt em provider, admissão de Mission com
   Agent pinado, Certify/enforcement) permanecem a cargo do operador.
 
+## HUD nativo — arraste e presets de tamanho — 2026-10-21
+
+Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, sem commit/push.
+
+- **PASS** — `tsc --noEmit`, ESLint, Prettier e Stylelint nos arquivos do HUD; Vitest direcionado 37/37; `go test -count=1 ./internal/desktop -run HUD`; build Web e build Go do `nexus-hud`.
+- **PASS** — UI Automation em Windows 11 `10.0.26200`, binário isolado `nexus-hud-diag-v3` (execução anterior): presets medidos `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; nomes acessíveis `Compacto`, `Confortável`, `Grande` e `Arrastar HUD. Use as setas para mover.`; arraste real `-144,-108` px; seta direita `+16` px; `Shift`+seta `+64` px.
+- **PASS** — persistência: após escolher `comfortable` e recolher, o estado ficou `260×70`; após reiniciar o HUD no mesmo diretório de dados, abriu em `260×70` na posição persistida (`1516,866`).
+- **PASS** — primeiro paint: com estado limpo, o HUD abriu em `220×60` no canto inferior direito, sem o antigo mínimo `190×48`.
+- **PASS** — rebuild final (`nexus-hud-diag-v4.exe`, SHA-256 `ae64668c16eedbacabc9f91eb0b05a8a3cb6f28f37800ed59a961e4aa5d49674`): `npm run quality` no `web/` passou com 93 arquivos/578 testes após reflow de Prettier em `NexusHud.tsx`; `go vet ./internal/desktop ./cmd/nexus-hud` e `go test -count=1 ./internal/desktop/...` PASS; build Web e build Go do HUD PASS.
+- **PASS** — UI Automation no build final: presets medidos `260×70 → 380×560 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; alça acessível `24×42` com nome `Arrastar HUD. Use as setas para mover.`; arraste real `-132,-88` px (pedido `-144,-96`); reinício abriu em `220×60` na posição persistida `1524,768`.
+- **PASS** — teclado (setas `+16` px, `Shift`+seta `+64` px) validado no build `v3`; não repetido no rebuild `v4` porque o caminho de teclado não mudou.
+- **NOT_TESTED** — Linux e macOS do HUD nativo neste slice.
+- **BLOCKED** — `node scripts/docs-verify.mjs` falha por alterações visuais não commitadas em `web/src`/`internal/desktop`; o gate exige SHA imutável. Nenhum GO, tag ou release.
+
 <!-- frontend-verify:latest -->
 ## Frontend gate — 2026-10-17T18:34:42Z
 

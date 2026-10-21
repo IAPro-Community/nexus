@@ -1,5 +1,13 @@
 # Handoff
 
+## Handoff — PR #54 aprovado e instalado no host — 2026-10-21
+
+- **PR:** #54 `fix(agents): make clean Windows startup reliable`, head `3e140c52`, base `release/v1.0.0` em `f6098b8c`; issue #53.
+- **Review:** aprovado no GitHub por `kivervinicius` com evidência local: `go vet` (6 pacotes), `go test -count=1 -timeout=20m ./...` exit 0 em perfil isolado, builds `cmd/nexus` + `cmd/nexus-desktop`, e smoke de instalação.
+- **Instalação:** `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`/`ai.exe` com SHA-256 `4cb4a311537d61f9e917fdb3058227786ede4509dfc2bca1ad8a363349ae61ed`; `nexus-desktop.exe` atualizado; backup em `%TEMP%\nexus-backup-pr54-20261021\`. `version --json` = `1.0.0-beta.10` / `3e140c52`; HTTP 200 em `127.0.0.1:13000`.
+- **CI:** certificações nativas `skipped` e `Sanitize self-hosted workspace` `queued`; não há gate verde remoto. Nenhum merge, commit, push, tag ou release foi feito localmente.
+- **Não instalado:** o slice de HUD continua isolado em `.tmp/homolog/bin/nexus-hud-diag-v4.exe`; `nexus-hud.exe` instalado segue o build de 18/10/2026.
+
 ## Estado atual — homologação e certificação independente 1.0.0 — 2026-10-20
 
 - **Branch:** `release/v1.0.0`, SHA inicial `88094c2406c4f50ff4506bd9d8f63fce0428d328`, HEAD final homologado `7b152ea64e1e0757ee71ec02a77ec8127fbaf4e8`.
@@ -2293,3 +2301,15 @@ Project Hub validado em 775×483. Gate web completo, oito suítes Playwright e b
 Não declarar fechamento: o SHA pedido era d14154d2490dfdd3966c7fddc990a1d9127edd39; release/v1.0.0 e origin estão em 52f35c04181b85379219ab55fc3192c63a5440a8 e o worktree está dirty. Binários NotSigned e sem update trust root. O run Actions 37666126714 não foi revalidado (API anônima 404), e o instalador final não foi recompilado. A tag remota Beta 7 está ausente.
 
 A auditoria ao vivo não encontrou branch Beta 7 nova; a branch KIVER é ancestral da release. Quatro branches de terminal/testes com commits exclusivos permanecem para triagem. Nenhuma integração, commit, push, tag ou publicação foi feita. A certificação oficial precisa ocorrer num SHA imutável após seleção das mudanças e fechamento do runner/signing Windows.
+
+## Handoff — HUD nativo arraste/tamanhos — 2026-10-21
+
+Worktree `C:\Dev\nexus-hud-validation`, branch `release/v1.0.0`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, `VERSION=1.0.0-beta.10`, sem commit/push.
+
+O HUD nativo agora permite mover a janela por uma alça de arraste dedicada de 24 px (o corpo da cápsula continua abrindo/fechando o popover) e por setas (16 px; `Shift` = 64 px). O popover ganhou presets `Compacto` 220×60/334×496, `Confortável` 260×70/380×560 e `Grande` 320×84/440×640, persistidos em `hud-window-state.json`, com âncora inferior direita preservada. O primeiro show reaplica a geometria persistida, corrigindo o paint inicial em 190×48.
+
+Evidência local: UI Automation em Windows 11 `10.0.26200`, binário isolado `nexus-hud-diag-v3`; sequência de presets `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; arraste `-144,-108` px; seta `+16` px; `Shift`+seta `+64` px; reinício em `260×70` na posição persistida. Testes direcionados: Go HUD PASS, Vitest 37/37, tsc/ESLint/Stylelint/Prettier PASS, builds Web/HUD PASS.
+
+**Fechamento (rebuild `v4`):** `nexus-hud-diag-v4.exe`, SHA-256 `ae64668c16eedbacabc9f91eb0b05a8a3cb6f28f37800ed59a961e4aa5d49674`, instância `com.iapro.nexus.hud.homolog.v4`. `npm run quality` voltou a PASS (93 arquivos/578 testes; Prettier reflow em `NexusHud.tsx`), `go vet`/`go test ./internal/desktop/...` PASS, builds Web/HUD PASS. Smoke: presets `260×70 → 380×560 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`, alça `24×42`, arraste `-132,-88` px e reinício em `220×60` (`1524,768`). Relatório e capturas em `DEV/validation/local-hud-f6098b8c/native-hud-drag-size/`.
+
+Pendências: Linux/macOS `NOT_TESTED`; `docs-verify` BLOCKED por alterações visuais não commitadas (gate exige SHA imutável); falta validar o SHA final, assinatura, instalador e matriz nativa completa. Não há tag, release ou GO.

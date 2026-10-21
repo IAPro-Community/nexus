@@ -3,6 +3,16 @@
 ## Estado atualizado — homologação beta.10 — 2026-10-17
 
 HEAD local `984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17` na `release/v1.0.0`; remoto `6552f3d0b834`. Três commits de remediação locais, sem push. Temp curto corrigiu os erros de worktree Git; suíte Go integral passou em 414,8s, exit 0. Golangci-lint pinned v2.12.2 passou em 5 min. Ainda faltam refresh oficial no SHA final, harness clean exact-SHA, NSIS, assinatura, Codex interativo, HUD e demais evidências externas. Veredito continua `NO_GO_WINDOWS`.
+## Slice concluído — HUD nativo arraste/tamanhos — 2026-10-21
+
+Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, sem commit/push. Entregue: alça de arraste nativa de 24 px (clique do corpo preservado), movimento por setas e presets persistentes `compact`/`comfortable`/`large`, com primeiro paint corrigido.
+
+Aceite final no rebuild `nexus-hud-diag-v4.exe` (SHA-256 `ae64668c…`): `npm run quality` PASS (93 arquivos/578 testes), `go vet`/`go test ./internal/desktop/...` PASS, presets e arraste medidos por UI Automation em Windows 11 `10.0.26200` (`-132,-88` px), reinício em `220×60` na posição persistida. Relatório: `DEV/validation/local-hud-f6098b8c/native-hud-drag-size/REPORT.md`. Linux/macOS `NOT_TESTED`; `docs-verify` `BLOCKED` por alterações visuais não commitadas. O slice **não** altera o veredito `NO_GO_WINDOWS` nem autoriza tag/release.
+
+## Contexto de ambiente — PR #54 instalado no host — 2026-10-21
+
+`%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe` e `ai.exe` correspondem ao head do PR #54 (`3e140c52`, SHA-256 `4cb4a311…`), aprovado no GitHub e sem merge local. O `nexus-hud.exe` instalado não foi trocado; o slice de HUD permanece isolado em `.tmp/homolog/bin/nexus-hud-diag-v4.exe`.
+
 ## Contrato ativo — remediação/homologação Windows beta.10 — 2026-10-17
 
 Escopo corrente é o plano `DEV/validation/current/WINDOWS_BETA10_CODEX_LOCAL_REMEDIATION_20261016.md`.
