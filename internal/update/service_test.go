@@ -99,6 +99,26 @@ func TestServiceCheckAndApply(t *testing.T) {
 		Size:   int64(len(testData)),
 		SHA256: shaHex,
 	}
+	// A signed manifest may provide a separate native installer for Desktop/HUD.
+	// It must not be substituted for the CLI artifact used by Apply.
+	var installerKey string
+	var installerType ArtifactTarget
+	switch runtime.GOOS {
+	case "windows":
+		installerKey, installerType = target+"_nsis", TargetNSIS
+	case "darwin":
+		installerKey, installerType = target+"_pkg", TargetPKG
+	case "linux":
+		installerKey, installerType = target+"_deb", TargetDEB
+	}
+	if installerKey != "" {
+		manifest.Artifacts[installerKey] = Artifact{
+			URL:    "https://github.com/IAPro-Community/nexus/releases/download/channel-stable/installer",
+			Size:   int64(len(testData)),
+			SHA256: shaHex,
+			Target: installerType,
+		}
+	}
 	manifestBytes, _ = json.Marshal(manifest)
 	sigHex = hex.EncodeToString(ed25519.Sign(priv, manifestBytes))
 
@@ -127,6 +147,13 @@ func TestServiceCheckAndApply(t *testing.T) {
 	}
 	if res.LatestVersion != "1.0.1" {
 		t.Fatalf("expected latest version 1.0.1, got %s", res.LatestVersion)
+	}
+	if installerKey != "" && (res.InstallerArtifact == nil ||
+		res.InstallerArtifact.Target != installerType) {
+		t.Fatalf("signed native installer not detected: %+v", res.InstallerArtifact)
+	}
+	if res.TargetArtifact == nil || res.TargetArtifact.Target != "" {
+		t.Fatalf("CLI target must remain the CLI, not the native installer: %+v", res.TargetArtifact)
 	}
 
 	receipt, err := svc.Apply(context.Background())
