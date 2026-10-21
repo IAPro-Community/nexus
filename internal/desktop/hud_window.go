@@ -287,6 +287,15 @@ func (h *HUDController) GetHUDExpanded() bool {
 	return h.expanded
 }
 
+// NotifyHUDPopupHidden keeps the controller in sync when the OS dismisses the
+// popup (for example Escape). It intentionally does not call Hide again:
+// WindowHide must never recurse into itself.
+func (h *HUDController) NotifyHUDPopupHidden() {
+	if h.detached {
+		h.setHUDExpandedState(false)
+	}
+}
+
 func (h *HUDController) setHUDExpandedState(expanded bool) {
 	h.mu.Lock()
 	h.expanded = expanded
