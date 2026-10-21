@@ -3,6 +3,7 @@ package update
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -176,7 +177,7 @@ func (s *Service) Check(ctx context.Context) (*CheckResult, error) {
 
 	if compareVersions(manifest.Version, s.currentVer) > 0 ||
 		(s.channel == "beta" && compareVersions(manifest.Version, s.currentVer) == 0 &&
-			isNewerSignedBetaSHA(s.currentSHA, manifest.SourceSHA)) {
+			s.isNewerSignedBetaCommit(ctx, s.currentSHA, manifest.SourceSHA)) {
 		res.UpdateAvailable = true
 		art := manifest.Artifacts[target]
 		res.TargetArtifact = &art
@@ -206,26 +207,51 @@ func (s *Service) Check(ctx context.Context) (*CheckResult, error) {
 	return res, nil
 }
 
-// isNewerSignedBetaSHA recognizes rolling beta builds with the same semantic
-// version. A known 7+ character build commit and a verified full manifest
-// object ID are required. Local "dev"/"unknown" binaries do not qualify.
-func isNewerSignedBetaSHA(current, signed string) bool {
+// isNewerSignedBetaCommit only accepts a same-version beta when the signed
+// source commit is a strict descendant of the running binary's commit.
+// Hash inequality alone does not establish release order. A failed GitHub
+// ancestry lookup fails closed: users can still upgrade via a greater SemVer.
+func (s *Service) isNewerSignedBetaCommit(ctx context.Context, current, signed string) bool {
 	current = strings.ToLower(strings.TrimSpace(current))
 	signed = strings.ToLower(strings.TrimSpace(signed))
-	if len(current) < 7 || (len(signed) != 40 && len(signed) != 64) ||
-		current == "unknown" || current == "dev" {
+	// Git SHA-1 repository: GitHub's compare endpoint requires full, signed
+	// target identity; the embedded source may use a shortened commit ID.
+	if len(current) < 7 || len(current) > 40 || len(signed) != 40 {
 		return false
 	}
-	// Git's --short output often has an odd number of hexadecimal digits.
-	for _, digit := range current {
-		if !strings.ContainsRune("0123456789abcdef", digit) {
-			return false
+	for _, sha := range []string{current, signed} {
+		for _, digit := range sha {
+			if !strings.ContainsRune("0123456789abcdef", digit) {
+				return false
+			}
 		}
 	}
-	if _, err := hex.DecodeString(signed); err != nil {
+	if strings.HasPrefix(signed, current) {
 		return false
 	}
-	return !strings.HasPrefix(signed, current) && !strings.HasPrefix(current, signed)
+	endpoint := "https://api.github.com/repos/IAPro-Community/nexus/compare/" + current + "..." + signed
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return false
+	}
+	request.Header.Set("Accept", "application/vnd.github+json")
+	response, err := s.httpClient.Do(request)
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return false
+	}
+	var result struct {
+		Status   string `json:"status"`
+		AheadBy  int    `json:"ahead_by"`
+		BehindBy int    `json:"behind_by"`
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 16<<10)).Decode(&result); err != nil {
+		return false
+	}
+	return result.Status == "ahead" && result.AheadBy > 0 && result.BehindBy == 0
 }
 
 // Apply downloads, verifies, and installs the update when permitted by InstallationMethod.
@@ -259,6 +285,14 @@ func (s *Service) Apply(ctx context.Context) (*Receipt, error) {
 
 	if err := manifest.Validate(policy); err != nil {
 		return nil, fmt.Errorf("manifest policy rejected: %w", err)
+	}
+	// Apply must enforce the same update eligibility as Check. Otherwise
+	// running "nexus update" directly could replace a newer build with an
+	// older signed beta carrying an unchanged semantic version.
+	versionOrder := compareVersions(manifest.Version, s.currentVer)
+	if versionOrder <= 0 && !(versionOrder == 0 && s.channel == "beta" &&
+		s.isNewerSignedBetaCommit(ctx, s.currentSHA, manifest.SourceSHA)) {
+		return nil, ErrNoUpdateAvailable
 	}
 
 	art, ok := manifest.Artifacts[target]
