@@ -7,6 +7,10 @@ HUD="$1"
 OUT="$2"
 CYCLES=20
 if [ "$#" -ge 3 ]; then CYCLES="$3"; fi
+if ! [[ "$CYCLES" =~ ^[0-9]+$ ]] || (( CYCLES < 1 || CYCLES > 50 )); then
+  echo "CYCLES must be between 1 and 50" >&2
+  exit 2
+fi
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -16,7 +20,7 @@ REASON=''
 DONE=0
 PID=''
 report() {
-  HUD_SHA="$SHA" HUD_RESULT="$RESULT" HUD_REASON="$REASON" HUD_DONE="$DONE" HUD_CYCLES="$CYCLES" HUD_BINARY_SHA="$(shasum -a 256 "$HUD" | awk '{print $1}')" \
+  HUD_SHA="$SHA" HUD_RESULT="$RESULT" HUD_REASON="$REASON" HUD_DONE="$DONE" HUD_CYCLES="$CYCLES" HUD_BINARY_SHA="$(shasum -a 256 "$HUD" 2>/dev/null | awk '{print $1}' || true)" \
   python3 - "$OUT/HUD_NATIVE_RESULTS.json" <<'PY'
 import json,os,sys
 data={"sha":os.getenv("HUD_SHA"),"platform":"darwin","type":"native_interactive_mouse",
