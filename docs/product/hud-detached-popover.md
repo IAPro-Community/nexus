@@ -68,10 +68,23 @@ aparecer fora da área visível.
 6. Em Linux Wayland, verificar que a variável não força o modo
    separado; manter a cápsula legada.
 
-Os scripts existentes de `homologate-hud-native-*.{sh,ps1}`
-testam a geometria do modo **legado** e não certificam
-automaticamente o modo separado. Eles precisam ser estendidos
-para conferir duas janelas em vez de esperar crescimento da cápsula.
+No Windows, o script nativo já possui um gate interativo específico:
+
+```powershell
+$sha = (git rev-parse HEAD).Trim()
+.\scripts\homologate-hud-native-windows.ps1 `
+  -HudExe (Resolve-Path '.\cmd\nexus-hud\build\bin\nexus-hud.exe').Path `
+  -EvidenceDirectory (Join-Path $PWD 'hud-evidence/windows-detached') `
+  -ExpectedSha $sha -Cycles 20 -Detached
+```
+
+Esse gate exige que a cápsula permaneça compacta, localiza a segunda
+janela pelo seu título nativo, abre/fecha 20 vezes e captura a janela real.
+Ainda requer sessão desktop e revisão humana da transparência.
+
+Os scripts Linux/macOS `homologate-hud-native-*.sh` continuam cobrindo
+a geometria **legada**, não certificam automaticamente o popup separado;
+adaptações equivalentes e execução nativa permanecem obrigatórias.
 
 **Critério de merge:** sem GO nativo, manter PR em Draft. A
 implementação não corrige, por si só, click-through de pixels
