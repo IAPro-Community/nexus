@@ -9,11 +9,11 @@ import (
 
 func TestHUDWindowOptionsTransparentChromeAcrossPlatforms(t *testing.T) {
 	state := desktop.HUDWindowState{
-		X: 171,
-		Y: 319,
-		Width: 260,
-		Height: 70,
-		AlwaysOnTop: true,
+		X:           171,
+		Y:           319,
+		Width:       260,
+		Height:      70,
+		AlwaysOnTop:    true,
 	}
 	got := hudWindowOptions(state)
 
@@ -44,12 +44,12 @@ func TestHUDWindowOptionsTransparentChromeAcrossPlatforms(t *testing.T) {
 
 func TestHUDWindowOptionsPreserveUserChoices(t *testing.T) {
 	state := desktop.HUDWindowState{
-		X: 500,
-		Y: 200,
-		Width: 320,
-		Height: 84,
+		X:           500,
+		Y:           200,
+		Width:       320,
+		Height:      84,
 		AlwaysOnTop: false,
-		AutoHide: true,
+		AutoHide:    true,
 	}
 	got := hudWindowOptions(state)
 	if got.AlwaysOnTop || !got.HideOnEscape || got.Width != 320 || got.Height != 84 {
@@ -62,13 +62,13 @@ func TestHUDWindowOptionsPreserveUserChoices(t *testing.T) {
 
 func TestDetachedHUDWindowOptionsStartHiddenWithSeparateRoute(t *testing.T) {
 	state := desktop.HUDWindowState{
-		X: 900,
-		Y: 700,
-		Width: 220,
-		Height: 60,
-		CompactWidth: 220,
-		CompactHeight: 60,
-		ExpandedWidth: 380,
+		X:              900,
+		Y:              700,
+		Width:          220,
+		Height:         60,
+		CompactWidth:   220,
+		CompactHeight:  60,
+		ExpandedWidth:  380,
 		ExpandedHeight: 560,
 		AlwaysOnTop: true,
 	}
