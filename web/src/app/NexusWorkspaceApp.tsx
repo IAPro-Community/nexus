@@ -742,6 +742,8 @@ const WorkspaceCoordinator: React.FC<{
         keywords: ['account', 'profile', 'model', 'scheduler', 'ai'],
         run: openNewAISession,
       },
+      ...(listSurfaces(workspace.model.root).filter(isPtySurface).length >= 2
+        ? [
       {
         id: 'split-terminals-vertical',
         kind: 'action' as const,
@@ -766,6 +768,8 @@ const WorkspaceCoordinator: React.FC<{
           openKind('terminals');
         },
       },
+        ]
+        : []),
       {
         id: 'resources',
         kind: 'resource' as const,
@@ -909,6 +913,7 @@ const WorkspaceCoordinator: React.FC<{
       data.agents,
       data.projects,
       setProject,
+      workspace.model.root,
       executionRoles,
       activeAgentRuntimeId,
       flowRuns,
