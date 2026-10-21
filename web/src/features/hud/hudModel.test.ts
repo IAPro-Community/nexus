@@ -103,5 +103,8 @@ describe('HUD presentation model', () => {
     expect(normalized.surfaceMode).toBe('docked');
     expect(normalized.version).toBe(1);
     expect(defaultHudPreferences.enabled).toBe(false);
+    expect(normalized.appearance).toBe('bar');
+    expect(normalizeHudPreferences({ appearance: 'companion' }).appearance).toBe('companion');
+    expect(normalizeHudPreferences({ appearance: 'invalid' as never }).appearance).toBe('bar');
   });
 });
