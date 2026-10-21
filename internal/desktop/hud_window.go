@@ -585,7 +585,13 @@ func (h *HUDController) MoveHUD(dx, dy int) error {
 	}
 	window.SetPosition(state.X, state.Y)
 	state.Placement = HUDPlacementCustom
-	return h.manager.Save(state)
+	if err := h.manager.Save(state); err != nil {
+		return err
+	}
+	if h.detached && h.GetHUDExpanded() {
+		return h.positionDetachedHUDPopup(window)
+	}
+	return nil
 }
 
 func resolveHUDSizePreset(preset string) (HUDSizePreset, bool) {
