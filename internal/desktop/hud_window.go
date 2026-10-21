@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	HUDPopupWindowName       = "Nexus HUD Popup"
 	HUDPlacementTopLeft      = "TOP_LEFT"
 	HUDPlacementTopCenter    = "TOP_CENTER"
 	HUDPlacementTopRight     = "TOP_RIGHT"
@@ -253,13 +254,75 @@ type HUDController struct {
 	manager *HUDWindowStateManager
 	caps    HUDPlatformCapabilities
 	ready   bool
+	// Detached mode is configured at process startup and is never toggled
+	// from the browser. The legacy single-window path remains the fallback.
+	detached bool
+	expanded bool
 }
 
 func NewHUDController(manager *HUDWindowStateManager) *HUDController {
+	return NewHUDControllerWithDetachedPopover(manager, false)
+}
+
+// NewHUDControllerWithDetachedPopover enables a second Wails window without
+// altering the legacy HUD when the feature is disabled. Wayland has no portable
+// global positioning protocol, so the split mode remains disabled there.
+func NewHUDControllerWithDetachedPopover(manager *HUDWindowStateManager, detached bool) *HUDController {
 	if manager == nil {
 		manager = NewHUDWindowStateManager("")
 	}
-	return &HUDController{manager: manager, caps: DefaultHUDPlatformCapabilities()}
+	if runtime.GOOS == "linux" && hudSession() == "wayland" {
+		detached = false
+	}
+	return &HUDController{manager: manager, caps: DefaultHUDPlatformCapabilities(), detached: detached}
+}
+
+func (h *HUDController) GetHUDDetachedPopoverEnabled() bool {
+	return h.detached
+}
+
+func (h *HUDController) GetHUDExpanded() bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.expanded
+}
+
+// NotifyHUDPopupHidden keeps the controller in sync when the OS dismisses the
+// popup (for example Escape). It intentionally does not call Hide again:
+// WindowHide must never recurse into itself.
+func (h *HUDController) NotifyHUDPopupHidden() {
+	if h.detached {
+		h.setHUDExpandedState(false)
+	}
+}
+
+func (h *HUDController) setHUDExpandedState(expanded bool) {
+	h.mu.Lock()
+	h.expanded = expanded
+	h.mu.Unlock()
+}
+
+// closeDetachedHUD is called on popup focus loss. It must never collapse or
+// hide the compact capsule, even if auto-hide is configured.
+func (h *HUDController) closeDetachedHUD() {
+	if !h.detached {
+		return
+	}
+	h.setHUDExpandedState(false)
+	if popup, ok := h.detachedPopupWindow(); ok {
+		popup.Hide()
+	}
+}
+
+func (h *HUDController) detachedPopupWindow() (application.Window, bool) {
+	if !h.detached {
+		return nil, false
+	}
+	app := application.Get()
+	if app == nil {
+		return nil, false
+	}
+	return app.Window.GetByName(HUDPopupWindowName)
 }
 
 func (h *HUDController) nativeWindow() (application.Window, bool) {
@@ -276,7 +339,9 @@ func (h *HUDController) ServiceStartup(_ context.Context, _ application.ServiceO
 	h.mu.Unlock()
 	if window, ok := h.nativeWindow(); ok {
 		window.OnWindowEvent(events.Common.WindowLostFocus, func(_ *application.WindowEvent) {
-			if h.manager.Load().AutoHide {
+			// Switching focus from capsule to its detached popup must not
+			// make the capsule disappear.
+			if h.manager.Load().AutoHide && !h.GetHUDExpanded() {
 				_ = h.CaptureHUDWindowState()
 				window.Hide()
 			}
@@ -287,6 +352,7 @@ func (h *HUDController) ServiceStartup(_ context.Context, _ application.ServiceO
 }
 
 func (h *HUDController) ServiceShutdown() error {
+	h.closeDetachedHUD()
 	_ = h.CaptureHUDWindowState()
 	h.mu.Lock()
 	h.ready = false
@@ -409,6 +475,9 @@ func (h *HUDController) CaptureHUDWindowState() error {
 }
 
 func (h *HUDController) SetHUDExpanded(expanded bool) error {
+	if h.detached {
+		return h.setHUDDetachedExpanded(expanded)
+	}
 	window, ok := h.nativeWindow()
 	if !ok {
 		// The React popup must not be marked expanded inside a 220x60 window.
@@ -457,6 +526,9 @@ func (h *HUDController) GetHUDSizePresets() []HUDSizePreset {
 // SetHUDSizePreset persists and applies a named geometry while keeping the
 // bottom-right anchor stable. It is used by the native HUD settings surface.
 func (h *HUDController) SetHUDSizePreset(preset string, expanded bool) error {
+	if h.detached {
+		return h.setDetachedHUDSizePreset(preset)
+	}
 	window, ok := h.nativeWindow()
 	if !ok {
 		return fmt.Errorf("native Nexus HUD window is unavailable")
@@ -513,7 +585,13 @@ func (h *HUDController) MoveHUD(dx, dy int) error {
 	}
 	window.SetPosition(state.X, state.Y)
 	state.Placement = HUDPlacementCustom
-	return h.manager.Save(state)
+	if err := h.manager.Save(state); err != nil {
+		return err
+	}
+	if h.detached && h.GetHUDExpanded() {
+		return h.positionDetachedHUDPopup(window)
+	}
+	return nil
 }
 
 func resolveHUDSizePreset(preset string) (HUDSizePreset, bool) {
@@ -532,6 +610,7 @@ func (h *HUDController) SetHUDAutoHide(enabled bool) error {
 }
 
 func (h *HUDController) HideHUD() {
+	h.closeDetachedHUD()
 	_ = h.CaptureHUDWindowState()
 	if window, ok := h.nativeWindow(); ok {
 		window.Hide()

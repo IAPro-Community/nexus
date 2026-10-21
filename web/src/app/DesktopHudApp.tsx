@@ -14,6 +14,9 @@ export const isDesktopHudApp = () => {
 export const DesktopHudApp: React.FC = () => {
   const { t } = useTranslation();
   const [ready, setReady] = useState(false);
+  const popupView =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('hudView') === 'popover';
   const [authenticated, setAuthenticated] = useState(false);
   const [autoStartSupported, setAutoStartSupported] = useState(false);
   const [autoStartEnabled, setAutoStartEnabled] = useState(false);
@@ -114,6 +117,7 @@ export const DesktopHudApp: React.FC = () => {
         ) : (
           <NexusHud
             native
+            nativeView={popupView ? 'popover' : 'capsule'}
             onOpenNexus={openNexus}
             nativeAutoStart={{
               supported: autoStartSupported,

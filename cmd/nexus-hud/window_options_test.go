@@ -59,3 +59,39 @@ func TestHUDWindowOptionsPreserveUserChoices(t *testing.T) {
 		t.Fatalf("native minimum exceeds user-selected compact size: %+v", got)
 	}
 }
+
+func TestDetachedHUDWindowOptionsStartHiddenWithSeparateRoute(t *testing.T) {
+	state := desktop.HUDWindowState{
+		X: 900,
+		Y: 700,
+		Width: 220,
+		Height: 60,
+		CompactWidth: 220,
+		CompactHeight: 60,
+		ExpandedWidth: 380,
+		ExpandedHeight: 560,
+		AlwaysOnTop: true,
+	}
+	capsule := hudWindowOptions(state)
+	popup := hudDetachedPopupOptions(state)
+	if capsule.Hidden || capsule.Name != desktop.HUDWindowName {
+		t.Fatalf("capsule should start visible and keep its existing native identity: %+v", capsule)
+	}
+	if !popup.Hidden || popup.Name != desktop.HUDPopupWindowName || popup.Name == capsule.Name {
+		t.Fatalf("detached popup must be independently named and initially hidden: %+v", popup)
+	}
+	if !popup.Windows.HiddenOnTaskbar {
+		t.Fatal("detached popup must not add a second Windows taskbar entry")
+	}
+	if popup.URL != "/?nativeHud=1&hudView=popover" || popup.Width != 380 || popup.Height != 560 {
+		t.Fatalf("detached popup must load independent React view at expanded size: %+v", popup)
+	}
+	if !popup.Frameless || popup.BackgroundType != application.BackgroundTypeTransparent ||
+		popup.BackgroundColour.Alpha != 0 || !popup.Windows.DisableFramelessWindowDecorations ||
+		!popup.Mac.DisableShadow || !popup.Linux.WindowIsTranslucent {
+		t.Fatalf("detached popup must preserve transparent chrome across platforms: %+v", popup)
+	}
+	if capsule.Width != 220 || capsule.Height != 60 {
+		t.Fatal("opening the popup must never enlarge the compact capsule")
+	}
+}

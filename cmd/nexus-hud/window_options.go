@@ -45,3 +45,19 @@ func hudWindowOptions(state desktop.HUDWindowState) application.WebviewWindowOpt
 		HideOnEscape:               state.AutoHide,
 	}
 }
+
+// hudDetachedPopupOptions reuses the exact same native transparency contract
+// as the capsule, but starts a distinct larger window hidden until clicked.
+func hudDetachedPopupOptions(state desktop.HUDWindowState) application.WebviewWindowOptions {
+	options := hudWindowOptions(state)
+	options.Name = desktop.HUDPopupWindowName
+	options.Title = desktop.HUDPopupWindowName
+	options.URL = "/?nativeHud=1&hudView=popover"
+	options.Width, options.Height = state.ExpandedWidth, state.ExpandedHeight
+	options.MinWidth, options.MinHeight = 280, 240
+	options.Hidden = true
+	// This transient popup should not create a second Windows taskbar icon.
+	options.Windows.HiddenOnTaskbar = true
+	options.HideOnEscape = true
+	return options
+}
