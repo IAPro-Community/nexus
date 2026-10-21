@@ -46,7 +46,10 @@ func main() {
 		SessionToken: backend.Session.ID,
 		CSRFToken:    backend.Session.CSRFToken,
 	})
-	hudController := desktop.NewHUDController(stateManager)
+	// Detached popover is opt-in until real native input/focus tests pass on
+	// Windows, macOS and Linux X11. Wayland retains the legacy single window.
+	detachedRequested := os.Getenv("NEXUS_HUD_DETACHED_POPOVER") == "1"
+	hudController := desktop.NewHUDControllerWithDetachedPopover(stateManager, detachedRequested)
 
 	var window application.Window
 
@@ -91,6 +94,28 @@ func main() {
 	})
 
 	window = native.Window.NewWithOptions(hudWindowOptions(windowState))
+	if hudController.GetHUDDetachedPopoverEnabled() {
+		// The popup is a second native Wails window in this same process. Its
+		// WebView has its own React tree but shares the authenticated Core.
+		popupOptions := hudWindowOptions(windowState)
+		popupOptions.Name = desktop.HUDPopupWindowName
+		popupOptions.Title = desktop.HUDPopupWindowName
+		popupOptions.URL = "/?nativeHud=1&hudView=popover"
+		popupOptions.Width, popupOptions.Height = windowState.ExpandedWidth, windowState.ExpandedHeight
+		popupOptions.MinWidth, popupOptions.MinHeight = 280, 240
+		popupOptions.Hidden = true
+		popupOptions.HideOnEscape = true
+		popup := native.Window.NewWithOptions(popupOptions)
+		popup.OnWindowEvent(events.Common.WindowLostFocus, func(*application.WindowEvent) {
+			// Outside click dismisses only the popup, not the capsule.
+			_ = hudController.SetHUDExpanded(false)
+		})
+		popup.OnWindowEvent(events.Common.WindowHide, func(*application.WindowEvent) {
+			// Sync controller state after ESC/native hide; the capsule polls
+			// this state so aria-expanded never remains stuck at true.
+			_ = hudController.SetHUDExpanded(false)
+		})
+	}
 	desktop.ConfigureNativeTray(native, window, "Nexus HUD")
 
 	// ServiceStartup can run before the native window exists, which left the
