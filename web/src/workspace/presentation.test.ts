@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   commitMosaicMove,
   createPresentationState,
+  normalizeTerminalSplitRatio,
+  resolveTerminalSplitViews,
+  setTerminalSplitOrientation,
+  setTerminalSplitRatio,
+  setTerminalSplitSecondary,
+  setActivePtyView,
+  migratePresentationState,
   focusDesktopWindow,
   migratePresentationState,
   mosaicDropTargetViewId,
@@ -428,5 +435,35 @@ describe('workspace presentation', () => {
 
     const migrated = migratePresentationState({ ...state, zenMode: true });
     expect(migrated.zenMode).toBe(true);
+  });
+});
+
+describe('persistent PTY split mode', () => {
+  it('migrates older layouts without losing terminal modes', () => {
+    const old = createPresentationState('TABS');
+    const migrated = migratePresentationState({ ...old, splitRatio: undefined, splitOrientation: undefined });
+    expect(migrated.mode).toBe('TABS');
+    expect(migrated.splitRatio).toBe(0.5);
+    expect(migrated.splitOrientation).toBe('vertical');
+  });
+  it('persists orientation, secondary identity and bounded ratio', () => {
+    let state = syncDesktopWindows(createPresentationState('SPLIT'), [surface('a'), surface('b')]);
+    state = setTerminalSplitOrientation(state, 'horizontal');
+    state = setTerminalSplitRatio(state, 0.72);
+    state = setTerminalSplitSecondary(state, 'view:a');
+    state = setActivePtyView(state, 'view:b');
+    const restored = migratePresentationState(JSON.parse(JSON.stringify(state)));
+    expect(restored.splitOrientation).toBe('horizontal');
+    expect(restored.splitRatio).toBe(0.72);
+    expect(resolveTerminalSplitViews(restored, ['view:a', 'view:b'])).toEqual({
+      primary: 'view:b', secondary: 'view:a',
+    });
+    expect(normalizeTerminalSplitRatio(9)).toBe(0.8);
+    expect(normalizeTerminalSplitRatio(Number.NaN)).toBe(0.5);
+  });
+  it('never displays missing or duplicate PTY view IDs', () => {
+    const state = { ...createPresentationState('SPLIT'), activePtyViewId: 'b', splitSecondaryViewId: 'b' };
+    expect(resolveTerminalSplitViews(state, ['a', 'b'])).toEqual({ primary: 'b', secondary: 'a' });
+    expect(resolveTerminalSplitViews(state, ['a'])).toEqual({ primary: 'a', secondary: '' });
   });
 });

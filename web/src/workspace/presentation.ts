@@ -6,7 +6,8 @@ import {
   type ArrangeBounds,
 } from './arrange';
 
-export type WorkspacePresentationMode = 'TABS' | 'DESKTOP' | 'MOSAIC';
+export type WorkspacePresentationMode = 'TABS' | 'DESKTOP' | 'MOSAIC' | 'SPLIT';
+export type TerminalSplitOrientation = 'vertical' | 'horizontal';
 
 export interface DesktopWindowState {
   viewId: string;
@@ -59,6 +60,10 @@ export interface WorkspacePresentationState {
   tiled: boolean;
   /** viewId of the PTY the user is viewing (inner tabs or desktop focus). */
   activePtyViewId: string;
+  /** Two existing PTYs; layout only, never duplicates or starts a runtime. */
+  splitSecondaryViewId: string;
+  splitOrientation: TerminalSplitOrientation;
+  splitRatio: number;
   /** Last layout preset chosen from Arranjar / keyboard palette. */
   lastArrangePreset: LastArrangePreset;
   /** Last floating layout while in DESKTOP (restored when leaving mosaic/tabs). */
@@ -117,6 +122,9 @@ export function createPresentationState(
     canvas,
     tiled: mode === 'MOSAIC',
     activePtyViewId: '',
+    splitSecondaryViewId: '',
+    splitOrientation: 'vertical',
+    splitRatio: 0.5,
     lastArrangePreset: 'automatic',
     desktopLayout: emptyLayout(canvas),
     mosaicLayout: emptyLayout(canvas),
@@ -129,7 +137,7 @@ export function migratePresentationState(raw: unknown): WorkspacePresentationSta
   if (!raw || typeof raw !== 'object') return fallback;
   const parsed = raw as Partial<WorkspacePresentationState> & { version?: number };
   const mode =
-    parsed.mode === 'TABS' || parsed.mode === 'DESKTOP' || parsed.mode === 'MOSAIC'
+    parsed.mode === 'TABS' || parsed.mode === 'DESKTOP' || parsed.mode === 'MOSAIC' || parsed.mode === 'SPLIT'
       ? parsed.mode
       : 'DESKTOP';
   const windows =
@@ -172,6 +180,9 @@ export function migratePresentationState(raw: unknown): WorkspacePresentationSta
     canvas,
     tiled,
     activePtyViewId,
+    splitSecondaryViewId: typeof parsed.splitSecondaryViewId === 'string' ? parsed.splitSecondaryViewId : '',
+    splitOrientation: parsed.splitOrientation === 'horizontal' ? 'horizontal' : 'vertical',
+    splitRatio: normalizeTerminalSplitRatio(parsed.splitRatio),
     lastArrangePreset,
     desktopLayout: parseLayoutSnapshot(parsed.desktopLayout, canvas),
     mosaicLayout: parseLayoutSnapshot(parsed.mosaicLayout, canvas),
@@ -471,6 +482,49 @@ export function rearrangeSmart(
   return { ...state, windows, nextZ, tiled: false };
 }
 
+export function normalizeTerminalSplitRatio(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0.2, Math.min(0.8, value))
+    : 0.5;
+}
+
+/** Selects two live PTY view identities without ever inventing a runtime. */
+export function resolveTerminalSplitViews(
+  state: WorkspacePresentationState,
+  viewIds: readonly string[],
+): { primary: string; secondary: string } {
+  const primary = viewIds.includes(state.activePtyViewId)
+    ? state.activePtyViewId
+    : viewIds[0] || '';
+  const secondary = state.splitSecondaryViewId !== primary && viewIds.includes(state.splitSecondaryViewId)
+    ? state.splitSecondaryViewId
+    : viewIds.find((id) => id !== primary) || '';
+  return { primary, secondary };
+}
+
+export function setTerminalSplitOrientation(
+  state: WorkspacePresentationState,
+  orientation: TerminalSplitOrientation,
+): WorkspacePresentationState {
+  return state.splitOrientation === orientation ? state : { ...state, splitOrientation: orientation };
+}
+
+export function setTerminalSplitRatio(
+  state: WorkspacePresentationState,
+  ratio: number,
+): WorkspacePresentationState {
+  const next = normalizeTerminalSplitRatio(ratio);
+  return next === state.splitRatio ? state : { ...state, splitRatio: next };
+}
+
+export function setTerminalSplitSecondary(
+  state: WorkspacePresentationState,
+  viewId: string,
+): WorkspacePresentationState {
+  if (viewId && !state.windows[viewId]) return state;
+  return state.splitSecondaryViewId === viewId ? state : { ...state, splitSecondaryViewId: viewId };
+}
+
 export function setPresentationMode(
   state: WorkspacePresentationState,
   mode: WorkspacePresentationMode,
@@ -603,6 +657,7 @@ export function syncDesktopWindows(
     nextZ,
     tiled: state.mode === 'MOSAIC',
     activePtyViewId,
+    splitSecondaryViewId: nextIds.includes(state.splitSecondaryViewId) ? state.splitSecondaryViewId : '',
   };
   if (state.mode === 'MOSAIC' && (added.length > 0 || removed.length > 0)) {
     return tileMosaicWindows(synced);

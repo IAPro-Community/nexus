@@ -7,6 +7,8 @@ import {
   Home,
   Layers,
   LayoutGrid,
+  Columns2,
+  Rows2,
   Maximize2,
   Minimize2,
   Minus,
@@ -45,6 +47,8 @@ import { isWindowedPresentationMode, mosaicDropTargetViewId } from './presentati
 import { ptyWindowHeading } from './ptyLiveChrome';
 import { liveChromeFor, usePtyLiveChromeOptional } from './PtyLiveChromeContext';
 import { ARRANGE_MENU_PRESETS, type ArrangeMenuPreset } from './arrangePresets';
+import { resolveTerminalSplitViews } from './presentation';
+import splitStyles from './TerminalSplit.module.scss';
 
 const WINDOW_ACCENTS = [
   'var(--nx-info)',
@@ -688,6 +692,28 @@ const TerminalsHost: React.FC<{
     ptySurfaces[0]?.id ||
     '';
   const windowed = isWindowedPresentationMode(presentation.state.mode);
+  const splitMode = presentation.state.mode === 'SPLIT' && ptySurfaces.length > 1;
+  const splitViews = resolveTerminalSplitViews(
+    presentation.state,
+    ptySurfaces.map((surface) => surfaceViewId(surface)),
+  );
+  const splitRef = useRef<HTMLDivElement>(null);
+  const beginSplitResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const target = event.currentTarget;
+    target.setPointerCapture(event.pointerId);
+  };
+  const updateSplitResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    const rect = splitRef.current?.getBoundingClientRect();
+    if (!rect || !rect.width || !rect.height) return;
+    const vertical = presentation.state.splitOrientation === 'vertical';
+    const fraction = vertical
+      ? (event.clientX - rect.left) / rect.width
+      : (event.clientY - rect.top) / rect.height;
+    presentation.setSplitRatio(fraction);
+  };
   const minimizedPtys = ptySurfaces.filter(
     (surface) => presentation.state.windows[surfaceViewId(surface)]?.minimized,
   );
@@ -801,6 +827,17 @@ const TerminalsHost: React.FC<{
             </button>
             <button
               type="button"
+              disabled={ptySurfaces.length < 2}
+              data-active={presentation.state.mode === 'SPLIT' ? 'true' : 'false'}
+              onClick={() => presentation.setMode('SPLIT')}
+              title={t('workspace.splitTerminals')}
+              aria-label={t('workspace.splitTerminals')}
+            >
+              <Columns2 size={11} />
+              <span>{t('workspace.splitShort')}</span>
+            </button>
+            <button
+              type="button"
               data-active={presentation.state.mode === 'DESKTOP' ? 'true' : 'false'}
               onClick={() => presentation.setMode('DESKTOP')}
               title={t('workspace.floatingWindows', 'Janelas flutuantes')}
@@ -820,6 +857,18 @@ const TerminalsHost: React.FC<{
               <span>{t('workspace.mosaic', 'Mosaico')}</span>
             </button>
           </div>
+          {splitMode && (
+            <div className={splitStyles.orientation} role="group" aria-label={t('workspace.splitOrientation')}>
+              <button type="button" aria-pressed={presentation.state.splitOrientation === 'vertical'}
+                title={t('workspace.splitSideBySide')} onClick={() => presentation.setSplitOrientation('vertical')}>
+                <Columns2 size={15} />
+              </button>
+              <button type="button" aria-pressed={presentation.state.splitOrientation === 'horizontal'}
+                title={t('workspace.splitStacked')} onClick={() => presentation.setSplitOrientation('horizontal')}>
+                <Rows2 size={15} />
+              </button>
+            </div>
+          )}
           {windowed && (
             <ArrangeLayoutMenu
               activePreset={presentation.state.lastArrangePreset}
@@ -1014,24 +1063,57 @@ const TerminalsHost: React.FC<{
                 );
               })}
             </div>
-            <div className="nx-terminals-inner-panels">
+            <div
+              ref={splitRef}
+              className={splitMode ? `nx-terminals-inner-panels ${splitStyles.splitPanels}` : 'nx-terminals-inner-panels'}
+              data-orientation={splitMode ? presentation.state.splitOrientation : undefined}
+              style={splitMode ? ({ '--nx-terminal-split-ratio': `${Math.round(presentation.state.splitRatio * 100)}%` } as React.CSSProperties) : undefined}
+            >
               {ptySurfaces.map((surface) => {
                 const ptyActive = focusedPtyId === surface.id;
+                const isSplitPrimary = splitMode && surfaceViewId(surface) === splitViews.primary;
+                const isSplitSecondary = splitMode && surfaceViewId(surface) === splitViews.secondary;
+                const visible = splitMode ? isSplitPrimary || isSplitSecondary : ptyActive;
                 return (
                   <div
                     key={surface.id}
                     role="tabpanel"
                     id={`nx-pty-panel-${surface.id}`}
                     aria-labelledby={`nx-pty-tab-${surface.id}`}
-                    hidden={!ptyActive || undefined}
-                    inert={!ptyActive || undefined}
-                    className="nx-workspace-panel"
-                    data-active={ptyActive ? 'true' : 'false'}
+                    hidden={!visible || undefined}
+                    inert={!visible || undefined}
+                    className={splitMode ? `nx-workspace-panel ${splitStyles.splitPane}` : 'nx-workspace-panel'}
+                    style={splitMode && visible ? { order: isSplitPrimary ? 0 : 2 } : undefined}
+                    data-active={visible ? 'true' : 'false'}
                   >
                     {renderSurface(surface)}
                   </div>
                 );
               })}
+              {splitMode && splitViews.secondary && (
+                <div
+                  className={splitStyles.divider}
+                  role="separator"
+                  aria-orientation={presentation.state.splitOrientation}
+                  aria-label={t('workspace.resizeSplit')}
+                  aria-valuemin={20}
+                  aria-valuemax={80}
+                  aria-valuenow={Math.round(presentation.state.splitRatio * 100)}
+                  tabIndex={0}
+                  style={{ order: 1 }}
+                  onPointerDown={beginSplitResize}
+                  onPointerMove={updateSplitResize}
+                  onKeyDown={(event) => {
+                    const orientation = presentation.state.splitOrientation;
+                    const increment = orientation === 'vertical'
+                      ? (event.key === 'ArrowRight' ? 0.05 : event.key === 'ArrowLeft' ? -0.05 : 0)
+                      : (event.key === 'ArrowDown' ? 0.05 : event.key === 'ArrowUp' ? -0.05 : 0);
+                    if (!increment) return;
+                    event.preventDefault();
+                    presentation.setSplitRatio(presentation.state.splitRatio + increment);
+                  }}
+                />
+              )}
             </div>
             <ContextMenu
               open={tabMenu?.point ?? null}
