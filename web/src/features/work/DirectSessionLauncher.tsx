@@ -97,6 +97,8 @@ export const DirectSessionLauncher: React.FC<{
     let mounted = true;
     setLoading(true);
     setError('');
+    setRecommendation(null);
+    setRecommendationError(false);
     const policy = directResourcePolicy(project.resource_policy);
     void Promise.allSettled([
       nexus.listResources(),
