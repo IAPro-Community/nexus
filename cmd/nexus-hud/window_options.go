@@ -9,17 +9,22 @@ import (
 // Windows and macOS have native shadow controls; Linux uses GTK frameless
 // rendering and still requires compositor-specific visual verification.
 func hudWindowOptions(state desktop.HUDWindowState) application.WebviewWindowOptions {
+	minWidth := 190
+	if state.Appearance == desktop.HUDAppearanceMascot {
+		minWidth = 80
+	}
 	return application.WebviewWindowOptions{
 		Name:      desktop.HUDWindowName,
 		Title:     "Nexus HUD",
 		Width:     state.Width,
 		Height:    state.Height,
-		MinWidth:  190,
+		MinWidth:  minWidth,
 		MinHeight: 48,
 		MaxWidth:  1200,
 		MaxHeight: 900,
 		URL:       "/?nativeHud=1",
 		Frameless: true,
+		Hidden:    state.Appearance == desktop.HUDAppearanceTray,
 		Windows: application.WindowsWindow{
 			// Remove the DWM's rectangular shadow and native rounded frame.
 			DisableFramelessWindowDecorations: true,
