@@ -11,7 +11,6 @@ import {
   setActivePtyView,
   migratePresentationState,
   focusDesktopWindow,
-  migratePresentationState,
   mosaicDropTargetViewId,
   MOSAIC_MINIMIZED_SHELF_H,
   moveDesktopWindow,
