@@ -1,8 +1,6 @@
 import React from 'react';
-import type { HudAppearance } from './guardianModel';
+import type { GuardianMood, HudAppearance } from './guardianModel';
 import styles from './NexusHud.module.scss';
-
-export type GuardianMood = 'idle' | 'working' | 'warning' | 'offline';
 
 interface GuardianMascotProps {
   mood: GuardianMood;
