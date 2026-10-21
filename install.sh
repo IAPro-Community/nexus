@@ -6,14 +6,13 @@
 #   ./install.sh --build-from-source [--yes]
 set -euo pipefail
 
-# Closed-beta clients install from the public binaries-only repository.
+# Source code and signed binaries share the same public GitHub repository.
 # NEXUS_RELEASE_REPO overrides it for internal/dev distributions.
-REPO="${NEXUS_RELEASE_REPO:-IAPro-Community/nexus-releases}"
+REPO="${NEXUS_RELEASE_REPO:-IAPro-Community/nexus}"
 GITHUB_URL="https://github.com/${REPO}"
 GITHUB_API="https://api.github.com/repos/${REPO}"
 RELEASE_DOWNLOAD_BASE="${NEXUS_RELEASE_BASE_URL:-${GITHUB_URL}/releases/download}"
-# Source checkouts (--build-from-source) always come from the private source
-# repository, never from the binaries mirror.
+# Source checkouts (--build-from-source) use the public source repository.
 SOURCE_REPO="${NEXUS_SOURCE_REPO:-IAPro-Community/nexus}"
 SOURCE_URL="https://github.com/${SOURCE_REPO}"
 
