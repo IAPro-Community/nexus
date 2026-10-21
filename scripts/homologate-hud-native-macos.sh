@@ -42,7 +42,7 @@ for bin in swiftc swift screencapture python3 git shasum; do
   fi
 done
 if [ ! -x "$HUD" ]; then RESULT=BLOCKED; REASON='HUD executable missing'; exit 1; fi
-if pgrep -f 'IAPro Nexus HUD.app/Contents/MacOS' >/dev/null 2>&1; then
+if pgrep -x 'nexus-hud' >/dev/null 2>&1; then
   RESULT=BLOCKED; REASON='Another Nexus HUD is running; use an isolated session.'
   echo "$REASON" >&2; exit 1
 fi
@@ -139,13 +139,16 @@ for i in $(seq 1 100); do
   if read_geometry; then break; fi
   sleep .2
 done
-if ! wait_geometry no; then RESULT=NO_GO; REASON='Native HUD compact geometry unavailable.'; exit 1; fi
-capture HUD_BEFORE.png
+if ! read_geometry; then RESULT=BLOCKED; REASON='Cannot inspect native HUD window; check Screen Recording/session access.'; exit 1; fi
+if ! wait_geometry no; then RESULT=NO_GO; REASON='Native HUD compact geometry invalid.'; exit 1; fi
+if ! capture HUD_BEFORE.png; then RESULT=BLOCKED; REASON='Screen capture denied or unavailable.'; exit 1; fi
 for n in $(seq 1 "$CYCLES"); do
   read_geometry
   if ! click_capsule; then RESULT=BLOCKED; REASON='Accessibility click was not authorized.'; exit 1; fi
   if ! wait_geometry yes; then RESULT=NO_GO; REASON="HUD failed to expand on cycle $n"; exit 1; fi
-  if (( n == 1 )); then capture HUD_EXPANDED.png; fi
+  if (( n == 1 )); then
+    if ! capture HUD_EXPANDED.png; then RESULT=BLOCKED; REASON='Screen capture denied or unavailable.'; exit 1; fi
+  fi
   click_capsule
   if ! wait_geometry no; then RESULT=NO_GO; REASON="HUD failed to collapse on cycle $n"; exit 1; fi
   DONE="$n"
