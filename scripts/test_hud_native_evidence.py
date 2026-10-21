@@ -4,6 +4,8 @@ import json
 import pathlib
 import subprocess
 import sys
+import struct
+import zlib
 import tempfile
 import unittest
 
@@ -12,6 +14,23 @@ ROOT = pathlib.Path(__file__).resolve().parent
 AGGREGATOR = ROOT / "verify-hud-native-evidence.py"
 SHA = "a" * 40
 BIN_HASH = "b" * 64
+
+
+def make_png() -> bytes:
+    """Generate a minimal valid 128x96 RGB PNG, not a forged PNG signature."""
+    def chunk(name: bytes, payload: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(payload)) + name + payload +
+            struct.pack(">I", zlib.crc32(name + payload) & 0xFFFFFFFF)
+        )
+    width, height = 128, 96
+    rows = (b"\x00" + bytes(width * 3)) * height
+    header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n" +
+        chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(rows)) +
+        chunk(b"IEND", b"")
+    )
 
 
 class HUDNativeEvidenceTests(unittest.TestCase):
@@ -43,7 +62,7 @@ class HUDNativeEvidenceTests(unittest.TestCase):
             data["build_attestation"] = {"source_sha": sha, "binary_sha256": BIN_HASH}
         (folder / "HUD_NATIVE_RESULTS.json").write_text(json.dumps(data), encoding="utf-8")
         for name in ("HUD_BEFORE.png", "HUD_EXPANDED.png"):
-            (folder / name).write_bytes(b"\x89PNG\r\n\x1a\n" + b"a" * 700)
+            (folder / name).write_bytes(make_png())
 
     def verify(self):
         args = [
@@ -86,6 +105,37 @@ class HUDNativeEvidenceTests(unittest.TestCase):
         proc, report = self.verify()
         self.assertEqual(proc.returncode, 0)
         self.assertEqual(report["verdict"], "GO")
+
+    def test_corrupt_screenshot_cannot_be_certified(self):
+        for platform in self.platforms:
+            self.create_report(platform, review=True)
+        (self.platforms["windows"] / "HUD_EXPANDED.png").write_bytes(b"x" * 900)
+        proc, report = self.verify()
+        self.assertEqual(proc.returncode, 1)
+        self.assertEqual(report["verdict"], "INCONCLUSIVE")
+        self.assertIn("invalid PNG screenshot: HUD_EXPANDED.png", report["platforms"][0]["issues"])
+
+    def test_confirmed_native_shadow_failure_is_no_go(self):
+        for platform in self.platforms:
+            self.create_report(platform, review=True)
+        path = self.platforms["darwin"] / "HUD_NATIVE_RESULTS.json"
+        data = json.loads(path.read_text())
+        data["visual_shadow_review"] = "FAIL"
+        path.write_text(json.dumps(data))
+        proc, report = self.verify()
+        self.assertEqual(proc.returncode, 1)
+        self.assertEqual(report["verdict"], "NO_GO")
+
+    def test_confirmed_transparent_input_failure_is_no_go(self):
+        for platform in self.platforms:
+            self.create_report(platform, review=True)
+        path = self.platforms["windows"] / "HUD_NATIVE_RESULTS.json"
+        data = json.loads(path.read_text())
+        data["transparent_click_through"] = "FAIL"
+        path.write_text(json.dumps(data))
+        proc, report = self.verify()
+        self.assertEqual(proc.returncode, 1)
+        self.assertEqual(report["verdict"], "NO_GO")
 
     def test_failed_native_mouse_test_is_no_go(self):
         for platform in self.platforms:
