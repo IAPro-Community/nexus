@@ -10,16 +10,16 @@ import (
 // rendering and still requires compositor-specific visual verification.
 func hudWindowOptions(state desktop.HUDWindowState) application.WebviewWindowOptions {
 	return application.WebviewWindowOptions{
-		Name:                       desktop.HUDWindowName,
-		Title:                      "Nexus HUD",
-		Width:                      state.Width,
-		Height:                     state.Height,
-		MinWidth:                   190,
-		MinHeight:                  48,
-		MaxWidth:                   1200,
-		MaxHeight:                  900,
-		URL:                        "/?nativeHud=1",
-		Frameless:                  true,
+		Name:      desktop.HUDWindowName,
+		Title:     "Nexus HUD",
+		Width:     state.Width,
+		Height:    state.Height,
+		MinWidth:  190,
+		MinHeight: 48,
+		MaxWidth:  1200,
+		MaxHeight: 900,
+		URL:       "/?nativeHud=1",
+		Frameless: true,
 		Windows: application.WindowsWindow{
 			// Remove the DWM's rectangular shadow and native rounded frame.
 			DisableFramelessWindowDecorations: true,
