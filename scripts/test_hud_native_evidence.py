@@ -1,4 +1,5 @@
 """Regression tests for fail-closed native HUD cross-platform certification."""
+import datetime as dt
 import json
 import pathlib
 import subprocess
@@ -37,7 +38,7 @@ class HUDNativeEvidenceTests(unittest.TestCase):
         if review:
             data["review"] = {
                 "reviewer": "native-platform-reviewer",
-                "reviewed_at_utc": "2026-10-21T18:30:00Z",
+                "reviewed_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
             }
             data["build_attestation"] = {"source_sha": sha, "binary_sha256": BIN_HASH}
         (folder / "HUD_NATIVE_RESULTS.json").write_text(json.dumps(data), encoding="utf-8")
