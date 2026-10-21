@@ -216,8 +216,11 @@ func isNewerSignedBetaSHA(current, signed string) bool {
 		current == "unknown" || current == "dev" {
 		return false
 	}
-	if _, err := hex.DecodeString(current); err != nil {
-		return false
+	// Git's --short output often has an odd number of hexadecimal digits.
+	for _, digit := range current {
+		if !strings.ContainsRune("0123456789abcdef", digit) {
+			return false
+		}
 	}
 	if _, err := hex.DecodeString(signed); err != nil {
 		return false
