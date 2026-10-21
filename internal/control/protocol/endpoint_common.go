@@ -87,9 +87,12 @@ func EndpointPath(runtimeID string) string {
 	}
 
 	// The fallback is deliberately deterministic across the control host and
-	// its clients. Listen and dialEndpoint reject this path if its directory
-	// cannot be established with safe ownership and permissions.
-	return filepath.Join(shortSocketDir(uid), fmt.Sprintf("%s.sock", runtimeID))
+	// its clients. Attempt to establish the directory so callers that inspect
+	// EndpointPath also see the private directory. Listen and dialEndpoint
+	// independently fail closed when ownership/permissions are unsafe.
+	dir = shortSocketDir(uid)
+	_ = ensurePrivateSocketDir(dir, uid)
+	return filepath.Join(dir, fmt.Sprintf("%s.sock", runtimeID))
 }
 
 // socketPathIn joins dir and runtimeID when the result fits the kernel limit.

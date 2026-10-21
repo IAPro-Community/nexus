@@ -366,14 +366,19 @@ func TestFSBrowseWithoutPathPrefersAllowedWorkingDirectory(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	// os.Getwd reports the physical path on macOS (/private/var/...) while
-	// t.TempDir keeps the logical one (/var/...), so compare canonical forms.
-	want := dir
-	if resolved, err := filepath.EvalSymlinks(dir); err == nil {
-		want = resolved
+	// macOS may expose /var versus /private/var, while Windows may expose
+	// long and 8.3 short path aliases (runneradmin versus RUNNER~1).
+	// Compare the actual directory identity, not the spelling of its path.
+	wantInfo, err := os.Stat(dir)
+	if err != nil {
+		t.Fatalf("stat working directory %q: %v", dir, err)
 	}
-	if resp.CurrentPath != want {
-		t.Errorf("default browse path = %q, want working directory %q", resp.CurrentPath, want)
+	gotInfo, err := os.Stat(resp.CurrentPath)
+	if err != nil {
+		t.Fatalf("stat browse path %q: %v", resp.CurrentPath, err)
+	}
+	if !os.SameFile(gotInfo, wantInfo) {
+		t.Errorf("default browse path = %q, want working directory %q", resp.CurrentPath, dir)
 	}
 }
 
