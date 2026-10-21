@@ -118,6 +118,32 @@ describe('PlatformBridge', () => {
     ]);
   });
 
+  it('routes BAR, MASCOT and TRAY to the persistent native controller', async () => {
+    const calls: Array<{ method: string; args: unknown[] }> = [];
+    setWailsV3InvokerForTests(async (method, ...args) => {
+      calls.push({ method, args });
+      if (method.endsWith('.GetHUDAppearance')) return 'MASCOT';
+      return undefined;
+    });
+    await expect(hudV3.getAppearance()).resolves.toBe('MASCOT');
+    await hudV3.setAppearance('BAR');
+    await hudV3.setAppearance('TRAY');
+    expect(calls).toEqual([
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.GetHUDAppearance',
+        args: [],
+      },
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDAppearance',
+        args: ['BAR'],
+      },
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDAppearance',
+        args: ['TRAY'],
+      },
+    ]);
+  });
+
   it('selectDirectory delegates to the Wails v3 App service', async () => {
     setWailsV3InvokerForTests(async (method, ...args) => {
       expect(method).toBe('github.com/IAPro-Community/nexus/internal/desktop.App.SelectDirectory');
