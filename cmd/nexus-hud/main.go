@@ -90,32 +90,7 @@ func main() {
 		},
 	})
 
-	window = native.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:                       desktop.HUDWindowName,
-		Title:                      "Nexus HUD",
-		Width:                      windowState.Width,
-		Height:                     windowState.Height,
-		MinWidth:                   190,
-		MinHeight:                  48,
-		MaxWidth:                   1200,
-		MaxHeight:                  900,
-		URL:                        "/?nativeHud=1",
-		Frameless:                  true,
-		// The OS frameless DWM decoration casts a rectangular shadow around
-		// our transparent capsule. Keep only the intentionally rounded CSS
-		// shadow, not the native window-sized outline.
-		Windows: application.WindowsWindow{
-			DisableFramelessWindowDecorations: true,
-		},
-		AlwaysOnTop:                windowState.AlwaysOnTop,
-		InitialPosition:            application.WindowXY,
-		X:                          windowState.X,
-		Y:                          windowState.Y,
-		BackgroundType:             application.BackgroundTypeTransparent,
-		BackgroundColour:           application.NewRGBA(15, 17, 23, 0),
-		DefaultContextMenuDisabled: true,
-		HideOnEscape:               windowState.AutoHide,
-	})
+	window = native.Window.NewWithOptions(hudWindowOptions(windowState))
 	desktop.ConfigureNativeTray(native, window, "Nexus HUD")
 
 	// ServiceStartup can run before the native window exists, which left the
