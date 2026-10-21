@@ -1,5 +1,5 @@
 {
-  "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+  "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
   "generated_by": "web/scripts/docs-capture.mjs",
   "scenario": "isolated-synthetic-fixture",
   "data_classification": "SYNTHETIC",
@@ -14,13 +14,13 @@
       "automated": true,
       "capture_command": "xvfb-run -a dbus-run-session -- cmd/nexus-desktop/build/bin/nexus-desktop",
       "data_classification": "SYNTHETIC",
-      "evidence_note": "Welcome state only; no project or runtime data is shown.",
-      "status": "PASS"
+      "evidence_note": "Historical native Desktop reference only. Not certified for the current SHA.",
+      "status": "HISTORICAL"
     },
     {
       "id": "VIS-001",
       "file": "workspace-overview.png",
-      "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+      "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
       "surface": "web/workspace",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -32,7 +32,7 @@
     {
       "id": "VIS-003",
       "file": "direct-session.png",
-      "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+      "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
       "surface": "web/direct-session",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -44,7 +44,7 @@
     {
       "id": "VIS-005",
       "file": "terminal.png",
-      "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+      "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
       "surface": "web/terminal",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -53,18 +53,18 @@
       "data_classification": "SYNTHETIC",
       "status": "PASS",
       "terminal_evidence": {
-        "platform": "linux",
+        "platform": "win32",
         "transport": "project-shell",
         "marker": "__NEXUS_DOCS_TERMINAL_OK__",
         "reconnect_marker": "__NEXUS_DOCS_TERMINAL_RECONNECTED__",
-        "localized_shell_banner_hidden": false,
+        "localized_shell_banner_hidden": true,
         "verified": true
       }
     },
     {
       "id": "VIS-006",
       "file": "agents.png",
-      "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+      "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
       "surface": "web/agents",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -76,7 +76,7 @@
     {
       "id": "VIS-010",
       "file": "usage-quota.png",
-      "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+      "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
       "surface": "web/usage-quota",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -88,7 +88,7 @@
     {
       "id": "VIS-004",
       "file": "provider.png",
-      "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+      "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
       "surface": "web/provider",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -100,7 +100,7 @@
     {
       "id": "VIS-007",
       "file": "composer.png",
-      "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+      "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
       "surface": "web/composer",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -112,7 +112,7 @@
     {
       "id": "VIS-008",
       "file": "flow.png",
-      "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+      "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
       "surface": "web/flow",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -124,7 +124,7 @@
     {
       "id": "VIS-009",
       "file": "mission.png",
-      "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+      "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
       "surface": "web/mission",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
@@ -136,7 +136,7 @@
     {
       "id": "VIS-002",
       "file": "projects.png",
-      "source_sha": "96cc789ce2596ad259cd5e36a63d4227d334e131",
+      "source_sha": "05e97b3e7817b7bd178737eb78b2c27642752c2e",
       "surface": "web/projects",
       "scenario": "isolated-synthetic-fixture",
       "viewport": "1440x900",
