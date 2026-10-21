@@ -13,7 +13,7 @@ func TestHUDWindowOptionsTransparentChromeAcrossPlatforms(t *testing.T) {
 		Y:           319,
 		Width:       260,
 		Height:      70,
-		AlwaysOnTop:    true,
+		AlwaysOnTop: true,
 	}
 	got := hudWindowOptions(state)
 
@@ -70,7 +70,7 @@ func TestDetachedHUDWindowOptionsStartHiddenWithSeparateRoute(t *testing.T) {
 		CompactHeight:  60,
 		ExpandedWidth:  380,
 		ExpandedHeight: 560,
-		AlwaysOnTop: true,
+		AlwaysOnTop:    true,
 	}
 	capsule := hudWindowOptions(state)
 	popup := hudDetachedPopupOptions(state)
