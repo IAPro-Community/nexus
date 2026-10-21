@@ -1,7 +1,11 @@
 name: Unsigned Source Release Preview
 
 # Manual opt-in only. This is NOT the signed production release or updater channel.
+# workflow_dispatch is only listed in the UI when this file is on main.
+# On release/v1.0.0, an opt-in commit marked [unsigned-preview] triggers it.
 on:
+  push:
+    branches: ['release/v1.0.0']
   workflow_dispatch:
 
 permissions:
@@ -19,6 +23,7 @@ jobs:
   linux:
     name: Linux amd64 unsigned preview
     runs-on: ubuntu-24.04
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[unsigned-preview]')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
@@ -55,6 +60,7 @@ jobs:
   windows:
     name: Windows amd64 unsigned preview
     runs-on: windows-2022
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[unsigned-preview]')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
@@ -94,6 +100,7 @@ jobs:
   macos:
     name: macOS arm64 unsigned preview
     runs-on: macos-15
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[unsigned-preview]')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
