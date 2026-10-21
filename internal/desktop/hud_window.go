@@ -17,6 +17,11 @@ import (
 
 const (
 	HUDPopupWindowName       = "Nexus HUD Popup"
+	HUDAppearanceBar        = "BAR"
+	HUDAppearanceMascot     = "MASCOT"
+	HUDAppearanceTray       = "TRAY"
+	HUDMascotWidth          = 108
+	HUDMascotHeight         = 112
 	HUDPlacementTopLeft      = "TOP_LEFT"
 	HUDPlacementTopCenter    = "TOP_CENTER"
 	HUDPlacementTopRight     = "TOP_RIGHT"
@@ -56,6 +61,7 @@ type HUDWindowState struct {
 	ExpandedWidth  int     `json:"expandedWidth"`
 	ExpandedHeight int     `json:"expandedHeight"`
 	Mode           string  `json:"mode"`
+	Appearance     string  `json:"appearance"`
 	Opacity        float64 `json:"opacity"`
 	AlwaysOnTop    bool    `json:"alwaysOnTop"`
 	AutoHide       bool    `json:"autoHide"`
@@ -108,6 +114,7 @@ func defaultHUDWindowState() HUDWindowState {
 		ExpandedWidth:  334,
 		ExpandedHeight: 496,
 		Mode:           "AUTO",
+		Appearance:     HUDAppearanceBar,
 		Opacity:        0.96,
 		AlwaysOnTop:    true,
 	}
@@ -125,7 +132,7 @@ func normalizeHUDWindowState(state HUDWindowState) HUDWindowState {
 	if strings.TrimSpace(state.DisplayID) == "" {
 		state.DisplayID = defaults.DisplayID
 	}
-	if state.Width < 190 || state.Width > 1200 {
+	if state.Width < 80 || state.Width > 1200 {
 		state.Width = defaults.Width
 	}
 	if state.Height < 48 || state.Height > 900 {
@@ -154,6 +161,9 @@ func normalizeHUDWindowState(state HUDWindowState) HUDWindowState {
 	}
 	if strings.TrimSpace(state.Mode) == "" {
 		state.Mode = defaults.Mode
+	}
+	if !validHUDAppearance(state.Appearance) {
+		state.Appearance = defaults.Appearance
 	}
 	return state
 }
@@ -425,9 +435,10 @@ func (h *HUDController) SaveHUDWindowState(state HUDWindowState) error {
 // Preserve the bottom-right anchor for custom placements.
 func compactHUDWindowState(state HUDWindowState) HUDWindowState {
 	state = normalizeHUDWindowState(state)
-	state.X += state.Width - state.CompactWidth
-	state.Y += state.Height - state.CompactHeight
-	state.Width, state.Height = state.CompactWidth, state.CompactHeight
+	compactWidth, compactHeight := hudCompactDimensions(state)
+	state.X += state.Width - compactWidth
+	state.Y += state.Height - compactHeight
+	state.Width, state.Height = compactWidth, compactHeight
 	return state
 }
 
