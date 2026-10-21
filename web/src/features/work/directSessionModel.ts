@@ -201,3 +201,29 @@ export function recommendedDirectAccountId<T extends DirectResourceLike>(
   const id = recommendation?.recommended?.account?.id || '';
   return resources.some((resource) => resource.id === id) ? id : '';
 }
+
+const knownResourcePolicies = new Set(['BALANCED', 'PRESERVE_QUOTA', 'PREFER_PROVIDER']);
+
+/** Project.resource_policy is historically a JSON object, not always a string enum.
+ * Unsupported values must not become implicit scheduler policies. */
+export function directResourcePolicy(value: string | undefined): string {
+  const raw = (value || '').trim();
+  if (!raw) return 'BALANCED';
+  let policy = raw;
+  if (raw.startsWith('{')) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return 'BALANCED';
+      const data = parsed as Record<string, unknown>;
+      policy = typeof data.policy === 'string'
+        ? data.policy
+        : typeof data.scheduler_policy === 'string'
+          ? data.scheduler_policy
+          : 'BALANCED';
+    } catch {
+      return 'BALANCED';
+    }
+  }
+  const normalized = policy.trim().toUpperCase();
+  return knownResourcePolicies.has(normalized) ? normalized : 'BALANCED';
+}
