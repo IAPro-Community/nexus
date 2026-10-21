@@ -109,7 +109,16 @@ func main() {
 			hudController.NotifyHUDPopupHidden()
 		})
 	}
-	desktop.ConfigureNativeTray(native, window, "Nexus HUD")
+	desktop.ConfigureNativeTray(native, window, "Nexus HUD", desktop.HUDTrayAppearanceActions{
+		Show: hudController.ShowHUD,
+		Hide: hudController.HideHUD,
+		MascotAvailable: hudController.GetHUDDetachedPopoverEnabled(),
+		Select: func(mode string) {
+			if err := hudController.SetHUDAppearance(mode); err != nil {
+				fmt.Fprintf(os.Stderr, "Nexus HUD presentation: %v\n", err)
+			}
+		},
+	})
 
 	// ServiceStartup can run before the native window exists, which left the
 	// first paint at Wails' 190x48 minimum. Re-apply the persisted geometry
