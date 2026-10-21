@@ -155,7 +155,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   useEffect(() => {
     if (!native) return;
     let active = true;
+    let detachedMode = false;
     const syncExpanded = () => {
+      // The single-window HUD owns its expansion in React. Polling the
+      // detached-only backend field would incorrectly collapse legacy users.
+      if (!detachedMode) return;
       void hudV3
         .getExpanded()
         .then((value) => {
@@ -167,8 +171,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       .getDetachedPopoverEnabled()
       .then((enabled) => {
         if (!active) return;
-        setNativeDetached(Boolean(enabled));
-        if (enabled) syncExpanded();
+        detachedMode = Boolean(enabled);
+        setNativeDetached(detachedMode);
+        if (detachedMode) syncExpanded();
       })
       .catch(() => undefined);
     // The capsule and popup are independent React trees. Read the controller's
