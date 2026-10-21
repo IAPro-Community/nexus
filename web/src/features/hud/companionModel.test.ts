@@ -7,6 +7,7 @@ import {
   snoozeCompanionAttention,
 } from './companionModel';
 import type { HudState } from './hudModel';
+import type { AttentionGroup } from '../../types';
 
 const snapshot = (changes: Partial<HudState> = {}): HudState => ({
   generated_at: '2026-10-21T00:00:00Z',
@@ -58,6 +59,48 @@ describe('Nexus Companion attention projection', () => {
     expect(attention[0].target).toBe('missions');
     expect(attention[0].needsUser).toBe(true);
     expect(companionMood(state, attention, false)).toBe('critical');
+  });
+
+  it('uses the canonical Attention Center when it is reachable', () => {
+    const fallback = snapshot({
+      missions: [{
+        run_id: 'old',
+        project_id: 'project',
+        state: 'BLOCKED_NEEDS_USER',
+        current_stage: 'execution',
+        completed_packages: 0,
+        total_packages: 1,
+        needs_user: true,
+        updated_at: '2026-10-21T00:00:00Z',
+      }],
+    });
+    const canonical: AttentionGroup = {
+      needs_you: [{
+        mission_id: 'current',
+        project_id: 'project',
+        state: 'BLOCKED_NEEDS_USER',
+        level: 'REQUIRE_USER',
+        reason_code: 'USER_INPUT',
+        summary: 'Confirmar',
+        question: 'Confirmar?',
+        impact: '',
+        recommended_actions: [],
+        age_seconds: 3,
+      }],
+      completed: [],
+      failed: [],
+      all_items: [],
+      total_needs: 1,
+    };
+    const attention = projectCompanionAttention(fallback, Date.now(), canonical);
+    expect(attention).toHaveLength(1);
+    expect(attention[0].recordId).toBe('current');
+    expect(attention[0].projectId).toBe('project');
+    expect(projectCompanionAttention(fallback, Date.now(), {
+      ...canonical,
+      needs_you: [],
+      total_needs: 0,
+    })).toHaveLength(0);
   });
 
   it('ignores acknowledged and snoozed provider events', () => {
