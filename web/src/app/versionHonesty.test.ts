@@ -13,6 +13,14 @@ describe('Nexus UI version honesty', () => {
     }
   });
 
+  it('surfaces signed Nexus update availability separately from Maestro updates', () => {
+    expect(shell).toContain('sysInfo?.nexus_update_available || sysInfo?.update_available');
+    expect(shell).toContain('updateAvailable={hasAvailableUpdates}');
+    expect(shell).toContain('{hasAvailableUpdates && (');
+    expect(shell).toContain("window.addEventListener('focus', load)");
+    expect(shell).toContain('window.clearInterval(refreshInterval)');
+  });
+
   it('does not show a hardcoded release version in the pre-backend splash screen', () => {
     expect(splash).not.toMatch(/v\d+\.\d+\.\d+(?:-[\w.]+)?/);
     expect(splash).toContain('NexusSplashScreen');
