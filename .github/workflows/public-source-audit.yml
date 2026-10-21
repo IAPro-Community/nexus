@@ -109,12 +109,14 @@ jobs:
           head_status=0
           gitleaks dir --no-banner --redact --report-format=json --report-path="$head_report" "$RUNNER_TEMP/nexus-head-snapshot" > "$RUNNER_TEMP/head-scan.log" 2>&1 || head_status=$?
           HISTORY_SCAN_STATUS="$history_status" HEAD_SCAN_STATUS="$head_status" python3 - <<'PY'
-          import json, os
+          import json, os, re
+          from collections import Counter
           for name, file_name, env in [
               ('Available Git refs', 'gitleaks-public-history.json', 'HISTORY_SCAN_STATUS'),
               ('Current HEAD archive', 'gitleaks-current-head.json', 'HEAD_SCAN_STATUS'),
           ]:
               path = os.path.join(os.environ['RUNNER_TEMP'], file_name)
+              data = []
               try:
                   with open(path, encoding='utf-8') as handle:
                       data = json.load(handle)
@@ -126,6 +128,27 @@ jobs:
               print(message)
               with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as out:
                   out.write(f'- {message}\n')
+              if isinstance(data, list):
+                  # Aggregate only classification metadata, never File, Secret, Match or line content.
+                  rules = Counter()
+                  areas = Counter()
+                  allowed_areas = {'DEV', 'TODO', 'docs', 'web', 'internal', 'scripts', '.github', 'README'}
+                  for record in data:
+                      if not isinstance(record, dict):
+                          continue
+                      rule = str(record.get('RuleID') or 'unknown').lower()
+                      rule = rule if re.fullmatch(r'[a-z0-9_-]{1,64}', rule) else 'other'
+                      rules[rule] += 1
+                      raw_path = str(record.get('File') or '').replace(chr(92), '/')
+                      path_parts = [part for part in raw_path.split('/') if part]
+                      area = next((part for part in path_parts if part in allowed_areas), 'other')
+                      areas[area] += 1
+                  for category, summary in (('detection rule', rules), ('source area', areas)):
+                      for label, amount in summary.most_common(12):
+                          item = f'{name} {category}: {label} = {amount}'
+                          print(item)
+                          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as out:
+                              out.write(f'- {item}\n')
           PY
           if [ "$history_status" -ne 0 ] || [ "$head_status" -ne 0 ]; then
             echo 'NO-GO: inspect raw scanner reports only in an appropriately private environment. Rotate confirmed active credentials.' >&2
