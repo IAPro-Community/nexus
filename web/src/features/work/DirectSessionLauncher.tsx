@@ -22,6 +22,7 @@ import {
   eligibleDirectResources,
   quotaTruthState,
   recommendedDirectAccountId,
+  directResourcePolicy,
 } from './directSessionModel';
 import resourceStyles from '../../nexus/ResourcePicker.module.scss';
 import contextualStyles from './ContextualResourceSelection.module.scss';
@@ -33,7 +34,6 @@ const taskRole: Record<DirectTaskKind, string> = {
   review: 'reviewer',
   security: 'reviewer',
 };
-const availablePolicies = new Set(['BALANCED', 'PRESERVE_QUOTA', 'PREFER_PROVIDER']);
 const modelIdValid = (value: string) => !value || (value.length <= 128 && /^[\w./:+-]+$/.test(value));
 
 interface DirectResource {
@@ -97,9 +97,7 @@ export const DirectSessionLauncher: React.FC<{
     let mounted = true;
     setLoading(true);
     setError('');
-    const policy = availablePolicies.has(project.resource_policy?.toUpperCase())
-      ? project.resource_policy.toUpperCase()
-      : 'BALANCED';
+    const policy = directResourcePolicy(project.resource_policy);
     void Promise.allSettled([
       nexus.listResources(),
       nexus.recommendResources(
