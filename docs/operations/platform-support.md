@@ -79,8 +79,8 @@ certificação até o mesmo SHA passar a matriz nativa exigida.
 
 | Gate | Go | Referência |
 | --- | --- | --- |
-| CI Linux | `1.25.14` | `.github/workflows/ci.yml` |
-| Windows beta.10 (sem signing) | `1.26.9` | `.github/workflows/windows-beta10-homologation.yml` |
+| CI Linux | `1.26.10` | `.github/workflows/ci.yml` |
+| Windows beta.10 (sem signing) | `1.26.10` | `.github/workflows/windows-beta10-homologation.yml` |
 | Certificação nativa assinada | **confirmar runner/workflow efetivamente executado** | `.github/workflows/ci.yml` e `.github/workflows/release.yml` |
 
 `go.mod` exige Go 1.25 como baseline da linguagem, **não** obriga todos os runners a usar o mesmo patch. Uma campanha só certifica o SHA e a toolchain que realmente executou. Divergências entre harness/CI devem ser reconciliadas no relatório antes de marcar PASS.
@@ -95,7 +95,7 @@ self-hosted, Windows, X64, nexus-windows
 
 Dependências:
 
-- Go 1.26.9 no workflow Windows beta.10 dedicado; o fluxo principal de CI Linux utiliza Go 1.25.14. Validar toolchain da matriz antes de executar; não misturar resultados de Go diferentes sem registrar a evidência;
+- Go 1.26.10 no workflow Windows beta.10 dedicado e também no CI Linux/macOS atual. Validar toolchain efetiva antes de executar; não misturar resultados de versões Go divergentes sem registrar a evidência;
 - Bun 1.3.9;
 - Windows SDK com `signtool.exe`;
 - NSIS com `makensis.exe`;
