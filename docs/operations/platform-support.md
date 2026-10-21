@@ -192,7 +192,7 @@ não serão tratados como assinados ou certificados.
 A `release/v1.0.0` também contém
 [`unsigned-preview.yml`](../../.github/workflows/unsigned-preview.yml),
 um workflow que compila nos runners GitHub-hosted Linux amd64, Windows
-amd64 e macOS arm64 e publica os ZIP/tar.gz em
+amd64 e macOS arm64/Intel e publica os ZIP/tar.gz em
 [`channel-preview`](https://github.com/IAPro-Community/nexus/releases/tag/channel-preview)
 **somente se todos os três builds e suas suítes passarem**. Não usa
 certificado Microsoft, conta Apple Developer, token de espelho nem chave
@@ -212,8 +212,9 @@ git push origin release/v1.0.0
 
 Isso cria uma execução de `Unsigned Source Release Preview` no Actions.
 Nenhum release `channel-preview` é publicado se um job falhar. O
-arquivo `SHA256SUMS.txt` acompanha os cinco archives: Linux CLI/Desktop/HUD,
-Windows CLI/Desktop/HUD e macOS CLI + dois bundles `.app`.
+arquivo `SHA256SUMS.txt` acompanha os oito archives: Linux CLI/Desktop/HUD,
+Windows CLI/Desktop/HUD e dois conjuntos macOS (Apple Silicon e Intel),
+cada um com CLI + dois bundles `.app`.
 
 **Não** use `install.sh --version=latest` ou `install.ps1 -Version
 latest` para tentar instalar essa prévia: esses instaladores exigem o
