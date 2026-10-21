@@ -37,6 +37,7 @@ import {
   selectHudFocus,
 } from './hudMiniModel';
 import { HudSizeControls } from './HudSizeControls';
+import { shouldRenderHudPopover } from './hudPresentation';
 import styles from './NexusHud.module.scss';
 
 const MIN_REFRESH_MS = 15_000;
@@ -81,10 +82,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [nativeDetached, setNativeDetached] = useState(false);
   const isDetachedPopup = native && nativeView === 'popover';
-  const renderDetailHere = !native || !nativeDetached || isDetachedPopup;
-  // The second WebView must paint its content while the native window is
-  // hidden, so Show() never exposes an empty popup for a polling interval.
-  const showPopoverContent = expanded || isDetachedPopup;
+  const showPopoverContent = shouldRenderHudPopover(expanded, native, nativeView, nativeDetached);
   const [popupPresentation, setPopupPresentation] = useState(0);
   const [offline, setOffline] = useState(false);
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null);
@@ -464,7 +462,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         data-tone={tone}
         data-size={native ? sizePreset || 'custom' : undefined}
       >
-        {renderDetailHere && showPopoverContent && state && !waiting && (
+        {showPopoverContent && state && !waiting && (
           <div
             key={isDetachedPopup ? `popup-${popupPresentation}` : 'inline-popover'}
             id="nexus-hud-popover"
@@ -755,7 +753,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             </div>
           </div>
         )}
-        {renderDetailHere && showPopoverContent && (!state || waiting) && (
+        {showPopoverContent && (!state || waiting) && (
           <div
             key={isDetachedPopup ? `diagnostic-${popupPresentation}` : 'inline-diagnostic'}
             id="nexus-hud-popover"
@@ -840,7 +838,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               data-evidence={quotaEvidence}
               aria-label={capsuleAccessibleLabel}
               aria-expanded={expanded}
-              aria-controls={expanded && renderDetailHere ? 'nexus-hud-popover' : undefined}
+              aria-controls={showPopoverContent ? 'nexus-hud-popover' : undefined}
               aria-haspopup={nativeDetached ? 'dialog' : undefined}
               title={native ? nativeExpansionError || nativeTitle : undefined}
               onClick={() => setExpandedState(!expanded)}
