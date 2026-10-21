@@ -68,8 +68,12 @@ segundo Capacity Monitor.
 | Multi-monitor / DPI | UNVERIFIED | UNVERIFIED | UNVERIFIED | viewport |
 | Certificação source atual | PENDING | PENDING | PENDING | PENDING |
 
-`NEXUS_HUD_CROSS_PLATFORM` continua **NO_GO** como claim de certificação até
-o mesmo SHA passar a matriz nativa exigida.
+O source atual adiciona alça de arraste nativa e três presets de tamanho
+(`compact`, `comfortable`, `large`). Em 2026-10-21 o fluxo foi exercitado em
+Windows 11 sobre o worktree baseado em `f6098b8c684a97bf7e8e56804109ca491c78cfa2`
+(UIA + arraste real + reinício), mas isso **não** certifica o SHA final nem
+Linux/macOS. `NEXUS_HUD_CROSS_PLATFORM` continua **NO_GO** como claim de
+certificação até o mesmo SHA passar a matriz nativa exigida.
 
 ## Toolchains registrados no source
 

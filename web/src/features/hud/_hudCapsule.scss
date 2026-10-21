@@ -88,6 +88,48 @@
   transform: translateY(-1px);
 }
 
+.nativeDragHandle {
+  display: grid;
+  width: 24px;
+  flex: 0 0 24px;
+  align-self: stretch;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--hud-muted);
+  cursor: grab;
+
+  --wails-draggable: drag;
+}
+
+.nativeDragHandle:hover,
+.nativeDragHandle:focus-visible {
+  border-color: #556681;
+  background: #1a2a3f;
+  color: var(--hud-text);
+  outline: 2px solid #7998c6;
+  outline-offset: 1px;
+}
+
+.nativeDragHandle:active {
+  cursor: grabbing;
+}
+
+.panel[data-size='comfortable'] .capsule {
+  height: 52px;
+}
+
+.panel[data-size='large'] .capsule {
+  height: 64px;
+}
+
+.panel[data-size='large'] .logo {
+  flex-basis: 30px;
+  width: 30px;
+  height: 30px;
+}
+
 .logo {
   display: block;
   flex: 0 0 24px;

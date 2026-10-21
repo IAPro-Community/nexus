@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/app"
@@ -11,6 +12,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/desktop"
 	"github.com/IAPro-Community/nexus/internal/hudlink"
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 var hudSingleInstanceID = "com.iapro.nexus.hud"
@@ -109,6 +111,17 @@ func main() {
 		HideOnEscape:               windowState.AutoHide,
 	})
 	desktop.ConfigureNativeTray(native, window, "Nexus HUD")
+
+	// ServiceStartup can run before the native window exists, which left the
+	// first paint at Wails' 190x48 minimum. Re-apply the persisted geometry
+	// after the first show so custom sizes are honored immediately, without
+	// collapsing an expanded HUD every time it is revealed again.
+	var initialRestore sync.Once
+	window.OnWindowEvent(events.Common.WindowShow, func(*application.WindowEvent) {
+		initialRestore.Do(func() {
+			go hudController.RestoreHUDWindow()
+		})
+	})
 
 	// Only a HUD attached to an external core watches its core: a linked HUD
 	// that embedded its own Core is that Core's process, so there is nothing

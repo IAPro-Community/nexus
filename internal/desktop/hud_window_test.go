@@ -108,3 +108,76 @@ func TestCompactHUDWindowStatePreservesBottomRightAnchor(t *testing.T) {
 		})
 	}
 }
+
+func TestCompactHUDWindowStateUsesConfiguredCompactDimensions(t *testing.T) {
+	in := HUDWindowState{
+		DisplayID: "current", Placement: HUDPlacementCustom,
+		X: 100, Y: 200, Width: 380, Height: 560,
+		CompactWidth: 260, CompactHeight: 70,
+		ExpandedWidth: 380, ExpandedHeight: 560,
+		Mode: "AUTO", Opacity: 0.96,
+	}
+	got := compactHUDWindowState(in)
+	if got.Width != 260 || got.Height != 70 {
+		t.Fatalf("custom compact size lost: %+v", got)
+	}
+	if got.X+got.Width != in.X+in.Width || got.Y+got.Height != in.Y+in.Height {
+		t.Fatalf("custom compact size must preserve bottom-right anchor: in=%+v got=%+v", in, got)
+	}
+}
+
+func TestNormalizeHUDWindowStateKeepsSafeCustomSizes(t *testing.T) {
+	got := normalizeHUDWindowState(HUDWindowState{
+		DisplayID: "current", Placement: HUDPlacementCustom,
+		CompactWidth: 260, CompactHeight: 70,
+		ExpandedWidth: 380, ExpandedHeight: 560,
+	})
+	if got.CompactWidth != 260 || got.CompactHeight != 70 ||
+		got.ExpandedWidth != 380 || got.ExpandedHeight != 560 {
+		t.Fatalf("safe custom sizes were changed: %+v", got)
+	}
+
+	unsafe := normalizeHUDWindowState(HUDWindowState{
+		DisplayID: "current", Placement: HUDPlacementCustom,
+		CompactWidth: 10, CompactHeight: 5000,
+		ExpandedWidth: 100, ExpandedHeight: 100,
+	})
+	if unsafe.CompactWidth != 220 || unsafe.CompactHeight != 60 ||
+		unsafe.ExpandedWidth != 334 || unsafe.ExpandedHeight != 496 {
+		t.Fatalf("unsafe custom sizes must fall back to defaults: %+v", unsafe)
+	}
+}
+
+func TestHUDSizePresetsAreDistinctAndBounded(t *testing.T) {
+	presets := (&HUDController{}).GetHUDSizePresets()
+	if len(presets) < 3 {
+		t.Fatalf("expected at least three size presets, got %d", len(presets))
+	}
+	seen := map[string]bool{}
+	for _, preset := range presets {
+		if preset.ID == "" || preset.Label == "" || seen[preset.ID] {
+			t.Fatalf("invalid or duplicate preset: %+v", preset)
+		}
+		seen[preset.ID] = true
+		if preset.CompactWidth < 190 || preset.CompactHeight < 48 ||
+			preset.ExpandedWidth < preset.CompactWidth || preset.ExpandedHeight < preset.CompactHeight {
+			t.Fatalf("preset violates geometry contract: %+v", preset)
+		}
+	}
+	if _, ok := resolveHUDSizePreset("comfortable"); !ok {
+		t.Fatal("comfortable preset must resolve")
+	}
+	if _, ok := resolveHUDSizePreset("invented"); ok {
+		t.Fatal("unknown presets must not resolve")
+	}
+}
+
+func TestHUDControllerSizePresetRequiresNativeWindow(t *testing.T) {
+	controller := NewHUDController(NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json")))
+	if err := controller.SetHUDSizePreset("comfortable", false); err == nil {
+		t.Fatal("size changes without a native window must fail closed")
+	}
+	if err := controller.MoveHUD(10, 10); err == nil {
+		t.Fatal("moves without a native window must fail closed")
+	}
+}

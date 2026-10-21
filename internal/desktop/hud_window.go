@@ -43,17 +43,39 @@ type HUDPlatformCapabilities struct {
 }
 
 type HUDWindowState struct {
-	DisplayID    string  `json:"displayId"`
-	DisplayScale float32 `json:"displayScale,omitempty"`
-	Placement    string  `json:"placement"`
-	X            int     `json:"x"`
-	Y            int     `json:"y"`
-	Width        int     `json:"width"`
-	Height       int     `json:"height"`
-	Mode         string  `json:"mode"`
-	Opacity      float64 `json:"opacity"`
-	AlwaysOnTop  bool    `json:"alwaysOnTop"`
-	AutoHide     bool    `json:"autoHide"`
+	DisplayID      string  `json:"displayId"`
+	DisplayScale   float32 `json:"displayScale,omitempty"`
+	Placement      string  `json:"placement"`
+	X              int     `json:"x"`
+	Y              int     `json:"y"`
+	Width          int     `json:"width"`
+	Height         int     `json:"height"`
+	CompactWidth   int     `json:"compactWidth"`
+	CompactHeight  int     `json:"compactHeight"`
+	ExpandedWidth  int     `json:"expandedWidth"`
+	ExpandedHeight int     `json:"expandedHeight"`
+	Mode           string  `json:"mode"`
+	Opacity        float64 `json:"opacity"`
+	AlwaysOnTop    bool    `json:"alwaysOnTop"`
+	AutoHide       bool    `json:"autoHide"`
+}
+
+// HUDSizePreset is the native window geometry contract exposed to the HUD
+// settings surface. Compact and expanded sizes travel together so a user can
+// choose one preset without producing a popover that no longer fits.
+type HUDSizePreset struct {
+	ID             string `json:"id"`
+	Label          string `json:"label"`
+	CompactWidth   int    `json:"compactWidth"`
+	CompactHeight  int    `json:"compactHeight"`
+	ExpandedWidth  int    `json:"expandedWidth"`
+	ExpandedHeight int    `json:"expandedHeight"`
+}
+
+var hudSizePresets = []HUDSizePreset{
+	{ID: "compact", Label: "Compacto", CompactWidth: 220, CompactHeight: 60, ExpandedWidth: 334, ExpandedHeight: 496},
+	{ID: "comfortable", Label: "Confortável", CompactWidth: 260, CompactHeight: 70, ExpandedWidth: 380, ExpandedHeight: 560},
+	{ID: "large", Label: "Grande", CompactWidth: 320, CompactHeight: 84, ExpandedWidth: 440, ExpandedHeight: 640},
 }
 
 type HUDWindowStateManager struct {
@@ -74,15 +96,19 @@ func NewHUDWindowStateManager(filePath string) *HUDWindowStateManager {
 
 func defaultHUDWindowState() HUDWindowState {
 	return HUDWindowState{
-		DisplayID:   "current",
-		Placement:   HUDPlacementBottomRight,
-		X:           24,
-		Y:           24,
-		Width:       220,
-		Height:      60,
-		Mode:        "AUTO",
-		Opacity:     0.96,
-		AlwaysOnTop: true,
+		DisplayID:      "current",
+		Placement:      HUDPlacementBottomRight,
+		X:              24,
+		Y:              24,
+		Width:          220,
+		Height:         60,
+		CompactWidth:   220,
+		CompactHeight:  60,
+		ExpandedWidth:  334,
+		ExpandedHeight: 496,
+		Mode:           "AUTO",
+		Opacity:        0.96,
+		AlwaysOnTop:    true,
 	}
 }
 
@@ -103,6 +129,24 @@ func normalizeHUDWindowState(state HUDWindowState) HUDWindowState {
 	}
 	if state.Height < 48 || state.Height > 900 {
 		state.Height = defaults.Height
+	}
+	if state.CompactWidth < 190 || state.CompactWidth > 600 {
+		state.CompactWidth = defaults.CompactWidth
+	}
+	if state.CompactHeight < 48 || state.CompactHeight > 300 {
+		state.CompactHeight = defaults.CompactHeight
+	}
+	if state.ExpandedWidth < 280 || state.ExpandedWidth > 1200 {
+		state.ExpandedWidth = defaults.ExpandedWidth
+	}
+	if state.ExpandedHeight < 240 || state.ExpandedHeight > 900 {
+		state.ExpandedHeight = defaults.ExpandedHeight
+	}
+	if state.ExpandedWidth < state.CompactWidth {
+		state.ExpandedWidth = state.CompactWidth
+	}
+	if state.ExpandedHeight < state.CompactHeight {
+		state.ExpandedHeight = state.CompactHeight
 	}
 	if state.Opacity <= 0 || state.Opacity > 1 {
 		state.Opacity = defaults.Opacity
@@ -315,10 +359,9 @@ func (h *HUDController) SaveHUDWindowState(state HUDWindowState) error {
 // Preserve the bottom-right anchor for custom placements.
 func compactHUDWindowState(state HUDWindowState) HUDWindowState {
 	state = normalizeHUDWindowState(state)
-	const compactWidth, compactHeight = 220, 60
-	state.X += state.Width - compactWidth
-	state.Y += state.Height - compactHeight
-	state.Width, state.Height = compactWidth, compactHeight
+	state.X += state.Width - state.CompactWidth
+	state.Y += state.Height - state.CompactHeight
+	state.Width, state.Height = state.CompactWidth, state.CompactHeight
 	return state
 }
 
@@ -372,9 +415,9 @@ func (h *HUDController) SetHUDExpanded(expanded bool) error {
 		return fmt.Errorf("native Nexus HUD window is unavailable")
 	}
 	state := h.manager.Load()
-	targetWidth, targetHeight := 220, 60
+	targetWidth, targetHeight := state.CompactWidth, state.CompactHeight
 	if expanded {
-		targetWidth, targetHeight = 334, 496
+		targetWidth, targetHeight = state.ExpandedWidth, state.ExpandedHeight
 	}
 
 	// Native size is authoritative: a blur/capture may have persisted a
@@ -401,6 +444,85 @@ func (h *HUDController) SetHUDExpanded(expanded bool) error {
 	}
 	state.Placement = HUDPlacementCustom
 	return h.manager.Save(state)
+}
+
+// GetHUDSizePresets returns the supported native window geometries. The
+// frontend only renders these presets; it never invents dimensions.
+func (h *HUDController) GetHUDSizePresets() []HUDSizePreset {
+	presets := make([]HUDSizePreset, len(hudSizePresets))
+	copy(presets, hudSizePresets)
+	return presets
+}
+
+// SetHUDSizePreset persists and applies a named geometry while keeping the
+// bottom-right anchor stable. It is used by the native HUD settings surface.
+func (h *HUDController) SetHUDSizePreset(preset string, expanded bool) error {
+	window, ok := h.nativeWindow()
+	if !ok {
+		return fmt.Errorf("native Nexus HUD window is unavailable")
+	}
+	selected, ok := resolveHUDSizePreset(preset)
+	if !ok {
+		return fmt.Errorf("unknown HUD size preset %q", preset)
+	}
+	state := h.manager.Load()
+	state.CompactWidth, state.CompactHeight = selected.CompactWidth, selected.CompactHeight
+	state.ExpandedWidth, state.ExpandedHeight = selected.ExpandedWidth, selected.ExpandedHeight
+	targetWidth, targetHeight := selected.CompactWidth, selected.CompactHeight
+	if expanded {
+		targetWidth, targetHeight = selected.ExpandedWidth, selected.ExpandedHeight
+	}
+	state.X, state.Y = window.Position()
+	oldWidth, oldHeight := window.Size()
+	state.X += oldWidth - targetWidth
+	state.Y += oldHeight - targetHeight
+	state.Width, state.Height = targetWidth, targetHeight
+	if screen := h.screenForState(state, window); screen != nil {
+		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
+		state.DisplayID = screen.ID
+		state.DisplayScale = screen.ScaleFactor
+	}
+	window.SetSize(state.Width, state.Height)
+	if h.GetHUDCapabilities().GlobalPositioning {
+		window.SetPosition(state.X, state.Y)
+	}
+	state.Placement = HUDPlacementCustom
+	return h.manager.Save(state)
+}
+
+// MoveHUD moves the native window by a keyboard-sized delta and clamps it to
+// the current work area. Pointer dragging is handled by Wails' native drag
+// region; this method keeps the operation accessible from the keyboard.
+func (h *HUDController) MoveHUD(dx, dy int) error {
+	window, ok := h.nativeWindow()
+	if !ok {
+		return fmt.Errorf("native Nexus HUD window is unavailable")
+	}
+	if !h.GetHUDCapabilities().GlobalPositioning {
+		return fmt.Errorf("native Nexus HUD positioning is unavailable on this platform")
+	}
+	state := h.manager.Load()
+	state.Width, state.Height = window.Size()
+	state.X, state.Y = window.Position()
+	state.X += dx
+	state.Y += dy
+	if screen := h.screenForState(state, window); screen != nil {
+		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
+		state.DisplayID = screen.ID
+		state.DisplayScale = screen.ScaleFactor
+	}
+	window.SetPosition(state.X, state.Y)
+	state.Placement = HUDPlacementCustom
+	return h.manager.Save(state)
+}
+
+func resolveHUDSizePreset(preset string) (HUDSizePreset, bool) {
+	for _, item := range hudSizePresets {
+		if item.ID == preset {
+			return item, true
+		}
+	}
+	return HUDSizePreset{}, false
 }
 
 func (h *HUDController) SetHUDAutoHide(enabled bool) error {
