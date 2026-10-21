@@ -119,7 +119,9 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 	latestMaestroVer := maestroVer
 	updateAvailable := false
 	if npmPath, err := exec.LookPath("npm"); err == nil {
-		cmd := exec.Command(npmPath, "view", "@iapro/orquestrador-maestro-cli", "version")
+		npmCtx, cancelNpm := context.WithTimeout(r.Context(), 4*time.Second)
+		defer cancelNpm()
+		cmd := exec.CommandContext(npmCtx, npmPath, "view", "@iapro/orquestrador-maestro-cli", "version")
 		executil.HideConsoleWindow(cmd)
 		if out, err := cmd.Output(); err == nil {
 			latestMaestroVer = strings.TrimSpace(string(out))
