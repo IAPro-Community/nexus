@@ -56,6 +56,10 @@ export const DesktopHudApp: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // The popup has no persistent geometry of its own: recording the
+    // capsule's state whenever the popup loses focus would turn a normal
+    // open/close gesture into an unintended placement change.
+    if (popupView) return;
     const capture = () => {
       void hudV3.captureWindowState().catch(() => undefined);
     };
@@ -65,7 +69,7 @@ export const DesktopHudApp: React.FC = () => {
       window.removeEventListener('blur', capture);
       window.removeEventListener('beforeunload', capture);
     };
-  }, []);
+  }, [popupView]);
 
   useEffect(() => {
     let active = true;
