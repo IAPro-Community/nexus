@@ -22,6 +22,7 @@ import {
 } from '../../design-system';
 import { useWorkspace } from '../../workspace/WorkspaceProvider';
 import { nexus } from '../../nexus/api';
+import { getPlatformBridge } from '../../platform';
 import type { IntelligenceMode, IntelligenceStatus, ProviderAccount } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { asArray } from '../../lib/safeArray';
@@ -95,6 +96,8 @@ export const SettingsSurface: React.FC<{
     nexus_update_available?: boolean;
     nexus_update_error?: string;
     nexus_update_instruction?: string;
+    nexus_installer_url?: string;
+    nexus_release_url?: string;
     nexus_allows_self_update?: boolean;
     channel?: string;
     installation_method?: string;
@@ -187,6 +190,20 @@ export const SettingsSurface: React.FC<{
     void checkDoctor();
     void loadIntelligence();
   }, []);
+
+  const handleDownloadNexus = async () => {
+    if (!updateInfo?.nexus_update_available) return;
+    const url = updateInfo.nexus_installer_url || updateInfo.nexus_release_url;
+    if (!url || !url.startsWith('https://github.com/IAPro-Community/nexus/releases/')) {
+      setUpdateError('O link oficial desta atualização ainda não está disponível.');
+      return;
+    }
+    try {
+      await getPlatformBridge().openExternal(url);
+    } catch (error) {
+      setUpdateError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   const handleUpdate = async () => {
     setUpdating(true);
@@ -649,10 +666,24 @@ export const SettingsSurface: React.FC<{
                   <RefreshCw size={14} className={checkingUpdates ? 'nx-spin' : ''} />
                   {checkingUpdates ? 'Verificando…' : 'Verificar Atualizações Agora'}
                 </Button>
-                <Button tone="brand" onClick={handleUpdate} disabled={updating}>
-                  <RefreshCw size={14} className={updating ? 'nx-spin' : ''} />
-                  {updating ? t('settings.updating') : t('settings.update')}
-                </Button>
+                {updateInfo?.nexus_update_available && (
+                  <Button
+                    tone="brand"
+                    onClick={() => void handleDownloadNexus()}
+                    disabled={checkingUpdates || updating}
+                  >
+                    <ArrowUpCircle size={14} />
+                    {updateInfo.nexus_installer_url
+                      ? 'Baixar instalador oficial do Nexus'
+                      : 'Ver release oficial do Nexus'}
+                  </Button>
+                )}
+                {updateInfo?.maestro_available && (
+                  <Button onClick={handleUpdate} disabled={updating}>
+                    <RefreshCw size={14} className={updating ? 'nx-spin' : ''} />
+                    {updating ? t('settings.updating') : 'Atualizar Maestro'}
+                  </Button>
+                )}
               </div>
             </Card>
             <SystemDiagnosticsCard
