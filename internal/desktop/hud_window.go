@@ -284,6 +284,16 @@ func NewHUDControllerWithDetachedPopover(manager *HUDWindowStateManager, detache
 	if runtime.GOOS == "linux" && hudSession() == "wayland" {
 		detached = false
 	}
+	// If detached mode is disabled (including Wayland), restore a usable bar
+	// instead of rendering 220 DIP content inside a 108 DIP mascot window.
+	if !detached {
+		state := manager.Load()
+		if state.Appearance == HUDAppearanceMascot {
+			state.Appearance = HUDAppearanceBar
+			state.Width, state.Height = state.CompactWidth, state.CompactHeight
+			_ = manager.Save(state)
+		}
+	}
 	return &HUDController{manager: manager, caps: DefaultHUDPlatformCapabilities(), detached: detached}
 }
 
