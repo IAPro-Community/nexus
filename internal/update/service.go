@@ -62,6 +62,7 @@ type CheckResult struct {
 	Changelog          string             `json:"changelog,omitempty"`
 	Target             string             `json:"target,omitempty"`
 	TargetArtifact     *Artifact          `json:"target_artifact,omitempty"`
+	InstallerArtifact  *Artifact          `json:"installer_artifact,omitempty"`
 	ActiveWork         bool               `json:"active_work"`
 	ActiveWorkReason   string             `json:"active_work_reason,omitempty"`
 }
@@ -168,6 +169,24 @@ func (s *Service) Check(ctx context.Context) (*CheckResult, error) {
 		res.UpdateAvailable = true
 		art := manifest.Artifacts[target]
 		res.TargetArtifact = &art
+
+		// Native Desktop/HUD upgrades must go through their platform installer.
+		// The primary goos_goarch artifact is the CLI and must not replace a
+		// running GUI executable. These optional package entries are only
+		// considered after the full signed manifest has been verified.
+		var installerKey string
+		switch runtime.GOOS {
+		case "windows":
+			installerKey = target + "_nsis"
+		case "darwin":
+			installerKey = target + "_pkg"
+		case "linux":
+			installerKey = target + "_deb"
+		}
+		if installer, ok := manifest.Artifacts[installerKey]; ok &&
+			installer.ExtractAction() == "manual" && installer.URL != "" {
+			res.InstallerArtifact = &installer
+		}
 	}
 
 	return res, nil
