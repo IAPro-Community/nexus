@@ -113,8 +113,8 @@ func TestGuardianMascotAndTrayNativeWindowContracts(t *testing.T) {
 	state.Appearance = desktop.HUDAppearanceTray
 	state.Width, state.Height = 220, 60
 	tray := hudWindowOptions(state)
-	if !tray.Hidden || tray.MinWidth != 190 {
-		t.Fatalf("tray startup must hide capsule and retain the recoverable bar size: %+v", tray)
+	if !tray.Hidden || tray.Width != 220 || tray.MinWidth != 80 {
+		t.Fatalf("tray startup must hide capsule and preserve a recoverable full-size bar: %+v", tray)
 	}
 	popup := hudDetachedPopupOptions(state)
 	if !popup.Hidden || popup.Name != desktop.HUDPopupWindowName {
