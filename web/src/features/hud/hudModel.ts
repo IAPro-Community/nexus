@@ -2,6 +2,7 @@ export type HudMode = 'AUTO' | 'CAPACITY' | 'RESOURCE' | 'AGENT' | 'MISSION' | '
 
 export type HudSurfaceMode = 'docked' | 'floating';
 export type HudDock = 'top' | 'bottom';
+export type HudAppearance = 'bar' | 'companion';
 
 export interface HudWindow {
   group?: string;
@@ -145,6 +146,9 @@ export interface HudPresentationPreferences {
   surfaceMode: HudSurfaceMode;
   dock: HudDock;
   compact: boolean;
+  appearance: HudAppearance;
+  companionMotion: boolean;
+  attentionBubbles: boolean;
   showCapacity: boolean;
   showAgents: boolean;
   showMissions: boolean;
@@ -163,6 +167,9 @@ export const defaultHudPreferences: HudPresentationPreferences = {
   surfaceMode: 'docked',
   dock: 'bottom',
   compact: true,
+  appearance: 'bar',
+  companionMotion: true,
+  attentionBubbles: true,
   showCapacity: true,
   showAgents: true,
   showMissions: true,
@@ -189,6 +196,9 @@ export const normalizeHudPreferences = (
   ...(raw || {}),
   version: 1,
   mode: raw?.mode && modes.has(raw.mode) ? raw.mode : defaultHudPreferences.mode,
+  appearance: raw?.appearance === 'companion' ? 'companion' : 'bar',
+  companionMotion: raw?.companionMotion !== false,
+  attentionBubbles: raw?.attentionBubbles !== false,
   surfaceMode:
     raw?.surfaceMode === 'floating' || raw?.surfaceMode === 'docked'
       ? raw.surfaceMode
