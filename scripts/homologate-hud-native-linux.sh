@@ -6,6 +6,10 @@ HUD="$(realpath "$1")"
 OUT="$(realpath -m "$2")"
 CYCLES=20
 if [ "$#" -ge 3 ]; then CYCLES="$3"; fi
+if ! [[ "$CYCLES" =~ ^[0-9]+$ ]] || (( CYCLES < 1 || CYCLES > 50 )); then
+  echo "CYCLES must be between 1 and 50" >&2
+  exit 2
+fi
 mkdir -p "$OUT"
 SHA="$(git -C "$(cd "$(dirname "$0")/.." && pwd)" rev-parse HEAD)"
 RESULT=INCONCLUSIVE
@@ -13,7 +17,7 @@ REASON=''
 DONE=0
 PID=''
 report() {
-  HUD_SHA="$SHA" HUD_RESULT="$RESULT" HUD_REASON="$REASON" HUD_DONE="$DONE" HUD_CYCLES="$CYCLES" HUD_BINARY_SHA="$(sha256sum "$HUD" | awk '{print $1}')" \
+  HUD_SHA="$SHA" HUD_RESULT="$RESULT" HUD_REASON="$REASON" HUD_DONE="$DONE" HUD_CYCLES="$CYCLES" HUD_BINARY_SHA="$(sha256sum "$HUD" 2>/dev/null | awk '{print $1}' || true)" \
   python3 - "$OUT/HUD_NATIVE_RESULTS.json" <<'PY'
 import json,os,sys
 data={"sha":os.getenv("HUD_SHA"),"platform":"linux-x11","cycles_requested":int(os.getenv("HUD_CYCLES")),
