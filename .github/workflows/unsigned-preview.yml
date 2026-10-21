@@ -36,19 +36,24 @@ jobs:
       - name: Install native Wails build prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev pkg-config
+          sudo apt-get install -y build-essential libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev pkg-config
+          pkg-config --exists gtk+-3.0 webkit2gtk-4.1 libsoup-3.0 gio-unix-2.0
       - name: Verify and build
         shell: bash
         run: |
           set -euo pipefail
           bun install --cwd web --frozen-lockfile
           bun run --cwd web quality:full
-          go test -count=1 ./...
+          go test -tags gtk3 -count=1 ./...
           make build
           make build-desktop-wails
           make build-hud-wails
           mkdir -p preview-out/payload
-          cp nexus cmd/nexus-desktop/build/bin/nexus-desktop cmd/nexus-hud/build/bin/nexus-hud preview-out/payload/
+          cp nexus cmd/nexus-desktop/build/bin/nexus-desktop cmd/nexus-hud/build/bin/nexus-hud LICENSE preview-out/payload/
+          printf '%s\n' "$GITHUB_SHA" > preview-out/payload/SOURCE_SHA.txt
+          test "$(go version -m preview-out/payload/nexus | grep -c 'go1.26.10')" -gt 0
+          test -x preview-out/payload/nexus-desktop
+          test -x preview-out/payload/nexus-hud
           tar -czf preview-out/nexus-preview-linux-amd64.tar.gz -C preview-out/payload .
           rm -rf preview-out/payload
       - uses: actions/upload-artifact@v4
@@ -89,8 +94,15 @@ jobs:
             go build -trimpath -buildvcs=false -tags production -ldflags $ld -o "$($target[0]).exe" $target[1]
             if ($LASTEXITCODE -ne 0) { throw "build failed: $($target[0])" }
           }
-          New-Item -ItemType Directory -Force preview-out | Out-Null
-          Compress-Archive -Path nexus.exe,nexus-desktop.exe,nexus-hud.exe -DestinationPath preview-out/nexus-preview-windows-amd64.zip -Force
+          New-Item -ItemType Directory -Force preview-out/payload | Out-Null
+          (git rev-parse HEAD).Trim() | Set-Content -Encoding ascii preview-out/payload/SOURCE_SHA.txt
+          Copy-Item nexus.exe,nexus-desktop.exe,nexus-hud.exe,LICENSE preview-out/payload/
+          foreach ($bin in @('nexus.exe','nexus-desktop.exe','nexus-hud.exe')) {
+            if (-not (Test-Path "preview-out/payload/$bin")) { throw "missing $bin" }
+            $metadata = (& go version -m "preview-out/payload/$bin") -join "`n"
+            if ($LASTEXITCODE -ne 0 -or $metadata -notmatch 'go1\.26\.10') { throw "unexpected Go toolchain for $bin" }
+          }
+          Compress-Archive -Path preview-out/payload/* -DestinationPath preview-out/nexus-preview-windows-amd64.zip -Force
       - uses: actions/upload-artifact@v4
         with:
           name: preview-windows
@@ -137,7 +149,16 @@ jobs:
           mkdir -p preview-out staging
           bash scripts/build-wails-v3-macos-app.sh ./cmd/nexus-desktop "staging/IAPro Nexus.app" nexus-desktop com.iapro.nexus.desktop "IAPro Nexus" "$version"
           bash scripts/build-wails-v3-macos-app.sh ./cmd/nexus-hud "staging/IAPro Nexus HUD.app" nexus-hud com.iapro.nexus.hud "Nexus HUD" "$version"
-          tar -czf preview-out/nexus-preview-macos-${{ matrix.arch }}-cli.tar.gz nexus
+          mkdir -p preview-out/cli
+          cp nexus LICENSE preview-out/cli/
+          printf '%s\n' "$GITHUB_SHA" > preview-out/cli/SOURCE_SHA.txt
+          test "$(go version -m preview-out/cli/nexus | grep -c 'go1.26.10')" -gt 0
+          plutil -lint "staging/IAPro Nexus.app/Contents/Info.plist"
+          plutil -lint "staging/IAPro Nexus HUD.app/Contents/Info.plist"
+          test -x "staging/IAPro Nexus.app/Contents/MacOS/nexus-desktop"
+          test -x "staging/IAPro Nexus HUD.app/Contents/MacOS/nexus-hud"
+          tar -czf preview-out/nexus-preview-macos-${{ matrix.arch }}-cli.tar.gz -C preview-out/cli .
+          rm -rf preview-out/cli
           ditto -c -k --sequesterRsrc --keepParent "staging/IAPro Nexus.app" preview-out/nexus-preview-macos-${{ matrix.arch }}-desktop.zip
           ditto -c -k --sequesterRsrc --keepParent "staging/IAPro Nexus HUD.app" preview-out/nexus-preview-macos-${{ matrix.arch }}-hud.zip
       - uses: actions/upload-artifact@v4
