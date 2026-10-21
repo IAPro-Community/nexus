@@ -24,7 +24,13 @@ def make_png() -> bytes:
             struct.pack(">I", zlib.crc32(name + payload) & 0xFFFFFFFF)
         )
     width, height = 128, 96
-    rows = (b"\x00" + bytes(width * 3)) * height
+    # A deterministic non-uniform frame keeps the PNG realistic enough to
+    # exceed the screenshot size floor in the verifier.
+    rows = b"".join(
+        b"\x00" + bytes(((x * 37 + y * 19 + (x * y) % 251) & 255)
+                        for x in range(width * 3))
+        for y in range(height)
+    )
     header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
     return (
         b"\x89PNG\r\n\x1a\n" +
