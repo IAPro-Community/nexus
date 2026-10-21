@@ -107,6 +107,28 @@ async function main() {
     const expanded = page.locator('section[data-hud-panel][data-expanded="true"]').first();
     await expanded.waitFor({ state: 'visible', timeout: 5000 });
 
+    // Exercise compiled detached-popup styles without claiming native Wails
+    // focus, transparency or mouse hit-testing has been certified.
+    await hud.evaluate((element) => {
+      element.dataset.detachedView = 'popover';
+    });
+    const entrance = await page.locator('#nexus-hud-popover').evaluate((element) => {
+      const animation = getComputedStyle(element);
+      return { name: animation.animationName, duration: animation.animationDuration };
+    });
+    assert.notEqual(entrance.name, 'none', 'detached popup should animate when motion is allowed');
+    assert.equal(entrance.duration, '0.15s', 'popup entrance should be short');
+
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const reduced = await page.locator('#nexus-hud-popover').evaluate((element) => {
+      return getComputedStyle(element).animationName;
+    });
+    assert.equal(reduced, 'none', 'reduced-motion setting must disable popup animation');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await hud.evaluate((element) => {
+      delete element.dataset.detachedView;
+    });
+
     const axeDesktop = await new AxeBuilder({ page }).exclude('.xterm').analyze();
     const seriousDesktop = axeDesktop.violations.filter((v) =>
       ['serious', 'critical'].includes(v.impact),
