@@ -72,6 +72,20 @@ jobs:
           go-version: 1.26.10
           cache: false
 
+      - name: Parse native Windows HUD graphical acceptance script
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path '.\scripts\homologate-hud-native-windows.ps1').Path,
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            throw 'Native Windows HUD acceptance PowerShell has parse errors'
+          }
       - name: Verify HUD Windows/macOS borderless window contract
         shell: pwsh
         run: go test -count=1 ./cmd/nexus-hud
