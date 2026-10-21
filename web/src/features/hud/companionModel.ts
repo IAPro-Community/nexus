@@ -32,10 +32,10 @@ export function projectCompanionAttention(
 
   // The Attention Center owns human-intervention classification. If it is
   // reachable, do not override it with older Mission projection heuristics.
-  if (attentionGroup) for (const input of attentionGroup.needs_you) {
+  if (attentionGroup) for (const input of attentionGroup.needs_you || []) {
     if (input.level !== 'REQUIRE_USER') continue;
     items.push({
-      id: `mission:${input.project_id}:${input.mission_id}`,
+      id: `mission:${input.project_id}:${input.mission_id}:${input.intervention?.id || 'state'}:v${input.intervention?.version ?? 0}`,
       title: 'Uma missão precisa de resposta',
       detail: 'Há uma intervenção aguardando sua decisão.',
       severity: 'critical',
