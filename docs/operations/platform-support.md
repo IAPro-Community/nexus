@@ -238,8 +238,15 @@ constituem canais automáticos e nunca participam desse processo.
 
 Para instalações beta, quando não há beta mais nova, o Desktop também
 consulta a versão estável assinada. Builds beta com o mesmo número de
-versão podem ser diferenciados pelo `source_sha` assinado, desde que a
-instalação local tenha um commit identificável.
+versão só são considerados novos quando o `source_sha` assinado é
+**descendente comprovado** do commit embutido no executável local,
+consultando a API pública de comparação de commits do GitHub. SHA
+diferente por si só não significa versão nova. Se a API estiver
+indisponível, se os históricos divergirem ou se o build local não
+contiver commit válido, a atualização de mesma versão não é oferecida
+(falha segura). Atualizações com SemVer superior seguem a validação
+criptográfica normal. `nexus update` retorna "atualizado" sem
+reinstalar um binário de mesma versão quando não houver upgrade elegível.
 
 Na aba **Configurações > Atualizações**, a ação do Nexus é separada do
 botão **Atualizar Maestro**. Quando um pacote nativo verificado está
