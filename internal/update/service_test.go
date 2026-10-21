@@ -42,6 +42,30 @@ func TestChannelForVersionClassifiesPrereleases(t *testing.T) {
 	}
 }
 
+func TestRollingBetaSHADetection(t *testing.T) {
+	signed := strings.Repeat("a", 40)
+	cases := []struct {
+		name, current, signed string
+		want bool
+	}{
+		{"same short SHA", "aaaaaaa", signed, false},
+		{"different odd-length short SHA", "bbbbbbb", signed, true},
+		{"different full SHA", strings.Repeat("b", 40), signed, true},
+		{"unknown local commit", "unknown", signed, false},
+		{"dev build", "dev", signed, false},
+		{"short garbage", "not_a_sha", signed, false},
+		{"no signed SHA", "bbbbbbb", "", false},
+		{"short manifest SHA", "bbbbbbb", "abcdef1", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := isNewerSignedBetaSHA(tc.current, tc.signed); got != tc.want {
+				t.Errorf("isNewerSignedBetaSHA(%q, %q)=%t, want %t", tc.current, tc.signed, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestServiceCheckAndApply(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 
