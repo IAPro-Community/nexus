@@ -59,6 +59,7 @@ export interface NexusHudProps {
   onOpenAgents?: () => void;
   onOpenMissions?: () => void;
   onOpenSettings?: () => void;
+  onOpenTarget?: (item: CompanionAttention) => void;
   nativeAutoStart?: {
     supported: boolean;
     enabled: boolean;
@@ -80,6 +81,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   onOpenAgents,
   onOpenMissions,
   onOpenSettings,
+  onOpenTarget,
   nativeAutoStart,
 }) => {
   const { t } = useTranslation();
@@ -353,6 +355,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   };
 
   const openAttention = (item: CompanionAttention) => {
+    if (onOpenTarget) {
+      clearBubble();
+      onOpenTarget(item);
+      return;
+    }
     const destination =
       item.target === 'missions' ? onOpenMissions :
       item.target === 'agents' ? onOpenAgents :
