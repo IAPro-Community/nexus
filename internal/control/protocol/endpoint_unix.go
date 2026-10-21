@@ -16,8 +16,11 @@ import (
 func Listen(runtimeID string) (net.Listener, error) {
 	path := EndpointPath(runtimeID)
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return nil, fmt.Errorf("failed to create socket directory: %w", err)
+	if len(path) > maxUnixSocketPathLen {
+		return nil, fmt.Errorf("unix socket path exceeds %d bytes", maxUnixSocketPathLen)
+	}
+	if !ensurePrivateSocketDir(dir, os.Getuid()) {
+		return nil, fmt.Errorf("unix socket directory is not private or user-owned: %s", dir)
 	}
 
 	// Remove dead/stale socket file if present
@@ -40,8 +43,15 @@ func Listen(runtimeID string) (net.Listener, error) {
 }
 
 func dialEndpoint(ctx context.Context, runtimeID string) (net.Conn, error) {
+	path := EndpointPath(runtimeID)
+	if len(path) > maxUnixSocketPathLen {
+		return nil, fmt.Errorf("unix socket path exceeds %d bytes", maxUnixSocketPathLen)
+	}
+	if !ensurePrivateSocketDir(filepath.Dir(path), os.Getuid()) {
+		return nil, fmt.Errorf("unix socket directory is not private or user-owned: %s", filepath.Dir(path))
+	}
 	var dialer net.Dialer
-	return dialer.DialContext(ctx, "unix", EndpointPath(runtimeID))
+	return dialer.DialContext(ctx, "unix", path)
 }
 
 func isRetryableDialError(err error) bool {

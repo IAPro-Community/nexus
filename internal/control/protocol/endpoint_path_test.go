@@ -81,3 +81,50 @@ func TestListenDialWithLongTempDir(t *testing.T) {
 	}
 	defer conn.Close()
 }
+
+// TestPrivateSocketDirectoryRefusesUnsafePaths ensures a pre-existing
+// permissive directory or symlink cannot host the local control socket.
+func TestPrivateSocketDirectoryRefusesUnsafePaths(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "socket")
+	if err := os.Mkdir(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if !ensurePrivateSocketDir(dir, os.Getuid()) {
+		t.Fatal("expected private owned directory to be accepted")
+	}
+	if err := os.Chmod(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if ensurePrivateSocketDir(dir, os.Getuid()) {
+		t.Fatal("world-readable directory must not be accepted")
+	}
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(dir, link); err != nil {
+		t.Fatal(err)
+	}
+	if ensurePrivateSocketDir(link, os.Getuid()) {
+		t.Fatal("symlinked socket directory must not be accepted")
+	}
+}
+
+func TestEndpointPathRejectsInsecureXDGDirectory(t *testing.T) {
+	xdg := t.TempDir()
+	dir := filepath.Join(xdg, "nexus")
+	if err := os.Mkdir(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("XDG_RUNTIME_DIR", xdg)
+	path := EndpointPath(longRuntimeID)
+	if strings.HasPrefix(path, dir+string(os.PathSeparator)) {
+		t.Fatalf("socket must not be placed in insecure XDG directory: %q", path)
+	}
+	if got := shortSocketDir(os.Getuid()); got != shortSocketDir(os.Getuid()) {
+		t.Fatalf("short fallback must be stable across processes: %q", got)
+	}
+}

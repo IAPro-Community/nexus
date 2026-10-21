@@ -68,32 +68,27 @@ func EndpointPath(runtimeID string) string {
 		return fmt.Sprintf(`\\.\pipe\nexus-control-%s`, runtimeID)
 	}
 
-	// Prefer XDG_RUNTIME_DIR if set and accessible
+	uid := os.Getuid()
+
+	// Prefer XDG_RUNTIME_DIR only when its Nexus child is an owned, private
+	// directory. An attacker-controlled directory must not host our socket.
 	if xdg := os.Getenv("XDG_RUNTIME_DIR"); xdg != "" {
 		dir := filepath.Join(xdg, "nexus")
-		_ = os.MkdirAll(dir, 0700)
-		if path, ok := socketPathIn(dir, runtimeID); ok {
+		if path, ok := socketPathIn(dir, runtimeID); ok && ensurePrivateSocketDir(dir, uid) {
 			return path
 		}
 	}
 
-	// Fallback to /tmp/nexus-control-<uid>
-	uid := os.Getuid()
+	// The ordinary per-user temporary directory can be deeply nested on
+	// macOS. Use it only if the path fits and it is private.
 	dir := filepath.Join(os.TempDir(), fmt.Sprintf("nexus-control-%d", uid))
-	_ = os.MkdirAll(dir, 0700)
-
-	if st, err := os.Stat(dir); err == nil && !isOwnedBy(st, uid) {
-		dir = filepath.Join(os.TempDir(), fmt.Sprintf("nexus-control-%d-%d", uid, time.Now().UnixNano()))
-		_ = os.MkdirAll(dir, 0700)
-	}
-
-	if path, ok := socketPathIn(dir, runtimeID); ok {
+	if path, ok := socketPathIn(dir, runtimeID); ok && ensurePrivateSocketDir(dir, uid) {
 		return path
 	}
 
-	// The per-user TMPDIR on macOS lives under /var/folders/... and can push
-	// the socket path past the kernel limit once a ULID runtime ID is
-	// appended. Fall back to a short, owner-checked private directory.
+	// The fallback is deliberately deterministic across the control host and
+	// its clients. Listen and dialEndpoint reject this path if its directory
+	// cannot be established with safe ownership and permissions.
 	return filepath.Join(shortSocketDir(uid), fmt.Sprintf("%s.sock", runtimeID))
 }
 
@@ -106,19 +101,24 @@ func socketPathIn(dir, runtimeID string) (string, bool) {
 	return path, true
 }
 
-// shortSocketDir returns a stable, user-owned directory with a short path.
+// shortSocketDir is stable across processes. A hostile pre-existing directory
+// cannot make it fall back to a process-specific name and break host/client IPC.
+// Directory validation is enforced at both the listener and the dialer.
 func shortSocketDir(uid int) string {
-	dir := filepath.Join("/tmp", fmt.Sprintf("nexus-%d", uid))
-	if err := os.MkdirAll(dir, 0700); err == nil {
-		if st, statErr := os.Stat(dir); statErr == nil && isOwnedBy(st, uid) {
-			return dir
-		}
+	return filepath.Join("/tmp", fmt.Sprintf("nexus-%d", uid))
+}
+
+// ensurePrivateSocketDir never follows a symlink at the socket directory
+// itself. Existing directories must belong to the current user and have 0700
+// permissions; fail closed rather than silently loosening access or using a
+// different path in the client and server.
+func ensurePrivateSocketDir(dir string, uid int) bool {
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return false
 	}
-	// Refuse to reuse a directory we do not own; nest one level deeper under a
-	// per-process suffix instead of trusting the existing entry.
-	dir = filepath.Join("/tmp", fmt.Sprintf("nexus-%d-%d", uid, os.Getpid()))
-	_ = os.MkdirAll(dir, 0700)
-	return dir
+	st, err := os.Lstat(dir)
+	return err == nil && st.IsDir() && st.Mode()&os.ModeSymlink == 0 &&
+		st.Mode().Perm() == 0700 && isOwnedBy(st, uid)
 }
 
 // WaitForEndpoint polls until the control endpoint is ready or timeout expires.
