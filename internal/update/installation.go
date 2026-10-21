@@ -12,6 +12,7 @@ type InstallationMethod string
 
 const (
 	MethodStandalone InstallationMethod = "STANDALONE"
+	MethodDesktop    InstallationMethod = "DESKTOP"
 	MethodNSIS       InstallationMethod = "NSIS"
 	MethodPKG        InstallationMethod = "PKG"
 	MethodDEB        InstallationMethod = "DEB"
@@ -28,7 +29,7 @@ const (
 // of delegating to the package manager or guiding the user.
 func (m InstallationMethod) IsPackageManaged() bool {
 	switch m {
-	case MethodDEB, MethodRPM, MethodMSIX, MethodWinget, MethodHomebrew, MethodStore, MethodNSIS, MethodPKG:
+	case MethodDEB, MethodRPM, MethodMSIX, MethodWinget, MethodHomebrew, MethodStore, MethodNSIS, MethodPKG, MethodDesktop:
 		return true
 	default:
 		return false
@@ -54,6 +55,8 @@ func (m InstallationMethod) UpgradeInstruction() string {
 		return "winget upgrade Nexus"
 	case MethodNSIS:
 		return "Download and run the latest Nexus Windows Setup installer."
+	case MethodDesktop:
+		return "Download the verified Nexus desktop installer from GitHub Releases and restart the app after installation."
 	case MethodPKG:
 		return "Download and run the latest notarized Nexus macOS PKG installer."
 	case MethodMSIX, MethodStore:
@@ -73,6 +76,15 @@ func DetectInstallationMethod(execPath string) InstallationMethod {
 
 	cleanPath := filepath.Clean(execPath)
 	lowerPath := strings.ToLower(cleanPath)
+
+	// A running Desktop/HUD process must never replace itself with the CLI
+	// artifact selected by the updater's goos_goarch lookup. Even an unpacked
+	// Wails executable has to update via its native bundle/installer.
+	baseName := strings.ToLower(filepath.Base(cleanPath))
+	if baseName == "nexus-desktop" || baseName == "nexus-desktop.exe" ||
+		baseName == "nexus-hud" || baseName == "nexus-hud.exe" {
+		return MethodDesktop
+	}
 
 	// Check marker files in the directory containing the binary
 	dir := filepath.Dir(cleanPath)
