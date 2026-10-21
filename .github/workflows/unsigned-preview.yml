@@ -93,7 +93,7 @@ jobs:
 
   macos:
     name: macOS arm64 unsigned preview
-    runs-on: macos-15-arm64
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
