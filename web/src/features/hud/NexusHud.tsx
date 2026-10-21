@@ -84,6 +84,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [nativeDetached, setNativeDetached] = useState(false);
   const [nativeAppearance, setNativeAppearance] = useState<HudAppearance>('BAR');
+  const [appearanceReady, setAppearanceReady] = useState(false);
   const [appearancePending, setAppearancePending] = useState(false);
   const isDetachedPopup = native && nativeView === 'popover';
   const showPopoverContent = shouldRenderHudPopover(expanded, native, nativeView, nativeDetached);
@@ -221,6 +222,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         const availablePresets = Array.isArray(presets) ? presets : [];
         setSizePresets(availablePresets);
         setNativeAppearance(normalizeHudAppearance(windowState.appearance));
+        setAppearanceReady(true);
         const compactWidth = windowState.compactWidth ?? windowState.width;
         const compactHeight = windowState.compactHeight ?? windowState.height;
         const match = availablePresets.find(
@@ -230,6 +232,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         if (match) setSizePreset(match.id);
       })
       .catch((error: unknown) => {
+        if (active) setAppearanceReady(true);
         console.error('Nexus HUD size presets unavailable:', error);
       });
     return () => {
@@ -447,6 +450,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const nativeStatus = resolveNativeHudStatus(response?.enabled, Boolean(state), offline);
   if (!native && !prefs.enabled) return null;
   if (!native && (!response?.enabled || !state)) return null;
+  // Avoid flashing the wide BAR in a restored 108 DIP mascot window.
+  if (native && !isDetachedPopup && !appearanceReady) return null;
 
   const waiting = native && nativeStatus !== 'ready';
   const mainLabel = waiting
@@ -462,6 +467,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       ? 'capacidade não confirmada'
       : `${currentPercent} restante, ${evidenceCopy}`;
   const capsuleAccessibleLabel = `${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${capsuleCapacityCopy}`;
+  const mascotAccessibleLabel = isAttention
+    ? `${capsuleAccessibleLabel}. Atenção necessária.`
+    : capsuleAccessibleLabel;
   const nativeTitle = `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`;
   const tone = waiting ? 'unknown' : displayTone;
   const guardianState = guardianMood(
@@ -876,7 +884,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             <button
               type="button"
               className={styles.mascotButton}
-              aria-label={capsuleAccessibleLabel}
+              aria-label={mascotAccessibleLabel}
               aria-expanded={expanded}
               aria-haspopup="dialog"
               title={nativeTitle}
