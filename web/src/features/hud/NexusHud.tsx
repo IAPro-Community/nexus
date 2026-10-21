@@ -296,7 +296,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     if (prefs.appearance !== 'companion' || !prefs.attentionBubbles || expanded || bubble || bubbleInFlight.current) return;
     if (typeof window === 'undefined') return;
     const pending = companionAttention.filter((item) => !announced.current.has(item.id));
-    const next = nextCompanionBubble(pending, readCompanionSnoozes(window.localStorage));
+    let snoozes: Record<string, number> = {};
+    try { snoozes = readCompanionSnoozes(window.localStorage); } catch { /* Storage may be unavailable */ }
+    const next = nextCompanionBubble(pending, snoozes);
     if (!next) return;
     announced.current.add(next.id);
     if (!native) { setBubble(next); return; }
@@ -339,6 +341,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   };
 
   const changeAppearance = (appearance: 'bar' | 'companion') => {
+    if (appearance !== 'companion' && bubble) clearBubble(false);
     const next = { ...prefs, appearance };
     setPrefs(next);
     saveHudPreferences(next);
@@ -350,14 +353,16 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   };
 
   const openAttention = (item: CompanionAttention) => {
-    clearBubble(false);
     const destination =
       item.target === 'missions' ? onOpenMissions :
       item.target === 'agents' ? onOpenAgents :
       item.target === 'usage' ? onOpenUsage : onOpenNexus;
-    if (destination) destination();
-    else if (onOpenNexus) onOpenNexus();
-    else setExpandedState(true);
+    if (destination || onOpenNexus) {
+      clearBubble();
+      (destination || onOpenNexus)?.();
+    } else {
+      setExpandedState(true);
+    }
   };
 
   const applySize = (preset: string) => {
