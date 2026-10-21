@@ -41,6 +41,12 @@ func (u *Updater) ApplyManifest(manifest Manifest, policy ManifestPolicy, data [
 	if err := manifest.Validate(policy); err != nil {
 		return nil, err
 	}
+	// This low-level API has no authenticated commit-ancestry verifier. It
+	// must only accept strictly higher versions; otherwise a caller could
+	// accidentally reinstall or downgrade a same-version beta.
+	if policy.CurrentVersion != "" && compareVersions(manifest.Version, policy.CurrentVersion) <= 0 {
+		return nil, ErrNoUpdateAvailable
+	}
 	artifact := manifest.Artifacts[policy.Target]
 	if artifact.Target == "" {
 		lowerURL := strings.ToLower(artifact.URL)
