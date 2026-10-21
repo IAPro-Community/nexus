@@ -143,6 +143,7 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		}
 	}
 	nexusLatestVersion := buildinfo.Version
+	var nexusLatestSHA string
 	nexusUpdateAvailable := false
 	nexusInstallationMethod := update.MethodUnknown
 	nexusAllowsSelfUpdate := false
@@ -153,6 +154,7 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 	var nexusReleaseURL string
 	if nexusCheck != nil {
 		nexusLatestVersion = nexusCheck.LatestVersion
+		nexusLatestSHA = nexusCheck.LatestSHA
 		nexusUpdateAvailable = nexusCheck.UpdateAvailable
 		nexusInstallationMethod = nexusCheck.InstallationMethod
 		nexusAllowsSelfUpdate = nexusCheck.AllowsSelfUpdate
@@ -185,6 +187,7 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		"nexus_commit":              buildinfo.Commit,
 		"nexus_build_date":          buildinfo.BuildDate,
 		"nexus_latest_version":      nexusLatestVersion,
+		"nexus_latest_sha":          nexusLatestSHA,
 		"nexus_update_available":    nexusUpdateAvailable,
 		"nexus_update_error":        nexusUpdateError,
 		"nexus_update_instruction":  nexusUpdateInstruction,
