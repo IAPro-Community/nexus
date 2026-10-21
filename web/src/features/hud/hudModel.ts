@@ -149,6 +149,7 @@ export interface HudPresentationPreferences {
   appearance: HudAppearance;
   companionMotion: boolean;
   attentionBubbles: boolean;
+  barSizePreset: 'compact' | 'comfortable' | 'large';
   showCapacity: boolean;
   showAgents: boolean;
   showMissions: boolean;
@@ -170,6 +171,7 @@ export const defaultHudPreferences: HudPresentationPreferences = {
   appearance: 'bar',
   companionMotion: true,
   attentionBubbles: true,
+  barSizePreset: 'compact',
   showCapacity: true,
   showAgents: true,
   showMissions: true,
@@ -199,6 +201,9 @@ export const normalizeHudPreferences = (
   appearance: raw?.appearance === 'companion' ? 'companion' : 'bar',
   companionMotion: raw?.companionMotion !== false,
   attentionBubbles: raw?.attentionBubbles !== false,
+  barSizePreset: ['compact', 'comfortable', 'large'].includes(raw?.barSizePreset || '')
+    ? raw!.barSizePreset!
+    : 'compact',
   surfaceMode:
     raw?.surfaceMode === 'floating' || raw?.surfaceMode === 'docked'
       ? raw.surfaceMode
