@@ -102,6 +102,22 @@ describe('PlatformBridge', () => {
     ]);
   });
 
+  it('reads detached HUD mode and visibility from the shared Wails controller', async () => {
+    const calls: string[] = [];
+    setWailsV3InvokerForTests(async (method) => {
+      calls.push(method);
+      if (method.endsWith('.GetHUDDetachedPopoverEnabled')) return true;
+      if (method.endsWith('.GetHUDExpanded')) return false;
+      throw new Error(`unexpected method ${method}`);
+    });
+    await expect(hudV3.getDetachedPopoverEnabled()).resolves.toBe(true);
+    await expect(hudV3.getExpanded()).resolves.toBe(false);
+    expect(calls).toEqual([
+      'github.com/IAPro-Community/nexus/internal/desktop.HUDController.GetHUDDetachedPopoverEnabled',
+      'github.com/IAPro-Community/nexus/internal/desktop.HUDController.GetHUDExpanded',
+    ]);
+  });
+
   it('selectDirectory delegates to the Wails v3 App service', async () => {
     setWailsV3InvokerForTests(async (method, ...args) => {
       expect(method).toBe('github.com/IAPro-Community/nexus/internal/desktop.App.SelectDirectory');
