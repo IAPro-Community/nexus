@@ -7,11 +7,10 @@ import (
 )
 
 const (
-	// DefaultUpdateRegistryRepo is the canonical binaries-only repository
-	// for Nexus channel pointer releases. Closed-beta clients must never
-	// touch the private source repository: all manifests and artifacts
-	// resolve here unless NEXUS_RELEASE_REPO overrides it (dev/internal).
-	DefaultUpdateRegistryRepo = "IAPro-Community/nexus-releases"
+	// DefaultUpdateRegistryRepo is the official public source repository
+	// for Nexus channel pointer releases. Signed manifests and assets are hosted in its GitHub Releases.
+	// NEXUS_RELEASE_REPO allows explicit fork/development overrides.
+	DefaultUpdateRegistryRepo = "IAPro-Community/nexus"
 
 	channelStableTag = "channel-stable"
 	channelBetaTag   = "channel-beta"
@@ -49,7 +48,7 @@ func DefaultManifestURL(repo, channel string) string {
 //
 // The updater core must never depend semantically on the source-code
 // repository. It consumes a signed channel manifest plus artifact URLs,
-// wherever they are hosted. GitHub Releases (on a binaries-only repo) is
+// wherever they are hosted. GitHub Releases (on a public source repo) is
 // one backend; R2/S3/CDN or a first-party service can replace it without
 // touching the updater core.
 // ─────────────────────────────────────────────────────────────────────
@@ -64,7 +63,7 @@ type ArtifactRegistry interface {
 }
 
 // GitHubReleasesRegistry serves channel manifests from GitHub Releases of a
-// binaries-only repository. The source repository is never referenced here.
+// public source repository. The default registry is the source repository's GitHub Releases.
 type GitHubReleasesRegistry struct {
 	// Repo is owner/name; empty falls back to DefaultUpdateRegistryRepo.
 	Repo string
