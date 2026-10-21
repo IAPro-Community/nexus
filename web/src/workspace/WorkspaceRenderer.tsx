@@ -692,6 +692,8 @@ const TerminalsHost: React.FC<{
     ptySurfaces[0]?.id ||
     '';
   const windowed = isWindowedPresentationMode(presentation.state.mode);
+  const compactSplit = useCompactViewport();
+  const effectiveSplitOrientation = compactSplit ? 'horizontal' : presentation.state.splitOrientation;
   const splitMode = presentation.state.mode === 'SPLIT' && ptySurfaces.length > 1;
   const splitViews = resolveTerminalSplitViews(
     presentation.state,
@@ -708,7 +710,7 @@ const TerminalsHost: React.FC<{
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
     const rect = splitRef.current?.getBoundingClientRect();
     if (!rect || !rect.width || !rect.height) return;
-    const vertical = presentation.state.splitOrientation === 'vertical';
+    const vertical = effectiveSplitOrientation === 'vertical';
     const fraction = vertical
       ? (event.clientX - rect.left) / rect.width
       : (event.clientY - rect.top) / rect.height;
@@ -859,11 +861,12 @@ const TerminalsHost: React.FC<{
           </div>
           {splitMode && (
             <div className={splitStyles.orientation} role="group" aria-label={t('workspace.splitOrientation')}>
-              <button type="button" aria-pressed={presentation.state.splitOrientation === 'vertical'}
+              <button type="button" aria-pressed={effectiveSplitOrientation === 'vertical'}
+                disabled={compactSplit}
                 title={t('workspace.splitSideBySide')} onClick={() => presentation.setSplitOrientation('vertical')}>
                 <Columns2 size={15} />
               </button>
-              <button type="button" aria-pressed={presentation.state.splitOrientation === 'horizontal'}
+              <button type="button" aria-pressed={effectiveSplitOrientation === 'horizontal'}
                 title={t('workspace.splitStacked')} onClick={() => presentation.setSplitOrientation('horizontal')}>
                 <Rows2 size={15} />
               </button>
@@ -1009,7 +1012,7 @@ const TerminalsHost: React.FC<{
                         focusPty(surface);
                       }}
                       onContextMenu={(event) => {
-                        focusPty(surface);
+                        if (!splitMode) focusPty(surface);
                         setChromeMenuViewId(null);
                         setTabMenu({ surface, point: contextMenuFromEvent(event) });
                       }}
@@ -1066,7 +1069,7 @@ const TerminalsHost: React.FC<{
             <div
               ref={splitRef}
               className={splitMode ? `nx-terminals-inner-panels ${splitStyles.splitPanels}` : 'nx-terminals-inner-panels'}
-              data-orientation={splitMode ? presentation.state.splitOrientation : undefined}
+              data-orientation={splitMode ? effectiveSplitOrientation : undefined}
               style={splitMode ? ({ '--nx-terminal-split-ratio': `${Math.round(presentation.state.splitRatio * 100)}%` } as React.CSSProperties) : undefined}
             >
               {ptySurfaces.map((surface) => {
@@ -1094,7 +1097,7 @@ const TerminalsHost: React.FC<{
                 <div
                   className={splitStyles.divider}
                   role="separator"
-                  aria-orientation={presentation.state.splitOrientation}
+                  aria-orientation={effectiveSplitOrientation}
                   aria-label={t('workspace.resizeSplit')}
                   aria-valuemin={20}
                   aria-valuemax={80}
@@ -1103,8 +1106,9 @@ const TerminalsHost: React.FC<{
                   style={{ order: 1 }}
                   onPointerDown={beginSplitResize}
                   onPointerMove={updateSplitResize}
+                  onPointerUp={() => window.dispatchEvent(new Event('resize'))}
                   onKeyDown={(event) => {
-                    const orientation = presentation.state.splitOrientation;
+                    const orientation = effectiveSplitOrientation;
                     const increment = orientation === 'vertical'
                       ? (event.key === 'ArrowRight' ? 0.05 : event.key === 'ArrowLeft' ? -0.05 : 0)
                       : (event.key === 'ArrowDown' ? 0.05 : event.key === 'ArrowUp' ? -0.05 : 0);
@@ -1133,6 +1137,15 @@ const TerminalsHost: React.FC<{
                           setChromeMenuViewId(viewId);
                         },
                       },
+                      ...(splitMode && surfaceViewId(tabMenu.surface) !== splitViews.primary
+                        ? ([{
+                            type: 'item',
+                            id: 'split-secondary',
+                            label: t('workspace.showInSecondPane'),
+                            icon: <Columns2 size={13} />,
+                            onSelect: () => presentation.setSplitSecondary(surfaceViewId(tabMenu.surface)),
+                          }] satisfies ContextMenuItem[])
+                        : []),
                       ...(tabMenu.surface.closable !== false && onRequestClose
                         ? ([
                             { type: 'separator', id: 'sep-close' },
