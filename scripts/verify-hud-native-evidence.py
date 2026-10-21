@@ -12,10 +12,31 @@ import json
 import pathlib
 import re
 import sys
+import struct
+import zlib
 
 PLATFORMS = ("windows", "linux-x11", "darwin")
 SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
+
+def png_dimensions(path: pathlib.Path) -> tuple[int, int] | None:
+    """Reject corrupt/fake PNG headers without decoding sensitive screenshots."""
+    try:
+        with path.open("rb") as handle:
+            header = handle.read(33)
+    except OSError:
+        return None
+    if len(header) != 33 or not header.startswith(b"\x89PNG\r\n\x1a\n"):
+        return None
+    if header[8:16] != b"\x00\x00\x00\rIHDR":
+        return None
+    if (zlib.crc32(header[12:29]) & 0xFFFFFFFF) != struct.unpack(">I", header[29:33])[0]:
+        return None
+    width, height = struct.unpack(">II", header[16:24])
+    if width < 80 or height < 40 or width > 16384 or height > 16384:
+        return None
+    return width, height
 
 
 def validate(root: pathlib.Path, platform: str, sha: str, min_cycles: int) -> dict:
@@ -54,6 +75,8 @@ def validate(root: pathlib.Path, platform: str, sha: str, min_cycles: int) -> di
         file = root / image
         if not file.is_file() or file.stat().st_size < 400:
             results["issues"].append("missing/empty screenshot: " + image)
+        elif png_dimensions(file) is None:
+            results["issues"].append("invalid PNG screenshot: " + image)
         else:
             captures[image] = hashlib.sha256(file.read_bytes()).hexdigest()
     results["capture_sha256"] = captures
@@ -61,7 +84,10 @@ def validate(root: pathlib.Path, platform: str, sha: str, min_cycles: int) -> di
     # This cannot be derived from a unit test or browser screenshot. The person
     # inspecting native screenshots/input regions explicitly signs this review.
     for criterion in ("visual_shadow_review", "transparent_click_through"):
-        if data.get(criterion) != "PASS":
+        if data.get(criterion) == "FAIL":
+            results["status"] = "NO_GO"
+            results["issues"].append("native visual/input defect confirmed: " + criterion)
+        elif data.get(criterion) != "PASS":
             results["issues"].append("manual native review required: " + criterion)
     review = data.get("review", {})
     if not isinstance(review, dict) or not review.get("reviewer") or not review.get("reviewed_at_utc"):
