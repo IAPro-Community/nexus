@@ -31,3 +31,23 @@ func TestPKGInstallationIsPackageManagedAndBlocksSelfUpdate(t *testing.T) {
 		t.Fatalf("PKG upgrade instruction must direct to native installer, got %q", got)
 	}
 }
+
+func TestDesktopAndHUDBinariesNeverSelfUpdateAsCLI(t *testing.T) {
+	for _, name := range []string{"nexus-desktop", "nexus-hud", "nexus-desktop.exe", "nexus-hud.exe"} {
+		t.Run(name, func(t *testing.T) {
+			method := DetectInstallationMethod(filepath.Join(t.TempDir(), name))
+			if method != MethodDesktop {
+				t.Fatalf("DetectInstallationMethod(%q)=%s, want %s", name, method, MethodDesktop)
+			}
+			if method.AllowsSelfUpdate() {
+				t.Fatal("GUI process must not overwrite itself with the signed CLI artifact")
+			}
+			if !method.IsPackageManaged() {
+				t.Fatal("GUI process must use native installation flow")
+			}
+			if got := method.UpgradeInstruction(); !strings.Contains(got, "GitHub Releases") {
+				t.Fatalf("GUI upgrade should direct to official release: %q", got)
+			}
+		})
+	}
+}
