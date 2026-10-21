@@ -397,6 +397,8 @@ jobs:
         run: |
           go test ./internal/voice -run 'Test(DefaultVoiceRoutingContractIsGroqThenCloudflare|SpeechRouterFallsBackFromGroq429ToCloudflare|SpeechRouterDoesNotCascadeInvalidAudio)'
           (cd web && bunx vitest run src/platform/platformBridge.test.ts)
+      - name: Verify Linux HUD GTK transparency contract
+        run: go test -count=1 ./cmd/nexus-hud
       - name: Build Linux desktop
         run: |
           set -euo pipefail
