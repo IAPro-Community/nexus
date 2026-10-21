@@ -640,12 +640,12 @@ func TestSystemUpdatesExposesSignedInstallerOnlyFromOfficialRelease(t *testing.T
 	url := "https://github.com/IAPro-Community/nexus/releases/download/channel-beta/nexus-setup-Windows_x86_64.exe"
 	checkNexusUpdate = func(_ context.Context) (*update.CheckResult, error) {
 		return &update.CheckResult{
-			CurrentVersion: "1.0.0-beta.10",
-			LatestVersion: "1.0.0-beta.11",
-			Channel: "beta",
-			UpdateAvailable: true,
+			CurrentVersion:     "1.0.0-beta.10",
+			LatestVersion:      "1.0.0-beta.11",
+			Channel:            "beta",
+			UpdateAvailable:    true,
 			InstallationMethod: update.MethodDesktop,
-			InstallerArtifact: &update.Artifact{URL: url, Target: update.TargetNSIS},
+			InstallerArtifact:  &update.Artifact{URL: url, Target: update.TargetNSIS},
 		}, nil
 	}
 	t.Cleanup(func() { checkNexusUpdate = prev })
@@ -658,7 +658,7 @@ func TestSystemUpdatesExposesSignedInstallerOnlyFromOfficialRelease(t *testing.T
 	defer resp.Body.Close()
 	var payload struct {
 		InstallerURL string `json:"nexus_installer_url"`
-		ReleaseURL string `json:"nexus_release_url"`
+		ReleaseURL   string `json:"nexus_release_url"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
@@ -676,21 +676,21 @@ func TestBetaInstallationFindsNewerSignedStableRelease(t *testing.T) {
 	previousStable := checkNexusStableUpdate
 	checkNexusUpdate = func(_ context.Context) (*update.CheckResult, error) {
 		return &update.CheckResult{
-			CurrentVersion: "1.0.0-beta.10",
-			LatestVersion: "1.0.0-beta.10",
-			Channel: "beta",
+			CurrentVersion:  "1.0.0-beta.10",
+			LatestVersion:   "1.0.0-beta.10",
+			Channel:         "beta",
 			UpdateAvailable: false,
 		}, nil
 	}
 	checkNexusStableUpdate = func(_ context.Context) (*update.CheckResult, error) {
 		return &update.CheckResult{
-			CurrentVersion: "1.0.0-beta.10",
-			LatestVersion: "1.0.0",
-			Channel: "stable",
-			UpdateAvailable: true,
+			CurrentVersion:     "1.0.0-beta.10",
+			LatestVersion:      "1.0.0",
+			Channel:            "stable",
+			UpdateAvailable:    true,
 			InstallationMethod: update.MethodDesktop,
 			InstallerArtifact: &update.Artifact{
-				URL: "https://github.com/IAPro-Community/nexus/releases/download/v1.0.0/nexus-installer_Darwin_arm64.pkg",
+				URL:    "https://github.com/IAPro-Community/nexus/releases/download/v1.0.0/nexus-installer_Darwin_arm64.pkg",
 				Target: update.TargetPKG,
 			},
 		}, nil
@@ -707,9 +707,9 @@ func TestBetaInstallationFindsNewerSignedStableRelease(t *testing.T) {
 	}
 	defer resp.Body.Close()
 	var payload struct {
-		Channel string `json:"channel"`
-		Version string `json:"nexus_latest_version"`
-		Available bool `json:"nexus_update_available"`
+		Channel      string `json:"channel"`
+		Version      string `json:"nexus_latest_version"`
+		Available    bool   `json:"nexus_update_available"`
 		InstallerURL string `json:"nexus_installer_url"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
@@ -728,9 +728,9 @@ func TestBetaKeepsNewerBetaWithoutConsultingStable(t *testing.T) {
 	previousStable := checkNexusStableUpdate
 	checkNexusUpdate = func(_ context.Context) (*update.CheckResult, error) {
 		return &update.CheckResult{
-			CurrentVersion: "1.0.0-beta.10",
-			LatestVersion: "1.0.0-beta.11",
-			Channel: "beta",
+			CurrentVersion:  "1.0.0-beta.10",
+			LatestVersion:   "1.0.0-beta.11",
+			Channel:         "beta",
 			UpdateAvailable: true,
 		}, nil
 	}

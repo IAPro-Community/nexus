@@ -22,6 +22,7 @@
   background: transparent;
   color: #dff5ff;
   cursor: pointer;
+
   --wails-draggable: no-drag;
 }
 
@@ -50,6 +51,7 @@
   background: #1e3a5aba;
   color: #a6bedf;
   cursor: grab;
+
   --wails-draggable: drag;
 }
 

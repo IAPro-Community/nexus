@@ -113,7 +113,7 @@ func main() {
 		Show:            hudController.ShowHUD,
 		Hide:            hudController.HideHUD,
 		MascotAvailable: hudController.GetHUDDetachedPopoverEnabled(),
-		Select:          func(mode string) {
+		Select: func(mode string) {
 			if err := hudController.SetHUDAppearance(mode); err != nil {
 				fmt.Fprintf(os.Stderr, "Nexus HUD presentation: %v\n", err)
 			}

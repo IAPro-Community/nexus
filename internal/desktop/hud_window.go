@@ -17,11 +17,11 @@ import (
 
 const (
 	HUDPopupWindowName       = "Nexus HUD Popup"
-	HUDAppearanceBar        = "BAR"
-	HUDAppearanceMascot     = "MASCOT"
-	HUDAppearanceTray       = "TRAY"
-	HUDMascotWidth          = 108
-	HUDMascotHeight         = 112
+	HUDAppearanceBar         = "BAR"
+	HUDAppearanceMascot      = "MASCOT"
+	HUDAppearanceTray        = "TRAY"
+	HUDMascotWidth           = 108
+	HUDMascotHeight          = 112
 	HUDPlacementTopLeft      = "TOP_LEFT"
 	HUDPlacementTopCenter    = "TOP_CENTER"
 	HUDPlacementTopRight     = "TOP_RIGHT"

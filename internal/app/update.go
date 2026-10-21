@@ -91,7 +91,9 @@ func updateCmd(args []string) error {
 
 	check, err := svc.Check(ctx)
 	if err != nil {
-		return fmt.Errorf("update check failed: %w", err)
+		// The apply path (no explicit subcommand) must fail closed with the
+		// apply contract even when the failure happens during the pre-check.
+		return fmt.Errorf("update could not be applied: update check failed: %w", err)
 	}
 	if !check.UpdateAvailable {
 		if asJSON {
