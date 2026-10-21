@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 const shell = readFileSync(new URL('./NexusShell.tsx', import.meta.url), 'utf8');
 const welcome = readFileSync(new URL('./modals/WelcomeModal.tsx', import.meta.url), 'utf8');
 const splash = readFileSync(new URL('./NexusSplashScreen.tsx', import.meta.url), 'utf8');
-const settings = readFileSync(new URL('../features/settings/SettingsSurface.tsx', import.meta.url), 'utf8');
+const settings = readFileSync(
+  new URL('../features/settings/SettingsSurface.tsx', import.meta.url),
+  'utf8',
+);
 
 describe('Nexus UI version honesty', () => {
   it('does not claim a release version before the backend reports it', () => {
