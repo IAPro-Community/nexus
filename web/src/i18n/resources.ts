@@ -1539,6 +1539,7 @@ export const en = {
     detachedHead: 'Detached HEAD',
     worktreeLocked: 'Locked',
     worktreePrunable: 'Missing checkout',
+    worktreesUnavailable: 'Git worktrees could not be listed for this project.',
   },
   maestroControl: {
     title: 'Orquestrador Maestro',
@@ -3539,6 +3540,8 @@ export const ptBR = {
     detachedHead: 'HEAD destacado',
     worktreeLocked: 'Bloqueado',
     worktreePrunable: 'Checkout ausente',
+    worktreesUnavailable: 'No se pudieron consultar los worktrees de este proyecto.',
+    worktreesUnavailable: 'Não foi possível consultar os worktrees deste projeto.',
   },
   maestroControl: {
     title: 'Orquestrador Maestro',
