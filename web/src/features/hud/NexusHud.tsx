@@ -797,7 +797,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 </button>
               </div>
             )}
-            {native && (
+            {native && prefs.appearance === 'bar' && (
               <HudSizeControls
                 presets={sizePresets.filter((preset) => preset.id !== 'companion')}
                 active={sizePreset}
@@ -871,7 +871,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 </span>
               </div>
             </div>
-            {native && (
+            {native && prefs.appearance === 'bar' && (
               <HudSizeControls
                 presets={sizePresets.filter((preset) => preset.id !== 'companion')}
                 active={sizePreset}
@@ -879,6 +879,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 onSelect={applySize}
               />
             )}
+            <div className={styles.companionAppearance}>
+              <span>Apresentação</span>
+              <button type="button" aria-pressed={prefs.appearance === 'bar'} onClick={() => changeAppearance('bar')}>Barra</button>
+              <button type="button" aria-pressed={prefs.appearance === 'companion'} onClick={() => changeAppearance('companion')}>Mascote 2D</button>
+            </div>
             <div className={styles.footerActions}>
               <button type="button" onClick={() => void refresh()}>
                 <RefreshCw size={13} /> Atualizar
