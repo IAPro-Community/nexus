@@ -82,6 +82,10 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [nativeDetached, setNativeDetached] = useState(false);
   const isDetachedPopup = native && nativeView === 'popover';
   const renderDetailHere = !native || !nativeDetached || isDetachedPopup;
+  // The second WebView must paint its content while the native window is
+  // hidden, so Show() never exposes an empty popup for a polling interval.
+  const showPopoverContent = expanded || isDetachedPopup;
+  const [popupPresentation, setPopupPresentation] = useState(0);
   const [offline, setOffline] = useState(false);
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null);
   const [paceWarning, setPaceWarning] = useState<CapacityResourceStatus | null>(null);
@@ -151,6 +155,15 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     window.addEventListener('nexus:hud-preferences', sync);
     return () => window.removeEventListener('nexus:hud-preferences', sync);
   }, []);
+
+  useEffect(() => {
+    if (!isDetachedPopup) return;
+    const replayEntrance = () => setPopupPresentation((current) => current + 1);
+    // Replaying on native focus allows the same persistent WebView to animate
+    // every time the popup is shown, not only on its first mount.
+    window.addEventListener('focus', replayEntrance);
+    return () => window.removeEventListener('focus', replayEntrance);
+  }, [isDetachedPopup]);
 
   useEffect(() => {
     if (!native) return;
@@ -451,8 +464,13 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         data-tone={tone}
         data-size={native ? sizePreset || 'custom' : undefined}
       >
-        {renderDetailHere && expanded && state && !waiting && (
-          <div id="nexus-hud-popover" className={styles.popover} aria-label="Resumo do Nexus HUD">
+        {renderDetailHere && showPopoverContent && state && !waiting && (
+          <div
+            key={isDetachedPopup ? `popup-${popupPresentation}` : 'inline-popover'}
+            id="nexus-hud-popover"
+            className={styles.popover}
+            aria-label="Resumo do Nexus HUD"
+          >
             <div className={styles.popoverHeader}>
               <div
                 className={`${styles.brand} ${native ? styles.nativeBrandDrag : ''}`}
@@ -737,8 +755,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             </div>
           </div>
         )}
-        {renderDetailHere && expanded && (!state || waiting) && (
+        {renderDetailHere && showPopoverContent && (!state || waiting) && (
           <div
+            key={isDetachedPopup ? `diagnostic-${popupPresentation}` : 'inline-diagnostic'}
             id="nexus-hud-popover"
             className={styles.popover}
             aria-label="Diagnóstico do Nexus HUD"
