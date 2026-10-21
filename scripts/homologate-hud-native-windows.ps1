@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory)][string]$HudExe,
     [Parameter(Mandatory)][string]$EvidenceDirectory,
     [string]$ExpectedSha = '',
-    [ValidateRange(1, 50)][int]$Cycles = 20
+    [ValidateRange(1, 50)][int]$Cycles = 20,
+    [switch]$Detached
 )
 
 # Real mouse/geometry acceptance. Run in an INTERACTIVE Windows desktop session.
@@ -29,7 +30,7 @@ if (@(Get-Process -Name 'nexus-hud*' -ErrorAction SilentlyContinue).Count -gt 0)
 $dest = [IO.Path]::GetFullPath($EvidenceDirectory)
 New-Item -ItemType Directory -Path $dest -Force | Out-Null
 $original = @{}
-foreach ($key in @('NEXUS_DATA_DIR', 'NEXUS_CONFIG_DIR', 'NEXUS_STATE_DIR', 'NEXUS_ENABLE_HUD', 'NEXUS_DISABLE_HUD')) {
+foreach ($key in @('NEXUS_DATA_DIR', 'NEXUS_CONFIG_DIR', 'NEXUS_STATE_DIR', 'NEXUS_ENABLE_HUD', 'NEXUS_DISABLE_HUD', 'NEXUS_HUD_DETACHED_POPOVER')) {
     $original[$key] = [Environment]::GetEnvironmentVariable($key, 'Process')
 }
 $isolated = Join-Path $dest 'isolated-state'
@@ -40,6 +41,7 @@ foreach ($key in @('NEXUS_DATA_DIR', 'NEXUS_CONFIG_DIR', 'NEXUS_STATE_DIR')) {
 }
 [Environment]::SetEnvironmentVariable('NEXUS_ENABLE_HUD', $null, 'Process')
 [Environment]::SetEnvironmentVariable('NEXUS_DISABLE_HUD', $null, 'Process')
+[Environment]::SetEnvironmentVariable('NEXUS_HUD_DETACHED_POPOVER', $(if ($Detached) { '1' } else { $null }), 'Process')
 
 if (-not ('NexusHUDNativeMouseProbe' -as [type])) {
     Add-Type -TypeDefinition @'
@@ -67,6 +69,19 @@ public static class NexusHUDNativeMouseProbe {
             var title = new StringBuilder(512);
             GetWindowText(hwnd, title, title.Capacity);
             if (title.ToString().Contains("Nexus HUD")) { found = hwnd; return false; }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+    public static IntPtr FindNamed(int processId, string expectedTitle) {
+        IntPtr found = IntPtr.Zero;
+        EnumWindows((hwnd, _) => {
+            uint pid;
+            GetWindowThreadProcessId(hwnd, out pid);
+            if (pid != processId || !IsWindowVisible(hwnd)) return true;
+            var title = new StringBuilder(512);
+            GetWindowText(hwnd, title, title.Capacity);
+            if (title.ToString() == expectedTitle) { found = hwnd; return false; }
             return true;
         }, IntPtr.Zero);
         return found;
@@ -117,11 +132,28 @@ function Wait-Geometry([IntPtr]$Handle, [bool]$Expanded) {
     throw "HUD did not transition to Expanded=$Expanded"
 }
 
+function Wait-DetachedPopup([int]$ProcessId, [bool]$Visible) {
+    $deadline = [DateTime]::UtcNow.AddSeconds(5)
+    while ([DateTime]::UtcNow -lt $deadline) {
+        $popup = [NexusHUDNativeMouseProbe]::FindNamed($ProcessId, 'Nexus HUD Popup')
+        if (-not $Visible -and $popup -eq [IntPtr]::Zero) { return ,@() }
+        if ($Visible -and $popup -ne [IntPtr]::Zero) {
+            $bounds = [NexusHUDNativeMouseProbe]::Bounds($popup)
+            if ($bounds.Count -eq 4 -and $bounds[2] -ge 280 -and $bounds[3] -ge 240) {
+                return ,$bounds
+            }
+        }
+        Start-Sleep -Milliseconds 120
+    }
+    throw "Detached popup did not change visibility to $Visible"
+}
+
 $proc = $null
 $result = [ordered]@{
     sha = $sha
     platform = 'windows'
     type = 'native_interactive_mouse'
+    presentation = $(if ($Detached) { 'detached_popover' } else { 'legacy_single_window' })
     cycles_requested = $Cycles
     cycles_completed = 0
     binary_sha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -155,15 +187,36 @@ try {
         $x = $b[0] + [int]($b[2]*0.68)
         $y = $b[1] + $b[3] - 27
         [NexusHUDNativeMouseProbe]::Click($handle, $x, $y)
-        $expanded = Wait-Geometry $handle $true
-        if ($i -eq 0) {
-            Capture-Hud $expanded 'HUD_EXPANDED.png'
-            $result.screenshot_expanded = 'HUD_EXPANDED.png'
+        if ($Detached) {
+            # The capsule must stay compact; a distinct Wails HWND hosts
+            # the detail panel instead of resizing the capsule itself.
+            $compactStill = Wait-Geometry $handle $false
+            $expanded = Wait-DetachedPopup $proc.Id $true
+            if ($i -eq 0) {
+                Capture-Hud $expanded 'HUD_EXPANDED.png'
+                $result.screenshot_expanded = 'HUD_EXPANDED.png'
+            }
+            $popup = [NexusHUDNativeMouseProbe]::FindNamed($proc.Id, 'Nexus HUD Popup')
+            if ($popup -eq [IntPtr]::Zero) { throw 'Detached popup vanished before close click.' }
+            # Close button in the popup header; never click the drag grip.
+            [NexusHUDNativeMouseProbe]::Click(
+                $popup,
+                ($expanded[0] + $expanded[2] - 36),
+                ($expanded[1] + 36)
+            )
+            $null = Wait-DetachedPopup $proc.Id $false
+            $collapsed = Wait-Geometry $handle $false
+        } else {
+            $expanded = Wait-Geometry $handle $true
+            if ($i -eq 0) {
+                Capture-Hud $expanded 'HUD_EXPANDED.png'
+                $result.screenshot_expanded = 'HUD_EXPANDED.png'
+            }
+            $x = $expanded[0] + [int]($expanded[2]*0.68)
+            $y = $expanded[1] + $expanded[3] - 27
+            [NexusHUDNativeMouseProbe]::Click($handle, $x, $y)
+            $collapsed = Wait-Geometry $handle $false
         }
-        $x = $expanded[0] + [int]($expanded[2]*0.68)
-        $y = $expanded[1] + $expanded[3] - 27
-        [NexusHUDNativeMouseProbe]::Click($handle, $x, $y)
-        $collapsed = Wait-Geometry $handle $false
         $result.cycles_completed = $i+1
     }
     $result.verdict = 'PASS_FUNCTIONAL_PENDING_VISUAL'
