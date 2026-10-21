@@ -8,6 +8,7 @@ import {
   directQuotaPercent,
   eligibleDirectResources,
   recommendedDirectAccountId,
+  directResourcePolicy,
   quotaTruthState,
 } from './directSessionModel';
 
@@ -174,5 +175,18 @@ describe('scheduler-authoritative Direct selection', () => {
   it('does not invent a selection for missing or ineligible recommendation', () => {
     expect(recommendedDirectAccountId(accounts, { recommended: { account: { id: 'missing' } } })).toBe('');
     expect(recommendedDirectAccountId(accounts, null)).toBe('');
+  });
+});
+
+describe('project resource policy normalization', () => {
+  it('supports a legacy enum and a project JSON configuration', () => {
+    expect(directResourcePolicy('PRESERVE_QUOTA')).toBe('PRESERVE_QUOTA');
+    expect(directResourcePolicy('{"policy":"PREFER_PROVIDER"}')).toBe('PREFER_PROVIDER');
+    expect(directResourcePolicy('{"scheduler_policy":"PRESERVE_QUOTA"}')).toBe('PRESERVE_QUOTA');
+  });
+  it('fails to BALANCED on unknown, malformed or empty policy', () => {
+    expect(directResourcePolicy('{}')).toBe('BALANCED');
+    expect(directResourcePolicy('{broken')).toBe('BALANCED');
+    expect(directResourcePolicy('CUSTOM')).toBe('BALANCED');
   });
 });
