@@ -163,8 +163,15 @@ foreach ($GoFile in $TrackedGoFiles) {
   if ($Result) { $Unformatted += $Result }
 }
 if ($Unformatted) {
-  $Unformatted | Sort-Object -Unique | Set-Content (Join-Path $Out 'gofmt-fail.txt')
-  throw "gofmt required"
+  $Unformatted = @($Unformatted | Sort-Object -Unique)
+  $Unformatted | Set-Content (Join-Path $Out 'gofmt-fail.txt')
+  # The public CI log may safely reveal repository-relative Go source paths.
+  # Without these paths, a failed formatting gate cannot be remediated from
+  # the Actions result alone; never print source contents or credentials.
+  foreach ($UnformattedFile in $Unformatted) {
+    Write-Host "[GOFMT_REQUIRED] $UnformattedFile"
+  }
+  throw "gofmt required for $($Unformatted.Count) tracked Go file(s); see gofmt-fail.txt"
 }
 
 Write-Host "==> Go vet"
