@@ -9,6 +9,8 @@ export interface CompanionAttention {
   severity: 'info' | 'warning' | 'critical';
   target: CompanionTarget;
   needsUser: boolean;
+  projectId?: string;
+  recordId?: string;
 }
 
 const TERMINAL = /^(COMPLETED|CANCELED|CANCELLED|FAILED|STOPPED)(_|$)/i;
@@ -35,6 +37,8 @@ export function projectCompanionAttention(
       severity: 'critical',
       target: 'missions',
       needsUser: true,
+      projectId: mission.project_id,
+      recordId: mission.run_id,
     });
   }
   for (const agent of state.agents) {
@@ -46,6 +50,8 @@ export function projectCompanionAttention(
       severity: 'warning',
       target: 'agents',
       needsUser: true,
+      projectId: agent.project_id,
+      recordId: agent.id,
     });
   }
   for (const alert of state.alerts) {
@@ -59,6 +65,7 @@ export function projectCompanionAttention(
       severity: critical ? 'critical' : 'warning',
       target: 'usage',
       needsUser: false,
+      projectId: state.project_id,
     });
   }
   const order = { critical: 0, warning: 1, info: 2 };
