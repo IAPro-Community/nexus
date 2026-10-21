@@ -55,7 +55,7 @@ func TestRollingBetaRequiresStrictCommitAncestry(t *testing.T) {
 	signed := strings.Repeat("a", 40)
 	for _, tc := range []struct {
 		name, status, body string
-		want bool
+		want               bool
 	}{
 		{"new descendant", "ok", `{"status":"ahead","ahead_by":2,"behind_by":0}`, true},
 		{"old ancestor", "ok", `{"status":"behind","ahead_by":0,"behind_by":2}`, false},
