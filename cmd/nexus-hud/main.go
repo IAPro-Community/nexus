@@ -101,6 +101,12 @@ func main() {
 		MaxHeight:                  900,
 		URL:                        "/?nativeHud=1",
 		Frameless:                  true,
+		// The OS frameless DWM decoration casts a rectangular shadow around
+		// our transparent capsule. Keep only the intentionally rounded CSS
+		// shadow, not the native window-sized outline.
+		Windows: application.WindowsWindow{
+			DisableFramelessWindowDecorations: true,
+		},
 		AlwaysOnTop:                windowState.AlwaysOnTop,
 		InitialPosition:            application.WindowXY,
 		X:                          windowState.X,
