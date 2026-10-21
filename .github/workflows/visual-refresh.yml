@@ -6,6 +6,7 @@ on:
       - release/v1.0.0
     paths:
       - .github/workflows/visual-refresh.yml
+      - web/src/features/hud/NexusHud.tsx
   workflow_dispatch:
 
 permissions:

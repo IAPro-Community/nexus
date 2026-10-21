@@ -617,7 +617,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           </div>
         )}
         {expanded && (!state || waiting) && (
-          <div id="nexus-hud-popover" className={styles.popover} aria-label="Diagnóstico do Nexus HUD">
+          <div
+            id="nexus-hud-popover"
+            className={styles.popover}
+            aria-label="Diagnóstico do Nexus HUD"
+          >
             <div className={styles.popoverHeader}>
               <div className={styles.brand}>
                 <img src="/nexus-icon.svg" alt="" width={25} height={25} />
@@ -636,7 +640,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               <CircleHelp size={18} aria-hidden="true" />
               <div>
                 <strong>
-                  {nativeStatus === 'disabled' ? 'Projeção do HUD desativada' : 'Dados do HUD indisponíveis'}
+                  {nativeStatus === 'disabled'
+                    ? 'Projeção do HUD desativada'
+                    : 'Dados do HUD indisponíveis'}
                 </strong>
                 <span>
                   {nativeStatus === 'disabled'
@@ -667,7 +673,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             aria-label={capsuleAccessibleLabel}
             aria-expanded={expanded}
             aria-controls={expanded ? 'nexus-hud-popover' : undefined}
-            title={native ? (nativeExpansionError || nativeTitle) : undefined}
+            title={native ? nativeExpansionError || nativeTitle : undefined}
             onClick={() => setExpandedState(!expanded)}
           >
             <img className={styles.logo} src="/nexus-icon.svg" alt="" width={24} height={24} />
