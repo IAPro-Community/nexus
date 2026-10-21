@@ -439,6 +439,7 @@ export const nexus = {
       nexus_commit?: string;
       nexus_build_date?: string;
       nexus_latest_version?: string;
+      nexus_latest_sha?: string;
       nexus_update_available?: boolean;
       nexus_update_error?: string;
       nexus_update_instruction?: string;
