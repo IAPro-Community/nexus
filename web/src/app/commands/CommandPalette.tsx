@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Command, CornerDownLeft } from 'lucide-react';
 import { Dialog, SearchInput } from '../../design-system';
 import { filterCommands, type NexusCommand } from './registry';
+import styles from './CommandPalette.module.scss';
 import { useTranslation } from 'react-i18next';
 
 export const CommandPalette: React.FC<{
@@ -32,7 +33,7 @@ export const CommandPalette: React.FC<{
         onKeyDown={(event) => {
           if (event.key === 'ArrowDown') {
             event.preventDefault();
-            setActive((value) => Math.min(filtered.length - 1, value + 1));
+            setActive((value) => Math.min(Math.max(0, filtered.length - 1), value + 1));
           } else if (event.key === 'ArrowUp') {
             event.preventDefault();
             setActive((value) => Math.max(0, value - 1));
@@ -48,6 +49,12 @@ export const CommandPalette: React.FC<{
           placeholder={t('commands.placeholder')}
           autoFocus
         />
+        <div className={styles.hints} aria-label={t('commands.searchScopes')}>
+          <span><kbd>#</kbd> {t('commands.scopeProjects')}</span>
+          <span><kbd>@</kbd> {t('commands.scopeAgents')}</span>
+          <span><kbd>$</kbd> {t('commands.scopeResources')}</span>
+          <span><kbd>&gt;</kbd> {t('commands.scopeActions')}</span>
+        </div>
         <div className="nx-command-list" role="listbox" aria-label={t('commands.available')}>
           {filtered.map((command, index) => (
             <button
