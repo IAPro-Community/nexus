@@ -80,6 +80,7 @@ export const NexusShell: React.FC<{
     maestro_version: string;
     maestro_available: boolean;
     update_available: boolean;
+    nexus_update_available?: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -90,9 +91,19 @@ export const NexusShell: React.FC<{
         .catch(() => undefined);
     };
     load();
+    // Check on startup, when the user returns, and hourly while the app stays open.
+    // Detection only: installing an update remains an explicit, signed action.
     window.addEventListener('nexus:system-updates', load);
-    return () => window.removeEventListener('nexus:system-updates', load);
+    window.addEventListener('focus', load);
+    const refreshInterval = window.setInterval(load, 60 * 60 * 1000);
+    return () => {
+      window.removeEventListener('nexus:system-updates', load);
+      window.removeEventListener('focus', load);
+      window.clearInterval(refreshInterval);
+    };
   }, []);
+
+  const hasAvailableUpdates = Boolean(sysInfo?.nexus_update_available || sysInfo?.update_available);
 
   const hasAttentionAlerts = runtimes.some(
     (rt) =>
@@ -163,7 +174,7 @@ export const NexusShell: React.FC<{
                   <span className="nx-ver-nexus">Nexus v{sysInfo?.nexus_version || 'unknown'}</span>
                 </div>
 
-                {sysInfo?.update_available && (
+                {hasAvailableUpdates && (
                   <button
                     type="button"
                     onClick={() => onSettings('updates')}
@@ -259,7 +270,7 @@ export const NexusShell: React.FC<{
 
               <ChromeOverflowMenu
                 zenMode={zenMode}
-                updateAvailable={Boolean(sysInfo?.update_available)}
+                updateAvailable={hasAvailableUpdates}
                 onCommand={onCommand}
                 onOpenWelcome={onOpenWelcome}
                 onSettings={onSettings}
