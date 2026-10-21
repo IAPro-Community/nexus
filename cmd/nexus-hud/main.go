@@ -97,15 +97,7 @@ func main() {
 	if hudController.GetHUDDetachedPopoverEnabled() {
 		// The popup is a second native Wails window in this same process. Its
 		// WebView has its own React tree but shares the authenticated Core.
-		popupOptions := hudWindowOptions(windowState)
-		popupOptions.Name = desktop.HUDPopupWindowName
-		popupOptions.Title = desktop.HUDPopupWindowName
-		popupOptions.URL = "/?nativeHud=1&hudView=popover"
-		popupOptions.Width, popupOptions.Height = windowState.ExpandedWidth, windowState.ExpandedHeight
-		popupOptions.MinWidth, popupOptions.MinHeight = 280, 240
-		popupOptions.Hidden = true
-		popupOptions.HideOnEscape = true
-		popup := native.Window.NewWithOptions(popupOptions)
+		popup := native.Window.NewWithOptions(hudDetachedPopupOptions(windowState))
 		popup.OnWindowEvent(events.Common.WindowLostFocus, func(*application.WindowEvent) {
 			// Outside click dismisses only the popup, not the capsule.
 			_ = hudController.SetHUDExpanded(false)
