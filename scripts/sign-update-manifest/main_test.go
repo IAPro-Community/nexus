@@ -95,7 +95,7 @@ func TestAllowedArtifactBaseURL(t *testing.T) {
 		raw  string
 		want bool
 	}{
-		{"https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0", true},
+		{"https://github.com/IAPro-Community/nexus/releases/download/v1.0.0", true},
 		{"http://127.0.0.1:8080/v1.0.0", true},
 		{"http://localhost:8080/v1.0.0", true},
 		{"http://[::1]:8080/v1.0.0", true},
@@ -150,9 +150,9 @@ func TestSourceSHAProvenanceValidation(t *testing.T) {
 
 func TestDefaultArtifactBaseURLUsesCanonicalDistributionIdentity(t *testing.T) {
 	cases := map[string]string{
-		"v1.0.0-beta.4": "https://github.com/IAPro-Community/nexus-releases/releases/download/channel-beta",
-		"1.0.0-rc.1":    "https://github.com/IAPro-Community/nexus-releases/releases/download/channel-beta",
-		"v1.0.0":        "https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0",
+		"v1.0.0-beta.4": "https://github.com/IAPro-Community/nexus/releases/download/channel-beta",
+		"1.0.0-rc.1":    "https://github.com/IAPro-Community/nexus/releases/download/channel-beta",
+		"v1.0.0":        "https://github.com/IAPro-Community/nexus/releases/download/v1.0.0",
 	}
 	for version, want := range cases {
 		if got := defaultArtifactBaseURL(version); got != want {
