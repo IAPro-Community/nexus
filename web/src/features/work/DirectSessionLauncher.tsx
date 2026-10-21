@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Bot, Play, ShieldAlert, TerminalSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -79,10 +79,18 @@ export const DirectSessionLauncher: React.FC<{
   const [modelOverride, setModelOverride] = useState('');
   const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
   const [recommendationError, setRecommendationError] = useState(false);
-  const [manualChoice, setManualChoice] = useState(false);
+  const manualChoice = useRef(false);
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    manualChoice.current = false;
+    setSelectedID('');
+    setModelOverride('');
+    setName('');
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -121,13 +129,13 @@ export const DirectSessionLauncher: React.FC<{
         setRecommendation(ranked);
         setRecommendationError(recommendationResult.status !== 'fulfilled');
         setSelectedID((previous) =>
-          manualChoice && eligible.some((account) => account.id === previous)
+          manualChoice.current && eligible.some((account) => account.id === previous)
             ? previous
             : suggested,
         );
-        if (suggested && !manualChoice && !name.trim()) {
+        if (suggested && !manualChoice.current) {
           const preferred = eligible.find((account) => account.id === suggested);
-          if (preferred) setName(buildDirectAgentName(request?.prompt || '', preferred.provider));
+          if (preferred) setName((previous) => previous.trim() || buildDirectAgentName(request?.prompt || '', preferred.provider));
         }
       }
       setLoading(false);
@@ -135,7 +143,7 @@ export const DirectSessionLauncher: React.FC<{
     return () => {
       mounted = false;
     };
-  }, [open, request?.prompt, taskKind, project.resource_policy, manualChoice]);
+  }, [open, request?.prompt, taskKind, project.resource_policy]);
 
   const selected = useMemo(
     () => resources.find((resource) => resource.id === selectedID) || null,
@@ -148,7 +156,7 @@ export const DirectSessionLauncher: React.FC<{
   }, [selected, request?.prompt, name]);
 
   const choose = (resource: DirectResource) => {
-    setManualChoice(true);
+    manualChoice.current = true;
     setSelectedID(resource.id);
     setName(buildDirectAgentName(request?.prompt || '', resource.provider));
   };
@@ -211,7 +219,7 @@ export const DirectSessionLauncher: React.FC<{
             <Select
               value={taskKind}
               onChange={(value) => {
-                setManualChoice(false);
+                manualChoice.current = false;
                 setSelectedID('');
                 setRecommendation(null);
                 setTaskKind(value as DirectTaskKind);
