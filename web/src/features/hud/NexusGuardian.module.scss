@@ -1,0 +1,179 @@
+.root {
+  --companion-size: 96px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  color: #f8fafc;
+}
+
+.group {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 0;
+  min-height: 115px;
+  width: 100%;
+}
+
+.guardianButton, .bucketButton, .dragHandle, .bubbleActions button, .close {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  cursor: pointer;
+}
+
+.guardianButton {
+  flex: 0 0 var(--companion-size);
+  width: var(--companion-size);
+  height: var(--companion-size);
+  padding: 0;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.guardianButton:focus-visible, .bucketButton:focus-visible, .dragHandle:focus-visible,
+.bubbleActions button:focus-visible, .close:focus-visible {
+  outline: 2px solid #70a4ea;
+  outline-offset: 2px;
+}
+
+.sprite {
+  display: block;
+  width: var(--companion-size);
+  height: var(--companion-size);
+  background-image: url('/companion/nexus-guardian-sprites.svg');
+  background-repeat: no-repeat;
+  background-size: 576px 576px;
+  background-position: 0 0;
+  image-rendering: auto;
+}
+
+.root[data-mood='working'] .sprite { background-position-y: -96px; }
+.root[data-mood='attention'] .sprite { background-position-y: -192px; }
+.root[data-mood='critical'] .sprite { background-position-y: -288px; }
+.root[data-mood='offline'] .sprite { background-position-y: -384px; }
+.root[data-mood='success'] .sprite { background-position-y: -480px; }
+
+.root[data-motion='on'] .sprite {
+  animation: companion-frames 5s steps(6, end) infinite;
+}
+.root[data-mood='attention'][data-motion='on'] .sprite,
+.root[data-mood='critical'][data-motion='on'] .sprite {
+  animation-duration: 3.6s;
+}
+
+.bucketButton {
+  position: relative;
+  flex: 0 0 49px;
+  height: 59px;
+  border-radius: 12px;
+  padding: 0;
+  background: transparent;
+}
+.bucketButton img { display: block; }
+.root[data-mood='attention'][data-motion='on'] .bucketButton,
+.root[data-mood='critical'][data-motion='on'] .bucketButton {
+  animation: bucket-wiggle 1.5s ease-in-out 1;
+}
+.badge {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  border-radius: 99px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #e36953;
+  color: white;
+  box-shadow: 0 0 0 2px #182234;
+}
+
+.dragHandle {
+  flex: 0 0 18px;
+  height: 54px;
+  margin-bottom: 8px;
+  color: #b6c9e4;
+  background: transparent;
+  border-radius: 6px;
+  cursor: grab;
+  --wails-draggable: drag;
+}
+.dragHandle:active { cursor: grabbing; }
+.dragHandle:hover { background: #182234; }
+
+.speech {
+  align-self: flex-end;
+  position: relative;
+  z-index: 2;
+  width: min(260px, 100%);
+  padding: 10px 25px 10px 12px;
+  margin-bottom: 4px;
+  background: #15233b;
+  border: 1px solid #70a4ea;
+  color: #f8fafc;
+  border-radius: 13px;
+  box-shadow: 0 8px 19px #05081155;
+  font-size: 12px;
+}
+.speech::after {
+  content: '';
+  position: absolute;
+  right: 32px;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  border-bottom: 1px solid #70a4ea;
+  border-right: 1px solid #70a4ea;
+  background: #15233b;
+}
+.speech strong {
+  display: block;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.close {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border-radius: 6px;
+}
+.bubbleActions {
+  margin-top: 9px;
+  display: flex;
+  gap: 8px;
+}
+.bubbleActions button {
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: #263c5e;
+  font-size: 11px;
+}
+.bubbleActions button:first-child {
+  background: #3b72e1;
+  color: #fff;
+}
+@keyframes companion-frames {
+  from { background-position-x: 0; }
+  to { background-position-x: -576px; }
+}
+@keyframes bucket-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-6deg); }
+  70% { transform: rotate(4deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sprite, .bucketButton { animation: none !important; }
+}
