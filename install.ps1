@@ -19,12 +19,11 @@ $ErrorActionPreference = 'Stop'
 $InstallDesktop = -not $NoDesktop
 $MaestroExit = 0
 
-$Repo = if ($env:NEXUS_RELEASE_REPO) { $env:NEXUS_RELEASE_REPO } else { "IAPro-Community/nexus-releases" }
+$Repo = if ($env:NEXUS_RELEASE_REPO) { $env:NEXUS_RELEASE_REPO } else { "IAPro-Community/nexus" }
 $GithubUrl = "https://github.com/$Repo"
 $GithubApi = "https://api.github.com/repos/$Repo"
 $ReleaseDownloadBase = if ($env:NEXUS_RELEASE_BASE_URL) { $env:NEXUS_RELEASE_BASE_URL.TrimEnd('/') } else { "$GithubUrl/releases/download" }
-# Source checkouts (-SourceRef builds) always come from the private source
-# repository, never from the binaries mirror.
+# Source checkouts (-SourceRef builds) use the public source repository.
 $SourceRepo = if ($env:NEXUS_SOURCE_REPO) { $env:NEXUS_SOURCE_REPO } else { "IAPro-Community/nexus" }
 $SourceUrl = "https://github.com/$SourceRepo"
 
