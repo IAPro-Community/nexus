@@ -45,6 +45,7 @@ const FLOATING_KEYBOARD_STEP = 16;
 export interface NexusHudProps {
   projectId?: string;
   native?: boolean;
+  nativeView?: 'capsule' | 'popover';
   onOpenNexus?: () => void;
   onOpenUsage?: () => void;
   onOpenAgents?: () => void;
@@ -66,6 +67,7 @@ const clampFloatingPosition = (x: number, y: number) => ({
 export const NexusHud: React.FC<NexusHudProps> = ({
   projectId,
   native = false,
+  nativeView = 'capsule',
   onOpenNexus,
   onOpenUsage,
   onOpenAgents,
@@ -77,6 +79,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [prefs, setPrefs] = useState<HudPresentationPreferences>(() => loadHudPreferences());
   const [response, setResponse] = useState<HudResponse | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [nativeDetached, setNativeDetached] = useState(false);
+  const isDetachedPopup = native && nativeView === 'popover';
+  const renderDetailHere = !native || !nativeDetached || isDetachedPopup;
   const [offline, setOffline] = useState(false);
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null);
   const [paceWarning, setPaceWarning] = useState<CapacityResourceStatus | null>(null);
@@ -146,6 +151,38 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     window.addEventListener('nexus:hud-preferences', sync);
     return () => window.removeEventListener('nexus:hud-preferences', sync);
   }, []);
+
+  useEffect(() => {
+    if (!native) return;
+    let active = true;
+    const syncExpanded = () => {
+      void hudV3
+        .getExpanded()
+        .then((value) => {
+          if (active && !nativeExpansionPending.current) setExpanded(Boolean(value));
+        })
+        .catch(() => undefined);
+    };
+    void hudV3
+      .getDetachedPopoverEnabled()
+      .then((enabled) => {
+        if (!active) return;
+        setNativeDetached(Boolean(enabled));
+        if (enabled) syncExpanded();
+      })
+      .catch(() => undefined);
+    // The capsule and popup are independent React trees. Read the controller's
+    // authoritative state to recover after blur, Escape, and native hide.
+    const timer = window.setInterval(() => {
+      if (active) syncExpanded();
+    }, 800);
+    window.addEventListener('focus', syncExpanded);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', syncExpanded);
+    };
+  }, [native]);
 
   useEffect(() => {
     if (!native) return;
@@ -249,8 +286,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     }
     if (nativeExpansionPending.current) return;
     nativeExpansionPending.current = true;
-    // First resize the independent Wails window, THEN show the popover inside
-    // its viewport. Never claim an expanded panel when the native bridge fails.
+    // The native controller either resizes the legacy window or opens the
+    // independent popup. Only update local state after that operation succeeds.
     void hudV3
       .setExpanded(value)
       .then(() => {
@@ -396,6 +433,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       data-surface={native ? 'native' : prefs.surfaceMode}
       data-dock={prefs.dock}
       data-native={native ? 'true' : 'false'}
+      data-detached-view={isDetachedPopup ? 'popover' : undefined}
       style={floatingStyle}
       aria-label="Nexus HUD"
       aria-live="polite"
@@ -408,7 +446,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         data-tone={tone}
         data-size={native ? sizePreset || 'custom' : undefined}
       >
-        {expanded && state && !waiting && (
+        {renderDetailHere && expanded && state && !waiting && (
           <div id="nexus-hud-popover" className={styles.popover} aria-label="Resumo do Nexus HUD">
             <div className={styles.popoverHeader}>
               <div
@@ -694,7 +732,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             </div>
           </div>
         )}
-        {expanded && (!state || waiting) && (
+        {renderDetailHere && expanded && (!state || waiting) && (
           <div
             id="nexus-hud-popover"
             className={styles.popover}
@@ -757,7 +795,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           </div>
         )}
 
-        <div className={styles.capsuleRow}>
+        {!isDetachedPopup && <div className={styles.capsuleRow}>
           {native && (
             <button
               type="button"
@@ -777,7 +815,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             data-evidence={quotaEvidence}
             aria-label={capsuleAccessibleLabel}
             aria-expanded={expanded}
-            aria-controls={expanded ? 'nexus-hud-popover' : undefined}
+            aria-controls={expanded && renderDetailHere ? 'nexus-hud-popover' : undefined}
+            aria-haspopup={nativeDetached ? 'dialog' : undefined}
             title={native ? nativeExpansionError || nativeTitle : undefined}
             onClick={() => setExpandedState(!expanded)}
           >
@@ -804,7 +843,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               <GripHorizontal size={14} />
             </button>
           )}
-        </div>
+        </div>}
 
         {!expanded && !native && (
           <div className={styles.hoverCard} role="tooltip">
