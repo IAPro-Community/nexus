@@ -37,6 +37,8 @@ import {
   selectHudFocus,
 } from './hudMiniModel';
 import { HudSizeControls } from './HudSizeControls';
+import { GuardianMascot, GuardianModeSelector } from './GuardianMascot';
+import { guardianMood, normalizeHudAppearance, type HudAppearance } from './guardianModel';
 import { shouldRenderHudPopover } from './hudPresentation';
 import styles from './NexusHud.module.scss';
 
@@ -81,6 +83,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [response, setResponse] = useState<HudResponse | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [nativeDetached, setNativeDetached] = useState(false);
+  const [nativeAppearance, setNativeAppearance] = useState<HudAppearance>('BAR');
+  const [appearancePending, setAppearancePending] = useState(false);
   const isDetachedPopup = native && nativeView === 'popover';
   const showPopoverContent = shouldRenderHudPopover(expanded, native, nativeView, nativeDetached);
   const [popupPresentation, setPopupPresentation] = useState(0);
@@ -168,6 +172,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     let active = true;
     let detachedMode = false;
     const syncExpanded = () => {
+      // Appearance is authoritative in the native controller, not localStorage:
+      // capsule and popup run in distinct WebViews with distinct React trees.
+      void hudV3
+        .getAppearance()
+        .then((value) => {
+          if (active) setNativeAppearance(normalizeHudAppearance(value));
+        })
+        .catch(() => undefined);
       // The single-window HUD owns its expansion in React. Polling the
       // detached-only backend field would incorrectly collapse legacy users.
       if (!detachedMode) return;
@@ -208,6 +220,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         if (!active) return;
         const availablePresets = Array.isArray(presets) ? presets : [];
         setSizePresets(availablePresets);
+        setNativeAppearance(normalizeHudAppearance(windowState.appearance));
         const compactWidth = windowState.compactWidth ?? windowState.width;
         const compactHeight = windowState.compactHeight ?? windowState.height;
         const match = availablePresets.find(
@@ -318,6 +331,22 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       .finally(() => {
         nativeExpansionPending.current = false;
       });
+  };
+
+  const chooseAppearance = (next: HudAppearance) => {
+    if (!native || appearancePending || (next === 'MASCOT' && !nativeDetached)) return;
+    setAppearancePending(true);
+    void hudV3
+      .setAppearance(next)
+      .then(() => {
+        setNativeAppearance(next);
+        setExpanded(false);
+      })
+      .catch((error: unknown) => {
+        console.error('Nexus HUD Guardian appearance failed:', error);
+        toast.error('Não foi possível alterar a apresentação do Guardian.');
+      })
+      .finally(() => setAppearancePending(false));
   };
 
   const applySize = (preset: string) => {
@@ -435,6 +464,12 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const capsuleAccessibleLabel = `${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${capsuleCapacityCopy}`;
   const nativeTitle = `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`;
   const tone = waiting ? 'unknown' : displayTone;
+  const guardianState = guardianMood(
+    offline || waiting,
+    isAttention,
+    activeAgents.length,
+  );
+  const showGuardianMascot = native && nativeDetached && !isDetachedPopup && nativeAppearance === 'MASCOT';
   const floatingStyle =
     !native && prefs.surfaceMode === 'floating'
       ? ({
@@ -461,6 +496,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         data-expanded={expanded ? 'true' : 'false'}
         data-tone={tone}
         data-size={native ? sizePreset || 'custom' : undefined}
+        data-appearance={showGuardianMascot ? 'MASCOT' : 'BAR'}
       >
         {showPopoverContent && state && !waiting && (
           <div
@@ -483,6 +519,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 )}
               </div>
               <div className={styles.headerActions}>
+                {native && (
+                  <GuardianModeSelector
+                    appearance={nativeAppearance}
+                    detachedAvailable={nativeDetached}
+                    pending={appearancePending}
+                    onSelect={chooseAppearance}
+                  />
+                )}
                 {onOpenSettings && (
                   <button
                     type="button"
@@ -774,6 +818,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   <GripHorizontal size={14} className={styles.dragGrip} aria-hidden="true" />
                 )}
               </div>
+              {native && (
+                <GuardianModeSelector
+                  appearance={nativeAppearance}
+                  detachedAvailable={nativeDetached}
+                  pending={appearancePending}
+                  onSelect={chooseAppearance}
+                />
+              )}
               <button
                 type="button"
                 className={styles.iconButton}
@@ -819,7 +871,33 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           </div>
         )}
 
-        {!isDetachedPopup && (
+        {showGuardianMascot && (
+          <div className={styles.mascotRow}>
+            <button
+              type="button"
+              className={styles.mascotButton}
+              aria-label={capsuleAccessibleLabel}
+              aria-expanded={expanded}
+              aria-haspopup="dialog"
+              title={nativeTitle}
+              onClick={() => setExpandedState(!expanded)}
+            >
+              <GuardianMascot mood={guardianState} attention={isAttention} />
+            </button>
+            <button
+              type="button"
+              className={styles.mascotDragHandle}
+              data-hud-drag-handle="true"
+              aria-label={t('hud.dragLabel')}
+              title={t('hud.dragTitle')}
+              onKeyDown={onNativeDragKeys}
+            >
+              <GripHorizontal size={13} aria-hidden="true" />
+            </button>
+          </div>
+        )}
+
+        {!isDetachedPopup && !showGuardianMascot && (
           <div className={styles.capsuleRow}>
             {native && (
               <button
