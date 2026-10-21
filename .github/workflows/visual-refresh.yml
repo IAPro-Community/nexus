@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: nexus-v1-synthetic-visual-refresh
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   capture-and-publish:
