@@ -46,7 +46,44 @@ func BinaryPath() (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	return binaryPathIn(filepath.Dir(exe))
+	return binaryPathForExe(exe)
+}
+
+// binaryPathForExe resolves the HUD companion for a given host executable.
+func binaryPathForExe(exe string) (string, bool) {
+	if strings.TrimSpace(exe) == "" {
+		return "", false
+	}
+	dir := filepath.Dir(exe)
+	if path, ok := binaryPathIn(dir); ok {
+		return path, true
+	}
+	for _, candidate := range companionDirs(dir) {
+		if path, ok := binaryPathIn(candidate); ok {
+			return path, true
+		}
+	}
+	return "", false
+}
+
+// hudBundleName is the companion bundle shipped by the macOS installer next to
+// the desktop app.
+const hudBundleName = "IAPro Nexus HUD.app"
+
+// companionDirs lists additional install layouts that host the HUD executable.
+func companionDirs(dir string) []string {
+	if runtime.GOOS != "darwin" {
+		return nil
+	}
+	// macOS ships two sibling bundles:
+	//   <parent>/IAPro Nexus.app/Contents/MacOS/nexus-desktop
+	//   <parent>/IAPro Nexus HUD.app/Contents/MacOS/nexus-hud
+	contents := filepath.Dir(dir)
+	bundle := filepath.Dir(contents)
+	if filepath.Base(dir) != "MacOS" || filepath.Base(contents) != "Contents" {
+		return nil
+	}
+	return []string{filepath.Join(filepath.Dir(bundle), hudBundleName, "Contents", "MacOS")}
 }
 
 func binaryPathIn(dir string) (string, bool) {

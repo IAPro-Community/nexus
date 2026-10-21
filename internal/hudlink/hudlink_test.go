@@ -79,6 +79,59 @@ func TestBinaryPathIn(t *testing.T) {
 	}
 }
 
+// TestBinaryPathForExeFindsSiblingMacOSBundle covers the shipped macOS layout,
+// where the HUD lives in its own bundle next to the desktop app.
+func TestBinaryPathForExeFindsSiblingMacOSBundle(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("macOS bundle layout only")
+	}
+	parent := t.TempDir()
+	desktopMacOS := filepath.Join(parent, "IAPro Nexus.app", "Contents", "MacOS")
+	hudMacOS := filepath.Join(parent, hudBundleName, "Contents", "MacOS")
+	for _, dir := range []string{desktopMacOS, hudMacOS} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	desktopExe := filepath.Join(desktopMacOS, "nexus-desktop")
+	if err := os.WriteFile(desktopExe, []byte("stub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	hudExe := filepath.Join(hudMacOS, binaryName())
+	if err := os.WriteFile(hudExe, []byte("stub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	got, ok := binaryPathForExe(desktopExe)
+	if !ok || got != hudExe {
+		t.Fatalf("binaryPathForExe = (%q, %v), want (%q, true)", got, ok, hudExe)
+	}
+
+	// A sibling flat layout still wins when both are present.
+	flat := filepath.Join(desktopMacOS, binaryName())
+	if err := os.WriteFile(flat, []byte("stub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got, ok = binaryPathForExe(desktopExe)
+	if !ok || got != flat {
+		t.Fatalf("binaryPathForExe with flat companion = (%q, %v), want (%q, true)", got, ok, flat)
+	}
+
+	// Without the companion bundle nothing is reported.
+	if err := os.Remove(flat); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(hudExe); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := binaryPathForExe(desktopExe); ok {
+		t.Fatal("binaryPathForExe must not report a missing HUD")
+	}
+	if _, ok := binaryPathForExe(""); ok {
+		t.Fatal("binaryPathForExe must reject an empty executable path")
+	}
+}
+
 func TestLinkedCommand(t *testing.T) {
 	cmd := linkedCommand(`C:\tools\nexus-hud.exe`)
 	if len(cmd.Args) != 2 || cmd.Args[1] != "--linked" {
