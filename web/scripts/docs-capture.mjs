@@ -1005,7 +1005,18 @@ if (existsSync(manifestFile)) {
     previousCaptures = (previous.captures || []).filter(
       (item) => item.source_sha === sourceSha ||
         (item.id === 'VIS-011' && item.data_classification === 'SYNTHETIC'),
-    );
+    ).map((item) => {
+      // Native Desktop was captured on a different, now-unverifiable SHA.
+      // Keep the visual as an explicitly historical reference, never PASS.
+      if (item.id === 'VIS-011' && item.source_sha !== sourceSha) {
+        return {
+          ...item,
+          status: 'HISTORICAL',
+          evidence_note: 'Historical native Desktop reference only. Not certified for the current SHA.',
+        };
+      }
+      return item;
+    });
   } catch {
     previousCaptures = [];
   }

@@ -85,7 +85,18 @@ if (existsSync(manifestPath)) {
     if (!item.id) errors.push('visual manifest item has no id');
     else if (itemById.has(item.id)) errors.push(`visual manifest duplicate id: ${item.id}`);
     else itemById.set(item.id, item);
-    if (item.status !== 'PASS') errors.push(`visual manifest item is not PASS: ${item.id || '(unknown)'}`);
+    const historicalNative = item.id === 'VIS-011' &&
+      item.status === 'HISTORICAL' &&
+      item.source_sha !== manifest.source_sha;
+    if (item.status !== 'PASS' && !historicalNative) {
+      errors.push(`visual manifest item is not verified: ${item.id || '(unknown)'}`);
+    }
+    if (item.id !== 'VIS-011' && item.source_sha !== manifest.source_sha) {
+      errors.push(`visual capture has a different source SHA: ${item.id || '(unknown)'}`);
+    }
+    if (item.id === 'VIS-011' && item.source_sha !== manifest.source_sha && !historicalNative) {
+      errors.push('historical Desktop capture cannot be marked PASS');
+    }
     for (const field of ['surface', 'scenario', 'viewport', 'capture_command', 'source_sha', 'data_classification']) {
       if (!item[field]) errors.push(`visual manifest item ${item.id || '(unknown)'} missing ${field}`);
     }
