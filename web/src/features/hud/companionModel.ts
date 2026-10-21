@@ -1,4 +1,5 @@
-import type { HudAgent, HudAlert, HudMission, HudState } from './hudModel';
+import type { HudAlert, HudState } from './hudModel';
+import type { AttentionGroup } from '../../types';
 
 export type CompanionMood = 'idle' | 'working' | 'attention' | 'critical' | 'offline' | 'success';
 export type CompanionTarget = 'missions' | 'agents' | 'usage' | 'nexus';
@@ -24,11 +25,27 @@ const isSnoozed = (alert: HudAlert, now: number) => {
 export function projectCompanionAttention(
   state: HudState | undefined,
   now = Date.now(),
+  attentionGroup?: AttentionGroup,
 ): CompanionAttention[] {
-  if (!state) return [];
+  if (!state && !attentionGroup) return [];
   const items: CompanionAttention[] = [];
 
-  for (const mission of state.missions) {
+  // The Attention Center owns human-intervention classification. If it is
+  // reachable, do not override it with older Mission projection heuristics.
+  if (attentionGroup) for (const input of attentionGroup.needs_you) {
+    if (input.level !== 'REQUIRE_USER') continue;
+    items.push({
+      id: `mission:${input.project_id}:${input.mission_id}`,
+      title: 'Uma missão precisa de resposta',
+      detail: 'Há uma intervenção aguardando sua decisão.',
+      severity: 'critical',
+      target: 'missions',
+      needsUser: true,
+      projectId: input.project_id,
+      recordId: input.mission_id,
+    });
+  }
+  for (const mission of attentionGroup ? [] : state?.missions || []) {
     if (!mission.needs_user || TERMINAL.test(mission.state)) continue;
     items.push({
       id: `mission:${mission.project_id}:${mission.run_id}`,
@@ -41,7 +58,7 @@ export function projectCompanionAttention(
       recordId: mission.run_id,
     });
   }
-  for (const agent of state.agents) {
+  for (const agent of state?.agents || []) {
     if (!AWAITING.test(agent.status)) continue;
     items.push({
       id: `agent:${agent.project_id}:${agent.id}:${agent.status}`,
@@ -54,7 +71,7 @@ export function projectCompanionAttention(
       recordId: agent.id,
     });
   }
-  for (const alert of state.alerts) {
+  for (const alert of state?.alerts || []) {
     if (alert.acked || isSnoozed(alert, now)) continue;
     if (alert.severity.toUpperCase() === 'INFO') continue;
     const critical = alert.severity.toUpperCase() === 'CRITICAL';
