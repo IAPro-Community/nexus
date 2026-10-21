@@ -2,7 +2,8 @@
 
 ## 2026-10-21 — Homologação macOS 1.0.0-beta.10 (release/v1.0.0 @ 24a2396d)
 
-- Host Intel (macOS 26.6.2, x86_64); branch `release/v1.0.0` com SHA local igual ao remoto (`24a2396de246efe07e1bdfde73e03bfc5febb29c`); build por `scripts/build-wails-v3-macos-app.sh` (6 args) + `NEXUS_NATIVE_LDFLAGS`. Nenhum commit, push, tag ou release.
+- Host Intel (macOS 26.6.2, x86_64); branch `release/v1.0.0` com SHA local igual ao remoto (`24a2396de246efe07e1bdfde73e03bfc5febb29c`); build por `scripts/build-wails-v3-macos-app.sh` (6 args) + `NEXUS_NATIVE_LDFLAGS`.
+- Commits `2ce38c1d` (origem `wails://localhost`), `dd8963e3` (socket curto), `3127f938` (bundle irmão do HUD), `c5263928` (caminho canônico no teste) e `6f4bba5d` (este registro), com push fast-forward em `release/v1.0.0`; sem tag, release, merge ou force-push.
 - Quatro defeitos comprovados e corrigidos no worktree (não commitados): origem `wails://localhost` aceita só no scheme `wails` (eliminou 403 em todo o Desktop, baseline com 380 respostas 403); fallback de socket curto `/tmp/nexus-<uid>` (limite 103 bytes, 0700, owner-check); resolução do bundle irmão do HUD; teste de FS comparando caminho canônico.
 - PASS — `version-contract`, `go vet`, `go test -count=1 ./...` (69s), 7 gates de frontend (93 arquivos / 578 testes), `govulncheck` sem vulnerabilidades.
 - PASS — execução nativa: projeto criado pela UI (`prj_06GNX0FY9SJNBV4DECR4AMSNNR`, `main`), PTY real (`shell-06GNXD55EBMQEB4RRSDM2W6HDR`) com `codex-cli 0.156.1` e `codex login status` = `Logged in using ChatGPT`, HUD 220×60 `layer=3` iniciado pelo Desktop (`--linked`), sessões recuperadas após restart, trace 102/102 eventos em 5 estágios.
