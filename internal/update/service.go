@@ -184,8 +184,11 @@ func (s *Service) Check(ctx context.Context) (*CheckResult, error) {
 			installerKey = target + "_deb"
 		}
 		if installer, ok := manifest.Artifacts[installerKey]; ok &&
-			installer.ExtractAction() == "manual" && installer.URL != "" {
-			res.InstallerArtifact = &installer
+			installer.ExtractAction() == "manual" && installer.URL != "" &&
+			installer.Size > 0 && len(installer.SHA256) == 64 {
+			if _, err := hex.DecodeString(installer.SHA256); err == nil {
+				res.InstallerArtifact = &installer
+			}
 		}
 	}
 
