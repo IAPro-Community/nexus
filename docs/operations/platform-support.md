@@ -227,3 +227,44 @@ substituir instalações existentes. O macOS Gatekeeper e o Windows
 SmartScreen podem bloquear apps sem assinatura; não desative a proteção
 do sistema para contornar o bloqueio. A prévia não substitui a
 certificação de distribuição estável.
+
+## Atualizações a partir do GitHub Releases
+
+A GUI consulta o Update Service ao iniciar, ao recuperar o foco e, durante
+uso contínuo, a cada hora. Um update **só é anunciado** se o manifesto
+`update-manifest.json` do canal oficial for autenticado por Ed25519 e
+validado para a plataforma. Pré-releases unsigned sob tags `preview-*` não
+constituem canais automáticos e nunca participam desse processo.
+
+Para instalações beta, quando não há beta mais nova, o Desktop também
+consulta a versão estável assinada. Builds beta com o mesmo número de
+versão podem ser diferenciados pelo `source_sha` assinado, desde que a
+instalação local tenha um commit identificável.
+
+Na aba **Configurações > Atualizações**, a ação do Nexus é separada do
+botão **Atualizar Maestro**. Quando um pacote nativo verificado está
+disponível, **Baixar instalador oficial do Nexus** abre o arquivo
+publicado no repositório; quando não há instalador compatível, a ação
+abre a página da release para orientações manuais.
+
+O Desktop e o HUD **não** fazem auto-replace de seus próprios
+executáveis: o manifesto `goos_goarch` contém o artefato de CLI e
+nunca deve substituir um binário Wails. NSIS, PKG, DEB, RPM e outros
+métodos gerenciados permanecem na rota de instalação nativa. Não há
+instalação sem consentimento nem reinício automático durante sessões
+ativas. Para CLIs standalone, use:
+
+```bash
+nexus update check
+nexus update
+```
+
+Caso deseje mudar explicitamente da beta para a estável na CLI:
+`nexus update check --channel=stable` e
+`nexus update --channel=stable`. A interface de Desktop oferece o
+pacote estável verificado quando elegível, mas a instalação ainda
+precisa ser confirmada e concluída pelo instalador do sistema.
+
+A publicação de uma release assinada só é considerada concluída quando
+os gates exact-SHA, chaves/certificados e o manifesto gerado tiverem
+sido validados. A detecção local não comprova a instalação final.
