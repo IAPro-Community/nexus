@@ -13,11 +13,11 @@ REASON=''
 DONE=0
 PID=''
 report() {
-  HUD_SHA="$SHA" HUD_RESULT="$RESULT" HUD_REASON="$REASON" HUD_DONE="$DONE" HUD_CYCLES="$CYCLES" \
+  HUD_SHA="$SHA" HUD_RESULT="$RESULT" HUD_REASON="$REASON" HUD_DONE="$DONE" HUD_CYCLES="$CYCLES" HUD_BINARY_SHA="$(sha256sum "$HUD" | awk '{print $1}')" \
   python3 - "$OUT/HUD_NATIVE_RESULTS.json" <<'PY'
 import json,os,sys
 data={"sha":os.getenv("HUD_SHA"),"platform":"linux-x11","cycles_requested":int(os.getenv("HUD_CYCLES")),
-"cycles_completed":int(os.getenv("HUD_DONE")),"verdict":os.getenv("HUD_RESULT"),"reason":os.getenv("HUD_REASON"),
+"cycles_completed":int(os.getenv("HUD_DONE")),"binary_sha256":os.getenv("HUD_BINARY_SHA"),"verdict":os.getenv("HUD_RESULT"),"reason":os.getenv("HUD_REASON"),
 "visual_shadow_review":"NOT_TESTED","transparent_click_through":"NOT_TESTED",
 "note":"True X11 mouse + geometry; compare PNGs for frame/shadow manually"}
 with open(sys.argv[1],"w") as f: json.dump(data,f,indent=2)
@@ -33,7 +33,7 @@ if [ "$SESSION" != x11 ] || [ -z "$(printenv DISPLAY || true)" ]; then
   RESULT=BLOCKED; REASON='Only real X11 desktop supported; Wayland needs compositor-specific testing.'
   echo "$REASON" >&2; exit 1
 fi
-for bin in xdotool import python3 git realpath pgrep; do
+for bin in xdotool import python3 git realpath pgrep sha256sum; do
   if ! command -v "$bin" >/dev/null; then
     RESULT=BLOCKED; REASON="Missing $bin"; echo "$REASON" >&2; exit 1
   fi
