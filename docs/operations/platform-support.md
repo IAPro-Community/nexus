@@ -186,3 +186,40 @@ A mudança de repositório não dispensa Authenticode no Windows nem
 Developer ID/notarização no macOS para os gates de distribuição
 certificada. Builds unsigned podem ser homologados localmente, mas
 não serão tratados como assinados ou certificados.
+
+## Prévia portátil sem assinatura Microsoft (opt-in)
+
+A `release/v1.0.0` também contém
+[`unsigned-preview.yml`](../../.github/workflows/unsigned-preview.yml),
+um workflow que compila nos runners GitHub-hosted Linux amd64, Windows
+amd64 e macOS arm64 e publica os ZIP/tar.gz em
+[`channel-preview`](https://github.com/IAPro-Community/nexus/releases/tag/channel-preview)
+**somente se todos os três builds e suas suítes passarem**. Não usa
+certificado Microsoft, conta Apple Developer, token de espelho nem chave
+privada do updater; é uma prévia manual **sem instalador assinado**.
+
+Apenas atualizar a branch **não** publica a prévia. Como o workflow ainda
+está somente na branch `release/v1.0.0`, a maneira estável de dispará-lo
+é enviar um commit intencional cujo título contenha `[unsigned-preview]`:
+
+```bash
+git fetch origin
+git switch release/v1.0.0
+git pull --ff-only origin release/v1.0.0
+git commit --allow-empty -m "ci(preview): build unsigned assets [unsigned-preview]"
+git push origin release/v1.0.0
+```
+
+Isso cria uma execução de `Unsigned Source Release Preview` no Actions.
+Nenhum release `channel-preview` é publicado se um job falhar. O
+arquivo `SHA256SUMS.txt` acompanha os cinco archives: Linux CLI/Desktop/HUD,
+Windows CLI/Desktop/HUD e macOS CLI + dois bundles `.app`.
+
+**Não** use `install.sh --version=latest` ou `install.ps1 -Version
+latest` para tentar instalar essa prévia: esses instaladores exigem o
+manifesto Ed25519 oficial, que não é produzido no canal `channel-preview`.
+Instale os arquivos de prévia manualmente, num diretório isolado e sem
+substituir instalações existentes. O macOS Gatekeeper e o Windows
+SmartScreen podem bloquear apps sem assinatura; não desative a proteção
+do sistema para contornar o bloqueio. A prévia não substitui a
+certificação de distribuição estável.
