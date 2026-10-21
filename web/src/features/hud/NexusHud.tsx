@@ -472,12 +472,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     : capsuleAccessibleLabel;
   const nativeTitle = `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`;
   const tone = waiting ? 'unknown' : displayTone;
-  const guardianState = guardianMood(
-    offline || waiting,
-    isAttention,
-    activeAgents.length,
-  );
-  const showGuardianMascot = native && nativeDetached && !isDetachedPopup && nativeAppearance === 'MASCOT';
+  const guardianState = guardianMood(offline || waiting, isAttention, activeAgents.length);
+  const showGuardianMascot =
+    native && nativeDetached && !isDetachedPopup && nativeAppearance === 'MASCOT';
   const floatingStyle =
     !native && prefs.surfaceMode === 'floating'
       ? ({
