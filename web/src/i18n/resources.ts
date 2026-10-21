@@ -1310,6 +1310,7 @@ export const en = {
   },
   workspace: {
     splitTerminals: 'Split terminals',
+    showInSecondPane: 'Show in second pane',
     splitShort: 'Split',
     splitOrientation: 'Split orientation',
     splitSideBySide: 'Terminals side by side',
@@ -3324,6 +3325,7 @@ export const ptBR = {
   },
   workspace: {
     splitTerminals: 'Dividir terminais',
+    showInSecondPane: 'Exibir no segundo painel',
     splitShort: 'Dividir',
     splitOrientation: 'Orientação da divisão',
     splitSideBySide: 'Terminais lado a lado',
@@ -5347,6 +5349,7 @@ export const es = {
   },
   workspace: {
     splitTerminals: 'Dividir terminales',
+    showInSecondPane: 'Mostrar en el segundo panel',
     splitShort: 'Dividir',
     splitOrientation: 'Orientación de la división',
     splitSideBySide: 'Terminales lado a lado',
