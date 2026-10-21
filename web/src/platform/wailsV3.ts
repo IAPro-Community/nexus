@@ -35,6 +35,7 @@ export interface HudWindowState {
   expandedWidth?: number;
   expandedHeight?: number;
   mode: string;
+  appearance?: 'BAR' | 'MASCOT' | 'TRAY';
   opacity: number;
   alwaysOnTop: boolean;
   autoHide: boolean;
@@ -92,6 +93,9 @@ export const hudV3 = {
   getWindowState: () => call<HudWindowState>('HUDController', 'GetHUDWindowState'),
   getDetachedPopoverEnabled: () => call<boolean>('HUDController', 'GetHUDDetachedPopoverEnabled'),
   getExpanded: () => call<boolean>('HUDController', 'GetHUDExpanded'),
+  getAppearance: () => call<'BAR' | 'MASCOT' | 'TRAY'>('HUDController', 'GetHUDAppearance'),
+  setAppearance: (appearance: 'BAR' | 'MASCOT' | 'TRAY') =>
+    call<void>('HUDController', 'SetHUDAppearance', appearance),
   captureWindowState: () => call<void>('HUDController', 'CaptureHUDWindowState'),
   setExpanded: (expanded: boolean) => call<void>('HUDController', 'SetHUDExpanded', expanded),
   getSizePresets: () => call<HudSizePreset[]>('HUDController', 'GetHUDSizePresets'),
