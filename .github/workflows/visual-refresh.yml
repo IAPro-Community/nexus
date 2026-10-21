@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/visual-refresh.yml
       - web/src/features/hud/NexusHud.tsx
+      - web/scripts/docs-capture.mjs
   workflow_dispatch:
 
 permissions:

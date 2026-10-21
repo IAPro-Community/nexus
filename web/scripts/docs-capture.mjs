@@ -725,9 +725,12 @@ try {
   const capture = async (id, file, surface, evidence = {}) => {
     await redactFixturePaths();
     if (surface === 'web/workspace') {
-      const bodyText = (await page.locator('body').innerText()).toLowerCase();
-      if (!bodyText.includes(syntheticWorkspacePath.toLowerCase()) && !bodyText.includes('c:\\nexusdemo\\workspace')) {
-        throw new Error('workspace overview does not show the synthetic fixture path');
+      // Modern Overview may intentionally hide the absolute path. Assert the
+      // real project binding instead; assertSafeFixture below still rejects any
+      // non-synthetic path, profile or project data in the resulting capture.
+      const workspace = await dumpWorkspaceState(page);
+      if (workspace.layoutError || workspace.projectId !== createProject.id) {
+        throw new Error('workspace capture lost its synthetic project binding');
       }
     }
     await assertSafeFixture();
