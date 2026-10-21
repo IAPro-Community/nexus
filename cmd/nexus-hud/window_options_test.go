@@ -7,7 +7,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-func TestHUDWindowOptionsDisableNativeRectangularDecorationsOnWindowsAndMac(t *testing.T) {
+func TestHUDWindowOptionsTransparentChromeAcrossPlatforms(t *testing.T) {
 	state := desktop.HUDWindowState{
 		X: 171,
 		Y: 319,
@@ -25,6 +25,11 @@ func TestHUDWindowOptionsDisableNativeRectangularDecorationsOnWindowsAndMac(t *t
 	}
 	if !got.Windows.DisableFramelessWindowDecorations {
 		t.Fatal("Windows must disable native frameless DWM shadow and rounded outline")
+	}
+	// Linux has no equivalent native DisableShadow in Wails beta.25. Guard
+	// the GTK transparent/frameless contract, then require compositor smoke.
+	if !got.Linux.WindowIsTranslucent {
+		t.Fatal("Linux HUD must explicitly request GTK translucent presentation")
 	}
 	if !got.Mac.DisableShadow || got.Mac.CornerType != application.MacWindowCornerTypeSquare {
 		t.Fatalf("macOS must disable native rectangular shadow and native corner mask: %+v", got.Mac)
