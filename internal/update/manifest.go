@@ -77,6 +77,7 @@ var (
 	ErrManifestExpired       = errors.New("update manifest has expired")
 	ErrManifestChannel       = errors.New("update manifest channel is not allowed")
 	ErrManifestDowngrade     = errors.New("update manifest would downgrade the installed version")
+	ErrNoUpdateAvailable    = errors.New("no newer signed Nexus release is available")
 	ErrManifestCompatibility = errors.New("installed version is incompatible with update manifest")
 	ErrManifestTarget        = errors.New("update manifest has no artifact for target")
 	ErrManifestArtifact      = errors.New("update manifest artifact is invalid")
