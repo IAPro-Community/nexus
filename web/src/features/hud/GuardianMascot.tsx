@@ -49,7 +49,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({ mood, attention 
         <rect x="51" y="13" width="3" height="3" fill="#e4fff4" />
       </g>
     </svg>
-    {attention && <span className={styles.guardianBubble}>!</span>}
+    {attention && <span className={styles.guardianBubble}>Atenção!</span>}
   </span>
 );
 
@@ -87,7 +87,7 @@ export const GuardianModeSelector: React.FC<GuardianModeSelectorProps> = ({
         disabled={pending || (mode === 'MASCOT' && !detachedAvailable)}
         onClick={() => onSelect(mode)}
       >
-        {mode === 'BAR' ? 'Barra' : mode === 'MASCOT' ? 'Mascote' : 'Tray'}
+        {mode === 'BAR' ? 'Barra' : mode === 'MASCOT' ? 'Mascote' : 'Bandeja'}
       </button>
     ))}
   </div>
