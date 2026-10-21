@@ -192,9 +192,10 @@ não serão tratados como assinados ou certificados.
 A `release/v1.0.0` também contém
 [`unsigned-preview.yml`](../../.github/workflows/unsigned-preview.yml),
 um workflow que compila nos runners GitHub-hosted Linux amd64, Windows
-amd64 e macOS arm64/Intel e publica os ZIP/tar.gz em
-[`channel-preview`](https://github.com/IAPro-Community/nexus/releases/tag/channel-preview)
-**somente se todos os três builds e suas suítes passarem**. Não usa
+amd64 e macOS arm64/Intel e publica os ZIP/tar.gz em uma
+[GitHub Release de prévia](https://github.com/IAPro-Community/nexus/releases)
+**com tag imutável `preview-<SHA completo>`**, somente se todos os quatro
+ambientes (Linux amd64, Windows amd64, macOS arm64 e macOS Intel) passarem. Não usa
 certificado Microsoft, conta Apple Developer, token de espelho nem chave
 privada do updater; é uma prévia manual **sem instalador assinado**.
 
@@ -211,14 +212,16 @@ git push origin release/v1.0.0
 ```
 
 Isso cria uma execução de `Unsigned Source Release Preview` no Actions.
-Nenhum release `channel-preview` é publicado se um job falhar. O
+Nenhum release de prévia é publicado se algum dos jobs falhar.
+Cada execução aprovada produz uma tag imutável vinculada ao SHA de entrada;
+commits paralelos na release não fazem o workflow trocar o SHA compilado. O
 arquivo `SHA256SUMS.txt` acompanha os oito archives: Linux CLI/Desktop/HUD,
 Windows CLI/Desktop/HUD e dois conjuntos macOS (Apple Silicon e Intel),
 cada um com CLI + dois bundles `.app`.
 
 **Não** use `install.sh --version=latest` ou `install.ps1 -Version
 latest` para tentar instalar essa prévia: esses instaladores exigem o
-manifesto Ed25519 oficial, que não é produzido no canal `channel-preview`.
+manifesto Ed25519 oficial, que não é produzido nas tags `preview-*`.
 Instale os arquivos de prévia manualmente, num diretório isolado e sem
 substituir instalações existentes. O macOS Gatekeeper e o Windows
 SmartScreen podem bloquear apps sem assinatura; não desative a proteção
