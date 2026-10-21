@@ -20,8 +20,39 @@ interface NexusGuardianProps {
 export const NexusGuardian: React.FC<NexusGuardianProps> = ({
   mood, count, expanded, motion, bubble, native,
   onExpand, onOpenPending, onOpenAttention, onSnooze, onMoveKeys,
-}) => (
-  <div className={styles.root} data-mood={mood} data-motion={motion ? 'on' : 'off'}>
+}) => {
+  const [micro, setMicro] = React.useState<'none' | 'tilt' | 'hop' | 'peek'>('none');
+
+  React.useEffect(() => {
+    if (!motion || expanded || bubble || mood === 'critical') {
+      setMicro('none');
+      return;
+    }
+    let active = true;
+    let delayTimer: number;
+    let resetTimer: number;
+    const schedule = () => {
+      delayTimer = window.setTimeout(() => {
+        if (!active) return;
+        const actions = ['tilt', 'hop', 'peek'] as const;
+        setMicro(actions[Math.floor(Math.random() * actions.length)]);
+        resetTimer = window.setTimeout(() => {
+          if (!active) return;
+          setMicro('none');
+          schedule();
+        }, 850);
+      }, 16000 + Math.floor(Math.random() * 16000));
+    };
+    schedule();
+    return () => {
+      active = false;
+      window.clearTimeout(delayTimer);
+      window.clearTimeout(resetTimer);
+    };
+  }, [motion, expanded, bubble, mood]);
+
+  return (
+  <div className={styles.root} data-mood={mood} data-micro={micro} data-motion={motion ? 'on' : 'off'}>
     {bubble && !expanded && (
       <div className={styles.speech} role="status" data-companion-bubble>
         <button className={styles.close} type="button" aria-label="Dispensar aviso" onClick={() => onSnooze(bubble)}>
@@ -70,4 +101,5 @@ export const NexusGuardian: React.FC<NexusGuardianProps> = ({
       </button>
     </div>
   </div>
-);
+  );
+};
