@@ -1,5 +1,13 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-21 — Primeiro uso Codex/OpenCode no Windows — PR #54
+
+- Escopo: somente falhas de inicialização e terminal da instalação limpa beta.10 relatada em Windows amd64, ligado ao issue #53. Branch fix/issue-53-windows-agent-startup, commit d42db81b, PR #54.
+- go test -count=1 -timeout=10m ./internal/control/terminal ./internal/control/driver ./internal/core/provider/spec ./internal/core/provider/adapters/opencode ./internal/core/security ./internal/runtime: PASS com USERPROFILE temporário isolado.
+- go vet nos seis pacotes: PASS; git diff --check: PASS. Build Windows amd64 e smoke instalado também passaram; Codex/OpenCode ficaram RUNNING e o PTY OpenCode exibiu a tela inicial interativa, sem prompt enviado.
+- Limite: a suíte Go completa passou antes do ajuste final ConPTY, mas não foi repetida para o conjunto final. O primeiro teste sem isolamento de USERPROFILE leu credencial OpenCode Zen do perfil real; todos os seis pacotes passaram no ambiente isolado. Frontend não faz parte da PR.
+- CI: Sanitize self-hosted workspace estava pendente na última consulta; certificações nativas foram ignoradas pelas condições do workflow.
+
 ## 2026-10-21 — TUI OpenCode no Windows (correção instalada)
 
 - Causa reproduzida: o backend de pipes comuns iniciava OpenCode, mas não fornecia a console necessária para a TUI. OpenCode foi incluído na seleção automática de ConPTY; provedores desconhecidos continuam com pipes.

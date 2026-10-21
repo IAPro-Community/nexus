@@ -1,5 +1,12 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-21 — PR #54: primeiro uso Codex/OpenCode no Windows
+
+- Escopo limitado ao primeiro uso dos agentes após a instalação limpa beta.10 relatada no Windows amd64, relacionado ao issue #53. PR #54: https://github.com/IAPro-Community/nexus/pull/54; branch fix/issue-53-windows-agent-startup; commit de código d42db81b.
+- Corrigidos: metadados Nexus encaminhados como flags CLI; prioridade de PATHEXT para executáveis Windows; fallback --no-daemon do TUI Codex em caminho de socket longo; recópia da configuração OpenCode antes do handshake; ausência de ConPTY na TUI interativa OpenCode.
+- Testes de regressão adicionados. Seis pacotes Go passaram com USERPROFILE temporário isolado; go vet, build amd64, smoke instalado e git diff --check passaram. Codex/OpenCode ficaram RUNNING; OpenCode mostrou a TUI inicial sem envio de prompt.
+- A suíte Go completa passou antes do ajuste final ConPTY, mas não foi repetida para o conjunto final. Na última consulta, Sanitize self-hosted workspace estava pendente e etapas de certificação nativa foram ignoradas. Relatórios visuais do frontend permaneceram fora da PR.
+
 ## 2026-10-21 — Corrigir a TUI em branco do OpenCode no Windows
 
 - **Causa:** o Nexus iniciava OpenCode pelo backend de pipes comuns. O processo permanecia conectado, porém a TUI não tinha uma console Windows interativa para renderizar.

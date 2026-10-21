@@ -1,5 +1,12 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Slice concluído — primeiro uso Codex/OpenCode no Windows — 2026-10-21
+
+- Contexto: instalação limpa beta.10 relatada em Windows amd64; Codex falhava no launcher/app-server e OpenCode não iniciava corretamente ou exibia terminal vazio.
+- Contrato: metadados do Nexus não são flags CLI; PATHEXT resolve o executável Windows; TUI Codex usa --no-daemon quando o socket derivado alcança o limite conservador; configuração OpenCode seedada é preservada; OpenCode inicia em ConPTY no Windows.
+- Aceite: testes focados, vet, build amd64 e smoke instalado passaram. Codex/OpenCode ficaram RUNNING; OpenCode exibiu a TUI interativa sem envio de prompt.
+- Estado: commit d42db81b na branch fix/issue-53-windows-agent-startup; PR #54 relaciona o issue #53. A suíte completa não foi repetida após ConPTY; consulte DEV/VERIFY.md e DEV/HANDOFF.md.
+
 ## Slice concluído — TUI do OpenCode no Windows — 2026-10-21
 
 - **Sintoma:** OpenCode aparecia `connected`, mas o painel do terminal permanecia vazio.

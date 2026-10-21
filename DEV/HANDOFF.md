@@ -1,6 +1,15 @@
 # Handoff
 
-## Estado atual — correções locais de inicialização dos agentes no Windows — 2026-10-21
+## PR aberto — correções iniciais dos agentes no Windows — 2026-10-21
+
+- Branch fix/issue-53-windows-agent-startup, commit d42db81b, baseada em release/v1.0.0.
+- PR #54: https://github.com/IAPro-Community/nexus/pull/54; associa e fecha o issue #53: https://github.com/IAPro-Community/nexus/issues/53.
+- Escopo limitado ao primeiro uso dos agentes após a instalação limpa beta.10 relatada em Windows amd64: metadados do Nexus não viram flags CLI; PATHEXT prioriza executáveis Windows; TUI Codex usa --no-daemon para socket derivado longo; configuração OpenCode seedada é preservada; OpenCode usa ConPTY para a TUI.
+- Testes dos seis pacotes Go focados passaram com USERPROFILE temporário isolado; go vet nos mesmos pacotes passou; build Windows amd64 e smoke instalado confirmaram Codex/OpenCode RUNNING e tela interativa do OpenCode; git diff --check passou.
+- A suíte completa passou antes do ajuste final ConPTY, mas não foi repetida no conjunto final. Na última consulta, Sanitize self-hosted workspace estava pendente; certificações nativas foram ignoradas pelo workflow.
+- DEV/validation/FRONTEND_HISTORY.md e FRONTEND_LATEST.md permanecem fora da PR como alterações locais de evidência visual.
+
+## Registro anterior à abertura do PR — correções locais de inicialização dos agentes no Windows — 2026-10-21
 
 - **Branch:** `release/v1.0.0`, HEAD `f6098b8c`; alterações locais ainda não commitadas.
 - **Correções:** `agent_mode_id`/`read_only_by_default` não viram argumentos do provedor; executáveis `.cmd` encontrados via `PATHEXT` precedem shims POSIX sem extensão; TUI Codex usa `--no-daemon` quando o caminho do socket alcança o limite conservador; OpenCode preserva configuração já provisionada no perfil para evitar recópia lenta antes do handshake; no Windows, OpenCode agora usa ConPTY para renderizar sua TUI.

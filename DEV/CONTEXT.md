@@ -1,6 +1,14 @@
 # Contexto atual
 
-## Atualização de estado — TUI do OpenCode no Windows — 2026-10-21
+## Atualização de estado — PR #54, primeiro uso Codex/OpenCode no Windows — 2026-10-21
+
+- Branch fix/issue-53-windows-agent-startup, commit d42db81b; PR #54 contra release/v1.0.0 e relacionado ao issue #53.
+- Escopo: somente o startup e o terminal Codex/OpenCode após a instalação limpa beta.10 relatada em Windows amd64. As mudanças cobrem filtragem dos metadados do launcher, resolução PATHEXT, fallback --no-daemon do TUI Codex, preservação da configuração OpenCode e ConPTY no Windows.
+- Testes dos seis pacotes relacionados, go vet, build Windows amd64 e smoke instalado passaram; Codex e OpenCode ficaram RUNNING e OpenCode exibiu a tela inicial interativa.
+- A suíte Go completa passou antes da última mudança ConPTY e não foi repetida para o conjunto final. Sanitize self-hosted workspace estava pendente na última consulta do CI.
+- A primeira execução de teste leu credencial OpenCode Zen por USERPROFILE ainda apontar ao perfil real; os seis pacotes passaram após isolar USERPROFILE temporariamente. A validação visual do frontend ficou fora da PR.
+
+## Registro pré-PR — TUI do OpenCode no Windows — 2026-10-21
 
 - Causa da tela vazia: no Windows, provedores genéricos usavam pipes comuns; o OpenCode iniciava e conectava, mas sua TUI não tinha uma console real para renderizar. `NewBackendForProvider` agora escolhe ConPTY automaticamente para OpenCode, mantendo pipes para provedores desconhecidos e os overrides existentes por variável de ambiente. A capacidade do driver também informa ConPTY corretamente.
 - Testes direcionados `go test -count=1 -timeout=5m ./internal/control/terminal ./internal/control/driver`, `go vet ./internal/control/terminal ./internal/control/driver ./internal/control/host` e build Windows amd64 passaram. Build instalado: `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`, beta.10, commit local `f6098b8c-dirty`, SHA-256 `97BBF81F6BD405008AA3D3138B89B929CD47E71D056903E74C5A8AEF3CB70FB5`.
