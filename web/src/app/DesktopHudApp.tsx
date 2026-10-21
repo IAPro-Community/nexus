@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from '../design-system';
 import { initSession } from '../api';
 import { NexusHud } from '../features/hud/NexusHud';
+import type { CompanionAttention } from '../features/hud/companionModel';
+import { buildProjectRoute } from './routes';
 import { getPlatformBridge, hudV3, isDesktopApp } from '../platform';
 import styles from './DesktopHudApp.module.scss';
 
@@ -92,11 +94,27 @@ export const DesktopHudApp: React.FC = () => {
       .finally(() => setAutoStartPending(false));
   };
 
-  const openNexus = () => {
+  const openNexus = (attention?: CompanionAttention) => {
     void (async () => {
       const bridge = getPlatformBridge();
       const bootstrap = await bridge.getBootstrapInfo?.();
-      if (bootstrap?.serverUrl) await bridge.openExternal(bootstrap.serverUrl);
+      if (!bootstrap?.serverUrl) return;
+      const destination = new URL(bootstrap.serverUrl);
+      // Project-specific routes are part of the Web router contract. Never
+      // construct an intervention deep link without a trusted project ID.
+      if (attention?.projectId) {
+        const route = attention.target === 'missions' ? 'missions' :
+          attention.target === 'agents' ? 'agents' :
+          attention.target === 'usage' ? 'resources' : 'overview';
+        destination.pathname = buildProjectRoute(
+          attention.projectId,
+          route,
+          attention.target === 'missions' || attention.target === 'agents'
+            ? attention.recordId
+            : undefined,
+        );
+      }
+      await bridge.openExternal(destination.toString());
     })();
   };
 
@@ -114,7 +132,8 @@ export const DesktopHudApp: React.FC = () => {
         ) : (
           <NexusHud
             native
-            onOpenNexus={openNexus}
+            onOpenNexus={() => openNexus()}
+            onOpenTarget={openNexus}
             nativeAutoStart={{
               supported: autoStartSupported,
               enabled: autoStartEnabled,

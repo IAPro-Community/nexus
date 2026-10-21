@@ -76,6 +76,9 @@ var hudSizePresets = []HUDSizePreset{
 	{ID: "compact", Label: "Compacto", CompactWidth: 220, CompactHeight: 60, ExpandedWidth: 334, ExpandedHeight: 496},
 	{ID: "comfortable", Label: "Confortável", CompactWidth: 260, CompactHeight: 70, ExpandedWidth: 380, ExpandedHeight: 560},
 	{ID: "large", Label: "Grande", CompactWidth: 320, CompactHeight: 84, ExpandedWidth: 440, ExpandedHeight: 640},
+	// A fixed-size sprite canvas is easier to interact with and never uses a
+	// screen-sized transparent window. The normal bar presets remain available.
+	{ID: "companion", Label: "Guardião 2D", CompactWidth: 224, CompactHeight: 158, ExpandedWidth: 380, ExpandedHeight: 560},
 }
 
 type HUDWindowStateManager struct {
@@ -471,6 +474,41 @@ func (h *HUDController) SetHUDSizePreset(preset string, expanded bool) error {
 	targetWidth, targetHeight := selected.CompactWidth, selected.CompactHeight
 	if expanded {
 		targetWidth, targetHeight = selected.ExpandedWidth, selected.ExpandedHeight
+	}
+	state.X, state.Y = window.Position()
+	oldWidth, oldHeight := window.Size()
+	state.X += oldWidth - targetWidth
+	state.Y += oldHeight - targetHeight
+	state.Width, state.Height = targetWidth, targetHeight
+	if screen := h.screenForState(state, window); screen != nil {
+		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
+		state.DisplayID = screen.ID
+		state.DisplayScale = screen.ScaleFactor
+	}
+	window.SetSize(state.Width, state.Height)
+	if h.GetHUDCapabilities().GlobalPositioning {
+		window.SetPosition(state.X, state.Y)
+	}
+	state.Placement = HUDPlacementCustom
+	return h.manager.Save(state)
+}
+
+// SetHUDBubbleVisible reserves temporary space for a short notification.
+// It does not change the compact preset: dismissing the bubble restores the
+// previous bottom-right anchor. This is deliberately a transient fallback;
+// platform-native per-pixel hit testing still requires separate certification.
+func (h *HUDController) SetHUDBubbleVisible(visible bool) error {
+	window, ok := h.nativeWindow()
+	if !ok {
+		return fmt.Errorf("native Nexus HUD window is unavailable")
+	}
+	state := h.manager.Load()
+	if state.CompactHeight < 120 {
+		return fmt.Errorf("attention bubbles require the companion presentation")
+	}
+	targetWidth, targetHeight := state.CompactWidth, state.CompactHeight
+	if visible {
+		targetWidth, targetHeight = 310, 245
 	}
 	state.X, state.Y = window.Position()
 	oldWidth, oldHeight := window.Size()

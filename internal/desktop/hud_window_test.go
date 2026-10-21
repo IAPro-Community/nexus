@@ -172,6 +172,34 @@ func TestHUDSizePresetsAreDistinctAndBounded(t *testing.T) {
 	}
 }
 
+func TestNexusCompanionNativeViewportContract(t *testing.T) {
+	preset, ok := resolveHUDSizePreset("companion")
+	if !ok {
+		t.Fatal("companion presentation preset missing")
+	}
+	if preset.CompactWidth != 224 || preset.CompactHeight != 158 ||
+		preset.ExpandedWidth < 320 || preset.ExpandedHeight < 480 {
+		t.Fatalf("unexpected companion viewport dimensions: %+v", preset)
+	}
+	in := HUDWindowState{
+		Placement: HUDPlacementCustom,
+		X: 120, Y: 110, Width: 310, Height: 245,
+		CompactWidth: preset.CompactWidth, CompactHeight: preset.CompactHeight,
+		ExpandedWidth: preset.ExpandedWidth, ExpandedHeight: preset.ExpandedHeight,
+	}
+	out := compactHUDWindowState(in)
+	if out.Width != preset.CompactWidth || out.Height != preset.CompactHeight {
+		t.Fatalf("restored bubble should be compact: %+v", out)
+	}
+	if out.X + out.Width != in.X + in.Width || out.Y + out.Height != in.Y + in.Height {
+		t.Fatalf("bottom right anchor drift: input=%+v output=%+v", in, out)
+	}
+	h := NewHUDController(NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json")))
+	if err := h.SetHUDBubbleVisible(true); err == nil {
+		t.Fatal("speech bubble without native window must fail")
+	}
+}
+
 func TestHUDControllerSizePresetRequiresNativeWindow(t *testing.T) {
 	controller := NewHUDController(NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json")))
 	if err := controller.SetHUDSizePreset("comfortable", false); err == nil {

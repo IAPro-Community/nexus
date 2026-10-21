@@ -121,6 +121,41 @@ async function main() {
       fullPage: true,
     });
 
+    // Companion must be selectable without remounting the HUD or losing the
+    // classic capsule. Native transparency is certified by separate OS smoke.
+    await page.getByRole('button', { name: /recolher nexus hud/i }).first().click();
+    await page.evaluate(() => {
+      const key = 'iapro:nexus:hud:presentation:v1';
+      const prefs = JSON.parse(window.localStorage.getItem(key) || '{}');
+      window.localStorage.setItem(key, JSON.stringify({ ...prefs, enabled: true, appearance: 'companion' }));
+      window.dispatchEvent(new CustomEvent('nexus:hud-preferences'));
+    });
+    await page.locator('aside[data-appearance="companion"]').waitFor({ state: 'visible' });
+    const guardian = page.locator('[data-companion-guardian]');
+    await guardian.waitFor({ state: 'visible' });
+    await guardian.click();
+    await page.locator('aside[data-appearance="companion"] #nexus-hud-popover').waitFor({
+      state: 'visible',
+    });
+    await page.screenshot({
+      path: path.join(screenshotDir, 'web-hud-companion-expanded.png'),
+      fullPage: true,
+    });
+    await page.getByRole('button', { name: /recolher painel do nexus/i }).click();
+    await page.locator('[data-companion-bucket]').click();
+    await page.locator('#nexus-hud-popover').waitFor({ state: 'visible' });
+    await page.screenshot({
+      path: path.join(screenshotDir, 'web-hud-companion-pendings.png'),
+      fullPage: true,
+    });
+    await page.evaluate(() => {
+      const key = 'iapro:nexus:hud:presentation:v1';
+      const prefs = JSON.parse(window.localStorage.getItem(key) || '{}');
+      window.localStorage.setItem(key, JSON.stringify({ ...prefs, appearance: 'bar' }));
+      window.dispatchEvent(new CustomEvent('nexus:hud-preferences'));
+    });
+    await page.locator('aside[data-appearance="bar"]').waitFor({ state: 'visible' });
+
     // Mobile is a condensed viewport treatment, not a scaled desktop dialog.
     await page.setViewportSize({ width: 390, height: 844 });
     await hud.waitFor({ state: 'visible' });
